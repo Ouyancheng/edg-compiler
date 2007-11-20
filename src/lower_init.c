@@ -5581,6 +5581,34 @@ code is needed, insert it at *insert_location.
 }  /* add_local_static_guard_var_cleanup */
 
 
+static void remove_destructions_for_partially_constructed_aggregate(
+                                             a_dynamic_init_ptr preceding_init)
+/*
+Remove any destructions for partially constructed aggregates on the latest
+initialization list (up to preceding_init -- which may be NULL, indicating
+that there is no preceding initialization in the current lifetime) and adjust
+the cleanup state accordingly.
+*/
+{
+  a_dynamic_init_ptr dip = curr_context->latest_initialization;
+  a_dynamic_init_ptr prev = NULL;
+
+  while (dip != NULL && dip != preceding_init) {
+    if (dip->destruction_is_for_partially_constructed_aggregate) {
+      if (dip == curr_context->latest_initialization) {
+        curr_context->latest_initialization = dip->next_in_destruction_list;
+      } else {
+        check_assertion(prev != NULL);
+        prev->next_in_destruction_list = dip->next_in_destruction_list;
+      }  /* if */
+    }  /* if */
+    prev = dip;
+    dip = dip->next_in_destruction_list;
+  }  /* while */
+  set_curr_cleanup_state_to_latest_initialization();
+}  /* remove_destructions_for_partially_constructed_aggregate */
+
+
 static void adjust_cleanup_state_for_aggregate_init(
                                              a_dynamic_init_ptr dip,
                                              a_dynamic_init_ptr preceding_init,
@@ -6754,6 +6782,14 @@ do_assignment:;
          for a partial aggregate destruction on an array initialization. */
     } else if (static_var_init &&
                !dip->destruction_is_for_partially_constructed_aggregate) {
+      if (dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate &&
+          processing_file_scope_init_routine && !C_mode()) {
+        /* Now that the static aggregate has been fully constructed, remove
+           any destructions for partially constructed aggregates that may
+           still be a part of the cleanup state. */
+        remove_destructions_for_partially_constructed_aggregate(
+                                               latest_initialization_on_entry);
+      }  /* if */
       /* For static variables (local or global), generate code to record
          at runtime the need for a destruction later. */
       record_needed_destruction(dip, ipdp, eff_insert_location);
