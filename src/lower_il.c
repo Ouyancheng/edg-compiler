@@ -10770,7 +10770,7 @@ the top node of the indicated statement (which is an expression statement).
       */
       a_variable_ptr   temp_var;
       check_assertion(!rtsp->value_returned_by_cctor);
-      temp_var = make_lowered_temporary(skip_typerefs(
+      temp_var = make_lowered_temporary(f_skip_typerefs(
                                              original_return_type(rout_type)));
       temp_node = var_addr_expr(temp_var);
       call_expr = copy_node(expr);
