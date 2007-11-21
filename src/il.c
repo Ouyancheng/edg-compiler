@@ -1654,18 +1654,17 @@ Dump the contents of the indicated expression node for debug purposes.
       fputs("throw: ", f_debug);
       tsp = node->variant.throw_info;
       if (tsp == NULL) {
-        fputs("rethrow", f_debug);
+        fputs("rethrow\n", f_debug);
       } else {
         fprintf(f_debug, "type = ");
         db_abbreviated_type(tsp->type);
         fprintf(f_debug, ", dynamic_init = ");
         if (tsp->dynamic_init == NULL) {
-          fprintf(f_debug, "<null>");
+          fprintf(f_debug, "<null>\n");
         } else {
           db_dynamic_initializer(tsp->dynamic_init, level + 2);
         }  /* if */
       }  /* if */
-      fputs("\n", f_debug);
       break;
     case enk_condition:
       fputs("condition: ", f_debug);
