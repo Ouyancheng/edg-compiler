@@ -5591,18 +5591,18 @@ the cleanup state accordingly.
 */
 {
   a_dynamic_init_ptr dip = curr_context->latest_initialization;
-  a_dynamic_init_ptr prev = NULL;
 
   while (dip != NULL && dip != preceding_init) {
     if (dip->destruction_is_for_partially_constructed_aggregate) {
       if (dip == curr_context->latest_initialization) {
         curr_context->latest_initialization = dip->next_in_destruction_list;
-      } else {
-        check_assertion(prev != NULL);
-        prev->next_in_destruction_list = dip->next_in_destruction_list;
       }  /* if */
+    } else {
+      /* Non-partially constructed aggregate (could happen when the
+         lifetime of a temporary has been extended).  Set the lifetime and
+         cleanup state to point here. */
+      break;
     }  /* if */
-    prev = dip;
     dip = dip->next_in_destruction_list;
   }  /* while */
   set_curr_cleanup_state_to_latest_initialization();
