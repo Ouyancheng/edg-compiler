@@ -1,5 +1,29 @@
 Version 3.11
 
+11/20/07 C++-generating back end: accessibility of underlying types of
+         typedefs used as template arguments
+
+The change of 11/10/04, which caused template arguments to be generated
+using the underlying type instead of a typedef name whenever possible, did
+not take into account cases in which the underlying type is itself an
+instance of a class template.  This oversight resulted in incorrect code
+when one of that template's arguments is inaccessible.  This has now been
+fixed; the C++-generating back end now performs a full recursive scan of
+template arguments appearing in the underlying type and will use the
+typedef name if any of them is inaccessible.  For example:
+
+  template <typename T> struct S {};
+
+  class C {
+    struct P { };
+  public:
+    typedef S<P> SP;
+  };
+
+  template <typename T> struct U {};
+
+  U<C::SP> usp;    // Type previously generated as "U< S< C::P> >"
+
 11/13/07 printf and scanf argument checking: %s
 
 The checking of arguments to printf and scanf now allows the argument

@@ -408,7 +408,8 @@ static void gen_routine_decl(a_boolean suppress_specifiers,
 static void gen_declaration(a_boolean for_init);
 static a_boolean parens_may_be_needed(a_byte           operator_precedence,
                                       an_expr_node_ptr operand);
-static a_boolean entity_is_publicly_accessible(a_source_correspondence_ptr scp);
+static a_boolean entity_name_is_accessible(a_source_correspondence_ptr scp,
+                                           an_il_entry_kind            kind);
 /*
 Options for gen_general_declaration_using_type.
 */
@@ -1000,6 +1001,95 @@ Restore the current source sequence list scan state from *state.
   sublist_parent_source_sequence_entry =
                                state->sublist_parent_source_sequence_entry;
 }  /* restore_source_sequence_scan_state */
+
+
+static a_boolean template_arg_is_accessible(a_template_arg_ptr argp)
+/*
+Return TRUE if the template argument has no name (for a nontype template
+argument) or if all names in the template argument are accessible in the
+current context, FALSE otherwise.
+*/
+{
+  a_boolean is_accessible = TRUE;
+
+  switch (argp->kind) {
+  case tak_type:
+    is_accessible = entity_name_is_accessible(
+                                           &argp->variant.type->source_corresp,
+                                           iek_type);
+    break;
+  case tak_nontype:
+    if (!argp->is_array_bound_of_unknown_type &&
+        argp->variant.constant->kind == (a_constant_repr_kind)ck_address) {
+      a_constant_ptr constant = argp->variant.constant;
+      if (constant->variant.address.kind ==
+                                           (an_address_base_kind)abk_routine) {
+        is_accessible = entity_name_is_accessible(
+                    &constant->variant.address.variant.routine->source_corresp,
+                    iek_routine);
+      } else if (constant->variant.address.kind ==
+                                          (an_address_base_kind)abk_variable) {
+        is_accessible = entity_name_is_accessible(
+                   &constant->variant.address.variant.variable->source_corresp,
+                   iek_variable);
+      }  /* if */
+    }  /* if */
+    break;
+  case tak_template:
+    is_accessible = entity_name_is_accessible(
+                                      &argp->variant.templ.ptr->source_corresp,
+                                      iek_template);
+    break;
+  default:
+    unexpected_condition();
+  }  /* switch */
+  return is_accessible;
+}  /* template_arg_is_accessible */
+
+
+static a_boolean entity_name_is_accessible(a_source_correspondence_ptr scp,
+                                           an_il_entry_kind            kind)
+/*
+Return TRUE if the entity described by scp and kind can be named without
+access errors in the current scope -- i.e., if the entity and any classes
+in which it is nested are non-members or public members of their containing
+classes, or if the containing class is in the context stack.  This check
+also includes the names of the template arguments of a class template
+instance.
+*/
+{
+  a_boolean is_accessible;
+
+  if (scp->access == (an_access_specifier)as_public) {
+    /* Either a public class member or a non-member. */
+    is_accessible = TRUE;
+  } else {
+    /* Check to see if the containing class is in the context stack. */
+    a_type_ptr parent_class = scp->parent.class_type;
+    is_accessible = (class_is_in_name_context_stack(
+                                             parent_class,
+                                             /*include_base_classes=*/FALSE) ||
+                     (curr_name_context != NULL &&
+                      curr_name_context->class_type_for_access_not_naming ==
+                                                                parent_class));
+  }  /* if */
+  if (is_accessible && kind == iek_type) {
+    /* Check for the accessibility of names used in template arguments, if
+       any. */
+    a_type_ptr type = (a_type_ptr)scp;
+    if (is_immediate_class_type(type)) {
+      a_template_arg_ptr tap;
+      for (tap =
+                type->variant.class_struct_union.extra_info->template_arg_list;
+           is_accessible && tap != NULL; tap = tap->next) {
+        if (!template_arg_is_accessible(tap)) {
+          is_accessible = FALSE;
+        }  /* if */
+      }  /* for */
+    }  /* if */
+  }  /* if */
+  return is_accessible;
+}  /* entity_name_is_accessible */
 
 
 static void adv_to_signif_source_sequence_entry(void)
@@ -2058,36 +2148,7 @@ that the remaining arguments will be defaulted.
              accessibility of the argument to see if we should truncate the
              argument list at this point to avoid possible access
              problems. */
-          a_boolean use_default_arg = FALSE;
-          switch (argp->kind) {
-          case tak_type:
-            use_default_arg = !entity_is_publicly_accessible(
-                                          &argp->variant.type->source_corresp);
-            break;
-          case tak_nontype:
-            if (!argp->is_array_bound_of_unknown_type &&
-                argp->variant.constant->kind ==
-                                            (a_constant_repr_kind)ck_address) {
-              a_constant_ptr constant = argp->variant.constant;
-              if (constant->variant.address.kind ==
-                                           (an_address_base_kind)abk_routine) {
-                use_default_arg = !entity_is_publicly_accessible(
-                   &constant->variant.address.variant.routine->source_corresp);
-              } else if (constant->variant.address.kind ==
-                                          (an_address_base_kind)abk_variable) {
-                use_default_arg = !entity_is_publicly_accessible(
-                   &constant->variant.address.variant.variable->source_corresp);
-              }  /* if */
-            }  /* if */
-            break;
-          case tak_template:
-            use_default_arg = !entity_is_publicly_accessible(
-                                     &argp->variant.templ.ptr->source_corresp);
-            break;
-          default:
-            unexpected_condition();
-          }  /* switch */
-          if (use_default_arg) {
+          if (!template_arg_is_accessible(argp)) {
             break;
           }  /* if */
         }  /* if */
@@ -2305,24 +2366,6 @@ Return a string that describes the tag kind for the indicated type (i.e.,
 }  /* tag_keyword */
 
 
-static a_boolean entity_is_publicly_accessible(a_source_correspondence_ptr scp)
-/*
-Returns TRUE if the entity described by scp can be named without access
-errors in an unrelated scope -- i.e., if the entity and any classes in
-which it is nested are either non-members or are public members of their
-containing classes.  If any name appearing in the fully-qualified name of
-the entity is a non-public class member, return FALSE.
-*/
-{
-  a_boolean is_public = TRUE;
-  while (scp->is_class_member && is_public) {
-    is_public = scp->access == (an_access_specifier)as_public;
-    scp = &scp->parent.class_type->source_corresp;
-  }  /* while */
-  return is_public;
-}  /* entity_is_publicly_accessible */
-
-
 static a_boolean type_involves_non_cplusplus_function(a_type_ptr type)
 /*
 Returns TRUE if the type is a function type with non-C++ linkage or is a
@@ -2389,19 +2432,13 @@ is called.
        <stdarg.h> header is included). */
     if (type->is_builtin_va_list) invisible = FALSE;
 #endif /* GCC_BUILTIN_VARARGS */
-  } else if (!entity_is_publicly_accessible(&type->source_corresp)) {
-    /* The typedef is a non-public member of a class.  There might be
+  } else if (!entity_name_is_accessible(&type->source_corresp, iek_type)) {
+    /* The typedef is an inaccessible member of a class.  There might be
        an access problem for this if we're not inside the class, so drop
        the typedef in that case.  This comes up, from example, on template
        arguments for non-member templates that are first established using
        a member typedef. */
-    a_type_ptr parent_class = type->source_corresp.parent.class_type;
-    if (!class_is_in_name_context_stack(parent_class,
-                                        /*include_base_classes=*/FALSE) &&
-        (curr_name_context == NULL ||
-         curr_name_context->class_type_for_access_not_naming != parent_class)){
-      invisible = TRUE;
-    }  /* if */
+    invisible = TRUE;
   }  /* if */
   if (in_template_argument_list && !invisible
 #if GCC_BUILTIN_VARARGS
@@ -2423,22 +2460,11 @@ is called.
          to keep the typedef (linkage specifications in types can only be
          represented via typedefs). */
       invisible = FALSE;
-    } else if (!entity_is_publicly_accessible(&underlying_type->
-                                                             source_corresp)) {
-      /* The underlying type is not generally accessible, but if we're inside
-         the scope of the underlying type's containing class, we will still
-         have access. */
-      a_type_ptr parent_of_underlying_type =
-                             underlying_type->source_corresp.parent.class_type;
-      if (!class_is_in_name_context_stack(parent_of_underlying_type,
-                                          /*include_base_classes=*/FALSE) &&
-          (curr_name_context == NULL ||
-           curr_name_context->class_type_for_access_not_naming !=
-                                                  parent_of_underlying_type)) {
-        /* The underlying type may be inaccessible, so we have to use the
-           typedef. */
-        invisible = FALSE;
-      }  /* if */
+    } else if (!entity_name_is_accessible(&underlying_type->source_corresp,
+                                          iek_type)) {
+      /* The underlying type may be inaccessible, so we have to use the
+         typedef. */
+      invisible = FALSE;
     }  /* if */
   }  /* if */
   return invisible;
