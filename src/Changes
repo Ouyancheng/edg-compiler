@@ -1,5 +1,16 @@
 Version 3.11
 
+11/21/07  Add support for function return by pointer in lowering
+
+In cases where a function returns a class value by copy constructor
+(i.e., when the value_returned_by_cctor flag is TRUE), lowering
+modifies the function to return its value through an additional
+parameter, as required by both IA-64 and Cfront like ABIs.
+General support for performing this modification (i.e., returning a function's
+value through an additional argument rather than the return value),
+is now provided by the new routine set_lowered_routine_calling_method_flag
+(e.g., in the case of sufficiently large POD classes).
+
 11/20/07 C++-generating back end: accessibility of underlying types of
          typedefs used as template arguments
 

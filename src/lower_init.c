@@ -3185,8 +3185,10 @@ default_arg_list.
   new_rtsp = new_routine->type->variant.routine.extra_info;
   this_param_type = new_rtsp->param_type_list->type;
   /* This routine doesn't handle the extra argument for a return via
-     copy constructor.  It could be changed to do so. */
-  check_assertion(!rtsp->value_returned_by_cctor);
+     copy constructor or additional parameter.  It could be changed
+     to do so. */
+  check_assertion(!rtsp->value_returned_by_cctor &&
+                  !rtsp->value_returned_as_parameter);
   /* Make a memory region, scope, and block for the routine definition. */
   new_routine_scope = make_routine_definition(new_routine,
                                               /*make_return=*/FALSE,

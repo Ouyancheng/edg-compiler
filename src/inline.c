@@ -1246,11 +1246,10 @@ If not, *failed is set.
                                                   routine_scope_being_inlined->
                                                    variant.routine.ptr->type);
               if (routine_type->variant.routine.extra_info->
-                                                     value_returned_by_cctor) {
-                /* The routine returns its value via a copy constructor, so
-                   don't check for the return type matching the type of the
-                   expression -- the return value is passed via an added
-                   parameter. */
+                                                 value_returned_as_parameter) {
+                /* The routine has been modified to return its value via
+                   an added parameter, so don't check for the return type
+                   matching the type of the expression. */
               } else {
                 a_type_ptr routine_return_type = routine_type->
                                                    variant.routine.return_type;

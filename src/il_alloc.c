@@ -1509,6 +1509,10 @@ to default values.
       rtsp->old_style_params_scanned = FALSE;
       rtsp->lint_argsused_flag       = FALSE;
       rtsp->value_returned_by_cctor  = FALSE;
+#if DO_IL_LOWERING
+      rtsp->value_returned_as_parameter = FALSE;
+      rtsp->return_value_parameter_follows_this = FALSE;
+#endif /* DO_IL_LOWERING */
       rtsp->assoc_routine_is_ctor    = FALSE;
       rtsp->assoc_routine_is_dtor    = FALSE;
       rtsp->suppress_diagnostic_on_incomplete_return_type = FALSE;

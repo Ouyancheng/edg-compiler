@@ -1265,6 +1265,16 @@ Display a_routine_type_supplement.
     disp_boolean("value_returned_by_cctor",
                  (a_boolean)ptr->value_returned_by_cctor);
   }  /* if */
+#if DO_IL_LOWERING
+  if (ptr->value_returned_as_parameter) {
+    disp_boolean("value_returned_as_parameter",
+                 (a_boolean)ptr->value_returned_as_parameter);
+  }  /* if */
+  if (ptr->return_value_parameter_follows_this) {
+    disp_boolean("return_value_parameter_follows_this",
+                 (a_boolean)ptr->return_value_parameter_follows_this);
+  }  /* if */
+#endif /* DO_IL_LOWERING */
   if (ptr->assoc_routine_is_ctor) {
     disp_boolean("assoc_routine_is_ctor", TRUE);
   }  /* if */

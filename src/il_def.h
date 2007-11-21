@@ -4259,6 +4259,26 @@ typedef struct a_routine_type_supplement {
 			   location.  This is used only for functions that
 			   return C++ class types, for cases where the
 			   class type returned requires a copy constructor. */
+#if DO_IL_LOWERING
+  a_bit_field	value_returned_as_parameter:1;
+			/* If TRUE, the routine is modified to accept an
+			   additional parameter that is used in place of the
+			   return value.  The caller places an address of
+			   a class or struct in the new argument, and the
+			   called function places the result in that location.
+			   Currently used only when value_returned_by_cctor
+			   is TRUE, but could be used in cases where
+			   large structs are being returned. */
+  a_bit_field	return_value_parameter_follows_this:1;
+			/* In cases where value_returned_as_parameter
+			   is TRUE, this flag controls whether the newly added
+			   parameter comes after the 'this' parameter (TRUE)
+			   or not (FALSE) in cases where the routine is a
+			   member function.  This is typically determined
+			   by the ABI being used, with IA-64 requiring the flag
+			   to be FALSE, and the Cfront-like ABI requiring
+			   a setting of TRUE. */
+#endif /* DO_IL_LOWERING */
   a_bit_field	assoc_routine_is_ctor:1;
 			/* TRUE if associated with a constructor, even if the
 			   assoc_routine pointer has not yet been supplied. */

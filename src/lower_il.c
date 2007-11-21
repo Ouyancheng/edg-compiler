@@ -7657,6 +7657,82 @@ routine is NULL if the routine is unknown or does not have a definition.
 }  /* should_drop_const_on_this_param_variable */
 
 
+static a_type_ptr original_return_type(a_type_ptr routine_type)
+/*
+Returns the original return_type of the routine whose type is 
+(lowered or unlowered) routine_type.  During lowering of a routine
+type that will return its value as a parameter, the return type is
+changed to "void" (see lower_type).  This function will determine
+the original return type and return it.
+*/
+{
+  a_type_ptr                    return_type;
+  a_routine_type_supplement_ptr rtsp;
+  a_param_type_ptr              ptp;
+
+  routine_type = skip_typerefs(routine_type);
+  rtsp = routine_type->variant.routine.extra_info;
+  if (visited_yet(routine_type) && rtsp->value_returned_as_parameter) {
+    /* The routine type returns its value as a parameter and the type
+       has already been lowered (so the return type is now "void").
+       The original type can be retrieved from the parameter that
+       was added.  Find that parameter and return its type. */
+    ptp = rtsp->param_type_list;
+    if (rtsp->this_class != NULL &&
+        rtsp->return_value_parameter_follows_this) {
+      ptp = ptp->next;
+    }  /* if */
+    return_type = type_pointed_to(ptp->type);
+  } else {
+    /* Type hasn't been lowered, or this routine doesn't return its
+       value as a parameter so the type is in the usual place. */
+    return_type = routine_type->variant.routine.return_type;
+  }  /* if */
+  return return_type;
+}  /* original_return_type */
+
+
+static void set_lowered_routine_calling_method_flag(a_type_ptr routine_type)
+/*
+Set the flag that determines whether the routine whose type is routine_type
+will be modified during lowering to return the function result in an
+additional parameter.  This it typically used for routines that return
+their class value by means of a copy constructor.  This routine may be
+called more than once for the same routine type, and should precede any
+access to value_returned_as_parameter to guarantee that the flag is set
+appropriately.
+*/
+{
+  a_routine_type_supplement_ptr rtsp;
+
+  routine_type = skip_typerefs(routine_type);
+  rtsp = routine_type->variant.routine.extra_info;
+  if (rtsp->value_returned_as_parameter) {
+    /* Once the flag is set, it will never change. */
+  } else if (rtsp->value_returned_by_cctor) {
+    /* If the function returns its value via a copy constructor, we
+       want to rewrite it to return it through a parameter. */
+    rtsp->value_returned_as_parameter = TRUE;
+#if IA64_ABI
+    /* New return value parameter precedes 'this' in IA-64 ABI. */
+    rtsp->return_value_parameter_follows_this = FALSE;
+#else /* !IA64_ABI */
+    /* New return value parameter follows 'this' in Cfront-like ABI. */
+    rtsp->return_value_parameter_follows_this = TRUE;
+#endif /* IA64_ABI */
+  } else {
+    /* There may be additional cases (e.g., sufficiently large structures)
+       where it makes sense to return the value as a parameter.  Note
+       however that no copy constructor is invoked, so this method is
+       useful only for PODs. */
+  }  /* if */
+  /* We don't handle the case where the value is returned by copy
+     constructor and the value is not returned as a parameter. */
+  check_assertion(!(rtsp->value_returned_by_cctor &&
+                    !rtsp->value_returned_as_parameter));
+}  /* set_lowered_routine_calling_method_flag */
+
+
 static void lower_type(a_type_ptr type)
 /*
 Do IL lowering of the indicated type and everything under it.
@@ -7766,7 +7842,10 @@ Do IL lowering of the indicated type and everything under it.
             /* We do not clear has_ellipsis on purpose.  The C-generating
                back end depends on it in this case. */
           }  /* if */
-          if (rtsp->value_returned_by_cctor) {
+          /* Make sure we initialize value_returned_as_parameter before
+             using it. */
+          set_lowered_routine_calling_method_flag(type);
+          if (rtsp->value_returned_as_parameter) {
             /* Add an extra parameter in which the return address will be
                passed. */
             ptr_return_type = 
@@ -7792,16 +7871,13 @@ Do IL lowering of the indicated type and everything under it.
                                                           type)) {
               ptp->qualifiers = TQ_CONST;
             }  /* if */
-#if IA64_ABI
-            /* In the IA64 ABI, if there is both a "this" parameter and
-               a return value address, the return value address comes first. */
-            if (rtsp->value_returned_by_cctor) {
+            /* If there is both a "this" parameter and a return value address,
+               see which comes first. */
+            if (rtsp->value_returned_as_parameter &&
+                !rtsp->return_value_parameter_follows_this) {
               ptp->next = rtsp->param_type_list->next;
               rtsp->param_type_list->next = ptp;
-            } else
-#endif /* IA64_ABI */
-            /* Do not insert code here. */
-            {
+            } else {
               ptp->next = rtsp->param_type_list;
               rtsp->param_type_list = ptp;
             }  /* if */
@@ -8518,14 +8594,14 @@ lowered, return the list after any implicit parameters added by lowering.
       if (dtor_needs_vtt_argument(routine)) param = param->next;
 #endif /* IA64_ABI */
     }  /* if */
-    /* If the routine returns its value via a copy constructor, an extra
-       parameter is used to pass the address for the return value.
-       Note that we're not implying anything about the order of added
-       parameters here; we're just stepping over the right number.
+    /* If the routine returns its value via an extra added parameter
+       we need to take it into account.  Note that we're not implying
+       anything about the order of added parameters here;
+       we're just stepping over the right number.
        The Cfront-like ABI and the IA64 ABI have the "this" and
        return value address parameters in different orders, but
        it doesn't matter in stepping over them. */
-    if (rtsp->value_returned_by_cctor) param = param->next;
+    if (rtsp->value_returned_as_parameter) param = param->next;
   }  /* if */
   return param;
 }  /* unlowered_param_type_list_full */
@@ -8556,11 +8632,12 @@ a_param_type entry for the "this" parameter.
   rtsp = routine_type->variant.routine.extra_info;
   check_assertion(rtsp->this_class != NULL);
   param = rtsp->param_type_list;
-#if IA64_ABI
-  /* In the IA64 ABI, if there is both a "this" parameter and
-     a return value address, the return value address comes first. */
-  if (rtsp->value_returned_by_cctor) param = param->next;
-#endif /* IA64_ABI */
+  /* If there is both a "this" parameter and a return value address,
+     adjust for the case when the return value address comes first. */
+  if (rtsp->value_returned_as_parameter &&
+      !rtsp->return_value_parameter_follows_this) {
+    param = param->next;
+  }  /* if */
   return param;
 }  /* param_type_for_this */
 
@@ -10102,18 +10179,19 @@ have already been lowered.
   rtsp = func_type->variant.routine.extra_info;
   object_node = func_node->next;
   additional_args = object_node->next;
-  if (rtsp->value_returned_by_cctor) {
-    /* The function returns its value via a copy constructor and an
-       added return value address parameter. */
-#if IA64_ABI
-    /* In the IA-64 ABI, the return address precedes the "this" parameter. */
-    return_node = object_node;
-    object_node = additional_args;
-#else /* !IA64_ABI */
-    /* In the Cfront-like ABI, the return address follows the "this"
+  if (rtsp->value_returned_as_parameter) {
+    /* The function returns its value via an added return value address
        parameter. */
-    return_node = additional_args;
-#endif /* IA64_ABI */
+    if (rtsp->return_value_parameter_follows_this) {
+      /* The parameter added for the return address follows the "this"
+         parameter. */
+      return_node = additional_args;
+    } else {
+      /* The parameter added for the return address precedes the "this"
+         parameter. */
+      return_node = object_node;
+      object_node = additional_args;
+    }  /* if */
     additional_args = additional_args->next;
     return_node->next = NULL;
   }  /* if */
@@ -10310,18 +10388,19 @@ the expression have already been lowered.
   rtsp = routine_type->variant.routine.extra_info;
   object_node = pmf_node->next;
   additional_args = object_node->next;
-  if (rtsp->value_returned_by_cctor) {
-    /* The function returns its value via a copy constructor and an
-       added return value address parameter. */
-#if IA64_ABI
-    /* In the IA-64 ABI, the return address precedes the "this" parameter. */
-    return_node = object_node;
-    object_node = additional_args;
-#else /* !IA64_ABI */
-    /* In the Cfront-like ABI, the return address follows the "this"
+  if (rtsp->value_returned_as_parameter) {
+    /* The function returns its value via an added return value address
        parameter. */
-    return_node = additional_args;
-#endif /* IA64_ABI */
+    if (rtsp->return_value_parameter_follows_this) {
+      /* The parameter added for the return address follows the "this"
+         parameter. */
+      return_node = additional_args;
+    } else {
+      /* The parameter added for the return address precedes the "this"
+         parameter. */
+      return_node = object_node;
+      object_node = additional_args;
+    }  /* if */
     additional_args = additional_args->next;
     return_node->next = NULL;
   }  /* if */
@@ -10643,6 +10722,7 @@ the top node of the indicated statement (which is an expression statement).
   an_expr_node_ptr              prev_arg_node, arg_node, temp_node, first_arg;
   an_expr_operator_kind         op = expr->variant.operation.kind;
   a_routine_ptr                 routine = NULL;
+  an_expr_node_ptr              call_expr = expr;
 
   lower_os_type(expr->type);
   first_arg = arg_node = expr->variant.operation.operands;
@@ -10654,6 +10734,8 @@ the top node of the indicated statement (which is an expression statement).
   }  /* if */
   rout_type = skip_typerefs(rout_type);
   lower_os_type(rout_type);
+  /* Make sure we initialize value_returned_as_parameter before using it. */
+  set_lowered_routine_calling_method_flag(rout_type);
   /* Note that the routine type can be lowered or unlowered at this point.
      Usually it will be unlowered. */
   rtsp = rout_type->variant.routine.extra_info;
@@ -10666,29 +10748,46 @@ the top node of the indicated statement (which is an expression statement).
     /* Treat the "this" parameter as an lvalue to avoid extra tests for NULL
        on base class casts. */
     lower_expr(arg_node, /*is_lvalue=*/TRUE);
-#if !IA64_ABI
-    /* In the IA64 ABI, if there is both a "this" parameter and
-       a return value address, the return value address comes first.
-       In the Cfront-like ABI, the "this" parameter comes first. */
-    prev_arg_node = arg_node;
-#endif /* !IA64_ABI */
+    if (rtsp->return_value_parameter_follows_this) {
+      /* If a return value address argument will be added below, make sure
+         it follows the "this" argument. */
+      prev_arg_node = arg_node;
+    }  /* if */
     arg_node = arg_node->next;
   }  /* if */
   /* If the routine returns its result to a temporary supplied by the caller,
-     add an argument for that temporary.  This only happens under a
-     dik_call_returning_class_via_cctor dynamic initialization entry. */
-  if (rtsp->value_returned_by_cctor) {
-#if CHECKING
+     add an argument for that temporary. */
+  if (rtsp->value_returned_as_parameter) {
     if (ipdp == NULL) {
-      internal_error("lower_call: missing location for result");
+      /* No dynamic initialization entry has been created (presumably because
+         the return value isn't returned via a copy constructor), so create a
+         temporary and pass its address as an additional parameter, then
+         return its value as the value for the re-written comma node.
+         I.e., change:
+              func() 
+         to
+              (func(&temp), temp)
+      */
+      a_variable_ptr   temp_var;
+      check_assertion(!rtsp->value_returned_by_cctor);
+      temp_var = make_lowered_temporary(skip_typerefs(
+                                             original_return_type(rout_type)));
+      temp_node = var_addr_expr(temp_var);
+      call_expr = copy_node(expr);
+      call_expr->type = void_type();
+      call_expr->next = var_rvalue_expr(temp_var);
+      set_node_operator(expr, (an_expr_operator_kind)eok_comma,
+                        expr->type, call_expr);
+    } else {
+      /* This only happens under a dik_call_returning_class_via_cctor
+         dynamic initialization entry. */
+      temp_node = make_init_entity_node(ipdp, /*using_as_address=*/TRUE,
+                                        /*using_as_dest=*/TRUE);
+      /* Change the result type of the call to "void". */
+      expr->type = void_type();
     }  /* if */
-#endif /* CHECKING */
-    temp_node = make_init_entity_node(ipdp, /*using_as_address=*/TRUE,
-                                      /*using_as_dest=*/TRUE);
     temp_node->next = prev_arg_node->next;
     prev_arg_node->next = temp_node;
-    /* Change the result type of the call to "void". */
-    expr->type = void_type();
   }  /* if */
   if (first_arg->kind == (an_expr_node_kind)enk_routine_address) {
     /* We know the specific routine being called. */
@@ -10712,20 +10811,20 @@ the top node of the indicated statement (which is an expression statement).
 #else /* !IA64_ABI */
     /* If the call is of a constructor or destructor, add the implied
        argument(s). */
-    add_implied_args_to_call(expr, routine);
+    add_implied_args_to_call(call_expr, routine);
 #endif /* IA64_ABI */
   }  /* if */
   if (op == (an_expr_operator_kind)eok_virtual_call) {
     /* Virtual function call. */
-    lower_virtual_function_call(expr);
+    lower_virtual_function_call(call_expr);
   } else if (op == (an_expr_operator_kind)eok_pm_call) {
     /* Call of a function specified by a pointer-to-member. */
-    lower_pm_call(expr);
+    lower_pm_call(call_expr);
   } else {
     check_assertion(op == (an_expr_operator_kind)eok_call);
     /* Normal call. */
 #if MINIMAL_INLINING
-    if (inlining_enabled) do_inlining_of_call(expr, statement);
+    if (inlining_enabled) do_inlining_of_call(call_expr, statement);
 #endif /* MINIMAL_INLINING */
   }  /* if */
 }  /* lower_call */
@@ -14101,6 +14200,7 @@ Lower an stmk_return statement.
   a_variable_ptr     temp_var;
   an_insert_location insert_location;
   a_type_ptr         return_type;
+  a_routine_type_supplement_ptr rtsp;
 
   if (return_expr != NULL) {
     /* Lower the returned expression.  It's an lvalue if the routine returns
@@ -14132,6 +14232,7 @@ Lower an stmk_return statement.
   make_block = TRUE;
   dip = statement->variant.return_dynamic_init;
   statement->variant.return_dynamic_init = NULL;
+  rtsp = routine_type->variant.routine.extra_info;
   /* If the routine returns its value via a copy constructor, generate
      code for the dynamic initialization.  However, if return value
      optimization applies, just skip the copy constructor call
@@ -14152,6 +14253,7 @@ Lower an stmk_return statement.
          The dynamic initialization entry indicates the operation to
          be done. */
       an_init_pos_descr ipd;
+      check_assertion(rtsp->value_returned_as_parameter);
       set_var_indirect_init_pos_descr(return_value_pointer_variable, &ipd);
       /* Put the return statement under a block so we can insert in
          front of it. */
@@ -14165,6 +14267,32 @@ Lower an stmk_return statement.
                          &insert_location, (a_boolean *)NULL,
                          (a_constant **)NULL);
     }  /* if */
+  } else if (!rtsp->value_returned_by_cctor &&
+             rtsp->value_returned_as_parameter) {
+    /* Copy constructor isn't being called, but we're to return the function
+       value in additional argument anyway.  Change
+          return expr;
+       into
+          { *arg = expr; return;}
+    */
+    an_expr_operator_kind assign_op;
+    check_assertion(return_expr != NULL && make_block &&
+                    return_value_pointer_variable != NULL);
+    /* Change the return statement so that it returns nothing. */
+    statement->expr = NULL;
+    turn_branch_into_block(statement, &insert_location, &return_statement);
+    make_block = FALSE;
+    /* Create and insert the assignment statement. */
+    assign_op = lowered_assignment_operator(type_pointed_to(
+                                         return_value_pointer_variable->type));
+    assign_statement = insert_assignment_statement(
+                                          add_indirection_to_node(
+                                            var_addr_expr(
+                                              return_value_pointer_variable)),
+                                          assign_op,
+                                          return_expr, &insert_location);
+    set_stmt_pos_to_code_pos_for_lowering(assign_statement);
+    return_expr = NULL;
   }  /* if */
   any_cleanup_on_return =
                        any_cleanup_actions(innermost_function_scope->lifetime);
@@ -14190,8 +14318,7 @@ Lower an stmk_return statement.
   } else if (any_cleanup_on_return ||
              (exceptions_enabled &&
               (innermost_function_scope->lifetime != NULL ||
-               routine_type->variant.routine.extra_info->
-                                           exception_specification != NULL))) {
+               rtsp->exception_specification != NULL))) {
     /* Some code will have to be inserted on return, either for
        cleanup or to pop the exception handling stack entry.  It has
        to be inserted after the evaluation of the return expression,
@@ -16599,8 +16726,10 @@ Do IL lowering of the indicated scope and everything under it.
     routine_type = skip_typerefs(routine_type);
     rtsp = routine_type->variant.routine.extra_info;
     return_value_pointer_variable = NULL;
+    /* Make sure we initialize value_returned_as_parameter before using it. */
+    set_lowered_routine_calling_method_flag(routine_type);
     /* Rewrite the parameters if necessary. */
-    if (rtsp->value_returned_by_cctor) {
+    if (rtsp->value_returned_as_parameter) {
       /* If there is an implicit parameter for the return value address,
          add it as an explicit first parameter.  In the Cfront-like ABI,
          if there is also a "this" parameter, the return value address
@@ -16616,19 +16745,16 @@ Do IL lowering of the indicated scope and everything under it.
     }  /* if */
     if (scope->variant.routine.this_param_variable != NULL) {
       /* If there is an implicit "this" parameter, add it as an explicit
-         first parameter.  Note that the variable is then lowered as
+         parameter.  Note that the variable is then lowered as
          part of the parameters below. */
       param_var = scope->variant.routine.this_param_variable;
-#if IA64_ABI
-      /* In the IA64 ABI, if there is both a "this" parameter and
-         a return value address, the return value address comes first. */
-      if (return_value_pointer_variable != NULL) {
+      if (return_value_pointer_variable != NULL &&
+          !rtsp->return_value_parameter_follows_this) {
+        /* There is a "this" parameter and a return value address --
+           the return value address comes first. */
         param_var->next = return_value_pointer_variable->next;
         return_value_pointer_variable->next = param_var;
-      } else
-#endif /* IA64_ABI */
-      /* Do not insert code here. */
-      {
+      } else {
         param_var->next = scope->variant.routine.parameters;
         scope->variant.routine.parameters = param_var;
       }  /* if */
