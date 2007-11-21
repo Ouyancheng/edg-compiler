@@ -294,6 +294,75 @@ IL lowering.
 /* Everything below this point is related to IL lowering. */
 #if DO_IL_LOWERING
 
+#if DEBUG
+
+void db_context(a_context_ptr context)
+/*
+Dump selected information about the specified context.
+*/
+{
+  a_dynamic_init_ptr  dip;
+
+  if (context == NULL) {
+    fputs("<null context>\n", f_debug);
+  } else {
+    fprintf(f_debug, "[context@%lx]:\n", (unsigned long)context);
+    if (context->parent != NULL) {
+      fprintf(f_debug, 
+              "  parent: [context@%lx]\n", (unsigned long)context->parent);
+    }  /* if */
+    if (context->scope != NULL) {
+      fputs("  scope: ", f_debug);
+      (void)db_scope_kind(context->scope->kind);
+      (void)fprintf(f_debug, " scope %d\n", (int)context->scope->number);
+    }  /* if */
+    fputs("  lifetime: ", f_debug);
+    if (context->lifetime == NULL) {
+      fputs("<null>\n", f_debug);
+    } else {
+      db_object_lifetime_name(context->lifetime);
+      fputc('\n', f_debug);
+    }  /* if */
+    fputs("  latest_initialization:\n", f_debug);
+    if (context->latest_initialization == NULL) {
+      fputs("    <null>\n", f_debug);
+    } else {
+      for (dip = context->latest_initialization;
+           dip != NULL;
+           dip = dip->next_in_destruction_list){
+        fputs("    ", f_debug);
+        db_dynamic_initializer(dip, 4);
+      }  /* for */
+    }  /* if */
+    fputs("  curr_cleanup_state:\n", f_debug);
+    if (context->curr_cleanup_state == NULL) {
+      fputs("    <null>\n", f_debug);
+    } else {
+      for (dip = context->curr_cleanup_state;
+           dip != NULL;
+           dip = dip->next_in_destruction_list) {
+        fputs("    ", f_debug);
+        db_dynamic_initializer(dip, 4);
+      }  /* for */
+    }  /* if */
+  }  /* if */
+}  /* db_context */
+
+
+void db_context_stack(void)
+/*
+Dump information about the context stack (i.e., start with
+curr_context and dump each entry found by following the parent pointer).
+*/
+{
+  a_context_ptr  context = curr_context;
+
+  for (; context != NULL; context = context->parent) {
+    db_context(context);
+  }  /* for */
+}  /* db_context_stack */
+
+#endif /* DEBUG */
 
 a_boolean il_lowering_needed(void)
 /*

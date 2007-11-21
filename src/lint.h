@@ -74,6 +74,7 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(714,db_top_of_scope_stack)*/
 /*lint -esym(714,db_seq_number_lookup_table)*/
 /*lint -esym(714,db_internal_float_value)*/
+/*lint -esym(714,db_context_stack)*/
 /*lint -esym(759,f_db_sym_has_traced_name)*/
 /*lint -esym(765,f_db_sym_has_traced_name)*/
 /*lint -esym(755,db_sym_has_traced_name)*/
