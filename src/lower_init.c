@@ -5581,13 +5581,14 @@ code is needed, insert it at *insert_location.
 }  /* add_local_static_guard_var_cleanup */
 
 
-static void remove_destructions_for_partially_constructed_aggregate(
+static void adjust_cleanup_state_for_static_aggregate_init(
                                              a_dynamic_init_ptr preceding_init)
 /*
-Remove any destructions for partially constructed aggregates on the latest
-initialization list (up to preceding_init -- which may be NULL, indicating
-that there is no preceding initialization in the current lifetime) and adjust
-the cleanup state accordingly.
+A static aggregate initialization has just been completed.  Adjust the
+cleanup state to the latest initialization that is not a partial aggregate
+initialization, or preceding_init (which indicates the initialization
+that precedes the start of the entire aggregate initialization), whichever
+is first on the destruction list.
 */
 {
   a_dynamic_init_ptr dip = curr_context->latest_initialization;
@@ -5598,7 +5599,7 @@ the cleanup state accordingly.
   }  /* while */
   curr_context->latest_initialization = dip;
   set_curr_cleanup_state_to_latest_initialization();
-}  /* remove_destructions_for_partially_constructed_aggregate */
+}  /* adjust_cleanup_state_for_static_aggregate_init */
 
 
 static void adjust_cleanup_state_for_aggregate_init(
@@ -6779,7 +6780,7 @@ do_assignment:;
         /* Now that the static aggregate has been fully constructed, remove
            any destructions for partially constructed aggregates that may
            still be a part of the cleanup state. */
-        remove_destructions_for_partially_constructed_aggregate(
+        adjust_cleanup_state_for_static_aggregate_init(
                                                latest_initialization_on_entry);
       }  /* if */
       /* For static variables (local or global), generate code to record
