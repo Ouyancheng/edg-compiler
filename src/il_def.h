@@ -4273,7 +4273,7 @@ typedef struct a_routine_type_supplement {
 			/* In cases where value_returned_as_parameter
 			   is TRUE, this flag controls whether the newly added
 			   parameter comes after the 'this' parameter (TRUE)
-			   or not (FALSE) in cases where the routine is a
+			   or before (FALSE) in cases where the routine is a
 			   member function.  This is typically determined
 			   by the ABI being used, with IA-64 requiring the flag
 			   to be FALSE, and the Cfront-like ABI requiring
