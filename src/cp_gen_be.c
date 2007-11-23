@@ -1005,9 +1005,8 @@ Restore the current source sequence list scan state from *state.
 
 static a_boolean template_arg_is_accessible(a_template_arg_ptr argp)
 /*
-Return TRUE if the template argument has no name (for a nontype template
-argument) or if all names in the template argument are accessible in the
-current context, FALSE otherwise.
+Return TRUE if all names in the template argument are accessible in the
+current context or if the argument contains no names, FALSE otherwise.
 */
 {
   a_boolean is_accessible = TRUE;
@@ -1020,18 +1019,32 @@ current context, FALSE otherwise.
     break;
   case tak_nontype:
     if (!argp->is_array_bound_of_unknown_type &&
-        argp->variant.constant->kind == (a_constant_repr_kind)ck_address) {
+        (argp->variant.constant->kind == (a_constant_repr_kind)ck_address ||
+         argp->variant.constant->kind ==
+                                     (a_constant_repr_kind)ck_ptr_to_member)) {
       a_constant_ptr constant = argp->variant.constant;
-      if (constant->variant.address.kind ==
+      if (constant->kind == (a_constant_repr_kind)ck_address) {
+        if (constant->variant.address.kind ==
                                            (an_address_base_kind)abk_routine) {
-        is_accessible = entity_name_is_accessible(
+          is_accessible = entity_name_is_accessible(
                     &constant->variant.address.variant.routine->source_corresp,
                     iek_routine);
-      } else if (constant->variant.address.kind ==
+        } else if (constant->variant.address.kind ==
                                           (an_address_base_kind)abk_variable) {
-        is_accessible = entity_name_is_accessible(
+          is_accessible = entity_name_is_accessible(
                    &constant->variant.address.variant.variable->source_corresp,
                    iek_variable);
+        }  /* if */
+      } else {
+        if (constant->variant.ptr_to_member.is_function_ptr) {
+          is_accessible = entity_name_is_accessible(
+              &constant->variant.ptr_to_member.variant.routine->source_corresp,
+              iek_routine);
+        } else {
+          is_accessible = entity_name_is_accessible(
+                &constant->variant.ptr_to_member.variant.field->source_corresp,
+                iek_field);
+        }  /* if */
       }  /* if */
     }  /* if */
     break;
@@ -1060,6 +1073,11 @@ instance.
 {
   a_boolean is_accessible;
 
+  if (kind == iek_type) {
+    /* Strip off any non-typedef typerefs so we are looking at the type
+       that actually could have a name (class, enum, typedef, etc.). */
+    scp = &skip_typerefs_not_typedefs((a_type_ptr)scp)->source_corresp;
+  }  /* if */
   if (scp->access == (an_access_specifier)as_public) {
     /* Either a public class member or a non-member. */
     is_accessible = TRUE;
@@ -1074,8 +1092,8 @@ instance.
                                                                 parent_class));
   }  /* if */
   if (is_accessible && kind == iek_type) {
-    /* Check for the accessibility of names used in template arguments, if
-       any. */
+    /* If the name of the type itself is accessible, also check for the
+       accessibility of names used in template arguments, if any. */
     a_type_ptr type = (a_type_ptr)scp;
     if (is_immediate_class_type(type)) {
       a_template_arg_ptr tap;
