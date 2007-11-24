@@ -1036,11 +1036,13 @@ current context or if the argument contains no names, FALSE otherwise.
                    iek_variable);
         }  /* if */
       } else {
-        if (constant->variant.ptr_to_member.is_function_ptr) {
+        if (constant->variant.ptr_to_member.is_function_ptr &&
+            constant->variant.ptr_to_member.variant.routine != NULL) {
           is_accessible = entity_name_is_accessible(
               &constant->variant.ptr_to_member.variant.routine->source_corresp,
               iek_routine);
-        } else {
+        } else if (!constant->variant.ptr_to_member.is_function_ptr &&
+                   constant->variant.ptr_to_member.variant.field != NULL) {
           is_accessible = entity_name_is_accessible(
                 &constant->variant.ptr_to_member.variant.field->source_corresp,
                 iek_field);
