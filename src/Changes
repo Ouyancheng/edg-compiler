@@ -1,5 +1,36 @@
 Version 3.11
 
+11/26/07  Incorrect partial ordering when one parameter is a cv-qualified
+          reference
+
+Partial ordering did not produce the right result when the parameter of one
+of the routines was a cv-qualified reference and the other parameter was
+a value parameter.  This problem resulted in a spurious ambiguity
+in the example below.  Now fixed.
+
+  template<class T> class A { };
+  template<class T> bool operator==(const A<T> a1, const A<T> a2) {
+    return (&a1==&a2);
+  }
+  template<class T1,class T2> bool operator==(const A<T1>& a1, const T2 a2) {
+    return true;
+  }
+  int main() {
+    A<int> a;
+    A<int> b;
+    return ( a == b );
+  }
+
+This change can cause an ambiguity on some cases that had been accepted:
+
+  template <class T> void f(T) {}
+  template <class T> void f(const T&) {}
+  int main() { int i; f(i); }
+
+Such examples also result in an ambiguity from the g++, Microsoft, and
+Sun compilers, however.  In addition, our new behavior is correct according
+to the C++ Standard.
+
 11/21/07  Add support for function return by pointer in lowering
 
 In cases where a function returns a class value by copy constructor

@@ -1727,7 +1727,7 @@ Likewise for match2.
   if (type_2_is_reference) {
     param_type2 = type_pointed_to(param_type2);
   }  /* if */
-  if (type_1_is_reference || type_2_is_reference) {
+  if (type_1_is_reference && type_2_is_reference) {
     /* If either type is a reference, remove any common qualifiers so
        that we can determine if one of the type is more qualified than
        the other. */
@@ -1741,6 +1741,11 @@ Likewise for match2.
     param_type2 = skip_typerefs(param_type2);
     qualifiers_dropped1 = param_type1 != prev_type1;
     qualifiers_dropped2 = param_type2 != prev_type2;
+  } else {
+    /* Remove any qualifiers that may have been under a reference when
+       not both types are references. */
+    param_type1 = skip_typerefs(param_type1);
+    param_type2 = skip_typerefs(param_type2);
   }  /* if */
   /* Only check a parameter if no mismatch for that routine has been found. */
   if (*match1) {
