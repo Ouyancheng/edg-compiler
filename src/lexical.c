@@ -3650,6 +3650,16 @@ include is suppressed for some reason.
 }  /* check_for_generation_of_pch_on_return_to_primary_file */
 
 
+a_boolean processing_primary_source_file(void)
+/*
+Return TRUE if the primary source file is the current input stack
+entry.
+*/
+{
+  return depth_input_stack == 0;
+}  /* processing_primary_source_file */
+
+
 static a_boolean no_more_preinclude_files(void)
 /*
 Returns TRUE if we are processing the last preinclude file.

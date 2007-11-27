@@ -2234,6 +2234,8 @@ extern void pop_input_stack(void);
 
 extern void ensure_min_curr_source_line_length(sizeof_t  min_len);
 
+extern a_boolean processing_primary_source_file(void);
+
 extern void check_for_generation_of_pch_on_return_to_primary_file(void);
 
 extern a_boolean cache_function_body(

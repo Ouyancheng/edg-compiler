@@ -1044,6 +1044,14 @@ pass_stdarg_references_to_generated_code.
        of a subsequent include. */
     set_ifg_state(IFG_STATE_FAIL);
   }  /* if */
+  if (is_include_next) {
+    /* An include_next is meaningless in a primary source file.  Issue a
+       warning and treat this as a normal include. */
+    if (processing_primary_source_file()) {
+      is_include_next = FALSE;
+      warning(ec_include_next_in_primary_source_file);
+    }  /* if */
+  }  /* if */
   /* Scan a header name token. */
   if (!get_header_name()) {
     /* Missing include file name. */

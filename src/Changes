@@ -1,5 +1,12 @@
 Version 3.11
 
+11/27/07  Warning if #include_next is used in primary source file
+
+If an #include_next directive is used in a primary source file, we now
+issue a warning and treat the directive as a normal include (emulating the
+GNU behavior).  Formerly, an empty search path would be used, resulting in
+a catastrophic error.
+
 11/27/07  New internal size_of_type macro returns external representation
           of type size
 
