@@ -1,5 +1,14 @@
 Version 3.11
 
+11/27/07  New internal size_of_type macro returns external representation
+          of type size
+
+Internal to the front end, the size field of a tk_void or tk_routine type is
+represented as zero even though the size of these (void and function) types
+is defined to be one in GNU emulation mode.  In order to better hide
+this internal representation, a new size_of_type macro has been added
+which returns the external representation.
+
 11/26/07  GNU C++ compatibility: emulation of g++ using-directive
           visibility rules
 

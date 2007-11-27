@@ -41,6 +41,15 @@ EXTERN a_boolean
 #define m_is_error_type(tp)                                           \
   (skip_typerefs(tp)->kind == (a_type_kind)tk_error)
 
+/* Return the size of a type.  Internally the size of a tk_void or tk_routine
+   type is 0, but in GNU emulation mode the size of a void or function
+   type is 1.  This macro hides the internal representation.  Typerefs
+   (if any) should be removed before calling this macro. */
+#define size_of_type(tp)                                              \
+  ((gnu_mode &&                                                       \
+    ((tp)->kind == (a_type_kind)tk_void ||                            \
+     (tp)->kind == (a_type_kind)tk_routine)) ? (a_targ_size_t)1 : (tp)->size)
+
 extern a_type_ptr f_skip_typerefs(a_type_ptr type_ptr);
 extern a_type_ptr skip_typedefs(a_type_ptr type_ptr);
 extern a_type_ptr skip_typerefs_not_typedefs(a_type_ptr type_ptr);
