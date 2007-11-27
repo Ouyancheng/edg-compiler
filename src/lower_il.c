@@ -7659,7 +7659,7 @@ routine is NULL if the routine is unknown or does not have a definition.
 
 static a_type_ptr original_return_type(a_type_ptr routine_type)
 /*
-Returns the original return_type of the routine whose type is 
+Returns the original return type of the routine whose type is 
 (lowered or unlowered) routine_type.  During lowering of a routine
 type that will return its value as a parameter, the return type is
 changed to "void" (see lower_type).  This function will determine
@@ -7696,11 +7696,14 @@ static void set_lowered_routine_calling_method_flag(a_type_ptr routine_type)
 /*
 Set the flag that determines whether the routine whose type is routine_type
 will be modified during lowering to return the function result in an
-additional parameter.  This it typically used for routines that return
+additional parameter.  This is typically used for routines that return
 their class value by means of a copy constructor.  This routine may be
-called more than once for the same routine type, and should precede any
-access to value_returned_as_parameter to guarantee that the flag is set
-appropriately.
+called more than once for the same routine type, and an invocation of this
+routine should precede any access to value_returned_as_parameter to
+guarantee that the flag is set appropriately.  This routine also serves
+as a central location for customers who wish to customize cases where
+a function value should be returned through an additional pointer parameter
+(e.g., in the case where the returned value is a sufficiently large structure).
 */
 {
   a_routine_type_supplement_ptr rtsp;
@@ -10763,6 +10766,9 @@ the top node of the indicated statement (which is an expression statement).
      add an argument for that temporary. */
   if (rtsp->value_returned_as_parameter) {
     if (ipdp == NULL) {
+      /* This case can only occur if the customer has specifically requested
+         that the function value be returned through an additional
+         parameter (by customizing set_lowered_routine_calling_method_flag). */
       /* No dynamic initialization entry has been created (presumably because
          the return value isn't returned via a copy constructor), so create a
          temporary and pass its address as an additional parameter, then
@@ -10774,14 +10780,13 @@ the top node of the indicated statement (which is an expression statement).
       */
       a_variable_ptr   temp_var;
       check_assertion(!rtsp->value_returned_by_cctor);
-      temp_var = make_lowered_temporary(f_skip_typerefs(
-                                             original_return_type(rout_type)));
+      temp_var = make_lowered_temporary(original_return_type(rout_type));
       temp_node = var_addr_expr(temp_var);
       call_expr = copy_node(expr);
       call_expr->type = void_type();
       call_expr->next = var_rvalue_expr(temp_var);
       set_node_operator(expr, (an_expr_operator_kind)eok_comma,
-                        expr->type, call_expr);
+                        call_expr->next->type, call_expr);
     } else {
       /* This only happens under a dik_call_returning_class_via_cctor
          dynamic initialization entry. */
@@ -14273,13 +14278,18 @@ Lower an stmk_return statement.
     }  /* if */
   } else if (!rtsp->value_returned_by_cctor &&
              rtsp->value_returned_as_parameter) {
-    /* Copy constructor isn't being called, but we're to return the function
-       value in additional argument anyway.  Change
+    /* This case can only occur if the customer has specifically requested
+       that the function value be returned through an additional
+       parameter (by customizing set_lowered_routine_calling_method_flag). */
+    /* A copy constructor isn't being called, but we're to return the function
+       value in an additional parameter anyway.  Change
           return expr;
        into
           { *arg = expr; return;}
     */
     an_expr_operator_kind assign_op;
+    an_expr_node_ptr      lvalue_expr;
+    a_type_ptr            return_value_type;
     check_assertion(return_expr != NULL && make_block &&
                     return_value_pointer_variable != NULL);
     /* Change the return statement so that it returns nothing. */
@@ -14287,14 +14297,16 @@ Lower an stmk_return statement.
     turn_branch_into_block(statement, &insert_location, &return_statement);
     make_block = FALSE;
     /* Create and insert the assignment statement. */
-    assign_op = lowered_assignment_operator(type_pointed_to(
-                                         return_value_pointer_variable->type));
-    assign_statement = insert_assignment_statement(
-                                          add_indirection_to_node(
-                                            var_addr_expr(
-                                              return_value_pointer_variable)),
-                                          assign_op,
-                                          return_expr, &insert_location);
+    return_value_type = type_pointed_to(return_value_pointer_variable->type);
+    assign_op = lowered_assignment_operator(return_value_type);
+    lvalue_expr = var_lvalue_expr(return_value_pointer_variable);
+    lvalue_expr = add_cast_if_necessary(lvalue_expr, make_pointer_type(
+                         make_pointer_type(skip_typerefs(return_value_type))));
+    lvalue_expr = add_indirection_to_node(lvalue_expr);
+    assign_statement = insert_assignment_statement(lvalue_expr,
+                                                   assign_op,
+                                                   return_expr,
+                                                   &insert_location);
     set_stmt_pos_to_code_pos_for_lowering(assign_statement);
     return_expr = NULL;
   }  /* if */

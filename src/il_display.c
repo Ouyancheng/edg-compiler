@@ -1262,17 +1262,14 @@ Display a_routine_type_supplement.
     disp_boolean("lint_argsused_flag", TRUE);
   }  /* if */
   if (ptr->value_returned_by_cctor) {
-    disp_boolean("value_returned_by_cctor",
-                 (a_boolean)ptr->value_returned_by_cctor);
+    disp_boolean("value_returned_by_cctor", TRUE);
   }  /* if */
 #if DO_IL_LOWERING
   if (ptr->value_returned_as_parameter) {
-    disp_boolean("value_returned_as_parameter",
-                 (a_boolean)ptr->value_returned_as_parameter);
+    disp_boolean("value_returned_as_parameter", TRUE);
   }  /* if */
   if (ptr->return_value_parameter_follows_this) {
-    disp_boolean("return_value_parameter_follows_this",
-                 (a_boolean)ptr->return_value_parameter_follows_this);
+    disp_boolean("return_value_parameter_follows_this", TRUE);
   }  /* if */
 #endif /* DO_IL_LOWERING */
   if (ptr->assoc_routine_is_ctor) {

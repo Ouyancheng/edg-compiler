@@ -31,7 +31,7 @@ Such examples also result in an ambiguity from the g++, Microsoft, and
 Sun compilers, however.  In addition, our new behavior is correct according
 to the C++ Standard.
 
-11/21/07  Add support for function return by pointer in lowering
+11/21/07  Configurability of function return by pointer in lowering
 
 In cases where a function returns a class value by copy constructor
 (i.e., when the value_returned_by_cctor flag is TRUE), lowering
