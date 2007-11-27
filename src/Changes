@@ -35,7 +35,7 @@ Formerly, both calls were ambiguous for all gnu_versions values.
 Call #1 is:
 
   - ambiguous in g++ 3.2
-  - accepted in g++ 3.3 and above, but we give an ambiguity
+  - accepted in g++ 3.3, but we give an ambiguity
   - accepted in g++ 3.4 and above
 
 Call #2 is:
