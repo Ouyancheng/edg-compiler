@@ -1348,6 +1348,11 @@ EXTERN a_boolean
 			/* TRUE if no diagnostic should be issued on
 			   anonymous types declared in anonymous unions. */
 
+EXTERN a_boolean
+		use_nonstd_partial_ordering;
+			/* TRUE if the incorrect variant of partial ordering
+			   present in versions through 3.10 should be used. */
+
 #if DEBUG
 EXTERN a_boolean
 		display_space_used;

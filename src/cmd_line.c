@@ -1604,6 +1604,7 @@ static a_flag_name
 #if DEBUG
   { "space_used", &display_space_used },
 #endif /* DEBUG */
+  { "use_nonstd_partial_ordering", &use_nonstd_partial_ordering },
   { NULL, NULL }  /* must be last */
 };
 
@@ -8446,6 +8447,7 @@ variables declared in cmd_line.h.
   export_keyword_enabled = TRUE;
   suppress_inline_corresp_check = FALSE;
   allow_anon_types_in_anon_unions = FALSE;
+  use_nonstd_partial_ordering = FALSE;
 #if DEBUG
   display_space_used = FALSE;
 #endif /* DEBUG */

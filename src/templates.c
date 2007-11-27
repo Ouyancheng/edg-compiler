@@ -1741,9 +1741,11 @@ Likewise for match2.
     param_type2 = skip_typerefs(param_type2);
     qualifiers_dropped1 = param_type1 != prev_type1;
     qualifiers_dropped2 = param_type2 != prev_type2;
-  } else {
+  } else if (!use_nonstd_partial_ordering) {
     /* Remove any qualifiers that may have been under a reference when
-       not both types are references. */
+       not both types are references.  This is suppressed when
+       use_old_partial_ordering is TRUE to allow emulation of the incorrect
+       behavior that was present through version 3.10. */
     param_type1 = skip_typerefs(param_type1);
     param_type2 = skip_typerefs(param_type2);
   }  /* if */
