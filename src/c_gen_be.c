@@ -2347,10 +2347,9 @@ if output_final_semi is TRUE.
   a_constant_ptr enum_con;
   a_constant     next_enum_value;
 
-  check_assertion_str(type->kind == (a_type_kind)tk_enum &&
-                      type->variant.integer.enum_type,
+  check_assertion_str(is_immediate_enum_type(type),
                       "dump_enum_definition: not an enum type");
-  enum_con = type->variant.integer.enum_info.constant_list;
+  enum_con = enum_constants(type);
   /* Empty enumerations are legal in C++ but not in C.  They are supposed
      to be output as the corresponding integral type, but higher up; they
      shouldn't get here. */
@@ -3135,7 +3134,7 @@ pass), dump typedefs, and structs/unions as definitions (if they are defined).
                           "dump_type_decl: non-enum integer type");
       /* Empty enums (valid in C++ but not in C) are put out as integral
          types, so nothing need be put out here. */
-      if (type->variant.integer.enum_info.constant_list == NULL) break;
+      if (enum_constants(type) == NULL) break;
       /* Output enums only on the first pass. */
       if (pass == 1) dump_enum_definition(type, /*output_final_semi=*/TRUE);
       break;
@@ -3314,7 +3313,7 @@ with a routine.
      of an enumeration type. */
   if (type->kind == (a_type_kind)tk_enum) {
     a_constant_ptr enum_con;
-    for (enum_con = type->variant.integer.enum_info.constant_list;
+    for (enum_con = enum_constants(type);
          enum_con != NULL;
          enum_con = enum_con->next) {
       mangle_promoted_name(&enum_con->source_corresp, rout, scope_number);

@@ -2696,7 +2696,7 @@ a_symbol_ptr scope_stack_lookup(a_symbol_locator    *locator,
 				a_scope_depth	    start_depth,
 				a_scope_depth       end_depth)
 /*
-This routine is used by normal_id_lookup to look though a specified
+This routine is used by normal_id_lookup to look through a specified
 set of scopes and return the result of a normal_id_lookup when only
 those scopes are considered.  start_depth is the depth of the innermost
 scope to be considered, end_depth is scope at which the lookup should

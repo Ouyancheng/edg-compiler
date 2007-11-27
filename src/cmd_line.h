@@ -891,13 +891,22 @@ EXTERN a_boolean
 			   __is_union) to help implement ISO/IEC TR 19768 (aka.
 			   "C++ Library TR1") should be enabled. */
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
 EXTERN a_boolean
 		explicit_enum_base_enabled;
 			/* TRUE if the syntax "enum X: base-type { ... }"
-			   should be accepted.  (This is a Microsoft extension
-			   based on ECMA-372C++/CLI.) */
+			   should be accepted.  (This was originally a
+			   Microsoft extension based on ECMA-372 C++/CLI, and
+			   was later adopted in C++0x.) */
 
+EXTERN a_boolean
+		enum_qualifiers_enabled;
+			/* TRUE if an enumerator constant can be qualified
+			   with an enumerator name.  E.g.:
+			      enum E { e };  E x = E::e;
+			   This is a C++0x feature originally introduced in
+			   some Microsoft compilers. */
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
 EXTERN a_calling_convention
 		default_calling_convention;
 			/* The default calling convention.  cc_default is

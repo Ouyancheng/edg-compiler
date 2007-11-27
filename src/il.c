@@ -16415,10 +16415,12 @@ Write out a scope entry for debugging purposes.
     (void)db_scope_kind(sp->kind);
     (void)fprintf(f_debug, " scope %d", (int)sp->number);
     if (sp->kind == (a_scope_kind)sck_class_struct_union ||
+        sp->kind == (a_scope_kind)sck_enum ||
         sp->kind == (a_scope_kind)sck_function ||
         sp->kind == (a_scope_kind)sck_namespace) {
       (void)fputs(" (", f_debug);
-      if (sp->kind == (a_scope_kind)sck_class_struct_union) {
+      if (sp->kind == (a_scope_kind)sck_class_struct_union ||
+          sp->kind == (a_scope_kind)sck_enum) {
         db_type_name(sp->variant.assoc_type);
       } else if (sp->kind == (a_scope_kind)sck_namespace) {
         db_name(&sp->variant.assoc_namespace->source_corresp);

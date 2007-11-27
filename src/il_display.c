@@ -1513,10 +1513,10 @@ Display the indicated type entry.
       if (ptr->variant.integer.microsoft_sized_int_type) {
         disp_boolean("microsoft_sized_int_type", TRUE);
       }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       if (ptr->variant.integer.has_explicit_enum_base) {
         disp_boolean("has_explicit_enum_base", TRUE);
       }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       if (ptr->variant.integer.wchar_t_type) {
         disp_boolean("wchar_t_type", TRUE);
       }  /* if */
@@ -1525,6 +1525,9 @@ Display the indicated type entry.
       }  /* if */
       if (ptr->variant.integer.enum_type) {
         disp_boolean("enum_type", TRUE);
+        if (is_scoped_enum_type(ptr)) {
+          disp_boolean("is_scoped_enum", TRUE);
+        }  /* if */       
 #if GNU_EXTENSIONS_ALLOWED
 	if (ptr->variant.integer.packed) {
 	  disp_boolean("packed", TRUE);
@@ -1533,9 +1536,15 @@ Display the indicated type entry.
         if (ptr->variant.integer.originally_unnamed) {
           disp_boolean("originally_unnamed", TRUE);
         }  /* if */
-        disp_ptr("enum_info.constant_list",
-                 (char *)ptr->variant.integer.enum_info.constant_list,
-                 iek_constant);
+        if (is_scoped_enum_type(ptr)) {
+          disp_ptr("enum_info.assoc_scope",
+                   (char*)ptr->variant.integer.enum_info.assoc_scope,
+                   iek_scope);
+        } else {
+          disp_ptr("enum_info.constant_list",
+                   (char *)ptr->variant.integer.enum_info.constant_list,
+                   iek_constant);
+        }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
         if (ptr->variant.integer.uuid_string != NULL) {
           disp_string_ptr("uuid_string", ptr->variant.integer.uuid_string,
@@ -4772,6 +4781,9 @@ Display the indicated scope.
       break;
     case sck_func_prototype:
       (void)printf("sck_func_prototype\n");
+      goto do_assoc_type;
+    case sck_enum:
+      (void)printf("sck_enum\n");
       goto do_assoc_type;
     case sck_class_struct_union:
       (void)printf("sck_class_struct_union\n");

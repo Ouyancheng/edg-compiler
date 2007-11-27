@@ -1767,7 +1767,7 @@ static void clear_enum_type_correspondence(a_type_ptr  type,
 Clear the correspondence pointers in the substructure of an enum type.
 */
 {
-  a_constant_ptr  enumerator = type->variant.integer.enum_info.constant_list;
+  a_constant_ptr  enumerator = enum_constants(type);
 
   for (; enumerator != NULL; enumerator = enumerator->next) {
     clear_trans_unit_corresp(iek_constant, enumerator, visited);
@@ -2710,7 +2710,7 @@ other entities.
 {
   check_assertion(is_immediate_enum_type(type));
   if (!type->source_corresp.is_class_member) {
-    a_constant_ptr  enumerator = type->variant.integer.enum_info.constant_list;
+    a_constant_ptr  enumerator = enum_constants(type);
     for (; enumerator != NULL; enumerator = enumerator->next) {
       a_symbol_ptr            enum_sym = (a_symbol_ptr)enumerator
                                                    ->source_corresp.assoc_info,
@@ -2763,14 +2763,19 @@ type is in fact valid.
   } else if (!is_immediate_enum_type(corresp_type)) {
     match = FALSE;
     report_error = TRUE;
+  } else if (type->variant.integer.is_scoped_enum !=
+             corresp_type->variant.integer.is_scoped_enum) {
+    /* One is a scoped enum type, and the other is a traditional unscoped
+       enum type. */
+    match = FALSE;
+    report_error = TRUE;
   } else if (type->incomplete || corresp_type->incomplete) {
     /* At least one of the two types was declared without being defined.
        In that case, there is no need to verify the list of enumerator
        constants. */
   } else {
-    a_constant_ptr  enumerator = type->variant.integer.enum_info.constant_list,
-                    corresp_enumerator =
-                        corresp_type->variant.integer.enum_info.constant_list;
+    a_constant_ptr  enumerator = enum_constants(type),
+                    corresp_enumerator = enum_constants(corresp_type);
     /* Verify one-for-one correspondence of the enumerator constants. */
     for (; enumerator != NULL && corresp_enumerator != NULL;
          enumerator = enumerator->next,
@@ -3641,10 +3646,8 @@ given enum type.
   a_type_ptr      corresp_type = (a_type_ptr)canonical_type_entry_of(type);
 
   if (corresp_type != NULL) {
-    a_constant_ptr  enumerator = type->variant.integer.enum_info.constant_list;
-    a_constant_ptr  corresp_enumerator = 
-                        corresp_type->variant.integer.enum_info.constant_list;
-
+    a_constant_ptr  enumerator = enum_constants(type);
+    a_constant_ptr  corresp_enumerator = enum_constants(corresp_type);
     for (; enumerator != NULL; enumerator = enumerator->next) {
       if (corresp_enumerator != NULL) {
         set_trans_unit_corresp(iek_constant, enumerator, corresp_enumerator);
@@ -4222,7 +4225,7 @@ C mode.
       match = verify_class_type_correspondence(type_1);
     }  /* if */
   } else if (is_immediate_enum_type(type_1)) {
-    a_constant_ptr  ecp = type_1->variant.integer.enum_info.constant_list;
+    a_constant_ptr  ecp = enum_constants(type_1);
     for (; ecp != NULL; ecp = ecp->next) {
       trans_unit_corresp_of(ecp) = NULL;
     }  /* for */

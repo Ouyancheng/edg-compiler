@@ -811,6 +811,7 @@ there is additional processing to be done.
               if (C_mode()) break;
               /*FALLTHROUGH*/
             /* Scopes for which a pragma entry may be added to the IL. */
+            case sck_enum:
             case sck_file:
             case sck_block:
             case sck_namespace:

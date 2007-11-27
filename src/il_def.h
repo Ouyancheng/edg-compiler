@@ -5795,16 +5795,20 @@ typedef struct a_type {
 			/* TRUE if this is a Microsoft __intN type that should
 			   be treated as a distinct built-in type (rather than
 			   a typedef for another integer type). */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       a_bit_field
 		has_explicit_enum_base:1;
 			/* TRUE if this is an enumeration type with an explicit
 			   specifier for the underlying type.  (If TRUE, the
 			   optional field base_type will be non-NULL.) */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       a_bit_field
                 enum_type:1;
                         /* TRUE if this type is an enumerated type (the type 
                            of the tag, not the constants, in C). */
+      a_bit_field
+		is_scoped_enum:1;
+			/* TRUE if this a scoped enum type (enum_type is also
+			   TRUE in that case). */
 #if GNU_EXTENSIONS_ALLOWED
       a_bit_field
       		packed:1;
@@ -5829,13 +5833,17 @@ typedef struct a_type {
 			   from a typedef name. */
       bitfield_to_avoid_codecenter_warnings()
       union {
-        /* When enum_type is TRUE: */
+        /* When enum_type is TRUE, but is_scoped_enum is FALSE: */
         a_constant_ptr
 		constant_list;
 			/* The list of constants that defines the enumeration.
 			   NULL if the enumeration has not yet been defined.
 			   In C++, may be NULL even after definition, since
 			   empty enumerations are allowed. */
+	/* When enum_type and is_scoped_enum are both TRUE: */
+	a_scope_ptr
+		assoc_scope;
+			/* The scope holding the enumerator constants. */
         /* When enum_type is FALSE: */
         a_type_ptr
 		affiliated_type;
@@ -5859,6 +5867,7 @@ typedef struct a_type {
 			   that is initialized to reflect the value of the
 			   string. */
 #endif /* DO_IL_LOWERING */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if PROTOTYPE_INSTANTIATIONS_IN_IL || BACK_END_IS_CP_GEN_BE
       a_type_ptr
 		base_type;
@@ -5866,7 +5875,6 @@ typedef struct a_type {
 			   the underlying type (if any).  Otherwise NULL.
 			   If non-NULL, has_explicit_enum_base will be TRUE. */
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL || BACK_END_IS_CP_GEN_BE */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* ifdef CIL */
     } integer;
 #if FIXED_POINT_ALLOWED
@@ -12600,6 +12608,9 @@ enum a_scope_kind_tag {
 			/* Used to represent the scope of a C++ condition
 			   that is an initialized declaration for an if,
 			   switch, for, or while statement. */
+  sck_enum,
+			/* The scope associated with a C++0x scoped enum
+			   type. */
 #endif /* ifdef CIL */
 #ifdef FIL
   sck_stmt_function,	/* Statement function scope. */
@@ -12662,7 +12673,7 @@ typedef struct a_scope {
 			/* When the scope is associated with an exception
 			   handler, a pointer to the handler entry; otherwise
 			   NULL. */
-    /* When kind == sck_func_prototype or sck_class_struct_union: */
+    /* When kind == sck_func_prototype, sck_class_struct_union, or sck_enum: */
     a_type_ptr	assoc_type;
 			/* The function type whose prototype scope this is,
 			   or the class/struct/union type. */

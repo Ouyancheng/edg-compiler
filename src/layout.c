@@ -730,8 +730,8 @@ curr_max_member_alignment.
       ssep = &scope_stack[depth_innermost_instantiation_scope] + 1;
       if (ssep->kind == (a_scope_kind)sck_class_struct_union &&
           !ssep->in_prototype_instantiation) {
-        sym = (a_symbol_ptr)(ssep->il_scope->
-                               variant.assoc_type->source_corresp.assoc_info);
+        sym = (a_symbol_ptr)(ssep->il_scope->variant.assoc_type
+                                           ->source_corresp.assoc_info);
       }  /* if */
     }  /* if */
     if (sym != NULL) {

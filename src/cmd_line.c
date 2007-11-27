@@ -1785,6 +1785,10 @@ by a command line option.
        accepted for all values of microsoft_version. */
     extended_friends_enabled = TRUE;
     extern_template_allowed = TRUE;
+    /* Qualifying with an enum type is enabled in Microsoft C++ mode, but if
+       microsoft_version < 1400, an error is issued if the enumeration is not
+       a class member. */
+    enum_qualifiers_enabled = TRUE;
     if (microsoft_version >= 1400) {
       explicit_enum_base_enabled = TRUE;
       if (!option_kind_used[(int)optk_type_traits_helpers]) {
@@ -2245,6 +2249,8 @@ the next standard).
   extern_template_allowed = TRUE;
   standard_form_of_extern_template = TRUE;
   decltype_enabled = TRUE;
+  explicit_enum_base_enabled = TRUE;
+  enum_qualifiers_enabled = TRUE;
 }  /* check_and_set_cpp0x_mode_options */
 
 
@@ -8325,8 +8331,9 @@ variables declared in cmd_line.h.
   restrict_keyword_enabled = DEFAULT_RESTRICT_ENABLED;
   gnu_restrict_keyword_enabled = FALSE;
   long_lifetime_temps = FALSE;
-#if MICROSOFT_EXTENSIONS_ALLOWED
   explicit_enum_base_enabled = FALSE;
+  enum_qualifiers_enabled = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
   default_calling_convention = (a_calling_convention)cc_cdecl;
   microsoft_64bit_pointer_extensions_enabled =
                             DEFAULT_MICROSOFT_64BIT_POINTER_EXTENSIONS_ENABLED;

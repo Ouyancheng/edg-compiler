@@ -1348,6 +1348,8 @@ to default values.
 #endif /* ifdef FIL */
       pte->variant.integer.explicitly_signed = FALSE;
       pte->variant.integer.enum_type = FALSE;
+      pte->variant.integer.is_scoped_enum = FALSE;
+      pte->variant.integer.has_explicit_enum_base = FALSE;
 #if GNU_EXTENSIONS_ALLOWED
       pte->variant.integer.packed = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -1356,7 +1358,6 @@ to default values.
       pte->variant.integer.originally_unnamed = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       pte->variant.integer.microsoft_sized_int_type = FALSE;
-      pte->variant.integer.has_explicit_enum_base = FALSE;
       pte->variant.integer.uuid_string = NULL;
 #if DO_IL_LOWERING
       pte->variant.integer.uuid_variable = NULL;
@@ -3406,6 +3407,7 @@ Initialize the variable fields of the scope entry pointed to by sp.
       break;
     case sck_func_prototype:
     case sck_class_struct_union:
+    case sck_enum:
       sp->variant.assoc_type = NULL;
       break;
     case sck_function:

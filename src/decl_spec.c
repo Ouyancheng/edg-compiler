@@ -1233,10 +1233,10 @@ and issues a warning indicating that they are being ignored.
 
 static a_boolean tag_currently_being_defined(a_type_ptr tag_type)
 /*
-Returns TRUE if the type pointed to by tag_type is in the process
-of being defined.  This is determined by examining any
-class/struct/union scopes on the scope stack.  This is only used in
-C mode.
+Returns TRUE if the class type pointed to by tag_type is in the process of
+being defined.  This is determined by examining any class/struct/union scopes
+on the scope stack.  This is only used in C mode.  This function does not
+handle enum types.
 */
 {
   a_scope_depth	depth;
@@ -1455,11 +1455,8 @@ caution when modifying this routine.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (next_tok == tok_lbrace ||
         (next_tok == tok_colon && C_dialect == C_dialect_cplusplus &&
-         (tag_kind != (a_symbol_kind)sk_enum_tag
-#if MICROSOFT_EXTENSIONS_ALLOWED
-          || explicit_enum_base_enabled
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                                                          ) &&
+         (tag_kind != (a_symbol_kind)sk_enum_tag ||
+          explicit_enum_base_enabled) &&
          !is_ref_within_new_expr)) {
       /* The token following the tag marks the start of a class or enum
          definition. Determine whether it is the resolution of a previous
@@ -3984,6 +3981,7 @@ declarations.
   }  /* if */
 }  /* check_enum_uuid_string */
 
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if !(PROTOTYPE_INSTANTIATIONS_IN_IL || BACK_END_IS_CP_GEN_BE)
 /*ARGSUSED*/  /* enum_type is not used in all configurations. */
@@ -3992,12 +3990,12 @@ static an_integer_kind scan_explicit_enum_base_type(
                                                  a_type_ptr         enum_type,
                                                  a_source_position  *pos_type)
 /*
-Recent Microsoft C++ compilers accept the explicit specification of an
+In some modes (e.g., C++0x), we accept the explicit specification of an
 enumeration type's underlying integer type.  For example:
 	enum E: short int { a, b };
 If such a base type was specified, the current token is the colon, and this
-routine scans it along with the specified type (which is returned).  In
-some configurations, the type is recorded in enum_type.
+routine scans it along with the specified type (which is returned).  In some
+configurations, the type is recorded in enum_type.
 */
 {
   an_integer_kind  result = (an_integer_kind)ik_none;
@@ -4032,12 +4030,7 @@ some configurations, the type is recorded in enum_type.
   return result;
 }  /* scan_explicit_enum_base_type */
 
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/  /* explicit_base_kind and pos_explicit_base are not used in all
-                 configurations. */
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 static void set_enum_representation(a_type_ptr         enum_type,
                                     a_source_position  *pos_enum_tag,
                                     a_boolean          err,
@@ -4054,14 +4047,14 @@ of "char", "signed char", "unsigned char", "short", "unsigned short", and
 "int" into which the enumeration values will fit.  Only if
 enum_types_can_be_larger_than_int (e.g., in strict C++ mode), is there any
 point in trying "unsigned int" and larger integer types.
-In some Microsoft C++ modes, the underlying integer type can be specified
-explicitly: In that case, explicit_base_kind will indicate the specified
-integer type, and pos_explicit_base is the source position of the explicit
-type specification.  If the range of constants has been determined,
-min_max_set will be TRUE, and the constants *min_value and *max_value will
-describe that range.  err is TRUE if some errors occurred earlier while
-parsing the enum definition.  pos_enum_tag is the position used for
-diagnostics not related to an explicit base specifier.
+In some C++ modes, the underlying integer type can be specified explicitly:
+In that case, explicit_base_kind will indicate the specified integer type, and
+pos_explicit_base is the source position of the explicit type specification.
+If the range of constants has been determined, min_max_set will be TRUE, and
+the constants *min_value and *max_value will describe that range.  err is TRUE
+if some errors occurred earlier while parsing the enum definition.
+pos_enum_tag is the position used for diagnostics not related to an explicit
+base specifier.
 */
 {
 #if CHECKING
@@ -4070,7 +4063,6 @@ diagnostics not related to an explicit base specifier.
                     !enum_types_can_be_larger_than_int);
   }  /* if */
 #endif /* CHECKING */
-#if MICROSOFT_EXTENSIONS_ALLOWED
   if (explicit_base_kind != (an_integer_kind)ik_none) {
     /* An explicit underlying type was specified as part of this enum type
        definition (e.g., "enum E: short { e }").  Make sure the type can
@@ -4086,14 +4078,11 @@ diagnostics not related to an explicit base specifier.
   }  /* if */
   if (explicit_base_kind != (an_integer_kind)ik_none) {
     /* The underlying type is already determined: Nothing to be done. */
-  } else
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  /* Do not insert code here. */
-  if (enum_types_can_be_smaller_than_int 
+  } else if (enum_types_can_be_smaller_than_int 
 #if GNU_EXTENSIONS_ALLOWED
-      || enum_type->variant.integer.packed || il_header.short_enums
+             || enum_type->variant.integer.packed || il_header.short_enums
 #endif /* GNU_EXTENSIONS_ALLOWED */
-                                                                   ) {
+                                                                         ) {
     if (!min_max_set || in_range_for_integer_kind(min_value, max_value,
                                                   plain_char_int_kind)) {
       /* "Plain" char. */
@@ -4130,14 +4119,10 @@ diagnostics not related to an explicit base specifier.
   /* If the underlying integer type of enums can be larger than "int" (as
      is standard in C++) and if the type has not already been adjusted to
      be smaller than int, keep checking. */
-#if MICROSOFT_EXTENSIONS_ALLOWED
   if (explicit_base_kind != (an_integer_kind)ik_none) {
     /* The underlying type is already determined: Nothing to be done. */
-  } else
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  /* Do not insert code here. */
-  if (min_max_set && enum_types_can_be_larger_than_int &&
-      enum_type->variant.integer.int_kind == (an_integer_kind)ik_int) {
+  } else if (min_max_set && enum_types_can_be_larger_than_int &&
+             enum_type->variant.integer.int_kind == (an_integer_kind)ik_int) {
     if (in_range_for_integer_kind(min_value, max_value,
                                   (an_integer_kind)ik_int)) {
       /* Int. */
@@ -4229,7 +4214,7 @@ describes Microsoft attributes preceding the enum specifier (if any).
   a_symbol_ptr                 enum_sym;
   a_constant                   constant;
   a_boolean                    err = FALSE, did_not_fold, template_param;
-  a_constant_ptr               enum_con;
+  a_constant_ptr               constant_list = NULL, enum_con;
   a_constant_ptr               end_of_enum_con_list;
   a_constant                   max_value, min_value;
   a_boolean                    done, min_max_set;
@@ -4258,6 +4243,7 @@ describes Microsoft attributes preceding the enum specifier (if any).
   a_name_reference_ptr         name_ref = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   a_boolean                    is_dependent_enum = FALSE;
+  a_boolean                    is_scoped_enum = FALSE;
 
   db_enter(3, "enum_specifier");
 
@@ -4280,6 +4266,10 @@ describes Microsoft attributes preceding the enum specifier (if any).
   /* Skip over "enum". */
   check_assertion(curr_token == tok_enum);
   (void)get_token();
+  if (cpp0x_mode && (curr_token == tok_class || curr_token == tok_struct)) {
+    is_scoped_enum = TRUE;
+    (void)get_token();
+  }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (!C_mode() && microsoft_mode) {
     a_boolean  local_err;
@@ -4319,12 +4309,11 @@ describes Microsoft attributes preceding the enum specifier (if any).
                             &is_predeclared_type_decl, &local_decl_pos_block);
     if (curr_token == tok_lbrace) {
       is_definition = TRUE;
-#if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (curr_token == tok_colon && explicit_enum_base_enabled) {
-      /* Recent Microsoft compilers accept a "base specifier" to indicate the
-         underlying type of an enum (e.g., "enum E: short { x }"). */
+      /* C++0x allows for a "base specifier" to indicate the underlying type
+         of an enum (e.g., "enum E: short { x }").  This is also accepted by
+         recent Microsoft compilers. */
       is_definition = TRUE;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
     if (tag_resolution) {                            
       /* Resolution of a previous incomplete declaration. */
@@ -4388,10 +4377,8 @@ describes Microsoft attributes preceding the enum specifier (if any).
     tag_position = pos_curr_token;
     if (curr_token == tok_lbrace) {
       is_definition = TRUE;
-#if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (curr_token == tok_colon && explicit_enum_base_enabled) {
       is_definition = TRUE;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
     if (is_definition) {
       /* This is a tagless enum definition. */
@@ -4416,7 +4403,6 @@ describes Microsoft attributes preceding the enum specifier (if any).
     /* Set a default representation of "int", which may be adjusted later. */
     enum_type->variant.integer.int_kind = (an_integer_kind)ik_int;
     enum_type->variant.integer.enum_type = TRUE;
-    enum_type->variant.integer.enum_info.constant_list = NULL;
     if (scope_stack[effective_decl_level].kind ==
                                            (a_scope_kind)sck_func_prototype) {
       enum_type->declared_in_function_prototype = TRUE;
@@ -4520,10 +4506,10 @@ describes Microsoft attributes preceding the enum specifier (if any).
 #endif  /* GENERATE_SOURCE_SEQUENCE_LISTS */
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (microsoft_mode) {
-      /* In Microsoft compatibility mode enum types can be declared without
-         being defined and can also be used.  The use requires that the size
-         be set. */
+    if (microsoft_mode && !is_scoped_enum) {
+      /* In Microsoft compatibility mode (unscoped) enum types can be declared
+         without being defined and can also be used.  The use requires that
+         the size be set. */
       check_assertion(!enum_types_can_be_smaller_than_int);
       set_type_size(enum_type);
       enum_type->incomplete = FALSE;
@@ -4572,11 +4558,11 @@ describes Microsoft attributes preceding the enum specifier (if any).
   if (microsoft_mode && !C_mode()) {
     check_enum_uuid_string(enum_type, &extended_decl_info, &tag_position);
   }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (explicit_enum_base_enabled && is_definition) {
     explicit_base_kind = scan_explicit_enum_base_type(enum_type,
                                                       &pos_explicit_base);
   }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (curr_token == tok_lbrace) {
     a_source_position  end_pos;
     /* We associate a curr-construct pragma with this enum type only if this
@@ -4597,6 +4583,12 @@ describes Microsoft attributes preceding the enum specifier (if any).
        the definition and switch back when we reach the right brace. */
     *defines_something = TRUE;
     (void)get_token();
+    if (is_scoped_enum) {
+      enum_type->variant.integer.is_scoped_enum = TRUE;
+      enum_type->variant.integer.enum_info.assoc_scope = 
+                push_scope((a_scope_kind)sck_enum, NO_SCOPE_NUMBER, enum_type,
+                           (a_routine_ptr)NULL);
+    }  /* if */
     if (C_dialect == C_dialect_cplusplus || gcc_mode) {
       /* In C++ the type of an enumerator is the same as that of its
          enumeration, but that won't actually be known until the definition
@@ -4636,7 +4628,6 @@ describes Microsoft attributes preceding the enum specifier (if any).
         a_source_sequence_entry_ptr  enum_con_ssep = NULL;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
         a_source_range               enum_id_range, enum_value_range;
-
         enum_id_range = null_source_range;
         enum_value_range = null_source_range;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -4797,7 +4788,13 @@ describes Microsoft attributes preceding the enum specifier (if any).
         enum_sym = enter_local_symbol((a_symbol_kind)sk_constant, &locator,
                                       decl_scope_level,
                                       /*suppress_redecl_error=*/FALSE);
-        *declares_something = TRUE;
+        if (!is_scoped_enum) {
+          /* An unscoped and unnamed enum type definition that introduces
+             enumerator constants "declares something", but a scoped unnamed
+             enum type does not "declare something" (at least not in its
+             surrounding scope). */
+          *declares_something = TRUE;
+        }  /* if */
         /* Track the highest and lowest values in the enumeration.  These are
            used to determine the appropriate representation type. */
         if (err) {
@@ -4865,7 +4862,7 @@ describes Microsoft attributes preceding the enum specifier (if any).
         /* Add the enumeration constant to the list under the enumerated
            type. */
         if (end_of_enum_con_list == NULL) {
-          enum_type->variant.integer.enum_info.constant_list = enum_con;
+          constant_list = enum_con;
         } else {
           end_of_enum_con_list->next = enum_con;
         }  /* if */
@@ -4907,6 +4904,13 @@ describes Microsoft attributes preceding the enum specifier (if any).
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     /* Check for and pass over the closing "}". */
     (void)required_token(tok_rbrace, ec_exp_rbrace);
+    if (is_scoped_enum) {
+      pop_scope();
+      enum_type->variant.integer.enum_info.assoc_scope->constants =
+                                                                constant_list;
+    } else {
+      enum_type->variant.integer.enum_info.constant_list = constant_list;
+    }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
     if (gnu_mode) {
       /* Look for any attributes that apply to this type. */
@@ -4945,7 +4949,7 @@ describes Microsoft attributes preceding the enum specifier (if any).
       enum_con_type->variant.integer.enum_info.affiliated_type = enum_type;
       set_type_size(enum_con_type);
       /* Apply this type to every enumerator constant. */
-      for (enum_con = enum_type->variant.integer.enum_info.constant_list;
+      for (enum_con = constant_list;
            enum_con != NULL;
            enum_con = enum_con->next) {
         enum_con->type = enum_con_type;
@@ -4966,7 +4970,7 @@ describes Microsoft attributes preceding the enum specifier (if any).
     if (!C_mode()) {
       /* In C++ now that we know the type of the enumeration, we can update
          each constant to share the same type. */
-      for (enum_con = enum_type->variant.integer.enum_info.constant_list;
+      for (enum_con = constant_list;
            enum_con != NULL;
            enum_con = enum_con->next) {
         enum_con->type = enum_type;

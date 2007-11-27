@@ -150,6 +150,13 @@ an enum type).
   ((type)->kind == (a_type_kind)tk_integer &&                         \
    (type)->variant.integer.enum_type)
 
+/*
+Return TRUE if a type is a (direct) scoped enum type.  This macro assumes that
+the given type is a tk_integer type.
+*/
+#define is_scoped_enum_type(type)                                     \
+  ((type)->variant.integer.is_scoped_enum)
+
 #define is_tag_type(type)                                             \
   (is_immediate_class_type((type)) || is_immediate_enum_type((type)))
 

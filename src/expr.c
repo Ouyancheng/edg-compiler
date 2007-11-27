@@ -14734,8 +14734,7 @@ is modified to indicate that is affiliated with the enum type.
              which means they are smaller than int and promote to the
              result type.  Find or create a version of the result type that
              includes the enum affiliation. */
-          a_constant_ptr enum_con =
-                             op1_enum->variant.integer.enum_info.constant_list;
+          a_constant_ptr enum_con = enum_constants(op1_enum);
           /* See if the type of the first enum constant is the right type. */
           if (enum_con != NULL &&
               enum_con->type->kind == (a_type_kind)tk_integer &&

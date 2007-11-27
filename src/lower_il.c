@@ -7756,7 +7756,11 @@ Do IL lowering of the indicated type and everything under it.
         break;
       case tk_integer:
         if (type->variant.integer.enum_type) {
-          lower_constant_list(type->variant.integer.enum_info.constant_list);
+          if (is_scoped_enum_type(type)) {
+            lower_scope(type->variant.integer.enum_info.assoc_scope);
+          } else {
+            lower_constant_list(type->variant.integer.enum_info.constant_list);
+          }  /* if */
         } else if (type->variant.integer.enum_info.affiliated_type != NULL) {
           lower_type(type->variant.integer.enum_info.affiliated_type);
         }  /* if */
@@ -15896,7 +15900,7 @@ with the outermost enclosing class, for later promotion out of the class
           (void)fprintf(f_debug, "Enum constants promoted too\n");
         }  /* if */
 #endif /* DEBUG */
-        for (enum_con = type->variant.integer.enum_info.constant_list;
+        for (enum_con = enum_constants(type);
              enum_con != NULL;
              enum_con = enum_con->next) {
           mangle_promoted_entity_name(&enum_con->source_corresp, iek_constant,

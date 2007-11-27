@@ -88,6 +88,7 @@ Put out a scope kind name (for debugging).
     case sck_function_access:	     s = "function access";	     break;
     case sck_condition:              s = "condition";                break;
     case sck_instantiation_context:  s = "instantiation context";    break;
+    case sck_enum:                   s = "enum";                     break;
     default:                         s = "***UNKNOWN SCOPE KIND***"; break;
   }  /* switch */
   fputs(s, f_debug);
@@ -162,6 +163,7 @@ Display one scope stack entry.
       break;
     case sck_class_struct_union:
     case sck_class_reactivation:
+    case sck_enum:
       db_abbreviated_type(ssep->assoc_type);
       break;
     case sck_template_instantiation:
@@ -1842,6 +1844,16 @@ the scope being pushed.
       ssep->il_memory_region = curr_il_region_number;
       /* Add it to the scopes list for the enclosing scope. */
       add_to_scopes_list(sp, ssep-1);
+      break;
+    case sck_enum:
+      /* Create an IL scope in file scope memory.  (This case is very similar
+         to the sck_class_struct_union case.) */
+      if (curr_il_region_number != file_scope_region_number) {
+        switch_il_region(file_scope_region_number);
+      }  /* if */
+      ssep->il_memory_region = file_scope_region_number;
+      sp = alloc_scope(kind, ssep->number, (a_routine_ptr)NULL);
+      sp->depth_in_scope_stack = depth_scope_stack;
       break;
     default:
       /* For scopes for which a new memory region is not begun, the associated
@@ -5031,6 +5043,7 @@ unit.
          definition.  When a namespace extension is done, the symbols are
          added directly to the inactive list. */
       if (kind == (a_scope_kind)sck_class_struct_union ||
+          kind == (a_scope_kind)sck_enum ||
           ((kind == (a_scope_kind)sck_namespace ||
             kind == (a_scope_kind)sck_file) && !is_namespace_wrapup) ||
           kind == (a_scope_kind)sck_template_declaration) {
@@ -5846,9 +5859,14 @@ End a name scope by popping an entry off the scope stack.
         db_name_full(&curr_routine->source_corresp, iek_routine);
         (void)fputc('"', f_debug);
       } else if ((kind == (a_scope_kind)sck_class_struct_union ||
-                  kind == (a_scope_kind)sck_class_reactivation) &&
+                  kind == (a_scope_kind)sck_class_reactivation ||
+                  kind == (a_scope_kind)sck_enum) &&
                  ssep->assoc_type != NULL) {
-        (void)fputs(", class = \"", f_debug);
+        if (kind == (a_scope_kind)sck_enum) {
+          (void)fputs(", enum class = \"", f_debug);
+        } else {
+          (void)fputs(", class = \"", f_debug);
+        }  /* if */
         db_name_full(&ssep->assoc_type->source_corresp, iek_type);
         (void)fputc('"', f_debug);
       } else if ((kind == (a_scope_kind)sck_namespace ||
@@ -6945,6 +6963,7 @@ deprecated.
         goto done;
       case sck_class_struct_union:
       case sck_class_reactivation:
+      case sck_enum:
         if (ssep->assoc_type->source_corresp.is_deprecated) {
           result = TRUE;
           goto done;

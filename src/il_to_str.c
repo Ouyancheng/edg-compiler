@@ -1153,15 +1153,12 @@ by octl.
              back end.  Specifically:
                - don't generate enums when generating pcc mode
                - don't generate enums with an explicit underlying type
-                 (valid only in Microsoft C++).
                - don't generate empty enums (valid in C++, but not in C)
              In these cases, the underlying integer type is used instead. */
           !(octl->c_generating_back_end && 
             (octl->gen_pcc_code ||
-#if MICROSOFT_EXTENSIONS_ALLOWED
              type->variant.integer.has_explicit_enum_base ||
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-             type->variant.integer.enum_info.constant_list == NULL))) {
+             enum_constants(type) == NULL))) {
         /* Output a reference to the enum type. */
         form_tag_reference(type, octl);
       } else if (type->variant.integer.wchar_t_type &&
@@ -3410,9 +3407,7 @@ out as the original enum constant.
                   enum_type->variant.integer.enum_type);
   /* Go through the list of enum constants and compare each one to the
      constant we want. */
-  for (con = enum_type->variant.integer.enum_info.constant_list;
-       con != NULL;
-       con = con->next) {
+  for (con = enum_constants(enum_type); con != NULL; con = con->next) {
     /* Compare the constant on the list to the one we want. */
     if (cmp_integer_constants(con, constant) == 0) {
       /* Equal, so we found the constant we want. */

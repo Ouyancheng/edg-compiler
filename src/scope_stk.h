@@ -522,11 +522,12 @@ typedef struct a_scope_stack_entry {
 			   current region at the time this scope was entered.
 			   This is restored by pop_scope. */
   a_type_ptr	assoc_type;
-			/* When kind == sck_func_prototype, this points to
-			   the function type whose prototype scope this is.
-			   When kind == sck_class_struct_union or
-			   kind == sck_class_reactivation, this points
-			   to the class type. */
+			/* When kind == sck_func_prototype, this points to the
+			   function type whose prototype scope this is.  When
+			   kind == sck_class_struct_union or
+			   kind == sck_class_reactivation, this points to the
+			   class type.  When kind == sck_enum, this points to
+			   the enum type. */
   a_routine_ptr	assoc_routine;
 			/* When kind == sck_function or when kind == 
 			   sck_template_instantiation for a function

@@ -883,8 +883,13 @@ the file scope, do not process it (but record an orphan in the latter case).
           case tk_integer:
 #ifdef CFE
             if (ptr->variant.integer.enum_type) {
-              walk_list(ptr->variant.integer.enum_info.constant_list,
-                        a_constant_ptr, iek_constant);
+              if (is_scoped_enum_type(ptr)) {
+                walk_ptr(ptr->variant.integer.enum_info.assoc_scope,
+                         a_scope_ptr, iek_scope);
+              } else {
+                walk_list(ptr->variant.integer.enum_info.constant_list,
+                          a_constant_ptr, iek_constant);
+              }  /* if */
             } else {
               walk_ptr(ptr->variant.integer.enum_info.affiliated_type,
                        a_type_ptr, iek_type);
@@ -2133,6 +2138,7 @@ end_sizeof:;
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
             /* FALLTHROUGH */
           case sck_class_struct_union:
+          case sck_enum:
             remap_ptr_not_needed(ptr->variant.assoc_type, a_type_ptr,
                                  iek_type);
             break;

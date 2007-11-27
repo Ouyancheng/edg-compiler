@@ -332,6 +332,7 @@ found in unexpected locations.
   switch (ssep->kind) {
     case sck_template_declaration:
     case sck_func_prototype:
+    case sck_enum:
       /* An invalid scope for a class definition. */
       result = TRUE;
       break;
@@ -9736,7 +9737,7 @@ must be unsigned.
   unsigned long  bits_needed, bits_needed_largest, bits_needed_smallest;
   a_constant_ptr enum_con;
 
-  enum_con = bit_field_type->variant.integer.enum_info.constant_list;
+  enum_con = enum_constants(bit_field_type);
   if (enum_con == NULL) {
     /* There are no enumeration constants, so no bits are needed to
        represent all of them; by definition, they fit in the bit field. */

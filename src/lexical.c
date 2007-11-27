@@ -13337,21 +13337,18 @@ selection operator, in which case it points to the type of the left operand.
           /* Get the namespace from the symbol entry. */
           qualifier_namespace = namespace_symbol_namespace(qualifier_sym);
           qualifier_is_type = FALSE;
-        } else if (microsoft_bugs && is_enum_symbol(qualifier_sym) &&
-                   (microsoft_version >= 1400 ||
-                    skip_typerefs(type_symbol_type(qualifier_sym))->
+        } else if (is_enum_symbol(qualifier_sym) && enum_qualifiers_enabled &&
+                   !(microsoft_mode && microsoft_version < 1400 &&
+                     !cpp0x_mode &&
+                     !skip_typerefs(type_symbol_type(qualifier_sym))->
                                              source_corresp.is_class_member)) {
-          /* In Microsoft bugs mode the qualifier can be an enumeration
-             name.  For Microsoft versions before 1400, only member
-             enumerations are considered. */
+          /* Enum qualifiers are accepted in some modes.  Earlier Microsoft
+             compilers only accept them with member enum types. */
           qualifier_type = type_symbol_type(qualifier_sym);
           qualifier_type = skip_typerefs(qualifier_type);
           qualifier_is_type = TRUE;
           qualifier_type_is_class = FALSE;
           qualifier_is_enum = TRUE;
-          if (microsoft_version >= 1400) {
-            warning(ec_enum_qualifier_nonstd);
-          }  /* if */
         } else if (qualifier_sym->kind == (a_symbol_kind)sk_type ||
                    (qualifier_sym->kind == (a_symbol_kind)sk_enum_tag &&
                     is_vacuous_dtor)) {
@@ -14187,12 +14184,12 @@ The caller must guarantee that is_generalized_identifier_start is TRUE
               a_boolean	qualifier_is_enum_type;
               /*  For Coverity. */
               check_assertion(!qualifier_is_type || qualifier_type != NULL);
-              qualifier_is_enum_type = microsoft_bugs && qualifier_is_type &&
+              qualifier_is_enum_type = enum_qualifiers_enabled &&
+                                       qualifier_is_type &&
                                        is_enum_type(qualifier_type);
-              if (microsoft_bugs && qualifier_is_enum_type &&
-                  is_enum_type(qualifier_type) &&
+              if (qualifier_is_enum_type &&
                   enum_qualified_id_lookup(&locator_for_curr_id,
-                                            qualifier_type) != NULL) {
+                                           qualifier_type) != NULL) {
                 /* In Microsoft bugs mode, enumerations can be used as
                    qualifiers.  The name was found as an enumerator. */
 #if MICROSOFT_EXTENSIONS_ALLOWED

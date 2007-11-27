@@ -948,6 +948,14 @@ extern void set_unsigned_integer_constant(a_constant		*cp,
                                           a_host_large_unsigned	value,
                                           an_integer_kind	kind);
 
+/* Macro to retrieve the list of constants associated with an enum type.  The
+   location of the list is different depending on whether it's a scoped enum
+   or not. */
+#define enum_constants(tp)                                                   \
+  (is_scoped_enum_type((tp)) ?                                               \
+      (tp)->variant.integer.enum_info.assoc_scope->constants :               \
+      (tp)->variant.integer.enum_info.constant_list)
+     
 extern a_boolean is_enum_constant(a_constant_ptr con);
 
 extern a_boolean is_wide_string_constant(a_constant_ptr constant);

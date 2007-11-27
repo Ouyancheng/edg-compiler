@@ -8405,7 +8405,7 @@ associated enumerator constants are assigned the same name linkage as the
 type itself.
 */
 {
-  a_constant_ptr  enumerator = tp->variant.integer.enum_info.constant_list;
+  a_constant_ptr  enumerator = enum_constants(tp);
 
   for (; enumerator != NULL; enumerator = enumerator->next) {
     enumerator->source_corresp.name_linkage = tp->source_corresp.name_linkage;

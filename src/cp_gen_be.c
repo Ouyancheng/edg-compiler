@@ -2343,6 +2343,25 @@ the meaning of need_closing_paren.
 }  /* gen_namespace_qualifier */
 
 
+static void gen_enum_qualifier(a_type_ptr              enum_type,
+                               a_gen_name_options_set  options,
+                               a_boolean               *need_closing_paren)
+/*
+Generate an enum qualifier (e.g., "A::B::") that identifies the indicated
+enum.  options gives a set of options for gen_name.  See gen_name for
+the meaning of need_closing_paren.
+*/
+{
+  check_assertion(is_immediate_enum_type(enum_type) &&
+                  is_scoped_enum_type(enum_type));
+  if (has_name(enum_type)) {
+    gen_name(&enum_type->source_corresp, iek_type, options | GN_QUALIFIER,
+             need_closing_paren);
+    write_tok_str("::");
+  }  /* if */
+}  /* gen_enum_qualifier */
+
+
 static char *tag_kind(a_type_kind kind)
 /*
 Return a string that describes the tag kind for the indicated type kind, i.e.,
@@ -2560,6 +2579,21 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
         }  /* if */
       }  /* if */
     }  /* if */
+    if (entry_kind == iek_constant) {
+      /* Check the special case of a scoped enumerator constant: It requires
+         qualification with the enum type (except inside the enum
+         definition). */
+      a_constant_ptr  con = (a_constant_ptr)scp;
+      if (is_enum_constant(con) && is_scoped_enum_type(con->type)) {
+        if (curr_name_context->assoc_scope !=
+                           con->type->variant.integer.enum_info.assoc_scope) {
+          gen_enum_qualifier(con->type,
+                             options & GN_PARENS_IF_GLOBAL_QUALIFIER,
+                             need_closing_paren);
+          goto unqualified_part;
+        }  /* if */
+      }  /* if */
+    }  /* if */
     if (scp->is_class_member) {
       a_type_ptr class_type = scp->parent.class_type;
       a_boolean  used_qualified_name = FALSE;
@@ -2733,6 +2767,7 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
     }  /* if */
     scp->qualification_needed = save_qualification_needed;
   }  /* if */
+unqualified_part:
   /* Finally, emit the unqualified part of the name, with or without
      template arguments. */
   if (options & GN_NO_TEMPLATE_ARGS) {
@@ -4675,8 +4710,12 @@ is the one associated with the definition of the enum.
                                    type->source_corresp.source_sequence_entry);
   /* Position the output file to the definition position. */
   set_output_position(&type->source_corresp.decl_position);
-  /* Generate "enum <name>". */
-  write_tok_str("enum");
+  /* Generate "enum <name>" or "enum class <name>". */
+  if (is_scoped_enum_type(type)) {
+    write_tok_str("enum class");
+  } else {
+    write_tok_str("enum");
+  }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_dialect_is_generated_code_target &&
       type->variant.integer.uuid_string != NULL) {
@@ -4691,17 +4730,14 @@ is the one associated with the definition of the enum.
     gen_name(&type->source_corresp, iek_type, GN_DECLARATION,
              (a_boolean *)NULL);
   }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  if (microsoft_dialect_is_generated_code_target &&
-      type->variant.integer.base_type != NULL) {
-    /* Microsoft C++ allows the explicit specification of an underlying
-       type. */
+  if (type->variant.integer.base_type != NULL) {
+    /* C++0x and Microsoft C++ allow the explicit specification of an
+       underlying type. */
     write_tok_str(": ");
     gen_type(type->variant.integer.base_type);
   }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   write_tok_str(" { ");
-  enum_con = type->variant.integer.enum_info.constant_list;
+  enum_con = enum_constants(type);
   if (enum_con != NULL) {
     /* Output the enumeration constants. */
     a_boolean is_initial_implicit_zero = FALSE;
