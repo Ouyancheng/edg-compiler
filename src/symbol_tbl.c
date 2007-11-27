@@ -1593,34 +1593,6 @@ return NULL.
 }  /* underlying_routine_type */
 
 
-a_boolean is_ms_enum_qualifier_symbol(a_symbol_ptr sym)
-/*
-Used in Microsoft mode to determine whether a symbol refers to an
-enumeration that can be used as the qualifier in a qualified name.
-Return TRUE if the symbol refers to a class member enumeration.
-*/
-{
-  a_type_ptr	tp;
-
-  /* If the symbol refers to a type that is an enumeration, set tp to
-     the type that represents the enumeration. */
-  if (sym->kind == (a_symbol_kind)sk_enum_tag) {
-    tp = sym->variant.enumeration.type;
-  } else if (sym->kind == (a_symbol_kind)sk_type) {
-    tp = sym->variant.type.ptr;
-    tp = skip_typerefs(tp);
-    if (!is_enum_type(tp)) tp = NULL;
-  } else {
-    tp = NULL;
-  }  /* if */
-  /* For Microsoft versions below 1400, the type found must be a class member.
-     If it is not, set the type pointer to NULL. */
-  if (tp != NULL && !tp->source_corresp.is_class_member &&
-      microsoft_version < 1400) tp = NULL;
-  return tp != NULL;
-}  /* is_ms_enum_qualifier_symbol */
-
-
 a_boolean overload_set_contains_template(a_symbol_ptr sym)
 /*
 Return TRUE if sym points to an overload set containing a function
