@@ -1967,6 +1967,105 @@ are needed to use is_acceptable_symbol.
 }  /* sym_matches_lookup_options */
 
 
+#if !DEBUG
+/*ARGSUSED*/ /* <-- ssep is only used in DEBUG code. */
+#endif /* !DEBUG */
+static a_boolean is_symbol_visible_for_gpp_using_dir(
+			a_scope_stack_entry_ptr			ssep,
+			a_symbol_locator			*locator,
+			a_lookup_state_ptr			lookup_state,
+			a_symbol_ptr				new_sym,
+			a_namespace_symbol_supplement_ptr	nssp)
+/*
+When we are doing g++ dependent name lookup the visibility of the symbol
+depends on whether or not it is a function, whether the name was specified
+using a template-id, and the version of g++ that we are emulating.
+
+Symbols are sometimes visible if a using-directive was visible at the point
+of definition of the template.  The using_dir_decl_seq field of the namespace
+is used to determine the visibility of using-directives in g++ mode.
+
+Consider this example:
+
+  namespace N1 {
+    template<typename T> inline void f(const T&, const T&) { }
+  }
+
+  template<typename T> inline void f(T const&, T const&) { }
+
+  template<typename T> inline void g(T const& val1, T const& val2) {
+    f<int>(val1, val2);  // call #1
+    f(val1, val2);       // call #2
+  }
+
+  int v1;
+  int v2;
+
+  int main() {
+    g(v1, v2);
+  }
+
+  using namespace N1;
+
+We match the behavior of the various g++ versions, except as noted below.
+
+Call #1 is:
+
+  - ambiguous in g++ 3.2
+  - accepted in g++ 3.3 and above, but we give an ambiguity
+  - accepted in g++ 3.4 and above
+
+Call #2 is:
+
+  - ambiguous in g++ 3.2
+  - accepted in g++ 3.3, but we give an ambiguity
+  - ambiguous in g++ 3.4
+  - accepted in g++ 4.0 and above
+
+ssep is the scope is the scope stack entry at which the using-directives apply
+that are being considered for this lookup.  locator identifies the kind of name
+being looked up.  new_sym is the symbol being considered.  nssp is the
+namespace of new_sym.
+*/
+{
+  a_boolean	visible_using_dir;
+  a_boolean	result = TRUE;
+
+#if DEBUG
+  if (db_flag_is_set("gpp_lookup")) {
+    an_active_using_directive_ptr	audp;
+    fprintf(f_debug, "g++ using-dir lookup:\n");
+    fprintf(f_debug, "  nssp->using_dir_decl_seq=%ld\n",
+            nssp->using_dir_decl_seq);
+    fprintf(f_debug, "  lookup_state->using_dir_decl_seq=%ld\n",
+            lookup_state->using_dir_decl_seq);
+    for (audp = ssep->using_directives_that_apply_here;
+         audp != NULL; audp = audp->next_that_applies_at_depth) {
+      if (nssp == audp->namespace_supplement) {
+        fprintf(f_debug, "  effective_decl_seq=%ld\n",
+               audp->effective_decl_seq);
+      }  /* if */
+    }  /* for */
+  }  /* if */
+#endif /* DEBUG */
+  visible_using_dir = 
+            (nssp->using_dir_decl_seq <= lookup_state->using_dir_decl_seq ||
+            lookup_state->using_dir_decl_seq == NO_DECL_SEQUENCE_NUMBER);
+  if (is_function_or_template_symbol(new_sym) || visible_using_dir) {
+    if (!visible_using_dir &&
+        (gnu_version >= 40000 ||
+         ((gnu_version == 30400 && locator->is_template_id)))) {
+      /* This is a symbol that should be ignored in g++ mode. */
+      result = FALSE;
+    }  /* if */
+  } else {
+    /* This is a symbol that should be ignored in g++ mode. */
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* is_symbol_visible_for_gpp_using_dir */
+
+
 static a_symbol_ptr do_using_directive_lookup
                               (a_scope_stack_entry_ptr	ssep,
                                a_symbol_ptr		sym_from_scope,
@@ -2032,16 +2131,11 @@ of the lookup is returned to the caller.
     ns_sym = (a_symbol_ptr)nsp->source_corresp.assoc_info;
     nssp = ns_sym->variant.namespace_info.extra_info;
     if (gpp_using_directive_lookup) {
-      /* In normal mode, only a namespace test is needed.  When doing g++
-         dependent name lookup, all function symbols are visible (regardless of
-         declaration sequence number) but non-function symbols are visible only
-         if a using-directive was visible at the point of definition of the
-         template.  The using_dir_decl_seq field of the namespace is used
-         to determine the visibility of using-directives in g++ mode. */
-      if (!(is_function_or_template_symbol(new_sym) ||
-           (nssp->using_dir_decl_seq <= lookup_state->using_dir_decl_seq ||
-            lookup_state->using_dir_decl_seq == NO_DECL_SEQUENCE_NUMBER))) {
-        /* This is a symbol that should be ignored in g++ mode. */
+      /* In normal mode, only a namespace test is needed.  When we are doing
+         g++ dependent name lookup, a more complex test is needed to emulate
+         the g++ using-directive visibility rules. */
+      if (!is_symbol_visible_for_gpp_using_dir(ssep, locator,
+                                               lookup_state, new_sym, nssp)) {
         continue;
       }  /* if */
     }  /* if */

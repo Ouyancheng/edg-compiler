@@ -1,5 +1,50 @@
 Version 3.11
 
+11/26/07  GNU C++ compatibility: emulation of g++ using-directive
+          visibility rules
+
+In template instantiations, the function symbols made visible by
+using-directive varies depending on the version of g++ being used. The
+front end has been updated to better emulate the GNU behavior in g++ mode.
+
+In this example:
+
+  namespace N1 {
+    template<typename T> inline void f(const T&, const T&) { }
+  }
+
+  template<typename T> inline void f(T const&, T const&) { }
+
+  template<typename T> inline void g(T const& val1, T const& val2) {
+    f<int>(val1, val2);  // call #1
+    f(val1, val2);       // call #2
+  }
+
+  int v1;
+  int v2;
+
+  int main() {
+    g(v1, v2);
+  }
+
+  using namespace N1;
+
+We now match the behavior of the various g++ versions, except as noted below.
+Formerly, both calls were ambiguous for all gnu_versions values.
+
+Call #1 is:
+
+  - ambiguous in g++ 3.2
+  - accepted in g++ 3.3 and above, but we give an ambiguity
+  - accepted in g++ 3.4 and above
+
+Call #2 is:
+
+  - ambiguous in g++ 3.2
+  - accepted in g++ 3.3, but we give an ambiguity
+  - ambiguous in g++ 3.4
+  - accepted in g++ 4.0 and above
+
 11/26/07  Incorrect partial ordering when one parameter is a cv-qualified
           reference
 
