@@ -66,6 +66,11 @@ predicates.
    macro is interchangeable with is_integral (but is more efficient). */
 #define is_integral_or_enum(tp) (type_kind_is_integer(tp))
 
+/* C++0x adds a distinction between scoped and unscoped enum types.  The
+   former do not implicitly convert (promote) to integer types. */
+#define is_integer_or_unscoped_enum(tp) \
+  (type_kind_is_integer(tp) && !(tp)->variant.integer.is_scoped_enum)
+
 /* The bool type is an integral type that is tagged as bool.  It only
    exists when bool_is_keyword is TRUE, or in C99 mode. */
 #define is_bool(tp) \
@@ -122,6 +127,10 @@ predicates.
    available in some configurations) are also arithmetic types. */
 #define is_arithmetic_or_enum(tp)                                     \
   (is_integral_or_enum(tp) || is_floating(tp) or_is_fixed_point_type(tp))
+
+#define is_arithmetic_or_unscoped_enum(tp)                            \
+  (is_integer_or_unscoped_enum(tp) || is_floating(tp)                 \
+   or_is_fixed_point_type(tp))
 
 /* The pointer type is simply the pointer type. */
 #define is_pointer(tp) ((tp)->kind == (a_type_kind)tk_pointer &&      \
@@ -5641,7 +5650,7 @@ See conversion_possible.
       /* bool --> bool is no conversion. */
       okay = TRUE;
       std_conv->nontrivial_conversion = FALSE;
-    } else if (is_arithmetic_or_enum(source_type)) {
+    } else if (is_arithmetic_or_unscoped_enum(source_type)) {
       okay = TRUE;
     } else if (is_pointer(source_type) || is_ptr_to_member(source_type)) {
       okay = TRUE;
@@ -5655,7 +5664,8 @@ See conversion_possible.
       /* No type change. */
       okay = TRUE;
       std_conv->nontrivial_conversion = FALSE;
-    } else if (!C_mode() && is_enum(dest_type)) {
+    } else if (!C_mode() && is_enum(dest_type) &&
+               !is_scoped_enum_type(dest_type)) {
       /* Conversion to an enum type in C++.  We already know this is not
          a conversion of an enum type to itself, so this is an error case:
          you can't convert other types to enum implicitly. */
@@ -5667,8 +5677,8 @@ See conversion_possible.
         okay = TRUE;
         std_conv->warning_suggested = ec_mixed_enum_type;
       }  /* if */
-    } else if (is_arithmetic_or_enum(source_type)) {
-      /* Arithmetic or enum --> arithmetic (including enum in C). */
+    } else if (is_arithmetic_or_unscoped_enum(source_type)) {
+      /* Arithmetic or unscoped enum --> arithmetic (including enum in C). */
       okay = TRUE;
       if (C_mode()) {
         /* In C, check for conversion of one enumerated type to another,
