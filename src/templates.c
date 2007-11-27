@@ -1728,7 +1728,7 @@ Likewise for match2.
     param_type2 = type_pointed_to(param_type2);
   }  /* if */
   if (type_1_is_reference && type_2_is_reference) {
-    /* If either type is a reference, remove any common qualifiers so
+    /* If both types are references, remove any common qualifiers so
        that we can determine if one of the type is more qualified than
        the other. */
     a_type_ptr	prev_type1;
