@@ -46,7 +46,7 @@ In this example:
   using namespace N1;
 
 We now match the behavior of the various g++ versions, except as noted below.
-Formerly, both calls were ambiguous for all gnu_versions values.
+Formerly, both calls were ambiguous for all gnu_version values.
 
 Call #1 is:
 
