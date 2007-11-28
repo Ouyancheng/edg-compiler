@@ -20,7 +20,7 @@ which returns the external representation.
           visibility rules
 
 In template instantiations, the function symbols made visible by
-using-directives varies depending on the version of g++ being used. The
+using-directives vary depending on the version of g++ being used. The
 front end has been updated to better emulate the GNU behavior in g++ mode.
 
 In this example:
