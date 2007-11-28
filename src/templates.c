@@ -1732,7 +1732,7 @@ Likewise for match2.
        use_nonstd_partial_ordering)) {
     /* If both types are references, remove any common qualifiers so
        that we can determine if one of the type is more qualified than
-       the other.  Also do this If either is a reference and the
+       the other.  Also do this if either is a reference and the
        use_nonstd_partial_ordering flag is TRUE to allow emulation of the
        incorrect behavior that was present through version 3.10. */
     a_type_ptr	prev_type1;
