@@ -7,14 +7,14 @@ issue a warning and treat the directive as a normal include (emulating the
 GNU behavior).  Formerly, an empty search path would be used, resulting in
 a catastrophic error.
 
-11/27/07  New internal size_of_type macro returns external representation
-          of type size
+11/27/07  New size_of_type macro
 
 Internal to the front end, the size field of a tk_void or tk_routine type is
 represented as zero even though the size of these (void and function) types
-is defined to be one in GNU emulation mode.  In order to better hide
-this internal representation, a new size_of_type macro has been added
-which returns the external representation.
+is defined to be one in GCC emulation mode.  The new size_of_type macro
+simply returns the size field of the specified type except in the cases
+described above (i.e., in GCC emulation mode when the type is tk_void
+or tk_routine) when it returns one.
 
 11/26/07  GNU C++ compatibility: emulation of g++ using-directive
           visibility rules
