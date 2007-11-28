@@ -1727,10 +1727,14 @@ Likewise for match2.
   if (type_2_is_reference) {
     param_type2 = type_pointed_to(param_type2);
   }  /* if */
-  if (type_1_is_reference && type_2_is_reference) {
+  if ((type_1_is_reference && type_2_is_reference) ||
+      ((type_1_is_reference || type_2_is_reference) &&
+       use_nonstd_partial_ordering)) {
     /* If both types are references, remove any common qualifiers so
        that we can determine if one of the type is more qualified than
-       the other. */
+       the other.  Also do this If either is a reference and the
+       use_nonstd_partial_ordering flag is TRUE to allow emulation of the
+       incorrect behavior that was present through version 3.10. */
     a_type_ptr	prev_type1;
     a_type_ptr	prev_type2;
     /* Remove any common type qualifiers. */
@@ -1744,7 +1748,7 @@ Likewise for match2.
   } else if (!use_nonstd_partial_ordering) {
     /* Remove any qualifiers that may have been under a reference when
        not both types are references.  This is suppressed when
-       use_old_partial_ordering is TRUE to allow emulation of the incorrect
+       use_nonstd_partial_ordering is TRUE to allow emulation of the incorrect
        behavior that was present through version 3.10. */
     param_type1 = skip_typerefs(param_type1);
     param_type2 = skip_typerefs(param_type2);
