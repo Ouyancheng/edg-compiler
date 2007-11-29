@@ -5756,6 +5756,18 @@ is what mangled_type_name generates, plus a prefix.
       (void)give_unnamed_class_a_name(type);
     } else if (is_immediate_enum_type(type)) {
       (void)give_unnamed_enum_a_name(type);
+    } else if (type->kind == (a_type_kind)tk_template_param) {
+      a_type_ptr nested_type = type->variant.template_param.extra_info->
+                                                              orig_nested_type;
+      /* Give names to template parameters that refer to unnamed
+         classes or enums. */
+      if (nested_type != NULL) {
+        if (is_immediate_class_type(nested_type)) {
+          type->source_corresp.name = give_unnamed_class_a_name(nested_type);
+        } else if (is_immediate_enum_type(nested_type)) {
+          type->source_corresp.name = give_unnamed_enum_a_name(nested_type);
+        }  /* if */
+      }  /* if */
     }  /* if */
   }  /* if */
   /* do_type_name_mangling gets called twice, once from template processing
