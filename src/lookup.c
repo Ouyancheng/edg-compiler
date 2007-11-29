@@ -1974,6 +1974,7 @@ static a_boolean is_symbol_visible_for_gpp_using_dir(
 			a_scope_stack_entry_ptr			ssep,
 			a_symbol_locator			*locator,
 			a_lookup_state_ptr			lookup_state,
+			a_symbol_ptr				sym_from_scope,
 			a_symbol_ptr				new_sym,
 			a_namespace_symbol_supplement_ptr	nssp)
 /*
@@ -2020,11 +2021,18 @@ Call #2 is:
   - ambiguous in g++ 3.2
   - accepted in g++ 3.3, but we give an ambiguity
   - ambiguous in g++ 3.4
+  - ambiguous in g++ 4.0
+  - accepted in g++ 4.1
+
+Call #2 is accepted in g++ 4.1 because the presence of a symbol found by the
+normal lookup suppresses the visibility of certain symbols that would be
+found by a using-directive lookup.
 
 ssep is the scope is the scope stack entry at which the using-directives apply
 that are being considered for this lookup.  locator identifies the kind of name
 being looked up.  new_sym is the symbol being considered.  nssp is the
-namespace of new_sym.
+namespace of new_sym.  sym_from_scope is the symbol found by normal lookup
+in the scope in which the using-directives apply.
 */
 {
   a_boolean	visible_using_dir;
@@ -2052,7 +2060,8 @@ namespace of new_sym.
             lookup_state->using_dir_decl_seq == NO_DECL_SEQUENCE_NUMBER);
   if (is_function_or_template_symbol(new_sym) || visible_using_dir) {
     if (!visible_using_dir &&
-        ((gnu_version == 30400 && locator->is_template_id))) {
+        ((gnu_version >= 40100 && sym_from_scope != NULL) ||
+         (gnu_version >= 30400 && locator->is_template_id))) {
       /* This is a symbol that should be ignored in g++ mode. */
       result = FALSE;
     }  /* if */
@@ -2133,7 +2142,8 @@ of the lookup is returned to the caller.
          g++ dependent name lookup, a more complex test is needed to emulate
          the g++ using-directive visibility rules. */
       if (!is_symbol_visible_for_gpp_using_dir(ssep, locator,
-                                               lookup_state, new_sym, nssp)) {
+                                               lookup_state, sym_from_scope,
+                                                new_sym, nssp)) {
         continue;
       }  /* if */
     }  /* if */
