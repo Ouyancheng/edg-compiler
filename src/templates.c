@@ -21823,6 +21823,7 @@ Initializations for template.
   pending_nontype_param_instantiations = 0;
   pending_templ_templ_param_instantiations = 0;
   pending_type_param_instantiations = 0;
+  additional_instantiation_wrapup_required = FALSE;
 #if DEBUG
   num_partial_order_candidates_allocated = 0;
   num_tmpl_decl_states_allocated = 0;
@@ -21830,12 +21831,9 @@ Initializations for template.
   num_template_lookup_entries_allocated = 0;
   num_exported_template_files_allocated = 0;
 #endif /* TEMPLATE_LOOKUP_NEEDED */
-#if AUTOMATIC_TEMPLATE_INSTANTIATION
-  any_instantiated_entities_added_to_request_file = FALSE;
-#endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
-  additional_instantiation_wrapup_required = FALSE;
 #endif /* DEBUG */
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
+  any_instantiated_entities_added_to_request_file = FALSE;
   request_file_check_needed = FALSE;
   instantiation_request_file_name = NULL;
   f_instantiation_request = NULL;
