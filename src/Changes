@@ -1,5 +1,19 @@
 Version 3.11
 
+11/28/07  CNU C++ compatibility: incorrectly specified class template arguments
+
+g++ allows a member of a nested class of a class template to be defined
+using an incorrect template argument list.  We now emulate this in g++
+mode.  A warning is issued.
+
+  template <class T, class V> struct Outer {
+    struct Inner {
+      void f();
+    };
+  };
+  template <class T, class V> void Outer<T, int>::Inner::f() { }
+                                            ^ should be V
+
 11/27/07  Warning if #include_next is used in primary source file
 
 If an #include_next directive is used in a primary source file, we now

@@ -1710,6 +1710,7 @@ ec_virtual_ignored;;"\"virtual\" is ignored here"
 ec_vla_type_in_template_arg;;"a template argument may not reference a variable-length array type"
 ec_UCN_names_surrogate_code_point;;"a universal character name cannot designate a surrogate code point"
 ec_include_next_in_primary_source_file;;"#include_next cannot be used in the primary source file"
+ec_bad_template_member_definition;;"%no1 cannot be specified in a template member definition -- %no2 assumed instead"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

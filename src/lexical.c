@@ -11713,6 +11713,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
     a_type_ptr			type;
     a_class_type_supplement_ptr ctsp;
     a_scope_stack_entry_ptr	ssep;
+    a_boolean			is_outermost_tmc = TRUE;
     ssep = &scope_stack[depth_scope_stack];
     tmc_sym = ssep->templ_member_class_sym;
     /* Determine whether the template being used is either the class associated
@@ -11728,6 +11729,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
                type->variant.class_struct_union.extra_info->
                                                   template_arg_list == NULL) {
           type = type->source_corresp.parent.class_type;
+          is_outermost_tmc = FALSE;
         }  /* while */
         /* Exit the loop if the type has no template argument list. */
         if (type->variant.class_struct_union.extra_info->
@@ -11753,6 +11755,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
         if (tmc_sym->is_class_member) {
           type = tmc_sym->parent.class_type;
           tmc_sym = (a_symbol_ptr)type->source_corresp.assoc_info;
+          is_outermost_tmc = FALSE;
         } else {
           break;
         }  /* if */
@@ -11762,6 +11765,44 @@ a routine to lookup the appropriate instance (or generate one if needed).
                         is_templ_member_class_sym;
     new_sym = find_template_class(template_sym, &arg_list, prototype_allowed,
                                   current_instantiation_sym);
+    if (gpp_mode && prototype_allowed &&
+        (!is_templ_member_class_sym || !is_outermost_tmc) &&
+        ((options & (GID_IS_TEMPLATE_PRESCAN |
+                     GID_IS_CLASS_TEMPLATE_DECL)) == 0) &&
+        is_nonreal_instance_class_symbol(new_sym) &&
+        !is_prototype_instantiation_symbol(new_sym)) {
+      /* g++ allows a member of a nested class of a class template to be
+         defined using an incorrect template argument list.
+
+           template <class T, class V> struct Outer {
+             struct Inner {
+               void f();
+             };
+           };
+           template <class T, class V> void Outer<T, int>::Inner::f() { }
+                                                     ^ should be V
+
+         We emulate this in g++ mode by replacing the incorrect class with
+         the expected one.  We do this in all cases during prescans, but only
+         when a nested class is present in the is_templ_member_class_sym case
+         (as indicated by is_outermost_tmc).  The GID_IS_CLASS_TEMPLATE_DECL
+         and GID_IS_TEMPLATE_PRESCAN tests are used to suppress this
+         processing when scanning a partial specialization declaration. */
+      a_symbol_ptr	proto_sym;
+      proto_sym = template_sym->variant.template_info->
+                    variant.class_template.prototype_instantiation;
+      if (proto_sym != NULL) {
+        if (is_templ_member_class_sym) {
+          /* The warning is issued only when processing a real declaration,
+             not during the disambiguation prescan where this can be done
+             for some additional cases that don't occur during the real
+             scan. */
+          pos_sy2_warning(ec_bad_template_member_definition, &start_position,
+                          new_sym, proto_sym);
+        }  /* if */
+        new_sym = proto_sym;
+      }  /* if */
+    }  /* if */
     arg_list_coalesced = TRUE;
     type = type_symbol_type(new_sym);
     ctsp = type->variant.class_struct_union.extra_info;
