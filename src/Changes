@@ -58,8 +58,7 @@ Call #2 is:
 
   - ambiguous in g++ 3.2
   - accepted in g++ 3.3, but we give an ambiguity
-  - ambiguous in g++ 3.4
-  - accepted in g++ 4.0 and above
+  - ambiguous in g++ 3.4 and above
 
 11/26/07  Incorrect partial ordering when one parameter is a cv-qualified
           reference

@@ -2020,7 +2020,6 @@ Call #2 is:
   - ambiguous in g++ 3.2
   - accepted in g++ 3.3, but we give an ambiguity
   - ambiguous in g++ 3.4
-  - accepted in g++ 4.0 and above
 
 ssep is the scope is the scope stack entry at which the using-directives apply
 that are being considered for this lookup.  locator identifies the kind of name
@@ -2053,8 +2052,7 @@ namespace of new_sym.
             lookup_state->using_dir_decl_seq == NO_DECL_SEQUENCE_NUMBER);
   if (is_function_or_template_symbol(new_sym) || visible_using_dir) {
     if (!visible_using_dir &&
-        (gnu_version >= 40000 ||
-         ((gnu_version == 30400 && locator->is_template_id)))) {
+        ((gnu_version == 30400 && locator->is_template_id))) {
       /* This is a symbol that should be ignored in g++ mode. */
       result = FALSE;
     }  /* if */
