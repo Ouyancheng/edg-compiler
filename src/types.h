@@ -45,10 +45,14 @@ EXTERN a_boolean
    type is 0, but in GCC emulation mode the size of a void or function
    type is 1.  This macro hides the internal representation.  Typerefs
    (if any) should be removed before calling this macro. */
+#if GNU_EXTENSIONS_ALLOWED
 #define size_of_type(tp)                                              \
   ((gcc_mode &&                                                       \
     ((tp)->kind == (a_type_kind)tk_void ||                            \
      (tp)->kind == (a_type_kind)tk_routine)) ? (a_targ_size_t)1 : (tp)->size)
+#else /* !GNU_EXTENSIONS_ALLOWED */
+#define size_of_type(tp) ((tp)->size)
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 extern a_type_ptr f_skip_typerefs(a_type_ptr type_ptr);
 extern a_type_ptr skip_typedefs(a_type_ptr type_ptr);
