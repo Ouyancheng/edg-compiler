@@ -6317,6 +6317,8 @@ caller is responsible for sorting that out.)
       ssep->il_scope = sp = alloc_scope((a_scope_kind)sck_block, ssep->number,
                                         (a_routine_ptr)NULL);
       switch_il_region(region_to_switch_back_to);
+      /* The parent scope for blocks is set when the enclosing function
+         scope is popped from the scope stack. */
       /* Add it to the scopes list for the scope enclosing the scope indicated
          by ssep. */
       add_to_scopes_list(sp, ssep-1);
@@ -6337,6 +6339,7 @@ caller is responsible for sorting that out.)
       sp = alloc_scope((a_scope_kind)sck_func_prototype, ssep->number,
                        (a_routine_ptr)NULL);
       ssep->il_scope = sp;
+      sp->parent = scope_stack[decl_scope_level].il_scope;
       /* Call add_to_scopes_list only if this is a function prototype nested
          within another function prototype.  A function prototype scope that
          is not nested is just pointed to from the routine type, not from the
@@ -9066,6 +9069,69 @@ expression being searched for.)
   }  /* if */
   return result;
 }  /* find_local_expr_node */
+
+#if !STANDALONE_UTILITY_PROGRAM
+
+void make_local_scope_ref(a_scope_ptr            scope,
+                          char                   *referrer,
+                          an_il_entry_kind       referrer_kind,
+                          a_scope_ptr            func_scope)
+/*
+scope is a scope in a function's memory region -- associated with func_scope --
+and referrer is an entry (of the given kind) in the file scope memory region.
+Create an entry in that function's memory region to represent an implicit
+reference from referrer to scope.  (This is needed because file scope memory
+entries cannot directly point to entries in function scope memory regions.)
+func_scope describes the function where *scope is stored.
+The scope can then be recovered using find_local_scope.
+*/
+{
+  a_memory_region_number  memory_region, region_to_switch_back_to;
+  a_local_scope_ref_ptr   new_ref;
+
+  check_assertion(!in_file_scope(scope) && in_file_scope(referrer));
+  check_assertion(func_scope->kind == (a_scope_kind)sck_function);
+  memory_region = func_scope->variant.routine.ptr->assoc_scope;
+  if (memory_region != curr_il_region_number) {
+    region_to_switch_back_to = curr_il_region_number;
+    switch_il_region(memory_region);
+  } else {
+    region_to_switch_back_to = NULL_region_number;
+  }  /* if */
+  new_ref = alloc_local_scope_ref();
+  switch_back_to_original_region(region_to_switch_back_to);
+  new_ref->next = func_scope->scope_refs;
+  new_ref->scope = scope;
+  new_ref->referrer.ptr = referrer;
+  new_ref->referrer.kind = (a_byte_il_entry_kind)referrer_kind;
+  check_assertion(!in_file_scope(new_ref));
+  func_scope->scope_refs = new_ref;
+}  /* make_local_scope_ref */
+
+#endif /* !STANDALONE_UTILITY_PROGRAM */
+
+a_scope_ptr find_local_scope(char  *referrer)
+/*
+referrer is an entry in the file scope memory region that implicitly refers to
+a scope L in a function scope memory region.  If innermost_function_scope is
+non-NULL and if it is the function containing scope L, return a pointer to L.
+Otherwise, return NULL.  (The result is determined by searching a list of
+a_local_scope_ref entries.)
+*/
+{
+  a_scope_ptr  result = NULL;
+
+  if (innermost_function_scope != NULL) {
+    a_local_scope_ref_ptr  ref = innermost_function_scope->scope_refs;
+    for (; ref != NULL; ref = ref->next) {
+      if (ref->referrer.ptr == referrer) {
+        result = ref->scope;
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return result;
+}  /* find_local_scope */
 
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
 
