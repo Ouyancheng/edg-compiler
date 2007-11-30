@@ -17815,16 +17815,21 @@ eliminated, if appropriate.
 #if ABI_CHANGES_FOR_RTTI
                                                             &&
                 ((typeinfo_var = class_type->typeinfo_var) == NULL ||
-                  !il_entry_prefix_of(typeinfo_var).keep_in_il)
+                  !il_entry_prefix_of(typeinfo_var).keep_in_il ||
+                  (typeinfo_uncoupled_when_vtable_is_optional &&
+                   vtbl_var != NULL && vtbl_var->is_optional_vtable))
 #endif /* ABI_CHANGES_FOR_RTTI */
-                                                               ) {
+                                                                     ) {
               /* Either there is no virtual function table or it's been
                  eliminated from the IL: it's okay to clear the flag, since
                  an otherwise unreferenced virtual function would be needed
                  only if the virtual function table is defined in this
                  translation unit.  If the typeinfo variable is kept,
                  keep the virtual function so the virtual function table
-                 will be kept so that the typeinfo variable will be kept. */
+                 will be kept so that the typeinfo variable will be kept.
+                 However, if the vtable is optional the typeinfo and vtable
+                 don't have to go out together, so the state of the
+                 typeinfo has no effect. */
             } else
 #endif /* DO_IL_LOWERING */
             /* Do not insert code here. */

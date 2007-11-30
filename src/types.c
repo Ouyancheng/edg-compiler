@@ -30,6 +30,7 @@ types.c -- Utility routines that check types.
 #include "templates.h"
 #include "func_def.h"
 #if DO_IL_LOWERING
+#include "lower_il.h"
 #include "lower_c99.h"
 #endif /* DO_IL_LOWERING */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
@@ -8655,6 +8656,57 @@ class or enum type contained in type_ptr.
 }  /* set_force_external_linkage_flag */
 
 
+static void force_definition_of_typeinfo_for(a_type_ptr type)
+/*
+"type" is used in an exception or rtti context.  Do anything required to
+make sure that the typeinfo for the type is defined (somewhere, not
+necessarily in this translation unit), for example forcing the definition
+of virtual functions if type is a class.
+*/
+{
+  for (;;) {
+    type = skip_typerefs(type);
+    if (is_immediate_class_type(type)) {
+      a_class_type_supplement_ptr ctsp =
+                                   type->variant.class_struct_union.extra_info;
+      a_base_class_ptr            bcp;
+#if DO_IL_LOWERING
+      a_boolean unknown;
+#endif /* DO_IL_LOWERING */
+      check_assertion(ctsp != NULL);
+      /* If defining the typeinfo requires defining the vtable, force
+         definition of the virtual functions to force the definition of the
+         vtable. */
+#if DO_IL_LOWERING
+      if (typeinfo_goes_out_where_vtable_goes_out(type, &unknown) ||
+          unknown)
+#endif /* DO_IL_LOWERING */
+      {
+        require_definitions_of_virtual_functions_in_class(type);
+      }  /* if */
+      /* Force typeinfos for the base classes. */
+      for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
+        /* Handle only direct base classes, because the recursive call
+           will handle that class's base classes. */
+        if (bcp->direct) {
+          force_definition_of_typeinfo_for(bcp->type);
+        }  /* if */
+      }  /* for */
+      break;
+    } else if (is_ptr_or_ref_type(type)) {
+      type = type_pointed_to(type);
+    } else if (is_ptr_to_member(type)) {
+      force_definition_of_typeinfo_for(pm_class_type(type));
+      type = pm_member_type(type);
+    } else {
+      /* Array types, function types, fundamental types, etc.  These don't
+         need typeinfos for the underlying types, so stop here. */
+      break;
+    }  /* if */
+  }  /* for */
+}  /* force_definition_of_typeinfo_for */
+
+
 void set_used_in_exception_or_rtti_flag(a_type_ptr  type_ptr)
 /*
 Set the used_in_exception_or_rtti flag in type_ptr to indicate that it
@@ -8670,25 +8722,8 @@ has been used in an exception handling or RTTI construct.
   } else if (type_ptr->used_in_exception_or_rtti) {
     /* Already set.  No further action is required. */
   } else {
-    a_type_ptr eff_type = type_ptr;
     type_ptr->used_in_exception_or_rtti = TRUE;
-    /* Force generation of the typeinfo for any underlying classes. */
-    for (;;) {
-      eff_type = skip_typerefs(eff_type);
-      if (is_immediate_class_type(eff_type)) {
-        require_definitions_of_virtual_functions_in_class(eff_type);
-        break;
-      } else if (is_ptr_or_ref_type(eff_type)) {
-        eff_type = type_pointed_to(eff_type);
-      } else if (is_ptr_to_member(eff_type)) {
-        require_definitions_of_virtual_functions_in_class(
-                                                      pm_class_type(eff_type));
-        eff_type = pm_member_type(eff_type);
-      } else {
-        /* Array types, function types, fundamental types, etc. */
-        break;
-      }  /* if */
-    }  /* for */
+    force_definition_of_typeinfo_for(type_ptr);
     /* Add the type to the nontag_types_used_in_exception_or_rtti list,
        unless it will be on another list. */
     if (!has_name(type_ptr) &&

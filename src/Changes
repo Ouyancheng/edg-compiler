@@ -1,5 +1,40 @@
 Version 3.11
 
+11/29/07  Some typeinfo variables decoupled from virtual function tables
+
+IL lowering for both the Cfront-like and IA-64 ABIs now allows typeinfo
+variables for certain classes to be defined independently from the
+virtual function tables for those classes.  (Formerly, the typeinfo
+variable was always defined if and only if the virtual function table
+variable was defined.)  The "certain classes" are those that do not
+have a key/decider function, and for which the virtual function
+table is therefore considered "optional" -- i.e., defined only if
+referenced.
+
+In certain cases, this change means that virtual functions of a
+class are no longer instantiated, and therefore some diagnostics
+previously issued no longer are.  For example:
+
+  #include <typeinfo>
+  template <class T> struct vector {
+    ~vector() {
+      T* t;
+      t->~T();  // Formerly flagged as an error when destructor for
+                // vector<Incomplete> was instantiated
+    };
+  };
+  struct Base {
+    virtual ~Base();
+  };
+  struct Incomplete;
+  struct Derived : public Base {
+    vector<Incomplete> i;
+  };
+  void f() {
+    Derived* t;
+    const std::type_info &r = typeid(t);
+  }
+
 11/29/07  Abort when mangling unnamed members of class templates
 
 In C++-generating back end configurations when MANGLE_ALL_NAMES is TRUE,

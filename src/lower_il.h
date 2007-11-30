@@ -57,6 +57,12 @@ EXTERN a_boolean
 			/* TRUE if object lifetime information should be
 			   preserved by the lowering process (so a back end
 			   can use it, e.g., for exception handling). */
+EXTERN a_boolean
+		typeinfo_uncoupled_when_vtable_is_optional;
+			/* TRUE if in the current ABI a typeinfo variable
+			   definition can go out independently of the vtable
+			   variable definition if the vtable variable is
+			   "optional". */
 
 
 /*
@@ -951,10 +957,15 @@ extern a_variable_ptr make_var_for_virtual_function_table(
 
 extern a_routine_ptr vtbl_decider_function_for_class(a_type_ptr class_type);
 
+extern a_variable_ptr primary_vtbl_var_for_class_if_any(a_type_ptr class_type);
+
 extern a_variable_ptr primary_vtbl_var_for_class(a_type_ptr class_type);
 
 extern a_boolean inline_virtual_function_definitions_needed(
                                                         a_type_ptr class_type);
+
+extern a_boolean typeinfo_goes_out_where_vtable_goes_out(a_type_ptr class_type,
+                                                         a_boolean  *unknown);
 
 #if ABI_COMPATIBILITY_VERSION < 238
 extern a_boolean external_typeinfo_will_be_defined_for_class(

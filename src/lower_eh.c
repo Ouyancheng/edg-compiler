@@ -822,8 +822,7 @@ vtable is put out).
 */
 {
   if (is_immediate_class_type(type)) {
-    a_variable_ptr vtbl_var = type->variant.class_struct_union.extra_info->
-                                                    virtual_function_table_var;
+    a_variable_ptr vtbl_var = primary_vtbl_var_for_class_if_any(type);
     if (vtbl_var != NULL && vtbl_var->is_optional_vtable) {
       var->is_optional_vtable = TRUE;
     }  /* if */
@@ -1939,16 +1938,20 @@ unit.
   /* If the variable has been defined already, no further processing
      is necessary. */
   if (typeinfo_var->storage_class == (a_storage_class)sc_extern) {
-    /* Determine whether the typeinfo variable should be defined. */
+    /* Determine whether the typeinfo variable should be defined in the
+       current compilation unit. */
     a_boolean      definition_needed = FALSE, force_static = FALSE;
     a_boolean      use_comdat = FALSE;
     a_variable_ptr vtbl_var = type->variant.class_struct_union.extra_info->
                                                     virtual_function_table_var;
     if (vtbl_var != NULL) {
       /* Polymorphic class. */
-      /* The typeinfo variable is defined if and only if the virtual
+      /* The typeinfo variable is usually defined if and only if the virtual
          function table is defined, and it is static if and only if the
-         virtual function table is static. */
+         virtual function table is static.  However, when the vtable is
+         optional, the typeinfo goes out if referenced, and the fact that we
+         got here means we need the typeinfo in that case even if the vtable
+         is not being defined. */
       force_static = (vtbl_var->storage_class == (a_storage_class)sc_static);
       definition_needed = (vtbl_var->init_kind != (an_init_kind)initk_none ||
                            vtbl_var->is_optional_vtable);

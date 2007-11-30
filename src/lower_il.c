@@ -5157,14 +5157,15 @@ have one yet.
 }  /* vtbl_decider_function_for_class */
 
 
-a_variable_ptr primary_vtbl_var_for_class(a_type_ptr class_type)
+a_variable_ptr primary_vtbl_var_for_class_if_any(a_type_ptr class_type)
 /*
-Return a pointer to the primary virtual function table for the given class.
-There must be one.  The "primary" virtual function table for the class is
-the one whose attributes, like whether it's defined, are mirrored by
-any other virtual function tables for the class.  It's usually the one recorded
-directly in the class type, but in the Cfront-like ABI if the class itself
-has no vtable it is the first one associated with a base class.
+Return a pointer to the primary virtual function table for the given
+class, or NULL if there isn't one.  The "primary" virtual function
+table for the class is the one whose attributes, like whether it's
+defined, are mirrored by any other virtual function tables for the
+class.  It's usually the one recorded directly in the class type, but
+in the Cfront-like ABI if the class itself has no vtable it is the
+first one associated with a base class.
 */
 {
   a_class_type_supplement_ptr ctsp = class_type->variant.class_struct_union.
@@ -5174,7 +5175,7 @@ has no vtable it is the first one associated with a base class.
 #if !IA64_ABI
   if (vtbl_var == NULL) {
     /* The class itself has no virtual function table, so look at the
-       base classes.  At least one of them must have one. */
+       base classes. */
     a_base_class_ptr bcp;
     for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
       vtbl_var = bcp->virtual_function_table_var;
@@ -5182,6 +5183,19 @@ has no vtable it is the first one associated with a base class.
     }  /* for */
   }  /* if */
 #endif /* !IA64_ABI */
+  return vtbl_var;
+}  /* primary_vtbl_var_for_class_if_any */
+
+
+a_variable_ptr primary_vtbl_var_for_class(a_type_ptr class_type)
+/*
+Return a pointer to the primary virtual function table for the given class.
+There must be one.  See primary_vtbl_var_for_class_if_any for the
+definition of the "primary" virtual function table.
+*/
+{
+  a_variable_ptr vtbl_var = primary_vtbl_var_for_class_if_any(class_type);
+
   check_assertion(vtbl_var != NULL);
   return vtbl_var;
 }  /* primary_vtbl_var_for_class */
@@ -5190,7 +5204,8 @@ has no vtable it is the first one associated with a base class.
 static a_boolean virtual_function_table_should_be_defined_here(
                                                   a_type_ptr    class_type,
                                                   a_boolean     *force_static,
-                                                  a_routine_ptr *first_virtual)
+                                                  a_routine_ptr *first_virtual,
+                                                  a_boolean     *optional)
 /*
 Return TRUE if the virtual function tables for the class type class_type should
 be defined (i.e., initialized) in this compilation.  Note that this should not
@@ -5199,7 +5214,13 @@ or not some function in the class has been defined.  If the virtual function
 table should be forced to be local to this compilation, *force_static
 is returned TRUE.  *first_virtual is set to point to the first noninline
 virtual function of the class if that function was used in deciding whether or
-not to put out the definition; otherwise, it's set to NULL.
+not to put out the definition; otherwise, it's set to NULL.  If the virtual
+function table is "optional", meaning it needs to be defined only if it is
+referenced, *optional is returned TRUE.  This routine can be called from
+outside of IL lowering (with il_lowering_is_underway FALSE), but in that
+case optional virtual function tables are assumed to require a definition,
+because we can't generate or look at the actual vtable variable in that
+mode; *optional will be set as usual.
 */
 {
   a_boolean                   defined_here;
@@ -5279,21 +5300,25 @@ not to put out the definition; otherwise, it's set to NULL.
       }  /* if */
     }  /* if */
   }  /* if */
+  /* If the definition is forced to be static, then it cannot be referenced
+     from anywhere else. */
   if (*force_static) vtable_is_optional = TRUE;
-  if (vtable_is_optional && defined_here) {
-    /* If the definition is forced to be static, then it cannot be referenced
-       from anywhere else.  If there aren't any (real) references in this
-       compilation unit, then the definition isn't needed here either. */
+  *optional = vtable_is_optional;
+  if (vtable_is_optional && defined_here && il_lowering_underway) {
+    a_variable_ptr vtbl_var = primary_vtbl_var_for_class(class_type);
+    vtbl_var->is_optional_vtable = vtable_is_optional;
+    /* If there aren't any (real) references in this compilation unit, then
+       the definition isn't needed here either. */
     /* The virtual function table variable is marked as referenced for
        references to the virtual function table (which only occur in
        constructor and destructor wrapper code), so if the referenced flag
        is FALSE the virtual function table is not referenced at all. */
-    a_variable_ptr vtbl_var = primary_vtbl_var_for_class(class_type);
-    vtbl_var->is_optional_vtable = vtable_is_optional;
     if (class_type->typeinfo_var != NULL &&
-        class_type->typeinfo_var->source_corresp.referenced) {
-      /* The typeinfo variable is referenced, so we need the virtual
-         table. */
+        class_type->typeinfo_var->source_corresp.referenced &&
+        !typeinfo_uncoupled_when_vtable_is_optional) {
+      /* The typeinfo variable is referenced, and this ABI couples the
+         typeinfo and vtable generation even when the vtable is optional,
+         so we need the virtual table. */
     } else if (!vtbl_var->source_corresp.referenced) {
       defined_here = FALSE;
     }  /* if */
@@ -5315,7 +5340,7 @@ translation unit.  This routine can be called only near the end of
 the processing of the function or file scope in which the class is defined.
 */
 {
-  a_boolean     needed = FALSE, force_static;
+  a_boolean     needed = FALSE, force_static, optional;
   a_routine_ptr first_virtual;
   a_boolean     saved_il_lowering_underway;
 
@@ -5333,7 +5358,8 @@ the processing of the function or file scope in which the class is defined.
        compilation. */
     if (virtual_function_table_should_be_defined_here(class_type,
                                                       &force_static,
-                                                      &first_virtual)) {
+                                                      &first_virtual,
+                                                      &optional)) {
       /* The virtual function table will be defined in this translation unit,
          so it will need to take the addresses of inline virtual functions. */
       needed = TRUE;
@@ -5342,6 +5368,60 @@ the processing of the function or file scope in which the class is defined.
   }  /* if */
   return needed;
 }  /* inline_virtual_function_definitions_needed */
+
+
+a_boolean typeinfo_goes_out_where_vtable_goes_out(a_type_ptr class_type,
+                                                  a_boolean  *unknown)
+/*
+Return TRUE if the typeinfo variable for the indicated class always goes
+out where the virtual function table for the class goes out.  If the
+class has no virtual function table, the answer is FALSE (because they don't
+go out together).  *unknown is returned TRUE if it's too early in the
+compilation to give a definitive answer (e.g., because not all member
+functions of the class have been declared yet).  This routine can
+be called from outside of IL lowering, and it is careful not to change
+the class or to depend on any lowering data structures.
+*/
+{
+  a_boolean                   result = FALSE;
+  a_class_type_supplement_ptr ctsp;
+
+  check_assertion(is_immediate_class_type(class_type) && !C_mode());
+  *unknown = TRUE;
+  ctsp = class_type->variant.class_struct_union.extra_info;
+  if (ctsp == NULL || is_incomplete_type(class_type)) {
+    /* The class is not fully defined yet. */
+  } else {
+    /* It's late enough that we can determine the right answer. */
+    /* Note that, for ABIs where the key function can be affected by a
+       definition outside of the class, the test below may find the wrong
+       key function if we're called too early in the compilation, but we
+       really only care that there is a key function, not which function
+       it is or whether it's defined at this point. */
+    *unknown = FALSE;
+    if (needs_virtual_function_table(class_type)) {
+      /* The class needs a virtual function table.  Generally this means the
+         typeinfo variable will go out if and only if the vtable variable goes
+         out. */
+      result = TRUE;
+      if (typeinfo_uncoupled_when_vtable_is_optional) {
+        /* In this ABI, the typeinfo variable is not constrained to go out
+           paired with the vtable if the vtable is "optional", meaning it
+           goes out only if referenced. */
+        a_boolean     force_static, optional;
+        a_routine_ptr first_virtual;
+        /* Note that we're deliberately not setting il_lowering_underway --
+           we don't want to force prelowering of the class type. */
+        (void)virtual_function_table_should_be_defined_here(class_type,
+                                                            &force_static,
+                                                            &first_virtual,
+                                                            &optional);
+        if (optional) result = FALSE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* typeinfo_goes_out_where_vtable_goes_out */
 
 #if ABI_COMPATIBILITY_VERSION < 238
 
@@ -5355,7 +5435,7 @@ with generation of destructor pointers in typeinfo variables that is fixed
 in a different and better way in version 2.38.
 */
 {
-  a_boolean     needed = FALSE, force_static;
+  a_boolean     needed = FALSE, force_static, optional;
   a_routine_ptr first_virtual;
   a_boolean     saved_il_lowering_underway;
 
@@ -5372,7 +5452,8 @@ in a different and better way in version 2.38.
          compilation. */
       if (virtual_function_table_should_be_defined_here(class_type,
                                                         &force_static,
-                                                        &first_virtual) &&
+                                                        &first_virtual,
+                                                        &optional) &&
           !force_static) {
         /* The virtual function table will be defined in this translation unit
            and will be external. */
@@ -6760,7 +6841,7 @@ class_type if any are needed.
   a_base_class_ptr            bcp;
 #endif /* !IA64_ABI */
   a_boolean                   need_determined = FALSE;
-  a_boolean                   definition_needed, force_static;
+  a_boolean                   definition_needed, force_static, optional;
   a_routine_ptr               first_virtual;
 
   /* Make sure the class type has been pre-lowered. */
@@ -6778,7 +6859,8 @@ class_type if any are needed.
       definition_needed = 
                  virtual_function_table_should_be_defined_here(class_type,
                                                                &force_static,
-                                                               &first_virtual);
+                                                               &first_virtual,
+                                                               &optional);
       need_determined = TRUE;
 #if !IA64_ABI
       /* Generate the virtual function table for the class itself. */
@@ -6806,7 +6888,8 @@ class_type if any are needed.
           definition_needed = 
                  virtual_function_table_should_be_defined_here(class_type,
                                                                &force_static,
-                                                               &first_virtual);
+                                                               &first_virtual,
+                                                               &optional);
           need_determined = TRUE;
         }  /* if */
         define_one_virtual_function_table(class_type, bcp,
@@ -6825,7 +6908,8 @@ class_type if any are needed.
         definition_needed = 
                  virtual_function_table_should_be_defined_here(class_type,
                                                                &force_static,
-                                                               &first_virtual);
+                                                               &first_virtual,
+                                                               &optional);
         need_determined = TRUE;
       }  /* if */
       define_construction_vtbls(ctsp->construction_vtbls,
@@ -6848,7 +6932,8 @@ class_type if any are needed.
           definition_needed = 
                  virtual_function_table_should_be_defined_here(class_type,
                                                                &force_static,
-                                                               &first_virtual);
+                                                               &first_virtual,
+                                                               &optional);
           need_determined = TRUE;
         }  /* if */
         define_construction_vtbls(bcp->base_construction_vtbls,
@@ -17753,6 +17838,11 @@ for each compilation.
 #else /* ! KEEP_OBJECT_LIFETIME_INFO_IN_LOWERED_IL_WHEN_EH_ENABLED */
   keep_object_lifetime_info_in_lowered_il = FALSE;
 #endif /* KEEP_OBJECT_LIFETIME_INFO_IN_LOWERED_IL_WHEN_EH_ENABLED */
+  /* For both the Cfront-like ABI and the IA-64 ABI, typeinfo variables
+     can go out independently of the corresponding vtable variable if the
+     vtable variable is "optional" (meaning it is not required to go out and
+     goes out only if referenced). */
+  typeinfo_uncoupled_when_vtable_is_optional = TRUE;
 #if CHECKING && ASSIGNMENT_TO_THIS_ALLOWED
   /* lower_dynamic_init can't handle preserving an object lifetime
      for a constructor init in an assignment to "this".  Assignment to
