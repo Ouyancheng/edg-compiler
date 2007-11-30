@@ -516,6 +516,9 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_fixed_register_used)*/
 /*lint -esym(769,ec_match_limit_for_symbolic_asm_operand)*/
 #endif /* RECORD_RAW_ASM_OPERAND_DESCRIPTIONS */
+/*lint -esym(759,find_local_scope)*/
+/*lint -esym(765,find_local_scope)*/
+/*lint -esym(714,find_local_scope)*/
 
 /******************************************************************************
 *                                                             \  ___  /       *
