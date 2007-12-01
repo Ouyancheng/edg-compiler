@@ -3454,7 +3454,6 @@ points to the associated routine if the kind is sck_function.
   num_scopes_allocated++;
 #endif /* DEBUG */
   sp->next   = NULL;
-  sp->parent = NULL;
   sp->number = number;
   sp->function_body_processing_finished = FALSE;
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
@@ -3477,7 +3476,6 @@ points to the associated routine if the kind is sck_function.
   sp->local_static_variable_inits = NULL;
   sp->vla_dimensions              = NULL;
   sp->expr_node_refs              = NULL;
-  sp->scope_refs                  = NULL;
   sp->pragmas                     = NULL;
   sp->depth_in_scope_stack        = NO_SCOPE_DEPTH;
 #ifdef FIL
@@ -3501,23 +3499,6 @@ points to the associated routine if the kind is sck_function.
   db_exit();
   return sp;
 }  /* alloc_scope */
-
-
-a_local_scope_ref_ptr alloc_local_scope_ref(void)
-/*
-Allocate an entry to represent an outside reference to a local scope,
-initialize it, and return a pointer to it.
-*/
-{
-  a_local_scope_ref_ptr  ptr;
-
-  ptr = (a_local_scope_ref_ptr)alloc_cil(sizeof(a_local_scope_ref));
-  ptr->next = NULL;
-  ptr->scope = NULL;
-  clear_tagged_ptr(ptr->referrer);
-  return ptr;
-}  /* alloc_local_scope_ref */
-
 
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 

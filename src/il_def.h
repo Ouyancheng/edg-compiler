@@ -576,7 +576,6 @@ typedef enum /*an_il_entry_kind*/ {
   iek_static_assertion,
 			/* a_static_assertion */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  iek_local_scope_ref,	/* a_local_scope_ref */
   iek_last		/* Marks the end of the list. */
 } an_il_entry_kind;
 
@@ -731,7 +730,6 @@ EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 /* iek_static_assertion */		"static-assertion",
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-/* iek_local_scope_ref */		"local-scope-ref",
 /* iek_last */				"last"
 } /* il_entry_kind_names */
 #endif /* VAR_INITIALIZERS */
@@ -12537,33 +12535,6 @@ typedef struct an_ms_attribute {
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-
-typedef struct a_local_scope_ref *a_local_scope_ref_ptr;
-typedef struct a_local_scope_ref {
-  /* Entities in file-scope memory region cannot directly refer to function-
-     local entities.  To work around that constraint for function-local
-     scopes, an implicit referencing mechanism is used.  The implicit
-     references are represented by a_local_scope_ref entries stored in the
-     function's memory region: Each entry points to both the referenced
-     scope and to the entity in file-scope memory that implicitly refers to
-     that scope.  The list of a_local_scope_ref entries can then be searched
-     whenever the reference must be resolved for a given entity in file-scope
-     memory.  (This technique is similar to that enabled by
-     a_local_static_variable_init entries.) */
-  a_local_scope_ref_ptr
-		next;
-			/* Pointer to the next reference in the current
-			   (function or block) scope. */
-  a_scope_ptr
-		scope;
-			/* Pointer to the referenced scope. */
-  a_tagged_pointer
-		referrer;
-			/* The entity (in file scope memory region) implicitly
-			   referring to scope. */
-} a_local_scope_ref;
-
-
 enum a_scope_kind_tag {
   /* Kinds of scopes. */
   sck_file,		/* File scope. */
@@ -12672,10 +12643,6 @@ typedef struct a_scope {
                 next;
                         /* Pointer to next scope on the same level, which
                            must be in the same memory region. */
-  a_scope_ptr
-		parent;
-			/* Pointer to the parent scope.  NULL when kind ==
-			   sck_file. */
   a_scope_number
 		number;	/* Scope number (unique identifier) for this scope. */
   a_scope_kind	kind;
@@ -12903,13 +12870,6 @@ typedef struct a_scope {
 			   order of entries on the list is not significant.
 			   The entries represent implicit references from the
 			   file scope memory region. */
-  a_local_scope_ref_ptr
-		scope_refs;
-			/* List of references to scopes within this scope
-			   (only non-NULL for certain function scopes).  The
-			   order of entries on the list is not significant.
-			   The entries represent implicit references from the
-			   file scope memory region. */
 #endif /* ifdef CIL */
   a_pragma_ptr	pragmas;
 			/* A linked list of pragma entries.  They may be
@@ -12979,7 +12939,6 @@ typedef struct a_scope {
 			/* Linked list of Microsoft __if_exists entries. */
 #endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
 } a_scope;
-
 
 /*
 Header for the entire intermediate language tree.  Note that the pointers
@@ -13507,7 +13466,6 @@ EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   sizeof(a_static_assertion),
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  sizeof(a_local_scope_ref),
   IEK_LAST_CHECK_SIZE /* iek_last */
 }
 #endif /* VAR_INITIALIZERS */

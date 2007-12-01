@@ -204,8 +204,6 @@ extern a_scope_ptr alloc_scope(a_scope_kind   kind,
                                a_scope_number number,
                                a_routine_ptr  assoc_routine);
 
-extern a_local_scope_ref_ptr alloc_local_scope_ref(void);
-
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 
 extern a_source_sequence_entry_ptr alloc_source_sequence_entry(void);

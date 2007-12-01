@@ -1643,74 +1643,6 @@ Initialize the fields in a scope-pointers-block substructure.
 }  /* clear_scope_pointers_block */
 
 
-static void set_parent_scope_on_push(a_scope_stack_entry_ptr  ssep)
-/*
-The given entry is being pushed onto the scope stack, and an IL scope has just
-been allocated for it.  Set the parent pointer for the IL scope entry.
-*/
-{
-  a_scope_ptr  sp = ssep->il_scope;
-
-  if (C_mode()) {
-    sp->parent = scope_stack[decl_scope_level].il_scope;
-    check_assertion(sp->parent != NULL);
-    goto done;
-  }  /* if */
-  switch (sp->kind) {
-    case sck_function:
-      { a_source_correspondence_ptr  scp = &ssep->assoc_routine
-                                                ->source_corresp;
-        if (scp->is_class_member) {
-          sp->parent = class_type_supp(scp->parent.class_type)->assoc_scope;
-        } else if (scp->parent.namespace_ptr != NULL) {
-          sp->parent = scp->parent.namespace_ptr->variant.assoc_scope;
-        } else {
-          sp->parent = scope_stack[DEPTH_OF_FILE_SCOPE].il_scope;
-        }  /* if */
-      }
-      break;
-    case sck_namespace:
-      { a_source_correspondence_ptr  scp = &ssep->assoc_namespace
-                                                ->source_corresp;
-        if (scp->parent.namespace_ptr != NULL) {
-          sp->parent = scp->parent.namespace_ptr->variant.assoc_scope;
-        } else {
-          sp->parent = scope_stack[DEPTH_OF_FILE_SCOPE].il_scope;
-        }  /* if */
-      }
-      break;
-    case sck_class_struct_union:
-    case sck_enum:
-      { a_source_correspondence_ptr  scp = &ssep->assoc_type->source_corresp;
-        if (scp->is_class_member) {
-          sp->parent = class_type_supp(scp->parent.class_type)->assoc_scope;
-        } else if (scp->parent.namespace_ptr != NULL) {
-          sp->parent = scp->parent.namespace_ptr->variant.assoc_scope;
-        } else if (!scp->is_local_to_function) {
-          sp->parent = scope_stack[DEPTH_OF_FILE_SCOPE].il_scope;
-        } else {
-          /* A local type not nested in another local type.  The parent cannot
-             be set because of memory region constraints.  Create an implicit
-             reference instead. */
-          check_assertion(scope_stack[decl_scope_level].kind ==
-                                                  (a_scope_kind)sck_block ||
-                          scope_stack[decl_scope_level].kind ==
-                                                  (a_scope_kind)sck_function);
-          check_assertion(innermost_function_scope != NULL);
-          make_local_scope_ref(
-                      ensure_il_scope_exists(&scope_stack[decl_scope_level]),
-                      (char*)sp, iek_scope,
-                      innermost_function_scope);
-        }  /* if */
-      }
-      break;
-    default:
-      unexpected_condition();
-  }  /* switch */
-done:;
-}  /* set_parent_scope_on_push */
-
-
 /*
 Return TRUE if the scope stack entry kind given by kind is for something
 that has an effect on access control (a class, class reactivation, or
@@ -1796,7 +1728,6 @@ the scope being pushed.
   a_boolean               already_in_nonspecialized_instantiation_context =
                                     is_nonspecialized_instantiation_context();
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  a_boolean               new_il_scope = FALSE;
 
   db_enter(3, "push_scope_full");
   if (depth_scope_stack+1 == (int)size_scope_stack) {
@@ -1847,7 +1778,6 @@ the scope being pushed.
          This ensures that the intermediate language is divided into 
          manageable pieces.  This call also allocates the top-level
          scope entry for the region. */
-      new_il_scope = TRUE;
       sp = new_il_region(kind, ssep->number, assoc_routine);
       sp->depth_in_scope_stack = depth_scope_stack;
       ssep->il_memory_region = curr_il_region_number;
@@ -1877,7 +1807,6 @@ the scope being pushed.
       }  /* if */
       ssep->il_memory_region = file_scope_region_number;
       if (kind == (a_scope_kind)sck_namespace) {
-        new_il_scope = TRUE;
         sp = alloc_scope(kind, ssep->number, (a_routine_ptr)NULL);
         sp->variant.assoc_namespace = assoc_namespace;
         assoc_namespace->variant.assoc_scope = sp;
@@ -1897,9 +1826,13 @@ the scope being pushed.
       /* Save a copy of the scope number in the class symbol supplement. */
       symbol_supplement_for_class(assoc_type)->member_decl_scope =
                                                               ssep->number;
-      new_il_scope = TRUE;
-      sp = alloc_scope(kind, ssep->number, (a_routine_ptr)NULL);
-      sp->depth_in_scope_stack = depth_scope_stack;
+      /* Only in C++ mode do classes have an associated scope. */
+      if (C_mode()) {
+        sp = NULL;
+      } else {
+        sp = alloc_scope(kind, ssep->number, (a_routine_ptr)NULL);
+        sp->depth_in_scope_stack = depth_scope_stack;
+      }  /* if */
       break;
     case sck_condition:
       /* A C++ condition scope is only created when there is a declaration,
@@ -1919,7 +1852,6 @@ the scope being pushed.
         switch_il_region(file_scope_region_number);
       }  /* if */
       ssep->il_memory_region = file_scope_region_number;
-      new_il_scope = TRUE;
       sp = alloc_scope(kind, ssep->number, (a_routine_ptr)NULL);
       sp->depth_in_scope_stack = depth_scope_stack;
       break;
@@ -1934,6 +1866,11 @@ the scope being pushed.
          C++, no scope is ever allocated. */
       sp = NULL;
   }  /* switch */
+  if (sp != NULL && sp->depth_in_scope_stack == NO_SCOPE_DEPTH) {
+    /* Update the depth at which this scope is on the stack.  Only do this
+       if the scope is not already on the stack somewhere else. */
+    sp->depth_in_scope_stack = depth_scope_stack;
+  }  /* if */
   /* Fill in the fields of the scope entry. */
   ssep->kind                     = kind;
   ssep->current_access           = (an_access_specifier)as_public;
@@ -2078,17 +2015,6 @@ the scope being pushed.
   /* Clear the substructure shared with namespace symbol supplements. */
   ssep->assoc_pointers_block     = NULL;
   clear_scope_pointers_block(&ssep->pointers_block);
-  if (sp != NULL) {
-    if (new_il_scope) {
-      /* Set the parent scope. */
-      set_parent_scope_on_push(ssep);
-    }  /* if */
-    if (sp->depth_in_scope_stack == NO_SCOPE_DEPTH) {
-      /* Update the depth at which this scope is on the stack.  Only do this
-         if the scope is not already on the stack somewhere else. */
-      sp->depth_in_scope_stack = depth_scope_stack;
-    }  /* if */
-  }  /* if */
   if (kind == (a_scope_kind)sck_instantiation_context) {
     /* When an instantiation context is pushed, the previous scope is the
        file scope. */
@@ -5899,26 +5825,6 @@ new top-of-stack entry with information from the entry that has been popped.
 }  /* pop_scope_stack_entry */
 
 
-static void set_block_scope_parents(a_scope_ptr  parent_scope)
-/*
-The given scope is a block or function scope.  Recursively traverse its block
-scopes and set their parent pointers.  
-*/
-{
-  a_scope_ptr  scope = parent_scope->scopes;
-
-  while (scope != NULL) {
-    if (scope->kind == (a_scope_kind)sck_block) {
-      scope->parent = parent_scope;
-      /* Recursively set the parents for any block scopes nested in this
-         one. */
-      set_block_scope_parents(scope);
-    }  /* if */
-    scope = scope->next;
-  }  /* while */
-}  /* set_block_scope_parents */
-
-
 void pop_scope(void)
 /*
 End a name scope by popping an entry off the scope stack.
@@ -6216,7 +6122,7 @@ End a name scope by popping an entry off the scope stack.
     old_region_still_needed = FALSE;
     for (scope_depth = depth_scope_stack-1; scope_depth >= 0; scope_depth--) {
       if (scope_stack[scope_depth].il_memory_region ==
-                                                    old_memory_region_number) {
+                                                     old_memory_region_number){
         old_region_still_needed = TRUE;
         break;
       }  /* if */
@@ -6297,10 +6203,6 @@ End a name scope by popping an entry off the scope stack.
       /* Put the "defined" flag back on. */
       curr_routine->defined = TRUE;
     } else {
-      if (il_scope->kind == (a_scope_kind)sck_function) {
-        /* Set the parent scopes for any block scopes represented in the IL. */
-        set_block_scope_parents(il_scope);
-      }  /* if */
       /* Write the memory region and free it as appropriate. */
       check_for_done_with_memory_region(old_memory_region_number);
     }  /* if */
@@ -6409,12 +6311,12 @@ End a name scope by popping an entry off the scope stack.
     curr_deferred_access_scope = ssep->saved_curr_deferred_access_scope;
     expr_stack = ssep->saved_expr_stack;
   }  /* if */
-  /* Maintain the current declarative level.  In C mode, it is the same as 
-     depth_scope_stack except when struct/union field scopes are active;
-     when they are, it indicates the first non-struct-or-union scope.  Be
-     careful, you can have a prototype scope inside a struct declaration or
-     vice-versa.  In C++, struct/union/class scopes are real scopes, but
-     class reactivation scopes are not "real" scopes. */
+  /* Maintain the current declarative level.  It is the same as 
+     depth_scope_stack except when struct/union field scopes are
+     active; when they are, it indicates the first non-struct-or-union
+     scope.  Be careful, you can have a prototype scope inside a
+     struct declaration or vice-versa.  In C++, struct/union/class scopes
+     are real scopes, but class reactivation scopes are not "real" scopes. */
   for (decl_scope_level = depth_scope_stack;
        decl_scope_level >= DEPTH_OF_FILE_SCOPE;
        decl_scope_level--) {

@@ -4757,25 +4757,12 @@ Display the indicated object lifetime.
 }  /* disp_object_lifetime */
 
 
-static void disp_local_scope_ref(a_local_scope_ref_ptr  ptr)
-/*
-Display the given reference to a scope in a function-scope (i.e., local)
-memory region.
-*/
-{
-  disp_ptr("scope", (char*)ptr->scope, iek_scope);
-  disp_ptr("referrer", (char*)ptr->referrer.ptr,
-           (an_il_entry_kind)ptr->referrer.kind);
-}  /* disp_local_scope_ref */
-
-
 static void disp_scope(a_scope_ptr ptr)
 /*
 Display the indicated scope.
 */
 {
   disp_ptr("next", (char *)ptr->next, iek_scope);
-  disp_ptr("parent", (char *)ptr->parent, iek_scope);
   disp_name("kind");
   switch (ptr->kind) {
     case sck_file:
@@ -4886,9 +4873,6 @@ do_assoc_type:
     if (ptr->expr_node_refs != NULL) {
       disp_ptr("expr_node_refs", (char *)ptr->expr_node_refs,
                iek_local_expr_node_ref);
-    }  /* if */
-    if (ptr->scope_refs != NULL) {
-      disp_ptr("scope_refs", (char *)ptr->scope_refs, iek_local_scope_ref);
     }  /* if */
   }  /* if */
   if (ptr->kind == (a_scope_kind)sck_function &&
@@ -6247,9 +6231,6 @@ This routine is called during IL walking.
           break;
         case iek_local_expr_node_ref:
           disp_local_expr_node_ref((a_local_expr_node_ref_ptr)entry_ptr);
-          break;
-        case iek_local_scope_ref:
-          disp_local_scope_ref((a_local_scope_ref_ptr)entry_ptr);
           break;
         default:
           (void)printf("**BAD ENTRY KIND**\n");
