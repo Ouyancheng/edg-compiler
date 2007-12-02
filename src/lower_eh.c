@@ -1395,6 +1395,8 @@ typeinfo variable in a COMDAT group.
       typeinfo_var->source_corresp.name_linkage =
                                              (a_name_linkage_kind)nlk_internal;
     }  /* if */
+    /* The typeinfo variable is optional if the vtable is optional. */
+    set_optional_vtable_flag_to_match_type(typeinfo_var, type);
 #if MICROSOFT_EXTENSIONS_ALLOWED
     /* If the typeinfo object has internal linkage, we cannot make it dllimport
        or dllexport. */
