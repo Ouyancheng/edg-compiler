@@ -1,5 +1,17 @@
 Version 3.11
 
+12/3/07   Conversion to _Bool in gcc mode was not done properly
+
+GNU C mode has the _Bool keyword of C99, and conversion to a _Bool is
+defined as in C99 (non-zero converts to 1, zero to 0).  Previously,
+this was not emulated (normal integer conversion rules were used).
+Now fixed.
+
+int main() {
+  int y = 100;
+  _Bool a = y;  // Should produce 1 in a in --gcc mode
+}
+
 11/29/07  Some typeinfo variables decoupled from virtual function tables
 
 IL lowering for both the Cfront-like and IA-64 ABIs now allows typeinfo

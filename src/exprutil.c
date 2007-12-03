@@ -2730,7 +2730,7 @@ indicates that the cast comes from a reinterpret_cast construct in the source.
                                  check_cast_access, is_implicit_cast,
                                  p_node, err_pos);
     }  /* if */
-  } else if ((!C_mode() || c99_mode) && is_bool_type(new_type)) {
+  } else if ((!C_mode() || c99_mode || gcc_mode) && is_bool_type(new_type)) {
     /* Cast to bool.  Use eok_bool_cast. */
     *p_node = make_operator_node((an_expr_operator_kind)eok_bool_cast,
                                  new_type, *p_node);
