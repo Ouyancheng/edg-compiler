@@ -724,6 +724,13 @@ extern void make_local_expr_node_ref(
 extern an_expr_node_ptr find_local_expr_node(char  *referrer,
                                              a_local_expr_node_ref_kind  kind);
 
+extern void make_local_scope_ref(a_scope_ptr            scope,
+                                 char                   *referrer,
+                                 an_il_entry_kind       referrer_kind,
+                                 a_scope_ptr            func_scope);
+
+extern a_scope_ptr find_local_scope(char  *referrer);
+
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
 extern an_expr_node_ptr generic_sizeof_arg_expr(a_constant_ptr  con);
 #else /* !PROTOTYPE_INSTANTIATIONS_IN_IL */

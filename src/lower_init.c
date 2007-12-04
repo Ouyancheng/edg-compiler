@@ -787,6 +787,7 @@ routine later in order to ensure that the "defined" flag is set.
   /* Make a new memory region and scope. */
   scope = new_il_region((a_scope_kind)sck_function, take_next_scope_number(),
                         rout_ptr);
+  scope->parent = il_header.primary_scope;
   *il_region = curr_il_region_number;
   /* Link the routine to the scope.  new_il_region did the link in the
      other direction. */

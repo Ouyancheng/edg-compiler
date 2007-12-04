@@ -867,19 +867,6 @@ namespace.  Otherwise, return NULL.
 }  /* parent_scope_of */
 
 
-static a_scope_ptr parent_scope_of_full(a_source_correspondence *scp)
-/*
-Like parent_scope_of, but if parent_scope_of would return NULL this routine
-returns the file scope instead.
-*/
-{
-  a_scope_ptr scope = parent_scope_of(scp);
-
-  if (scope == NULL) scope = il_header.primary_scope;
-  return scope;
-}  /* parent_scope_of_full */
-
-
 static a_scope_ptr decl_scope_of(a_source_correspondence *scp)
 /*
 Return the scope in which the entity with the given course correspondence
@@ -5588,6 +5575,35 @@ declaration following this one is such a continuation.
 }  /* gen_typedef_definition */
 
 
+static void open_namespace(a_scope_ptr  nsp_scope,
+                           a_scope_ptr  orig_scope)
+/*
+When first (i.e., non-recursively) called, orig_scope represents the scope
+(file or namespace) currently active.  Render starts of namespace of the form:
+	namespace <optional-name> {
+until nsp_scope is the currently active namespace scope.
+*/
+{
+  if (nsp_scope != orig_scope) {
+    a_namespace_ptr  nsp = nsp_scope->variant.assoc_namespace;
+    check_assertion(nsp_scope->parent != NULL);
+    if (nsp_scope->parent != orig_scope) {
+      /* nsp_scope is not directly enclosed by orig_scope.  Recursively open
+         the directly-enclosing namespace. */
+      open_namespace(nsp_scope->parent, orig_scope);
+    }  /* if */
+    write_tok_str("namespace");
+    if (has_name_before_mangling(nsp)) {
+      write_space();
+      /* Put out the name of the namespace. */
+      gen_unqualified_name(&nsp->source_corresp, iek_namespace);
+    }  /* if */
+    write_tok_str(" { ");
+    push_name_context(nsp_scope);
+  }  /* if */
+}  /* open_namespace */
+
+
 static void adjust_current_namespace(a_scope_ptr desired_scope,
                                      a_scope_ptr common_scope)
 /*
@@ -5604,28 +5620,7 @@ the current state have in common.
     pop_name_context();
   }  /* while */
   /* Push any namespaces we want to be inside of. */
-  while (curr_name_context->assoc_scope != desired_scope) {
-    a_namespace_ptr nsp;
-    /* Find the scope one down from the current one. */
-    a_scope_ptr     temp_scope = desired_scope, parent;
-    for (;;) {
-      check_assertion(temp_scope != NULL &&
-                      temp_scope->kind == (a_scope_kind)sck_namespace);
-      nsp = temp_scope->variant.assoc_namespace;
-      parent = parent_scope_of_full(&nsp->source_corresp);
-      if (parent == curr_name_context->assoc_scope) break;
-      temp_scope = parent;
-    }  /* for */
-    nsp = temp_scope->variant.assoc_namespace;
-    write_tok_str("namespace");
-    if (has_name_before_mangling(nsp)) {
-      write_space();
-      /* Put out the name of the namespace. */
-      gen_unqualified_name(&nsp->source_corresp, iek_namespace);
-    }  /* if */
-    write_tok_str(" { ");
-    push_name_context(temp_scope);
-  }  /* while */
+  open_namespace(desired_scope, common_scope);
 }  /* adjust_current_namespace */
 
 
@@ -5684,8 +5679,7 @@ declarator.
       desired_scope = scp->parent.class_type->variant.class_struct_union.
                                                        extra_info->assoc_scope;
       while (desired_scope->kind == (a_scope_kind)sck_class_struct_union) {
-        desired_scope = parent_scope_of_full(
-                           &desired_scope->variant.assoc_type->source_corresp);
+        desired_scope = desired_scope->parent;
       }  /* while */
     } else if (scp->parent.namespace_ptr != NULL) {
       desired_scope = scp->parent.namespace_ptr->variant.assoc_scope;
@@ -5700,9 +5694,7 @@ declarator.
          the current state. */
       *common_scope = desired_scope;
       while (!scope_is_in_name_context_stack(*common_scope)) {
-        *common_scope =
-              parent_scope_of_full(
-                    &(*common_scope)->variant.assoc_namespace->source_corresp);
+        *common_scope = (*common_scope)->parent;
       }  /* while */
       /* Put out starts/ends of namespaces to get to the right namespace. */
       adjust_current_namespace(desired_scope, *common_scope);

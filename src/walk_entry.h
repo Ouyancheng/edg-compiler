@@ -2111,6 +2111,7 @@ end_sizeof:;
         a_scope_ptr  ptr = (a_scope_ptr)entry_ptr;
         a_scope_kind kind = ptr->kind;
         remap_next_ptr(ptr->next, a_scope_ptr, iek_scope);
+        remap_ptr_not_needed(ptr->parent, a_scope_ptr, iek_scope);
         switch (kind) {
           case sck_file:
 #ifdef FFE
@@ -2180,6 +2181,11 @@ end_sizeof:;
           default:
             unexpected_condition_str("walk_entry_and_subtree: bad scope kind");
         }  /* switch */
+        /* If this is a scope containing namespaces, walk them before walking
+           other entities with subscopes (like classes or functions).  Some IL
+           traversals (notably, for trans_copy.c) depend on this ordering. */
+        walk_list_with_keep_in_il_reset(ptr->namespaces, a_namespace_ptr,
+                                        iek_namespace);
         /* "assoc_block" is done after the declarations. */
         /* The lifetime pointer needs to be walked and not remapped in
            the file scope and function scopes. */
@@ -2257,8 +2263,6 @@ end_sizeof:;
         walk_list_not_needed(ptr->labels, a_label_ptr, iek_label);
 #ifdef CFE
         walk_list(ptr->scopes, a_scope_ptr, iek_scope);
-        walk_list_with_keep_in_il_reset(ptr->namespaces, a_namespace_ptr,
-                                        iek_namespace);
         walk_list_not_needed(ptr->using_decls, a_using_decl_ptr,
                              iek_using_decl);
         walk_list(ptr->asm_entries, an_asm_entry_ptr, iek_asm_entry);
@@ -2269,6 +2273,7 @@ end_sizeof:;
         walk_list(ptr->vla_dimensions, a_vla_dimension_ptr, iek_vla_dimension);
         walk_list(ptr->expr_node_refs, a_local_expr_node_ref_ptr,
                   iek_local_expr_node_ref);
+        walk_list(ptr->scope_refs, a_local_scope_ref_ptr, iek_local_scope_ref);
 #endif /* ifdef CFE */
         walk_list(ptr->pragmas, a_pragma_ptr, iek_pragma);
         walk_list(ptr->templates, a_template_ptr, iek_template);
@@ -3169,6 +3174,14 @@ after_entry_from_class:
 #endif /* !DO_SUBTREE_WALK */
       break;
 #endif /* EXPR_RANGE_MODIFIERS_IN_IL */
+    case iek_local_scope_ref:
+      { a_local_scope_ref_ptr ptr = (a_local_scope_ref_ptr)entry_ptr;
+        remap_next_ptr(ptr->next, a_local_scope_ref_ptr, iek_local_scope_ref);
+        remap_ptr_not_needed(ptr->scope, a_scope_ptr, iek_scope);
+        walk_ptr(ptr->referrer.ptr, a_char_ptr,
+                 (an_il_entry_kind)ptr->referrer.kind);
+      }
+      break;
     case iek_id_name:
     case iek_string_text:
     case iek_other_text:
