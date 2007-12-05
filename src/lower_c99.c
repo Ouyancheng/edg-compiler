@@ -3230,7 +3230,7 @@ second parameter.
                                                         expr, used_as_lvalue);
 #endif /* LOWER_LVALUE_RETURNING_OPERATIONS */
 #if MINIMAL_INLINING
-      if (expr->variant.operation.kind == (an_expr_operator_kind)eok_call) {
+      if (is_call_node(expr)) {
         /* Do inlining of a call if appropriate. */
         if (inlining_enabled) do_inlining_of_call(expr, statement);
       }  /* if */
