@@ -5234,6 +5234,13 @@ the point at which the compilation was terminated.
   /* Reset f_error so that an internal error during initialization will
      be directed to stderr, not wherever the previous compilation directed
      error output. */
+  if (f_error != stderr
+#if DIRECT_ERROR_OUTPUT_TO_STDOUT
+                        && f_error != stdout
+#endif /* DIRECT_ERROR_OUTPUT_TO_STDOUT */
+                                            ) {
+    close_file_if_open(&f_error);
+  }  /* if */
   f_error = stderr;
 #if DEBUG
   f_debug = stderr;

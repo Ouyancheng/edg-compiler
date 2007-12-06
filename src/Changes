@@ -1,5 +1,13 @@
 Version 3.11
 
+12/6/07   --error_output leaves file open when using MAKE_FRONT_END_CALLABLE
+
+In configurations where MAKE_FRONT_END_CALLABLE is TRUE and the
+--error_output command line option is used to direct errors to
+a file, the file is not closed when the front end completes
+the compilation (either normally or as the result of an error).
+This is now fixed.
+
 12/3/07   Conversion to _Bool in gcc mode was not done properly
 
 GNU C mode has the _Bool keyword of C99, and conversion to a _Bool is
