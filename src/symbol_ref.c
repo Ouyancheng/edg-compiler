@@ -394,7 +394,8 @@ name of an instance of a class template in Microsoft mode.
             depth_innermost_function_scope == NO_SCOPE_DEPTH &&
             hidden_by != NULL && !hidden_by->is_class_member &&
             !sym->is_class_member &&
-            sym->parent.namespace_ptr == hidden_by->parent.namespace_ptr) {
+            sym_parent_namespace_or_null(sym) ==
+                                    sym_parent_namespace_or_null(hidden_by)) {
           /* Set hidden_class_or_namespace_member to FALSE. */
           hidden_class_or_namespace_member = FALSE;
           /* If they're both FALSE don't create a hidden name table entry. */
@@ -638,7 +639,7 @@ due to the simulated injected name of a template instance in Microsoft mode.
          declaration. */
     } else if (old_sym_ptr->decl_scope == file_scope_number ||
                old_sym_ptr->is_class_member ||
-               old_sym_ptr->parent.namespace_ptr != NULL) {
+               sym_is_namespace_member(old_sym_ptr)) {
       /* The name hiding can be defeated by using a qualifier. */
       record_defeatable_name_hiding(
                               old_sym_ptr,
@@ -771,8 +772,7 @@ hidden name checking on its own members, too.
     if (gcc_is_generated_code_target &&
         bcp->type->source_corresp.is_class_member &&
         find_base_class_of(class_type,
-                           bcp->type->source_corresp.parent.class_type) !=
-                                                                        NULL) {
+                           parent_class_of(bcp->type)) != NULL) {
       /* g++ incorrectly rejects unqualified references to a base class that
          is nested inside another base class, so mark this as hidden. */
       record_defeatable_name_hiding(symbol_for(bcp->type),
@@ -911,7 +911,7 @@ type specifier when put out by the C++-generating back end.
          construct. */
     } else if (old_sym_ptr->decl_scope != sym_ptr->decl_scope &&
                (old_sym_ptr->is_class_member ||
-                old_sym_ptr->parent.namespace_ptr != NULL ||
+                sym_is_namespace_member(old_sym_ptr) ||
                 old_sym_ptr->decl_scope == file_scope_number)) {
       /* No need to defeat the name hiding with an elaborated type
          specifier -- the tag name will be qualified, either by its
@@ -974,13 +974,12 @@ C++-generating back end.
          that scope and redo the lookup to see if there is a hidden
          qualifiable symbol further out. */
       if (tp->source_corresp.is_class_member) {
-        push_class_reactivation_scope(tp->source_corresp.parent.class_type,
+        push_class_reactivation_scope(parent_class_of(tp),
                                       /*extend_namespace=*/FALSE);
         redo_lookup = TRUE;
         pushed_class_scope = TRUE;
-      } else if (tp->source_corresp.parent.namespace_ptr != NULL) {
-        push_namespace_extension_scope(tp->
-                                          source_corresp.parent.namespace_ptr);
+      } else if (is_namespace_member(tp)) {
+        push_namespace_extension_scope(parent_namespace_of(tp));
         redo_lookup = TRUE;
         pushed_class_scope = FALSE;
       }  /* if */
@@ -1026,7 +1025,7 @@ C++-generating back end.
          meaningful in this context. */
     } else if (old_sym_ptr->decl_scope == file_scope_number ||
                old_sym_ptr->is_class_member ||
-               old_sym_ptr->parent.namespace_ptr != NULL ||
+               sym_is_namespace_member(old_sym_ptr) ||
                old_sym_ptr->synthesized_namespace_projection) {
       /* A qualifiable name. */
       tag_hidden_by_nontag = FALSE;
@@ -1057,7 +1056,7 @@ C++-generating back end.
         } else {
           if (old_sym_ptr->decl_scope == file_scope_number ||
               old_sym_ptr->is_class_member ||
-              old_sym_ptr->parent.namespace_ptr != NULL) {
+              sym_is_namespace_member(old_sym_ptr)) {
             /* old_sym_ptr can point to a type or a class template at this
                point. */
             tag_hidden_by_nontag = is_class_struct_union_symbol(old_sym_ptr);
@@ -1129,7 +1128,7 @@ exist).
         hidden_class_or_namespace_member = FALSE;
       } else if (old_sym_ptr->decl_scope == file_scope_number ||
                  old_sym_ptr->is_class_member ||
-                 old_sym_ptr->parent.namespace_ptr != NULL ||
+                 sym_is_namespace_member(old_sym_ptr) ||
                  old_sym_ptr->synthesized_namespace_projection) {
         /* The entity can be named using a qualified-id. */
         tag_hidden_by_nontag = FALSE;
@@ -1242,8 +1241,7 @@ indicated scope.
     if (sp->kind != (a_scope_kind)sck_file &&
         (sp->kind != (a_scope_kind)sck_namespace ||
          sp->variant.assoc_namespace->source_corresp.name != NULL ||
-         sp->variant.assoc_namespace->
-                             source_corresp.parent.namespace_ptr != NULL)) {
+         is_namespace_member(sp->variant.assoc_namespace))) {
       /* A declaration in the current scope may hide a declaration from the
          file scope or a namespace scope.  If so, the hidden name may be
          rendered visible by qualification.  Conversely, a few situations may
@@ -2302,7 +2300,7 @@ the condition in which the access error should be suppressed.
 {
   a_boolean  result = FALSE;
   if (rp->special_kind == (a_special_function_kind)sfk_destructor &&
-      !same_entities(sym->parent.class_type, class_of_object) &&
+      !same_entities(sym_parent_class(sym), class_of_object) &&
       class_of_object != NULL) {
     result = TRUE;
   }  /* if */

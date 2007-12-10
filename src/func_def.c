@@ -227,7 +227,7 @@ has previously had its virtual functions marked as needed.
 */
 {
   a_boolean  needed = FALSE;
-  a_type_ptr class_type = routine->source_corresp.parent.class_type;
+  a_type_ptr class_type = parent_class_of(routine);
 
   if (!class_type->variant.class_struct_union.
                                         virtual_functions_marked_as_required &&
@@ -274,8 +274,7 @@ current compilation.
 */
 {
   if (virtual_functions_needed_due_to_definition_of(routine)) {
-    a_type_ptr class_type = routine->source_corresp.parent.class_type;
-
+    a_type_ptr class_type = parent_class_of(routine);
     require_definitions_of_virtual_functions_in_class(class_type);
   }  /* if */
 }  /* require_definitions_of_virtual_functions_due_to_definition_of */
@@ -736,7 +735,7 @@ and for the instantiation of template functions.
 
   db_enter(3, "scan_function_body");
   if (rout_ptr->source_corresp.is_class_member) {
-    class_type = rout_ptr->source_corresp.parent.class_type;
+    class_type = parent_class_of(rout_ptr);
   } else {
     class_type = NULL;
   }  /* if */
@@ -775,7 +774,7 @@ and for the instantiation of template functions.
         push_class_reactivation_scope(class_type, /*extend_namespace=*/TRUE);
       }  /* if */
     } else {
-      nsp = rout_ptr->source_corresp.parent.namespace_ptr;
+      nsp = parent_namespace_or_null(rout_ptr);
       if (nsp != NULL) {
         a_scope_stack_entry_ptr  decl_ssep = &scope_stack[decl_scope_level];
         a_scope_stack_entry_ptr  curr_ssep = &scope_stack[depth_scope_stack];
@@ -1235,7 +1234,7 @@ is recorded in *decl_pos_block.  *linkage_ptr is set to idl_external, and
                                                   curr_token == tok_semicolon;
 
   db_enter(3, "define_member_function");
-  class_type = locator->specific_symbol->parent.class_type;
+  class_type = sym_parent_class(locator->specific_symbol);
   rout_type = skip_typerefs(type_ptr);
   sym = locator->specific_symbol;
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -2346,7 +2345,7 @@ empty statement block.
   a_routine_type_supplement_ptr  rtsp;
 
   db_enter(4, "define_special_member_function");
-  class_type = rout_ptr->source_corresp.parent.class_type;
+  class_type = parent_class_of(rout_ptr);
   if (class_type->variant.class_struct_union.is_nonreal_class) {
     /* Don't bother generating the definition for a member of an unreal
        instantiation of a template class. */

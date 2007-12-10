@@ -3099,7 +3099,7 @@ created; the caller must set it.
                through if the two declarations are in different namespaces. */
             err = !((microsoft_bugs || gpp_mode) &&
                     depth_scope_stack == depth_innermost_namespace_scope &&
-                    sym->parent.namespace_ptr !=
+                    sym_parent_namespace_or_null(sym) !=
                               scope_stack[depth_scope_stack].assoc_namespace);
             pos_sy_diagnostic(err ? es_error : es_warning,
                               ec_overloaded_function_linkage,
@@ -3341,7 +3341,7 @@ be issued at the given position.
                       routine->source_corresp.name_linkage ==
                                           (a_name_linkage_kind)nlk_external ||
                       !(routine_sym->is_class_member ||
-                        routine_sym->parent.namespace_ptr != NULL ||
+                        sym_is_namespace_member(routine_sym) ||
                         routine_sym->decl_scope == file_scope_number));
 #endif /* CHECKING */
     } else if (old_dll_flags == 0) {
@@ -3637,7 +3637,7 @@ position. */
                       var->source_corresp.name_linkage ==
                                           (a_name_linkage_kind)nlk_external ||
                       !(var_sym->is_class_member ||
-                        var_sym->parent.namespace_ptr != NULL ||
+                        sym_is_namespace_member(var_sym) ||
                         var_sym->decl_scope == file_scope_number));
 #endif /* CHECKING */
     } else if (old_dll_flags == 0) {
@@ -4721,11 +4721,11 @@ be a using-declaration.
          using-declaration.  In that case, we must push that namespace
          scope so that the associated variable can be found by
          remove_from_variables_list and add_to_variables_list. */
-      a_namespace_ptr  nsp = fundamental_symbol_of(linked_decl)
-                                                       ->parent.namespace_ptr;
-      if (nsp != NULL) {
+      a_symbol_ptr     fund_linked_decl = fundamental_symbol_of(linked_decl);
+      if (sym_is_namespace_member(fund_linked_decl)) {
         namespace_scope_reopened = TRUE;
-        f_push_namespace_extension_scope(nsp, TRUE);
+        f_push_namespace_extension_scope(
+                                sym_parent_namespace(fund_linked_decl), TRUE);
       }  /* if */
     }  /* if */
     depth = depth_innermost_namespace_scope;
@@ -6752,20 +6752,18 @@ declaration.
       if (!linked_redecl_error) {
         if (!sym->variant.routine.instance_ptr->is_guiding_decl &&
             symbol_for_overloading != NULL) {
-          a_boolean	use_namespace;
-
-          check_assertion_str(sym->parent.namespace_ptr ==
-                                symbol_for_overloading->parent.namespace_ptr,
+          a_namespace_ptr  parent_nsp = sym_parent_namespace_or_null(sym);
+          a_boolean	   use_namespace = (parent_nsp != NULL);
+          check_assertion_str(parent_nsp == sym_parent_namespace_or_null(
+                                                      symbol_for_overloading),
                              "decl_routine: namespace mismatch");
           /*  Its symbol is already on the template's function instantiation
               list, but it needs to be added to the overload list as well,
               to assure that it will be found by the ordinary overload
               resolution algorithm. */
-          use_namespace = sym->parent.namespace_ptr != NULL;
           overload_symbol = 
                     add_symbol_to_overload_list(sym, symbol_for_overloading,
-                                                use_namespace,
-                                                sym->parent.namespace_ptr);
+                                                use_namespace, parent_nsp);
           sym->variant.routine.instance_ptr->is_guiding_decl = TRUE;
         }  /* if */
         *old_type = routine_ptr->type;
@@ -7172,13 +7170,12 @@ skip_overloading:;
         /* If the original declaration was a block extern declaration, reset
            the assoc_info pointer to refer to the current declaration -- which
            should be the first non-block-extern declaration of the entity. */
-        if (other_sym->parent.namespace_ptr != NULL ||
+        if (sym_is_namespace_member(other_sym) ||
             other_sym->decl_scope == scope_stack[DEPTH_OF_FILE_SCOPE].number) {
           /* The symbol specified by the assoc_info pointer does not belong
              to a function scope. */
         } else {
           a_boolean  saved_referenced_flag = source_corresp_ptr->referenced;
-
           set_source_corresp(source_corresp_ptr, sym);
           source_corresp_ptr->referenced = saved_referenced_flag;
           source_corresp_ptr->parent.namespace_ptr = NULL;
@@ -7538,7 +7535,7 @@ definition of a member function of a class template.
     a_symbol_ptr	parent_class_sym;
     /* Member function template. */
     sym = locator->specific_symbol;
-    parent_class = sym->parent.class_type;
+    parent_class = sym_parent_class(sym);
     parent_class_sym = (a_symbol_ptr)parent_class->source_corresp.assoc_info;
     if (sym->kind == (a_symbol_kind)sk_projection) {
       /* A member of a base class. */
@@ -7704,10 +7701,10 @@ definition of a member function of a class template.
       if (sym->is_class_member) {
         /* If this is the definition of a class member specified with a
            qualified name, it must be outside of the parent. */
-        if (locator->parent.class_type != NULL) {
+        if (qualifier_class_type(*locator) != NULL) {
           tssp->variant.function.routine->defined_outside_of_parent = TRUE;
         }  /* if */
-      } else if (sym->parent.namespace_ptr != NULL) {
+      } else if (sym_is_namespace_member(sym)) {
         /* Likewise, if this is the definition of a namespace member using
            a qualified name, it must be outside of the parent. */
         if (qualifier_namespace_ptr(*locator) != NULL) {
@@ -7774,10 +7771,10 @@ definition of a member function of a class template.
                            locator->symbol_header, &locator->source_position);
         if (locator->is_class_member) {
           set_class_membership(sym, (a_source_correspondence_ptr)NULL,
-                               locator->parent.class_type);
-        } else if (locator->parent.namespace_ptr != NULL) {
+                               qualifier_class_type(*locator));
+        } else if (qualifier_namespace_ptr(*locator) != NULL) {
           set_namespace_membership(sym, (a_source_correspondence *)NULL,
-                                   locator->parent.namespace_ptr);
+                                   qualifier_namespace_ptr(*locator));
         }  /* if */
         sym->is_error = locator->is_error;
       } else if (homonym_symbol != NULL) {
@@ -8040,7 +8037,8 @@ definition of a member function of a class template.
       /* The decl_scope test is used to exclude symbols that are not for
          the current translation unit. */
       if (ext_sym->kind == (a_symbol_kind)sk_extern_routine &&
-          ext_sym->parent.namespace_ptr == sym->parent.namespace_ptr &&
+          sym_parent_namespace_or_null(ext_sym) == 
+                                        sym_parent_namespace_or_null(sym) &&
           ext_sym->decl_scope == file_scope_number) {
         /* A routine belonging to the same namespace.  Don't check on the
            the type before determining that there is no instance pointer
@@ -8336,7 +8334,7 @@ the symbol through dps->sym and its linkage (which is always "none") through
        target of any initialization that may follow.  Create a dummy
        variable with an error type (to suppress semantic errors on the
        initialization, if any). */
-    a_type_ptr           tp = sym->parent.class_type;
+    a_type_ptr           tp = sym_parent_class(sym);
     a_symbol_header_ptr  hdr = locator->symbol_header;
     a_variable_ptr       vp;
 
@@ -8884,7 +8882,7 @@ symbol entry, and return a pointer to it in state->sym.
       } else {
         set_namespace_membership(sym, &tp->source_corresp,
                                  (a_namespace_ptr)NULL);
-        nsp = tp->source_corresp.parent.namespace_ptr;
+        nsp = parent_namespace_or_null(tp);
       }  /* if */
     }  /* if */
     record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, sym,
@@ -11345,9 +11343,9 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
       /* Set a flag indicating that this namespace is itself an unnamed
          namespace or is enclosed by an unnamed namespace. */
       if (is_unnamed_namespace ||
-          (ns_sym->parent.namespace_ptr != NULL &&
-           symbol_supplement_for_namespace(ns_sym->parent.namespace_ptr)->
-                                                within_unnamed_namespace)) {
+          (sym_is_namespace_member(ns_sym) &&
+           symbol_supplement_for_namespace(sym_parent_namespace(ns_sym))
+                                              ->within_unnamed_namespace)) {
         ns_sym->variant.namespace_info.extra_info->
                                            within_unnamed_namespace = TRUE;
       }  /* if */
@@ -12761,8 +12759,7 @@ proceed after the call.
       } else {
         check_assertion(locator->specific_symbol == NULL ||
                         (!locator->specific_symbol->is_class_member &&
-                         locator->specific_symbol->
-                                      parent.namespace_ptr == NULL));
+                         sym_is_namespace_member(locator->specific_symbol)));
         func_info->is_main_function = is_main_function = TRUE;
       }  /* if */
     }  /* if */
@@ -12831,7 +12828,7 @@ proceed after the call.
     if (microsoft_mode) {
       out_of_class_redecl = TRUE;
     } else if (gpp_mode && gnu_version < 30400) {
-      a_type_ptr  pt = locator->parent.class_type;
+      a_type_ptr  pt = qualifier_class_type(*locator);
       if (pt->variant.class_struct_union.is_template_class &&
           !pt->variant.class_struct_union.is_nonreal_class &&
           !pt->variant.class_struct_union.is_specialized) {

@@ -2046,11 +2046,10 @@ return NULL.
          scope is searched. */
       msap = il_header.primary_scope->ms_attributes;
     } else if (scp->is_class_member) {
-      a_class_type_supplement_ptr
-                               ctsp = class_type_supp(scp->parent.class_type);
+      a_class_type_supplement_ptr ctsp = class_type_supp(parent_class_of(scp));
       msap = ctsp->assoc_scope->ms_attributes;
-    } else if (scp->parent.namespace_ptr != NULL) {
-      msap = scp->parent.namespace_ptr->variant.assoc_scope->ms_attributes;
+    } else if (is_namespace_member(scp)) {
+      msap = parent_namespace_of(scp)->variant.assoc_scope->ms_attributes;
     } else {
       /* File scope in C++ mode. */
       msap = il_header.primary_scope->ms_attributes;

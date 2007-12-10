@@ -115,9 +115,8 @@ constant, and return information about it in *delta.
        the anonymous union.  Several may be nested inside one another. */
     offset = 0;
     for (;;) {
-      a_type_ptr field_class = field->source_corresp.parent.class_type;
-      a_class_type_supplement_ptr
-                 ctsp = field_class->variant.class_struct_union.extra_info;
+      a_type_ptr                   field_class = parent_class_of(field);
+      a_class_type_supplement_ptr  ctsp = class_type_supp(field_class);
       offset += (a_targ_ptrdiff_t)field->offset;
       if (ctsp->anonymous_union_kind != (an_anonymous_union_kind)auk_field) {
         break;

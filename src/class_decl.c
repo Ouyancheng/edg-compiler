@@ -984,6 +984,24 @@ parameter type description.
 }  /* corresponding_param_type */
 
 
+static a_boolean fixup_is_for_friend(a_routine_fixup_ptr  rfp)
+/*
+Return TRUE if the given routine fixup is for a friend declaration.
+*/
+{
+  a_symbol_ptr  sym = rfp->symbol;
+  a_boolean     is_friend = FALSE;
+
+  if (!sym->is_class_member) {
+    is_friend = TRUE;
+  } else {
+    a_type_ptr  parent_class = sym_parent_class(sym);
+    is_friend = !same_entities(parent_class, rfp->class_type);
+  }  /* if */
+  return is_friend;
+}  /* fixup_is_for_friend */
+
+
 void default_argument_fixup_for_class(a_type_ptr  class_type,
                                       a_boolean   is_template_based)
 /*
@@ -1145,10 +1163,7 @@ Process the default argument expressions for the indicated class.
           db_symbol(sym, "scanning default args for ", 2);
         }  /* if */
 #endif /* DEBUG */
-        is_friend = (is_function_symbol(sym) &&
-                     (!sym->is_class_member ||
-                      !same_entities(sym->parent.class_type,
-                                     rfp->class_type)));
+        is_friend = is_function_symbol(sym) && fixup_is_for_friend(rfp);
         if (fixup_class_is_nonreal_template_instantiation) {
           /* Prototype instantiation. */
           if (sym->kind == (a_symbol_kind)sk_member_function && !is_friend) {
@@ -1639,8 +1654,7 @@ nested class.
           db_symbol(sym, "scanning function body for ", 2);
         }  /* if */
 #endif /* DEBUG */
-        is_friend = (!sym->is_class_member ||
-                     !same_entities(sym->parent.class_type, rfp->class_type));
+        is_friend = fixup_is_for_friend(rfp);
         if (!same_entities(curr_scope_class_type, rfp->class_type)) {
           if (curr_scope_class_type != NULL) {
             /* Pop the reactivated class scope from the scope stack. */
@@ -3089,7 +3103,8 @@ a_class_type_supplement that tracks the highest number assigned thus far.
       /* No previous numbers, start at the first value. */
       *number_ptr = FIRST_VIRTUAL_FUNCTION_NUMBER;
     } else if (*number_ptr == MAX_VIRTUAL_FUNCTIONS_PER_CLASS) {
-      a_type_ptr  parent_class = rp->source_corresp.parent.class_type;
+// FIXME
+      a_type_ptr  parent_class = parent_class_of(rp);
       if (parent_class->variant.class_struct_union.is_nonreal_class) {
         /* Don't issue an error, since the number may not be maintained
            accurately for nonreal class instantiations. */
@@ -6036,15 +6051,17 @@ instantiations are recorded in the IL.
   sym->variant.routine.ptr = rp;
   set_source_corresp(&rp->source_corresp, sym);
   if (locator->is_class_member) {
-    a_type_ptr  parent_type = locator->parent.class_type;
+    a_type_ptr  parent_type = qualifier_class_type(*locator);
     if (is_template_param_type(parent_type)) {
       parent_type = skip_typerefs(parent_type);
       parent_type = proxy_class_for_template_param(parent_type);
     }  /* if */
     set_class_membership(sym, &rp->source_corresp, parent_type);
-  } else if (locator->parent.namespace_ptr != NULL) {
-    set_namespace_membership(sym, &rp->source_corresp,
-                             locator->parent.namespace_ptr);
+  } else {
+    a_namespace_ptr  parent_nsp = qualifier_namespace_ptr(*locator);
+    if (parent_nsp != NULL) {
+      set_namespace_membership(sym, &rp->source_corresp, parent_nsp);
+    }  /* if */
   }  /* if */
   if (locator->template_arg_list != NULL) {
     process_unattached_template_argument_list(locator->template_arg_list);
@@ -6292,7 +6309,7 @@ possibility.
       }
     } else {
       /* The friend function is a class member. */
-      if (sym->parent.class_type == class_type) {
+      if (sym_parent_class(sym) == class_type) {
         /* It's a member function of the very class that is according it
            friendship.  Issue a diagnostic. */
         diagnostic(strict_ansi_mode ? strict_ansi_error_severity : es_warning,
@@ -6613,7 +6630,7 @@ pointed to by cssp.
     a_boolean            ambiguous;
     a_boolean            using_decl;
 
-    class_type = orig_sym->parent.class_type;
+    class_type = sym_parent_class(orig_sym);
     check_assertion(symbol_supplement_for_class(class_type) == cssp);
     base_class = orig_sym->variant.projection.extra_info->
                                                  fundamental_base_class;
@@ -6843,7 +6860,7 @@ using *pos as the error position.
           prev_in_overload_set->next = sym->next;
           if (decl_sym->is_class_member) {
             /* Remove the class-member-using-decl entry associated with sym. */
-            mark_class_member_using_decl_as_hidden(decl_sym->parent.class_type,
+            mark_class_member_using_decl_as_hidden(sym_parent_class(decl_sym),
                                                    using_sym);
           }  /* if */
           /* Continue through the overload list -- there may be more than
@@ -7025,7 +7042,7 @@ when exception support is enabled.
 
   check_assertion(C_dialect == C_dialect_cplusplus && exceptions_enabled);
   sfkind = rp->special_kind;
-  class_type = rp->source_corresp.parent.class_type;
+  class_type = parent_class_of(rp);
   rout_type = rp->type;
   first_param = rout_type->variant.routine.extra_info->param_type_list;
   /* Go through the base classes looking for matching special functions, and
@@ -7339,14 +7356,14 @@ function or NULL if none can be found.
 */
 {
   a_routine_ptr  result = NULL;
+  a_type_ptr     parent_class = qualifier_class_type(*locator);
 
   if (!locator->is_class_member ||
-      !is_same_class_or_base_class_thereof(
-                                    class_type, locator->parent.class_type)) {
+      !is_same_class_or_base_class_thereof(class_type, parent_class)) {
     /* The qualifier was not a class: Issue an error. */
     pos_ty_error(ec_qualifier_must_be_base_class, &locator->source_position,
                  class_type);
-  } else if (same_entities(locator->parent.class_type, class_type)) {
+  } else if (same_entities(parent_class, class_type)) {
     /* The qualifier was the class being defined.  This corresponds to a
        different Microsoft bug/extension.  Nothing needs to be done here. */
   } else if (locator->specific_symbol != NULL &&
@@ -7354,10 +7371,8 @@ function or NULL if none can be found.
     pos_sy_error(ec_ambiguous_name, &locator->source_position,
                  locator->specific_symbol);
   } else {
-    a_symbol_ptr  sym = class_qualified_id_lookup(
-                                               locator,
-                                               locator->parent.class_type,
-                                               IDL_DO_NOT_CREATE_PROJ_SYM);
+    a_symbol_ptr  sym = class_qualified_id_lookup(locator, parent_class,
+                                                  IDL_DO_NOT_CREATE_PROJ_SYM);
     if (sym != NULL) {
       if (is_member_function_symbol(sym)) {
         sym = member_function_redecl_sym_with_template_flag(
@@ -8321,7 +8336,7 @@ and it is legal for virtual member functions only.
   /* A pure specifier is allowed for virtual functions only.  (Check the
      parent class to exclude friend declarations.) */
   if (!rout_sym->is_class_member ||
-      rout_sym->parent.class_type != class_type) {
+      sym_parent_class(rout_sym) != class_type) {
     rout = NULL;
     pure_specifier_allowed = FALSE;
   } else {
@@ -8472,7 +8487,7 @@ unnamed class.
   if (tp->variant.class_struct_union.originally_unnamed) {
     unnamed = TRUE;
   } else if (tp->source_corresp.is_class_member) {
-    tp = tp->source_corresp.parent.class_type;
+    tp = parent_class_of(tp);
     unnamed = is_or_is_nested_within_unnamed_class(tp);
   }  /* if */
   return unnamed;
@@ -8809,12 +8824,12 @@ cfront compatibility case.
   *is_base_class_match = FALSE;
   if (is_class_struct_union_type(tp)) {
     /* The type of the first parameter is a class type. */
-    if (f_same_entities(skip_typerefs(tp), sym->parent.class_type)) {
+    if (f_same_entities(skip_typerefs(tp), sym_parent_class(sym))) {
       /* The parameter's type matches the class of which the assignment
          operator is a member. */
       found = TRUE;
     } else if (allow_copy_assignment_op_with_base_class_param) {
-      if (find_base_class_of(sym->parent.class_type, tp) != NULL) {
+      if (find_base_class_of(sym_parent_class(sym), tp) != NULL) {
         /* The parameter's type matches a base class of the class of which the
            assignment operator is a member. */
         found = TRUE;
@@ -9035,7 +9050,7 @@ be the last in the anonymous-union-parent chain.
                                                       &apo_sym->decl_position,
                                                       apo_sym->decl_scope);
     set_class_membership(new_apo_sym, (a_source_correspondence *)NULL,
-                         apo_sym->parent.class_type);
+                         sym_parent_class(apo_sym));
     /* Set it to point to the same field. */
     new_apo_sym->variant.field.ptr = apo_sym->variant.field.ptr;
     /* If apo_sym does is not itself nested in an anonymous parent object,
@@ -9150,9 +9165,7 @@ promotion is for a nonstandard anonymous union.
        cases); the members of a variable anonymous union should be (i.e.,
        should remain) public. */
     if (gpp_mode &&
-        !same_entities(field->source_corresp.parent.class_type
-                            ->source_corresp.parent.class_type,
-                       class_type)) {
+        !same_entities(parent_class_of(parent_class_of(field)), class_type)) {
       /* GNU compilers only adjust the accessibility of a promoted field the
          first time it is promoted.  I.e., if the field appears within
          multiple levels of anonymous unions, it may not eventually acquire
@@ -11591,7 +11604,7 @@ class_type.  Set *updated if a projection symbol is created.
            name (and sym->ambiguous is meant to denote name lookup
            ambiguity). */
         a_symbol_ptr      fund_sym = fundamental_symbol_of(bcslep->symbol);
-        a_type_ptr        fund_base_type = fund_sym->parent.class_type;
+        a_type_ptr        fund_base_type = sym_parent_class(fund_sym);
         a_base_class_ptr  fund_base = find_base_with_type(fund_base_type,
                                                           class_type,
                                                           base_class);
@@ -11689,7 +11702,7 @@ TRUE.
   udp = sp->using_decls;
   /* Traverse the list looking for a name and qualifier match. */
   for (; udp != NULL; udp = udp->next) {
-    if (same_entities(udp->qualifier.class_type, sym->parent.class_type)) {
+    if (same_entities(udp->qualifier.class_type, sym_parent_class(sym))) {
       scp = source_corresp_for_il_entry(udp->entity.ptr,
                                         (an_il_entry_kind)udp->entity.kind);
       check_assertion(scp != NULL);
@@ -11759,8 +11772,8 @@ the new declaration.
     a_routine_ptr     rp = NULL;
 
     if (fund_sym == declared_sym ||
-        same_entities(fund_sym->parent.class_type,
-                      declared_sym->parent.class_type)) {
+        same_entities(sym_parent_class(fund_sym),
+                      sym_parent_class(declared_sym))) {
       /* Common case: the fundamental symbol is the same as the declared
          symbol, or a member of the overload set it represents. */
       fund_base_class = bcp;
@@ -11770,7 +11783,7 @@ the new declaration.
       fund_base_class = base_classes_of(class_type);
       for (;;) {
         if (same_entities(fund_base_class->type,
-                          fund_sym->parent.class_type) &&
+                          sym_parent_class(fund_sym)) &&
             is_on_any_derivation_of(fund_base_class, bcp)) break;
         fund_base_class = fund_base_class->next;
         check_assertion(fund_base_class != NULL);
@@ -11840,7 +11853,7 @@ the new declaration.
     udp = make_using_decl(fund_sym, &decl_pos, depth_scope_stack);
     /* Record the class that was actually specified in the qualified
        name in the source. */
-    udp->qualifier.class_type = declared_sym->parent.class_type;
+    udp->qualifier.class_type = sym_parent_class(declared_sym);
     udp->access = access;
     udp->is_class_member = TRUE;
     /* Update cross-reference and source-sequence info, if required. */
@@ -11987,7 +12000,7 @@ or implicit) controlling the declaration.
     } else {
       sym = locator_for_curr_id.specific_symbol;
       if (sym != NULL && sym->is_class_member &&
-          is_or_contains_template_param(sym->parent.class_type)) {
+          is_or_contains_template_param(sym_parent_class(sym))) {
         /* The using-declaration was for a member of a dependent class type.
            Normally this should be a base class type, but we may also end
            up here with the following invalid code:
@@ -12043,57 +12056,57 @@ or implicit) controlling the declaration.
          here. */
       error(ec_template_id_not_allowed);
       err = TRUE;
-    } else if (could_be_dependent_class_type(
-                                      locator_for_curr_id.parent.class_type) &&
-               !same_entities(class_type,
-                              locator_for_curr_id.parent.class_type)) {
-      /* The qualifier is a dependent class.  Suppress the base class check
-         and create a dummy base class. */
-      bcp = alloc_base_class();
-      bcp->type = declared_sym->parent.class_type;
-      bcp->derived_class = class_type;
     } else {
-      bcp = find_base_class_of(class_type,
-                               locator_for_curr_id.parent.class_type);
-      if (bcp == NULL) {
-        error(ec_bad_base_class);
-        err = TRUE;
-      } else if (bcp->ambiguous) {
-        /* The base class is ambiguous, but only issue an error if the member
-           itself is ambiguous -- that is, the member must be either a field
-           or a nonstatic member function or an overload set containing at
-           least one nonstatic member function. */
-        sym = fund_sym;
-        if (sym->kind == (a_symbol_kind)sk_field) {
-          /* A field in an ambiguous base class is ambiguous. */
+      a_type_ptr  parent_class = qualifier_class_type(locator_for_curr_id);
+      if (could_be_dependent_class_type(parent_class) &&
+          !same_entities(class_type, parent_class)) {
+        /* The qualifier is a dependent class.  Suppress the base class check
+           and create a dummy base class. */
+        bcp = alloc_base_class();
+        bcp->type = sym_parent_class(declared_sym);
+        bcp->derived_class = class_type;
+      } else {
+        bcp = find_base_class_of(class_type, parent_class);
+        if (bcp == NULL) {
+          error(ec_bad_base_class);
           err = TRUE;
-        } else {
-          if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
-            if (sym->variant.overloaded_function.mixed_static_nonstatic) {
-              /* There must be at least one nonstatic member function in this
-                 overload set. */
+        } else if (bcp->ambiguous) {
+          /* The base class is ambiguous, but only issue an error if the member
+             itself is ambiguous -- that is, the member must be either a field
+             or a nonstatic member function or an overload set containing at
+             least one nonstatic member function. */
+          sym = fund_sym;
+          if (sym->kind == (a_symbol_kind)sk_field) {
+            /* A field in an ambiguous base class is ambiguous. */
+            err = TRUE;
+          } else {
+            if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
+              if (sym->variant.overloaded_function.mixed_static_nonstatic) {
+                /* There must be at least one nonstatic member function in this
+                   overload set. */
+                err = TRUE;
+              } else {
+                /* Either all are static or all are nonstatic.  Decide which
+                   by looking at the first in the list. */
+                sym = sym->variant.overloaded_function.symbols;
+                sym = fundamental_symbol_of(sym);
+              }  /* if */
+            }  /* if */
+            if (sym->kind == (a_symbol_kind)sk_member_function &&
+                routine_type_is_nonstatic_member_function(
+                                                  routine_symbol_type(sym))) {
+              /* A nonstatic member function in an ambiguous base classes is
+                 ambiguous. */
               err = TRUE;
-            } else {
-              /* Either all are static or all are nonstatic.  Decide which
-                 by looking at the first in the list. */
-              sym = sym->variant.overloaded_function.symbols;
-              sym = fundamental_symbol_of(sym);
             }  /* if */
           }  /* if */
-          if (sym->kind == (a_symbol_kind)sk_member_function &&
-              routine_type_is_nonstatic_member_function(
-                                                 routine_symbol_type(sym))) {
-            /* A nonstatic member function in an ambiguous base classes is
-               ambiguous. */
-            err = TRUE;
-          }  /* if */
+          if (err) sym_error(ec_ambiguous_name, declared_sym);
+        } else if (!(bcp->direct || any_cfront_mode() || gpp_mode ||
+                     (microsoft_mode && microsoft_version > 1200))) {
+          /* Base class members designated in a using-declaration must be
+             visible in the scope of at least one direct base class. */
+          check_member_using_visibility(class_type, fund_sym, &err);
         }  /* if */
-        if (err) sym_error(ec_ambiguous_name, declared_sym);
-      } else if (!(bcp->direct || any_cfront_mode() || gpp_mode ||
-                   (microsoft_mode && microsoft_version > 1200))) {
-        /* Base class members designated in a using-declaration must be
-           visible in the scope of at least one direct base class. */
-        check_member_using_visibility(class_type, fund_sym, &err);
       }  /* if */
     }  /* if */
     if (!err) {
@@ -12250,7 +12263,7 @@ are:   A<T> for A<int>, A<T>::B for A<int>::B, and A<T>::B::C for A<int>::B::C.
        tag symbol of its parent class; then find the corresponding nested
        class within it.  The prototype tag symbol of the parent class is
        stored in the latter's class symbol supplement. */
-    sym = symbol_supplement_for_class(curr_sym->parent.class_type)->
+    sym = symbol_supplement_for_class(sym_parent_class(curr_sym))->
                                                        corresp_prototype_sym;
     if (sym != NULL) {
       /* sym is the corresponding prototype tag symbol of the parent class.
@@ -12352,8 +12365,8 @@ of its parent class.
      defined within its body. */
   if (tag_sym->variant.class_struct_union.type !=
                                       instantiation_ssep->assoc_type) {
-    parent_tssp = symbol_supplement_for_class(tag_sym->parent.class_type)->
-                                                               template_info;
+    parent_tssp = symbol_supplement_for_class(sym_parent_class(tag_sym))
+                                                             ->template_info;
     tssp->variant.class_template.prototype_instantiation = tag_sym;
     /* A member class of a template class whose body is supplied in the class
        shares the template declaration information with the enclosing class. */
@@ -13146,7 +13159,7 @@ passed via template_decl.
          could also be a delayed nested class definition appearing in a class
          scope. */
       check_assertion_str2(sym->is_class_member &&
-                           (sym->parent.class_type == class_type ||
+                           (sym_parent_class(sym) == class_type ||
                             microsoft_mode || gpp_mode),
                            "class_member_declaration:",
                            "bad parent type on nested type");
@@ -13775,7 +13788,7 @@ passed via template_decl.
                   break;
                 }  /* if */
                 if (!tp->source_corresp.is_class_member) break;
-                tp = tp->source_corresp.parent.class_type;
+                tp = parent_class_of(tp);
               }  /* for */
             }  /* if */
           }  /* if */
@@ -14639,8 +14652,8 @@ classes.
     } else if (is_template_instantiation && tag_sym->is_class_member) {
       /* An instance of a member template.  Mark it as nonreal if the
          instantiation is being triggered inside a prototype instantiation. */
-      if (tag_sym->parent.class_type->
-                                 variant.class_struct_union.is_nonreal_class) {
+      if (sym_parent_class(tag_sym)
+                              ->variant.class_struct_union.is_nonreal_class) {
         class_state.is_nonreal_instantiation = TRUE;
         class_type->variant.class_struct_union.is_nonreal_class = TRUE;
       }  /* if */
@@ -14661,8 +14674,8 @@ classes.
     /* If this class is nested in an in-class specialization, consider it
        an in-class specialization too. */
     if (tag_sym->is_class_member &&
-        tag_sym->parent.class_type->
-                     variant.class_struct_union.is_in_class_specialization) {
+        sym_parent_class(tag_sym)
+                    ->variant.class_struct_union.is_in_class_specialization) {
       class_type->variant.class_struct_union.is_in_class_specialization = TRUE;
     }  /* if */
     class_state.is_template_instantiation = is_template_instantiation;
@@ -14717,7 +14730,7 @@ classes.
          a template instantiation scope is pushed for a specialization
          in Microsoft mode (above) because that process reactivates the
          enclosing class. */
-      push_class_reactivation_scope(tag_sym->parent.class_type,
+      push_class_reactivation_scope(sym_parent_class(tag_sym),
                                     /*extend_namespace=*/TRUE);
     }  /* if */
     if (curr_token == tok_colon) {
@@ -15103,9 +15116,8 @@ next_declaration:
            this applies both to member templates and to nontemplate classes
            that are nested within template class instantiations.) */
       } else if (is_template_instantiation &&
-                 class_type->source_corresp.parent.class_type->
-                     variant.class_struct_union.extra_info->
-                     assoc_scope->depth_in_scope_stack != NO_SCOPE_DEPTH) {
+                 class_type_supp(parent_class_of(class_type))
+                     ->assoc_scope->depth_in_scope_stack != NO_SCOPE_DEPTH) {
         /* Don't put out the nested-class-definition placeholder for a delayed
            definition if the parent class is still on the stack. This may be
            needed both for a member template -- e.g.,
@@ -15508,8 +15520,7 @@ the change on the contained type.
       }  /* if */
       if (type->source_corresp.is_class_member) {
         /* Nested class -- be sure parent class is also externally linked. */
-        check_type_for_linkage_change(type->source_corresp.parent.class_type,
-                                      count);
+        check_type_for_linkage_change(parent_class_of(type), count);
       }  /* if */
       break;
     case tk_routine:
@@ -15545,8 +15556,7 @@ the change on the contained type.
         if (type->source_corresp.is_class_member) {
           /* Nested enum -- changing the parent's linkage causes the linkage
              of all its nested types to be changed. */
-          check_type_for_linkage_change(type->source_corresp.parent.class_type,
-                                        count);
+          check_type_for_linkage_change(parent_class_of(type), count);
         } else if (is_candidate_for_linkage_change(type)) {
           make_enum_type_externally_linked(type, count);
         }  /* if */

@@ -10453,13 +10453,12 @@ present.
     type_sym = file_scope_id_lookup(il_header.primary_scope, locator, options);
   } else if (qualifier_sym != NULL && qualifier_sym->is_class_member) {
     type_sym = class_qualified_id_lookup(locator,
-                                         qualifier_sym->parent.class_type,
+                                         sym_parent_class(qualifier_sym),
                                          options);
-  } else if (qualifier_sym != NULL && !qualifier_sym->is_class_member &&
-             qualifier_sym->parent.namespace_ptr != NULL) {
-    type_sym = namespace_qualified_id_lookup
-                                         (locator,
-                                          qualifier_sym->parent.namespace_ptr,
+  } else if (qualifier_sym != NULL && sym_is_namespace_member(qualifier_sym)) {
+    type_sym = namespace_qualified_id_lookup(
+                                          locator,
+                                          sym_parent_namespace(qualifier_sym),
                                           options);
   } else if (!no_normal_lookup) {
     type_sym = normal_id_lookup(locator, options);
@@ -11179,8 +11178,8 @@ all arguments were explicit.
      instantiation.  Such cases must be handled specially for rescanning
      purposes. */
   if (template_sym->is_class_member &&
-      template_sym->parent.class_type->
-                       variant.class_struct_union.is_prototype_instantiation) {
+      sym_parent_class(template_sym)
+                     ->variant.class_struct_union.is_prototype_instantiation) {
     template_in_prototype_instantiation = TRUE;
   }  /* if */
   if (tssp->variant.class_template.template_template_param) {
@@ -11495,7 +11494,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
        permitted in Microsoft, g++, and Sun mode. */
     a_type_ptr	parent_class;
     a_class_symbol_supplement_ptr	parent_cssp;
-    parent_class = template_sym->parent.class_type;
+    parent_class = sym_parent_class(template_sym);
     parent_cssp = symbol_supplement_for_class(parent_class);
     if (parent_cssp->class_template != NULL) {
       orig_ctor_symbol = template_sym;
@@ -11728,7 +11727,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
         while (type->source_corresp.is_class_member &&
                type->variant.class_struct_union.extra_info->
                                                   template_arg_list == NULL) {
-          type = type->source_corresp.parent.class_type;
+          type = parent_class_of(type);
           is_outermost_tmc = FALSE;
         }  /* while */
         /* Exit the loop if the type has no template argument list. */
@@ -11753,8 +11752,8 @@ a routine to lookup the appropriate instance (or generate one if needed).
         }  /* if */
         /* Continue processing with the next parent type. */
         if (tmc_sym->is_class_member) {
-          type = tmc_sym->parent.class_type;
-          tmc_sym = (a_symbol_ptr)type->source_corresp.assoc_info;
+          type = sym_parent_class(tmc_sym);
+          tmc_sym = symbol_for(type);
           is_outermost_tmc = FALSE;
         } else {
           break;
@@ -12121,8 +12120,8 @@ in a declarator of a template declaration.
   } else if (scope_stack[depth_scope_stack].in_prototype_instantiation) {
     /* Ignore errors in prototype instantiations. */
   } else if (sym->is_class_member &&
-             is_prototype_instantiation_symbol((a_symbol_ptr)sym->
-                              parent.class_type->source_corresp.assoc_info)) {
+             is_prototype_instantiation_symbol(
+                                         symbol_for(sym_parent_class(sym)))) {
     /* The symbol is a member of a prototype instantiation -- this is the
        definition of a member of a class template. */
   } else if (options & GID_IS_TEMPLATE_SPECIALIZATION) {
@@ -12147,7 +12146,7 @@ in a declarator of a template declaration.
       a_symbol_ptr	type_sym;
       a_boolean		is_prototype_instantiation;
 
-      tp = sym->parent.class_type;
+      tp = sym_parent_class(sym);
       type_sym = (a_symbol_ptr)tp->source_corresp.assoc_info;
       is_prototype_instantiation = is_prototype_instantiation_symbol(type_sym);
       if (is_prototype_instantiation) {
@@ -12639,7 +12638,7 @@ the normal lookup symbol.
                is_class_symbol(normal_fund_sym)) {
       a_type_ptr	normal_type;
       normal_type = type_symbol_type(normal_fund_sym);
-      if (identical_types(normal_type, class_fund_sym->parent.class_type)) {
+      if (identical_types(normal_type, sym_parent_class(class_fund_sym))) {
         equiv_symbols = TRUE;
       }  /* if */
     } else if (class_fund_sym->is_nonreal_member) {
@@ -12686,8 +12685,7 @@ the normal lookup symbol.
       /* If the class symbol is a constructor, use the class symbol in place
          of the constructor symbol for error reporting. */
       if (is_constructor_symbol(class_fund_sym)) {
-        diag_class_sym = (a_symbol_ptr)class_fund_sym->
-                                  parent.class_type->source_corresp.assoc_info;
+        diag_class_sym = symbol_for(sym_parent_class(class_fund_sym));
       } else {
         diag_class_sym = class_fund_sym;
       }  /* if */

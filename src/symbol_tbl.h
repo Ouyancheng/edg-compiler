@@ -2919,6 +2919,39 @@ typedef struct a_symbol {
   } variant;
 } a_symbol;
 
+
+/*
+Macros to retrieve the parent class or namespace associated with a symbol.
+*/
+#define sym_is_namespace_member(sym)                                         \
+  (!(sym)->is_class_member && (sym)->parent.namespace_ptr != NULL)
+
+#if !EXPENSIVE_CHECKING
+#define sym_parent_namespace(sym)                                            \
+  ((sym)->parent.namespace_ptr)
+#else /* EXPENSIVE_CHECKING */
+#define sym_parent_namespace(sym)                                            \
+  (check_assertion(sym_is_namespace_member(sym)),                            \
+   (sym)->parent.namespace_ptr)
+#endif /* !EXPENSIVE_CHECKING */
+
+#if !EXPENSIVE_CHECKING
+#define sym_parent_namespace_or_null(sym)                                    \
+  ((sym)->parent.namespace_ptr)
+#else /* EXPENSIVE_CHECKING */
+#define sym_parent_namespace_or_null(sym)                                    \
+  (check_assertion(!(sym)->is_class_member), (sym)->parent.namespace_ptr)
+#endif /* !EXPENSIVE_CHECKING */
+
+#if !EXPENSIVE_CHECKING
+#define sym_parent_class(sym)                                                \
+  ((sym)->parent.class_type)
+#else /* EXPENSIVE_CHECKING */
+#define sym_parent_class(sym)                                                \
+  (check_assertion((sym)->is_class_member), (sym)->parent.class_type)
+#endif /* !EXPENSIVE_CHECKING */
+
+
 typedef struct a_symbol_header {
   /* This is the container for information that the symbol table
      management routines use in manipulating a list of symbols that have

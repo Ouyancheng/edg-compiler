@@ -759,15 +759,15 @@ For a nested class/namespace, also push the containing classes/namespaces.
   if (il_header.source_language == sl_Cplusplus) {
     if (scp->is_class_member) {
       /* The entity is a class member. */
-      a_type_ptr class_type = scp->parent.class_type;
+      a_type_ptr class_type = parent_class_of(scp);
       /* Push the surrounding class(es)/namespace(s) for a nested class. */
       push_name_context_if_member(&class_type->source_corresp);
       /* Push the class. */
       push_name_context(class_type->variant.class_struct_union.extra_info->
                                                                   assoc_scope);
-    } else if (scp->parent.namespace_ptr != NULL) {
+    } else if (is_namespace_member(scp)) {
       /* The entity is a namespace member. */
-      a_namespace_ptr nsp = scp->parent.namespace_ptr;
+      a_namespace_ptr nsp = parent_namespace_of(scp);
       /* Push the surrounding namespace(s) for a nested namespace. */
       push_name_context_if_member(&nsp->source_corresp);
       /* Push the namespace. */
@@ -787,13 +787,13 @@ For a nested class/namespace, also pop the containing classes/namespaces.
   if (il_header.source_language == sl_Cplusplus) {
     if (scp->is_class_member) {
       /* The entity is a class member. */
-      a_type_ptr class_type = scp->parent.class_type;
+      a_type_ptr class_type = parent_class_of(scp);
       pop_name_context();
       /* Pop the surrounding class(es)/namespace(s) for a nested class. */
       pop_name_context_if_member(&class_type->source_corresp);
-    } else if (scp->parent.namespace_ptr != NULL) {
+    } else if (is_namespace_member(scp)) {
       /* The entity is a namespace member. */
-      a_namespace_ptr nsp = scp->parent.namespace_ptr;
+      a_namespace_ptr nsp = parent_namespace_of(scp);
       pop_name_context();
       /* Pop the surrounding namespace(s) for a nested namespace. */
       pop_name_context_if_member(&nsp->source_corresp);
@@ -1072,7 +1072,7 @@ instance.
     is_accessible = TRUE;
   } else {
     /* Check to see if the containing class is in the context stack. */
-    a_type_ptr parent_class = scp->parent.class_type;
+    a_type_ptr parent_class = parent_class_of(scp);
     is_accessible = (class_is_in_name_context_stack(
                                              parent_class,
                                              /*include_base_classes=*/FALSE) ||
@@ -2214,13 +2214,14 @@ currently active selector class.
 */
 {
   a_boolean   result = FALSE;
-  a_type_ptr  selector_type;
+  a_type_ptr  selector_type, parent_class;
 
   check_assertion(curr_name_context != NULL &&
                   type->source_corresp.is_class_member);
   selector_type = curr_name_context->class_type;
   check_assertion(selector_type != NULL);
-  if (same_entities(type->source_corresp.parent.class_type, selector_type)) {
+  parent_class = parent_class_of(type);
+  if (same_entities(parent_class, selector_type)) {
     result =  TRUE;
   } else {
     result = (find_direct_base_class_of(selector_type, type) != NULL);
@@ -2246,7 +2247,7 @@ for the meaning of need_closing_paren.
                    ->variant.class_struct_union.is_nonstd_anonymous_union_type
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
                                                                             ) {
-    class_type = class_type->source_corresp.parent.class_type;
+    class_type = parent_class_of(class_type);
   }  /* while */
   if (class_type->variant.class_struct_union.extra_info->anonymous_union_kind
                                     == (an_anonymous_union_kind)auk_variable) {
@@ -2319,7 +2320,7 @@ the meaning of need_closing_paren.
   /* If the namespace at this level is unnamed, skip it and move up one
      level. */
   while (nsp != NULL && !has_name_before_mangling(nsp)) {
-    nsp = nsp->source_corresp.parent.namespace_ptr;
+    nsp = parent_namespace_or_null(nsp);
   }  /* while */
   if (nsp != NULL) {
     /* Use recursion to handle multiple levels of nesting. */
@@ -2438,11 +2439,9 @@ is called.
      class template that was (and will be in the generated code) implicitly
      instantiated. */
   typedef_will_be_implicitly_instantiated_if_referenced =
-           type->source_corresp.is_class_member &&
-           type->source_corresp.parent.class_type->
-                                variant.class_struct_union.is_template_class &&
-           !type->source_corresp.parent.class_type->
-                                     variant.class_struct_union.is_specialized;
+        type->source_corresp.is_class_member &&
+        parent_class_of(type)->variant.class_struct_union.is_template_class &&
+        !parent_class_of(type)->variant.class_struct_union.is_specialized;
 #endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 
   check_assertion(type->kind == (a_type_kind)tk_typeref &&
@@ -2541,9 +2540,9 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
   /* If the name is a member of a class or namespace in C++, output the
      class or namespace qualifier. */
   if (il_header.source_language == sl_Cplusplus) {
-    a_boolean save_qualification_needed = scp->qualification_needed;
+    a_boolean   save_qualification_needed = scp->qualification_needed;
     if (entry_kind == iek_type) {
-      a_type_ptr tp = (a_type_ptr)scp;
+      a_type_ptr  tp = (a_type_ptr)scp;
       if ((tp->kind == (a_type_kind)tk_class ||
            tp->kind == (a_type_kind)tk_struct ||
            tp->kind == (a_type_kind)tk_union) &&
@@ -2582,7 +2581,7 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
       }  /* if */
     }  /* if */
     if (scp->is_class_member) {
-      a_type_ptr class_type = scp->parent.class_type;
+      a_type_ptr class_type = parent_class_of(scp);
       a_boolean  used_qualified_name = FALSE;
       a_boolean  include_base_classes = TRUE;
       /* Use a qualified name in some cases to avoid a cfront bug.  See
@@ -2659,7 +2658,7 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
               !scp->qualification_needed &&
               curr_name_context_is_a_class() &&
               find_base_class_of(curr_name_context_class(),
-                                 scp->parent.class_type) != 0) {
+                                 parent_class_of(scp)) != 0) {
             /* This is a case where the name is not hidden but is required to
                be qualified by the context (e.g., when forming a pointer to
                member) and the name is a protected member of a base of the
@@ -2689,9 +2688,9 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
           write_tok_str("template ");
         }  /* if */
       }  /* if */
-    } else if (scp->parent.namespace_ptr != NULL) {
+    } else if (is_namespace_member(scp)) {
       /* The entity is a member of a namespace. */
-      a_namespace_ptr nsp = scp->parent.namespace_ptr;
+      a_namespace_ptr nsp = parent_namespace_of(scp);
       if (!force_qualified_name &&
           (!scp->qualification_needed || (options & GN_DECLARATION)) &&
           (scp->visible_as_unqualified_name ||
@@ -3150,8 +3149,8 @@ a definition.
            for both microsoft_mode and
            microsoft_dialect_is_generated_code_target to decide whether to
            allow qualification in this case. */
-
-        if (!class_is_in_name_context_stack(scp->parent.class_type,
+        a_type_ptr  parent_class = parent_class_of(scp);
+        if (!class_is_in_name_context_stack(parent_class,
                                             /*include_base_classes=*/FALSE)) {
           /* Avoid qualification inside the virtual function's class. */
           options |= GN_PURE_VIRTUAL_FUNCTION;
@@ -3182,7 +3181,7 @@ declaration.
   if (!scp->is_class_member &&
       enclosing_class != NULL &&
       !enclosing_class->source_corresp.is_local_to_function &&
-      scp->parent.namespace_ptr == innermost_namespace_parent_of(
+      parent_namespace_or_null(scp) == innermost_namespace_parent_of(
                                           &enclosing_class->source_corresp)) {
     /* The name is declared in the innermost nonclass scope, so an unqualified
        name can be used. In some cases, a qualified name cannot be used.
@@ -4529,8 +4528,7 @@ recorded).
       scp != NULL && scp->is_class_member) {
     /* If we're defining a class member, make note of the fact that we
        have access to its members in the type specifier. */
-    curr_name_context->class_type_for_access_not_naming =
-                                                        scp->parent.class_type;
+    curr_name_context->class_type_for_access_not_naming = parent_class_of(scp);
     name_context_for_access_reset = curr_name_context;
   }  /* if */
   /* Write the specifiers and the first part of the declarator. */
@@ -4998,7 +4996,7 @@ current access mode in the class.  Otherwise, do nothing.
 */
 {
   if (curr_name_context_is_a_class() && scp->is_class_member &&
-      scp->parent.class_type == curr_name_context_class()) {
+      parent_class_of(scp) == curr_name_context_class()) {
     /* We're inside a class, and the entity being output is a member of that
        class. */
     gen_member_access_specifier((an_access_specifier)scp->access);
@@ -5642,7 +5640,7 @@ and *orig_scope to NULL.  name_ref represents the qualifiers used in the
 declarator.
 */
 {
- a_scope_ptr desired_scope;
+  a_scope_ptr desired_scope;
 
   *common_scope = NULL;
   *orig_scope = NULL;
@@ -5724,7 +5722,7 @@ one for the entity itself if it is a template.
   if (!is_in_class_specialization) {
 #if !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
     while (scp->is_class_member) {
-      a_type_ptr parent_class = scp->parent.class_type;
+      a_type_ptr parent_class = parent_class_of(scp);
       if (parent_class->variant.class_struct_union.extra_info->
                                                    template_arg_list != NULL &&
           !parent_class->variant.class_struct_union.is_specialized) {
@@ -5793,9 +5791,8 @@ flags on the classes found on an earlier call.
     if (is_type_templ_arg(arg)) {
       a_type_ptr type = arg->variant.type;
       if (type->source_corresp.is_class_member) {
-        a_type_ptr type_class = type->source_corresp.parent.class_type;
-        if (type_class->variant.class_struct_union.extra_info->
-                                                   template_arg_list != NULL) {
+        a_type_ptr type_class = parent_class_of(type);
+        if (class_type_supp(type_class)->template_arg_list != NULL) {
           any_found = TRUE;
           /* Found a template class name used in a particular way in
              a template argument.  Generate a typedef and use it in place
@@ -7774,7 +7771,7 @@ If suppress_virtual is TRUE, suppress virtual-ness on the function reference.
     write_tok_str("->");
     force_qualified_name = TRUE;
     check_assertion(rout->source_corresp.is_class_member);
-    naming_class = rout->source_corresp.parent.class_type;
+    naming_class = parent_class_of(rout);
     selection_class = naming_class;
   } else {
 #if OPTIMIZE_VIRTUAL_FUNCTION_CALLS
@@ -7962,8 +7959,7 @@ call in the normal way.
                  bare_return_type->source_corresp.is_class_member) ||
                 (msvc_target_version_number < 1310 &&
                  !bare_return_type->source_corresp.is_class_member &&
-                 bare_return_type->source_corresp.parent.namespace_ptr
-                                                                   != NULL)) &&
+                 is_namespace_member(bare_return_type))) &&
                has_name_before_mangling(return_type)) {
       /* Some builds of MSVC 6.0 (12.00.8804, for instance, but not
          12.00.8168) have a bug in which using an old-style cast to a
@@ -9588,7 +9584,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
             if (!(msvc_is_generated_code_target &&
                   msvc_target_version_number <= 1200 &&
                   (type->source_corresp.is_class_member ||
-                   type->source_corresp.parent.namespace_ptr != NULL))) {
+                   is_namespace_member(type)))) {
               /* MSVC++ 6.0 has a bug that causes it to reject a qualified
                  destructor reference if the qualifier is itself a
                  qualified-id.  The qualifier isn't really necessary
@@ -10972,7 +10968,7 @@ Generate code for a class member or nonmember using-declaration.
         msvc_target_version_number == 1200 &&
         curr_name_context_is_a_class() &&
         !class_type->source_corresp.is_class_member &&
-        class_type->source_corresp.parent.namespace_ptr != NULL &&
+        is_namespace_member(class_type) &&
         class_type->variant.class_struct_union.extra_info->template_arg_list
                                                                      != NULL) {
       /* MSVC++ 6.0 cannot handle a qualifier of the form NS::cls<arg>::...
@@ -11056,7 +11052,7 @@ again on a member declaration.
 */
 {
   if (il_header.source_language == sl_Cplusplus && scp->is_class_member) {
-    a_type_ptr class_type = scp->parent.class_type;
+    a_type_ptr class_type = parent_class_of(scp);
     a_class_type_supplement_ptr
                ctsp = class_type->variant.class_struct_union.extra_info;
     *decl_modifiers &= ~ctsp->decl_modifiers;
@@ -12149,8 +12145,7 @@ source and the expression is generated in that form.
                    bare_init_entity_type->source_corresp.is_class_member) ||
                   (msvc_target_version_number < 1310 &&
                    !bare_init_entity_type->source_corresp.is_class_member &&
-                   bare_init_entity_type->source_corresp.parent.namespace_ptr
-                                                                   != NULL)) &&
+                   is_namespace_member(bare_init_entity_type))) &&
                  has_name_before_mangling(init_entity_type)) {
         /* Some builds of MSVC 6.0 (12.00.8804, for instance, but not
            12.00.8168) have a bug in which using an old-style cast to a
@@ -12381,8 +12376,7 @@ initialization is in a condition declaration if is_condition is TRUE.
   if (is_condition || is_explicit_initializer(init_kind, initializer)) {
     /* Push the name context for a class/namespace member. */
     if (microsoft_dialect_is_generated_code_target &&
-        !var->source_corresp.is_class_member &&
-        var->source_corresp.parent.namespace_ptr != NULL) {
+        !var->source_corresp.is_class_member && is_namespace_member(var)) {
       /* In the Microsoft dialect, the initializer for a namespace member
          defined outside its namespace is not in the lexical scope of the
          namespace; i.e., name references in the initializer that refer to
@@ -12718,9 +12712,9 @@ declaration following this one is such a continuation.
   force_unqualified_name =
        !is_definition && !is_specialization &&
        !(microsoft_mode && !var->source_corresp.is_class_member &&
-         var->source_corresp.parent.namespace_ptr != NULL &&
+         is_namespace_member(var) &&
          !scope_is_in_name_context_stack(
-              var->source_corresp.parent.namespace_ptr->variant.assoc_scope));
+                              parent_namespace_of(var)->variant.assoc_scope));
   /* Output the variable name and its type.  Do not put out a name for
      anonymous union variables. */
   gen_general_declaration_using_type(var_type, (a_type_mode_kind)tmk_none,
@@ -12992,7 +12986,7 @@ flags on the classes found on an earlier call.
       }  /* if */
       if (scp != NULL) {
         if (scp->is_class_member) {
-          a_type_ptr parent_class = scp->parent.class_type;
+          a_type_ptr parent_class = parent_class_of(scp);
           if (parent_class->variant.class_struct_union.extra_info->
                                                    template_arg_list != NULL) {
             any_found = TRUE;
@@ -13057,8 +13051,7 @@ declarator (or NULL if it wasn't recorded).
       scp != NULL && scp->is_class_member) {
     /* If we're defining a class member, make note of the fact that we
        have access to its members in the type specifier. */
-    curr_name_context->class_type_for_access_not_naming =
-                                                        scp->parent.class_type;
+    curr_name_context->class_type_for_access_not_naming = parent_class_of(scp);
     name_context_for_access_reset = curr_name_context;
   }  /* if */
   /* Determine the effective routine type by starting from the routine

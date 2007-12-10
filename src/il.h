@@ -254,6 +254,61 @@ extern unsigned long assign_instantiation_needed_bit_number(void);
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 
 /*
+Macro that returns TRUE if an IL entry represents a namespace member.
+*/
+#define is_namespace_member(ptr)                                            \
+  (!((a_source_correspondence*)(ptr))->is_class_member &&                   \
+   ((a_source_correspondence*)(ptr))->parent.namespace_ptr != NULL)
+
+/*
+Macro that return TRUE if the IL entry represents a class or namespace member.
+*/
+#define is_class_or_namespace_member(ptr)                                   \
+  (((a_source_correspondence*)(ptr))->is_class_member ||                    \
+   ((a_source_correspondence*)(ptr))->parent.namespace_ptr != NULL)
+
+/*
+Macro that returns the parent namespace of a namespace member. 
+*/
+#if !EXPENSIVE_CHECKING
+#define parent_namespace_of(ptr)                                            \
+  (((a_source_correspondence*)(ptr))->parent.namespace_ptr)
+#else /* EXPENSIVE_CHECKING */
+#define parent_namespace_of(ptr)                                            \
+  (check_assertion(is_namespace_member(ptr)),                               \
+   ((a_source_correspondence*)(ptr))->parent.namespace_ptr)
+#endif /* !EXPENSIVE_CHECKING */
+
+/*
+Macro that returns the parent namespace for a namespace member, and NULL for
+other entities.
+*/
+#if !EXPENSIVE_CHECKING
+#define parent_namespace_or_null(ptr)                                       \
+  (((a_source_correspondence*)(ptr))->parent.namespace_ptr)
+#else /* EXPENSIVE_CHECKING */
+#define parent_namespace_or_null(ptr)                                       \
+  (check_assertion(!((a_source_correspondence_ptr)(ptr))->is_class_member), \
+   ((a_source_correspondence*)(ptr))->parent.namespace_ptr)
+#endif /* !EXPENSIVE_CHECKING */
+
+
+/*
+Macro that returns the parent class of a class member. 
+*/
+#if !EXPENSIVE_CHECKING
+#define parent_class_of(ptr)                                                \
+  (((a_source_correspondence*)(ptr))->parent.class_type)
+#else /* EXPENSIVE_CHECKING */
+#define parent_class_of(ptr)                                                \
+  (check_assertion(((a_source_correspondence_ptr)(ptr))->is_class_member),  \
+   ((a_source_correspondence*)(ptr))->parent.class_type)
+#endif /* !EXPENSIVE_CHECKING */
+
+
+extern a_namespace_ptr namespace_enclosing_class(a_type_ptr  tp);
+
+/*
 Macro that returns TRUE if a routine has been defined.  The value is
 TRUE from the beginning of scanning of the function body (not just
 after the closing brace), and is also TRUE for functions with

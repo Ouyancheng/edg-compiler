@@ -1368,7 +1368,7 @@ source position is after the closing parenthesis of the argument list.
   an_expr_node_ptr    temp_init_node = NULL;
 
   db_enter(4, "scan_ctor_arguments");
-  class_type = constructor_sym->parent.class_type;
+  class_type = sym_parent_class(constructor_sym);
   /* If the object_class_type is not specified, use the default. */
   if (object_class_type == NULL) object_class_type = class_type;
   start_position = pos_curr_token;
@@ -1480,8 +1480,7 @@ source position is after the closing parenthesis of the argument list.
                  (conv_routine = arg_match->conversion.routine) != NULL &&
                  ((conv_routine->special_kind ==
                                     (a_special_function_kind)sfk_constructor &&
-                   f_same_entities(conv_routine->source_corresp.parent.
-                                                                    class_type,
+                   f_same_entities(parent_class_of(conv_routine),
                                    class_type)) ||
                   (conv_routine->special_kind ==
                                     (a_special_function_kind)sfk_conversion &&
@@ -3564,7 +3563,7 @@ qualified_name_check:
               err = TRUE;
             } else if (class_struct_union_type->
                                  variant.class_struct_union.is_nonreal_class ||
-                       projection_member_sym->parent.class_type->
+                       sym_parent_class(projection_member_sym)->
                                  variant.class_struct_union.is_nonreal_class) {
               /* Skip the check for a nonreal class in a prototype
                  instantiation. */
@@ -3572,9 +3571,9 @@ qualified_name_check:
               /* Make sure the name is a member of the class indicated by the
                  left-hand side, or one of its base classes. */
               if (!projection_member_sym->is_class_member ||
-                  !is_same_class_or_base_class_thereof(class_struct_union_type,
-                                                       projection_member_sym->
-                                                         parent.class_type)) {
+                  !is_same_class_or_base_class_thereof(
+                        class_struct_union_type, sym_parent_class(
+                                                    projection_member_sym))) {
                 pos_ty_error(ec_name_not_member_of_class_or_base_classes,
                              &qualified_member_position,
                              class_struct_union_type);
@@ -3662,7 +3661,7 @@ qualified_name_check:
             is_arrow_operator = TRUE;
           }  /* if */
           /* Cast the pointer to a pointer to the proper struct or union. */
-          orig_class_struct_union_type = member_sym->parent.class_type;
+          orig_class_struct_union_type = sym_parent_class(member_sym);
           class_struct_union_type =skip_typerefs(orig_class_struct_union_type);
           operand_1_is_complete_class = TRUE;
           cast_operand(make_pointer_type(class_struct_union_type),
@@ -16606,7 +16605,7 @@ to reflect the error.
       /* A reference to the file scope is okay. */
     } else if (sym_ptr->is_class_member) {
       /* A reference to a class member is okay. */
-    } else if (sym_ptr->parent.namespace_ptr != NULL) {
+    } else if (sym_is_namespace_member(sym_ptr)) {
       /* A reference to a namespace member is okay. */
     } else {
       /* Get the variable for the symbol. */
@@ -16863,7 +16862,7 @@ in fact turn out to be a constant.
         this_class = skip_typerefs(this_class);
         if (is_class_struct_union_type(this_class) &&
             is_same_class_or_base_class_thereof(this_class,
-                                    field->source_corresp.parent.class_type)) {
+                                                parent_class_of(field))) {
           foldable = TRUE;
         }  /* if */
       }  /* if */
@@ -16987,8 +16986,7 @@ If p_sym_ptr is not NULL, set *p_sym_ptr to point to the symbol scanned
       /* In Microsoft mode, treat the name of a constructor as the name
          of the class, so that something like "C::C()" is seen as a
          functional-notation type conversion. */
-      sym_ptr = (a_symbol_ptr)(sym_ptr->parent.class_type->
-                                                    source_corresp.assoc_info);
+      sym_ptr = symbol_for(sym_parent_class(sym_ptr));
     }  /* if */
     /* Create a reference entry for the symbol if needed. */
     /* Don't do this if the symbol is an overloaded function (we don't
@@ -17272,7 +17270,7 @@ normal_function:
                    an available "this" inside a sizeof.  Use a zero pointer
                    instead of "this". */
                 a_type_ptr class_ptr_type =
-                                 make_pointer_type(sym_ptr->parent.class_type);
+                                 make_pointer_type(sym_parent_class(sym_ptr));
                 make_integer_constant_operand(&this_pointer_operand,
                                               (a_host_large_integer)0L);
                 cast_operand(class_ptr_type, &this_pointer_operand,
@@ -17787,9 +17785,8 @@ for the __PRETTY_FUNCTION__ keyword.
     /* Now render template arguments for any enclosing template classes,
        starting with the innermost. */
     while (sym->is_class_member) {
-      a_type_ptr    class_type = sym->parent.class_type;
-
-      sym = (a_symbol_ptr)class_type->source_corresp.assoc_info;
+      a_type_ptr    class_type = sym_parent_class(sym);
+      sym = symbol_for(class_type);
       tap = templ_arg_list_for_class(class_type);
       if (tap != NULL) {
         /* This is a template class with its own template arguments. */
@@ -19588,7 +19585,7 @@ are marked as actually referenced.
       expr_reference_to_implicitly_invoked_function(
                                 dtor_sym,
                                 &didfp->position,
-                                dtor_routine->source_corresp.parent.class_type,
+                                parent_class_of(dtor_routine),
                                 /*honor_virtual=*/FALSE);
     }  /* if */
     /* Free the one entry. */

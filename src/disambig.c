@@ -473,8 +473,8 @@ definition.  The locator must refer to a qualified name.
         } else if (gpp_mode && is_injected_class_symbol(sym) &&
                    locator_for_curr_id.is_qualified_name &&
                    locator_for_curr_id.is_class_member &&
-                   same_entities(locator_for_curr_id.parent.class_type,
-                                 sym->parent.class_type)) {
+                   same_entities(qualifier_class_type(locator_for_curr_id),
+                                 sym_parent_class(sym))) {
           /* Qualified lookup is done differently in g++ mode with respect
              to constructors vs. injected class names.  Consider this to be
              a constructor if we get the injected class name back. */

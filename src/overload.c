@@ -232,7 +232,7 @@ cast.
             a_type_ptr	parent_class_if_nonstatic_member;
             parent_class_if_nonstatic_member =
                     routine_type_is_nonstatic_member_function(routine_type) ?
-                                              sym->parent.class_type : NULL;
+                                                 sym_parent_class(sym) : NULL;
             if (f_same_entities(dest_class,
                                 parent_class_if_nonstatic_member)) {
               /* Exact match. */
@@ -345,7 +345,7 @@ cast.
                which the function is defined, not any derived class
                indicated in the projection symbol. */
             ptr_routine_type = ptr_to_member_type(routine_type,
-                                                  sym->parent.class_type);
+                                                  sym_parent_class(sym));
           } else {
             ptr_routine_type = make_pointer_type(routine_type);
           }  /* if */
@@ -2285,7 +2285,7 @@ conversion function.
     /* Temporarily replace the class of "*this" by the parent type of the
        projection symbol.  This allows us to use implicit_this_param_type_of
        to synthesize the appropriately qualified type. */
-    rtsp->this_class = proj_function_symbol->parent.class_type;
+    rtsp->this_class = sym_parent_class(proj_function_symbol);
     this_param_type = implicit_this_param_type_of(routine_type);
     /* Restore the correct class for "*this". */
     rtsp->this_class = saved_this_class;
@@ -2669,8 +2669,7 @@ used to emulate some Microsoft ADL/friend injection weirdness.
     adlei_arg |= ADLEI_FROM_NAMESPACE;
   }  /* if */
   if (normal_lookup_symbol != NULL &&
-      !normal_lookup_symbol->is_class_member &&
-      normal_lookup_symbol->parent.namespace_ptr != NULL) {
+      sym_is_namespace_member(normal_lookup_symbol)) {
     /* The symbol found by the normal id lookup is a member of a namespace,
        which seems to suppress the Microsoft weirdness. */
     adlei_arg = ADLEI_ORIG_SYM_IN_NAMESPACE;
@@ -5350,7 +5349,7 @@ argument expression.
      can have dependent parameters. */
   if (is_block_extern_symbol(sym) ||
       (sym->is_class_member &&
-       sym->parent.class_type->variant.class_struct_union.
+       sym_parent_class(sym)->variant.class_struct_union.
                                                  is_prototype_instantiation)) {
     a_boolean is_overloaded_function;
     sym = fundamental_symbol_of(sym);
@@ -6468,7 +6467,7 @@ of 11.5 in the C++ standard should be done.  *member_pos gives the
 source position of the member name reference.
 */
 {
-  a_type_ptr       desired_class = projection_member_sym->parent.class_type;
+  a_type_ptr       desired_class = sym_parent_class(projection_member_sym);
   a_type_ptr       class_struct_union_type;
   a_base_class_ptr bcp;
 
@@ -6557,7 +6556,7 @@ source position of the member name reference.
         class_struct_union_type = bcp->type;
       }  /* if */
       if (projection_member_sym != member_sym) {
-        if (!same_entities(member_sym->parent.class_type,
+        if (!same_entities(sym_parent_class(member_sym),
                            class_struct_union_type)) {
           /* In some cases, the member_sym and the projection_member_sym
              don't quite meet up -- there's a gap in the base class
@@ -6726,7 +6725,7 @@ only in C++ mode.  Note that this routine is called only for an implicit
       this_class = type_pointed_to(this_var->type);
       this_class = skip_typerefs(this_class);
       check_assertion(projection_member_sym->is_class_member);
-      member_class = projection_member_sym->parent.class_type;
+      member_class = sym_parent_class(projection_member_sym);
       if (same_entities(this_class, member_class)) {
         /* The class is right already.  This is the usual case. */
         bcp = NULL;
@@ -6769,7 +6768,7 @@ only in C++ mode.  Note that this routine is called only for an implicit
            must be pointer to const). */
         underlying_this_type = type_pointed_to(this_var->type);
         member_ptr = make_identically_qualified_type(
-                                                   fund_sym->parent.class_type,
+                                                   sym_parent_class(fund_sym),
                                                    underlying_this_type);
         member_ptr = make_pointer_type(member_ptr);
         cast_operand(member_ptr, result,
@@ -10963,7 +10962,7 @@ select_best_function:
                 function_symbol->kind == (a_symbol_kind)sk_member_function &&
                 function_symbol->variant.routine.ptr->compiler_generated &&
                 symbol_supplement_for_class(
-                                       function_symbol->parent.class_type)->
+                                       sym_parent_class(function_symbol))->
                                           assignment_by_bitwise_copy_allowed) {
               /* This function is the default bitwise copy assignment
                  operator, so generate an assignment instead of a call. */
@@ -10998,7 +10997,7 @@ select_best_function:
             if (bitwise_assignment) {
               /* For the bitwise operator= case, generate an assignment instead
                  of a call.  The assignment returns an lvalue. */
-              a_type_ptr       result_type= function_symbol->parent.class_type;
+              a_type_ptr       result_type = sym_parent_class(function_symbol);
               an_expr_node_ptr assign_node, lhs_node, rhs_node;
 
               /* Make a pointer for the selector, and adjust its type if
@@ -12139,8 +12138,7 @@ call in *arg_expr_list.  This routine is used only in C++ mode.
   ctor_symbol = (a_symbol_ptr)(ctor_routine->source_corresp.assoc_info);
   expr_reference_to_implicitly_invoked_function(ctor_symbol,
                                                 &operand->position,
-                                                ctor_routine->source_corresp.
-                                                             parent.class_type,
+                                                parent_class_of(ctor_routine),
                                                 /*honor_virtual=*/FALSE);
   routine_type = skip_typerefs(ctor_routine->type);
   /* Convert the operand to the proper type to be an argument of the
@@ -12200,7 +12198,7 @@ this node represents an explicit cast.  *position gives the source position.
     check_assertion_str(ctor_routine->special_kind ==
                                       (a_special_function_kind)sfk_constructor,
                      "make_constructor_dynamic_init: routine not constructor");
-    class_type = ctor_routine->source_corresp.parent.class_type;
+    class_type = parent_class_of(ctor_routine);
     if (temp_type == NULL) {
       temp_type = class_type;
     } else {

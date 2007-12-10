@@ -2622,8 +2622,7 @@ base class casts and virtual function calls.
             /* The current function is a constructor or destructor.  We know
                that the "this" parameter points to a complete object, at
                least for purposes of resolving virtual calls (ARM 12.7). */
-            complete_object_type =
-                          curr_routine->source_corresp.parent.class_type;
+            complete_object_type = parent_class_of(curr_routine);
           }  /* if */
         } /* if */
       }  /* if */
@@ -2883,8 +2882,8 @@ class types that are instances of the templates pointed to by sym_1 and sym_2.
     /* They are both nonreal templates. */
     if (sym_1->header == sym_2->header) {
       /* They have the same names. */
-      if (identical_types(type_1->source_corresp.parent.class_type,
-                          type_2->source_corresp.parent.class_type)) {
+      if (identical_types(parent_class_of(type_1),
+                          parent_class_of(type_2))) {
         /* Their parent types are the same. */
         result = TRUE;
       }  /* if */
@@ -3502,10 +3501,8 @@ for more information.
               check_assertion(sym_1 != NULL && sym_2 != NULL);
               if (sym_1->header == sym_2->header) {
                 /* The names are the same. */
-                identical = (identical_types(type_1->source_corresp.
-                                                        parent.class_type,
-                                             type_2->source_corresp.
-                                                        parent.class_type));
+                identical = (identical_types(parent_class_of(type_1),
+                                             parent_class_of(type_2)));
               }  /* if */
               break;
             case tptk_unknown:
@@ -7335,8 +7332,7 @@ in an unnamed namespace.
 
   /* Only check types that are namespace members.  When checking something
      like a nested class, traverse_type_tree will check its parents. */
-  if (!type_ptr->source_corresp.is_class_member &&
-      type_ptr->source_corresp.parent.namespace_ptr != NULL) {
+  if (is_namespace_member(type_ptr)) {
     if (is_member_of_unnamed_namespace(&type_ptr->source_corresp)) {
       *force_end_of_traversal = result = TRUE;
     }  /* if */
@@ -7808,7 +7804,7 @@ in that of its top-level parent class).
     if (type_ptr->source_corresp.name_linkage ==
                                         (a_name_linkage_kind)nlk_internal) {
       while (type_ptr->source_corresp.is_class_member) {
-        type_ptr = type_ptr->source_corresp.parent.class_type;
+        type_ptr = parent_class_of(type_ptr);
       }  /* while */
       sym = (a_symbol_ptr)type_ptr->source_corresp.assoc_info;
       sym->force_external_linkage = TRUE;
@@ -8114,7 +8110,7 @@ its parameters?).
              is the parent class.  This is only checked when considering
              nondeduced contexts, or when this is a deduced context when
              nonstandard deduction is enabled. */
-          tp = type_ptr->source_corresp.parent.class_type;
+          tp = parent_class_of(type_ptr);
           tp = symbol_supplement_for_class(tp)->template_param_for_proxy_class;
           if (tp != NULL) {
             if (traverse_type_tree(tp, func, flags)) {
@@ -8172,7 +8168,7 @@ its parameters?).
                   /* Check the parent class.  This is only done when
                      considering nondeduced contexts, or when this is a
                      deduced context when nonstandard deduction is enabled. */
-                  tp = templ_ptr->source_corresp.parent.class_type;
+                  tp = parent_class_of(templ_ptr);
                   status = traverse_type_tree(tp, func, flags);
                 }  /* if */      
               } else if (!tap->is_array_bound_of_unknown_type &&
@@ -8193,7 +8189,7 @@ its parameters?).
             /* If this class is a member of a proxy class, traverse the type
                of the template parameter with which the proxy class is
                associated. */
-            tp = type_ptr->source_corresp.parent.class_type;
+            tp = parent_class_of(type_ptr);
             check_assertion(in_front_end &&
                             tp->source_corresp.assoc_info != NULL);
             tp = symbol_supplement_for_class(tp)
@@ -8209,7 +8205,7 @@ check_enclosing_classes:
           if (!status && type_ptr->source_corresp.is_class_member &&
               (flags & TTT_PARENT_CLASSES) != 0) {
             /* Check the parent class. */
-            tp = type_ptr->source_corresp.parent.class_type;
+            tp = parent_class_of(type_ptr);
             status = traverse_type_tree(tp, func, flags);
           }  /* if */      
         }  /* if */
@@ -9185,9 +9181,7 @@ to the caller.  If no modification is done return the original type.
     if (!is_local) {
       /* See if the type was defined in a prototype instantiation. */
       if (type->source_corresp.is_class_member) {
-        a_symbol_ptr cowam_sym;
-        cowam_sym = (a_symbol_ptr)type->source_corresp.parent.class_type->
-                                                  source_corresp.assoc_info;
+        a_symbol_ptr cowam_sym = symbol_for(parent_class_of(type));
         check_assertion(in_front_end && cowam_sym != NULL);
         is_nonreal = !is_real_class_symbol(cowam_sym);
       }  /* if */
@@ -9335,7 +9329,7 @@ that type's definition.
         } else if (!enclosing_type->source_corresp.is_class_member) {
           break;
         } else {
-          enclosing_type = enclosing_type->source_corresp.parent.class_type;
+          enclosing_type = parent_class_of(enclosing_type);
         }  /* if */
       }  /* while */
     }  /* if */

@@ -812,18 +812,16 @@ level.
     if (sym->is_class_member) {
       a_symbol_ptr		parent_sym;
       a_symbol_ptr		parent_template_sym;
-      parent_sym = (a_symbol_ptr)sym->parent.class_type->
-                                                     source_corresp.assoc_info;
+      parent_sym = symbol_for(sym_parent_class(sym));
       if (template_sym != NULL) {
         check_assertion(template_sym->is_class_member);
-        parent_template_sym = (a_symbol_ptr)template_sym->parent.class_type->
-                                                     source_corresp.assoc_info;
+        parent_template_sym = symbol_for(sym_parent_class(template_sym));
       } else {
         /* No template symbol was provided by the caller.  If the parent class
            is a template instance, use the prototype instantiation as the
            template symbol. */
         parent_template_sym =
-                            prototype_symbol_for_class(sym->parent.class_type);
+                            prototype_symbol_for_class(sym_parent_class(sym));
       }  /* if */
       /* Only display the parent information if the parent class of the
          template is a prototype instantiation.  This suppresses the
@@ -884,7 +882,7 @@ The template argument values will then be added to the diagnostic later.
   if (distinct_template_signatures && sym->is_class_member) {
      /* If the symbol is a member of a class, get the parent class and
         determine whether it is a template instance. */
-     parent_class = sym->parent.class_type;
+     parent_class = sym_parent_class(sym);
      prototype_sym = prototype_symbol_for_class(parent_class);
   }  /* if */
   if (prototype_sym != NULL) {

@@ -897,7 +897,7 @@ Dump information on a using-decl entry, for debug purposes.
         fputc(' ', f_debug);
       }  /* if */
       fprintf(f_debug, " \"%s\" = %s ", sc->name, str);
-      if (!udp->is_class_member && sc->parent.namespace_ptr == NULL) {
+      if (!udp->is_class_member && !is_namespace_member(sc)) {
         fputs("::", f_debug);
       }  /* if */
       db_name_full(sc, (an_il_entry_kind)udp->entity.kind);
@@ -3785,7 +3785,7 @@ members), and does not enter those.
       a_source_correspondence *scp = (a_source_correspondence *)entry_ptr;
       if (scp->name != NULL ||
           scp->is_class_member ||
-          scp->parent.namespace_ptr != NULL) {
+          is_namespace_member(scp)) {
         /* Named entities cannot be orphans. */
         /* Class and namespace members cannot be orphans. */
         could_be_orphan = FALSE;
@@ -4436,7 +4436,7 @@ nonstatic member function indicated by routine.
      really matter for routines, but just in case). */
   member_sym = ((a_symbol_ptr)routine->source_corresp.assoc_info);
   check_assertion(member_sym != NULL && member_sym->is_class_member);
-  member_class = member_sym->parent.class_type;
+  member_class = sym_parent_class(member_sym);
   con->type = ptr_to_member_type(routine->type, member_class);
 }  /* set_ptr_to_member_function_constant */
 
@@ -4461,7 +4461,7 @@ nonstatic data member indicated by field.
      to get pointers-to-members of anonymous unions right. */
   member_sym = ((a_symbol_ptr)field->source_corresp.assoc_info);
   check_assertion(member_sym != NULL && member_sym->is_class_member);
-  member_class = member_sym->parent.class_type;
+  member_class = sym_parent_class(member_sym);
   con->type = ptr_to_member_type(field->type, member_class);
 }  /* set_ptr_to_data_member_constant */
 
@@ -5722,15 +5722,13 @@ nonidentical.
                     cp2->source_corresp.member_of_unknown_base &&
                     (cp1->source_corresp.is_class_member ?
                       (strictly_identical ? 
-                         corresponding_types(
-                                      cp1->source_corresp.parent.class_type,
-                                      cp2->source_corresp.parent.class_type) :
-                         identical_types(
-                                      cp1->source_corresp.parent.class_type,
-                                      cp2->source_corresp.parent.class_type)) :
+                         corresponding_types(parent_class_of(cp1),
+                                             parent_class_of(cp2)) :
+                         identical_types(parent_class_of(cp1),
+                                         parent_class_of(cp2))) :
                       corresponding_namespaces(
-                                   cp1->source_corresp.parent.namespace_ptr,
-                                   cp2->source_corresp.parent.namespace_ptr)));
+                                             parent_namespace_or_null(cp1),
+                                             parent_namespace_or_null(cp2))));
               break;
             case tpck_unknown_function:
               check_assertion(cp1->source_corresp.assoc_info != NULL);
@@ -5906,7 +5904,7 @@ argument because it references a non-external entity, e.g., a local variable.
       /* The entity is a class member.  If the class is a local class,
          the entity is non-external.  Otherwise, the class will be forced
          to be external by this reference. */
-      a_type_ptr class_type = scp->parent.class_type;
+      a_type_ptr class_type = parent_class_of(scp);
       if (class_type->source_corresp.is_local_to_function) {
         invalid = TRUE;
       } else {
@@ -6295,6 +6293,29 @@ constants therein by clearing their "next" fields.
                                              .shareable_constants_table = NULL;
   }  /* if */
 }  /* empty_func_shareable_constants_table */
+
+
+a_namespace_ptr namespace_enclosing_class(a_type_ptr  tp)
+/*
+Return the namespace enclosing a possibly nested class tp.  Return NULL if the
+class is local to a function or if it is enclosed by the file scope.
+*/
+{
+  a_scope_ptr      parent_scope = class_type_supp(tp)->assoc_scope;
+  a_namespace_ptr  result = NULL;
+
+  while (parent_scope != NULL &&
+         parent_scope->kind == (a_scope_kind)sck_class_struct_union) {
+    parent_scope = parent_scope->parent;
+  }  /* while */
+  if (parent_scope != NULL &&
+      parent_scope->kind == (a_scope_kind)sck_namespace) {
+    result = parent_scope->variant.assoc_namespace;
+  } else {
+    result = NULL;
+  }  /* if */
+  return result;
+}
 
 
 a_scope_ptr ensure_il_scope_exists(a_scope_stack_entry_ptr ssep)
@@ -6751,7 +6772,7 @@ function that encloses it.
   /* For members of local classes, go up through all the containing
      classes to get to the class declared directly in the function. */
   while (type->source_corresp.is_class_member) {
-    type = type->source_corresp.parent.class_type;
+    type = parent_class_of(type);
   }  /* while */
   /* Get the surrounding function. */
   if (is_enum_type(type)) {
@@ -6801,7 +6822,7 @@ for the scope, which means no last-pointer is being maintained (anymore).
     if (scp->is_class_member) {
       /* Compute the scope and pointers-block for the scope associated with
          the parent class. */
-      class_type = scp->parent.class_type;
+      class_type = parent_class_of(scp);
     } else if (!C_mode() &&
                scp->name_linkage == (a_name_linkage_kind)nlk_external) {
       /* extern "C" functions and variables are always on the file scope
@@ -6810,7 +6831,7 @@ for the scope, which means no last-pointer is being maintained (anymore).
     } else {
       /* Compute the scope and pointers-block for the namespace scope if this
          is a namespace member or the file scope otherwise. */
-      nsp = scp->parent.namespace_ptr;
+      nsp = parent_namespace_or_null(scp);
       if (nsp == NULL) {
         check_assertion(!scp->is_local_to_function || total_errors != 0);
         scope_level = DEPTH_OF_FILE_SCOPE;
@@ -6831,8 +6852,7 @@ for the scope, which means no last-pointer is being maintained (anymore).
   } else if (class_type != NULL) {
     check_assertion_str(!C_mode(),
                         "get_scope_for_list: class scope in C mode");
-    sp = scp->parent.class_type->
-                 variant.class_struct_union.extra_info->assoc_scope;
+    sp = class_type_supp(parent_class_of(scp))->assoc_scope;
     if (sp != NULL) {
       scope_level = sp->depth_in_scope_stack;
     }  /* if */
@@ -6904,7 +6924,7 @@ it's to be moved to another position in the list.
         may_be_added = FALSE;
       } else if (type_ptr->source_corresp.is_class_member) {
         if (ssep->kind != (a_scope_kind)sck_class_struct_union ||
-            ssep->assoc_type != type_ptr->source_corresp.parent.class_type) {
+            ssep->assoc_type != parent_class_of(type_ptr)) {
           /* May be an out-of-class definition of a C++ nested class.  It's
              already on the list. */
           may_be_added = FALSE;
@@ -7003,8 +7023,7 @@ instantiations) below that on the scope stack.
       /* A placeholder is not needed for an instantiation within a
          function definition. */
     } else if (type_ptr->source_corresp.is_class_member &&
-               type_ptr->source_corresp.parent.class_type ==
-                                                            ssep->assoc_type) {
+               parent_class_of(type_ptr) == ssep->assoc_type) {
       /* Nor is a placeholder needed within the class to which a member
          template class instance belongs. */
     } else {
@@ -9718,7 +9737,7 @@ ctor_rout must be a constructor.
   check_assertion(ctor_rout->special_kind ==
                                   (a_special_function_kind)sfk_constructor);
   if (class_of_which_a_member == NULL) {
-    class_of_which_a_member = ctor_rout->source_corresp.parent.class_type;
+    class_of_which_a_member = parent_class_of(ctor_rout);
   }  /* if */
   is_cctor = is_copy_constructor_type(ctor_rout->type, class_of_which_a_member,
                                       qualifiers, is_declarative_context);
@@ -12582,7 +12601,7 @@ name lookup options.
        updated class to see what the member is. */
     orig_sym = (a_symbol_ptr)con->source_corresp.assoc_info;
     check_assertion(orig_sym != NULL && con->source_corresp.is_class_member);
-    parent_type = con->source_corresp.parent.class_type;
+    parent_type = parent_class_of(con);
     if (parent_type->source_corresp.member_of_unknown_base) {
       /* We're pretending that we found the member in a dependent
          base class.  That means the original form of reference
@@ -14068,7 +14087,7 @@ symbols.
     /* If the std_also flag is set, process standard anonymous unions too. */
     if (!std_also && !C_mode()) {
       /* C++.  See if this is an anonymous union case. */
-      a_type_ptr field_class = field->source_corresp.parent.class_type;
+      a_type_ptr field_class = parent_class_of(field);
       a_class_type_supplement_ptr
                  ctsp = field_class->variant.class_struct_union.extra_info;
       /* Skip this level if the field is from a standard anonymous union. */
@@ -14787,8 +14806,7 @@ forced only if instantiate is TRUE.
      (which references the class at least in its "this" parameter) is
      marked referenced. */
   if (routine_type_is_nonstatic_member_function(routine->type)) {
-    routine->source_corresp.parent.class_type->
-                                   source_corresp.referenced = TRUE;
+    parent_class_of(routine)->source_corresp.referenced = TRUE;
   }  /* if */
   /* If the routine is compiler-generated and its definition has not
      yet been put out, force the definition now. */
@@ -16589,7 +16607,7 @@ a template parameter type or nonreal class.
   a_boolean	result = FALSE;
 
   if (scp->is_class_member) {
-    a_type_ptr	parent_type = scp->parent.class_type;
+    a_type_ptr	parent_type = parent_class_of(scp);
     if (is_immediate_class_type(parent_type)) {
       result = parent_type->variant.class_struct_union.is_nonreal_class;
     } else if (parent_type->kind == (a_type_kind)tk_template_param) {

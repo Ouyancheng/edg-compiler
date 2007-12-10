@@ -737,8 +737,8 @@ of which type is an instance.  Return NULL otherwise.
    member of the "std" namespace. */
 #define is_source_corresp_in_namespace_std(scp)         \
   (!(scp)->is_class_member &&                           \
-   (scp)->parent.namespace_ptr != NULL &&               \
-   is_namespace_std((scp)->parent.namespace_ptr))
+   is_namespace_member((scp)) &&                        \
+   is_namespace_std(parent_namespace_of((scp))))
 
 /* Returns TRUE if il_entry is (immediately) within the "std" namespace. */
 #define is_in_namespace_std(il_entry)                                \
@@ -1827,7 +1827,7 @@ template classes.
     add_str_to_mangled_name("_Z", mctl);
 #endif /* IA64_ABI */
     if (variable->source_corresp.is_class_member ||
-        variable->source_corresp.parent.namespace_ptr != NULL) {
+        is_namespace_member(variable)) {
       /* Static data member or namespace member variable. */
       mangled_member_variable_name(variable, mctl);
     } else {
@@ -1940,7 +1940,7 @@ but it represents a routine, and rinfo points to the information
 describing it.
 */
 {
-  a_type_ptr parent_class = (scp->is_class_member ? scp->parent.class_type :
+  a_type_ptr parent_class = (scp->is_class_member ? parent_class_of(scp) :
                                                     NULL);
   a_boolean  use_sr = parent_class != NULL &&
                       (emulate_gnu_abi_bugs ||
@@ -2881,7 +2881,7 @@ If the indicated class type is unnamed, give it a name and return the name.
          nested classes will have been promoted out of the parent
          class by this point if the parent class is a local class,
          so we can't look at the parent class types list. */
-      a_type_ptr parent_type = type->source_corresp.parent.class_type;
+      a_type_ptr parent_type = parent_class_of(type);
       num = number_of_field_using_unnamed_type(parent_type, type);
     }  /* if */
     if (num == 0) {
@@ -2920,7 +2920,7 @@ If the indicated namespace is unnamed, give it a name.
     a_namespace_ptr parent_nsp;
     /* The name is __N followed by the module id. */
     check_assertion(!nsp->source_corresp.is_class_member);
-    parent_nsp = nsp->source_corresp.parent.namespace_ptr;
+    parent_nsp = parent_namespace_or_null(nsp);
     if (parent_nsp != NULL &&
         unmangled_name_of(&parent_nsp->source_corresp) == NULL) {
       /* A nested unnamed namespace within an unnamed namespace.
@@ -3000,7 +3000,7 @@ If the indicated enum type is unnamed, give it a name and return the name.
          nested types will have been promoted out of the parent
          class by this point if the parent class is a local class,
          so we can't look at the parent class types list. */
-      a_type_ptr parent_type = type->source_corresp.parent.class_type;
+      a_type_ptr parent_type = parent_class_of(type);
       num = number_of_field_using_unnamed_type(parent_type, type);
     }  /* if */
     if (num == 0) {
@@ -3623,11 +3623,11 @@ template argument lists, and types promoted out of functions.
 #if !CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
 #define type_needs_parent_qualifier(type)                             \
   ((type)->source_corresp.is_class_member ||                          \
-   (type)->source_corresp.parent.namespace_ptr != NULL)
+   is_namespace_member((type)))
 #else /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
 #define type_needs_parent_qualifier(type)                             \
   (((type)->source_corresp.is_class_member ||                         \
-    (type)->source_corresp.parent.namespace_ptr != NULL) &&           \
+    is_namespace_member((type))) &&                                   \
    !type->use_cfront_transitional_nested_type_name_mangling)
 #endif /* !CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
 
@@ -3659,8 +3659,8 @@ supplies the usual nesting_level == 1.
      namespace. */
   if (scp->is_class_member) {
     /* Class member. */
-    type = scp->parent.class_type;
-    ctsp = type->variant.class_struct_union.extra_info;
+    type = parent_class_of(scp);
+    ctsp = class_type_supp(type);
 #if CHECKING
     if (!class_type_has_body(type) &&
         !type->variant.class_struct_union.is_nonreal_class) {
@@ -3751,9 +3751,9 @@ supplies the usual nesting_level == 1.
     more_levels = type_needs_parent_qualifier(type);
   } else {
     /* Namespace member. */
-    check_assertion(scp->parent.namespace_ptr != NULL);
-    parent_scp = &scp->parent.namespace_ptr->source_corresp;
-    more_levels = (parent_scp->parent.namespace_ptr != NULL);
+    check_assertion(is_namespace_member(scp));
+    parent_scp = &parent_namespace_of(scp)->source_corresp;
+    more_levels = is_namespace_member(parent_scp);
   }  /* if */
 #if !IA64_ABI
   if (more_levels) {
@@ -3817,7 +3817,7 @@ new_substitution:
 #endif /* IA64_ABI */
   } else {
     /* Namespace name. */
-    a_namespace_ptr nsp = scp->parent.namespace_ptr;
+    a_namespace_ptr nsp = parent_namespace_or_null(scp);
     char            *name;
 #if IA64_ABI
     if (add_substitution_if_available((char *)nsp, iek_namespace, mctl)) {
@@ -3871,7 +3871,7 @@ entities that indicates the enclosing function.
     if (kind == iek_type) {
       add_prefix_for_local_type((a_type_ptr)scp, mctl);
     } else if (scp->is_class_member) {
-      add_prefix_for_local_type(scp->parent.class_type, mctl);
+      add_prefix_for_local_type(parent_class_of(scp), mctl);
     }  /* if */
   }  /* if */
   if (is_source_corresp_in_namespace_std(scp)) {
@@ -3879,7 +3879,7 @@ entities that indicates the enclosing function.
     add_str_to_mangled_name("St", mctl);
   } else if ((kind == iek_type) ? type_needs_parent_qualifier((a_type*)scp) :
                                   (scp->is_class_member ||
-                                   scp->parent.namespace_ptr != NULL)) {
+                                   is_namespace_member(scp))) {
     /* The entity is a class or namespace member and needs a parent
        qualifier. */
     /* Mark the start of the nested name. */
@@ -3959,7 +3959,7 @@ and for unnamed classes and enums.  Nested types are encoded as such.
         substitution_available((char *)tmpl, iek_template, mctl)) {
       a_boolean need_close = FALSE;
       if ((tmpl->source_corresp.is_class_member ||
-           tmpl->source_corresp.parent.namespace_ptr != NULL) &&
+           is_namespace_member(tmpl)) &&
            !is_in_namespace_std(tmpl)) {
         /* The template is nested, so put "N...E" around the substitution
            and template arguments.  The ABI spec is ambiguous about this,
@@ -5218,7 +5218,7 @@ mangled without parameter encoding.
        But constructors for unnamed classes that got a name for linkage
        purposes should get mangled names. */
     if (routine->special_kind == (a_special_function_kind)sfk_constructor &&
-        has_name(routine->source_corresp.parent.class_type)) {
+        has_name(parent_class_of(routine))) {
       mangling_needed = TRUE;
     }  /* if */
   } else if (routine == il_header.main_routine) {
@@ -5906,7 +5906,7 @@ including classes.
 #endif /* DO_IL_LOWERING */
     } else if (is_immediate_enum_type(type) &&
                (type->source_corresp.is_class_member ||
-                type->source_corresp.parent.namespace_ptr != NULL)) {
+                is_namespace_member(type))) {
       /* Mangle the names of member enum constants. */
       a_constant_ptr enum_con;
       for (enum_con = type->variant.integer.enum_info.constant_list;
@@ -5974,8 +5974,7 @@ Return TRUE if the name of the indicated variable needs to be mangled.
 
   if (!has_name(variable)) {
     /* Unnamed variables do not need mangled names. */
-  } else if (variable->source_corresp.is_class_member ||
-             variable->source_corresp.parent.namespace_ptr != NULL) {
+  } else if (is_class_or_namespace_member(variable)) {
     /* Static data members and members of namespaces need mangled names. */
     mangling_needed = TRUE;
     /* But do not mangle namespace members with extern "C" linkage. */

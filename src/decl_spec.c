@@ -2095,7 +2095,7 @@ Set the name_linkage field of the class or enum type pointed to by tp.
     /* A nested class or enum has the same linkage as the class of which it
        is a member.  GNU C++ ignores the name linkage of the enclosing class;
        e.g., a named class nested in an unnamed class has C++ name linkage. */
-    scp->name_linkage = scp->parent.class_type->source_corresp.name_linkage;
+    scp->name_linkage = parent_class_of(scp)->source_corresp.name_linkage;
   } else if (any_cfront_mode() &&
              depth_innermost_namespace_scope == DEPTH_OF_FILE_SCOPE) {
     /* In cfront mode -- unless this is a class or enum declared within a
@@ -2435,9 +2435,10 @@ using-declaration), issue an error.  For example:
 */
 {
   if (sym->is_class_member) {
+    a_type_ptr  qualifier_class = qualifier_class_type(*loc);
     /* A nested class definition. */
     check_assertion(loc->is_class_member);
-    if (!same_entities(loc->parent.class_type, sym->parent.class_type)) {
+    if (!same_entities(qualifier_class, sym_parent_class(sym))) {
       pos_ty_diagnostic(strict_ansi_discretionary_severity,
                         ec_bad_qualifier_for_nested_class_decl,
                         &loc->source_position,
@@ -2445,8 +2446,10 @@ using-declaration), issue an error.  For example:
     }  /* if */
   } else {
     /* A namespace scope class definition. */
+    a_namespace_ptr  qualifier_nsp;
     check_assertion(!loc->is_class_member);
-    if (!same_entities(loc->parent.namespace_ptr, sym->parent.namespace_ptr)) {
+    qualifier_nsp = qualifier_namespace_ptr(*loc);
+    if (!same_entities(qualifier_nsp, sym_parent_namespace_or_null(sym))) {
       pos_ty_diagnostic(strict_ansi_discretionary_severity,
                         ec_bad_qualifier_for_delayed_class_definition,
                         &loc->source_position,
@@ -2586,7 +2589,7 @@ it returns FALSE.
                         symbol_for(scope_stack[depth_scope_stack].assoc_type);
         a_symbol_ptr  parent_sym = sym;
         do {
-          parent_sym = symbol_for(parent_sym->parent.class_type);
+          parent_sym = symbol_for(sym_parent_class(parent_sym));
           if (parent_sym == curr_class_sym) {
             result = TRUE;
             break;
@@ -2933,15 +2936,17 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
            that are specified using the derived class name as qualifier. */
         if (locator.is_class_member && locator.is_qualified_name &&
             locator.specific_symbol != NULL &&
-            is_template_instance_class_symbol(locator.specific_symbol) &&
-            !same_entities(locator.specific_symbol->parent.class_type,
-                           locator.parent.class_type)) {
-          /* Specifying an inherited name in an explicit instantiation
-             directive or in a template specialization declaration is
-             disallowed. */
-          pos_ty_error(ec_bad_qualifier_for_nested_class_decl,
-                       &locator.source_position,
-                       type_symbol_type(locator.specific_symbol));
+            is_template_instance_class_symbol(locator.specific_symbol)) {
+          a_type_ptr  qualifier = qualifier_class_type(locator);
+          if (!same_entities(sym_parent_class(locator.specific_symbol),
+                             qualifier)) {
+            /* Specifying an inherited name in an explicit instantiation
+               directive or in a template specialization declaration is
+               disallowed. */
+            pos_ty_error(ec_bad_qualifier_for_nested_class_decl,
+                         &locator.source_position,
+                         type_symbol_type(locator.specific_symbol));
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
@@ -3140,7 +3145,7 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
               if (tag_sym->decl_scope !=
                                        scope_stack[depth_scope_stack].number &&
                   ((!tag_sym->is_class_member &&
-                    tag_sym->parent.namespace_ptr == NULL) ||
+                    !sym_is_namespace_member(tag_sym)) ||
                    !(namespace_is_enclosed_by_curr_scope(tag_sym) ||
                      is_symbol_from_strong_using_namespace(tag_sym)))) {
                 pos_sy_error(ec_bad_scope_for_specialization,
@@ -3219,7 +3224,7 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
           if (tag_sym->decl_scope != scope_stack[depth_scope_stack].number &&
               !(microsoft_mode && !is_class_definition) &&
               ((!tag_sym->is_class_member &&
-                tag_sym->parent.namespace_ptr == NULL) ||
+                !sym_is_namespace_member(tag_sym)) ||
                !namespace_is_enclosed_by_curr_scope(tag_sym))) {
             /* Explicit specializations of class templates must appear in the
                file or namespace scope in which the template was originally
@@ -3268,7 +3273,7 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
       if (!tag_sym->is_class_member) {
         if (is_class_definition) {
           /* This is a definition and a namespace-qualified name. */
-          if (tag_sym->parent.namespace_ptr == NULL) {
+          if (!sym_is_namespace_member(tag_sym)) {
             if (tag_sym->decl_scope != scope_stack[depth_scope_stack].number) {
               /* Unless a class is a namespace member or nested in another
                  class, it cannot be defined other than it the scope to which
@@ -3287,7 +3292,7 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
                                             tag_sym, &tag_position, &scope_err,
                                             /*strong_using_allowed=*/TRUE)) {
               /* Push a namespace extension scope. */
-              push_namespace_extension_scope(tag_sym->parent.namespace_ptr);
+              push_namespace_extension_scope(sym_parent_namespace(tag_sym));
               namespace_extension_pushed = TRUE;
               effective_decl_level = depth_scope_stack;
             } else if (scope_err) {
@@ -3301,7 +3306,7 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
         /* Nested class. */
         a_scope_stack_entry_ptr	ssep = &scope_stack[depth_scope_stack];
         if (ssep->kind == (a_scope_kind)sck_class_struct_union &&
-            same_entities(tag_sym->parent.class_type, ssep->assoc_type)) {
+            same_entities(sym_parent_class(tag_sym), ssep->assoc_type)) {
           /* Possible redeclaration of nested class name inside the body of
              the class of which it is a member. Note that if the elaborated
              type-specifier does not introduce a definition and is not
@@ -3312,6 +3317,7 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
         } else if (is_class_definition) {
           /* A definition of a nested class that appears in the scope other
              than that of its parent class. */
+          /* Find the outermost enclosing class. */
           parent_sym = symbol_for(tag_sym->parent.class_type);
           /* Find the outermost enclosing class. */
           while (parent_sym->is_class_member) {
@@ -3321,7 +3327,7 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
             /* Okay to define the nested class in this scope -- it is the
                scope in which the parent was defined. */
             delayed_nested_class_def = TRUE;
-          } else if (parent_sym->parent.namespace_ptr != NULL &&
+          } else if (sym_is_namespace_member(parent_sym) &&
                      namespace_is_enclosed_by_curr_scope(parent_sym)) {
             /* Also okay to define the nested class in this scope -- it is a
                a scope (namespace- or file-scope) enclosing the namespace
@@ -3339,7 +3345,7 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
                  class NS1::NS2::A::N { };         // Okay (handled here)
                  class NS1::NS2::B::N { };         // Okay (handled here)
                Specifically, push the namespace extension scope. */
-            push_namespace_extension_scope(parent_sym->parent.namespace_ptr);
+            push_namespace_extension_scope(sym_parent_namespace(parent_sym));
             namespace_extension_pushed = TRUE;
             effective_decl_level = depth_scope_stack;
             delayed_nested_class_def = TRUE;
@@ -4331,12 +4337,12 @@ describes Microsoft attributes preceding the enum specifier (if any).
         if (microsoft_mode && class_of_which_a_member == NULL) {
           /* An out-of-class definition of a class member enum: Reactivate the
              class scope. */
-          class_of_which_a_member = tag_sym->parent.class_type;
+          class_of_which_a_member = sym_parent_class(tag_sym);
           push_class_reactivation_scope(class_of_which_a_member,
                                         /*extend_namespace=*/FALSE);
           class_reactivation_pushed = TRUE;
           effective_decl_level = depth_scope_stack;
-        } else if (!same_entities(tag_sym->parent.class_type,
+        } else if (!same_entities(sym_parent_class(tag_sym),
                                   class_of_which_a_member)) {
           /* This is an attempt to define a member enum outside the class of
              which it is a member. */
@@ -4344,12 +4350,12 @@ describes Microsoft attributes preceding the enum specifier (if any).
           tag_sym = NULL;
           set_to_error_locator(locator);
         }  /* if */
-      } else if (tag_sym->parent.namespace_ptr != NULL) {
+      } else if (sym_is_namespace_member(tag_sym)) {
         err = FALSE;
         if (namespace_scope_should_be_pushed(tag_sym, &tag_position, &err,
                                              /*strong_using_okay=*/FALSE)) {
           /* Push a namespace extension scope. */
-          push_namespace_extension_scope(tag_sym->parent.namespace_ptr);
+          push_namespace_extension_scope(sym_parent_namespace(tag_sym));
           namespace_extension_pushed = TRUE;
           effective_decl_level = depth_scope_stack;
         } else if (err) {
@@ -4850,10 +4856,10 @@ describes Microsoft attributes preceding the enum specifier (if any).
             /* Set the parent class. */
             set_class_membership(enum_sym, &enum_con->source_corresp,
                                  class_of_which_a_member);
-          } else if (tag_sym->parent.namespace_ptr != NULL) {
+          } else if (sym_is_namespace_member(tag_sym)) {
             /* Set the parent namespace. */
             set_namespace_membership(enum_sym, &enum_con->source_corresp,
-                                     tag_sym->parent.namespace_ptr);
+                                     sym_parent_namespace(tag_sym));
           }  /* if */
           enum_con->source_corresp.access = access;
         }  /* if */
@@ -5245,15 +5251,15 @@ is a that of a constructor.
         type_mismatch = TRUE;
       }  /* if */
     } else if (microsoft_mode && locator_for_curr_id.is_qualified_name &&
-               locator_for_curr_id.is_class_member &&
-               !same_entities(locator_for_curr_id.parent.class_type,
-                              class_type) &&
-               !same_entities(locator_for_curr_id.parent.class_type,
-                              class_type->source_corresp.parent.class_type)) {
-      /* In Microsoft mode qualifier constructor names are accepted, but the
-         qualifier should either be the current class or the enclosing class.
-         */
-      type_mismatch = TRUE;
+               locator_for_curr_id.is_class_member) {
+      a_type_ptr  qualifier = qualifier_class_type(locator_for_curr_id);
+      if (!same_entities(qualifier, class_type) &&
+          !same_entities(qualifier, parent_class_of(class_type))) {
+        /* In Microsoft mode qualifier constructor names are accepted, but the
+           qualifier should either be the current class or the enclosing class.
+        */
+        type_mismatch = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
   if (name_match || microsoft_mode) {
@@ -6580,14 +6586,12 @@ the current identifier is a class member and a template-id.
   a_boolean result = FALSE;
 
   if (is_any_template_instance_class_symbol(sym)) {
-    a_symbol_ptr parent_sym;
     /* The current symbol is a template-id that names a class member.  Note
        that in the g++ case, of "A<1>::A<1>" the second "A<1>" actually names
        an instance of the parent template, and so the symbol is not a class
        member.  */
-    parent_sym = (a_symbol_ptr)locator_for_curr_id.parent.class_type->
-                                                  source_corresp.assoc_info;
-    if (sym->header == parent_sym->header) {
+    if (sym->header ==
+              symbol_for(qualifier_class_type(locator_for_curr_id))->header) {
       result = TRUE;
     }
   }  /* if */
@@ -8158,8 +8162,9 @@ process_class_specifier:
             a_type_ptr    tp = type_symbol_type(curr_token_type_symbol);
             a_symbol_ptr  sym = symbol_supplement_for_class(tp)->constructor;
             if (sym != NULL) {
-              a_type_ptr  curr_id_parent = skip_typerefs(
-			               locator_for_curr_id.parent.class_type);
+              a_type_ptr  curr_id_parent =
+                                    qualifier_class_type(locator_for_curr_id);
+              curr_id_parent = skip_typerefs(curr_id_parent);
               if (same_entities(curr_id_parent, tp)) {
                 *output_flags |= DSO_CONSTRUCTOR;
                 if (!any_decl_specifiers_seen) {
@@ -8326,9 +8331,9 @@ process_class_specifier:
              member function. */
           if (locator_for_curr_id.is_class_member) {
             a_symbol_ptr  sym  = class_qualified_id_lookup(
-                                        &locator_for_curr_id,
-                                        locator_for_curr_id.parent.class_type,
-                                        IDL_DIRECT_CLASS_MEMBERS_ONLY);
+                                    &locator_for_curr_id,
+                                    qualifier_class_type(locator_for_curr_id),
+                                    IDL_DIRECT_CLASS_MEMBERS_ONLY);
             if (sym != NULL) {
               if (is_constructor_symbol(sym)) {
                 *output_flags |= DSO_CONSTRUCTOR;

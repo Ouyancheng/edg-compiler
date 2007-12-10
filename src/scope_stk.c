@@ -996,7 +996,7 @@ within the scope specified by ssep.  Return TRUE if it is, FALSE otherwise.
       a_namespace_ptr     curr_nsp;
       curr_nsp = ssep->il_scope->variant.assoc_namespace;
       while (curr_nsp != nsp && nsp != NULL) {
-        nsp = nsp->source_corresp.parent.namespace_ptr;
+        nsp = parent_namespace_or_null(nsp);
       }  /* while */
       if (nsp != NULL) result = TRUE;
     }  /* if */
@@ -2773,7 +2773,7 @@ DEPTH_OF_FILE_SCOPE if there is none.
   a_scope_stack_entry_ptr	ssep = NULL;
   a_scope_depth			common_depth;
 
-  for (; nsp != NULL; nsp = nsp->source_corresp.parent.namespace_ptr) {
+  for (; nsp != NULL; nsp = parent_namespace_or_null(nsp)) {
     a_scope_ptr	ns_scope = nsp->variant.assoc_scope;
     if (ns_scope->depth_in_scope_stack == NO_SCOPE_DEPTH) {
       /* The scope associated with this namespace is not on the scope stack.
@@ -2813,7 +2813,7 @@ the previous scope of the first scope pushed by this routine.
 
   /* The entry isn't on the stack.  Push any parent namespaces, then push
      the specified namespace. */
-  parent_nsp = nsp->source_corresp.parent.namespace_ptr;
+  parent_nsp = parent_namespace_or_null(nsp);
   if (parent_nsp != NULL && parent_nsp != common_nsp) {
     /* A namespace nested in another namespace.  Push the parent
        namespace. */
@@ -2905,9 +2905,9 @@ to the namespace and class that must be reactivated.
     a_type_ptr	tp;
     parent_type = sp->variant.assoc_type;
     for (tp = parent_type; tp->source_corresp.is_class_member;) {
-      tp = tp->source_corresp.parent.class_type;
+      tp = parent_class_of(tp);
     }  /* for */
-    parent_namespace = tp->source_corresp.parent.namespace_ptr;
+    parent_namespace = parent_namespace_or_null(tp);
   } else if (sp->kind == (a_scope_kind)sck_file) {
     /* File scope.  Both the class and namespace pointer should be NULL. */
     parent_type = NULL;
@@ -2953,7 +2953,7 @@ to the namespace and class that must be reactivated.
     sym_to_use = instance_sym != NULL ? instance_sym : template_sym;
     *p_nsp = parent_namespace_for_symbol(sym_to_use);
     if (sym_to_use->is_class_member) {
-      *p_tp = sym_to_use->parent.class_type;
+      *p_tp = sym_parent_class(sym_to_use);
     } else {
       *p_tp = NULL;
     }  /* if */
@@ -3064,7 +3064,7 @@ are non-NULL when they should be used for the outermost instantiation scope.
     /* If this is not the outermost class, reactivate any enclosing
        classes. */
     reactivate_class_and_instantiation_scopes(enclosing_tdip,
-                                              class_sym->parent.class_type,
+                                              sym_parent_class(class_sym),
                                               enclosing_instance_sym,
                                               enclosing_assoc_type,
                                               enclosing_assoc_routine,
@@ -3443,7 +3443,7 @@ template_sym is the template that is being instantiated.
        template to be instantiated, this is nested in the enclosing
        prototype instantiation. */
     if (template_sym->is_class_member &&
-        same_entities(template_sym->parent.class_type, assoc_type)) {
+        same_entities(sym_parent_class(template_sym), assoc_type)) {
       result = TRUE;
     }  /* if */
   }  /* if */
@@ -4588,10 +4588,10 @@ NULL.
   if (scp != NULL) {
     if (sym->is_class_member == scp->is_class_member &&
         (!sym->is_class_member ||
-         sym->parent.class_type == scp->parent.class_type)) {
+         sym_parent_class(sym) == parent_class_of(scp))) {
       /* Okay */
     } else if (scp->is_class_member &&
-               !has_name_before_mangling(scp->parent.class_type)) {
+               !has_name_before_mangling(parent_class_of(scp))) {
       /* Okay: probably a member of a possibly nonstandard anonymous union. */
     } else if (sym->kind == (a_symbol_kind)sk_type &&
                sym->variant.type.is_injected_class_name) {
@@ -6465,7 +6465,7 @@ current scope is already an extension of the requested scope.
   } else {
     /* The entry isn't on the stack.  Push any parent namespaces, then push
        the specified namespace. */
-    parent_nsp = nsp->source_corresp.parent.namespace_ptr;
+    parent_nsp = parent_namespace_or_null(nsp);
     if (parent_nsp != NULL) {
       /* A namespace nested in another namespace.  Push the parent
          namespace. */
@@ -6499,8 +6499,8 @@ This routine is called only in C++.
     ssep->num_of_extra_times_pushed--;
   } else {
     /* Pop the reactivation scope. */
-    parent_nsp = ssep->il_scope->variant.assoc_namespace->
-                                           source_corresp.parent.namespace_ptr;
+    parent_nsp = parent_namespace_or_null(
+                                     ssep->il_scope->variant.assoc_namespace);
     pop_scope();
     if (parent_nsp != NULL) {
       /* A nested namespace.  Pop the enclosing namespaces too. */
@@ -6616,7 +6616,7 @@ current scope is already a reactivation of the requested scope.
   } else {
     /* The entry isn't on the stack.  Push any parent namespaces, then push
        the specified namespace. */
-    parent_nsp = nsp->source_corresp.parent.namespace_ptr;
+    parent_nsp = parent_namespace_or_null(nsp);
     if (parent_nsp != NULL) {
       /* A namespace nested in another namespace.  Push the parent
          namespace. */
@@ -6660,7 +6660,7 @@ This routine is called only in C++.
     ssep->num_of_extra_times_pushed--;
   } else {
     /* Pop the reactivation scope. */
-    parent_nsp = ssep->assoc_namespace->source_corresp.parent.namespace_ptr;
+    parent_nsp = parent_namespace_or_null(ssep->assoc_namespace);
     pop_scope();
     if (parent_nsp != NULL) {
       /* A nested namespace.  Pop the enclosing namespaces too. */
@@ -6699,16 +6699,16 @@ be pushed.
   class_sym = (a_symbol_ptr)(class_type->source_corresp.assoc_info);
   if (class_sym->is_class_member) {
     /* Nested class.  Push the containing class(es) first. */
-    orig_depth = reactivate_class_scope(class_sym->parent.class_type,
+    orig_depth = reactivate_class_scope(sym_parent_class(class_sym),
                                         extend_namespace,
                                         force_new_entry_for_namespace);
     /* Propagate the namespace pushed flag up to the innermost class
        reactivation scope. */
     namespace_pushed = scope_stack[depth_scope_stack].namespace_pushed;
-  } else if (class_sym->parent.namespace_ptr != NULL) {
+  } else if (sym_is_namespace_member(class_sym)) {
     /* The class is nested in a namespace -- push enclosing namespace(s). */
     a_namespace_ptr		parent_nsp;
-    parent_nsp = class_sym->parent.namespace_ptr;
+    parent_nsp = sym_parent_namespace(class_sym);
     /* The namespace is either extended or reactivated depending on the
        value of extend_namespace. */
     if (extend_namespace) {
@@ -6753,7 +6753,7 @@ the class symbol supplement points to the partial specialization).
        then push a normal reactivation scope for the specialized class. */
     /* Reactivate the parent class. */
     a_type_ptr	parent_class;
-    parent_class = class_type->source_corresp.parent.class_type;
+    parent_class = parent_class_of(class_type);
     push_class_and_template_reactivation_scope(
                                             parent_class,
                                             /*reactivate_template_param=*/TRUE,
@@ -6793,17 +6793,15 @@ the class symbol supplement points to the partial specialization).
                          depth_of_innermost_scope_that_affects_access_control;
       if (class_type->source_corresp.is_class_member) {
         /* Reactivate the parent class. */
-        a_type_ptr	parent_class;
-        parent_class = class_type->source_corresp.parent.class_type;
+        a_type_ptr	parent_class = parent_class_of(class_type);
         push_class_reactivation_scope(parent_class,
                                      /*entend_namespace=*/FALSE);
-      } else if (class_type->source_corresp.parent.namespace_ptr != NULL) {
+      } else if (is_namespace_member(class_type)) {
         /* Reactivate the parent namespace.  A new entry is forced because we
            later must be able to pop back to the previous scope state based
            only on the scope depth. */
-        f_push_namespace_reactivation_scope(
-                               class_type->source_corresp.parent.namespace_ptr,
-                               /*force_new_entry=*/TRUE);
+        f_push_namespace_reactivation_scope(parent_namespace_of(class_type),
+                                            /*force_new_entry=*/TRUE);
       }  /* if */
       push_simple_instantiation_scope(decl_info, class_type,
                                       (a_routine_ptr)NULL, class_sym,

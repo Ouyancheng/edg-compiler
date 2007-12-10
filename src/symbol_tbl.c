@@ -252,8 +252,8 @@ that might normally precede it.
       (scp = source_corresp_for_il_entry(entry, kind)) != NULL &&
       sym->is_class_member == scp->is_class_member &&
       (sym->is_class_member ?
-         sym->parent.class_type == scp->parent.class_type :
-         sym->parent.namespace_ptr == scp->parent.namespace_ptr)) {
+         sym_parent_class(sym) == parent_class_of(scp) :
+         sym_parent_namespace_or_null(sym) == parent_namespace_or_null(scp))) {
     /* Use the IL entry to generate the name. */
     if (suppress_qualifier) {
       form_unqualified_name(scp, kind, octl);
@@ -1476,10 +1476,10 @@ symbol entry pointed to by sym.
 */
 {
   if (sym->is_class_member) {
-    set_class_membership((a_symbol_ptr)NULL, scp, sym->parent.class_type);
-  } else if (sym->parent.namespace_ptr != NULL) {
+    set_class_membership((a_symbol_ptr)NULL, scp, sym_parent_class(sym));
+  } else if (sym_is_namespace_member(sym)) {
     set_namespace_membership((a_symbol_ptr)NULL, scp,
-                             sym->parent.namespace_ptr);
+                             sym_parent_namespace(sym));
   }  /* if */
 }  /* set_membership_in_source_corresp */
 
@@ -2459,7 +2459,7 @@ version.  See create_nonreal_version_of_nested_type for more information.
 */
 {
   if (sym->is_class_member && is_prototype_instantiation_context()) {
-    a_type_ptr	parent_class = sym->parent.class_type;
+    a_type_ptr	parent_class = sym_parent_class(sym);
     if (parent_class->variant.class_struct_union.is_prototype_instantiation) {
       create_nonreal_version_of_nested_type(sym);
     }  /* if */
@@ -3883,8 +3883,7 @@ checked for and ignored. Finally, injected class names are also allowed.
         class_sym->variant.
                     class_struct_union.extra_info->constructor == NULL &&
         ((fp = member_sym->variant.field.ptr) == NULL ||
-         same_entities(member_sym->parent.class_type,
-                       fp->source_corresp.parent.class_type))) {
+         same_entities(sym_parent_class(member_sym), parent_class_of(fp)))) {
         /* Note: the last checks serve to exclude anonymous union promotions.
            It is never the case that the field is not yet bound to the symbol
            when an anonymous union member is being promoted, nor will the
@@ -3924,7 +3923,7 @@ changed if there is no error.
   if (scope_depth == NO_SCOPE_DEPTH) {
     /* The scope to which this symbol belongs is not on the scope stack. */
     ssep = NULL;
-    nsp = sym_ptr->parent.namespace_ptr;
+    nsp = sym_parent_namespace_or_null(sym_ptr);
     if (nsp == NULL) {
       /* The symbol is being entered outside of any scope (e.g., a macro
          defined by a command-line -D option). */
@@ -4605,10 +4604,10 @@ the file scope is used.
        of the new symbol. */
     if (other_sym->is_class_member) {
       set_class_membership(overload_sym, (a_source_correspondence *)NULL,
-                           other_sym->parent.class_type);
-    } else if (other_sym->parent.namespace_ptr != NULL) {
+                           sym_parent_class(other_sym));
+    } else if (sym_is_namespace_member(other_sym)) {
       set_namespace_membership(overload_sym,  (a_source_correspondence *)NULL,
-                               other_sym->parent.namespace_ptr);
+                               sym_parent_namespace(other_sym));
     }  /* if */
     /* Synthesized projection symbols marked "do not reuse" are not on
        any of the symbol header lists, so don't try to find them. */
@@ -4725,8 +4724,8 @@ a locator for the new symbol.  Return a pointer to the new symbol.
     *overload_sym = NULL;
   } else {
     use_namespace = !other_sym->is_class_member &&
-                                      other_sym->parent.namespace_ptr != NULL;
-    if (use_namespace) ns_ptr = other_sym->parent.namespace_ptr;
+                    sym_is_namespace_member(other_sym);
+    if (use_namespace) ns_ptr = sym_parent_namespace(other_sym);
     /* Add the symbol to the overloaded function list. */
     *overload_sym = 
             add_symbol_to_overload_list(sym_ptr, other_sym, use_namespace,
@@ -4818,7 +4817,7 @@ progenitor_sym is a member) if ambiguous is TRUE.
        for sym, we have to look through the base symbols for the current class.
        The base class with which the fundamental symbol is associated is the
        one we want. */
-    a_type_ptr  tp = pdp->fundamental_symbol->parent.class_type;
+    a_type_ptr  tp = sym_parent_class(pdp->fundamental_symbol);
     if (!ambiguous) {
       /* There is no ambiguity in the use of this name, so a simple type match
          may be enough to identify the base class of the fundamental symbol.
@@ -4976,10 +4975,10 @@ ct_symbol is the symbol of the class template.
      the template from which it was created. */
   if (ct_symbol->is_class_member) {
     set_class_membership(sym, (a_source_correspondence *)NULL,
-                         ct_symbol->parent.class_type);
-  } else if (ct_symbol->parent.namespace_ptr != NULL) {
+                         sym_parent_class(ct_symbol));
+  } else if (sym_is_namespace_member(ct_symbol)) {
     set_namespace_membership(sym, (a_source_correspondence *)NULL,
-                             ct_symbol->parent.namespace_ptr);
+                             sym_parent_namespace(ct_symbol));
   }  /* if */
   return sym;
 }  /* make_template_class_symbol */
@@ -5055,10 +5054,10 @@ but the instance needs to be called "operator int".
      the template from which it was created. */
   if (templ_sym->is_class_member) {
     set_class_membership(sym, (a_source_correspondence *)NULL,
-                         templ_sym->parent.class_type);
-  } else if (templ_sym->parent.namespace_ptr != NULL) {
+                         sym_parent_class(templ_sym));
+  } else if (sym_is_namespace_member(templ_sym)) {
     set_namespace_membership(sym, (a_source_correspondence *)NULL,
-                             templ_sym->parent.namespace_ptr);
+                             sym_parent_namespace(templ_sym));
   }  /* if */
   return sym;
 }  /* make_template_function_symbol */
@@ -5137,7 +5136,7 @@ and attach them to rout_sym, and return the function template symbol.
   a_template_instance_ptr  tip;
 
 #if CHECKING
-  if (!rout_sym->parent.class_type->
+  if (!sym_parent_class(rout_sym)->
                                  variant.class_struct_union.is_nonreal_class) {
     internal_error("make_member_function_template_symbol: real class member");
   }  /* if */
@@ -5908,7 +5907,7 @@ the latter will be NULL for variables.
     second_best_match = NULL;
     for (sym = hdr_ptr->other_symbols; sym != NULL; sym = sym->next) {
       a_source_correspondence  *scp;
-      a_namespace_ptr          sym_nsp = sym->parent.namespace_ptr;
+      a_namespace_ptr          sym_nsp = sym_parent_namespace_or_null(sym);
       a_boolean                sym_has_C_linkage;
       a_boolean                sym_is_variable;
       /* Ignore symbols not associated with the current file scope.  These
@@ -7543,7 +7542,7 @@ functions befriending_list_test and class_scope_test.
       }  /* if */
       /* Ignore class scopes until we get to the class of which this
          function is a member. */
-      skip_to_class = scope_routine->source_corresp.parent.class_type;
+      skip_to_class = parent_class_of(scope_routine);
     } else if (kind == (a_scope_kind)sck_template_instantiation) {
       /* Nothing required for template instantiation scopes. */
     } else {
@@ -7572,7 +7571,7 @@ functions befriending_list_test and class_scope_test.
         if (scope_class_type->source_corresp.is_class_member) {
           /* Ignore class scopes until we get to the class of which this
              class is a member. */
-          skip_to_class = scope_class_type->source_corresp.parent.class_type;
+          skip_to_class = parent_class_of(scope_class_type);
         } else {
           /* For a non-nested class, keep going to check any enclosing
              function. */
@@ -7838,7 +7837,7 @@ for a description of virtual_step_stack.
        of an sk_overloaded_function symbol, not of sym. */
     fund_proj_sym= proj_sym->variant.projection.extra_info->fundamental_symbol;
     need_to_compute_access = TRUE;
-    if (same_entities(proj_sym->parent.class_type, viewpoint_class)) {
+    if (same_entities(sym_parent_class(proj_sym), viewpoint_class)) {
       /* The step we are looking at is the first one, so the effective
          access is available from the projection symbol. */
       access = proj_sym->variant.projection.access;
@@ -7856,7 +7855,7 @@ for a description of virtual_step_stack.
         step_proj_sym = (iter == 1) ? proj_sym->header->inactive_symbols :
                                       proj_sym->header->symbol;
         for (; step_proj_sym != NULL; step_proj_sym = step_proj_sym->next) {
-          if (same_entities(step_proj_sym->parent.class_type,
+          if (same_entities(sym_parent_class(step_proj_sym),
                             viewpoint_class) &&
               step_proj_sym->kind == (a_symbol_kind)sk_projection &&
               step_proj_sym->variant.projection.extra_info->
@@ -8166,7 +8165,7 @@ done (and therefore the return value is meaningless).
   if (fund_view_sym->kind == (a_symbol_kind)sk_overloaded_function &&
       symbol->kind == (a_symbol_kind)sk_member_function &&
       symbol->variant.routine.ptr->template_arg_list != NULL &&
-      symbol->parent.class_type != fund_view_sym->parent.class_type) {
+      sym_parent_class(symbol) != sym_parent_class(fund_view_sym)) {
     a_symbol_ptr sym;
     /* When symbol is an instance of a member function template, and
        the overload set is in a different class (i.e., it comes from a
@@ -8208,7 +8207,7 @@ done (and therefore the return value is meaningless).
     derivations = preferred_derivation = NULL;
     preferred_path = NULL;
   }  /* if */
-  viewpoint_class = view_sym->parent.class_type;
+  viewpoint_class = sym_parent_class(view_sym);
   if (p_access == NULL) {
     /* Called from have_access_across_derivations to determine whether we
        have dynamic access. */
@@ -8634,7 +8633,7 @@ routine entry of the function that was declared.
   if (ssep->deferred_access_checks != NULL) {
     if (ssep->deferred_access_checks != NULL) {
       if (rp->source_corresp.is_class_member) {
-        push_class_reactivation_scope(rp->source_corresp.parent.class_type,
+        push_class_reactivation_scope(parent_class_of(rp),
                                       /*extend_namespace=*/FALSE);
       }  /* if */
       (void)push_scope((a_scope_kind)sck_function_access, NO_SCOPE_NUMBER,
@@ -8867,7 +8866,7 @@ established that the member is protected in the naming class.
     have_access = TRUE;
   } else {
     sym = fundamental_symbol_of(sym);
-    base_class = sym->parent.class_type;
+    base_class = sym_parent_class(sym);
     access_class = skip_typerefs(access_class);
     /* Try to find a class class_type such that
          (1)  class_type is on the derivation list between base_class
@@ -9448,7 +9447,7 @@ qualified reference either to A::i or to C::i will pick up A::i).
      its fundamental symbol. */
   reduce_projection_symbol_to_fundamental_symbol(sym1);
   /* Loop through the base classes of the class of which sym1 is a member. */
-  for (bcp = base_classes_of(sym1->parent.class_type);
+  for (bcp = base_classes_of(sym_parent_class(sym1));
        bcp != NULL;
        bcp = next_bcp) {
     next_bcp = bcp->next;
@@ -10893,18 +10892,7 @@ of the class.
   cssp = symbol_supplement_for_class(class_type);
   check_assertion(cssp != NULL);
   /* Determine the namespace of this class. */
-  if (class_type->source_corresp.is_class_member) {
-    /* If this is a class member, skip out to the outermost class type. */
-    a_type_ptr	tp = class_type->source_corresp.parent.class_type;
-    while (tp->source_corresp.is_class_member) {
-      tp = tp->source_corresp.parent.class_type;
-    }  /* while */
-    /* Get the namespace pointer from the outermost class. */
-    class_nsp = tp->source_corresp.parent.namespace_ptr;
-  } else {
-    /* This is not a nested class, get the immediate parent namespace. */
-    class_nsp = class_type->source_corresp.parent.namespace_ptr;
-  }  /* if */
+  class_nsp = namespace_enclosing_class(class_type);
   if (ctsp->base_classes == NULL) {
     /* No base classes.  The only namespace is the namespace of this class. */
     a_namespace_list_entry_ptr	nlep;
@@ -10994,7 +10982,7 @@ Return TRUE if the indicated symbol is a function-local symbol.
 
   /* Reject the easy cases, i.e., class and namespace members. */
   if (sym->is_class_member ||
-      sym->parent.namespace_ptr != NULL ||
+      sym_is_namespace_member(sym) ||
       sym->decl_scope == file_scope_number ||
       sym->synthesized_namespace_projection) {
     /* is_local = FALSE;  -- already set. */
@@ -11946,7 +11934,9 @@ are handled in symbol_tbl_init.)
   cleared_symbol.decl_scope                        = NO_SCOPE_NUMBER;
   cleared_symbol.decl_seq                          = 0;
   cleared_symbol.decl_position                     = null_source_position;
+  /* Clear both fields for union-as-struct testing. */
   cleared_symbol.parent.class_type                 = NULL;
+  cleared_symbol.parent.namespace_ptr              = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED && !DEPRECATION_STRING_IN_IL
   cleared_symbol.deprecation_string                = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED && !DEPRECATION_STRING_IN_IL */

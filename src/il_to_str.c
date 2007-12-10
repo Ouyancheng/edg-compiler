@@ -357,14 +357,12 @@ output_name routine in the control block (if there is one) will not be used
 to output any part of the name.  Called only for C++.
 */
 {
-  a_source_correspondence  *scp = &nsp->source_corresp;
-
-  if (!nsp->is_namespace_alias && scp->parent.namespace_ptr != NULL) {
+  if (!nsp->is_namespace_alias && is_namespace_member(nsp)) {
     /* Use recursion to handle nested namespaces. */
-    form_namespace_qualifier(scp->parent.namespace_ptr, octl);
+    form_namespace_qualifier(parent_namespace_of(nsp), octl);
   }  /* if */
   /* Do the last level. */
-  form_unqualified_name(scp, iek_namespace, octl);
+  form_unqualified_name(&nsp->source_corresp, iek_namespace, octl);
   octl->output_str("::");
 }  /* form_namespace_qualifier */
 
@@ -1493,7 +1491,7 @@ members of template classes.
     if (type->source_corresp.is_class_member) {
       /* Drop the typedef if it was defined in a template class.  This is
          done even if the class was specialized. */
-      a_type_ptr	parent_type = type->source_corresp.parent.class_type;
+      a_type_ptr	parent_type = parent_class_of(type);
       if (parent_type->variant.class_struct_union.is_template_class) {
         result = TRUE;
       }  /* if */
@@ -2485,13 +2483,13 @@ Do the output in the way described by octl.
           a_routine_ptr rout = constant->variant.ptr_to_member.variant.routine;
           if (rout != NULL) {
             member_type = rout->type;
-            member_class = rout->source_corresp.parent.class_type;
+            member_class = parent_class_of(rout);
           }  /* if */
         } else {
           a_field_ptr field = constant->variant.ptr_to_member.variant.field;
           if (field != NULL) {
             member_type = field->type;
-            member_class = field->source_corresp.parent.class_type;
+            member_class = parent_class_of(field);
           }  /* if */
         }  /* if */
         if (member_type != NULL) {
@@ -3448,7 +3446,7 @@ without a leading "&".  Do the output in the way described by octl.
     /* The associated function is a conversion function.  Generate
        its name from the type. */
     check_assertion(con->source_corresp.is_class_member);
-    form_class_qualifier(con->source_corresp.parent.class_type, octl);
+    form_class_qualifier(parent_class_of(con), octl);
     octl->output_str("operator ");
     form_type(con->variant.template_param.variant.
                                               unknown_function.conversion_type,

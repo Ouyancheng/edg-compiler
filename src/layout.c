@@ -830,7 +830,7 @@ explicit alignment value was specified, return FALSE.
   /* If the alignment of this field was explicitly specified, honor that. */
   if (field->alignment != 0) {
 #if GNU_EXTENSIONS_ALLOWED
-    a_type_ptr  class_type = field->source_corresp.parent.class_type;
+    a_type_ptr  class_type = parent_class_of(field);
     class_type = skip_typerefs(class_type);
     if (gnu_mode && field->alignment < *alignment &&
         !(field->is_packed ||
@@ -865,7 +865,7 @@ Return the alignment of the given field, taking into account any Microsoft or
 GNU attributes specified on that field.
 */
 {
-  a_type_ptr        class_type = field->source_corresp.parent.class_type;
+  a_type_ptr        class_type = parent_class_of(field);
   a_targ_alignment  field_alignment = field_alignment_for(field->type);
 
   class_type = skip_typerefs(class_type);
@@ -2524,7 +2524,7 @@ there's no overflow TRUE is returned.
   db_enter(4, "set_field_size_and_offset");
   /* Set the size and alignment for the field's type, if necessary. */
   field_type = skip_typerefs(field->type);
-  class_type = field->source_corresp.parent.class_type;
+  class_type = parent_class_of(field);
   if (is_error_type(field_type)) {
     /* Do nothing if the field has an error type. */
 #if MICROSOFT_EXTENSIONS_ALLOWED

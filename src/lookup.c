@@ -55,18 +55,17 @@ locator.  In the case of an ambiguity, return NULL.
       if (is_tag_symbol(sym) || sym->kind == (a_symbol_kind)sk_type) {
         /* Found a type symbol, but is it nested? */
         if (sym->is_class_member) {
-          tp = sym->parent.class_type;
+          tp = sym_parent_class(sym);
           /* It is a nested member type.  Pop out to the outermost parent
              class to get the nonclass scope number. */
           while (tp->source_corresp.is_class_member) {
-            tp = tp->source_corresp.parent.class_type;
+            tp = parent_class_of(tp);
           }  /* while */
           /* Ignore classes that are namespace members. */
-          if (tp->source_corresp.parent.namespace_ptr != NULL) continue;
+          if (is_namespace_member(tp)) continue;
           /* The effective scope is the innermost file, function, or block
              scope in which parent class is declared. */
-          effective_scope =
-                    ((a_symbol_ptr)tp->source_corresp.assoc_info)->decl_scope;
+          effective_scope = symbol_for(tp)->decl_scope;
           if (effective_scope == effective_scope_of_nested_type) {
             /* We have an ambiguity.  We could issue a warning or error, but
                we choose to recognize the nested class anachronism only when
@@ -204,7 +203,7 @@ found, or to NO_DECL_SEQUENCE_NUMBER if no prior symbol was found.
       if (sym->synthesized_namespace_projection &&
           (a_boolean)sym->qualified_lookup == qualified_lookup &&
           /* Note that same_entities must not be used for this test. */
-          sym->parent.namespace_ptr == qualifier_namespace &&
+          sym_parent_namespace_or_null(sym) == qualifier_namespace &&
           (qualifier_namespace != NULL ||
            sym->decl_scope == file_scope_number) &&
           (a_boolean)sym->must_be_class_or_namespace_lookup ==
@@ -526,7 +525,7 @@ as the class type, and use as a base class.
     sym->variant.class_struct_union.type = type;
     if (templ_param_type->source_corresp.is_class_member) {
       set_class_membership(sym, &type->source_corresp,
-                           templ_param_type->source_corresp.parent.class_type);
+                           parent_class_of(templ_param_type));
     }  /* if */
     tptsp->class_type = type;
     /* Set the scope number. */
@@ -633,10 +632,11 @@ should be considered equivalent.
     /* Make sure the parent information matches. */
     if (sym1->is_class_member == sym2->is_class_member &&
         (sym1->is_class_member
-                         ? identical_types(sym1->parent.class_type,
-                                           sym2->parent.class_type)
-                         : same_entities(sym1->parent.namespace_ptr,
-                                         sym2->parent.namespace_ptr))) {
+                         ? identical_types(sym_parent_class(sym1),
+                                           sym_parent_class(sym2))
+                         : same_entities(
+                                       sym_parent_namespace_or_null(sym1),
+                                       sym_parent_namespace_or_null(sym2)))) {
       a_constant_ptr	cp1 = sym1->variant.constant;
       a_constant_ptr	cp2 = sym2->variant.constant;
       result = (cp1->variant.template_param.is_qualified_name ==
@@ -675,11 +675,11 @@ of the symbol header.
                                                            is_qualified_name) {
       if (sym->is_class_member == orig_sym->is_class_member) {
         if (sym->is_class_member &&
-            sym->parent.class_type == orig_sym->parent.class_type) {
+            sym_parent_class(sym) == sym_parent_class(orig_sym)) {
           /* The symbols have the same parent class. */
           break;
-        } else if (sym->parent.namespace_ptr ==
-                                              orig_sym->parent.namespace_ptr) {
+        } else if (sym_parent_namespace_or_null(sym) ==
+                                     sym_parent_namespace_or_null(orig_sym)) {
           /* The symbols have the same parent namespace (including the case
              where both have no namespace). */
           break;
@@ -694,9 +694,9 @@ of the symbol header.
     a_namespace_ptr		parent_namespace = NULL;
     a_constant_ptr		con;
     if (orig_sym->is_class_member) {
-      parent_class = orig_sym->parent.class_type;
+      parent_class = sym_parent_class(orig_sym);
     } else {
-      parent_namespace = orig_sym->parent.namespace_ptr;
+      parent_namespace = sym_parent_namespace_or_null(orig_sym);
     }  /* if */
     sym = create_unknown_function_symbol(orig_sym->header, parent_class,
                                          parent_namespace, is_qualified_name,
@@ -994,7 +994,7 @@ This routine is given the original symbol and creates the nonreal version.
   a_type_ptr				templ_param_type;
 
   check_assertion(orig_sym->is_class_member);
-  class_type = orig_sym->parent.class_type;
+  class_type = sym_parent_class(orig_sym);
   make_locator_for_symbol(orig_sym, &locator);
   nonreal_sym = create_proxy_or_nonreal_class_member_of_kind(
                  class_type, (a_symbol_kind)sk_type, IDL_NO_OPTIONS, &locator);
@@ -2126,7 +2126,7 @@ of the lookup is returned to the caller.
     a_boolean			visible = FALSE;
     /* Ignore symbols that are not namespace members. */
     if (new_sym->is_class_member) continue;
-    nsp = new_sym->parent.namespace_ptr;
+    nsp = sym_parent_namespace_or_null(new_sym);
     if (nsp == NULL) continue;
     /* Ignore symbols that do not match the lookup requirements. */
     fund_sym = fundamental_symbol_of(new_sym);
@@ -2639,7 +2639,7 @@ If no match is found, return NULL.
                              result_sym->header,
                              &locator->source_position);
       set_class_membership(new_sym, (a_source_correspondence*)NULL,
-                           result_sym->parent.class_type);
+                           sym_parent_class(result_sym));
       new_sym->ambiguous = TRUE;
       new_sym->variant.routine.ptr = result_sym->variant.routine.ptr;
       new_sym->variant.routine.instance_ptr =
@@ -3766,7 +3766,7 @@ current template member that is being defined; FALSE otherwise.
     if (tmc_sym->is_class_member) {
       /* Get the class symbol. */
       a_type_ptr	parent_type;
-      parent_type = tmc_sym->parent.class_type;
+      parent_type = sym_parent_class(tmc_sym);
       tmc_sym = (a_symbol_ptr)parent_type->source_corresp.assoc_info;
     } else {
       tmc_sym = NULL;
@@ -3833,7 +3833,7 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
     must_be_tag ||						      \
     !same_entities(class_type, (fund_sym)->variant.type.ptr)) &&      \
    /* Note that same_entities must not be used for this test. */      \
-   (sym)->parent.class_type == class_type &&                          \
+   sym_parent_class((sym)) == class_type &&                           \
    (!must_be_class_or_namespace ||				      \
     symbol_may_precede_qualifier(fund_sym)) &&	     		      \
    (!must_be_class ||						      \
@@ -4207,7 +4207,7 @@ symbol is found, the first one is used but is marked as ambiguous.
         overload_sym->decl_scope = (*result_sym)->decl_scope;
         overload_sym->decl_seq = (*result_sym)->decl_seq;
         set_class_membership(overload_sym, (a_source_correspondence *)NULL,
-                             (*result_sym)->parent.class_type);
+                             sym_parent_class(*result_sym));
         overload_sym->variant.overloaded_function.symbols = *result_sym;
         (*result_sym)->overload_set_member = TRUE;
         *result_sym = overload_sym;
@@ -4652,7 +4652,7 @@ namespace_qualified_id_lookup.
   ((!(fund_sym->is_invisible) || is_linkage_or_friend_lookup) &&      \
    (!(sym)->is_class_member) &&                                       \
    /* Note that same_entities must not be used for this test. */      \
-   (sym)->parent.namespace_ptr == ns_ptr &&                           \
+   sym_parent_namespace_or_null((sym)) == ns_ptr &&                   \
    (!must_be_class_or_namespace ||				      \
     symbol_may_precede_qualifier(fund_sym)) &&     		      \
    (!must_be_class ||				     		      \
@@ -5270,10 +5270,10 @@ Add the namespace in which "type" is defined to the namespace_list.
     /* Local types have no associated namespace. */
     /* Determine the parent namespace. */
     while (type->source_corresp.is_class_member) {
-      type = type->source_corresp.parent.class_type;
+      type = parent_class_of(type);
     }  /* while */
     /* Note that "nsp" will be NULL for global scope types. */
-    nsp = type->source_corresp.parent.namespace_ptr;
+    nsp = parent_namespace_or_null(type);
     add_namespace_to_namespace_list(nsp, namespace_list);
   }  /* if */
 }  /* add_namespace_of_type_to_lookup_list */
@@ -5327,12 +5327,12 @@ Add the namespace in which "type" is defined to the namespace_list.
   scp = &templ->source_corresp;
   while (scp->is_class_member) {
     a_type_ptr	parent_type;
-    parent_type = scp->parent.class_type;
+    parent_type = parent_class_of(scp);
     add_class_to_lookup_lists(parent_type, namespace_list, type_list);
     scp = &parent_type->source_corresp;
   }  /* while */
   /* Note that "nsp" will be NULL for global scope types. */
-  nsp = scp->parent.namespace_ptr;
+  nsp = parent_namespace_or_null(scp);
   add_namespace_to_namespace_list(nsp, namespace_list);
 }  /* add_template_template_arg_to_lookup_list */
 
@@ -5401,7 +5401,7 @@ associated namespaces and classes to "namespace_list" and "class_list".
     /* If this is a member of another class, add the class of which it is
        a members. */
     if (type->source_corresp.is_class_member) {
-      add_class_to_lookup_lists(type->source_corresp.parent.class_type,
+      add_class_to_lookup_lists(parent_class_of(type),
                                 namespace_list, class_list);
     } else {
       /* Add the namespace in which the type was defined to the list. */

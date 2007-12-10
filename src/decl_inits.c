@@ -1664,11 +1664,12 @@ context->anonymous_union_field_sym is reset to NULL at that point.
   /* Work up through parent types looking for the level that comes next
      at the current context->type. */
   for (;;) {
+    a_type_ptr  parent_class;
     check_assertion(member_sym != NULL &&
                     member_sym->kind == (a_symbol_kind)sk_field);
     member_field = member_sym->variant.field.ptr;
-    if (same_entities(member_field->source_corresp.parent.class_type,
-                      context_type)) {
+    parent_class = parent_class_of(member_field);
+    if (same_entities(parent_class, context_type)) {
       break;
     }  /* if */
     member_sym = member_sym->variant.field.anonymous_parent_object;
@@ -1747,8 +1748,8 @@ multiple designators are handled by the recursion in get_initializer.
                         type_to_look_in->variant.class_struct_union.extra_info;
         while (ctsp != NULL && ctsp->anonymous_union_kind ==
                                           (an_anonymous_union_kind)auk_field) {
-          type_to_look_in = type_to_look_in->source_corresp.parent.class_type;
-          ctsp = type_to_look_in->variant.class_struct_union.extra_info;
+          type_to_look_in = parent_class_of(type_to_look_in);
+          ctsp = class_type_supp(type_to_look_in);
         }  /* while */
 #if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
       } else if (type_to_look_in
@@ -3320,7 +3321,7 @@ returned set to TRUE.
        class reactivated (if we're parsing a prototype instantiation, this was
        done elsewhere).  We may also end up here with an sk_variable in some
        error cases. */
-    if (is_incomplete_type(symbol_ptr->parent.class_type)) {
+    if (is_incomplete_type(sym_parent_class(symbol_ptr))) {
       /* We can end up here in error situations such as:
            { struct S; int S::i = 0; }
          or
@@ -3331,12 +3332,12 @@ returned set to TRUE.
                       !is_file_or_namespace_scope(
                                             &scope_stack[depth_scope_stack]));
     } else if (!is_template_dependent_context()) {
-      push_class_reactivation_scope(symbol_ptr->parent.class_type,
+      push_class_reactivation_scope(sym_parent_class(symbol_ptr),
                                     /*extend_namespace=*/TRUE);
     }  /* if */
   } else {
-    if (symbol_ptr->parent.namespace_ptr != NULL) {
-      push_namespace_reactivation_scope(symbol_ptr->parent.namespace_ptr);
+    if (sym_is_namespace_member(symbol_ptr)) {
+      push_namespace_reactivation_scope(sym_parent_namespace(symbol_ptr));
     }  /* if */
     if (exceptions_enabled && static_lifetime &&
         vp != NULL && vp->source_corresp.is_local_to_function) {
@@ -3685,7 +3686,7 @@ returned set to TRUE.
        also end up here with an sk_variable.) */
     /* Note that this call has to be after the select_destructor call in the
        preceding section of code. */
-    if (is_incomplete_type(symbol_ptr->parent.class_type)) {
+    if (is_incomplete_type(sym_parent_class(symbol_ptr))) {
       check_assertion(symbol_ptr->is_error);
     } else if (!is_template_dependent_context()) {
       pop_class_reactivation_scope();
@@ -3698,7 +3699,7 @@ returned set to TRUE.
                                                   local_static_var_init,
                                                   init_err);
     }  /* if */
-    if (symbol_ptr->parent.namespace_ptr != NULL) {
+    if (sym_is_namespace_member(symbol_ptr)) {
       pop_namespace_reactivation_scope();
     }  /* if */
   }  /* if */
@@ -3810,7 +3811,7 @@ the default constructor (if one exists) is called.
         if (!is_template_dependent_context()) {
           /* Perform the default initialization of a static data member with
              its parent class reactivated. */
-          push_class_reactivation_scope(sym->parent.class_type,
+          push_class_reactivation_scope(sym_parent_class(sym),
                                         /*extend_namespace=*/TRUE);
         }  /* if */
       } else {
@@ -3822,8 +3823,8 @@ the default constructor (if one exists) is called.
                                (an_object_lifetime_kind)olk_block);
           local_static_lifetime = curr_object_lifetime;
         }  /* if */
-        if (sym->parent.namespace_ptr != NULL) {
-          push_namespace_reactivation_scope(sym->parent.namespace_ptr);
+        if (sym_is_namespace_member(sym)) {
+          push_namespace_reactivation_scope(sym_parent_namespace(sym));
         }  /* if */
       }  /* if */
       /* Find a default constructor. */
@@ -3957,7 +3958,7 @@ the default constructor (if one exists) is called.
                                                     local_static_var_init,
                                                     /*err=*/FALSE);
         }  /* if */
-        if (sym->parent.namespace_ptr != NULL) {
+        if (sym_is_namespace_member(sym)) {
           pop_namespace_reactivation_scope();
         }  /* if */
       }  /* if */
@@ -4063,12 +4064,12 @@ determination.
 */
 {
   a_boolean  are_disjoint_members = FALSE;
-  a_type_ptr class1 = field1->source_corresp.parent.class_type;
+  a_type_ptr class1 = parent_class_of(field1);
 
   /* Work up from each field looking at the parent classes.  Find the
      innermost class/struct/union that the fields have in common. */
   for (;;) {
-    a_type_ptr class2 = field2->source_corresp.parent.class_type;
+    a_type_ptr class2 = parent_class_of(field2);
     for (;;) {
       if (same_entities(class2, class1)) {
         /* We've found the innermost class/struct/union that the
@@ -4077,10 +4078,10 @@ determination.
         goto end_of_routine;
       }  /* if */
       if (!class2->source_corresp.is_class_member) break;
-      class2 = class2->source_corresp.parent.class_type;
+      class2 = parent_class_of(class2);
     }  /* for */
     check_assertion(class1->source_corresp.is_class_member);
-    class1 = class1->source_corresp.parent.class_type;
+    class1 = parent_class_of(class1);
   }  /* for */
 end_of_routine:
   return are_disjoint_members;
@@ -4147,7 +4148,7 @@ initialized.  These are addressed in the course of the processing.
   a_boolean                     any_ref_member_on_uninit_list = FALSE;
 
   db_enter(3, "ctor_initializer");
-  class_type = ctor_rout->source_corresp.parent.class_type;
+  class_type = parent_class_of(ctor_rout);
   check_assertion(class_type != NULL);
   ctsp = class_type->variant.class_struct_union.extra_info;
   is_generated_cctor = !user_defined &&
@@ -4415,7 +4416,7 @@ initialized.  These are addressed in the course of the processing.
                                                  member_or_base_sym))) {
               /* A class that's on the base-classes list. */
               check_base_classes = FALSE;
-            } else if (same_entities(member_or_base_sym->parent.class_type,
+            } else if (same_entities(sym_parent_class(member_or_base_sym),
                                      class_type)) {
               /* A member of the current class. */
               check_base_classes = FALSE;
@@ -4458,7 +4459,7 @@ initialized.  These are addressed in the course of the processing.
                                 member_or_base_sym, &error_position,
                                 /*update_il_entry=*/FALSE);
         if (member_or_base_sym->kind == (a_symbol_kind)sk_field &&
-            same_entities(member_or_base_sym->parent.class_type, class_type)) {
+            same_entities(sym_parent_class(member_or_base_sym), class_type)) {
           /* This is a field of the current class and may be mentioned in the
              constructor's initializer list.  But it's an error to refer to
              it by a qualified name. */
@@ -5354,9 +5355,9 @@ though neither constructors nor initialization is involved here.)
 
   db_enter(3, "dtor_initializer");
   source_pos = dtor_rout->source_corresp.decl_position;
-  class_type = dtor_rout->source_corresp.parent.class_type;
+  class_type = parent_class_of(dtor_rout);
   check_assertion(class_type != NULL);
-  ctsp = class_type->variant.class_struct_union.extra_info;
+  ctsp = class_type_supp(class_type);
   /* The order of destructor calls is exactly the reverse of the order of
      constructor calls.  In other words, destructors for virtual base classes
      are last, preceded by destructors for nonvirtual direct base classes,

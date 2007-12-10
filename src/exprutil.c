@@ -7530,8 +7530,8 @@ FALSE means the reference is compiler-generated).
                                     /*set_address_taken_flag=*/FALSE);
       if (is_template_dependent_context() &&
           variable->source_corresp.is_class_member &&
-          variable->source_corresp.parent.
-                     class_type->variant.class_struct_union.is_nonreal_class) {
+          parent_class_of(variable)
+                              ->variant.class_struct_union.is_nonreal_class) {
         /* In a prototype instantiation, a static data member of the current
            class is template-dependent. */
         force_constant_to_be_dependent(&result->variant.constant);
@@ -7717,7 +7717,7 @@ issue an error.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                                                   ) {
     (void)check_protected_member_access(member_sym, member_proj_sym, position,
-                                        member_proj_sym->parent.class_type);
+                                        sym_parent_class(member_proj_sym));
   }  /* if */
   /* No need to instantiate the class; since we have a member of it, it must
      be instantiated already. */
@@ -7803,8 +7803,7 @@ associated reference entry, or is NULL if none is needed.
   if (is_template_dependent_context() &&
       !routine_type_is_nonstatic_member_function(routine->type) &&
       routine->source_corresp.is_class_member &&
-      routine->source_corresp.parent.
-                     class_type->variant.class_struct_union.is_nonreal_class) {
+      parent_class_of(routine)->variant.class_struct_union.is_nonreal_class) {
     /* In a prototype instantiation, a static member function of the current
        class is template-dependent. */
     force_constant_to_be_dependent(&result->variant.constant);
@@ -8249,8 +8248,7 @@ chain of casts is used to disambiguate the derivation path.
 */
 {
   a_routine_ptr target_function = base_class_function;
-  a_type_ptr    class_of_function =
-                         base_class_function->source_corresp.parent.class_type;
+  a_type_ptr    class_of_function = parent_class_of(base_class_function);
 
   if (!identical_types(complete_object_type, class_of_function)) {
     /* The complete object type is a derived class, so there might be an
@@ -8348,8 +8346,8 @@ a function expression to which the argument list (including the implicit
       a_type_ptr class_of_mf;
       a_type_ptr class_of_ctor_dtor;
 
-      class_of_mf = member_func->source_corresp.parent.class_type;
-      class_of_ctor_dtor = rp->source_corresp.parent.class_type;
+      class_of_mf = parent_class_of(member_func);
+      class_of_ctor_dtor = parent_class_of(rp);
       if (is_same_class_or_base_class_thereof(class_of_ctor_dtor,
                                               class_of_mf)) {
         /* The class of the constructor/destructor has member_func as a
@@ -8928,7 +8926,7 @@ of the pointer to that bit field, in *ptr_type.
       if (field->offset_bit_remainder == 0) {
         /* Get the overall alignment of the structure of which this field is
            a member. */
-        struct_alignment = field->source_corresp.parent.class_type->alignment;
+        struct_alignment = parent_class_of(field)->alignment;
         /* Look for an integral type that matches the bit field size. */
         for (int_kind = (an_integer_kind)0;
              (int)int_kind < (int)ik_last;
@@ -10504,8 +10502,7 @@ If arg_operand is non-NULL, it points to an operand for the argument.
     a_routine_ptr rout;
     check_assertion(fund_sym->kind == (a_symbol_kind)sk_member_function);
     rout = fund_sym->variant.routine.ptr;
-    ptr_type = ptr_to_member_type(rout->type,
-                                  rout->source_corresp.parent.class_type);
+    ptr_type = ptr_to_member_type(rout->type, parent_class_of(rout));
   } else {
     /* Nonmember function. */
    ptr_type = make_pointer_type(arg_type);

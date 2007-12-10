@@ -3332,7 +3332,7 @@ user later during real instantiations.
                     template_sym->kind != (a_symbol_kind)sk_member_function ||
                     ((ssep->kind != (a_scope_kind)sck_class_struct_union &&
                       ssep->kind != (a_scope_kind)sck_class_reactivation) ||
-                     ssep->assoc_type != template_sym->parent.class_type);
+                     ssep->assoc_type != sym_parent_class(template_sym));
   if (routine_has_been_defined(rout_ptr)) {
     /* The routine is already defined (a duplicate definition error should
        have already been issued). */
@@ -4340,8 +4340,8 @@ equivalent template parameter lists.
     if (strcmp(templ1->source_corresp.name,
                templ2->source_corresp.name) == 0) {
       /* They have the same names. */
-      if (!identical_types(templ1->source_corresp.parent.class_type,
-                          templ2->source_corresp.parent.class_type)) {
+      if (!identical_types(parent_class_of(templ1),
+                          parent_class_of(templ2))) {
         /* Their parent types are the different. */
         okay_so_far = FALSE;
       }  /* if */
@@ -4640,7 +4640,7 @@ a template parameter.
     if (!template_param_found && templ_sym->is_class_member) {
       /* Check whether the parent type depends on a template parameter. */
       template_param_found =
-                   is_or_contains_template_param(templ_sym->parent.class_type);
+                   is_or_contains_template_param(sym_parent_class(templ_sym));
     }  /* if */
   }  /* if */
   return template_param_found;
@@ -4841,7 +4841,7 @@ prototype instantiation is considered as a potential match.
       /* If the enclosing class is nonreal, then any instances of member
          classes must also be nonreal. */
       a_type_ptr			parent_class;
-      parent_class = sym->parent.class_type;
+      parent_class = sym_parent_class(sym);
       if (parent_class->variant.class_struct_union.is_nonreal_class) {
         class_type->variant.class_struct_union.is_nonreal_class = TRUE;
       }  /* if */
@@ -5280,9 +5280,8 @@ match is found.
       if (strcmp(tp->source_corresp.name,
                  templ_tp->source_corresp.name) == 0) {
         /* They have the same names. */
-        if (matches_template_type(tp->source_corresp.parent.class_type,
-                                  templ_tp->
-                                           source_corresp.parent.class_type,
+        if (matches_template_type(parent_class_of(tp),
+                                  parent_class_of(templ_tp),
                                   templ_arg_list, templ_param_list,
                                   MTT_NO_FLAGS)) {
           match = TRUE;
@@ -5785,8 +5784,8 @@ matches a class type from the parameter list of a template function.
           a_class_symbol_supplement_ptr	ttp_cssp;
           a_type_ptr			tp;
           a_type_ptr			ttp;
-          tp = type->source_corresp.parent.class_type;
-          ttp = templ_type->source_corresp.parent.class_type;
+          tp = parent_class_of(type);
+          ttp = parent_class_of(templ_type);
           ttp_cssp = symbol_supplement_for_class(ttp);
           if (ttp_cssp->template_param_for_proxy_class != NULL) {
             /* The type being matches is a member of a proxy class.
@@ -5813,7 +5812,7 @@ matches a class type from the parameter list of a template function.
          the template argument values will be checked later. */
       a_class_symbol_supplement_ptr	ttp_cssp;
       a_type_ptr			ttp;
-      ttp = templ_type->source_corresp.parent.class_type;
+      ttp = parent_class_of(templ_type);
       ttp_cssp = symbol_supplement_for_class(ttp);
       if (ttp_cssp->template_param_for_proxy_class != NULL) {
         /* The type is a member of a proxy class.  Substitute the original
@@ -6054,8 +6053,8 @@ points to the template parameter list.
                    type. */
                 a_class_symbol_supplement_ptr  cssp;
 
-                tp = type->source_corresp.parent.class_type;
-                ttp = templ_type->source_corresp.parent.class_type;
+                tp = parent_class_of(type);
+                ttp = parent_class_of(templ_type);
                 cssp = symbol_supplement_for_class(ttp);
                 ttp = cssp->template_param_for_proxy_class;
                 if (ttp != NULL) {
@@ -6070,7 +6069,7 @@ points to the template parameter list.
                 if (!match) {
                   /* Attempt to match on the class of which this is a
                      member. */
-                  ttp = templ_type->source_corresp.parent.class_type;
+                  ttp = parent_class_of(templ_type);
                   if (matches_template_type(tp, ttp, templ_arg_list,
     				            templ_param_list,
                                             new_flags)) {
@@ -6090,7 +6089,7 @@ points to the template parameter list.
                that results from the substitution of the template
                argument values will be checked later. */
             a_class_symbol_supplement_ptr	ttp_cssp;
-            ttp = templ_type->source_corresp.parent.class_type;
+            ttp = parent_class_of(templ_type);
             ttp_cssp = symbol_supplement_for_class(ttp);
             if (ttp_cssp->template_param_for_proxy_class != NULL) {
               /* The type is a member of a proxy class.  Substitute the
@@ -6444,7 +6443,7 @@ Otherwise, return the original template.
     a_symbol_ptr	sym;
     a_type_ptr		parent_type;
     sym = (a_symbol_ptr)templ->source_corresp.assoc_info;
-    parent_type = templ->source_corresp.parent.class_type;
+    parent_type = parent_class_of(templ);
     check_assertion(sym != NULL);
     sym = copy_parent_type_with_substitution(sym, parent_type,
                                              templ_arg_list, templ_param_list,
@@ -7105,7 +7104,7 @@ a pointer over a reference type or creating an array of references.
     a_symbol_ptr	sym;
     a_type_ptr		parent_type;
     sym = (a_symbol_ptr)type->source_corresp.assoc_info;
-    parent_type = type->source_corresp.parent.class_type;
+    parent_type = parent_class_of(type);
     check_assertion(sym != NULL);
     sym = copy_parent_type_with_substitution(sym, parent_type,
                                              templ_arg_list, templ_param_list,
@@ -8454,7 +8453,7 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
     is_member_decl =
          tssp->variant.function.decl_cache.decl_info->enclosing_scope->kind ==
                                           (a_scope_kind)sck_class_struct_union;
-    parent_class = templ_sym->is_class_member ? templ_sym->parent.class_type
+    parent_class = templ_sym->is_class_member ? sym_parent_class(templ_sym)
                                               : (a_type_ptr)NULL;
 #if DECL_MODIFIERS_IN_USE
     locator_position = pos_curr_token;
@@ -9935,7 +9934,7 @@ Otherwise, return FALSE.
       member_sym->kind == (a_symbol_kind)sk_class_template) {
     decl_info = decl_info->enclosing_template_decl;
   }  /* if */
-  type = member_sym->parent.class_type;
+  type = sym_parent_class(member_sym);
   /* Loop as long as we have a decl_info or a parent type.  The loop
      is terminated when both no longer represent templates (as happens
      when processing a specialization) or when a mismatch has been found. */
@@ -9947,7 +9946,7 @@ Otherwise, return FALSE.
     while (type != NULL && type->source_corresp.is_class_member &&
            type->variant.class_struct_union.extra_info->
                                                   template_arg_list == NULL) {
-      type = type->source_corresp.parent.class_type;
+      type = parent_class_of(type);
     }  /* while */
     if (type == NULL) {
       /* The enclosing class is not a class template.  Okay as long as
@@ -9987,8 +9986,7 @@ Otherwise, return FALSE.
       any_mismatches = TRUE;
     }  /* if */
     /* Skip out to the enclosing class type. */
-    type = type->source_corresp.is_class_member ?
-                               type->source_corresp.parent.class_type : NULL;
+    type = type->source_corresp.is_class_member ? parent_class_of(type) : NULL;
     if (decl_info != NULL) decl_info = decl_info->enclosing_template_decl;
   }  /* for */
   if (!decl_state->decl_scope_err && !any_mismatches) {
@@ -10175,7 +10173,7 @@ and create the template symbol supplement for the class.
 */
 {
   a_template_symbol_supplement_ptr	tssp = NULL;
-  a_type_ptr				parent_type = sym->parent.class_type;
+  a_type_ptr				parent_type = sym_parent_class(sym);
   a_class_symbol_supplement_ptr		parent_cssp;
   a_template_symbol_supplement_ptr	parent_tssp = NULL;
   a_class_symbol_supplement_ptr		cssp;
@@ -10272,7 +10270,7 @@ any classes that declared the nested class as a template friend.
       a_template_symbol_supplement_ptr	tssp;
       a_type_ptr			parent_class;
       a_template_ptr			templ = alloc_template();
-      parent_class = class_type->source_corresp.parent.class_type;
+      parent_class = parent_class_of(class_type);
       templ->kind = (a_template_kind)templk_member_class;
       set_source_corresp(&templ->source_corresp, sym);
       set_class_membership((a_symbol_ptr)NULL, &templ->source_corresp,
@@ -10938,18 +10936,17 @@ parent class or namespace in locator_parent_sym.
   check_assertion(locator->is_class_member == sym->is_class_member);
   if (locator->is_class_member) {
     a_type_ptr	parent_class;
-    parent_class = locator->parent.class_type;
+    parent_class = qualifier_class_type(*locator);
     if (parent_class->kind == (a_type_kind)tk_template_param) {
       /* If the locator parent is a template parameter, use its proxy class. */
       parent_class = proxy_class_for_template_param(parent_class);
     }  /* if */
-    result = identical_types(parent_class, sym->parent.class_type);
+    result = identical_types(parent_class, sym_parent_class(sym));
     parent_sym = (a_symbol_ptr)parent_class->source_corresp.assoc_info;
-  } else if (locator->parent.namespace_ptr != NULL) {
-    a_namespace_ptr	parent_namespace;
-    parent_namespace = locator->parent.namespace_ptr;
-    result = parent_namespace == sym->parent.namespace_ptr;
-    parent_sym = (a_symbol_ptr)parent_namespace->source_corresp.assoc_info;
+  } else if (qualifier_namespace_ptr(*locator) != NULL) {
+    a_namespace_ptr	parent_namespace = qualifier_namespace_ptr(*locator);
+    result = parent_namespace == sym_parent_namespace(sym);
+    parent_sym = symbol_for(parent_namespace);
   } else {
     /* No parent information in the locator. */
     result = TRUE;
@@ -11203,7 +11200,7 @@ the necessary processing can be done.
   if (member_template_param_list_matches_class(decl_state, sym,
                                                &sym->decl_position)) {
     check_assertion(sym->is_class_member);
-    parent_class = sym->parent.class_type;
+    parent_class = sym_parent_class(sym);
     parent_sym = (a_symbol_ptr)parent_class->source_corresp.assoc_info;
     parent_templ_sym = template_symbol_for_class_symbol(parent_sym);
     parent_tssp = template_supplement_for_symbol(parent_templ_sym);
@@ -11555,14 +11552,14 @@ friend_template_checks_done:
       if (!decl_state->is_template_friend &&
                  decl_state->class_declared_in != NULL &&
                  (!sym->is_class_member ||
-                   sym->parent.class_type != decl_state->class_declared_in)) {
+                   sym_parent_class(sym) != decl_state->class_declared_in)) {
         /* A partial specialization in a class, but the entity found is from
            a different scope. */
         pos_sy_error(ec_cannot_be_declared_in_scope, &locator.source_position,
                      sym);
         err = TRUE;
       } else if (!sym->is_class_member &&
-                 ssep->assoc_namespace != sym->parent.namespace_ptr) {
+                 ssep->assoc_namespace != sym_parent_namespace_or_null(sym)) {
         pos_error(ec_member_partial_spec_not_in_namespace,
                   &locator.source_position);
         err = TRUE;
@@ -11576,8 +11573,7 @@ friend_template_checks_done:
              automatically when the tokens are rescanned. */
           a_symbol_ptr	parent_class_sym;
           partial_spec_outside_of_class = TRUE;
-          parent_class_sym = (a_symbol_ptr)sym->parent.class_type->
-                                                     source_corresp.assoc_info;
+          parent_class_sym = symbol_for(sym_parent_class(sym));
           if (template_for_instance(sym)->
                                variant.template_info->is_specific_definition) {
             /* The primary template is specialized, so a partial specialization
@@ -11892,7 +11888,7 @@ friend_template_checks_done:
     } else {
       if (decl_state->class_declared_in != NULL) {
         /* Only do this for the original declaration inside the class. */
-        find_class_template_member(sym, sym->parent.class_type,
+        find_class_template_member(sym, sym_parent_class(sym),
                                    tsn_for_class_template);
       }  /* if */
     }  /* if */
@@ -13878,11 +13874,11 @@ set, and its source sequence entry, if any, has been put out.)
         if (sym->is_class_member) {
           set_class_membership((a_symbol_ptr)NULL,
                                &il_template_entry->source_corresp,
-                               sym->parent.class_type);
-        } else if (sym->parent.namespace_ptr != NULL) {
+                               sym_parent_class(sym));
+        } else if (sym_is_namespace_member(sym)) {
           set_namespace_membership((a_symbol_ptr)NULL,
                                    &il_template_entry->source_corresp,
-                                   sym->parent.namespace_ptr);
+                                   sym_parent_namespace(sym));
         }  /* if */
         if (sym->is_class_member && decl_state->class_declared_in != NULL) {
           /* If this is the declaration of a member inside the class,
@@ -15755,7 +15751,7 @@ issued, and TRUE is returned.
   } else {
     /* Check the parent classes.  Stop if we find a parent class that is
        specialized. */
-    parent_tp = sym->is_class_member ? sym->parent.class_type : NULL;
+    parent_tp = sym->is_class_member ? sym_parent_class(sym) : NULL;
     while (parent_tp != NULL) {
       a_class_type_supplement_ptr	ctsp;
       parent_tp = skip_typerefs(parent_tp);
@@ -15768,8 +15764,7 @@ issued, and TRUE is returned.
       if (ctsp->template_arg_list != NULL) depth++;
       /* Process the next enclosing class, if any. */
       parent_tp = parent_tp->source_corresp.is_class_member
-                                  ? parent_tp->source_corresp.parent.class_type
-                                  : NULL;
+                                          ? parent_class_of(parent_tp) : NULL;
     }  /* while */
   }  /* if */
   if (depth != decl_state->number_of_template_param_clauses &&
@@ -16059,7 +16054,7 @@ that follows.
          namespace they belong to or a namespace that encloses it. */
       if (sym->decl_scope != scope_stack[depth_scope_stack].number) {
         a_boolean	err = FALSE;
-        if (!sym->is_class_member && sym->parent.namespace_ptr == NULL) {
+        if (!sym->is_class_member && !sym_is_namespace_member(sym)) {
           /* A global scope symbol.  This is allowed only if this is
              a Microsoft in-class specialization. */
           err = !microsoft_mode || !decl_state->is_member_decl;
@@ -17486,7 +17481,7 @@ caller.
       a_type_ptr		parent_class;
       a_symbol_ptr		parent_class_sym;
       check_assertion(tip->instance_sym->is_class_member);
-      parent_class = tip->instance_sym->parent.class_type;
+      parent_class = sym_parent_class(tip->instance_sym);
       parent_class_sym = (a_symbol_ptr)parent_class->source_corresp.assoc_info;
       /* Note that this is done only for instances of class templates, not
          nested classes of class templates. */
@@ -20933,8 +20928,7 @@ symbol, otherwise we return NULL.
 
     /* Make sure the resulting symbol is a member of a class that is
        a template class and not a specific definition. */
-    cowam_sym = (a_symbol_ptr)sym->parent.class_type->
-						source_corresp.assoc_info;
+    cowam_sym = symbol_for(sym_parent_class(sym));
     if (!is_template_class_and_not_specific_def_symbol(cowam_sym)) {
       /* Can't be instantiated -- not a template function. */
     } else {
@@ -21688,7 +21682,7 @@ are treated as extern inlines.
            class, treat it as a template function. */
         if (rout_ptr->source_corresp.is_class_member) {
           a_type_ptr	parent_class;
-          parent_class = rout_ptr->source_corresp.parent.class_type;
+          parent_class = parent_class_of(rout_ptr);
           if (parent_class->variant.class_struct_union.is_template_class &&
               !parent_class->variant.class_struct_union.is_specialized) {
             result = FALSE;

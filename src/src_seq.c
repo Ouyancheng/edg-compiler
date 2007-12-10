@@ -133,7 +133,7 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
           a_source_correspondence  *scp;
           scp = source_corresp_for_il_entry(udp->entity.ptr,
                                            (an_il_entry_kind)udp->entity.kind);
-          if (scp != NULL && scp->parent.namespace_ptr == NULL) {
+          if (scp != NULL && !is_namespace_member(scp)) {
             fputs("::", f_debug);
           }  /* if */
         }  /* if */
@@ -2641,11 +2641,9 @@ associated with the indicated sck_function scope.
          definition, until a secondary declaration entry pointing to
          the same routine is found. */
       if (scp->is_class_member) {
-        ssep = scp->parent.class_type->
-                             source_corresp.source_sequence_entry;
+        ssep = parent_class_of(scp)->source_corresp.source_sequence_entry;
       } else {
-        ssep = scp->parent.namespace_ptr->
-                             source_corresp.source_sequence_entry;
+        ssep = parent_namespace_of(scp)->source_corresp.source_sequence_entry;
       }  /* if */
       ssep = find_src_seq_secondary_decl_entry(ssep, (char *)rp);
       check_assertion_str2(ssep != NULL,
