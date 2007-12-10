@@ -3103,7 +3103,6 @@ a_class_type_supplement that tracks the highest number assigned thus far.
       /* No previous numbers, start at the first value. */
       *number_ptr = FIRST_VIRTUAL_FUNCTION_NUMBER;
     } else if (*number_ptr == MAX_VIRTUAL_FUNCTIONS_PER_CLASS) {
-// FIXME
       a_type_ptr  parent_class = parent_class_of(rp);
       if (parent_class->variant.class_struct_union.is_nonreal_class) {
         /* Don't issue an error, since the number may not be maintained
