@@ -55,19 +55,6 @@ previously issued no longer are.  For example:
     const std::type_info &r = typeid(t);
   }
 
-11/29/07  Abort when mangling unnamed members of class templates
-
-In C++-generating back end configurations when MANGLE_ALL_NAMES is TRUE,
-an assertion in lower_name.c was triggered when mangling the type of
-an unnamed class or enum member in a class template.  This is now fixed.
-For example:
-
-  template <typename T>
-  class A {
-    struct { int i; };    // previously generated an assertion failure
-    enum { e };           // previously generated an assertion failure
-  };
-
 11/28/07  GNU C++ compatibility: incorrectly specified class template arguments
 
 g++ allows a member of a nested class of a class template to be defined
