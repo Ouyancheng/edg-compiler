@@ -1021,9 +1021,10 @@ given symbols are identical.
     /* Anonymous union members can have a source correspondence with the flag
        is_class_member set to TRUE while the corresponding flag in the symbol
        is FALSE. */
-    if (scp1->is_class_member != scp2->is_class_member) {
+    if (scp1 != NULL && scp2 != NULL &&
+        scp1->is_class_member != scp2->is_class_member) {
       result = FALSE;
-    } else if (scp1->is_class_member) {
+    } else if (scp1 != NULL && scp2 != NULL && scp1->is_class_member) {
       a_type_ptr  parent1 = parent_class_of(sym1);
       a_type_ptr  parent2 = parent_class_of(sym2);
       check_assertion(parent1 != NULL && parent2 != NULL);
