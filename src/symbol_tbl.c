@@ -3883,11 +3883,13 @@ checked for and ignored. Finally, injected class names are also allowed.
         class_sym->variant.
                     class_struct_union.extra_info->constructor == NULL &&
         ((fp = member_sym->variant.field.ptr) == NULL ||
-         same_entities(sym_parent_class(member_sym), parent_class_of(fp)))) {
+         (member_sym->is_class_member &&
+          same_entities(sym_parent_class(member_sym), parent_class_of(fp))))) {
         /* Note: the last checks serve to exclude anonymous union promotions.
            It is never the case that the field is not yet bound to the symbol
            when an anonymous union member is being promoted, nor will the
-           parent classes correspond. */
+           parent classes correspond (during promotion, the symbol's
+           is_class_member flag may temporarily be FALSE, however). */
     } else if (class_sym->header == unnamed_tag_symbol_header) {
       /* This must be a constructor for an unnamed class. */
     } else if (is_injected_class_symbol(member_sym)) {
