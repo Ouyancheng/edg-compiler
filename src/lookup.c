@@ -674,15 +674,18 @@ of the symbol header.
         sym->variant.constant->variant.template_param.is_qualified_name ==
                                                            is_qualified_name) {
       if (sym->is_class_member == orig_sym->is_class_member) {
-        if (sym->is_class_member &&
-            sym_parent_class(sym) == sym_parent_class(orig_sym)) {
-          /* The symbols have the same parent class. */
-          break;
-        } else if (sym_parent_namespace_or_null(sym) ==
+        if (sym->is_class_member) {
+          if (sym_parent_class(sym) == sym_parent_class(orig_sym)) {
+            /* The symbols have the same parent class. */
+            break;
+          }  /* if */
+        } else {
+          if (sym_parent_namespace_or_null(sym) ==
                                      sym_parent_namespace_or_null(orig_sym)) {
-          /* The symbols have the same parent namespace (including the case
-             where both have no namespace). */
-          break;
+            /* The symbols have the same parent namespace (including the case
+               where both have no namespace). */
+            break;
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
