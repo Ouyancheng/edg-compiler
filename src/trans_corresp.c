@@ -1012,35 +1012,47 @@ given symbols are identical.
     result = corresponding_types(parent1, parent2);
   } else {
     /* Members of namespaces (possibly global scope). */
-    a_namespace_ptr              parent1 = sym_parent_namespace_or_null(sym1);
-    a_namespace_ptr              parent2 = sym_parent_namespace_or_null(sym2);
     an_il_entry_kind             kind;
     a_source_correspondence_ptr  scp1, scp2;
     scp1 = (a_source_correspondence_ptr)il_entry_for_symbol_null_okay(
                                                                   sym1, &kind);
     scp2 = (a_source_correspondence_ptr)il_entry_for_symbol_null_okay(
                                                                   sym2, &kind);
-    /* Block-extern declarations can have a NULL parent pointer in the symbol
-       entry even though they declared an entity in a namespace.  Use the IL
-       entry in those cases.  (See function add_namespace_parent_pointer.) */
-    if (parent1 == NULL && scp1 != NULL) {
-      parent1 = parent_namespace_or_null(scp1);
-    }  /* if */
-    if (parent2 == NULL && scp2 != NULL) {
-      parent2 = parent_namespace_or_null(scp2);
-    }  /* if */
-    if (parent1 != NULL || parent2 != NULL) {
-      if (!microsoft_bugs && scp1 != NULL && scp2 != NULL &&
-          scp1->name_linkage == (a_name_linkage_kind)nlk_external &&
-          scp2->name_linkage == (a_name_linkage_kind)nlk_external) {
-        /* extern "C" entities match even if they are declared in different
-           namespaces.  (But not in Microsoft bugs mode.) */
-        result = TRUE;
-      } else {
-        result = corresponding_namespaces(parent1, parent2);
-      }  /* if */
+    /* Anonymous union members can have a source correspondence with the flag
+       is_class_member set to TRUE while the corresponding flag in the symbol
+       is FALSE. */
+    if (scp1->is_class_member != scp2->is_class_member) {
+      result = FALSE;
+    } else if (scp1->is_class_member) {
+      a_type_ptr  parent1 = parent_class_of(sym1);
+      a_type_ptr  parent2 = parent_class_of(sym2);
+      check_assertion(parent1 != NULL && parent2 != NULL);
+      result = corresponding_types(parent1, parent2);
     } else {
-      result = TRUE;
+      a_namespace_ptr  parent1 = sym_parent_namespace_or_null(sym1);
+      a_namespace_ptr  parent2 = sym_parent_namespace_or_null(sym2);
+      /* Block-extern declarations can have a NULL parent pointer in the symbol
+         entry even though they declared an entity in a namespace.  Use the IL
+         entry in those cases.  (See function add_namespace_parent_pointer.) */
+      if (parent1 == NULL && scp1 != NULL) {
+        parent1 = parent_namespace_or_null(scp1);
+      }  /* if */
+      if (parent2 == NULL && scp2 != NULL) {
+        parent2 = parent_namespace_or_null(scp2);
+      }  /* if */
+      if (parent1 != NULL || parent2 != NULL) {
+        if (!microsoft_bugs && scp1 != NULL && scp2 != NULL &&
+            scp1->name_linkage == (a_name_linkage_kind)nlk_external &&
+            scp2->name_linkage == (a_name_linkage_kind)nlk_external) {
+          /* extern "C" entities match even if they are declared in different
+             namespaces.  (But not in Microsoft bugs mode.) */
+          result = TRUE;
+        } else {
+          result = corresponding_namespaces(parent1, parent2);
+        }  /* if */
+      } else {
+        result = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
   return result;
