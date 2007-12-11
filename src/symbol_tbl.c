@@ -5907,7 +5907,7 @@ the latter will be NULL for variables.
     second_best_match = NULL;
     for (sym = hdr_ptr->other_symbols; sym != NULL; sym = sym->next) {
       a_source_correspondence  *scp;
-      a_namespace_ptr          sym_nsp = sym_parent_namespace_or_null(sym);
+      a_namespace_ptr          sym_nsp;
       a_boolean                sym_has_C_linkage;
       a_boolean                sym_is_variable;
       /* Ignore symbols not associated with the current file scope.  These
@@ -5926,6 +5926,7 @@ the latter will be NULL for variables.
            namespace projection symbols, and unknown function symbols. */
         continue;
       }  /* if */
+      sym_nsp = sym_parent_namespace_or_null(sym);
       sym_has_C_linkage =
                      (scp->name_linkage == (a_name_linkage_kind)nlk_external);
       if (extern_C_linkage_specified) {
