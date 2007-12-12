@@ -2181,11 +2181,6 @@ end_sizeof:;
           default:
             unexpected_condition_str("walk_entry_and_subtree: bad scope kind");
         }  /* switch */
-        /* If this is a scope containing namespaces, walk them before walking
-           other entities with subscopes (like classes or functions).  Some IL
-           traversals (notably, for trans_copy.c) depend on this ordering. */
-        walk_list_with_keep_in_il_reset(ptr->namespaces, a_namespace_ptr,
-                                        iek_namespace);
         /* "assoc_block" is done after the declarations. */
         /* The lifetime pointer needs to be walked and not remapped in
            the file scope and function scopes. */
@@ -2263,6 +2258,8 @@ end_sizeof:;
         walk_list_not_needed(ptr->labels, a_label_ptr, iek_label);
 #ifdef CFE
         walk_list(ptr->scopes, a_scope_ptr, iek_scope);
+        walk_list_with_keep_in_il_reset(ptr->namespaces, a_namespace_ptr,
+                                        iek_namespace);
         walk_list_not_needed(ptr->using_decls, a_using_decl_ptr,
                              iek_using_decl);
         walk_list(ptr->asm_entries, an_asm_entry_ptr, iek_asm_entry);
