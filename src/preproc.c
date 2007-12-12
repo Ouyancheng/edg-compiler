@@ -559,7 +559,8 @@ current #if directive is of one of the following forms:
 	#if !defined(X)
 
 If it is of one of those forms, the include guard state is updated to
-indicate that a guard test of the macro X has been seen.
+indicate that a guard test of the macro X has been seen; otherwise, the
+file is marked as not being a candidate for suppression of future includes.
 
 The check is done by examining the current source line to look for one of the
 patterns above.  The check is very strict (e.g., comments are not allowed
@@ -570,6 +571,7 @@ affect the proper compilation of the program.
 {
   char		*ptr;
   a_boolean	not_operator_present = FALSE;
+  a_boolean	is_possible_include_guard = FALSE;
 
 /* Local macro to skip white space characters. */
 #define local_skip_white_space() while (*ptr == ' ' || *ptr == '\t') ptr++
@@ -613,6 +615,7 @@ affect the proper compilation of the program.
           /* The line matches our pattern.  If the identifier is valid,
              update the include guard information. */
           if (is_valid_identifier(id_start, id_len, &sym, &locator)) {
+            is_possible_include_guard = TRUE;
             set_ifg_state(IFG_STATE_INTERMED);
             if (not_operator_present) {
               curr_ise->include_history->ifndef_guard = TRUE;
@@ -625,6 +628,10 @@ affect the proper compilation of the program.
         }  /* if */
       }  /* if */
     }  /* if */
+  }  /* if */
+  if (!is_possible_include_guard) {
+    /* Mark the file as not being a candidate for future suppression. */
+    set_ifg_state(IFG_STATE_FAIL);
   }  /* if */
 #undef local_skip_white_space
 }  /* check_for_if_defined_include_guard */

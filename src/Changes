@@ -1,5 +1,29 @@
 Version 3.11
 
+12/12/07 Incorrect suppression of header file inclusion
+
+The extension of header file inclusion guards to recognize "#if defined"
+and "#if !defined" forms (see the Changes entry of 3/20/07) did not
+correctly handle the case in which a header begins with a non-guard #if
+immediately followed by a #if of the correct form to be an inclusion guard.
+Such files were erroneously deemed to be candidates for suppression of
+subsequent #includes.  This is now fixed.  For example:
+
+  file x.h:
+
+  #if A            // Not an inclusion guard
+  #if !defined(B)
+  #define B
+  #endif
+  // Additional code
+  #endif
+
+  file x.cpp:
+
+  #define A 1
+  #include "x.h"
+  #include "x.h"   // Inclusion previously incorrectly suppressed
+
 12/6/07   --error_output leaves file open when using MAKE_FRONT_END_CALLABLE
 
 In configurations where MAKE_FRONT_END_CALLABLE is TRUE and the
