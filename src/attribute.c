@@ -2166,13 +2166,20 @@ messages about any invalid attributes.
         }  /* if */
         rp->is_weak = TRUE;
         rp->is_weakref = TRUE;
-        if (ap->variant.alias == NULL) {
+        if (ap->variant.alias == NULL &&
+            !(gnu_version >= 40000 && innermost_function_scope != 0)) {
           /* A weakref attribute without an argument.  Don't create an alias
              fixup until an alias attribute is seen. */
           break;
         }  /* if */
         /* FALLTHROUGH */
       case ak_alias:
+        if (gnu_version >= 40000 && innermost_function_scope != 0) {
+          /* Recent versions of GCC ignore attributes on block-extern function
+             declarations. */
+          pos_warning(ec_local_function_attribute_ignored, &ap->position);
+          continue;
+        }  /* if */
         if (gcc_mode && rp->is_inline &&
             rp->assoc_scope != NULL_region_number &&
             rp->suppress_inline_body) {

@@ -1711,6 +1711,7 @@ ec_vla_type_in_template_arg;;"a template argument may not reference a variable-l
 ec_UCN_names_surrogate_code_point;;"a universal character name cannot designate a surrogate code point"
 ec_include_next_in_primary_source_file;;"#include_next cannot be used in the primary source file"
 ec_bad_template_member_definition;;"%no1 cannot be specified in a template member definition -- %no2 assumed instead"
+ec_local_function_attribute_ignored;;"attribute is ignored on local function declaration"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

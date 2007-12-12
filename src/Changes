@@ -1,5 +1,16 @@
 Version 3.11
 
+12/12/07  GNU compatibility: Function attributes in local scopes
+
+In GNU modes with gnu_version >= 40000 the front end now ignores the function
+attributes "alias" and "weakref" when they appear in local scopes (with a
+warning).  For example:
+
+  void f() {
+    void g() __attribute((alias("G")));  // Attribute ignored with a warning
+  }                                      // when gnu_version >= 40000.
+
+
 12/12/07  GNU attribute warn_unused_result lost on redeclaration
 
 When a function first declared with the GNU attribute warn_unused_result was
