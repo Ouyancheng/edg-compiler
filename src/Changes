@@ -1,5 +1,24 @@
 Version 3.11
 
+12/12/07  Internal error in Microsoft mode with multiple translation units and
+          user-declared operator new[]/delete[]
+
+In Microsoft mode with microsoft_version >= 1400, the front end triggered an
+internal error in trans_corresp.c ("Expected a class member") when
+simultaneously compiling multiple translation units some of which explicitly
+declare operator new[] or operator delete[] and some of which don't.
+For example:
+
+  // Primary translation unit:
+  int main() {}
+
+  // Secondary translation unit:
+  void* operator new[](unsigned); // Assumes size_t is "unsigned int".
+                                  // Triggered an abort in trans_corresp.c.
+
+This is now fixed.  (This is a regression introduced by the changes described
+in the entry of 9/11/07.)
+
 12/12/07 Incorrect suppression of header file inclusion
 
 The extension of header file inclusion guards to recognize "#if defined"

@@ -5329,6 +5329,16 @@ with sym.  This is called from find_corresponding_routine_on_list.
     /* Skip this symbol. */
   } else if (corresp_routine->is_template_function) {
     /* An ordinary function never corresponds to a template instance. */
+  } else if (routine->special_kind == (a_special_function_kind)sfk_operator &&
+             corresp_routine->special_kind ==
+                                      (a_special_function_kind)sfk_operator &&
+             routine->variant.opname_kind !=
+                                       corresp_routine->variant.opname_kind) {
+    /* In some Microsoft modes, the implicitly declared new[] and delete[]
+       operators are synonyms for their non-array counterparts.  If the
+       these operators were user-declared in one translation unit and not in
+       the other, we may end up here. */
+    check_assertion(microsoft_mode && microsoft_version >= 1400);
   } else if (param_types_are_compatible(routine->type,
                                         sym_type,
                                         TCF_REDECLARATION |
