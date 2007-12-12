@@ -3012,6 +3012,9 @@ Copy any GNU type attributes in type dst to type src.
           if (src_rtsp->is_const) {
             dst_rtsp->is_const = TRUE;
           }  /* if */
+          if (src_rtsp->result_should_be_used) {
+            dst_rtsp->result_should_be_used = TRUE;
+          }  /* if */
           if (src_rtsp->arg_pragma != (a_pragma_kind)pk_none) {
             dst_rtsp->arg_pragma = src_rtsp->arg_pragma;
             dst_rtsp->fmt_arg = src_rtsp->fmt_arg;

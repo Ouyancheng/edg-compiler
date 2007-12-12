@@ -1,5 +1,17 @@
 Version 3.11
 
+12/12/07  GNU attribute warn_unused_result lost on redeclaration
+
+When a function first declared with the GNU attribute warn_unused_result was
+later defined without that attribute, the attribute was lost altogether.
+For example:
+
+  int f() __attribute((warn_unused_result));
+  int f() { return 0; }  // Attribute was lost here.
+  void g() { f(); }      // No warning was issued here.
+
+This is now fixed.
+
 12/12/07  Internal error in Microsoft mode with multiple translation units and
           user-declared operator new[]/delete[]
 
