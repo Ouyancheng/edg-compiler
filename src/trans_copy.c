@@ -434,16 +434,19 @@ by running through the list from the start.
 }  /* fix_last_pointer */
 
 
-static void update_namespace_pointers_block(a_scope_ptr scope)
+static void update_namespace_pointers_block(
+                                       a_scope_ptr            scope,
+                                       a_scope_pointers_block *pointers_block)
 /*
-scope is the primary translation unit scope for a namespace that has
-been copied to the primary IL rather than merged.  Update its
-pointers block so that its last-pointers point to the copied
-entries in the primary IL.
+scope is the primary translation unit scope for a namespace that has been
+copied to the primary IL rather than merged.  Update its pointers block so
+that its last-pointers point to the copied entries in the primary IL.
+Note that the pointers block cannot just be gotten by calling
+get_pointers_block_for_scope on the given scope, because some entities
+pointed to by scope (and used by get_pointers_block) may not have been
+fully copied over yet.
 */
 {
-  a_scope_pointers_block *pointers_block = get_pointers_block_for_scope(scope);
-
   check_assertion(pointers_block != NULL);
   fix_last_pointer(pointers_block->last_constant, scope->constants,
                    a_constant_ptr, iek_constant);
@@ -556,19 +559,17 @@ and remap the pointers in the copy.
       rout->keep_definition_in_il = FALSE;
 #endif /* MAINTAIN_NEEDED_FLAGS */
       rout->on_inline_function_list = FALSE;
-    } else if (kind == iek_namespace) {
-      /* Update the pointers block for a namespace scope that has been
-         copied (not merged). */
-      a_namespace_ptr nsp = (a_namespace_ptr)copy;
-      if (!in_secondary_trans_unit(nsp) &&
-          !nsp->is_namespace_alias) {
-        a_scope_ptr scope = nsp->variant.assoc_scope;
-        update_namespace_pointers_block(scope);
-      }  /* if */
     }  /* if */
   } else if (kind == iek_scope) {
     a_scope_ptr scope = (a_scope_ptr)copy;
     scope->scope_orphaned_list_header_generated = FALSE;
+    if (scope->kind == sck_namespace) {
+      /* Update the pointers block for a namespace scope that has been
+         copied (not merged). */
+      a_scope_pointers_block  *block = get_pointers_block_for_scope(
+                                                            (a_scope_ptr)ptr);
+      update_namespace_pointers_block(scope, block);
+    }  /* if */
 #if DO_IL_LOWERING
   } else if (kind == iek_class_type_supplement) {
     a_class_type_supplement_ptr ctsp = (a_class_type_supplement_ptr)copy;
