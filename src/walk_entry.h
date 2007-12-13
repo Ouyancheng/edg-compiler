@@ -2111,7 +2111,9 @@ end_sizeof:;
         a_scope_ptr  ptr = (a_scope_ptr)entry_ptr;
         a_scope_kind kind = ptr->kind;
         remap_next_ptr(ptr->next, a_scope_ptr, iek_scope);
-        remap_ptr_not_needed(ptr->parent, a_scope_ptr, iek_scope);
+#if !NEEDED_FLAG_WALK && !KEEP_IN_IL_WALK
+        remap_ptr(ptr->parent, a_scope_ptr, iek_scope);
+#endif /* !NEEDED_FLAG_WALK && !KEEP_IN_IL_WALK */
         switch (kind) {
           case sck_file:
 #ifdef FFE
