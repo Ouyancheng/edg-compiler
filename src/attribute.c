@@ -2154,31 +2154,31 @@ messages about any invalid attributes.
         rp->section = ap->variant.section;
         break;
       case ak_weakref:
-        /* gcc 4.1 and 4.2 have opposite constraints on weakref entities:
-           With gcc 4.1 they must have external linkage and with gcc 4.2
-           they must have internal linkage.  (The weakref attribute is
-           recorded even when the constraint is not satisfied, to improve
-           error recovery.) */
-        if (gnu_version < 40200) {
-          (void)check_routine_has_external_linkage(rp, ap);
-        } else {
-          (void)check_routine_has_internal_linkage(rp, ap);
-        }  /* if */
-        rp->is_weak = TRUE;
-        rp->is_weakref = TRUE;
-        if (ap->variant.alias == NULL &&
-            !(gnu_version >= 40000 && innermost_function_scope != 0)) {
-          /* A weakref attribute without an argument.  Don't create an alias
-             fixup until an alias attribute is seen. */
-          break;
-        }  /* if */
-        /* FALLTHROUGH */
       case ak_alias:
-        if (gnu_version >= 40000 && innermost_function_scope != 0) {
+        if (gnu_version >= 40000 && innermost_function_scope != NULL) {
           /* Recent versions of GCC ignore attributes on block-extern function
              declarations. */
           pos_warning(ec_local_function_attribute_ignored, &ap->position);
           continue;
+        }  /* if */
+        if (ap->kind == (an_attribute_kind)ak_weakref) {
+          /* gcc 4.1 and 4.2 have opposite constraints on weakref entities:
+             With gcc 4.1 they must have external linkage and with gcc 4.2
+             they must have internal linkage.  (The weakref attribute is
+             recorded even when the constraint is not satisfied, to improve
+             error recovery.) */
+          if (gnu_version < 40200) {
+            (void)check_routine_has_external_linkage(rp, ap);
+          } else {
+            (void)check_routine_has_internal_linkage(rp, ap);
+          }  /* if */
+          rp->is_weak = TRUE;
+          rp->is_weakref = TRUE;
+          if (ap->variant.alias == NULL) {
+            /* A weakref attribute without an argument.  Don't create an alias
+               fixup until an alias attribute is seen. */
+            break;
+          }  /* if */
         }  /* if */
         if (gcc_mode && rp->is_inline &&
             rp->assoc_scope != NULL_region_number &&
