@@ -358,8 +358,7 @@ node) is "op".
   ((node)->variant.operation.kind == (an_expr_operator_kind)(op))
 
 /*
-Return TRUE if "node" (which must be an operation node) is a function call
-operation.
+Return TRUE if "node" is a function call operation.
 */
 #define is_call_node(node)                                              \
   (is_operation_node((node)) &&                                         \
