@@ -5335,10 +5335,15 @@ with sym.  This is called from find_corresponding_routine_on_list.
              routine->variant.opname_kind !=
                                        corresp_routine->variant.opname_kind) {
     /* In some Microsoft modes, the implicitly declared new[] and delete[]
-       operators are synonyms for their non-array counterparts.  If the
-       these operators were user-declared in one translation unit and not in
-       the other, we may end up here. */
-    check_assertion(microsoft_mode && microsoft_version >= 1400);
+       operators are synonyms for their non-array counterparts.  If these
+       operators were user-declared in one translation unit and not in the
+       other, we may end up here. */
+    check_assertion(
+                  microsoft_mode && microsoft_version >= 1400 &&
+                  (is_new_operator(routine->variant.opname_kind) ||
+                   is_delete_operator(routine->variant.opname_kind)) &&
+                  (is_new_operator(corresp_routine->variant.opname_kind) ||
+                   is_delete_operator(corresp_routine->variant.opname_kind)));
   } else if (param_types_are_compatible(routine->type,
                                         sym_type,
                                         TCF_REDECLARATION |
