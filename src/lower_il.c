@@ -4991,6 +4991,13 @@ process only those bases below bcp.
   } else if (base_class_needs_virtual_function_table(bcp, class_type) &&
              !base_class_has_vtbl(bcp)) {
     bcp->virtual_function_table_offset = *index;
+#if DEBUG
+    if (debug_level >= 4 || db_flag_is_set("vtbl")) {
+      fprintf(f_debug, "Index %ld for virtual function table for ",
+              (long)*index);
+      db_base_class(bcp, /*show_offset=*/TRUE);
+    }  /* if */
+#endif /* DEBUG */
     *index += num_negative_vtable_entries(class_type, bcp);
     if (ctsp->highest_virtual_function_number != 
         VIRTUAL_FUNCTION_NUMBER_NONE) {
@@ -5946,9 +5953,25 @@ gives the offset to the virtual base class whose vtable is being made.
        considered in the complete object. */
     offset = ((overrider_bcp != NULL) ? overrider_bcp->offset : 0) -
                                                                  vbase_offset;
+#if DEBUG
+    if (debug_level >= 4 || db_flag_is_set("vtbl")) {
+      fprintf(f_debug, "  vcall entry (prepend):  ");
+    }  /* if */
+#endif /* DEBUG */
     add_vtbl_entry_init(offset, (a_routine_ptr)NULL, /*typeinfo_entry=*/FALSE,
                         first_con, last_con, /*prepend=*/TRUE,
                         vbase->type);
+#if DEBUG
+    if (debug_level >= 4 || db_flag_is_set("vtbl")) {
+      fprintf(f_debug, "    vbase_offset = %ld\n", (long)vbase_offset);
+      fprintf(f_debug, "    ");
+      if (overrider_bcp != NULL) {
+        db_base_class(overrider_bcp, /*show_offset=*/TRUE);
+      } else {
+        db_base_class(bcp, /*show_offset=*/TRUE);
+      }  /* if */
+    }  /* if */
+#endif /* DEBUG */
   }  /* for */
 }  /* add_vcall_offsets */
 
@@ -6269,10 +6292,21 @@ table.
     delta = (imm_bcp_in_complete->offset - 
                               (derived_bcp != NULL ? derived_bcp->offset : 0));
     /* Create the vtable entry. */
+#if DEBUG
+    if (debug_level >= 4 || db_flag_is_set("vtbl")) {
+      fprintf(f_debug, "  vbase entry (prepend):  ");
+    }  /* if */
+#endif /* DEBUG */
     add_vtbl_entry_init(delta,
                         (a_routine_ptr)NULL, /*typeinfo_entry=*/FALSE,
                         first_con, last_con, /*prepend=*/TRUE,
                         class_whose_vtbl_is_being_made);
+#if DEBUG
+    if (debug_level >= 4 || db_flag_is_set("vtbl")) {
+      fprintf(f_debug, "    ");
+      db_base_class(imm_bcp_in_complete, /*show_offset=*/TRUE);
+    }  /* if */
+#endif /* DEBUG */
   }  /* for */
   /* Add virtual call offsets to the beginning of the virtual table. */
   if (bcp != NULL) {
@@ -6414,11 +6448,21 @@ table.
 #endif /* IA64_ABI */
     }  /* if */
     /* Create the initializing constants for this entry of the table. */
+#if DEBUG
+    if (debug_level >= 4 || db_flag_is_set("vtbl")) {
+      fprintf(f_debug, "  function entry:         ");
+    }  /* if */
+#endif /* DEBUG */
     add_vtbl_entry_init(delta, func_to_call, /*typeinfo_entry=*/FALSE,
                         first_con, last_con, /*prepend=*/FALSE,
                         class_whose_vtbl_is_being_made);
 #if IA64_ABI
     if (second_func_to_call != NULL) {
+#if DEBUG
+      if (debug_level >= 4 || db_flag_is_set("vtbl")) {
+        fprintf(f_debug, "  second function entry:  ");
+      }  /* if */
+#endif /* DEBUG */
       add_vtbl_entry_init(delta, second_func_to_call, /*typeinfo_entry=*/FALSE,
                           first_con, last_con, /*prepend=*/FALSE,
                           class_whose_vtbl_is_being_made);
@@ -6628,11 +6672,19 @@ for the same virtual function table variable; see note below.
         db_abbreviated_type(class_type);
         fprintf(f_debug, "\n");
       } else {
-        db_base_class(bcp, /*show_offset=*/FALSE);
+        db_base_class(bcp, /*show_offset=*/TRUE);
+#if IA64_ABI
+        fprintf(f_debug, "  virtual_function_table_offset = %ld\n",
+              (long)bcp->virtual_function_table_offset);
+#endif /* IA64_ABI */
       }  /* if */
       if (ctor_bcp != NULL) {
         fprintf(f_debug, "ctor_bcp: ");
-        db_base_class(ctor_bcp, /*show_offset=*/FALSE);
+        db_base_class(ctor_bcp, /*show_offset=*/TRUE);
+#if IA64_ABI
+        fprintf(f_debug, "  virtual_function_table_offset = %ld\n",
+              (long)ctor_bcp->virtual_function_table_offset);
+#endif /* IA64_ABI */
       }  /* if */
     }  /* if */
 #endif /* DEBUG */
@@ -6677,6 +6729,11 @@ for the same virtual function table variable; see note below.
        pointer to the complete object. */
     delta = -delta;
 #endif /* IA64_ABI */
+#if DEBUG
+    if (debug_level >= 4 || db_flag_is_set("vtbl")) {
+      fprintf(f_debug, "  top + typeinfo entries: ");
+    }  /* if */
+#endif /* DEBUG */
     add_vtbl_entry_init(delta,
                         (a_routine_ptr)NULL,
                         /*typeinfo_entry=*/TRUE, first_con, 
@@ -6709,6 +6766,11 @@ for the same virtual function table variable; see note below.
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
     /* Put out the initialization for an extra zeroed entry at the end, for
        cfront compatibility. */
+#if DEBUG
+    if (debug_level >= 4 || db_flag_is_set("vtbl")) {
+      fprintf(f_debug, "  zero entry:             ");
+    }  /* if */
+#endif /* DEBUG */
     add_vtbl_entry_init((a_targ_ptrdiff_t)0, (a_routine_ptr)NULL,
                         /*typeinfo_entry=*/FALSE, first_con, last_con, 
                         /*prepend=*/FALSE, class_type);
