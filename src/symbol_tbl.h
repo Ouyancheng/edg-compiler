@@ -2929,30 +2929,61 @@ Macros to retrieve the parent class or namespace associated with a symbol.
 #define sym_is_namespace_member(sym)                                         \
   (!(sym)->is_class_member && (sym)->parent.namespace_ptr != NULL)
 
-#if !EXPENSIVE_CHECKING
-#define sym_parent_namespace(sym)                                            \
-  ((sym)->parent.namespace_ptr)
-#else /* EXPENSIVE_CHECKING */
+
+#if defined(_lint)
+/* When linting, duplicate the macro argument to catch side-effects that would
+   be duplicated in the EXPENSIVE_CHECKING version, but don't call
+   check_assertion since that results in spurious lint errors when the macro
+   is used in a macro that itself duplicates its argument. */
+#define scp_parent_namespace(sym)                                            \
+  ((void)sym_is_namespace_member(sym),                                       \
+   (sym)->parent.namespace_ptr)
+#else /* !defined(_lint) */
+#if EXPENSIVE_CHECKING
 #define sym_parent_namespace(sym)                                            \
   (check_assertion(sym_is_namespace_member(sym)),                            \
    (sym)->parent.namespace_ptr)
-#endif /* !EXPENSIVE_CHECKING */
-
-#if !EXPENSIVE_CHECKING
-#define sym_parent_namespace_or_null(sym)                                    \
+#else /* !EXPENSIVE_CHECKING */
+#define sym_parent_namespace(sym)                                            \
   ((sym)->parent.namespace_ptr)
-#else /* EXPENSIVE_CHECKING */
+#endif /* EXPENSIVE_CHECKING */
+#endif /* defined(_lint) */
+
+
+#if defined(_lint)
+/* When linting, duplicate the macro argument to catch side-effects that would
+   be duplicated in the EXPENSIVE_CHECKING version, but don't call
+   check_assertion since that results in spurious lint errors when the macro
+   is used in a macro that itself duplicates its argument. */
+#define sym_parent_namespace_or_null(sym)                                    \
+  ((void)(sym)->is_class_member, (sym)->parent.namespace_ptr)
+#else /* !defined(_lint) */
+#if EXPENSIVE_CHECKING
 #define sym_parent_namespace_or_null(sym)                                    \
   (check_assertion(!(sym)->is_class_member), (sym)->parent.namespace_ptr)
-#endif /* !EXPENSIVE_CHECKING */
+#else /* !EXPENSIVE_CHECKING */
+#define sym_parent_namespace_or_null(sym)                                    \
+  ((sym)->parent.namespace_ptr)
+#endif /* EXPENSIVE_CHECKING */
+#endif /* defined(_lint) */
 
-#if !EXPENSIVE_CHECKING
+
+#if defined(_lint)
+/* When linting, duplicate the macro argument to catch side-effects that would
+   be duplicated in the EXPENSIVE_CHECKING version, but don't call
+   check_assertion since that results in spurious lint errors when the macro
+   is used in a macro that itself duplicates its argument. */
 #define sym_parent_class(sym)                                                \
-  ((sym)->parent.class_type)
-#else /* EXPENSIVE_CHECKING */
+  ((void)(sym)->is_class_member, (sym)->parent.class_type)
+#else /* !defined(_lint) */
+#if EXPENSIVE_CHECKING
 #define sym_parent_class(sym)                                                \
   (check_assertion((sym)->is_class_member), (sym)->parent.class_type)
-#endif /* !EXPENSIVE_CHECKING */
+#else /* !EXPENSIVE_CHECKING */
+#define sym_parent_class(sym)                                                \
+  ((sym)->parent.class_type)
+#endif /* EXPENSIVE_CHECKING */
+#endif /* defined(_lint) */
 
 
 typedef struct a_symbol_header {

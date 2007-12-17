@@ -274,14 +274,24 @@ Macros that return TRUE if an IL entry represents a class or namespace member.
 /*
 Macros that returns the parent namespace of a namespace member. 
 */
-#if !(EXPENSIVE_CHECKING || (defined(_lint) && CHECKING))
+#if defined(_lint)
+/* When linting, duplicate the macro argument to catch side-effects that would
+   be duplicated in the EXPENSIVE_CHECKING version, but don't call
+   check_assertion since that results in spurious lint errors when the macro
+   is used in a macro that itself duplicates its argument. */
 #define scp_parent_namespace(scp)                                           \
-  ((scp)->parent.namespace_ptr)
-#else /* EXPENSIVE_CHECKING || (defined(_lint) && CHECKING) */
+  ((void)scp_is_namespace_member(scp),                                      \
+   (scp)->parent.namespace_ptr)
+#else /* !defined(_lint) */
+#if EXPENSIVE_CHECKING
 #define scp_parent_namespace(scp)                                           \
   (check_assertion(scp_is_namespace_member(scp)),                           \
    (scp)->parent.namespace_ptr)
-#endif /* !(EXPENSIVE_CHECKING || (defined(_lint) && CHECKING)) */
+#else /* !EXPENSIVE_CHECKING */
+#define scp_parent_namespace(scp)                                           \
+  ((scp)->parent.namespace_ptr)
+#endif /* EXPENSIVE_CHECKING */
+#endif /* defined(_lint) */
 
 #define parent_namespace_of(ptr)                                            \
   (scp_parent_namespace(&(ptr)->source_corresp))
@@ -291,13 +301,22 @@ Macros that return the parent namespace for a namespace member, and NULL for
 other entities that aren't class members.  (This macro should not be used for
 class members.)
 */
-#if !(EXPENSIVE_CHECKING || (defined(_lint) && CHECKING))
+#if defined(_lint)
+/* When linting, duplicate the macro argument to catch side-effects that would
+   be duplicated in the EXPENSIVE_CHECKING version, but don't call
+   check_assertion since that results in spurious lint errors when the macro
+   is used in a macro that itself duplicates its argument. */
 #define scp_parent_namespace_or_null(scp)                                   \
-  ((scp)->parent.namespace_ptr)
-#else /* EXPENSIVE_CHECKING || (defined(_lint) && CHECKING) */
+  ((void)(scp)->is_class_member, (scp)->parent.namespace_ptr)
+#else /* !defined(_lint) */
+#if EXPENSIVE_CHECKING
 #define scp_parent_namespace_or_null(scp)                                   \
   (check_assertion(!(scp)->is_class_member), (scp)->parent.namespace_ptr)
-#endif /* !(EXPENSIVE_CHECKING || (defined(_lint) && CHECKING)) */
+#else /* !EXPENSIVE_CHECKING */
+#define scp_parent_namespace_or_null(scp)                                   \
+  ((scp)->parent.namespace_ptr)
+#endif /* EXPENSIVE_CHECKING */
+#endif /* defined(_lint) */
 
 #define parent_namespace_or_null(ptr)                                       \
   (scp_parent_namespace_or_null(&(ptr)->source_corresp))
@@ -309,7 +328,7 @@ Macros that return the parent class of a class member.
 /* When linting, duplicate the macro argument to catch side-effects that would
    be duplicated in the EXPENSIVE_CHECKING version, but don't call
    check_assertion since that results in spurious lint errors when the macro
-   is used in macro that itself duplicates its argument. */
+   is used in a macro that itself duplicates its argument. */
 #define scp_parent_class(scp)                                            \
   ((void)(scp)->is_class_member, (scp)->parent.class_type)
 #else /* !defined(_lint) */
