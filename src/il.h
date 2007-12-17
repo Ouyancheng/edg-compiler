@@ -305,13 +305,22 @@ class members.)
 /*
 Macros that return the parent class of a class member. 
 */
-#if !(EXPENSIVE_CHECKING || (defined(_lint) && CHECKING))
+#if defined(_lint)
+/* When linting, duplicate the macro argument to catch side-effects that would
+   be duplicated in the EXPENSIVE_CHECKING version, but don't call
+   check_assertion since that results in spurious lint errors when the macro
+   is used in macro that itself duplicates its argument. */
 #define scp_parent_class(scp)                                            \
-  ((scp)->parent.class_type)
-#else /* EXPENSIVE_CHECKING || (defined(_lint) && CHECKING) */
+  ((void)(scp)->is_class_member, (scp)->parent.class_type)
+#else /* !defined(_lint) */
+#if EXPENSIVE_CHECKING
 #define scp_parent_class(scp)                                            \
   (check_assertion((scp)->is_class_member), (scp)->parent.class_type)
-#endif /* !(EXPENSIVE_CHECKING || (defined(_lint) && CHECKING)) */
+#else /* !EXPENSIVE_CHECKING */
+#define scp_parent_class(scp)                                            \
+  ((scp)->parent.class_type)
+#endif /* EXPENSIVE_CHECKING */
+#endif /* defined(_lint) */
 
 #define parent_class_of(ptr)                                                \
   (scp_parent_class(&(ptr)->source_corresp))
