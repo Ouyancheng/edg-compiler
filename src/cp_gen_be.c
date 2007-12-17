@@ -2539,9 +2539,9 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
   /* If the name is a member of a class or namespace in C++, output the
      class or namespace qualifier. */
   if (il_header.source_language == sl_Cplusplus) {
-    a_boolean   save_qualification_needed = scp->qualification_needed;
+    a_boolean save_qualification_needed = scp->qualification_needed;
     if (entry_kind == iek_type) {
-      a_type_ptr  tp = (a_type_ptr)scp;
+      a_type_ptr tp = (a_type_ptr)scp;
       if ((tp->kind == (a_type_kind)tk_class ||
            tp->kind == (a_type_kind)tk_struct ||
            tp->kind == (a_type_kind)tk_union) &&
