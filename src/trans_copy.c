@@ -563,7 +563,7 @@ and remap the pointers in the copy.
   } else if (kind == iek_scope) {
     a_scope_ptr scope = (a_scope_ptr)copy;
     scope->scope_orphaned_list_header_generated = FALSE;
-    if (scope->kind == sck_namespace) {
+    if (scope->kind == (a_scope_kind)sck_namespace) {
       /* Update the pointers block for a namespace scope that has been
          copied (not merged). */
       a_scope_pointers_block  *block = get_pointers_block_for_scope(
