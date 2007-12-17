@@ -2935,7 +2935,7 @@ Macros to retrieve the parent class or namespace associated with a symbol.
    be duplicated in the EXPENSIVE_CHECKING version, but don't call
    check_assertion since that results in spurious lint errors when the macro
    is used in a macro that itself duplicates its argument. */
-#define scp_parent_namespace(sym)                                            \
+#define sym_parent_namespace(sym)                                            \
   ((void)sym_is_namespace_member(sym),                                       \
    (sym)->parent.namespace_ptr)
 #else /* !defined(_lint) */
