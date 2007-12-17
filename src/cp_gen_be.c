@@ -7949,7 +7949,6 @@ call in the normal way.
                ((msvc_target_version_number == 1200 &&
                  bare_return_type->source_corresp.is_class_member) ||
                 (msvc_target_version_number < 1310 &&
-                 !bare_return_type->source_corresp.is_class_member &&
                  is_namespace_member(bare_return_type))) &&
                has_name_before_mangling(return_type)) {
       /* Some builds of MSVC 6.0 (12.00.8804, for instance, but not
@@ -9574,8 +9573,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
             /* Use the type name to create a "destructor" name. */
             if (!(msvc_is_generated_code_target &&
                   msvc_target_version_number <= 1200 &&
-                  (type->source_corresp.is_class_member ||
-                   is_namespace_member(type)))) {
+                  is_class_or_namespace_member(type))) {
               /* MSVC++ 6.0 has a bug that causes it to reject a qualified
                  destructor reference if the qualifier is itself a
                  qualified-id.  The qualifier isn't really necessary
@@ -10957,10 +10955,8 @@ Generate code for a class member or nonmember using-declaration.
     if (msvc_is_generated_code_target &&
         msvc_target_version_number == 1200 &&
         curr_name_context_is_a_class() &&
-        !class_type->source_corresp.is_class_member &&
         is_namespace_member(class_type) &&
-        class_type->variant.class_struct_union.extra_info->template_arg_list
-                                                                     != NULL) {
+        class_type_supp(class_type)->template_arg_list != NULL) {
       /* MSVC++ 6.0 cannot handle a qualifier of the form NS::cls<arg>::...
          Instead, we generate a typedef and use that. */
       establish_replacement_typedef(class_type, /*set=*/TRUE);
@@ -12134,7 +12130,6 @@ source and the expression is generated in that form.
                  ((msvc_target_version_number == 1200 &&
                    bare_init_entity_type->source_corresp.is_class_member) ||
                   (msvc_target_version_number < 1310 &&
-                   !bare_init_entity_type->source_corresp.is_class_member &&
                    is_namespace_member(bare_init_entity_type))) &&
                  has_name_before_mangling(init_entity_type)) {
         /* Some builds of MSVC 6.0 (12.00.8804, for instance, but not
@@ -12366,7 +12361,7 @@ initialization is in a condition declaration if is_condition is TRUE.
   if (is_condition || is_explicit_initializer(init_kind, initializer)) {
     /* Push the name context for a class/namespace member. */
     if (microsoft_dialect_is_generated_code_target &&
-        !var->source_corresp.is_class_member && is_namespace_member(var)) {
+        is_namespace_member(var)) {
       /* In the Microsoft dialect, the initializer for a namespace member
          defined outside its namespace is not in the lexical scope of the
          namespace; i.e., name references in the initializer that refer to
@@ -12701,8 +12696,7 @@ declaration following this one is such a continuation.
      allowed in Microsoft mode). */
   force_unqualified_name =
        !is_definition && !is_specialization &&
-       !(microsoft_mode && !var->source_corresp.is_class_member &&
-         is_namespace_member(var) &&
+       !(microsoft_mode && is_namespace_member(var) &&
          !scope_is_in_name_context_stack(
                               parent_namespace_of(var)->variant.assoc_scope));
   /* Output the variable name and its type.  Do not put out a name for

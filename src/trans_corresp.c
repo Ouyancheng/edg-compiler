@@ -6374,7 +6374,7 @@ namespace (if any) of the corresponding symbol in the other translation unit.
     }  else {
       /* We are looking for a symbol that is not a class or namespace
          member. */
-      if (sym->is_class_member || sym_is_namespace_member(sym)) continue;
+      if (sym_is_class_or_namespace_member(sym)) continue;
     }  /* if */
     /* If the symbol is an overload set we must check each member of the
        set. */

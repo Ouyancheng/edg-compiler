@@ -638,8 +638,7 @@ due to the simulated injected name of a template instance in Microsoft mode.
       /* sym_ptr does not hide old_sym_ptr -- they represent the same
          declaration. */
     } else if (old_sym_ptr->decl_scope == file_scope_number ||
-               old_sym_ptr->is_class_member ||
-               sym_is_namespace_member(old_sym_ptr)) {
+               sym_is_class_or_namespace_member(old_sym_ptr)) {
       /* The name hiding can be defeated by using a qualifier. */
       record_defeatable_name_hiding(
                               old_sym_ptr,
@@ -910,8 +909,7 @@ type specifier when put out by the C++-generating back end.
          There's no need to generate hidden-name info for this common
          construct. */
     } else if (old_sym_ptr->decl_scope != sym_ptr->decl_scope &&
-               (old_sym_ptr->is_class_member ||
-                sym_is_namespace_member(old_sym_ptr) ||
+               (sym_is_class_or_namespace_member(old_sym_ptr) ||
                 old_sym_ptr->decl_scope == file_scope_number)) {
       /* No need to defeat the name hiding with an elaborated type
          specifier -- the tag name will be qualified, either by its
@@ -1024,8 +1022,7 @@ C++-generating back end.
          symbols are excluded from this test because their decl_scope is not
          meaningful in this context. */
     } else if (old_sym_ptr->decl_scope == file_scope_number ||
-               old_sym_ptr->is_class_member ||
-               sym_is_namespace_member(old_sym_ptr) ||
+               sym_is_class_or_namespace_member(old_sym_ptr) ||
                old_sym_ptr->synthesized_namespace_projection) {
       /* A qualifiable name. */
       tag_hidden_by_nontag = FALSE;
@@ -1055,8 +1052,7 @@ C++-generating back end.
              an unnamed namespace. */
         } else {
           if (old_sym_ptr->decl_scope == file_scope_number ||
-              old_sym_ptr->is_class_member ||
-              sym_is_namespace_member(old_sym_ptr)) {
+              sym_is_class_or_namespace_member(old_sym_ptr)) {
             /* old_sym_ptr can point to a type or a class template at this
                point. */
             tag_hidden_by_nontag = is_class_struct_union_symbol(old_sym_ptr);
@@ -1127,8 +1123,7 @@ exist).
         tag_hidden_by_nontag = TRUE;
         hidden_class_or_namespace_member = FALSE;
       } else if (old_sym_ptr->decl_scope == file_scope_number ||
-                 old_sym_ptr->is_class_member ||
-                 sym_is_namespace_member(old_sym_ptr) ||
+                 sym_is_class_or_namespace_member(old_sym_ptr) ||
                  old_sym_ptr->synthesized_namespace_projection) {
         /* The entity can be named using a qualified-id. */
         tag_hidden_by_nontag = FALSE;

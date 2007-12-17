@@ -4725,8 +4725,7 @@ a locator for the new symbol.  Return a pointer to the new symbol.
     sym_ptr->is_error = TRUE;
     *overload_sym = NULL;
   } else {
-    use_namespace = !other_sym->is_class_member &&
-                    sym_is_namespace_member(other_sym);
+    use_namespace = sym_is_namespace_member(other_sym);
     if (use_namespace) ns_ptr = sym_parent_namespace(other_sym);
     /* Add the symbol to the overloaded function list. */
     *overload_sym = 
@@ -10984,8 +10983,7 @@ Return TRUE if the indicated symbol is a function-local symbol.
   a_scope_stack_entry_ptr ssep;
 
   /* Reject the easy cases, i.e., class and namespace members. */
-  if (sym->is_class_member ||
-      sym_is_namespace_member(sym) ||
+  if (sym_is_class_or_namespace_member(sym) ||
       sym->decl_scope == file_scope_number ||
       sym->synthesized_namespace_projection) {
     /* is_local = FALSE;  -- already set. */

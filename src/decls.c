@@ -3340,8 +3340,7 @@ be issued at the given position.
                       is_inline || innermost_function_scope != NULL ||
                       routine->source_corresp.name_linkage ==
                                           (a_name_linkage_kind)nlk_external ||
-                      !(routine_sym->is_class_member ||
-                        sym_is_namespace_member(routine_sym) ||
+                      !(sym_is_class_or_namespace_member(routine_sym) ||
                         routine_sym->decl_scope == file_scope_number));
 #endif /* CHECKING */
     } else if (old_dll_flags == 0) {
@@ -3636,8 +3635,7 @@ position. */
                       innermost_function_scope != NULL ||
                       var->source_corresp.name_linkage ==
                                           (a_name_linkage_kind)nlk_external ||
-                      !(var_sym->is_class_member ||
-                        sym_is_namespace_member(var_sym) ||
+                      !(sym_is_class_or_namespace_member(var_sym) ||
                         var_sym->decl_scope == file_scope_number));
 #endif /* CHECKING */
     } else if (old_dll_flags == 0) {

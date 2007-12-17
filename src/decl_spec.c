@@ -3144,8 +3144,7 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
                  a namespace made visible by a GNU strong using-directive. */
               if (tag_sym->decl_scope !=
                                        scope_stack[depth_scope_stack].number &&
-                  ((!tag_sym->is_class_member &&
-                    !sym_is_namespace_member(tag_sym)) ||
+                  (!sym_is_class_or_namespace_member(tag_sym) ||
                    !(namespace_is_enclosed_by_curr_scope(tag_sym) ||
                      is_symbol_from_strong_using_namespace(tag_sym)))) {
                 pos_sy_error(ec_bad_scope_for_specialization,
@@ -3223,8 +3222,7 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
           /* We have a specific declaration of a template class. */
           if (tag_sym->decl_scope != scope_stack[depth_scope_stack].number &&
               !(microsoft_mode && !is_class_definition) &&
-              ((!tag_sym->is_class_member &&
-                !sym_is_namespace_member(tag_sym)) ||
+              (!sym_is_class_or_namespace_member(tag_sym) ||
                !namespace_is_enclosed_by_curr_scope(tag_sym))) {
             /* Explicit specializations of class templates must appear in the
                file or namespace scope in which the template was originally

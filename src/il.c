@@ -6312,7 +6312,7 @@ class is local to a function or if it is enclosed by the file scope.
     result = NULL;
   }  /* if */
   return result;
-}
+}  /* namespace_enclosing_class */
 
 
 a_scope_ptr ensure_il_scope_exists(a_scope_stack_entry_ptr ssep)

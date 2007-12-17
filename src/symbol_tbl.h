@@ -2923,6 +2923,9 @@ typedef struct a_symbol {
 /*
 Macros to retrieve the parent class or namespace associated with a symbol.
 */
+#define sym_is_class_or_namespace_member(sym)                                \
+  ((sym)->is_class_member || (sym)->parent.namespace_ptr != NULL)
+
 #define sym_is_namespace_member(sym)                                         \
   (!(sym)->is_class_member && (sym)->parent.namespace_ptr != NULL)
 

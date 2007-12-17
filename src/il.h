@@ -288,7 +288,8 @@ Macros that returns the parent namespace of a namespace member.
 
 /*
 Macros that return the parent namespace for a namespace member, and NULL for
-other entities that aren't class members.
+other entities that aren't class members.  (This macro should not be used for
+class members.)
 */
 #if !(EXPENSIVE_CHECKING || (defined(_lint) && CHECKING))
 #define scp_parent_namespace_or_null(scp)                                   \

@@ -1825,8 +1825,7 @@ template classes.
 #if IA64_ABI
     add_str_to_mangled_name("_Z", mctl);
 #endif /* IA64_ABI */
-    if (variable->source_corresp.is_class_member ||
-        is_namespace_member(variable)) {
+    if (is_class_or_namespace_member(variable)) {
       /* Static data member or namespace member variable. */
       mangled_member_variable_name(variable, mctl);
     } else {
@@ -3620,12 +3619,10 @@ template argument lists, and types promoted out of functions.
    qualifier. */
 #if !CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
 #define type_needs_parent_qualifier(type)                             \
-  ((type)->source_corresp.is_class_member ||                          \
-   is_namespace_member((type)))
+  (is_class_or_namespace_member((type)))
 #else /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
 #define type_needs_parent_qualifier(type)                             \
-  (((type)->source_corresp.is_class_member ||                         \
-    is_namespace_member((type))) &&                                   \
+  ((is_class_or_namespace_member((type))) &&                          \
    !type->use_cfront_transitional_nested_type_name_mangling)
 #endif /* !CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
 
@@ -3955,9 +3952,7 @@ and for unnamed classes and enums.  Nested types are encoded as such.
            put out "N...E" below. */
         substitution_available((char *)tmpl, iek_template, mctl)) {
       a_boolean need_close = FALSE;
-      if ((tmpl->source_corresp.is_class_member ||
-           is_namespace_member(tmpl)) &&
-           !is_in_namespace_std(tmpl)) {
+      if (is_class_or_namespace_member(tmpl) && !is_in_namespace_std(tmpl)) {
         /* The template is nested, so put "N...E" around the substitution
            and template arguments.  The ABI spec is ambiguous about this,
            but g++ 3.2 does it this way, including the special case
@@ -5899,8 +5894,7 @@ including classes.
 #endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
 #endif /* DO_IL_LOWERING */
     } else if (is_immediate_enum_type(type) &&
-               (type->source_corresp.is_class_member ||
-                is_namespace_member(type))) {
+               is_class_or_namespace_member(type)) {
       /* Mangle the names of member enum constants. */
       a_constant_ptr enum_con;
       for (enum_con = type->variant.integer.enum_info.constant_list;

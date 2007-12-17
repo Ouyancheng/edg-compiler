@@ -16053,7 +16053,7 @@ that follows.
          namespace they belong to or a namespace that encloses it. */
       if (sym->decl_scope != scope_stack[depth_scope_stack].number) {
         a_boolean	err = FALSE;
-        if (!sym->is_class_member && !sym_is_namespace_member(sym)) {
+        if (!sym_is_class_or_namespace_member(sym)) {
           /* A global scope symbol.  This is allowed only if this is
              a Microsoft in-class specialization. */
           err = !microsoft_mode || !decl_state->is_member_decl;
