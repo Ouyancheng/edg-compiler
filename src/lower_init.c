@@ -1429,9 +1429,9 @@ for the source parameter of the copy constructor.
 #if !IA64_ABI
   /* Skip over any parameters added for virtual base class pointers.
      See add_constructor_params. */
-  class_type = curr_routine->source_corresp.parent.class_type;
+  class_type = parent_class_of(curr_routine);
   if (class_type->variant.class_struct_union.any_virtual_base_classes) {
-    for (bcp = class_type->variant.class_struct_union.extra_info->base_classes;
+    for (bcp = class_type_supp(class_type)->base_classes;
          bcp != NULL;
          bcp = bcp->next) {
       if (bcp->is_virtual) {
@@ -1608,7 +1608,7 @@ There is an implied argument for the VTT.
 
   *implied_arg_list = *end_implied_arg_list = NULL;
   /* Get the class type. */
-  class_type = ctor_routine->source_corresp.parent.class_type;
+  class_type = parent_class_of(ctor_routine);
   prelower_class_type(class_type);
   if (ctor_needs_implied_arg_list(ctor_routine)) {
 #if !IA64_ABI
@@ -1685,7 +1685,7 @@ destructor for a complete object (that must be TRUE for the IA-64 ABI).
 
   *implied_arg_list = *end_implied_arg_list = NULL;
   /* Get the class type. */
-  class_type = dtor_routine->source_corresp.parent.class_type;
+  class_type = parent_class_of(dtor_routine);
   prelower_class_type(class_type);
 #if !IA64_ABI
   /* The first argument indicates whether we have a complete object. */
@@ -1731,7 +1731,7 @@ of the storage before the constructor is called.
 #endif /* IA64_ABI */
   if (dip->variant.constructor.value_initialization &&
       ctor_routine->compiler_generated &&
-      ctor_routine->source_corresp.parent.class_type->
+      parent_class_of(ctor_routine)->
                           variant.class_struct_union.has_zero_init_component) {
     need_zeroing = TRUE;
   }  /* if */
@@ -1789,8 +1789,7 @@ dip->variant.constructor.args has already been lowered.
     an_expr_node_ptr entity_node_copy =
                                 make_reusable_copy(entity_node,
                                                    /*vars_can_change=*/FALSE);
-    a_type_ptr       class_type =
-                                ctor_routine->source_corresp.parent.class_type;
+    a_type_ptr       class_type = parent_class_of(ctor_routine);
     insert_call_to_zero_entity(class_type,
                                have_complete_object,
                                entity_node,
@@ -2263,8 +2262,7 @@ for the IA-64 ABI (see "Array operator new cookies", section 2.7).
        void *)". */
     a_param_type_ptr param;
     param = unlowered_param_type_list_for_routine(new_routine);
-    if (!new_routine->source_corresp.is_class_member &&
-        new_routine->source_corresp.parent.namespace_ptr == NULL &&
+    if (!is_class_or_namespace_member(new_routine) &&
         param->next != NULL && param->next->next == NULL && 
         is_void_star_type(param->next->type)) {
       need_padding = FALSE;
@@ -3356,9 +3354,8 @@ default_arg_list.
     if (new_routine->special_kind == (a_special_function_kind)sfk_destructor &&
         new_routine->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_deleting) {
       /* Add the deletion code for the IA-64 ABI deleting destructor. */
-      a_type_ptr    class_type = new_routine->source_corresp.parent.class_type;
-      a_routine_ptr delete_routine =
-                            class_type->variant.class_struct_union.extra_info->
+      a_type_ptr    class_type = parent_class_of(new_routine);
+      a_routine_ptr delete_routine = class_type_supp(class_type)->
                                                  assoc_operator_delete_routine;
       check_assertion(delete_routine != NULL);
       this_arg = var_rvalue_expr(this_param_var);
@@ -3534,7 +3531,7 @@ that now by setting its ctor_dtor_kind field.
 {
   check_assertion(routine->primary_ctor_or_dtor == NULL);
   if (routine->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_none) {
-    a_type_ptr class_type = routine->source_corresp.parent.class_type;
+    a_type_ptr class_type = parent_class_of(routine);
     if (class_type->variant.class_struct_union.any_virtual_base_classes) {
       /* The class has virtual bases.  The primary routine is the subobject
          constructor, and the complete object constructor calls that. */
@@ -3637,8 +3634,7 @@ routine will be the same as the one passed in.
       new_routine->inline_instance_required =routine->inline_instance_required;
 #endif /* INSTANTIATE_EXTERN_INLINE */
       new_routine->source_corresp.is_class_member = TRUE;
-      new_routine->source_corresp.parent.class_type =
-                                     routine->source_corresp.parent.class_type;
+      new_routine->source_corresp.parent.class_type = parent_class_of(routine);
       set_routine_special_kind(new_routine, routine->special_kind);
       new_routine->ctor_dtor_kind = kind;
       new_routine->primary_ctor_or_dtor = routine;
@@ -7957,7 +7953,7 @@ tricks.
 
   check_assertion(dtor_routine != NULL &&
                   dtor_routine->source_corresp.is_class_member);
-  class_type = dtor_routine->source_corresp.parent.class_type;
+  class_type = parent_class_of(dtor_routine);
   /* Cast the expression to the type of the destructor parameter, if
      necessary.  This is needed for the case where a pointer to an array
      is deleted without the "delete []" syntax.  That's undefined
@@ -10734,7 +10730,7 @@ constructor, but may instead be after an assignment to "this".
      is more than one assignment to "this" in a constructor. */
   /* Get a pointer to the "this" parameter variable. */
   this_param_var = scope->variant.routine.parameters;
-  class_type = scope->variant.routine.ptr->source_corresp.parent.class_type;
+  class_type = parent_class_of(scope->variant.routine.ptr);
   /* Mark the class as referenced because, at the very least, the
      "this" parameter uses it. */
   class_type->source_corresp.referenced = TRUE;
@@ -11057,10 +11053,9 @@ constructor scope, and also lower the user code.
   a_routine_ptr      ctor_routine = scope->variant.routine.ptr;
 #endif /* NEW_CAN_BE_FOLDED_INTO_CTOR || ASSIGNMENT_TO_THIS_ALLOWED */
 #if NEW_CAN_BE_FOLDED_INTO_CTOR
-  a_type_ptr         class_type =
-                          ctor_routine->source_corresp.parent.class_type;
+  a_type_ptr         class_type = parent_class_of(ctor_routine);
   a_class_type_supplement_ptr
-                     ctsp = class_type->variant.class_struct_union.extra_info;
+                     ctsp = class_type_supp(class_type);
   a_routine_ptr      new_routine = ctsp->assoc_operator_new_routine;
   a_variable_ptr     this_param_var = scope->variant.routine.parameters;
   an_expr_node_ptr   if_node;
@@ -11518,7 +11513,7 @@ insert_dtor_member_and_base_destructions.
   */
   /* Get a pointer to the "this" parameter variable. */
   this_param_var = innermost_function_scope->variant.routine.parameters;
-  class_type = dtor_routine->source_corresp.parent.class_type;
+  class_type = parent_class_of(dtor_routine);
   /* The constructor_inits list contains a list of destructions.  Each
      destruction is a default call supplied by the front end.  Every
      base class and member that requires a destructor appears, in the
@@ -12007,7 +12002,7 @@ destructor scope, and also lower the user code.
   error_position = code_pos_for_lowering = opening_brace_pos;
   /* Get a pointer to the "this" parameter variable. */
   this_param_var = scope->variant.routine.parameters;
-  class_type = dtor_routine->source_corresp.parent.class_type;
+  class_type = parent_class_of(dtor_routine);
   /* Mark the class as referenced because, at the very least, the
      "this" parameter uses it.  For some cases involving generated virtual
      destructors, this is necessary. */

@@ -6067,7 +6067,7 @@ into a direct call if possible.
 
       complete_object_type = skip_typerefs(complete_object_type);
       function = function_from_virtual_function_operand(function_operand);
-      class_of_orig_function = function->source_corresp.parent.class_type;
+      class_of_orig_function = parent_class_of(function);
 
       if (identical_types(complete_object_type, class_of_orig_function)) {
         /* The function is a direct member of the class of the complete
@@ -6100,8 +6100,7 @@ into a direct call if possible.
              argument and to update the function operand to refer to the
              actual function being called. */
           an_expr_node_ptr new_top_of_tree;
-          a_type_ptr       class_of_overrider =
-                                   overrider->source_corresp.parent.class_type;
+          a_type_ptr       class_of_overrider = parent_class_of(overrider);
           an_expr_node_ptr new_parent =
                       retrace_base_casts(implicit_this_arg, class_of_overrider,
                                          &new_top_of_tree);

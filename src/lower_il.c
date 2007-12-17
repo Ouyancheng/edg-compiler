@@ -241,12 +241,11 @@ For the IA-64 ABI:
     /* For a virtual function, the offset of the virtual function table
        pointer in the class of the routine is returned in *offset,
        *func == NULL. */
-    a_type_ptr class_type = routine->source_corresp.parent.class_type;
+    a_type_ptr class_type = parent_class_of(routine);
     check_assertion_str(class_type->variant.class_struct_union.
                                                          any_virtual_functions,
    "repr_for_ptr_to_member_function_constant: class has no virtual functions");
-    *offset = class_type->variant.class_struct_union.extra_info->
-                                                  virtual_function_info_offset;
+    *offset = class_type_supp(class_type)->virtual_function_info_offset;
 #else /* IA64_ABI */
     /* In the IA-64 ABI, the offset is the virtual function table offset
        in bytes of the function. */
@@ -1937,7 +1936,7 @@ union, adjust it to make the anonymous union reference(s) explicit.
     op2 = node->variant.operation.operands->next;
     field = op2->variant.field;
     /* See if the field is from an anonymous union. */
-    field_class = field->source_corresp.parent.class_type;
+    field_class = parent_class_of(field);
     ctsp = field_class->variant.class_struct_union.extra_info;
     if (ctsp == NULL || /* Avoid abort when this code is used to lower
                            C code in Microsoft mode. */
@@ -7146,8 +7145,7 @@ this routine to do a relatively simple copy of the all the fields.
     if (class_type->next == NULL) {
       /* The class type is the last on a list.  Use add_to_types_list to add
          the subobject type so that the last-pointer will be updated. */
-      if (class_type->source_corresp.is_class_member ||
-          class_type->source_corresp.parent.namespace_ptr != NULL ||
+      if (is_class_or_namespace_member(class_type) ||
           !class_type->source_corresp.is_local_to_function) {
         /* For class and namespace members, and entities in the file scope,
            add_to_types_list can figure out the right processing, and the
@@ -15988,7 +15986,7 @@ with the outermost enclosing class, for later promotion out of the class
 
     if (routine->source_corresp.is_class_member &&
         !routine->defined_outside_of_parent) {
-      routine_class = routine->source_corresp.parent.class_type;
+      routine_class = parent_class_of(routine);
       /* Promoting out of a member function.  Get the promoted_local_types
          list. */
       /* If the class is a nested class, work out to the outermost
@@ -16001,10 +15999,9 @@ with the outermost enclosing class, for later promotion out of the class
                 point of the definition. */
              !routine_class->variant.class_struct_union.
                                       nested_class_defined_outside_of_parent) {
-        routine_class = routine_class->source_corresp.parent.class_type;
+        routine_class = parent_class_of(routine_class);
       }  /* while */
-      last_class_type = routine_class->variant.class_struct_union.extra_info->
-                                                          promoted_local_types;
+      last_class_type = class_type_supp(routine_class)->promoted_local_types;
       if (last_class_type != NULL) {
         /* Find the end of the list. */
         while (last_class_type->next != NULL) {
@@ -16105,8 +16102,7 @@ is instantiated in more than one translation unit.
   if (rout->source_corresp.is_local_to_function) {
     check_assertion(rout->source_corresp.is_class_member &&
                     !rout->is_template_function);
-    rout = enclosing_routine_for_local_type(
-                                       rout->source_corresp.parent.class_type);
+    rout = enclosing_routine_for_local_type(parent_class_of(rout));
   }  /* if */
   if (!C_mode() && is_or_will_be_extern_inline(rout)) {
     /* An extern inline routine might be expanded in more than one
@@ -16524,7 +16520,7 @@ have been promoted out of those classes.
            position related to the class's promoted position. */
       } else {
         check_assertion(!namespace_type->source_corresp.is_class_member);
-        nsp = namespace_type->source_corresp.parent.namespace_ptr;
+        nsp = parent_namespace_or_null(namespace_type);
         check_assertion(nsp != NULL && !nsp->is_namespace_alias);
         scope = nsp->variant.assoc_scope;
         /* Move the namespace_type, and all types preceding it on the namespace
@@ -16659,8 +16655,8 @@ scope.
 
   prev_param_var = scope->variant.routine.parameters;
 #if !IA64_ABI
-  class_type = ctor_routine->source_corresp.parent.class_type;
-  ctsp = class_type->variant.class_struct_union.extra_info;
+  class_type = parent_class_of(ctor_routine);
+  ctsp = class_type_supp(class_type);
   if (class_type->variant.class_struct_union.any_virtual_base_classes) {
     /* Loop through the virtual base classes of the current class. */
     for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
@@ -16737,7 +16733,7 @@ Generate declarations for the entry/wrapper functions used to call this routine
 when a base class return type is needed.  Definitions will be put out later.
 */
 {
-  a_type_ptr       rout_class = routine->source_corresp.parent.class_type;
+  a_type_ptr       rout_class = parent_class_of(routine);
   a_base_class_ptr bcp;
 
   /* Look at each base class (both direct and indirect). */
@@ -16882,7 +16878,7 @@ Do IL lowering of the indicated scope and everything under it.
     if (routine->source_corresp.is_class_member) {
       /* Member function.  Make sure that the class it is a member of has
          been pre-lowered. */
-      prelower_class_type(routine->source_corresp.parent.class_type);
+      prelower_class_type(parent_class_of(routine));
     }  /* if */
     routine_type = routine->type;
     routine_type = skip_typerefs(routine_type);
@@ -16983,8 +16979,7 @@ Do IL lowering of the indicated scope and everything under it.
          does not require static data members to be defined somewhere. */
       var = scope->variables;
       if (var != NULL) {
-        if (var->source_corresp.parent.class_type->
-            variant.class_struct_union.extra_info->template_arg_list != NULL) {
+        if (class_type_supp(parent_class_of(var))->template_arg_list != NULL) {
           /* Don't do this for static data members of template classes. */
         } else {
           for (; var != NULL; var = var->next) {

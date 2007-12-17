@@ -897,7 +897,7 @@ Dump information on a using-decl entry, for debug purposes.
         fputc(' ', f_debug);
       }  /* if */
       fprintf(f_debug, " \"%s\" = %s ", sc->name, str);
-      if (!udp->is_class_member && !is_namespace_member(sc)) {
+      if (!udp->is_class_member && !scp_is_namespace_member(sc)) {
         fputs("::", f_debug);
       }  /* if */
       db_name_full(sc, (an_il_entry_kind)udp->entity.kind);
@@ -3783,9 +3783,7 @@ members), and does not enter those.
     }  /* switch */
     if (do_source_corresp_check && could_be_orphan) {
       a_source_correspondence *scp = (a_source_correspondence *)entry_ptr;
-      if (scp->name != NULL ||
-          scp->is_class_member ||
-          is_namespace_member(scp)) {
+      if (scp->name != NULL || scp_is_class_or_namespace_member(scp)) {
         /* Named entities cannot be orphans. */
         /* Class and namespace members cannot be orphans. */
         could_be_orphan = FALSE;
@@ -4767,11 +4765,10 @@ value.  Several fields are cleared or adjusted.
       ucp->source_corresp.member_of_unknown_base =
                                      cp->source_corresp.member_of_unknown_base;
       if (ucp->source_corresp.is_class_member) {
-        ucp->source_corresp.parent.class_type =
-                                          cp->source_corresp.parent.class_type;
+        ucp->source_corresp.parent.class_type = parent_class_of(cp);
       } else {
         ucp->source_corresp.parent.namespace_ptr =
-                                       cp->source_corresp.parent.namespace_ptr;
+                                                 parent_namespace_or_null(cp);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -5904,7 +5901,7 @@ argument because it references a non-external entity, e.g., a local variable.
       /* The entity is a class member.  If the class is a local class,
          the entity is non-external.  Otherwise, the class will be forced
          to be external by this reference. */
-      a_type_ptr class_type = parent_class_of(scp);
+      a_type_ptr class_type = scp_parent_class(scp);
       if (class_type->source_corresp.is_local_to_function) {
         invalid = TRUE;
       } else {
@@ -6822,7 +6819,7 @@ for the scope, which means no last-pointer is being maintained (anymore).
     if (scp->is_class_member) {
       /* Compute the scope and pointers-block for the scope associated with
          the parent class. */
-      class_type = parent_class_of(scp);
+      class_type = scp_parent_class(scp);
     } else if (!C_mode() &&
                scp->name_linkage == (a_name_linkage_kind)nlk_external) {
       /* extern "C" functions and variables are always on the file scope
@@ -6831,7 +6828,7 @@ for the scope, which means no last-pointer is being maintained (anymore).
     } else {
       /* Compute the scope and pointers-block for the namespace scope if this
          is a namespace member or the file scope otherwise. */
-      nsp = parent_namespace_or_null(scp);
+      nsp = scp_parent_namespace_or_null(scp);
       if (nsp == NULL) {
         check_assertion(!scp->is_local_to_function || total_errors != 0);
         scope_level = DEPTH_OF_FILE_SCOPE;
@@ -6852,7 +6849,7 @@ for the scope, which means no last-pointer is being maintained (anymore).
   } else if (class_type != NULL) {
     check_assertion_str(!C_mode(),
                         "get_scope_for_list: class scope in C mode");
-    sp = class_type_supp(parent_class_of(scp))->assoc_scope;
+    sp = class_type_supp(scp_parent_class(scp))->assoc_scope;
     if (sp != NULL) {
       scope_level = sp->depth_in_scope_stack;
     }  /* if */
@@ -9555,7 +9552,7 @@ name.
   result = has_name(type);
   if (result) {
     while (type->source_corresp.is_class_member) {
-      type = skip_typerefs(type->source_corresp.parent.class_type);
+      type = skip_typerefs(parent_class_of(type));
       if (!has_name(type)) {
         result = FALSE;
         break;
@@ -16069,10 +16066,8 @@ with it.  Entries associated with scopes must also have no child entries.
                      sp->kind == (a_scope_kind)sck_function &&
                      sp->variant.routine.ptr->special_kind ==
                                     (a_special_function_kind)sfk_constructor &&
-                     sp->variant.routine.ptr->
-                              source_corresp.parent.class_type->
-                                variant.class_struct_union.extra_info->
-                                  assoc_operator_new_routine != NULL) {
+                     class_type_supp(parent_class_of(sp->variant.routine.ptr))
+                                        ->assoc_operator_new_routine != NULL) {
             /* When exceptions are enabled, a constructor with the allocation
                folded in needs an object lifetime so an entry for the
                deletion of the storage can be added. */
@@ -16607,7 +16602,7 @@ a template parameter type or nonreal class.
   a_boolean	result = FALSE;
 
   if (scp->is_class_member) {
-    a_type_ptr	parent_type = parent_class_of(scp);
+    a_type_ptr  parent_type = scp_parent_class(scp);
     if (is_immediate_class_type(parent_type)) {
       result = parent_type->variant.class_struct_union.is_nonreal_class;
     } else if (parent_type->kind == (a_type_kind)tk_template_param) {
@@ -17887,7 +17882,7 @@ eliminated, if appropriate.
         if (sym != NULL) {
           if (rp->is_virtual) {
 #if DO_IL_LOWERING
-            a_type_ptr                   class_type = sym->parent.class_type;
+            a_type_ptr                   class_type = sym_parent_class(sym);
             a_class_type_supplement_ptr  ctsp;
             a_variable_ptr               vtbl_var, typeinfo_var;
 
@@ -18434,9 +18429,9 @@ direct or indirect member of an unnamed namespace.
   a_namespace_ptr  nsp;
 
   if (scp->is_class_member) {
-    scp = &scp->parent.class_type->source_corresp;
+    scp = &scp_parent_class(scp)->source_corresp;
     found = is_member_of_unnamed_namespace(scp);
-  } else if ((nsp = scp->parent.namespace_ptr) != NULL) {
+  } else if ((nsp = scp_parent_namespace_or_null(scp)) != NULL) {
     if (unmangled_name_of(&nsp->source_corresp) == NULL) {
       found = TRUE;
     } else {

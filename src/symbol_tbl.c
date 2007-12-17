@@ -252,8 +252,9 @@ that might normally precede it.
       (scp = source_corresp_for_il_entry(entry, kind)) != NULL &&
       sym->is_class_member == scp->is_class_member &&
       (sym->is_class_member ?
-         sym_parent_class(sym) == parent_class_of(scp) :
-         sym_parent_namespace_or_null(sym) == parent_namespace_or_null(scp))) {
+         sym_parent_class(sym) == scp_parent_class(scp) :
+         sym_parent_namespace_or_null(sym) ==
+                                         scp_parent_namespace_or_null(scp))) {
     /* Use the IL entry to generate the name. */
     if (suppress_qualifier) {
       form_unqualified_name(scp, kind, octl);
@@ -1955,8 +1956,7 @@ return types).
   a_boolean  answer = FALSE;
 
   if (loc->is_class_member && loc->symbol_header != NULL) {
-    a_symbol_ptr  parent = (a_symbol_ptr)loc->parent.class_type
-                                                  ->source_corresp.assoc_info;
+    a_symbol_ptr  parent = symbol_for(qualifier_class_type(*loc));
     if (loc->symbol_header->identifier != NULL &&
         parent->header->identifier != NULL &&
         strcmp(loc->symbol_header->identifier,
@@ -5153,7 +5153,7 @@ and attach them to rout_sym, and return the function template symbol.
     template_sym = alloc_symbol((a_symbol_kind)sk_function_template,
                                 rout_sym->header, &rout_sym->decl_position);
     template_sym->is_class_member = TRUE;
-    template_sym->parent.class_type = rout_sym->parent.class_type;
+    template_sym->parent.class_type = sym_parent_class(rout_sym);
     template_sym->variant.template_info->variant.function.routine =
                                             rout_sym->variant.routine.ptr;
     /* Create the associated function instantiation entry, but do not link it
@@ -10962,14 +10962,14 @@ the parent of the outermost enclosing class.
 
   /* If this is a class member, skip out to the outermost class type. */
   if (sym->is_class_member) {
-    a_type_ptr	tp = sym->parent.class_type;
+    a_type_ptr	tp = sym_parent_class(sym);
     while (tp->source_corresp.is_class_member) {
-      tp = tp->source_corresp.parent.class_type;
+      tp = parent_class_of(tp);
     }  /* while */
     /* Get the namespace pointer from the outermost class. */
-    nsp = tp->source_corresp.parent.namespace_ptr;
+    nsp = parent_namespace_or_null(tp);
   } else {
-    nsp = sym->parent.namespace_ptr;
+    nsp = sym_parent_namespace_or_null(sym);
   }  /* if */
   return nsp;
 }  /* parent_namespace_for_symbol */

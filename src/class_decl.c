@@ -5269,8 +5269,8 @@ or struct definition.  The syntax is
             a_scope_stack_entry_ptr ssep = scope_stack_entry_for(depth);
             if ((ssep->kind == (a_scope_kind)sck_class_struct_union ||
                  ssep->kind == (a_scope_kind)sck_class_reactivation) &&
-                same_entities(ssep->assoc_type, orig_base_class_type->
-                                           source_corresp.parent.class_type)) {
+                same_entities(ssep->assoc_type,
+                              parent_class_of(orig_base_class_type))) {
               /* Use the underlying type. */
               orig_base_class_type = base_class_type;
               break;

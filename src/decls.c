@@ -9735,7 +9735,7 @@ operator function reference.
         parent->class_type != NULL &&
         !is_incomplete_type(parent->class_type)) {
       a_symbol_ptr	sym;
-      sym = (a_symbol_ptr)parent->class_type->source_corresp.assoc_info;
+      sym = symbol_for(parent->class_type);
       /* In valid usage, the class type will always be either a complete
          real class type or a prototype instantiation.  In other cases,
          suppress the reactivation because incomplete and nonreal classes

@@ -10453,11 +10453,11 @@ sure it matches the primary template.
   sym->decl_scope = primary_sym->decl_scope;
   tssp = sym->variant.template_info;
   if (primary_sym->is_class_member) {
-    sym->parent.class_type = primary_sym->parent.class_type;
+    sym->parent.class_type = sym_parent_class(primary_sym);
     sym->is_class_member = TRUE;
     tssp->variant.class_template.access = decl_state->access; 
-  } else if (primary_sym->parent.namespace_ptr != NULL) {
-    sym->parent.namespace_ptr = primary_sym->parent.namespace_ptr;
+  } else if (sym_is_namespace_member(primary_sym)) {
+    sym->parent.namespace_ptr = sym_parent_namespace_or_null(primary_sym);
   }  /* if */
   tssp->variant.class_template.primary_template_sym = primary_sym;
   if (!decl_state->decl_scope_err && !is_error_locator(*locator)) {
@@ -16954,14 +16954,13 @@ specified by "tip" depend on a template parameter.
        argument list. */
     a_type_ptr	type;
     check_assertion(sym->is_class_member);
-    type = sym->parent.class_type;
+    type = sym_parent_class(sym);
     while (type != NULL && type->source_corresp.is_class_member &&
-           type->variant.class_struct_union.extra_info->
-                                                  template_arg_list == NULL) {
-      type = type->source_corresp.parent.class_type;
+           class_type_supp(type)->template_arg_list == NULL) {
+      type = parent_class_of(type);
     }  /* while */
     check_assertion(type != NULL);
-    arg_list = type->variant.class_struct_union.extra_info->template_arg_list;
+    arg_list = class_type_supp(type)->template_arg_list;
   }  /* if */
   check_assertion_str2(!template_arg_list_involves_template_param(arg_list),
                        "check_for_nonreal_instance:",

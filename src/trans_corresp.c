@@ -429,13 +429,13 @@ The given entity should have a source correspondence.
   check_assertion(kind != (an_il_entry_kind)iek_base_class);
   /* Is the parent canonical? */
   if (scp->is_class_member) {
-    if (canonical_il_entry_of(parent_class_of(scp)) ==
-                                                (char*)parent_class_of(scp)) {
+    if (canonical_il_entry_of(scp_parent_class(scp)) ==
+                                               (char*)scp_parent_class(scp)) {
       rank = 1;
     }  /* if */
-  } else if (is_namespace_member(scp)) {
-    if (canonical_il_entry_of(parent_namespace_of(scp)) ==
-                                            (char*)parent_namespace_of(scp)) {
+  } else if (scp_is_namespace_member(scp)) {
+    if (canonical_il_entry_of(scp_parent_namespace(scp)) ==
+                                           (char*)scp_parent_namespace(scp)) {
       rank = 1;
     }  /* if */
   }  /* if */
@@ -1025,8 +1025,8 @@ given symbols are identical.
         scp1->is_class_member != scp2->is_class_member) {
       result = FALSE;
     } else if (scp1 != NULL && scp2 != NULL && scp1->is_class_member) {
-      a_type_ptr  parent1 = parent_class_of(sym1);
-      a_type_ptr  parent2 = parent_class_of(sym2);
+      a_type_ptr  parent1 = sym_parent_class(sym1);
+      a_type_ptr  parent2 = sym_parent_class(sym2);
       check_assertion(parent1 != NULL && parent2 != NULL);
       result = corresponding_types(parent1, parent2);
     } else {
@@ -1036,10 +1036,10 @@ given symbols are identical.
          entry even though they declared an entity in a namespace.  Use the IL
          entry in those cases.  (See function add_namespace_parent_pointer.) */
       if (parent1 == NULL && scp1 != NULL) {
-        parent1 = parent_namespace_or_null(scp1);
+        parent1 = scp_parent_namespace_or_null(scp1);
       }  /* if */
       if (parent2 == NULL && scp2 != NULL) {
-        parent2 = parent_namespace_or_null(scp2);
+        parent2 = scp_parent_namespace_or_null(scp2);
       }  /* if */
       if (parent1 != NULL || parent2 != NULL) {
         if (!microsoft_bugs && scp1 != NULL && scp2 != NULL &&
@@ -1096,11 +1096,11 @@ does for symbol entries.
   if (scp1->is_class_member != scp2->is_class_member) {
     result = FALSE;
   } else if (scp1->is_class_member) {
-    result = same_entities(parent_class_of(scp1),
-                           parent_class_of(scp2));
+    result = same_entities(scp_parent_class(scp1),
+                           scp_parent_class(scp2));
   } else {
-    result = same_entities(parent_namespace_or_null(scp1),
-                           parent_namespace_or_null(scp2));
+    result = same_entities(scp_parent_namespace_or_null(scp1),
+                           scp_parent_namespace_or_null(scp2));
   }  /* if */
   return result;
 }  /* f_il_entries_have_known_same_parents */
@@ -2034,11 +2034,11 @@ symbols are listed under the same header).
            even though the declarations were compatible). */
         match = TRUE;
       } else {
-        a_type_ptr  parent_to_diagnose = parent_class_of(scp1);
+        a_type_ptr  parent_to_diagnose = scp_parent_class(scp1);
         if (parent_to_diagnose ==
                        (a_type_ptr)canonical_il_entry_of(parent_to_diagnose) &&
             scp2->is_class_member) {
-          parent_to_diagnose = parent_class_of(scp2);
+          parent_to_diagnose = scp_parent_class(scp2);
         }  /* if */
         report_bad_trans_unit_corresp(parent_to_diagnose);
       }  /* if */
@@ -2252,7 +2252,7 @@ is in fact valid.
       } else {
         /* An unnamed field has a meaningless associated symbol.  Report
            the error on the associated class instead. */
-        report_bad_trans_unit_corresp(parent_class_of(scp));
+        report_bad_trans_unit_corresp(scp_parent_class(scp));
         set_no_trans_unit_corresp(iek_field, field);
       }  /* if */
     }  /* if */
@@ -3683,8 +3683,7 @@ routine.
   a_source_correspondence_ptr  scp = &routine->source_corresp;
   a_symbol_ptr                 sym = (a_symbol_ptr)scp->assoc_info;
 
-  if (sym != NULL &&
-      !scp->is_class_member && !is_namespace_member(scp)) {
+  if (sym != NULL && !scp_is_class_or_namespace_member(scp)) {
     result = (strcmp(sym->header->identifier, "main") == 0);
   }  /* if */
   return result;
@@ -5617,7 +5616,7 @@ the direct parent class.
   a_type_ptr  root;
 
   check_assertion(scp->is_class_member);
-  root = parent_class_of(scp);
+  root = scp_parent_class(scp);
   while (root->source_corresp.is_class_member &&
          !type_is_top_level_prototype_instantiation(root)) {
     a_type_ptr  next_out = parent_class_of(root);
@@ -5659,7 +5658,7 @@ way, determine to which other IL entry this might correspond.
         root = NULL;
       } else {
         /* Make sure the parent class has been processed. */
-        determine_correspondence(&parent_class_of(scp)->source_corresp,
+        determine_correspondence(&scp_parent_class(scp)->source_corresp,
                                  (an_il_entry_kind)iek_type);
         if (kind == (an_il_entry_kind)iek_template) {
           /* For member class templates we can end up with ordering problems
@@ -5785,7 +5784,7 @@ way, determine to which other IL entry this might correspond.
          unvisited ancestors as having no correspondence. */
       set_no_trans_unit_corresp(kind, scp);
       if (scp->is_class_member) {
-        a_type_ptr  parent = parent_class_of(scp);
+        a_type_ptr  parent = scp_parent_class(scp);
         while (parent != root &&
                trans_unit_corresp_of_unknown_entry(parent) == NULL) {
           set_no_trans_unit_corresp(iek_type, parent);

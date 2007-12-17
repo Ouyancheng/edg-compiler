@@ -333,7 +333,7 @@ Traverse the list of alias fixups and set the alias fields as needed.
         if (scp != NULL &&
             scp->name_linkage != (a_name_linkage_kind)nlk_external &&
             !(aliased_sym->kind == (a_symbol_kind)sk_variable &&
-              scp->parent.namespace_ptr == NULL)) {
+              !scp_is_namespace_member(scp))) {
           /* #pragma redefine_extname applies to mangled names, but currently
              we can only look up the declared name.  We therefore only allow
              the pragma when both names are identical; i.e., for extern "C"

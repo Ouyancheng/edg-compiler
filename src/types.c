@@ -7750,7 +7750,7 @@ is a direct or indirect parent of a type on which type_ptr depends.
   if (type_ptr == specific_class_type) {
     *force_end_of_traversal = found = TRUE;
   } else if (type_ptr->source_corresp.is_class_member) {
-    type_ptr = type_ptr->source_corresp.parent.class_type;
+    type_ptr = parent_class_of(type_ptr);
     if (type_ptr == specific_class_type ||
         type_involves_specific_class_type(type_ptr, specific_class_type,
                                           /*members_only=*/FALSE)) {
@@ -7774,7 +7774,7 @@ parent of a type on which type_ptr depends.
   a_boolean  found = FALSE;
 
   if (type_ptr->source_corresp.is_class_member) {
-    type_ptr = type_ptr->source_corresp.parent.class_type;
+    type_ptr = parent_class_of(type_ptr);
     if (type_ptr == specific_class_type ||
         type_involves_specific_class_type(type_ptr, specific_class_type,
                                           /*members_only=*/TRUE)) {

@@ -3416,8 +3416,7 @@ namespace membership, or have the is_local_to_function flag TRUE.
 #if CHECKING && !STANDALONE_UTILITY_PROGRAM
 #define check_membership_info(entity, scope) \
 { if ((scope)->kind == (a_scope_kind)sck_file) { \
-    if ((entity)->source_corresp.is_class_member || \
-        (entity)->source_corresp.parent.namespace_ptr != NULL || \
+    if (is_class_or_namespace_member((entity)) || \
         (entity)->source_corresp.is_local_to_function) { \
       display_entity_if_debug_enabled(entity); \
       internal_error("check_membership_info: bad membership info"); \
@@ -3654,7 +3653,7 @@ selection operation).
                     "dump_field_from_second_operand: operand 2 not enk_field");
   field = second_operand->variant.field;
 #if CHECKING
-  { a_type_ptr field_class = field->source_corresp.parent.class_type;
+  { a_type_ptr field_class = parent_class_of(field);
     a_type_ptr struct_class = node->variant.operation.operands->type;
     an_expr_operator_kind op;
     if (field_class == NULL) {

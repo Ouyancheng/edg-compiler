@@ -2095,7 +2095,7 @@ Set the name_linkage field of the class or enum type pointed to by tp.
     /* A nested class or enum has the same linkage as the class of which it
        is a member.  GNU C++ ignores the name linkage of the enclosing class;
        e.g., a named class nested in an unnamed class has C++ name linkage. */
-    scp->name_linkage = parent_class_of(scp)->source_corresp.name_linkage;
+    scp->name_linkage = scp_parent_class(scp)->source_corresp.name_linkage;
   } else if (any_cfront_mode() &&
              depth_innermost_namespace_scope == DEPTH_OF_FILE_SCOPE) {
     /* In cfront mode -- unless this is a class or enum declared within a
@@ -2178,7 +2178,7 @@ names the namespace containing tag_sym.
     pos_sy_error(ec_bad_scope_for_definition, pos, tag_sym);
     *err = TRUE;
   } else if (scope->kind != (a_scope_kind)sck_namespace ||
-             tag_sym->parent.namespace_ptr !=
+             sym_parent_namespace_or_null(tag_sym) !=
                                  scope->variant.assoc_namespace) {
     /* Push a namespace extension scope. */
     should_be_pushed = TRUE;
@@ -3318,10 +3318,10 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
           /* A definition of a nested class that appears in the scope other
              than that of its parent class. */
           /* Find the outermost enclosing class. */
-          parent_sym = symbol_for(tag_sym->parent.class_type);
+          parent_sym = symbol_for(sym_parent_class(tag_sym));
           /* Find the outermost enclosing class. */
           while (parent_sym->is_class_member) {
-            parent_sym = symbol_for(parent_sym->parent.class_type);
+            parent_sym = symbol_for(sym_parent_class(parent_sym));
           }  /* while */
           if (parent_sym->decl_scope == ssep->number) {
             /* Okay to define the nested class in this scope -- it is the

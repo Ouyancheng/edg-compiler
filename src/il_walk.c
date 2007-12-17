@@ -472,11 +472,10 @@ cases (anonymous unions containing types).
 {
   a_variable_ptr var;
 
-  if (!type->source_corresp.is_class_member &&
-      type->source_corresp.parent.namespace_ptr != NULL) {
+  if (is_namespace_member(type)) {
     /* The type is a member of a namespace.  Search the namespace variable
        list. */
-    a_namespace_ptr nsp = type->source_corresp.parent.namespace_ptr;
+    a_namespace_ptr nsp = parent_namespace_of(type);
     check_assertion(!nsp->is_namespace_alias);
     var = find_var_in_scope_with_type(type, nsp->variant.assoc_scope);
   } else if (type->source_corresp.is_local_to_function) {
@@ -986,7 +985,7 @@ as needed.
              a class member, mark the parent as needed anyway.  This is done
              in the normal processing, but we're suppressing that by not
              walking the subtree. */
-          a_type_ptr parent_class = scp->parent.class_type;
+          a_type_ptr parent_class = scp_parent_class(scp);
           walk_tree_and_set_needed((char *)parent_class, iek_type);
           set_class_definition_needed(parent_class);
         }  /* if */
@@ -1728,7 +1727,7 @@ to be kept.
                             source_corresp_for_il_entry(entry_ptr, entry_kind);
         check_assertion(scp != NULL);
         if (scp->is_class_member) {
-          a_type_ptr parent_class = scp->parent.class_type;
+          a_type_ptr parent_class = scp_parent_class(scp);
           walk_tree_and_set_keep_in_il((char *)parent_class, iek_type);
           set_class_keep_definition_in_il(parent_class);
         }  /* if */

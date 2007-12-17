@@ -736,9 +736,8 @@ of which type is an instance.  Return NULL otherwise.
 /* Returns TRUE if scp is the source correspondence for an entity that is a
    member of the "std" namespace. */
 #define is_source_corresp_in_namespace_std(scp)         \
-  (!(scp)->is_class_member &&                           \
-   is_namespace_member((scp)) &&                        \
-   is_namespace_std(parent_namespace_of((scp))))
+  (scp_is_namespace_member((scp)) &&                    \
+   is_namespace_std(scp_parent_namespace((scp))))
 
 /* Returns TRUE if il_entry is (immediately) within the "std" namespace. */
 #define is_in_namespace_std(il_entry)                                \
@@ -1940,7 +1939,7 @@ but it represents a routine, and rinfo points to the information
 describing it.
 */
 {
-  a_type_ptr parent_class = (scp->is_class_member ? parent_class_of(scp) :
+  a_type_ptr parent_class = (scp->is_class_member ? scp_parent_class(scp) :
                                                     NULL);
   a_boolean  use_sr = parent_class != NULL &&
                       (emulate_gnu_abi_bugs ||
@@ -2252,8 +2251,7 @@ has an explicit template argument list, given by template_arg_list.
                                /*old_form=*/FALSE,
                                mctl);
   }  /* if */
-  if (con->source_corresp.is_class_member ||
-      con->source_corresp.parent.namespace_ptr != NULL) {
+  if (is_class_or_namespace_member(con)) {
     /* Add a parent qualifier for a member. */
     add_str_to_mangled_name("__", mctl);
     mangled_parent_qualifier(&con->source_corresp, mctl);
@@ -3087,7 +3085,7 @@ given by tap.
     reserve_space_for_length(&length_reservation, mctl);
     /* Put out the base part of the name. */
     add_str_to_mangled_name(scp->name, mctl);
-    if (scp->is_class_member || scp->parent.namespace_ptr != NULL) {
+    if (scp_is_class_or_namespace_member(scp)) {
       /* Add two underscores after the name. */
       add_str_to_mangled_name("__", mctl);
       /* Put out the name of the class or namespace of which this template
@@ -3557,9 +3555,9 @@ and namespace levels.
   unsigned long levels = 0;
 
   if (scp->is_class_member) {
-    levels = nesting_level_of(&scp->parent.class_type->source_corresp) + 1;
-  } else if (scp->parent.namespace_ptr != NULL) {
-    levels = nesting_level_of(&scp->parent.namespace_ptr->source_corresp) + 1;
+    levels = nesting_level_of(&scp_parent_class(scp)->source_corresp) + 1;
+  } else if (scp_is_namespace_member(scp)) {
+    levels = nesting_level_of(&scp_parent_namespace(scp)->source_corresp) + 1;
   }  /* if */
   return levels;
 }  /* nesting_level_of */
@@ -3596,9 +3594,9 @@ with partial specialization arguments.
   a_boolean has_partial_spec_args = FALSE;
 
   if (type->source_corresp.is_class_member) {
-    a_type_ptr parent_type = type->source_corresp.parent.class_type;
+    a_type_ptr parent_type = parent_class_of(type);
     a_class_type_supplement_ptr
-               ctsp = parent_type->variant.class_struct_union.extra_info;
+               ctsp = class_type_supp(parent_type);
     if (ctsp->partial_spec_template_arg_list != NULL) {
       has_partial_spec_args = TRUE;
     } else {
@@ -3659,7 +3657,7 @@ supplies the usual nesting_level == 1.
      namespace. */
   if (scp->is_class_member) {
     /* Class member. */
-    type = parent_class_of(scp);
+    type = scp_parent_class(scp);
     ctsp = class_type_supp(type);
 #if CHECKING
     if (!class_type_has_body(type) &&
@@ -3751,9 +3749,9 @@ supplies the usual nesting_level == 1.
     more_levels = type_needs_parent_qualifier(type);
   } else {
     /* Namespace member. */
-    check_assertion(is_namespace_member(scp));
-    parent_scp = &parent_namespace_of(scp)->source_corresp;
-    more_levels = is_namespace_member(parent_scp);
+    check_assertion(scp_is_namespace_member(scp));
+    parent_scp = &scp_parent_namespace(scp)->source_corresp;
+    more_levels = scp_is_namespace_member(parent_scp);
   }  /* if */
 #if !IA64_ABI
   if (more_levels) {
@@ -3817,7 +3815,7 @@ new_substitution:
 #endif /* IA64_ABI */
   } else {
     /* Namespace name. */
-    a_namespace_ptr nsp = parent_namespace_or_null(scp);
+    a_namespace_ptr nsp = scp_parent_namespace_or_null(scp);
     char            *name;
 #if IA64_ABI
     if (add_substitution_if_available((char *)nsp, iek_namespace, mctl)) {
@@ -3871,15 +3869,14 @@ entities that indicates the enclosing function.
     if (kind == iek_type) {
       add_prefix_for_local_type((a_type_ptr)scp, mctl);
     } else if (scp->is_class_member) {
-      add_prefix_for_local_type(parent_class_of(scp), mctl);
+      add_prefix_for_local_type(scp_parent_class(scp), mctl);
     }  /* if */
   }  /* if */
   if (is_source_corresp_in_namespace_std(scp)) {
     /* Special encoding for "std::".*/
     add_str_to_mangled_name("St", mctl);
   } else if ((kind == iek_type) ? type_needs_parent_qualifier((a_type*)scp) :
-                                  (scp->is_class_member ||
-                                   is_namespace_member(scp))) {
+                                  scp_is_class_or_namespace_member(scp)) {
     /* The entity is a class or namespace member and needs a parent
        qualifier. */
     /* Mark the start of the nested name. */
@@ -5119,8 +5116,7 @@ mangle_template:
 #if !IA64_ABI
   /* See if the function is a class member function or a member of a
      namespace. */
-  is_member = (routine->source_corresp.is_class_member ||
-               routine->source_corresp.parent.namespace_ptr != NULL) &&
+  is_member = is_class_or_namespace_member(routine) &&
               !suppress_parent_encoding;
   /* If we will be adding the class or namespace name or the parameter types,
      put out two underscores to separate the function name from the rest. */
@@ -5138,9 +5134,7 @@ mangle_template:
     if (routine->overridden_function != NULL) {
       /* The encoding is O <type>. */
       add_to_mangled_name('O', mctl);
-      mangled_type_name(routine->overridden_function->
-                                              source_corresp.parent.class_type,
-                        mctl);
+      mangled_type_name(parent_class_of(routine->overridden_function), mctl);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
@@ -6847,9 +6841,8 @@ pointer, or performs the "this" adjustments.
   prim_routine = entry_routine->overriding_function_for_covariant_return_type;
   start_mangling(&mctl);
 #if !IA64_ABI
-  overridden_class = 
-            entry_routine->overridden_function_for_covariant_return_type->
-                                             source_corresp.parent.class_type;
+  overridden_class = parent_class_of(
+                entry_routine->overridden_function_for_covariant_return_type);
   /* The mangled name has the form
        __VFE__<overridden_class>__<prim_routine>
      where <overridden_class> and <prim_routine> are the mangled names for

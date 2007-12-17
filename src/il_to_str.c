@@ -4502,12 +4502,12 @@ if it is implicit in its parent class or namespace).
                                       (an_ELF_visibility_kind)evk_unspecified;
     if (scp->is_class_member) {
       a_class_type_supplement_ptr
-                               ctsp = class_type_supp(scp->parent.class_type);
+                                ctsp = class_type_supp(scp_parent_class(scp));
       if (ctsp != NULL) {
         default_visibility = ctsp->ELF_visibility;
       }  /* if */
-    } else if (scp->parent.namespace_ptr != NULL) {
-      default_visibility = scp->parent.namespace_ptr->ELF_visibility;
+    } else if (scp_is_namespace_member(scp)) {
+      default_visibility = scp_parent_namespace(scp)->ELF_visibility;
     }  /* if */
     if (visibility == default_visibility) {
       /* The visibility is already implicitly set through an attribute on the

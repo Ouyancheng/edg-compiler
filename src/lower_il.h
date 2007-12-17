@@ -677,12 +677,12 @@ is TRUE (only in the IA-64 ABI) if the constructor takes a VTT parameter.
 */
 #if !IA64_ABI
 #define ctor_needs_implied_arg_list(ctor_routine)                     \
-  ((ctor_routine)->source_corresp.parent.class_type->                 \
+  (parent_class_of((ctor_routine))->                                  \
                  variant.class_struct_union.any_virtual_base_classes)
 #else /* IA64_ABI */
 #define ctor_needs_vtt_argument(ctor_routine)                         \
   ((ctor_routine)->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_subobject && \
-   (ctor_routine)->source_corresp.parent.class_type->                \
+   parent_class_of(ctor_routine)->                                    \
                  variant.class_struct_union.any_virtual_base_classes)
 #define ctor_needs_implied_arg_list(ctor_routine)                     \
   ctor_needs_vtt_argument(ctor_routine)
@@ -697,9 +697,9 @@ is TRUE (only in the IA-64 ABI) if the destructor takes a VTT parameter.
 #if !IA64_ABI
 #define dtor_needs_implied_arg_list(dtor_routine) TRUE
 #else /* IA64_ABI */
-#define dtor_needs_vtt_argument(dtor_routine) \
+#define dtor_needs_vtt_argument(dtor_routine)                              \
   ((dtor_routine)->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_subobject && \
-   (dtor_routine)->source_corresp.parent.class_type->                 \
+   parent_class_of(dtor_routine)->                                         \
                  variant.class_struct_union.any_virtual_base_classes)
 #define dtor_needs_implied_arg_list(dtor_routine) \
    dtor_needs_vtt_argument(dtor_routine)

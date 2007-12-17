@@ -254,56 +254,66 @@ extern unsigned long assign_instantiation_needed_bit_number(void);
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 
 /*
-Macro that returns TRUE if an IL entry represents a namespace member.
+Macros that return TRUE if an IL entry represents a namespace member.
 */
+#define scp_is_namespace_member(scp)                                        \
+  (!(scp)->is_class_member && (scp)->parent.namespace_ptr != NULL)
+
 #define is_namespace_member(ptr)                                            \
-  (!((a_source_correspondence*)(ptr))->is_class_member &&                   \
-   ((a_source_correspondence*)(ptr))->parent.namespace_ptr != NULL)
+  (scp_is_namespace_member(&(ptr)->source_corresp))
 
 /*
-Macro that return TRUE if the IL entry represents a class or namespace member.
+Macros that return TRUE if an IL entry represents a class or namespace member.
 */
+#define scp_is_class_or_namespace_member(scp)                               \
+  ((scp)->is_class_member || (scp)->parent.namespace_ptr != NULL)
+
 #define is_class_or_namespace_member(ptr)                                   \
-  (((a_source_correspondence*)(ptr))->is_class_member ||                    \
-   ((a_source_correspondence*)(ptr))->parent.namespace_ptr != NULL)
+  (scp_is_class_or_namespace_member(&(ptr)->source_corresp))
 
 /*
-Macro that returns the parent namespace of a namespace member. 
+Macros that returns the parent namespace of a namespace member. 
 */
-#if !EXPENSIVE_CHECKING
+#if !(EXPENSIVE_CHECKING || (defined(_lint) && CHECKING))
+#define scp_parent_namespace(scp)                                           \
+  ((scp)->parent.namespace_ptr)
+#else /* EXPENSIVE_CHECKING || (defined(_lint) && CHECKING) */
+#define scp_parent_namespace(scp)                                           \
+  (check_assertion(scp_is_namespace_member(scp)),                           \
+   (scp)->parent.namespace_ptr)
+#endif /* !(EXPENSIVE_CHECKING || (defined(_lint) && CHECKING)) */
+
 #define parent_namespace_of(ptr)                                            \
-  (((a_source_correspondence*)(ptr))->parent.namespace_ptr)
-#else /* EXPENSIVE_CHECKING */
-#define parent_namespace_of(ptr)                                            \
-  (check_assertion(is_namespace_member(ptr)),                               \
-   ((a_source_correspondence*)(ptr))->parent.namespace_ptr)
-#endif /* !EXPENSIVE_CHECKING */
+  (scp_parent_namespace(&(ptr)->source_corresp))
 
 /*
-Macro that returns the parent namespace for a namespace member, and NULL for
-other entities.
+Macros that return the parent namespace for a namespace member, and NULL for
+other entities that aren't class members.
 */
-#if !EXPENSIVE_CHECKING
-#define parent_namespace_or_null(ptr)                                       \
-  (((a_source_correspondence*)(ptr))->parent.namespace_ptr)
-#else /* EXPENSIVE_CHECKING */
-#define parent_namespace_or_null(ptr)                                       \
-  (check_assertion(!((a_source_correspondence_ptr)(ptr))->is_class_member), \
-   ((a_source_correspondence*)(ptr))->parent.namespace_ptr)
-#endif /* !EXPENSIVE_CHECKING */
+#if !(EXPENSIVE_CHECKING || (defined(_lint) && CHECKING))
+#define scp_parent_namespace_or_null(scp)                                   \
+  ((scp)->parent.namespace_ptr)
+#else /* EXPENSIVE_CHECKING || (defined(_lint) && CHECKING) */
+#define scp_parent_namespace_or_null(scp)                                   \
+  (check_assertion(!(scp)->is_class_member), (scp)->parent.namespace_ptr)
+#endif /* !(EXPENSIVE_CHECKING || (defined(_lint) && CHECKING)) */
 
+#define parent_namespace_or_null(ptr)                                       \
+  (scp_parent_namespace_or_null(&(ptr)->source_corresp))
 
 /*
-Macro that returns the parent class of a class member. 
+Macros that return the parent class of a class member. 
 */
-#if !EXPENSIVE_CHECKING
+#if !(EXPENSIVE_CHECKING || (defined(_lint) && CHECKING))
+#define scp_parent_class(scp)                                            \
+  ((scp)->parent.class_type)
+#else /* EXPENSIVE_CHECKING || (defined(_lint) && CHECKING) */
+#define scp_parent_class(scp)                                            \
+  (check_assertion((scp)->is_class_member), (scp)->parent.class_type)
+#endif /* !(EXPENSIVE_CHECKING || (defined(_lint) && CHECKING)) */
+
 #define parent_class_of(ptr)                                                \
-  (((a_source_correspondence*)(ptr))->parent.class_type)
-#else /* EXPENSIVE_CHECKING */
-#define parent_class_of(ptr)                                                \
-  (check_assertion(((a_source_correspondence_ptr)(ptr))->is_class_member),  \
-   ((a_source_correspondence*)(ptr))->parent.class_type)
-#endif /* !EXPENSIVE_CHECKING */
+  (scp_parent_class(&(ptr)->source_corresp))
 
 
 extern a_namespace_ptr namespace_enclosing_class(a_type_ptr  tp);

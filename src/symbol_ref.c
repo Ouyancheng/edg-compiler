@@ -1721,8 +1721,7 @@ created for this entity; otherwise, it is NULL.
             /* It's okay for nested classes only if it's a deferred
                definition (i.e., the definition appears at file or
                namespace scope). */
-            parent_ctsp = scptr->parent.class_type->
-                                  variant.class_struct_union.extra_info;
+            parent_ctsp = class_type_supp(scp_parent_class(scptr));
             add_secondary_decl = (parent_ctsp->assoc_scope->
                                      depth_in_scope_stack == NO_SCOPE_DEPTH);
           }  /* if */
@@ -1774,7 +1773,7 @@ created for this entity; otherwise, it is NULL.
         if (!scope_stack_ptr->in_prototype_instantiation &&
             scope_stack_ptr->kind == (a_scope_kind)sck_class_struct_union &&
             sym_ptr->is_class_member &&
-            sym_ptr->parent.class_type == scope_stack_ptr->assoc_type) {
+            sym_parent_class(sym_ptr) == scope_stack_ptr->assoc_type) {
           scptr = source_corresp_entry_for_symbol(sym_ptr);
           if (scptr != NULL && scptr->source_sequence_entry != NULL &&
               !(srk_flags & SRK_FRIEND)) {
@@ -1797,8 +1796,7 @@ created for this entity; otherwise, it is NULL.
           scptr->source_sequence_entry = NULL;
         }  /* if */
         if (set_first_decl_flag) {
-          sym_ptr->variant.class_struct_union.extra_info->
-                                         definition_is_first_decl = TRUE;
+          class_type_supp(sym_ptr)->definition_is_first_decl = TRUE;
         }  /* if */
       }  /* if */
       sym_update_source_sequence_list(sym_ptr, source_position,

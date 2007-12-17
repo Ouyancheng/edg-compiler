@@ -859,7 +859,7 @@ there is additional processing to be done.
          there are certain cases where NO_SCOPE_DEPTH cannot be used,
          but that's okay because is no way to refer to something in
          another translation unit in C. */
-      if (is_class_or_namespace_member(scp)) {
+      if (scp_is_class_or_namespace_member(scp)) {
         /* For class and namespace members (including local ones),
            let the low-level routines figure out the scope and memory
            region. */

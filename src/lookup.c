@@ -436,7 +436,7 @@ member function is defined.
       a_symbol_ptr file_scope_sym;
       /* new_sym must now be a projection symbol or progenitor symbol.  Look
          for a symbol with the same name at file scope. */
-      check_assertion(class_type != fund_sym->parent.class_type);
+      check_assertion(class_type != sym_parent_class(fund_sym));
       file_scope_sym = file_scope_id_lookup(il_header.primary_scope,
                                             locator, options);
       if (file_scope_sym != NULL && is_type_symbol(file_scope_sym)) {
@@ -445,7 +445,7 @@ member function is defined.
            derived class but before the most recent constructor or
            destructor body. */
         a_symbol_ptr	class_sym;
-        class_sym = (a_symbol_ptr)class_type->source_corresp.assoc_info;
+        class_sym = symbol_for(class_type);
         if ((compare_source_positions(&file_scope_sym->decl_position,
                                       &class_sym->decl_position) > 0) &&
             (compare_source_positions(&file_scope_sym->decl_position,
@@ -3506,7 +3506,7 @@ C and C++.
       if (proj_ssep->kind == (a_scope_kind)sck_class_reactivation) {
         a_type_ptr      class_type = proj_ssep->assoc_type;
 	if (last_ctor_or_dtor_sym != NULL &&
-            last_ctor_or_dtor_sym->parent.class_type == class_type) {
+            sym_parent_class(last_ctor_or_dtor_sym) == class_type) {
 	  sym = check_for_cfront_name_lookup_bug(class_type, sym, locator,
 						 options);
           /* This looks like we can find an alternate symbol when emulating
@@ -5330,12 +5330,12 @@ Add the namespace in which "type" is defined to the namespace_list.
   scp = &templ->source_corresp;
   while (scp->is_class_member) {
     a_type_ptr	parent_type;
-    parent_type = parent_class_of(scp);
+    parent_type = scp_parent_class(scp);
     add_class_to_lookup_lists(parent_type, namespace_list, type_list);
     scp = &parent_type->source_corresp;
   }  /* while */
   /* Note that "nsp" will be NULL for global scope types. */
-  nsp = parent_namespace_or_null(scp);
+  nsp = scp_parent_namespace_or_null(scp);
   add_namespace_to_namespace_list(nsp, namespace_list);
 }  /* add_template_template_arg_to_lookup_list */
 

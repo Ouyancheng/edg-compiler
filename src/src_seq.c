@@ -133,7 +133,7 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
           a_source_correspondence  *scp;
           scp = source_corresp_for_il_entry(udp->entity.ptr,
                                            (an_il_entry_kind)udp->entity.kind);
-          if (scp != NULL && !is_namespace_member(scp)) {
+          if (scp != NULL && !scp_is_namespace_member(scp)) {
             fputs("::", f_debug);
           }  /* if */
         }  /* if */
@@ -1306,10 +1306,10 @@ the file scope.  If it is a local class or non-real, return NO_SCOPE_DEPTH.
     } else {
       /* If this is a nested class, find the top-most class. */
       while (class_type->source_corresp.is_class_member) {
-        class_type = class_type->source_corresp.parent.class_type;
+        class_type = parent_class_of(class_type);
       }  /* while */
       /* Use the namespace of the top-most class. */
-      nsp = class_type->source_corresp.parent.namespace_ptr;
+      nsp = parent_namespace_or_null(class_type);
     }  /* if */
     /* If a namespace was identified, be sure it's still on the stack.  If
        not (i.e., if its scope was popped), the associated source sequence
@@ -1496,11 +1496,11 @@ innermost such class.
   check_assertion(scp != NULL);
   parent_scope_depth = NO_SCOPE_DEPTH;
   if (scp->is_class_member) {
-    parent_class = scp->parent.class_type;
+    parent_class = scp_parent_class(scp);
     /* Find the innermost uncompleted parent class. */
     for (;;) {
-      parent_scope_depth = parent_class->variant.class_struct_union.
-                               extra_info->assoc_scope->depth_in_scope_stack;
+      parent_scope_depth = class_type_supp(parent_class)->assoc_scope
+                                                        ->depth_in_scope_stack;
       if (parent_scope_depth != NO_SCOPE_DEPTH) {
         /* This is the innermost active class on the scope stack (active in
            the sense of still being defined). */
@@ -1512,7 +1512,7 @@ innermost such class.
         break;
       }  /* if */
       /* A nested class -- keep looping. */
-      parent_class = parent_class->source_corresp.parent.class_type;
+      parent_class = parent_class_of(parent_class);
     }  /* for */
   } else {
     /* The entity is not a class member.  It may be a namespace member. */
@@ -1597,8 +1597,7 @@ innermost such class.
           members_only = TRUE;
         } else {
           a_class_type_supplement_ptr  ctsp;
-          ctsp = class_type->source_corresp.parent.class_type->
-                                 variant.class_struct_union.extra_info;
+          ctsp = class_type_supp(parent_class_of(class_type));
           members_only = (ctsp->assoc_scope->
                                      depth_in_scope_stack == NO_SCOPE_DEPTH);
         }  /* if */
@@ -2641,9 +2640,9 @@ associated with the indicated sck_function scope.
          definition, until a secondary declaration entry pointing to
          the same routine is found. */
       if (scp->is_class_member) {
-        ssep = parent_class_of(scp)->source_corresp.source_sequence_entry;
+        ssep = scp_parent_class(scp)->source_corresp.source_sequence_entry;
       } else {
-        ssep = parent_namespace_of(scp)->source_corresp.source_sequence_entry;
+        ssep = scp_parent_namespace(scp)->source_corresp.source_sequence_entry;
       }  /* if */
       ssep = find_src_seq_secondary_decl_entry(ssep, (char *)rp);
       check_assertion_str2(ssep != NULL,
@@ -2731,8 +2730,7 @@ class type.
          at the point in the source sequence list corresponding to the
          beginning of the class definition, and loop through the list till a
          secondary declaration pointing to class_type is found. */
-      ssep = class_type->source_corresp.parent.class_type->
-                                     source_corresp.source_sequence_entry;
+      ssep = parent_class_of(class_type)->source_corresp.source_sequence_entry;
       ssep = find_src_seq_secondary_decl_entry(ssep, (char *)class_type);
       check_assertion_str2(ssep != NULL,
                            "turn_class_definition_into_declaration:",

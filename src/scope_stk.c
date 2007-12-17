@@ -1661,9 +1661,9 @@ been allocated for it.  Set the parent pointer for the IL scope entry.
       { a_source_correspondence_ptr  scp = &ssep->assoc_routine
                                                 ->source_corresp;
         if (scp->is_class_member) {
-          sp->parent = class_type_supp(scp->parent.class_type)->assoc_scope;
-        } else if (scp->parent.namespace_ptr != NULL) {
-          sp->parent = scp->parent.namespace_ptr->variant.assoc_scope;
+          sp->parent = class_type_supp(scp_parent_class(scp))->assoc_scope;
+        } else if (scp_is_namespace_member(scp)) {
+          sp->parent = scp_parent_namespace(scp)->variant.assoc_scope;
         } else {
           sp->parent = scope_stack[DEPTH_OF_FILE_SCOPE].il_scope;
         }  /* if */
@@ -1672,8 +1672,8 @@ been allocated for it.  Set the parent pointer for the IL scope entry.
     case sck_namespace:
       { a_source_correspondence_ptr  scp = &ssep->assoc_namespace
                                                 ->source_corresp;
-        if (scp->parent.namespace_ptr != NULL) {
-          sp->parent = scp->parent.namespace_ptr->variant.assoc_scope;
+        if (scp_is_namespace_member(scp)) {
+          sp->parent = scp_parent_namespace(scp)->variant.assoc_scope;
         } else {
           sp->parent = scope_stack[DEPTH_OF_FILE_SCOPE].il_scope;
         }  /* if */
@@ -1683,9 +1683,9 @@ been allocated for it.  Set the parent pointer for the IL scope entry.
     case sck_enum:
       { a_source_correspondence_ptr  scp = &ssep->assoc_type->source_corresp;
         if (scp->is_class_member) {
-          sp->parent = class_type_supp(scp->parent.class_type)->assoc_scope;
-        } else if (scp->parent.namespace_ptr != NULL) {
-          sp->parent = scp->parent.namespace_ptr->variant.assoc_scope;
+          sp->parent = class_type_supp(scp_parent_class(scp))->assoc_scope;
+        } else if (scp_is_namespace_member(scp)) {
+          sp->parent = scp_parent_namespace(scp)->variant.assoc_scope;
         } else if (!scp->is_local_to_function) {
           sp->parent = scope_stack[DEPTH_OF_FILE_SCOPE].il_scope;
         } else {
@@ -4588,10 +4588,10 @@ NULL.
   if (scp != NULL) {
     if (sym->is_class_member == scp->is_class_member &&
         (!sym->is_class_member ||
-         sym_parent_class(sym) == parent_class_of(scp))) {
+         sym_parent_class(sym) == scp_parent_class(scp))) {
       /* Okay */
     } else if (scp->is_class_member &&
-               !has_name_before_mangling(parent_class_of(scp))) {
+               !has_name_before_mangling(scp_parent_class(scp))) {
       /* Okay: probably a member of a possibly nonstandard anonymous union. */
     } else if (sym->kind == (a_symbol_kind)sk_type &&
                sym->variant.type.is_injected_class_name) {
