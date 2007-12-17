@@ -9538,6 +9538,9 @@ structure.
         if (is_local) {
           pos_error(ec_local_type_in_template_arg, source_pos);
           tap->variant.type = error_type();
+        } else if (is_vla) {
+          pos_error(ec_vla_type_in_template_arg, source_pos);
+          tap->variant.type = error_type();
         } else if (!microsoft_mode && !(gpp_mode && gnu_version < 30400)) {
           /* Since the type is not local and it has no name linkage, it is
              probably an unnamed type.  However, it could also be a member
@@ -9545,10 +9548,6 @@ structure.
           pos_error(is_unnamed ? ec_unnamed_type_in_template_arg
                                : ec_type_with_no_linkage_in_template_arg,
                     source_pos);
-
-        } else if (is_vla) {
-          pos_error(ec_vla_type_in_template_arg, source_pos);
-          tap->variant.type = error_type();
         }  /* if */
       }  /* if */
       /* Local typedef names (legal if they refer to nonlocal types) should
