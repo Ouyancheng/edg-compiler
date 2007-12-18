@@ -932,8 +932,11 @@ Display the indicated constant entry.
     case ck_integer:
       (void)printf("ck_integer\n");
       disp_name("integer_value");
-display_constant_value:
-      summarize_constant(ptr);
+      /* Use form_integer_constant directly instead of summarize_constant so
+         enumeration constants will show their numeric value and not the
+         enumerator name. */
+      form_integer_constant(ptr, /*suppress_cast=*/TRUE, /*need_parens=*/FALSE,
+                            &octl);
       (void)printf("\n");
       break;
 #if FIXED_POINT_ALLOWED
@@ -961,7 +964,10 @@ display_constant_value:
       }  /* if */
 #endif /* DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
       disp_name("value");
-      goto display_constant_value;
+display_constant_value:
+      summarize_constant(ptr);
+      (void)printf("\n");
+      break;
     case ck_float:
       (void)printf("ck_float\n");
       disp_name("float_value");

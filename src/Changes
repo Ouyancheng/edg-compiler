@@ -1,5 +1,11 @@
 Version 3.11
 
+12/18/07 Display of enumerator values
+
+The IL display utility displayed the name of an enumerator instead of its
+numeric value in the "integer_value" field of an enumeration constant.  Now
+fixed.
+
 12/17/07  Overeager generation of base class virtual destructors
 
 In some cases -- corresponding to instances where a virtual function table
