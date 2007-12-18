@@ -3699,7 +3699,7 @@ Dump a base class entry, for debug purposes.
     fputs(" (", f_debug);
     db_access_control(bcdp->access);
     fputs(")\n", f_debug);
-  }  /* if */
+  }  /* for */
 done:;
 }  /* db_base_class */
 
