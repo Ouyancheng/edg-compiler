@@ -2159,7 +2159,7 @@ messages about any invalid attributes.
           /* Recent versions of GCC ignore attributes on block-extern function
              declarations. */
           pos_warning(ec_local_function_attribute_ignored, &ap->position);
-          continue;
+          break;
         }  /* if */
         if (ap->kind == (an_attribute_kind)ak_weakref) {
           /* gcc 4.1 and 4.2 have opposite constraints on weakref entities:
