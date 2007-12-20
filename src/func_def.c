@@ -134,16 +134,6 @@ static void require_definitions_of_virtual_functions_on_routine_list(
 Require definitions for the virtual functions of the indicated class.
 */
 {
-  a_class_symbol_supplement_ptr cssp = symbol_supplement_for_class(class_type);
-
-  if (cssp->destructor != NULL) {
-    a_routine_ptr dtor_rout = cssp->destructor->variant.routine.ptr;
-    if (dtor_rout->compiler_generated && dtor_rout->is_virtual &&
-        !routine_has_been_defined(dtor_rout)) {
-      /* Force generation of a compiler-generated virtual destructor. */
-      define_special_member_function(dtor_rout);
-    }  /* if */
-  }  /* if */
   /* If this is a template class, instantiate all the virtual member
      functions.  When instantiating extern inline functions in a way similar
      to templates, do this for all classes. */
@@ -182,16 +172,13 @@ Require definitions for the virtual functions of the indicated class.
 }  /* require_definitions_of_virtual_functions_on_routine_list */
 
 
-void require_definitions_of_virtual_functions_in_class(a_type_ptr class_type)
+static void r_require_definitions_of_virtual_functions_in_class(
+                                                         a_type_ptr class_type)
 /*
-Require definitions for all virtual functions in class_type (including
-those from its base classes that are not overridden).  This includes
-virtual destructors and instantiatable functions.  The definitions
-are required in the overall program, not necessarily in the current
-compilation.
+Helper routine for require_definitions_of_virtual_functions_in_class
+to handle the recursive walk through base classes.
 */
 {
-  class_type = skip_typerefs(class_type);
   if (!class_type->variant.class_struct_union.
                                         virtual_functions_marked_as_required &&
       class_type->variant.class_struct_union.
@@ -209,9 +196,40 @@ compilation.
       /* Handle only direct base classes, because the recursive call
          will handle that class's base classes. */
       if (bcp->direct) {
-        require_definitions_of_virtual_functions_in_class(bcp->type);
+        r_require_definitions_of_virtual_functions_in_class(bcp->type);
       }  /* if */
     }  /* for */
+  }  /* if */
+}  /* r_require_definitions_of_virtual_functions_in_class */
+
+
+void require_definitions_of_virtual_functions_in_class(a_type_ptr class_type)
+/*
+Require definitions for all virtual functions in class_type (including
+those from its base classes that are not overridden).  This includes
+virtual destructors and instantiatable functions.  The definitions
+are required in the overall program, not necessarily in the current
+compilation.
+*/
+{
+  class_type = skip_typerefs(class_type);
+  if (class_type->variant.class_struct_union.
+                             any_virtual_functions_including_in_base_classes) {
+    a_class_symbol_supplement_ptr cssp =
+                                       symbol_supplement_for_class(class_type);
+
+    if (cssp->destructor != NULL) {
+      a_routine_ptr dtor_rout = cssp->destructor->variant.routine.ptr;
+      if (dtor_rout->compiler_generated && dtor_rout->is_virtual &&
+          !routine_has_been_defined(dtor_rout)) {
+        /* Force generation of a compiler-generated virtual destructor.
+           This is done only at the top level because virtual destructors
+           in base classes would be overridden and therefore would not be
+           pointed to from the virtual function table in the derived class. */
+        define_special_member_function(dtor_rout);
+      }  /* if */
+    }  /* if */
+    r_require_definitions_of_virtual_functions_in_class(class_type);
   }  /* if */
 }  /* require_definitions_of_virtual_functions_in_class */
 
@@ -222,16 +240,13 @@ static a_boolean virtual_functions_needed_due_to_definition_of(
 Return TRUE if definitions of virtual functions of the class of which the
 indicated routine is a member are needed (somewhere in the program, but
 not necessarily in the current compilation).  The definition of the
-indicated routine has just been processed.  Returns FALSE if the class
-has previously had its virtual functions marked as needed.
+indicated routine has just been processed.
 */
 {
   a_boolean  needed = FALSE;
   a_type_ptr class_type = parent_class_of(routine);
 
-  if (!class_type->variant.class_struct_union.
-                                        virtual_functions_marked_as_required &&
-      class_type->variant.class_struct_union.
+  if (class_type->variant.class_struct_union.
                              any_virtual_functions_including_in_base_classes) {
     if (routine->special_kind == (a_special_function_kind)sfk_constructor ||
         routine->special_kind == (a_special_function_kind)sfk_destructor) {
