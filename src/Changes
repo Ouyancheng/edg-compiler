@@ -1,5 +1,18 @@
 Version 3.11
 
+12/21/07 Array-to-pointer decay in inexact template argument deduction
+
+When checking for a deduction match based on a qualification conversion,
+the front end did not use the type after array-to-pointer decay (as clarified
+by core issue 522) resulting in an error in examples such as the one below.
+This has been fixed.
+
+  template<class T> void f(const T* const args[]){}
+  int main() {
+    char* arr[1] = {};
+    f(arr);
+  }
+
 12/18/07 Display of enumerator values
 
 The IL display utility displayed the name of an enumerator instead of its

@@ -5873,11 +5873,15 @@ argument deduction purposes.
     if (match) {
       /* A qualification conversion is possible.  Check whether the underlying
          types match.  The types returned above may still have qualifiers.
-         Remove them before comparing the underlying types. */
+         Remove them before comparing the underlying types.  Note that because
+         qualifiers on function types have no effect, the check for a
+         qualification conversion as part of deduction is not done for
+         function types. */
       match = FALSE;
       type_underlying = skip_typerefs(type_underlying);
       templ_type_underlying = skip_typerefs(templ_type_underlying);
-      if (matches_template_type(type_underlying, templ_type_underlying,
+      if (!is_function_type(type_underlying) &&
+          matches_template_type(type_underlying, templ_type_underlying,
                                 templ_arg_list, templ_param_list, flags)) {
         /* They match.  The qualification conversion is possible. */
         match = TRUE;

@@ -58,6 +58,8 @@ static a_boolean adjust_deduction_pair(
                                     an_operand           *arg_operand,
                                     a_template_param_ptr templ_params,
                                     a_template_arg_ptr   template_arg_list,
+                                    a_type_ptr           *qc_param_type,
+                                    a_type_ptr           *qc_arg_type,
                                     a_boolean            *consider_nondeduced);
 
 
@@ -602,6 +604,7 @@ it is always NULL.
           if (adjust_deduction_pair(&local_param_type, &local_arg_type,
                                     (an_operand *)NULL, templ_params,
                                     (a_template_arg *)NULL,
+                                    (a_type_ptr*)NULL, (a_type_ptr*)NULL,
                                     (a_boolean *)NULL) &&
               tentatively_matches_template_type(local_arg_type,
                                                 local_param_type,
@@ -2343,6 +2346,8 @@ static a_boolean adjust_deduction_pair(
                                      an_operand           *arg_operand,
                                      a_template_param_ptr templ_params,
                                      a_template_arg_ptr   template_arg_list,
+                                     a_type_ptr           *qc_param_type,
+                                     a_type_ptr           *qc_arg_type,
                                      a_boolean            *consider_nondeduced)
 /*
 Adjust the types *p_param_type (a parameter type of a function template or a
@@ -2357,7 +2362,12 @@ array-to-pointer or function-to-pointer transformation, dropping cv-qualifiers,
 and/or dropping matching "pointer" layers (e.g., T* and int* can be replaced
 by T and int).  Returns TRUE if the adjustment is successful (which may mean
 the types were left untouched), and FALSE otherwise (in which case the
-deduction fails).  If consider_nondeduced is non-NULL and the reason for
+deduction fails).  When TRUE is returned, qc_param_type and qc_arg_type
+(if non-NULL) are updated to point to versions of the adjusted types that can
+be used to determine whether deduction should succeed on the basis of a
+qualification conversion.  The "qc_" types are similar to the adjusted types
+except that matching top-level pointer types and qualifiers thereunder
+are not removed.  If consider_nondeduced is non-NULL and the reason for
 failure is that an indefinite function matches several ways, return
 *consider_nondeduced TRUE.  template_arg_list is used in some nonstandard
 modes to introduce knowledge from previous arguments; in the standard case,
@@ -2442,6 +2452,10 @@ it is always NULL.
     complete_type_is_needed(arg_type);
     if (is_incomplete_type(arg_type)) goto done;
   }  /* if */
+  /* Return the adjusted types at this point as the types that can be used to
+     check for deduction via a qualification conversion. */
+  if (qc_param_type != NULL) *qc_param_type = param_type;
+  if (qc_arg_type != NULL) *qc_arg_type = arg_type;
   if (is_pointer_type(arg_type) && is_pointer_type(param_type)
 #ifdef pointer_types_have_same_repr
       && pointer_types_have_same_repr(arg_type, param_type)
@@ -2469,9 +2483,9 @@ done:
 
 
 static a_boolean deduce_from_one_pair(a_type_ptr            param_type,
-                                      a_type_ptr            orig_param_type,
                                       a_type_ptr            arg_type,
-                                      a_type_ptr            orig_arg_type,
+                                      a_type_ptr            qc_param_type,
+                                      a_type_ptr            qc_arg_type,
                                       a_template_arg_ptr    *template_arg_list,
                                       a_template_param_ptr  template_params)
 /*
@@ -2483,11 +2497,11 @@ This routine updates *template_arg_list with bindings for the template
 argument based on one P/A pair, where P is the generic type *param_type and
 A is the type *arg_type of the call argument or initializer.  The *param_type
 and *arg_type types used for deduction are actually adjusted from the original 
-types *orig_param_type and *orig_arg_type (see adjust_deduction_pair), but if
-deduction does not succeed with the adjusted types, deduction with the
-original types is sometimes attempted (see also adjust_deduction_pair).
-template_params lists the template parameters (or the "auto" specifier) for
-which bindings are sought.
+types (see adjust_deduction_pair).  qc_param_type and qc_arg_type are
+versions of the adjusted types (see also adjust_deduction_pair) that can
+be used to determine if deduction should succeed based on a qualification
+conversion.  template_params lists the template parameters (or the "auto"
+specifier) for which bindings are sought.
 */
 {
   a_boolean  deduction_okay = FALSE;
@@ -2502,14 +2516,14 @@ which bindings are sought.
   if (matches_template_type(arg_type, param_type, template_arg_list,
                             template_params, MTT_ALLOW_INEXACT_DEDUCTION)) {
     deduction_okay = TRUE;
-  } else if ((is_pointer_type(orig_arg_type) ||
-              is_ptr_to_member_type(orig_arg_type)) &&
-             (is_pointer_type(orig_param_type) ||
-              is_ptr_to_member_type(orig_param_type))) {
+  } else if ((is_pointer_type(qc_arg_type) ||
+              is_ptr_to_member_type(qc_arg_type)) &&
+             (is_pointer_type(qc_param_type) ||
+              is_ptr_to_member_type(qc_param_type))) {
     /* Normal deduction failed.  For pointer types, see if a qualification
        conversion can be used. */
     if (matches_template_type_with_qualification_conversion(
-                            orig_arg_type, orig_param_type, template_arg_list,
+                            qc_arg_type, qc_param_type, template_arg_list,
                             template_params, MTT_NO_FLAGS)) {
       deduction_okay = TRUE;
     }  /* if */
@@ -2534,17 +2548,17 @@ if the deduction succeeds, FALSE if it fails.
 */
 {
   a_boolean            deduction_okay = FALSE;
-  a_type_ptr           orig_arg_type;
-  a_type_ptr           orig_param_type = param_type;
   a_template_param_ptr templ_params;
   a_boolean            consider_nondeduced;
+  a_type_ptr           qc_param_type;
+  a_type_ptr           qc_arg_type;
 
   if (arg_operand != NULL) arg_type = arg_operand->type;
-  orig_arg_type = arg_type;
   templ_params = template_supplement_for_symbol(template_sym)
                           ->variant.function.decl_cache.decl_info->parameters;
   if (!adjust_deduction_pair(&param_type, &arg_type, arg_operand,
                              templ_params, *template_arg_list,
+                             &qc_param_type, &qc_arg_type,
                              &consider_nondeduced)) {
     if (consider_nondeduced) {
       /* The argument is an indefinite function that can match in more than
@@ -2555,7 +2569,7 @@ if the deduction succeeds, FALSE if it fails.
     goto done;
   }  /* if */
   deduction_okay = deduce_from_one_pair(
-                         param_type, orig_param_type, arg_type, orig_arg_type,
+                         param_type, arg_type, qc_param_type, qc_arg_type,
                          template_arg_list,
                          template_sym->variant.template_info
                                      ->variant.function.decl_cache.decl_info
@@ -15120,7 +15134,9 @@ Deduction failures are diagnosed as errors.
   a_template_param_ptr  templ_param;
   a_template_arg_ptr    templ_arg = NULL;
   a_type_ptr            type = dps->declared_type, orig_type = type;
-  a_type_ptr            arg_type = arg->type, orig_arg_type = arg_type;
+  a_type_ptr            arg_type = arg->type;
+  a_type_ptr            qc_param_type = NULL;
+  a_type_ptr            qc_arg_type = NULL;
   a_boolean             subst_error = FALSE;
 
   check_assertion(dps->auto_type_specifier_seen && dps->auto_type != NULL);
@@ -15130,11 +15146,12 @@ Deduction failures are diagnosed as errors.
      never succeed: Issue an error and don't attempt deduction any further. */
   if (!adjust_deduction_pair(&type, &arg_type, arg, templ_param,
                              (a_template_arg *)NULL,
+                             &qc_param_type, &qc_arg_type,
                              (a_boolean *)NULL)) {
     pos_error(ec_cannot_deduce_auto_type, &dps->auto_pos);
     goto set_type;
   }  /* if */
-  if (!deduce_from_one_pair(type, orig_type, arg_type, orig_arg_type,
+  if (!deduce_from_one_pair(type, arg_type, qc_param_type, qc_arg_type,
                             &templ_arg, templ_param)) {
     /* Deduction failed. */
     pos_error(ec_cannot_deduce_auto_type, &dps->auto_pos);
