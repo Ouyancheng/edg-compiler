@@ -5643,7 +5643,7 @@ See conversion_possible.
     /* okay = FALSE; -- already set. */
   } else if (is_bool(dest_type)) {
     /* Conversion to the bool type.  This is possible only in C++.
-       Conversion is allowed from arithmetic, enumeration, pointer,
+       Conversion is allowed from arithmetic, unscoped enumeration, pointer,
        and pointer to member. */
     if (is_bool(source_type)) {
       /* bool --> bool is no conversion. */
@@ -5663,12 +5663,12 @@ See conversion_possible.
       /* No type change. */
       okay = TRUE;
       std_conv->nontrivial_conversion = FALSE;
-    } else if (!C_mode() && is_enum(dest_type) &&
-               !is_scoped_enum_type(dest_type)) {
+    } else if (!C_mode() && is_enum(dest_type)) {
       /* Conversion to an enum type in C++.  We already know this is not
          a conversion of an enum type to itself, so this is an error case:
          you can't convert other types to enum implicitly. */
-      if (cfront_2_1_mode && is_integral_or_enum(source_type)) {
+      if (cfront_2_1_mode && is_integral_or_enum(source_type) &&
+          !is_scoped_enum_type(dest_type)) {
         /* cfront 2.1 allows conversion of integral or other enum types to
            an enum, with a warning.  (It also allows floating point types
            to be converted to an enum, but it doesn't seem necessary to
@@ -5933,8 +5933,10 @@ exception specifications are not checked.
         okay = FALSE;
       }  /* if */
     }  /* if */
-  } else if (is_enum_type(source_type) && is_enum_type(dest_type)) {
-    /* Core Issue 128 makes enum --> enum a valid static_cast. */
+  } else if (is_integral_or_enum(source_type) && is_enum_type(dest_type)) {
+    /* Core Issue 128 makes enum --> enum a valid static_cast.  This also
+       covers the case of integer --> scoped enum (the unscoped case is a
+       normal inverse of an implicit conversion). */
     okay = TRUE;
   } else if (!C_mode() &&
              is_bool_type(source_type) && is_enum_type(dest_type)) {
