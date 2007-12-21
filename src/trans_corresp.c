@@ -2968,8 +2968,9 @@ type is in fact valid.
   } else if (!is_immediate_class_type(corresp_type)) {
     match = FALSE;
     report_error = TRUE;
-  } else if (!class_type_has_body(type) ||
-             !class_type_has_body(corresp_type)) {
+  } else if (!class_type_has_body(type) || is_incomplete_type(type) ||
+             !class_type_has_body(corresp_type) ||
+             is_incomplete_type(corresp_type)) {
     /* The types are assumed to match in their inner structure since at least
        one is incomplete and therefore has no inner structure to conflict
        with. */
@@ -3727,9 +3728,11 @@ are not checked.
     /* The canonical entry: nothing to be done. */
   } else if (!is_immediate_class_type(corresp_type)) {
     /* An error: caught elsewhere. */
-  } else if (!class_type_has_body(type)) {
-    /* No members to traverse. */
-  } else if (!class_type_has_body(corresp_type)) {
+  } else if (is_incomplete_type(type) || !class_type_has_body(type)) {
+    /* No members to traverse.  (Note: A class occasionally may be complete
+       without having a body (e.g., nonreal class types). */
+  } else if (is_incomplete_type(corresp_type) ||
+             !class_type_has_body(corresp_type)) {
     /* The corresponding entry has no definition: mark the members as
        visited. */
     set_no_class_type_correspondence(type);
@@ -4052,6 +4055,7 @@ type (if any) in a secondary translation unit whose correspondence is the
 given type.
 */
 {
+  check_assertion(!is_incomplete_type(type));
   if (trans_unit_corresp_of(type) == NULL) {
     /* Nothing to be done: correspondences are not being processed yet. */
   } else if (any_noncorresp_errors()) {
@@ -4065,7 +4069,7 @@ given type.
     } else if (!is_immediate_class_type(canon)) {
       expect_error();
     } else {
-      a_boolean  canon_defined = type_has_definition(canon);
+      a_boolean  canon_defined = !is_incomplete_type(canon);
       if (!canon_defined || !in_secondary_trans_unit(type)) {
         /* The canonical entry is about to change. */
         new_canon = TRUE;
@@ -4080,28 +4084,31 @@ given type.
         /* Work from the noncanonical entry to set the correspondences of
            members. */
         type = canon;
+        canon = (a_type_ptr)canonical_il_entry_of(type);
       }  /* if */
       establish_trans_unit_correspondences_for_class(type);
       /* Find correspondences for any instances that might have been
          discovered. */
       process_pending_instantiations();
-      if (new_canon || correspondence_checking_done) {
-        /* Force the verification of the previous canonical entry against the
-           new one if (a) the given type is a new canonical type and hence it
-           will not be compared against the old canonical entry in a later
-           stage, or (b) the normal verification pass has been completed
-           already. */
-        match = verify_class_type_correspondence(type);
-      }  /* if */
-      if (new_canon && match) {
-        /* Since the canonical entry has changed, extra actions may be needed.
-           */
-        if (type->variant.class_struct_union.extra_info->assoc_scope != NULL) {
-          /* The master instance is found using the canonical entry.  We are
-             creating a new canonical entry, so we must make sure its master
-             instance pointer is set for the class members. */
-          set_master_instance_for_new_canonical_class(
+      if (!is_incomplete_type(canon) && !is_incomplete_type(type)) {
+        if (new_canon || correspondence_checking_done) {
+          /* Force the verification of the previous canonical entry against the
+             new one if (a) the given type is a new canonical type and hence it
+             will not be compared against the old canonical entry in a later
+             stage, or (b) the normal verification pass has been completed
+             already. */
+          match = verify_class_type_correspondence(type);
+        }  /* if */
+        if (new_canon && match) {
+          /* Since the canonical entry has changed, extra actions may be
+             needed.  */
+          if (class_type_supp(type)->assoc_scope != NULL) {
+            /* The master instance is found using the canonical entry.  We are
+               creating a new canonical entry, so we must make sure its master
+               instance pointer is set for the class members. */
+            set_master_instance_for_new_canonical_class(
                                 (a_type_ptr)canonical_il_entry_of(type), type);
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */

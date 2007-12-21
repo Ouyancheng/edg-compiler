@@ -318,8 +318,9 @@ element type.  If the type is not an array type, FALSE is returned.
 
 a_boolean class_type_has_body(a_type_ptr tp)
 /*
-Return TRUE if the indicated type (a struct, union, or class type) has
-a definition.
+Return TRUE if the indicated type (a struct, union, or class type) has a
+definition.  Note that this may return TRUE when the given type is still
+incomplete (because the definition is note done yet).
 */
 {
   a_boolean                   has_body;

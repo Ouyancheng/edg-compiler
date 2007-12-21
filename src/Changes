@@ -1,5 +1,11 @@
 Version 3.11
 
+12/21/07 Spurious errors in complex multi-translation unit cases
+
+A bug that triggered spurious errors in very complex multi-translation-unit
+cases has been fixed.  The spurious errors indicated that a class template
+instance was different in two translation units.
+
 12/21/07 Array-to-pointer decay in inexact template argument deduction
 
 When checking for a deduction match based on a qualification conversion,
