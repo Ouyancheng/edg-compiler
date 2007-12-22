@@ -11443,6 +11443,7 @@ to select one of the functions in the overload set.  See [over.over].
                                              (a_boolean)operand->
                                                       is_template_id,
                                              operand->template_arg_list,
+                                             is_a_function_designator(operand),
                                              type_cast_to,
                                              /*is_cast=*/TRUE,
                                              &match_level,

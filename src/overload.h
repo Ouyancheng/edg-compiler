@@ -490,6 +490,7 @@ extern a_symbol_ptr find_addr_of_overloaded_function_match(
                                 a_symbol_ptr       ovl_sym,
                                 a_boolean          is_template_id,
                                 a_template_arg_ptr template_arg_list,
+                                a_boolean          source_is_lvalue,
                                 a_type_ptr         dest_type,
                                 a_boolean          is_cast,
                                 an_arg_match_level *match_level,

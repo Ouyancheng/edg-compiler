@@ -104,6 +104,7 @@ a_symbol_ptr find_addr_of_overloaded_function_match(
                                 a_symbol_ptr       ovl_sym,
                                 a_boolean          is_template_id,
                                 a_template_arg_ptr template_arg_list,
+                                a_boolean          source_is_lvalue,
                                 a_type_ptr         dest_type,
                                 a_boolean          is_cast,
                                 an_arg_match_level *match_level,
@@ -115,8 +116,10 @@ ovl_sym is the symbol from an indefinite function operand representing
 the address of an overloaded function.  (For completeness, ovl_sym
 can be a simple function or a template).  is_template_id is TRUE if ovl_sym
 is followed by an explicit template argument list, in which case
-template_arg_list gives the argument list.  The indefinite function is
-being converted to a destination type dest_type.  If dest_type is a
+template_arg_list gives the argument list.  The source is an lvalue
+(function designator) if source_is_lvalue is TRUE, an rvalue (pointer
+or pointer to member) otherwise.  The indefinite function is being
+converted to a destination type dest_type.  If dest_type is a
 pointer, reference, or pointer-to-member type that could be a
 pointer/reference to one of the overloaded functions, return a pointer
 to that function's symbol (possibly a projection symbol); otherwise,
@@ -208,7 +211,13 @@ cast.
        ambiguous.  That's probably possible only when function templates
        are involved. */
     need_templates_pass = FALSE;
-    if (is_template_id) {
+    if (is_ref && !source_is_lvalue) {
+      /* The source has already been converted to a pointer (e.g., &f) or
+         pointer to member (e.g., &A::f), so a reference can't bind directly
+         to it.  need_templates_pass is left FALSE to suppress the template
+         loop as well.  Some match may still be possible via a conversion,
+         for a reference to const.  That's checked below. */
+    } else if (is_template_id) {
       /* There is an explicit template argument list, so do not look
          for exact matches on non-templates. */
       need_templates_pass = TRUE;
@@ -464,6 +473,7 @@ is TRUE, template_arg_list is a set of explicit template arguments for sym.
                                                    sym,
                                                    is_template_id,
                                                    template_arg_list,
+                                                   /*source_is_lvalue=*/TRUE,
                                                    guide_type,
                                                    /*is_cast=*/FALSE,
                                                    &match_level,
@@ -1867,6 +1877,8 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
                                                                 is_template_id,
                                                   arg_operand->
                                                              template_arg_list,
+                                                  is_a_function_designator(
+                                                                  arg_operand),
                                                   orig_param_type,
                                                   /*is_cast=*/FALSE,
                                                   &arg_summary->match_level,
@@ -11944,6 +11956,8 @@ is not a parameter.
                                            (a_boolean)source_operand->
                                                            is_template_id,
                                            source_operand->template_arg_list,
+                                           is_a_function_designator(
+                                                               source_operand),
                                            dest_type,
                                            /*is_cast=*/FALSE,
                                            &match_level,
@@ -13439,6 +13453,7 @@ direct binding is "possible" and not whether it is "valid".
                                                                 is_template_id,
                                                source_operand->
                                                              template_arg_list,
+                                               /*source_is_lvalue=*/TRUE,
                                                dest_type,
                                                /*is_cast=*/FALSE,
                                                &match_level,

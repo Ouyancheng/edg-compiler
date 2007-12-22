@@ -1,5 +1,22 @@
 Version 3.11
 
+12/22/07 Anachronisms mode and reference to function
+
+A change made in version 3.8 introduced a bug in anachronisms mode:
+When an overloaded function parameter that is a reference to function
+is passed an argument that is a pointer or pointer to member to an
+overloaded function, an internal error was issued ("cast_operand:
+bad func symbol").  Such cases once again result in an error instead
+of an internal error.
+
+  void f(long);
+  void f(int);
+  void g(int);
+  void g(void (&r)(long));
+  int main() {
+    g(&f);  // Error again rather than abort in anachronisms mode
+  }
+
 12/21/07 Spurious errors in complex multi-translation unit cases
 
 A bug that triggered spurious errors in very complex multi-translation-unit

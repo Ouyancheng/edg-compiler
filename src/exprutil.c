@@ -3188,6 +3188,7 @@ user-defined conversions.
                                                    (a_boolean)operand->
                                                                 is_template_id,
                                                    operand->template_arg_list,
+                                                   /*source_is_lvalue=*/FALSE,
                                                    new_type,
                                                    /*is_cast=*/
                                                              !is_implicit_cast,
