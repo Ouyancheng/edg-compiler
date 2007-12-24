@@ -3729,7 +3729,7 @@ are not checked.
   } else if (!is_immediate_class_type(corresp_type)) {
     /* An error: caught elsewhere. */
   } else if (is_incomplete_type(type) || !class_type_has_body(type)) {
-    /* No members to traverse.  (Note: A class occasionally may be complete
+    /* No members to traverse.  Note: A class occasionally may be complete
        without having a body (e.g., nonreal class types). */
   } else if (is_incomplete_type(corresp_type) ||
              !class_type_has_body(corresp_type)) {
