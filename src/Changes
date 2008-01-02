@@ -1,5 +1,24 @@
 Version 3.11
 
+1/2/08   NULL file pointer passsed to fclose when using implicit inclusion
+
+When implicit inclusion mode is being used, a NULL file pointer could be
+passed to fclose if a file declares but does not define a template, that
+file has a name that would be found by the implicit inclusion mechanism and
+that file had already been explicitly or implicitly included.  Now fixed.
+
+  file t1.c:
+
+  #include "t2.c"
+  int main() { f(1); }
+
+  file t2.c:
+
+  #ifndef T2
+  #define T2
+  template <class T> void f(T);
+  #endif
+
 12/22/07 Anachronisms mode and reference to function
 
 A change made in version 3.8 introduced a bug in anachronisms mode:

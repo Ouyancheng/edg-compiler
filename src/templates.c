@@ -16919,8 +16919,9 @@ file we simply return.
         } else {
           /* The file name returned by open_file_for_input is the same as
              the file in which the template was declared.  Just close
-             the file. */
-          (void)fclose(f_source);
+             the file.  When suppress_include is TRUE, the file was not
+             actually opened. */
+          if (!suppress_include) (void)fclose(f_source);
         }  /* if */
       }  /* if */
     }  /* if */
