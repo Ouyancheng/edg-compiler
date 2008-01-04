@@ -1,6 +1,6 @@
 Version 3.11
 
-1/2/08   NULL file pointer passsed to fclose when using implicit inclusion
+1/2/08   NULL file pointer passed to fclose when using implicit inclusion
 
 When implicit inclusion mode is being used, a NULL file pointer could be
 passed to fclose if a file declares but does not define a template, that
