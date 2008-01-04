@@ -16028,7 +16028,8 @@ with the outermost enclosing class, for later promotion out of the class
       /* Mangle the name if necessary (e.g., if it is part of a template
          function). */
       mangle_promoted_entity_name(&type->source_corresp, iek_type,
-                                  /*final=*/FALSE, routine, scope);
+                                  /*final=*/FALSE, routine, scope,
+                                  /*scoped_enum_type=*/(a_type_ptr)NULL);
       /* The is_local_to_function flag in the type is not cleared yet.  That
          happens at the end of lowering. */
       if (routine_class == NULL) {
@@ -16050,6 +16051,8 @@ with the outermost enclosing class, for later promotion out of the class
       /* If the type is an enum, mangle the names of its constants. */
       if (is_immediate_enum_type(type)) {
         a_constant_ptr enum_con;
+        a_type_ptr     scoped_enum_type = 
+                           is_scoped_enum_type(type) ? type : (a_type_ptr)NULL;
 #if DEBUG
         if (debug_level >= 4) {
           (void)fprintf(f_debug, "Enum constants promoted too\n");
@@ -16059,7 +16062,8 @@ with the outermost enclosing class, for later promotion out of the class
              enum_con != NULL;
              enum_con = enum_con->next) {
           mangle_promoted_entity_name(&enum_con->source_corresp, iek_constant,
-                                      /*final=*/TRUE, routine, scope);
+                                      /*final=*/TRUE, routine, scope,
+                                      scoped_enum_type);
           enum_con->source_corresp.is_local_to_function = FALSE;
         }  /* for */
       }  /* if */
@@ -16161,7 +16165,8 @@ been removed from the scope variables list).
   /* Mangle the name if necessary (e.g., if it is part of a template
      function). */
   mangle_promoted_entity_name(&variable->source_corresp, iek_variable,
-                              /*final=*/FALSE, routine, scope);
+                              /*final=*/FALSE, routine, scope,
+                              /*scoped_enum_type=*/(a_type_ptr)NULL);
   variable->source_corresp.is_local_to_function = FALSE;
   if (has_name(variable) &&
       routine_might_exist_in_multiple_copies(routine)) {

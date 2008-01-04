@@ -95,11 +95,13 @@ extern char *mangled_typeinfo_string(a_type_ptr type);
 #endif /* !IA64_ABI */
 
 #if DO_IL_LOWERING
-extern void mangle_promoted_entity_name(a_source_correspondence *scp,
-                                        an_il_entry_kind        kind,
-                                        a_boolean               final,
-                                        a_routine_ptr           routine,
-                                        a_scope_ptr             scope);
+extern void mangle_promoted_entity_name(
+                                    a_source_correspondence *scp,
+                                    an_il_entry_kind         kind,
+                                    a_boolean                final,
+                                    a_routine_ptr            routine,
+                                    a_scope_ptr              scope,
+                                    a_type_ptr               scoped_enum_type);
 #endif /* DO_IL_LOWERING */
 
 #if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
