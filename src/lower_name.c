@@ -5881,7 +5881,6 @@ the prefix "__" rather than "_Z".
   a_mangling_control_block mctl;
   char                     *unmangled_enum_type_name;
 #if IA64_ABI
-  char                     *name;
   a_boolean                need_nested_name_close = FALSE;
 #else /* !IA64_ABI */
   a_length_reservation     length_reservation;
