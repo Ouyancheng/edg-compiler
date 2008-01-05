@@ -1182,6 +1182,12 @@ Initialize the option information table.
   add_option_description(optk_unsigned_bit_fields, "unsigned_bit_fields",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_check_concatenations, "check_concatenations",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_check_concatenations, "no_check_concatenations",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 }  /* initialize_option_descriptions */
 
 
@@ -2616,6 +2622,12 @@ conflicts with the ANSI mode and set various unmentioned settings as needed.
        mode. */
     uliterals_enabled = FALSE;
   }  /* if */
+  if (!option_kind_used[(int)optk_check_concatenations]) {
+    /* Macro concatenation ("a ## b") resulting in an invalid token is
+       undefined behavior -- check for it and issue a diagnostic if it
+       occurs. */
+    check_concatenations = TRUE;
+  }  /* if */
   if (!c99_mode) {
     /* In strict mode the final field of a struct may not be an incomplete
        array, except in strict C99 mode. */
@@ -3005,6 +3017,11 @@ exclude the GNU modes already.  Hence those are not checked again here.)
     type_traits_helpers_enabled = FALSE;
   }  /* if */
   mixed_string_concat_enabled = TRUE;
+  if (!option_kind_used[(int)optk_check_concatenations]) {
+    /* The GNU preprocessor issues an error for macro concatenation
+       ("a ## b") resulting in an invalid token. */
+    check_concatenations = TRUE;
+  }  /* if */
 }  /* check_and_set_gnu_mode_options */
 
 
@@ -3882,6 +3899,11 @@ file.
 #else /* !defined(DEFAULT_C99_MODE) */
   comment_undefined_macro_name(DEFAULT_C99_MODE);
 #endif /* defined(DEFAULT_C99_MODE) */
+#if defined(DEFAULT_CHECK_CONCATENATIONS)
+  define_numeric_valued_macro(DEFAULT_CHECK_CONCATENATIONS);
+#else /* !defined(DEFAULT_CHECK_CONCATENATIONS) */
+  comment_undefined_macro_name(DEFAULT_CHECK_CONCATENATIONS);
+#endif /* defined(DEFAULT_CHECK_CONCATENATIONS) */
 #if defined(DEFAULT_CHECK_FOR_BYTE_ORDER_MARK)
   define_numeric_valued_macro(DEFAULT_CHECK_FOR_BYTE_ORDER_MARK);
 #else /* !defined(DEFAULT_CHECK_FOR_BYTE_ORDER_MARK) */
@@ -7635,6 +7657,9 @@ enable_microsoft_mode:
       case optk_unsigned_bit_fields:
         targ_plain_int_bit_field_is_unsigned = TRUE;
         break;
+      case optk_check_concatenations:
+        check_concatenations = opt_value;
+        break;
       default:
         /* It should not be possible to get here. */
         unexpected_condition();
@@ -8523,6 +8548,7 @@ variables declared in cmd_line.h.
   extern_template_allowed = FALSE;
   standard_form_of_extern_template = FALSE;
   decltype_enabled = FALSE;
+  check_concatenations = DEFAULT_CHECK_CONCATENATIONS;
 }  /* cmd_line_static_var_init */
 
 

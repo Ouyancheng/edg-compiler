@@ -260,6 +260,7 @@ typedef enum /*an_option_kind*/ {
 #endif /* DEBUG */
   optk_signed_bit_fields,
   optk_unsigned_bit_fields,
+  optk_check_concatenations,
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -1494,6 +1495,15 @@ EXTERN a_boolean
 			   the semantics specified by the C++ standard (as
 			   opposed to the semantics used by Microsoft or
 		           GNU). */
+
+EXTERN a_boolean
+		check_concatenations;
+			/* TRUE if macro concatenation ("a ## b") should
+			   cause a diagnostic if it results in an invalid
+			   token.  Unless explicitly set on the command line,
+			   it will be TRUE in GNU and strict modes and will
+			   have the value of DEFAULT_CHECK_CONCATENATIONS
+			   otherwise. */
 
 
 /* Process the command line arguments. */

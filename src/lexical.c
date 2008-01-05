@@ -652,6 +652,7 @@ Counts of tables allocated, to track total use of memory.
 static unsigned long
 		num_orig_line_modifs_allocated,
 		num_source_line_modifs_allocated,
+		num_concatenation_records_allocated,
 		num_cached_tokens_allocated,
                 num_cached_tokens_in_reusable_caches,
                 num_pragmas_in_reusable_caches,
@@ -2215,6 +2216,55 @@ macro text map and return the results in *seq, *column, and *macro_context.
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
 
 
+void add_concatenation_record(a_concatenation_record_ptr *headp,
+                              a_concatenation_record_ptr *tailp,
+                              char                       *line_loc)
+/*
+Allocate a concatenation record (or reuse one from the "available"
+list of freed records), adding it to the end of the list described by
+headp and tailp, and set its line_loc pointer as specified.
+*/
+{
+  a_concatenation_record_ptr crp;
+
+  if (avail_concatenation_records != NULL) {
+    /* Reuse an existing record from the "available" list. */
+    crp = avail_concatenation_records;
+    avail_concatenation_records = crp->next;
+  } else {
+    /* Allocate a new record. */
+    crp = (a_concatenation_record_ptr)alloc_fe(sizeof(a_concatenation_record));
+#if DEBUG
+    ++num_concatenation_records_allocated;
+#endif /* DEBUG */
+  }  /* if */
+  if (*tailp != NULL) {
+    /* Link this record to the last one in the list. */
+    (*tailp)->next = crp;
+  } else {
+    /* This is the first record. */
+    *headp = crp;
+  }  /* if */
+  *tailp = crp;
+  crp->next = NULL;
+  crp->line_loc = line_loc;
+}  /* add_concatenation_record */
+
+
+static void free_concatenation_record(a_concatenation_record_ptr *crpp)
+/*
+Move the concatenation record to which *crpp points to the "available" list
+and set *crpp to point to the record following the one being freed.
+*/
+{
+  a_concatenation_record_ptr crp = *crpp;
+
+  *crpp = crp->next;
+  crp->next = avail_concatenation_records;
+  avail_concatenation_records = crp;
+}  /* free_concatenation_record */
+
+
 /*
 Compute the hash value to be used in source_line_modif_hash_table for
 the indicated address (often the line_loc field value of a source
@@ -2355,6 +2405,7 @@ invocations.
   slmp->invocation_record   = NO_PARENT_MACRO_INVOCATION;
   slmp->invocation_depth    = 0;
 #endif /* MACRO_INVOCATION_TREE_IN_IL */
+  slmp->concatenations = NULL;
   if (line_loc != NULL) {
     /* Normal case: line_loc points to the point of insertion.  Save the
        original character, and replace it with a marker that will call
@@ -2436,6 +2487,11 @@ to NULL.
   /* Add the entry to the front of the list of available entries. */
   (*slmp)->next = avail_source_line_modifs;
   avail_source_line_modifs = *slmp;
+  /* Add any leftover concatenation records to the list of available
+     entries. */
+  while ((*slmp)->concatenations != NULL) {
+    free_concatenation_record(&(*slmp)->concatenations);
+  }  /* while */
   /* Clear the parameter so that the pointer cannot be inadvertently
      used again. */
   *slmp = NULL;
@@ -9708,6 +9764,35 @@ end_of_token_scan_b:;
 return_from_token_scan:
   if (start_of_curr_token != NULL) {
     len_of_curr_token = end_of_curr_token - start_of_curr_token + 1;
+    if (check_concatenations &&
+        !within_curr_source_line(start_of_curr_token)) {
+      /* Check to see if the current token begins at a point where a
+         concatenation was done and thus represents an attempt to create an
+         invalid token. */
+      a_source_line_modif_ptr slmp =
+                                  assoc_source_line_modif(start_of_curr_token);
+      while (slmp->concatenations != NULL &&
+             slmp->concatenations->line_loc < start_of_curr_token) {
+        /* We already passed this concatenation point, so free the record. */
+        free_concatenation_record(&slmp->concatenations);
+      }  /* while */
+      if (slmp->concatenations != NULL &&
+          slmp->concatenations->line_loc == start_of_curr_token) {
+        /* The right operand of the concatenation formed a new token instead
+           of becoming part of the one at the end of the left operand, which
+           is undefined behavior according to the language standards.  Issue
+           a diagnostic of the appropriate severity. */
+        an_error_severity sev;
+        if (strict_ansi_mode) {
+          sev = strict_ansi_discretionary_severity;
+        } else if (gnu_mode) {
+          sev = es_discretionary_error;
+        } else {
+          sev = es_warning;
+        }
+        diagnostic(sev, ec_concat_yields_invalid_token);
+      }  /* if */
+    }  /* if */
   }  /* if */
   curr_token_is_inert_macro = is_inert_macro;
 #if DEBUG
@@ -15413,6 +15498,9 @@ Display and return the amount of space used for various lexical tables.
                      num_orig_line_modifs_allocated, an_orig_line_modif);
   db_space_used_lost("source line modif", avail_source_line_modifs,
                      num_source_line_modifs_allocated, a_source_line_modif);
+  db_space_used_lost("concatenation record", avail_concatenation_records,
+                     num_concatenation_records_allocated,
+                     a_concatenation_record);
   db_space_used_lost("cached token", avail_cached_tokens,
                      num_cached_tokens_allocated, a_cached_token);
   db_space_used("reusable cached token",
@@ -15717,6 +15805,7 @@ are handled in lexical_init.)
       pch_saved_var_array_elem(seq_number_last_read),
       pch_saved_var_array_elem(avail_orig_line_modifs),
       pch_saved_var_array_elem(avail_source_line_modifs),
+      pch_saved_var_array_elem(avail_concatenation_records),
       pch_saved_var_array_elem(sequence_id_for_source_line_modifs),
       pch_saved_var_array_elem(last_token_sequence_number_used),
       pch_saved_var_array_elem(avail_cached_tokens),
@@ -15871,6 +15960,7 @@ of the front end.
   /* Variables in lexical.h: */
   avail_orig_line_modifs = NULL;
   avail_source_line_modifs = NULL;
+  avail_concatenation_records = NULL;
   sequence_id_for_source_line_modifs = 0;
   delete_source_from_loc = NULL;
   /* Static variables in lexical.c: */

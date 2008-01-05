@@ -1844,6 +1844,15 @@ of the global variable named_registers_enabled.
 #endif /* !NAMED_REGISTERS_ALLOWED && DEFAULT_NAMED_REGISTERS_ENABLED */
 
 /*
+Flag that is TRUE if a macro concatenation ("a ## b") should cause a
+diagnostic by default if it results in an invalid token.  This is the default
+initial value of the global variable check_concatenations.
+*/
+#ifndef DEFAULT_CHECK_CONCATENATIONS
+#define DEFAULT_CHECK_CONCATENATIONS FALSE
+#endif /* ifndef DEFAULT_CHECK_CONCATENATIONS */
+
+/*
 Flag that is TRUE if U-literals (as specified by ISO/IEC TR 19769) should be
 accepted by default.
 */

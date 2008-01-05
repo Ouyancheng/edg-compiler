@@ -1135,6 +1135,40 @@ typedef struct a_macro_text_map {
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
 
 /*
+Data structures that enable tracking of the location of a concatenation in
+a macro expansion when check_concatenations is TRUE.  This information is
+used to detect cases in which a concatenation did not result in a valid
+token, as required by the language standards: if a new token begins at the
+location occupied by the right-hand operand of ##, the concatenation did
+not form a valid token.  (Cases in which a putative token begins in the
+left-hand operand, continues across the concatenation point, and becomes
+invalid at a later point are not detected as concatenation failures.)
+
+A source line modification that incorporates text created by concatenation
+has a singly-linked list of concatenation records in the order of their
+offsets within the inserted text.  As tokenization proceeds through the
+inserted text, concatention records are removed from the list and placed on
+a list of available records for potential reuse.
+*/
+typedef struct a_concatenation_record *a_concatenation_record_ptr;
+typedef struct a_concatenation_record {
+  a_concatenation_record_ptr
+		next;	/* Pointer to the next entry in the list of records
+			   for a source line modification or the list of
+			   available records; NULL if this is the last
+			   record on the list. */
+  char		*line_loc;
+			/* Pointer to the first character in a source line
+			   modification's inserted text that comes from the
+			   right-hand operand of the ## operator. */
+} a_concatenation_record;
+
+EXTERN a_concatenation_record_ptr
+		avail_concatenation_records;
+			/* List of entries that have been allocated and
+			   freed and are available for reuse. */
+
+/*
 Variables pertaining to the current logical source line.  A "logical"
 source line is what results after trigraph characters (see standard,
 2.2.1.1) have been replaced, and lines ending in newline-backslash
@@ -1502,6 +1536,13 @@ typedef struct a_source_line_modif {
 			   invocation (0 for modifications that are not the
 			   result of a macro expansion). */
 #endif /* MACRO_INVOCATION_TREE_IN_IL */
+  a_concatenation_record_ptr
+		concatenations;
+			/* Head of a singly-linked list of concatenation
+			   records that apply to this modification's
+			   inserted text; NULL if there are none (including
+			   the case where check_concatenations is
+			   FALSE). */
 } a_source_line_modif;
 
 EXTERN a_source_line_modif_ptr
@@ -2034,6 +2075,9 @@ extern int compare_macro_text_map_entry_with_offset(
                                                    a_const_void_ptr offset_ptr,
                                                    a_const_void_ptr entry_ptr);
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
+extern void add_concatenation_record(a_concatenation_record_ptr *headp,
+                                     a_concatenation_record_ptr *tailp,
+                                     char                       *line_loc);
 /* Add an entry recording a logical modification to the source line. */
 extern a_source_line_modif_ptr add_source_line_modif(
                           char                      *line_loc,

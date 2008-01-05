@@ -1,5 +1,21 @@
 Version 3.11
 
+1/5/08   Validity of tokens created by macro concatenation
+
+According to the C and C++ standards, it is undefined behavior if the two
+preprocessing tokens joined by a ## operator do not form a valid preprocessing
+token.  The front end now checks for this situation in strict and GNU modes;
+the behavior in other modes is controlled by the new configuration macro
+DEFAULT_CHECK_CONCATENATIONS.  The default behavior can be overridden by the
+new command-line option --[no_]check_concatenations.  For example:
+
+  #define MINUS_5(x) x ## -5
+  int i = MINUS_5(0);   // Now an error in strict mode: '0-' is not a
+                        // valid token
+  #define IGNORE /##/
+  IGNORE int j;         // Now diagnosed in non-Microsoft modes as an invalid
+                        // token when concatenation checking is in effect
+
 1/2/08   NULL file pointer passed to fclose when using implicit inclusion
 
 When implicit inclusion mode is being used, a NULL file pointer could be

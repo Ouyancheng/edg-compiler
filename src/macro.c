@@ -1082,6 +1082,7 @@ the pointers in all source line modifications will be adjusted as needed.
       /* Walk the source line modif list (which represents macro expansions
          and comment deletions). */
       for (slmp = source_line_modif_list; slmp != NULL; slmp = slmp->next) {
+        a_concatenation_record_ptr crp;
         if (slmp->line_loc != NULL &&
             ptr_in_range(slmp->line_loc, old_ptr, old_after_end_plus_1)) {
           rem_source_line_modif_from_hash_table(slmp);
@@ -1090,6 +1091,9 @@ the pointers in all source line modifications will be adjusted as needed.
         }  /* if */
         fix_ptr(slmp->inserted_text);
         fix_ptr(slmp->end_inserted_text);
+        for (crp = slmp->concatenations; crp != NULL; crp = crp->next) {
+          fix_ptr(crp->line_loc);
+        }  /* for */
       }  /* for */
     }  /* if */
     /* Fix pointers in the macro argument entries. */
@@ -1224,6 +1228,7 @@ ensure_macro_buffer_space.
      macro_buffer whose associated source line modification has been removed
      will not be copied, further reducing memory usage. */
   for (slmp = source_line_modif_list; slmp != NULL; slmp = slmp->next) {
+    a_concatenation_record_ptr crp;
     if (slmp->line_loc != NULL &&
         ptr_in_range(slmp->line_loc, macro_buffer, old_start_of_uncompacted)) {
       /* slmp->line_loc has already been copied in the compacted portion of
@@ -1235,11 +1240,15 @@ ensure_macro_buffer_space.
     if (ptr_in_range(slmp->inserted_text, macro_buffer,
                      old_start_of_uncompacted)) {
       /* The inserted text has already been copied in the compacted portion
-         of the buffer; just relocate the start and end pointers. */
+         of the buffer; just relocate the start and end pointers and all
+         concatenation records. */
       slmp->inserted_text =
                          slmp->inserted_text - macro_buffer + new_macro_buffer;
       slmp->end_inserted_text =
                      slmp->end_inserted_text - macro_buffer + new_macro_buffer;
+      for (crp = slmp->concatenations; crp != NULL; crp = crp->next) {
+        crp->line_loc = crp->line_loc - macro_buffer + new_macro_buffer;
+      }  /* for */
     } else if (ptr_in_range(slmp->inserted_text, old_start_of_uncompacted,
                             next_avail_in_macro_buffer)) {
       /* The inserted text is in the portion of the buffer to be compacted.
@@ -1247,6 +1256,7 @@ ensure_macro_buffer_space.
          ATTENTION_MARKERs of deleted parts. */
       src = slmp->inserted_text;
       slmp->inserted_text = dst;
+      crp = slmp->concatenations;
       for (;;) {
         old_start_for_remapping = src;
         new_start_for_remapping = dst;
@@ -1259,6 +1269,10 @@ ensure_macro_buffer_space.
                                           old_start_for_remapping, src,
                                           new_start_for_remapping,
                                           /*adjust_source_line_modifs=*/FALSE);
+        for (; crp != NULL && crp->line_loc < src; crp = crp->next) {
+          crp->line_loc =
+             crp->line_loc - old_start_for_remapping + new_start_for_remapping;
+        }  /* for */
         if (ch == ATTENTION_MARKER) {
           /* This is the location of a macro replacement or deleted text.  Copy
              only the ATTENTION_MARKER to the new buffer and adjust the source
@@ -1286,9 +1300,10 @@ ensure_macro_buffer_space.
              character). */
           check_assertion(slmp->end_inserted_text == src - LE_ESCAPE_LEN);
           slmp->end_inserted_text = dst - LE_ESCAPE_LEN;
+          check_assertion(crp == NULL);
           break;
         }  /* if */
-      }  /* while */
+      }  /* for */
     }  /* if */
   }  /* for */
   num_compacted_macro_buffer_chars = dst - new_macro_buffer;
@@ -3343,6 +3358,10 @@ associated global variables will also have been set).
                   parent_macro_invocation_record;
   unsigned long   macro_invocation_stack_depth;
 #endif /* MACRO_INVOCATION_TREE_IN_IL */
+  a_concatenation_record_ptr
+                  concat_record_head = NULL;
+  a_concatenation_record_ptr
+                  concat_record_tail = NULL;
 
   /* WATCH OUT: Pointers into macro_buffer or the raw_text of a macro arg
      are dangerous, since those things can be reallocated.  Such pointers
@@ -4635,6 +4654,10 @@ end_arg_expansion:;
       }  /* if */
       if (sect_len != 0) {
         /*lint --e(668)*/(void)memcpy(src_loc, text_loc, size_t_arg(sect_len));
+        if (check_concatenations && prev_section_is_paste) {
+          add_concatenation_record(&concat_record_head, &concat_record_tail,
+                                   src_loc);
+        }  /* if */
         src_loc += sect_len;
       }  /* if */
 copy_done:
@@ -4690,6 +4713,7 @@ copy_done:
   slmp->invocation_record = this_macro_invocation_record;
   slmp->invocation_depth = macro_invocation_stack_depth;
 #endif /* MACRO_INVOCATION_TREE_IN_IL */
+  slmp->concatenations = concat_record_head;
   /* Can't set the parent modification here without looking it up.  In
      particular, the modification from which the macro identifier came may
      not be the right one in the case of a multi-line macro call or when
