@@ -4055,7 +4055,6 @@ type (if any) in a secondary translation unit whose correspondence is the
 given type.
 */
 {
-  check_assertion(!is_incomplete_type(type));
   if (trans_unit_corresp_of(type) == NULL) {
     /* Nothing to be done: correspondences are not being processed yet. */
   } else if (any_noncorresp_errors()) {
@@ -4063,6 +4062,7 @@ given type.
   } else {
     a_type_ptr  canon = (a_type_ptr)canonical_il_entry_of(type);
     a_boolean   new_canon = FALSE, match;
+    check_assertion(!is_incomplete_type(type));
     if (canon == type) {
       /* This is presumably the first class body instantiation. */
       clear_class_type_correspondence(type, /*visited=*/TRUE);
