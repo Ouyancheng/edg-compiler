@@ -8794,6 +8794,43 @@ curr_token is already set in that case.
 }  /* concat_adjacent_string_literals */
 
 
+static void check_for_invalid_macro_concatenation()
+/*
+If such checking was requested, issue a diagnostic if the current token
+indicates that a concatenation operation in a macro expansion ("a ## b")
+did not result in a valid token.
+*/
+{
+  if (check_concatenations &&
+      !within_curr_source_line(start_of_curr_token)) {
+    /* Check to see if the current token begins at a point where a
+       concatenation was done and thus represents an attempt to create an
+       invalid token. */
+    a_source_line_modif_ptr slmp =
+                                  assoc_source_line_modif(start_of_curr_token);
+    while (slmp->concatenations != NULL &&
+           slmp->concatenations->line_loc <= start_of_curr_token) {
+      if (slmp->concatenations->line_loc == start_of_curr_token) {
+        /* The right operand of the concatenation formed a new token instead
+           of becoming part of the one at the end of the left operand, which
+           is undefined behavior according to the language standards.  Issue
+           a diagnostic of the appropriate severity. */
+        an_error_severity sev;
+        if (strict_ansi_mode) {
+          sev = strict_ansi_discretionary_severity;
+        } else if (gnu_mode) {
+          sev = es_discretionary_error;
+        } else {
+          sev = es_warning;
+        }
+        diagnostic(sev, ec_concat_yields_invalid_token);
+      }  /* if */
+      free_concatenation_record(&slmp->concatenations);
+    }  /* while */
+  }  /* if */
+}  /* check_for_invalid_macro_concatenation */
+
+
 /*
 Macro that determines whether string literal sequence numbers might be
 needed, and if so, calls a routine to do the assignment.
@@ -9417,6 +9454,7 @@ return_end_of_source_token:
         goto end_of_token_scan;
       } else if (ch == '"') {
         remember_token_start();
+        check_for_invalid_macro_concatenation();
         ctoken = scan_string_literal();
         goto concatenate_adjacent_string_literals;
       }  /* if */
@@ -9626,6 +9664,7 @@ end_id_scan:
         /* Scan as a string literal, not a header name.  We could still
 	   be in a preprocessing directive, though. */
         remember_token_start();
+        check_for_invalid_macro_concatenation();
         ctoken = scan_string_literal();
         goto concatenate_adjacent_string_literals;
       }  /* if */
@@ -9763,36 +9802,8 @@ end_of_token_scan_b:;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 return_from_token_scan:
   if (start_of_curr_token != NULL) {
+    check_for_invalid_macro_concatenation();
     len_of_curr_token = end_of_curr_token - start_of_curr_token + 1;
-    if (check_concatenations &&
-        !within_curr_source_line(start_of_curr_token)) {
-      /* Check to see if the current token begins at a point where a
-         concatenation was done and thus represents an attempt to create an
-         invalid token. */
-      a_source_line_modif_ptr slmp =
-                                  assoc_source_line_modif(start_of_curr_token);
-      while (slmp->concatenations != NULL &&
-             slmp->concatenations->line_loc < start_of_curr_token) {
-        /* We already passed this concatenation point, so free the record. */
-        free_concatenation_record(&slmp->concatenations);
-      }  /* while */
-      if (slmp->concatenations != NULL &&
-          slmp->concatenations->line_loc == start_of_curr_token) {
-        /* The right operand of the concatenation formed a new token instead
-           of becoming part of the one at the end of the left operand, which
-           is undefined behavior according to the language standards.  Issue
-           a diagnostic of the appropriate severity. */
-        an_error_severity sev;
-        if (strict_ansi_mode) {
-          sev = strict_ansi_discretionary_severity;
-        } else if (gnu_mode) {
-          sev = es_discretionary_error;
-        } else {
-          sev = es_warning;
-        }
-        diagnostic(sev, ec_concat_yields_invalid_token);
-      }  /* if */
-    }  /* if */
   }  /* if */
   curr_token_is_inert_macro = is_inert_macro;
 #if DEBUG
@@ -15819,6 +15830,7 @@ are handled in lexical_init.)
 #if DEBUG
       pch_saved_var_array_elem(num_orig_line_modifs_allocated),
       pch_saved_var_array_elem(num_source_line_modifs_allocated),
+      pch_saved_var_array_elem(num_concatenation_records_allocated),
       pch_saved_var_array_elem(num_cached_tokens_allocated),
       pch_saved_var_array_elem(num_cached_tokens_in_reusable_caches),
       pch_saved_var_array_elem(num_pragmas_in_reusable_caches),
@@ -15984,6 +15996,7 @@ of the front end.
 #if DEBUG
   num_orig_line_modifs_allocated = 0;
   num_source_line_modifs_allocated = 0;
+  num_concatenation_records_allocated = 0;
   num_cached_tokens_allocated = 0;
   num_cached_tokens_in_reusable_caches = 0;
   num_pragmas_in_reusable_caches = 0;
