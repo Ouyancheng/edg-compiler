@@ -1500,10 +1500,7 @@ EXTERN a_boolean
 		check_concatenations;
 			/* TRUE if macro concatenation ("a ## b") should
 			   cause a diagnostic if it results in an invalid
-			   token.  Unless explicitly set on the command line,
-			   it will be TRUE in GNU and strict modes and will
-			   have the value of DEFAULT_CHECK_CONCATENATIONS
-			   otherwise. */
+			   token. */
 
 
 /* Process the command line arguments. */
