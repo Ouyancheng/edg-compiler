@@ -9802,7 +9802,15 @@ end_of_token_scan_b:;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 return_from_token_scan:
   if (start_of_curr_token != NULL) {
-    check_for_invalid_macro_concatenation();
+    if (ctoken != tok_error) {
+      /* To avoid redundant and spurious errors, only check concatenations
+         involving non-error tokens.  For example, the result of
+         concatenating two # characters will be tokenized as two tok_error
+         tokens, not a tok_paste, but should not be diagnosed as an invalid
+         concatenation; some other tok_error tokens will have their own
+         diagnostics. */
+      check_for_invalid_macro_concatenation();
+    }  /* if */
     len_of_curr_token = end_of_curr_token - start_of_curr_token + 1;
   }  /* if */
   curr_token_is_inert_macro = is_inert_macro;
