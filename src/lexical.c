@@ -9541,6 +9541,7 @@ id_scan:
               !is_inert_macro) {
             /* Macro to be expanded. */
             if (expand_macros) {
+              check_for_invalid_macro_concatenation();
               ctoken = macro_invocation(assoc_symbol, &rescan);
               /* In the usual case, we rescan the expanded form of the
                  macro. */
