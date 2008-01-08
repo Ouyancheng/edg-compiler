@@ -15352,14 +15352,13 @@ external.
 }  /* make_enum_type_externally_linked */
 
 
-static void make_class_externally_linked(a_type_ptr type,
-                                         int        *count)
+static void make_class_components_externally_linked(a_type_ptr type,
+                                                    int        *count)
 /*
-This routine changes the linkage of a type and its components from
-internal to external.  The types it handles directly are class, struct,
-and union types, for which it sets the name_linkage field, adjusts members
-as needed, and searches for other classes that are entailed in its
-definition and marks them external as well.
+This routine changes the linkage of a type's components from internal to
+external.  The types it handles directly are class, struct, and union types,
+for which it adjusts members as needed, and searches for other classes that
+are entailed in its definition and marks them external as well.
 */
 {
   a_field_ptr                  fp;
@@ -15371,11 +15370,6 @@ definition and marks them external as well.
   a_symbol_ptr                 sym;
   a_template_arg_ptr           tap;
 
-  db_enter(4, "make_class_externally_linked");
-  /* Mark the class as externally linked immediately, to avoid infinite
-     recursion if it is self referential. */
-  type->source_corresp.name_linkage =
-                                 (a_name_linkage_kind)nlk_cplusplus_external;
   if (!type->source_corresp.is_class_member) {
     /* Increment the count.  This lets the caller know how many classes
        were changed from internal to external linkage and permits an early
@@ -15455,6 +15449,25 @@ definition and marks them external as well.
       if (tp != NULL) check_type_for_linkage_change(tp, count);
     }  /* for */
   }  /* if */
+}  /* make_class_components_externally_linked */
+
+
+static void make_class_externally_linked(a_type_ptr type,
+                                         int        *count)
+/*
+This routine changes the linkage of a type and its components from
+internal to external.  The types it handles directly are class, struct,
+and union types, for which it sets the name_linkage field, adjusts members
+as needed, and searches for other classes that are entailed in its
+definition and marks them external as well.
+*/
+{
+  db_enter(4, "make_class_externally_linked");
+  /* Mark the class as externally linked immediately, to avoid infinite
+     recursion if it is self referential. */
+  type->source_corresp.name_linkage =
+                                 (a_name_linkage_kind)nlk_cplusplus_external;
+  make_class_components_externally_linked(type, count);
   db_exit();
 }  /* make_class_externally_linked */
 
@@ -15516,6 +15529,19 @@ the change on the contained type.
         /* Class, struct, or union type.  Change it (and its members, where
            required) to have external linkage. */
         make_class_externally_linked(type, count);
+      } else if (class_type_supp(type)->anonymous_union_field != NULL) {
+        /* An anonymous union type: It cannot meaningfully have external name
+           linkage, but types involved in its definition may need to have their
+           name linkage updated. */
+        /* Avoid infinite recursion by temporarily giving the anonymous union
+           type linkage. */
+        a_name_linkage_kind  saved_nlk = type->source_corresp.name_linkage;
+        if (saved_nlk != (a_name_linkage_kind)nlk_cplusplus_external) {
+          type->source_corresp.name_linkage =
+                                  (a_name_linkage_kind)nlk_cplusplus_external;
+          make_class_components_externally_linked(type, count);
+          type->source_corresp.name_linkage = saved_nlk;
+        }  /* if */
       }  /* if */
       if (type->source_corresp.is_class_member) {
         /* Nested class -- be sure parent class is also externally linked. */
@@ -15747,8 +15773,9 @@ because they were used in declaring an external function or variable.
          reference to a class or enum type that is still marked as internally
          linked. */
       for (vp = scope->variables; vp != NULL; vp = vp->next) {
-        if (vp->source_corresp.name_linkage ==
-                               (a_name_linkage_kind)nlk_cplusplus_external) {
+        if (vp->source_corresp.name_linkage != (a_name_linkage_kind)nlk_none &&
+            vp->source_corresp.name_linkage !=
+                                           (a_name_linkage_kind)nlk_internal) {
           /* This is an externally linked variable.  Check its type. */
           count = 0;
           check_type_for_linkage_change(vp->type, &count);
@@ -15766,8 +15793,9 @@ because they were used in declaring an external function or variable.
          Make a pass over the file scope routine entries similar to the one
          made for variables. */
       for (rp = scope->routines; rp != NULL; rp = rp->next) {
-        if (rp->source_corresp.name_linkage ==
-                               (a_name_linkage_kind)nlk_cplusplus_external) {
+        if (rp->source_corresp.name_linkage != (a_name_linkage_kind)nlk_none &&
+            rp->source_corresp.name_linkage !=
+                                           (a_name_linkage_kind)nlk_internal) {
           /* This is an externally linked routine.  Check its type. */
           count = 0;
           check_type_for_linkage_change(rp->type, &count);

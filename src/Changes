@@ -1,5 +1,28 @@
 Version 3.11
 
+1/8/08   Name linkage of class types in cfront mode
+
+In cfront mode, class types initially have internal name linkage, which is
+changed to external (C++) name linkage if the class is involved in the
+declaration of an entity (variable, function, or class type) which itself has
+external name linkage.  Previously, however, this process excluded class types
+involved in the declaration of entities with extern "C" name linkage, or
+appearing within anonymous union types.  Those exclusions could trigger
+spurious errors when simultaneously compiling multiple translation units.
+For example:
+
+  // Primary translation unit:
+  struct S {};            // Internal name linkage.
+  extern "C" void f(S*);  // S previously not updated because of extern "C".
+
+  // Secondary translation unit: (same as primary)
+  struct S {};
+  extern "C" void f(S*);
+      // Previously triggered a spurious correspondence error because the
+      // two types S were considered distinct (i.e., with internal linkage).
+
+This is now fixed: The previously excluded cases are no longer excluded.
+
 1/5/08   Validity of tokens created by macro concatenation
 
 According to the C and C++ standards, it is undefined behavior if the two
