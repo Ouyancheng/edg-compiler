@@ -4675,6 +4675,7 @@ copy_done:
       if (rts_kind == rt_paste) {
         prev_section_is_paste = TRUE;
       } else {
+        prev_section_is_paste = FALSE;
         prev_sect_len = sect_len;
       }  /* if */
       src_loc_before_copy = src_loc;
