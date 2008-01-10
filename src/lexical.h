@@ -1161,6 +1161,9 @@ typedef struct a_concatenation_record {
 			/* Pointer to the first character in a source line
 			   modification's inserted text that comes from the
 			   right-hand operand of the ## operator. */
+  a_symbol_ptr	macro_sym;
+			/* The macro in whose expansion the concatenation
+			   occurs. */
 } a_concatenation_record;
 
 EXTERN a_concatenation_record_ptr
@@ -2077,7 +2080,8 @@ extern int compare_macro_text_map_entry_with_offset(
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
 extern void add_concatenation_record(a_concatenation_record_ptr *headp,
                                      a_concatenation_record_ptr *tailp,
-                                     char                       *line_loc);
+                                     char                       *line_loc,
+                                     a_symbol_ptr               macro_sym);
 /* Add an entry recording a logical modification to the source line. */
 extern a_source_line_modif_ptr add_source_line_modif(
                           char                      *line_loc,

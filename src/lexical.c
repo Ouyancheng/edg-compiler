@@ -2218,11 +2218,12 @@ macro text map and return the results in *seq, *column, and *macro_context.
 
 void add_concatenation_record(a_concatenation_record_ptr *headp,
                               a_concatenation_record_ptr *tailp,
-                              char                       *line_loc)
+                              char                       *line_loc,
+                              a_symbol_ptr               macro_sym)
 /*
 Allocate a concatenation record (or reuse one from the "available"
 list of freed records), adding it to the end of the list described by
-headp and tailp, and set its line_loc pointer as specified.
+headp and tailp, and set its line_loc and macro_sym pointers as specified.
 */
 {
   a_concatenation_record_ptr crp;
@@ -2248,6 +2249,7 @@ headp and tailp, and set its line_loc pointer as specified.
   *tailp = crp;
   crp->next = NULL;
   crp->line_loc = line_loc;
+  crp->macro_sym = macro_sym;
 }  /* add_concatenation_record */
 
 
@@ -8801,8 +8803,7 @@ indicates that a concatenation operation in a macro expansion ("a ## b")
 did not result in a valid token.
 */
 {
-  if (check_concatenations &&
-      !within_curr_source_line(start_of_curr_token)) {
+  if (!within_curr_source_line(start_of_curr_token)) {
     /* Check to see if the current token begins at a point where a
        concatenation was done and thus represents an attempt to create an
        invalid token. */
@@ -8823,7 +8824,11 @@ did not result in a valid token.
         } else {
           sev = es_warning;
         }
-        diagnostic(sev, ec_concat_yields_invalid_token);
+        pos_stsy_diagnostic(strict_ansi_mode ?
+                               strict_ansi_discretionary_severity : es_warning,
+                            ec_concat_yields_invalid_token, &pos_curr_token,
+                            slmp->concatenations->line_loc,
+                            slmp->concatenations->macro_sym);
       }  /* if */
       free_concatenation_record(&slmp->concatenations);
     }  /* while */
@@ -9454,7 +9459,12 @@ return_end_of_source_token:
         goto end_of_token_scan;
       } else if (ch == '"') {
         remember_token_start();
-        check_for_invalid_macro_concatenation();
+        if (check_concatenations) {
+          /* Check for invalid concatenation here, as string literal
+             concatenation can destroy the address correspondence needed
+             for the test. */
+          check_for_invalid_macro_concatenation();
+        }  /* if */
         ctoken = scan_string_literal();
         goto concatenate_adjacent_string_literals;
       }  /* if */
@@ -9541,7 +9551,13 @@ id_scan:
               !is_inert_macro) {
             /* Macro to be expanded. */
             if (expand_macros) {
-              check_for_invalid_macro_concatenation();
+              if (check_concatenations) {
+                /* Check for invalid concatentation now, before the macro
+                   name can be overwritten (which will cause the "next
+                   token" to be at a different address from the saved
+                   concatenation point). */
+                check_for_invalid_macro_concatenation();
+              }  /* if */
               ctoken = macro_invocation(assoc_symbol, &rescan);
               /* In the usual case, we rescan the expanded form of the
                  macro. */
@@ -9665,7 +9681,12 @@ end_id_scan:
         /* Scan as a string literal, not a header name.  We could still
 	   be in a preprocessing directive, though. */
         remember_token_start();
-        check_for_invalid_macro_concatenation();
+        if (check_concatenations) {
+          /* Check for invalid concatenation here, as string literal
+             concatenation can destroy the address correspondence needed
+             for the test. */
+          check_for_invalid_macro_concatenation();
+        }  /* if */
         ctoken = scan_string_literal();
         goto concatenate_adjacent_string_literals;
       }  /* if */
@@ -9803,7 +9824,7 @@ end_of_token_scan_b:;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 return_from_token_scan:
   if (start_of_curr_token != NULL) {
-    if (ctoken != tok_error) {
+    if (check_concatenations && ctoken != tok_error) {
       /* To avoid redundant and spurious errors, only check concatenations
          involving non-error tokens.  For example, the result of
          concatenating two # characters will be tokenized as two tok_error

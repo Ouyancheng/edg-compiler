@@ -4600,11 +4600,6 @@ end_arg_expansion:;
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
             (void)stringized_arg(map, &src_loc,
                                  rts_kind == rt_charized_raw_argument);
-            /* sect_len must be non-zero to enable checking for invalid
-               concatenation results; its value is unused apart from that,
-               so the exact length of the insertion (including embedded
-               escape sequences) is irrelevant. */
-            sect_len = map->expanded_len + 2;
 #if FULLY_RESOLVED_MACRO_POSITIONS
             /* Add an extra entry to macro_text_map so that the ending
                position of the stringized token will map to the last character
@@ -4664,19 +4659,19 @@ end_arg_expansion:;
         src_loc += sect_len;
       }  /* if */
 copy_done:
-      if (check_concatenations && prev_section_is_paste && sect_len != 0 &&
-          prev_sect_len != 0) {
+      if (check_concatenations && prev_section_is_paste &&
+          src_loc - src_loc_before_copy != 0 && prev_sect_len != 0) {
         /* The result reflects concatenating two non-empty text sections.
            Record the concatenation so that retokenizing can check for
            having created an invalid token. */
         add_concatenation_record(&concat_record_head, &concat_record_tail,
-                                 src_loc_before_copy);
+                                 src_loc_before_copy, macro_symbol);
       }  /* if */
       if (rts_kind == rt_paste) {
         prev_section_is_paste = TRUE;
       } else {
         prev_section_is_paste = FALSE;
-        prev_sect_len = sect_len;
+        prev_sect_len = src_loc - src_loc_before_copy;
       }  /* if */
       src_loc_before_copy = src_loc;
     }  /* for */

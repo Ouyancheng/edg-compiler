@@ -1712,7 +1712,7 @@ ec_UCN_names_surrogate_code_point;;"a universal character name cannot designate 
 ec_include_next_in_primary_source_file;;"#include_next cannot be used in the primary source file"
 ec_bad_template_member_definition;;"%no1 cannot be specified in a template member definition -- %no2 assumed instead"
 ec_local_function_attribute_ignored;;"attribute is ignored on local function declaration"
-ec_concat_yields_invalid_token;;"concatenation does not create a valid token"
+ec_concat_yields_invalid_token;;"concatenation with %sq in %n does not create a valid token"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
