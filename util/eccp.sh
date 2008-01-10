@@ -560,6 +560,7 @@ check_abbreviation()
 --c_to_obj_lib
 --cfront_2.1
 --cfront_3.0
+--check_concatenations
 --class_name_injection
 --clear_flag
 --command
@@ -657,6 +658,7 @@ check_abbreviation()
 --no_brief_diagnostics
 --no_c99
 --no_c++0x
+--no_check_concatenations
 --no_class_name_injection
 --no_code_gen
 --no_compound_literals
@@ -1310,6 +1312,8 @@ process_option()
          --dump_configuration | \
          --signed_bit_fields | \
          --unsigned_bit_fields | \
+         --check_concatenations | \
+         --no_check_concatenations | \
          --force_vtbl)
       feoptions=$feoptions" $curr_arg"
 #     Options that require additional processing
