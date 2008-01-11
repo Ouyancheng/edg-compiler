@@ -8816,14 +8816,6 @@ did not result in a valid token.
            of becoming part of the one at the end of the left operand, which
            is undefined behavior according to the language standards.  Issue
            a diagnostic of the appropriate severity. */
-        an_error_severity sev;
-        if (strict_ansi_mode) {
-          sev = strict_ansi_discretionary_severity;
-        } else if (gnu_mode) {
-          sev = es_discretionary_error;
-        } else {
-          sev = es_warning;
-        }
         pos_stsy_diagnostic(strict_ansi_mode ?
                                strict_ansi_discretionary_severity : es_warning,
                             ec_concat_yields_invalid_token, &pos_curr_token,
