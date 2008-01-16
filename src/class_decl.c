@@ -12741,14 +12741,13 @@ routine.
                      ec_useless_decl, err_pos);
     }  /* if */
   }  /* if */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
   if ((dso_flags & (DSO_DECLARES_SOMETHING | DSO_DEFINES_SOMETHING)) ||
       (decl_info->is_anonymous_union &&
        member_type->kind != (a_type_kind)tk_typeref)) {
     /* This is a free-standing declaration of a class, struct, union, or
        enum. */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
     a_type_ptr  tp = skip_typerefs(member_type);
-
     if (dso_flags & DSO_DEFINES_SOMETHING) {
       tp->autonomous_primary_tag_decl = TRUE;
     } else if (!source_sequence_entries_disallowed) {
@@ -12767,8 +12766,13 @@ routine.
         check_assertion(total_errors > 0);
       }  /* if */
     }  /* if */
-  }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#if GNU_EXTENSIONS_ALLOWED
+    if (decl_state->attributes != NULL) {
+      pos_warning(ec_attribute_not_allowed, &decl_state->attributes->position);
+    }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+  }  /* if */
 }  /* check_missing_declarator_in_member_declaration */
 
 

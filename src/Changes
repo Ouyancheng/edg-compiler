@@ -1,5 +1,20 @@
 Version 3.11
 
+1/16/08  Abort on nested class with invalid GNU attributes
+
+In GNU C++ mode, the use of GNU attributes in invalid syntactic locations
+of nested class declarations sometimes triggered an abort.  For example:
+
+  template<int T> struct S {
+    __attribute__ ((aligned(16)))  // Invalid attribute location for nested
+    struct bar {};                 // class declaration.
+    struct bar;                    // Internal error was triggered during
+  };                               // the instantiation of S<0>.
+  S<0> f;
+
+This is now fixed.  A warning is now issued about the attribute not being
+valid at that syntactic location.
+
 1/8/08   Name linkage of class types in cfront mode
 
 In cfront mode, class types initially have internal name linkage, which is

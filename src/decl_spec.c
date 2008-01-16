@@ -7253,6 +7253,7 @@ storage_class_specifier:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
       case tok_attribute:
+        specifier_allows_vacuous_decl = TRUE;
         if ((input_flags & DSI_GNU_ATTRIBUTES_ALLOWED) != 0) {
           /* Scan the attributes. */
           *state->p_declarator_attributes = scan_attributes();
