@@ -1165,6 +1165,11 @@ extern a_routine_ptr expr_select_destructor(
                                      a_source_position *position,
                                      a_boolean         honor_virtual);
 
+extern void add_dtor_to_dynamic_init(a_dynamic_init_ptr dip,
+                                     a_type_ptr         class_type,
+                                     a_type_ptr         object_class_type,
+                                     a_source_position  *position);
+
 extern a_dynamic_init_ptr alloc_dtor_dynamic_init(
                                            a_dynamic_init_kind kind,
                                            a_type_ptr          type,

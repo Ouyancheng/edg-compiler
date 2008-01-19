@@ -1,5 +1,24 @@
 Version 3.11
 
+1/1908   Repeated error message on inaccessible destructor in throw
+
+In some cases, the error for an inaccessible destructor in a throw
+operation was duplicated.  Now fixed.  This problem was introduced in
+version 3.6.
+
+  class A {
+  public:
+      A() {}
+  private:
+      ~A() {}
+  };
+  void foo() {
+    try {
+      throw A();  // Same error message twice previously
+    }
+    catch (...) {}
+  }
+
 1/16/08  Abort on nested class with invalid GNU attributes
 
 In GNU C++ mode, the use of GNU attributes in invalid syntactic locations

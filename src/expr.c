@@ -1595,10 +1595,8 @@ source position is after the closing parenthesis of the argument list.
         /* Fill in the destructor information.  Note that we cannot use
            alloc_dtor_dynamic_init because it does not allow for the
            object_class_type to differ from the class_type. */
-        dip->destructor = expr_select_destructor(class_type,
-                                                 object_class_type,
-                                                 source_pos,
-                                                 /*honor_virtual=*/FALSE);
+        add_dtor_to_dynamic_init(dip, class_type, object_class_type,
+                                 source_pos);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -19572,22 +19570,26 @@ are marked as actually referenced.
 */
 {
   a_dynamic_init_dtor_fixup_ptr didfp, didfp_next;
-  a_routine_ptr                 dtor_routine;
 
   didfp = expr_stack->dynamic_init_dtor_fixup_list;
   expr_stack->dynamic_init_dtor_fixup_list = NULL;
+  expr_stack->in_cctor_elision_initializer = FALSE;
   for (; didfp != NULL; didfp = didfp_next) {
+    a_dynamic_init_ptr dip = didfp->dynamic_init;
+    a_routine_ptr      dtor_routine = dip->destructor;
     didfp_next = didfp->next;
-    dtor_routine = didfp->dynamic_init->destructor;
+    /* See whether the destruction was optimized away (the pointer was
+       cleared to NULL if so). */
     if (dtor_routine != NULL) {
-      a_symbol_ptr dtor_sym =
-                         (a_symbol_ptr)dtor_routine->source_corresp.assoc_info;
-      /* Check access to the destructor and mark it referenced. */
-      expr_reference_to_implicitly_invoked_function(
-                                dtor_sym,
-                                &didfp->position,
-                                parent_class_of(dtor_routine),
-                                /*honor_virtual=*/FALSE);
+      a_type_ptr class_type = parent_class_of(dtor_routine);
+      /* Check access to the destructor and mark it referenced.  We call the
+         routine that recorded the fixup (with
+         expr_stack->in_cctor_elision_initializer now FALSE) to make sure we
+         get exactly the processing we would have gotten in the immediate
+         case. */
+      add_dtor_to_dynamic_init(dip, class_type, class_type,
+                               &didfp->position);
+      check_assertion(dip->destructor == dtor_routine);
     }  /* if */
     /* Free the one entry. */
     free_dynamic_init_dtor_fixup(didfp);

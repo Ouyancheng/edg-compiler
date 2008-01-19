@@ -7931,6 +7931,45 @@ on the expression stack.
 }  /* expr_select_destructor */
 
 
+void add_dtor_to_dynamic_init(a_dynamic_init_ptr dip,
+                              a_type_ptr         class_type,
+                              a_type_ptr         object_class_type,
+                              a_source_position  *position)
+/*
+Add destruction information, if needed, to the dynamic initialization entry
+dip.  dip is initializing an object of type class_type.  If that is being
+done as part of a larger complete object, object_class_type indicates that
+type; otherwise, it is the same as class_type, or it is NULL if not needed.
+position is a source position to be used for errors.
+*/
+{
+  check_assertion(is_class_struct_union_type(class_type));
+  /* Note how this routine interacts with fix_up_dynamic_init_dtors. */
+  if (!expr_stack->in_cctor_elision_initializer) {
+    dip->destructor = expr_select_destructor(class_type,
+                                             object_class_type, position,
+                                             /*honor_virtual=*/FALSE);
+  } else {
+    /* In a cctor elision expression.  Put the destructor in the entry,
+       but do not do the access checking etc. at this time.  Build a fixup
+       entry to remind us to do the check later, and put it on the list
+       for the current expression. */
+    a_class_symbol_supplement_ptr cssp =
+                                       symbol_supplement_for_class(class_type);
+    /* We shouldn't get a different complete object type in an elision context;
+       that happens only in constructor mem-initializers right now. */
+    check_assertion(object_class_type == NULL ||
+                    same_entities(class_type, object_class_type));
+    if (cssp != NULL) {
+      a_symbol_ptr dtor_sym = cssp->destructor;
+      if (dtor_sym != NULL) {
+        dip->destructor = dtor_sym->variant.routine.ptr;
+        (void)alloc_dynamic_init_dtor_fixup(dip, position);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* add_dtor_to_dynamic_init */
+
 
 a_dynamic_init_ptr alloc_dtor_dynamic_init(a_dynamic_init_kind kind,
                                            a_type_ptr          type,
@@ -7947,23 +7986,7 @@ initialization entry.  *position gives the associated source position.
   if (C_dialect == C_dialect_cplusplus && is_class_struct_union_type(type)) {
     /* The type is a class.  If it has a destructor, indicate it in
        the dynamic initialization. */
-    if (!expr_stack->in_cctor_elision_initializer) {
-      dip->destructor = expr_select_destructor(type, type, position,
-                                               /*honor_virtual=*/FALSE);
-    } else {
-      /* In a cctor elision expression.  Put the destructor in the entry,
-         but do not do the access checking etc. at this time.  Build a fixup
-         entry to remind us to do the check later, and put it on the list
-         for the current expression. */
-      a_class_symbol_supplement_ptr cssp = symbol_supplement_for_class(type);
-      if (cssp != NULL) {
-        a_symbol_ptr dtor_sym = cssp->destructor;
-        if (dtor_sym != NULL) {
-          dip->destructor = dtor_sym->variant.routine.ptr;
-          (void)alloc_dynamic_init_dtor_fixup(dip, position);
-        }  /* if */
-      }  /* if */
-    }  /* if */
+    add_dtor_to_dynamic_init(dip, type, type, position);
   }  /* if */
   return dip;
 }  /* alloc_dtor_dynamic_init */
