@@ -6958,8 +6958,9 @@ If the indicated class has a destructor, check that it is accessible, mark
 it as referenced, and return a pointer to the routine entry.  Otherwise,
 return NULL.  object_class_type points to the type of the object being
 destroyed; class_type may be a base class of object_class_type.  This is
-needed for protected member access checking.  If honor_virtual is TRUE, and
-if the destructor is virtual, consider this reference a virtual function
+needed for protected member access checking.  object_class_type can be NULL
+if that checking is not needed.  If honor_virtual is TRUE, and if the
+destructor is virtual, consider this reference a virtual function
 call.  If evaluated is FALSE, the reference is within an unevaluated
 expression.  If instantiate is TRUE, the destructor is instantiated
 if necessary.  *position is the source position of the reference.
