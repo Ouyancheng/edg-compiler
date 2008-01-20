@@ -13378,8 +13378,9 @@ selection operator, in which case it points to the type of the left operand.
 	   specific class template, and if the next token is a "<"
 	   indicating that we are really referring to the template and
 	   not the (ambiguous) class type. */
-        check_ambiguity_and_access_with_template_flag(
-                        &locator_for_curr_id, (a_boolean)(next_tok == tok_lt));
+        check_ambiguity_and_access_full(
+                        &locator_for_curr_id, (a_boolean)(next_tok == tok_lt),
+                        /*is_qualifier=*/(next_tok == tok_colon_colon));
         /* The call above will create an error locator if an ambiguity is
            is detected. */
         if (is_error_locator(locator_for_curr_id)) {
@@ -13791,8 +13792,9 @@ selection operator, in which case it points to the type of the left operand.
                  if the symbol is known to be ambiguous, so that it can
                  report the ambiguity error.  No access checking will be done
                  when an ambiguity error exists. */
-              check_ambiguity_and_access_with_template_flag(
-                        &locator_for_curr_id, (a_boolean)(next_tok == tok_lt));
+              check_ambiguity_and_access_full(
+                        &locator_for_curr_id, (a_boolean)(next_tok == tok_lt),
+                        /*is_qualifier=*/TRUE);
               /* The call above will create an error locator if an ambiguity is
                  is detected. */
               if (is_error_locator(locator_for_curr_id)) {

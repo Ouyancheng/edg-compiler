@@ -8471,7 +8471,8 @@ be rechecked or discarded later.
 
 
 void f_check_ambiguity_and_verify_access(a_symbol_locator *locator,
-					 a_boolean	  is_templ_context)
+					 a_boolean	  is_templ_context,
+					 a_boolean	  is_qualifier)
 /*
 Verify that the indicated symbol is not ambiguous and that we have
 access to it.  In case of an ambiguity, the locator is set to an error
@@ -8499,7 +8500,8 @@ we have scanned the entire function declarator.
 
 is_templ_context is TRUE if the token following the identifier is a
 "<" token and an unambiguous injected class template symbol should be
-accepted even though the injected class symbol is ambiguous.
+accepted even though the injected class symbol is ambiguous.  is_qualifier
+is TRUE if the name is followed by the "::" in a qualified name.
 */
 {
   a_symbol_ptr   sym = locator->specific_symbol;
@@ -8512,9 +8514,30 @@ accepted even though the injected class symbol is ambiguous.
   if (sym->ambiguous &&
       !(is_templ_context && sym->kind == (a_symbol_kind)sk_projection &&
         sym->variant.projection.injected_class_template_name_is_unambiguous)) {
-
-    pos_sy_error(ec_ambiguous_name, &locator->source_position, sym);
-    set_to_error_locator(*locator);
+    an_error_severity	severity = es_error;
+    if (microsoft_bugs && microsoft_version >= 1400 && is_qualifier &&
+        sym->variant.projection.injected_class_template_name_is_unambiguous) {
+      /* If a class has two base classes that are instances of the same class
+         template, the Microsoft compiler (starting with version 8) allows a
+         reference to the ambiguous injected class as the qualifier in a
+         qualified name.  This should be ambiguous, but the Microsoft
+         compiler selects the injected class name from the first base class.
+         The name following the injected class name that was used as a
+         qualifier can be any kind of member except a nonstatic data member.
+         Our emulation, however, accepts any kind of reference.  For that
+         reason, and because this is a particularly dangerous feature, we
+         give a discretionary error and let users downgrade the diagnostic
+         if they really need the feature.  It is dangerous because even in
+         the case where the name after the qualifier refers to a static
+         entity, the definition of the entity can be different in the two
+         instances of the class template being used. */
+      severity = es_discretionary_error;
+    }  /* if */
+    pos_sy_diagnostic(severity, ec_ambiguous_name, &locator->source_position,
+                      sym);
+    if (severity >= (int)es_error) {
+      set_to_error_locator(*locator);
+    }  /* if */
   } else if (locator->is_template_id) {
     /* The access of the template is checked when the template name
        is looked up.  For functions, access is checked after overload

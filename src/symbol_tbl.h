@@ -3646,7 +3646,8 @@ extern a_boolean have_access_to_symbol(a_symbol_ptr symbol);
 
 extern void f_check_ambiguity_and_verify_access
 				(a_symbol_locator	*loc,
-				 a_boolean		is_templ_context);
+				 a_boolean		is_templ_context,
+				 a_boolean		is_qualifier);
 
 extern void perform_deferred_access_checks(void);
 
@@ -3675,21 +3676,23 @@ does nothing when called in C mode.
       ((locator)->specific_symbol->is_class_member ||                 \
        (locator)->specific_symbol->ambiguous)) {                      \
     f_check_ambiguity_and_verify_access(locator,		      \
-                                        /*is_template_context=*/FALSE); \
+                                        /*is_template_context=*/FALSE, \
+                                        /*is_qualifier=*/FALSE);      \
   }  /* if */                                                         \
 }  /* check_ambiguity_and_verify_access */
 
 
 /*
 Similar to check_ambiguity_and_verify_access, except that the templ_context
-flag is passed to the routine called.
+and is_qualifier flags are passed to the routine called.
 */
-#define check_ambiguity_and_access_with_template_flag(locator, templ_context) \
+#define check_ambiguity_and_access_full(locator, templ_context, is_qualifier) \
 { if (C_dialect == C_dialect_cplusplus &&                             \
       (locator)->specific_symbol != NULL &&                           \
       ((locator)->specific_symbol->is_class_member ||                 \
        (locator)->specific_symbol->ambiguous)) {                      \
-    f_check_ambiguity_and_verify_access(locator, templ_context);      \
+    f_check_ambiguity_and_verify_access(locator, templ_context,	      \
+                                        is_qualifier);		      \
   }  /* if */                                                         \
 }  /* check_ambiguity_and_access_with_template_flag */
 
@@ -3704,7 +3707,8 @@ The locator is set to an error locator by f_check_ambiguity_and_verify_access.
 #define check_for_ambiguity(locator)					\
 { if ((locator)->specific_symbol != NULL &&				\
       (locator)->specific_symbol->ambiguous) {				\
-    f_check_ambiguity_and_verify_access(locator, /*is_template_id=*/FALSE); \
+    f_check_ambiguity_and_verify_access(locator, /*is_template_id=*/FALSE, \
+                                        /*is_qualifier=*/FALSE);	\
   }  /* if */                                                         	\
 }  /* check_for_ambiguity */
 
