@@ -2799,6 +2799,9 @@ after the point of call, FALSE otherwise.
     if (dependent_call && gpp_mode &&
         (gnu_version >= 30400 && gnu_version < 40100)) {
       /* g++ 3.4 has a bug and considers such symbols visible. */
+    } else if (gpp_mode && is_overloaded_operator) {
+      /* g++ treats symbols in overloaded operator calls as always visible.
+         This has been verified in versions 3.2 through 4.2. */
     } else if (allow_post_declared_functions) {
       /* The caller says we should accept this case. */
     } else {
@@ -3488,7 +3491,8 @@ retry:
       *candidate_functions == saved_candidate_functions &&
       any_discarded_because_post_decl &&
       !any_not_discarded_because_post_decl &&
-      !allow_post_declared_functions) {
+      !allow_post_declared_functions &&
+      (dependent_call || is_overloaded_operator)) {
     /* g++ 4.1 continues to allow functions declared after the point of a
        dependent call to be visible, but only if nothing from before the
        call is visible. */
