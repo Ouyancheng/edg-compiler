@@ -12546,14 +12546,15 @@ typedef struct a_local_scope_ref {
      references are represented by a_local_scope_ref entries stored in the
      function's memory region: Each entry points to both the referenced
      scope and to the entity in file-scope memory that implicitly refers to
-     that scope.  The list of a_local_scope_ref entries can then be searched
-     whenever the reference must be resolved for a given entity in file-scope
-     memory.  (This technique is similar to that enabled by
-     a_local_static_variable_init entries.) */
+     that scope.  The list of a_local_scope_ref entries (pointed to from the
+     a_scope entry of the function in which the referenced entity appears)
+     can then be searched whenever the reference must be resolved for a
+     given entity in file-scope memory.  (This technique is similar to that
+     enabled by a_local_static_variable_init entries.) */
   a_local_scope_ref_ptr
 		next;
 			/* Pointer to the next reference in the current
-			   (function or block) scope. */
+			   function. */
   a_scope_ptr
 		scope;
 			/* Pointer to the referenced scope. */
@@ -12778,13 +12779,6 @@ typedef struct a_scope {
 #endif /* ifdef FIL */
     } routine;
   } variant;
-  a_namespace_ptr
-		namespaces;
-			/* List of namespaces and namespace-aliases defined
-			   within the current scope (C++ only).  Will point
-			   only to namespace-alias entries in sck_function
-			   and sck_block scopes, to either in sck_file and
-			   sck_namespace scopes; NULL otherwise. */
   a_statement_ptr
                 assoc_block;
 			/* Non-NULL if this scope has an associated block
@@ -12861,6 +12855,13 @@ typedef struct a_scope {
 			   block scopes will appear on the scopes list
 			   for those block scopes, not at the function scope
 			   level.  Condition scopes can also appear. */
+  a_namespace_ptr
+		namespaces;
+			/* List of namespaces and namespace-aliases defined
+			   within the current scope (C++ only).  Will point
+			   only to namespace-alias entries in sck_function
+			   and sck_block scopes, to either in sck_file and
+			   sck_namespace scopes; NULL otherwise. */
   a_using_decl_ptr
 		using_decls;
 			/* List of using-declarations and/or using-directives

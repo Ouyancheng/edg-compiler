@@ -91,6 +91,7 @@ static unsigned long
 		num_namespaces_allocated,
 		num_using_decls_allocated,
 		num_scopes_allocated,
+		num_local_scope_refs_allocated,
 		num_il_entry_prefixes_allocated,
 		string_literal_text_space_allocated,
 		num_seq_number_lookup_entries_allocated,
@@ -3512,6 +3513,9 @@ initialize it, and return a pointer to it.
   a_local_scope_ref_ptr  ptr;
 
   ptr = (a_local_scope_ref_ptr)alloc_cil(sizeof(a_local_scope_ref));
+#if DEBUG
+  num_local_scope_refs_allocated++;
+#endif /* DEBUG */
   ptr->next = NULL;
   ptr->scope = NULL;
   clear_tagged_ptr(ptr->referrer);
@@ -4232,6 +4236,8 @@ Display and return the amount of space used for various IL tables.
   db_space_used("namespace", num_namespaces_allocated, a_namespace);
   db_space_used("using-decl", num_using_decls_allocated, a_using_decl);
   db_space_used("scope", num_scopes_allocated, a_scope);
+  db_space_used("local-scope-refs", num_local_scope_refs_allocated,
+                a_local_scope_ref);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   db_space_used("source sequence entry", num_source_sequence_entries_allocated,
                 a_source_sequence_entry);
@@ -4704,6 +4710,7 @@ initializations that are done for each compilation.
   num_namespaces_allocated               = 0;
   num_using_decls_allocated              = 0;
   num_scopes_allocated                   = 0;
+  num_local_scope_refs_allocated         = 0;
   num_il_entry_prefixes_allocated        = 0;
   string_literal_text_space_allocated    = 0;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
