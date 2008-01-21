@@ -15,7 +15,7 @@ and let users downgrade the diagnostic if they really need the
 feature.  It is dangerous because even in the case where the name
 after the qualifier refers to a static entity, the definition of the
 entity can be different in the two instances of the class template
-being used (as is the case with Q::X and Q::eq in the example below).`
+being used (as is the case with Q::X and Q::eq in the example below).
 
   template <typename T> struct Q {
     void f(){}
