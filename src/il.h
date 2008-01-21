@@ -298,8 +298,8 @@ Macros that returns the parent namespace of a namespace member.
 
 /*
 Macros that return the parent namespace for a namespace member, and NULL for
-other entities that aren't class members.  (This macro should not be used for
-class members.)
+entities that are neither namespace members nor class members.  (This macro
+should not be used for class members.)
 */
 #if defined(_lint)
 /* When linting, duplicate the macro argument to catch side-effects that would

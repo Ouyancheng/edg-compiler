@@ -16524,9 +16524,8 @@ have been promoted out of those classes.
            a class, and from there it was promoted out of the class at a
            position related to the class's promoted position. */
       } else {
-        check_assertion(!namespace_type->source_corresp.is_class_member);
-        nsp = parent_namespace_or_null(namespace_type);
-        check_assertion(nsp != NULL && !nsp->is_namespace_alias);
+        nsp = parent_namespace_of(namespace_type);
+        check_assertion(!nsp->is_namespace_alias);
         scope = nsp->variant.assoc_scope;
         /* Move the namespace_type, and all types preceding it on the namespace
            types list, into the file scope following prev_type.  Since the

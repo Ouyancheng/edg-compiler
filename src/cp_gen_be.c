@@ -6008,7 +6008,7 @@ this one is such a continuation.
             !type->source_corresp.is_class_member &&
             enclosing_class != NULL &&
             !enclosing_class->source_corresp.is_local_to_function &&
-            parent_namespace_of(type) !=
+            parent_namespace_or_null(type) !=
              innermost_namespace_parent_of(&enclosing_class->source_corresp)) {
           /* Because a class that is first declared in a friend declaration is
              a member of the innermost enclosing namespace scope, and because
@@ -6325,7 +6325,7 @@ this selection.
       /* This is a field of a namespace-scope anonymous union.  If the
          enclosing scope is not the global namespace, a qualifier may need
          to be emitted. */
-      a_namespace_ptr  nsp = parent_namespace_of(selection_class);
+      a_namespace_ptr  nsp = parent_namespace_or_null(selection_class);
       if (nsp != NULL &&
           !scope_is_in_name_context_stack(nsp->variant.assoc_scope)) {
         gen_namespace_qualifier(nsp, GN_BOUND_MEMBER,

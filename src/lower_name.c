@@ -736,8 +736,8 @@ of which type is an instance.  Return NULL otherwise.
 /* Returns TRUE if scp is the source correspondence for an entity that is a
    member of the "std" namespace. */
 #define is_source_corresp_in_namespace_std(scp)         \
-  (scp_is_namespace_member((scp)) &&                    \
-   is_namespace_std(scp_parent_namespace((scp))))
+  (scp_is_namespace_member(scp) &&                      \
+   is_namespace_std(scp_parent_namespace(scp)))
 
 /* Returns TRUE if il_entry is (immediately) within the "std" namespace. */
 #define is_in_namespace_std(il_entry)                                \
@@ -3619,10 +3619,10 @@ template argument lists, and types promoted out of functions.
    qualifier. */
 #if !CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
 #define type_needs_parent_qualifier(type)                             \
-  (is_class_or_namespace_member((type)))
+  (is_class_or_namespace_member(type))
 #else /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
 #define type_needs_parent_qualifier(type)                             \
-  ((is_class_or_namespace_member((type))) &&                          \
+  ((is_class_or_namespace_member(type)) &&                            \
    !type->use_cfront_transitional_nested_type_name_mangling)
 #endif /* !CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
 

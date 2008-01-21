@@ -3416,7 +3416,7 @@ namespace membership, or have the is_local_to_function flag TRUE.
 #if CHECKING && !STANDALONE_UTILITY_PROGRAM
 #define check_membership_info(entity, scope) \
 { if ((scope)->kind == (a_scope_kind)sck_file) { \
-    if (is_class_or_namespace_member((entity)) || \
+    if (is_class_or_namespace_member(entity) || \
         (entity)->source_corresp.is_local_to_function) { \
       display_entity_if_debug_enabled(entity); \
       internal_error("check_membership_info: bad membership info"); \
