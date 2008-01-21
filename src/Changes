@@ -34,7 +34,7 @@ being used (as is the case with Q::X and Q::eq in the example below).`
    int y = (int)Q::e1;  // Accepted by VC8
   }
 
-1/20/06  Another tweak to GNU lookup inside templates
+1/20/08  Another tweak to GNU lookup inside templates
 
 Another adjustment to the emulation of GNU lookup rules on calls inside
 templates (see change of 8/7/07 for the most recent in a continuing series):
