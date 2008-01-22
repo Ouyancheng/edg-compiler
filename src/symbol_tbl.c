@@ -8514,7 +8514,6 @@ is TRUE if the name is followed by the "::" in a qualified name.
   if (sym->ambiguous &&
       !(is_templ_context && sym->kind == (a_symbol_kind)sk_projection &&
         sym->variant.projection.injected_class_template_name_is_unambiguous)) {
-    an_error_severity	severity = es_error;
     if (microsoft_bugs && microsoft_version >= 1400 && is_qualifier &&
         sym->variant.projection.injected_class_template_name_is_unambiguous) {
       /* If a class has two base classes that are instances of the same class
@@ -8531,11 +8530,12 @@ is TRUE if the name is followed by the "::" in a qualified name.
          the case where the name after the qualifier refers to a static
          entity, the definition of the entity can be different in the two
          instances of the class template being used. */
-      severity = es_discretionary_error;
-    }  /* if */
-    pos_sy_diagnostic(severity, ec_ambiguous_name, &locator->source_position,
-                      sym);
-    if (severity >= (int)es_error) {
+      pos_sy2_diagnostic(es_discretionary_error,
+                         ec_ambiguous_injected_template_name,
+                         &locator->source_position, sym,
+                         fundamental_symbol_of(sym));
+    } else {
+      pos_sy_error(ec_ambiguous_name, &locator->source_position, sym);
       set_to_error_locator(*locator);
     }  /* if */
   } else if (locator->is_template_id) {

@@ -1713,6 +1713,7 @@ ec_include_next_in_primary_source_file;;"#include_next cannot be used in the pri
 ec_bad_template_member_definition;;"%no1 cannot be specified in a template member definition -- %no2 assumed instead"
 ec_local_function_attribute_ignored;;"attribute is ignored on local function declaration"
 ec_concat_yields_invalid_token;;"concatenation with %sq in %n does not create a valid token"
+ec_ambiguous_injected_template_name;;"%no is ambiguous (%n2 assumed)"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
