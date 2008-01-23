@@ -1641,6 +1641,7 @@ variant fields to default values.
   pte->elaborated_type_specifier_needed = FALSE;
   pte->typedef_definition_has_been_put_out = FALSE;
   pte->replace_by_generated_typedef = FALSE;
+  pte->typedef_for_vacuous_dtor_call_put_out = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   pte->emit_microsoft_class_decl_modifiers = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

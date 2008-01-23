@@ -1,5 +1,28 @@
 Version 3.11
 
+1/22/08  C++-generating back end: pseudo-destructors in generated instances
+
+In configurations in which the output of the C++-generating back end contains
+explicit specializations for generated instances of function templates (i.e.,
+with NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS set to TRUE),
+the generated code sometimes rendered pseudo-destructors using type keywords
+directly.  Such code is not valid according to the C++ Standard and is
+rejected by many compilers.  This has now been fixed by generating a typedef
+and using the typedef name instead of the type keyword in the code generated
+for pseudo-destructors.  For instance, the pseudo-destructor in the generated
+instance foo<void>(void *p) in the following example was previously generated
+as "p->void::~void()" and now as something like "p->__T9963512::~__T9963512()"
+(where __T9963512 is the name of a generated typedef for void).  (Note that
+pseudo-destructors that appeared directly in the original source using type
+keywords will retain that form in the generated code.)
+
+  template <class T> void foo(T *p) {
+    p->~T();
+  }
+  void bar(void *p) {
+    foo(p);
+  }
+
 1/20/08  Microsoft compatibility: ambiguous injected class name in qualifier
 
 If a class has two base classes that are instances of the same class

@@ -5665,6 +5665,9 @@ typedef struct a_type {
 			   by references to a generated typedef.  This is used
 			   in the C++-generating end, to deal with a Microsoft
 			   bug. */
+  a_bit_field	typedef_for_vacuous_dtor_call_put_out:1;
+			/* TRUE if a temporary typedef for this type has been
+			   generated for use in a vacuous destructor call. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_bit_field	emit_microsoft_class_decl_modifiers:1;
 			/* TRUE if the Microsoft declaration modifiers

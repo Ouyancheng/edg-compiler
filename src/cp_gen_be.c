@@ -204,6 +204,10 @@ static a_boolean
 			   in the default argument of a constructor
 			   parameter (needed to work around a Microsoft 6.0
 			   bug). */
+static a_boolean
+		in_generated_instance;
+			/* TRUE if the expression being generated appears
+			   in a generated instance of a function template. */
 
 /*
 Entry used to record an adjustment needed at the end of a name context,
@@ -9571,6 +9575,13 @@ there's some possibility of precedence confusion and need_parens is TRUE.
               write_tok_ch('.');
             }  /* if */
             /* Use the type name to create a "destructor" name. */
+            while (type->kind == (a_type_kind)tk_typeref &&
+                   typeref_is_typedef(type) &&
+                   !type->typedef_definition_has_been_put_out) {
+              /* For typedefs that have not yet been put out, go down to
+                 the underlying type. */
+              type = type->variant.typeref.type;
+            }  /* while */
             if (!(msvc_is_generated_code_target &&
                   msvc_target_version_number <= 1200 &&
                   is_class_or_namespace_member(type))) {
@@ -9579,18 +9590,21 @@ there's some possibility of precedence confusion and need_parens is TRUE.
                  qualified-id.  The qualifier isn't really necessary
                  anyway, so we just leave it off when it would cause a
                  problem. */
-              gen_type(type);
+              if (in_generated_instance &&
+                  type->typedef_for_vacuous_dtor_call_put_out) {
+                /* Use the generated temporary typedef to name the type. */
+                gen_temp_name((char *)type);
+              } else {
+                gen_type(type);
+              }  /* if */
               write_str("::");
             }  /* if */
             write_str("~");
-            while (type->kind == (a_type_kind)tk_typeref &&
-                   typeref_is_typedef(type) &&
-                   !type->typedef_definition_has_been_put_out) {
-              /* For typedefs that have not yet been put out, go down to
-                 the underlying type. */
-              type = type->variant.typeref.type;
-            }  /* while */
-            if (has_name(type)) {
+            if (in_generated_instance &&
+                type->typedef_for_vacuous_dtor_call_put_out) {
+              /* Use the generated temporary typedef to name the type. */
+              gen_temp_name((char *)type);
+            } else if (has_name(type)) {
               /* Don't use gen_type here, because we don't want the template
                  arguments, if any, listed, and we don't want a qualified
                  name. */
@@ -13150,6 +13164,42 @@ declarator (or NULL if it wasn't recorded).
 }  /* gen_routine_specifiers_and_declaration */
 
 
+static void gen_typedef_for_unnamed_pseudo_dtor_type(
+                                    an_expr_node_ptr                    expr,
+                                    an_expr_or_stmt_traversal_block_ptr tblock)
+/*
+This routine is called for each expression encountered during a traversal
+of the body of a generated instance of a function template.  If expr is an
+eok_vacuous_destructor_call or an eok_value_vacuous_destructor_call in
+which the type has no name, generate a temporary typedef that will be used
+in generating the call.  (This avoids constructs like "int::~int()", which
+are nonstandard and rejected by many compilers.)
+*/
+{
+  if (is_operation_node(expr) &&
+      (node_operator_is(expr, eok_vacuous_destructor_call) ||
+       node_operator_is(expr, eok_value_vacuous_destructor_call))) {
+    a_type_ptr type = expr->variant.operation.operands->type;
+    if (node_operator_is(expr, eok_vacuous_destructor_call)) {
+      type = type_pointed_to(type);
+    }  /* if */
+    if (!has_name(type) &&
+        !type->typedef_for_vacuous_dtor_call_put_out) {
+      /* Generate a typedef using a temporary name. */
+      write_tok_str("typedef ");
+      form_type_first_part_simple(type, /*under_lhs_declarator=*/FALSE,
+                                  /*need_trailing_space=*/TRUE, &octl);
+      gen_temp_name((char *)type);
+      form_type_second_part_simple(type, /*under_lhs_declarator=*/FALSE,
+                                   &octl);
+      write_tok_ch(';');
+      end_output_line();
+      type->typedef_for_vacuous_dtor_call_put_out = TRUE;
+    }  /* if */
+  }  /* if */
+}  /* gen_typedef_for_unnamed_pseudo_dtor_type */
+
+
 static void gen_routine_decl(a_boolean suppress_specifiers,
                              a_boolean *another_decl_in_comma_list)
 /*
@@ -13189,6 +13239,8 @@ TRUE if the declaration following this one is such a continuation.
 #endif /* GNU_EXTENSIONS_ALLOWED */
   a_boolean                     discard_declaration = FALSE;
   a_name_reference_ptr          name_ref = NULL;
+  a_boolean                     saved_in_generated_instance =
+                                                         in_generated_instance;
 
 #if RECORD_FORM_OF_NAME_REFERENCE
   name_ref = get_current_name_ref();
@@ -13305,6 +13357,7 @@ handle_as_definition:
                !rout->is_prototype_instantiation) {
       /* A generated instance.  Use the "template<>" prefix if appropriate. */
       is_specialization = !old_specializations_for_generated_instances;
+      in_generated_instance = TRUE;
     }  /* if */
     if (rout->assoc_scope == NULL_region_number) {
       /* A member function of a template class might not be instantiated. */
@@ -13357,6 +13410,21 @@ handle_as_definition:
     read_memory_region(scope_region_number);
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
     scope = il_header.region_scope_entry[scope_region_number];
+    if (in_generated_instance) {
+      /* Scan the body of the function for any pseudo-destructors (e.g.,
+         int::~int()) and create temporary typedefs that can be used in
+         place of the actual type. */
+      an_expr_or_stmt_traversal_block tblock;
+      clear_expr_or_stmt_traversal_block(&tblock);
+      tblock.process_expr = gen_typedef_for_unnamed_pseudo_dtor_type;
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+      tblock.process_expressions_for_constants = TRUE;
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
+      traverse_statement(scope->assoc_block, &tblock);
+      /* Reset the output file to the declaration position in case any
+         typedefs were generated. */
+      set_decl_position(&rout->source_corresp, sec_decl);
+    }  /* if */
     save_function_state(&state);
     innermost_function_scope = scope;
     /* Put out lint argsused and varargs comments if applicable. */
@@ -13718,7 +13786,8 @@ handle_as_definition:
   if (is_definition) {
     restore_function_state(&state);
   }  /* if */
-end_of_routine:;
+end_of_routine:
+  in_generated_instance = saved_in_generated_instance;
 }  /* gen_routine_decl */
 
 
@@ -14024,6 +14093,7 @@ Initialize for the C++/C-generating back end.
   num_curr_switch_statements = 0;
   in_friend_declaration = FALSE;
   in_ctor_default_argument = FALSE;
+  in_generated_instance = FALSE;
   curr_name_context = NULL;
   avail_hidden_name_fixups = NULL;
   avail_name_contexts = NULL;
