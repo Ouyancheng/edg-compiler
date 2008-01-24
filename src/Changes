@@ -1,5 +1,15 @@
 Version 3.11
 
+1/23/08  Check for preproc_immediate pragmas in begin_rescan_of_pragma_tokens
+
+"preproc_immediate" pragmas must be scanned when they are encountered -- they
+cannot be cached and rescanned later.  Formerly, this restriction was not
+enforced by begin_rescan_of_pragma_tokens.  If a user pragma processing
+routine called begin_rescan_of_pragma_tokens for a preproc_immediate pragma,
+it would receive an unexpected sequence of tokens.  An assertion check
+has been added to begin_rescan_of_pragma_tokens to detect this incorrect
+usage. 
+
 1/22/08  C++-generating back end: pseudo-destructors in generated instances
 
 In configurations in which the output of the C++-generating back end contains

@@ -15019,6 +15019,9 @@ Active the token cache containing the pragma to be scanned and push a
 pragma scope to be used while scanning the pragma tokens.
 */
 {
+  check_assertion_str2(ppp->descr_ptr->binding_kind != pbk_preproc_immediate,
+                       "begin_rescan_of_pragma_tokens:",
+                       "cannot be used for preproc_immediate pragmas");
   /* Start a new stop token state. */
   push_stop_token_stack();
   /* If the pragma was scanned as pp-tokens, go into pp-token mode now. */
