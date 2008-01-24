@@ -1,5 +1,20 @@
 Version 3.11
 
+1/24/08  Abort when mangling nonreal class templates that contain
+         unnamed enums or class members
+
+As a result of the changes described in the Changes entry of 9/13/07,
+in configurations where PROTOTYPE_INSTANTIATIONS_IN_IL and MANGLE_ALL_NAMES
+is TRUE, an assertion in lower_name.c was triggered when mangling the type
+of an unnamed enum or class member in a nonreal class template.
+This is now fixed.  For example:
+
+  template <typename T>
+  class A {
+    struct { int i; };    // previously generated an assertion failure
+    enum { e };           // previously generated an assertion failure
+  };
+
 1/23/08  Duplicate typeinfo types when using precompiled headers
 
 In configurations where exception handling is not enabled, and lowering
