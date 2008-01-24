@@ -5891,7 +5891,7 @@ involved in exception handling.
 {
   /* Save variables from lower_eh.h and lower_eh.c that are needed for
      precompiled headers */
-  if (exceptions_enabled && precompiled_header_processing_required) {
+  if (precompiled_header_processing_required) {
     static a_pch_saved_variable saved_vars[] = {
       pch_array_saved_var_array_elem(typeinfo_types),
       pch_saved_var_array_elem(base_class_spec_type),
@@ -6095,7 +6095,15 @@ must be initialized for each compilation.
       null_eh_region_number = ((unsigned long)1 << (int)size) - 1;
     }  /* if */
   }
+  array_table_var = NULL;
+  array_table_aggr_con = NULL;
+  region_table_var = NULL;
+  region_table_aggr_con = NULL;
+  next_avail_region_number = 0;
 #endif /* GENERATE_EH_TABLES */
+#if DO_FULL_PORTABLE_EH_LOWERING
+  object_addr_table_var = NULL;
+#endif /* DO_FULL_PORTABLE_EH_LOWERING */
   /* eh_lower_trans_unit_init is called from il_lower_trans_unit_init. */
 }  /* eh_lower_init */
 

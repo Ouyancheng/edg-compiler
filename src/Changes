@@ -1,5 +1,29 @@
 Version 3.11
 
+1/23/08  Duplicate typeinfo types when using precompiled headers
+
+In configurations where exception handling is not enabled, and lowering
+of RTTI constructs (i.e., dynamic_cast or typeid) is required by a header
+file that is being precompiled, the typeinfo types that were added
+during lowering will be added again when the precompiled header file
+is used subsequently, causing two sets of typeinfo types.  This has
+been fixed.  For example:
+
+  file t1.h:
+
+  struct B { virtual ~B(); };
+  struct D: B { };
+  int f(B *pb) {
+    return (dynamic_cast<D*>(pb)) != 0;   // requires RTTI in a PCH
+  }
+
+  file t1.C:
+
+  #include "t1.h"
+  int main() {
+    return 0;
+  }
+
 1/23/08  Check for preproc_immediate pragmas in begin_rescan_of_pragma_tokens
 
 "preproc_immediate" pragmas must be scanned when they are encountered -- they

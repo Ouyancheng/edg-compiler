@@ -7375,7 +7375,7 @@ Do one-time initialization of variables related to name mangling.
   second_mangling_text_buffer = NULL;
   /* Save variables from lower_name.c that are needed for precompiled
      headers */
-  if (exceptions_enabled && precompiled_header_processing_required) {
+  if (precompiled_header_processing_required) {
     static a_pch_saved_variable saved_vars[] = {
       pch_saved_var_array_elem(unnamed_class_name_seed),
       pch_saved_var_array_elem(unnamed_enum_name_seed),
