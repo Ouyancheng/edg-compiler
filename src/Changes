@@ -6,8 +6,12 @@ In configurations where exception handling is not enabled, and lowering
 of RTTI constructs (i.e., dynamic_cast or typeid) is required by a header
 file that is being precompiled, the typeinfo types that were added
 during lowering will be added again when the precompiled header file
-is used subsequently, causing two sets of typeinfo types.  This has
-been fixed.  For example:
+is used subsequently, causing two sets of typeinfo types.  The erroneous
+behavior was the result of only recording the state of typeinfo_types when
+exceptions_enabled was TRUE, despite its use in RTTI cases.  The
+state of typeinfo_types (and all other state variables in lower_eh.c
+and lower_name.c) is now saved/restored unconditionally when precompiled
+headers are used.  For example:
 
   file t1.h:
 
