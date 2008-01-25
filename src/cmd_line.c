@@ -3018,8 +3018,8 @@ exclude the GNU modes already.  Hence those are not checked again here.)
   }  /* if */
   mixed_string_concat_enabled = TRUE;
   if (!option_kind_used[(int)optk_check_concatenations]) {
-    /* The GNU preprocessor issues an error for macro concatenation
-       ("a ## b") resulting in an invalid token. */
+    /* The GNU preprocessor disallows macro concatenation ("a ## b") that
+       results in an invalid token. */
     check_concatenations = TRUE;
   }  /* if */
 }  /* check_and_set_gnu_mode_options */

@@ -1147,8 +1147,8 @@ invalid at a later point are not detected as concatenation failures.)
 A source line modification that incorporates text created by concatenation
 has a singly-linked list of concatenation records in the order of their
 offsets within the inserted text.  As tokenization proceeds through the
-inserted text, concatention records are removed from the list and placed on
-a list of available records for potential reuse.
+inserted text, concatenation records are removed from the list and placed
+on a list of available records for potential reuse.
 */
 typedef struct a_concatenation_record *a_concatenation_record_ptr;
 typedef struct a_concatenation_record {

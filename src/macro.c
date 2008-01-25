@@ -3368,10 +3368,10 @@ associated global variables will also have been set).
      must be registered by calling register_pointer_variable so that they
      can be updated on any reallocation. */
   char		  *src_loc, *text_loc, *rescan_loc, *repl_text,
-                  *save_delete_source_from_loc;
+		  *save_delete_source_from_loc, *src_loc_before_copy;
   a_pointer_registration
                   src_loc_reg, text_loc_reg, rescan_loc_reg, repl_text_reg,
-                  save_delete_source_from_loc_reg;
+                  save_delete_source_from_loc_reg, src_loc_before_copy_reg;
 			/* repl_text points to the macro replacement string,
 			   which is safe, but for special macros like __FILE__,
 			   it will point to the raw_text of
@@ -3397,6 +3397,8 @@ associated global variables will also have been set).
   register_pointer_variable(repl_text,  repl_text_reg);
   register_pointer_variable(save_delete_source_from_loc,
                                         save_delete_source_from_loc_reg);
+  register_pointer_variable(src_loc_before_copy,
+                                        src_loc_before_copy_reg);
 #if FULLY_RESOLVED_MACRO_POSITIONS
   register_pointer_variable(after_last_invocation_token,
                                         after_last_invocation_token_reg);
@@ -4436,7 +4438,8 @@ end_arg_expansion:;
        text sections. */
     a_boolean prev_section_is_paste = FALSE;
     sizeof_t  prev_sect_len = 0;
-    char      *src_loc_before_copy = src_loc;
+
+    src_loc_before_copy = src_loc;
 #if FULLY_RESOLVED_MACRO_POSITIONS
     /* Remember where the text map entries begin for the source line
        modification we will add. */
