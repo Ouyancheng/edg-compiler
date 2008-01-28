@@ -7444,11 +7444,15 @@ skip_overloading:;
     }  /* if */
     record_pragma_state_in_routine(routine_ptr);
   }  /* if */
-  /* Do processing required for the rest of the pragmas, if any, that are
-     bound to the current declaration.  Note that this has to be *after* the
-     scope stack is restored, since processing depends on the pending_pragmas
-     pointer in the scope stack entry. */
-  process_curr_construct_pragmas(sym, (a_statement_ptr)NULL);
+  if (!func_info->is_implicit_declaration) {
+    /* Do processing required for the rest of the pragmas, if any, that are
+       bound to the current declaration.  Note that this has to be *after* the
+       scope stack is restored, since processing depends on the pending_pragmas
+       pointer in the scope stack entry.  If this is an implicit function
+       declaration don't bind the pragmas to it (they'll be bound to the next
+       applicable construct). */
+    process_curr_construct_pragmas(sym, (a_statement_ptr)NULL);
+  }  /* if */
   /* Return symbol and linkage pointers. */
   *symbol_ptr = sym;
   *linkage_ptr = linkage;

@@ -1,5 +1,21 @@
 Version 3.11
 
+1/28/08  Pragmas and C-mode implicit function declarations
+
+The front end no longer attempts to bind pragmas to the implicit declaration
+of a function in C mode.  In addition to being a surprising effect, such a
+binding could result in an internal error in non_fs_remap_checking ("func
+number in file scope").  For example (assuming INCLUDE_EDG_TEST_PRAGMAS is
+set to TRUE):
+
+  int g() {
+  #pragma test_bind_next_pass
+    return f();  // "f" implicitly declared in C mode.  Previously, the
+  }              // pragma bound to "f" instead of to the return
+                 // statement, which led to an internal error in some
+                 // configurations.  Now the pragma binds to the return
+                 // statement.
+
 1/24/08  Abort when mangling nonreal class templates that contain
          unnamed enums or class members
 
