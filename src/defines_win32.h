@@ -16,8 +16,11 @@ This is the version for Windows 95/98/NT/etc.
 */
 
 #ifdef DEMO_VERSION
-/* Demo versions should support multiple translation units. */
+#ifndef CP_GEN_BE_VERSION
+/* Demo versions that do not use the C++-generating back end should
+   support multiple translation units. */
 #define COMPILE_MULTIPLE_TRANSLATION_UNITS 1
+#endif /* ifndef CP_GEN_BE_VERSION */
 #define DEBUG 0
 #endif /* ifdef DEMO_VERSION */
 
