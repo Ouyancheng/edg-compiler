@@ -4438,6 +4438,7 @@ end_arg_expansion:;
        text sections. */
     a_boolean prev_section_is_paste = FALSE;
     sizeof_t  prev_sect_len = 0;
+    a_boolean is_va_arg_substitution;
 
     src_loc_before_copy = src_loc;
 #if FULLY_RESOLVED_MACRO_POSITIONS
@@ -4447,6 +4448,7 @@ end_arg_expansion:;
     next_targ_offset = next_avail_in_macro_buffer - rescan_loc;
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
     for (rtp = repl_text; *rtp != (int)rt_null;) {
+      is_va_arg_substitution = FALSE;
       rts_kind = (a_repl_text_seq_kind)*(rtp++);
       /* Extract the section length or argument number. */
       get_macro_repl_text_number(rts_number, rtp);
@@ -4481,6 +4483,7 @@ end_arg_expansion:;
         switch (rts_kind) {
           case rt_raw_argument:
             /* The raw (non-macro-expanded) value of the argument. */
+            is_va_arg_substitution = (mdp->variadic && rts_number == n_params);
             sect_len = map->raw_len;
             text_loc = map->raw_text;
             /* Remove an LE_INERT_MACRO escape at the beginning if present,
@@ -4625,6 +4628,7 @@ end_arg_expansion:;
             goto copy_done;
           case rt_argument:
             /* The macro-expanded value of the argument. */
+            is_va_arg_substitution = (mdp->variadic && rts_number == n_params);
             sect_len = map->expanded_len;
             text_loc = map->expanded_text;
 #if FULLY_RESOLVED_MACRO_POSITIONS
@@ -4663,10 +4667,13 @@ end_arg_expansion:;
       }  /* if */
 copy_done:
       if (check_concatenations && prev_section_is_paste &&
-          src_loc - src_loc_before_copy != 0 && prev_sect_len != 0) {
+          src_loc - src_loc_before_copy != 0 && prev_sect_len != 0 &&
+          !(gnu_mode && is_va_arg_substitution)) {
         /* The result reflects concatenating two non-empty text sections.
            Record the concatenation so that retokenizing can check for
-           having created an invalid token. */
+           having created an invalid token.  (The GNU preprocessor allows
+           invalid concatenation when the second operand is __VA_ARG__,
+           so we don't record such concatenations in gnu_mode.) */
         add_concatenation_record(&concat_record_head, &concat_record_tail,
                                  src_loc_before_copy, macro_symbol);
       }  /* if */
