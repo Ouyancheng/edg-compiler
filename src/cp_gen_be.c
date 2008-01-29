@@ -13164,6 +13164,8 @@ declarator (or NULL if it wasn't recorded).
 }  /* gen_routine_specifiers_and_declaration */
 
 
+/*ARGSUSED*/ /* <-- tblock is not used (but is part of the signature for
+                a_traversal_expr_process_function and so is required here) */
 static void gen_typedef_for_unnamed_pseudo_dtor_type(
                                     an_expr_node_ptr                    expr,
                                     an_expr_or_stmt_traversal_block_ptr tblock)
