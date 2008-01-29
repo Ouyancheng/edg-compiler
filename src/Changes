@@ -1,5 +1,20 @@
 Version 3.11
 
+1/29/08  Pragmas and Microsoft-mode duplicate function template specialization
+
+In Microsoft bugs mode with microsoft_version == 1200, the front end accepts
+and discards duplicate function template specializations (see Changes entry of
+9/9/03).  However, if a pragma was applied to the discarded definition, the IL
+representation was not correctly discarded, and aborts could result in many
+configurations.  For example (assuming INCLUDE_EDG_TEST_PRAGMAS is TRUE):
+
+  template<class T> int g(T) { return 0; }
+  int g(int) { return 1; }
+  #pragma test_next_decl
+  int g(int) { return 2; }
+
+This is now fixed (the pragma is discarded along with the declaration).
+
 1/28/08  Pragmas and C-mode implicit function declarations
 
 The front end no longer attempts to bind pragmas to the implicit declaration

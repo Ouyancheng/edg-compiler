@@ -7444,7 +7444,11 @@ skip_overloading:;
     }  /* if */
     record_pragma_state_in_routine(routine_ptr);
   }  /* if */
-  if (!func_info->is_implicit_declaration) {
+  if (microsoft_specialization_redef) {
+    /* If pragmas were specified on a definition that is about to be discarded,
+       also discard the pragmas. */
+    discard_curr_construct_pragmas();
+  } else if (!func_info->is_implicit_declaration) {
     /* Do processing required for the rest of the pragmas, if any, that are
        bound to the current declaration.  Note that this has to be *after* the
        scope stack is restored, since processing depends on the pending_pragmas
