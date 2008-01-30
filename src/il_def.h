@@ -5968,10 +5968,20 @@ typedef struct a_type {
 			   one whose dimension is computed at run time.  This
 			   field may be TRUE in the IL passed to the back end.
 			   Only used in modes that allow VLAs. */
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+      a_bit_field
+		constant_bound_expr_in_local_expr_node_ref:1;
+			/* TRUE if the expression for a constant bound
+			   contains a reference to a local variable.
+			   Because such expressions cannot appear in
+			   file-scope memory, the expression is represented
+			   as an a_local_expr_node_ref in the function
+			   scope and bound_constant->expr will be NULL. */
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
       a_bit_field
 		has_assoc_vla_dimension:1;
 			/* TRUE if the variable length array has an associated
-			   vla_dimension entry.  FALSE for cases like [*].
+			   vla_dimension entry.	 FALSE for cases like [*].
 			   (Only set when is_vla is TRUE.)  */
       a_bit_field
 		bound_is_zero:1;
@@ -10213,6 +10223,13 @@ enum a_local_expr_node_ref_kind_tag {
   lerk_generic_sizeof,	/* A template-dependent expression used as an argument
 			   for a sizeof, alignof, or uuidof construct. */
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+  lerk_array_bound,	/* The expression for an array bound, which, despite
+			   being constant, refers to a local variable.  This
+			   can occur for initialized const variables and for
+			   non-const variables that appear in unselected
+			   branches of folded constant expressions. */
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
   lerk_decltype
 			/* An expression used as an argument for a decltype
 			   construct. */

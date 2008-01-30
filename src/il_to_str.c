@@ -1905,6 +1905,15 @@ the way described by octl.
     an_expr_node_ptr count = type->variant.array.variant.element_count_expr;
     form_expression(count, octl);
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+  } else if (type->variant.array.constant_bound_expr_in_local_expr_node_ref &&
+             innermost_function_scope != NULL) {
+    /* The bound expression has a reference to a local variable and is
+       consequently represented by an a_local_expr_node_ref entry. */
+    an_expr_node_ptr expr = find_local_expr_node(
+                                 (char *)type,
+                                 (a_local_expr_node_ref_kind)lerk_array_bound);
+    check_assertion(expr != NULL);
+    form_expression(expr, octl);
   } else if (type->variant.array.bound_constant != NULL &&
              !octl->c_generating_back_end) {
     /* Use the recorded a_constant entry rather than a plain integer.  This

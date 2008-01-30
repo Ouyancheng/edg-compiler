@@ -1,5 +1,28 @@
 Version 3.11
 
+1/29/08  Memory region issues for array bounds with
+         RECORD_CONSTANT_EXPRESSIONS_IN_IL
+
+In configurations in which RECORD_CONSTANT_EXPRESSIONS_IN_IL is TRUE, an
+array bound in which the expression is constant but refers to a local
+variable could cause an abort resulting from a reference to function-scope
+memory from the file scope.  This is now fixed.  For example:
+
+  void f() {
+    int i;
+    int a[1||i];    // Previously could cause an abort
+  }
+
+This problem is a variation of the one described in the 7/26/05 Changes
+entry, and it updates the resolution for that issue.  For examples like the
+one described there, the expression for the array bound constant was simply
+omitted from the IL.  In all these cases, the current change removes the
+expression from the array bound constant but uses the a_local_expr_node_ref
+mechanism described in the 4/28/06 Changes entry to record the expression
+without violating memory region constraints.  These cases are identified by
+the new flag constant_bound_expr_in_local_expr_node_ref in the
+variant.array section of a_type.
+
 1/29/08  Pragmas and Microsoft-mode duplicate function template specialization
 
 In Microsoft bugs mode with microsoft_version == 1200, the front end accepts

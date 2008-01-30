@@ -9050,6 +9050,13 @@ The expression can then be recovered using find_local_expr_node.
          ->variant.template_param.variant.templ_sizeof.local_expr_ref = TRUE;
       break;
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+    case lerk_array_bound:
+      new_ref->referrer.kind = (a_byte_il_entry_kind)iek_type;
+      ((a_type_ptr)referrer)->variant.array.
+                             constant_bound_expr_in_local_expr_node_ref = TRUE;
+      break;
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
     case lerk_decltype:
       new_ref->referrer.kind = (a_byte_il_entry_kind)iek_type;
       break;

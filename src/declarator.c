@@ -30,6 +30,7 @@ declarator.c -- Scanning of declarators.
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #include "ms_attrib.h"
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#include "il_walk.h"
 
 static a_boolean check_pm_member_type(a_type_ptr  member_type)
 /*
@@ -2297,6 +2298,41 @@ if this is the function declarator in a friend function declaration.
 }  /* function_declarator */
 
 
+static void check_for_routine_scope_variable(
+                                    an_expr_node_ptr                    expr,
+                                    an_expr_or_stmt_traversal_block_ptr tblock)
+/*
+Called via traverse_expr from expr_has_reference_to_routine_scope_variable;
+sets tblock->result to TRUE and terminates the traversal if expr is an
+enk_variable node that refers to a variable in a local scope.
+*/
+{
+  if (is_variable_node(expr) && !in_file_scope(expr->variant.variable)) {
+    tblock->result = TRUE;
+    tblock->terminate = TRUE;
+  }  /* if */
+}  /* check_for_routine_scope_variable */
+
+
+static a_boolean expr_has_reference_to_routine_scope_variable(
+                                                         an_expr_node_ptr expr)
+/*
+Return TRUE if any of the nodes in the expression tree rooted in expr is an
+enk_variable node that refers to a variable in a local scope.
+*/
+{
+  an_expr_or_stmt_traversal_block tblock;
+
+  clear_expr_or_stmt_traversal_block(&tblock);
+  tblock.process_expr = check_for_routine_scope_variable;
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+  tblock.process_expressions_for_constants = TRUE;
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
+  traverse_expr(expr, &tblock);
+  return tblock.result;
+}  /* expr_has_reference_to_routine_scope_variable */
+
+
 #if !UPC_EXTENSIONS_ALLOWED
 /*ARGSUSED*/  /* threads_dimension_allowed is only used in configurations
                  supporting UPC extensions. */
@@ -2569,20 +2605,20 @@ constant.
            expression. */
         an_expr_node_ptr expr = constant.expr;
         if (expr != NULL && !in_file_scope(expr)) {
-          /* Copy the expression to the file scope memory region so we
-             can point to it.  This comes up with bound expressions that
+          /* The type can only refer to file-scope expressions, so special
+             handling is needed.  This comes up with bound expressions that
              are permitted to be VLAs but turn out to be constant. */
-          if (is_variable_node(expr) &&
-              !in_file_scope(expr->variant.variable)) {
-            /* A reference to a const variable comes out as a variable
-               reference only at the top level.  In that case, just drop the
-               expression. */
+          if (expr_has_reference_to_routine_scope_variable(expr)) {
+            /* The expression refers to a function-scope variable, so we
+               can't copy it to file scope.  Create a local expr node
+               reference to it instead. */
+            make_local_expr_node_ref(expr, (a_local_expr_node_ref_kind)
+                                                              lerk_array_bound,
+                                     (char *)*new_type_ptr,
+                                     innermost_function_scope);
             expr = NULL;
-#if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
-            /* Ignore range modifiers in the discarded expression. */
-            forget_expr_range_modifiers_in_constant(&constant);
-#endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
           } else {
+            /* Copy the expression to file-scope memory. */
             expr = copy_expr_tree(expr, CE_COPIED_CONSTANTS_MAY_BE_SHARED);
           }  /* if */
           constant.expr = expr;
