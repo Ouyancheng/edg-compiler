@@ -8193,7 +8193,7 @@ derived class cast nodes will be created and the return value will be NULL.
     a_type_ptr source_type =
              type_pointed_to(base_cast_node->variant.operation.operands->type);
     target_type = skip_typerefs(target_type);
-    source_type = skip_typerefs(target_type);
+    source_type = skip_typerefs(source_type);
     if (identical_types(target_type, source_type)) {
       /* Scan over any eok_cast nodes preceding the eok_base_class_cast node
          for this level.  Such eok_cast nodes must have the same target and
