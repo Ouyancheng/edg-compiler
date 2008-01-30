@@ -3261,6 +3261,10 @@ as specified in the control block.
     case stmk_upc_notify:
     case stmk_upc_wait:
     case stmk_upc_barrier:
+      if (statement->expr != NULL) {
+        traverse_expr(statement->expr, tblock);
+      }  /* if */
+      break;
     case stmk_upc_fence:
       break;
 #endif /* UPC_EXTENSIONS_ALLOWED */

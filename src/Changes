@@ -1,5 +1,15 @@
 Version 3.11
 
+1/30/08  traverse_statement with upc_notify, upc_wait, and upc_barrier
+
+Traversing a UPC synchronization statement (upc_notify, upc_wait, and
+upc_barrier) failed to process the statement's optional expression argument.
+Now fixed.  For example:
+
+  void f() {
+    upc_barrier i+j;    // "i+j" now included by traverse_statement
+  }
+
 1/29/08  Memory region issues for array bounds with
          RECORD_CONSTANT_EXPRESSIONS_IN_IL
 
