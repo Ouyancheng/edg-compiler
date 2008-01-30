@@ -30,7 +30,9 @@ declarator.c -- Scanning of declarators.
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #include "ms_attrib.h"
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
 #include "il_walk.h"
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
 
 static a_boolean check_pm_member_type(a_type_ptr  member_type)
 /*
