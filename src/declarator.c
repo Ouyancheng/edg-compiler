@@ -2298,6 +2298,7 @@ if this is the function declarator in a friend function declaration.
 }  /* function_declarator */
 
 
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
 static void check_for_routine_scope_variable(
                                     an_expr_node_ptr                    expr,
                                     an_expr_or_stmt_traversal_block_ptr tblock)
@@ -2325,12 +2326,11 @@ enk_variable node that refers to a variable in a local scope.
 
   clear_expr_or_stmt_traversal_block(&tblock);
   tblock.process_expr = check_for_routine_scope_variable;
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
   tblock.process_expressions_for_constants = TRUE;
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
   traverse_expr(expr, &tblock);
   return tblock.result;
 }  /* expr_has_reference_to_routine_scope_variable */
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
 
 
 #if !UPC_EXTENSIONS_ALLOWED
