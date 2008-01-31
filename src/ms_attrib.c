@@ -232,7 +232,7 @@ when specifying the parameters associated with an attribute.
   curr_attribute_descr = msakdp;
 }  /* make_attribute_description */
 
-#if RECOGNIZE_MICROSOFT_ATTRIBUTES
+#if RECOGNIZE_MICROSOFT_ATTRIBUTES || INCLUDE_EDG_TEST_ATTRIBUTES
 
 static an_ms_attribute_param_ptr alloc_ms_attribute_param(void)
 /*
@@ -330,7 +330,7 @@ case.
   }  /* if */
 }  /* add_attribute_parameter */
 
-#endif /* RECOGNIZE_MICROSOFT_ATTRIBUTES */
+#endif /* RECOGNIZE_MICROSOFT_ATTRIBUTES || INCLUDE_EDG_TEST_ATTRIBUTES */
 
 static void init_attribute_kinds(void)
 /*
