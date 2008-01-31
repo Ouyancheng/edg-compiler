@@ -1906,7 +1906,8 @@ the way described by octl.
     form_expression(count, octl);
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
   } else if (type->variant.array.constant_bound_expr_in_local_expr_node_ref &&
-             innermost_function_scope != NULL) {
+             innermost_function_scope != NULL &&
+             !octl->c_generating_back_end) {
     /* The bound expression has a reference to a local variable and is
        consequently represented by an a_local_expr_node_ref entry. */
     an_expr_node_ptr expr = find_local_expr_node(
