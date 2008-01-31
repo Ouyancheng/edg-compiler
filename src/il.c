@@ -14319,6 +14319,7 @@ to TRUE if a warning about the expression doing nothing should be suppressed.
     case eok_pm_call:
     case eok_va_start:
     case eok_va_arg:
+    case eok_lvalue_va_arg:
     case eok_va_end:
     case eok_va_copy:
     case eok_post_incr:
@@ -15167,6 +15168,7 @@ operand.
 #endif /* FIXED_POINT_ALLOWED */
     case eok_va_start:
     case eok_va_arg:
+    case eok_lvalue_va_arg:
     case eok_va_end:
     case eok_va_copy:
     case eok_va_start_single_operand:

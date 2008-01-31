@@ -9945,6 +9945,7 @@ enum an_expr_operator_kind_tag {
 			   address of variable of type va_list.  Second
 			   argument of macro is represented by the result type
 			   of the expression node. */
+  eok_lvalue_va_arg,	/* Variant of eok_va_arg that returns an lvalue. */
   eok_va_end,		/* va_end macro reference.  First operand is lvalue
 			   address of variable of type va_list. */
   eok_va_copy,		/* va_copy macro reference.  Both operands are
@@ -13335,7 +13336,7 @@ EXTERN char     *db_operator_names[(int)eok_last+1]
 #ifdef FIL
    "()", "v()",
 #endif /* ifdef FIL */
-   "va_start", "va_arg", "va_end", "va_copy", "va_start",
+   "va_start", "va_arg", "lvalue va_arg", "va_end", "va_copy", "va_start",
 #ifdef CIL
    "-G",
    "G++", "G--", "++G", "--G",

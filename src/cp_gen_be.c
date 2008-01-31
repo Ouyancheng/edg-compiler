@@ -6833,6 +6833,28 @@ Render the given expression surrounded by brackets.
 }  /* gen_array_subscript */
 
 
+static void gen_va_arg(an_expr_node_ptr expr)
+/*
+Generate a va_arg operator.  Used when <stdarg.h> is treated as a builtin.
+*/
+{
+  an_expr_node_ptr operand_1 = expr->variant.operation.operands;
+
+  disable_line_wrapping();
+  if (gcc_builtin_varargs_in_generated_code) {
+    /* Use the intrinsic GNU C/C++ "__builtin_va_arg". */
+    write_tok_str("__builtin_va_arg(");
+  } else {
+    write_tok_str("va_arg(");
+  }  /* if */
+  gen_lvalue(operand_1);
+  write_tok_ch(',');
+  gen_type(expr->type);
+  write_tok_ch(')');
+  enable_line_wrapping();
+}  /* gen_va_arg */
+
+
 static void gen_lvalue_full(an_expr_node_ptr node,
                             a_boolean        need_parens,
                             a_boolean        obj_expr_of_mfunc_operator)
@@ -6985,6 +7007,12 @@ temporary expressions).
           gen_dot_static(operand_1, /*is_lvalue_1=*/FALSE, ".",
                          operand_2, /*is_lvalue_2=*/TRUE);
           if (need_parens) write_tok_ch(')');
+          processed = TRUE;
+          break;
+        case eok_lvalue_va_arg:
+          /* <stdarg.h> va_arg macro, treated as a builtin operator that
+             returns an lvalue. */
+          gen_va_arg(node);
           processed = TRUE;
           break;
         default:
@@ -8691,6 +8719,7 @@ static a_byte generated_precedence[] = {
 #endif /* FIL */
   PREC_POSTFIX,		/* eok_va_start */
   PREC_POSTFIX,		/* eok_va_arg */
+  PREC_POSTFIX,		/* eok_lvalue_va_arg */
   PREC_POSTFIX,		/* eok_va_end */
   PREC_POSTFIX,		/* eok_va_copy */
   PREC_POSTFIX,		/* eok_va_start_single_operand */
@@ -9644,20 +9673,17 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           write_tok_ch(')');
           enable_line_wrapping();
           goto done_with_operation;
+        case eok_lvalue_va_arg:
+          /* <stdarg.h> va_arg macro, treated as a builtin operator that
+             returns an lvalue. */
+          write_tok_ch('(');
+          write_tok_ch('&');
+          gen_va_arg(expr);
+          write_tok_ch(')');
+          goto done_with_operation;
         case eok_va_arg:
           /* <stdarg.h> va_arg macro, treated as a builtin operator. */
-          disable_line_wrapping();
-          if (gcc_builtin_varargs_in_generated_code) {
-            /* Use the intrinsic GNU C/C++ "__builtin_va_arg". */
-            write_tok_str("__builtin_va_arg(");
-          } else {
-            write_tok_str("va_arg(");
-          }  /* if */
-          gen_lvalue(operand_1);
-          write_tok_ch(',');
-          gen_type(expr->type);
-          write_tok_ch(')');
-          enable_line_wrapping();
+          gen_va_arg(expr);
           goto done_with_operation;
         case eok_va_end:
           /* <stdarg.h> va_end macro, treated as a builtin operator. */

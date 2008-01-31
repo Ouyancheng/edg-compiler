@@ -1,5 +1,26 @@
 Version 3.11
 
+1/31/08  Builtin va_arg returns lvalue in Microsoft and Sun modes
+
+The va_arg macro of the <stdarg.h> header, when treated as a builtin
+because DEFAULT_PASS_STDARG_REFERENCES_TO_GENERATED_CODE is TRUE,
+has to date been treated as an rvalue.  It turns out MSVC++ and the
+Sun C++ compiler teat it as an lvalue, so now we do also in those modes.
+The global variable va_arg_returns_lvalue controls this, though
+there is at present no associated command-line option nor
+default-value macro.
+
+  #include <stdarg.h>
+  void dimsum(double num,...) {
+    extern void mytest( double & );
+    va_list argptr;
+    va_start(argptr,num);
+    for(; num> 0; num--) {
+      mytest( va_arg(argptr, double));  // Okay in Microsoft and Sun modes
+    }
+    va_end(argptr);
+  }
+
 1/30/08  traverse_statement with upc_notify, upc_wait, and upc_barrier
 
 Traversing a UPC synchronization statement (upc_notify, upc_wait, and

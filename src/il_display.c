@@ -3412,6 +3412,7 @@ Display the name of an expression operator.
 #endif /* ifdef FFE */
     case eok_va_start:          s = "eok_va_start";               break;
     case eok_va_arg:            s = "eok_va_arg";                 break;
+    case eok_lvalue_va_arg:     s = "eok_lvalue_va_arg";          break;
     case eok_va_end:            s = "eok_va_end";                 break;
     case eok_va_copy:           s = "eok_va_copy";                break;
     case eok_va_start_single_operand:

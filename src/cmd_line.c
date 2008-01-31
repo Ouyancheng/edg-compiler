@@ -1830,6 +1830,7 @@ by a command line option.
       gnu_restrict_keyword_enabled = TRUE;
     }  /* if */
   }  /* if */
+  va_arg_returns_lvalue = TRUE;
 }  /* set_microsoft_mode_flags */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -2927,6 +2928,7 @@ checked again here.)
        particular anachronism. */
     allow_nonconst_ref_anachronism = TRUE;
   }  /* if */
+  va_arg_returns_lvalue = TRUE;
 }  /* check_and_set_sun_mode_options */
 
 
@@ -2976,6 +2978,7 @@ exclude the GNU modes already.  Hence those are not checked again here.)
      __builtin_... entities may be predefined to accommodate it (if
      GCC_BUILTIN_VARARGS is TRUE). */
   pass_stdarg_references_to_generated_code = FALSE;
+  va_arg_returns_lvalue = FALSE;
   /* Enable the use of __restrict__ in GNU mode. */
   gnu_restrict_keyword_enabled = TRUE;
   /* Enable flexible array member support. */
@@ -8549,6 +8552,7 @@ variables declared in cmd_line.h.
   standard_form_of_extern_template = FALSE;
   decltype_enabled = FALSE;
   check_concatenations = DEFAULT_CHECK_CONCATENATIONS;
+  va_arg_returns_lvalue = FALSE;
 }  /* cmd_line_static_var_init */
 
 

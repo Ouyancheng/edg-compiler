@@ -8232,7 +8232,7 @@ and type is the type of the argument to be extracted.
        constructor, and we'll get an abort. */
     pos_error(ec_non_pod_va_arg, &type_position);
     err = TRUE;
-  } else {
+  } else if (!va_arg_returns_lvalue) {
     a_type_ptr  promoted_type = default_argument_promotion(type);
     if (!identical_types(type, promoted_type)) {
       an_error_severity severity = (an_error_severity)es_warning;
@@ -8251,8 +8251,15 @@ and type is the type of the argument to be extracted.
   remove_matching_stop_token(tok_rparen);
   if (err) {
     make_error_operand(result);
+  } else if (va_arg_returns_lvalue) {
+    /* Create a lvalue_va_arg expression node for an lvalue. */
+    an_expr_node_ptr va_arg_node =
+                   make_operator_node((an_expr_operator_kind)eok_lvalue_va_arg,
+                                      make_pointer_type(type), node);
+    make_expression_operand(va_arg_node, type, result);
+    result->state = (an_operand_state)os_lvalue;
   } else {
-    /* Create a va_arg expression node. */
+    /* Create a va_arg expression node for an rvalue. */
     an_expr_node_ptr va_arg_node =
              make_operator_node((an_expr_operator_kind)eok_va_arg, type, node);
     if (type_to_cast_to != NULL) {

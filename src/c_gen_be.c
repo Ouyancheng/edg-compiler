@@ -3753,6 +3753,28 @@ It is assumed that the caller will surround the output with parentheses.
 }  /* dump_lvalue_field_selection */
 
 
+static void dump_va_arg(an_expr_node_ptr expr)
+/*
+Dump a va_arg operator.  Used when <stdarg.h> is treated as a builtin.
+*/
+{
+  an_expr_node_ptr operand_1 = expr->variant.operation.operands;
+
+  disable_line_wrapping();
+  if (gcc_builtin_varargs_in_generated_code) {
+    /* Use the intrinsic GNU C/C++ "__builtin_va_arg". */
+    write_tok_str("__builtin_va_arg(");
+  } else {
+    write_tok_str("va_arg(");
+  }  /* if */
+  dump_lvalue(operand_1);
+  write_tok_ch(',');
+  dump_type(expr->type, /*add_pointer_to=*/FALSE);
+  write_tok_ch(')');
+  enable_line_wrapping();
+}  /* dump_va_arg */
+
+
 static void dump_adding_indirection(an_expr_node_ptr node)
 /*
 Dump the indicated expression with an additional indirection on the front
@@ -3790,6 +3812,11 @@ of an assignment).  It's also used for a normal "*" for indirection.
       write_tok_ch('(');
       dump_lvalue_field_selection(node);
       write_tok_ch(')');
+      processed = TRUE;
+    } else if (op == (an_expr_operator_kind)eok_lvalue_va_arg) {
+      /* <stdarg.h> va_arg macro, treated as a builtin operator that
+         returns an lvalue. */
+      dump_va_arg(node);
       processed = TRUE;
     }  /* if */
   } else if (kind == (an_expr_node_kind)enk_temp_init &&
@@ -4935,20 +4962,17 @@ process_assignment:
           write_tok_ch(')');
           enable_line_wrapping();
           goto done_with_operation;
+        case eok_lvalue_va_arg:
+          /* <stdarg.h> va_arg macro, treated as a builtin operator that
+             returns an lvalue. */
+          write_tok_ch('(');
+          write_tok_ch('&');
+          dump_va_arg(expr);
+          write_tok_ch(')');
+          goto done_with_operation;
         case eok_va_arg:
           /* <stdarg.h> va_arg macro, treated as a builtin operator. */
-          disable_line_wrapping();
-          if (gcc_builtin_varargs_in_generated_code) {
-            /* Use the intrinsic GNU C/C++ "__builtin_va_arg". */
-            write_tok_str("__builtin_va_arg(");
-          } else {
-            write_tok_str("va_arg(");
-          }  /* if */
-          dump_lvalue(operand_1);
-          write_tok_ch(',');
-          dump_type(expr->type, /*add_pointer_to=*/FALSE);
-          write_tok_ch(')');
-          enable_line_wrapping();
+          dump_va_arg(expr);
           goto done_with_operation;
         case eok_va_end:
           /* <stdarg.h> va_end macro, treated as a builtin operator. */

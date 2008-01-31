@@ -775,6 +775,13 @@ EXTERN a_boolean
 			   the std namespace. */
 
 EXTERN a_boolean
+		va_arg_returns_lvalue;
+			/* If TRUE, the va_arg operator implemented when
+			   passing stdarg references to generated code returns
+			   an lvalue.  The C and C++ standards allow but
+			   do not require that va_arg produce an lvalue. */
+
+EXTERN a_boolean
 		instantiate_extern_inline;
 			/* TRUE if the instantiation mechanism should be used
 			   to control the definition of extern inline
