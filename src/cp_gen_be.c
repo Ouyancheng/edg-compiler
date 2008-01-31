@@ -7012,7 +7012,7 @@ temporary expressions).
         case eok_lvalue_va_arg:
           /* <stdarg.h> va_arg macro, treated as a builtin operator that
              returns an lvalue. */
-          gen_va_arg(node);
+          dump_va_arg(node);
           processed = TRUE;
           break;
         default:
