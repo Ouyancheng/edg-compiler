@@ -6839,7 +6839,9 @@ Generate a va_arg operator.  Used when <stdarg.h> is treated as a builtin.
 */
 {
   an_expr_node_ptr operand_1 = expr->variant.operation.operands;
+  a_type_ptr       type = expr->type;
 
+  if (node_operator_is(expr, eok_lvalue_va_arg)) type = type_pointed_to(type);
   disable_line_wrapping();
   if (gcc_builtin_varargs_in_generated_code) {
     /* Use the intrinsic GNU C/C++ "__builtin_va_arg". */
@@ -6849,7 +6851,7 @@ Generate a va_arg operator.  Used when <stdarg.h> is treated as a builtin.
   }  /* if */
   gen_lvalue(operand_1);
   write_tok_ch(',');
-  gen_type(expr->type);
+  gen_type(type);
   write_tok_ch(')');
   enable_line_wrapping();
 }  /* gen_va_arg */
