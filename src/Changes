@@ -5,7 +5,7 @@ Version 3.11
 The va_arg macro of the <stdarg.h> header, when treated as a builtin
 because DEFAULT_PASS_STDARG_REFERENCES_TO_GENERATED_CODE is TRUE,
 has to date been treated as an rvalue.  It turns out MSVC++ and the
-Sun C++ compiler teat it as an lvalue, so now we do also in those modes.
+Sun C++ compiler treat it as an lvalue, so now we do also in those modes.
 The global variable va_arg_returns_lvalue controls this, though
 there is at present no associated command-line option nor
 default-value macro.

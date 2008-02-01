@@ -8252,7 +8252,7 @@ and type is the type of the argument to be extracted.
   if (err) {
     make_error_operand(result);
   } else if (va_arg_returns_lvalue) {
-    /* Create a lvalue_va_arg expression node for an lvalue. */
+    /* Create an lvalue_va_arg expression node for an lvalue. */
     an_expr_node_ptr va_arg_node =
                    make_operator_node((an_expr_operator_kind)eok_lvalue_va_arg,
                                       make_pointer_type(type), node);
