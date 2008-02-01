@@ -7009,12 +7009,6 @@ temporary expressions).
           if (need_parens) write_tok_ch(')');
           processed = TRUE;
           break;
-        case eok_lvalue_va_arg:
-          /* <stdarg.h> va_arg macro, treated as a builtin operator that
-             returns an lvalue. */
-          dump_va_arg(node);
-          processed = TRUE;
-          break;
         default:
           /* Other case (e.g., lvalue-returning assignment).  Just put the
              expression out. */
@@ -7220,6 +7214,12 @@ temporary expressions).
           processed = TRUE;
           break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
+        case eok_lvalue_va_arg:
+          /* <stdarg.h> va_arg macro, treated as a builtin operator that
+             returns an lvalue. */
+          gen_va_arg(node);
+          processed = TRUE;
+          break;
         default:
           break;
       }  /* switch */
