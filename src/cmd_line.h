@@ -324,9 +324,7 @@ EXTERN a_boolean
 EXTERN a_boolean
 		generate_pp_output;
 			/* If TRUE, the preprocessing step should generate
-			   a textual output file of the preprocessed text.
-			   Typically FALSE when do_preprocessing_only is FALSE
-                           (except when --no_preproc_only is specified). */
+			   a textual output file of the preprocessed text. */
 EXTERN a_boolean
 		keep_comments_in_pp_output;
 			/* If TRUE, comments should be retained in
