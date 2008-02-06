@@ -291,11 +291,6 @@ typedef struct a_macro_arg {
 			   it's best to start small and extend only those maps
 			   where the extra entries are actually needed. */
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
-  a_boolean	raw_text_includes_argument_delimiters;
-			/* If TRUE, the raw text of the argument contains
-			   LE_START_ARGUMENT and LE_END_ARGUMENT escapes that
-			   must be removed before the raw text is used in a
-			   macro expansion. */
 } a_macro_arg;
 
 static a_macro_arg_ptr
@@ -1700,7 +1695,6 @@ and return a pointer to it.
   map->final_modif_for_initial_text = NULL;
   map->offset_in_raw_text_of_primary_source_line_text = 0;
   map->expanded_len = 0;
-  map->raw_text_includes_argument_delimiters = FALSE;
   db_exit();
   return map;
 }  /* alloc_macro_arg */
@@ -1785,15 +1779,10 @@ print the replacement text and expansions of macros.
         ch = '0';
         n_printed++;
         p += LE_ESCAPE_LEN;
-      } else if (ch == LE_START_ARGUMENT) {
-        /* Marker indicating the beginning of a substituted argument. */
-        ch = '{';
-        n_printed++;
-        p += LE_ESCAPE_LEN;
-      } else if (ch == LE_END_ARGUMENT) {
-        /* Marker indicating the end of a substituted argument. */
-        ch = '}';
-        n_printed++;
+      } else if (ch == LE_COMMA_FROM_ARGUMENT) {
+        /* Marker indicating a comma from a macro argument (that will not
+           act as a macro argument delimiter when rescanned). */
+        ch = '\\';
         p += LE_ESCAPE_LEN;
       } else {
         (void)fprintf(f_debug, "**BAD LEXICAL ESCAPE**");
@@ -2405,9 +2394,12 @@ Fetch and return a token as part of scanning a macro argument.  Return
 white space will also be deleted).  The global variable
 arg_get_token_start_of_curr_token is set to the character position
 after the white-space skip, which differs from start_of_curr_token
-when the token is preceded by an inert-macro escape.
+when the token is preceded by an inert-macro escape.  The global variable
+comma_is_from_argument will be TRUE after the call if and only if the call
+to skip_white_space encountered an LE_COMMA_FROM_ARGUMENT marker.
 */
 {
+  comma_is_from_argument = FALSE;
   macro_skip_white_space(*any_white_space_skipped);
   arg_get_token_start_of_curr_token = curr_char_loc;
   return (get_token());
@@ -2495,11 +2487,11 @@ In such cases, charize is TRUE.
     ch = *p;
     if (ch == LE_ESCAPE) {
       if (p[1] == LE_END_OF_TOKEN || p[1] == LE_INERT_MACRO ||
-          p[1] == LE_START_ARGUMENT || p[1] == LE_END_ARGUMENT) {
+          p[1] == LE_COMMA_FROM_ARGUMENT) {
         /* End of token marker, also indicates end of character constant or
            string literal, and start of another token soon.  The end of token
-           marker itself is not put out.  The inert-macro marker and the
-           macro argument delimiters are handled the same way. */
+           marker itself is not put out.  The inert-macro and comma markers
+           are handled the same way. */
         within_char_literal = FALSE;
         start_of_token = TRUE;
         p += LE_ESCAPE_LEN-1;
@@ -3132,40 +3124,6 @@ hence its name should not be changed.  *length is the value to be adjusted.
 }  /* adjust_length_for_magic_arg */
 
 
-static void remove_argument_delimiters_from_raw_text(a_macro_arg_ptr map)
-/*
-Remove all LE_START_ARGUMENT and LE_END_ARGUMENT escapes from the raw text
-of the indicated macro argument.  In Microsoft mode, a comma in the text of
-a macro argument is not considered to be an argument delimiter when the
-expanded text is rescanned, and the argument delimiters enable this
-processing.  When they occur in a macro argument, they are copied into the
-raw text so they will be propagated into the argument's expanded text, but
-if the raw text is also needed in the macro's expansion, they must be
-stripped out again before the raw text is used.
-*/
-{
-  char *from = map->raw_text;
-  char *to = map->raw_text;
-  char *end = map->raw_text + map->raw_len + LE_ESCAPE_LEN;
-
-  /* Scan through the string (including the terminating LE_END_OF_INSERTION,
-     which is not counted in map->raw_len), compacting over argument
-     delimiters. */
-  while (from < end) {
-    if (from[0] == LE_ESCAPE &&
-        (from[1] == LE_START_ARGUMENT || from[1] == LE_END_ARGUMENT)) {
-      from += LE_ESCAPE_LEN;
-    } else {
-      *to++ = *from++;
-    }  /* if */
-  }  /* while */
-  /* Reset the length to account for any argument delimiters that were
-     removed. */
-  map->raw_len -= from - to;
-  map->raw_text_includes_argument_delimiters = FALSE;
-}  /* remove_argument_delimiters_from_raw_text */
-
-
 static sizeof_t length_of_replacement_text(char            *rtp,
                                            sizeof_t        n_params,
                                            a_macro_def_ptr mdp,
@@ -3207,9 +3165,6 @@ hence its name should not be changed.
       get_arg_value(rts_number, map);
       switch (rts_kind) {
         case rt_raw_argument:
-          if (map->raw_text_includes_argument_delimiters) {
-            remove_argument_delimiters_from_raw_text(map);
-          }  /* if */
           sect_len = map->raw_len;
           /* Don't count an LE_INERT_MACRO escape at the beginning if present,
              since it will be removed. */
@@ -3236,9 +3191,6 @@ hence its name should not be changed.
           break;
         case rt_stringized_raw_argument:
         case rt_charized_raw_argument:
-          if (map->raw_text_includes_argument_delimiters) {
-            remove_argument_delimiters_from_raw_text(map);
-          }  /* if */
           /* Determine the length of the stringized version of the argument
              (or the charized version in some Microsoft macros). */
           sect_len = stringized_arg(map, (char **)NULL,
@@ -3312,7 +3264,6 @@ associated global variables will also have been set).
   a_boolean       is_inert_macro = FALSE;  /* Assume. */
   a_boolean       pcc_mode_macro_recursion = FALSE;
   a_boolean       comma_ignored_inside_argument = microsoft_mode;
-  a_boolean       inside_macro_argument = FALSE;
   a_source_position
                   start_pos;
   char            *file_name, *full_name;
@@ -3922,26 +3873,13 @@ do_argument_again:
                    (paren_count == 0 &&
                     (curr_token == tok_rparen ||
                      (curr_token == tok_comma &&
-                      !inside_macro_argument &&
+                      !comma_is_from_argument &&
                       !(pp != NULL && pp->next == NULL && mdp->variadic)))))) {
             /* Track nesting of parentheses. */
             if (curr_token == tok_lparen) {
               paren_count++;
             } else if (curr_token == tok_rparen) {
               if (paren_count > 0) paren_count--;
-            }  /* if */
-            if (last_macro_arg_delimiter_seen == LE_START_ARGUMENT &&
-                !inside_macro_argument) {
-              if (need_expanded_form) {
-                /* Copy the argument delimiter to the raw buffer so it will be
-                   seen when rescanning to get the expanded form. */
-                ensure_arg_raw_text_space(LE_ESCAPE_LEN, map);
-                map->raw_text[map->raw_len] = LE_ESCAPE;
-                map->raw_text[map->raw_len+1] = LE_START_ARGUMENT;
-                map->raw_len += LE_ESCAPE_LEN;
-                map->raw_text_includes_argument_delimiters = TRUE;
-              }  /* if */
-              inside_macro_argument = TRUE;
             }  /* if */
             if (scanning_text_not_in_primary_source_line) {
               /* This token was fetched from a source line modification.
@@ -3976,18 +3914,6 @@ do_argument_again:
               remark(err_code_for_error_token);
             }  /* if */
             (void)arg_get_token(&any_white_space_skipped);
-            if (last_macro_arg_delimiter_seen == LE_END_ARGUMENT &&
-                inside_macro_argument) {
-              if (need_expanded_form) {
-                /* Copy the argument delimiter to the raw buffer so it will be
-                   seen when rescanning to get the expanded form. */
-                ensure_arg_raw_text_space(LE_ESCAPE_LEN, map);
-                map->raw_text[map->raw_len] = LE_ESCAPE;
-                map->raw_text[map->raw_len+1] = LE_END_ARGUMENT;
-                map->raw_len += LE_ESCAPE_LEN;
-              }  /* if */
-              inside_macro_argument = FALSE;
-            }  /* if */
             if (scanning_text_not_in_primary_source_line &&
                 within_curr_source_line(start_of_curr_token)) {
               /* This argument started out in a macro expansion and now
@@ -4037,7 +3963,7 @@ do_argument_again:
                This has been verified with MSVC++ 4.2, 5.0. and 7.0.
                Fixed in 7.1 */
             if (microsoft_bugs && microsoft_version < 1310 &&
-                curr_token == tok_comma) {
+                curr_token == tok_comma && !comma_is_from_argument) {
               (void)arg_get_token(&any_white_space_skipped);
               goto do_argument_again;
             }  /* if */
@@ -4121,14 +4047,7 @@ do_argument_again:
           /* Ignore initial white space. */
           any_white_space_skipped = FALSE;  /* Should be FALSE already. */
           need_end_of_token_marker = FALSE;
-          if (comma_ignored_inside_argument) {
-            /* Add argument delimiter so embedded commas won't terminate a
-               macro argument when the text is rescanned. */
-            ensure_arg_expanded_text_space(LE_ESCAPE_LEN, map);
-            *map->expanded_text = LE_ESCAPE;
-            *(map->expanded_text+1) = LE_START_ARGUMENT;
-            map->expanded_len += LE_ESCAPE_LEN;
-          }  /* if */
+          paren_count = 0;
 #if FULLY_RESOLVED_MACRO_POSITIONS
           /* Reinitialize the tracker for the scan through the raw text.  This
              time we use NO_PARENT_MACRO_INVOCATION as the context to preserve
@@ -4142,6 +4061,31 @@ scan_expanded_tokens:
              of the is_isolated_text flag; it's not actually the end of
              source. */
           while (curr_token != tok_end_of_source) {
+            if (comma_ignored_inside_argument) {
+              /* In Microsoft mode, top-level (i.e., not nested inside
+                 parentheses) commas that originate in the expanded text of
+                 a macro in a macro argument are marked so that they do not
+                 delimit macro arguments when the expanded text is rescanned.
+                 For example, given
+
+                       #define Q(x) M(x)
+                       #define A 1,2
+                       Q(A)
+
+                 the macro M will be invoked with one argument, not two.  To
+                 implement this, we add a marker to the expanded text for
+                 every comma that is to be ignored. */
+              if (curr_token == tok_lparen) {
+                ++paren_count;
+              } else if (curr_token == tok_rparen && paren_count > 0) {
+                --paren_count;
+              } else if (curr_token == tok_comma && paren_count == 0) {
+                ensure_arg_expanded_text_space(LE_ESCAPE_LEN, map);
+                *(map->expanded_text+map->expanded_len++) = LE_ESCAPE;
+                *(map->expanded_text+map->expanded_len++) =
+                                                        LE_COMMA_FROM_ARGUMENT;
+              }  /* if */
+            }  /* if */
             /* Put the text of the token into the argument expanded_text
                array. */
             token_text_len =
@@ -4176,22 +4120,6 @@ scan_expanded_tokens:
                            map->offset_in_raw_text_of_primary_source_line_text;
             (void)arg_get_token(&any_white_space_skipped);
             goto scan_expanded_tokens;
-          }  /* if */
-          if (comma_ignored_inside_argument) {
-            if (map->expanded_len == LE_ESCAPE_LEN) {
-              /* The expanded text is empty except for the start-argument
-                 delimiter, so the delimiters are not needed; just set the
-                 expanded length to 0, effectively deleting the starting
-                 delimiter. */
-              map->expanded_len = 0;
-            } else {
-              /* Add argument delimiter so embedded commas won't terminate a
-                 macro argument when the text is rescanned. */
-              ensure_arg_expanded_text_space(LE_ESCAPE_LEN, map);
-              map->expanded_text[map->expanded_len] = LE_ESCAPE;
-              map->expanded_text[map->expanded_len+1] = LE_END_ARGUMENT;
-              map->expanded_len += LE_ESCAPE_LEN;
-            }  /* if */
           }  /* if */
           /* Place terminating LE_END_OF_INSERTION lexical escape. */
           ensure_arg_expanded_text_space(LE_ESCAPE_LEN, map);
@@ -4668,7 +4596,7 @@ end_arg_expansion:;
 copy_done:
       if (check_concatenations && prev_section_is_paste &&
           src_loc - src_loc_before_copy != 0 && prev_sect_len != 0 &&
-          !(gnu_mode && is_va_arg_substitution)) {
+          !((gnu_mode || microsoft_mode) && is_va_arg_substitution)) {
         /* The result reflects concatenating two non-empty text sections.
            Record the concatenation so that retokenizing can check for
            having created an invalid token.  (The GNU preprocessor allows
@@ -5681,7 +5609,16 @@ Scan and process a #define directive.
             put_start_of_non_text_section(rt_paste, 0);
             if (param_num != 0) {
               /* The token following "##" is a parameter. */
-              put_start_of_non_text_section(rt_raw_argument, param_num);
+              if (microsoft_mode && microsoft_version >= 1400 && variadic &&
+                  param_num == n_params) {
+                /* The Microsoft compiler expands variadic arguments before
+                   substitution, even after "##". */
+                put_start_of_non_text_section(rt_argument, param_num);
+                param_ptr->need_expanded_form = TRUE;
+              } else {
+                /* The raw form of the argument will be used. */
+                put_start_of_non_text_section(rt_raw_argument, param_num);
+              }  /* if */
               need_end_of_token_marker = TRUE;
               (void)mdefn_get_token(param_list, &param_num, &param_ptr,
                                     &any_white_space_skipped);
@@ -5767,8 +5704,10 @@ Scan and process a #define directive.
              case put it out as the raw value of the argument. */
           /* In pcc mode, always use the raw form of the argument.  Expansion
              is done on rescan of the macro body. */
-          if (microsoft_mode && microsoft_version >= 1400 && variadic &&
-              param_num == n_params &&
+          a_boolean is_microsoft_va_args =
+                                (microsoft_mode && microsoft_version >= 1400 &&
+                                 variadic && param_num == n_params);
+          if (is_microsoft_va_args &&
               next_avail_in_macro_buffer != buffer_start) {
             /* The Microsoft version of variadic macros performs the
                "magic deletion" of a preceding comma even without a "##"
@@ -5782,7 +5721,18 @@ Scan and process a #define directive.
           if (mdefn_get_token(param_list, &param_num, &param_ptr,
                               &any_white_space_skipped) == tok_paste ||
               pcc_preprocessing_mode) {
-            put_start_of_non_text_section(rt_raw_argument, save_param_num);
+            if (is_microsoft_va_args) {
+              /* The Microsoft compiler expands variadic arguments before
+                 substitution.  Note that we do not set
+                 need_end_of_token_marker to TRUE here so that the end of
+                 the expanded text can form a single token with what
+                 follows it. */
+              put_start_of_non_text_section(rt_argument, save_param_num);
+              save_param_ptr->need_expanded_form = TRUE;
+            } else {
+              /* The argument will be used in its raw form. */
+              put_start_of_non_text_section(rt_raw_argument, save_param_num);
+            }  /* if */
           } else {
             /* Not "##", so put expanded version of argument into string. */
             put_start_of_non_text_section(rt_argument, save_param_num);

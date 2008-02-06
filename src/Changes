@@ -1,5 +1,17 @@
 Version 3.11
 
+2/6/08   Microsoft compatibility: concatenation with __VA_ARGS__
+
+The Microsoft compiler is nonstandard in its handling of the __VA_ARGS__
+macro parameter in that it always expands the corresponding macro argument,
+even when it is the operand of the "##" concatenation operator.  The front
+end has been changed to emulate this behavior in --microsoft mode.  For
+example:
+
+  #define M(a, ...) a ## __VA_ARGS__
+  #define TWO 2
+  M(1,TWO)       // Expands to 12, not 1TWO, in --microsoft mode
+
 2/6/08   Microsoft compatibility: template friend declarations apply to
          explicit specializations
 
