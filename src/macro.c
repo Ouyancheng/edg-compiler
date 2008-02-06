@@ -4596,7 +4596,7 @@ end_arg_expansion:;
 copy_done:
       if (check_concatenations && prev_section_is_paste &&
           src_loc - src_loc_before_copy != 0 && prev_sect_len != 0 &&
-          !((gnu_mode || microsoft_mode) && is_va_arg_substitution)) {
+          !(gnu_mode && is_va_arg_substitution)) {
         /* The result reflects concatenating two non-empty text sections.
            Record the concatenation so that retokenizing can check for
            having created an invalid token.  (The GNU preprocessor allows
