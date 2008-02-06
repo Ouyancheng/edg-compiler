@@ -8347,7 +8347,7 @@ function a friend and update the friend information.
 }  /* update_befriending_classes_for_function */
 
 
-void update_friend_info_for_specialization_member(
+static void update_friend_info_for_specialization_member(
 			a_symbol_ptr				template_sym,
 			a_template_symbol_supplement_ptr	class_tssp,
 			a_symbol_ptr				class_sym,
