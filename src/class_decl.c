@@ -15241,6 +15241,11 @@ next_declaration:
           tssp->variant.class_template.not_standalone_nested_class = TRUE;
         }  /* if */
       }  /* if */
+      if (is_template_specialization && microsoft_mode) {
+        /* The Microsoft compiler allows a template friend declaration to
+           also affect members of explicit specializations. */
+        update_friend_info_for_specialization(class_type);
+      }  /* if */
     }  /* if */
 #if DO_IL_LOWERING && IA64_ABI
     /* Keep track of which routines are marked inline at this point.  The IA64

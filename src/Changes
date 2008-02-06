@@ -1,5 +1,24 @@
 Version 3.11
 
+2/6/08   Microsoft compatibility: template friend declarations apply to
+         explicit specializations
+
+A template friend declaration that refers to a member of a class template
+should not apply to a similar member of an explicitly specialized class,
+but the Microsoft compiler does apply such friendship.  We now emulate
+this behavior in Microsoft mode.
+
+  template<class T> struct A { void f(); };
+  class C {
+    int i;
+    template<class T> friend void A<T>::f();
+  };
+  template<> struct A<char> { void f(); };
+  void A<char>::f() {
+    C c;
+    c.i = 0; // allowed in Microsoft mode
+  }
+
 1/31/08  Builtin va_arg returns lvalue in Microsoft and Sun modes
 
 The va_arg macro of the <stdarg.h> header, when treated as a builtin

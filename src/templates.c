@@ -8347,6 +8347,173 @@ function a friend and update the friend information.
 }  /* update_befriending_classes_for_function */
 
 
+void update_friend_info_for_specialization_member(
+			a_symbol_ptr				template_sym,
+			a_template_symbol_supplement_ptr	class_tssp,
+			a_symbol_ptr				class_sym,
+			a_symbol_ptr				rout_sym,
+			a_routine_ptr				rout,
+			a_template_symbol_supplement_ptr	rout_tssp)
+/*
+This routine is called by update_friend_info_for_specialization to
+update the befriending information for a member of the class specified
+by class_sym that corresponds to rout_sym (and rout), which is a member of a
+prototype instantiation.  template_sym is the class template for which
+class_sym is a specialization.  class_tssp is the template symbol
+supplement of template_sym.  rout_tssp is the template symbol
+supplement for rout_sym.
+
+Create a substituted version of the routine specified by rout_sym and
+look for a member with that type in the class of class_sym.  If the
+member is found, update the befriending information.  If no such
+member is found, or if the creation of the substituted routine fails,
+do nothing.
+*/
+{
+  a_template_arg_ptr		templ_arg_list;
+  a_type_ptr			class_type;
+  a_class_type_supplement_ptr	ctsp;
+  a_template_param_ptr		templ_param_list;
+  a_type_ptr			new_rout_type;
+  a_boolean			copy_error = FALSE;
+
+  class_type = class_sym->variant.class_struct_union.type;
+  ctsp = class_type->variant.class_struct_union.extra_info;
+  templ_arg_list = ctsp->template_arg_list;
+  templ_param_list = class_tssp->cache.decl_info->parameters;
+  /* Create a substituted version of the routine type from the prototype
+     instantiation based on the template arguments of the specialization. */
+  new_rout_type = copy_type_with_substitution(rout->type,
+                                              templ_arg_list,
+                                              templ_param_list,
+                                              &template_sym->decl_position,
+                                              CTWS_NO_OPTIONS,
+                                              &copy_error);
+  /* If the substitution succeeded, look for a member with that type
+     in the specialization. */
+  if (!copy_error) {
+    a_symbol_ptr	sym;
+    for (sym = class_sym->variant.class_struct_union.extra_info->symbols;
+         sym != NULL; sym = sym->next_in_scope) {
+      /* Ignore symbols that don't have the right name. */
+      if (sym->header != rout_sym->header) continue;
+      if (sym->kind == (a_symbol_kind)sk_member_function ||
+          sym->kind == (a_symbol_kind)sk_overloaded_function) {
+        a_boolean	is_list = FALSE;
+        a_symbol_ptr	list_sym = sym;
+        /* For an overload set, process each of its members. */
+        if (list_sym->kind == (a_symbol_kind)sk_overloaded_function) {
+          is_list = TRUE;
+          list_sym = list_sym->variant.overloaded_function.symbols;
+        }  /* if */
+        for (; list_sym != NULL;
+             list_sym = is_list ? list_sym->next : NULL) {
+          a_routine_ptr	list_rout = list_sym->variant.routine.ptr;
+          /* See if this member function has a type that matches the
+             substituted type. */
+          if (types_are_redecl_compatible(new_rout_type, list_rout->type)) {
+            a_class_list_entry_ptr  clep;
+            /* It matches.  Apply any friend declarations to the routine in
+               the specialization. */
+            for (clep = rout_tssp->befriending_classes;
+                 clep != NULL; clep = clep->next) {
+              update_friend_function_info(list_rout, clep->class_type);
+            }  /* for */
+            goto done;
+          }  /* if */
+        }  /* for */
+      }  /* if */
+    }  /* for */
+  }  /* if */
+done:
+  return;
+}  /* update_friend_info_for_specialization_member */
+
+
+void update_friend_info_for_specialization(a_type_ptr	class_type)
+/*
+The Microsoft compiler applys a template friend declaration not only to
+members generated from the template, but also to members of explicitly
+specialized instances of the class.
+
+
+  template<class T> struct A { void f(); };
+  class C {
+    int i;
+    template<class T> friend void A<T>::f();
+  };
+  template<> struct A<char> { void f(); };
+  void A<char>::f() {
+    C c;
+    c.i = 0; // allowed by Microsoft
+  }
+
+class_type is the type of a specialization that has just been scanned
+(A<char> in the example above).  Go through the members of the template
+that has been specialized and look for routines that have befriending
+classes.  Create a substituted version of the routine type from the
+template and look for a matching routine in the specialization.  If a
+matching routine is found, make it a friend.
+
+Note that the Microsoft compiler only does this for direct members of the
+class template.  For example, if the function were in a nested class of
+"A", the friend would not apply to the specialization.
+*/
+{
+  a_template_symbol_supplement_ptr	class_tssp;
+  a_class_symbol_supplement_ptr		cssp;
+  a_symbol_ptr				class_sym;
+  a_symbol_ptr				template_sym;
+  a_symbol_ptr				proto_sym;
+  a_symbol_ptr				sym;
+
+  class_sym = symbol_for(class_type);
+  cssp = class_sym->variant.class_struct_union.extra_info;
+  /* Get the class template symbol of which class_sym is a specialization.
+     Note that this uses the direct class template, not the prototype
+     template.  This only handles the case where the enclosing class is
+     a normal (nontemplate) class, but this matches the Microsoft behavior. */
+  template_sym = cssp->class_template;
+  /* In some error cases the type will not have an associated template. */
+  if (template_sym != NULL) {
+    class_tssp = template_supplement_for_symbol(template_sym);
+    /* Get the prototype instantiation of the class. */
+    proto_sym = class_tssp->variant.class_template.prototype_instantiation;
+    /* Go through the symbols of the prototype instantiation and look for
+       functions that have been declared as friends of another class. */
+    for (sym = proto_sym->variant.class_struct_union.extra_info->symbols;
+         sym != NULL; sym = sym->next_in_scope) {
+      if (sym->kind == (a_symbol_kind)sk_member_function ||
+          sym->kind == (a_symbol_kind)sk_overloaded_function) {
+        a_boolean	is_list = FALSE;
+        a_symbol_ptr	list_sym = sym;
+        /* For an overload set, process each of its members. */
+        if (list_sym->kind == (a_symbol_kind)sk_overloaded_function) {
+          is_list = TRUE;
+          list_sym = list_sym->variant.overloaded_function.symbols;
+        }  /* if */
+        for (; list_sym != NULL;
+             list_sym = is_list ? list_sym->next : NULL) {
+          a_routine_ptr	rout = list_sym->variant.routine.ptr;
+          if (!rout->compiler_generated) {
+            a_template_symbol_supplement_ptr	rout_tssp;
+            rout_tssp = template_supplement_for_symbol(list_sym);
+            check_assertion(rout_tssp != NULL);
+            if (rout_tssp->befriending_classes != NULL) {
+              /* This function is a friend.  Look for a corresponding member
+                 in the specialization. */
+              update_friend_info_for_specialization_member(
+                                           template_sym, class_tssp, class_sym,
+                                           list_sym, rout, rout_tssp);
+            }  /* if */
+          }  /* if */
+        }  /* for */
+      }  /* if */
+    }  /* for */
+  }  /* if */
+}  /* update_friend_info_for_specialization */
+
+
 static a_symbol_ptr make_template_function(
 			a_symbol_ptr		templ_sym,
 			a_template_arg_ptr	templ_arg_list,

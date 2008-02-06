@@ -570,6 +570,8 @@ extern void template_directive_or_declaration(
 			a_token_kind			*final_token,
 			a_template_decl_options_set	options);
 
+extern void update_friend_info_for_specialization(a_type_ptr	class_type);
+
 extern void add_befriending_class_to_class_template
                          (a_template_symbol_supplement_ptr  tssp,
                           a_type_ptr                        class_declared_in);
