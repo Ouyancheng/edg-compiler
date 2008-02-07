@@ -2621,7 +2621,7 @@ constant.
             expr = NULL;
           } else {
             /* Copy the expression to file-scope memory. */
-            expr = copy_expr_tree(expr, CE_COPIED_CONSTANTS_MAY_BE_SHARED);
+            expr = copy_expr_tree(expr, CE_COPYING_CONSTANT_EXPRESSION);
           }  /* if */
           constant.expr = expr;
         }  /* if */

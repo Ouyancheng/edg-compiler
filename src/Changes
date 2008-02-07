@@ -1,5 +1,19 @@
 Version 3.11
 
+2/7/08   Constant expressions in local array bounds
+
+In configurations in which RECORD_CONSTANT_EXPRESSIONS_IN_IL is TRUE, the
+variant.array.bound_constant in the a_type entry for an array type used in
+a function scope preserved the associated expression, as expected; however,
+the expressions associated with any constants appearing in that top-level
+expression were lost.  This is now fixed.  For example, the "sizeof"
+operation in the following case is now represented by an enk_runtime_sizeof
+node in the expression tree for the bound constant:
+
+  void f() {
+    char *data = new char[sizeof(int)+3];
+  }
+
 2/6/08   Microsoft compatibility: concatenation with __VA_ARGS__
 
 The Microsoft compiler is nonstandard in its handling of the __VA_ARGS__

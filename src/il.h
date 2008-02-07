@@ -996,6 +996,11 @@ typedef int an_expr_copy_options_set;
 			/* TRUE if the destination address provided to
 			   copy_constant_full is not an IL address (e.g.,
 			   it's the address of a stack variable). */
+#define CE_COPYING_CONSTANT_EXPRESSION 0x200
+			/* TRUE if the expressions associated with constants
+			   should also be copied (used only in configurations
+			   in which RECORD_CONSTANT_EXPRESSIONS_IN_IL is
+			   TRUE). */
 
 a_constant_ptr copy_constant_full(a_constant_ptr           old_constant,
                                   a_constant_ptr           new_constant,
