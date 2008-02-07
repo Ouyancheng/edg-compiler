@@ -1,5 +1,16 @@
 Version 3.11
 
+7/9/07   Spurious VLA diagnostic in GNU C++ mode
+
+In GNU C++ modes with gnu_version >= 30400, the front end sometimes issued
+spurious errors relating to variable-length arrays when declaring a local
+array with a template-dependent bound.  This is now fixed.  For example:
+
+  template<typename T> void f() {
+    static T x[sizeof(T)];  // Spurious error when compiled with:
+  }                         //   -tused --gnu_version=30400
+  template void f<int>();
+
 2/7/08   Constant expressions in local array bounds
 
 In configurations in which RECORD_CONSTANT_EXPRESSIONS_IN_IL is TRUE, the
