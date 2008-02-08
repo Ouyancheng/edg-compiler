@@ -8432,7 +8432,7 @@ done:
 
 void update_friend_info_for_specialization(a_type_ptr	class_type)
 /*
-The Microsoft compiler applys a template friend declaration not only to
+The Microsoft compiler applies a template friend declaration not only to
 members generated from the template, but also to members of explicitly
 specialized instances of the class.
 
