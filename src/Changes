@@ -16,7 +16,7 @@ reference to a function type.  Now fixed.
     ((RF)obj)(0);
   }
 
-7/9/07   Spurious VLA diagnostic in GNU C++ mode
+2/7/08   Spurious VLA diagnostic in GNU C++ mode
 
 In GNU C++ modes with gnu_version >= 30400, the front end sometimes issued
 spurious errors relating to variable-length arrays when declaring a local
@@ -26,6 +26,18 @@ array with a template-dependent bound.  This is now fixed.  For example:
     static T x[sizeof(T)];  // Spurious error when compiled with:
   }                         //   -tused --gnu_version=30400
   template void f<int>();
+
+As a result of this change, in configurations in which prototype
+instantiations are included in the IL, the expression for a dependent
+bound will be represented by the variant.array.variant.element_count_constant
+field of the type entry.  If the expression associated with that constant
+refers to a local variable, the expression will be removed from the constant
+to a local expr_ref node (see the 1/29/08 and 4/28/06 Changes entries).  The
+affected expression pointers are the expr, templ_sizeof.expr, and (for
+configurations in which RECORD_CONSTANT_EXPRESSIONS_IN_IL is TRUE)
+constant->expr fields of the constant's variant.template_param.variant union,
+and the use of the local expr_ref node is indicated by the
+variant.array.constant_bound_expr_in_local_expr_node_ref flag.
 
 2/7/08   Constant expressions in local array bounds
 

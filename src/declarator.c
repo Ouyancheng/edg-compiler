@@ -30,9 +30,7 @@ declarator.c -- Scanning of declarators.
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #include "ms_attrib.h"
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
 #include "il_walk.h"
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
 
 static a_boolean check_pm_member_type(a_type_ptr  member_type)
 /*
@@ -2300,7 +2298,6 @@ if this is the function declarator in a friend function declaration.
 }  /* function_declarator */
 
 
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
 static void check_for_routine_scope_variable(
                                     an_expr_node_ptr                    expr,
                                     an_expr_or_stmt_traversal_block_ptr tblock)
@@ -2329,11 +2326,46 @@ enk_variable node that refers to a variable in a local scope.
   clear_expr_or_stmt_traversal_block(&tblock);
   tblock.process_expr = check_for_routine_scope_variable;
   tblock.process_non_dynamic_constants = TRUE;
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
   tblock.process_expressions_for_constants = TRUE;
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
+  tblock.process_template_parameter_constants_and_expressions = TRUE;
   traverse_expr(expr, &tblock);
   return tblock.result;
 }  /* expr_has_reference_to_routine_scope_variable */
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
+
+
+static make_bound_expr_referenceable_from_file_scope(an_expr_node_ptr *expr,
+                                                     a_type_ptr       type)
+/*
+Process an expression used as an array bound (may be NULL) so that it can
+be referred to by the given type entry.  Because types appear in file scope
+and file scope entries cannot refer to local scope entries, either copy the
+expression tree to the current memory region (assumed to be file scope upon
+entry) or create a local expr_node reference to it and mark the type entry
+accordingly.  If the expression tree was copied, the original expression
+pointer is updated to point to the copy; if a local expr_node reference was
+created, the original expression pointer is set to NULL.
+*/
+{
+  if (*expr != NULL && !in_file_scope(*expr)) {
+    /* The type can only refer to file-scope expressions, so special
+       handling is needed.  This comes up with bound expressions that
+       are permitted to be VLAs but turn out to be constant. */
+    if (expr_has_reference_to_routine_scope_variable(*expr)) {
+      /* The expression refers to a function-scope variable, so we
+         can't copy it to file scope.  Create a local expr node
+         reference to it instead. */
+      make_local_expr_node_ref(*expr, (a_local_expr_node_ref_kind)
+                                                              lerk_array_bound,
+                               (char *)type, innermost_function_scope);
+      *expr = NULL;
+    } else {
+      /* Copy the expression to file-scope memory. */
+      *expr = copy_expr_tree(*expr, CE_COPYING_CONSTANT_EXPRESSION);
+    }  /* if */
+  }  /* if */
+}  /* make_bound_expr_referenceable_from_file_scope */
 
 
 #if !UPC_EXTENSIONS_ALLOWED
@@ -2606,37 +2638,41 @@ constant.
       if (is_constant_bound) {
         /* Save the constant for the bound, which has an attached
            expression. */
-        an_expr_node_ptr expr = constant.expr;
-        if (expr != NULL && !in_file_scope(expr)) {
-          /* The type can only refer to file-scope expressions, so special
-             handling is needed.  This comes up with bound expressions that
-             are permitted to be VLAs but turn out to be constant. */
-          if (expr_has_reference_to_routine_scope_variable(expr)) {
-            /* The expression refers to a function-scope variable, so we
-               can't copy it to file scope.  Create a local expr node
-               reference to it instead. */
-            make_local_expr_node_ref(expr, (a_local_expr_node_ref_kind)
-                                                              lerk_array_bound,
-                                     (char *)*new_type_ptr,
-                                     innermost_function_scope);
-            expr = NULL;
-          } else {
-            /* Copy the expression to file-scope memory. */
-            expr = copy_expr_tree(expr, CE_COPYING_CONSTANT_EXPRESSION);
-          }  /* if */
-          constant.expr = expr;
-        }  /* if */
+        make_bound_expr_referenceable_from_file_scope(&constant.expr,
+                                                      *new_type_ptr);
         il_constant = alloc_shareable_constant(&constant);
         (*new_type_ptr)->variant.array.bound_constant = il_constant;
       }  /* if */
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
       if (template_dependent_bound) {
         /* Template-dependent bound (constant but not a known value). */
+        a_template_param_constant_kind tkind;
         if (il_constant == NULL) {
           il_constant = alloc_shareable_constant(&constant);
         }  /* if */
+        check_assertion(il_constant->kind ==
+                                    (a_constant_repr_kind)ck_template_param);
+        tkind = il_constant->variant.template_param.kind;
+        if (tkind == (a_template_param_constant_kind)tpck_expression) {
+          make_bound_expr_referenceable_from_file_scope(
+                             &il_constant->variant.template_param.variant.expr,
+                             *new_type_ptr);
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+        } else if (tkind == (a_template_param_constant_kind)tpck_cast ||
+                   tkind == (a_template_param_constant_kind)tpck_address) {
+          make_bound_expr_referenceable_from_file_scope(
+                   &il_constant->variant.template_param.variant.constant->expr,
+                   *new_type_ptr);
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
+        } else if (tkind == (a_template_param_constant_kind)tpck_sizeof ||
+                   tkind == (a_template_param_constant_kind)tpck_alignof ||
+                   tkind == (a_template_param_constant_kind)tpck_uuidof) {
+          make_bound_expr_referenceable_from_file_scope(
+                &il_constant->variant.template_param.variant.templ_sizeof.expr,
+                *new_type_ptr);
+        }  /* if */
         (*new_type_ptr)->variant.array.variant.element_count_constant =
-                                                                  il_constant;
+                                                                   il_constant;
         (*new_type_ptr)->variant.array.is_template_dependent_size_array = TRUE;
       } else {
         /* Normal constant bound. */

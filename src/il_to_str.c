@@ -1906,6 +1906,7 @@ the way described by octl.
     form_expression(count, octl);
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
   } else if (type->variant.array.constant_bound_expr_in_local_expr_node_ref &&
+             !type->variant.array.is_template_dependent_size_array &&
              innermost_function_scope != NULL &&
              !octl->c_generating_back_end) {
     /* The bound expression has a reference to a local variable and is
@@ -1916,6 +1917,7 @@ the way described by octl.
     check_assertion(expr != NULL);
     form_expression(expr, octl);
   } else if (type->variant.array.bound_constant != NULL &&
+             !type->variant.array.is_template_dependent_size_array &&
              !octl->c_generating_back_end) {
     /* Use the recorded a_constant entry rather than a plain integer.  This
        allows the output to be closer to the original bound expression when
@@ -1924,8 +1926,41 @@ the way described by octl.
                   /*need_parens=*/FALSE, octl);
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
   } else if (type->variant.array.is_template_dependent_size_array) {
-    form_constant(type->variant.array.variant.element_count_constant,
-                  /*need_parens=*/FALSE, octl);
+    an_expr_node_ptr *expr_ptr = NULL;
+    a_constant_ptr   constant =
+                            type->variant.array.variant.element_count_constant;
+    if (type->variant.array.constant_bound_expr_in_local_expr_node_ref &&
+        innermost_function_scope != NULL) {
+      /* The expression associated with the element count constant referred
+         to local variables and thus could not be copied into the file
+         scope.  Retrieve it and temporarily restore it to the constant so
+         we can print it. */
+      check_assertion(constant->kind ==
+                                      (a_constant_repr_kind)ck_template_param);
+      a_template_param_constant_kind tkind =
+                                         constant->variant.template_param.kind;
+      if (tkind == (a_template_param_constant_kind)tpck_expression) {
+        expr_ptr = &constant->variant.template_param.variant.expr;
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+      } else if (tkind == (a_template_param_constant_kind)tpck_cast ||
+                 tkind == (a_template_param_constant_kind)tpck_address) {
+        expr_ptr = &constant->variant.template_param.variant.constant->expr;
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
+      } else if (tkind == (a_template_param_constant_kind)tpck_sizeof ||
+                 tkind == (a_template_param_constant_kind)tpck_alignof ||
+                 tkind == (a_template_param_constant_kind)tpck_uuidof) {
+        expr_ptr = &constant->variant.template_param.variant.templ_sizeof.expr;
+      }  /* if */
+      check_assertion(expr_ptr != NULL && *expr_ptr == NULL);
+      *expr_ptr = find_local_expr_node(
+                                 (char *)type,
+                                 (a_local_expr_node_ref_kind)lerk_array_bound);
+      check_assertion(*expr_ptr != NULL);
+    }  /* if */
+    form_constant(constant, /*need_parens=*/FALSE, octl);
+    if (expr_ptr != NULL) {
+      *expr_ptr = NULL;
+    }  /* if */
   } else if (type->variant.array.variant.number_of_elements == 0 &&
              !type->variant.array.bound_is_zero) {
     /* For unknown-bound arrays, put nothing between the []. */
