@@ -13855,7 +13855,12 @@ to be acceptable, and *conversion describes it.
       /* Do the conversion. */
       convert_operand(source_operand, base_dest_type, conversion);
       /* Convert the lvalue to an rvalue pointer to the object. */
-      take_address_of_lvalue(source_operand);
+      if (is_a_function_designator(source_operand)) {
+        conv_function_designator_to_ptr_to_function(source_operand,
+                                                    /*allow_ctor=*/FALSE);
+      } else {
+        take_address_of_lvalue(source_operand);
+      }  /* if */
     }  /* if */
   } else if (direct_binding_possible && is_an_lvalue(source_operand)) {
     /* The initial value is an lvalue of the right type; the initialization

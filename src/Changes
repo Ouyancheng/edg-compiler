@@ -1,5 +1,21 @@
 Version 3.11
 
+2/8/08   Abort on use of reference-to-function conversion function
+
+The front end aborted ("take_address_of_lvalue: not an lvalue") on
+processing a cast to reference where the source operand is converted
+to the desired type by way of a conversion function that returns a
+reference to a function type.  Now fixed.
+
+  typedef int (&RF)(int);
+  struct X {
+    int x;
+    operator RF();
+  };
+  void test(X& obj) {
+    ((RF)obj)(0);
+  }
+
 7/9/07   Spurious VLA diagnostic in GNU C++ mode
 
 In GNU C++ modes with gnu_version >= 30400, the front end sometimes issued
