@@ -2328,6 +2328,7 @@ enk_variable node that refers to a variable in a local scope.
 
   clear_expr_or_stmt_traversal_block(&tblock);
   tblock.process_expr = check_for_routine_scope_variable;
+  tblock.process_non_dynamic_constants = TRUE;
   tblock.process_expressions_for_constants = TRUE;
   traverse_expr(expr, &tblock);
   return tblock.result;
