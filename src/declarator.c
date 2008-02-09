@@ -2363,7 +2363,7 @@ created, the original expression pointer is set to NULL.
       *expr = NULL;
     } else {
       /* Copy the expression to file-scope memory. */
-      *expr = copy_expr_tree(*expr, CE_COPYING_CONSTANT_EXPRESSION);
+      *expr = copy_expr_tree(*expr, CE_COPYING_EXPRESSION_FOR_CONSTANT);
     }  /* if */
   }  /* if */
 }  /* make_bound_expr_referenceable_from_file_scope */

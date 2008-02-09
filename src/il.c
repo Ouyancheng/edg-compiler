@@ -4953,7 +4953,7 @@ copy_constant_full should be called to start a copy.
        scope memory region.  (The expression tree can't even be copied,
        because it may refer to local variables.) */
     new_constant->expr = NULL;
-  } else if (options & CE_COPYING_CONSTANT_EXPRESSION &&
+  } else if (options & CE_COPYING_EXPRESSION_FOR_CONSTANT &&
              old_constant->expr != NULL && new_constant->expr == NULL) {
     /* We are copying a constant's expression, but the expression in the
        old constant had memory region problems; make a copy in the current
@@ -13300,7 +13300,7 @@ be called to start a copy.
            for inlining, because the constants are in a different
            function-scope memory region. */
         an_expr_copy_options_set subcopy_options = options;
-        if (!(options & CE_COPYING_CONSTANT_EXPRESSION)) {
+        if (!(options & CE_COPYING_EXPRESSION_FOR_CONSTANT)) {
           /* Constants with associated expressions (in configurations with
              RECORD_CONSTANT_EXPRESSIONS_IN_IL) cannot be shared, so
              constants appearing in such expressions should not be shared
