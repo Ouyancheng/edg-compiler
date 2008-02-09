@@ -2335,8 +2335,9 @@ enk_variable node that refers to a variable in a local scope.
 }  /* expr_has_reference_to_routine_scope_variable */
 
 
-static make_bound_expr_referenceable_from_file_scope(an_expr_node_ptr *expr,
-                                                     a_type_ptr       type)
+static void make_bound_expr_referenceable_from_file_scope(
+                                                        an_expr_node_ptr *expr,
+                                                        a_type_ptr       type)
 /*
 Process an expression used as an array bound (may be NULL) so that it can
 be referred to by the given type entry.  Because types appear in file scope

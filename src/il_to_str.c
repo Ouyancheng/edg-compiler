@@ -1935,10 +1935,10 @@ the way described by octl.
          to local variables and thus could not be copied into the file
          scope.  Retrieve it and temporarily restore it to the constant so
          we can print it. */
+      a_template_param_constant_kind tkind;
       check_assertion(constant->kind ==
                                       (a_constant_repr_kind)ck_template_param);
-      a_template_param_constant_kind tkind =
-                                         constant->variant.template_param.kind;
+      tkind = constant->variant.template_param.kind;
       if (tkind == (a_template_param_constant_kind)tpck_expression) {
         expr_ptr = &constant->variant.template_param.variant.expr;
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
