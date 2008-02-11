@@ -1665,10 +1665,10 @@ do_float_complex:
                                  (a_host_large_unsigned)ptr->
                                     variant.array.variant.number_of_elements);
       }  /* if */
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
       if (ptr->variant.array.constant_bound_expr_in_local_expr_node_ref) {
         disp_boolean("constant_bound_expr_in_local_expr_node_ref", TRUE);
       }  /* if */
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
       if (ptr->variant.array.bound_constant != NULL) {
         disp_ptr("bound_constant",
                  (char *)ptr->variant.array.bound_constant, iek_constant);
