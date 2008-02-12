@@ -2911,6 +2911,7 @@ by the EDG-supplied runtime.
 /* In the portable scheme, all that's needed is an index into the object
    address table. */
 typedef a_handle_number a_handle;
+#define clear_handle(handle) (*(handle) = 0)
 #else /* !DO_FULL_PORTABLE_EH_LOWERING */
 typedef struct a_handle {
   /* Representation for the non-portable scheme, which can result in a
@@ -3427,27 +3428,54 @@ Pointer to the runtime routine __vla_dealloc_eh.  NULL until allocated.
 */
 static a_routine_ptr vla_dealloc_eh_routine;
 
+/*
+Pointer to the runtime routine __destroy_exception_object.  NULL until
+allocated.
+*/
+static a_routine_ptr destroy_exception_object_routine;
+
+
+static a_routine_ptr make_destroy_exception_object_routine(void)
+/*
+Make (if necessary) the __destroy_exception_object runtime routine, and
+return a pointer to it.
+*/
+{
+  a_routine_ptr routine =
+             make_prototyped_runtime_routine("__destroy_exception_object",
+                                             &destroy_exception_object_routine,
+                                             void_type(),
+                                             (a_type_ptr)NULL,
+                                             (a_type_ptr)NULL,
+                                             (a_type_ptr)NULL);
+  return routine;
+}  /* make_destroy_exception_object_routine */
+
 
 static a_constant_ptr make_region_table_entry(
-                             an_init_pos_descr_ptr   ipdp,
-                             a_routine_ptr           routine,
-                             a_boolean               is_delete,
-                             a_boolean               is_local_static_guard_var,
-                             a_boolean               is_vla_deallocation,
-                             a_boolean               has_conditional_flag,
-                             a_handle                *conditional_flag_handle,
-                             a_boolean               has_subobject_vtable,
-                             a_handle                *subobject_vtable_handle,
-                             a_boolean               is_vla,
-                             a_handle                *vla_elem_count_handle,
-                             a_cleanup_region_number next_region_number,
-                             a_cleanup_region_number *region_number,
-                             an_insert_location      *insert_location)
+                        an_init_pos_descr_ptr   ipdp,
+                        a_routine_ptr           routine,
+                        a_boolean               is_delete,
+                        a_boolean               is_freeing_of_exception_object,
+                        a_boolean               is_local_static_guard_var,
+                        a_boolean               is_vla_deallocation,
+                        a_boolean               has_conditional_flag,
+                        a_handle                *conditional_flag_handle,
+                        a_boolean               has_subobject_vtable,
+                        a_handle                *subobject_vtable_handle,
+                        a_boolean               is_vla,
+                        a_handle                *vla_elem_count_handle,
+                        a_cleanup_region_number next_region_number,
+                        a_cleanup_region_number *region_number,
+                        an_insert_location      *insert_location)
 /*
 Add an entry to the region table (which describes destructible
 objects) related to the object whose position is given by ipdp.
 routine is a destructor (is_delete == FALSE) or a delete routine
 (is_delete == TRUE) to be called to do cleanup on the object.
+is_freeing_of_exception_object is TRUE if the entry should indicate
+the freeing of the runtime exception object on termination of a catch
+handler (the object and routine are ignored in that case).
 is_local_static_guard_var is TRUE if the object is the guard variable
 for a local static variable initialization, and the region entry
 should indicate that the guard variable is to be reset to zero (that's
@@ -3478,8 +3506,13 @@ table entry.
   a_constant_ptr  region_table_entry;
   a_boolean       need_array_info = FALSE, need_elem_count = FALSE;
 
-  /* Make the handle for the entity. */
-  make_handle_for_entity(ipdp, &handle, insert_location);
+  if (!is_freeing_of_exception_object) {
+    /* Make the handle for the entity. */
+    make_handle_for_entity(ipdp, &handle, insert_location);
+  } else {
+    /* No object handle needed. */
+    clear_handle(&handle);
+  }  /* if */
   /* See if we need array information on the entity. */
 #ifndef RUNTIME_VLA_DEALLOCATION_NEEDS_ELEMENT_COUNT
   /* The EDG-supplied runtime VLA deallocation routine doesn't need the
@@ -3494,8 +3527,11 @@ table entry.
   } else
 #endif /* !RUNTIME_VLA_DEALLOCATION_NEEDS_ELEMENT_COUNT */
   /* Do not insert code here. */
-  if (ipdp->array_element_sequence ||
-      is_array_type(type_from_init_pos_descr(ipdp))) {
+  if (is_freeing_of_exception_object) {
+    /* No array information needed (no object). */
+    /* need_array_info = FALSE;  -- already set. */
+  } else if (ipdp->array_element_sequence ||
+             is_array_type(type_from_init_pos_descr(ipdp))) {
     need_array_info = TRUE;
   } else if (is_delete) {
     /* Check for the 2-argument version of delete; we need array information
@@ -3533,7 +3569,7 @@ table entry.
     flags_value |= RDF_NEW_ALLOCATION;
     if (is_vla_deallocation) {
       /* VLA deallocation uses an RDF_NEW_ALLOCATION and passes the
-         runtime routine __vla_dealloc_h as the "delete" routine. */
+         runtime routine __vla_dealloc_eh as the "delete" routine. */
       routine = make_prototyped_runtime_routine("__vla_dealloc_eh",
                                                 &vla_dealloc_eh_routine,
                                                 void_type(),
@@ -3541,8 +3577,12 @@ table entry.
                                                 (a_type_ptr)NULL,
                                                 (a_type_ptr)NULL);
     }  /* if */
+  } else if (is_freeing_of_exception_object) {
+    /* Freeing of the exception object passes the runtime routine
+       __destroy_exception_object as the "destructor". */
+    routine = make_destroy_exception_object_routine();
   }  /* if */
-  if (ipdp->base_class_subobject) {
+  if (ipdp != NULL && ipdp->base_class_subobject) {
     /* The entity is a base class subobject (in a constructor or
        destructor). */
     flags_value |= RDF_BASE_CLASS_SUBOBJECT;
@@ -3757,6 +3797,8 @@ The region table variable is created if necessary.
                                      dip->destructor,
                                      (a_boolean)dip->
                                             is_freeing_of_storage_on_exception,
+                                     (a_boolean)dip->
+                                                is_freeing_of_exception_object,
                                      (a_boolean)dip->
                                         is_guard_var_for_local_static_var_init,
                                      (a_boolean)dip->is_vla_deallocation,
@@ -4263,9 +4305,19 @@ Values for the "kind" field of eh_stack_entry.  This must match the runtime's
 definition of these values.
 */
 typedef enum {
-  ehsek_try_block,
+  ehsek_old_try_block,	/* Used for a try block up to version 3.10. */
   ehsek_function,
-  ehsek_throw_spec
+  ehsek_throw_spec,
+  ehsek_throw_processing_marker,	/* Used by runtime. */
+  /*lint -esym(749,ehsek_throw_processing_marker)*/
+  ehsek_vec_new_or_delete,		/* Used by runtime. */
+  /*lint -esym(749,ehsek_vec_new_or_delete)*/
+#if ABI_COMPATIBILITY_VERSION <= 310
+  ehsek_try_block = ehsek_old_try_block
+#else /* ABI_COMPATIBILITY_VERSION > 310 */
+  ehsek_try_block
+  /*lint -esym(749,ehsek_old_try_block)*/
+#endif /* ABI_COMPATIBILITY_VERSION <= 310 */
 } an_eh_stack_entry_kind;
 
 
@@ -4745,9 +4797,6 @@ Find and return the address of the handler for the current catch clause.
 
 #endif /* !DO_FULL_PORTABLE_EH_LOWERING */
 
-#if !DO_FULL_PORTABLE_EH_LOWERING
-/*ARGSUSED*/ /* <-- param_type is not used. */
-#endif /* !DO_FULL_PORTABLE_EH_LOWERING */
 an_expr_node_ptr make_caught_object_address_node(void)
 /*
 Make an expression node for the address of the object caught at the
@@ -4796,6 +4845,15 @@ for the scope of the handler.
   an_insert_location insert_location;
 
   set_block_start_insert_location(handler->statement, &insert_location);
+#if GENERATE_EH_TABLES
+#if ABI_COMPATIBILITY_VERSION > 310
+  /* Add a cleanup entry for the exception object allocated by the runtime.
+     This is used to ensure that the exception object is deleted at the right
+     point (after the catch clause parameter) when an exception is thrown
+     (not rethrown) from within the catch clause. */
+  add_runtime_exception_object_cleanup(&insert_location);
+#endif /* ABI_COMPATIBILITY_VERSION > 310 */
+#endif /* GENERATE_EH_TABLES */
   if (handler->parameter != NULL) {
     /* Insert code to initialize the catch clause parameter from the
        runtime copy of the thrown object. */
@@ -4880,14 +4938,19 @@ generated is inserted at insert_location.
 {
 #if DO_FULL_PORTABLE_EH_LOWERING
   /* Portable scheme: */
-  /* Make a call of the runtime routine __free_thrown_object.  This tells
-     the runtime it can now destroy the caught object and free the space
-     for it. */
+  /* Make a call of the runtime that tells the runtime it can now
+     destroy the caught object and free the space for it. */
+#if ABI_COMPATIBILITY_VERSION > 310
+  make_call_statement(make_destroy_exception_object_routine(),
+                      (an_expr_node_ptr)NULL,
+                      insert_location);
+#else /* ABI_COMPATIBILITY_VERSION <= 310 */
   make_call_statement(make_runtime_routine("__free_thrown_object",
                                            &free_thrown_object_routine,
                                            void_type()),
                       (an_expr_node_ptr)NULL,
                       insert_location);
+#endif /* ABI_COMPATIBILITY_VERSION > 310 */
 #else /* !DO_FULL_PORTABLE_EH_LOWERING */
   /* In other schemes, insert an enk_lowered_eh_construct/leck_catch_epilogue
      expression node. */
@@ -5909,6 +5972,7 @@ involved in exception handling.
       pch_saved_var_array_elem(array_descr_type),
       pch_saved_var_array_elem(region_descr_type),
       pch_saved_var_array_elem(vla_dealloc_eh_routine),
+      pch_saved_var_array_elem(destroy_exception_object_routine),
 #endif /* GENERATE_EH_TABLES */
 #if DO_FULL_PORTABLE_EH_LOWERING
       pch_saved_var_array_elem(eh_curr_region_var),
@@ -6033,6 +6097,7 @@ must be initialized for each translation unit.
   array_descr_type = NULL;
   region_descr_type = NULL;
   vla_dealloc_eh_routine = NULL;
+  destroy_exception_object_routine = NULL;
 #endif /* GENERATE_EH_TABLES */
 #if DO_FULL_PORTABLE_EH_LOWERING
   eh_curr_region_var = NULL;

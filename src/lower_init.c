@@ -5579,6 +5579,40 @@ code is needed, insert it at *insert_location.
 #endif /* ifdef USE_EH_GUARD_VAR_CLEANUP */
 }  /* add_local_static_guard_var_cleanup */
 
+#if GENERATE_EH_TABLES
+#if ABI_COMPATIBILITY_VERSION > 310
+
+void add_runtime_exception_object_cleanup(an_insert_location *insert_location)
+/*
+Add a cleanup entry to destroy the runtime exception object allocated by the
+runtime if a catch clause is terminated by an exception throw.  The current
+context is the scope of the catch handler, at the beginning of generation
+of code for the handler.  Insert any required code at *insert_location.
+*/
+{
+  a_dynamic_init_ptr dip;
+  an_init_pos_descr  ipd;
+
+  /* This is done only when EH tables are generated because in that mode
+     the runtime doesn't know how the region table entries correlate to
+     the catch clauses.  In the unlowered EH configuration the cleanup
+     entries are grouped by object lifetime and there is a separate
+     lifetime for the catch clause, so it's easy to see where the
+     object destruction should happen. */
+  /* The cleanup doesn't need an object -- the runtime knows where the
+     exception object is. */
+  clear_init_pos_descr(&ipd);
+  /* Add a dynamic init entry for the cleanup. */
+  dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
+  dip->is_freeing_of_exception_object = TRUE;
+  dip->destructible_entity_descr = alloc_destructible_entity_descr();
+  add_to_end_of_destructions_list(dip, curr_object_lifetime);
+  add_dyn_init_cleanup(dip, &ipd, /*set_cond_flag_if_any=*/FALSE,
+                       curr_context, insert_location);
+}  /* add_runtime_exception_object_cleanup */
+
+#endif /* ABI_COMPATIBILITY_VERSION > 310 */
+#endif /* GENERATE_EH_TABLES */
 
 static void adjust_cleanup_state_for_static_aggregate_init(
                                              a_dynamic_init_ptr preceding_init)

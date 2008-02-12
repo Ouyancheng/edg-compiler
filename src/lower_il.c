@@ -13107,6 +13107,9 @@ the destructions and before the original statement.
        dip = dip->next_in_destruction_list) {
     if (dip->has_temporary_lifetime &&
         !dip->is_freeing_of_storage_on_exception &&
+#if GENERATE_EH_TABLES
+        !dip->is_freeing_of_exception_object &&
+#endif /* GENERATE_EH_TABLES */
         !dip->destruction_is_for_partially_constructed_aggregate &&
         !dip->is_vla_deallocation &&
         !dip->is_guard_var_for_local_static_var_init) {
@@ -13813,12 +13816,18 @@ code.
              completed.  They apply for exception cleanup but not on
              exit via branch. */
         } else if (dip->is_guard_var_for_local_static_var_init ||
-                   dip->is_freeing_of_storage_on_exception) {
+                   dip->is_freeing_of_storage_on_exception
+#if GENERATE_EH_TABLES
+                   || dip->is_freeing_of_exception_object
+#endif /* GENERATE_EH_TABLES */
+                                                         ) {
           /* Remove the cleanup entry that requests clearing the guard
              variable for a local static variable initialization, or
-             that requests freeing of the storage allocated for a "new".
-             There is no actual cleanup action; the current cleanup state
-             is just updated. */
+             that requests freeing of the storage allocated for a "new",
+             or that requests the freeing of the runtime exception object
+             when a catch clause terminates.  There is no actual cleanup
+             action on exit via branch; the current cleanup state is just
+             updated. */
           /* Note that these are present only when exceptions are
              enabled. */
           pending_cleanup_state = dip->destructible_entity_descr->

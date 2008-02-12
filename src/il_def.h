@@ -2102,6 +2102,13 @@ typedef struct a_dynamic_init {
 			   set in C mode.  If the variable requires
 			   destruction of its elements, that is represented
 			   in a separate entry. */
+#if GENERATE_EH_TABLES
+  a_bit_field	is_freeing_of_exception_object:1;
+			/* TRUE if this entry represents (on the destruction
+			   list) the deallocation of the exception object
+			   allocated in the runtime.  Only used internally
+			   within lowering. */
+#endif /* GENERATE_EH_TABLES */
 #endif /* DO_IL_LOWERING */
   bitfield_to_avoid_codecenter_warnings()
   union {

@@ -107,6 +107,11 @@ extern void init_conditional_flag_var(
                              a_destructible_entity_descr_ptr dedp,
                              an_insert_location              *insert_location);
 
+#if ABI_COMPATIBILITY_VERSION > 310 && GENERATE_EH_TABLES
+extern
+void add_runtime_exception_object_cleanup(an_insert_location *insert_location);
+#endif /* ABI_COMPATIBILITY_VERSION > 310 && GENERATE_EH_TABLES */
+
 extern void rewrite_class_assignment_if_necessary(an_expr_node_ptr expr);
 
 extern void lower_constant_init_of_static_in_extern_inline(

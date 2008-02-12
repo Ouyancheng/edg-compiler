@@ -1779,6 +1779,9 @@ Initialize a dynamic_init entry of the kind specified.
   dip->is_reused_value = FALSE;
 #if DO_IL_LOWERING
   dip->is_vla_deallocation = FALSE;
+#if GENERATE_EH_TABLES
+  dip->is_freeing_of_exception_object = FALSE;
+#endif /* GENERATE_EH_TABLES */
 #endif /* DO_IL_LOWERING */
 #if CENTERLINE_CHECKING
   dip->avoid_codecenter_warnings = 0;

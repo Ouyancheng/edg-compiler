@@ -1,5 +1,28 @@
 Version 3.11
 
+2/12/08  Point of destruction of runtime exception object adjusted
+
+The point at which the exception object maintained by the runtime is
+destroyed in the case where a catch clause throws a new exception
+(not a rethrow of the current exception) was not correct according
+to the C++ standard.  Formerly, it was destroyed before the
+catch clause parameter, and it should be destroyed after that
+parameter.  We have changed the front end and runtime to correct
+this.  This change only affects configurations that use IL
+lowering and have GENERATE_EH_TABLES set to TRUE.  In those
+configurations, there is an ABI CHANGE: an additional region table
+entry is put out to indicate the point at which the exception
+object should be destroyed, and that region table entry requests
+a call of a new runtime routine __destroy_exception_object.
+This new routine is also called instead of __free_thrown_object
+in the case that the catch clause is left via goto or return.
+__free_thrown_object remains in the runtime for backward
+compatibility, and the code used to indicate a try block in
+the EH stack has been renumbered so that previously-compiled
+code will continue to function (and behave as it did previously)
+even with the new runtime.  See the runtime Changes file for more
+information.
+
 2/8/08   Abort on use of reference-to-function conversion function
 
 The front end aborted ("take_address_of_lvalue: not an lvalue") on
