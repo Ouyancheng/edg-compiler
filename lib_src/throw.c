@@ -169,6 +169,15 @@ typedef struct a_mem_allocation {
 		           record. */
 } a_mem_allocation;
 
+extern "C" {
+  typedef void (*a_destroy_exception_object_ptr)(void);
+			/* Type of the routine called to destroy the
+			   exception object. */
+}
+
+/* Forward declaration. */
+EXTERN_C void __destroy_exception_object(void);
+
 #if ABI_CHANGES_FOR_RTTI
 a_byte		MANGLED_NAME_OF_UNIQUE_ID_OF_VOID;
 			/* This is used to get the address of the
@@ -524,6 +533,54 @@ Print the contents of a region description entry.
 } /* db_eh_region_descr */
 
 
+static char *eh_stack_entry_kind_name(an_eh_stack_entry_kind kind)
+/*
+Return the name of the specified EH stack entry kind value.x
+*/
+{
+  char	*name;
+
+  switch (kind) {
+    case ehsek_old_try_block:           name = "old try block";     break;
+    case ehsek_function:                name = "function";          break;
+    case ehsek_throw_spec:              name = "throw spec";        break;
+    case ehsek_throw_processing_marker: name = "throw marker";      break;
+    case ehsek_vec_new_or_delete:       name = "vec new or delete"; break;
+    case ehsek_try_block:               name = "try block";         break;
+    default:                            name = "<BAD KIND>";        break;
+  }  /* switch */
+  return name;
+}  /* eh_stack_entry_kind_name */
+
+
+static void db_eh_stack_entry(an_eh_stack_entry_ptr	ehsep)
+/*
+Display an EH stack entry, for debugging purposes.
+*/
+{
+  fprintf(__f_debug, "  EH stack entry at %p, kind=%s", ehsep,
+          eh_stack_entry_kind_name(ehsep->kind));
+  if (ehsep->kind == (an_eh_stack_entry_kind)ehsek_function) {
+    fprintf(__f_debug, ", obj addr table=%p",
+            ehsep->variant.function.object_address_table);
+  }  /* if */
+  fprintf(__f_debug, "\n");
+}  /* db_eh_stack_entry */
+
+
+EXTERN_C void db_eh_stack(void)
+/*
+Display the EH stack, for debugging purposes.
+*/
+{
+  an_eh_stack_entry_ptr	ehsep;
+
+  for (ehsep = __curr_eh_stack_entry; ehsep != NULL; ehsep = ehsep->next) {
+    db_eh_stack_entry(ehsep);
+  }  /* for */
+}  /* db_eh_stack */
+
+
 static void db_throw_stack_entry(a_throw_stack_entry_ptr tsep)
 {
   fprintf(__f_debug, "typinfo=%p ", (void*)tsep->type_info);
@@ -580,14 +637,23 @@ requires cleanup.
 {
   an_object_ptr	                *obj_addr_array;
   an_eh_region_descr_ptr	ehrdp;
+#if DEBUG
+  if (__debug_level >= 2) {
+    fprintf(__f_debug, "In cleanup(), cleaning up from %lu to %lu\n",
+            (unsigned long)region, (unsigned long)stop_at_region);
+
+  }  /* if */
+#endif /* DEBUG */
   obj_addr_array = ehsep->variant.function.object_address_table;
   for (; region != stop_at_region; region = ehrdp->index_of_next_region) {
-    an_object_ptr	        obj_addr;
+    an_object_ptr	        obj_addr = NULL;
     a_conditional_flag*	        flag_addr = NULL;
     char			*temp_addr;
     a_region_descr_flag_set     flags;
     an_eh_array_supplement_ptr	ehasp = NULL;
     void			*vtbl_ptr = NULL;
+    a_destroy_exception_object_ptr
+				potential_destroy_exception_object_ptr;
 
     ehrdp = &ehsep->variant.function.regions[region];
 #if DEBUG
@@ -597,6 +663,17 @@ requires cleanup.
       db_eh_region_descr(ehrdp);
     }  /* if */
 #endif /* DEBUG */
+    /* Check whether this is a special region entry for the destruction
+       of the exception object.  To do this we compare the routine
+       address with that of __destroy_exception_object.  This is done
+       so that routine can be called correctly (with no arguments). */
+    potential_destroy_exception_object_ptr =
+           (a_destroy_exception_object_ptr)ehrdp->destructor_or_delete_routine;
+    if (potential_destroy_exception_object_ptr ==
+                                                  __destroy_exception_object) {
+      __destroy_exception_object();
+      continue;
+    }  /* if */
     flags = ehrdp->flags;
     if (flags & RDF_CONDITIONAL_FLAG) {
       /* This cleanup action is conditional.  The next region entry
@@ -650,6 +727,7 @@ requires cleanup.
        will be a stack offset to be added to either the stack base or the
        current "this" parameter (if RDF_THIS_PARAM_OFFSET is set). */
 #endif /* 0 */
+    check_assertion(obj_addr_array != NULL);
     if (flags & RDF_ARRAY) {
       /* The object information is contained in the array supplement. */
       ehasp = &ehsep->variant.function.array_table[ehrdp->handle];
@@ -986,13 +1064,6 @@ top of the throw stack.
   void*				object_address;
   a_throw_stack_entry_ptr	primary_tsep;
 
-#if DEBUG
-  if (__debug_level >= 6) {
-    db_throw_stack("at start of destroy_thrown_object");
-    fprintf(__f_debug, "Possibly destroying object associated with tsep %p\n",
-            tsep);
-  }  /* if */
-#endif /* DEBUG */
   /* If this is a rethrow, get a pointer to the throw stack entry associated
      with the original throw. */
   primary_tsep = tsep->is_rethrow ? tsep->primary_entry : tsep;
@@ -1000,8 +1071,17 @@ top of the throw stack.
     /* If this is the first time the routine has been called for this entry,
        set the discard flag and decrement the use count. */
     tsep->discard_entry = TRUE;
-    primary_tsep->use_count--;
   }  /* if */
+  primary_tsep->use_count--;
+#if DEBUG
+  if (__debug_level >= 6) {
+    db_throw_stack("at start of destroy_thrown_object");
+    fprintf(__f_debug, "Possibly destroying object associated with tsep %p\n",
+            tsep);
+    fprintf(__f_debug, "  primary_tsep->use_count=%d\n",
+            (int)primary_tsep->use_count);
+  }  /* if */
+#endif /* DEBUG */
   /* If the entry can be destroyed, and the destructor has not already been
      called, then call it now. */
   if (primary_tsep->use_count == 0 && !primary_tsep->dtor_called) {
@@ -1127,11 +1207,21 @@ a try block with a catch that matches the type of the object thrown.
   ehsep = ehsep->next;
   while (ehsep != NULL) {
     an_eh_stack_entry_kind	kind = ehsep->kind;
+#if DEBUG
+     if (__debug_level >= 2) {
+       fprintf(__f_debug, "Pass 1 processing EH stack entry at %p, kind=%d\n",
+               (void *)ehsep, kind);
+       if (__debug_level >= 5) {
+         db_eh_stack_entry(ehsep);
+       }  /* if */
+     }  /* if */
+#endif /* DEBUG */
     if (kind == (an_eh_stack_entry_kind)ehsek_function) {
       /* Do nothing with function blocks at this time. */
     } else if (kind == (an_eh_stack_entry_kind)ehsek_vec_new_or_delete) {
       /* Do nothing with vec_new and vec_delete entries at this time. */
-    } else if (kind == (an_eh_stack_entry_kind)ehsek_try_block) {
+    } else if (kind == (an_eh_stack_entry_kind)ehsek_old_try_block ||
+               kind == (an_eh_stack_entry_kind)ehsek_try_block) {
       if (ehsep->variant.try_block.catch_info == NULL) {
         /* Skip over try blocks for which a catch is active. */
         int result;
@@ -1234,8 +1324,11 @@ a try block with a catch that matches the type of the object thrown.
     an_eh_stack_entry_kind	kind = ehsep->kind;
 #if DEBUG
      if (__debug_level >= 2) {
-       fprintf(__f_debug, "Processing EH stack entry at %p, kind=%d\n",
+       fprintf(__f_debug, "Pass 2 processing EH stack entry at %p, kind=%d\n",
                (void *)ehsep, kind);
+       if (__debug_level >= 5) {
+         db_eh_stack_entry(ehsep);
+       }  /* if */
      }  /* if */
 #endif /* DEBUG */
     if (kind == (an_eh_stack_entry_kind)ehsek_function) {
@@ -1246,7 +1339,7 @@ a try block with a catch that matches the type of the object thrown.
          exception occurred.  Call the routine to cleanup the partially
          constructed or destructed array. */
       __cleanup_vec_new_or_delete(ehsep);
-    } else if (kind == (an_eh_stack_entry_kind)ehsek_try_block) {
+    } else if (kind == (an_eh_stack_entry_kind)ehsek_old_try_block) {
       /* A try block that is being skipped. */
       if (ehsep->variant.try_block.catch_info != NULL) {
         /* A catch clause associated with this try block is currently
@@ -1254,11 +1347,17 @@ a try block with a catch that matches the type of the object thrown.
            throw entry is no longer needed.  It cannot be discarded yet
            because the thrown objects are allocated using a stack.  Call
            the destructor for the object and set a flag that this entry
-           should be discarded when it reaches the top of the stack. */
+           should be discarded when it reaches the top of the stack.  The
+           "old try block" entry is generated for ABI versions up to
+           3.10.  In newer ABI versions a cleanup entry is generated that
+           causes __destroy_exception_object to be called at the appropriate
+           time. */
         a_throw_stack_entry_ptr	tsep;
         tsep = (a_throw_stack_entry_ptr)ehsep->variant.try_block.catch_info;
         destroy_thrown_object(tsep);
       }  /* if */
+    } else if (kind == (an_eh_stack_entry_kind)ehsek_try_block) {
+      /* Do nothing. */
     } else if (kind == (an_eh_stack_entry_kind)ehsek_throw_spec) {
       /* Do nothing. */
     } else if (kind == (an_eh_stack_entry_kind)ehsek_throw_processing_marker) {
@@ -1283,7 +1382,8 @@ a try block with a catch that matches the type of the object thrown.
     __call_terminate();
   }  /* if */
 #endif /* UNWIND_STACK_BEFORE_CALLING_TERMINATE */
-  if (destination_ehsep->kind == (an_eh_stack_entry_kind)ehsek_try_block) {
+  if (destination_ehsep->kind == (an_eh_stack_entry_kind)ehsek_old_try_block ||
+      destination_ehsep->kind == (an_eh_stack_entry_kind)ehsek_try_block) {
     /* A try block may have objects that must be cleaned up before
        transferring control to one of the catch clauses.  This is determined
        by comparing the current region number with the region number in
@@ -1314,7 +1414,8 @@ a try block with a catch that matches the type of the object thrown.
   /* Indicate that the current thrown object is now in a handler.  This makes
      the object eligible for a rethrow. */
   curr_throw_stack_entry->in_handler = TRUE;
-  if (destination_ehsep->kind == (an_eh_stack_entry_kind)ehsek_try_block) {
+  if (destination_ehsep->kind == (an_eh_stack_entry_kind)ehsek_old_try_block ||
+      destination_ehsep->kind == (an_eh_stack_entry_kind)ehsek_try_block) {
     a_boolean	exception_caught = FALSE;
     __catch_clause_number = destination_catch_value;
     if (is_pointer(throw_flags, throw_ptr_flags)) {
@@ -1405,7 +1506,8 @@ Push an entry onto the throw stack and initialize its fields.
   ehsep = __curr_eh_stack_entry;
   while (ehsep != NULL) {
     /* Try blocks that are currently inside a handler are not considered. */
-    if (ehsep->kind == (an_eh_stack_entry_kind)ehsek_try_block &&
+    if ((ehsep->kind == (an_eh_stack_entry_kind)ehsek_old_try_block ||
+         ehsep->kind == (an_eh_stack_entry_kind)ehsek_try_block) &&
         ehsep->variant.try_block.catch_info == NULL) break;
     ehsep = ehsep->next;
   }  /* while */
@@ -1612,7 +1714,9 @@ because that is how it is passed by the code generated by the front end.
 EXTERN_C void __free_thrown_object(void)
 /*
 Free the space used to make the copy of the thrown object.  Called at
-the completion of a catch clause.
+the completion of a catch clause.  This routine is called by the code
+generated for catch clauses for ABI versions though version 3.10.  Newer
+versions of the ABI call __destroy_exception_object.
 */
 {
 #if DEBUG
@@ -1650,6 +1754,35 @@ the completion of a catch clause.
   }  /* if */
 #endif /* DEBUG */
 }  /* __free_thrown_object */
+
+
+EXTERN_C void __destroy_exception_object(void)
+/*
+This routine is called by the cleanup mechanism when the exception object
+for a given throw is to be destroyed if it is no longer in use.  This routine
+is also called for code generated for catch clauses for ABI versions 3.11
+and beyond.  This routine just calls __free_thrown_object in most
+cases except when there are entries on the throw stack that need to be
+bypassed to find the appropriate object to be destroyed.
+*/
+{
+  a_throw_stack_entry_ptr	tsep;
+
+  /* Find the top entry that is in a handler and for which the destructor
+     has not yet been called. */
+  for (tsep = curr_throw_stack_entry; tsep != NULL; tsep = tsep->next) {
+    if (tsep->in_handler && !tsep->dtor_called) break;
+  }  /* for */
+  check_assertion(tsep != NULL);
+  /* If we are destroying the top entry on the stack, call
+      __free_thrown_object, which will also free the memory for the entry.
+      Otherwise, just destroy the object. */
+  if (tsep == curr_throw_stack_entry) {
+    __free_thrown_object();
+  } else {
+    destroy_thrown_object(tsep);
+  }  /* if */
+}  /* __destroy_exception_object */
 
 
 EXTERN_C void __eh_exit_processing(void)

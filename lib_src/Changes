@@ -1,3 +1,37 @@
+Version 3.11
+
+2/12/08  Point of destruction of the exception object
+
+The EH mechanism maintains an internal copy of the object being thrown, which
+is known as the "exception object".  If the catch clause of a try block
+exited with an exception, the exception object was not destroyed at the
+point mandated by the standard (it was destroyed earlier).  This has been
+fixed.
+
+An ABI change was required to resolve this issue.  New versions of the runtime
+library will continue to work with code compiled by older versions of the
+front end, but code compiled with the new ABI will not work with older
+versions of the runtime library.  See the front end Changes entry for more
+information
+
+In this example, ~A() should be called after ~B(), but was being called
+before ~B().
+
+  extern "C" int printf(const char *, ...);
+  struct A { ~A() { printf("~A()\n"); } };
+  struct B { ~B() { printf("~B()\n"); } };
+  int main () {
+    try {
+      try { throw A(); }
+      catch (A&) {
+        B b;
+        throw 1;
+      }
+    }
+    catch (int) { }
+  }
+
+-------------------------------------------------------------------------------
 Version 3.10, September 23, 2007
 
 8/7/07   IA-64 ABI: Read and write least significant bit in guard when
