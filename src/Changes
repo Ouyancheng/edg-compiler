@@ -5,9 +5,9 @@ Version 3.11
 The point at which the exception object maintained by the runtime is
 destroyed in the case where a catch clause throws a new exception
 (not a rethrow of the current exception) was not correct according
-to the C++ standard.  Formerly, it was destroyed before the
-catch clause parameter, and it should be destroyed after that
-parameter.  We have changed the front end and runtime to correct
+to the C++ standard.  Formerly, it was destroyed sometime before the
+catch clause parameter, and it should be destroyed immediately after
+that parameter.  We have changed the front end and runtime to correct
 this.  This change only affects configurations that use IL
 lowering and have GENERATE_EH_TABLES set to TRUE.  In those
 configurations, there is an ABI CHANGE: an additional region table
