@@ -1069,11 +1069,10 @@ top of the throw stack.
   primary_tsep = tsep->is_rethrow ? tsep->primary_entry : tsep;
   if (!tsep->discard_entry) {
     /* If this is the first time the routine has been called for this entry,
-       set the discard flag. */
+       set the discard flag and decrement the use count. */
     tsep->discard_entry = TRUE;
+    primary_tsep->use_count--;
   }  /* if */
-  /* Decrement the count of throw stack entries that refer to this object. */
-  primary_tsep->use_count--;
 #if DEBUG
   if (__debug_level >= 6) {
     db_throw_stack("at start of destroy_thrown_object");
@@ -1770,9 +1769,12 @@ appropriate object to be destroyed.
   a_throw_stack_entry_ptr	tsep;
 
   /* Find the top entry that is in a handler and for which the destructor
-     has not yet been called. */
+     has not yet been called and for which the discard entry flag is
+     not yet set.  The discard entry test is used when this routine is called
+     by the cleanup mechanism to skip over entries that have already been
+     cleaned up. */
   for (tsep = curr_throw_stack_entry; tsep != NULL; tsep = tsep->next) {
-    if (tsep->in_handler && !tsep->dtor_called) break;
+    if (tsep->in_handler && !tsep->dtor_called && !tsep->discard_entry) break;
   }  /* for */
   check_assertion(tsep != NULL);
   /* If we are destroying the top entry on the stack, call
