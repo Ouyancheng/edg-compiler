@@ -1660,11 +1660,20 @@ caution when modifying this routine.
          been scanned and we should simply use the symbol returned by
          normal_id_lookup. */
       if (templ_sym->kind == (a_symbol_kind)sk_class_template) {
-        tag_sym = coalesce_template_class_reference(
+        if ((microsoft_mode || sun_mode) && *is_friend_decl &&
+            next_token() == tok_semicolon) {
+          /* Something like "friend class C;" where C is a template name.
+             Microsoft and Sun treat this as friend template declarations
+             (see below).  Do not call coalesce_template_class_reference
+             since that may produce the injected type name. */
+          tag_sym = templ_sym;
+        } else {
+          tag_sym = coalesce_template_class_reference(
                      templ_sym,
                      (microsoft_mode || sun_mode) ? GID_TEMPLATE_ARGS_OPTIONAL
                                                   : GID_NO_OPTIONS,
                      &err);
+        }  /* if */
         if (tag_sym->kind == (a_symbol_kind)sk_class_template) {
           if (microsoft_mode || sun_mode) {
             /* In Microsoft and Sun C++ modes, simple friend declarations may

@@ -1,5 +1,26 @@
 Version 3.11
 
+2/13/08  Sun and Microsoft C++ compatibility: Nonstandard friend class template
+
+In Sun and Microsoft C++ the front end accepts a friend class template without
+a leading template parameter clause if the referenced template is visible (see
+the Changes entries of 9/3/03 and 6/6/06).  However, this extension previously
+excluded the case where the nominated template is currently being defined. That
+unintended exception has now been removed.  For example:
+
+  template<typename T> class C {
+    static int i;
+    friend class C;  // Now treated as "template<typename> friend class C;".
+  public:
+    template<typename T2> static void f() {
+      C<T2>::i = 0;  // Now valid even when T2 != T.
+    }
+  };
+  int main() {
+    C<int>::f<char>();  // Now accepted (in Sun and Microsoft C++ modes).
+  }
+
+
 2/12/08  Point of destruction of runtime exception object adjusted
 
 The point at which the exception object maintained by the runtime is
