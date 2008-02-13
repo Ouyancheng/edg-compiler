@@ -1,5 +1,21 @@
 Version 3.11
 
+2/13/08  Microsoft mode abort with property fields and IA-64 ABI
+
+In Microsoft mode with IA-64 ABI configurations, the front end sometimes
+aborted ("num_array_elements: array with unspecified bound") when dealing
+with certain class types containing both a property field and a real field
+with empty class type.  For example:
+
+  struct E {};
+  struct M {
+    __declspec(property(get = f)) int x[];  // Previous triggered an internal
+    int f(int);                             // error.
+    E e;                                    // Field with empty class type.
+  };
+
+This is now fixed.
+
 2/13/08  Sun and Microsoft C++ compatibility: Nonstandard friend class template
 
 In Sun and Microsoft C++ the front end accepts a friend class template without

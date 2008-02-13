@@ -1565,6 +1565,13 @@ bugs).
       a_targ_size_t elt, num_array_elts = 1, field_offset;
       /* Skip compiler generated fields. */
       if (field->compiler_generated) continue;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      /* Skip Microsoft-mode property fields. */
+      if (microsoft_mode && (field->get_property_name != NULL ||
+                             field->put_property_name != NULL)) {
+        continue;
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       field_type = skip_typerefs(field->type);
 #if IA64_ABI || ABI_COMPATIBILITY_VERSION >= 300
       if (is_array_type(field_type)) {
