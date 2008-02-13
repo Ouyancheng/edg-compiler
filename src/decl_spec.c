@@ -1628,8 +1628,7 @@ caution when modifying this routine.
       }  /* if */
     } else if (curr_token == tok_identifier &&
                (decl_scope_level == depth_innermost_namespace_scope ||
-                (((microsoft_mode && microsoft_version < 1400) || sun_mode) &&
-                 *is_friend_decl)) &&
+                ((microsoft_mode || sun_mode) && *is_friend_decl)) &&
                tag_kind != (a_symbol_kind)sk_enum_tag) {
       /* Look up what may be a class template symbol.  If the name is
          the start of a qualified name (e.g., A::B) or has a template
@@ -1645,6 +1644,27 @@ caution when modifying this routine.
         lookup_options = IDL_LINKAGE_LOOKUP;
       }  /* if */
       templ_sym = normal_id_lookup(&locator_for_curr_id, lookup_options);
+      if ((microsoft_mode || sun_mode) && *is_friend_decl &&
+          templ_sym != NULL && next_token() == tok_semicolon) {
+        /* In Microsoft and Sun C++ modes, simple friend declarations may
+           refer to templates: These are treated as friend template
+           declarations.  For example:
+              template<class T> struct S;
+              class C {
+                friend struct S; // Same as template<class T> friend struct S;
+              };
+        */
+        if (is_injected_template_symbol(templ_sym)) {
+          /* Resolve the symbol as the template instead of as the current
+             instance. */
+          templ_sym = class_template_for_injected_template_symbol(templ_sym);
+        }  /* if */
+        if (is_class_template_symbol(templ_sym)) {
+          *locator = locator_for_curr_id;
+          tag_sym = templ_sym;
+          goto done;
+        }  /* if */
+      }  /* if */
     }  /* if */
     if (templ_sym != NULL) {
       /* Check for an identifier that is a class template name.  A class
@@ -1660,45 +1680,21 @@ caution when modifying this routine.
          been scanned and we should simply use the symbol returned by
          normal_id_lookup. */
       if (templ_sym->kind == (a_symbol_kind)sk_class_template) {
-        if ((microsoft_mode || sun_mode) && *is_friend_decl &&
-            next_token() == tok_semicolon) {
-          /* Something like "friend class C;" where C is a template name.
-             Microsoft and Sun treat this as friend template declarations
-             (see below).  Do not call coalesce_template_class_reference
-             since that may produce the injected type name. */
-          tag_sym = templ_sym;
-        } else {
-          tag_sym = coalesce_template_class_reference(
+        tag_sym = coalesce_template_class_reference(
                      templ_sym,
                      (microsoft_mode || sun_mode) ? GID_TEMPLATE_ARGS_OPTIONAL
                                                   : GID_NO_OPTIONS,
                      &err);
-        }  /* if */
-        if (tag_sym->kind == (a_symbol_kind)sk_class_template) {
-          if (microsoft_mode || sun_mode) {
-            /* In Microsoft and Sun C++ modes, simple friend declarations may
-               refer to templates: These are treated as friend template
-               declarations.  For example:
-                  template<class T> struct S;
-                  class C {
-                    friend struct S;
-                              // Same as: template<class T> friend struct S;
-                  };
-               In Microsoft bugs mode (with microsoft_version < 1400) and in
-               Sun mode, the following is also accepted:
+        if (is_class_template_symbol(templ_sym)) {
+          if (microsoft_bugs && microsoft_version < 1400) {
+            /* In Microsoft bugs mode (with microsoft_version < 1400) and in
+               Sun mode, the following is accepted:
                   template<class T> struct S;
                   struct S; // ignored
             */
-            if (next_token() == tok_semicolon && !is_ref_within_new_expr &&
-                (*is_friend_decl || sun_mode ||
-                 (microsoft_bugs && microsoft_version < 1400))) {
-              if (*is_friend_decl) {
-                *locator = locator_for_curr_id;
-                goto done;
-              } else {
-                tag_sym = tag_sym->variant.template_info
+            if (next_token() == tok_semicolon && !is_ref_within_new_expr) {
+              tag_sym = tag_sym->variant.template_info
                              ->variant.class_template.prototype_instantiation;
-              }  /* if */
               warning(ec_not_a_class_or_struct_name);
             } else {
               error(ec_not_a_class_or_struct_name);
