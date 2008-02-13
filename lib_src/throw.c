@@ -535,7 +535,7 @@ Print the contents of a region description entry.
 
 static char *eh_stack_entry_kind_name(an_eh_stack_entry_kind kind)
 /*
-Return the name of the specified EH stack entry kind value.x
+Return the name of the specified EH stack entry kind value.
 */
 {
   char	*name;
@@ -1069,9 +1069,10 @@ top of the throw stack.
   primary_tsep = tsep->is_rethrow ? tsep->primary_entry : tsep;
   if (!tsep->discard_entry) {
     /* If this is the first time the routine has been called for this entry,
-       set the discard flag and decrement the use count. */
+       set the discard flag. */
     tsep->discard_entry = TRUE;
   }  /* if */
+  /* Decrement the count of throw stack entries that refer to this object. */
   primary_tsep->use_count--;
 #if DEBUG
   if (__debug_level >= 6) {
@@ -1760,10 +1761,10 @@ EXTERN_C void __destroy_exception_object(void)
 /*
 This routine is called by the cleanup mechanism when the exception object
 for a given throw is to be destroyed if it is no longer in use.  This routine
-is also called for code generated for catch clauses for ABI versions 3.11
-and beyond.  This routine just calls __free_thrown_object in most
-cases except when there are entries on the throw stack that need to be
-bypassed to find the appropriate object to be destroyed.
+is also called for code generated for catch clauses for ABI versions after
+3.10.  This routine just calls __free_thrown_object in most cases except when
+there are entries on the throw stack that need to be bypassed to find the
+appropriate object to be destroyed.
 */
 {
   a_throw_stack_entry_ptr	tsep;

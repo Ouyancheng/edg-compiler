@@ -295,7 +295,7 @@ enum an_eh_stack_entry_kind_tag {
   ehsek_throw_spec,
   ehsek_throw_processing_marker,
   ehsek_vec_new_or_delete,
-  ehsek_try_block	/* Used for try blocks in 3.11 and beyond. */
+  ehsek_try_block	/* Used for try blocks in versions after 3.10. */
 };
 
 typedef a_byte an_eh_stack_entry_kind;
