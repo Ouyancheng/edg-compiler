@@ -1044,6 +1044,7 @@ as needed.
 #endif /* GNU_EXTENSIONS_ALLOWED */
   } else if (entry_kind == (an_il_entry_kind)iek_scope) {
     a_scope_ptr  scope = (a_scope_ptr)entry_ptr;
+    /*lint -save -e506 */
     if (scope->kind == (a_scope_kind)sck_class_struct_union &&
         !should_walk_subtree((char*)scope->variant.assoc_type, iek_type,
                              /*is_class=*/TRUE)) {
@@ -1051,6 +1052,7 @@ as needed.
          associated class type. */
       prune = TRUE;
     }  /* if */
+    /*lint -restore */
   }  /* if */
   return prune;
 }  /* prune_needed_flag_il_walk */

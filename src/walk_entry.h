@@ -2236,10 +2236,12 @@ end_sizeof:;
         } else {
           /* For lists not within a function, mark only the needed entities
              to be kept. */
+          /*lint -save -e506 */
           walk_needed_on_list(ptr->types, a_type_ptr, iek_type, kind);
           walk_needed_on_list(ptr->variables, a_variable_ptr, iek_variable,
                               kind);
           walk_needed_on_list(ptr->routines, a_routine_ptr, iek_routine, kind);
+          /*lint -restore */
         }  /* if */
 #else /* !KEEP_IN_IL_WALK */
         /* Not needed flag walk or keep_in_il walk. */
