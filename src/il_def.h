@@ -1383,14 +1383,18 @@ typedef struct a_source_correspondence {
 			   pointer.  This points to a front end data structure
 			   and is for front end use only. */
 #ifdef CIL
-  a_parent_class_or_namespace
-		parent;
-			/* When is_class_member is TRUE, parent.class_type
-			   points to the class of which the current entity is
-			   a member; it may be assumed to be non-NULL.  When
-			   is_class_member is FALSE and the current entity
-			   was declared to be a namespace member (C++ only),
-			   parent.namespace_ptr points to the namespace. */
+  a_scope_ptr	parent_scope;
+			/* The scope in which the current entity was declared.
+			   Is is_class_member is TRUE, this points to a scope
+			   of kind sck_class_struct_union.  NULL if the current
+			   entity is stored in file scope memory and the parent
+			   scope is a function or block scope (to avoid memory
+			   region constraint violations).  Also NULL for
+			   entries (e.g., certain types and constants) not tied
+			   to a specific declaration, and for template entries
+			   that are members of prototype instantiations when
+			   those prototype instantiations are not recorded in
+			   the IL. */
 #endif /* ifdef CIL */
   a_source_position
 		decl_position;

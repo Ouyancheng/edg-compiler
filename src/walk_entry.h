@@ -227,6 +227,23 @@ Similar to walk_list, but expands to nothing in the NEEDED_FLAG_WALK mode.
 #endif /* NEEDED_FLAG_WALK */
 
 /*
+Macro to test that a class scope member should be kept even if unneeded
+during the walk_needed_on_list traversal when KEEP_IN_IL_WALK is TRUE.
+Specifically, if lowering is done, unneeded class scope entities in the
+primary translation unit should not be kept, because lowering will
+promote them to namespace scope.
+*/
+#undef class_scope_member_should_be_kept
+#if KEEP_IN_IL_WALK
+#if DO_IL_LOWERING
+#define class_scope_member_should_be_kept(entry_ptr) \
+  (suppress_il_lowering || in_secondary_trans_unit(entry_ptr))
+#else /* !DO_IL_LOWERING */
+#define class_scope_member_should_be_kept(entry_ptr) TRUE
+#endif /* DO_IL_LOWERING */
+#endif /* KEEP_IN_IL_WALK */
+
+/*
 Similar to walk_list, but used to walk lists attached to a scope.
 scope_kind indicates the scope kind.  When KEEP_IN_IL_WALK is TRUE,
 expands to code that acts differently for certain kinds of scopes:
@@ -237,7 +254,8 @@ expands to code that acts differently for certain kinds of scopes:
      can therefore change).
   -- For class scopes, every entry gets keep_in_il set (because classes
      are kept or removed in their entirety).  keep_in_il is cleared
-     and set again, as above, because of changing subtrees.
+     and set again, as above, because of changing subtrees.  This does
+     not apply if the class scope is going to be lowered.
   -- For other scopes, it does a normal walk_list.
 In NEEDED_FLAG_WALK mode, expands to nothing.  In other modes, expands to a
 simple walk_list.
@@ -253,7 +271,8 @@ simple walk_list.
       (scope_kind) == (a_scope_kind)sck_class_struct_union) { \
     ptr_type local_ptr = (ptr); \
     for (; local_ptr != NULL; local_ptr = local_ptr->next) { \
-      if ((scope_kind) == (a_scope_kind)sck_class_struct_union || \
+      if (((scope_kind) == (a_scope_kind)sck_class_struct_union && \
+            class_scope_member_should_be_kept(local_ptr)) || \
           needed_flag_is_set(&local_ptr->source_corresp) || \
           il_entry_prefix_of(local_ptr).keep_in_il) { \
         clear_keep_in_il_to_allow_subtree_walk((char *)local_ptr, entry_kind);\
@@ -351,11 +370,9 @@ Process the source correspondence field pointed to by ptr.
 #undef remap_parent
 #ifdef CFE
 #define remap_parent(ptr) \
-{ if ((ptr).is_class_member) {  \
-    remap_ptr((ptr).parent.class_type, a_type_ptr, iek_type);  \
-    set_proper_definition_needed_flag((ptr).parent.class_type); \
-  } else {  \
-    remap_ptr((ptr).parent.namespace_ptr, a_namespace_ptr, iek_namespace); \
+{ remap_ptr_not_needed((ptr).parent_scope, a_scope_ptr, iek_scope); \
+  if ((ptr).is_class_member) {  \
+    set_proper_definition_needed_flag(scp_parent_class(&ptr)); \
   }  /* if */  \
 }  /* remap_parent */
 #else /* !defined(CFE) */

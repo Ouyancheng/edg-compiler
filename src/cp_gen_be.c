@@ -850,26 +850,6 @@ are also considered to be on the stack.
 }  /* class_is_in_name_context_stack */
 
 
-static a_scope_ptr parent_scope_of(a_source_correspondence *scp)
-/*
-If the entity whose source correspondence is given by scp is a member of a
-class or namespace, return a pointer to the scope for the class or
-namespace.  Otherwise, return NULL.
-*/
-{
-  a_scope_ptr scope;
-
-  if (scp->is_class_member) {
-    scope = class_type_supp(scp_parent_class(scp))->assoc_scope;
-  } else if (scp_is_namespace_member(scp)) {
-    scope = scp_parent_namespace(scp)->variant.assoc_scope;
-  } else {
-    scope = NULL;
-  }  /* if */
-  return scope;
-}  /* parent_scope_of */
-
-
 static a_scope_ptr decl_scope_of(a_source_correspondence *scp)
 /*
 Return the scope in which the entity with the given course correspondence
@@ -877,7 +857,7 @@ is declared.  If the entity is local to a function, the innermost block/
 function scope is assumed.
 */
 {
-  a_scope_ptr scope = parent_scope_of(scp);
+  a_scope_ptr scope = scp->parent_scope;
 
   if (scope == NULL) {
     /* The entity is not a class or namespace member. */
@@ -2586,10 +2566,19 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
     if (scp->is_class_member) {
       a_type_ptr class_type = scp_parent_class(scp);
       a_boolean  used_qualified_name = FALSE;
-      a_boolean  include_base_classes = TRUE;
+      a_boolean  include_base_classes;
+      /* Determine if a declaration for the entity is visible with unqualified
+         lookup. */
       /* Use a qualified name in some cases to avoid a cfront bug.  See
          gen_initializer. */
       if (curr_name_context->invisible_to_cfront) force_qualified_name = TRUE;
+      /* Members of dependent base classes are not represented in the
+         hidden name table.  Consequently, if this entity's parent is a
+         nonreal template instance, we should not consider it as a possible
+         base class when examining the name context stack. */
+      include_base_classes =
+                   !class_type->variant.class_struct_union.is_nonreal_class ||
+                   !class_type->variant.class_struct_union.is_template_class;
       if (entry_kind == iek_constant && in_friend_declaration) {
         if (msvc_is_generated_code_target &&
             msvc_target_version_number < 1300) {
@@ -3942,7 +3931,7 @@ A reference is not the definition.
       /* See if the type is a member of a class or namespace.  If so, we
          need to push the hidden name information for that scope to see if
          the elaborated type specifier is needed. */
-      a_scope_ptr scope = parent_scope_of(&type->source_corresp);
+      a_scope_ptr scope = parent_scope_of(type);
       if (scope != NULL) {
         /* This type is a member of a class or namespace, so push the
            hidden name information for that name context. */
@@ -6322,18 +6311,19 @@ this selection.
        also be needed if we're emitting a reference to a field of a namespace
        scope anonymous union. */
     selection_class = skip_typerefs(selection_class);
-    ctsp = selection_class->variant.class_struct_union.extra_info;
+    ctsp = class_type_supp(selection_class);
     if (selection_class->variant.class_struct_union.originally_unnamed &&
         ctsp != NULL &&
         ctsp->anonymous_union_kind == (an_anonymous_union_kind)auk_variable) {
-      /* This is a field of a namespace-scope anonymous union.  If the
-         enclosing scope is not the global namespace, a qualifier may need
+      /* This is a field of a anonymous union variable.  If the enclosing
+         scope is a namespace (not the global namespace), a qualifier may need
          to be emitted. */
-      a_namespace_ptr  nsp = parent_namespace_or_null(selection_class);
-      if (nsp != NULL &&
-          !scope_is_in_name_context_stack(nsp->variant.assoc_scope)) {
-        gen_namespace_qualifier(nsp, GN_BOUND_MEMBER,
-                                /*need_closing_parens=*/FALSE);
+      if (is_namespace_member(selection_class)) {
+        a_namespace_ptr  nsp = parent_namespace_of(selection_class);
+        if (!scope_is_in_name_context_stack(nsp->variant.assoc_scope)) {
+          gen_namespace_qualifier(nsp, GN_BOUND_MEMBER,
+                                  /*need_closing_parens=*/FALSE);
+        }  /* if */
       }  /* if */
     } else if (selection_class != naming_class) {
       /* Push a name context so that the qualifier will be properly

@@ -1654,6 +1654,14 @@ been allocated for it.  Set the parent pointer for the IL scope entry.
   if (C_mode()) {
     sp->parent = scope_stack[decl_scope_level].il_scope;
     check_assertion(sp->parent != NULL);
+    if (in_file_scope(sp) && !in_file_scope(sp->parent)) {
+      /* A memory region constraint violation.  Use the make_local_scope_ref
+         mechanism as a work-around. */
+      check_assertion(innermost_function_scope != NULL);
+      make_local_scope_ref(sp->parent, (char*)sp, iek_scope,
+                           innermost_function_scope);
+      sp->parent = NULL;
+    }  /* if */
     goto done;
   }  /* if */
   switch (sp->kind) {
@@ -5918,6 +5926,99 @@ scopes and set their parent pointers.
   }  /* while */
 }  /* set_block_scope_parents */
 
+#if EXPENSIVE_CHECKING
+
+static void check_parent_scope_of_member_entities(a_scope_ptr  sp)
+/*
+Verify that the members of the given scope have their parent_scope pointers
+set correctly.
+*/
+{
+  a_namespace_ptr  nsp = sp->namespaces;
+  a_constant_ptr   cp = sp->constants;
+  a_type_ptr       tp = sp->types;
+  a_variable_ptr   vp = sp->variables;
+  a_variable_ptr   np = sp->nonstatic_variables;
+  a_label_ptr      lp = sp->labels;
+  a_routine_ptr    rp = sp->routines;
+
+  /* Namespaces: */
+  for (; nsp != NULL; nsp = nsp->next) {
+    check_assertion(parent_scope_of(nsp) == sp ||
+                    (nsp->is_namespace_alias && parent_scope_of(nsp) == NULL));
+  }  /* for */
+  /* Constants: */
+  for (; cp != NULL; cp = cp->next) {
+    if (sp->kind == (a_scope_kind)sck_file &&
+        (parent_scope_of(cp)->kind == (a_scope_kind)sck_namespace ||
+         cp->source_corresp.is_class_member)) {
+      /* The file scope may contain lowered entities whose parent scope still
+         points to the original enclosing scope. */
+    } else {
+      check_assertion(parent_scope_of(cp) == sp ||
+                      parent_scope_of(cp) == NULL);
+    }  /* if */
+  }  /* for */
+  /* Types: */
+  for (; tp != NULL; tp = tp->next) {
+    if (sp->kind == (a_scope_kind)sck_file &&
+        (tp->source_corresp.is_local_to_function ||
+         parent_scope_of(tp)->kind == (a_scope_kind)sck_namespace ||
+         tp->source_corresp.is_class_member)) {
+      /* The file scope may contain lowered entities whose parent scope still
+         points to the original enclosing scope. */
+    } else {
+      check_assertion(sp == parent_scope_of(tp) ||
+                      (parent_scope_of(tp) == NULL && in_file_scope(tp) &&
+                                                      !in_file_scope(sp)) ||
+                      (parent_scope_of(tp) == NULL && total_errors != 0));
+    }  /* if */
+  }  /* for */
+  /* Static storage variables: */
+  for (; vp != NULL; vp = vp->next) {
+    if (sp->kind == (a_scope_kind)sck_file &&
+        (parent_scope_of(vp)->kind == (a_scope_kind)sck_namespace ||
+         vp->source_corresp.is_class_member)) {
+      /* The file scope may contain lowered entities whose parent scope still
+         points to the original enclosing scope. */
+    } else {
+      check_assertion(sp == parent_scope_of(vp) ||
+                      (parent_scope_of(vp) == NULL && in_file_scope(vp) &&
+                                                      !in_file_scope(sp)));
+    }  /* if */
+  }  /* for */
+  /* Automatic variables: */
+  for (; np != NULL; np = np->next) {
+    check_assertion(parent_scope_of(np) == sp ||
+                    (sp->kind == (a_scope_kind)sck_func_prototype &&
+                     total_errors != 0));
+  }  /* for */
+  /* Labels: */
+  for (; lp != NULL; lp = lp->next) {
+    check_assertion(parent_scope_of(lp) == sp);
+  }  /* for */
+  /* Routines: */
+  for (; rp != NULL; rp = rp->next) {
+    if (sp->kind == (a_scope_kind)sck_file &&
+        (parent_scope_of(rp)->kind == (a_scope_kind)sck_namespace ||
+         rp->source_corresp.is_class_member)) {
+      /* The file scope may contain lowered entities whose parent scope still
+         points to the original enclosing scope. */
+    } else if (prototype_instantiations_in_il &&
+               rp->is_prototype_instantiation &&
+               (sp->kind == (a_scope_kind)sck_file ||
+                sp->kind == (a_scope_kind)sck_namespace)) {
+      /* When prototype instantiations are recorded in the IL, dependent
+         friend function declarations may be recorded in file or namespace
+         scope even when the functions are members of a class or of an
+         unrelated namespace. */
+    } else {
+      check_assertion(parent_scope_of(rp) == sp);
+    }  /* if */
+  }  /* for */
+}  /* check_parent_scope_of_member_entities */
+
+#endif /* EXPENSIVE_CHECKING */
 
 void pop_scope(void)
 /*
@@ -6006,14 +6107,17 @@ End a name scope by popping an entry off the scope stack.
     }  /* if */
   }  /* if */
   il_scope = ssep->il_scope;
-  if (C_dialect == C_dialect_cplusplus && il_scope != NULL) {
-    if (kind == (a_scope_kind)sck_function ||
-        kind == (a_scope_kind)sck_block) {
+  if (il_scope != NULL) {
+    if (!C_mode() && (kind == (a_scope_kind)sck_function ||
+                      kind == (a_scope_kind)sck_block)) {
       /* If there are any local classes, check for compiler-generated
          virtual destructors for which bodies should be put out. */
       check_assertion(il_scope != NULL); /* For Coverity. */
       generate_required_virtual_destructor_bodies(il_scope);
     }  /* if */
+#if EXPENSIVE_CHECKING
+    check_parent_scope_of_member_entities(il_scope);
+#endif /* EXPENSIVE_CHECKING */
   }  /* if */
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
   if (pointers_block->last_ms_if_exists != NULL) {

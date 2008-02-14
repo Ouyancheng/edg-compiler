@@ -3634,7 +3634,7 @@ routine will be the same as the one passed in.
       new_routine->inline_instance_required =routine->inline_instance_required;
 #endif /* INSTANTIATE_EXTERN_INLINE */
       new_routine->source_corresp.is_class_member = TRUE;
-      new_routine->source_corresp.parent.class_type = parent_class_of(routine);
+      new_routine->source_corresp.parent_scope = parent_scope_of(routine);
       set_routine_special_kind(new_routine, routine->special_kind);
       new_routine->ctor_dtor_kind = kind;
       new_routine->primary_ctor_or_dtor = routine;
@@ -4426,7 +4426,7 @@ Note that the cfront approach uses "char" for "void" in all the above.
 
   if (linkl_type == NULL) {
     /* The type made doesn't actually have a name. */
-    linkl_type = alloc_type((a_type_kind)tk_struct);
+    linkl_type = make_lowered_class_type((a_type_kind)tk_struct);
     last_field = NULL;
     /* field: struct __linkl *next; */
     ptr_linkl_type = make_pointer_type(linkl_type);
@@ -4986,7 +4986,7 @@ See the runtime files dtor_list.h and dtor_list.c.
 
   if (needed_destruction_type == NULL) {
     /* Make the struct type.  It doesn't actually have a name. */
-    needed_destruction_type = alloc_type((a_type_kind)tk_struct);
+    needed_destruction_type = make_lowered_class_type((a_type_kind)tk_struct);
     add_to_front_of_file_scope_types_list(needed_destruction_type);
     last_field = NULL;
     /* field: a_needed_destruction_ptr next */
@@ -12974,7 +12974,7 @@ operator (an extension).  Its definition is
 
   if (guid_type == NULL) {
     /* Make the _GUID struct type.  It doesn't actually have a name. */
-    guid_type = alloc_type((a_type_kind)tk_struct);
+    guid_type = make_lowered_class_type((a_type_kind)tk_struct);
     add_to_front_of_file_scope_types_list(guid_type);
     last_field = NULL;
     /* field: unsigned long Data1; */

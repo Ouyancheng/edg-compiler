@@ -595,13 +595,9 @@ Display the indicated source correspondence entry.
 #ifdef CFE
   if (scp->is_class_member) {
     disp_boolean("  is_class_member", TRUE);
-    disp_ptr("  parent.class_type", (char *)scp->parent.class_type,
-             iek_type);
     disp_access("  access", (an_access_specifier)scp->access);
-  } else if (scp->parent.namespace_ptr != NULL) {
-    disp_ptr("  parent.namespace_ptr", (char *)scp->parent.namespace_ptr,
-             iek_namespace);
   }  /* if */
+  disp_ptr("  parent_scope", (char *)scp->parent_scope, iek_scope);
 #endif /* ifdef CFE */
   disp_boolean("  referenced", (a_boolean)scp->referenced);
 #if MAINTAIN_NEEDED_FLAGS

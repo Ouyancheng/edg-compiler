@@ -251,10 +251,12 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
           fprintf(f_debug, " (function param");
           lparen_printed = TRUE;
         }  /* if */
-        if (sym != NULL && sym->decl_seq > 0) {
-          fprintf(f_debug, "%s#%lu", (lparen_printed ? ", " : " ("),
-                  sym->decl_seq);
-          lparen_printed = TRUE;
+        if (in_front_end) {
+          if (sym != NULL && sym->decl_seq > 0) {
+            fprintf(f_debug, "%s#%lu", (lparen_printed ? ", " : " ("),
+                    sym->decl_seq);
+            lparen_printed = TRUE;
+          }  /* if */
         }  /* if */
         if (pos->seq > 0) {
           fprintf(f_debug, "%sat %lu", (lparen_printed ? ", " : " ("),
@@ -304,10 +306,10 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
         fprintf(f_debug, "%s: \"", (lparen_printed ? ")" : ""));
         if (type_entry_type != NULL) {
           db_type_name(type_entry_type);
-        } else if (kind == (an_il_entry_kind)iek_template && sym != NULL) {
+        } else if (in_front_end && kind == (an_il_entry_kind)iek_template &&
+                   sym != NULL) {
           /* Use the symbol name since there's more information in it. */
           an_il_to_str_output_control_block octl;
-
           clear_il_to_str_output_control_block(&octl);
           octl.output_str = put_str_to_f_debug;
           octl.debug_output = TRUE;

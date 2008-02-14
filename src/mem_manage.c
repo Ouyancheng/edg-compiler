@@ -1673,6 +1673,17 @@ Display the IL entry prefix of the given IL entry.
   }  /* if */
 }  /* db_prefix */
 
+
+an_il_entry_prefix_ptr db_prefix_ptr(char  *entry)
+/*
+Return a pointer to the prefix of the given entry.  (It is sometimes useful to
+call this from a symbolic debugger; e.g., when setting a watchpoint for a
+prefix field.)
+*/
+{
+  return &il_entry_prefix_of(entry);
+}  /* db_prefix_ptr */
+
 #endif /* DEBUG */
 
 void mem_manage_one_time_init(void)

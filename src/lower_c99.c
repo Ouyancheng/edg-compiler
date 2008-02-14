@@ -1041,7 +1041,7 @@ given precision.  The struct contains a single field that is an array of two
 floating point elements.
 */
 {
-  a_type_ptr   result = alloc_type((a_type_kind)tk_struct);
+  a_type_ptr   result = make_lowered_class_type((a_type_kind)tk_struct);
   a_type_ptr   array_type;
   a_field_ptr  last_field = NULL;
 

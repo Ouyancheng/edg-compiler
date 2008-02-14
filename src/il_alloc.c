@@ -1479,12 +1479,9 @@ to default values.
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
       pte->variant.class_struct_union.template_parameter_type = NULL;
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
-      /* The class type supplement is only allocated in C++ mode. */
-      if (C_mode()) {
-        pte->variant.class_struct_union.extra_info = NULL;
-      } else {
+      /* Allocate the class type supplement. */
+      {
         a_class_type_supplement_ptr  ctsp;
-
         ctsp = (a_class_type_supplement_ptr)alloc_il(
                                              sizeof(a_class_type_supplement));
 #if DEBUG
@@ -4391,7 +4388,7 @@ in il_alloc_init.)
   def_source_corresp.unmangled_name = NULL;
 #endif /* NEED_NAME_MANGLING */
   def_source_corresp.trans_unit_corresp = NULL;
-  def_source_corresp.parent.class_type = NULL;
+  def_source_corresp.parent_scope = NULL;
   def_source_corresp.decl_position = null_source_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   def_source_corresp.decl_pos_info = NULL;

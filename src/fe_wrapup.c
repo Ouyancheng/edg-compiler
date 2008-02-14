@@ -290,7 +290,7 @@ in the IL.
   for (templ = il_scope->templates; templ != NULL; templ = templ->next) {
     if (templ->source_corresp.is_class_member &&
         has_nonreal_parent_type(&templ->source_corresp)) {
-      templ->source_corresp.parent.class_type = NULL;
+      templ->source_corresp.parent_scope = NULL;
       templ->source_corresp.is_class_member = FALSE;
     }  /* if */
   }  /* for */

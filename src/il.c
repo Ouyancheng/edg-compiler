@@ -4036,6 +4036,12 @@ which must be either the file scope or a namespace scope.
     pointers_block->last_namespace->next = nsp;
   }  /* if */
   pointers_block->last_namespace = nsp;
+  if (in_file_scope(sp)) {
+    nsp->source_corresp.parent_scope = sp;
+  } else {
+    /* Presumably a local namespace alias. */
+    check_assertion(nsp->is_namespace_alias);
+  }  /* if */
 }  /* add_to_namespaces_list */
 
 
@@ -4098,9 +4104,7 @@ are tied to a particular source occurrence.
   sc->name                  = NULL;
   sc->trans_unit_corresp    = NULL;
   sc->is_class_member       = FALSE;
-  /* Clear both parents for union-as-struct testing. */
-  sc->parent.class_type     = NULL;
-  sc->parent.namespace_ptr  = NULL;
+  sc->parent_scope          = NULL;
   sc->access                = (an_access_specifier)as_public;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   sc->microsoft_identifier_used = FALSE;
@@ -4764,12 +4768,7 @@ value.  Several fields are cleared or adjusted.
       ucp->source_corresp.is_class_member = cp->source_corresp.is_class_member;
       ucp->source_corresp.member_of_unknown_base =
                                      cp->source_corresp.member_of_unknown_base;
-      if (ucp->source_corresp.is_class_member) {
-        ucp->source_corresp.parent.class_type = parent_class_of(cp);
-      } else {
-        ucp->source_corresp.parent.namespace_ptr =
-                                                 parent_namespace_or_null(cp);
-      }  /* if */
+      ucp->source_corresp.parent_scope = cp->source_corresp.parent_scope;
     }  /* if */
   }  /* if */
   fix_memory_region_problems_in_copied_constant(ucp);
@@ -6321,6 +6320,24 @@ class is local to a function or if it is enclosed by the file scope.
 }  /* namespace_enclosing_class */
 
 
+void add_scope_to_class_type(a_type_ptr  type)
+/*
+The given class type does not yet have an associated scope.  Add one.
+*/
+{
+  a_scope_ptr            scope;
+  a_memory_region_number region_to_switch_back_to = NULL_region_number;
+
+  switch_to_file_scope_region(&region_to_switch_back_to);
+  scope = alloc_scope((a_scope_kind)sck_class_struct_union,
+                      take_next_scope_number(), (a_routine_ptr)NULL);
+  switch_back_to_original_region(region_to_switch_back_to);
+  scope->parent = type->source_corresp.parent_scope;
+  class_type_supp(type)->assoc_scope = scope;
+  scope->variant.assoc_type = type;
+}  /* add_scope_to_class_type */
+
+
 a_scope_ptr ensure_il_scope_exists(a_scope_stack_entry_ptr ssep)
 /*
 Make sure that the scope stack entry pointed to by ssep points to an IL
@@ -6419,6 +6436,12 @@ or the current scope.  This is used for member constants.
   }  /* if */
   pointers_block->last_constant = con_ptr;
   con_ptr->next = NULL;
+  if (con_ptr->source_corresp.parent_scope == NULL) {
+    /* Set the parent scope the first time the constant is added to a scope.
+       IL lowering may add it to a different scope, but in that case we want
+       to retain the original scope as the parent scope. */
+    con_ptr->source_corresp.parent_scope = sp;
+  }  /* if */
 }  /* add_to_constants_list */
 
 
@@ -7172,6 +7195,12 @@ a namespace placeholder if appropriate.
       prev_type->next = type_ptr;
     }  /* if */
     type_ptr->next = NULL;
+    /* Record the parent scope, unless that would violate a memory region
+       constraint.  Only update the parent the first time the entry is added
+       to the IL. */
+    if (in_file_scope(sp) && parent_scope_of(type_ptr) == NULL) {
+      type_ptr->source_corresp.parent_scope = sp;
+    }  /* if */
     if (pointers_block != NULL) pointers_block->last_type = type_ptr;
     /* In some cases we record the preceding entry on the list.  This allows
        us to optimize move_to_end_of_types_list for speed. */
@@ -10445,6 +10474,14 @@ scope depth.
         pointers_block->last_variable->next = var_ptr;
       }  /* if */
       pointers_block->last_variable = var_ptr;
+      /* Record the parent scope for the variable, except if it would violate
+         a memory region constraint.  If a parent scope was already recorded,
+         do not perform the update (e.g., when lowering moves static data
+         members to file scope, the parent scope should remain the original
+         class scope). */
+      if (in_file_scope(sp) && var_ptr->source_corresp.parent_scope == NULL) {
+        var_ptr->source_corresp.parent_scope = sp;
+      }  /* if */
     } else {
       check_assertion(ssep != NULL);
 #if CHECKING
@@ -10462,6 +10499,9 @@ scope depth.
         ssep->last_nonstatic_variable->next = var_ptr;
       }  /* if */
       ssep->last_nonstatic_variable = var_ptr;
+      /* Update the parent scope for the variable, except if it would violate
+         a memory region constraint (only possible in error cases here). */
+      if (!in_file_scope(sp)) var_ptr->source_corresp.parent_scope = sp;
     }  /* if */
     var_ptr->next = NULL;
   }  /* if */
@@ -10547,6 +10587,10 @@ a static or nonstatic variable.
   a_variable_ptr          *prev_ptr_ptr, *last_ptr_ptr;
 
   check_assertion(scope != NULL);
+  /* Set the parent scope pointer (but beware of memory region constraints). */
+  if (in_file_scope(scope) || !in_file_scope(temp)) {
+    temp->source_corresp.parent_scope = scope;
+  }  /* if */
   /* See if the scope we are adding to is active on the scope stack.
      If so, we have to maintain the "last" pointer too. */
   ssep = NULL;
@@ -11184,6 +11228,14 @@ rather than determined directly.
   sp = get_scope_for_list(scope_level, &rout_ptr->source_corresp,
                           &pointers_block);
   check_assertion_str(sp != NULL, "add_to_routines_list: NULL IL scope");
+  if (rout_ptr->source_corresp.parent_scope == NULL) {
+    /* Only set the parent scope the first time the routine is added to a
+       routines list.  It may be moved from that list to another list later on,
+       but conceptually it is still a member of the original scope it appeared
+       in (for example, lowering moves member functions to file scope, but we
+       want to preserve the original scope). */
+    rout_ptr->source_corresp.parent_scope = sp;
+  }  /* if */
   /* Add the routine to the list of routines for this scope. */
   if (sp->routines == NULL) {
     sp->routines = rout_ptr;
@@ -11232,6 +11284,7 @@ that is the current function scope, but for locally declared labels it
 might be the current block scope.
 */
 {
+  /* Get pointer to the current function scope entry. */
 #if GNU_EXTENSIONS_ALLOWED
   a_scope_ptr  scope = label_ptr->locally_declared ?
                                         scope_stack[decl_scope_level].il_scope
@@ -11239,7 +11292,6 @@ might be the current block scope.
 #else /* !GNU_EXTENSIONS_ALLOWED */
   a_scope_ptr  scope = innermost_function_scope;
 #endif /* GNU_EXTENSIONS_ALLOWED */
-  /* Get pointer to the current function scope entry. */
 #if CHECKING
   if (innermost_function_scope == NULL) {
     internal_error("add_to_labels_list: not inside function");
@@ -11263,6 +11315,8 @@ might be the current block scope.
     label_ptr->next = scope->labels;
     scope->labels = label_ptr;
   }  /* if */
+  /* Set the parent scope pointer. */
+  label_ptr->source_corresp.parent_scope = scope;
 }  /* add_to_labels_list */
 
 

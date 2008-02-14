@@ -892,7 +892,9 @@ C) are always walked immediately.  is_class is TRUE if the entity is a class.
 /*
 Macro that returns TRUE if the class parent information in an entry (of kind
 entry_kind) will remain after IL lowering is done.  Note that lowering
-is never done in secondary translation units.
+is never done in secondary translation units.  In primary translation units,
+only nonstatic data members ("fields") will remain in class scopes after IL
+lowering.
 */
 #define parent_will_exist_after_lowering(entry_ptr, entry_kind) \
   (suppress_il_lowering || in_secondary_trans_unit(entry_ptr) || \
@@ -982,8 +984,8 @@ as needed.
 #endif /* DO_IL_LOWERING */
                                                            ) {
           /* When the subtree is not going to be walked now and the entity is
-             a class member, mark the parent as needed anyway.  This is done
-             in the normal processing, but we're suppressing that by not
+             a class member, mark the parent class as needed anyway.  This is
+             done in the normal processing, but we're suppressing that by not
              walking the subtree. */
           a_type_ptr parent_class = scp_parent_class(scp);
           walk_tree_and_set_needed((char *)parent_class, iek_type);
@@ -1040,6 +1042,15 @@ as needed.
       }  /* while */
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+  } else if (entry_kind == (an_il_entry_kind)iek_scope) {
+    a_scope_ptr  scope = (a_scope_ptr)entry_ptr;
+    if (scope->kind == (a_scope_kind)sck_class_struct_union &&
+        !should_walk_subtree((char*)scope->variant.assoc_type, iek_type,
+                             /*is_class=*/TRUE)) {
+      /* Don't walk the subtree of a class scope if we wouldn't walk the
+         associated class type. */
+      prune = TRUE;
+    }  /* if */
   }  /* if */
   return prune;
 }  /* prune_needed_flag_il_walk */
@@ -1711,23 +1722,35 @@ to be kept.
        do not walk its subtree now. */
     prune = !should_walk_subtree(entry_ptr, entry_kind, is_class);
     if (prune) {
-      /* When the subtree is not going to be walked now and the entity is
-         a class member, mark the parent as needed anyway.  This is done
+      /* When the subtree is not going to be walked now and the entity is a
+         class member, mark the parent class as needed anyway.  This is done
          in the normal processing, but we're suppressing that by not walking
          the subtree.  This is needed in particular to make sure the
-         definition of a class is kept if one of its member functions
-         is kept. */
+         definition of a class is kept if one of its member functions is
+         kept. */
 #if DO_IL_LOWERING
         /* Do not process parent information that will be removed by
            IL lowering. */
       if (parent_will_exist_after_lowering(entry_ptr, entry_kind))
 #endif /* DO_IL_LOWERING */
       /* Do not insert code here. */
-      { a_source_correspondence *scp =
+      { a_type_ptr  parent_class = NULL;
+        /* should_walk_subtree returns FALSE only for a_type, a_variable,
+           a_routine, and a_scope entries. */
+        if (entry_kind == iek_scope) {
+          a_scope_ptr  scope = (a_scope_ptr)entry_ptr;
+          if (scope->parent != NULL &&
+              scope->parent->kind == (a_scope_kind)sck_class_struct_union) {
+            parent_class = scope->parent->variant.assoc_type;
+          }  /* if */
+        } else {
+          a_source_correspondence *scp =
                             source_corresp_for_il_entry(entry_ptr, entry_kind);
-        check_assertion(scp != NULL);
-        if (scp->is_class_member) {
-          a_type_ptr parent_class = scp_parent_class(scp);
+          check_assertion(scp != NULL);
+          if (scp->is_class_member) parent_class = scp_parent_class(scp); 
+        }  /* if */
+        if (parent_class != NULL) {
+          /* A member of a class. */
           walk_tree_and_set_keep_in_il((char *)parent_class, iek_type);
           set_class_keep_definition_in_il(parent_class);
         }  /* if */

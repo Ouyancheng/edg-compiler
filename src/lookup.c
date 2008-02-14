@@ -508,10 +508,11 @@ as the class type, and use as a base class.
        need to be called because set_source_corresp requires that the
        decl_scope of the symbol still be an active scope. */
     sym->decl_scope = file_scope_number;
-    /* Create the type for the class. */
+    /* Create the type for the class.*/
     type = alloc_type((a_type_kind)tk_class);
     /* Set the size and alignment so that the type will be considered to
-       be complete. */
+       be complete.  No scope is created until members of the proxy class
+       are needed. */
     type->size = 1;
     type->alignment = 1;
     type->incomplete = FALSE;
@@ -908,6 +909,10 @@ routine.
     scp->member_of_unknown_super =
                                  (options & IDL_MEMBER_OF_UNKNOWN_SUPER) != 0;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  }  /* if */
+  if (class_type_supp(class_type)->assoc_scope == NULL) {
+    /* Create a scope in which the member can live. */
+    add_scope_to_class_type(class_type);
   }  /* if */
   set_class_membership(sym, scp, class_type);
 #if DEBUG
@@ -3868,15 +3873,24 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
        instantiation from being considered nonreal for lookup
        purposes. */
     if (class_type->variant.class_struct_union.is_nonreal_class) {
-      if (class_type->
-                  variant.class_struct_union.extra_info->assoc_scope == NULL) {
+      if (symbol_supplement_for_class(class_type)
+                                  ->template_param_for_proxy_class != NULL) {
+        /* A proxy class. */
         is_proxy_or_nonreal_class_lookup = TRUE;
-      } else {
+      } else if (class_type
+                    ->variant.class_struct_union.is_prototype_instantiation ||
+                 !class_type->variant.class_struct_union.is_template_class) {
+        /* A prototype instantiation, or a class defined as part of a
+           prototype instantiation (e.g., a local class defined in the
+           prototype instantiation of a function template). */
         is_prototype_instantiation_lookup = TRUE;
+      } else {
+        /* Another kind of nonreal class. */
+        is_proxy_or_nonreal_class_lookup = TRUE;
       }  /* if */
     }  /* if */
   }  /* if */
-  class_symbol = (a_symbol_ptr)(class_type->source_corresp.assoc_info);
+  class_symbol = symbol_for(class_type);
   cssp = class_symbol->variant.class_struct_union.extra_info;
   any_nonreal_base_classes = cssp->any_nonreal_base_classes;
   /* Determine whether the thing being looked up is a template dependent

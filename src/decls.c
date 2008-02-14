@@ -4461,18 +4461,10 @@ declaration).
   check_assertion(ns_ptr != NULL);
   if (scope_stack[depth_scope_stack].default_name_linkage ==
                                         (a_name_linkage_kind)nlk_external) {
-    /* This is an extern "C" context. */
-    if (scp->assoc_info != (char *)sym) {
-      /* This entity was originally declared in another scope and then
-         redeclared in the current namespace -- e.g.,
-           extern "C" void f();
-           namespace N {
-             extern "C" void f();    // same entity
-           }
-         Don't reset the namespace parent pointer (which may or may not be
-         non-NULL). */
-      scp = NULL;
-    }  /* if */
+    /* This is an extern "C" context.  Don't record a parent namespace scope
+       in the IL entry since the entity may also be declared in other
+       namespaces.  (The parent scope is already set to the global scope.) */
+    scp = NULL;
   }  /* if */
   if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
     /* This is a block-extern declaration, so the symbol is not set. */
@@ -7161,7 +7153,6 @@ skip_overloading:;
                               (a_name_linkage_kind)nlk_external) {
       /* An extern "C" declaration. */
       a_symbol_ptr  other_sym = (a_symbol_ptr)(source_corresp_ptr->assoc_info);
-
       if (depth_innermost_function_scope == NO_SCOPE_DEPTH &&
           !is_function_def && !redeclaration &&
           !template_function_specific_decl) {
@@ -7176,7 +7167,6 @@ skip_overloading:;
           a_boolean  saved_referenced_flag = source_corresp_ptr->referenced;
           set_source_corresp(source_corresp_ptr, sym);
           source_corresp_ptr->referenced = saved_referenced_flag;
-          source_corresp_ptr->parent.namespace_ptr = NULL;
         }  /* if */
       }  /* if */
     }  /* if */
@@ -8363,7 +8353,7 @@ the symbol through dps->sym and its linkage (which is always "none") through
     sym->variant.static_data_member.variable = vp;
     /* Make the error symbol a class member -- it is expected of
        sk_static_data_member symbols downstream. */
-    set_class_membership(sym, &vp->source_corresp, tp);
+    set_class_membership(sym, (a_source_correspondence*)NULL, tp);
   }  /* if */
   /* Do processing required for any pragmas that are bound to the current
      declaration. */

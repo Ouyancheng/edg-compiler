@@ -254,10 +254,17 @@ extern unsigned long assign_instantiation_needed_bit_number(void);
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 
 /*
+Macro to access the parent scope of an IL entry.
+*/
+#define parent_scope_of(ptr)                                                \
+  ((ptr)->source_corresp.parent_scope)
+
+/*
 Macros that return TRUE if an IL entry represents a namespace member.
 */
 #define scp_is_namespace_member(scp)                                        \
-  (!(scp)->is_class_member && (scp)->parent.namespace_ptr != NULL)
+  ((scp)->parent_scope != NULL &&                                             \
+   (scp)->parent_scope->kind == (a_scope_kind)sck_namespace)
 
 #define is_namespace_member(ptr)                                            \
   (scp_is_namespace_member(&(ptr)->source_corresp))
@@ -266,7 +273,7 @@ Macros that return TRUE if an IL entry represents a namespace member.
 Macros that return TRUE if an IL entry represents a class or namespace member.
 */
 #define scp_is_class_or_namespace_member(scp)                               \
-  ((scp)->is_class_member || (scp)->parent.namespace_ptr != NULL)
+  ((scp)->is_class_member || scp_is_namespace_member((scp)))
 
 #define is_class_or_namespace_member(ptr)                                   \
   (scp_is_class_or_namespace_member(&(ptr)->source_corresp))
@@ -281,15 +288,15 @@ Macros that returns the parent namespace of a namespace member.
    is used in a macro that itself duplicates its argument. */
 #define scp_parent_namespace(scp)                                           \
   ((void)scp_is_namespace_member(scp),                                      \
-   (scp)->parent.namespace_ptr)
+   (scp)->parent_scope->variant.assoc_namespace)
 #else /* !defined(_lint) */
 #if EXPENSIVE_CHECKING
 #define scp_parent_namespace(scp)                                           \
   (check_assertion(scp_is_namespace_member(scp)),                           \
-   (scp)->parent.namespace_ptr)
+   (scp)->parent_scope->variant.assoc_namespace)
 #else /* !EXPENSIVE_CHECKING */
 #define scp_parent_namespace(scp)                                           \
-  ((scp)->parent.namespace_ptr)
+  ((scp)->parent_scope->variant.assoc_namespace)
 #endif /* EXPENSIVE_CHECKING */
 #endif /* defined(_lint) */
 
@@ -301,22 +308,16 @@ Macros that return the parent namespace for a namespace member, and NULL for
 entities that are neither namespace members nor class members.  (This macro
 should not be used for class members.)
 */
-#if defined(_lint)
-/* When linting, duplicate the macro argument to catch side-effects that would
-   be duplicated in the EXPENSIVE_CHECKING version, but don't call
-   check_assertion since that results in spurious lint errors when the macro
-   is used in a macro that itself duplicates its argument. */
+#if EXPENSIVE_CHECKING && !defined(_lint)
 #define scp_parent_namespace_or_null(scp)                                   \
-  ((void)(scp)->is_class_member, (scp)->parent.namespace_ptr)
-#else /* !defined(_lint) */
-#if EXPENSIVE_CHECKING
+  (check_assertion(!(scp)->is_class_member),                                \
+   (scp_is_namespace_member((scp)) ? scp_parent_namespace((scp))            \
+                                   : (a_namespace_ptr)NULL))
+#else /* !(EXPENSIVE_CHECKING && !defined(_lint)) */
 #define scp_parent_namespace_or_null(scp)                                   \
-  (check_assertion(!(scp)->is_class_member), (scp)->parent.namespace_ptr)
-#else /* !EXPENSIVE_CHECKING */
-#define scp_parent_namespace_or_null(scp)                                   \
-  ((scp)->parent.namespace_ptr)
-#endif /* EXPENSIVE_CHECKING */
-#endif /* defined(_lint) */
+  (scp_is_namespace_member((scp)) ? scp_parent_namespace((scp))             \
+                                  : (a_namespace_ptr)NULL)
+#endif /* EXPENSIVE_CHECKING && !defined(_lint) */
 
 #define parent_namespace_or_null(ptr)                                       \
   (scp_parent_namespace_or_null(&(ptr)->source_corresp))
@@ -329,15 +330,17 @@ Macros that return the parent class of a class member.
    be duplicated in the EXPENSIVE_CHECKING version, but don't call
    check_assertion since that results in spurious lint errors when the macro
    is used in a macro that itself duplicates its argument. */
-#define scp_parent_class(scp)                                            \
-  ((void)(scp)->is_class_member, (scp)->parent.class_type)
+#define scp_parent_class(scp)                                               \
+  ((void)(scp)->is_class_member,                                            \
+   (scp)->parent_scope->variant.assoc_type)
 #else /* !defined(_lint) */
 #if EXPENSIVE_CHECKING
-#define scp_parent_class(scp)                                            \
-  (check_assertion((scp)->is_class_member), (scp)->parent.class_type)
+#define scp_parent_class(scp)                                               \
+  (check_assertion((scp)->is_class_member),                                 \
+   (scp)->parent_scope->variant.assoc_type)
 #else /* !EXPENSIVE_CHECKING */
-#define scp_parent_class(scp)                                            \
-  ((scp)->parent.class_type)
+#define scp_parent_class(scp)                                               \
+  ((scp)->parent_scope->variant.assoc_type)
 #endif /* EXPENSIVE_CHECKING */
 #endif /* defined(_lint) */
 
@@ -1022,6 +1025,8 @@ extern a_boolean has_non_file_scope_ref(a_constant *cp);
 
 extern a_constant_ptr alloc_shareable_constant(a_constant *cp);
 
+extern void add_scope_to_class_type(a_type_ptr  type);
+
 /* Make sure "a_scope_stack_entry" is known as a struct tag before its use
    below.  Otherwise, the declaration would be in the prototype scope.  The
    "struct" form is used instead of the typedef name to avoid having to
@@ -1029,6 +1034,7 @@ extern a_constant_ptr alloc_shareable_constant(a_constant *cp);
 typedef struct a_scope_stack_entry a_scope_stack_entry_dummy_typedef;
 /* Likewise for a_template_param. */
 typedef struct a_template_param a_template_param_dummy_typedef;
+
 extern a_scope_ptr ensure_il_scope_exists(struct a_scope_stack_entry *ssep);
 
 extern void add_to_namespaces_list(a_namespace_ptr  nsp);
@@ -1494,7 +1500,7 @@ from any class or namespace of which it might be a member.
 */
 #define clear_parent(entity) \
 { (entity)->source_corresp.is_class_member = FALSE; \
-  (entity)->source_corresp.parent.namespace_ptr = NULL; \
+  (entity)->source_corresp.parent_scope = NULL; \
 }  /* clear_parent */
 
 

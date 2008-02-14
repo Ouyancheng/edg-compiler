@@ -14547,6 +14547,7 @@ classes.
   a_symbol_ptr                     tag_sym;
   a_scope_ptr                      scope_ptr;
   a_class_symbol_supplement_ptr    cssp;
+  a_class_type_supplement_ptr      ctsp = class_type_supp(class_type);
   a_routine_fixup_ptr              saved_routine_fixup;
   a_template_symbol_supplement_ptr class_tssp;
   a_token_sequence_number          last_token_number_of_definition;
@@ -14621,8 +14622,7 @@ classes.
                     void f() { void g(); g(); } -- ::g has extern "C" linkage
                   };
                 }                                                           */
-    class_type->
-      variant.class_struct_union.extra_info->surrounding_name_linkage_state =
+    ctsp->surrounding_name_linkage_state =
                           scope_stack[depth_scope_stack].default_name_linkage;
 #endif /* BACK_END_IS_CP_GEN_BE */
     if (class_type->variant.class_struct_union.is_prototype_instantiation ||
@@ -14755,7 +14755,7 @@ classes.
         }  /* if */
         err = TRUE;
         /* Clear the base-classes field to avoid problems down the line. */
-        class_type->variant.class_struct_union.extra_info->base_classes = NULL;
+        ctsp->base_classes = NULL;
         if (!instantiation_scope_pushed &&
             delayed_nested_class_def && !is_template_instantiation) {
           /* Restore the scope stack to its original state. For template
@@ -14777,8 +14777,7 @@ classes.
     scope_stack_top().class_def_state = &class_state;
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
     if (gpp_mode) {
-      scope_stack_top().ELF_visibility =
-                                  class_type_supp(class_type)->ELF_visibility;
+      scope_stack_top().ELF_visibility = ctsp->ELF_visibility;
     }  /* if */
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
     /* Begin a new stop token state. */
@@ -14786,12 +14785,9 @@ classes.
     /* Advance past the left brace. */
     (void)get_token();
     add_stop_token(tok_rbrace);
-    if (C_dialect == C_dialect_cplusplus) {
-      /* In C++ every class, struct, and union type entry will have a non-NULL
-         pointer to a class type supplement entry.  Put a pointer to the
-         IL scope entry into it. */
-      class_type->variant.class_struct_union.extra_info->assoc_scope =
-                                                                 scope_ptr;
+    /* Record the associated scope in the class type supplement. */
+    ctsp->assoc_scope = scope_ptr;
+    if (!C_mode()) {
       saved_routine_fixup = curr_routine_fixup;
       curr_routine_fixup = NULL;
       if (class_name_injection_enabled) {
@@ -14799,8 +14795,7 @@ classes.
            class; enter an sk_type symbol. */
         if (microsoft_bugs && microsoft_version < 1400 &&
             !class_type->variant.class_struct_union.is_specialized &&
-            class_type->variant.class_struct_union.extra_info->
-                                                  template_arg_list != NULL) {
+            ctsp->template_arg_list != NULL) {
           /* In Microsoft bugs mode for Microsoft versions prior to 8.0,
              template class names are not injected.  (NB: code in
              check_hiding_by_inherited_names duplicates this test to simulate

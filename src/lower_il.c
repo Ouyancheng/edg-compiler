@@ -292,6 +292,21 @@ IL lowering.
 /* Everything below this point is related to IL lowering. */
 #if DO_IL_LOWERING
 
+a_type_ptr make_lowered_class_type(a_type_kind  kind)
+/*
+Allocate a struct type and associated struct scope entry for use by IL lowering
+by IL lowering (e.g., for the lowered representation of a type_info entry,
+etc.).  Return the scope entry (from which the type can be retrieved if
+needed).  The struct is a member of the file scope.
+*/
+{
+  a_type_ptr             type = alloc_type(kind);
+
+  type->source_corresp.parent_scope = il_header.primary_scope;
+  add_scope_to_class_type(type);
+  return type;
+}  /* make_lowered_class_type */
+
 #if DEBUG
 
 void db_context(a_context_ptr context)
@@ -963,6 +978,8 @@ offset for the field.  The field allocated is not a bit field.
   field_ptr->compiler_generated = TRUE;
   set_class_membership((a_symbol_ptr)NULL, &field_ptr->source_corresp,
                        struct_type);
+  field_ptr->source_corresp.parent_scope =
+                                    class_type_supp(struct_type)->assoc_scope;
   /* Find the spot at which to insert the field. */
   for (prev_field = NULL,
                next_field = struct_type->variant.class_struct_union.field_list;
@@ -1084,7 +1101,8 @@ on return.
   /* Copy the whole entry, then adjust a few fields. */
   *field_ptr = *old_field_ptr;
   field_ptr->source_corresp.name = field_name;
-  field_ptr->source_corresp.parent.class_type = struct_type;
+  field_ptr->source_corresp.parent_scope = 
+                                    class_type_supp(struct_type)->assoc_scope;
   field_ptr->source_corresp.has_associated_pragma = FALSE;
   field_ptr->next = NULL;
   /* Add the field to the end of the struct field list. */
@@ -1128,6 +1146,8 @@ It cannot create bit fields.  field_name may not be NULL.
   field_ptr->compiler_generated = TRUE;
   set_class_membership((a_symbol_ptr)NULL, &field_ptr->source_corresp,
                        struct_type);
+  field_ptr->source_corresp.parent_scope =
+                                    class_type_supp(struct_type)->assoc_scope;
   /* Add the field to the end of the struct field list. */
   if (*last_field == NULL) {
     struct_type->variant.class_struct_union.field_list = field_ptr;
@@ -1215,6 +1235,10 @@ inside other user-written structs.
        last type on the list. */
     curr_translation_unit->file_scope_pointers_block.last_type = type;
   }  /* if */
+  if (parent_scope_of(type) == NULL) {
+    /* Set the parent scope if it was not already set. */
+    type->source_corresp.parent_scope = il_header.primary_scope;
+  }  /* if */
 }  /* add_to_front_of_file_scope_types_list */
 
 
@@ -1271,7 +1295,7 @@ index doesn't have one added to it.
 
   if (mptr_type == NULL) {
     /* Make the __mptr struct type.  It doesn't actually have a name. */
-    mptr_type = alloc_type((a_type_kind)tk_struct);
+    mptr_type = make_lowered_class_type((a_type_kind)tk_struct);
     add_to_front_of_file_scope_types_list(mptr_type);
     last_field = NULL;
 #if !IA64_ABI
@@ -5259,6 +5283,15 @@ mode; *optional will be set as usual.
     if (scope == NULL) {
       /* The class is declared but not defined. */
       defined_here = FALSE;
+    } else if (!class_type->variant.class_struct_union
+                          .any_virtual_functions_including_in_base_classes &&
+               !class_type->variant.class_struct_union
+                          .any_virtual_base_classes) {
+      /* A class with not virtual functions and no virtual base classes should
+         not have an associated virtual function table.  We should only get
+         here with the generated typeinfo types. */
+      check_assertion(is_generated_typeinfo_type(class_type));
+      defined_here = FALSE;
     } else {
       /* The class is defined. */
       /* If the decider function of the class is defined in this compilation,
@@ -7115,7 +7148,7 @@ this routine to do a relatively simple copy of the all the fields.
     subobject_type = class_type;
   } else {
     /* Make a copy of the class type for use as the subobject type. */
-    subobject_type = alloc_type((a_type_kind)tk_struct);
+    subobject_type = make_lowered_class_type((a_type_kind)tk_struct);
     subobject_ctsp = subobject_type->variant.class_struct_union.extra_info;
     subobject_ctsp->compiler_generated = TRUE;
     /* Give the struct a name that is a prefix followed by the original name.
@@ -7123,10 +7156,14 @@ this routine to do a relatively simple copy of the all the fields.
     mangle_subobject_class_name(class_type, subobject_type);
     subobject_type->source_corresp.decl_position = 
                                       class_type->source_corresp.decl_position;
-    subobject_type->source_corresp.parent =
-                                      class_type->source_corresp.parent;
+    subobject_type->source_corresp.parent_scope =
+                                    class_type->source_corresp.parent_scope;
     subobject_type->source_corresp.is_class_member =
                                     class_type->source_corresp.is_class_member;
+    subobject_type->source_corresp.is_local_to_function =
+                               class_type->source_corresp.is_local_to_function;
+    /* The parent_scope field is set by the call to add_to_types_list_full
+       below. */
     /* Ideally, the referenced flag would not be set if the class type is
        not referenced.  However, the class type might not be referenced now
        (part-way through the compilation) and then be referenced later. */

@@ -47,6 +47,10 @@ extern void lower_typeid(an_expr_node_ptr expr);
 
 extern a_type_info_kind is_type_info_type(a_type_ptr type);
 
+#if CHECKING
+extern a_boolean is_generated_typeinfo_type(a_type_ptr  type);
+#endif /* CHECKING */
+
 extern a_type_info_kind is_type_info_vtbl(a_variable_ptr vtbl);
 #endif /* ABI_CHANGES_FOR_RTTI */
 

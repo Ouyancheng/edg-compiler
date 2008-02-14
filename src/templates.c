@@ -13889,10 +13889,6 @@ Make the string version of the template.
 
 #endif /* RECORD_TEMPLATE_STRINGS */
 
-#if !RECORD_TEMPLATE_STRINGS
-/*ARGSUSED*/ /* <-- p_template_body_cache is not used when not recording
-                template strings. */
-#endif /* RECORD_TEMPLATE_STRINGS */
 static
 void complete_il_template_entry(a_tmpl_decl_state_ptr  decl_state,
                                 a_symbol_ptr           sym)
@@ -14042,9 +14038,20 @@ set, and its source sequence entry, if any, has been put out.)
       if (!err || sym->is_error) {
         /* Set parent information in the IL entry. */
         if (sym->is_class_member) {
-          set_class_membership((a_symbol_ptr)NULL,
-                               &il_template_entry->source_corresp,
-                               sym_parent_class(sym));
+          a_type_ptr  parent_type = sym_parent_class(sym);
+          if (class_type_supp(parent_type)->assoc_scope == NULL) {
+            /* This could happen with something like:
+                 template<class T> struct A;
+                 template<class T> struct A<T>::B;  // Error. */
+            expect_error();
+            il_template_entry->source_corresp.is_class_member = FALSE;
+            il_template_entry->source_corresp.parent_scope =
+                                                      il_header.primary_scope;
+          } else {
+            set_class_membership((a_symbol_ptr)NULL,
+                                 &il_template_entry->source_corresp,
+                                 sym_parent_class(sym));
+          }  /* if */
         } else if (sym_is_namespace_member(sym)) {
           set_namespace_membership((a_symbol_ptr)NULL,
                                    &il_template_entry->source_corresp,

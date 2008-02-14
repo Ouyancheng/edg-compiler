@@ -4415,10 +4415,18 @@ describes Microsoft attributes preceding the enum specifier (if any).
     }  /* if */
   }  /* if */
   if (tag_sym == NULL) {
+    a_scope_ptr  parent_scope = scope_stack[effective_decl_level].il_scope;
     /* Create a new enumerated type.  All enumeration type entries are
        allocated in the file scope memory region. */
     enum_type = alloc_type((a_type_kind)tk_integer);
     enum_type->incomplete = TRUE;
+    if (parent_scope != NULL && in_file_scope(parent_scope)) {
+      /* Record the parent_scope if it is nonlocal so parent classes or parent
+         namespaces are available.  (This is recorded in all cases when the
+         type is added to the types list, but the parent class/namespace is
+         sometimes accessed before that.) */
+      enum_type->source_corresp.parent_scope = parent_scope;
+    }  /* if */
     is_redeclaration = FALSE;
     /* set_type_size is called later, once the final type is known. */
     /* Set a default representation of "int", which may be adjusted later. */
@@ -4848,6 +4856,25 @@ describes Microsoft attributes preceding the enum specifier (if any).
                                             /*is_explicit=*/FALSE);
         }  /* if */
         enum_con = alloc_unshared_constant(&constant);
+        /* Record the parent scope of the enumerator. */
+        if (scope_stack[decl_scope_level].kind == (a_scope_kind)sck_block ||
+            scope_stack[decl_scope_level].kind ==
+                                           (a_scope_kind)sck_func_prototype) {
+          /* Don't call ensure_il_scope_exists for any scope other than block
+             and function prototype scopes, because it may fail (abort) in some
+             unusual error cases. */
+          (void)ensure_il_scope_exists(&scope_stack[decl_scope_level]);
+        }  /* if */
+        enum_con->source_corresp.parent_scope =
+                                       scope_stack[decl_scope_level].il_scope;
+        if (parent_scope_of(enum_con) == NULL) {
+          /* Only occurs in strange error situations (e.g., an enum defined in
+             a template parameter list). */
+          expect_error();
+        } else if (!in_file_scope(parent_scope_of(enum_con))) {
+          /* A memory region constraint violation: Break the link. */
+          enum_con->source_corresp.parent_scope = NULL;
+        }  /* if */
         /* Switch back from the file scope memory region to whatever region
            was current upon entry. */
         switch_back_to_original_region(region_to_switch_back_to);

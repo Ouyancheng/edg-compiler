@@ -345,7 +345,8 @@ this routine essentially implements make_typeinfo_type for tik_user.
   /* If the type has been made already, we're done. */
   if (typeinfo_types[(int)tik_user] == NULL) {
     /* Make the struct type. */
-    typeinfo_types[(int)tik_user] = alloc_type((a_type_kind)tk_struct);
+    typeinfo_types[(int)tik_user] =
+                              make_lowered_class_type((a_type_kind)tk_struct);
     add_to_front_of_file_scope_types_list(typeinfo_types[(int)tik_user]);
     /* The name cannot be "type_info" because that's the name of the
        real user-visible type, so we call this one "__type_info". */
@@ -368,6 +369,26 @@ this routine essentially implements make_typeinfo_type for tik_user.
   return typeinfo_types[(int)tik_user];
 }  /* make_user_typeinfo_type */
 
+#if CHECKING
+
+a_boolean is_generated_typeinfo_type(a_type_ptr  type)
+/*
+Return TRUE if the given type is a typeinfo type created by IL lowering.
+*/
+{
+  a_boolean  result = FALSE;
+  int        i;
+
+  for (i = 0; i != (int)tik_last; ++i) {
+    if (typeinfo_types[i] == type) {
+      result = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* is_generated_typeinfo_type */
+
+#endif /* CHECKING */
 #endif /* ABI_CHANGES_FOR_RTTI */
 
 #if !IA64_ABI
@@ -517,7 +538,7 @@ string literals were implemented).
   }  /* if */
   if (*type_ptr == NULL) {
     /* Make the struct type for the typeinfo type we are creating. */
-    *type_ptr = alloc_type((a_type_kind)tk_struct);
+    *type_ptr = make_lowered_class_type((a_type_kind)tk_struct);
     last_field = NULL;
 #if IA64_ABI
     /* Give the type a name.  It's OK to use the same one the runtime will use
@@ -928,7 +949,7 @@ and return a pointer to it.  Its definition is
 
   if (base_class_spec_type == NULL) {
     /* Make the struct type. */
-    base_class_spec_type = alloc_type((a_type_kind)tk_struct);
+    base_class_spec_type = make_lowered_class_type((a_type_kind)tk_struct);
     add_to_front_of_file_scope_types_list(base_class_spec_type);
     last_field = NULL;
     /* field: typeinfo *tinfo (Cfront-like ABI). */
@@ -1494,10 +1515,11 @@ typeinfo variable in a COMDAT group.
       /* We didn't generate a virtual function table for the corresponding
          type_info type, probably because we don't have that type.
          Generate a virtual function table for the typeinfo type. */
-      char            *saved_name;
-      a_symbol_ptr    ns_sym = NULL;
-      a_type_ptr      tinfo_type_for_vtbl =
+      char          *saved_name;
+      a_symbol_ptr  ns_sym = NULL;
+      a_type_ptr    tinfo_type_for_vtbl =
                                    typeinfo_types[(int)typeinfo_kind_for_vtbl];
+      a_scope_ptr   saved_parent;  
       check_assertion(tinfo_type_for_vtbl != NULL);
       /* Give the type the name of the corresponding type_info briefly so
          the name can be used in generating the virtual function table name. */
@@ -1506,6 +1528,7 @@ typeinfo variable in a COMDAT group.
                                   type_info_names[(int)typeinfo_kind_for_vtbl];
       /* Add a parent pointer for the namespace temporarily to get the
          mangled name right. */
+      saved_parent = parent_scope_of(tinfo_type_for_vtbl);
 #if IA64_ABI
       ns_sym = get_namespace_sym_for_type_info(typeinfo_kind_for_vtbl);
 #else /* !IA64_ABI */
@@ -1515,8 +1538,8 @@ typeinfo variable in a COMDAT group.
       }  /* if */
 #endif /* !IA64_ABI */
       if (ns_sym != NULL) {
-        tinfo_type_for_vtbl->source_corresp.parent.namespace_ptr =
-                                            ns_sym->variant.namespace_info.ptr;
+        tinfo_type_for_vtbl->source_corresp.parent_scope =
+                      ns_sym->variant.namespace_info.ptr->variant.assoc_scope;
       }  /* if */
       vtbl_var = make_var_for_virtual_function_table(tinfo_type_for_vtbl,
                                                      (a_base_class_ptr)NULL,
@@ -1535,7 +1558,7 @@ typeinfo variable in a COMDAT group.
       /* Restore the former name and parent information. */
       tinfo_type_for_vtbl->source_corresp.name = saved_name;
       if (ns_sym != NULL) {
-        tinfo_type_for_vtbl->source_corresp.parent.namespace_ptr = NULL;
+        tinfo_type_for_vtbl->source_corresp.parent_scope = saved_parent;
       }  /* if */
     }  /* if */
     vptr_con = alloc_constant((a_constant_repr_kind)ck_address);
@@ -3068,7 +3091,7 @@ if it is not made already, and return a pointer to it.  Its definition is
 
   if (array_descr_type == NULL) {
     /* Make the struct type. */
-    array_descr_type = alloc_type((a_type_kind)tk_struct);
+    array_descr_type = make_lowered_class_type((a_type_kind)tk_struct);
     add_to_front_of_file_scope_types_list(array_descr_type);
     last_field = NULL;
     /* field: unsigned short (or whatever) handle */
@@ -3220,7 +3243,7 @@ and return a pointer to it.  Its definition is
 
   if (region_descr_type == NULL) {
     /* Make the struct type. */
-    region_descr_type = alloc_type((a_type_kind)tk_struct);
+    region_descr_type = make_lowered_class_type((a_type_kind)tk_struct);
     add_to_front_of_file_scope_types_list(region_descr_type);
     last_field = NULL;
     /* field: __vptp dtor */
@@ -4018,7 +4041,7 @@ The ptr_flags field is not present for ABI levels less than 2.41.
 
   if (exception_type_spec_type == NULL) {
     /* Make the struct type. */
-    exception_type_spec_type = alloc_type((a_type_kind)tk_struct);
+    exception_type_spec_type = make_lowered_class_type((a_type_kind)tk_struct);
     add_to_front_of_file_scope_types_list(exception_type_spec_type);
     last_field = NULL;
     /* field: typeinfo *tinfo */
@@ -4358,13 +4381,13 @@ Its definition is
        types list in the right order (they get added to the front so they
        end up in reverse order of insertion). */
     /* Make the eh_stack_entry struct type. */
-    eh_stack_entry_type = alloc_type((a_type_kind)tk_struct);
+    eh_stack_entry_type = make_lowered_class_type((a_type_kind)tk_struct);
     add_to_front_of_file_scope_types_list(eh_stack_entry_type);
     /* Make the variant union type. */
-    variant_union_type = alloc_type((a_type_kind)tk_union);
+    variant_union_type = make_lowered_class_type((a_type_kind)tk_union);
     add_to_front_of_file_scope_types_list(variant_union_type);
     /* Make the try_block variant struct. */
-    try_block_struct_type = alloc_type((a_type_kind)tk_struct);
+    try_block_struct_type = make_lowered_class_type((a_type_kind)tk_struct);
     add_to_front_of_file_scope_types_list(try_block_struct_type);
     last_field = NULL;
     /* field: jmp_buf setjmp_buffer */
@@ -4388,7 +4411,7 @@ Its definition is
     ehse_try_region_number_field = last_field;
     finish_class_type(try_block_struct_type);
     /* Make the function variant struct. */
-    function_struct_type = alloc_type((a_type_kind)tk_struct);
+    function_struct_type = make_lowered_class_type((a_type_kind)tk_struct);
     add_to_front_of_file_scope_types_list(function_struct_type);
     last_field = NULL;
     /* field: region_descr *regions */

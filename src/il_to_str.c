@@ -36,6 +36,9 @@ il_to_str.c -- Produce an external string-form representation for various
 /*lint -esym(750,use_microsoft_form)*/
 
 
+/* Forward declarations. */
+static void form_qualifier(a_scope_ptr                            scope,
+                           an_il_to_str_output_control_block_ptr  octl);
 static void form_expression(an_expr_node_ptr                      expr,
                             an_il_to_str_output_control_block_ptr octl);
 
@@ -385,8 +388,7 @@ class type.  Do the output in the way described by octl.  Called only for C++.
     a_boolean                   output_base_name = TRUE;
 
     /* Use recursion to handle multiple levels of nesting. */
-    form_class_or_namespace_qualifier((a_boolean)scp->is_class_member,
-                                      scp->parent, octl);
+    form_qualifier(scp->parent_scope, octl);
     /* Do the last level. */
     /* Ignore anonymous unions. */
     ctsp = class_type->variant.class_struct_union.extra_info;
@@ -414,6 +416,31 @@ class type.  Do the output in the way described by octl.  Called only for C++.
     }  /* if */
   }  /* if */
 }  /* form_class_qualifier */
+
+
+static void form_qualifier(a_scope_ptr                            scope,
+                           an_il_to_str_output_control_block_ptr  octl)
+/*
+Output a qualifier for an entity declared in the given scope (e.g., the "X::"
+in "X::f()").  If scope is NULL or the file scope, no qualifier is emitted.
+Note that the output_name routine in the control block (if there is one) will
+not be used to output all of the name.  Called only for C++.
+*/
+{
+  if (scope != NULL) {
+    switch (scope->kind) {
+      case sck_namespace:
+        form_namespace_qualifier(scope->variant.assoc_namespace, octl);
+        break;
+      case sck_class_struct_union:
+        form_class_qualifier(scope->variant.assoc_type, octl);
+        break;
+      default:
+        /* Nothing to be done. */
+        break;
+    }  /* switch */
+  }  /* if */
+}  /* form_qualifier */
 
 
 void form_class_or_namespace_qualifier(
@@ -461,8 +488,7 @@ output in the way described by octl.
     /* If the name is a member of a class or namespace in C++, output the
        qualifier. */
     if (il_header.source_language == sl_Cplusplus) {
-      form_class_or_namespace_qualifier((a_boolean)scp->is_class_member,
-                                        scp->parent, octl);
+      form_qualifier(scp->parent_scope, octl);
     }  /* if */
     /* Output the base name. */
     form_unqualified_name(scp, kind, octl);
