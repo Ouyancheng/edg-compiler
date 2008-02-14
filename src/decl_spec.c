@@ -1653,16 +1653,26 @@ caution when modifying this routine.
               class C {
                 friend struct S; // Same as template<class T> friend struct S;
               };
+           In Microsoft mode with microsoft_version >= 1400, this is only
+           supported if the name nominated by the friend declaration is an
+           injected template name.  I.e., the example above is not accepted,
+           but the following one is:
+              template<class T> struct S {
+                friend class S; // Same as template<class T> friend struct S;
+              };
         */
-        if (is_injected_template_symbol(templ_sym)) {
-          /* Resolve the symbol as the template instead of as the current
-             instance. */
-          templ_sym = class_template_for_injected_template_symbol(templ_sym);
-        }  /* if */
-        if (is_class_template_symbol(templ_sym)) {
-          *locator = locator_for_curr_id;
-          tag_sym = templ_sym;
-          goto done;
+        if (!(microsoft_mode && microsoft_version >= 1400 &&
+              is_class_template_symbol(templ_sym))) {
+          if (is_injected_template_symbol(templ_sym)) {
+            /* Resolve the symbol as the template instead of as the current
+               instance. */
+            templ_sym = class_template_for_injected_template_symbol(templ_sym);
+          }  /* if */
+          if (is_class_template_symbol(templ_sym)) {
+            *locator = locator_for_curr_id;
+            tag_sym = templ_sym;
+            goto done;
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
@@ -1680,13 +1690,15 @@ caution when modifying this routine.
          been scanned and we should simply use the symbol returned by
          normal_id_lookup. */
       if (templ_sym->kind == (a_symbol_kind)sk_class_template) {
+        a_boolean  implicit_template_allowed =
+                     (microsoft_bugs && microsoft_version < 1400) || sun_mode;
         tag_sym = coalesce_template_class_reference(
                      templ_sym,
-                     (microsoft_mode || sun_mode) ? GID_TEMPLATE_ARGS_OPTIONAL
-                                                  : GID_NO_OPTIONS,
+                     implicit_template_allowed ? GID_TEMPLATE_ARGS_OPTIONAL
+                                               : GID_NO_OPTIONS,
                      &err);
         if (is_class_template_symbol(templ_sym)) {
-          if (microsoft_bugs && microsoft_version < 1400) {
+          if (implicit_template_allowed) {
             /* In Microsoft bugs mode (with microsoft_version < 1400) and in
                Sun mode, the following is accepted:
                   template<class T> struct S;
