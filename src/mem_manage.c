@@ -271,11 +271,6 @@ malloc_with_check.  "old_size" is present to help with tracking of space used.
 			   mem_alloc_history.  */
 
 
-/* Forward declaration. */
-static char *realloc_with_check(char     *old_ptr,
-                                sizeof_t old_size,
-                                sizeof_t new_size);
-
 static void add_mem_alloc_history_entry(a_void_ptr	addr,
 		                        sizeof_t	size)
 /*
