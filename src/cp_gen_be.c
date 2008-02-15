@@ -2572,13 +2572,15 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
       /* Use a qualified name in some cases to avoid a cfront bug.  See
          gen_initializer. */
       if (curr_name_context->invisible_to_cfront) force_qualified_name = TRUE;
-      /* Members of dependent base classes are not represented in the
-         hidden name table.  Consequently, if this entity's parent is a
-         nonreal template instance, we should not consider it as a possible
-         base class when examining the name context stack. */
+      /* Members of dependent base classes are not represented in the hidden
+         name table.  Consequently, if this entity's parent is a nonreal
+         template instance, we should not consider it as a possible base class
+         when examining the name context stack.  (Local classes in prototype
+         instantiations are marked "nonreal", but should be considered
+         nonetheless.) */
       include_base_classes =
                    !class_type->variant.class_struct_union.is_nonreal_class ||
-                   !class_type->variant.class_struct_union.is_template_class;
+                   class_type->source_corresp.is_local_to_function;
       if (entry_kind == iek_constant && in_friend_declaration) {
         if (msvc_is_generated_code_target &&
             msvc_target_version_number < 1300) {
