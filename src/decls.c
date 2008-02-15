@@ -4451,7 +4451,7 @@ static void add_namespace_parent_pointer(a_symbol_ptr             sym,
 /*
 If appropriate, set the namespace pointer in the symbol (unless this is a
 block-extern declaration) and in the IL entry (unless this is an extern "C"
-declaration).
+redeclaration).
 */
 {
   a_namespace_ptr  ns_ptr;
@@ -4461,10 +4461,19 @@ declaration).
   check_assertion(ns_ptr != NULL);
   if (scope_stack[depth_scope_stack].default_name_linkage ==
                                         (a_name_linkage_kind)nlk_external) {
-    /* This is an extern "C" context.  Don't record a parent namespace scope
-       in the IL entry since the entity may also be declared in other
-       namespaces.  (The parent scope is already set to the global scope.) */
-    scp = NULL;
+    /* This is an extern "C" context. */
+    if (scp->assoc_info != (char *)sym && scp->parent_scope != NULL &&
+        (scp->parent_scope->kind == (a_scope_kind)sck_file ||
+         scp->parent_scope->kind == (a_scope_kind)sck_namespace)) {
+      /* This entity was originally declared in another namespace scope and
+         then redeclared in the current namespace -- e.g.,
+           extern "C" void f();
+           namespace N {
+             extern "C" void f();    // same entity
+           }
+         Don't reset the parent pointer in such cases. */
+      scp = NULL;
+    }  /* if */
   }  /* if */
   if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
     /* This is a block-extern declaration, so the symbol is not set. */
