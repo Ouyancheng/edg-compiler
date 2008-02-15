@@ -4290,6 +4290,31 @@ the symbol pointed to by "from" to the symbol pointed to by "to".
 }  /* copy_symbol_lookup_flags */
 
 
+static void copy_locator_parent_to_sym(a_symbol_locator  *loc,
+                                       a_symbol_ptr      sym)
+/*
+Copy the parent entity description from the locator to the symbol (if
+applicable).
+*/
+{
+  if (loc->is_class_member) {
+    /* Make sure the parent is indeed a class type. */
+    a_type_ptr  class_type = loc->parent.class_type;
+    if (class_type->kind == (a_type_kind)tk_template_param) {
+      class_type = proxy_class_for_template_param(class_type);
+    }  /* if */
+    if (class_type != NULL && is_immediate_class_type(class_type)) {
+      sym->is_class_member = TRUE;
+      sym->parent.class_type = class_type;
+    } else {
+      expect_error();
+    }  /* if */
+  } else {
+    sym->parent = loc->parent;
+  }  /* if */
+}  /* copy_locator_parent_to_sym */
+
+
 a_symbol_ptr enter_symbol(a_symbol_kind    sym_kind,
 			  a_symbol_locator *location,
 			  a_scope_depth    scope_depth,
@@ -4319,8 +4344,7 @@ be changed too.
   if (sym_ptr->is_error) {
     /* In the error case it can be useful to remember the membership (e.g.,
        to recognize constructor-like symbols). */
-    sym_ptr->is_class_member = location->is_class_member;
-    sym_ptr->parent = location->parent;
+    copy_locator_parent_to_sym(location, sym_ptr);
   }  /* if */
   /* Set the locator to point to the symbol entered. */
   location->specific_symbol = sym_ptr;
