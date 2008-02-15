@@ -6317,7 +6317,7 @@ this selection.
     if (selection_class->variant.class_struct_union.originally_unnamed &&
         ctsp != NULL &&
         ctsp->anonymous_union_kind == (an_anonymous_union_kind)auk_variable) {
-      /* This is a field of a anonymous union variable.  If the enclosing
+      /* This is a field of an anonymous union variable.  If the enclosing
          scope is a namespace (not the global namespace), a qualifier may need
          to be emitted. */
       if (is_namespace_member(selection_class)) {

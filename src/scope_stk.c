@@ -5949,42 +5949,47 @@ set correctly.
   }  /* for */
   /* Constants: */
   for (; cp != NULL; cp = cp->next) {
-    if (sp->kind == (a_scope_kind)sck_file &&
-        (parent_scope_of(cp)->kind == (a_scope_kind)sck_namespace ||
-         cp->source_corresp.is_class_member)) {
+    if (parent_scope_of(cp) == sp || parent_scope_of(cp) == NULL) {
+      /* Normal cases. */
+    } else {
       /* The file scope may contain lowered entities whose parent scope still
          points to the original enclosing scope. */
-    } else {
-      check_assertion(parent_scope_of(cp) == sp ||
-                      parent_scope_of(cp) == NULL);
+      check_assertion(
+                  sp->kind == (a_scope_kind)sck_file &&
+                  (parent_scope_of(cp)->kind == (a_scope_kind)sck_namespace ||
+                   cp->source_corresp.is_class_member));
     }  /* if */
   }  /* for */
   /* Types: */
   for (; tp != NULL; tp = tp->next) {
-    if (sp->kind == (a_scope_kind)sck_file &&
-        (tp->source_corresp.is_local_to_function ||
-         parent_scope_of(tp)->kind == (a_scope_kind)sck_namespace ||
-         tp->source_corresp.is_class_member)) {
+    if (sp == parent_scope_of(tp) ||
+        (parent_scope_of(tp) == NULL && in_file_scope(tp) &&
+                                        !in_file_scope(sp)) ||
+         (parent_scope_of(tp) == NULL && total_errors != 0)) {
+      /* Normal cases. */
+    } else {
       /* The file scope may contain lowered entities whose parent scope still
          points to the original enclosing scope. */
-    } else {
-      check_assertion(sp == parent_scope_of(tp) ||
-                      (parent_scope_of(tp) == NULL && in_file_scope(tp) &&
-                                                      !in_file_scope(sp)) ||
-                      (parent_scope_of(tp) == NULL && total_errors != 0));
+      check_assertion(
+        sp->kind == (a_scope_kind)sck_file && parent_scope_of(tp) != NULL &&
+        (tp->source_corresp.is_local_to_function ||
+         parent_scope_of(tp)->kind == (a_scope_kind)sck_namespace ||
+         tp->source_corresp.is_class_member));
     }  /* if */
   }  /* for */
   /* Static storage variables: */
   for (; vp != NULL; vp = vp->next) {
-    if (sp->kind == (a_scope_kind)sck_file &&
-        (parent_scope_of(vp)->kind == (a_scope_kind)sck_namespace ||
-         vp->source_corresp.is_class_member)) {
+    if (sp == parent_scope_of(vp) ||
+        (parent_scope_of(vp) == NULL && in_file_scope(vp) &&
+                                        !in_file_scope(sp))) {
+      /* Normal cases. */
+    } else {
       /* The file scope may contain lowered entities whose parent scope still
          points to the original enclosing scope. */
-    } else {
-      check_assertion(sp == parent_scope_of(vp) ||
-                      (parent_scope_of(vp) == NULL && in_file_scope(vp) &&
-                                                      !in_file_scope(sp)));
+      check_assertion(
+        sp->kind == (a_scope_kind)sck_file && parent_scope_of(vp) != NULL &&
+        (parent_scope_of(vp)->kind == (a_scope_kind)sck_namespace ||
+         vp->source_corresp.is_class_member));
     }  /* if */
   }  /* for */
   /* Automatic variables: */
@@ -5999,6 +6004,7 @@ set correctly.
   }  /* for */
   /* Routines: */
   for (; rp != NULL; rp = rp->next) {
+    check_assertion(parent_scope_of(rp) != NULL);
     if (sp->kind == (a_scope_kind)sck_file &&
         (parent_scope_of(rp)->kind == (a_scope_kind)sck_namespace ||
          rp->source_corresp.is_class_member)) {

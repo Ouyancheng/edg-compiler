@@ -336,7 +336,10 @@ Macros that return the parent class of a class member.
 #else /* !defined(_lint) */
 #if EXPENSIVE_CHECKING
 #define scp_parent_class(scp)                                               \
-  (check_assertion((scp)->is_class_member),                                 \
+  (check_assertion((scp)->is_class_member &&                                \
+                   (scp)->parent_scope != NULL &&                           \
+                   (scp)->parent_scope->kind ==                             \
+                                    (a_scope_kind)sck_class_struct_union),  \
    (scp)->parent_scope->variant.assoc_type)
 #else /* !EXPENSIVE_CHECKING */
 #define scp_parent_class(scp)                                               \

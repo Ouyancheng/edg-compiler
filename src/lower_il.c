@@ -294,10 +294,9 @@ IL lowering.
 
 a_type_ptr make_lowered_class_type(a_type_kind  kind)
 /*
-Allocate a struct type and associated struct scope entry for use by IL lowering
+Allocate a class type (of the given kind) and associated scope entry for use
 by IL lowering (e.g., for the lowered representation of a type_info entry,
-etc.).  Return the scope entry (from which the type can be retrieved if
-needed).  The struct is a member of the file scope.
+etc.).  Return the type entry.  The type is a member of the file scope.
 */
 {
   a_type_ptr             type = alloc_type(kind);
@@ -978,8 +977,6 @@ offset for the field.  The field allocated is not a bit field.
   field_ptr->compiler_generated = TRUE;
   set_class_membership((a_symbol_ptr)NULL, &field_ptr->source_corresp,
                        struct_type);
-  field_ptr->source_corresp.parent_scope =
-                                    class_type_supp(struct_type)->assoc_scope;
   /* Find the spot at which to insert the field. */
   for (prev_field = NULL,
                next_field = struct_type->variant.class_struct_union.field_list;
@@ -1146,8 +1143,6 @@ It cannot create bit fields.  field_name may not be NULL.
   field_ptr->compiler_generated = TRUE;
   set_class_membership((a_symbol_ptr)NULL, &field_ptr->source_corresp,
                        struct_type);
-  field_ptr->source_corresp.parent_scope =
-                                    class_type_supp(struct_type)->assoc_scope;
   /* Add the field to the end of the struct field list. */
   if (*last_field == NULL) {
     struct_type->variant.class_struct_union.field_list = field_ptr;
@@ -5287,7 +5282,7 @@ mode; *optional will be set as usual.
                           .any_virtual_functions_including_in_base_classes &&
                !class_type->variant.class_struct_union
                           .any_virtual_base_classes) {
-      /* A class with not virtual functions and no virtual base classes should
+      /* A class with no virtual functions and no virtual base classes should
          not have an associated virtual function table.  We should only get
          here with the generated typeinfo types. */
       check_assertion(is_generated_typeinfo_type(class_type));
@@ -7162,8 +7157,6 @@ this routine to do a relatively simple copy of the all the fields.
                                     class_type->source_corresp.is_class_member;
     subobject_type->source_corresp.is_local_to_function =
                                class_type->source_corresp.is_local_to_function;
-    /* The parent_scope field is set by the call to add_to_types_list_full
-       below. */
     /* Ideally, the referenced flag would not be set if the class type is
        not referenced.  However, the class type might not be referenced now
        (part-way through the compilation) and then be referenced later. */

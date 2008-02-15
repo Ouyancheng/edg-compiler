@@ -508,7 +508,7 @@ as the class type, and use as a base class.
        need to be called because set_source_corresp requires that the
        decl_scope of the symbol still be an active scope. */
     sym->decl_scope = file_scope_number;
-    /* Create the type for the class.*/
+    /* Create the type for the class. */
     type = alloc_type((a_type_kind)tk_class);
     /* Set the size and alignment so that the type will be considered to
        be complete.  No scope is created until members of the proxy class

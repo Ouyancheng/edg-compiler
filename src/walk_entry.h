@@ -231,7 +231,8 @@ Macro to test that a class scope member should be kept even if unneeded
 during the walk_needed_on_list traversal when KEEP_IN_IL_WALK is TRUE.
 Specifically, if lowering is done, unneeded class scope entities in the
 primary translation unit should not be kept, because lowering will
-promote them to namespace scope.
+promote them to namespace scope (only called for static data members,
+member functions, and nested types).
 */
 #undef class_scope_member_should_be_kept
 #if KEEP_IN_IL_WALK
@@ -269,10 +270,14 @@ simple walk_list.
 { if ((scope_kind) == (a_scope_kind)sck_file || \
       (scope_kind) == (a_scope_kind)sck_namespace || \
       (scope_kind) == (a_scope_kind)sck_class_struct_union) { \
-    ptr_type local_ptr = (ptr); \
+    ptr_type   local_ptr = (ptr); \
+    /*lint --e(506) */ \
+    a_boolean  class_member_to_be_kept = \
+                 local_ptr != NULL && \
+                 ((scope_kind) == (a_scope_kind)sck_class_struct_union && \
+                  class_scope_member_should_be_kept(local_ptr)); \
     for (; local_ptr != NULL; local_ptr = local_ptr->next) { \
-      if (((scope_kind) == (a_scope_kind)sck_class_struct_union && \
-            class_scope_member_should_be_kept(local_ptr)) || \
+      if (class_member_to_be_kept || \
           needed_flag_is_set(&local_ptr->source_corresp) || \
           il_entry_prefix_of(local_ptr).keep_in_il) { \
         clear_keep_in_il_to_allow_subtree_walk((char *)local_ptr, entry_kind);\
@@ -2236,12 +2241,10 @@ end_sizeof:;
         } else {
           /* For lists not within a function, mark only the needed entities
              to be kept. */
-          /*lint -save -e506 */
           walk_needed_on_list(ptr->types, a_type_ptr, iek_type, kind);
           walk_needed_on_list(ptr->variables, a_variable_ptr, iek_variable,
                               kind);
           walk_needed_on_list(ptr->routines, a_routine_ptr, iek_routine, kind);
-          /*lint -restore */
         }  /* if */
 #else /* !KEEP_IN_IL_WALK */
         /* Not needed flag walk or keep_in_il walk. */
