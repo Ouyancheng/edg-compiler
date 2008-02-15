@@ -8408,18 +8408,20 @@ do nothing.
         }  /* if */
         for (; list_sym != NULL;
              list_sym = is_list ? list_sym->next : NULL) {
-          a_routine_ptr	list_rout = list_sym->variant.routine.ptr;
-          /* See if this member function has a type that matches the
-             substituted type. */
-          if (types_are_redecl_compatible(new_rout_type, list_rout->type)) {
-            a_class_list_entry_ptr  clep;
-            /* It matches.  Apply any friend declarations to the routine in
-               the specialization. */
-            for (clep = rout_tssp->befriending_classes;
-                 clep != NULL; clep = clep->next) {
-              update_friend_function_info(list_rout, clep->class_type);
-            }  /* for */
-            goto done;
+          if (list_sym->kind == (a_symbol_kind)sk_member_function) {
+            a_routine_ptr	list_rout = list_sym->variant.routine.ptr;
+            /* See if this member function has a type that matches the
+               substituted type. */
+            if (types_are_redecl_compatible(new_rout_type, list_rout->type)) {
+              a_class_list_entry_ptr  clep;
+              /* It matches.  Apply any friend declarations to the routine in
+                 the specialization. */
+              for (clep = rout_tssp->befriending_classes;
+                   clep != NULL; clep = clep->next) {
+                update_friend_function_info(list_rout, clep->class_type);
+              }  /* for */
+              goto done;
+            }  /* if */
           }  /* if */
         }  /* for */
       }  /* if */
@@ -8494,17 +8496,19 @@ class template.  For example, if the function were in a nested class of
         }  /* if */
         for (; list_sym != NULL;
              list_sym = is_list ? list_sym->next : NULL) {
-          a_routine_ptr	rout = list_sym->variant.routine.ptr;
-          if (!rout->compiler_generated) {
-            a_template_symbol_supplement_ptr	rout_tssp;
-            rout_tssp = template_supplement_for_symbol(list_sym);
-            check_assertion(rout_tssp != NULL);
-            if (rout_tssp->befriending_classes != NULL) {
-              /* This function is a friend.  Look for a corresponding member
-                 in the specialization. */
-              update_friend_info_for_specialization_member(
+          if (list_sym->kind == (a_symbol_kind)sk_member_function) {
+            a_routine_ptr	rout = list_sym->variant.routine.ptr;
+            if (!rout->compiler_generated) {
+              a_template_symbol_supplement_ptr	rout_tssp;
+              rout_tssp = template_supplement_for_symbol(list_sym);
+              check_assertion(rout_tssp != NULL);
+              if (rout_tssp->befriending_classes != NULL) {
+                /* This function is a friend.  Look for a corresponding member
+                   in the specialization. */
+                update_friend_info_for_specialization_member(
                                            template_sym, class_tssp, class_sym,
                                            list_sym, rout, rout_tssp);
+              }  /* if */
             }  /* if */
           }  /* if */
         }  /* for */
