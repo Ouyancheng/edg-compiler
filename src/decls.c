@@ -7176,6 +7176,14 @@ skip_overloading:;
           a_boolean  saved_referenced_flag = source_corresp_ptr->referenced;
           set_source_corresp(source_corresp_ptr, sym);
           source_corresp_ptr->referenced = saved_referenced_flag;
+          /* Also set the parent scope to correspond to the current
+             declaration. */
+          if (sym_is_namespace_member(sym)) {
+            set_namespace_membership((a_symbol_ptr)NULL, source_corresp_ptr,
+                                     sym_parent_namespace(sym));
+          } else {
+            source_corresp_ptr->parent_scope = il_header.primary_scope;
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
