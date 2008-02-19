@@ -1042,7 +1042,7 @@ that do take arguments.
             goto error;
           }  /* if */
           /* Remember the value. */
-          attribute->variant.nonnull_param = param_number;
+          ap->variant.nonnull_param = param_number;
           if (curr_token == tok_comma) {
             /* Another parameter number follows: Allocate a separate attribute
                entry for it. */

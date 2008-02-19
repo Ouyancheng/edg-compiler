@@ -7774,10 +7774,7 @@ next parameter.
 #if GNU_EXTENSIONS_ALLOWED
     if (ptp->nonnull && op_is_null_pointer_value(operand)) {
       /* The parameter carries the GNU "nonnull" attribute and a null pointer
-         is passed through it.  GNU compilers only warn about this when a
-         specific GNU command-line option is specified.  We issue a remark
-         instead (which can be increased in severity through command-line
-         options if needed). */
+         is passed through it. */
       pos_warning(ec_null_argument_for_nonnull_parameter, &operand->position);
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
