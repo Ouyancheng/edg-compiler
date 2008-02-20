@@ -19,7 +19,7 @@ This is now fixed.  For example:
   }
 
 2/19/08  Microsoft compatibility: Explicit instantiation after explicit
-         instantiation
+         specialization
 
 In Microsoft mode with microsoft_version == 1200, an explicit instantiation of
 a class template that was previously explicitly specialized cancels the
