@@ -21319,8 +21319,19 @@ instantiation.
     sym = symbol_for(state.type);
     check_assertion(sym != NULL);
     if (is_template_instance_class_symbol(sym) &&
-        !is_template_instance_specific_def_symbol(sym)) {
+        (!is_template_instance_specific_def_symbol(sym) ||
+         (microsoft_mode && microsoft_version == 1200 && !sym->defined))) {
       /* Process all member functions and static data members. */
+      /* In Microsoft mode with microsoft_version == 1200, an explicit
+         class template instantiation directive "replaces" an explicit
+         specialization that did not provide a definition.  For example:
+             template<class T> struct S {};
+             template<> struct S<int>; // (1)
+             template struct S<int>;   // "Replaces" (1); S<int> is
+                                       // instantiated.
+             S<int> s;  // Okay.
+      */
+      state.type->variant.class_struct_union.is_specialized = FALSE;
       update_instantiation_flags_for_class(sym, kind, start_pos, is_pragma,
                                            /*top_level=*/TRUE,
                                            /*is_dll_directive=*/FALSE);

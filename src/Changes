@@ -1,5 +1,23 @@
 Version 3.11
 
+2/19/08  Microsoft compatibility: Explicit instantiation after explicit
+         instantiation
+
+In Microsoft mode with microsoft_version == 1200, an explicit instantiation of
+a class template that was previously explicitly specialized cancels the
+explicit specialization if that specialization did not provide a definition.
+For example:
+
+  template<class T> struct S {};
+  template<> struct S<int>;  // Explicit specialization without a definition.
+  template struct S<int>;    // Explicit instantiation cancels the explicit
+                             // specialization when microsoft_version == 1200.
+  S<int> s;                  // Okay when microsoft_version == 1200.
+
+Cases that appear to be broken by the change in treatment of old-style
+specializations in Microsoft mode as described in the Changes entry of 8/2/07
+are restored by this change.
+
 2/19/08  GNU compatibility: nonnull attribute with multiple parameters
 
 A nonnull attribute specifying more than one parameter number was incorrectly
