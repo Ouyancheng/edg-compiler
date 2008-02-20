@@ -2659,6 +2659,7 @@ fields to default values.
 #endif /* VLA_DEALLOCATIONS_IN_IL */
     case enk_type_operand:
       node->variant.type_operand.type = NULL;
+      node->variant.type_operand.definition_needed = FALSE;
       break;
     case enk_builtin_operation:
       node->variant.builtin_operation.kind =
