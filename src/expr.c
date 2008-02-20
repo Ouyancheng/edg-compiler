@@ -2287,6 +2287,7 @@ Syntax:
 {
   an_expr_node_ptr  argument_list;
   a_type_ptr        routine_type = NULL;
+  a_type_ptr        orig_routine_type = NULL;
   a_symbol_ptr      overloaded_function_symbol = NULL;
   a_boolean         overloaded_function_case = FALSE;
   a_boolean         vacuous_destructor_case = FALSE;
@@ -2598,6 +2599,9 @@ Syntax:
         expr_stack->potentially_evaluated = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       } else if (check_function_pointer_operand(operand)) {
+#if OPTIMIZE_VIRTUAL_FUNCTION_CALLS
+        orig_routine_type = operand->orig_routine_type;
+#endif /* OPTIMIZE_VIRTUAL_FUNCTION_CALLS */
         routine_type = type_pointed_to(operand->type);
         /* If we can tell which routine is being called, set routine to
            the routine entry.  Otherwise, leave it NULL. */
@@ -2635,7 +2639,16 @@ Syntax:
 #endif /* GNU_EXTENSIONS_ALLOWED && GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
 
   /* Scan the arguments of the call. */
-  scan_call_arguments(routine_type, routine,
+  if (orig_routine_type == NULL) {
+    /* If this call is the result of optimizing a virtual function call to
+       a direct call of an overriding function, we must use the type of the
+       overridden function for scanning the arguments in order to pick up
+       the correct default arguments, if any.  In all other cases, the
+       original routine type will be NULL and we just use the regular
+       routine type. */
+    orig_routine_type = routine_type;
+  }  /* if */
+  scan_call_arguments(orig_routine_type, routine,
                       already_after_left_paren, &argument_list,
                       overloaded_function_case, unknown_dependent_function,
                       &arg_operand_list, &closing_paren_position);

@@ -1,5 +1,23 @@
 Version 3.11
 
+2/20/08  Optimization of virtual function calls with default arguments
+
+In configurations in which OPTIMIZE_VIRTUAL_FUNCTION_CALLS is TRUE, a
+virtual call that was optimized to a direct call to an overriding function
+failed to use the default arguments from the statically-chosen function.
+This is now fixed.  For example:
+
+  struct B {
+    virtual void f(int=0);
+  };
+  struct D: B {
+    void f(int);
+  };
+  D d;
+  void g() {
+    ((B*)&d)->f();   // Previously caused "too few arguments" error
+  }
+
 2/19/08  Microsoft compatibility: Explicit instantiation after explicit
          instantiation
 

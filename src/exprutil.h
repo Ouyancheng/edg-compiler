@@ -250,6 +250,16 @@ typedef struct an_operand {
 			/* Type of this operand.  A tk_unknown type if not
 			   applicable (ok_indefinite_function,
 			   ok_undefined_symbol). */
+#if OPTIMIZE_VIRTUAL_FUNCTION_CALLS
+  a_type_ptr	orig_routine_type;
+			/* If this operand is an ok_constant designating a
+			   routine that is an overrider of the
+			   statically-chosen routine (because the type of
+			   the complete object is known and the virtual
+			   call has been optimized to a direct call of the
+			   overrider), this is the type of the overridden
+			   function; NULL in all other cases. */
+#endif /* OPTIMIZE_VIRTUAL_FUNCTION_CALLS */
   an_operand_kind
 		kind;
 			/* The kind of operand. */

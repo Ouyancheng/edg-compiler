@@ -1397,6 +1397,9 @@ values.
 {
   /* Set the non-variant fields to a safe state. */
   operand->type  = NULL;
+#if OPTIMIZE_VIRTUAL_FUNCTION_CALLS
+  operand->orig_routine_type = NULL;
+#endif /* OPTIMIZE_VIRTUAL_FUNCTION_CALLS */
   operand->state = (an_operand_state)os_none;
   operand->bound_function = FALSE;
   operand->virtual_function = FALSE;

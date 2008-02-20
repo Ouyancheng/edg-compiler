@@ -6153,6 +6153,7 @@ into a direct call if possible.
             set_routine_address_constant(overrider,
                                          &function_operand->variant.constant,
                                          /*set_address_taken_flag=*/FALSE);
+            function_operand->orig_routine_type = function->type;
             function_operand->type = overrider->type;
             if (function_operand->ref_entries_list != NULL) {
               function_operand->ref_entries_list->symbol =
