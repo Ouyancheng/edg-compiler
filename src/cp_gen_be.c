@@ -2106,7 +2106,7 @@ that the remaining arguments will be defaulted.
       a_type_ptr                  type = (a_type_ptr)scp;
       a_class_type_supplement_ptr ctsp =
                                    type->variant.class_struct_union.extra_info;
-      if (ctsp != NULL && ctsp->min_template_arguments >= 0) {
+      if (ctsp->min_template_arguments >= 0) {
         /* This template instance has been referred to at some point in the
            source using default arguments; record the point in the argument
            list beyond which default arguments can be used. */
@@ -3635,19 +3635,17 @@ Put out declaration modifiers that apply to a class as a whole.
 These follow the tag kind, e.g., "struct __single_inheritance xxx".
 */
 {
-  a_class_type_supplement_ptr ctsp=type->variant.class_struct_union.extra_info;
+  a_class_type_supplement_ptr ctsp = class_type_supp(type);
 
-  if (ctsp != NULL) {
-    if (ctsp->inheritance_kind_is_explicit) {
-      /* Only display the inheritance kind if it appeared explicitly on at
-         least one declaration of the current class. */
-      gen_microsoft_inheritance_kind(ctsp->inheritance_kind);
-    }  /* if */
-    gen_microsoft_decl_modifiers(ctsp->decl_modifiers);
-    gen_microsoft_uuid_declspec(ctsp->uuid_string);
-    form_type_qualifier(ctsp->qualifiers, UPC_BLOCK_SIZE_NONE,
-                        /*need_trailing_space=*/TRUE, &octl);
+  if (ctsp->inheritance_kind_is_explicit) {
+    /* Only display the inheritance kind if it appeared explicitly on at
+       least one declaration of the current class. */
+    gen_microsoft_inheritance_kind(ctsp->inheritance_kind);
   }  /* if */
+  gen_microsoft_decl_modifiers(ctsp->decl_modifiers);
+  gen_microsoft_uuid_declspec(ctsp->uuid_string);
+  form_type_qualifier(ctsp->qualifiers, UPC_BLOCK_SIZE_NONE,
+                      /*need_trailing_space=*/TRUE, &octl);
   gen_microsoft_deprecated_spec(&type->source_corresp);
   if (is_definition) {
 #if USER_CONTROL_OF_STRUCT_PACKING
@@ -4955,8 +4953,7 @@ is already set to that value.
 */
 {
   a_type_ptr                  class_type = curr_name_context_class();
-  a_class_type_supplement_ptr ctsp =
-                             class_type->variant.class_struct_union.extra_info;
+  a_class_type_supplement_ptr ctsp = class_type_supp(class_type);
 
   if (access != curr_name_context->access &&
       !(ctsp->anonymous_union_kind == (an_anonymous_union_kind)auk_field
@@ -5367,13 +5364,10 @@ is the one associated with the definition of the class.
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if SUN_EXTENSIONS_ALLOWED
-  if (ctsp != NULL) {
-    gen_sun_link_scope_specifiers(ctsp->decl_modifiers);
-  }  /* if */
+  gen_sun_link_scope_specifiers(ctsp->decl_modifiers);
 #endif /* SUN_EXTENSIONS_ALLOWED */
   /* Write the name of the class. */
-  if (ctsp != NULL &&
-      ctsp->anonymous_union_kind != (an_anonymous_union_kind)auk_none) {
+  if (ctsp->anonymous_union_kind != (an_anonymous_union_kind)auk_none) {
     /* The type is an anonymous union, so suppress the name. */
 #if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
   } else if (type->variant.class_struct_union.is_nonstd_anonymous_union_type) {
@@ -6315,7 +6309,6 @@ this selection.
     selection_class = skip_typerefs(selection_class);
     ctsp = class_type_supp(selection_class);
     if (selection_class->variant.class_struct_union.originally_unnamed &&
-        ctsp != NULL &&
         ctsp->anonymous_union_kind == (an_anonymous_union_kind)auk_variable) {
       /* This is a field of an anonymous union variable.  If the enclosing
          scope is a namespace (not the global namespace), a qualifier may need

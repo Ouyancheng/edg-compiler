@@ -1957,9 +1957,7 @@ union, adjust it to make the anonymous union reference(s) explicit.
     /* See if the field is from an anonymous union. */
     field_class = parent_class_of(field);
     ctsp = field_class->variant.class_struct_union.extra_info;
-    if (ctsp == NULL || /* Avoid abort when this code is used to lower
-                           C code in Microsoft mode. */
-        ctsp->anonymous_union_kind != (an_anonymous_union_kind)auk_field) {
+    if (ctsp->anonymous_union_kind != (an_anonymous_union_kind)auk_field) {
       /* Stop when the field is not from an anonymous union. */
       break;
     }  /* if */
@@ -5062,67 +5060,64 @@ class_type if any are needed and if they have not already been generated.
 #endif /* IA64_ABI */
 
   ctsp = class_type->variant.class_struct_union.extra_info;
-  if (ctsp != NULL) {
-    if (needs_virtual_function_table(class_type)
+  if (needs_virtual_function_table(class_type)
 #if IA64_ABI
-        /* For the case where a class has no virtual functions of its own,
-           but has a base class that has virtual functions, force a vtable
-           for the derived class.  In the IA-64 ABI, the derived class
-           vtable includes the vtable for its primary base class, and there
-           is no vtable for the primary base class, as opposed to in the
-           Cfront-like ABI, where the base-class-in-derived vtable contains
-           the derived class slots, and there is no vtable for the derived
-           class. */
-        || class_type->variant.class_struct_union.
+      /* For the case where a class has no virtual functions of its own,
+         but has a base class that has virtual functions, force a vtable
+         for the derived class.  In the IA-64 ABI, the derived class
+         vtable includes the vtable for its primary base class, and there
+         is no vtable for the primary base class, as opposed to in the
+         Cfront-like ABI, where the base-class-in-derived vtable contains
+         the derived class slots, and there is no vtable for the derived
+        class. */
+      || class_type->variant.class_struct_union.
                            any_virtual_functions_including_in_base_classes 
 #endif /* IA64_ABI */
                                                                           ) {
-      /* The class has virtual functions, so it needs a virtual function table.
-         Generate it if it has not already been generated. */
-      if (ctsp->virtual_function_table_var == NULL) {
-        /* Generate the virtual function table variable for the class
-           itself. */
+    /* The class has virtual functions, so it needs a virtual function table.
+       Generate it if it has not already been generated. */
+    if (ctsp->virtual_function_table_var == NULL) {
+      /* Generate the virtual function table variable for the class itself. */
 #if !IA64_ABI
-        (void)make_var_for_virtual_function_table(class_type,
-                                                  (a_base_class_ptr)NULL,
-                                                  (a_base_class_ptr)NULL);
-#else /* IA64_ABI */
-        f_make_vars_for_virtual_function_tables(class_type,
+      (void)make_var_for_virtual_function_table(class_type,
                                                 (a_base_class_ptr)NULL,
-                                                &index);
+                                                (a_base_class_ptr)NULL);
+#else /* IA64_ABI */
+      f_make_vars_for_virtual_function_tables(class_type,
+                                              (a_base_class_ptr)NULL,
+                                              &index);
 #endif /* IA64_ABI */
+    }  /* if */
+  }  /* if */
+#if !IA64_ABI
+  /* Generate the virtual function table for each base class when it is
+     contained within a complete object of the primary class. */
+  for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
+    /* Only generate virtual function tables for base classes that
+       need them and only if the virtual function table has not yet
+       been generated. */
+    if (base_class_needs_virtual_function_table(bcp, class_type)) {
+      if (bcp->virtual_function_table_var == NULL) {
+        (void)make_var_for_virtual_function_table(class_type, bcp,
+                                                  (a_base_class_ptr)NULL);
       }  /* if */
     }  /* if */
-#if !IA64_ABI
-    /* Generate the virtual function table for each base class when it
-       is contained within a complete object of the primary class. */
-    for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
-      /* Only generate virtual function tables for base classes that
-         need them and only if the virtual function table has not yet
-         been generated. */
-      if (base_class_needs_virtual_function_table(bcp, class_type)) {
-        if (bcp->virtual_function_table_var == NULL) {
-          (void)make_var_for_virtual_function_table(class_type, bcp,
-                                                    (a_base_class_ptr)NULL);
-        }  /* if */
-      }  /* if */
-    }  /* for */
+  }  /* for */
 #endif /* !IA64_ABI */
 #if ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
-    { a_construction_vtbl_ptr         construction_vtbls = NULL;
-      a_construction_vtbl_ptr         end_construction_vtbls = NULL;
-      a_construction_vtbl_array_index array_index = 0;
-      /* The class may need special versions of virtual function tables
-         for use in constructor or destructors.  Make them if needed. */
-      (void)make_construction_vtbls(class_type,
-                                    (a_base_class_ptr)NULL,
-                                    &construction_vtbls,
-                                    &end_construction_vtbls,
-                                    &array_index);
-      ctsp->construction_vtbls = construction_vtbls;
-    }
+  { a_construction_vtbl_ptr         construction_vtbls = NULL;
+    a_construction_vtbl_ptr         end_construction_vtbls = NULL;
+    a_construction_vtbl_array_index array_index = 0;
+    /* The class may need special versions of virtual function tables
+       for use in constructor or destructors.  Make them if needed. */
+    (void)make_construction_vtbls(class_type,
+                                  (a_base_class_ptr)NULL,
+                                  &construction_vtbls,
+                                  &end_construction_vtbls,
+                                  &array_index);
+    ctsp->construction_vtbls = construction_vtbls;
+  }
 #endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
-  }  /* if */
 }  /* make_vars_for_virtual_function_tables */
 
 
@@ -5192,8 +5187,7 @@ in the Cfront-like ABI if the class itself has no vtable it is the
 first one associated with a base class.
 */
 {
-  a_class_type_supplement_ptr ctsp = class_type->variant.class_struct_union.
-                                                                    extra_info;
+  a_class_type_supplement_ptr ctsp = class_type_supp(class_type);
   a_variable_ptr              vtbl_var = ctsp->virtual_function_table_var;
 
 #if !IA64_ABI
@@ -5422,7 +5416,7 @@ the class or to depend on any lowering data structures.
   check_assertion(is_immediate_class_type(class_type) && !C_mode());
   *unknown = TRUE;
   ctsp = class_type->variant.class_struct_union.extra_info;
-  if (ctsp == NULL || is_incomplete_type(class_type)) {
+  if (is_incomplete_type(class_type)) {
     /* The class is not fully defined yet. */
   } else {
     /* It's late enough that we can determine the right answer. */
@@ -6935,63 +6929,42 @@ class_type if any are needed.
   /* Make sure the class type has been pre-lowered. */
   prelower_class_type(class_type);
   ctsp = class_type->variant.class_struct_union.extra_info;
-  if (ctsp != NULL) {
-    if (ctsp->virtual_function_table_var != NULL &&
-        /* Do not define virtual function tables more than once (comes up
-           with promoted local classes and with the generated type_info
-           vtable). */
-        ctsp->virtual_function_table_var->init_kind ==
+  if (ctsp->virtual_function_table_var != NULL &&
+      /* Do not define virtual function tables more than once (comes up
+         with promoted local classes and with the generated type_info
+         vtable). */
+      ctsp->virtual_function_table_var->init_kind ==
                                                     (an_init_kind)initk_none) {
-      /* The class has a virtual function table.  Generate the definition
-         if it is supposed to be generated in the present compilation. */
-      definition_needed = 
+    /* The class has a virtual function table.  Generate the definition
+       if it is supposed to be generated in the present compilation. */
+    definition_needed = 
                  virtual_function_table_should_be_defined_here(class_type,
                                                                &force_static,
                                                                &first_virtual,
                                                                &optional);
-      need_determined = TRUE;
+    need_determined = TRUE;
 #if !IA64_ABI
-      /* Generate the virtual function table for the class itself. */
-      define_one_virtual_function_table(class_type, (a_base_class_ptr)NULL,
-                                        (a_base_class_ptr)NULL,
-                                        ctsp->virtual_function_table_var,
-                                        definition_needed, force_static,
-                                        first_virtual);
+    /* Generate the virtual function table for the class itself. */
+    define_one_virtual_function_table(class_type, (a_base_class_ptr)NULL,
+                                      (a_base_class_ptr)NULL,
+                                      ctsp->virtual_function_table_var,
+                                      definition_needed, force_static,
+                                      first_virtual);
 #else /* IA64_ABI */
-      f_define_virtual_function_tables(class_type, (a_base_class_ptr)NULL,
-                                       definition_needed, force_static,
-                                       first_virtual);
+    f_define_virtual_function_tables(class_type, (a_base_class_ptr)NULL,
+                                     definition_needed, force_static,
+                                     first_virtual);
 #endif /* IA64_ABI */      
-    }  /* if */
+  }  /* if */
 #if !IA64_ABI
-    /* Generate the virtual function table for each base class when it
-       is contained within a complete object of the primary class. */
-    for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
-      if (base_class_has_vtbl(bcp) &&
-          /* Do not define virtual function tables more than once (comes up
-             with promoted local classes). */
-          bcp->virtual_function_table_var->type->
+  /* Generate the virtual function table for each base class when it
+     is contained within a complete object of the primary class. */
+  for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
+    if (base_class_has_vtbl(bcp) &&
+        /* Do not define virtual function tables more than once (comes up
+           with promoted local classes). */
+        bcp->virtual_function_table_var->type->
                                variant.array.variant.number_of_elements == 0) {
-        if (!need_determined) {
-          definition_needed = 
-                 virtual_function_table_should_be_defined_here(class_type,
-                                                               &force_static,
-                                                               &first_virtual,
-                                                               &optional);
-          need_determined = TRUE;
-        }  /* if */
-        define_one_virtual_function_table(class_type, bcp,
-                                          (a_base_class_ptr)NULL,
-                                          bcp->virtual_function_table_var,
-                                          definition_needed, force_static,
-                                          first_virtual);
-      }  /* if */
-    }  /* for */
-#endif /* !IA64_ABI */
-#if ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
-    /* Define any special virtual function tables needed during subobject
-       construction and destruction. */
-    if (ctsp->construction_vtbls != NULL) {
       if (!need_determined) {
         definition_needed = 
                  virtual_function_table_should_be_defined_here(class_type,
@@ -7000,38 +6973,57 @@ class_type if any are needed.
                                                                &optional);
         need_determined = TRUE;
       }  /* if */
-      define_construction_vtbls(ctsp->construction_vtbls,
-                                definition_needed, force_static,
-                                first_virtual);
-#if IA64_ABI
-      /* Define the VTT. */
-      if (definition_needed) {
-        define_construction_vtbls_array(class_type, 
-                                        ctsp->virtual_table_table_var,
-                                        ctsp->construction_vtbls);
-      }  /* if */
-#endif /* IA64_ABI */
+      define_one_virtual_function_table(class_type, bcp,
+                                        (a_base_class_ptr)NULL,
+                                        bcp->virtual_function_table_var,
+                                        definition_needed, force_static,
+                                        first_virtual);
     }  /* if */
-#if !IA64_ABI
-    /* Virtual base classes have their own separate tables. */
-    for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
-      if (bcp->base_construction_vtbls != NULL) {
-        if (!need_determined) {
-          definition_needed = 
+  }  /* for */
+#endif /* !IA64_ABI */
+#if ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
+  /* Define any special virtual function tables needed during subobject
+     construction and destruction. */
+  if (ctsp->construction_vtbls != NULL) {
+    if (!need_determined) {
+      definition_needed = 
                  virtual_function_table_should_be_defined_here(class_type,
                                                                &force_static,
                                                                &first_virtual,
                                                                &optional);
-          need_determined = TRUE;
-        }  /* if */
-        define_construction_vtbls(bcp->base_construction_vtbls,
-                                  definition_needed,
-                                  force_static, first_virtual);
+      need_determined = TRUE;
+    }  /* if */
+    define_construction_vtbls(ctsp->construction_vtbls,
+                              definition_needed, force_static,
+                              first_virtual);
+#if IA64_ABI
+    /* Define the VTT. */
+    if (definition_needed) {
+      define_construction_vtbls_array(class_type, 
+                                      ctsp->virtual_table_table_var,
+                                      ctsp->construction_vtbls);
+    }  /* if */
+#endif /* IA64_ABI */
+  }  /* if */
+#if !IA64_ABI
+  /* Virtual base classes have their own separate tables. */
+  for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
+    if (bcp->base_construction_vtbls != NULL) {
+      if (!need_determined) {
+        definition_needed = 
+                 virtual_function_table_should_be_defined_here(class_type,
+                                                               &force_static,
+                                                               &first_virtual,
+                                                               &optional);
+        need_determined = TRUE;
       }  /* if */
-    }  /* for */
+      define_construction_vtbls(bcp->base_construction_vtbls,
+                                definition_needed,
+                                force_static, first_virtual);
+    }  /* if */
+  }  /* for */
 #endif /* !IA64_ABI */
 #endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
-  }  /* if */
 }  /* define_virtual_function_tables */
 
 
@@ -7418,145 +7410,143 @@ routine assumes the class type is as complete as it will ever get.
 
   ctsp = class_type->variant.class_struct_union.extra_info;
   check_assertion(is_primary_translation_unit);
-  if (ctsp != NULL) {
-    /* See if prelowering has already been done. */
-    if (ctsp->type_as_subobject == NULL) {
-      saved_error_position = error_position;
-      error_position = class_type->source_corresp.decl_position;
-      /* If the class has a definition, the processing of the definition
-         should be complete. */
-      check_assertion_str(ctsp->assoc_scope == NULL ||
-                          !is_incomplete_type(class_type),
+  /* See if prelowering has already been done. */
+  if (ctsp->type_as_subobject == NULL) {
+    saved_error_position = error_position;
+    error_position = class_type->source_corresp.decl_position;
+    /* If the class has a definition, the processing of the definition
+       should be complete. */
+    check_assertion_str(ctsp->assoc_scope == NULL ||
+                        !is_incomplete_type(class_type),
                         "prelower_class_type: class definition not completed");
 #if IA64_ABI
-      /* Compute the virtual base and virtual call offsets for this class. */
-      compute_vbase_and_vcall_offset_indices(class_type, 
-                                             (a_base_class_ptr)NULL);
-      /* Make a dummy field for the base class with which we share our
-         virtual function table, if any. */
-      bcp = ctsp->primary_base_class;
-      if (bcp != NULL) {
-        prelower_class_type(bcp->type);
-        base_ctsp = bcp->type->variant.class_struct_union.extra_info;
-        base_class_type = base_ctsp->type_as_subobject;
-        add_base_class_dummy_field(bcp->type, 
-                                   (char *)(bcp->is_virtual ? "__v_" : "__b_"),
-                                   base_class_type, bcp->offset, 
-                                   class_type);
-      }  /* if */
+    /* Compute the virtual base and virtual call offsets for this class. */
+    compute_vbase_and_vcall_offset_indices(class_type, 
+                                           (a_base_class_ptr)NULL);
+    /* Make a dummy field for the base class with which we share our
+       virtual function table, if any. */
+    bcp = ctsp->primary_base_class;
+    if (bcp != NULL) {
+      prelower_class_type(bcp->type);
+      base_ctsp = bcp->type->variant.class_struct_union.extra_info;
+      base_class_type = base_ctsp->type_as_subobject;
+      add_base_class_dummy_field(bcp->type, 
+                                 (char *)(bcp->is_virtual ? "__v_" : "__b_"),
+                                 base_class_type, bcp->offset, 
+                                 class_type);
+    }  /* if */
 #endif /* IA64_ABI */
-      /* Make dummy fields to reserve space for the direct base classes,
-         and add them to the field list. */
-      for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
-        /* Pre-lower base classes. */
-        prelower_class_type(bcp->type);
-        base_ctsp = bcp->type->variant.class_struct_union.extra_info;
-        base_class_type = base_ctsp->type_as_subobject;
+    /* Make dummy fields to reserve space for the direct base classes,
+       and add them to the field list. */
+    for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
+      /* Pre-lower base classes. */
+      prelower_class_type(bcp->type);
+      base_ctsp = bcp->type->variant.class_struct_union.extra_info;
+      base_class_type = base_ctsp->type_as_subobject;
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
-        /* Decide whether to use the base class's type or its
-           type-as-subobject for this instance as a base class.  The
-           full type includes space for any virtual base classes; the
-           type-as-subobject does not.  This only comes up in cfront
-           compatibility mode (because cfront does not have a
-           type-as-subobject mechanism and can only use the complete
-           object type for base classes other than the first). */
-        if (bcp->complete_subobject) base_class_type = bcp->type;
+      /* Decide whether to use the base class's type or its
+         type-as-subobject for this instance as a base class.  The
+         full type includes space for any virtual base classes; the
+         type-as-subobject does not.  This only comes up in cfront
+         compatibility mode (because cfront does not have a
+         type-as-subobject mechanism and can only use the complete
+         object type for base classes other than the first). */
+      if (bcp->complete_subobject) base_class_type = bcp->type;
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
-        if (!bcp->is_virtual) {
-          /* Non-virtual base class. */
-          if (bcp->direct && !bcp->is_optimized_empty_base
+      if (!bcp->is_virtual) {
+        /* Non-virtual base class. */
+        if (bcp->direct && !bcp->is_optimized_empty_base
 #if IA64_ABI
-              && bcp != ctsp->primary_base_class
+            && bcp != ctsp->primary_base_class
 #endif /* IA64_ABI */
-                                                          ) {
-            /* For a direct non-virtual base class, put out space for an object
-               of the base class, except if it is an empty base that was not
-               allocated its own space (i.e., it shares its offset with
-               another subobject). */
-            add_base_class_dummy_field(bcp->type, "__b_",
+                                                        ) {
+          /* For a direct non-virtual base class, put out space for an object
+             of the base class, except if it is an empty base that was not
+             allocated its own space (i.e., it shares its offset with
+             another subobject). */
+          add_base_class_dummy_field(bcp->type, "__b_",
+                                     base_class_type, bcp->offset,
+                                     class_type);
+        }  /* if */
+#if !IA64_ABI
+      } else {
+        /* Virtual base class.  See if a pointer to the base class is
+           required. */
+        /* Do not put out the pointer if it is shared with a base class. */
+        if (bcp->pointer_base_class == NULL) {
+          add_base_class_dummy_field(bcp->type, "__p_",
+                                     make_pointer_type(base_class_type),
+                                     bcp->pointer_offset, class_type);
+        }  /* if */
+#endif /* !IA64_ABI */
+      }  /* if */
+    }  /* for */
+    /* Make the virtual function table variables if they have not been made
+       already.  This must be done after prelowering of the base classes. */
+    make_vars_for_virtual_function_tables(class_type);
+    if (needs_virtual_function_table(class_type) &&
+        ctsp->virtual_function_info_base_class == NULL) {
+      /* The class has virtual functions, so it needs a virtual function
+         table pointer.  Also, the pointer is not shared with a base
+         class.  Make a dummy field for a virtual function table pointer. */
+      add_dummy_field("__vptr", pointer_to_vtbl_type(),
+                      ctsp->virtual_function_info_offset, class_type);
+    }  /* if */
+    /* Make a type for the class for use when the class is a subobject.
+       This will be the same as the class type if the class has no virtual
+       base classes. */
+    make_subobject_class_type(class_type);
+    /* If there are virtual base classes, make dummy fields to reserve space
+       for them and add those to the field list. */
+    if (class_type->variant.class_struct_union.any_virtual_base_classes) {
+      for (bcp = 
+#if !IA64_ABI
+                 ctsp->base_classes; 
+#else /* IA64_ABI */
+                 ctsp->preorder_base_classes;
+#endif /* IA64_ABI */
+           bcp != NULL; 
+           bcp = 
+#if !IA64_ABI
+                 bcp->next
+#else /* IA64_ABI */
+                 bcp->next_preorder
+#endif /* IA64_ABI */    
+                                   ) {
+        /* Ignore non-virtual base classes. */
+        if (bcp->is_virtual
+#if IA64_ABI
+            /* Ignore direct or indirect primary virtual bases. */
+            && bcp != ctsp->primary_base_class
+            && !bcp->shares_virtual_function_info
+            /* Ignore optimized empty bases, too. */
+            && !bcp->is_optimized_empty_base
+#endif /* IA64_ABI */
+                                                 ) {
+#if CFRONT_OBJECT_CODE_COMPATIBILITY
+          /* If the space for the virtual base class was allocated inside
+             some other base class, it need not be allocated here. */
+          if (bcp->data_section_base_class == NULL) {
+#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
+            base_ctsp = bcp->type->variant.class_struct_union.extra_info;
+            base_class_type = base_ctsp->type_as_subobject;
+#if CFRONT_OBJECT_CODE_COMPATIBILITY
+            /* Decide whether to use the base class's type or its
+               type-as-subobject for this instance as a base class.
+               See comment above. */
+            if (bcp->complete_subobject) base_class_type = bcp->type;
+#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
+            add_base_class_dummy_field(bcp->type, "__v_",
                                        base_class_type, bcp->offset,
                                        class_type);
+#if CFRONT_OBJECT_CODE_COMPATIBILITY
           }  /* if */
-#if !IA64_ABI
-        } else {
-          /* Virtual base class.  See if a pointer to the base class is
-             required. */
-          /* Do not put out the pointer if it is shared with a base class. */
-          if (bcp->pointer_base_class == NULL) {
-            add_base_class_dummy_field(bcp->type, "__p_",
-                                       make_pointer_type(base_class_type),
-                                       bcp->pointer_offset, class_type);
-          }  /* if */
-#endif /* !IA64_ABI */
+#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
         }  /* if */
       }  /* for */
-      /* Make the virtual function table variables if they have not been made
-         already.  This must be done after prelowering of the base classes. */
-      make_vars_for_virtual_function_tables(class_type);
-      if (needs_virtual_function_table(class_type) &&
-          ctsp->virtual_function_info_base_class == NULL) {
-        /* The class has virtual functions, so it needs a virtual function
-           table pointer.  Also, the pointer is not shared with a base
-           class.  Make a dummy field for a virtual function table pointer. */
-        add_dummy_field("__vptr", pointer_to_vtbl_type(),
-                        ctsp->virtual_function_info_offset, class_type);
-      }  /* if */
-      /* Make a type for the class for use when the class is a subobject.
-         This will be the same as the class type if the class has no virtual
-         base classes. */
-      make_subobject_class_type(class_type);
-      /* If there are virtual base classes, make dummy fields to reserve space
-         for them and add those to the field list. */
-      if (class_type->variant.class_struct_union.any_virtual_base_classes) {
-        for (bcp = 
-#if !IA64_ABI
-                   ctsp->base_classes; 
-#else /* IA64_ABI */
-                   ctsp->preorder_base_classes;
-#endif /* IA64_ABI */
-             bcp != NULL; 
-             bcp = 
-#if !IA64_ABI
-                   bcp->next
-#else /* IA64_ABI */
-                   bcp->next_preorder
-#endif /* IA64_ABI */    
-                                     ) {
-          /* Ignore non-virtual base classes. */
-          if (bcp->is_virtual
-#if IA64_ABI
-              /* Ignore direct or indirect primary virtual bases. */
-              && bcp != ctsp->primary_base_class
-              && !bcp->shares_virtual_function_info
-              /* Ignore optimized empty bases, too. */
-              && !bcp->is_optimized_empty_base
-#endif /* IA64_ABI */
-                                                   ) {
-#if CFRONT_OBJECT_CODE_COMPATIBILITY
-            /* If the space for the virtual base class was allocated inside
-               some other base class, it need not be allocated here. */
-            if (bcp->data_section_base_class == NULL) {
-#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
-              base_ctsp = bcp->type->variant.class_struct_union.extra_info;
-              base_class_type = base_ctsp->type_as_subobject;
-#if CFRONT_OBJECT_CODE_COMPATIBILITY
-              /* Decide whether to use the base class's type or its
-                 type-as-subobject for this instance as a base class.
-                 See comment above. */
-              if (bcp->complete_subobject) base_class_type = bcp->type;
-#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
-              add_base_class_dummy_field(bcp->type, "__v_",
-                                         base_class_type, bcp->offset,
-                                         class_type);
-#if CFRONT_OBJECT_CODE_COMPATIBILITY
-            }  /* if */
-#endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
-          }  /* if */
-        }  /* for */
-      }  /* if */
-      /* Restore error_position as of entry to this routine. */
-      error_position = saved_error_position;
     }  /* if */
+    /* Restore error_position as of entry to this routine. */
+    error_position = saved_error_position;
   }  /* if */
 }  /* prelower_class_type */
 
@@ -7625,33 +7615,31 @@ Do IL lowering on the indicated class/struct/union type.
   lower_field_list(class_type);
   error_position = class_type->source_corresp.decl_position;
   ctsp = class_type->variant.class_struct_union.extra_info;
-  if (ctsp != NULL) {
-    if (ctsp->assoc_scope != NULL) {
-      /* There is a definition for the class. */
-      /* Lower the base classes. */
-      for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
-        lower_type(bcp->type);
-      }  /* for */
-      /* Lower the member functions, local types, etc.  Note that nothing
-         is promoted out of the class at this point; the promotions get done
-         at the end of lowering the memory region of which this is a class.
-         Note that in the case of a local class, the promotion may be done
-         at the end of lowering the function scope memory region, and this
-         routine is not called until later (when processing orphans for
-         the file scope).  In that case, the scope is already empty here
-         and the erstwhile members get lowered in their promoted positions. */
-      lower_scope(ctsp->assoc_scope);
+  if (ctsp->assoc_scope != NULL) {
+    /* There is a definition for the class. */
+    /* Lower the base classes. */
+    for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
+      lower_type(bcp->type);
+    }  /* for */
+    /* Lower the member functions, local types, etc.  Note that nothing
+       is promoted out of the class at this point; the promotions get done
+       at the end of lowering the memory region of which this is a class.
+       Note that in the case of a local class, the promotion may be done
+       at the end of lowering the function scope memory region, and this
+       routine is not called until later (when processing orphans for
+       the file scope).  In that case, the scope is already empty here
+       and the erstwhile members get lowered in their promoted positions. */
+    lower_scope(ctsp->assoc_scope);
 #if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
-      /* If some local types of member functions were promoted into the
-         class on their way to the file scope, lower them now too. */
-      lower_type_list(ctsp->promoted_local_types);
+    /* If some local types of member functions were promoted into the
+       class on their way to the file scope, lower them now too. */
+    lower_type_list(ctsp->promoted_local_types);
 #endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
-    }  /* if */
-    /* Lower the template argument list, if any. */
-    lower_template_arg_list(ctsp->template_arg_list);
-    /* Lower the type-as-subobject. */
-    lower_type(ctsp->type_as_subobject);
   }  /* if */
+  /* Lower the template argument list, if any. */
+  lower_template_arg_list(ctsp->template_arg_list);
+  /* Lower the type-as-subobject. */
+  lower_type(ctsp->type_as_subobject);
   if (class_type->kind == (a_type_kind)tk_class) {
     class_type->kind = (a_type_kind)tk_struct;
   }  /* if */
@@ -15463,7 +15451,6 @@ end_local_types for later processing.
         { a_class_type_supplement_ptr ctsp =
                                    type->variant.class_struct_union.extra_info;
           if (type_as_subobject->next != NULL ||
-              ctsp == NULL ||
               ctsp->type_as_subobject != type_as_subobject) {
 #if DEBUG
             (void)fprintf(f_debug, "Class type: ");
@@ -15615,28 +15602,26 @@ namespace scope), at the position indicated by *insert_pointer, and
   a_scope_ptr                 scope;
 
   ctsp = class_type->variant.class_struct_union.extra_info;
-  if (ctsp != NULL) {
-    scope = ctsp->assoc_scope;
-    /* If the class has constants, static data members, member functions,
-       or local types, promote them out of the class scope. */
-    if (scope != NULL) {
+  scope = ctsp->assoc_scope;
+  /* If the class has constants, static data members, member functions,
+     or local types, promote them out of the class scope. */
+  if (scope != NULL) {
 #if DEBUG
-      if (debug_level >= 4) {
-        (void)fprintf(f_debug, "Promoting the members out of ");
-        db_scope(scope);
-        (void)fprintf(f_debug, "\n");
-      }  /* if */
-#endif /* DEBUG */
-      /* Constants, static data members, and member functions are promoted
-         to the file scope. */
-      promote_constants(scope);
-      promote_variables(scope);
-      promote_routines(scope);
-      /* Types are promoted to promotion_scope. */
-      promote_types(scope, promotion_scope, insert_pointer);
-      promote_pragmas(scope);
-      /* There are no asm declarations in class scopes. */
+    if (debug_level >= 4) {
+      (void)fprintf(f_debug, "Promoting the members out of ");
+      db_scope(scope);
+      (void)fprintf(f_debug, "\n");
     }  /* if */
+#endif /* DEBUG */
+    /* Constants, static data members, and member functions are promoted
+       to the file scope. */
+    promote_constants(scope);
+    promote_variables(scope);
+    promote_routines(scope);
+    /* Types are promoted to promotion_scope. */
+    promote_types(scope, promotion_scope, insert_pointer);
+    promote_pragmas(scope);
+    /* There are no asm declarations in class scopes. */
   }  /* if */
 }  /* promote_class_members */
 

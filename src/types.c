@@ -330,7 +330,7 @@ incomplete (because the definition is not done yet).
   ctsp = tp->variant.class_struct_union.extra_info;
   has_body = (tp->variant.class_struct_union.field_list != NULL ||
               tp->variant.class_struct_union.is_empty_class ||
-              (ctsp != NULL && ctsp->assoc_scope != NULL));
+              ctsp->assoc_scope != NULL);
   return has_body;
 }  /* class_type_has_body */
 
@@ -1510,11 +1510,13 @@ in 16-bit Microsoft mode).
   } else {
     /* near/far are not explicit in the type. */
     /* See if the type is a class with an explicit memory attribute (C++). */
-    a_class_type_supplement_ptr ctsp;
+    a_boolean  is_class_type;
     tp = skip_typerefs(tp);
-    if (is_class_struct_union(tp) &&
-        (ctsp = tp->variant.class_struct_union.extra_info) != NULL &&
-        (qualifiers = ctsp->qualifiers) != TQ_NONE) {
+    is_class_type = is_class_struct_union(tp);
+    if (is_class_type) {
+      qualifiers = class_type_supp(tp)->qualifiers;
+    }  /* if */
+    if (is_class_type && qualifiers != TQ_NONE) {
       /* A C++ class with a memory attribute specified for all instances of
          the class. */
       is_far = (qualifiers & TQ_FAR) != TQ_NONE;
@@ -8666,8 +8668,7 @@ of virtual functions if type is a class.
   for (;;) {
     type = skip_typerefs(type);
     if (is_immediate_class_type(type)) {
-      a_class_type_supplement_ptr ctsp =
-                                   type->variant.class_struct_union.extra_info;
+      a_class_type_supplement_ptr ctsp = class_type_supp(type);
       a_base_class_ptr            bcp;
 #if DO_IL_LOWERING
       a_boolean unknown;

@@ -2921,18 +2921,15 @@ declaration modifiers.
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode) {
-    a_class_type_supplement_ptr
-         sup1 = tp1->variant.class_struct_union.extra_info,
-         sup2 = tp2->variant.class_struct_union.extra_info;
-    if (sup1 != NULL) {
-      /* The dllimport and dllexport modifiers need not match up (dllexport
-         should take precedence).  The other modifier applying to a class
-         (novtable) must only match when the declarations in both translation
-         units are also definitions. */
-      if ((sup1->decl_modifiers & ~DM_DLLFLAGS) !=
+    a_class_type_supplement_ptr  sup1 = class_type_supp(tp1),
+                                 sup2 = class_type_supp(tp2);
+    /* The dllimport and dllexport modifiers need not match up (dllexport
+       should take precedence).  The other modifier applying to a class
+       (novtable) must only match when the declarations in both translation
+       units are also definitions. */
+    if ((sup1->decl_modifiers & ~DM_DLLFLAGS) !=
                                       (sup2->decl_modifiers & ~DM_DLLFLAGS)) {
-        result = class_type_has_body(tp1) && class_type_has_body(tp2);
-      }  /* if */
+      result = class_type_has_body(tp1) && class_type_has_body(tp2);
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -4638,10 +4635,9 @@ supplement for an instantiation that matches inst.
   a_symbol_list_entry_ptr
               result = NULL, sym_entry, *last_ptr, *guard_ptr;
   a_class_type_supplement_ptr
-              ctsp = class_type->variant.class_struct_union.extra_info;
+              ctsp = class_type_supp(class_type);
   if (is_type_symbol(inst)) {
-    tssp = primary_template_of((a_symbol_ptr)tssp->il_template_entry
-                                                 ->source_corresp.assoc_info)
+    tssp = primary_template_of(symbol_for(tssp->il_template_entry))
                                                       ->variant.template_info;
   }  /* if */
   /* Special measures must be taken to avoid infinite recursion while
@@ -4675,7 +4671,7 @@ supplement for an instantiation that matches inst.
          (for the same instance). */
       break;
     }  /* if */
-    corresp_ctsp = corresp_type->variant.class_struct_union.extra_info;
+    corresp_ctsp = class_type_supp(corresp_type);
     /* Check that the template arguments and possibly the partial
        specialization arguments are equivalent.  The ETA_IS_NONREAL_MEMBER
        option allows differing length for the argument lists.  Do not confuse
@@ -6312,7 +6308,7 @@ corresponding instance, or NULL if no corresponding instance is found.
       a_type_ptr			class_type;
       a_class_type_supplement_ptr	ctsp;
       class_type = sym_to_find->variant.class_struct_union.type;
-      ctsp = class_type->variant.class_struct_union.extra_info;
+      ctsp = class_type_supp(class_type);
       /* This routine cannot create a new prototype instantiation in the other
          translation unit. */
       check_assertion(!class_type->

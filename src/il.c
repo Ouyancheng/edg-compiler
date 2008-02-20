@@ -5070,29 +5070,27 @@ to refine the hash value developed in hash_constant.
     case tk_union:
       hash_value = (a_constant_hash_value)type->kind;
       ctsp = type->variant.class_struct_union.extra_info;
-      if (ctsp != NULL) {
-        if (ctsp->assoc_scope != NULL) {
-          /* Use the scope number as the hash value. */
-          hash_value = ctsp->assoc_scope->number;
-        } else {
-          /* No definition for the class. */
-          /* Work in the template arguments if there are any. */
-          for (tap = ctsp->template_arg_list; tap != NULL; tap = tap->next) {
-            switch (tap->kind) {
-              case tak_type:
-                hash_value += hash_type(tap->variant.type) + 37;
-                break;
-              case tak_nontype:
-                hash_value += hash_constant(tap->variant.constant) + 43;
-                break;
-              case tak_template:
-                hash_value += hash_name(&tap->
-                                            variant.templ.ptr->source_corresp);
-                break;
-              default: unexpected_condition(); break;
-            }  /* switch */
-          }  /* if */
-        }  /* if */
+      if (ctsp->assoc_scope != NULL) {
+        /* Use the scope number as the hash value. */
+        hash_value = ctsp->assoc_scope->number;
+      } else {
+        /* No definition for the class. */
+        /* Work in the template arguments if there are any. */
+        for (tap = ctsp->template_arg_list; tap != NULL; tap = tap->next) {
+          switch (tap->kind) {
+            case tak_type:
+              hash_value += hash_type(tap->variant.type) + 37;
+              break;
+            case tak_nontype:
+              hash_value += hash_constant(tap->variant.constant) + 43;
+              break;
+            case tak_template:
+              hash_value += hash_name(&tap->
+                                          variant.templ.ptr->source_corresp);
+              break;
+            default: unexpected_condition(); break;
+          }  /* switch */
+        }  /* for */
       }  /* if */
       break;
     case tk_typeref:
@@ -8415,9 +8413,7 @@ building a type from nested declarators outward.  class_type must be non-NULL.)
         /* A pointer-to-member declaration involving a given class type
            locks in the inheritance kind (i.e., the pointer-to-member
            representation). */
-        a_class_type_supplement_ptr ctsp =
-                             class_type->variant.class_struct_union.extra_info;
-
+        a_class_type_supplement_ptr ctsp = class_type_supp(class_type);
         /* Force instantiation of template class. */
         instantiate_template_class(class_type);
         if (ctsp->inheritance_kind == (an_inheritance_kind)ihk_none) {
@@ -17369,8 +17365,7 @@ IL, which means the class members are also being eliminated.  Do any
 necessary processing on those members to clear instantiation information.
 */
 {
-  a_class_type_supplement_ptr ctsp =
-                             class_type->variant.class_struct_union.extra_info;
+  a_class_type_supplement_ptr ctsp = class_type_supp(class_type);
 
   check_assertion(!C_mode() && ctsp != NULL);
   if (ctsp->assoc_scope != NULL) {
@@ -17403,8 +17398,7 @@ member types are placeholders for class instantiations, clear the flag in
 the class instantiations because the placeholders will be removed.
 */
 {
-  a_class_type_supplement_ptr ctsp =
-                             class_type->variant.class_struct_union.extra_info;
+  a_class_type_supplement_ptr ctsp = class_type_supp(class_type);
   a_scope_ptr                 scope;
 
   check_assertion(!C_mode() && ctsp != NULL);
@@ -17433,8 +17427,7 @@ IL, which means the class members are also being eliminated.  Do any
 necessary processing on those members.
 */
 {
-  a_class_type_supplement_ptr ctsp =
-                             class_type->variant.class_struct_union.extra_info;
+  a_class_type_supplement_ptr ctsp = class_type_supp(class_type);
 
   check_assertion(!C_mode() && ctsp != NULL);
   /* If the definition of class_type included friend declarations, the
@@ -17484,12 +17477,14 @@ entry into one representing a nondefining declaration.
     internal_error("turn_class_definition_into_declaration: class def needed");
   }  /* if */
 #endif /* CHECKING */
-  if (!C_mode()) {
-    /* In C++ mode fix up the class-type-supplement and data structures
-       pointed to from it. */
+  if (C_mode()) {
+    /* Discard the scope associated with the definition. */
+    class_type_supp(class_type)->assoc_scope = NULL;
+  } else {
+    /* In C++ mode, the class-type-supplement and the data structures pointed
+       to from it require more work. */
     a_class_type_supplement_ptr  ctsp;
     a_class_type_supplement      old_supp;
-
     /* Do any necessary processing on the members of the class, which
        are being eliminated because the class is being eliminated. */
     process_members_of_eliminated_class_definition(class_type);
@@ -17558,11 +17553,9 @@ of the class.
   } else {
     /* The class definition is to be kept.  Process nested classes. */
     if (!C_mode()) {
-      a_class_type_supplement_ptr  ctsp;
-
-      ctsp = class_type->variant.class_struct_union.extra_info;
+      a_class_type_supplement_ptr  ctsp = class_type_supp(class_type);
       /* Note that even though class_type is complete, it may not have an
-         associated scope (e.g., in the case of nonreal classes). */
+         associated scope (e.g., in the case of some nonreal classes). */
       if (ctsp->assoc_scope != NULL) {
         a_type_ptr  tp = ctsp->assoc_scope->types;
         for (; tp != NULL; tp = tp->next) {
@@ -17959,14 +17952,9 @@ eliminated, if appropriate.
           if (rp->is_virtual) {
 #if DO_IL_LOWERING
             a_type_ptr                   class_type = sym_parent_class(sym);
-            a_class_type_supplement_ptr  ctsp;
+            a_class_type_supplement_ptr  ctsp = class_type_supp(class_type);
             a_variable_ptr               vtbl_var, typeinfo_var;
-
-            ctsp = class_type->variant.class_struct_union.extra_info;
-            /* Note: the class-type supplement will be NULL if the class
-               body has been eliminated. */
-            if (ctsp != NULL &&
-                ((vtbl_var = ctsp->virtual_function_table_var) == NULL ||
+            if (((vtbl_var = ctsp->virtual_function_table_var) == NULL ||
                   !il_entry_prefix_of(vtbl_var).keep_in_il)
 #if ABI_CHANGES_FOR_RTTI
                                                             &&

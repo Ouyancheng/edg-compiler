@@ -1744,9 +1744,8 @@ multiple designators are handled by the recursion in get_initializer.
       if (!C_mode()) {
         /* If we're in an anonymous union (the field case), look for the field
            in the enclosing class scope. */
-        a_class_type_supplement_ptr  ctsp = 
-                        type_to_look_in->variant.class_struct_union.extra_info;
-        while (ctsp != NULL && ctsp->anonymous_union_kind ==
+        a_class_type_supplement_ptr  ctsp = class_type_supp(type_to_look_in);
+        while (ctsp->anonymous_union_kind ==
                                           (an_anonymous_union_kind)auk_field) {
           type_to_look_in = parent_class_of(type_to_look_in);
           ctsp = class_type_supp(type_to_look_in);

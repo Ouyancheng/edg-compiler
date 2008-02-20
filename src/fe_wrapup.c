@@ -638,23 +638,19 @@ calls itself recursively, and on those calls sp will be a block scope.
   /* Visit all types, looking for local classes. */
   for (type = sp->types; type != NULL; type = type->next) {
     if (is_immediate_class_type(type)) {
-      a_class_type_supplement_ptr ctsp =
-                                   type->variant.class_struct_union.extra_info;
       /* Visit the class scope if it has one. */
-      if (ctsp != NULL) {
-        a_scope_ptr class_scope = ctsp->assoc_scope;
-        if (class_scope != NULL) {
-          /* Visit the member functions of the class. */
-          for (routine = class_scope->routines;
-               routine != NULL;
-               routine = routine->next) {
-            a_memory_region_number rn = routine->assoc_scope;
-            if (rn != NULL_region_number) {
-              finish_function_processing_for_memory_region(rn,
-                                                        /*only_inline=*/FALSE);
-            }  /* if */
-          }  /* for */
-        }  /* if */
+      a_scope_ptr class_scope = class_type_supp(type)->assoc_scope;
+      if (class_scope != NULL) {
+        /* Visit the member functions of the class. */
+        for (routine = class_scope->routines;
+             routine != NULL;
+             routine = routine->next) {
+          a_memory_region_number rn = routine->assoc_scope;
+          if (rn != NULL_region_number) {
+            finish_function_processing_for_memory_region(rn,
+                                                      /*only_inline=*/FALSE);
+          }  /* if */
+        }  /* for */
       }  /* if */
     }  /* if */
   }  /* for */

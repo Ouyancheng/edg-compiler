@@ -21025,7 +21025,7 @@ dllimport or dllexport attribute to a template instance.
         /* Members of a dllimport class are never explicitly instantiated. */
         a_class_type_supplement_ptr  ctsp =
                              class_type->variant.class_struct_union.extra_info;
-        if (ctsp != NULL && (ctsp->decl_modifiers & DM_DLLIMPORT)) {
+        if (ctsp->decl_modifiers & DM_DLLIMPORT) {
           pragma_kind = (a_pragma_kind)pk_do_not_instantiate;
         }  /* if */
       }  /* if */

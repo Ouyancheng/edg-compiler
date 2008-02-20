@@ -808,8 +808,7 @@ template class, its DLL interface may need to be adjusted implicitly.
   /* dllimport and dllexport should never be set together. */
   check_assertion(new_dll_flags != DM_DLLFLAGS);
   if (new_dll_flags != 0) {
-    a_class_type_supplement_ptr  
-               ctsp = class_type->variant.class_struct_union.extra_info;
+    a_class_type_supplement_ptr  ctsp = class_type_supp(class_type);
     if (!adjust_template_base &&
         class_type->source_corresp.name_linkage !=
                                           (a_name_linkage_kind)nlk_external &&
@@ -1047,10 +1046,8 @@ called for the explicit instantiation of class_type.  err_pos is a pointer
 to a source position used for diagnostics.
 */
 {
-  a_class_type_supplement_ptr
-                     ctsp = class_type->variant.class_struct_union.extra_info;
-
-  if (ctsp != NULL) {
+  if (!C_mode()) {
+    a_class_type_supplement_ptr  ctsp = class_type_supp(class_type);
     /* Record any C++-only declaration modifiers in the class type supplement.
        (See also scan_extended_decl_modifiers and scan_declspec_attributes
        which reject C++-only modifiers in C mode.) */
@@ -3589,7 +3586,6 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
                                     is_class_definition, &tag_position);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    ctsp = class_type->variant.class_struct_union.extra_info;
     if (!is_template_specific_decl || !(*declares_something)) {
       is_redeclaration = TRUE;
     }  /* if */
@@ -3619,6 +3615,7 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
       }  /* if */
     }  /* if */
     /* Record cross-reference information. */
+    ctsp = class_type_supp(class_type);
     if (!is_friend_decl && !locator.is_template_id &&
         is_file_or_namespace_scope(&scope_stack[depth_scope_stack]) &&
         class_type->variant.class_struct_union.is_prototype_instantiation &&
@@ -3854,8 +3851,7 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
   if (microsoft_mode && !C_mode() && tag_sym->kind != (a_symbol_kind)sk_type) {
     /* If the class has been defined, issue an error if the inheritance kind
        (if any) for the class is too restrictive. */
-    a_class_type_supplement_ptr ctsp = class_type->variant.
-                                           class_struct_union.extra_info;
+    a_class_type_supplement_ptr ctsp = class_type_supp(class_type);
     if (extended_decl_info.inheritance_kind != (an_inheritance_kind)ihk_none) {
       if (extended_decl_info.inheritance_kind != ctsp->inheritance_kind) {
         /* An error will already have been issued -- no need for another. */

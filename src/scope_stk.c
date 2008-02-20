@@ -5321,7 +5321,6 @@ is done, is that all the classes have to have been marked first.
 */
 {
   a_type_ptr                   tp, under_type;
-  a_class_type_supplement_ptr  ctsp;
   a_namespace_ptr              nsp;
 
   for (nsp = scope->namespaces; nsp != NULL; nsp = nsp->next) {
@@ -5344,8 +5343,8 @@ is done, is that all the classes have to have been marked first.
                             /*set_class_defn_needed=*/FALSE);
       }  /* if */
     } else if (is_immediate_class_type(tp)) {
-      ctsp = tp->variant.class_struct_union.extra_info;
-      if (ctsp != NULL && ctsp->assoc_scope != NULL) {
+      a_class_type_supplement_ptr  ctsp = class_type_supp(tp);
+      if (ctsp->assoc_scope != NULL) {
         /* Apply the check to each of the types defined in the class. */
         set_needed_flags_for_typedefs(ctsp->assoc_scope);
       }  /* if */
@@ -5363,7 +5362,6 @@ been completed.
 */
 {
   a_type_ptr                   tp;
-  a_class_type_supplement_ptr  ctsp;
   a_namespace_ptr              nsp;
   a_variable_ptr               vp;
   a_routine_ptr                rp;
@@ -5396,9 +5394,9 @@ been completed.
       /* If the class has been marked to indicate that it is needed,
          then we need to walk the subtree of the class; if not, we can ignore
          it. */
+      a_class_type_supplement_ptr  ctsp = class_type_supp(tp);
       remark_as_needed((char *)tp, (an_il_entry_kind)iek_type);
-      ctsp = tp->variant.class_struct_union.extra_info;
-      if (ctsp != NULL && ctsp->assoc_scope != NULL) {
+      if (ctsp->assoc_scope != NULL) {
         /* Check nested classes and static data members, too.  Note that this
            may be done even if the class itself is not needed. */
         set_needed_flags_at_end_of_file_scope(ctsp->assoc_scope);

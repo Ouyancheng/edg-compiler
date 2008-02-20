@@ -394,15 +394,15 @@ class type.  Do the output in the way described by octl.  Called only for C++.
     ctsp = class_type->variant.class_struct_union.extra_info;
 #if CHECKING || DEBUG
     if (ctsp == NULL) {
-      /* Avoid abort on error case where parent is incomplete class, so
+      /* Avoid abort on error case where parent has no supplement, so
          debug output will still come out okay. */
 #if DEBUG
       if (octl->debug_output) {
-        octl->output_str("<incomplete parent>");
+        octl->output_str("<parent with missing IL supplement>");
       } else
 #endif /* DEBUG */
       {
-        unexpected_condition_str("form_class_qualifier: parent has no body");
+        unexpected_condition_str("form_class_qualifier: missing supplement");
       }  /* if */
     } else
 #endif /* CHECKING || DEBUG */
@@ -4572,11 +4572,8 @@ if it is implicit in its parent class or namespace).
     an_ELF_visibility_kind  default_visibility =
                                       (an_ELF_visibility_kind)evk_unspecified;
     if (scp->is_class_member) {
-      a_class_type_supplement_ptr
-                                ctsp = class_type_supp(scp_parent_class(scp));
-      if (ctsp != NULL) {
-        default_visibility = ctsp->ELF_visibility;
-      }  /* if */
+        default_visibility =
+                       class_type_supp(scp_parent_class(scp))->ELF_visibility;
     } else if (scp_is_namespace_member(scp)) {
       default_visibility = scp_parent_namespace(scp)->ELF_visibility;
     }  /* if */
@@ -4724,12 +4721,9 @@ described by octl.
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
     if (is_immediate_class_type(type) && !octl->c_generating_back_end) {
-      a_class_type_supplement_ptr  ctsp = class_type_supp(type);
-      if (ctsp != NULL) {
-        form_ELF_visibility_attribute(ctsp->ELF_visibility,
-                                      &type->source_corresp,
-                                      &need_leading_space, octl);
-      }  /* if */
+      form_ELF_visibility_attribute(class_type_supp(type)->ELF_visibility,
+                                    &type->source_corresp,
+                                    &need_leading_space, octl);
     }  /* if */
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
     if (type->variables_are_implicitly_referenced) {

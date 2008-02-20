@@ -992,39 +992,37 @@ not being eliminated.
     ctsp = type->variant.class_struct_union.extra_info;
     check_assertion(is_immediate_class_type(corresp_type));
     corresp_ctsp = corresp_type->variant.class_struct_union.extra_info;
-    if (ctsp != NULL && corresp_ctsp != NULL) {
 #if NEW_CAN_BE_FOLDED_INTO_CTOR
-      if (corresp_ctsp->assoc_operator_new_routine == NULL &&
-          ctsp->assoc_operator_new_routine != NULL) {
-        corresp_ctsp->assoc_operator_new_routine =
-                              (a_routine_ptr)primary_il_entry_of(
+    if (corresp_ctsp->assoc_operator_new_routine == NULL &&
+        ctsp->assoc_operator_new_routine != NULL) {
+      corresp_ctsp->assoc_operator_new_routine =
+                            (a_routine_ptr)primary_il_entry_of(
                                       (char *)ctsp->assoc_operator_new_routine,
                                       iek_routine);
-      }  /* if */
+    }  /* if */
 #endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
 #if DELETE_CAN_BE_FOLDED_INTO_DTOR
-      if (corresp_ctsp->assoc_operator_delete_routine == NULL &&
-          ctsp->assoc_operator_delete_routine) {
-        corresp_ctsp->assoc_operator_delete_routine =
-                           (a_routine_ptr)primary_il_entry_of(
+    if (corresp_ctsp->assoc_operator_delete_routine == NULL &&
+        ctsp->assoc_operator_delete_routine) {
+      corresp_ctsp->assoc_operator_delete_routine =
+                         (a_routine_ptr)primary_il_entry_of(
                                    (char *)ctsp->assoc_operator_delete_routine,
                                    iek_routine);
-      }  /* if */
+    }  /* if */
 #endif /* DELETE_CAN_BE_FOLDED_INTO_DTOR */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (corresp_ctsp->uuid_string == NULL && ctsp->uuid_string != NULL) {
-        /* Preserve the UUID string associated with a class if it was only
-           specified on the entry about to be eliminated. */
-        corresp_ctsp->uuid_string = ctsp->uuid_string;
-      }  /* if */
-      if ((ctsp->decl_modifiers & DM_DLLEXPORT) != 0) {
-        /* __declspec(dllexport) takes precedence over
-           __declspec(dllimport).  */
-        corresp_ctsp->decl_modifiers |= DM_DLLEXPORT;
-        corresp_ctsp->decl_modifiers &= ~DM_DLLIMPORT;
-      }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    if (corresp_ctsp->uuid_string == NULL && ctsp->uuid_string != NULL) {
+      /* Preserve the UUID string associated with a class if it was only
+         specified on the entry about to be eliminated. */
+      corresp_ctsp->uuid_string = ctsp->uuid_string;
     }  /* if */
+    if ((ctsp->decl_modifiers & DM_DLLEXPORT) != 0) {
+      /* __declspec(dllexport) takes precedence over
+         __declspec(dllimport).  */
+      corresp_ctsp->decl_modifiers |= DM_DLLEXPORT;
+      corresp_ctsp->decl_modifiers &= ~DM_DLLIMPORT;
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (is_immediate_enum_type(type)) {
     if (corresp_type->variant.integer.uuid_string == NULL &&
@@ -1755,11 +1753,8 @@ the secondary translation unit IL).
                                (a_symbol_ptr)(type->source_corresp.assoc_info);
   do_saves_for_overwrite(primary_type, a_type_ptr);
   if (is_class) {
-    primary_ctsp = primary_type->variant.class_struct_union.extra_info;
-    /* Watch out for C mode. */
-    if (primary_ctsp != NULL) {
-      saved_befriending_classes = primary_ctsp->befriending_classes;
-    }  /* if */
+    primary_ctsp = class_type_supp(primary_type);
+    saved_befriending_classes = primary_ctsp->befriending_classes;
 #if MAINTAIN_NEEDED_FLAGS
     saved_definition_needed =
                     primary_type->variant.class_struct_union.definition_needed;
@@ -1770,10 +1765,8 @@ the secondary translation unit IL).
   do_restores_for_overwrite(primary_type, type);
   primary_type->first_placeholder_invalid = first_placeholder_invalid;
   if (is_class) {
-    primary_ctsp = primary_type->variant.class_struct_union.extra_info;
-    if (primary_ctsp != NULL) {
-      primary_ctsp->befriending_classes = saved_befriending_classes;
-    }  /* if */
+    primary_ctsp = class_type_supp(primary_type);
+    primary_ctsp->befriending_classes = saved_befriending_classes;
 #if MAINTAIN_NEEDED_FLAGS
     primary_type->variant.class_struct_union.definition_needed =
                                                        saved_definition_needed;

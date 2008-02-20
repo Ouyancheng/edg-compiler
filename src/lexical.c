@@ -11920,7 +11920,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
     arg_list_coalesced = TRUE;
     type = type_symbol_type(new_sym);
     ctsp = type->variant.class_struct_union.extra_info;
-    if (ctsp != NULL && first_defaulted_arg >= 0 &&
+    if (first_defaulted_arg >= 0 &&
         (ctsp->min_template_arguments == -1L ||
          ctsp->min_template_arguments > first_defaulted_arg)) {
       /* Record the number of arguments used in this reference. */

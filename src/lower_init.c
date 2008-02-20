@@ -5755,49 +5755,45 @@ copy nothing) but keep any side effects.
                           expr->type, op2);
       }  /* if */
     } else {
-      a_class_type_supplement_ptr ctsp =
-                             class_type->variant.class_struct_union.extra_info;
-      if (ctsp != NULL) {
-        a_targ_size_t entity_size = class_type->variant.class_struct_union.
-                                 extra_info->size_without_virtual_base_classes;
-        if (entity_size != class_type->size) {
-          /* A class with tail padding.  Rewrite the copy as a memcpy call. */
-          an_expr_node_ptr call_node;
-          a_boolean        converted;
-          op1->next = NULL;
-          op1 = add_cast(op1, void_star_type());
-          /* op2 is an rvalue, but we need an address for the memcpy. */
-          conv_rvalue_expr_to_object_pointer(&op2, &converted,
-                                             /*see_if_possible=*/FALSE,
-                                             /*gcc_lvalue=*/FALSE,
-                                             /*ignore_casts=*/FALSE,
-                                             (a_type_ptr *)NULL,
-                                             /*will_be_an_lvalue=*/FALSE);
-          if (!converted) {
-            /* Couldn't extract an address from the rvalue.  Copy the
-               rvalue to a temporary and take the address of the temporary. */
-            a_variable_ptr temp = assign_expr_to_temp(op2);
-            op2 = make_comma_node(op2, var_lvalue_expr(temp));
-            set_variable_address_taken(temp);
-          }  /* if */
-          op2 = add_cast(op2, make_pointer_type(
-                                  make_qualified_type(void_type(), TQ_CONST)));
-          op1->next = op2;
-          op2->next = node_for_host_large_integer(
-                                             (a_host_large_integer)entity_size,
-                                             targ_size_t_int_kind);
-          call_node = make_runtime_rout_call("memcpy", &memcpy_routine,
-                                             void_star_type(), op1);
-          if (!expr->result_is_not_used) {
-            if (!returns_lvalue) {
-              call_node = add_cast(call_node, make_pointer_type(expr->type));
-              call_node = add_indirection_to_node(call_node);
-            } else {
-              call_node = add_cast(call_node, expr->type);
-            }  /* if */
-          }  /* if */
-          overwrite_node(expr, call_node);
+      a_targ_size_t entity_size =
+               class_type_supp(class_type)->size_without_virtual_base_classes;
+      if (entity_size != class_type->size) {
+        /* A class with tail padding.  Rewrite the copy as a memcpy call. */
+        an_expr_node_ptr call_node;
+        a_boolean        converted;
+        op1->next = NULL;
+        op1 = add_cast(op1, void_star_type());
+        /* op2 is an rvalue, but we need an address for the memcpy. */
+        conv_rvalue_expr_to_object_pointer(&op2, &converted,
+                                           /*see_if_possible=*/FALSE,
+                                           /*gcc_lvalue=*/FALSE,
+                                           /*ignore_casts=*/FALSE,
+                                           (a_type_ptr *)NULL,
+                                           /*will_be_an_lvalue=*/FALSE);
+        if (!converted) {
+          /* Couldn't extract an address from the rvalue.  Copy the
+             rvalue to a temporary and take the address of the temporary. */
+          a_variable_ptr temp = assign_expr_to_temp(op2);
+          op2 = make_comma_node(op2, var_lvalue_expr(temp));
+          set_variable_address_taken(temp);
         }  /* if */
+        op2 = add_cast(op2, make_pointer_type(
+                                make_qualified_type(void_type(), TQ_CONST)));
+        op1->next = op2;
+        op2->next = node_for_host_large_integer(
+                                           (a_host_large_integer)entity_size,
+                                           targ_size_t_int_kind);
+        call_node = make_runtime_rout_call("memcpy", &memcpy_routine,
+                                           void_star_type(), op1);
+        if (!expr->result_is_not_used) {
+          if (!returns_lvalue) {
+            call_node = add_cast(call_node, make_pointer_type(expr->type));
+            call_node = add_indirection_to_node(call_node);
+          } else {
+            call_node = add_cast(call_node, expr->type);
+          }  /* if */
+        }  /* if */
+        overwrite_node(expr, call_node);
       }  /* if */
     }  /* if */
   }  /* if */

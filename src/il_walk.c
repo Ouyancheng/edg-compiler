@@ -1303,15 +1303,11 @@ the subtree is walked again if it has changed.
         type->variant.class_struct_union.keep_definition_in_il) {
       /* For a class, also clear the keep_in_il flag in the associated
          class type supplement and scope. */
-      a_class_type_supplement_ptr ctsp =
-                                   type->variant.class_struct_union.extra_info;
-      if (ctsp != NULL) {
-        a_scope_ptr scope;
-        il_entry_prefix_of(ctsp).keep_in_il = FALSE;
-        scope = ctsp->assoc_scope;
-        if (scope != NULL) {
-          il_entry_prefix_of(scope).keep_in_il = FALSE;
-        }  /* if */
+      a_class_type_supplement_ptr ctsp = class_type_supp(type);
+      a_scope_ptr                 scope = ctsp->assoc_scope;
+      il_entry_prefix_of(ctsp).keep_in_il = FALSE;
+      if (scope != NULL) {
+        il_entry_prefix_of(scope).keep_in_il = FALSE;
       }  /* if */
     }  /* if */
   } else if (entry_kind == iek_namespace) {
@@ -1358,9 +1354,8 @@ See the header comment of that routine for details.
        class, there's no point in looking further if the class has keep_in_il
        FALSE. */
     if (is_immediate_class_type(type) && il_entry_prefix_of(type).keep_in_il) {
-      a_class_type_supplement_ptr ctsp =
-                                   type->variant.class_struct_union.extra_info;
-      if (ctsp != NULL && ctsp->assoc_scope != NULL) {
+      a_class_type_supplement_ptr ctsp = class_type_supp(type);
+      if (ctsp->assoc_scope != NULL) {
         r_keep_definitions_of_virtual_functions_in_scope(ctsp->assoc_scope);
       }  /* if */
     }  /* if */
@@ -2062,8 +2057,8 @@ which these are local declarations.
       type->source_corresp.okay_to_walk_subtree_of_local_entity = TRUE;
       remark_as_needed    ((char *)type, (an_il_entry_kind)iek_type);
       remark_to_keep_in_il((char *)type, (an_il_entry_kind)iek_type);
-      ctsp = type->variant.class_struct_union.extra_info;
-      if (ctsp != NULL && ctsp->assoc_scope != NULL) {
+      ctsp = class_type_supp(type);
+      if (ctsp->assoc_scope != NULL) {
         /* Set the flag on nested classes and other members too. */
         walk_subtrees_of_local_entities(ctsp->assoc_scope);
       }  /* if */
@@ -2428,8 +2423,7 @@ call the given processing function for each entity.
     (*entry_process_function)((char *)type, iek_type);
     if (is_immediate_class_type(type)) {
       /* For a class, visit the members. */
-      a_class_type_supplement_ptr ctsp =
-                                   type->variant.class_struct_union.extra_info;
+      a_class_type_supplement_ptr ctsp = class_type_supp(type);
       a_field_ptr field;
       /* Visit the nonstatic data members (these exist even in C). */
       for (field = type->variant.class_struct_union.field_list;
@@ -2438,12 +2432,9 @@ call the given processing function for each entity.
         (*entry_process_function)((char *)field, iek_field);
       }  /* for */
       /* Visit the class scope if it has one. */
-      if (ctsp != NULL) {
-        a_scope_ptr class_scope = ctsp->assoc_scope;
-        if (class_scope != NULL) {
-          walk_declarative_entities_in_scope(class_scope,
-                                             entry_process_function);
-        }  /* if */
+      if (ctsp->assoc_scope != NULL) {
+        walk_declarative_entities_in_scope(ctsp->assoc_scope,
+                                           entry_process_function);
       }  /* if */
     }  /* if */
   }  /* for */
