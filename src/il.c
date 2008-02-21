@@ -1195,7 +1195,9 @@ Dump the contents of the indicated type entry, for debug purposes.
         }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         db_type_name(tp);
-        if (!class_type_has_body(tp)) {
+        if (class_type_supp(tp) == NULL) {
+          fputs(" (missing class type supplement)", f_debug);
+        } else if (!class_type_has_body(tp)) {
           fputs(" (undefined)", f_debug);
         } else {
           a_base_class_ptr  bcp = NULL;
@@ -17863,58 +17865,7 @@ eliminated, if appropriate.
     }  /* if */
   }  /* for */
   pointers_block->last_variable = prev_vp;
-  prev_tp = NULL;
-  for (tp = scope->types; tp != NULL; tp = next_tp) {
-    a_boolean  keep;
-    next_tp = tp->next;
-    keep = type_is_to_be_kept_in_il(tp);
-#if DEBUG
-    if (debug_level >= 3 || db_trace("dump_elim", tp, iek_type)) {
-      fprintf(f_debug, "%semoving ",
-              keep ? "Not r" : "R");
-      if (has_name(tp)) {
-        db_type_name(tp);
-      } else {
-        db_abbreviated_type(tp);
-      }  /* if */
-      fputc('\n', f_debug);
-    }  /* if */
-#endif /* DEBUG */
-    if (!keep) {
-      /* Remove it from the types list by linking around it. */
-      if (prev_tp == NULL) {
-        scope->types = tp->next;
-      } else {
-        prev_tp->next = tp->next;
-      }  /* if */
-      tp->next = NULL;
-      if (is_immediate_class_type(tp)) {
-        if (!C_mode()) {
-          /* Process the members, which are being removed because the
-             class is being removed. */
-          process_members_of_eliminated_class_definition(tp);
-        }  /* if */
-        /* This is a class type that has been removed from the IL (because
-           it's not really needed anywhere), but just in case there's a
-           reference to it somewhere that causes it to be written, clear its
-           pointers so they can't be walked. */
-        tp->variant.class_struct_union.field_list = NULL;
-        tp->variant.class_struct_union.extra_info = NULL;
-      }  /* if */
-    } else {
-      /* The type is being kept.  Check for nested classes. */
-      if (is_immediate_class_type(tp)) {
-        eliminate_unneeded_class_definitions(tp);
-      }  /* if */
-      prev_tp = tp;
-    }  /* if */
-  }  /* for */
-  pointers_block->last_type = prev_tp;
-#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
-  if (scope->kind == (a_scope_kind)sck_file) {
-    eliminate_unneeded_scope_orphaned_list_entries();
-  }  /* if */
-#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
+  /* Process the list of routines in a similar way. */
   prev_rp = NULL;
   for (rp = scope->routines; rp != NULL; rp = next_rp) {
     next_rp = rp->next;
@@ -18019,6 +17970,61 @@ eliminated, if appropriate.
        so remove this reference to it. */
     il_header.main_routine = NULL;
   }  /* if */
+  /* Remove unneeded type entries.  This is done after unneeded routine entries
+     have been eliminated since that process may need access to certain class
+     types. */
+  prev_tp = NULL;
+  for (tp = scope->types; tp != NULL; tp = next_tp) {
+    a_boolean  keep;
+    next_tp = tp->next;
+    keep = type_is_to_be_kept_in_il(tp);
+#if DEBUG
+    if (debug_level >= 3 || db_trace("dump_elim", tp, iek_type)) {
+      fprintf(f_debug, "%semoving ",
+              keep ? "Not r" : "R");
+      if (has_name(tp)) {
+        db_type_name(tp);
+      } else {
+        db_abbreviated_type(tp);
+      }  /* if */
+      fputc('\n', f_debug);
+    }  /* if */
+#endif /* DEBUG */
+    if (!keep) {
+      /* Remove it from the types list by linking around it. */
+      if (prev_tp == NULL) {
+        scope->types = tp->next;
+      } else {
+        prev_tp->next = tp->next;
+      }  /* if */
+      tp->next = NULL;
+      if (is_immediate_class_type(tp)) {
+        if (!C_mode()) {
+          /* Process the members, which are being removed because the
+             class is being removed. */
+          process_members_of_eliminated_class_definition(tp);
+        }  /* if */
+        /* This is a class type that has been removed from the IL (because
+           it's not really needed anywhere), but just in case there's a
+           reference to it somewhere that causes it to be written, clear its
+           pointers so they can't be walked. */
+        tp->variant.class_struct_union.field_list = NULL;
+        tp->variant.class_struct_union.extra_info = NULL;
+      }  /* if */
+    } else {
+      /* The type is being kept.  Check for nested classes. */
+      if (is_immediate_class_type(tp)) {
+        eliminate_unneeded_class_definitions(tp);
+      }  /* if */
+      prev_tp = tp;
+    }  /* if */
+  }  /* for */
+  pointers_block->last_type = prev_tp;
+#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
+  if (scope->kind == (a_scope_kind)sck_file) {
+    eliminate_unneeded_scope_orphaned_list_entries();
+  }  /* if */
+#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
 #if RECORD_HIDDEN_NAMES_IN_IL
   /* Hidden name table entries need not be kept in the IL if they refer
      to entities that do not need to be kept. */
