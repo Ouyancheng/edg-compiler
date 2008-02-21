@@ -17866,6 +17866,13 @@ eliminated, if appropriate.
   }  /* for */
   pointers_block->last_variable = prev_vp;
   /* Process the list of routines in a similar way. */
+#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
+  /* Before eliminating the routines, be sure to remove associated orphaned
+     list entries. */
+  if (scope->kind == (a_scope_kind)sck_file) {
+    eliminate_unneeded_scope_orphaned_list_entries();
+  }  /* if */
+#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
   prev_rp = NULL;
   for (rp = scope->routines; rp != NULL; rp = next_rp) {
     next_rp = rp->next;
@@ -18020,11 +18027,6 @@ eliminated, if appropriate.
     }  /* if */
   }  /* for */
   pointers_block->last_type = prev_tp;
-#if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
-  if (scope->kind == (a_scope_kind)sck_file) {
-    eliminate_unneeded_scope_orphaned_list_entries();
-  }  /* if */
-#endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
 #if RECORD_HIDDEN_NAMES_IN_IL
   /* Hidden name table entries need not be kept in the IL if they refer
      to entities that do not need to be kept. */
