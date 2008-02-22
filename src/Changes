@@ -1,5 +1,20 @@
 Version 3.11
 
+2/22/08  Abort with #pragma on nonstandard Microsoft/Sun mode declaration
+
+In Microsoft and Sun modes, a class declaration (not definition) with the same
+name as a preceding class template declaration is ignored (with a warning).
+However, if that ignored declaration had a #pragma directive applied to it,
+the front end could abort ("IL entry write-read difference") in configurations
+that have IL_SHOULD_BE_WRITTEN_TO_FILE set to TRUE.  For example (assuming
+INCLUDE_EDG_TEST_PRAGMAS is TRUE):
+
+  template<typename T> struct S;
+  #pragma test_next_decl
+  struct S;  // Previously could trigger an IL write-read failure.
+
+This is now fixed.
+
 2/22/08  Diagnostic for invalid function qualifiers
 
 The diagnostic indicating that a type qualifier is not allowed on certain

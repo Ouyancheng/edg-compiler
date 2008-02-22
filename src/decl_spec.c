@@ -1686,7 +1686,7 @@ caution when modifying this routine.
          the symbol is a template class symbol then the arguments have already
          been scanned and we should simply use the symbol returned by
          normal_id_lookup. */
-      if (templ_sym->kind == (a_symbol_kind)sk_class_template) {
+      if (is_class_template_symbol(templ_sym)) {
         a_boolean  implicit_template_allowed =
                      (microsoft_bugs && microsoft_version < 1400) || sun_mode;
         tag_sym = coalesce_template_class_reference(
@@ -1705,6 +1705,9 @@ caution when modifying this routine.
               tag_sym = tag_sym->variant.template_info
                              ->variant.class_template.prototype_instantiation;
               warning(ec_not_a_class_or_struct_name);
+              /* Don't attempt to attach pragmas to the prototype
+                 instantiation. */
+              discard_curr_construct_pragmas();
             } else {
               error(ec_not_a_class_or_struct_name);
               err = TRUE;
