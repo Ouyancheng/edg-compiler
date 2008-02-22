@@ -1,5 +1,20 @@
 Version 3.11
 
+2/22/08  Wrong end positions for some constructs followed by #if
+
+In configurations with EXTRA_SOURCE_POSITIONS_IN_IL set to TRUE, the front end
+records the end positions of most constructs.  In some cases, if a construct
+was followed by a #if preprocessing directive, the end position of the
+construct was mistakenly set to that of the #if directive.  For example:
+
+  void f() {
+    for (;;) {}  // End position of stmk_for entry was set to the position of
+  #if 1          // the digit "1" instead of to the position of the "}".
+  #endif
+  }
+
+This is now fixed.
+
 2/20/08  Optimization of virtual function calls with default arguments
 
 In configurations in which OPTIMIZE_VIRTUAL_FUNCTION_CALLS is TRUE, a
