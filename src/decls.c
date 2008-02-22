@@ -3136,10 +3136,9 @@ created; the caller must set it.
           use_existing_il_entry = TRUE;
           preexisting_type = (*variable_ptr)->type;
           if (depth_innermost_function_scope != NO_SCOPE_DEPTH &&
-              ((gcc_mode && gnu_version < 30400) ||
-               (microsoft_mode && C_mode()))) {
-            /* In Microsoft C and early GNU C modes, the composite type is
-               retained in the local scope. */
+              (gcc_mode || (microsoft_mode && C_mode()))) {
+            /* In Microsoft C and GNU C modes, the composite type is retained
+               in the local scope. */
             (*variable_ptr)->type = esdp->type;
           } else {
             (*variable_ptr)->type = type_ptr;

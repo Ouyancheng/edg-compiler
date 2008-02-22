@@ -1,5 +1,19 @@
 Version 3.11
 
+2/22/08  GNU C compatibility: Type if block-extern variable declarations
+
+The Changes entry of 4/21/03 describes how in GNU C mode the type of a block-
+extern variable declaration is the composite type of the locally declared type
+and the previously obtained type.  Later, however, that behavior was
+erroneously made conditional on gnu_version < 30400.  The latter change is now
+undone.  For example:
+
+  extern char x[10];
+  void foo(void) {
+    extern char x[];
+    char x[sizeof x];  // Now accepted again in all GNU C modes.
+  }
+
 2/22/08  Wrong end positions for some constructs followed by #if
 
 In configurations with EXTRA_SOURCE_POSITIONS_IN_IL set to TRUE, the front end
