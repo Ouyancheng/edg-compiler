@@ -1,5 +1,15 @@
 Version 3.11
 
+2/22/08  Diagnostic for invalid function qualifiers
+
+The diagnostic indicating that a type qualifier is not allowed on certain
+types of functions (e.g., nonmember functions or static member functions)
+now explicitly mentions the class of functions affected.  For example:
+
+  struct S {
+    static void f() const;   // Error.  The diagnostic now mentions "static
+  };                         // member function" explicitly.
+
 2/22/08  GNU switch case range values sometimes lost
 
 In configurations with RECORD_SWITCH_CASE_ENTRIES set to FALSE, a GNU switch

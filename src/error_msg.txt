@@ -1714,6 +1714,10 @@ ec_bad_template_member_definition;;"%no1 cannot be specified in a template membe
 ec_local_function_attribute_ignored;;"attribute is ignored on local function declaration"
 ec_concat_yields_invalid_token;;"concatenation with %sq in %n does not create a valid token"
 ec_ambiguous_injected_template_name;;"%no is ambiguous (%n2 assumed)"
+ec_function_qualifier_on_static_member;;"type qualifier is not allowed on static member function"
+ec_function_qualifier_on_ctor_or_dtor;;"type qualifier is not allowed on constructor or destructor"
+ec_function_qualifier_on_new_or_delete;;"type qualifier is not allowed on operator new or operator delete"
+ec_function_qualifier_on_nonmember;;"type qualifier is not allowed on nonmember function"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

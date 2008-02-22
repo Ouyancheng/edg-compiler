@@ -1308,6 +1308,7 @@ see function_declarator (below) for which this is a helper function.
     /* In C++ the type of certain member functions may be qualified.  Scan
        for a const or volatile qualifier. */
     a_source_position  qualifier_pos;
+    an_error_code      err_code = ec_no_error;
     copy_source_position(pos_curr_token, qualifier_pos);
     qualifiers = collect_type_qualifiers(decl_pos_block,
                                          (a_upc_block_size *)NULL);
@@ -1326,9 +1327,11 @@ see function_declarator (below) for which this is a helper function.
                (is_new_operator(locator->variant.opname) ||
                 is_delete_operator(locator->variant.opname))) {
       /* Operator new and delete can never be qualified. */
+      err_code = ec_function_qualifier_on_new_or_delete;
       qualifier_err = TRUE;
     } else if (parent_type == NULL && !is_typedef_decl) {
       /* Cv-qualifier is allowed on a member function only. */
+      err_code = ec_function_qualifier_on_nonmember;
       qualifier_err = TRUE;
     } else if (!is_nonstatic_member && !is_typedef_decl &&
                current_scope_is_class(parent_type)) {
@@ -1336,18 +1339,20 @@ see function_declarator (below) for which this is a helper function.
          its class definition.  "const" and "volatile" are not allowed,
          but with Cfront it's sometimes okay (depending on the return type!)
          so just put out a warning in cfront mode. */
+      err_code = ec_function_qualifier_on_static_member;
       if (any_cfront_mode() && parent_type != NULL && !is_nonstatic_member) {
-        pos_warning(ec_function_qualifier_not_allowed, &qualifier_pos);
+        pos_warning(err_code, &qualifier_pos);
       } else {
         qualifier_err = TRUE;
       }  /* if */
     } else if (is_constructor || is_destructor) {
       /* A qualifier appearing on a constructor or destructor is not
          allowed (ARM 9.3.1). */
+      err_code = ec_function_qualifier_on_ctor_or_dtor;
       if (cfront_2_1_mode) {
         /* Cfront 2.1 issues no diagnostic for a qualifier on a constructor
            or destructor. */
-        pos_warning(ec_function_qualifier_not_allowed, &qualifier_pos);
+        pos_warning(err_code, &qualifier_pos);
       } else {
         qualifier_err = TRUE;
       }  /* if */
@@ -1362,7 +1367,8 @@ see function_declarator (below) for which this is a helper function.
       /* The qualifier was not allowed here, but if we're parsing an
          instantiation, the error was already emitted when parsing the
          template declaration. */
-      pos_error(ec_function_qualifier_not_allowed, &qualifier_pos);
+      check_assertion(err_code != ec_no_error);
+      pos_error(err_code, &qualifier_pos);
     }  /* if */
   }  /* if */
   if (is_nonstatic_member && qualifiers == TQ_NONE && !qualifier_err) {
