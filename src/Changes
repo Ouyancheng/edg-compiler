@@ -1,5 +1,11 @@
 Version 3.11
 
+2/22/08  Microsoft compatibility: Default va_list type
+
+The default type for va_list in Microsoft mode -- in effect when the global
+variable pass_stdarg_references_to_generated_code is TRUE -- is now char*
+(instead of void*).
+
 2/22/08  Abort with #pragma on nonstandard Microsoft/Sun mode declaration
 
 In Microsoft and Sun modes, a class declaration (not definition) with the same

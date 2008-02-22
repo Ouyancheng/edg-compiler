@@ -1022,7 +1022,8 @@ Enter the standard predeclared functions for GCC.
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
-#if GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS
+#if MICROSOFT_EXTENSIONS_ALLOWED || \
+    (GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS)
 
 static void enter_predefined_type(a_type_ptr type,
                                   char       *name)
@@ -1033,12 +1034,30 @@ Enter a predefined type.
   a_symbol_ptr sym_ptr;
 
   sym_ptr = full_enter_symbol(name, (sizeof_t)(strlen(name)),
-                              (a_symbol_kind)sk_type, NO_SCOPE_DEPTH);
+                              (a_symbol_kind)sk_type, DEPTH_OF_FILE_SCOPE);
   sym_ptr->variant.type.ptr = type;
   set_source_corresp(&type->source_corresp, sym_ptr);
 }  /* enter_predefined_type */
 
-#endif /* GNU_EXTENSIONS_ALLOWED && GCC_BUILTIN_VARARGS */
+
+static a_type_ptr enter_predefined_typedef(char        *name,
+                                            a_type_ptr  type)
+/*
+Create a type entry and associated symbol for a typedef of the given name
+with the given underlying type.  Enter these in the file scope and set
+builtin_va_list_type to point to the type entry.
+*/
+{
+  a_type_ptr  result = alloc_type((a_type_kind)tk_typeref);
+
+  result->variant.typeref.type = type;
+  add_to_types_list(result, DEPTH_OF_FILE_SCOPE);
+  /* enter_predefined_type also sets the name of the type. */
+  enter_predefined_type(result, name);
+  return result;
+}  /* enter_predefined_typedef */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || (GNU_EXTENSIONS_ALLOWED && ...) */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 static void enter_microsoft_predeclared_functions(void)
@@ -1207,19 +1226,21 @@ Enter predeclared symbols as required by the implementation.
        systems (such as Solaris), va_list is a simple typedef of void* and no
        __builtin_va_list is defined. */
 #if GCC_BUILTIN_VARARGS
-    builtin_va_list_type = alloc_type((a_type_kind)tk_typeref);
-    builtin_va_list_type->variant.typeref.type =
-                                               make_pointer_type(void_type());
+    builtin_va_list_type = enter_predefined_typedef(
+                                              "__builtin_va_list",
+                                              make_pointer_type(void_type()));
     builtin_va_list_type->is_builtin_va_list = TRUE;
-    add_to_types_list(builtin_va_list_type, DEPTH_OF_FILE_SCOPE);
-    /* enter_predefined_type also sets the name of the type. */
-    enter_predefined_type(builtin_va_list_type, "__builtin_va_list");
 #endif /* GCC_BUILTIN_VARARGS */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode) {
+    /* Ensure that a predefined va_list type will be char* (instead of the
+       default void*). */
     enter_microsoft_predeclared_functions();
+    (void)enter_predefined_typedef(
+                   BUILTIN_VA_LIST_OVERRIDE_TYPE_NAME,
+                   make_pointer_type(integer_type((an_integer_kind)ik_char)));
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if UPC_EXTENSIONS_ALLOWED
