@@ -5411,11 +5411,9 @@ the class or to depend on any lowering data structures.
 */
 {
   a_boolean                   result = FALSE;
-  a_class_type_supplement_ptr ctsp;
 
   check_assertion(is_immediate_class_type(class_type) && !C_mode());
   *unknown = TRUE;
-  ctsp = class_type->variant.class_struct_union.extra_info;
   if (is_incomplete_type(class_type)) {
     /* The class is not fully defined yet. */
   } else {
