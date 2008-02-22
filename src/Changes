@@ -1,5 +1,21 @@
 Version 3.11
 
+2/22/08  GNU switch case range values sometimes lost
+
+In configurations with RECORD_SWITCH_CASE_ENTRIES set to FALSE, a GNU switch
+case range immediately followed by another switch case (single value or range)
+resulted in only the first value of the range to be retained.  For example:
+
+  void f(int x) {
+    switch (x) {
+      case 1 ... 3:  /* Previously made equivalent to "case 1:". */
+      case 7:
+        break;
+    }
+  }
+
+This is now fixed.
+
 2/22/08  GNU C compatibility: Type if block-extern variable declarations
 
 The Changes entry of 4/21/03 describes how in GNU C mode the type of a block-

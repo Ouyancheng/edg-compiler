@@ -6056,6 +6056,11 @@ clause.
       /* Add the end-of-range constant. */
       range_end->next = *append_point;
       *append_point = range_end;
+      /* Update sssep->last_const_in_last_switch_clause if needed. */
+      while (sssep->last_const_in_last_switch_clause->next != NULL) {
+        sssep->last_const_in_last_switch_clause =
+                                sssep->last_const_in_last_switch_clause->next;
+      }  /* while */
     }  /* if */
   }  /* if */
 }  /* add_constant_to_switch_clause */
