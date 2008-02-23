@@ -2531,7 +2531,10 @@ execute the preprocessor directive.
   a_boolean	     	save_expand_macros = expand_macros;
   a_boolean          	save_do_string_literal_concatenation =
                                                do_string_literal_concatenation;
-  a_source_position  	save_error_position, save_construct_end_position;
+  a_source_position  	save_error_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position     save_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   a_source_position  	start_of_dir_position;
   a_pp_directive_kind	dir_kind;
   a_boolean		local_is_header_stop_dir;
@@ -2545,8 +2548,10 @@ execute the preprocessor directive.
      outside of preprocessing, the "current construct" should not include
      preprocessing constructs. */
   copy_source_position(error_position, save_error_position);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
   copy_source_position(curr_construct_end_position,
                        save_construct_end_position);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Save the position of the beginning of the directive. */
   start_of_dir_position = pos_curr_token;
   in_preprocessing_directive = TRUE;
@@ -2726,8 +2731,10 @@ execute the preprocessor directive.
   }  /* if */
   /* Restore the positions saved at entry. */
   copy_source_position(save_error_position, error_position);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
   copy_source_position(save_construct_end_position,
                        curr_construct_end_position);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   if (is_header_stop_dir || local_is_header_stop_dir) {
     if (dir_kind != ppd_include && dir_kind != ppd_include_next
 #if MICROSOFT_EXTENSIONS_ALLOWED
