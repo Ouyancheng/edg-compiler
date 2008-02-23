@@ -35,7 +35,7 @@ now explicitly mentions the class of functions affected.  For example:
 
 In configurations with RECORD_SWITCH_CASE_ENTRIES set to FALSE, a GNU switch
 case range immediately followed by another switch case (single value or range)
-resulted in only the first value of the range to be retained.  For example:
+resulted in only the first value of the range being retained.  For example:
 
   void f(int x) {
     switch (x) {
