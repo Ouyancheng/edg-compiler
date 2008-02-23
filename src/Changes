@@ -47,7 +47,7 @@ resulted in only the first value of the range being retained.  For example:
 
 This is now fixed.
 
-2/22/08  GNU C compatibility: Type if block-extern variable declarations
+2/22/08  GNU C compatibility: Type of block-extern variable declarations
 
 The Changes entry of 4/21/03 describes how in GNU C mode the type of a block-
 extern variable declaration is the composite type of the locally declared type
