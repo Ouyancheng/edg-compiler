@@ -4095,22 +4095,17 @@ to by ssep.
 }  /* add_to_scopes_list */
 
 
-void break_source_corresp(a_source_correspondence *sc)
+/*ARGSUSED*/  /* <-- sc is unused in some configurations. */
+void break_instance_source_corresp(a_source_correspondence *sc)
 /*
-If the indicated source correspondence is attached to a source entity,
-break the correspondence -- i.e., set to default values those fields that
-are tied to a particular source occurrence.
+Clear any parts of the indicated source correspondence that record
+information related to a specific source occurrence of an entity.
+Do not clear information related to the identity of the entity.
+So, for example, if this is applied to a copy of a constant,
+the copy is another use of the same constant, rather than a new
+constant that has the same value.
 */
 {
-  sc->assoc_info            = NULL;
-  sc->name                  = NULL;
-  sc->trans_unit_corresp    = NULL;
-  sc->is_class_member       = FALSE;
-  sc->parent_scope          = NULL;
-  sc->access                = (an_access_specifier)as_public;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  sc->microsoft_identifier_used = FALSE;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   sc->source_sequence_entry = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -4123,7 +4118,60 @@ are tied to a particular source occurrence.
 #if RECORD_FORM_OF_NAME_REFERENCE
   sc->name_references = NULL;
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
+}  /* break_instance_source_corresp */
+
+
+void break_source_corresp(a_source_correspondence *sc)
+/*
+Clear any parts of the indicated source correspondence that record
+information related to a specific source occurrence of an entity,
+or the name or parent of the entity.  So, for example, if this is
+applied to a copy of a constant, the copy is a distinct constant
+that has the same value as the original constant.
+*/
+{
+  sc->assoc_info            = NULL;
+  sc->name                  = NULL;
+  sc->trans_unit_corresp    = NULL;
+  sc->is_class_member       = FALSE;
+  sc->parent_scope          = NULL;
+  sc->access                = (an_access_specifier)as_public;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  sc->microsoft_identifier_used = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  break_instance_source_corresp(sc);
 }  /* break_source_corresp */
+
+
+static void break_constant_source_corresp(a_constant_ptr cp)
+/*
+Break the correspondence between the given constant and any particular
+source occurrence of the constant.  The altered constant is a distinct
+constant with the same value as the original constant, and not simply
+another use of the same constant.
+*/
+{
+  a_boolean break_instance = FALSE;
+
+  if (cp->kind == (a_constant_repr_kind)ck_template_param) {
+    a_template_param_constant_kind kind = cp->variant.template_param.kind;
+    if (kind == (a_template_param_constant_kind)tpck_param ||
+        kind == (a_template_param_constant_kind)tpck_member ||
+        kind == (a_template_param_constant_kind)tpck_unknown_function) {
+      /* For certain template constants, keep the information that
+         defines the identity of the constant. */
+      break_instance = TRUE;
+    }  /* if */
+  }  /* if */
+  if (break_instance) {
+    break_instance_source_corresp(&cp->source_corresp);
+    /* Don't allow more than one constant with the same associated
+       symbol. */
+    cp->source_corresp.assoc_info = NULL;
+  } else {
+    break_source_corresp(&cp->source_corresp);
+  }  /* if */
+}  /* break_constant_source_corresp */
 
 
 static void fix_memory_region_problems_in_copied_constant(a_constant_ptr cp)
@@ -4753,26 +4801,7 @@ value.  Several fields are cleared or adjusted.
   /* Clear the source correspondence information.  This version of the
      constant isn't the one directly associated with the source entity,
      if any. */
-  break_source_corresp(&ucp->source_corresp);
-  if (cp->kind == (a_constant_repr_kind)ck_template_param) {
-    a_template_param_constant_kind kind = cp->variant.template_param.kind;
-    if (kind == (a_template_param_constant_kind)tpck_param ||
-        kind == (a_template_param_constant_kind)tpck_member ||
-        kind == (a_template_param_constant_kind)tpck_unknown_function) {
-      /* For some template parameter constants, the name in the source
-         correspondence is part of the value.  It was cleared by
-         break_source_corresp, so restore it. */
-      ucp->source_corresp.name = cp->source_corresp.name;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      ucp->source_corresp.microsoft_identifier_used =
-                                  cp->source_corresp.microsoft_identifier_used;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      ucp->source_corresp.is_class_member = cp->source_corresp.is_class_member;
-      ucp->source_corresp.member_of_unknown_base =
-                                     cp->source_corresp.member_of_unknown_base;
-      ucp->source_corresp.parent_scope = cp->source_corresp.parent_scope;
-    }  /* if */
-  }  /* if */
+  break_constant_source_corresp(ucp);
   fix_memory_region_problems_in_copied_constant(ucp);
   return ucp;
 }  /* alloc_unshared_constant */

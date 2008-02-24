@@ -1,5 +1,25 @@
 Version 3.11
 
+2/24/08  Incorrect IL for constant, with name reference information
+
+In configurations with RECORD_FORM_OF_NAME_REFERENCE set to TRUE
+(e.g., C++-generating back end configurations), in some cases
+a use of an enumerator constant resulted in IL that had the
+same name reference entry on more than one list.  This is
+invalid, and could cause aborts in, among others, versions
+that write an IL file ("ptr_remap_function: address not in any 
+mem block").  Now fixed.
+
+  struct S {
+    enum E { N };
+    int array[N+1];
+  };
+  struct S1 {
+    void get(int x = S::N);
+  };
+  template <typename T, T Number> struct S2 { };
+  struct S3 : public S2<S::E, S::N> { };
+
 2/22/08  Microsoft compatibility: Default va_list type
 
 The default type for va_list in Microsoft mode -- in effect when the global

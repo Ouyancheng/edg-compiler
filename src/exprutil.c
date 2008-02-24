@@ -2163,6 +2163,7 @@ The position of the current token will be used as the operand position.
   check_assertion(sym->kind == (a_symbol_kind)sk_constant);
   con_ptr = sym->variant.constant;
   copy_constant(con_ptr, &constant);
+  break_instance_source_corresp(&constant.source_corresp);
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
   /* Detach any associated expression on template argument values accessed
      as the values of template parameters. */
