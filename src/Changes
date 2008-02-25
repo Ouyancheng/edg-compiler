@@ -1,5 +1,31 @@
 Version 3.11
 
+2/25/08  Access checking for related class casts in templates
+
+Some cases like the following caused spurious accessibility errors
+when prototype instantiations of templates are done (e.g., strict
+mode or g++ mode at or after 3.4).  Access checking is supposed to be
+suppressed in such contexts, because full information is not
+always available, but it was still done for base class accessibility
+(which is handled separately from member accessibility).  Now,
+that part of access checking is also suppressed.
+
+  class A {};
+  class D : private A {
+    template <class T> friend class B;
+  };
+  template <class T>
+  struct B {
+    void update() {
+      A* a;
+      static_cast<D*>(a);  // Formerly got spurious error
+    }
+  };
+  void foo() {
+    B<int> x;
+    x.update();
+  }
+
 2/24/08  Incorrect IL for constant, with name reference information
 
 In configurations with RECORD_FORM_OF_NAME_REFERENCE set to TRUE

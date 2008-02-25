@@ -7544,6 +7544,12 @@ functions befriending_list_test and class_scope_test.
   a_scope_depth           scope_depth;
   a_type_ptr              skip_to_class = NULL;
 
+  if (scope_stack[depth_scope_stack].in_prototype_instantiation) {
+    /* Suppress access checking during prototype instantiations.  Access
+       checking cannot be done for a template, only for instances. */
+    have_member_privilege = TRUE;
+    goto done;
+  }  /* if */
   /* Consider each scope on the scope stack that affects access control.
      They are linked together on a list. */
   for (scope_depth = depth_of_innermost_scope_that_affects_access_control;
@@ -7613,6 +7619,7 @@ functions befriending_list_test and class_scope_test.
       }  /* if */
     }  /* if */
   }  /* for */
+done:
   return have_member_privilege;
 }  /* have_particular_member_access_privilege */
   
