@@ -5410,7 +5410,7 @@ be called from outside of IL lowering, and it is careful not to change
 the class or to depend on any lowering data structures.
 */
 {
-  a_boolean                   result = FALSE;
+  a_boolean  result = FALSE;
 
   check_assertion(is_immediate_class_type(class_type) && !C_mode());
   *unknown = TRUE;

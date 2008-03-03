@@ -4572,7 +4572,7 @@ if it is implicit in its parent class or namespace).
     an_ELF_visibility_kind  default_visibility =
                                       (an_ELF_visibility_kind)evk_unspecified;
     if (scp->is_class_member) {
-        default_visibility =
+      default_visibility =
                        class_type_supp(scp_parent_class(scp))->ELF_visibility;
     } else if (scp_is_namespace_member(scp)) {
       default_visibility = scp_parent_namespace(scp)->ELF_visibility;
