@@ -635,6 +635,11 @@ typedef struct a_class_def_state {
   a_bit_field   POD_ruled_out:1;
 			/* TRUE if a property of the class disqualifies it as
 			   a "POD". */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_bit_field   potentially_interface_like:1;
+			/* TRUE if we haven't ruled out this type from being
+			   an "interface-like" type (Microsoft mode only). */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_bit_field	any_named_fields:1;
 			/* TRUE if any named fields are declared. */
   a_bit_field	any_friend_decls:1;
@@ -707,6 +712,9 @@ class being defined.
   cdsp->is_first_field = TRUE;
   cdsp->class_aggregate_ruled_out = FALSE;
   cdsp->POD_ruled_out = FALSE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  cdsp->potentially_interface_like = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   cdsp->any_named_fields = FALSE;
   cdsp->any_friend_decls = FALSE;
   cdsp->any_const_or_ref_fields = FALSE;
@@ -4896,35 +4904,6 @@ shares virtual function info.
                                    base_ctsp->highest_virtual_function_number;
 }  /* set_virtual_function_info_base_class */
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
-
-static a_boolean is_microsoft_interface_struct(a_type_ptr  type)
-/*
-Check whether the given class type is IUnknown or IDispatch.  These appear in
-Microsoft headers declared with the "struct" keyword, but they are implicitly
-treated as if declared with "__interface".  We identify these types using
-their "uuid" string.
-*/
-{
-  a_boolean  result = FALSE;
-
-  check_assertion(is_immediate_class_type(type));
-  if (type->kind == (a_type_kind)tk_struct &&
-      type->source_corresp.name != NULL &&
-      type->source_corresp.name[0] == 'I') {
-    char  *uuid_str = type->variant.class_struct_union.extra_info->uuid_string;
-    if (uuid_str != NULL &&
-        ((strcmp(type->source_corresp.name, "IUnknown") == 0 &&
-          strcmp(uuid_str, "00000000-0000-0000-c000-000000000046") == 0) ||
-         (strcmp(type->source_corresp.name, "IDispatch") == 0 &&
-          strcmp(uuid_str, "00020400-0000-0000-c000-000000000046") == 0))) {
-      result = TRUE;
-    }  /* if */
-  }  /* if */
-  return result;
-}  /* is_microsoft_interface_struct */
-
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if !MICROSOFT_EXTENSIONS_ALLOWED
 /*ARGSUSED*/ /* type_ptr only used when Microsoft extensions are enabled. */
@@ -5146,6 +5125,11 @@ or struct definition.  The syntax is
        keywords virtual, public, private, and protected. */
     scan_inheritance_kind(type_ptr, &is_virtual, &access,
                           &explicit_access_specifier);
+#if MICROSOFT_EXTERNSIONS_ALLOWED
+    if (access != (an_access_specifier)as_public) {
+      class_state->potentially_interface_like = FALSE;
+    }  /* if */
+#endif /* MICROSOFT_EXTERNSIONS_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
     {
@@ -5288,7 +5272,7 @@ or struct definition.  The syntax is
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (interface_definition &&
           !base_class_type->variant.class_struct_union.is_interface &&
-          !is_microsoft_interface_struct(base_class_type)) {
+          !base_class_type->variant.class_struct_union.is_interface_like) {
         error(ec_interface_must_derive_from_interface);
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -7307,38 +7291,54 @@ Also record the presence of a pure virtual function in the given class type.
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-static a_boolean check_virtual_interface_member(a_routine_ptr     rtn,
-                                                a_symbol_locator  *locator)
+static a_boolean check_virtual_interface_member(a_class_def_state  *state,
+                                                a_routine_ptr      rtn,
+                                                a_symbol_locator   *locator)
 /*
-The given routine is being declared in an interface class type.  Return
-whether the member should be (pure) virtual.  Issue an error for member
-functions that cannot be (user-)declared in interface class types.
+The given routine is being declared in a class type described by state.  Return
+whether the member should be (pure) virtual because it appears in an interface
+type.  If the current class is an interface type, issue an error for member
+functions that cannot be (user-) declared in interface class types.  If the
+current class is not an interface, state->potentially_interface_like may be
+set to FALSE (and FALSE is always returned).
 */
 {
-  a_boolean  is_virtual = FALSE;
+  a_boolean   is_implicitly_pure_virtual = FALSE;
+  a_type_ptr  type = state->class_type;
+  a_boolean   in_interface = type->variant.class_struct_union.is_interface;
 
-  switch (rtn->special_kind) {
-    case sfk_none:
-      is_virtual = TRUE;
-      break;
-    case sfk_constructor:
-    case sfk_destructor:
-      if (!rtn->compiler_generated) {
-        pos_error(ec_interface_cannot_have_ctor_or_dtor,
-                  &locator->source_position);
-      }  /* if */
-      break;
-    case sfk_conversion:
-    case sfk_operator:
-      if (!rtn->compiler_generated) {
-        pos_error(ec_interface_cannot_have_operator,
-                  &locator->source_position);
-      }  /* if */
-      break;
-    default:
-      unexpected_condition();
-  }  /* switch */
-  return is_virtual;
+  if (in_interface || state->potentially_interface_like) {
+    switch (rtn->special_kind) {
+      case sfk_none:
+        is_implicitly_pure_virtual = in_interface;
+        break;
+      case sfk_constructor:
+      case sfk_destructor:
+        if (!rtn->compiler_generated) {
+          if (in_interface) {
+            pos_error(ec_interface_cannot_have_ctor_or_dtor,
+                      &locator->source_position);
+          } else {
+            state->potentially_interface_like = FALSE;
+          }  /* if */
+        }  /* if */
+        break;
+      case sfk_conversion:
+      case sfk_operator:
+        if (!rtn->compiler_generated) {
+          if (in_interface) {
+            pos_error(ec_interface_cannot_have_operator,
+                      &locator->source_position);
+          } else {
+            state->potentially_interface_like = FALSE;
+          }  /* if */
+        }  /* if */
+        break;
+      default:
+        unexpected_condition();
+    }  /* switch */
+  }  /* if */
+  return is_implicitly_pure_virtual;
 }  /* check_virtual_interface_member */
 
 
@@ -8009,8 +8009,8 @@ implicitly declared member functions.
       a_boolean  is_virtual = ((decl_state->dso_flags & DSO_VIRTUAL) &&
                                !decl_info->invalid_virtual_specifier);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (class_type->variant.class_struct_union.is_interface &&
-          check_virtual_interface_member(rtn, locator)) {
+      if (microsoft_mode &&
+          check_virtual_interface_member(class_state, rtn, locator)) {
         /* This member is implicitly pure virtual by virtue of being
            declared in an interface class type.  Interfaces with virtual
            members cannot be PODs (in particular, they need generated
@@ -8735,13 +8735,18 @@ specific information about the member declaration, respectively.
                                  &locator->source_position,
                                  /*is_redecl=*/FALSE, /*is_definition=*/FALSE);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  /* Disallow data members in interface types. */
-  if (microsoft_mode && class_type->variant.class_struct_union.is_interface) {
-    pos_error(ec_interface_cannot_have_data_member, &locator->source_position);
-  }  /* if */
-  if (decl_state->ms_attributes != NULL) {
-    apply_microsoft_attributes(&decl_state->ms_attributes, (char*)var,
-                               iek_variable, MSAT_DATA_MEMBER);
+  if (microsoft_mode) {
+    /* Disallow data members in interface types. */
+    if (class_type->variant.class_struct_union.is_interface) {
+      pos_error(ec_interface_cannot_have_data_member,
+                &locator->source_position);
+    } else {
+      class_state->potentially_interface_like = FALSE;
+    }  /* if */
+    if (decl_state->ms_attributes != NULL) {
+      apply_microsoft_attributes(&decl_state->ms_attributes, (char*)var,
+                                 iek_variable, MSAT_DATA_MEMBER);
+    }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
@@ -10547,26 +10552,31 @@ definition and specific information about the member declaration, respectively.
       cssp->any_template_dependent_fields = TRUE;
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (decl_state->decl_modifiers.get_property_name != NULL ||
-        decl_state->decl_modifiers.put_property_name != NULL) {
-      /* This declaration includes __declspec(property(...)).  This is
-         valid only on nonstatic data members that are not bit fields. */
-      if (field->is_bit_field) {
-        pos_diagnostic(es_discretionary_error,
-                       ec_declspec_property_not_allowed,
-                       &locator->source_position);
-      } else {
-        field->get_property_name =
+    if (microsoft_mode) {
+      if (decl_state->decl_modifiers.get_property_name != NULL ||
+          decl_state->decl_modifiers.put_property_name != NULL) {
+        /* This declaration includes __declspec(property(...)).  This is
+           valid only on nonstatic data members that are not bit fields. */
+        if (field->is_bit_field) {
+          pos_diagnostic(es_discretionary_error,
+                         ec_declspec_property_not_allowed,
+                         &locator->source_position);
+        } else {
+          field->get_property_name =
                                  decl_state->decl_modifiers.get_property_name;
-        field->put_property_name =
+          field->put_property_name =
                                  decl_state->decl_modifiers.put_property_name;
+        }  /* if */
+      } else {
+        /* Disallow real data members in interface types (property fields are
+           fine). */
+        if (class_type->variant.class_struct_union.is_interface) {
+          pos_error(ec_interface_cannot_have_data_member,
+                    &locator->source_position);
+        } else {
+          class_state->potentially_interface_like = FALSE;
+        }  /* if */
       }  /* if */
-    } else if (microsoft_mode &&
-               class_type->variant.class_struct_union.is_interface) {
-      /* Disallow real data members in interface types (property fields are
-         fine). */
-      pos_error(ec_interface_cannot_have_data_member,
-                &locator->source_position);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
@@ -12409,9 +12419,12 @@ one is found return TRUE and update state->access accordingly.
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (microsoft_mode &&
-        state->class_type->variant.class_struct_union.is_interface &&
         (curr_token == tok_protected || curr_token == tok_private)) {
-      error(ec_interface_cannot_have_private_or_protected);
+      if (state->class_type->variant.class_struct_union.is_interface) {
+        error(ec_interface_cannot_have_private_or_protected);
+      } else {
+        state->potentially_interface_like = FALSE;
+      }  /* if */
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     scope_stack[decl_scope_level].current_access = state->access;
@@ -13107,7 +13120,12 @@ passed via template_decl.
   type_explicitly_specified =
                            (dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER) != 0;
   friend_specified = dso_flags & DSO_FRIEND;
-  if (friend_specified) class_state->any_friend_decls = TRUE;
+  if (friend_specified) {
+    class_state->any_friend_decls = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    class_state->potentially_interface_like = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  }  /* if */
   inline_specified = (dso_flags & DSO_INLINE) != 0;
   decl_info.is_constructor = (dso_flags & DSO_CONSTRUCTOR) != 0;
   decl_info.is_destructor = (dso_flags & DSO_DESTRUCTOR) != 0;
@@ -13855,17 +13873,22 @@ passed via template_decl.
            scanned). */
         curr_routine_fixup->symbol = decl_info.decl_state.sym;
       }  /* if */
-      if (microsoft_bugs) {
-        /* In Microsoft bugs mode, the typedef is processed before member
-           function bodies etc. are rescanned.  This makes e.g. the following
-           legal:
-              typedef struct {
-                enum { e };
-                void f() { S::e; }
-              } S;
-        */
-        process_deferred_class_fixups_and_instantiations();
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (microsoft_mode) {
+        class_state->potentially_interface_like = FALSE;
+        if (microsoft_bugs) {
+          /* In Microsoft bugs mode, the typedef is processed before member
+             function bodies etc. are rescanned.  This makes e.g. the following
+             legal:
+                typedef struct {
+                  enum { e };
+                  void f() { S::e; }
+                } S;
+          */
+          process_deferred_class_fixups_and_instantiations();
+        }  /* if */
       }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else if (curr_token == tok_assign && !C_mode() &&
                ((is_scalar_type(decl_state->type) && !mutable_specified &&
                  (get_type_qualifiers(decl_state->type) == TQ_CONST)) ||
@@ -14230,6 +14253,55 @@ in the class designated by tag_sym.
   }  /* for */
 }  /* check_operator_new_and_delete */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static void mark_if_interface_like(a_class_def_state  *state)
+/*
+state describes a completed class type definition.  If this is a class type
+with properties similar to that of a Microsoft __interface type, record that
+fact.  (This is significant because __interface types may derive from such
+interface-like types.)
+*/
+{
+  a_type_ptr  type = state->class_type;
+
+  if (!type->variant.class_struct_union.is_interface) {
+    char  *uuid_str = class_type_supp(type)->uuid_string;
+    if (type->kind == (a_type_kind)tk_struct &&
+        uuid_str != NULL &&
+        type->source_corresp.name != NULL &&
+        type->source_corresp.name[0] == 'I' &&
+        ((strcmp(type->source_corresp.name, "IUnknown") == 0 &&
+          strcmp(uuid_str, "00000000-0000-0000-c000-000000000046") == 0) ||
+         (strcmp(type->source_corresp.name, "IDispatch") == 0 &&
+          strcmp(uuid_str, "00020400-0000-0000-c000-000000000046") == 0))) {
+      type->variant.class_struct_union.is_interface_like = TRUE;
+    } else if (state->potentially_interface_like) {
+      /* Check that all the base classes are nonvirtual interface or interface-
+         like classes.  There must be at least one interface-like base
+         class. */
+      a_base_class_ptr  bcp = base_classes_of(type);
+      a_boolean         interface_like = TRUE, has_interface_like_base = FALSE;
+      for (;bcp != NULL; bcp = bcp->next) {
+        if (bcp->is_virtual) {
+          interface_like = FALSE;
+          break;
+        } else if (bcp->type->variant.class_struct_union.is_interface_like) {
+          has_interface_like_base = TRUE;
+        } else if (!bcp->type->variant.class_struct_union.is_interface) {
+          interface_like = FALSE;
+          break;
+        }  /* if */
+      }  /* for */
+      if (has_interface_like_base && interface_like) {
+        type->variant.class_struct_union.is_interface_like = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* mark_if_interface_like */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
 
 static void complete_class_definition(a_type_ptr         class_type,
                                       a_scope_depth      effective_decl_level,
@@ -14380,6 +14452,11 @@ bits of information that were acquired while parsing.
       /* All entries on the list have been freed, so clear the pointer. */
       class_state->override_registry = NULL;
     }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (microsoft_mode) {
+      mark_if_interface_like(class_state);
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   error_position = saved_error_position;
 }  /* complete_class_definition */

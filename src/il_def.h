@@ -6061,6 +6061,13 @@ typedef struct a_type {
 			   kind == tk_struct, but a number of restrictions not
 			   applicable to structs are imposed.) */
       a_bit_field
+		is_interface_like:1;
+			/* TRUE for certain class types that are accepted as
+			   __interface types in Microsoft mode.  This includes
+			   the IUnknown and IDispatch types, as well as certain
+			   classes (directly or indirectly) derived from any of
+			   those two types. */
+      a_bit_field
 		sealed:1;
 			/* TRUE if this class was defined with the context-
 			   sensitive keyword "sealed" (indicating that the

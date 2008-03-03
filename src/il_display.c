@@ -1691,6 +1691,9 @@ do_struct_union:
       if (ptr->variant.class_struct_union.is_interface) {
         disp_boolean("is_interface", TRUE);
       }  /* if */
+      if (ptr->variant.class_struct_union.is_interface_like) {
+        disp_boolean("is_interface_like", TRUE);
+      }  /* if */
       if (ptr->variant.class_struct_union.sealed) {
         disp_boolean("sealed", TRUE);
       }  /* if */

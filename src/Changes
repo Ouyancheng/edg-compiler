@@ -1,5 +1,24 @@
 Version 3.11
 
+3/3/08   Microsoft compatibility: Interface-like types
+
+In Microsoft mode, the front end already recognizes the Microsoft struct types
+IUnknown and IDispatch to be "interface-like" in that __interface types can
+derive from them.  This has now been extended to certain other types.  A class
+type is now also considered "interface-like" if it directly or indirectly
+derives from IUnknown or IDispatch, and
+  - it does not contain any (static or nonstatic) data member, constructor,
+    destructor, friend declaration, typedef declaration, and
+  - every one of its base classes is a public nonvirtual interface or
+    interface-like class.
+For example:
+
+  struct __declspec(uuid("00000000-0000-0000-C000-000000000046")) IUnknown {};
+  struct Interface_like: IUnknown {};
+  __interface X: Interface_like {};  // Now accepted in Microsoft mode.
+
+Interface-like classes are now also marked as such in the IL.
+
 2/25/08  Access checking for related class casts in templates
 
 Some cases like the following caused spurious accessibility errors

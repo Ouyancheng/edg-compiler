@@ -1421,6 +1421,7 @@ to default values.
       pte->variant.class_struct_union.field_list = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       pte->variant.class_struct_union.is_interface = FALSE;
+      pte->variant.class_struct_union.is_interface_like = FALSE;
       pte->variant.class_struct_union.sealed = FALSE;
 #if BACK_END_IS_CP_GEN_BE
       pte->variant.class_struct_union.
