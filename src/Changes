@@ -1,5 +1,27 @@
 Version 3.11
 
+3/4/08   No warning on non-POD class passed to ellipsis in unevaluated context
+
+A warning is no longer issued when an object of non-POD class type is passed
+to an ellipsis parameter, if the call occurs in an unevaluated context.
+This is desirable because of the proliferation of use of this sort of
+case in template metaprogramming.
+
+  struct A {
+    A();
+    A(const A&);
+    ~A();
+  };
+  template <class T> struct B {
+    static char f(int);
+    static int f(...);
+    static const int i = sizeof(f(T()));  // Warning no longer issued.
+  };
+  int main() {
+    B<A> ba;
+  }
+
+
 3/3/08   Microsoft compatibility: Interface-like types
 
 In Microsoft mode, the front end already recognizes the Microsoft struct types

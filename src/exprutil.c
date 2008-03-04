@@ -3601,7 +3601,8 @@ C mode.
   } else if (is_class_struct_union_type(arg_type)) {
     /* Class.  No promotion needed. */
     if (!C_mode()) {
-      if (is_ellipsis && !symbol_supplement_for_class(arg_type)->is_POD) {
+      if (is_ellipsis && !symbol_supplement_for_class(arg_type)->is_POD &&
+          curr_expr_is_evaluated()) {
         /* Warn on passing a non-POD class to an ellipsis. */
         pos_warning(ec_non_pod_passed_to_ellipsis,
                     &argument_operand->position);
