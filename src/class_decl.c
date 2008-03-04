@@ -5125,11 +5125,11 @@ or struct definition.  The syntax is
        keywords virtual, public, private, and protected. */
     scan_inheritance_kind(type_ptr, &is_virtual, &access,
                           &explicit_access_specifier);
-#if MICROSOFT_EXTERNSIONS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED
     if (access != (an_access_specifier)as_public) {
       class_state->potentially_interface_like = FALSE;
     }  /* if */
-#endif /* MICROSOFT_EXTERNSIONS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
     {
