@@ -1,5 +1,21 @@
 Version 3.11
 
+3/4/08   GNU compatibility, C-generating back end: "cleanup" attribute on
+         an unused variable
+
+The C-generating back end omitted the declaration of unused automatic
+variables, even if they are declared with the "cleanup" attribute, with the
+result that the cleanup routine was not called.  Variables with the
+"cleanup" attribute will now be declared whether they are otherwise used or
+not.  For example:
+
+  void cl (void *a);
+  void f() {
+    int a __attribute__ ((cleanup (cl)));  /* Will now be declared in the
+                                              generated C code, causing cl
+                                              to be called when f() ends. */
+  }
+
 3/4/08   No warning on non-POD class passed to ellipsis in unevaluated context
 
 A warning is no longer issued when an object of non-POD class type is passed
