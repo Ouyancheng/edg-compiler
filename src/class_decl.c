@@ -638,7 +638,9 @@ typedef struct a_class_def_state {
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_bit_field   potentially_interface_like:1;
 			/* TRUE if we haven't ruled out this type from being
-			   an "interface-like" type (Microsoft mode only). */
+			   an "interface-like" type (Microsoft mode only).
+                           Not set until after the opening brace of the
+                           definition is seen. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_bit_field	any_named_fields:1;
 			/* TRUE if any named fields are declared. */
@@ -713,7 +715,7 @@ class being defined.
   cdsp->class_aggregate_ruled_out = FALSE;
   cdsp->POD_ruled_out = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  cdsp->potentially_interface_like = TRUE;
+  cdsp->potentially_interface_like = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   cdsp->any_named_fields = FALSE;
   cdsp->any_friend_decls = FALSE;
@@ -5125,11 +5127,6 @@ or struct definition.  The syntax is
        keywords virtual, public, private, and protected. */
     scan_inheritance_kind(type_ptr, &is_virtual, &access,
                           &explicit_access_specifier);
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    if (access != (an_access_specifier)as_public) {
-      class_state->potentially_interface_like = FALSE;
-    }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
     {
@@ -14255,12 +14252,15 @@ in the class designated by tag_sym.
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-static void mark_if_interface_like(a_class_def_state  *state)
+static void check_if_potentially_interface_like(a_class_def_state  *state)
 /*
-state describes a completed class type definition.  If this is a class type
-with properties similar to that of a Microsoft __interface type, record that
-fact.  (This is significant because __interface types may derive from such
-interface-like types.)
+state a class type in the process of being defined, and its base classes
+(if any) have been scanned.  Set the flag state->potentially_interface_like
+based on the information recorded so far.  Additional elements of the
+definition may cause the flag to be set to FALSE later on.  (The flag
+remains set for a class type with properties similar to that of a Microsoft
+__interface type.  This is significant because __interface types may derive
+from such interface-like types.)
 */
 {
   a_type_ptr  type = state->class_type;
@@ -14275,15 +14275,18 @@ interface-like types.)
           strcmp(uuid_str, "00000000-0000-0000-c000-000000000046") == 0) ||
          (strcmp(type->source_corresp.name, "IDispatch") == 0 &&
           strcmp(uuid_str, "00020400-0000-0000-c000-000000000046") == 0))) {
-      type->variant.class_struct_union.is_interface_like = TRUE;
-    } else if (state->potentially_interface_like) {
-      /* Check that all the base classes are nonvirtual interface or interface-
-         like classes.  There must be at least one interface-like base
-         class. */
+      state->potentially_interface_like = TRUE;
+    } else {
+      /* Check that all the base classes are nonvirtual and public, with
+         interface or interface-like class types.  There must be at least one
+         interface-like base class. */
       a_base_class_ptr  bcp = base_classes_of(type);
       a_boolean         interface_like = TRUE, has_interface_like_base = FALSE;
-      for (;bcp != NULL; bcp = bcp->next) {
-        if (bcp->is_virtual) {
+      for (; bcp != NULL; bcp = bcp->next) {
+        if (!bcp->direct) continue;
+        if (bcp->is_virtual ||
+            bcp->derivation->access == (an_access_specifier)as_private ||
+            bcp->derivation->access == (an_access_specifier)as_protected) {
           interface_like = FALSE;
           break;
         } else if (bcp->type->variant.class_struct_union.is_interface_like) {
@@ -14294,14 +14297,13 @@ interface-like types.)
         }  /* if */
       }  /* for */
       if (has_interface_like_base && interface_like) {
-        type->variant.class_struct_union.is_interface_like = TRUE;
+        state->potentially_interface_like = TRUE;
       }  /* if */
     }  /* if */
   }  /* if */
-}  /* mark_if_interface_like */
+}  /* check_if_potentially_interface_like */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-
 
 static void complete_class_definition(a_type_ptr         class_type,
                                       a_scope_depth      effective_decl_level,
@@ -14453,9 +14455,10 @@ bits of information that were acquired while parsing.
       class_state->override_registry = NULL;
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (microsoft_mode) {
-      mark_if_interface_like(class_state);
-    }  /* if */
+    /* Record whether this class is "interface-like" (i.e., a non-__interface
+       type that is a valid base for an __interface type). */
+    class_type->variant.class_struct_union.is_interface_like =
+                                      class_state->potentially_interface_like;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   error_position = saved_error_position;
@@ -14842,6 +14845,9 @@ classes.
         }  /* if */
       }  /* if */
     }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    check_if_potentially_interface_like(&class_state);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   if (curr_token == tok_lbrace) {
     /* Scan the structure or union definition. */
