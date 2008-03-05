@@ -86,7 +86,8 @@ For example:
   struct Interface_like: IUnknown {};
   __interface X: Interface_like {};  // Now accepted in Microsoft mode.
 
-Interface-like classes are now also marked as such in the IL.
+A new flag "is_interface_like" has been added to a_type entries: It is set to
+TRUE for interface-like class types.
 
 2/25/08  Access checking for related class casts in templates
 
