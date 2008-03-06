@@ -639,8 +639,8 @@ typedef struct a_class_def_state {
   a_bit_field   potentially_interface_like:1;
 			/* TRUE if we haven't ruled out this type from being
 			   an "interface-like" type (Microsoft mode only).
-                           Not set until after the opening brace of the
-                           definition is seen. */
+			   Not set until after the opening brace of the
+			   definition is seen. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_bit_field	any_named_fields:1;
 			/* TRUE if any named fields are declared. */
