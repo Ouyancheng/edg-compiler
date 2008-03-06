@@ -6519,12 +6519,6 @@ parameters.
        variables anyway.  Putting __link out if unreferenced is necessary
        when this front end is used to compile its own output. */
     forced_referenced = has_magic_name;
-#if GNU_EXTENSIONS_ALLOWED
-    /* A variable with a "cleanup" attribute must be put out to ensure that
-       the cleanup routine will be called, even if the variable is
-       otherwise not used. */
-    if (variable->cleanup_routine != NULL) forced_referenced = TRUE;
-#endif /* GNU_EXTENSIONS_ALLOWED */
 #if ONE_INSTANTIATION_PER_OBJECT
     if (!part_of_current_output_file) forced_referenced = FALSE;
 #endif /* ONE_INSTANTIATION_PER_OBJECT */

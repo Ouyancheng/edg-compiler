@@ -476,6 +476,22 @@ necessary.
 }  /* walk_source_corresp */
 #endif /* NEEDED_FLAG_WALK */
 
+/*
+If defined, nonstatic_variable_always_needed returns TRUE if the specified
+variable must be flagged as needed even if it is unreferenced and FALSE
+otherwise.  In configurations in which the macro would always return FALSE,
+it should be left undefined as an indication that there is no need to loop
+over the list of nonstatic variables in the scope.
+*/
+#undef nonstatic_variable_always_needed
+#if GNU_EXTENSIONS_ALLOWED
+/* A cleanup attribute on a variable implies that the variable is needed,
+   even if unreferenced, to ensure that the associated cleanup routine is
+   called when the variable goes out of scope. */
+#define nonstatic_variable_always_needed(var) \
+  ((var)->cleanup_routine != NULL)
+#endif /* GNU_EXTENSIONS_ALLOWED */
+
 #undef report_bad_init_kind
 #if CHECKING
 #define report_bad_init_kind()                                        \
@@ -2271,8 +2287,24 @@ end_sizeof:;
         remap_list_ptr(ptr->variables, a_variable_ptr, iek_variable);
         remap_list_ptr(ptr->routines, a_routine_ptr, iek_routine);
 #endif /* DO_SUBTREE_WALK */
+#if NEEDED_FLAG_WALK && defined(nonstatic_variable_always_needed)
+        if (kind == (a_scope_kind)sck_function ||
+            kind == (a_scope_kind)sck_block) { 
+          /* Some variables may be needed because of attributes or the
+             like.  The nonstatic_variable_always_needed macro provides the
+             logic to determine if a given variable satisfies the relevant
+             criteria. */
+          a_variable_ptr var;
+          for (var = ptr->nonstatic_variables; var != NULL; var = var->next) {
+            if (nonstatic_variable_always_needed(var)) {
+              walk_ptr(var, a_variable_ptr, iek_variable);
+            }  /* if */
+          }  /* for */
+        }  /* if */
+#else /* !(NEEDED_FLAG_WALK && defined(nonstatic_variable_always_needed) */
         walk_list_not_needed(ptr->nonstatic_variables, a_variable_ptr,
                              iek_variable);
+#endif /* NEEDED_FLAG_WALK && defined(nonstatic_variable_always_needed */
 #else /* ifndef CFE */
         /* Not the C/C++ front end. */
         walk_list(ptr->types, a_type_ptr, iek_type);
@@ -3459,6 +3491,7 @@ Get rid of the macros defined in this file so they aren't used accidentally.
 #undef conditionally_clear_fe_pointer
 #undef pm_class_type_possibly_lowered
 #undef report_bad_init_kind
+#undef nonstatic_variable_always_needed
 #undef walk_initializer
 #undef walk_orphan_entry_list
 #undef walk_orphan_entry_list_for_entry_kind

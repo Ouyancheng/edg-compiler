@@ -5507,6 +5507,14 @@ for use in generating cross-reference output describing this declaration.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       apply_attributes_to_variable(dps->attributes, variable_ptr,
                                    is_variable_def);
+      if (variable_ptr->cleanup_routine != NULL) {
+        /* A variable with a cleanup attribute is implicitly referenced and
+           used by the call to the cleanup routine that will occur when the
+           variable goes out of scope. */
+        source_corresp_ptr->referenced = TRUE;
+        sym->referenced = TRUE;
+        sym->variant.variable.used = TRUE;
+      }  /* if */
     }  /* if */
     /* Record the assembly name. */
     if (dps->asm_name != NULL) {

@@ -31,20 +31,18 @@ to test for their existence.  (See il.h: is_namespace_member, parent_class_of,
 etc.)  These are useful to help transitioning existing code to the new
 representation.
 
-3/4/08   GNU compatibility, C-generating back end: "cleanup" attribute on
-         an unused variable
+3/4/08   GNU compatibility: "cleanup" attribute on an unused variable
 
-The C-generating back end omitted the declaration of unused automatic
-variables, even if they are declared with the "cleanup" attribute, with the
-result that the cleanup routine was not called.  Variables with the
-"cleanup" attribute will now be declared whether they are otherwise used or
-not.  For example:
+The presence of the GNU "cleanup" attribute was not considered in
+determining whether a non-static variable was used or not.  Variables with
+this attribute are now always considered to be referenced, used, and (in
+configurations in which MAINTAIN_NEEDED_FLAGS is TRUE) needed by virtue of
+the implicit call to the cleanup routine when the variable goes out of
+scope.  For example:
 
   void cl (void *a);
   void f() {
-    int a __attribute__ ((cleanup (cl)));  /* Will now be declared in the
-                                              generated C code, causing cl
-                                              to be called when f() ends. */
+    int a __attribute__ ((cleanup (cl)));  /* No longer considered unused. */
   }
 
 3/4/08   No warning on non-POD class passed to ellipsis in unevaluated context
