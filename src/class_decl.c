@@ -14254,8 +14254,8 @@ in the class designated by tag_sym.
 
 static void check_if_potentially_interface_like(a_class_def_state  *state)
 /*
-state a class type in the process of being defined, and its base classes
-(if any) have been scanned.  Set the flag state->potentially_interface_like
+state describes a class type in the process of being defined, and its base
+classes (if any) have been scanned.  Set state->potentially_interface_like
 based on the information recorded so far.  Additional elements of the
 definition may cause the flag to be set to FALSE later on.  (The flag
 remains set for a class type with properties similar to that of a Microsoft
