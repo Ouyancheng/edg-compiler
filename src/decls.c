@@ -5510,10 +5510,12 @@ for use in generating cross-reference output describing this declaration.
       if (variable_ptr->cleanup_routine != NULL) {
         /* A variable with a cleanup attribute is implicitly referenced and
            used by the call to the cleanup routine that will occur when the
-           variable goes out of scope. */
+           variable goes out of scope.  We also need to mark the cleanup
+           routine as called. */
         source_corresp_ptr->referenced = TRUE;
         sym->referenced = TRUE;
         sym->variant.variable.used = TRUE;
+        variable_ptr->cleanup_routine->called = TRUE;
       }  /* if */
     }  /* if */
     /* Record the assembly name. */
