@@ -2304,10 +2304,10 @@ end_sizeof:;
             }  /* if */
           }  /* for */
         }  /* if */
-#else /* !(NEEDED_FLAG_WALK && defined(nonstatic_variable_always_needed) */
+#else /* !(NEEDED_FLAG_WALK && defined(nonstatic_variable_always_needed)) */
         walk_list_not_needed(ptr->nonstatic_variables, a_variable_ptr,
                              iek_variable);
-#endif /* NEEDED_FLAG_WALK && defined(nonstatic_variable_always_needed */
+#endif /* NEEDED_FLAG_WALK && defined(nonstatic_variable_always_needed) */
 #else /* ifndef CFE */
         /* Not the C/C++ front end. */
         walk_list(ptr->types, a_type_ptr, iek_type);

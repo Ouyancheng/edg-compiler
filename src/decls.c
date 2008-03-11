@@ -5515,7 +5515,6 @@ for use in generating cross-reference output describing this declaration.
         source_corresp_ptr->referenced = TRUE;
         sym->referenced = TRUE;
         sym->variant.variable.used = TRUE;
-        variable_ptr->cleanup_routine->called = TRUE;
       }  /* if */
     }  /* if */
     /* Record the assembly name. */

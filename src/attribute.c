@@ -1771,8 +1771,8 @@ diagnostic.
                rtsp->param_type_list->next != NULL) {
       pos_error(ec_bad_type_for_cleanup_routine, &ap->position);
     } else {
-      /* Check that the cleanup routine can be called with an argument that is
-         this address of the give variable. */
+      /* Check that the cleanup routine can be called with an argument that
+         is the address of the given variable. */
       a_std_conv_descr  std_conv;
       clear_std_conv_descr(&std_conv);
       if (impl_conversion_possible(make_pointer_type(vp->type),
@@ -1945,6 +1945,8 @@ attributes were specified on a definition.
           vp->cleanup_routine = ap->variant.cleanup_routine;
           mark_referenced(symbol_for(ap->variant.cleanup_routine),
                           &ap->position);
+          mark_routine_referenced(ap->variant.cleanup_routine);
+          ap->variant.cleanup_routine->called = TRUE;
         }  /* if */
         break;
       default:
