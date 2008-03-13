@@ -3644,8 +3644,10 @@ These follow the tag kind, e.g., "struct __single_inheritance xxx".
   }  /* if */
   gen_microsoft_decl_modifiers(ctsp->decl_modifiers);
   gen_microsoft_uuid_declspec(ctsp->uuid_string);
+#if NEAR_AND_FAR_ALLOWED
   form_type_qualifier(ctsp->qualifiers, UPC_BLOCK_SIZE_NONE,
                       /*need_trailing_space=*/TRUE, &octl);
+#endif /* NEAR_AND_FAR_ALLOWED */
   gen_microsoft_deprecated_spec(&type->source_corresp);
   if (is_definition) {
 #if USER_CONTROL_OF_STRUCT_PACKING

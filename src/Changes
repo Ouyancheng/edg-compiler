@@ -1,5 +1,12 @@
 Version 3.11
 
+3/13/08  Build error in cp_gen_be.c when MICROSOFT_EXTENSIONS_ALLOWED &&
+         !NEAR_AND_FAR_ALLOWED
+
+In configurations with MICROSOFT_EXTENSIONS_ALLOWED set to TRUE and
+NEAR_AND_FAR_ALLOWED set to FALSE, the C++-generating back end (cp_gen_be.c)
+did not build correctly.  This is now fixed.
+
 3/5/08   Parent entities (IL Change)
 
 Previously, type a_source_correspondence contained a field "parent" of type
