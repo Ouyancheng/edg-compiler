@@ -11180,6 +11180,11 @@ for non-class operands).  This routine is called only in C++ mode.
       }  /* if */
     } else {
       /* Normal case (not a cast to a reference type). */
+      if (microsoft_bugs) {
+        /* MSVC++ drops top-level cv-qualifiers.   Checked through
+           MSVC++ 8.0. */
+        type_cast_to = make_unqualified_type(type_cast_to);
+      }  /* if */
       /* Check for user-defined conversions, but not when casting to void. */
       if (!is_void_type(type_cast_to)) {
         if (user_defined_conversion_possible(

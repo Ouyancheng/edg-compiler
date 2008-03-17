@@ -1,5 +1,24 @@
 Version 3.11
 
+3/17/08  Microsoft bugs mode cast to cv-qualified class type drops qualifiers
+
+MSVC++, through 8.0 at least, seems to discard the cv-qualifiers on a
+cast to a cv-qualified class type.  We now emulate that in Microsoft
+bugs mode.
+
+  struct A {
+    A() {}
+    A(const A&) {}
+    ~A() {}
+  };
+  void f(A&) {}
+  int main() {
+    A a;
+    const A ca;
+    f((const A)a);  // Accepted by MSVC++, and now by EDG
+    f(ca);          // Gets error from MSVC++, and still from EDG
+  }
+
 3/13/08  Build error in cp_gen_be.c when MICROSOFT_EXTENSIONS_ALLOWED &&
          !NEAR_AND_FAR_ALLOWED
 
