@@ -3089,12 +3089,15 @@ hence its name should not be changed.  *length is the value to be adjusted.
   /* Move to the next section, skipping the rt_paste or
      rt_microsoft_magic_arg_marker placeholder. */
   char                 *ahead = rtp+1;
-  a_boolean            is_microsoft_variadic_macro =
-                   (a_repl_text_seq_kind)*rtp == rt_microsoft_magic_arg_marker;
+  a_repl_text_seq_kind rtp_op = (a_repl_text_seq_kind)*rtp;
+  a_repl_text_seq_kind next_op;
 
   get_macro_repl_text_number(arg_number, ahead);
-  if ((a_repl_text_seq_kind)*(ahead++) == rt_raw_argument ||
-      is_microsoft_variadic_macro) {
+  next_op = (a_repl_text_seq_kind)*(ahead++);
+  if (next_op == rt_raw_argument ||
+      (microsoft_mode && next_op == rt_argument)) {
+    /* A macro argument follows the concatenation.  (In Microsoft mode,
+       the argument is expanded, whether or not preceded by "##".) */
     a_macro_arg_ptr map;
 
     get_macro_repl_text_number(arg_number, ahead);
@@ -3109,7 +3112,7 @@ hence its name should not be changed.  *length is the value to be adjusted.
         char *back = rtp-1;
         /* Skip preceding white space. */
         while (*back == ' ' || *back == '\t') { --back; }
-        if (is_microsoft_variadic_macro &&
+        if (rtp_op == rt_microsoft_magic_arg_marker &&
             back[-1] == LE_ESCAPE && back[0] == LE_END_OF_TOKEN) {
           /* Unlike rt_paste, rt_microsoft_magic_arg_marker does not
              suppress a preceding end-of-token marker. */
