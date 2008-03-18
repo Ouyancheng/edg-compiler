@@ -886,7 +886,7 @@ major expression.
   /* Restore the old reference entries list, if any. */
   curr_expr_ref_entries = expr_stack->old_ref_entries_list;
   if (curr_expr_kind_is(ek_sizeof) &&
-      !expr_stack->potentially_evaluated &&  /* Needed for MS __assume. */
+      !expr_stack->potentially_evaluated &&
       !expr_stack->unevaluated_expr_will_be_kept_in_il) {
     undo_side_effects_for_discarded_unevaluated_expression();
   }  /* if */

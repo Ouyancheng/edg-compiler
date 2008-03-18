@@ -7767,7 +7767,7 @@ the given expression is true.
   push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
-  expr_stack_entry.potentially_evaluated = TRUE;
+  expr_stack->unevaluated_expr_will_be_kept_in_il = TRUE;
   /* Save the position of the __assume keyword. */
   copy_source_position(pos_curr_token, start_position);
   (void)get_token();

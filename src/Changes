@@ -1,5 +1,28 @@
 Version 3.11
 
+3/18/08  Changes in Microsoft __assume expression handling
+
+Previously, lowering of an expression that contained temporaries that are
+generated both within an __assume expression as well as outside of it caused an
+assertion failure in lower_init.c.  This has been corrected.  Expressions
+within an __assume statement are now scanned with the assumption that they will
+never be evaluated (like expressions within a sizeof).  As a consequence,
+symbols used within an __assume expression will no longer be marked as
+referenced, potentially causing some diagnostic differences.  In addition, a
+new warning has been added to alert the user that complex __assume expressions
+(i.e., those that produce side effects) are discarded by the front end.
+For example:
+
+  struct A {
+    ~A();
+  };
+  int f(A);
+  A g() {
+    A a = (__assume(f(A())), A());  // caused assertion failure in lower_init.c
+                                    // now generates a warning
+    return A();
+  }
+
 3/18/08  Extended position information for nonstandard friend declarations
 
 In many C++ modes, nonstandard forms of friend class declarations are accepted.

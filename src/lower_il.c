@@ -12001,6 +12001,9 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
         operand_node = node_for_integer_constant((long)0,
                                                  (an_integer_kind)ik_int);
         change_to_cast(expr, operand_node, expr->type);
+        /* Issue a warning to let the user know we're ignoring
+           this __assume expression. */
+        warning(ec_assume_expression_discarded);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       } else if (op == (an_expr_operator_kind)eok_indirect &&
                  is_optimizable_temp_init_indirection(operand_node,
@@ -13851,6 +13854,7 @@ code.
           state_set_pending = TRUE;
 #if DO_RETURN_VALUE_OPTIMIZATION_IN_LOWERING
         } else if (dip->variable == NULL &&
+                   return_value_pointer_variable != NULL &&
                    dip->destructible_entity_descr->init_pos_descr.variable ==
                                                return_value_pointer_variable) {
           /* This is the initialization of the parameter substituted for the
