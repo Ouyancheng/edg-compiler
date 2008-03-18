@@ -1718,7 +1718,7 @@ ec_function_qualifier_on_static_member;;"a type qualifier is not allowed on a st
 ec_function_qualifier_on_ctor_or_dtor;;"a type qualifier is not allowed on a constructor or destructor"
 ec_function_qualifier_on_new_or_delete;;"a type qualifier is not allowed on operator new or operator delete"
 ec_function_qualifier_on_nonmember;;"a type qualifier is not allowed on a nonmember function"
-ec_assume_expression_discarded;;"__assume expression with side effects is discarded"
+ec_assume_expression_discarded;;"__assume expression with side effects discarded"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
