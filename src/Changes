@@ -1,5 +1,13 @@
 Version 3.11
 
+3/18/08  Invalid tokens in unrecognized pragmas
+
+When the front end is generating preprocessed output in configurations where
+INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL is TRUE an error was issued on an
+invalid token in an unrecognized pragma.  Now fixed.
+
+  #pragma some_unknown_pragma @
+
 3/17/08  Microsoft bugs mode cast to cv-qualified class type drops qualifiers
 
 MSVC++, through 8.0 at least, seems to discard the cv-qualifiers on a

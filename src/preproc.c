@@ -1751,7 +1751,7 @@ expansion of macros if necessary for this kind of pragma.
     expand_macros = pkdp->expand_macros;
     recognize_keywords_in_pragma = pkdp->processing_C_code;
     do_string_literal_concatenation = pkdp->processing_C_code;
-    fetch_pp_tokens = FALSE;
+    fetch_pp_tokens = pkdp->fetch_pp_tokens;
   }  /* if */
   /* Fetch the remaining tokens of this directive and output it to the
      preprocessed output file. */
