@@ -12574,7 +12574,8 @@ Check that this is a valid type and if so make member_type a friend.
         if (!source_sequence_entries_disallowed) {
           /* Since this type name did not involve an elaborated type name,
              we do not yet have a source sequence entry for it. */
-          a_source_sequence_entry_ptr  ssep;
+          a_source_sequence_entry_ptr   ssep;
+          a_src_seq_secondary_decl_ptr  sssdp;
           record_symbol_declaration(
                          SRK_DECLARATION | SRK_FRIEND,
                          (a_symbol_ptr)member_type->source_corresp.assoc_info,
@@ -12583,8 +12584,15 @@ Check that this is a valid type and if so make member_type a friend.
           ssep = last_matching_source_sequence_entry((char *)member_type);
           check_assertion(ssep != NULL &&
                           ss_entry_kind(ssep) == iek_src_seq_secondary_decl);
-          ((a_src_seq_secondary_decl_ptr)ssep->entity.ptr)
-                                                 ->autonomous_tag_decl = TRUE;
+          sssdp = ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr);
+          sssdp->autonomous_tag_decl = TRUE;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+          /* Record extended position information. */
+          check_assertion(sssdp->decl_pos_info == NULL);
+          sssdp->decl_pos_info = make_decl_pos_supplement(
+                                                  in_file_scope(sssdp),
+                                                  &decl_info->decl_pos_block);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
         }
 done_with_sse_for_nonstandard_friend:;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */

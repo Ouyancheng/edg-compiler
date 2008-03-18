@@ -1,5 +1,17 @@
 Version 3.11
 
+3/18/08  Extended position information for nonstandard friend declarations
+
+In many C++ modes, nonstandard forms of friend class declarations are accepted.
+For example:
+
+  struct S {};
+  class C { friend S; };  // Nonstandard equivalent of "friend class S;"
+
+However, the source sequence entry associated with such declarations previously
+failed to include extended source position information when the configuration
+macro EXTRA_SOURCE_POSITIONS_IN_IL is TRUE.  This is now fixed.
+
 3/18/08  Invalid tokens in unrecognized pragmas
 
 When the front end is generating preprocessed output in configurations where

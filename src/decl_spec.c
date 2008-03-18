@@ -7109,6 +7109,9 @@ macro DSI_NO_INPUT_FLAGS.
   a_type_ptr                 *type_ptr = &state->specifiers_type;
   a_decl_flag_set            *output_flags = &state->dso_flags;
   a_boolean                  auto_is_first = FALSE;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position          id_start_pos;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
  
   db_enter(3, "decl_specifiers");
 #if GNU_EXTENSIONS_ALLOWED
@@ -8098,6 +8101,9 @@ process_class_specifier:
       case tok_super:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         /* Identifier. */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+        id_start_pos = pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
         /* The appearance of an identifier may mean that the specifiers
            are complete (the identifier is a declarator) or it may be another
            specifier.  First we look for conditions that will cause us to
@@ -8122,7 +8128,7 @@ process_class_specifier:
            K&R, we consider an identifier to be a typedef when there is
            just a sign or size (since these are "adjectives" to pcc), but
            not when there is a type specifier. */
-        { a_boolean  unexpected_identifier = FALSE;
+        { a_boolean          unexpected_identifier = FALSE;
           if (process_nontype_identifier(decl_specifiers_seen, *storage_class,
                                          input_flags, &basic_type,
                                          &named_address_space, output_flags,
@@ -8269,6 +8275,17 @@ process_class_specifier:
               decl_specifiers_seen |= DS_TYPE;
             }  /* if */
           }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+          if (decl_pos_block != NULL) {
+            /* Record the position of this type name.  The identifier_range may
+               later be overwritten when scanning the identifier in a
+               declarator.  So the caller should save these positions if they
+               are of interest and decl_pos_block is passed in a call to
+               declarator. */
+            decl_pos_block->identifier_range.start = id_start_pos;
+            decl_pos_block->identifier_range.end = end_pos_curr_token;
+          }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
           break;
         }  /* if */
         /* Getting to this point means the identifier is not a type name.
