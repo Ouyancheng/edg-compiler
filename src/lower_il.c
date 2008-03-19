@@ -11996,14 +11996,19 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
 #if MICROSOFT_EXTENSIONS_ALLOWED
       } else if (op == (an_expr_operator_kind)eok_assume &&
                  node_has_side_effects(operand_node, (a_boolean *)NULL)) {
+        /* Issue a warning to let the user know we're ignoring
+           this __assume expression. */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+        pos_warning(ec_assume_expression_discarded,
+                    &operand_node->expr_range.start);
+#else /* !EXTRA_SOURCE_POSITIONS_IN_IL */
+        warning(ec_assume_expression_discarded);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
         /* Turn __assume(expr) into (void)0 if expr has side effects to
            avoid problems with destructible entities inside the expression. */
         operand_node = node_for_integer_constant((long)0,
                                                  (an_integer_kind)ik_int);
         change_to_cast(expr, operand_node, expr->type);
-        /* Issue a warning to let the user know we're ignoring
-           this __assume expression. */
-        warning(ec_assume_expression_discarded);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       } else if (op == (an_expr_operator_kind)eok_indirect &&
                  is_optimizable_temp_init_indirection(operand_node,
