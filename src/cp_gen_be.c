@@ -4842,44 +4842,88 @@ is the one associated with the definition of the enum.
 }  /* gen_enum_definition */
 
 
-static a_boolean another_declaration_in_comma_list_follows()
+static a_boolean another_declaration_in_comma_list_follows(
+                                                       a_type_ptr type,
+                                                       a_boolean  typedef_only,
+                                                       a_boolean  for_init)
 /*
-Called at the end of the generation of a declaration, this routine returns
-whether the next declaration should be put out in a comma list.  E.g., if
-the original source had "int x, y;", and the declaration of x has just been
-rendered, this routine returns TRUE so that y will be rendered in a comma
-list (thereby sharing type specifiers with x).
-This is particularly important when dealing with unnamed tag types:
-  enum { e, f } x, y;
-or in for-init constructs:
-  for (int i = 1, j = 1; ... ) ...
-In both those contexts, the declarations cannot be separated by a semicolon.
+Called at the end of the declaration of an entity with type "type", this
+routine looks to see if another declaration with the same underlying type
+is next.  If so, this routine returns TRUE, indicating that the following
+declaration can be put out in a comma list.  For speed reasons, the
+check is done only if the underlying type of "type" is an unnamed tag,
+since the unnamed tag cases are the only ones that must be put out
+as comma lists.  (Also, avoiding named tags does away with the problems of
+cases like
+  struct A { int i; } v;
+  static A w;
+where the storage class difference would have to be considered.)
+However, if for_init is TRUE, indicating this declaration is the for-init
+in a "for" statement, all possible comma lists are considered.
+If typedef_only is TRUE, the current declaration is a typedef, so a
+following declaration can be part of the current comma list only if
+it is a typedef.
 */
 {
-  a_boolean                   another_decl_follows = FALSE;
-  a_source_sequence_entry_ptr ssep;
+  a_boolean   another_decl_follows = FALSE;
+  a_type_kind kind;
+  a_type_ptr  unqual_type;
 
-  ssep = curr_source_sequence_entry;
-  /* Skip macros and pragmas. */
-  for (; ssep != NULL; ssep = ssep->next) {
-    if (ss_entry_kind(ssep) != iek_pragma &&
-        ss_entry_kind(ssep) != iek_macro) {
-      break;
-    }  /* if */
-  }  /* for */
-  /* See if the next source sequence entry is for a declaration, and if so,
-     get its type. */
-  if (ssep != NULL) {
-    if (ss_entry_kind(ssep) == iek_src_seq_secondary_decl) {
-      another_decl_follows = ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr)
-                                          ->is_decl_after_first_in_comma_list;
-    } else if (ss_entry_kind(ssep) == iek_routine ||
-               ss_entry_kind(ssep) == iek_variable ||
-               ss_entry_kind(ssep) == iek_constant ||
-               ss_entry_kind(ssep) == iek_field ||
-               ss_entry_kind(ssep) == iek_type) {
-      another_decl_follows = ss_entry_ptr(ssep, a_source_correspondence_ptr)
-                                          ->is_decl_after_first_in_comma_list;
+  type = type_specifier_of_type(type);
+  /* Remove cv-qualifiers but not typedefs. */
+  unqual_type = type;
+  while (unqual_type->kind == (a_type_kind)tk_typeref &&
+         !typeref_is_typedef(unqual_type)) {
+    unqual_type = unqual_type->variant.typeref.type;
+  }  /* while */
+  kind = unqual_type->kind;
+  /* Look for a comma list (a) if the underlying type is an unnamed tag, and
+     (b) always in a for-init. */
+  if (for_init ||
+      ((is_class_type_kind(kind) || is_enum_type(unqual_type)) &&
+       (!has_name_before_mangling(unqual_type) ||
+        /* Include cases where the tag has a name only for linkage purposes. */
+        (is_class_type_kind(kind) &&
+         unqual_type->variant.class_struct_union.originally_unnamed) ||
+        (is_immediate_enum_type(unqual_type) &&
+         unqual_type->variant.integer.originally_unnamed)))) {
+    a_source_sequence_entry_ptr ssep;
+    /* Skip macros and pragmas. */
+    (void)process_preprocessing_directives();
+    ssep = curr_source_sequence_entry;
+    /* See if the next source sequence entry is for a declaration, and if so,
+       get its type. */
+    if (ssep != NULL) {
+      if (ss_entry_kind(ssep) == iek_routine) {
+        /* A definition of a routine cannot be put on a comma list. */
+      } else {
+        /* When dealing with a comma list of typedefs, only a typedef can be
+           used to continue the list. */
+        a_boolean next_is_type = FALSE;
+        if (ss_entry_kind(ssep) == iek_type) {
+          next_is_type = TRUE;
+        } else if (ss_entry_kind(ssep) == iek_src_seq_secondary_decl) {
+          a_src_seq_secondary_decl_ptr sec_decl =
+                              ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr);
+          if (ss_entry_kind(sec_decl) == iek_type) {
+            next_is_type = TRUE;
+          }  /* if */
+        }  /* if */
+        if (next_is_type == typedef_only) {
+          /* Find the next declaration in the source sequence list, and
+             fetch its type. */
+          a_type_ptr next_type = type_from_src_seq_declaration(ssep);
+          if (next_type != NULL) {
+            /* Find the specifiers type of the type of the next declaration. */
+            next_type = type_specifier_of_type(next_type);
+            if (next_type == type) {
+              /* The next declaration has the same underlying type as the
+                 current one and can be put out in a comma list. */
+              another_decl_follows = TRUE;
+            }  /* if */
+          }  /* if */
+        }  /* if */
+      }  /* if */
     }  /* if */
   }  /* if */
   return another_decl_follows;
@@ -5011,7 +5055,10 @@ declaration following this one is such a continuation.
   /* Generate the constant value. */
   gen_constant(constant, /*need_parens=*/FALSE);
   /* See if there are comma-separated declarations attached to this one. */
-  *another_decl_in_comma_list = another_declaration_in_comma_list_follows();
+  *another_decl_in_comma_list =
+             another_declaration_in_comma_list_follows(constant->type,
+                                                       /*typedef_only=*/FALSE,
+                                                       /*for_init=*/FALSE);
   write_end_of_declaration_punctuation(*another_decl_in_comma_list);
 }  /* gen_member_constant_decl */
 
@@ -5091,7 +5138,10 @@ declaration following this one is such a continuation.
   (void)form_field_attributes(field, /*need_leading_space=*/TRUE, &octl);
 #endif /* GNU_EXTENSIONS_ALLOWED */
   /* See if there are comma-separated declarations attached to this one. */
-  *another_decl_in_comma_list = another_declaration_in_comma_list_follows();
+  *another_decl_in_comma_list =
+             another_declaration_in_comma_list_follows(field->type,
+                                                       /*typedef_only=*/FALSE,
+                                                       /*for_init=*/FALSE);
   write_end_of_declaration_punctuation(*another_decl_in_comma_list);
 }  /* gen_field_decl */
 
@@ -5505,7 +5555,10 @@ declaration following this one is such a continuation.
 #endif /* GNU_EXTENSIONS_ALLOWED */
     }  /* if */
     /* See if there are comma-separated declarations attached to this one. */
-    *another_decl_in_comma_list = another_declaration_in_comma_list_follows();
+    *another_decl_in_comma_list =
+              another_declaration_in_comma_list_follows(under_type,
+                                                        /*typedef_only=*/TRUE,
+                                                        /*for_init=*/FALSE);
   }  /* if */
   type->typedef_definition_has_been_put_out = TRUE;
 }  /* gen_typedef_definition */
@@ -12410,8 +12463,7 @@ declaration following this one is such a continuation.
   a_variable_ptr               var;
   a_src_seq_secondary_decl_ptr sec_decl;
   a_boolean                    is_definition = FALSE;
-  a_boolean                    render_extern_c = FALSE;
-  a_boolean                    render_braced_extern_c = FALSE;
+  a_boolean                    need_extern_C_closing_brace = FALSE;
   a_boolean                    consider_initialization;
   a_boolean                    embedded_constructs;
   a_storage_class              storage_class;
@@ -12552,14 +12604,6 @@ declaration following this one is such a continuation.
            because that wouldn't be a definition anymore (presumably the
            "extern" was supplied on a previous (nondefining) declaration. */
         storage_class = (a_storage_class)sc_extern;
-      } else if (storage_class == (a_storage_class)sc_auto) {
-        /* Avoid rendering an extraneous "auto", since that may not be correct
-           if other declarators follow.  For example:
-              int x, f();
-           cannot be rendered as
-              auto int x, f();
-        */
-        storage_class = var->declared_storage_class;
       }  /* if */
     } else {
       /* A declaration of a variable. */
@@ -12591,37 +12635,30 @@ declaration following this one is such a continuation.
     storage_class = (a_storage_class)sc_register;
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-  /* Check for `extern "C"'.  This applies even on a definition. */
-  if (il_header.source_language == sl_Cplusplus &&
-      var->source_corresp.name_linkage ==(a_name_linkage_kind)nlk_external &&
-      /* Inside a function, this is not allowed, and can only have come from
-         an extern "C" { ... } wrapped around the function. */
-      innermost_function_scope == NULL) {
-    check_assertion(!is_condition);
-    render_extern_c = TRUE;
-    /* For a definition, use the form
-         extern "C" { int i; }
-       because simply
-         extern "C" int i;
-       is no longer a definition.
-       Also GNU compilers cannot parse
-         extern "C" struct S { int i; } x;
-       So we must produce
-         extern "C" { extern struct S { int i; } x; }
-       instead. */
-    if (is_definition || gcc_is_generated_code_target) {
-      render_braced_extern_c = TRUE;
-    }  /* if */
-  }  /* if */ 
   if (!suppress_specifiers) {
 #if NAMED_REGISTERS_ALLOWED
     if (var->has_named_register_storage_class) {
       storage_class = (a_storage_class)sc_register;
     }  /* if */
 #endif /* NAMED_REGISTERS_ALLOWED */
-    if (render_extern_c) {
+    /* Check for `extern "C"'.  This applies even on a definition. */
+    if (il_header.source_language == sl_Cplusplus &&
+        var->source_corresp.name_linkage ==(a_name_linkage_kind)nlk_external &&
+        /* Inside a function, this is not allowed, and can only have come from
+           an extern "C" { ... } wrapped around the function. */
+        innermost_function_scope == NULL) {
       write_tok_str("extern \"C\" ");
-      if (render_braced_extern_c) {
+      /* For a definition, use the form
+           extern "C" { int i; }
+         because simply
+           extern "C" int i;
+         is no longer a definition.
+         Also GNU compilers cannot parse
+           extern "C" struct S { int i; } x;
+         So we must produce
+           extern "C" { extern struct S { int i; } x; }
+         instead. */
+      if (is_definition || gcc_is_generated_code_target) {
         write_tok_str("{ ");
         /* We still need the storage class, for cases like
              extern "C" const int x = 1; 
@@ -12629,6 +12666,7 @@ declaration following this one is such a continuation.
              extern "C" { extern const int x = 1; } 
         */
         gen_storage_class(storage_class);
+        need_extern_C_closing_brace = TRUE;
       }  /* if */
     } else if (is_condition && storage_class == (a_storage_class)sc_auto) {
       /* Condition declarations do not allow a storage class. */
@@ -12769,7 +12807,10 @@ declaration following this one is such a continuation.
   if (!is_condition) {
     a_boolean  use_comma_terminator = FALSE;
     /* See if there are comma-separated declarations attached to this one. */
-    *another_decl_in_comma_list = another_declaration_in_comma_list_follows();
+    *another_decl_in_comma_list =
+             another_declaration_in_comma_list_follows(var_type,
+                                                       /*typedef_only=*/FALSE,
+                                                       for_init);
     /* In Microsoft mode, it is possible that a for-init declaration
        contained two separate declarations separated by a comma.  E.g.,
           for (int i, double j; ... ; ...) ...
@@ -12783,10 +12824,11 @@ declaration following this one is such a continuation.
       use_comma_terminator = TRUE;
     }  /* if */
     write_end_of_declaration_punctuation(use_comma_terminator);
-    if (render_braced_extern_c && !*another_decl_in_comma_list) {
-      write_tok_ch('}');
-      write_space();
-    }  /* if */
+  }  /* if */
+  if (need_extern_C_closing_brace) {
+    check_assertion(!is_condition && !*another_decl_in_comma_list);
+    write_tok_ch('}');
+    write_space();
   }  /* if */
   if (orig_scope != NULL) {
     /* Restore the original namespace state if it was changed for a
@@ -12804,9 +12846,29 @@ function.
 {
   /* Process source sequence entries until the opening brace of the
      function. */
-  while (ss_entry_kind(curr_source_sequence_entry) != iek_statement) {
-    gen_declaration(/*for_init=*/FALSE);
-  }  /* while */
+  for (;;) {
+    if (ss_entry_kind(curr_source_sequence_entry) == iek_variable) {
+      /* Output a parameter declaration. */
+      a_variable_ptr var = ss_entry_ptr(curr_source_sequence_entry,
+                                        a_variable_ptr);
+      adv_curr_source_sequence_entry();
+      write_space();
+      set_output_position(&var->source_corresp.decl_position);
+      gen_declaration_using_type(var->type, &var->source_corresp,
+                                 iek_variable);
+#if GNU_EXTENSIONS_ALLOWED
+      /* Emit attributes associated with this variable. */
+      (void)form_variable_attributes(var, /*need_leading_space=*/TRUE, &octl);
+#endif /* GNU_EXTENSIONS_ALLOWED */
+      write_tok_ch(';');
+    } else if (ss_entry_kind(curr_source_sequence_entry) == iek_statement) {
+      /* Stop on the opening brace of the routine. */
+      break;
+    } else {
+      /* Anything else should be a type declared in the prototype scope. */
+      gen_declaration(/*for_init=*/FALSE);
+    }  /* if */
+  }  /* for */
 }  /* gen_old_style_parameter_decls */
 
 
@@ -13688,7 +13750,10 @@ handle_as_definition:
        would be redundant.) */
     if (rout->pure_virtual && !abstract_generated) write_tok_str(" = 0");
     /* See if there are comma-separated declarations attached to this one. */
-    *another_decl_in_comma_list = another_declaration_in_comma_list_follows();
+    *another_decl_in_comma_list =
+             another_declaration_in_comma_list_follows(rout_type,
+                                                       /*typedef_only=*/FALSE,
+                                                       /*for_init=*/FALSE);
     write_end_of_declaration_punctuation(*another_decl_in_comma_list);
   } else {
     /* The definition of the routine. */

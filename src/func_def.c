@@ -600,11 +600,6 @@ pointer decay).
                               &sym->decl_position,
                               is_real_instantiation ?
                                       NULL : param_id->source_sequence_entry);
-    if (param_id->is_decl_after_first_in_comma_list) {
-      /* An old-style parameter definition that appears after the first in a
-         comma-separated list. */
-      vp->source_corresp.is_decl_after_first_in_comma_list = TRUE;
-    }  /* if */
 #else /* !GENERATE_SOURCE_SEQUENCE_LISTS */
     mark_defined(sym, &sym->decl_position);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -1619,25 +1614,36 @@ is recorded in *decl_pos_block.  *linkage_ptr is set to idl_external, and
 }  /* define_member_function */
 
 
-void function_definition(a_symbol_locator      *locator,
-                         a_decl_parse_state    *dps,
-                         a_func_info_block     *func_info,
-                         a_decl_pos_block_ptr  decl_pos_block)
+a_symbol_ptr function_definition(
+                        a_symbol_locator           *locator,
+                        a_type_ptr                 rout_type,
+                        a_func_info_block          *func_info,
+                        a_storage_class            storage_class,
+                        a_boolean                  has_explicit_type_specifier,
+                        a_decl_modifiers_block_ptr decl_modifiers,
+                        an_ms_attribute_ptr        *p_ms_attributes,
+                        an_attribute_ptr           attributes,
+                        a_decl_pos_block_ptr       decl_pos_block)
 /*
 Scan a function definition.  The declarator has already been scanned; the
-old-style parameter declarations and the compound statement for the body are
-still to come.  *locator is the locator to be used to enter the function
-symbol; *dps describes various properties of the declaration, including the
-type for the function (which, in C++, can be qualified -- hence the use of
-local variable unqualified_rout_type where appropriate in this routine);
-*func_info contains information about parameters, as well as field
-function_type_from_typedef (when it is FALSE, the function type came from the
-declarator; when it is TRUE an error is reported).
+old-style parameter declarations and the compound statement for the body
+are still to come.  *locator is the locator to be used to enter the
+function symbol; rout_type is the type for the function (which, in C++,
+can be qualified -- hence the use of local variable unqualified_rout_type
+where appropriate in this routine); *func_info contains information about
+parameters, as well as field function_type_from_typedef (when it is FALSE,
+the function type came from the declarator; when it is TRUE an error is
+reported); storage_class is the storage class from the specifiers list; and
+has_explicit_type_specifier is TRUE if the type of the function was explicitly
+specified (rather than defaulted to "int").  A pointer to the symbol pointer
+associated with the function is returned.  attributes describes GNU attributes
+specified for this function declaration.  p_ms_attributes describes Microsoft
+attributes.  If p_ms_attributes is non-NULL, *p_ms_attributes is returned NULL.
 This function is also called in the case of a nondefining out-of-class
 member declaration (allowed in Microsoft mode only).
 */
 {
-  a_symbol_ptr                   ext_sym;
+  a_symbol_ptr                   symbol_ptr, ext_sym;
   a_routine_ptr                  routine_ptr;
   a_param_id_ptr                 param_id;
   an_id_linkage_kind             linkage;
@@ -1646,6 +1652,7 @@ member declaration (allowed in Microsoft mode only).
   a_boolean                      prototyped;
   a_param_type_ptr               ptp;
   a_decl_flag_set                flags;
+  a_source_sequence_entry_ptr    declarator_ssep;
 
   db_enter(3, "function_definition");
   /* The top type (function) must have come from a declarator, not from a
@@ -1655,11 +1662,11 @@ member declaration (allowed in Microsoft mode only).
     /* Build a copy of the routine type that can be used below, to avoid
        further error recovery problems, and because we need a non-shared
        routine type entry that we can modify. */
-    dps->type = copy_routine_type_with_param_types(dps->type,
+    rout_type = copy_routine_type_with_param_types(rout_type,
                                                    /*copy_default_args=*/TRUE);
-    unqualified_rout_type = skip_typerefs(dps->type);
+    unqualified_rout_type = skip_typerefs(rout_type);
   } else {
-    unqualified_rout_type = skip_typerefs(dps->type);
+    unqualified_rout_type = skip_typerefs(rout_type);
     check_assertion(unqualified_rout_type->kind == (a_type_kind)tk_routine);
   }  /* if */
   extra_info = unqualified_rout_type->variant.routine.extra_info;
@@ -1669,9 +1676,9 @@ member declaration (allowed in Microsoft mode only).
       locator->specific_symbol->is_class_member) {
     /* This is the definition of a member function. */
     check_assertion(prototyped);
-    define_member_function(locator, dps->type, func_info, &dps->sym,
-                           &linkage, &dps->decl_modifiers, &old_type, &ext_sym,
-                           dps->attributes, decl_pos_block);
+    define_member_function(locator, rout_type, func_info, &symbol_ptr,
+                           &linkage, decl_modifiers, &old_type, &ext_sym,
+                           attributes, decl_pos_block);
   } else {
     if (!prototyped) {
       /* Old-style id list.  Before calling decl_routine scan the
@@ -1683,7 +1690,7 @@ member declaration (allowed in Microsoft mode only).
 
       /* Push the name scope for the parameter declarations. */
       (void)push_scope((a_scope_kind)sck_func_prototype,
-                       func_info->scope_number, dps->type,
+                       func_info->scope_number, rout_type,
                        (a_routine_ptr)NULL);
       /* Remember the scope number for later use when the body is scanned. */
       func_info->scope_number = scope_stack[depth_scope_stack].number;
@@ -1801,7 +1808,7 @@ member declaration (allowed in Microsoft mode only).
           /* It doesn't make any difference how copy_default_args is set;
              there shouldn't be any on an old-style declaration. */
           func_info->declared_type =
-              copy_routine_type_with_param_types(dps->type,
+              copy_routine_type_with_param_types(rout_type,
                                                  /*copy_default_args=*/FALSE);
         }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -1834,8 +1841,16 @@ member declaration (allowed in Microsoft mode only).
       process_curr_token_pragmas();
     }  /* if */
     /* Create the symbol entry and routine entry for the routine. */
-    decl_routine(locator, dps, func_info, (SRK_DECLARATION | SRK_DEFINITION),
-                 &linkage, &old_type, &ext_sym, decl_pos_block);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    declarator_ssep = func_info->declarator_ssep;
+#else /* !GENERATE_SOURCE_SEQUENCE_LISTS */
+    declarator_ssep = NULL;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    decl_routine(locator, storage_class, rout_type, func_info,
+                 declarator_ssep, (SRK_DECLARATION | SRK_DEFINITION),
+                 decl_modifiers, p_ms_attributes, attributes, (char *)NULL,
+                 (a_source_position*)NULL, &symbol_ptr, &linkage, &old_type,
+                 &ext_sym, decl_pos_block);
   }  /* if */
   /* Now scan the function body, except if we're dealing with the special
      Microsoft and GNU extension case that allows a nondefining out-of-class
@@ -1845,11 +1860,11 @@ member declaration (allowed in Microsoft mode only).
       locator->is_class_member) {
     /* There is no definition. */
     check_assertion(!gpp_mode ||
-                    dps->sym->variant.routine.ptr->is_specialized);
+                    symbol_ptr->variant.routine.ptr->is_specialized);
   } else {
-    routine_ptr = dps->sym->variant.routine.ptr;
+    routine_ptr = symbol_ptr->variant.routine.ptr;
     flags = SFB_NO_FLAGS;
-    if (!dps->has_explicit_type_specifier) {
+    if (!has_explicit_type_specifier) {
       flags |= SFB_IMPLICITLY_DECLARED_RETURN_TYPE;
     }  /* if */
     scan_function_body(routine_ptr, func_info, flags);
@@ -1866,7 +1881,7 @@ member declaration (allowed in Microsoft mode only).
 			 (a_special_function_kind)sfk_constructor ||
             routine_ptr->special_kind ==
 			 (a_special_function_kind)sfk_destructor) {
-          last_ctor_or_dtor_sym = dps->sym;
+          last_ctor_or_dtor_sym = symbol_ptr;
         } else {
           last_ctor_or_dtor_sym = NULL;
         }  /* if */
@@ -1876,6 +1891,7 @@ member declaration (allowed in Microsoft mode only).
   }  /* if */
 
   db_exit();
+  return symbol_ptr;
 }  /* function_definition */
 
 

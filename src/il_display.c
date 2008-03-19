@@ -627,11 +627,6 @@ Display the indicated source correspondence entry.
      final_name_mangling_pending, which are used only in
      the front end. */
 #endif /* NEED_NAME_MANGLING */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-  if (scp->is_decl_after_first_in_comma_list) {
-    disp_boolean("  is_decl_after_first_in_comma_list", TRUE);
-  }  /* if */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if ONE_INSTANTIATION_PER_OBJECT
   if (scp->static_used_by_instantiation) {
     disp_boolean("  static_used_by_instantiation", TRUE);
@@ -5906,9 +5901,6 @@ Display the indicated source sequence secondary declaration entry.
     disp_boolean("has_alias_attribute", TRUE);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-  if (sssdp->is_decl_after_first_in_comma_list) {
-    disp_boolean("is_decl_after_first_in_comma_list", TRUE);
-  }  /* if */
 }  /* disp_src_seq_secondary_decl */
 
 

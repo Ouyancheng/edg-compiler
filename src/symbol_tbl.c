@@ -6692,23 +6692,25 @@ to a symbol locator created to represent the entity's name.  rout_type is the
 associated function type and must be a tk_routine entry (i.e., not a typeref).
 */
 {
-  a_symbol_ptr                   ext_sym;
+  a_symbol_ptr                   sym = NULL, ext_sym;
   a_type_ptr                     old_type;
   an_id_linkage_kind             linkage;
   a_func_info_block              func_info;
-  a_decl_parse_state             dps;
+  a_decl_modifiers_block         decl_modifiers;
 
   check_assertion(rout_type->kind == (a_type_kind)tk_routine);
   clear_func_info(&func_info);
-  init_decl_parse_state(&dps);
+  clear_decl_modifiers_block(&decl_modifiers);
   /* Create the symbol and routine entry.  Note that the routine entry
      is given a storage class of sc_extern since there is no definition
      in the current translation unit. */
-  dps.storage_class = dps.declared_storage_class = (a_storage_class)sc_extern;
-  dps.type = rout_type;
-  decl_routine(locator, &dps, &func_info, SRK_DECLARATION, &linkage, &old_type,
-               &ext_sym, (a_decl_pos_block_ptr)NULL);
-  dps.sym->variant.routine.ptr->compiler_generated = TRUE;
+  decl_routine(locator, (a_storage_class)sc_extern, rout_type, &func_info,
+               (a_source_sequence_entry_ptr)NULL, SRK_DECLARATION,
+               &decl_modifiers, (an_ms_attribute_ptr*)NULL,
+               (an_attribute_ptr)NULL, (char *)NULL, (a_source_position*)NULL,
+               &sym, &linkage, &old_type, &ext_sym,
+               (a_decl_pos_block_ptr)NULL);
+  sym->variant.routine.ptr->compiler_generated = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode) {
     /* Predeclared functions should use __cdecl calling convention.  If that's
@@ -6719,7 +6721,7 @@ associated function type and must be a tk_routine entry (i.e., not a typeref).
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  return dps.sym;
+  return sym;
 }  /* make_predeclared_function_symbol */
 
 
@@ -10331,7 +10333,6 @@ locator_for_curr_id.
   pip->storage_class = (a_storage_class)sc_unspecified;
   pip->implicitly_declared = FALSE;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  pip->is_decl_after_first_in_comma_list = FALSE;
   pip->source_sequence_entry = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if GNU_EXTENSIONS_ALLOWED

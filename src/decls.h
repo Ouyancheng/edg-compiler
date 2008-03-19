@@ -492,8 +492,6 @@ source sequence entry.)
     (dps)->source_sequence_entry = NULL;                                     \
   }  /* if */
 
-extern void mark_decl_after_first_in_comma_list(a_decl_parse_state*);
-
 #else /* !GENERATE_SOURCE_SEQUENCE_LISTS */
 
 #define remove_declarator_sse(dps, scope_level)  /* Nothing */
@@ -678,14 +676,22 @@ extern void set_routine_declared_type(a_routine_ptr  routine_ptr,
 
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
-extern void decl_routine(a_symbol_locator         *locator,
-                         a_decl_parse_state       *dps,
-                         a_func_info_block_ptr    func_info,
-                         a_symbol_reference_kind  srk_flags,
-                         an_id_linkage_kind       *linkage_ptr,
-                         a_type_ptr               *old_type,
-                         a_symbol_ptr             *ext_sym,
-                         a_decl_pos_block_ptr     decl_pos_block);
+extern void decl_routine(a_symbol_locator             *locator,
+                         a_storage_class              storage_class,
+                         a_type_ptr                   type_ptr,
+                         a_func_info_block_ptr        func_info,
+                         a_source_sequence_entry_ptr  declarator_ssep,
+                         a_symbol_reference_kind      srk_flags,
+                         a_decl_modifiers_block_ptr   decl_modifiers,
+                         an_ms_attribute_ptr          *p_ms_attributes,
+                         an_attribute_ptr             attributes,
+                         char                         *asm_name,
+                         a_source_position_ptr        asm_name_pos,
+                         a_symbol_ptr                 *symbol_ptr,
+                         an_id_linkage_kind           *linkage_ptr,
+                         a_type_ptr                   *old_type,
+                         a_symbol_ptr                 *ext_sym,
+                         a_decl_pos_block_ptr         decl_pos_block);
 
 void decl_variable(a_symbol_locator             *locator,
                    a_decl_parse_state           *dps,
