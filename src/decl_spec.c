@@ -8128,7 +8128,7 @@ process_class_specifier:
            K&R, we consider an identifier to be a typedef when there is
            just a sign or size (since these are "adjectives" to pcc), but
            not when there is a type specifier. */
-        { a_boolean          unexpected_identifier = FALSE;
+        { a_boolean  unexpected_identifier = FALSE;
           if (process_nontype_identifier(decl_specifiers_seen, *storage_class,
                                          input_flags, &basic_type,
                                          &named_address_space, output_flags,
