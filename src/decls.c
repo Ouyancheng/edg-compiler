@@ -6098,51 +6098,36 @@ new declaration is a friend declaration.
 /* ARGSUSED */ /* decl_modifiers, attributes, and/or decl_pos_block are not
                   used in some configurations. */
 #endif /* !GNU_EXTENSIONS_ALLOWED || !MICROSOFT_EXTENSIONS_ALLOWED || ... */
-void decl_routine(a_symbol_locator             *locator,
-                  a_storage_class              storage_class,
-                  a_type_ptr                   type_ptr,
-                  a_func_info_block_ptr        func_info,
-                  a_source_sequence_entry_ptr  declarator_ssep,
-                  a_symbol_reference_kind      srk_flags,
-                  a_decl_modifiers_block_ptr   decl_modifiers,
-                  an_ms_attribute_ptr          *p_ms_attributes,
-                  an_attribute_ptr             attributes,
-                  char                         *asm_name,
-                  a_source_position_ptr        asm_name_pos,
-                  a_symbol_ptr                 *symbol_ptr,
-                  an_id_linkage_kind           *linkage_ptr,
-                  a_type_ptr                   *old_type,
-                  a_symbol_ptr                 *ext_sym,
-                  a_decl_pos_block_ptr         decl_pos_block)
+void decl_routine(a_symbol_locator         *locator,
+                  a_decl_parse_state       *dps,
+                  a_func_info_block_ptr    func_info,
+                  a_symbol_reference_kind  srk_flags,
+                  an_id_linkage_kind       *linkage_ptr,
+                  a_type_ptr               *old_type,
+                  a_symbol_ptr             *ext_sym,
+                  a_decl_pos_block_ptr     decl_pos_block)
 /*
 Enter the declaration of an identifier for a nonmember routine.  *locator
 gives the symbol locator (and thus its name and its declaration position).
-storage_class, type_ptr, decl_modifiers, attributes, and asm_name give the
-storage class, type, declaration modifier flags, attributes, and assembly
-symbol name.  asm_name_pos describes the position of the string literal in
-the asm name construct (NULL if there is no such construct).  If
-func_info->implicit_declaration is TRUE, this declaration is for an implicit
-function declaration, and *symbol_ptr already contains a pointer to the
-symbol entry, which is already in the symbol table; if
-func_info->is_definition is TRUE, the identifier being defined is part of a
+*dps and *func_info describe various properties of the declaration (e.g., its
+type, storage class, attributes, etc.).  If func_info->implicit_declaration is
+TRUE, this declaration is for an implicit function declaration, and dps->sym
+already points to the symbol entry, which is already in the symbol table.  If
+ func_info->is_definition is TRUE, the identifier being defined is part of a
 function definition (meaning there is a body in the definition), in which case
-it is guaranteed that type_ptr points to an unshared type entry, and that type
+it is guaranteed that dps->type points to an unshared type entry, and that type
 entry will be preserved as the routine type.  Create and enter a symbol entry,
-and return a pointer to it in *symbol_ptr.  Also allocate any associated IL
+and return a pointer to it in dps->sym.  Also allocate any associated IL
 construct, and attach it to the symbol.  If the identifier has linkage and
 there is an existing symbol or IL entry, it will be re-used.  Return in
 *linkage_ptr the linkage of the identifier.  Return in *old_type any
 previously-known type for this identifier from a linked identifier in the same
 scope, or NULL if there was no previously-known type.  If the identifier has
 linkage, return in *ext_sym a pointer to the external symbol entry; otherwise,
-set *ext_sym to NULL.  declarator_ssep (non-NULL only if source sequence
-entries are being generated) is a pointer to the empty source sequence entry
-already created for the declarator and added to the appropriate list; its kind
-and entity pointer are updated.  srk_flags contain specific information about
-the kind of declaration (whether it's a definition, an implicit declaration (C
-only), a friend declaration (C++ only), and so forth); this information is
-passed on for use in generating cross-reference output describing this
-declaration.
+set *ext_sym to NULL.  srk_flags contain specific information about the kind
+of declaration (whether it's a definition, an implicit declaration (C only), a
+friend declaration (C++ only), and so forth); this information is passed on
+for use in generating cross-reference output describing this declaration.
 */
 {
   a_symbol_ptr             sym = NULL;
@@ -6177,8 +6162,11 @@ declaration.
   an_id_linkage_block      idlb;
   a_boolean                suppress_inline_body = FALSE;
   a_boolean                notify_correspondence_processing = FALSE;
-  a_storage_class          declared_storage_class = storage_class;
   a_boolean                microsoft_specialization_redef = FALSE;
+  a_type_ptr               type_ptr = dps->type;
+  a_storage_class          storage_class = dps->storage_class;
+  a_decl_modifiers_block_ptr
+                           decl_modifiers = &dps->decl_modifiers;
 
   db_enter(3, "decl_routine");
   *old_type = NULL;
@@ -6195,11 +6183,11 @@ declaration.
   if (!C_mode()) {
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     /* When the declared_type was created (in declarator), the default args
-       were ignored.  If appropriate, copy them from type_ptr to the
+       were ignored.  If appropriate, copy them from dps->type to the
        declared_type now (i.e., before composite_type is called). */
     if (!is_function_def && source_sequence_entries_disallowed) {
       /* The declared_type is not used. */
-    } else if (same_entities(func_info->declared_type, type_ptr)) {
+    } else if (same_entities(func_info->declared_type, dps->type)) {
       /* No fixup required.  (This can happen when type_ptr is a typedef.) */
     } else if (func_info->declared_type != NULL &&
                skip_typerefs(func_info->declared_type)->
@@ -6282,7 +6270,7 @@ declaration.
       linkage = idl_none;
     }  /* if */
     linked_symbol = NULL;
-    sym = *symbol_ptr;
+    sym = dps->sym;
     effective_decl_level = DEPTH_OF_FILE_SCOPE;
   } else {
     if (!C_mode() && locator->specific_symbol != NULL &&
@@ -6316,14 +6304,14 @@ declaration.
        has external linkage, is not visible outside the current translation
        unit.  (This does not apply to block-extern declarations. */
     if (func_info->is_inline && !idlb.is_block_extern_decl &&
-        declared_storage_class == (a_storage_class)sc_unspecified) {
+        dps->declared_storage_class == (a_storage_class)sc_unspecified) {
       /* "inline" was present in the declaration, but no storage class was
          specified. */
       suppress_inline_body = TRUE;
     }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
   } else if (gcc_mode && 
-             declared_storage_class == (a_storage_class)sc_extern &&
+             dps->declared_storage_class == (a_storage_class)sc_extern &&
              func_info->is_inline && func_info->is_definition) {
     /* In GNU C mode, if a function definition uses both the "extern" and
        "inline" keywords then no definition of the function should be emitted,
@@ -6733,9 +6721,10 @@ declaration.
                  for the temporary entry. */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
               source_sequence_entries_disallowed = TRUE;
-              if (declarator_ssep != NULL) {
-                f_remove_from_src_seq_list(declarator_ssep, decl_scope_level);
-                declarator_ssep = NULL;
+              if (dps->source_sequence_entry != NULL) {
+                f_remove_from_src_seq_list(dps->source_sequence_entry,
+                                           decl_scope_level);
+                dps->source_sequence_entry = NULL;
               }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
               microsoft_specialization_redef = TRUE;
@@ -7209,7 +7198,7 @@ skip_overloading:;
       routine_ptr->declared_only_as_friend = FALSE;
     }  /* if */
     if (func_info->is_inline &&
-        declared_storage_class == (a_storage_class)sc_extern) {
+        dps->declared_storage_class == (a_storage_class)sc_extern) {
       routine_ptr->explicit_extern_inline = TRUE;
     }  /* if */
     if (decl_modifiers->direct_linkage_specifier && !is_function_def) {
@@ -7304,10 +7293,25 @@ skip_overloading:;
                                          &locator->source_position);
   }  /* if */
   /* If cross-reference information is being issued, update the output.  If
-     source sequence entries are being generated, update the declarator_ssep
+     source sequence entries are being generated, update the source sequence
      entry. */
   record_symbol_declaration(srk_flags, sym, &locator->source_position,
-                            declarator_ssep);
+                            dps->source_sequence_entry);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  if (dps->source_sequence_entry == NULL) {
+    /* No source sequence entry is associated with the declarator. */
+  } else if (ss_entry_kind(dps->source_sequence_entry) == iek_none) {
+    /* record_symbol_declaration did not use the source sequence entry
+       allocated for the declarator.  So update dps->source_sequence_entry
+       with the actual entry used. */
+    if (dps->source_sequence_entry->prev != NULL) {
+      dps->source_sequence_entry = dps->source_sequence_entry->prev->next;
+    } else {
+      dps->source_sequence_entry =
+                         scope_stack[depth_scope_stack].source_sequence_list;
+    }  /* if */
+  }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (is_function_def || first_decl) {
     update_decl_pos_info(&routine_ptr->source_corresp, decl_pos_block);
@@ -7328,16 +7332,16 @@ skip_overloading:;
 #if GNU_EXTENSIONS_ALLOWED
   if (gnu_mode) {
     /* Apply the attributes to the routine. */
-    if (attributes != NULL) {
+    if (dps->attributes != NULL) {
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-      routine_alias_decl = attributes_include_alias(attributes);
+      routine_alias_decl = attributes_include_alias(dps->attributes);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-      apply_attributes_to_routine(attributes, routine_ptr);
+      apply_attributes_to_routine(dps->attributes, routine_ptr);
     }  /* if */
     /* Record the assembly name. */
-    if (asm_name != NULL) {
+    if (dps->asm_name != NULL) {
       record_asm_name_for_routine(
-                   routine_ptr, asm_name, asm_name_pos,
+                   routine_ptr, dps->asm_name, &dps->asm_name_pos,
                    routine_has_been_defined(routine_ptr) && !is_function_def);
     }  /* if */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
@@ -7357,9 +7361,8 @@ skip_overloading:;
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (p_ms_attributes != NULL && *p_ms_attributes != NULL &&
-      !idlb.is_block_extern_decl) {
-    apply_microsoft_attributes(p_ms_attributes, (char*)routine_ptr,
+  if (dps->ms_attributes != NULL && !idlb.is_block_extern_decl) {
+    apply_microsoft_attributes(&dps->ms_attributes, (char*)routine_ptr,
                                (an_il_entry_kind)iek_routine, MSAT_ROUTINE);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -7472,7 +7475,7 @@ skip_overloading:;
     process_curr_construct_pragmas(sym, (a_statement_ptr)NULL);
   }  /* if */
   /* Return symbol and linkage pointers. */
-  *symbol_ptr = sym;
+  dps->sym = sym;
   *linkage_ptr = linkage;
 
 #if DEBUG
@@ -9055,7 +9058,7 @@ symbol has already been entered as an undefined symbol.
   a_symbol_locator       locator;
   a_memory_region_number region_to_switch_back_to;
   a_func_info_block      func_info;
-  a_decl_modifiers_block decl_modifiers;
+  a_decl_parse_state     dps;
 
   db_enter(4, "decl_default_function");
   /* Change the symbol kind to routine.  Note that the symbol has already
@@ -9105,21 +9108,20 @@ symbol has already been entered as an undefined symbol.
   func_info.declared_type = form_declared_type(rout_type, &func_info);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   if (exceptions_enabled) func_info.throw_position = locator.source_position;
-  clear_decl_modifiers_block(&decl_modifiers);
-  decl_routine(&locator, (a_storage_class)sc_extern, rout_type, &func_info,
-               (a_source_sequence_entry_ptr)NULL,
-               (SRK_DECLARATION | SRK_IMPLICIT), &decl_modifiers, 
-               (an_ms_attribute_ptr*)NULL, (an_attribute_ptr)NULL,
-               (char *)NULL, (a_source_position_ptr)NULL, &symbol_ptr,
+  init_decl_parse_state(&dps);
+  dps.declared_storage_class = dps.storage_class = (a_storage_class)sc_extern;
+  dps.type = rout_type;
+  dps.sym = symbol_ptr;
+  decl_routine(&locator, &dps, &func_info, (SRK_DECLARATION | SRK_IMPLICIT),
                &linkage, &old_type, &ext_sym, (a_decl_pos_block_ptr)NULL);
   done_with_func_info(func_info);
   /* Set the referenced flag on the routine entry.  The implicit declaration
      is also an immediate reference. */
-  symbol_ptr->variant.routine.ptr->source_corresp.referenced = TRUE;
+  dps.sym->variant.routine.ptr->source_corresp.referenced = TRUE;
   switch_back_to_original_region(region_to_switch_back_to);
 #if DEBUG
   if (debug_level >= 3) {
-    db_symbol(symbol_ptr, "", 4);
+    db_symbol(dps.sym, "", 4);
   }  /* if */
 #endif /* DEBUG */
   db_exit();
@@ -12915,11 +12917,7 @@ proceed after the call.
       /* Do processing required for a function definition, including
          scanning the function body.  Note that the closing '}' will not
          been consumed -- that will be done by the caller. */
-      (void)function_definition(locator, state->type, func_info,
-                                state->storage_class,
-                                state->has_explicit_type_specifier,
-                                &state->decl_modifiers, &state->ms_attributes,
-                                state->attributes, decl_pos_block);
+      function_definition(locator, state, func_info, decl_pos_block);
       done_with_func_info(*func_info);
       if (is_function_try_block) {
         /* Checking for the closing brace will already have been done. */
@@ -13033,11 +13031,8 @@ proceed after the call.
                 &locator->source_position);
     }  /* if */
   }  /* if */          
-  decl_routine(locator, state->storage_class, state->type, func_info,
-               state->source_sequence_entry, SRK_DECLARATION,
-               &state->decl_modifiers, &state->ms_attributes,
-               state->attributes, state->asm_name, &state->asm_name_pos,
-               &state->sym, &linkage, &prev_type, &ext_sym, decl_pos_block);
+  decl_routine(locator, state, func_info, SRK_DECLARATION, &linkage,
+               &prev_type, &ext_sym, decl_pos_block);
   /* Diagnose attempts to initialize a function entity. */
   if (has_initializer) {
     a_boolean  paren_form =
@@ -13936,6 +13931,39 @@ related-fields of *ps prior to scanning the next declarator.
   ps->source_sequence_entry = NULL;
 }  /* start_secondary_declarator */
 
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+
+void mark_decl_after_first_in_comma_list(a_decl_parse_state  *dps)
+/*
+The declaration described by *dps is associated with a declarator that appears
+after the first one in a list (e.g. "j" in "int i, j;").  Record that fact.
+*/
+{
+  a_source_sequence_entry_ptr  ssep = dps->source_sequence_entry;
+
+  if (ssep != NULL) {
+    if (ss_entry_kind(ssep) == iek_src_seq_secondary_decl) {
+      ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr)
+                                   ->is_decl_after_first_in_comma_list = TRUE;
+    } else if (ss_entry_kind(ssep) != iek_none) {
+      check_assertion(ss_entry_kind(ssep) == iek_routine ||
+                      ss_entry_kind(ssep) == iek_variable ||
+                      ss_entry_kind(ssep) == iek_constant ||
+                      ss_entry_kind(ssep) == iek_field ||
+                      ss_entry_kind(ssep) == iek_type);
+      ss_entry_ptr(ssep, a_source_correspondence_ptr)
+                                   ->is_decl_after_first_in_comma_list = TRUE;
+    } else if (dps->is_old_style_param_decl) {
+      check_assertion(dps->sym != NULL &&
+                      dps->sym->kind == (a_symbol_kind)sk_parameter);
+      dps->sym->variant.param_id->is_decl_after_first_in_comma_list = TRUE;
+    } else {
+      expect_error();
+    }  /* if */
+  }  /* if */
+}  /* mark_decl_after_first_in_comma_list */
+
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 void check_deduced_auto_type(a_decl_parse_state  *dps)
 /*
@@ -14224,7 +14252,6 @@ Broadly speaking, three kinds of declarations are handled here:
       func_info.is_asm_function = TRUE;
     }  /* if */
 #endif /* ASM_FUNCTION_ALLOWED */
-    /* Save the source position of the first token of the declarator. */
     declarator(di_flags, &state, /*member_parent_type=*/(a_type_ptr)NULL,
                &locator, &func_info, &decl_pos_block, &declarator_attributes);
     is_function = (state.declared_storage_class !=
@@ -14275,6 +14302,11 @@ Broadly speaking, three kinds of declarations are handled here:
       typedef_declaration(&state, &locator, &decl_pos_block);
     }  /* if */
     done_with_func_info(func_info);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    if (!first_declarator) {
+      mark_decl_after_first_in_comma_list(&state);
+    }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     remove_stop_token(tok_comma);
     state.need_comma_remove_stop_token = FALSE;
     first_declarator = FALSE;

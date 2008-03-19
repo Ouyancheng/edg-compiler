@@ -63,16 +63,10 @@ extern a_boolean check_function_return_type(a_type_ptr         return_type,
                                             a_boolean          evaluated,
                                             a_routine_ptr      rout_ptr);
 
-extern a_symbol_ptr function_definition(
-                           a_symbol_locator            *locator,
-                           a_type_ptr                  rout_type,
-                           a_func_info_block           *func_info,
-                           a_storage_class             storage_class,
-                           a_boolean                   has_explicit_type_spec,
-                           a_decl_modifiers_block_ptr  decl_modifiers,
-                           an_ms_attribute_ptr         *p_ms_attributes,
-                           an_attribute_ptr            attributes,
-                           a_decl_pos_block_ptr        decl_pos_block);
+extern void function_definition(a_symbol_locator      *locator,
+                                a_decl_parse_state    *dps,
+                                a_func_info_block     *func_info,
+                                a_decl_pos_block_ptr  decl_pos_block);
 
 extern void force_definition_of_compiler_generated_routine(a_routine_ptr rp);
 

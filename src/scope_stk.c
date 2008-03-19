@@ -4199,6 +4199,8 @@ NULL.
           var_ptr->declared_type = sssdp->declared_type;
           var_ptr->embedded_source_sequence_entries =
                                        sssdp->embedded_source_sequence_entries;
+          var_ptr->source_corresp.is_decl_after_first_in_comma_list =
+                                      sssdp->is_decl_after_first_in_comma_list;
         }  /* if */
       }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */

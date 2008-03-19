@@ -6106,7 +6106,6 @@ possibility.
   a_symbol_ptr                 sym, ext_sym;
   an_id_linkage_kind           linkage;
   a_type_ptr                   old_type;
-  a_storage_class              storage_class;
   a_symbol_reference_kind      srk_flags;
   a_source_sequence_entry_ptr  declarator_ssep = NULL;
 
@@ -6250,23 +6249,20 @@ possibility.
           set_to_named_error_locator(*locator);
         }  /* if */          
       }  /* if */
-      storage_class = state->storage_class;
       if (microsoft_mode &&
-          storage_class != (a_storage_class)sc_unspecified) {
+          state->storage_class != (a_storage_class)sc_unspecified) {
         /* In Microsoft mode "extern" and "static" are permitted on a
            nonmember friend declaration. */
-        if (storage_class != (a_storage_class)sc_static &&
-            storage_class != (a_storage_class)sc_extern) {
+        if (state->storage_class != (a_storage_class)sc_static &&
+            state->storage_class != (a_storage_class)sc_extern) {
           /* The storage class of a function has to be extern or static. */
           pos_warning(ec_bad_function_storage_class, &state->start_pos);
-          storage_class = (a_storage_class)sc_unspecified;
+          state->storage_class = (a_storage_class)sc_unspecified;
         }  /* if */
       }  /* if */
-      decl_routine(locator, storage_class, function_type, func_info,
-                   declarator_ssep, srk_flags, &state->decl_modifiers,
-                   (an_ms_attribute_ptr*)NULL, (an_attribute_ptr)NULL,
-                   (char *)NULL, (a_source_position*)NULL, &sym, &linkage,
+      decl_routine(locator, state, func_info, srk_flags, &linkage,
                    &old_type, &ext_sym, &decl_info->decl_pos_block);
+      sym = state->sym;
       /* WP 11.4 para 5 prohibits defining a nonmember function in a local
          class friend declaration. */
       if (func_info->is_definition &&
@@ -13959,6 +13955,11 @@ passed via template_decl.
                                       ec_ms_attr_not_allowed);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    if (!decl_info.is_first_in_declarator_list) {
+      mark_decl_after_first_in_comma_list(decl_state);
+    }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     remove_stop_token(tok_comma);
     decl_info.is_first_in_declarator_list = FALSE;
 #if GNU_EXTENSIONS_ALLOWED
