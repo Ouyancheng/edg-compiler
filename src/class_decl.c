@@ -10433,7 +10433,10 @@ definition and specific information about the member declaration, respectively.
       member_sym = make_anonymous_parent_object_symbol(
                               (a_symbol_kind)sk_field, &decl_state->start_pos,
                               scope_stack[depth_scope_stack].number);
+      /* Don't call set_source_corresp since we don't want to record a name
+         in the IL entry. */
       field->is_anonymous_parent_object = TRUE;
+      field->source_corresp.assoc_info = (char*)member_sym;
       field->source_corresp.decl_position = decl_state->start_pos;
     } else {
       member_sym = enter_local_symbol((a_symbol_kind)sk_field, locator,
