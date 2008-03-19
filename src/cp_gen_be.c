@@ -12592,6 +12592,7 @@ declaration following this one is such a continuation.
       /* Inside a function, this is not allowed, and can only have come from
          an extern "C" { ... } wrapped around the function. */
       innermost_function_scope == NULL) {
+    check_assertion(!is_condition);
     render_extern_c = TRUE;
     /* For a definition, use the form
          extern "C" { int i; }
@@ -12777,11 +12778,10 @@ declaration following this one is such a continuation.
       use_comma_terminator = TRUE;
     }  /* if */
     write_end_of_declaration_punctuation(use_comma_terminator);
-  }  /* if */
-  if (render_braced_extern_c && !*another_decl_in_comma_list) {
-    check_assertion(!is_condition);
-    write_tok_ch('}');
-    write_space();
+    if (render_braced_extern_c && !*another_decl_in_comma_list) {
+      write_tok_ch('}');
+      write_space();
+    }  /* if */
   }  /* if */
   if (orig_scope != NULL) {
     /* Restore the original namespace state if it was changed for a
