@@ -4859,9 +4859,14 @@ In both those contexts, the declarations cannot be separated by a semicolon.
   a_boolean                   another_decl_follows = FALSE;
   a_source_sequence_entry_ptr ssep;
 
-  /* Skip macros and pragmas. */
-  (void)process_preprocessing_directives();
   ssep = curr_source_sequence_entry;
+  /* Skip macros and pragmas. */
+  for (; ssep != NULL; ssep = ssep->next) {
+    if (ss_entry_kind(ssep) != iek_pragma &&
+        ss_entry_kind(ssep) != iek_macro) {
+      break;
+    }  /* if */
+  }  /* for */
   /* See if the next source sequence entry is for a declaration, and if so,
      get its type. */
   if (ssep != NULL) {
