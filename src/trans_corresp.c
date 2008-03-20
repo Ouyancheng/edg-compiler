@@ -4313,9 +4313,15 @@ routine.
       result = TRUE;
     } else {
       /* Ensure type_2 already corresponds to the "most canonical"
-         correspondence set. */
-      if (canonical_ranking((an_il_entry_kind)iek_type, tucp2->canonical) <
-             canonical_ranking((an_il_entry_kind)iek_type, tucp1->canonical)) {
+         correspondence set.  If both sets have equal ranking, compare the
+         ranking of type_1 and type_2, and ensure type_2 has no smaller a rank
+         then type_1 (this ensures that if type_1 has a definition, type_2 will
+         have one too). */
+      int rank_set_1 = canonical_ranking(iek_type, tucp1->canonical);
+      int rank_set_2 = canonical_ranking(iek_type, tucp2->canonical);
+      if (rank_set_2 < rank_set_1 ||
+          canonical_ranking((an_il_entry_kind)iek_type, (char*)type_2) <
+                canonical_ranking((an_il_entry_kind)iek_type, (char*)type_1)) {
         a_type_ptr  tmp = type_2;
         type_2 = type_1;
         type_1 = tmp;

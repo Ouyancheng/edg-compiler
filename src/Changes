@@ -1,5 +1,13 @@
 Version 3.11
 
+3/18/08  C-mode assertion failure in change_c_type_correspondence
+
+When simultaneously compiling multiple translation units in C mode, the front
+end sometimes aborted with an assertion failure in change_c_type_correspondence
+(trans_corresp.c).  The exact circumstances for this failure are complex, and
+we know of no small example to demonstrate it.  The underlying problem,
+however, has been fixed.
+
 3/18/08  Changes in Microsoft __assume expression handling
 
 Previously, lowering of an expression that contained temporaries that are
