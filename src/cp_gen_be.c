@@ -4843,7 +4843,7 @@ is the one associated with the definition of the enum.
 
 
 static a_boolean another_declaration_in_comma_list_follows(
-                                            a_name_linkage_kind  name_linkage)
+                                 a_name_linkage_kind  surrounding_name_linkage)
 /*
 Called at the end of the generation of a declaration (which was put out with
 the given name linkage), this routine returns whether the next declaration
@@ -4856,14 +4856,16 @@ This is particularly important when dealing with unnamed tag types:
 or in for-init constructs:
   for (int i = 1, j = 1; ... ) ...
 In both those contexts, the declarations cannot be separated by a semicolon.
-Care must be taken with name linkage.  Consider the following input:
+Care must be taken with the name linkage context given by
+surrounding_name_linkage for routines and typedefs.  Consider the following
+input:
   typedef struct S T;
   extern "C" { typedef struct S {} T, *P; }
 S and T have C++ name linkage, but P has C name linkage.  By the time we get
 to this point (just before emitting the declaration of P), we will already
 have emitted "typedef struct S {}" without an extern "C" construct.  However,
 P must have such a construct.  We therefore force P to be separated from the
-preceding declaration by a semicolon.
+preceding declaration by a semicolon in such cases.
 */
 {
   a_boolean                   another_decl_follows = FALSE;
@@ -4880,22 +4882,40 @@ preceding declaration by a semicolon.
   /* See if the next source sequence entry is for a declaration, and if so,
      get its type. */
   if (ssep != NULL) {
+    a_source_correspondence_ptr  next_scp;
+    an_il_entry_kind             next_entry_kind;
     if (ss_entry_kind(ssep) == iek_src_seq_secondary_decl) {
       a_src_seq_secondary_decl_ptr  sssdp =
                              ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr);
-      another_decl_follows =
-            sssdp->is_decl_after_first_in_comma_list &&
-            ss_entry_ptr(sssdp, a_source_correspondence_ptr)->name_linkage ==
-                                                                  name_linkage;
+      next_scp = ss_entry_ptr(sssdp, a_source_correspondence_ptr);
+      next_entry_kind = ss_entry_kind(sssdp);
+      another_decl_follows = sssdp->is_decl_after_first_in_comma_list;
     } else if (ss_entry_kind(ssep) == iek_routine ||
                ss_entry_kind(ssep) == iek_variable ||
                ss_entry_kind(ssep) == iek_constant ||
                ss_entry_kind(ssep) == iek_field ||
                ss_entry_kind(ssep) == iek_type) {
-      a_source_correspondence_ptr  scp =
-                               ss_entry_ptr(ssep, a_source_correspondence_ptr);
-      another_decl_follows = scp->is_decl_after_first_in_comma_list &&
-                             scp->name_linkage == name_linkage;
+      next_scp = ss_entry_ptr(ssep, a_source_correspondence_ptr);
+      next_entry_kind = ss_entry_kind(ssep);
+      another_decl_follows = next_scp->is_decl_after_first_in_comma_list;
+    }  /* if */
+    if (another_decl_follows &&
+        surrounding_name_linkage != (a_name_linkage_kind)nlk_none) {
+      a_name_linkage_kind  next_surrounding_name_linkage =
+                                                (a_name_linkage_kind)nlk_none;
+      if (next_entry_kind == iek_type) {
+        a_type_ptr  type = (a_type_ptr)next_scp;
+        check_assertion(type->kind == (a_type_kind)tk_typeref);
+        next_surrounding_name_linkage =
+                         type->variant.typeref.surrounding_name_linkage_state;
+      } else if (next_entry_kind == iek_routine) {
+        next_surrounding_name_linkage =
+                    ((a_routine_ptr)next_scp)->surrounding_name_linkage_state;
+      }  /* if */
+      if (next_surrounding_name_linkage != (a_name_linkage_kind)nlk_none &&
+          surrounding_name_linkage != next_surrounding_name_linkage) {
+        another_decl_follows = FALSE;
+      }  /* if */
     }  /* if */
   }  /* if */
   return another_decl_follows;
@@ -5028,7 +5048,7 @@ declaration following this one is such a continuation.
   gen_constant(constant, /*need_parens=*/FALSE);
   /* See if there are comma-separated declarations attached to this one. */
   *another_decl_in_comma_list = another_declaration_in_comma_list_follows(
-                                       constant->source_corresp.name_linkage);
+                                               (a_name_linkage_kind)nlk_none);
   write_end_of_declaration_punctuation(*another_decl_in_comma_list);
 }  /* gen_member_constant_decl */
 
@@ -5109,7 +5129,7 @@ declaration following this one is such a continuation.
 #endif /* GNU_EXTENSIONS_ALLOWED */
   /* See if there are comma-separated declarations attached to this one. */
   *another_decl_in_comma_list = another_declaration_in_comma_list_follows(
-                                          field->source_corresp.name_linkage);
+                                               (a_name_linkage_kind)nlk_none);
   write_end_of_declaration_punctuation(*another_decl_in_comma_list);
 }  /* gen_field_decl */
 
@@ -12789,7 +12809,7 @@ declaration following this one is such a continuation.
     a_boolean  use_comma_terminator = FALSE;
     /* See if there are comma-separated declarations attached to this one. */
     *another_decl_in_comma_list = another_declaration_in_comma_list_follows(
-                                            var->source_corresp.name_linkage);
+                                               (a_name_linkage_kind)nlk_none);
     /* In Microsoft mode, it is possible that a for-init declaration
        contained two separate declarations separated by a comma.  E.g.,
           for (int i, double j; ... ; ...) ...
