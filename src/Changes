@@ -1,5 +1,20 @@
 Version 3.11
 
+3/21/08  Comma-separated declarations
+
+When GENERATE_SOURCE_SEQUENCE_LISTS is TRUE, the front end now records whether
+a declaration is separated from a prior declaration using a comma only.
+For example, in:
+
+  int p, *q, (*r)();
+
+the declarations of q and r now have a flag is_decl_after_first_in_comma_list
+set to TRUE (in the source correspondence entry if it is the primary
+declaration, or in a secondary source sequence entry otherwise).  The C++-
+generating back end uses this flag to more accurately reconstruct its input
+(the example above is no longer reconstructed as three declarations separated
+by semicolons).
+
 3/18/08  C-mode assertion failure in change_c_type_correspondence
 
 When simultaneously compiling multiple translation units in C mode, the front

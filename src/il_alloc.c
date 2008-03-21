@@ -3614,6 +3614,7 @@ and return a pointer to it.
   sssdp->marked_as_gnu_extension     = FALSE;
   sssdp->has_alias_attribute         = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
+  sssdp->is_decl_after_first_in_comma_list = FALSE;
 #if CENTERLINE_CHECKING
   sssdp->avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */
@@ -4430,6 +4431,9 @@ in il_alloc_init.)
   def_source_corresp.partially_hidden_by_microsoft_injected_class_name = FALSE;
   def_source_corresp.visible_as_unqualified_name = FALSE;
 #endif /* BACK_END_IS_CP_GEN_BE */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  def_source_corresp.is_decl_after_first_in_comma_list = FALSE;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if ONE_INSTANTIATION_PER_OBJECT
   def_source_corresp.static_used_by_instantiation = FALSE;
 #if DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES

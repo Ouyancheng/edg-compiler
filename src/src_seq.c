@@ -2974,7 +2974,7 @@ check_next_ssep:
           }  /* if */
         }  /* if */
       } else if (is_unnamed_enum_def) {
-        /* Special handling for unnamed unnamed enum definitions. */
+        /* Special handling for unnamed enum definitions. */
         if (il_entry_prefix_of(next_ssep).keep_in_il) {
           /* No need to make the enum declaration autonomous. */
         } else {
@@ -3016,6 +3016,76 @@ check_next_ssep:
 }  /* src_seq_check_for_non_autonomous_tag */
 
 
+static void make_secondary_declarator_primary_if_needed(
+                                            a_source_sequence_entry_ptr  ssep)
+/*
+A source sequence entry representing a primary declarator has been dropped
+and ssep is the next entry in the chain that will not be dropped.  If a
+secondary declarator follows, it may now need to be promoted to become a
+primary declarator.  For example:
+
+  static int x, y;  int z = y;
+
+If x is otherwise unused, its source sequence entry will be dropped, and y's
+entry should no longer be treated as a secondary declarator.  This promotion
+is complicated by the fact that enum and class type definition may come first.
+For example (in C99 mode):
+
+  static int *p = (int*)((struct S { int i; }*)0), q = 3;  // p unneeded
+  struct S s;
+
+Although q must be promoted to become a primary declarator, the source
+sequence entry for the definition of S will appear first.
+*/
+{
+  /* Skip any tag type declarations and definitions, any macros, and any
+     pragmas. */
+  for (; ssep != NULL; ssep = ssep->next) {
+    if (ss_entry_kind(ssep) == iek_type) {
+      /* A type definition. */
+      a_type_ptr  type = ss_entry_ptr(ssep, a_type_ptr);
+      if (is_immediate_class_type(type) || is_immediate_enum_type(type)) {
+        /* Skip until matching end-of-construct entry. */
+        for (;; ssep = ssep->next) {
+          check_assertion(ssep != NULL);
+          if (ss_entry_kind(ssep) == iek_src_seq_end_of_construct &&
+              ss_entry_ptr(ssep, a_src_seq_end_of_construct_ptr)->entity.ptr
+                                                             == (char*)type) {
+            break;
+          }  /* if */
+        }  /* for */
+        continue;
+      }  /* if */
+    } else if (ss_entry_kind(ssep) == iek_src_seq_secondary_decl) {
+      a_src_seq_secondary_decl_ptr  sssdp =
+                             ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr);
+      if (ss_entry_kind(sssdp) == iek_type) {
+        /* A type declaration (not definition). */
+        a_type_ptr  type = ss_entry_ptr(sssdp, a_type_ptr);
+        if (is_immediate_class_type(type) || is_immediate_enum_type(type)) {
+          continue;
+        }  /* if */
+      }  /* if */
+    } else if (ss_entry_kind(ssep) == iek_macro ||
+               ss_entry_kind(ssep) == iek_pragma) {
+      continue;
+    }  /* if */
+    break;
+  }  /* for */
+  if (ssep != NULL) {
+    if (ss_entry_kind(ssep) == iek_routine ||
+        ss_entry_kind(ssep) == iek_type ||
+        ss_entry_kind(ssep) == iek_variable) {
+      ss_entry_ptr(ssep, a_source_correspondence_ptr)
+                                  ->is_decl_after_first_in_comma_list = FALSE;
+    } else if (ss_entry_kind(ssep) == iek_src_seq_secondary_decl) {
+      ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr)
+                                  ->is_decl_after_first_in_comma_list = FALSE;
+    }  /* if */
+  }  /* if */
+}  /* make_secondary_declarator_primary_if_needed */
+
+
 void eliminate_unneeded_source_sequence_entries(a_scope_ptr scope)
 /*
 Eliminate those entries on the source sequence list of the specified IL
@@ -3025,6 +3095,7 @@ scope that are not really needed in the IL.
   /* Remove unneeded source-sequence entries. */
   a_source_sequence_entry_ptr     ssep, next_ssep;
   a_src_seq_secondary_decl_ptr    sssdp;
+  a_boolean                       adjust_secondary_declarator = FALSE;
 
   for (ssep = scope->source_sequence_list; ssep != NULL; ssep = next_ssep) {
     /* The processing whereby the keep_in_il flag is set guarantees that
@@ -3053,6 +3124,21 @@ scope that are not really needed in the IL.
           db_source_sequence_entry(ssep);
         }  /* if */
 #endif /* DEBUG */
+        /* If the entry about to be dropped is for a primary declarator (i.e.,
+           not one appearing after the first in a comma-separated list) and a
+           secondary declarator follows, that secondary declarator may need
+           to be promoted to become a primary declarator.  Record here that
+           we dropped an entry corresponding to a primary declarator. */
+        if (sssdp != NULL) {
+          if (!sssdp->is_decl_after_first_in_comma_list) {
+            adjust_secondary_declarator = TRUE;
+          }  /* if */
+        } else if (kind != (a_byte_il_entry_kind)iek_instantiation_directive) {
+          if (!ss_entry_ptr(ssep, a_source_correspondence_ptr)
+                                         ->is_decl_after_first_in_comma_list) {
+            adjust_secondary_declarator = TRUE;
+          }  /* if */
+        }  /* if */
         next_ssep = drop_from_fs_src_seq_list(ssep);
         if (!C_mode() && sssdp != NULL &&
             kind == (a_byte_il_entry_kind)iek_routine) {
@@ -3068,6 +3154,12 @@ scope that are not really needed in the IL.
       }  /* if */
     } else {
       /* The associated IL entry will not be removed. */
+      if (adjust_secondary_declarator) {
+        /* If needed, promote a secondary declarator to become a primary
+           declarator. */
+        make_secondary_declarator_primary_if_needed(next_ssep);
+        adjust_secondary_declarator = FALSE;
+      }  /* if */
       /* If this is the end of a tag-definition construct, it may be
          appropriate to change the autonomous flag in the type from FALSE
          to TRUE.  Similar processing may be done for secondary declarations

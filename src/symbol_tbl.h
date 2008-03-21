@@ -1109,6 +1109,12 @@ typedef struct a_param_id {
 			/* TRUE for an old-style parameter for which
 			   an explicit declaration is omitted. */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_byte_boolean
+		is_decl_after_first_in_comma_list;
+			/* TRUE for an old-style parameter defined in a
+			   comma-separated list, but not the first in that
+			   list.  For example, for y in:
+				void f(x, y) int x, y; {} */
   a_source_sequence_entry_ptr
 		source_sequence_entry;
 			/* Source-sequence information saved during declarator

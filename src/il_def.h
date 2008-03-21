@@ -1029,6 +1029,10 @@ typedef struct a_src_seq_secondary_decl {
 			   (two declarations of the same entity cannot both
 			   have an alias attribute). */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+  a_bit_field	is_decl_after_first_in_comma_list:1;
+			/* This declaration appeared in a comma-separated
+			   declarator list and was not the first in that list.
+			   E.g., "j" in "extern int i, j;".  */
   bitfield_to_avoid_codecenter_warnings()
 } a_src_seq_secondary_decl;
 
@@ -1508,6 +1512,14 @@ typedef struct a_source_correspondence {
 			   and block extern declarations.  Set/used only within
 			   the C++-generating back end. */
 #endif /* BACK_END_IS_CP_GEN_BE */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_bit_field	is_decl_after_first_in_comma_list:1;
+			/* The primary declaration of this entity appeared in
+			   a comma-separated declarator list and was not the
+			   first in that list.  E.g., "j" in "int i, j;".
+			   For secondary declarations, see the similar flag in
+			   a_src_seq_secondary_decl. */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if ONE_INSTANTIATION_PER_OBJECT
   a_bit_field	static_used_by_instantiation:1;
 			/* TRUE if this entity is a static variable or function

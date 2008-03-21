@@ -1039,42 +1039,38 @@ should be used to satisfy the lookup.
 */
 {
   an_id_linkage_kind     linkage;
-  a_type_ptr             rout_type, old_type;
+  a_type_ptr             old_type;
   a_symbol_ptr           ext_sym;
   a_func_info_block      func_info;
-  a_symbol_ptr           sym;
-  a_decl_modifiers_block decl_modifiers;
+  a_decl_parse_state     dps;
 
   /* This routine must only be called in ANSI C mode. */
   check_assertion(C_dialect == C_dialect_ANSI);
-  clear_decl_modifiers_block(&decl_modifiers);
+  init_decl_parse_state(&dps);
   /* Enter the symbol in the symbol table.  decl_routine expects
      this to be done by the caller for implicitly declared routines. */
-  sym = enter_symbol((a_symbol_kind)sk_routine, locator, depth_scope_stack,
-		     /*suppress_error=*/FALSE);
-  /* Create a local declaration of the external routine.  Use the
-     type from the sk_extern_routine symbol. */
-  rout_type = extern_sym->variant.extern_symbol_descr->type;
+  dps.sym = enter_symbol((a_symbol_kind)sk_routine, locator, depth_scope_stack,
+                         /*suppress_error=*/FALSE);
+  /* Create a local declaration of the external routine.  Use the type from
+     the sk_extern_routine symbol. */
+  dps.type = extern_sym->variant.extern_symbol_descr->type;
+  dps.storage_class = dps.declared_storage_class = (a_storage_class)sc_extern;
   /* Declare the function identifier. */
   clear_func_info(&func_info);
   func_info.is_implicit_declaration = TRUE;
   if (exceptions_enabled) func_info.throw_position = locator->source_position;
-  decl_routine(locator, (a_storage_class)sc_extern, rout_type, &func_info,
-               (a_source_sequence_entry_ptr)NULL,
-               (SRK_DECLARATION | SRK_IMPLICIT), &decl_modifiers,
-               (an_ms_attribute_ptr*)NULL, (an_attribute_ptr)NULL,
-               (char *)NULL, (a_source_position*)NULL, &sym, &linkage,
-               &old_type, &ext_sym, (a_decl_pos_block_ptr)NULL);
+  decl_routine(locator, &dps, &func_info, (SRK_DECLARATION | SRK_IMPLICIT),
+               &linkage, &old_type, &ext_sym, (a_decl_pos_block_ptr)NULL);
   done_with_func_info(func_info);
   /* Set the referenced flag on the routine entry.  The implicit declaration
      is also an immediate reference. */
-  sym->variant.routine.ptr->source_corresp.referenced = TRUE;
+  dps.sym->variant.routine.ptr->source_corresp.referenced = TRUE;
 #if DEBUG
   if (debug_level >= 3) {
-    db_symbol(sym, "", 4);
+    db_symbol(dps.sym, "", 4);
   }  /* if */
 #endif /* DEBUG */
-  return sym;
+  return dps.sym;
 }  /* enter_sym_for_out_of_scope_routine */
 
 
