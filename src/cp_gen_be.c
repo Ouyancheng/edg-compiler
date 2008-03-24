@@ -4843,6 +4843,7 @@ is the one associated with the definition of the enum.
 
 
 static a_boolean another_declaration_in_comma_list_follows(
+                                 an_il_entry_kind     entry_kind,
                                  a_name_linkage_kind  surrounding_name_linkage)
 /*
 Called at the end of the generation of a declaration (which was put out with
@@ -4866,6 +4867,14 @@ to this point (just before emitting the declaration of P), we will already
 have emitted "typedef struct S {}" without an extern "C" construct.  However,
 P must have such a construct.  We therefore force P to be separated from the
 preceding declaration by a semicolon in such cases.
+We also force a semi-colon separator when a declarator for a routine is
+followed by a declarator for something else.  E.g.:
+  int f(), n;
+This avoids a problem where the "extern" specifier is rendered for the
+function ("extern int f()" in the example), which would change the meaning
+of the declarator that follows.  I.e., the above is rendered as:
+  extern int f();
+  int n;
 */
 {
   a_boolean                   another_decl_follows = FALSE;
@@ -4880,10 +4889,13 @@ preceding declaration by a semicolon in such cases.
     }  /* if */
   }  /* for */
   /* See if the next source sequence entry is for a declaration, and if so,
-     get its type. */
+     determine whether it should be rendered as an additional declarator in a
+     list of declarators. */
   if (ssep != NULL) {
     a_source_correspondence_ptr  next_scp;
     an_il_entry_kind             next_entry_kind;
+    /* Retrieve the value of the flag is_decl_after_first_in_comma_list, and
+       determine the kind of entry that follows. */
     if (ss_entry_kind(ssep) == iek_src_seq_secondary_decl) {
       a_src_seq_secondary_decl_ptr  sssdp =
                              ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr);
@@ -4899,8 +4911,20 @@ preceding declaration by a semicolon in such cases.
       next_entry_kind = ss_entry_kind(ssep);
       another_decl_follows = next_scp->is_decl_after_first_in_comma_list;
     }  /* if */
+    if (another_decl_follows && entry_kind == iek_routine &&
+        next_entry_kind != iek_routine) {
+      /* A declarator for a routine was followed by a declarator for a non-
+         routine (usually a variable).  Don't separate the two by a comma even
+         if that was how the source was structured: We may have made explicit
+         a storage specifier (not mentioned in the source), and that would
+         alter the meaning of subsequent declarators.  E.g., "int f(), n;" is
+         not equivalent to "extern int f(), n;". */
+      another_decl_follows = FALSE;
+    }  /* if */
     if (another_decl_follows &&
         surrounding_name_linkage != (a_name_linkage_kind)nlk_none) {
+      /* Determine the "surrounding name linkage state" of the next
+         declaration. */
       a_name_linkage_kind  next_surrounding_name_linkage =
                                                 (a_name_linkage_kind)nlk_none;
       if (next_entry_kind == iek_type) {
@@ -4912,6 +4936,8 @@ preceding declaration by a semicolon in such cases.
         next_surrounding_name_linkage =
                     ((a_routine_ptr)next_scp)->surrounding_name_linkage_state;
       }  /* if */
+      /* If two declarations have different "surrounding name linkage states",
+         they should not be separated by a comma. */
       if (next_surrounding_name_linkage != (a_name_linkage_kind)nlk_none &&
           surrounding_name_linkage != next_surrounding_name_linkage) {
         another_decl_follows = FALSE;
@@ -5048,6 +5074,7 @@ declaration following this one is such a continuation.
   gen_constant(constant, /*need_parens=*/FALSE);
   /* See if there are comma-separated declarations attached to this one. */
   *another_decl_in_comma_list = another_declaration_in_comma_list_follows(
+                                               iek_constant,
                                                (a_name_linkage_kind)nlk_none);
   write_end_of_declaration_punctuation(*another_decl_in_comma_list);
 }  /* gen_member_constant_decl */
@@ -5129,6 +5156,7 @@ declaration following this one is such a continuation.
 #endif /* GNU_EXTENSIONS_ALLOWED */
   /* See if there are comma-separated declarations attached to this one. */
   *another_decl_in_comma_list = another_declaration_in_comma_list_follows(
+                                               iek_field,
                                                (a_name_linkage_kind)nlk_none);
   write_end_of_declaration_punctuation(*another_decl_in_comma_list);
 }  /* gen_field_decl */
@@ -5544,6 +5572,7 @@ declaration following this one is such a continuation.
     }  /* if */
     /* See if there are comma-separated declarations attached to this one. */
     *another_decl_in_comma_list = another_declaration_in_comma_list_follows(
+                        iek_type,
                         type->variant.typeref.surrounding_name_linkage_state);
   }  /* if */
   type->typedef_definition_has_been_put_out = TRUE;
@@ -12809,6 +12838,7 @@ declaration following this one is such a continuation.
     a_boolean  use_comma_terminator = FALSE;
     /* See if there are comma-separated declarations attached to this one. */
     *another_decl_in_comma_list = another_declaration_in_comma_list_follows(
+                                               iek_variable,
                                                (a_name_linkage_kind)nlk_none);
     /* In Microsoft mode, it is possible that a for-init declaration
        contained two separate declarations separated by a comma.  E.g.,
@@ -13729,6 +13759,7 @@ handle_as_definition:
     if (rout->pure_virtual && !abstract_generated) write_tok_str(" = 0");
     /* See if there are comma-separated declarations attached to this one. */
     *another_decl_in_comma_list = another_declaration_in_comma_list_follows(
+                                         iek_routine,
                                          rout->surrounding_name_linkage_state);
     write_end_of_declaration_punctuation(*another_decl_in_comma_list);
   } else {
