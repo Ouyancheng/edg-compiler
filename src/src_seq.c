@@ -3066,7 +3066,10 @@ sequence entry for the definition of S will appear first.
           continue;
         }  /* if */
       }  /* if */
-    } else if (ss_entry_kind(ssep) == iek_macro ||
+    } else if (
+#if RECORD_MACROS_IN_IL
+               ss_entry_kind(ssep) == iek_macro ||
+#endif /* RECORD_MACROS_IN_IL */
                ss_entry_kind(ssep) == iek_pragma) {
       continue;
     }  /* if */
