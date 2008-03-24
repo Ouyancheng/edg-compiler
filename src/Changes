@@ -1,5 +1,14 @@
 Version 3.11
 
+3/24/08  Abort on use of GNU __sync_... functions in templates
+
+In configurations with GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED set to TRUE, the
+front end accepts a variety of built-in functions for atomic memory access
+(see the Changes entry f 7/31/07).  However, when calls to such functions
+appeared in templates, the front end aborted with an internal error in expr.c
+(function "adjust_gnu_sync_call").  A spurious error message was often also
+issued.  This is now fixed.
+
 3/21/08  Comma-separated declarations
 
 When GENERATE_SOURCE_SEQUENCE_LISTS is TRUE, the front end now records whether

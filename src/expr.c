@@ -2220,7 +2220,8 @@ closing right parenthesis).
     }  /* if */
     dispatch_type = skip_typerefs((*args)->operand.type);
     if (!is_pointer_type(dispatch_type)) {
-      if (!is_error_type(dispatch_type)) {
+      if (!is_error_type(dispatch_type) &&
+          !is_template_dependent_type(dispatch_type)) {
         pos_error(ec_bad_type_for_gnu_sync_function, &first_arg_pos);
       }  /* if */
       goto done;
@@ -2239,7 +2240,7 @@ closing right parenthesis).
       a_symbol_ptr       sym;
       a_symbol_locator   loc;
       a_source_position  pos;
-      char          name[100], suffix[3];
+      char               name[100], suffix[3];
       /* Construct the concrete routine's name: */
       check_assertion(strlen(builtin_function_kind_names[bfk]) < 90);
       strcpy(name, builtin_function_kind_names[bfk]);
@@ -2249,6 +2250,11 @@ closing right parenthesis).
       strcat(name, suffix);
       /* Look it up: */
       sym = find_symbol(name, (sizeof_t)strlen(name), &loc);
+      if (scope_stack[DEPTH_OF_FILE_SCOPE].is_reactivation) {
+        /* If the file scope has been reactivated, its symbol have been moved
+           to the inactive list. */
+        sym = loc.symbol_header->inactive_symbols;
+      }  /* if */
       /* Cover the unlikely case that the symbol name corresponds to multiple
          entries. */
       for (; sym != NULL; sym = sym->next) {
