@@ -3118,6 +3118,8 @@ int f_mbc_length(char      *ptr,
 Return the length of the multibyte character sequence beginning at ptr.
 If the sequence there is invalid, set *err to TRUE if err is non-NULL,
 and return 1.  This should usually be called via the macro mbc_length.
+Note that, unlike the standard mblen, this routine does not return 0
+when given a null (zero) character; it returns 1.
 */
 {
   int len;
@@ -3153,10 +3155,15 @@ and return 1.  This should usually be called via the macro mbc_length.
 #else /* !EDG_MULTIBYTE_CHAR_TEST_MODE */
   /* Use standard C library routines. */
   len = mblen(ptr, MB_CUR_MAX);
-  if (len < 0) {
-    /* Invalid multibyte sequence.  Advance bytewise. */
-    if (err != NULL) *err = TRUE;
-    len = 1;
+  if (len <= 0) {
+    if (len == 0 && *ptr == '\0') {
+      /* mblen returns 0 for a null character, but we want 1 for that. */
+      len = 1;
+    } else {
+      /* Invalid multibyte sequence.  Advance bytewise. */
+      if (err != NULL) *err = TRUE;
+      len = 1;
+    }  /* if */
   }  /* if */
 #endif /* EDG_MULTIBYTE_CHAR_TEST_MODE */
 #endif /* USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING */
