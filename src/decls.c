@@ -14323,6 +14323,13 @@ Broadly speaking, three kinds of declarations are handled here:
     if (!first_declarator) {
       mark_decl_after_first_in_comma_list(&state);
     }  /* if */
+    if (state.declared_storage_class != (a_storage_class)sc_unspecified) {
+      a_source_sequence_entry_ptr  ssep = state.source_sequence_entry;
+      if (ssep != NULL && ss_entry_kind(ssep) == iek_src_seq_secondary_decl) {
+        ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr)
+                                              ->explicit_storage_class = TRUE;
+      }  /* if */
+    }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     remove_stop_token(tok_comma);
     state.need_comma_remove_stop_token = FALSE;

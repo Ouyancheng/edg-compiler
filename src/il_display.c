@@ -5909,6 +5909,9 @@ Display the indicated source sequence secondary declaration entry.
   if (sssdp->is_decl_after_first_in_comma_list) {
     disp_boolean("is_decl_after_first_in_comma_list", TRUE);
   }  /* if */
+  if (sssdp->explicit_storage_class) {
+    disp_boolean("explicit_storage_class", TRUE);
+  }  /* if */
 }  /* disp_src_seq_secondary_decl */
 
 

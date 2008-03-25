@@ -3615,6 +3615,7 @@ and return a pointer to it.
   sssdp->has_alias_attribute         = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
   sssdp->is_decl_after_first_in_comma_list = FALSE;
+  sssdp->explicit_storage_class      = FALSE;
 #if CENTERLINE_CHECKING
   sssdp->avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */

@@ -1033,6 +1033,11 @@ typedef struct a_src_seq_secondary_decl {
 			/* This declaration appeared in a comma-separated
 			   declarator list and was not the first in that list.
 			   E.g., "j" in "extern int i, j;".  */
+  a_bit_field	explicit_storage_class:1;
+			/* This declaration included an explicit storage class.
+			   Used by the C++-generating back end to avoid
+			   rendering "int f(), n;" as "extern int f(), n;"
+			   (or vice versa). */
   bitfield_to_avoid_codecenter_warnings()
 } a_src_seq_secondary_decl;
 
