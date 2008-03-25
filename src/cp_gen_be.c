@@ -4883,8 +4883,11 @@ of the declarator that follows.  I.e., the above is rendered as:
   ssep = curr_source_sequence_entry;
   /* Skip macros and pragmas. */
   for (; ssep != NULL; ssep = ssep->next) {
-    if (ss_entry_kind(ssep) != iek_pragma &&
-        ss_entry_kind(ssep) != iek_macro) {
+    if (
+#if RECORD_MACROS_IN_IL
+        ss_entry_kind(ssep) != iek_macro &&
+#endif /* RECORD_MACROS_IN_IL */
+        ss_entry_kind(ssep) != iek_pragma) {
       break;
     }  /* if */
   }  /* for */
