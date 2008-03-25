@@ -20988,7 +20988,9 @@ required_type_determined:
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
       *is_constant = TRUE;
     } else if (gcc_mode && is_an_rvalue(&result) &&
-               result.kind == (an_operand_kind)ok_constant) {
+               result.kind == (an_operand_kind)ok_constant &&
+               types_are_compatible_ignoring_qualifiers(result.type,
+                                                        required_type)) {
       /* In GNU C mode, compound literals can be constant-expressions. */
       copy_constant(&result.variant.constant, constant);
       *is_constant = TRUE;

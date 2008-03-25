@@ -1,5 +1,20 @@
 Version 3.11
 
+3/25/08  GNU C mode abort on invalid initialization with compound literal
+
+In GNU C mode, the front end sometimes failed to diagnose an invalid
+aggregate initialization containing a compound literal.  The resulting
+invalid IL triggered an assertion failure ("constant, but no field") in
+dump_initializer_part (c_gen_be.c).  For example:
+
+  typedef struct { } R;
+  typedef struct { R r; } S;
+  S s = { (S){{}} };  // Previously triggered an abort in the
+                      // C-generating back end.
+
+This is now fixed: An error is now issued on such cases (gcc accepts the
+case with a warning, and discards the initializer).
+
 3/25/08  Internal error on null character at end of string in Microsoft mode
 
 The front end aborted with an assertion failure
