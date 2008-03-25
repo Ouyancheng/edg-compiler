@@ -4089,16 +4089,13 @@ will be changed to an aggregate constant for the constant parts and
   a_dynamic_init_ptr dip = con_ptr->variant.dynamic_init;
 
   if (processing_file_scope_init_routine && in_file_scope(dip) &&
-      dip->destruction_is_for_partially_constructed_aggregate &&
-      dip->overlaps_temps_in_inner_lifetime) {
+      dip->destruction_is_for_partially_constructed_aggregate) {
     /* The subtree of this dynamic initialization will be copied into the
        function scope memory region because the code for it must be generated
-       in a startup initialization routine.  This entry has a destruction
-       whose lifetime overlaps with temporaries in inner lifetimes, and
-       it will have to appear on a cleanup list properly intertwined with
-       those temps.  Copy it at this level so that the overlap is indicated
-       properly on the function-scope copies so the cleanup lists will be
-       right. */
+       in a startup initialization routine.  Copy all destructions that
+       involve partially constructed aggregates.  The copy is done at this
+       level so that any overlap is indicated properly on the function-scope
+       copies so the cleanup lists will be right. */
     dip = copy_dynamic_init(dip, CE_UNLINK_SOURCE_DESTRUCTIONS |
                                  CE_TRANSFER_DESTR_ENTITY_DESCR);
   }  /* if */
