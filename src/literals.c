@@ -916,6 +916,12 @@ return_point:
   /* Drop out-of-range bits. */
   targ_ch &= centity_mask;
   *ch = targ_ch;
+  if (microsoft_mode) {
+    /* Throw away any null characters following the character in Microsoft
+       mode.  This makes it easier for the caller to recognize the end of the
+       string. */
+    while (*lptr == LE_ESCAPE && lptr[1] == LE_NULL) lptr += 2;
+  }  /* if */
   *temp_ptr = lptr;
   return;
 

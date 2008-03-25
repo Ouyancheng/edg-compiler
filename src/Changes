@@ -1,5 +1,14 @@
 Version 3.11
 
+3/25/08  Internal error on null character at end of string in Microsoft mode
+
+The front end aborted with an assertion failure
+("conv_string_literal: length miscalculated") on encountering a
+null (zero) character just before the closing quote of a string literal
+in Microsoft mode.  Now fixed.
+
+  char x[] = "abc0";  // Where "0" represents a null character
+
 3/24/08  Abort on use of GNU __sync_... functions in templates
 
 In configurations with GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED set to TRUE, the
