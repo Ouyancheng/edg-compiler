@@ -1,5 +1,17 @@
 Version 3.11
 
+3/25/08  Microsoft compatibility: __interface first declared as struct
+
+In Microsoft mode, a type can now be first declared as a struct, and later
+defined with the keyword "__interface".  For example:
+
+  struct Inter;
+  __interface Inter {};  // Now accepted in Microsoft mode.
+
+Our behavior differs slightly from that of Microsoft's compilers in that the
+latter require that in cases like these the definition specify IUnknown as a
+base class.
+
 3/25/08  GNU C mode abort on invalid initialization with compound literal
 
 In GNU C mode, the front end sometimes failed to diagnose an invalid

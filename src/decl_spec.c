@@ -2652,9 +2652,13 @@ if the type should not be treated as an interface.
       if (*is_interface) {
         /* The current declaration is a definition using the "__interface"
            keyword but the first declaration did not use that keyword:
-           Microsoft compilers diagnose this.  We do too, and proceed with an
-           interface type. */
-        sev = es_error;
+           Microsoft compilers diagnose this, unless the prior declaration was
+           a "struct" (as opposed to a "class" or "union).  We emulate that
+           behavior, and proceed with an interface type even in the error
+           cases. */
+        if (class_type->kind != (a_type_kind)tk_struct) {
+          sev = es_error;
+        }  /* if */
         class_type->kind = (a_type_kind)tk_struct;
         class_type->variant.class_struct_union.is_interface = TRUE;
         class_type->variant.class_struct_union.abstract = TRUE;
