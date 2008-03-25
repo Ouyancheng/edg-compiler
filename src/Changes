@@ -9,6 +9,24 @@ appeared in templates, the front end aborted with an internal error in expr.c
 (function "adjust_gnu_sync_call").  A spurious error message was often also
 issued.  This is now fixed.
 
+3/24/08  Internal error when additional arguments follow an argument
+         needing a VLA adjustment in GCC and C99 modes
+
+As a result of the changes described in the Changes entry of 5/29/07,
+the front end aborts with an internal error in dump_expr in cases where
+one or more arguments follow an argument whose type is adjusted to
+match the type of the corresponding parameter in a block-extern function
+prototype (see the Changes entry of 5/29/07 for more details on this case).
+Here is an example that previously aborted and is now fixed:
+
+  int l = 1, m = 2;
+  void f(int a[l][m], int i);
+  void g() {
+    int a[l][m];
+    void f(int a[*][*], int);
+    f(a, 10);                 // caused an internal error in dump_expr
+  }
+
 3/21/08  Comma-separated declarations
 
 When GENERATE_SOURCE_SEQUENCE_LISTS is TRUE, the front end now records whether

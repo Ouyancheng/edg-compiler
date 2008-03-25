@@ -2626,10 +2626,12 @@ match the adjusted parameter types if needed.
       a_param_type_ptr  ptp = callee_rtsp->param_type_list;
       target->type = make_pointer_type(callee->type);
       while (ap != NULL) {
-        *ip = ap;
         ap = ap->next;
         if (ptp != NULL) {
+          an_expr_node_ptr save_next = (*ip)->next;
+          (*ip)->next = NULL;
           *ip = add_cast_if_necessary(*ip, ptp->type);
+          (*ip)->next = save_next;
 #if LOWER_VARIABLE_LENGTH_ARRAYS
           if (vla_enabled && !(*ip)->type->visited_for_vla_lowering) {
             /* We may be casting to a type that would otherwise not have
