@@ -2249,12 +2249,10 @@ closing right parenthesis).
       suffix[2] = '\0';
       strcat(name, suffix);
       /* Look it up: */
-      sym = find_symbol(name, (sizeof_t)strlen(name), &loc);
-      if (scope_stack[DEPTH_OF_FILE_SCOPE].is_reactivation) {
-        /* If the file scope has been reactivated, its symbols have been moved
-           to the inactive list. */
-        sym = loc.symbol_header->inactive_symbols;
-      }  /* if */
+      clear_locator(&loc, &null_source_position);
+      (void)find_symbol(name, (sizeof_t)strlen(name), &loc);
+      sym = file_scope_id_lookup(il_header.primary_scope, &loc,
+                                 IDL_DIRECT_NAMESPACE_MEMBERS_ONLY);
       /* Cover the unlikely case that the symbol name corresponds to multiple
          entries. */
       for (; sym != NULL; sym = sym->next) {
