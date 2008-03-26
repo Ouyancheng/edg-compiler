@@ -2876,17 +2876,27 @@ to indicate that the name reference was successfully emitted.
          information and generate the reference as a qualified name. */
       use_name_reference = FALSE;
     } else if (nrp->qualifier != NULL && nrp->qualifier->is_class) {
-      a_type_ptr qual_class = nrp->qualifier->qualifier.class_type;
-      if (qual_class->source_corresp.is_class_member &&
-          nrp->qualifier->previous_qualifier == NULL &&
-          !class_is_in_name_context_stack(parent_class_of(qual_class),
-                                          /*include_base_classes=*/TRUE)) {
-        /* This name is qualified by a nested class name, but the parent of
-           the nested class does not appear in the chain of qualifiers and
-           the reference is not in the scope of that parent class.  This
-           can occur when the original qualified-id used a template parameter
-           whose template argument was a qualified-id.  Ignore the name
-           reference and just generate a qualified name. */
+      a_name_qualifier_ptr qual;
+      a_type_ptr           qual_class;
+      for (qual = nrp->qualifier;
+           qual->previous_qualifier != NULL &&
+                                            qual->previous_qualifier->is_class;
+           qual = qual->previous_qualifier) {}
+      qual_class = qual->qualifier.class_type;
+      if (qual->previous_qualifier == NULL &&
+          ((qual_class->source_corresp.is_class_member &&
+            !class_is_in_name_context_stack(parent_class_of(qual_class),
+                                            /*include_base_classes=*/TRUE)) ||
+           (is_namespace_member(qual_class) &&
+            !scope_is_in_name_context_stack(qual_class->
+                                              source_corresp.parent_scope)))) {
+        /* The leftmost qualifier in the name reference is something like
+           X::Y, but this reference does not occur in the scope of X.
+           (This can occur when the original qualified-id used a template
+           parameter whose template argument was a qualified-id.)  If we
+           used the name reference, the result would be something like
+           Y::Z, omitting "X::", which would be invalid in this context.
+           Ignore the name reference and just generate a qualified name. */
         use_name_reference = FALSE;
       }  /* if */
     }  /* if */
