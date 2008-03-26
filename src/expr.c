@@ -2251,7 +2251,7 @@ closing right parenthesis).
       /* Look it up: */
       sym = find_symbol(name, (sizeof_t)strlen(name), &loc);
       if (scope_stack[DEPTH_OF_FILE_SCOPE].is_reactivation) {
-        /* If the file scope has been reactivated, its symbol have been moved
+        /* If the file scope has been reactivated, its symbols have been moved
            to the inactive list. */
         sym = loc.symbol_header->inactive_symbols;
       }  /* if */
