@@ -2653,7 +2653,7 @@ if the type should not be treated as an interface.
         /* The current declaration is a definition using the "__interface"
            keyword but the first declaration did not use that keyword:
            Microsoft compilers diagnose this, unless the prior declaration was
-           a "struct" (as opposed to a "class" or "union).  We emulate that
+           a "struct" (as opposed to a "class" or "union").  We emulate that
            behavior, and proceed with an interface type even in the error
            cases. */
         if (class_type->kind != (a_type_kind)tk_struct) {
