@@ -2862,6 +2862,7 @@ to indicate that the name reference was successfully emitted.
 */
 {
   a_boolean name_generated = FALSE;
+  a_boolean use_name_reference = TRUE;
 
   if (nrp != NULL) {
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
@@ -2873,10 +2874,24 @@ to indicate that the name reference was successfully emitted.
          from the class are no longer in scope.  For unqualified references
          from such functions, we need to ignore the name reference
          information and generate the reference as a qualified name. */
-    } else
+      use_name_reference = FALSE;
+    } else if (nrp->qualifier != NULL && nrp->qualifier->is_class) {
+      a_type_ptr qual_class = nrp->qualifier->qualifier.class_type;
+      if (qual_class->source_corresp.is_class_member &&
+          nrp->qualifier->previous_qualifier == NULL &&
+          !class_is_in_name_context_stack(parent_class_of(qual_class),
+                                          /*include_base_classes=*/TRUE)) {
+        /* This name is qualified by a nested class name, but the parent of
+           the nested class does not appear in the chain of qualifiers and
+           the reference is not in the scope of that parent class.  This
+           can occur when the original qualified-id used a template parameter
+           whose template argument was a qualified-id.  Ignore the name
+           reference and just generate a qualified name. */
+        use_name_reference = FALSE;
+      }  /* if */
+    }  /* if */
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
-    /* Do not insert code here. */
-    {
+    if (use_name_reference) {
       name_generated = TRUE;
       if (nrp->is_global_qualified_name) {
         /* The name starts with a leading "::". */

@@ -1,5 +1,27 @@
 Version 3.11
 
+3/25/08  C++-generating back end: qualified names in generated template
+         instances
+
+In configurations where class and/or nonclass template instantiations are
+included in source sequence lists and RECORD_FORM_OF_NAME_REFERENCE is
+TRUE, the generated explicit instantiations could contain incorrect
+qualified names when the name in the template is qualified by a template
+parameter and the corresponding template argument is itself a qualified
+name.  This is now fixed.  For example:
+
+  struct X {
+    struct S {
+      static int i;
+    };
+  };
+  template <typename T> void f() {
+    int i = T::i;    // Formerly generated as "S::i", now "X::S::i"
+  }
+  void g() {
+    f<X::S>();
+  }
+
 3/25/08  Microsoft compatibility: __interface first declared as struct
 
 In Microsoft mode, a type can now be first declared as a struct, and later
