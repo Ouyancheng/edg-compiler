@@ -15007,6 +15007,9 @@ function declaration.
                                                decl_state->il_template_entry);
     sssdp->declared_type = func_info->declared_type;
     sssdp->friend_decl = decl_state->is_template_friend;
+    if (dps->declared_storage_class != (a_storage_class)sc_unspecified) {
+      sssdp->explicit_storage_class = TRUE;
+    }  /* if */
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   if (sym != NULL && sym->kind == (a_symbol_kind)sk_member_function &&
