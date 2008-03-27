@@ -4315,7 +4315,7 @@ routine.
       /* Ensure type_2 already corresponds to the "most canonical"
          correspondence set.  If both sets have equal ranking, compare the
          ranking of type_1 and type_2, and ensure type_2 has no smaller a rank
-         then type_1 (this ensures that if type_1 has a definition, type_2 will
+         than type_1 (this ensures that if type_1 has a definition, type_2 will
          have one too). */
       int rank_set_1 = canonical_ranking(iek_type, tucp1->canonical);
       int rank_set_2 = canonical_ranking(iek_type, tucp2->canonical);
