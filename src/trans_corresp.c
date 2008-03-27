@@ -4320,8 +4320,9 @@ routine.
       int rank_set_1 = canonical_ranking(iek_type, tucp1->canonical);
       int rank_set_2 = canonical_ranking(iek_type, tucp2->canonical);
       if (rank_set_2 < rank_set_1 ||
-          canonical_ranking((an_il_entry_kind)iek_type, (char*)type_2) <
-                canonical_ranking((an_il_entry_kind)iek_type, (char*)type_1)) {
+          (rank_set_2 == rank_set_1 &&
+           canonical_ranking((an_il_entry_kind)iek_type, (char*)type_2) <
+               canonical_ranking((an_il_entry_kind)iek_type, (char*)type_1))) {
         a_type_ptr  tmp = type_2;
         type_2 = type_1;
         type_1 = tmp;
