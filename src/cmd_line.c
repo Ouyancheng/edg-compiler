@@ -3907,11 +3907,6 @@ file.
 #else /* !defined(DEFAULT_CHECK_CONCATENATIONS) */
   comment_undefined_macro_name(DEFAULT_CHECK_CONCATENATIONS);
 #endif /* defined(DEFAULT_CHECK_CONCATENATIONS) */
-#if defined(UNICODE_SOURCE_SUPPORTED)
-  define_numeric_valued_macro(UNICODE_SOURCE_SUPPORTED);
-#else /* !defined(UNICODE_SOURCE_SUPPORTED) */
-  comment_undefined_macro_name(UNICODE_SOURCE_SUPPORTED);
-#endif /* defined(UNICODE_SOURCE_SUPPORTED) */
 #if defined(DEFAULT_CHECK_FOR_BYTE_ORDER_MARK)
   define_numeric_valued_macro(DEFAULT_CHECK_FOR_BYTE_ORDER_MARK);
 #else /* !defined(DEFAULT_CHECK_FOR_BYTE_ORDER_MARK) */
@@ -6414,6 +6409,11 @@ file.
 #else /* !defined(UNARY_PLUS_IN_IL) */
   comment_undefined_macro_name(UNARY_PLUS_IN_IL);
 #endif /* defined(UNARY_PLUS_IN_IL) */
+#if defined(UNICODE_SOURCE_SUPPORTED)
+  define_numeric_valued_macro(UNICODE_SOURCE_SUPPORTED);
+#else /* !defined(UNICODE_SOURCE_SUPPORTED) */
+  comment_undefined_macro_name(UNICODE_SOURCE_SUPPORTED);
+#endif /* defined(UNICODE_SOURCE_SUPPORTED) */
 #if defined(UPC_EXTENSIONS_ALLOWED)
   define_numeric_valued_macro(UPC_EXTENSIONS_ALLOWED);
 #else /* !defined(UPC_EXTENSIONS_ALLOWED) */
