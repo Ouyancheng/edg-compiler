@@ -861,8 +861,12 @@ after the command-line processing has been done.
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
 #if !USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING && \
     !EDG_MULTIBYTE_CHAR_TEST_MODE && \
-    !UNICODE_SOURCE_SUPPORTED
-  if (multibyte_chars_in_source_enabled) {
+    !(UNICODE_SOURCE_SUPPORTED && \
+      !defined(LOCALE_TO_SET_WHEN_MULTIBYTE_CHARS_ENABLED))
+#if !UNICODE_SOURCE_SUPPORTED
+  if (multibyte_chars_in_source_enabled)
+#endif /* !UNICODE_SOURCE_SUPPORTED */
+  {
     /* Set the locale to allow processing of multibyte characters in source.
        Only change the category of processing related to character handling
        functions. */

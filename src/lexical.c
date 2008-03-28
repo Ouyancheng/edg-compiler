@@ -6063,6 +6063,45 @@ entry_for_extend_current_line:
 }  /* read_logical_source_line */
 
 
+a_boolean is_identifier_char(char *ptr,
+                             int  *len)
+/*
+ptr points to a character, possibly multibyte.  Return TRUE if that character
+is valid as a character after the first in an identifier.  If so, also return
+*len set to the length of the character (possibly >1 for a multibyte
+character).  If len == NULL, no length is returned.  This routine consults
+the curr_file_unicode_source_kind global variable, and therefore should be
+used only within the lexical input routines.
+*/
+{
+  a_boolean is_id;
+  int       llen = 1;
+
+#if !UNICODE_SOURCE_SUPPORTED
+  is_id = is_id_char[*ptr-CHAR_MIN];
+#else /* UNICODE_SOURCE_SUPPORTED */
+  { unsigned long ch = (unsigned char)*ptr;
+    if (ch > 0x7f &&
+        curr_file_unicode_source_kind != usk_none) {
+      /* Convert the multibyte UTF-8 sequence to a single code point. */
+      a_boolean err;
+      llen = mbc_to_wide_char(ptr, &ch, &err);
+      /* Right now, we limit the multibyte characters to those that can be
+         represented in a single character after decoding, i.e., Latin-1
+         characters. */
+      if (err || ch > UCHAR_MAX) {
+        llen = 1;
+        ch = 0;  /* Forces FALSE result. */
+      }  /* if */
+    }  /* if */
+    is_id = is_id_char_no_mbc[ch];
+  }
+#endif /* !UNICODE_SOURCE_SUPPORTED */
+  if (len != NULL) *len = llen;
+  return is_id;
+}  /* is_identifier_char */
+  
+
 a_boolean is_nonstandard_character(char ch)
 /*
 Return TRUE if the indicated character is one not required by 5.2.1 of the
@@ -7484,12 +7523,13 @@ point to the character after the universal character name.
 
 #if ABI_COMPATIBILITY_VERSION >= 302
 
-static char *make_canonical_UCN_identifier(char		*identifier,
-					   sizeof_t	*length)
+static char *make_canonical_identifier(char     *identifier,
+                                       sizeof_t *length)
 /*
 "identifier" points to the characters of an identifier containing
-universal character names.  Make a copy of the identifier in which
-any upper case characters in the UCN are converted to lower case.
+universal character names or multibyte characters.  Make a copy of the
+identifier in which any upper case characters in the UCN are converted to
+lower case and any multibyte characters are converted to canonical form.
 "length" is updated to the actual length of the new identifier.
 */
 {
@@ -7521,6 +7561,15 @@ any upper case characters in the UCN are converted to lower case.
       add_char_to_text_buffer(ucn_buffer, '\\');
       add_char_to_text_buffer(ucn_buffer, ucn_chars == 8 ? 'U' : 'u');
       add_to_text_buffer(ucn_buffer, ucn, ucn_chars);
+#if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
+    } else if (multibyte_chars_in_source_enabled) {
+      unsigned long wc;
+      a_boolean     err;
+      int           numch = lex_mbc_to_wide_char(src, &wc, &err);
+      check_assertion(!err && wc <= UCHAR_MAX);
+      add_char_to_text_buffer(ucn_buffer, (char)wc);
+      src += numch;
+#endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
     } else {
       add_char_to_text_buffer(ucn_buffer, *(src++));
     }  /* if */
@@ -7528,15 +7577,19 @@ any upper case characters in the UCN are converted to lower case.
   /* Update the length parameter with the length of the new identifier. */
   *length = ucn_buffer->size;
   return ucn_buffer->buffer;
-}  /* make_canonical_UCN_identifier */
+}  /* make_canonical_identifier */
 
 #else /* !(ABI_COMPATIBILITY_VERSION >= 302) */
 
 /*
-No translation of UCN identifiers was done for older ABIs.  Simply
+No translation of identifiers was done for older ABIs.  Simply
 return the original identifier pointer.
 */
-#define make_canonical_UCN_identifier(identifier, length) (identifier)
+#define make_canonical_identifier(identifier, length) (identifier)
+
+#if UNICODE_SOURCE_SUPPORTED
+ #error -- cannot support Unicode source at ABI levels < 302
+#endif /* UNICODE_SOURCE_SUPPORTED */
 
 #endif /* !(ABI_COMPATIBILITY_VERSION >= 302) */
 
@@ -8985,7 +9038,7 @@ to speed in some cases.
   a_boolean		rescan, is_inert_macro = FALSE;
   a_boolean		continue_scan;
   a_boolean             gotten_from_cache = FALSE;
-  a_boolean		contains_ucn;
+  a_boolean		contains_ucn_or_multibyte_char;
 
   if (any_initial_get_token_tests_needed &&
       !fetching_tokens_from_insert_string()) {
@@ -9525,8 +9578,11 @@ id_scan:
          characters, underscores, and digits after the first character. */
       remember_token_start();
       ctoken = tok_identifier;
-      contains_ucn = FALSE;
+      contains_ucn_or_multibyte_char = FALSE;
       do {
+#if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
+        int numch;
+#endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
         continue_scan = FALSE;
         /* Accumulate characters of the identifier after the first. */
         while (is_id_char[(ch = *(curr_char_loc))-CHAR_MIN]) {
@@ -9541,13 +9597,24 @@ id_scan:
           if ((ch == 'u' || ch == 'U') &&
               universal_character_names_allowed) {
             continue_scan = TRUE;
-            contains_ucn = TRUE;
+            contains_ucn_or_multibyte_char = TRUE;
             (void)scan_universal_character(&curr_char_loc,
 			                   /*is_identifier=*/TRUE,
 					   /*is_identifier_start=*/
                                             curr_char_loc==start_of_curr_token,
                                            /*issue_diagnostics=*/TRUE);
           }  /* if */
+#if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
+        } else if (multibyte_chars_in_source_enabled &&
+                   is_identifier_char(curr_char_loc, &numch)) {
+          /* A multibyte character that is valid as an identifier character.
+             Note that for an invalid multibyte character is_identifier_char
+             returns FALSE, which makes us drop out of the loop and treat the
+             invalid character as an invalid token. */
+          continue_scan = TRUE;
+          contains_ucn_or_multibyte_char = TRUE;
+          curr_char_loc += numch;
+#endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
         }  /* if */
       } while (continue_scan);
       end_of_curr_token = curr_char_loc - 1;
@@ -9569,12 +9636,12 @@ id_scan:
                     (sizeof_t)(end_of_curr_token - start_of_curr_token + 1),
                     start_of_curr_token);
         /* Look up the identifier in the symbol table. */
-        if (contains_ucn) {
-          /* If the identifier contains a universal character name, the
-             string must be processed so that the UCN references have
-             uniform case. */
-          id_ptr = make_canonical_UCN_identifier(start_of_curr_token,
-                                                 &id_length);
+        if (contains_ucn_or_multibyte_char) {
+          /* If the identifier contains a universal character name or
+             a multibyte character, the string must be processed to make
+             it canonical. */
+          id_ptr = make_canonical_identifier(start_of_curr_token,
+                                             &id_length);
         } else {
           id_ptr = start_of_curr_token;
         }  /* if */
@@ -9814,6 +9881,12 @@ check_start_of_pp_directive:
       goto save_end_position;
       /* No break needed. */
     default:
+      /* Pick up identifier characters like European accented letters.
+         isdigit can't be TRUE here, so any character with for which
+         is_identifier_char returns TRUE must be valid as the first
+         character of an identifier. */
+      if (is_identifier_char(curr_char_loc, (int *)NULL)) goto id_scan;
+      /* FALLTHROUGH */
     bad_token:
       /* Something else, an error. */
       err_code_for_error_token = ec_bad_token;
@@ -9821,6 +9894,18 @@ check_start_of_pp_directive:
         error_at_line_pos(err_code_for_error_token, start_of_curr_token);
       }  /* if */
       ctoken = tok_error;
+#if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
+      /* For a valid multibyte character (but invalid token), advance over
+         all the bytes of the multibyte character. */
+      if (multibyte_chars_in_source_enabled) {
+        a_boolean err;
+        int numch = lex_mbc_length(curr_char_loc, &err);
+        if (!err) {
+          curr_char_loc += numch;
+          goto save_end_position;
+        }  /* if */
+      }
+#endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
   }  /* switch */
 
   /* Normal assumption on break from switch is that the current character
@@ -12690,7 +12775,7 @@ can be avoided.
     }  /* if */
     if (isdigit((unsigned char)ch)) {
       delim_does_not_follow = TRUE;
-    } else if (is_id_char[ch-CHAR_MIN]) {
+    } else if (is_identifier_char(curr_char_loc, (int *)NULL)) {
       /* This might be a macro call, so we can't tell. */
       /* delim_does_not_follow = FALSE;  -- already set. */
     } else if (ch == ':' && curr_char_loc[1] == ':') {
@@ -15733,7 +15818,7 @@ Do one-time initialization of variables related to lexical processing.
 are handled in lexical_init.)
 */
 {
-  register int c;  /* Has to be "int" so "for" loop will work. */
+  int c;  /* Has to be "int" so "for" loop will work. */
 
   /* Do the initial allocation for curr_source_line.  (Since the space is
      allocated in general storage, it does not need to be reallocated for
@@ -15787,14 +15872,6 @@ are handled in lexical_init.)
   for (c = CHAR_MIN; c <= CHAR_MAX; c++) {
     is_id_char[c-CHAR_MIN] = (isalpha((unsigned char)c) ||
                               isdigit((unsigned char)c));
-#if UNICODE_SOURCE_SUPPORTED
-    /* If UTF-8 input is a possibility, don't consider
-       characters out of the normal ASCII section to be identifier
-       characters.  This specifically affects the Latin-1 alphabetic
-       characters.  See is_identifier_char, which should be used for
-       any test that must find all identifier characters. */
-    if ((unsigned char)c > 0x7f) is_id_char[c-CHAR_MIN] = FALSE;
-#endif /* UNICODE_SOURCE_SUPPORTED */
   }  /* for */
   is_id_char['_' - CHAR_MIN] = TRUE;
   if (allow_dollar_in_id_chars) {
@@ -15813,6 +15890,15 @@ are handled in lexical_init.)
   is_id_char['|' - CHAR_MIN] = FALSE;
   is_id_char['}' - CHAR_MIN] = FALSE;
   is_id_char['~' - CHAR_MIN] = FALSE;
+#if UNICODE_SOURCE_SUPPORTED
+  /* Also build a version used to check identifier characters once
+     UTF-8 multibyte characters have been turned into a single code point,
+     and change is_id_char to return TRUE only for non-multibyte characters. */
+  for (c = CHAR_MIN; c <= CHAR_MAX; c++) {
+    is_id_char_no_mbc[(unsigned char)c] = is_id_char[c-CHAR_MIN];
+    if ((unsigned char)c > 0x7f) is_id_char[c-CHAR_MIN] = FALSE;
+  }  /* for */
+#endif /* UNICODE_SOURCE_SUPPORTED */
   /* Also initialize pp_lexical_category, used to determine whether or
      not extra token-separating blanks are required between tokens resulting
      from macro expansion.  See gen_pp_output_for_curr_line. */

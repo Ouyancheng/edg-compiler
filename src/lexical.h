@@ -1806,6 +1806,18 @@ EXTERN a_boolean
 			   identifier characters that take more than one
 			   character.  If you need the full set of identifier
 			   characters, see is_identifier_char. */
+#if UNICODE_SOURCE_SUPPORTED
+EXTERN a_boolean
+		is_id_char_no_mbc[UCHAR_MAX+1];
+			/* For each character, whether or not it can be a
+			   character after the first in an identifier.
+			   This is used to check characters after
+			   multibyte characters have been converted to a
+			   single character value.  For example, in UTF-8
+			   the accented European characters of Latin-1
+			   can be checked in this table once they have been
+			   converted to a single-byte Unicode code point. */
+#endif /* UNICODE_SOURCE_SUPPORTED */
 
 /*
 Structure used to record information about a pp token in a token cache.
@@ -2065,6 +2077,9 @@ EXTERN a_byte	pp_lexical_category[CHAR_MAX-CHAR_MIN+1];
 /* Read next logical source line. */
 a_boolean read_logical_source_line(a_boolean do_pop_on_end_of_file,
                                    a_boolean extend_current_line);
+/* Check character as identifier character. */
+extern a_boolean is_identifier_char(char *ptr,
+                                    int  *len);
 /* Check character as nonstandard. */
 extern a_boolean is_nonstandard_character(char ch);
 /* Skip white space. */

@@ -2125,6 +2125,12 @@ extern int mbc_to_wide_char(char          *mb,
 #define mbc_scan_init() ((void)0)
 #define mbc_scan_init_if_multibyte_chars_in_source_enabled() /* Nothing. */
 
+#ifdef LOCALE_TO_SET_WHEN_MULTIBYTE_CHARS_ENABLED
+/* One doesn't have to set a locale for Unicode support, but if one
+   is specified, we'll use it. */
+#include <locale.h>
+#endif /* LOCALE_TO_SET_WHEN_MULTIBYTE_CHARS_ENABLED */
+
 #else /* !UNICODE_SOURCE_SUPPORTED */
 /* Use the standard C library routines. */
 
@@ -2180,7 +2186,7 @@ Locale to set when multibyte characters are enabled in source code.
 #define lex_mbc_to_wide_char(mb, wc, err) \
   (curr_file_unicode_source_kind != usk_none ? \
     mbc_to_wide_char((mb), (wc), (err)) : \
-    (*(wc) = *((mb)++), *(err) = FALSE, 1))
+    (*(wc) = *(mb), *(err) = FALSE, 1))
 #else /*!UNICODE_SOURCE_SUPPORTED */
 /* There is no multibyte character support, or it's for something other than
    UTF-8.  The "lex" routines just go to the normal routines. */
