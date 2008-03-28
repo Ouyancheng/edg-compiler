@@ -3837,6 +3837,7 @@ inclusion.  is_include_next is TRUE if the file is being pushed for an
   a_directory_name_entry_ptr    dir_entry;
   a_boolean			file_found;
   a_boolean			suppress_include = FALSE;
+  a_unicode_source_kind         unicode_source_kind;
 
   db_enter(2, "open_file_and_push_input_stack");
   /* coverity[alloc_arg] */
@@ -3846,7 +3847,8 @@ inclusion.  is_include_next is TRUE if the file is being pushed for an
 				   continue_on_open_failure,
                                    &full_file_name,
                                    &display_name, &input_file,
-                                   &suppress_include, &dir_entry);
+                                   &suppress_include,
+                                   &unicode_source_kind, &dir_entry);
   check_assertion(file_found || continue_on_open_failure);
   if (!file_found) {
     check_assertion(input_file == NULL); /* For Coverity. */
@@ -3880,17 +3882,21 @@ inclusion.  is_include_next is TRUE if the file is being pushed for an
   push_input_stack(input_file, file_name, display_name, full_file_name,
                    is_include_file, is_system_include, is_preinclude,
                    preinclude_macros, is_implicit_include,
-                   dir_entry, ifhp);
+                   unicode_source_kind, dir_entry, ifhp);
 done:
   db_exit();
 }  /* open_file_and_push_input_stack */
 
 
-static FILE *try_to_open_source_file(char	*name_to_try,
-				     char	*file_name)
+static FILE *try_to_open_source_file(
+                                    char                  *name_to_try,
+                                    char                  *file_name,
+                                    a_unicode_source_kind *unicode_source_kind)
 /*
 Try to open the source file specified by name_to_try.  file_name is
-the name to be used in an error message.
+the name to be used in an error message.  *unicode_source_kind is set
+to indicate the Unicode encoding form for the file, or usk_none if the file
+is not Unicode.
 */
 {
   FILE		*new_input_file;
@@ -3899,7 +3905,8 @@ the name to be used in an error message.
   a_boolean	bad_name = FALSE;
 
   new_input_file = open_source_file(name_to_try, &not_found,
-                                    &bad_format, &bad_name);
+                                    &bad_format, &bad_name,
+                                    unicode_source_kind);
   /* If not_found is FALSE then either name_to_try is non-NULL
      (i.e., the input file was opened) or else there was an error
      on the open.  In either case, stop searching. */
@@ -3917,10 +3924,11 @@ the name to be used in an error message.
 
 
 static a_boolean try_to_open_source_file_if_not_already_included(
-					char		*name_to_try,
-					char		*file_name,
-					FILE		**new_input_file,
-					a_boolean	*suppress_include)
+                                    char                  *name_to_try,
+                                    char                  *file_name,
+                                    FILE                  **new_input_file,
+                                    a_boolean             *suppress_include,
+                                    a_unicode_source_kind *unicode_source_kind)
 /*
 Try to open the source file specified by name_to_try.  file_name is
 the name to be used in an error message.  Before attempting to open the
@@ -3929,7 +3937,8 @@ the file has already been included.  Return TRUE if the file was found (the
 file was either opened or a previously included file was found).  If the
 file was opened, the file pointer is returned in new_input_file.  If the
 include is to be suppressed because the file was already included, TRUE is
-returned in suppress_include.
+returned in suppress_include.  *unicode_source_kind is set to indicate the
+Unicode encoding form for the file, or usk_none if the file is not Unicode.
 */
 {
   an_include_file_history_ptr	ifhp = NULL;
@@ -3937,6 +3946,7 @@ returned in suppress_include.
 
   *suppress_include = FALSE;
   *new_input_file = NULL;
+  *unicode_source_kind = usk_none;
   if (suppress_subsequent_include_of_file(name_to_try, &ifhp,
                                           /*create=*/FALSE)) {
     /* This include should be suppressed.  No further action is needed. */
@@ -3944,7 +3954,8 @@ returned in suppress_include.
     found = TRUE;
   } else {
     /* It was not previously included. Attempt to open the file. */
-    *new_input_file = try_to_open_source_file(name_to_try, file_name);
+    *new_input_file = try_to_open_source_file(name_to_try, file_name,
+                                              unicode_source_kind);
     found = *new_input_file != NULL;
   }  /* if */
   return found;
@@ -4101,6 +4112,7 @@ static a_boolean search_for_input_file(
 			char				**name_found,
 			FILE				**new_input_file,
 			a_boolean			*suppress_include,
+                        a_unicode_source_kind           *unicode_source_kind,
 			a_directory_name_entry_ptr	*dir_entry)
 /*
 Look for file_name in the list of directories specified by search path.
@@ -4118,7 +4130,8 @@ in <...>.  Return TRUE if the file was found (the file was either opened
 or a previously included file was found).  If the file was opened, the
 file pointer is returned in new_input_file.  If the include is to be
 suppressed because the file was already included, TRUE is returned in
-suppress_include.
+suppress_include.  *unicode_source_kind is set to indicate the Unicode
+encoding form for the file, or usk_none if the file is not Unicode.
 */
 {
   a_file_suffix_ptr		fsp;
@@ -4136,6 +4149,7 @@ suppress_include.
   *dir_entry = NULL;
   *new_input_file = NULL;
   *suppress_include = FALSE;
+  *unicode_source_kind = usk_none;
   /* Determine whether we need to do the suffix replacement processing.
      This is done when is_implicit_include is TRUE or when when file name
      supplied has no suffix. */
@@ -4159,7 +4173,8 @@ suppress_include.
   if (!use_search_path || is_absolute_file_name(file_name)) {
     /* File name is absolute, so search path is not used. */
     name_to_try = file_name;
-    *new_input_file = try_to_open_source_file(name_to_try, file_name);
+    *new_input_file = try_to_open_source_file(name_to_try, file_name,
+                                              unicode_source_kind);
     file_found = *new_input_file != NULL;
   } else if (search_path == NULL) {
     /* No search path, so file can't be found.  Issue a catastrophic error.
@@ -4202,7 +4217,7 @@ suppress_include.
           name_to_try = isrp->result_file;
           file_found = try_to_open_source_file_if_not_already_included(
                              name_to_try, file_name, new_input_file,
-                             suppress_include);
+                             suppress_include, unicode_source_kind);
         }  /* if */
       }  /* if */
       if (!file_found) {
@@ -4226,7 +4241,7 @@ suppress_include.
              file/directory combination just constructed. */
           file_found = try_to_open_source_file_if_not_already_included(
                              name_to_try, file_name, new_input_file,
-                             suppress_include);
+                             suppress_include, unicode_source_kind);
         } else {
           /* We need to replace the suffix.  Go through the list of
              suffixes. */
@@ -4249,7 +4264,7 @@ suppress_include.
             /* Now try to open the modified file. */
             file_found = try_to_open_source_file_if_not_already_included(
                              name_to_try, file_name, new_input_file,
-                             suppress_include);
+                             suppress_include, unicode_source_kind);
             if (file_found) break;
             if (fsp->next != NULL) {
               /* Copy the original file name back into the buffer. */
@@ -4317,6 +4332,7 @@ a_boolean open_file_for_input(
 		char				**display_name,
 		FILE				**new_input_file,
 		a_boolean			*suppress_include,
+		a_unicode_source_kind		*unicode_source_kind,
 		a_directory_name_entry_ptr	*dir_entry)
 /*
 Try to open file_name, and return TRUE if the file was found (the file
@@ -4336,7 +4352,9 @@ TRUE if the file is being opened for an #include_next directive.
 is_implicit_include is TRUE when this routine is used to search for an
 implicitly included template definition file.  When is_implicit_include is
 used, each suffix in the implicit_instantiation_file_suffix_list is
-used to search for a template definition file.
+used to search for a template definition file.  *unicode_source_kind is set
+to indicate the Unicode encoding form for the file, or usk_none if the file
+is not Unicode.
 
 When is_implicit_include is FALSE, a catastrophic error is normally issued
 if a file cannot be opened.  But if continue_on_open_failure is TRUE, a
@@ -4352,6 +4370,7 @@ a catastrophic error is not issued, FALSE is returned.
 
   db_enter(2, "open_file_for_input");
   *dir_entry = NULL;
+  *unicode_source_kind = usk_none;
   search_path = NULL;
   if (use_search_path) {
     /* Determine the list of directories to be searched when opening
@@ -4385,7 +4404,7 @@ a catastrophic error is not issued, FALSE is returned.
                                        is_implicit_include, is_system_include,
                                        &temp_file_name,
                                        new_input_file, suppress_include,
-                                       dir_entry);
+                                       unicode_source_kind, dir_entry);
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
   } else {
     file_found = search_for_input_file(file_name, use_search_path, search_path,
@@ -4394,7 +4413,7 @@ a catastrophic error is not issued, FALSE is returned.
                                        is_system_include,
                                        &temp_file_name,
                                        new_input_file, suppress_include,
-                                       dir_entry);
+                                       unicode_source_kind, dir_entry);
     if (!file_found) {
       /* The file could not be opened.  This is normally a catastrophic error
          unless continue_on_open_failure is TRUE. */
@@ -4471,6 +4490,7 @@ void push_input_stack(
                 a_boolean                       is_preinclude,
 		a_boolean			preinclude_macros,
                 a_boolean			is_implicit_include,
+                a_unicode_source_kind           unicode_source_kind,
                 a_directory_name_entry_ptr      dir_entry,
 		an_include_file_history_ptr	ifhp)
 /*
@@ -4483,7 +4503,9 @@ included with the #include <file.h> notation and FALSE for all other
 files.  is_preinclude is TRUE for files included via the preinclude or
 preinclude_macros command-line options (preinclude_macros specifies which).
 is_implicit_include is TRUE for files included for template implicit
-inclusion.  dir_entry points to the entry on the search path that was
+inclusion.  unicode_source_kind indicates the kind of Unicode encoding
+used by the source file, for configurations with UNICODE_SOURCE_SUPPORTED
+set to TRUE.  dir_entry points to the entry on the search path that was
 used to find this file.
 */
 {
@@ -4575,6 +4597,16 @@ used to find this file.
 				      any_tokens_fetched_from_curr_input_file;
   curr_ise->is_preinclude = is_preinclude;
   curr_ise->do_not_advance_past_end_of_file = preinclude_macros;
+  curr_ise->unicode_source_kind = unicode_source_kind;
+#if UNICODE_SOURCE_SUPPORTED
+  curr_file_unicode_source_kind = unicode_source_kind;
+  if (curr_file_unicode_source_kind != usk_none) {
+    /* Scanning UTF-8 requires that multibyte support be turned on.  Once
+       we see a file containing Unicode characters, we never turn the flag
+       back off again. */
+    multibyte_chars_in_source_enabled = TRUE;
+  }  /* if */
+#endif /* UNICODE_SOURCE_SUPPORTED */
   any_tokens_fetched_from_curr_input_file = FALSE;
 #if CENTERLINE_CHECKING
   curr_ise->avoid_codecenter_warnings = 0;
@@ -4785,6 +4817,9 @@ at the next level down.
   if (--depth_input_stack < 0) {
     curr_ise = NULL;
     curr_input_stream = NULL;
+#if UNICODE_SOURCE_SUPPORTED
+    curr_file_unicode_source_kind = usk_none;
+#endif /* UNICODE_SOURCE_SUPPORTED */
     if (!is_end_of_primary_source_file) {
       /* When a top-level implicitly included source file is popped,
          reset the primary include search directory to the directory of
@@ -4829,6 +4864,9 @@ at the next level down.
 #endif /* __VMS__ */
     }  /* if */
     curr_input_stream = curr_ise->file;
+#if UNICODE_SOURCE_SUPPORTED
+    curr_file_unicode_source_kind = curr_ise->unicode_source_kind;
+#endif /* UNICODE_SOURCE_SUPPORTED */
     /* Indicate that we are resuming the processing of the specified
        file. */
     record_resumption_of_source_file(curr_ise->assoc_il_file,
@@ -4897,6 +4935,8 @@ at the next level down.
       a_source_file_ptr	sfp = prev_ise->assoc_actual_il_file;
       a_boolean		file_found;
       a_boolean		suppress_include;
+      a_unicode_source_kind
+                        unicode_source_kind;
       file_found = open_file_for_input(
                               sfp->name_as_written, /*use_search_path=*/TRUE,
                               /*is_include_file=*/TRUE,
@@ -4906,6 +4946,7 @@ at the next level down.
 			      /*continue_on_open_failure=*/FALSE,
 			      &full_file_name, &display_name,
                               &f_source, &suppress_include,
+                              &unicode_source_kind,
                               &dir_entry);
       if (file_found) {
         if (suppress_include) {
@@ -4958,6 +4999,7 @@ at the next level down.
                                /*is_preinclude=*/FALSE,
                                /*preinclude_macros=*/FALSE,
                                /*is_implicit_include=*/TRUE,
+                               unicode_source_kind,
                                dir_entry, ifhp);
             }  /* if */
           }  /* if */
@@ -5297,6 +5339,12 @@ curr_source_line is resized.
   char          *ptr;
   int           numch;
 
+#if UNICODE_SOURCE_SUPPORTED
+/* This routine is not expected to be needed for UTF-8.  If it were needed,
+   there's a more efficient way of finding the beginning of a character --
+   just back up while the current character has "10" as the top two bits. */
+  #error -- did not expect UNICODE_SOURCE_SUPPORTED
+#endif /* UNICODE_SOURCE_SUPPORTED */
   /* If we're already too far in the line, start over. */
   if (curr_source_line+offset > new_char) offset = 0;
   /* If we're starting at the beginning of the line, make sure any shift
@@ -5306,7 +5354,7 @@ curr_source_line is resized.
   /* Step through the characters of the source line, stepping over
      multibyte character sequences. */
   for (ptr = curr_source_line+offset;; ptr += numch, offset += numch) {
-    numch = mbc_length_simple(ptr);
+    numch = lex_mbc_length_simple(ptr);
     if (ptr + numch > new_char) break;
   }  /* for */
 
@@ -6680,7 +6728,7 @@ normal_comment:
             if (multibyte_chars_in_source_enabled) {
               /* Advance to the next character, dealing with multibyte
                  characters. */
-              curr_char_loc += mbc_length_simple(curr_char_loc);
+              curr_char_loc += lex_mbc_length_simple(curr_char_loc);
             } else
 #endif /* STAR_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR */
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
@@ -6807,9 +6855,8 @@ the kind of token.
     } else if (gnu_mode &&
                (ch == 'i' || ch == 'I' || ch == 'j' || ch == 'J')) {
       /* A GNU imaginary literal 0 (e.g., "0i").  We do not generally support
-         imaginary integer literals, but for "0" and for decimal integers
-         without any other suffix we recognize the case, issue a discretionary
-         error, and proceed as if it were a "_Complex double" literal. */
+         imaginary integer literals, but for "0i" we issue a discretionary
+         error and proceed as if it were a "_Complex double" literal. */
       ++curr_char_loc;
       if (!fetch_pp_tokens) {
         diagnostic_at_line_pos(es_discretionary_error,
@@ -6850,11 +6897,10 @@ the kind of token.
 #if GNU_COMPLEX_EXTENSIONS_ALLOWED
     if (gnu_mode && (ch == 'i' || ch == 'I' || ch == 'j' || ch == 'J') &&
         !is_id_char[*(curr_char_loc+1)-CHAR_MIN]) {
-      /* A GNU imaginary literal of integral type (e.g., "12").  We do not
-         generally support imaginary integer literals, but for "0" and for
-         decimal integers without any other suffix we recognize the case,
-         issue a discretionary error, and proceed as if it were a "_Complex
-         double" literal. */
+      /* A GNU imaginary literal of integral type (e.g., "12i").  We do not
+         generally support imaginary integer literals, but for decimal
+         integers without any other suffix we issue a discretionary error
+         and proceed as if it were a "_Complex double" literal. */
       if (!fetch_pp_tokens) {
         diagnostic_at_line_pos(es_discretionary_error,
                                ec_complex_integral_type, curr_char_loc);
@@ -7612,7 +7658,7 @@ was.  The caller is responsible for issuing error messages.
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
       if (multibyte_chars_in_source_enabled) {
         /* Advance to the next character, dealing with multibyte characters. */
-        int numch = mbc_length_simple(curr_char_loc);
+        int numch = lex_mbc_length_simple(curr_char_loc);
         curr_char_loc += numch;
         switch (character_kind) {
           case chk_char:
@@ -15741,6 +15787,14 @@ are handled in lexical_init.)
   for (c = CHAR_MIN; c <= CHAR_MAX; c++) {
     is_id_char[c-CHAR_MIN] = (isalpha((unsigned char)c) ||
                               isdigit((unsigned char)c));
+#if UNICODE_SOURCE_SUPPORTED
+    /* If UTF-8 input is a possibility, don't consider
+       characters out of the normal ASCII section to be identifier
+       characters.  This specifically affects the Latin-1 alphabetic
+       characters.  See is_identifier_char, which should be used for
+       any test that must find all identifier characters. */
+    if ((unsigned char)c > 0x7f) is_id_char[c-CHAR_MIN] = FALSE;
+#endif /* UNICODE_SOURCE_SUPPORTED */
   }  /* for */
   is_id_char['_' - CHAR_MIN] = TRUE;
   if (allow_dollar_in_id_chars) {
@@ -15910,6 +15964,9 @@ done to determine whether a precompiled header may be used.
   depth_input_stack = -1;
   curr_token = tok_error;
   curr_ise = NULL;
+#if UNICODE_SOURCE_SUPPORTED
+  curr_file_unicode_source_kind = usk_none;
+#endif /* UNICODE_SOURCE_SUPPORTED */
   if (is_primary_translation_unit) {
     /* These must be reset here after the PCH prefix has been read. */
     curr_seq_number = 0;

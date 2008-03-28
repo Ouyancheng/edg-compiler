@@ -781,7 +781,7 @@ get_another:
          the current character.  Since we're returning one character on this
          call, the remaining count is one less than the size. */
       a_boolean err;
-      *remaining_mbc_char_count = mbc_length(lptr, &err) - 1;
+      *remaining_mbc_char_count = lex_mbc_length(lptr, &err) - 1;
       if (err) {
         /* Invalid multibyte character sequence. */
         conv_line_loc_to_source_pos(lptr, &error_position);
@@ -987,7 +987,7 @@ the size of character.
     a_boolean err;
 
     /* Convert a multibyte character sequence to a wide character. */
-    numch = mbc_to_wide_char(*temp_ptr, &wc, &err);
+    numch = lex_mbc_to_wide_char(*temp_ptr, &wc, &err);
     if (err) {
       /* Invalid multibyte character sequence. */
       conv_line_loc_to_source_pos(*temp_ptr, &error_position);

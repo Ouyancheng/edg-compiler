@@ -1591,26 +1591,6 @@ setting of this flag.
 #endif /* ifndef DEFAULT_LONG_PRESERVING_RULES */
 
 /*
-Flag that is TRUE if multibyte characters are supported in source code,
-specifically in comments, string literals, and character constants.
-This applies to both C and C++ mode.
-*/
-#ifndef MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
-#define MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED FALSE
-#endif /* ifndef MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
-
-/*
-Flag that is TRUE if multibyte character support in source code should
-be enabled by default.  This is the initial value of
-multibyte_chars_in_source_enabled, which is also controlled by
---[no_]multibyte_chars.  Meaningful only if
-MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED is TRUE.
-*/
-#ifndef DEFAULT_MULTIBYTE_CHARS_IN_SOURCE_ENABLED
-#define DEFAULT_MULTIBYTE_CHARS_IN_SOURCE_ENABLED FALSE
-#endif /* ifndef DEFAULT_MULTIBYTE_CHARS_IN_SOURCE_ENABLED */
-
-/*
 Flag to control whether in C++ a function parameter type may involve a pointer
 to an array of unknown bounds.  It is the initial value of global variable
 ptr_to_unknown_bound_array_allowed_in_param_type.  The variable is set to TRUE

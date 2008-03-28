@@ -16991,6 +16991,7 @@ file we simply return.
   char			*full_file_name, *display_name;
   FILE			*f_source;
   a_boolean		is_system_include;
+  a_unicode_source_kind unicode_source_kind;
   a_directory_name_entry_ptr
                         dir_entry;
 #if DEBUG
@@ -17039,6 +17040,7 @@ file we simply return.
 				     /*continue_on_open_failure=*/FALSE,
 				     &full_file_name, &display_name,
 				     &f_source, &suppress_include,
+				     &unicode_source_kind,
 				     &dir_entry);
       if (file_found) {
         an_include_file_history_ptr	ifhp;
@@ -17082,6 +17084,7 @@ file we simply return.
                              is_system_include, /*is_preinclude=*/FALSE,
 		             /*preinclude_macros=*/FALSE,
                              /*is_implicit_include=*/TRUE,
+                             unicode_source_kind,
                              dir_entry, ifhp);
             /* Clear the in_instantiation_wrapup flag while processing the
                implicitly included file.  This suppresses on-the-fly

@@ -141,10 +141,18 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(769,ec_different_return_type_on_virtual_function_override)*/
 #endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
-#if USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING
+#if USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING || UNICODE_SOURCE_SUPPORTED
 /*lint -esym(769,ec_bad_multibyte_char_locale)*/
-#endif /* USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING */
+#endif /* USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING || ... */
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
+#if UNICODE_SOURCE_SUPPORTED
+/*lint -esym(755,mbc_length)*/
+/*lint -esym(755,mbc_scan_init)*/
+#else /*!UNICODE_SOURCE_SUPPORTED */
+/*lint -esym(769,a_unicode_source_kind_tag::usk_utf8)*/
+/*lint -esym(769,a_unicode_source_kind_tag::usk_utf16LE)*/
+/*lint -esym(769,a_unicode_source_kind_tag::usk_utf16BE)*/
+#endif /* UNICODE_SOURCE_SUPPORTED */
 #if !BACK_END_IS_C_GEN_BE
 /*lint -esym(759,form_char)*/
 /*lint -esym(765,form_char)*/

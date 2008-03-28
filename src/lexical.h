@@ -1058,6 +1058,12 @@ typedef struct an_input_stack_entry {
 		include_history;
                         /* Pointer to the structure that preserves information
                            used for include file guard processing. */
+  a_unicode_source_kind
+		unicode_source_kind;
+			/* Indication of the kind of Unicode encoding (e.g.,
+			   UTF-8, UTF-16) of this source file.  usk_none
+			   except in versions with UNICODE_SOURCE_SUPPORTED
+			   set to TRUE. */
 } an_input_stack_entry;
 
 /* See lexical.c for the definitions of input_stack, depth_input_stack,
@@ -1066,6 +1072,14 @@ EXTERN an_input_stack_entry_ptr
 		curr_ise;
 			/* Pointer to input_stack[depth_input_stack].  NULL
 			   if depth_input_stack == -1. */
+
+#if UNICODE_SOURCE_SUPPORTED
+EXTERN a_unicode_source_kind
+		curr_file_unicode_source_kind;
+			/* If not usk_none, indicates the kind of Unicode
+			   source characters being read in the current source
+			   file. */
+#endif /* UNICODE_SOURCE_SUPPORTED */
 
 
 #if FULLY_RESOLVED_MACRO_POSITIONS
@@ -1785,7 +1799,13 @@ EXTERN a_boolean
 		is_id_char[CHAR_MAX-CHAR_MIN+1];
 			/* For each character, whether or not it can be a
 			   character after the first in an identifier.
-			   Also used in scanning pp-numbers. */
+			   Also used in scanning pp-numbers.  Note that
+			   this covers only the identifier characters that
+			   can be expressed in a single character; with
+			   encodings like UTF-8, there may be other
+			   identifier characters that take more than one
+			   character.  If you need the full set of identifier
+			   characters, see is_identifier_char. */
 
 /*
 Structure used to record information about a pp token in a token cache.
@@ -2259,6 +2279,7 @@ extern a_boolean open_file_for_input(
 		char				**display_name,
 		FILE				**new_input_file,
 		a_boolean			*suppress_include,
+		a_unicode_source_kind		*unicode_source_kind,
 		a_directory_name_entry_ptr	*dir_entry);
 extern void push_input_stack(
 			FILE			    *new_input_file,
@@ -2270,6 +2291,7 @@ extern void push_input_stack(
                         a_boolean                   is_preinclude,
 			a_boolean		    preinclude_macros,
                         a_boolean                   is_implicit_include,
+                        a_unicode_source_kind       unicode_source_kind,
                         a_directory_name_entry_ptr  dir_entry,
 			an_include_file_history_ptr ifhp);
 

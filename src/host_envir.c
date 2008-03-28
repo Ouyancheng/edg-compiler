@@ -1163,22 +1163,32 @@ directory or some other kind of special file).
   return get_file_modification_time(file_name, (time_t *)NULL);
 }  /* is_regular_file */
 
+#if UNICODE_SOURCE_SUPPORTED
 
-static void do_check_for_byte_order_mark(FILE	*f_file,
-					 char	*file_name)
+static void do_check_for_byte_order_mark(
+                                    FILE                  *f_file,
+                                    a_unicode_source_kind *unicode_source_kind,
+                                    char                  *file_name)
 /*
 We are at the start of a source file.  See if the f_file begins with a
-byte order mark.  Note that only the UTF-8 byte order mark is recognized.
-file_name is the name of the file, which is used for diagnostic purposes.
+byte order mark and return *unicode_source_kind set appropriately
+(to usk_none if there is no byte order mark).  file_name is the name of
+the file, which is used for diagnostic purposes.
 */
 {
   int		ch;
   a_boolean	is_eof;
 
-  /* Verify that the byte order mark is EF BB BF. */
+  /* The byte order marks are:
+       EF BB BF   UTF-8
+       FF FE      UTF-16 little-endian
+       FE FF      UTF-16 big-endian
+  */
+  *unicode_source_kind = usk_none;
   ch = getc(f_file);
   is_eof = is_eof_char(ch);
-  if (!is_eof && ch != 0xef) {
+  if (!is_eof &&
+      (ch != 0xef && ch != 0xff && ch != 0xfe)) {
     /* The first character of the file is not the start of a byte order
        mark.  Unget the character so that it will be fetched when the
        source line is read. */
@@ -1186,16 +1196,26 @@ file_name is the name of the file, which is used for diagnostic purposes.
     ungetc_result = ungetc(ch, f_file);
     check_assertion(ungetc_result != EOF);
   } else {
-    a_boolean	is_bom = FALSE;
+    a_boolean is_bom = FALSE;
     /* Read the subsequent characters of the byte order mark.  Stop if
        we hit a character that is not part of the mark. */
     if (!is_eof) {
-      ch = getc(f_file);
-      if (ch == 0xbb) {
-        ch = getc(f_file);
-        if (ch == 0xbf) {
+      int ch2 = getc(f_file);
+      if (ch == 0xef && ch2 == 0xbb) {
+        /* Possible UTF-8 BOM. */
+        ch2 = getc(f_file);
+        if (ch2 == 0xbf) {
           is_bom = TRUE;
+          *unicode_source_kind = usk_utf8;
         }  /* if */
+      } else if (ch == 0xff && ch2 == 0xfe) {
+        /* UTF-16 little-endian BOM. */
+        is_bom = TRUE;
+        *unicode_source_kind = usk_utf16LE;
+      } else if (ch == 0xfe && ch2 == 0xff) {
+        /* UTF-16 big-endian BOM. */
+        is_bom = TRUE;
+        *unicode_source_kind = usk_utf16BE;
       }  /* if */
     }  /* if */
     if (!is_bom) {
@@ -1210,17 +1230,21 @@ file_name is the name of the file, which is used for diagnostic purposes.
   }  /* if */
 }  /* do_check_for_byte_order_mark */
 
+#endif /* UNICODE_SOURCE_SUPPORTED */
 
-FILE *open_source_file(char          *file_name,
-                       a_boolean     *not_found,
-                       a_boolean     *bad_format,
-                       a_boolean     *bad_name)
+FILE *open_source_file(char                  *file_name,
+                       a_boolean             *not_found,
+                       a_boolean             *bad_format,
+                       a_boolean             *bad_name,
+                       a_unicode_source_kind *unicode_source_kind)
 /*
 Open the given file as a source input file, and return a pointer to the
 file block, or NULL if the file cannot be opened.  In the error case,
 one of the three flags is set to indicate the type of error: file not found,
 file found but it has a format inappropriate for a source file, or syntax
-of the file name is bad.
+of the file name is bad.  *unicode_source_kind is set to indicate
+the Unicode encoding form for the file, or usk_none if the file is not
+Unicode.
 */
 {
   FILE        *temp_file;
@@ -1231,6 +1255,7 @@ of the file name is bad.
   }  /* if */
 #endif /* DEBUG */
   *not_found = *bad_format = *bad_name = FALSE;
+  *unicode_source_kind = usk_none;
   if (strlen(file_name) == 0) {
     *bad_name = TRUE;
     temp_file = NULL;
@@ -1245,10 +1270,13 @@ of the file name is bad.
       (void)fclose(temp_file);
       temp_file = NULL;
     } else {
+#if UNICODE_SOURCE_SUPPORTED
       /* If the file contains a byte order mark, advance past it. */
       if (check_for_byte_order_mark) {
-        do_check_for_byte_order_mark(temp_file, file_name);
+        do_check_for_byte_order_mark(temp_file, unicode_source_kind,
+                                     file_name);
       }  /* if */
+#endif /* UNICODE_SOURCE_SUPPORTED */
     }  /* if */
   }  /* if */
   return(temp_file);
@@ -1268,10 +1296,13 @@ so that any necessary system-specific code can be inserted.
   FILE	*temp_file;
 
   temp_file = fopen(file_name, FOPEN_MODE_FOR_READ);
+#if UNICODE_SOURCE_SUPPORTED
   /* If the file contains a byte order mark, advance past it. */
   if (temp_file != NULL && check_for_byte_order_mark) {
-    do_check_for_byte_order_mark(temp_file, file_name);
+    a_unicode_source_kind unicode_source_kind;
+    do_check_for_byte_order_mark(temp_file, &unicode_source_kind, file_name);
   }  /* if */
+#endif /* UNICODE_SOURCE_SUPPORTED */
   return temp_file;
 }  /* reopen_source_file */
 
@@ -3117,9 +3148,10 @@ int f_mbc_length(char      *ptr,
 /*
 Return the length of the multibyte character sequence beginning at ptr.
 If the sequence there is invalid, set *err to TRUE if err is non-NULL,
-and return 1.  This should usually be called via the macro mbc_length.
-Note that, unlike the standard mblen, this routine does not return 0
-when given a null (zero) character; it returns 1.
+and return a length appropriate for error recovery.  This function should
+usually be called via the macro mbc_length.  Note that, unlike the standard
+mblen, this routine does not return 0 when given a null (zero) character;
+it returns 1.
 */
 {
   int len;
@@ -3153,6 +3185,55 @@ when given a null (zero) character; it returns 1.
      character unless it is the last character of the string. */
   len = *ptr == '$' && *(ptr+1) != '\0' ? 2 : 1;
 #else /* !EDG_MULTIBYTE_CHAR_TEST_MODE */
+#if UNICODE_SOURCE_SUPPORTED
+  /* UTF-8. */
+  { unsigned char ch = (unsigned char)*ptr;
+    if (ch <= 0x7f) {
+      /* Simple one-byte character. */
+      len = 1;
+    } else {
+      a_boolean local_err = FALSE;
+      if ((ch & 0xe0) == 0xc0) {
+        /* Top three bits are 110: start of a two-byte sequence.  Second byte
+           must have 10 as top two bits. */
+        if (((unsigned char)ptr[1] & 0xc0) == 0x80) {
+          len = 2;
+        } else {
+          local_err = TRUE;
+        }  /* if */
+      } else if ((ch & 0xf0) == 0xe0) {
+        /* Top four bits are 1110: start of a three-byte sequence.  Second and
+           third bytes must have 10 as top two bits. */
+        if (((unsigned char)ptr[1] & 0xc0) == 0x80 &&
+            ((unsigned char)ptr[2] & 0xc0) == 0x80) {
+          len = 3;
+        } else {
+          local_err = TRUE;
+        }  /* if */
+      } else if ((ch & 0xf8) == 0xf0) {
+        /* Top five bits are 11110: start of a four-byte sequence.  Second,
+           third, and fourth bytes must have 10 as top two bits. */
+        if (((unsigned char)ptr[1] & 0xc0) == 0x80 &&
+            ((unsigned char)ptr[2] & 0xc0) == 0x80 &&
+            ((unsigned char)ptr[3] & 0xc0) == 0x80) {
+          len = 4;
+        } else {
+          local_err = TRUE;
+        }  /* if */
+      } else {
+        /* First byte is invalid (e.g., it's a continuation byte having 10
+           in the top two bits). */
+        local_err = TRUE;
+      } /* if */
+      if (local_err) {
+        if (err != NULL) *err = TRUE;
+        len = 1;
+        /* Keep advancing to a character that's not a continuation. */
+        while (((unsigned char)ptr[len] & 0xc0) == 0x80) len++;
+      }  /* if */
+    }  /* if */
+  }
+#else /* !UNICODE_SOURCE_SUPPORTED */
   /* Use standard C library routines. */
   len = mblen(ptr, MB_CUR_MAX);
   if (len <= 0) {
@@ -3165,6 +3246,7 @@ when given a null (zero) character; it returns 1.
       len = 1;
     }  /* if */
   }  /* if */
+#endif /* UNICODE_SOURCE_SUPPORTED */
 #endif /* EDG_MULTIBYTE_CHAR_TEST_MODE */
 #endif /* USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING */
 
@@ -3181,7 +3263,8 @@ int mbc_to_wide_char(char          *mb,
 Convert a multibyte character sequence pointed to by mb to a single wide
 character returned in *wc.  Return the number of characters in the
 multibyte character sequence.  If the multibyte character sequence is
-invalid, set *err to TRUE if err is non-NULL, and return 1.
+invalid, set *err to TRUE if err is non-NULL, and return a length
+appropriate for error recovery.
 */
 {
   int       numch;
@@ -3205,6 +3288,64 @@ invalid, set *err to TRUE if err is non-NULL, and return 1.
   }  /* if */
 #else /* !(USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING ||
            EDG_MULTIBYTE_CHAR_TEST_MODE) */
+#if UNICODE_SOURCE_SUPPORTED
+  /* UTF-8. */
+  { unsigned char ch = (unsigned char)*mb;
+    if (ch <= 0x7f) {
+      /* Simple one-byte character. */
+      numch = 1;
+      *wc = ch;
+    } else {
+      if ((ch & 0xe0) == 0xc0) {
+        /* Top three bits are 110: start of a two-byte sequence.  Second byte
+           must have 10 as top two bits. */
+        if (((unsigned char)mb[1] & 0xc0) == 0x80) {
+          numch = 2;
+          *wc = (ch & 0x1f) << 6 |
+                ((unsigned char)mb[1] & 0x3f);
+        } else {
+          local_err = TRUE;
+        }  /* if */
+      } else if ((ch & 0xf0) == 0xe0) {
+        /* Top four bits are 1110: start of a three-byte sequence.  Second and
+           third bytes must have 10 as top two bits. */
+        if (((unsigned char)mb[1] & 0xc0) == 0x80 &&
+            ((unsigned char)mb[2] & 0xc0) == 0x80) {
+          numch = 3;
+          *wc = (ch & 0xf) << 12 |
+                ((unsigned char)mb[1] & 0x3f) << 6 |
+                ((unsigned char)mb[2] & 0x3f);
+        } else {
+          local_err = TRUE;
+        }  /* if */
+      } else if ((ch & 0xf8) == 0xf0) {
+        /* Top five bits are 11110: start of a four-byte sequence.  Second,
+           third, and fourth bytes must have 10 as top two bits. */
+        if (((unsigned char)mb[1] & 0xc0) == 0x80 &&
+            ((unsigned char)mb[2] & 0xc0) == 0x80 &&
+            ((unsigned char)mb[3] & 0xc0) == 0x80) {
+          numch = 4;
+          *wc = (ch & 0x7) << 18 |
+                ((unsigned char)mb[1] & 0x3f) << 12 |
+                ((unsigned char)mb[2] & 0x3f) << 6 |
+                ((unsigned char)mb[3] & 0x3f);
+        } else {
+          local_err = TRUE;
+        }  /* if */
+      } else {
+        /* First byte is invalid (e.g., it's a continuation byte having 10
+           in the top two bits). */
+        local_err = TRUE;
+      } /* if */
+      if (local_err) {
+        *wc = 0;
+        numch = 1;
+        /* Keep advancing to a character that's not a continuation. */
+        while (((unsigned char)mb[numch] & 0xc0) == 0x80) numch++;
+      }  /* if */
+    }  /* if */
+  }
+#else /* !UNICODE_SOURCE_SUPPORTED */
   /* Use a standard C library routine to do the multibyte character
      sequence to wide character conversion. */
   { wchar_t wchar;
@@ -3218,6 +3359,7 @@ invalid, set *err to TRUE if err is non-NULL, and return 1.
       *wc = wchar;
     }  /* if */
   }
+#endif /* UNICODE_SOURCE_SUPPORTED */
 #endif /* USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING ||
           EDG_MULTIBYTE_CHAR_TEST_MODE */
   if (err != NULL) *err = local_err;
@@ -3668,7 +3810,9 @@ This is done before command line processing.
   use_predefined_macro_file = DEFAULT_USE_PREDEFINED_MACRO_FILE;
   memzero((a_void_ptr)predef_macro_mode_values,
 	  sizeof(predef_macro_mode_values));
+#if UNICODE_SOURCE_SUPPORTED
   check_for_byte_order_mark = DEFAULT_CHECK_FOR_BYTE_ORDER_MARK;
+#endif /* UNICODE_SOURCE_SUPPORTED */
 #if MAKE_FRONT_END_CALLABLE
   exit_status = 0;
 #endif /* MAKE_FRONT_END_CALLABLE */
