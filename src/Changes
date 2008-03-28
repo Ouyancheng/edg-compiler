@@ -1,5 +1,20 @@
 Version 3.11
 
+3/28/08: Abort in find_member_function_template
+
+An abort could occur in find_member_function_template if a class template
+contained an unusable conversion function (e.g., one that converts to a
+a base class) and an overload set with at least one function template.
+This has been fixed.
+
+  class B {};
+  template <class T> struct A : public B {
+    template <class T2> void f(T2){}
+    template <class T2> void f(T2*){}
+    operator B();
+  };
+  A<int> ai;
+
 3/25/08  C++-generating back end: qualified names in generated template
          instances
 

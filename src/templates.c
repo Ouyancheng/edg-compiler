@@ -9450,10 +9450,12 @@ and create a function instantiation entry to bind the two symbols together.
           }  /* if */
           for (; list_sym != NULL;
                list_sym = is_list ? list_sym->next : NULL) {
-            a_template_symbol_supplement_ptr	tssp;
-            tssp = list_sym->variant.routine.instance_ptr->template_info;
-            if (tssp->token_sequence_number == curr_token_sequence_number) {
-              break;
+            if (list_sym->variant.routine.instance_ptr != NULL) {
+              a_template_symbol_supplement_ptr	tssp;
+              tssp = list_sym->variant.routine.instance_ptr->template_info;
+              if (tssp->token_sequence_number == curr_token_sequence_number) {
+                break;
+              }  /* if */
             }  /* if */
           }  /* for */
           /* Exit the loop if we found a match. */
