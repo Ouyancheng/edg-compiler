@@ -90,6 +90,8 @@ the front end aborts with an internal error in dump_expr in cases where
 one or more arguments follow an argument whose type is adjusted to
 match the type of the corresponding parameter in a block-extern function
 prototype (see the Changes entry of 5/29/07 for more details on this case).
+This error occurs only when argument or parameter lists contain variable length
+array types (VLAs) and the front end is configured to perform IL lowering.
 Here is an example that previously aborted and is now fixed:
 
   int l = 1, m = 2;
