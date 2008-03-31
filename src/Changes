@@ -1,6 +1,6 @@
 Version 3.11
 
-3/28/08: Abort in find_member_function_template
+3/28/08  Abort in find_member_function_template
 
 An abort could occur in find_member_function_template if a class template
 contained an unusable conversion function (e.g., one that converts to a
