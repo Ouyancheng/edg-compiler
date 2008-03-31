@@ -1019,13 +1019,13 @@ Clear the fields of a destructible entity description to default values.
 {
   dedp->next = NULL;
   clear_init_pos_descr(&dedp->init_pos_descr);
+  dedp->cleanup_state_to_set_when_starting_destruction = NULL;
   dedp->conditional_flag_var = NULL;
 #if DO_FULL_PORTABLE_EH_LOWERING
   dedp->conditional_flag_handle = 0;
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
 #if GENERATE_EH_TABLES
   dedp->region_number = null_eh_region_number;
-  dedp->cleanup_state_to_set_when_starting_destruction = NULL;
   dedp->region_table_entry = NULL;
   dedp->next_in_region_table = NULL;
 #endif /* GENERATE_EH_TABLES */

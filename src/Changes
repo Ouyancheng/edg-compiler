@@ -1,5 +1,14 @@
 Version 3.11
 
+3/31/08  Uninitialized field in a_destructible_entity_descr in configurations
+         that use lowering but set GENERATE_EH_TABLES to FALSE
+
+In configurations that use lowering but generate their own exception
+handling tables (i.e., GENERATE_EH_TABLES is FALSE), the
+cleanup_state_to_set_when_starting_destruction field of
+a_destructible_entity_descr is not properly initialized and can cause
+undefined behavior.  This is now fixed.
+
 3/28/08  Abort in find_member_function_template
 
 An abort could occur in find_member_function_template if a class template
