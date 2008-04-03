@@ -4188,6 +4188,14 @@ do_label:
                  iek_scope);
       }  /* if */
       break;
+    case stmk_switch_case:
+      (void)printf("stmk_switch_case\n");
+      disp_ptr("switch_statement",
+               (char *)ptr->variant.switch_case.switch_statement,
+               iek_statement);
+      disp_ptr("extra_info", (char *)ptr->variant.switch_case.extra_info,
+               iek_switch_case_entry);
+      break;
     case stmk_switch:
       (void)printf("stmk_switch\n");
       disp_ptr("expr", (char *)ptr->expr, iek_expr_node);

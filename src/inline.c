@@ -1541,6 +1541,7 @@ If not, *failed is set.
         break;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       case stmk_asm:
+      case stmk_switch_case:
       case stmk_switch:
       case stmk_try_block:
 #if MICROSOFT_EXTENSIONS_ALLOWED
