@@ -7218,9 +7218,8 @@ Generate the code for a "case ... :" or "default:" label in a switch statement.
     write_tok_ch(':');
   }  /* if */
   if (stmt->next == NULL) {
-    /* If not statement follows, add an empty statement to make the
-       generated code valid.  E.g., generate "{ case 2:; }" rather than
-       "{ case 2: }". */
+    /* If no statement follows, add an empty statement to make the generated
+       code valid.  E.g., generate "{ case 2:; }" rather than "{ case 2: }". */
     write_tok_ch(';');
   }  /* if */
 }  /* dump_switch_case */

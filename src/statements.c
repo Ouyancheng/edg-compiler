@@ -5198,8 +5198,8 @@ See also 3.6.6.3.
     check_for_leaving_upc_forall(sssep);
     if (sssep->kind == (a_struct_stmt_kind)ssk_switch &&
         sssep->statement->variant.switch_stmt.extra_info->cases != NULL) {
-      /* If this break is appears after a case label and it is reachable,
-         then we can presume there is a way out of the switch. */
+      /* If this break appears after a case label and is reachable, then we
+         can presume there is a way out of the switch. */
       merge_reachability(&curr_reachability, &sssep->end_reachable);
     }  /* if */
   }  /* if */
@@ -5626,7 +5626,7 @@ Finally, this routine also updates the control flow data structures as needed.
     }  /* if */
   } else {
     /* If a switch case range has a nondependent start or end value, we can
-       compare it to other values to report duplicate.  E.g., "case 3:" and
+       compare it to other values to report a duplicate.  E.g., "case 3:" and
        "case I ... 3:" conflict, whereas "case 3:" and "case I ... 4:" may not
        conflict (assuming I is a template parameter).  Note that the sorted
        list will be discarded if it contains any dependent cases.  (Error cases
