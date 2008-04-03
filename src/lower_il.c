@@ -12872,21 +12872,17 @@ Given an olk_block or olk_block_after_label lifetime, return the successor
 lifetime at the next label, or NULL if there isn't one.
 */
 {
-  for (;;) {
-    if (!lifetime->has_block_after_label_child_lifetime) {
-      /* This lifetime has no label successor, so we can save time and not
-         look for one. */
-      lifetime = NULL;
-      break;
-    } else {
-      /* Find the label successor lifetime (there must be one, because the flag
-         is set). */
-      for (lifetime = lifetime->child_lifetime;
-           lifetime->kind != (an_object_lifetime_kind)olk_block_after_label;
-           lifetime = lifetime->next) {}
-      break;
-    }  /* if */
-  }  /* for */
+  if (!lifetime->has_block_after_label_child_lifetime) {
+    /* This lifetime has no label successor, so we can save time and not
+       look for one. */
+    lifetime = NULL;
+  } else {
+    /* Find the label successor lifetime (there must be one, because the flag
+       is set). */
+    for (lifetime = lifetime->child_lifetime;
+         lifetime->kind != (an_object_lifetime_kind)olk_block_after_label;
+         lifetime = lifetime->next) {}
+  }  /* if */
   return lifetime;
 }  /* label_successor_lifetime */
 
