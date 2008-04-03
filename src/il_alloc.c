@@ -2847,7 +2847,7 @@ values, and return a pointer to it.
 }  /* alloc_switch_case_entry */
 
 
-a_switch_stmt_descr_ptr alloc_switch_stmt_descr(void)
+static a_switch_stmt_descr_ptr alloc_switch_stmt_descr(void)
 /*
 Allocate storage to describe the details of a switch statement, clear it to
 default values, and return a pointer to it.

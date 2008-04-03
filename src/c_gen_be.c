@@ -7195,41 +7195,6 @@ p is a pointer to the start of a null-terminated string.
 
 #endif /* ASM_FUNCTION_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 
-/*
-A macro to carry the given statement pointer past explicitly represented
-empty statements and declaration statements (if source sequence entry lists
-are generated).  Expands to nothing if the front end is configured to not
-generate any of these.
-*/
-#if REPRESENT_EMPTY_STATEMENTS_IN_IL
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-#define advance_past_neutral_statements(stmt)                              \
-{ while ((stmt) != NULL && ((stmt)->kind == (a_statement_kind)stmk_decl || \
-                            (stmt)->kind == (a_statement_kind)stmk_empty)) \
-    (stmt) = (stmt)->next;                                                 \
-}  /* advance_past_stmk_decl_statements */
-
-#else /* !GENERATE_SOURCE_SEQUENCE_LISTS */
-#define advance_past_neutral_statements(stmt)                            \
-{ while ((stmt) != NULL && (stmt)->kind == (a_statement_kind)stmk_empty) \
-    (stmt) = (stmt)->next;                                               \
-}  /* advance_past_stmk_decl_statements */
-
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-#else /* !REPRESENT_EMPTY_STATEMENTS_IN_IL */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-#define advance_past_neutral_statements(stmt)                           \
-{ while ((stmt) != NULL && (stmt)->kind == (a_statement_kind)stmk_decl) \
-    (stmt) = (stmt)->next;                                              \
-}  /* advance_past_stmk_decl_statements */
-
-#else /* !GENERATE_SOURCE_SEQUENCE_LISTS */
-#define advance_past_neutral_statements(stmt) /* nothing */
-
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-#endif /* REPRESENT_EMPTY_STATEMENTS_IN_IL */
-
-
 static void dump_switch_case(a_statement_ptr  stmt)
 /*
 Generate the code for a "case ... :" or "default:" label in a switch statement.
