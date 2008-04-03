@@ -5905,13 +5905,15 @@ Scan a default case label definition.  The syntax is:
   if (sssep != NULL) {
     a_statement_ptr          sp;
     a_switch_case_entry_ptr  scep = alloc_switch_case_entry();
-    sp = add_statement((a_statement_kind)stmk_switch_case);
+    sp = add_statement_at_stmt_pos((a_statement_kind)stmk_switch_case,
+                                   &label_position);
     sp->variant.switch_case.switch_statement = sssep->statement;
     sp->variant.switch_case.extra_info = scep;
     scep->position = label_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     scep->keyword_position = label_position;
     scep->colon_position = pos_curr_token;
+    sp->end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     record_switch_case_entry(scep, sssep);
     merge_reachability(&sssep->start_reachable, &curr_reachability);
