@@ -5805,9 +5805,7 @@ GNU also allows the "case range" form:
   a_struct_stmt_stack_entry_ptr sssep;
   a_constant_ptr                constant_ptr;
   a_constant_ptr                range_end = NULL;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position             case_position;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
   db_enter(4, "case_label");
 
@@ -5827,9 +5825,7 @@ GNU also allows the "case range" form:
   }  /* if */
   /* Ignore the initial "case". */
   check_assertion_str(curr_token == tok_case, "case_label: expected case");
-#if EXTRA_SOURCE_POSITIONS_IN_IL
   case_position = pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   (void)get_token();
   constant_ptr = scan_case_label_constant(sssep);
   if (gnu_mode && curr_token == tok_ellipsis) {
@@ -5849,7 +5845,8 @@ GNU also allows the "case range" form:
   if (sssep != NULL && constant_ptr != NULL) {
     a_statement_ptr          sp;
     a_switch_case_entry_ptr  scep = alloc_switch_case_entry();
-    sp = add_statement((a_statement_kind)stmk_switch_case);
+    sp = add_statement_at_stmt_pos((a_statement_kind)stmk_switch_case,
+                                   &case_position);
     sp->variant.switch_case.switch_statement = sssep->statement;
     sp->variant.switch_case.extra_info = scep;
     scep->stmt = sp;
@@ -5861,6 +5858,7 @@ GNU also allows the "case range" form:
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     scep->keyword_position = case_position;
     scep->colon_position = pos_curr_token;
+    sp->end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     record_switch_case_entry(scep, sssep);
   }  /* if */
