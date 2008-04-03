@@ -177,18 +177,6 @@ sublist header, i.e., it has kind iek_src_seq_sublist.
 */
 #define is_sublist_parent(ssep) (ss_entry_kind(ssep) == iek_src_seq_sublist)
 
-/*
-The following variables indicate state within a function.
-*/
-static a_statement_ptr
-		curr_switch_statement;
-			/* The current switch statement, or NULL if not
-			   inside a switch statement. */
-static unsigned long
-		num_curr_switch_statements;
-			/* Nesting depth of switch statements currently
-			   being processed. */
-
 
 /*
 The following variables indicate the context in which a name or expression
@@ -440,8 +428,7 @@ static void gen_variable_decl(a_boolean is_condition,
                               a_boolean for_init,
                               a_boolean suppress_specifiers,
                               a_boolean *another_decl_in_comma_list);
-static void gen_statement_list(a_statement_ptr stmt_list,
-                               a_boolean       top_statement_of_switch);
+static void gen_statement_list(a_statement_ptr stmt_list);
 static void gen_cast(a_type_ptr type);
 static void gen_full_cast(a_type_ptr            dest_type,
                           an_expr_node_ptr      expr,
@@ -902,10 +889,7 @@ Data structure used to save the current function state for later restoration.
 See save_function_state.
 */
 typedef struct a_function_state {
-  a_statement_ptr
-		curr_switch_statement;
-  unsigned long	num_curr_switch_statements;
-  a_scope_ptr   innermost_function_scope;
+  a_scope_ptr	innermost_function_scope;
 } a_function_state;
 
 
@@ -916,12 +900,8 @@ needed, for example, when a member function is processed inside another
 function.  Also clear the state variables.
 */
 {
-  state->curr_switch_statement = curr_switch_statement;
-  state->num_curr_switch_statements = num_curr_switch_statements;
   state->innermost_function_scope = innermost_function_scope;
   innermost_function_scope = NULL;
-  curr_switch_statement = NULL;
-  num_curr_switch_statements = 0;
 }  /* save_function_state */
 
 
@@ -930,8 +910,6 @@ static void restore_function_state(a_function_state *state)
 Restore the current function state from *state.
 */
 {
-  curr_switch_statement = state->curr_switch_statement;
-  num_curr_switch_statements = state->num_curr_switch_statements;
   innermost_function_scope = state->innermost_function_scope;
 }  /* restore_function_state */
 
@@ -10117,180 +10095,32 @@ Generate code for the indicated "for" statement.
 }  /* gen_for_statement */
 
 
-static void gen_case_label(a_switch_clause_ptr scp)
+static void gen_switch_case(a_statement_ptr stmt)
 /*
-Generate the case label(s) and/or default label for the indicated switch
-clause.  The current function source sequence entry is for that switch clause.
+Generate the case or default label represented by the indicated statement.
 */
 {
-  /* Check for the presence of the source sequence entry for the switch
-     clause. */
-  check_assertion_str(curr_source_sequence_entry != NULL &&
-                      ss_entry_kind(curr_source_sequence_entry) ==
-                                                             iek_switch_clause,
-                      "gen_case_label: not iek_switch_clause");
-  check_assertion_str(ss_entry_ptr(curr_source_sequence_entry,
-                                   a_switch_clause_ptr) == scp,
-                      "gen_case_label: wrong switch clause");
-  /* Advance past the source sequence entry for the switch clause. */
-  adv_curr_source_sequence_entry();
-  /* Generate the appropriate source code.  The underlying IL representation
-     depends on RECORD_SWITCH_CASE_ENTRIES. */
-#if RECORD_SWITCH_CASE_ENTRIES
-  { a_switch_case_entry_ptr  sce = scp->cases;
-    for (; sce != NULL; sce = sce->next) {
-      if (sce->constant == NULL) {
-        /* The default case. */
-        set_output_position_for_stmt(&scp->default_position);
-        write_tok_str("default: ");
-      } else {
-        /* Regular (non-default) case and/or GNU case range. */
-        set_output_position(&sce->constant->source_corresp.decl_position);
-        write_tok_str("case ");
-        gen_constant(sce->constant, /*need_parens=*/FALSE);
-#if GNU_EXTENSIONS_ALLOWED
-        if (sce->range_end != NULL) {
-          /* A GNU case range. */
-          write_tok_str(" ... ");
-          gen_constant(sce->range_end, /*need_parens=*/FALSE);
-        }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
-        write_tok_str(": ");
-      }  /* if */
-    }  /* for */
-  }
-#else /* !RECORD_SWITCH_CASE_ENTRIES */
-  if (scp->constant_list == NULL) {
-    /* An empty list identifies the default clause. */
-    set_output_position_for_stmt(&scp->default_position);
+  a_switch_case_entry_ptr  scep = stmt->variant.switch_case.extra_info;
+
+  if (scep->case_value == NULL) {
+    /* The default case. */
+    set_output_position_for_stmt(&scep->position);
     write_tok_str("default: ");
   } else {
-    /* Put out a list of case labels. */
-    a_constant_ptr  con = scp->constant_list;
-    while (con != NULL) {
-      set_output_position(&con->source_corresp.decl_position);
-      write_tok_str("case ");
-      gen_constant(con, /*need_parens=*/FALSE);
-      con = con->next;
-      if (con != NULL && con->source_corresp.decl_position.seq == 0) {
-        /* A GNU case range.  Skip past the last constant with a null position.
-           In this configuration, a GNU case range of the form "case a ...  b:"
-           is represented by a list of individual cases, with the values from
-           a+1 to b-1 (if any) having a null source position. */
-        write_tok_str(" ... ");
-        for (; con->source_corresp.decl_position.seq == 0; con = con->next) {
-          check_assertion(con->next != NULL);
-        }  /* for */
-        gen_constant(con, /*need_parens=*/FALSE);
-        con = con->next;
-      }  /* if */
-      write_tok_str(": ");
-    }  /* while */
-  }  /* if */
-#endif /* RECORD_SWITCH_CASE_ENTRIES */
-}  /* gen_case_label */
-
-
-static void gen_switch_clause(a_switch_clause_ptr scp)
-/*
-Generate the case label and code for a switch clause.  The current function
-source sequence entry points to the switch clause.
-*/
-{
-  a_statement_ptr stmt;
-
-  /* Generate the case label and advance past the source sequence entry. */
-  gen_case_label(scp);
-  stmt = scp->statements;
-  /* If the first statement in the clause is an unnamed label, it is a label
-     used to branch into this clause from the previous one (an explicit
-     representation of an implicit fall-through), so ignore it. */
-  if (stmt != NULL && 
-      stmt->kind == (a_statement_kind)stmk_label &&
-      !has_name(stmt->variant.label.ptr)) {
-    stmt = stmt->next;
-  }  /* if */
-  /* Generate the statements. */
-  gen_statement_list(stmt, /*top_statement_of_switch=*/FALSE);
-  /* See if we need a "break" at the end of the clause. */
-  if (scp->implied_break_at_end) {
-    set_output_position_for_stmt(&scp->break_position);
-    write_tok_str("break;");
-  } else if (stmt == NULL) {
-    /* No break and no statements, so put out an empty statement. */
-    write_tok_ch(';');
-  }  /* if */
-}  /* gen_switch_clause */
-
-
-static a_boolean curr_source_seq_entry_is_for_switch_clause(
-                                                      a_switch_clause_ptr *scp)
-/*
-Examine the current source sequence entry and see if it is the beginning
-of a switch clause for the current switch statement.  If so, return TRUE
-and also set *scp to point to the switch clause.
-*/
-{
-  a_boolean clause_found = FALSE;
-
-  *scp = NULL;
-  if (curr_source_sequence_entry != NULL &&
-      ss_entry_kind(curr_source_sequence_entry) == iek_switch_clause) {
-    /* This is a switch clause, but is it a switch clause for the current
-       switch statement?  That matters if we're at the end of an inner
-       switch statement and we are looking at a switch clause for the
-       outer switch clause that is supposed to follow the end of the inner
-       switch clause. */
-    *scp = ss_entry_ptr(curr_source_sequence_entry, a_switch_clause_ptr);
-    if (num_curr_switch_statements == 1) {
-      /* No nesting of switch statements, so this switch clause must be for
-         the current switch statement. */
-      clause_found = TRUE;
-    } else {
-      /* There are nested switch statements, so see if this switch clause
-         is on the list for the current switch statement. */
-      a_switch_clause_ptr test_scp;
-      for (test_scp = curr_switch_statement->variant.switch_stmt.clause_list;
-           test_scp != NULL;
-           test_scp = test_scp->next) {
-        if (test_scp == *scp) {
-          clause_found = TRUE;
-          break;
-        }  /* if */
-      }  /* for */
+    /* Regular (non-default) case or GNU case range. */
+    set_output_position(&scep->position);
+    write_tok_str("case ");
+    gen_constant(scep->case_value, /*need_parens=*/FALSE);
+#if GNU_EXTENSIONS_ALLOWED
+    if (scep->range_end != NULL) {
+      /* A GNU case range. */
+      write_tok_str(" ... ");
+      gen_constant(scep->range_end, /*need_parens=*/FALSE);
     }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+    write_tok_str(": ");
   }  /* if */
-  return clause_found;
-}  /* curr_source_seq_entry_is_for_switch_clause */
-
-
-static a_boolean is_label_for_non_top_level_switch_clause(
-                                                     a_switch_clause_ptr scp,
-                                                     a_label_ptr         label)
-/*
-Return TRUE if "label" is the label for the switch clause scp as a
-non-top-level clause.  That is, it's the label at the case in the following:
-
-  switch (i) {
-    if (i) {
-      i = 1;
-      case 1:  // Compiler-generated label here.
-      i = 2;
-    }
-  }
-
-*/
-{
-  a_boolean       is_label = FALSE;
-  a_statement_ptr clause_stmt = scp->statements;
-
-  if (clause_stmt != NULL &&
-      clause_stmt->kind == (a_statement_kind)stmk_goto &&
-      clause_stmt->variant.label.ptr == label) {
-    is_label = TRUE;
-  }  /* if */
-  return is_label;
-}  /* is_label_for_non_top_level_switch_clause */
+}  /* gen_switch_case */
 
 
 static void gen_switch_statement(a_statement_ptr statement)
@@ -10298,51 +10128,12 @@ static void gen_switch_statement(a_statement_ptr statement)
 Generate code for the indicated switch statement.
 */
 {
-  a_statement_ptr saved_switch_statement = curr_switch_statement;
-  a_statement_ptr body_statement;
-  a_scope_ptr     scope = NULL;
-  a_boolean       need_context_pop = FALSE;
-
   write_tok_str("switch (");
   gen_condition(statement);
   write_tok_str(") ");
-  /* Generate the body statement.  During the processing, when statements
-     that correspond to case labels turn up, the case labels will be
-     emitted. */
-  curr_switch_statement = statement;
-  num_curr_switch_statements++;
-  body_statement = statement->variant.switch_stmt.body_statement;
-  /* See if there's a scope associated with the switch. */
-  if (body_statement != NULL &&
-      body_statement->kind == (a_statement_kind)stmk_block) {
-    scope = body_statement->variant.block.extra_info->assoc_scope;
-    if (scope != NULL) {
-      push_name_context(scope);
-      need_context_pop = TRUE;
-    }  /* if */
-  }  /* if */
-  if (body_statement != NULL ||
-      statement->variant.switch_stmt.clause_list == NULL) {
-    gen_statement(body_statement);
-  } else {
-    /* For a case like
-         switch (i) case 1: i = 1;
-       in C, make sure the switch clause gets dumped out. */
-    a_switch_clause_ptr scp;
-    /* Process pragmas, macros, etc. */
-    (void)process_preprocessing_directives();
-    if (curr_source_seq_entry_is_for_switch_clause(&scp)) {
-      /* gen_switch_clause is not used because we don't have a statement
-         list and we don't want a "break" at the end. */
-      gen_case_label(scp);
-      gen_statement(scp->statements);
-    } else {
-      unexpected_condition_str("gen_switch_statement: missing switch clause");
-    }  /* if */
-  }  /* if */
-  if (need_context_pop) pop_name_context();
-  curr_switch_statement = saved_switch_statement;
-  num_curr_switch_statements--;
+  /* Generate the body statement.  During the processing, when statements that
+     correspond to case labels turn up, the case labels will be emitted. */
+  gen_statement(statement->variant.switch_stmt.body_statement);
 }  /* gen_switch_statement */
 
 
@@ -11312,17 +11103,12 @@ the __if_exist appears between top-level declarations of the class.
 
 #endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
 
-static void gen_statement_list(a_statement_ptr stmt_list,
-                               a_boolean       top_statement_of_switch)
+static void gen_statement_list(a_statement_ptr stmt_list)
 /*
-Generate code for the indicated list of statements.  If top_statement_of_switch
-is TRUE, this sequence is the top-level sequence of the indicated
-switch statement.
+Generate code for the indicated list of statements.
 */
 {
   a_statement_ptr     statement;
-  a_switch_clause_ptr scp;
-  a_boolean           statement_processed;
 
   /* Go through the statement list. */
   statement = stmt_list;
@@ -11330,58 +11116,11 @@ switch statement.
      both before the first statement and after the last, or once even if
      there are no statements. */
   for (;; statement = statement->next) {
-    statement_processed = FALSE;
-    /* Look for surprises in the source sequence list. */
-    while (statement == NULL ||
-           curr_source_sequence_entry != statement->source_sequence_entry) {
-      /* The next thing on the source sequence list isn't the statement we
-         are expecting, so see what else might come first. */
-      if (num_curr_switch_statements != 0 &&
-          curr_source_seq_entry_is_for_switch_clause(&scp)) {
-        /* The next thing on the source sequence list is a switch clause. */
-        /* If the current statement is a compiler-generated goto into the
-           switch clause, ignore it (it's an explicit representation for
-           an implicit fall-through).   This goto could be at the end of
-           a switch clause or in top-level body-statement code immediately
-           preceding a switch clause. */
-        if (statement != NULL &&
-            statement->kind == (a_statement_kind)stmk_goto) {
-          a_label_ptr label = statement->variant.label.ptr;
-          if (!has_name(label)) {
-            a_statement_ptr clause_stmt = scp->statements;
-            if (clause_stmt != NULL &&
-                clause_stmt->kind == (a_statement_kind)stmk_label &&
-                clause_stmt->variant.label.ptr == label) {
-              /* Note that the source sequence entry for the switch clause
-                 is left in place for processing on a subsequent iteration. */
-              statement_processed = TRUE;
-              break;
-            }  /* if */
-          }  /* if */
-        }  /* if */
-        /* Generate code for the switch clause if it's a top-level switch
-           clause. */
-        if (top_statement_of_switch) {
-          gen_switch_clause(scp);
-        } else {
-          /* Not a top-level clause.  Presumably, the current statement is
-             a compiler-generated stmk_label for the case label, but let
-             gen_statement deal with it. */
-          break;
-        }  /* if */
-      } else if (process_preprocessing_directives()) {
-        /* A pragma or macro, etc.  Keep looping. */
-      } else {
-        /* We don't know what this next thing is.  Leave it alone and
-           go on. */
-        break;
-      }  /* if */
-    }  /* while */
-    /* Exit the loop after the extra half-iteration following the last
-       statement. */
+    /* Generate any preprocessing directives (even if no statements follow. */
+    (void)process_preprocessing_directives();
     if (statement == NULL) break;
     /* Generate the statement. */
-    if (!statement_processed) gen_statement(statement);
+    gen_statement(statement);
   }  /* for */
 }  /* gen_statement_list */
 
@@ -11427,16 +11166,8 @@ Generate code for a block statement ("{ ... }").
 {
   a_block_ptr block = statement->variant.block.extra_info;
   a_scope_ptr scope;
-  a_boolean   top_statement_of_switch, need_context_pop = FALSE;
+  a_boolean   need_context_pop = FALSE;
 
-  /* See if this block is the top-level statement of a switch statement.
-     If so, we will look for places where switch clauses should be inserted. */
-  top_statement_of_switch = FALSE;
-  if (curr_switch_statement != NULL) {
-    if (curr_switch_statement->variant.switch_stmt.body_statement==statement) {
-      top_statement_of_switch = TRUE;
-    }  /* if */
-  }  /* if */
   write_tok_str("{ ");
   scope = block->assoc_scope;
   /* The block defines a scope if scope != NULL. */
@@ -11449,8 +11180,7 @@ Generate code for a block statement ("{ ... }").
   gen_local_label_declarations();
 #endif /* GNU_EXTENSIONS_ALLOWED */
   /* Generate the statements inside the block. */
-  gen_statement_list(statement->variant.block.statements,
-                     top_statement_of_switch);
+  gen_statement_list(statement->variant.block.statements);
   /* End of the scope defined by the block. */
   if (need_context_pop) pop_name_context();
   /* See if there's an end-of-construct entry for the block (compiler-generated
@@ -11651,7 +11381,6 @@ statement unless suppress_trailing_space is TRUE.
 */
 {
   a_statement_kind    kind;
-  a_switch_clause_ptr scp;
   a_statement_ptr     else_stmt;
 
 #if REPRESENT_EMPTY_STATEMENTS_IN_IL
@@ -11681,15 +11410,6 @@ statement unless suppress_trailing_space is TRUE.
           !has_name(statement->variant.label.ptr)) {
         /* The current statement is a compiler-generated label. */
         a_label_ptr label = statement->variant.label.ptr;
-        if (num_curr_switch_statements != 0 &&
-            curr_source_seq_entry_is_for_switch_clause(&scp) &&
-            is_label_for_non_top_level_switch_clause(scp, label)) {
-          /* This is the label for a non-top-level switch clause.
-             Generate the case label, advance past the source sequence
-             entry for the switch clause, and then throw away the label. */
-          gen_case_label(scp);
-          goto done;
-        }  /* if */
         /* Throw away labels generated as targets for "break" and
            "continue" statements, since the gotos are put out as breaks
            and continues.  This is important to avoid a cfront "sorry"
@@ -11872,6 +11592,9 @@ statement unless suppress_trailing_space is TRUE.
     case stmk_block:
       /* Block: generate "{ ... }". */
       gen_block_statement(statement);
+      break;
+    case stmk_switch_case:
+      gen_switch_case(statement);
       break;
     case stmk_switch:
       /* "switch" statement. */
@@ -14118,8 +13841,6 @@ Initialize for the C++/C-generating back end.
   curr_source_sequence_entry = NULL;
   sublist_parent_source_sequence_entry = NULL;
   innermost_function_scope = NULL;
-  curr_switch_statement = NULL;
-  num_curr_switch_statements = 0;
   in_friend_declaration = FALSE;
   in_ctor_default_argument = FALSE;
   in_generated_instance = FALSE;

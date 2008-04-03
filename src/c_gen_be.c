@@ -7230,139 +7230,46 @@ generate any of these.
 #endif /* REPRESENT_EMPTY_STATEMENTS_IN_IL */
 
 
+static void dump_switch_case(a_statement_ptr  stmt)
+/*
+Generate the code for a "case ... :" or "default:" label in a switch statement.
+*/
+{
+  a_switch_case_entry_ptr  scep = stmt->variant.switch_case.extra_info;
+
+  if (scep->case_value == NULL) {
+    /* The default case. */
+    write_tok_str("default:");
+  } else {
+    write_tok_str("case ");
+    dump_constant(scep->case_value);
+#if GNU_EXTENSIONS_ALLOWED
+    if (scep->range_end != NULL) {
+      /* A GNU case range. */
+      write_tok_str(" ... ");
+      dump_constant(scep->range_end);
+    }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+    write_tok_ch(':');
+  }  /* if */
+  if (stmt->next == NULL) {
+    /* If not statement follows, add an empty statement to make the
+       generated code valid.  E.g., generate "{ case 2:; }" rather than
+       "{ case 2: }". */
+    write_tok_ch(';');
+  }  /* if */
+}  /* dump_switch_case */
+
+
 static void dump_switch_statement(a_statement_ptr statement)
 /*
 Generate the code for a switch statement.
 */
 {
-  a_statement_ptr     body_statement, statement_list;
-  a_switch_clause_ptr switch_clause;
-  /* curr_scope is saved here because dump_block_declarations may change it. */
-  a_scope_ptr         saved_curr_scope = curr_scope;
-  a_constant_ptr      saved_wide_string_constants_to_unbind_at_end_of_scope =
-                               wide_string_constants_to_unbind_at_end_of_scope;
-
-  wide_string_constants_to_unbind_at_end_of_scope = NULL;
   write_tok_str("switch (");
   dump_expression(statement->expr);
-  write_tok_str(") {");
-  body_statement = statement->variant.switch_stmt.body_statement;
-  if (body_statement == NULL
-#if REPRESENT_EMPTY_STATEMENTS_IN_IL
-      || body_statement->kind == (a_statement_kind)stmk_empty
-#endif /* REPRESENT_EMPTY_STATEMENTS_IN_IL */
-                                                             ) {
-    /* No body statement. */
-  } else if (body_statement->kind != (a_statement_kind)stmk_block) {
-    /* Unusual body statement. */
-    indent += 4;
-    dump_statement(body_statement);
-    write_tok_str("break;");
-    indent -= 4;
-  } else {
-    /* Dump the block body statement (usually empty), without surrounding
-       braces. */
-    indent += 4;
-    if (body_statement->variant.block.extra_info->assoc_scope != NULL) {
-      /* Do the prescan for temporaries needed in the switch clauses,
-         which was put off until now (when we are inside the braces
-         for the scope). */
-      for (switch_clause = statement->variant.switch_stmt.clause_list;
-           switch_clause != NULL;
-           switch_clause = switch_clause->next) {
-        dump_prescan_temps(switch_clause->statements);
-      }  /* for */
-      /* Dump declarations in the block. */
-      dump_block_declarations(body_statement);
-    }  /* if */
-    /* If there are statements in the body statement, dump them. */
-    statement_list = body_statement->variant.block.statements;
-    advance_past_neutral_statements(statement_list);
-    if (statement_list != NULL) {
-      dump_statement_list(statement_list, /*is_statement_expr=*/FALSE);
-      write_tok_str("break;");
-    }  /* if */
-    indent -= 4;
-  }  /* if */
-  for (switch_clause = statement->variant.switch_stmt.clause_list;
-       switch_clause != NULL;
-       switch_clause = switch_clause->next) {
-    /* Indent for the case label. */
-    indent += 2;
-#if RECORD_SWITCH_CASE_ENTRIES
-    if (switch_clause->includes_default_case) {
-      /* This is the default case. */
-      set_output_position_for_stmt(&switch_clause->default_position);
-      write_tok_str("default:");
-    } else {
-      /* Regular (non-default) cases and/or GNU case ranges. */
-      a_switch_case_entry_ptr  sce = switch_clause->cases;
-      for (; sce != NULL; sce = sce->next) {
-        set_output_position(&sce->constant->source_corresp.decl_position);
-        write_tok_str("case ");
-        dump_constant(sce->constant);
-#if GNU_EXTENSIONS_ALLOWED
-        if (sce->range_end != NULL) {
-          /* A GNU case range. */
-          write_tok_str(" ... ");
-          dump_constant(sce->range_end);
-        }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
-        write_tok_ch(':');
-      }  /* for */
-    }  /* if */
-#else /* !RECORD_SWITCH_CASE_ENTRIES */
-    { a_constant_ptr  constant = switch_clause->constant_list;
-      if (constant == NULL) {
-        /* This is the default case. */
-        set_output_position_for_stmt(&switch_clause->default_position);
-        write_tok_str("default:");
-      } else {
-        /* Regular (non-default) cases (GNU case ranges are represented by
-           a list of individual cases in this configuration). */
-        do {
-          set_output_position(&constant->source_corresp.decl_position);
-          write_tok_str("case ");
-          dump_constant(constant);
-          write_tok_ch(':');
-        } while ((constant = constant->next) != NULL);
-      }  /* if */
-    }
-#endif /* RECORD_SWITCH_CASE_ENTRIES */
-#if VLA_ALLOWED && !LOWER_VARIABLE_LENGTH_ARRAYS
-    /* If we're in a function with VLAs, there is a chance that the
-       next statement to output will be a VLA definition.  In C99 that is
-       not a problem, but in C89 + VLA extensions, a label cannot be
-       followed by a declaration.  To avoid any problems, we issue an
-       empty statement if the current function contains unlowered VLA
-       declarations. */
-    check_assertion(innermost_function_scope != NULL);
-    if (innermost_function_scope->vla_dimensions != NULL) {
-      write_tok_ch(';');
-    }  /* if */
-#endif /* VLA_ALLOWED && !LOWER_VARIABLE_LENGTH_ARRAYS */
-    /* Indent for the dependent statements. */
-    indent += 2;
-    dump_statement_list(switch_clause->statements,
-                        /*is_statement_expr=*/FALSE);
-    if (switch_clause->implied_break_at_end) {
-      set_output_position_for_stmt(&switch_clause->break_position);
-      write_tok_str("break;");
-    } else {
-      statement_list = switch_clause->statements;
-      advance_past_neutral_statements(statement_list);
-      if (statement_list == NULL) {
-        /* No break and no statements, so put out an empty statement. */
-        write_tok_ch(';');
-      }  /* if */
-    }  /* if */
-    /* Outdent for the dependent statements and the case label. */
-    indent -= 4;
-  }  /* for */
-  curr_scope = saved_curr_scope;
-  unbind_wide_string_constants(
-                        saved_wide_string_constants_to_unbind_at_end_of_scope);
-  write_tok_ch('}');
+  write_tok_str(")");
+  dump_statement(statement->variant.switch_stmt.body_statement);
 }  /* dump_switch_statement */
 
 
@@ -7720,6 +7627,9 @@ statement expression, i.e., ({...}).
       write_tok_str(" while ");
       dump_boolean_controlling_expression(statement->expr);
       write_tok_ch(';');
+      break;
+    case stmk_switch_case:
+      dump_switch_case(statement);
       break;
     case stmk_switch:
       dump_switch_statement(statement);

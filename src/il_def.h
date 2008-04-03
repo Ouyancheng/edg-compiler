@@ -428,7 +428,10 @@ typedef enum /*an_il_entry_kind*/ {
   iek_expr_node,	/* an_expr_node */
 #ifdef CIL
   iek_for_loop,         /* a_for_loop */
-  iek_switch_clause,	/* a_switch_clause */
+  iek_switch_case_entry,
+                        /* a_switch_case_entry */
+  iek_switch_stmt_descr,
+                        /* a_switch_stmt_descr */
   iek_handler,          /* a_handler */
   iek_try_supplement,	/* a_try_supplement */
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -542,10 +545,6 @@ typedef enum /*an_il_entry_kind*/ {
   iek_decl_position_supplement,
 			/* a_decl_position_supplement */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-#if RECORD_SWITCH_CASE_ENTRIES
-  iek_switch_case_entry,
-			/* a_switch_case_entry */
-#endif /* RECORD_SWITCH_CASE_ENTRIES */
   iek_template_decl,	/* a_template_decl */
   iek_template_parameter,
 			/* a_template_parameter */
@@ -613,7 +612,8 @@ EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 /* iek_expr_node */			"expr-node",
 #ifdef CIL
 /* iek_for_loop */			"for-loop",
-/* iek_switch_clause */			"switch-clause",
+/* iek_switch_case_entry */		"switch-case-entry",
+/* iek_switch_stmt_descr */		"switch-stmt-descr",
 /* iek_handler */			"handler",
 /* iek_try_supplement */		"try-supplement",
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -704,9 +704,6 @@ EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 #if EXTRA_SOURCE_POSITIONS_IN_IL
 /* iek_decl_position_supplement */	"decl-position-supplement",
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-#if RECORD_SWITCH_CASE_ENTRIES
-/* iek_switch_case_entry */		"switch-case-entry",
-#endif /* RECORD_SWITCH_CASE_ENTRIES */
 /* iek_template_decl */			"template-decl",
 /* iek_template_parameter */		"template-parameter",
 #if RECORD_FORM_OF_NAME_REFERENCE
@@ -10820,6 +10817,7 @@ enum a_statement_kind_tag {
 #ifdef CIL
   stmk_end_test_while,	/* Loop, test at bottom. */
   stmk_for,		/* For loop. */
+  stmk_switch_case,	/* A "case ... :" or "default:" construct. */
   stmk_switch,		/* Switch. */
   stmk_init,		/* Do a dynamic initialization. */
   stmk_asm,		/* "asm" statement (or declaration) or the body of
@@ -10872,128 +10870,6 @@ enum a_statement_kind_tag {
 };
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte  a_statement_kind;
-
-#if RECORD_SWITCH_CASE_ENTRIES
-
-typedef struct a_switch_case_entry *a_switch_case_entry_ptr;
-typedef struct a_switch_case_entry {
-  /* Description of the positions of the "case" and "default" keyword(s) and
-     corresponding colon tokens in a switch statement. */
-  a_switch_case_entry_ptr
-		next;
-			/* Next case in this clause (NULL if none) -- this
-			   reflects the source code order. */
-  a_switch_case_entry_ptr
-		next_by_value;
-			/* Next case on the "cases_by_value" list: On the
-			   overall list, the default case (if any) comes
-			   first, followed by any template-dependent cases (in
-			   unspecified order; a range is dependent if its
-			   lower bound is dependent), followed by "known-
-			   value" cases in numerically increasing order (the
-			   lower bound of case ranges is used for ordering
-			   purposes). */
-  a_constant_ptr
-		constant;
-			/* The case label constant with which the positions
-			   are associated (NULL for the default case). */
-#if GNU_EXTENSIONS_ALLOWED
-  a_constant_ptr
-		range_end;
-			/* The constant representing the end of the range if
-			   this was a GNU C case range (NULL otherwise). */
-#endif /* GNU_EXTENSIONS_ALLOWED */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  a_source_position
-		keyword_position;
-			/* The position of the "case" or "default" keyword. */
-  a_source_position
-		colon_position;
-			/* The position of the colon. */
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-} a_switch_case_entry;
-
-#endif /* RECORD_SWITCH_CASE_ENTRIES */
-
-typedef struct a_switch_clause *a_switch_clause_ptr;
-typedef struct a_switch_clause {
-  /* Description of one clause of a switch statement.  This is allocated
-     in the executable code area (along with the associated switch
-     statement). */
-  a_switch_clause_ptr
-		next;
-			/* Pointer to the next switch clause, or NULL if
-			   this is the last. */
-#if RECORD_SWITCH_CASE_ENTRIES
-  a_switch_case_entry_ptr
-		cases;
-			/* Descriptions of the case labels associated with
-			   this clause (including possibly the default
-			   case), in declaration order. */
-  a_switch_case_entry_ptr
-		cases_by_value;
-			/* Pointer to the first switch case entry on the list
-			   created by the "next_by_value" pointers.  (If there
-			   is a default case, that entry is the first on that
-			   list.  Next are template-dependent entries (if any
-			   and in no particular order).  Finally, known-value
-			   cases appear in value order.  Case ranges -- a GNU
-			   extension -- are ordered according to their lower
-			   bound.) */
-#else /* !RECORD_SWITCH_CASE_ENTRIES */
-  a_constant_ptr
-		constant_list;
-			/* Values of the switch expression for which this
-			   clause applies.  A list of integer constants, in
-			   ascending order.  NULL if this is the default
-			   clause.  The source positions in the constants
-			   indicate the source positions of the corresponding
-			   case labels.  For GNU case ranges, every constant
-			   in the range appears explicitly on the list
-			   (constants between the range bounds have a null
-			   source position). */
-#endif /* RECORD_SWITCH_CASE_ENTRIES */
-  a_statement_ptr
-		statements;
-			/* The dependent statement sequence.  If
-			   implied_break_at_end is TRUE, this linked list of
-			   statements ends with an implicit goto to the
-			   statement following the switch statement; any
-			   action other than the "implied break" is
-			   represented by an explicit goto as the last
-			   statement. */
-#if RECORD_SWITCH_CASE_ENTRIES
-  a_byte_boolean
-		includes_default_case;
-			/* TRUE if this clause includes the default case (in
-			   that case, the first switch case entry will have
-			   a NULL "constant" pointer). */
-#endif /* RECORD_SWITCH_CASE_ENTRIES */
-  a_byte_boolean
-		implied_break_at_end;
-			/* TRUE if the clause ends with an "implied break"
-			   (i.e., an implied branch to the statement
-			   following the switch statement); FALSE if the
-			   end of the clause is an explicit goto (e.g., to
-			   represent falling through to the next switch
-			   clause). */
-  a_stmt_source_position
-		break_position;
-			/* If the source contains an explicit break statement,
-			   the break statement's source position; otherwise
-			   zero. */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  a_stmt_source_position
-		break_end_position;
-			/* If the source contains an explicit break statement,
-			   its end position; otherwise zero. */
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  a_stmt_source_position
-		default_position;
-			/* If the clause contains a default label (i.e.,
-			   constant_list == NULL or includes_default_case is
-			   TRUE), this gives its source position. */
-} a_switch_clause;
 
 
 /* Extra information about a statement of kind stmk_block (block statement). */
@@ -11075,6 +10951,68 @@ typedef struct a_for_loop {
 			   before executing each iteration of the loop. */
 #endif /* UPC_EXTENSIONS_ALLOWED */
 } a_for_loop;
+
+
+typedef struct a_switch_case_entry *a_switch_case_entry_ptr;
+typedef struct a_switch_case_entry {
+  /* Description of one "case" of a switch statement.  This could be a
+    "default:" case, a "case <value>:" case, or a GNU "case <start> ... <end>:"
+    case. */
+  a_statement_ptr
+		stmt;	/* The stmk_switch_case statement pointing to this
+			   entry. */
+  a_constant_ptr
+		case_value;
+			/* The integer value associated with this case.  (Or
+			   the value of the start of the range if this is a
+			   GNU case range.)  NULL for a "default:" case. */
+#if GNU_EXTENSIONS_ALLOWED
+  a_constant_ptr
+		range_end;
+			/* If this is a GNU case range, the value of the end
+			   of the range; otherwise, NULL. */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+  a_switch_case_entry_ptr
+		next;
+			/* Pointer to the next switch case in source order,
+			   or NULL if this is the last case. */
+  a_switch_case_entry_ptr
+		next_on_sorted_list;
+			/* Pointer to the next switch case in numeric order,
+			   or NULL if this is the last case.  Also NULL if
+			   some of the cases are template dependent. */
+  a_stmt_source_position
+		position;
+			/* The position of the case value. */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_stmt_source_position
+		keyword_position;
+			/* The position of the "case" or "default" keyword. */
+  a_stmt_source_position
+		colon_position;
+			/* The position of the colon token. */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+} a_switch_case_entry;
+
+
+/* 
+Information about a switch statement, pointed to from an stmk_switch statement.
+*/
+typedef struct a_switch_stmt_descr *a_switch_stmt_descr_ptr;
+typedef struct a_switch_stmt_descr {
+  a_switch_case_entry_ptr
+		cases;	/* A list of all cases (including "default:") in the
+			   order they appeared in the source. */
+  a_switch_case_entry_ptr
+		default_case;
+			/* A pointer to the default case.  (NULL if there is
+			   no default case.) */
+  a_switch_case_entry_ptr
+		sorted_cases;
+			/* A list of all non-default cases sorted in increasing
+			   order of the "case value".  NULL if some of the
+			   cases are template dependent. */
+} a_switch_stmt_descr;
 
 /* Information about a handler (or catch-clause) defined within a try block. */
 typedef struct a_handler {
@@ -11554,21 +11492,29 @@ typedef struct a_statement {
 			   to from the expr field).  A separate entry is used
 			   to keep the size of a_statement down. */
     } for_loop;
+    /* When kind == stmk_switch_case: */
+    struct {
+      a_statement_ptr
+		switch_statement;
+			/* The stmk_switch statement associated with this
+			   case.*/
+      a_switch_case_entry_ptr
+		extra_info;
+			/* Information about this particular case. */
+    } switch_case;
     /* When kind == stmk_switch: */
     struct {
-      a_switch_clause_ptr
-                clause_list;
-                        /* A list of switch clause entries, describing the
-                           switch value and the associated statements for
-                           each possible value. */
       a_statement_ptr
-                body_statement;
-                        /* Almost always, this points to an empty compound
-                           statement.  If the body of the switch is something
-                           unusual, that cannot be reduced to code under
-                           each switch clause, then the body is put here.
-                           The pointer can be NULL if there is no body
-                           statement. */
+		body_statement;
+			/* The statement (called "substatement" in the C and
+			   C++ standards) controlled by the switch.  This is
+			   almost always a compound statement that itself
+			   contains stmk_switch_case statements. */
+      a_switch_stmt_descr_ptr
+		extra_info;
+			/* Information about this switch statement (including
+			   fields describing the associated stmk_switch_case
+			   statements). */
     } switch_stmt;
 #endif /* ifdef CIL */
     /* When kind == stmk_goto or stmk_label: */
@@ -12379,7 +12325,6 @@ typedef struct an_object_lifetime {
 	olk_block_after_label (one-way bindings -- the IL entities have no
 			       pointers back to the lifetime.)
 		 ==> iek_statement (stmk_label or a structured statement)
-		 ==> iek_switch_clause
 	olk_function_static
 		<==> iek_scope (sck_function only)
 			(Note: an entry for a function scope may bind to two
@@ -13447,7 +13392,8 @@ EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
   sizeof(an_expr_node),
 #ifdef CIL
   sizeof(a_for_loop),
-  sizeof(a_switch_clause),
+  sizeof(a_switch_case_entry),
+  sizeof(a_switch_stmt_descr),
   sizeof(a_handler),
   sizeof(a_try_supplement),
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -13537,9 +13483,6 @@ EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   sizeof(a_decl_position_supplement),
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-#if RECORD_SWITCH_CASE_ENTRIES
-  sizeof(a_switch_case_entry),
-#endif /* RECORD_SWITCH_CASE_ENTRIES */
   sizeof(a_template_decl),
   sizeof(a_template_parameter),
 #if RECORD_FORM_OF_NAME_REFERENCE

@@ -993,18 +993,6 @@ RECORD_GENERAL_CONSTANT_EXPRESSIONS_IN_IL is set, this flag must be set also.
 #endif /* RECORD_TEMPLATE_DECL_CONSTANT_EXPRESSIONS_IN_IL && ... */
 
 /*
-Flag that is TRUE if the various case labels (including the default)
-associated with a switch clause should be described using a_switch_case_entry
-entries.  Historically, the cases were described using a simple list of
-a_constant entries, but that representation doesn't allow for easy attachment
-of additional information pertaining to case labels.  In particular, GNU
-switch case "ranges" are not well represented by simple constants.
-*/
-#ifndef RECORD_SWITCH_CASE_ENTRIES
-#define RECORD_SWITCH_CASE_ENTRIES TRUE
-#endif /* RECORD_SWITCH_CASE_ENTRIES */
-
-/*
 Flag that is TRUE if the front end should represent empty statements using a
 distinct statement kind.  Otherwise, NULL pointers or empty blocks are used
 for that purpose.

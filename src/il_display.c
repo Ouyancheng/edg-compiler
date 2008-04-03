@@ -3918,48 +3918,36 @@ position or (to save space) just a sequence number.  str is the output label.
   disp_unsigned_long((str), (unsigned long)(stmt_pos));
 #endif /* FULL_SOURCE_POS_IN_IL_STATEMENT */
 
-#ifdef CFE
-
-static void disp_switch_clause(a_switch_clause_ptr ptr)
-/*
-Display the indicated switch clause.
-*/
-{
-  disp_ptr("next", (char *)ptr->next, iek_switch_clause);
-#if RECORD_SWITCH_CASE_ENTRIES
-  disp_ptr("cases", (char*)ptr->cases, iek_switch_case_entry);
-  disp_ptr("cases_by_value", (char*)ptr->cases_by_value,
-           iek_switch_case_entry);
-  disp_boolean("includes_default_case", (a_boolean)ptr->includes_default_case);
-#else /* !RECORD_SWITCH_CASE_ENTRIES */
-  disp_ptr("constant_list", (char *)ptr->constant_list, iek_constant);
-#endif /* RECORD_SWITCH_CASE_ENTRIES */
-  disp_ptr("statements", (char *)ptr->statements, iek_statement);
-  disp_boolean("implied_break_at_end", (a_boolean)ptr->implied_break_at_end);
-  disp_stmt_source_position("break_position", ptr->break_position);
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  disp_stmt_source_position("break_end_position", ptr->break_end_position);
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  disp_stmt_source_position("default_position", ptr->default_position);
-}  /* disp_switch_clause */
-
-#if RECORD_SWITCH_CASE_ENTRIES
 
 static void disp_switch_case_entry(a_switch_case_entry_ptr ptr)
+/*
+Display the indicated switch case entry.
+*/
 {
-  disp_ptr("next", (char *)ptr->next, iek_switch_case_entry);
-  disp_ptr("next_by_value", (char *)ptr->next, iek_switch_case_entry);
-  disp_ptr("constant", (char *)ptr->constant, iek_constant);
+  disp_ptr("stmt", (char *)ptr->stmt, iek_statement);
+  disp_ptr("case_value", (char *)ptr->case_value, iek_constant);
 #if GNU_EXTENSIONS_ALLOWED
   disp_ptr("range_end", (char *)ptr->range_end, iek_constant);
 #endif /* GNU_EXTENSIONS_ALLOWED */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
+  disp_ptr("next", (char *)ptr->next, iek_switch_case_entry);
+  disp_ptr("next_on_sorted_list", (char *)ptr->next, iek_switch_case_entry);
   disp_source_position("keyword_position", &ptr->keyword_position);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
   disp_source_position("colon_position", &ptr->colon_position);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 }  /* disp_switch_case_entry */
 
-#endif /* RECORD_SWITCH_CASE_ENTRIES */
+
+static void disp_switch_stmt_descr(a_switch_stmt_descr_ptr ptr)
+/*
+Display the indicated switch statement description.
+*/
+{
+  disp_ptr("cases", (char *)ptr->cases, iek_switch_case_entry);
+  disp_ptr("default_case", (char *)ptr->default_case, iek_switch_case_entry);
+  disp_ptr("sorted_cases", (char *)ptr->sorted_cases, iek_switch_case_entry);
+}  /* disp_switch_case_entry */
+
 
 static void disp_exception_specification_type(
                                   an_exception_specification_type_ptr ptr)
@@ -4037,8 +4025,6 @@ or try-except statement supplement.
 }  /* disp_microsoft_try_supplement */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-
-#endif /* ifdef CFE */
 
 static void disp_block(a_block_ptr ptr)
 /*
@@ -4205,10 +4191,10 @@ do_label:
     case stmk_switch:
       (void)printf("stmk_switch\n");
       disp_ptr("expr", (char *)ptr->expr, iek_expr_node);
-      disp_ptr("clause_list", (char *)ptr->variant.switch_stmt.clause_list,
-               iek_switch_clause);
       disp_ptr("body_statement",
                (char *)ptr->variant.switch_stmt.body_statement, iek_statement);
+      disp_ptr("extra_info", (char *)ptr->variant.switch_stmt.extra_info,
+               iek_switch_stmt_descr);
       break;
     case stmk_init:
       (void)printf("stmk_init\n");
@@ -6095,14 +6081,12 @@ This routine is called during IL walking.
           disp_exception_specification_type(
                              (an_exception_specification_type_ptr)entry_ptr);
           break;
-        case iek_switch_clause:
-          disp_switch_clause((a_switch_clause_ptr)entry_ptr);
-          break;
-#if RECORD_SWITCH_CASE_ENTRIES
         case iek_switch_case_entry:
           disp_switch_case_entry((a_switch_case_entry_ptr)entry_ptr);
           break;
-#endif /* RECORD_SWITCH_CASE_ENTRIES */
+        case iek_switch_stmt_descr:
+          disp_switch_stmt_descr((a_switch_stmt_descr_ptr)entry_ptr);
+          break;
         case iek_handler:
           disp_handler((a_handler_ptr)entry_ptr);
           break;

@@ -2164,6 +2164,7 @@ Dump a statement kind, for debug purposes.
     case stmk_block:           s = "block";             break;
     case stmk_end_test_while:  s = "end-test-while";    break;
     case stmk_for:             s = "for";               break;
+    case stmk_switch_case:     s = "switch-case";       break;
     case stmk_switch:          s = "switch";            break;
     case stmk_init:            s = "init";              break;
     case stmk_asm:             s = "asm";               break;
@@ -2272,6 +2273,22 @@ Dump a statement, for debug purposes.
           fprintf(f_debug, " <%lx>", (long)(sp->variant.label.ptr));
         }  /* if */
         break;
+      case stmk_switch_case:
+        { a_switch_case_entry *scep = sp->variant.switch_case.extra_info;
+          if (scep->case_value == 0) {
+            fputs(" (default)", f_debug);
+          } else {
+            fputs(" ", f_debug);
+            db_constant(scep->case_value);
+#if GNU_EXTENSIONS_ALLOWED
+            if (scep->range_end) {
+              fputs(" ... ", f_debug);
+              db_constant(scep->range_end);
+            }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+          }  /* if */
+        }
+        break;
       default:;
     }  /* switch */
     fprintf(f_debug, ", at %lu",
@@ -2302,9 +2319,8 @@ statement.  how_deep is how many levels of recursion to go before terminating
 the dump (this one counts as the first).
 */
 {
-  int                  a;
-  a_switch_clause_ptr  scp;
-  a_handler_ptr        hp;
+  int            a;
+  a_handler_ptr  hp;
 
   if (how_deep > 0) {
     for (; sp != NULL; sp = sp->next) {
@@ -2343,42 +2359,6 @@ the dump (this one counts as the first).
         case stmk_switch:
           db_statement_list(sp->variant.switch_stmt.body_statement, indent+2,
                             "body ", how_deep-1);
-          if (how_deep > 1) {
-            for (scp = sp->variant.switch_stmt.clause_list;
-                 scp != NULL;
-                 scp = scp->next) {
-              for (a = 0; a < indent+2; a++) fputs(" ", f_debug);
-#if RECORD_SWITCH_CASE_ENTRIES
-              fputs(scp->includes_default_case ? "default\n" : "case\n",
-                    f_debug);
-#else /* !RECORD_SWITCH_CASE_ENTRIES */
-              fputs(scp->constant_list == NULL ? "default\n" : "case\n",
-                    f_debug);
-#endif /* RECORD_SWITCH_CASE_ENTRIES */
-              db_statement_list(scp->statements, indent+4, "", how_deep-1);
-              if (scp->implied_break_at_end) {
-                a_seq_number  seq =
-                    seq_number_from_stmt_source_position(scp->break_position);
-                for (a = 0; a < indent+4; a++) fputs(" ", f_debug);
-                fputs("[implied break", f_debug);
-                if (seq != 0) {
-                  fprintf(f_debug, ", at %lu", seq);
-#if FULL_SOURCE_POS_IN_IL_STATEMENT
-                  fprintf(f_debug, "/%lu",
-                          (unsigned long)scp->break_position.column);
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-                  if (scp->break_end_position.seq != 0) {
-                    fprintf(f_debug, " -- %lu/%lu",
-                            scp->break_end_position.seq,
-                            (unsigned long)scp->break_end_position.column);
-                  }  /* if */
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-#endif /* FULL_SOURCE_POS_IN_IL_STATEMENT */
-                }  /* if */
-                fputs("]\n", f_debug);
-              }  /* if */
-            }  /* for */
-          }  /* if */
           break;
         case stmk_try_block:
           if (sp->variant.try_block != NULL) {
@@ -15587,20 +15567,6 @@ about it).
         db_statement_kind((a_statement_kind)sp->kind);
         fputs("-stmt", f_debug);
       }  /* if */
-    } else if (olp->entity.kind == (a_byte_il_entry_kind)iek_switch_clause) {
-      a_constant_ptr  cp;
-#if RECORD_SWITCH_CASE_ENTRIES
-      cp = ((a_switch_clause_ptr)olp->entity.ptr)->cases->constant;
-#else /* !RECORD_SWITCH_CASE_ENTRIES */
-      cp = ((a_switch_clause_ptr)olp->entity.ptr)->constant_list;
-#endif /* RECORD_SWITCH_CASE_ENTRIES */
-      if (cp != NULL) {
-        fputs("case ", f_debug);
-        db_constant(cp);
-        fputc(' ', f_debug);
-      } else {
-        fputs("default ", f_debug);
-      }  /* if */
     }  /* if */
     fputs("==> ", f_debug);
     do {
@@ -15936,7 +15902,6 @@ lifetimes, since those are never bound.
     case olk_block_after_label:
       switch (entity_kind) {
         case iek_statement:
-        case iek_switch_clause:
           /* Okay. */
           break;
         default:
@@ -16218,12 +16183,6 @@ with it.  Entries associated with scopes must also have no child entries.
         if (has_child_with_temporary_lifetime(olp)) {
           /* Do not remove a block-after-label lifetime if it has any children
              that have temporary lifetimes. */
-        } else if (olp->entity.kind ==
-                                     (a_byte_il_entry_kind)iek_switch_clause &&
-                   olp->has_block_after_label_child_lifetime) {
-          /* A switch clause lifetime is kept in the IL if it has a
-             block-after-label child.  This is useful to
-             find_label_between_switch_clauses. */
         } else if (long_lifetime_temps &&
                    any_destruction_has_temp_lifetime(olp->parent_lifetime)) {
           /* If temps have long lifetimes, the label is the point at which

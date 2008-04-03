@@ -339,8 +339,6 @@ typedef enum an_insert_location_kind {
   /* Kind of insert location: */
   ilk_after_statement,	/* Insert after a statement. */
   ilk_block_start,	/* Insert at the start of a block. */
-  ilk_switch_clause_start,
-			/* Insert at the start of a switch clause. */
   ilk_statement_creation,
 			/* Create a new statement (first insert provides the
 			   statement). */
@@ -370,10 +368,6 @@ typedef struct an_insert_location {
 			   case, the statement must be part of a statement
 			   sequence, not, for example, the dependent statement
 			   of an "if". */
-    /* When kind == ilk_switch_clause_start: */
-    a_switch_clause_ptr
-		switch_clause;
-			/* The switch clause to insert at the start of. */
     /* When kind == ilk_before_expr or kind == ilk_after_expr: */
     an_expr_node_ptr
 		expr;	/* The expression to insert before or after. */

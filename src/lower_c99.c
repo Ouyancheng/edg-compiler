@@ -3501,27 +3501,22 @@ Do C99 lowering on a constant list.
   }  /* if */
 }  /* lower_c99_constant_list */
 
-#if RECORD_SWITCH_CASE_ENTRIES
 
-static void lower_c99_switch_case_constants(a_switch_case_entry_ptr  cases)
+static void lower_c99_switch_case(a_switch_case_entry_ptr  entry)
 /*
-Do C99 lowering on the constants pointed to by the given list of switch case
-entries.
+Do C99 lowering on the constants pointed to by the given switch case entry.
 */
 {
-  for (; cases != NULL; cases = cases->next) {
-    if (cases->constant != NULL) {
-      lower_c99_constant(cases->constant);
+  if (entry->case_value != NULL) {
+    lower_c99_constant(entry->case_value);
 #if GNU_EXTENSIONS_ALLOWED
-      if (cases->range_end != NULL) {
-        lower_c99_constant(cases->range_end);
-      }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
+    if (entry->range_end != NULL) {
+      lower_c99_constant(entry->range_end);
     }  /* if */
-  }  /* for */
-}  /* lower_c99_switch_case_constants */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+  }  /* if */
+}  /* lower_c99_switch_case */
 
-#endif /* RECORD_SWITCH_CASE_ENTRIES */
 
 static void lower_c99_statement_list(a_statement_ptr statement_list)
 /*
@@ -3645,20 +3640,10 @@ Do C99 lowering on the indicated statement.
           if (scope != NULL) pop_context();
         }
         break;
+      case stmk_switch_case:
+        lower_c99_switch_case(statement->variant.switch_case.extra_info);
+        break;
       case stmk_switch:
-        { a_switch_clause_ptr scp;
-          /* Walk the switch clause list. */
-          for (scp = statement->variant.switch_stmt.clause_list;
-               scp != NULL;
-               scp = scp->next) {
-#if RECORD_SWITCH_CASE_ENTRIES
-            lower_c99_switch_case_constants(scp->cases);
-#else /* !RECORD_SWITCH_CASE_ENTRIES */
-            lower_c99_constant_list(scp->constant_list);
-#endif /* RECORD_SWITCH_CASE_ENTRIES */
-            lower_c99_statement_list(scp->statements);
-          }  /* for */
-        }
         lower_c99_statement(statement->variant.switch_stmt.body_statement);
         break;
       case stmk_init:

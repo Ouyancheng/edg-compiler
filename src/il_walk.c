@@ -2127,7 +2127,8 @@ running them through the indicated remapping function.
   remap_orphan_entry_first(iek_expr_node);
 #ifdef CFE
   remap_orphan_entry_first(iek_for_loop);
-  remap_orphan_entry_first(iek_switch_clause);
+  remap_orphan_entry_first(iek_switch_case_entry);
+  remap_orphan_entry_first(iek_switch_stmt_descr);
   remap_orphan_entry_first(iek_handler);
   remap_orphan_entry_first(iek_try_supplement);
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -2238,7 +2239,8 @@ running them through the indicated remapping function.
   remap_orphan_entry_last(iek_expr_node);
 #ifdef CFE
   remap_orphan_entry_last(iek_for_loop);
-  remap_orphan_entry_last(iek_switch_clause);
+  remap_orphan_entry_last(iek_switch_case_entry);
+  remap_orphan_entry_last(iek_switch_stmt_descr);
   remap_orphan_entry_last(iek_handler);
   remap_orphan_entry_last(iek_try_supplement);
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -3053,31 +3055,6 @@ list.
   }  /* for */
 }  /* traverse_local_expr_node_ref_list */
 
-#if RECORD_SWITCH_CASE_ENTRIES
-
-static void traverse_switch_case_entry_constants(
-                                    a_switch_case_entry_ptr             cases,
-                                    an_expr_or_stmt_traversal_block_ptr tblock)
-/*
-Walk the constants in the given list of switch case entries.  Call user-
-provided routines as specified in the control block.
-*/
-{
-  for (; cases != NULL; cases = cases->next) {
-    if (cases->constant != NULL) {
-      traverse_constant(cases->constant, tblock);
-      if (tblock->terminate) break;
-#if GNU_EXTENSIONS_ALLOWED
-      if (cases->range_end != NULL) {
-        traverse_constant(cases->range_end, tblock);
-        if (tblock->terminate) break;
-      }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
-    }  /* if */
-  }  /* for */
-}  /* traverse_switch_case_entry_constants */
-
-#endif /* RECORD_SWITCH_CASE_ENTRIES */
 
 void traverse_statement(a_statement_ptr                     statement,
                         an_expr_or_stmt_traversal_block_ptr tblock)
@@ -3183,8 +3160,24 @@ as specified in the control block.
 #endif /* UPC_EXTENSIONS_ALLOWED */
       }
       break;
+    case stmk_switch_case:
+      {
+        if (tblock->process_non_dynamic_constants) {
+          a_switch_case_entry_ptr  scep =
+                                    statement->variant.switch_case.extra_info;
+          if (scep->case_value != NULL) {
+            traverse_constant(scep->case_value, tblock);
+#if GNU_EXTENSIONS_ALLOWED
+            if (!tblock->terminate && scep->range_end != NULL) {
+              traverse_constant(scep->range_end, tblock);
+            }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+          }  /* if */
+        }  /* if */
+      }
+      break;
     case stmk_switch:
-      { a_switch_clause_ptr scp;
+      { 
         traverse_expr(statement->expr, tblock);
         if (tblock->terminate) goto end_of_routine;
         if (statement->variant.switch_stmt.body_statement != NULL) {
@@ -3192,20 +3185,6 @@ as specified in the control block.
                              tblock);
           if (tblock->terminate) goto end_of_routine;
         }  /* if */
-        for (scp = statement->variant.switch_stmt.clause_list;
-             scp != NULL;
-             scp = scp->next) {
-          if (tblock->process_non_dynamic_constants) {
-#if RECORD_SWITCH_CASE_ENTRIES
-            traverse_switch_case_entry_constants(scp->cases, tblock);
-#else /* !RECORD_SWITCH_CASE_ENTRIES */
-            traverse_constant_list(scp->constant_list, tblock);
-#endif /* RECORD_SWITCH_CASE_ENTRIES */
-            if (tblock->terminate) goto end_of_routine;
-          }  /* if */
-          traverse_statement_list(scp->statements, tblock);
-          if (tblock->terminate) goto end_of_routine;
-        }  /* for */
       }
       break;
     case stmk_init:

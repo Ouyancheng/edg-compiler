@@ -73,8 +73,6 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
 
       fprintf(f_debug, " (at %lu): %s", pp->position.seq,
                        pragma_ids[(int)pp->kind]);
-    } else if (kind == (an_il_entry_kind)iek_switch_clause) {
-      /* Nothing else to display. */
     } else if (kind == (an_il_entry_kind)iek_src_seq_end_of_construct) {
       a_src_seq_end_of_construct_ptr  sseocp;
       sseocp = (a_src_seq_end_of_construct_ptr)ssep->entity.ptr;
@@ -719,7 +717,7 @@ entry that has already been created and linked in for this entity.
   check_assertion_str(!source_sequence_entries_disallowed,
                       "source sequence entries not allowed in current scope");
   if (curr_il_region_number != file_scope_region_number &&
-      kind != iek_statement && kind != iek_switch_clause &&
+      kind != iek_statement &&
       in_file_scope(entity_ptr)) {
     /* The entity is in the file scope, but the current memory region is
        a function-scope memory region.  We'll need to change memory regions

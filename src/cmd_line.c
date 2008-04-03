@@ -5443,11 +5443,6 @@ file.
 #else /* !defined(RECORD_SCOPE_DEPTH_IN_IL) */
   comment_undefined_macro_name(RECORD_SCOPE_DEPTH_IN_IL);
 #endif /* defined(RECORD_SCOPE_DEPTH_IN_IL) */
-#if defined(RECORD_SWITCH_CASE_ENTRIES)
-  define_numeric_valued_macro(RECORD_SWITCH_CASE_ENTRIES);
-#else /* !defined(RECORD_SWITCH_CASE_ENTRIES) */
-  comment_undefined_macro_name(RECORD_SWITCH_CASE_ENTRIES);
-#endif /* defined(RECORD_SWITCH_CASE_ENTRIES) */
 #if defined(RECORD_TEMPLATE_DECL_CONSTANT_EXPRESSIONS_IN_IL)
   define_numeric_valued_macro(RECORD_TEMPLATE_DECL_CONSTANT_EXPRESSIONS_IN_IL);
 #else /* !defined(RECORD_TEMPLATE_DECL_CONSTANT_EXPRESSIONS_IN_IL) */

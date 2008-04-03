@@ -166,11 +166,7 @@ extern an_expr_node_ptr alloc_lowered_eh_construct_node(
                                              a_lowered_eh_construct_kind kind);
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
 
-extern a_switch_clause_ptr alloc_switch_clause(void);
-
-#if RECORD_SWITCH_CASE_ENTRIES
 extern a_switch_case_entry_ptr alloc_switch_case_entry(void);
-#endif /* RECORD_SWITCH_CASE_ENTRIES */
 
 #if !ABI_CHANGES_FOR_RTTI
 extern an_accessible_base_class_ptr alloc_accessible_base_class(

@@ -145,7 +145,6 @@ Set var to indicate that the associated code is unreachable.
 /*
 Declarations needed because of forward references:
 */
-static void make_implicit_break_explicit(a_struct_stmt_stack_entry_ptr sssep);
 static void statement(a_boolean is_dependent_statement,
                       a_boolean marked_as_gnu_extension);
 
@@ -1541,19 +1540,6 @@ is not called for the top-level compound statement of a function.
 }  /* is_primary_block_of_switch_statement */
 
 
-static a_statement_ptr last_statement_in_list(a_statement_ptr sp)
-/*
-sp points to a list of statements.  Return a pointer to the last statement
-on the list, or NULL if the list is empty.
-*/
-{
-  if (sp != NULL) {
-    while (sp->next != NULL) sp = sp->next;
-  }  /* if */
-  return sp;
-}  /* last_statement_in_list */
-
-
 static void add_statement_list(a_statement_ptr  sp,
                                a_boolean        reachable)
 /*
@@ -1582,12 +1568,6 @@ should be set to TRUE.
   }  /* if */
 #endif /* CHECKING */
   sssep = &struct_stmt_stack[depth_stmt_stack];
-  if (depth_stmt_stack > 0 &&
-      is_primary_block_of_switch_statement(sssep)) {
-    /* A block that is the primary statement of a switch should be ignored;
-       statements should be added to the switch itself. */
-    sssep--;
-  }  /* if */
   statement_list_allowed = FALSE;
   if (sssep->extra_block != NULL) {
     /* An extra block statement has already been added under the primary
@@ -1620,26 +1600,7 @@ should be set to TRUE.
         }  /* if */
         break;
       case stmk_switch:
-        if (sssep->after_break_in_switch) {
-          /* This is dead code following a top-level "break" in a switch.
-             Replace the implied "break" by a goto (in effect, going back
-             to break_statement and taking the other path instead of the
-             implied-break path chosen) and keep adding after it. */
-          sssep->after_break_in_switch = FALSE;
-          /* For labels, no need to continue the previous switch clause.
-             The code is not dead. */
-          if (sp->kind != (a_statement_kind)stmk_label) {
-            make_implicit_break_explicit(sssep);
-          }  /* if */
-        }  /* if */
-        if (sssep->curr_switch_clause == NULL) {
-          /* There is no current switch clause, so add statements to the
-             body_statement of the switch (this is unusual). */
-          head_ptr = &ssp->variant.switch_stmt.body_statement;
-        } else {
-          head_ptr = &sssep->curr_switch_clause->statements;
-          statement_list_allowed = TRUE;
-        }  /* if */
+        head_ptr = &ssp->variant.switch_stmt.body_statement;
         break;
       case stmk_block:
         head_ptr = &ssp->variant.block.statements;
@@ -2632,8 +2593,8 @@ goto statements represented by the linked list of control flow entries
 headed by goto_cfdp.
 */
 {
-  an_object_lifetime_ptr         label_olp, *goto_olp_addr;
-  a_control_flow_descr_ptr       cfdp;
+  an_object_lifetime_ptr    label_olp, *goto_olp_addr;
+  a_control_flow_descr_ptr  cfdp;
 
   define_label(label);
   if (!C_mode() || vla_enabled) {
@@ -2811,8 +2772,6 @@ statement is the top block of a GNU statement expression ({ ... }).
   sssep->in_cleanup_statement_of_microsoft_try = FALSE;
   sssep->in_handler_parameter_declaration = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  sssep->switch_has_default_clause
-                              = FALSE;
   sssep->rout_type_explicitly_specified
                               = FALSE;
   sssep->any_exec_statement_seen
@@ -2824,18 +2783,10 @@ statement is the top block of a GNU statement expression ({ ... }).
   if (depth_stmt_stack > 0 && (sssep-1)->inside_statement_expr) {
     sssep->inside_statement_expr = TRUE;
   }  /* if */
-  sssep->after_break_in_switch = FALSE;
   sssep->statement             = sp;
-  sssep->curr_switch_clause    = NULL;
-  sssep->last_switch_clause    = NULL;
   sssep->switch_max_case_value = NULL;
-#if RECORD_SWITCH_CASE_ENTRIES
-  sssep->last_switch_case_entry    = NULL;
-  sssep->last_switch_case_by_value = NULL;
-#else /* !RECORD_SWITCH_CASE_ENTRIES */
-  sssep->last_const_in_last_switch_clause = NULL;
-  sssep->discarded_case_label_constants   = NULL;
-#endif /* RECORD_SWITCH_CASE_ENTRIES */
+  sssep->last_switch_case_entry = NULL;
+  sssep->last_switch_case_on_sorted_list = NULL;
   sssep->extra_block          = NULL;
   sssep->last_dep_statement   = NULL;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -2891,7 +2842,6 @@ statement is the top block of a GNU statement expression ({ ... }).
       if (depth_stmt_stack > 0) {
         /* Special case processing for C++ mode only. */
         a_scope_ptr  scope = scope_stack[depth_scope_stack].il_scope;
-
         if (sssep[-1].kind == (a_struct_stmt_kind)ssk_switch) {
           /* This block represents the block statement or compound statement
              immediately within a switch statement.  Record the current
@@ -3139,10 +3089,8 @@ a structured statement has ended.
   sssep = &struct_stmt_stack[depth_stmt_stack];
   kind = sssep->kind;
   sp = sssep->statement;
-  /* Close the final clause of the statement, if any. */
-  if (kind != ssk_switch || sssep->curr_switch_clause != NULL) {
-    term_stmt_clause(sssep);
-  }  /* if */
+  /* Close the final clause of the statement. */
+  term_stmt_clause(sssep);
   /* Determine whether or not the code following the statement is reachable,
      and set curr_reachability appropriately. */
   if (kind == ssk_while || kind == ssk_for || kind == ssk_do) {
@@ -3161,7 +3109,8 @@ a structured statement has ended.
   } else {
     /* Non-loop statement. */
     if (kind == ssk_switch) {
-      if (!sssep->switch_has_default_clause) {
+      if (sssep->statement->variant.switch_stmt.extra_info->default_case
+                                                                    == NULL) {
         /* Switch statement without a default.  If the initial statement
            can be reached, the end can be reached. */
         merge_reachability(&sssep->start_reachable, &sssep->end_reachable);
@@ -3220,8 +3169,16 @@ a structured statement has ended.
      statement.  It must also be done after curr_reachability has been
      adjusted. */
   if (break_label != NULL) {
+    a_reachability_summary  saved_reachability;
+    /* Save the reachability because a label is assumed reachable by default
+       when calling define_label, but for switch break labels the current
+       reachability is correct. */
+    saved_reachability = curr_reachability;
     check_assertion(depth_stmt_stack > -1);
     define_implicit_label(break_label, break_statements);
+    if (break_label->switch_break_label) {
+      curr_reachability = saved_reachability;
+    }  /* if */
   }  /* if */
   db_exit();
 }  /* pop_stmt_stack */
@@ -3273,10 +3230,12 @@ was found.
      the compound statement that defines the function. */
   while (sssep != &struct_stmt_stack[0]) {
     kind = sssep->kind;
-    if (find_switch && kind == ssk_switch)  goto found;
-    if (find_loop   &&(kind == ssk_while ||
-                       kind == ssk_do    ||
-                       kind == ssk_for   )) goto found;
+    if (find_switch && kind == ssk_switch) {
+      goto found;
+    } else if (find_loop &&
+               (kind == ssk_while || kind == ssk_do || kind == ssk_for)) {
+      goto found;
+    }  /* if */
     /* Keeping looking at entries in the structured statement stack. */
     sssep--;
   }  /* while */
@@ -3676,7 +3635,7 @@ The syntax is:
 See also 3.6.4.2.
 */
 {
-  a_statement_ptr                sp, body_statement;
+  a_statement_ptr                sp;
   a_control_flow_descr_ptr       cfdp;
   a_struct_stmt_stack_entry_ptr  sssep;
   a_boolean                      is_condition_decl = FALSE;
@@ -3707,11 +3666,8 @@ See also 3.6.4.2.
   cfdp->variant.block.is_switch_block = TRUE;
   add_to_control_flow_descr_list(cfdp);
   /* Ignore the initial "switch". */
-#if CHECKING
-  if (curr_token != tok_switch) {
-    internal_error("switch_statement: expected switch");
-  }  /* if */
-#endif /* CHECKING */
+  check_assertion_str(curr_token == tok_switch,
+                      "switch_statement: expected switch");
   (void)get_token();
   /* Check for and skip the opening parenthesis. */
   (void)required_token(tok_lparen, ec_exp_lparen);
@@ -3737,21 +3693,14 @@ See also 3.6.4.2.
   set_unreachable(curr_reachability);
   /* Scan the dependent statement. */
   dependent_statement();
-  sssep = &struct_stmt_stack[depth_stmt_stack];
-  if (sssep->curr_switch_clause != NULL) {
-    /* We ended the switch statement inside a switch clause. */
-    if (curr_reachability.reachable) {
-      /* The final switch clause was not terminated by a break or other
-         branch statement.  Set the flag indicating that the clause ends
-         with an "implied break". */
-      sssep->curr_switch_clause->implied_break_at_end = TRUE;
-    }  /* if */
-    /* The end of the body statement is not reachable. */
-    body_statement = sp->variant.switch_stmt.body_statement;
-    if (body_statement != NULL &&
-        body_statement->kind == (a_statement_kind)stmk_block) {
-      body_statement->variant.block.extra_info->end_of_block_reachable = FALSE;
-    }  /* if */
+  /* If any switch case was template-dependent, discard the sorted list since
+     its semantics are marginal. */
+  if (sssep->switch_has_dependent_case) {
+    a_switch_case_entry_ptr  scep = sp->variant.switch_stmt.extra_info->cases;
+    for (; scep != NULL; scep = scep->next) {
+      scep->next_on_sorted_list = NULL;
+    }  /* for */
+    sp->variant.switch_stmt.extra_info->sorted_cases = NULL;
   }  /* if */
   add_to_control_flow_descr_list(
       alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_end_of_block));
@@ -5193,48 +5142,6 @@ give the starting and ending positions of the break statement.
   }  /* if */
 }  /* add_goto_for_break */
 
-
-static void make_implicit_break_explicit(a_struct_stmt_stack_entry_ptr sssep)
-/*
-The current switch clause of the switch statement associated with the
-structured statement stack entry pointed to by sssep was ended by
-an implied break.  Change the implied break to an explicit goto,
-thus allowing us to continue adding (dead) code following the break.
-*/
-{
-  a_source_position start_pos, end_pos;
-
-  sssep->curr_switch_clause = sssep[1].curr_switch_clause =
-                                                     sssep->last_switch_clause;
-  check_assertion(sssep->curr_switch_clause != NULL &&
-                  sssep->curr_switch_clause->implied_break_at_end);
-  sssep->curr_switch_clause->implied_break_at_end = FALSE;
-  sssep->last_dep_statement =
-                 last_statement_in_list(sssep->curr_switch_clause->statements);
-  set_position_from_stmt_source_position(
-                                start_pos,
-                                sssep->curr_switch_clause->break_position);
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  set_position_from_stmt_source_position(
-                                end_pos,
-                                sssep->curr_switch_clause->break_end_position);
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  add_goto_for_break(sssep, &start_pos, &end_pos);
-}  /* make_implicit_break_explicit */
-
-
-static a_boolean parent_block_has_vla_variable(void)
-/*
-Return TRUE if the control-flow graph indicates that the enclosing block
-has at least one VLA variable.
-*/
-{
-  return end_of_control_flow_descr_list != NULL &&
-         end_of_control_flow_descr_list->parent != NULL &&
-         end_of_control_flow_descr_list->parent
-                                            ->variant.block.any_vla_variables;
-}  /* parent_block_has_vla */
-
 #if UPC_EXTENSIONS_ALLOWED
 
 static void check_for_leaving_upc_forall(a_struct_stmt_stack_entry_ptr  sssep)
@@ -5289,6 +5196,12 @@ See also 3.6.6.3.
     error(ec_break_must_be_in_loop_or_switch);
   } else {
     check_for_leaving_upc_forall(sssep);
+    if (sssep->kind == (a_struct_stmt_kind)ssk_switch &&
+        sssep->statement->variant.switch_stmt.extra_info->cases != NULL) {
+      /* If this break is appears after a case label and it is reachable,
+         then we can presume there is a way out of the switch. */
+      merge_reachability(&curr_reachability, &sssep->end_reachable);
+    }  /* if */
   }  /* if */
   /* Advance over the "break". */
 #if CHECKING
@@ -5301,43 +5214,8 @@ See also 3.6.6.3.
   end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   if (sssep != NULL) {
-    a_boolean  top_level_break = sssep->kind == ssk_switch &&
-                                 sssep->curr_switch_clause != NULL &&
-                                 sssep->curr_switch_clause ==
-                       struct_stmt_stack[depth_stmt_stack].curr_switch_clause;
-    if (top_level_break) {
-      /* This is a break statement that appears at the top level of the
-         current switch clause (i.e., it is not part of a statement within
-         the current switch clause). */
-      set_stmt_source_position(sssep->curr_switch_clause->break_position,
-                               start_position);
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-      set_stmt_source_position(sssep->curr_switch_clause->break_end_position,
-                               end_position);
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    }  /* if */
-    if (top_level_break &&
-        !(vla_enabled && parent_block_has_vla_variable())) {
-      /* This break statement exits a switch clause in a way that can
-         be represented implicitly as the default action at the end of
-         the clause.  No goto is required.  However, the current switch
-         clause must be ended.  Note that this special trick can be done
-         only when the break is at the top level in the case clause.
-         Also, if VLA variables may need to be deallocated, the break is
-         implemented as a goto preceded by any needed deallocation
-         statements. */
-      sssep->curr_switch_clause->implied_break_at_end = TRUE;
-      sssep->curr_switch_clause = NULL;
-      struct_stmt_stack[depth_stmt_stack].curr_switch_clause = NULL;
-      sssep->after_break_in_switch = TRUE;
-      term_stmt_clause(sssep);
-      set_unreachable(curr_reachability);
-    } else {
-      /* This break statement exits a loop, or some part of a switch that
-         is not inside a switch clause.  Add a goto to implement the
-         break. */
-      add_goto_for_break(sssep, &start_position, &end_position);
-    }  /* if */
+    /* Add a goto to implement the break. */
+    add_goto_for_break(sssep, &start_position, &end_position);
   }  /* if */
   /* Check for and ignore the final semicolon. */
   (void)required_token(tok_semicolon, ec_exp_semicolon);
@@ -5682,694 +5560,162 @@ See also 3.6.6.4.
   db_exit();
 }  /* return_statement */
 
+#if GNU_EXTENSIONS_ALLOWED
 
-static a_boolean check_switch_case_conflict(
-                                        a_constant_ptr     new_range_begin,
-                                        a_constant_ptr     new_range_end,
-                                        a_constant_ptr     prev_range_begin,
-                                        a_constant_ptr     prev_range_end,
-                                        a_source_position  *diag_pos,
-                                        a_boolean          *already_diagnosed)
+static a_boolean conflicting_switch_case_ranges(a_switch_case_entry_ptr  scep1,
+                                                a_switch_case_entry_ptr  scep2)
 /*
-A new switch case described by new_range_begin and new_range_end has been
-encountered.  Return TRUE if it conflicts with the previously encountered
-switch case entry described by prev_range_begin and prev_range_end.
-The default case is described by two NULL pointers, normal cases have a
-null "end" pointer, and GNU case ranges have both pointers non-NULL.
-If *already_diagnosed is TRUE, no additional diagnostic is emitted.
-Otherwise, if a conflict is found, it is diagnosed at the given position and
-*already_diagnosed is set to TRUE.
+Return whether the two given switch case ranges overlap.  The ranges may be
+single elements (e.g., "case 3:" instead of "case 3 ... 4:"), but at least one
+range boundary must be an integer constant (i.e., not an error constant and not
+a template-dependent constant).
+E.g., if I and J are template-dependent constants and x and y are integer
+constants, [x, I] and [J, y] will conflict if x == y.
 */
 {
-  a_boolean  result = FALSE;
-
-  if ((new_range_begin != NULL &&
-       new_range_begin->kind != (a_constant_repr_kind)ck_integer) ||
-      (new_range_end != NULL &&
-       new_range_end->kind != (a_constant_repr_kind)ck_integer) ||
-      (prev_range_begin != NULL &&
-       prev_range_begin->kind != (a_constant_repr_kind)ck_integer) ||
-      (prev_range_end != NULL &&
-       prev_range_end->kind != (a_constant_repr_kind)ck_integer)) {
-    /* We don't attempt to find conflicts with template-dependent cases or
-       with error cases. */
-  } else if (prev_range_begin == NULL) {
-    /* The previous case was "default". */
-    if (new_range_begin == NULL) {
-      /* A conflict. */
-      result = TRUE;
-      if (!*already_diagnosed) {
-        pos_error(ec_default_label_appears_more_than_once, diag_pos);
-        *already_diagnosed = TRUE;
-      }  /* if */
-    }  /* if */
-  } else if (new_range_begin != NULL) {
-    /* Compare two ranges.  [a, b] and [c, d] don't conflict only if b < c
-       or a > d.  In common cases, the ranges degenerate to single elements. */
-    a_constant_ptr  a = prev_range_begin, b = prev_range_end,
-                    c = new_range_begin, d = new_range_end;
-    if (b == NULL) b = a;
-    if (d == NULL) d = c;
-    result = !(cmp_integer_constants(b, c) < 0 ||
-               cmp_integer_constants(a, d) > 0);
-    if (result && !*already_diagnosed) {
-      if (prev_range_begin->source_corresp.decl_position.seq == 0) {
-        /* This only happens with GNU case ranges in configurations that don't
-           record switch case entries. */
-        pos_error(ec_case_label_appears_more_than_once, diag_pos);
-#if RECORD_SWITCH_CASE_ENTRIES
-        unexpected_condition();
-#endif /* RECORD_SWITCH_CASE_ENTRIES */
-      } else {
-        pos2_diagnostic(es_error, ec_case_label_conflict, diag_pos,
-                        &prev_range_begin->source_corresp.decl_position);
-      }  /* if */
-      *already_diagnosed = TRUE;
-    }  /* if */
+  /* Compare two ranges.  [a, b] and [c, d] don't conflict only if b < c
+     or a > d.  In common cases, the ranges degenerate to single elements. */
+  a_constant_ptr  a = scep1->case_value, b = scep1->range_end,
+                  c = scep2->case_value, d = scep2->range_end;
+  if (b == NULL || b->kind != (a_constant_repr_kind)ck_integer) {
+    b = a;
+  } else if (a->kind != (a_constant_repr_kind)ck_integer) {
+    a = b;
   }  /* if */
-  return result;
-}  /* check_switch_case_conflict */
+  check_assertion(a->kind == (a_constant_repr_kind)ck_integer);
+  if (d == NULL || d->kind != (a_constant_repr_kind)ck_integer) {
+    d = c;
+  } else if (c->kind != (a_constant_repr_kind)ck_integer) {
+    c = d;
+  }  /* if */
+  check_assertion(c->kind == (a_constant_repr_kind)ck_integer);
+  return !(cmp_integer_constants(b, c) < 0 || cmp_integer_constants(a, d) > 0);
+}  /* conflicting_switch_case_ranges */
 
-#if RECORD_SWITCH_CASE_ENTRIES
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
-static a_boolean unique_switch_case(
-                            a_constant_ptr                 range_begin,
-                            a_constant_ptr                 range_end,
-                            a_struct_stmt_stack_entry_ptr  sssep,
-                            a_boolean                      *already_diagnosed,
-                            a_source_position              *diag_pos)
+static void record_switch_case_entry(a_switch_case_entry_ptr        scep,
+                                     a_struct_stmt_stack_entry_ptr  sssep)
 /*
-Return TRUE if the switch case represented by range_begin and range_end is
-"unique" within the current switch statement, which is described by sssep
-(i.e., no value is represented by two case labels).  If *already_diagnosed is
-TRUE, no new diagnostics are issued.  Otherwise, conflicts with previous cases
-are diagnosed at the given position (and *already_diagnosed is set to TRUE in
-such cases).
+Record the given switch case entry in the structures pointed to by the
+associated switch statement (described by sssep).  At the very least, this
+entails adding the entry to the list of all cases associated with that switch.
+It may also involve recording the entry on a sorted list of cases, or recording
+the "default case" in its own IL slot.
+Finally, this routine also updates the control flow data structures as needed.
 */
 {
-  a_boolean            result = TRUE;
-  a_switch_clause_ptr  scp = sssep->statement->variant.switch_stmt.clause_list;
-
-  for (; scp != NULL && result; scp = scp->next) {
-    a_switch_case_entry_ptr  sce = scp->cases;
-    for (; sce != NULL && result; sce = sce->next) {
-      a_constant_ptr  prev_begin = sce->constant, prev_end = NULL;
-#if GNU_EXTENSIONS_ALLOWED
-      prev_end = sce->range_end;
-#endif /* GNU_EXTENSIONS_ALLOWED */
-      result = !check_switch_case_conflict(
-                                range_begin, range_end, prev_begin, prev_end,
-                                diag_pos, already_diagnosed);
-    }  /* for */
-  }  /* for */
-  return result;
-}  /* unique_switch_case */
-
-
-#if !GNU_EXTENSIONS_ALLOWED || !EXTRA_SOURCE_POSITIONS_IN_IL
-/* ARGSUSED */ /* <-- range_end and some positions not always used. */
-#endif /* !GNU_EXTENSIONS_ALLOWED || !EXTRA_SOURCE_POSITIONS_IN_IL */
-static void record_switch_case_entry(
-                                  a_struct_stmt_stack_entry_ptr  sssep,
-                                  a_switch_clause_ptr            scp,
-                                  a_constant_ptr                 range_begin,
-                                  a_constant_ptr                 range_end,
-                                  a_boolean                      new_largest,
-                                  a_source_position              *keyword_pos,
-                                  a_source_position              *colon_pos,
-                                  a_source_position              *label_pos)
-/*
-Record the details of a switch case entry in a switch clause (scp).  sssep
-refers to the current switch statement.  range_begin and range_end describe
-the values covered by the switch case: The default case is represented by two
-NULL pointers, normal cases have range_end set to NULL, and GNU case ranges
-result in both pointers being non-NULL.  new_largest is TRUE if range_begin
-points to a known constant larger than any previously encountered for this
-clause.  keyword_pos is the position of the "case" or "default" keyword, and
-colon_pos is the position of the colon.  label_pos is the position of the case
-label (or that of the keyword for the "default" case).
-*/
-{
-  /* Allocate a new switch case entry and set its fields. */
-  a_switch_case_entry_ptr  entry = alloc_switch_case_entry();
-
-  entry->constant = range_begin;
-#if GNU_EXTENSIONS_ALLOWED
-  entry->range_end = range_end;
-#endif /* GNU_EXTENSIONS_ALLOWED */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  entry->keyword_position = *keyword_pos;
-  entry->colon_position = *colon_pos;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  a_switch_stmt_descr_ptr  ssdp =
+                              sssep->statement->variant.switch_stmt.extra_info;
   /* Append the entry to the clause's source order list. */
-  if (scp->cases == NULL) {
-    /* First (perhaps only) case in this clause. */
-    scp->cases = entry;
+  if (ssdp->cases == NULL) {
+    /* First (perhaps only) case in this switch. */
+    ssdp->cases = scep;
   } else {
     /* Append at the end of the list. */
-    sssep->last_switch_case_entry->next = entry;
+    sssep->last_switch_case_entry->next = scep;
   }  /* if */
-  sssep->last_switch_case_entry = entry;
+  sssep->last_switch_case_entry = scep;
   /* For the default case, record some additional information in *scp. */
-  if (range_begin == NULL) {
+  if (scep->case_value == NULL) {
     /* The "default" case. */
-    scp->includes_default_case = TRUE;
-    set_stmt_source_position(scp->default_position, *label_pos);
-  }  /* if */
-  /* The remainder of this function maintains the cases_by_value list. */
-  if (scp->cases_by_value == NULL) {
-    /* The first element on the list. */
-    scp->cases_by_value = entry;
-  } else if (range_begin == NULL) {
-    /* The "default case" is always first on the cases_by_value list. */
-    entry->next_by_value = scp->cases_by_value;
-    scp->cases_by_value = entry;
-  } else if (range_begin->kind == (a_constant_repr_kind)ck_template_param ||
-             is_error_constant(range_begin)) {
-    /* A template dependent constant (or range) or an error entry.  Insert it
-       at the beginning of the list, but after any "default case" entry. */
-    if (scp->cases_by_value->constant == NULL) {
-      /* This clause has a leading "default case" entry; keep it that way. */
-      entry->next_by_value = scp->cases_by_value->next_by_value;
-      scp->cases_by_value->next_by_value = entry;
+    if (ssdp->default_case != NULL) {
+      pos_error(ec_default_label_appears_more_than_once, &scep->position);
     } else {
-      /* No "default case" entry: Insert the template-dependent entry at the
-         start of the list. */
-      entry->next_by_value = scp->cases_by_value;
-      scp->cases_by_value = entry;
+      ssdp->default_case = scep;
     }  /* if */
-  } else if (new_largest) {
-    /* If this is the largest entry seen so far in this clause, append it at
-       the end of the cases_by_value list. */
-    sssep->last_switch_case_by_value->next_by_value = entry;
   } else {
-    /* A "known-value" case (or a range starting at a known value): Insert the
-       entry at the right location by searching the ordered list. */
-    /* Skip over the default case (if any). */
-    a_switch_case_entry_ptr  *ptr = (scp->cases_by_value->constant == NULL) ?
-                   &scp->cases_by_value->next_by_value : &scp->cases_by_value;
-    /* Skip over dependent cases (if any). */
-    while (*ptr != NULL &&
-           ((*ptr)->constant->kind ==
-                                    (a_constant_repr_kind)ck_template_param ||
-            is_error_constant((*ptr)->constant))) {
-      ptr = &(*ptr)->next_by_value;
-    }  /* while */
-    /* Skip over smaller value cases (if any). */
-    while (*ptr != NULL) {
-      check_assertion((*ptr)->constant->kind ==
+    /* If a switch case range has a nondependent start or end value, we can
+       compare it to other values to report duplicate.  E.g., "case 3:" and
+       "case I ... 3:" conflict, whereas "case 3:" and "case I ... 4:" may not
+       conflict (assuming I is a template parameter).  Note that the sorted
+       list will be discarded if it contains any dependent cases.  (Error cases
+       are treated like template-dependent cases here.) */
+    a_constant_ptr  value = scep->case_value, max_value = value;
+    a_boolean       dependent_start =
+                               value->kind != (a_constant_repr_kind)ck_integer;
+    a_boolean       fully_dependent = dependent_start;
+    a_boolean       dependent_end = FALSE;
+#if GNU_EXTENSIONS_ALLOWED
+    if (scep->range_end != NULL) {
+      if (scep->range_end->kind != (a_constant_repr_kind)ck_integer) {
+        dependent_end = TRUE;
+      } else {
+        fully_dependent = FALSE;
+        max_value = scep->range_end;
+        /* If the range start is dependent, but the range end is not, use the
+           latter for comparisons. */
+        if (dependent_start) value = scep->range_end;
+      }  /* if */
+    }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+    sssep->switch_has_dependent_case = dependent_start || dependent_end;
+    if (!fully_dependent) {
+      /* The remainder of this function maintains the sorted_cases list. */
+      if (ssdp->sorted_cases == NULL) {
+        /* The first element on the sorted list. */
+        ssdp->sorted_cases = scep;
+        sssep->switch_max_case_value = max_value;
+        sssep->last_switch_case_on_sorted_list = scep;
+      } else if (cmp_integer_constants(value,
+                                       sssep->switch_max_case_value) > 0) {
+        /* The largest entry seen so far in this switch: append it at the end
+           of the sorted_cases list. */
+        sssep->last_switch_case_on_sorted_list->next_on_sorted_list = scep;
+        sssep->last_switch_case_on_sorted_list = scep;
+        sssep->switch_max_case_value = max_value;
+      } else {
+        /* Insert the entry at the right location by searching the sorted
+           list.  Also check for (and diagnose) conflicts. */
+        a_switch_case_entry_ptr  *ptr = &ssdp->sorted_cases;
+        /* Skip over smaller value cases (if any). */
+        while (*ptr != NULL) {
+          a_constant_ptr  prev_value = (*ptr)->case_value;
+          int             cmp_result;
+#if GNU_EXTENSIONS_ALLOWED
+          if ((*ptr)->range_end != NULL && (*ptr)->case_value->kind !=
+                                           (a_constant_repr_kind)ck_integer) {
+            /* The first element of the range cannot be compared.  Assume the
+               "best case" scenario that the range is actually a singleton.
+               E.g., for a range I .. 10 with I a template parameter, assume I
+               will be 10, which is the least likely to produce a conflict. */
+            prev_value = (*ptr)->range_end;
+          }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+          check_assertion(prev_value->kind ==
                                             (a_constant_repr_kind)ck_integer);
-      if (cmp_integer_constants(range_begin, (*ptr)->constant) < 0) break;
-      ptr = &(*ptr)->next_by_value;
-    }  /* while */
-    entry->next_by_value = *ptr;
-    *ptr = entry;
+          cmp_result = cmp_integer_constants(value, prev_value);
+          if (cmp_result < 0) {
+            /* The current position in the list is a larger case than the new
+               switch case, and since the ones further down the list are larger
+               still, we can end the search here. */
+            break;
+          }  /* if */
+          if (cmp_result == 0 ||
+#if GNU_EXTENSIONS_ALLOWED
+              (gnu_mode && conflicting_switch_case_ranges(scep, *ptr))
+#endif /* GNU_EXTENSIONS_ALLOWED */
+                                                                      ) {
+            pos2_diagnostic(es_error, ec_case_label_conflict, &scep->position,
+                            &(*ptr)->position);
+          }  /* if */
+          ptr = &(*ptr)->next_on_sorted_list;
+        }  /* while */
+        scep->next_on_sorted_list = *ptr;
+        *ptr = scep;
+        if (scep->next_on_sorted_list == NULL) {
+          /* The newly added entry is the last one on the sorted list. */
+          sssep->last_switch_case_on_sorted_list = scep;
+        }  /* if */
+      }  /* if */
+    }  /* if */
   }  /* if */
-  if (entry->next_by_value == NULL) {
-    /* The newly added entry is the last one on the cases_by_value list. */
-    sssep->last_switch_case_by_value = entry;
-  }  /* if */
+  /* Record the potential branch target (this allows us to e.g. warn about
+     bypassed initializations). */
+  add_to_control_flow_descr_list(
+        alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_case_label));
 }  /* record_switch_case_entry */
 
-#else /* !RECORD_SWITCH_CASE_ENTRIES */
-
-static a_boolean unique_switch_case(
-                            a_constant_ptr                 range_begin,
-                            a_constant_ptr                 range_end,
-                            a_struct_stmt_stack_entry_ptr  sssep,
-                            a_boolean                      *already_diagnosed,
-                            a_source_position              *diag_pos)
-/*
-Return TRUE if the switch case represented by range_begin and range_end is
-"unique" within the current switch statement, which is described by sssep
-(i.e., no value is represented by two case labels).  If *already_diagnosed is
-TRUE, no new diagnostics are issued.  Otherwise, conflicts with previous cases
-are diagnosed at the given position (and *already_diagnosed is set to TRUE in
-such cases).
-*/
-{
-  a_boolean            result = TRUE;
-  a_switch_clause_ptr  scp = sssep->statement->variant.switch_stmt.clause_list;
-
-  for (; scp != NULL && result; scp = scp->next) {
-    if (range_begin == NULL) {
-      /* The "default" case. */
-      check_assertion(range_end == NULL);
-      result = !check_switch_case_conflict(
-                   range_begin, range_end,
-                   scp->constant_list, scp->constant_list,
-                   diag_pos, already_diagnosed);
-    } else {
-      /* Check the list of constants in this clause to see if the new constant
-         appears on it. */
-      a_constant_ptr  cp = scp->constant_list;
-      if (cp == NULL) {
-        /* This case clause includes a default label.  If any other values were
-           explicitly specified, they were discarded, so find them on another
-           list. */
-        cp = sssep->discarded_case_label_constants;
-      }  /* if */
-      for (; cp != NULL && result; cp = cp->next) {
-        result = !check_switch_case_conflict(range_begin, range_end, cp, cp,
-                                             diag_pos, already_diagnosed);
-      }  /* for */
-    }  /* if */
-  }  /* for */
-  return result;
-}  /* unique_switch_case */
-
-
-static void add_constant_to_switch_clause(
-                                  a_struct_stmt_stack_entry_ptr  sssep,
-                                  a_switch_clause_ptr            scp,
-                                  a_boolean                      new_clause,
-                                  a_constant_ptr                 constant_ptr,
-                                  a_constant_ptr                 range_end,
-                                  a_boolean                      new_largest,
-                                  a_source_position              *label_pos)
-/*
-Add the new constant (or constants, in the case of a GNU case range) to the
-given switch clause.  For the default case (constant_ptr is NULL), this just
-means setting the constant_list to NULL; for valued cases, it means inserting
-the value (or values) at the right spot on the list.  For GNU case ranges,
-range_end is non-NULL and represents the upper bound of the range: Constants
-between the two bounds will also be recorded for the clause.  The current
-switch statement is described by sssep.  If constant_ptr represents a constant
-larger than any case value recorded so far for scp, new_largest is TRUE.  
-label_pos indicates the position of the label represented by the constant.
-new_clause is TRUE when this routine is called for the first label in this
-clause.
-*/
-{
-  if (constant_ptr == NULL) {
-    /* The current label is "default".  Any other constants that have already
-       been specified for the current clause, if any, are redundant and are
-       discarded from the IL; however, they are saved in order to report
-       errors. */
-    if (scp->constant_list != NULL) {
-      check_assertion(sssep->discarded_case_label_constants == NULL);
-      sssep->discarded_case_label_constants = scp->constant_list;
-      /* Set the constant pointer to NULL in the switch clause entry to
-         indicate that the clause includes a default label. */
-      scp->constant_list = NULL;
-    }  /* if */
-    set_stmt_source_position(scp->default_position, *label_pos);
-  } else if (!new_clause && scp->constant_list == NULL) {
-    /* The clause includes the default case (since constant_list is NULL), so
-       specifying any other case-labels following "default" is redundant.  Put
-       the constant onto the discarded constants list. */
-    constant_ptr->next = sssep->discarded_case_label_constants;
-    sssep->discarded_case_label_constants = constant_ptr;
-  } else {
-    /* Add a case value at the right spot on the list of constants. */
-    /* Add at the end if this constant is the biggest seen so far. */
-    a_boolean       add_at_end = new_largest;
-    a_constant_ptr  cp, prev_cp;
-    if (is_error_constant(constant_ptr)) {
-      /* Add an error constant at the end of the list. */
-      add_at_end = TRUE;
-    } else {
-      check_assertion(
-          constant_ptr->kind == (a_constant_repr_kind)ck_integer ||
-          constant_ptr->kind == (a_constant_repr_kind)ck_template_param);
-    }  /* if */
-    if (add_at_end) {
-      /* Add at the end of the existing list. */
-      prev_cp = sssep->last_const_in_last_switch_clause;
-      cp = NULL;
-    } else if (constant_ptr->kind == (a_constant_repr_kind)ck_template_param) {
-      /* A template dependent constant: accumulate them at the start of the
-         list.  (Their mutual ordering does not matter.) */
-      prev_cp = NULL;
-      cp = scp->constant_list;
-    } else {
-      /* Find the right spot for insertion. */
-      for (prev_cp = NULL, cp = scp->constant_list;
-           cp != NULL;
-           prev_cp = cp, cp = cp->next) {
-        /* Stop when an error constant is seen (they are accumulated at the
-           end of the list) or when the value exceeds that of the constant
-           being added.  (Skip any template dependent constants that might
-           have been accumulated at the start of the list.) */
-        if (cp->kind != (a_constant_repr_kind)ck_template_param &&
-            (is_error_constant(cp) ||
-             cmp_integer_constants(cp, constant_ptr) > 0)) break;
-      }  /* for */
-    }  /* if */
-    /* Insert after prev_cp (in front of the constant that stopped the
-       loop). */
-    if (prev_cp == NULL) {
-      scp->constant_list = constant_ptr;
-    } else {
-      prev_cp->next = constant_ptr;
-    }  /* if */
-    constant_ptr->next = cp;
-    if (cp == NULL) {
-      /* Remember the last constant on the list. */
-      sssep->last_const_in_last_switch_clause = constant_ptr;
-    }  /* if */
-  }  /* if */
-  if (range_end != NULL) {
-    /* A GNU case range. */
-    check_assertion(gnu_mode && constant_ptr != NULL);
-    if (constant_ptr->kind == (a_constant_repr_kind)ck_integer &&
-        range_end->kind == (a_constant_repr_kind)ck_integer) {
-      a_constant_ptr  *append_point = &constant_ptr->next;
-      a_constant      in_between;
-      /* The range is delimited by known integers: Fill in the values in
-         between the provided values. */
-      check_assertion(cmp_integer_constants(constant_ptr, range_end) <= 0);
-      copy_constant(constant_ptr, &in_between);
-      /* The filled-in values are given null source positions to indicate that
-         they are compiler-generated.  This is relied upon by the C++-
-         generating back end to re-create the case range syntax. */
-      in_between.source_corresp.decl_position = null_source_position;
-      for (;;) {
-        a_constant_ptr  new_entry;
-        incr_integer_value(&in_between.variant.integer_value);
-        if (cmp_integer_constants(&in_between, range_end) >= 0) break;
-        new_entry = alloc_unshared_constant(&in_between);
-        new_entry->next = *append_point;
-        *append_point = new_entry;
-        append_point = &new_entry->next;
-      }  /* if */
-      /* Add the end-of-range constant. */
-      range_end->next = *append_point;
-      *append_point = range_end;
-      /* Update sssep->last_const_in_last_switch_clause if needed. */
-      if (range_end->next == NULL) {
-        sssep->last_const_in_last_switch_clause = range_end;
-      }  /* if */
-    }  /* if */
-  }  /* if */
-}  /* add_constant_to_switch_clause */
-
-#endif /* RECORD_SWITCH_CASE_ENTRIES */
-
-#if !RECORD_SWITCH_CASE_ENTRIES || !GNU_EXTENSIONS_ALLOWED
-/* ARGSUSED */ /* <-- range_end, keyword_position and colon_position not
-                  always used. */
-#endif /* !RECORD_SWITCH_CASE_ENTRIES || !GNU_EXTENSIONS_ALLOWED */
-static void add_switch_clause(a_struct_stmt_stack_entry_ptr sssep,
-                              a_constant_ptr                constant_ptr,
-                              a_constant_ptr                range_end,
-                              a_source_position             *keyword_position,
-                              a_source_position             *colon_position,
-                              a_source_position             *label_position,
-                              a_boolean                     *already_diagnosed)
-/*
-Begin a clause of the switch statement associated with the structured
-statement stack entry pointed to by sssep, for the case value indicated
-by *constant_ptr.  constant_ptr is NULL to indicate the default label.
-*range_end represents the end of a GNU C case range (NULL if this is not
-the first entry of a range).  label_position indicates the source position
-of the label.  keyword_position describes the position of the "case" or
-"default" keyword and colon_position locates the corresponding following
-colon.  If *already_diagnosed is TRUE, diagnostics are inhibited; conversely,
-when a diagnostic is issued, it is set to TRUE.  This is useful to avoid
-redundant diagnostics in case ranges (GNU C mode only).
-*/
-{
-  a_switch_clause_ptr scp;
-  a_boolean           can_add_to_curr_clause, new_largest_case;
-  a_boolean           label_directly_in_switch;
-  a_statement_ptr     clause_stmts;
-  a_reachability_summary
-                      prev_reachability, save_reachability;
-  a_struct_stmt_stack_entry_ptr
-                      top_sssep = &struct_stmt_stack[depth_stmt_stack];
-
-  db_enter(4, "add_switch_clause");
-
-  check_assertion(constant_ptr == NULL || is_error_constant(constant_ptr) ||
-                  constant_ptr->kind == (a_constant_repr_kind)ck_integer ||
-                  constant_ptr->kind ==
-                                     (a_constant_repr_kind)ck_template_param);
-  /* Set any_exec_statement_seen manually.  Normally, it is set when a
-     statement is added to the IL, but case labels don't have an associated
-     IL statement. */
-  top_sssep->any_exec_statement_seen = TRUE;
-  new_largest_case = FALSE;
-  if (constant_ptr == NULL || !is_error_constant(constant_ptr)) {
-    if (constant_ptr != NULL &&
-        constant_ptr->kind != (a_constant_repr_kind)ck_template_param) {
-      /* Keep track of the maximum value seen to speed up the test if the
-         values are generally in ascending order. */
-      if (sssep->switch_max_case_value == NULL ||
-          cmp_integer_constants(constant_ptr,
-                                sssep->switch_max_case_value) > 0) {
-        /* New maximum value, no check for duplicate needed. */
-        if (range_end == NULL ||
-            range_end->kind != (a_constant_repr_kind)ck_integer) {
-          /* A normal (single-valued) case, or a range whose upper bound is
-             a template-dependent constant or an error constant. */
-          sssep->switch_max_case_value = constant_ptr;
-        } else {
-          sssep->switch_max_case_value = range_end;
-        }  /* if */
-        new_largest_case = TRUE;
-      }  /* if */
-    }  /* if */
-    /* Loop through the switch clauses to see if the constant (or default)
-       has already appeared.  This doesn't have to be done if the constant
-       is known to be larger than all constants that have appeared
-       previously. */
-    if (!new_largest_case) {
-      if (!unique_switch_case(constant_ptr, range_end, sssep,
-                              already_diagnosed, label_position)) {
-        /* An error case; use an error constant instead. */
-        constant_ptr = alloc_constant((a_constant_repr_kind)ck_error);
-        set_error_constant(constant_ptr);
-      }  /* if */
-    }  /* if */
-  }  /* if */
-  /* There is a strange case in switches, where case labels appear within
-     a structured statement nested within the switch, rather than directly
-     within the switch itself, as in
-
-     n = count / 8;
-     switch (count % 8) {
-       do { 
-                 *a++ = *b++;
-         case 7: *a++ = *b++;
-         case 6: *a++ = *b++;
-         case 5: *a++ = *b++;
-         case 4: *a++ = *b++;
-         case 3: *a++ = *b++;
-         case 2: *a++ = *b++;
-         case 1: *a++ = *b++;
-         case 0: ;
-       } while (--n >= 0);
-     }
-
-     (This is known as "Duff's device", after Tom Duff.)  For this case,
-     the il switch clauses contain gotos to the proper labels within the
-     inner loop, rather than containing the code itself directly.  Note
-     that it is normal for a compound statement to be the body of the
-     switch, and we take care not to consider that case to be unusual.
-     See add_statement for special code in adding code to a switch
-     statement. */
-  if (top_sssep == sssep) {
-    /* The label appears immediately in the switch statement.  This can occur
-       in C mode, since no block is implicitly inserted for a case like this:
-         switch (x) case 1: ...
-    */
-    check_assertion(C_mode());
-    label_directly_in_switch = TRUE;
-  } else if (is_primary_block_of_switch_statement(top_sssep)) {
-    /* The label appears in the compound statement that is immediately within
-       the switch statement -- either this sort of case, as it is represented
-       in C++ mode,
-         switch (x) case 1: ...
-       or where a top-level compound statement is explicit in the source:
-         switch (x) { case 1: ... }
-    */
-    check_assertion(top_sssep-1 == sssep);
-    label_directly_in_switch = TRUE;
-  } else {
-    /* Unusual case -- the label does not appear at the top level of the
-       switch statement. */
-    label_directly_in_switch = FALSE;
-  }  /* if */
-              
-  /* The value does not appear already, and therefore it is okay to proceed
-     and add it.  First, we try to see if the new value can just be added
-     to the existing current clause for this switch, as when case labels
-     appear next to one another:
-
-       case 1:
-       case 2:
-       default:
-
-     The current clause can be used if no code has yet been added to it.
-     However, this really means "no meaningful code": labels are ignored,
-     and for the "Duff's device" case above, the goto into the inner
-     statement is ignored. */
-  can_add_to_curr_clause = FALSE;
-  if ((scp = top_sssep->curr_switch_clause) != NULL) {
-    /* There is a current switch clause, so perhaps it can be reused. */
-    clause_stmts = scp->statements;
-    /* If this is a "Duff's device" case, follow the goto. */
-    if (!label_directly_in_switch &&
-        clause_stmts != NULL &&
-        clause_stmts->kind == (a_statement_kind)stmk_goto) {
-      clause_stmts = clause_stmts->variant.label.ptr->variant.exec_stmt;
-    }  /* if */
-    /* Ignore any number of labels at this point. */
-    while (clause_stmts != NULL &&
-           clause_stmts->kind == (a_statement_kind)stmk_label) {
-      clause_stmts = clause_stmts->next;
-    }  /* while */
-    /* If there is no code at the end of this list, then the clause can
-       be reused. */
-    can_add_to_curr_clause = (clause_stmts == NULL);
-  }  /* if */
-  if (!can_add_to_curr_clause) {
-    /* The new value cannot be added to the current switch clause; a new
-       clause must be created, and the new value added to it. */
-    scp = alloc_switch_clause();
-    if (sssep->last_switch_clause == NULL) {
-      sssep->statement->variant.switch_stmt.clause_list = scp;
-    } else {
-      sssep->last_switch_clause->next = scp;
-    }  /* if */
-    /* Remember the last switch clause.  Note that last_switch_clause differs
-       from curr_switch_clause in that curr_switch_clause gets cleared at
-       the end of the clause (e.g., a "break"), but last_switch_clause does
-       not. */
-    sssep->last_switch_clause = scp;
-#if RECORD_SWITCH_CASE_ENTRIES
-    sssep->last_switch_case_entry = NULL;
-    sssep->last_switch_case_by_value = NULL;
-#else /* !RECORD_SWITCH_CASE_ENTRIES */
-    sssep->last_const_in_last_switch_clause = NULL;
-#endif /* RECORD_SWITCH_CASE_ENTRIES */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-    /* Add a source sequence entry for the switch clause. */
-    add_to_source_sequence_list((char *)scp,
-                                (an_il_entry_kind)iek_switch_clause);
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  }  /* if */
-#if RECORD_SWITCH_CASE_ENTRIES
-  record_switch_case_entry(
-                        sssep, scp, constant_ptr, range_end, new_largest_case,
-                        keyword_position, colon_position, label_position);
-#else /* !RECORD_SWITCH_CASE_ENTRIES */
-  add_constant_to_switch_clause(sssep, scp, !can_add_to_curr_clause,
-                                constant_ptr, range_end, new_largest_case,
-                                label_position);
-#endif /* RECORD_SWITCH_CASE_ENTRIES */
-  if (can_add_to_curr_clause) {
-    /* For the case where the value could be added to the current clause, we
-       have nothing further to do. */
-  } else {
-    /* Start a new clause. */
-    a_label_ptr               label = NULL;
-    a_statement_ptr           goto_stmt;
-    a_control_flow_descr_ptr  goto_cfdp = NULL;
-
-    if (!label_directly_in_switch || curr_reachability.reachable) {
-      /* If label_directly_in_switch is FALSE, i.e., when the destination is
-         inside a structured statement nested within the switch, we create a
-         goto that is in the switch clause and transfers control to the proper
-         point in the nested statement. */
-      /* If label_directly_in_switch is TRUE, this is the normal case: the
-         clause statements will be attached to the switch clause directly.
-         Since the clause is reachable, there was a previous switch clause
-         that flows into this one, so generate a goto from there. */
-      /* Save reachability information on the flow-in. */
-      prev_reachability = curr_reachability;
-      label = alloc_temp_label();
-      if (label_directly_in_switch) {
-        goto_stmt = add_statement_at_stmt_pos((a_statement_kind)stmk_goto,
-                                              &null_source_position);
-        label->case_fallthrough_label = TRUE;
-      } else {
-        goto_stmt = alloc_statement((a_statement_kind)stmk_goto);
-        scp->statements = goto_stmt;
-      }  /* if */
-      goto_stmt->variant.label.ptr = label;
-      if (!C_mode()) {
-        /* Set the object lifetime for the goto statement.  Note: the goto
-           belongs to the object lifetime for the switch statement itself,
-           which may be different from the current object lifetime when
-           label_directly_in_switch is FALSE.  Note that if the lifetime
-           assigned here later turns out to be useless, the goto will be
-           updated (see fixup_curr_block_labels_and_gotos). */
-        check_assertion_str2(label_directly_in_switch ?
-                               (sssep->curr_block_object_lifetime ==
-                                                    curr_object_lifetime) :
-                               (sssep->curr_block_object_lifetime != NULL),
-                             "add_switch_clause: bad lifetime in struct",
-                             "stmt stack entry for switch statement");
-        goto_stmt->variant.label.lifetime = sssep->curr_block_object_lifetime;
-        /* Create a control flow entry for this goto statement.  Note that it
-           isn't needed in C mode, since it's only used for tracking and
-           promoting object lifetimes. */
-        goto_cfdp =
-               alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_goto);
-        goto_cfdp->source_pos = pos_curr_token;
-        goto_cfdp->variant.goto_statement.ptr = goto_stmt;
-        add_to_control_flow_descr_list(goto_cfdp);
-      }  /* if */
-    }  /* if */
-    /* Note that it is not appropriate to terminate the previous
-       switch clause, if any, by calling term_stmt_clause.  Only a
-       break really terminates a switch clause; other cases are
-       flow-ins. */
-    /* Activate the new switch clause.  If the case label is directly in the
-       switch, also change curr_switch_clause in the switch entry so that code
-       will be added there. */
-    top_sssep->curr_switch_clause = scp;
-    if (label_directly_in_switch) {
-      sssep->curr_switch_clause = scp;
-      end_stmt_sequence(sssep);
-    }  /* if */
-    /* Represent this case label by adding an entry to the
-       control_flow_descr_list. */
-    add_to_control_flow_descr_list(
-        alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_case_label));
-    /* Start a new clause. */
-    start_stmt_clause(sssep);
-    if (label != NULL) {
-      /* Define the label if a goto was generated above.  Since we generated
-         this label, we can do a better job of maintaining the reachability
-         than is done by the low-level routines. */
-      save_reachability = curr_reachability;
-      define_implicit_label(label, goto_cfdp);
-      curr_reachability = save_reachability;
-      merge_reachability(&prev_reachability, &curr_reachability);
-    }  /* if */
-    if (!C_mode()) {
-      /* Create a block-after-label lifetime. */
-      char              *entity_ptr;
-      an_il_entry_kind  entity_kind;
-
-      if (label_directly_in_switch) {
-        /* When the case clause is "top level", make the new lifetime point
-           to the switch clause. */
-        entity_kind = (an_il_entry_kind)iek_switch_clause;
-        entity_ptr = (char *)scp;
-      } else {
-        /* Otherwise, make it point to the label statement. */
-        entity_kind = (an_il_entry_kind)iek_statement;
-        entity_ptr = (char *)label->variant.exec_stmt;
-      }  /* if */
-      push_object_lifetime(entity_kind, entity_ptr,
-                         (an_object_lifetime_kind)olk_block_after_label);
-      if (top_sssep->kind == (a_struct_stmt_kind)ssk_compound) {
-        /* If the current structured statement is a compound statement,
-           update its curr_block_object_lifetime; */
-        top_sssep->curr_block_object_lifetime = curr_object_lifetime;
-      }  /* if */
-      if (label_directly_in_switch) {
-        /* Update the object lifetime in the ssk_switch entry. */
-        sssep->curr_block_object_lifetime = curr_object_lifetime;
-      }  /* if */
-    }  /* if */
-  }  /* if */
-  db_exit();
-}  /* add_switch_clause */
 
 
 static a_constant_ptr scan_case_label_constant(
@@ -6462,7 +5808,6 @@ GNU also allows the "case range" form:
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position             case_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  a_boolean                     already_diagnosed = FALSE;
 
   db_enter(4, "case_label");
 
@@ -6472,16 +5817,16 @@ GNU also allows the "case range" form:
      the structured statement stack. */
   sssep = find_enclosing_struct_stmt(/*find_switch=*/TRUE,
                                      /*find_loop=*/FALSE);
-  if (sssep == NULL) {
+  if (sssep != NULL) {
+    /* Assume the case is reachable if the switch is reachable. */
+    merge_reachability(&sssep->start_reachable, &curr_reachability);
+  } else {
     /* We are not inside a switch statement. */
     error(ec_case_label_must_be_in_switch);
-  } else {
-    sssep->after_break_in_switch = FALSE;
+    set_reachable(curr_reachability);
   }  /* if */
   /* Ignore the initial "case". */
-#if CHECKING
-  if (curr_token != tok_case) internal_error("case_label: expected case");
-#endif /* CHECKING */
+  check_assertion_str(curr_token == tok_case, "case_label: expected case");
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   case_position = pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -6501,28 +5846,23 @@ GNU also allows the "case range" form:
       range_end = NULL;
     }  /* if */
   }  /* if */
-  if (sssep != NULL) {
-    if (constant_ptr != NULL) {
-      /* Add the proper switch clause. */
+  if (sssep != NULL && constant_ptr != NULL) {
+    a_statement_ptr          sp;
+    a_switch_case_entry_ptr  scep = alloc_switch_case_entry();
+    sp = add_statement((a_statement_kind)stmk_switch_case);
+    sp->variant.switch_case.switch_statement = sssep->statement;
+    sp->variant.switch_case.extra_info = scep;
+    scep->stmt = sp;
+    scep->case_value = constant_ptr;
+#if GNU_EXTENSIONS_ALLOWED
+    scep->range_end = range_end;
+#endif /* GNU_EXTENSIONS_ALLOWED */
+    scep->position = constant_ptr->source_corresp.decl_position,
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-      add_switch_clause(sssep, constant_ptr, range_end,
-                        &case_position, &pos_curr_token,
-                        &constant_ptr->source_corresp.decl_position,
-                        &already_diagnosed);
-#else /* !EXTRA_SOURCE_POSITIONS_IN_IL */
-      add_switch_clause(sssep, constant_ptr, range_end,
-                        (a_source_position_ptr)NULL,
-                        (a_source_position_ptr)NULL,
-                        &constant_ptr->source_corresp.decl_position,
-                        &already_diagnosed);
+    scep->keyword_position = case_position;
+    scep->colon_position = pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    } else {
-      /* Make code reachable if the switch is reachable for the error case. */
-      start_stmt_clause(sssep);
-    }  /* if */
-  } else {
-    /* Make code reachable for the error case. */
-    set_reachable(curr_reachability);
+    record_switch_case_entry(scep, sssep);
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   curr_construct_end_position = end_pos_curr_token;
@@ -6565,20 +5905,18 @@ Scan a default case label definition.  The syntax is:
   sssep = find_enclosing_struct_stmt(/*find_switch=*/TRUE,
                                      /*find_loop=*/FALSE);
   if (sssep != NULL) {
-    a_boolean  already_diagnosed = FALSE;
-    /* Found the proper enclosing switch statement. */
-    sssep->after_break_in_switch = FALSE;
-    sssep->switch_has_default_clause = TRUE;
+    a_statement_ptr          sp;
+    a_switch_case_entry_ptr  scep = alloc_switch_case_entry();
+    sp = add_statement((a_statement_kind)stmk_switch_case);
+    sp->variant.switch_case.switch_statement = sssep->statement;
+    sp->variant.switch_case.extra_info = scep;
+    scep->position = label_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-    add_switch_clause(sssep, (a_constant_ptr)NULL, (a_constant_ptr)NULL,
-                      &label_position, &pos_curr_token,
-                      &label_position, &already_diagnosed);
-#else /* !EXTRA_SOURCE_POSITIONS_IN_IL */
-    add_switch_clause(sssep, (a_constant_ptr)NULL, (a_constant_ptr)NULL,
-                      (a_source_position_ptr)NULL,
-                      (a_source_position_ptr)NULL,
-                      &label_position, &already_diagnosed);
+    scep->keyword_position = label_position;
+    scep->colon_position = pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    record_switch_case_entry(scep, sssep);
+    merge_reachability(&sssep->start_reachable, &curr_reachability);
   }  else {
     /* We are not inside a switch statement. */
     pos_error(ec_default_label_must_be_in_switch, &label_position);
@@ -7582,7 +6920,6 @@ of the front end.
   cfd_id_number = 0;
 #endif /* DEBUG */
 }  /* statements_init */
-
 
 /******************************************************************************
 *                                                             \  ___  /       *

@@ -68,10 +68,8 @@ static unsigned long
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
 		num_eh_prologue_supplements_allocated,
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
-		num_switch_clauses_allocated,
-#if RECORD_SWITCH_CASE_ENTRIES
 		num_switch_case_entries_allocated,
-#endif /* RECORD_SWITCH_CASE_ENTRIES */
+                num_switch_stmt_descriptions_allocated,
 		num_handlers_allocated,
 		num_try_supplements_allocated,
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -2821,38 +2819,6 @@ Return a pointer to the entry.
 
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
 
-a_switch_clause_ptr alloc_switch_clause(void)
-/*
-Allocate a switch clause, clear it to default values, and return a pointer
-to it.
-*/
-{
-  register a_switch_clause_ptr scp;
-
-  scp = (a_switch_clause_ptr)alloc_cil(sizeof(a_switch_clause));
-#if DEBUG
-  num_switch_clauses_allocated++;
-#endif /* DEBUG */
-  scp->next                  = NULL;
-#if RECORD_SWITCH_CASE_ENTRIES
-  scp->cases                 = NULL;
-  scp->cases_by_value        = NULL;
-  scp->includes_default_case = FALSE;
-#else /* !RECORD_SWITCH_CASE_ENTRIES */
-  scp->constant_list         = NULL;
-#endif /* RECORD_SWITCH_CASE_ENTRIES */
-  scp->statements            = NULL;
-  scp->implied_break_at_end  = FALSE;
-  clear_stmt_source_position(scp->break_position);
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  clear_stmt_source_position(scp->break_end_position);
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  clear_stmt_source_position(scp->default_position);
-  return scp;
-}  /* alloc_switch_clause */
-
-#if RECORD_SWITCH_CASE_ENTRIES
-
 a_switch_case_entry_ptr alloc_switch_case_entry(void)
 /*
 Allocate storage to describe an individual switch case, clear it to default
@@ -2861,13 +2827,15 @@ values, and return a pointer to it.
 {
   a_switch_case_entry_ptr  entry;
 
-  entry = (a_switch_case_entry_ptr)alloc_cil(sizeof(a_switch_clause));
-  entry->next = NULL;
-  entry->next_by_value = NULL;
-  entry->constant = NULL;
+  entry = (a_switch_case_entry_ptr)alloc_cil(sizeof(a_switch_case_entry));
+  entry->stmt = NULL;
+  entry->case_value = NULL;
 #if GNU_EXTENSIONS_ALLOWED
   entry->range_end = NULL;
 #endif /* GNU_EXTENSIONS_ALLOWED */
+  entry->next = NULL;
+  entry->next_on_sorted_list = NULL;
+  entry->position = null_source_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   entry->keyword_position = null_source_position;
   entry->colon_position = null_source_position;
@@ -2878,7 +2846,24 @@ values, and return a pointer to it.
   return entry;
 }  /* alloc_switch_case_entry */
 
-#endif /* RECORD_SWITCH_CASE_ENTRIES */
+
+a_switch_stmt_descr_ptr alloc_switch_stmt_descr(void)
+/*
+Allocate storage to describe the details of a switch statement, clear it to
+default values, and return a pointer to it.
+*/
+{
+  a_switch_stmt_descr_ptr  descr;
+
+  descr = (a_switch_stmt_descr_ptr)alloc_cil(sizeof(a_switch_stmt_descr));
+  descr->cases = NULL;
+  descr->default_case = NULL;
+  descr->sorted_cases = NULL;
+#if DEBUG
+  num_switch_stmt_descriptions_allocated++;
+#endif /* DEBUG */
+  return descr;
+}  /* alloc_switch_stmt_descr */
 
 #if !ABI_CHANGES_FOR_RTTI
 
@@ -2982,9 +2967,13 @@ fields to default values.
       flip->affinity = NULL;
 #endif /* UPC_EXTENSIONS_ALLOWED */
       break;
+    case stmk_switch_case:
+      sp->variant.switch_case.switch_statement = NULL;
+      sp->variant.switch_case.extra_info       = NULL;
+      break;
     case stmk_switch:
-      sp->variant.switch_stmt.clause_list    = NULL;
       sp->variant.switch_stmt.body_statement = NULL;
+      sp->variant.switch_stmt.extra_info     = alloc_switch_stmt_descr();
       break;
     case stmk_goto:
     case stmk_label:
@@ -4206,12 +4195,10 @@ Display and return the amount of space used for various IL tables.
                 num_eh_prologue_supplements_allocated,
                 an_eh_prologue_supplement);
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
-  db_space_used("switch clause",
-                num_switch_clauses_allocated, a_switch_clause);
-#if RECORD_SWITCH_CASE_ENTRIES
   db_space_used("switch case entry",
                 num_switch_case_entries_allocated, a_switch_case_entry);
-#endif /* RECORD_SWITCH_CASE_ENTRIES */
+  db_space_used("switch stmt descr",
+                num_switch_stmt_descriptions_allocated, a_switch_stmt_descr);
   db_space_used("handler", num_handlers_allocated, a_handler);
   db_space_used("try supplement", num_try_supplements_allocated,
                 a_try_supplement);
@@ -4532,10 +4519,8 @@ in il_alloc_init.)
       pch_saved_var_array_elem(num_scopes_allocated),
       pch_saved_var_array_elem(num_source_files_allocated),
       pch_saved_var_array_elem(num_statements_allocated),
-      pch_saved_var_array_elem(num_switch_clauses_allocated),
-#if RECORD_SWITCH_CASE_ENTRIES
       pch_saved_var_array_elem(num_switch_case_entries_allocated),
-#endif /* RECORD_SWITCH_CASE_ENTRIES */
+      pch_saved_var_array_elem(num_switch_stmt_descriptions_allocated),
       pch_saved_var_array_elem(num_template_args_allocated),
       pch_saved_var_array_elem(num_template_param_type_supplements_allocated),
       pch_saved_var_array_elem(num_throw_supplements_allocated),
@@ -4694,10 +4679,8 @@ initializations that are done for each compilation.
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
   num_eh_prologue_supplements_allocated  = 0;
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
-  num_switch_clauses_allocated           = 0;
-#if RECORD_SWITCH_CASE_ENTRIES
   num_switch_case_entries_allocated      = 0;
-#endif /* RECORD_SWITCH_CASE_ENTRIES */
+  num_switch_stmt_descriptions_allocated = 0;
   num_handlers_allocated                 = 0;
   num_try_supplements_allocated          = 0;
 #if MICROSOFT_EXTENSIONS_ALLOWED

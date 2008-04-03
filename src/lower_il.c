@@ -485,9 +485,6 @@ the associated variant fields to default values.
     case ilk_statement_creation:
       insert_location->variant.stmt = NULL;
       break;
-    case ilk_switch_clause_start:
-      insert_location->variant.switch_clause = NULL;
-      break;
     case ilk_before_expr:
     case ilk_after_expr:
     case ilk_expr_creation:
@@ -528,21 +525,6 @@ the block stmt.
   clear_insert_location(insert_location, ilk_block_start);
   insert_location->variant.stmt = stmt;
 }  /* set_block_start_insert_location */
-
-
-static void set_switch_clause_start_insert_location(
-                                          a_switch_clause_ptr scp,
-                                          an_insert_location  *insert_location)
-/*
-Set *insert_location to indicate an insert location at the start of
-the indicated switch clause.
-*/
-{ 
-  check_assertion_str(scp != NULL,
-                      "set_switch_clause_start_insert_location: NULL clause");
-  clear_insert_location(insert_location, ilk_switch_clause_start);
-  insert_location->variant.switch_clause = scp;
-}  /* set_switch_clause_start_insert_location */
 
 
 void set_statement_creation_insert_location(
@@ -3061,7 +3043,6 @@ so the next insertion will be after the statement added.
 */
 {
   a_statement_ptr         insert_stmt;
-  a_switch_clause_ptr     scp;
   an_insert_location_kind kind = insert_location->kind;
 
   if (is_expr_insert_location_kind(kind)) {
@@ -3079,11 +3060,6 @@ so the next insertion will be after the statement added.
       /* Create new statement. */
       insert_location->variant.stmt = statement;
       insert_location->kind = ilk_after_statement;
-    } else if (kind == ilk_switch_clause_start) {
-      /* Insert at the start of a switch clause. */
-      scp = insert_location->variant.switch_clause;
-      statement->next = scp->statements;
-      scp->statements = statement;
     } else {
       insert_stmt = insert_location->variant.stmt;
       if (kind == ilk_block_start) {
@@ -12890,13 +12866,10 @@ and *insert_location is updated.
 
 
 static an_object_lifetime_ptr label_successor_lifetime(
-                                          an_object_lifetime_ptr lifetime,
-                                          a_boolean              switch_clause)
+                                               an_object_lifetime_ptr lifetime)
 /*
 Given an olk_block or olk_block_after_label lifetime, return the successor
-lifetime at the next label, or NULL if there isn't one.  If switch_clause is
-TRUE, only consider successors at switch clauses.  If switch_clause is
-FALSE, only consider successors that aren't at switch clauses.
+lifetime at the next label, or NULL if there isn't one.
 */
 {
   for (;;) {
@@ -12911,27 +12884,18 @@ FALSE, only consider successors that aren't at switch clauses.
       for (lifetime = lifetime->child_lifetime;
            lifetime->kind != (an_object_lifetime_kind)olk_block_after_label;
            lifetime = lifetime->next) {}
-      /* See if this lifetime is for a switch clause or not, depending on
-         what we want. */
-      if ((lifetime->entity.kind == (a_byte_il_entry_kind)iek_switch_clause) ==
-          (switch_clause != 0)) {
-        /* This lifetime is one we want. */
-        break;
-      }  /* if */
+      break;
     }  /* if */
   }  /* for */
   return lifetime;
 }  /* label_successor_lifetime */
 
 
-static void start_label_region_of_lifetime(
-                                          an_object_lifetime_ptr lifetime,
-                                          a_boolean              switch_clause)
+static void start_label_region_of_lifetime(an_object_lifetime_ptr lifetime)
 /*
 Start a new label region in the current context (either the original
 olk_block lifetime or a successor olk_block_after_label lifetime).
-lifetime indicates the lifetime to begin.  switch_clause is TRUE if the
-lifetime begins at the start of a switch clause.
+lifetime indicates the lifetime to begin.
 */
 {
   an_object_lifetime_ptr next_lifetime;
@@ -12939,14 +12903,10 @@ lifetime begins at the start of a switch clause.
   curr_object_lifetime = curr_context->lifetime = lifetime;
   curr_context->latest_initialization = NULL;
   /* curr_context->curr_cleanup_state is not changed on purpose. */
-  if (!switch_clause) {
-    /* Set up the context field to watch for the appearance of the
-       statement that begins the next label lifetime.  The switch clause
-       case is handled in the caller. */
-    next_lifetime = label_successor_lifetime(lifetime,
-                                             /*switch_clause=*/FALSE);
-    curr_context->successor_lifetime_at_statement = next_lifetime;
-  }  /* if */
+  /* Set up the context field to watch for the appearance of the statement
+     that begins the next label lifetime. */
+  next_lifetime = label_successor_lifetime(lifetime);
+  curr_context->successor_lifetime_at_statement = next_lifetime;
 }  /* start_label_region_of_lifetime */
 
 
@@ -12964,7 +12924,7 @@ if lifetime is NULL.
     /* Visit all object lifetimes in this lifetime, and all destructions
        within those lifetimes. */
     begin_object_lifetime(lifetime, insert_location);
-    start_label_region_of_lifetime(lifetime, /*switch_clause=*/FALSE);
+    start_label_region_of_lifetime(lifetime);
   }  /* if */
 }  /* begin_block_object_lifetime */
 
@@ -12985,44 +12945,21 @@ associated with a label in a block.
   /* Visit all object lifetimes in this lifetime, and all destructions
      within those lifetimes. */
   begin_object_lifetime(lifetime, &insert_location);
-  start_label_region_of_lifetime(lifetime, /*switch_clause=*/FALSE);
+  start_label_region_of_lifetime(lifetime);
 }  /* begin_block_label_object_lifetime */
-
-
-static void begin_switch_clause_object_lifetime(
-                                               an_object_lifetime_ptr lifetime)
-/*
-Do processing required at the beginning of an olk_block_after_label lifetime
-associated with a switch clause.
-*/
-{
-  a_switch_clause_ptr switch_clause;
-  an_insert_location  insert_location;
-
-  /* Get the switch clause pointer from the lifetime. */
-  check_assertion(lifetime->entity.kind ==
-                                      (a_byte_il_entry_kind)iek_switch_clause);
-  switch_clause = (a_switch_clause_ptr)(lifetime->entity.ptr);
-  set_switch_clause_start_insert_location(switch_clause, &insert_location);
-  /* Visit all object lifetimes in this lifetime, and all destructions
-     within those lifetimes. */
-  begin_object_lifetime(lifetime, &insert_location);
-  start_label_region_of_lifetime(lifetime, /*switch_clause=*/TRUE);
-}  /* begin_switch_clause_object_lifetime */
 
 #if GENERATE_EH_TABLES
 
 static void adjust_region_table_to_remove_long_lifetime_temps(
                                               a_boolean need_regions_for_temps)
 /*
-We've reached a label or switch clause in long-lifetime temporaries mode.
-We haven't yet started any object lifetime that begins at the label or
-switch clause.  Here, logically remove the temporaries from the cleanup
-region table so they will no longer be part of the cleanup chain.  Called
-only when exceptions are enabled.  If need_regions_for_temps is TRUE,
-we will be destroying the temporaries, so we need cleanup regions that
-will cover them while we destroy them.  Only called when exceptions
-are enabled.
+We've reached a label in long-lifetime temporaries mode.  We haven't yet
+started any object lifetime that begins at the label.  Here, logically remove
+the temporaries from the cleanup region table so they will no longer be part
+of the cleanup chain.  Called only when exceptions are enabled.  If
+need_regions_for_temps is TRUE, we will be destroying the temporaries, so we
+need cleanup regions that will cover them while we destroy them.  Only called
+when exceptions are enabled.
 */
 {
   a_dynamic_init_ptr dip;
@@ -13350,220 +13287,21 @@ the last statement.
   }  /* if */
 }  /* reset_cleanup_state_at_transfer_of_control */
 
-#if RECORD_SWITCH_CASE_ENTRIES
 
-static void lower_switch_case_constants(a_switch_case_entry_ptr  cases)
+static void lower_switch_case(a_switch_case_entry_ptr  entry)
 /*
-Do lowering on the constants pointed to by the given list of switch case
-entries.
+Do lowering on the constants pointed to by the given switch case entry.
 */
 {
-  for (; cases != NULL; cases = cases->next) {
-    if (cases->constant != NULL) {
-      lower_constant(cases->constant);
+  if (entry->case_value != NULL) {
+    lower_constant(entry->case_value);
 #if GNU_EXTENSIONS_ALLOWED
-      if (cases->range_end != NULL) {
-        lower_constant(cases->range_end);
-      }  /* if */
+    if (entry->range_end != NULL) {
+      lower_constant(entry->range_end);
+    }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-    }  /* if */
-  }  /* for */
-}  /* lower_switch_case_constants */
-
-#endif /* RECORD_SWITCH_CASE_ENTRIES */
-
-static void lower_switch_clause_list(
-                                    a_switch_clause_ptr    clause_list,
-                                    a_statement_ptr        between_clause_list,
-                                    an_object_lifetime_ptr switch_lifetime)
-/*
-Do IL lowering of the indicated switch clause list and everything under it.
-If the switch statement has an associated lifetime, switch_lifetime points to
-it; otherwise, switch_lifetime is NULL.  between_clause_list, if non-NULL,
-points to some segments on the body statement list that originally appeared
-between clauses of the switch.  They are processed at the proper points.
-*/
-{
-  a_switch_clause_ptr    clause;
-  a_statement_ptr        clause_statements, last_statement;
-  an_insert_location     insert_location;
-  an_object_lifetime_ptr lifetime;
-  a_boolean              advance_to_next_lifetime = FALSE;
-  a_dynamic_init_ptr     saved_curr_cleanup_state =
-                                              curr_context->curr_cleanup_state;
-
-  /* Find the first switch clause lifetime. */
-  if (switch_lifetime != NULL) {
-    lifetime = label_successor_lifetime(switch_lifetime,
-                                        /*switch_clause=*/TRUE);
-  } else {
-    lifetime = NULL;
   }  /* if */
-  /* Loop through the switch clauses. */
-  for (clause = clause_list; clause != NULL; clause = clause->next) {
-    /* Lower the case label constants. */
-    /* They have their own source positions. */
-#if RECORD_SWITCH_CASE_ENTRIES
-    lower_switch_case_constants(clause->cases);
-#else /* !RECORD_SWITCH_CASE_ENTRIES */
-    lower_constant_list(clause->constant_list);
-#endif /* RECORD_SWITCH_CASE_ENTRIES */
-    /* If the switch clause contains a statement, get a source position from
-       that and use it as the position for any code created. */
-    if (clause->statements != NULL) {
-      set_position_from_stmt_source_position(code_pos_for_lowering,
-                                             clause->statements->position);
-    } else {
-      set_position_from_stmt_source_position(code_pos_for_lowering,
-                                             clause->break_position);
-    }  /* if */
-    error_position = code_pos_for_lowering;
-    /* Get the statement list before any insertions done for the start
-       of an object lifetime. */
-    clause_statements = clause->statements;
-    /* At the start of each switch clause, the cleanup state is as it was
-       at the end of the switch expression. */
-    curr_context->curr_cleanup_state = saved_curr_cleanup_state;
-    /* See if this clause is associated with the next object lifetime
-       in sequence. */
-    if (lifetime != NULL &&
-        (a_switch_clause_ptr)lifetime->entity.ptr == clause) {
-      /* A different object lifetime begins at the beginning of this
-         clause. */
-#if GENERATE_EH_TABLES
-      if (exceptions_enabled && long_lifetime_temps) {
-        /* If necessary, adjust the cleanup region table to reflect the
-           fact that the temporaries are no longer in the cleanup chain. */
-        adjust_region_table_to_remove_long_lifetime_temps(
-                                             /*need_regions_for_temps=*/FALSE);
-      }  /* if */
-#endif /* GENERATE_EH_TABLES */
-      begin_switch_clause_object_lifetime(lifetime);
-      advance_to_next_lifetime = TRUE;
-    }  /* if */
-    lower_statement_list(clause_statements, &last_statement);
-    if (switch_lifetime != NULL) {
-      /* Generate any cleanup actions required at the end of the
-         clause.  Note that the implicit "break" is only used at the
-         top level within a switch; "break" statements from deeper
-         (e.g., inside nested blocks) will be rendered as gotos. */
-      if (clause->implied_break_at_end) {
-        /* There is an implicit "break" at the end of the clause. */
-        if (any_cleanup_actions(switch_lifetime)) {
-          if (last_statement == NULL) {
-            /* The clause is empty, so add a block statement and insert inside
-               it. */
-            clause->statements = alloc_statement((a_statement_kind)stmk_block);
-            set_block_start_insert_location(clause->statements,
-                                            &insert_location);
-          } else {
-            /* Insert after the last statement. */
-            set_insert_location(last_statement, &insert_location);
-          }  /* if */
-          if (seq_number_from_stmt_source_position(clause->break_position)
-                                                                        != 0) {
-            set_position_from_stmt_source_position(code_pos_for_lowering,
-                                                   clause->break_position);
-          }  /* if */
-          gen_cleanup_actions(switch_lifetime, &insert_location);
-        }  /* if */
-      } else {
-        /* The end of the switch clause is unreachable because of a transfer
-           of control or a throw. */
-        /* For a transfer of control, the current cleanup state will have
-           been adjusted to the most-constructed state.  For a throw,
-           however, it will not have been, so adjust it now. */
-        if (curr_context->curr_cleanup_state != saved_curr_cleanup_state) {
-          curr_context->curr_cleanup_state = saved_curr_cleanup_state;
-#if INDICATE_CLEANUP_STATE_IN_UNREACHABLE_CODE
-          reset_cleanup_state_at_unreachable_point(last_statement);
-#endif /* INDICATE_CLEANUP_STATE_IN_UNREACHABLE_CODE */
-        }  /* if */
-      }  /* if */
-      if (advance_to_next_lifetime) {
-        lifetime = curr_object_lifetime;
-        while (between_clause_list != NULL) {
-          /* Check whether the statements at the front of the between-clause
-             list fall after this clause. */
-          a_statement_ptr prev_stmt;
-          a_statement_ptr stmt = between_clause_list;
-          check_assertion(stmt->kind == (a_statement_kind)stmk_label);
-          if (stmt->variant.label.lifetime != lifetime) break;
-          /* Yes, this label and code should be processed here. */
-          /* Process code up to the next label, leave the rest on the
-             list for later processing (possibly immediately). */
-          for (;;) {
-            prev_stmt = between_clause_list;
-            between_clause_list = between_clause_list->next;
-            if (between_clause_list == NULL) break;
-            if (between_clause_list->kind == (a_statement_kind)stmk_label) {
-              /* Break the current list before this next label. */
-              prev_stmt->next = NULL;
-              break;
-            }  /* if */
-          }  /* for */
-          lower_statement_list(stmt, &last_statement);
-          /* Reattach the segment processed to the whole statement list. */
-          prev_stmt->next = between_clause_list;
-        }  /* while */
-        lifetime = label_successor_lifetime(lifetime, /*switch_clause=*/TRUE);
-        advance_to_next_lifetime = FALSE;
-      }  /* if */
-    }  /* if */
-  }  /* for */
-  check_assertion_str(between_clause_list == NULL,
-           "lower_switch_clause_list: not all between-clause stmts processed");
-}  /* lower_switch_clause_list */
-
-
-static void find_label_between_switch_clauses(
-                                          a_statement_ptr statement_list,
-                                          a_statement_ptr *between_clause_list,
-                                          a_statement_ptr *prev_stmt)
-/*
-statement_list is the list of statements in the body statement of a switch
-clause.  Look for segments on that list that correspond to code that was
-between switch clauses in the source program.  Such segments begin with
-a label whose object lifetime places it inside the switch clauses.
-Set *between_clause_list to point to the first of such segments if
-one is found, or to NULL otherwise.  Set *prev_stmt to the statement
-preceding *between_clause_list, or to NULL if it is the first statement on
-the list or *between_clause_list is returned NULL.
-*/
-{
-  a_statement_ptr stmt;
-
-  *between_clause_list = NULL;
-  /* Look for labels on the statement list, and look at those to see whether
-     they indicate they are inside an object lifetime associated with
-     a switch clause. */
-  for (*prev_stmt = NULL, stmt = statement_list;
-       stmt != NULL;
-       *prev_stmt = stmt, stmt = stmt->next) {
-    if (stmt->kind == (a_statement_kind)stmk_label) {
-      an_object_lifetime_ptr lifetime = stmt->variant.label.lifetime;
-      a_statement_ptr        temp_stmt;
-      while (lifetime != NULL &&
-             lifetime->kind ==
-                              (an_object_lifetime_kind)olk_block_after_label &&
-             lifetime->entity.kind == (a_byte_il_entry_kind)iek_statement &&
-             (temp_stmt = ((a_statement *)lifetime->entity.ptr))->kind ==
-                                                (a_statement_kind)stmk_label) {
-        /* Back up from a label to the previous lifetime, hoping to get
-           back to a switch clause. */
-        lifetime = temp_stmt->variant.label.lifetime;
-      }  /* while */
-      if (lifetime != NULL) {
-        if (lifetime->kind == (an_object_lifetime_kind)olk_block_after_label &&
-            lifetime->entity.kind == (a_byte_il_entry_kind)iek_switch_clause) {
-          /* This label appears between switch clauses. */
-          *between_clause_list = stmt;
-          break;
-        }  /* if */
-      }  /* if */
-    }  /* if */
-  }  /* for */
-}  /* find_label_between_switch_clauses */
+}  /* lower_switch_case */
 
 #if GNU_EXTENSIONS_ALLOWED
 
@@ -14036,41 +13774,6 @@ Generate any cleanup actions required preceding the indicated goto statement.
         } else if (statement->variant.label.ptr->leave_label) {
           /* Destroy temporaries on a __leave. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        } else if (statement->variant.label.ptr->case_fallthrough_label) {
-          /* A switch clause fallthrough label. */
-          /* Don't destroy temporaries if the overall switch statement does
-             not have an associated lifetime, because temporaries from
-             outside the switch are allowed to survive over the switch in
-             that case, and we do not want to destroy them here. */
-          destroy_temps = FALSE;
-          if (curr_object_lifetime->kind ==
-                              (an_object_lifetime_kind)olk_block_after_label &&
-              curr_object_lifetime->entity.kind ==
-                                     (a_byte_il_entry_kind)iek_switch_clause) {
-            /* The current lifetime is associated with a switch clause.
-               Make sure it is the current switch clause, however. */
-            an_object_lifetime_ptr next_lifetime =
-                                          curr_object_lifetime->child_lifetime;
-            if (next_lifetime != NULL &&
-                next_lifetime->kind ==
-                              (an_object_lifetime_kind)olk_block_after_label) {
-              a_statement_ptr stmt;
-              /* Note that a "Duff's Device" case will not have a goto for
-                 a fallthrough (it's not needed), so it won't get here. */
-              check_assertion(next_lifetime->entity.kind ==
-                                      (a_byte_il_entry_kind)iek_switch_clause);
-              stmt =
-                  ((a_switch_clause_ptr)next_lifetime->entity.ptr)->statements;
-              if (stmt != NULL &&
-                  stmt->kind == (a_statement_kind)stmk_label &&
-                  stmt->variant.label.ptr == statement->variant.label.ptr) {
-                /* Yes, the goto is to the beginning of the next switch
-                   clause, and there's a lifetime associated with that
-                   next switch clause, so destroy temporaries now. */
-                destroy_temps = TRUE;
-              }  /* if */
-            }  /* if */
-          }  /* if */
         } else {
           /* Other compiler-generated gotos, e.g., for break or continue.
              Don't destroy temporaries. */
@@ -14577,78 +14280,6 @@ Lower the dependent statements of the indicated "if" statement.
 }  /* lower_if_dependent_statements */
 
 
-static void lower_switch_dependent_statement(a_statement_ptr statement)
-/*
-Lower the dependent statement of the indicated "switch" statement.
-*/
-{
-  a_statement_ptr body_statement =
-                                 statement->variant.switch_stmt.body_statement;
-  a_statement_ptr statement_list, last_statement;
-  a_statement_ptr between_clause_list = NULL, prev_stmt = NULL;
-  a_context       context;
-  a_boolean       context_pushed, new_lifetime;
-  a_dynamic_init_ptr
-                  saved_curr_cleanup_state, curr_cleanup_state_after_body;
-
-  /* If there is a body statement that is a block, push a context
-     around the processing of the switch clauses. */
-  if (body_statement != NULL &&
-      body_statement->kind == (a_statement_kind)stmk_block) {
-    /* The body statement is a block. */
-    /* Save the statement list pointer early in case code is inserted
-       to initialize conditional flags. */
-    statement_list = body_statement->variant.block.statements;
-    push_block_statement_context(body_statement, &context,
-                                 &context_pushed, &new_lifetime,
-                                 &saved_curr_cleanup_state);
-    if (new_lifetime) {
-      /* Look for labels in the body statement list that actually appeared
-         between switch clauses, and save them off to the side. */
-      find_label_between_switch_clauses(statement_list, &between_clause_list,
-                                        &prev_stmt);
-      if (between_clause_list != NULL) {
-        /* Take the segments that appeared between switch clauses off the
-           statement list temporarily. */
-        if (prev_stmt == NULL) {
-          statement_list = NULL;
-        } else {
-          prev_stmt->next = NULL;
-        }  /* if */
-      }  /* if */
-    }  /* if */
-    /* lower the statements in the body statement block. */
-    lower_statement_list(statement_list, &last_statement);
-    /* Put the between_clause_list back on the end of the statement_list if
-       it was taken off above. */
-    if (between_clause_list != NULL) {
-      if (prev_stmt == NULL) {
-        statement_list = between_clause_list;
-      } else {
-        prev_stmt->next = between_clause_list;
-      }  /* if */
-    }  /* if */
-    curr_cleanup_state_after_body = curr_context->curr_cleanup_state;
-    curr_context->curr_cleanup_state = saved_curr_cleanup_state;
-    lower_switch_clause_list(statement->variant.switch_stmt.clause_list,
-                             between_clause_list,
-                             new_lifetime ? curr_context->lifetime :
-                                            (an_object_lifetime_ptr)NULL);
-    curr_context->curr_cleanup_state = curr_cleanup_state_after_body;
-    pop_block_statement_context(body_statement, last_statement,
-                                context_pushed, new_lifetime,
-                                saved_curr_cleanup_state);
-  } else {
-    /* There is no body statement, or the body statement is something
-       other than a block statement. */
-    lower_statement(body_statement);
-    lower_switch_clause_list(statement->variant.switch_stmt.clause_list,
-                             (a_statement_ptr)NULL,
-                             (an_object_lifetime_ptr)NULL);
-  }  /* if */
-}  /* lower_switch_dependent_statement */
-
-
 static void lower_condition(a_statement_ptr statement)
 /*
 statement is a statement that has a controlling condition (i.e., it is an
@@ -14692,7 +14323,7 @@ handled).
       /* Switch statement. */
       check_assertion(expr != NULL);
       lower_full_expr(expr, /*is_lvalue=*/FALSE, (a_statement_ptr)NULL);
-      lower_switch_dependent_statement(statement);
+      lower_statement(statement->variant.switch_stmt.body_statement);
     }  /* if */
   } else {
     /* A condition declaration.  Non-loop cases like
@@ -14831,7 +14462,7 @@ handled).
       statement->expr = value_expr;
       /* Lower the dependent statement(s) of the condition. */
       if (is_switch_stmt) {
-        lower_switch_dependent_statement(statement);
+        lower_statement(statement->variant.switch_stmt.body_statement);
       } else {
         check_assertion(statement_kind == (a_statement_kind)stmk_if);
         lower_if_dependent_statements(statement);
@@ -15115,6 +14746,10 @@ Do IL lowering of the indicated statement and everything under it.
                               /*is_block_of_function_try=*/FALSE,
                               (a_destructor_wrapper_info_block_ptr)NULL,
                               (a_statement_ptr *)NULL);
+        break;
+      case stmk_switch_case:
+        lower_switch_case(statement->variant.switch_case.extra_info);
+        set_curr_cleanup_state_to_latest_initialization();
         break;
       case stmk_switch:
         lower_condition(statement);

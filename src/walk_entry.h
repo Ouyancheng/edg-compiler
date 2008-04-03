@@ -1627,35 +1627,30 @@ end_sizeof:;
 #endif /* UPC_EXTENSIONS_ALLOWED */
       }
       break;
-    case iek_switch_clause:
-      {
-        a_switch_clause_ptr ptr = (a_switch_clause_ptr)entry_ptr;
-        remap_next_ptr(ptr->next, a_switch_clause_ptr, iek_switch_clause);
-#if RECORD_SWITCH_CASE_ENTRIES
-        walk_list(ptr->cases, a_switch_case_entry_ptr, iek_switch_case_entry);
-        remap_ptr(ptr->cases_by_value, a_switch_case_entry_ptr,
-                  iek_switch_case_entry);
-#else /* !RECORD_SWITCH_CASE_ENTRIES */
-        walk_list(ptr->constant_list, a_constant_ptr, iek_constant);
-#endif /* RECORD_SWITCH_CASE_ENTRIES */
-        walk_list(ptr->statements, a_statement_ptr, iek_statement);
-      }
-      break;
-#if RECORD_SWITCH_CASE_ENTRIES
     case iek_switch_case_entry:
       {
         a_switch_case_entry_ptr ptr = (a_switch_case_entry_ptr)entry_ptr;
-        remap_next_ptr(ptr->next, a_switch_case_entry_ptr,
-                       iek_switch_case_entry);
-        remap_ptr(ptr->next_by_value, a_switch_case_entry_ptr,
-                  iek_switch_case_entry);
-        walk_ptr(ptr->constant, a_constant_ptr, iek_constant);
+        remap_next_ptr(ptr->stmt, a_statement_ptr, iek_statement);
+        walk_ptr(ptr->case_value, a_constant_ptr, iek_constant);
 #if GNU_EXTENSIONS_ALLOWED
         walk_ptr(ptr->range_end, a_constant_ptr, iek_constant);
 #endif /* GNU_EXTENSIONS_ALLOWED */
+        remap_next_ptr(ptr->next, a_switch_case_entry_ptr,
+                       iek_switch_case_entry);
+        remap_ptr(ptr->next_on_sorted_list, a_switch_case_entry_ptr,
+                  iek_switch_case_entry);
       }
       break;
-#endif /* RECORD_SWITCH_CASE_ENTRIES */
+    case iek_switch_stmt_descr:
+      {
+        a_switch_stmt_descr_ptr ptr = (a_switch_stmt_descr_ptr)entry_ptr;
+        walk_list(ptr->cases, a_switch_case_entry_ptr, iek_switch_case_entry);
+        remap_ptr(ptr->default_case, a_switch_case_entry_ptr,
+                 iek_switch_case_entry);
+        remap_list_ptr(ptr->sorted_cases, a_switch_case_entry_ptr,
+                       iek_switch_case_entry);
+      }
+      break;
     case iek_handler:
       {
         a_handler_ptr ptr = (a_handler_ptr)entry_ptr;
@@ -1797,11 +1792,17 @@ end_sizeof:;
             walk_ptr(ptr->variant.for_loop.statement, a_statement_ptr,
                      iek_statement);
             break;
+          case stmk_switch_case:
+            remap_ptr_not_needed(ptr->variant.switch_case.switch_statement,
+                                 a_statement_ptr, iek_statement);
+            walk_ptr(ptr->variant.switch_case.extra_info,
+                     a_switch_case_entry_ptr, iek_switch_case_entry);
+            break;
           case stmk_switch:
-            walk_list(ptr->variant.switch_stmt.clause_list,
-                      a_switch_clause_ptr, iek_switch_clause);
-            walk_ptr(ptr->variant.switch_stmt.body_statement,
-                     a_statement_ptr, iek_statement);
+            walk_ptr(ptr->variant.switch_stmt.body_statement, a_statement_ptr,
+                     iek_statement);
+            walk_ptr(ptr->variant.switch_stmt.extra_info,
+                     a_switch_stmt_descr_ptr, iek_switch_stmt_descr);
             break;
           case stmk_init:
             remap_ptr(ptr->variant.dynamic_init, a_dynamic_init_ptr,
@@ -3322,8 +3323,10 @@ of each kind.
   walk_orphan_entry_list_for_entry_kind(an_expr_node_ptr, iek_expr_node);
 #ifdef CFE
   walk_orphan_entry_list_for_entry_kind(a_for_loop_ptr, iek_for_loop);
-  walk_orphan_entry_list_for_entry_kind(a_switch_clause_ptr,
-                                        iek_switch_clause);
+  walk_orphan_entry_list_for_entry_kind(a_switch_case_entry_ptr,
+                                        iek_switch_case_entry);
+  walk_orphan_entry_list_for_entry_kind(a_switch_stmt_descr_ptr,
+                                        iek_switch_stmt_descr);
   walk_orphan_entry_list_for_entry_kind(a_handler_ptr, iek_handler);
   walk_orphan_entry_list_for_entry_kind(a_try_supplement_ptr,
                                         iek_try_supplement);
