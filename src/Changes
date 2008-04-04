@@ -1,5 +1,22 @@
 Version 3.11
 
+4/4/08   Spurious constructor template parsing errors
+
+The front end previously did not accept constructor template declarations
+involving a parenthesized constructor declarator.  For example:
+
+  struct S {
+    template<class T> (S)(T);  // Previously a spurious error.
+  };
+
+This is now fixed.  This fix also enables the front end to accept an explicit
+Microsoft-mode calling convention on constructor template declarations.
+For example:
+
+  struct M {
+    template<class T> __thiscall S(T);  // Now accepted in Microsoft mode.
+  };
+
 3/31/08  Uninitialized field in a_destructible_entity_descr in configurations
          that use lowering but set GENERATE_EH_TABLES to FALSE
 

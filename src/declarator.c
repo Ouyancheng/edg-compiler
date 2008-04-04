@@ -4080,16 +4080,26 @@ be a function.
       }  /* if */
     } else {
       /* The declarator id is not qualified. */
-      if (!C_mode() && scope_stack[depth_scope_stack].kind
-                                    == (a_scope_kind)sck_class_struct_union) {
-        /* Check if we have a constructor. Trying to find it out while
-           scanning the specifiers might have failed because the scanning had
-           to stop at an opening parenthesis. However, we might have
-           "struct S { (S)(); }". Note that destructors aren't a problem
-           because of the distinctive leading tilde. */
-        if (!err && (input_flags & DI_NO_TYPE_SPECIFIERS) != 0 &&
-            is_constructor_decl(scope_stack[depth_scope_stack].assoc_type)) {
-          *is_constructor = TRUE;
+      if (!C_mode()) {
+        a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
+        if (ssep->kind == (a_scope_kind)sck_template_declaration ||
+            ssep->kind == (a_scope_kind)sck_template_instantiation) {
+          /* Take into account the possibility that the constructor is a
+             member template (or an instance thereof). */
+          -- ssep;
+        }  /* if */
+        if (ssep->kind == (a_scope_kind)sck_class_struct_union ||
+            ssep->kind == (a_scope_kind)sck_class_reactivation) {
+          /* Check if we have a constructor. Trying to find it out while
+             scanning the specifiers might have failed because the scanning
+             had to stop at an opening parenthesis or a Microsoft calling
+             convention. However, we might have  e.g. "struct S { (S)(); }".
+             Note that destructors aren't a problem because of the distinctive
+             leading tilde. */
+          if (!err && (input_flags & DI_NO_TYPE_SPECIFIERS) != 0 &&
+              is_constructor_decl(ssep->assoc_type)) {
+            *is_constructor = TRUE;
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
