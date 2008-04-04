@@ -3530,11 +3530,6 @@ file.
 #else /* !defined(ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS) */
   comment_undefined_macro_name(ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS);
 #endif /* defined(ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS) */
-#if defined(RECORD_RAW_ASM_OPERAND_DESCRIPTIONS)
-  define_numeric_valued_macro(RECORD_RAW_ASM_OPERAND_DESCRIPTIONS);
-#else /* !defined(RECORD_RAW_ASM_OPERAND_DESCRIPTIONS) */
-  comment_undefined_macro_name(RECORD_RAW_ASM_OPERAND_DESCRIPTIONS);
-#endif /* defined(RECORD_RAW_ASM_OPERAND_DESCRIPTIONS) */
 #if defined(ADDRS_NOT_IN_SAME_ARRAY_CAN_BE_COMPARED)
   define_numeric_valued_macro(ADDRS_NOT_IN_SAME_ARRAY_CAN_BE_COMPARED);
 #else /* !defined(ADDRS_NOT_IN_SAME_ARRAY_CAN_BE_COMPARED) */
@@ -5438,6 +5433,11 @@ file.
 #else /* !defined(RECORD_NAME_IN_PARAM_TYPE_ENTRY) */
   comment_undefined_macro_name(RECORD_NAME_IN_PARAM_TYPE_ENTRY);
 #endif /* defined(RECORD_NAME_IN_PARAM_TYPE_ENTRY) */
+#if defined(RECORD_RAW_ASM_OPERAND_DESCRIPTIONS)
+  define_numeric_valued_macro(RECORD_RAW_ASM_OPERAND_DESCRIPTIONS);
+#else /* !defined(RECORD_RAW_ASM_OPERAND_DESCRIPTIONS) */
+  comment_undefined_macro_name(RECORD_RAW_ASM_OPERAND_DESCRIPTIONS);
+#endif /* defined(RECORD_RAW_ASM_OPERAND_DESCRIPTIONS) */
 #if defined(RECORD_SCOPE_DEPTH_IN_IL)
   define_numeric_valued_macro(RECORD_SCOPE_DEPTH_IN_IL);
 #else /* !defined(RECORD_SCOPE_DEPTH_IN_IL) */
