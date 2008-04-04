@@ -1511,35 +1511,6 @@ stack -- i.e., between calls of push_stmt_stack and pop_stmt_stack.
   ((sp)->variant.block.extra_info->lifetime != NULL)
 
 
-static a_boolean is_primary_block_of_switch_statement(
-                                     a_struct_stmt_stack_entry_ptr  sssep)
-/*
-Return TRUE if sssep points to a structured-statement-stack entry for a
-compound statement that is the primary block of the switch statement, either
-because that's the way it was written -- switch (x) { ... } -- or because a
-block was inserted by the compiler (which occurs in C++ only).  This routine
-is not called for the top-level compound statement of a function.
-*/
-{
-  a_boolean  is_switch_block = FALSE;
-
-  if (sssep->kind == ssk_compound) {
-    check_assertion(depth_stmt_stack > 0);
-    /* See if the compound statement is nested immediately within a switch
-       statement.  Note that in C mode it's necessary to do a further check,
-       to rule out cases like this:
-         switch (x) case 1: { ... }
-    */
-    if ((sssep-1)->kind == ssk_switch &&
-        sssep->statement ==
-                  (sssep-1)->statement->variant.switch_stmt.body_statement) {
-      is_switch_block = TRUE;
-    }  /* if */
-  }  /* if */
-  return is_switch_block;
-}  /* is_primary_block_of_switch_statement */
-
-
 static void add_statement_list(a_statement_ptr  sp,
                                a_boolean        reachable)
 /*
@@ -2842,13 +2813,7 @@ statement is the top block of a GNU statement expression ({ ... }).
       if (depth_stmt_stack > 0) {
         /* Special case processing for C++ mode only. */
         a_scope_ptr  scope = scope_stack[depth_scope_stack].il_scope;
-        if (sssep[-1].kind == (a_struct_stmt_kind)ssk_switch) {
-          /* This block represents the block statement or compound statement
-             immediately within a switch statement.  Record the current
-             object lifetime in the ssk_switch entry, too -- it's used in
-             add_switch_clause. */
-          sssep[-1].curr_block_object_lifetime = olp;
-        } else if (sssep->depth_of_assoc_scope == NO_SCOPE_DEPTH) {
+        if (sssep->depth_of_assoc_scope == NO_SCOPE_DEPTH) {
           /* Cfront dependent statement. */
         } else if (scope != NULL && scope->kind == (a_scope_kind)sck_block &&
                    scope->variant.assoc_handler != NULL) {
@@ -3062,13 +3027,6 @@ resumed).  sp indicates the statement that starts the new object lifetime
                          (an_object_lifetime_kind)olk_block_after_label);
     sssep->curr_block_object_lifetime = curr_object_lifetime;
     sssep->label_invalidates_curr_block_object_lifetime = FALSE;
-    if (depth_stmt_stack > 0 &&
-        is_primary_block_of_switch_statement(sssep)) {
-      /* sssep represents the block statement or compound statement
-         immediately within a switch statement.  Update the object lifetime
-         in the ssk_switch entry, too. */
-      sssep[-1].curr_block_object_lifetime = curr_object_lifetime;
-    }  /* if */
   }  /* if */
 }  /* reset_curr_block_object_lifetime */
 
