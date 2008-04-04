@@ -178,6 +178,15 @@ Flags to be set for any version that uses the C++ generating back end.
 #if defined(sparc) || defined(__sparc)
 #define CENTERLINE_CHECKING 1
 #endif /* defined(sparc) || defined(__sparc) */
+#ifndef UNICODE_SOURCE_SUPPORTED
+#if defined(sparc) || defined(__sparc)
+/* SPARC Solaris or SunOS. */
+#define UNICODE_SOURCE_SUPPORTED 1
+#else /* not SPARC */
+/* Intel Solaris. */
+#define USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING 1
+#endif /* defined(sparc) || defined(__sparc) */
+#endif /* ifndef UNICODE_SOURCE_SUPPORTED */
 #endif /* SUN_TEST_VERSION */
 
 #include "defines_solaris.h"
@@ -218,11 +227,6 @@ Flags to be set for any version that uses the C++ generating back end.
 #endif /* SELFCOMP_VERSION */
 #define DEFAULT_EMULATE_MSVC_VALUE_INITIALIZATION_BUGS 1
 #define DEFAULT_EMULATE_GNU_VALUE_INITIALIZATION_BUGS 1
-#ifndef UNICODE_SOURCE_SUPPORTED
-#define USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING 1
-#else /* defined(UNICODE_SOURCE_SUPPORTED) */
-#define LOCALE_TO_SET_WHEN_MULTIBYTE_CHARS_ENABLED "iso_8859_1"
-#endif /* ifndef UNICODE_SOURCE_SUPPORTED */
 
 #ifdef SOLARIS
 #ifdef __SUNPRO_C

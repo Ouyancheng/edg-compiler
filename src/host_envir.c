@@ -1283,24 +1283,26 @@ Unicode.
 }  /* open_source_file */
 
 
-FILE *reopen_source_file(char *file_name)
+FILE *reopen_source_file(char                  *file_name,
+                         a_unicode_source_kind *unicode_source_kind)
 /*
 Reopen the source file of the given name, and return a pointer to
 the file block, or NULL if the file cannot be opened.  Since the file has
 previously been opened, the open should fail only under unusual and
 serious circumstances, such as the file having been deleted during
-the compilation.  This is a subroutine (instead of just an fopen call)
-so that any necessary system-specific code can be inserted.
+the compilation.  *unicode_source_kind is set to indicate
+the Unicode encoding form for the file, or usk_none if the file is not
+Unicode.
 */
 {
   FILE	*temp_file;
 
   temp_file = fopen(file_name, FOPEN_MODE_FOR_READ);
+  *unicode_source_kind = usk_none;
 #if UNICODE_SOURCE_SUPPORTED
   /* If the file contains a byte order mark, advance past it. */
   if (temp_file != NULL && check_for_byte_order_mark) {
-    a_unicode_source_kind unicode_source_kind;
-    do_check_for_byte_order_mark(temp_file, &unicode_source_kind, file_name);
+    do_check_for_byte_order_mark(temp_file, unicode_source_kind, file_name);
   }  /* if */
 #endif /* UNICODE_SOURCE_SUPPORTED */
   return temp_file;
@@ -3367,6 +3369,136 @@ appropriate for error recovery.
 }  /* mbc_to_wide_char */
 
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
+#if UNICODE_SOURCE_SUPPORTED
+
+void clear_getc_source_state(a_getc_source_state   *state,
+                             a_unicode_source_kind ukind)
+/*
+Clear a state block used by getc_source.  ukind indicates the kind of
+Unicode characters in the file under scan, or usk_none if the file is
+not Unicode.
+*/
+{
+  state->count = 0;
+  state->unicode_source_kind = ukind;
+}  /* clear_getc_source_state */
+
+
+int getc_utf16(FILE                *file,
+               a_getc_source_state *state)
+/*
+Called from getc_source to fetch one character of UTF-16 input.  The
+stream of characters returned on successive calls is the UTF-8 version
+of the UTF-16 source.  file indicates the source file.  state is a pushback
+queue used to save characters so that they can be returned on subsequent
+calls of this routine.
+*/
+{
+  int ch;
+
+  if (state->count != 0) {
+    /* Return a character from the pushback queue. */
+    ch = state->chars[--state->count];
+  } else {
+    /* Read another UTF-16 character from the source file. */
+    int ch1, ch2;
+    unsigned long uc, uc2;
+    ch1 = getc(file);
+    if (ch1 == EOF) {
+      /* End of file encountered. */
+      ch = EOF;
+      goto have_ch;
+    }  /* if */
+    /* Get the second byte of the UTF-16 character. */
+    ch2 = getc(file);
+    if (ch2 == EOF) {
+      /* End of file encountered (weirdly, input doesn't have an even number
+         of bytes). */
+      ch = EOF;
+      goto have_ch;
+    }  /* if */
+    /* Assemble two bytes into one 16-bit character. */
+    ch1 = (unsigned char)ch1;
+    ch2 = (unsigned char)ch2;
+    if (state->unicode_source_kind == usk_utf16LE) {
+      /* Little-endian assembly. */
+      uc = (ch2 << 8) | ch1;
+    } else {
+      /* Big-endian assembly. */
+      uc = (ch1 << 8) | ch2;
+    }  /* if */
+    if (uc < 0xd800 || uc >= 0xe000) {
+      /* This is a single two-byte UTF-16 character. */
+    } else if (uc >= 0xd800 && uc <= 0xdbff) {
+      /* This is a first surrogate of a pair.  Fetch the second surrogate. */
+      ch1 = getc(file);
+      if (ch1 == EOF) {
+        /* End of file, second surrogate is missing. */
+        ch = EOF;
+        goto have_ch;
+      }  /* if */
+      ch2 = getc(file);
+      if (ch2 == EOF) {
+        /* End of file, second byte of second surrogate is missing. */
+        ch = EOF;
+        goto have_ch;
+      }  /* if */
+      /* Assemble two bytes into one 16-bit character for the
+         second surrogate. */
+      ch1 = (unsigned char)ch1;
+      ch2 = (unsigned char)ch2;
+      if (state->unicode_source_kind == usk_utf16LE) {
+        /* Little-endian assembly. */
+        uc2 = (ch2 << 8) | ch1;
+      } else {
+        /* Big-endian assembly. */
+        uc2 = (ch1 << 8) | ch2;
+      }  /* if */
+      if (uc2 < 0xdc00 || uc2 > 0xdfff) {
+        /* Bad second surrogate. */
+        uc = '?';
+      } else {
+        /* Combine the first and second surrogates into a single Unicode
+           character. */
+        uc = (((uc & 0x3ff) << 10) | (uc2 & 0x3ff)) + 0x10000;
+      }  /* if */
+    } else {
+      /* Invalid first surrogate (e.g., a second surrogate appears first). */
+      uc = '?';
+    }  /* if */
+    /* Now, uc is a single Unicode code point.  Encode it in one or more
+       characters as UTF-8.   The first byte indicates the number of bytes
+       (N bytes ==> for N==1, top bit is "0"; for N>1, top of byte is N "1"
+       bits followed by a "0"); bytes after the first have "10" at the top
+       and go into the pushback queue. */
+    if (uc <= 0x7f) {
+      /* One byte of UTF-8 is needed. */
+      ch = uc;
+    } else if (uc <= 0x7ff) {
+      /* Two bytes of UTF-8 are needed. */
+      state->chars[0] = (char)((uc & 0x3f) | 0x80);
+      state->count = 1;
+      ch = (uc >> 6) | 0xc0;
+    } else if (uc <= 0xffff) {
+      /* Three bytes of UTF-8 are needed. */
+      state->chars[0] = (char)((uc & 0x3f) | 0x80);
+      state->chars[1] = (char)(((uc >> 6) & 0x3f) | 0x80);
+      state->count = 2;
+      ch = (uc >> 12) | 0xe0;
+    } else {
+      /* Four bytes of UTF-8 are needed. */
+      state->chars[0] = (char)((uc & 0x3f) | 0x80);
+      state->chars[1] = (char)(((uc >> 6) & 0x3f) | 0x80);
+      state->chars[2] = (char)(((uc >> 12) & 0x3f) | 0x80);
+      state->count = 3;
+      ch = ((uc >> 18) & 0x7) | 0xf0;
+    }  /* if */
+  }  /* if */
+have_ch:
+  return ch;
+}  /* getc_utf16 */
+    
+#endif /* UNICODE_SOURCE_SUPPORTED */
 
 unsigned long extract_character_from_string(char          *str,
                                             unsigned int  char_size)

@@ -1733,8 +1733,14 @@ error_source_line for later use by diagnostic output functions.
   a_boolean         at_end_of_source;
   a_boolean         src_line_found = FALSE;
   int               ch;
-  register char     *loc_in_line;
+  char              *loc_in_line;
   char              *after_end_of_error_source_line_minus_2;
+  a_unicode_source_kind
+                    unicode_source_kind;
+#if UNICODE_SOURCE_SUPPORTED
+  a_getc_source_state
+                    source_state;
+#endif /* UNICODE_SOURCE_SUPPORTED */
 
   conv_seq_to_physical_file_and_line(seq_number, &src_file, &physical_line,
                                      &at_end_of_source);
@@ -1755,7 +1761,8 @@ error_source_line for later use by diagnostic output functions.
     /* Attempt to read the desired source line.  The source file should be
        readable unless it was deleted recently.  Fail softly if any problems
        arise. */
-    if ((f_err_src_file = reopen_source_file(src_file->full_name)) != NULL) {
+    if ((f_err_src_file = reopen_source_file(src_file->full_name,
+                                             &unicode_source_kind)) != NULL) {
       if (seek_position != 0) {
         if (fseek(f_err_src_file, seek_position, SEEK_SET) != 0) {
           /* The seek failed; fail softly and assume the source line is
@@ -1763,11 +1770,14 @@ error_source_line for later use by diagnostic output functions.
           goto close_file;
         }  /* if */
       }  /* if */
+#if UNICODE_SOURCE_SUPPORTED
+      clear_getc_source_state(&source_state, unicode_source_kind);
+#endif /* UNICODE_SOURCE_SUPPORTED */
       /* Skip over lines in the file to the position of the desired line. */
       for (skip_lines = physical_line - starting_line;
            skip_lines > 0;
            skip_lines--) {
-        while ((ch = getc(f_err_src_file)) != '\n') {
+        while ((ch = getc_source(f_err_src_file, source_state)) != '\n') {
           /* If the file has been changed under us, fail softly and assume
              the source line is not readable. */
           if (ch == EOF) goto close_file;
@@ -1788,7 +1798,7 @@ error_source_line for later use by diagnostic output functions.
       loc_in_line = error_source_line;
       after_end_of_error_source_line_minus_2 = after_end_of_error_source_line -
                                                2;
-      while ((ch = getc(f_err_src_file)) != '\n' &&
+      while ((ch = getc_source(f_err_src_file, source_state)) != '\n' &&
              ch != EOF) {
         if (loc_in_line == after_end_of_error_source_line_minus_2) {
           /* The buffer is not large enough for the current line. */

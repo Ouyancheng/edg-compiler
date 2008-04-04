@@ -402,6 +402,21 @@ static a_boolean
 			   be confused with the logical end of file variables
 			   like after_end_of_all_source. */
 
+#if UNICODE_SOURCE_SUPPORTED
+static a_getc_source_state
+		curr_file_getc_source_state;
+			/* State indication for getc_source for the current
+			   input file. */
+#endif /* UNICODE_SOURCE_SUPPORTED */
+
+/*
+getc-like macro that fetches a character from the current input file.
+Converts UTF-16 to UTF-8 in configurations that support that.
+*/
+#define getc_curr_input_stream() \
+  (getc_source(curr_input_stream, curr_file_getc_source_state))
+
+
 /*
 Variables related to the current source line (see lexical.h):
 */
@@ -4600,6 +4615,7 @@ used to find this file.
   curr_ise->unicode_source_kind = unicode_source_kind;
 #if UNICODE_SOURCE_SUPPORTED
   curr_file_unicode_source_kind = unicode_source_kind;
+  clear_getc_source_state(&curr_file_getc_source_state, unicode_source_kind);
   if (curr_file_unicode_source_kind != usk_none) {
     /* Scanning UTF-8 requires that multibyte support be turned on.  Once
        we see a file containing Unicode characters, we never turn the flag
@@ -4819,6 +4835,7 @@ at the next level down.
     curr_input_stream = NULL;
 #if UNICODE_SOURCE_SUPPORTED
     curr_file_unicode_source_kind = usk_none;
+    clear_getc_source_state(&curr_file_getc_source_state, usk_none);
 #endif /* UNICODE_SOURCE_SUPPORTED */
     if (!is_end_of_primary_source_file) {
       /* When a top-level implicitly included source file is popped,
@@ -4828,6 +4845,7 @@ at the next level down.
                                      /*system_include_dir=*/FALSE);
     }  /* if */
   } else {
+    a_unicode_source_kind     unicode_source_kind;
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
     an_input_stack_entry_ptr  prev_ise = curr_ise;
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
@@ -4842,9 +4860,12 @@ at the next level down.
 #endif /* DEBUG */
       /* This include file was closed on a push_input_stack to keep down
          the number of open files.  Re-open it and reposition it now. */
-      if ((curr_ise->file = reopen_source_file(curr_ise->full_name)) == NULL) {
+      if ((curr_ise->file = reopen_source_file(curr_ise->full_name,
+                                               &unicode_source_kind)) == NULL||
+          unicode_source_kind != curr_ise->unicode_source_kind){
         /* File could not be re-opened; it was probably deleted since the
-           compilation started. */
+           compilation started.  Or, the Unicode encoding changed since it was
+           last opened. */
         str_catastrophe(ec_source_file_could_not_be_opened,
                         curr_ise->full_name);
       }  /* if */
@@ -4854,18 +4875,12 @@ at the next level down.
         str_catastrophe(ec_source_file_could_not_be_opened,
                         curr_ise->full_name);
       }  /* if */
-#if __VMS__ && 0
-      /* This change was only necessary for some of the later 4.n versions
-	 of VMS, before a library bug was corrected. */
-      /* On VMS, ftell returns the position of the start of the previous
-         record (i.e., the line containing the #include), so advance to
-         the next record. */
-      while (fgetc(curr_ise->file) != '\n') {};
-#endif /* __VMS__ */
     }  /* if */
     curr_input_stream = curr_ise->file;
 #if UNICODE_SOURCE_SUPPORTED
     curr_file_unicode_source_kind = curr_ise->unicode_source_kind;
+    clear_getc_source_state(&curr_file_getc_source_state,
+                            curr_file_unicode_source_kind);
 #endif /* UNICODE_SOURCE_SUPPORTED */
     /* Indicate that we are resuming the processing of the specified
        file. */
@@ -4935,8 +4950,6 @@ at the next level down.
       a_source_file_ptr	sfp = prev_ise->assoc_actual_il_file;
       a_boolean		file_found;
       a_boolean		suppress_include;
-      a_unicode_source_kind
-                        unicode_source_kind;
       file_found = open_file_for_input(
                               sfp->name_as_written, /*use_search_path=*/TRUE,
                               /*is_include_file=*/TRUE,
@@ -5373,10 +5386,10 @@ Check for a following newline character.
 */
 {
   int ch;
-  ch = getc(curr_input_stream);
+  ch = getc_curr_input_stream();
   if (is_eof_char(ch)) {
     /* The look-ahead encountered the end of file.  Record this for
-       processing when this routine is called for the next line. */
+       processing when the next line is read. */
     eof_read_on_curr_input_stream = TRUE;
   } else if (ch != '\n') {
     /* The following character is not a newline.  Unget it so that it will
@@ -5384,6 +5397,12 @@ Check for a following newline character.
     int	ungetc_result;
     ungetc_result = ungetc(ch, curr_input_stream);
     check_assertion(ungetc_result != EOF);
+#if UNICODE_SOURCE_SUPPORTED
+    /* We'd have to do an ungetc version of getc_source to support this
+       feature with UTF-16. */
+ #error -- ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR not allowed \
+           when UNICODE_SOURCE_SUPPORTED is TRUE
+#endif /* UNICODE_SOURCE_SUPPORTED */
   }  /* if */
 }  /* process_gnu_carriage_return */
 
@@ -5475,7 +5494,7 @@ for the GNU C multiline string extension.
      where the previous call of this routine read an incomplete last
      line; this call needs to return the end of file indication). */
   while (eof_read_on_curr_input_stream ||
-         (ch = getc(curr_input_stream), is_eof_char(ch))) {
+         (ch = getc_curr_input_stream(), is_eof_char(ch))) {
     /* End of file encountered in the expected way, i.e., before a line
        has started. */
     eof_read_on_curr_input_stream = TRUE;
@@ -5608,7 +5627,7 @@ for the GNU C multiline string extension.
         /* Put the character into curr_source_line. */
         *local_loc_in_line++ = (char)local_ch;
         /* Get next character, check for end of file without newline. */
-        if (local_ch = getc(curr_input_stream), is_eof_char(local_ch)) {
+        if (local_ch = getc_curr_input_stream(), is_eof_char(local_ch)) {
           ch = local_ch;
           loc_in_line = local_loc_in_line;
           goto partial_final_line;
@@ -5863,7 +5882,7 @@ entry_for_possible_trigraph:
                                                 ) {
             int	orig_ch = ch;
             /* Get the next character, the one following the two "?"s. */
-            next_ch = getc(curr_input_stream);
+            next_ch = getc_curr_input_stream();
             /* Check for the possible third characters of trigraphs.  If one
                is found, replace the three characters by the new one.  If not,
                pass the "?" through, and trap the next character for processing
@@ -5952,7 +5971,7 @@ entry_for_expand_buffer:
         ch = next_ch;
         char_is_trapped = FALSE;
       } else {
-        ch = getc(curr_input_stream);
+        ch = getc_curr_input_stream();
       }  /* if */
       if (is_eof_char(ch)) goto partial_final_line;
     } while (ch != '\n');
@@ -6032,7 +6051,7 @@ entry_for_line_splice:
         olmp->variant.line_splice_seq_number = seq_number_last_read+1;
         /* Begin reading the next line.  It is an error if end of file is
            encountered. */
-        if (ch = getc(curr_input_stream), !is_eof_char(ch)) goto line_loop;
+        if (ch = getc_curr_input_stream(), !is_eof_char(ch)) goto line_loop;
         eof_read_on_curr_input_stream = TRUE;
         /* Backslash at end of last line in a file -- error. */
         finish_off_source_line_so_it_can_be_displayed_in_error();
@@ -6056,7 +6075,7 @@ entry_for_extend_current_line:
   }  /* if */
   loc_in_line = curr_char_loc;
   if (!eof_read_on_curr_input_stream &&
-      (ch = getc(curr_input_stream), !is_eof_char(ch))) goto line_loop;
+      (ch = getc_curr_input_stream(), !is_eof_char(ch))) goto line_loop;
   eof_read_on_curr_input_stream = TRUE;
   at_end_of_source_file = TRUE;
   goto add_newline_and_line_end_and_return;
@@ -9605,8 +9624,7 @@ id_scan:
                                            /*issue_diagnostics=*/TRUE);
           }  /* if */
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
-        } else if (multibyte_chars_in_source_enabled &&
-                   is_identifier_char(curr_char_loc, &numch)) {
+        } else if (is_identifier_char(curr_char_loc, &numch)) {
           /* A multibyte character that is valid as an identifier character.
              Note that for an invalid multibyte character is_identifier_char
              returns FALSE, which makes us drop out of the loop and treat the
@@ -16052,6 +16070,7 @@ done to determine whether a precompiled header may be used.
   curr_ise = NULL;
 #if UNICODE_SOURCE_SUPPORTED
   curr_file_unicode_source_kind = usk_none;
+  clear_getc_source_state(&curr_file_getc_source_state, usk_none);
 #endif /* UNICODE_SOURCE_SUPPORTED */
   if (is_primary_translation_unit) {
     /* These must be reset here after the PCH prefix has been read. */

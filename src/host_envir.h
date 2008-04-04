@@ -1896,6 +1896,7 @@ typedef enum a_unicode_source_kind_tag {
   usk_utf8,		/* Source is UTF-8 encoded. */
   usk_utf16LE,		/* Source is UTF-16 encoded, little-endian. */
   usk_utf16BE		/* Source is UTF-16 encoded, big-endian. */
+  /* NOTE: getc_source requires that the UTF-16 codes be at the end. */
 } a_unicode_source_kind;
 
 /*
@@ -2157,6 +2158,33 @@ Locale to set when multibyte characters are enabled in source code.
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
 
 #if UNICODE_SOURCE_SUPPORTED
+/* Data structure used by getc_source and getc_utf16 to hold characters
+   queued up as source characters (because a UTF-16 sequence maps into
+   multiple UTF-8 characters). */
+typedef struct {
+  char		chars[5];
+			/* Characters queued up.  chars[count-1] is the next
+			   one to be returned, then chars[count-2], etc. */
+  int		count;
+			/* Count of characters queued up. */
+  a_unicode_source_kind
+		unicode_source_kind;
+			/* The kind of Unicode source characters in the
+			   input file. */
+} a_getc_source_state;
+
+extern void clear_getc_source_state(a_getc_source_state   *state,
+                                    a_unicode_source_kind ukind);
+extern int getc_utf16(FILE                *file,
+                      a_getc_source_state *state);
+
+/* getc-like macro that fetches the next character from a source file
+   (and deals with converting UTF-16). */
+#define getc_source(file, state) \
+  (((int)(state).unicode_source_kind < (int)usk_utf16LE) ? \
+    getc((file)) : \
+    getc_utf16((file), &(state)))
+
 /* Special versions of mbc_length and mbc_to_wide_char for use in the lexical
    routines.  These consult the current setting of
    curr_file_unicode_source_kind to see if the current input is UTF-8 or
@@ -2176,6 +2204,8 @@ Locale to set when multibyte characters are enabled in source code.
     mbc_to_wide_char((mb), (wc), (err)) : \
     (*(wc) = *(mb), *(err) = FALSE, 1))
 #else /*!UNICODE_SOURCE_SUPPORTED */
+#define getc_source(file, state) (getc(file))
+
 /* There is no multibyte character support, or it's for something other than
    UTF-8.  The "lex" routines just go to the normal routines. */
 #define lex_mbc_length(ptr, err) mbc_length((ptr), (err))
@@ -2483,7 +2513,8 @@ extern FILE *open_source_file(char                  *file_name,
                               a_boolean             *bad_name,
                               a_unicode_source_kind *unicode_source_kind);
 /* Reopen a source file. */
-extern FILE *reopen_source_file(char *file_name);
+extern FILE *reopen_source_file(char                  *file_name,
+                                a_unicode_source_kind *unicode_source_kind);
 /* Open an output file. */
 extern FILE *open_output_file(char          *file_name,
                               a_boolean     binary_file,
