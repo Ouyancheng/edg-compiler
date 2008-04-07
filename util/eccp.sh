@@ -1480,6 +1480,7 @@ process_option()
 	  --upc_threads=* | \
           --definition_list_file=* | \
           --pack_alignment=* | \
+          --unicode_source_kind=* | \
           --default_calling_convention=*)
       feoptions=$feoptions" $curr_arg"
 #     See if an instantiation mode was specified
