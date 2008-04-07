@@ -6372,6 +6372,7 @@ implement <stdarg.h>, a standard feature.
       alignof_value = field_alignment_for(alignof_type);
     } else
 #endif /* GNU_EXTENSIONS_ALLOWED && TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES */
+    /* Do not insert code here. */
     {
       alignof_value = alignment_of_type(alignof_type);
     }  /* if */

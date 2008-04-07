@@ -1,5 +1,23 @@
 Version 3.11
 
+4/7/08   GNU compatibility: Field alignment of complex types
+
+When TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES is set to TRUE, a built-in type may
+have one "normal" or "intrinsic" alignment used when laying out complete object
+of that type, and another "field" alignment used when laying out a field of
+that same type.  (See Changes entry of 10/7/02.)
+Previously, the front end failed to consider the "field" alignment for fields
+of complex (or imaginary) type.  For example:
+
+  struct S {
+    char i;
+    _Complex double z;  // Double may have "intrinsic" alignment 8, and
+  };                    // "field" alignment 4.
+
+In a configuration where "double" has an "intrinsic" alignment of 8, and a
+"field" alignment of 4, S previously had size 24.  Now it will have size 20,
+which matches the behavior of GCC.
+
 4/4/08   Spurious constructor template parsing errors
 
 The front end previously did not accept constructor template declarations

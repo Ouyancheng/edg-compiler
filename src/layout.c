@@ -223,6 +223,10 @@ Return the field alignment for the given type.
       result = int_field_alignments[type->variant.integer.int_kind];
       break;
     case tk_float:
+#if C99_IL_EXTENSIONS_SUPPORTED
+    case tk_imaginary:
+    case tk_complex:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
       result = float_field_alignments[type->variant.float_kind];
       break;
     case tk_typeref:
