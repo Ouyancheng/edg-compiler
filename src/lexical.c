@@ -8019,8 +8019,7 @@ The token can be a normal or wide string literal.
                           character_kind, '"')
 #if GNU_EXTENSIONS_ALLOWED
       /* GNU C and C++ versions prior to 3.3 permit a string literal to extend
-         over multiple lines.  We also accept it for later versions as an
-         extension. */
+         over multiple lines. */
       && (!(gnu_mode && gnu_version < 30300) ||
           curr_command_line_macro_def != NULL ||
           !scan_multiline_string(&num_chars, character_kind))
