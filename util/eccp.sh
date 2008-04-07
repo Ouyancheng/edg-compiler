@@ -1315,7 +1315,6 @@ process_option()
          --unsigned_bit_fields | \
          --check_concatenations | \
          --no_check_concatenations | \
-         --unicode_source_kind | \
          --force_vtbl)
       feoptions=$feoptions" $curr_arg"
 #     Options that require additional processing
@@ -1406,6 +1405,7 @@ process_option()
          --clear_flag | \
 	 --upc_threads | \
          --pack_alignment | \
+         --unicode_source_kind | \
          --default_calling_convention)
       feoptions=$feoptions" $curr_arg $curr_param"
       used_two_params=1
