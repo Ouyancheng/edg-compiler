@@ -1719,6 +1719,8 @@ ec_function_qualifier_on_ctor_or_dtor;;"a type qualifier is not allowed on a con
 ec_function_qualifier_on_new_or_delete;;"a type qualifier is not allowed on operator new or operator delete"
 ec_function_qualifier_on_nonmember;;"a type qualifier is not allowed on a nonmember function"
 ec_assume_expression_discarded;;"__assume expression with side effects discarded"
+ec_cl_unrecognized_unicode_source_kind;;"unrecognized Unicode source kind (must be one of UTF-8, UTF-16, UTF-16LE, UTF-16BE): "
+ec_bad_unicode_char_in_pp_output;;"Unicode character with hex value %s not representable in preprocessing output"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

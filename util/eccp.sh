@@ -799,6 +799,7 @@ check_abbreviation()
 --typename
 --uliterals
 --undefine_macro
+--unicode_source_kind
 --unsigned_bit_fields
 --unsigned_chars
 --upc
@@ -1314,6 +1315,7 @@ process_option()
          --unsigned_bit_fields | \
          --check_concatenations | \
          --no_check_concatenations | \
+         --unicode_source_kind | \
          --force_vtbl)
       feoptions=$feoptions" $curr_arg"
 #     Options that require additional processing

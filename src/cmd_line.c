@@ -1188,6 +1188,12 @@ Initialize the option information table.
   add_option_description(optk_check_concatenations, "no_check_concatenations",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+#if UNICODE_SOURCE_SUPPORTED
+  add_option_description(optk_unicode_source_kind,
+                         "unicode_source_kind",
+                         '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
+                         pchek_command_line);
+#endif /* UNICODE_SOURCE_SUPPORTED */
 }  /* initialize_option_descriptions */
 
 
@@ -4379,6 +4385,8 @@ file.
 #else /* !defined(DEFAULT_ULITERALS_ENABLED) */
   comment_undefined_macro_name(DEFAULT_ULITERALS_ENABLED);
 #endif /* defined(DEFAULT_ULITERALS_ENABLED) */
+/* DEFAULT_UNICODE_SOURCE_KIND has an enumeration value, which is not
+   easily displayed. */
 #if defined(DEFAULT_UPC_MODE)
   define_numeric_valued_macro(DEFAULT_UPC_MODE);
 #else /* !defined(DEFAULT_UPC_MODE) */
@@ -7668,6 +7676,24 @@ enable_microsoft_mode:
       case optk_check_concatenations:
         check_concatenations = opt_value;
         break;
+#if UNICODE_SOURCE_SUPPORTED
+      case optk_unicode_source_kind:
+        /* Specify default Unicode source kind. */
+        if (strcmp(opt_arg, "UTF-8") == 0) {
+          default_unicode_source_kind = usk_utf8;
+        } else if (strcmp(opt_arg, "UTF-16") == 0) {
+          default_unicode_source_kind = host_little_endian ? usk_utf16LE :
+                                                             usk_utf16BE;
+        } else if (strcmp(opt_arg, "UTF-16LE") == 0) {
+          default_unicode_source_kind = usk_utf16LE;
+        } else if (strcmp(opt_arg, "UTF-16BE") == 0) {
+          default_unicode_source_kind = usk_utf16BE;
+        } else {
+          str_command_line_error(ec_cl_unrecognized_unicode_source_kind,
+                                 opt_arg);
+        }  /* if */
+        break;
+#endif /* UNICODE_SOURCE_SUPPORTED */
       default:
         /* It should not be possible to get here. */
         unexpected_condition();

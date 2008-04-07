@@ -261,6 +261,9 @@ typedef enum /*an_option_kind*/ {
   optk_signed_bit_fields,
   optk_unsigned_bit_fields,
   optk_check_concatenations,
+#if UNICODE_SOURCE_SUPPORTED
+  optk_unicode_source_kind,
+#endif /* UNICODE_SOURCE_SUPPORTED */
   optk_last		/* Must be last. */
 } an_option_kind;
 

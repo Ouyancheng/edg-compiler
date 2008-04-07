@@ -1889,17 +1889,6 @@ which controls whether null (zero) characters are allowed in source lines.
 #endif /* DEFAULT_NULL_CHARS_ALLOWED_IN_SOURCE */
 
 /*
-Indication of the kind of Unicode encoding being used for a source file.
-*/
-typedef enum a_unicode_source_kind_tag {
-  usk_none,		/* Source is not Unicode. */
-  usk_utf8,		/* Source is UTF-8 encoded. */
-  usk_utf16LE,		/* Source is UTF-16 encoded, little-endian. */
-  usk_utf16BE		/* Source is UTF-16 encoded, big-endian. */
-  /* NOTE: getc_source requires that the UTF-16 codes be at the end. */
-} a_unicode_source_kind;
-
-/*
 Flag that is TRUE if UTF-8 and UTF-16 encodings of Unicode should be accepted
 in source code.  Note that if you set this the representation for identifiers
 and file names becomes UTF-8, which may require back end or host-interface
@@ -1911,6 +1900,34 @@ changes.
 #else /* !__MICROSOFT_OS__ */
 #define UNICODE_SOURCE_SUPPORTED FALSE
 #endif /* __MICROSOFT_OS__ */
+#endif /* UNICODE_SOURCE_SUPPORTED */
+
+/*
+Indication of the kind of Unicode encoding being used for a source file.
+*/
+typedef enum a_unicode_source_kind_tag {
+  usk_none,		/* Source is not Unicode. */
+  usk_utf8,		/* Source is UTF-8 encoded. */
+  usk_utf16LE,		/* Source is UTF-16 encoded, little-endian. */
+  usk_utf16BE		/* Source is UTF-16 encoded, big-endian. */
+  /* NOTE: getc_source requires that the UTF-16 codes be at the end. */
+} a_unicode_source_kind;
+
+#if UNICODE_SOURCE_SUPPORTED
+/*
+The kind of Unicode encoding to be assumed for a source file that has
+no initial byte order mark.  usk_none means assume such a file is not
+Unicode.  MSVC compatibility requires usk_none.
+*/
+#ifndef DEFAULT_UNICODE_SOURCE_KIND
+#define DEFAULT_UNICODE_SOURCE_KIND usk_none
+#endif /* DEFAULT_UNICODE_SOURCE_KIND */
+
+EXTERN a_unicode_source_kind
+		default_unicode_source_kind;
+			/* The kind of Unicode encoding to be assumed for a
+			   source file that has no initial byte order mark.
+			   usk_none means assume such a file is not Unicode. */
 #endif /* UNICODE_SOURCE_SUPPORTED */
 
 /*

@@ -66,6 +66,8 @@ This version is for the Apple MacOS X operating system.
 #define MICROSOFT_EXTENSIONS_ALLOWED 0
 #endif /* ifndef MICROSOFT_EXTENSIONS_ALLOWED */
 #define LONG_LONG_ALLOWED 1
+#define UNICODE_SOURCE_SUPPORTED 1
+#define DEFAULT_UNICODE_SOURCE_KIND usk_utf8
 
 
 /* ABI selection. */

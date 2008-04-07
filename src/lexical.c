@@ -2793,6 +2793,17 @@ is TRUE.
            a_source_line_modif_ptr ins_slmp;
            char                    prev_ch;
            a_boolean               token_start;
+#if UNICODE_SOURCE_SUPPORTED
+  /* Determine whether the Unicode encoding of the current file matches the
+     default, which is the format used for the preprocessing output.
+     If not, we'll have to do some processing on the characters being
+     output.  Note that we're testing the default macro here, not the
+     variable, because we don't want the type of output to change based
+     on a command-line option. */
+  a_boolean encoding_change_needed =
+                                ((curr_file_unicode_source_kind != usk_none) !=
+                                 (DEFAULT_UNICODE_SOURCE_KIND != usk_none));
+#endif /* UNICODE_SOURCE_SUPPORTED */
 
   /* do_not_put_curr_line_in_pp_output is TRUE if there is no current
      source line (as at the start of source), or if the line should not
@@ -2844,6 +2855,9 @@ is TRUE.
        must be constructed by using the information in
        source_line_modif_list. */
     if (source_line_modif_list == NULL &&
+#if UNICODE_SOURCE_SUPPORTED
+        !encoding_change_needed &&
+#endif /* UNICODE_SOURCE_SUPPORTED */
         /* If there might be null (zero) characters in the line, do the
            expensive processing. */
         (!null_chars_allowed_in_source ||
@@ -2873,6 +2887,9 @@ is TRUE.
       /* Construct the preprocessing output from the source line and the
          list of modifications.  Start at the beginning, and scan through
          characters, processing escapes appropriately. */
+#if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
+      int remaining_mbc_len = 0;
+#endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
       /* The logic here is very similar to that in
          gen_expanded_raw_listing_output_for_curr_line.  If you change
          this routine, change the other too. */
@@ -2944,10 +2961,58 @@ is TRUE.
           }  /* if */
         } else {
           /* Normal character. */
-          /* Output a blank to separate the character from the previous
-             character if necessary to prevent tokenizing confusion. */
-          token_separator_blank_if_needed(ch, prev_ch, token_start,
-                                          putc(' ', f_pp_output));
+#if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
+          if (remaining_mbc_len > 0) {
+            /* A character after the first in a multibyte character.  No
+               separating blank is possible or desirable. */
+            remaining_mbc_len--;
+            token_start = FALSE;
+          } else if (multibyte_chars_in_source_enabled &&
+                     (remaining_mbc_len =
+                                 lex_mbc_length_simple(loc_in_line) - 1) > 0) {
+            /* The character is the start of a multibyte character string.
+               We assume no separating blank is needed. */
+            token_start = FALSE;
+#if UNICODE_SOURCE_SUPPORTED
+            if (encoding_change_needed) {
+              /* Change a UTF-8 character to a single character because we're
+                 outputting non-Unicode.  Give a warning if the character does
+                 not fit. */
+              unsigned long wc;
+              (void)mbc_to_wide_char(loc_in_line, &wc, (a_boolean *)NULL);
+              if (wc <= UCHAR_MAX) {
+                /* The code point can be represented in a single Latin-1
+                   character. */
+                ch = (char)(unsigned char)wc;
+              } else {
+                /* The code point doesn't fit in a single character. */
+                char buf[30];
+                (void)sprintf(buf, "%lx", wc);
+                conv_line_loc_to_source_pos(loc_in_line, &error_position);
+                str_warning(ec_bad_unicode_char_in_pp_output, buf);
+                ch = '?';
+              }  /* if */
+              loc_in_line += remaining_mbc_len;
+              remaining_mbc_len = 0;
+            }  /* if */
+          } else if (encoding_change_needed &&
+                     (unsigned char)ch > 0x7f &&
+                     curr_file_unicode_source_kind == usk_none) {
+            /* Change a non-Unicode character with value > 7f to two bytes
+               of UTF-8. */
+            char ch1 = (char)(((unsigned char)ch >> 6) | 0xc0);
+            putc(ch1, f_pp_output);
+            ch = (char)((ch & 0x3f) | 0x80);
+#endif /* UNICODE_SOURCE_SUPPORTED */
+          } else
+#endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
+          /* Do not insert code here. */
+          {
+            /* Output a blank to separate the character from the previous
+               character if necessary to prevent tokenizing confusion. */
+            token_separator_blank_if_needed(ch, prev_ch, token_start,
+                                            putc(' ', f_pp_output));
+          }  /* if */
           /* Output the character. */
           putc(ch, f_pp_output);
           prev_pp_output_line_was_complete = FALSE;
@@ -3171,6 +3236,9 @@ the calls to this routine.
   } else {
     /* The logic here is very similar to that in gen_pp_output_for_curr_line.
        If you change this routine, change the other too. */
+#if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
+    int remaining_mbc_len = 0;
+#endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
     if (do_inserted_text) {
       /* Do the text inserted at the front of the source line. */
       slmp = line_start_source_line_modif;
@@ -3244,10 +3312,27 @@ the calls to this routine.
         }  /* if */
       } else {
         /* Normal character. */
-        /* Output a blank to separate the character from the previous
-           character if necessary to prevent tokenizing confusion. */
-        token_separator_blank_if_needed(ch, prev_ch, token_start,
-                                        add_char_to_raw_listing_buffer(' '));
+#if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
+        if (remaining_mbc_len > 0) {
+          /* A character after the first in a multibyte character.  No
+             separating blank is possible or desirable. */
+          remaining_mbc_len--;
+          token_start = FALSE;
+        } else if (multibyte_chars_in_source_enabled &&
+                   (remaining_mbc_len =
+                                 lex_mbc_length_simple(loc_in_line) - 1) > 0) {
+          /* The character is the start of a multibyte character string.
+             We assume no separating blank is needed. */
+          token_start = FALSE;
+        } else
+#endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
+        /* Do not insert code here. */
+        {
+          /* Output a blank to separate the character from the previous
+             character if necessary to prevent tokenizing confusion. */
+          token_separator_blank_if_needed(ch, prev_ch, token_start,
+                                          add_char_to_raw_listing_buffer(' '));
+        }  /* if */
         /* Output the character. */
         add_char_to_raw_listing_buffer(ch);
         loc_in_line++;

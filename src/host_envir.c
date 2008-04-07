@@ -1172,8 +1172,9 @@ static void do_check_for_byte_order_mark(
 /*
 We are at the start of a source file.  See if the f_file begins with a
 byte order mark and return *unicode_source_kind set appropriately
-(to usk_none if there is no byte order mark).  file_name is the name of
-the file, which is used for diagnostic purposes.
+to indicate the kind of encoding used in the file.  Use the value of
+default_unicode_source_kind if there is no byte order mark.  file_name
+is the name of the file, which is used for diagnostic purposes.
 */
 {
   int		ch;
@@ -1184,7 +1185,7 @@ the file, which is used for diagnostic purposes.
        FF FE      UTF-16 little-endian
        FE FF      UTF-16 big-endian
   */
-  *unicode_source_kind = usk_none;
+  *unicode_source_kind = default_unicode_source_kind;
   ch = getc(f_file);
   is_eof = is_eof_char(ch);
   if (!is_eof &&
@@ -3944,6 +3945,7 @@ This is done before command line processing.
 	  sizeof(predef_macro_mode_values));
 #if UNICODE_SOURCE_SUPPORTED
   check_for_byte_order_mark = DEFAULT_CHECK_FOR_BYTE_ORDER_MARK;
+  default_unicode_source_kind = DEFAULT_UNICODE_SOURCE_KIND;
 #endif /* UNICODE_SOURCE_SUPPORTED */
 #if MAKE_FRONT_END_CALLABLE
   exit_status = 0;
