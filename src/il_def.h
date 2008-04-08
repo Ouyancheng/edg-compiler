@@ -10986,9 +10986,6 @@ typedef struct a_switch_case_entry {
 			/* The position of the case value. */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position
-		keyword_position;
-			/* The position of the "case" or "default" keyword. */
-  a_source_position
 		colon_position;
 			/* The position of the colon token. */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */

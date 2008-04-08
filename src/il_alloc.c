@@ -2837,7 +2837,6 @@ values, and return a pointer to it.
   entry->next_on_sorted_list = NULL;
   entry->position = null_source_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  entry->keyword_position = null_source_position;
   entry->colon_position = null_source_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #if DEBUG

@@ -5814,7 +5814,6 @@ GNU also allows the "case range" form:
 #endif /* GNU_EXTENSIONS_ALLOWED */
     scep->position = constant_ptr->source_corresp.decl_position,
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-    scep->keyword_position = case_position;
     scep->colon_position = pos_curr_token;
     sp->end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -5869,7 +5868,6 @@ Scan a default case label definition.  The syntax is:
     sp->variant.switch_case.extra_info = scep;
     scep->position = label_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-    scep->keyword_position = label_position;
     scep->colon_position = pos_curr_token;
     sp->end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
