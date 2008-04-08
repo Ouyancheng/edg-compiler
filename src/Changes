@@ -1,5 +1,24 @@
 Version 3.11
 
+4/8/08   GNU C mode abort on invalid initialization with compound literal
+
+In GNU C mode, the front end sometimes silently created invalid IL for an
+aggregate initialization containing a compound literal.  This in turn triggered
+an assertion failure ("constant, but no field") in dump_initializer_part
+(c_gen_be.c).  The problematic cases involve a field of an empty struct type.
+For example:
+
+  typedef struct { } R;
+  typedef struct { R r; } S;  // Field r of empty struct type R.
+  S s = { (S){{}} };          // Previously triggered an abort in the
+                              // C-generating back end.
+
+Such cases are normally errors (because the type of the compound literal does
+not match the type of the field it corresponds to), but GCC treats the invalid
+initializer as an "excess initializer" and discards it with a warning.  We now
+emulate that behavior (the resulting IL is now valid, and no abort is triggered
+in the C-generating back end).
+
 4/7/08   GNU compatibility: Field alignment of complex types
 
 When TARG_DUAL_ALIGNMENTS_FOR_BUILTIN_TYPES is set to TRUE, a built-in type may
@@ -92,21 +111,6 @@ defined with the keyword "__interface".  For example:
 Our behavior differs slightly from that of Microsoft's compilers in that the
 latter require that in cases like these the definition specify IUnknown as a
 base class.
-
-3/25/08  GNU C mode abort on invalid initialization with compound literal
-
-In GNU C mode, the front end sometimes failed to diagnose an invalid
-aggregate initialization containing a compound literal.  The resulting
-invalid IL triggered an assertion failure ("constant, but no field") in
-dump_initializer_part (c_gen_be.c).  For example:
-
-  typedef struct { } R;
-  typedef struct { R r; } S;
-  S s = { (S){{}} };  // Previously triggered an abort in the
-                      // C-generating back end.
-
-This is now fixed: An error is now issued on such cases (gcc accepts the
-case with a warning, and discards the initializer).
 
 3/25/08  Internal error on null character at end of string in Microsoft mode
 

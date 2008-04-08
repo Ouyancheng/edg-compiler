@@ -20872,7 +20872,7 @@ string initializers.
   an_operand          result;
   an_expr_stack_entry expr_stack_entry;
   a_boolean           okay = TRUE, ambiguous;
-  a_boolean           string_case = FALSE;
+  a_boolean           string_case = FALSE, empty_aggregate = FALSE;
   a_conv_descr        conversion;
   an_expression_kind  expr_kind;
 
@@ -20903,16 +20903,21 @@ string initializers.
      right level is found or until we can go no further. */
   for (;;) {
     if (is_class_struct_union_type(required_type) &&
-        (c99_mode || gcc_mode ||
+        (C_mode() ||
          symbol_supplement_for_class(required_type)->is_class_aggregate)) {
       a_field_ptr first_field = next_initializable_field(
                                     skip_typerefs(required_type)->
                                         variant.class_struct_union.field_list);
-      /* Stop looping if the aggregate class has no members. */
-      if (first_field == NULL) goto required_type_determined;
+      if (first_field == NULL) {
+        /* Stop looping if the aggregate class has no members.  This is
+           normally an error, but GNU C treats it as an "excess initializer"
+           (which only elicits a warning). */
+        empty_aggregate = TRUE;
+        goto required_type_determined;
+      }  /* if */
       /* See whether the expression can be converted to the aggregate class
          type. */
-      if (c99_mode ?
+      if (C_mode() ?
             types_are_compatible_ignoring_qualifiers(result.type,
                                                      required_type) :
             (conversion_to_class_possible(&result,
@@ -20988,10 +20993,25 @@ required_type_determined:
       *is_constant = TRUE;
     } else if (gcc_mode && is_an_rvalue(&result) &&
                result.kind == (an_operand_kind)ok_constant &&
-               types_are_compatible_ignoring_qualifiers(result.type,
-                                                        required_type)) {
-      /* In GNU C mode, compound literals can be constant-expressions. */
-      copy_constant(&result.variant.constant, constant);
+               (types_are_compatible_ignoring_qualifiers(result.type,
+                                                         required_type) ||
+                empty_aggregate)) {
+      /* In GNU C mode, compound literals can be constant-expressions.  We
+         may also get here with empty aggregates.  E.g.:
+            struct E {};
+            struct S { struct E e; } s = { 1 };
+         The excess initializer is ignored in such cases.  This is true even
+         with the following variant:
+            struct S { struct E e; int i; } s = { 1 };
+         The expression "1" is ignored as an excess initializer for field e. */
+      if (empty_aggregate) {
+        /* An excess initializer for an empty aggregate. */
+        pos_warning(ec_excess_initializers_ignored, &result.position);
+        clear_constant(constant, (a_constant_repr_kind)ck_aggregate);
+        constant->type = required_type;
+      } else {
+        copy_constant(&result.variant.constant, constant);
+      }  /* if */
       *is_constant = TRUE;
     } else {
       /* Build a dynamic initialization entry to describe the initialization.
