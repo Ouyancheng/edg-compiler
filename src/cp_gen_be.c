@@ -10104,11 +10104,9 @@ Generate the case or default label represented by the indicated statement.
 
   if (scep->case_value == NULL) {
     /* The default case. */
-    set_output_position_for_stmt(&scep->position);
     write_tok_str("default: ");
   } else {
     /* Regular (non-default) case or GNU case range. */
-    set_output_position(&scep->position);
     write_tok_str("case ");
     gen_constant(scep->case_value, /*need_parens=*/FALSE);
 #if GNU_EXTENSIONS_ALLOWED
