@@ -1,5 +1,18 @@
 Version 3.11
 
+4/8/08   Invalid access to variant field of a_routine on redeclaration of
+         a function that drops an exception specification
+
+When a function with an exception specification was redeclared without that
+exception specification, the front end read an invalid variant (union) field
+of the associated a_routine entry.
+
+  void f() throw();
+  void f();
+
+This is now fixed.  (This was unlikely to have any effect on the front end
+behavior, but it was reported by some analysis tools.)
+
 4/8/08   GNU C mode abort on invalid initialization with compound literal
 
 In GNU C mode, the front end sometimes silently created invalid IL for an

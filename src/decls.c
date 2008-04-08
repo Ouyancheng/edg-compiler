@@ -1151,6 +1151,7 @@ consistent with that of the previous declaration.
          current declaration (it must have been present on the previous
          one). */
       if (is_redecl && rp != NULL && !rp->source_corresp.is_class_member &&
+          rp->special_kind == sfk_operator &&
           (is_new_operator(rp->variant.opname_kind) ||
            is_delete_operator(rp->variant.opname_kind))) {
         /* Unless we are in strict mode, issue a warning instead of an error
