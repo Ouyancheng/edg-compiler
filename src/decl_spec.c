@@ -2590,7 +2590,7 @@ it returns FALSE.
 {
   a_boolean  result = FALSE;
 
-  if ((gpp_mode && gnu_version < 30400) || microsoft_mode) {
+  if (gpp_mode || microsoft_mode) {
     /* The proxy class test below is to prevent "struct T::X {}" from being
        allowed. */
     if (innermost_function_scope == NULL &&
@@ -2599,7 +2599,8 @@ it returns FALSE.
         !is_proxy_class(type_symbol_type(sym))) {
       /* Check that the current scope encloses sym (not required for earlier
          Microsoft versions). */
-      if (microsoft_bugs && microsoft_version < 1400) {
+      if ((microsoft_bugs && microsoft_version < 1400) ||
+          (gpp_mode && gnu_version < 30300)) {
         result = TRUE;
       } else {
         a_symbol_ptr  curr_class_sym =
@@ -2911,7 +2912,7 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
     *declares_something = TRUE;
     check_assertion(!vacuous_decl_allowed || !is_friend_decl);
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED
-    if (((gpp_mode && gnu_version < 30400) || (microsoft_mode && !C_mode())) &&
+    if ((gpp_mode || (microsoft_mode && !C_mode())) &&
         innermost_function_scope == NULL && !is_explicit_instantiation &&
         !scope_stack[curr_deferred_access_scope].defer_access_checks) {
       /* In GNU and Microsoft modes, the possibility of delayed nested class

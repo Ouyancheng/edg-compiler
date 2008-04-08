@@ -1,5 +1,26 @@
 Version 3.11
 
+4/8/08   GNU versions for delayed nested class definitions in class scopes
+
+The Changes entry of 1/26/06 describes how the front end accepts delayed
+nested class definitions in GNU C++ mode when gnu_version < 30400.  However,
+later versions of the GNU C++ compiler also accept such constructs.  The front
+end has therefore been updated to allow delayed nested class definitions in
+GNU C++ mode for all values of gnu_version.  Furthermore, when gnu_version is
+less than 30300, it is not required that the delayed definition appear in a
+parent class of the class being defined.  For example:
+
+  struct A {
+    struct B {
+      struct C1;
+      struct C2;
+    };
+    struct B::C1 {};  // Now accepted for all values of gnu_version.
+  };
+  struct X {
+    struct A::B::C2 {};  // Accepted in GNU mode when gnu_version < 30300.
+  };
+
 4/8/08   Invalid access to variant field of a_routine on redeclaration of
          a function that drops an exception specification
 
