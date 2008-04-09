@@ -1628,11 +1628,9 @@ Scan a function definition.  The declarator has already been scanned; the
 old-style parameter declarations and the compound statement for the body are
 still to come.  *locator is the locator to be used to enter the function
 symbol; *dps describes various properties of the declaration, including the
-type for the function (which, in C++, can be qualified -- hence the use of
-local variable unqualified_rout_type where appropriate in this routine);
-*func_info contains information about parameters, as well as field
-function_type_from_typedef (when it is FALSE, the function type came from the
-declarator; when it is TRUE an error is reported).
+type for the function; *func_info contains information about parameters, as
+well as field function_type_from_typedef (when it is FALSE, the function type
+came from the declarator; when it is TRUE an error is reported).
 This function is also called in the case of a nondefining out-of-class
 member declaration (allowed in Microsoft mode only).
 */
