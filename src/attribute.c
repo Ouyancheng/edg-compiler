@@ -532,8 +532,10 @@ pointed to be "pos" can be freed when this routine returns.
     case ak_unused:
     case ak_used:
     case ak_deprecated:
+#if !GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
     case ak_constructor:
     case ak_destructor:
+#endif /* !GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
     case ak_noreturn:
     case ak_volatile:
     case ak_pure:
@@ -581,6 +583,8 @@ pointed to be "pos" can be freed when this routine returns.
       break;
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
+    case ak_constructor:
+    case ak_destructor:
     case ak_init_priority:
       ap->variant.init_priority = 0;
       break;
@@ -616,8 +620,10 @@ Return a copy of the complete attribute list.
       case ak_unused:
       case ak_used:
       case ak_deprecated:
+#if !GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
       case ak_constructor:
       case ak_destructor:
+#endif /* !GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
       case ak_noreturn:
       case ak_volatile:
       case ak_pure:
@@ -672,6 +678,8 @@ Return a copy of the complete attribute list.
         break;
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
+      case ak_constructor:
+      case ak_destructor:
       case ak_init_priority:
         (*end)->variant.init_priority = attributes->variant.init_priority;
         break;
@@ -998,6 +1006,8 @@ that do take arguments.
       break;
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
+    case ak_constructor:
+    case ak_destructor:
     case ak_init_priority:
       { a_host_large_integer  priority;
         a_boolean             error_occurred;
@@ -1014,7 +1024,10 @@ that do take arguments.
           goto error;
         } else if (priority < 101) {
           /* Priorities 1 through 100 are reserved for internal use. */
-          pos_warning(ec_init_priority_reserved, &attribute->position);
+          pos_warning(attribute->kind == (an_attribute_kind)ak_init_priority ?
+                        ec_init_priority_reserved :
+                        ec_ctor_dtor_priority_reserved,
+                      &attribute->position);
         }  /* if */
         /* Remember the value. */
         attribute->variant.init_priority = priority;
@@ -1268,6 +1281,8 @@ function returns the address of the last attribute.
           case ak_visibility:
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
+          case ak_constructor:
+          case ak_destructor:
           case ak_init_priority:
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
           case ak_nonnull:
@@ -2095,12 +2110,22 @@ messages about any invalid attributes.
     switch (ap->kind) {
       case ak_constructor:
         rp->is_initialization_routine = TRUE;
+#if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
+        if (ap->variant.init_priority != 0) {
+          rp->ctor_priority = ap->variant.init_priority;
+        }  /* if */
+#endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
         /* Since the routine will be called at program start up, treat
            it as referenced. */
         referenced = TRUE;
         break;
       case ak_destructor:
         rp->is_finalization_routine = TRUE;
+#if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
+        if (ap->variant.init_priority != 0) {
+          rp->dtor_priority = ap->variant.init_priority;
+        }  /* if */
+#endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
         /* Since the routine will be called at program shut down, treat
            it as referenced. */
         referenced = TRUE;

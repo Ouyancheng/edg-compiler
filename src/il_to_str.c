@@ -4946,10 +4946,30 @@ Do the output in the way described by octl.
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
                                      ) {
     if (rout->is_initialization_routine) {
-      form_simple_attribute("__constructor__", &need_leading_space, octl);
+#if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
+      if (rout->ctor_priority != 0) {
+        form_unsigned_argument_attribute(
+               "__ctor_priority__", (a_host_large_unsigned)rout->ctor_priority,
+               &need_leading_space, octl);
+      } else
+#endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
+      /* Do not insert code here. */
+      {
+        form_simple_attribute("__constructor__", &need_leading_space, octl);
+      }  /* if */
     }  /* if */
     if (rout->is_finalization_routine) {
-      form_simple_attribute("__destructor__", &need_leading_space, octl);
+#if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
+      if (rout->dtor_priority != 0) {
+        form_unsigned_argument_attribute(
+               "__dtor_priority__", (a_host_large_unsigned)rout->dtor_priority,
+               &need_leading_space, octl);
+      } else
+#endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
+      /* Do not insert code here. */
+      {
+        form_simple_attribute("__destructor__", &need_leading_space, octl);
+      }  /* if */
     }  /* if */
     if (rout->is_pure) {
       form_simple_attribute("__pure__", &need_leading_space, octl);

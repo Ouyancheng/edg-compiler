@@ -2303,6 +2303,10 @@ to it.  The entry is allocated in the file scope memory region.
 #if GNU_EXTENSIONS_ALLOWED
   rp->section                     = NULL;
   rp->aliased_routine             = NULL;
+#if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
+  rp->ctor_priority               = 0;
+  rp->dtor_priority               = 0;
+#endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
   rp->asm_name                    = NULL;

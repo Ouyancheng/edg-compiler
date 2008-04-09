@@ -9139,6 +9139,19 @@ typedef struct a_routine {
 			/* If non-NULL, the routine for which this routine
 			   is an alias.  (Used for attributes "alias" and
 			   "weakref".) */
+#if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
+  a_gnu_init_priority
+		ctor_priority;
+			/* The priority (if any) specified by the GNU attribute
+			   "constructor" (if any).  This value should lie
+			   between 101 and 65535 inclusive, or should be zero
+			   if the attribute was not specified, or if the
+			   attribute was specified without an argument. */
+  a_gnu_init_priority
+		dtor_priority;
+			/* Same as ctor_priority, but for the "destructor"
+			   attribute. */
+#endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
   char		*asm_name;

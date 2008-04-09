@@ -1,5 +1,24 @@
 Version 3.11
 
+4/9/08   GNU compatibility: constructor/destructor attribute arguments
+
+In GNU C and C++ modes, the front end now accepts an optional "priority"
+argument for the attributes "constructor" and "destructor".  This extension
+is only supported in configuration with GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
+set to TRUE.  The priority argument (a value in the range 101 ... 65535)
+affects the order in which startup and termination functions are run
+(smaller values indicate earlier startup and later termination).
+For example:
+
+  __attribute((constructor(300))) void f1() {}
+  __attribute((constructor(200))) void f2() {}
+    // f1 and f2 will be called at program startup, and the latter will be
+    // called before the former.
+
+Note that IL lowering does not treat a function marked with the "constructor"
+and "destructor" attribute specially: The task of ensuring that the function
+is called at the appropriate time is the responsibility of the back end.
+
 4/8/08   GNU versions for delayed nested class definitions in class scopes
 
 The Changes entry of 1/26/06 describes how the front end accepts delayed

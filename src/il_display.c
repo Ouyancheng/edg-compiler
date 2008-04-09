@@ -3030,6 +3030,14 @@ Display the indicated routine.
   if (ptr->aliased_routine != NULL) {
     disp_ptr("aliased_routine", (char*)ptr->aliased_routine, iek_routine);
   }  /* if */
+#if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
+  if (ptr->ctor_priority != 0) {
+    disp_unsigned_long("ctor_priority", (unsigned long)ptr->ctor_priority);
+  }  /* if */
+  if (ptr->dtor_priority != 0) {
+    disp_unsigned_long("dtor_priority", (unsigned long)ptr->dtor_priority);
+  }  /* if */
+#endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
   if (ptr->asm_name != NULL) {
