@@ -2131,6 +2131,12 @@ extern int mbc_to_wide_char(char          *mb,
 #define mbc_scan_init() ((void)0)
 #define mbc_scan_init_if_multibyte_chars_in_source_enabled() /* Nothing. */
 
+#ifndef LOCALE_TO_SET_WHEN_MULTIBYTE_CHARS_ENABLED
+#if __MICROSOFT_OS__
+#define LOCALE_TO_SET_WHEN_MULTIBYTE_CHARS_ENABLED ""
+#endif /* __MICROSOFT_OS__ */
+#endif /* LOCALE_TO_SET_WHEN_MULTIBYTE_CHARS_ENABLED */
+
 #ifdef LOCALE_TO_SET_WHEN_MULTIBYTE_CHARS_ENABLED
 /* One doesn't have to set a locale for Unicode support, but if one
    is specified, we'll use it. */
