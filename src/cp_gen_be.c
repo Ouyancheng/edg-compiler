@@ -4886,7 +4886,7 @@ preceding declaration by a semicolon in such cases.
     }  /* if */
   }  /* for */
   /* See if the next source sequence entry is for a declaration, and if so,
-     determine its kind and associate source correspondence. */
+     determine its kind and associated source correspondence. */
   if (ssep != NULL) {
     a_source_correspondence_ptr  next_scp;
     an_il_entry_kind             next_entry_kind;
@@ -12381,7 +12381,7 @@ declaration following this one is such a continuation.
 #endif /* GNU_EXTENSIONS_ALLOWED */
   /* Check for `extern "C"'.  This applies even on a definition. */
   if (il_header.source_language == sl_Cplusplus &&
-      var->source_corresp.name_linkage ==(a_name_linkage_kind)nlk_external &&
+      var->source_corresp.name_linkage == (a_name_linkage_kind)nlk_external &&
       /* Inside a function, this is not allowed, and can only have come from
          an extern "C" { ... } wrapped around the function. */
       innermost_function_scope == NULL) {
