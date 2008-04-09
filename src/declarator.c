@@ -4082,12 +4082,16 @@ be a function.
       /* The declarator id is not qualified. */
       if (!C_mode()) {
         a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
-        if (ssep->kind == (a_scope_kind)sck_template_declaration ||
-            ssep->kind == (a_scope_kind)sck_template_instantiation) {
+        while (ssep->kind == (a_scope_kind)sck_template_declaration ||
+               ssep->kind == (a_scope_kind)sck_template_instantiation) {
           /* Take into account the possibility that the constructor is a
-             member template (or an instance thereof). */
+             member template (or an instance thereof).  (This loop only
+             iterates more than once in error situations like the following:
+               struct S { template<class> template<class> (S)(); };
+             Skipping the template declaration scopes allows for better error
+             recovery in such cases.) */
           -- ssep;
-        }  /* if */
+        }  /* while */
         if (ssep->kind == (a_scope_kind)sck_class_struct_union ||
             ssep->kind == (a_scope_kind)sck_class_reactivation) {
           /* Check if we have a constructor. Trying to find it out while
