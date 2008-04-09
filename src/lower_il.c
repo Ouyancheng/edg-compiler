@@ -12869,7 +12869,8 @@ static an_object_lifetime_ptr label_successor_lifetime(
                                                an_object_lifetime_ptr lifetime)
 /*
 Given an olk_block or olk_block_after_label lifetime, return the successor
-lifetime at the next label, or NULL if there isn't one.
+lifetime at the next label or switch case statement (when long_lifetime_temps
+is TRUE), or NULL if there isn't one.
 */
 {
   if (!lifetime->has_block_after_label_child_lifetime) {
@@ -12891,7 +12892,8 @@ static void start_label_region_of_lifetime(an_object_lifetime_ptr lifetime)
 /*
 Start a new label region in the current context (either the original
 olk_block lifetime or a successor olk_block_after_label lifetime).
-lifetime indicates the lifetime to begin.
+lifetime indicates the lifetime to begin.  Switch case statements are
+treated like labels when long_lifetime_temps is TRUE.
 */
 {
   an_object_lifetime_ptr next_lifetime;
@@ -12928,7 +12930,7 @@ if lifetime is NULL.
 static void begin_block_label_object_lifetime(an_object_lifetime_ptr lifetime)
 /*
 Do processing required at the beginning of an olk_block_after_label lifetime
-associated with a label in a block.
+associated with a label in a block or a switch case statement.
 */
 {
   a_statement_ptr    stmt;
@@ -12954,8 +12956,7 @@ started any object lifetime that begins at the label.  Here, logically remove
 the temporaries from the cleanup region table so they will no longer be part
 of the cleanup chain.  Called only when exceptions are enabled.  If
 need_regions_for_temps is TRUE, we will be destroying the temporaries, so we
-need cleanup regions that will cover them while we destroy them.  Only called
-when exceptions are enabled.
+need cleanup regions that will cover them while we destroy them.
 */
 {
   a_dynamic_init_ptr dip;
@@ -13155,7 +13156,7 @@ there are no statements on the list.
   a_statement_ptr        statement, statement_next, last_statement = NULL;
   a_statement_ptr        eff_statement;
   an_object_lifetime_ptr next_lifetime;
-  a_boolean              stmt_begins_label_lifetime;
+  a_boolean              stmt_begins_block_after_label_lifetime;
 
   for (statement = statement_list;
        statement != NULL;
@@ -13171,13 +13172,13 @@ there are no statements on the list.
                                            statement->position);
     error_position = code_pos_for_lowering;
     /* See if a new object lifetime begins at this statement because
-       it is or contains a label. */
-    stmt_begins_label_lifetime = FALSE;
+       it is a label or switch case statement. */
+    stmt_begins_block_after_label_lifetime = FALSE;
     next_lifetime = curr_context->successor_lifetime_at_statement;
     if (next_lifetime != NULL &&
         (a_statement_ptr)next_lifetime->entity.ptr == statement) {
       /* A new object lifetime begins at this statement. */
-      stmt_begins_label_lifetime = TRUE;
+      stmt_begins_block_after_label_lifetime = TRUE;
       if (long_lifetime_temps) {
         /* Destroy any long lifetime temporaries.  If the statement is turned
            into a block, eff_statement will be updated to point to the original
@@ -13187,8 +13188,8 @@ there are no statements on the list.
     }  /* if */
     /* Lower a statement. */
     lower_statement(eff_statement);
-    if (stmt_begins_label_lifetime) {
-      /* Start a new object lifetime because of a label. */
+    if (stmt_begins_block_after_label_lifetime) {
+      /* Start a new object lifetime because of a label or case statement. */
       begin_block_label_object_lifetime(next_lifetime);
     }  /* if */
     /* Remove extra no-op statements (empty blocks) left in the statement
@@ -13760,8 +13761,7 @@ Generate any cleanup actions required preceding the indicated goto statement.
       /* No lifetimes are being exited. */
       if (long_lifetime_temps) {
         /* Destroy any long lifetime temporaries.  This is needed for
-           user gotos, for gotos that implement a fallthrough in a switch,
-           but not for gotos to break and continue labels. */
+           user gotos but not for gotos to break and continue labels. */
         a_boolean destroy_temps = TRUE;
         if (has_name(statement->variant.label.ptr)) {
           /* Destroy temporaries on a user goto.  This would be a goto

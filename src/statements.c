@@ -5574,7 +5574,7 @@ Finally, this routine also updates the control flow data structures as needed.
     sssep->last_switch_case_entry->next = scep;
   }  /* if */
   sssep->last_switch_case_entry = scep;
-  /* For the default case, record some additional information in *scp. */
+  /* For the default case, record some additional information in *scep. */
   if (scep->case_value == NULL) {
     /* The "default" case. */
     if (ssdp->default_case != NULL) {
@@ -5672,8 +5672,28 @@ Finally, this routine also updates the control flow data structures as needed.
      bypassed initializations). */
   add_to_control_flow_descr_list(
         alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_case_label));
+  if (long_lifetime_temps && !C_mode()) {
+    /* When long_lifetime_temps are enabled, treat the switch case statement
+       as a label and create a block-after-label object lifetime.  Temporaries
+       will be destroyed as necessary when the change of object lifetimes
+       is detected. */
+    a_struct_stmt_stack_entry_ptr top_sssep =
+                                          &struct_stmt_stack[depth_stmt_stack];
+    push_object_lifetime(iek_statement, (char *)scep->stmt,
+                         (an_object_lifetime_kind)olk_block_after_label);
+    if (top_sssep->kind == (a_struct_stmt_kind)ssk_compound) {
+      /* If the current structured statement is a compound statement,
+         update its curr_block_object_lifetime; */
+      top_sssep->curr_block_object_lifetime = curr_object_lifetime;
+    }  /* if */
+    if (sssep == top_sssep ||
+        sssep->statement->variant.switch_stmt.body_statement ==
+         top_sssep->statement) {
+      /* Update the object lifetime in the ssk_switch entry. */
+      sssep->curr_block_object_lifetime = curr_object_lifetime;
+    }  /* if */
+  }  /* if */
 }  /* record_switch_case_entry */
-
 
 
 static a_constant_ptr scan_case_label_constant(
@@ -5866,6 +5886,7 @@ Scan a default case label definition.  The syntax is:
                                    &label_position);
     sp->variant.switch_case.switch_statement = sssep->statement;
     sp->variant.switch_case.extra_info = scep;
+    scep->stmt = sp;
     scep->position = label_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     scep->colon_position = pos_curr_token;

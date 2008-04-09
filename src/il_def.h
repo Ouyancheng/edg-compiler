@@ -12302,6 +12302,17 @@ enum an_object_lifetime_kind_tag {
 			       <olk_block>
 			     L:
 			       <olk_block_after_label>
+			     }      
+			   Also used when beginning a new object lifetime
+			   after each switch case statement (only when
+			   long_lifetime_temps is TRUE).  For example:
+			     switch (x)
+			     {
+			       <olk_block>
+			     case 1:
+			       <olk_block_after_label>
+			     default:
+			       <olk_block_after_label>
 			     }      */
   olk_function_static,	/* Lifetime of function-local static variables. */
   olk_expr_temporary,	/* Lifetime of expression temporaries. */
@@ -12334,7 +12345,8 @@ typedef struct an_object_lifetime {
 		     initialization of a local static variable)
 	olk_block_after_label (one-way bindings -- the IL entities have no
 			       pointers back to the lifetime.)
-		 ==> iek_statement (stmk_label or a structured statement)
+		 ==> iek_statement (stmk_label, stmk_switch_case
+			            or a structured statement)
 	olk_function_static
 		<==> iek_scope (sck_function only)
 			(Note: an entry for a function scope may bind to two
@@ -12368,12 +12380,7 @@ typedef struct an_object_lifetime {
 			   memory region issues. */
   a_tagged_pointer
 		entity;	/* Entity with which this object lifetime is
-			   associated.  See list of possible kinds above.
-			   When kind == olk_block_after_label, the entity kind
-			   is iek_none and the entity pointer is NULL; only
-			   the olk_block lifetime with which it is associated
-			   (see parent lifetime, below) is actually bound to
-			   the associated scope or block statement. */
+			   associated.  See list of possible kinds above. */
   a_dynamic_init_ptr
 		destructions;
 			/* A linked list of dynamic init entries (using

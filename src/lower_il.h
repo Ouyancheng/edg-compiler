@@ -441,10 +441,11 @@ typedef struct a_context {
   an_object_lifetime_ptr
 		successor_lifetime_at_statement;
 			/* If the object lifetime has a successor that begins
-			   at a label, this is the lifetime.  This helps us
-			   watch for the appearance of the associated
-			   statement, since there is no explicit indication
-			   in the statement that it begins another
+			   at a label or switch case statement (when
+			   long_lifetime_temps is TRUE), this is the lifetime.
+			   This helps us watch for the appearance of the
+			   associated statement, since there is no explicit
+			   indication in the statement that it begins another
 			   lifetime. */
   a_dynamic_init_ptr
 		latest_initialization;
