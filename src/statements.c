@@ -5649,9 +5649,9 @@ Finally, this routine also updates the control flow data structures as needed.
                still, we can end the search here. */
             break;
           }  /* if */
-          if (cmp_result == 0 ||
+          if (cmp_result == 0
 #if GNU_EXTENSIONS_ALLOWED
-              (gnu_mode && conflicting_switch_case_ranges(scep, *ptr))
+              || (gnu_mode && conflicting_switch_case_ranges(scep, *ptr))
 #endif /* GNU_EXTENSIONS_ALLOWED */
                                                                       ) {
             pos2_diagnostic(es_error, ec_case_label_conflict, &scep->position,
