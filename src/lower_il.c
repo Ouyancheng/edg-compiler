@@ -13101,10 +13101,15 @@ Called only in long lifetime temporaries mode.
 
   /* We need to destroy the temporaries only if the statement is reachable
      by flowing into it from the preceding code.  For statements other than
-     labels, assume the statement is reachable because we don't know. */
-  need_to_destroy_temps = FALSE;
-  if ((*statement)->kind != (a_statement_kind)stmk_label ||
-      (*statement)->variant.label.ptr->reachable_by_fall_through) {
+     labels or switch cases, assume the statement is reachable because
+     we don't know. */
+  if ((*statement)->kind == (a_statement_kind)stmk_label) {
+    need_to_destroy_temps = 
+                    (*statement)->variant.label.ptr->reachable_by_fall_through;
+  } else if ((*statement)->kind == (a_statement_kind)stmk_switch_case) {
+    need_to_destroy_temps = 
+       (*statement)->variant.switch_case.extra_info->reachable_by_fall_through;
+  } else {
     need_to_destroy_temps = TRUE;
   }  /* if */
 #if GENERATE_EH_TABLES

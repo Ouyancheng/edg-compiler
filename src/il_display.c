@@ -3941,6 +3941,10 @@ Display the indicated switch case entry.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   disp_source_position("colon_position", &ptr->colon_position);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  if (ptr->reachable_by_fall_through) {
+    disp_boolean("reachable_by_fall_through",
+                 (a_boolean)ptr->reachable_by_fall_through);
+  }  /* if */
 }  /* disp_switch_case_entry */
 
 

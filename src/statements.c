@@ -5784,6 +5784,8 @@ GNU also allows the "case range" form:
   a_constant_ptr                constant_ptr;
   a_constant_ptr                range_end = NULL;
   a_source_position             case_position;
+  a_boolean                     save_reachability =
+                                                   curr_reachability.reachable;
 
   db_enter(4, "case_label");
 
@@ -5837,6 +5839,7 @@ GNU also allows the "case range" form:
     scep->colon_position = pos_curr_token;
     sp->end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    scep->reachable_by_fall_through = save_reachability;
     record_switch_case_entry(scep, sssep);
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -5892,6 +5895,7 @@ Scan a default case label definition.  The syntax is:
     scep->colon_position = pos_curr_token;
     sp->end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    scep->reachable_by_fall_through = curr_reachability.reachable;
     record_switch_case_entry(scep, sssep);
     merge_reachability(&sssep->start_reachable, &curr_reachability);
   }  else {

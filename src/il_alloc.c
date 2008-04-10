@@ -2843,6 +2843,7 @@ values, and return a pointer to it.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   entry->colon_position = null_source_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  entry->reachable_by_fall_through = TRUE;
 #if DEBUG
   num_switch_case_entries_allocated++;
 #endif /* DEBUG */

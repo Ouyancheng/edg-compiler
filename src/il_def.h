@@ -11002,6 +11002,11 @@ typedef struct a_switch_case_entry {
 		colon_position;
 			/* The position of the colon token. */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  a_bit_field	reachable_by_fall_through:1;
+			/* TRUE if this switch case can be reached by falling
+			   through to it from the code immediately
+			   preceding. */
+  bitfield_to_avoid_codecenter_warnings()
 } a_switch_case_entry;
 
 
