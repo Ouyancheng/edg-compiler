@@ -13173,7 +13173,12 @@ typedef struct an_il_header {
 			   translation unit.  When such names are used,
 			   and IL lowering is being done, each name must
 			   be inspected when special processing is done
-			   for the mangling of names containing UCNs. */
+			   for the mangling of names containing UCNs.
+			   Also set when multibyte characters appear in
+			   identifiers and
+			   IDENTIFIER_STRINGS_ALLOW_MULTIBYTE_CHARS is FALSE,
+			   because an encoding similar to UCNs is used for
+			   them in that case. */
   a_byte_boolean
 		vla_used;
 			/* TRUE if a variable-length array type was used

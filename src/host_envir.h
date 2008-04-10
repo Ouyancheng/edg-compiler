@@ -1959,8 +1959,9 @@ EXTERN a_boolean
 
 /*
 Flag that is TRUE if multibyte characters are supported in source code,
-specifically in comments, string literals, and character constants.
-This applies to both C and C++ mode.
+specifically in comments, string literals, character constants, and
+identifiers.  This applies to both C and C++ mode.  See also
+IDENTIFIER_STRINGS_ALLOW_MULTIBYTE_CHARS.
 */
 #ifndef MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
 #if UNICODE_SOURCE_SUPPORTED
@@ -2014,6 +2015,26 @@ support.  A "$" is treated as the first character of a multibyte sequence.
  #error -- At most one of USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING, \
         EDG_MULTIBYTE_CHAR_TEST_MODE, and UNICODE_SOURCE_SUPPORTED can be TRUE.
 #endif /* defined(EDG_MULTIBYTE_CHAR_TEST_MODE) + ... */
+
+/*
+Flag that is TRUE if the name strings for identifiers within the front
+end are allowed to contain multibyte characters.  Note that this does
+not control whether multibyte characters are allowed within
+identifiers (they are allowed whenever multibyte characters are enabled),
+but only how such characters are represented in the name strings (and
+therefore how a back end will see them, and how they will appear in
+diagnostic messages).  When UNICODE_SOURCE_SUPPORTED is TRUE, the
+multibyte character encoding used is UTF-8.  When
+IDENTIFIER_STRINGS_ALLOW_MULTIBYTE_CHARS is FALSE, multibyte
+characters are represented in identifier name strings by a sequence of
+the form \mXXXX or \MXXXXXXXX, where XXXX is the hexadecimal value of
+the character (When UNICODE_SOURCE_SUPPORTED is TRUE, the UCN forms
+\uXXXX or \UXXXXXXXX are used instead, since in that case the
+encodings mean the same thing).  See also REWRITE_UCN_ESCAPE_CHAR_IN_LOWERING.
+*/
+#ifndef IDENTIFIER_STRINGS_ALLOW_MULTIBYTE_CHARS
+#define IDENTIFIER_STRINGS_ALLOW_MULTIBYTE_CHARS FALSE
+#endif /* IDENTIFIER_STRINGS_ALLOW_MULTIBYTE_CHARS */
 
 /*
 Indication of whether backslash, question mark, and star can appear as part of
@@ -2163,6 +2184,7 @@ Locale to set when multibyte characters are enabled in source code.
  #error -- multibyte character support requires C library multibyte support
 #endif /* ifndef MB_CUR_MAX */
 #include <locale.h>
+#include <wctype.h>
 /* Initialize for using mbc_length within one string of source characters. */
 #define mbc_scan_init() ((void)mblen(NULL, MB_CUR_MAX))
 #define mbc_scan_init_if_multibyte_chars_in_source_enabled() \
@@ -2196,6 +2218,10 @@ typedef struct {
 			   input file. */
 } a_getc_source_state;
 
+#if IDENTIFIER_STRINGS_ALLOW_MULTIBYTE_CHARS
+extern int wide_char_to_utf8(unsigned long uc,
+                             char          chars[4]);
+#endif /* IDENTIFIER_STRINGS_ALLOW_MULTIBYTE_CHARS */
 extern void clear_getc_source_state(a_getc_source_state   *state,
                                     a_unicode_source_kind ukind);
 extern int getc_utf16(FILE                *file,
@@ -2229,11 +2255,13 @@ extern int getc_utf16(FILE                *file,
 #else /*!UNICODE_SOURCE_SUPPORTED */
 #define getc_source(file, state) (getc(file))
 
-/* There is no multibyte character support, or it's for something other than
+#if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
+/* The multibyte character support is for something other than
    UTF-8.  The "lex" routines just go to the normal routines. */
 #define lex_mbc_length(ptr, err) mbc_length((ptr), (err))
 #define lex_mbc_length_simple(ptr) mbc_length_simple((ptr))
 #define lex_mbc_to_wide_char(mb, wc, err) mbc_to_wide_char((mb), (wc), (err))
+#endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
 #endif /* UNICODE_SOURCE_SUPPORTED */
 
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED

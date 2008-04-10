@@ -365,6 +365,9 @@ static a_UCN_range
   { 0x4e00, 0x9fa5, FALSE }, 
   { 0xac00, 0xd7a3, FALSE }
 };
+static an_error_code is_valid_UCN_identifier_char(
+					unsigned long	uchar,
+					a_boolean	is_identifier_start);
 
 /*
 Variables pertaining to the input stack (for include files and the
@@ -6167,40 +6170,88 @@ entry_for_extend_current_line:
 }  /* read_logical_source_line */
 
 
-a_boolean is_identifier_char(char *ptr,
-                             int  *len)
+a_boolean is_identifier_char(char      *ptr,
+                             int       *len,
+                             a_boolean is_identifier_start)
 /*
-ptr points to a character, possibly multibyte.  Return TRUE if that character
-is valid as a character after the first in an identifier.  If so, also return
-*len set to the length of the character (possibly >1 for a multibyte
-character).  If len == NULL, no length is returned.  This routine consults
-the curr_file_unicode_source_kind global variable, and therefore should be
+ptr points to a character, possibly multibyte.  Return TRUE if that
+character is valid as a character in an identifier (as the first
+character if is_identifier_start is TRUE, otherwise as a character
+after the first).  If so, also return *len set to the length of the
+character (possibly >1 for a multibyte character).  If len == NULL, no
+length is returned.  This routine consults the
+curr_file_unicode_source_kind global variable, and therefore should be
 used only within the lexical input routines.
 */
 {
   a_boolean is_id;
   int       llen = 1;
 
+#if !MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
+  /* Simplest case: no multibyte characters of any kind allowed. */
+  is_id = is_id_char[*ptr-CHAR_MIN] &&
+          (!is_identifier_start || !isdigit((unsigned char)*ptr));
+#else /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
+  { unsigned long ch;
+    a_boolean     err;
 #if !UNICODE_SOURCE_SUPPORTED
-  is_id = is_id_char[*ptr-CHAR_MIN];
+    if (!multibyte_chars_in_source_enabled
+#ifdef char_may_begin_multibyte_sequence
+        || !char_may_begin_multibyte_sequence(*ptr)
+#endif /* ifdef char_may_begin_multibyte_sequence */
+                                                   ) {
+      /* Multibyte characters are allowed, but this character isn't one. */
+      is_id = is_id_char[*ptr-CHAR_MIN] &&
+              (!is_identifier_start || !isdigit((unsigned char)*ptr));
+    } else {
+      /* This might be a multibyte character. */
+      llen = mbc_to_wide_char(ptr, &ch, &err);
+      if (err) {
+        is_id = FALSE;
+      } else {
+#if USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING
+        /* We don't have the wide character classification functions if we're
+           using our own SJIS functions. */
+        is_id = FALSE;
+#else /* !USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING */
+        /* Use C99 library routines from <wctype.h> to classify the
+           character. */
+        wint_t wc = (wint_t)ch;
+        is_id = iswalpha(wc) ||
+                (!is_identifier_start && iswdigit(wc));
+#endif /* USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING */
+      }  /* if */
+    }  /* if */
 #else /* UNICODE_SOURCE_SUPPORTED */
-  { unsigned long ch = (unsigned char)*ptr;
+    /* The multibyte coding selected is UTF-8 (but if
+       curr_file_unicode_source_kind is usk_none, this is a non-Unicode source
+       file. */
+    ch = (unsigned char)*ptr;
     if (ch > 0x7f &&
         curr_file_unicode_source_kind != usk_none) {
       /* Convert the multibyte UTF-8 sequence to a single code point. */
-      a_boolean err;
       llen = mbc_to_wide_char(ptr, &ch, &err);
-      /* Right now, we limit the multibyte characters to those that can be
-         represented in a single character after decoding, i.e., Latin-1
-         characters. */
-      if (err || ch > UCHAR_MAX) {
-        llen = 1;
+      if (err) {
         ch = 0;  /* Forces FALSE result. */
       }  /* if */
     }  /* if */
-    is_id = is_id_char_no_mbc[ch];
-  }
+    /* See whether the Unicode code point ch is a valid identifier
+       character. */
+    if (ch <= UCHAR_MAX) {
+      /* Small value -- use the lookup table. */
+      is_id = is_id_char_no_mbc[ch] &&
+              (!is_identifier_start || !isdigit((unsigned char)ch));
+    } else if (ch >= 0xd800 && ch <= 0xdfff) {
+      /* Surrogate code points are not allowed. */
+      is_id = FALSE;
+    } else {
+      /* Do the full lookup for larger values. */
+      is_id = (is_valid_UCN_identifier_char(ch, is_identifier_start) ==
+               ec_no_error);
+    }  /* if */
 #endif /* !UNICODE_SOURCE_SUPPORTED */
+  }
+#endif /* !MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
   if (len != NULL) *len = llen;
   return is_id;
 }  /* is_identifier_char */
@@ -7616,16 +7667,40 @@ point to the character after the universal character name.
                                 is_identifier_start);
     }  /* if */
   }  /* if */
-  if (is_identifier) {
-    /* Record the fact that an identifier containing a UCN has been
-       encountered. */
-   il_header.UCN_identifiers_used = TRUE;
-  }  /* if */
   *start_pos = pos;
   return result;
 }  /* scan_universal_character */
 
 #if ABI_COMPATIBILITY_VERSION >= 302
+#if !(UNICODE_SOURCE_SUPPORTED && IDENTIFIER_STRINGS_ALLOW_MULTIBYTE_CHARS)
+
+static void output_ucn_value(unsigned long ucn_value,
+                             char          prefix4,
+                             char          prefix8)
+/*
+Add to ucn_buffer a sequence like \uabcd to represent a UCN or multibyte
+character.  ucn_value is the value to be put out.  prefix4 and prefix8
+are the prefix characters to be used for 4-digit and 8-digit output.
+*/
+{
+  int  ucn_chars = ucn_value > 0xffff ? 8 : 4;
+  char ucn[8];
+  int  i;
+
+  for (i = ucn_chars; i > 0; i--) {
+    int hex_digit = ucn_value & 0xf;
+    ucn_value = ucn_value >> 4;
+    ucn[i - 1] = "0123456789abcdef"[hex_digit];
+  }  /* for */
+  add_char_to_text_buffer(ucn_buffer, '\\');
+  add_char_to_text_buffer(ucn_buffer, ucn_chars == 8 ? prefix8 : prefix4);
+  add_to_text_buffer(ucn_buffer, ucn, ucn_chars);
+  /* Record the fact that an identifier containing a UCN or UCN-like
+     character has been encountered. */
+  il_header.UCN_identifiers_used = TRUE;
+}  /* output_ucn_value */
+
+#endif /* !(UNICODE_SOURCE_SUPPORTED && ...) */
 
 static char *make_canonical_identifier(char     *identifier,
                                        sizeof_t *length)
@@ -7645,36 +7720,63 @@ lower case and any multibyte characters are converted to canonical form.
   if (ucn_buffer == NULL) ucn_buffer = alloc_text_buffer(128);
   reset_text_buffer(ucn_buffer);
   for (src = identifier; src <= end_pos;) {
-    sizeof_t		ucn_chars;
-    unsigned long	ucn_value;
-    char		ucn[8];
-    sizeof_t		j;
     if (*src == '\\' && (*(src+1) == 'u' || *(src+1) == 'U')) {
       /* Scan the universal character.  We pass in FALSE for is_identifier,
          etc., because those are only used when diagnosing errors. */
+      unsigned long ucn_value;
       ucn_value = scan_universal_character(&src, /*is_identifier=*/FALSE,
                                            /*is_identifier_start=*/FALSE,
                                            /*issue_diagnostics=*/FALSE);
-      ucn_chars = ucn_value > 0xffff ? 8 : 4;
-      for (j = ucn_chars; j > 0; j--) {
-        int	hex_digit;
-        hex_digit = ucn_value & 0xf;
-        ucn_value = ucn_value >> 4;
-        ucn[j - 1] = "0123456789abcdef"[hex_digit];
-      }  /* for */
-      add_char_to_text_buffer(ucn_buffer, '\\');
-      add_char_to_text_buffer(ucn_buffer, ucn_chars == 8 ? 'U' : 'u');
-      add_to_text_buffer(ucn_buffer, ucn, ucn_chars);
+#if UNICODE_SOURCE_SUPPORTED && IDENTIFIER_STRINGS_ALLOW_MULTIBYTE_CHARS
+      /* We can put the UTF-8 for the character directly into the
+         identifier string. */
+      { char arr[4];
+        int  numch = wide_char_to_utf8(ucn_value, arr);
+        int  i;
+        for (i = 0; i < numch; i++) {
+          add_char_to_text_buffer(ucn_buffer, arr[i]);
+        }  /* for */
+      }
+#else /* !(UNICODE_SOURCE_SUPPORTED && ...) */
+      /* Add the UCN to the buffer as \uxxxx or the like. */
+      output_ucn_value(ucn_value, 'u', 'U');
+#endif /* UNICODE_SOURCE_SUPPORTED && ... */
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
-    } else if (multibyte_chars_in_source_enabled) {
+    } else if (multibyte_chars_in_source_enabled
+#ifdef char_may_begin_multibyte_sequence
+               && char_may_begin_multibyte_sequence(*src)
+#endif /* ifdef char_may_begin_multibyte_sequence */
+                                                         ) {
+      /* This character may be a multibyte character. */
       unsigned long wc;
       a_boolean     err;
       int           numch = lex_mbc_to_wide_char(src, &wc, &err);
-      check_assertion(!err && wc <= UCHAR_MAX);
-      add_char_to_text_buffer(ucn_buffer, (char)wc);
+      check_assertion(!err);
+#if IDENTIFIER_STRINGS_ALLOW_MULTIBYTE_CHARS
+      /* Put the multibyte character into the identifier. */
+      { int i;
+        for (i = 0; i < numch; i++) {
+          add_char_to_text_buffer(ucn_buffer, src[i]);
+        }  /* for */
+      }
+#else /* !IDENTIFIER_STRINGS_ALLOW_MULTIBYTE_CHARS */
+      if (wc <= UCHAR_MAX) {
+        add_char_to_text_buffer(ucn_buffer, (char)wc);
+      } else {
+        /* Put an encoding for the character into the buffer.  If the
+           multibyte character set is Unicode, use the \u form that UCNs
+           use, since the underlying character set is the same. */
+#if UNICODE_SOURCE_SUPPORTED
+        output_ucn_value(wc, 'u', 'U');
+#else /* !UNICODE_SOURCE_SUPPORTED */
+        output_ucn_value(wc, 'm', 'M');
+#endif /* UNICODE_SOURCE_SUPPORTED */
+      }  /* if */
+#endif /* IDENTIFIER_STRINGS_ALLOW_MULTIBYTE_CHARS */
       src += numch;
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
     } else {
+      /* Simple non-multibyte non-UCN character. */
       add_char_to_text_buffer(ucn_buffer, *(src++));
     }  /* if */
   }  /* for */
@@ -9675,13 +9777,16 @@ return_end_of_source_token:
     case '_':
 id_scan:
       /* Identifier (including keywords, macros, etc.). */
-      /* See check_for_following_parenthesis in macro.c for code that
-         also checks for the first character of an identifier. */
       /* Find end of identifier.  Identifiers can contain alphabetic
-         characters, underscores, and digits after the first character. */
+         characters, underscores, and digits after the first character,
+         plus some multibyte characters if those are enabled. */
       remember_token_start();
       ctoken = tok_identifier;
       contains_ucn_or_multibyte_char = FALSE;
+#if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
+      /* Initialize for scanning multibyte characters in the string. */
+      mbc_scan_init_if_multibyte_chars_in_source_enabled();
+#endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
       do {
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
         int numch;
@@ -9708,7 +9813,8 @@ id_scan:
                                            /*issue_diagnostics=*/TRUE);
           }  /* if */
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
-        } else if (is_identifier_char(curr_char_loc, &numch)) {
+        } else if (is_identifier_char(curr_char_loc, &numch,
+                                      /*is_identifier_start=*/FALSE)) {
           /* A multibyte character that is valid as an identifier character.
              Note that for an invalid multibyte character is_identifier_char
              returns FALSE, which makes us drop out of the loop and treat the
@@ -9983,11 +10089,10 @@ check_start_of_pp_directive:
       goto save_end_position;
       /* No break needed. */
     default:
-      /* Pick up identifier characters like European accented letters.
-         isdigit can't be TRUE here, so any character with for which
-         is_identifier_char returns TRUE must be valid as the first
-         character of an identifier. */
-      if (is_identifier_char(curr_char_loc, (int *)NULL)) goto id_scan;
+      /* Pick up multibyte characters and things like European accented
+         letters as the start of an identifier. */
+      if (is_identifier_char(curr_char_loc, (int *)NULL,
+                             /*is_identifier_start=*/TRUE)) goto id_scan;
       /* FALLTHROUGH */
     bad_token:
       /* Something else, an error. */
@@ -12877,7 +12982,8 @@ can be avoided.
     }  /* if */
     if (isdigit((unsigned char)ch)) {
       delim_does_not_follow = TRUE;
-    } else if (is_identifier_char(curr_char_loc, (int *)NULL)) {
+    } else if (is_identifier_char(curr_char_loc, (int *)NULL,
+                                  /*is_identifier_start=*/TRUE)) {
       /* This might be a macro call, so we can't tell. */
       /* delim_does_not_follow = FALSE;  -- already set. */
     } else if (ch == ':' && curr_char_loc[1] == ':') {

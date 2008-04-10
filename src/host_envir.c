@@ -3498,7 +3498,45 @@ calls of this routine.
 have_ch:
   return ch;
 }  /* getc_utf16 */
+
+#if IDENTIFIER_STRINGS_ALLOW_MULTIBYTE_CHARS
+
+int wide_char_to_utf8(unsigned long uc,
+                      char          chars[4])
+/*
+Convert the Unicode code point uc to UTF-8.  Put the bytes of the UTF-8
+representation in the array chars, and return the length (1-4).
+*/
+{
+  int len;
+
+  if (uc <= 0x7f) {
+    /* One byte of UTF-8 is needed. */
+    len = 1;
+    chars[0] = (char)uc;
+  } else if (uc <= 0x7ff) {
+    /* Two bytes of UTF-8 are needed. */
+    len = 2;
+    chars[0] = (char)((uc >> 6) | 0xc0);
+    chars[1] = (char)((uc & 0x3f) | 0x80);
+  } else if (uc <= 0xffff) {
+    /* Three bytes of UTF-8 are needed. */
+    len = 3;
+    chars[0] = (char)((uc >> 12) | 0xe0);
+    chars[1] = (char)(((uc >> 6) & 0x3f) | 0x80);
+    chars[2] = (char)((uc & 0x3f) | 0x80);
+  } else {
+    /* Four bytes of UTF-8 are needed. */
+    len = 4;
+    chars[0] = (char)(((uc >> 18) & 0x7) | 0xf0);
+    chars[1] = (char)(((uc >> 12) & 0x3f) | 0x80);
+    chars[2] = (char)(((uc >> 6) & 0x3f) | 0x80);
+    chars[3] = (char)((uc & 0x3f) | 0x80);
+  }  /* if */
+  return len;
+}  /* wide_char_to_utf8 */
     
+#endif /* IDENTIFIER_STRINGS_ALLOW_MULTIBYTE_CHARS */
 #endif /* UNICODE_SOURCE_SUPPORTED */
 
 unsigned long extract_character_from_string(char          *str,

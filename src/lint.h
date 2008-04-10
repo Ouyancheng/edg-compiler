@@ -144,6 +144,9 @@ Included from basic_hdrs.h in every compilation.
 #if USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING
 /*lint -esym(769,ec_bad_multibyte_char_locale)*/
 #endif /* USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING */
+#else /* !MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
+/*lint -esym(769,ec_bad_multibyte_char_locale)*/
+/*lint -esym(769,ec_bad_multibyte_char)*/
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
 #if UNICODE_SOURCE_SUPPORTED
 /*lint -esym(755,mbc_length)*/
@@ -152,6 +155,8 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(769,a_unicode_source_kind_tag::usk_utf8)*/
 /*lint -esym(769,a_unicode_source_kind_tag::usk_utf16LE)*/
 /*lint -esym(769,a_unicode_source_kind_tag::usk_utf16BE)*/
+/*lint -esym(769,ec_cl_unrecognized_unicode_source_kind)*/
+/*lint -esym(769,ec_bad_unicode_char_in_pp_output)*/
 #endif /* UNICODE_SOURCE_SUPPORTED */
 #if !BACK_END_IS_C_GEN_BE
 /*lint -esym(759,form_char)*/

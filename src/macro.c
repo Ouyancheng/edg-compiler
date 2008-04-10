@@ -1888,8 +1888,8 @@ so a hanging delete is in effect).
     /* Left parenthesis found. */
     *paren_found = TRUE;
   } else if (allow_id &&
-             is_identifier_char(curr_char_loc, (int *)NULL) &&
-             !isdigit((unsigned char)*curr_char_loc) &&
+             is_identifier_char(curr_char_loc, (int *)NULL,
+                                /*is_identifier_start=*/TRUE) &&
              /* Watch out for wide character constants and string literals. */
              (*curr_char_loc != 'L' || (*(curr_char_loc+1) != '"' &&
                                         *(curr_char_loc+1) != '\''))) {
@@ -6675,13 +6675,14 @@ a symbol locator in *locator.
   clear_locator(locator, &position);
   if (id_len < 1) {
     /* Zero-length identifier is invalid. */
-  } else if (isdigit((unsigned char)*id_start)) {
-    /* The first character of an identifier cannot be a digit. */
   } else {
     int numch;
     for (i = 0; i < id_len; i += numch) {
       /* Check each character to see if it is valid. */
-      if (!is_identifier_char(id_start+i, &numch)) goto return_point;
+      if (!is_identifier_char(id_start+i, &numch,
+                              /*is_identifier_start=*/(i == 0))) {
+        goto return_point;
+      }  /* if */
     }  /* for */
     /* The identifier is syntactically valid.  Look it up. */
     *assoc_symbol = find_macro_symbol_by_name(id_start, id_len, locator);

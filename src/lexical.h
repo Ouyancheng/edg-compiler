@@ -2078,8 +2078,9 @@ EXTERN a_byte	pp_lexical_category[CHAR_MAX-CHAR_MIN+1];
 a_boolean read_logical_source_line(a_boolean do_pop_on_end_of_file,
                                    a_boolean extend_current_line);
 /* Check character as identifier character. */
-extern a_boolean is_identifier_char(char *ptr,
-                                    int  *len);
+extern a_boolean is_identifier_char(char      *ptr,
+                                    int       *len,
+                                    a_boolean is_identifier_start);
 /* Check character as nonstandard. */
 extern a_boolean is_nonstandard_character(char ch);
 /* Skip white space. */

@@ -3870,7 +3870,9 @@ example, with a rewrite to "_", "x\u00d6" would be rewritten as
 "x_u00d6").  A better choice is a character accepted by the linker
 but not valid as an identifier character in C.  If there is no
 such character, a character like "_" will provide a "good enough"
-implementation.
+implementation.  Note also that when non-Unicode multibyte characters
+are allowed this rewrite also applies to the "\m00d6" kind of encoding
+used for them (see IDENTIFIER_STRINGS_ALLOW_MULTIBYTE_CHARS).
 */
 #ifndef REWRITE_UCN_ESCAPE_CHAR_IN_LOWERING
 #define REWRITE_UCN_ESCAPE_CHAR_IN_LOWERING TRUE

@@ -4861,6 +4861,11 @@ file.
 #else /* !defined(IA64_ABI_VARIANT_KEY_FUNCTION) */
   comment_undefined_macro_name(IA64_ABI_VARIANT_KEY_FUNCTION);
 #endif /* defined(IA64_ABI_VARIANT_KEY_FUNCTION) */
+#if defined(IDENTIFIER_STRINGS_ALLOW_MULTIBYTE_CHARS)
+  define_numeric_valued_macro(IDENTIFIER_STRINGS_ALLOW_MULTIBYTE_CHARS);
+#else /* !defined(IDENTIFIER_STRINGS_ALLOW_MULTIBYTE_CHARS) */
+  comment_undefined_macro_name(IDENTIFIER_STRINGS_ALLOW_MULTIBYTE_CHARS);
+#endif /* defined(IDENTIFIER_STRINGS_ALLOW_MULTIBYTE_CHARS) */
 #if defined(IDENT_DIRECTIVE_AND_PRAGMA)
   define_numeric_valued_macro(IDENT_DIRECTIVE_AND_PRAGMA);
 #else /* !defined(IDENT_DIRECTIVE_AND_PRAGMA) */
