@@ -264,6 +264,7 @@ extern int fileno(FILE *);
 #if !(GNU_EXTENSIONS_ALLOWED && GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED)
 /*lint -esym(769,ec_bad_variable_for_init_priority)*/
 /*lint -esym(769,ec_init_priority_reserved)*/
+/*lint -esym(769,ec_ctor_dtor_priority_reserved)*/
 #endif /* !(GNU_EXTENSIONS_ALLOWED && GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED) */
 #if CHECKING && DEBUG
 /*lint -esym(759,trace_entry)*/
