@@ -4949,7 +4949,7 @@ Do the output in the way described by octl.
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
       if (rout->ctor_priority != 0) {
         form_unsigned_argument_attribute(
-               "__ctor_priority__", (a_host_large_unsigned)rout->ctor_priority,
+               "__constructor__", (a_host_large_unsigned)rout->ctor_priority,
                &need_leading_space, octl);
       } else
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
@@ -4962,7 +4962,7 @@ Do the output in the way described by octl.
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
       if (rout->dtor_priority != 0) {
         form_unsigned_argument_attribute(
-               "__dtor_priority__", (a_host_large_unsigned)rout->dtor_priority,
+               "__destructor__", (a_host_large_unsigned)rout->dtor_priority,
                &need_leading_space, octl);
       } else
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
