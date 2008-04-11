@@ -6140,10 +6140,10 @@ void decl_routine(a_symbol_locator         *locator,
 Enter the declaration of an identifier for a nonmember routine.  *locator
 gives the symbol locator (and thus its name and its declaration position).
 *dps and *func_info describe various properties of the declaration (e.g., its
-type, storage class, attributes, etc.).  If func_info->implicit_declaration is
-TRUE, this declaration is for an implicit function declaration, and dps->sym
+type, storage class, attributes, etc.).  If func_info->is_implicit_declaration
+is TRUE, this declaration is for an implicit function declaration, and dps->sym
 already points to the symbol entry, which is already in the symbol table.  If
- func_info->is_definition is TRUE, the identifier being defined is part of a
+func_info->is_definition is TRUE, the identifier being defined is part of a
 function definition (meaning there is a body in the definition), in which case
 it is guaranteed that dps->type points to an unshared type entry, and that type
 entry will be preserved as the routine type.  Create and enter a symbol entry,
