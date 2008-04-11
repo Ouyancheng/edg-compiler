@@ -1720,11 +1720,15 @@ static FILE	*f_err_src_file;
 			/* File variable used to fetch the source line from
 			   the source file. */
 
-static a_boolean can_locate_source_line(a_seq_number seq_number)
+static a_boolean can_locate_source_line(
+                                    a_seq_number          seq_number,
+                                    a_unicode_source_kind *unicode_source_kind)
 /*
 Determine the actual file which contains the specified sequence number.  If
 possible read the desired source line into the buffer pointed to by
 error_source_line for later use by diagnostic output functions.
+*unicode_source_kind is set to indicate the kind of Unicode encoding
+form for the file, or usk_none if the file is not Unicode.
 */
 {
   a_source_file_ptr src_file;
@@ -1735,13 +1739,12 @@ error_source_line for later use by diagnostic output functions.
   int               ch;
   char              *loc_in_line;
   char              *after_end_of_error_source_line_minus_2;
-  a_unicode_source_kind
-                    unicode_source_kind;
 #if UNICODE_SOURCE_SUPPORTED
   a_getc_source_state
                     source_state;
 #endif /* UNICODE_SOURCE_SUPPORTED */
 
+  *unicode_source_kind = usk_none;
   conv_seq_to_physical_file_and_line(seq_number, &src_file, &physical_line,
                                      &at_end_of_source);
   if (physical_line == 0 ||
@@ -1762,7 +1765,7 @@ error_source_line for later use by diagnostic output functions.
        readable unless it was deleted recently.  Fail softly if any problems
        arise. */
     if ((f_err_src_file = reopen_source_file(src_file->full_name,
-                                             &unicode_source_kind)) != NULL) {
+                                             unicode_source_kind)) != NULL) {
       if (seek_position != 0) {
         if (fseek(f_err_src_file, seek_position, SEEK_SET) != 0) {
           /* The seek failed; fail softly and assume the source line is
@@ -1771,7 +1774,7 @@ error_source_line for later use by diagnostic output functions.
         }  /* if */
       }  /* if */
 #if UNICODE_SOURCE_SUPPORTED
-      clear_getc_source_state(&source_state, unicode_source_kind);
+      clear_getc_source_state(&source_state, *unicode_source_kind);
 #endif /* UNICODE_SOURCE_SUPPORTED */
       /* Skip over lines in the file to the position of the desired line. */
       for (skip_lines = physical_line - starting_line;
@@ -1926,6 +1929,50 @@ column for the caret in the second pass.
 }  /* put_char */
 
 
+/*
+Put out a character at *loc_in_line to the error output buffer, and
+advance loc_in_line.  On the pass_for_caret, outputs a blank instead of
+the character.  Handles multibyte characters appropriately.  ch is
+the character to be used for *loc_in_line; it is different from what
+is stored there when an ATTENTION_MARKER is being replaced by the
+original character at that position.
+*/
+#if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
+
+#if UNICODE_SOURCE_SUPPORTED
+#define and_unicode_source_kind_ne_usk_none(ukind) \
+  && (ukind) != usk_none
+#else /* !UNICODE_SOURCE_SUPPORTED */
+#define and_unicode_source_kind_ne_usk_none(ukind) /* Nothing */
+#endif /* UNICODE_SOURCE_SUPPORTED */
+
+#define put_char_from_line(ch, ukind) \
+{ put_char(ch); \
+  if (multibyte_chars_in_source_enabled \
+      and_unicode_source_kind_ne_usk_none(ukind)) { \
+    int  numch; \
+    char orig_ch = *loc_in_line; \
+    *loc_in_line = (ch); \
+    numch = mbc_length_simple(loc_in_line) - 1; \
+    *loc_in_line = orig_ch; \
+    while (numch-- > 0) { \
+      loc_in_line++; \
+      if (!pass_for_caret) { \
+         putcb(*loc_in_line); \
+      } \
+      curr_column++; \
+    }  /* while */ \
+  }  /* if */ \
+  loc_in_line++; \
+}  /* put_char_from_line */
+#else /* !MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
+#define put_char_from_line(ch, ukind) \
+{ put_char(ch); \
+  loc_in_line++; \
+}  /* put_char_from_line */
+#endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
+
+
 static void write_orig_source_line(a_source_position *source_pos)
 /*
 Write out the source line associated with the source position source_pos,
@@ -1999,14 +2046,6 @@ a blank line instead of the caret line.
            second pass the spaces/caret can be output. */
         while (olmp == NULL || loc_in_line != olmp->line_loc) {
           ch = *loc_in_line;
-          /* This character of the source line may have been replaced by
-             an attention character to indicate that some sort of source
-             line modification starts here.  If so, go to the modification
-             entry and get the original source line character. */
-          if (ch == ATTENTION_MARKER) {
-            slmp = nested_source_line_modif(loc_in_line);
-            ch = slmp->orig_char;
-          }  /* if */
           if (ch == LE_ESCAPE) {
             /* LE_NULL is handled below (it has an associated modification
                entry). */
@@ -2016,8 +2055,17 @@ a blank line instead of the caret line.
                                 "write_orig_source_line: bad lexical escape");
             goto end_of_loop;
           }  /* if */
-          put_char(ch);
-          loc_in_line++;
+          /* This character of the source line may have been replaced by
+             an attention character to indicate that some sort of source
+             line modification starts here.  If so, go to the modification
+             entry and get the original source line character. */
+          if (ch == ATTENTION_MARKER) {
+            slmp = nested_source_line_modif(loc_in_line);
+            ch = slmp->orig_char;
+          }  /* if */
+          /* Put out the character, which is possibly a multibyte
+             character, and advance loc_in_line to after the character. */
+          put_char_from_line(ch, curr_file_unicode_source_kind);
         }  /* while */
         /* Dump the characters for the modification. */
         switch ((int)olmp->kind) {
@@ -2073,14 +2121,20 @@ end_of_loop:
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 #if !STANDALONE_UTILITY_PROGRAM
 
-static void write_error_source_line(a_source_position *source_pos)
+#if !UNICODE_SOURCE_SUPPORTED
+/*ARGSUSED*/  /* <-- unicode source_kind is not used in that case. */
+#endif /* !UNICODE_SOURCE_SUPPORTED */
+static void write_error_source_line(a_source_position     *source_pos,
+                                    a_unicode_source_kind unicode_source_kind)
 /*
 Write out the source line associated with the source position source_pos,
 and place a caret under the proper column.  The position has been determined
 earlier to be in other than the current logical source line and the line
 has been reread into the buffer pointed to by the static variable
 error_source_line.  If the column position is zero, write a blank line
-instead of the caret line.
+instead of the caret line.  unicode_source_kind indicates the kind of Unicode
+encoding form for the file, or usk_none if the file is not Unicode.
+
 */
 {
   char            *loc_in_line;
@@ -2116,9 +2170,9 @@ instead of the caret line.
       for (;;) {
         /* Exit on the newline or carriage return/newline at the end of the
            source line. */
-        if ((ch = *loc_in_line++) == '\n' ||
-            (ch == '\r' && *loc_in_line == '\n')) goto end_of_loop;
-        put_char(ch);
+        if ((ch = *loc_in_line) == '\n' ||
+            (ch == '\r' && loc_in_line[1] == '\n')) goto end_of_loop;
+        put_char_from_line(ch, unicode_source_kind);
       }  /* for */
 
 end_of_loop:
@@ -2378,14 +2432,16 @@ output.
 }  /* write_position */
 
 
-static void write_position_and_severity(an_error_code     error_code,
-                                        an_error_severity severity,
-                                        a_source_position *error_pos,
-                                        char              **file_name,
-                                        a_line_number     *line_number,
-                                        a_boolean         *src_text_needed,
-                                        a_boolean         *in_curr_src_line,
-                                        int               *line_len)
+static void write_position_and_severity(
+                                    an_error_code         error_code,
+                                    an_error_severity     severity,
+                                    a_source_position     *error_pos,
+                                    char                  **file_name,
+                                    a_line_number         *line_number,
+                                    a_boolean             *src_text_needed,
+                                    a_unicode_source_kind *unicode_source_kind,
+                                    a_boolean             *in_curr_src_line,
+                                    int                   *line_len)
 /*
 Write the source position (file name and line number) and severity to
 f_error.  Determine if the actual source line is available, either in the 
@@ -2413,6 +2469,7 @@ the output.
 #endif /* STANDALONE_UTILITY_PROGRAM */
   capitalize_severity = FALSE;
   *src_text_needed = FALSE;
+  *unicode_source_kind = usk_none;
   *in_curr_src_line = FALSE;
   /* Determine the source position (file, line number). */
   if (error_pos->seq == 0) {
@@ -2447,7 +2504,7 @@ the output.
       } else {
         /* The sequence number is not in the current logical source line.
            Try to relocate the source line in the known source files. */
-        if (can_locate_source_line(error_pos->seq)) {
+        if (can_locate_source_line(error_pos->seq, unicode_source_kind)) {
           /* The source line has been read into the error_source_line
              buffer. */
           *src_text_needed = TRUE;
@@ -2630,6 +2687,7 @@ additional messages in a multiple message diagnostic.
   static char                   *file_name;
   static a_line_number          line_number;
   static a_boolean              source_text_needed;
+  static a_unicode_source_kind  unicode_source_kind;
   static a_boolean              in_current_source_line;
   int                           line_len;
   a_source_position             local_pos;
@@ -2691,6 +2749,7 @@ additional messages in a multiple message diagnostic.
       write_position_and_severity(error_code, severity, &local_pos, &file_name,
                                   &line_number,
                                   &source_text_needed,
+                                  &unicode_source_kind,
                                   &in_current_source_line,
                                   &line_len);
 #if FULLY_RESOLVED_MACRO_POSITIONS
@@ -2740,7 +2799,7 @@ additional messages in a multiple message diagnostic.
           write_orig_source_line(&local_pos);
         }  else {
           /* Write the source line text from the error_source_line buffer. */
-          write_error_source_line(&local_pos);
+          write_error_source_line(&local_pos, unicode_source_kind);
         }  /* if */
 #if MACRO_INVOCATION_TREE_IN_IL
         if (error_pos->macro_context != NO_PARENT_MACRO_INVOCATION &&
@@ -2793,7 +2852,8 @@ additional messages in a multiple message diagnostic.
       }  /* if */
 #if FULLY_RESOLVED_MACRO_POSITIONS
       if (macro_positions_in_diagnostics) {
-        a_boolean need_generic_introducer;
+        a_boolean             need_generic_introducer;
+        a_unicode_source_kind macro_unicode_source_kind;
         if (local_pos.seq != error_pos->seq) {
           /* The original source line printed above was a #define, so we will
              try to display the source line containing the macro invocation.
@@ -2806,7 +2866,9 @@ additional messages in a multiple message diagnostic.
             source_text_needed = source_text_needed && !brief_diagnostics;
             if (source_text_needed && error_pos->seq < curr_seq_number) {
               /* Not in current source line -- see if we can print it. */
-              source_text_needed = can_locate_source_line(error_pos->seq);
+              source_text_needed = can_locate_source_line(
+                                                   error_pos->seq,
+                                                   &macro_unicode_source_kind);
             }  /* if */
           }  /* if */
           need_generic_introducer = TRUE;
@@ -2857,7 +2919,7 @@ additional messages in a multiple message diagnostic.
             write_orig_source_line(error_pos);
           } else {
             /* Text is in the error source line. */
-            write_error_source_line(error_pos);
+            write_error_source_line(error_pos, macro_unicode_source_kind);
           }  /* if */
         }  /* if */
       }  /* if */
