@@ -2844,6 +2844,9 @@ values, and return a pointer to it.
   entry->colon_position = null_source_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   entry->reachable_by_fall_through = TRUE;
+#if CENTERLINE_CHECKING
+  entry->avoid_codecenter_warnings = 0;
+#endif /* CENTERLINE_CHECKING */
 #if DEBUG
   num_switch_case_entries_allocated++;
 #endif /* DEBUG */
