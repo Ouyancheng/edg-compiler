@@ -5836,6 +5836,7 @@ GNU also allows the "case range" form:
 #endif /* GNU_EXTENSIONS_ALLOWED */
     scep->position = constant_ptr->source_corresp.decl_position,
 #if EXTRA_SOURCE_POSITIONS_IN_IL
+    scep->end_position = curr_construct_end_position;
     scep->colon_position = pos_curr_token;
     sp->end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */

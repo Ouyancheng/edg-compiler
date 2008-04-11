@@ -10996,8 +10996,16 @@ typedef struct a_switch_case_entry {
 			   some of the cases are template dependent. */
   a_source_position
 		position;
-			/* The position of the case value. */
+			/* The position of the case value.  For a default
+			   case, the position of the "default" keyword is
+			   recorded. */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position
+		end_position;
+			/* The position of the end of the case value.  If this
+			   entry represents a GNU case range, then this is the
+			   end position of the range_end value.  For the
+			   default case, this is the null position. */
   a_source_position
 		colon_position;
 			/* The position of the colon token. */
