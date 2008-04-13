@@ -691,49 +691,53 @@ the character position of the error.
 
 void conv_single_char(char          **temp_ptr,
                       int           *remaining_mbc_char_count,
+                      a_boolean     process_escapes,
                       unsigned long *ch,
                       unsigned long centity_mask)
 /*
 Fetch one character of a character constant or string literal.  The current
 position in the token is *temp_ptr (it is incremented appropriately for what
-is taken).  The character gotten is returned (not sign-extended) in ch.
-centity_mask defines the size of the character entity into which this character
-is going (char, wchar_t, char16_t, or char32_t).  *remaining_mbc_char_count
-indicates the number of characters remaining to be extracted from a
-multibyte character sequence.  The caller must set it to zero before
-the first call of this routine in a given string.  It is updated
-appropriately on return (but it is not updated if multibyte characters
-are not enabled, and thus stays zero on all calls).
+is taken).  Escapes (beginning with "\") are recognized and processed if
+process_escapes is TRUE.  The character gotten is returned (not
+sign-extended) in ch.  centity_mask defines the size of the character
+entity into which this character is going (char, wchar_t, char16_t, or
+char32_t).  When multibyte characters are enabled, each byte of the
+multibyte character is returned on a separate call of this routine.
+*remaining_mbc_char_count is set to the number of characters remaining
+to be extracted on subsequent calls, and serves to disable recognition of
+escapes etc. on bytes after the first in a multibyte character.  The
+caller must set *remaining_mbc_char_count to zero before the first call of
+this routine in a given string, even if multibyte character are not
+enabled.
 */
 {
-  register unsigned long targ_ch;
-  register unsigned char tch;
-  char		         *lptr;
-  int                    digit;
-  a_boolean              range_error = FALSE;
-  a_boolean              unrecognized;
+  unsigned long targ_ch;
+  unsigned char tch;
+  char          *lptr;
+  int           digit;
+  a_boolean     range_error = FALSE;
+  a_boolean     unrecognized;
 
   lptr = *temp_ptr;
+  if (*remaining_mbc_char_count != 0) {
+    /* We are in the middle of a multibyte character sequence started on a
+       previous call of this routine.  Return another character and
+       decrement the count of remaining characters. */
+    targ_ch = (unsigned char)*lptr;
+    lptr++;
+    (*remaining_mbc_char_count)--;
+    goto return_point;
+  }  /* if */
 get_another:
   targ_ch = (unsigned char)*lptr;
   if (targ_ch == LE_ESCAPE) {
     check_assertion(lptr[1] == LE_NULL);
     /* Null (zero) character, represented as an escape. */
     targ_ch = 0;
-    lptr += LE_ESCAPE_LEN-1;
+    lptr += LE_ESCAPE_LEN;
     /* In Microsoft mode, such characters are thrown away. */
-    if (microsoft_mode) {
-      lptr++;
-      goto get_another;
-    }  /* if */
-  }  /* if */
-  if (*remaining_mbc_char_count != 0) {
-    /* We are in the middle of a multibyte character sequence started on a
-       previous call of this routine.  Return another character and
-       decrement the count of remaining characters. */
-    lptr++;
-    (*remaining_mbc_char_count)--;
-  } else if (targ_ch != '\\') {
+    if (microsoft_mode) goto get_another;
+  } else if (targ_ch != '\\' || !process_escapes) {
     /* Normal character (not escaped). */
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
     if (multibyte_chars_in_source_enabled) {
@@ -932,14 +936,16 @@ the size of character.
 
 #if !MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
   /* Simple version: no multibyte characters to consider. */
-  conv_single_char(temp_ptr, &remaining_mbc_char_count, ch, centity_mask);
+  conv_single_char(temp_ptr, &remaining_mbc_char_count,
+                   /*process_escapes=*/TRUE, ch, centity_mask);
 #else /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
   /* Multibyte character processing may be needed. */
   if (!multibyte_chars_in_source_enabled || **temp_ptr == '\\' ||
       **temp_ptr == LE_ESCAPE) {
     /* Use simple routine if multibyte characters are disabled or if
        the character is an escape. */
-    conv_single_char(temp_ptr, &remaining_mbc_char_count, ch, centity_mask);
+    conv_single_char(temp_ptr, &remaining_mbc_char_count,
+                     /*process_escapes=*/TRUE, ch, centity_mask);
     check_assertion(remaining_mbc_char_count == 0);
   } else {
     unsigned  long wc;
@@ -1076,8 +1082,8 @@ processing, and in wide characters if the constant is wide).
       /* Skip leading characters until what remains can fit. */
       check_assertion(gnu_mode);
       for (i = 0; i < skip_count; ++i) {
-        conv_single_char(&temp_ptr, &remaining_mbc_char_count, &ch,
-                         centity_mask);
+        conv_single_char(&temp_ptr, &remaining_mbc_char_count,
+                         /*process_escapes=*/TRUE, &ch, centity_mask);
       }  /* for */
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -1088,8 +1094,8 @@ processing, and in wide characters if the constant is wide).
       /* Convert one character of the char constant. */
       switch (character_kind) {
         case chk_char:
-          conv_single_char(&temp_ptr, &remaining_mbc_char_count, &ch,
-                           centity_mask);
+          conv_single_char(&temp_ptr, &remaining_mbc_char_count,
+                           /*process_escapes=*/TRUE, &ch, centity_mask);
           break;
         case chk_wchar_t:
           conv_single_wide_char(&temp_ptr, &ch, centity_mask);
@@ -1304,8 +1310,8 @@ smaller) than the number of characters needed to represent the string.
     /* Convert one character of the string literal. */
     switch (character_kind) {
       case chk_char:
-        conv_single_char(&temp_ptr, &remaining_mbc_char_count, &ch,
-                         centity_mask);
+        conv_single_char(&temp_ptr, &remaining_mbc_char_count,
+                         /*process_escapes=*/TRUE, &ch, centity_mask);
         *pstr++ = (char)ch;
         break;
       case chk_wchar_t:

@@ -1892,14 +1892,15 @@ which controls whether null (zero) characters are allowed in source lines.
 Flag that is TRUE if UTF-8 and UTF-16 encodings of Unicode should be accepted
 in source code.  Note that if you set this the representation for identifiers
 and file names becomes UTF-8, which may require back end or host-interface
-changes.
+changes (see fopen_interface if the standard fopen does not take UTF-8
+strings).
 */
 #ifndef UNICODE_SOURCE_SUPPORTED
-#if __MICROSOFT_OS__
+#if EDG_WIN32
 #define UNICODE_SOURCE_SUPPORTED TRUE
-#else /* !__MICROSOFT_OS__ */
+#else /* !EDG_WIN32 */
 #define UNICODE_SOURCE_SUPPORTED FALSE
-#endif /* __MICROSOFT_OS__ */
+#endif /* EDG_WIN32 */
 #endif /* UNICODE_SOURCE_SUPPORTED */
 
 /*
@@ -2153,9 +2154,16 @@ extern int mbc_to_wide_char(char          *mb,
 #define mbc_scan_init_if_multibyte_chars_in_source_enabled() /* Nothing. */
 
 #ifndef LOCALE_TO_SET_WHEN_MULTIBYTE_CHARS_ENABLED
-#if __MICROSOFT_OS__
-#define LOCALE_TO_SET_WHEN_MULTIBYTE_CHARS_ENABLED ""
-#endif /* __MICROSOFT_OS__ */
+/* If possible, pick a locale that looks like ISO-8859-1/Latin-1. */
+#if EDG_WIN32
+/* There is a Windows Latin-1 code page, but Windows-1252 is effectively the
+   same and is the default code page in lots of Western nations. */
+#define LOCALE_TO_SET_WHEN_MULTIBYTE_CHARS_ENABLED ".1252"
+#else /* !EDG_WIN32 */
+#ifdef sun
+#define LOCALE_TO_SET_WHEN_MULTIBYTE_CHARS_ENABLED "iso_8859_1"
+#endif /* sun */
+#endif /* EDG_WIN32 */
 #endif /* LOCALE_TO_SET_WHEN_MULTIBYTE_CHARS_ENABLED */
 
 #ifdef LOCALE_TO_SET_WHEN_MULTIBYTE_CHARS_ENABLED
@@ -2218,10 +2226,8 @@ typedef struct {
 			   input file. */
 } a_getc_source_state;
 
-#if IDENTIFIER_STRINGS_ALLOW_MULTIBYTE_CHARS
 extern int wide_char_to_utf8(unsigned long uc,
                              char          chars[4]);
-#endif /* IDENTIFIER_STRINGS_ALLOW_MULTIBYTE_CHARS */
 extern void clear_getc_source_state(a_getc_source_state   *state,
                                     a_unicode_source_kind ukind);
 extern int getc_utf16(FILE                *file,

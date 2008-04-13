@@ -3003,9 +3003,10 @@ is TRUE.
                      curr_file_unicode_source_kind == usk_none) {
             /* Change a non-Unicode character with value > 7f to two bytes
                of UTF-8. */
-            char ch1 = (char)(((unsigned char)ch >> 6) | 0xc0);
-            putc(ch1, f_pp_output);
-            ch = (char)((ch & 0x3f) | 0x80);
+            char arr[4];
+            (void)wide_char_to_utf8((unsigned long)(unsigned char)ch, arr);
+            putc(arr[0], f_pp_output);
+            ch = arr[1];
 #endif /* UNICODE_SOURCE_SUPPORTED */
           } else
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */

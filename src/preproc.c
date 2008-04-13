@@ -927,8 +927,8 @@ Allocate and copy the file name from the current token (a header name).
 Escapes in the string are processed only if process_escapes is TRUE.
 */
 {
-  char		*name_start_pos, *in_pos, *out_pos;
-  sizeof_t	name_len, i;
+  char          *name_start_pos, *in_pos, *out_pos;
+  sizeof_t      name_len, out_name_len, i;
   int           remaining_mbc_char_count = 0;
   unsigned long ch;
   unsigned long centity_mask;
@@ -936,9 +936,18 @@ Escapes in the string are processed only if process_escapes is TRUE.
   /* Build a mask used to mask individual characters. */
   centity_mask = (unsigned long)1 << (targ_host_string_char_bit-1);
   centity_mask = centity_mask | (centity_mask-1);
-  name_start_pos = alloc_primary_file_scope_il((sizeof_t)(
-           (name_len = len_of_curr_token - 2 /* Drop quoting characters. */)
-           + 1 /* Space for null. */));
+  name_len = len_of_curr_token - 2;  /* Drop quoting characters. */
+  out_name_len = name_len + 1;  /* +1 for null. */
+#if UNICODE_SOURCE_SUPPORTED
+  if (curr_file_unicode_source_kind == usk_none) {
+    /* Allow extra room for characters in the file name that must be expanded
+       to two characters in the UTF-8. */
+    for (i = 1; i <= name_len; i++) {
+      if ((unsigned char)start_of_curr_token[i] > 0x7f) out_name_len += 1;
+    }  /* for */
+  }  /* if */
+#endif /* UNICODE_SOURCE_SUPPORTED */
+  name_start_pos = alloc_primary_file_scope_il(out_name_len);
   in_pos = start_of_curr_token+1;
   if (microsoft_mode && *start_of_curr_token == '<') {
     /* Microsoft compilers ignore leading and trailing whitespace inside
@@ -950,23 +959,23 @@ Escapes in the string are processed only if process_escapes is TRUE.
      including unprocessed escapes was allocated in the output string, so
      there may be a bit of wasted space. */
   for (i = 1; i <= name_len; i++) {
-    if (*in_pos == LE_ESCAPE) {
-      check_assertion_str(in_pos[1] == LE_NULL,
-                          "copy_header_name: lexical escape in header name");
-      /* Null (zero) character in header name. */
-      if (!microsoft_mode) *out_pos++ = '\0';
-      in_pos += LE_ESCAPE_LEN;
-      i += LE_ESCAPE_LEN-1;
-    } else if (process_escapes) {
-      /* Process the character, considering escape characters. */
-      char *prev_pos = in_pos;
-      conv_single_char(&in_pos, &remaining_mbc_char_count, &ch, centity_mask);
-      i += (in_pos - prev_pos) - 1;
-      *out_pos++ = (char)ch;
-    } else {
-      /* Escapes should not be considered; just copy one character. */
-      *out_pos++ = *in_pos++;
+    char *prev_pos = in_pos;
+    conv_single_char(&in_pos, &remaining_mbc_char_count, process_escapes,
+                     &ch, centity_mask);
+    i += (in_pos - prev_pos) - 1;
+#if UNICODE_SOURCE_SUPPORTED
+    if (curr_file_unicode_source_kind == usk_none &&
+        ch > 0x7f) {
+      /* A character in the range 128-255 in a non-Unicode file must be
+         converted to 2 bytes of UTF-8.  (This happens, for example, for
+         European accented characters.) */
+      char arr[4];
+      (void)wide_char_to_utf8(ch, arr);
+      *out_pos++ = arr[0];
+      ch = arr[1];
     }  /* if */
+#endif /* UNICODE_SOURCE_SUPPORTED */
+    *out_pos++ = (char)ch;
   }  /* for */
   *out_pos = '\0';
   return name_start_pos;

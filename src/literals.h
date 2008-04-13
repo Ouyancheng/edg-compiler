@@ -41,6 +41,7 @@ extern void conv_float_literal(a_boolean	is_hexadecimal,
 	                       char		**err_pos);
 extern void conv_single_char(char          **temp_ptr,
                              int           *remaining_mbc_char_count,
+                             a_boolean     process_escapes,
                              unsigned long *ch,
                              unsigned long centity_mask);
 extern void conv_char_literal(unsigned long num_chars,

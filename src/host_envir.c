@@ -3565,7 +3565,6 @@ have_ch:
   return ch;
 }  /* getc_utf16 */
 
-#if IDENTIFIER_STRINGS_ALLOW_MULTIBYTE_CHARS
 
 int wide_char_to_utf8(unsigned long uc,
                       char          chars[4])
@@ -3602,7 +3601,6 @@ representation in the array chars, and return the length (1-4).
   return len;
 }  /* wide_char_to_utf8 */
     
-#endif /* IDENTIFIER_STRINGS_ALLOW_MULTIBYTE_CHARS */
 #endif /* UNICODE_SOURCE_SUPPORTED */
 
 unsigned long extract_character_from_string(char          *str,
