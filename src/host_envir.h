@@ -2745,6 +2745,9 @@ extern unsigned long extract_character_from_string(char          *str,
 #define extract_wide_char_from_string(str)                                  \
   (extract_character_from_string(str, targ_sizeof_wchar_t))
 
+extern int ucn_to_utf16(unsigned long   ucn,
+                        unsigned short  *encoding);
+
 extern void host_envir_one_time_init(void);
 
 extern void host_envir_trans_unit_init(void);

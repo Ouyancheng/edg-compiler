@@ -1126,6 +1126,70 @@ necessary.  This routine may be called iteratively.
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
+#if EDG_WIN32 && UNICODE_SOURCE_SUPPORTED
+/* Text buffer used by fopen_interface. */
+static a_text_buffer_ptr
+		fopen_filename_buffer;
+#endif /* EDG_WIN32 && UNICODE_SOURCE_SUPPORTED */
+
+static FILE *fopen_interface(char *filename,
+                             char *mode)
+/*
+Interface to the standard fopen routine.  If necessary, does something special
+to handle multibyte characters in the file name.
+*/
+{
+  FILE *file;
+
+#if EDG_WIN32 && UNICODE_SOURCE_SUPPORTED
+  /* On Windows with Unicode configured in, the filename is UTF-8 but fopen
+     takes only ANSI file names.   Convert to wide form and use _wfopen. */
+  { char           *p;
+    wchar_t        *wp;
+    unsigned long  wc;
+    a_boolean      err;
+    int            numch, wnumch, j;
+    wchar_t        wmode[10];
+    sizeof_t       wmodelen;
+    sizeof_t       i;
+    unsigned short e[2];
+    if (fopen_filename_buffer == NULL) {
+      fopen_filename_buffer = alloc_text_buffer(256);
+    }  /* if */
+    /* Copy the filename to the buffer, converting to wide characters. */
+    p = filename;
+    i = 0;
+    for (;;) {
+      /* Convert UTF-8 to a single Unicode code point. */
+      numch = mbc_to_wide_char(p, &wc, &err);
+      /* Convert that to either one UTF-16 value or a pair of surrogates. */
+      wnumch = ucn_to_utf16(wc, e);
+      check_assertion(wnumch <= 2);
+      /* Copy the UTF-16 value(s) to the buffer. */
+      ensure_text_buffer_space(fopen_filename_buffer,
+                               (i + wnumch)*sizeof(wchar_t));
+      wp = (wchar_t *)fopen_filename_buffer->buffer;
+      for (j = 0; j < wnumch; j++) wp[i+j] = (wchar_t)e[j];
+      /* Done on encountering a null in the source string. */
+      if (*p == '\0') break;
+      p += numch;
+      i += wnumch;
+    }  /* for */
+    /* Convert the mode string to wchar_t. */
+    wmodelen = strlen(mode)+1;
+    check_assertion(wmodelen <= sizeof(wmode)/sizeof(wmode[0]));
+    for (i = 0; i < wmodelen; i++) wmode[i] = (wchar_t)mode[i];
+    /* Call the wide open routine. */
+    file = _wfopen(wp, wmode);
+  }
+#else /* !(EDG_WIN32 && UNICODE_SOURCE_SUPPORTED) */
+  /* Normal case. */
+  file = fopen(filename, mode);
+#endif /* EDG_WIN32 && UNICODE_SOURCE_SUPPORTED */
+
+  return file;
+}  /* fopen_interface */
+
 
 char *get_file_modification_time_string(char		*file_name,
 				        a_boolean	strip_newline)
@@ -1260,7 +1324,8 @@ Unicode.
   if (strlen(file_name) == 0) {
     *bad_name = TRUE;
     temp_file = NULL;
-  } else if ((temp_file = fopen(file_name, FOPEN_MODE_FOR_READ)) == NULL) {
+  } else if ((temp_file = fopen_interface(file_name, FOPEN_MODE_FOR_READ)) ==
+                                                                        NULL) {
     *not_found = TRUE;
   }  else {
     /* File opened okay. */
@@ -1298,7 +1363,7 @@ Unicode.
 {
   FILE	*temp_file;
 
-  temp_file = fopen(file_name, FOPEN_MODE_FOR_READ);
+  temp_file = fopen_interface(file_name, FOPEN_MODE_FOR_READ);
   *unicode_source_kind = usk_none;
 #if UNICODE_SOURCE_SUPPORTED
   /* If the file contains a byte order mark, advance past it. */
@@ -1404,7 +1469,7 @@ should be opened in update mode so it can be read as well as written.
       mode = (char *)(binary_file ? FOPEN_MODE_FOR_BINARY_WRITE
                                   : FOPEN_MODE_FOR_WRITE);
     }  /* if */
-    temp_file = fopen(file_name, mode);
+    temp_file = fopen_interface(file_name, mode);
     if (temp_file == NULL) *cannot_open = TRUE;
   }  /* if */
 
@@ -1435,7 +1500,7 @@ otherwise return NULL.
   } else {
     mode = (char *)(binary_file ? FOPEN_MODE_FOR_BINARY_READ :
                                   FOPEN_MODE_FOR_READ);
-    temp_file = fopen(file_name, mode);
+    temp_file = fopen_interface(file_name, mode);
   }  /* if */
   return(temp_file);
 }  /* open_input_file */
@@ -1546,8 +1611,9 @@ file should be a binary file if binary_file is TRUE.
     } else {
       /* The file does not exist.  Try opening it. */
       /* coverity[toctou] */
-      temp_file = fopen(buffer, binary_file ? FOPEN_MODE_FOR_BINARY_UPDATE :
-                                              FOPEN_MODE_FOR_UPDATE);
+      temp_file = fopen_interface(buffer,
+                                  binary_file ? FOPEN_MODE_FOR_BINARY_UPDATE :
+                                                FOPEN_MODE_FOR_UPDATE);
       if (temp_file != NULL) goto have_file;
     }  /* if */
     /* Retry with incremented file names a certain number of times.  After
@@ -3568,6 +3634,45 @@ into single character values).
   return wc;
 }  /* extract_character_from_string */
 
+
+int ucn_to_utf16(unsigned long   ucn,
+                 unsigned short  *encoding)
+/*
+Encode the given 32-bit character code as UTF-16 values stored in an array
+pointed to by encoding.  Return the number of array elements used by the
+encoding (never more than MAX_CHAR16_T_ENCODING_LENGTH), or zero if no valid
+encoding could be achieved.  Note that this routine only handles the host-side
+of the encoding: Target-size issues (such as endianness) are handled elsewhere
+(e.g., in put_wide_char_into_string).
+*/
+{
+  int  result;
+
+  if (ucn <= 0xFFFF) {
+    /* No need for a surrogate pair.  (The code points 0xD800 through 0xDFFF
+       are normally reserved for surrogate pair encoding.  They aren't valid
+       universal character names in C99 or C++.  This encoding routine just
+       encodes them "as is", which might result in an invalid UTF-16 code.) */
+    result = 1;
+    encoding[0] = (unsigned short)ucn;
+  } else {
+    /* Form a surrogate pair. */
+    if (ucn <= 0x10FFFF) {
+      unsigned long high, low;
+      result = 2;
+      ucn -= 0x10000;
+      low = 0xDC00 | (ucn & 0x3FF);
+      high = 0xD800 | ((ucn >> 10) & 0x3FF);
+      encoding[0] = (unsigned short)high;
+      encoding[1] = (unsigned short)low;
+    } else {
+      /* UTF-16 cannot represent code points above 0x10FFFF. */
+      result = 0;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* ucn_to_utf16 */
+
 #if !STANDALONE_UTILITY_PROGRAM
 
 /*
@@ -3949,6 +4054,9 @@ This is done before command line processing.
   }
   file_read_buffer = NULL;
   dir_and_file_buffer = NULL;
+#if EDG_WIN32 && UNICODE_SOURCE_SUPPORTED
+  fopen_filename_buffer = NULL;
+#endif /* EDG_WIN32 && UNICODE_SOURCE_SUPPORTED */
 #if __MICROSOFT_OS__
   open_temp_files = NULL;
 #endif /* __MICROSOFT_OS__ */

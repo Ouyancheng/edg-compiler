@@ -689,46 +689,6 @@ the character position of the error.
 }  /* conv_float_literal */
 
 
-static int ucn_to_utf16(unsigned long   ucn,
-                        unsigned short  *encoding)
-/*
-Encode the given 32-bit character code as UTF-16 values stored in an array
-pointed to by encoding.  Return the number of array elements used by the
-encoding (never more than MAX_CHAR16_T_ENCODING_LENGTH), or zero if no valid
-encoding could be achieved.  Note that this routine only handles the host-side
-of the encoding: Target-size issues (such as endianness) are handled elsewhere
-(e.g., in put_wide_char_into_string).
-*/
-{
-  int  result;
-
-  if (ucn <= 0xFFFF) {
-    /* No need for a surrogate pair.  (The code points 0xD800 through 0xDFFF
-       are normally reserved for surrogate pair encoding.  They aren't valid
-       universal character names in C99 (caught elsewhere), but they are
-       in C++.  This encoding routine just encodes them "as is", which might
-       result in an invalid UTF-16 code.) */
-    result = 1;
-    encoding[0] = (unsigned short)ucn;
-  } else {
-    /* Form a surrogate pair. */
-    if (ucn <= 0x10FFFF) {
-      unsigned long high, low;
-      result = 2;
-      ucn -= 0x10000;
-      low = 0xDC00 | (ucn & 0x3FF);
-      high = 0xD800 | ((ucn >> 10) & 0x3FF);
-      encoding[0] = (unsigned short)high;
-      encoding[1] = (unsigned short)low;
-    } else {
-      /* UTF-16 cannot represent code points above 0x10FFFF. */
-      result = 0;
-    }  /* if */
-  }  /* if */
-  return result;
-}  /* ucn_to_utf16 */
-
-
 void conv_single_char(char          **temp_ptr,
                       int           *remaining_mbc_char_count,
                       unsigned long *ch,
