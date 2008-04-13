@@ -1,5 +1,77 @@
 Version 3.11
 
+4/13/08  Unicode in source code
+
+The front end now supports Unicode source files in the UTF-8 and
+UTF-16 encodings.  This is enabled by UNICODE_SOURCE_SUPPORTED.
+The type of source code in a file can be specified by a
+byte order mark (BOM) at the start of the file (see Changes entry
+of 2/17/06), or by way of the new --unicode_source_kind command-line
+option.  There is also a macro DEFAULT_UNICODE_SOURCE_KIND that
+can be used to establish the default for files without a byte
+order mark.  
+
+UTF-16 source code can be in the little-endian or big-endian
+format, and is converted immediately to UTF-8 on input.  Therefore,
+"column numbers" in UTF-16 source are based on the UTF-8 version,
+which works fine for caret positions in diagnostics but may be a
+bit weird for other uses.
+
+When UNICODE_SOURCE_SUPPORTED is set to TRUE, identifiers and
+file name strings in the front end will be represented in UTF-8.
+For file names, there is the expectation that the standard system
+fopen will be able to deal with UTF-8 file names.  If that isn't
+the case, some host-specific code may have to be added to fopen_interface.
+(For Windows-hosted configurations, specific code is provided which
+calls the _wfopen function.)
+
+If UTF-8 identifier name strings are somehow undesirable (e.g.,
+a back end or linker can't handle them), the macro
+IDENTIFIER_STRINGS_ALLOW_MULTIBYTE_CHARS can be set to FALSE,
+in which case characters in identifiers outside of the basic
+character set will be rendered in the \uXXXX or \UXXXXXXXX
+form already used for UCNs.  Note, however, that the encoded
+form will come out in diagnostic messages that name an entity
+in the source.
+
+If DEFAULT_UNICODE_SOURCE_KIND is usk_none, source files without
+a byte order mark are assumed to be encoded in ISO-8859-1 (otherwise
+known as Latin-1), which matches the first 256 code points in
+Unicode.  Such a mode (which is the default for Windows-hosted
+versions) is a hybrid mode in which some files are Unicode and
+some are not, and in which therefore a character like a u-umlaut
+would be encoded differently depending on the kind of source file
+it appears in.  Such characters in ISO-8859-1 files will be
+converted to UTF-8 (or the identifier encoding \uXXXX) when they
+appear in identifiers and file names.  In hybrid configurations,
+characters in textual preprocessing output will always be converted
+to UTF-8 if DEFAULT_UNICODE_SOURCE_KIND is not usk_none, and to
+ISO-8859-1 otherwise.  Characters that cannot be represented in
+ISO-8859-1 in the latter case are converted to "?".
+
+4/13/08  Non-basic characters now allowed in identifiers
+
+Characters outside of the basic character set are now allowed in
+identifiers.  This includes things like accented European characters
+in character sets like Latin-1, and true multibyte character
+codes in character encodings like Shift-JIS.  For either of
+those cases, an appropriate value of LOCALE_TO_SET_WHEN_MULTIBYTE_CHARS_ENABLED
+must be set if the default locale of "" does not produce the proper
+character set.  If IDENTIFIER_STRINGS_ALLOW_MULTIBYTE_CHARS is
+TRUE, the identifier name strings created by the front end will
+include multibyte characters; if it is FALSE, multibyte characters
+will be encoded in those strings as \mXXXX or \MXXXXXXXX, where XXXX
+is the hexadecimal value of the multibyte character (this is similar
+to the \uXXXX encoding already used for UCN characters; indeed, if
+UNICODE_SOURCE_SUPPORTED is also TRUE, the UCN form is used for
+both).  Note that the encoded form, if selected, comes out in diagnostic
+messages that name an entity in the source.
+
+4/13/08  Caret position on diagnostic for source line with multibyte characters
+
+The caret to indicate the source positon in a diagnostic is now correct
+in the presence of multibyte characters in the displayed source line.
+
 4/9/08   GNU compatibility: constructor/destructor attribute arguments
 
 In GNU C and C++ modes, the front end now accepts an optional "priority"
