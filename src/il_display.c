@@ -3938,6 +3938,7 @@ Display the indicated switch case entry.
 #endif /* GNU_EXTENSIONS_ALLOWED */
   disp_ptr("next", (char *)ptr->next, iek_switch_case_entry);
   disp_ptr("next_on_sorted_list", (char *)ptr->next, iek_switch_case_entry);
+  disp_source_position("position", &ptr->position);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   disp_source_position("end_position", &ptr->end_position);
   disp_source_position("colon_position", &ptr->colon_position);
