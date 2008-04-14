@@ -1127,60 +1127,85 @@ necessary.  This routine may be called iteratively.
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 #if EDG_WIN32 && UNICODE_SOURCE_SUPPORTED
-/* Text buffer used by fopen_interface. */
+/* Text buffer used by fopen_interface and is_regular_file. */
 static a_text_buffer_ptr
-		fopen_filename_buffer;
+		wchar_filename_buffer;
+
+static void translate_filename_to_wchar(char *filename)
+/*
+Copy the supplied filename to wchar_filename_buffer as wchar_t characters,
+translating any UTF-8 multibyte characters to UTF-16.
+*/
+{
+  unsigned char  *p;
+  unsigned long  unicode_char;
+  a_boolean      err;
+  int            num_utf8_bytes;
+  int            num_utf16_chars;
+  sizeof_t       utf16_len;
+  unsigned short utf16_chars[2];
+  sizeof_t       i;
+
+/* Macro to add one wide character to the buffer, expanding the buffer as
+   needed. */
+#define add_to_wchar_buffer(wchar)                                  \
+  ensure_text_buffer_space(wchar_filename_buffer,                   \
+                           (++utf16_len) * sizeof(wchar_t));        \
+  ((wchar_t *)wchar_filename_buffer->buffer)[utf16_len-1] = wchar;
+
+  if (wchar_filename_buffer == NULL) {
+    wchar_filename_buffer = alloc_text_buffer(256);
+  }  /* if */
+  utf16_len = 0;
+  for (p = (unsigned char *)filename; *p != 0; p += num_utf8_bytes) {
+    if (*p < 0x80) {
+      /* This is an ASCII character, so we can just copy it directly. */
+      add_to_wchar_buffer(*p);
+      num_utf8_bytes = 1;
+    } else {
+      /* Convert a UTF-8 character to a single Unicode code point, noting
+         how many bytes from filename were occupied by the UTF-8
+         representation. */
+      num_utf8_bytes = mbc_to_wide_char(p, &unicode_char, &err);
+      /* Convert that to either one UTF-16 value or a pair of surrogates. */
+      num_utf16_chars = ucn_to_utf16(unicode_char, utf16_chars);
+      check_assertion(num_utf16_chars <= 2);
+      /* Copy the result into the buffer. */
+      for (i = 0; i < num_utf16_chars; ++i) {
+        add_to_wchar_buffer(utf16_chars[i]);
+      }  /* for */
+    }  /* if */
+  }  /* for */
+  /* Add the terminating null character. */
+  add_to_wchar_buffer(0);
+#undef add_to_wchar_buffer
+}  /* translate_filename_to_wchar */
 #endif /* EDG_WIN32 && UNICODE_SOURCE_SUPPORTED */
 
-static FILE *fopen_interface(char *filename,
-                             char *mode)
+/*ARGSUSED*/ /* <-- filename is not used in Windows Unicode configuration. */
+static FILE *fopen_interface_no_translate(char *filename,
+                                          char *mode)
 /*
-Interface to the standard fopen routine.  If necessary, does something special
-to handle multibyte characters in the file name.
+Interface to the standard fopen routine.  If multibyte characters are
+supported in the file name, the name has already been translated to wide
+characters in wchar_filename_buffer.
 */
 {
   FILE *file;
 
 #if EDG_WIN32 && UNICODE_SOURCE_SUPPORTED
-  /* On Windows with Unicode configured in, the filename is UTF-8 but fopen
-     takes only ANSI file names.   Convert to wide form and use _wfopen. */
-  { char           *p;
-    wchar_t        *wp;
-    unsigned long  wc;
-    a_boolean      err;
-    int            numch, wnumch, j;
+  /* Translation of the filename has already been done; now translate the
+     mode string to wchar_t and use the wide-character version of fopen. */
+  {
     wchar_t        wmode[10];
     sizeof_t       wmodelen;
     sizeof_t       i;
-    unsigned short e[2];
-    if (fopen_filename_buffer == NULL) {
-      fopen_filename_buffer = alloc_text_buffer(256);
-    }  /* if */
-    /* Copy the filename to the buffer, converting to wide characters. */
-    p = filename;
-    i = 0;
-    for (;;) {
-      /* Convert UTF-8 to a single Unicode code point. */
-      numch = mbc_to_wide_char(p, &wc, &err);
-      /* Convert that to either one UTF-16 value or a pair of surrogates. */
-      wnumch = ucn_to_utf16(wc, e);
-      check_assertion(wnumch <= 2);
-      /* Copy the UTF-16 value(s) to the buffer. */
-      ensure_text_buffer_space(fopen_filename_buffer,
-                               (i + wnumch)*sizeof(wchar_t));
-      wp = (wchar_t *)fopen_filename_buffer->buffer;
-      for (j = 0; j < wnumch; j++) wp[i+j] = (wchar_t)e[j];
-      /* Done on encountering a null in the source string. */
-      if (*p == '\0') break;
-      p += numch;
-      i += wnumch;
-    }  /* for */
-    /* Convert the mode string to wchar_t. */
+
     wmodelen = strlen(mode)+1;
     check_assertion(wmodelen <= sizeof(wmode)/sizeof(wmode[0]));
     for (i = 0; i < wmodelen; i++) wmode[i] = (wchar_t)mode[i];
     /* Call the wide open routine. */
-    file = _wfopen(wp, wmode);
+    file = _wfopen((wchar_t *)wchar_filename_buffer->buffer, wmode);
   }
 #else /* !(EDG_WIN32 && UNICODE_SOURCE_SUPPORTED) */
   /* Normal case. */
@@ -1188,6 +1213,26 @@ to handle multibyte characters in the file name.
 #endif /* EDG_WIN32 && UNICODE_SOURCE_SUPPORTED */
 
   return file;
+}  /* fopen_interface_no_translate */
+
+
+static FILE *fopen_interface(char *filename,
+                             char *mode)
+/*
+Interface to the standard fopen routine (via fopen_interface_no_translate).
+If multibyte characters are supported in the file name, translate the file
+name into wide characters in wchar_filename_buffer.
+*/
+{
+  FILE *file;
+
+#if EDG_WIN32 && UNICODE_SOURCE_SUPPORTED
+  /* On Windows with Unicode configured in, the filename is UTF-8 but fopen
+     takes only ANSI file names.   Convert to wide form for use with
+     _wfopen. */
+  translate_filename_to_wchar(filename);
+#endif /* EDG_WIN32 && UNICODE_SOURCE_SUPPORTED */
+  return fopen_interface_no_translate(filename, mode);
 }  /* fopen_interface */
 
 
@@ -1218,13 +1263,36 @@ which will be overwritten when ctime is called again.
 }  /* get_file_modification_time_string */
 
 
+/*ARGSUSED*/ /* <-- file_name is not used in Windows Unicode configuration. */
+static a_boolean is_regular_file_no_translate(char *file_name)
+/*
+Return TRUE if the specified file is a regular file (i.e., not a
+directory or some other kind of special file).  If multibyte characters
+are supported in the file name, the name has already been translated to
+wide characters in wchar_filename_buffer.
+*/
+{
+#if EDG_WIN32 && UNICODE_SOURCE_SUPPORTED
+  return get_wchar_file_modification_time(
+                                      (wchar_t *)wchar_filename_buffer->buffer,
+                                      (time_t *)NULL);
+#else /* !(EDG_WIN32 && UNICODE_SOURCE_SUPPORTED) */
+  return get_file_modification_time(file_name, (time_t *)NULL);
+#endif /* EDG_WIN32 && UNICODE_SOURCE_SUPPORTED */
+}  /* is_regular_file_no_translate */
+
 a_boolean is_regular_file(char *file_name)
 /*
 Return TRUE if the specified file is a regular file (i.e., not a
-directory or some other kind of special file).
+directory or some other kind of special file).  If multibyte characters
+are supported in the file name, translate the name into wide characters in
+wchar_filename_buffer.
 */
 {
-  return get_file_modification_time(file_name, (time_t *)NULL);
+#if EDG_WIN32 && UNICODE_SOURCE_SUPPORTED
+  translate_filename_to_wchar(file_name);
+#endif /* EDG_WIN32 && UNICODE_SOURCE_SUPPORTED */
+  return is_regular_file_no_translate(file_name);
 }  /* is_regular_file */
 
 #if UNICODE_SOURCE_SUPPORTED
@@ -1329,8 +1397,11 @@ Unicode.
     *not_found = TRUE;
   }  else {
     /* File opened okay. */
-    /* Check the file type. */
-    if (!is_regular_file(file_name)) {
+    /* Check the file type.  (Use the "_no_translate" version because any
+       needed translation from UTF-8 to UTF-16 encodings in the file name
+       was already performed by fopen_interface and need not be
+       repeated.) */
+    if (!is_regular_file_no_translate(file_name)) {
       /* Not a "regular" file. */
       *bad_format = TRUE;
       (void)fclose(temp_file);
@@ -1500,7 +1571,10 @@ otherwise return NULL.
   } else {
     mode = (char *)(binary_file ? FOPEN_MODE_FOR_BINARY_READ :
                                   FOPEN_MODE_FOR_READ);
-    temp_file = fopen_interface(file_name, mode);
+    /* Open the file.  (Use the "_no_interface" version because any needed
+       translation from UTF-8 to UTF-16 encodings in the file name was
+       already performed by is_regular_file and need not be repeated.) */
+    temp_file = fopen_interface_no_translate(file_name, mode);
   }  /* if */
   return(temp_file);
 }  /* open_input_file */
@@ -4053,7 +4127,7 @@ This is done before command line processing.
   file_read_buffer = NULL;
   dir_and_file_buffer = NULL;
 #if EDG_WIN32 && UNICODE_SOURCE_SUPPORTED
-  fopen_filename_buffer = NULL;
+  wchar_filename_buffer = NULL;
 #endif /* EDG_WIN32 && UNICODE_SOURCE_SUPPORTED */
 #if __MICROSOFT_OS__
   open_temp_files = NULL;

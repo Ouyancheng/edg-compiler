@@ -2548,6 +2548,10 @@ EXTERN_C int stat(char *path, struct stat *buf);
 /* See if a file exists, if it does, return the modification time. */
 extern a_boolean get_file_modification_time(char   *file_name,
 					    time_t *time);
+#if EDG_WIN32 && UNICODE_SOURCE_SUPPORTED
+extern a_boolean get_wchar_file_modification_time(wchar_t *file_name,
+                                                  time_t  *time);
+#endif /* EDG_WIN32 && UNICODE_SOURCE_SUPPORTED */
 
 /* Get the file modification time as a string. */
 extern char *get_file_modification_time_string(char		*file_name,

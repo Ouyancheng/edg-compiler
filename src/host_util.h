@@ -109,6 +109,32 @@ time.  Return TRUE if the file exists and is a regular file, FALSE otherwise.
   return is_regular;
 }  /* get_file_modification_time */
 
+#if EDG_WIN32 && UNICODE_SOURCE_SUPPORTED
+a_boolean get_wchar_file_modification_time(wchar_t *file_name,
+                                           time_t  *p_time)
+/*
+Determine whether a file exists, and if so, return the last modification
+time.  Return TRUE if the file exists and is a regular file, FALSE
+otherwise.  Uses the Windows _wstat function to support file names
+containing Unicode characters.
+*/
+{
+  a_boolean    is_regular = FALSE;
+  struct _stat buf;
+
+  /* Check the file type.  Use the _wstat call to handle the wchar_t
+     file name. */
+  if (_wstat(file_name, &buf) == 0) {
+    is_regular = ((buf.st_mode & S_IFREG) != 0);
+    if (is_regular && p_time != NULL) *p_time = buf.st_mtime;
+  } else {
+    /* If the file doesn't exist, set the time to zero just to be neat. */
+    if (p_time != NULL) *p_time = 0;
+  }  /* if */
+  return is_regular;
+}  /* get_wchar_file_modification_time */
+#endif /* EDG_WIN32 && UNICODE_SOURCE_SUPPORTED */
+
 /******************************************************************************
 *                                                             \  ___  /       *
 *                                                               /   \         *
