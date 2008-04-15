@@ -3957,7 +3957,7 @@ Display the indicated switch statement description.
   disp_ptr("cases", (char *)ptr->cases, iek_switch_case_entry);
   disp_ptr("default_case", (char *)ptr->default_case, iek_switch_case_entry);
   disp_ptr("sorted_cases", (char *)ptr->sorted_cases, iek_switch_case_entry);
-}  /* disp_switch_case_entry */
+}  /* disp_switch_stmt_descr */
 
 
 static void disp_exception_specification_type(
