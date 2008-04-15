@@ -1,6 +1,6 @@
 Version 3.11
 
-4/15/08  Representation of switch statements (IL Change)
+4/15/08  Representation of switch statements (IL CHANGE)
 
 The representation of switch statements in the IL has been changed to more
 closely match their specification in C and C++.
