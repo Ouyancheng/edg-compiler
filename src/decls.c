@@ -6195,8 +6195,10 @@ for use in generating cross-reference output describing this declaration.
   a_boolean                microsoft_specialization_redef = FALSE;
   a_type_ptr               type_ptr = dps->type;
   a_storage_class          storage_class = dps->storage_class;
+#if DECL_MODIFIERS_IN_USE
   a_decl_modifiers_block_ptr
                            decl_modifiers = &dps->decl_modifiers;
+#endif /* DECL_MODIFIERS_IN_USE */
 
   db_enter(3, "decl_routine");
   *old_type = NULL;
