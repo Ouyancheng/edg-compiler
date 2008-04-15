@@ -11114,7 +11114,7 @@ Generate code for the indicated list of statements.
      both before the first statement and after the last, or once even if
      there are no statements. */
   for (;; statement = statement->next) {
-    /* Generate any preprocessing directives (even if no statements follow. */
+    /* Generate any preprocessing directives (even if no statements follow). */
     (void)process_preprocessing_directives();
     if (statement == NULL) break;
     /* Generate the statement. */
