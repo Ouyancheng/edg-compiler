@@ -1,5 +1,37 @@
 Version 3.11
 
+4/15/08  Representation of switch statements (IL Change)
+
+The representation of switch statements in the IL has been changed to more
+closely match their specification in C and C++.
+
+Previously, a switch statement was represented in a way that corresponds to
+the most common use pattern: A list of "switch clauses" with (by default) an
+implicit "break" at the end.  Each clause included information about the case
+values (possibly "default") associated with that clause.  Uses that did not
+match the common case (like falling through to the next case, or having a
+case appear in a nested block) were handled using generated gotos and labels.
+A configuration macro RECORD_SWITCH_CASE_ENTRIES (see entry of 10/3/06)
+enabled an IL extension recording more precise information about individual
+cases.
+
+In the new representation, "case" and "default" labels are represented using
+a new stmk_switch_case statement kind.  Each stmk_switch_case points to an
+entry of type a_switch_case_entry, which describes that case (the case value
+or whether it's a default case, position information, etc.).  The stmk_switch
+statement associated with such a case points to the list of all cases (via an
+entry of type a_switch_stmt_descr).  All "break" statements out of a switch
+are explicitly represented using stmk_goto statements pointing to a label
+that has the switch_break_label flag set to TRUE.
+
+The configuration macro RECORD_SWITCH_CASE_ENTRIES is no longer used in the
+front end.  The macro EXTRA_SOURCE_POSITIONS_IN_IL adds more position
+information to a_switch_case_entry (e.g., the position of the colon token).
+When GNU_EXTENSIONS_ALLOWED is TRUE, a_switch_case_entry can record a GNU
+case range (i.e., a construct like "case 1 ... 10:"); there is no longer a
+configuration option to expand such a range into a list of individual case
+values.
+
 4/13/08  Unicode in source code
 
 The front end now supports Unicode source files in the UTF-8 and
