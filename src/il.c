@@ -2275,7 +2275,7 @@ Dump a statement, for debug purposes.
         break;
       case stmk_switch_case:
         { a_switch_case_entry *scep = sp->variant.switch_case.extra_info;
-          if (scep->case_value == 0) {
+          if (scep->case_value == NULL) {
             fputs(" (default)", f_debug);
           } else {
             fputs(" ", f_debug);
