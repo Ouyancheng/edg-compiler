@@ -1224,8 +1224,6 @@ If multibyte characters are supported in the file name, translate the file
 name into wide characters in wchar_filename_buffer.
 */
 {
-  FILE *file;
-
 #if EDG_WIN32 && UNICODE_SOURCE_SUPPORTED
   /* On Windows with Unicode configured in, the filename is UTF-8 but fopen
      takes only ANSI file names.   Convert to wide form for use with
