@@ -400,7 +400,7 @@ In configurations with MICROSOFT_EXTENSIONS_ALLOWED set to TRUE and
 NEAR_AND_FAR_ALLOWED set to FALSE, the C++-generating back end (cp_gen_be.c)
 did not build correctly.  This is now fixed.
 
-3/5/08   Parent entities (IL Change)
+3/5/08   Parent entities (IL CHANGE)
 
 Previously, type a_source_correspondence contained a field "parent" of type
 a_parent_class_or_namespace to describe the parent class or namespace of an
