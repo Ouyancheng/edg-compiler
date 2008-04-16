@@ -1153,8 +1153,9 @@ supported in the file name, handle that specially.
   } else
 #endif /* EDG_WIN32 && UNICODE_SOURCE_SUPPORTED */
   /* Do not insert code here. */
-  file = fopen(filename, mode);
-
+  {
+    file = fopen(filename, mode);
+  }
   return file;
 }  /* fopen_interface */
 
