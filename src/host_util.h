@@ -110,16 +110,16 @@ caller should copy the contents as needed.
 /* The memory management environment upon which the text buffer utility
    relies is not available in a standalone utility program, so we must
    provide the facility locally. */
-#define add_to_wchar_buffer(wchar)                       \
-  if (++utf16_len > buffer_allocation_size) {            \
-    buffer_allocation_size *= 2;                         \
-    buffer = (wchar_t *)realloc((a_realloc_arg)buffer,   \
-                                buffer_allocation_size); \
-    if (buffer == NULL) {                                \
-      fprintf(stderr, "Out of memory.\n");               \
-      exit(RC_ERROR);                                    \
-    }  /* if */                                          \
-  }  /* if */                                            \
+#define add_to_wchar_buffer(wchar)                                \
+  if ((++utf16_len) * sizeof(wchar_t) > buffer_allocation_size) { \
+    buffer_allocation_size *= 2;                                  \
+    buffer = (wchar_t *)realloc((a_realloc_arg)buffer,            \
+                                buffer_allocation_size);          \
+    if (buffer == NULL) {                                         \
+      fprintf(stderr, "Out of memory.\n");                        \
+      exit(RC_ERROR);                                             \
+    }  /* if */                                                   \
+  }  /* if */                                                     \
   buffer[utf16_len-1] = wchar;
 #else /* !(!defined(MEM_MANAGE_H) || STANDALONE_UTILITY_PROGRAM) */
 #define add_to_wchar_buffer(wchar)                                  \
