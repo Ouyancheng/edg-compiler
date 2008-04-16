@@ -589,9 +589,9 @@ erroneously made conditional on gnu_version < 30400.  The latter change is now
 undone.  For example:
 
   extern char x[10];
-  void foo(void) {
+  void f(void) {
     extern char x[];
-    char x[sizeof x];  // Now accepted again in all GNU C modes.
+    char y[sizeof x];  // Now accepted again in all GNU C modes.
   }
 
 2/22/08  Wrong end positions for some constructs followed by #if
