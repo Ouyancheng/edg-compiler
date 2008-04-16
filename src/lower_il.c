@@ -11975,11 +11975,15 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
         /* Issue a warning to let the user know we're ignoring
            this __assume expression. */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-        pos_warning(ec_assume_expression_discarded,
-                    &operand_node->expr_range.start);
-#else /* !EXTRA_SOURCE_POSITIONS_IN_IL */
-        warning(ec_assume_expression_discarded);
+        if (operand_node->expr_range.start.seq != 0) {
+          pos_warning(ec_assume_expression_discarded,
+                      &operand_node->expr_range.start);
+        } else
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+        /* Do not insert code here. */
+        {
+          warning(ec_assume_expression_discarded);
+        }
         /* Turn __assume(expr) into (void)0 if expr has side effects to
            avoid problems with destructible entities inside the expression. */
         operand_node = node_for_integer_constant((long)0,
