@@ -1956,6 +1956,12 @@ EXTERN a_boolean
 			/* TRUE if, when reading the first line of a source
 			   file, the front end should check for the presence
 			   of a byte order mark. */
+#if EDG_WIN32
+extern wchar_t *translate_filename_to_wchar(char *filename);
+EXTERN a_text_buffer_ptr
+		wchar_filename_buffer;
+			/* Text buffer used by translate_filename_to_wchar. */
+#endif /* EDG_WIN32 */
 #endif /* UNICODE_SOURCE_SUPPORTED */
 
 /*
@@ -2548,10 +2554,6 @@ EXTERN_C int stat(char *path, struct stat *buf);
 /* See if a file exists, if it does, return the modification time. */
 extern a_boolean get_file_modification_time(char   *file_name,
 					    time_t *time);
-#if EDG_WIN32 && UNICODE_SOURCE_SUPPORTED
-extern a_boolean get_wchar_file_modification_time(wchar_t *file_name,
-                                                  time_t  *time);
-#endif /* EDG_WIN32 && UNICODE_SOURCE_SUPPORTED */
 
 /* Get the file modification time as a string. */
 extern char *get_file_modification_time_string(char		*file_name,

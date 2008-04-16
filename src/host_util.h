@@ -81,6 +81,98 @@ called again.
 
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 
+#if EDG_WIN32 && UNICODE_SOURCE_SUPPORTED
+wchar_t *translate_filename_to_wchar(char *filename)
+/*
+Copy the supplied filename to a buffer as wchar_t characters, translating
+any UTF-8 multibyte characters to UTF-16, and return the address of the
+buffer.  If the filename contains only ASCII characters, the returned
+address will be NULL, indicating that the filename needs no translation and
+can be used directly.  The buffer is reused by each successive call, so the
+caller should copy the contents as needed.
+*/
+{
+  unsigned char   *p;
+  unsigned long   unicode_char;
+  a_boolean       err;
+  int             num_utf8_bytes;
+  int             num_utf16_chars;
+  sizeof_t        utf16_len;
+  unsigned short  utf16_chars[2];
+  sizeof_t        i;
+  static wchar_t  *buffer;
+  a_boolean       utf8_character_seen = FALSE;
+  static sizeof_t buffer_allocation_size = 512 * sizeof(wchar_t);
+
+/* Macro to add one wide character to the buffer, expanding the buffer as
+   needed. */
+#if !defined(MEM_MANAGE_H) || STANDALONE_UTILITY_PROGRAM
+/* The memory management environment upon which the text buffer utility
+   relies is not available in a standalone utility program, so we must
+   provide the facility locally. */
+#define add_to_wchar_buffer(wchar)                       \
+  if (++utf16_len > buffer_allocation_size) {            \
+    buffer_allocation_size *= 2;                         \
+    buffer = (wchar_t *)realloc((a_realloc_arg)buffer,   \
+                                buffer_allocation_size); \
+    if (buffer == NULL) {                                \
+      fprintf(stderr, "Out of memory.\n");               \
+      exit(RC_ERROR);                                    \
+    }  /* if */                                          \
+  }  /* if */                                            \
+  buffer[utf16_len-1] = wchar;
+#else /* !(!defined(MEM_MANAGE_H) || STANDALONE_UTILITY_PROGRAM) */
+#define add_to_wchar_buffer(wchar)                                  \
+  ensure_text_buffer_space(wchar_filename_buffer,                   \
+                           (++utf16_len) * sizeof(wchar_t));        \
+  /* Update the buffer pointer to reflect possible reallocation. */ \
+  buffer = (wchar_t *)wchar_filename_buffer->buffer;                \
+  buffer[utf16_len-1] = wchar;
+#endif /* !defined(MEM_MANAGE_H) || STANDALONE_UTILITY_PROGRAM */
+
+#if !defined(MEM_MANAGE_H) || STANDALONE_UTILITY_PROGRAM
+  if (buffer == NULL) {
+    buffer = (wchar_t *)malloc(buffer_allocation_size);
+    if (buffer == NULL) {
+      fprintf(stderr, "Out of memory.\n");
+      exit(RC_ERROR);
+    }  /* if */
+  }  /* if */
+#else /* !(!defined(MEM_MANAGE_H) || STANDALONE_UTILITY_PROGRAM) */
+  if (wchar_filename_buffer == NULL) {
+    wchar_filename_buffer = alloc_text_buffer(buffer_allocation_size);
+    buffer = (wchar_t *)wchar_filename_buffer->buffer;
+  }  /* if */
+#endif /* !defined(MEM_MANAGE_H) || STANDALONE_UTILITY_PROGRAM */
+  utf16_len = 0;
+  for (p = (unsigned char *)filename; *p != 0; p += num_utf8_bytes) {
+    if (*p < 0x80) {
+      /* This is an ASCII character, so we can just copy it directly. */
+      add_to_wchar_buffer(*p);
+      num_utf8_bytes = 1;
+    } else {
+      /* Convert a UTF-8 character to a single Unicode code point, noting
+         how many bytes from filename were occupied by the UTF-8
+         representation. */
+      utf8_character_seen = TRUE;
+      num_utf8_bytes = mbc_to_wide_char(p, &unicode_char, &err);
+      /* Convert that to either one UTF-16 value or a pair of surrogates. */
+      num_utf16_chars = ucn_to_utf16(unicode_char, utf16_chars);
+      check_assertion(num_utf16_chars <= 2);
+      /* Copy the result into the buffer. */
+      for (i = 0; i < num_utf16_chars; ++i) {
+        add_to_wchar_buffer(utf16_chars[i]);
+      }  /* for */
+    }  /* if */
+  }  /* for */
+  /* Add the terminating null character. */
+  add_to_wchar_buffer(0);
+  return utf8_character_seen ? buffer : (wchar_t *)NULL;
+#undef add_to_wchar_buffer
+}  /* translate_filename_to_wchar */
+#endif /* EDG_WIN32 && UNICODE_SOURCE_SUPPORTED */
+
+
 a_boolean get_file_modification_time(char   *file_name,
                                      time_t *p_time)
 /*
@@ -89,51 +181,43 @@ time.  Return TRUE if the file exists and is a regular file, FALSE otherwise.
 */
 {
   a_boolean	is_regular = FALSE;
-  struct stat   buf;
-
-  /* Check the file type.  Use the stat call instead of fstat because some
-     implementations do not have the _file field in the structure. */
-  if (stat(file_name, &buf) == 0) {
-    /* Use the POSIX S_ISREG if it is defined.  Otherwise use the
-       non-POSIX test using S_IFREG. */
-#ifdef S_ISREG
-    is_regular = S_ISREG(buf.st_mode);
-#else /* ifndef S_ISREG */
-    is_regular = ((buf.st_mode & S_IFREG) != 0);
-#endif /* ifdef S_ISREG */
-    if (is_regular && p_time != NULL) *p_time = buf.st_mtime;
-  } else {
-    /* If the file doesn't exist, set the time to zero just to be neat. */
-    if (p_time != NULL) *p_time = 0;
-  }  /* if */
-  return is_regular;
-}  /* get_file_modification_time */
 
 #if EDG_WIN32 && UNICODE_SOURCE_SUPPORTED
-a_boolean get_wchar_file_modification_time(wchar_t *file_name,
-                                           time_t  *p_time)
-/*
-Determine whether a file exists, and if so, return the last modification
-time.  Return TRUE if the file exists and is a regular file, FALSE
-otherwise.  Uses the Windows _wstat function to support file names
-containing Unicode characters.
-*/
-{
-  a_boolean    is_regular = FALSE;
-  struct _stat buf;
-
-  /* Check the file type.  Use the _wstat call to handle the wchar_t
-     file name. */
-  if (_wstat(file_name, &buf) == 0) {
-    is_regular = ((buf.st_mode & S_IFREG) != 0);
-    if (is_regular && p_time != NULL) *p_time = buf.st_mtime;
-  } else {
-    /* If the file doesn't exist, set the time to zero just to be neat. */
-    if (p_time != NULL) *p_time = 0;
-  }  /* if */
-  return is_regular;
-}  /* get_wchar_file_modification_time */
+  wchar_t *wchar_file_name = translate_filename_to_wchar(file_name);
+  if (wchar_file_name != NULL) {
+    /* Use the Windows _wstat function instead of regular stat to handle
+       non-ASCII characters in the file name. */
+    struct _stat buf;
+    if (_wstat(wchar_file_name, &buf) == 0) {
+      is_regular = ((buf.st_mode & S_IFREG) != 0);
+      if (is_regular && p_time != NULL) *p_time = buf.st_mtime;
+    } else {
+      /* If the file doesn't exist, set the time to zero just to be neat. */
+      if (p_time != NULL) *p_time = 0;
+    }  /* if */
+  } else
 #endif /* EDG_WIN32 && UNICODE_SOURCE_SUPPORTED */
+  /* Do not insert code here. */
+  {
+    /* Check the file type.  Use the stat call instead of fstat because some
+       implementations do not have the _file field in the structure. */
+    struct stat buf;
+    if (stat(file_name, &buf) == 0) {
+      /* Use the POSIX S_ISREG if it is defined.  Otherwise use the
+         non-POSIX test using S_IFREG. */
+#ifdef S_ISREG
+      is_regular = S_ISREG(buf.st_mode);
+#else /* ifndef S_ISREG */
+      is_regular = ((buf.st_mode & S_IFREG) != 0);
+#endif /* ifdef S_ISREG */
+      if (is_regular && p_time != NULL) *p_time = buf.st_mtime;
+    } else {
+      /* If the file doesn't exist, set the time to zero just to be neat. */
+      if (p_time != NULL) *p_time = 0;
+    }  /* if */
+  }
+  return is_regular;
+}  /* get_file_modification_time */
 
 /******************************************************************************
 *                                                             \  ___  /       *
