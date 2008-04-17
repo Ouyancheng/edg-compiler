@@ -46,6 +46,9 @@ extern void pop_ELF_visibility(a_boolean  namespace_attribute);
 
 extern an_ELF_visibility_kind ELF_visibility_from_string(
                                                        char  *visibility_str);
+
+extern void update_for_default_ELF_visibility(
+                                         an_ELF_visibility_kind  *visibility);
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 
 /*
@@ -326,14 +329,6 @@ extern
 void apply_attributes_to_using_directive(an_attribute_ptr	attributes,
 					 a_using_decl_ptr	udp,
 					 a_namespace_ptr	nsp);
-
-#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-extern void apply_ELF_visibility_to_current_namespace(
-                                          an_ELF_visibility_kind  visibility);
-
-extern void update_for_default_ELF_visibility(
-                                         an_ELF_visibility_kind  *visibility);
-#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 
 extern
 void apply_attributes_to_current_namespace(an_attribute_ptr  attributes);

@@ -11481,15 +11481,15 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
     }  /* if */
     if (namespace_scope_pushed) {
 #if GNU_EXTENSIONS_ALLOWED && GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-    if (scope_stack_top().ELF_visibility !=
+      if (scope_stack_top().ELF_visibility !=
                                     (an_ELF_visibility_kind)evk_unspecified) {
-      /* The namespace had a visibility attribute, which implied an entry was
-         pushed on the ELF visibility stack.  Pop an entry now that the
-         namespace scope is being popped.  (A warning will be issued if this
-         pop operation doesn't match the push operation implied by the
-         visibility attribute. */
-      pop_ELF_visibility(/*namespace_attribute=*/TRUE);
-    }  /* if */
+        /* The namespace had a visibility attribute, which implied an entry was
+           pushed on the ELF visibility stack.  Pop an entry now that the
+           namespace scope is being popped.  (A warning will be issued if this
+           pop operation doesn't match the push operation implied by the
+           visibility attribute. */
+        pop_ELF_visibility(/*namespace_attribute=*/TRUE);
+      }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED && GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
       /* Pop the namespace or namespace-extension scope. */
       pop_namespace_scope();

@@ -2990,7 +2990,7 @@ Apply the given attributes to the indicated using-directive (if applicable).
 
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
 
-void apply_ELF_visibility_to_current_namespace(
+static void apply_ELF_visibility_to_current_namespace(
                                            an_ELF_visibility_kind  visibility)
 /*
 Record the given visibility for the current namespace or namespace-extension
