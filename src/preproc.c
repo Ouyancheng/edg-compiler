@@ -2116,7 +2116,6 @@ If there are any current token pragmas that are C99 predefined pragmas
 #if GNU_EXTENSIONS_ALLOWED
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
 
-/*ARGSUSED*/  /* <-- ppp is not used. */
 static void process_gnu_visibility_pragma(a_pending_pragma_ptr  ppp)
 /*
 Handle
@@ -2174,6 +2173,9 @@ the construct is not correctly formed.
 
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 
+#if !GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+/*ARGSUSED*/  /* <-- ppp is not used in some configurations. */
+#endif /* !GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 void gcc_pragma(a_pending_pragma_ptr  ppp)
 /*
 Process a "#pragma GCC ..." construct.  Currently, only the
