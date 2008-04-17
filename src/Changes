@@ -829,6 +829,7 @@ upc_barrier) failed to process the statement's optional expression argument.
 Now fixed.  For example:
 
   void f() {
+    int i=1, j=2;
     upc_barrier i+j;    // "i+j" now included by traverse_statement
   }
 
