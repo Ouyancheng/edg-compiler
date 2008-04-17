@@ -153,7 +153,9 @@ is TRUE if this "push" operation is for a namespace attribute.
   } else {
     entry = (an_ELF_visibility_stack_entry_ptr)
                               alloc_fe(sizeof(an_ELF_visibility_stack_entry));
+#if DEBUG
     ++num_ELF_visibility_stack_entries_allocated;
+#endif /* DEBUG */
   }  /* if */
   entry->prev = ELF_visibility_stack;
   entry->visibility = evk;
