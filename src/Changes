@@ -652,9 +652,9 @@ treated as if no parameter numbers were given, i.e., as if all parameters
 were to be checked for null arguments.  This is now fixed.  For example,
 
   void f(void *p, void *q, void *r) __attribute((nonnull(1, 3)));
-  void g();
+  void g() {
     int a,b;
-    f1(&a, 0, &b);  // Incorrectly warned about parameter 2
+    f(&a, 0, &b);  // Incorrectly warned about parameter 2
   }
 
 2/13/08  Microsoft mode abort with property fields and IA-64 ABI
