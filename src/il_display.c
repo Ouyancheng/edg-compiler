@@ -3575,6 +3575,9 @@ local) memory region.
       (void)printf("generic-sizeof");
       break;
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
+    case lerk_array_bound:
+      (void)printf("array-bound");
+      break;
     case lerk_decltype:
       (void)printf("decltype");
       break;
