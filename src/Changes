@@ -1,5 +1,28 @@
 Version 3.11
 
+4/17/08  GNU compatibility: #pragma GCC visibility
+
+In GNU C and C++ modes with gnu_version >= 40200, the front end now supports
+the "#pragma GCC visibility" constructs when GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+is TRUE.  For example:
+
+  #pragma GCC visibility push(hidden)
+  void f1() {}   // Has "hidden" visibility.
+  #pragma GCC visibility pop
+  void f2() {}   // Has unspecified visibility.
+
+In addition, the visibility attribute for namespaces (see Changes entry of
+9/15/06) now pushes an entry on the visibility stack, and an entry is popped
+at the end of that namespace scope.  This matches the behavior of the GNU C++
+compiler, but can lead to surprises:
+
+  namespace N __attribute((visibility(internal))) {
+  #pragma GCC visibility push(hidden)
+  }  // Implicit #pragma GCC visibility pop.
+  void f() {}  // Has "internal" visibility.
+
+A warning is issued in cases like this.
+
 4/15/08  Representation of switch statements (IL CHANGE)
 
 The representation of switch statements in the IL has been changed to more

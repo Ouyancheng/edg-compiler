@@ -1722,6 +1722,11 @@ ec_assume_expression_discarded;;"__assume expression with side effects discarded
 ec_cl_unrecognized_unicode_source_kind;;"unrecognized Unicode source kind (must be one of UTF-8, UTF-16, UTF-16LE, UTF-16BE): "
 ec_bad_unicode_char_in_pp_output;;"Unicode character with hex value %s not representable in preprocessing output"
 ec_ctor_dtor_priority_reserved;;"requested constructor/destructor priority is reserved for internal use"
+ec_unrecognized_gcc_pragma;;"unrecognized GCC pragma"
+ec_unrecognized_gcc_visibility_pragma;;"unrecognized GCC visibility pragma directive"
+ec_unrecognized_visibility;;"unrecognized visibility kind"
+ec_ELF_visibility_pop_mismatch;;"visibility pragma was still active"
+ec_ELF_visibility_stack_empty;;"no matching visibility push"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

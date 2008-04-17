@@ -11082,10 +11082,6 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
   a_boolean		      namespace_scope_pushed = FALSE;
   a_boolean		      initial_decl_of_namespace_std = FALSE;
   an_attribute_ptr            attributes = NULL;
-#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-  an_ELF_visibility_kind       enclosing_ELF_visibility =
-                                      (an_ELF_visibility_kind)evk_unspecified;
-#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 
   db_enter(3, "namespace_declaration");
   /* Save the source position of the declaration. */
@@ -11094,12 +11090,6 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
   feature_is_not_part_of_embedded_cplusplus_subset(
                                           &pos_curr_token,
                                           ec_namespaces_in_embedded_cplusplus);
-#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-  if (depth_innermost_namespace_scope != NO_SCOPE_DEPTH) {
-    enclosing_ELF_visibility =
-                  scope_stack[depth_innermost_namespace_scope].ELF_visibility;
-  }  /* if */
-#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
   /* Bypass "namespace". */
   (void)get_token();
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -11456,16 +11446,6 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
 #if GNU_EXTENSIONS_ALLOWED
     if (attributes != NULL) {
       apply_attributes_to_current_namespace(attributes);
-#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-      if (scope_stack_top().ELF_visibility ==
-                                    (an_ELF_visibility_kind)evk_unspecified &&
-          enclosing_ELF_visibility !=
-                                    (an_ELF_visibility_kind)evk_unspecified) {
-        /* If no visibility was specified explicitly, apply that of the
-           surrounding namespace (if any). */
-        apply_ELF_visibility_to_current_namespace(enclosing_ELF_visibility);
-      }  /* if */
-#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
     if (!required_token(tok_lbrace, ec_exp_lbrace)) {
@@ -11500,6 +11480,17 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
       discard_curr_construct_pragmas();
     }  /* if */
     if (namespace_scope_pushed) {
+#if GNU_EXTENSIONS_ALLOWED && GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+    if (scope_stack_top().ELF_visibility !=
+                                    (an_ELF_visibility_kind)evk_unspecified) {
+      /* The namespace had a visibility attribute, which implied an entry was
+         pushed on the ELF visibility stack.  Pop an entry now that the
+         namespace scope is being popped.  (A warning will be issued if this
+         pop operation doesn't match the push operation implied by the
+         visibility attribute. */
+      pop_ELF_visibility(/*namespace_attribute=*/TRUE);
+    }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED && GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
       /* Pop the namespace or namespace-extension scope. */
       pop_namespace_scope();
     }  /* if */

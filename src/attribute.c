@@ -97,6 +97,137 @@ attribute refers to that name).
   *p_sym = sym;
 }  /* record_asm_name_for_lookup */
 
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+
+/*
+The ELF visibility stack is respresented by a list of entries of type
+an_ELF_visibility_stack_entry.  Such entries may be pushed on the stack in
+two ways: (1) via the "#pragma GCC visibility push" construct, or (2) via
+the visibility attribute on a namespace definition.
+*/
+typedef struct an_ELF_visibility_stack_entry
+                                           *an_ELF_visibility_stack_entry_ptr;
+typedef struct an_ELF_visibility_stack_entry {
+  an_ELF_visibility_stack_entry_ptr
+		prev;	/* Pointer to the previously pushed entry (or NULL if
+			   no entry was previously pushed. */
+  an_ELF_visibility_kind
+		visibility;
+			/* The ELF visibility that was pushed. */
+  a_bit_field	namespace_attribute:1;
+			/* TRUE if this entry was pushed as the result of a
+			   namespace attribute (instead of a pragma). */
+} an_ELF_visibility_stack_entry;
+
+
+static an_ELF_visibility_stack_entry_ptr
+		ELF_visibility_stack;
+			/* Pointer to the topmost entry of the ELF visibility
+			   stack (or NULL if the stack is empty). */
+
+static an_ELF_visibility_stack_entry_ptr
+		avail_ELF_visibility_stack_entries;
+			/* List of entries popped from the ELF visibility
+			   stack, and available for reuse. */
+
+#if DEBUG
+static unsigned long
+		num_ELF_visibility_stack_entries_allocated;
+			/* Number of ELF visibility stack entries allocated,
+			   to track total use of memory. */
+#endif /* DEBUG */
+
+void push_ELF_visibility(an_ELF_visibility_kind  evk,
+                         a_boolean               namespace_attribute)
+/*
+Push the given ELF visibility on the ELF visibility stack.  namespace_attribute
+is TRUE if this "push" operation is for a namespace attribute.
+*/
+{
+  an_ELF_visibility_stack_entry_ptr  entry;
+
+  if (avail_ELF_visibility_stack_entries != NULL) {
+    entry = avail_ELF_visibility_stack_entries;
+    avail_ELF_visibility_stack_entries =
+                                     avail_ELF_visibility_stack_entries->prev;
+  } else {
+    entry = (an_ELF_visibility_stack_entry_ptr)
+                              alloc_fe(sizeof(an_ELF_visibility_stack_entry));
+    ++num_ELF_visibility_stack_entries_allocated;
+  }  /* if */
+  entry->prev = ELF_visibility_stack;
+  entry->visibility = evk;
+  entry->namespace_attribute = namespace_attribute;
+  ELF_visibility_stack = entry;
+}  /* push_ELF_visibility */
+
+
+void pop_ELF_visibility(a_boolean  namespace_attribute)
+/*
+Pop the topmost entry from the ELF visibility stack.  namespace_attribute is
+TRUE if this "pop" operation is for a namespace attribute.  A warning is
+issued if namespace attribute is TRUE, and the entry popped was not created
+for a namespace attribute.  A warning is also issued if the ELF visibility
+stack is empty.
+*/
+{
+  if (ELF_visibility_stack != NULL) {
+    an_ELF_visibility_stack_entry_ptr  entry = ELF_visibility_stack;
+    if (namespace_attribute && !entry->namespace_attribute) {
+      warning(ec_ELF_visibility_pop_mismatch);
+    }  /* if */
+    ELF_visibility_stack = entry->prev;
+    entry->prev = avail_ELF_visibility_stack_entries;
+    avail_ELF_visibility_stack_entries = entry;
+  } else {
+    warning(ec_ELF_visibility_stack_empty);
+  }  /* if */
+}  /* pop_ELF_visibility */
+
+
+an_ELF_visibility_kind ELF_visibility_from_string(char  *visibility_str)
+/*
+Return the ELF visibility kind corresponding to the given string, or
+evk_unspecified if the string is not recognized.
+*/
+{
+  an_ELF_visibility_kind  result = (an_ELF_visibility_kind)evk_unspecified;
+
+  if (strcmp(visibility_str, "hidden") == 0) {
+    result = (an_ELF_visibility_kind)evk_hidden;
+  } else if (strcmp(visibility_str, "protected") == 0) {
+    result = (an_ELF_visibility_kind)evk_protected;
+  } else if (strcmp(visibility_str, "internal") == 0) {
+    result = (an_ELF_visibility_kind)evk_internal;
+  } else if (strcmp(visibility_str, "default") == 0) {
+    result = (an_ELF_visibility_kind)evk_default;
+  } /* if */
+  return result;
+}  /* ELF_visibility_from_string */
+
+
+void update_for_default_ELF_visibility(an_ELF_visibility_kind  *visibility)
+/*
+If the given ELF visibility is evk_unspecified, replace it by the default
+visibility implied by the ELF visibility stack or the enclosing class scope.
+*/
+{
+  if (*visibility == (an_ELF_visibility_kind)evk_unspecified) {
+    if (scope_stack_top().kind == (a_scope_kind)sck_class_struct_union) {
+      *visibility = scope_stack_top().ELF_visibility;
+    } else if (depth_innermost_namespace_scope != NO_SCOPE_DEPTH &&
+               depth_innermost_function_scope == NO_SCOPE_DEPTH) {
+      /* Local declarations are not affected by the default ELF visibility
+         of the surrounding namespace scope. */
+      if (ELF_visibility_stack != NULL) {
+        *visibility = ELF_visibility_stack->visibility;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* update_for_default_ELF_visibility */
+
+
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
 /*
@@ -971,8 +1102,7 @@ that do take arguments.
       break;
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
     case ak_visibility:
-      { char  *visibility_str;
-        /* Look for a string-literal specifying the visibility. */
+      { /* Look for a string-literal specifying the visibility. */
         if (curr_token != tok_string_literal) {
           result = FALSE;
           goto error;
@@ -983,20 +1113,10 @@ that do take arguments.
           result = FALSE;
           break;
         }  /* if */
-        visibility_str = const_for_curr_token.variant.string.value;
-        if (strcmp(visibility_str, "hidden") == 0) {
-          attribute->variant.ELF_visibility =
-                                           (an_ELF_visibility_kind)evk_hidden;
-        } else if (strcmp(visibility_str, "protected") == 0) {
-          attribute->variant.ELF_visibility =
-                                        (an_ELF_visibility_kind)evk_protected;
-        } else if (strcmp(visibility_str, "internal") == 0) {
-          attribute->variant.ELF_visibility =
-                                         (an_ELF_visibility_kind)evk_internal;
-        } else if (strcmp(visibility_str, "default") == 0) {
-          attribute->variant.ELF_visibility =
-                                          (an_ELF_visibility_kind)evk_default;
-        } else {
+        attribute->variant.ELF_visibility = ELF_visibility_from_string(
+                                   const_for_curr_token.variant.string.value);
+        if (attribute->variant.ELF_visibility ==
+                                    (an_ELF_visibility_kind)evk_unspecified) {
           result = FALSE;
           goto error;
         }  /* if */
@@ -2878,6 +2998,7 @@ definition.
   a_scope_stack_entry_ptr  sp = &scope_stack_top();
 
   sp->ELF_visibility = visibility;
+  push_ELF_visibility(visibility, /*namespace_attribute=*/TRUE);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   if (source_sequence_entries_disallowed) {
     /* Possible in secondary translation units or when code for source
@@ -2898,26 +3019,6 @@ definition.
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 }  /* apply_ELF_visibility_to_current_namespace */
-
-
-void update_for_default_ELF_visibility(an_ELF_visibility_kind  *visibility)
-/*
-If the given ELF visibility is evk_unspecified, replace it by the default
-visibility implied by the enclosing scope (if any).
-*/
-{
-  if (*visibility == (an_ELF_visibility_kind)evk_unspecified) {
-    if (scope_stack_top().kind == (a_scope_kind)sck_class_struct_union) {
-      *visibility = scope_stack_top().ELF_visibility;
-    } else if (depth_innermost_namespace_scope != NO_SCOPE_DEPTH &&
-               depth_innermost_function_scope == NO_SCOPE_DEPTH) {
-      /* Local declarations are not affected by the default ELF visibility
-         of the surrounding namespace scope. */
-      *visibility =
-                  scope_stack[depth_innermost_namespace_scope].ELF_visibility;
-    }  /* if */
-  }  /* if */
-}  /* update_for_default_ELF_visibility */
 
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 
@@ -3144,6 +3245,13 @@ attributes.
   if (precompiled_header_processing_required) {
     static a_pch_saved_variable saved_vars[] = {
       pch_saved_var_array_elem(avail_attributes),
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+      pch_saved_var_array_elem(ELF_visibility_stack),
+      pch_saved_var_array_elem(avail_ELF_visibility_stack_entries),
+#if DEBUG
+      pch_saved_var_array_elem(num_ELF_visibility_stack_entries_allocated),
+#endif /* DEBUG */
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
       pch_saved_var_array_elem(asm_name_map),
       pch_saved_var_array_elem(alias_fixup_list),
       pch_saved_var_array_elem(avail_alias_fixups),
@@ -3187,6 +3295,13 @@ be initialized for each compilation.
 {
 #if GNU_EXTENSIONS_ALLOWED
   avail_attributes = NULL;
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+  ELF_visibility_stack = NULL;
+  avail_ELF_visibility_stack_entries = NULL;
+#if DEBUG
+  num_ELF_visibility_stack_entries_allocated = 0;
+#endif /* DEBUG */
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   avail_alias_fixups = NULL;
   alias_fixup_list = NULL;
@@ -3215,6 +3330,11 @@ entities.
   db_space_used_header("GNU attributes use:");
 #if GNU_EXTENSIONS_ALLOWED
   db_space_used("GNU attributes", num_attributes_allocated, an_attribute);
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+  db_space_used("GNU visibility stack",
+                num_ELF_visibility_stack_entries_allocated,
+                an_ELF_visibility_stack_entry);
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   db_space_used("alias fixups", num_alias_fixups_allocated, an_alias_fixup);
 #if REDEFINE_EXTNAME_PRAGMA_ENABLED

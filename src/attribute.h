@@ -38,6 +38,16 @@ extern void attribute_init(void);
 
 extern void record_asm_name_for_lookup(a_symbol_ptr  sym);
 
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+extern void push_ELF_visibility(an_ELF_visibility_kind  evk,
+                                a_boolean               namespace_attribute);
+
+extern void pop_ELF_visibility(a_boolean  namespace_attribute);
+
+extern an_ELF_visibility_kind ELF_visibility_from_string(
+                                                       char  *visibility_str);
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
+
 /*
 Enumeration of attributes that are accepted.
 */

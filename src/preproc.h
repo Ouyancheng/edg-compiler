@@ -280,6 +280,10 @@ extern void stdc_pragma(a_pending_pragma_ptr	ppp);
 
 extern void check_for_stdc_pragmas(void);
 
+#if GNU_EXTENSIONS_ALLOWED
+extern void gcc_pragma(a_pending_pragma_ptr  ppp);
+#endif /* GNU_EXTENSIONS_ALLOWED */
+
 #if UPC_EXTENSIONS_ALLOWED
 extern void check_for_upc_pragmas(a_statement_ptr  sp);
 

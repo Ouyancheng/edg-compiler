@@ -427,6 +427,9 @@ possible.
     case pk_enable_ldscope:
     case pk_disable_ldscope:
 #endif /* SUN_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
+    case pk_gcc:
+#endif /* GNU_EXTENSIONS_ALLOWED */
     case pk_once:
     case pk_hdrstop:
     case pk_no_pch:
@@ -1785,6 +1788,24 @@ Initialize the pragma description table.
                                         /*read_string_as_header_name=*/FALSE);
   }  /* if */
 #endif /* SUN_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
+  if (gnu_mode && gnu_version >= 40200) {
+    (void)add_immediate_pragma_kind_description
+		((a_pragma_kind)pk_gcc,
+                 gcc_pragma,
+		 /*is_pseudo_pragma=*/FALSE,
+                 /*global=*/FALSE,
+                 /*automatically_include_in_il=*/FALSE,
+                 /*record_pragma_text=*/FALSE,
+                 /*expand_macros=*/FALSE,
+                 /*processing_C_code=*/FALSE,
+                 /*fetch_pp_tokens=*/FALSE,
+		 /*ignore_in_back_end=*/FALSE,
+		 /*il_info_is_complete=*/TRUE,
+		 /*read_string_as_header_name=*/FALSE,
+                 es_error);
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   (void)add_immediate_pragma_kind_description
 		((a_pragma_kind)pk_diag_suppress,
                  (an_immediate_pragma_function_ptr)diag_pragma,

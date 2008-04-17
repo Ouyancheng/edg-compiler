@@ -2113,6 +2113,94 @@ If there are any current token pragmas that are C99 predefined pragmas
   }  /* for */
 }  /* check_for_stdc_pragmas */
 
+#if GNU_EXTENSIONS_ALLOWED
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+
+static void process_gnu_visibility_pragma(a_pending_pragma_ptr  ppp)
+/*
+Handle
+	#pragma GCC visibility push(<ELF-visibility>)
+and
+	#pragma GCC visibility pop
+The "#pragma GCC visibility" part has been seen already, and the current
+token is the identifier "visibility".  Warnings and/or errors are issued if
+the construct is not correctly formed.
+*/
+{
+  a_boolean  recognized = FALSE, warning_issued = FALSE;
+  /* Skip the "visibility" identifier. */
+  (void)get_token();
+  if (curr_token == tok_identifier) {
+    char *str = locator_for_curr_id.symbol_header->identifier;
+    if (strcmp(str, "push") == 0) {
+      recognized = TRUE;
+      (void)get_token();
+      if (curr_token == tok_lparen) {
+        (void)get_token();
+        if (curr_token == tok_identifier) {
+          an_ELF_visibility_kind evk = ELF_visibility_from_string(
+                               locator_for_curr_id.symbol_header->identifier);
+          if (evk == (an_ELF_visibility_kind)evk_unspecified) {
+            /* An invalid visibility kind was specified. */
+            warning(ec_unrecognized_visibility);
+            warning_issued = TRUE;
+          }  /* if */
+          push_ELF_visibility(evk, /*namespace_attribute=*/FALSE);
+          (void)get_token();
+          if (curr_token != tok_lparen) {
+            warning(ec_exp_rparen);
+            warning_issued = TRUE;
+          }  /* if */
+        }  /* if */
+      } else {
+        warning(ec_exp_rparen);
+        warning_issued = TRUE;
+      }  /* if */
+    } else if (strcmp(str, "pop") == 0) {
+      recognized = TRUE;
+      pop_ELF_visibility(/*namespace_attribute=*/FALSE);
+      (void)get_token();
+    }  /* if */
+  }  /* if */
+  if (warning_issued) {
+    /* Do not issue another warning. */
+  } else if (!recognized) {
+    warning(ec_unrecognized_gcc_visibility_pragma);
+  } else if (curr_token != tok_end_of_source) {
+    warning(ec_extra_text_in_pp_directive);
+  }  /* if */
+}  /* process_gnu_visibility_pragma */
+
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
+
+void gcc_pragma(a_pending_pragma_ptr  ppp)
+/*
+Process a "#pragma GCC ..." construct.  Currently, only the
+	#pragma GCC visibility ...
+variants are recognized.
+*/
+{
+  a_boolean  recognized = FALSE;
+
+  begin_rescan_of_pragma_tokens(ppp);
+  if (curr_token == tok_identifier) {
+    char *str = locator_for_curr_id.symbol_header->identifier;
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+    if (strcmp(str, "visibility") == 0) {
+      recognized = TRUE;
+      process_gnu_visibility_pragma(ppp);
+    }  /* if */
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
+  }  /* if */
+  if (!recognized) {
+    warning(ec_unrecognized_gcc_pragma);
+  }  /* if */
+  /* Pass error_in_pragma as TRUE to avoid diagnostics; any needed diagostic
+     will already have been issued. */
+  wrapup_rescan_of_pragma_tokens(/*error_in_pragma=*/TRUE);
+}  /* gcc_pragma */
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if UPC_EXTENSIONS_ALLOWED
 /*
 Processing of UPC pragmas.
