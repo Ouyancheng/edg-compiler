@@ -179,6 +179,7 @@ of the associated a_routine entry.
 
 This is now fixed.  (This was unlikely to have any effect on the front end
 behavior, but it was reported by some analysis tools.)
+[Patch sent out 4/17/08.]
 
 4/8/08   GNU C mode abort on invalid initialization with compound literal
 
@@ -197,7 +198,7 @@ Such cases are normally errors (because the type of the compound literal does
 not match the type of the field it corresponds to), but GCC treats the invalid
 initializer as an "excess initializer" and discards it with a warning.  We now
 emulate that behavior (the resulting IL is now valid, and no abort is triggered
-in the C-generating back end).
+in the C-generating back end).  [Patch sent out 4/17/08.]
 
 4/7/08   GNU compatibility: Field alignment of complex types
 
@@ -215,7 +216,7 @@ of complex (or imaginary) type.  For example:
 
 In a configuration where "double" has an "intrinsic" alignment of 8, and a
 "field" alignment of 4, S previously had size 24.  Now it will have size 20,
-which matches the behavior of GCC.
+which matches the behavior of GCC.  [Patch sent out 4/17/08.]
 
 4/4/08   Spurious constructor template parsing errors
 
@@ -234,6 +235,8 @@ For example:
     template<class T> __thiscall S(T);  // Now accepted in Microsoft mode.
   };
 
+[Patch sent out 4/17/08.]
+
 3/31/08  Uninitialized field in a_destructible_entity_descr in configurations
          that use lowering but set GENERATE_EH_TABLES to FALSE
 
@@ -241,7 +244,7 @@ In configurations that use lowering but generate their own exception
 handling tables (i.e., GENERATE_EH_TABLES is FALSE), the
 cleanup_state_to_set_when_starting_destruction field of
 a_destructible_entity_descr was not properly initialized and could cause
-undefined behavior.  This is now fixed.
+undefined behavior.  This is now fixed.  [Patch sent out 4/17/08.]
 
 3/28/08  Abort in find_member_function_template
 
@@ -257,6 +260,8 @@ This has been fixed.
     operator B();
   };
   A<int> ai;
+
+[Patch sent out 4/17/08.]
 
 3/25/08  C++-generating back end: qualified names in generated template
          instances
@@ -280,6 +285,8 @@ name.  This is now fixed.  For example:
     f<X::S>();
   }
 
+[Patch sent out 4/17/08.]
+
 3/25/08  Microsoft compatibility: __interface first declared as struct
 
 In Microsoft mode, a type can now be first declared as a struct, and later
@@ -290,7 +297,7 @@ defined with the keyword "__interface".  For example:
 
 Our behavior differs slightly from that of Microsoft's compilers in that the
 latter require that in cases like these the definition specify IUnknown as a
-base class.
+base class.  [Patch sent out 4/17/08.]
 
 3/25/08  Internal error on null character at end of string in Microsoft mode
 
@@ -301,6 +308,8 @@ in Microsoft mode.  Now fixed.
 
   char x[] = "abc0";  // Where "0" represents a null character
 
+[Patch sent out 4/17/08.]
+
 3/24/08  Abort on use of GNU __sync_... functions in templates
 
 In configurations with GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED set to TRUE, the
@@ -308,7 +317,7 @@ front end accepts a variety of built-in functions for atomic memory access
 (see the Changes entry of 7/31/07).  However, when calls to such functions
 appeared in templates, the front end aborted with an internal error in expr.c
 (function "adjust_gnu_sync_call").  A spurious error message was often also
-issued.  This is now fixed.
+issued.  This is now fixed.  [Patch sent out 4/17/08.]
 
 3/24/08  Internal error when additional arguments follow an argument
          needing a VLA adjustment in GCC and C99 modes
@@ -329,6 +338,8 @@ Here is an example that previously aborted and is now fixed:
     void f(int a[*][*], int);
     f(a, 10);                 // caused an internal error in dump_expr
   }
+
+[Patch sent out 4/17/08.]
 
 3/21/08  Comma-separated declarations
 
@@ -351,7 +362,7 @@ When simultaneously compiling multiple translation units in C mode, the front
 end sometimes aborted with an assertion failure in change_c_type_correspondence
 (trans_corresp.c).  The exact circumstances for this failure are complex, and
 we know of no small example to demonstrate it.  The underlying problem,
-however, has been fixed.
+however, has been fixed.  [Patch sent out 4/17/08.]
 
 3/18/08  Changes in Microsoft __assume expression handling
 
@@ -377,6 +388,8 @@ when the expression is being discarded.  For example:
     return A();
   }
 
+[Patch sent out 4/17/08.]
+
 3/18/08  Extended position information for nonstandard friend declarations
 
 In many C++ modes, nonstandard forms of friend class declarations are accepted.
@@ -388,6 +401,7 @@ For example:
 However, the source sequence entry associated with such declarations previously
 failed to include extended source position information when the configuration
 macro EXTRA_SOURCE_POSITIONS_IN_IL is TRUE.  This is now fixed.
+[Patch sent out 4/17/08.]
 
 3/18/08  Invalid tokens in unrecognized pragmas
 
@@ -396,6 +410,8 @@ INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL is TRUE an error was issued on an
 invalid token in an unrecognized pragma.  Now fixed.
 
   #pragma some_unknown_pragma @
+
+[Patch sent out 4/17/08.]
 
 3/17/08  Microsoft bugs mode cast to cv-qualified class type drops qualifiers
 
@@ -416,12 +432,14 @@ bugs mode.
     f(ca);          // Gets error from MSVC++, and still from EDG
   }
 
+[Patch sent out 4/17/08.]
+
 3/13/08  Build error in cp_gen_be.c when MICROSOFT_EXTENSIONS_ALLOWED &&
          !NEAR_AND_FAR_ALLOWED
 
 In configurations with MICROSOFT_EXTENSIONS_ALLOWED set to TRUE and
 NEAR_AND_FAR_ALLOWED set to FALSE, the C++-generating back end (cp_gen_be.c)
-did not build correctly.  This is now fixed.
+did not build correctly.  This is now fixed.  [Patch sent out 4/17/08.]
 
 3/5/08   Parent entities (IL CHANGE)
 
@@ -468,6 +486,8 @@ scope.  For example:
     int a __attribute__ ((cleanup (cl)));  /* No longer considered unused. */
   }
 
+[Patch sent out 4/17/08.]
+
 3/4/08   No warning on non-POD class passed to ellipsis in unevaluated context
 
 A warning is no longer issued when an object of non-POD class type is passed
@@ -489,6 +509,7 @@ case in template metaprogramming.
     B<A> ba;
   }
 
+[Patch sent out 4/17/08.]
 
 3/3/08   Microsoft compatibility: Interface-like types
 
@@ -536,6 +557,8 @@ that part of access checking is also suppressed.
     x.update();
   }
 
+[Patch sent out 4/17/08.]
+
 2/24/08  Incorrect IL for constant, with name reference information
 
 In configurations with RECORD_FORM_OF_NAME_REFERENCE set to TRUE
@@ -556,6 +579,8 @@ mem block").  Now fixed.
   template <typename T, T Number> struct S2 { };
   struct S3 : public S2<S::E, S::N> { };
 
+[Patch sent out 4/17/08.]
+
 2/22/08  Microsoft compatibility: Default va_list type
 
 The default type for va_list in Microsoft mode -- in effect when the global
@@ -575,7 +600,7 @@ INCLUDE_EDG_TEST_PRAGMAS is TRUE):
   #pragma test_next_decl
   struct S;  // Previously could trigger an IL write-read failure.
 
-This is now fixed.
+This is now fixed.  [Patch sent out 4/17/08.]
 
 2/22/08  Diagnostic for invalid function qualifiers
 
@@ -601,7 +626,7 @@ resulted in only the first value of the range being retained.  For example:
     }
   }
 
-This is now fixed.
+This is now fixed.  [Patch sent out 4/17/08.]
 
 2/22/08  GNU C compatibility: Type of block-extern variable declarations
 
@@ -617,6 +642,8 @@ undone.  For example:
     char y[sizeof x];  // Now accepted again in all GNU C modes.
   }
 
+[Patch sent out 4/17/08.]
+
 2/22/08  Wrong end positions for some constructs followed by #if
 
 In configurations with EXTRA_SOURCE_POSITIONS_IN_IL set to TRUE, the front end
@@ -630,7 +657,7 @@ construct was mistakenly set to that of the #if directive.  For example:
   #endif
   }
 
-This is now fixed.
+This is now fixed.  [Patch sent out 4/17/08.]
 
 2/20/08  Optimization of virtual function calls with default arguments
 
@@ -680,6 +707,8 @@ were to be checked for null arguments.  This is now fixed.  For example,
     f(&a, 0, &b);  // Incorrectly warned about parameter 2
   }
 
+[Patch sent out 4/17/08.]
+
 2/13/08  Microsoft mode abort with property fields and IA-64 ABI
 
 In Microsoft mode with IA-64 ABI configurations, the front end sometimes
@@ -694,7 +723,7 @@ with empty class type.  For example:
     E e;                                    // Field with empty class type.
   };
 
-This is now fixed.
+This is now fixed.  [Patch sent out 4/17/08.]
 
 2/13/08  Sun and Microsoft C++ compatibility: Nonstandard friend class template
 
@@ -715,7 +744,6 @@ unintended exception has now been removed.  For example:
   int main() {
     C<int>::f<char>();  // Now accepted (in Sun and Microsoft C++ modes).
   }
-
 
 2/12/08  Point of destruction of runtime exception object adjusted
 
@@ -756,6 +784,8 @@ reference to a function type.  Now fixed.
     ((RF)obj)(0);
   }
 
+[Patch sent out 4/17/08.]
+
 2/7/08   Spurious VLA diagnostic in GNU C++ mode
 
 In GNU C++ modes with gnu_version >= 30400, the front end sometimes issued
@@ -778,6 +808,7 @@ configurations in which RECORD_CONSTANT_EXPRESSIONS_IN_IL is TRUE)
 constant->expr fields of the constant's variant.template_param.variant union,
 and the use of the local expr_ref node is indicated by the
 variant.array.constant_bound_expr_in_local_expr_node_ref flag.
+[Patch sent out 4/17/08.]
 
 2/7/08   Constant expressions in local array bounds
 
@@ -793,6 +824,8 @@ node in the expression tree for the bound constant:
     char *data = new char[sizeof(int)+3];
   }
 
+[Patch sent out 4/17/08.]
+
 2/6/08   Microsoft compatibility: concatenation with __VA_ARGS__
 
 The Microsoft compiler is nonstandard in its handling of the __VA_ARGS__
@@ -804,6 +837,8 @@ example:
   #define M(a, ...) a ## __VA_ARGS__
   #define TWO 2
   M(1,TWO)       // Expands to 12, not 1TWO, in --microsoft mode
+
+[Patch sent out 4/17/08.]
 
 2/6/08   Microsoft compatibility: template friend declarations apply to
          explicit specializations
@@ -856,6 +891,8 @@ Now fixed.  For example:
     upc_barrier i+j;    // "i+j" now included by traverse_statement
   }
 
+[Patch sent out 4/17/08.]
+
 1/29/08  Memory region issues for array bounds with
          RECORD_CONSTANT_EXPRESSIONS_IN_IL
 
@@ -877,7 +914,7 @@ expression from the array bound constant but uses the a_local_expr_node_ref
 mechanism described in the 4/28/06 Changes entry to record the expression
 without violating memory region constraints.  These cases are identified by
 the new flag constant_bound_expr_in_local_expr_node_ref in the
-variant.array section of a_type.
+variant.array section of a_type.  [Patch sent out 4/17/08.]
 
 1/29/08  Pragmas and Microsoft-mode duplicate function template specialization
 
@@ -891,6 +928,8 @@ configurations.  For example (assuming INCLUDE_EDG_TEST_PRAGMAS is TRUE):
   int g(int) { return 1; }
   #pragma test_next_decl
   int g(int) { return 2; }
+
+[Patch sent out 4/17/08.]
 
 This is now fixed (the pragma is discarded along with the declaration).
 
@@ -910,6 +949,8 @@ set to TRUE):
                  // configurations.  Now the pragma binds to the return
                  // statement.
 
+[Patch sent out 4/17/08.]
+
 1/24/08  Abort when mangling nonreal class templates that contain
          unnamed enums or class members
 
@@ -924,6 +965,8 @@ This is now fixed.  For example:
     struct { int i; };    // previously generated an assertion failure
     enum { e };           // previously generated an assertion failure
   };
+
+[Patch sent out 4/17/08.]
 
 1/23/08  Duplicate typeinfo types when using precompiled headers
 
@@ -952,6 +995,8 @@ headers are used.  For example:
   int main() {
     return 0;
   }
+
+[Patch sent out 4/17/08.]
 
 1/23/08  Check for preproc_immediate pragmas in begin_rescan_of_pragma_tokens
 
@@ -1071,7 +1116,7 @@ of nested class declarations sometimes triggered an abort.  For example:
   S<0> f;
 
 This is now fixed.  A warning is now issued about the attribute not being
-valid at that syntactic location.
+valid at that syntactic location.  [Patch sent out 4/17/08.]
 
 1/8/08   Name linkage of class types in cfront mode
 
@@ -1130,6 +1175,8 @@ that file had already been explicitly or implicitly included.  Now fixed.
   #define T2
   template <class T> void f(T);
   #endif
+
+[Patch sent out 4/17/08.]
 
 12/22/07 Anachronisms mode and reference to function
 
@@ -1227,7 +1274,7 @@ For example:
   int f() { return 0; }  // Attribute was lost here.
   void g() { f(); }      // No warning was issued here.
 
-This is now fixed.
+This is now fixed.  [Patch sent out 4/17/08.]
 
 12/12/07  Internal error in Microsoft mode with multiple translation units and
           user-declared operator new[]/delete[]
@@ -1246,7 +1293,7 @@ For example:
                                   // Triggered an abort in trans_corresp.c.
 
 This is now fixed.  (This is a regression introduced by the changes described
-in the entry of 9/11/07.)
+in the entry of 9/11/07.)  [Patch sent out 4/17/08.]
 
 12/12/07 Incorrect suppression of header file inclusion
 
@@ -1272,13 +1319,15 @@ subsequent #includes.  This is now fixed.  For example:
   #include "x.h"
   #include "x.h"   // Inclusion previously incorrectly suppressed
 
+[Patch sent out 4/17/08.]
+
 12/6/07   --error_output leaves file open when using MAKE_FRONT_END_CALLABLE
 
 In configurations where MAKE_FRONT_END_CALLABLE is TRUE and the
 --error_output command line option is used to direct errors to
 a file, the file is not closed when the front end completes
 the compilation (either normally or as the result of an error).
-This is now fixed.
+This is now fixed.  [Patch sent out 4/17/08.]
 
 12/3/07   Conversion to _Bool in gcc mode was not done properly
 
@@ -1291,6 +1340,8 @@ int main() {
   int y = 100;
   _Bool a = y;  // Should produce 1 in a in --gcc mode
 }
+
+[Patch sent out 4/17/08.]
 
 11/29/07  Some typeinfo variables decoupled from virtual function tables
 
@@ -1432,7 +1483,7 @@ This change can cause an ambiguity on some cases that had been accepted:
 
 Such examples also result in an ambiguity from the g++, Microsoft, and
 Sun compilers, however.  In addition, our new behavior is correct according
-to the C++ Standard.
+to the C++ Standard.  [Patch sent out 4/17/08.]
 
 11/21/07  Configurability of function return by pointer in lowering
 
@@ -1506,6 +1557,8 @@ Here is an example whose region table entries were incorrect:
     ~bar();
   };
   bar table[] = { 1,2,3 };
+
+[Patch sent out 4/17/08.]
 
 11/7/07  Microsoft compatibility: Visibility of static data member in its
          in-class initializer
@@ -1605,7 +1658,7 @@ the argument type was an incomplete template class.  For example:
   int a[__is_pod(S<int>)];  // Previously triggered an error about S<int>
                             // being incomplete.
 
-This is now fixed.
+This is now fixed.  [Patch sent out 4/17/08.]
 
 11/2/07  Spurious warning on definition at end of file with #line directive
 
@@ -1619,7 +1672,7 @@ For example:
   #line 100
   ;
 
-This is now fixed.
+This is now fixed.  [Patch sent out 4/17/08.]
 
 11/2/07  GNU C99 compatibility: The keyword "asm"
 
@@ -1709,6 +1762,8 @@ sequence entry is now included in the IL.  For example:
                            followed by the entry for the body. */
   }
 
+[Patch sent out 4/17/08.]
+
 10/25/07 GNU C++ compatibility: visibility of using-directives
 
 The front end does special processing in g++ mode to emulate g++'s behavior
@@ -1727,6 +1782,8 @@ using-directives.  Now fixed.
   namespace M {
     void foo() { f<int>(); }
   }
+
+[Patch sent out 4/17/08.]
 
 
 10/25/07 Spurious error on template disambiguation
@@ -1755,6 +1812,8 @@ the "template" keyword.  Now fixed.
     C<int> c;
     c.f();
   }
+
+[Patch sent out 4/17/08.]
 
 10/24/07 Configuration macro for GNU asm operand descriptions
 
@@ -1795,6 +1854,8 @@ mode).  For example:
     };
   }
 
+[Patch sent out 4/17/08.]
+
 10/20/07 Microsoft compatibility: spurious error in aggregate initialization
          of cv-qualified class object
 
@@ -1806,6 +1867,8 @@ microsoft_version is 1400 or greater.  This is now fixed.  For example,
   struct S { int i; };
   const S s = { 1 };    // Previously caused an error saying that the
                         // suppressed destructor is needed
+
+[Patch sent out 4/17/08.]
 
 10/10/07 Internal error on redeclaration involving default function argument
 
@@ -1820,7 +1883,7 @@ exception handling was enabled.)  For example:
   void X::f(int (X::*)(), S) {}  // Previously aborted if exception handling
                                  // was enabled.
 
-This is now fixed.
+This is now fixed.  [Patch sent out 4/17/08.]
 
 10/9/07  Use existing routine definitions during lowering (if available)
          when building run time library
@@ -1859,6 +1922,8 @@ Changes entry of 9/13/07 for more information.
     static union B b; 
   };
   template <class T> typename A<T>::B A<T>::b;
+
+[Patch sent out 4/17/08.]
 
 10/2/07  USE_X86_64 configuration macro in defines_linux.h
 
@@ -1930,7 +1995,7 @@ initializers consisting of a __LPREFIX construct.  E.g.:
   #include <stdlib.h>
   wchar_t x[] = __LPREFIX("Wide");  // Previously an error; now okay.
 
-This is now fixed.
+This is now fixed.  [Patch sent out 4/17/08.]
 
 9/23/07  Build error in il_to_str.c with RECORD_FORM_OF_NAME_REFERENCE
 
@@ -1939,6 +2004,8 @@ BACK_END_IS_C_GEN_BE and BACK_END_IS_CP_GEN_BE are FALSE, il_to_str.c
 contained a reference to the variable msvc_target_version_number, which is
 not declared in such configurations, causing a build error.  This is now
 fixed.
+
+[Patch sent out 4/17/08.]
 
 ------------------------------------------------------------------------------
 Version 3.10, September 23, 2007
