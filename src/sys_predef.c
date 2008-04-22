@@ -1044,8 +1044,8 @@ static a_type_ptr enter_predefined_typedef(char        *name,
                                             a_type_ptr  type)
 /*
 Create a type entry and associated symbol for a typedef of the given name
-with the given underlying type.  Enter these in the file scope and set
-builtin_va_list_type to point to the type entry.
+with the given underlying type.  Enter these in the file scope and return
+the type entry.
 */
 {
   a_type_ptr  result = alloc_type((a_type_kind)tk_typeref);
