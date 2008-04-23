@@ -1,5 +1,18 @@
 Version 3.11
 
+4/23/08  Microsoft __unaligned can be dropped in reinterpret_cast
+
+In Microsoft mode, the __unaligned qualifier at the top level
+in a pointer can now be dropped in a reinterpret_cast or, at any
+level other than the first, in a static_cast or reinterpret_cast.
+
+int main() {
+  __unaligned unsigned char *p = 0;
+  reinterpret_cast<unsigned char *>(p);  // Now accepted
+  __unaligned unsigned char **q = 0;
+  static_cast<unsigned char**>(q);       // Now accepted
+}
+
 4/23/08  Overload resolution conversion cost for float operand to builtin
 
 In accordance with Core Issue 425, the type "float" is now considered a

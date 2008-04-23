@@ -4644,6 +4644,13 @@ parameters.
     a_type_qualifier_set source_type_qualifiers;
     dest_type_qualifiers = get_type_qualifiers(dest_type);
     source_type_qualifiers = get_type_qualifiers(source_type);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (!(dest_type_qualifiers & TQ_UNALIGNED) &&
+        (source_type_qualifiers & TQ_UNALIGNED)) {
+      /* The Microsoft-specific qualifier "__unaligned" can be dropped. */
+      source_type_qualifiers &= ~TQ_UNALIGNED;
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (is_template_param_type(dest_type) ||
         is_template_param_type(source_type)) {
       /* With template parameter types, we can't tell.  const int converted
