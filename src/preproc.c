@@ -2151,11 +2151,12 @@ the construct is not correctly formed.
           if (curr_token != tok_rparen) {
             warning(ec_exp_rparen);
             warning_issued = TRUE;
+          } else {
+            (void)get_token();
           }  /* if */
-          (void)get_token();
         }  /* if */
       } else {
-        warning(ec_exp_rparen);
+        warning(ec_exp_lparen);
         warning_issued = TRUE;
       }  /* if */
     } else if (strcmp(str, "pop") == 0) {
@@ -2177,9 +2178,7 @@ the construct is not correctly formed.
 
 void gcc_pragma(a_pending_pragma_ptr  ppp)
 /*
-Process a "#pragma GCC ..." construct.  Currently, only the
-	#pragma GCC visibility ...
-variants are recognized.
+Process a "#pragma GCC ..." construct.
 */
 {
   a_boolean  recognized = FALSE;
@@ -2197,7 +2196,7 @@ variants are recognized.
   if (!recognized) {
     warning(ec_unrecognized_gcc_pragma);
   }  /* if */
-  /* Pass error_in_pragma as TRUE to avoid diagnostics; any needed diagostic
+  /* Pass error_in_pragma as TRUE to avoid diagnostics; any needed diagnostic
      will already have been issued. */
   wrapup_rescan_of_pragma_tokens(/*error_in_pragma=*/TRUE);
 }  /* gcc_pragma */

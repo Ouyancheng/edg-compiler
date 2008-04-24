@@ -11487,7 +11487,7 @@ and to tok_brace otherwise; the final token is swallowed by the caller.
            pushed on the ELF visibility stack.  Pop an entry now that the
            namespace scope is being popped.  (A warning will be issued if this
            pop operation doesn't match the push operation implied by the
-           visibility attribute. */
+           visibility attribute). */
         pop_ELF_visibility(/*namespace_attribute=*/TRUE);
       }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED && GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
