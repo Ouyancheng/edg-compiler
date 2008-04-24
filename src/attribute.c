@@ -109,8 +109,8 @@ typedef struct an_ELF_visibility_stack_entry
                                            *an_ELF_visibility_stack_entry_ptr;
 typedef struct an_ELF_visibility_stack_entry {
   an_ELF_visibility_stack_entry_ptr
-		prev;	/* Pointer to the previously pushed entry (or NULL if
-			   no entry was previously pushed). */
+		next;	/* Pointer to the next entry on the stack (or NULL if
+			   no entry is currently on the stack). */
   an_ELF_visibility_kind
 		visibility;
 			/* The ELF visibility that was pushed. */
@@ -149,14 +149,14 @@ is TRUE if this "push" operation is for a namespace attribute.
   if (avail_ELF_visibility_stack_entries != NULL) {
     entry = avail_ELF_visibility_stack_entries;
     avail_ELF_visibility_stack_entries =
-                                     avail_ELF_visibility_stack_entries->prev;
+                                     avail_ELF_visibility_stack_entries->next;
   } else {
     entry = alloc_fe_of_type(an_ELF_visibility_stack_entry);
 #if DEBUG
     ++num_ELF_visibility_stack_entries_allocated;
 #endif /* DEBUG */
   }  /* if */
-  entry->prev = ELF_visibility_stack;
+  entry->next = ELF_visibility_stack;
   entry->visibility = evk;
   entry->namespace_attribute = namespace_attribute;
   ELF_visibility_stack = entry;
@@ -177,8 +177,8 @@ stack is empty.
     if (namespace_attribute && !entry->namespace_attribute) {
       warning(ec_ELF_visibility_pop_mismatch);
     }  /* if */
-    ELF_visibility_stack = entry->prev;
-    entry->prev = avail_ELF_visibility_stack_entries;
+    ELF_visibility_stack = entry->next;
+    entry->next = avail_ELF_visibility_stack_entries;
     avail_ELF_visibility_stack_entries = entry;
   } else {
     warning(ec_ELF_visibility_stack_empty);
@@ -3332,9 +3332,10 @@ entities.
 #if GNU_EXTENSIONS_ALLOWED
   db_space_used("GNU attributes", num_attributes_allocated, an_attribute);
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-  db_space_used("GNU visibility stack",
-                num_ELF_visibility_stack_entries_allocated,
-                an_ELF_visibility_stack_entry);
+  db_space_used_lost("GNU visibility stack",
+                     avail_ELF_visibility_stack_entries,
+                     num_ELF_visibility_stack_entries_allocated,
+                     an_ELF_visibility_stack_entry);
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   db_space_used("alias fixups", num_alias_fixups_allocated, an_alias_fixup);
