@@ -3332,10 +3332,9 @@ entities.
 #if GNU_EXTENSIONS_ALLOWED
   db_space_used("GNU attributes", num_attributes_allocated, an_attribute);
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-  db_space_used_lost("GNU visibility stack",
-                     avail_ELF_visibility_stack_entries,
-                     num_ELF_visibility_stack_entries_allocated,
-                     an_ELF_visibility_stack_entry);
+  db_space_used("GNU visibility stack",
+                num_ELF_visibility_stack_entries_allocated,
+                an_ELF_visibility_stack_entry);
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   db_space_used("alias fixups", num_alias_fixups_allocated, an_alias_fixup);
