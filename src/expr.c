@@ -12248,6 +12248,7 @@ Syntax:
             conv_object_pointer_to_lvalue(result);
           }  /* if */
         } else {
+          a_boolean unaligned_case;
           /* Not a valid cast. */
           err = TRUE;
           if (is_class_struct_union_type(orig_type_cast_to)) {
@@ -12258,10 +12259,17 @@ Syntax:
                                                      type_cast_to,
                                                     /*ignore_qualifiers=*/TRUE,
                                                      (a_boolean *)NULL) &&
-                     cast_removes_qualifiers(source_type, type_cast_to)) {
-            /* Use a special message for casting away constness. */
-            pos_st_error(ec_cannot_cast_away_const, &start_position,
-                         "static_cast");
+                     cast_removes_qualifiers(source_type, type_cast_to,
+                                             &unaligned_case)) {
+            if (unaligned_case) {
+              /* Use a special message for dropping Microsoft __unaligned. */
+              pos_warning(ec_unaligned_qualifier_dropped, &start_position);
+              err = FALSE;
+            } else {
+              /* Use a special message for casting away constness. */
+              pos_st_error(ec_cannot_cast_away_const, &start_position,
+                           "static_cast");
+            }  /* if */
           } else {
             /* Generic message. */
             /* Note: If this is changed to display the types involved,
@@ -12384,11 +12392,16 @@ Syntax:
       if (reinterpret_cast_conversion_possible(source_type,
                                                type_cast_to,
                                                &warning_suggested)) {
+        a_boolean unaligned_case;
         /* Valid reinterpret_cast conversion. */
-        if (cast_removes_qualifiers(source_type, type_cast_to)) {
+        if (cast_removes_qualifiers(source_type, type_cast_to,
+                                    &unaligned_case)) {
           /* This reinterpret_cast casts away constness, which is not
              allowed. */
-          if (is_const_string_literal_in_microsoft_mode) {
+          if (unaligned_case) {
+            /* Use a special message for dropping Microsoft __unaligned. */
+            pos_warning(ec_unaligned_qualifier_dropped, &start_position);
+          } else if (is_const_string_literal_in_microsoft_mode) {
             /* MSVC++ allows a cast of a string literal that removes
                const (presumably because formerly strings were not const). */
           } else {

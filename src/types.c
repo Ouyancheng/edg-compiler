@@ -4595,13 +4595,17 @@ to a pointer to dest_type.
 }  /* exception_spec_conversion_possible */
 
 
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+/*ARGSUSED*/  /* <-- ignore_unaligned is unused in that case. */
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 a_boolean qualification_conversion_possible_full(
-					a_type_ptr source_type,
-					a_type_ptr dest_type,
-					a_boolean  *p_qualifiers_added,
-					a_boolean  ignore_underlying_type,
-					a_type_ptr *underlying_source_type,
-					a_type_ptr *underlying_dest_type)
+                                        a_type_ptr source_type,
+                                        a_type_ptr dest_type,
+                                        a_boolean  *p_qualifiers_added,
+                                        a_boolean  ignore_underlying_type,
+                                        a_boolean  ignore_unaligned,
+                                        a_type_ptr *underlying_source_type,
+                                        a_type_ptr *underlying_dest_type)
 /*
 Return TRUE if source_type and dest_type are compatible types except that
 dest_type may have some additional type qualifiers at some level(s).
@@ -4632,7 +4636,8 @@ If ignore_underlying_type is TRUE, return TRUE once we've reached the
 underlying type of either source_type or dest_type and return the types
 that were reached in underlying_source_type and underlying_dest_type if
 requested to do so by the caller by providing non-NULL values for those
-parameters.
+parameters.  If ignore_unaligned is TRUE, ignore the Microsoft __unaligned
+qualifier in the testing.
 */
 {
   a_boolean   same;
@@ -4645,7 +4650,8 @@ parameters.
     dest_type_qualifiers = get_type_qualifiers(dest_type);
     source_type_qualifiers = get_type_qualifiers(source_type);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (!(dest_type_qualifiers & TQ_UNALIGNED) &&
+    if (ignore_unaligned &&
+        !(dest_type_qualifiers & TQ_UNALIGNED) &&
         (source_type_qualifiers & TQ_UNALIGNED)) {
       /* The Microsoft-specific qualifier "__unaligned" can be dropped. */
       source_type_qualifiers &= ~TQ_UNALIGNED;
@@ -4726,12 +4732,14 @@ values for the underlying source and destination return values.
 {
   return qualification_conversion_possible_full(
                  source_type, dest_type, p_qualifiers_added,
-                 ignore_underlying_type, (a_type_ptr*)NULL, (a_type_ptr*)NULL);
+                 ignore_underlying_type, /*ignore_unaligned=*/FALSE,
+                 (a_type_ptr*)NULL, (a_type_ptr*)NULL);
 }  /* qualification_conversion_possible */
 
 
-a_boolean cast_removes_qualifiers(a_type_ptr	source_type,
-				  a_type_ptr	dest_type)
+a_boolean cast_removes_qualifiers(a_type_ptr source_type,
+                                  a_type_ptr dest_type,
+                                  a_boolean  *unaligned_case)
 /*
 Return TRUE if a cast from source_type to dest_type is a cast
 that, by the rules in the WP [expr.const.cast], casts away const.
@@ -4746,12 +4754,16 @@ the underlying type pointed to.
 
 If the conversion does not "cast away const" by this definition, return
 FALSE.
+
+If the cast removes the Microsoft __unaligned qualifier, return
+*unaligned_case TRUE.
 */
 {
   a_boolean	qualifiers_added;
   a_boolean	result = FALSE;
   a_boolean	check_further = TRUE;
 
+  *unaligned_case = FALSE;
   if (is_pointer_type(dest_type) && is_pointer_type(source_type)) {
     dest_type = type_pointed_to(dest_type);
     source_type = type_pointed_to(source_type);
@@ -4773,6 +4785,18 @@ FALSE.
                                            &qualifiers_added,
                                            /*ignore_underlying_type=*/TRUE)) {
       result = TRUE;
+      if (microsoft_mode &&
+          qualification_conversion_possible_full(
+                                               source_type, dest_type,
+                                               &qualifiers_added,
+                                               /*ignore_underlying_type=*/TRUE,
+                                               /*ignore_unaligned=*/TRUE,
+                                               (a_type_ptr*)NULL,
+                                               (a_type_ptr*)NULL)) {
+        /* MSVC allows dropping __unaligned on a cast.  Return a flag
+           for that case. */
+        *unaligned_case = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
   return result;
@@ -5938,7 +5962,8 @@ exception specifications are not checked.
     if (!allow_qualifier_or_eh_mismatch &&
         ((is_pointer(source_type) && is_pointer(dest_type)) ||
         (is_ptr_to_member(source_type) && is_ptr_to_member(dest_type)))) {
-      if (cast_removes_qualifiers(source_type, dest_type)) {
+      a_boolean unaligned_case;
+      if (cast_removes_qualifiers(source_type, dest_type, &unaligned_case)) {
         okay = FALSE;
       }  /* if */
     }  /* if */
