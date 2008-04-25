@@ -1,5 +1,14 @@
 Version 3.11
 
+4/25/08  Emit an entire diagnostic in a single system call
+
+Previously, diagnostic messages were written piece by piece to the
+error output file.  In cases where multiple compilations are being performed
+in parallel and the same unbuffered output file is used for each
+(e.g., stderr), diagnostics from these compilations can appear intermixed.
+A change has been made to collect all pieces of a diagnostic in a local buffer
+and emit the entire diagnostic with a single system call.
+
 4/23/08  Microsoft __unaligned can be dropped in reinterpret_cast
 
 In Microsoft mode, the __unaligned qualifier at the top level

@@ -4355,8 +4355,8 @@ encoding form for the file, or usk_none if the file is not Unicode.
           }  /* if */
           /* Save a copy the file name. */
           reset_text_buffer(suffix_replacement_buffer);
-          add_to_text_buffer(suffix_replacement_buffer, buffer->buffer,
-                             buffer->size);
+          (void)add_to_text_buffer(suffix_replacement_buffer, buffer->buffer,
+                                   buffer->size);
           /* Loop through the linked list of suffixes. */
           for (fsp = suffix_list;
                fsp != NULL;
@@ -4373,8 +4373,9 @@ encoding form for the file, or usk_none if the file is not Unicode.
             if (fsp->next != NULL) {
               /* Copy the original file name back into the buffer. */
               reset_text_buffer(buffer);
-              add_to_text_buffer(buffer, suffix_replacement_buffer->buffer,
-                                 suffix_replacement_buffer->size);
+              (void)add_to_text_buffer(buffer,
+                                       suffix_replacement_buffer->buffer,
+                                       suffix_replacement_buffer->size);
             }  /* if */
           }  /* for */
         }  /* if */
@@ -7695,7 +7696,7 @@ are the prefix characters to be used for 4-digit and 8-digit output.
   }  /* for */
   add_char_to_text_buffer(ucn_buffer, '\\');
   add_char_to_text_buffer(ucn_buffer, ucn_chars == 8 ? prefix8 : prefix4);
-  add_to_text_buffer(ucn_buffer, ucn, ucn_chars);
+  (void)add_to_text_buffer(ucn_buffer, ucn, ucn_chars);
   /* Record the fact that an identifier containing a UCN or UCN-like
      character has been encountered. */
   il_header.UCN_identifiers_used = TRUE;

@@ -1593,11 +1593,12 @@ will be placed starting at the location specified by pos.
 }  /* set_buffer_position */
 
 
-void add_to_text_buffer(a_text_buffer_ptr	buffer,
-			char			*string,
-			sizeof_t		length)
+unsigned long add_to_text_buffer(a_text_buffer_ptr	buffer,
+				 char			*string,
+				 sizeof_t		length)
 /*
 Add "length" characters of "string" to the text buffer pointed to "buffer".
+Return the number of characters added to the buffer.
 */
 {
   sizeof_t	new_size;
@@ -1607,6 +1608,7 @@ Add "length" characters of "string" to the text buffer pointed to "buffer".
   /* Copy the characters into the buffer. */
   memcpy(&buffer->buffer[buffer->size], string, size_t_arg(length));
   buffer->size = new_size;
+  return (unsigned long)length;
 }  /* add_to_text_buffer */
 
 

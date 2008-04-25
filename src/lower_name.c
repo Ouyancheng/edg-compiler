@@ -519,7 +519,7 @@ Add the indicated null-terminated string to the mangled name.
 
   /* Count characters. */
   mctl->length += len;
-  add_to_text_buffer(mangling_text_buffer, str, len);
+  (void)add_to_text_buffer(mangling_text_buffer, str, len);
   check_assertion(mctl->length + mctl->num_leftover_spaces ==
                                                    mangling_text_buffer->size);
 }  /* add_str_to_mangled_name */
@@ -5498,8 +5498,8 @@ made into an external) if necessary.
                                       (a_special_function_kind)sfk_destructor);
       /* Copy the name to the mangling buffer so we can change it. */
       reset_text_buffer(mangling_text_buffer);
-      add_to_text_buffer(mangling_text_buffer, mangled_name,
-                         strlen(mangled_name)+1);
+      (void)add_to_text_buffer(mangling_text_buffer, mangled_name,
+                               strlen(mangled_name)+1);
       mangled_name = mangling_text_buffer->buffer;
       mangled_name[routine->variant.ctor_dtor.base_name_offset+1] = '1';
     }  /* if */

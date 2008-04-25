@@ -86,6 +86,23 @@ static a_source_file_ptr
 				   associated with the diagnostic currently
 				   being processed. */
 				   
+static a_text_buffer_ptr
+		write_diagnostic_buffer;
+				/* A text buffer used by write_diagnostic to
+				   accumulate the entire contents of a
+				   diagnostic message (so it can be written
+				   in one atomic operation).  The text buffer
+				   is not null-terminated during the
+				   construction of the diagnostic. */
+
+static a_text_buffer_ptr
+		write_message_buffer;
+				/* A text buffer used by write_message. */
+
+static int      write_diagnostic_recursion_level;
+				/* An indication of the recursion level
+				   of write_diagnostic. */
+
 /*
 Category codes for the various parts of the processing for multi-line
 diagnostics:
@@ -1847,67 +1864,28 @@ return_point:
 }  /* can_locate_source_line */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
-#if !STANDALONE_UTILITY_PROGRAM
 
 /*
-Size of the local buffer used to buffer characters going to f_error.
-Should be comparable in size to a source line.  The actual array is
-allocated with an extra element to be used to store a terminating
-character.  This is used to avoid a purify/clcc bug that causes
-purify to issue a spurious error.
-*/
-#define MAX_PUTCBUFFER_CHARS 100
-#define PUTCBUFFER_ARRAY_SIZE (MAX_PUTCBUFFER_CHARS + 1)
-
-static void flush_putcbuffer(char *putcbuffer,
-                             int  *num_putcbuffer_chars)
-/*
-Flush characters out of the local buffer putcbuffer to f_error.
-*num_putcbuffer_chars indicates how many characters there are in the buffer;
-it is reset to 0.
-*/
-{
-  /* The following assignment should not be necessary but is present
-     to avoid Purify errors from versions of fprintf that look one
-     character beyond the specified precision specification.
-     Specifically, the clcc runtime does this. */
-  putcbuffer[*num_putcbuffer_chars] = '\0';
-  if (*num_putcbuffer_chars > 0) {
-     fprintf(f_error, "%.*s", *num_putcbuffer_chars, putcbuffer);
-     *num_putcbuffer_chars = 0;
-     /* Force the buffer to be flushed.  This is needed when f_error does
-        not point to stderr. */
-     (void)fflush(f_error);
-  }  /* if */
-}  /* flush_putcbuffer */
-
-
-static void add_to_putcbuffer(char *putcbuffer,
-                              int  *num_putcbuffer_chars,
-                              char out_char)
-/*
-Add out_char to the local buffer putcbuffer.  Increment the number of
-characters in the buffer, *num_putcbuffer_chars.  Flush the buffer
-to f_error if it is full.
-*/
-{
-  /* Flush the buffer if it is full. */
-  if (*num_putcbuffer_chars == MAX_PUTCBUFFER_CHARS) {
-    flush_putcbuffer(putcbuffer, num_putcbuffer_chars);
-  }  /* if */
-  /* Add the character to the buffer. */
-  putcbuffer[*num_putcbuffer_chars] = out_char;
-  (*num_putcbuffer_chars)++;
-}  /* add_to_putcbuffer */
-
-
-/*
-Put out_char into a local buffer for later writing to f_error.  This is
+Put out_char into a local (a_text_buffer) buffer for later writing.  This is
 done to avoid lots of costly system calls in the usual case that f_error
-points to stderr, and stderr is unbuffered.
+points to stderr, and stderr is unbuffered, as well as to emit an entire
+diagnostic in a single system call.  This minimizes the chances of diagnostic
+messages being intermixed when multiple compilations are performed in
+parallel.
 */
-#define putcb(out_char)                                               \
-  add_to_putcbuffer(putcbuffer, &num_putcbuffer_chars, (out_char));
+
+#define putcb(out_char, buffer)                                       \
+  add_char_to_text_buffer((buffer), (out_char));
+
+/*
+Shorthand for cases where an output character (out_char) is being written
+to the write_diagnostic_buffer.
+*/
+
+#define putcwdb(out_char)                                             \
+  putcb((out_char), write_diagnostic_buffer);
+
+#if !STANDALONE_UTILITY_PROGRAM
 
 /*
 Macro to write source line characters in the first pass, and spaces over
@@ -1920,9 +1898,9 @@ column for the caret in the second pass.
   } else {                                                            \
     if ((out_char != '\r') &&                                         \
         (/*lint --e(506)*/ !pass_for_caret || (out_char) == '\t')) {  \
-      putcb(out_char);                                                \
+      putcwdb(out_char);                                              \
     } else {                                                          \
-      putcb(' ');                                                     \
+      putcwdb(' ');                                                   \
     }  /* if */                                                       \
     curr_column++;                                                    \
   }  /* if */                                                         \
@@ -1958,7 +1936,7 @@ original character at that position.
     while (numch-- > 0) { \
       loc_in_line++; \
       if (!pass_for_caret) { \
-         putcb(*loc_in_line); \
+         putcwdb(*loc_in_line); \
       } \
       curr_column++; \
     }  /* while */ \
@@ -1978,7 +1956,9 @@ static void write_orig_source_line(a_source_position *source_pos)
 Write out the source line associated with the source position source_pos,
 and place a caret under the proper column.  The position must be within
 the current logical source line.  If the column position is zero, write
-a blank line instead of the caret line.
+a blank line instead of the caret line.  All diagnostics generated by this
+routine (or routines it calls) are placed in write_diagnostic_buffer for
+later output as appropriate.
 */
 {
   a_seq_number            seq;
@@ -1989,8 +1969,6 @@ a blank line instead of the caret line.
   char                    ch;
   a_source_line_modif_ptr slmp;
   int                     i;
-  char                    putcbuffer[PUTCBUFFER_ARRAY_SIZE];
-  int                     num_putcbuffer_chars = 0;
 
   /* Start by finding the right line.  The logical source line originally
      came from one or more physical lines ended by "\"s (line splices).
@@ -2027,12 +2005,12 @@ a blank line instead of the caret line.
        that programs (like emacs) that read the error output will ignore
        these lines. */
     for (i = 0; i < SOURCE_INDENT; ++i) {
-      putcb(' ');
+      putcwdb(' ');
     }  /* for */
     /* Perform any additional indentation needed (based on the category
        kind) */
     for (i = 0; i < diagnostic_indent; i++) {
-      putcb(' ');
+      putcwdb(' ');
     }  /* for */
     /* On the caret pass, if the column number is zero (unknown), skip
        writing the spaces and caret and go right to the newline. */
@@ -2108,11 +2086,10 @@ a blank line instead of the caret line.
       }  /* for */
 end_of_loop:
       /* For the pass that writes the caret, write the caret at this point. */
-      if (pass_for_caret) putcb('^');
+      if (pass_for_caret) putcwdb('^');
     }  /* if */
     /* For both passes, end the output line. */
-    putcb('\n');
-    flush_putcbuffer(putcbuffer, &num_putcbuffer_chars);
+    putcwdb('\n');
     /* After the first pass (writing the source), go on to the second pass
        (writing the caret). */
   }  /* for */
@@ -2134,7 +2111,8 @@ has been reread into the buffer pointed to by the static variable
 error_source_line.  If the column position is zero, write a blank line
 instead of the caret line.  unicode_source_kind indicates the kind of Unicode
 encoding form for the file, or usk_none if the file is not Unicode.
-
+All diagnostics generated by this routine (or routines it calls) are placed in
+write_diagnostic_buffer for later output as appropriate.
 */
 {
   char            *loc_in_line;
@@ -2142,8 +2120,6 @@ encoding form for the file, or usk_none if the file is not Unicode.
   int             pass_for_caret;
   a_column_number curr_column;
   int             i;
-  char            putcbuffer[PUTCBUFFER_ARRAY_SIZE];
-  int             num_putcbuffer_chars = 0;
 
   /* Take two passes -- the first to write the source line, the second to
      write the caret.  Because of the presence of tabs in the source line,
@@ -2154,12 +2130,12 @@ encoding form for the file, or usk_none if the file is not Unicode.
        that programs (like emacs) that read the error output will ignore
        these lines. */
     for (i = 0; i < SOURCE_INDENT; ++i) {
-      putcb(' ');
+      putcwdb(' ');
     }  /* for */
     /* Perform any additional indentation needed (based on the category
        kind). */
     for (i = 0; i < diagnostic_indent; i++) {
-      putcb(' ');
+      putcwdb(' ');
     }  /* for */
     /* On the caret pass, if the column number is zero (unknown), skip
        writing the spaces and caret and go right to the newline. */
@@ -2177,11 +2153,10 @@ encoding form for the file, or usk_none if the file is not Unicode.
 
 end_of_loop:
       /* For the pass that writes the caret, write the caret at this point. */
-      if (pass_for_caret) putcb('^');
+      if (pass_for_caret) putcwdb('^');
     }  /* if */
     /* For both passes, end the output line. */
-    putcb('\n');
-    flush_putcbuffer(putcbuffer, &num_putcbuffer_chars);
+    putcwdb('\n');
     /* After the first pass (writing the source), go on to the second pass
        (writing the caret). */
   }  /* for */
@@ -2189,18 +2164,18 @@ end_of_loop:
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
-static void write_message_part(char      *msg,
-                               int       len,
-                               FILE      *file,
-                               int       *line_len,
-                               a_boolean wrap,
-                               a_boolean quoted_text,
-                               a_boolean start_of_diagnostic)
+static void write_message_part(char              *msg,
+                               int               len,
+                               a_text_buffer_ptr buffer,
+                               int               *line_len,
+                               a_boolean         wrap,
+                               a_boolean         quoted_text,
+                               a_boolean         start_of_diagnostic)
 /*
-Write out a piece of an error message.  msg points to the
+Write a piece of an error message to buffer.  msg points to the
 message (or is NULL if there is no message), and len is its length (or
--1 if the text is null-terminated).  The message is written to the file
-indicated by file.  *line_len is incremented by the number of characters
+-1 if the text is null-terminated).  The message is written to the text buffer
+indicated by buffer.  *line_len is incremented by the number of characters
 written.  If wrap is TRUE, the text will be wrapped to successive
 additional lines as necessary and *line_len will be set to the number
 of characters written on the final line.  If quoted_text is TRUE, the
@@ -2256,10 +2231,13 @@ be forgotten.
       if (chars_to_take > 0) {
         /* Print any "remembered" spaces from the last fragment. */
         for (; trailing_space_count > 0; trailing_space_count--) {
-          fputc(' ', file);
+          putcb(' ', buffer);
           (*line_len)++;
         }  /* for */
-        *line_len += fprintf(file, "%.*s", chars_to_take, msg);
+        *line_len += add_to_text_buffer(buffer, msg,
+                                        strlen(msg) > chars_to_take ? 
+                                                                chars_to_take :
+                                                                strlen(msg));
         msg += chars_to_take;
         len -= chars_to_take;
       }  /* if */
@@ -2272,18 +2250,18 @@ start_line_and_indent:
         len--;
       }  /* while */
       /* Start a new line and indent. */
-      (void)fputc('\n', file);
+      putcb('\n', buffer);
       for (*line_len = 0;
            *line_len < (INDENT_AMOUNT + diagnostic_indent);
            (*line_len)++) {
-        (void)fputc(' ', file);
+        putcb(' ', buffer);
       }  /* for */
     }  /* while */
     /* Print the final piece of the text (in the usual case, this prints
        all of the text). */
     /* Print any "remembered" spaces from the last fragment. */
     for (; trailing_space_count > 0; trailing_space_count--) {
-      fputc(' ', file);
+      putcb(' ', buffer);
       (*line_len)++;
     }  /* for */
 
@@ -2293,7 +2271,8 @@ start_line_and_indent:
       for (; len > 0 && msg[len - 1] == ' '; len--, trailing_space_count++) {}
     }  /* if */
     if (len > 0) {
-      *line_len += fprintf(file, "%.*s", len, msg);
+      *line_len += add_to_text_buffer(buffer, msg,
+                                      strlen(msg) > len ? len : strlen(msg));
     }  /* if */
   }  /* if */
 }  /* write_message_part */
@@ -2322,12 +2301,12 @@ a diagnostic message.
 }  /* init_error_params */
 
 
-static void write_message(FILE      *file,
-                          int       *line_len,
-                          a_boolean wrap)
+static void write_message(a_text_buffer_ptr buffer,
+                          int               *line_len,
+                          a_boolean         wrap)
 /*
 Write each of the message segments chained from the static variable
-error_message_head to the specified file.  *line_len is the current line
+error_message_head to the specified text buffer.  *line_len is the current line
 length and is incremented to reflect the number of characters added
 to the current line.  If wrap is TRUE, the text will be wrapped to
 successive additional lines as necessary.
@@ -2345,15 +2324,15 @@ successive additional lines as necessary.
     switch (curr_seg->kind) {
       case msk_error_text_part:
         write_message_part(curr_seg->variant.msg_part, curr_seg->length,
-                           file, line_len, wrap, /*quoted_text=*/FALSE,
+                           buffer, line_len, wrap, /*quoted_text=*/FALSE,
                            start_of_message);
         break;
       case msk_user_string:
         if (curr_seg->variant.string.quoted) {
           goto handle_embedded_quoted_text;
         }  /* if */
-        write_message_part(error_msg_strings[curr_seg->sequence_no], -1, file,
-                           line_len, wrap, /*quoted_text=*/FALSE,
+        write_message_part(error_msg_strings[curr_seg->sequence_no], -1,
+                           buffer, line_len, wrap, /*quoted_text=*/FALSE,
                            start_of_message);
         break;
       case msk_source_position:
@@ -2361,7 +2340,7 @@ successive additional lines as necessary.
       case msk_symbol:
 handle_embedded_quoted_text:
         if (curr_seg->first_quote == NULL) {
-          write_message_part(curr_seg->segment, -1, file, line_len,
+          write_message_part(curr_seg->segment, -1, buffer, line_len,
                              wrap, /*quoted_text=*/FALSE,
                              start_of_message);
         } else {
@@ -2370,7 +2349,7 @@ handle_embedded_quoted_text:
           total_len = 0;
           if (curr_seg->segment != curr_seg->first_quote) {
             total_len = (curr_seg->first_quote - curr_seg->segment);
-            write_message_part(curr_seg->segment, total_len, file,
+            write_message_part(curr_seg->segment, total_len, buffer,
                                line_len, wrap, /*quoted_text=*/FALSE,
                                start_of_message);
             start_of_message = FALSE;
@@ -2378,13 +2357,13 @@ handle_embedded_quoted_text:
           /* Output the quoted text as a single unit. */
           total_len += length = curr_seg->second_quote -
                                 curr_seg->first_quote +1;
-          write_message_part(curr_seg->first_quote, length, file, line_len,
+          write_message_part(curr_seg->first_quote, length, buffer, line_len,
                              wrap, /*quoted_text=*/TRUE,
                              start_of_message);
           start_of_message = FALSE;
           /* Check for any fragment following the quoted text. */
           if ((length = curr_seg->length - total_len) > 0) {
-            write_message_part(curr_seg->second_quote + 1, length, file,
+            write_message_part(curr_seg->second_quote + 1, length, buffer,
                                line_len, wrap, /*quoted_text=*/FALSE,
                                start_of_message);
           }  /* if */
@@ -2395,7 +2374,7 @@ handle_embedded_quoted_text:
     }  /* switch */
     start_of_message = FALSE;
   }  /* for */
-  putc('\n', file);
+  putcb('\n', buffer);
 }  /* write_message */
 
 
@@ -2404,30 +2383,43 @@ static void write_position(char              *file_name,
                            a_column_number   column_number,
                            int               *line_len)
 /*
-Write the source position (filename and line number) to f_error.  If
-column_number is not SP_COL_UNKNOWN, the column number is added into the
-output.
+Write the source position (filename and line number) to the
+write_diagnostic_buffer text buffer.  If column_number is not SP_COL_UNKNOWN,
+the column number is added into the output.
 */
 {
+  char              number_buffer[50];
+  a_text_buffer_ptr buffer = write_diagnostic_buffer;
+
   /* Print the file and line number, with a column number if it is not
      SP_COL_UNKINOWN. */
   /* If the line is from stdin, do not display the file name. */
   if (strcmp(file_name, FILE_NAME_FOR_STDIN) == 0) {
-    *line_len += fprintf(f_error, "%s %lu", error_text(ec_Line), line_number);
+    (void)sprintf(number_buffer, "%lu", line_number);
+    *line_len += add_string_to_text_buffer(buffer, error_text(ec_Line));
+    *line_len += add_string_to_text_buffer(buffer, " ");
+    *line_len += add_string_to_text_buffer(buffer, number_buffer);
   } else {
-    *line_len += fprintf(f_error, "\"");
+    (void)sprintf(number_buffer, "%lu", line_number);
+    *line_len += add_string_to_text_buffer(buffer, "\"");
     /* Don't convert '\' to '\\' in error message output.  The
        name should be displayed as written by the user.  This also
        prevents doubling of directory separators on Windows. */
-    *line_len += write_file_name(file_name, f_error,
-                                 /*process_escapes=*/FALSE,
-                                 /*escape_nonprintable_chars=*/FALSE);
-    *line_len += fprintf(f_error, "\", %s %lu", error_text(ec_line),
-                         line_number);
+    *line_len += write_file_name_to_text_buffer(file_name, buffer,
+                                          /*process_escapes=*/FALSE,
+                                          /*escape_nonprintable_chars=*/FALSE);
+    *line_len += add_string_to_text_buffer(buffer, "\", ");
+    *line_len += add_string_to_text_buffer(buffer, error_text(ec_line));
+    *line_len += add_string_to_text_buffer(buffer, " ");
+    *line_len += add_string_to_text_buffer(buffer, number_buffer);
   }  /* if */
   if (column_number != SP_COL_UNKNOWN) {
-    *line_len += fprintf(f_error, " (%s %d)", error_text(ec_col),
-                         column_number);
+    (void)sprintf(number_buffer, "%d", column_number);
+    *line_len += add_string_to_text_buffer(buffer, " (");
+    *line_len += add_string_to_text_buffer(buffer, error_text(ec_col));
+    *line_len += add_string_to_text_buffer(buffer, " ");
+    *line_len += add_string_to_text_buffer(buffer, number_buffer);
+    *line_len += add_string_to_text_buffer(buffer, ")");
   }  /* if */
 }  /* write_position */
 
@@ -2443,11 +2435,11 @@ static void write_position_and_severity(
                                     a_boolean             *in_curr_src_line,
                                     int                   *line_len)
 /*
-Write the source position (file name and line number) and severity to
-f_error.  Determine if the actual source line is available, either in the 
-current source line or able to be reread from one of the source files.   If
-the actual source line is not available, the column number is added into
-the output.
+Write the source position (file name and line number) and severity to the
+write_diagnostic_buffer text buffer.  Determine if the actual source line is
+available, either in the current source line or able to be reread from one of
+the source files.   If the actual source line is not available, the column
+number is added into the output.
 */
 {
   char          *full_name;
@@ -2483,7 +2475,9 @@ the output.
                               line_number, &at_end_of_source);
     if (at_end_of_source) {
       /* After end of source. */
-      *line_len += fprintf(f_error, "%s: ", error_text(ec_at_end_of_source2));
+      *line_len += add_string_to_text_buffer(write_diagnostic_buffer,
+                                             error_text(ec_at_end_of_source2));
+      *line_len += add_string_to_text_buffer(write_diagnostic_buffer, ": ");
     } else {
       /* Normal line in file, not end of file. */
 #if STANDALONE_UTILITY_PROGRAM
@@ -2521,7 +2515,7 @@ the output.
       write_position(*file_name, *line_number,
                      column_needed ? error_pos->column : SP_COL_UNKNOWN,
                      line_len);
-      *line_len += fprintf(f_error, ": ");
+      *line_len += add_string_to_text_buffer(write_diagnostic_buffer, ": ");
     }  /* if */
   }  /* if */
   /* Determine the appropriate severity string, and also count this
@@ -2567,22 +2561,26 @@ the output.
 #endif /* CHECKING */
   }  /* switch */
   if (severity_code != ec_no_error) {
-    *line_len += fprintf(f_error, "%s", error_text(severity_code));
+    *line_len += add_string_to_text_buffer(write_diagnostic_buffer,
+                                           error_text(severity_code));
   }  /* if */
   /* The error number may optionally be displayed based on a command
      line option. */
   if (local_display_error_number) {
     /* Display the error message number.  Append a -D suffix if the
        severity may be changed. */
-    a_boolean	is_discretionary;
+    a_boolean is_discretionary;
+    char      number_buffer[50];
+    (void)sprintf(number_buffer, "%d", (int)error_code);
     is_discretionary = ((int)severity <= (int)es_discretionary_error);
-    *line_len +=
-           fprintf(f_error, " #%d%s: ", (int)error_code,
+    *line_len += add_string_to_text_buffer(write_diagnostic_buffer, " #");
+    *line_len += add_string_to_text_buffer(write_diagnostic_buffer,
+                                           number_buffer);
+    *line_len += add_string_to_text_buffer(write_diagnostic_buffer,
                    error_text(is_discretionary ? ec_discretionary_suffix
                                                : ec_non_discretionary_suffix));
-  } else {
-    *line_len += fprintf(f_error, ": ");
   }  /* if */
+  *line_len += add_string_to_text_buffer(write_diagnostic_buffer, ": ");
 }  /* write_position_and_severity */
 
 #if !STANDALONE_UTILITY_PROGRAM
@@ -2655,7 +2653,16 @@ in lower case.
   }  /* if */
   /* Put out the error message text. */
   line_len = 0;  /* Meaningless. */
-  write_message(f_raw_listing, &line_len, /*wrap=*/FALSE);
+  if (write_message_buffer == NULL) {
+    /* Allocate a buffer if we haven't yet already. */
+    write_message_buffer = alloc_text_buffer(256);
+  }  /* if */
+  /* Start at the beginning of the buffer. */
+  reset_text_buffer(write_message_buffer);
+  write_message(write_message_buffer, &line_len, /*wrap=*/FALSE);
+  /* Null terminate the buffer and write it. */
+  putcb('\0', write_message_buffer);
+  fputs(write_message_buffer->buffer, f_raw_listing);
 }  /* write_diag_to_raw_listing */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
@@ -2681,6 +2688,11 @@ severity will be valid only on single (stand alone) diagnostics or the
 primary message of a multiple message diagnostic.  These values will
 be preserved in static variables for use on subsequent calls to process
 additional messages in a multiple message diagnostic.
+
+The entire diagnostic is accumulated in the write_diagnostic_buffer text buffer
+and emitted with a single system call.  This atomic operation reduces the
+likelihood of diagnostic messages becoming intermingled during a parallel
+compilation.
 */
 {
 		
@@ -2701,6 +2713,17 @@ additional messages in a multiple message diagnostic.
   a_macro_invocation_record_ptr mirp = NULL;
 #endif /* MACRO_INVOCATION_TREE_IN_IL */
 
+  if (write_diagnostic_recursion_level == 0) {
+    /* Allocate the diagnostic buffer if this is our first time. */
+    if (write_diagnostic_buffer == NULL) {
+      write_diagnostic_buffer = alloc_text_buffer(1024);
+    }  /* if */
+    /* Start at the beginning of the buffer. */
+    reset_text_buffer(write_diagnostic_buffer);
+  } else {
+    /* Append error message to the existing text for this diagnostic. */
+  }  /* if */
+  write_diagnostic_recursion_level++;
 #if FULLY_RESOLVED_MACRO_POSITIONS
   if (error_pos->orig_seq != 0 &&
       (macro_positions_in_diagnostics ||
@@ -2740,7 +2763,7 @@ additional messages in a multiple message diagnostic.
     if (diag_kind != dck_end_list && diag_kind != dck_end_context) {
       /* Perform any indentation needed (based on the category kind) */
       for (line_len = 0; line_len < diagnostic_indent; line_len++) {
-        putc(' ', f_error);
+        putcwdb(' ');
       }  /* for */
     }  /* if */
 
@@ -2770,9 +2793,9 @@ additional messages in a multiple message diagnostic.
 
     if (diag_kind != dck_end_list && diag_kind != dck_end_context) {
       /* There is a message to be formatted and written. */
-      /* Put out the error message text to f_error. */
-      write_message(f_error, &line_len, /*wrap=*/!brief_diagnostics && 
-                                                !do_not_wrap_diagnostics);
+      /* Add the error message text to the text buffer. */
+      write_message(write_diagnostic_buffer, &line_len,
+                    /*wrap=*/!brief_diagnostics && !do_not_wrap_diagnostics);
 
 #if !STANDALONE_UTILITY_PROGRAM
       /* The message is always output to f_error so that the user can see it.
@@ -2783,6 +2806,8 @@ additional messages in a multiple message diagnostic.
         /* We will use the normal position, not the original position, for
            the raw listing, because otherwise there is no way to figure out
            where in the source code the error originated. */
+        /* This diagnostic is not added to the accumulated diagnostic in
+           write_diagnostic_buffer; it is handled separately. */
         write_diag_to_raw_listing(severity, file_name, line_number,
                                   error_pos, diag_kind);
       }  /* if */
@@ -2903,14 +2928,15 @@ additional messages in a multiple message diagnostic.
           /* There was no stack trace, so we don't know the name of the
              macro involved -- use a more generic message. */
           for (line_len = 0; line_len < MACRO_CONTEXT_INDENT; ++line_len) {
-            fprintf(f_error, " ");
+            putcwdb(' ');
           }  /* for */
-          line_len += fprintf(f_error, "%s",
-                              error_text(ec_in_macro_expansion_at));
+          line_len += add_string_to_text_buffer(write_diagnostic_buffer,
+                                         error_text(ec_in_macro_expansion_at));
           write_position(file_name, line_number,
                          source_text_needed ? SP_COL_UNKNOWN :
                          error_pos->column, &line_len);
-          (void)fprintf(f_error, "%c\n", source_text_needed ? ':' : '.');
+          putcwdb(source_text_needed ? ':' : '.');
+          putcwdb('\n');
         }  /* if */
         if (source_text_needed) {
           diagnostic_indent = save_diagnostic_indent;
@@ -2932,10 +2958,18 @@ additional messages in a multiple message diagnostic.
       /* Put out an extra space line after the error, for clarity.  The
          space is suppressed if a context message is to follow since the
          space should follow the context. */
-      putc('\n', f_error);
+      putcwdb('\n');
     }  /* if */
   }  /* if */
 
+  write_diagnostic_recursion_level--;
+  if (write_diagnostic_recursion_level == 0) {
+    /* We've accumulated the entire diagnostic -- null terminate it and
+       write it to f_error, flushing after we're done. */
+    putcwdb('\0');
+    fputs(write_diagnostic_buffer->buffer, f_error);
+    (void)fflush(f_error);
+  }  /* if */
   if ((diag_kind == dck_standalone || diag_kind == dck_end_list ||
        diag_kind == dck_end_context) && !context_required ) {
     /* Terminate the compilation for the more serious severities. */
@@ -2995,6 +3029,15 @@ An internal error has occurred.  Write the given message and abort.
   init_error_params();
   error_msg_strings[1] = error_message;
   construct_message_segments("%s");
+  if (write_diagnostic_recursion_level > 0) {
+    /* We're in the midst of reporting an error.  Flush the current
+       diagnostic and reset the recursion level so the internal error
+       diagnostic will start anew. */
+    putcwdb('\0');
+    fputs(write_diagnostic_buffer->buffer, f_error);
+    (void)fflush(f_error);
+    write_diagnostic_recursion_level = 0;
+  }  /* if */
   write_diagnostic(ec_no_error, &error_position, es_internal_error,
                    dck_standalone);
 #ifdef __GNUC__
@@ -3638,7 +3681,7 @@ static void diag_message(an_error_code              error_code,
 /*
 Construct and write a diagnostic message.  The error code is error_code, and
 the position of the error is *error_pos.  severity gives the severity (e.g.,
-es_warning)and diag_kind indicates if this is a single diagnostic message or
+es_warning) and diag_kind indicates if this is a single diagnostic message or
 one message in a related list of messages.  The linked list of message
 segments that comprise the diagnostic is based on the error message
 template associated with error_code.  After constructing the segment list
@@ -5197,6 +5240,9 @@ line processing is done.
 #if DEBUG
   f_debug = stderr;
 #endif /* DEBUG */
+  write_diagnostic_buffer = NULL;
+  write_message_buffer = NULL;
+  write_diagnostic_recursion_level = 0;
   catastrophe_has_occurred = FALSE;
   error_threshold = es_warning;
   cs_saved_severity = (an_error_severity)es_default;
@@ -5286,6 +5332,7 @@ of each compilation.
   expected_error_record.string1 = NULL;
   expected_error_record.string2 = NULL;
 #endif /* CHECKING */
+  write_diagnostic_recursion_level = 0;
 }  /* error_init */
 
 #if !STANDALONE_UTILITY_PROGRAM

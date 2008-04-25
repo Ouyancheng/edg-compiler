@@ -2749,6 +2749,12 @@ extern unsigned long write_file_name(char      *name,
                                      a_boolean process_escapes,
 				     a_boolean escape_nonprintable_chars);
 
+extern unsigned long write_file_name_to_text_buffer(
+                                  char             *name,
+                                  a_text_buffer_ptr buffer,
+                                  a_boolean         process_escapes,
+                                  a_boolean         escape_nonprintable_chars);
+
 extern char *suffix_of(char		*file_name);
 
 extern unsigned long extract_character_from_string(char          *str,
