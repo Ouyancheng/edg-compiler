@@ -6050,9 +6050,12 @@ instantiations are recorded in the IL.
     rp->is_template_function = TRUE;
   }  /* if */
   if (func_info->is_definition) {
+    /* set_inline_flag assumes the rp->defined flag reflects previous
+       declarations.  So rp->defined shouldn't be updated until after
+       set_inline_flag has been called. */
+    set_inline_flag(rp, TRUE);
     rp->defined = sym->defined = TRUE;
     rp->defined_in_friend_decl = TRUE;
-    set_inline_flag(rp, TRUE);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     rp->declared_type = func_info->declared_type;
     if (ssep != NULL && prototype_instantiations_in_il) {

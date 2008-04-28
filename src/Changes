@@ -1,5 +1,17 @@
 Version 3.11
 
+4/28/08  Spurious C++0x mode error on friend function definition in template
+
+In strict C++0x mode, the front end issued a spurious error on an inline
+friend function definition appearing in a class template.  For example:
+
+  template<typename T> struct S {
+    inline friend void f() {}  // Previously a spurious error in strict C++0x
+  };                           // mode ("function cannot be declared inline
+                               // after its definition").
+
+This is now fixed.
+
 4/25/08  Emit an entire diagnostic in a single system call
 
 Previously, diagnostic messages were written piece by piece to the
