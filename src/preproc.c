@@ -2185,8 +2185,8 @@ Process a "#pragma GCC ..." construct.
 
   begin_rescan_of_pragma_tokens(ppp);
   if (curr_token == tok_identifier) {
-    char *str = locator_for_curr_id.symbol_header->identifier;
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+    char *str = locator_for_curr_id.symbol_header->identifier;
     if (strcmp(str, "visibility") == 0) {
       recognized = TRUE;
       process_gnu_visibility_pragma(ppp);
