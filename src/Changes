@@ -1,14 +1,35 @@
 Version 3.11
 
+4/29/08  GNU C compatibility: Redeclarations and transparent unions
+
+In GNU C mode, a function can be redeclared with a parameter type that is a
+transparent union type with a field type that matches the corresponding
+parameter type in the original declaration (see Changes entry of 6/20/02).
+Previously, the composite type resulting from such a redeclaration was always
+the transparent union.  Now, if the redeclaration is not a definition, the
+original type is retained.  For example:
+
+  union __attribute((transparent_union)) TU { int i; int *p; };
+  void f(int i);            // First declaration.
+  void f(union TU tu);      // Redeclaration, type "int" retained.
+  void g(int x) { f(&x); }  // Warning: int*->int conversion.
+  void f(union TU tu) {}    // Definition, type "tu" retained.
+  void h(int x) { f(&x); }  // No warning, no conversion.
+
+This brings the front end behavior closer to that of GCC's, but GCC appears to
+retain the original type even when the redeclaration is a definition.  We do
+not implement that GCC behavior to avoid excessive disruption of internal
+structure of the front end.
+
 4/28/08  Spurious C++0x mode error on friend function definition in template
 
-In strict C++0x mode, the front end issued a spurious error on an inline
+In strict C++0x mode, the front end issued a spurious error on an (inline)
 friend function definition appearing in a class template.  For example:
 
   template<typename T> struct S {
-    inline friend void f() {}  // Previously a spurious error in strict C++0x
-  };                           // mode ("function cannot be declared inline
-                               // after its definition").
+    friend void f() {}  // Previously a spurious error in strict C++0x mode
+  };                    // ("function cannot be declared inline after its
+                        // definition").
 
 This is now fixed.
 

@@ -6687,12 +6687,22 @@ could be returned as the composite type, preference is given to the first.
      union. */
   tp = NULL;
   if (gcc_mode && skip_typerefs(type1)->kind != skip_typerefs(type2)->kind) {
-    if (is_transparent_union_type(type1) && !is_error_type(type2)) {
+    if ((is_transparent_union_type(type1) && !is_error_type(type2)) ||
+        (is_transparent_union_type(type2) && !is_error_type(type1))) {
+      /* Note that the first type is always used as the composite type, which
+         results in behavior close to that of GCC's.  For example:
+           union __attribute((transparent_union)) TU { int i; int *p; };
+           void f(int i); // First declaration.
+           void f(union TU tu);  // Redeclaration, type "int" retained.
+           void g(int x) { f(&x); }  // Warning: int*->int conversion.
+         However, our behavior is slightly different from GCC's in that we
+         always retain the parameter type of a function definition (if a
+         function definition is involved, type1 will be the parameter type
+         from the definition).  Continuing the example above:
+           void f(union TU tu) {}  // Definition, type "tu" retained.
+           void h(int x) { f(&x); }  // No warning, no conversion.  */
       check_assertion(transparent_union_match(type1, type2));
       tp = type1;
-    } else if (is_transparent_union_type(type2) && !is_error_type(type1)) {
-      check_assertion(transparent_union_match(type1, type2));
-      tp = type2;
     }  /* if */
   }  /* if */
   if (tp != NULL) {
