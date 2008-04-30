@@ -5509,7 +5509,7 @@ e.g., because it's externally defined.
       if (rout->is_trivial_default_constructor) {
 	/* Trivial constructors have no bodies so are never needed. */
 	is_needed = FALSE;
-      } else if (rout->is_inline &&
+      } else if (rout->is_inline && !rout->need_out_of_line_copy &&
                  !(unspecialized_template &&
                    !treat_as_static_inline(rout)) &&
 #if GNU_EXTENSIONS_ALLOWED
@@ -5528,9 +5528,7 @@ e.g., because it's externally defined.
            should be emitted if they are explicitly instantiated except when
            inline functions are implemented using static functions.  If the
            need_out_of_line_copy flag is set, the routine should also be marked
-           as needed.  This is used by explicit instantiation directives,
-           although code is not actually needed for that case because the
-           routine will already have been marked as needed. */
+           as needed. */
 	is_needed = FALSE;
       } else if (!is_primary_translation_unit) {
         /* Assume that all external routines from secondary translation units

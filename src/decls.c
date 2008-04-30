@@ -3421,6 +3421,12 @@ be issued at the given position.
       routine->suppress_inline_body = FALSE;
       new_dll_export = ((routine->decl_modifiers & DM_DLLEXPORT) != 0);
     }  /* if */
+    if (new_dll_export && is_inline) {
+      /* dllexport routines must always have an out-of-line copy.  (If extern
+         inline routines are instantiated, that instantiation is requested
+         below.) */
+      routine->need_out_of_line_copy = TRUE;
+    }  /* if */
     if (new_dll_export && !routine->compiler_generated &&
         !routine->is_prototype_instantiation &&
         ((routine->is_template_function && !routine->is_specialized)

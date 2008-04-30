@@ -1,5 +1,16 @@
 Version 3.11
 
+4/29/08  Microsoft compatibility: dllexport and inline functions
+
+In Microsoft mode, the front end now marks inline functions declared with
+__declspec(dllexport) as needing an out-of-line copy (need_out_of_line_copy
+flag of a_routine entry).  An out-of-line copy was already generated when
+INSTANTIATE_EXTERN_INLINE is TRUE, but now one is also created in other
+configurations.  For example:
+
+  __declspec(dllexport) inline void f() {}  // Function is now always marked
+                                            // as needing an out-of-line copy.
+
 4/29/08  GNU C compatibility: Redeclarations and transparent unions
 
 In GNU C mode, a function can be redeclared with a parameter type that is a
