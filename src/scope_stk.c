@@ -5509,9 +5509,11 @@ e.g., because it's externally defined.
       if (rout->is_trivial_default_constructor) {
 	/* Trivial constructors have no bodies so are never needed. */
 	is_needed = FALSE;
-      } else if (rout->is_inline && !rout->need_out_of_line_copy &&
-                 !(unspecialized_template &&
-                   !treat_as_static_inline(rout)) &&
+      } else if (rout->is_inline &&
+                 !(unspecialized_template && !treat_as_static_inline(rout)) &&
+#if MICROSOFT_EXTENSIONS_ALLOWED
+                 (rout->decl_modifiers & DM_DLLEXPORT) == 0 &&
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
                  !(gcc_mode && !rout->suppress_inline_body) &&
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -5521,14 +5523,16 @@ e.g., because it's externally defined.
 	   copy, and this copy is needed only if it is referenced in this
 	   compilation unit.  In C99 mode, however, an out-of-line copy that
 	   can be referenced from somewhere else may have been generated (if
-	   there was also a non-inline declaration of the function).
-           In GCC mode, an inline function can be referenced from
-           other compilation units unless it is explicitly declared
-           "extern inline".  In addition, in C++ inline template functions
-           should be emitted if they are explicitly instantiated except when
-           inline functions are implemented using static functions.  If the
-           need_out_of_line_copy flag is set, the routine should also be marked
-           as needed. */
+	   there was also a non-inline declaration of the function).  In GCC
+           mode, an inline function can be referenced from other compilation
+           units unless it is explicitly declared "extern inline".  In
+           Microsoft mode, dllexport routines should always be retained.  In
+           addition, in C++ inline template functions should be emitted if
+           they are explicitly instantiated except when inline functions are
+           implemented using static functions.  (Note: The flag
+           need_out_of_line_copy is sometimes set for routines that are not
+           actually needed; it only indicates that if the routine is really
+           needed, and out-of-line copy is required.) */
 	is_needed = FALSE;
       } else if (!is_primary_translation_unit) {
         /* Assume that all external routines from secondary translation units
