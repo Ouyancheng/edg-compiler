@@ -1,5 +1,11 @@
 Version 3.11
 
+5/1/08   Extended position information for friend functions in class templates
+
+The IL entries created for friend function declarations appearing in class
+templates failed to include extended source position information when the
+configuration macro EXTRA_SOURCE_POSITIONS_IN_IL is TRUE.  This is now fixed.
+
 4/29/08  Microsoft compatibility: dllexport and inline functions
 
 In Microsoft mode, the front end now marks inline functions declared with

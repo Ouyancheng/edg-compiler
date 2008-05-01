@@ -5990,20 +5990,25 @@ that the routine indicated by rout_ptr is a friend.
 }  /* update_friend_function_info */
 
 
+#if !EXTRA_SOURCE_POSITIONS_IN_IL
+/*ARGSUSED*/ /* pos_info is not used in some configurations. */
+#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
 static a_symbol_ptr decl_dependent_friend_function(
                                          a_symbol_locator       *locator,
                                          a_type_ptr             function_type,
-                                         a_func_info_block_ptr  func_info)
+                                         a_func_info_block_ptr  func_info,
+                                         a_decl_pos_block_ptr   pos_info)
 /*
 Create a routine and associated symbol for a template dependent friend
-declaration of type function_type.  The locator for the friend declarator
-and some extra declaration info are passed through locator and func_info.
+declaration of type function_type.  The locator for the friend declarator and
+some extra declaration info are passed through locator, func_info, and
+pos_info.
 The routine symbol is returned (but not linked into the symbol table).
 The routine entry itself is linked into the IL only if prototype
 instantiations are recorded in the IL.
 */
 {
-  a_symbol_ptr  sym = NULL;
+  a_symbol_ptr                  sym = NULL;
   a_symbol_kind                 sym_kind;
   a_routine_ptr                 rp;
   a_memory_region_number        region_to_switch_back_to;
@@ -6063,6 +6068,10 @@ instantiations are recorded in the IL.
       ssep->entity.ptr  = (char *)rp;
     }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    rp->source_corresp.decl_pos_info =
+                        make_decl_pos_supplement(in_file_scope(rp), pos_info);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   } else {
     /* A dependent friend declaration that is not a definition.  If this
        is neither a qualified name nor a template-id, issue a warning as
@@ -6079,6 +6088,10 @@ instantiations are recorded in the IL.
       sssdp = make_source_sequence_secondary_decl((char*)rp, iek_routine,
                                                   func_info->declared_type);
       sssdp->decl_position = sym->decl_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      sssdp->decl_pos_info = make_decl_pos_supplement(in_file_scope(sssdp),
+                                                      pos_info);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       sssdp->friend_decl = TRUE;
       ssep->entity.kind = (a_byte_il_entry_kind)iek_src_seq_secondary_decl;
       ssep->entity.ptr  = (char *)sssdp;
@@ -6152,8 +6165,8 @@ possibility.
         /* If the friend declaration appears in a template dependent context,
            create a dummy routine and associated symbol.  Return that instead
            of calling decl_routine. */
-        sym = decl_dependent_friend_function(locator, function_type,
-                                             func_info);
+        sym = decl_dependent_friend_function(locator, function_type, func_info,
+                                             &decl_info->decl_pos_block);
         goto done;
       }  /* if */
     }  /* if */
