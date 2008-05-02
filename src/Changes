@@ -12,7 +12,7 @@ the complete object passed to typeid.  For example:
   #include <typeinfo>
   struct B;
   void f(B *p) {
-    printf("%s\n", typeid(*p).name();  // Accepted with a warning in Microsoft
+    printf("%s\n", typeid(*p).name()); // Accepted with a warning in Microsoft
   }                                    // mode.
   struct B { virtual ~B() {} };
   struct D: B {} d;
