@@ -1,5 +1,23 @@
 Version 3.11
 
+5/2/08   Microsoft compatibility: typeid of incomplete class types
+
+In Microsoft mode, the front end now accepts (with a warning) the typeid
+operator applied to an incomplete class type or to an expression with an
+incomplete class type.  The class is treated as a nonpolymorphic class in
+such cases: The result of the operation is unaffected by the dynamic type of
+the complete object passed to typeid.  For example:
+
+  #include <stdio.h>
+  #include <typeinfo>
+  struct B;
+  void f(B *p) {
+    printf("%s\n", typeid(*p).name();  // Accepted with a warning in Microsoft
+  }                                    // mode.
+  struct B { virtual ~B() {} };
+  struct D: B {} d;
+  int main() { f(&d); }  // Prints the typeid name of B; not D.
+
 5/1/08   Extended position information for friend functions in class templates
 
 The IL entries created for friend function declarations appearing in class

@@ -7944,8 +7944,7 @@ This is the C++ syntax.  C++ type-id is the same as C type-name.
     }  /* if */
     /* *p and p[expr] yielding polymorphic class objects are special cases
        that use runtime typeid determination. */
-    if (is_an_lvalue(&operand) &&
-        is_polymorphic_class_type(typeid_type)) {
+    if (is_an_lvalue(&operand) && is_polymorphic_class_type(typeid_type)) {
       if (is_expression_operand(&operand)) {
         if (operand_complete_object_type(&operand,
                                          /*call_case=*/FALSE) != NULL) {
@@ -7977,8 +7976,16 @@ This is the C++ syntax.  C++ type-id is the same as C type-name.
   /* The type cannot be incomplete if it is a class type. */
   if (is_class_struct_union_type(typeid_type)) {
     if (is_incomplete_type(typeid_type)) {
-      error(ec_incomplete_type_not_allowed);
-      err = TRUE;
+      if (microsoft_mode) {
+        /* Microsoft accepts incomplete class types and assumes they are
+           nonpolymorphic.  Since that assumption may be wrong, issue a
+           warning. */
+        check_assertion(expr == NULL);
+        warning(ec_typeid_of_incomplete_type);
+      } else {
+        error(ec_incomplete_type_not_allowed);
+        err = TRUE;
+      }  /* if */
     }  /* if */
   } else if (vla_enabled && is_variably_modified_type(typeid_type)) {
     /* typeid of a variable-length array is not allowed. */

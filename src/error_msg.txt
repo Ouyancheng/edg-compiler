@@ -1727,6 +1727,7 @@ ec_unrecognized_gcc_visibility_pragma;;"unrecognized GCC visibility pragma direc
 ec_unrecognized_visibility;;"unrecognized visibility kind"
 ec_ELF_visibility_pop_mismatch;;"visibility pragma was still active"
 ec_ELF_visibility_stack_empty;;"no matching visibility push"
+ec_typeid_of_incomplete_type;;"typeid of incomplete type"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
