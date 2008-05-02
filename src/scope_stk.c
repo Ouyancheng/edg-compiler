@@ -5518,12 +5518,12 @@ e.g., because it's externally defined.
                  !(gcc_mode && !rout->suppress_inline_body) &&
 #endif /* GNU_EXTENSIONS_ALLOWED */
 		 !(c99_mode && !rout->suppress_inline_body)) {
-	/* An exception is "extern inline" functions, which are not regarded
-	   as referenced from elsewhere.  Each compilation unit has its own
-	   copy, and this copy is needed only if it is referenced in this
-	   compilation unit.  In C99 mode, however, an out-of-line copy that
-	   can be referenced from somewhere else may have been generated (if
-	   there was also a non-inline declaration of the function).  In GCC
+        /* An exception is "extern inline" functions, which are not regarded
+           as referenced from elsewhere.  Each compilation unit has its own
+           copy, and this copy is needed only if it is referenced in this
+           compilation unit.  In C99 mode, however, an out-of-line copy that
+           can be referenced from somewhere else may have been generated (if
+           there was also a non-inline declaration of the function).  In GCC
            mode, an inline function can be referenced from other compilation
            units unless it is explicitly declared "extern inline".  In
            Microsoft mode, dllexport routines should always be retained.  In
@@ -5532,7 +5532,7 @@ e.g., because it's externally defined.
            implemented using static functions.  (Note: The flag
            need_out_of_line_copy is sometimes set for routines that are not
            actually needed; it only indicates that if the routine is really
-           needed, and out-of-line copy is required.) */
+           needed, an out-of-line copy is required.) */
 	is_needed = FALSE;
       } else if (!is_primary_translation_unit) {
         /* Assume that all external routines from secondary translation units
