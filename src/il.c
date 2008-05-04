@@ -302,7 +302,7 @@ static void put_str_into_db_name_str_buffer(char *str)
 Output a string into the db_name_str buffer.
 */
 {
-  add_string_to_text_buffer(db_name_str_buffer, str);
+  (void)add_string_to_text_buffer(db_name_str_buffer, str);
 }  /* put_str_into_db_name_str_buffer */
 
 
@@ -338,9 +338,9 @@ is TRUE, include type information for function parameters.
       if (!in_secondary_trans_unit(scp)) {
         /* This entity was in a secondary translation unit, but has been
            copied to the primary IL. */
-        add_string_to_text_buffer(db_name_str_buffer, "copied from ");
+        (void)add_string_to_text_buffer(db_name_str_buffer, "copied from ");
       }  /* if */
-      add_string_to_text_buffer(db_name_str_buffer, trans_unit_name);
+      (void)add_string_to_text_buffer(db_name_str_buffer, trans_unit_name);
       add_char_to_text_buffer(db_name_str_buffer, ']');
     }  /* if */
   }  /* if */
@@ -354,13 +354,13 @@ is TRUE, include type information for function parameters.
 #if DO_IL_LOWERING && IA64_ABI
     switch (rout->ctor_dtor_kind) {
       case cdk_complete:
-        add_string_to_text_buffer(db_name_str_buffer, " [complete]");
+        (void)add_string_to_text_buffer(db_name_str_buffer, " [complete]");
         break;
       case cdk_subobject:
-        add_string_to_text_buffer(db_name_str_buffer, " [subobject]");
+        (void)add_string_to_text_buffer(db_name_str_buffer, " [subobject]");
         break;
       case cdk_deleting:
-        add_string_to_text_buffer(db_name_str_buffer, " [deleting]");
+        (void)add_string_to_text_buffer(db_name_str_buffer, " [deleting]");
         break;
       case cdk_none:
         break;
@@ -955,7 +955,7 @@ buffer.  If "qualifier" is TQ_NONE, unconditionally add "name"
     if (db_qualifiers_str_buffer->size != 0) {
       add_char_to_text_buffer(db_qualifiers_str_buffer, ' ');
     }  /* if */
-    add_string_to_text_buffer(db_qualifiers_str_buffer, name);
+    (void)add_string_to_text_buffer(db_qualifiers_str_buffer, name);
   }  /* if */
 }  /* db_add_qualifier_to_string */
 

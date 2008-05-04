@@ -2235,9 +2235,9 @@ be forgotten.
           (*line_len)++;
         }  /* for */
         *line_len += add_to_text_buffer(buffer, msg,
-                                        strlen(msg) > chars_to_take ? 
-                                                                chars_to_take :
-                                                                strlen(msg));
+                                        strlen(msg) > (sizeof_t)chars_to_take ? 
+                                                      (sizeof_t)chars_to_take :
+                                                      strlen(msg));
         msg += chars_to_take;
         len -= chars_to_take;
       }  /* if */
@@ -2272,7 +2272,9 @@ start_line_and_indent:
     }  /* if */
     if (len > 0) {
       *line_len += add_to_text_buffer(buffer, msg,
-                                      strlen(msg) > len ? len : strlen(msg));
+                                      strlen(msg) > (sizeof_t)len ? 
+                                                                (sizeof_t)len :
+                                                                strlen(msg));
     }  /* if */
   }  /* if */
 }  /* write_message_part */
@@ -2389,6 +2391,7 @@ the column number is added into the output.
 */
 {
   char              number_buffer[50];
+  char              *error_text_string;
   a_text_buffer_ptr buffer = write_diagnostic_buffer;
 
   /* Print the file and line number, with a column number if it is not
@@ -2396,7 +2399,8 @@ the column number is added into the output.
   /* If the line is from stdin, do not display the file name. */
   if (strcmp(file_name, FILE_NAME_FOR_STDIN) == 0) {
     (void)sprintf(number_buffer, "%lu", line_number);
-    *line_len += add_string_to_text_buffer(buffer, error_text(ec_Line));
+    error_text_string = error_text(ec_Line);
+    *line_len += add_string_to_text_buffer(buffer, error_text_string);
     *line_len += add_string_to_text_buffer(buffer, " ");
     *line_len += add_string_to_text_buffer(buffer, number_buffer);
   } else {
@@ -2408,15 +2412,17 @@ the column number is added into the output.
     *line_len += write_file_name_to_text_buffer(file_name, buffer,
                                           /*process_escapes=*/FALSE,
                                           /*escape_nonprintable_chars=*/FALSE);
+    error_text_string = error_text(ec_line);
     *line_len += add_string_to_text_buffer(buffer, "\", ");
-    *line_len += add_string_to_text_buffer(buffer, error_text(ec_line));
+    *line_len += add_string_to_text_buffer(buffer, error_text_string);
     *line_len += add_string_to_text_buffer(buffer, " ");
     *line_len += add_string_to_text_buffer(buffer, number_buffer);
   }  /* if */
   if (column_number != SP_COL_UNKNOWN) {
     (void)sprintf(number_buffer, "%d", column_number);
+    error_text_string = error_text(ec_col);
     *line_len += add_string_to_text_buffer(buffer, " (");
-    *line_len += add_string_to_text_buffer(buffer, error_text(ec_col));
+    *line_len += add_string_to_text_buffer(buffer, error_text_string);
     *line_len += add_string_to_text_buffer(buffer, " ");
     *line_len += add_string_to_text_buffer(buffer, number_buffer);
     *line_len += add_string_to_text_buffer(buffer, ")");
@@ -2442,7 +2448,7 @@ the source files.   If the actual source line is not available, the column
 number is added into the output.
 */
 {
-  char          *full_name;
+  char          *full_name, *error_text_string;
   a_boolean	at_end_of_source;
   a_boolean     capitalize_severity;
   a_boolean     column_needed;
@@ -2475,8 +2481,9 @@ number is added into the output.
                               line_number, &at_end_of_source);
     if (at_end_of_source) {
       /* After end of source. */
+      error_text_string = error_text(ec_at_end_of_source2);
       *line_len += add_string_to_text_buffer(write_diagnostic_buffer,
-                                             error_text(ec_at_end_of_source2));
+                                             error_text_string);
       *line_len += add_string_to_text_buffer(write_diagnostic_buffer, ": ");
     } else {
       /* Normal line in file, not end of file. */
@@ -2561,8 +2568,9 @@ number is added into the output.
 #endif /* CHECKING */
   }  /* switch */
   if (severity_code != ec_no_error) {
+    error_text_string = error_text(severity_code);
     *line_len += add_string_to_text_buffer(write_diagnostic_buffer,
-                                           error_text(severity_code));
+                                           error_text_string);
   }  /* if */
   /* The error number may optionally be displayed based on a command
      line option. */
@@ -2573,12 +2581,13 @@ number is added into the output.
     char      number_buffer[50];
     (void)sprintf(number_buffer, "%d", (int)error_code);
     is_discretionary = ((int)severity <= (int)es_discretionary_error);
+    error_text_string = error_text(is_discretionary ? ec_discretionary_suffix
+                                                : ec_non_discretionary_suffix);
     *line_len += add_string_to_text_buffer(write_diagnostic_buffer, " #");
     *line_len += add_string_to_text_buffer(write_diagnostic_buffer,
                                            number_buffer);
     *line_len += add_string_to_text_buffer(write_diagnostic_buffer,
-                   error_text(is_discretionary ? ec_discretionary_suffix
-                                               : ec_non_discretionary_suffix));
+                                           error_text_string);
   }  /* if */
   *line_len += add_string_to_text_buffer(write_diagnostic_buffer, ": ");
 }  /* write_position_and_severity */

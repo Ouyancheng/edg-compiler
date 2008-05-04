@@ -15277,7 +15277,7 @@ should be inserted before the current token.
   /* Copy the string to the buffer. */
   buffer = token_insertion_buffer;
   reset_text_buffer(buffer);
-  add_string_to_text_buffer(buffer, string);
+  (void)add_string_to_text_buffer(buffer, string);
   /* Add the lexical escape for a newline. */
   add_char_to_text_buffer(buffer, LE_ESCAPE);
   add_char_to_text_buffer(buffer, LE_NEWLINE);
