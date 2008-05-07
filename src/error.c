@@ -1919,7 +1919,7 @@ original character at that position.
 
 #if UNICODE_SOURCE_SUPPORTED
 #define and_unicode_source_kind_ne_usk_none(ukind) \
-  && (ukind) != usk_none
+  && ((ukind) != usk_none)
 #else /* !UNICODE_SOURCE_SUPPORTED */
 #define and_unicode_source_kind_ne_usk_none(ukind) /* Nothing */
 #endif /* UNICODE_SOURCE_SUPPORTED */
