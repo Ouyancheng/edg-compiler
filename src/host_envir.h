@@ -1368,7 +1368,7 @@ recorded in the IL.  Automatically TRUE if BACK_END_IS_CP_GEN_BE is TRUE.
 #if DO_IL_LOWERING && RECORD_HIDDEN_NAMES_IN_IL
 /* This combination is supported, but is generally useless, since IL lowering
    does not update the hidden-name information.  In fact, if IL lowering is
-   run, generation of hidden-name entries is usually suppressed. */
+   run, generation of hidden-name entries is suppressed. */
 /* Special switch that says "trust me, I really want this". */
 #ifndef ALLOW_HIDDEN_NAMES_IN_IL_WITH_IL_LOWERING
  #error -- Hidden-name entries in IL are useless when doing IL lowering 

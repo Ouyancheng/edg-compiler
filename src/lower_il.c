@@ -16704,6 +16704,12 @@ Do IL lowering of the indicated scope and everything under it.
      is done.  If a back end would like to see using-declarations for some
      reason, this code can just be removed. */
   scope->using_decls = NULL;
+#if RECORD_HIDDEN_NAMES_IN_IL
+  /* Remove the hidden names list.  This list is not maintained during
+     lowering (e.g., when removing property fields in lower_field_list)
+     and can result in inconsistent IL. */
+  scope->hidden_names = NULL;
+#endif /* RECORD_HIDDEN_NAMES_IN_IL */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   check_assertion_str2(source_sequence_entries_disallowed,
                        "lower_scope: source sequence entries not allowed",
