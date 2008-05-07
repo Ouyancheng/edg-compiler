@@ -1,5 +1,16 @@
 Version 3.11
 
+5/7/08   Abort with FULLY_RESOLVED_MACRO_POSITIONS and complex stringized
+         arguments
+
+In a configuration with FULLY_RESOLVED_MACRO_POSITIONS, a stringized
+multi-token macro argument resulted in incorrect text map entries that could
+cause an assertion failure in get_source_pos_from_macro_text_map.  This is
+now fixed.  For example:
+
+  #define M(x) #x
+  char *p = M(a b c);   /* Could cause an abort. */
+
 5/2/08   Microsoft compatibility: typeid of incomplete class types
 
 In Microsoft mode, the front end now accepts (with a warning) the typeid

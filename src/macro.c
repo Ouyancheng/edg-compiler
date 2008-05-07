@@ -4525,12 +4525,13 @@ end_arg_expansion:;
           case rt_charized_raw_argument:
             /* The stringized or charized value of the argument. */
 #if FULLY_RESOLVED_MACRO_POSITIONS
-            /* Copy the raw text map entries. */
-            ending_src_offset = map->raw_text_map.
-                    entries[map->raw_text_map.num_entries-1].start_of_region-1;
+            /* The result will be a single token, so we only need the
+               starting position from the raw_text_map; the other map
+               entries would point inside the literal and thus could never
+               be used. */
             clone_macro_text_map_entries(&map->raw_text_map,
                                          /*starting_src_offset=*/0,
-                                         ending_src_offset,
+                                         /*ending_src_offset=*/0,
                                          &macro_text_map,
                                          (sizeof_t)(src_loc - rescan_loc),
                                          this_macro_invocation_record);
