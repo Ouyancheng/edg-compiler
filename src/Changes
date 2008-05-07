@@ -105,7 +105,8 @@ structure of the front end.
 4/28/08  Spurious C++0x mode error on friend function definition in template
 
 In strict C++0x mode, the front end issued a spurious error on an (inline)
-friend function definition appearing in a class template.  For example:
+friend function definition appearing in a class template.  (This is a
+regression introduced in version 3.10 of the front end.)  For example:
 
   template<typename T> struct S {
     friend void f() {}  // Previously a spurious error in strict C++0x mode
