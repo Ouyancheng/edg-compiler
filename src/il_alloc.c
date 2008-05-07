@@ -740,6 +740,12 @@ fields to default values.
 #endif /* CENTERLINE_CHECKING */
       cp->variant.ptr_to_member.variant.field   = NULL;
       break;
+#if GNU_EXTENSIONS_ALLOWED
+    case ck_label_difference:
+      cp->variant.label_difference.from_address = NULL;
+      cp->variant.label_difference.to_address = NULL;
+      break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if DO_IL_LOWERING && GENERATE_EH_TABLES && !DO_FULL_PORTABLE_EH_LOWERING
     case ck_stack_offset:
       cp->variant.stack_offset.variable = NULL;

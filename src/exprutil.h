@@ -1044,6 +1044,10 @@ extern a_boolean op_is_null_pointer_value(an_operand *operand);
 
 extern void add_reference_indirection(an_operand *result);
 
+#if GNU_EXTENSIONS_ALLOWED
+extern a_boolean operand_is_address_of_label(an_operand  *op);
+#endif /* GNU_EXTENSIONS_ALLOWED */
+
 extern a_boolean variable_has_constant_address(a_variable_ptr variable,
                                                a_boolean      in_expr_proc);
 

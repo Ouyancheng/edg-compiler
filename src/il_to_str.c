@@ -2193,15 +2193,39 @@ output only if need_close_paren is TRUE.
   if (need_close_paren) octl->output_str(")");
 }  /* output_optional_close_paren */
 
+#if GNU_EXTENSIONS_ALLOWED
+
+static void form_label_difference_constant(
+                            a_constant_ptr                         constant,
+                            a_boolean                              need_parens,
+                            an_il_to_str_output_control_block_ptr  octl)
+/*
+Output the given constant, which represents a difference between two label
+addresses (possible in GNU mode).  The output has the form "&&x - &&y"
+(enclosed in parentheses if need_parens is TRUE) where x and y are label
+names.  Do the output in the way described by octl.
+*/
+{
+  if (need_parens) octl->output_str("(");
+  form_constant(constant->variant.label_difference.to_address,
+                /*need_parens=*/FALSE, octl);
+  octl->output_str(" - ");
+  form_constant(constant->variant.label_difference.from_address,
+                /*need_parens=*/FALSE, octl);
+  if (need_parens) octl->output_str(")");
+}  /* form_label_difference_constant */
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 void form_integer_constant(a_constant_ptr                        constant,
                            a_boolean                             suppress_cast,
                            a_boolean                             need_parens,
                            an_il_to_str_output_control_block_ptr octl)
 /*
-Output a string for an integer constant (i.e., a constant with a ck_integer
-representation).  The constant is written in integer form even if it has
-been cast to another type (e.g., a pointer type); the caller must handle
+Output a string for an integer constant (i.e., a constant with an integral
+type; this includes ck_integer, ck_label_difference, and ck_upc_threads
+constants).  The constant is written in integer form even if it has been
+cast to another type (e.g., a pointer type); the caller must handle
 the implicit cast for that case if appropriate.  If suppress_cast is TRUE,
 suppress any cast of the constant to another type.  If need_parens is TRUE,
 parentheses are placed around the constant if there's any possibility of
@@ -2249,11 +2273,21 @@ precedence confusion.  Do the output in the way described by octl.
     output_optional_open_paren(&need_parens, &need_cast_close_paren, octl);
     form_cast(constant->type, octl);
   }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+  if (constant->kind == (a_constant_repr_kind)ck_label_difference) {
+    form_label_difference_constant(constant, need_parens, octl);
+    goto close_paren_if_needed;
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if UPC_EXTENSIONS_ALLOWED
   if (constant->kind == (a_constant_repr_kind)ck_upc_threads) {
     octl->output_str("(");
-  }  /* if */
+  } else
 #endif /* UPC_EXTENSIONS_ALLOWED */
+  /* Do not insert code here. */
+  {
+    check_assertion(constant->kind == (a_constant_repr_kind)ck_integer);
+  }  /* if */
   if (signed_constant && sign_of_integer_constant(constant) < 0) {
     /* Negative value.  Put in parentheses. */
     output_optional_open_paren(&need_parens, &need_negative_close_paren, octl);
@@ -2311,6 +2345,9 @@ precedence confusion.  Do the output in the way described by octl.
     octl->output_str("*THREADS)");
   }  /* if */
 #endif /* UPC_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
+close_paren_if_needed:
+#endif /* GNU_EXTENSIONS_ALLOWED */
   output_optional_close_paren(need_cast_close_paren, octl);
 }  /* form_integer_constant */
 
@@ -4238,6 +4275,11 @@ precedence confusion.  Do the output in the way described by octl.
       form_pm_constant(constant, /*minimal_casts=*/!octl->gen_compilable_code,
                        need_parens, octl);
       break;
+#if GNU_EXTENSIONS_ALLOWED
+    case ck_label_difference:
+      form_label_difference_constant(constant, need_parens, octl);
+      break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if DO_IL_LOWERING && GENERATE_EH_TABLES && !DO_FULL_PORTABLE_EH_LOWERING
     case ck_stack_offset:
       octl->output_str("<stack-offset-of: ");

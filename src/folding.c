@@ -251,10 +251,9 @@ Convert an integral constant of some kind (in *old_constant) to a new
 integral constant in *new_constant, with type as indicated therein.  Return
 *err_code and *err_severity set to indicate any error/warning detected,
 or *err_code == ec_no_error if everything went fine.  If is_implicit_cast
-is FALSE, suppress any warnings.  The old_constant must have kind ==
-ck_integer, and generally it must have integral type, but it may be
-an integer cast to a pointer type.  This routine is also used for UPC
-THREADS-based constants.
+is FALSE, suppress any warnings.  The old_constant can have kind ck_integer,
+ck_upc_threads, or ck_label_difference.  Generally it must have integral
+type, but it may be an integer cast to a pointer type.
 */
 {
   an_integer_value mask, old_value_copy;
@@ -267,17 +266,34 @@ THREADS-based constants.
   *err_severity = es_warning;
 
   /* Copy the old value to the new value. */
+  switch (old_constant->kind) {
+    case ck_integer:
+      set_constant_kind(new_constant, (a_constant_repr_kind)ck_integer);
+      break;
+#if GNU_EXTENSIONS_ALLOWED
+    case ck_label_difference:
+      check_assertion(gnu_mode);
+      set_constant_kind(new_constant,
+                        (a_constant_repr_kind)ck_label_difference);
+      /* This constant entry doesn't use variant.integer_value; so don't copy
+         that variant field.  Instead copy the variant.label_difference
+         part. */
+      new_constant->variant.label_difference.from_address =
+                          old_constant->variant.label_difference.from_address;
+      new_constant->variant.label_difference.to_address =
+                            old_constant->variant.label_difference.to_address;
+      goto done;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if UPC_EXTENSIONS_ALLOWED
-  if (upc_mode && old_constant->kind == (a_constant_repr_kind)ck_upc_threads) {
-    /* A UPC THREADS-based constant. */
-    set_constant_kind(new_constant, (a_constant_repr_kind)ck_upc_threads);
-  } else
+    case ck_upc_threads:
+      check_assertion(upc_mode);
+      set_constant_kind(new_constant,
+                        (a_constant_repr_kind)ck_upc_threads);
+      break;
 #endif /* UPC_EXTENSIONS_ALLOWED */
-  /* Do not insert code here. */
-  {
-    check_assertion(old_constant->kind == (a_constant_repr_kind)ck_integer);
-    set_constant_kind(new_constant, (a_constant_repr_kind)ck_integer);
-  }  /* if */
+    default:
+      unexpected_condition();
+  }  /* switch */
   new_constant->variant.integer_value = old_constant->variant.integer_value;
   /* Determine attributes (size, signedness) of the new integer kind. */
   get_integer_attributes(new_constant, &new_ikind, &new_signed, &new_bit_size);
@@ -353,6 +369,9 @@ THREADS-based constants.
       }  /* if */
     }  /* if */
   }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+done:;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 }  /* conv_integer_to_integer */
 
 
@@ -1412,11 +1431,18 @@ Convert an integer constant to a pointer constant of type as specified by
 {
   a_type_ptr       new_type = new_constant->type;
   an_integer_value mask;
+  a_boolean        is_label_diff = FALSE;
 
+#if GNU_EXTENSIONS_ALLOWED
+  if (old_constant->kind == (a_constant_repr_kind)ck_label_difference) {
+    is_label_diff = TRUE;
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   *err_code = ec_no_error;
   *err_severity = es_warning;
   if (is_implicit_cast) {
-    if (cmplit_integer_constant(old_constant, (a_host_large_integer)0) != 0) {
+    if (is_label_diff ||
+        cmplit_integer_constant(old_constant, (a_host_large_integer)0) != 0) {
       /* Any value other than zero (NULL).  Issue a warning. */
       *err_code = ec_non_zero_int_conv_to_pointer;
       *err_severity = es_warning;
@@ -1427,14 +1453,13 @@ Convert an integer constant to a pointer constant of type as specified by
   copy_constant(old_constant, new_constant);
   implicit_or_explicit_cast(new_constant, new_type, is_implicit_cast);
   /* Mask the integer down to the size of pointer. */
-#if CHECKING
-  if (new_constant->kind != (a_constant_repr_kind)ck_integer) {
-    internal_error("conv_integer_to_pointer: not integer constant");
-  }  /* if */
-#endif /* CHECKING */
-  make_integer_value_mask(&mask,
+  if (new_constant->kind == (a_constant_repr_kind)ck_integer) {
+    make_integer_value_mask(&mask,
                           (int)(skip_typerefs(new_type)->size*targ_char_bit));
-  and_integer_values(&new_constant->variant.integer_value, &mask);
+    and_integer_values(&new_constant->variant.integer_value, &mask);
+  } else if (!is_label_diff) {
+    unexpected_condition_str("conv_integer_to_pointer: not integer constant");
+  }  /* if */
 }  /* conv_integer_to_pointer */
 
 
@@ -2666,31 +2691,42 @@ if not, return *err_code set to the proper error code.
 
   *err_code = ec_no_error;
 
-  check_assertion_str(shift_count_constant->kind ==
-                                              (a_constant_repr_kind)ck_integer,
-                      "check_shift_count: shift count not ck_integer");
-  /* Determine the size of the operand being shifted. */
-  operand_type = skip_typerefs(operand_type);
+  if (shift_count_constant->kind == (a_constant_repr_kind)ck_integer) {
+    /* Determine the size of the operand being shifted. */
+    operand_type = skip_typerefs(operand_type);
 #if CHECKING
-  if (operand_type->kind != (a_type_kind)tk_integer
+    if (operand_type->kind != (a_type_kind)tk_integer
 #if FIXED_POINT_ALLOWED
-      && operand_type->kind != (a_type_kind)tk_fixed_point
+        && operand_type->kind != (a_type_kind)tk_fixed_point
 #endif /* FIXED_POINT_ALLOWED */
-                                                          ) {
-    internal_error("check_shift_count: operand_type not integer");
-  } else if (operand_type->size == 0) {
-    internal_error("check_shift_count: integer type has size 0");
-  }  /* if */
+                                                            ) {
+      internal_error("check_shift_count: operand_type not integer");
+    } else if (operand_type->size == 0) {
+      internal_error("check_shift_count: integer type has size 0");
+    }  /* if */
 #endif /* CHECKING */
-  size = operand_type->size * targ_char_bit;
+    size = operand_type->size * targ_char_bit;
 
-  if (sign_of_integer_constant(shift_count_constant) < 0) {
-    /* Negative shift count. */
-    *err_code = ec_negative_shift_count;
-  } else if (cmplit_integer_constant(shift_count_constant,
-                                     (a_host_large_integer)size) >= 0) {
-    /* Shift count is too large. */
-    *err_code = ec_shift_count_too_large;
+    if (sign_of_integer_constant(shift_count_constant) < 0) {
+      /* Negative shift count. */
+      *err_code = ec_negative_shift_count;
+    } else if (cmplit_integer_constant(shift_count_constant,
+                                       (a_host_large_integer)size) >= 0) {
+      /* Shift count is too large. */
+      *err_code = ec_shift_count_too_large;
+    }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+  } else if (shift_count_constant->kind ==
+                                  (a_constant_repr_kind)ck_label_difference) {
+    /* Unknown value: No check possible. */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+#if UPC_EXTENSIONS_ALLOWED
+  } else if (shift_count_constant->kind ==
+                                       (a_constant_repr_kind)ck_upc_threads) {
+    /* Unknown value: No check possible. */
+#endif /* UPC_EXTENSIONS_ALLOWED */
+  } else {
+    unexpected_condition_str("check_shift_count: unexpected constant kind");
   }  /* if */
 }  /* check_shift_count */
 
@@ -4304,9 +4340,24 @@ integral type, as in "(int)&x - (int)&x".
   *err_code = ec_no_error;
   *err_severity = es_warning;
   /* The two pointers must be in the same base object, or the operation
-     cannot be folded. */
+     cannot be folded.  An exception is the difference of two label addresses
+     in GNU mode. */
   if (base_object(constant_1) != base_object(constant_2)) {
-    *did_not_fold = TRUE;
+#if GNU_EXTENSIONS_ALLOWED
+    if (gnu_mode && constant_is_address_of_label(constant_1) &&
+        constant_is_address_of_label(constant_2)) {
+      clear_constant(result, (a_constant_repr_kind)ck_label_difference);
+      result->variant.label_difference.from_address =
+                                         alloc_shareable_constant(constant_2);
+      result->variant.label_difference.to_address =
+                                         alloc_shareable_constant(constant_1);
+      result->type = integer_type(targ_ptrdiff_t_int_kind);
+    } else
+#endif /* GNU_EXTENSIONS_ALLOWED */
+    /* Do not insert code here. */
+    {
+      *did_not_fold = TRUE;
+    }  /* if */
   } else {
     /* The pointers are in the same base object, so the difference of
        their offsets can be taken. */

@@ -2997,6 +2997,13 @@ replace them by a representation compatible with C89.
     case ck_integer:
     case ck_float:
     case ck_string:
+#if GNU_EXTENSIONS_ALLOWED
+    case ck_label_difference:
+#endif /* GNU_EXTENSIONS_ALLOWED */
+#if UPC_EXTENSIONS_ALLOWED
+    case ck_upc_threads:
+    case ck_upc_mythread:
+#endif /* UPC_EXTENSIONS_ALLOWED */
       /* Nothing to be done. */
       break;
     case ck_dynamic_init:  /* Not expected here. */

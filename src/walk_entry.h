@@ -714,6 +714,14 @@ the file scope, do not process it (but record an orphan in the latter case).
                         iek_field);
             }  /* if */
             break;
+#if GNU_EXTENSIONS_ALLOWED
+          case ck_label_difference:
+            walk_ptr(ptr->variant.label_difference.from_address,
+                     a_constant_ptr, iek_constant);
+            walk_ptr(ptr->variant.label_difference.to_address,
+                     a_constant_ptr, iek_constant);
+            break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if DO_IL_LOWERING && GENERATE_EH_TABLES && !DO_FULL_PORTABLE_EH_LOWERING
           case ck_stack_offset:
             remap_ptr(ptr->variant.stack_offset.variable, a_variable_ptr,

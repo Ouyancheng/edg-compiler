@@ -3945,6 +3945,9 @@ Do IL lowering of the indicated constant and everything under it.
       case ck_float:
       case ck_designator:
       case ck_init_repeat:
+#if GNU_EXTENSIONS_ALLOWED
+      case ck_label_difference:
+#endif /* GNU_EXTENSIONS_ALLOWED */
         /* No handling required. */
         break;
 #if C99_IL_EXTENSIONS_SUPPORTED

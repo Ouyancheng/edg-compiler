@@ -3240,9 +3240,14 @@ conversions on nonconstants are handled in eok_cast processing.
 
   /* The implicit_cast flag is not checked here on purpose.  It's not set
      for the enum case. */
-  if (con->kind == (a_constant_repr_kind)ck_integer) {
+  if (con->kind == (a_constant_repr_kind)ck_integer
+#if GNU_EXTENSIONS_ALLOWED
+      || con->kind == (a_constant_repr_kind)ck_label_difference
+#endif /* GNU_EXTENSIONS_ALLOWED */
+                                                               ) {
     a_type_ptr con_type = skip_typerefs(con->type);
-    if (con_type->kind == (a_type_kind)tk_pointer &&
+    if (con->kind == (a_constant_repr_kind)ck_integer &&
+        con_type->kind == (a_type_kind)tk_pointer &&
         cmplit_integer_constant(con, (a_host_large_integer)0) == 0) {
       /* Zero converted to a pointer type. */
       is_implicit_cast = TRUE;

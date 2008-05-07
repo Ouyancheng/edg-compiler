@@ -13622,12 +13622,18 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
            C mode: void and function types are acceptable). */
         if (err) {
           /* An error message was already issued. */
+#if GNU_EXTENSIONS_ALLOWED
         } else if (gcc_mode && same_types &&
                    (is_void_type(type_pointed_to(operand_1->type)) ||
                     is_function_type(type_pointed_to(operand_1->type)))) {
           /* GNU C allows arithmetic on pointers to void and pointers to
-             functions. */
-          pos_warning(ec_nonobject_pointer_arithmetic, &operator_position);
+             functions.  Issue a warning, except if one of the operands is
+             the address of a label. */
+          if (!operand_is_address_of_label(operand_1) &&
+              !operand_is_address_of_label(&operand_2)) {
+            pos_warning(ec_nonobject_pointer_arithmetic, &operator_position);
+          }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
         } else if (!check_object_pointer_operand(
                                    operand_1, ec_expr_not_pointer_to_object)) {
           /* The first operand is not a pointer to an object type. */

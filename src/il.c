@@ -1982,28 +1982,31 @@ Dump a string identifying a constant-representation kind, for debug purposes.
   char *s;
 
   switch (kind) {
-    case ck_error:          s = "ck_error";		break;
-    case ck_integer:        s = "ck_integer";		break;
+    case ck_error:            s = "ck_error";		 break;
+    case ck_integer:          s = "ck_integer";		 break;
 #if FIXED_POINT_ALLOWED
-    case ck_fixed_point:    s = "ck_fixed_point";	break;
+    case ck_fixed_point:      s = "ck_fixed_point";	 break;
 #endif /* FIXED_POINT_ALLOWED */
-    case ck_string:         s = "ck_string";		break;
-    case ck_float:          s = "ck_float";		break;
-    case ck_address:        s = "ck_address";		break;
-    case ck_ptr_to_member:  s = "ck_ptr_to_member";	break;
+    case ck_string:           s = "ck_string";		 break;
+    case ck_float:            s = "ck_float";		 break;
+    case ck_address:          s = "ck_address";	 	 break;
+    case ck_ptr_to_member:    s = "ck_ptr_to_member";	 break;
+#if GNU_EXTENSIONS_ALLOWED
+    case ck_label_difference: s = "ck_label_difference"; break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if DO_IL_LOWERING && GENERATE_EH_TABLES && !DO_FULL_PORTABLE_EH_LOWERING
-    case ck_stack_offset:   s = "ck_stack_offset";	break;
+    case ck_stack_offset:     s = "ck_stack_offset";	 break;
 #endif /* DO_IL_LOWERING && ... */
-    case ck_dynamic_init:   s = "ck_dynamic_init";	break;
-    case ck_aggregate:      s = "ck_aggregate";		break;
-    case ck_init_repeat:    s = "ck_init_repeat";	break;
-    case ck_template_param: s = "ck_template_param";	break;
-    case ck_designator:     s = "ck_designator";	break;
+    case ck_dynamic_init:     s = "ck_dynamic_init";	 break;
+    case ck_aggregate:        s = "ck_aggregate";	 break;
+    case ck_init_repeat:      s = "ck_init_repeat";	 break;
+    case ck_template_param:   s = "ck_template_param";	 break;
+    case ck_designator:       s = "ck_designator";	 break;
 #if UPC_EXTENSIONS_ALLOWED
-    case ck_upc_threads:    s = "ck_upc_threads";	break;
-    case ck_upc_mythread:   s = "ck_upc_mythread";	break;
+    case ck_upc_threads:      s = "ck_upc_threads"; 	 break;
+    case ck_upc_mythread:     s = "ck_upc_mythread";	 break;
 #endif /* UPC_EXTENSIONS_ALLOWED */
-    default:                s = "**BAD CONSTANT KIND";
+    default:                  s = "**BAD CONSTANT KIND";
   }  /* switch */
   fputs(s, f_debug);
 }  /* db_constant_repr_kind */
@@ -5230,6 +5233,13 @@ Return the hash value for the indicated constant.
       }  /* if */
       hash_value += 250;
       break;
+#if GNU_EXTENSIONS_ALLOWED
+    case ck_label_difference:
+      /* Use the hash values of the constants pointed to. */
+      hash_value += hash_constant(cp->variant.label_difference.from_address)
+                  + 3*hash_constant(cp->variant.label_difference.to_address)
+                  + 511;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if DO_IL_LOWERING && GENERATE_EH_TABLES && !DO_FULL_PORTABLE_EH_LOWERING
     case ck_stack_offset:
       hash_value =
@@ -5699,6 +5709,16 @@ nonidentical.
           }  /* if */
         }  /* if */
         break;
+#if GNU_EXTENSIONS_ALLOWED
+      case ck_label_difference:
+        eq = compare_constants(cp1->variant.label_difference.from_address,
+                               cp2->variant.label_difference.from_address,
+                               strictly_identical) &&
+             compare_constants(cp1->variant.label_difference.to_address,
+                               cp2->variant.label_difference.to_address,
+                               strictly_identical);
+        break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if DO_IL_LOWERING && GENERATE_EH_TABLES && !DO_FULL_PORTABLE_EH_LOWERING
       case ck_stack_offset:
         eq = (cp1->variant.stack_offset.variable ==
@@ -6006,6 +6026,12 @@ region).
 #endif /* CHECKING */
       }  /* switch */
       break;
+#if GNU_EXTENSIONS_ALLOWED
+    case ck_label_difference:
+      /* Labels are never in the file scope. */
+      has_nfs_ref = TRUE;
+      break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
     case ck_ptr_to_member:
       /* The class type and the object (if any) pointed to must be in the
          file scope. */

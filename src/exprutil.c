@@ -7427,6 +7427,18 @@ do-nothing ck_template_param cast on top of it.
                                     /*is_explicit=*/FALSE);
 }  /* force_constant_to_be_dependent */
 
+#if GNU_EXTENSIONS_ALLOWED
+
+a_boolean operand_is_address_of_label(an_operand  *op)
+/*
+Return TRUE if the given operand represents the address of a label (a GNU
+extension).
+*/
+{
+  return constant_is_address_of_label(&op->variant.constant);
+}  /* operand_is_address_of_label */
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 #if !MICROSOFT_EXTENSIONS_ALLOWED
 /*ARGSUSED*/  /* <-- in_expr_proc is not used in that case. */
@@ -11344,7 +11356,6 @@ types to get a boolean expression (see process_boolean_controlling_expression).
   restore_operand_details(operand, &orig_operand);
   return okay;
 }  /* check_boolean_controlling_expr */
-
 
 #if EXPR_RANGE_MODIFIERS_IN_IL
 

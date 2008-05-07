@@ -621,6 +621,13 @@ extern void set_label_address_constant(a_label_ptr label,
                                        a_constant  *con);
 
 /*
+Macro to determine whether the argument constant is a label address.
+*/
+#define constant_is_address_of_label(cp)                                     \
+  ((cp)->kind == (a_constant_repr_kind)ck_address &&                         \
+   (cp)->variant.address.kind == (an_address_base_kind)abk_label)
+
+/*
 Macro to determine whether the argument variable was mapped on a specific
 register using the GNU "asm(...)" extension.
 */

@@ -1042,6 +1042,16 @@ display_constant_value:
                  iek_field);
       }  /* if */
       break;
+#if GNU_EXTENSIONS_ALLOWED
+    case ck_label_difference:
+      (void)printf("ck_label_difference\n");
+      disp_ptr("from_address",
+               (char*)ptr->variant.label_difference.from_address,
+               iek_constant);
+      disp_ptr("to_address", (char*)ptr->variant.label_difference.to_address,
+               iek_constant);
+      break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if DO_IL_LOWERING && GENERATE_EH_TABLES && !DO_FULL_PORTABLE_EH_LOWERING
     case ck_stack_offset:
       (void)printf("ck_stack_offset\n");
