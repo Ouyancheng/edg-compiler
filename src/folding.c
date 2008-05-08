@@ -83,6 +83,18 @@ constant is an address that is not known until link time.)
 #endif /* GNU_EXTENSIONS_ALLOWED */
                                   ;
     }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+  } else if (con->kind == (a_constant_repr_kind)ck_label_difference) {
+    a_constant_ptr  from = con->variant.label_difference.from_address;
+    a_constant_ptr  to = con->variant.label_difference.to_address;
+    if (constant_is_address_of_label(from) &&
+        constant_is_address_of_label(to)) {
+      known_bool = from->variant.address.variant.label ==
+                                            to->variant.address.variant.label;
+    } else {
+      known_bool = FALSE;
+    }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   } else if (con->kind == (a_constant_repr_kind)ck_template_param) {
     known_bool = FALSE;
 #if UPC_EXTENSIONS_ALLOWED

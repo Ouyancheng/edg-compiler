@@ -4267,6 +4267,15 @@ Return TRUE if the constant is an integer, fixed-point, or floating zero.
               fp_is_zero_constant(float_kind,
                                   &constant->variant.complex_value->imag);
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
+#if GNU_EXTENSIONS_ALLOWED
+  } else if (constant->kind == (a_constant_repr_kind)ck_label_difference) {
+    a_constant_ptr  from = constant->variant.label_difference.from_address;
+    a_constant_ptr  to = constant->variant.label_difference.to_address;
+    is_zero = constant_is_address_of_label(from) &&
+              constant_is_address_of_label(to) &&
+              from->variant.address.variant.label ==
+                                            to->variant.address.variant.label;
+#endif /* GNU_EXTENSIONS_ALLOWED */
    }  /* if */
   return is_zero;
 }  /* is_zero_constant */
