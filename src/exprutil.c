@@ -7435,7 +7435,8 @@ Return TRUE if the given operand represents the address of a label (a GNU
 extension).
 */
 {
-  return constant_is_address_of_label(&op->variant.constant);
+  return is_constant_operand(op) &&
+         constant_is_address_of_label(&op->variant.constant);
 }  /* operand_is_address_of_label */
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
