@@ -5248,6 +5248,7 @@ Return the hash value for the indicated constant.
       hash_value = hash_constant(cp->variant.label_difference.from_address)
                  + 3*hash_constant(cp->variant.label_difference.to_address)
                  + 511;
+      break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if DO_IL_LOWERING && GENERATE_EH_TABLES && !DO_FULL_PORTABLE_EH_LOWERING
     case ck_stack_offset:
