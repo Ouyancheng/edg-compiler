@@ -4,7 +4,7 @@ Version 3.11
 
 In GNU modes, the difference between two label addresses (which are themselves
 a GNU extension) is now sometimes folded into a new constant entry of kind
-ck_label_address.  The integer value of such a constant is not known by the
+ck_label_difference.  The integer value of such a constant is not known by the
 front end, but the associated expressions can now appear in certain additional
 contexts (such as C mode initializers for local static variable declarations).
 For example:
