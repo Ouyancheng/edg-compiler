@@ -15852,6 +15852,14 @@ been removed from the scope variables list).
 #if IA64_ABI
     put_variable_into_comdat_group(variable);
 #endif /* IA64_ABI */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if ((routine->decl_modifiers & DM_DLLFLAGS) != 0) {
+      /* The promoted variable should have the same DLL flags as the routine
+         out of which it is promoted. */
+      check_assertion((variable->decl_modifiers & DM_DLLFLAGS) == 0);
+      variable->decl_modifiers |= (routine->decl_modifiers & DM_DLLFLAGS);
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   add_to_variables_list(variable, DEPTH_OF_FILE_SCOPE);
   variable->promoted_local_static = TRUE;
@@ -15939,6 +15947,18 @@ been removed from the scope variables list).
        (and therefore it cannot be statically initialized). */
     lower_constant_init_of_static_in_extern_inline(variable);
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if ((variable->decl_modifiers & DM_DLLIMPORT) != 0) {
+    /* If the variable has become dllimport as a consequence of its promotion,
+       it should be turned into a non-defining declaration (dllimport variables
+       cannot be defined). */
+    variable->init_kind = (an_init_kind)initk_none;
+    variable->storage_class = (a_storage_class)sc_extern;
+#if IA64_ABI
+    variable->comdat_group = NULL;
+#endif /* IA64_ABI */
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* promote_static_variable_out_of_function */
 
 

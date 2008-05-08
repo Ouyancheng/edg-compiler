@@ -1,5 +1,22 @@
 Version 3.11
 
+5/8/08   Microsoft compatibility: dllexport/dllimport and local static
+         variables in inline functions
+
+In Microsoft mode, a local static variable now acquires the DLL interface of
+its enclosing inline function when it is promoted out of that function by IL
+lowering.  (In the case of dllimport, this also means that any initializer is
+discarded.)  The same treatment is applied to the any compiler-generated
+"initialization guard variable" associated with the local static variable.
+For example:
+
+  struct __declspec(dllexport) X {
+    X();
+  };
+  __declspec(dllexport) inline void f() {
+    static X x;  // x and its associated "guard variable" are promoted to
+  }              // file scope, and now both become dllexport variables.
+
 5/7/08   GNU compatibility: Subtracting label addresses (IL CHANGE)
 
 In GNU modes, the difference between two label addresses (which are themselves

@@ -5397,6 +5397,15 @@ location is the insert_location2 value (after the assignment statement).
       (*test_var)->comdat_group = guarded_var->comdat_group;
     }  /* if */
 #endif /* IA64_ABI */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    /* The guard variable must have the same DLL flags as the guarded
+       variable. */
+    (*test_var)->decl_modifiers |= (guarded_var->decl_modifiers & DM_DLLFLAGS);
+    if (((*test_var)->decl_modifiers & DM_DLLIMPORT) != 0) {
+      /* If the variable is dllimport, it should not be defined here. */
+      (*test_var)->storage_class = (a_storage_class)sc_extern;
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
     /* The guard variable need not be visible outside of the function,
        so an unnamed variable is fine. */
@@ -6926,12 +6935,17 @@ do_assignment:;
          definitions.  That is important when the initialization is in a
          library; the linker has to see it as a definition in order for it
          to bring in the variable (and hence the initialization code) from
-         a library.  There is also an issue with automatic variables that
+         a library.  If the variable is dllimport-ed, it cannot have an
+         initializer, but the initialized-vs-tentative definition issue does
+         not arise.  There is also an issue with automatic variables that
          are aggregates: if the initialization was partial, we have to be
          sure the rest of the aggregate is initialized to zero.
          So we change the initialization kind to initialization to zero. */
       if ((static_var_init && !variable->source_corresp.is_local_to_function &&
            force_variable_definition_via_zeroing && !C_mode() &&
+#if MICROSOFT_EXTENSIONS_ALLOWED
+           (variable->decl_modifiers && DM_DLLIMPORT) == 0 &&
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
            !local_static_that_requires_dynamic_init) ||
           variable->is_partially_initialized) {
         variable->init_kind = (an_init_kind)initk_zero;
