@@ -6,7 +6,7 @@ Version 3.11
 In Microsoft mode, a local static variable now acquires the DLL interface of
 its enclosing inline function when it is promoted out of that function by IL
 lowering.  (In the case of dllimport, this also means that any initializer is
-discarded.)  The same treatment is applied to the any compiler-generated
+discarded.)  The same treatment is applied to any compiler-generated
 "initialization guard variable" associated with the local static variable.
 For example:
 
