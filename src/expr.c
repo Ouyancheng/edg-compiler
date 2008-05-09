@@ -13572,7 +13572,9 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
         result_type = operation_type = operand_1->type;
       } else if (save_token == tok_minus && is_pointer_type(operand_2.type)) {
         /* Pointer - pointer. */
+#if GNU_EXTENSIONS_ALLOWED
         a_boolean   same_types = FALSE;
+#endif /* GNU_EXTENSIONS_ALLOWED */
         a_boolean   nonstd_case = FALSE;
         a_type_ptr  type_1 = type_pointed_to(operand_1->type),
                     type_2 = type_pointed_to(operand_2.type);
@@ -13603,7 +13605,9 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
           /* Do not insert code here. */
           {
             operation_type = skip_typerefs(operand_1->type);
+#if GNU_EXTENSIONS_ALLOWED
             same_types = TRUE;
+#endif /* GNU_EXTENSIONS_ALLOWED */
           }  /* if */
         } else if (check_compatibility_of_pointer_operands(
                           operand_1, &operand_2, &operator_position,
