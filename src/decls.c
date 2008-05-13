@@ -6129,11 +6129,9 @@ new declaration is a friend declaration.
 }  /* record_overload */
 
 
-#if !MICROSOFT_EXTENSIONS_ALLOWED || !GNU_EXTENSIONS_ALLOWED || \
-    !(EXTRA_SOURCE_POSITIONS_IN_IL || GENERATE_SOURCE_SEQUENCE_LISTS)
-/* ARGSUSED */ /* decl_modifiers, attributes, and/or decl_pos_block are not
-                  used in some configurations. */
-#endif /* !GNU_EXTENSIONS_ALLOWED || !MICROSOFT_EXTENSIONS_ALLOWED || ... */
+#if !(EXTRA_SOURCE_POSITIONS_IN_IL || GENERATE_SOURCE_SEQUENCE_LISTS)
+/* ARGSUSED */ /* decl_pos_block is not used in some configurations. */
+#endif /* !(EXTRA_SOURCE_POSITIONS_IN_IL || GENERATE_SOURCE_SEQUENCE_LISTS) */
 void decl_routine(a_symbol_locator         *locator,
                   a_decl_parse_state       *dps,
                   a_func_info_block_ptr    func_info,
@@ -6201,10 +6199,10 @@ for use in generating cross-reference output describing this declaration.
   a_boolean                microsoft_specialization_redef = FALSE;
   a_type_ptr               type_ptr = dps->type;
   a_storage_class          storage_class = dps->storage_class;
-#if DECL_MODIFIERS_IN_USE || BACK_END_IS_CP_GEN_BE
+#if DECL_MODIFIERS_IN_USE || BACK_END_IS_CP_GEN_BE || GNU_EXTENSIONS_ALLOWED
   a_decl_modifiers_block_ptr
                            decl_modifiers = &dps->decl_modifiers;
-#endif /* DECL_MODIFIERS_IN_USE || BACK_END_IS_CP_GEN_BE */
+#endif /* DECL_MODIFIERS_IN_USE || BACK_END_IS_CP_GEN_BE || ... */
 
   db_enter(3, "decl_routine");
   *old_type = NULL;
