@@ -8561,6 +8561,14 @@ This routine returns TRUE if guard code was emitted.
     /* Normal case -- emit the usual guard code. */
     add_first_time_test(variable, insert_location, insert_location2,
                         (a_statement_ptr *)NULL, &test_var);
+#if !IA64_ABI_USE_GUARD_ACQUIRE_RELEASE
+    /* Make "test_var = 1" and insert it inside the "if" statement. */
+    (void)insert_var_assignment_statement(test_var,
+                                          (an_expr_operator_kind)eok_iassign,
+                                          node_for_integer_constant(1L,
+                                                      (an_integer_kind)ik_int),
+                                          insert_location2);
+#endif /* !IA64_ABI_USE_GUARD_ACQUIRE_RELEASE */
     guard_code_emitted = TRUE;
   }  /* if */
 #endif /* IA64_ABI */

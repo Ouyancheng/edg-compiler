@@ -1,5 +1,27 @@
 Version 3.11
 
+5/16/08  Initialization of a static data member of a template could be
+         performed multiple times in certain configurations
+
+In IA-64 ABI configurations where TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE
+is TRUE and IA64_ABI_USE_GUARD_ACQUIRE_RELEASE is FALSE, the guard code
+inserted during lowering to guarantee that the initialization of a static data
+member of a template occurs only once was incorrect.  As a result, the
+initialization of the static data member of a template could occur multiple
+times.  This is typically only a problem when template resolution is done by
+instantiating everything (-tall) and then having the (specially-modified)
+linker discard duplicate copies of instantiated routines.  Now fixed.
+For example (with -tall):
+
+  struct S {
+    S();
+  };
+  template <typename T> struct X {
+    static S sm;
+  };
+  template <typename T> S X<T>::sm; // incorrect guard code generated
+  X<int> x;
+
 5/8/08   Microsoft compatibility: dllexport/dllimport and local static
          variables in inline functions
 
