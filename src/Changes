@@ -1,5 +1,25 @@
 Version 3.11
 
+5/19/08  Abort in GCC mode when initializer uses designators in a
+         compound literal
+
+As a result of the changes outlined in the Changes entry of 4/5/07, a bug
+was introduced that caused an assertion failure ("designator was missed by
+lowering") in c_gen_be.c.  The assertion failed in GNU C emulation mode in
+configurations that have the LOWER_DESIGNATED_INITIALIZERS configuration macro
+set to TRUE when a compound literal with a designator is used as an
+initializer.  Now fixed.  For example:
+
+  typedef struct {
+    int a[2];
+  } T;
+
+  struct S {
+    T x;
+  } s = {
+    (T) { { [0] = 0 } }   // caused an assertion failure in c_gen_be.c
+  };
+
 5/16/08  Initialization of a static data member of a template could be
          performed multiple times in certain configurations
 

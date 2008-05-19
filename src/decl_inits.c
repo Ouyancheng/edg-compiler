@@ -1148,6 +1148,10 @@ to this routine).
            remembered for later processing. */
         string_literal = TRUE;
       }  /* if */
+      if (constant.uses_designated_initializers) {
+        /* Propagate the use of designated initializers upwards. */
+        init_info->uses_designated_initializers = TRUE;
+      }  /* if */
     } else {
       /* A dynamic initialization. */
       check_assertion(dip != NULL);
