@@ -1,5 +1,14 @@
 Version 3.11
 
+5/19/08  GNU compatibility: Attributes on member function templates
+
+GNU attributes specified on member function templates are now applied to the
+instantiations of such templates.  For example:
+
+ struct S { template<int N> void f() __attribute__((weak)); };
+ template<int N> void S::f() {}
+ template void S::f<3>();  // Instance now has "is_weak" flag set to TRUE.
+
 5/19/08  Abort in GCC mode when initializer uses designators in a
          compound literal
 

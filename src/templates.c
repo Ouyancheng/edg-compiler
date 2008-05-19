@@ -8651,6 +8651,9 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
 #if DECL_MODIFIERS_IN_USE
       /* Note that locator_position is not updated in this case. */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#if GNU_EXTENSIONS_ALLOWED
+      attributes = tssp->attributes;
+#endif /* GNU_EXTENSIONS_ALLOWED */
     } else {
       a_decl_parse_state  state;
       a_func_info_block	  func_info;
