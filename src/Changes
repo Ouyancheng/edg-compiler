@@ -1,5 +1,13 @@
 Version 3.11
 
+5/19/08  Calling find_base_class_of from a back end
+
+Previously, calling find_base_class_of from a back end led to an abort because
+the function always attempted to instantiate template classes.  Now, no
+instantiation is attempted if the call originates from a back end (i.e., if
+the global variable in_front_end is FALSE), and the function can therefore
+safely be called from a back end.
+
 5/19/08  GNU compatibility: Attributes on member function templates
 
 GNU attributes specified on member function templates are now applied to the
