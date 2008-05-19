@@ -8460,10 +8460,11 @@ Do IL lowering of an enk_temp_init expression node.
 static a_boolean add_static_data_member_init_guard_test(
                                           a_variable_ptr     variable,
                                           an_insert_location *insert_location,
-                                          an_insert_location *insert_location2)
+                                          an_insert_location *insert_location2,
+                                          a_variable_ptr     *guard_var)
 /*
 variable is a static data member of a template.  If its initialization
-requires guard code, insert the code as follows:
+requires guard code, insert the code as follows (Cfront-like ABI):
 
   int guard_var;  // Global test var, implicitly init to 0
   {
@@ -8473,9 +8474,27 @@ requires guard code, insert the code as follows:
     }
   }
 
+For the IA-64 ABI, the guard variable is set at the end of the
+initialization (see set_local_static_guard_var):
+
+  int guard_var;  // Global test var, implicitly init to 0
+  {
+    if (guard_var == 0) {
+      ... real initialization of static data member being initialized
+      guard_var = 1;
+    }
+  }
+
+In some IA-64 ABI configurations the __cxa_guard_acquire et al. routines
+are used to modify the guard variables rather than an assignment statement.
+
 The sequence is inserted at *insert_location.  *insert_location is updated
 for insertion after the "if"; *insert_location2 is set for insertion after
-the assignment statement inside the "if".
+the assignment statement inside the "if".  In IA-64 ABI configurations where
+the caller is responsible for setting the guard variable after the
+initialization is complete, the guard variable is returned in *guard_var
+(otherwise it is set to NULL).
+
 In an environment that instantiates everything and lets the linker eliminate
 duplicates, the initialization code for a static data member of a template
 causes some problems, because the initialization is placed in a file-scope
@@ -8496,6 +8515,7 @@ This routine returns TRUE if guard code was emitted.
   a_memory_region_number region_to_switch_back_to;
   a_boolean              guard_code_emitted = FALSE;
 
+  *guard_var = NULL;
   /* If the variable has internal linkage (e.g., in -tlocal mode), do not
      put out guard code at all. */
   if (variable->source_corresp.name_linkage ==
@@ -8562,12 +8582,9 @@ This routine returns TRUE if guard code was emitted.
     add_first_time_test(variable, insert_location, insert_location2,
                         (a_statement_ptr *)NULL, &test_var);
 #if !IA64_ABI_USE_GUARD_ACQUIRE_RELEASE
-    /* Make "test_var = 1" and insert it inside the "if" statement. */
-    (void)insert_var_assignment_statement(test_var,
-                                          (an_expr_operator_kind)eok_iassign,
-                                          node_for_integer_constant(1L,
-                                                      (an_integer_kind)ik_int),
-                                          insert_location2);
+    /* The guard variable is set to 1 at the end of the initialization.
+       See set_local_static_guard_var. */
+    *guard_var = test_var;
 #endif /* !IA64_ABI_USE_GUARD_ACQUIRE_RELEASE */
     guard_code_emitted = TRUE;
   }  /* if */
@@ -12541,12 +12558,14 @@ instantiations have been generated.
       an_insert_location_ptr eff_insert_location = &insert_location;
 #if TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE
       an_insert_location     insert_location2;
+      a_variable_ptr         guard_var = NULL;
       if (dip->variable->is_template_static_data_member) {
         /* This is the initialization of a static data member in a template.
            Add guard code around the initialization if necessary. */
         if (add_static_data_member_init_guard_test(dip->variable,
                                                    &insert_location,
-                                                   &insert_location2)) {
+                                                   &insert_location2,
+                                                   &guard_var)) {
           /* Guard code was emitted.  The actual initialization code is
              inserted inside the guard "if". */
           eff_insert_location = &insert_location2;
@@ -12579,6 +12598,15 @@ instantiations have been generated.
         check_assertion(eff_insert_location->kind == ilk_after_statement);
         insert_temp_init_statements(eff_insert_location->variant.stmt);
       }  /* if */
+#if TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE && \
+    IA64_ABI &&                                    \
+    !IA64_ABI_USE_GUARD_ACQUIRE_RELEASE
+      if (guard_var != NULL) {
+        /* Set the guard variable to indicate the local static is initialized
+           after the initialization is completed. */
+        set_local_static_guard_var(guard_var, eff_insert_location);
+      }  /* if */
+#endif /* TEMPLATE_STATIC_DATA_MEMBER_INIT_GUARD_CODE && ... */
     }  /* for */
     pop_generated_routine_context(scope, region_number, &grcontext);
     processing_file_scope_init_routine = FALSE;
