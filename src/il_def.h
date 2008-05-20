@@ -3238,7 +3238,7 @@ enum an_asm_operand_modifier_tag {
   aom_input             = 0x01, /* no mod: input operand */
   aom_output            = 0x02, /* =: output operand */
   aom_modify            = 0x03, /* +: read-mod-write operand */
-  aom_earlyclobber      = 0x04, /* &: modified early, cannot overlap inputs */
+  aom_earlyclobber      = 0x04  /* &: modified early, cannot overlap inputs */
 };
 typedef a_byte an_asm_operand_modifier;
 
