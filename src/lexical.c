@@ -4239,7 +4239,6 @@ encoding form for the file, or usk_none if the file is not Unicode.
 */
 {
   a_file_suffix_ptr		fsp;
-  a_boolean			done = FALSE;
   a_directory_name_entry_ptr	curr_directory_name_entry;
   char				*name_to_try;
   a_boolean			file_found = FALSE;
@@ -4286,12 +4285,10 @@ encoding form for the file, or usk_none if the file is not Unicode.
        there are no -I options on the command line. */
     str_catastrophe(ec_empty_include_search_path, file_name);
   } else {
-    /* Loop through the directory name entries.  The "done" flag will be
-       set if the loop should not be repeated (i.e., an absolute path name
-       was specified). */
+    /* Loop through the directory name entries. */
     char	*dir_name;
     for (curr_directory_name_entry = search_path;
-         !done && curr_directory_name_entry != NULL;
+         curr_directory_name_entry != NULL;
          curr_directory_name_entry = curr_directory_name_entry->next) {
       if (curr_directory_name_entry->dir_name == prev_dir_name) {
         /* Two directories with the same name are adjacent in the stack.
@@ -4381,7 +4378,6 @@ encoding form for the file, or usk_none if the file is not Unicode.
         }  /* if */
       }  /* if */
       if (file_found) {
-        done = TRUE;
         *dir_entry = curr_directory_name_entry;
         break;
       }  /* if */
