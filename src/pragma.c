@@ -130,10 +130,8 @@ but cannot be referenced by name in a pragma directive.
                        "add_pragma_kind_description:",
 		       "pragma flags not valid when using C/C++ gen. BE");
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
-  /* When fetching pp-tokens, processing_C_code and expand_macros must be
-     FALSE. */
-  check_assertion_str2(!p_fetch_pp_tokens ||
-                       (!processing_C_code && !p_expand_macros),
+  /* When fetching pp-tokens, processing_C_code must be FALSE. */
+  check_assertion_str2(!p_fetch_pp_tokens || !processing_C_code,
                        "add_pragma_kind_description:",
 		       "flags not valid when fetching pp-tokens");
   /* Preprocessing immediate pragmas must have the fetch_pp_tokens flag set. */
@@ -1956,7 +1954,7 @@ Initialize the pragma description table.
                  /*global=*/FALSE,
                  /*automatically_include_in_il=*/TRUE,
                  /*record_pragma_text=*/TRUE,
-                 /*expand_macros=*/FALSE,
+                 /*expand_macros=*/TRUE,
                  /*processing_C_code=*/FALSE,
                  /*fetch_pp_tokens=*/TRUE,
 		 /*ignore_in_back_end=*/FALSE,

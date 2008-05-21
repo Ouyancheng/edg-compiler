@@ -1613,6 +1613,29 @@ Microsoft __pragma operator.*/
 }  /* cache_pragma_tokens */
 
 
+static void convert_pp_token_pragma_to_string(
+		a_pragma_kind_description_ptr	pkdp,
+		a_boolean			is_microsoft_pragma_operator)
+/*
+Convert the current pragma directive to a string.  This routine is
+used for pragmas that are scanned as pp-tokens.  The pragma has been
+determined to be of a kind associated with the entry pointed to pkdp.
+is_microsoft_pragma_operator is TRUE when the pragma being scanned is
+a Microsoft __pragma operator.
+
+The pragma is converted by convert_pp_directive_to_string and the resulting
+string will be in the pp_dir_string_buffer.
+*/
+{
+  a_boolean	save_expand_macros;
+
+  save_expand_macros = expand_macros;
+  expand_macros = pkdp->expand_macros;
+  convert_pp_directive_to_string(is_microsoft_pragma_operator);
+  expand_macros = save_expand_macros;
+}  /*  convert_pp_token_pragma_to_string */
+
+
 static void enter_pending_pragma(
 		a_pragma_kind_description_ptr	pkdp,
 		a_source_position		*directive_pos,
@@ -1644,7 +1667,7 @@ being scanned is a Microsoft __pragma operator.
          routines for such pragmas can scan the tokens themselves rather
          than having only the string representation. */
     } else {
-      convert_pp_directive_to_string(is_microsoft_pragma_operator);
+      convert_pp_token_pragma_to_string(pkdp, is_microsoft_pragma_operator);
       ppp->pragma_text = copy_string_to_region(file_scope_region_number,
                                                pp_dir_string_buffer);
 #if DEBUG

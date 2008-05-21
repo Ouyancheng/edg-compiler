@@ -1,5 +1,13 @@
 Version 3.11
 
+5/21/08  Expanding macros in pragmas scanned as pp-tokens
+
+Formerly, the front end did not support macro expansion in pragmas scanned
+as pp-tokens.  Attempting to create such a pragma would result in an
+internal error in add_pragma_kind_description.  It is now possible to
+request that macros be expanded in such pragmas (by passing TRUE as the
+expand_macros parameter of the add_xxx_pragma_kind_description routines).
+
 5/19/08  Calling find_base_class_of from a back end
 
 Previously, calling find_base_class_of from a back end led to an abort because

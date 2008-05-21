@@ -158,8 +158,7 @@ typedef struct a_pragma_kind_description {
 			   scanned in fetch_pp_tokens mode). */
   a_bit_field	expand_macros:1;
                         /* Specifies whether macros should be expanded when
-			   recording the pragma.  Must be FALSE for tokens
-			   saved as text. */
+			   recording the pragma. */
   a_bit_field	processing_C_code:1;
 			/* Used for pragmas that are being saved as a token
 			   cache.  Indicates that the tokens should be
@@ -169,8 +168,7 @@ typedef struct a_pragma_kind_description {
   a_bit_field	fetch_pp_tokens:1;
 			/* TRUE if the tokens for this pragma should be
 			   fetched as pp-tokens.  When this flag is TRUE,
-			   record_pragma_text must be TRUE, and expand_macros
-			   and processing_C_code must be FALSE.  In this mode
+			   processing_C_code must be FALSE.  In this mode
 			   the spacing of the pragma invocation (i.e., the
 			   presence or absence of white space) is preserved,
 			   but white space and comments are standardized to a
