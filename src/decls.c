@@ -3364,15 +3364,6 @@ be issued at the given position.
          namespace.) The "compatibility" may be a result of carrying over the
          dll attribute (e.g., for inline functions or block-extern
          declarations). */
-#if CHECKING
-      a_symbol_ptr  routine_sym = symbol_for(routine);
-      check_assertion(is_redecl || routine->is_template_function ||
-                      is_inline || innermost_function_scope != NULL ||
-                      routine->source_corresp.name_linkage ==
-                                          (a_name_linkage_kind)nlk_external ||
-                      !(sym_is_class_or_namespace_member(routine_sym) ||
-                        routine_sym->decl_scope == file_scope_number));
-#endif /* CHECKING */
     } else if (old_dll_flags == 0) {
       /* This is the first time a DLL interface is specified: If there was a
          previous declaration, issue an error. */
@@ -3665,15 +3656,6 @@ position. */
          instantiation compatible with a prior partial instantiation.)
          The "compatibility" may be a result of carrying over the dll
          attribute on or from a block-extern declaration. */
-#if CHECKING
-      a_symbol_ptr  var_sym = symbol_for(var);
-      check_assertion(is_redecl || var->is_template_static_data_member ||
-                      innermost_function_scope != NULL ||
-                      var->source_corresp.name_linkage ==
-                                          (a_name_linkage_kind)nlk_external ||
-                      !(sym_is_class_or_namespace_member(var_sym) ||
-                        var_sym->decl_scope == file_scope_number));
-#endif /* CHECKING */
     } else if (old_dll_flags == 0) {
       /* This is the first time a DLL interface is specified: If there was a
          previous declaration, issue an error. */
@@ -5147,6 +5129,58 @@ emit an error.
 }  /* check_variable_redecl_compatible */
 
 
+static void check_sym_of_other_decl(a_source_correspondence  *scp,
+                                    a_symbol_ptr             new_decl,
+                                    a_symbol_locator         *loc,
+                                    a_boolean                is_friend_decl)
+/*
+This routine is called when processing the declaration of a variable or
+function that was previously declared in another scope (this is technically
+not a "redeclaration").  scp points to the source correspondence entry of the
+declared entity; it's assoc_info field points to the symbol for the earlier
+declaration.  new_decl points to the symbol associated with the current
+declaration, and *loc describes some properties of the current declaration.
+is_friend_decl is TRUE if the current declaration is a friend declaration.
+Record cross-reference information as appropriate, and if needed update
+scp->assoc_info to point to new_decl.
+*/
+{
+  a_symbol_ptr  other_decl = (a_symbol_ptr)scp->assoc_info;
+  a_boolean     is_local, other_decl_is_block_extern;
+
+  /* The entity was previously declared in a different scope. */
+  check_assertion(other_decl != NULL);
+  /* If it wasn't a namespace scope declaration, and it is no longer associated
+     with a scope on the scope stack, other_decl must have been the result of a
+     block-extern declaration. */
+  other_decl_is_block_extern =
+               !sym_is_namespace_member(other_decl) &&
+               scope_depth_of_symbol(other_decl, &is_local) == NO_SCOPE_DEPTH;
+  if (other_decl_is_block_extern) {
+    if (depth_innermost_function_scope == NO_SCOPE_DEPTH) {
+      /* The current declaration is not block-extern, but the previous
+         declaration was block-extern.  For example:
+           void f() { extern int x; }
+           int x;
+         Use the symbol for the current declaration in the IL entry instead. */
+      a_boolean  saved_referenced_flag = scp->referenced;
+      scp->assoc_info = NULL;
+      set_source_corresp(scp, new_decl);
+      scp->referenced = saved_referenced_flag;
+    }  /* if */
+  } else {
+    if (depth_innermost_function_scope != NO_SCOPE_DEPTH || is_friend_decl) {
+      /* A block-extern declaration or a friend declaration, with a prior
+         declaration that was not block-extern.  Record a reference to the
+         outer-scope symbol of the same name, but do not set the IL entity
+         referenced flag. */
+      record_symbol_reference(SRK_REFERENCE, other_decl, &loc->source_position,
+                              /*update_il_entry=*/FALSE);
+    }  /* if */
+  }  /* if */
+}  /* check_sym_of_other_decl */
+
+
 #if !EXTRA_SOURCE_POSITIONS_IN_IL && !NAMED_REGISTERS_ALLOWED && \
     !GENERATE_SOURCE_SEQUENCE_LISTS
 /*ARGSUSED*/ /* decl_pos_block is not used in some configurations. */
@@ -5528,12 +5562,8 @@ for use in generating cross-reference output describing this declaration.
       establish_block_extern_variable_correspondence(variable_ptr);
     }  /* if */
   } else if (!redeclaration) {
-    /* Record a reference to the outer-scope symbol of the same name,
-       but do not set the IL entity referenced flag. */
-    record_symbol_reference(SRK_REFERENCE,
-                            (a_symbol_ptr)source_corresp_ptr->assoc_info,
-                            &locator->source_position,
-                            /*update_il_entry=*/FALSE);
+    check_sym_of_other_decl(source_corresp_ptr, sym, locator,
+                            /*is_friend_decl=*/FALSE);
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
   if (gnu_mode) {
@@ -7179,46 +7209,8 @@ skip_overloading:;
          therefore be notified of its existence. */
       notify_correspondence_processing = TRUE;
     }  /* if */
-  } else {
-    if (depth_innermost_function_scope != NO_SCOPE_DEPTH ||
-        (!redeclaration && !template_function_specific_decl)) {
-      /* Record a reference to the outer-scope symbol of the same name,
-         but do not set the IL entity referenced flag. */
-      record_symbol_reference(SRK_REFERENCE,
-                              (a_symbol_ptr)source_corresp_ptr->assoc_info,
-                              &locator->source_position,
-                              /*update_il_entry=*/FALSE);
-    }  /* if */
-    if (!C_mode() &&
-        source_corresp_ptr->name_linkage ==
-                              (a_name_linkage_kind)nlk_external) {
-      /* An extern "C" declaration. */
-      a_symbol_ptr  other_sym = (a_symbol_ptr)(source_corresp_ptr->assoc_info);
-      if (depth_innermost_function_scope == NO_SCOPE_DEPTH &&
-          !is_function_def && !redeclaration &&
-          !template_function_specific_decl) {
-        /* If the original declaration was a block extern declaration, reset
-           the assoc_info pointer to refer to the current declaration -- which
-           should be the first non-block-extern declaration of the entity. */
-        if (sym_is_namespace_member(other_sym) ||
-            other_sym->decl_scope == scope_stack[DEPTH_OF_FILE_SCOPE].number) {
-          /* The symbol specified by the assoc_info pointer does not belong
-             to a function scope. */
-        } else {
-          a_boolean  saved_referenced_flag = source_corresp_ptr->referenced;
-          set_source_corresp(source_corresp_ptr, sym);
-          source_corresp_ptr->referenced = saved_referenced_flag;
-          /* Also set the parent scope to correspond to the current
-             declaration. */
-          if (sym_is_namespace_member(sym)) {
-            set_namespace_membership((a_symbol_ptr)NULL, source_corresp_ptr,
-                                     sym_parent_namespace(sym));
-          } else {
-            source_corresp_ptr->parent_scope = il_header.primary_scope;
-          }  /* if */
-        }  /* if */
-      }  /* if */
-    }  /* if */
+  } else if (!redeclaration) {
+    check_sym_of_other_decl(source_corresp_ptr, sym, locator, is_friend_decl);
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode) {
