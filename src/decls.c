@@ -5130,19 +5130,14 @@ emit an error.
 
 
 static void check_sym_of_other_decl(a_source_correspondence  *scp,
-                                    a_symbol_ptr             new_decl,
-                                    a_symbol_locator         *loc,
-                                    a_boolean                is_friend_decl)
+                                    a_symbol_ptr             new_decl)
 /*
 This routine is called when processing the declaration of a variable or
 function that was previously declared in another scope (this is technically
 not a "redeclaration").  scp points to the source correspondence entry of the
 declared entity; it's assoc_info field points to the symbol for the earlier
 declaration.  new_decl points to the symbol associated with the current
-declaration, and *loc describes some properties of the current declaration.
-is_friend_decl is TRUE if the current declaration is a friend declaration.
-Record cross-reference information as appropriate, and if needed update
-scp->assoc_info to point to new_decl.
+declaration.  Update scp->assoc_info to point to new_decl if needed.
 */
 {
   a_symbol_ptr  other_decl = (a_symbol_ptr)scp->assoc_info;
@@ -5167,15 +5162,6 @@ scp->assoc_info to point to new_decl.
       scp->assoc_info = NULL;
       set_source_corresp(scp, new_decl);
       scp->referenced = saved_referenced_flag;
-    }  /* if */
-  } else {
-    if (depth_innermost_function_scope != NO_SCOPE_DEPTH || is_friend_decl) {
-      /* A block-extern declaration or a friend declaration, with a prior
-         declaration that was not block-extern.  Record a reference to the
-         outer-scope symbol of the same name, but do not set the IL entity
-         referenced flag. */
-      record_symbol_reference(SRK_REFERENCE, other_decl, &loc->source_position,
-                              /*update_il_entry=*/FALSE);
     }  /* if */
   }  /* if */
 }  /* check_sym_of_other_decl */
@@ -5562,8 +5548,7 @@ for use in generating cross-reference output describing this declaration.
       establish_block_extern_variable_correspondence(variable_ptr);
     }  /* if */
   } else if (!redeclaration) {
-    check_sym_of_other_decl(source_corresp_ptr, sym, locator,
-                            /*is_friend_decl=*/FALSE);
+    check_sym_of_other_decl(source_corresp_ptr, sym);
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
   if (gnu_mode) {
@@ -7210,7 +7195,7 @@ skip_overloading:;
       notify_correspondence_processing = TRUE;
     }  /* if */
   } else if (!redeclaration) {
-    check_sym_of_other_decl(source_corresp_ptr, sym, locator, is_friend_decl);
+    check_sym_of_other_decl(source_corresp_ptr, sym);
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode) {

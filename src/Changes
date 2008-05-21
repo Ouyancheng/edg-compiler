@@ -1,5 +1,32 @@
 Version 3.11
 
+5/21/08  Linked declarations in different scopes
+
+Previously, when cross-reference output was enabled, the front end often
+emitted a "reference" line (code "R") in that output for a declaration in one
+scope that is linked to a previous declaration in another scope.  Now the "R"
+lines are no longer emitted for such cases, since the later declaration isn't
+really a "reference" at all.  (The leading "symbol-id" field of the output can
+still be used to associate the various declarations/definitions of an entity.)
+For example:
+
+  int x;  // Line 1: definition (code "D")
+  void f() {
+    extern int x;  // Line 3: declaration (code "d"); previously also
+  }                // reported as a reference (code "R").
+
+Furthermore, when a variable or function was first declared in a block-extern
+declaration, and later declared in file or namespace scope, the assoc_info
+pointer of the corresponding IL entry remained pointing to the symbol
+associated with the local declaration.  Now, it is updated to point to the
+nonlocal declaration.  For example:
+
+  void g() {
+    extern int y;  // The assoc_info pointer of y points to local symbol.
+  }
+  int y;  // The assoc_info pointer of y is now updated to point to the file
+          // scope symbol.
+
 5/21/08  Expanding macros in pragmas scanned as pp-tokens
 
 Formerly, the front end did not support macro expansion in pragmas scanned
