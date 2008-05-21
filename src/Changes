@@ -6,9 +6,7 @@ Previously, when cross-reference output was enabled, the front end often
 emitted a "reference" line (code "R") in that output for a declaration in one
 scope that is linked to a previous declaration in another scope.  Now the "R"
 lines are no longer emitted for such cases, since the later declaration isn't
-really a "reference" at all.  (The leading "symbol-id" field of the output can
-still be used to associate the various declarations/definitions of an entity.)
-For example:
+really a "reference" at all.  For example:
 
   int x;  // Line 1: definition (code "D")
   void f() {
