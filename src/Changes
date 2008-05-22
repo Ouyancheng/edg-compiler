@@ -1,5 +1,29 @@
 Version 3.11
 
+5/22/08  Conditional execution flag reset in some dynamic initializations
+
+As a result of the changes outlined in the Changes entry of 11/8/07,
+the inside_conditional_expression flag of a dynamic initialization may
+inadvertently be set to FALSE.  This occurred, for example, in cases
+where a default argument is set to an expression that contains a
+question mark operator, leading to cases where incorrect cleanup is
+performed as in this example:
+
+  struct S {
+    ~S();
+    int i;
+  };
+  bool flag = false;
+  void test(int foo = flag ? S().i : 0);  // previously generated an
+                                          // unconditional destruction
+                                          // for temporary (even in the case
+                                          // where no temporary was created).
+  void f() {
+    test();
+  }
+
+This is now fixed.
+
 5/21/08  Linked declarations in different scopes
 
 Previously, when cross-reference output was enabled, the front end often

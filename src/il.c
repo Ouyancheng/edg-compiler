@@ -9947,7 +9947,8 @@ options for the copy.  cblock is a control block for the copy.
        proper remapped address later. */
     add_copy_remap_entry((char *)dip, (char *)new_dip, cblock);
   }  /* if */
-  new_dip->inside_conditional_expression = FALSE;
+  /* In the absence of the CE_INSIDE_CONDITIONAL_EXPRESSION option,
+     the value of inside_conditional_expression is copied. */
   if (options & CE_INSIDE_CONDITIONAL_EXPRESSION) {
     new_dip->inside_conditional_expression = TRUE;
   }  /* if */
