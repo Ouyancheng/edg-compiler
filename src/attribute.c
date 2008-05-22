@@ -1561,7 +1561,7 @@ set to the position of the final right parenthesis.
     remove_stop_token(tok_rparen);
   }  /* while */
   return attributes;
-}  /* scan_attributes */
+}  /* f_scan_attributes */
 
 
 a_type_ptr get_type_with_mode(a_type_ptr        type,
