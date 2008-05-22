@@ -5150,6 +5150,8 @@ declaration.  Update scp->assoc_info to point to new_decl if needed.
      block-extern declaration. */
   other_decl_is_block_extern =
                !sym_is_namespace_member(other_decl) &&
+               other_decl->decl_scope !=
+                                    scope_stack[DEPTH_OF_FILE_SCOPE].number &&
                scope_depth_of_symbol(other_decl, &is_local) == NO_SCOPE_DEPTH;
   if (other_decl_is_block_extern) {
     if (depth_innermost_function_scope == NO_SCOPE_DEPTH) {
@@ -5162,6 +5164,22 @@ declaration.  Update scp->assoc_info to point to new_decl if needed.
       scp->assoc_info = NULL;
       set_source_corresp(scp, new_decl);
       scp->referenced = saved_referenced_flag;
+      if (!C_mode() &&
+          scp->name_linkage == (a_name_linkage_kind)nlk_external) {
+        /* An extern "C" declaration: Set the parent scope to that associated
+           with the current declaration.  For example:
+             namespace N { extern "C" { void f() { extern int g(); } } }
+             int g();  // Treat g as a member of the global namespace,
+                       // instead of a member of N.
+           Among other things, this avoids having the C++-generating back end
+           try to refer to N::g. */
+        if (sym_is_namespace_member(new_decl)) {
+          set_namespace_membership((a_symbol_ptr)NULL, scp,
+                                   sym_parent_namespace(new_decl));
+        } else {
+          scp->parent_scope = il_header.primary_scope;
+        }  /* if */
+      }  /* if */
     }  /* if */
   }  /* if */
 }  /* check_sym_of_other_decl */
