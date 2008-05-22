@@ -4171,6 +4171,21 @@ NULL.
           report_unreferenced(sym, error_code, severity);
         }  /* if */
       }  /* if */
+      if (symbol_for(var_ptr) != sym) {
+        /* If the symbol was referenced, ensure that the "primary symbol" for
+           the variable is similarly marked as referenced.  This matters for
+           code like the following:
+             static int i;  // Referenced through a block-extern declaration.
+             int f() { extern int i; return i; }
+        */
+        if (sym->referenced) symbol_for(var_ptr)->referenced = TRUE;
+        if (sym->variant.variable.value_has_been_set) {
+          symbol_for(var_ptr)->variant.variable.value_has_been_set = TRUE;
+        } /* if */
+        if (sym->variant.variable.used) {
+          symbol_for(var_ptr)->variant.variable.used = TRUE;
+        } /* if */
+      }  /* if */
 #if CHECKING
       scp = &var_ptr->source_corresp;
 #endif /* CHECKING */
