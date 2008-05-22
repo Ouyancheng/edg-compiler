@@ -5527,8 +5527,9 @@ See section 3.3.3.2 of the standard.
              underlying value. */
           operand.state = (an_operand_state)os_lvalue;
         }  /* if */
-         /* Note that the copy preserves ref_entries_list. */
+        /* Note that the copy preserves ref_entries_list. */
         copy_operand(&operand, result);
+        result->is_id_expression = FALSE; 
       } else {
         /* There was some error in the operand. */
         make_error_operand(result);
@@ -6935,8 +6936,9 @@ non-parenthesized class member access expressions, and for calls.
     if (expr != NULL) {
       /* An lvalue expression referring to a local variable. */
       check_assertion(is_an_lvalue(operand));
-      check_assertion(is_variable_address_node(expr) ||
-                      is_variable_node(expr));
+      check_assertion_str(
+                     is_variable_address_node(expr) || is_variable_node(expr),
+                     "decltype_from_operand: unexpected id expression");
       result = expr->variant.variable->type;
     } else if (is_constant_operand(operand)) {
       /* An id-expression resolving to a constant is either an lvalue

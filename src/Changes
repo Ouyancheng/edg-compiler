@@ -1,5 +1,17 @@
 Version 3.11
 
+5/22/08  Abort on certain decltype expressions in C++0x mode
+
+In C++0x mode, the front end could abort with an internal error (in expr.c)
+when processing a decltype construct whose argument was an indirection
+operator (unary "*") applied to an identifier.  For example:
+
+  void f(int *&p) {
+    decltype(*p) r = *p;  // Triggered an abort in C++0x mode.
+  }
+
+This is now fixed.
+
 5/22/08  Conditional execution flag reset in some dynamic initializations
 
 As a result of the changes outlined in the Changes entry of 11/8/07,
