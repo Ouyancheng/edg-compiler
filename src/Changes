@@ -1,5 +1,18 @@
 Version 3.11
 
+5/22/08  Invalid declarations of enum types with explicit underlying type
+
+In C++0x mode and in some Microsoft modes, an enum definition can include an
+explicit underlying type.  Such a construct must include a brace-enclosed list
+of enumerator constants.  However, when such a list was omitted, the front end
+failed to diagnose the error, and in some configuration aborted with an 
+internal error in set_src_seq_secondary_decl_fields (src_seq.c).  For example:
+
+  enum E : int;  // Now elicits a syntax error.  Previously accepted, or
+                 // an internal error was triggered.
+
+This is now fixed: A syntax error is issued.
+
 5/22/08  Abort on certain decltype expressions in C++0x mode
 
 In C++0x mode, the front end could abort with an internal error (in expr.c)
