@@ -983,10 +983,7 @@ typedef int an_expr_copy_options_set;
 			   description should be transferred to the copy. */
 #define CE_INSIDE_CONDITIONAL_EXPRESSION 0x4
 			/* TRUE if the expression is being copied into a
-			   context that is under a conditional operator,
-			   otherwise the value of inside_conditional_expression
-			   in the destination dynamic initialization is copied
-			   from the source. */
+			   context that is under a conditional operator. */
 #define CE_UNLINK_SOURCE_DESTRUCTIONS 0x8
 			/* TRUE if destructions in the source expression
 			   should be unlinked from their object lifetimes. */
