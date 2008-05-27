@@ -319,7 +319,9 @@ Flags to be set for any version that uses the C++ generating back end.
 /* Linux test version definitions. */
 #define INCLUDE_EDG_TEST_PRAGMAS 1
 #define INCLUDE_EDG_TEST_ATTRIBUTES 1
+#ifndef _lint
 #define FIL 1
+#endif /* ifndef _lint */
 #ifndef CHECKING
 #define CHECKING 1
 #endif /* ifndef CHECKING */
@@ -847,6 +849,16 @@ Enable recognition of Microsoft attributes for internal versions.
 #endif /* ifndef SUPPRESS_MICROSOFT_ATTRIBUTE_PROCESSING */
 
 #ifndef LOWER_FIXED_POINT
+#ifndef EMBEDDED_C_ALLOWED
+#define EMBEDDED_C_ALLOWED 0
+#endif /* ifndef EMBEDDED_C_ALLOWED */
+#ifndef FIXED_POINT_ALLOWED
+#if EMBEDDED_C_ALLOWED
+#define FIXED_POINT_ALLOWED 1
+#else /* !EMBEDDED_C_ALLOWED */
+#define FIXED_POINT_ALLOWED 0
+#endif /* EMBEDDED_C_ALLOWED */
+#endif /* ifndef FIXED_POINT_ALLOWED */
 #if !defined(CP_GEN_BE_VERSION) && (EMBEDDED_C_ALLOWED || FIXED_POINT_ALLOWED)
 #define LOWER_FIXED_POINT 1
 #endif /* !defined(CP_GEN_BE_VERSION) && ... */

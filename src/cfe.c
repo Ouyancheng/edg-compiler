@@ -53,7 +53,7 @@ called by the EDG_MAIN wrapper that performs error handling when
 MAKE_FRONT_END_CALLABLE is TRUE.
 */
 {
-  an_error_severity most_severe_diagnostic = es_none, diagnostic_level;
+  an_error_severity most_severe_diagnostic, diagnostic_level;
   a_timer	    start_time;
   a_timer	    fe_start_time;
   a_timer	    fe_end_time;
@@ -87,6 +87,7 @@ MAKE_FRONT_END_CALLABLE is TRUE.
   fe_one_time_init();
 #if COMPILE_MULTIPLE_SOURCE_FILES
   /* Loop if multiple source files are allowed. */
+  most_severe_diagnostic = es_none;
   do {
 #endif /* COMPILE_MULTIPLE_SOURCE_FILES */
     /* Get the front end starting time. */

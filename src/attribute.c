@@ -1071,7 +1071,7 @@ that do take arguments.
           goto error;
         }  /* if */
         /* Remember the value. */
-        attribute->variant.fmt_arg = param_number;
+        attribute->variant.fmt_arg = (int)param_number;
         /* All went well. */
         result = TRUE;
       }
@@ -1096,7 +1096,7 @@ that do take arguments.
            compared to the source form: I.e., "sentinel(0)" in the source is
            represented with sentinel_pos == 1 to reserve sentinel_pos == 0 as
            a representation for "no sentinel". */
-        attribute->variant.sentinel_pos = param_number+1;
+        attribute->variant.sentinel_pos = (int)(param_number+1);
         /* All went well. */
         result = TRUE;
       }
@@ -1176,7 +1176,7 @@ that do take arguments.
             goto error;
           }  /* if */
           /* Remember the value. */
-          ap->variant.nonnull_param = param_number;
+          ap->variant.nonnull_param = (int)param_number;
           if (curr_token == tok_comma) {
             /* Another parameter number follows: Allocate a separate attribute
                entry for it. */
@@ -3049,6 +3049,8 @@ really applies to the declarative region of a namespace definition; e.g.:
       case ak_visibility:
         apply_ELF_visibility_to_current_namespace(ap->variant.ELF_visibility);
         break;
+#else /* !GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
+      /*lint -e764*/
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
       default:
         pos_sy_warning(ec_attribute_does_not_apply, &ap->position,
@@ -3179,6 +3181,9 @@ Copy any GNU type attributes in type dst to type src.
 }  /* copy_gnu_type_attributes */
 
 
+#if !GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+/*ARGSUSED*/
+#endif /* !GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 void copy_class_attributes_to_variable(a_type_ptr      class_type,
                                        a_variable_ptr  var)
 /*
@@ -3196,6 +3201,9 @@ that should be propagated to its static data members.
 }  /* copy_class_attributes_to_variable */
 
 
+#if !GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+/*ARGSUSED*/
+#endif /* !GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 void copy_class_attributes_to_routine(a_type_ptr     class_type,
                                       a_routine_ptr  routine)
 /*

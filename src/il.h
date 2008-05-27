@@ -674,7 +674,7 @@ the macro expands to FALSE).
 #define var_has_named_register_storage_class(var)                            \
   ((var)->has_named_register_storage_class)
 #else /* !NAMED_REGISTERS_ALLOWED */
-#define var_has_named_register_storage_class(var)  FALSE
+#define var_has_named_register_storage_class(var)  /*lint --e(506)*/ FALSE
 #endif /* NAMED_REGISTERS_ALLOWED */
 
 extern a_boolean may_be_added_to_types_list(a_type_ptr     type_ptr,

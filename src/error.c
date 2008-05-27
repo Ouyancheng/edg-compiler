@@ -1897,7 +1897,7 @@ column for the caret in the second pass.
     goto end_of_loop;                                                 \
   } else {                                                            \
     if ((out_char != '\r') &&                                         \
-        (/*lint --e(506)*/ !pass_for_caret || (out_char) == '\t')) {  \
+        (/*lint --e(506,845)*/ !pass_for_caret || (out_char) == '\t')) {  \
       putcwdb(out_char);                                              \
     } else {                                                          \
       putcwdb(' ');                                                   \

@@ -1248,11 +1248,13 @@ to is the option letter.
           str_add_diag_info(ec_cl_ambiguous_fill_in, odp->keyword);
         }  /* if */
       }  /* for */
+      /* Note that this routine does not return. */
       end_command_line_error();
     }  /* if */
     odp = odp_found;
   }  /* if */
-  if (!match || ambiguous) odp = NULL;
+  check_assertion(!ambiguous);
+  if (!match) odp = NULL;
   /* Record the fact that this option kind has been used. */
   if (odp != NULL) option_kind_used[(int)odp->kind] = TRUE;
   return odp;

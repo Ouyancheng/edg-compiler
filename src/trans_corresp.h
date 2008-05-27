@@ -137,7 +137,7 @@ Macro that returns the trans_unit_corresp for an IL entry that has a source
 correspondence.
 */
 #if EXPENSIVE_CHECKING
-#define trans_unit_corresp_of(ptr)					\
+#define trans_unit_corresp_of(ptr) /*lint --e(666)*/			\
   (*(check_assertion(in_front_end), &(ptr)->source_corresp.trans_unit_corresp))
 #else /* !EXPENSIVE_CHECKING */
 #define trans_unit_corresp_of(ptr)					\

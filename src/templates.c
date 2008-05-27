@@ -1985,6 +1985,8 @@ in ps_arg_list.
        does not want one returned. */
     free_template_arg_list(*ps_arg_list);
   }  /* if */
+  /*lint --e{438} for spurious "last value assigned to local_arg_list
+    not used (LINTBUG). */
   return result;
 }  /* matches_partial_specialization */
 
@@ -1999,7 +2001,7 @@ specialized than templ_sym2.  This means that, for an instance that
 matches both templates, templ_sym1 should be preferred over templ_sym2.
 */
 {
-  a_boolean				result = FALSE;
+  a_boolean				result;
   a_symbol_ptr				prototype_sym1;
   a_template_symbol_supplement_ptr	tssp1;
  
@@ -2519,7 +2521,7 @@ might not be able to if the template itself has not yet been defined.
        normal nested classes of class templates. */
     if (template_sym->kind == (a_symbol_kind)sk_class_template &&
         tssp->variant.class_template.partial_specializations != NULL) {
-      a_symbol_ptr		partial_spec_sym = NULL;
+      a_symbol_ptr		partial_spec_sym;
       partial_spec_sym = check_partial_specializations(
                                        instance_sym, class_type, template_sym);
       if (partial_spec_sym != NULL) {
@@ -5222,7 +5224,8 @@ are deduced.
                                 (a_source_position*)NULL);
   }  /* if */
   /* For the nth template parameter find the nth template argument. */
-  for (tap = *templ_arg_list; pos > 1; pos--) tap = tap->next;
+  tap = *templ_arg_list;
+  for (; pos > 1; pos--) tap = tap->next;
   return tap;
 }  /* get_template_arg_by_list_pos */
 
@@ -5554,6 +5557,7 @@ list of a template function.  Returns TRUE if a match is found.
          that is the only reference to the template parameter from which
          it can be deduced).  Whether or not that succeeded, consider this
          a match for the time being. */
+      /*lint --e(838)*/
       match = TRUE;
     }  /* if */
   } else {
@@ -7416,8 +7420,6 @@ make_new_type:
             new_type = type;
           } else {
             /* Substitute the template arguments. */
-            tap = type->variant.class_struct_union.extra_info->
-                                                             template_arg_list;
             new_sym = copy_template_class_reference_with_substitution(
                             cssp->class_template, type, templ_arg_list,
                             templ_param_list, source_pos, options, copy_error);
@@ -8542,7 +8544,7 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
   a_routine_ptr                     templ_rout, rp;
   a_type_ptr			    rout_type = NULL;
   a_boolean			    is_member_decl;
-  a_type_ptr	      		    parent_class = NULL;
+  a_type_ptr	      		    parent_class;
   a_boolean			    trans_unit_pushed;
 
   db_enter(4, "make_template_function");
@@ -8565,6 +8567,8 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
      instance.  This is done to make sure a second reference to this routine
      is not attempted before the routine is completed. */
   defer_inline_function_fixup_and_instantiations++;
+  parent_class = templ_sym->is_class_member ? sym_parent_class(templ_sym)
+                                              : (a_type_ptr)NULL;
   rp = alloc_routine();
   {
     /* Create a routine type by rescanning the original declaration
@@ -8630,8 +8634,6 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
     is_member_decl =
          tssp->variant.function.decl_cache.decl_info->enclosing_scope->kind ==
                                           (a_scope_kind)sck_class_struct_union;
-    parent_class = templ_sym->is_class_member ? sym_parent_class(templ_sym)
-                                              : (a_type_ptr)NULL;
 #if DECL_MODIFIERS_IN_USE
     locator_position = pos_curr_token;
 #endif /* DECL_MODIFIERS_IN_USE */
@@ -9441,6 +9443,7 @@ and create a function instantiation entry to bind the two symbols together.
 	 only occur for unusable derived to base conversions (for which a
 	 warning is also issued) so the cost of the extra test should not be
 	 significant. */
+      /*lint --e{446} sym modified in loop (LINTBUG) */
       for (sym = corresp_prototype_tag_sym->
                                variant.class_struct_union.extra_info->symbols;
            sym != NULL;
