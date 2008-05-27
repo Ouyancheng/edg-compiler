@@ -464,6 +464,14 @@ The given entity should have a source correspondence.
             rank += 32;
           }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          if ((routine->decl_modifiers & DM_DLLIMPORT) == 0) {
+            /* A non-dllimport definition should displace a dllimport
+               definition (the latter is only possible for inline
+               functions). */
+            rank += 64;
+          }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         }  /* if */
         if (routine->is_specialized) {
           rank += 8;

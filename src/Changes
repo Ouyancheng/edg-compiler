@@ -1,5 +1,22 @@
 Version 3.11
 
+5/22/08  dllimport and multi-translation-unit mode
+
+When simultaneously processing multiple translation units in Microsoft mode,
+the front end now prefers a non-dllimport inline function definition for
+inclusion in the final IL.  For example:
+
+  // Primary source file:
+  __declspec(dllimport) __inline int g() { return 1; }
+  void f1() { g(); }
+
+  // Secondary source file:
+  __declspec(dllexport) __inline int g() { return 2; }
+  void f2() { g(); }
+
+Now the definition of the secondary source file (in this example) will be the
+one retained in the final IL.
+
 5/22/08  Invalid declarations of enum types with explicit underlying type
 
 In C++0x mode and in some Microsoft modes, an enum definition can include an
