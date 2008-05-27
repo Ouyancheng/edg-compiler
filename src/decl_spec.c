@@ -4296,10 +4296,13 @@ describes Microsoft attributes preceding the enum specifier (if any).
     (void)get_token();
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (!C_mode() && microsoft_mode) {
+  if (microsoft_mode) {
     a_boolean  local_err;
     /* Scan any __declspec decl-modifiers "as if" this were a class.  Only
        uuid(...) specifiers will be recorded however. */
+    if (C_mode() && curr_token == tok_declspec) {
+      diagnostic(es_discretionary_error, ec_enum_declspec_in_c_mode);
+    }  /* if */
     clear_extended_decl_info_block(extended_decl_info);
     scan_extended_decl_modifiers(/*is_class_decl=*/TRUE,
                                  /*is_member_decl=*/FALSE,
