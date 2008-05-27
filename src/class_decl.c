@@ -1651,6 +1651,7 @@ nested class.
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     /* Go through the routine fixup entries to scan inline function bodies. */
+    /*lint --e{446} rfp modified in loop (LINTBUG) */
     for (rfp = cssp->routine_fixup_list; rfp != NULL; rfp = next_rfp) {
       a_boolean	in_class_specialization =
                    rfp->class_type->
@@ -3278,6 +3279,7 @@ Any diagnostics are issued at the given position.
       /* Inner loop:  go thorough all the symbols for this name, looking for
          one which represents a member function (overloaded or simple) from
          the base class under examination. */
+      /*lint --e{446} sym modified in loop (LINTBUG) */
       for (sym = symbol_list; sym != NULL; sym = sym_next) {
         sym_next = sym->next;
         sym_for_override_registry = sym;

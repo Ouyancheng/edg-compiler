@@ -9044,6 +9044,7 @@ with the original type entry.
   a_vla_dimension_ptr  vlap = NULL;
 
   if (innermost_function_scope != NULL) {
+    /*lint --e{446} vlap modified in loop (LINTBUG) */
     for (vlap = innermost_function_scope->vla_dimensions;
          vlap != NULL;
          vlap = vlap->next) {

@@ -2036,6 +2036,7 @@ projection symbol.
                and then to branch back to the current code.  In other words,
                only issue a warning if we're sure the variable cannot have
                been set. */
+            /*lint --e{446} ssep modified in loop */
             for (ssep = &scope_stack[decl_scope_level]; ; --ssep) {
               check_assertion(ssep != &scope_stack[0]);
               if (ssep->kind == (a_scope_kind)sck_function) {

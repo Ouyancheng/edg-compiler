@@ -6309,6 +6309,7 @@ and therefore might be a projection symbol.  If there is an ambiguity return
   reduce_projection_symbol_to_fundamental_symbol(sym);
   is_overloaded = (sym->kind == (a_symbol_kind)sk_overloaded_function);
   if (is_overloaded) sym = sym->variant.overloaded_function.symbols;
+  /*lint --e{446} sym modified in loop */
   for (; sym != NULL;
        sym = ABI_COMPATIBILITY_VERSION < 311
            ? (is_overloaded ? sym->next : NULL)
@@ -6546,6 +6547,7 @@ may an overload symbol instead.
         is_overloaded = FALSE;
       }  /* if */
       any_template_seen = FALSE;
+      /*lint --e{446} sym modified in loop (LINTBUG) */
       for (; sym != NULL; sym = is_overloaded ? sym->next : NULL) {
         if (sym->kind == (a_symbol_kind)sk_projection) {
           /* An overload set can contain a projection symbol as the result of
@@ -9513,6 +9515,7 @@ qualified reference either to A::i or to C::i will pick up A::i).
      its fundamental symbol. */
   reduce_projection_symbol_to_fundamental_symbol(sym1);
   /* Loop through the base classes of the class of which sym1 is a member. */
+  /*lint --e{446} bcp modified in loop */
   for (bcp = base_classes_of(sym_parent_class(sym1));
        bcp != NULL;
        bcp = next_bcp) {

@@ -5167,6 +5167,7 @@ is set to TRUE.
          for some other reason (for example: one is a function template
          and the other is not). */
       best_cfp = NULL;
+      /*lint --e{446} cfp modified in loop */
       for (cfp = candidates; cfp != NULL; cfp = cfp->next) {
         /* Look at each function in the best-match set, and see if any
            of those are better than the others. */
@@ -8573,6 +8574,7 @@ This routine is only used in C++ mode.
      end of the normal list, if we have a specific dest_type go through the
      list of template conversion functions. */
   template_conversions_started = FALSE;
+  /*lint --e{446} slep modified in loop */
   for (slep = symbol_supplement_for_class(source_type)->conversion_list;
        ;
        slep = slep->next) {

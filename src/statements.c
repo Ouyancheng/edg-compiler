@@ -1036,6 +1036,7 @@ to point to the lifetime promote_to.
   a_control_flow_descr_ptr  cfdp;
   a_statement_ptr           sp;
 
+  /*lint --e{446} cfdp modified in loop */
   for (cfdp = block_cfdp->next; cfdp != NULL; cfdp = cfdp->next) {
     switch (cfdp->kind) {
       case cfdk_goto:
@@ -4525,6 +4526,7 @@ issue a diagnostic complaining about skipping over an initialization.
     start_cfdp = end_cfdp->parent->next;
   }  /* if */
   cfdp = start_cfdp;
+  /*lint --e{446} cfdp modified in loop */
   for (cfdp = start_cfdp; ; cfdp = cfdp->next) {
 #if DEBUG
 #if CHECKING

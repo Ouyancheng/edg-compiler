@@ -5676,6 +5676,7 @@ primary_function is NULL.
   int times_started_over = 0;
 #endif /* CHECKING */
 
+  /*lint --e{446} primary_function modified in loop */
   for (;; primary_function = primary_function->next) {
     if (primary_function == NULL) {
 #if CHECKING
@@ -15059,6 +15060,7 @@ end_local_types for later processing.
 {
   a_type_ptr next_type;
 
+  /*lint --e{446} type modified in loop (LINTBUG) */
   for (; type != NULL; type = next_type) {
     next_type = type->next;
     if (type->kind == (a_type_kind)tk_typeref &&

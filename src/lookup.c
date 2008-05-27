@@ -3349,6 +3349,7 @@ C and C++.
 #if DEBUG
       num_fast_id_lookups++;
 #endif /* DEBUG */
+      /*lint --e{446} sym modified in loop (LINTBUG) */
       for (sym = active_symbol_list; sym != NULL; sym = sym->next) {
         /* See if the symbol is acceptable (e.g., it's a class if it
            must be one). */
@@ -4021,6 +4022,7 @@ bypass_inactive_search:
          is used when the qualification is not really necessary, i.e.,
          when we're inside the class mentioned in the qualifier. */
       type_tag_symbol = NULL;
+      /*lint --e{446} sym modified in loop (LINTBUG) */
       for (sym = symbol_list_from_locator(*locator);
            sym != NULL;
            sym = sym->next) {
@@ -4729,6 +4731,7 @@ namespace_qualified_id_lookup.
        active symbols list.  This would be used during the initial
        definition of the namespace. */
     type_tag_symbol = NULL;
+    /*lint --e{446} sym modified in loop (LINTBUG) */
     for (sym = symbol_list_from_locator(*locator);
          sym != NULL;
          sym = sym->next) {
@@ -4912,6 +4915,7 @@ file scope.
     /* Search for a symbol in the file scope.  First look on the active
        list. */
     a_symbol_ptr	type_tag_symbol = NULL;
+    /*lint --e{446} sym modified in loop (LINTBUG) */
     for (sym = symbol_list_from_locator(*locator);
          sym != NULL;
          sym = sym->next) {

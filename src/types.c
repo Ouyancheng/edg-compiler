@@ -1419,6 +1419,7 @@ dimensioned array type.
   a_boolean  result = FALSE;
 
   if (tp != NULL && upc_dynamic_threads()) {
+    /*lint --e{446} tp modified in loop */
     for (; tp != NULL && is_array_type(tp);
            tp = tp->variant.array.element_type) {
       tp = skip_typerefs(tp);
@@ -9396,6 +9397,7 @@ Return TRUE if base_class_type is a virtual base class of derived_type.
   a_base_class_ptr  bcp;
 
   /* Loop through the base classes. */
+  /*lint --e{446} bcp modified in loop (LINTBUG) */
   for (bcp = base_classes_of(derived_type); bcp != NULL; bcp = bcp->next) {
     if (same_entities(bcp->type, base_class_type)) {
       /* Found it if it's virtual. */

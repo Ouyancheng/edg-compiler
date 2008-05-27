@@ -1231,6 +1231,7 @@ type "type".
     }  /* if */
   } else {
     /* Output the parameter types. */
+    /*lint --e{446} param modified in loop */
     for (; param != NULL; param = param->next) {
 #if !IA64_ABI
       /* See if the parameter type is the same as any existing parameter
@@ -4095,6 +4096,7 @@ Add to the mangled name the encoding for the type "type".
   /* Walk through any typerefs above the type.  Remember type qualifiers
      and skip down to the "real" underlying type. */
   qualifiers = 0;
+  /*lint --e{446} type modified in loop (LINTBUG) */
   for (; type->kind == (a_type_kind)tk_typeref;
        type = type->variant.typeref.type) {
     /* Remember type qualifiers encountered. */

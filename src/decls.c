@@ -2082,6 +2082,7 @@ called by id_linkage.
       /* Go through the list of functions and look for type compatibility.
          If types_are_compatible returns TRUE, this is a redeclaration.
          If no type match is found, this is a candidate for overloading. */
+      /*lint --e{446} other_decl modified in loop (LINTBUG) */
       for (; other_decl != NULL;
              other_decl = is_list ? other_decl->next : NULL) {
         a_type_ptr  tp;

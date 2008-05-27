@@ -941,6 +941,7 @@ is within a function body.
     /* In certain unusual cases (e.g., when an entity is first seen in a
        friend declaration) it is necessary to compute the scope depth by
        running through the scope stack. */
+    /*lint --e{446} scope_depth modified in loop (LINTBUG) */
     for (scope_depth = depth_scope_stack; ; --scope_depth) {
       a_scope_kind	kind;
       if (scope_depth < DEPTH_OF_FILE_SCOPE) {
@@ -3433,6 +3434,7 @@ template_sym is the template that is being instantiated.
   /* Find the innermost instantiation scope, but stop searching
      if we're inside a function. */
   instantiation_ssep = &scope_stack[depth_innermost_instantiation_scope];
+  /*lint --e{446} ssep modified in loop (LINTBUG) */
   for (ssep = &scope_stack[depth_scope_stack]; ssep != instantiation_ssep;
        ssep = previous_scope_of(ssep)) {
     if (ssep->kind == (a_scope_kind)sck_function) {
