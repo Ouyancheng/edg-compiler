@@ -1,5 +1,30 @@
 Version 3.11
 
+5/27/08  Incorrect setting of assoc_operator_new_routine
+
+In versions in which NEW_CAN_BE_FOLDED_INTO_CTOR is TRUE, the value
+returned by find_default_operator_new_sym, which is used to set the
+assoc_operator_new_routine field of the class type supplement, could
+incorrectly be NULL.  This could occur when the operator new symbol for
+a given class is an overload set containing projection symbols.  This
+is now fixed when ABI_COMPATIBILITY_VERSION is >= 311.
+
+  struct A {
+    void *operator new(unsigned int,int);
+  };
+  struct B {
+    void *operator new(unsigned int);
+    void *operator new(unsigned int,float);
+  };
+  struct C : A,B {
+    using B::operator new;
+    using A::operator new;
+    C(){}
+  };
+  int main() {
+    C* p = new C;
+  }
+
 5/27/08  Internal error copying default argument during class instantiation
 
 An internal error could occur in copy_routine_type_default_arguments

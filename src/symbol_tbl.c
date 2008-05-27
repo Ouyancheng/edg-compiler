@@ -6303,12 +6303,17 @@ and therefore might be a projection symbol.  If there is an ambiguity return
   a_boolean        is_overloaded;
   a_param_type_ptr ptp;
   a_symbol_ptr     default_sym = NULL;
+  a_symbol_ptr     next_sym;
 
   *ambiguous = FALSE;
   reduce_projection_symbol_to_fundamental_symbol(sym);
   is_overloaded = (sym->kind == (a_symbol_kind)sk_overloaded_function);
   if (is_overloaded) sym = sym->variant.overloaded_function.symbols;
-  for (; sym != NULL; sym = is_overloaded ? sym->next : NULL) {
+  for (; sym != NULL;
+       sym = ABI_COMPATIBILITY_VERSION < 311
+           ? (is_overloaded ? sym->next : NULL)
+           : next_sym) {
+    next_sym = is_overloaded ? sym->next : NULL;
     if (sym->kind == (a_symbol_kind)sk_projection) {
       /* An overload set can contain a projection symbol as the result of a
          using declaration. */
