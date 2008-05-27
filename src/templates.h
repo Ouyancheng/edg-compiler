@@ -619,6 +619,9 @@ extern void check_specialization_scope(a_symbol_ptr	     sym,
 
 extern void templates_one_time_init(void);
 
+extern void set_instantiation_required_for_template_class_members
+						(a_type_ptr	class_type);
+
 extern void templates_trans_unit_init(void);
 
 extern void templates_init(void);

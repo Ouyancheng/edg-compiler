@@ -970,7 +970,7 @@ template instance pointer.  Otherwise, return NULL.
 }  /* template_instance_for_symbol */
 
 
-static void set_instantiation_required_for_template_class_members
+void set_instantiation_required_for_template_class_members
 						(a_type_ptr	class_type)
 /*
 Calls update_instantiation_required_flag for all member functions and
@@ -1018,10 +1018,9 @@ itself recursively to process classes nested within this class.
         a_boolean	flag_value = FALSE;
 #if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
         { a_routine_ptr	templ_rout;
-          /* The instantiation required flag is set for virtual functions
-             in g++ mode.  It is also set when generating class template
-             instantiation information in the source sequence lists.  This
-             is necessary when using the C++ generating back end in this
+          /* The instantiation required flag is set when generating class
+             template instantiation information in the source sequence lists.
+             This is necessary when using the C++ generating back end in this
              mode because inline virtual functions must have definitions. */
           templ_rout = sym->variant.routine.ptr;
           if (templ_rout->is_virtual && templ_rout->is_inline) {
@@ -2751,7 +2750,6 @@ might not be able to if the template itself has not yet been defined.
          This causes the correspondence of the class members to be
          established. */
       establish_class_instantiation_corresp(class_type);
-      set_instantiation_required_for_template_class_members(class_type);
       if (defer_function_prototype_instantiations) {
         /* Restore the declaration sequence number if it was updated above. */
         decl_seq_counter = saved_decl_seq_counter;

@@ -1,5 +1,26 @@
 Version 3.11
 
+5/27/08  Internal error copying default argument during class instantiation
+
+An internal error could occur in copy_routine_type_default_arguments
+in versions in which CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+is TRUE (this is typically true in certain C++-generating back end
+configurations).  The error occurred when a class template contained a
+virtual member function that was declared with the "inline" keyword.
+Now fixed.
+
+  template <class T> struct A {
+    void f(const int param=0);
+    inline virtual void ttt() { f(); }
+  };
+  template <class T> class B {
+    void g(A<T> *a);
+  };
+  template<class T> void B<T>::g(A<T>* a) {
+    a->f();
+  }
+  template class B<int>;
+
 5/22/08  dllimport and multi-translation-unit mode
 
 When simultaneously processing multiple translation units in Microsoft mode,
