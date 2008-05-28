@@ -6311,6 +6311,7 @@ and therefore might be a projection symbol.  If there is an ambiguity return
   if (is_overloaded) sym = sym->variant.overloaded_function.symbols;
   /*lint --e{446} sym modified in loop */
   for (; sym != NULL;
+       /*lint --e(506)*/
        sym = ABI_COMPATIBILITY_VERSION < 311
            ? (is_overloaded ? sym->next : NULL)
            : next_sym) {
