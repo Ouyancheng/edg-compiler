@@ -5495,6 +5495,19 @@ Check for a following newline character.
 
 #endif /* ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR */
 
+
+/*
+Macro that returns TRUE if "ch" is a carriage return and we are in a mode
+in which a GNU cr or cr/lf terminator should be accepted.
+*/
+#if ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR
+#define is_gnu_carriage_return_line_terminator(ch)			\
+  ((ch) == '\r' && gnu_mode)
+#else /* !ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR */
+#define is_gnu_carriage_return_line_terminator(ch) FALSE /*lint --e(506,845)*/
+#endif /* ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR */
+
+
 a_boolean read_logical_source_line(a_boolean do_pop_on_end_of_file,
                                    a_boolean extend_current_line)
 /*
@@ -5670,16 +5683,22 @@ for the GNU C multiline string extension.
        algorithm on anything out of the ordinary.  The exits out are
        by simple goto, to keep even non-executed code out of the inner
        loop, to improve pipelining. */
-    if (ch != '\n') {
+    /* Check for an empty line. */
+    if (ch == '\n') {
+      /* A normal newline line terminator. */
+#if ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR
+    } else if (is_gnu_carriage_return_line_terminator(ch)) {
+      /* In GNU mode a line can be terminated by a carriage return, or
+         a carriage return followed by a newline.  Look for a newline
+         following this carriage return. */
+      process_gnu_carriage_return();
+#endif /* ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR */
+    } else {
       /* Use local variables in the inner loop, because some compilers
          have trouble optimizing this otherwise. */
       register char *local_loc_in_line = loc_in_line;
       register int local_ch = ch;
       do {
-#if ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR
-        /* In GNU mode, carriage return is a line terminator. */
-        if (local_ch == '\r' && gnu_mode) break;
-#endif /* ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR */
         /* Check for question marks.  Presence of 2 in a row suggests there
            may be a trigraph in the line. */
         if (local_ch == '?') {
@@ -5721,11 +5740,12 @@ for the GNU C multiline string extension.
           goto partial_final_line;
         }  /* if */
         /* Check for newline, which ends loop. */
-      } while (local_ch != '\n');
+      } while (local_ch != '\n' &&
+               !is_gnu_carriage_return_line_terminator(local_ch));
       ch = local_ch;
       loc_in_line = local_loc_in_line;
 #if ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR
-      if (ch == '\r' && gnu_mode) {
+      if (is_gnu_carriage_return_line_terminator(ch)) {
         /* In GNU mode a line can be terminated by a carriage return, or
            a carriage return followed by a newline.  Look for a newline
            following this carriage return. */
@@ -5934,14 +5954,19 @@ line_loop:
                                         ftell(curr_ise->file) - 1);
   }  /* if */
   /* Check for an empty line. */
-  if (ch != '\n') {
+  if (ch == '\n') {
+    /* A normal newline line terminator. */
+#if ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR
+  } else if (is_gnu_carriage_return_line_terminator(ch)) {
+    /* In GNU mode a line can be terminated by a carriage return, or
+       a carriage return followed by a newline.  Look for a newline
+       following this carriage return. */
+    process_gnu_carriage_return();
+#endif /* ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR */
+  } else {
     /* Process characters until a newline is read. */
     do {
       /* Process one character (ch). */
-#if ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR
-      /* In GNU mode, carriage return is a line terminator. */
-      if (ch == '\r' && gnu_mode) break;
-#endif /* ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR */
       curr_column++;
       /* Check for trigraphs.  A trigraph is two "?"s followed by another
          character. */
@@ -6062,9 +6087,9 @@ entry_for_expand_buffer:
         ch = getc_curr_input_stream();
       }  /* if */
       if (is_eof_char(ch)) goto partial_final_line;
-    } while (ch != '\n');
+    } while (ch != '\n' && !is_gnu_carriage_return_line_terminator(ch));
 #if ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR
-    if (ch == '\r' && gnu_mode) {
+    if (is_gnu_carriage_return_line_terminator(ch)) {
       /* In GNU mode a line can be terminated by a carriage return, or
          a carriage return followed by a newline.  Look for a newline
          following this carriage return. */

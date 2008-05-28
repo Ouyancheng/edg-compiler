@@ -1,5 +1,20 @@
 Version 3.11
 
+5/28/08  GNU compatibility: incorrect handling of line splice with
+         carriage return/line feed line termination
+
+When ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR is TRUE and when using GNU
+mode, a file with carriage return followed by line feed line termination
+did not work properly when a line with a line splice was followed by an
+empty line.  Now fixed.  The example below resulted in a spurious error
+("x undefined").
+
+  // comment \\
+
+  int x;
+  int *y = &x;
+
+
 5/27/08  Incorrect setting of assoc_operator_new_routine
 
 In versions in which NEW_CAN_BE_FOLDED_INTO_CTOR is TRUE, the value
