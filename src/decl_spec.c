@@ -4601,7 +4601,6 @@ describes Microsoft attributes preceding the enum specifier (if any).
   }  /* if */
   if (is_definition) {
     a_source_position  end_pos;
-    add_stop_token(tok_semicolon);
     /* We associate a curr-construct pragma with this enum type only if this
        is a definition.  Otherwise this is assumed to be part of a declaration
        of something else -- to which the pragma should be bound. */
@@ -4960,7 +4959,6 @@ describes Microsoft attributes preceding the enum specifier (if any).
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     /* Check for and pass over the closing "}". */
     (void)required_token(tok_rbrace, ec_exp_rbrace);
-    remove_stop_token(tok_semicolon);
     if (is_scoped_enum) {
       pop_scope();
       enum_type->variant.integer.enum_info.assoc_scope->constants =
