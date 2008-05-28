@@ -244,6 +244,13 @@ typedef int a_set_instance_required_options_set;
 			   with the earlier value.  This flag forces the
 			   instance required flag to be cleared. */
 
+#define SIR_INLINE_DEFINITION_NEEDED 0x4
+			/* This is used in certain C++-generating back end
+			   configurations to indicate that an instantiation
+			   is required because the C++-generating back end
+			   requires a definition in order for correct code
+			   to be generated. */
+
 /*
 Structure used to represent the information found an in export information
 file.
@@ -618,9 +625,6 @@ extern void check_specialization_scope(a_symbol_ptr	     sym,
 				       a_source_position     *pos);
 
 extern void templates_one_time_init(void);
-
-extern void set_instantiation_required_for_template_class_members
-						(a_type_ptr	class_type);
 
 extern void templates_trans_unit_init(void);
 

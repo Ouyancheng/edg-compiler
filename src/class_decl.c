@@ -1972,18 +1972,10 @@ the fixups have not yet been done.
       inline_function_class_fixup_list = NULL;
       inline_function_class_fixup_list_tail = NULL;
       for (; cfp != NULL; cfp = next_cfp) {
-        a_type_ptr	class_type = cfp->class_type;
         /* Make sure we are in the right translation unit. */
         check_trans_unit_for_fixup(cfp, &trans_unit_pushed);
-        inline_function_fixup_for_class(class_type,
+        inline_function_fixup_for_class(cfp->class_type,
                                         cfp->is_template_instantiation);
-        /* If this is a real template instantiation, set the instance
-           required flag for the class members. */
-        if (class_type->variant.class_struct_union.is_template_class &&
-            !class_type->variant.class_struct_union.is_specialized &&
-            !class_type->variant.class_struct_union.is_nonreal_class) {
-          set_instantiation_required_for_template_class_members(class_type);
-        }  /* if */
         next_cfp = cfp->next_in_inline_function_list;
         free_class_fixup(cfp);
       }  /* for */

@@ -970,7 +970,7 @@ template instance pointer.  Otherwise, return NULL.
 }  /* template_instance_for_symbol */
 
 
-void set_instantiation_required_for_template_class_members
+static void set_instantiation_required_for_template_class_members
 						(a_type_ptr	class_type)
 /*
 Calls update_instantiation_required_flag for all member functions and
@@ -1015,7 +1015,8 @@ itself recursively to process classes nested within this class.
       } else {
         /* Simply add the function to the instantiation list, without setting
            the flag. */
-        a_boolean	flag_value = FALSE;
+        a_boolean				flag_value = FALSE;
+	a_set_instance_required_options_set	options = SIR_DEFER_INLINE;
 #if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
         { a_routine_ptr	templ_rout;
           /* The instantiation required flag is set when generating class
@@ -1025,10 +1026,11 @@ itself recursively to process classes nested within this class.
           templ_rout = sym->variant.routine.ptr;
           if (templ_rout->is_virtual && templ_rout->is_inline) {
             flag_value = TRUE;
+            options |= SIR_INLINE_DEFINITION_NEEDED;
           }  /* if */
         }
 #endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
-        set_instance_required(sym, flag_value, SIR_DEFER_INLINE);
+        set_instance_required(sym, flag_value, options);
       }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
@@ -2750,6 +2752,7 @@ might not be able to if the template itself has not yet been defined.
          This causes the correspondence of the class members to be
          established. */
       establish_class_instantiation_corresp(class_type);
+      set_instantiation_required_for_template_class_members(class_type);
       if (defer_function_prototype_instantiations) {
         /* Restore the declaration sequence number if it was updated above. */
         decl_seq_counter = saved_decl_seq_counter;
@@ -19190,9 +19193,12 @@ unless the SIR_CLEAR_VALUE flag is set in "options".
 	 instead of just adding it to the end of the list.  This makes
 	 it possible to detect runaway recursive instantiations that
 	 are very difficult to detect when the instantiations are done
-	 serially. */
+	 serially.  This is suppressed when the SIR_INLINE_DEFINITION_NEEDED
+         flag is passed in as the instantiation would be done too early in
+         some cases (before class fixup has been done). */
       if (in_instantiation_wrapup) {
         if (!mip->already_instantiated &&
+            (options & SIR_INLINE_DEFINITION_NEEDED) == 0 &&
             should_be_instantiated(tip, /*implicit_inclusion_okay=*/FALSE)) {
           /* Implicit inclusion is not done for "on the fly" instantiations
              because the includes cannot be processed in the middle of
