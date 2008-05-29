@@ -1,5 +1,17 @@
 Version 3.11
 
+5/29/08  Address of GNU register variable taken in static initializer
+
+The IL for a reference to a file-scope variable with a GNU register
+name specification in some cases took the address of the variable
+gratuitously.  Now fixed.
+
+  typedef struct {
+    unsigned int word;
+  } A;
+  register A vara __asm("ax");
+  int x = vara.word;  // Formerly took address of vara.word, then added "*"
+
 5/28/08  GNU compatibility: incorrect handling of line splice with
          carriage return/line feed line termination
 

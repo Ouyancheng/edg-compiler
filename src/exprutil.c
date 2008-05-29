@@ -7441,6 +7441,32 @@ extension).
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
+static a_boolean is_register_variable(a_variable_ptr variable)
+/*
+Return TRUE if the indicated variable has some kind of register attribute,
+whether the standard C/C++ register storage class, a GNU register name,
+or an embedded C register name.
+*/
+{
+  a_boolean is_reg = FALSE;
+
+  if (variable->storage_class == (a_storage_class)sc_register) {
+    is_reg = TRUE;
+#if GNU_EXTENSIONS_ALLOWED || NAMED_REGISTERS_ALLOWED
+  } else {
+    if (variable->asm_name_is_valid) {
+      /* variable->asm_name_or_reg.name, if non-NULL, indicates an asm
+         name for the variable, but that's not a register name. */
+    } else {
+      /* A register variable (GNU or Embedded C named) has no address. */
+      is_reg = TRUE;
+    }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED || NAMED_REGISTERS_ALLOWED */
+  }  /* if */
+  return is_reg;
+}  /* is_register_variable */
+
+
 #if !MICROSOFT_EXTENSIONS_ALLOWED
 /*ARGSUSED*/  /* <-- in_expr_proc is not used in that case. */
 #endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
@@ -7469,6 +7495,11 @@ expression processing.
     const_addr = FALSE;
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || THREAD_LOCAL_STORAGE_SPECIFIER_... */
+  if (const_addr && C_mode() && is_register_variable(variable)) {
+    /* A register variable has no address in C.  (In C++, you can take the
+       address of a register variable.) */
+    const_addr = FALSE;
+  }  /* if */
   return const_addr;
 }  /* variable_has_constant_address */
 
@@ -7533,7 +7564,9 @@ FALSE means the reference is compiler-generated).
     make_expression_operand(var_rvalue_expr(variable), variable_type,
                             result);
   } else {
-    if (!variable_has_constant_address(variable, /*in_expr_proc=*/TRUE)) {
+    if (!variable_has_constant_address(variable, /*in_expr_proc=*/TRUE) ||
+        (!C_mode() &&  /* variable_has_constant_address already did C mode. */
+         is_register_variable(variable))) {
       /* Register variables do not have addresses, and auto variables
          do not have constant addresses, so use a variable-address
          expression instead of a constant.  Note that one can use
