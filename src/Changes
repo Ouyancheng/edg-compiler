@@ -17711,10 +17711,10 @@ specifiers) the front end used to emit an error if a named-register variable
 was declared in block scope while another declaration of the same variable had
 already been seen.  For example:
 
-  register _EDG_REG_1 x;
+  register _EDG_REG_1 char x;
   void f() {
-    register _EDG_REG_1 x;  // Previously an error; now accepted as referring
-  }                         // to the file scope variable.
+    register _EDG_REG_1 char x;  /* Previously an error; now accepted as  */
+  }                              /* referring to the file scope variable. */
 
 This is now fixed.
 
