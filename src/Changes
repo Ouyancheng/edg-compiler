@@ -1,5 +1,13 @@
 Version 3.11
 
+5/29/08  Cast from pointer to integral in template argument inside template
+
+The existing extension that allows casting from an integer constant to
+a pointer and back to an integral type within a template argument has
+been extended to also allow the case where the underlying constant
+is based on a template parameter.  This comes up in expansions of
+offsetof used within template arguments (specifically, with MSVC++ 8).
+
 5/29/08  Address of GNU register variable taken in static initializer
 
 The IL for a reference to a file-scope variable with a GNU register

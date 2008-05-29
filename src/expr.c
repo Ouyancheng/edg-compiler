@@ -10977,8 +10977,10 @@ expressions allow only certain limited casts).
         /* Okay. */
       } else if (is_pointer_type(source_type) &&
                  is_constant_operand(operand) &&
-                 operand->variant.constant.kind ==
-                                            (a_constant_repr_kind)ck_integer) {
+                 (operand->variant.constant.kind ==
+                                    (a_constant_repr_kind)ck_integer ||
+                  operand->variant.constant.kind ==
+                                    (a_constant_repr_kind)ck_template_param)) {
         /* As an extension, allow pointer --> int for pointer constants
            that come from casting an integer constant to a pointer type,
            as in (int)(char *)1. */
