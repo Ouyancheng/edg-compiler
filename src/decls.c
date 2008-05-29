@@ -5136,7 +5136,7 @@ static void check_sym_of_other_decl(a_source_correspondence  *scp,
 This routine is called when processing the declaration of a variable or
 function that was previously declared in another scope (this is technically
 not a "redeclaration").  scp points to the source correspondence entry of the
-declared entity; it's assoc_info field points to the symbol for the earlier
+declared entity; its assoc_info field points to the symbol for the earlier
 declaration.  new_decl points to the symbol associated with the current
 declaration.  Update scp->assoc_info to point to new_decl if needed.
 */
