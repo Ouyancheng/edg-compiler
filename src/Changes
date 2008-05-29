@@ -42,7 +42,7 @@ is now fixed when ABI_COMPATIBILITY_VERSION is >= 311.
 
 5/27/08  Internal error copying default argument during class instantiation
 
-An internal error could occur in copy_routine_type_default_arguments
+An internal error could occur in copy_routine_type_default_args
 in versions in which CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
 is TRUE (this is typically true in certain C++-generating back end
 configurations).  The error occurred when a class template contained a
