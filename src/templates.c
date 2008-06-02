@@ -15968,9 +15968,16 @@ issued, and TRUE is returned.
        because the message can be issued as a warning in g++ mode or the
        severity can be reduced by the diagnostic control facilities. */
     an_error_severity	severity = es_discretionary_error;
-    /* In g++ mode, reduce the message to a warning for a full
-       specialization. */
-    if (gpp_mode && decl_state->is_full_specialization) severity = es_warning;
+    if ((gpp_mode || microsoft_mode) &&
+        decl_state->is_template_friend && is_class_template_symbol(sym)) {
+      /* In g++ or Microsoft mode, reduce the message to a warning for a
+         friend class template declaration. */
+      severity = es_warning;
+    } else if (gpp_mode && decl_state->is_full_specialization) {
+      /* In g++ mode, reduce the message to a warning for a full
+         specialization */
+      severity = es_warning;
+    }  /* if */
     pos_sy_diagnostic(severity, ec_template_depth_mismatch, pos, sym);
     decl_state->nesting_depth_err = TRUE;
   }  /* if */

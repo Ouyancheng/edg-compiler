@@ -1761,6 +1761,9 @@ typedef struct a_lookup_state {
   a_boolean	is_linkage_lookup;
 			/* TRUE if the IDL_LINKAGE_LOOKUP option
 			   was specified for this lookup. */
+  a_boolean	treat_as_template_id;
+			/* TRUE if the IDL_TREAT_AS_TEMPLATE_ID option
+			   was specified for this lookup. */
   a_boolean	is_friend_lookup;
 			/* TRUE if the IDL_FRIEND_LOOKUP option
 			   was specified for this lookup. */
@@ -1886,6 +1889,7 @@ value.
   cleared_lookup_state.tentative_type_lookup         = FALSE;
   cleared_lookup_state.tentative_template_lookup     = FALSE;
   cleared_lookup_state.is_linkage_lookup             = FALSE;
+  cleared_lookup_state.treat_as_template_id          = FALSE;
   cleared_lookup_state.is_friend_lookup              = FALSE;
   cleared_lookup_state.hidden_name_lookup            = FALSE;
   cleared_lookup_state.do_not_create_proj_sym        = FALSE;
@@ -2890,8 +2894,10 @@ that do normal id lookup processing.
         kind == (a_scope_kind)sck_template_instantiation ||
         (kind == (a_scope_kind)sck_file && ssep->is_reactivation)) {
       if (kind == (a_scope_kind)sck_class_reactivation &&
-          lookup_state->is_linkage_lookup) {
-        /* Skip class reactivation scopes for linkage lookups. */
+          (lookup_state->is_linkage_lookup &&
+           !lookup_state->treat_as_template_id)) {
+        /* Skip class reactivation scopes for linkage lookups, except when
+           looking for a template name. */
       } else {
         sym = inactive_scope_lookup(kind, ssep, locator, lookup_state);
         if (sym != NULL && microsoft_bugs && microsoft_version <= 1300 &&
@@ -3281,6 +3287,8 @@ C and C++.
     lookup_state.tentative_template_lookup =
                                 (options & IDL_TENTATIVE_TEMPLATE_LOOKUP) != 0;
     lookup_state.is_linkage_lookup = (options & IDL_LINKAGE_LOOKUP) != 0;
+    lookup_state.treat_as_template_id =
+                                     (options & IDL_TREAT_AS_TEMPLATE_ID) != 0;
     lookup_state.is_friend_lookup = (options & IDL_FRIEND_LOOKUP) != 0;
     lookup_state.suppress_decl_seq_check =
                                   (options & IDL_SUPPRESS_DECL_SEQ_CHECK) != 0;

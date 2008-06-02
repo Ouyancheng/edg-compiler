@@ -1,5 +1,25 @@
 Version 3.11
 
+5/30/08  Microsoft and GNU C++ compatibility: incorrect nesting depth on
+         friend class template declaration
+
+Microsoft and g++ accept a friend class template declaration in with an
+incorrect number of template parameter clauses.  This is now accepted in
+Microsoft and g++ modes.  This example was actually in Microsoft mode for
+with microsoft_version <= 1310 but the friend declaration was not considered
+to name the member B (i.e., it was accepted but did not do the right things).
+
+  template <typename T> struct A {
+    template <typename U> class B {
+      template <typename V> friend class B;
+      // The following is the syntax that should be used:
+      // template <typename V> template <typename W> friend class A<V>::B;
+    };
+  };
+  void f() {
+    A<int>::B<char> ab;
+  }
+
 5/29/08  Cast from pointer to integral in template argument inside template
 
 The existing extension that allows casting from an integer constant to
