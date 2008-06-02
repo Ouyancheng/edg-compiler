@@ -8585,11 +8585,16 @@ is TRUE if the name is followed by the "::" in a qualified name.
     /* The access of the template is checked when the template name
        is looked up.  For functions, access is checked after overload
        resolution has been done. */
-  } else if (microsoft_mode && microsoft_version <= 1200 &&
+  } else if (microsoft_mode &&
+             (microsoft_version <= 1200 ||
+              (is_qualifier && fund_sym->kind == (a_symbol_kind)sk_type)) &&
+             sym != fund_sym &&
              !locator->is_qualified_name &&
              is_type_symbol(fund_sym)) {
     /* The Microsoft compiler (up to version 6) allows access to private types
-       in base classes as long as they are named by the inherited name. */
+       in base classes as long as they are named by the inherited name.
+       The Microsoft compiler (all versions as of 9.0) also allows a private
+       typedef to be used as a qualifier in a qualified name. */
   } else if (!have_access_to_symbol(sym)) {
     /* The symbol is not accessible.  Issue the error or record it
        for later checking if access checking is deferred. */

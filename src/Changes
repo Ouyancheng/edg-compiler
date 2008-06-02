@@ -1,5 +1,22 @@
 Version 3.11
 
+6/2/08   Microsoft compatibility: private typedef used in qualified name
+
+The Microsoft compiler allows a private typedef from a base class to be used
+as the qualifier in a qualified name.  We now accept this in Microsoft mode.
+
+  struct A {
+    typedef int value_type;
+  };
+  class B {
+  private:
+    typedef A Data;
+  };
+  class C : public B {
+    // Data is inaccessible, but allowed now in Microsoft mode
+    Data::value_type vt;
+  };
+
 6/1/08   Cross-reference entry for partial instantiation of function
 
 When cross-reference output is enabled, a reference to an instance of
