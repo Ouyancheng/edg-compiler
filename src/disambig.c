@@ -497,6 +497,7 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
   a_boolean	any_decl_specifiers = FALSE;
   a_boolean	type_specifier_seen = FALSE;
   a_boolean	is_ctor_or_dtor_name = FALSE;
+  a_boolean	is_typename = FALSE;
   a_symbol_ptr	sym;
   /* Disambiguation code should never be called in C mode.  (Otherwise, we
      would have to add things like tok_c99_bool to the cases below.) */
@@ -629,6 +630,7 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
            We assume this is an elaborated type specifier */
         /* typename is ignored in Sun mode.  Simply discard the token
            unless the user has disabled implicit typename mode. */
+        is_typename = curr_token == tok_typename;
         if (curr_token == tok_typename &&
             sun_mode && implicit_typename_enabled) break;
         /* The Microsoft compiler allows the typename specifier to be
@@ -646,7 +648,9 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
           prescan_extended_decl_modifiers(state, flags);
         }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
-        if (type_specifier_seen) {
+        if (is_typename && microsoft_mode && curr_token != tok_identifier) {
+          /* Microsoft allows things like "typename void ...". */
+        } else if (type_specifier_seen) {
           /* We've already seen a type specifier, this is probably an
              error. */
           is_decl_specifier_token = FALSE;

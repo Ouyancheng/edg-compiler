@@ -1,5 +1,17 @@
 Version 3.11
 
+6/1/08   Microsoft compatibility: typename before type keyword
+
+In Microsoft mode, the typename keyword can be followed by something other
+than an identifier (see 5/6/03 entry).  The disambiguation routines did
+not handle this properly in some cases, resulting in spurious errors.
+Now fixed.
+
+  template <class T> class A {
+    void f();
+  };
+  template <class T> typename void A<T>::f() { }
+
 5/30/08  Microsoft and GNU C++ compatibility: incorrect nesting depth on
          friend class template declaration
 
