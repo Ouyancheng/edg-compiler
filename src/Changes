@@ -29,11 +29,12 @@ Now fixed.
 5/30/08  Microsoft and GNU C++ compatibility: incorrect nesting depth on
          friend class template declaration
 
-Microsoft and g++ accept a friend class template declaration in with an
+Microsoft and g++ accept a friend class template declaration with an
 incorrect number of template parameter clauses.  This is now accepted in
-Microsoft and g++ modes.  This example was actually in Microsoft mode for
-with microsoft_version <= 1310 but the friend declaration was not considered
-to name the member B (i.e., it was accepted but did not do the right things).
+Microsoft and g++ modes.  This example was actually accepted in Microsoft
+mode for with microsoft_version <= 1310 but the friend declaration was not
+considered to name the member B (i.e., it was accepted but did not do the
+right thing).
 
   template <typename T> struct A {
     template <typename U> class B {
