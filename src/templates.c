@@ -8731,6 +8731,7 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
     rp->source_corresp.access = templ_rout->source_corresp.access;
     rp->template_arg_list = templ_arg_list;
     rp->assoc_template = tssp->il_template_entry;
+    mark_declared(sym, &sym->decl_position);
 #if DECL_MODIFIERS_IN_USE
     {
     a_decl_modifiers_block  decl_modifiers;

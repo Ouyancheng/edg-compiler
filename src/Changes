@@ -1,5 +1,19 @@
 Version 3.11
 
+6/1/08   Cross-reference entry for partial instantiation of function
+
+When cross-reference output is enabled, a reference to an instance of
+a function template would result in the generation of a reference entry
+("R"), and (if the function was instantiated in that translation unit) a
+definition entry ("D"), but no declaration entry ("d") was generated.
+A declaration entry is now generated when the partial instantiation of
+the function is performed.
+
+  template <class T> void f(T){}
+  int main() {
+    f(1);
+  }
+
 6/1/08   Microsoft compatibility: typename before type keyword
 
 In Microsoft mode, the typename keyword can be followed by something other
