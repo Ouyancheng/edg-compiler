@@ -849,7 +849,6 @@ When debugging code is not being generated the macro expands to nothing.
 #if DEBUG
 #define decr_tokens_in_cache(cache)					\
   if (cache->is_reusable) {						\
-    check_assertion(cache->token_count != 0);				\
     num_cached_tokens_in_reusable_caches--;				\
   }  /* if */								\
   cache->token_count--;
