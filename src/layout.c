@@ -248,7 +248,20 @@ Return the field alignment for the given type.
       }  /* if */
       break;
     case tk_array:
-      result = field_alignment_for(underlying_array_element_type(type));
+#if USER_CONTROL_OF_STRUCT_PACKING
+#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+      if (type->alignment_set_explicitly) {
+        /* The alignment cannot be set directly for an array type, but when
+           applying cv-qualifiers to a typedef for an array, an alignment
+           attribute on the typedef may need to be copied to the array type. */
+        result = type->alignment;
+      } else
+#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
+      /* Do not insert code here. */
+      {
+        result = field_alignment_for(underlying_array_element_type(type));
+      }  /* if */
       break;
     default:
       result = type->alignment;

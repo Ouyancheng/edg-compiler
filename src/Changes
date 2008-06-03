@@ -1,5 +1,19 @@
 Version 3.11
 
+6/3/08   GNU compatibility: Const-qualified arrays with explicit alignment
+
+In GNU mode, it is possible to specify an explicit alignment on a typedef for
+an array type.  Previously, the explicit alignment was ignored if a qualifier
+(like const or volatile) was applied to the typedef type.  Now, the alignment
+is retained when gnu_version >= 40000.  For example:
+
+  typedef float VF[4] __attribute((aligned(16))); 
+  struct S { 
+    char c; 
+    VF const f;  // Previously treated as having the usual alignment of type
+  };             // float; now treated as having alignment 16 when
+                 // gnu_version >= 40000.
+
 6/3/08   Specifiers position for declarations including a linkage specifier
 
 Version 3.9 of the front end erroneously changed the "start" position of

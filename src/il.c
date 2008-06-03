@@ -8733,14 +8733,36 @@ and return a pointer to the new array type.
 
   /* Loop, in case this is a multidimensional array. */
   for (;;) {
-    /* Drop typedefs; there shouldn't be any typerefs. */
-    old_array = skip_typerefs(old_array);
+#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+    a_targ_alignment   explicit_alignment = 0;
+#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+    /* Drop typedefs; there shouldn't be any other typerefs.  Record any
+       applicable explicit alignment along the way (so it can be applied on
+       the copied type if needed). */
+    while (old_array->kind == (a_type_kind)tk_typeref) {
+#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+      if (old_array->alignment_set_explicitly && explicit_alignment == 0 &&
+          !(gnu_mode && gnu_version < 40000)) {
+        explicit_alignment = old_array->alignment;
+      }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+      old_array = old_array->variant.typeref.type;
+    } /* while */
     /* Allocate a new array type and copy the old one into it.  Note that
        some of the source correspondence information should not be preserved
        in the copy. */
     tp = alloc_type((a_type_kind)tk_array);
     copy_type(old_array, tp);
     break_source_corresp(&tp->source_corresp);
+#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+    if (explicit_alignment != 0) {
+      /* The original array type was a typedef whose alignment was modified.
+         Since the typedef has been dropped, apply the alignment directly on
+         the array type. */
+      tp->alignment = explicit_alignment;
+      tp->alignment_set_explicitly = TRUE;
+    }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
     /* Either tp becomes the top of the new array type or is added on as
        a subarray. */
     if (new_array == NULL) {
