@@ -849,6 +849,7 @@ When debugging code is not being generated the macro expands to nothing.
 #if DEBUG
 #define decr_tokens_in_cache(cache)					\
   if (cache->is_reusable) {						\
+    check_assertion(cache->token_count != 0);				\
     num_cached_tokens_in_reusable_caches--;				\
   }  /* if */								\
   cache->token_count--;
@@ -956,10 +957,8 @@ bodies of class templates.
     }  /* while */
     ctp->variant.pragmas = NULL;
   }  /* if */
-#if DEBUG
-  num_cached_tokens_in_reusable_caches--;
-  token_cache->token_count--;
-#endif /* DEBUG */
+  /* Update the counts in the cache. */
+  decr_tokens_in_cache(token_cache);
   free_cached_token(ctp);
 }  /* free_cached_token_from_reusable_cache */
 
@@ -974,13 +973,13 @@ to the correct next token.
 {
   /* Unlink the entry. */
   *prev_ptr = ctp->next;
-  /* Update the counts in the cache. */
-  decr_tokens_in_cache(cache);
   /* Free the token cache entry. */
   if (cache->is_reusable) {
     free_cached_token_from_reusable_cache(cache, ctp,
                                          /*keep_pragma_tokens=*/FALSE);
   } else {
+    /* Update the counts in the cache.  For resusable caches, the token
+       counts are updated by the free routine. */
     free_cached_token(ctp);
   }  /* if */
 } /* remove_token_from_cache */

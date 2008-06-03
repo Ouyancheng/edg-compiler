@@ -1,5 +1,13 @@
 Version 3.11
 
+6/3/08   Incorrect token count in reusable caches
+
+The token_count field in reusable token caches (present only when
+DEBUG code is enabled) was decremented twice when a token was removed
+by remove_token_from_cache.  This did not cause any incorrect
+behaviour but could cause the "space used" output to incorrectly
+report the space used for reusable token caches.  Now fixed.
+
 6/3/08   GNU compatibility: Const-qualified arrays with explicit alignment
 
 In GNU mode, it is possible to specify an explicit alignment on a typedef for
