@@ -7747,13 +7747,13 @@ enum a_builtin_function_kind_tag {
   bfk_lgammal,                  /* "__builtin_lgammal" */
 #if LONG_LONG_ALLOWED
   bfk_llabs,                    /* "__builtin_llabs" */
-#endif /* LONG_LONG_ALLOWED */
   bfk_llrint,                   /* "__builtin_llrint" */
   bfk_llrintf,                  /* "__builtin_llrintf" */
   bfk_llrintl,                  /* "__builtin_llrintl" */
   bfk_llround,                  /* "__builtin_llround" */
   bfk_llroundf,                 /* "__builtin_llroundf" */
   bfk_llroundl,                 /* "__builtin_llroundl" */
+#endif /* LONG_LONG_ALLOWED */
   bfk_log,                      /* "__builtin_log" */
   bfk_log10,                    /* "__builtin_log10" */
   bfk_log10f,                   /* "__builtin_log10f" */
@@ -8315,13 +8315,13 @@ EXTERN char *builtin_function_kind_names[(int)bfk_last + 1]
   /* bfk_lgammal */                  "__builtin_lgammal",
 #if LONG_LONG_ALLOWED
   /* bfk_llabs */                    "__builtin_llabs",
-#endif /* LONG_LONG_ALLOWED */
   /* bfk_llrint */                   "__builtin_llrint",
   /* bfk_llrintf */                  "__builtin_llrintf",
   /* bfk_llrintl */                  "__builtin_llrintl",
   /* bfk_llround */                  "__builtin_llround",
   /* bfk_llroundf */                 "__builtin_llroundf",
   /* bfk_llroundl */                 "__builtin_llroundl",
+#endif /* LONG_LONG_ALLOWED */
   /* bfk_log */                      "__builtin_log",
   /* bfk_log10 */                    "__builtin_log10",
   /* bfk_log10f */                   "__builtin_log10f",
