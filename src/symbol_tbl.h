@@ -1448,7 +1448,10 @@ typedef struct a_template_cache {
 
 typedef struct a_template_param {
   /* Information describing a template formal parameter.  Pointed to by the
-     template symbol supplement. */
+     a_template_decl_info, which in turn is pointed to by the a_template_cache
+     entry.  A separate template parameter entry is needed for each
+     declaration of a template because the template parameters can be named
+     differently in each declaration. */
   a_template_param_ptr
                 next;
                         /* Pointer to the next template parameter. */
