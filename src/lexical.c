@@ -978,7 +978,7 @@ to the correct next token.
     free_cached_token_from_reusable_cache(cache, ctp,
                                          /*keep_pragma_tokens=*/FALSE);
   } else {
-    /* Update the counts in the cache.  For resusable caches, the token
+    /* Update the counts in the cache.  For reusable caches, the token
        counts are updated by the free routine. */
     free_cached_token(ctp);
   }  /* if */
