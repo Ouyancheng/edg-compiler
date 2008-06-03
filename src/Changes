@@ -1,5 +1,17 @@
 Version 3.11
 
+6/3/08   Specifiers position for declarations including a linkage specifier
+
+Version 3.9 of the front end erroneously changed the "start" position of
+the "specifiers_range" field of a_decl_position_supplement (in configurations
+that set EXTRA_SOURCE_POSITIONS_IN_IL to TRUE) to ignore linkage specifiers
+(like extern "C").  For example:
+
+  extern "C" int f() {};  // specifiers_range.start pointed to the "int"
+                          // token instead of to the "extern" token.
+
+This is now fixed.
+
 6/3/08   Microsoft compatibility: typeid operations in template arguments
 
 In Microsoft mode the front end now accepts nontype template arguments

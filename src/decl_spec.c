@@ -7134,10 +7134,12 @@ macro DSI_NO_INPUT_FLAGS.
   set_err_pos_to_curr_token();
   copy_source_position(pos_curr_token, state->specifiers_pos);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  if (decl_pos_block != NULL) {
+  if (decl_pos_block != NULL && !state->is_linkage_spec_decl) {
     /* Assume the current source position is the starting position of the
        decl-specifiers.   If it turns out there are no decl-specifiers, the
-       field will be reset to null_source_position. */
+       field will be reset to null_source_position.  If this declaration has
+       an attached linkage specifier (like extern "C"), the position was
+       already set to that of the initial keyword "extern". */
     decl_pos_block->specifiers_range.start = state->specifiers_pos;
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -8670,7 +8672,8 @@ exit_loop:
     }  /* if */
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  if (decl_pos_block != NULL && !any_decl_specifiers_seen) {
+  if (decl_pos_block != NULL && !any_decl_specifiers_seen &&
+      !state->is_linkage_spec_decl) {
     /* No decl-specifiers were seen, so clear the starting position. */
     decl_pos_block->specifiers_range.start = null_source_position;
   }  /* if */
