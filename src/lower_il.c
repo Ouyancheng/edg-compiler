@@ -3924,6 +3924,40 @@ in extern inline functions).
 
 #endif /* ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
 
+static void lower_typeid_constant(a_constant_ptr typeid_con)
+/*
+Lower a ck_address/abk_typeid constant: Its value is the address of the
+std::typeinfo object returned by the corresponding typeid(...) construct.
+*/
+{
+  a_type_ptr     typeid_type = typeid_con->variant.address.variant.type;
+  a_type_ptr     orig_con_type = typeid_con->type;
+  a_source_correspondence
+                 orig_source_corresp;
+  a_variable_ptr typeinfo_var;
+  a_constant_ptr next_con = typeid_con->next;
+
+  orig_source_corresp = typeid_con->source_corresp;
+  /* Create the initialized std::type_info variable for the type, if it doesn't
+     exist already. */
+  typeinfo_var = get_typeinfo_var(typeid_type);
+  /* Replace the constant with one that is the address of the std::type_info
+     variable, cast to the right type.  The cast is needed at least
+     to add "const", but it also covers any mismatch between the runtime
+     idea of std::type_info and the actual declaration in the user's source. */
+  set_variable_address_constant(typeinfo_var, typeid_con,
+                                /*set_address_taken_flag=*/TRUE);
+  implicit_cast(typeid_con, orig_con_type);
+  typeid_con->source_corresp = orig_source_corresp;
+  typeid_con->next = next_con;
+#if MAINTAIN_NEEDED_FLAGS
+  /* If the constant has already been marked as needed, mark it as
+     needed again and visit its new subtree. */
+  remark_as_needed((char *)typeid_con, iek_constant);
+#endif /* MAINTAIN_NEEDED_FLAGS */
+}  /* lower_typeid_constant */
+
+
 void lower_constant(a_constant_ptr constant)
 /*
 Do IL lowering of the indicated constant and everything under it.
@@ -4001,6 +4035,9 @@ Do IL lowering of the indicated constant and everything under it.
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
             unexpected_condition_str("lower_constant: abk_uuidof");
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+            break;
+          case abk_typeid:
+            lower_typeid_constant(constant);
             break;
 #if CHECKING
           default:

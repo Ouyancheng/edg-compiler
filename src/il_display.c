@@ -828,6 +828,9 @@ Display a ck_template_param constant.
       goto do_sizeof_cases;
     case tpck_uuidof:
       (void)printf("tpck_uuidof\n");
+      goto do_sizeof_cases;
+    case tpck_typeid:
+      (void)printf("tpck_typeid\n");
 do_sizeof_cases:
       disp_ptr("type",
                (char *)ptr->variant.template_param.variant.templ_sizeof.type,
@@ -1006,6 +1009,11 @@ display_constant_value:
           break;
         case abk_uuidof:
           (void)printf("abk_uuidof\n");
+          disp_ptr("type", (char *)ptr->variant.address.variant.type,
+                   iek_type);
+          break;
+        case abk_typeid:
+          (void)printf("abk_typeid\n");
           disp_ptr("type", (char *)ptr->variant.address.variant.type,
                    iek_type);
           break;

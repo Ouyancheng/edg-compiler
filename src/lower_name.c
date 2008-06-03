@@ -1512,8 +1512,8 @@ static void mangled_encoding_for_sizeof(a_type_ptr                     type,
                                         a_mangling_control_block       *mctl)
 /*
 Add to the mangled name the encoding of sizeof(type), __ALIGNOF__(type),
-or __uuidof(type); kind indicates which.  If expr is non-NULL, the
-original form used an expression, which expr points to.  "type" is
+__uuidof(type), or typeid(type); kind indicates which.  If expr is non-NULL,
+the original form used an expression, which expr points to.  "type" is
 ignored if expr != NULL.
 */
 {
@@ -1577,6 +1577,18 @@ ignored if expr != NULL.
         add_str_to_mangled_name("v19__uuidofe", mctl);
       } else {
         add_str_to_mangled_name("v18__uuidof", mctl);
+      }  /* if */
+#endif /* IA64_ABI */
+      break;
+    case tpck_typeid:
+#if !IA64_ABI
+      add_str_to_mangled_name("ty", mctl);
+#else /* IA64_ABI */
+      /* Use a "vendor extended operator". */
+      if (expr != NULL) {
+        add_str_to_mangled_name("v17typeide", mctl);
+      } else {
+        add_str_to_mangled_name("v16typeid", mctl);
       }  /* if */
 #endif /* IA64_ABI */
       break;
@@ -1897,6 +1909,16 @@ template classes.
       if (*uuid_str != '-') add_to_mangled_name(*uuid_str, mctl);
     }  /* for */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  } else if (abkind == (an_address_base_kind)abk_typeid) {
+    /* A typeid(...) expression used as a template argument. */
+#if IA64_ABI
+    char *ti_prefix = "TI";
+#else /* !IA64_ABI */
+    char *ti_prefix = "__T_";
+#endif /* IA64_ABI */
+    add_mangled_name_prefix(mctl);
+    add_str_to_mangled_name(ti_prefix, mctl);
+    mangled_encoding_for_type(con->variant.address.variant.type, mctl);
   } else {
     unexpected_condition_str(
                           "mangled_encoding_for_address_constant: bad abkind");
@@ -2466,6 +2488,7 @@ do_unknown_function:
         case tpck_sizeof:
         case tpck_alignof:
         case tpck_uuidof:
+        case tpck_typeid:
           mangled_encoding_for_sizeof(
                          con->variant.template_param.variant.templ_sizeof.type,
                          con->variant.template_param.variant.templ_sizeof.expr,

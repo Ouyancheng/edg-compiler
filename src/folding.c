@@ -802,9 +802,11 @@ it points to the variable, routine, or constant entry.
         object = (char *)constant->variant.address.variant.constant;
         break;
       case abk_uuidof:
-        /* Use the address constant as the "base object" for a __uuidof.
-           It's weird, but we need to return a non-NULL base object for this
-           case, and the constant seems like the best of the possibilities. */
+      case abk_typeid:
+        /* Use the address constant as the "base object" for a __uuidof or
+           typeid construct.  It's weird, but we need to return a non-NULL
+           base object for this case, and the constant seems like the best of
+           the possibilities. */
         object = (char *)constant;
         break;
       case abk_label:
@@ -4146,6 +4148,10 @@ the object.
       case abk_uuidof:
         tp = type_pointed_to(constant->type);
         object_size = tp->size;
+        break;
+      case abk_typeid:
+        /* The object is std::type_info or a class derived from it.  So we
+           don't really know the actual size. */
         break;
 #if CHECKING
       default:

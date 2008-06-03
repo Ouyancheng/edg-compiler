@@ -1729,8 +1729,12 @@ enum an_address_base_kind_tag {
   abk_constant,		/* Pointer to a constant. */
   abk_uuidof,		/* Pointer to _GUID structure for Microsoft __uuidof
 			   operation. */
-  abk_label             /* Pointer to a label.  This is used for the
+  abk_typeid,		/* Pointer to a std::type_info structure.  Used in
+			   Microsoft mode when typeid appears in a template
+			   argument list. */
+  abk_label,            /* Pointer to a label.  This is used for the
 			   GNU address-of-label extension. */
+  abk_last
 };
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte an_address_base_kind;
@@ -2274,6 +2278,12 @@ enum a_template_param_constant_kind_tag {
 			   Microsoft __uuidof operator applied to a type
 			   that contains a template parameter type.  It
 			   represents the address of the implied structure. */
+  tpck_typeid,		/* The template param constant represents the typeid
+			   operator applied to a type or expression that
+			   contains a template parameter type.  It represents
+			   the address of the implied std::type_info
+			   structure.  (Only used when typeid is used for a
+			   nontype template argument; e.g. "X<&typeid(Y)>".)*/
   tpck_template_ref	/* The template param constant provides a pointer
 			   to an unknown function template, and a set of
 			   explicit template arguments for that template. */
@@ -2562,13 +2572,15 @@ typedef struct a_constant {
         a_constant_ptr
                 constant;
 			/* The constant may be a shared constant. */
-        /* When kind == abk_uuidof: */
+        /* When kind == abk_uuidof or abk_typeid: */
         a_type_ptr
-		type;	/* The value of the constant is the address of a
-			   structure that represents the uuid_string
-			   associated with the indicated type.  NULL for
-			   the address of a structure representing a zero
-			   GUID. */
+		type;	/* For abk_uuidof, the value of the constant is the
+			   address of a structure representing the uuid_string
+			   associated with the indicated type (NULL for the
+			   address of a structure representing a zero GUID).
+			   For abk_typeid, the value of the constant is the
+			   address of the std::type_info structure associated
+			   with the given type. */
 	/* When kind == abk_label: */
 	a_label_ptr
 		label;
@@ -2754,11 +2766,11 @@ typedef struct a_constant {
 			   address is being taken by the tpck_address
 			   constant. */
         /* When template param constant kind == tpck_sizeof, tpck_alignof,
-           or tpck_uuidof: */
+           tpck_uuidof, or tpck_typeid: */
         struct {
           a_type_ptr
-		type;	/* The type whose sizeof, __ALIGNOF__, or __uuidof is
-			   represented.  NULL for __uuidof(0). */
+		type;	/* The type whose sizeof, __ALIGNOF__, __uuidof, or
+			   typeid is represented.  NULL for __uuidof(0). */
           an_expr_node_ptr
 		expr;	/* If the sizeof etc. was applied to an expression,
 			   stored in the same memory region as this constant,

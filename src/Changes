@@ -1,5 +1,23 @@
 Version 3.11
 
+6/3/08   Microsoft compatibility: typeid operations in template arguments
+
+In Microsoft mode the front end now accepts nontype template arguments
+involving typeid operations: Only the "address" of the result can be used
+(either as a pointer value or as a reference binding).  For example:
+
+  #include <typeinfo>
+  template<std::type_info const&> struct X {};
+  X<typeid(float)> x;  // Accepted in Microsoft mode.
+
+Polymorphic typeid(...) constructs are not allowed in this context.
+
+In order to support this capability two new a_constant entry variations were
+introduced: an abk_typeid variant for ck_address constants (used for typeid
+operations on types or expressions that are not template-dependent), and a
+tpck_typeid variant for ck_template_param constants (to cover the template-
+dependent cases).
+
 6/2/08   Microsoft compatibility: private typedef used in qualified name
 
 The Microsoft compiler allows a private typedef from a base class to be used

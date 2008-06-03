@@ -674,6 +674,13 @@ the file scope, do not process it (but record an orphan in the latter case).
                 remap_ptr(ptr->variant.address.variant.type, a_type_ptr,
                           iek_type);
                 break;
+              case abk_typeid:
+                /* The recorded type is not limited to the kind of types that
+                   are visited from the scope.  So walk the subtree in any
+                   case. */
+                walk_ptr(ptr->variant.address.variant.type, a_type_ptr,
+                         iek_type);
+                break;
               case abk_label:
                 /* Labels will be visited from the scope. */
                 remap_ptr(ptr->variant.address.variant.label, a_label_ptr,
@@ -775,6 +782,7 @@ the file scope, do not process it (but record an orphan in the latter case).
               case tpck_sizeof:
               case tpck_alignof:
               case tpck_uuidof:
+              case tpck_typeid:
                 walk_ptr(ptr->variant.template_param.variant.templ_sizeof.type,
                          a_type_ptr, iek_type);
                 walk_ptr(ptr->variant.template_param.variant.templ_sizeof.expr,

@@ -4177,7 +4177,8 @@ fix them.
       a_template_param_constant_kind kind = cp->variant.template_param.kind;
       if (kind == (a_template_param_constant_kind)tpck_sizeof ||
           kind == (a_template_param_constant_kind)tpck_alignof ||
-          kind == (a_template_param_constant_kind)tpck_uuidof) {
+          kind == (a_template_param_constant_kind)tpck_uuidof ||
+          kind == (a_template_param_constant_kind)tpck_typeid) {
         /* If a constant in the file scope memory region has an attached
            expression in a function scope memory region, break the link to the
            expression.  In configurations that record prototype instantiations
@@ -4928,6 +4929,7 @@ copy_constant_full should be called to start a copy.
       case tpck_sizeof:
       case tpck_alignof:
       case tpck_uuidof:
+      case tpck_typeid:
         { an_expr_node_ptr old_expr, new_expr;
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
           new_constant->variant.template_param.variant.templ_sizeof.
@@ -5212,6 +5214,12 @@ Return the hash value for the indicated constant.
           break;
         case abk_uuidof:
           hash_value = 231;
+          if (cp->variant.address.variant.type != NULL) {
+            hash_value += hash_type(cp->variant.address.variant.type);
+          }  /* if */
+          break;
+        case abk_typeid:
+          hash_value = 233;
           if (cp->variant.address.variant.type != NULL) {
             hash_value += hash_type(cp->variant.address.variant.type);
           }  /* if */
@@ -5694,6 +5702,10 @@ nonidentical.
               }
               break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+            case abk_typeid:
+              eq = identical_types(cp1->variant.address.variant.type,
+                                   cp2->variant.address.variant.type);
+              break;
 	    case abk_label:
 	      eq = (cp1->variant.address.variant.label == 
 		    cp2->variant.address.variant.label);
@@ -5789,6 +5801,7 @@ nonidentical.
             case tpck_sizeof:
             case tpck_alignof:
             case tpck_uuidof:
+            case tpck_typeid:
               eq = identical_types(
                       cp1->variant.template_param.variant.templ_sizeof.type,
                       cp2->variant.template_param.variant.templ_sizeof.type);
@@ -5931,6 +5944,12 @@ argument because it references a non-external entity, e.g., a local variable.
           scp = &constant->variant.address.variant.type->source_corresp;
         }  /* if */
         break;
+      case abk_typeid:
+        /* A typeid operation in a nontype template argument (accepted in
+           Microsoft mode) produces a reference to std::type_info object,
+           which is always treated as an external entity. */
+        scp = NULL;
+        break;
       case abk_label:
         scp = &constant->variant.address.variant.label->source_corresp;
         break;
@@ -6024,6 +6043,7 @@ region).
           has_nfs_ref = !in_file_scope(cp->variant.address.variant.constant);
           break;
         case abk_uuidof:
+        case abk_typeid:
           /* The type pointed to must be in the file scope. */
           break;
         case abk_label:
@@ -6069,6 +6089,7 @@ region).
         case tpck_sizeof:
         case tpck_alignof:
         case tpck_uuidof:
+        case tpck_typeid:
           { an_expr_node_ptr expr =
                           cp->variant.template_param.variant.templ_sizeof.expr;
             if (expr != NULL) has_nfs_ref = !in_file_scope(expr);
@@ -6564,6 +6585,23 @@ Microsoft extension.
 }  /* make_uuidof_constant */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+void make_typeid_constant(a_type_ptr     typeid_type,
+                          a_constant_ptr typeid_con)
+/*
+Make a constant for typeid(typeid_type) in *typeid_con.
+*/
+{
+  a_type_ptr const_type_info = make_qualified_type(
+                                               type_of_type_info,
+                                               (a_type_qualifier_set)TQ_CONST);
+
+  clear_constant(typeid_con, (a_constant_repr_kind)ck_address);
+  typeid_con->variant.address.kind = (an_address_base_kind)abk_typeid;
+  typeid_con->variant.address.variant.type = typeid_type;
+  typeid_con->type = make_pointer_type(const_type_info);
+}  /* make_typeid_constant */
+
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 a_boolean is_enum_constant(a_constant_ptr con)
@@ -9241,9 +9279,10 @@ a_local_scope_ref entries.)
 an_expr_node_ptr generic_sizeof_arg_expr(a_constant_ptr  con)
 /*
 The given constant is a ck_template_param of kind tpck_sizeof representing
-a sizeof, alignof, or uuidof construct.  If the construct had an expression
-argument return that expression, otherwise, return NULL.  The expression may
-be referred to indirectly through an entry of type a_local_expr_node_ref.
+a sizeof, alignof, uuidof, or typeid construct.  If the construct had an
+expression argument return that expression, otherwise, return NULL.  The
+expression may be referred to indirectly through an entry of type
+a_local_expr_node_ref.
 */
 {
   an_expr_node_ptr  result;
@@ -9254,14 +9293,17 @@ be referred to indirectly through an entry of type a_local_expr_node_ref.
                    con->variant.template_param.kind ==
                                (a_template_param_constant_kind)tpck_alignof ||
                    con->variant.template_param.kind ==
-                               (a_template_param_constant_kind)tpck_uuidof));
+                               (a_template_param_constant_kind)tpck_uuidof ||
+                   con->variant.template_param.kind ==
+                               (a_template_param_constant_kind)tpck_typeid));
   result = con->variant.template_param.variant.templ_sizeof.expr;
   if (result == NULL && innermost_function_scope != NULL &&
       con->variant.template_param.variant.templ_sizeof.local_expr_ref) {
-    /* The argument of the sizeof/alignof/uuidof construct is an expression,
-       whose representation is stored in a function scope memory region.
-       Since we are currently inside a function, look if the expression is
-       part of this function.  This is not always the case.  For example:
+    /* The argument of the sizeof/alignof/uuidof/typeid construct is an
+       expression, whose representation is stored in a function scope memory
+       region.  Since we are currently inside a function, look if the
+       expression is part of this function.  This is not always the case.
+       For example:
          template<int N> struct S {};
          template<typename T> void f1(T x1) {
            int const n1 = sizeof(x1);
@@ -12954,15 +12996,15 @@ name lookup options.
       case tpck_sizeof:
       case tpck_alignof:
       case tpck_uuidof:
-        /* The template param represents sizeof(T), __ALIGNOF__(T), or
-           __uuidof(T), where T is a type containing a template parameter.
-           Determine the type of T after substitution. */
+      case tpck_typeid:
+        /* The template param represents sizeof(T), __ALIGNOF__(T), 
+           __uuidof(T), or typeid(T), where T is a type containing a template
+           parameter.  Determine the type of T after substitution. */
         { an_expr_node_ptr expr = generic_sizeof_arg_expr(con);
           if (expr != NULL) {
             /* There's an associated expression.  Do substitution on it. */
             a_constant       sizeof_expr_con;
             a_constant_ptr   alloc_sizeof_expr_con;
-
             expr = copy_template_param_expr(expr,
                                             template_arg_list,
                                             template_param_list,
@@ -13004,15 +13046,15 @@ name lookup options.
                constant is still okay. */
           } else if (is_template_dependent_type(new_type)) {
             /* Still a template dependent type, so still need a
-               tpck_sizeof/alignof/uuidof constant. */
+               tpck_sizeof/alignof/uuidof/typeid constant. */
             *constant = *con;
             constant->variant.template_param.variant.templ_sizeof.type =
                                                                       new_type;
             constant->variant.template_param.variant.templ_sizeof.expr = expr;
             con_copy = NULL;
           } else {
-            /* No longer a template parameter type, so the sizeof/alignof
-               or uuidof is known. */
+            /* No longer a template parameter type, so the sizeof, alignof,
+               uuidof, or typeid result is known. */
             a_targ_alignment  new_alignment = alignment_of_type(new_type);
             new_type = skip_typerefs(new_type);
             complete_type_is_needed(new_type);
@@ -13024,7 +13066,11 @@ name lookup options.
             } else 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             /* Do not insert code here. */
-            {
+            if (con->variant.template_param.kind ==
+                                 (a_template_param_constant_kind)tpck_typeid) {
+              /* typeid(...). */
+              make_typeid_constant(new_type, constant);
+            } else {
               /* sizeof/alignof. */
               a_boolean is_sizeof = (con->variant.template_param.kind ==
                                   (a_template_param_constant_kind)tpck_sizeof);

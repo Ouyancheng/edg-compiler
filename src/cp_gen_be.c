@@ -7252,6 +7252,11 @@ temporary expressions).
          __uuidof.  Drop the "&" to make an lvalue. */
       form_uuidof_reference(constant, &octl);
       processed = TRUE;
+    } else if (tpkind == (a_template_param_constant_kind)tpck_typeid) {
+      /* A tpck_typeid constant represents the address of a typeid(...) result.
+         Drop the "&" to make an lvalue. */
+      form_typeid_reference(constant, &octl);
+      processed = TRUE;
     }  /* if */
   } else if (kind == (an_expr_node_kind)enk_constant &&
              node->variant.constant->kind == (a_constant_repr_kind)ck_address){

@@ -1090,6 +1090,9 @@ extern void make_zero_of_proper_type(a_type_ptr desired_type,
 extern void make_uuidof_constant(a_type_ptr     uuidof_type,
                                  a_constant_ptr uuidof_con);
 
+extern void make_typeid_constant(a_type_ptr     typeid_type,
+                                 a_constant_ptr typeid_con);
+
 extern void add_to_dynamic_inits_list(a_dynamic_init_ptr dip);
 
 extern a_local_static_variable_init_ptr make_local_static_variable_init(

@@ -7871,6 +7871,64 @@ This is allowed in both Microsoft C and C++ modes.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+static void make_typeid_operand(a_type_ptr        typeid_type,
+                                an_expr_node_ptr  typeid_expr,
+                                a_boolean         make_constant,
+                                an_operand        *result)
+/*
+Create an operand (in *result) representing the application of a typeid
+operator.  typeid_type is the adjusted static type passed to the typeid
+operator, and typeid_expr is the expression from which the dynamic type should
+be retrieved (or NULL if only the static type should be used).  If
+make_constant is TRUE, a constant operand should be produced; otherwise, an
+expression operand whose top-level node is an enk_typeid entry should be
+created.
+*/
+{
+  a_type_ptr const_type_info = make_qualified_type(
+                                              type_of_type_info,
+                                              (a_type_qualifier_set)TQ_CONST);
+
+  if (make_constant) {
+    /* Create a constant (either ck_address/abk_typeid or ck_template_param/
+       tpck_typeid). */
+    a_constant  typeid_con;
+    if (!is_template_dependent_type(typeid_type)) {
+      /* Non-template-dependent case: Use a ck_address/abk_typeid constant. */
+      make_typeid_constant(typeid_type, &typeid_con);
+    } else {
+      /* Template-dependent case: Use a ck_template_param/tpck_typeid
+         constant. */
+      clear_constant(&typeid_con, (a_constant_repr_kind)ck_template_param);
+      set_template_param_constant_kind(
+                    &typeid_con, (a_template_param_constant_kind)tpck_typeid);
+      typeid_con.variant.template_param.variant.templ_sizeof.type =
+                                                                  typeid_type;
+      if (typeid_expr != NULL) {
+        typeid_con.variant.template_param.variant.templ_sizeof.expr =
+                                                                  typeid_expr;
+      }  /* if */
+      typeid_con.type = make_pointer_type(const_type_info);
+    }  /* if */
+    make_constant_operand(&typeid_con, result);
+    result->type = const_type_info;
+  } else {
+    /* Normal case: Create an enk_typeid expression. */
+    an_expr_node_ptr  typeid_node;
+    typeid_node = alloc_expr_node((an_expr_node_kind)enk_typeid);
+    typeid_node->variant.typeid_info.expr = typeid_expr;
+    typeid_node->variant.typeid_info.type = typeid_type;
+    typeid_node->implicit_reference_indirection = TRUE;
+    /* The result is a reference to type_info, which means a pointer to
+       type_info as an lvalue address. */
+    typeid_node->type = make_pointer_type(const_type_info);
+    make_expression_operand(typeid_node, const_type_info, result);
+  }  /* if */
+  result->state = (an_operand_state)os_lvalue;
+  set_used_in_exception_or_rtti_flag(typeid_type);
+}  /* make_typeid_operand */
+
+
 static void scan_typeid_operator(an_operand *result)
 /*
 Scan the C++ typeid operator.  See [expr.typeid].
@@ -7887,9 +7945,10 @@ This is the C++ syntax.  C++ type-id is the same as C type-name.
   a_source_position end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   an_operand        operand;
-  an_expr_node_ptr  expr = NULL, typeid_node;
+  an_expr_node_ptr  expr = NULL;
   a_type_ptr        typeid_type;
   a_boolean         err = FALSE;
+  a_boolean         microsoft_template_arg_case = FALSE;
 
   db_enter(4, "scan_typeid_operator");
   /* Save the position of the typeid keyword. */
@@ -7906,8 +7965,13 @@ This is the C++ syntax.  C++ type-id is the same as C type-name.
                                               ec_rtti_in_embedded_cplusplus);
   if (curr_expr_kind_is_const()) {
     /* typeid is not allowed in constant expressions. */
-    pos_error(ec_bad_constant_operator, &start_position);
-    err = TRUE;
+    if (microsoft_mode && curr_expr_kind_is(ek_template_arg)) {
+      /* ... except that MSVC++ allows it in template arguments. */
+      microsoft_template_arg_case = TRUE;
+    } else {
+      pos_error(ec_bad_constant_operator, &start_position);
+      err = TRUE;
+    }  /* if */
   }  /* if */
   /* typeid is valid only after the type_info type has been defined in a
      header file. */
@@ -7929,8 +7993,23 @@ This is the C++ syntax.  C++ type-id is the same as C type-name.
       typeid_type = type_pointed_to(typeid_type);
     }  /* if */
   } else {
+    an_expr_stack_entry     expr_stack_entry;
+    a_memory_region_number  region_to_switch_back_to;
     /* Scan an expression. */
+    if (microsoft_template_arg_case) {
+      /* Something like X<... typeid(<expr>) ...>.  Scan the <expr> argument
+         like a sizeof expression so that function calls etc. are accepted in
+         what is otherwise a constant-expression context. */
+      switch_to_scope_region(depth_scope_stack, &region_to_switch_back_to);
+      push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
+                      /*force_object_lifetime=*/FALSE,
+                      /*suppress_object_lifetime=*/FALSE);
+    }  /* if */
     scan_expr(&operand, PREC_LOWEST, EOPT_NO_OPTIONS);
+    if (microsoft_template_arg_case) {
+      pop_expr_stack();
+      switch_back_to_original_region(region_to_switch_back_to);
+    }  /* if */
     /* Rule out indefinite functions. */
     do_operand_transformations(&operand,
                                (TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION |
@@ -7959,6 +8038,19 @@ This is the C++ syntax.  C++ type-id is the same as C type-name.
         }  /* if */
       } else if (op_is_null_pointer_value(&operand)) {
         /* Special case for (*(T *)0), which should throw an exception. */
+        expr = make_node_from_operand(&operand);
+      }  /* if */
+    }  /* if */
+    if (microsoft_template_arg_case) {
+      if (expr != NULL) {
+        /* The Microsoft extension doesn't allow cases that require runtime
+           evaluation. */
+        pos_error(ec_bad_constant_operator, &start_position);
+        expr = NULL;
+      } else if (is_template_dependent_type(typeid_type)) {
+        /* For template-dependent cases, we must record the expression (e.g.,
+           for accurate reconstruction in the C++-generating back end). */
+        prep_generic_operand(&operand, /*lvalue_expected=*/FALSE);
         expr = make_node_from_operand(&operand);
       }  /* if */
     }  /* if */
@@ -8003,20 +8095,9 @@ This is the C++ syntax.  C++ type-id is the same as C type-name.
   if (err) {
     make_error_operand(result);
   } else {
-    /* Create a typeid expression node. */
-    a_type_ptr const_type_info =
-                           make_qualified_type(type_of_type_info,
-                                               (a_type_qualifier_set)TQ_CONST);
-    typeid_node = alloc_expr_node((an_expr_node_kind)enk_typeid);
-    typeid_node->variant.typeid_info.expr = expr;
-    typeid_node->variant.typeid_info.type = typeid_type;
-    typeid_node->implicit_reference_indirection = TRUE;
-    /* The result is a reference to type_info, which means a pointer to
-       type_info as an lvalue address. */
-    typeid_node->type = make_pointer_type(const_type_info);
-    make_expression_operand(typeid_node, const_type_info, result);
-    result->state = (an_operand_state)os_lvalue;
-    set_used_in_exception_or_rtti_flag(typeid_type);
+    /* Create a typeid operand. */
+    make_typeid_operand(typeid_type, expr, microsoft_template_arg_case,
+                        result);
   }  /* if */
   set_operand_position(result, &start_position, &end_position,
                        &start_position);

@@ -2673,7 +2673,8 @@ constant.
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
         } else if (tkind == (a_template_param_constant_kind)tpck_sizeof ||
                    tkind == (a_template_param_constant_kind)tpck_alignof ||
-                   tkind == (a_template_param_constant_kind)tpck_uuidof) {
+                   tkind == (a_template_param_constant_kind)tpck_uuidof ||
+                   tkind == (a_template_param_constant_kind)tpck_typeid) {
           make_bound_expr_referenceable_from_file_scope(
                 &il_constant->variant.template_param.variant.templ_sizeof.expr,
                 *new_type_ptr);

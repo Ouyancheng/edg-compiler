@@ -1974,7 +1974,8 @@ the way described by octl.
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
       } else if (tkind == (a_template_param_constant_kind)tpck_sizeof ||
                  tkind == (a_template_param_constant_kind)tpck_alignof ||
-                 tkind == (a_template_param_constant_kind)tpck_uuidof) {
+                 tkind == (a_template_param_constant_kind)tpck_uuidof ||
+                 tkind == (a_template_param_constant_kind)tpck_typeid) {
         expr_ptr = &constant->variant.template_param.variant.templ_sizeof.expr;
       }  /* if */
       check_assertion(expr_ptr != NULL && *expr_ptr == NULL);
@@ -2836,7 +2837,8 @@ void form_uuidof_reference(a_constant_ptr                        con,
 /*
 Output a Microsoft __uuidof reference implied by the given constant (which is a
 ck_address or ck_template_param constant).  Do the output in the way described
-by octl. */
+by octl.
+*/
 {
   a_type_ptr        uuid_type = NULL;
   an_expr_node_ptr  uuid_expr = NULL;
@@ -2865,6 +2867,42 @@ by octl. */
   }  /* if */
   octl->output_str(")");
 }  /* form_uuidof_reference */
+
+
+void form_typeid_reference(a_constant_ptr                        con,
+                           an_il_to_str_output_control_block_ptr octl)
+/*
+Output a  typeid reference implied by the given constant (which is a
+ck_address constant).  Do the output in the way described by octl.
+*/
+{
+  a_type_ptr        typeid_type = NULL;
+  an_expr_node_ptr  typeid_expr = NULL;
+
+  switch (con->kind) {
+    case ck_address:
+      check_assertion_str(con->variant.address.kind ==
+                                             (an_address_base_kind)abk_typeid,
+                          "form_typeid_reference: bad kind");
+      typeid_type = con->variant.address.variant.type;
+      break;
+    case ck_template_param:
+      typeid_expr = generic_sizeof_arg_expr(con);
+      typeid_type = con->variant.template_param.variant.templ_sizeof.type;
+      break;
+    default:
+      unexpected_condition();
+  }  /* switch */
+  octl->output_str("typeid(");
+  if (typeid_expr != NULL) {
+    form_expression(typeid_expr, octl);
+  } else if (typeid_type != NULL) {
+    form_type(typeid_type, octl);
+  } else {
+    unexpected_condition();
+  }  /* if */
+  octl->output_str(")");
+}  /* form_typeid_reference */
 
 
 static a_type_ptr static_unknown_type(void)
@@ -2936,6 +2974,8 @@ parentheses are not needed.
   a_boolean               proper_type = FALSE;
   a_boolean               local_type_decay_used;
   a_targ_ptrdiff_t        orig_offset = constant->variant.address.offset;
+  an_address_base_kind    special_address_kind =
+                                               (an_address_base_kind)abk_last;
 
   *formed_useful_lvalue = FALSE;
   *type_decay_used = FALSE;
@@ -2986,8 +3026,10 @@ parentheses are not needed.
       type = con->type;
       break;
     case abk_uuidof:
-      /* Address of a structure that represents the uuid information for a
-         given class type. */
+    case abk_typeid:
+      /* Address of a structure that represents the uuid or typeid information
+         for a given type. */
+      special_address_kind = constant->variant.address.kind;
       if (!constant->implicit_cast) {
         type = type_pointed_to(constant->type);
       } else {
@@ -3022,9 +3064,13 @@ parentheses are not needed.
     } else if (con != NULL) {
       /* Constant case. */
       form_constant(con, /*need_parens=*/FALSE, octl);
-    } else {
+    } else if (special_address_kind == (an_address_base_kind)abk_uuidof) {
       /* Microsoft __uuidof. */
       form_uuidof_reference(constant, octl);
+    } else if (special_address_kind == (an_address_base_kind)abk_typeid) {
+      form_typeid_reference(constant, octl);
+    } else {
+      unexpected_condition();
     }  /* if */
   }  /* if */
   /* If the type is right and the offset is zero, we have what we need. */
@@ -4411,6 +4457,14 @@ do_sizeof_cases:
           if (need_parens) octl->output_str("(");
           octl->output_str("&");
           form_uuidof_reference(constant, octl);
+          if (need_parens) octl->output_str(")");
+          break;
+        case tpck_typeid:
+          /* The constant represents the address of a typeid result, so add
+             a "&". */
+          if (need_parens) octl->output_str("(");
+          octl->output_str("&");
+          form_typeid_reference(constant, octl);
           if (need_parens) octl->output_str(")");
           break;
         default:
