@@ -4149,11 +4149,12 @@ NULL.
           if (is_dynamic_init_for_vla(dip)) {
             /* Always issue a warning for an unreferenced VLA, even if
                the declaration involves construction or destruction. */
-          } else if (dip->kind == (a_dynamic_init_kind)dik_constructor) {
-            /* Issue no diagnostic when a variable is initialized by
-               a constructor, to avoid spurious diagnostics when the user
-               defines a variable simply to assure that the constructor is
-               called. */
+          } else if (dip->kind == (a_dynamic_init_kind)dik_constructor ||
+                     dip->destructor != NULL) {
+            /* Issue no diagnostic when a variable is initialized by a
+               constructor, or when its destructor will be called. This avoids
+               spurious diagnostics when the user defines a variable simply to
+               assure that the constructor or destructor is called. */
             severity = es_none;
           } else if (dynamic_init_has_side_effects(dip, &suppress_warning) ||
                      suppress_warning) {

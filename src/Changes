@@ -1,5 +1,15 @@
 Version 3.11
 
+6/4/08   Spurious remark on variable with nontrivial destructor
+
+The front end no longer issues a "declared but not referenced" remark for
+variable declarations that imply the call of a nontrivial destructor.
+For example:
+
+  int main() {
+    struct S { ~S() {} } s;  // Previously a remark could be issued for
+  }                          // the declaration of s.
+
 6/3/08   Incorrect token count in reusable caches
 
 The token_count field in reusable token caches (present only when
