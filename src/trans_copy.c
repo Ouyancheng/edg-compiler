@@ -1064,6 +1064,9 @@ not being eliminated.
       corresp_param->passed_via_copy_constructor = TRUE;
     }  /* if */
   }  /* for */
+  if (rtsp->value_returned_by_cctor) {
+    corresp_rtsp->value_returned_by_cctor = TRUE;
+  }  /* if */
   corresp_routine->address_taken |= routine->address_taken;
   corresp_routine->called        |= routine->called;
   check_assertion((param == NULL && corresp_param == NULL) ||
