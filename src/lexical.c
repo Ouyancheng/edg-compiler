@@ -979,6 +979,7 @@ to the correct next token.
   } else {
     /* Update the counts in the cache.  For reusable caches, the token
        counts are updated by the free routine. */
+    decr_tokens_in_cache(cache);
     free_cached_token(ctp);
   }  /* if */
 } /* remove_token_from_cache */
