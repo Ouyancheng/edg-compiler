@@ -1,5 +1,18 @@
 Version 3.11
 
+6/5/08   Declaration position of explicit specialization declaration
+
+Formerly, the declaration position of an explicit specialization would be
+updated by a repeated non-defining declaration of the explicit specialization.
+Now, the declaration position will only be set by the first declaration of
+the explicit specialization, and by a subsequent definition of the explicit
+specialization (if the initial declaration was not a definition).
+
+  template <class T> void f(T) {}
+  template <> void f(int);  // decl_position of f(int) set here
+  template <> void f(int);  // decl_position of f(int) formerly updated here
+  template <> void f(int){} // decl_position of f(int) updated here
+
 6/5/08   Partial ordering in non-call contexts
 
 A number of issues with regard to the partial ordering of function templates

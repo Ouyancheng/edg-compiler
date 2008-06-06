@@ -16364,7 +16364,7 @@ that follows.
           pos_sy_error(ec_already_defined, &locator.source_position, sym);
           sym = NULL;
         }  /* if */
-      } else if (!already_specialized) {
+      } else if (!already_specialized || is_definition) {
         scp->decl_position = dps->declarator_pos;
       }  /* if */
     }  /* if */
@@ -16389,7 +16389,7 @@ that follows.
 #if DECL_MODIFIERS_IN_USE
       prev_sym_pos = sym->decl_position;
 #endif /* DECL_MODIFIERS_IN_USE */
-      sym->decl_position = dps->declarator_pos;
+      sym->decl_position = scp->decl_position;
       dps->sym = sym;
       if (is_definition) {
         srk_flags |= SRK_DEFINITION;
