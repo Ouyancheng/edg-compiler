@@ -4505,7 +4505,8 @@ other.  Return
     /* cfp1 and cfp2 are function templates.  Determine whether either of
        the templates is more specialized than the other. */
     cmp = compare_function_templates(cfp1->function_symbol,
-                                     cfp2->function_symbol);
+                                     cfp2->function_symbol,
+                                     /*entire_type=*/FALSE);
   }  /* if */
   return cmp;
 }  /* compare_candidate_functions */

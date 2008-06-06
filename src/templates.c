@@ -1775,11 +1775,14 @@ Likewise for match2.
 
 
 int compare_function_templates(a_symbol_ptr 		templ_sym1,
-			       a_symbol_ptr		templ_sym2)
+			       a_symbol_ptr		templ_sym2,
+			       a_boolean		entire_type)
 /*
 templ_sym1 and templ_sym2 are function template symbols.  Return 1 if
 templ_sym1 is more specialized than templ_sym2, return -1 if templ_sym2 is
 more specialized than templ_sym1, and return 0 if they are unordered.
+entire_type is TRUE if the partial ordering is being done in a context in
+which the entire function type should be considered.
 */
 {
   int					result;
@@ -1820,7 +1823,7 @@ more specialized than templ_sym1, and return 0 if they are unordered.
   templ_param_list1 = tssp2->variant.function.decl_cache.decl_info->parameters;
   templ_param_list2 = tssp1->variant.function.decl_cache.decl_info->parameters;
   is_conversion_operator = is_conversion_function_symbol(templ_sym1);
-  if (is_conversion_operator) {
+  if (is_conversion_operator || entire_type) {
     /* For conversion templates, the processing is only done on the return
        type. */
     parameter_is_more_specialized(rout_type1->variant.routine.return_type,
@@ -1828,7 +1831,8 @@ more specialized than templ_sym1, and return 0 if they are unordered.
                                   &dummy_arg_list1, &dummy_arg_list2,
                                   templ_param_list1, templ_param_list2,
                                   &match1, &match2);
-  } else {
+  }  /* if */
+  if (!is_conversion_operator) {
     /* For normal functions, the processing is done for each parameter, but
        not for the return type. */
     ptp1 = rtsp1->param_type_list;
@@ -2059,7 +2063,8 @@ templates being ordered are class template partial specializations.
       int	result;
       check_assertion(fund_new_sym->kind ==
                                          (a_symbol_kind)sk_function_template);
-      result = compare_function_templates(fund_new_sym, fund_curr_sym);
+      result = compare_function_templates(fund_new_sym, fund_curr_sym,
+                                          /*entire_type=*/TRUE);
       new_is_more_specialized = result == 1;
       curr_is_more_specialized = result == -1;
     }  /* if */
