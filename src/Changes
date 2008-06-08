@@ -1,5 +1,25 @@
 Version 3.11
 
+6/8/08   Call with explicit template argument that is const variable with
+         dependent value
+
+Overload resolution now treats a call in a template that specifies
+an explicit argument that is a function-local const variable whose
+type is not dependent but whose value is dependent as a dependent
+call when template definitions are parsed.  Formerly, this was not
+done and the front end aborted in IL lowering with the error
+"lower_constant: bad kind".
+
+  template <unsigned u> static inline float f(const float a) { return a;}
+  template <unsigned u> static inline float g(const float a) {
+    static const unsigned cvar = u;
+    return f<cvar>(a);  // Caused abort in --parse_templates mode
+  }
+  int main() {
+    float pi = 3.14f;
+    g<2>(pi);
+  }
+
 6/5/08   Declaration position of explicit specialization declaration
 
 Formerly, the declaration position of an explicit specialization would be
