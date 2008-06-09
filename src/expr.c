@@ -21626,19 +21626,11 @@ a_template_arg IL entries with the field arg_operand pointing to an
 arg_operand entry.
 */
 {
-  a_boolean      contains_template_param = FALSE;
-  an_operand     *operand = &arg_operand->operand;
-  a_constant_ptr con;
+  a_boolean  contains_template_param = FALSE;
+  an_operand *operand = &arg_operand->operand;
 
   if (is_template_param_constant_operand(operand)) {
     contains_template_param = TRUE;
-  } else if (is_an_lvalue(operand) &&
-             (con = value_of_constant_var_lvalue_operand(operand)) != NULL) {
-    /* A const variable with a dependent initializer is considered
-       dependent. */
-    if (con->kind == (a_constant_repr_kind)ck_template_param) {
-      contains_template_param = TRUE;
-    }  /* if */
   }  /* if */
   return contains_template_param;
 }  /* arg_operand_contains_template_param */

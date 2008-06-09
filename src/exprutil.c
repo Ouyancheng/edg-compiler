@@ -7580,13 +7580,22 @@ FALSE means the reference is compiler-generated).
       clear_operand((an_operand_kind)ok_constant, result);
       set_variable_address_constant(variable, &result->variant.constant,
                                     /*set_address_taken_flag=*/FALSE);
-      if (is_template_dependent_context() &&
-          variable->source_corresp.is_class_member &&
-          parent_class_of(variable)
+      if (is_template_dependent_context()) {
+        if (variable->source_corresp.is_class_member &&
+            parent_class_of(variable)
                               ->variant.class_struct_union.is_nonreal_class) {
-        /* In a prototype instantiation, a static data member of the current
-           class is template-dependent. */
-        force_constant_to_be_dependent(&result->variant.constant);
+          /* In a prototype instantiation, a static data member of the current
+             class is template-dependent. */
+          force_constant_to_be_dependent(&result->variant.constant);
+        } else {
+          a_constant_ptr con = var_constant_value(variable);
+          /* A const variable with a dependent initializer is considered
+             dependent. */
+          if (con != NULL &&
+              con->kind == (a_constant_repr_kind)ck_template_param) {
+            force_constant_to_be_dependent(&result->variant.constant);
+          }  /* if */
+        }  /* if */
       }  /* if */
       result->type = variable_type;
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
