@@ -185,11 +185,14 @@ predicates.
 #if GNU_EXTENSIONS_ALLOWED
 
 /* Macro that is TRUE if the two types have the same type attributes.
-   The types are already known not to be typerefs and to have the
-   same type kind.  Incomplete types do not have their alignments set
-   yet.  Nonreal dependent types do not have meaningful alignments either. */
+   The types are already known not to be typerefs and to have the same type
+   kind.  The alignment on an array always reflects an alignment attribute
+   specified through a typedef on top of it, and is therefore ignored here.
+   Incomplete types do not have their alignments set yet.  Nonreal dependent
+   types do not have meaningful alignments either. */
 #define same_type_attributes(type_1, type_2) \
   ((type_1)->alignment == (type_2)->alignment || \
+   is_array((type_1)) || \
    is_incomplete(type_1) || is_incomplete(type_2) || \
    (gpp_mode && (is_template_param_or_nonreal_class_type(type_1) || \
                  is_template_param_or_nonreal_class_type(type_2))))
