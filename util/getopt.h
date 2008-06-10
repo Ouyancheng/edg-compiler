@@ -95,10 +95,15 @@ start_new_argument:
         return_value = EOF;
         goto end_of_routine;
       } else if (*(optchar+1) == '-') {
-        /* The argument is "--", which marks the end of the options.
-           Swallow this argument. */
-        optind++;
-        return_value = EOF;
+        if (*(optchar+2) == '\0') {
+          /* The argument is "--", which marks the end of the options.
+             Swallow this argument. */
+          optind++;
+          return_value = EOF;
+        } else {
+          /* This is an argument that begins with "--" that we don't handle. */
+          return_value = '?';
+        }  /* if */
         goto end_of_routine;
       } else if (*(optchar+1) == '\0') {
         /* The argument is "-", which is used to indicate stdin as a

@@ -1,5 +1,23 @@
 Version 3.11
 
+6/10/08  getopt: handling of command line options beginning with "--"
+
+Previously the local implementation of getopt treated any argument
+that started with "--" as the argument "--" and returned EOF (-1).
+Now getopt will return '?' when it finds an argument beginning with
+the string "--" (that is not "--").  This change affects all utilities
+in this directory that use getopt to parse command line arguments
+(i.e., edg_decode, edg_munch, edg_prelink) on platforms where the local
+version of getopt is used (i.e., when  (!__SYSV__ || __VMS__) is TRUE).
+As a result, these utilities may issue an error when presented with
+command line arguments that begin with "--" where the arguments were
+silently ignored previously (the utilities differ in their handling of
+these command line errors):
+
+  $ edg_prelink --help
+  unrecognized option: --help
+  C++ prelinker: error: command line error
+
 10/9/07  Prelinker: improved handling of parentheses and quoted strings in
          compiler invocations
 
