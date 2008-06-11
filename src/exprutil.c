@@ -2936,15 +2936,18 @@ so it can go into the IL.
     if (tap->arg_operand != NULL) {
       /* A template argument in arg_operand form. */
       an_operand             *operand = &tap->arg_operand->operand;
-      a_constant             constant;
+      a_constant_ptr          constant;
       a_memory_region_number region_to_switch_back_to;
 
       prep_generic_nontype_template_argument(operand);
       /* Fetch the constant and use it as the template argument. */
-      extract_constant_from_operand(operand, &constant);
       switch_to_file_scope_region(&region_to_switch_back_to);
-      tap->variant.constant = alloc_shareable_constant(&constant);
+      constant = alloc_constant((a_constant_repr_kind)ck_error);
+      extract_constant_from_operand_with_fs_fixup(operand, constant);
+      tap->variant.constant = constant;
       switch_back_to_original_region(region_to_switch_back_to);
+      free_arg_operand_list(tap->arg_operand);
+      tap->arg_operand = NULL;
     } else if (tap->kind == (a_templ_arg_kind)tak_type) {
       /* Eliminate any local or nonreal typedefs. */
       tap->variant.type = strip_local_and_nonreal_typedefs(tap->variant.type);

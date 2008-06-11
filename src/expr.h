@@ -74,6 +74,7 @@ expr.h -- Declarations related to expression parsing.
 #define EOPT_NO_OPTIONS 0
 
 typedef int a_local_expr_options_set;
+typedef struct an_operand *an_operand_ptr;
 
 
 #if !STANDALONE_UTILITY_PROGRAM
@@ -135,6 +136,10 @@ extern void scan_nonconstant_dimension_expression(
                                            a_boolean        *is_constant,
                                            an_expr_node_ptr *expression,
                                            a_constant       *constant);
+
+extern void extract_constant_from_operand_with_fs_fixup(
+						      an_operand_ptr operand,
+                                                      a_constant     *constant);
 
 #if GNU_EXTENSIONS_ALLOWED
 an_expr_node_ptr scan_asm_operand_expression(a_boolean output);
@@ -309,7 +314,6 @@ extern void remove_expr_range_modifier(an_expr_range_modifier_ptr ermp);
 extern void forget_expr_range_modifiers_in_tree(an_expr_node_ptr top_expr,
                                                 an_expr_node_ptr end_expr);
 extern void forget_expr_range_modifiers_in_constant(a_constant_ptr con);
-typedef struct an_operand *an_operand_ptr;
 extern void forget_expr_range_modifiers_in_operand(an_operand_ptr operand);
 extern void display_lost_expr_range_modifiers(void);
 #endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */

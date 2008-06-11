@@ -20276,8 +20276,8 @@ FALSE and a pointer to the expression tree in *expression.
 }  /* scan_nonconstant_dimension_expression */
 
 
-static void extract_constant_from_operand_with_fs_fixup(an_operand *operand,
-                                                        a_constant *constant)
+void extract_constant_from_operand_with_fs_fixup(an_operand *operand,
+                                                 a_constant *constant)
 /*
 Extract a constant from the given operand and return it in *constant.
 The constant is allocated in the file scope memory region, so do any
@@ -20292,7 +20292,6 @@ required adjustment to make that possible.
        variables can be referenced anyway, so the file-scope parts should
        just be expression nodes and should be gone in the copy. */
     a_constant old_constant;
-    check_assertion(curr_expr_kind_is_const());
     copy_constant(constant, &old_constant);
     (void)copy_constant_full(&old_constant, constant,
                              CE_COPIED_CONSTANTS_MAY_BE_SHARED);
