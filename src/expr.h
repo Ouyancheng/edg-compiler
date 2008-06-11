@@ -138,8 +138,8 @@ extern void scan_nonconstant_dimension_expression(
                                            a_constant       *constant);
 
 extern void extract_constant_from_operand_with_fs_fixup(
-						      an_operand_ptr operand,
-                                                      a_constant     *constant);
+                                                     an_operand_ptr operand,
+                                                     a_constant     *constant);
 
 #if GNU_EXTENSIONS_ALLOWED
 an_expr_node_ptr scan_asm_operand_expression(a_boolean output);
