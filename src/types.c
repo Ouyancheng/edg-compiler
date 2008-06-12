@@ -192,7 +192,7 @@ predicates.
    types do not have meaningful alignments either. */
 #define same_type_attributes(type_1, type_2) \
   ((type_1)->alignment == (type_2)->alignment || \
-   is_array((type_1)) || \
+   is_array(type_1) || \
    is_incomplete(type_1) || is_incomplete(type_2) || \
    (gpp_mode && (is_template_param_or_nonreal_class_type(type_1) || \
                  is_template_param_or_nonreal_class_type(type_2))))
