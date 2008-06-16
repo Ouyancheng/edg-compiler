@@ -1,5 +1,24 @@
 Version 3.11
 
+6/16/08  Emulation of g++ on emission of typeinfo variables, IA-64 ABI
+
+It appears that g++ puts out typeinfo definitions in some cases where
+the IA-64 ABI does not require them.  We dealt with some of these cases
+previously (see entry of 11/29/07).  Now, we've noticed that even in some
+cases where a class has a key function g++ puts out a typeinfo variable
+when referenced, rather than just where the virtual function table
+is defined.  Specifically, g++ seems to do that when the class
+is a template class.  We now emulate that.
+
+  class a { virtual void f(); };
+  template <class AT> struct FA {
+    virtual void g();  // Never defined
+  };
+  int main() {
+    a *p = 0;
+    void *q = (void*)dynamic_cast<FA<int>*>(p);
+  }
+
 6/8/08   Call with explicit template argument that is const variable with
          dependent value
 

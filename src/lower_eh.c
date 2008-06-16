@@ -1980,6 +1980,15 @@ unit.
       force_static = (vtbl_var->storage_class == (a_storage_class)sc_static);
       definition_needed = (vtbl_var->init_kind != (an_init_kind)initk_none ||
                            vtbl_var->is_optional_vtable);
+#if GNU_EXTENSIONS_ALLOWED && IA64_ABI
+      if (gpp_mode && !definition_needed && !force_static &&
+          type->variant.class_struct_union.is_template_class) {
+        /* g++ seems to put out typeinfo variables for template classes
+           even when the vtable isn't being put out and it's not optional.
+           The typeinfo is a COMDAT, so an extra definition doesn't hurt. */
+        definition_needed = TRUE;
+      }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED && IA64_ABI */
       /* If the typeinfo is static, it has to be defined; no one else
          is going to do it.  Virtual function tables are sometimes not
          defined if they're not used, but typeinfo variables are created
