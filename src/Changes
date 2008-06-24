@@ -8232,7 +8232,7 @@ parameter declaration.  This has now been fixed.  For example:
   struct S { };
   void f(int S, struct S s) { }  // Previously generated as f(int S, S s)
 
-6/8/08   Default function call arguments on non-function declarations
+6/8/06   Default function call arguments on non-function declarations
 
 Standard C++ only allows default function call arguments on function (and
 member function) declarations; not e.g. on typedefs of function types or
@@ -8244,7 +8244,7 @@ these modes, a remark is issued instead).  For example:
 
   typedef void (*f)(int = 3);  // Now a discretionary error in most modes.
 
-6/6/08   Template deduction, sizeof reference type
+6/6/06   Template deduction, sizeof reference type
 
 When template deduction dealt with a sizeof applied to a reference
 type, it incorrectly used the size of the reference instead of the
