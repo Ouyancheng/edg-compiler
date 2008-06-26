@@ -11969,6 +11969,10 @@ friend_template_checks_done:
             /* The Microsoft compiler (prior to version 7.1) does not check
                the parameter list of a template that is redeclared after
                it has been defined. */
+          } else if (gpp_mode && decl_state->is_template_friend &&
+                     locator.is_qualified_name) {
+            /* g++ does not check the parameter list of a friend class template
+               declared with a qualified name. */
           } else if (!reconcile_template_param_lists(
                                 templ_params, sym, &locator.source_position,
                                 default_allowed,
