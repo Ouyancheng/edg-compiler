@@ -3118,6 +3118,9 @@ and a list of the unprocessed entries is returned to the caller.
         remove_default_arg(tcsp);
       }  /* if */
     } else {
+#if DEBUG
+      a_boolean	removed = FALSE;
+#endif /* DEBUG */
       switch (tcsp->symbol->kind) {
         case sk_member_function:
         case sk_class_template:
@@ -3130,6 +3133,9 @@ and a list of the unprocessed entries is returned to the caller.
             replace_body_with_semicolon(tcsp);
             free_tokens_from_reusable_cache(first_token, &tcp->tokens);
           }
+#if DEBUG
+          removed = TRUE;
+#endif /* DEBUG */
           break;
         case sk_class_or_struct_tag:
         case sk_union_tag:
@@ -3146,11 +3152,21 @@ and a list of the unprocessed entries is returned to the caller.
                information such as token counts must be adjusted. */
             move_cached_tokens(first_token, &tcp->tokens,
                                &tcsp->template_info->cache.tokens);
+#if DEBUG
+            removed = TRUE;
+#endif /* DEBUG */
           }  /* if */
           break;
         default:
           unexpected_condition();
       }  /* switch */
+#if DEBUG
+      if (removed && db_flag_is_set("emb")) {
+        fprintf(f_debug, "extract_member_bodies: removed ");
+        db_symbol_name(tcsp->symbol);
+        fprintf(f_debug, "\n");
+      }  /* if */
+#endif /* DEBUG */
     }  /* if */
     /* Free the template cache segment for the member just removed. */
     free_template_cache_segment(tcsp);
@@ -12231,10 +12247,14 @@ friend_template_checks_done:
     } else {
       if (decl_state->in_prototype_instantiation &&
           decl_state->class_declared_in != NULL &&
+          !decl_state->class_declared_in->
+                       variant.class_struct_union.is_in_class_specialization &&
           sym->kind == (a_symbol_kind)sk_class_template) {
         /* This is a member template class definition.  Create a template
            cache segment entry so that the body of this template can
-           be removed from the enclosing template cache. */
+           be removed from the enclosing template cache.  Don't remove the
+           body if the template is declared inside a Microsoft in-class
+           specialization. */
         tssp->cache_segment = alloc_template_cache_segment(sym, tssp);
         tssp->cache_segment->first_token_number = first_token_number;
         tssp->cache_segment->last_token_number = last_token_number;

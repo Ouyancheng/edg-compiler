@@ -1,5 +1,25 @@
 Version 3.11
 
+6/26/08  Microsoft compatibility: spurious incomplete type errors on
+         nested class templates in in-class specializations
+
+Member class templates declared inside Microsoft mode in-class specializations
+were not handled properly, resulting in spurious "incomplete type not allowed"
+errors on an attempt to instantiate the member class template.  Now fixed.
+
+  template<class T> struct X {
+    template<class T3> struct A { };
+    template <> struct A<int> {
+      template <class T2> struct B {
+        typedef int Y;
+      };
+      typedef typename B<int>::Y  Y;
+    }; 
+    typedef typename A<int>::Y  Y;
+  }; 
+  typedef X<int>::Y xy;
+
+
 6/26/08  Diagnostics for duplicate type qualifiers
 
 The severity of the diagnostic issued for a duplicated const, volatile, or
