@@ -8220,7 +8220,7 @@ by dump_routine_decl.
 #endif /* IA64_ABI */
     }  /* if */
     /* From here on, expand the underlying routine. */
-    rout = master_routine;
+    rout = master_routine; /*lint !e438*/
     scope = master_routine_scope;
     innermost_function_scope = curr_scope = scope;
   }  /* if */

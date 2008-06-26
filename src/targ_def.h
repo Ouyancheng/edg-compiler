@@ -2442,7 +2442,7 @@ be reused, but the C-generating back end cannot yet handle tail-padding reuse.
 This is the initial value of the global variable targ_reuse_tail_padding.
 */
 #ifndef TARG_REUSE_TAIL_PADDING
-#define TARG_REUSE_TAIL_PADDING /*lint --e(506)*/ \
+#define TARG_REUSE_TAIL_PADDING /*lint --e(506,845)*/ \
                                 (IA64_ABI && !BACK_END_IS_C_GEN_BE)
 #endif /* TARG_REUSE_TAIL_PADDING */
 

@@ -3271,7 +3271,7 @@ Any diagnostics are issued at the given position.
       /* Inner loop:  go thorough all the symbols for this name, looking for
          one which represents a member function (overloaded or simple) from
          the base class under examination. */
-      /*lint --e{446} sym modified in loop (LINTBUG) */
+      /*lint --e{446,445} sym modified in loop (LINTBUG) */
       for (sym = symbol_list; sym != NULL; sym = sym_next) {
         sym_next = sym->next;
         sym_for_override_registry = sym;
@@ -9933,7 +9933,7 @@ on return.  *p_bit_field_size is set to the bit field size in bits.
       } else if (bit_field_size > max_size_allowed) {
         /* A warning in C++ and GNU C modes (prior to GNU version 3.4). */
         char  buffer[8];
-        sprintf(buffer, "%ld", max_size_allowed);
+        sprintf(buffer, "%lu", max_size_allowed);
         pos_st_warning(ec_extra_bits_ignored, &error_position, buffer);
         if (gcc_mode) {
           /* In GNU C mode (but not in GNU C++ mode), oversized bitfields are
@@ -14632,10 +14632,12 @@ be a syntax error showing up in the next file.  I.e., something like:
 }  /* check_for_file_with_unterminated_type_definition */
 
 
-#if !EXTRA_SOURCE_POSITIONS_IN_IL
+#if !EXTRA_SOURCE_POSITIONS_IN_IL || !GENERATE_SOURCE_SEQUENCE_LISTS
 /*ARGSUSED*/ /* decl_pos_block is not used unless extra source-position
-                information is being recorded in the IL. */
-#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
+                information is being recorded in the IL.
+                il_template_entry is not used unless source sequence entries
+                are being generated. */
+#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL !GENERATE_SOURCE_SEQUENCE_LISTS */
 a_boolean scan_class_definition(a_type_ptr       class_type,
                                 a_scope_depth    effective_decl_level,
                                 a_scope_depth    orig_decl_level,
