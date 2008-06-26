@@ -1,5 +1,18 @@
 Version 3.11
 
+6/26/08  Abort or infinite loop on member declaration with Microsoft attribute
+
+In configurations that set GENERATE_SOURCE_SEQUENCE_LISTS to TRUE, the front
+end aborted (in any of various places) or ran into an infinite loop (in
+cp_gen_be.c) with member declarations that included a Microsoft attribute.
+For example:
+
+  __interface IX {
+    [id(0)] int f();  // Could trigger an abort or an infinite loop,
+  };                  // depending on the exact front end configuration.
+
+This is now fixed.
+
 6/16/08  Emulation of g++ on emission of typeinfo variables, IA-64 ABI
 
 It appears that g++ puts out typeinfo definitions in some cases where

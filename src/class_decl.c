@@ -13145,6 +13145,13 @@ passed via template_decl.
     }  /* if */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (microsoft_mode) {
+    /* Record any Microsoft attributes in *decl_state before calling
+       decl_specifiers, because that call may append additional attributes. */
+    decl_state->ms_attributes = ms_attributes;
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* First scan the declaration specifiers.  In C++ the specifiers may be
      omitted, e.g., for a function member with implicit type. */
   add_stop_token(tok_colon);
@@ -14029,7 +14036,8 @@ next_declaration:;
        among the decl-specifiers. */
     if (dso_flags & DSO_LINKAGE_SPEC_DECL) pop_name_linkage();
     if (decl_state->ms_attributes != NULL) {
-      dispose_of_unapplied_attributes(&ms_attributes, ec_ms_attr_not_allowed);
+      dispose_of_unapplied_attributes(&decl_state->ms_attributes,
+                                      ec_ms_attr_not_allowed);
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
