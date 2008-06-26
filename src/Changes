@@ -1,5 +1,16 @@
 Version 3.11
 
+6/26/08  Diagnostics for duplicate type qualifiers
+
+The severity of the diagnostic issued for a duplicated const, volatile, or
+restrict qualifier has been reduced in many modes.  Specifically, the
+diagnostic is now a warning in all nonstrict modes (and, as was already the
+case, in strict C99 mode).  In strict non-C99 modes, a discretionary error
+is issued (previously, the error was not discretionary).  For example:
+
+  int const const i = 1;  // Now a warning instead of an error in default C
+                          // mode.
+
 6/26/08  Abort or infinite loop on member declaration with Microsoft attribute
 
 In configurations that set GENERATE_SOURCE_SEQUENCE_LISTS to TRUE, the front

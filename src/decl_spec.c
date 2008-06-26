@@ -7342,16 +7342,14 @@ storage_class_specifier:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         /* Do not insert code here. */
         if (qualifiers & TQ_CONST) {
-          /* const may not appear more than once (except in Microsoft and
-             C99 modes). */
-          if (c99_mode || microsoft_mode) {
-            /* In Microsoft and C99 mode, duplicate qualifiers result in a
-               warning. */
+          /* In most modes, const may appear more than once (this is a
+             standard C99 feature, and an extension in other dialects) and we
+             just issue a warning in those cases.  In strict non-C99 modes, a
+             discretionary error is issued instead. */
+          if (c99_mode || !strict_ansi_mode) {
             es = es_warning;
           } else {
-            es = (C_dialect == C_dialect_cplusplus) ?
-                 (strict_ansi_mode ? strict_ansi_error_severity : es_warning) :
-                 es_error;
+            es = strict_ansi_discretionary_severity;
           }  /* if */
           diagnostic(es, ec_dupl_type_qualifier);
           if (es == es_error) err = TRUE;
@@ -7371,16 +7369,14 @@ storage_class_specifier:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         /* Do not insert code here. */
         if (qualifiers & TQ_VOLATILE) {
-          /* volatile may not appear more than once (except in Microsoft and
-             C99 modes). */
-          if (c99_mode || microsoft_mode) {
-            /* In Microsoft and C99 mode, duplicate qualifiers result in a
-               warning. */
+          /* In most modes, volatile may appear more than once (this is a
+             standard C99 feature, and an extension in other dialects) and we
+             just issue a warning in those cases.  In strict non-C99 modes, a
+             discretionary error is issued instead. */
+          if (c99_mode || !strict_ansi_mode) {
             es = es_warning;
           } else {
-            es = (C_dialect == C_dialect_cplusplus) ?
-                 (strict_ansi_mode ? strict_ansi_error_severity : es_warning) :
-                 es_error;
+            es = strict_ansi_discretionary_severity;
           }  /* if */
           diagnostic(es, ec_dupl_type_qualifier);
           if (es == es_error) err = TRUE;
@@ -7468,13 +7464,14 @@ storage_class_specifier:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         /* Do not insert code here. */
         if (qualifiers & TQ_RESTRICT) {
-          /* Issue a diagnostic if restrict appears more than once. */
-          if (c99_mode || microsoft_mode) {
-            /* In Microsoft and C99 mode, duplicate qualifiers result in a
-               warning. */
+          /* In most modes, const may appear more than once (this is a
+             standard C99 feature, and an extension in other dialects) and we
+             just issue a warning in those cases.  In strict non-C99 modes, a
+             discretionary error is issued instead. */
+          if (c99_mode || !strict_ansi_mode) {
             es = es_warning;
           } else {
-            es = (C_dialect == C_dialect_cplusplus) ? es_warning : es_error;
+            es = strict_ansi_discretionary_severity;
           }  /* if */
           diagnostic(es, ec_dupl_type_qualifier);
           if (es == es_error) err = TRUE;
