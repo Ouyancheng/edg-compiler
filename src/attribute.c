@@ -1852,29 +1852,37 @@ a_boolean check_transparent_union(a_type_ptr        tp,
 transparent.  If not, issue a diagnostic and return FALSE.
 */
 {
-  a_field_ptr f;
+  a_field_ptr  first_field, f = NULL;
 
   check_assertion(tp->kind == (a_type_kind)tk_union);
-  /* Check to see that all members of the union have the same size
-     as the union itself.  Otherwise, GCC does not permit the union
-     to be transparent.  It seems that GCC looks at the type of the
-     field, not the actual size -- for example, the size of
-     bit fields is ignored. */
-  for (f = tp->variant.class_struct_union.field_list;
-       f != NULL;
-       f = f->next) {
-    if (skip_typerefs(f->type)->size != tp->size) {
-      a_symbol_ptr sym = (a_symbol_ptr)f->source_corresp.assoc_info;
-      if (sym != NULL && has_name(f)) {
-        pos_syty_warning(ec_union_cannot_be_transparent_sym,
-                         pos, sym, tp);
+  first_field = tp->variant.class_struct_union.field_list;
+  if (first_field != NULL) {
+    /* Check to see that all members of the union have the same size as the
+       first field of the union.  If the first field is an integer field,
+       subsequent integer field may be smaller than the first field.
+       Otherwise, GCC does not permit the union to be transparent.  It seems
+       that GCC looks at the type of the field, not the actual size -- for
+       example, the size of bit fields is ignored. */
+    for (f = first_field->next; f != NULL; f = f->next) {
+      a_type_ptr  ft1 = skip_typerefs(first_field->type),
+                  ft2 = skip_typerefs(f->type);
+      if (ft1->size == ft2->size ||
+          (ft1->size > ft2->size &&
+           ft1->kind == ft2->kind && ft1->kind == (a_type_kind)tk_integer)) {
+        /* Acceptable field type. */
       } else {
-        pos_ty2_warning(ec_union_cannot_be_transparent, pos,
-                        tp, f->type);
+        a_symbol_ptr sym = symbol_for(f);
+        if (sym != NULL && has_name(f)) {
+          pos_syty_warning(ec_union_cannot_be_transparent_sym,
+                           pos, sym, tp);
+        } else {
+          pos_ty2_warning(ec_union_cannot_be_transparent, pos,
+                          tp, f->type);
+        }  /* if */
+        break;
       }  /* if */
-      break;
-    }  /* if */
-  }  /* for */
+    }  /* for */
+  }  /* if */
   return f == NULL;
 }  /* check_transparent_union */
 

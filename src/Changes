@@ -1,5 +1,19 @@
 Version 3.11
 
+6/26/08  GNU compatibility: Size constraints on transparent unions
+
+In GNU mode, the front end only treated a union as a transparent union if it
+was declared with the transparent_union attribute, and if all its members had
+equal size.  Now, if the first member is an integer type, subsequent integer
+members may have a smaller size than the initial integer member.  For example:
+
+  typedef union {
+    short s;
+    char c;
+  } TU __attribute((transparent_union));
+    // Now a valid transparent_union (previously a warning was issued, and
+    // the attribute was effectively ignored).
+
 6/26/08  Microsoft compatibility: spurious incomplete type errors on
          nested class templates in in-class specializations
 
