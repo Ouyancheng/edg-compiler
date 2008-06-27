@@ -157,7 +157,6 @@ remove the entry.
   a_debug_request_ptr   prev_request_ptr = NULL;
   
   /* Run through the list of debug requests and see if this name appears. */
-  request_ptr = debug_requests;
   for (request_ptr = debug_requests; request_ptr != NULL;
        prev_request_ptr = request_ptr, request_ptr = request_ptr->next) {
     if (request_ptr->action == da_set_flag &&
@@ -694,7 +693,6 @@ what was done in the stack entry.
 
   /* Run through the list of debug requests and see if this function
      appears. */
-  request_ptr = debug_requests;
   for (request_ptr = debug_requests;
        request_ptr != NULL; request_ptr = request_ptr->next) {
     if ((request_ptr->action == da_set_level ||

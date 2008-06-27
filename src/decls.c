@@ -11873,7 +11873,7 @@ current scope.
       }  /* if */
     } else {
       sym = coalesce_and_lookup_generalized_identifier(
-                GID_NO_OPTIONS | GID_TEMPLATE_ARGS_OPTIONAL, ilm_normal, &err);
+                                 GID_TEMPLATE_ARGS_OPTIONAL, ilm_normal, &err);
     }  /* if */
     if (err) {
       /* Diagnostic has already been issued. */

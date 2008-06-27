@@ -8220,7 +8220,7 @@ by dump_routine_decl.
 #endif /* IA64_ABI */
     }  /* if */
     /* From here on, expand the underlying routine. */
-    rout = master_routine; /*lint !e438*/
+    rout = master_routine;
     scope = master_routine_scope;
     innermost_function_scope = curr_scope = scope;
   }  /* if */
@@ -8251,6 +8251,7 @@ by dump_routine_decl.
   }  /* if */
 #endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
 }  /* dump_routine_definition */
+
 
 #if !USE_INIT_SECTION_IN_GENERATED_C && SUNPRO_C_IS_C_GEN_BE_TARGET
 
