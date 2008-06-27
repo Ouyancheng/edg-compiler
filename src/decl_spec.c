@@ -7352,7 +7352,6 @@ storage_class_specifier:
             es = strict_ansi_discretionary_severity;
           }  /* if */
           diagnostic(es, ec_dupl_type_qualifier);
-          if (es == es_error) err = TRUE;
         } else {
           record_qualifiers_pos();
           qualifiers |= TQ_CONST;
@@ -7379,7 +7378,6 @@ storage_class_specifier:
             es = strict_ansi_discretionary_severity;
           }  /* if */
           diagnostic(es, ec_dupl_type_qualifier);
-          if (es == es_error) err = TRUE;
         } else {
           record_qualifiers_pos();
           qualifiers |= TQ_VOLATILE;
@@ -7474,7 +7472,6 @@ storage_class_specifier:
             es = strict_ansi_discretionary_severity;
           }  /* if */
           diagnostic(es, ec_dupl_type_qualifier);
-          if (es == es_error) err = TRUE;
         } else {
           qualifiers |= TQ_RESTRICT;
           state->restrict_pos = pos_curr_token;
