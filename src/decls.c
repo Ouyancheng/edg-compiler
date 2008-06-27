@@ -3458,7 +3458,7 @@ by routine.  position is used as the error position for any
 diagnostics.
 */
 {
-  a_boolean        any_invalid_redecl, invalid_modifier, invalid_redecl;
+  a_boolean        invalid_modifier;
   int              bit_number;
   a_decl_modifier  flags = new_modifiers->flags, modifier_value;
 
@@ -3478,7 +3478,6 @@ diagnostics.
         /* This bit is set -- or, if this is a non-inline function definition,
            pretend the dllexport bit is set. */
         invalid_modifier = FALSE;
-        invalid_redecl = FALSE;
         switch (bit_number) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
           case dmt_naked:
@@ -3552,12 +3551,8 @@ diagnostics.
                             position, decl_modifier_names[bit_number]);
           flags &= (~modifier_value);
         }  /* if */
-        any_invalid_redecl |= invalid_redecl;
       }  /* if */
     }  /* for */
-    if (any_invalid_redecl) {
-      pos_warning(ec_decl_modifiers_incompatible_with_previous_decl, position);
-    }  /* if */
     /* Update the routine entry with any valid modifiers that were found. */
     routine->decl_modifiers |= flags;
   }  /* if */
@@ -3715,8 +3710,8 @@ is_redecl is TRUE if this is a redeclaration.  If the current declaration
 is a definition, is_definition is set to TRUE.  
 */
 {
-  a_boolean	   any_invalid_redecl = FALSE;
-  a_boolean        invalid_modifier, invalid_redecl;
+  a_boolean        any_invalid_redecl = FALSE;
+  a_boolean        invalid_modifier;
   int		   bit_number;
   a_decl_modifier  flags = new_modifiers->flags, modifier_value;
 
@@ -3734,17 +3729,8 @@ is a definition, is_definition is set to TRUE.
       if ((flags & modifier_value) != 0) {
         /* This bit is set. */
         invalid_modifier = FALSE;
-        invalid_redecl = FALSE;
         switch (bit_number) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
-          case dmt_dllimport:
-          case dmt_dllexport:
-            /* Any previous declaration must have been declared
-               with either dllimport or dllexport. */
-            if (is_redecl && !(variable->decl_modifiers & DM_DLLFLAGS)) {
-              invalid_redecl = TRUE;
-            }  /* if */
-            break;
           case dmt_selectany:
             /* The effect of "selectany" depends on the initializer (if any).
                More checks will therefore be needed after any initializers
@@ -3798,7 +3784,7 @@ is a definition, is_definition is set to TRUE.
             break;
         }  /* switch */
         /* If this modifier is invalid, reset the bit in the new modifiers. */
-        if (invalid_modifier || invalid_redecl) {
+        if (invalid_modifier) {
           flags &= (~modifier_value);
         }  /* if */
         if (invalid_modifier) {
@@ -3806,7 +3792,6 @@ is a definition, is_definition is set to TRUE.
                             ec_decl_modifiers_invalid_for_this_decl,
                             position, decl_modifier_names[bit_number]);
         }  /* if */
-        any_invalid_redecl |= invalid_redecl;
       }  /* if */
     }  /* for */
     /* Update the variable entry with any valid modifiers that were found. */
