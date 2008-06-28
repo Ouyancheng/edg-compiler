@@ -3471,7 +3471,6 @@ diagnostics.
   /* Loop through the bits in the new_modifiers bit vector and process the
      modifiers associated with the bits that are set. */
   if (flags != DM_NONE) {
-    any_invalid_redecl = FALSE;
     for (bit_number = 0; bit_number < (int)dmt_last; ++bit_number) {
       modifier_value = (1 << bit_number);
       if ((flags & modifier_value) != 0) {
