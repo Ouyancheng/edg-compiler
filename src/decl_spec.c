@@ -1065,17 +1065,14 @@ to a source position used for diagnostics.
     if (flags != DM_NONE) {
       /* The following processing is more complicated than it needs to be so as
          to allow for the easy addition of decl-modifiers. */
-      a_boolean        any_invalid_redecl = FALSE;
-      a_boolean        invalid_modifier, invalid_redecl;
+      a_boolean        invalid_modifier;
       int              bit_number;
       a_decl_modifier  modifier_value;
-  
       for (bit_number = 0; bit_number < (int)dmt_last; ++bit_number) {
         modifier_value = (1 << bit_number);
         if ((flags & modifier_value) != 0) {
           /* This bit is set. */
           invalid_modifier = FALSE;
-          invalid_redecl = FALSE;
           switch (bit_number) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
             case dmt_novtable:
@@ -1087,7 +1084,7 @@ to a source position used for diagnostics.
           }  /* switch */ /*lint !e764 */
           /* If this modifier is invalid, reset the bit in the new
              modifiers. */
-          if (invalid_modifier || invalid_redecl) {
+          if (invalid_modifier) {
             flags &= (~modifier_value);
           }  /* if */
           if (invalid_modifier) {
@@ -1095,14 +1092,8 @@ to a source position used for diagnostics.
                               ec_decl_modifiers_invalid_for_this_decl,
                               err_pos, decl_modifier_names[bit_number]);
           }  /* if */
-          any_invalid_redecl |= invalid_redecl;
         }  /* if */
       }  /* for */
-      if (any_invalid_redecl) {
-        pos_diagnostic(es_discretionary_error,
-                       ec_decl_modifiers_incompatible_with_previous_decl,
-                       err_pos);
-      }  /* if */
       /* Update the routine entry with any valid modifiers that were found.
          (The dllexport/dllimport flags were set separately.) */
       ctsp->decl_modifiers |= flags;
