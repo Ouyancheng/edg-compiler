@@ -7456,7 +7456,7 @@ storage_class_specifier:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         /* Do not insert code here. */
         if (qualifiers & TQ_RESTRICT) {
-          /* In most modes, const may appear more than once (this is a
+          /* In most modes, restrict may appear more than once (this is a
              standard C99 feature, and an extension in other dialects) and we
              just issue a warning in those cases.  In strict non-C99 modes, a
              discretionary error is issued instead. */
