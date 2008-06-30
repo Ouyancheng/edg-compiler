@@ -1859,7 +1859,7 @@ transparent.  If not, issue a diagnostic and return FALSE.
   if (first_field != NULL) {
     /* Check to see that all members of the union have the same size as the
        first field of the union.  If the first field is an integer field,
-       subsequent integer field may be smaller than the first field.
+       subsequent integer fields may be smaller than the first field.
        Otherwise, GCC does not permit the union to be transparent.  It seems
        that GCC looks at the type of the field, not the actual size -- for
        example, the size of bit fields is ignored. */
