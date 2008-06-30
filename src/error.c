@@ -1579,7 +1579,7 @@ made is returned.
 */
 {
   an_error_file_index_ptr curr_file;
-  int                     index, mid_index;
+  int                     idx, mid_idx;
   unsigned long           spacing;
 
   /* Typically the current file being read will be at the head of the list
@@ -1617,11 +1617,11 @@ made is returned.
     (head_of_file_index_list = curr_file)->previous = NULL;
   }  /* if */
   /* Make the new entry. */
-  if ((index = curr_file->next_index_entry) < 
+  if ((idx = curr_file->next_index_entry) < 
                                   NUMBER_OF_ERROR_FILE_INDEX_TABLE_ENTRIES) {
     /* Add the file index information into the next available table entry. */
-    curr_file->line_number[index] = physical_line;
-    curr_file->file_position[index] = file_pos;
+    curr_file->line_number[idx] = physical_line;
+    curr_file->file_position[idx] = file_pos;
     curr_file->next_index_entry++;
   } else {
     /* The index table is full.  Reorganize the table by compressing the
@@ -1631,22 +1631,22 @@ made is returned.
        curr_file->physical_line_count_increment is incremented by
        INITIAL_PHYSICAL_LINE_COUNT_INCREMENT each time the table is
        filled. */
-    mid_index = NUMBER_OF_ERROR_FILE_INDEX_TABLE_ENTRIES / 2;
-    spacing = curr_file->line_number[mid_index] / (a_line_number)mid_index;
+    mid_idx = NUMBER_OF_ERROR_FILE_INDEX_TABLE_ENTRIES / 2;
+    spacing = curr_file->line_number[mid_idx] / (a_line_number)mid_idx;
     /* Eliminate the first entry in the top half of the table that is less
        than the value should be at the desired interval. */
-    for (index = 0; index < mid_index; index++ ) {
-      if (curr_file->line_number[index] < ((index + 1) * spacing)) {
+    for (idx = 0; idx < mid_idx; idx++ ) {
+      if (curr_file->line_number[idx] < ((idx + 1) * spacing)) {
         /* Eliminate this entry simply by breaking the loop. */
         break;
       }  /* if */
     }  /* for */
     /* Now shift all remaining entries in the table. */
     for (/* start with the index to be eliminated */;
-         index < NUMBER_OF_ERROR_FILE_INDEX_TABLE_ENTRIES - 1;
-         index++ ) {
-      curr_file->line_number[index] = curr_file->line_number[index + 1];
-      curr_file->file_position[index] = curr_file->file_position[index + 1];
+         idx < NUMBER_OF_ERROR_FILE_INDEX_TABLE_ENTRIES - 1;
+         idx++ ) {
+      curr_file->line_number[idx] = curr_file->line_number[idx + 1];
+      curr_file->file_position[idx] = curr_file->file_position[idx + 1];
     }  /* for */
     /* Add the new entry at the end of the table. */
     curr_file->line_number[NUMBER_OF_ERROR_FILE_INDEX_TABLE_ENTRIES - 1] =
@@ -1662,10 +1662,10 @@ made is returned.
 #if DEBUG
   if (debug_level >= 5) {
     fprintf(f_debug, "Updated error file index entries:\n");
-    for (index = 0;
-         index < NUMBER_OF_ERROR_FILE_INDEX_TABLE_ENTRIES; ++index) {
-      fprintf(f_debug, "entry %d=%5lu\n", index,
-              curr_file->line_number[index]);
+    for (idx = 0;
+         idx < NUMBER_OF_ERROR_FILE_INDEX_TABLE_ENTRIES; ++idx) {
+      fprintf(f_debug, "entry %d=%5lu\n", idx,
+              curr_file->line_number[idx]);
     }  /* for */
     fprintf(f_debug, "\n");
   }  /* if */
@@ -1691,7 +1691,7 @@ file which is closer to the desired line.
 */
 {
   an_error_file_index_ptr curr_file;
-  int                     index;
+  int                     idx;
 
   /* Locate the file index entry for the IL file entry specified by
       src_file. */
@@ -1715,18 +1715,18 @@ file which is closer to the desired line.
 
   /* Find the index of the first entry greater than the specified physical
      line. */
-  for (index = 0; index < curr_file->next_index_entry; index++) {
-    if (curr_file->line_number[index] > physical_line )  break;
+  for (idx = 0; idx < curr_file->next_index_entry; idx++) {
+    if (curr_file->line_number[idx] > physical_line )  break;
   }  /* for */
-  if (index == 0) {
+  if (idx == 0) {
     /* Desired position is earlier than any known position; start at the
        beginning of the file. */
     *seek_position = 0L;
     *starting_line = 1;
   } else {
     /* Return the last encountered "good" file position. */
-    *seek_position = curr_file->file_position[index - 1];
-    *starting_line = curr_file->line_number[index - 1];
+    *seek_position = curr_file->file_position[idx - 1];
+    *starting_line = curr_file->line_number[idx - 1];
   }  /* if */
 }  /* optimum_file_start_position */
 
@@ -2235,10 +2235,11 @@ be forgotten.
           putcb(' ', buffer);
           (*line_len)++;
         }  /* for */
-        *line_len += add_to_text_buffer(buffer, msg,
-                                        strlen(msg) > (sizeof_t)chars_to_take ? 
-                                                      (sizeof_t)chars_to_take :
-                                                      strlen(msg));
+        *line_len +=
+                    add_to_text_buffer(buffer, msg,
+                                       strlen(msg) > (sizeof_t)chars_to_take ? 
+                                                     (sizeof_t)chars_to_take :
+                                                     strlen(msg));
         msg += chars_to_take;
         len -= chars_to_take;
       }  /* if */

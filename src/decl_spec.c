@@ -2682,12 +2682,14 @@ if the type should not be treated as an interface.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 
-#if !EXTRA_SOURCE_POSITIONS_IN_IL || !GNU_EXTENSIONS_ALLOWED || \
+#if !EXTRA_SOURCE_POSITIONS_IN_IL || \
+    (!GNU_EXTENSIONS_ALLOWED || !GENERATE_SOURCE_SEQUENCE_LISTS) || \
     !MICROSOFT_EXTENSIONS_ALLOWED
 /*ARGSUSED*/ /* decl_pos_block is not used unless extra source-position
                 information is being recorded in the IL. */
              /* marked_as_gnu_extension is not used if GNU C extensions
-                are not allowed. */
+                are not allowed or if source sequence lists are not being
+                generated. */
              /* prefix_decl_modifiers is not used if Microsoft extensions
                 are not allowed. */
 #endif /* !EXTRA_SOURCE_POSITIONS_IN_IL || !GNU_EXTENSIONS_ALLOWED || ... */
@@ -5347,6 +5349,7 @@ is a that of a constructor.
          resetting the current token state to what it was before token caching
          was started.  So the current token should again be the name of the
          class being defined. */
+      check_assertion(cache_in_use);
       rescan_cached_tokens(&cache);
       cache_in_use = FALSE;
     }  /* if */

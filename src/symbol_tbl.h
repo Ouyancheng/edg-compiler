@@ -4354,7 +4354,7 @@ supplement.
 			 (a_symbol_kind)sk_static_data_member ? /* { */	\
     (sym)->variant.static_data_member.instance_ptr->template_info :	\
   /* } else { */							\
-    NULL								\
+    ((a_template_symbol_supplement_ptr)NULL)				\
   /* } */)
 
 /* If sym is a template template parameter, return the symbol for the template
