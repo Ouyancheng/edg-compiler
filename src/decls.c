@@ -2115,7 +2115,8 @@ called by id_linkage.
                                            idlbp->templ_param_list,
                                            /*issue_errors=*/FALSE,
 	                                   ETP_NO_OPTIONS,
-                                           (a_source_position*)NULL) &&
+                                           (a_source_position*)NULL,
+                                           es_error) &&
                 routine_types_are_compatible(tp, idlbp->type, TCF_NO_FLAGS)) {
               /* The other_decl template function matches the current
                  declaration. */

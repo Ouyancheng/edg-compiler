@@ -5875,7 +5875,7 @@ When templates_only is TRUE, only function templates members are considered.
                                       templ_param_list,
                                       /*issue_errors=*/FALSE,
                                       ETP_NO_OPTIONS,
-                                      (a_source_position*)NULL)) {
+                                      (a_source_position*)NULL, es_error)) {
         /* The template parameter lists do not match. */
         continue;
       }  /* if */
@@ -8165,7 +8165,7 @@ declarations.)
                                          templ_param_list,
                                          /*issue_errors=*/FALSE,
                                          ETP_NO_OPTIONS,
-                                         (a_source_position*)NULL) &&
+                                         (a_source_position*)NULL, es_error) &&
               param_types_are_compatible(tp, member_type, TCF_NO_FLAGS)) {
             an_error_code  error_code = ec_no_error;
             if (routine_type_is_nonstatic_member_function(tp) !=

@@ -3453,7 +3453,7 @@ is in fact valid.
                                     tssp->cache.decl_info->parameters,
                                     /*issue_errors=*/FALSE,
                                     ETP_NO_OPTIONS,
-                                    &templ_sym->decl_position) ||
+                                    &templ_sym->decl_position, es_error) ||
            /* Check if a (member) class template was specialized in one
               translation unit, but generated in the other.  To avoid
               duplicate diagnostics, this is only done for the canonical
@@ -5155,7 +5155,7 @@ when looking up a correspondence: if none is found, return NULL.
                                     tssp->cache.decl_info->parameters,
                                     /*issue_errors=*/FALSE,
                                     ETP_NO_OPTIONS,
-                                    &templ_sym->decl_position)) {
+                                    &templ_sym->decl_position, es_error)) {
           /* The template parameters correspond; now check the arguments: they
              are attached to the prototype instantiation. */
           a_symbol_ptr  proto, corresp_proto;
@@ -5180,7 +5180,7 @@ when looking up a correspondence: if none is found, return NULL.
                                    tssp->cache.decl_info->parameters,
                                    /*issue_errors=*/TRUE,
                                    ETP_NO_OPTIONS,
-                                   &templ_sym->decl_position)) {
+                                   &templ_sym->decl_position, es_error)) {
       corresp_templ = corresp_tssp->il_template_entry;
     }  /* if */
   }  /* if */
@@ -5217,7 +5217,7 @@ symbols when looking up a correspondence: if none is found, return NULL.
                                    tssp->cache.decl_info->parameters,
                                    /*issue_errors=*/FALSE,
                                    ETP_NO_OPTIONS,
-                                   &templ_sym->decl_position) &&
+                                   &templ_sym->decl_position, es_error) &&
         identical_types(routine->type, corresp_routine->type) &&
         equiv_template_arg_lists(routine->template_arg_list,
                                  corresp_routine->template_arg_list,

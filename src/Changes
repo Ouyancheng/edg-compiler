@@ -24,8 +24,8 @@ itself only when exceptions were enabled.  This is now fixed.  For example:
 
 The g++ compiler accepts a friend class template declaration in which the
 template parameter list does not match the original declaration if the
-class template name is specified as a qualified name.  We now emulate
-this behavior in g++ mode.
+class template name is specified as a qualified name.  We now accept this
+usage in g++ mode (a warning is issued).
 
   namespace N {
    template <typename T, typename U> struct A { };

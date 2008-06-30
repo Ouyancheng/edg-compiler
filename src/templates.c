@@ -1637,7 +1637,8 @@ during wrapup processing by compare_function_templates.
                                         param_list_for_arg,
                                         /*issue_errors=*/FALSE,
 				        ETP_NO_OPTIONS,
-                                        (a_source_position*)NULL)) {
+                                        (a_source_position*)NULL,
+                                        es_error)) {
           match = FALSE;
         }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
@@ -4394,7 +4395,7 @@ equivalent template parameter lists.
                                         tssp2->cache.decl_info->parameters,
 				        /*issue_errors=*/FALSE,
 					ETP_NO_OPTIONS,
-				        (a_source_position*)NULL);
+				        (a_source_position*)NULL, es_error);
   }  /* if */
   return result;
 }  /* equiv_templates_given_supplement */
@@ -5067,7 +5068,7 @@ parameters are not checked at this point.
     result = equiv_template_param_lists(list1, list2, 
                                        /*issue_errors=*/FALSE,
  				       ETP_NO_OPTIONS,
-                                       (a_source_position*)NULL);
+                                       (a_source_position*)NULL, es_error);
   } else {
     /* A dependent template -- just compare the number and kind of
        parameters. */
@@ -9848,7 +9849,8 @@ a_boolean equiv_template_param_lists(
 			a_template_param_ptr			new_list,
 			a_boolean				issue_errors,
 			an_equiv_templ_param_options_set	options,
-			a_source_position			*error_pos)
+			a_source_position			*error_pos,
+			an_error_severity			error_severity)
 /*
 Compare the template parameter list pointed to by old_list with the
 one pointed to by new_list.  To be equivalent, the parameter lists must
@@ -9856,7 +9858,8 @@ have the same number of parameters, be of the same kind (type vs. nontype),
 and nontype parameters must be of the same type.  Return TRUE if the
 lists are equivalent.  If issue_errors is TRUE, errors are issued
 describing any incompatibilities.  "options" is a set of option flags
-to be used.
+to be used.  error_severity is the severity at which any diagnostics should
+be issued.
 */
 {
   a_template_param_ptr		new_tpp;
@@ -9913,8 +9916,8 @@ to be used.
     }  /* if */
     if (err) {
       if (issue_errors) {
-        pos_sy_error(ec_not_compatible_with_previous_decl,
-                     &new_sym->decl_position, old_sym);
+        pos_sy_diagnostic(error_severity, ec_not_compatible_with_previous_decl,
+                          &new_sym->decl_position, old_sym);
       }  /* if */
       any_errors = TRUE;
     }  /* if */
@@ -9944,7 +9947,7 @@ to be used.
         pos = prev_new_tpp == NULL ? error_pos :
                                    &prev_new_tpp->param_symbol->decl_position;
       }  /* if */
-      pos_error(error_code, pos);
+      pos_diagnostic(error_severity, error_code, pos);
     }  /* if */
   }  /* if */
 done:
@@ -9958,7 +9961,8 @@ static a_boolean reconcile_template_param_lists(
 			a_source_position    *error_pos,
 			a_boolean	     default_allowed,
 			a_boolean	     checking_parent_params,
-			a_boolean	     allow_nesting_depth_mismatch)
+			a_boolean	     allow_nesting_depth_mismatch,
+			an_error_severity    error_severity)
 /*
 Compare the template parameter list of the template declaration currently
 being scanned with the template parameter list of a previous declaration
@@ -9983,7 +9987,8 @@ for a member of class template being defined outside of its class.  It is
 FALSE for the redeclaration of a class template.
 
 allow_nesting_depth_mismatch is TRUE if template parameter lists of different
-nesting depths should be treated as equivalent.
+nesting depths should be treated as equivalent.  error_severity is the
+severity at which any diagnostics should be issued.
 */
 {
   a_template_param_ptr	new_tpp;
@@ -10015,7 +10020,7 @@ nesting depths should be treated as equivalent.
   any_errors = !equiv_template_param_lists(old_tpp, new_tpp,
                                            /*issue_errors=*/TRUE,
                                            etp_options,
-                                           error_pos);
+                                           error_pos, error_severity);
   if (!any_errors) {
     /* Update type parameters so that they point to the same template
        parameter type supplement. */
@@ -10049,13 +10054,14 @@ nesting depths should be treated as equivalent.
           !(microsoft_bugs && microsoft_version <= 1300)) {
         /* This parameter already has a default argument.  The Microsoft
            compiler (prior to 7.1) permits this, and uses the new value. */
-        pos_error(ec_default_arg_already_defined,
-                  &new_tpp->param_symbol->decl_position);
+        pos_diagnostic(error_severity, ec_default_arg_already_defined,
+                       &new_tpp->param_symbol->decl_position);
       } else if (new_has_default && !default_allowed) {
         /* A default argument was specified on a member of a class template.
            This is not permitted. */
-        pos_diagnostic(microsoft_mode && microsoft_version <= 1200 ? es_warning
-                                                                   : es_error,
+        pos_diagnostic(microsoft_mode &&
+                       microsoft_version <= 1200 ? es_warning
+                                                 : error_severity,
                        ec_default_arg_on_member_decl,
                        &new_tpp->param_symbol->decl_position);
       } else if (old_has_default || new_has_default) {
@@ -10189,7 +10195,8 @@ Otherwise, return FALSE.
                                         template_sym, error_pos,
                                         /*default_allowed=*/FALSE,
                                         /*checking_parent_params=*/TRUE,
-                                        decl_state->nesting_depth_err)) {
+                                        decl_state->nesting_depth_err,
+                                        es_error)) {
       any_mismatches = TRUE;
     }  /* if */
     /* Skip out to the enclosing class type. */
@@ -11969,16 +11976,22 @@ friend_template_checks_done:
             /* The Microsoft compiler (prior to version 7.1) does not check
                the parameter list of a template that is redeclared after
                it has been defined. */
-          } else if (gpp_mode && decl_state->is_template_friend &&
-                     locator.is_qualified_name) {
-            /* g++ does not check the parameter list of a friend class template
-               declared with a qualified name. */
-          } else if (!reconcile_template_param_lists(
+          } else {
+            a_boolean	mismatch;
+            an_error_severity	severity = es_error;
+            if (gpp_mode && decl_state->is_template_friend &&
+                locator.is_qualified_name) {
+              /* g++ does not check the parameter list of a friend class
+                 template declared with a qualified name. */
+              severity = es_warning;
+            }  /* if */
+            mismatch = !reconcile_template_param_lists(
                                 templ_params, sym, &locator.source_position,
                                 default_allowed,
                                 /*checking_parent_params=*/FALSE,
-                                decl_state->nesting_depth_err)) {
-            err = TRUE;
+                                decl_state->nesting_depth_err,
+                                severity);
+            if (mismatch && severity == es_error) err = TRUE;
           }  /* if */
         } /* if */
       }  /* if */

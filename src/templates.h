@@ -532,11 +532,12 @@ extern a_boolean equiv_template_arg_lists(
 				an_equiv_templ_arg_options_set	options);
 
 extern a_boolean equiv_template_param_lists(
-			a_template_param_ptr			old_list,
-			a_template_param_ptr			new_list,
-			a_boolean				issue_errors,
-			an_equiv_templ_param_options_set	options,
-			a_source_position			*error_pos);
+		a_template_param_ptr			old_list,
+		a_template_param_ptr			new_list,
+		a_boolean				issue_errors,
+		an_equiv_templ_param_options_set	options,
+		a_source_position			*error_pos,
+		an_error_severity			error_severity);
 
 extern a_boolean identical_templates_given_symbol(a_symbol_ptr	sym1,
 					          a_symbol_ptr	sym2);
