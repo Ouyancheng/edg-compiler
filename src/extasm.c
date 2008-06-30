@@ -1050,7 +1050,8 @@ extended asm statements.
      extra register names.  regmap does not include entries for
      anr_invalid or anr_last. */
   regmap_size = (int)anr_last - 1;
-  regmap_size += (sizeof(extra_reg_names) / sizeof(struct name_to_reg)) - 1;
+  regmap_size += (sizeof(extra_reg_names) /
+                  sizeof(struct name_to_reg)) - 1;  /*lint !e845*/
   regmap = (struct name_to_reg *)alloc_general(
                          (sizeof_t)(regmap_size * sizeof(struct name_to_reg)));
   /* Start with i = 1 since anr_invalid is not copied. */

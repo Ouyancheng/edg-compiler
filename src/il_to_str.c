@@ -872,7 +872,8 @@ Do the output in the way described by octl.
         octl->output_str("[*]");
       } else {
         octl->output_str("[");
-        form_unsigned_num((a_host_large_unsigned)upc_block_size, octl);
+        form_unsigned_num((a_host_large_unsigned)upc_block_size, /*lint !e571*/
+                          octl);
         octl->output_str("]");
       }  /* if */
     }  /* if */
@@ -3109,22 +3110,22 @@ parentheses are not needed.
           /* Add a subscripting operation. */
           a_type_ptr       element_type = array_element_type(unqual_type);
           a_targ_ptrdiff_t element_size = f_skip_typerefs(element_type)->size;
-          a_targ_ptrdiff_t index;
+          a_targ_ptrdiff_t idx;
           /* g++ allows zero-length arrays. */
           if (element_size == 0) element_size = 1;
-          index = *offset / element_size;
+          idx = *offset / element_size;
           /* C division of negative numbers does not necessarily truncate
              towards zero.  If it doesn't, adjust to the result one would get
              if it did.  See comments in the routine divide_integers. */
-          if (*offset < 0 && (*offset % element_size) > 0) index++;
+          if (*offset < 0 && (*offset % element_size) > 0) idx++;
           /* Put out the subscripting operation. */
           if (gen_output) {
             octl->output_str("[");
-            form_num(index, octl);
+            form_num(idx, octl);
             octl->output_str("]");
           }  /* if */
           type = element_type;
-          *offset -= index * element_size;
+          *offset -= idx * element_size;
         }  /* if */
       } else if (unqual_type->kind == (a_type_kind)tk_class ||
                  unqual_type->kind == (a_type_kind)tk_struct) {
@@ -3717,7 +3718,8 @@ K&R/pcc mode) determined by fkind.
       /* MSVC++ gives an error on (x/0.0), so use a comma operator to
          fool it. */
       (void)sprintf(buf, "(%s%s/(0,0.0%s))", dividend, suffix, suffix);
-    } else if (gcc_is_generated_code_target && gnu_targ_version >= 30300) {
+    } else if (gcc_is_generated_code_target &&
+               gnu_targ_version >= 30300) /*lint !e845*/ {
       /* Use the builtin function. */
       if (not_a_number) {
         (void)sprintf(buf, "(__builtin_nan%s(\"\"))", gnu_builtin_suffix);
@@ -4762,7 +4764,7 @@ Do the output in the way described by octl.
        front end. */
     /* Generate any needed "nonnull" attributes: */
     a_param_type_ptr  ptp = rtsp->param_type_list;
-    int               p = 1;
+    unsigned int      p = 1;
     for (; ptp != NULL; ptp = ptp->next, ++p) {
       if (ptp->nonnull) {
         form_unsigned_argument_attribute("nonnull", (a_host_large_unsigned)p,
@@ -4775,8 +4777,9 @@ Do the output in the way described by octl.
          I.e., "sentinel(0)" in the source is corresponds to sentinel_pos == 1
          to reserve sentinel_pos == 0 as a representation for "no sentinel". */
       form_unsigned_argument_attribute(
-                     "sentinel", (a_host_large_unsigned)(rtsp->sentinel_pos-1),
-                     need_leading_space, octl);
+               "sentinel",
+               (a_host_large_unsigned)(rtsp->sentinel_pos-1) /*lint --e(571)*/,
+               need_leading_space, octl);
     }  /* if */
   }  /* if */
 }  /* form_routine_type_attributes */

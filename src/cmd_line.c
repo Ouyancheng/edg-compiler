@@ -6541,7 +6541,7 @@ file.
 #endif /* defined(WRITE_SIGNOFF_MESSAGE) */
 /* Undefine local macros. */
 #undef comment_undefined_macro_name
-#undef comment_numeric_valued_macro
+#undef comment_numeric_valued_macro /*lint !e750*/
 #undef define_numeric_valued_macro
 #undef comment_string_valued_macro
 #undef define_string_valued_macro

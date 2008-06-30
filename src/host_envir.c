@@ -166,7 +166,7 @@ EXTERN_C void exit(int status);
 /*
 Included to define ctime, etc.
 */
-#include <time.h>
+#include <time.h> /*lint !e451 some versions of time.h have bad guard test */
 
 /*
 Header files needed to use the system routines to get the elapsed clock
@@ -232,7 +232,7 @@ static int getpid(void)
 #else /* __MICROSOFT_OS__ */
 /* Function definitions for non MS-DOS compilers. */
 #ifdef __cplusplus
-#include <time.h>
+#include <time.h> /*lint !e451 some versions of time.h have bad guard test */
 #else /* ifndef __cplusplus */
 #if __BSD__
 /* The SUN does not have the getpid(), unlink(), and time() calls defined 
@@ -2183,7 +2183,7 @@ a_boolean is_absolute_file_name(char *file_name)
 Test whether or not a file name is absolute (a full path name).
 */
 {
-  return 
+  return /*lint !e1791 no token following return */
 #if BACKSLASH_IS_ALSO_DIR_SEPARATOR
          ((file_name)[0] == '\\') ||
 #endif /* BACKSLASH_IS_ALSO_DIR_SEPARATOR */
@@ -2583,6 +2583,7 @@ Set module_id to the string.
   char			*external_name = NULL;
   char			*str1;
   char			*str2;
+  char			crc_buf[9];
 
   /* Only generate the module ID the first time that this routine is called
      for a given translation unit. */
@@ -2627,7 +2628,6 @@ Set module_id to the string.
          longer than 8 characters, a CRC of the string is used in place
          of the string.  Non-identifier characters are replaced with
          underscores. */
-      char	crc_buf[9];
       char      len_buf[50];
       int	len1;
       int	len2;
@@ -3164,9 +3164,9 @@ Used for debugging purposes.
 */
 {
   struct rlimit	limit;
-  (void)getrlimit(RLIMIT_CPU, &limit);
+  (void)getrlimit((int)RLIMIT_CPU, &limit);
   limit.rlim_cur = seconds;
-  (void)setrlimit(RLIMIT_CPU, &limit);
+  (void)setrlimit((int)RLIMIT_CPU, &limit);
 }  /* set_cpu_time_limit */
 
 
@@ -3177,9 +3177,9 @@ in case it had been previously changed by set_cpu_time_limit.
 */
 {
   struct rlimit	limit;
-  (void)getrlimit(RLIMIT_CPU, &limit);
+  (void)getrlimit((int)RLIMIT_CPU, &limit);
   limit.rlim_cur = RLIM_INFINITY;
-  (void)setrlimit(RLIMIT_CPU, &limit);
+  (void)setrlimit((int)RLIMIT_CPU, &limit);
 }  /* reset_cpu_time_limit */
 
 #endif /* !EDG_WIN32 */

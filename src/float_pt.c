@@ -48,9 +48,9 @@ EXTERN_C double strtod(char *, char **);
 #include <math.h>
 #define is_NaN(x) (isnan((double)(x)))
 #if !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
-#define is_finite(x) (isfinite((double)(x)))
+#define is_finite(x) (isfinite((double)(x))) /*lint --e(506)*/
 #else /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE ... */
-#define is_finite(x) (isfinite((long double)(x)))
+#define is_finite(x) (isfinite((long double)(x))) /*lint --e(506)*/
 #endif /* !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE ... */
 #else /* !defined(__MWERKS__) */
 #include <float.h>
@@ -58,11 +58,12 @@ EXTERN_C double strtod(char *, char **);
 /* Note that MSVC has long double the same size as double so _finite
    will work for long double also. */
 #if !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE || DBL_MAX_EXP == LDBL_MAX_EXP
-#define is_finite(x) (_finite((double)(x)))
+#define is_finite(x) (_finite((double)(x)))  /*lint --e(506)*/
 #else /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE ... */
 /* This must be a compiler other than MSVC++ on Windows, one that uses
    80-bit long doubles. */
-#define is_finite(x) (long_double_is_finite(x))  /* See definition below. */
+/* See definition of long_double_is_finite below. */
+#define is_finite(x) (long_double_is_finite(x)) /*lint --e(506)*/
 #define NEED_LONG_DOUBLE_IS_FINITE 1
 #endif /* !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE ... */
 #endif /* ifdef __MWERKS__ */
@@ -76,9 +77,10 @@ EXTERN_C int isnan(double x);
    for long double (the conversion to double could produce an Infinity
    for a too-large value). */
 EXTERN_C int finite(double x);
-#define is_finite(x) (finite(x))
+#define is_finite(x) (finite(x)) /*lint --e(506)*/
 #else /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
-#define is_finite(x) (long_double_is_finite(x))  /* See definition below. */
+/* See definition of long_double_is_finite below. */
+#define is_finite(x) (long_double_is_finite(x)) /*lint --e(506)*/
 #define NEED_LONG_DOUBLE_IS_FINITE 1
 #endif /* !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
 #else /* !defined(sun) */
@@ -97,19 +99,20 @@ EXTERN_C int finite(double x);
    it is unreliable.  The HP PA headers have isfinite, but it does not accept
    a long double argument. */
 #if defined(isfinite) && !defined(__CYGWIN__) && !defined(__hppa)
-#define is_finite(x) (isfinite(x))
+#define is_finite(x) (isfinite(x)) /*lint --e(506)*/
 #else /* !defined(isfinite) */
 /* The "finite" function takes a double argument, so it doesn't work
    for long double (the conversion to double could produce an Infinity
    for a too-large value). */
 #if !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
 #if __linux__
-#define is_finite(x) (__finite(x))
+#define is_finite(x) (__finite(x)) /*lint --e(506)*/
 #else /* !__linux__ */
-#define is_finite(x) (finite(x))
+#define is_finite(x) (finite(x)) /*lint --e(506)*/
 #endif /* __linux__ */
 #else /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
-#define is_finite(x) (long_double_is_finite(x))  /* See definition below. */
+/* See definition of long_double_is_finite below. */
+#define is_finite(x) (long_double_is_finite(x)) /*lint --e(506)*/
 #define NEED_LONG_DOUBLE_IS_FINITE 1
 #endif /* !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
 #endif /* ifdef isfinite */

@@ -61,7 +61,7 @@ Initialize global variables that may be used by standalone utility programs.
 #if __BSD__
 #include <sys/time.h>
 #else  /* !__BSD__ */
-#include <time.h>
+#include <time.h> /*lint !e451 some versions of time.h have bad guard test */
 #endif  /* __BSD__ */
 #if __SYSV__ || __BSD__
 extern time_t time(time_t *timer);

@@ -412,15 +412,15 @@ necessary to make it directly accessible in memory.
     /* Allocate a boolean array to track reading each IL entry of this kind
        into this region. */
     {
-      sizeof_t index, byte_count;
+      sizeof_t idx, byte_count;
       /* Allocate one bit per entry. */
       byte_count = (entry_count_array_ptr[byte_entry_kind] / CHAR_BIT) + 1;
       entry_read_array[byte_entry_kind] = (a_byte *)
                                     alloc_in_region(region_number, byte_count);
       /* Clear the array to zero, indicating that no entries have been
          read. */
-      for (index = 0; index < byte_count; index++) {
-        entry_read_array[byte_entry_kind][index] = 0;
+      for (idx = 0; idx < byte_count; idx++) {
+        entry_read_array[byte_entry_kind][idx] = 0;
       }  /* for */
     }
 #endif /* CHECKING && DEBUG */
@@ -512,13 +512,13 @@ necessary to make it directly accessible in memory.
         }  /* if */
         count_of_entries_read[byte_entry_kind] += gross_entry_size;
 #if DEBUG
-        { sizeof_t count, index;
+        { sizeof_t count, idx;
           /* Record the space for the string entry as having been read.
              Also mark the space for the prefix (preceding the entry) and
              any space for alignment (following the entry). */
-          index = trimmed_entry_number - SPACE_FOR_IL_ENTRY_PREFIX;
-          for (count = 0; count < gross_entry_size; count++, index++) {
-            set_entry_read_array(byte_entry_kind, index);
+          idx = trimmed_entry_number - SPACE_FOR_IL_ENTRY_PREFIX;
+          for (count = 0; count < gross_entry_size; count++, idx++) {
+            set_entry_read_array(byte_entry_kind, idx);
           }  /* for */
         }  /* if */
 #endif /* DEBUG */
@@ -573,7 +573,7 @@ necessary to make it directly accessible in memory.
           entry_count_array_ptr[byte_entry_kind]) {
         /* Not all expected entries were read. */
 #if DEBUG
-        sizeof_t entry_count, index;
+        sizeof_t entry_count, idx;
 
         if (!errors) {
           (void)fprintf(f_debug,
@@ -590,29 +590,29 @@ necessary to make it directly accessible in memory.
         entry_count = entry_count_array_ptr[byte_entry_kind];
         if (is_string_entry_kind((an_il_entry_kind)byte_entry_kind)) {
           /* A form of string entry. */
-          index = 1;
-          while (index <= entry_count) {
-            if (get_entry_read_array(byte_entry_kind, index) == FALSE) {
+          idx = 1;
+          while (idx <= entry_count) {
+            if (get_entry_read_array(byte_entry_kind, idx) == FALSE) {
               /* Have found the beginning of a missing string. */
               (void)fprintf(f_debug, "        missing entry = %ld",
-                           (long)index);
+                           (long)idx);
               /* Skip over the missing bytes of the string.  Note that
                  missing back to back strings will appear in the debug
                  output as a single large string. */
-              for (index++;
-                   index <= entry_count &&
-                         get_entry_read_array(byte_entry_kind, index) == FALSE;
-                   index++) {
+              for (idx++;
+                   idx <= entry_count &&
+                         get_entry_read_array(byte_entry_kind, idx) == FALSE;
+                   idx++) {
               }  /* for */
-              (void)fprintf(f_debug, " - %ld\n", (long)index-1);
+              (void)fprintf(f_debug, " - %ld\n", (long)idx-1);
             }  /* if */
-            index++;
+            idx++;
           } /* while */
         } else {
-          for (index = 1; index <= entry_count; index++) {
-            if (get_entry_read_array(byte_entry_kind, index) == FALSE) {
+          for (idx = 1; idx <= entry_count; idx++) {
+            if (get_entry_read_array(byte_entry_kind, idx) == FALSE) {
               (void)fprintf(f_debug, "        missing entry = %ld\n",
-                            (long)index);
+                            (long)idx);
             }  /* if */
           }  /* for */
         }  /* if */

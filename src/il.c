@@ -1117,8 +1117,9 @@ Dump the contents of the indicated type entry, for debug purposes.
       case tk_complex:
       case tk_imaginary:
         fprintf(f_debug, "%s", float_kind_name(tp->variant.float_kind));
-        fprintf(f_debug, tp->kind == (a_type_kind)tk_complex ? " _Complex"
-                                                             : " _Imaginary");
+        fprintf(f_debug, "%s",
+                tp->kind == (a_type_kind)tk_complex ? " _Complex"
+                                                    : " _Imaginary");
         break;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
       case tk_float:
@@ -2683,13 +2684,13 @@ Display the sequence number lookup table, for debugging purposes.
   for (snlep = il_header.seq_number_lookup_entries;
        snlep != NULL; snlep = snlep->next) {
     count++;
-    fprintf(f_debug, "  first=%8ld, last=%8ld, line=%8ld, file=%s\n",
+    fprintf(f_debug, "  first=%8lu, last=%8lu, line=%8lu, file=%s\n",
             (unsigned long)snlep->first, (unsigned long)snlep->last,
             (unsigned long)snlep->line_number, snlep->source_file->file_name);
   }  /* for */
   if (count != il_header.num_seq_number_lookup_entries) {
     fprintf(f_debug, "  *** Sequence number count mismatch ***\n");
-    fprintf(f_debug, "  il_header=%ld, list=%ld\n",
+    fprintf(f_debug, "  il_header=%lu, list=%lu\n",
             (unsigned long)il_header.num_seq_number_lookup_entries,
             (unsigned long)count);
   }  /* if */
@@ -2712,25 +2713,25 @@ of the translation unit.
   sfp = source_file_for_seq(curr_seq_number, &line, &at_end_of_source,
                             /*physical_line=*/FALSE);
   fprintf(f_debug, "End of source, physical_line=FALSE\n");
-  fprintf(f_debug, "file=%s, line=%ld, end-of-source=%d\n",
+  fprintf(f_debug, "file=%s, line=%lu, end-of-source=%d\n",
           sfp ? sfp->file_name : "<NULL>", line, at_end_of_source);
 
   sfp = source_file_for_seq(curr_seq_number, &line, &at_end_of_source,
                             /*physical_line=*/TRUE);
   fprintf(f_debug, "End of source, physical_line=TRUE\n");
-  fprintf(f_debug, "file=%s, line=%ld, end-of-source=%d\n",
+  fprintf(f_debug, "file=%s, line=%lu, end-of-source=%d\n",
           sfp ? sfp->file_name : "<NULL>", line, at_end_of_source);
 
   sfp = source_file_for_seq(curr_seq_number - 1, &line, &at_end_of_source,
                             /*physical_line=*/FALSE);
   fprintf(f_debug, "Last line of file, physical_line=FALSE\n");
-  fprintf(f_debug, "file=%s, line=%ld, end-of-source=%d\n",
+  fprintf(f_debug, "file=%s, line=%lu, end-of-source=%d\n",
           sfp ? sfp->file_name : "<NULL>", line, at_end_of_source);
 
   sfp = source_file_for_seq(curr_seq_number - 1, &line, &at_end_of_source,
                             /*physical_line=*/TRUE);
   fprintf(f_debug, "Last line of file, physical_line=TRUE\n");
-  fprintf(f_debug, "file=%s, line=%ld, end-of-source=%d\n",
+  fprintf(f_debug, "file=%s, line=%lu, end-of-source=%d\n",
           sfp ? sfp->file_name : "<NULL>", line, at_end_of_source);
 }  /* db_source_file_for_seq_info */
 
@@ -8708,7 +8709,7 @@ deduction for templates).  In all error cases, an error type is returned.
     }  /* if */
 #if DEBUG
     if (db_flag_is_set("ref_to_ref")) {
-      fprintf(f_debug, "Ref-to-ref resulted in (line %ld): ",
+      fprintf(f_debug, "Ref-to-ref resulted in (line %lu): ",
               pos_curr_token.seq);
       db_type(result);
       fprintf(f_debug, "\n");
@@ -18699,7 +18700,7 @@ return FALSE.
 {
   a_boolean  result = FALSE;
 
-  if (block_size > (a_host_large_unsigned)max_upc_block_size) {
+  if (block_size > (a_host_large_unsigned)max_upc_block_size) /*lint !e571*/ {
     char  size_buf[20];
     (void)sprintf(size_buf, "%ld", max_upc_block_size);
     str_error(ec_shared_block_size_too_large, size_buf);

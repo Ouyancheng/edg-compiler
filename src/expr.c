@@ -5795,7 +5795,7 @@ Syntax:
   a_boolean             upc_blocksizeof_scan = (kind == tok_upc_blocksizeof);
   a_boolean             multiply_by_threads_needed = FALSE;
   a_boolean             use_special_upc_size = FALSE;
-  a_host_large_unsigned special_upc_size;
+  a_upc_block_size      special_upc_size;
   a_boolean             err = FALSE;
 #endif /* UPC_EXTENSIONS_ALLOWED */
   a_boolean             operand_was_scanned = FALSE, operand_was_used = FALSE;
@@ -19665,8 +19665,7 @@ in a template instantiation) just do the scan.
                   /*suppress_object_lifetime=*/FALSE);
   expr_stack_entry.is_default_arg_expression = TRUE;
   /* Scan the expression. */
-  scan_expr(&result, PREC_LOWEST,
-            EOPT_NO_OPTIONS | EOPT_DISALLOW_COMMA_OPERATOR);
+  scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
   if (ptp != NULL) {
     /* Convert to the required type. */
     prep_argument_operand(&result, ptp, /*processed_arg=*/FALSE,
