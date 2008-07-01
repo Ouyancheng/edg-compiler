@@ -459,7 +459,7 @@ Write the initial information to the IL file, if there is one.
   { int num_bits = BITS_IN_ENTRY_NUMBER;
 #if CHECKING
     if (num_bits > (int)sizeof(an_il_entry_number)*CHAR_BIT ||
-        num_bits <= 0) { /*lint !e774*/
+        num_bits <= 0) { /*lint !e774 !e845*/
       internal_error("start_il_file: BITS_IN_ENTRY_NUMBER is set wrong");
     }  /* if */
 #endif /* CHECKING */

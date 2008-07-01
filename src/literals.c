@@ -1025,7 +1025,7 @@ processing, and in wide characters if the constant is wide).
 #if GNU_EXTENSIONS_ALLOWED
           if (gnu_mode) {
             /* GNU compilers only keep the trailing characters that fit. */
-            skip_count = constant_size - targ_sizeof_int;
+            skip_count = (unsigned long)(constant_size - targ_sizeof_int);
           } else
 #endif /* GNU_EXTENSIONS_ALLOWED */
           /* Do not insert code here. */
@@ -1091,7 +1091,7 @@ processing, and in wide characters if the constant is wide).
     set_unsigned_integer_value(&number, (a_host_large_unsigned)0);
     /* Accumulate the characters.  A wide literal with no characters (L'')
        is possible in Microsoft mode and must produce a zero value. */
-    for (i = 0; temp_ptr < end_of_curr_token; ++i) {
+    for (i = 0; temp_ptr < end_of_curr_token; ++i)  /*lint !e440*/ {
       /* Convert one character of the char constant. */
       switch (character_kind) {
         case chk_char:

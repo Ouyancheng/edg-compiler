@@ -1618,8 +1618,10 @@ bugs).
 #else /* !IA64_ABI */
           if (field_offset != 0) break;
 #endif /* !IA64_ABI */
+          /* The lint comment indicates that field_offset is known to be zero
+             in some configurations. */
           if (empty_base_conflict(etype, field_type, (a_base_class_ptr)NULL,
-                                  offset - field_offset,
+                                  offset - field_offset, /*lint !e845*/
                                   /*consider_virtual_bases=*/TRUE,
                                   consider_fields)) {
             result = TRUE;

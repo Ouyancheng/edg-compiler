@@ -3376,7 +3376,8 @@ only be called when f_raw_listing is non-NULL.
       write_orig_line_piece(loc_in_line, olmp->line_loc);
       switch (olmp->kind) {
         case olm_trigraph:
-          fprintf(f_raw_listing, "??%c", olmp->variant.trigraph_orig_char);
+          fprintf(f_raw_listing, "??%c", /*lint !e585 invalid trigraph*/
+                  olmp->variant.trigraph_orig_char);
           /* If the trigraph is "? ? /", which turns into "\", and it's at the
              end of a line, the "\" will indicate a line splice.  In that
              case, the "\" for the line splice should not be put out.
@@ -5869,8 +5870,9 @@ simple_return:
                   (int)(olmp->line_loc-curr_source_line+1), '^');
           switch (olmp->kind) {
             case olm_trigraph:
-              fprintf(f_debug, "trigraph: ??%c\n",
-                               olmp->variant.trigraph_orig_char);
+              fprintf(f_debug,
+                      "trigraph: ??%c\n",  /*lint !e585 invalid trigraph*/
+                      olmp->variant.trigraph_orig_char);
               break;
             case olm_line_splice:
               fprintf(f_debug, "line splice: seq = %lu\n",
@@ -10430,6 +10432,7 @@ an opening parenthesis).  Flush to the corresponding closing token.
   (void)get_token();
 
   while (!done && (curr_token != closing_token ||
+         /*lint --e(845) LINTBUG */
          paren_count != 0 || bracket_count != 0 || brace_count != 0)) {
     /* Count paired tokens within the skip. */
     switch (curr_token) {
@@ -16082,7 +16085,7 @@ are handled in lexical_init.)
 #if CHECKING
   /* Make sure there are not too many tokens to fit into a_small_token_kind. */
   if ((sizeof(a_small_token_kind) * CHAR_BIT) == 8 /*lint --e(506)*/ &&
-      (int)tok_last > 255) {
+      (int)tok_last > 255 /*lint --e(845)*/) {
     internal_error("lexical_one_time_init: a_small_token_kind is too small");
   }  /* if */
   /* Check that the table of token names is correctly initialized.  This

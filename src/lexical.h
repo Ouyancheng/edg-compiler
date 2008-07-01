@@ -1309,9 +1309,11 @@ a single-character escape.
 #define ATTENTION_MARKER '\n'
 /*
 Two-character escapes.  The first character is always LE_ESCAPE (a zero,
-which is guaranteed not to occur otherwise in source lines).
+which is guaranteed not to occur otherwise in source lines).  Lint thinks
+that a test for LE_ESCAPE followed by a check of the next character is
+looking beyond the end of a null-terminated string.
 */
-#define LE_ESCAPE 0
+#define LE_ESCAPE 0 /*lint --e(448)*/
 #define LE_ESCAPE_LEN 2	/* Length of escape sequence. */
 /*
 Second character of two-character escape is one of the following.

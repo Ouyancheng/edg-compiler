@@ -3773,7 +3773,7 @@ The region table variable is created if necessary.
                                      (an_insert_location_ptr)NULL,
                                      &vtt_addr_node);
 #else /* !IA64_ABI */
-    { a_construction_vtbl_array_index index =
+    { a_construction_vtbl_array_index idx =
                         (dedp->construction_vtbls_var_is_array ?
                           (a_construction_vtbl_array_index)1 :
                           dedp->subobject_construction_base_class->
@@ -3781,7 +3781,7 @@ The region table variable is created if necessary.
       vtt_addr_node = vtbl_addr_from_construction_vtbls_array(
                              dedp->construction_vtbls_var,
                              (a_boolean)dedp->construction_vtbls_var_is_array,
-                             index);
+                             idx);
     }
 #endif /* IA64_ABI */
     /* Assign the VTT pointer to a temporary. */

@@ -146,19 +146,19 @@ constant, and return information about it in *delta.
 
 void repr_for_ptr_to_member_function_constant(a_constant_ptr   constant,
                                               a_targ_ptrdiff_t *delta,
-                                              a_targ_ptrdiff_t *index,
+                                              a_targ_ptrdiff_t *idx,
                                               a_routine_ptr    *func,
                                               a_targ_ptrdiff_t *offset)
 /*
 Determine the lowered representation of the indicated pointer-to-member
-function constant, and return information about it in *delta, *index,
+function constant, and return information about it in *delta, *idx,
 *func, and *offset.  Those values fill the fields of the mptr structure:
-*delta for the "d" field, *index for the "i" field, and one of
+*delta for the "d" field, *idx for the "i" field, and one of
 *func or *offset for the "f" field.
 
 For the Cfront-like ABI:
   *delta is the "this" adjustment to be made.
-  *index is 0 for NULL, -1 for a non-virtual function, and otherwise
+  *idx is 0 for NULL, -1 for a non-virtual function, and otherwise
     is the index number of the virtual function in the virtual
     function table.
   *func is the function, for the non-virtual case, NULL otherwise.
@@ -167,7 +167,7 @@ For the Cfront-like ABI:
 
 For the IA-64 ABI:
   *delta is the "this" adjustment to be made.
-  *index is not used.
+  *idx is not used.
   *func is the function, for the non-virtual case, NULL otherwise.
   *offset is the offset of the entry for the virtual function in
     the virtual function table (in bytes), or 0 for the non-virtual
@@ -209,19 +209,19 @@ For the IA-64 ABI:
 #if !IA64_ABI
   if (routine == NULL) {
     /* For a NULL ptr-to-member, index is zero. */
-    *index = 0;
+    *idx = 0;
   } else if (!routine->is_virtual) {
     /* For a non-virtual function, index is -1. */
-    *index = (-1);
+    *idx = (-1);
   } else {
     /* For a virtual function, index is the index in the virtual function
        table.  No "+1" to reserve the value zero for NULL pointers is
        needed, because the indices start with 1. */
-    *index = routine->virtual_function_number;
+    *idx = routine->virtual_function_number;
   }  /* if */
 #else /* IA64_ABI */
   /* This field is unused in the IA64 ABI. */
-  *index = 0;
+  *idx = 0;
 #endif /* IA64_ABI */
   /* The third field is
        NULL for a null pointer;
@@ -2153,10 +2153,10 @@ class type.  Such a field must exist.
 #if IA64_ABI
 
 static an_expr_node_ptr make_vtbl_entry_expr(an_expr_node_ptr      node,
-                                             a_virtual_table_index index)
+                                             a_virtual_table_index idx)
 /*
 Make an expression for the value stored in the virtual table of the object
-pointed to by node, at the position given by index.  index is counted
+pointed to by node, at the position given by idx.  idx is counted
 in virtual table entries.  The result is of type ptrdiff_t.
 */
 {
@@ -2168,7 +2168,7 @@ in virtual table entries.  The result is of type ptrdiff_t.
   vtbl_expr = add_indirection_to_node(vptr_expr);
   /* Build a constant containing the index into node's virtual table,
      counted in virtual table entries. */
-  index_expr = node_for_integer_constant((long)index, targ_ptrdiff_t_int_kind);
+  index_expr = node_for_integer_constant((long)idx, targ_ptrdiff_t_int_kind);
   vtbl_expr->next = index_expr;
   /* Index into the virtual table. */
   entry_expr = make_operator_node((an_expr_operator_kind)eok_padd,
@@ -3368,7 +3368,7 @@ Do IL lowering of a pointer-to-member constant.
 #if !IA64_ABI
   a_constant_ptr   index_con;
 #endif /* !IA64_ABI */
-  a_targ_ptrdiff_t delta, index, offset;
+  a_targ_ptrdiff_t delta, idx, offset;
   a_memory_region_number
                    region_to_switch_back_to = NULL_region_number;
 
@@ -3378,7 +3378,7 @@ Do IL lowering of a pointer-to-member constant.
      aren't static initializations. */
   if (constant->variant.ptr_to_member.is_function_ptr) {
     /* Pointer to member function. */
-    repr_for_ptr_to_member_function_constant(constant, &delta, &index,
+    repr_for_ptr_to_member_function_constant(constant, &delta, &idx,
                                              &routine, &offset);
     if (processing_file_scope_init_routine) {
       /* Switch to the file scope.  Needed when lowering constants in a
@@ -3405,7 +3405,7 @@ Do IL lowering of a pointer-to-member constant.
        This is not used in the IA-64 ABI.
     */
     index_con = alloc_constant((a_constant_repr_kind)ck_integer);
-    set_delta_constant(index, index_con, class_type);
+    set_delta_constant(idx, index_con, class_type);
 #endif /* !IA64_ABI */
     /* The third field is
          NULL for a null pointer;
@@ -4470,14 +4470,14 @@ the complete virtual function table for class_type; otherwise it is a
 construction virtual function table.
 */
 {
-  a_virtual_table_index       index;
+  a_virtual_table_index       idx;
 
-  index = num_negative_vtable_entries(class_type, bcp);
+  idx = num_negative_vtable_entries(class_type, bcp);
   if (bcp != NULL && is_complete) {
     check_assertion(bcp->virtual_function_table_offset != -1);
-    index += bcp->virtual_function_table_offset;
+    idx += bcp->virtual_function_table_offset;
   }  /* if */
-  return index;
+  return idx;
 }  /* vptr_index */
 
 #endif /* IA64_ABI */
@@ -4488,7 +4488,7 @@ static void make_construction_vtbl(
                        a_base_class_ptr                bcp,
                        a_construction_vtbl_ptr         *construction_vtbls,
                        a_construction_vtbl_ptr         *end_construction_vtbls,
-                       a_construction_vtbl_array_index *index,
+                       a_construction_vtbl_array_index *idx,
                        a_construction_vtbl_array_index *first_index)
 /*
 Create a construction virtual function table entry for bcp in ctor_bcp in
@@ -4550,10 +4550,10 @@ entry, unless it is already non-zero.
   cvp = alloc_construction_vtbl();
   cvp->ctor_base_class = ctor_bcp;
   /* Assign the next index number to this entry. */
-  ++(*index);
-  if (*first_index == 0) *first_index = *index;
+  ++(*idx);
+  if (*first_index == 0) *first_index = *idx;
   if (ctor_bcp == NULL && bcp != NULL) {
-    bcp->index_in_construction_vtbl_array = *index;
+    bcp->index_in_construction_vtbl_array = *idx;
   }  /* if */
 #if IA64_ABI
   if (!is_subobject) {
@@ -4632,7 +4632,7 @@ static a_construction_vtbl_array_index make_construction_vtbls(
                        a_base_class_ptr                bcp,
                        a_construction_vtbl_ptr         *construction_vtbls,
                        a_construction_vtbl_ptr         *end_construction_vtbls,
-                       a_construction_vtbl_array_index *index)
+                       a_construction_vtbl_array_index *idx)
               
 /*
 If the given class needs special versions of virtual function tables for
@@ -4642,7 +4642,7 @@ overridden in virtual base classes.  The tables are to be generated for
 use when constructing/destroying a subobject described by bcp if bcp
 is non-NULL, or a complete object of type class_type if bcp is NULL.
 Add any needed vtbl entries to the list bounded by *construction_vtbls and
-*end_construction_vtbls, and increment *index accordingly.  Return the
+*end_construction_vtbls, and increment *idx accordingly.  Return the
 index number of the first entry, or 0 if no entries were created.
 */
 {
@@ -4665,7 +4665,7 @@ index number of the first entry, or 0 if no entries were created.
     /* Add an entry for the primary virtual pointer. */
     make_construction_vtbl(class_type, bcp, (a_base_class_ptr)NULL,
                            construction_vtbls,
-                           end_construction_vtbls, index, &first_index);
+                           end_construction_vtbls, idx, &first_index);
 #endif /* IA64_ABI */
     /* Look for base classes for which special virtual function tables are
        needed because of the base class itself (an array of virtual
@@ -4738,7 +4738,7 @@ index number of the first entry, or 0 if no entries were created.
                                                         eff_bcp,
                                                         construction_vtbls,
                                                         end_construction_vtbls,
-                                                        index);
+                                                        idx);
             if (first_index == 0) {
               first_index =
                       eff_bcp->base_subarray_index_in_construction_vtbl_array;
@@ -4800,7 +4800,7 @@ index number of the first entry, or 0 if no entries were created.
           /* Needs a special virtual function table. */
           make_construction_vtbl(class_type, bcp, sub_bcp,
                                  construction_vtbls, 
-                                 end_construction_vtbls, index,
+                                 end_construction_vtbls, idx,
                                  &first_index);
         }  /* if */
       }  /* for */
@@ -4962,33 +4962,33 @@ given base class.  vtable entries at negative offsets are used to deal
 with virtual base classes in the IA-64 ABI.
 */
 {
-  a_virtual_table_index index;
+  a_virtual_table_index idx;
   a_base_class_ptr      vcall_bcp;
 
   if (bcp != NULL) {
     vcall_bcp = emit_vcall_offsets_in_virtual_function_table(bcp);
     if (vcall_bcp != NULL) {
-      index = -vcall_bcp->type->variant.class_struct_union.extra_info->
+      idx = -vcall_bcp->type->variant.class_struct_union.extra_info->
                                            next_negative_virtual_table_index
               - 1;
     } else {
-      index = -bcp->type->variant.class_struct_union.extra_info->
+      idx = -bcp->type->variant.class_struct_union.extra_info->
                                                  first_vcall_offset_index 
               - 1;
     }  /* if */
   } else {
-    index = -class_type->variant.class_struct_union.extra_info->
+    idx = -class_type->variant.class_struct_union.extra_info->
                                                  first_vcall_offset_index 
             - 1;
   }  /* if */
-  return index;
+  return idx;
 }  /* num_negative_vtable_entries */
 
 
 static void f_make_vars_for_virtual_function_tables(
                                              a_type_ptr            class_type,
                                              a_base_class_ptr      bcp,
-                                             a_virtual_table_index *index)
+                                             a_virtual_table_index *idx)
 /*
 Generate the variable for the virtual function table for the class type, 
 and calculate the offset to the virtual function tables for its base
@@ -5014,26 +5014,26 @@ process only those bases below bcp.
                                               (a_base_class_ptr)NULL,
                                               (a_base_class_ptr)NULL);
     if (needs_virtual_function_table(class_type)) {
-      *index += -ctsp->first_vcall_offset_index - 1;
+      *idx += -ctsp->first_vcall_offset_index - 1;
       if (ctsp->highest_virtual_function_number != 
           VIRTUAL_FUNCTION_NUMBER_NONE) {
-        *index += ctsp->highest_virtual_function_number + 1;
+        *idx += ctsp->highest_virtual_function_number + 1;
       }  /* if */
     }  /* if */
   } else if (base_class_needs_virtual_function_table(bcp, class_type) &&
              !base_class_has_vtbl(bcp)) {
-    bcp->virtual_function_table_offset = *index;
+    bcp->virtual_function_table_offset = *idx;
 #if DEBUG
     if (debug_level >= 4 || db_flag_is_set("vtbl")) {
       fprintf(f_debug, "Index %ld for virtual function table for ",
-              (long)*index);
+              (long)*idx);
       db_base_class(bcp, /*show_offset=*/TRUE);
     }  /* if */
 #endif /* DEBUG */
-    *index += num_negative_vtable_entries(class_type, bcp);
+    *idx += num_negative_vtable_entries(class_type, bcp);
     if (ctsp->highest_virtual_function_number != 
         VIRTUAL_FUNCTION_NUMBER_NONE) {
-      *index += ctsp->highest_virtual_function_number + 1;
+      *idx += ctsp->highest_virtual_function_number + 1;
     }  /* if */
   }  /* if */
   /* Recursively process the direct, non-primary base classes. */
@@ -5042,7 +5042,7 @@ process only those bases below bcp.
        base_bcp = base_bcp->next_preorder) {
     if (base_bcp->direct && !base_bcp->is_virtual) {
       eff_bcp = corresponding_base_class(base_bcp, class_type, bcp);
-      f_make_vars_for_virtual_function_tables(class_type, eff_bcp, index);
+      f_make_vars_for_virtual_function_tables(class_type, eff_bcp, idx);
     }  /* if */
   }  /* for */
   /* Recursively process the virtual base classes if we are currently
@@ -5054,7 +5054,7 @@ process only those bases below bcp.
       if (base_bcp->is_virtual) {
         eff_bcp = corresponding_base_class(base_bcp, class_type, 
                                            (a_base_class_ptr)NULL);
-        f_make_vars_for_virtual_function_tables(class_type, eff_bcp, index);
+        f_make_vars_for_virtual_function_tables(class_type, eff_bcp, idx);
       }  /* if */
     }  /* for */
   }  /* if */
@@ -5072,7 +5072,7 @@ class_type if any are needed and if they have not already been generated.
 #if !IA64_ABI
   a_base_class_ptr            bcp;
 #else /* IA64_ABI */
-  a_virtual_table_index       index = 0;
+  a_virtual_table_index       idx = 0;
 #endif /* IA64_ABI */
 
   ctsp = class_type->variant.class_struct_union.extra_info;
@@ -5101,7 +5101,7 @@ class_type if any are needed and if they have not already been generated.
 #else /* IA64_ABI */
       f_make_vars_for_virtual_function_tables(class_type,
                                               (a_base_class_ptr)NULL,
-                                              &index);
+                                              &idx);
 #endif /* IA64_ABI */
     }  /* if */
   }  /* if */
@@ -10309,7 +10309,7 @@ created.
   an_expr_node_ptr          select_vptr_node, vptr_node, vtbl_entry_node;
   an_expr_node_ptr          index_node;
   a_constant_ptr            index_con;
-  a_virtual_function_number index;
+  a_virtual_function_number idx;
 
   /* Find the routine entry. */
   routine_ptr = routine_from_node(func_node);
@@ -10319,9 +10319,9 @@ created.
   vptr_node = add_indirection_to_node(select_vptr_node);
   /* Add the index for the function to the base address of the virtual
      function to get the address of the applicable entry of the table. */
-  index = routine_ptr->virtual_function_number;
+  idx = routine_ptr->virtual_function_number;
   index_con = alloc_constant((a_constant_repr_kind)ck_integer);
-  set_integer_constant(index_con, (a_host_large_integer)index,
+  set_integer_constant(index_con, (a_host_large_integer)idx,
                        (an_integer_kind)ik_int);
   index_node = make_node_for_il_constant(index_con);
   vtbl_entry_node = make_operator_node((an_expr_operator_kind)eok_padd,
@@ -11044,19 +11044,19 @@ can have changed since the first reference.
        harmless for non-integral cases. */
     comp_expr = integral_promote_node(comp_expr);
   } else {
-    a_targ_ptrdiff_t delta, index, offset;
+    a_targ_ptrdiff_t delta, idx, offset;
     a_routine_ptr    routine;
 
     /* Constant case.  Generate an expression for the proper constant
        value of the proper component. */
     repr_for_ptr_to_member_function_constant(expr->variant.constant,
-                                             &delta, &index,
+                                             &delta, &idx,
                                              &routine, &offset);
 #if !IA64_ABI
     if (field == mptr_i_field) {
       /* The "i" (index) field. */
       comp_expr = node_for_promoted_integer_constant(
-                                         (long)index,
+                                         (long)idx,
                                          TARG_VIRTUAL_FUNCTION_INDEX_INT_KIND);
     } else 
 #endif /* !IA64_ABI */

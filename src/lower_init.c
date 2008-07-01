@@ -10176,9 +10176,9 @@ done:
 an_expr_node_ptr vtbl_addr_from_construction_vtbls_array(
                         a_variable_ptr                  construction_vtbls_var,
                         a_boolean                       var_is_array,
-                        a_construction_vtbl_array_index index)
+                        a_construction_vtbl_array_index idx)
 /*
-Construct an expression for an lvalue for the "index-1"-th element of the
+Construct an expression for an lvalue for the "idx-1"-th element of the
 indicated array of special virtual function table values.  Return a pointer
 to the expression.  If var_is_array is TRUE, construction_vtbls_var is the
 array itself; if FALSE, it is a pointer to the first element of the array.
@@ -10193,10 +10193,10 @@ array itself; if FALSE, it is a pointer to the first element of the array.
     expr = var_rvalue_expr(construction_vtbls_var);
   }  /* if */
   /* Compensate for 0-origin of array versus 1-origin of index. */
-  index--;
-  if (index != 0) {
+  idx--;
+  if (idx != 0) {
     /* The entry is not at offset 0 of the array, so add the right offset. */
-    expr->next = node_for_integer_constant((long)index,
+    expr->next = node_for_integer_constant((long)idx,
                                            targ_size_t_int_kind);
     expr = make_operator_node((an_expr_operator_kind)eok_padd,
                               expr->type,
@@ -10363,11 +10363,11 @@ static void pass_construction_vtbls_to_subobject_constructor(
                         a_variable_ptr                  construction_vtbls_var,
                         a_boolean                       var_is_array,
                         a_type_ptr                      subobject_class_type,
-                        a_construction_vtbl_array_index index,
+                        a_construction_vtbl_array_index idx,
                         an_init_pos_descr_ptr           ipdp,
                         an_insert_location              *insert_location)
 /*
-Insert an assignment statement to store the address of the "index-1"-th
+Insert an assignment statement to store the address of the "idx-1"-th
 element of the array of special virtual functions pointed to by
 construction_vtbls_var into the so-called transfer pointer in the
 subobject described by ipdp to pass the array to a subobject constructor
@@ -10381,7 +10381,7 @@ the type of the expression produced from ipdp may have the type-as-subobject).
 
   array_addr = vtbl_addr_from_construction_vtbls_array(construction_vtbls_var,
                                                        var_is_array,
-                                                       index);
+                                                       idx);
   set_transfer_pointer(ipdp, subobject_class_type, array_addr,
                        insert_location);
 }  /* pass_construction_vtbls_to_subobject_constructor */
@@ -13095,7 +13095,8 @@ allocated integer constant.
     /* Multiply previous value by 16. */
     shift_left_integer_value(&con.variant.integer_value, 4, &err);
     /* Or in digit. */
-    set_unsigned_integer_value(&digit, (a_host_large_unsigned)intdigit);
+    set_unsigned_integer_value(&digit,
+                            (a_host_large_unsigned)intdigit /*lint --e(571)*/);
     or_integer_values(&con.variant.integer_value, &digit);
   }  /* for */
   *ptr = local_ptr;

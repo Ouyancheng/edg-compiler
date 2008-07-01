@@ -1592,7 +1592,7 @@ be in the set.
             "add_symbol_to_lookup_set: symbols at start - curr=%lu, new=%lu\n",
             functions_represented_by_symbol(curr_sym),
             functions_represented_by_symbol(new_sym));
-    fprintf(f_debug, "  decl_seq_of_symbol=%ld, starting_decl_seq=%ld\n",
+    fprintf(f_debug, "  decl_seq_of_symbol=%lu, starting_decl_seq=%lu\n",
             decl_seq_of_symbol, starting_decl_seq);
   }  /* if */
 #endif  /* DEBUG */
@@ -2050,14 +2050,14 @@ in the scope in which the using-directives apply.
   if (db_flag_is_set("gpp_lookup")) {
     an_active_using_directive_ptr	audp;
     fprintf(f_debug, "g++ using-dir lookup:\n");
-    fprintf(f_debug, "  nssp->using_dir_decl_seq=%ld\n",
+    fprintf(f_debug, "  nssp->using_dir_decl_seq=%lu\n",
             nssp->using_dir_decl_seq);
-    fprintf(f_debug, "  lookup_state->using_dir_decl_seq=%ld\n",
+    fprintf(f_debug, "  lookup_state->using_dir_decl_seq=%lu\n",
             lookup_state->using_dir_decl_seq);
     for (audp = ssep->using_directives_that_apply_here;
          audp != NULL; audp = audp->next_that_applies_at_depth) {
       if (nssp == audp->namespace_supplement) {
-        fprintf(f_debug, "  effective_decl_seq=%ld\n",
+        fprintf(f_debug, "  effective_decl_seq=%lu\n",
                audp->effective_decl_seq);
       }  /* if */
     }  /* for */
@@ -5069,8 +5069,7 @@ a projection symbol is needed to check for ambiguity and access).
     /* Yes.  Look for one in the desired class. */
     make_opname_locator(kind, &locator, &pos_curr_token);
     if (class_qualified_id_lookup(&locator, class_type,
-                                  (IDL_NO_OPTIONS |
-                                   IDL_DO_NOT_ADD_TO_NONREAL_CLASS)) != NULL) {
+                                  IDL_DO_NOT_ADD_TO_NONREAL_CLASS) != NULL) {
       /* Get the projection symbol if any. */
       sym = locator.specific_symbol;
     }  /* if */
