@@ -9866,6 +9866,7 @@ be issued.
   a_template_param_ptr		old_tpp;
   a_boolean			any_errors = FALSE;
   a_template_param_ptr		prev_new_tpp = NULL;
+  a_template_param_ptr		prev_old_tpp = NULL;
 
   if ((options & ETP_NESTING_DEPTH_MISMATCH_OKAY) == 0) {
     a_template_nesting_depth	old_depth;
@@ -9921,6 +9922,7 @@ be issued.
       }  /* if */
       any_errors = TRUE;
     }  /* if */
+    prev_old_tpp = old_tpp;
     old_tpp = old_tpp->next;
     prev_new_tpp = new_tpp;
     new_tpp = new_tpp->next;
@@ -9933,11 +9935,13 @@ be issued.
          declaration. */
       an_error_code	error_code;
       a_source_position	*pos;
+      a_source_position	*old_pos;
       if (old_tpp == NULL) {
         /* Too many parameters.  Use the position of the first extra
            parameter as the error position. */
         error_code = ec_too_many_template_params;
         pos = &new_tpp->param_symbol->decl_position;
+        old_pos = &prev_old_tpp->param_symbol->decl_position;
       } else {
         /* Too few parameters.  Use the position of the last parameter present
            to report the error.  If there were no parameters specified,
@@ -9946,8 +9950,13 @@ be issued.
         error_code = ec_too_few_template_params;
         pos = prev_new_tpp == NULL ? error_pos :
                                    &prev_new_tpp->param_symbol->decl_position;
+        /* Use the position of the previous parameter, if present.  Otherwise
+           use the position of the first old parameter. */
+        old_pos = prev_old_tpp == NULL
+                                  ? &old_list->param_symbol->decl_position
+                                  : &prev_old_tpp->param_symbol->decl_position;
       }  /* if */
-      pos_diagnostic(error_severity, error_code, pos);
+      pos2_diagnostic(error_severity, error_code, pos, old_pos);
     }  /* if */
   }  /* if */
 done:
