@@ -1406,7 +1406,7 @@ based (through array and pointer constructs only).
       bad_block_size = upc_block_size_too_large(
                                          (a_host_large_unsigned)num_elements);
       elem_type->variant.typeref.upc_block_size =
-                                            bad_block_size ? 1 : num_elements;
+                                     (long)(bad_block_size ? 1 : num_elements);
     }  /* if */
   }  /* if */
 }  /* fixup_upc_block_size */

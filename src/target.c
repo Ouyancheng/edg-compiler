@@ -269,7 +269,7 @@ Perform consistency check on target configuration variables.
   { a_targ_alignment temp = UCHAR_MAX;  /* Use variable to avoid
                                            lint/gcc complaints. */
     if (targ_minimum_pack_alignment < 1 ||
-        targ_minimum_pack_alignment > temp) {
+        targ_minimum_pack_alignment > temp /*lint --e(685)*/) {
       internal_error(
                    "check_target_config: invalid targ_minimum_pack_alignment");
     }  /* if */

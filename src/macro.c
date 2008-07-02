@@ -6970,7 +6970,7 @@ TRUE) and "-U" (when process_undefs is TRUE) options on the command line.
         }  /* if */
         du_len += 2;
       }  /* if */
-      curr_source_line[du_len+0] = LE_ESCAPE;
+      curr_source_line[du_len]   = LE_ESCAPE;
       curr_source_line[du_len+1] = LE_NEWLINE;
       curr_source_line[du_len+2] = LE_ESCAPE;
       curr_source_line[du_len+3] = LE_END_OF_LINE;
@@ -7202,7 +7202,10 @@ that occurred.
   for (done = FALSE; !done;) {
     a_boolean	required_value = TRUE;
     /* Check for the "!" that indicates the mode must not be set. */
-    if (*ptr == '!') required_value = FALSE, ptr++;
+    if (*ptr == '!') {
+      required_value = FALSE;
+      ptr++;
+    }  /* if */
     /* Find the end of the mode. */
     for (end_pos = ptr;
          *end_pos != ',' && *end_pos != ' ' &&

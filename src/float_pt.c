@@ -48,9 +48,9 @@ EXTERN_C double strtod(char *, char **);
 #include <math.h>
 #define is_NaN(x) (isnan((double)(x)))
 #if !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
-#define is_finite(x) (isfinite((double)(x))) /*lint --e(506)*/
+#define is_finite(x) (isfinite((double)(x)))
 #else /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE ... */
-#define is_finite(x) (isfinite((long double)(x))) /*lint --e(506)*/
+#define is_finite(x) (isfinite((long double)(x)))
 #endif /* !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE ... */
 #else /* !defined(__MWERKS__) */
 #include <float.h>
@@ -58,12 +58,12 @@ EXTERN_C double strtod(char *, char **);
 /* Note that MSVC has long double the same size as double so _finite
    will work for long double also. */
 #if !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE || DBL_MAX_EXP == LDBL_MAX_EXP
-#define is_finite(x) (_finite((double)(x)))  /*lint --e(506)*/
+#define is_finite(x) (_finite((double)(x))) 
 #else /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE ... */
 /* This must be a compiler other than MSVC++ on Windows, one that uses
    80-bit long doubles. */
 /* See definition of long_double_is_finite below. */
-#define is_finite(x) (long_double_is_finite(x)) /*lint --e(506)*/
+#define is_finite(x) (long_double_is_finite(x))
 #define NEED_LONG_DOUBLE_IS_FINITE 1
 #endif /* !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE ... */
 #endif /* ifdef __MWERKS__ */
@@ -77,10 +77,10 @@ EXTERN_C int isnan(double x);
    for long double (the conversion to double could produce an Infinity
    for a too-large value). */
 EXTERN_C int finite(double x);
-#define is_finite(x) (finite(x)) /*lint --e(506)*/
+#define is_finite(x) (finite(x))
 #else /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
 /* See definition of long_double_is_finite below. */
-#define is_finite(x) (long_double_is_finite(x)) /*lint --e(506)*/
+#define is_finite(x) (long_double_is_finite(x))
 #define NEED_LONG_DOUBLE_IS_FINITE 1
 #endif /* !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
 #else /* !defined(sun) */
@@ -99,26 +99,39 @@ EXTERN_C int finite(double x);
    it is unreliable.  The HP PA headers have isfinite, but it does not accept
    a long double argument. */
 #if defined(isfinite) && !defined(__CYGWIN__) && !defined(__hppa)
-#define is_finite(x) (isfinite(x)) /*lint --e(506)*/
+#define is_finite(x) (isfinite(x))
 #else /* !defined(isfinite) */
 /* The "finite" function takes a double argument, so it doesn't work
    for long double (the conversion to double could produce an Infinity
    for a too-large value). */
 #if !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
 #if __linux__
-#define is_finite(x) (__finite(x)) /*lint --e(506)*/
+#define is_finite(x) (__finite(x))
 #else /* !__linux__ */
-#define is_finite(x) (finite(x)) /*lint --e(506)*/
+#define is_finite(x) (finite(x))
 #endif /* __linux__ */
 #else /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
 /* See definition of long_double_is_finite below. */
-#define is_finite(x) (long_double_is_finite(x)) /*lint --e(506)*/
+#define is_finite(x) (long_double_is_finite(x))
 #define NEED_LONG_DOUBLE_IS_FINITE 1
 #endif /* !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
 #endif /* ifdef isfinite */
 #endif /* ifdef sun */
 #endif /* EDG_WIN32 */
 #endif /* TARG_HAS_IEEE_FLOATING_POINT */
+
+#ifdef _lint
+/*
+When using lint, just use versions of is_finite and is_NaN that won't cause
+diagnostics.
+*/
+#undef is_finite /*lint !e750*/
+#undef is_NaN /*lint !e750*/
+#define is_finite(x) lint_is_finite((long double)x)
+#define is_NaN(x) lint_is_NaN((long double)x)
+static a_boolean lint_is_finite(long double x) {return x == 0.0; }
+static a_boolean lint_is_NaN(long double x) {return x == 0.0; }
+#endif /* ifdef _lint */
 
 
 static sizeof_t
@@ -626,7 +639,7 @@ return TRUE otherwise.
 */
 {
   a_boolean  err = FALSE, fp_mode_dependent = FALSE;
-  float nan;
+  float nan_value;
 
 #ifdef __CENTERLINE__
   /* CodeCenter does not allow division by zero. */
@@ -635,13 +648,13 @@ return TRUE otherwise.
     long  l;
   } u;
   u.l = 0x7fffffff;
-  nan = u.x;
+  nan_value = u.x;
 #else /* !defined(__CENTERLINE__) */
   /* 0.0 / 0.0 produces a NaN. */
-  nan = float_zero / float_zero;
+  nan_value = float_zero / float_zero;
 #endif /* ifdef __CENTERLINE__ */
   memzero((char *)value, sizeof(an_internal_float_value));
-  (void)memcpy((char *)value, (char *)&nan, sizeof(float));
+  (void)memcpy((char *)value, (char *)&nan_value, sizeof(float));
   if (kind != (a_float_kind)fk_float) {
     /* Convert the NaN to the right type. */
     fp_change_kind(value, (a_float_kind)fk_float, value, kind,

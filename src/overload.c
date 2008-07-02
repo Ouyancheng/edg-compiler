@@ -5196,6 +5196,7 @@ is set to TRUE.
               /* The new function is better than the best so far.  Take
                  all previous functions out of the best-match set. */
               best_cfp = cfp;
+              /*lint --e{445} reuse of for loop variable cfp*/
               for (cfp = candidates; cfp != best_cfp; cfp = cfp->next) {
                 if (cfp->in_best_match_set) {
                   cfp->in_best_match_set = FALSE;
@@ -11241,7 +11242,7 @@ mode.
   cctor_is_bitwise_copy = cssp->construction_by_bitwise_copy_allowed;
   bitwise_copy_okay = try_bitwise_copy &&
                       cctor_is_bitwise_copy &&
-                      !any_qualifier_in_set_missing(TQ_CONST,
+                      !any_qualifier_in_set_missing(TQ_CONST, /*lint --e(845)*/
                                                     source_qualifiers);
   if (bitwise_copy_okay && type_is_same) {
     /* The source and destination types are the same class type, and a
@@ -14814,7 +14815,8 @@ used only in C++ mode.
        because we don't know about constructors in that case. */
     cctor_sym = NULL;
     if (!sun_mode && 
-        any_qualifier_in_set_missing(TQ_CONST, required_qualifiers)) {
+        any_qualifier_in_set_missing(TQ_CONST,
+                                     required_qualifiers /*lint --e(845)*/)) {
       /* Strictly speaking, a bitwise copy constructor has an input
          parameter of type ref to const class, and therefore it cannot
          copy a volatile-qualified object. */

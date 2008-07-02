@@ -5945,7 +5945,7 @@ Syntax:
     if (upc_blocksizeof_scan) {
       /* Save the block size before stripping the typerefs. */
       block_size = get_underlying_upc_block_size(sizeof_type);
-      special_upc_size = (unsigned long)block_size;
+      special_upc_size = block_size;
       if (block_size == UPC_BLOCK_SIZE_NONE) {
         /* For non-shared data we return a value greater than the maximum legal
            block size. */
@@ -6031,7 +6031,7 @@ Syntax:
       make_error_operand(result);
       err = TRUE;
     } else if (kind == tok_upc_localsizeof) {
-      special_upc_size = upc_local_type_size(sizeof_type);
+      special_upc_size = (a_upc_block_size)upc_local_type_size(sizeof_type);
       use_special_upc_size = TRUE;
     } else if (kind == tok_upc_elemsizeof && is_array_type(sizeof_type)) {
       sizeof_type = underlying_array_element_type(sizeof_type);

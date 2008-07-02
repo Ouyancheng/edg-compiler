@@ -1274,7 +1274,7 @@ scanned.
       error(ec_integer_too_large);
     }  /* if */
   }  /* if */
-  return value;
+  return (long)value;
 }  /* scan_ms_attribute_integer_arg */
 
 
@@ -1633,6 +1633,9 @@ until the end of the attribute is found.
 }  /* scan_unrecognized_ms_attribute_arg_list */
 
 
+#if !GENERATE_SOURCE_SEQUENCE_LISTS
+/*ARGSUSED*/ /* is_parameter is only used in some configurations. */
+#endif /* !GENERATE_SOURCE_SEQUENCE_LISTS */
 static an_ms_attribute_ptr scan_ms_attribute(a_boolean	is_parameter)
 /*
 Scan a single Microsoft attribute of an attribute block that may contain
@@ -1865,6 +1868,7 @@ in the param_type entry).
   scp = source_corresp_for_il_entry(entity, kind);
   /* Check whether the attributes have the appropriate target. */
   for (msap = *attributes; msap != NULL; msap = next_msap) {
+    /*lint --e{550} is_error not referenced in some configurations. */
     a_boolean	is_error = FALSE;
     next_msap = msap->next;
     if ((msap->kind_descr->target & target) == 0 &&

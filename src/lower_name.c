@@ -1734,7 +1734,7 @@ of length specification in the mangling for lengths of literals.
          following the decimal point. */
       /* The first digit after the decimal is considered significant even
          if it is a zero. */
-      for (last_signif = ++p; isdigit((unsigned char)*p); p++) {
+      for (last_signif = ++p; isdigit((unsigned char)*p); p++) /*lint !e443*/ {
         if (*p != '0') last_signif = p;
       }  /* for */
       /* Change any insignificant zeroes to blanks. */
@@ -2132,10 +2132,10 @@ specification in the mangling for lengths of literals.
     add_str_to_mangled_name(str, mctl);
   } else {
     /* Pointer to member function. */
-    a_targ_ptrdiff_t delta, index, offset;
+    a_targ_ptrdiff_t delta, idx, offset;
     a_routine_ptr    func;
 
-    repr_for_ptr_to_member_function_constant(con, &delta, &index, &func,
+    repr_for_ptr_to_member_function_constant(con, &delta, &idx, &func,
                                              &offset);
     add_str_to_mangled_name("LM", mctl);
     /* Delta value. */
@@ -2146,7 +2146,7 @@ specification in the mangling for lengths of literals.
     str_length = strlen(str);  /* Includes "-" sign if any. */
     add_str_to_mangled_name(str, mctl);
     /* Index value. */
-    (void)sprintf(buffer, "%ld", (long)index);
+    (void)sprintf(buffer, "%ld", (long)idx);
     str = buffer;
     /* Use "n" to represent a minus sign. */
     if (str[0] == '-') str[0] = 'n';
@@ -6880,9 +6880,11 @@ be embedded in other mangled names.
     }  /* if */
   }  /* if */
   /* Leave the name alone if the entity is unnamed or if it has been
-     mangled already (e.g., for a class name-as-subobject). */
+     mangled already (e.g., for a class name-as-subobject).  The lint
+     comment indicates that is_string is known to be FALSE in some
+     configurations. */
   if (!scp->name_has_been_mangled &&
-      (scp->name != NULL || is_string)) {
+      (scp->name != NULL || is_string /*lint --e(845)*/)) {
     if (scoped_enum_type != NULL) {
       /* We're mangling a scoped enumerator.  The name of the scoped
          enumeration to which it belongs will be part of the mangled name.

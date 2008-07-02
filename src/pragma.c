@@ -804,7 +804,7 @@ there is additional processing to be done.
            find the nearest enclosing scope with an associated IL scope. */
         a_scope_stack_entry_ptr	ssep = scope_stack_entry_for(scope_depth);
         a_boolean		done = FALSE;
-        for (; !done; ssep = previous_scope_of(ssep)) {
+        for (; !done; ssep = previous_scope_of(ssep)) /*lint !e441*/ {
           check_assertion(ssep != NULL);
           switch (ssep->kind) {
             case sck_class_struct_union:

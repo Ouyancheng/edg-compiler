@@ -19123,9 +19123,10 @@ unless the SIR_CLEAR_VALUE flag is set in "options".
             "Setting instantiation_required flag to %s for (options=%d)\n  ",
             value ? "TRUE" : "FALSE", (int)options);
     db_symbol_name_trans_unit(tip->instance_sym);
-    fprintf(f_debug, "  defined=%d", sym->defined);
+    fprintf(f_debug, "  defined=%d", (a_boolean)sym->defined);
     if (is_function_symbol(sym)) {
-      fprintf(f_debug, ", inline=%d", sym->variant.routine.ptr->is_inline);
+      fprintf(f_debug, ", inline=%d",
+             (a_boolean)sym->variant.routine.ptr->is_inline);
     }  /* if */
     fprintf(f_debug, "\n");
   }  /* if */
@@ -19529,7 +19530,8 @@ for adding the entries to the actual instantiation request file.
       db_symbol_name(mip->instance->instance_sym);
       fprintf(f_debug,
               "\n  add_to_request_file=%d\n  already_instantiated=%d\n",
-              mip->add_to_request_file, mip->already_instantiated);
+              (a_boolean)mip->add_to_request_file,
+              (a_boolean)mip->already_instantiated);
 #if MAINTAIN_NEEDED_FLAGS
       fprintf(f_debug, "  needed=%d\n", needed);
 #endif /* MAINTAIN_NEEDED_FLAGS */
@@ -19811,7 +19813,7 @@ be processed.
         fprintf(f_debug, "\n");
       }  /* if */
       fprintf(f_debug, " already_instantiated=%d\n",
-              mip->already_instantiated);
+              (a_boolean)mip->already_instantiated);
       fprintf(f_debug, " instance_required=%d\n", instance_required);
       fprintf(f_debug, " can_be_instantiated=%d\n", can_be_instantiated);
       fprintf(f_debug, " is_exported=%d\n", is_exported);
@@ -20708,12 +20710,13 @@ a body (if needed) for extern inline functions.
       fprintf(f_debug, " instance_required=%d\n", instance_required);
       fprintf(f_debug, " can_be_instantiated=%d\n", can_be_instantiated);
 #if MAINTAIN_NEEDED_FLAGS
-      fprintf(f_debug, " definition_needed=%d\n", rout_ptr->definition_needed);
+      fprintf(f_debug, " definition_needed=%d\n",
+              (a_boolean)rout_ptr->definition_needed);
 #endif /* MAINTAIN_NEEDED_FLAGS */
       fprintf(f_debug, " inline_instance_required=%d\n",
-              rout_ptr->inline_instance_required);
+              (a_boolean)rout_ptr->inline_instance_required);
       fprintf(f_debug, " suppress_inline_body=%d\n",
-              rout_ptr->suppress_inline_body);
+              (a_boolean)rout_ptr->suppress_inline_body);
     }  /* if */
 #endif /* DEBUG */
   }  /* if */

@@ -813,8 +813,8 @@ Enter the standard predeclared functions for GCC.
   enter_gnu_builtin_real_math_funcs1(_tanh);
   enter_gnu_builtin_real_math_funcs1(_tgamma);
   enter_gnu_builtin_func1(_toascii, int, int);
-  enter_gnu_builtin_func1(_tolower, int, int);
-  enter_gnu_builtin_func1(_toupper, int, int);
+  enter_gnu_builtin_func1(_tolower, int, int); /*lint !e123*/
+  enter_gnu_builtin_func1(_toupper, int, int); /*lint !e123*/
   enter_gnu_builtin_func1(_towlower, wint_t, wint_t);
   enter_gnu_builtin_func1(_towupper, wint_t, wint_t);
   enter_gnu_builtin_func0(_trap, no_return);

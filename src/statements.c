@@ -510,7 +510,7 @@ dump_control_flow has been enabled at the command line.
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case ssk_microsoft_try:  str = "microsoft_try";  break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    default:             str = "???"; break;
+    default:             str = "<unknown>"; break;
   }  /* switch */
   fprintf(f_debug, "ssk_%s\n", str);
 }  /* db_ssse_with_indentation */
