@@ -264,6 +264,8 @@ extern int fileno(FILE *);
 #ifdef sun
 /*lint -esym(526,isnan)*/
 /*lint -esym(526,finite)*/
+/*lint -esym(752,finite)*/
+/*lint -esym(752,isnan)*/
 #endif /* ifdef sun */
 #if !GNU_EXTENSIONS_ALLOWED
 /*lint -esym(769,ec_noreturn_function_does_return)*/

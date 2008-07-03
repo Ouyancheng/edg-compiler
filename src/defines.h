@@ -955,7 +955,12 @@ switches before this point.
 #define SUN_TARGET_VERSION_NUMBER 0x530
 #endif /* !defined(SUN_TARGET_VERSION_NUMBER) && ... */
 
+/*
+If using lint on a non-Sun platform, define some features that are in the
+SUN_TEST_VERSION but not the EDG_TEST_VERSION.
+*/
 #ifdef _lint
+#ifndef sun
 #define GENERATE_SOURCE_SEQUENCE_LISTS 1
 #define ALLOW_SOURCE_SEQUENCE_LISTS_WITH_IL_LOWERING 1
 #define RECORD_HIDDEN_NAMES_IN_IL 1
@@ -966,6 +971,7 @@ switches before this point.
 #define DUMP_LOWERED_EH_CONSTRUCTS_IN_C_GEN_BE 1
 #undef LOWER_VARIABLE_LENGTH_ARRAYS
 #define LOWER_VARIABLE_LENGTH_ARRAYS 1
+#endif /* ifndef sun */
 #endif /* ifdef lint */
 
 /******************************************************************************
