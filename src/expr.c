@@ -6041,7 +6041,9 @@ Syntax:
   if (err) {
     /* Already handled */
   } else if (use_special_upc_size) {
-    set_unsigned_integer_constant(&constant, special_upc_size,
+    set_unsigned_integer_constant(&constant,
+                                  /*lint --e(571) cast of signed to unsigned */
+                                  (a_host_large_unsigned)special_upc_size,
                                   targ_size_t_int_kind);
     make_constant_operand(&constant, result);
   } else

@@ -63,6 +63,7 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(714,db_format_integer_value)*/
 /*lint -esym(714,db_prefix)*/
 /*lint -esym(714,db_prefix_ptr)*/
+/*lint -esym(714,db_long_double)*/
 /*lint -esym(714,db_sym)*/
 /*lint -esym(714,db_corresp)*/
 /*lint -esym(714,db_stop_tokens)*/
@@ -93,6 +94,9 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(765,insert_string_into_token_stream)*/
 /*lint -esym(714,insert_string_into_token_stream)*/
 /*lint -esym(755,alloc_cil_of_type)*/
+/*lint -esym(714,enter_assert_predicate)*/
+/*lint -esym(759,enter_assert_predicate)*/
+/*lint -esym(765,enter_assert_predicate)*/
 
 /* Used in the main programs for the standalone c_gen_be, cp_gen_be, and
    il_display: */
@@ -533,9 +537,25 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_fixed_register_used)*/
 /*lint -esym(769,ec_match_limit_for_symbolic_asm_operand)*/
 #endif /* RECORD_RAW_ASM_OPERAND_DESCRIPTIONS */
+#if INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
+/*lint -esym(759,conv_float_string_to_integer_value)*/
+/*lint -esym(765,conv_float_string_to_integer_value)*/
+/*lint -esym(714,conv_float_string_to_integer_value)*/
+#endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
+#if !GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+/*lint -esym(769,ec_unrecognized_gcc_pragma)*/
+/*lint -esym(769,ec_unrecognized_gcc_visibility_pragma)*/
+/*lint -esym(769,ec_gnu_visibility_conflict)*/
+/*lint -esym(769,ec_unrecognized_visibility*/
+/*lint -esym(769,ec_ELF_visibility_pop_mismatch)*/
+/*lint -esym(769,ec_ELF_visibility_stack_empty)*/
+#endif /* !GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 /*lint -esym(759,find_local_scope)*/
 /*lint -esym(765,find_local_scope)*/
 /*lint -esym(714,find_local_scope)*/
+/* Suppress spurious data access warnings. */
+/*lint -efunc(670,macro_invocation)*/
+/*lint -efunc(690,macro_invocation)*/
 
 /******************************************************************************
 *                                                             \  ___  /       *

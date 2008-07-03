@@ -5014,6 +5014,7 @@ parameter of the indicated macro (1-origined).
 */
 {
   a_macro_param_ptr pp;
+  /*lint --e{441} loop variable not used in second expression*/
   for (pp = mdp->param_list; --number > 0; pp = pp->next) {}
   return pp->name;
 }  /* macro_param_name */

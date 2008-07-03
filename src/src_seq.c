@@ -490,6 +490,7 @@ separate sublists.
 
   db_enter(4, "fixup_function_scope_source_sequence_list");
   check_assertion(sp->kind == (a_scope_kind)sck_function);
+  /*lint --e{446} loop variable modified */
   for (ssep = sp->source_sequence_list; ssep != NULL; ssep = ssep->next) {
     if (in_file_scope(ssep)) {
       /* The source sequence entry belongs to the file scope memory region,
@@ -537,6 +538,7 @@ separate sublists.
       /* Proceed through the list now headed by ssep.  As long as successor
          entries belong to the file scope memory region, leave them on the
          sublist (by advancing the sublist's tail pointer). */
+      /*lint --e{445} reuse of loop variable ssep */
       for (ssep = ssep->next; ssep != NULL; ssep = ssep->next) {
         if (in_file_scope(ssep)) {
           /* This entry remains on the sublist. */
@@ -3038,12 +3040,14 @@ sequence entry for the definition of S will appear first.
 {
   /* Skip any tag type declarations and definitions, any macros, and any
      pragmas. */
+  /*lint --e{446} loop variable modified */
   for (; ssep != NULL; ssep = ssep->next) {
     if (ss_entry_kind(ssep) == iek_type) {
       /* A type definition. */
       a_type_ptr  type = ss_entry_ptr(ssep, a_type_ptr);
       if (is_immediate_class_type(type) || is_immediate_enum_type(type)) {
         /* Skip until matching end-of-construct entry. */
+        /*lint --e{445} reuse of loop variable ssep */
         for (;; ssep = ssep->next) {
           check_assertion(ssep != NULL);
           if (ss_entry_kind(ssep) == iek_src_seq_end_of_construct &&

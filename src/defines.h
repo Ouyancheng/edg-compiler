@@ -955,6 +955,19 @@ switches before this point.
 #define SUN_TARGET_VERSION_NUMBER 0x530
 #endif /* !defined(SUN_TARGET_VERSION_NUMBER) && ... */
 
+#ifdef _lint
+#define GENERATE_SOURCE_SEQUENCE_LISTS 1
+#define ALLOW_SOURCE_SEQUENCE_LISTS_WITH_IL_LOWERING 1
+#define RECORD_HIDDEN_NAMES_IN_IL 1
+#define ALLOW_HIDDEN_NAMES_IN_IL_WITH_IL_LOWERING 1
+#define RECORD_TEMPLATE_STRINGS 1
+#define RECORD_MACROS_IN_IL 1
+#define KEEP_OBJECT_LIFETIME_INFO_IN_LOWERED_IL_WHEN_EH_ENABLED 1
+#define DUMP_LOWERED_EH_CONSTRUCTS_IN_C_GEN_BE 1
+#undef LOWER_VARIABLE_LENGTH_ARRAYS
+#define LOWER_VARIABLE_LENGTH_ARRAYS 1
+#endif /* ifdef lint */
+
 /******************************************************************************
 *                                                             \  ___  /       *
 *                                                               /   \         *
