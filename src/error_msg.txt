@@ -1729,6 +1729,7 @@ ec_ELF_visibility_pop_mismatch;;"visibility pragma was still active"
 ec_ELF_visibility_stack_empty;;"no matching visibility push"
 ec_typeid_of_incomplete_type;;"typeid of incomplete type"
 ec_enum_declspec_in_c_mode;;"__declspec attributes are not allowed on enum specifiers in C mode"
+ec_array_size_one_assumed;;"array %n assumed to have one element"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

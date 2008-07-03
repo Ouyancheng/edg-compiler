@@ -1,5 +1,12 @@
 Version 3.11
 
+7/3/08   Remark on assumed array size in C mode
+
+In C mode, a file scope array declared without a specified size is assumed
+to have a size of one.  A remark is now issued in such cases.
+
+  int a[];
+
 7/3/08   Abort if error output is directed to an invalid file
 
 If the --error_output option was used to specify an invalid output

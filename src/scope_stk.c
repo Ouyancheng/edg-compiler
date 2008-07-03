@@ -4401,6 +4401,8 @@ NULL.
               array_type->variant.array.variant.number_of_elements = 1;
               set_type_size(array_type);
               var_ptr->type = array_type;
+              pos_sy_remark(ec_array_size_one_assumed, &sym->decl_position,
+                            sym);
               /* No need to call check_linked_entity_type here.  We
                  know elem[] and elem[1] are compatible. */
             } else {
