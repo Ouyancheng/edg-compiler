@@ -1,5 +1,14 @@
 Version 3.11
 
+7/3/08   IA-64 ABI demangling of non-external names
+
+The spec for the IA-64 ABI indicates that it should be possible to
+call __cxa_demangle with a name that does not begin with "_Z"
+and the name in that case should be considered to be a mangled type
+name.  That is now handled by our version.  Note that this change
+is not visible when edg_decode is run -- type names will still be
+left unchanged when run through that filter.
+
 6/10/08  getopt: handling of command line options beginning with "--"
 
 Previously the local implementation of getopt treated any argument

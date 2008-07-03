@@ -5041,7 +5041,8 @@ void decode_identifier(char      *id,
 /*
 Demangle the identifier id (which is null-terminated), and put the demangled
 form (null-terminated) into the output_buffer provided by the caller.
-A name that is not mangled is copied unchanged to output_buffer.
+A name that does not begin with the "_Z" indicating an external name is
+demangled as a type name (see the ABI description of __cxa_demangle).
 output_buffer_size gives the allocated size of output_buffer.  If there
 is some error in the demangling process, *err will be returned TRUE.
 In addition, if the error is that the output buffer is too small,
@@ -5071,9 +5072,8 @@ length returned the second time will be correct).
     /* A mangled name, beginning with "_Z". */
     end_ptr = demangle_encoding(id+2, /*include_func_params=*/TRUE, dctl);
   } else {
-    /* A non-mangled name.  Just copy. */
-    write_id_str(id, dctl);
-    end_ptr = NULL;
+    /* A non-external name, assumed to be a mangled type name. */
+    end_ptr = demangle_type(id, dctl);
   }  /* if */
   if (dctl->output_overflow_err) {
     dctl->err_in_id = TRUE;
