@@ -135,9 +135,11 @@ Options for calls of lower_dynamic_init:
 */
 typedef int a_lower_dynamic_init_options_set;
 #define LDIO_NONE 0		/* No options. */
-#define LDIO_FULL_EXPR 0x1	/* The initialization being lowered is
+#define LDIO_FULL_EXPR 0x1
+				/* The initialization being lowered is
 				   a full expression. */
-#define LDIO_THROW 0x2		/* The initialization being lowered is
+#define LDIO_THROW 0x2
+				/* The initialization being lowered is
 				   the top-level initialization for a throw. */
 
 extern void lower_dynamic_init(a_dynamic_init_ptr     dip,
