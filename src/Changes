@@ -1,5 +1,11 @@
 Version 3.11
 
+7/3/08   Abort if error output is directed to an invalid file
+
+If the --error_output option was used to specify an invalid output
+file, the front end would abort attempting to issue the "invalid error
+output file" message.  Now fixed.
+
 6/27/08  Lowering of certain dynamic aggregate initializations could produce 
          "assign_entry_number: non-file-scope ptr" internal error when
          exceptions are enabled

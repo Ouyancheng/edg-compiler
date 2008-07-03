@@ -6950,16 +6950,19 @@ Process the arguments on the command line that invoked the compiler.
       case optk_stderr_file_name:
         /* Redirect error output to a file.  This is useful on systems where
            redirection is not well supported. */
-        f_error = open_output_file(opt_arg, /*binary_file=*/FALSE,
-                                   /*update_mode=*/FALSE,
-                                   &cannot_open, &bad_name);
-        if (bad_name) {
-          str_command_line_error(ec_cl_invalid_error_output_file,
-                                 opt_arg);
-        } else if (cannot_open) {
-          str_command_line_error(ec_cl_cannot_open_error_output_file,
-                                 opt_arg);
-        }  /* if */
+        { FILE *f_new_error;
+          f_new_error = open_output_file(opt_arg, /*binary_file=*/FALSE,
+                                         /*update_mode=*/FALSE,
+                                         &cannot_open, &bad_name);
+          if (bad_name) {
+            str_command_line_error(ec_cl_invalid_error_output_file,
+                                   opt_arg);
+          } else if (cannot_open) {
+            str_command_line_error(ec_cl_cannot_open_error_output_file,
+                                   opt_arg);
+          }  /* if */
+          f_error = f_new_error;
+        }
 #if DEBUG
         /* Direct debug output to the new error output file. */
         f_debug = f_error;
