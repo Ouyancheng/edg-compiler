@@ -9680,7 +9680,7 @@ the original type.
     copy_type(orig_type, type);
     rtsp = type->variant.routine.extra_info;
     rtsp->this_class = NULL;
-    rtsp->qualifiers = TQ_NONE;
+    /* Note that the qualifiers from the original type are retained. */
   }  /* if */
   return type;
 }  /* routine_type_without_this_class */

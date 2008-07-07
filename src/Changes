@@ -1,5 +1,21 @@
 Version 3.11
 
+7/7/08   Qualifiers should be retained when deducing a function type
+
+In template argument deduction, a function type can be deduced from a
+member function type.  If the member function included cv-qualifiers those
+qualifiers should be retained as part of the function type, but were instead
+being dropped by the front end.  This resulted in problems such as the failure
+to match the partial specialization in this example.  Now fixed.
+
+  template<typename T> struct A;
+  template<typename T, typename U> struct A<T U::*> {
+    typedef U type;
+  };
+  struct S { };
+  typedef A<int (S::*)()>::type       t0;  // accepted
+  typedef A<int (S::*)() const>::type t1;  // previously rejected
+
 7/3/08   Remark on assumed array size in C mode
 
 In C mode, a file scope array declared without a specified size is assumed
