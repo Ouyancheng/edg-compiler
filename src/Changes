@@ -1,5 +1,23 @@
 Version 3.11
 
+7/7/08   Mismatched qualifiers should cause deduction failure
+
+When matching a function type from a template declaration with an actual
+type, the front end did not check for matching cv-qualifiers.  In the
+example below, this caused the partial specialization to be used instead
+of the primary template.  This has been fixed.  Note that the difference
+between this case and the one in the entry below is that in this case the
+type in the template is itself a function type.  In the entry below, the
+type in the template is just a template parameter type which is then deduced
+to be a function type.
+
+  template <class T> struct A;
+  template <class U> struct A<U()> { };
+  typedef void (fp)() const;
+  int main() {
+    A<fp> a;  // incomplete type error (does not match partial specialization)
+  }
+
 7/7/08   Qualifiers should be retained when deducing a function type
 
 In template argument deduction, a function type can be deduced from a
