@@ -4059,15 +4059,13 @@ The code is inserted at *insert_location and *insert_location is updated.
 
 #endif /* VLA_DEALLOCATION_REQUIRED */
 
-static void lower_ck_dynamic_init(
-                          a_constant_ptr         con_ptr,
-                          an_init_pos_descr_ptr  ipdp,
-                          a_boolean              dtor_case,
-                          a_constructor_init_ptr ctor_init,
-                          a_boolean              others_follow_in_aggr,
-                          an_insert_location_ptr insert_location,
-                          a_boolean              *keep_constant,
-                          a_boolean              *needs_copy_to_function_scope)
+static void lower_ck_dynamic_init(a_constant_ptr         con_ptr,
+                                  an_init_pos_descr_ptr  ipdp,
+                                  a_boolean              dtor_case,
+                                  a_constructor_init_ptr ctor_init,
+                                  a_boolean              others_follow_in_aggr,
+                                  an_insert_location_ptr insert_location,
+                                  a_boolean              *keep_constant)
 /*
 Generate executable code to handle a ck_dynamic_init constant (pointed
 to by con_ptr).  The entity to be initialized is described by ipdp.
@@ -4082,16 +4080,14 @@ is followed by others in an aggregate initialization (i.e., it's not the
 last).  If the initialization is of an aggregate and there some parts
 of the initialization that are constant, the ck_dynamic_init constant
 will be changed to an aggregate constant for the constant parts and
-*keep_constant will be set to TRUE.  If the dynamic init is copied to
-the function scope, *needs_copy_to_function_scope will be set to TRUE
-indicating that any aggregate that contains this dynamic init must also be
-copied to the function scope.
+*keep_constant will be set to TRUE.
 */
 {
   a_constant_ptr     next_con;
   a_type_ptr         desired_type;
   a_constant_ptr     constant_to_keep = NULL;
   a_dynamic_init_ptr dip = con_ptr->variant.dynamic_init;
+  a_boolean          need_copy_to_file_scope = FALSE;
 
   if (processing_file_scope_init_routine && in_file_scope(dip) &&
       dip->destruction_is_for_partially_constructed_aggregate) {
@@ -4103,9 +4099,9 @@ copied to the function scope.
        copies so the cleanup lists will be right. */
     dip = copy_dynamic_init(dip, CE_UNLINK_SOURCE_DESTRUCTIONS |
                                  CE_TRANSFER_DESTR_ENTITY_DESCR);
-    /* Set a flag to indicate that any aggregate that contains this
-       dynamic init will also need to be copied into the function scope. */
-    *needs_copy_to_function_scope = TRUE;
+    /* If any constants were copied above, they were copied into the function
+       scope.  Make sure we copy them back into the file scope. */
+    need_copy_to_file_scope = TRUE;
   }  /* if */
   if (dtor_case) {
     /* In a destructor case, so the "initialization" is really
@@ -4124,7 +4120,19 @@ copied to the function scope.
     /* There's a constant part of the initialization that needs to be
        kept.  Replace the ck_dynamic_init constant with that constant. */
     a_constant_ptr con_ptr_next = con_ptr->next;
-    copy_constant(constant_to_keep, con_ptr);
+    if (need_copy_to_file_scope) {
+      /* This constant is the remnant of a dynamic init that was copied
+         to the function scope.  The rest of the constant is in the file
+         scope, so make sure any pieces that were copied above are
+         (re-)copied to file scope. */
+      a_memory_region_number region_to_switch_back_to = NULL_region_number;
+      check_assertion(in_file_scope((char *)con_ptr));
+      switch_to_file_scope_region(&region_to_switch_back_to);
+      (void)copy_constant_full(constant_to_keep, con_ptr, CE_NO_OPTIONS);
+      switch_back_to_original_region(region_to_switch_back_to);
+    } else {
+      copy_constant(constant_to_keep, con_ptr);
+    }  /* if */
     con_ptr->next = con_ptr_next;
     *keep_constant = TRUE;
   } else {
@@ -4198,14 +4206,13 @@ copied to the function scope.
 
 
 static void lower_dynamic_init_aggregate_constant(
-                          a_constant_ptr         aggr_const,
-                          an_init_pos_descr_ptr  ipdp,
-                          a_boolean              dtor_case,
-                          a_constructor_init_ptr ctor_init,
-                          a_boolean              others_follow_in_aggr,
-                          an_insert_location_ptr insert_location,
-                          a_boolean              *keep_constant,
-                          a_boolean              *needs_copy_to_function_scope)
+                                 a_constant_ptr         aggr_const,
+                                 an_init_pos_descr_ptr  ipdp,
+                                 a_boolean              dtor_case,
+                                 a_constructor_init_ptr ctor_init,
+                                 a_boolean              others_follow_in_aggr,
+                                 an_insert_location_ptr insert_location,
+                                 a_boolean              *keep_constant)
 /*
 aggr_const points to a ck_aggregate constant that contains one or more
 ck_dynamic_init dynamic initializations.  The ck_aggregate constant is
@@ -4217,9 +4224,7 @@ the constructor-init entry.  others_follow_in_aggr is TRUE if this constant
 is followed by others in an aggregate initialization (i.e., it's not the
 last).  Insert statements to implement the initialization at *insert_location
 and update *insert_location.  If there are any (genuine) constants in the
-aggregate, set *keep_constant to TRUE.  If the aggregate contains any
-dynamic initializations that were copied to the function scope during lowering,
-*needs_copy_to_function_scope will be set to TRUE.
+aggregate, set *keep_constant to TRUE.
 */
 {
   an_init_pos_descr    ipd;
@@ -4301,8 +4306,7 @@ dynamic initializations that were copied to the function scope during lowering,
     if (con_ptr->kind == (a_constant_repr_kind)ck_dynamic_init) {
       /* Dynamic initialization. */
       lower_ck_dynamic_init(con_ptr, &ipd, dtor_case, ctor_init,
-                            others_follow, insert_location, keep_constant,
-                            needs_copy_to_function_scope);
+                            others_follow, insert_location, keep_constant);
     } else if (con_ptr->kind == (a_constant_repr_kind)ck_init_repeat) {
       /* Repeated constant.  Must be initializing members of an array. */
 #if CHECKING
@@ -4338,8 +4342,7 @@ dynamic initializations that were copied to the function scope during lowering,
                           (a_targ_ptrdiff_t)con_ptr->variant.init_repeat.count;
         ipd.array_element_type = repeated_con->type;
         lower_ck_dynamic_init(repeated_con, &ipd, dtor_case, ctor_init,
-                              others_follow, insert_location, keep_constant,
-                              needs_copy_to_function_scope);
+                              others_follow, insert_location, keep_constant);
         /* Remove the ck_init_repeat constant, in case the overall aggregate
            is kept for the constant parts. */
         check_assertion(con_ptr->next == NULL);
@@ -4355,8 +4358,7 @@ dynamic initializations that were copied to the function scope during lowering,
       lower_dynamic_init_aggregate_constant(con_ptr, &ipd,
                                             dtor_case, ctor_init,
                                             others_follow, insert_location,
-                                            keep_constant,
-                                            needs_copy_to_function_scope);
+                                            keep_constant);
     } else {
       /* Normal constant. */
       if (C_mode()) {
@@ -6269,7 +6271,6 @@ C99 mode for the same reason.
   an_expr_node_ptr   entity_node, source_node;
   a_variable_ptr     variable;
   a_boolean          simple_constant_init = FALSE, keep_constant;
-  a_boolean          needs_copy_to_function_scope;
   a_constant_ptr     simple_constant;
   a_source_position  saved_error_position, saved_code_pos;
   a_statement_ptr    block_stmt = NULL;
@@ -6754,24 +6755,13 @@ do_assignment:;
         latest_initialization_on_entry = eff_context->latest_initialization;
       }  /* if */
       keep_constant = FALSE;
-      needs_copy_to_function_scope = FALSE;
       lower_dynamic_init_aggregate_constant(dip->variant.constant, ipdp,
                                             /*dtor_case=*/FALSE, ctor_init,
                                             others_follow_in_aggr,
                                             eff_insert_location,
-                                            &keep_constant,
-                                            &needs_copy_to_function_scope);
+                                            &keep_constant);
       if (keep_constant) {
         /* There is a constant part of the initialization to be kept. */
-        if (needs_copy_to_function_scope) {
-          /* Some portion of this constant has been copied from the file
-             scope to the function scope (because it is used in a partial
-             aggregate initialization of a static variable with destructions).
-             Make sure we copy the entire constant to the function scope
-             so the constant is not split across scopes. */
-          dip->variant.constant = copy_unshared_constant(
-                                                        dip->variant.constant);
-        }  /* if */
         if (variable == NULL) {
           /* There is no variable, so we are down inside an aggregate
              initialization.  Pass this constant back to the caller. */
@@ -11368,7 +11358,6 @@ array if necessary.  The statements created are inserted at
   an_init_pos_modifier ipm;
   a_dynamic_init_ptr   dip;
   a_boolean            keep_constant;
-  a_boolean            needs_copy_to_function_scope;
   an_expr_node_ptr     vtt_addr_node = NULL;
 
   /* Develop a position description for the entity to destroy. */
@@ -11384,16 +11373,18 @@ array if necessary.  The statements created are inserted at
       internal_error("lower_dtor_init: aggr value for non-field");
     }  /* if */
     keep_constant = FALSE;
-    needs_copy_to_function_scope = FALSE;
 #endif /* CHECKING */
     lower_dynamic_init_aggregate_constant(dip->variant.constant, &ipd,
                                           /*dtor_case=*/TRUE,
                                           (a_constructor_init_ptr)NULL,
                                           /*others_follow_in_aggr=*/FALSE,
                                           insert_location,
-                                          &keep_constant,
-                                          &needs_copy_to_function_scope);
-    check_assertion(!keep_constant && !needs_copy_to_function_scope);
+                                          &keep_constant);
+#if CHECKING
+    if (keep_constant) {
+      internal_error("lower_dtor_init: keep_constant unexpected");
+    }  /* if */
+#endif /* CHECKING */
   } else {
 #if ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
     if (ctor_init->kind == (a_constructor_init_kind)cik_virtual_base_class ||
