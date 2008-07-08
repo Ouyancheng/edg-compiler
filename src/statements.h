@@ -293,8 +293,8 @@ typedef struct a_struct_stmt_stack_entry {
 			   GNU statement expression. */
   a_bit_field	switch_has_dependent_case:1;
 			/* Set only in entries with kind == ssk_switch.
-			   Indicates that at least one case contains a template-
-			   dependent constant. */
+			   Indicates that at least one case contains a
+			   template-dependent constant. */
   a_statement_ptr
 		statement;
 			/* The associated IL statement.  Indirectly,
