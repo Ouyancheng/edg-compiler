@@ -4126,7 +4126,7 @@ will be changed to an aggregate constant for the constant parts and
          scope, so make sure any pieces that were copied above are
          (re-)copied to file scope. */
       a_memory_region_number region_to_switch_back_to = NULL_region_number;
-      check_assertion(in_file_scope((char *)con_ptr));
+      check_assertion(in_file_scope(con_ptr));
       switch_to_file_scope_region(&region_to_switch_back_to);
       (void)copy_constant_full(constant_to_keep, con_ptr, CE_NO_OPTIONS);
       switch_back_to_original_region(region_to_switch_back_to);
@@ -6919,7 +6919,7 @@ do_assignment:;
            scope (it was formerly pointed to by a local-static-variable-init
            entry in the function scope, and then the variable was promoted
            by promote_local_entities_to_file_scope). */
-        if (!in_file_scope((char *)simple_constant)) {
+        if (!in_file_scope(simple_constant)) {
           a_boolean  saved_flag_value = initial_value_for_il_lowering_flag;
 
           a_memory_region_number region_to_switch_back_to = NULL_region_number;
