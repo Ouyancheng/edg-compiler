@@ -3852,8 +3852,7 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
    (!must_be_class ||						      \
     is_class_or_class_proxy_symbol(fund_sym)) &&     		      \
    (!must_be_tag || is_tag_or_tag_proxy_symbol(fund_sym) ||           \
-    (microsoft_bugs && fund_sym->kind == (a_symbol_kind)sk_type)) &&  \
-   !(sym)->is_invisible)
+    (microsoft_bugs && fund_sym->kind == (a_symbol_kind)sk_type)))
 
   db_enter(4, "class_qualified_id_lookup");
   /* Remove any typedef on the class type. */

@@ -1,5 +1,23 @@
 Version 3.11
 
+7/9/08   Performance improvement in qualified lookup in dependent base classes
+
+When a name is looked up in a dependent base class, the projection symbol
+that is created is marked as invisible so that it will not be found by
+subsequent normal lookups.  Such projection symbols should be found by
+qualified lookups, but were not.  This would result in a new projection
+symbol being created for each lookup, which in turn slowed down subsequent
+lookups because of the large number of symbols on the inactive list.  This
+has been fixed.
+
+  template <int I> struct B { typedef int X; };
+  template <int I> struct A : B<I> {};
+  int main() {
+    { typedef A<1>::X x; }
+    { typedef A<1>::X x; }
+    // repeat above many times
+  }
+
 7/7/08   Mismatched qualifiers should cause deduction failure
 
 When matching a function type from a template declaration with an actual
