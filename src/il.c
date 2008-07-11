@@ -9664,6 +9664,45 @@ unchanged.
 }  /* routine_type_without_default_args */
 
 
+a_type_ptr routine_type_without_param_type_qualifiers(a_type_ptr  orig_type)
+/*
+orig_type is a routine type. Remove any qualifiers from its parameter type
+entries.
+*/
+{
+  a_type_ptr        tp = orig_type;
+  a_param_type_ptr  ptp;
+  a_param_type_ptr  orig_param_type_list;
+  a_boolean	      copy_needed = FALSE;
+
+  /* Traverse the param-types, stopping as soon as a parameter type with
+     qualifiers is encountered. */
+  orig_type = skip_typerefs(orig_type);
+  orig_param_type_list = orig_type->
+                                   variant.routine.extra_info->param_type_list;
+  for (ptp = orig_param_type_list; ptp != NULL; ptp = ptp->next) {
+    if (ptp->qualifiers != TQ_NONE) {
+      /* A copy of the original type is required, because the qualifiers
+         must be removed. */
+      copy_needed = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  if (copy_needed) {
+    /* One or more parameter types have qualifiers.  Make a copy of the
+       routine type and the parameter type list. */
+    tp = alloc_type((a_type_kind)tk_routine);
+    copy_type(orig_type, tp);
+    ptp = tp->variant.routine.extra_info->param_type_list =
+                          copy_param_type_list(orig_param_type_list,
+                                               /*copy_default_args=*/FALSE);
+    /* Clear the qualifiers field of the parameter type entries. */
+    for (; ptp != NULL; ptp = ptp->next) ptp->qualifiers = TQ_NONE;
+  }  /* if */
+  return tp;
+}  /* routine_type_without_param_type_qualifiers */
+
+
 a_type_ptr routine_type_without_this_class(a_type_ptr	orig_type)
 /*
 "type" is a routine type.  If the type has a this_class, make a copy of the

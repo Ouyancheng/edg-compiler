@@ -6040,6 +6040,9 @@ points to the template parameter list.
                  be part of the argument type. */
               type = strip_routine_default_args(type);
             }  /* if */
+            /* Remove any qualifiers from the parameter types of any routine
+               types that are part of "type". */
+            type = strip_qualifiers_from_param_types(type);
             tap->variant.type = type;
             match = TRUE;
           } else {

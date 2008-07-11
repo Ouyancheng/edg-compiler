@@ -1,5 +1,24 @@
 Version 3.11
 
+7/11/08  Parameter type cv-qualifiers and deduced routine types
+
+When a template parameter was deduced from a function type, the deduced type
+had parameter types entries with the cv-qualifiers from the parameter type
+entries of the source type.  This could result in unexpected types in the
+lowered IL.  The example below, when compiled with a C-generating back end
+version, produced C code that resulted in warnings from some C compilers.
+The cv-qualifiers are now removed from the parameter type entries of
+routine types that result from type deduction.
+
+  struct A { ~A(){} };
+  template <class T> void f(T v) {
+    void (&r)(A) = *v;
+  }
+  void g(const volatile A){}
+  int main() {
+   f(g);
+  }
+
 7/9/08   Performance improvement in qualified lookup in dependent base classes
 
 When a name is looked up in a dependent base class, the projection symbol
