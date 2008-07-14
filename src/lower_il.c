@@ -8128,11 +8128,6 @@ Do IL lowering of the indicated type and everything under it.
            mostly harmless. */
         set_type_kind(type, (a_type_kind)tk_error);
         break;
-#if GNU_VECTOR_TYPES_ALLOWED
-      case tk_vector:
-        lower_type(type->variant.vector.element_type);
-        break;
-#endif /* GNU_VECTOR_TYPES_ALLOWED */
 #if CHECKING
       case tk_unknown:  /* Shouldn't make it out of front end. */
       default:

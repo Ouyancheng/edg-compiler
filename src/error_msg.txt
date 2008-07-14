@@ -1730,10 +1730,6 @@ ec_ELF_visibility_stack_empty;;"no matching visibility push"
 ec_typeid_of_incomplete_type;;"typeid of incomplete type"
 ec_enum_declspec_in_c_mode;;"__declspec attributes are not allowed on enum specifiers in C mode"
 ec_array_size_one_assumed;;"array %n assumed to have one element"
-ec_vector_size_attribute_requires_arithmetic_type;;"the vector_size attribute requires an arithmetic or enum type"
-ec_vector_size_too_large;;"vector size is too large"
-ec_vector_size_must_be_power_of_two;;"vector size must be power of two"
-ec_vector_size_must_be_multiple_of_element_size;;"vector size must be multiple of element size"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

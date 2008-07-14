@@ -1084,13 +1084,6 @@ the file scope, do not process it (but record an orphan in the latter case).
                      a_template_param_type_supplement_ptr,
                      iek_template_param_type_supplement);
             break;
-#if GNU_EXTENSIONS_ALLOWED && GNU_VECTOR_TYPES_ALLOWED
-          case tk_vector:
-            walk_ptr(ptr->variant.vector.element_type, a_type_ptr, iek_type);
-            walk_ptr(ptr->variant.vector.size_constant, a_constant_ptr,
-                     iek_constant);
-            break;
-#endif /* GNU_EXTENSIONS_ALLOWED && GNU_VECTOR_TYPES_ALLOWED */
           default:
             unexpected_condition_str("walk_entry_and_subtree: bad type kind");
         }  /* switch */
