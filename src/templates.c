@@ -4965,6 +4965,7 @@ prototype instantiation is considered as a potential match.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
     class_type->incomplete =
                      !class_type->variant.class_struct_union.is_nonreal_class;
+    check_assertion(sym != prototype_sym);
     if (class_type->variant.class_struct_union.is_nonreal_class) {
       a_class_symbol_supplement_ptr	cssp;
       cssp = sym->variant.class_struct_union.extra_info;
@@ -4981,7 +4982,7 @@ prototype instantiation is considered as a potential match.
         add_to_types_list_full(class_type, depth_to_add,
                                /*do_placeholder=*/FALSE);
       }  /* if */
-    } else if (sym != prototype_sym) {
+    } else {
       /* Update the friend information associated with this template.
          These are the classes that declared this template as a friend. */
       update_befriending_classes_for_class(tssp, class_type);
