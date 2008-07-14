@@ -2888,6 +2888,9 @@ enum a_type_kind_tag {
 			   declaration (C++ front end only, except when
 			   prototype instantiations are passed to a
 			   back end). */
+#if GNU_EXTENSIONS_ALLOWED && GNU_VECTOR_TYPES_ALLOWED
+  tk_vector,		/* GNU vector types. */
+#endif /* GNU_EXTENSIONS_ALLOWED && GNU_VECTOR_TYPES_ALLOWED */
 #endif /* ifdef CIL */
 #ifdef FIL
   /* Fortran-only types. */
@@ -6483,6 +6486,18 @@ typedef struct a_type {
 			/* Pointer to a supplement containing additional
 			   information about this template parameter type, */
     } template_param;
+#if GNU_EXTENSIONS_ALLOWED && GNU_VECTOR_TYPES_ALLOWED
+    /* When kind is tk_vector. */
+    struct {
+      a_type_ptr
+		element_type;
+			/* Type of the vector elements. */
+      a_constant_ptr
+		size_constant;
+			/* A constant representing the size expressed
+			   through the vector_size attribute. */
+    } vector;
+#endif /* GNU_EXTENSIONS_ALLOWED && GNU_VECTOR_TYPES_ALLOWED */
 #endif /* ifdef CIL */
 #ifdef FIL
     /* When kind == tk_fcharacter: */

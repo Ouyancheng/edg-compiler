@@ -1369,6 +1369,15 @@ by octl.
         }  /* if */
       }
       break;
+#if GNU_VECTOR_TYPES_ALLOWED
+    case tk_vector:
+      octl->output_str("__attribute((vector_size(");
+      form_constant(type->variant.vector.size_constant, /*need_parens=*/FALSE,
+                    octl);
+      octl->output_str("))) ");
+      form_type_specifier(type->variant.vector.element_type, octl);
+      break;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
 #endif /* ifdef CFE */
 #ifdef FFE
     case tk_fcharacter:

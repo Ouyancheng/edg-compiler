@@ -103,6 +103,9 @@ enum an_attribute_kind_tag {
   ak_cleanup,
   ak_nothrow,
   ak_warn_unused_result,
+#if GNU_VECTOR_TYPES_ALLOWED
+  ak_vector_size,
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
   ak_last
 };
 /* Define as "a_byte" to explicitly control storage size. */
@@ -161,6 +164,9 @@ EXTERN char *attribute_kind_names[(int)ak_last + 1]
 /* ak_cleanup */		    "cleanup", 
 /* ak_nothrow */		    "nothrow", 
 /* ak_warn_unused_result */	    "warn_unused_result", 
+#if GNU_VECTOR_TYPES_ALLOWED
+/* ak_vector_size */                "vector_size", 
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
 /* ak_last */                       "last" /* used to check that
                                               initialization is right. */
 }
@@ -272,10 +278,15 @@ typedef struct an_attribute {
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
     int		nonnull_param;
 			/* The parameter number (starting at 1) that must be
-			   non-NULL.  If zero, all pointer parameters must ne
+			   non-NULL.  If zero, all pointer parameters must be
 			   non-NULL. */
     a_routine_ptr
 		cleanup_routine;
+#if GNU_VECTOR_TYPES_ALLOWED
+    a_constant_ptr
+		vector_size;
+			/* The size (in bytes) of the requested vector type. */
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
 			/* The routine specified by the cleanup attribute. */
   } variant;
   an_attribute_ptr

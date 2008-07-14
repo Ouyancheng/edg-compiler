@@ -3525,6 +3525,18 @@ for more information.
           }  /* switch */
         }  /* if */
         break;
+#if GNU_VECTOR_TYPES_ALLOWED
+      case tk_vector:
+        /* For vectors, the sizes must be the same and the element types
+           must be identical. */
+        if (f_identical_types(type_1->variant.vector.element_type,
+                              type_2->variant.vector.element_type,
+                              flags) &&
+            type_1->size == type_2->size) {
+          identical = TRUE;
+        }  /* if */
+        break;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
 #if CHECKING
       default:
         internal_error("f_identical_types: bad type");
@@ -3996,6 +4008,18 @@ for exact pointer equality.
              their positions in the template parameter list are the same. */
           compat = f_identical_types(type_1, type_2, ITF_NO_FLAGS);
           break;
+#if GNU_VECTOR_TYPES_ALLOWED
+        case tk_vector:
+          /* For vectors, the sizes must be the same and the element types
+             must be identical. */
+          if (f_identical_types(type_1->variant.vector.element_type,
+                                type_2->variant.vector.element_type,
+                                flags) &&
+              type_1->size == type_2->size) {
+            compat = TRUE;
+          }  /* if */
+          break;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
 #if CHECKING
         default:
           internal_error("f_types_are_compatible: bad type");
@@ -7091,6 +7115,9 @@ calling disentangle_default_args).
         case tk_class:
         case tk_struct:
         case tk_union:
+#if GNU_VECTOR_TYPES_ALLOWED
+        case tk_vector:
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
           /* Simple types.  The composite type is either of the types. */
           /* The class/struct/union cases are here because a
              class/struct/union can be compatible with a file-scope
@@ -8176,6 +8203,12 @@ its parameters?).
           goto check_enclosing_classes;
         }  /* if */
         break;
+#if GNU_VECTOR_TYPES_ALLOWED
+      case tk_vector:
+        tp = type_ptr->variant.vector.element_type;
+        if (tp != NULL) status = traverse_type_tree(tp, func, flags);
+        break;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
       case tk_class:
       case tk_struct:
       case tk_union:
@@ -9223,6 +9256,17 @@ make_new_type:
         }  /* if */
       }
       break;
+#if GNU_VECTOR_TYPES_ALLOWED
+    case tk_vector:
+      /* The vector case is similar to the array case. */
+      if (func(type->variant.vector.element_type, flags, &tp)) {
+        /* Create a new vector type. */
+        new_type = alloc_type((a_type_kind)tk_vector);
+        copy_type(type, new_type);
+        new_type->variant.vector.element_type = tp;
+      }  /* if */
+      break;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
 #if CHECKING
     default:
       internal_error("traverse_and_modify_type_tree: bad type kind");

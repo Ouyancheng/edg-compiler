@@ -1919,6 +1919,15 @@ do_struct_union:
       disp_template_param_type_supplement(
                                        ptr->variant.template_param.extra_info);
       break;
+#if GNU_EXTENSIONS_ALLOWED && GNU_VECTOR_TYPES_ALLOWED
+    case tk_vector:
+      (void)printf("tk_vector\n");
+      disp_ptr("element_type", (char *)ptr->variant.vector.element_type,
+               iek_type);
+      disp_ptr("size_constant", (char *)ptr->variant.vector.size_constant,
+               iek_constant);
+      break;
+#endif /* GNU_EXTENSIONS_ALLOWED && GNU_VECTOR_TYPES_ALLOWED */
 #endif /* ifdef CFE */
 #ifdef FFE
     case tk_fcharacter:
