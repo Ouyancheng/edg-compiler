@@ -1773,6 +1773,9 @@ of gcc and g++ return slightly different values for some expression types.
 #if FIXED_POINT_ALLOWED
     case tk_fixed_point:
 #endif /* FIXED_POINT_ALLOWED */
+#if GNU_VECTOR_TYPES_ALLOWED
+    case tk_vector:
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
     case tk_error:
       tck = (a_type_class_kind)tck_none;
       break;
@@ -5657,7 +5660,15 @@ arithmetic type.  The operand of "~" must have integral type.  See section
           /* In C++, the operand may be a pointer (ARM 5.3). */
         } else {
           /* In C++ or C, the operand may be arithmetic or enum. */
-          (void)check_arithmetic_or_enum_operand(&operand);
+#if GNU_VECTOR_TYPES_ALLOWED
+          if (gnu_mode && is_vector_type(operand.type)) {
+            /* Vector types are arithmetic types in some sense. */
+          } else
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+          /* Do not insert code here. */
+          {
+            (void)check_arithmetic_or_enum_operand(&operand);
+          }  /* if */
         }  /* if */
         break;
       case tok_not:
@@ -5674,6 +5685,7 @@ arithmetic type.  The operand of "~" must have integral type.  See section
           op = (an_expr_operator_kind)eok_xnegate;
         } else
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
+        /* Do not insert code here. */
 #if FIXED_POINT_ALLOWED
         if (is_fixed_point_type(operand.type)) {
           op = (an_expr_operator_kind)eok_fxnegate;
@@ -5683,12 +5695,22 @@ arithmetic type.  The operand of "~" must have integral type.  See section
           }  /* if */
         } else
 #endif /* FIXED_POINT_ALLOWED */
-        if (is_floating_type(operand.type)) {
-          op = (an_expr_operator_kind)eok_fnegate;
-        } else {
-          op = (an_expr_operator_kind)eok_inegate;
+        /* Do not insert code here. */
+#if GNU_VECTOR_TYPES_ALLOWED
+        if (gnu_mode && is_vector_type(operand.type)) {
+          /* Vector types are arithmetic types in some sense. */
+          op = (an_expr_operator_kind)eok_negate;
+        } else
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+        /* Do not insert code here. */
+        {
+          if (is_floating_type(operand.type)) {
+            op = (an_expr_operator_kind)eok_fnegate;
+          } else {
+            op = (an_expr_operator_kind)eok_inegate;
+          }  /* if */
+          (void)check_arithmetic_or_enum_operand(&operand);
         }  /* if */
-        (void)check_arithmetic_or_enum_operand(&operand);
         break;
       case tok_compl:
 #if GNU_COMPLEX_EXTENSIONS_ALLOWED
@@ -5699,7 +5721,16 @@ arithmetic type.  The operand of "~" must have integral type.  See section
         /* Do not insert code here. */
         {
           op = (an_expr_operator_kind)eok_complement;
-          (void)check_integral_or_enum_operand(&operand);
+#if GNU_VECTOR_TYPES_ALLOWED
+          if (gnu_mode && is_vector_type(operand.type)) {
+            /* Vector types are arithmetic types in some sense. */
+            op = (an_expr_operator_kind)eok_negate;
+          } else
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+          /* Do not insert code here. */
+          {
+            (void)check_integral_or_enum_operand(&operand);
+          }  /* if */
         }  /* if */
         break;
       default:
@@ -13518,6 +13549,10 @@ be of integral type.  See section 3.3.5 of the standard.
     do_operand_transformations(operand_1, TOPT_NO_OPTIONS);
     if (save_token == tok_remainder) {
       (void)check_integral_or_enum_operand(operand_1);
+#if GNU_VECTOR_TYPES_ALLOWED
+    } else if (gnu_mode && is_vector_type(operand_1->type)) {
+      /* Vector types are arithmetic types in some sense. */
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
     } else {
       (void)check_arithmetic_or_enum_operand(operand_1);
     }  /* if */
@@ -13526,16 +13561,30 @@ be of integral type.  See section 3.3.5 of the standard.
     do_operand_transformations(&operand_2, TOPT_NO_OPTIONS);
     if (save_token == tok_remainder) {
       (void)check_integral_or_enum_operand(&operand_2);
+#if GNU_VECTOR_TYPES_ALLOWED
+    } else if (gnu_mode && is_vector_type(operand_2.type)) {
+      /* Vector types are arithmetic types in some sense. */
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
     } else {
       (void)check_arithmetic_or_enum_operand(&operand_2);
     }  /* if */
 #if C99_IL_EXTENSIONS_SUPPORTED
     /* Check for cases involving imaginary types that do not fall out
        of the normal usual arithmetic conversion rules. */
-    if (!c99_mode ||
-        !determine_imaginary_operation_type(save_token, operand_1, &operand_2,
-                                            &result_type, &op))
+    if (c99_mode &&
+        determine_imaginary_operation_type(save_token, operand_1, &operand_2,
+                                           &result_type, &op)) {
+    } else
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
+    /* Do not insert code here. */
+#if GNU_VECTOR_TYPES_ALLOWED
+    /* Check for operations on GNU vector types.  These do not follow the
+       the usual arithmetic conversion rules. */
+    if (gnu_mode &&
+        determine_vector_operation_type(save_token, operand_1, &operand_2,
+                                        &result_type, &op)) {
+    } else
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
     /* Do not insert code here. */
     {
       adjust_operands_for_microsoft_int_long_bug(operand_1, &operand_2);
@@ -13624,6 +13673,10 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
     operand_1_is_pointer = FALSE;
     if (is_arithmetic_or_enum_type(operand_1->type)) {
       /* Okay. */
+#if GNU_VECTOR_TYPES_ALLOWED
+    } else if (gnu_mode && is_vector_type(operand_1->type)) {
+      /* Vector types are arithmetic types in some sense. */
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
     } else if (check_pointer_operand(
                                operand_1,
                                enum_type_is_integral ?
@@ -13796,7 +13849,12 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
       operands_have_been_reversed = TRUE;
     } else {
       /* Operand 1 is arithmetic or enum. */
-      if (is_arithmetic_or_enum_type(operand_2.type)) {
+      if (is_arithmetic_or_enum_type(operand_2.type)
+#if GNU_VECTOR_TYPES_ALLOWED
+          /* Vector types are arithmetic types in some sense. */
+          || (gnu_mode && is_vector_type(operand_2.type))
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+                                                         ) {
         /* Arithmetic/enum +- arithmetic/enum. */
 #if C99_IL_EXTENSIONS_SUPPORTED
         /* Check for cases involving imaginary types that do not fall out
@@ -13808,6 +13866,16 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
           operation_type = NULL;
         } else
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
+        /* Do not insert code here. */
+#if GNU_VECTOR_TYPES_ALLOWED
+        /* Check for operations on GNU vector types.  These do not follow the
+           the usual arithmetic conversion rules. */
+        if (gnu_mode &&
+            determine_vector_operation_type(save_token, operand_1, &operand_2,
+                                            &result_type, &op)) {
+          operation_type = NULL;
+        } else
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
         /* Do not insert code here. */
         {
           /* Determine the result type based on the 2 operands. */
@@ -14582,13 +14650,24 @@ Scan the "&", "^", and "|" operators.  See sections 3.3.10, 3.3.11, and
     /* Non-operator-function cases. */
     /* Both operands must be integral or enum. */
     do_operand_transformations(operand_1, TOPT_NO_OPTIONS);
-    (void)check_integral_or_enum_operand(operand_1);
     do_operand_transformations(&operand_2, TOPT_NO_OPTIONS);
-    (void)check_integral_or_enum_operand(&operand_2);
-    adjust_operands_for_microsoft_int_long_bug(operand_1, &operand_2);
-    result_type = determine_arithmetic_conversions(operand_1, &operand_2);
-    op = which_binary_operator(save_token, result_type);
-    change_binary_operand_types(result_type, operand_1, &operand_2, op);
+#if GNU_VECTOR_TYPES_ALLOWED
+    if (gnu_mode &&
+        determine_vector_operation_type(save_token, operand_1, &operand_2,
+                                        &result_type, &op)) {
+      /* GCC accepts any vector type for these operators; even floating-point
+         vector types. */
+    } else
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+    /* Do not insert code here. */
+    {
+      (void)check_integral_or_enum_operand(operand_1);
+      (void)check_integral_or_enum_operand(&operand_2);
+      adjust_operands_for_microsoft_int_long_bug(operand_1, &operand_2);
+      result_type = determine_arithmetic_conversions(operand_1, &operand_2);
+      op = which_binary_operator(save_token, result_type);
+      change_binary_operand_types(result_type, operand_1, &operand_2, op);
+    }  /* if */
     do_binary_operation(op, operand_1, &operand_2, result_type, result,
                         &operator_position);
   }  /* if */
@@ -15896,8 +15975,8 @@ See section 3.3.16 of the standard.
   a_boolean             operand_1_clone_unused = FALSE;
   an_expr_node_ptr      temp_init_expr;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  a_boolean             imaginary_arithmetic = FALSE;
   an_error_code         err_code;
+  an_expr_operator_kind op = (an_expr_operator_kind)eok_last;
 
   db_enter(4, "scan_compound_assignment_operator");
 
@@ -16018,8 +16097,20 @@ See section 3.3.16 of the standard.
       switch (save_token) {
         case tok_times_assign:
         case tok_divide_assign:
-          (void)check_arithmetic_or_enum_operand(operand_1);
-          (void)check_arithmetic_or_enum_operand(&operand_2);
+#if GNU_VECTOR_TYPES_ALLOWED
+          if (gnu_mode &&
+              determine_vector_operation_type(
+                      save_token, operand_1, &operand_2, &result_type, &op)) {
+            /* Vector types are arithmetic types in some ways, but the rules
+               determining the operation type do not parallel those of the
+               standard arithmetic types. */
+          } else
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+          /* Do not insert code here. */
+          {
+            (void)check_arithmetic_or_enum_operand(operand_1);
+            (void)check_arithmetic_or_enum_operand(&operand_2);
+          }  /* if */
           break;
         case tok_plus_assign:
           if (!C_mode() &&
@@ -16035,6 +16126,13 @@ See section 3.3.16 of the standard.
           /* Fall through to next case: += works like -= */
           /* FALLTHROUGH */
         case tok_minus_assign:
+#if GNU_VECTOR_TYPES_ALLOWED
+          if (gnu_mode &&
+              determine_vector_operation_type(
+                      save_token, operand_1, &operand_2, &result_type, &op)) {
+          } else
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+          /* Do not insert code here. */
           if (is_arithmetic_or_enum_type(operand_1->type)) {
             /* If the first operand is arithmetic or enum, the second must
                be also. */
@@ -16043,11 +16141,11 @@ See section 3.3.16 of the standard.
             if (fixed_point_enabled) {
               /* Warn about fixed-point arithmetic cases that are likely to
                  overflow. */
-              an_expr_operator_kind  op = (an_expr_operator_kind)
+              an_expr_operator_kind  fxop = (an_expr_operator_kind)
                   ((save_token == tok_plus_assign) ? eok_fxadd_assign
                                                    : eok_fxsubtract_assign);
               check_mixed_integer_fixed_point_arithmetic(operand_1, &operand_2,
-                                                         op);
+                                                         fxop);
             }  /* if */
 #endif /* FIXED_POINT_ALLOWED */
           } else {
@@ -16081,10 +16179,21 @@ See section 3.3.16 of the standard.
           (void)check_integral_or_enum_or_fixed_point_operand(operand_1);
           (void)check_integral_or_enum_operand(&operand_2);
           break;
-        case tok_remainder_assign:
         case tok_and_assign:
         case tok_excl_or_assign:
         case tok_or_assign:
+#if GNU_VECTOR_TYPES_ALLOWED
+          if (gnu_mode &&
+              determine_vector_operation_type(
+                      save_token, operand_1, &operand_2, &result_type, &op)) {
+            /* Vector types are arithmetic types in some ways, but the rules
+               determining the operation type do not parallel those of the
+               standard arithmetic types. */
+            break;
+          }  /* if */
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+          /*FALLTHROUGH*/
+        case tok_remainder_assign:
           (void)check_integral_or_enum_operand(operand_1);
           (void)check_integral_or_enum_operand(&operand_2);
           break;
@@ -16098,7 +16207,6 @@ See section 3.3.16 of the standard.
       if (is_error_operand(operand_1) || is_error_operand(&operand_2)) {
         make_error_operand(result);
       } else {
-        an_expr_operator_kind op;        
         orig_result_type = operand_1->type;
         result_type = rvalue_type(orig_result_type);
         if (pointer_add_sub) {
@@ -16149,11 +16257,10 @@ See section 3.3.16 of the standard.
               determine_imaginary_operation_type(save_token,
                                                  operand_1, &operand_2,
                                                  &operation_type, &op)) {
-            imaginary_arithmetic = TRUE;
-          } else
+            /* op and operation_type are now set correctly. */
+          }  /* if */
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
-          /* Do not insert code here. */
-          {
+          if (op == (an_expr_operator_kind)eok_last) {
             operation_type = determine_arithmetic_conversions(operand_1,
                                                               &operand_2);
 #if FIXED_POINT_ALLOWED
@@ -16186,7 +16293,10 @@ See section 3.3.16 of the standard.
                        /*reinterpret_semantics=*/FALSE);
         }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        if (!imaginary_arithmetic) {  /*lint !e774*/
+        if (op != (an_expr_operator_kind)eok_last) {
+          /* The operation type was already determined above (this happens for
+             imaginary and vector arithmetic). */
+        } else {
           op = which_binary_operator(operator_token, operation_type);
         }  /* if */
         build_binary_result_operand(operand_1, &operand_2, op,

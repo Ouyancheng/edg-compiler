@@ -1344,6 +1344,11 @@ TRUE.
        do not make it to here (they're caught as an error at the top
        level in the routine "initializer" and replaced by an error type),
        so we don't have to check for them here. */
+#if GNU_VECTOR_TYPES_ALLOWED
+  } else if (gnu_mode && kind == (a_type_kind)tk_vector) {
+    /* GNU vector: Similar to an array.  Start with first element. */
+    *member_type = type->variant.vector.element_type;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
   } else {
     a_field_ptr field;
     /* Class/struct/union.  Start with first field. */
@@ -2108,17 +2113,20 @@ this function points to a tree that includes a dynamic-init entry.
        initialization" case did not apply, in which case "FALSE" was returned
        and we fall through.  Otherwise, all the required work was done. */
   } else if (is_aggregate_or_union_type(context.type) ||
+#if GNU_VECTOR_TYPES_ALLOWED
+             (gnu_mode && is_vector_type(context.type)) ||
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
              ((is_error_type(context.type) ||
                is_template_param_type(context.type)) &&
               ((curr_token == tok_lbrace &&
                 context.pending_init_con == NULL) ||
                (init_info->designation_state != ds_complete_designation &&
                 designator_coming((a_boolean *)NULL))))) {
-    /* Initialization of an array (complete or incomplete), struct, or
-       union.  The result will be an aggregate constant except when an
-       array of char is initialized by a string.  The initial
-       values can either appear inside a brace-enclosed list, or at
-       the current level. */
+    /* Initialization of a class/struct/union, array (complete or incomplete),
+       or GNU vector ("aggregate types" are required here).  The result will
+       be an aggregate constant except when an array of char is initialized by
+       a string.  The initial values can either appear inside a brace-enclosed
+       list, or at the current level. */
     if (curr_token == tok_lbrace && context.pending_init_con == NULL) {
       /* Make sure it's truly an aggregate and not some non-aggregate class: */
       if (is_class_struct_union_type(context.type) &&
@@ -2163,11 +2171,11 @@ this function points to a tree that includes a dynamic-init entry.
          or a union, or an error type. */
       a_targ_size_t curr_array_element = 0, array_size = 0;
       a_field_ptr   curr_field;
-      a_boolean     discard_initializers = FALSE;
+      a_boolean     discard_initializers = FALSE, is_gnu_vector = FALSE;
       /* In ANSI C and C++, the top-level initializer for a struct, union, or
-         array must be surrounded by braces.  e.g., "int a[1] = 1;" is
-         not allowed.  However, pcc will allow initialization with
-         a single value and we allow it as an extension. */
+         array/vector must be surrounded by braces.  e.g., "int a[1] = 1;" is
+         not allowed.  However, pcc will allow initialization with a single
+         value and we allow it as an extension. */
       if (top_level && !brace_flag) {
         /* If a hard error is decided, context.type will become an error
            type. */
@@ -2176,6 +2184,9 @@ this function points to a tree that includes a dynamic-init entry.
       /* Get information on the first member of the aggregate to be
          initialized (if any). */
       kind = skip_typerefs(context.type)->kind;
+#if GNU_VECTOR_TYPES_ALLOWED
+      is_gnu_vector = (kind == (a_type_kind)tk_vector);
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
       start_aggregate_init_scan_loop(&context, &member_type,
                                      &any_more_members, &is_flexible_array);
       curr_field = context.field;
@@ -2187,11 +2198,13 @@ this function points to a tree that includes a dynamic-init entry.
       /* Loop, scanning initializers and building an aggregate constant. */
       while (any_more_initializers) {
         add_stop_token(tok_comma);
-        /* See whether a designator is next. */
+        /* See whether a designator is next (except in initializers for GNU
+           vectors). */
         if (context.anonymous_union_field_sym != NULL) {
           /* Special processing for the anonymous union case. */
           add_field_designator_for_anonymous_union(&context, &curr_field);
-        } else if (get_designator(init_info, &context, &curr_array_element,
+        } else if (!is_gnu_vector &&
+                   get_designator(init_info, &context, &curr_array_element,
                                   &curr_field)) {
           /* A designator was present and has been processed. */
           init_info->uses_designated_initializers = TRUE;
@@ -2242,7 +2255,7 @@ this function points to a tree that includes a dynamic-init entry.
              essentially unknown.  Treat it as if it had members of its
              own type. */
           member_type = context.type;
-        } else if (kind == (a_type_kind)tk_array) {
+        } else if (kind == (a_type_kind)tk_array || is_gnu_vector) {
           /* member_type was set outside the loop. */
 #if DEBUG
           if (debug_level == 4) {
@@ -2462,6 +2475,21 @@ this function points to a tree that includes a dynamic-init entry.
               }  /* if */
             }  /* if */
           }  /* if */
+#if GNU_VECTOR_TYPES_ALLOWED
+        } else if (is_gnu_vector) {
+          /* Advance to next vector element. */
+          a_type_ptr     vec_type = skip_typerefs(context.type);
+          ++curr_array_element;
+          if (vector_type_is_template_dependent(vec_type)) {
+            /* The number of elements is unknown due to template dependencies:
+               Assume there are more elements. */
+            any_more_members = TRUE;
+          } else {
+            a_targ_size_t  n_vector_elems =
+                              vec_type->size/skip_typerefs(member_type)->size;
+            any_more_members = n_vector_elems > curr_array_element;
+          }  /* if */
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
         } else if (kind == (a_type_kind)tk_class ||
                    kind == (a_type_kind)tk_struct) {
           /* Advance to the next named field of the class or struct. */
@@ -3466,7 +3494,11 @@ returned set to TRUE.
     }  /* if */
   } else if (is_aggregate_or_union_type(vp_type) ||
              (first_token == tok_lbrace &&
-              (is_error_type(vp_type) || is_template_param_type(vp_type)))) {
+              (is_error_type(vp_type) ||
+#if GNU_VECTOR_TYPES_ALLOWED
+               (gnu_mode && is_vector_type(vp_type)) ||
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+               is_template_param_type(vp_type)))) {
     /* Either a brace enclosed list of initializers or other aggregate
        initialization. */
     if (first_token != tok_lbrace && is_class_struct_union_type(vp_type) &&

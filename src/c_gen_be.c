@@ -4265,6 +4265,9 @@ there's some possibility of precedence confusion and need_parens is TRUE.
 #if C99_IL_EXTENSIONS_SUPPORTED
         case eok_xnegate:
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
+#if GNU_VECTOR_TYPES_ALLOWED
+        case eok_negate:
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
           is_unary = TRUE;
           opstr = "-";
           break;
@@ -4458,6 +4461,9 @@ there's some possibility of precedence confusion and need_parens is TRUE.
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
         case eok_padd:
         case eok_padd_subsc:
+#if GNU_VECTOR_TYPES_ALLOWED
+        case eok_add:
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
           opstr = "+";
           break;
         case eok_isubtract:
@@ -4472,6 +4478,9 @@ there's some possibility of precedence confusion and need_parens is TRUE.
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
         case eok_psubtract:
         case eok_pdiff:
+#if GNU_VECTOR_TYPES_ALLOWED
+        case eok_subtract:
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
           opstr = "-";
           break;
         case eok_imultiply:
@@ -4483,6 +4492,9 @@ there's some possibility of precedence confusion and need_parens is TRUE.
         case eok_xmultiply:
         case eok_jmultiply:
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
+#if GNU_VECTOR_TYPES_ALLOWED
+        case eok_multiply:
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
           opstr = "*";
           break;
         case eok_idivide:
@@ -4504,6 +4516,9 @@ there's some possibility of precedence confusion and need_parens is TRUE.
         case eok_xdivide:
         case eok_jdivide:
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
+#if GNU_VECTOR_TYPES_ALLOWED
+        case eok_divide:
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
           opstr = "/";
           break;
         case eok_peq:
@@ -4590,6 +4605,9 @@ there's some possibility of precedence confusion and need_parens is TRUE.
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
         case eok_passign:
         case eok_sassign:
+#if GNU_VECTOR_TYPES_ALLOWED
+        case eok_assign:
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
           opstr = "=";
           goto process_assignment;
         case eok_imultiply_assign:
@@ -4600,6 +4618,9 @@ there's some possibility of precedence confusion and need_parens is TRUE.
 #if C99_IL_EXTENSIONS_SUPPORTED
         case eok_xmultiply_assign:
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
+#if GNU_VECTOR_TYPES_ALLOWED
+        case eok_multiply_assign:
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
           opstr = "*=";
           goto process_assignment;
         case eok_idivide_assign:
@@ -4610,6 +4631,9 @@ there's some possibility of precedence confusion and need_parens is TRUE.
 #if C99_IL_EXTENSIONS_SUPPORTED
         case eok_xdivide_assign:
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
+#if GNU_VECTOR_TYPES_ALLOWED
+        case eok_divide_assign:
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
           opstr = "/=";
           goto process_assignment;
         case eok_remainder_assign:
@@ -4636,6 +4660,9 @@ there's some possibility of precedence confusion and need_parens is TRUE.
         case eok_xadd_assign:
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
         case eok_padd_assign:
+#if GNU_VECTOR_TYPES_ALLOWED
+        case eok_add_assign:
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
           opstr = "+=";
           goto process_assignment;
         case eok_isubtract_assign:
@@ -4647,6 +4674,9 @@ there's some possibility of precedence confusion and need_parens is TRUE.
         case eok_xsubtract_assign:
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
         case eok_psubtract_assign:
+#if GNU_VECTOR_TYPES_ALLOWED
+        case eok_subtract_assign:
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
           opstr = "-=";
           goto process_assignment;
 #if FIXED_POINT_ALLOWED && !LOWER_FIXED_POINT
@@ -6106,6 +6136,12 @@ block with state information for the processing.
         ipdp->curr_elem = 0;
         elem_type = type->variant.array.element_type;
         break;
+#if GNU_VECTOR_TYPES_ALLOWED
+      case tk_vector:
+        ipdp->curr_elem = 0;
+        elem_type = type->variant.vector.element_type;
+        break;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
       case tk_struct:
       case tk_union:
         /* Find the first field in the struct or union, skipping those that
@@ -6203,7 +6239,7 @@ block with state information for the processing.
           elem_con = elem_con->next;
           check_assertion(elem_con != NULL &&
                           elem_con->kind!=(a_constant_repr_kind)ck_designator);
-        } else if (!*gen_assignments && type->kind != (a_type_kind)tk_array) {
+        } else if (!*gen_assignments && is_immediate_class_type(type)) {
           /* Check if we added some padding before this field, and if so
              generate initializers for that padding. */
           a_targ_size_t  padding, p;
@@ -6224,7 +6260,7 @@ block with state information for the processing.
           write_tok_str("]: ");
           end_comment();
         }  /* if */
-        if (type->kind != (a_type_kind)tk_array) {
+        if (is_immediate_class_type(type)) {
           /* Get the current field type. */
           check_assertion_str(ipdp->curr_field != NULL,
                               "dump_initializer_part: ran out of fields");
@@ -6279,7 +6315,11 @@ block with state information for the processing.
              be more than one constant on the aggregate list for a union. */
           check_assertion_str(type->kind != (a_type_kind)tk_union,
                               "dump_initializer_part: > 1 constant for union");
-          if (type->kind == (a_type_kind)tk_array) {
+          if (type->kind == (a_type_kind)tk_array
+#if GNU_VECTOR_TYPES_ALLOWED
+              || type->kind == (a_type_kind)tk_vector
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+                                                     ) {
             (ipdp->curr_elem)++;
           } else {
             check_assertion_str(type->kind == (a_type_kind)tk_struct,

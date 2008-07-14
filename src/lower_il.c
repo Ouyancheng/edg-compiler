@@ -3608,6 +3608,32 @@ zero-initializing a pointer to data member.
 }  /* contains_ptr_to_data_member */
 
 
+static a_constant_ptr lower_zero_initialization(a_type_ptr type);
+
+
+static a_constant_ptr make_list_of_zeroes(a_targ_size_t  n,
+                                          a_type_ptr     zero_type)
+/*
+Return an aggregate constant containing n "zeroes" of the given type.  The
+type of the returned constant must be set by the caller.
+*/
+{
+  a_targ_size_t   i;
+  a_constant_ptr  result = alloc_constant((a_constant_repr_kind)ck_aggregate);
+
+  for (i = 0; i < n; i++) {
+    a_constant_ptr  elem_con = lower_zero_initialization(zero_type);
+    if (result->variant.aggregate.first_constant == NULL) {
+      result->variant.aggregate.first_constant = elem_con;
+    } else {
+      result->variant.aggregate.last_constant->next = elem_con;
+    }  /* if */
+    result->variant.aggregate.last_constant = elem_con;
+  }  /* for */
+  return result;
+}  /* make_list_of_zeroes */
+
+
 static a_constant_ptr lower_zero_initialization(a_type_ptr type)
 /* 
 Return an initializer for a zero-initialized variable of the indicated
@@ -3644,26 +3670,13 @@ or contain a pointer to data member, which must be initialized to -1.
         con = alloc_unshared_constant(&zero_con);
         break;
       case tk_array:
-        { 
-          a_targ_size_t  i, elems;
-          a_constant_ptr elem_con;
-          a_type_ptr     elem_type = array_element_type(type);
-          con = alloc_constant((a_constant_repr_kind)ck_aggregate);
-          con->type = type;
-          check_assertion(!type->variant.array.is_variable_size_array &&
+        check_assertion(!type->variant.array.is_variable_size_array &&
                         !type->variant.array.is_template_dependent_size_array);
-          elems = type->variant.array.variant.number_of_elements;
-          for (i = 0; i < elems; i++) {
-            elem_con = lower_zero_initialization(elem_type);
-            if (con->variant.aggregate.first_constant == NULL) {
-              con->variant.aggregate.first_constant = elem_con;
-            } else {
-              con->variant.aggregate.last_constant->next = elem_con;
-            }  /* if */
-            con->variant.aggregate.last_constant = elem_con;
-          }  /* for */
-          break;
-        }
+        con = make_list_of_zeroes(
+                               type->variant.array.variant.number_of_elements,
+                               array_element_type(type));
+        con->type = type;
+        break;
       case tk_class:
       case tk_struct:
       case tk_union:
@@ -3694,6 +3707,15 @@ or contain a pointer to data member, which must be initialized to -1.
           }  /* for */
           break;
         }
+#if GNU_VECTOR_TYPES_ALLOWED
+      case tk_vector:
+        { a_type_ptr  etp = skip_typerefs(type->variant.vector.element_type);
+          check_assertion(!vector_type_is_template_dependent(type));
+          con = make_list_of_zeroes(type->size/etp->size, etp);
+          con->type = type;
+        }
+        break;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
       default:
         unexpected_condition();
     }  /* switch */
@@ -8128,6 +8150,11 @@ Do IL lowering of the indicated type and everything under it.
            mostly harmless. */
         set_type_kind(type, (a_type_kind)tk_error);
         break;
+#if GNU_VECTOR_TYPES_ALLOWED
+      case tk_vector:
+        lower_type(type->variant.vector.element_type);
+        break;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
 #if CHECKING
       case tk_unknown:  /* Shouldn't make it out of front end. */
       default:

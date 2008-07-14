@@ -636,6 +636,21 @@ GNU modes.
 #endif /* !GNU_EXTENSIONS_ALLOWED && GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
 
 /*
+Flag that is TRUE if GNU vector types should be allowed.
+*/
+#ifndef GNU_VECTOR_TYPES_ALLOWED
+#if GNU_EXTENSIONS_ALLOWED
+#define GNU_VECTOR_TYPES_ALLOWED TRUE
+#else /* !GNU_EXTENSIONS_ALLOWED */
+#define GNU_EXTENSIONS_ALLOWED FALSE
+#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+
+#if !GNU_EXTENSIONS_ALLOWED && GNU_VECTOR_TYPES_ALLOWED
+ #error -- GNU_VECTOR_TYPES_ALLOWED requires GNU_EXTENSIONS_ALLOWED
+#endif /* !GNU_EXTENSIONS_ALLOWED && GNU_VECTOR_TYPES_ALLOWED */
+
+/*
 Flag that is TRUE if a set of Microsoft C/C++ compatibility features
 should be allowed.  This flag in turn changes the default value of
 a set of configuration flags.

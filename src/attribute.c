@@ -727,6 +727,11 @@ pointed to be "pos" can be freed when this routine returns.
     case ak_cleanup:
       ap->variant.cleanup_routine = NULL;
       break;
+#if GNU_VECTOR_TYPES_ALLOWED
+    case ak_vector_size:
+      ap->variant.vector_size = NULL;
+      break;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
     default:
       unexpected_condition_str("alloc_attribute: bad kind");
   }  /* switch */
@@ -822,6 +827,11 @@ Return a copy of the complete attribute list.
       case ak_cleanup:
         (*end)->variant.cleanup_routine = attributes->variant.cleanup_routine;
         break;
+#if GNU_VECTOR_TYPES_ALLOWED
+      case ak_vector_size:
+        (*end)->variant.vector_size = attributes->variant.vector_size;
+        break;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
       default:
         unexpected_condition_str("copy_attribute_list: bad kind");
         break;
@@ -1204,6 +1214,16 @@ that do take arguments.
         (void)get_token();
       }  /* if */
       break;
+#if GNU_VECTOR_TYPES_ALLOWED
+    case ak_vector_size:
+      { a_constant  arg;
+        scan_integral_constant_expression(&arg);
+        if (!is_error_constant(&arg)) {
+          attribute->variant.vector_size = alloc_shareable_constant(&arg);
+        }  /* if */
+      }
+      break;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
     default:
       unexpected_condition();
   }  /* switch */
@@ -1408,6 +1428,9 @@ function returns the address of the last attribute.
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
           case ak_nonnull:
           case ak_cleanup:
+#if GNU_VECTOR_TYPES_ALLOWED
+          case ak_vector_size:
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
             /* Bypass the lparen. */
             (void)get_token();
             if (!scan_attribute_arguments(attribute)) {
@@ -1662,6 +1685,69 @@ emitted is given by pos.
   return type;
 }  /* get_type_with_mode */
 
+#if GNU_VECTOR_TYPES_ALLOWED
+
+a_type_ptr apply_vector_size_attribute(a_type_ptr        elem_type,
+                                       an_attribute_ptr  ap)
+/*
+Apply the given vector_size attribute to the given (element) type, and return
+the resulting type.  If the attribute is invalid, or if it does not apply to
+the given type, an error is issued and an error type is returned.  Otherwise,
+a tk_vector type is returned.
+*/
+{
+  a_type_ptr            result;
+  a_boolean             ovflo = FALSE, err = FALSE;
+  a_host_large_integer  size = 0;
+
+  /* Validate the element type. */
+  if (is_error_type(elem_type)) {
+    err = TRUE;
+  } else if (!is_arithmetic_or_enum_type(elem_type) &&
+             !is_template_param_type(elem_type)) {
+    pos_error(ec_vector_size_attribute_requires_arithmetic_type,
+              &ap->position);
+    err = TRUE;
+  } else {
+    check_assertion(!is_incomplete_type(elem_type));
+  }  /* if */
+  /* Validate the vector size. */
+  if (ap->variant.vector_size->kind ==
+                                    (a_constant_repr_kind)ck_template_param) {
+    /* We currently do not accept dependent vector sizes.  (GCC ignores the
+       attribute with a warning, but that seems overly surprising.) */
+    pos_error(ec_dependent_vector_size, &ap->position);
+    err = TRUE;
+  } else {
+    size = value_of_integer_constant(ap->variant.vector_size, &ovflo);
+    if (ovflo) {
+      pos_error(ec_vector_size_too_large, &ap->position);
+      err = TRUE;
+    } else if (size <= 0 || (size & (size-1)) != 0) {
+      pos_error(ec_vector_size_must_be_power_of_two, &ap->position);
+      err = TRUE;
+    } else if (!err && ((a_host_large_unsigned)size % elem_type->size) != 0) {
+      pos_error(ec_vector_size_must_be_multiple_of_element_size,
+                &ap->position);
+      err = TRUE;
+    } else if (is_template_dependent_type(elem_type)) {
+      pos_error(ec_vector_size_with_dependent_element_type, &ap->position);
+      err = TRUE;
+    }  /* if */
+  }  /* if */
+  if (!err) {
+    result = alloc_type((a_type_kind)tk_vector);
+    result->source_corresp.decl_position = ap->position;
+    result->size = size;
+    result->variant.vector.element_type = elem_type;
+    result->variant.vector.size_constant = ap->variant.vector_size;
+  } else {
+    result = error_type();
+  }  /* if */
+  return result;
+}  /* apply_vector_size_attribute */
+
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
 
 a_type_ptr apply_attributes_to_variable_type(an_attribute_ptr  attributes,
                                              a_type_ptr        type)
@@ -1723,6 +1809,11 @@ attributes.  */
           ap->next = next;
         }
         break;
+#if GNU_VECTOR_TYPES_ALLOWED
+      case ak_vector_size:
+        type = apply_vector_size_attribute(type, ap);
+        break;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
       default:
         /* No action. */
         break;
@@ -1990,6 +2081,9 @@ attributes were specified on a definition.
 #endif /* GNU_X86_ATTRIBUTES_ALLOWED */
       case ak_nonnull:
       case ak_warn_unused_result:
+#if GNU_VECTOR_TYPES_ALLOWED
+      case ak_vector_size:
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
         /* These attributes were handled in
            apply_attributes_to_variable_type. */
         break;
@@ -2121,6 +2215,9 @@ messages about any invalid attributes.
       case ak_const:
       case ak_nonnull:
       case ak_warn_unused_result:
+#if GNU_VECTOR_TYPES_ALLOWED
+      case ak_vector_size:
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
         /* These attributes were handled in
            apply_attributes_to_variable_type. */
         break;
@@ -2547,6 +2644,16 @@ messages about any invalid attributes.
       case ak_nothrow:
         rp->never_throws = TRUE;
         break;
+#if GNU_VECTOR_TYPES_ALLOWED
+      case ak_vector_size:
+        { a_type_ptr  rtp;
+          ensure_routine_type_is_modifiable(&rp->type);
+          rtp = rp->type;
+          rtp->variant.routine.return_type =
+            apply_vector_size_attribute(rtp->variant.routine.return_type, ap);
+        }
+        break;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
 #if USER_CONTROL_OF_STRUCT_PACKING
       case ak_aligned:
         invalid_severity = es_discretionary_error;
@@ -2779,6 +2886,18 @@ a typedef, is_typedef is TRUE.
       }  /* if */
       break;
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
+#if GNU_VECTOR_TYPES_ALLOWED
+      case ak_vector_size:
+        if (is_typedef) {
+          /* Change the underlying type. */
+          a_type_ptr  *ptp = &type->variant.typeref.type;
+          while (*ptp != tp) ptp = &(*ptp)->variant.typeref.type;
+          *ptp = apply_vector_size_attribute(tp, ap);
+        } else {
+          unexpected_condition();
+        }  /* if */
+        break;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
     default:
       /* An invalid attribute. */
       pos_ty_warning(ec_attribute_does_not_apply_to_type, &ap->position, type);
@@ -2845,33 +2964,45 @@ a_type_ptr apply_type_transforming_attributes(a_type_ptr        tp,
 If the given attribute list contains attributes that transform type tp to
 the point of making it incompatible (wrt. redeclarations) with the original
 type, return a type with those attributes applied and remove those attributes
-from the list.  Currently, only the mode attribute is applied by this routine.
+from the list.
 */
 {
-  a_type_ptr        result;
-  an_attribute_ptr  to_apply = NULL, *tail = &to_apply;
+  a_type_ptr        result = tp;
+  an_attribute_ptr  to_apply = NULL, *tail = &to_apply, tap;
 
-  if (!is_class_struct_union_type(tp) && !is_enum_type(tp)) {
-    /* Class and enum types cannot have the mode attribute applied to them,
-       and could cause problems later on. */
-    while (*ap != NULL) {
-      if ((*ap)->kind == (an_attribute_kind)ak_mode) {
+  /* First extract the type-transforming attributes into a separate list. */
+  while (*ap != NULL) {
+    switch ((*ap)->kind) {
+      case ak_mode:
+#if GNU_VECTOR_TYPES_ALLOWED
+      case ak_vector_size:
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
         *tail = *ap;
         *ap = (*ap)->next;
         (*tail)->next = NULL;
         tail = &(*tail)->next;
-      } else {
+        break;
+      default:
         ap = &(*ap)->next;
-      }  /* if */
-    }  /* while */
-  }  /* if */
-  if (to_apply != NULL) {
-    result = copy_type_and_apply_attributes(to_apply, tp,
-                                            /*is_typedef=*/FALSE);
-    free_attribute_list(to_apply);
-  } else {
-    result = tp;
-  }  /* if */
+    }  /* switch */
+  }  /* while */
+  /* Now apply the type-transforming attributes. */
+  result = tp;
+  for (tap = to_apply; tap != NULL; tap = tap->next) {
+    switch (tap->kind) {
+      case ak_mode:
+        result = get_type_with_mode(result, tap->variant.mode, &tap->position);
+        break;
+#if GNU_VECTOR_TYPES_ALLOWED
+      case ak_vector_size:
+        result = apply_vector_size_attribute(result, tap);
+        break;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+      default:
+        unexpected_condition();
+    }  /* switch */
+  }  /* for */
+  free_attribute_list(to_apply);
   return result;
 }  /* apply_type_transforming_attributes */
 

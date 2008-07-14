@@ -540,6 +540,31 @@ Return TRUE if the given type is a complex floating type.
 }  /* is_complex_type */
 
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
+#if GNU_VECTOR_TYPES_ALLOWED
+
+a_boolean is_vector_type(a_type_ptr  tp)
+/*
+Return TRUE if the given type is a vector type (tk_vector).  For typerefs,
+consider the underlying type.
+*/
+{
+  return skip_typerefs(tp)->kind == (a_type_kind)tk_vector;
+}  /* is_vector_type */
+
+
+a_boolean vector_type_is_template_dependent(a_type_ptr  tp)
+/*
+The given type must be a tk_vector type.  Return TRUE if its size or its
+element type is template-dependent.
+*/
+{
+  check_assertion(tp->kind == (a_type_kind)tk_vector);
+  return tp->variant.vector.size_constant->kind ==
+                                    (a_constant_repr_kind)ck_template_param ||
+         is_template_dependent_type(tp->variant.vector.element_type);
+}  /* vector_type_is_template_dependent */
+
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
 
 a_boolean is_arithmetic_or_enum_type(a_type_ptr tp)
 /*
@@ -3525,6 +3550,18 @@ for more information.
           }  /* switch */
         }  /* if */
         break;
+#if GNU_VECTOR_TYPES_ALLOWED
+      case tk_vector:
+        /* For vectors, the sizes must be the same and the element types
+           must be identical. */
+        if (f_identical_types(type_1->variant.vector.element_type,
+                              type_2->variant.vector.element_type,
+                              flags) &&
+            type_1->size == type_2->size) {
+          identical = TRUE;
+        }  /* if */
+        break;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
 #if CHECKING
       default:
         internal_error("f_identical_types: bad type");
@@ -3996,6 +4033,18 @@ for exact pointer equality.
              their positions in the template parameter list are the same. */
           compat = f_identical_types(type_1, type_2, ITF_NO_FLAGS);
           break;
+#if GNU_VECTOR_TYPES_ALLOWED
+        case tk_vector:
+          /* For vectors, the sizes must be the same and the element types
+             must be identical. */
+          if (f_identical_types(type_1->variant.vector.element_type,
+                                type_2->variant.vector.element_type,
+                                flags) &&
+              type_1->size == type_2->size) {
+            compat = TRUE;
+          }  /* if */
+          break;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
 #if CHECKING
         default:
           internal_error("f_types_are_compatible: bad type");
@@ -5695,6 +5744,14 @@ See conversion_possible.
          Remember that. */
       std_conv->ptr_or_pm_to_bool = TRUE;
     }  /* if */
+#if GNU_VECTOR_TYPES_ALLOWED
+  } else if (gnu_mode && is_vector_type(source_type)) {
+    /* For constructs like assignment and initialization, GNU vector types
+       are only compatible with themselves.  (Strangely, when performing
+       arithmetic on vectors, they only need to have the same size; not the
+       same type.  That, however, is handled elsewhere.) */
+    okay = identical_types(source_type, dest_type);
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
   } else if (is_arithmetic_or_enum(dest_type)) {
     /* Destination type is arithmetic or enum. */
     if (identical_types(source_type, dest_type)) {
@@ -5714,7 +5771,8 @@ See conversion_possible.
         okay = TRUE;
         std_conv->warning_suggested = ec_mixed_enum_type;
       }  /* if */
-    } else if (is_arithmetic_or_unscoped_enum(source_type)) {
+    } else if (is_arithmetic_or_unscoped_enum(source_type)
+                                                           ) {
       /* Arithmetic or unscoped enum --> arithmetic (including enum in C). */
       okay = TRUE;
       if (C_mode()) {
@@ -6314,6 +6372,19 @@ well as C++ mode.
         is_function_type(pm_member_type(dest_type))) {
       okay = TRUE;
     }  /* if */
+#if GNU_VECTOR_TYPES_ALLOWED
+  } else if (gnu_mode &&
+             (is_vector_type(source_type) || is_vector_type(dest_type))) {
+    /* Vector types are convertible to and from other vector types, integer
+       types, and enum types, provided the two types have the same size. */
+    if (source_type->size == dest_type->size) {
+      a_boolean  src_is_vec = is_vector_type(source_type);
+      a_boolean  dst_is_vec = is_vector_type(dest_type);
+      okay = (src_is_vec && dst_is_vec) ||
+             (src_is_vec && is_integral_or_enum(dest_type)) ||
+             (dst_is_vec && is_integral_or_enum(source_type));
+    }  /* if */
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
   }  /* if */
   if (!okay) {
     /* No normal conversion.  Look for error and template matches. */
@@ -7091,6 +7162,9 @@ calling disentangle_default_args).
         case tk_class:
         case tk_struct:
         case tk_union:
+#if GNU_VECTOR_TYPES_ALLOWED
+        case tk_vector:
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
           /* Simple types.  The composite type is either of the types. */
           /* The class/struct/union cases are here because a
              class/struct/union can be compatible with a file-scope
@@ -8176,6 +8250,12 @@ its parameters?).
           goto check_enclosing_classes;
         }  /* if */
         break;
+#if GNU_VECTOR_TYPES_ALLOWED
+      case tk_vector:
+        tp = type_ptr->variant.vector.element_type;
+        if (tp != NULL) status = traverse_type_tree(tp, func, flags);
+        break;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
       case tk_class:
       case tk_struct:
       case tk_union:
@@ -9223,6 +9303,17 @@ make_new_type:
         }  /* if */
       }
       break;
+#if GNU_VECTOR_TYPES_ALLOWED
+    case tk_vector:
+      /* The vector case is similar to the array case. */
+      if (func(type->variant.vector.element_type, flags, &tp)) {
+        /* Create a new vector type. */
+        new_type = alloc_type((a_type_kind)tk_vector);
+        copy_type(type, new_type);
+        new_type->variant.vector.element_type = tp;
+      }  /* if */
+      break;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
 #if CHECKING
     default:
       internal_error("traverse_and_modify_type_tree: bad type kind");

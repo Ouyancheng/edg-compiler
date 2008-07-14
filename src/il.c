@@ -1449,6 +1449,15 @@ Dump the contents of the indicated type entry, for debug purposes.
           db_name(&tp->source_corresp);
         }  /* if */
         break;
+#if GNU_EXTENSIONS_ALLOWED && GNU_VECTOR_TYPES_ALLOWED
+      case tk_vector:
+        fputs("vector of ", f_debug);
+        db_abbreviated_type(tp->variant.vector.element_type);
+        fputs(" (size = ", f_debug);
+        db_constant(tp->variant.vector.size_constant);
+        fputs(" )", f_debug);
+        break;
+#endif /* GNU_EXTENSIONS_ALLOWED && GNU_VECTOR_TYPES_ALLOWED */
       default:
         fputs("<bad type kind>", f_debug);
     }  /* switch */
@@ -5122,6 +5131,14 @@ to refine the hash value developed in hash_constant.
     case tk_typeref:
       hash_value = hash_type(type->variant.typeref.type) + 17;
       break;
+#if GNU_VECTOR_TYPES_ALLOWED
+    case tk_vector:
+      hash_value = hash_type(type->variant.vector.element_type) + 331;
+      if (type->variant.vector.size_constant != NULL) {
+        hash_value += 5*hash_constant(type->variant.vector.size_constant);
+      }  /* if */
+      break;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
     default:
       hash_value = (a_constant_hash_value)type->kind;
   }  /* switch */

@@ -1597,6 +1597,12 @@ to default values.
         tptsp->coordinates.depth = NO_NESTING_DEPTH;
       }
       break;
+#if GNU_VECTOR_TYPES_ALLOWED
+    case tk_vector:
+      pte->variant.vector.element_type = NULL;
+      pte->variant.vector.size_constant = NULL;
+      break;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
 #if CHECKING
     default:
       internal_error("set_type_kind: bad type kind");

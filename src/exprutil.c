@@ -4320,7 +4320,48 @@ to the IL operator to be used, and return TRUE.  Otherwise, return FALSE.
 }  /* determine_imaginary_operation_type */
 
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
+#if GNU_VECTOR_TYPES_ALLOWED
 
+a_boolean determine_vector_operation_type(a_token_kind           op_token,
+                                          an_operand             *operand_1,
+                                          an_operand             *operand_2,
+                                          a_type_ptr             *result_type,
+                                          an_expr_operator_kind  *op)
+/*
+Check whether the operation represented by op_token applied to operand_1 and
+operand_2 is a vector operation.  If so, set *result_type to the type of the
+resulting expression, *op to the IL operator kind (eok_...) representing this
+operation, and return TRUE.  If the operand types involve at least one vector
+type, but the operand types are not valid for a vector operation, issue an
+error and set *op to eok_error and *result_type to an error type (TRUE is
+still returned in such cases).
+*/
+{
+  a_type_ptr  op1_type = skip_typerefs(operand_1->type);
+  a_type_ptr  op2_type = skip_typerefs(operand_2->type);
+  a_boolean   op1_is_vec = is_vector_type(op1_type);
+  a_boolean   op2_is_vec = is_vector_type(op2_type);
+  a_boolean   is_vector_operation = TRUE;
+
+  if (!op1_is_vec && !op2_is_vec) {
+    /* Not a vector operation. */
+    is_vector_operation = FALSE;
+  } else if (!op1_is_vec || !op2_is_vec) {
+    error(ec_mixed_vector_scalar_operation);
+    *result_type = error_type();
+    *op = (an_expr_operator_kind)eok_error;
+  } else if (op1_type->size != op2_type->size) {
+    error(ec_vectors_must_have_same_size);
+    *result_type = error_type();
+    *op = (an_expr_operator_kind)eok_error;
+  } else {
+    *result_type = op1_type;
+    *op = which_binary_operator(op_token, *result_type);
+  }  /* if */
+  return is_vector_operation;
+}  /* determine_vector_operation_type */
+
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 void adjust_constant_operand_info_for_microsoft_null_pointer_test(
@@ -6140,6 +6181,61 @@ type is an error type, return eok_error.
 #endif /* CHECKING */
       }  /* switch */
       break;
+
+#if GNU_VECTOR_TYPES_ALLOWED
+    case tk_vector:
+      switch (token) {
+	case tok_plus:
+	  op = (an_expr_operator_kind)eok_add;
+	  break;
+	case tok_minus:
+	  op = (an_expr_operator_kind)eok_subtract;
+	  break;
+	case tok_star:
+	  op = (an_expr_operator_kind)eok_multiply;
+	  break;
+	case tok_divide:
+	  op = (an_expr_operator_kind)eok_divide;
+	  break;
+	case tok_ampersand:
+	  op = (an_expr_operator_kind)eok_and;
+	  break;
+	case tok_excl_or:
+	  op = (an_expr_operator_kind)eok_xor;
+	  break;
+	case tok_or:
+	  op = (an_expr_operator_kind)eok_or;
+	  break;
+	case tok_assign:
+	  op = (an_expr_operator_kind)eok_assign;
+	  break;
+	case tok_times_assign:
+	  op = (an_expr_operator_kind)eok_multiply_assign;
+	  break;
+	case tok_divide_assign:
+	  op = (an_expr_operator_kind)eok_divide_assign;
+	  break;
+	case tok_plus_assign:
+	  op = (an_expr_operator_kind)eok_add_assign;
+	  break;
+	case tok_minus_assign:
+	  op = (an_expr_operator_kind)eok_subtract_assign;
+	  break;
+	case tok_and_assign:
+	  op = (an_expr_operator_kind)eok_and_assign;
+	  break;
+	case tok_excl_or_assign:
+	  op = (an_expr_operator_kind)eok_xor_assign;
+	  break;
+	case tok_or_assign:
+	  op = (an_expr_operator_kind)eok_or_assign;
+	  break;
+	default:
+	  unexpected_condition_str(
+	                        "which_binary_operator: bad vector operator");
+      }  /* switch */
+      break;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
     case tk_error:
       op = (an_expr_operator_kind)eok_error;
       break;

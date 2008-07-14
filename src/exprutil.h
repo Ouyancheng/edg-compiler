@@ -986,6 +986,14 @@ extern a_boolean determine_imaginary_operation_type
                                          an_expr_operator_kind *op);
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 
+#if GNU_VECTOR_TYPES_ALLOWED
+a_boolean determine_vector_operation_type(a_token_kind           op_token,
+                                          an_operand             *operand_1,
+                                          an_operand             *operand_2,
+                                          a_type_ptr             *result_type,
+                                          an_expr_operator_kind  *op);
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
 extern void adjust_constant_operand_info_for_microsoft_null_pointer_test(
                                          an_operand       *operand,

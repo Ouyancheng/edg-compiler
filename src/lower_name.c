@@ -69,6 +69,9 @@ lower_name.c -- Do name mangling for IL lowering.
 #define MANGLING_STRING_FOR_POINTER "P"
 #define MANGLING_STRING_FOR_POINTER_TO_MEMBER "M"
 #define MANGLING_STRING_FOR_ARRAY "A"
+#if GNU_VECTOR_TYPES_ALLOWED
+#define MANGLING_STRING_FOR_VECTOR "U8__vector"
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
 #define MANGLING_STRING_FOR_OPERATOR_NEW "nw"
 #define MANGLING_STRING_FOR_OPERATOR_DELETE "dl"
 #define MANGLING_STRING_FOR_OPERATOR_ARRAY_NEW "na"
@@ -158,6 +161,9 @@ lower_name.c -- Do name mangling for IL lowering.
 #define MANGLING_STRING_FOR_POINTER "P"
 #define MANGLING_STRING_FOR_POINTER_TO_MEMBER "M"
 #define MANGLING_STRING_FOR_ARRAY "A"
+#if GNU_VECTOR_TYPES_ALLOWED
+#define MANGLING_STRING_FOR_VECTOR "UV"
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
 #define MANGLING_STRING_FOR_OPERATOR_NEW "nw"
 #define MANGLING_STRING_FOR_OPERATOR_DELETE "dl"
 #define MANGLING_STRING_FOR_OPERATOR_ARRAY_NEW "nwa"
@@ -4358,6 +4364,12 @@ Add to the mangled name the encoding for the type "type".
                       "mangled_encoding_for_type: bad tk_template_param kind");
         }  /* if */
         goto have_whole_mangled_name;
+#if GNU_VECTOR_TYPES_ALLOWED
+      case tk_vector:
+        s = MANGLING_STRING_FOR_VECTOR;
+        /* More of this below. */
+        break;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
 #if CHECKING
       default:
         internal_error("mangled_encoding_for_type: bad type kind");
@@ -4449,6 +4461,24 @@ Add to the mangled name the encoding for the type "type".
                                           saved_force_dependent_array_mangling;
 #endif /* IA64_ABI */
         break;
+#if GNU_VECTOR_TYPES_ALLOWED
+      case tk_vector:
+        check_assertion(!vector_type_is_template_dependent(type));
+#if IA64_ABI
+        /* For the IA-64 ABI, we emulate the GNU C++ behavior exactly.
+           Unfortunately, GNU's mangling scheme does not include de vector
+           size, and as a result two different vector types may mangle to
+           the same encoding. */
+        mangled_encoding_for_type(type->variant.vector.element_type, mctl);
+#else /* !IA64_ABI */
+        /* With the Cfront ABI we have no compatibility constraints, so the
+           type is unambiguously encoded. */
+        add_number_to_mangled_name((unsigned long)type->size, mctl);
+        add_to_mangled_name('_', mctl);
+        mangled_encoding_for_type(type->variant.vector.element_type, mctl);
+#endif /* if */
+        break;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
       default:;
         /* Many cases don't require any handling. */
     }  /* switch */
