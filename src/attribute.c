@@ -1687,8 +1687,8 @@ emitted is given by pos.
 
 #if GNU_VECTOR_TYPES_ALLOWED
 
-a_type_ptr apply_vector_size_attribute(a_type_ptr        elem_type,
-                                       an_attribute_ptr  ap)
+static a_type_ptr apply_vector_size_attribute(a_type_ptr        elem_type,
+                                              an_attribute_ptr  ap)
 /*
 Apply the given vector_size attribute to the given (element) type, and return
 the resulting type.  If the attribute is invalid, or if it does not apply to
