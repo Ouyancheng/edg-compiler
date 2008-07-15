@@ -1,5 +1,21 @@
 Version 3.11
 
+7/15/08  IL entries set before cross-reference entries are generated
+
+In general, a symbol is set to point to its associated IL entry before
+a cross-reference entry for that symbol is generated.  A few exceptions
+to this rule were discovered and corrected.  Symbols for template parameters
+(of all kinds) and for both member and nonmember function templates now
+refer to their associated IL entries before any cross-reference entries
+are generated for them.  In the example below, the symbols for x, y, z, g,
+T, and X::f now have their associated IL entries set when their cross-reference
+entries are generated.
+
+  template<int x, class y, template<int> class z> void g(y (*)[x]) { }
+  class X {
+    template<class T> void f(T t) {}
+  };
+
 7/15/08  Overload resolution adjustment in Microsoft mode
 
 In a corner case involving a class with no user-written constructors -- only

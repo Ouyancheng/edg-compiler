@@ -8248,12 +8248,6 @@ declarations.)
     a_boolean saved_sses_disallowed = source_sequence_entries_disallowed;
     source_sequence_entries_disallowed = TRUE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-    /* Update cross-reference information, etc. */
-    if (func_info->is_definition) {
-      mark_defined(sym, &locator->source_position);
-    } else {
-      mark_declared(sym, &locator->source_position);
-    }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     /* Restore the previous state wrt. the generation of source sequence
        entries. */

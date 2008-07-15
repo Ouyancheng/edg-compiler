@@ -7974,9 +7974,7 @@ definition of a member function of a class template.
       if (sym->defined) {
         pos_sy_error(ec_already_defined, &locator->source_position, sym);
       } /* if */
-      mark_defined(sym, &locator->source_position);
     } else if (!microsoft_out_of_class_redecl) {
-      mark_declared(sym, &locator->source_position);
       if (!microsoft_mode &&
           sym->is_class_member && !idlb.is_friend_decl && !is_specialization) {
         /* A non-defining declaration of a member function is only allowed
