@@ -36,7 +36,7 @@ template).
   int main() {
     A<int> *a;     // d entry for A<int> now generated
     A<int>::B *ab; // d entry for A<int>::B already generated (this declaration
-                   // also causes as D entry for A<int>)
+                   // also causes a D entry for A<int>)
   }
 
 7/11/08  Parameter type cv-qualifiers and deduced routine types
