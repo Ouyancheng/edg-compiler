@@ -1738,6 +1738,7 @@ ec_mixed_vector_scalar_operation;;"mixed vector-scalar operation not allowed"
 ec_vectors_must_have_same_size;;"operation requires two vectors of the same size"
 ec_dependent_vector_size;;"template-dependent vector size is not allowed"
 ec_vector_size_with_dependent_element_type;;"vector_size attribute is not allowed on a template-dependent type"
+ec_vector_size_attribute_not_allowed;;"vector_size attribute not allowed here"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

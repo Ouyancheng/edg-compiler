@@ -2894,7 +2894,7 @@ a typedef, is_typedef is TRUE.
           while (*ptp != tp) ptp = &(*ptp)->variant.typeref.type;
           *ptp = apply_vector_size_attribute(tp, ap);
         } else {
-          unexpected_condition();
+          pos_error(ec_vector_size_attribute_not_allowed, &ap->position);
         }  /* if */
         break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
