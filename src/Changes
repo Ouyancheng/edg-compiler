@@ -1,5 +1,24 @@
 Version 3.11
 
+7/15/08  Overload resolution adjustment in Microsoft mode
+
+In a corner case involving a class with no user-written constructors -- only
+a default bitwise copy constructor -- and another class with a conversion
+function to a reference to const of the first class, overload resolution in
+Microsoft mode incorrectly failed to find the conversion function.  Now fixed.
+Sun mode is also affected similarly; old versions of the Sun compiler
+did fail to find the conversion, but newer versions do it correctly, and
+we now do that as well in Sun mode.
+
+  struct A {};
+  struct B {
+    operator const A&();
+  };
+  void foo() {
+    B b;
+    A a = b;  // Formerly got a spurious error in Microsoft mode
+  }
+
 7/14/08  Cross-reference entry for partial instantiation of a class template
 
 When cross-reference output is enabled, a reference to an instance of
