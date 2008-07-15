@@ -1,5 +1,25 @@
 Version 3.11
 
+7/14/08  Cross-reference entry for partial instantiation of a class template
+
+When cross-reference output is enabled, a reference to an instance of
+a class template would result in the generation of a reference entry
+("R"), and (if the class was used in a way in which a complete type was
+required) a definition entry ("D"), but no declaration entry ("d") was
+generated.  A declaration ("d") entry is now generated when the partial
+instantiation of the class is performed (a declaration entry was already
+generated for the partial instantiation of a nested class of a class
+template).
+
+  template <class T> struct A {
+    struct B {};
+  };
+  int main() {
+    A<int> *a;     // d entry for A<int> now generated
+    A<int>::B *ab; // d entry for A<int>::B already generated (this declaration
+                   // also causes as D entry for A<int>)
+  }
+
 7/11/08  Parameter type cv-qualifiers and deduced routine types
 
 When a template parameter was deduced from a function type, the deduced type

@@ -4966,6 +4966,7 @@ prototype instantiation is considered as a potential match.
     class_type->incomplete =
                      !class_type->variant.class_struct_union.is_nonreal_class;
     check_assertion(sym != prototype_sym);
+    mark_declared(sym, &sym->decl_position);
     if (class_type->variant.class_struct_union.is_nonreal_class) {
       a_class_symbol_supplement_ptr	cssp;
       cssp = sym->variant.class_struct_union.extra_info;
