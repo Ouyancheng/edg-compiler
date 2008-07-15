@@ -4138,7 +4138,8 @@ and operand_2 is one of the special cases involving imaginary types
 that has an operation type different than the one determined by the
 usual arithmetic conversions.  If so, convert the operands to the
 proper operation type, set *result_type to the result type, set *op
-to the IL operator to be used, and return TRUE.  Otherwise, return FALSE.
+to the IL operator to be used, and return TRUE.  Otherwise, return FALSE,
+set *op to eok_last, and leave *result_type unchanged.
 */
 {
   a_boolean     is_special = FALSE;
@@ -4314,7 +4315,7 @@ to the IL operator to be used, and return TRUE.  Otherwise, return FALSE.
     }  /* if */
     promote_operand_for_imaginary_operation(operand_2, fkind_result);
   } else {
-    *op = (an_expr_operator_kind)eok_error;
+    *op = (an_expr_operator_kind)eok_last;
   }  /* if */
   return is_special;
 }  /* determine_imaginary_operation_type */
