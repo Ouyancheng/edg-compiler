@@ -9856,32 +9856,30 @@ must be unsigned.
 }  /* check_enum_type_for_bit_field */
 
 
-static void scan_bit_field_size(a_field_ptr       field,
-                                a_boolean         *unnamed_bit_field,
-                                a_type_ptr        *p_base_type,
-                                a_symbol_locator  *locator)
+static void apply_bit_field_size(a_field_ptr       field,
+                                 a_constant_ptr    size_constant,
+                                 a_boolean         *unnamed_bit_field,
+                                 a_type_ptr        *p_base_type,
+                                 a_symbol_locator  *locator)
 /*
-Scan the size in a bit-field declaration:
+The given field is declared as a bit field with the given size constant:
 
     unsigned int j: 5 ;
                     ^---- this size.
 
-The current token is the colon preceding the size.  If *unnamed_bit_field
-is TRUE, the bit-field is unnamed.  *p_base_type gives the base type
-of the declaration (unsigned int in the above example); it may be updated
-on return.  *p_bit_field_size is set to the bit field size in bits.
-*p_is_signed is set to indicate whether or not the bit field is signed.
+If *unnamed_bit_field is TRUE, the bit-field is unnamed.  *p_base_type gives
+the base type of the declaration (unsigned int in the above example); it may
+be updated on return.
 */
 {
   unsigned long    bit_field_size, max_size_allowed;
   unsigned long    declared_bit_field_size;
   a_type_ptr       base_type = *p_base_type;
   a_boolean        err = FALSE, is_signed = FALSE;
-  a_constant       constant;
   a_type_ptr       bit_field_type;
   an_integer_kind  int_kind;
 
-  db_enter(3, "scan_bit_field_size");
+  db_enter(3, "apply_bit_field_size");
   /* ANSI C says the type of a bit-field must be int, unsigned int,
      or signed int, but we also allow enums and integral types (see A.6.5.8
      in the Common Extensions appendix).  pcc and C++ (ARM 9.6) allow any
@@ -9893,35 +9891,31 @@ on return.  *p_bit_field_size is set to the bit field size in bits.
   }  /* if */
   /* Note that if the base type was not integral it has been replaced by
      "int" by this point. */
-  /* Advance past the colon. */
-  (void)get_token();
-  /* Scan the integral size in bits of the bit-field. */
-  scan_fs_integral_constant_expression(&constant);
 #if RECORD_GENERAL_CONSTANT_EXPRESSIONS_IN_IL
-  field->bit_size_constant = alloc_shareable_constant(&constant);
+  field->bit_size_constant = alloc_shareable_constant(size_constant);
 #if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
-  forget_expr_range_modifiers_in_constant(&constant);
+  forget_expr_range_modifiers_in_constant(size_constant);
 #endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
 #endif /* RECORD_GENERAL_CONSTANT_EXPRESSIONS_IN_IL */
-  if (is_error_constant(&constant)) {
+  if (is_error_constant(size_constant)) {
     /* Use small value to avoid more errors, but not 1 which is special. */
     declared_bit_field_size = bit_field_size = targ_char_bit;
     err = TRUE;
-  } else if (constant.kind == (a_constant_repr_kind)ck_template_param) {
+  } else if (size_constant->kind == (a_constant_repr_kind)ck_template_param) {
     /* A template parameter during the prototype instantiation.  The value
        is not known.  Use a small value that is not 1. */
     declared_bit_field_size = bit_field_size = targ_char_bit;
   } else {
 #if CHECKING
-    if (constant.kind != (a_constant_repr_kind)ck_integer) {
-      internal_error("scan_bit_field_size: size not int");
+    if (size_constant->kind != (a_constant_repr_kind)ck_integer) {
+      internal_error("apply_bit_field_size: size not int");
     }  /* if */
 #endif /* CHECKING */
     /* The size of the bit field must be non-negative and must not exceed
        the size of the underlying type. */
     max_size_allowed = (unsigned long)(bit_field_type->size*targ_char_bit);
     bit_field_size = (unsigned long)
-                           unsigned_value_of_integer_constant(&constant, &err);
+                       unsigned_value_of_integer_constant(size_constant, &err);
     declared_bit_field_size = bit_field_size;
     /* Note that one reason for err to be TRUE is if the constant is
        less than zero. */
@@ -10048,19 +10042,20 @@ on return.  *p_bit_field_size is set to the bit field size in bits.
   field->bit_field_is_signed = is_signed;
 done:;
   db_exit();
-}  /* scan_bit_field_size */
+}  /* apply_bit_field_size */
 
 
 static void check_field_type(a_symbol_locator        *locator,
                              a_class_def_state_ptr   class_state,
-                             a_member_decl_info_ptr  decl_info)
-
+                             a_member_decl_info_ptr  decl_info,
+                             a_boolean               is_bit_field)
 /*
 Check that the type of a nonstatic data member is valid, and report incomplete
 types and incorrect types on bit-field declarations.  *locator is the symbol
 locator for the field being declared.  *class_state and *decl_info track
 general information about the class definition and specific information about
-the member declaration, respectively.
+the member declaration, respectively.  is_bit_field is TRUE for bit field
+declarations.
 */
 {
   a_decl_parse_state  *decl_state = &decl_info->decl_state;
@@ -10257,7 +10252,7 @@ the member declaration, respectively.
           ec_reference_declared_mutable, &decl_state->start_pos);
     }  /* if */
   }  /* if */
-  if (curr_token == tok_colon) {
+  if (is_bit_field) {
     /* Bit-field declaration -- be sure the type is okay. */
     a_type_ptr  unqual_type = skip_typerefs(field_type);
     if (!is_integral_or_enum_type(unqual_type)) {
@@ -10379,18 +10374,45 @@ definition and specific information about the member declaration, respectively.
 #if GNU_EXTENSIONS_ALLOWED
   an_attribute_ptr               *last_attribute;
 #endif /* GNU_EXTENSIONS_ALLOWED */
+  a_constant                     bit_field_size;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position              bit_field_size_pos;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
   db_enter(3, "decl_nonstatic_data_member");
+  /* Create the field entry. */
+  field = alloc_field();
+  /* A colon next indicates a bit-field. */
+  if (curr_token == tok_colon) {
+    field->is_bit_field = TRUE;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    bit_field_size_pos = pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    /* Advance past the colon. */
+    (void)get_token();
+    /* Scan the integral size in bits of the bit-field. */
+    scan_fs_integral_constant_expression(&bit_field_size);
+  }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+  if (gnu_mode) {
+    /* Find the last attribute. */
+    last_attribute = last_attribute_link(&decl_state->attributes);
+    /* Scan the attributes that follow the declarator.  This must happen after
+       any bit field size is scanned, but before the type of the field is
+       checked. */
+    *last_attribute = scan_attributes();
+    /* Apply the attributes to the field. */
+    decl_state->type = apply_attributes_to_variable_type(
+                                    decl_state->attributes, decl_state->type);
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   if (decl_info->is_member_template) {
     /* Error -- suppress incomplete-type errors, etc.. */
     set_to_named_error_locator(*locator);
     member_type = error_type();
   } else {
     /* Do error checking on the type. */
-    check_field_type(locator, class_state, decl_info);
+    check_field_type(locator, class_state, decl_info, field->is_bit_field);
     member_type = decl_state->type;
   }  /* if */
   /* Set the flag to record that at least one named field was encountered. */
@@ -10404,33 +10426,16 @@ definition and specific information about the member declaration, respectively.
       member_type = error_type();
     }  /* if */
   }  /* if */
-  /* Create the field entry. */
-  field = alloc_field();
-  /* A colon next indicates a bit-field. */
-  if (curr_token == tok_colon) {
-    field->is_bit_field = TRUE;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-    bit_field_size_pos = pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  if (field->is_bit_field) {
     /* Scan the bit-field size and determine the bit-field type. */
-    scan_bit_field_size(field, &unnamed_field, &member_type, locator);
+    apply_bit_field_size(field, &bit_field_size,
+                         &unnamed_field, &member_type, locator);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     decl_info->decl_pos_block.declarator_range.end =
                                             curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   }  /* if */
-#if GNU_EXTENSIONS_ALLOWED
-  if (gnu_mode) {
-    /* Find the last attribute. */
-    last_attribute = last_attribute_link(&decl_state->attributes);
-    /* Scan the attributes that follow the declarator. */
-    *last_attribute = scan_attributes();
-    /* Apply the attributes to the field. */
-    member_type = apply_attributes_to_variable_type(decl_state->attributes,
-                                                    member_type);
-  }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
-  /* Copy the type (which may have been changed by scan_bit_field_size) into
+  /* Copy the type (which may have been changed by apply_bit_field_size) into
      the field entry. */
   field->type = member_type;
   /* For an unnamed field, do not create the field symbol. */
