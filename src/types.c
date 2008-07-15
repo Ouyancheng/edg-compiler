@@ -551,6 +551,7 @@ consider the underlying type.
   return skip_typerefs(tp)->kind == (a_type_kind)tk_vector;
 }  /* is_vector_type */
 
+#if !STANDALONE_UTILITY_PROGRAM
 
 a_boolean vector_type_is_template_dependent(a_type_ptr  tp)
 /*
@@ -564,6 +565,7 @@ element type is template-dependent.
          is_template_dependent_type(tp->variant.vector.element_type);
 }  /* vector_type_is_template_dependent */
 
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
 
 a_boolean is_arithmetic_or_enum_type(a_type_ptr tp)
