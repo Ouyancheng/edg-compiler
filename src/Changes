@@ -1,5 +1,47 @@
 Version 3.11
 
+7/15/08  GNU compatibility: Attribute vector_size
+
+In GNU modes, the front end now accepts the "vector_size" attribute applied to
+integer, enum, and floating-point types.  This attribute creates a "vector"
+type; operations on such a type may be mapped on special CPU instructions by a
+back end.  For example:
+
+  #define vector(N) __attribute((vector_size(N)))
+  vector(16) int f() {
+    vector(16) int x = { 1, 2, 3, 4 };
+    return x;
+  }
+
+As the example shows, the brace-initializer syntax is supported for vectors
+(but designators are not allowed).  The argument to the vector size attribute
+is the length of the vector in bytes.  E.g., "vector(16) int" designates a
+vector of four int elements on a machine with a 4-byte int type.
+
+Currently, template-dependent vector types are not allowed.  This mostly
+matches GCC's behavior, except that GCC will accept but ignore a vector type
+whose element type is nondependent but whose size (the argument to the vector
+size attribute) is dependent; the EDG front end issues an error on such cases.
+For example:
+
+  #define vector(N) __attribute((vector_size(N)))
+  template<typename T, int N> void f() {
+    vector(16) T v;   // Error with GCC and EDG.
+    vector(N) int w;  // Error with EDG; same as "int w;" with GCC.
+  }
+
+When the IA-64 ABI is enabled (IA64_ABI is TRUE), lowering produces the same
+mangling for vector types as GCC.  Unfortunately, this mangling ignores the
+size of the vector, and may therefore produces conflicting manglings (this
+matches the GCC behavior).  For example:
+
+  #define vector(N) __attribute((vector_size(N)))
+  void f(vector(8) float) {}   // (1)
+  void f(vector(16) float) {}  // Same mangled name as (1) with the IA-64 ABI.
+
+When the Cfront ABI is enabled (IA64_ABI is FALSE), an unambiguous encoding
+is used and the example above creates no problems.
+
 7/15/08  IL entries set before cross-reference entries are generated
 
 In general, a symbol is set to point to its associated IL entry before
