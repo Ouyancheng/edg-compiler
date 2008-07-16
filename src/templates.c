@@ -15542,16 +15542,14 @@ any non-empty template parameter lists that were scanned.
       pos_error(ec_exp_declaration, &pos_curr_token);
     } else if (decl_state->is_member_decl && !decl_state->is_template_friend) {
       /* A member template declaration. */
-      a_source_position	   decl_start_pos;
-      decl_start_pos = pos_curr_token;
       sym = class_member_template_declaration(decl_state->class_declared_in,
                                               decl_state->
                                                      decl_info->parameters,
                                               decl_state->il_template_entry,
                                               &decl_state->decl_pos_block);
       complete_function_template_decl(decl_state, sym,
-                                      (a_func_info_block *)NULL,
-                                      &tssp, &decl_start_pos);
+                                      (a_func_info_block *)NULL, &tssp,
+                                      &decl_state->decl_pos_block.decl_pos);
       if (decl_state->defines_something) {
         /* Save a pointer to the token cache for function body.  tssp may
            be NULL in error cases. */
