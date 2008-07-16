@@ -8242,17 +8242,6 @@ declarations.)
     add_to_routines_list(rtn, NO_SCOPE_DEPTH);
   }  /* if */
   if (!is_error_locator(*locator)) {
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-    /* Prevent the generation of a source sequence entry for the a_template
-       entry: we already did so elsewhere. */
-    a_boolean saved_sses_disallowed = source_sequence_entries_disallowed;
-    source_sequence_entries_disallowed = TRUE;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-    /* Restore the previous state wrt. the generation of source sequence
-       entries. */
-    source_sequence_entries_disallowed = saved_sses_disallowed;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     update_decl_pos_info(&rtn->source_corresp, &decl_info->decl_pos_block);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */

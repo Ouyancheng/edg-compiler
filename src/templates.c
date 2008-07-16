@@ -14921,13 +14921,26 @@ caller.
     cache_function_template_body(decl_state, &local_token_cache,
                                  is_constructor_symbol(sym), decl_pos);
     last_token_number = curr_token_sequence_number;
-    /* Update cross-reference information, etc.  This is done here because
-       the "defines_something" flag is set by the caching done just above. */
-    if (decl_state->defines_something) {
-      mark_defined(sym, decl_pos);
-    } else {
-      mark_declared(sym, decl_pos);
-    }  /* if */
+    {
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      /* Prevent the generation of a source sequence entry for the a_template
+         entry: we already did so elsewhere. */
+      a_boolean saved_sses_disallowed = source_sequence_entries_disallowed;
+      source_sequence_entries_disallowed = TRUE;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+       /* Update cross-reference information, etc.  This is done here because
+         the "defines_something" flag is set by the caching done just above. */
+      if (decl_state->defines_something) {
+        mark_defined(sym, decl_pos);
+      } else {
+        mark_declared(sym, decl_pos);
+      }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      /* Restore the previous state wrt. the generation of source sequence
+         entries. */
+      source_sequence_entries_disallowed = saved_sses_disallowed;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    }
     if (is_nonspecialized_prototype_instantiation_context()) {
       if (sym->is_class_member && decl_state->class_declared_in != NULL &&
           decl_state->defines_something &&
