@@ -4974,7 +4974,6 @@ prototype instantiation is considered as a potential match.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
     class_type->incomplete =
                      !class_type->variant.class_struct_union.is_nonreal_class;
-    check_assertion(sym != prototype_sym);
     record_symbol_declaration(SRK_TEMPLATE_INSTANTIATION,
                               sym, &sym->decl_position,
                               (a_source_sequence_entry_ptr)NULL);
