@@ -1,5 +1,11 @@
 Version 3.11
 
+7/16/08  decl_pos in a_decl_pos_block not set
+
+The decl_pos field of the a_decl_pos_block entry was not being set.  This has
+been fixed.  The a_decl_pos_block entries are not part of the IL, but this
+could cause unexpected results if customer-supplied code made use of the field.
+
 7/15/08  GNU compatibility: Attribute vector_size
 
 In GNU modes, the front end now accepts the "vector_size" attribute applied to
