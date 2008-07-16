@@ -6360,9 +6360,7 @@ points to the template parameter list.
                 /* One or both of the types does not have an implicit
                    this class.  This is okay if they are both NULL. 
                    It is also okay if the type has no this class type,
-                   the unknown this class type flag was passed in, and
-                   the other this class type has no qualifiers (which is
-                   checked by the initial test of the qualifiers). */
+                   the unknown this class type flag was passed in. */
                 if (type->variant.routine.extra_info->qualifiers !=
                     templ_type->variant.routine.extra_info->qualifiers) {
                   /* The qualifiers don't match.  Don't check further. */
@@ -6376,10 +6374,10 @@ points to the template parameter list.
                   match = FALSE;
                 } else { /* tp == NULL */
                   /* The template type is not NULL.  This is a match when
-                     the unknown this class flag is set and the this
-                     parameter from the template has no qualifiers (which
-                     was tested above). */
-                  match = TRUE;
+                     the unknown this class flag is set (i.e., in declaration
+                     matching).  Note that if any qualifiers were specified
+                     the tp this class will be non-NULL. */
+                  match = (flags & MTT_UNKNOWN_THIS_CLASS_TYPE) != 0;
                 }  /* if */
               } else {
                 /* They both have this class types, make sure the
