@@ -2697,7 +2697,9 @@ might not be able to if the template itself has not yet been defined.
         }  /*if */
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      mark_defined(instance_sym, &instance_sym->decl_position);
+      record_symbol_declaration(SRK_DEFINITION | SRK_TEMPLATE_INSTANTIATION,
+                                instance_sym, &instance_sym->decl_position,
+                                (a_source_sequence_entry_ptr)NULL);
       if (defer_function_prototype_instantiations) {
         /* When deferring function prototype instantiations, restore the
            declaration sequence counter to its state when the class template
@@ -4050,8 +4052,9 @@ Instantiate the body of the template function associated with tip.
   if (rout_sym->defined) {
     /* Member functions of class templates where the definition appears
        inside the class definition will already have been marked as defined
-       (when the class was instantiated).  If mark_defined is called for
-       such cases, an incorrect source sequence entry can be generated. */
+       (when the class was instantiated).  If record_symbol_declaration
+       is called for such cases, an incorrect source sequence entry can be
+       generated. */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
     /* If a source sequence entry has not been put out for this member
@@ -4067,10 +4070,13 @@ Instantiate the body of the template function associated with tip.
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   } else {
-    /* We wait till after the scope is pushed before calling mark_defined
-       because the fact that a template instantiation scope is on the scope
-       stack affects some decisions in that routine. */
-    mark_defined(rout_sym, &rout_sym->decl_position);
+    /* We wait till after the scope is pushed before calling
+       record_symbol_declaration because the fact that a template
+       instantiation scope is on the scope stack affects some decisions
+       in that routine. */
+    record_symbol_declaration(SRK_DEFINITION | SRK_TEMPLATE_INSTANTIATION,
+                              rout_sym, &rout_sym->decl_position,
+                              (a_source_sequence_entry_ptr)NULL);
   }  /* if */
   /* Reactivate any pragmas that should be bound to the generated
      instance. */
@@ -4274,7 +4280,10 @@ and the class instantiation will detect the runaway case.
 #endif /* GNU_EXTENSIONS_ALLOWED */
   /* Call mark_defined *after* the template instantiation scope is pushed --
      correct behavior for source sequence entry generation depends on it. */
-  mark_defined(static_data_member_sym, &tip->template_sym->decl_position);
+  record_symbol_declaration(SRK_DEFINITION | SRK_TEMPLATE_INSTANTIATION,
+                            static_data_member_sym,
+                            &tip->template_sym->decl_position,
+                            (a_source_sequence_entry_ptr)NULL);
   if (tssp->cache.tokens.first_token != NULL) {
     /* An initializer was specified in the template declaration. */
     a_decl_parse_state  dps;
@@ -4966,7 +4975,9 @@ prototype instantiation is considered as a potential match.
     class_type->incomplete =
                      !class_type->variant.class_struct_union.is_nonreal_class;
     check_assertion(sym != prototype_sym);
-    mark_declared(sym, &sym->decl_position);
+    record_symbol_declaration(SRK_TEMPLATE_INSTANTIATION,
+                              sym, &sym->decl_position,
+                              (a_source_sequence_entry_ptr)NULL);
     if (class_type->variant.class_struct_union.is_nonreal_class) {
       a_class_symbol_supplement_ptr	cssp;
       cssp = sym->variant.class_struct_union.extra_info;
@@ -8758,7 +8769,9 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
     rp->source_corresp.access = templ_rout->source_corresp.access;
     rp->template_arg_list = templ_arg_list;
     rp->assoc_template = tssp->il_template_entry;
-    mark_declared(sym, &sym->decl_position);
+    record_symbol_declaration(SRK_TEMPLATE_INSTANTIATION,
+                              sym, &sym->decl_position,
+                              (a_source_sequence_entry_ptr)NULL);
 #if DECL_MODIFIERS_IN_USE
     {
     a_decl_modifiers_block  decl_modifiers;
