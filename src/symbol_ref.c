@@ -1781,11 +1781,19 @@ created for this entity; otherwise, it is NULL.
       }  /* if */
 #endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
     }  /* if */
-#else /* !TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
-    if (srk_flags & SRK_TEMPLATE_INSTANTIATION) {
-      update_src_seq_list = FALSE;
-    }  /* if */
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+    if (srk_flags & SRK_TEMPLATE_INSTANTIATION) {
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+      if (srk_flags & SRK_DEFINITION) {
+        /* This is a configuration where source sequence entries must be
+           emitted for full template instantiations. */
+      } else
+#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+      /* Do not insert code here. */
+      {
+        update_src_seq_list = FALSE;
+      }  /* if */
+    }  /* if */
     if (update_src_seq_list) {      /*lint !e774*/
       if (is_definition) {
         /* If this is a primary declaration (or a tentative definition that

@@ -4974,9 +4974,11 @@ prototype instantiation is considered as a potential match.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
     class_type->incomplete =
                      !class_type->variant.class_struct_union.is_nonreal_class;
-    record_symbol_declaration(SRK_TEMPLATE_INSTANTIATION,
-                              sym, &sym->decl_position,
-                              (a_source_sequence_entry_ptr)NULL);
+    if (!class_type->variant.class_struct_union.is_nonreal_class) {
+      record_symbol_declaration(SRK_TEMPLATE_INSTANTIATION,
+                                sym, &sym->decl_position,
+                                (a_source_sequence_entry_ptr)NULL);
+    }  /* if */
     if (class_type->variant.class_struct_union.is_nonreal_class) {
       a_class_symbol_supplement_ptr	cssp;
       cssp = sym->variant.class_struct_union.extra_info;
