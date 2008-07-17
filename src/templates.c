@@ -12817,6 +12817,7 @@ entered into the symbol table.
     sym = make_unnamed_template_param_symbol(kind, &pos_curr_token);
   }  /* if */
   sym->is_template_param = TRUE;
+  mark_defined(sym, &sym->decl_position);
   return sym;
 }  /* create_template_param_symbol */
 
@@ -12870,7 +12871,6 @@ parameter entry for the parameter.
      template-param type -- "for now", since it will be replaced with
      an actual type during instantiation of the class or function. */
   sym->variant.type.ptr = template_param_type;
-  mark_defined(sym, &sym->decl_position);
   /* Allocate a template parameter and set its fields based on sym. */
   template_param = alloc_template_param(sym);
   if (curr_token == tok_assign) {
@@ -12973,7 +12973,6 @@ parameter depends on a template parameter.
        symbol header. */
     clear_source_corresp_name(&param_con->source_corresp);
   }  /* if */
-  mark_defined(sym, &sym->decl_position);
   /* Allocate a template parameter and set its fields based on sym. */
   template_param = alloc_template_param(sym);
   if (const_type_involves_template_param) {
@@ -13181,7 +13180,6 @@ depends on a another template parameter.
   set_template_cache_info(&tssp->cache,
                           (a_token_cache_ptr)NULL,
                           local_decl_state.decl_info);
-  mark_defined(sym, &sym->decl_position);
   /* Allocate a template parameter and set its fields based on sym. */
   template_param = alloc_template_param(sym);
   /* Check the default arguments of the parameter list of the template
@@ -14935,26 +14933,6 @@ caller.
     cache_function_template_body(decl_state, &local_token_cache,
                                  is_constructor_symbol(sym), decl_pos);
     last_token_number = curr_token_sequence_number;
-    {
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-      /* Prevent the generation of a source sequence entry for the a_template
-         entry: we already did so elsewhere. */
-      a_boolean saved_sses_disallowed = source_sequence_entries_disallowed;
-      source_sequence_entries_disallowed = TRUE;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-       /* Update cross-reference information, etc.  This is done here because
-         the "defines_something" flag is set by the caching done just above. */
-      if (decl_state->defines_something) {
-        mark_defined(sym, decl_pos);
-      } else {
-        mark_declared(sym, decl_pos);
-      }  /* if */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-      /* Restore the previous state wrt. the generation of source sequence
-         entries. */
-      source_sequence_entries_disallowed = saved_sses_disallowed;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-    }
     if (is_nonspecialized_prototype_instantiation_context()) {
       if (sym->is_class_member && decl_state->class_declared_in != NULL &&
           decl_state->defines_something &&
@@ -15567,14 +15545,16 @@ any non-empty template parameter lists that were scanned.
       pos_error(ec_exp_declaration, &pos_curr_token);
     } else if (decl_state->is_member_decl && !decl_state->is_template_friend) {
       /* A member template declaration. */
+      a_source_position	   decl_start_pos;
+      decl_start_pos = pos_curr_token;
       sym = class_member_template_declaration(decl_state->class_declared_in,
                                               decl_state->
                                                      decl_info->parameters,
                                               decl_state->il_template_entry,
                                               &decl_state->decl_pos_block);
       complete_function_template_decl(decl_state, sym,
-                                      (a_func_info_block *)NULL, &tssp,
-                                      &decl_state->decl_pos_block.decl_pos);
+                                      (a_func_info_block *)NULL,
+                                      &tssp, &decl_start_pos);
       if (decl_state->defines_something) {
         /* Save a pointer to the token cache for function body.  tssp may
            be NULL in error cases. */

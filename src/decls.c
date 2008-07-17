@@ -7964,11 +7964,19 @@ definition of a member function of a class template.
   microsoft_out_of_class_redecl = microsoft_mode && sym->is_class_member &&
                                                     !func_info->is_definition;
   if (!is_error_locator(*locator)) {
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    /* Prevent the generation of a source sequence entry for the a_template
+       entry: we already did so elsewhere. */
+    a_boolean saved_sses_disallowed = source_sequence_entries_disallowed;
+    source_sequence_entries_disallowed = TRUE;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     if (func_info->is_definition) {
       if (sym->defined) {
         pos_sy_error(ec_already_defined, &locator->source_position, sym);
       } /* if */
+      mark_defined(sym, &locator->source_position);
     } else if (!microsoft_out_of_class_redecl) {
+      mark_declared(sym, &locator->source_position);
       if (!microsoft_mode &&
           sym->is_class_member && !idlb.is_friend_decl && !is_specialization) {
         /* A non-defining declaration of a member function is only allowed
@@ -7978,6 +7986,9 @@ definition of a member function of a class template.
       } /* if */
     } /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
+    /* Restore the previous state wrt. the generation of source sequence
+       entries. */
+    source_sequence_entries_disallowed = saved_sses_disallowed;
     if (func_info->is_definition) {
       set_routine_declared_type(rout_ptr, func_info->declared_type);
     }  /* if */

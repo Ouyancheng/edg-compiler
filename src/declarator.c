@@ -4673,7 +4673,6 @@ The syntax is:
          ensures the position is that of the main identifier (and not e.g.
          a qualifier). */
      declarator_pos = locator->source_position;
-     decl_pos_block->decl_pos = declarator_pos;
     }  /* if */
   }  /* if */
   consume_any_stray_microsoft_rparen();
