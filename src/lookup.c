@@ -1307,7 +1307,7 @@ scope lookup.  options specifies the options being used for the lookup.
       /* The current lookup set is a namespace projection symbol whose
          fundamental symbol pointer has been cleared.  Simply set this
          symbol to point to the new symbol. */
-      set_namespace_projection_symbol(curr_sym, new_sym, depth_scope_stack);
+      set_namespace_projection_symbol(curr_sym, new_sym, NO_SCOPE_DEPTH);
     } else {
       /* If new_sym is not already in the lookup set, add it. */
       if (!already_in_lookup_set(curr_sym, new_sym, /*is_using_dir=*/TRUE)) {
@@ -1339,7 +1339,7 @@ scope lookup.  options specifies the options being used for the lookup.
       /* The current lookup set is a namespace projection symbol whose
          fundamental symbol pointer has been cleared.  Simply set this
          symbol to point to the first member of the overload set. */
-      set_namespace_projection_symbol(curr_sym, rout_sym, depth_scope_stack);
+      set_namespace_projection_symbol(curr_sym, rout_sym, NO_SCOPE_DEPTH);
       rout_sym = rout_sym->next;
     }  /* if */
     for (; rout_sym != NULL; rout_sym = rout_sym->next) {
@@ -1398,8 +1398,7 @@ namespace" lookup is done.
     } else if (!new_is_typedef && curr_is_typedef) {
       /* Use the new symbol. */
      result = TRUE;
-     set_namespace_projection_symbol(*curr_sym, new_sym,
-                                     depth_scope_stack);
+     set_namespace_projection_symbol(*curr_sym, new_sym, NO_SCOPE_DEPTH);
     }  /* if */
   }  /* if */
   return result;
@@ -1629,7 +1628,7 @@ be in the set.
                                                 qualifier_namespace,
 						options);
     } else {
-      set_namespace_projection_symbol(curr_sym, new_sym, depth_scope_stack);
+      set_namespace_projection_symbol(curr_sym, new_sym, NO_SCOPE_DEPTH);
     }  /* if */
   } else if (already_in_lookup_set(curr_sym, new_sym, /*is_using_dir=*/TRUE)) {
     /* The symbol is already present -- nothing more to do. */
@@ -1661,8 +1660,7 @@ be in the set.
            but when possible, we want the symbol returned to point to
            the type symbol.  This improves error recovery in declaration
            contexts. */
-       set_namespace_projection_symbol(curr_sym, new_sym,
-                                       depth_scope_stack);
+       set_namespace_projection_symbol(curr_sym, new_sym, NO_SCOPE_DEPTH);
       } else if (curr_sym->kind == (a_symbol_kind)sk_namespace_projection &&
                  fund_curr_sym->kind == (a_symbol_kind)sk_undefined) {
         /* The current symbol is an sk_undefined symbol.  Use a "real" symbol

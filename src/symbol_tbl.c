@@ -4020,14 +4020,17 @@ void set_namespace_projection_symbol(a_symbol_ptr     proj_sym,
 Initialize the fields of the symbol proj_sym to point to be a namespace
 projection symbol that points to fund_sym.  proj_sym must already point to
 an sk_namespace_projection symbol. scope_depth is the depth in the scope
-stack of the projection symbol.
+stack of the projection symbol, or NO_SCOPE_DEPTH if the decl_scope of
+proj_sym should remain unchanged.
 */
 {
   /* Make sure fund_sym is really a fundamental symbol and not another
      projection. */
   fund_sym = fundamental_symbol_of(fund_sym);
   proj_sym->variant.namespace_projection.fundamental_symbol = fund_sym;
-  proj_sym->decl_scope = scope_stack[scope_depth].number;
+  if (scope_depth != NO_SCOPE_DEPTH) {
+    proj_sym->decl_scope = scope_stack[scope_depth].number;
+  }  /* if */
 }  /* set_namespace_projection_symbol */
 
 
@@ -4280,13 +4283,15 @@ the symbol pointed to by "from" to the symbol pointed to by "to".
 {
   to->synthesized_namespace_projection
                                      = from->synthesized_namespace_projection;
+  to->do_not_reuse                   = from->do_not_reuse;
   to->qualified_lookup               = from->qualified_lookup;
   to->must_be_class_or_namespace_lookup
                                      = from->must_be_class_or_namespace_lookup;
   to->must_be_tag_lookup             = from->must_be_tag_lookup;
-  to->do_not_reuse                   = from->do_not_reuse;
+  to->tentative_type_lookup          = from->tentative_type_lookup;
   to->must_be_class_lookup           = from->must_be_class_lookup;
   to->must_be_namespace_lookup       = from->must_be_namespace_lookup;
+  to->instantiation_context_lookup   = from->instantiation_context_lookup;
 }  /* copy_symbol_lookup_flags */
 
 

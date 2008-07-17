@@ -1,5 +1,29 @@
 Version 3.11
 
+7/17/08  Performance issues with using-directive lookups
+
+When a lookup is done that makes use of using-directives, the result of
+the lookup is saved so that the symbol may be reused by a subsequent
+lookup.  In some cases, the saved symbol was created improperly causing
+it to be considered unsuitable when looking for a saved symbol in a
+subsequent lookup.  This could result in a large number of symbols on
+the saved symbol list, causing poor compilation performance.  This has
+been fixed.  This test case, which does 100,000 lookups, formerly took
+over a minute to compile now takes under a second (on a typical x86 system).
+
+  namespace N {
+    int i;
+  }
+  using namespace N;
+  #define x0(x) x; x; x; x; x; x; x; x; x; x;
+  #define x1(x) x0(x) x0(x) x0(x) x0(x) x0(x) x0(x) x0(x) x0(x) x0(x) x0(x)
+  #define x2(x) x1(x) x1(x) x1(x) x1(x) x1(x) x1(x) x1(x) x1(x) x1(x) x1(x)
+  #define x3(x) x2(x) x2(x) x2(x) x2(x) x2(x) x2(x) x2(x) x2(x) x2(x) x2(x)
+  #define x4(x) x3(x) x3(x) x3(x) x3(x) x3(x) x3(x) x3(x) x3(x) x3(x) x3(x)
+  void f() {
+    x4(i++);
+  }
+
 7/16/08  decl_pos in a_decl_pos_block not set
 
 The decl_pos field of the a_decl_pos_block entry was not being set.  This has
