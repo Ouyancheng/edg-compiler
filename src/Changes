@@ -118,7 +118,7 @@ reference triggered a full instantiation, a definition entry ("D") was
 emitted first.  Otherwise, partial instantiations of function templates
 generated a declaration entry ("d", see Changes entry of 6/1/08).
 
-Now all template instantiation generate a "T" entry (for full instantiations)
+Now all template instantiations generate a "T" entry (for full instantiations)
 or a "t" entry (for partial instantiations) instead of the "D"/"d" entries.
 Note that the partial instantiation of a class template also generates a "t"
 entry (whereas previously no "d" entry was created for that case).

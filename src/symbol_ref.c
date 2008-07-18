@@ -89,8 +89,8 @@ should only be called if cross-reference information is being generated
        The separator character between the fields is a horizontal tab.
        where X is "d" for declaration,
                   "D" for definition,
-                  "t" for a partial instantiation
-                  "T" for a full instantiation
+                  "t" for partial instantiation,
+                  "T" for full instantiation,
                   "M" for modification,
                   "A" for address taken,
                   "U" for use,
