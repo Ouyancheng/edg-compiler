@@ -9,7 +9,8 @@ it to be considered unsuitable when looking for a saved symbol in a
 subsequent lookup.  This could result in a large number of symbols on
 the saved symbol list, causing poor compilation performance.  This has
 been fixed.  This test case, which does 100,000 lookups, formerly took
-over a minute to compile now takes under a second (on a typical x86 system).
+over a minute to compile and now takes under a second (on a typical x86
+system).
 
   namespace N {
     int i;
