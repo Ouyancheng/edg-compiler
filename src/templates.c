@@ -6372,7 +6372,7 @@ points to the template parameter list.
                 /* One or both of the types does not have an implicit
                    this class.  This is okay if they are both NULL. 
                    It is also okay if the type has no this class type,
-                   the unknown this class type flag was passed in. */
+                   and the unknown this class type flag was passed in. */
                 if (type->variant.routine.extra_info->qualifiers !=
                     templ_type->variant.routine.extra_info->qualifiers) {
                   /* The qualifiers don't match.  Don't check further. */
