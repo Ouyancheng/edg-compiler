@@ -135,7 +135,7 @@ For example:
 7/11/08  Parameter type cv-qualifiers and deduced routine types
 
 When a template parameter was deduced from a function type, the deduced type
-had parameter types entries with the cv-qualifiers from the parameter type
+had parameter type entries with the cv-qualifiers from the parameter type
 entries of the source type.  This could result in unexpected types in the
 lowered IL.  The example below, when compiled with a C-generating back end
 version, produced C code that resulted in warnings from some C compilers.
