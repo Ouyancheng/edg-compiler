@@ -636,7 +636,8 @@ GNU modes.
 #endif /* !GNU_EXTENSIONS_ALLOWED && GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
 
 /*
-Flag that is TRUE if GNU vector types should be allowed.
+Flag that is TRUE if GNU vector types should be allowed. (This includes, e.g.,
+support for the vector_size attribute.)
 */
 #ifndef GNU_VECTOR_TYPES_ALLOWED
 #define GNU_VECTOR_TYPES_ALLOWED FALSE
