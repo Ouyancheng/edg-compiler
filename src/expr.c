@@ -16191,11 +16191,12 @@ See section 3.3.16 of the standard.
 #if GNU_VECTOR_TYPES_ALLOWED
           if (gnu_mode &&
               determine_vector_operation_type(
-                 save_token, operand_1, &operand_2, &orig_result_type, &op)) {
+                 save_token, operand_1, &operand_2, &result_type, &op)) {
             /* Vector types are arithmetic types in some ways, but the rules
                determining the operation type do not parallel those of the
                standard arithmetic types. */
-            operation_type = result_type = rvalue_type(orig_result_type);
+            orig_result_type = operand1->type;
+            operation_type = rvalue_type(result_type);
             goto operation_type_determined;
           }  /* if */
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
@@ -16263,8 +16264,8 @@ See section 3.3.16 of the standard.
           if (c99_mode &&
               determine_imaginary_operation_type(save_token,
                                                  operand_1, &operand_2,
-                                                 &orig_result_type, &op)) {
-            operation_type = result_type = rvalue_type(orig_result_type);
+                                                 &result_type, &op)) {
+            operation_type = rvalue_type(result_type);
             goto operation_type_determined;
           }  /* if */
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
