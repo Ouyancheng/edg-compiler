@@ -4278,8 +4278,9 @@ and the class instantiation will detect the runaway case.
                                  /*is_definition=*/TRUE);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-  /* Call mark_defined *after* the template instantiation scope is pushed --
-     correct behavior for source sequence entry generation depends on it. */
+  /* Call record_symbol_declaration *after* the template instantiation scope
+     is pushed -- correct behavior for source sequence entry generation
+     depends on it. */
   record_symbol_declaration(SRK_DEFINITION | SRK_TEMPLATE_INSTANTIATION,
                             static_data_member_sym,
                             &tip->template_sym->decl_position,
