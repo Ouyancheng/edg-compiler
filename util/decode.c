@@ -1834,6 +1834,20 @@ to the character position following what was demangled.
     p = demangle_type_name(p, dctl);
   } else {
     /* Builtin type. */
+    if (ch == 'a') {
+      /* GNU vector_size attribute. */
+      write_id_str("__attribute__((vector_size(", dctl);
+      p++;
+      /* Scan the size. */
+      while (ch = get_char(p, dctl), isdigit((unsigned char)ch)) {
+        write_id_ch(ch, dctl);
+        p++;
+      }  /* while */
+      write_id_str("))) ", dctl);
+      /* The underlying type follows an underscore. */
+      p = advance_past_underscore(p, dctl);
+      ch = get_char(p, dctl);
+    }  /* if */
     /* Handle signed and unsigned, and _Complex. */
     if (ch == 'S') {
       write_id_str("signed ", dctl);
@@ -3264,6 +3278,22 @@ Return a pointer to the character position following what was demangled.
 }  /* get_cv_qualifiers */
 
 
+static char *demangle_vector_size_qualifier(char                       *ptr,
+                                            a_decode_control_block_ptr dctl)
+/*
+Demangle the GNU vector_size qualifier if it appears at the indicated
+location.  Return a pointer to the character position following what was
+demangled.
+*/
+{
+  if (start_of_id_is("U8__vector", ptr)) {
+    ptr += 10;
+    write_id_str("__attribute__((vector_size(?))) ", dctl);
+  }  /* for */
+  return ptr;
+}  /* demangle_vector_size_qualifier */
+
+
 static void output_cv_qualifiers(a_cv_qualifier_set         cv_quals,
                                  a_boolean                  trailing_space,
                                  a_decode_control_block_ptr dctl)
@@ -3568,6 +3598,7 @@ to be on top of the type.
   } else {
     /* No declarator part to process.  Handle the specifier type. */
     output_cv_qualifiers(cv_quals, /*trailing_space=*/TRUE, dctl);
+    p = demangle_vector_size_qualifier(p, dctl);
     p = demangle_type_specifier(p, dctl);
     if (need_trailing_space) write_id_ch(' ', dctl);
     if (p == unqualp+1) {

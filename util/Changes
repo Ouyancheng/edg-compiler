@@ -1,5 +1,12 @@
 Version 3.11
 
+7/22/08  Demangling of GNU vector_size attribute
+
+The demangler now handles mangled names that include the GNU
+__atribute__((vector_size(N)), in both the Cfront and IA-64 ABIs.
+Note that the IA-64 mangling matches gcc, which does not encode
+the size in the name.
+
 7/3/08   IA-64 ABI demangling of non-external names
 
 The spec for the IA-64 ABI indicates that it should be possible to
