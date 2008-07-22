@@ -1701,16 +1701,17 @@ a tk_vector type is returned.
   /* Validate the element type. */
   if (is_error_type(elem_type)) {
     err = TRUE;
-  } else if (!is_arithmetic_or_enum_type(elem_type) &&
-             !is_template_param_type(elem_type)) {
-    pos_error(ec_vector_size_attribute_requires_arithmetic_type,
-              &ap->position);
-    err = TRUE;
 #if C99_IL_EXTENSIONS_SUPPORTED
   } else if (is_nonreal_floating_type(elem_type)) {
     pos_error(ec_vector_size_attribute_on_complex_type, &ap->position);
     err = TRUE;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
+  } else if (!is_integer_or_enum_type(elem_type) &&
+             !is_floating_type(elem_type) &&
+             !is_template_param_type(elem_type)) {
+    pos_error(ec_vector_size_attribute_requires_integral_floating_or_enum_type,
+              &ap->position);
+    err = TRUE;
   } else {
     check_assertion(!is_incomplete_type(elem_type));
   }  /* if */
