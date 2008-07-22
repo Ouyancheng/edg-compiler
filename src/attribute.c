@@ -1706,7 +1706,7 @@ a tk_vector type is returned.
     pos_error(ec_vector_size_attribute_on_complex_type, &ap->position);
     err = TRUE;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
-  } else if (!is_integer_or_enum_type(elem_type) &&
+  } else if (!is_integral_or_enum_type(elem_type) &&
              !is_floating_type(elem_type) &&
              !is_template_param_type(elem_type)) {
     pos_error(ec_vector_size_attribute_requires_integral_floating_or_enum_type,

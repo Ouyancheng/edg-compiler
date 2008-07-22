@@ -4370,9 +4370,9 @@ still returned in such cases).
         case tok_and_assign:
         case tok_excl_or_assign:
         case tok_or_assign:
-          if ((!is_integer_or_enum_type(el1_type) &&
+          if ((!is_integral_or_enum_type(el1_type) &&
                !is_template_param_type(el1_type)) ||
-              (!is_integer_or_enum_type(el2_type) &&
+              (!is_integral_or_enum_type(el2_type) &&
                !is_template_param_type(el2_type))) {
             error(ec_vector_operation_requires_integer_vector);
             *result_type = error_type();
