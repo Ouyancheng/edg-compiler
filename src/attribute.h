@@ -282,12 +282,12 @@ typedef struct an_attribute {
 			   non-NULL. */
     a_routine_ptr
 		cleanup_routine;
+			/* The routine specified by the cleanup attribute. */
 #if GNU_VECTOR_TYPES_ALLOWED
     a_constant_ptr
 		vector_size;
 			/* The size (in bytes) of the requested vector type. */
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
-			/* The routine specified by the cleanup attribute. */
   } variant;
   an_attribute_ptr
   		next;

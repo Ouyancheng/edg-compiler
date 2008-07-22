@@ -4466,7 +4466,7 @@ Add to the mangled name the encoding for the type "type".
         check_assertion(!vector_type_is_template_dependent(type));
 #if IA64_ABI
         /* For the IA-64 ABI, we emulate the GNU C++ behavior exactly.
-           Unfortunately, GNU's mangling scheme does not include de vector
+           Unfortunately, GNU's mangling scheme does not include the vector
            size, and as a result two different vector types may mangle to
            the same encoding. */
         mangled_encoding_for_type(type->variant.vector.element_type, mctl);

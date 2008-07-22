@@ -5724,7 +5724,6 @@ arithmetic type.  The operand of "~" must have integral type.  See section
 #if GNU_VECTOR_TYPES_ALLOWED
           if (gnu_mode && is_vector_type(operand.type)) {
             /* Vector types are arithmetic types in some sense. */
-            op = (an_expr_operator_kind)eok_negate;
           } else
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
           /* Do not insert code here. */
@@ -14655,7 +14654,7 @@ Scan the "&", "^", and "|" operators.  See sections 3.3.10, 3.3.11, and
     if (gnu_mode &&
         determine_vector_operation_type(save_token, operand_1, &operand_2,
                                         &result_type, &op)) {
-      /* GCC accepts any vector type for these operators; even floating-point
+      /* GCC accepts any vector type for these operators, even floating-point
          vector types. */
     } else
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
@@ -16185,11 +16184,12 @@ See section 3.3.16 of the standard.
 #if GNU_VECTOR_TYPES_ALLOWED
           if (gnu_mode &&
               determine_vector_operation_type(
-                      save_token, operand_1, &operand_2, &result_type, &op)) {
+                 save_token, operand_1, &operand_2, &orig_result_type, &op)) {
             /* Vector types are arithmetic types in some ways, but the rules
                determining the operation type do not parallel those of the
                standard arithmetic types. */
-            break;
+            operation_type = result_type = rvalue_type(orig_result_type);
+            goto operation_type_determined;
           }  /* if */
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
           /*FALLTHROUGH*/
@@ -16256,34 +16256,37 @@ See section 3.3.16 of the standard.
           if (c99_mode &&
               determine_imaginary_operation_type(save_token,
                                                  operand_1, &operand_2,
-                                                 &operation_type, &op)) {
-            /* op and operation_type are now set correctly. */
+                                                 &orig_result_type, &op)) {
+            operation_type = result_type = rvalue_type(orig_result_type);
+            goto operation_type_determined;
           }  /* if */
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
-          if (op == (an_expr_operator_kind)eok_last) {
-            operation_type = determine_arithmetic_conversions(operand_1,
-                                                              &operand_2);
+          operation_type = determine_arithmetic_conversions(operand_1,
+                                                            &operand_2);
 #if FIXED_POINT_ALLOWED
-            if (fixed_point_enabled && is_fixed_point_type(operation_type)) {
-              /* An operation involving at least one fixed-point type and no
-                 floating-point types.  The only conversion that can be made
-                 explicit is adding signedness to the second operand (if
-                 needed). */
-              op = which_binary_operator(operator_token, operation_type);
-              change_binary_operand_types(operation_type,
-                                          operand_1, &operand_2, op);
-            } else
+          if (fixed_point_enabled && is_fixed_point_type(operation_type)) {
+            /* An operation involving at least one fixed-point type and no
+               floating-point types.  The only conversion that can be made
+               explicit is adding signedness to the second operand (if
+               needed). */
+            op = which_binary_operator(operator_token, operation_type);
+            change_binary_operand_types(operation_type,
+                                        operand_1, &operand_2, op);
+          } else
 #endif /* FIXED_POINT_ALLOWED */
-            /* Do not insert code here. */
-            {
-              cast_operand(operation_type, &operand_2,
-                           /*check_cast_access=*/TRUE,
-                           /*is_implicit_cast=*/TRUE,
-                           /*is_reinterpret_cast=*/FALSE,
-                           /*reinterpret_semantics=*/FALSE);
-            }  /* if */
+          /* Do not insert code here. */
+          {
+            cast_operand(operation_type, &operand_2,
+                         /*check_cast_access=*/TRUE,
+                         /*is_implicit_cast=*/TRUE,
+                         /*is_reinterpret_cast=*/FALSE,
+                         /*reinterpret_semantics=*/FALSE);
           }  /* if */
         }  /* if */
+        op = which_binary_operator(operator_token, operation_type);
+#if C99_IL_EXTENSIONS_SUPPORTED || GNU_VECTOR_TYPES_ALLOWED
+operation_type_determined:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED || GNU_VECTOR_TYPES_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
         if (property_ref_case) {
           cast_operand(operation_type, operand_1,
@@ -16293,12 +16296,6 @@ See section 3.3.16 of the standard.
                        /*reinterpret_semantics=*/FALSE);
         }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        if (op != (an_expr_operator_kind)eok_last) {
-          /* The operation type was already determined above (this happens for
-             imaginary and vector arithmetic). */
-        } else {
-          op = which_binary_operator(operator_token, operation_type);
-        }  /* if */
         build_binary_result_operand(operand_1, &operand_2, op,
                                     result_type, result);
         if (C_dialect == C_dialect_cplusplus && !property_ref_case) {

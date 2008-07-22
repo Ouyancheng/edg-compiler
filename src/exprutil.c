@@ -3785,12 +3785,12 @@ keyword, wchar_t is represented by one of the normal integral types and
 obeys the same conversion rules as its underlying type.  Likewise for bool.
 The operands can be lvalues or rvalues.  If operand_1 is available only
 as a type, operand_1 == NULL and operand_1_type indicates the type.
-Likewise for operand_2/operand_2_type.  Note that for some operations
-the operation type is different than the result type, and this routine
-does not determine a separate operation type.  Also see
-determine_imaginary_operation_type, which handles some special
-cases in C99 with operations having imaginary operands.  If that
-routine is called and returns TRUE, this routine should not be called.
+Likewise for operand_2/operand_2_type.  Note that for some operations the
+operation type is different from the result type, and this routine does not
+determine a separate operation type.  Also see determine_vector_operation_type
+and determine_imaginary_operation_type, which handle some special cases in GNU
+and C99 modes (with operations having vector operands or imaginary operands):
+If those routines return TRUE, this routine should not be called.
 */
 {
   a_type_ptr      type_1 = (operand_1 != NULL) ? operand_1->type :
@@ -4351,13 +4351,21 @@ still returned in such cases).
     error(ec_mixed_vector_scalar_operation);
     *result_type = error_type();
     *op = (an_expr_operator_kind)eok_error;
-  } else if (op1_type->size != op2_type->size) {
-    error(ec_vectors_must_have_same_size);
-    *result_type = error_type();
-    *op = (an_expr_operator_kind)eok_error;
   } else {
-    *result_type = op1_type;
-    *op = which_binary_operator(op_token, *result_type);
+    a_type_ptr el1_type = op1_type->variant.vector.element_type;
+    a_type_ptr el2_type = op1_type->variant.vector.element_type;
+    if (op1_type->size != op2_type->size) {
+      error(ec_vectors_must_have_same_size);
+      *result_type = error_type();
+      *op = (an_expr_operator_kind)eok_error;
+    } else if (!identical_types(el1_type, el2_type)) {
+      error(ec_vector_element_type_mismatch);
+      *result_type = error_type();
+      *op = (an_expr_operator_kind)eok_error;
+    } else {
+      *result_type = op1_type;
+      *op = which_binary_operator(op_token, *result_type);
+    }  /* if */
   }  /* if */
   return is_vector_operation;
 }  /* determine_vector_operation_type */

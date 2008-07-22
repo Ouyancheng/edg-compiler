@@ -2398,6 +2398,10 @@ set, leave it alone.  Also compute and set the alignment requirement.
       case tk_union:
         /* Class, struct and union sizes should be set when they are declared.
            See do_class_layout. */
+#if GNU_VECTOR_TYPES_ALLOWED
+      case tk_vector:
+        /* Vector types get their size set when they are created. */
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
       default:
         internal_error("set_type_size: bad type kind");
 #endif /* CHECKING */
@@ -5750,8 +5754,9 @@ See conversion_possible.
   } else if (gnu_mode && is_vector_type(source_type)) {
     /* For constructs like assignment and initialization, GNU vector types
        are only compatible with themselves.  (Strangely, when performing
-       arithmetic on vectors, they only need to have the same size; not the
-       same type.  That, however, is handled elsewhere.) */
+       arithmetic on vectors, GCC only requires identical sizes; not identical
+       types.  We do not emulate the latter behavior (but that is handled
+       elsewhere.) */
     okay = identical_types(source_type, dest_type);
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
   } else if (is_arithmetic_or_enum(dest_type)) {
@@ -5773,8 +5778,7 @@ See conversion_possible.
         okay = TRUE;
         std_conv->warning_suggested = ec_mixed_enum_type;
       }  /* if */
-    } else if (is_arithmetic_or_unscoped_enum(source_type)
-                                                           ) {
+    } else if (is_arithmetic_or_unscoped_enum(source_type)) {
       /* Arithmetic or unscoped enum --> arithmetic (including enum in C). */
       okay = TRUE;
       if (C_mode()) {

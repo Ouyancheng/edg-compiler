@@ -10375,6 +10375,12 @@ definition and specific information about the member declaration, respectively.
     (void)get_token();
     /* Scan the integral size in bits of the bit-field. */
     scan_fs_integral_constant_expression(&bit_field_size);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    /* Update the end position of the declarator to include the bit field
+       size construct. */
+    decl_info->decl_pos_block.declarator_range.end =
+                                            curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
   if (gnu_mode) {
@@ -10413,10 +10419,6 @@ definition and specific information about the member declaration, respectively.
     /* Scan the bit-field size and determine the bit-field type. */
     apply_bit_field_size(field, &bit_field_size,
                          &unnamed_field, &member_type, locator);
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-    decl_info->decl_pos_block.declarator_range.end =
-                                            curr_construct_end_position;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   }  /* if */
   /* Copy the type (which may have been changed by apply_bit_field_size) into
      the field entry. */

@@ -2484,6 +2484,8 @@ this function points to a tree that includes a dynamic-init entry.
             /* The number of elements is unknown due to template dependencies:
                Assume there are more elements. */
             any_more_members = TRUE;
+          } else if (skip_typerefs(member_type)->size == 0) {
+            expect_error();
           } else {
             a_targ_size_t  n_vector_elems =
                               vec_type->size/skip_typerefs(member_type)->size;

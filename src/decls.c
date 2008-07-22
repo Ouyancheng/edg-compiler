@@ -6208,9 +6208,6 @@ for use in generating cross-reference output describing this declaration.
   a_name_reference_ptr     name_ref = NULL;
   a_boolean                saved_sses_disallowed =
                                            source_sequence_entries_disallowed;
-#if GNU_EXTENSIONS_ALLOWED
-  a_boolean                routine_alias_decl = FALSE;
-#endif /* GNU_EXTENSIONS_ALLOWED */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   an_id_linkage_block      idlb;
   a_boolean                suppress_inline_body = FALSE;
@@ -6218,6 +6215,11 @@ for use in generating cross-reference output describing this declaration.
   a_boolean                microsoft_specialization_redef = FALSE;
   a_type_ptr               type_ptr = dps->type;
   a_storage_class          storage_class = dps->storage_class;
+#if GNU_EXTENSIONS_ALLOWED
+  a_boolean                routine_alias_decl = FALSE;
+  an_attribute_ptr         attributes = dps->attributes;
+  a_type_ptr               orig_type = type_ptr;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if DECL_MODIFIERS_IN_USE || BACK_END_IS_CP_GEN_BE || GNU_EXTENSIONS_ALLOWED
   a_decl_modifiers_block_ptr
                            decl_modifiers = &dps->decl_modifiers;
@@ -6235,6 +6237,17 @@ for use in generating cross-reference output describing this declaration.
     check_assertion_str(srk_flags & SRK_DEFINITION,
                         "decl_routine: missing SRK_DEFINITION");
   }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+  if (attributes != NULL) {
+    /* Some attributes must be applied early on because they affect type
+       compatibility in case of a redeclaration.  We cannot modify the
+       given list of attributes because it may need to be applied to
+       other declarators: Make a copy. */
+    attributes = copy_attribute_list(attributes);
+    type_ptr = apply_type_transforming_attributes(type_ptr, &attributes);
+    dps->type = type_ptr;
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   if (!C_mode()) {
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     /* When the declared_type was created (in declarator), the default args
@@ -7334,12 +7347,12 @@ skip_overloading:;
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
   if (gnu_mode) {
-    /* Apply the attributes to the routine. */
-    if (dps->attributes != NULL) {
+    /* Apply any remaining attributes to the routine. */
+    if (attributes != NULL) {
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-      routine_alias_decl = attributes_include_alias(dps->attributes);
+      routine_alias_decl = attributes_include_alias(attributes);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-      apply_attributes_to_routine(dps->attributes, routine_ptr);
+      apply_attributes_to_routine(attributes, routine_ptr);
     }  /* if */
     /* Record the assembly name. */
     if (dps->asm_name != NULL) {
@@ -7354,6 +7367,11 @@ skip_overloading:;
       routine_ptr->ELF_visibility = visibility;
     }
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
+    if (attributes != NULL) {
+      /* The list of attributes was duplicated earlier: We're responsible
+         for freeing it. */
+      free_attribute_list(attributes);
+    }  /* if */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
@@ -7477,6 +7495,11 @@ skip_overloading:;
        applicable construct). */
     process_curr_construct_pragmas(sym, (a_statement_ptr)NULL);
   }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+  /* Restore dps->type, since it may have been modified by type-transforming
+     attributes. */
+  dps->type = orig_type;
+#endif /* GNU_EXTENSIONS_ALLOWED */
   /* Return symbol and linkage pointers. */
   dps->sym = sym;
   *linkage_ptr = linkage;

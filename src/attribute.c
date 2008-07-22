@@ -1218,9 +1218,7 @@ that do take arguments.
     case ak_vector_size:
       { a_constant  arg;
         scan_integral_constant_expression(&arg);
-        if (!is_error_constant(&arg)) {
-          attribute->variant.vector_size = alloc_shareable_constant(&arg);
-        }  /* if */
+        attribute->variant.vector_size = alloc_shareable_constant(&arg);
       }
       break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
@@ -1708,15 +1706,28 @@ a tk_vector type is returned.
     pos_error(ec_vector_size_attribute_requires_arithmetic_type,
               &ap->position);
     err = TRUE;
+#if C99_IL_EXTENSIONS_SUPPORTED
+  } else if (is_nonreal_floating_type(elem_type)) {
+    pos_error(ec_vector_size_attribute_on_complex_type, &ap->position);
+    err = TRUE;
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
   } else {
     check_assertion(!is_incomplete_type(elem_type));
   }  /* if */
   /* Validate the vector size. */
-  if (ap->variant.vector_size->kind ==
+  if (is_error_constant(ap->variant.vector_size)) {
+    /* A diagnostic was presumably issued earlier. */
+    err = TRUE;
+  } else if (ap->variant.vector_size->kind ==
                                     (a_constant_repr_kind)ck_template_param) {
     /* We currently do not accept dependent vector sizes.  (GCC ignores the
        attribute with a warning, but that seems overly surprising.) */
     pos_error(ec_dependent_vector_size, &ap->position);
+    err = TRUE;
+  } else if (ap->variant.vector_size->kind !=
+                                           (a_constant_repr_kind)ck_integer) {
+    /* We could end up here in UPC+GCC mode with e.g. a THREADS constant. */
+    pos_error(ec_vector_size_must_be_integer_constant, &ap->position);
     err = TRUE;
   } else {
     size = value_of_integer_constant(ap->variant.vector_size, &ovflo);
@@ -2648,7 +2659,7 @@ messages about any invalid attributes.
       case ak_vector_size:
         { a_type_ptr  rtp;
           ensure_routine_type_is_modifiable(&rp->type);
-          rtp = rp->type;
+          rtp = skip_typerefs(rp->type);
           rtp->variant.routine.return_type =
             apply_vector_size_attribute(rtp->variant.routine.return_type, ap);
         }
@@ -2995,7 +3006,15 @@ from the list.
         break;
 #if GNU_VECTOR_TYPES_ALLOWED
       case ak_vector_size:
-        result = apply_vector_size_attribute(result, tap);
+        { a_type_ptr  *pet = &result;
+          /* If we're applying this to a routine type, the pointer to the
+             element type (pet) should point to the return type. */
+          if (is_function_type(result)) {
+            ensure_routine_type_is_modifiable(&result);
+            pet = &skip_typerefs(result)->variant.routine.return_type;
+          }  /* if */
+          *pet = apply_vector_size_attribute(*pet, tap);
+        }
         break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
       default:

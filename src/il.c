@@ -1449,7 +1449,7 @@ Dump the contents of the indicated type entry, for debug purposes.
           db_name(&tp->source_corresp);
         }  /* if */
         break;
-#if GNU_EXTENSIONS_ALLOWED && GNU_VECTOR_TYPES_ALLOWED
+#if GNU_VECTOR_TYPES_ALLOWED
       case tk_vector:
         fputs("vector of ", f_debug);
         db_abbreviated_type(tp->variant.vector.element_type);
@@ -1457,7 +1457,7 @@ Dump the contents of the indicated type entry, for debug purposes.
         db_constant(tp->variant.vector.size_constant);
         fputs(" )", f_debug);
         break;
-#endif /* GNU_EXTENSIONS_ALLOWED && GNU_VECTOR_TYPES_ALLOWED */
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
       default:
         fputs("<bad type kind>", f_debug);
     }  /* switch */
