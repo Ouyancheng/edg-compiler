@@ -5724,6 +5724,13 @@ arithmetic type.  The operand of "~" must have integral type.  See section
 #if GNU_VECTOR_TYPES_ALLOWED
           if (gnu_mode && is_vector_type(operand.type)) {
             /* Vector types are arithmetic types in some sense. */
+            a_type_ptr  elem_type =
+                     skip_typerefs(operand.type)->variant.vector.element_type;
+            if (!is_integer_or_enum_type(elem_type) &&
+                !is_template_param_type(elem_type)) {
+              error_and_make_error_operand(
+                       ec_vector_operation_requires_integer_vector, &operand);
+            }  /* if */
           } else
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
           /* Do not insert code here. */

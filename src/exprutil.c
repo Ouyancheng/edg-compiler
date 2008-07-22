@@ -4363,8 +4363,27 @@ still returned in such cases).
       *result_type = error_type();
       *op = (an_expr_operator_kind)eok_error;
     } else {
-      *result_type = op1_type;
-      *op = which_binary_operator(op_token, *result_type);
+      switch (op_token) {
+        case tok_ampersand:
+        case tok_excl_or:
+        case tok_or:
+        case tok_and_assign:
+        case tok_excl_or_assign:
+        case tok_or_assign:
+          if ((!is_integer_or_enum_type(el1_type) &&
+               !is_template_param_type(el1_type)) ||
+              (!is_integer_or_enum_type(el2_type) &&
+               !is_template_param_type(el2_type))) {
+            error(ec_vector_operation_requires_integer_vector);
+            *result_type = error_type();
+            *op = (an_expr_operator_kind)eok_error;
+            break;
+          }  /* if */
+          /*FALLTHROUGH*/
+        default:
+          *result_type = op1_type;
+          *op = which_binary_operator(op_token, *result_type);
+      }  /* switch */
     }  /* if */
   }  /* if */
   return is_vector_operation;

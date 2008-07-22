@@ -1742,6 +1742,7 @@ ec_vector_size_attribute_not_allowed;;"vector_size attribute not allowed here"
 ec_vector_size_attribute_on_complex_type;;"vector_size attribute not allowed with a complex element type"
 ec_vector_size_must_be_integer_constant;;"vector size must be an integer constant"
 ec_vector_element_type_mismatch;;"vector operation requires identical element types"
+ec_vector_operation_requires_integer_vector;;"vector operation does not apply to vector with non-integral type"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
