@@ -16195,7 +16195,7 @@ See section 3.3.16 of the standard.
             /* Vector types are arithmetic types in some ways, but the rules
                determining the operation type do not parallel those of the
                standard arithmetic types. */
-            orig_result_type = operand1->type;
+            orig_result_type = operand_1->type;
             operation_type = rvalue_type(result_type);
             goto operation_type_determined;
           }  /* if */

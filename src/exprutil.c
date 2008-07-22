@@ -4353,7 +4353,7 @@ still returned in such cases).
     *op = (an_expr_operator_kind)eok_error;
   } else {
     a_type_ptr el1_type = op1_type->variant.vector.element_type;
-    a_type_ptr el2_type = op1_type->variant.vector.element_type;
+    a_type_ptr el2_type = op2_type->variant.vector.element_type;
     if (op1_type->size != op2_type->size) {
       error(ec_vectors_must_have_same_size);
       *result_type = error_type();
