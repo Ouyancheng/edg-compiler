@@ -6216,7 +6216,9 @@ for use in generating cross-reference output describing this declaration.
   a_type_ptr               type_ptr = dps->type;
   a_storage_class          storage_class = dps->storage_class;
 #if GNU_EXTENSIONS_ALLOWED
+#if GENERATE_SOURCE_SEQUENCE_LISTS
   a_boolean                routine_alias_decl = FALSE;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   an_attribute_ptr         attributes = dps->attributes;
   a_type_ptr               orig_type = type_ptr;
 #endif /* GNU_EXTENSIONS_ALLOWED */
