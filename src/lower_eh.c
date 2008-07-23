@@ -707,9 +707,9 @@ For example, if "type" is a pointer type, the kind is tik_pointer.
   if (is_enum_type(type)) {
     tinfo_kind = tik_enum;
   } else if (is_void_type(type) ||
-#if GNU_EXTENSIONS_ALLOWED && IA64_ABI
+#if GNU_VECTOR_TYPES_ALLOWED && IA64_ABI
              is_vector_type(type) || 
-#endif /* GNU_EXTENSIONS_ALLOWED && IA64_ABI */
+#endif /* GNU_VECTOR_TYPES_ALLOWED && IA64_ABI */
              is_integral_type(type) || 
              is_floating_type(type)) {
     tinfo_kind = tik_fundamental;
