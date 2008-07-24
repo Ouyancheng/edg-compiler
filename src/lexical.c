@@ -9891,7 +9891,7 @@ id_scan:
               !is_inert_macro) {
             /* Macro to be expanded. */
             if (expand_macros) {
-              /* Check for invalid concatentation now, before the macro
+              /* Check for invalid concatenation now, before the macro
                  name can be overwritten (which will cause the "next token"
                  to be at a different address from the saved concatenation
                  point). */

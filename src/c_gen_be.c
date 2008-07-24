@@ -3843,7 +3843,7 @@ Dump an expression that is marked in the IL as an lvalue.
 static a_boolean optimizable_rvalue_selection(an_expr_node_ptr expr,
                                               a_boolean        *comma_case)
 /*
-Return TRUE if the the given expression (an rvalue selection operation) is
+Return TRUE if the given expression (an rvalue selection operation) is
 an eok_points_to_field operation or if its first operand has one of the forms
   variable
   (something, variable)
