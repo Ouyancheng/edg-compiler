@@ -100,7 +100,7 @@ attribute refers to that name).
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
 
 /*
-The ELF visibility stack is respresented by a list of entries of type
+The ELF visibility stack is represented by a list of entries of type
 an_ELF_visibility_stack_entry.  Such entries may be pushed on the stack in
 two ways: (1) via the "#pragma GCC visibility push" construct, or (2) via
 the visibility attribute on a namespace definition.
