@@ -1,5 +1,22 @@
 Version 3.11
 
+7/24/08  Representation of lvalues in IL expressions changed
+
+The IL for expressions has been significantly changed (IL CHANGE).
+The new form identifies each node as an lvalue or rvalue, and makes
+lvalues first class entities.  (In the old form, lvalues were represented
+as addresses.  While this was self-consistent, it was confusing for some,
+and we received many questions about it.)  The new form also preserves
+all source operators in the tree.  No operators are implicit, and no
+operators are translated to forms that make it hard to recover the
+original source form.  Most noticeably, there is now an "&" operator,
+member selection and subscripting operators are simplified, and there
+are new operators that deal explicitly with references.
+
+These changes are not backward-compatible, and customers will likely
+have to change their code.  Detailed documentation on the changes and
+how to update existing code is available from EDG.
+
 7/17/08  Performance issues with using-directive lookups
 
 When a lookup is done that makes use of using-directives, the result of
