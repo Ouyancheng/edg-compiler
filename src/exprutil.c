@@ -1673,7 +1673,7 @@ function that does a copy for rvalues and for simple lvalues (ones
 whose address can be taken); it's actually what defines the code for
 storing to a temporary and reusing it, and the decision on which cases
 should use a temporary.  This function rewrites lvalues whose address
-cannnot be taken, for example bit-field references, into simpler forms
+cannot be taken, for example bit-field references, into simpler forms
 before calling the lower-level copy routine.
 */
 {
@@ -8462,7 +8462,7 @@ an_expr_node_ptr alloc_temp_init_node(a_type_ptr         temp_type,
 /*
 Create an enk_temp_init node and return a pointer to it.  The implied
 temporary has type temp_type.  The initialization to be done is pointed
-to by dip.  The enk_temp_init is is an lvalue for the temporary (rather than
+to by dip.  The enk_temp_init is an lvalue for the temporary (rather than
 an value) if is_lvalue is TRUE.  is_explicit_cast is TRUE if this node
 represents an explicit cast.
 */
