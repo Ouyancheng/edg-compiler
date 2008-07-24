@@ -7916,7 +7916,7 @@ or an embedded C register name.
 
   if (variable->storage_class == (a_storage_class)sc_register) {
     is_reg = TRUE;
-#if GNU_EXTENSIONS_ALLOWED || NAMED_REGISTERS_ALLOWED
+#if GNU_EXTENSIONS_ALLOWED
   } else {
     if (variable->asm_name_is_valid) {
       /* variable->asm_name_or_reg.name, if non-NULL, indicates an asm
@@ -7925,7 +7925,7 @@ or an embedded C register name.
       /* A register variable (GNU or Embedded C named) has no address. */
       is_reg = TRUE;
     }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED || NAMED_REGISTERS_ALLOWED */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
   return is_reg;
 }  /* is_register_variable */
