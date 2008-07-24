@@ -10674,12 +10674,6 @@ cases so we don't do it here.
   a_type_ptr        operand_type;
   a_boolean         constant_case = FALSE;
   a_constant_ptr    con_value;
-#if EXPR_RANGE_MODIFIERS_IN_IL
-  an_expr_node_ptr  orig_node = expr_node_from_operand(operand);
-  an_expr_node_ptr  curr_node;
-  a_source_range    range_to_restore;
-  a_source_position operator_position;
-#endif /* EXPR_RANGE_MODIFIERS_IN_IL */
 
   /* Ignore non-lvalues. */
   if (is_an_lvalue(operand)) {
