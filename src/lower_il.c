@@ -11224,7 +11224,7 @@ the top node of the indicated statement (which is an expression statement).
   arg_node = arg_node->next;
   /* If the routine has a "this" parameter, lower it separately. */
   if (rtsp->this_class != NULL) {
-    /* Don't bother adding NULL-preservation code for the "this" paramater.
+    /* Don't bother adding NULL-preservation code for the "this" parameter.
        If "this" is NULL, dereferencing it is going to cause an error
        whether or not the NULL-preservation test is added, so generate
        slightly optimized code. */
