@@ -2289,6 +2289,10 @@ static a_routine_ptr
 void lower_typeid(an_expr_node_ptr expr)
 /*
 Do lowering of an enk_typeid expression node, i.e., a C++ typeid operation.
+The expression itself may be an rvalue or an lvalue, while the argument
+expression is always an lvalue.  enk_typeid expressions always leave the
+front end as lvalues, but may have undergone an lvalue-to-rvalue
+conversion in cases where its value is not used.
 */
 {
   a_type_ptr       typeid_type = expr->variant.typeid_info.type;
@@ -2303,6 +2307,7 @@ Do lowering of an enk_typeid expression node, i.e., a C++ typeid operation.
   an_expr_node_ptr question_node;
 #endif /* !IA64_ABI */
 
+  check_assertion(expr->kind == (an_expr_node_kind)enk_typeid);
   if (typeid_expr == NULL) {
 #if IA64_ABI
     a_type_ptr typeinfo_type;
@@ -2318,9 +2323,9 @@ Do lowering of an enk_typeid expression node, i.e., a C++ typeid operation.
 #else /* !IA64_ABI */
     /* Move down through the base classes until we find the user type_info
        member. */
-    for (typeinfo_type = f_skip_typerefs(type_pointed_to(new_expr->type));
+    for (typeinfo_type = f_skip_typerefs(new_expr->type);
          !identical_types(typeinfo_type, typeinfo_types[(int)tik_user]);
-         typeinfo_type = f_skip_typerefs(type_pointed_to(new_expr->type))) {
+         typeinfo_type = f_skip_typerefs(new_expr->type)) {
       a_field_ptr field;
       check_assertion(is_immediate_class_type(typeinfo_type));
       field = typeinfo_type->variant.class_struct_union.field_list;
@@ -2328,18 +2333,22 @@ Do lowering of an enk_typeid expression node, i.e., a C++ typeid operation.
     }  /* for */
 #endif /* !IA64_ABI */
   } else {
+    check_assertion(typeid_expr->is_lvalue);
     /* Polymorphic class case with expression. */
     check_assertion(is_immediate_class_type(typeid_type) &&
                     is_polymorphic_class_type(typeid_type));
-    lower_expr(typeid_expr, /*is_lvalue=*/TRUE);
+    lower_expr(typeid_expr);
     /* The expression is an lvalue with the form *p or p[x].  Since the
        expression gives the address of the lvalue, it really has the form
        p or p + x.  In the latter case, discard x. */
     if (is_operation_node(typeid_expr) &&
         typeid_expr->variant.operation.kind ==
-                                       (an_expr_operator_kind)eok_padd_subsc) {
-      typeid_expr = typeid_expr->variant.operation.operands;
+                                        (an_expr_operator_kind)eok_subscript) {
+      typeid_expr = subscript_or_padd_pointer_operand(typeid_expr);
       typeid_expr->next = NULL;
+    } else {
+      /* Turn typeid_expr lvalue into an rvalue pointer. */
+      typeid_expr = add_address_of_to_node(typeid_expr);
     }  /* if */
     /* Build the runtime call __get_typeid((typeid_expr != NULL) ? vptr : NULL)
        where vptr is the virtual function table pointer value from the
@@ -2364,9 +2373,9 @@ Do lowering of an enk_typeid expression node, i.e., a C++ typeid operation.
     /* Make (std::type_info*)vptr[-1]. */
     minus_one_expr = node_for_integer_constant(-1L, (an_integer_kind)ik_int);
     vptr_expr->next = minus_one_expr;
-    vptr_expr = make_operator_node((an_expr_operator_kind)eok_subscript,
-                                   integer_type(targ_ptrdiff_t_int_kind),
-                                   vptr_expr);
+    vptr_expr = make_lvalue_operator_node((an_expr_operator_kind)eok_subscript,
+                                          integer_type(targ_ptrdiff_t_int_kind),
+                                          vptr_expr);
     vptr_expr = add_cast_if_necessary(vptr_expr, 
                                make_pointer_type(make_user_typeinfo_type()));
     /* Make "__cxa_bad_typeid(), (std::typeinfo*)0". */
@@ -2404,10 +2413,17 @@ Do lowering of an enk_typeid expression node, i.e., a C++ typeid operation.
                                  make_pointer_type(make_user_typeinfo_type()),
                                       question_node);
 #endif /* !IA64_ABI */
+    new_expr = add_indirection_to_node(new_expr);
   }  /* if */
-  /* Overwrite the enk_typeid node with a cast from the runtime's idea of
-     type_info to the user's version. */
-  change_to_cast(expr, new_expr, expr->type);
+  /* Cast to maintain original type. */
+  new_expr = add_cast_to_lvalue_if_necessary(new_expr, expr->type);
+  if (!expr->is_lvalue) {
+    /* new_expr is an lvalue, convert it to an rvalue to match the
+       lvalueness of the original expression. */
+    new_expr = rvalue_expr_for_lvalue(new_expr);
+  }  /* if */
+  /* Overwrite the enk_typeid node. */
+  overwrite_node(expr, new_expr);
 }  /* lower_typeid */
 
 #endif /* ABI_CHANGES_FOR_RTTI */
@@ -2804,12 +2820,12 @@ at *insert_location and *insert_location is updated.
   object_addr_table_node = array_var_lvalue_expr(object_addr_table_var);
   object_addr_table_node->next = node_for_integer_constant((long)entry_number,
                                                          targ_size_t_int_kind);
-  subsc_node = make_operator_node((an_expr_operator_kind)eok_padd_subsc,
-                                  object_addr_table_node->type,
-                                  object_addr_table_node);
-  object_addr_node = add_cast_if_necessary(make_init_entity_node(ipdp,
-                                                    /*using_as_address=*/TRUE,
-                                                    /*using_as_dest=*/FALSE),
+  subsc_node = make_lvalue_operator_node((an_expr_operator_kind)eok_subscript,
+                                         object_addr_table_node->type,
+                                         object_addr_table_node);
+  object_addr_node = add_cast_if_necessary(make_address_of_init_entity_node(
+                                                      ipdp,
+                                                      /*using_as_dest=*/FALSE),
                                            void_star_type());
   (void)insert_assignment_statement(subsc_node,
                                     (an_expr_operator_kind)eok_passign,
@@ -4532,7 +4548,7 @@ the caller to do insertion after the code inserted.
                               insert_location);
   (void)insert_var_assignment_statement(curr_eh_stack_entry_var,
                                         (an_expr_operator_kind)eok_passign,
-                                        var_lvalue_expr(local_frame),
+                                        var_addr_expr(local_frame),
                                         insert_location);
   local_frame_kind = field_lvalue_selection_expr(var_lvalue_expr(local_frame),
                                                  ehse_kind_field);
@@ -4834,7 +4850,7 @@ Find and return the address of the handler for the current catch clause.
 
 an_expr_node_ptr make_caught_object_address_node(void)
 /*
-Make an expression node for the address of the object caught at the
+Make an rvalue expression node for the address of the object caught at the
 currently active catch clause, and return a pointer to the node.
 */
 {
@@ -5010,14 +5026,11 @@ must be stored out when modified.
 */
 {
   an_expr_node_ptr arg;
-  a_constant       constant;
 
   if (var->modified_within_try_block) {
-    set_variable_address_constant(var, &constant,
-                                  /*set_address_taken_flag=*/TRUE);
+    arg = var_addr_expr(var);
     check_assertion_str(var->source_corresp.referenced,
     "add_var_addr_to_list_if_modified_in_try_block: referenced flag is FALSE");
-    arg = alloc_node_for_constant(&constant);
     arg->next = *arg_list;
     *arg_list = arg;
   }  /* if */
@@ -5703,7 +5716,7 @@ Lower an enk_throw expression node.
     typeinfo_var = typeinfo_var_for_type(throw_type, &flags_value,
                                          &ptr_flags_var);
     /* Make the arguments for the __throw_setup call. */
-    typeinfo_node = var_lvalue_expr(typeinfo_var);
+    typeinfo_node = var_addr_expr(typeinfo_var);
     size_node = node_for_host_large_integer(
                  (a_host_large_integer)throw_type->size, targ_size_t_int_kind);
     typeinfo_node->next = size_node;
@@ -5750,8 +5763,7 @@ Lower an enk_throw expression node.
                                          /*define_now=*/FALSE);
 #endif /* IA64_ABI */
       /* coverity[uninit_use] */
-      flags_node->next = function_addr_expr(destructor,
-                                            /*set_address_taken_flag=*/TRUE);
+      flags_node->next = function_addr_expr(destructor);
       call_node = make_runtime_rout_call("__throw_setup_dtor",
                                          &throw_setup_dtor_routine,
                                          void_star_type(), typeinfo_node);
@@ -5791,7 +5803,7 @@ Lower an enk_throw expression node.
     assign_node->next = call_node;
     set_expr_node_kind(expr, (an_expr_node_kind)enk_operation);
     set_node_operator(expr, (an_expr_operator_kind)eok_comma,
-                      call_node->type, assign_node);
+                      call_node->type, /*is_lvalue=*/FALSE, assign_node);
     /* Now generate the initialization code for the dynamic initialization
        and insert it preceding the call of __throw.  That gets it between
        the allocation and the throw:

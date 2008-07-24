@@ -1342,7 +1342,9 @@ the file scope, do not process it (but record an orphan in the latter case).
       {
         an_expr_node_ptr ptr = (an_expr_node_ptr)entry_ptr;
         walk_ptr(ptr->type, a_type_ptr, iek_type);
-        definition_needed_if_class(ptr->type);
+        if (!ptr->is_lvalue) {
+          definition_needed_if_class(ptr->type);
+        }  /* if */
         remap_next_ptr(ptr->next, an_expr_node_ptr, iek_expr_node);
 #if RECORD_FORM_OF_NAME_REFERENCE
         walk_ptr(ptr->name_reference, a_name_reference_ptr,
@@ -1366,28 +1368,29 @@ the file scope, do not process it (but record an orphan in the latter case).
               a_type_ptr op1_type = ptr->variant.operation.operands->type;
 
               switch (ptr->variant.operation.kind) {
+                case eok_psubtract:
+                case eok_pdiff:
                 case eok_ppost_incr:
                 case eok_ppost_decr:
                 case eok_ppre_incr:
                 case eok_ppre_decr:
                 case eok_padd_assign:
                 case eok_psubtract_assign:
-                  /* First operand is an lvalue for a pointer. */
-                  /* Avoid problems in prototype instantiations. */
-                  if (!is_pointer_type(op1_type)) break;
-                  optype = type_pointed_to(op1_type);
-                  if (!is_pointer_type(optype)) break;
-                  optype = type_pointed_to(optype);
-                  goto do_definition_needed_if_class;
-                case eok_subscript:
-                case eok_padd:
-                case eok_padd_subsc:
-                case eok_psubtract:
-                case eok_pdiff:
                   /* First operand is a pointer. */
                   /* Avoid problems in prototype instantiations. */
                   if (!is_pointer_type(op1_type)) break;
                   optype = type_pointed_to(op1_type);
+                  goto do_definition_needed_if_class;
+                case eok_subscript:
+                case eok_padd:
+                  optype = op1_type;
+                  if (!is_pointer_type(optype)) {
+                    /* The pointer operand might be second, but watch out for
+                       prototype instantiations. */
+                    optype = ptr->variant.operation.operands->next->type;
+                    if (!is_pointer_type(optype)) break;
+                  }  /* if */
+                  optype = type_pointed_to(optype);
 do_definition_needed_if_class:
                   definition_needed_if_class(optype);
                   break;
@@ -1439,7 +1442,6 @@ do_set_proper_definition_needed_flag:
             walk_ptr(ptr->variant.constant, a_constant_ptr, iek_constant);
             break;
           case enk_variable:
-          case enk_variable_address:
 #ifdef FFE
           case enk_char_variable_length:
 #endif /* ifdef FFE */
@@ -1447,7 +1449,7 @@ do_set_proper_definition_needed_flag:
                not visit them here. */
             remap_ptr(ptr->variant.variable, a_variable_ptr, iek_variable);
             break;
-          case enk_routine_address:
+          case enk_routine:
             /* Functions are handled from the scope that contains them.  Do
                not visit them here. */
             remap_ptr(ptr->variant.routine, a_routine_ptr, iek_routine);
@@ -1462,16 +1464,8 @@ do_set_proper_definition_needed_flag:
           case enk_temp_init:
             walk_ptr(ptr->variant.init.dynamic_init,
                      a_dynamic_init_ptr, iek_dynamic_init);
-#if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
-            /* If the temp init returns the address of the temporary, mark
-               the underlying type as requiring a definition.  When the
-               return type is not a temporary, the normal processing on the
-               type of the expression will do the marking. */
-            if (ptr->variant.init.result_is_addr) {
-              a_type_ptr temp_type = type_pointed_to(ptr->type);
-              definition_needed_if_class(temp_type);
-            }  /* if */
-#endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
+            /* The type of the temporary requires a definition. */
+            definition_needed_if_class(ptr->type);
             break;
           case enk_new_delete:
             walk_ptr(ptr->variant.new_delete, a_new_delete_supplement_ptr,
@@ -1499,8 +1493,7 @@ do_set_proper_definition_needed_flag:
             /* Make sure the definition of type_info is retained, even though
                the node only uses a pointer to it.  This is necessary with
                cp_gen_be output. */
-            set_proper_definition_needed_flag(
-                                  f_skip_typerefs(type_pointed_to(ptr->type)));
+            set_proper_definition_needed_flag(f_skip_typerefs(ptr->type));
             break;
           case enk_runtime_sizeof:
             if (ptr->variant.runtime_sizeof.is_type) {
@@ -1511,18 +1504,10 @@ do_set_proper_definition_needed_flag:
             } else {
               walk_ptr(ptr->variant.runtime_sizeof.variant.expr,
                        an_expr_node_ptr, iek_expr_node);
-#if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
-              { a_type_ptr sizeof_type =
-                                ptr->variant.runtime_sizeof.variant.expr->type;
-                if (ptr->variant.runtime_sizeof.is_lvalue) {
-                  /* Watch out for prototype instantiations. */
-                  if (!is_pointer_type(sizeof_type)) goto end_sizeof;
-                  sizeof_type = type_pointed_to(sizeof_type);
-                }  /* if */
-                definition_needed_if_class(sizeof_type);
-end_sizeof:;
-              }
-#endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
+              /* If the expression is an lvalue, make sure its type's
+                 definition is kept. */
+              definition_needed_if_class(ptr->
+                                    variant.runtime_sizeof.variant.expr->type);
             }  /* if */
             break;
           case enk_address_of_ellipsis:

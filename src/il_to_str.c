@@ -3890,17 +3890,9 @@ on every expression.
         form_name(&expr->variant.variable->source_corresp,
                   (an_il_entry_kind)iek_variable, octl);
         break;
-      case enk_variable_address:
-        octl->output_str("(&");
-        form_name(&expr->variant.variable->source_corresp,
-                  (an_il_entry_kind)iek_variable, octl);
-        octl->output_str(")");
-        break;
-      case enk_routine_address:
-        octl->output_str("(&");
+      case enk_routine:
         form_name(&expr->variant.routine->source_corresp,
                   (an_il_entry_kind)iek_routine, octl);
-        octl->output_str(")");
         break;
       case enk_field:
         form_name(&expr->variant.field->source_corresp,
@@ -4563,10 +4555,8 @@ way described by octl.
   } else {
     /* For other cases, e.g.,
          int &r = *(int *)5;
-       do an indirection in the code. */
-    octl->output_str("(*");
+       just display the constant. */
     form_constant(constant, need_parens, octl);
-    octl->output_str(")");
   }  /* if */
 }  /* form_lvalue_address_constant */
 

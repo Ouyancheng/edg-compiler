@@ -2084,6 +2084,42 @@ the routine.
   mangled_entity_reference(scp, kind, rinfo, mctl);
 }  /* mangled_address_of_entity */
 
+#else /* !IA64_ABI */
+
+static void mangled_routine_name(a_routine_ptr            routine,
+                                 a_mangling_control_block *mctl)
+/*
+Add to the mangled name the name of the routine.  Used in cfront ABI only.
+*/
+{
+  a_length_reservation    length_reservation;
+
+  reserve_space_for_length(&length_reservation, mctl);
+  mangled_function_name(routine,
+                        /*suppress_param_encoding=*/TRUE,
+                        /*suppress_parent_encoding=*/FALSE,
+                        /*force_primary_name=*/TRUE,
+                        /*base_name_offset=*/(sizeof_t *)NULL,
+                        mctl);
+  fill_in_length(&length_reservation, mctl);
+}  /* mangled_routine_name */
+
+
+static void mangled_variable_name(a_variable_ptr            variable,
+                                  a_mangling_control_block *mctl)
+/*
+Add to the mangled name the name of the variable.  Used in cfront ABI only.
+*/
+{
+  a_length_reservation    length_reservation;
+  char                    *str = unmangled_name_of(&variable->source_corresp);
+
+  check_assertion(str != NULL);
+  reserve_space_for_length(&length_reservation, mctl);
+  add_str_to_mangled_name(str, mctl);
+  fill_in_length(&length_reservation, mctl);
+}  /* mangled_variable_name */
+
 #endif /* IA64_ABI */
 
 #if IA64_ABI
@@ -2745,32 +2781,34 @@ part of a template-dependent expression.
                                    (a_template_param_constant_kind)tpck_sizeof,
                                     mctl);
       } else {
-        check_assertion(!expr->variant.runtime_sizeof.is_lvalue);
+        check_assertion(!expr->is_lvalue);
         mangled_encoding_for_sizeof((a_type_ptr)NULL,
                                     expr->variant.runtime_sizeof.variant.expr,
                                    (a_template_param_constant_kind)tpck_sizeof,
                                     mctl);
       }  /* if */
       break;
+#endif /* IA64_ABI */
     case enk_variable:
+#if IA64_ABI
       mangled_entity_reference(&expr->variant.variable->source_corresp,
                                (an_il_entry_kind)iek_variable,
                                (a_routine_info_block *)NULL,
                                mctl);
+#else /* !IA64_ABI */
+      mangled_variable_name(expr->variant.variable, mctl);
+#endif /* IA64_ABI */
       break;
-    case enk_variable_address:
-      mangled_address_of_entity(&expr->variant.variable->source_corresp,
-                                (an_il_entry_kind)iek_variable,
-                                (a_routine_info_block *)NULL,
-                                mctl);
-      break;
-    case enk_routine_address:
+    case enk_routine:
+#if IA64_ABI
       mangled_address_of_entity(&expr->variant.routine->source_corresp,
                                 (an_il_entry_kind)iek_routine,
                                 (a_routine_info_block *)NULL,
                                 mctl);
-      break;
+#else /* !IA64_ABI */
+      mangled_routine_name(expr->variant.routine, mctl);
 #endif /* IA64_ABI */
+      break;
     case enk_reuse_value:  /* Not expected generally, but can come up
                               in Microsoft property expansions. */
       add_mangling_for_placeholder_expression(mctl);
@@ -4708,6 +4746,18 @@ If the operator is unrecognized, return *bad_operator TRUE.
 
   *bad_operator = FALSE;
   switch (op) {
+#ifdef MANGLING_STRING_FOR_OPERATOR_ADDRESS
+    case eok_address_of:
+      opkind = (an_opname_kind)onk_ampersand;
+      num_operands = 1;
+      break;
+#endif /* ifdef MANGLING_STRING_FOR_OPERATOR_ADDRESS */
+#ifdef MANGLING_STRING_FOR_OPERATOR_DEREFERENCE
+    case eok_indirect:
+      opkind = (an_opname_kind)onk_star;
+      num_operands = 1;
+      break;
+#endif /* ifdef MANGLING_STRING_FOR_OPERATOR_DEREFERENCE */
     case eok_inegate:
 #if FIXED_POINT_ALLOWED
     case eok_fxnegate:

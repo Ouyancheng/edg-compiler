@@ -458,9 +458,13 @@ extern a_boolean set_array_type_size(a_type_ptr	array_type,
 extern void set_type_size(a_type_ptr type_ptr);
 extern a_type_ptr type_after_integral_promotion(a_type_ptr type);
 extern a_type_ptr default_argument_promotion(a_type_ptr old_type);
-extern a_type_ptr con_complete_object_type(a_constant_ptr constant);
-extern a_type_ptr node_complete_object_type(an_expr_node_ptr node,
+extern a_type_ptr type_after_array_to_pointer_transformation(a_type_ptr type);
+extern a_type_ptr expr_complete_object_type(an_expr_node_ptr node,
                                             a_boolean        call_case);
+extern a_type_ptr pointer_con_complete_object_type(a_constant_ptr constant);
+extern
+a_type_ptr pointer_expr_complete_object_type(an_expr_node_ptr node,
+                                             a_boolean        call_case);
 
 /*
 Bit vector used to pass flags into f_identical_types.

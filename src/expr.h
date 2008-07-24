@@ -84,8 +84,10 @@ extern void prescan_initializer_for_auto_type_deduction(
 extern void scan_and_discard_initializer_expression(a_decl_parse_state  *dps);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
-extern an_expr_node_ptr make_lvalue_cast_node(an_expr_node_ptr source_expr,
-                                              a_type_ptr       type_cast_to);
+extern
+an_expr_node_ptr make_lvalue_cast_node(an_expr_node_ptr source_expr,
+                                       a_type_ptr       type_cast_to,
+                                       a_boolean        compiler_generated);
 
 extern void check_closing_paren_after_expr_list(void);
 
@@ -108,6 +110,8 @@ a_boolean set_curr_token_to_microsoft_lprefix_operator_string(void);
 #if MICROSOFT_EXTENSIONS_ALLOWED || BACK_END_IS_CP_GEN_BE
 extern char *spelling_for_function_name_token(a_token_kind token);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || BACK_END_IS_CP_GEN_BE */
+
+extern a_boolean operand_is_string_literal(an_operand_ptr operand);
 
 extern an_expr_node_ptr scan_integer_expression(a_boolean is_switch_expr);
 
@@ -158,9 +162,9 @@ extern void scan_initializer_expression(
                                  a_constant          *constant);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
-extern an_expr_node_ptr prep_rvalue_arg_expr(an_expr_node_ptr  expr,
-                                             a_param_type_ptr  param,
-                                             a_source_position *err_pos);
+extern an_expr_node_ptr prep_generated_arg_expr(an_expr_node_ptr  expr,
+                                                a_param_type_ptr  param,
+                                                a_source_position *err_pos);
 
 #if !STANDALONE_UTILITY_PROGRAM
 extern a_boolean scan_class_initializer_expression(a_decl_parse_state  *dps,
@@ -264,7 +268,6 @@ extern a_routine_ptr find_assignment_operator_for_memberwise_copy(
                                              a_type_ptr        class_type,
                                              an_expr_node_ptr  source_expr,
                                              an_expr_node_ptr  dest_expr,
-                                             a_boolean         *pass_by_value,
                                              a_source_position *dest_decl_pos);
 
 extern void process_unattached_template_argument_list(
@@ -274,6 +277,8 @@ extern an_expr_node_ptr make_assignment_expr(
                                       an_expr_node_ptr       lvalue_expr,
                                       an_expr_operator_kind  op,
                                       an_expr_node_ptr       rvalue_expr);
+
+extern a_boolean current_mode_allows_field_selection_folding(void);
 
 extern a_boolean compute_is_convertible(a_type_ptr  src_type,
                                         a_type_ptr  dst_type,
@@ -337,16 +342,10 @@ Macro that is TRUE if the node is a variable node.
 	((node)->kind == (an_expr_node_kind)enk_variable)
 
 /*
-Macro that is TRUE if the node is a variable address node.
+Macro that is TRUE if the node is a routine node.
 */
-#define is_variable_address_node(node)					\
-	((node)->kind == (an_expr_node_kind)enk_variable_address)
-
-/*
-Macro that is TRUE if the node is a routine address node.
-*/
-#define is_routine_address_node(node)					\
-	((node)->kind == (an_expr_node_kind)enk_routine_address)
+#define is_routine_node(node)						\
+	((node)->kind == (an_expr_node_kind)enk_routine)
 
 /*
 Macro that is TRUE if the node is an error node.
@@ -369,6 +368,32 @@ Return TRUE if "node" is a function call operation.
    (node_operator_is((node), eok_call) ||                               \
     node_operator_is((node), eok_virtual_call) ||                       \
     node_operator_is((node), eok_pm_call)))
+
+
+#if GNU_EXTENSIONS_ALLOWED
+/*
+Return TRUE if the given operator is a gnu min/max operator (>? or <?).
+*/
+#define is_gnu_min_max_operator(op) \
+ ((op) == (an_expr_operator_kind)eok_ignu_min || \
+  (op) == (an_expr_operator_kind)eok_ignu_max || \
+  (op) == (an_expr_operator_kind)eok_fgnu_min || \
+  (op) == (an_expr_operator_kind)eok_fgnu_max || \
+  (op) == (an_expr_operator_kind)eok_pgnu_min || \
+  (op) == (an_expr_operator_kind)eok_pgnu_max || \
+  (op) == (an_expr_operator_kind)eok_gnu_min || \
+  (op) == (an_expr_operator_kind)eok_gnu_max)
+#endif /* GNU_EXTENSIONS_ALLOWED */
+
+/*
+The operands for eok_subscript or eok_padd are a pointer and an
+integral subscript which can appear in either order.  This macro returns
+the pointer operand of these nodes.
+*/
+#define subscript_or_padd_pointer_operand(node)                        \
+        ((node)->variant.operation.pointer_operand_is_second ?         \
+         (node)->variant.operation.operands->next :                    \
+         (node)->variant.operation.operands)
 
 #endif /* ifndef EXPR_H */
 

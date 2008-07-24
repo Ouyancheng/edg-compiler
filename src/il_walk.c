@@ -2613,12 +2613,17 @@ default values.
   tblock->process_expressions_for_constants = FALSE;
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
   tblock->process_template_parameter_constants_and_expressions = FALSE;
+  tblock->follow_addressing_path = FALSE;
   tblock->expr_is_lvalue = FALSE;
   tblock->set_unordered_on_dynamic_inits = FALSE;
   tblock->relink_dynamic_inits = FALSE;
   tblock->last_relinked_dynamic_init = NULL;
   tblock->suppress_warning = FALSE;
   tblock->checksum = 0;
+  tblock->complete_object_type = NULL;
+  tblock->call_case = FALSE;
+  tblock->is_temp = FALSE;
+  tblock->can_change_type = FALSE;
 }  /* clear_expr_or_stmt_traversal_block */
 
 
@@ -2808,73 +2813,165 @@ as specified in the control block.
 }  /* traverse_expr_list */
 
 
-static void traverse_operand_list(
-                                 an_expr_node_ptr                    expr,
-                                 a_boolean                           is_lvalue,
-                                 an_expr_or_stmt_traversal_block_ptr tblock)
+static void traverse_addressing_subtree(
+                                    an_expr_node_ptr                    expr,
+                                    an_expr_or_stmt_traversal_block_ptr tblock)
 /*
-Walk the operands of the given enk_operation expression node.  The expression
-is used as an lvalue if is_lvalue is TRUE.  Call user-provided routines as
-specified in the control block.  This differs from traverse_expr_list in
-that it tracks lvalue/rvalue for call arguments.
+Walk the subtree of the given expression, but only those operands that
+contribute to the address of the entity.  Call user-provided routines
+as specified in the control block.  The expression is expected to be
+an addressing expression, meaning either an lvalue that identifies an
+object or an rvalue that is a pointer to an object.  The walk here
+follows the underlying object address down to the node that is the origin
+of that address.  So, for example, with
+
+  *(&a.b[i])
+
+the traversal will walk through the "*", "&", "[]", and "." operator nodes
+and end up at "a".
 */
 {
-  a_boolean             saved_expr_is_lvalue = tblock->expr_is_lvalue;
-  an_expr_operator_kind op = expr->variant.operation.kind;
-  an_expr_node_ptr      operand = expr->variant.operation.operands;
- 
-  if (op == (an_expr_operator_kind)eok_call ||
-      op == (an_expr_operator_kind)eok_virtual_call ||
-      op == (an_expr_operator_kind)eok_pm_call) {
-    /* A call.  Traverse specially to track whether the arguments are
-       lvalues. */
-    a_type_ptr       type;
-    a_param_type_ptr param;
-    /* Extract the called routine type. */
-    type = operand->type;
-    if (op == (an_expr_operator_kind)eok_pm_call) {
-      if (!is_ptr_to_member_type(type)) goto normal_traversal;
-      type = pm_member_type(type);
+  if (is_operation_node(expr)) {
+    an_expr_operator_kind op = expr->variant.operation.kind;
+    an_expr_node_ptr      operand1 = expr->variant.operation.operands;
+    an_expr_node_ptr      operand2 = operand1->next;
+    if (expr->is_lvalue) {
+      /* The expression is an lvalue. */
+      switch (op) {
+        case eok_dot_field:
+          /* x.y:  Follow x if it's an lvalue. */
+          if (operand1->is_lvalue) {
+            traverse_expr(operand1, tblock);
+          }  /* if */
+          break;
+        case eok_points_to_field:
+          /* p->y:  Follow p. */
+          traverse_expr(operand1, tblock);
+          break;
+        case eok_pm_field:
+          /* x.*pm:  Follow x. */
+          traverse_expr(operand1, tblock);
+          break;
+        case eok_pm_points_to_field:
+          /* p->*pm:  Follow p. */
+          traverse_expr(operand1, tblock);
+          break;
+        case eok_subscript:
+          /* x[y].  Follow the pointer operand, which could be either one. */
+          traverse_expr(subscript_or_padd_pointer_operand(expr), tblock);
+          break;
+        case eok_indirect:
+          /* *p:  Follow p. */
+          traverse_expr(operand1, tblock);
+          break;
+        case eok_comma:
+        case eok_dot_static:
+        case eok_points_to_static:
+          /* (x, y):  Follow the second operand.  Likewise for static selection
+             operators. */
+          traverse_expr(operand2, tblock);
+          break;
+        case eok_question:
+          /* (x ? y : z):  Follow both the second and third operands. */
+          traverse_expr(operand2, tblock);
+          if (tblock->terminate) goto end_of_routine;
+          traverse_expr(operand2->next, tblock);
+          break;
+        default:
+          if (expr->variant.operation.returns_lvalue_instead_of_usual_rvalue) {
+            /* An lvalue-returning operation other than those handled
+               individually above. */
+#if GNU_EXTENSIONS_ALLOWED
+            if (is_gnu_min_max_operator(op)) {
+              /* GNU x >? y or x <? y:  Follow both operands. */
+              traverse_expr(operand1, tblock);
+              if (tblock->terminate) goto end_of_routine;
+              traverse_expr(operand2, tblock);
+            } else
+#endif /* GNU_EXTENSIONS_ALLOWED */
+            /* Do not insert code here. */
+            {
+              /* For others (e.g., pre-increment, assignment), follow the
+                 first operand. */
+              check_assertion(operator_takes_lvalue_operand(op));
+              traverse_expr(operand1, tblock);
+            }  /* if */
+          }  /* if */
+          break;
+      }  /* switch */
     } else {
-      if (!is_pointer_type(type)) goto normal_traversal;
-      type = type_pointed_to(type);
+      /* The expression is an rvalue pointer (references are permitted
+         during the lowering process). */
+#if DO_IL_LOWERING
+      check_assertion((is_ptr_or_ref_type(expr->type) ||
+                       is_template_param_type(expr->type) ||
+                       is_error_type(expr->type)) ||
+                      is_error_node(expr));
+#else /* !DO_IL_LOWERING */
+      check_assertion((is_pointer_type(expr->type) ||
+                       is_template_param_type(expr->type) ||
+                       is_error_type(expr->type)) ||
+                      is_error_node(expr));
+#endif /* DO_IL_LOWERING */
+      switch (op) {
+        case eok_address_of:
+          /* &x.  Follow x. */
+          traverse_expr(operand1, tblock);
+          break;
+        case eok_array_to_pointer:
+          /* Array-to-pointer decay.  Watch out for the array rvalue case. */
+          if (operand1->is_lvalue) {
+            traverse_expr(operand1, tblock);
+          }  /* if */
+          break;
+        case eok_padd:
+          /* p + i or i + p. */
+          traverse_expr(subscript_or_padd_pointer_operand(expr), tblock);
+          break;
+        case eok_psubtract:
+          /* p - i. */
+          traverse_expr(operand1, tblock);
+          break;
+        case eok_base_class_cast:
+          /* Cast of a pointer to a base class pointer. */
+          traverse_expr(operand1, tblock);
+          break;
+        case eok_cast:
+          /* Pointer cast that passes through an address.  References
+             are permitted during the lowering process. */
+          if ((is_pointer_type(expr->type) &&
+               is_pointer_type(operand1->type))
+#if DO_IL_LOWERING
+              || (is_ptr_or_ref_type(expr->type) &&
+                  is_ptr_or_ref_type(operand1->type))
+#endif /* DO_IL_LOWERING */
+                                                     ) {
+            /* Allow only an identity cast or a cv-qualification change. */
+            a_type_ptr target_type =
+                                  f_skip_typerefs(type_pointed_to(expr->type));
+            a_type_ptr source_type =
+                              f_skip_typerefs(type_pointed_to(operand1->type));
+            if (same_entities(target_type, source_type)) {
+              traverse_expr(operand1, tblock);
+            }  /* if */
+          }  /* if */
+          break;
+        case eok_comma:
+        case eok_dot_static:
+        case eok_points_to_static:
+          /* Comma and static selection pass through the second operand. */
+          traverse_expr(operand2, tblock);
+          break;
+        default:
+          break;
+      }  /* switch */
     }  /* if */
-    type = skip_typerefs(type);
-    if (type->kind != (a_type_kind)tk_routine) goto normal_traversal;
-    param = type->variant.routine.extra_info->param_type_list;
-    /* Traverse the expression that identifies the function. */
-    tblock->expr_is_lvalue = FALSE;
-    traverse_expr(operand, tblock);
-    if (tblock->terminate) goto end_of_routine;
-    operand = operand->next;
-    /* Traverse the argument expressions, tracking their correspondence to
-       the parameter list. */
-    for (; operand != NULL; operand = operand->next) {
-      tblock->expr_is_lvalue = FALSE;
-      if (param != NULL) {
-        tblock->expr_is_lvalue = is_reference_type(param->type);
-        param = param->next;
-      }  /* if */
-      traverse_expr(operand, tblock);
-      /* Terminate the walk if told to do so. */
-      if (tblock->terminate) break;
-    }  /* for */
-  } else {
-    unsigned int lvalue_mask;
-normal_traversal:
-    /* Normal operation (not a call). */
-    lvalue_mask = expr_lvalue_operand_mask(expr, is_lvalue);
-    for (; operand != NULL; operand = operand->next) {
-      tblock->expr_is_lvalue = (lvalue_mask & 1);
-      traverse_expr(operand, tblock);
-      /* Terminate the walk if told to do so. */
-      if (tblock->terminate) break;
-      lvalue_mask >>= 1;
-    }  /* for */
+  } else if (expr->kind == (an_expr_node_kind)enk_object_lifetime) {
+    /* An object lifetime passes the addressing expression through. */
+    traverse_expr(expr->variant.object_lifetime.expr, tblock);
   }  /* if */
-end_of_routine:
-  tblock->expr_is_lvalue = saved_expr_is_lvalue;
-}  /* traverse_operand_list */
+end_of_routine:;
+}  /* traverse_addressing_subtree */
 
 
 void traverse_expr(an_expr_node_ptr                    expr,
@@ -2884,16 +2981,11 @@ Walk the tree of the given expression.  Call user-provided routines
 as specified in the control block.
 */
 {
-  a_boolean saved_expr_is_lvalue = tblock->expr_is_lvalue;
-  a_boolean internal_expr_is_lvalue = saved_expr_is_lvalue;
-
-  if (expr->void_expression_lvalue || expr->decltype_expression_lvalue) {
-    /* This expression is explicitly marked as an lvalue. */
-    tblock->expr_is_lvalue = internal_expr_is_lvalue = TRUE;
-  }  /* if */
   if (tblock->process_expr != NULL) {
+    tblock->expr_is_lvalue = expr->is_lvalue;
     /* Call the user-provided routine. */
     tblock->process_expr(expr, tblock);
+    tblock->expr_is_lvalue = FALSE;
     /* Terminate the walk if told to do so. */
     if (tblock->terminate) goto end_of_routine;
     /* Skip the subtree walk if told to do so. */
@@ -2902,22 +2994,24 @@ as specified in the control block.
       goto post_processing;
     }  /* if */
   }  /* if */
-  /* Assume the expression is not an lvalue, and change later if it is. */
-  tblock->expr_is_lvalue = FALSE;
+  if (tblock->follow_addressing_path) {
+    /* Do a different subtree walk in this case, following only the operands
+       that refine the object address/lvalue. */
+    traverse_addressing_subtree(expr, tblock);
+    goto post_processing;
+  }  /* if */
   switch (expr->kind) {
     case enk_error:
       break;
     case enk_operation:
-      traverse_operand_list(expr, internal_expr_is_lvalue, tblock);
+      traverse_expr_list(expr->variant.operation.operands, tblock);
       break;
     case enk_constant:
       if (tblock->process_non_dynamic_constants) {
-        tblock->expr_is_lvalue = internal_expr_is_lvalue;
         traverse_constant(expr->variant.constant, tblock);
       }  /* if */
       break;
     case enk_variable:
-    case enk_variable_address:
     case enk_field:
       break;
     case enk_temp_init:
@@ -2964,13 +3058,11 @@ as specified in the control block.
       break;
     case enk_typeid:
       if (expr->variant.typeid_info.expr != NULL) {
-        tblock->expr_is_lvalue = TRUE;
         traverse_expr(expr->variant.typeid_info.expr, tblock);
       }  /* if */
       break;
     case enk_runtime_sizeof:
       if (!expr->variant.runtime_sizeof.is_type) {
-        tblock->expr_is_lvalue = expr->variant.runtime_sizeof.is_lvalue;
         traverse_expr(expr->variant.runtime_sizeof.variant.expr, tblock);
       }  /* if */
       break;
@@ -2998,7 +3090,7 @@ as specified in the control block.
     case enk_result_of_overriding_function:
       break;
 #endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
-    case enk_routine_address:
+    case enk_routine:
       break;
 #if VLA_DEALLOCATIONS_IN_IL
     case enk_vla_dealloc:
@@ -3014,12 +3106,12 @@ as specified in the control block.
   }  /* switch */
 post_processing:
   if (tblock->process_post_expr != NULL && !tblock->terminate) {
-    tblock->expr_is_lvalue = internal_expr_is_lvalue;
+    tblock->expr_is_lvalue = expr->is_lvalue;
     /* Call the user-provided (post-subtree) routine. */
     tblock->process_post_expr(expr, tblock);
+    tblock->expr_is_lvalue = FALSE;
   }  /* if */
-end_of_routine:
-  tblock->expr_is_lvalue = saved_expr_is_lvalue;
+end_of_routine:;
 }  /* traverse_expr */
 
 
@@ -3064,7 +3156,6 @@ Walk the tree of the given statement.  Call user-provided routines
 as specified in the control block.
 */
 {
-  tblock->expr_is_lvalue = FALSE;
   if (tblock->process_statement != NULL) {
     /* Call the user-provided routine. */
     tblock->process_statement(statement, tblock);
@@ -3112,15 +3203,6 @@ as specified in the control block.
       if (statement->variant.return_dynamic_init != NULL) {
         traverse_dynamic_init(statement->variant.return_dynamic_init, tblock);
       } else if (statement->expr != NULL) {
-        if (innermost_function_scope != NULL) {
-          a_routine_ptr curr_rout =
-                                 innermost_function_scope->variant.routine.ptr;
-          a_type_ptr    rout_type = skip_typerefs(curr_rout->type);
-          if (is_reference_type(rout_type->variant.routine.return_type)) {
-            /* A return of a reference treats the expression as an lvalue. */
-            tblock->expr_is_lvalue = TRUE;
-          }  /* if */
-        }  /* if */
         traverse_expr(statement->expr, tblock);
       }  /* if */
       break;
@@ -3196,14 +3278,8 @@ as specified in the control block.
       { an_asm_entry_ptr   aep = statement->variant.asm_entry;
         an_asm_operand_ptr aop;
         for (aop = aep->operands; aop != NULL; aop = aop->next) {
-#if RECORD_RAW_ASM_OPERAND_DESCRIPTIONS
-          tblock->expr_is_lvalue = aop->is_output_operand;
-#else /* !RECORD_RAW_ASM_OPERAND_DESCRIPTIONS */
-          tblock->expr_is_lvalue = (aop->modifiers & (int)aom_output) != 0;
-#endif /* RECORD_RAW_ASM_OPERAND_DESCRIPTIONS */
           traverse_expr(aop->expression, tblock);
         }  /* for */
-        tblock->expr_is_lvalue = FALSE;
       }
 #endif /* GNU_EXTENSIONS_ALLOWED */
       break;

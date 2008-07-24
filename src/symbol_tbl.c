@@ -10245,9 +10245,7 @@ fixup entry to the end of the vla_fixup_list of the current scope stack entry.
                         "add_vla_fixup_entry: bad parameter symbol");
     /* The expression node should be the result of scanning the dummy
        parameter variable. */
-    check_assertion_str(expr_node->kind == (an_expr_node_kind)enk_variable ||
-                        expr_node->kind ==
-                                    (an_expr_node_kind)enk_variable_address,
+    check_assertion_str(expr_node->kind == (an_expr_node_kind)enk_variable,
                         "add_vla_fixup_entry: bad expression node");
   } else {
     /* param_sym must be NULL and array_type must refer to a tk_array. */

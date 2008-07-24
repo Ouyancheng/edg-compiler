@@ -369,6 +369,7 @@ static void gen_pending_pragma_pack(void);
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 static void gen_template_header(a_template_decl_ptr tdp);
 static void gen_template(void);
+static an_expr_node_ptr strip_lvalue_cast_sequence(an_expr_node_ptr expr);
 static void gen_lvalue_full(an_expr_node_ptr node,
                             a_boolean        need_parens,
                             a_boolean        obj_expr_of_mfunc_operator);
@@ -377,6 +378,9 @@ static void gen_lvalue_full(an_expr_node_ptr node,
 #define gen_lvalue_no_parens(node) gen_lvalue_full(                   \
                                          node, /*need_parens=*/FALSE, \
                                          /*obj_expr_of_mfunc_operator=*/FALSE)
+static void gen_lvalue_object_expr(
+                                  an_expr_node_ptr expr,
+                                  a_boolean        obj_expr_of_mfunc_operator);
 static void gen_initializer_constant(a_constant_ptr constant,
                                      a_type_ptr     type,
                                      a_boolean      suppress_braces);
@@ -458,6 +462,282 @@ are not the same and the operand is a user-defined conversion (UDC).
    is_pointer_type(dest_type) &&                                              \
    is_pointer_type((operand)->type) &&                                        \
    skip_typerefs(dest_type) != skip_typerefs((operand)->type))
+
+
+/*
+Precedence of the generated form of expression operators, used to determine
+whether parentheses are needed around a given expression operand.  If you add
+operators to this list and are uncertain about the precedence to use, it is
+always safe to use PREC_LOWEST, which effectively results in use of
+gen_expr_with_parens to generate the expression containing the operator.  If
+a given operator may be generated in different forms, this table should
+reflect the one with the lowest precedence.
+*/
+static a_byte generated_precedence[] = {
+  PREC_PREFIX,		/* eok_address_of */
+  PREC_LOWEST,		/* eok_reference_to */
+  PREC_PREFIX,		/* eok_indirect */
+  PREC_LOWEST,		/* eok_ref_indirect */
+  PREC_PREFIX,		/* eok_inegate */
+#if FIXED_POINT_ALLOWED
+  PREC_PREFIX,		/* eok_fxnegate */
+#endif /* FIXED_POINT_ALLOWED */
+  PREC_PREFIX,		/* eok_fnegate */
+  PREC_PREFIX,		/* eok_unary_plus */
+  PREC_PREFIX,		/* eok_not */
+  PREC_CAST,		/* eok_cast (NOTE: cases where the cast is not
+                           generated are filtered out by
+                           parens_may_be_needed) */
+#ifdef CIL
+  PREC_CAST,		/* eok_base_class_cast */
+  PREC_CAST,		/* eok_derived_class_cast */
+  PREC_CAST,		/* eok_pm_base_class_cast */
+  PREC_CAST,		/* eok_pm_derived_class_cast */
+  PREC_CAST,		/* eok_lvalue_cast */
+  PREC_POSTFIX,		/* eok_dynamic_cast */
+  PREC_CAST,		/* eok_bool_cast */
+  PREC_PREFIX,		/* eok_complement */
+  PREC_POSTFIX,		/* eok_ipost_incr */
+  PREC_POSTFIX,		/* eok_ipost_decr */
+  PREC_PREFIX,		/* eok_ipre_incr */
+  PREC_PREFIX,		/* eok_ipre_decr */
+#if FIXED_POINT_ALLOWED
+  PREC_POSTFIX,		/* eok_fxpost_incr */
+  PREC_POSTFIX,		/* eok_fxpost_decr */
+  PREC_PREFIX,		/* eok_fxpre_incr */
+  PREC_PREFIX,		/* eok_fxpre_decr */
+#endif /* FIXED_POINT_ALLOWED */
+  PREC_POSTFIX,		/* eok_fpost_incr */
+  PREC_POSTFIX,		/* eok_fpost_decr */
+  PREC_PREFIX,		/* eok_fpre_incr */
+  PREC_PREFIX,		/* eok_fpre_decr */
+  PREC_POSTFIX,		/* eok_ppost_incr */
+  PREC_POSTFIX,		/* eok_ppost_decr */
+  PREC_PREFIX,		/* eok_ppre_incr */
+  PREC_PREFIX,		/* eok_ppre_decr */
+  PREC_LOWEST,		/* eok_lvalue_from_struct_rvalue (NOTE: the
+                           generated code for this operator just copies the
+                           operand up, so we don't know anything about how
+                           it might actually be generated, hence the
+                           PREC_LOWEST) */
+  PREC_LOWEST,		/* eok_array_to_pointer */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  PREC_POSTFIX,		/* eok_assume */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* CIL */
+#if defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED
+  PREC_PREFIX,		/* eok_xnegate */
+#endif /* defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED */
+#ifdef FIL
+  PREC_LOWEST,		/* eok_char_length */
+  PREC_LOWEST,		/* eok_address_of_value */
+  PREC_LOWEST,		/* eok_loc */
+  PREC_LOWEST,		/* eok_test_logical */
+#endif /* FIL */
+  PREC_PLUS_MINUS,	/* eok_iadd */
+  PREC_PLUS_MINUS,	/* eok_isubtract */
+  PREC_MULT_DIV,	/* eok_imultiply */
+  PREC_MULT_DIV,	/* eok_idivide */
+  PREC_EQ_NE,		/* eok_ieq */
+  PREC_EQ_NE,		/* eok_ine */
+  PREC_RELATIONAL,	/* eok_igt */
+  PREC_RELATIONAL,	/* eok_ilt */
+  PREC_RELATIONAL,	/* eok_ige */
+  PREC_RELATIONAL,	/* eok_ile */
+  PREC_GNU_MIN_MAX,	/* eok_ignu_min */
+  PREC_GNU_MIN_MAX,	/* eok_ignu_max */
+  PREC_ASSIGNMENT,	/* eok_iassign */
+#if FIXED_POINT_ALLOWED
+  PREC_PLUS_MINUS,	/* eok_fxadd */
+  PREC_PLUS_MINUS,	/* eok_fxsubtract */
+  PREC_MULT_DIV,	/* eok_fxmultiply */
+  PREC_MULT_DIV,	/* eok_fxdivide */
+  PREC_SHIFT,		/* eok_fxshiftl */
+  PREC_SHIFT,		/* eok_fxshiftr */
+  PREC_EQ_NE,		/* eok_fxeq */
+  PREC_EQ_NE,		/* eok_fxne */
+  PREC_RELATIONAL,	/* eok_fxgt */
+  PREC_RELATIONAL,	/* eok_fxlt */
+  PREC_RELATIONAL,	/* eok_fxge */
+  PREC_RELATIONAL,	/* eok_fxle */
+  PREC_ASSIGNMENT,	/* eok_fxassign */
+#endif /* FIXED_POINT_ALLOWED */
+  PREC_PLUS_MINUS,	/* eok_fadd */
+  PREC_PLUS_MINUS,	/* eok_fsubtract */
+  PREC_MULT_DIV,	/* eok_fmultiply */
+  PREC_MULT_DIV,	/* eok_fdivide */
+  PREC_EQ_NE,		/* eok_feq */
+  PREC_EQ_NE,		/* eok_fne */
+  PREC_RELATIONAL,	/* eok_fgt */
+  PREC_RELATIONAL,	/* eok_flt */
+  PREC_RELATIONAL,	/* eok_fge */
+  PREC_RELATIONAL,	/* eok_fle */
+  PREC_GNU_MIN_MAX,	/* eok_fgnu_min */
+  PREC_GNU_MIN_MAX,	/* eok_fgnu_max */
+  PREC_ASSIGNMENT,	/* eok_fassign */
+  PREC_PLUS_MINUS,	/* eok_padd */
+  PREC_PLUS_MINUS,	/* eok_psubtract */
+  PREC_ASSIGNMENT,	/* eok_passign */
+#if defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED
+  PREC_PLUS_MINUS,	/* eok_xadd */
+  PREC_PLUS_MINUS,	/* eok_xsubtract */
+  PREC_MULT_DIV,	/* eok_xmultiply */
+  PREC_MULT_DIV,	/* eok_xdivide */
+  PREC_EQ_NE,		/* eok_xeq */
+  PREC_EQ_NE,		/* eok_xne */
+  PREC_ASSIGNMENT,	/* eok_xassign */
+#endif /* defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED */
+#if C99_IL_EXTENSIONS_SUPPORTED
+  PREC_ASSIGNMENT,	/* eok_xadd_assign */
+  PREC_ASSIGNMENT,	/* eok_xsubtract_assign */
+  PREC_ASSIGNMENT,	/* eok_xmultiply_assign */
+  PREC_ASSIGNMENT,	/* eok_xdivide_assign */
+  PREC_MULT_DIV,	/* eok_jmultiply */
+  PREC_MULT_DIV,	/* eok_jdivide */
+  PREC_PLUS_MINUS,	/* eok_fjadd */
+  PREC_PLUS_MINUS,	/* eok_jfadd */
+  PREC_PLUS_MINUS,	/* eok_fjsubtract */
+  PREC_PLUS_MINUS,	/* eok_jfsubtract */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+#if GNU_COMPLEX_EXTENSIONS_ALLOWED
+  PREC_PREFIX,		/* eok_xconj */
+  PREC_POSTFIX,		/* eok_real_part */
+  PREC_POSTFIX,		/* eok_imag_part */
+#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
+#ifdef FIL
+  PREC_LOWEST,		/* eok_complex */
+  PREC_LOWEST,		/* eok_ceq */
+  PREC_LOWEST,		/* eok_cne */
+  PREC_LOWEST,		/* eok_cgt */
+  PREC_LOWEST,		/* eok_clt */
+  PREC_LOWEST,		/* eok_cge */
+  PREC_LOWEST,		/* eok_cle */
+  PREC_LOWEST,		/* eok_cassign */
+  PREC_LOWEST,		/* eok_concat */
+  PREC_LOWEST,		/* eok_i_to_i_expon */
+  PREC_LOWEST,		/* eok_f_to_i_expon */
+  PREC_LOWEST,		/* eok_x_to_i_expon */
+  PREC_LOWEST,		/* eok_f_to_f_expon */
+  PREC_LOWEST,		/* eok_x_to_x_expon */
+#endif /* FIL */
+#ifdef CIL
+  PREC_MULT_DIV,	/* eok_remainder */
+  PREC_PLUS_MINUS,	/* eok_pdiff */
+  PREC_EQ_NE,		/* eok_peq */
+  PREC_EQ_NE,		/* eok_pne */
+  PREC_RELATIONAL,	/* eok_pgt */
+  PREC_RELATIONAL,	/* eok_plt */
+  PREC_RELATIONAL,	/* eok_pge */
+  PREC_RELATIONAL,	/* eok_ple */
+  PREC_GNU_MIN_MAX,	/* eok_pgnu_min */
+  PREC_GNU_MIN_MAX,	/* eok_pgnu_max */
+  PREC_EQ_NE,		/* eok_pmeq */
+  PREC_EQ_NE,		/* eok_pmne */
+  PREC_ASSIGNMENT,	/* eok_sassign */
+  PREC_ASSIGNMENT,	/* eok_bassign */
+  PREC_ASSIGNMENT,	/* eok_pmassign */
+  PREC_ASSIGNMENT,	/* eok_iadd_assign */
+  PREC_ASSIGNMENT,	/* eok_isubtract_assign */
+  PREC_ASSIGNMENT,	/* eok_imultiply_assign */
+  PREC_ASSIGNMENT,	/* eok_idivide_assign */
+  PREC_ASSIGNMENT,	/* eok_remainder_assign */
+#if FIXED_POINT_ALLOWED
+  PREC_ASSIGNMENT,	/* eok_fxadd_assign */
+  PREC_ASSIGNMENT,	/* eok_fxsubtract_assign */
+  PREC_ASSIGNMENT,	/* eok_fxmultiply_assign */
+  PREC_ASSIGNMENT,	/* eok_fxdivide_assign */
+  PREC_ASSIGNMENT,	/* eok_fxshiftl_assign */
+  PREC_ASSIGNMENT,	/* eok_fxshiftr_assign */
+#endif /* FIXED_POINT_ALLOWED */
+  PREC_ASSIGNMENT,	/* eok_fadd_assign */
+  PREC_ASSIGNMENT,	/* eok_fsubtract_assign */
+  PREC_ASSIGNMENT,	/* eok_fmultiply_assign */
+  PREC_ASSIGNMENT,	/* eok_fdivide_assign */
+  PREC_ASSIGNMENT,	/* eok_padd_assign */
+  PREC_ASSIGNMENT,	/* eok_psubtract_assign */
+  PREC_ASSIGNMENT,	/* eok_shiftl_assign */
+  PREC_ASSIGNMENT,	/* eok_shiftr_assign */
+  PREC_ASSIGNMENT,	/* eok_and_assign */
+  PREC_ASSIGNMENT,	/* eok_or_assign */
+  PREC_ASSIGNMENT,	/* eok_xor_assign */
+  PREC_POSTFIX,		/* eok_subscript */
+  PREC_POSTFIX,		/* eok_dot_field */
+  PREC_POSTFIX,		/* eok_points_to_field */
+  PREC_PTR_TO_MEMBER,	/* eok_pm_field */
+  PREC_PTR_TO_MEMBER,	/* eok_pm_points_to_field */
+  PREC_POSTFIX,		/* eok_dot_static */
+  PREC_POSTFIX,		/* eok_points_to_static */
+  PREC_SHIFT,		/* eok_shiftl */
+  PREC_SHIFT,		/* eok_shiftr */
+  PREC_AND,		/* eok_and */
+  PREC_OR,		/* eok_or */
+  PREC_EXCL_OR,		/* eok_xor */
+  PREC_COMMA,		/* eok_comma */
+  PREC_POSTFIX,		/* eok_virtual_function_ptr */
+  PREC_POSTFIX,		/* eok_dot_vacuous_destructor_call */
+  PREC_POSTFIX,		/* eok_points_to_vacuous_destructor_call */
+#endif /* CIL */
+  PREC_AND_AND,		/* eok_land */
+  PREC_OR_OR,		/* eok_lor */
+#ifdef FIL
+  PREC_LOWEST,		/* eok_neqv */
+  PREC_LOWEST,		/* eok_eqv */
+#endif /* FIL */
+#ifdef CIL
+  PREC_QUEST_MARK,	/* eok_question */
+#endif /* CIL */
+#ifdef FIL
+  PREC_LOWEST,		/* eok_substring */
+  PREC_LOWEST,		/* eok_value_substring */
+#endif /* FIL */
+  PREC_POSTFIX,		/* eok_call */
+#ifdef CIL
+  PREC_POSTFIX,		/* eok_virtual_call */
+  PREC_POSTFIX,		/* eok_pm_call */
+#endif /* CIL */
+#ifdef FIL
+  PREC_LOWEST,		/* eok_fsubscript */
+  PREC_LOWEST,		/* eok_value_fsubscript */
+#endif /* FIL */
+  PREC_POSTFIX,		/* eok_va_start */
+  PREC_POSTFIX,		/* eok_va_arg */
+  PREC_POSTFIX,		/* eok_va_end */
+  PREC_POSTFIX,		/* eok_va_copy */
+  PREC_POSTFIX,		/* eok_va_start_single_operand */
+#ifdef CIL
+  PREC_PREFIX,		/* eok_negate */
+  PREC_POSTFIX,		/* eok_post_incr */
+  PREC_POSTFIX,		/* eok_post_decr */
+  PREC_PREFIX,		/* eok_pre_incr */
+  PREC_PREFIX,		/* eok_pre_decr */
+  PREC_PLUS_MINUS,	/* eok_add */
+  PREC_PLUS_MINUS,	/* eok_subtract */
+  PREC_MULT_DIV,	/* eok_multiply */
+  PREC_MULT_DIV,	/* eok_divide */
+  PREC_EQ_NE,		/* eok_eq */
+  PREC_EQ_NE,		/* eok_ne */
+  PREC_RELATIONAL,	/* eok_gt */
+  PREC_RELATIONAL,	/* eok_lt */
+  PREC_RELATIONAL,	/* eok_ge */
+  PREC_RELATIONAL,	/* eok_le */
+  PREC_GNU_MIN_MAX,	/* eok_gnu_min */
+  PREC_GNU_MIN_MAX,	/* eok_gnu_max */
+  PREC_ASSIGNMENT,	/* eok_assign */
+  PREC_ASSIGNMENT,	/* eok_add_assign */
+  PREC_ASSIGNMENT,	/* eok_subtract_assign */
+  PREC_ASSIGNMENT,	/* eok_multiply_assign */
+  PREC_ASSIGNMENT,	/* eok_divide_assign */
+  PREC_POSTFIX,		/* eok_static_cast */
+  PREC_POSTFIX,		/* eok_const_cast */
+  PREC_POSTFIX,		/* eok_reinterpret_cast */
+  PREC_LOWEST,		/* eok_lvalue */
+  PREC_LOWEST,		/* eok_rvalue */
+  PREC_POSTFIX,		/* eok_generic_call */
+  PREC_POSTFIX,		/* eok_generic_member_call */
+#endif /* CIL */
+  PREC_LOWEST,		/* eok_error */
+  PREC_LOWEST		/* eok_last */
+};  /* generated_precedence */
 
 
 static void alloc_hidden_name_fixup(a_tagged_pointer entity)
@@ -2908,22 +3188,28 @@ to indicate that the name reference was successfully emitted.
 
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
 
-static void gen_name_from_routine_address_node(
-                                           an_expr_node_ptr node,
-                                           a_boolean        unqualified,
-                                           a_boolean        suppress_ampersand)
+static void gen_name_from_routine_node(an_expr_node_ptr node,
+                                       a_boolean        unqualified,
+                                       a_boolean        use_ampersand)
 /*
-Generate the name of a routine from an enk_routine_address node.  If
-unqualified is TRUE, force the generation of an unqualified name.  If
-suppress_ampersand is TRUE, do not output "&", even if
-node->is_operand_of_address_of is TRUE.
+Generate the name of a routine from an enk_routine node.  If unqualified is
+TRUE, force the generation of an unqualified name.  If use_ampersand is
+TRUE, prefix the name with "&".
 */
 {
-  a_routine_ptr rout;
+  a_routine_ptr rout = NULL;
 
-  check_assertion(node->kind == (an_expr_node_kind)enk_routine_address);
-  rout = node->variant.routine;
-  if (node->is_operand_of_address_of && !suppress_ampersand) {
+  if (is_routine_node(node)) {
+    rout = node->variant.routine;
+  } else if (is_constant_node(node)) {
+    a_constant_ptr con = node->variant.constant;
+    if (con->kind == (a_constant_repr_kind)ck_address &&
+        con->variant.address.kind == (an_address_base_kind)abk_routine) {
+      rout = con->variant.address.variant.routine;
+    }  /* if */
+  }  /* if */
+  check_assertion(rout != NULL);
+  if (use_ampersand) {
     write_tok_ch('&');
   }  /* if */
 #if RECORD_FORM_OF_NAME_REFERENCE
@@ -2939,7 +3225,7 @@ node->is_operand_of_address_of is TRUE.
   } else {
     gen_routine_name(rout);
   }  /* if */
-}  /* gen_name_from_routine_address_node */
+}  /* gen_name_from_routine_node */
 
 
 static void check_for_unprotected_comma_operation(
@@ -2957,8 +3243,7 @@ operands to be parenthesized at that level.
     an_expr_operator_kind op = expr->variant.operation.kind;
     if (op == (an_expr_operator_kind)eok_comma ||
         op == (an_expr_operator_kind)eok_points_to_static ||
-        op == (an_expr_operator_kind)eok_lvalue_dot_static ||
-        op == (an_expr_operator_kind)eok_rvalue_dot_static) {
+        op == (an_expr_operator_kind)eok_dot_static) {
       /* Flag a comma operation close enough to the top of the tree that it
          needs to be enclosed in parentheses and terminate the scan.  (The
          eok_points_to_static and ...dot_static operators might be generated
@@ -2993,9 +3278,7 @@ interpreted as an argument separator rather than an operator).
   an_expr_or_stmt_traversal_block tblock;
   clear_expr_or_stmt_traversal_block(&tblock);
   tblock.process_expr = check_for_unprotected_comma_operation;
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
   tblock.process_expressions_for_constants = TRUE;
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
   traverse_expr(expr, &tblock);
   return tblock.result;
 }  /* expr_has_comma_operation */
@@ -3068,13 +3351,12 @@ Output the name of the indicated variable, qualified if necessary.
 
 static void gen_name_from_variable_node(an_expr_node_ptr node)
 /*
-Generate the name of a variable from an enk_variable_address or
-enk_variable node.
+Generate the name of a variable from an enk_variable node.
 */
 {
   a_variable_ptr var;
 
-  check_assertion(is_variable_node(node) || is_variable_address_node(node));
+  check_assertion(is_variable_node(node));
   var = node->variant.variable;
 #if RECORD_FORM_OF_NAME_REFERENCE
   if (gen_name_from_name_reference(node->name_reference, &var->source_corresp,
@@ -3208,7 +3490,19 @@ Output the indicated constant.  If need_parens is TRUE, parentheses are
 placed around the constant if there's any possibility of precedence confusion.
 */
 {
-  form_constant(constant, need_parens, &octl);
+  if (constant->kind == (a_constant_repr_kind)ck_address &&
+      (constant->variant.address.kind == (an_address_base_kind)abk_uuidof ||
+       constant->variant.address.kind == (an_address_base_kind)abk_typeid)) {
+    /* These should be generated as the built-in functions directly rather
+       than as ordinary address constants. */
+    if (constant->variant.address.kind == (an_address_base_kind)abk_uuidof) {
+      form_uuidof_reference(constant, &octl);
+    } else {
+      form_typeid_reference(constant, &octl);
+    }  /* if */
+  } else {
+    form_constant(constant, need_parens, &octl);
+  }  /* if */
 }  /* gen_constant */
 
 
@@ -3471,8 +3765,7 @@ constant is an aggregate the braces around it are suppressed.
     form_pm_constant(constant, /*minimal_casts*/TRUE, /*need_parens=*/TRUE,
                      &octl);
   } else if (type != NULL && is_reference_type(type)) {
-    /* Initializing a reference.  The constant must be displayed with one
-       level of indirection removed. */
+    /* Initializing a reference.  Display the constant as an lvalue. */
     form_lvalue_address_constant(constant, /*need_parens=*/TRUE, &octl);
   } else if (il_header.source_language == sl_C &&
              is_implicitly_cast_integral_constant(constant)) {
@@ -3484,7 +3777,11 @@ constant is an aggregate the braces around it are suppressed.
                           /*need_parens=*/TRUE, &octl);
   } else {
     /* Normal constant. */
-    gen_constant(constant, /*need_parens=*/TRUE);
+    if (constant_should_be_put_out_as_expr(constant)) {
+      gen_expr_with_parens(constant->expr);
+    } else {
+      gen_constant(constant, /*need_parens=*/TRUE);
+    }  /* if */
   }  /* if */
 }  /* gen_initializer_constant */
 
@@ -6148,7 +6445,10 @@ to be used to name the member.  Only used in C++.
      the final node is used to determine the selection class. */
   if (naming_node == NULL) naming_node = node;
   /* Fetch the class type to be used to name the member. */
-  *naming_class = f_skip_typerefs(type_pointed_to(naming_node->type));
+  *naming_class = skip_typerefs(naming_node->type);
+  if (is_pointer_type(*naming_class)) {
+    *naming_class = f_skip_typerefs(type_pointed_to(*naming_class));
+  }  /* if */
   return node;
 }  /* optimized_expr_for_selection */
 
@@ -6170,26 +6470,28 @@ Generate the name of the field from the indicated node (an enk_field node).
 #if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
 
 static an_expr_node_ptr remove_nonstandard_anonymous_union_field_selections(
-                                                  an_expr_node_ptr object_expr)
+                                             an_expr_node_ptr      object_expr,
+                                             an_expr_operator_kind *op)
 /*
 object_expr is the first operand of a selection operation.  If it is itself
 a selection operation, one involving an unnamed field from a nonstandard
 anonymous union, remove that level of selection so that the selection of the
 unnamed field is not put out.  If there are several such selections,
-remove them all.  Return the updated pointer to the object expression.
-This routine also works for rvalue field selections.
+remove them all.  Return the updated pointer to the object expression and
+set *op to the operator used in that selection.
 */
 {
   while (is_operation_node(object_expr)) {
     a_boolean             done = TRUE;
-    an_expr_operator_kind op = object_expr->variant.operation.kind;
-    if (op == (an_expr_operator_kind)eok_field ||
-        op == (an_expr_operator_kind)eok_value_field) {
+    an_expr_operator_kind this_op = object_expr->variant.operation.kind;
+    if (this_op == (an_expr_operator_kind)eok_dot_field ||
+        this_op == (an_expr_operator_kind)eok_points_to_field) {
       an_expr_node_ptr subobject_expr= object_expr->variant.operation.operands;
       an_expr_node_ptr subfield_expr = subobject_expr->next;
       a_field_ptr      subfield = subfield_expr->variant.field;
       if (!has_name(subfield)) {
         object_expr = subobject_expr;
+        *op = this_op;
         done = FALSE;
       }  /* if */
     }  /* if */
@@ -6213,12 +6515,19 @@ syntax ("a->b") rather than an explicit function call.
     an_expr_node_ptr func_expr = expr->variant.operation.operands;
     a_routine_ptr    rp;
 
-    check_assertion_str(func_expr != NULL &&
-                        func_expr->kind ==
-                                        (an_expr_node_kind)enk_routine_address,
+    if (func_expr != NULL && is_constant_node(func_expr)) {
+      a_constant_ptr cp = func_expr->variant.constant;
+      check_assertion_str(cp->kind == (a_constant_repr_kind)ck_address &&
+                          cp->variant.address.kind ==
+                                             (an_address_base_kind)abk_routine,
                  "is_operator_syntax_arrow: operand not a function constant.");
-
-    rp = func_expr->variant.routine;
+      rp = cp->variant.address.variant.routine;
+    } else {
+      check_assertion_str(func_expr != NULL &&
+                          func_expr->kind == (an_expr_node_kind)enk_routine,
+                 "is_operator_syntax_arrow: operand not a function constant.");
+      rp = func_expr->variant.routine;
+    }  /* if */
     check_assertion_str(rp->special_kind ==
 	                                 (a_special_function_kind)sfk_operator,
       "is_operator_syntax_arrow: non-operator function using operator syntax");
@@ -6230,47 +6539,48 @@ syntax ("a->b") rather than an explicit function call.
   return result;
 }  /* is_operator_syntax_arrow */
 
-static void gen_simple_field_selection(an_expr_node_ptr object_expr,
-                                       an_expr_node_ptr field_expr)
+static void gen_simple_field_selection(an_expr_node_ptr      object_expr,
+                                       an_expr_node_ptr      field_expr,
+                                       an_expr_operator_kind op)
 /*
-Generate "object_expr . field_expr".  object_expr is an address (or lvalue),
-and field_expr is an enk_field node.  The caller will put parentheses around
+Generate "object_expr . field_expr" or "object_expr -> field_expr",
+depending on the operator kind.  object_expr is an lvalue or rvalue and
+field_expr is an enk_field node.  The caller will put parentheses around
 this selection.
 */
 {
   a_type_ptr       naming_class, selection_class;
   a_boolean        need_context_pop = FALSE;
-  a_boolean        class_has_operator_ampersand = FALSE;
-  an_expr_node_ptr object_expr_operand = (is_operation_node(object_expr)) ?
-                                object_expr->variant.operation.operands : NULL;
 
   if (il_header.source_language == sl_Cplusplus) {
     /* Remove unnecessary base class casts. */
     object_expr = optimized_expr_for_selection(object_expr, &naming_class);
-    selection_class = type_pointed_to(object_expr->type);
-    class_has_operator_ampersand =
-            selection_class->variant.class_struct_union.has_operator_ampersand;
+    if (is_pointer_type(object_expr->type)) {
+      selection_class = type_pointed_to(object_expr->type);
+    } else {
+      selection_class = object_expr->type;
+    }  /* if */
+    selection_class = skip_typerefs(selection_class);
   }  /* if */
 #if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
-  object_expr=remove_nonstandard_anonymous_union_field_selections(object_expr);
+  object_expr=remove_nonstandard_anonymous_union_field_selections(object_expr,
+                                                                  &op);
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
-  if (is_variable_node(object_expr) &&
-      !object_expr->implicit_reference_indirection) {
-    /* Optimize "(*p).i" as "p->i".  Don't do it when there's an implicit
-       reference indirection on the object, because that will add a "&"
-       that may mean the wrong thing if operator& is overloaded. */
-    gen_expression(object_expr);
-    write_tok_str("->");
-  } else if (is_constant_node(object_expr) && !class_has_operator_ampersand) {
-    /* An expression like "((X*)0)->i" should not be rendered as "(*((X*)0)).i"
-       because some Microsoft C compilers treat the two differently (they allow
-       the former in address constant-expressions, but not the latter; the
-       Microsoft C++ compilers do not make that distinction).  If the class
-       type has an operator& member function, we have to use the "." notation
-       to avoid accidentally invoking operator&(). */
-    gen_expr_with_parens(object_expr);
-    write_tok_str("->");
-  } else if (object_expr->kind == (an_expr_node_kind)enk_variable_address &&
+  object_expr = strip_lvalue_cast_sequence(object_expr);
+  if (op == (an_expr_operator_kind)eok_points_to_field &&
+      !is_pointer_type(object_expr->type)) {
+    /* We removed an implicit conversion from lvalue to pointer type; use
+       the "." form of member selection instead. */
+    op = (an_expr_operator_kind)eok_dot_field;
+  }  /* if */
+  if (op == (an_expr_operator_kind)eok_points_to_field) {
+    gen_expr(object_expr,
+             parens_may_be_needed(generated_precedence[op], object_expr));
+    if (!is_operator_syntax_arrow(object_expr)) {
+      /* Don't output "->" if handle_operator_call already did. */
+      write_tok_str("->");
+    }  /* if */
+  } else if (is_variable_node(object_expr) &&
              object_expr->variant.variable->is_anonymous_parent_object) {
     /* For an anonymous union variable, do not put out the variable or "."
        at all. */
@@ -6284,19 +6594,9 @@ this selection.
     /* This expression implicitly invokes an operator->() function; generate
        it in the original "x->y" form. */
     gen_expression(object_expr);
-  } else if (object_expr_operand != NULL &&
-             node_operator_is(object_expr, eok_indirect) &&
-             object_expr_operand->implicit_reference_indirection &&
-             is_operator_syntax_arrow(object_expr_operand)) {
-    /* This expression implicitly invokes an operator->() function whose
-       return type is a reference to a pointer (hence the extra level of
-       indirection); generate it in the original "x->y" form. */
-    object_expr_operand->implicit_reference_indirection = FALSE;
-    gen_expression(object_expr_operand);
-    object_expr_operand->implicit_reference_indirection = TRUE;
   } else {
-    /* Normal "." case. */
-    gen_lvalue(object_expr);
+    /* Normal "." case. */ 
+    gen_expr_with_parens(object_expr);
     m_write_tok_ch('.');
   }  /* if */
   if (il_header.source_language == sl_Cplusplus) {
@@ -6305,7 +6605,6 @@ this selection.
        is not the class indicated by the pointer.  A namespace qualifier may
        also be needed if we're emitting a reference to a field of a namespace
        scope anonymous union. */
-    selection_class = skip_typerefs(selection_class);
     ctsp = class_type_supp(selection_class);
     if (selection_class->variant.class_struct_union.originally_unnamed &&
         ctsp->anonymous_union_kind == (an_anonymous_union_kind)auk_variable) {
@@ -6341,22 +6640,20 @@ and pm_expr is a pointer to member.  The caller will put parentheses around
 this selection.
 */
 {
-  an_expr_node_ptr test_expr = object_expr;
-
   /* Generally, it's better to use the "->*" form, because it avoids
      putting an extra "*" on top of an expression, which might refer
      to an overloaded "operator*".  Use the ".*" form for simple variables
      and cases with an implied reference indirection. */
   /* Also note that only "->*" can be overloaded, so if there are implicit
      conversions involved we want to go with "->*". */
-  while (is_operation_node(test_expr) &&
-         test_expr->variant.operation.kind ==
-                                  (an_expr_operator_kind)eok_base_class_cast) {
-    test_expr = test_expr->variant.operation.operands;
-  }  /* while */
-  if (object_expr->implicit_reference_indirection ||
-      is_variable_address_node(test_expr) ||
-      test_expr->kind == (an_expr_node_kind)enk_temp_init) {
+  if (is_operation_node(object_expr) &&
+      object_expr->variant.operation.compiler_generated &&
+      node_operator_is(object_expr, eok_address_of)) {
+    /* Remove a compiler-generated address-of converting an lvalue to
+       a pointer. */
+    object_expr = object_expr->variant.operation.operands;
+  }  /* if */
+  if (object_expr->is_lvalue) {
     /* ".*" case. */
     gen_lvalue(object_expr);
     write_tok_str(".*");
@@ -6388,21 +6685,16 @@ of a "?" operation returning a class rvalue.  Generate code for it.
     arg = dip->variant.constructor.args;
     check_assertion(arg != NULL && arg->next == NULL);
     while (is_operation_node(arg) &&
-           arg->variant.operation.kind == (an_expr_operator_kind)eok_cast &&
            arg->variant.operation.compiler_generated) {
-      /* Remove cv-qualifier adjustment casts. */
+      /* Remove compiler-generated nodes that adjust cv-qualification,
+         handle references, etc. */
       arg = arg->variant.operation.operands;
     }  /* while */
     check_assertion(is_operation_node(arg) &&
                     arg->variant.operation.kind ==
-                                         (an_expr_operator_kind)eok_question &&
-                    !arg->variant.operation.
-                                       returns_lvalue_instead_of_usual_rvalue);
-    /* The value of the "?" is a pointer, so put the operation out
-       as an lvalue to undo the indirection. */
-    arg->variant.operation.returns_lvalue_instead_of_usual_rvalue = TRUE;
+                                          (an_expr_operator_kind)eok_question);
+    /* The value of the "?" is an lvalue. */
     gen_lvalue(arg);
-    arg->variant.operation.returns_lvalue_instead_of_usual_rvalue = FALSE;
   }  /* if */
 }  /* gen_class_rvalue_question_mark */
 
@@ -6422,9 +6714,6 @@ in determining how to generate dynamic initializations).
   a_dynamic_init_ptr dip = expr->variant.init.dynamic_init;
   a_type_ptr         temp_type = expr->type;
 
-  if (expr->variant.init.result_is_addr) {
-    temp_type = type_pointed_to(temp_type);
-  }  /* if */
   if (dip->is_reused_value) {
     /* A temp-init marked as a reused value is just put out as the
        underlying value. */
@@ -6524,56 +6813,6 @@ it as necessary.
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
-static unsigned long array_level_count(a_type_ptr type)
-/*
-Return the count of array levels in the indicated type, i.e., the
-number of levels of tk_array type entries before one gets to a non-array
-type.
-*/
-{
-  unsigned long count = 0;
-
-  while (is_array_type(type)) {
-    count++;
-    type = array_element_type(type);
-  }  /* while */
-  return count;
-}  /* array_level_count */
-
-
-static a_boolean is_array_decay_cast(an_expr_node_ptr expr)
-/*
-expr is a compiler-generated cast.  Return TRUE if it is a cast that
-implements an array-to-pointer decay; return FALSE otherwise.
-*/
-{
-  a_boolean  is_array_decay = FALSE;
-  a_type_ptr source_type = expr->variant.operation.operands->type;
-  a_type_ptr dest_type = expr->type;
-
-  if (is_pointer_type(dest_type) && is_pointer_type(source_type)) {
-    a_type_ptr source_type_pointed_to = type_pointed_to(source_type);
-    if (is_array_type(source_type_pointed_to)) {
-      /* A cast from a pointer to array type to a pointer type. */
-      a_type_ptr dest_type_pointed_to = type_pointed_to(dest_type);
-      /* Rule out implicit conversions to void *. */
-      if (!is_void_type(dest_type_pointed_to)) {
-        /* Since we know we are dealing with an implicit conversion,
-           any decrease in the count of array levels must be due to
-           an array type decay. */
-        /* Note that we avoid using types_are_compatible here because
-           it's not available in a standalone back end. */
-        if (array_level_count(source_type_pointed_to) >
-            array_level_count(dest_type_pointed_to)) {
-          is_array_decay = TRUE;
-        }  /* if */
-      }  /* if */
-    }  /* if */
-  }  /* if */
-  return is_array_decay;
-}  /* is_array_decay_cast */
-
-
 static a_boolean is_const_string_literal_cast(an_expr_node_ptr expr)
 /*
 expr is a compiler-generated cast.  Return TRUE if it is a cast that
@@ -6614,12 +6853,10 @@ generated as an expression and the expression is a named variable.
 */
 {
   a_boolean has_effective_name;
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
   if (constant_should_be_put_out_as_expr(con) &&
       con->expr->kind == (an_expr_node_kind)enk_variable) {
     has_effective_name = has_name(con->expr->variant.variable);
   } else
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
   /* Do not insert code here. */
   {
     has_effective_name = has_name(con);
@@ -6629,34 +6866,38 @@ generated as an expression and the expression is a named variable.
 
 
 static void gen_dot_static(an_expr_node_ptr operand_1,
-                           a_boolean        is_lvalue_1,
                            char             *opstr,
-                           an_expr_node_ptr operand_2,
-                           a_boolean        is_lvalue_2)
+                           an_expr_node_ptr operand_2)
 /*
 operand_1 and operand_2 are the operands of a "dot-static" operation, e.g.,
-eok_lvalue_dot_static.  operand_1 is an lvalue if is_lvalue_1 is TRUE,
-and operand_2 is an lvalue if is_lvalue_2 is TRUE.  Put out the operation,
-with the operator indicated by opstr.  opstr will be "" if the generated code
-for operand_1 will include the operator (for an operator->() call generated
-by handle_operator_call).
+eok_lvalue_dot_static.  Put out the operation, with the operator indicated
+by opstr.  opstr will be "" if the generated code for operand_1 will
+include the operator (for an operator->() call generated by
+handle_operator_call).
 */
 {
-  a_boolean      unknown_function_case = FALSE;
-  a_constant_ptr con;
-  a_type_ptr     operand_1_type = operand_1->type;
-  a_boolean      need_context_pop = FALSE;
-  a_boolean      use_comma = FALSE;
+  a_boolean        unknown_function_case = FALSE;
+  a_constant_ptr   con;
+  a_type_ptr       operand_1_type;
+  a_boolean        need_context_pop = FALSE;
+  a_boolean        use_comma = FALSE;
+  an_expr_node_ptr orig_operand_1 = operand_1;
 
   /* Put out the first operand. */
   /* Also determine the class type underlying the first operand. */
-  if (is_lvalue_1) {
+  operand_1 = strip_lvalue_cast_sequence(operand_1);
+  operand_1_type = operand_1->type;
+  if (*opstr == '-' && operand_1 != orig_operand_1) {
+    /* The front end inserted nodes to convert an lvalue to a pointer,
+       which we removed via strip_lvalue_cast_sequence; make sure we don't
+       use "->" with a non-pointer value. */
+    opstr = ".";
+  }  /* if */
+  if (operand_1->is_lvalue) {
     gen_lvalue(operand_1);
     /* Watch out for prototype instantiations. */
     if (is_template_param_or_nonreal_class_type(operand_1_type)) {
       operand_1_type = NULL;
-    } else {
-      operand_1_type = type_pointed_to(operand_1_type);
     }  /* if */
   } else {
     gen_expr_with_parens(operand_1);
@@ -6665,14 +6906,12 @@ by handle_operator_call).
     /* Watch out for prototype instantiations. */
     if (is_template_param_or_nonreal_class_type(operand_1_type)) {
       operand_1_type = NULL;
-    } else {
-      operand_1_type = type_pointed_to(operand_1_type);
     }  /* if */
   }  /* if */
   /* If the second operand has been turned into a constant (i.e., it
      was a const-valued variable), use a comma operator in the output
      to avoid generating something like "x.2". */
-  if (!is_lvalue_2 && is_constant_node(operand_2)) {
+  if (!operand_2->is_lvalue && is_constant_node(operand_2)) {
     con = operand_2->variant.constant;
     /* For unknown functions, we need to use the field-selection form,
        and we need to suppress the "&" below. */
@@ -6694,12 +6933,17 @@ by handle_operator_call).
       }  /* if */
     }  /* if */
   }  /* if */
-  if (operand_1_type != NULL && is_template_param_type(operand_1_type)) {
-    /* Replace a template parameter type by its proxy class, if it has
-       one, or by NULL if it doesn't have one. */
-    operand_1_type = skip_typerefs(operand_1_type);
-    operand_1_type =
+  if (operand_1_type != NULL) {
+    if (is_pointer_type(operand_1_type)) {
+      operand_1_type = type_pointed_to(operand_1_type);
+    }  /* if */
+    if (operand_1_type != NULL && is_template_param_type(operand_1_type)) {
+      /* Replace a template parameter type by its proxy class, if it has
+         one, or by NULL if it doesn't have one. */
+      operand_1_type = skip_typerefs(operand_1_type);
+      operand_1_type =
                  operand_1_type->variant.template_param.extra_info->class_type;
+    }  /* if */
   }  /* if */
   if (operand_1_type != NULL) {
     operand_1_type = skip_typerefs(operand_1_type);
@@ -6719,7 +6963,7 @@ by handle_operator_call).
   if (unknown_function_case) {
     /* Put out an unknown function without a leading "&". */
     form_unknown_function_constant(con, &octl);
-  } else if (is_lvalue_2) {
+  } else if (operand_2->is_lvalue) {
     gen_lvalue_no_parens(operand_2);
   } else {
     /* Put parentheses around the expression if it was changed to the ","
@@ -6748,9 +6992,7 @@ to indicate x.y or p->y where y is a static member.
       (expr->variant.operation.kind ==
                                (an_expr_operator_kind)eok_points_to_static ||
        expr->variant.operation.kind ==
-                               (an_expr_operator_kind)eok_lvalue_dot_static ||
-       expr->variant.operation.kind ==
-                               (an_expr_operator_kind)eok_rvalue_dot_static)) {
+                               (an_expr_operator_kind)eok_dot_static)) {
     is_dot_static = TRUE;
   }  /* if */
   return is_dot_static;
@@ -6764,8 +7006,17 @@ Output a new-style cast.
 {
   char       *opstr;
   a_type_ptr type = expr->type;
+  a_type_ptr base_type = skip_typerefs(type);
   a_type     type_copy;
 
+  if (is_pointer_type(base_type) &&
+      expr->variant.operation.is_reference_cast) {
+    /* This was a cast to a reference type originally; turn the pointer
+       type back into a reference. */
+    type_copy = *base_type;
+    type_copy.variant.pointer.is_reference = TRUE;
+    type = &type_copy;
+  }  /* if */
   switch (expr->variant.operation.kind) {
     case eok_static_cast:
       opstr = "static_cast";
@@ -6784,21 +7035,16 @@ Output a new-style cast.
   }  /* switch */
   write_tok_str(opstr);
   write_tok_str("< ");
-  /* For casts that were reference casts originally, the type in the
-     expression is the corresponding  pointer type, and the
-     is_reference_cast flag is set. */
-  if (expr->variant.operation.is_reference_cast) {
-    type = skip_typerefs(type);
-    check_assertion(type->kind == (a_type_kind)tk_pointer);
-    type_copy = *type;
-    type_copy.variant.pointer.is_reference = TRUE;
-    type = &type_copy;
-  }  /* if */
   gen_type(type);
   write_tok_str(">(");
   if (is_reference_type(expr->type)) {
-    /* The operand is an lvalue if the type is a reference type. */
-    gen_lvalue_no_parens(expr->variant.operation.operands);
+    /* If the result type is a reference, the operand is an lvalue (under
+       a compiler-generated address_of operation). */
+    an_expr_node_ptr operand = expr->variant.operation.operands;
+    check_assertion(is_operation_node(operand) &&
+                    operand->variant.operation.compiler_generated &&
+                    node_operator_is(operand, eok_address_of));
+    gen_lvalue_no_parens(operand->variant.operation.operands);
   } else {
     gen_expression(expr->variant.operation.operands);
   }  /* if */
@@ -6825,7 +7071,6 @@ Generate a va_arg operator.  Used when <stdarg.h> is treated as a builtin.
   an_expr_node_ptr operand_1 = expr->variant.operation.operands;
   a_type_ptr       type = expr->type;
 
-  if (node_operator_is(expr, eok_lvalue_va_arg)) type = type_pointed_to(type);
   disable_line_wrapping();
   if (gcc_builtin_varargs_in_generated_code) {
     /* Use the intrinsic GNU C/C++ "__builtin_va_arg". */
@@ -6839,6 +7084,42 @@ Generate a va_arg operator.  Used when <stdarg.h> is treated as a builtin.
   write_tok_ch(')');
   enable_line_wrapping();
 }  /* gen_va_arg */
+
+
+static an_expr_node_ptr strip_lvalue_cast_sequence(an_expr_node_ptr expr)
+/*
+When the front end needs to add a cast to an lvalue node (to add
+cv-qualification, for example), it inserts a compiler-generated sequence of
+nodes equivalent to "*(const T*)&" on top of the lvalue node.  This routine
+recognizes this pattern (in which case, expr points to a cast node -- the
+eok_indirect node was recognized and skipped by the caller) and returns the
+original lvalue.
+*/
+{
+  an_expr_node_ptr node = expr;
+
+  if (is_constant_node(node)) {
+    a_constant_ptr constant = node->variant.constant;
+    if (constant_should_be_put_out_as_expr(constant)) {
+      /* This might be a constant node on top of an lvalue cast sequence. */
+      node = constant->expr;
+    }  /* if */
+  }  /* if */
+  while(is_operation_node(node) &&
+      node->variant.operation.compiler_generated &&
+      (node_operator_is(node, eok_cast) ||
+       node_operator_is(node, eok_base_class_cast))) {
+    node = node->variant.operation.operands;
+  }  /* while */
+  if (is_operation_node(node) &&
+      node->variant.operation.compiler_generated &&
+      node_operator_is(node, eok_address_of)) {
+    /* We can ignore the *(<type>)&" sequence and just process the
+       operand directly. */
+    expr = node->variant.operation.operands;
+  }  /* if */
+  return expr;
+}  /* strip_lvalue_cast_sequence */
 
 
 static void gen_lvalue_full(an_expr_node_ptr node,
@@ -6858,34 +7139,30 @@ temporary expressions).
   an_expr_node_kind  kind;
   a_boolean          processed = FALSE;
   a_dynamic_init_ptr dip;
+  a_boolean          saved_is_lvalue;
 
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
   /* If the lvalue address is a constant that came from an expression, go to
      the expression.  This allows optimizations. */
   if (is_constant_node(node) &&
       constant_should_be_put_out_as_expr(node->variant.constant)) {
     node = node->variant.constant->expr;
   }  /* if */
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
+  if (is_operation_node(node) && node_operator_is(node, eok_reference_to)) {
+    /* This is the implicit dereference of a node with reference type.  Put
+       out the node being dereferenced. */
+    node = node->variant.operation.operands;
+  }  /* if */
+  check_assertion(node->is_lvalue ||
+                  node->kind == (an_expr_node_kind)enk_object_lifetime);
   kind = node->kind;
-  if (node->implicit_reference_indirection) {
-    /* This node includes an indirection for a C++ reference type.
-       That is, there's an indirection that's explicit in the IL but is
-       implicit in the source.  That cancels out the indirection we
-       would be adding in the source relative to what's in the IL, so
-       just put out the expression. */
-    node->implicit_reference_indirection = FALSE;
-    gen_expr(node, need_parens);
-    node->implicit_reference_indirection = TRUE;
-    processed = TRUE;
-  } else if (kind == (an_expr_node_kind)enk_variable_address) {
+  if (kind == (an_expr_node_kind)enk_variable) {
     /* Address of variable: just write the variable name. */
     gen_name_from_variable_node(node);
     processed = TRUE;
-  } else if (kind == (an_expr_node_kind)enk_routine_address) {
-    /* Address of routine: just write the routine name. */
-    gen_name_from_routine_address_node(node, /*unqualified=*/FALSE,
-                                       /*suppress_ampersand=*/FALSE);
+  } else if (kind == (an_expr_node_kind)enk_routine) {
+    /* A routine: just write the routine name. */
+    gen_name_from_routine_node(node, /*unqualified=*/FALSE,
+                               /*use_ampersand=*/FALSE);
     processed = TRUE;
   } else if (kind == (an_expr_node_kind)enk_operation) {
     an_expr_operator_kind op = node->variant.operation.kind;
@@ -6972,26 +7249,17 @@ temporary expressions).
           /* If operand_1 is an invocation of operator->() that will be
              generated as "->", pass "" as the opstr instead of "->" to
              avoid generating "->->". */
-          gen_dot_static(operand_1, /*is_lvalue_1=*/FALSE,
+          gen_dot_static(operand_1,
                          (char *)(is_operator_syntax_arrow(operand_1) ?
                                                                     "" : "->"),
-                         operand_2, /*is_lvalue_2=*/TRUE);
+                         operand_2);
           if (need_parens) write_tok_ch(')');
           processed = TRUE;
           break;
-        case eok_lvalue_dot_static:
-          /* Static member selection, lvalue.m. */
+        case eok_dot_static:
+          /* Static member selection, x.m. */
           if (need_parens) write_tok_ch('(');
-          gen_dot_static(operand_1, /*is_lvalue_1=*/TRUE, ".",
-                         operand_2, /*is_lvalue_2=*/TRUE);
-          if (need_parens) write_tok_ch(')');
-          processed = TRUE;
-          break;
-        case eok_rvalue_dot_static:
-          /* Static member selection, rvalue.m. */
-          if (need_parens) write_tok_ch('(');
-          gen_dot_static(operand_1, /*is_lvalue_1=*/FALSE, ".",
-                         operand_2, /*is_lvalue_2=*/TRUE);
+          gen_dot_static(operand_1, ".", operand_2);
           if (need_parens) write_tok_ch(')');
           processed = TRUE;
           break;
@@ -6999,8 +7267,10 @@ temporary expressions).
           /* Other case (e.g., lvalue-returning assignment).  Just put the
              expression out. */
           node->variant.operation.returns_lvalue_instead_of_usual_rvalue=FALSE;
+          node->is_lvalue = FALSE;
           gen_expr(node, need_parens);
           node->variant.operation.returns_lvalue_instead_of_usual_rvalue=TRUE;
+          node->is_lvalue = TRUE;
           processed = TRUE;
           break;
       }  /* switch */
@@ -7011,22 +7281,18 @@ temporary expressions).
       processed = TRUE;
     } else {
       switch (op) {
-        case eok_padd_subsc:
-          /* The expression is a pointer addition.  It can be rewritten as
-             a subscripting operation (i.e., *(a+b) becomes a[b]). */
+        case eok_subscript:
+          /* The expression is a subscripting operation. */
           if (need_parens) write_tok_ch('(');
           gen_expr_with_parens(operand_1);
           gen_array_subscript(operand_2);
           if (need_parens) write_tok_ch(')');
           processed = TRUE;
           break;
-        case eok_field:
-        case eok_bit_field:
-          /* The expression is a field selection, which has an implicit "&"
-             in front of it (in C terms).  Adding the indirection removes 
-             the "&". */
+        case eok_dot_field:
+        case eok_points_to_field:
           if (need_parens) write_tok_ch('(');
-          gen_simple_field_selection(operand_1, operand_2);
+          gen_simple_field_selection(operand_1, operand_2, op);
           if (need_parens) write_tok_ch(')');
           processed = TRUE;
           break;
@@ -7049,7 +7315,9 @@ temporary expressions).
         case eok_lvalue_cast:
           /* Lvalue cast. */
           if (need_parens) write_tok_ch('(');
-          gen_cast(type_pointed_to(node->type));
+          if (!node->variant.operation.compiler_generated) {
+            gen_cast(node->type);
+          }  /* if */
           gen_lvalue(operand_1);
           if (need_parens) write_tok_ch(')');
           processed = TRUE;
@@ -7062,22 +7330,9 @@ temporary expressions).
               !node->variant.operation.keep_cast_for_cp_gen_be) {
             /* Implicit cast.  Remove to avoid problems with casting address
                of enk_temp_init to some related type. */
-            if (is_array_decay_cast(node)) {
-              /* A cast that does array-to-pointer decay.  The cast can be
-                 removed, but an extra indirection has to be applied to the
-                 underlying lvalue.  That is, "(int *[3])&x" becomes "x",
-                 not "&x". */
-              if (need_parens) write_tok_ch('(');
-              write_tok_ch('*');
-              gen_lvalue(operand_1);
-              if (need_parens) write_tok_ch(')');
-              processed = TRUE;
-            } else {
-              /* Normal cast. */
-              gen_lvalue_full(operand_1, need_parens,
-                              obj_expr_of_mfunc_operator);
-              processed = TRUE;
-            }  /* if */
+            gen_lvalue_full(operand_1, need_parens,
+                            obj_expr_of_mfunc_operator);
+            processed = TRUE;
           } else {
             /* Explicit cast.  In C++, handle as a reference cast.  In C,
                leave to be done in the general way. */
@@ -7174,25 +7429,30 @@ temporary expressions).
           }  /* if */
           break;
         case eok_rvalue:
-          /* Operand is an rvalue where an lvalue is expected. */
+          /* Operand is generic but used where an rvalue is expected. */
+          saved_is_lvalue = operand_1->is_lvalue;
+          operand_1->is_lvalue = FALSE;
           gen_expr(operand_1, need_parens);
+          operand_1->is_lvalue = saved_is_lvalue;
           processed = TRUE;
           break;
         case eok_lvalue:
-          /* Operand is an lvalue where an lvalue is expected. */
-          gen_lvalue_full(operand_1, need_parens,
-                          obj_expr_of_mfunc_operator);
+          /* Operand is generic but used where an lvalue is expected. */
+          saved_is_lvalue = operand_1->is_lvalue;
+          operand_1->is_lvalue = TRUE;
+          gen_expr(operand_1, need_parens);
+          operand_1->is_lvalue = saved_is_lvalue;
           processed = TRUE;
           break;
 #if GNU_EXTENSIONS_ALLOWED
-        case eok_lvalue_real_part:
+        case eok_real_part:
           /* __real applied to an lvalue -- no explicit indirection needed. */
           write_tok_str("__real(");
           gen_lvalue_no_parens(operand_1);
           write_tok_ch(')');
           processed = TRUE;
           break;
-        case eok_lvalue_imag_part:
+        case eok_imag_part:
           /* __imag applied to an lvalue -- no explicit indirection needed. */
           write_tok_str("__imag(");
           gen_lvalue_no_parens(operand_1);
@@ -7200,12 +7460,6 @@ temporary expressions).
           processed = TRUE;
           break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
-        case eok_lvalue_va_arg:
-          /* <stdarg.h> va_arg macro, treated as a builtin operator that
-             returns an lvalue. */
-          gen_va_arg(node);
-          processed = TRUE;
-          break;
         default:
           break;
       }  /* switch */
@@ -7220,9 +7474,7 @@ temporary expressions).
     a_template_param_constant_kind tpkind =
                                          constant->variant.template_param.kind;
     if (tpkind == (a_template_param_constant_kind)tpck_address) {
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
       check_assertion(constant->expr == NULL);
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
       /* Put out the member name without the "&". */
       form_constant(constant->variant.template_param.variant.constant,
 		    need_parens, &octl);
@@ -7265,7 +7517,7 @@ temporary expressions).
                                  &octl);
     processed = TRUE;
   } else if (kind == (an_expr_node_kind)enk_temp_init &&
-             node->variant.init.result_is_addr) {
+             node->is_lvalue) {
     /* A temporary initialization with the address of the temporary used as
        the node value.  Just put out the underlying value. */
     gen_temp_init(node, obj_expr_of_mfunc_operator);
@@ -7288,11 +7540,10 @@ temporary expressions).
     processed = TRUE;
   }  /* if */
   if (!processed) {
-    /* Not a special case: write "*expression". */
-    if (need_parens) write_tok_ch('(');
-    write_tok_ch('*');
-    gen_expr_with_parens(node);
-    if (need_parens) write_tok_ch(')');
+    /* Not a special case: just put out the expression. */
+    node->is_lvalue = FALSE;
+    gen_expr(node, need_parens);
+    node->is_lvalue = TRUE;
   }  /* if */
 }  /* gen_lvalue_full */
 
@@ -7326,6 +7577,50 @@ try_again:
   }  /* if */
   return expr;
 }  /* skip_implicit_ptr_type_qualifier_adjustment_cast */
+
+
+static void gen_lvalue_object_expr(an_expr_node_ptr expr,
+                                   a_boolean        obj_expr_of_mfunc_operator)
+/*
+Generate an lvalue expression that is used as the object expression in a
+member access.  If it is a constant node, use the expression inside the
+constant.  Skip over any compiler-generated base class and qualification
+casts, as well as a compiler-generated eok_address_of operator (that
+converts an lvalue into the "this" pointer).  Parentheses are always
+added, and obj_expr_of_mfunc_operator is passed on to gen_lvalue_full.
+*/
+{
+  a_type_ptr naming_class;
+
+  while (is_constant_node(expr) &&
+      constant_should_be_put_out_as_expr(expr->variant.constant)) {
+    expr = expr->variant.constant->expr;
+  }  /* while */
+  expr = skip_implicit_ptr_type_qualifier_adjustment_cast(expr);
+  expr = optimized_expr_for_selection(expr, &naming_class);
+  if (is_operation_node(expr) &&
+      node_operator_is(expr, eok_address_of) &&
+      expr->variant.operation.compiler_generated) {
+    /* Skip over the eok_address_of node to the underlying lvalue. */
+    expr = expr->variant.operation.operands;
+  }  /* if */
+  if (expr->is_lvalue) {
+    gen_lvalue_full(expr, /*need_parens=*/TRUE, obj_expr_of_mfunc_operator);
+  } else if (is_constant_node(expr) &&
+             expr->variant.constant->kind ==
+                                            (a_constant_repr_kind)ck_address &&
+             expr->variant.constant->variant.address.kind ==
+                                          (an_address_base_kind)abk_variable) {
+    /* This is an address constant expression -- treat it like an lvalue. */
+    expr->is_lvalue = TRUE;
+    gen_lvalue(expr);
+    expr->is_lvalue = FALSE;
+  } else {
+    /* Rvalues can be used as object expressions, so just generate the
+       expression. */
+    gen_expr_with_parens(expr);
+  }  /* if */
+}  /* gen_lvalue_object_expr */
 
 
 /*
@@ -7503,7 +7798,14 @@ when the corresponding flag is TRUE.
   } else {
     gen_cast(dest_type);
   }  /* if */
-  if (is_reference_cast) {
+  if (is_reference_cast && is_operation_node(expr) &&
+      expr->variant.operation.compiler_generated &&
+      node_operator_is(expr, eok_address_of)) {
+    /* The address-of is just an artifact of needing a pointer to apply
+       the cast to; it wasn't there in the source, so skip over it here. */
+    expr = expr->variant.operation.operands;
+  }  /* if */
+  if (expr->is_lvalue) {
     gen_lvalue(expr);
   } else {
     gen_expr_with_parens(expr);
@@ -7769,13 +8071,21 @@ Generate "object->function", a bound function expression.
 If suppress_virtual is TRUE, suppress virtual-ness on the function reference.
 */
 {
-  a_routine_ptr rout;
+  a_routine_ptr rout = NULL;
   a_type_ptr    naming_class, selection_class;
   a_boolean     force_qualified_name = FALSE;
   a_boolean     suppress_this = FALSE;
 
-  check_assertion(func_expr->kind == (an_expr_node_kind)enk_routine_address);
-  rout = func_expr->variant.routine;
+  if (is_routine_node(func_expr)) {
+    rout = func_expr->variant.routine;
+  } else if (is_constant_node(func_expr)) {
+    a_constant_ptr con = func_expr->variant.constant;
+    if (con->kind == (a_constant_repr_kind)ck_address &&
+        con->variant.address.kind == (an_address_base_kind)abk_routine) {
+      rout = con->variant.address.variant.routine;
+    }  /* if */
+  }  /* if */
+  check_assertion(rout != NULL);
   if (is_template_param_or_nonreal_class_type(object_expr->type)) {
     /* In a prototype instantiation, the left operand can be a class type
        that might have an operator-> function.  This can come up only
@@ -7796,6 +8106,7 @@ If suppress_virtual is TRUE, suppress virtual-ness on the function reference.
  #error -- OPTIMIZE_VIRTUAL_FUNCTION_CALLS should be FALSE for the \
            C++-generating back end
 #endif /* OPTIMIZE_VIRTUAL_FUNCTION_CALLS */
+    an_expr_node_ptr restore_lvalue_flag = NULL;
     /* Remove any cast that just adjusts the type qualifiers (e.g., adds
        const); it's implied by the context. */
     object_expr= skip_implicit_ptr_type_qualifier_adjustment_cast(object_expr);
@@ -7803,11 +8114,24 @@ If suppress_virtual is TRUE, suppress virtual-ness on the function reference.
     object_expr = optimized_expr_for_selection(object_expr, &naming_class);
     selection_class = type_pointed_to(object_expr->type);
     selection_class = skip_typerefs(selection_class);
-    if ((is_variable_node(object_expr) &&
-         !object_expr->implicit_reference_indirection) ||
-        (is_operation_node(object_expr) &&
-         object_expr->variant.operation.kind ==
-                                          (an_expr_operator_kind)eok_rvalue)) {
+    if (is_constant_node(object_expr) &&
+        constant_should_be_put_out_as_expr(object_expr->variant.constant)) {
+      /* Use the expression that the constant represents. */
+      object_expr = object_expr->variant.constant->expr;
+    }  /* if */
+    if (is_operation_node(object_expr) &&
+        node_operator_is(object_expr, eok_address_of) &&
+        object_expr->variant.operation.compiler_generated) {
+      /* Skip over the eok_address_of node to the underlying lvalue. */
+      object_expr = object_expr->variant.operation.operands;
+    } else if (is_cast_operation_node(object_expr) &&
+               object_expr->variant.operation.is_reference_cast) {
+      /* This is a node that was originally a reference cast in the source,
+         so treat the cast itself like an lvalue, too. */
+      restore_lvalue_flag = object_expr;
+      object_expr->is_lvalue = TRUE;
+    }  /* if */
+    if (!object_expr->is_lvalue) {
       /* Use a pointer and "->".  Don't do it when there's an implicit
          reference indirection on the object, because that will add a "&"
          that may mean the wrong thing if operator& is overloaded. */
@@ -7849,9 +8173,32 @@ If suppress_virtual is TRUE, suppress virtual-ness on the function reference.
         suppress_this = FALSE;
       }  /* if */
       if (!suppress_this) {
-        /* Put out object pointer and "->". */
-        gen_expr_with_parens(object_expr);
-        write_tok_str("->");
+        if (is_operator_syntax_arrow(object_expr)) {
+          /* Generation of object_expr will include the "->" token. */
+          gen_expression(object_expr);
+        } else {
+          a_boolean use_arrow = TRUE;
+          if (object_expr->kind == (an_expr_node_kind)enk_reuse_value) {
+            /* This can come up in accesses to Microsoft property fields.
+               We need to look inside the reused value to see if there's
+               an implicit "&" that will be stripped off so we can tell
+               whether to generate "->" or ".". */
+            a_dynamic_init_ptr dip = object_expr->variant.reused_value_init;
+            if (dip->kind == (a_dynamic_init_kind)dik_expression) {
+              an_expr_node_ptr orig_expr =
+                           strip_lvalue_cast_sequence(dip->variant.expression);
+              if (!is_pointer_type(orig_expr->type)) {
+                use_arrow = FALSE;
+              }  /* if */
+            }  /* if */
+          }  /* if */
+          gen_expr_with_parens(object_expr);
+          if (use_arrow) {
+            write_tok_str("->");
+          } else {
+            write_tok_str(".");
+          }  /* if */
+        }  /* if */
       }  /* if */
     } else {
       /* Use an lvalue and ".". */
@@ -7872,8 +8219,9 @@ If suppress_virtual is TRUE, suppress virtual-ness on the function reference.
       if (overparenthesize) {
         write_tok_str("))");
       }  /* if */
-      if (!is_operator_syntax_arrow(object_expr)) {
-        write_tok_ch('.');
+      write_tok_ch('.');
+      if (restore_lvalue_flag != NULL) {
+        restore_lvalue_flag->is_lvalue = FALSE;
       }  /* if */
     }  /* if */
   }  /* if */
@@ -7954,7 +8302,7 @@ call in the normal way.
      written in function call form, e.g., X.operator int().  Those should
      be left as calls. */
   if (expr->variant.operation.is_conversion_call &&
-      operand_1->kind == (an_expr_node_kind)enk_routine_address &&
+      operand_1->kind == (an_expr_node_kind)enk_routine &&
       operand_1->variant.routine->special_kind ==
                                      (a_special_function_kind)sfk_conversion) {
     a_routine_ptr routine = operand_1->variant.routine;
@@ -7965,7 +8313,7 @@ call in the normal way.
     if (expr->variant.operation.compiler_generated &&
         !expr->variant.operation.keep_cast_for_cp_gen_be) {
       /* This is an implicit conversion.  Put out just the operand. */
-      gen_lvalue(operand_2);
+      gen_lvalue_object_expr(operand_2, /*obj_expr_of_mfunc_operator=*/FALSE);
       handled = TRUE;
     } else if (in_ctor_default_argument &&
                msvc_is_generated_code_target &&
@@ -7983,7 +8331,7 @@ call in the normal way.
          class type is enclosed in parentheses in that context. */
       gen_type_name(bare_return_type);
       write_tok_ch('(');
-      gen_lvalue(operand_2);
+      gen_lvalue_object_expr(operand_2, /*obj_expr_of_mfunc_operator=*/FALSE);
       write_tok_ch(')');
       handled = TRUE;
     } else {
@@ -7991,7 +8339,7 @@ call in the normal way.
          cases, e.g., when the conversion function cannot be named. */
       write_tok_ch('(');
       gen_cast(return_type);
-      gen_lvalue(operand_2);
+      gen_lvalue_object_expr(operand_2, /*obj_expr_of_mfunc_operator=*/FALSE);
       write_tok_ch(')');
       handled = TRUE;
     }  /* if */
@@ -8074,7 +8422,7 @@ return FALSE and let the caller generate the code normally.
 
   if (expr->variant.operation.call_uses_operator_syntax) {
     an_expr_node_ptr              func_expr = expr->variant.operation.operands;
-    a_routine_ptr                 rp;
+    a_routine_ptr                 rp = NULL;
     a_type_ptr                    rout_type;
     a_routine_type_supplement_ptr rtsp;
     a_param_type_ptr              param;
@@ -8086,12 +8434,18 @@ return FALSE and let the caller generate the code normally.
     char                          *op_name;
     char                          *right_half;
 
-    check_assertion_str(func_expr != NULL &&
-                        func_expr->kind ==
-                                        (an_expr_node_kind)enk_routine_address,
+    check_assertion(func_expr != NULL);
+    if (is_routine_node(func_expr)) {
+      rp = func_expr->variant.routine;
+    } else if (is_constant_node(func_expr)) {
+      a_constant_ptr con = func_expr->variant.constant;
+      if (con->kind == (a_constant_repr_kind)ck_address &&
+          con->variant.address.kind == (an_address_base_kind)abk_routine) {
+        rp = con->variant.address.variant.routine;
+      }  /* if */
+    }  /* if */
+    check_assertion_str(rp != NULL,
                      "handle_operator_call: operand not a function constant.");
-
-    rp = func_expr->variant.routine;
     check_assertion_str(rp->special_kind ==
 	                                 (a_special_function_kind)sfk_operator,
           "handle_operator_call: non-operator function using operator syntax");
@@ -8162,8 +8516,7 @@ return FALSE and let the caller generate the code normally.
     if (routine_type_is_nonstatic_member_function(rp->type)) {
       /* The first operand is the member function's "this" pointer:
          generate it as an lvalue. */
-      gen_lvalue_full(arg, /*need_parens=*/TRUE,
-                      /*obj_expr_of_mfunc_operator=*/TRUE);
+      gen_lvalue_object_expr(arg, /*obj_expr_of_mfunc_operator=*/TRUE);
       arg = arg->next;
     } else {
       /* For non-member functions, there's a parameter declaration to
@@ -8277,9 +8630,10 @@ Generate code for the indicated expression, which is a non-virtual call.
        the source, as opposed to an explicit function call ("operator+(a,b)").
        Code was generated by the subroutine. */
   } else {
-    a_boolean need_close_paren = FALSE;
-    a_boolean need_arg_dep_close_paren = FALSE;
-    a_boolean is_dot_static = is_dot_static_operation(func_expr);
+    a_boolean     need_close_paren = FALSE;
+    a_boolean     need_arg_dep_close_paren = FALSE;
+    a_boolean     is_dot_static = is_dot_static_operation(func_expr);
+    a_routine_ptr rout = NULL;
 
     if (is_dot_static) {
       /* Put parentheses around a call using a dot-static operator
@@ -8294,9 +8648,17 @@ Generate code for the indicated expression, which is a non-virtual call.
       write_tok_ch('(');
       need_arg_dep_close_paren = TRUE;
     }  /* if */
-    if (func_expr->kind == (an_expr_node_kind)enk_routine_address) {
+    if (is_routine_node(func_expr)) {
+      rout = func_expr->variant.routine;
+    } else if (is_constant_node(func_expr)) {
+      a_constant_ptr con = func_expr->variant.constant;
+      if (con->kind == (a_constant_repr_kind)ck_address &&
+          con->variant.address.kind == (an_address_base_kind)abk_routine) {
+        rout = con->variant.address.variant.routine;
+      }  /* if */
+    }  /* if */
+    if (rout != NULL) {
       /* We can tell which routine is being called. */
-      a_routine_ptr rout = func_expr->variant.routine;
       a_type_ptr    rout_type = skip_typerefs(rout->type);
       if (rout_type->variant.routine.extra_info->this_class != NULL) {
         /* Nonstatic member function call, so put out the selector object
@@ -8305,10 +8667,10 @@ Generate code for the indicated expression, which is a non-virtual call.
         args = args->next;
       } else {
         /* Nonmember function or static member function. */
-        gen_name_from_routine_address_node(
+        gen_name_from_routine_node(
                func_expr,
                expr->variant.operation.only_found_through_arg_dependent_lookup,
-               /*suppress_ampersand=*/TRUE);
+               /*use_ampersand=*/FALSE);
       }  /* if */
     } else if (is_dot_static) {
       /* Call of a static member function identified by a static
@@ -8366,24 +8728,27 @@ selections.  Multilevel cases (e.g., "__builtin_offsetof(T, x.y[3])") are
 handled through recursion.
 */
 {
-  an_expr_node_ptr  arg1, arg2;
+  an_expr_node_ptr      arg1, arg2;
+  an_expr_operator_kind op;
 
   check_assertion(is_operation_node(expr));
   arg1 = expr->variant.operation.operands;
   arg2 = arg1->next;
   /* Skip any (pointer) casts on the first operand. */
-  while (is_operation_node(arg1) &&
-         (arg1->variant.operation.kind == (an_expr_operator_kind)eok_cast ||
-          arg1->variant.operation.kind ==
-                                (an_expr_operator_kind)eok_base_class_cast)) {
-    arg1 = arg1->variant.operation.operands;
-  }  /* while */
+  arg1 = strip_lvalue_cast_sequence(arg1);
   switch (expr->variant.operation.kind) {
-    case eok_field:
-    case eok_lvalue_dot_static:
+    case eok_dot_field:
+    case eok_points_to_field:
+    case eok_dot_static:
+    case eok_points_to_static:
 #if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
-      arg1 = remove_nonstandard_anonymous_union_field_selections(arg1);
+      arg1 = remove_nonstandard_anonymous_union_field_selections(arg1, &op);
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
+      if (node_operator_is(arg1, eok_indirect) &&
+          arg1->variant.operation.compiler_generated) {
+        /* Skip over a compiler-generated indirection node. */
+        arg1 = arg1->variant.operation.operands;
+      }  /* if */
       if (!is_constant_node(arg1)) {
         /* This is not the bottom-most operation (which is applied to a null
            pointer constant that is just a placeholder).  Render the
@@ -8391,18 +8756,20 @@ handled through recursion.
         gen_member_selector_for_builtin_offsetof(arg1);
         write_tok_ch('.');
       }  /* if */
-      if (expr->variant.operation.kind == (an_expr_operator_kind)eok_field) {
+      if (node_operator_is(expr, eok_dot_field) ||
+          node_operator_is(expr, eok_points_to_field)) {
         gen_field_reference(arg2);
       } else {
         gen_lvalue_no_parens(arg2);
       }  /* if */
       break;
-    case eok_padd_subsc:
+    case eok_subscript:
       gen_member_selector_for_builtin_offsetof(arg1);
       gen_array_subscript(arg2);
       break;
     case eok_cast:
     case eok_base_class_cast:
+    case eok_array_to_pointer:
       /* The casts are implicit and should not be rendered. */
       gen_member_selector_for_builtin_offsetof(arg1);
       break;
@@ -8466,293 +8833,6 @@ Most cases fit a simple pattern, but some require special handling.
 }  /* gen_builtin_operation */
 
 
-/*
-Precedence of the generated form of expression operators, used to determine
-whether parentheses are needed around a given expression operand.  If you add
-operators to this list and are uncertain about the precedence to use, it is
-always safe to use PREC_LOWEST, which effectively results in use of
-gen_expr_with_parens to generate the expression containing the operator.  If
-a given operator may be generated in different forms, this table should
-reflect the one with the lowest precedence.
-*/
-static a_byte generated_precedence[] = {
-  PREC_PREFIX,		/* eok_indirect */
-  PREC_PREFIX,		/* eok_inegate */
-#if FIXED_POINT_ALLOWED
-  PREC_PREFIX,		/* eok_fxnegate */
-#endif /* FIXED_POINT_ALLOWED */
-  PREC_PREFIX,		/* eok_fnegate */
-  PREC_PREFIX,		/* eok_unary_plus */
-  PREC_PREFIX,		/* eok_not */
-  PREC_CAST,		/* eok_cast (NOTE: cases where the cast is not
-                           generated are filtered out by
-                           parens_may_be_needed) */
-#ifdef CIL
-  PREC_CAST,		/* eok_base_class_cast */
-  PREC_CAST,		/* eok_derived_class_cast */
-  PREC_CAST,		/* eok_pm_base_class_cast */
-  PREC_CAST,		/* eok_pm_derived_class_cast */
-  PREC_CAST,		/* eok_lvalue_cast */
-  PREC_POSTFIX,		/* eok_dynamic_cast */
-  PREC_CAST,		/* eok_bool_cast */
-  PREC_PREFIX,		/* eok_complement */
-  PREC_POSTFIX,		/* eok_ipost_incr */
-  PREC_POSTFIX,		/* eok_ipost_decr */
-  PREC_PREFIX,		/* eok_ipre_incr */
-  PREC_PREFIX,		/* eok_ipre_decr */
-#if FIXED_POINT_ALLOWED
-  PREC_POSTFIX,		/* eok_fxpost_incr */
-  PREC_POSTFIX,		/* eok_fxpost_decr */
-  PREC_PREFIX,		/* eok_fxpre_incr */
-  PREC_PREFIX,		/* eok_fxpre_decr */
-#endif /* FIXED_POINT_ALLOWED */
-  PREC_POSTFIX,		/* eok_fpost_incr */
-  PREC_POSTFIX,		/* eok_fpost_decr */
-  PREC_PREFIX,		/* eok_fpre_incr */
-  PREC_PREFIX,		/* eok_fpre_decr */
-  PREC_POSTFIX,		/* eok_ppost_incr */
-  PREC_POSTFIX,		/* eok_ppost_decr */
-  PREC_PREFIX,		/* eok_ppre_incr */
-  PREC_PREFIX,		/* eok_ppre_decr */
-  PREC_LOWEST,		/* eok_lvalue_from_struct_rvalue (NOTE: the
-                           generated code for this operator just copies the
-                           operand up, so we don't know anything about how
-                           it might actually be generated, hence the
-                           PREC_LOWEST) */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  PREC_POSTFIX,		/* eok_assume */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#endif /* CIL */
-#if defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED
-  PREC_PREFIX,		/* eok_xnegate */
-#endif /* defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED */
-#ifdef FIL
-  PREC_LOWEST,		/* eok_char_length */
-  PREC_LOWEST,		/* eok_address_of_value */
-  PREC_LOWEST,		/* eok_loc */
-  PREC_LOWEST,		/* eok_test_logical */
-#endif /* FIL */
-  PREC_PLUS_MINUS,	/* eok_iadd */
-  PREC_PLUS_MINUS,	/* eok_isubtract */
-  PREC_MULT_DIV,	/* eok_imultiply */
-  PREC_MULT_DIV,	/* eok_idivide */
-  PREC_EQ_NE,		/* eok_ieq */
-  PREC_EQ_NE,		/* eok_ine */
-  PREC_RELATIONAL,	/* eok_igt */
-  PREC_RELATIONAL,	/* eok_ilt */
-  PREC_RELATIONAL,	/* eok_ige */
-  PREC_RELATIONAL,	/* eok_ile */
-  PREC_GNU_MIN_MAX,	/* eok_ignu_min */
-  PREC_GNU_MIN_MAX,	/* eok_ignu_max */
-  PREC_ASSIGNMENT,	/* eok_iassign */
-#if FIXED_POINT_ALLOWED
-  PREC_PLUS_MINUS,	/* eok_fxadd */
-  PREC_PLUS_MINUS,	/* eok_fxsubtract */
-  PREC_MULT_DIV,	/* eok_fxmultiply */
-  PREC_MULT_DIV,	/* eok_fxdivide */
-  PREC_SHIFT,		/* eok_fxshiftl */
-  PREC_SHIFT,		/* eok_fxshiftr */
-  PREC_EQ_NE,		/* eok_fxeq */
-  PREC_EQ_NE,		/* eok_fxne */
-  PREC_RELATIONAL,	/* eok_fxgt */
-  PREC_RELATIONAL,	/* eok_fxlt */
-  PREC_RELATIONAL,	/* eok_fxge */
-  PREC_RELATIONAL,	/* eok_fxle */
-  PREC_ASSIGNMENT,	/* eok_fxassign */
-#endif /* FIXED_POINT_ALLOWED */
-  PREC_PLUS_MINUS,	/* eok_fadd */
-  PREC_PLUS_MINUS,	/* eok_fsubtract */
-  PREC_MULT_DIV,	/* eok_fmultiply */
-  PREC_MULT_DIV,	/* eok_fdivide */
-  PREC_EQ_NE,		/* eok_feq */
-  PREC_EQ_NE,		/* eok_fne */
-  PREC_RELATIONAL,	/* eok_fgt */
-  PREC_RELATIONAL,	/* eok_flt */
-  PREC_RELATIONAL,	/* eok_fge */
-  PREC_RELATIONAL,	/* eok_fle */
-  PREC_GNU_MIN_MAX,	/* eok_fgnu_min */
-  PREC_GNU_MIN_MAX,	/* eok_fgnu_max */
-  PREC_ASSIGNMENT,	/* eok_fassign */
-  PREC_PLUS_MINUS,	/* eok_padd */
-  PREC_PLUS_MINUS,	/* eok_psubtract */
-  PREC_ASSIGNMENT,	/* eok_passign */
-#if defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED
-  PREC_PLUS_MINUS,	/* eok_xadd */
-  PREC_PLUS_MINUS,	/* eok_xsubtract */
-  PREC_MULT_DIV,	/* eok_xmultiply */
-  PREC_MULT_DIV,	/* eok_xdivide */
-  PREC_EQ_NE,		/* eok_xeq */
-  PREC_EQ_NE,		/* eok_xne */
-  PREC_ASSIGNMENT,	/* eok_xassign */
-#endif /* defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED */
-#if C99_IL_EXTENSIONS_SUPPORTED
-  PREC_ASSIGNMENT,	/* eok_xadd_assign */
-  PREC_ASSIGNMENT,	/* eok_xsubtract_assign */
-  PREC_ASSIGNMENT,	/* eok_xmultiply_assign */
-  PREC_ASSIGNMENT,	/* eok_xdivide_assign */
-  PREC_MULT_DIV,	/* eok_jmultiply */
-  PREC_MULT_DIV,	/* eok_jdivide */
-  PREC_PLUS_MINUS,	/* eok_fjadd */
-  PREC_PLUS_MINUS,	/* eok_jfadd */
-  PREC_PLUS_MINUS,	/* eok_fjsubtract */
-  PREC_PLUS_MINUS,	/* eok_jfsubtract */
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-#if GNU_COMPLEX_EXTENSIONS_ALLOWED
-  PREC_PREFIX,		/* eok_xconj */
-  PREC_POSTFIX,		/* eok_real_part */
-  PREC_POSTFIX,		/* eok_imag_part */
-  PREC_PREFIX,		/* eok_lvalue_real_part (NOTE: this operator and the
-                           next are sometimes generated with an &, hence the
-                           PREC_PREFIX) */
-  PREC_PREFIX,		/* eok_lvalue_imag_part */
-#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
-#ifdef FIL
-  PREC_LOWEST,		/* eok_complex */
-  PREC_LOWEST,		/* eok_ceq */
-  PREC_LOWEST,		/* eok_cne */
-  PREC_LOWEST,		/* eok_cgt */
-  PREC_LOWEST,		/* eok_clt */
-  PREC_LOWEST,		/* eok_cge */
-  PREC_LOWEST,		/* eok_cle */
-  PREC_LOWEST,		/* eok_cassign */
-  PREC_LOWEST,		/* eok_concat */
-  PREC_LOWEST,		/* eok_i_to_i_expon */
-  PREC_LOWEST,		/* eok_f_to_i_expon */
-  PREC_LOWEST,		/* eok_x_to_i_expon */
-  PREC_LOWEST,		/* eok_f_to_f_expon */
-  PREC_LOWEST,		/* eok_x_to_x_expon */
-#endif /* FIL */
-#ifdef CIL
-  PREC_MULT_DIV,	/* eok_remainder */
-  PREC_PLUS_MINUS,	/* eok_padd_subsc (NOTE: this operator is sometimes
-                           generated as a[b], sometimes as a+b, hence the
-                           PREC_PLUS_MINUS) */
-  PREC_PLUS_MINUS,	/* eok_pdiff */
-  PREC_EQ_NE,		/* eok_peq */
-  PREC_EQ_NE,		/* eok_pne */
-  PREC_RELATIONAL,	/* eok_pgt */
-  PREC_RELATIONAL,	/* eok_plt */
-  PREC_RELATIONAL,	/* eok_pge */
-  PREC_RELATIONAL,	/* eok_ple */
-  PREC_GNU_MIN_MAX,	/* eok_pgnu_min */
-  PREC_GNU_MIN_MAX,	/* eok_pgnu_max */
-  PREC_EQ_NE,		/* eok_pmeq */
-  PREC_EQ_NE,		/* eok_pmne */
-  PREC_ASSIGNMENT,	/* eok_sassign */
-  PREC_ASSIGNMENT,	/* eok_bassign */
-  PREC_ASSIGNMENT,	/* eok_pmassign */
-  PREC_ASSIGNMENT,	/* eok_iadd_assign */
-  PREC_ASSIGNMENT,	/* eok_isubtract_assign */
-  PREC_ASSIGNMENT,	/* eok_imultiply_assign */
-  PREC_ASSIGNMENT,	/* eok_idivide_assign */
-  PREC_ASSIGNMENT,	/* eok_remainder_assign */
-#if FIXED_POINT_ALLOWED
-  PREC_ASSIGNMENT,	/* eok_fxadd_assign */
-  PREC_ASSIGNMENT,	/* eok_fxsubtract_assign */
-  PREC_ASSIGNMENT,	/* eok_fxmultiply_assign */
-  PREC_ASSIGNMENT,	/* eok_fxdivide_assign */
-  PREC_ASSIGNMENT,	/* eok_fxshiftl_assign */
-  PREC_ASSIGNMENT,	/* eok_fxshiftr_assign */
-#endif /* FIXED_POINT_ALLOWED */
-  PREC_ASSIGNMENT,	/* eok_fadd_assign */
-  PREC_ASSIGNMENT,	/* eok_fsubtract_assign */
-  PREC_ASSIGNMENT,	/* eok_fmultiply_assign */
-  PREC_ASSIGNMENT,	/* eok_fdivide_assign */
-  PREC_ASSIGNMENT,	/* eok_padd_assign */
-  PREC_ASSIGNMENT,	/* eok_psubtract_assign */
-  PREC_ASSIGNMENT,	/* eok_shiftl_assign */
-  PREC_ASSIGNMENT,	/* eok_shiftr_assign */
-  PREC_ASSIGNMENT,	/* eok_and_assign */
-  PREC_ASSIGNMENT,	/* eok_or_assign */
-  PREC_ASSIGNMENT,	/* eok_xor_assign */
-  PREC_POSTFIX,		/* eok_subscript */
-  PREC_PREFIX,		/* eok_field (NOTE: eok_field is sometimes generated
-                           using &, hence the PREC_PREFIX) */
-  PREC_POSTFIX,		/* eok_value_field */
-  PREC_POSTFIX,		/* eok_bit_field */
-  PREC_POSTFIX,		/* eok_value_bit_field */
-  PREC_POSTFIX,		/* eok_extract_bit_field */
-  PREC_PTR_TO_MEMBER,	/* eok_pm_field */
-  PREC_POSTFIX,		/* eok_points_to_static */
-  PREC_POSTFIX,		/* eok_lvalue_dot_static */
-  PREC_POSTFIX,		/* eok_rvalue_dot_static */
-  PREC_SHIFT,		/* eok_shiftl */
-  PREC_SHIFT,		/* eok_shiftr */
-  PREC_AND,		/* eok_and */
-  PREC_OR,		/* eok_or */
-  PREC_EXCL_OR,		/* eok_xor */
-  PREC_COMMA,		/* eok_comma */
-  PREC_POSTFIX,		/* eok_virtual_function_ptr */
-  PREC_POSTFIX,		/* eok_vacuous_destructor_call */
-  PREC_POSTFIX,		/* eok_value_vacuous_destructor_call */
-#endif /* CIL */
-  PREC_AND_AND,		/* eok_land */
-  PREC_OR_OR,		/* eok_lor */
-#ifdef FIL
-  PREC_LOWEST,		/* eok_neqv */
-  PREC_LOWEST,		/* eok_eqv */
-#endif /* FIL */
-#ifdef CIL
-  PREC_QUEST_MARK,	/* eok_question */
-#endif /* CIL */
-#ifdef FIL
-  PREC_LOWEST,		/* eok_substring */
-  PREC_LOWEST,		/* eok_value_substring */
-#endif /* FIL */
-  PREC_POSTFIX,		/* eok_call */
-#ifdef CIL
-  PREC_POSTFIX,		/* eok_virtual_call */
-  PREC_POSTFIX,		/* eok_pm_call */
-#endif /* CIL */
-#ifdef FIL
-  PREC_LOWEST,		/* eok_fsubscript */
-  PREC_LOWEST,		/* eok_value_fsubscript */
-#endif /* FIL */
-  PREC_POSTFIX,		/* eok_va_start */
-  PREC_POSTFIX,		/* eok_va_arg */
-  PREC_POSTFIX,		/* eok_lvalue_va_arg */
-  PREC_POSTFIX,		/* eok_va_end */
-  PREC_POSTFIX,		/* eok_va_copy */
-  PREC_POSTFIX,		/* eok_va_start_single_operand */
-#ifdef CIL
-  PREC_PREFIX,		/* eok_negate */
-  PREC_POSTFIX,		/* eok_post_incr */
-  PREC_POSTFIX,		/* eok_post_decr */
-  PREC_PREFIX,		/* eok_pre_incr */
-  PREC_PREFIX,		/* eok_pre_decr */
-  PREC_PLUS_MINUS,	/* eok_add */
-  PREC_PLUS_MINUS,	/* eok_subtract */
-  PREC_MULT_DIV,	/* eok_multiply */
-  PREC_MULT_DIV,	/* eok_divide */
-  PREC_EQ_NE,		/* eok_eq */
-  PREC_EQ_NE,		/* eok_ne */
-  PREC_RELATIONAL,	/* eok_gt */
-  PREC_RELATIONAL,	/* eok_lt */
-  PREC_RELATIONAL,	/* eok_ge */
-  PREC_RELATIONAL,	/* eok_le */
-  PREC_GNU_MIN_MAX,	/* eok_gnu_min */
-  PREC_GNU_MIN_MAX,	/* eok_gnu_max */
-  PREC_ASSIGNMENT,	/* eok_assign */
-  PREC_ASSIGNMENT,	/* eok_add_assign */
-  PREC_ASSIGNMENT,	/* eok_subtract_assign */
-  PREC_ASSIGNMENT,	/* eok_multiply_assign */
-  PREC_ASSIGNMENT,	/* eok_divide_assign */
-  PREC_PREFIX,		/* eok_address */
-  PREC_PTR_TO_MEMBER,	/* eok_pm_dot_field */
-  PREC_PTR_TO_MEMBER,	/* eok_pm_arrow_field */
-  PREC_POSTFIX,		/* eok_static_cast */
-  PREC_POSTFIX,		/* eok_const_cast */
-  PREC_POSTFIX,		/* eok_reinterpret_cast */
-  PREC_LOWEST,		/* eok_lvalue */
-  PREC_LOWEST,		/* eok_rvalue */
-  PREC_POSTFIX,		/* eok_generic_call */
-  PREC_POSTFIX,		/* eok_generic_member_call */
-#endif /* CIL */
-  PREC_LOWEST,		/* eok_error */
-  PREC_LOWEST		/* eok_last */
-};  /* generated_precedence */
-
-
 static a_boolean parens_may_be_needed(a_byte           operator_precedence,
                                       an_expr_node_ptr operand)
 /*
@@ -8771,16 +8851,19 @@ problems.
        get to the expression that will appear. */
     operand_changed = FALSE;
     if (is_operation_node(operand) &&
-        (node_operator_is(operand, eok_cast) ||
-         node_operator_is(operand, eok_base_class_cast) ||
-         node_operator_is(operand, eok_derived_class_cast) ||
-         node_operator_is(operand, eok_bool_cast) ||
-         node_operator_is(operand, eok_pm_base_class_cast) ||
-         node_operator_is(operand, eok_pm_derived_class_cast)) &&
-        operand->variant.operation.compiler_generated &&
-        !operand->variant.operation.keep_cast_for_cp_gen_be &&
-        !is_array_decay_cast(operand) &&
-        !is_const_string_literal_cast(operand)) {
+        (node_operator_is(operand, eok_reference_to) ||
+         node_operator_is(operand, eok_ref_indirect) ||
+         ((node_operator_is(operand, eok_cast) ||
+           node_operator_is(operand, eok_base_class_cast) ||
+           node_operator_is(operand, eok_derived_class_cast) ||
+           node_operator_is(operand, eok_bool_cast) ||
+           node_operator_is(operand, eok_pm_base_class_cast) ||
+           node_operator_is(operand, eok_pm_derived_class_cast) ||
+           node_operator_is(operand, eok_address_of) ||
+           node_operator_is(operand, eok_indirect)) &&
+          operand->variant.operation.compiler_generated &&
+          !operand->variant.operation.keep_cast_for_cp_gen_be &&
+          !is_const_string_literal_cast(operand)))) {
       operand = operand->variant.operation.operands;
       operand_changed = TRUE;
     } else if (operand->kind == (an_expr_node_kind)enk_temp_init) {
@@ -8798,15 +8881,7 @@ problems.
       }  /* if */
     }  /* if */
   } while (operand_changed);
-  if (is_operation_node(operand) &&
-      node_operator_is(operand, eok_cast) &&
-      operand->variant.operation.compiler_generated &&
-      is_array_decay_cast(operand)) {
-    /* The cast will be suppressed, but it can affect the way its operand
-       will appear in the generated code in ways that can't be easily
-       predicted here.  Leave parens_needed set to TRUE. */
-  } else if (operand->kind == (an_expr_node_kind)enk_variable ||
-             operand->kind == (an_expr_node_kind)enk_variable_address ||
+  if (operand->kind == (an_expr_node_kind)enk_variable ||
              operand->kind == (an_expr_node_kind)enk_temp_init) {
     /* These can't have precedence problems. */
     parens_needed = FALSE;
@@ -8865,12 +8940,13 @@ there's some possibility of precedence confusion and need_parens is TRUE.
   char             *opstr;
   an_expr_node_ptr operand_1, operand_2;
   a_boolean        operand_1_is_lvalue = FALSE;
+  a_boolean        need_op1_parens;
   a_boolean        need_reference_close_paren = FALSE;
   an_expr_operator_kind
                    op;
+  a_boolean        is_generic_expression;
 
   check_assertion_str(expr != NULL, "gen_expr: NULL expression");
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
   /* If expression is a constant that came from an expression, go to
      the expression.  This allows optimizations. */
   if (is_constant_node(expr)) {
@@ -8879,42 +8955,21 @@ there's some possibility of precedence confusion and need_parens is TRUE.
       expr = constant->expr;
     }  /* if */
   }  /* if */
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
 #if GNU_EXTENSIONS_ALLOWED
   if (expr->marked_as_gnu_extension) {
     write_tok_str("__extension__ "); 
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-  if (expr->void_expression_lvalue || expr->decltype_expression_lvalue) {
-    /* The void_expression_lvalue and decltype_expression_lvalue flags
-       indicate that the expression should be treated as an lvalue. */
-    a_boolean  void_expr_flag = expr->void_expression_lvalue;
-    a_boolean  decltype_expr_flag = expr->decltype_expression_lvalue;
-    expr->void_expression_lvalue = FALSE;
-    expr->decltype_expression_lvalue = FALSE;
+  if (expr->is_lvalue) {
     gen_lvalue_full(expr, need_parens, /*obj_expr_of_mfunc_operator=*/FALSE);
-    expr->void_expression_lvalue = void_expr_flag;
-    expr->decltype_expression_lvalue = decltype_expr_flag;
     goto done_with_expr;
   }  /* if */
-  if (expr->implicit_reference_indirection) {
-    /* This node is or contains an extra indirection generated because
-       of a C++ reference type.  The indirection has to be removed in the
-       generated source code (because it will be put back in implicitly
-       by the language rules). */
-    if (is_operation_node(expr) &&
-        expr->variant.operation.kind == (an_expr_operator_kind)eok_indirect) {
-      /* This operation is an indirection, so we can eliminate the indirection
-         and come out even. */
-      expr = expr->variant.operation.operands;
-    } else {
-      /* Otherwise, just put a "&" in front of the node, which cancels the
-         implicit indirection. */
-      write_tok_ch('(');
-      gen_ampersand(type_pointed_to(expr->type));
-      need_reference_close_paren = TRUE;
-      need_parens = TRUE;
-    }  /* if */
+  if (is_operation_node(expr) && node_operator_is(expr, eok_ref_indirect)) {
+    /* Skip over the reference indirection and just generate the
+       reference-producing expression directly.  (Do this here rather than
+       in a case below to suppress parentheses around function calls that
+       return references.) */
+    expr = expr->variant.operation.operands;
   }  /* if */
   switch (expr->kind) {
     case enk_operation:
@@ -8922,14 +8977,18 @@ there's some possibility of precedence confusion and need_parens is TRUE.
       op = expr->variant.operation.kind;
       operand_1 = expr->variant.operation.operands;
       operand_2 = operand_1->next;
+      is_generic_expression =
+                          expr->type->kind == (a_type_kind)tk_template_param &&
+                          expr->type->variant.template_param.kind ==
+                                      (a_template_param_type_kind)tptk_unknown;
       if (op == (an_expr_operator_kind)eok_lvalue) {
-        /* Operand is an lvalue where an rvalue was expected. */
+        /* Operand is an rvalue where an lvalue was expected. */
         /* Done early to optimize parentheses. */
         gen_lvalue_full(operand_1, need_parens,
                         /*obj_expr_of_mfunc_operator=*/FALSE);
         goto done_with_operation_after_parens;
       } else if (op == (an_expr_operator_kind)eok_rvalue) {
-        /* Operand is an rvalue where an lvalue was expected. */
+        /* Operand is an lvalue where an rvalue was expected. */
         /* Done early to optimize parentheses. */
         gen_expr(operand_1, need_parens);
         goto done_with_operation_after_parens;
@@ -8954,19 +9013,37 @@ there's some possibility of precedence confusion and need_parens is TRUE.
       }  /* if */
       switch (op) {
         /* One-operand operators. */
-        case eok_indirect:
-          /* Put out the underlying expression as an value, which adds a "*"
-             on the top of the expression.  However, don't do that if
-             the expression has an eok_lvalue on top, because that defeats
-             the extra "*". */
-          if (is_operation_node(operand_1) &&
-              operand_1->variant.operation.kind ==
-                                           (an_expr_operator_kind)eok_lvalue) {
-            write_tok_ch('*');
+        case eok_address_of:
+          write_tok_ch('&');
+          if (is_generic_expression) {
+            /* This is a generic expression, so we don't know whether the
+               operand is required to be an lvalue or not. */
             gen_expr_with_parens(operand_1);
+          } else {
+            /* Ordinary operation, operand must be lvalue. */
+            gen_lvalue(operand_1);
+          }  /* if */
+          goto done_with_operation;
+        case eok_reference_to:
+          if (is_generic_expression) {
+            /* This is a generic expression, so we don't know whether the
+               operand is required to be an lvalue or not. */
+            gen_expression(operand_1);
           } else {
             gen_lvalue_no_parens(operand_1);
           }  /* if */
+          goto done_with_operation;
+        case eok_indirect:
+          if (!expr->variant.operation.compiler_generated) {
+            write_tok_ch('*');
+          } else {
+            /* This may be the implicit dereference on top of a
+               compiler-generated lvalue adjustment (adding qualification
+               and/or doing base-class adjustments).  If so, strip those
+               off and just generate the underlying lvalue node. */
+            operand_1 = strip_lvalue_cast_sequence(operand_1);
+          }  /* if */
+          gen_expr_with_parens(operand_1);
           goto done_with_operation;
 #if GNU_EXTENSIONS_ALLOWED
         case eok_real_part:
@@ -8977,18 +9054,6 @@ there's some possibility of precedence confusion and need_parens is TRUE.
         case eok_imag_part:
           write_tok_str("__imag(");
           gen_expression(operand_1);
-          write_tok_ch(')');
-          goto done_with_operation;
-        case eok_lvalue_real_part:
-          gen_ampersand(type_pointed_to(expr->type));
-          write_tok_str("__real(");
-          gen_lvalue_no_parens(operand_1);
-          write_tok_ch(')');
-          goto done_with_operation;
-        case eok_lvalue_imag_part:
-          gen_ampersand(type_pointed_to(expr->type));
-          write_tok_str("__imag(");
-          gen_lvalue_no_parens(operand_1);
           write_tok_ch(')');
           goto done_with_operation;
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -9025,32 +9090,24 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           if (expr->variant.operation.compiler_generated &&
               !expr->variant.operation.keep_cast_for_cp_gen_be &&
               !is_const_string_literal_cast(expr)) {
-            if (is_array_decay_cast(expr)) {
-              /* A cast that does array-to-pointer decay.  The cast can be
-                 removed, but an extra indirection has to be applied to the
-                 underlying expression.  That is, "(int *[3])&x" becomes "x",
-                 not "&x". */
-              gen_lvalue_no_parens(operand_1);
-            } else {
-              /* Normal implicit cast.  Just omit the cast. */
-              a_boolean saved_suppress_cast_on_short_integral_const =
-                                    octl.suppress_cast_on_short_integral_const;
-              if (msvc_is_generated_code_target &&
-                  msvc_target_version_number < 1310 &&
-                  is_pointer_type(expr->type) &&
-                  is_constant_node(operand_1) &&
-                  is_zero_constant(operand_1->variant.constant)) {
-                /* Versions of MSVC++ before 7.1 do not recognize zero-valued
-                   integral constant expressions as null pointer constants if
-                   they contain a cast to a short type, which il_to_str will
-                   normally add to integral constants that are shorter than
-                   int, so we must suppress generation of such casts. */
-                octl.suppress_cast_on_short_integral_const = TRUE;
-              }  /* if */
-              gen_expression(operand_1);
-              octl.suppress_cast_on_short_integral_const =
-                                   saved_suppress_cast_on_short_integral_const;
+            /* Normal implicit cast.  Just omit the cast. */
+            a_boolean saved_suppress_cast_on_short_integral_const =
+                                  octl.suppress_cast_on_short_integral_const;
+            if (msvc_is_generated_code_target &&
+                msvc_target_version_number < 1310 &&
+                is_pointer_type(expr->type) &&
+                is_constant_node(operand_1) &&
+                is_zero_constant(operand_1->variant.constant)) {
+              /* Versions of MSVC++ before 7.1 do not recognize zero-valued
+                 integral constant expressions as null pointer constants if
+                 they contain a cast to a short type, which il_to_str will
+                 normally add to integral constants that are shorter than
+                 int, so we must suppress generation of such casts. */
+              octl.suppress_cast_on_short_integral_const = TRUE;
             }  /* if */
+            gen_expression(operand_1);
+            octl.suppress_cast_on_short_integral_const =
+                                 saved_suppress_cast_on_short_integral_const;
           } else {
             gen_full_cast(expr->type, operand_1,
                           expr->variant.operation.is_reference_cast,
@@ -9092,27 +9149,28 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           }  /* if */
           goto done_with_operation;
         case eok_lvalue_cast:
-          write_tok_ch('(');
-          gen_cast(expr->type);
-          write_tok_ch('&');
-          gen_lvalue(operand_1);
-          write_tok_ch(')');
-          goto done_with_operation;
-        case eok_address:
-          write_tok_ch('&');
-          gen_lvalue(operand_1);
-          goto done_with_operation;
+          /* Handled in gen_lvalue_full. */
+          unexpected_condition();
         case eok_lvalue:
         case eok_rvalue:
           /* Handled above. */
           unexpected_condition();
-        case eok_pm_dot_field:
-          /* Generic ".*" field selection. */
+        case eok_pm_field:
           opstr = ".*";
           break;
-        case eok_pm_arrow_field:
-          /* Generic "->*" field selection. */
-          opstr = "->*";
+        case eok_pm_points_to_field:
+          { an_expr_node_ptr new_op1 = strip_lvalue_cast_sequence(operand_1);
+            if (new_op1 != operand_1 && new_op1->is_lvalue) {
+              /* The original source contained a ".*" operator which, to
+                 accommodate compiler-generated casts, was turned into a
+                 "->*" operator.  Restore the original form and original
+                 operand. */
+              operand_1 = new_op1;
+              opstr = ".*";
+            } else {
+              opstr = "->*";
+            }  /* if */
+          }
           break;
         case eok_static_cast:
         case eok_reinterpret_cast:
@@ -9134,7 +9192,13 @@ there's some possibility of precedence confusion and need_parens is TRUE.
         case eok_ipost_incr:
         case eok_ppost_incr:
           /* Post-increment operators. */
-          gen_lvalue(operand_1);
+          if (is_generic_expression) {
+            /* This is a generic expression, so we don't know whether the
+               operand is required to be an lvalue or not. */
+            gen_expr_with_parens(operand_1);
+          } else {
+            gen_lvalue(operand_1);
+          }  /* if */
           write_tok_str("++");
           goto done_with_operation;
         case eok_pre_incr:
@@ -9156,7 +9220,13 @@ there's some possibility of precedence confusion and need_parens is TRUE.
         case eok_ipost_decr:
         case eok_ppost_decr:
           /* Post-decrement operators. */
-          gen_lvalue(operand_1);
+          if (is_generic_expression) {
+            /* This is a generic expression, so we don't know whether the
+               operand is required to be an lvalue or not. */
+            gen_expr_with_parens(operand_1);
+          } else {
+            gen_lvalue(operand_1);
+          }  /* if */
           write_tok_str("--");
           goto done_with_operation;
         case eok_pre_decr:
@@ -9174,6 +9244,10 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           /* This operator shouldn't get past gen_lvalue. */
           unexpected_condition_str(
                           "gen_expr: eok_lvalue_from_struct_rvalue as rvalue");
+        case eok_array_to_pointer:
+          /* Array to pointer decay -- just output the operand. */
+          gen_expression(operand_1);
+          goto done_with_operation;
 #if MICROSOFT_EXTENSIONS_ALLOWED
         case eok_assume:
           write_tok_str("__assume(");
@@ -9193,7 +9267,6 @@ there's some possibility of precedence confusion and need_parens is TRUE.
         case eok_jfadd:
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
         case eok_padd:
-        case eok_padd_subsc:
           opstr = "+";
           break;
         case eok_subtract:
@@ -9416,35 +9489,10 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           gen_expr_with_parens(operand_1);
           gen_array_subscript(operand_2);
           goto done_with_operation;
-        case eok_field:
-          gen_ampersand(type_pointed_to(expr->type));
+        case eok_dot_field:
+        case eok_points_to_field:
           write_tok_ch('(');
-          gen_simple_field_selection(operand_1, operand_2);
-          write_tok_ch(')');
-          goto done_with_operation;
-        case eok_value_field:
-        case eok_value_bit_field:
-          /* Selection of a field or bit field from an rvalue.  Not used
-             in C++ except for simple aggregate classes. */
-#if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
-          operand_1 = remove_nonstandard_anonymous_union_field_selections(
-                                                                    operand_1);
-#endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
-          gen_expr_with_parens(operand_1);
-          write_tok_ch('.');
-          gen_field_reference(operand_2);
-          goto done_with_operation;
-        case eok_bit_field:
-          /* This operator shouldn't get past gen_lvalue. */
-          unexpected_condition_str("gen_expr: eok_bit_field as rvalue");
-        case eok_extract_bit_field:
-          gen_simple_field_selection(operand_1, operand_2);
-          goto done_with_operation;
-        case eok_pm_field:
-          /* C++ "->*" operator. */
-          gen_ampersand(type_pointed_to(expr->type));
-          write_tok_ch('(');
-          gen_pm_simple_field_selection(operand_1, operand_2);
+          gen_simple_field_selection(operand_1, operand_2, op);
           write_tok_ch(')');
           goto done_with_operation;
         case eok_points_to_static:
@@ -9452,20 +9500,14 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           /* If operand_1 is an invocation of operator->() that will be
              generated as "->", pass "" as the opstr instead of "->" to
              avoid generating "->->". */
-          gen_dot_static(operand_1, /*is_lvalue_1=*/FALSE,
+          gen_dot_static(operand_1,
                          (char *)(is_operator_syntax_arrow(operand_1) ?
                                                                     "" : "->"),
-                         operand_2, /*is_lvalue_2=*/FALSE);
+                         operand_2);
           goto done_with_operation;
-        case eok_lvalue_dot_static:
-          /* Static member selection, lvalue.m. */
-          gen_dot_static(operand_1, /*is_lvalue_1=*/TRUE, ".",
-                         operand_2, /*is_lvalue_2=*/FALSE);
-          goto done_with_operation;
-        case eok_rvalue_dot_static:
-          /* Static member selection, rvalue.m. */
-          gen_dot_static(operand_1, /*is_lvalue_1=*/FALSE, ".",
-                         operand_2, /*is_lvalue_2=*/FALSE);
+        case eok_dot_static:
+          /* Static member selection, x.m. */
+          gen_dot_static(operand_1, ".", operand_2);
           goto done_with_operation;
 #if FIXED_POINT_ALLOWED
         case eok_fxshiftl:
@@ -9569,8 +9611,8 @@ there's some possibility of precedence confusion and need_parens is TRUE.
              a virtual function, the second is a pointer to a class object. */
           gen_bound_function(operand_2, operand_1, /*suppress_virtual=*/FALSE);
           goto done_with_operation;
-        case eok_vacuous_destructor_call:
-        case eok_value_vacuous_destructor_call:
+        case eok_dot_vacuous_destructor_call:
+        case eok_points_to_vacuous_destructor_call:
           { a_type_ptr type = operand_1->type;
             /* Explicit call of a destructor for a type that doesn't have one,
                e.g., "p->int::~int()". */
@@ -9585,7 +9627,8 @@ there's some possibility of precedence confusion and need_parens is TRUE.
               operand_1 = operand_1->variant.operation.operands;
             }  /* if */
             gen_expr_with_parens(operand_1);
-            if (op == (an_expr_operator_kind)eok_vacuous_destructor_call) {
+            if (op ==
+                (an_expr_operator_kind)eok_points_to_vacuous_destructor_call) {
               if (!is_operator_syntax_arrow(operand_1)) {
                 /* Don't output "->" if handle_operator_call already did. */
                 write_tok_str("->");
@@ -9664,14 +9707,6 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           write_tok_ch(')');
           enable_line_wrapping();
           goto done_with_operation;
-        case eok_lvalue_va_arg:
-          /* <stdarg.h> va_arg macro, treated as a builtin operator that
-             returns an lvalue. */
-          write_tok_ch('(');
-          write_tok_ch('&');
-          gen_va_arg(expr);
-          write_tok_ch(')');
-          goto done_with_operation;
         case eok_va_arg:
           /* <stdarg.h> va_arg macro, treated as a builtin operator. */
           gen_va_arg(expr);
@@ -9713,11 +9748,28 @@ there's some possibility of precedence confusion and need_parens is TRUE.
         write_tok_str(opstr);
       }  /* if */
       /* Generate the first operand. */
-      if (operand_1_is_lvalue) {
-        gen_lvalue(operand_1);
+      if (is_operation_node(operand_1) &&
+          node_operator_is(operand_1, eok_question)) {
+        /* "?:" as a left-hand lvalue operand requires special treatment:
+           it has higher precedence than the assignment operators, but
+           because the third operand is an assignment-expression, it
+           still needs parentheses to separate it from an assignment
+           operator. */
+        need_op1_parens = TRUE;
       } else {
-        gen_expr(operand_1, parens_may_be_needed(generated_precedence[op],
-                                                 operand_1));
+        need_op1_parens = parens_may_be_needed(generated_precedence[op],
+                                               operand_1);
+      }  /* if */
+      if (is_generic_expression) {
+        /* This is a generic operation, so we don't know whether the first
+           operand is required to be an lvalue or not. */
+        operand_1_is_lvalue = FALSE;
+      }  /* if */
+      if (operand_1_is_lvalue) {
+        gen_lvalue_full(operand_1, need_op1_parens,
+                        /*obj_expr_of_mfunc_operator=*/FALSE);
+      } else {
+        gen_expr(operand_1, need_op1_parens);
       }  /* if */
       if (operand_2 != NULL) {
         /* Binary operator. */
@@ -9748,18 +9800,12 @@ done_with_operation_after_parens:
         }
       }
       break;
-    case enk_variable_address:
-      if (need_parens) m_write_tok_ch('(');
-      gen_ampersand(expr->variant.variable->type);
-      gen_name_from_variable_node(expr);
-      if (need_parens) m_write_tok_ch(')');
-      break;
     case enk_variable:
       gen_name_from_variable_node(expr);
       break;
-    case enk_routine_address:
-      gen_name_from_routine_address_node(expr, /*unqualified=*/FALSE,
-                                         /*suppress_ampersand=*/FALSE);
+    case enk_routine:
+      gen_name_from_routine_node(expr, /*unqualified=*/FALSE,
+                                 /*use_ampersand=*/FALSE);
       break;
     case enk_throw:
       /* Throw. */
@@ -9800,18 +9846,11 @@ done_with_operation_after_parens:
         gen_type(expr->variant.runtime_sizeof.variant.type);
       } else {
         /* sizeof(expr). */
-        if (expr->variant.runtime_sizeof.is_lvalue) {
+        if (expr->variant.runtime_sizeof.variant.expr->is_lvalue) {
           gen_lvalue_no_parens(expr->variant.runtime_sizeof.variant.expr);
         } else {
           an_expr_node_ptr sizeof_expr =
                                      expr->variant.runtime_sizeof.variant.expr;
-          if (is_routine_address_node(sizeof_expr) &&
-              !sizeof_expr->is_operand_of_address_of) {
-            /* For the address of a function, we need an extra "&".  The
-               normal output suppresses it as unnecessary, but in a sizeof
-               there is no function-to-pointer decay. */
-            write_tok_ch('&');
-          }  /* if */
           gen_expression(sizeof_expr);
         }  /* if */
       }  /* if */
@@ -9840,9 +9879,9 @@ done_with_operation_after_parens:
       break;
     case enk_temp_init:
       /* Temporary creation/initialization. */
-      if (expr->variant.init.result_is_addr) {
+      if (expr->is_lvalue) {
         /* Using the address of the temp. */
-        a_type_ptr         temp_type = type_pointed_to(expr->type);
+        a_type_ptr         temp_type = expr->type;
         a_dynamic_init_ptr dip = expr->variant.init.dynamic_init;
         write_tok_ch('(');
         gen_ampersand(temp_type);
@@ -12027,10 +12066,11 @@ source and the expression is generated in that form.
       skip_embedded_declarations();
       /* Parentheses are required (a) if parenthesized_init is TRUE, and
          (b) if parenthesized_init is FALSE, because of the possibility that
-         the top-level operator is a ",". */
+         the top-level operator is a ",".  Remove any compiler-generated
+         address-of operator. */
       if (parenthesized_init) write_tok_ch('(');
-      gen_initializer_expr(dip->variant.expression, init_entity_type,
-                           /*need_parens=*/TRUE,
+      gen_initializer_expr(strip_lvalue_cast_sequence(dip->variant.expression),
+                           init_entity_type, /*need_parens=*/TRUE,
                            /*mbr_fcn_default_arg_expr=*/FALSE);
       if (parenthesized_init) write_tok_ch(')');
       break;
@@ -12707,12 +12747,11 @@ flags on the classes found on an earlier call.
         if (op == (an_expr_operator_kind)eok_call ||
             op == (an_expr_operator_kind)eok_generic_call ||
             op == (an_expr_operator_kind)eok_generic_member_call) {
-          if (op1->kind == (an_expr_node_kind)enk_routine_address) {
+          if (op1->kind == (an_expr_node_kind)enk_routine) {
             scp = &op1->variant.routine->source_corresp;
           }  /* if */
         }  /* if */
-      } else if (is_variable_node(expr) ||
-                 is_variable_address_node(expr)) {
+      } else if (is_variable_node(expr)) {
         scp = &expr->variant.variable->source_corresp;
       } else if (is_constant_node(expr)) {
         a_constant_ptr con = expr->variant.constant;
@@ -12924,17 +12963,17 @@ static void gen_typedef_for_unnamed_pseudo_dtor_type(
 /*
 This routine is called for each expression encountered during a traversal
 of the body of a generated instance of a function template.  If expr is an
-eok_vacuous_destructor_call or an eok_value_vacuous_destructor_call in
-which the type has no name, generate a temporary typedef that will be used
-in generating the call.  (This avoids constructs like "int::~int()", which
-are nonstandard and rejected by many compilers.)
+eok_dot_vacuous_destructor_call or an eok_points_to_vacuous_destructor_call
+in which the type has no name, generate a temporary typedef that will be
+used in generating the call.  (This avoids constructs like "int::~int()",
+which are nonstandard and rejected by many compilers.)
 */
 {
   if (is_operation_node(expr) &&
-      (node_operator_is(expr, eok_vacuous_destructor_call) ||
-       node_operator_is(expr, eok_value_vacuous_destructor_call))) {
+      (node_operator_is(expr, eok_dot_vacuous_destructor_call) ||
+       node_operator_is(expr, eok_points_to_vacuous_destructor_call))) {
     a_type_ptr type = expr->variant.operation.operands->type;
-    if (node_operator_is(expr, eok_vacuous_destructor_call)) {
+    if (node_operator_is(expr, eok_points_to_vacuous_destructor_call)) {
       type = type_pointed_to(type);
     }  /* if */
     if (!has_name(type) &&

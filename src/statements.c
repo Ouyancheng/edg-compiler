@@ -206,7 +206,7 @@ modes) a call of a function that may not return, update the current
       node = node->variant.operation.operands;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (microsoft_mode &&
-          node->kind == (an_expr_node_kind)enk_routine_address) {
+          node->kind == (an_expr_node_kind)enk_routine) {
         if (node->variant.routine->decl_modifiers & DM_NORETURN) {
           routine_does_not_return = TRUE;
         }  /* if */

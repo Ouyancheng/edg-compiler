@@ -47,7 +47,12 @@ extern void lower_vla_cast(an_expr_node_ptr  expr);
 
 extern void lower_vla_address(an_expr_node_ptr  expr);
 
+extern void address_taken_of_lowered_vla(an_expr_node_ptr expr);
+
 extern void lower_vla_dealloc(an_expr_node_ptr  expr);
+
+extern void lower_vla_operations_before_operands_are_lowered(
+                                                        an_expr_node_ptr expr);
 #else /* !LOWER_VARIABLE_LENGTH_ARRAYS */
 
 extern void create_dimension_variable(a_statement_ptr  stmt);
@@ -116,8 +121,7 @@ extern void lower_c99_constant_expr(an_expr_node_ptr expr);
 
 extern void lower_c99_operator(an_expr_node_ptr expr);
 
-extern void lower_c99_expr(an_expr_node_ptr expr,
-                           a_boolean        used_as_lvalue);
+extern void lower_c99_expr(an_expr_node_ptr expr);
 
 extern void lower_c99_full_expr(an_expr_node_ptr expr);
 

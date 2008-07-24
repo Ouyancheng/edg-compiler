@@ -1001,7 +1001,7 @@ extern void lower_ptr_to_member_constant(a_constant_ptr constant);
 
 #if ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS
 extern void rewrite_address_of_string_as_address_of_variable(
-                                                      a_constant_ptr addr_con);
+                                                      a_constant_ptr constant);
 #endif /* ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
 
 extern void lower_constant(a_constant_ptr constant);
@@ -1013,27 +1013,35 @@ extern void add_indirection_to_cctor_param_type(a_param_type_ptr ptp);
 
 extern void lower_os_type(a_type_ptr type);
 
+extern void adjust_returns_lvalue_instead_of_usual_rvalue_if_necessary(
+                                                        an_expr_node_ptr expr);
+
 #if LOWER_LVALUE_RETURNING_OPERATIONS
 extern void lower_operations_returning_lvalue_instead_of_usual_rvalue(
-                                                   an_expr_node_ptr expr,
-                                                   a_boolean        is_lvalue);
+                                                   an_expr_node_ptr expr);
 #endif /* LOWER_LVALUE_RETURNING_OPERATIONS */
 
 extern void lower_expr_list(an_expr_node_ptr expr_list,
-                            unsigned int     is_lvalue_mask,
-                            unsigned int     is_bool_controlling_expr_mask);
+                            unsigned int     is_bool_controlling_expr_mask,
+                            unsigned int     assume_expr_is_non_null_mask);
 
 extern unsigned int expr_boolean_controlling_expr_mask(an_expr_node_ptr expr);
 
 extern void lower_reuse_value_expr(an_expr_node_ptr expr);
 
-extern void lower_expr(an_expr_node_ptr expr,
-                       a_boolean        is_lvalue);
+extern void lower_expr_full(an_expr_node_ptr expr,
+                            a_boolean        assume_expr_is_non_null);
+
+/*
+Define a macro for the typical invocation of lower_expr_full.
+*/
+#define lower_expr(expr) lower_expr_full((expr), FALSE)
 
 extern void release_reusable_temporaries(void);
 
+extern void optimize_expr_if_possible(an_expr_node_ptr expr);
+
 extern void lower_full_expr(an_expr_node_ptr expr,
-                            a_boolean        is_lvalue,
                             a_statement_ptr  statement);
 
 extern
@@ -1055,8 +1063,7 @@ extern void lower_bool_cast(an_expr_node_ptr expr);
 
 extern void lower_bool_incr_decr(an_expr_node_ptr expr);
 
-extern void rewrite_compound_assignment(an_expr_node_ptr expr,
-                                        a_boolean        is_lvalue);
+extern void rewrite_compound_assignment(an_expr_node_ptr expr);
 
 extern void lower_virtual_function_call(an_expr_node_ptr expr);
 
@@ -1124,6 +1131,11 @@ extern void il_lower_trans_unit_init(void);
 extern void il_lower_init(void);
 
 extern void clear_parent_information(void);
+
+extern an_expr_node_ptr add_cast_to_lvalue_if_necessary(an_expr_node_ptr node,
+                                                        a_type_ptr       type);
+
+extern an_expr_node_ptr rvalue_pointer_for_class_rvalue(an_expr_node_ptr expr);
 
 #endif /* DO_IL_LOWERING */
 #endif /* NEED_NAME_MANGLING */

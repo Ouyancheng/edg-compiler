@@ -544,16 +544,18 @@ extern a_boolean overloaded_function_match_possible(
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern void temp_init_from_operand(an_operand *operand,
-                                   a_boolean  result_is_addr);
+                                   a_boolean  result_is_lvalue);
 
 extern void overloaded_function_catch_up(
                                   a_symbol_ptr      function_symbol,
                                   a_symbol_ptr      overloaded_function_symbol,
                                   a_boolean         is_qualified_name,
+                                  a_boolean         is_operand_of_address_of,
                                   a_source_position *function_position,
                                   a_source_position *function_end_position,
                                   a_source_position *id_position,
                                   a_boolean         elided_reference,
+                                  a_boolean         result_is_lvalue,
                                   a_boolean         address_taken,
                                   an_operand        *operand,
                                   a_boolean         *access_error_reported);
@@ -757,6 +759,7 @@ extern void prep_reference_initializer_operand(
                               a_boolean     initializing_variable,
                               a_boolean     static_lifetime,
                               a_boolean     bitwise_assignment_param,
+                              a_boolean     leave_as_lvalue,
                               an_error_code incompatible_err);
 
 extern void prep_initializer_operand(an_operand    *source_operand,
@@ -825,7 +828,6 @@ extern a_routine_ptr select_assignment_operator_for_memberwise_copy(
                                              a_type_ptr        class_type,
                                              an_expr_node_ptr  source_expr,
                                              an_expr_node_ptr  dest_expr,
-                                             a_boolean         *pass_by_value,
                                              a_source_position *dest_decl_pos);
 
 #if !STANDALONE_UTILITY_PROGRAM

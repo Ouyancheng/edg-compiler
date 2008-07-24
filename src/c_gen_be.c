@@ -461,12 +461,13 @@ static void dump_expr(an_expr_node_ptr expr,
 #define dump_expr_with_parens(expr) dump_expr(expr, /*need_parens=*/TRUE)
 #define dump_expression(expr)       dump_expr(expr, /*need_parens=*/FALSE)
 static void dump_boolean_controlling_expression(an_expr_node_ptr node);
-static void dump_compound_literal(an_expr_node_ptr expr,
-                                  a_boolean        suppress_address_of);
+static void dump_compound_literal(an_expr_node_ptr expr);
 #if MICROSOFT_EXTENSIONS_ALLOWED
 static void dump_asm_function_body(char *p);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+static a_constant_ptr constant_initializer(a_variable_ptr variable,
+                                           an_init_kind   *init_kind);
 
 static void clear_output_file_position(an_output_file_position *ofp)
 /*
@@ -3654,21 +3655,23 @@ selection operation).
   field = second_operand->variant.field;
 #if CHECKING
   { a_type_ptr field_class = parent_class_of(field);
-    a_type_ptr struct_class = node->variant.operation.operands->type;
+    a_type_ptr struct_class;
     an_expr_operator_kind op;
     if (field_class == NULL) {
       internal_error("dump_field_from_second_operand: field class is NULL");
     }  /* if */
     /* Check that the field comes from the struct indicated by the first
-       operand.  The first operand is an lvalue except in a few cases. */
+       operand. */
     op = node->variant.operation.kind;
-    if (op == (an_expr_operator_kind)eok_value_field ||
-        op == (an_expr_operator_kind)eok_value_bit_field) {
-      /* These operators take an rvalue as first operand. */
+    if (op == (an_expr_operator_kind)eok_dot_field) {
+      /* Left operand is an lvalue/rvalue of the class type. */
+      struct_class = node->variant.operation.operands->type;
+    } else if (op == (an_expr_operator_kind)eok_points_to_field) {
+      /* Left operand is a pointer to the object. */
+      struct_class = type_pointed_to(node->variant.operation.operands->type);
     } else {
-      /* The other operators take an lvalue, so drop a "pointer-to" from the
-         type. */
-      struct_class = type_pointed_to(struct_class);
+      unexpected_condition_str(
+                   "dump_field_from_second_operand: unexpected operator kind");
     }  /* if */
     struct_class = skip_typerefs(struct_class);
 #if GNU_EXTENSIONS_ALLOWED
@@ -3690,7 +3693,7 @@ selection operation).
 static void dump_variable_reference_node(an_expr_node_ptr node)
 /*
 Output a reference to the variable indicated by the given enk_variable
-or enk_variable_address node.  The output is usually just the variable name.
+node.  The output is usually just the variable name.
 */
 {
   a_variable_ptr var = node->variant.variable;
@@ -3714,9 +3717,9 @@ or enk_variable_address node.  The output is usually just the variable name.
 
 static void dump_lvalue_field_selection(an_expr_node_ptr expr)
 /*
-expr is a field selection that takes an lvalue struct and returns an lvalue
-for a field (i.e., eok_field, eok_bit_field).  Dump it as an lvalue.
-It is assumed that the caller will surround the output with parentheses.
+expr is a field selection that returns an lvalue for a field.  Dump it as
+an lvalue.  It is assumed that the caller will surround the output with
+parentheses.
 */
 {
   an_expr_node_ptr operand_1 = expr->variant.operation.operands;
@@ -3728,24 +3731,41 @@ It is assumed that the caller will surround the output with parentheses.
      A cast to remove the const must be added to the address of the struct
      in that case so that the resulting selected field will be nonconst. */
   if (field->is_mutable) {
-    a_type_ptr underlying_operand_1_type = type_pointed_to(operand_1->type);
+    a_type_ptr underlying_operand_1_type;
+    if (node_operator_is(expr, eok_points_to_field)) {
+      underlying_operand_1_type = type_pointed_to(operand_1->type);
+    } else {
+      underlying_operand_1_type = operand_1->type;
+    }  /* if */
     if (is_const_qualified_type(underlying_operand_1_type)) {
       mutable_case = TRUE;
       unqual_underlying_type = f_skip_typerefs(underlying_operand_1_type);
     }  /* if */
   }  /* if */
-  if (operand_1->kind == (an_expr_node_kind)enk_variable || mutable_case) {
-    /* Optimize "(*p).i" as "p->i". */
+  if (node_operator_is(expr, eok_points_to_field) || mutable_case) {
     if (mutable_case) {
       /* For the mutable case, cast away const on the struct address. */
       write_tok_ch('(');
       dump_cast_to_pointer_to(unqual_underlying_type);
+      if (node_operator_is(expr, eok_dot_field)) {
+        /* This was originally "x.y", so we need to convert the left
+           operand into a pointer value. */
+        if (is_operation_node(operand_1) &&
+            node_operator_is(operand_1, eok_indirect)) {
+          /* We can just skip the "*" to get the pointer value. */
+          operand_1 = operand_1->variant.operation.operands;
+        } else {
+          /* Take the address of the left operand. */
+          write_tok_ch('&');
+        }  /* if */
+      }  /* if */
     }  /* if */
-    dump_expr(operand_1, mutable_case);
+    dump_expr_with_parens(operand_1);
     if (mutable_case) write_tok_ch(')');
     write_tok_str("->");
   } else {
-    /* Normal "." case. */
+    /* Normal "." case: because the result is an lvalue, the left operand
+       must be an lvalue. */
     dump_lvalue(operand_1);
     write_tok_ch('.');
   }  /* if */
@@ -3761,7 +3781,6 @@ Dump a va_arg operator.  Used when <stdarg.h> is treated as a builtin.
   an_expr_node_ptr operand_1 = expr->variant.operation.operands;
   a_type_ptr       type = expr->type;
 
-  if (node_operator_is(expr, eok_lvalue_va_arg)) type = type_pointed_to(type);
   disable_line_wrapping();
   if (gcc_builtin_varargs_in_generated_code) {
     /* Use the intrinsic GNU C/C++ "__builtin_va_arg". */
@@ -3777,69 +3796,9 @@ Dump a va_arg operator.  Used when <stdarg.h> is treated as a builtin.
 }  /* dump_va_arg */
 
 
-static void dump_adding_indirection(an_expr_node_ptr node)
-/*
-Dump the indicated expression with an additional indirection on the front
-of it.  This is used for lvalues in contexts where the C representation
-has an extra indirection relative to the IL version (e.g., the left side
-of an assignment).  It's also used for a normal "*" for indirection.
-*/
-{
-  an_expr_node_kind kind = node->kind;
-  a_boolean         processed = FALSE;
-
-  if (kind == (an_expr_node_kind)enk_variable_address) {
-    /* Address of variable: just write the variable name. */
-    dump_variable_reference_node(node);
-    processed = TRUE;
-  } else if (kind == (an_expr_node_kind)enk_operation) {
-    an_expr_operator_kind op = node->variant.operation.kind;
-    an_expr_node_ptr      operand_1 = node->variant.operation.operands;
-    an_expr_node_ptr      operand_2 = operand_1->next;
-    if (op == (an_expr_operator_kind)eok_padd ||
-        op == (an_expr_operator_kind)eok_padd_subsc) {
-      /* The expression is a pointer addition.  It can be rewritten as
-         a subscripting operation (i.e., *(a+b) becomes a[b]). */
-      write_tok_ch('(');
-      dump_expr_with_parens(operand_1);
-      write_tok_ch('[');
-      dump_expression(operand_2);
-      write_tok_str("])");
-      processed = TRUE;
-    } else if (op == (an_expr_operator_kind)eok_field ||
-               op == (an_expr_operator_kind)eok_bit_field) {
-      /* The expression is a field selection, which has an implicit "&"
-         in front of it (in C terms).  Adding the indirection removes 
-         the "&". */
-      write_tok_ch('(');
-      dump_lvalue_field_selection(node);
-      write_tok_ch(')');
-      processed = TRUE;
-    } else if (op == (an_expr_operator_kind)eok_lvalue_va_arg) {
-      /* <stdarg.h> va_arg macro, treated as a builtin operator that
-         returns an lvalue. */
-      dump_va_arg(node);
-      processed = TRUE;
-    }  /* if */
-  } else if (kind == (an_expr_node_kind)enk_temp_init &&
-             node->variant.init.result_is_addr) {
-    /* C99 compound literals. */
-    dump_compound_literal(node, /*suppress_address_of=*/TRUE);
-    processed = TRUE;
-  }  /* if */
-  if (!processed) {
-    /* Not a special case: write "*expression". */
-    write_tok_str("(*");
-    dump_expr_with_parens(node);
-    write_tok_ch(')');
-  }  /* if */
-}  /* dump_adding_indirection */
-
-
 static void dump_lvalue(an_expr_node_ptr node)
 /*
-Dump an expression that the IL sees as an lvalue address, and C sees as
-an expression.  In effect, add an indirection to the expression.
+Dump an expression that is marked in the IL as an lvalue.
 */
 {
   an_expr_node_ptr operand_1;
@@ -3847,26 +3806,36 @@ an expression.  In effect, add an indirection to the expression.
   /* Put out an lvalue cast in original form. */
   if (node->kind == (an_expr_node_kind)enk_operation &&
       node->variant.operation.kind == (an_expr_operator_kind)eok_lvalue_cast) {
+    a_boolean use_simple_cast = FALSE;
     operand_1 = node->variant.operation.operands;
     write_tok_ch('(');
     /* Generate the lvalue cast as an indirection on a pointer cast.
        This avoids depending too much on the underlying compiler's
        implementation of lvalue casts.  Note that this will not work for
-       a bit-field, so generate an lvalue cast for those cases. */
+       a bit-field, so generate a simple cast for those cases. */
     if (is_operation_node(operand_1) &&
-        operand_1->variant.operation.kind ==
-                                        (an_expr_operator_kind)eok_bit_field) {
-      dump_cast(type_pointed_to(node->type));
+        (node_operator_is(operand_1, eok_dot_field) ||
+         node_operator_is(operand_1, eok_points_to_field))) {
+      a_field_ptr field;
+      check_assertion(operand_1->variant.operation.operands->next->kind ==
+                                                 (an_expr_node_kind)enk_field);
+      field = operand_1->variant.operation.operands->next->variant.field;
+      if (field->is_bit_field) {
+        use_simple_cast = TRUE;
+      }  /* if */
+    }  /* if */
+    if (use_simple_cast) {
+      dump_cast(node->type);
     } else {
       write_tok_ch('*');
-      dump_cast(node->type);
+      dump_cast_to_pointer_to(node->type);
       write_tok_ch('&');
     }  /* if */
     dump_lvalue(operand_1);
     write_tok_ch(')');
   } else {
     /* Normal case. */
-    dump_adding_indirection(node);
+    dump_expr_with_parens(node);
   }  /* if */
 }  /* dump_lvalue */
 
@@ -3874,8 +3843,8 @@ an expression.  In effect, add an indirection to the expression.
 static a_boolean optimizable_rvalue_selection(an_expr_node_ptr expr,
                                               a_boolean        *comma_case)
 /*
-Return TRUE if the first operand of the given expression (an rvalue selection
-operation) has one of the forms
+Return TRUE if the the given expression (an rvalue selection operation) is
+an eok_points_to_field operation or if its first operand has one of the forms
   variable
   (something, variable)
   *expression
@@ -3887,26 +3856,30 @@ be optimized by dump_rvalue_selection.
   an_expr_node_ptr struct_expr, comma_operand_2;
 
   *comma_case = FALSE;
-  struct_expr = expr->variant.operation.operands;
-  if (struct_expr->kind == (an_expr_node_kind)enk_variable) {
-    /* The field is being selected from a simple variable (IL lowering
-       generates some cases like this for pointer-to-member calls). */
+  if (node_operator_is(expr, eok_points_to_field)) {
     optimizable = TRUE;
-  } else if (struct_expr->kind == (an_expr_node_kind)enk_operation) {
-    an_expr_operator_kind op = struct_expr->variant.operation.kind;
-    if (op == (an_expr_operator_kind)eok_comma) {
-      /* The first operand is a comma expression. */
-      /* Check for a second operand of the comma expression that is the value
-         of a variable. */
-      comma_operand_2 = struct_expr->variant.operation.operands->next;
-      if (comma_operand_2->kind == (an_expr_node_kind)enk_variable) {
-        optimizable = TRUE;
-        *comma_case = TRUE;
-      }  /* if */
-    } else if (op == (an_expr_operator_kind)eok_indirect) {
-      /* The first operand is *expression, so we can easily refer to it
-         as an lvalue. */
+  } else {
+    struct_expr = expr->variant.operation.operands;
+    if (struct_expr->kind == (an_expr_node_kind)enk_variable) {
+      /* The field is being selected from a simple variable (IL lowering
+         generates some cases like this for pointer-to-member calls). */
       optimizable = TRUE;
+    } else if (struct_expr->kind == (an_expr_node_kind)enk_operation) {
+      an_expr_operator_kind op = struct_expr->variant.operation.kind;
+      if (op == (an_expr_operator_kind)eok_comma) {
+        /* The first operand is a comma expression. */
+        /* Check for a second operand of the comma expression that is the
+           value of a variable. */
+        comma_operand_2 = struct_expr->variant.operation.operands->next;
+        if (comma_operand_2->kind == (an_expr_node_kind)enk_variable) {
+          optimizable = TRUE;
+          *comma_case = TRUE;
+        }  /* if */
+      } else if (op == (an_expr_operator_kind)eok_indirect) {
+        /* The first operand is *expression, so we can easily refer to it
+           as an lvalue. */
+        optimizable = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
   return optimizable;
@@ -3916,58 +3889,74 @@ be optimized by dump_rvalue_selection.
 static void dump_rvalue_selection(an_expr_node_ptr expr)
 /*
 Dump an rvalue field selection, i.e., one where a field or bit field is
-selected from an rvalue struct or union.  Because pcc compilers do not
-allow selection of a field from an rvalue struct (which is allowed in
-ANSI C), copy the struct to a temp and select the field from the temp.
+used as an rvalue.  Because pcc compilers do not allow selection of a field
+from an rvalue struct (which is allowed in ANSI C), copy an rvalue struct
+to a temp and select the field from the temp.
 */
 {
   an_expr_node_ptr struct_expr, comma_operand_1, comma_operand_2;
   a_boolean        comma_case;
+  a_boolean        need_closing_paren = FALSE;
 
-  /* The overall code is
-       (_T123456 = expr, _T123456.field)
-     The temporary has been generated on a pre-scan of this code.
-     If the struct expression is just a variable, the field selection is added
-     directly to the variable.  If the struct expression looks like
-       (expr2, variable)
-     (which happens, for example, when a temporary is introduced to hold the
-     return value of a function returning a struct), the transformation is
-     done by changing that to
-       (expr2, variable.field)
-     If the struct expression looks like
-       *expr3
-     the field selection is added directly to the expression.
-  */
   struct_expr = expr->variant.operation.operands;
-  write_tok_ch('(');
-  if (optimizable_rvalue_selection(expr, &comma_case)) {
-    /* This is an optimizable case.  Add the field selection to the existing
-       reference to a struct/union variable. */
-    if (comma_case) {
-      /* (expr2, variable).field --> (expr2, variable.field) */
-      comma_operand_1 = struct_expr->variant.operation.operands;
-      comma_operand_2 = comma_operand_1->next;
-      dump_expr_with_parens(comma_operand_1);
-      write_tok_str(", ");
-      dump_expr_with_parens(comma_operand_2);
+  if (!struct_expr->is_lvalue) {
+    /* The overall code is
+         (_T123456 = expr, _T123456.field)
+       The temporary has been generated on a pre-scan of this code.
+       If the struct expression is just a variable, the field selection is
+       added directly to the variable.  If the struct expression looks like
+         (expr2, variable)
+       (which happens, for example, when a temporary is introduced to hold the
+       return value of a function returning a struct), the transformation is
+       done by changing that to
+         (expr2, variable.field)
+       If the struct expression looks like
+         *expr3
+       the field selection is added directly to the expression.
+    */
+    write_tok_ch('(');
+    need_closing_paren = TRUE;
+    if (optimizable_rvalue_selection(expr, &comma_case)) {
+      /* This is an optimizable case.  Add the field selection to the existing
+         reference to a struct/union variable. */
+      if (comma_case) {
+        /* (expr2, variable).field --> (expr2, variable.field) */
+        comma_operand_1 = struct_expr->variant.operation.operands;
+        comma_operand_2 = comma_operand_1->next;
+        dump_expr_with_parens(comma_operand_1);
+        write_tok_str(", ");
+        dump_expr_with_parens(comma_operand_2);
+      } else {
+        if (struct_expr->kind == (an_expr_node_kind)enk_variable) {
+          /* (variable).field -> variable.field, a normal C case. */
+          dump_expression(struct_expr);
+        } else {
+          /* Something like (*expr3).field --> (*expr3).field */
+          dump_expr_with_parens(struct_expr);
+        }  /* if */
+      }  /* if */
     } else {
-      /* (variable).field -> variable.field, a normal C case. */
-      /* Or (*expr3).field --> (*expr3).field */
-      dump_expression(struct_expr);
+      /* Normal non-optimizable case.  Assign the struct/union value to
+         a temporary and select from the temporary. */
+      dump_temp_name((char *)expr);
+      write_tok_str(" = ");
+      dump_expr_with_parens(struct_expr);
+      write_tok_str(", ");
+      dump_temp_name((char *)expr);
     }  /* if */
   } else {
-    /* Normal non-optimizable case.  Assign the struct/union value to
-       a temporary and select from the temporary. */
-    dump_temp_name((char *)expr);
-    write_tok_str(" = ");
-    dump_expr_with_parens(struct_expr);
-    write_tok_str(", ");
-    dump_temp_name((char *)expr);
+    dump_lvalue(struct_expr);
   }  /* if */
   /* Add the field selection. */
-  write_tok_ch('.');
+  if (node_operator_is(expr, eok_points_to_field)) {
+    write_tok_str("->");
+  } else {
+    write_tok_ch('.');
+  }  /* if */
   dump_field_from_second_operand(expr);
-  write_tok_ch(')');
+  if (need_closing_paren) {
+    write_tok_ch(')');
+  }  /* if */
 }  /* dump_rvalue_selection */
 
 #if !C_GEN_BE_GENERATES_ANSI_C
@@ -3982,23 +3971,25 @@ signed bit fields under pcc, which does not support them.
 */
 {
   an_expr_node_ptr operand;
-  a_field_ptr      dest_field;
 
   /* No need to add this code if the result of the operation is not used. */
   if (!node->result_is_not_used) {
     /* See if the lvalue operand is a bit field. */
     operand = node->variant.operation.operands;
-    if (operand->kind == (an_expr_node_kind)enk_operation &&
-        operand->variant.operation.kind ==
-                                        (an_expr_operator_kind)eok_bit_field) {
-      /* For this case, we need to truncate the result of the assignment
-         because pcc does not do it.  For a signed bit field, use __sexten;
-         for an unsigned bit field, use ((i)&((1<<n)-1)). */
-      dest_field = operand->variant.operation.operands->next->variant.field;
-      if (dest_field->bit_field_is_signed) {
-        write_tok_str("(__sexten((");
-      } else {
-        write_tok_str("((");
+    if (is_operation_node(operand) &&
+        (node_operator_is(operand, eok_dot_field) ||
+         node_operator_is(operand, eok_points_to_field))) {
+      a_field_ptr dest_field =
+                      operand->variant.operation.operands->next->variant.field;
+      if (dest_field->is_bit_field) {
+        /* For this case, we need to truncate the result of the assignment
+           because pcc does not do it.  For a signed bit field, use __sexten;
+           for an unsigned bit field, use ((i)&((1<<n)-1)). */
+        if (dest_field->bit_field_is_signed) {
+          write_tok_str("(__sexten((");
+        } else {
+          write_tok_str("((");
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
@@ -4020,20 +4011,23 @@ closing parentheses needed if any code was generated there.
   if (!node->result_is_not_used) {
     /* See if the lvalue operand is a bit field. */
     operand = node->variant.operation.operands;
-    if (operand->kind == (an_expr_node_kind)enk_operation &&
-        operand->variant.operation.kind ==
-                                        (an_expr_operator_kind)eok_bit_field) {
-      dest_field = operand->variant.operation.operands->next->variant.field;
-      if (dest_field->bit_field_is_signed) {
-        /* End of __sexten call. */
-        write_tok_str("),");
-        write_unsigned_num((a_host_large_unsigned)dest_field->bit_size);
-        write_tok_str("))");
-      } else {
-        /* End of truncation code: ((i)&((1<<n)-1)). */
-        write_tok_str(")&((1<<");
-        write_unsigned_num((a_host_large_unsigned)dest_field->bit_size);
-        write_tok_str(")-1))");
+    if (is_operation_node(operand) &&
+        (node_operator_is(operand, eok_dot_field) ||
+         node_operator_is(operand, eok_points_to_field))) {
+      a_field_ptr dest_field =
+                      operand->variant.operation.operands->next->variant.field;
+      if (dest_field->is_bit_field) {
+        if (dest_field->bit_field_is_signed) {
+          /* End of __sexten call. */
+          write_tok_str("),");
+          write_unsigned_num((a_host_large_unsigned)dest_field->bit_size);
+          write_tok_str("))");
+        } else {
+          /* End of truncation code: ((i)&((1<<n)-1)). */
+          write_tok_str(")&((1<<");
+          write_unsigned_num((a_host_large_unsigned)dest_field->bit_size);
+          write_tok_str(")-1))");
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
@@ -4092,13 +4086,14 @@ Return TRUE if the indicated expression is a zero constant.
 
 static void dump_routine_address(an_expr_node_ptr expr)
 /*
-Generate code for an enk_routine_address expression node, i.e., the address
-of a routine.
+Generate code for an enk_routine expression node, i.e., the address of a
+routine.
 */
 {
   a_routine_ptr rout = expr->variant.routine;
   a_type_ptr    rout_type = rout->type;
-  a_type_ptr    expr_rout_type = type_pointed_to(expr->type);
+  a_type_ptr    expr_rout_type = (expr->is_lvalue) ? expr->type :
+                                                   type_pointed_to(expr->type);
   a_boolean     need_parens = FALSE;
 
   if (rout->superseded_external ||
@@ -4118,7 +4113,7 @@ of a routine.
        be sure to get the required type at this point. */
     write_tok_ch('(');
     need_parens = TRUE;
-    dump_cast(expr->type);
+    dump_cast_to_pointer_to(expr_rout_type);
   }  /* if */
   /* We're counting on the fact that dump_ampersand will not put out anything
      except an annotation comment.  If that is not the case, parentheses might
@@ -4169,6 +4164,80 @@ and also for thunks in the IA-64 ABI.
 
 #endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
 
+static a_boolean suppress_const_for_mutable_or_init(a_variable_ptr var)
+/*
+Return TRUE if the specified variable must be declared as non-const because
+its type is a class with a mutable member or because its initialization will
+be performed as executable code.
+*/
+{
+  a_boolean      suppress_const = FALSE;
+  a_type_ptr     var_type = var->type;
+  a_type_ptr     underlying_var_type = var_type;
+  a_constant_ptr init_con;
+  an_init_kind   init_kind;
+
+  init_con = constant_initializer(var, &init_kind);
+  if (is_array_type(var_type)) {
+    underlying_var_type = underlying_array_element_type(var_type);
+  }  /* if */
+  underlying_var_type = skip_typerefs(underlying_var_type);
+  if (is_class_struct_union_type(underlying_var_type) &&
+      underlying_var_type->variant.class_struct_union.any_mutable_member) {
+    /* When the variable has a class type with a mutable member,
+       suppress const so the variable will not be put into read-only
+       storage. */
+    suppress_const = TRUE;
+  } else if (var->initialization_rewritten_as_assignment ||
+             (init_kind == (an_init_kind)initk_dynamic &&
+              init_con == NULL)) {
+    /* When generating ANSI C, "const" will be put out.  However, if
+       the variable's initialization was turned into executable code
+       (either here or in IL lowering), the initialization code is
+       going to have problems assigning to a "const" entity.  For those
+       cases, suppress the "const" from the variable type. */
+    suppress_const = TRUE;
+  }  /* if */
+  return suppress_const;
+}  /* suppress_const_for_mutable_or_init */
+
+static a_variable_ptr variable_referenced_by_lvalue(an_expr_node_ptr expr)
+/*
+If the specified expr node (which must be an lvalue) refers to a variable,
+either directly (i.e., expr is an enk_variable node), as the left operand
+of a member selection, or as the array operand of a subscripting operation,
+return a pointer to that variable; otherwise, return NULL.
+*/
+{
+  a_variable_ptr var = NULL;
+
+  check_assertion(expr->is_lvalue);
+  /* Scan down through selection and subscripting nodes (including the
+     array-to-pointer decay that occurs when a variable is subscripted). */
+  while (is_operation_node(expr) &&
+         (node_operator_is(expr, eok_array_to_pointer) ||
+          node_operator_is(expr, eok_dot_field) ||
+          node_operator_is(expr, eok_subscript) ||
+          (node_operator_is(expr, eok_indirect) &&
+           is_operation_node(expr->variant.operation.operands) &&
+           node_operator_is(expr->variant.operation.operands, eok_padd)))) {
+    if (node_operator_is(expr, eok_subscript) ||
+        node_operator_is(expr, eok_padd)) {
+      /* The pointer in subscripting and pointer addition can be either
+         operand. */
+      expr = subscript_or_padd_pointer_operand(expr);
+    } else {
+      /* In the other cases, the variable (if any) will be in the first
+         operand. */
+      expr = expr->variant.operation.operands;
+    }  /* if */
+  }  /* for */
+  if (is_variable_node(expr)) {
+    var = expr->variant.variable;
+  }
+  return var;
+}  /* variable_referenced_by_lvalue */
+
 static void dump_expr(an_expr_node_ptr expr,
                       a_boolean        need_parens)
 /*
@@ -4218,45 +4287,87 @@ there's some possibility of precedence confusion and need_parens is TRUE.
                           op == (an_expr_operator_kind)eok_comma,
                           "dump_expr: lvalue-returning operation");
 #if CHECKING
+      if (!node_operands_have_correct_lvalueness(expr)) {
+        /* At least one of the operands is an lvalue when an rvalue is
+           expected or vice-versa. */
+#if DEBUG && !STANDALONE_UTILITY_PROGRAM
+        db_expression(expr);
+#endif /* DEBUG && !STANDALONE_UTILITY_PROGRAM */
+        internal_error("dump_expr: is_lvalue incorrectly set");
+      }  /* if */
       /* Check the correctness of the result_is_not_used flags on the
          operands. */
-      {  an_expr_node_ptr op_node;
-         for (op_node = operand_1; op_node != NULL; op_node = op_node->next) {
-           if (op_node->result_is_not_used) {
-             /* Usually, it's a bad thing if the value of an operand is
-                not used by the operation, but check for special cases. */
-             if (op == (an_expr_operator_kind)eok_comma &&
-                 (op_node == operand_1 || expr->result_is_not_used)) {
-               /* Okay, this is an operand of a comma operation, and the flag
-                  is set correctly. */
-             } else if (op == (an_expr_operator_kind)eok_question &&
-                        op_node != operand_1 &&
-                        expr->result_is_not_used) {
-               /* Okay, this is an operand after the first on a "?"
-                  operation, and the flag is set correctly. */
-             } else if (op == (an_expr_operator_kind)eok_cast &&
-                        expr->result_is_not_used &&
-                        is_void_type(expr->type)) {
-               /* Okay, this is a cast to void, and the flag is set
-                  correctly. */
-             } else {
-               /* The flag is set incorrectly. */
+      { an_expr_node_ptr op_node;
+        for (op_node = operand_1; op_node != NULL; op_node = op_node->next) {
+          if (op_node->result_is_not_used) {
+            /* Usually, it's a bad thing if the value of an operand is
+               not used by the operation, but check for special cases. */
+            if (op == (an_expr_operator_kind)eok_comma &&
+                (op_node == operand_1 || expr->result_is_not_used)) {
+              /* Okay, this is an operand of a comma operation, and the flag
+                 is set correctly. */
+            } else if (op == (an_expr_operator_kind)eok_question &&
+                       op_node != operand_1 &&
+                       expr->result_is_not_used) {
+              /* Okay, this is an operand after the first on a "?"
+                 operation, and the flag is set correctly. */
+            } else if (op == (an_expr_operator_kind)eok_cast &&
+                       expr->result_is_not_used &&
+                       is_void_type(expr->type)) {
+              /* Okay, this is a cast to void, and the flag is set
+                 correctly. */
+            } else {
+              /* The flag is set incorrectly. */
 #if DEBUG && !STANDALONE_UTILITY_PROGRAM
-               db_expression(expr);
-               db_expression(op_node);
+              db_expression(expr);
+              db_expression(op_node);
 #endif /* DEBUG && !STANDALONE_UTILITY_PROGRAM */
-               internal_error(
-                         "dump_expr: result_is_not_used set wrong on operand");
-             }  /* if */
-           }  /* if */
-         }  /* for */
-       }
+              internal_error(
+                        "dump_expr: result_is_not_used set wrong on operand");
+            }  /* if */
+          }  /* if */
+        }  /* for */
+      }
 #endif /* CHECKING */
       switch (op) {
         /* One-operand operators. */
+        case eok_address_of:
+          { a_variable_ptr var = variable_referenced_by_lvalue(operand_1);
+            a_type_ptr     underlying_type = type_pointed_to(expr->type);
+            if (is_function_type(underlying_type)) {
+              /* Function types decay to pointer-to-function types
+                 automatically, so the ampersand is redundant (and would
+                 cause an error if an implicit cast is generated because
+                 a later redeclaration of the function changed its type from
+                 what it was at this point -- see dump_routine_address).
+                 Just omit it and generate the operand directly. */
+              dump_expression(operand_1);
+              goto done_with_unary_operation;
+            }  /* if */
+            if (underlying_type != operand_1->type ||
+                (is_const_qualified_type(underlying_type) && var != NULL &&
+                 suppress_const_for_mutable_or_init(var))) {
+              /* For some cases where const qualifiers were removed on
+                 variables because of initialization, the address of the
+                 variable is less-qualified than it should be, and in a way
+                 that cannot be bridged by an implicit conversion in C.  For
+                 example:
+                   void f() {
+                     int i; i = 1;
+                     const char a[4] = "abc";
+                     const char (&r)[4] = a;
+                   }
+                 Add a cast to the proper type for that case. */
+              dump_cast(expr->type);
+            }  /* if */
+            is_unary = TRUE;
+            opstr = "&";
+            break;
+          }
         case eok_indirect:
-          dump_adding_indirection(operand_1);
-          goto done_with_unary_operation;
+          is_unary = TRUE;
+          opstr = "*";
+          break;
         case eok_inegate:
 #if FIXED_POINT_ALLOWED && !LOWER_FIXED_POINT
         case eok_fxnegate:
@@ -4299,7 +4410,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           } else {
             dump_cast(expr->type);
           }  /* if */
-          if (operand_1->kind == (an_expr_node_kind)enk_variable_address &&
+          if (operand_1->kind == (an_expr_node_kind)enk_variable &&
               is_array_type(operand_1->variant.variable->type)) {
             /* A cast of the address of an array.  Optimize this case: the
                normal expansion of the address of an array includes a cast
@@ -4326,7 +4437,15 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           goto done_with_unary_operation;
         case eok_lvalue_cast:
           write_tok_ch('(');
-          dump_cast(expr_type);
+          if (expr->is_lvalue) {
+            /* Add a level of indirection to get an lvalue of the correct
+               type. */
+            write_tok_ch('*');
+            dump_cast_to_pointer_to(expr_type);
+          } else {
+            /* Just cast to the target type. */
+            dump_cast(expr_type);
+          }  /* if */
           write_tok_ch('&');
           dump_lvalue(operand_1);
           write_tok_ch(')');
@@ -4347,16 +4466,6 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           is_unary = TRUE;
           opstr = "__imag";
           break;
-        case eok_lvalue_real_part:
-          write_tok_str("__real(");
-          dump_lvalue(operand_1);
-          write_tok_ch(')');
-          goto done_with_unary_operation;
-        case eok_lvalue_imag_part:
-          write_tok_str("__imag(");
-          dump_lvalue(operand_1);
-          write_tok_ch(')');
-          goto done_with_unary_operation;
 #endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
 #if FIXED_POINT_ALLOWED && !LOWER_FIXED_POINT
         case eok_fxpost_incr:
@@ -4442,6 +4551,11 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           write_tok_str(", &");
           dump_temp_name((char *)expr);
           goto done_with_unary_operation;
+        case eok_array_to_pointer:
+          /* Decay of an array lvalue/rvalue to a pointer to its first
+             element.  Just dump the array expression. */
+          dump_expr_with_parens(operand_1);
+          goto done_with_unary_operation;
 #if MICROSOFT_EXTENSIONS_ALLOWED
         case eok_assume:
           write_tok_str("__assume(");
@@ -4460,7 +4574,6 @@ there's some possibility of precedence confusion and need_parens is TRUE.
         case eok_jfadd:
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
         case eok_padd:
-        case eok_padd_subsc:
 #if GNU_VECTOR_TYPES_ALLOWED
         case eok_add:
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
@@ -4740,20 +4853,19 @@ process_assignment:
             /* Use a block copy. */
 #if __BSD__
             /* BSD UNIX -- use bcopy. */
-            write_tok_str("bcopy((char *)");
-            dump_expr_with_parens(operand_2);
-            write_tok_str(", (char *)");
-            dump_expr_with_parens(operand_1);
+            write_tok_str("bcopy((char *)&");
+            dump_lvalue(operand_2);
+            write_tok_str(", (char *)&");
+            dump_lvalue(operand_1);
 #else  /* !__BSD__ */
             /* System V or ANSI -- use memcpy. */
-            write_tok_str("memcpy((char *)");
-            dump_expr_with_parens(operand_1);
-            write_tok_str(", (char *)");
-            dump_expr_with_parens(operand_2);
+            write_tok_str("memcpy((char *)&");
+            dump_lvalue(operand_1);
+            write_tok_str(", (char *)&");
+            dump_lvalue(operand_2);
 #endif /* __BSD__ */
             /* Add the length of the move. */
-            { a_type_ptr operand_1_type = type_pointed_to(operand_1->type);
-              operand_1_type = skip_typerefs(operand_1_type);
+            { a_type_ptr operand_1_type = skip_typerefs(operand_1->type);
               write_tok_ch(',');
               /* No cast to size_t or the like is needed; in BSD and System V
                  the length is int, and in ANSI C the function is prototyped
@@ -4769,38 +4881,23 @@ process_assignment:
           dump_expr_with_parens(operand_2);
           write_tok_ch(']');
           goto done_with_binary_operation;
-        case eok_field:
-          dump_ampersand(type_pointed_to(expr_type));
-          dump_lvalue_field_selection(expr);
-          goto done_with_binary_operation;
-        case eok_value_field:
-          dump_rvalue_selection(expr);
-          goto done_with_binary_operation;
-        case eok_bit_field:
-          /* This operator shouldn't get past dump_lvalue. */
-          unexpected_condition_str("dump_expr: eok_bit_field as rvalue");
-        case eok_value_bit_field:
-        case eok_extract_bit_field:
+        case eok_dot_field:
+        case eok_points_to_field:
 #if !C_GEN_BE_GENERATES_ANSI_C
           field = operand_2->variant.field;
-          is_signed = field->bit_field_is_signed;
-          if (is_signed) {
+          if (field->is_bit_field && field->bit_field_is_signed) {
             /* Signed bit field.  Do sign extension on the unsigned bit field
                provided by pcc. */
             write_tok_str("(__sexten(");
           }  /* if */
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
-          if (expr->variant.operation.kind ==
-              (an_expr_operator_kind)eok_extract_bit_field) {
-            dump_lvalue(operand_1);
-            write_tok_ch('.');
-            dump_field_from_second_operand(expr);
+          if (expr->is_lvalue) {
+            dump_lvalue_field_selection(expr);
           } else {
-            /* eok_value_bit_field, extraction from rvalue struct/union. */
             dump_rvalue_selection(expr);
           }  /* if */
 #if !C_GEN_BE_GENERATES_ANSI_C
-          if (is_signed) {
+          if (field->is_bit_field && field->bit_field_is_signed) {
             write_tok_ch(',');
             write_unsigned_num((a_host_large_unsigned)field->bit_size);
             write_tok_str("))");
@@ -4994,14 +5091,6 @@ process_assignment:
           write_tok_ch(')');
           enable_line_wrapping();
           goto done_with_operation;
-        case eok_lvalue_va_arg:
-          /* <stdarg.h> va_arg macro, treated as a builtin operator that
-             returns an lvalue. */
-          write_tok_ch('(');
-          write_tok_ch('&');
-          dump_va_arg(expr);
-          write_tok_ch(')');
-          goto done_with_operation;
         case eok_va_arg:
           /* <stdarg.h> va_arg macro, treated as a builtin operator. */
           dump_va_arg(expr);
@@ -5112,16 +5201,10 @@ done_with_operation:
     case enk_constant:
       dump_constant(expr->variant.constant);
       break;
-    case enk_variable_address:
-      if (need_parens) m_write_tok_ch('(');
-      dump_ampersand(expr->variant.variable->type);
-      dump_variable_reference_node(expr);
-      if (need_parens) m_write_tok_ch(')');
-      break;
     case enk_variable:
       dump_variable_reference_node(expr);
       break;
-    case enk_routine_address:
+    case enk_routine:
       dump_routine_address(expr);
       break;
 #if KEEP_OBJECT_LIFETIME_INFO_IN_LOWERED_IL_WHEN_EH_ENABLED
@@ -5149,12 +5232,12 @@ done_with_operation:
                   /*add_pointer_to=*/FALSE);
       } else {
         /* sizeof(expr). */
-        if (expr->variant.runtime_sizeof.is_lvalue) {
+        if (expr->variant.runtime_sizeof.variant.expr->is_lvalue) {
           dump_lvalue(expr->variant.runtime_sizeof.variant.expr);
         } else {
           an_expr_node_ptr sizeof_expr =
                                      expr->variant.runtime_sizeof.variant.expr;
-          if (is_routine_address_node(sizeof_expr)) {
+          if (is_routine_node(sizeof_expr)) {
             /* For the address of a function, we need an extra "&".  The
                normal output suppresses it as unnecessary, but in a sizeof
                there is no function-to-pointer decay. */
@@ -5179,7 +5262,7 @@ done_with_operation:
 #endif /* GNU_EXTENSIONS_ALLOWED */
     case enk_temp_init:
       /* Used for C99 compound literals. */
-      dump_compound_literal(expr, /*suppress_address_of=*/FALSE);
+      dump_compound_literal(expr);
       break;
 #if !DO_FULL_PORTABLE_EH_LOWERING
     /* This code is here as a debugging aid.  Normally, these nodes are
@@ -6395,12 +6478,10 @@ it will be rendered as executable code.
 }  /* dump_initializer */
 
 
-static void dump_compound_literal(an_expr_node_ptr expr,
-                                  a_boolean        suppress_address_of)
+static void dump_compound_literal(an_expr_node_ptr expr)
 /*
 Generate code for a compound literal (a C99 feature), which is represented
-as an enk_temp_init expression.  If the expression indicates the address of
-the compound literal, precede it by "&" unless suppress_address_of is TRUE.
+as an enk_temp_init expression.
 */
 {
   a_dynamic_init_ptr    dip = expr->variant.init.dynamic_init;
@@ -6414,10 +6495,6 @@ the compound literal, precede it by "&" unless suppress_address_of is TRUE.
   */
   write_tok_ch('(');
   temp_type = expr->type;
-  if (expr->variant.init.result_is_addr) {
-    temp_type = type_pointed_to(temp_type);
-    if (!suppress_address_of) write_tok_ch('&');
-  }  /* if */
   dump_cast(temp_type);
   clear_initialization_flags(&icb);
   icb.suppress_initializer_equals = TRUE;
@@ -6484,11 +6561,9 @@ parameters.
   a_boolean      has_magic_name, suppress_const = FALSE;
   char           *name;
   an_init_kind   init_kind;
-#if C_GEN_BE_GENERATES_ANSI_C
-  a_type_ptr     underlying_var_type;
-#else /* !C_GEN_BE_GENERATES_ANSI_C */
+#if !C_GEN_BE_GENERATES_ANSI_C
   a_boolean      forced_static;
-#endif /* C_GEN_BE_GENERATES_ANSI_C */
+#endif /* !C_GEN_BE_GENERATES_ANSI_C */
   a_storage_class
                  storage_class = variable->storage_class;
   a_boolean      forced_referenced;
@@ -6692,25 +6767,9 @@ parameters.
       }  /* if */
 #endif /* DECL_MODIFIERS_IN_USE && (MICROSOFT_EXTENSIONS_ALLOWED || ...) */
 #if C_GEN_BE_GENERATES_ANSI_C
-      underlying_var_type = var_type;
-      if (is_array_type(var_type)) {
-        underlying_var_type = underlying_array_element_type(var_type);
-      }  /* if */
-      underlying_var_type = skip_typerefs(underlying_var_type);
-      if (is_class_struct_union_type(underlying_var_type) &&
-          underlying_var_type->variant.class_struct_union.any_mutable_member) {
-        /* When the variable has a class type with a mutable member,
-           suppress const so the variable will not be put into read-only
-           storage. */
-        suppress_const = TRUE;
-      } else if (variable->initialization_rewritten_as_assignment ||
-                 (init_kind == (an_init_kind)initk_dynamic &&
-                  init_con == NULL)) {
-        /* When generating ANSI C, "const" will be put out.  However, if
-           the variable's initialization was turned into executable code
-           (either here or in IL lowering), the initialization code is
-           going to have problems assigning to a "const" entity.  For those
-           cases, suppress the "const" from the variable type. */
+      if (suppress_const_for_mutable_or_init(variable)) {
+        /* The generated code will need write access to the variable, even
+           if it was const in the source. */
         suppress_const = TRUE;
       } else if (is_void_type(var_type) && is_const_qualified_type(var_type)) {
         /* A declaration like "extern const void x;" is valid ANSI/ISO C,
@@ -7832,8 +7891,9 @@ prescan temporaries in the indicated expression.
     an_expr_operator_kind op = node->variant.operation.kind;
     an_expr_node_ptr      op1 = node->variant.operation.operands;
     a_type_ptr            op1_type = op1->type;
-    if (op == (an_expr_operator_kind)eok_value_field ||
-        op == (an_expr_operator_kind)eok_value_bit_field) {
+    if ((op == (an_expr_operator_kind)eok_dot_field ||
+         op == (an_expr_operator_kind)eok_points_to_field) &&
+        !op1->is_lvalue) {
       /* Selection of a field from an rvalue; may need a temp for the
          struct/union. */
       a_boolean comma_case;
@@ -8114,7 +8174,7 @@ with initialization to the proper values.
                   call_expr->variant.operation.kind ==
                                               (an_expr_operator_kind)eok_call);
   arg = call_expr->variant.operation.operands;
-  check_assertion(is_routine_address_node(arg) &&
+  check_assertion(is_routine_node(arg) &&
                   arg->variant.routine ==
                                     master_routine_scope->variant.routine.ptr);
   /* Skip past the function address and the "this" argument. */
@@ -8132,7 +8192,7 @@ with initialization to the proper values.
     write_tok_str(" = ");
     dump_expr_with_parens(arg);
     write_tok_str("; ");
-  }  /* if */
+  }  /* for */
 }  /* set_up_parameters_for_alternate_entry */
 
 

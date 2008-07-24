@@ -98,9 +98,8 @@ extern a_destructible_entity_descr_ptr alloc_destructible_entity_descr(void);
 extern void free_destructible_entity_descr(
                                          a_destructible_entity_descr_ptr dedp);
 
-extern an_expr_node_ptr make_init_entity_node(
+extern an_expr_node_ptr make_address_of_init_entity_node(
                                        an_init_pos_descr_ptr ipdp,
-                                       a_boolean             using_as_address,
                                        a_boolean             using_as_dest);
 
 extern void init_conditional_flag_var(

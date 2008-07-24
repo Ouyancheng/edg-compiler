@@ -1951,45 +1951,56 @@ Create the body for a default destructor.  It will return no value.
 static a_statement_ptr make_assignment_call(an_expr_node_ptr  source_expr,
                                             an_expr_node_ptr  dest_expr,
                                             a_routine_ptr     rp,
-                                            a_boolean         pass_by_value,
                                             a_source_position *err_pos)
 /*
 Return a statement pointer that represents a call to an assignment operator.
-source_expr points to the node that is the source of the assignment; it may
-require additional modification.  dest_expr points to the destination node.
-rp is the pointer to the routine entry for the assignment operator.
-pass_by_value is TRUE if the source_expr is passed by value, FALSE if it is
-passed by reference.  *err_pos is the source position for diagnostics.
+source_expr is an lvalue for the source of the assignment; dest_expr is an
+lvalue for the destination.  rp is the pointer to the routine entry for
+the operator= function.  source_expr and dest_expr will be converted as
+necessary for use as the argument and the "this" parameter of the call.
+*err_pos is the source position for diagnostics.
 */
 {
   a_param_type_ptr  ptp;
-  a_type_ptr        tp;
   a_statement_ptr   sp;
 
   /* Get the first parameter of the assignment operator, which represents the
      source type. */
   ptp = skip_typerefs(rp->type)->variant.routine.extra_info->param_type_list;
-  if (pass_by_value) {
-    source_expr = add_indirection_to_node(source_expr);
-    /* Make sure a copy constructor call is added if one is needed. */
-    source_expr = prep_rvalue_arg_expr(source_expr, ptp, err_pos);
-  } else {
-    /* If the assignment operator takes an argument that is a base class
-       instead of the current class we need a cast. */
-    tp = ptp->type;
-    if (is_reference_type(tp)) {
-      /* Change the reference type to a pointer type. */
-      tp = make_pointer_type(type_pointed_to(tp));
-    }  /* if */
-    cast_node(&source_expr, tp, /*check_cast_access=*/TRUE,
-              /*is_implicit_cast=*/TRUE, /*is_reinterpret_cast=*/FALSE,
-              /*reinterpret_semantics=*/FALSE, err_pos);
-  }  /* if */
-  /* Calls generated are non-virtual; see 12.8/13 in the C++ standard. */
+  /* Convert the source for use as the argument, e.g., cast it to a base
+     class or add a copy constructor call. */
+  source_expr = prep_generated_arg_expr(source_expr, ptp, err_pos);
+  /* Convert the lvalue for the destination into a pointer for the "this"
+     argument. */
+  dest_expr = add_address_of_to_node(dest_expr);
+  /* Calls generated are non-virtual; see [class.copy]/13 in the C++
+     standard. */
   sp = make_call_assignment_statement(rp, /*suppress_virtual=*/TRUE,
                                       dest_expr, source_expr, err_pos);
   return sp;
 }  /* make_assignment_call */
+
+
+static an_expr_node_ptr lvalue_for_source_param(a_variable_ptr source_var)
+/*
+source_var is the variable for the source parameter of an operator=
+assignment function.  Create and return an lvalue that refers to the source
+object, including for the case where the parameter has a reference type.
+*/
+{
+  an_expr_node_ptr source_expr = var_rvalue_expr(source_var);
+
+  /* Note that current language rules dictate that a generated operator=
+     function always has a reference-typed source parameter, so the
+     non-reference branch here is not reachable.  However, it seems wise to
+     include it for possible future use. */
+  if (is_reference_type(source_var->type)) {
+    source_expr = add_ref_indirection_to_node(source_expr);
+  } else {
+    source_expr = add_indirection_to_node(source_expr);
+  }  /* if */
+  return source_expr;
+}  /* lvalue_for_source_param */
 
 
 static void make_default_assignment_body(a_scope_ptr  scope)
@@ -2010,7 +2021,6 @@ operator routine or do bitwise assignment.
   a_field_ptr                    fp;
   a_routine_ptr                  rp;
   a_symbol_ptr                   sym;
-  a_boolean                      pass_by_value;
   a_param_type_ptr               ptp;
   a_boolean                      bitwise_assign;
   a_source_position              *err_pos;
@@ -2041,8 +2051,9 @@ operator routine or do bitwise assignment.
        actual creation of the routine.) */
     /* Get the source and destination expressions to use as operands for an
        assignment statement. */
-    source_expr = add_indirection_to_node(var_rvalue_expr(source_var));
-    dest_expr = this_param_value_expr();
+    source_expr = lvalue_for_source_param(source_var);
+    source_expr = rvalue_expr_for_lvalue(source_expr);
+    dest_expr = add_indirection_to_node(this_param_value_expr());
     sp = sp->next = make_assignment_statement(dest_expr, source_expr);
   } else {
     /* Memberwise copy is required.  That is, first do the appropriate
@@ -2061,14 +2072,16 @@ operator routine or do bitwise assignment.
         /* The destination is always the implicit "this" parameter cast to
            the appropriate base class. */
         dest_expr = base_class_selection_expr(this_param_value_expr(), bcp);
+        dest_expr = add_indirection_to_node(dest_expr);
         /* The source is the first parameter cast to the same base class. */
-        source_expr = base_class_selection_expr(var_rvalue_expr(source_var),
-                                                bcp);
+        source_expr = lvalue_for_source_param(source_var);
+        source_expr = add_address_of_to_node(source_expr);
+        source_expr = base_class_selection_expr(source_expr, bcp);
+        source_expr = add_indirection_to_node(source_expr);
         if (symbol_supplement_for_class(bcp->type)->
                          assignment_by_bitwise_copy_allowed) {
           /* A bitwise copy may be performed. */
-          /* Dereference the pointer-to-base-class. */
-          source_expr = add_indirection_to_node(source_expr);
+          source_expr = rvalue_expr_for_lvalue(source_expr);
           /* Create the assignment statement.  The appropriate operator
              will be selected by the function. */
           sp = sp->next = make_assignment_statement(dest_expr, source_expr);
@@ -2076,15 +2089,16 @@ operator routine or do bitwise assignment.
           /* A bitwise copy may not be done.  Find the default assignment
              operator and put out a call to it. */
           rp = find_assignment_operator_for_memberwise_copy(
-                                                     bcp->type, source_expr,
-                                                     dest_expr, &pass_by_value,
-                                                     &bcp->decl_position);
+                                                          bcp->type,
+                                                          source_expr,
+                                                          dest_expr,
+                                                          &bcp->decl_position);
           if (rp == NULL) {
             /* Error has already been issued in the subroutine. */
             continue;
           }  /* if */
           sp = sp->next = make_assignment_call(source_expr, dest_expr, rp,
-                                               pass_by_value, err_pos);
+                                               err_pos);
         }  /* if */
       }  /* if */
       /* Advance to the next base class. */
@@ -2120,26 +2134,26 @@ operator routine or do bitwise assignment.
         } else {
           array_type = NULL;
         }  /* if */
-        /* The destination is the appropriate field (lvalue) of the "this"
-           parameter. */
+        /* The destination is the appropriate field of the class pointed to
+           by the "this" parameter, as an lvalue. */
         dest_expr = fe_field_lvalue_selection_expr(this_param_value_expr(),
                                                    fp);
-        /* The source will be the appropriate field of the first argument,
-           but we don't know yet whether it's an lvalue or an rvalue. */
-        source_expr = var_rvalue_expr(source_var);
+        /* The source will be the corresponding field of the class pointed to
+           by the source parameter. */
+        source_expr = lvalue_for_source_param(source_var);
+        source_expr = fe_field_lvalue_selection_expr(source_expr, fp);
         if (is_class_struct_union_type(tp)) {
           /* It's a class type, so we may have to call an assignment operator
              function. */
           if (symbol_supplement_for_class(tp)->
                            assignment_by_bitwise_copy_allowed) {
-            /* A bitwise copy may be performed. */
+            /* A bitwise copy can be performed. */
             bitwise_assign = TRUE;
           } else {
             a_statement_ptr call_stmt;
-            /* A bitwise copy may not be done.  Find the default assignment
+            /* A bitwise copy cannot be done.  Find the default assignment
                operator and put out a call to it. */
             bitwise_assign = FALSE;
-            source_expr = fe_field_lvalue_selection_expr(source_expr, fp);
             if (array_type != NULL) {
               /* Copying an array of classes.  Generate a loop around the
                  call of the assignment routine, like
@@ -2147,7 +2161,10 @@ operator routine or do bitwise assignment.
                    do {
                      assignfunc(&dest[tmp], &src[tmp]);
                    } while (++tmp < num_elements);
-              */
+                 Note that copying of a multidimensional array is done
+                 as a single loop for all the elements, treating the array
+                 as a single-dimensional array of the ultimate underlying
+                 element type. */
               a_variable_ptr   temp_var;
               an_expr_node_ptr temp_node, temp_incr_node, compare_node;
               a_type_ptr       size_t_type;
@@ -2179,40 +2196,51 @@ operator routine or do bitwise assignment.
                                         (a_statement_kind)stmk_end_test_while);
               sp->expr = compare_node;
               /* Convert the source and destination expressions from
-                 pointer-to-array to pointer-to-array-element. */
-              cast_node(&source_expr, make_pointer_type(tp),
-                        /*check_cast_access=*/TRUE, /*is_implicit_cast=*/TRUE,
-                        /*is_reinterpret_cast=*/FALSE,
-                        /*reinterpret_semantics=*/FALSE, err_pos);
-              cast_node(&dest_expr, make_pointer_type(tp),
-                        /*check_cast_access=*/TRUE, /*is_implicit_cast=*/TRUE,
-                        /*is_reinterpret_cast=*/FALSE,
-                        /*reinterpret_semantics=*/FALSE, err_pos);
-              /* Now that we have element pointers, we can find the right
+                 array lvalue to pointer-to-array-element.  Loop if the
+                 array is multidimensional. */
+              for (;;) {
+                source_expr = conv_array_expr_to_pointer(source_expr);
+                if (!(is_pointer_type(source_expr->type) &&
+                      is_array_type(type_pointed_to(source_expr->type)))) {
+                  break;
+                }  /* if */
+                source_expr = add_indirection_to_node(source_expr);
+              }  /* for */
+              for (;;) {
+                dest_expr = conv_array_expr_to_pointer(dest_expr);
+                if (!(is_pointer_type(dest_expr->type) &&
+                      is_array_type(type_pointed_to(dest_expr->type)))) {
+                  break;
+                }  /* if */
+                dest_expr = add_indirection_to_node(dest_expr);
+              }  /* for */
+              /* Add the subscript to the source_expr. */
+              source_expr->next = var_rvalue_expr(temp_var);
+              source_expr =
+                      make_operator_node((an_expr_operator_kind)eok_subscript,
+                                         type_pointed_to(source_expr->type),
+                                         source_expr);
+              source_expr->is_lvalue = TRUE;
+              /* Add the subscript to the dest_expr. */
+              dest_expr->next = var_rvalue_expr(temp_var);
+              dest_expr =
+                      make_operator_node((an_expr_operator_kind)eok_subscript,
+                                         type_pointed_to(dest_expr->type),
+                                         dest_expr);
+              dest_expr->is_lvalue = TRUE;
+              /* Now that we have element lvalues, we can find the right
                  assignment operator. */
               rp = find_assignment_operator_for_memberwise_copy(
                                             tp, source_expr, dest_expr,
-                                            &pass_by_value,
                                             &fp->source_corresp.decl_position);
               if (rp == NULL) {
                 /* Error has already been issued in the subroutine. */
                 continue;
               }  /* if */
-              /* Add the subscript to the source_expr. */
-              source_expr->next = var_rvalue_expr(temp_var);
-              source_expr =
-                      make_operator_node((an_expr_operator_kind)eok_padd_subsc,
-                                         source_expr->type, source_expr);
-              /* Add the subscript to the dest_expr. */
-              dest_expr->next = var_rvalue_expr(temp_var);
-              dest_expr =
-                      make_operator_node((an_expr_operator_kind)eok_padd_subsc,
-                                         dest_expr->type, dest_expr);
             } else {
               /* Find the assignment operator to do the copy. */
               rp = find_assignment_operator_for_memberwise_copy(
                                             tp, source_expr, dest_expr,
-                                            &pass_by_value,
                                             &fp->source_corresp.decl_position);
               if (rp == NULL) {
                 /* Error has already been issued in the subroutine. */
@@ -2220,7 +2248,7 @@ operator routine or do bitwise assignment.
               }  /* if */
             }  /* if */
             call_stmt = make_assignment_call(source_expr, dest_expr, rp,
-                                             pass_by_value, err_pos);
+                                             err_pos);
             if (array_type != NULL) {
               /* Array case; the call goes under the do-while. */
               sp->variant.loop_statement = call_stmt;
@@ -2238,15 +2266,14 @@ operator routine or do bitwise assignment.
           /* Do a bitwise assignment. */
           if (array_type != NULL) {
             /* Array type.  Do a special assignment (source operand is an
-               address). */
-            source_expr = fe_field_lvalue_selection_expr(source_expr, fp);
+               lvalue). */
             sp = sp->next =
                        make_array_assignment_statement(dest_expr, source_expr);
         
           } else {
             /* Not an array.  The appropriate IL operator will be selected
                by make_assignment_statement. */
-            source_expr = fe_field_rvalue_selection_expr(source_expr, fp);
+            source_expr = rvalue_expr_for_lvalue(source_expr);
             sp = sp->next = make_assignment_statement(dest_expr, source_expr);
           }  /* if */
         }  /* if */

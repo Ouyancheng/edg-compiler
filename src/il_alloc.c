@@ -2560,6 +2560,7 @@ fields to default values.
 #if GNU_EXTENSIONS_ALLOWED
       node->variant.operation.is_gnu_two_operand_question_mark = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
+      node->variant.operation.pointer_operand_is_second = FALSE;
 #if CENTERLINE_CHECKING
       node->variant.operation.avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */
@@ -2569,22 +2570,17 @@ fields to default values.
       node->variant.constant = NULL;
       break;
     case enk_variable:
-    case enk_variable_address:
       node->variant.variable = NULL;
       break;
-    case enk_routine_address:
+    case enk_routine:
       node->variant.routine = NULL;
       break;
     case enk_field:
       node->variant.field = NULL;
       break;
     case enk_temp_init:
-      node->variant.init.result_is_addr   = FALSE;
-      node->variant.init.static_temp      = FALSE;
-#if CENTERLINE_CHECKING
-      node->variant.init.avoid_codecenter_warnings = 0;
-#endif /* CENTERLINE_CHECKING */
-      node->variant.init.dynamic_init   = NULL;
+      node->variant.init.static_temp  = FALSE;
+      node->variant.init.dynamic_init = NULL;
       break;
     case enk_new_delete:
       /* Allocate the supplement for new/delete. */
@@ -2642,7 +2638,6 @@ fields to default values.
       break;
     case enk_runtime_sizeof:
       node->variant.runtime_sizeof.is_type = TRUE;
-      node->variant.runtime_sizeof.is_lvalue = FALSE;
       node->variant.runtime_sizeof.variant.type = NULL;
       break;
 #if GNU_EXTENSIONS_ALLOWED
@@ -2697,19 +2692,16 @@ its kind to the indicated kind.
 {
   node->type = NULL;
   node->next = NULL;
+  node->is_lvalue = FALSE;
   node->result_is_not_used = FALSE;
-  node->implicit_reference_indirection = FALSE;
 #ifdef FIL
   node->allow_reordering = FALSE;
 #endif /* ifdef FIL */
   node->is_initialization_guard = FALSE;
   node->generated_default_arg = FALSE;
-  node->void_expression_lvalue = FALSE;
-  node->decltype_expression_lvalue = FALSE;
 #if GNU_EXTENSIONS_ALLOWED
   node->marked_as_gnu_extension = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
-  node->is_operand_of_address_of = FALSE;
   node->is_static_cast = FALSE;
 #if CENTERLINE_CHECKING
   node->avoid_codecenter_warnings = 0;

@@ -29,6 +29,7 @@ types.c -- Utility routines that check types.
 #include "symbol_ref.h"
 #include "templates.h"
 #include "func_def.h"
+#include "il_walk.h"
 #if DO_IL_LOWERING
 #include "lower_il.h"
 #include "lower_c99.h"
@@ -2579,9 +2580,21 @@ type.
 }  /* default_argument_promotion */
 
 
-a_type_ptr con_complete_object_type(a_constant_ptr constant)
+a_type_ptr type_after_array_to_pointer_transformation(a_type_ptr type)
 /*
-Return the type of the complete object that contains the location indicated
+Do the array --> pointer type transformation and return the transformed type.
+*/
+{
+  /* The array --> pointer transformation converts "array of X" to
+     "pointer to X". */
+  type = make_pointer_type(array_element_type(type));
+  return type;
+}  /* type_after_array_to_pointer_transformation */
+
+
+a_type_ptr pointer_con_complete_object_type(a_constant_ptr constant)
+/*
+Return the type of the complete object that contains the location pointed to
 by constant, or NULL if no complete object can be determined or the constant
 is not an address constant.  NULL is always a safe answer; non-NULL values
 may permit optimizations.  Note that "complete object" means an object that
@@ -2598,20 +2611,292 @@ type is to optimize base class casts and virtual function calls.
     /* Unmodified address of a variable.  The variable is the complete
        object and its type is the complete object type. */
     complete_object_type = var->type;
-    if (is_array_type(complete_object_type)) {
+    if (is_array_type(complete_object_type) &&
+        !is_array_type(type_pointed_to(constant->type))) {
+      /* If the address is of an array variable decayed to pointer, use the
+         element type. */
       complete_object_type =
                            underlying_array_element_type(complete_object_type);
     }  /* if */
   }  /* if */
   return complete_object_type;
-}  /* con_complete_object_type */
+}  /* pointer_con_complete_object_type */
 
 
-a_type_ptr node_complete_object_type(an_expr_node_ptr node,
+static void examine_expr_for_complete_object_type(
+                                    an_expr_node_ptr                    node,
+                                    an_expr_or_stmt_traversal_block_ptr tblock)
+/*
+Called from the expression traversal routines to process an expression
+as part of finding the complete object type.  The expression passed in
+is an addressing expression, meaning either an lvalue that identifies an
+object or an rvalue that is a pointer to an object.
+*/
+{
+  a_type_ptr complete_object_type = NULL;
+  a_boolean  suppress_subtree_walk = FALSE;
+
+  if (node->is_lvalue) {
+    /* The expression passed in is an lvalue for an object. */
+    switch (node->kind) {
+      case enk_error:
+      case enk_routine:
+#if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
+      case enk_lowered_eh_construct:
+#endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
+      case enk_builtin_operation:
+        /* Complete object type is not known. */
+        suppress_subtree_walk = TRUE;
+        break;
+      case enk_variable:
+        /* The variable is the complete object and its type is the
+           complete object type. */
+        complete_object_type = node->variant.variable->type;
+        break;
+      case enk_constant:
+        /* The only constant lvalue is a string. */
+        { a_constant_ptr con = node->variant.constant;
+          if (con->kind == (a_constant_repr_kind)ck_string) {
+            complete_object_type = con->type;
+          }  /* if */
+        }
+        break;
+      case enk_operation:
+        /* Operator. */
+        { an_expr_operator_kind op = node->variant.operation.kind;
+          an_expr_node_ptr      operand1 = node->variant.operation.operands;
+          an_expr_node_ptr      operand2 = operand1->next;
+          if (op == (an_expr_operator_kind)eok_dot_field ||
+              op == (an_expr_operator_kind)eok_points_to_field) {
+            /* Field selection (a.b or p->b).  The field itself is a complete
+               object (recall that "complete" means "not a base class" rather
+               than "not part of another object"). */
+            /* MSVC++ doesn't do this optimization.  It allows one to
+               do a placement new of a derived class type on a subobject
+               and get the derived class behavior.  Confirmed in 5.0 through
+               8.0. */
+            if (!microsoft_mode) {
+              complete_object_type = operand2->variant.field->type;
+            }  /* if */
+            suppress_subtree_walk = TRUE;
+          } else if (op == (an_expr_operator_kind)eok_pm_field ||
+                     op == (an_expr_operator_kind)eok_pm_points_to_field) {
+            /* a.*pm, p->*pm.  The member type of the second operand gives the
+               complete object type. */
+            if (is_ptr_to_member_type(operand2->type)) {
+              complete_object_type = pm_member_type(operand2->type);
+            }  /* if */
+            suppress_subtree_walk = TRUE;
+          } else if (op == (an_expr_operator_kind)eok_question
+#if GNU_EXTENSIONS_ALLOWED
+                     || is_gnu_min_max_operator(op)
+#endif /* GNU_EXTENSIONS_ALLOWED */
+                                                   ) {
+            /* Can't tell the complete type of a "?" operator or a GNU min/max
+               operator because two operands would be considered. */
+            suppress_subtree_walk = TRUE;
+          }  /* if */
+        }
+        break;
+      case enk_temp_init:
+        /* The type of the temporary created is the complete object type. */
+        complete_object_type = node->type;
+        break;
+      case enk_object_lifetime:
+        /* Handled by the traversal routine. */
+        break;
+      case enk_typeid:
+        /* Complete type could be const std::type_info or it could be an
+           implementation-specific type derived from that, so we don't know
+           the complete object type. */
+        suppress_subtree_walk = TRUE;
+        break;
+      case enk_reuse_value:
+      case enk_new_delete:
+      case enk_address_of_ellipsis:
+      case enk_throw:
+      case enk_field:
+      case enk_condition:
+      case enk_runtime_sizeof:
+      case enk_type_operand:
+#if GNU_EXTENSIONS_ALLOWED
+      case enk_statement:
+#endif /* GNU_EXTENSIONS_ALLOWED */
+#if DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
+      case enk_result_of_overriding_function:
+#endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
+#if VLA_DEALLOCATIONS_IN_IL
+      case enk_vla_dealloc:
+#endif /* VLA_DEALLOCATIONS_IN_IL */
+      default:
+        unexpected_condition_str(
+                 "examine_expr_for_complete_object_type: bad expression kind");
+    }  /* switch */
+  } else {
+#if DO_IL_LOWERING
+    /* The expression passed in is a pointer or reference to an object. */
+    check_assertion((!node->is_lvalue &&
+                     (is_ptr_or_ref_type(node->type) ||
+                      is_template_param_type(node->type) ||
+                      is_error_type(node->type))) ||
+                    is_error_node(node));
+#else /* !DO_IL_LOWERING */
+    /* The expression passed in is a pointer to an object. */
+    check_assertion((!node->is_lvalue &&
+                     (is_pointer_type(node->type) ||
+                      is_template_param_type(node->type) ||
+                      is_error_type(node->type))) ||
+                    is_error_node(node));
+#endif /* DO_IL_LOWERING */
+    switch (node->kind) {
+      case enk_error:
+      case enk_routine:
+      case enk_temp_init:
+      case enk_address_of_ellipsis:
+#if GNU_EXTENSIONS_ALLOWED
+      case enk_statement:
+#endif /* GNU_EXTENSIONS_ALLOWED */
+#if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
+      case enk_lowered_eh_construct:
+#endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
+#if DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
+      case enk_result_of_overriding_function:
+#endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
+      case enk_builtin_operation:
+        /* Complete object type is not known. */
+        suppress_subtree_walk = TRUE;
+        break;
+      case enk_variable:
+        /* Value of a pointer variable. */
+        /* Complete object type is not known in general, but if the variable
+           is the "this" parameter for a constructor or destructor, and we're
+           optimizing a virtual call case, it is known. */
+        { a_variable_ptr var = node->variant.variable;
+          if (tblock->call_case && var->source_corresp.name == NULL &&
+              var->is_parameter && innermost_function_scope != NULL) {
+            /* The variable is a parameter and we're inside a function. */
+            if (var == innermost_function_scope->variant.routine.
+                                                         this_param_variable) {
+              /* The variable is the "this" parameter variable of the current
+                 function. */
+              a_routine_ptr curr_routine =
+                                 innermost_function_scope->variant.routine.ptr;
+              if (curr_routine->special_kind ==
+                                    (a_special_function_kind)sfk_constructor ||
+                  curr_routine->special_kind ==
+                                    (a_special_function_kind)sfk_destructor) {
+                /* The current function is a constructor or destructor.
+                   We know that the "this" parameter points to a complete
+                   object, at least for purposes of resolving virtual calls
+                   (C++ standard [class.cdtor]). */
+                complete_object_type = parent_class_of(curr_routine);
+              }  /* if */
+            }  /* if */
+          }  /* if */
+        }
+        break;
+      case enk_constant:
+        /* Address constant. */
+        complete_object_type =
+                      pointer_con_complete_object_type(node->variant.constant);
+        break;
+      case enk_operation:
+        /* Operator. */
+        { an_expr_operator_kind op = node->variant.operation.kind;
+          an_expr_node_ptr      operand1 = node->variant.operation.operands;
+          if (op == (an_expr_operator_kind)eok_array_to_pointer) {
+            /* Array to pointer decay.  Strictly speaking, an array is a
+               complete object, and its elements are complete objects.
+               However, if we had a variable of pointer-to-array type, and
+               by use of casts we stored into that variable a pointer to
+               an array of same-sized elements (e.g., an array of a base
+               class type), we wouldn't want the analysis here to assume
+               we know the type of the array elements.  So use a recursive
+               call on the first operand. If the first operand is an
+               rvalue array, give up. */
+            if (operand1->is_lvalue) {
+              traverse_expr(operand1, tblock);
+              complete_object_type = tblock->complete_object_type;
+              if (complete_object_type != NULL) {
+                check_assertion(is_array_type(complete_object_type));
+                complete_object_type =
+                           underlying_array_element_type(complete_object_type);
+                tblock->complete_object_type = complete_object_type;
+              }  /* if */
+            }  /* if */
+            suppress_subtree_walk = TRUE;
+          }  /* if */
+        }
+        break;
+      case enk_new_delete:
+        { a_new_delete_supplement_ptr ndsp = node->variant.new_delete;
+          if (ndsp->is_new) {
+            /* For new, the type is known. */
+            complete_object_type = ndsp->type;
+            if (is_array_type(complete_object_type)) {
+              complete_object_type =
+                           underlying_array_element_type(complete_object_type);
+            }  /* if */
+          } else {
+            /* Not easy to tell the type for delete, and probably not
+               worth it. */
+          }  /* if */
+        }
+        break;
+      case enk_object_lifetime:
+        /* Handled by the traversal routine. */
+        break;
+      case enk_typeid:
+        /* Complete type could be const std::type_info or it could be an
+           implementation-specific type derived from that, so we don't know
+           the complete object type. */
+        suppress_subtree_walk = TRUE;
+        break;
+      case enk_reuse_value:
+        /* The details of the reused pointer value determine whether we know
+           the complete object type. */
+        { a_dynamic_init_ptr init = node->variant.reused_value_init;
+          if (init->kind == (a_dynamic_init_kind)dik_constant) {
+            complete_object_type =
+                      pointer_con_complete_object_type(init->variant.constant);
+          } else if (init->kind == (a_dynamic_init_kind)dik_expression ||
+                     init->kind == 
+                     (a_dynamic_init_kind)dik_call_returning_class_via_cctor) {
+            traverse_expr(init->variant.expression, tblock);
+          }  /* if */
+          suppress_subtree_walk = TRUE;
+        }
+        break;
+      case enk_throw:
+      case enk_field:
+      case enk_condition:
+      case enk_runtime_sizeof:
+      case enk_type_operand:
+#if VLA_DEALLOCATIONS_IN_IL
+      case enk_vla_dealloc:
+#endif /* VLA_DEALLOCATIONS_IN_IL */
+      default:
+        unexpected_condition_str(
+                 "examine_expr_for_complete_object_type: bad expression kind");
+    }  /* switch */
+  } /* if */
+  if (!tblock->terminate) {
+   if (complete_object_type != NULL) {
+      /* We've determined a complete object type at this level. */
+      tblock->complete_object_type = complete_object_type;
+      tblock->terminate = TRUE;
+    } else if (suppress_subtree_walk) {
+      tblock->suppress_subtree_walk = TRUE;
+    }  /* if */
+  }  /* if */
+}  /* examine_expr_for_complete_object_type */
+
+
+a_type_ptr expr_complete_object_type(an_expr_node_ptr expr,
                                      a_boolean        call_case)
 /*
 Return the type of the complete object that contains the location indicated
-by node (an lvalue address), or NULL if no complete object can be determined.
+by expr (an lvalue), or NULL if no complete object can be determined.
 call_case is TRUE if the answer will be used to optimize a virtual function
 call.  NULL is always a safe answer; non-NULL values may permit optimizations.
 Note that "complete object" means an object that is not a base class of
@@ -2620,190 +2905,45 @@ C++ mode; it is useful to know what the complete object type is to optimize
 base class casts and virtual function calls.
 */
 {
-  a_type_ptr            complete_object_type = NULL;
-  an_expr_operator_kind op;
-  an_expr_node_ptr      first_operand;
-  a_new_delete_supplement_ptr
-                        ndsp;
-  a_variable_ptr        var;
+  an_expr_or_stmt_traversal_block tblock;
 
-  switch (node->kind) {
-    case enk_error:
-    case enk_address_of_ellipsis:
-    case enk_routine_address:
-#if DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
-    case enk_result_of_overriding_function:
-#endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
-#if GNU_EXTENSIONS_ALLOWED
-    case enk_statement:
-#endif /* GNU_EXTENSIONS_ALLOWED */
-      /* Complete object type is not known. */
-      break;
-    case enk_variable:
-      /* Complete object type is not known in general, but if the variable
-         is the "this" parameter for a constructor or destructor, and we're
-         optimizing a virtual call case, it is known. */
-      var = node->variant.variable;
-      if (call_case && var->source_corresp.name == NULL &&
-          var->is_parameter &&
-          depth_innermost_function_scope != NO_SCOPE_DEPTH) {
-        /* The variable is a parameter and we're inside a function. */
-        a_scope_ptr scope =
-                          scope_stack[depth_innermost_function_scope].il_scope;
-        if (var == scope->variant.routine.this_param_variable) {
-          /* The variable is the "this" parameter variable of the current
-             function. */
-          a_routine_ptr curr_routine = scope->variant.routine.ptr;
-          if (curr_routine->special_kind ==
-                                    (a_special_function_kind)sfk_constructor ||
-              curr_routine->special_kind ==
-                                    (a_special_function_kind)sfk_destructor) {
-            /* The current function is a constructor or destructor.  We know
-               that the "this" parameter points to a complete object, at
-               least for purposes of resolving virtual calls (ARM 12.7). */
-            complete_object_type = parent_class_of(curr_routine);
-          }  /* if */
-        } /* if */
-      }  /* if */
-      break;
-    case enk_constant:
-      complete_object_type = con_complete_object_type(node->variant.constant);
-      break;
-    case enk_variable_address:
-      /* Address of a variable.  The variable is the complete object and its
-         type is the complete object type. */
-      complete_object_type = node->variant.variable->type;
-      break;
-    case enk_operation:
-      /* Operator. */
-      first_operand = node->variant.operation.operands;
-      op = node->variant.operation.kind;
-      if (op == (an_expr_operator_kind)eok_field ||
-          op == (an_expr_operator_kind)eok_bit_field) {
-        /* Field selection (normal or bit-field).  The field itself is a
-           complete object (recall that "complete" means "not a base class"
-           rather than "not part of another object"). */
-        /* MSVC++ 5.0 doesn't do this optimization.  It allows one to
-           do a placement new of a derived class type on a subobject
-           and get the derived class behavior. */
-        if (!microsoft_mode) {
-          complete_object_type = first_operand->next->variant.field->type;
-        }  /* if */
-      } else if (op == (an_expr_operator_kind)eok_base_class_cast) {
-        /* Cast to a base class.  Do a recursive call on the first operand
-           to find the complete object. */
-        complete_object_type = node_complete_object_type(first_operand,
-                                                         call_case);
-      } else if (op == (an_expr_operator_kind)eok_cast &&
-                 is_pointer_type(node->type) &&
-                 is_pointer_type(first_operand->type)) {
-        a_type_ptr target_type = f_skip_typerefs(type_pointed_to(node->type));
-        a_type_ptr source_type =
-                         f_skip_typerefs(type_pointed_to(first_operand->type));
-        if (is_array_type(source_type)) {
-          /* Allow for array to pointer decay */
-          source_type =
-                   f_skip_typerefs(underlying_array_element_type(source_type));
-          if (is_array_type(target_type)) {
-            /* If array is multidimensional, intermediate casts will occur
-               between array types along the way, so we must allow for the
-               case where the target is an array type, too. */
-            target_type =
-                   f_skip_typerefs(underlying_array_element_type(target_type));
-          }  /* if */
-        }  /* if */
-        if (identical_types(target_type, source_type)) {
-          /* This is a qualification conversion or an array-to-pointer decay.
-             Do a recursive call on the first operand to find the complete
-             object.  (Note: this test for eok_cast_nodes is more restrictive
-             than the one in ctor_or_dtor_calling_own_pure_virtual.  The
-             reason is that the code there is simply concerned with
-             determining whether a ctor/dtor "this" parameter is used as the
-             implicit "this" argument in a call, while expressions accepted
-             by this code may need to be used actually to construct an
-             implicit "this" argument, and arbitrary casts can prevent that. */
-          complete_object_type = node_complete_object_type(first_operand,
-                                                           call_case);
-          if (complete_object_type != NULL &&
-              is_array_type(complete_object_type)) {
-            complete_object_type =
-                           underlying_array_element_type(complete_object_type);
-          }  /* if */
-        }  /* if */    
-      } else if (op == (an_expr_operator_kind)eok_padd ||
-                 op == (an_expr_operator_kind)eok_padd_subsc ||
-                 op == (an_expr_operator_kind)eok_psubtract) {
-        /* Pointer addition (subscripting) or subtraction.  Do a recursive
-           call on the first operand to find the complete object. */
-        complete_object_type = node_complete_object_type(first_operand,
-                                                         call_case);
-      }  /* if */
-      break;
-    case enk_temp_init:
-      complete_object_type = node->type;
-      if (node->variant.init.result_is_addr) {
-        /* The result of the enk_temp_init is the address of the temporary,
-           so drop the pointer-to to get the type of the temporary. */
-        complete_object_type = type_pointed_to(complete_object_type);
-      }  /* if */
-      break;
-    case enk_new_delete:
-      ndsp = node->variant.new_delete;
-      if (ndsp->is_new) {
-        /* For new, the type is known. */
-        complete_object_type = ndsp->type;
-        if (is_array_type(complete_object_type)) {
-          complete_object_type =
-                           underlying_array_element_type(complete_object_type);
-        }  /* if */
-      } else {
-        /* Not easy to tell the type for delete, and probably not worth it. */
-      }  /* if */
-      break;
-    case enk_object_lifetime:
-      complete_object_type =
-                  node_complete_object_type(node->variant.object_lifetime.expr,
-                                            call_case);
-      break;
-    case enk_typeid:
-      /* For a typeid, the complete object type is the type of the struct
-         indicated by the node type. */
-      complete_object_type = type_pointed_to(node->type);
-      break;
-    case enk_runtime_sizeof:
-      complete_object_type = node->type;
-      break;
-    case enk_reuse_value:
-      /* The details of the reused value determine whether we know the
-         complete object type. */
-      { a_dynamic_init_ptr init = node->variant.reused_value_init;
-        if (init->kind == (a_dynamic_init_kind)dik_constant ||
-            init->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) {
-          complete_object_type =
-                              con_complete_object_type(init->variant.constant);
-        } else if (init->kind == (a_dynamic_init_kind)dik_expression ||
-                   init->kind == 
-                     (a_dynamic_init_kind)dik_call_returning_class_via_cctor) {
-          complete_object_type =
-                node_complete_object_type(init->variant.expression, call_case);
-        } else {
-          /* We don't know what the pointer being initialized might point
-             to. */
-        }  /* if */
-      }
-      break;
-    case enk_throw:
-    case enk_field:
-    case enk_condition:
-#if VLA_DEALLOCATIONS_IN_IL
-    case enk_vla_dealloc:
-#endif /* VLA_DEALLOCATIONS_IN_IL */
-    default:
-      unexpected_condition_str(
-                             "node_complete_object_type: bad expression kind");
-  }  /* switch */
-  return complete_object_type;
-}  /* node_complete_object_type */
+  check_assertion(expr->is_lvalue || is_error_node(expr));
+  clear_expr_or_stmt_traversal_block(&tblock);
+  tblock.process_expr = examine_expr_for_complete_object_type;
+  tblock.follow_addressing_path = TRUE;
+  tblock.call_case = call_case;
+  traverse_expr(expr, &tblock);
+  return tblock.complete_object_type;
+}  /* expr_complete_object_type */
+
+
+a_type_ptr pointer_expr_complete_object_type(an_expr_node_ptr expr,
+                                             a_boolean        call_case)
+/*
+Return the type of the complete object that contains the location pointed to
+by expr (a pointer rvalue), or NULL if no complete object can be determined.
+call_case is TRUE if the answer will be used to optimize a virtual function
+call.  NULL is always a safe answer; non-NULL values may permit optimizations.
+Note that "complete object" means an object that is not a base class of
+another object, not necessarily a top-level object.  This is used only in
+C++ mode; it is useful to know what the complete object type is to optimize
+base class casts and virtual function calls.
+*/
+{
+  an_expr_or_stmt_traversal_block tblock;
+
+  check_assertion((!expr->is_lvalue &&
+                   (is_pointer_type(expr->type) ||
+                    is_template_param_type(expr->type) ||
+                    is_error_type(expr->type))) ||
+                  is_error_node(expr));
+  clear_expr_or_stmt_traversal_block(&tblock);
+  tblock.process_expr = examine_expr_for_complete_object_type;
+  tblock.follow_addressing_path = TRUE;
+  tblock.call_case = call_case;
+  traverse_expr(expr, &tblock);
+  return tblock.complete_object_type;
+}  /* pointer_expr_complete_object_type */
 
 
 a_type_ptr f_implicit_this_param_type_of(a_type_ptr  routine_type)
@@ -8196,7 +8336,7 @@ its parameters?).
               status = TRUE;
               break;
             }  /* if */
-          }  /* if */
+          }  /* for */
         }  /* if */
         if (!C_mode()) {
           if (flags & TTT_THIS_PARAM_TYPE) {

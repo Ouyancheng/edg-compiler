@@ -438,14 +438,22 @@ Copy the source position from an expression operand into an expression node.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
 /*
+Used to pass addresses of end positions as call arguments.  Substitutes
+the address of null_source_position in configurations that don't have extra
+source positions.
+*/
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+#define end_position_or_null(end_position) (end_position)
+#else /* !EXTRA_SOURCE_POSITIONS_IN_IL */
+#define end_position_or_null(end_position) (&null_source_position)
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+
+/*
 Get the end position address from an operand if there is one, otherwise return
 the address of null_source_position.
 */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-#define end_position_of_operand(operand) (&(operand)->end_position)
-#else /* !EXTRA_SOURCE_POSITIONS_IN_IL */
-#define end_position_of_operand(operand) (&null_source_position)
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+#define end_position_of_operand(operand) \
+  end_position_or_null(&(operand)->end_position)
 
 
 /*
@@ -479,8 +487,9 @@ some of the transformations.
 			/* Suppress conversion of an lvalue to an rvalue. */
 #define TOPT_SUPPRESS_CHECK_FOR_INDEFINITE_FUNCTION 0x8
 			/* Suppress the check for indefinite functions. */
-#define TOPT_ADDR_OF_CTOR_ALLOWED 0x10
-			/* Taking the address of a constructor is allowed. */
+#define TOPT_WILL_CALL 0x10
+			/* The operand is the function being called in a
+			   call. */
 #define TOPT_SUPPRESS_MEMBER_FUNC_TO_PM_CONVERSION 0x20
 			/* Member functions should not be converted implicitly
 			   to pointer-to-member. */
@@ -658,7 +667,9 @@ EXTERN a_ref_entry_ptr
 /*
 Variable that controls whether an attempt should be made to fold all
 initializers to constant expressions or only initializers for variables
-with static duration.
+with static duration.  Also indicates a preference for other expressions,
+like arguments or the source of assignments.  In general, folding to a
+constant is good for code generation and less good for source analysis.
 */
 EXTERN a_boolean
 		favor_constant_result_for_nonstatic_init
@@ -936,30 +947,36 @@ extern void modifying_lvalue(an_operand *operand,
 
 extern a_boolean is_bit_field_operand(an_operand *operand);
 
-extern a_boolean is_bit_field_whose_address_can_be_taken(
-                                                        a_field_ptr field,
-                                                        a_type_ptr  *ptr_type);
+extern a_boolean is_bit_field_whose_address_can_be_taken(a_field_ptr field);
 
-extern void take_address_of_lvalue(an_operand *operand);
+extern a_boolean microsoft_template_arg_constant_lvalue_address(
+                                                    an_expr_node_ptr expr,
+                                                    a_constant       *conaddr);
+
+extern void take_address_of_lvalue(an_operand *operand,
+                                   a_source_position *operator_position);
+
+extern void take_reference_to_lvalue(an_operand *operand);
 
 extern void conv_object_pointer_to_lvalue(an_operand *operand);
 
 extern an_expr_node_ptr remove_cast_operations(an_expr_node_ptr  node);
 
-extern void conv_rvalue_expr_to_object_pointer(
-                                           an_expr_node_ptr *p_node,
-                                           a_boolean        *converted,
-                                           a_boolean        see_if_possible,
-                                           a_boolean        gcc_lvalue,
-                                           a_boolean        ignore_casts,
-                                           a_type_ptr       *lvalue_type,
-                                           a_boolean        will_be_an_lvalue);
+extern void conv_rvalue_expr_to_object_pointer(an_expr_node_ptr *p_node,
+                                               a_boolean        *converted);
 
-extern void conv_class_operand_to_object_pointer(an_operand *operand,
-                                                 a_boolean  will_be_an_lvalue);
+extern void conv_class_rvalue_operand_to_lvalue(an_operand *operand);
+
+extern void conv_class_operand_to_object_pointer(an_operand *operand);
 
 extern a_constant_ptr value_of_constant_var_lvalue_operand(
                                                           an_operand *operand);
+
+extern
+an_expr_node_ptr conv_lvalue_expr_to_rvalue(an_expr_node_ptr node,
+                                            a_boolean        *constant_case,
+                                            a_constant_ptr   *con_value,
+                                            a_source_position *err_pos);
 
 extern void conv_lvalue_to_rvalue(an_operand *operand);
 
@@ -1035,7 +1052,8 @@ extern void rewrite_property_field_reference(an_operand *operand,
                                              an_operand *put_operand);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 extern void convert_function_template_to_single_function_if_possible(
-                                                          an_operand *operand);
+                                                        an_operand *operand,
+                                                        a_boolean   will_call);
 
 extern void error_if_indefinite_function(an_operand *operand);
 
@@ -1050,33 +1068,32 @@ extern a_boolean op_is_false_constant(an_operand *operand);
 
 extern a_boolean op_is_null_pointer_value(an_operand *operand);
 
+extern a_boolean op_is_null_address_lvalue(an_operand *operand);
+
 extern void add_reference_indirection(an_operand *result);
 
 #if GNU_EXTENSIONS_ALLOWED
 extern a_boolean operand_is_address_of_label(an_operand  *op);
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
-extern a_boolean variable_has_constant_address(a_variable_ptr variable,
-                                               a_boolean      in_expr_proc);
+extern a_boolean variable_has_constant_address(a_variable_ptr variable);
 
 extern a_boolean operand_is_lvalue_for_variable(an_operand      *operand,
                                                 a_variable_ptr  *var);
 
 extern void make_lvalue_variable_operand(a_variable_ptr  variable,
                                          an_operand      *result,
-                                         a_ref_entry_ptr rep,
-                                         a_boolean       record_expr);
+                                         a_ref_entry_ptr rep);
 
 extern void make_lvalue_operand_from_compound_constant(
                                                      a_constant_ptr  constant,
                                                      an_operand      *operand);
 
-extern void conv_array_rvalue_to_lvalue(an_operand *operand);
-
 extern void make_ptr_to_member_constant_operand(
                                     a_symbol_ptr      member_sym,
                                     a_symbol_ptr      member_proj_sym,
                                     a_source_position *position,
+                                    a_source_position *end_position,
                                     a_boolean         check_protected_access,
                                     a_boolean         is_qualified_name,
                                     a_boolean         is_operand_of_address_of,
@@ -1102,12 +1119,10 @@ extern void promote_operand(an_operand *operand);
 extern void arg_default_promote_operand(an_operand *argument_operand,
                                         a_boolean  is_ellipsis);
 
+extern void set_lvalue_operand_state(an_operand *operand);
+
 extern void make_constant_operand(a_constant *constant,
 			          an_operand *operand);
-
-extern void make_constant_variable_operand(a_constant *constant,
-                                           a_variable *var,
-                                           an_operand *operand);
 
 extern void make_sym_constant_operand(a_symbol_ptr sym,
                                       an_operand   *operand);
@@ -1159,6 +1174,9 @@ extern void type2_error_in_operand(an_error_code error_code,
                                    a_type_ptr    type1,
                                    a_type_ptr    type2);
 
+extern
+void change_template_param_constant_operand_to_lvalue(an_operand *operand);
+
 extern void change_nonreal_member_constant_operand_to_lvalue(
                                                           an_operand *operand);
 
@@ -1203,7 +1221,7 @@ extern void set_temp_init_dynamic_init_lifetime(
 extern an_expr_node_ptr alloc_temp_init_node(
                                       a_type_ptr         temp_type,
                                       a_dynamic_init_ptr dip,
-                                      a_boolean          result_is_addr,
+                                      a_boolean          is_lvalue,
                                       a_boolean          is_explicit_cast);
 
 extern an_expr_node_ptr create_expr_temporary(
@@ -1260,8 +1278,10 @@ extern a_boolean check_pointer_operand(an_operand    *operand,
 				       an_error_code err_code);
 
 extern void make_expression_operand(an_expr_node_ptr node,
-                                    a_type_ptr       type,
 			            an_operand       *operand);
+
+extern void make_lvalue_expression_operand(an_expr_node_ptr node,
+                                           an_operand       *operand);
 
 extern void make_indefinite_function_operand(a_symbol_ptr routine_sym,
                                              a_boolean    curr_id,
@@ -1272,10 +1292,6 @@ extern void make_sym_for_member_operand(a_symbol_ptr    member_sym,
                                         a_ref_entry_ptr rep,
                                         an_operand      *operand);
 
-extern void make_template_param_expr_constant_operand(
-                                                    an_expr_node_ptr node,
-                                                    an_operand        *result);
-
 extern an_expr_node_ptr make_node_from_operand(an_operand *operand);
 
 #if RECORD_FORM_OF_NAME_REFERENCE
@@ -1284,6 +1300,8 @@ extern void set_operand_name_reference_from_locator_for_curr_id(
 #else /* !RECORD_FORM_OF_NAME_REFERENCE */
 #define set_operand_name_reference_from_locator_for_curr_id(x) /* Nothing */
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
+
+extern void force_operand_to_constant_if_possible(an_operand *operand);
 
 extern void extract_constant_from_operand(an_operand     *operand,
                                           a_constant_ptr constant);
@@ -1323,6 +1341,11 @@ extern void base_class_cast_operand(an_operand       *operand_1,
                                     a_boolean        implicit_in_naming,
                                     a_boolean        is_object_pointer);
 
+extern void adjust_lvalue_type(an_operand *operand,
+                               a_type_ptr dest_type);
+
+extern an_expr_node_ptr lvalue_before_type_adjustment(an_expr_node_ptr expr);
+
 extern a_boolean is_a_cplusplus_lvalue(an_operand *operand);
 
 extern void make_error_operand(an_operand *operand);
@@ -1343,6 +1366,7 @@ extern void make_function_designator_operand(
                                       a_symbol_ptr      routine_sym,
                                       a_boolean         is_qualified_name,
                                       a_source_position *position,
+                                      a_source_position *end_position,
                                       a_ref_entry_ptr   rep,
                                       an_operand        *result);
 
@@ -1350,6 +1374,14 @@ extern void build_unary_result_operand(an_operand            *operand,
                                        an_expr_operator_kind kind,
                                        a_type_ptr            type,
                                        an_operand            *result);
+
+extern
+void build_binary_result_operand_full(an_operand            *operand_1,
+                                      an_operand            *operand_2,
+                                      an_expr_operator_kind kind,
+                                      a_type_ptr            type,
+                                      a_boolean             result_is_lvalue,
+                                      an_operand            *result);
 
 extern void build_binary_result_operand(an_operand            *operand_1,
 	       		 	        an_operand            *operand_2,
@@ -1362,7 +1394,9 @@ extern a_boolean check_integral_or_enum_operand(an_operand *operand);
 extern a_boolean check_integral_or_enum_or_fixed_point_operand(
                                                         an_operand  *operand);
 
-extern a_type_ptr type_after_array_to_pointer_transformation(a_type_ptr type);
+extern an_expr_node_ptr conv_array_expr_to_pointer(an_expr_node_ptr node);
+
+extern void do_array_to_pointer_conversion(an_operand *operand);
 
 extern void conv_array_operand_to_pointer_operand(an_operand *operand);
 
@@ -1372,14 +1406,28 @@ extern a_type_ptr type_after_function_to_pointer_transformation(
 
 extern void conv_sym_for_member_operand_to_ptr_to_member(an_operand *operand);
 
+extern
+void conv_expr_function_designator_to_ptr_to_function(an_operand *operand,
+                                                      a_boolean  will_call);
+
 extern void conv_function_designator_to_ptr_to_function(an_operand *operand,
-                                                        a_boolean  allow_ctor);
+                                                        a_boolean  allow_ctor,
+                                                        a_boolean  will_call);
 
 extern a_type_ptr do_implicit_type_transformations(a_type_ptr type,
                                                    an_operand *operand);
 
 extern void error_and_make_error_operand(an_error_code error_code,
 				         an_operand    *operand);
+
+extern
+void do_binary_operation_full(an_expr_operator_kind op,
+                              an_operand            *operand_1,
+                              an_operand            *operand_2,
+                              a_type_ptr            result_type,
+                              a_boolean             result_is_lvalue,
+                              an_operand            *result,
+                              a_source_position     *operator_position);
 
 extern void do_binary_operation(an_expr_operator_kind op,
 			        an_operand            *operand_1,
@@ -1388,8 +1436,11 @@ extern void do_binary_operation(an_expr_operator_kind op,
 			        an_operand            *result,
 			        a_source_position     *operator_position);
 
-extern void prep_generic_operand(an_operand *operand,
-                                 a_boolean  lvalue_expected);
+extern void prep_generic_operand_full(an_operand *operand,
+                                      a_boolean  lvalue_expected,
+                                      a_boolean  rvalue_expected);
+
+extern void prep_generic_operand(an_operand *operand);
 
 extern void generic_cast_operand(an_operand            *operand,
                                  a_type_ptr            dest_type,
@@ -1437,6 +1488,12 @@ extern a_boolean check_boolean_controlling_expr(an_operand *operand);
 
 extern a_boolean still_an_lvalue(a_type_ptr type_before_cast,
 			         a_type_ptr type_cast_to);
+
+extern a_boolean is_lvalue_for_auto_object(an_expr_node_ptr expr,
+                                           a_boolean        *is_temp);
+
+extern a_boolean is_address_of_auto_object(an_expr_node_ptr  expr,
+                                           a_boolean         *is_temp);
 
 extern an_expr_operator_kind which_binary_operator(a_token_kind token,
 						   a_type_ptr   type);

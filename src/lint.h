@@ -72,6 +72,7 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(714,db_scope_pragmas)*/
 /*lint -esym(714,db_translation_unit)*/
 /*lint -esym(714,db_translation_unit_stack)*/
+/*lint -esym(714,db_variable)*/
 /*lint -esym(714,db_line_for_seq)*/
 /*lint -esym(714,f_db_sym_has_traced_name)*/
 /*lint -esym(714,db_top_of_scope_stack)*/
@@ -469,6 +470,8 @@ extern int fileno(FILE *);
 #if VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS
 /*lint -esym(759,add_to_end_of_temp_init_statements_list)*/
 /*lint -esym(765,add_to_end_of_temp_init_statements_list)*/
+/*lint -esym(759,assign_expr_to_temp)*/
+/*lint -esym(765,assign_expr_to_temp)*/
 #endif /* VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS */
 #if FIXED_POINT_ALLOWED && !LOWER_FIXED_POINT
 /*lint -esym(759, fixed_point_type_used_in_primary_IL)*/
@@ -555,6 +558,9 @@ extern int fileno(FILE *);
 /*lint -esym(759,find_local_scope)*/
 /*lint -esym(765,find_local_scope)*/
 /*lint -esym(714,find_local_scope)*/
+/*lint -esym(759,tree_has_correct_lvalueness)*/
+/*lint -esym(765,tree_has_correct_lvalueness)*/
+/*lint -esym(714,tree_has_correct_lvalueness)*/
 /* Suppress spurious data access warnings. */
 /*lint -efunc(670,macro_invocation)*/
 /*lint -efunc(690,macro_invocation)*/

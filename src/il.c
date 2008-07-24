@@ -42,6 +42,9 @@ il.c -- Construction of intermediate language trees.
 #if MINIMAL_INLINING
 #include "inline.h"
 #endif /* MINIMAL_INLINING */
+#if LOWER_VARIABLE_LENGTH_ARRAYS
+#include "lower_c99.h"
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
 #endif /* DO_IL_LOWERING */
 #include "trans_copy.h"
 
@@ -1514,7 +1517,7 @@ Dump the contents of the indicated constant, for debug purposes.
 }  /* db_constant */
 
 
-void db_variable(a_variable_ptr var_ptr)
+static void db_variable_without_type(a_variable_ptr var_ptr)
 /*
 Dump the contents of the indicated variable for debug purposes.
 */
@@ -1522,8 +1525,18 @@ Dump the contents of the indicated variable for debug purposes.
   fputs("name = ", f_debug);
   db_name_full(&var_ptr->source_corresp, iek_variable);
   if (var_ptr->is_this_parameter) fputs(" (this)", f_debug);
+}  /* db_variable_without_type */
+
+
+void db_variable(a_variable_ptr var_ptr)
+/*
+Dump the contents of the indicated variable and its type for debug purposes.
+*/
+{
+  db_variable_without_type(var_ptr);
   fputs(", type = ", f_debug);
   db_abbreviated_type(var_ptr->type);
+  fputs("\n", f_debug);
 }  /* db_variable */
 
 
@@ -1570,20 +1583,21 @@ static void db_expr_node(an_expr_node_ptr node,
 Dump the contents of the indicated expression node for debug purposes.
 */
 {
-  register an_expr_node_ptr   operand;
+  an_expr_node_ptr            operand;
   a_constant_ptr              const_ptr;
   int                         a;
   a_new_delete_supplement_ptr ndsp;
   a_throw_supplement_ptr      tsp;
 
   for (a = 0; a < level; a++) fputs(" ", f_debug);
+  if (node->is_lvalue) fprintf(f_debug, "[lvalue] ");
   switch ((int)node->kind) {
     case enk_operation:
+      if (node->variant.operation.returns_lvalue_instead_of_usual_rvalue) {
+        fprintf(f_debug, "[C++] ");
+      }  /* if */
       fprintf(f_debug, "operator: %s",
               db_operator_names[(int)node->variant.operation.kind]);
-      if (node->variant.operation.returns_lvalue_instead_of_usual_rvalue) {
-        fputs(" [lvalue]", f_debug);
-      }  /* if */
       fputs(", result type: ", f_debug);
       db_abbreviated_type(node->type);
       fputs("\n", f_debug);
@@ -1619,19 +1633,15 @@ Dump the contents of the indicated expression node for debug purposes.
       }  /* if */
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
       break;
-    case enk_variable_address:
-      fputs("address of variable: ", f_debug);
-      db_variable(node->variant.variable);
-      fputs("\n", f_debug);
-      break;
     case enk_variable:
-      /* For now. */
       fputs("variable: ", f_debug);
-      db_variable(node->variant.variable);
+      db_variable_without_type(node->variant.variable);
+      fputs(", node type: ", f_debug);
+      db_abbreviated_type(node->type);
       fputs("\n", f_debug);
       break;
-    case enk_routine_address:
-      fprintf(f_debug, "address of routine: %s\n",
+    case enk_routine:
+      fprintf(f_debug, "routine: %s\n",
 	      node->variant.routine->source_corresp.name != NULL ?
                 node->variant.routine->source_corresp.name : "<unnamed>");
       break;
@@ -1641,8 +1651,7 @@ Dump the contents of the indicated expression node for debug purposes.
       fputs("\n", f_debug);
       break;
     case enk_temp_init:
-      fprintf(f_debug, "temp init (%s of temporary): ",
-              node->variant.init.result_is_addr ? "addr" : "value");
+      fprintf(f_debug, "temp init: ");
       db_dynamic_initializer(node->variant.init.dynamic_init, level+2);
       break;
     case enk_new_delete:
@@ -1717,8 +1726,7 @@ Dump the contents of the indicated expression node for debug purposes.
         db_abbreviated_type(node->variant.runtime_sizeof.variant.type);
         fputc('\n', f_debug);
       } else {
-        fprintf(f_debug, "expr%s =\n",
-                node->variant.runtime_sizeof.is_lvalue ? " (lvalue)" : "");
+        fprintf(f_debug, "expr =\n");
         db_expr_node(node->variant.runtime_sizeof.variant.expr, level + 2);
       }  /* if */
       break;
@@ -2952,7 +2960,7 @@ command-line option.  from_system_include_dir is TRUE if the file was found
 in a directory marked as a system include directory.
 */
 {
-  register a_source_file_ptr sfp;
+  a_source_file_ptr sfp;
 
   db_enter(5, "record_start_of_source_file");
 #if DEBUG
@@ -4371,6 +4379,7 @@ because the constant might be used in a way that doesn't really take
 the address of the variable, e.g., an lvalue).
 */
 {
+  check_assertion(has_static_storage_duration(variable->storage_class));
   clear_constant(con, (a_constant_repr_kind)ck_address);
   con->variant.address.kind = (an_address_base_kind)abk_variable;
   con->variant.address.variant.variable = variable;
@@ -4794,13 +4803,23 @@ a_constant_ptr alloc_unshared_constant(a_constant *cp)
 Allocate a constant in the current IL memory region, copy the value of *cp
 into it, and return a pointer to the allocated constant.  This routine
 is used when a constant cannot be shared, as when it is an initializer
-value.  Several fields are cleared or adjusted.
+value.  Several fields are cleared or adjusted.  Note that the subtree
+of the constant is not copied unless memory region issues force that;
+in general, it is assumed that this routine can allocate a new constant
+entry, do a shallow copy into it, and use any subtree without copying
+(either it's unshared already, or it can be pointed to by multiple
+constants).
 */
 {
   a_constant_ptr ucp;
 
-  ucp = alloc_constant(cp->kind);
-  copy_constant(cp, ucp);
+  if (curr_il_region_number == file_scope_region_number &&
+      has_non_file_scope_ref(cp)) {
+    ucp = copy_constant_full(cp, (a_constant *)NULL, CE_NO_OPTIONS);
+  } else {
+    ucp = alloc_constant(cp->kind);
+    copy_constant(cp, ucp);
+  }  /* if */
   /* Clear the source correspondence information.  This version of the
      constant isn't the one directly associated with the source entity,
      if any. */
@@ -4848,7 +4867,8 @@ copy_constant_full should be called to start a copy.
     new_constant_in_il = FALSE;
   } else {
     /* Allocate a new unshared constant. */
-    new_constant = alloc_unshared_constant(old_constant);
+    new_constant = alloc_constant(old_constant->kind);
+    copy_constant(old_constant, new_constant);
     new_constant_in_il = TRUE;
   }  /* if */
   options = (options &
@@ -4857,6 +4877,8 @@ copy_constant_full should be called to start a copy.
   options_unshared = (options &
                       ~(an_expr_copy_options_set)
                                             CE_COPIED_CONSTANTS_MAY_BE_SHARED);
+  /* Here, the target constant has been allocated and a shallow copy has
+     been done into it.  Copy the subtree as necessary. */
   if (new_constant->kind == (a_constant_repr_kind)ck_aggregate) {
     /* For aggregate constants, copy the subtree also. */
     new_constant->variant.aggregate.first_constant = NULL;
@@ -4904,7 +4926,7 @@ copy_constant_full should be called to start a copy.
             old_constant_pointed_to->variant.string.sequence_number != 0) {
           /* Rewrite a string literal with sequence_number != 0 as a
              static variable. */
-          rewrite_address_of_string_as_address_of_variable(new_constant);
+           rewrite_address_of_string_as_address_of_variable(new_constant);
         } else
 #endif /* DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
         /* Do not insert code here. */
@@ -5392,7 +5414,8 @@ are allowed under a sizeof (etc.) in a template argument expression.
     eq = TRUE;
   } else if (node1 == NULL || node2 == NULL) {
     /* Not equal. */
-  } else if (node1->kind == node2->kind) {
+  } else if (node1->kind == node2->kind &&
+             node1->is_lvalue == node2->is_lvalue) {
     switch (node1->kind) {
       case enk_operation:
         if (node1->variant.operation.kind == node2->variant.operation.kind) {
@@ -5422,19 +5445,16 @@ are allowed under a sizeof (etc.) in a template argument expression.
         eq = eq_constants(node1->variant.constant, node2->variant.constant);
         break;
       case enk_variable:
-      case enk_variable_address:
         eq = same_entities(node1->variant.variable, node2->variant.variable);
         break;
-      case enk_routine_address:
+      case enk_routine:
         eq = same_entities(node1->variant.routine, node2->variant.routine);
         break;
       case enk_field:
         eq = same_entities(node1->variant.field, node2->variant.field);
         break;
       case enk_temp_init:
-        eq = (node1->variant.init.result_is_addr ==
-              node2->variant.init.result_is_addr &&
-              node1->variant.init.static_temp ==
+        eq = (node1->variant.init.static_temp ==
               node2->variant.init.static_temp &&
               compare_template_param_dynamic_inits(
                                             node1->variant.init.dynamic_init,
@@ -5483,8 +5503,6 @@ are allowed under a sizeof (etc.) in a template argument expression.
       case enk_runtime_sizeof:
         eq = (node1->variant.runtime_sizeof.is_type ==
               node2->variant.runtime_sizeof.is_type &&
-              node1->variant.runtime_sizeof.is_lvalue ==
-              node2->variant.runtime_sizeof.is_lvalue &&
               (node1->variant.runtime_sizeof.is_type ?
                  identical_types(node1->variant.runtime_sizeof.variant.type,
                                  node2->variant.runtime_sizeof.variant.type) :
@@ -6004,9 +6022,6 @@ a_boolean has_non_file_scope_ref(a_constant *cp)
 Return TRUE if the constant pointed to by cp includes a reference to something
 that's not in the file scope.  If it does, the constant cannot be allocated
 at the file scope (it would contain a pointer down into a function scope).
-This routine should not be called with constants of kind ck_aggregate (they
-aren't shared, so they should always be allocated in the current memory 
-region).
 */
 {
   a_boolean has_nfs_ref = FALSE;
@@ -6074,6 +6089,11 @@ region).
 #endif /* CHECKING */
       }  /* switch */
       break;
+    case ck_aggregate:
+      if (cp->variant.aggregate.first_constant != NULL) {
+        has_nfs_ref = !in_file_scope(cp->variant.aggregate.first_constant);
+      }  /* if */
+      break;
 #if GNU_EXTENSIONS_ALLOWED
     case ck_label_difference:
       /* Labels are never in the file scope. */
@@ -6118,8 +6138,6 @@ region).
                          "has_non_file_scope_ref: bad template constant kind");
       }  /* switch */
       break;
-    /* Aggregates shouldn't be shared, so we don't expect them here. */
-    case ck_aggregate:
     default:
       unexpected_condition_str("has_non_file_scope_ref: bad constant kind");
   }  /* switch */
@@ -6203,6 +6221,10 @@ put it on a list of constants).
     /* Don't share aggregate constants (they come up for compound literals
        used to initialize static variables in gcc mode, when
        RECORD_CONSTANT_EXPRESSIONS_IN_IL is TRUE). */
+    scp = alloc_unshared_constant(cp);
+  } else if (cp->kind == (a_constant_repr_kind)ck_string &&
+             !string_literals_shared) {
+    /* Don't share string literals if told not to. */
     scp = alloc_unshared_constant(cp);
   } else {
     /* The constant has no source correspondence. */
@@ -6607,7 +6629,7 @@ Microsoft extension.
 void make_typeid_constant(a_type_ptr     typeid_type,
                           a_constant_ptr typeid_con)
 /*
-Make a constant for typeid(typeid_type) in *typeid_con.
+Make a constant for the address of typeid(typeid_type) in *typeid_con.
 */
 {
   a_type_ptr const_type_info = make_qualified_type(
@@ -6778,6 +6800,46 @@ the given parameter types (which may be NULL).
   set_routine_calling_method_flag(rout_type, np);
   return rout_type;
 }  /* make_routine_type */
+
+
+a_routine_ptr routine_from_function_expr(an_expr_node_ptr expr)
+/*
+expr is the expression identifying the function to call in a normal call
+(including a virtual call).  If it is possible to determine the specific
+function being called, return a pointer to its routine entry.  Otherwise,
+return NULL.  The expression can be an lvalue or rvalue for the function,
+even though calls actually always use the rvalue form.
+*/
+{
+  a_routine_ptr routine = NULL;
+
+  if (is_operation_node(expr)) {
+    an_expr_operator_kind op = expr->variant.operation.kind;
+    if (op == (an_expr_operator_kind)eok_dot_static ||
+        op == (an_expr_operator_kind)eok_points_to_static) {
+      /* A field selection of a static member.  The second operand
+         gives the function.  It's an lvalue if and only if the top node
+         is an lvalue, so we don't affect lvalue-ness with this adjustment. */
+      expr = expr->variant.operation.operands->next;
+    }  /* if */
+  }  /* if */
+  if (is_constant_node(expr)) {
+    a_constant_ptr con = expr->variant.constant;
+    if (!expr->is_lvalue && con_is_exact_addr_of_routine(con)) {
+      /* Constant that is the address of a routine. */
+      routine = con->variant.address.variant.routine;
+    }  /* if */
+  } else {
+    while (is_operation_node(expr) && node_operator_is(expr, eok_address_of)) {
+      /* Remove "&" if present. */
+      expr = expr->variant.operation.operands;
+    }  /* while */
+    if (is_routine_node(expr)) {
+      routine = expr->variant.routine;
+    }  /* if */
+  }  /* if */
+  return routine;
+}  /* routine_from_function_expr */
 
 
 a_type_ptr add_param_type(a_type_ptr  rout_type,
@@ -7378,7 +7440,7 @@ the invalid placeholder corresponding to type is returned.
         ref_tp->first_placeholder_invalid = FALSE;
         if (ref_tp == type) {
           /* We found the requested type: End the traversal.  (This test
-             will always fail if type is NULL. */
+             will always fail if type is NULL.) */
           break;
         }  /* if */
       } else {
@@ -8638,7 +8700,7 @@ Allocate a reference type record and initialize it.  Attempt to find and reuse
 an existing entry if possible.
 */
 {
-  register a_type_ptr ptr;
+  a_type_ptr ptr;
 
   /* See if a reference type for the type pointed to has already been
      allocated.  If one was allocated, a pointer to it is stored in the
@@ -9022,7 +9084,7 @@ instead.
       if (element_type == NULL) {
         /* Array-of-NULL is a possible temporary state during construction of
            a derived type. */
-      } else {
+      } else if (is_qualified_type(element_type)) {
         element_type = make_unqualified_type(element_type);
         type = copy_array_type_replacing_element_type(type, element_type);
       }  /* if */
@@ -9087,7 +9149,8 @@ Otherwise, it is the type of the rvalue returned.
 a_type_ptr il_return_type_of(a_type_ptr routine_type)
 /*
 Return the type that is the return type of the given function type, as
-it would appear as the type on a call of the function in the IL.
+it would appear as the type on a call of the function in the IL.  If
+the function returns a reference, the reference type is returned.
 */
 {
   a_type_ptr return_type;
@@ -9095,9 +9158,7 @@ it would appear as the type on a call of the function in the IL.
   routine_type = skip_typerefs(routine_type);
   return_type = routine_type->variant.routine.return_type;
   if (is_reference_type(return_type)) {
-    /* If the function returns a reference type, make the result a
-       pointer. */
-    return_type = make_pointer_type(type_pointed_to(return_type));
+    /* If the function returns a reference type, leave the type alone. */
   } else {
     /* The function returns a non-reference type, so the result is an
        rvalue and cv-qualifiers should be dropped appropriately. */
@@ -9368,9 +9429,10 @@ a_local_expr_node_ref.
 a_type_ptr make_field_selection_type(a_field_ptr           field,
                                      a_type_qualifier_set  qualifiers)
 /*
-Return a type based on the type of the specified field, with the indicated
-qualifiers added.  However, if the field was declared mutable, "const" in
-the qualifier set is ignored.
+As part of determining the result type of a field selection, return a type
+based on the type of the specified field, with the indicated qualifiers added.
+However, if the field was declared mutable, "const" in the qualifier set is
+ignored.
 */
 {
   a_type_ptr  type;
@@ -9393,6 +9455,37 @@ the qualifier set is ignored.
 #endif /* UPC_EXTENSIONS_ALLOWED */
   return type;
 }  /* make_field_selection_type */
+
+
+a_type_ptr make_pm_selection_type(a_type_ptr operand_1_type,
+                                  a_type_ptr operand_2_type)
+/*
+Determine the result type of a pointer-to-member selection operator,
+i.e., ".*" or ".->".  operand_1_type is the type of the first operand,
+standardized to class form (i.e., for the "->*" case one level of
+pointer has been stripped off).  operand_2_type is the pointer-to-member
+type of the second operand.
+*/
+{
+  a_type_ptr result_type;
+
+  if (is_error_type(operand_2_type)) {
+    result_type = error_type();
+  } else {
+    result_type = pm_member_type(operand_2_type);
+    if (!(microsoft_mode && microsoft_version < 1200) &&
+        !is_function_type(result_type)) {
+      /* Add cv-qualifiers from the first operand to the result type.
+         (This was not in the ARM, but it's in the standard, and cfront does
+         it.)  Note: this isn't done for the pointer-to-member-function
+         case, since applying type qualifiers to a function type is
+         not allowed. */
+      result_type = type_plus_qualifiers_from_second_type(result_type,
+                                                          operand_1_type);
+    }  /* if */
+  }  /* if */
+  return result_type;
+}  /* make_pm_selection_type */
 
 
 void skip_common_type_qualifiers(a_type_ptr  *type1,
@@ -9467,6 +9560,9 @@ Copy the type entry "from" to "to".
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   to->source_corresp.decl_pos_info = NULL;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+#if LOWER_VARIABLE_LENGTH_ARRAYS
+  to->visited_for_vla_lowering = FALSE;
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
   if (from_kind == (a_type_kind)tk_array ||
       from_kind == (a_type_kind)tk_routine) {
     if (from_kind == (a_type_kind)tk_routine) {
@@ -9981,10 +10077,9 @@ because they were not instantiated during the original expression
 scan.
 */
 {
-  if (expr->kind == (an_expr_node_kind)enk_routine_address) {
+  if (expr->kind == (an_expr_node_kind)enk_routine) {
     instantiate_il_entity(&expr->variant.routine->source_corresp);
-  } else if (expr->kind == (an_expr_node_kind)enk_variable ||
-             expr->kind == (an_expr_node_kind)enk_variable_address) {
+  } else if (expr->kind == (an_expr_node_kind)enk_variable) {
     instantiate_il_entity(&expr->variant.variable->source_corresp);
   } else if (expr->kind == (an_expr_node_kind)enk_constant) {
     a_constant_ptr con = expr->variant.constant;
@@ -11007,7 +11102,7 @@ fixed-point operations.
     /* Compound operators require special handling. */
     an_expr_node_ptr op1 = expr->variant.operation.operands;
     an_expr_node_ptr op2 = op1->next;
-    a_type_ptr       op1_type = rvalue_type(type_pointed_to(op1->type));
+    a_type_ptr       op1_type = rvalue_type(op1->type);
     a_type_ptr       op2_type = op2->type;
 
     /* Usually, the operation type is the type of the second operand,
@@ -11187,9 +11282,6 @@ moved.
 #if BSEARCH_QSORT_FUNCTION_IS_EXTERN_C
 END_EXTERN_C_BLOCK
 #endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
-
-
-
 
 void perform_scheduled_routine_moves(void)
 /*
@@ -11523,16 +11615,21 @@ the value of the expression is discarded.
 
 void set_node_operator(an_expr_node_ptr      node,
                        an_expr_operator_kind kind,
-	   	       a_type_ptr            type,
-		       an_expr_node_ptr      operands)
+                       a_type_ptr            type,
+                       a_boolean             is_lvalue,
+                       an_expr_node_ptr      operands)
 /*
 Set the operator, type, and operand list in an operator expression node.
+Set the node's lvalueness as specified by is_lvalue.
+returns_lvalue_instead_of_usual_rvalue must be set appropriately by the
+caller.
 */
 {
   node->type = type;
   node->variant.operation.kind = kind;
-  node->variant.operation.returns_lvalue_instead_of_usual_rvalue = FALSE;
   node->variant.operation.operands = operands;
+  node->is_lvalue = is_lvalue;
+  node->variant.operation.returns_lvalue_instead_of_usual_rvalue = FALSE;
   if (kind == (an_expr_operator_kind)eok_comma) {
     /* The value of the first operand of a comma operator is not used. */
     set_expr_result_not_used(operands);
@@ -11552,23 +11649,40 @@ an_expr_node_ptr make_operator_node(an_expr_operator_kind kind,
 			   	    an_expr_node_ptr      operands)
 /*
 Allocate and initialize an operator node, give it a type and kind, and link
-an operands list to it.
+an operands list to it.  The node is created as an rvalue.
 */
 {
-  register an_expr_node_ptr node;
+  an_expr_node_ptr node;
 
   node = alloc_expr_node((an_expr_node_kind)enk_operation);
-  set_node_operator(node, kind, type, operands);
+  set_node_operator(node, kind, type, /*is_lvalue=*/FALSE, operands);
 
   return node;
 }  /* make_operator_node */
+
+
+an_expr_node_ptr make_lvalue_operator_node(an_expr_operator_kind kind,
+                                           a_type_ptr            type,
+                                           an_expr_node_ptr      operands)
+/*
+Allocate and initialize an operator node, give it a type and kind, and link
+an operands list to it.  The node is created as an lvalue.
+*/
+{
+  an_expr_node_ptr node;
+
+  node = make_operator_node(kind, type, operands);
+  node->is_lvalue = TRUE;
+  return node;
+}  /* make_lvalue_operator_node */
 
 
 an_expr_node_ptr make_comma_node(an_expr_node_ptr expr1,
                                  an_expr_node_ptr expr2)
 /*
 Make a comma expression node with the indicated two expressions as its
-operands, and return a pointer to it.
+operands, and return a pointer to it.  The lvalueness of the returned
+expression is determined by the lvalueness of its second operand.
 */
 {
   an_expr_node_ptr comma_node;
@@ -11577,6 +11691,10 @@ operands, and return a pointer to it.
   expr2->next = NULL;
   comma_node = make_operator_node((an_expr_operator_kind)eok_comma,
                                   expr2->type, expr1);
+  /* Lvalueness of the comma operation is determined by its second operand. */
+  comma_node->is_lvalue =
+    comma_node->variant.operation.returns_lvalue_instead_of_usual_rvalue =
+                                                              expr2->is_lvalue;
   return comma_node;
 }  /* make_comma_node */
 
@@ -11586,7 +11704,7 @@ an_expr_node_ptr error_node(void)
 Make and return an expression node indicating an error.
 */
 {
-  register an_expr_node_ptr node;
+  an_expr_node_ptr node;
 
   node = alloc_expr_node((an_expr_node_kind)enk_error);
   node->type = error_type();
@@ -11619,66 +11737,16 @@ their operands.
 
 an_expr_node_ptr alloc_node_for_constant(a_constant *constant)
 /*
-Allocate an expression node for a constant.  Usually, this is a node
-of kind enk_constant, but it can be of kind enk_variable_address or
-enk_routine_address if the constant was the address of a variable or the
-address of a routine.  If a normal enk_constant node is built, the
-constant is allocated (as a shareable constant).
+Allocate an expression node for a constant.  The constant provided need
+not already be allocated in the IL -- it will be allocated as a shareable
+constant.
 */
 {
-  register an_expr_node_ptr node;
-  an_address_base_kind      abkind;
+  an_expr_node_ptr node;
 
-  db_enter(5, "alloc_node_for_constant");
-
-  /* If the implicit_cast flag is set, the constant is implicitly cast to
-     another type, and the straight enk_variable_address or enk_routine_address
-     cannot represent that case.  Ditto if the offset is non-zero. */
-  if (constant->kind == (a_constant_repr_kind)ck_address &&
-      !constant->implicit_cast && constant->variant.address.offset == 0) {
-    abkind = constant->variant.address.kind;
-    if (abkind == (an_address_base_kind)abk_routine) {
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
-      if (constant->expr != NULL &&
-          !is_routine_address_node(constant->expr)) {
-        /* Use the constant form if there's extra information in it on the
-           expression that generated the constant. */
-      } else
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
-      /* Do not insert code here. */
-      {
-        /* The constant is the address of a function; use an address-of-
-           function expression node. */
-        node = alloc_expr_node((an_expr_node_kind)enk_routine_address);
-        node->variant.routine = constant->variant.address.variant.routine;
-        goto have_node;
-      }  /* if */
-    } else if (abkind == (an_address_base_kind)abk_variable) {
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
-      if (constant->expr != NULL &&
-          !is_variable_address_node(constant->expr)) {
-        /* Use the constant form if there's extra information in it on the
-           expression that generated the constant. */
-      } else
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
-      /* Do not insert code here. */
-      {
-        /* The constant is the address of a variable; use an address-of-
-           variable expression node. */
-        node = alloc_expr_node((an_expr_node_kind)enk_variable_address);
-        node->variant.variable = constant->variant.address.variant.variable;
-        goto have_node;
-      }  /* if */
-    }  /* if */
-  }  /* if */
-  /* Normal case: allocate a shareable constant and make an expression node
-     that points to it. */    
   node = alloc_expr_node((an_expr_node_kind)enk_constant);
   node->variant.constant = alloc_shareable_constant(constant);
-have_node:
   node->type = constant->type;
-
-  db_exit();
   return node;
 }  /* alloc_node_for_constant */
 
@@ -11859,6 +11927,7 @@ to TRUE.  *source_pos gives the source position for errors.
   a_type_ptr type_1, type_2, type_3;
   a_type_ptr result_type = *operation_type, promoted_type_2;
   a_boolean  do_promotion, do_usual_arith_conversions;
+  a_boolean  bad_types = FALSE;
 
   type_1 = type_of_copied_template_expr(*operand_1, constant_1, *alloc_con_1);
   if (op_2_present) {
@@ -11876,8 +11945,17 @@ to TRUE.  *source_pos gives the source position for errors.
   if (is_bad_type_for_template_arg_operand(type_1) ||
       (op_2_present && is_bad_type_for_template_arg_operand(type_2)) ||
       (op_3_present && is_bad_type_for_template_arg_operand(type_3))) {
-    /* At least one of the operands has an invalid type, e.g., a pointer
-       type.  Deduction fails. */
+    if (op == (an_expr_operator_kind)eok_address_of) {
+      /* The operand of "&" can have any type. */
+    } else if (op == (an_expr_operator_kind)eok_cast &&
+               is_pointer_type(type_1)) {
+      /* The operand of cast can have a pointer type. */
+    } else {
+      bad_types = TRUE;
+    }  /* if */
+  }  /* if */
+  if (bad_types) {
+    /* At least one of the operands has an invalid type.  Deduction fails. */
     *copy_error = TRUE;
   } else if (!op_2_present) {
     /* One-operand operation. */
@@ -12081,7 +12159,6 @@ static an_expr_node_ptr copy_template_param_expr(
                                   a_template_arg_ptr       template_arg_list,
                                   a_template_param_ptr     template_param_list,
                                   a_type_ptr               guide_type,
-                                  a_boolean                indef_lvalue,
                                   a_source_position        *source_pos,
                                   a_ctws_options_set       options,
                                   a_boolean                *copy_error,
@@ -12122,6 +12199,7 @@ template argument substitution.
   a_boolean is_foldable = FALSE;
 
   switch (op) {
+    case eok_address_of:
     case eok_inegate:
     case eok_negate:
     case eok_unary_plus:
@@ -12226,184 +12304,136 @@ passed in.
 }  /* substitute_integer_operator_for_generic */
 
 
-static an_expr_node_ptr copy_template_param_eok_lvalue( 
+static an_expr_node_ptr copy_template_param_expr_as_lvalue(
                                   an_expr_node_ptr         expr,
                                   a_template_arg_ptr       template_arg_list,
                                   a_template_param_ptr     template_param_list,
                                   a_type_ptr               guide_type,
-                                  a_boolean                indef_lvalue,
                                   a_source_position        *source_pos,
                                   a_ctws_options_set       options,
-                                  a_boolean                *copy_error,
-                                  a_constant_ptr           constant,
-                                  a_constant_ptr           *alloc_con)
+                                  a_boolean                *copy_error)
 /*
-Copy the expression expr, which has an eok_lvalue on top, and return a
-pointer to the copy.  The expression is part of a template argument
-expression.  See copy_template_param_expr for the parameter descriptions.
+Copy the expression expr, doing substitution for template parameters, and
+return a pointer to the copy.  The expression will be used as an lvalue, so
+convert it to an lvalue if necessary, or fail if an lvalue cannot be
+produced.  See copy_template_param_expr for the parameter descriptions.
+Because lvalues are always represented as expressions and not constants,
+this routine does not have the constant-value parameters that are usual
+in these template-parameter-substitution routines.
 */
 {
-  an_expr_node_ptr expr_copy = NULL;
-  an_expr_node_ptr operand_1, new_operand_1;
-  a_constant       constant_1;
-  a_constant_ptr   alloc_con_1 = NULL;
-  a_type_ptr       new_type = NULL;
+  an_expr_node_ptr expr_copy;
 
-  operand_1 = expr->variant.operation.operands;
-  if (indef_lvalue) {
-    a_type_ptr lvalue_type;
-    /* The caller can accept either an lvalue or an rvalue, so copy
-       the subtree and keep the eok_lvalue operation. */
-    new_operand_1 = copy_template_param_expr(operand_1,
-                                             template_arg_list,
-                                             template_param_list,
-                                             (a_type_ptr)NULL,
-                                             /*indef_lvalue=*/FALSE,
-                                             source_pos,
-                                             options,
-                                             copy_error,
-                                             &constant_1,
-                                             &alloc_con_1);
-    new_operand_1 = alloc_copied_template_param_expr(
-                                      new_operand_1, &constant_1, alloc_con_1);
-    if (is_template_param_type(operand_1->type)) {
-      lvalue_type = type_of_unknown_templ_param_nontype;
-    } else {
-      lvalue_type = type_pointed_to(operand_1->type);
-    }  /* if */
-    expr_copy = make_operator_node((an_expr_operator_kind)eok_lvalue,
-                                   lvalue_type, new_operand_1);
-  } else if (guide_type != NULL && is_reference_type(guide_type)) {
-    /* An lvalue is expected (the guide type is a reference), and we
-       have an lvalue.  Copy the underlying expression and return the
-       copy. */
-    expr_copy = copy_template_param_expr(operand_1,
+  if (is_error_node(expr)) {
+    expr_copy = error_node();
+  } else if (expr->is_lvalue) {
+    /* The expression is already an lvalue.  Just copy with substitution and
+       return. */
+    a_constant     constant;
+    a_constant_ptr alloc_con;
+    expr_copy = copy_template_param_expr(expr,
                                          template_arg_list,
                                          template_param_list,
                                          guide_type,
-                                         /*indef_lvalue=*/FALSE,
                                          source_pos,
                                          options,
                                          copy_error,
-                                         constant,
-                                         alloc_con);
-    /* Change the expression to a reference type instead of a pointer
-       type if the value is represented as a constant. */
-    if (expr_copy == NULL) {
-      cast_copied_template_param_expr(&expr_copy, constant, alloc_con,
-                                      guide_type, source_pos);
-    }  /* if */
+                                         &constant,
+                                         &alloc_con);
+    /* Force the copy to expression form. */
+    expr_copy = alloc_copied_template_param_expr(expr_copy,
+                                                 &constant,
+                                                 alloc_con);
   } else {
-    /* An rvalue is expected and we have an lvalue.  Copy the expression
-       and convert it to an rvalue. */
-    if (is_array_type(expr->type)) {
-      new_type = type_after_array_to_pointer_transformation(expr->type);
-    } else if (is_function_type(expr->type)) {
-      new_type = type_after_function_to_pointer_transformation(
-                                                           expr->type,
-                                                           (an_operand *)NULL);
-    }  /* if */
-    if (new_type != NULL) {
-      /* An array or function decays to a pointer.  No change of
-         representation is needed, just a cast. */
-      expr_copy = copy_template_param_expr(operand_1,
-                                           template_arg_list,
-                                           template_param_list,
-                                           guide_type,
-                                           /*indef_lvalue=*/FALSE,
-                                           source_pos,
-                                           options,
-                                           copy_error,
-                                           constant,
-                                           alloc_con);
-      cast_copied_template_param_expr(&expr_copy, constant, alloc_con,
-                                      new_type, source_pos);
-    } else {
-      /* Add an indirection to convert to an rvalue.  The result
-         is always an expression. */
-      new_type = rvalue_type(expr->type);
-      new_operand_1 = copy_template_param_expr(operand_1,
-                                               template_arg_list,
-                                               template_param_list,
-                                               guide_type,
-                                               /*indef_lvalue=*/FALSE,
-                                               source_pos,
-                                               options,
-                                               copy_error,
-                                               &constant_1,
-                                               &alloc_con_1);
-      new_operand_1 = alloc_copied_template_param_expr(
-                                      new_operand_1, &constant_1, alloc_con_1);
-      cast_copied_template_param_expr(&new_operand_1, &constant_1,
-                                      &alloc_con_1,
-                                      new_type, source_pos);
-      expr_copy = new_operand_1;
-    }  /* if */
-  }  /* if */
-  return expr_copy;
-}  /* copy_template_param_eok_lvalue */
-
-
-static an_expr_node_ptr copy_template_param_eok_rvalue( 
-                                  an_expr_node_ptr         expr,
-                                  a_template_arg_ptr       template_arg_list,
-                                  a_template_param_ptr     template_param_list,
-                                  a_type_ptr               guide_type,
-                                  a_boolean                indef_lvalue,
-                                  a_source_position        *source_pos,
-                                  a_ctws_options_set       options,
-                                  a_boolean                *copy_error,
-                                  a_constant_ptr           constant,
-                                  a_constant_ptr           *alloc_con)
-/*
-Copy the expression expr, which has an eok_rvalue on top, and return a
-pointer to the copy.  The expression is part of a template argument
-expression.  See copy_template_param_expr for the parameter descriptions.
-*/
-{
-  an_expr_node_ptr expr_copy = NULL;
-  an_expr_node_ptr operand_1, new_operand_1;
-  a_constant       constant_1;
-  a_constant_ptr   alloc_con_1 = NULL;
-
-  operand_1 = expr->variant.operation.operands;
-  if (indef_lvalue) {
-    /* The caller can accept either an lvalue or an rvalue, so copy
-       the subtree and keep the eok_rvalue operation. */
-    new_operand_1 = copy_template_param_expr(operand_1,
-                                             template_arg_list,
-                                             template_param_list,
-                                             (a_type_ptr)NULL,
-                                             /*indef_lvalue=*/FALSE,
-                                             source_pos,
-                                             options,
-                                             copy_error,
-                                             &constant_1,
-                                             &alloc_con_1);
-    new_operand_1 = alloc_copied_template_param_expr(
-                                      new_operand_1, &constant_1, alloc_con_1);
-    expr_copy = make_operator_node((an_expr_operator_kind)eok_rvalue,
-                                   new_operand_1->type, new_operand_1);
-  } else if (guide_type != NULL && is_reference_type(guide_type)) {
-    /* An lvalue is expected (the guide type is a reference), and we
-       have an rvalue.  This is an error that causes a deduction failure. */
+    /* The expression is an rvalue.  There's no way to convert it to an
+       lvalue.  Fail. */
     *copy_error = TRUE;
+  }  /* if */
+  if (*copy_error) {
+    /* Return an error node on a copy error. */
+    expr_copy = error_node();
+  }  /* if */
+  return expr_copy;
+}  /* copy_template_param_expr_as_lvalue */
+
+
+static an_expr_node_ptr copy_template_param_expr_as_rvalue( 
+                                  an_expr_node_ptr         expr,
+                                  a_template_arg_ptr       template_arg_list,
+                                  a_template_param_ptr     template_param_list,
+                                  a_type_ptr               guide_type,
+                                  a_source_position        *source_pos,
+                                  a_ctws_options_set       options,
+                                  a_boolean                *copy_error,
+                                  a_constant_ptr           constant,
+                                  a_constant_ptr           *alloc_con)
+/*
+Copy the expression expr, doing substitution for template parameters, and
+return a pointer to the copy.  The expression will be used as an rvalue, so
+convert it to an rvalue if necessary, or fail if an rvalue cannot be
+produced.  See copy_template_param_expr for the parameter descriptions.
+*/
+{
+  an_expr_node_ptr expr_copy;
+
+  *alloc_con = NULL;
+  if (is_error_node(expr)) {
+    expr_copy = error_node();
   } else {
-    /* An rvalue is expected and we have an rvalue.  Copy and return
-       the expression. */
-    expr_copy = copy_template_param_expr(operand_1,
+    /* Make a copy, doing substitution. */
+    expr_copy = copy_template_param_expr(expr,
                                          template_arg_list,
                                          template_param_list,
                                          guide_type,
-                                         /*indef_lvalue=*/FALSE,
                                          source_pos,
                                          options,
                                          copy_error,
                                          constant,
                                          alloc_con);
+    if (expr_copy != NULL && expr_copy->is_lvalue) {
+      /* The expression is an lvalue.  Try to convert it to an rvalue. */
+      if (is_array_type(expr_copy->type)) {
+        /* Convert an array to a constant pointer. */
+        if (constant_lvalue_address(expr_copy, constant,
+                                    /*address_escapes=*/TRUE,
+                                    (a_boolean *)NULL)) {
+          a_type_ptr ptr_type = type_after_array_to_pointer_transformation(
+                                                              expr_copy->type);
+          implicit_cast(constant, ptr_type);
+          expr_copy = NULL;
+        } else {
+          /* The array does not have a constant address. */
+          expr_copy = conv_array_expr_to_pointer(expr_copy);
+        }  /* if */
+      } else if (is_function_type(expr_copy->type)) {
+        /* Convert a function to a constant pointer. */
+        if (constant_lvalue_address(expr_copy, constant,
+                                    /*address_escapes=*/TRUE,
+                                    (a_boolean *)NULL)) {
+          a_type_ptr ptr_type = make_pointer_type(expr_copy->type);
+          implicit_cast(constant, ptr_type);
+          expr_copy = NULL;
+        } else {
+          /* The function does not have a constant address. */
+          expr_copy = rvalue_expr_for_lvalue(expr_copy);
+        }  /* if */
+      } else {
+        /* Other kind of lvalue (not an array or function). */
+        a_boolean constant_case;
+        expr_copy = conv_lvalue_expr_to_rvalue(expr_copy,
+                                               &constant_case,
+                                               alloc_con,
+                                               source_pos);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  if (*copy_error) {
+    /* Return an error node on a copy error. */
+    expr_copy = error_node();
+    *alloc_con = NULL;
   }  /* if */
   return expr_copy;
-}  /* copy_template_param_eok_rvalue */
+}  /* copy_template_param_expr_as_rvalue */
 
 
 /* Forward declaration. */
@@ -12445,7 +12475,7 @@ expression.  See copy_template_param_expr for the parameter descriptions.
   while (arg != NULL) {
     *new_arg =  copy_template_param_expr(
                             arg, template_arg_list, template_param_list,
-                            (a_type_ptr)NULL, /*indef_lvalue=*/FALSE,
+                            (a_type_ptr)NULL,
                             source_pos, options, copy_error,
                             &const_result, &alloc_const_result);
     if (*copy_error) break;
@@ -12481,7 +12511,6 @@ static an_expr_node_ptr copy_template_param_expr(
                                   a_template_arg_ptr       template_arg_list,
                                   a_template_param_ptr     template_param_list,
                                   a_type_ptr               guide_type,
-                                  a_boolean                indef_lvalue,
                                   a_source_position        *source_pos,
                                   a_ctws_options_set       options,
                                   a_boolean                *copy_error,
@@ -12496,8 +12525,6 @@ template_arg_list.  template_param_list is the parameter list for which
 template_arg_list is an argument list.  If guide_type is non-NULL, it
 is a "guide" type for the expression, either the type of the template
 parameter or the destination type of a cast above this constant.
-If indef_lvalue is TRUE, the expression appears in a context where
-either an lvalue or an rvalue is permitted (e.g., a sizeof).
 source_pos provides the source position for any calls of
 copy_type_with_substitution.  If there is an error in the copying
 (specifically, if there is an error in doing substitution on a type),
@@ -12532,29 +12559,25 @@ options is a set of name lookup options.
     case enk_operation:
       op = expr->variant.operation.kind;
       if (op == (an_expr_operator_kind)eok_lvalue) {
-        /* Copy and fold an eok_lvalue node. */
-        expr_copy = copy_template_param_eok_lvalue(expr,
-                                                   template_arg_list,
-                                                   template_param_list,
-                                                   guide_type,
-                                                   indef_lvalue,
-                                                   source_pos,
-                                                   options,
-                                                   copy_error,
-                                                   constant,
-                                                   alloc_con);
+        /* Copy the operand of an eok_lvalue node as an lvalue. */
+        expr_copy = copy_template_param_expr_as_lvalue(expr,
+                                                       template_arg_list,
+                                                       template_param_list,
+                                                       guide_type,
+                                                       source_pos,
+                                                       options,
+                                                       copy_error);
       } else if (op == (an_expr_operator_kind)eok_rvalue) {
-        /* Copy and fold an eok_rvalue node. */
-        expr_copy = copy_template_param_eok_rvalue(expr,
-                                                   template_arg_list,
-                                                   template_param_list,
-                                                   guide_type,
-                                                   indef_lvalue,
-                                                   source_pos,
-                                                   options,
-                                                   copy_error,
-                                                   constant,
-                                                   alloc_con);
+        /* Copy the operand of an eok_rvalue node an an rvalue. */
+        expr_copy = copy_template_param_expr_as_rvalue(expr,
+                                                       template_arg_list,
+                                                       template_param_list,
+                                                       guide_type,
+                                                       source_pos,
+                                                       options,
+                                                       copy_error,
+                                                       constant,
+                                                       alloc_con);
       } else if (!operator_is_foldable(op)) {
         /* For operators we can't ever fold (e.g., calls), give up on
            deduction.  This is a limitation with respect to the standard,
@@ -12578,7 +12601,6 @@ options is a set of name lookup options.
                                                  template_arg_list,
                                                  template_param_list,
                                                  (a_type_ptr)NULL,
-                                                 /*indef_lvalue=*/FALSE,
                                                  source_pos,
                                                  options,
                                                  copy_error,
@@ -12589,7 +12611,6 @@ options is a set of name lookup options.
                                                    template_arg_list,
                                                    template_param_list,
                                                    (a_type_ptr)NULL,
-                                                   /*indef_lvalue=*/FALSE,
                                                    source_pos,
                                                    options,
                                                    copy_error,
@@ -12601,7 +12622,6 @@ options is a set of name lookup options.
                                                      template_arg_list,
                                                      template_param_list,
                                                      (a_type_ptr)NULL,
-                                                     /*indef_lvalue=*/FALSE,
                                                      source_pos,
                                                      options,
                                                      copy_error,
@@ -12676,7 +12696,8 @@ options is a set of name lookup options.
                 *alloc_con = NULL;
               }  /* if */
             } else if (op == (an_expr_operator_kind)eok_cast) {
-              type_change_constant(&constant_1, operation_type,
+              copy_constant(&constant_1, constant);
+              type_change_constant(constant, operation_type,
                                    /*is_implicit_cast=*/FALSE,
                                    /*constant_context=*/TRUE,
                                    /*evaluated_context=*/TRUE,
@@ -12698,6 +12719,18 @@ options is a set of name lookup options.
               check_assertion(!did_not_fold);
               *alloc_con = NULL;
             }  /* if */
+          }  /* if */
+        } else if (op == (an_expr_operator_kind)eok_address_of) {
+          /* Taking the address of a constant-lvalued lvalue produces a
+             constant. */
+          a_boolean template_constant;
+          if (new_operand_1 != NULL && new_operand_1->is_lvalue &&
+              constant_lvalue_address(new_operand_1, constant,
+                                     /*address_escapes=*/TRUE,
+                                     &template_constant)) {
+            folded_to_constant = TRUE;
+            expr_copy = NULL;
+            *alloc_con = NULL;
           }  /* if */
         }  /* if */
         if (!folded_to_constant) {
@@ -12726,11 +12759,7 @@ options is a set of name lookup options.
       }  /* if */
       break;
     case enk_variable:
-    case enk_variable_address:
-    case enk_routine_address:
-      /* Come up in non-constant expressions under sizeof. */
-      check_assertion_str(non_constant_expr,
-                          "copy_template_param_expr: bad expression kind");
+    case enk_routine:
       expr_copy = copy_expr_tree(expr, CE_NO_OPTIONS);
       break;
     case enk_reuse_value:
@@ -12765,6 +12794,7 @@ options is a set of name lookup options.
   if (*copy_error) {
     /* Return an error node on a copy error. */
     expr_copy = error_node();
+    *alloc_con = NULL;
   }  /* if */
   return expr_copy;
 }  /* copy_template_param_expr */
@@ -13088,7 +13118,6 @@ name lookup options.
                                             template_arg_list,
                                             template_param_list,
                                             (a_type_ptr)NULL,
-                                            /*indef_lvalue=*/TRUE,
                                             source_pos,
                                             options | CTWS_NON_CONSTANT_EXPR,
                                             copy_error,
@@ -13203,7 +13232,6 @@ name lookup options.
                                                          template_arg_list,
                                                          template_param_list,
                                                          guide_type,
-                                                        /*indef_lvalue=*/FALSE,
                                                          source_pos,
                                                          options,
                                                          copy_error,
@@ -13256,20 +13284,91 @@ placed in the file scope memory region.  options is a set of name
 lookup options.
 */
 {
-  a_constant_ptr con_copy;
+  a_constant_ptr con_copy = NULL;
   a_constant     constant;
 
   a_memory_region_number region_to_switch_back_to;
 
   switch_to_file_scope_region(&region_to_switch_back_to);
-  con_copy = copy_template_param_con(con,
-                                     template_arg_list,
-                                     template_param_list,
-                                     template_param_type,
-                                     source_pos,
-                                     options,
-                                     copy_error,
-                                     &constant);
+  if (template_param_type != NULL &&
+      con->kind == (a_constant_repr_kind)ck_template_param &&
+      con->variant.template_param.kind ==
+                             (a_template_param_constant_kind)tpck_expression) {
+    /* We know the template parameter type, so we can tell whether the
+       argument is being used as an lvalue or an rvalue.  We also have an
+       expression for the argument, which may have been scanned without
+       knowledge of how it would be used and might have to be adjusted
+       now. */
+    an_expr_node_ptr expr = con->variant.template_param.variant.expr;
+    an_expr_node_ptr expr_copy;
+    if (is_reference_type(template_param_type)) {
+      /* The template parameter type is a reference.  Copy the expression
+         as an lvalue and then see if it has a constant address. */
+      expr_copy = copy_template_param_expr_as_lvalue(expr,
+                                                     template_arg_list,
+                                                     template_param_list,
+                                                     template_param_type,
+                                                     source_pos,
+                                                     options,
+                                                     copy_error);
+      if (!*copy_error) {
+        check_assertion(expr_copy != NULL);
+        if (expr_copy->is_lvalue) {
+          /* See if the lvalue has a constant address. */
+          if (constant_lvalue_address(expr_copy, &constant,
+                                      /*address_escapes=*/TRUE,
+                                      (a_boolean *)NULL)) {
+            /* Yes.  Change the address constant type to a reference. */
+            a_type_ptr ref_type = make_reference_type(
+                                               type_pointed_to(constant.type));
+            constant.type = ref_type;
+          } else {
+            /* The lvalue address is not constant. */
+            *copy_error = TRUE;
+          }  /* if */
+        } else {
+          /* The expression node is not an lvalue. */
+          check_assertion(is_error_node(expr_copy));
+        }  /* if */
+      }  /* if */
+    } else {
+      /* The template parameter type is not a reference, so copy the
+         expression as an rvalue. */
+      expr_copy = copy_template_param_expr_as_rvalue(expr,
+                                                     template_arg_list,
+                                                     template_param_list,
+                                                     template_param_type,
+                                                     source_pos,
+                                                     options,
+                                                     copy_error,
+                                                     &constant,
+                                                     &con_copy);
+      if (!*copy_error && expr_copy != NULL) {
+        /* We want a constant result, so convert to a constant (usually
+           a tpck_expression constant). */
+        if (is_error_node(expr_copy)) {
+          set_error_constant(&constant);
+        } else {
+          make_template_param_expr_constant(expr_copy, &constant);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+    if (*copy_error) {
+      set_error_constant(&constant);
+      con_copy = NULL;
+    }  /* if */
+  } else {
+    /* The template parameter type is unknown.  Just copy the constant with
+       substitution. */
+    con_copy = copy_template_param_con(con,
+                                       template_arg_list,
+                                       template_param_list,
+                                       template_param_type,
+                                       source_pos,
+                                       options,
+                                       copy_error,
+                                       &constant);
+  }  /* if */
   if (con_copy == NULL) {
     con_copy = alloc_shareable_constant(&constant);
   }  /* if */
@@ -13504,9 +13603,8 @@ be called to start a copy.
   switch (expr->kind) {
     case enk_error:
     case enk_variable:
-    case enk_variable_address:
     case enk_field:
-    case enk_routine_address:
+    case enk_routine:
     case enk_address_of_ellipsis:
 #if VLA_DEALLOCATIONS_IN_IL
     case enk_vla_dealloc:
@@ -13686,17 +13784,8 @@ be called to start a copy.
              copying VLA bound expressions that are overall constant, but
              have a nonconstant part under a sizeof. */
           expr_copy->variant.runtime_sizeof.is_type = TRUE;
-          expr_copy->variant.runtime_sizeof.is_lvalue = FALSE;
-          if (expr->variant.runtime_sizeof.is_lvalue) {
-            /* Because lvalues are represented as pointers, we need to use
-               the type the expression points to; otherwise, the result will
-               be simply the size of a pointer. */
-            expr_copy->variant.runtime_sizeof.variant.type =
-              type_pointed_to(expr->variant.runtime_sizeof.variant.expr->type);
-          } else {
-            expr_copy->variant.runtime_sizeof.variant.type =
+          expr_copy->variant.runtime_sizeof.variant.type =
                                expr->variant.runtime_sizeof.variant.expr->type;
-          }  /* if */
 #if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
           /* The original expression is being abandoned, so we must ignore
              any range modifiers associated with it. */
@@ -13948,15 +14037,16 @@ potentially_evaluated is TRUE if the expression is potentially evaluated.
 
 an_expr_node_ptr var_lvalue_expr(a_variable_ptr var)
 /*
-Build an expression node that represents the lvalue address of var and
-return a pointer to it.  Note that this routine does not do anything special
+Build an expression node that represents an lvalue for var and return a
+pointer to it.  Note that this routine does not do anything special
 for variables with reference type.
 */
 {
   an_expr_node_ptr node;
 
-  node = alloc_expr_node((an_expr_node_kind)enk_variable_address);
-  node->type = make_pointer_type(var->type);
+  node = alloc_expr_node((an_expr_node_kind)enk_variable);
+  node->type = var->type;
+  node->is_lvalue = TRUE;
   node->variant.variable = var;
   return node;
 }  /* var_lvalue_expr */
@@ -13964,8 +14054,8 @@ for variables with reference type.
 
 an_expr_node_ptr var_rvalue_expr(a_variable_ptr var)
 /*
-Build an expression node that represents the rvalue value of var and
-return a pointer to it.  Note that this routine does not do anything special
+Build an expression node that represents an rvalue for var and return a
+pointer to it.  Note that this routine does not do anything special
 for variables with reference type.
 */
 {
@@ -13982,163 +14072,238 @@ for variables with reference type.
 an_expr_node_ptr var_addr_expr(a_variable_ptr var)
 /*
 Build an expression node that represents the address of var as an rvalue and
-return a pointer to it.  This differs from var_lvalue_expr in that it
-assumes that the address of the variable will in fact be used.  Note that
-this routine does not do anything special for variables with reference type.
+return a pointer to it.  Note that this routine does not do anything special
+for variables with reference type.  This is intended for generated code and
+not for implementation of "&" in the source code.
 */
 {
-  an_expr_node_ptr node = var_lvalue_expr(var);
-
-  set_variable_address_taken(var);
-  return node;
+  return add_address_of_to_node(var_lvalue_expr(var));
 }  /* var_addr_expr */
 
 
-an_expr_node_ptr function_addr_expr(a_routine_ptr rout,
-                                    a_boolean     set_address_taken_flag)
+an_expr_node_ptr function_lvalue_expr(a_routine_ptr rout)
 /*
-Build an expression node that represents the address of the function rout
-and return a pointer to it.  If set_address_taken_flag is TRUE, the
-address_taken flag in the routine is set (it's not always set because
-the node might be used in a way that doesn't really take the address
-of the routine, e.g., to call the routine).
+Build an expression node that represents an lvalue for the function rout
+and return a pointer to it.
 */
 {
   an_expr_node_ptr node;
 
-  node = alloc_expr_node((an_expr_node_kind)enk_routine_address);
+  node = alloc_expr_node((an_expr_node_kind)enk_routine);
+  node->type = rout->type;
+  node->variant.routine = rout;
+  node->is_lvalue = TRUE;
+  return node;
+}  /* function_lvalue_expr */
+
+
+an_expr_node_ptr function_rvalue_expr(a_routine_ptr rout)
+/*
+Build an expression node that represents the address of the function rout
+and return a pointer to it.  This is suitable for use in calling the function,
+but not for the "&" operator applied to the function, because the address_taken
+flag is not set.
+*/
+{
+  an_expr_node_ptr node;
+
+  node = alloc_expr_node((an_expr_node_kind)enk_routine);
   node->type = make_pointer_type(rout->type);
   node->variant.routine = rout;
-  if (set_address_taken_flag) rout->address_taken = TRUE;
+  return node;
+}  /* function_rvalue_expr */
+
+
+an_expr_node_ptr function_addr_expr(a_routine_ptr rout)
+/*
+Build an expression node that represents the address of the function rout
+and return a pointer to it.  The address_taken flag is set in the routine
+entry, so this is not intended to be used to get an operand for the function
+in order to call it.
+*/
+{
+  an_expr_node_ptr node;
+
+  node = alloc_expr_node((an_expr_node_kind)enk_routine);
+  node->type = make_pointer_type(rout->type);
+  node->variant.routine = rout;
+  rout->address_taken = TRUE;
   return node;
 }  /* function_addr_expr */
 
 
-static a_boolean expr_has_non_indirection_operand(an_expr_node_ptr  expr)
+an_expr_node_ptr rvalue_expr_for_lvalue(an_expr_node_ptr expr)
 /*
-Return TRUE if the indicated expression tree has operands that
-cannot be indirected simply placing a "*" on top of the operand,
-e.g., an eok_bit_field (which doesn't really have an address).
+Perform any changes needed to convert expr from an lvalue to an rvalue.
+Return the rvalue expression.  This routine does not handle replacing
+constant-valued variables by their constant values -- see
+conv_lvalue_expr_to_rvalue.
 */
 {
-  a_boolean non_ind = FALSE;
-
-  if (is_operation_node(expr)) {
-    an_expr_operator_kind op = expr->variant.operation.kind;
-    an_expr_node_ptr      operand1 = expr->variant.operation.operands;
-    an_expr_node_ptr      operand2 = operand1->next;
-    if (op == (an_expr_operator_kind)eok_bit_field) {
-      non_ind = TRUE;
-    } else if (op == (an_expr_operator_kind)eok_question &&
-               (expr_has_non_indirection_operand(operand2) ||
-                expr_has_non_indirection_operand(operand2->next))) {
-      non_ind = TRUE;
-    } else if (op == (an_expr_operator_kind)eok_comma &&
-               expr_has_non_indirection_operand(operand2)) {
-      non_ind = TRUE;
-    }  /* if */
-  }  /* if */
-  return non_ind;
-}  /* expr_has_non_indirection_operand */
+  expr = conv_lvalue_expr_to_rvalue(expr, (a_boolean *)NULL,
+                                    (a_constant **)NULL,
+                                    (a_source_position *)NULL);
+  return expr;
+}  /* rvalue_expr_for_lvalue */
 
 
 an_expr_node_ptr add_indirection_to_node(an_expr_node_ptr node)
 /*
-Add an indirection on top of the given node (or make a change that produces
-the same effect), and return a pointer to the new expression.
+Add an indirection on top of the given node, and return a pointer to the
+new expression.  This is intended for generated code and not for implementation
+of "*" in the source code.  The returned node is designated an lvalue.
 */
 {
-  if (is_error_node(node)) {
-    /* Error node -- leave alone. */
-  } else {
-    a_boolean  optimized_case = FALSE;
-    a_type_ptr new_type;
-    if (is_variable_address_node(node)) {
-      /* A variable address node.  Change to the value of the variable. */
-      optimized_case = TRUE;
-      node->kind = (an_expr_node_kind)enk_variable;
-    } else if (node->kind == (an_expr_node_kind)enk_temp_init &&
-               node->variant.init.result_is_addr) {
-      /* enk_temp_init node.  Change from "address of temporary" to "value
-         of temporary". */
-      optimized_case = TRUE;
-      node->variant.init.result_is_addr = FALSE;
-    } else if (is_operation_node(node)) {
-      /* An operation node. */
-      an_expr_operator_kind op = node->variant.operation.kind;
-      an_expr_node_ptr operand1 = node->variant.operation.operands;
-      an_expr_node_ptr operand2 = operand1->next;
-      an_expr_node_ptr operand3;
-      if (op == (an_expr_operator_kind)eok_padd ||
-          op == (an_expr_operator_kind)eok_padd_subsc) {
-        /* A pointer addition; change to a subscripting operation. */
-        optimized_case = TRUE;
-        node->variant.operation.kind = (an_expr_operator_kind)eok_subscript;
-      } else if (op == (an_expr_operator_kind)eok_bit_field) {
-        /* The value is the "address" of a bit-field.  Therefore, the
-           indirect version is an extract of the bit-field. */
-        optimized_case = TRUE;
-        node->variant.operation.kind =
-                                  (an_expr_operator_kind)eok_extract_bit_field;
-      } else if (op == (an_expr_operator_kind)eok_question &&
-                 expr_has_non_indirection_operand(node)) {
-        /* Rewrite an lvalue-returning "?" by doing indirection on its
-           second and third operands. */
-        operand3 = operand2->next;
-        optimized_case = TRUE;
-        operand1->next = NULL;
-        operand2->next = NULL;
-        operand2 = add_indirection_to_node(operand2);
-        operand3 = add_indirection_to_node(operand3);
-        operand1->next = operand2;
-        operand2->next = operand3;
-      } else if (op == (an_expr_operator_kind)eok_comma &&
-                 expr_has_non_indirection_operand(node)) {
-        /* Rewrite an lvalue-returning comma by doing indirection on its
-           second operand. */
-        optimized_case = TRUE;
-        operand1->next = NULL;
-        operand2 = add_indirection_to_node(operand2);
-        operand1->next = operand2;
-      }  /* if */
-    } else if (is_constant_node(node)) {
-      /* A constant node.  Optimize indirecting through an address
-         constant. */
-      a_constant_ptr con = node->variant.constant;
-      a_variable_ptr var;
-      if (con_is_exact_addr_of_variable(con, &var,
-                                        /*array_decay_allowed=*/FALSE)) {
-        optimized_case = TRUE;
-        set_expr_node_kind(node, (an_expr_node_kind)enk_variable);
-        node->variant.variable = var;
-      }  /* if */
-    }  /* if */
-    if (is_template_param_type(node->type)) {
-      new_type = type_of_unknown_templ_param_nontype;
-    } else if (is_error_type(node->type)) {
-      new_type = node->type;
+  if (!is_error_node(node)) {
+    if (is_operation_node(node) &&
+        (node->variant.operation.compiler_generated
+#if DO_IL_LOWERING
+         || il_lowering_underway
+#endif /* DO_IL_LOWERING */
+                                ) &&
+        node_operator_is(node, eok_address_of)) {
+      /* Cancel "*" and "&". */
+      node = node->variant.operation.operands;
+      check_assertion(node->is_lvalue);
     } else {
-      /* The new type for the node is the type pointed to. */
-      new_type = type_pointed_to(node->type);
-      /* Drop type qualifiers as appropriate on rvalues.  Note that no cast
-         is needed to drop the qualifiers: an IL shorthand applies in this
-         case. */
-      if (is_qualified_type(new_type)) {
-        new_type = rvalue_type(new_type);
+      a_type_ptr new_type;
+      check_assertion(!node->is_lvalue);
+      if (is_pointer_type(node->type)
+#if DO_IL_LOWERING
+          || (is_reference_type(node->type) && il_lowering_underway)
+#endif /* DO_IL_LOWERING */
+                                                                   ) {
+        new_type = type_pointed_to(node->type);
+      } else if (!C_mode() && is_template_param_type(node->type)) {
+        new_type = type_of_unknown_templ_param_nontype;
+      } else {
+        check_assertion(is_error_type(node->type));
+        new_type = error_type();
       }  /* if */
-    }  /* if */
-    if (optimized_case) {
-      /* For the optimized cases, just set the node type. */
-      node->type = new_type;
-    } else {
-      /* Not an optimized case.  Add an indirection. */
       node->next = NULL;
-      node = make_operator_node((an_expr_operator_kind)eok_indirect,
-                                new_type, node);
+      node = make_lvalue_operator_node((an_expr_operator_kind)eok_indirect,
+                                       new_type, node);
+      node->variant.operation.compiler_generated = TRUE;
     }  /* if */
   }  /* if */
   return node;
 }  /* add_indirection_to_node */
+
+
+an_expr_node_ptr add_ref_indirection_to_node(an_expr_node_ptr node)
+/*
+Add an implicit reference indirection on top of the given node, and return
+a pointer to the new expression.  The returned node is designated an lvalue.
+*/
+{
+  if (!is_error_node(node)) {
+    a_type_ptr new_type;
+    check_assertion(!node->is_lvalue);
+    if (is_reference_type(node->type)) {
+      new_type = type_pointed_to(node->type);
+    } else {
+      check_assertion(is_error_type(node->type));
+      new_type = error_type();
+    }  /* if */
+    node->next = NULL;
+    node = make_lvalue_operator_node((an_expr_operator_kind)eok_ref_indirect,
+                                     new_type, node);
+    node->variant.operation.compiler_generated = TRUE;
+  }  /* if */
+  return node;
+}  /* add_ref_indirection_to_node */
+
+
+an_expr_node_ptr add_address_of_to_node(an_expr_node_ptr node)
+/*
+Add an eok_address_of operation on top of the given node, and return a
+pointer to the new expression.  This is intended for generated code and
+not for implementation of "&" in the source code.  The returned node is
+designated an rvalue.
+*/
+{
+  if (!is_error_node(node)) {
+    check_assertion(node->is_lvalue);
+    if (is_operation_node(node) &&
+        (node->variant.operation.compiler_generated
+#if DO_IL_LOWERING
+         || il_lowering_underway
+#endif /* DO_IL_LOWERING */
+                                ) &&
+        node_operator_is(node, eok_indirect)) {
+      /* Cancel "&" and "*". */
+      node = node->variant.operation.operands;
+      check_assertion(!node->is_lvalue);
+#if DO_IL_LOWERING
+    } else if (is_operation_node(node) &&
+               il_lowering_underway &&
+               (node_operator_is(node, eok_comma) ||
+                node_operator_is(node, eok_question))) {
+      /* Some C compilers won't accept &(1, x) or &(a ? b : c), so turn these
+         into (1, &x) and (a ? &b: &c) respectively by propagating the
+         eok_address_of operator to the second operator of the eok_comma
+         operation or the second and third operators of the eok_question
+         operation. */
+      an_expr_node_ptr  second_op = node->variant.operation.operands->next;
+      an_expr_node_ptr  third_op = second_op->next;
+      second_op = add_address_of_to_node(second_op);
+      if (third_op != NULL) {
+        check_assertion(node_operator_is(node, eok_question));
+        third_op = add_address_of_to_node(third_op);
+      }  /* if */
+      second_op->next = third_op;
+      node->variant.operation.operands->next = second_op;
+      node->type = second_op->type;
+      node->is_lvalue = FALSE;
+      node->variant.operation.returns_lvalue_instead_of_usual_rvalue = FALSE;
+#endif /* DO_IL_LOWERING */
+    } else {
+      /* Set the address_taken flag for variables and routines. */
+      if (is_variable_node(node)) {
+        set_variable_address_taken(node->variant.variable);
+      } else if (is_routine_node(node)) {
+        node->variant.routine->address_taken = TRUE;
+      }  /* if */
+      node->next = NULL;
+      node = make_operator_node((an_expr_operator_kind)eok_address_of,
+                                make_pointer_type(node->type), node);
+      node->variant.operation.compiler_generated = TRUE;
+#if LOWER_VARIABLE_LENGTH_ARRAYS
+    if (vla_enabled && !node->type->visited_for_vla_lowering) {
+      /* If we've just introduced a new VLA type, we need to record it for
+         later lowering. */
+      record_vla_component_types_for_lowering(node->type);
+    }  /* if */
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
+    }  /* if */
+  }  /* if */
+  return node;
+}  /* add_address_of_to_node */
+
+
+an_expr_node_ptr add_reference_to_to_node(an_expr_node_ptr node)
+/*
+Add an eok_reference_to operation on top of the given node, and return a
+pointer to the new expression.  This is for reference binding, and does
+not correspond directly to any operator in the source code.  The returned
+node is designated an rvalue.
+*/
+{
+  if (!is_error_node(node)) {
+    check_assertion(node->is_lvalue);
+    /* Set the address_taken flag for variables and routines. */
+    if (is_variable_node(node)) {
+      set_variable_address_taken(node->variant.variable);
+    } else if (is_routine_node(node)) {
+      node->variant.routine->address_taken = TRUE;
+    }  /* if */
+    node->next = NULL;
+    node = make_operator_node((an_expr_operator_kind)eok_reference_to,
+                              make_reference_type(node->type), node);
+    node->variant.operation.compiler_generated = TRUE;
+  }  /* if */
+  return node;
+}  /* add_reference_to_to_node */
 
 
 an_expr_node_ptr this_param_value_expr(void)
@@ -14168,32 +14333,55 @@ an_expr_node_ptr field_lvalue_selection_expr(an_expr_node_ptr node,
                                              a_field_ptr      field)
 /*
 Make an expression for an lvalue reference to field "field" of "node" and
-return a pointer to it.  Note that this does NOT add extra intermediate
-selections for anonymous unions (either standard or nonstandard).  Within
-the front end proper, use fe_field_lvalue_selection_expr instead.
+return a pointer to it.  "node" is either a class lvalue, in which case the
+operator is ".", or a pointer to class, in which case the operator is "->".
+Note that this does NOT add extra intermediate selections for anonymous unions
+(either standard or nonstandard).  Within the front end proper, use
+fe_field_lvalue_selection_expr instead.
 */
 {
   an_expr_operator_kind op;
   an_expr_node_ptr      field_node;
-  a_type_ptr            selection_type, pointed_to_type;
+  a_type_ptr            selection_type, class_type;
   a_type_qualifier_set  qualifiers;
 
+#if DO_IL_LOWERING
+  /* See if we can optimize some of the operations added during lowering. */
+  if (il_lowering_underway &&
+      is_operation_node(node) &&
+      node->variant.operation.compiler_generated) {
+    an_expr_node_ptr  operand = node->variant.operation.operands;
+    if ((node_operator_is(node, eok_address_of) &&
+         is_class_struct_union_type(operand->type)) ||
+        (node_operator_is(node, eok_indirect) &&
+         is_pointer_type(operand->type) &&
+         is_class_struct_union_type(type_pointed_to(operand->type)))) {
+      /* Create "x.y" instead of "(&x)->y", or "x->y" instead of "(*x).y". */
+      node = operand;
+    }  /* if */
+  }  /* if */
+#endif /* DO_IL_LOWERING */
+  if (is_pointer_type(node->type)) {
+    /* Use a "->" operator. */
+    op = (an_expr_operator_kind)eok_points_to_field;
+    class_type = type_pointed_to(node->type);
+  } else {
+    /* Use a "." operator. */
+    op = (an_expr_operator_kind)eok_dot_field;
+    class_type = node->type;
+  }  /* if */
   /* Make the expression node for the field. */
   field_node = alloc_expr_node((an_expr_node_kind)enk_field);
   field_node->type = field->type;
   field_node->variant.field = field;
   node->next = field_node;
-  /* Use a different operator for bit field references. */
-  op = (field->is_bit_field) ? (an_expr_operator_kind)eok_bit_field :
-                               (an_expr_operator_kind)eok_field;
   /* The selected field has all the type qualifiers of both the field
      and the selecting pointer. */
-  pointed_to_type = type_pointed_to(node->type);
-  qualifiers = get_type_qualifiers(pointed_to_type);
+  qualifiers = get_type_qualifiers(class_type);
   selection_type = make_field_selection_type(field, qualifiers);
-  selection_type = make_pointer_type(selection_type);
   /* Make the field selection node. */
-  node = make_operator_node(op, selection_type, node);
+  node = make_lvalue_operator_node(op, selection_type, node);
+  node->variant.operation.compiler_generated = TRUE;
   return node;
 }  /* field_lvalue_selection_expr */
 
@@ -14202,16 +14390,17 @@ an_expr_node_ptr field_rvalue_selection_expr(an_expr_node_ptr node,
                                              a_field_ptr      field)
 /*
 Make an expression for an rvalue reference to field "field" of "node" and
-return a pointer to it.  Note that this does NOT add extra intermediate
-selections for anonymous unions (either standard or nonstandard).  Within
-the front end proper, use fe_field_rvalue_selection_expr instead.
+return a pointer to it.  "node" is a class rvalue, and the operator used is
+".".  Note that this does NOT add extra intermediate selections for anonymous
+unions (either standard or nonstandard).  Within the front end proper, use
+fe_field_rvalue_selection_expr instead.
 */
 {
   /* Make the expression node for an lvalue reference. */
   node = field_lvalue_selection_expr(node, field);
-  /* Add an indirection to turn the lvalue into an rvalue.  That also
-     drops any type qualifiers, as appropriate. */
-  node = add_indirection_to_node(node);
+  /* Turn it into an rvalue. */
+  node->is_lvalue = FALSE;
+  node->type = rvalue_type(node->type);
   return node;
 }  /* field_rvalue_selection_expr */
 
@@ -14230,56 +14419,48 @@ rest.
 */
 {
   an_expr_node_ptr      op1, op2, new_op1, au_field_node;
-  an_expr_operator_kind op, new_op;
+  an_expr_operator_kind op;
   a_type_ptr            new_selection_type;
 
+  /* The new selection replaces the first operand of the original selection,
+     e.g., p->x becomes (p->au_field).x.  The operator in the new selection is
+     the original operator (it's based on whether the original first operand is
+     a pointer or not) and the top field selection operator becomes "." in
+     all cases (its first operand is always a class, the value returned from
+     the introduced field selection). */
+  op = node->variant.operation.kind;
   op1 = node->variant.operation.operands;
   op2 = op1->next;
-  /* If the original field selection takes an lvalue as its first operand,
-     the added field selection is an eok_field; if the original field
-     selection takes an rvalue as its first operand, the added field
-     selection is an eok_value_field.  Here are the operators:
-                               in       out
-       eok_field             lvalue   lvalue
-       eok_value_field       rvalue   rvalue
-       eok_bit_field         lvalue   lvalue
-       eok_value_bit_field   rvalue   rvalue
-       eok_extract_bit_field lvalue   rvalue
-     Note that eok_field and eok_value_field produce an output that is
-     the same as their input, which is why they are used for the added
-     field selection -- whatever the first operand of the original field
-     was, it's preserved by adding the right one of those two selections. */
-  op = node->variant.operation.kind;
-  new_selection_type = au_field->type;
-  if (op == (an_expr_operator_kind)eok_value_field ||
-      op == (an_expr_operator_kind)eok_value_bit_field) {
-    /* These operators take an rvalue as their input, so use an
-       eok_value_field for the added field selection. */
-    new_op = (an_expr_operator_kind)eok_value_field;
-    /* The following is not needed at present, because rvalues in C do not
-       have cv-qualifiers, and this routine is called only in C mode or
-       for C++ code that is being lowered to C.  But for completeness ... */
-    new_selection_type = type_plus_qualifiers_from_second_type(
-                                               new_selection_type, node->type);
+  /* Determine the underlying class type for the first operand so we can
+     know what qualifiers to add to the intermediate result. */
+  if (op == (an_expr_operator_kind)eok_dot_field) {
+    new_selection_type = op1->type;
   } else {
-    /* These operators take an lvalue as their input, so use an
-       eok_field for the added field selection. */
-    a_type_ptr tp = type_pointed_to(op1->type);
-
-    new_op = (an_expr_operator_kind)eok_field;
-    /* Carry through any cv-qualifiers on the left operand. */
-    new_selection_type =
-               type_plus_qualifiers_from_second_type(new_selection_type, tp);
-    new_selection_type = make_pointer_type(new_selection_type);
+    check_assertion(op == (an_expr_operator_kind)eok_points_to_field);
+    if (is_pointer_type(op1->type)) {
+      new_selection_type = type_pointed_to(op1->type);
+    } else {
+      new_selection_type = error_type();
+    }  /* if */
   }  /* if */
+  new_selection_type = type_plus_qualifiers_from_second_type(
+                                           au_field->type, new_selection_type);
   au_field_node = alloc_expr_node((an_expr_node_kind)enk_field);
   au_field_node->type = au_field->type;
   au_field_node->variant.field = au_field;
   op1->next = au_field_node;
-  new_op1 = make_operator_node(new_op, new_selection_type, op1);
+  new_op1 = make_operator_node(node->variant.operation.kind,
+                               new_selection_type, op1);
+  /* Assign appropriate lvalueness to new node. */
+  if (op == (an_expr_operator_kind)eok_dot_field) {
+    new_op1->is_lvalue = op1->is_lvalue;
+  } else {
+    new_op1->is_lvalue = TRUE;
+  }  /* if */
   /* Attach the new selection to the original selection. */
   new_op1->next = op2;
   node->variant.operation.operands = new_op1;
+  node->variant.operation.kind = (an_expr_operator_kind)eok_dot_field;
 }  /* adjust_anonymous_union_field_selection */
 
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS || DO_IL_LOWERING */
@@ -14377,41 +14558,33 @@ IL lowering).
 }  /* fe_field_lvalue_selection_expr */
 
 
-an_expr_node_ptr fe_field_rvalue_selection_expr(an_expr_node_ptr node,
-                                                a_field_ptr      field)
-/*
-Make an expression for an rvalue reference to field "field" of "node" and
-return a pointer to it.  This is intended for use in the front end
-proper.  It inserts extra field selections for nonstandard anonymous
-unions, but not for standard anonymous unions (those are added by
-IL lowering).
-*/
-{
-  node = fe_field_lvalue_selection_expr(node, field);
-  /* Add an indirection to turn the lvalue into an rvalue.  That also
-     drops any type qualifiers, as appropriate. */
-  node = add_indirection_to_node(node);
-  return node;
-}  /* fe_field_rvalue_selection_expr */
-
-
 an_expr_node_ptr base_class_selection_expr(an_expr_node_ptr node,
                                            a_base_class_ptr bcp)
 /*
 Create an expression node that selects the base class indicated from
 the object pointed to by node, and return a pointer to it.  The base
-class need not be an immediate base class.
+class need not be an immediate base class.  The result is an rvalue
+pointer.
 */
 {
-  a_derivation_step_ptr dsp;
-
-  /* Add a base class cast for each step in the derivation. */
-  for (dsp = cast_derivation_path_of(bcp);
-       dsp != NULL;
-       dsp = dsp->next) {
-    node = make_operator_node((an_expr_operator_kind)eok_base_class_cast,
-                              make_pointer_type(dsp->base_class->type), node);
-  }  /* for */
+  if (!is_error_node(node) && !is_error_type(node->type)) {
+    a_derivation_step_ptr dsp;
+    a_type_qualifier_set  qualifiers;
+    a_type_ptr            tp;
+    check_assertion(!node->is_lvalue && is_pointer_type(node->type));
+    tp = type_pointed_to(node->type);
+    qualifiers = get_type_qualifiers(tp);
+    /* Add a base class cast for each step in the derivation. */
+    for (dsp = cast_derivation_path_of(bcp);
+         dsp != NULL;
+         dsp = dsp->next) {
+      tp = make_pointer_type(make_qualified_type(dsp->base_class->type,
+                                                 qualifiers));
+      node = make_operator_node((an_expr_operator_kind)eok_base_class_cast,
+                                tp, node);
+      node->variant.operation.compiler_generated = TRUE;
+    }  /* for */
+  }  /* if */
   return node;
 }  /* base_class_selection_expr */
 
@@ -14482,6 +14655,129 @@ be suppressed.
 }  /* examine_dynamic_init_for_side_effect */
 
 
+static a_boolean node_does_fetch(an_expr_node_ptr node,
+                                 a_type_ptr       *p_fetched_type)
+/*
+Return TRUE if the indicated expression does a fetch from memory.  If so,
+and if p_fetched_type is non-NULL, set *p_fetched_type to the type of the
+object fetched (an lvalue type, with cv-qualifiers intact).  Only the
+top-level node is considered -- fetches in child nodes are not.
+*/
+{
+  a_boolean  does_fetch = FALSE;
+  a_type_ptr fetched_type = NULL;
+
+  /* Note that this routine is very similar to is_rvalueable_node
+     and conv_rvalue_expr_to_lvalue. */
+  if (p_fetched_type != NULL) *p_fetched_type = NULL;
+  /* Only rvalue expressions can fetch something from memory. */
+  if (!node->is_lvalue) {
+    switch (node->kind) {
+      case enk_variable:
+        /* An rvalue variable reference fetches the variable's value. */
+        does_fetch = TRUE;
+        fetched_type = node->variant.variable->type;
+        break;
+      case enk_temp_init:
+        /* An rvalue temp init fetches the value of the temporary. */
+        does_fetch = TRUE;
+        fetched_type = node->type;  /* FIXME: cv-qualifiers. */
+        break;
+      case enk_typeid:
+        /* An rvalue typeid fetches the typeinfo object. */
+        does_fetch = TRUE;
+        fetched_type = make_qualified_type(node->type,
+                                           (a_type_qualifier_set)TQ_CONST);
+        break;
+      case enk_operation:
+        { an_expr_operator_kind op = node->variant.operation.kind;
+          an_expr_node_ptr      op1 = node->variant.operation.operands;
+          an_expr_node_ptr      op2 = op1->next;
+          a_type_ptr            operand_type;
+
+          /* Lvalue-returning operations shouldn't have is_lvalue FALSE. */
+          check_assertion(!node->variant.operation.
+                                       returns_lvalue_instead_of_usual_rvalue);
+          switch (op) {
+            case eok_dot_field:
+              operand_type = op1->type;
+              goto process_field_selection;
+            case eok_points_to_field:
+              /* Watch out for errors and prototype instantiations. */
+              if (!is_pointer_type(op1->type)) break;
+              operand_type = type_pointed_to(op1->type);
+process_field_selection:
+              /* An rvalue field selection fetches the field as additionally
+                 qualified by the class type. */
+              does_fetch = TRUE;
+              check_assertion(op2 != NULL &&
+                              op2->kind == (an_expr_node_kind)enk_field);
+              fetched_type = make_field_selection_type(op2->variant.field,
+                                                       get_type_qualifiers(
+                                                                operand_type));
+              break;
+            case eok_pm_field:
+              operand_type = op1->type;
+              goto process_ptr_to_member_selection;
+            case eok_pm_points_to_field:
+              /* Watch out for errors and prototype instantiations. */
+              if (!is_pointer_type(op1->type)) break;
+              operand_type = type_pointed_to(op1->type);
+process_ptr_to_member_selection:
+              /* .* and ->*.  The second operand is a pointer-to-member that
+                 indicates the type of the entity fetched. */
+              does_fetch = TRUE;
+              fetched_type = make_pm_selection_type(operand_type, op2->type);
+              break;
+            case eok_subscript:
+              /* Swap operands if the pointer operand is second. */
+              if (is_pointer_type(op2->type)) {
+                op1 = op2;
+                op2 = node->variant.operation.operands;
+              }  /* if */
+              /*FALLTHROUGH*/
+            case eok_indirect:
+            case eok_ref_indirect:
+              /* An indirection operation (e.g., "*") fetches the thing pointed
+                 to.  Subscripting is similar. */
+              /* Watch out for errors and prototype instantiations. */
+              if (!is_pointer_type(op1->type)) break;
+              does_fetch = TRUE;
+              fetched_type = type_pointed_to(op1->type);
+              break;
+#if GNU_COMPLEX_EXTENSIONS_ALLOWED
+            case eok_real_part:
+            case eok_imag_part:
+              /* These fetch something if the operand is an lvalue. */
+              if (!op1->is_lvalue) break;
+              does_fetch = TRUE;
+              fetched_type = type_plus_qualifiers_from_second_type(node->type,
+                                                                   op1->type);
+              break;
+#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
+            /* FIXME: eok_base_class_cast,
+               eok_derived_class_cast, eok_call returning
+               reference, eok_cast or eok_dynamic_cast to a reference type. */
+            case eok_lvalue_cast:  /* Not rvalueable; when converted to an
+                                      rvalue it gets rewritten as a normal
+                                      cast. */
+            case eok_dot_static:   /* Handled when the second operand is
+                                      handled. */
+            case eok_points_to_static:  /* Ditto. */
+            default:
+              break;
+          }  /* switch */
+        }
+        break;
+      default:
+        break;
+    }  /* switch */
+  }  /* if */
+  if (does_fetch && p_fetched_type != NULL) *p_fetched_type = fetched_type;
+  return does_fetch;
+}  /* node_does_fetch */
+
+
 static a_boolean operation_has_side_effects(
                                     an_expr_node_ptr                    node,
                                     an_expr_or_stmt_traversal_block_ptr tblock)
@@ -14492,11 +14788,11 @@ considering any side effects in its operands.  Set tblock->suppress_warning
 to TRUE if a warning about the expression doing nothing should be suppressed.
 */
 {
-  a_boolean        has_side_effects = FALSE;
-  an_expr_node_ptr operand;
-  a_type_ptr       operand_type, node_type;
+  a_boolean             has_side_effects = FALSE;
+  a_type_ptr            operand_type, node_type;
+  an_expr_operator_kind op = node->variant.operation.kind;
 
-  switch (node->variant.operation.kind) {
+  switch (op) {
     case eok_ipost_incr:
     case eok_fpost_incr:
     case eok_ppost_incr:
@@ -14556,7 +14852,6 @@ to TRUE if a warning about the expression doing nothing should be suppressed.
     case eok_pm_call:
     case eok_va_start:
     case eok_va_arg:
-    case eok_lvalue_va_arg:
     case eok_va_end:
     case eok_va_copy:
     case eok_post_incr:
@@ -14573,34 +14868,8 @@ to TRUE if a warning about the expression doing nothing should be suppressed.
       /* These all cause side effects. */
       has_side_effects = TRUE;
       break;
-    case eok_extract_bit_field:
-      /* A bit field extraction causes a side effect if the bit field is
-         volatile.  This has to be tested separately because the volatile
-         qualifier doesn't appear in the result type (it's an rvalue). */
-      operand = node->variant.operation.operands->next;
-      check_assertion(operand->kind == (an_expr_node_kind)enk_field);
-      if (is_volatile_qualified_type(operand->variant.field->type)) {
-        has_side_effects = TRUE;
-        break;
-      }  /* if */
-      /* Go test whether the struct is volatile. */
-      goto first_op_volatile_test;
-    case eok_indirect:
-    case eok_subscript:
-first_op_volatile_test:
-      /* Causes a side effect if the type of the thing pointed to
-         is volatile. */
-      /* Note that we test the pointer operand's type, not the node type,
-         because of an IL shorthand that allows omission of the cast to the
-         unqualified version of the type. */
-      operand_type = node->variant.operation.operands->type;
-      if (is_pointer_type(operand_type)) {
-        a_type_ptr und_type = type_pointed_to(operand_type);
-        has_side_effects = is_volatile_qualified_type(und_type);
-      }  /* if */
-      break;
-    case eok_vacuous_destructor_call:
-    case eok_value_vacuous_destructor_call:
+    case eok_dot_vacuous_destructor_call:
+    case eok_points_to_vacuous_destructor_call:
       /* A vacuous destructor call like
            p->int::~int();
          is an expression that intentionally does nothing, so suppress
@@ -14711,11 +14980,7 @@ doing nothing should be suppressed.
       has_side_effects = operation_has_side_effects(node, tblock);
       break;
     case enk_variable:
-      /* Note that we test the variable's type, not the node type, because of
-         an IL shorthand that allows omission of the cast to the unqualified
-         version of the type. */
-      has_side_effects =
-                      is_volatile_qualified_type(node->variant.variable->type);
+      /* No side effects at this level.  See below for volatile fetch. */
       break;
     case enk_temp_init:
       /* At the very least, this has the side effect of initializing
@@ -14786,14 +15051,21 @@ doing nothing should be suppressed.
       break;
   }  /* switch */
 
-  if (!has_side_effects && !C_mode() && in_front_end &&
-      is_template_dependent_context() &&
-      is_template_dependent_type(node->type)) {
-    /* A node with a template parameter type is considered to have
-       side effects.  This is because it's possible that when the type
-       is actually known an overloaded operator function would be chosen,
-       which would mean a function call. */
-    has_side_effects = TRUE;
+  if (!has_side_effects) {
+    a_type_ptr fetched_type;
+    if (node_does_fetch(node, &fetched_type) &&
+        is_volatile_qualified_type(fetched_type)) {
+      /* An operation that loads a volatile object has a side effect. */
+      has_side_effects = TRUE;
+    } else if (!C_mode() && in_front_end &&
+               is_template_dependent_context() &&
+               is_template_dependent_type(node->type)) {
+      /* A node with a template parameter type is considered to have
+         side effects.  This is because it's possible that when the type
+         is actually known an overloaded operator function would be chosen,
+         which would mean a function call. */
+      has_side_effects = TRUE;
+    }  /* if */
   }  /* if */
   if (has_side_effects) {
     /* The node has a side effect, even without considering its operands. */
@@ -14873,6 +15145,8 @@ a_boolean is_invariant_expr(an_expr_node_ptr expr,
 /*
 Return TRUE if the indicated expression is invariant, meaning it has no
 side effects and will give the same value if evaluated more than once.
+The expression can be an rvalue or an lvalue; for an lvalue, invariant
+means its address will not change (and it has no side effects).
 vars_can_change indicates whether the values of variables should be
 considered to be changeable between successive evaluations for purposes
 of this determination.
@@ -14881,20 +15155,54 @@ of this determination.
   a_boolean is_invariant = FALSE;
 
   if (vars_can_change) {
-    /* For the vars_can_change case, do a crude analysis: if the expression
-       is constant, it cannot be affected by changes in the values of
-       variables.  This could be improved, but it probably doesn't matter. */
-    if (is_constant_node(expr) || is_variable_address_node(expr) ||
-        is_routine_address_node(expr)) {
+    /* Variable values can change. */
+    if (is_constant_node(expr) || is_routine_node(expr)) {
+      /* Constants and the address of a function are invariant. */
       is_invariant = TRUE;
-    } else if (is_variable_node(expr) &&
-               expr->variant.variable->source_corresp.name == NULL) {
-      /* An unnamed variable is a temporary.  Assume that such a thing is
-         not changed in the "vars_can_change" mode.  This is important,
-         because if the expression has been assigned to a temporary once,
-         we want to use that temporary directly on subsequent calls to
-         make_reusable_copy. */
-      is_invariant = TRUE;
+    } else if (expr->is_lvalue) {
+      /* Lvalue cases. */
+      if (is_variable_node(expr)) {
+        /* An lvalue for a variable is invariant.  Note that local variables
+           are considered invariant even though their addresses may change
+           between invocations of the function. */
+        is_invariant = TRUE;
+      } else if (is_operation_node(expr)) {
+        an_expr_node_ptr op1 = expr->variant.operation.operands;
+        an_expr_node_ptr op2 = op1->next;
+        if (node_operator_is(expr, eok_dot_field) ||
+            node_operator_is(expr, eok_points_to_field) ||
+            node_operator_is(expr, eok_indirect)) {
+          /* An lvalue a.b is invariant if a is invariant. */
+          /* Likewise for a->b and *a. */
+          is_invariant = is_invariant_expr(op1, vars_can_change);
+        } else if (node_operator_is(expr, eok_subscript)) {
+          /* An lvalue a[b] is invariant if a and b are invariant. */
+          is_invariant = is_invariant_expr(op1, vars_can_change) &&
+                         is_invariant_expr(op2, vars_can_change);
+        }  /* if */
+      }  /* if */
+    } else {
+      /* Non-lvalue cases. */
+      if (is_variable_node(expr)) {
+        if (expr->variant.variable->source_corresp.name == NULL) {
+          /* An unnamed variable is a temporary.  Assume that such a thing is
+             not changed in the "vars_can_change" mode.  This is important,
+             because if the expression has been assigned to a temporary once,
+             we want to use that temporary directly on subsequent calls to
+             make_reusable_copy. */
+          is_invariant = TRUE;
+        }  /* if */
+      } else if (is_operation_node(expr)) {
+        an_expr_node_ptr op1 = expr->variant.operation.operands;
+        if (node_operator_is(expr, eok_address_of) ||
+            node_operator_is(expr, eok_array_to_pointer)) {
+          /* "&" applied to an invariant lvalue is invariant. */
+          /* Likewise for array decay.  Watch out for array rvalues. */
+          if (op1->is_lvalue) {
+            is_invariant = is_invariant_expr(op1, vars_can_change);
+          }  /* if */
+        }  /* if */
+      }  /* if */
     }  /* if */
   } else {
     /* Variables cannot change.  See if the expression has side effects. */
@@ -15138,6 +15446,8 @@ the statement.  May not be used for array types.
   a_statement_ptr  stmt;
   an_expr_node_ptr node;
 
+  check_assertion(dest->is_lvalue || is_error_node(dest));
+  check_assertion(!source->is_lvalue || is_error_node(source));
   /* Make the assignment node. */
   dest->next = source;
   node = make_operator_node(which_binary_operator(tok_assign, source->type),
@@ -15160,10 +15470,14 @@ in IL lowering and in generated routines (like assignment operator functions).
   a_statement_ptr  stmt;
   an_expr_node_ptr node;
 
+  check_assertion(dest->is_lvalue || is_error_node(dest));
+  check_assertion((source->is_lvalue || is_error_node(source)) &&
+                  (is_array_type(source->type) ||
+                   is_error_type(source->type)));
   /* Make the assignment node. */
   dest->next = source;
   node = make_operator_node((an_expr_operator_kind)eok_bassign,
-                            type_pointed_to(dest->type), dest);
+                            dest->type, dest);
   /* Allocate the statement. */
   stmt = alloc_expr_statement(node);
   return stmt;
@@ -15352,10 +15666,6 @@ operand.
   a_boolean takes_lvalue;
 
   switch (op) {
-    case eok_field:
-    case eok_bit_field:
-    case eok_extract_bit_field:
-    case eok_pm_field:
     case eok_lvalue_cast:
     case eok_iassign:
     case eok_fassign:
@@ -15405,7 +15715,6 @@ operand.
 #endif /* FIXED_POINT_ALLOWED */
     case eok_va_start:
     case eok_va_arg:
-    case eok_lvalue_va_arg:
     case eok_va_end:
     case eok_va_copy:
     case eok_va_start_single_operand:
@@ -15419,12 +15728,7 @@ operand.
     case eok_subtract_assign:
     case eok_multiply_assign:
     case eok_divide_assign:
-    case eok_address:
     case eok_lvalue:
-#if GNU_COMPLEX_EXTENSIONS_ALLOWED
-    case eok_lvalue_real_part:
-    case eok_lvalue_imag_part:
-#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
       takes_lvalue = TRUE;
       break;
     default:
@@ -15433,57 +15737,6 @@ operand.
   }  /* switch */
   return takes_lvalue;
 }  /* operator_takes_lvalue_operand */
-
-
-unsigned int expr_lvalue_operand_mask(an_expr_node_ptr  expr,
-                                      a_boolean         is_lvalue)
-/*
-Given the expression node expr (of kind enk_operation) and whether it is used
-as an lvalue (is_lvalue), this routine returns a bit mask indicating whether
-its operands are used as lvalues.  A "1" bit indicates an lvalue, with the
-least-significant bit corresponding to the first operand, the bit after that
-corresponding to the second operand, etc.
-*/
-{
-  an_expr_operator_kind  op;
-  unsigned int           lvalue_mask = 0;
-
-  check_assertion(is_operation_node(expr));
-  op = expr->variant.operation.kind;
-  if (op == (an_expr_operator_kind)eok_question) {
-    /* Question mark's second and third operands are lvalues if the
-       question mark itself is. */
-    if (is_lvalue) lvalue_mask = 0x6;
-  } else if (op == (an_expr_operator_kind)eok_comma) {
-    /* Comma's second operand is an lvalue if the comma itself is. */
-    if (is_lvalue) lvalue_mask = 0x2;
-  } else if (op == (an_expr_operator_kind)eok_points_to_static ||
-             op == (an_expr_operator_kind)eok_lvalue_dot_static ||
-             op == (an_expr_operator_kind)eok_rvalue_dot_static) {
-    /* A static selection's second operand is an lvalue if the
-       selection itself is. */
-    if (is_lvalue) lvalue_mask = 0x2;
-  } else if (op == (an_expr_operator_kind)eok_cast) {
-    /* The operand of a cast is considered an lvalue if the result
-       of the cast is used as the address of an lvalue. */
-    if (is_lvalue) lvalue_mask = 0x1;
-  } else if (op == (an_expr_operator_kind)eok_dynamic_cast) {
-    /* The operand of a dynamic_cast is considered an lvalue if the result
-       type of the cast is a reference. */
-    if (is_reference_type(expr->type)) lvalue_mask = 0x1;
-  } else if (op == (an_expr_operator_kind)eok_bassign ||
-             op == (an_expr_operator_kind)eok_va_start ||
-             op == (an_expr_operator_kind)eok_va_copy) {
-    /* Block assign (generated by IL lowering): first and second operands
-       are lvalues. */
-    /* Ditto va_start and va_copy. */
-    lvalue_mask = 0x3;
-  } else {
-    /* Other operators.  See if the first operand is an lvalue. */
-    if (operator_takes_lvalue_operand(op)) lvalue_mask = 0x1;
-  }  /* if */
-  return lvalue_mask;
-}  /* expr_lvalue_operand_mask */
 
 #if !STANDALONE_UTILITY_PROGRAM
 
@@ -18843,6 +19096,498 @@ scan_alignof_operator for details).
   return result;
 }  /* alignment_of_variable */
 
+#if CHECKING
+/*
+The following table defines whether the operands of a given operation node
+are expected to be lvalues or rvalues.
+*/
+
+/*
+Definition of the bits in lvalue_rvalue_test.
+*/
+#define LVRV_NO_REQUIREMENTS			0x0
+#define LVRV_OPND1_IS_RVALUE			0x1
+#define LVRV_OPND1_IS_LVALUE			0x2
+#define LVRV_OPND1_IS_LVALUE_IF_EXPR_IS		0x4
+#define LVRV_OPND2_IS_RVALUE			0x8
+#define LVRV_OPND2_IS_LVALUE			0x10
+#define LVRV_OPND2_IS_LVALUE_IF_EXPR_IS		0x20
+#define LVRV_DISTINGUISHED_VALUE_FOR_LAST	0xfd
+
+static a_byte lvalue_rvalue_test[(int)eok_last+1] = {
+  /* eok_address_of: */			LVRV_OPND1_IS_LVALUE,
+  /* eok_reference_to: */		LVRV_OPND1_IS_LVALUE,
+  /* eok_indirect: */			LVRV_OPND1_IS_RVALUE,
+  /* eok_ref_indirect: */		LVRV_OPND1_IS_RVALUE,
+  /* eok_inegate: */			LVRV_OPND1_IS_RVALUE,
+#if FIXED_POINT_ALLOWED
+  /* eok_fxnegate: */			LVRV_OPND1_IS_RVALUE,
+#endif /* FIXED_POINT_ALLOWED */
+  /* eok_fnegate: */			LVRV_OPND1_IS_RVALUE,
+  /* eok_unary_plus: */			LVRV_OPND1_IS_RVALUE,
+  /* eok_not: */			LVRV_OPND1_IS_RVALUE,
+  /* eok_cast: */			LVRV_OPND1_IS_LVALUE_IF_EXPR_IS,
+#ifdef CIL
+  /* eok_base_class_cast: */		LVRV_OPND1_IS_LVALUE_IF_EXPR_IS,
+  /* eok_derived_class_cast: */		LVRV_OPND1_IS_LVALUE_IF_EXPR_IS,
+  /* eok_pm_base_class_cast: */		LVRV_OPND1_IS_LVALUE_IF_EXPR_IS,
+  /* eok_pm_derived_class_cast: */	LVRV_OPND1_IS_LVALUE_IF_EXPR_IS,
+  /* eok_lvalue_cast: */		LVRV_OPND1_IS_LVALUE,
+  /* eok_dynamic_cast: */		LVRV_OPND1_IS_LVALUE_IF_EXPR_IS,
+  /* eok_bool_cast: */			LVRV_OPND1_IS_RVALUE,
+  /* eok_complement: */			LVRV_OPND1_IS_RVALUE,
+  /* eok_ipost_incr: */			LVRV_OPND1_IS_LVALUE,
+  /* eok_ipost_decr: */			LVRV_OPND1_IS_LVALUE,
+  /* eok_ipre_incr: */			LVRV_OPND1_IS_LVALUE,
+  /* eok_ipre_decr: */			LVRV_OPND1_IS_LVALUE,
+#if FIXED_POINT_ALLOWED
+  /* eok_fxpost_incr: */		LVRV_OPND1_IS_LVALUE,
+  /* eok_fxpost_decr: */		LVRV_OPND1_IS_LVALUE,
+  /* eok_fxpre_incr: */			LVRV_OPND1_IS_LVALUE,
+  /* eok_fxpre_decr: */			LVRV_OPND1_IS_LVALUE,
+#endif /* FIXED_POINT_ALLOWED */
+  /* eok_fpost_incr: */			LVRV_OPND1_IS_LVALUE,
+  /* eok_fpost_decr: */			LVRV_OPND1_IS_LVALUE,
+  /* eok_fpre_incr: */			LVRV_OPND1_IS_LVALUE,
+  /* eok_fpre_decr: */			LVRV_OPND1_IS_LVALUE,
+  /* eok_ppost_incr: */			LVRV_OPND1_IS_LVALUE,
+  /* eok_ppost_decr: */			LVRV_OPND1_IS_LVALUE,
+  /* eok_ppre_incr: */			LVRV_OPND1_IS_LVALUE,
+  /* eok_ppre_decr: */			LVRV_OPND1_IS_LVALUE,
+  /* eok_lvalue_from_struct_rvalue: */	LVRV_OPND1_IS_RVALUE,
+  /* eok_array_to_pointer: */		LVRV_NO_REQUIREMENTS,
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  /* eok_assume: */			LVRV_NO_REQUIREMENTS,
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* ifdef CIL */
+#if defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED
+  /* eok_xnegate: */			LVRV_OPND1_IS_RVALUE,
+#endif /* defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED */
+#ifdef FIL
+  /* eok_char_length: */		LVRV_NO_REQUIREMENTS,
+  /* eok_address_of_value: */		LVRV_NO_REQUIREMENTS,
+  /* eok_loc: */			LVRV_NO_REQUIREMENTS,
+  /* eok_test_logical: */		LVRV_NO_REQUIREMENTS,
+#endif /* ifdef FIL */
+  /* eok_iadd: */			LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_isubtract: */			LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_imultiply: */			LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_idivide: */			LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_ieq: */			LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_ine: */			LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_igt: */			LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_ilt: */			LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_ige: */			LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_ile: */			LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_ignu_min: */			LVRV_OPND1_IS_LVALUE_IF_EXPR_IS |
+					LVRV_OPND2_IS_LVALUE_IF_EXPR_IS,
+  /* eok_ignu_max: */			LVRV_OPND1_IS_LVALUE_IF_EXPR_IS |
+					LVRV_OPND2_IS_LVALUE_IF_EXPR_IS,
+  /* eok_iassign: */			LVRV_OPND1_IS_LVALUE |
+					LVRV_OPND2_IS_RVALUE,
+#if FIXED_POINT_ALLOWED
+  /* eok_fxadd: */			LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_fxsubtract: */			LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_fxmultiply: */			LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_fxdivide: */			LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_fxshiftl: */			LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_fxshiftr: */			LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_fxeq: */			LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_fxne: */			LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_fxgt: */			LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_fxlt: */			LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_fxge: */			LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_fxle: */			LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_fxassign: */			LVRV_OPND1_IS_LVALUE |
+					LVRV_OPND2_IS_RVALUE,
+#endif /* FIXED_POINT_ALLOWED */
+  /* eok_fadd: */			LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_fsubtract: */			LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_fmultiply: */			LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_fdivide: */			LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_feq: */			LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_fne: */			LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_fgt: */			LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_flt: */			LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_fge: */			LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_fle: */			LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_fgnu_min: */			LVRV_OPND1_IS_LVALUE_IF_EXPR_IS |
+					LVRV_OPND2_IS_LVALUE_IF_EXPR_IS,
+  /* eok_fgnu_max: */			LVRV_OPND1_IS_LVALUE_IF_EXPR_IS |
+					LVRV_OPND2_IS_LVALUE_IF_EXPR_IS,
+  /* eok_fassign: */			LVRV_OPND1_IS_LVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_padd: */			LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_psubtract: */			LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_passign: */			LVRV_OPND1_IS_LVALUE |
+					LVRV_OPND2_IS_RVALUE,
+#if defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED
+  /* eok_xadd: */			LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_xsubtract: */			LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_xmultiply: */			LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_xdivide: */			LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_xeq: */			LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_xne: */			LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_xassign: */			LVRV_OPND1_IS_LVALUE |
+					LVRV_OPND2_IS_RVALUE,
+#endif /* defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED */
+#if C99_IL_EXTENSIONS_SUPPORTED
+  /* eok_xadd_assign: */		LVRV_OPND1_IS_LVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_xsubtract_assign: */		LVRV_OPND1_IS_LVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_xmultiply_assign: */		LVRV_OPND1_IS_LVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_xdivide_assign: */		LVRV_OPND1_IS_LVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_jmultiply: */			LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_jdivide: */			LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_fjadd: */			LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_jfadd: */			LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_fjsubtract: */			LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_jfsubtract: */			LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+#if GNU_COMPLEX_EXTENSIONS_ALLOWED
+  /* eok_xconj: */			LVRV_OPND1_IS_RVALUE,
+  /* eok_real_part: */			LVRV_NO_REQUIREMENTS,
+  /* eok_imag_part: */			LVRV_NO_REQUIREMENTS,
+#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
+#ifdef FIL
+  /* eok_complex: */			LVRV_NO_REQUIREMENTS,
+  /* eok_ceq: */			LVRV_NO_REQUIREMENTS,
+  /* eok_cne: */			LVRV_NO_REQUIREMENTS,
+  /* eok_cgt: */			LVRV_NO_REQUIREMENTS,
+  /* eok_clt: */			LVRV_NO_REQUIREMENTS,
+  /* eok_cge: */			LVRV_NO_REQUIREMENTS,
+  /* eok_cle: */			LVRV_NO_REQUIREMENTS,
+  /* eok_cassign: */			LVRV_NO_REQUIREMENTS,
+  /* eok_concat: */			LVRV_NO_REQUIREMENTS,
+  /* eok_i_to_i_expon: */		LVRV_NO_REQUIREMENTS,
+  /* eok_f_to_i_expon: */		LVRV_NO_REQUIREMENTS,
+  /* eok_x_to_i_expon: */		LVRV_NO_REQUIREMENTS,
+  /* eok_f_to_f_expon: */		LVRV_NO_REQUIREMENTS,
+  /* eok_x_to_x_expon: */		LVRV_NO_REQUIREMENTS,
+#endif /* ifdef FIL */
+#ifdef CIL
+  /* eok_remainder: */			LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_pdiff: */			LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_peq: */			LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_pne: */			LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_pgt: */			LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_plt: */			LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_pge: */			LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_ple: */			LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_pgnu_min: */			LVRV_OPND1_IS_LVALUE_IF_EXPR_IS |
+					LVRV_OPND2_IS_LVALUE_IF_EXPR_IS,
+  /* eok_pgnu_max: */			LVRV_OPND1_IS_LVALUE_IF_EXPR_IS |
+					LVRV_OPND2_IS_LVALUE_IF_EXPR_IS,
+  /* eok_pmeq: */			LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_pmne: */			LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_sassign: */			LVRV_OPND1_IS_LVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_bassign: */			LVRV_OPND1_IS_LVALUE |
+					LVRV_OPND2_IS_LVALUE,
+  /* eok_pmassign: */			LVRV_OPND1_IS_LVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_iadd_assign: */		LVRV_OPND1_IS_LVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_isubtract_assign: */		LVRV_OPND1_IS_LVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_imultiply_assign: */		LVRV_OPND1_IS_LVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_idivide_assign: */		LVRV_OPND1_IS_LVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_remainder_assign: */		LVRV_OPND1_IS_LVALUE |
+					LVRV_OPND2_IS_RVALUE,
+#if FIXED_POINT_ALLOWED
+  /* eok_fxadd_assign: */		LVRV_OPND1_IS_LVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_fxsubtract_assign: */		LVRV_OPND1_IS_LVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_fxmultiply_assign: */		LVRV_OPND1_IS_LVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_fxdivide_assign: */		LVRV_OPND1_IS_LVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_fxshiftl_assign: */		LVRV_OPND1_IS_LVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_fxshiftr_assign: */		LVRV_OPND1_IS_LVALUE |
+					LVRV_OPND2_IS_RVALUE,
+#endif /* FIXED_POINT_ALLOWED */
+  /* eok_fadd_assign: */		LVRV_OPND1_IS_LVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_fsubtract_assign: */		LVRV_OPND1_IS_LVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_fmultiply_assign: */		LVRV_OPND1_IS_LVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_fdivide_assign: */		LVRV_OPND1_IS_LVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_padd_assign: */		LVRV_OPND1_IS_LVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_psubtract_assign: */		LVRV_OPND1_IS_LVALUE |
+					LVRV_OPND2_IS_RVALUE,
+#if FIXED_POINT_ALLOWED
+#endif /* FIXED_POINT_ALLOWED */
+  /* eok_shiftl_assign: */		LVRV_OPND1_IS_LVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_shiftr_assign: */		LVRV_OPND1_IS_LVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_and_assign: */			LVRV_OPND1_IS_LVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_or_assign: */			LVRV_OPND1_IS_LVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_xor_assign: */			LVRV_OPND1_IS_LVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_subscript: */			LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_dot_field: */			LVRV_OPND1_IS_LVALUE_IF_EXPR_IS,
+  /* eok_points_to_field: */		LVRV_OPND1_IS_RVALUE,
+  /* eok_pm_field: */			LVRV_OPND1_IS_LVALUE_IF_EXPR_IS |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_pm_points_to_field: */		LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_dot_static: */			LVRV_NO_REQUIREMENTS,
+  /* eok_points_to_static: */		LVRV_OPND1_IS_RVALUE,
+  /* eok_shiftl: */			LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_shiftr: */			LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_and: */			LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_or: */				LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_xor: */			LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_comma: */			LVRV_OPND2_IS_LVALUE_IF_EXPR_IS,
+  /* eok_virtual_function_ptr: */	LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_dot_vacuous_destructor_call: */
+					LVRV_NO_REQUIREMENTS,
+  /* eok_points_to_vacuous_destructor_call: */
+					LVRV_OPND1_IS_RVALUE,	
+#endif /* ifdef CIL */
+  /* eok_land: */			LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_lor: */			LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+#ifdef FIL
+  /* eok_neqv: */			LVRV_NO_REQUIREMENTS,
+  /* eok_eqv: */			LVRV_NO_REQUIREMENTS,
+#endif /* ifdef FIL */
+#ifdef CIL
+  /* eok_question: */			LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_LVALUE_IF_EXPR_IS,
+#endif /* ifdef CIL */
+#ifdef FIL
+  /* eok_substring: */			LVRV_NO_REQUIREMENTS,
+  /* eok_value_substring: */		LVRV_NO_REQUIREMENTS,
+#endif /* ifdef FIL */
+  /* eok_call: */			LVRV_NO_REQUIREMENTS,
+#ifdef CIL
+  /* eok_virtual_call: */		LVRV_NO_REQUIREMENTS,
+  /* eok_pm_call: */			LVRV_OPND1_IS_RVALUE,
+#endif /* ifdef CIL */
+#ifdef FIL
+  /* eok_fsubscript: */			LVRV_NO_REQUIREMENTS,
+  /* eok_value_fsubscript: */		LVRV_NO_REQUIREMENTS,
+#endif /* ifdef FIL */
+  /* eok_va_start: */			LVRV_OPND1_IS_LVALUE |
+					LVRV_OPND2_IS_LVALUE,
+  /* eok_va_arg: */			LVRV_OPND1_IS_LVALUE,
+  /* eok_va_end: */			LVRV_OPND1_IS_LVALUE,
+  /* eok_va_copy: */			LVRV_OPND1_IS_LVALUE |
+					LVRV_OPND2_IS_LVALUE,
+  /* eok_va_start_single_operand: */	LVRV_OPND1_IS_LVALUE,	
+#ifdef CIL
+  /* eok_negate: */			LVRV_OPND1_IS_RVALUE,
+  /* eok_post_incr: */			LVRV_OPND1_IS_LVALUE,
+  /* eok_post_decr: */			LVRV_OPND1_IS_LVALUE,
+  /* eok_pre_incr: */			LVRV_OPND1_IS_LVALUE,
+  /* eok_pre_decr: */			LVRV_OPND1_IS_LVALUE,
+  /* eok_add: */			LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_subtract: */			LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_multiply: */			LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_divide: */			LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_eq: */				LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_ne: */				LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_gt: */				LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_lt: */				LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_ge: */				LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_le: */				LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_gnu_min: */			LVRV_OPND1_IS_LVALUE_IF_EXPR_IS |
+					LVRV_OPND2_IS_LVALUE_IF_EXPR_IS,
+  /* eok_gnu_max: */			LVRV_OPND1_IS_LVALUE_IF_EXPR_IS |
+					LVRV_OPND2_IS_LVALUE_IF_EXPR_IS,
+  /* eok_assign: */			LVRV_OPND1_IS_LVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_add_assign: */			LVRV_OPND1_IS_LVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_subtract_assign: */		LVRV_OPND1_IS_LVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_multiply_assign: */		LVRV_OPND1_IS_LVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_divide_assign: */		LVRV_OPND1_IS_LVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_static_cast: */		LVRV_OPND1_IS_LVALUE_IF_EXPR_IS,
+  /* eok_const_cast: */			LVRV_OPND1_IS_LVALUE_IF_EXPR_IS,
+  /* eok_reinterpret_cast: */		LVRV_OPND1_IS_LVALUE_IF_EXPR_IS,
+  /* eok_lvalue: */			LVRV_OPND1_IS_RVALUE,
+  /* eok_rvalue: */			LVRV_OPND1_IS_LVALUE,
+  /* eok_generic_call: */		LVRV_NO_REQUIREMENTS,
+  /* eok_generic_member_call: */	LVRV_NO_REQUIREMENTS,
+#endif /* ifdef CIL */
+  /* eok_error: */			LVRV_NO_REQUIREMENTS,
+  /* eok_last: */			LVRV_DISTINGUISHED_VALUE_FOR_LAST
+};  /* lvalue_rvalue_test */
+
+a_boolean node_operands_have_correct_lvalueness(an_expr_node_ptr node)
+/*
+If node is an operation expression node, return FALSE if any of its operands
+have the is_lvalue flag set incorrectly; return TRUE otherwise.
+*/
+{
+  a_boolean        operand_error = FALSE;
+
+  if (is_operation_node(node)) {
+    an_expr_operator_kind op = node->variant.operation.kind;
+    a_byte                flags = lvalue_rvalue_test[(int)op];
+    an_expr_node_ptr      operand_1 = node->variant.operation.operands;
+    an_expr_node_ptr      operand_2 = operand_1->next;
+
+    if ((operand_1->is_lvalue && (flags & LVRV_OPND1_IS_RVALUE)) ||
+        (!operand_1->is_lvalue &&
+         ((flags & LVRV_OPND1_IS_LVALUE) ||
+          (node->is_lvalue &&
+           (flags & LVRV_OPND1_IS_LVALUE_IF_EXPR_IS))))) {
+      operand_error = TRUE;
+    }  /* if */
+    if (operand_2 != NULL &&
+        ((operand_2->is_lvalue && (flags & LVRV_OPND2_IS_RVALUE)) ||
+         (!operand_2->is_lvalue &&
+          ((flags & LVRV_OPND2_IS_LVALUE) ||
+           (node->is_lvalue &&
+            (flags & LVRV_OPND2_IS_LVALUE_IF_EXPR_IS)))))) {
+      if (gpp_mode && op == (an_expr_operator_kind)eok_va_start &&
+          is_variable_node(operand_2) &&
+          operand_2->type->kind == (a_type_kind)tk_pointer &&
+          operand_2->type->variant.pointer.is_reference) {
+        /* g++ allows use of va_start with a parameter of reference
+           type.  This situation is represented in the IL as an rvalue
+           variable designating the parameter and is not an error. */
+      } else {
+        operand_error = TRUE;
+      }  /* if */
+    }  /* if */
+    if (op == (an_expr_operator_kind)eok_question && node->is_lvalue &&
+        !operand_2->next->is_lvalue) {
+      /* An lvalue result for ?: requires that both the second and
+         third operands be lvalues. */
+      operand_error = TRUE;
+    }  /* if */
+  }  /* if */
+  return !operand_error;
+}  /* node_operands_have_correct_lvalueness */
+
+static void check_node_operand_lvalueness(
+                                    an_expr_node_ptr                    node,
+                                    an_expr_or_stmt_traversal_block_ptr tblock)
+/*
+This function is called from node_has_correct_lvalueness via traverse_expr.
+It checks the supplied node's direct operands for correct settings of the
+is_lvalue flag; if an incorrect setting is found, it sets tblock->result to
+TRUE and terminates the traversal.
+*/
+{
+  if (!node_operands_have_correct_lvalueness(node)) {
+    tblock->result = TRUE;
+    tblock->terminate = TRUE;
+  }  /* if */
+}  /* check_node_operand_lvalueness */
+
+a_boolean tree_has_correct_lvalueness(an_expr_node_ptr root)
+/*
+Return FALSE if any of the nodes in the expression tree rooted in root have
+their is_lvalue flag set incorrectly, TRUE otherwise.
+*/
+{
+  an_expr_or_stmt_traversal_block tblock;
+
+  clear_expr_or_stmt_traversal_block(&tblock);
+  tblock.process_expr = check_node_operand_lvalueness;
+#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
+  tblock.process_expressions_for_constants = TRUE;
+#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
+  tblock.process_template_parameter_constants_and_expressions = TRUE;
+  traverse_expr(root, &tblock);
+  return !tblock.result;
+}  /* tree_has_correct_lvalueness */
+#endif /* CHECKING */
+
 #if DEBUG
 
 unsigned long db_show_il_c_fe_space_used(unsigned long grand_total)
@@ -18914,6 +19659,13 @@ in il_init.)
     internal_error(
             "il_one_time_init: incorrect initialization of db_operator_names");
   }  /* if */
+#if CHECKING
+  /* Perform a similar check on the lvalue/rvalue operator table. */
+  if (lvalue_rvalue_test[(int)eok_last] != LVRV_DISTINGUISHED_VALUE_FOR_LAST) {
+    internal_error(
+           "il_one_time_init: incorrect initialization of lvalue_rvalue_test");
+  }  /* if */
+#endif /* CHECKING */
 #endif /* DEBUG */
   /* Variable in il_def.h: */
   /* Check that the table of linkage kind names is correctly initialized. */

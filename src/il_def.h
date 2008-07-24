@@ -1677,7 +1677,7 @@ enum a_constant_repr_kind_tag {
   ck_imaginary,         /* All sizes of C99's _Imaginary types. */
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #ifdef CIL
-  ck_address,           /* Address. */
+  ck_address,           /* Address/pointer. */
   ck_ptr_to_member,	/* C++ pointer-to-member (data or function). */
 #if GNU_EXTENSIONS_ALLOWED
   ck_label_difference,	/* The difference between two "label addresses"; a
@@ -2236,7 +2236,8 @@ typedef struct a_dynamic_init {
 
 enum a_template_param_constant_kind_tag {
   /* When a constant is marked as a template parameter it may have one of
-     several kinds (front end only). */
+     several kinds (front end only except when PROTOTYPE_INSTANTIATIONS_IN_IL
+     is TRUE). */
   tpck_param,		/* The template param constant represents a simple
 			   non-type template parameter, e.g., for I in the
 			   following:
@@ -2262,7 +2263,10 @@ enum a_template_param_constant_kind_tag {
 			/* Represents the address of an unknown function
 			   called in a template context where overload
 			   resolution cannot be done (e.g., because the
-			   argument types involve template parameters). */
+			   argument types involve template parameters).
+			   "address" really means "an rvalue for the function,"
+			   which has unknown type and might therefore be a
+			   pointer or a pointer to member. */
   tpck_cast,		/* The template param constant represents some constant
 			   (ck_template_param or other) cast to a type that
 			   contains a template parameter type. */
@@ -2284,9 +2288,13 @@ enum a_template_param_constant_kind_tag {
 			   the address of the implied std::type_info
 			   structure.  (Only used when typeid is used for a
 			   nontype template argument; e.g. "X<&typeid(Y)>".)*/
-  tpck_template_ref	/* The template param constant provides a pointer
-			   to an unknown function template, and a set of
-			   explicit template arguments for that template. */
+  tpck_template_ref	/* The template param constant provides the address
+			   of an unknown function template, and a set of
+			   explicit template arguments for that template.
+			   Very similar to tpck_unknown_function, and likewise
+			   represents an rvalue for the function, which has
+			   unknown type and might therefore be a pointer or a
+			   pointer to member. */
 };
 typedef a_byte a_template_param_constant_kind;
 
@@ -3398,9 +3406,7 @@ typedef struct an_asm_operand {
                         /* Source position of this operand. */
   an_expr_node_ptr
                 expression;     
-			/* The expression constituting the operand.  For
-			   an output operand (modifiers & aom_output is
-			   non-zero) this is an lvalue. */
+			/* The expression constituting the operand. */
 } an_asm_operand;
 
 typedef struct a_named_register_list *a_named_register_list_ptr;
@@ -9469,12 +9475,9 @@ enum an_expr_node_kind_tag {
   enk_operation,        /* An operator and n operands; see
                            an_expr_operator_kind. */
   enk_constant,         /* A constant value. */
-  enk_variable,         /* A variable value. */
-  enk_variable_address, /* The address of a variable.  Note that register
-                           variables can be used, but only in cases where
-                           the address will not actually be used. */
+  enk_variable,         /* A variable. */
 #ifdef CIL
-  enk_field,            /* Used in an eok_field, eok_value_field, etc.
+  enk_field,            /* Used in an eok_dot_field, eok_points_to_field, etc.
                            operation to indicate the field. */
   enk_temp_init,	/* Initialization of a temporary within an
 			   expression.  C++ only.  Used in C for C99
@@ -9537,7 +9540,7 @@ enum an_expr_node_kind_tag {
                         /* Value of a DATA implied-DO variable.  Only used
                            in the front end. */
 #endif /* ifdef FIL */
-  enk_routine_address,  /* The address of a routine. */
+  enk_routine,          /* A routine (function). */
 #if VLA_DEALLOCATIONS_IN_IL
   enk_vla_dealloc,      /* Used to indicate when a variable-length array
                            should be deallocated (in C++, this may require
@@ -9602,17 +9605,16 @@ enum an_expr_operator_kind_tag {
   /* When the expression node kind is "enk_operation", these are the possible
      operators. */
   /* If you add operators to this list, be sure to update db_operator_names
-     in this file, disp_expr_operator_name in il_display.c, and
-     generated_precedence in cp_gen_be.c. */
-  /* Note that the left operand of assignment operators and ".",
-     the function designator of a call, and the operands of
-     pre/post-increment/decrement operators are addresses, since they
-     are lvalues (or function designators) in the C source.  For example,
-     the C source "i = 1" is represented internally as "&i = 1" (where the
-     "&" in this case is provided by the use of an enk_variable_address
-     expression node). */
+     in this file, lvalue_rvalue_test in il.c, disp_expr_operator_name in
+     il_display.c, and generated_precedence in cp_gen_be.c. */
   /* The following have 1 operand: */
-  eok_indirect,         /* Pointer de-reference ("*" operator). */
+  eok_address_of,	/* Address-of operator ("&"). */
+  eok_reference_to,	/* Turns an lvalue into a reference, i.e., the
+			   reference equivalent of eok_address_of. */
+  eok_indirect,		/* Pointer de-reference operator ("*"). */
+  eok_ref_indirect,	/* Implicit indirection through a reference to get an
+			   lvalue, i.e., the reference equivalent of
+			   eok_indirect. */
   eok_inegate,          /* Integer negation. */
 #if FIXED_POINT_ALLOWED
   eok_fxnegate,         /* Fixed-point negation. */
@@ -9651,11 +9653,8 @@ enum an_expr_operator_kind_tag {
   eok_lvalue_cast,	/* Like eok_cast, but used to cast an lvalue.
 			   An lvalue cast to a like-sized type can remain an
 			   lvalue.  An extension: used in some C modes and
-			   in Microsoft and GNU C++ modes.  Has essentially
-			   the same meaning as a pointer cast. */
-  eok_dynamic_cast,	/* C++ dynamic_cast operation [expr.dynamic.cast].
-			   The operand is an lvalue if the result type is
-			   a reference, and an rvalue otherwise. */
+			   in Microsoft and GNU C++ modes. */
+  eok_dynamic_cast,	/* C++ dynamic_cast operation. */
   eok_bool_cast,	/* C++ and C99 cast to bool.  Operand can be
 			   arithmetic, enum, pointer, or pointer-to-member,
 			   and result is the equivalent of "operand != 0". */
@@ -9680,15 +9679,18 @@ enum an_expr_operator_kind_tag {
   eok_ppre_decr,        /* Pointer pre decrement. */
   eok_lvalue_from_struct_rvalue,
 			/* C mode: placed above an expression that is a struct
-			   rvalue, produces the address of the struct (this can
+			   rvalue, produces an lvalue for the struct (this can
 			   be implemented by storing the value in a temporary
 			   and returning the address of the temporary).  This
 			   is used in implementing subscripting of rvalue
-			   arrays in C mode, an extension to ANSI/ISO C.  It's
-			   may also be generated during IL lowering.  The
-			   underlying expression can be a call that returns a
-			   struct, a struct assignment, or a comma
+			   arrays in C mode (an extension in C89, standard in
+			   C99).  It may also be generated during IL lowering.
+			   The underlying expression can be a call that returns
+			   a struct, a struct assignment, or a comma
 			   operation. */
+  eok_array_to_pointer,
+			/* Array to pointer decay: converts an array lvalue or
+			   rvalue to a pointer to its first element. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   eok_assume,		/* Microsoft __assume(expr).  Note that the
 			   operand is not evaluated in the traditional
@@ -9724,8 +9726,10 @@ enum an_expr_operator_kind_tag {
   eok_ilt,              /* Integer less than. */
   eok_ige,              /* Integer greater than or equal. */
   eok_ile,              /* Integer less than or equal. */
-  eok_ignu_min,         /* Integer minimum operator (a GNU C++ extension). */
-  eok_ignu_max,         /* Integer maximum operator (a GNU C++ extension). */
+  eok_ignu_min,         /* Integer minimum operator (a GNU C++ extension).
+                           Operands and result may be lvalues or rvalues. */
+  eok_ignu_max,         /* Integer maximum operator (a GNU C++ extension).
+                           Operands and result may be lvalues or rvalues. */
   eok_iassign,          /* Integer assignment. */
 #if FIXED_POINT_ALLOWED
   /* The following binary fixed-point operations may have one operand
@@ -9755,13 +9759,15 @@ enum an_expr_operator_kind_tag {
   eok_flt,              /* Floating less than. */
   eok_fge,              /* Floating greater than or equal. */
   eok_fle,              /* Floating less than or equal. */
-  eok_fgnu_min,         /* Floating minimum operator (a GNU C++ extension). */
-  eok_fgnu_max,         /* Floating maximum operator (a GNU C++ extension). */
+  eok_fgnu_min,         /* Floating minimum operator (a GNU C++ extension).
+                           Operands and result may be lvalues or rvalues. */
+  eok_fgnu_max,         /* Floating maximum operator (a GNU C++ extension).
+                           Operands and result may be lvalues or rvalues. */
   eok_fassign,          /* Floating assignment. */
-  eok_padd,             /* Pointer addition.  First operand is always the
-                           pointer, second always the integer.  Note that the
-                           integer can be of any integral type; the integral
-                           promotions are not done. */
+  eok_padd,		/* Pointer addition.  One operand is a pointer, the
+			   other an integer, in either order.  Note that the
+			   integer can be of any integral type; the integral
+			   promotions are not done. */
   eok_psubtract,        /* Pointer subtraction.  First operand is always the
                            pointer, second always the integer.  Note that the
                            integer can be of any integral type; the integral
@@ -9792,12 +9798,11 @@ enum an_expr_operator_kind_tag {
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #if GNU_COMPLEX_EXTENSIONS_ALLOWED
   eok_xconj,            /* Complex conjugation operator. */
-  eok_real_part,        /* Produce the real part of a complex rvalue. */
-  eok_imag_part,        /* Produce the imaginary part of a complex rvalue. */
-  eok_lvalue_real_part, /* Produce the real part of a complex lvalue.  The
-                           result is also an lvalue. */
-  eok_lvalue_imag_part, /* Produce the imaginary part of a complex lvalue.  The
-                           result is also an lvalue. */
+  eok_real_part,        /* Produce the real part of a complex number.  The
+                           operand is an lvalue or rvalue of complex type. */
+  eok_imag_part,        /* Produce the imaginary part of a complex number.
+                           The operand is an lvalue or rvalue of complex
+                           type. */
 #endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
 #ifdef FIL
   eok_complex,          /* Join two real operands, produce a complex as the
@@ -9820,10 +9825,6 @@ enum an_expr_operator_kind_tag {
 #endif /* ifdef FIL */
 #ifdef CIL
   eok_remainder,        /* ("%" operator) */
-  eok_padd_subsc,       /* Means the same as eok_padd (pointer addition),
-                           but generated from a [] in the source.  Having
-                           a distinct operator makes for clearer error
-                           messages. */
   eok_pdiff,            /* Pointer difference.  Difference between two
                            pointers, returns an integer (ptrdiff_t). */
   eok_peq,              /* Pointer equality. */
@@ -9832,8 +9833,10 @@ enum an_expr_operator_kind_tag {
   eok_plt,              /* Pointer less than. */
   eok_pge,              /* Pointer greater than or equal. */
   eok_ple,              /* Pointer less than or equal. */
-  eok_pgnu_min,         /* Pointer minimum operator (a GNU C++ extension). */
-  eok_pgnu_max,         /* Pointer maximum operator (a GNU C++ extension). */
+  eok_pgnu_min,         /* Pointer minimum operator (a GNU C++ extension).
+                           Operands and result may be lvalues or rvalues. */
+  eok_pgnu_max,         /* Pointer maximum operator (a GNU C++ extension).
+                           Operands and result may be lvalues or rvalues. */
   eok_pmeq,		/* Pointer-to-member equality. */
   eok_pmne,		/* Pointer-to-member inequality. */
   eok_sassign,		/* Structure assignment.  In unlowered C++ IL, this
@@ -9882,62 +9885,44 @@ enum an_expr_operator_kind_tag {
   eok_and_assign,       /* Bitwise and assign operator. */
   eok_or_assign,        /* Bitwise or assign operator. */
   eok_xor_assign,       /* Exclusive or assign operator. */
-  eok_subscript,        /* C subscripting operation.  The operands are the
-                           array address and the subscript value; the result
-                           is the value of that element of the array. */
-  eok_field,            /* Member of a struct or union.  The first operand
-                           is the address of the struct or union, the second
-                           (given by an enk_field node) is the member
-                           (field).  The result is the address of the
-                           field.  Not used for bit fields; see 
-                           eok_bit_field. */
-  eok_value_field,      /* Member of a struct or union, where the first operand
-                           is a struct/union value, the second (given by
-                           an enk_field node) is the member (field).  The
-                           result is the value of the field.  Not used for
-                           bit fields; see eok_value_bit_field. */
-  eok_bit_field,        /* Like eok_field, but used for bit fields (first
-                           operand is the address of the struct/union, second
-                           the bit field).  The result represents the "address"
-                           of the bit field, although it doesn't have an
-                           address in the traditional sense. */
-  eok_value_bit_field,  /* Like eok_value_field, but used for bit fields
-                           (first operand a struct/union value, second the
-                           bit field, result is the value of the field). */
-  eok_extract_bit_field,
-                        /* Extract the value of a bit field.  The first
-                           operand is the address of the struct or union,
-                           the second (given by an enk_field node) is the
-                           member (field).  The result is the value of the
-                           field. */
-  eok_pm_field,		/* C++: Select a field identified by a pointer
-			   to (data) member.  The first operand is the
-			   class object pointer; the second operand is
-			   the pointer-to-member.  The result is the address
-			   of the field.  This is the C++ "->*" operator (for
-			   pointers to DATA members). */
-  eok_points_to_static,	/* Static member selection p->m.  The first operand
-			   is a pointer to a class; it is evaluated and
-			   discarded.  The second operand is a reference to
-			   a static member, whose value is passed through;
-			   it is an lvalue if
-			   returns_lvalue_instead_of_usual_rvalue is TRUE.
-			   C++ only, and eliminated by IL lowering. */
-  eok_lvalue_dot_static,
-			/* Static member selection lval.m.  The first operand
-			   is an lvalue for a class; it is evaluated and
-			   discarded.  The second operand is a reference to
-			   a static member, whose value is passed through;
-			   it is an lvalue if
-			   returns_lvalue_instead_of_usual_rvalue is TRUE.
-			   C++ only, and eliminated by IL lowering. */
-  eok_rvalue_dot_static,
-			/* Static member selection rval.m.  The first operand
-			   is a class rvalue; it is evaluated and discarded.
-			   The second operand is a reference to a static
-			   member, whose value is passed through; it is an
-			   lvalue if returns_lvalue_instead_of_usual_rvalue is
-			   TRUE.  C++ only, and eliminated by IL lowering. */
+  eok_subscript,	/* Subscripting operation.  The operands are the
+			   pointer to the first element of the array and the
+			   integral subscript value, in either order. */
+  eok_dot_field,	/* Selection of a nonstatic data member of a class,
+			   source form x.y.  The first operand is an lvalue
+			   or rvalue of class type.  The second operand is
+			   an enk_field. */
+  eok_points_to_field,	/* Selection of a nonstatic data member of a class,
+			   source form p->y.  The first operand is an rvalue
+			   pointer to class.  The second operand is an
+			   enk_field. */
+  eok_pm_field,		/* Selection of a nonstatic data member of a class
+			   using a pointer to member, source form x.*pm.
+			   The first operand is an lvalue or rvalue of
+			   class type.  The second operand is an rvalue of
+			   pointer-to-data-member type. */
+  eok_pm_points_to_field,
+			/* Selection of a nonstatic data member of a class
+			   using a pointer to member, source form x->*pm.
+			   The first operand is an rvalue pointer to class.
+			   The second operand is an rvalue of pointer-to-data-
+			   member type. */
+  eok_dot_static,	/* Selection of a static member of a class, source
+			   form x.y.  The first operand is an lvalue
+			   or rvalue of class type, which is evaluated
+			   and then discarded.  The second operand is an
+			   enk_variable identifying a static data member,
+			   an enk_routine identifying a static member
+			   function, or an enk_constant identifying a member
+			   constant (e.g., an enumerator). */
+  eok_points_to_static,	/* Selection of a static member of a class, source
+			   form p->y.  The first operand is an rvalue
+			   pointer to class, which is evaluated and then
+			   discarded.  The second operand is an enk_variable
+			   identifying a static data member, an enk_routine
+			   identifying a static member function, or an
+			   enk_constant identifying a member constant (e.g.,
+			   an enumerator). */
 #if FIXED_POINT_ALLOWED
   /* The left operand of a shift expression may have an integral or fixed-point
      type. */
@@ -9955,14 +9940,13 @@ enum an_expr_operator_kind_tag {
 			   of a virtual function (NOT a pointer-to-member);
 			   the second is a pointer to a class object.  The
 			   result is a pointer to the selected function. */
-  eok_vacuous_destructor_call,
+  eok_dot_vacuous_destructor_call,
 			/* Call of a "destructor" for a class or simple type
-			   that does not have one, e.g., p->int::~int().
-			   The operand is the pointer.  The result is
-			   void. */
-  eok_value_vacuous_destructor_call,
-			/* Similar to eok_vacuous_destructor_call, but operand
-			   is an rvalue. */
+			   that does not have one, e.g., x.int::~int().
+			   The result is void. */
+  eok_points_to_vacuous_destructor_call,
+			/* Similar to eok_dot_vacuous_destructor_call, but
+			   for the "->" case, e.g., p->int::~int(). */
 #endif /* ifdef CIL */
   eok_land,             /* Logical intersection, with the operand standardized
                            to integer/logical. */
@@ -10011,15 +9995,14 @@ enum an_expr_operator_kind_tag {
 #ifdef CIL
 			/* Note that the operand identifying the routine can
 			   be an expression (e.g., for a call through a
-			   pointer), or eok_points_to_static/
-			   eok_lvalue_dot_static/eok_rvalue_dot_static for
-			   a static member function call. */
+			   pointer), or eok_dot_static/eok_points_to_static
+			   for a static member function call. */
 			/* For member functions, a compiler-generated argument
-			   for the object address follows the first
+			   for the object lvalue or pointer follows the first
 			   argument. */
   eok_virtual_call,	/* A call of a C++ virtual function.  The first operand
-			   is the routine, the second is the object address,
-			   and the rest are the other arguments. */
+			   is the routine, the second is the object lvalue or
+			   pointer, and the rest are the other arguments. */
   eok_pm_call,		/* A C++ call of a function identified by a pointer
 			   to member.  The first operand is the pointer to
 			   member (function); the second is the "this" pointer;
@@ -10034,19 +10017,20 @@ enum an_expr_operator_kind_tag {
                            The result is the value of the array element. */
 #endif /* ifdef FIL */
   /* Operators used when the <stdarg.h> macros are treated as builtins: */
-  eok_va_start,		/* va_start macro reference.  First operand is
-			   lvalue address of variable of type va_list,
-			   second is lvalue address of last parameter before
-			   "..." of function. */
-  eok_va_arg,		/* va_arg macro reference.  First operand is lvalue
-			   address of variable of type va_list.  Second
-			   argument of macro is represented by the result type
-			   of the expression node. */
-  eok_lvalue_va_arg,	/* Variant of eok_va_arg that returns an lvalue. */
-  eok_va_end,		/* va_end macro reference.  First operand is lvalue
-			   address of variable of type va_list. */
+  eok_va_start,		/* va_start macro reference.  First operand is an
+			   lvalue variable of type va_list, second is
+			   (usually) an lvalue for the last parameter
+			   before the "..."  of the function.  (The second
+			   operand will be an rvalue in g++ mode if the
+			   parameter has a reference type.) */
+  eok_va_arg,		/* va_arg macro reference.  First operand is an lvalue
+			   variable of type va_list.  Second argument of macro
+			   is represented by the result type of the expression
+			   node.  The result can be an lvalue or an rvalue. */
+  eok_va_end,		/* va_end macro reference.  First operand is an lvalue
+			   variable of type va_list. */
   eok_va_copy,		/* va_copy macro reference.  Both operands are
-			   lvalue addresses of variables of type va_list. */
+			   lvalue variables of type va_list. */
   eok_va_start_single_operand,
 			/* Same as eok_va_start, but without the second
 			   operand.  This is typically used to implement the
@@ -10074,22 +10058,26 @@ enum an_expr_operator_kind_tag {
   eok_lt,               /* Generic less than. */
   eok_ge,               /* Generic greater than or equal. */
   eok_le,               /* Generic less than or equal. */
-  eok_gnu_min,          /* Generic minimum operator (a GNU C++ extension). */
-  eok_gnu_max,          /* Generic maximum operator (a GNU C++ extension). */
+  eok_gnu_min,          /* Generic minimum operator (a GNU C++ extension).
+                           Operands and result may be lvalues or rvalues. */
+  eok_gnu_max,          /* Generic maximum operator (a GNU C++ extension).
+                           Operands and result may be lvalues or rvalues. */
   eok_assign,           /* Generic assignment. */
   eok_add_assign,       /* Generic add assign operator. */
   eok_subtract_assign,  /* Generic subtract assign operator. */
   eok_multiply_assign,  /* Generic multiply assign operator. */
   eok_divide_assign,    /* Generic divide assign operator. */
-  eok_address,          /* Generic unary "&" (for known types this need not
-                           be explicitly encoded). */
-  eok_pm_dot_field,     /* Generic ".*" field selection. */
-  eok_pm_arrow_field,   /* Generic "->*" field selection. */
   eok_static_cast,      /* Generic static_cast from the source. */
   eok_const_cast,       /* Generic const_cast from the source. */
   eok_reinterpret_cast, /* Generic reinterpret_cast from the source. */
-  eok_lvalue,           /* Indicates that the operand is an lvalue. */
-  eok_rvalue,           /* Indicates that the operand is an rvalue. */
+  eok_lvalue,           /* Indicates that the operand (marked as an rvalue,
+                           but really something with unknown lvalueness) is
+                           to be used as if it were an lvalue.  The eok_lvalue
+                           node itself is marked as an lvalue. */
+  eok_rvalue,           /* Indicates that the operand (marked as an lvalue,
+                           but really something with unknown lvalueness) is
+                           to be used as if it were an rvalue.  The eok_rvalue
+                           node itself is marked as an rvalue. */
   eok_generic_call,	/* Like eok_call, but called function details are
 			   not known.  Used for calls that are not written in
 			   the bound-function p->f() or x.f() form. */
@@ -10370,8 +10358,6 @@ Enumeration of kinds of modifiers for expression ranges.
 */
 enum an_expr_range_modifier_kind_tag {
   erm_parens,		/* parentheses */
-  erm_asterisk,		/* indirection */
-  erm_ampersand,	/* address of */
   erm_last
 };
 typedef a_byte an_expr_range_modifier_kind;
@@ -10384,36 +10370,27 @@ EXTERN char *expr_range_modifier_kind_names[(int)erm_last + 1]
 #if VAR_INITIALIZERS
 = {
   "erm_parens",
-  "erm_asterisk",
-  "erm_ampersand",
   ""
 }
 #endif /* VAR_INITIALIZERS */
 ;
 
 /*
-A modifier for an expression range.  Because syntactic elements of
-expressions such as unary asterisk and parentheses are not represented in
-the IL by separate expression nodes (an asterisk typically just changes its
-operand from a pointer rvalue to an lvalue, for instance), a given node
-could correspond to any of a number of source ranges.  For example, an
-expression like "*(p+i)" (represented by an eok_padd operation node) could
-legitimately be viewed as the three columns containing the "+" operator and
-its operands, as the five columns containing the parenthesized form, or as
-the six columns including the indirection operator (implicit in the node).
+A modifier for an expression range.  Because parentheses are not
+represented in the IL by separate expression nodes, a given node could
+correspond to any of a number of source ranges.  For example, an expression
+like "(p+i)" (represented by an eok_padd operation node) could legitimately
+be viewed as the three columns containing the "+" operator and its operands
+or as the five columns containing the parenthesized form.
 
 When EXPR_RANGE_MODIFIERS_IN_IL is TRUE, the expr_range in the node covers
 only the operator and operands explicitly denoted by the node (or the
 variable reference in the case of an enk_variable, etc.).  (This is the
-normal state of affairs for indirection and parentheses but is a departure
-for the ampersand operator.)  Each additional syntactic element that is
-subsumed by the node is represented by one an_expr_range_modifier node in
-the linked list pointed to by the node's range_modifiers field; the head of
-the list represents the leftmost/outermost syntactic element associated
-with the node.  Each modifier describes the kind of syntactic element and
-the complete source range of that expression (i.e., extending at least
-through the source range of the node and any following range modifiers).
-*/
+normal state of affairs for parentheses.)  Each additional pair of
+parentheses that is subsumed by the node is represented by one
+an_expr_range_modifier node in the linked list pointed to by the node's
+range_modifiers field; the head of the list represents the outermost
+parentheses associated with the node. */
 typedef struct an_expr_range_modifier *an_expr_range_modifier_ptr;
 typedef struct an_expr_range_modifier {
   an_expr_range_modifier_kind
@@ -10442,15 +10419,20 @@ typedef struct an_expr_node {
 		kind;
                         /* Identifies what kind of node this is.  This field
                            determines which member of the union to use. */
+  a_bit_field	is_lvalue:1;
+			/* TRUE if the expression is an lvalue.  FALSE if the
+			   expression is something else, e.g., an rvalue or an
+			   error node.  C function designators have this
+			   field TRUE even though a function designator is
+			   not an "lvalue" according to the C standard.
+			   Note that the value here indicates how the node
+			   is being used, i.e., it includes any implicit
+			   lvalue-to-rvalue or function-to-pointer conversion
+			   (but not array-to-pointer conversion, which is
+			   handled by the eok_array_to_pointer operator). */
   a_bit_field	result_is_not_used:1;
 			/* TRUE if the result of the expression is discarded,
 			   i.e., it's a void expression. */
-  a_bit_field	implicit_reference_indirection:1;
-			/* TRUE if the operation in this expression node
-			   (typically, an eok_indirect) is or contains an
-			   extra indirection because of a C++ reference.
-			   That is, the indirection is explicit in the IL,
-			   but it was implicit in the source code. */
 #ifdef FIL
   a_bit_field	allow_reordering:1;
 			/* TRUE indicates that this expression can be subjected
@@ -10472,28 +10454,11 @@ typedef struct an_expr_node {
 			   expression pointed to by a param-type entry; one
 			   such copy is associated with each call that uses
 			   the default argument. */
-  a_bit_field	void_expression_lvalue:1;
-			/* TRUE in C++ for an expression that (a) is an lvalue
-			   and (b) has its value discarded, either implicitly
-			   or by an explicit cast to void.  In spite of the
-			   name, the expression does not necessarily have
-			   void type.  Always FALSE in C. */
-  a_bit_field	decltype_expression_lvalue:1;
-			/* TRUE in C++0x or GNU modes for an expression that
-			   (a) is an lvalue and (b) is the argument for a C++0x
-			   decltype or GNU typeof specifier. */
 #if GNU_EXTENSIONS_ALLOWED
   a_bit_field	marked_as_gnu_extension:1;
 			/* TRUE if the expression was preceded by the GNU
 			   keyword __extension__. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-  a_bit_field	is_operand_of_address_of:1;
-			/* TRUE if this is the direct operand of an ampersand
-			   operator in the source.  This can be used to
-			   distinguish between enk_routine_address nodes that
-			   are the result of function-to-pointer decay and
-			   those that are the result of an explicit address-of
-			   operation. */
   a_bit_field	is_static_cast:1;
 			/* TRUE if this node represents a static_cast in the
 			   source.  Set only on enk_temp_init nodes and on
@@ -10512,12 +10477,16 @@ typedef struct an_expr_node {
 			/* TRUE if the operation is an assignment (simple or
 			   compound), prefix ++/--, or "?" or "," operator
 			   that returns an lvalue in C++ where the C operation
-			   would return an rvalue.  FALSE otherwise, including
-			   for other operations and for these operations when
-			   they do return rvalues.  Generally TRUE only in C++,
-			   but can be TRUE in gcc mode when an rvalue is
-			   reverted to an lvalue (IL lowering eliminates that
-			   later by rewriting it in rvalue form). */
+			   would return an rvalue.  Can also be set on GNU
+			   min/max, eok_dot_static, and eok_points_to_static,
+			   which are operators that pass through lvalueness.
+			   FALSE otherwise, including for other operations and
+			   for these operations when they do return rvalues.
+			   Generally TRUE only in C++, but can be TRUE in gcc
+			   mode when an rvalue is reverted to an lvalue (IL
+			   lowering eliminates that later by rewriting it
+			   in rvalue form).  When this field is TRUE,
+			   is_lvalue will also be TRUE. */
       a_bit_field
 		compiler_generated:1;
 			/* TRUE if the operation is compiler-generated rather
@@ -10593,6 +10562,10 @@ typedef struct an_expr_node {
 			   synthesized second operand is present in the
 			   operand list. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+      a_bit_field
+		pointer_operand_is_second:1;
+			/* TRUE for eok_subscript or eok_padd in the case where
+			   the pointer operand is the second one. */
       bitfield_to_avoid_codecenter_warnings()
       an_expr_node_ptr  
                 operands;
@@ -10605,7 +10578,7 @@ typedef struct an_expr_node {
                         /* A pointer to the constant.  This may be a shared
 			   constant. */
 
-    /* When kind == enk_variable or enk_variable_address: */
+    /* When kind == enk_variable: */
 #ifdef FIL
     /* Also, when kind == enk_char_variable_length: */
 #endif /* ifdef FIL */
@@ -10613,7 +10586,7 @@ typedef struct an_expr_node {
                 variable;
                         /* A pointer to the variable. */
 
-    /* When kind == enk_routine_address: */
+    /* When kind == enk_routine: */
     a_routine_ptr
                 routine;
                         /* A pointer to the routine. */
@@ -10621,18 +10594,14 @@ typedef struct an_expr_node {
     /* When kind == enk_field: */
     a_field_ptr field;
 			/* A pointer to the field.  Used as an operand to an
-			   eok_field or eok_value_field operation (or the
-			   similar bit-field operators). */
+			   eok_dot_field or eok_points_to_field operation. */
     /* When kind == enk_temp_init: */
     /* C++ only, but used in C for C99 compound literals. */
+    /* The result of this operator is a temporary.  It's an lvalue if
+       is_lvalue is TRUE, an rvalue otherwise. */
     struct {
-      a_bit_field
-		result_is_addr:1;
-			/* If TRUE, the value of the enk_temp_init node
-			   is the address of the temporary.  If FALSE, the
-			   value is the value of the temporary. */
-      a_bit_field
-		static_temp:1;
+      a_byte_boolean
+		static_temp;
 			/* If TRUE, the temporary must be static.  This means
 			   the storage duration of the temporary is required
 			   to be static.  A value of FALSE, however, does not
@@ -10645,7 +10614,6 @@ typedef struct an_expr_node {
 			   is different than object lifetime; see the
 			   lifetime information in the dynamic init entry
 			   pointed to. */
-      bitfield_to_avoid_codecenter_warnings()
       a_dynamic_init_ptr
 		dynamic_init;
 			/* Dynamic initialization entry that does the
@@ -10688,8 +10656,7 @@ typedef struct an_expr_node {
 			/* If the argument of the typeid operator is an
 			   expression with one of the special forms (*p or
 			   p[x]), and the type is a polymorphic class type,
-			   this is the lvalue expression specified (i.e.,
-			   its value is the address); otherwise NULL. */
+			   this is the expression specified; otherwise NULL. */
     } typeid_info;
     /* When kind == enk_runtime_sizeof: */
     /* Used for a sizeof whose size is not known at compile time (e.g.,
@@ -10701,10 +10668,6 @@ typedef struct an_expr_node {
 		is_type;
 			/* TRUE if the sizeof is sizeof(type); FALSE for
 			   sizeof expression. */
-      a_byte_boolean
-		is_lvalue;
-			/* When is_type is FALSE, TRUE if the expression is
-			   an lvalue, FALSE for an rvalue. */
       union {
         /* When is_type == TRUE: */
         a_type_ptr
@@ -10845,10 +10808,9 @@ typedef struct an_expr_node {
 		range_modifiers;
 			/* If non-NULL, points to the head of a list of
 			   modifiers to the source range above, each
-			   reflecting syntactic elements for which there is
-			   no corresponding IL entry (unary *, parentheses,
-			   etc.).  The first entry in the list describes
-			   the leftmost/outermost syntactic element. */
+			   reflecting an enclosing pair of parentheses.
+			   The first entry in the list describes the
+			   outermost pair. */
 #endif /* EXPR_RANGE_MODIFIERS_IN_IL */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #if RECORD_FORM_OF_NAME_REFERENCE
@@ -10857,7 +10819,7 @@ typedef struct an_expr_node {
 			/* If non-NULL, points to information about the
 			   form of reference to a name that this expression
 			   node refers to (e.g., a function name for an
-			   enk_routine_address). */
+			   enk_routine). */
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
 } an_expr_node;
 
@@ -13314,7 +13276,7 @@ EXTERN an_il_header il_header;
 /* Table of debug names for expression operators. */
 EXTERN char     *db_operator_names[(int)eok_last+1]
 #if VAR_INITIALIZERS
-= {"*", "i-",
+= {"&", "ref-&", "*", "ref-*", "i-",
 #if FIXED_POINT_ALLOWED
    "fx-",
 #endif /* FIXED_POINT_ALLOWED */
@@ -13329,7 +13291,7 @@ EXTERN char     *db_operator_names[(int)eok_last+1]
 #endif /* FIXED_POINT_ALLOWED */
    "f++", "f--", "++f", "--f",
    "p++", "p--", "++p", "--p",
-   "lvalue<==",
+   "lvalue<==", "array-decay",
 #if MICROSOFT_EXTENSIONS_ALLOWED
    "__assume",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -13357,7 +13319,7 @@ EXTERN char     *db_operator_names[(int)eok_last+1]
    "j*", "j/", "fj+", "jf+", "fj-", "jf-",
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #if GNU_COMPLEX_EXTENSIONS_ALLOWED
-   "x~", "rvalue __real", "rvalue __imag", "lvalue __real", "lvalue __imag",
+   "x~", "__real", "__imag",
 #endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
 #ifdef FIL
    "complex",
@@ -13366,7 +13328,7 @@ EXTERN char     *db_operator_names[(int)eok_last+1]
 #endif /* ifdef FIL */
 #ifdef CIL
    "%",
-   "ps", "pd", "p==", "p!=", "p>", "p<", "p>=", "p<=", "p<?", "p>?",
+   "pd", "p==", "p!=", "p>", "p<", "p>=", "p<=", "p<?", "p>?",
    "pm==", "pm!=",
    "s=", "b=", "pm=",
    "i+=", "i-=", "i*=", "i/=", "%=",
@@ -13376,12 +13338,12 @@ EXTERN char     *db_operator_names[(int)eok_last+1]
    "f+=", "f-=", "f*=", "f/=",
    "p+=", "p-=",
    "<<=", ">>=", "&=", "|=", "^=",
-   "[]", "->", "v.", "b->", "bv.", "b.", "->*", "->s", "l.s", "r.s",
+   "[]", ".", "->", ".*", "->*", ".static", "->static",
    "<<", ">>",
    "&", "|", "^", ",",
    "virt func ptr",
-   "vacuous dtor",
-   "value vacuous dtor",
+   ". vacuous dtor",
+   "-> vacuous dtor",
 #endif /* ifdef CIL */
    "&&", "||",
 #ifdef FIL
@@ -13401,13 +13363,12 @@ EXTERN char     *db_operator_names[(int)eok_last+1]
 #ifdef FIL
    "()", "v()",
 #endif /* ifdef FIL */
-   "va_start", "va_arg", "lvalue va_arg", "va_end", "va_copy", "va_start",
+   "va_start", "va_arg", "va_end", "va_copy", "va_start",
 #ifdef CIL
    "-G",
    "G++", "G--", "++G", "--G",
    "G+", "G-", "G*", "G/", "G==", "G!=", "G>", "G<", "G>=", "G<=",
    "G<?", "G>?", "G=", "G+=", "G-=", "G*=", "G/=",
-   "&G", "G.*", "G->*",
    "static cast", "const cast", "reinterpret cast",
    "lvalue", "rvalue", "Gcall", "GMcall",
 #endif /* ifdef CIL */

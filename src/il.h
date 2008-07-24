@@ -653,6 +653,8 @@ extern a_type_ptr make_routine_type(a_type_ptr        return_type,
                                     a_type_ptr        param3_type,
                                     a_type_ptr        param4_type);
 
+extern a_routine_ptr routine_from_function_expr(an_expr_node_ptr expr);
+
 extern a_type_ptr add_param_type(a_type_ptr  rout_type,
                                  a_type_ptr  param_type);
 
@@ -847,6 +849,9 @@ extern an_expr_node_ptr generic_sizeof_arg_expr(a_constant_ptr  con);
 
 extern a_type_ptr make_field_selection_type(a_field_ptr           field,
                                             a_type_qualifier_set  qualifiers);
+
+extern a_type_ptr make_pm_selection_type(a_type_ptr operand_1_type,
+                                         a_type_ptr operand_2_type);
 
 extern void skip_common_type_qualifiers(a_type_ptr  *type1,
                                         a_type_ptr  *type2);
@@ -1181,11 +1186,17 @@ extern void set_expr_result_not_used(an_expr_node_ptr node);
 extern void set_node_operator(an_expr_node_ptr      node,
                               an_expr_operator_kind kind,
 	   	              a_type_ptr            type,
+                              a_boolean             is_lvalue,
 		              an_expr_node_ptr      operands);
 
 extern an_expr_node_ptr make_operator_node(an_expr_operator_kind kind,
 			   	           a_type_ptr            type,
 			   	           an_expr_node_ptr      operands);
+
+extern an_expr_node_ptr make_lvalue_operator_node(
+                                               an_expr_operator_kind kind,
+                                               a_type_ptr            type,
+                                               an_expr_node_ptr      operands);
 
 extern an_expr_node_ptr make_comma_node(an_expr_node_ptr expr1,
                                         an_expr_node_ptr expr2);
@@ -1283,11 +1294,21 @@ extern an_expr_node_ptr var_rvalue_expr(a_variable_ptr var);
 
 extern an_expr_node_ptr var_addr_expr(a_variable_ptr var);
 
-extern an_expr_node_ptr function_addr_expr(
-                                         a_routine_ptr rout,
-                                         a_boolean     set_address_taken_flag);
+extern an_expr_node_ptr function_lvalue_expr(a_routine_ptr rout);
+
+extern an_expr_node_ptr function_rvalue_expr(a_routine_ptr rout);
+
+extern an_expr_node_ptr function_addr_expr(a_routine_ptr rout);
+
+extern an_expr_node_ptr rvalue_expr_for_lvalue(an_expr_node_ptr expr);
 
 extern an_expr_node_ptr add_indirection_to_node(an_expr_node_ptr node);
+
+extern an_expr_node_ptr add_ref_indirection_to_node(an_expr_node_ptr node);
+
+extern an_expr_node_ptr add_address_of_to_node(an_expr_node_ptr node);
+
+extern an_expr_node_ptr add_reference_to_to_node(an_expr_node_ptr node);
 
 extern an_expr_node_ptr add_object_lifetime_to_expr(
                                              an_expr_node_ptr       expr,
@@ -1314,9 +1335,6 @@ extern void adjust_nonstandard_anonymous_object_field_references(
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
 
 extern an_expr_node_ptr fe_field_lvalue_selection_expr(an_expr_node_ptr node,
-                                                       a_field_ptr      field);
-
-extern an_expr_node_ptr fe_field_rvalue_selection_expr(an_expr_node_ptr node,
                                                        a_field_ptr      field);
 
 extern an_expr_node_ptr base_class_selection_expr(an_expr_node_ptr node,
@@ -1368,9 +1386,6 @@ extern a_pragma_ptr find_assoc_pragma(char          *il_entity,
                                       a_pragma_ptr  prev_assoc_pragma);
 
 extern a_boolean operator_takes_lvalue_operand(an_expr_operator_kind op);
-
-extern unsigned int expr_lvalue_operand_mask(an_expr_node_ptr  expr,
-                                             a_boolean         is_lvalue);
 
 EXTERN an_object_lifetime_ptr
 		curr_object_lifetime;
@@ -1829,6 +1844,12 @@ extern a_boolean compare_template_param_constant_expressions(
                                                      an_expr_node_ptr  node2);
 
 extern void rebuild_structures_on_il_read(void);
+
+#if CHECKING
+extern a_boolean node_operands_have_correct_lvalueness(an_expr_node_ptr node);
+
+extern a_boolean tree_has_correct_lvalueness(an_expr_node_ptr root);
+#endif /* CHECKING */
 
 extern void il_reset(void);
 

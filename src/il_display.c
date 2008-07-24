@@ -3219,7 +3219,10 @@ Display the name of an expression operator.
   char *s;
 
   switch (okind) {
+    case eok_address_of:        s = "eok_address_of";             break;
+    case_reference_to:          s = "eok_reference_to";           break;
     case eok_indirect:          s = "eok_indirect";               break;
+    case eok_ref_indirect:      s = "eok_ref_indirect";           break;
     case eok_inegate:           s = "eok_inegate";                break;
 #if FIXED_POINT_ALLOWED
     case eok_fxnegate:          s = "eok_fxnegate";               break;
@@ -3260,6 +3263,7 @@ Display the name of an expression operator.
     case eok_ppre_decr:         s = "eok_ppre_decr";              break;
     case eok_lvalue_from_struct_rvalue:
                                 s = "eok_lvalue_from_struct_rvalue";break;
+    case eok_array_to_pointer:  s = "eok_array_to_pointer";       break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case eok_assume:            s = "eok_assume";                 break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -3271,8 +3275,6 @@ Display the name of an expression operator.
     case eok_xconj:             s = "eok_xconj";                  break;
     case eok_real_part:         s = "eok_real_part";              break;
     case eok_imag_part:         s = "eok_imag_part";              break;
-    case eok_lvalue_real_part:  s = "eok_lvalue_real_part";       break;
-    case eok_lvalue_imag_part:  s = "eok_lvalue_imag_part";       break;
 #endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
 #ifdef FFE
     case eok_char_length:       s = "eok_char_length";            break;
@@ -3363,7 +3365,6 @@ Display the name of an expression operator.
 #endif /* ifdef FFE */
 #ifdef CFE
     case eok_remainder:         s = "eok_remainder";              break;
-    case eok_padd_subsc:        s = "eok_padd_subsc";             break;
     case eok_pdiff:             s = "eok_pdiff";                  break;
     case eok_peq:               s = "eok_peq";                    break;
     case eok_pne:               s = "eok_pne";                    break;
@@ -3403,15 +3404,12 @@ Display the name of an expression operator.
     case eok_or_assign:         s = "eok_or_assign";              break;
     case eok_xor_assign:        s = "eok_xor_assign";             break;
     case eok_subscript:         s = "eok_subscript";              break;
-    case eok_field:             s = "eok_field";                  break;
-    case eok_value_field:       s = "eok_value_field";            break;
-    case eok_bit_field:         s = "eok_bit_field";              break;
-    case eok_value_bit_field:   s = "eok_value_bit_field";        break;
-    case eok_extract_bit_field: s = "eok_extract_bit_field";      break;
+    case eok_dot_field:         s = "eok_dot_field";              break;
+    case eok_points_to_field:   s = "eok_points_to_field";        break;
     case eok_pm_field:          s = "eok_pm_field";               break;
+    case eok_pm_points_to_field:s = "eok_pm_points_to_field";     break;
+    case eok_dot_static:        s = "eok_dot_static";             break;
     case eok_points_to_static:  s = "eok_points_to_static";       break;
-    case eok_lvalue_dot_static: s = "eok_lvalue_dot_static";      break;
-    case eok_rvalue_dot_static: s = "eok_rvalue_dot_static";      break;
     case eok_shiftl:            s = "eok_shiftl";                 break;
     case eok_shiftr:            s = "eok_shiftr";                 break;
     case eok_and:               s = "eok_and";                    break;
@@ -3420,10 +3418,11 @@ Display the name of an expression operator.
     case eok_comma:             s = "eok_comma";                  break;
     case eok_virtual_function_ptr:
                                 s = "eok_virtual_function_ptr";   break;
-    case eok_vacuous_destructor_call:
-                                s = "eok_vacuous_destructor_call";break;
-    case eok_value_vacuous_destructor_call:
-                                s = "eok_value_vacuous_destructor_call";
+    case eok_dot_vacuous_destructor_call:
+                                s = "eok_dot_vacuous_destructor_call";
+                                                                  break;
+    case eok_points_to_vacuous_destructor_call:
+                                s = "eok_points_to_vacuous_destructor_call";
                                                                   break;
 #endif /* ifdef CFE */
     case eok_land:              s = "eok_land";                   break;
@@ -3450,7 +3449,6 @@ Display the name of an expression operator.
 #endif /* ifdef FFE */
     case eok_va_start:          s = "eok_va_start";               break;
     case eok_va_arg:            s = "eok_va_arg";                 break;
-    case eok_lvalue_va_arg:     s = "eok_lvalue_va_arg";          break;
     case eok_va_end:            s = "eok_va_end";                 break;
     case eok_va_copy:           s = "eok_va_copy";                break;
     case eok_va_start_single_operand:
@@ -3479,9 +3477,6 @@ Display the name of an expression operator.
     case eok_subtract_assign:   s = "eok_subtract_assign";        break;
     case eok_multiply_assign:   s = "eok_multiply_assign";        break;
     case eok_divide_assign:     s = "eok_divide_assign";          break;
-    case eok_address:           s = "eok_address";                break;
-    case eok_pm_dot_field:      s = "eok_pm_dot_field";           break;
-    case eok_pm_arrow_field:    s = "eok_pm_arrow_field";         break;
     case eok_static_cast:       s = "eok_static_cast";            break;
     case eok_const_cast:        s = "eok_const_cast";             break;
     case eok_reinterpret_cast:  s = "eok_reinterpret_cast";       break;
@@ -3623,11 +3618,11 @@ Display the indicated expression node.
 {
   disp_ptr("type", (char *)ptr->type, iek_type);
   disp_ptr("next", (char *)ptr->next, iek_expr_node);
+  if (ptr->is_lvalue) {
+    disp_boolean("is_lvalue", TRUE);
+  }  /* if */
   if (ptr->result_is_not_used) {
     disp_boolean("result_is_not_used", TRUE);
-  }  /* if */
-  if (ptr->implicit_reference_indirection) {
-    disp_boolean("implicit_reference_indirection", TRUE);
   }  /* if */
 #ifdef FFE
   disp_boolean("allow_reordering", (a_boolean)ptr->allow_reordering);
@@ -3638,20 +3633,11 @@ Display the indicated expression node.
   if (ptr->generated_default_arg) {
     disp_boolean("generated_default_arg", TRUE);
   }  /* if */
-  if (ptr->void_expression_lvalue) {
-    disp_boolean("void_expression_lvalue", TRUE);
-  }  /* if */
-  if (ptr->decltype_expression_lvalue) {
-    disp_boolean("decltype_expression_lvalue", TRUE);
-  }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
   if (ptr->marked_as_gnu_extension) {
     disp_boolean("marked_as_gnu_extension", TRUE);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-  if (ptr->is_operand_of_address_of) {
-    disp_boolean("is_operand_of_address_of", TRUE);
-  }  /* if */
   if (ptr->is_static_cast) {
     disp_boolean("is_static_cast", TRUE);
   }  /* if */
@@ -3705,6 +3691,9 @@ Display the indicated expression node.
         disp_boolean("is_gnu_two_operand_question_mark", TRUE);
       }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+      if (ptr->variant.operation.pointer_operand_is_second) {
+        disp_boolean("pointer_operand_is_second", TRUE);
+      }  /* if */
       disp_ptr("operands", (char *)ptr->variant.operation.operands,
                iek_expr_node);
       break;
@@ -3714,19 +3703,16 @@ Display the indicated expression node.
       break;
     case enk_variable:
       (void)printf("enk_variable\n");
-      goto do_variable;
-    case enk_variable_address:
-      (void)printf("enk_variable_address\n");
 #ifdef FFE
       goto do_variable;
     case enk_char_variable_length:
       (void)printf("enk_char_variable_length\n");
-#endif /* ifdef FFE */
 do_variable:
+#endif /* ifdef FFE */
       disp_ptr("variable", (char *)ptr->variant.variable, iek_variable);
       break;
-    case enk_routine_address:
-      (void)printf("enk_routine_address\n");
+    case enk_routine:
+      (void)printf("enk_routine\n");
       disp_ptr("routine", (char *)ptr->variant.routine, iek_routine);
       break;
 #ifdef CFE
@@ -3736,8 +3722,6 @@ do_variable:
       break;
     case enk_temp_init:
       (void)printf("enk_temp_init\n");
-      disp_boolean("result_is_addr",
-                   (a_boolean)ptr->variant.init.result_is_addr);
       disp_boolean("static_temp",
                    (a_boolean)ptr->variant.init.static_temp);
       disp_ptr("dynamic_init", (char *)ptr->variant.init.dynamic_init,
@@ -3775,8 +3759,6 @@ do_variable:
       (void)printf("enk_runtime_sizeof\n");
       disp_boolean("is_type",
                    (a_boolean)ptr->variant.runtime_sizeof.is_type);
-      disp_boolean("is_lvalue",
-                   (a_boolean)ptr->variant.runtime_sizeof.is_lvalue);
       if (ptr->variant.runtime_sizeof.is_type) {
         disp_ptr("type", (char *)ptr->variant.runtime_sizeof.variant.type,
                  iek_type);

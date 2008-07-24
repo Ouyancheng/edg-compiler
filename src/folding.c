@@ -26,6 +26,7 @@ folding.c -- Folding routines.
 
 #include "folding.h"
 #include "layout.h"
+#include "exprutil.h"
 
 /*
 Determine the severity (error or warning) to be used for integer
@@ -53,6 +54,37 @@ is by definition not an error).
 #endif /* ifndef ES_FIXED_POINT_OVERFLOW */
 #endif /* FIXED_POINT_ALLOWED */
 
+a_boolean variable_has_non_null_address(a_variable_ptr vp)
+/*
+Return TRUE if the indicated variable has a non-NULL address.  That's
+usually TRUE; the exceptions are variables like weak externals.
+*/
+{
+  a_boolean has_non_null_addr =
+                   vp->storage_class != (a_storage_class)sc_extern
+#if GNU_EXTENSIONS_ALLOWED
+                   && !vp->is_weak
+#endif /* GNU_EXTENSIONS_ALLOWED */
+                                  ;
+  return has_non_null_addr;
+}  /* variable_has_non_null_address */
+
+
+a_boolean routine_has_non_null_address(a_routine_ptr rp)
+/*
+Return TRUE if the indicated routine has a non-NULL address.  That's
+usually TRUE; the exceptions are routines like weak externals.
+*/
+{
+  a_boolean has_non_null_addr =
+                   rp->storage_class != (a_storage_class)sc_extern
+#if GNU_EXTENSIONS_ALLOWED
+                   && !rp->is_weak
+#endif /* GNU_EXTENSIONS_ALLOWED */
+                                  ;
+  return has_non_null_addr;
+}  /* routine_has_non_null_address */
+
 
 a_boolean constant_bool_value_known_at_compile_time(a_constant_ptr con)
 /*
@@ -70,18 +102,10 @@ constant is an address that is not known until link time.)
        like weak externals. */
     if (kind == (an_address_base_kind)abk_variable) {
       a_variable_ptr  vp = con->variant.address.variant.variable;
-      known_bool = vp->storage_class != (a_storage_class)sc_extern
-#if GNU_EXTENSIONS_ALLOWED
-                   && !vp->is_weak
-#endif /* GNU_EXTENSIONS_ALLOWED */
-                                  ;
+      known_bool = variable_has_non_null_address(vp);
     } else if (kind == (an_address_base_kind)abk_routine) {
       a_routine_ptr  rp = con->variant.address.variant.routine;
-      known_bool = rp->storage_class != (a_storage_class)sc_extern
-#if GNU_EXTENSIONS_ALLOWED
-                   && !rp->is_weak
-#endif /* GNU_EXTENSIONS_ALLOWED */
-                                  ;
+      known_bool = routine_has_non_null_address(rp);
     }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
   } else if (con->kind == (a_constant_repr_kind)ck_label_difference) {
@@ -106,6 +130,21 @@ constant is an address that is not known until link time.)
   }  /* if */
   return known_bool;
 }  /* constant_bool_value_known_at_compile_time */
+
+
+void make_template_param_expr_constant(an_expr_node_ptr node,
+                                       a_constant       *con)
+/*
+Create a template parameter constant that represents the indicated
+expression.
+*/
+{
+  clear_constant(con, (a_constant_repr_kind)ck_template_param);
+  set_template_param_constant_kind(con,
+                              (a_template_param_constant_kind)tpck_expression);
+  con->variant.template_param.variant.expr = node;
+  con->type = node->type;
+}  /* make_template_param_expr_constant */
 
 
 void make_template_param_cast_constant(a_constant  *old_constant,
@@ -895,7 +934,7 @@ error, issue it at *err_pos.  result->type need not be set on entry.
         if (any_virtual_steps_in_derivation(base_class)) {
           /* Casting to a virtual base class.  This can only be folded if we
              have a complete object of the derived class type. */
-          if (con_complete_object_type(constant_1) != NULL) {
+          if (pointer_con_complete_object_type(constant_1) != NULL) {
             /* The constant is the unmodified address of a variable.  We know
                the variable has the proper class type or we wouldn't have
                identified the cast as a base class cast.  We don't try to
@@ -991,6 +1030,7 @@ desired derived type.  If there is an error, it is issued at *err_pos.
 static void conv_pointer_to_whatever(
                                     a_constant        *old_constant,
                                     a_constant        *new_constant,
+                                    a_boolean         check_cast_access,
                                     a_boolean         is_implicit_cast,
                                     a_boolean         fold_constant_addr_exprs,
                                     a_boolean         is_reinterpret_cast,
@@ -1000,11 +1040,12 @@ static void conv_pointer_to_whatever(
                                     an_error_severity *err_severity)
 /*
 Convert a pointer constant to a constant of type as specified by
-"new_constant".  If is_implicit_cast is TRUE, the cast is implicit.
-If fold_constant_addr_exprs is TRUE, fold related class casts in constant
-form; if it's FALSE, do not do such folding and return *did_not_fold TRUE.
-If is_reinterpret_cast is TRUE, this is a reinterpret_cast; related
-class casts are treated like casts between unrelated classes.
+"new_constant".  If check_cast_access is TRUE, do access checking.  If
+is_implicit_cast is TRUE, the cast is implicit.  If
+fold_constant_addr_exprs is TRUE, fold related class casts in constant
+form; if it's FALSE, do not do such folding and return *did_not_fold
+TRUE.  If is_reinterpret_cast is TRUE, this is a reinterpret_cast;
+related class casts are treated like casts between unrelated classes.
 If there is an error, either issue it immediately at *err_pos (if it
 cannot be reduced to a warning in a nonconstant context), or return
 *err_code and *err_severity set appropriately.  Note that this routine
@@ -1069,8 +1110,8 @@ type.
     } else if (baseward_cast) {
       /* Derived --> base.  Valid unless the cast is ambiguous or
          the base class is inaccessible. */
-      fold_base_class_cast(old_constant, bcp, new_constant, is_implicit_cast,
-                           is_implicit_cast,
+      fold_base_class_cast(old_constant, bcp, new_constant,
+                           check_cast_access, is_implicit_cast,
                            /*is_object_pointer=*/FALSE, did_not_fold, err_pos);
     } else {
       /* Base --> derived.  Valid unless the cast is ambiguous or the base
@@ -1662,6 +1703,7 @@ to the constant is maintained, by adding a cast if necessary.
        would have constant_type->kind == tk_integer and new_type->kind
        == tk_integer, and so would not look like it involves pointers. */
     conv_pointer_to_whatever(constant, &new_constant, is_implicit_cast,
+                             is_implicit_cast,
                              fold_constant_addr_exprs, is_reinterpret_cast,
                              did_not_fold, err_pos, &err_code, &err_severity);
     goto exit;
@@ -1841,6 +1883,7 @@ to the constant is maintained, by adding a cast if necessary.
     case tk_pointer:
       /* Converting from pointer. */
       conv_pointer_to_whatever(constant, &new_constant, is_implicit_cast,
+                               is_implicit_cast,
                                fold_constant_addr_exprs, is_reinterpret_cast,
                                did_not_fold, err_pos,
                                &err_code, &err_severity);
@@ -1936,13 +1979,13 @@ exit:
     if (constant->type == new_constant.type) {
       new_constant.expr = constant->expr;
     } else {
-      an_expr_node_ptr cast_node =
+      an_expr_node_ptr cast_expr =
                             make_operator_node((an_expr_operator_kind)eok_cast,
                                                new_constant.type,
                                                constant->expr);
-      cast_node->variant.operation.compiler_generated = is_implicit_cast;
-      cast_node->variant.operation.is_reinterpret_cast = is_reinterpret_cast;
-      new_constant.expr = cast_node;
+      cast_expr->variant.operation.compiler_generated = is_implicit_cast;
+      cast_expr->variant.operation.is_reinterpret_cast = is_reinterpret_cast;
+      new_constant.expr = cast_expr;
     }  /* if */
 #if BACK_END_IS_CP_GEN_BE
     new_constant.suppress_expression_in_cp_gen_be =
@@ -4099,13 +4142,11 @@ preservation of negative zeroes.
 
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 
-a_boolean valid_address_constant(a_constant *constant,
-                                 a_boolean  *just_past_end)
+static a_boolean valid_address_constant(a_constant *constant)
 /*
 Return TRUE if the given address constant is valid.  Specifically, check that
 the offset in it falls within the base object.  This is used for subscript
-checking.  Return *just_past_end TRUE if the offset is just past the end of
-the object.
+checking.
 */
 {
   a_boolean      valid;
@@ -4113,7 +4154,6 @@ the object.
   a_type_ptr     tp;
   a_constant_ptr cp;
 
-  *just_past_end = FALSE;
   if (constant->kind == (a_constant_repr_kind)ck_integer) {
     /* Integer cast to a pointer.  Don't know the underlying
        object.  Assume the pointer is okay. */
@@ -4165,12 +4205,11 @@ the object.
     } else if (object_size != 0) {
       /* The offset right after the object is allowed.
          ANSI C allows that for arrays to simplify some coding.  That
-         subscript value is flagged later as an error by using_lvalue
-         (it calls this routine again). */
+         subscript value is flagged on a check of the subscript in expression
+         form, which would be the form of any reference of the entity as
+         an lvalue (see valid_node_if_subscript). */
       valid =
            (constant->variant.address.offset <= (a_targ_ptrdiff_t)object_size);
-      *just_past_end =
-           (constant->variant.address.offset == (a_targ_ptrdiff_t)object_size);
     } else {
       /* Don't know what the size is, so assume the offset is valid. */
       valid = TRUE;
@@ -4252,7 +4291,7 @@ static void do_padd(a_constant            *constant_1,
 /*
 Do addition or subtraction on one pointer (constant_1) and one integer
 (constant_2).  op indicates whether the source form was "+"
-(eok_padd), "[]" (eok_padd_subsc), or "-" (eok_psubtract).
+(eok_padd), "[]" (eok_subscript), or "-" (eok_psubtract).
 Note that the integer can be of any type, specifically unsigned.
 Also used to add or subtract a constant from an address constant
 that has been cast to an integral type, as in "int i = (int)&j + 1;";
@@ -4263,7 +4302,7 @@ detected, or *err_code == ec_no_error if everything went fine.
 {
   a_targ_size_t    size;
   a_constant       offset;
-  a_boolean        err, offset_is_signed = FALSE, just_past_end;
+  a_boolean        err, offset_is_signed = FALSE;
   a_boolean        integer_case = FALSE;
 
   *err_code = ec_no_error;
@@ -4313,10 +4352,10 @@ detected, or *err_code == ec_no_error if everything went fine.
     *err_severity = es_error;
   } else {
     /* Check that the offset lies within the base object. */
-    if (!valid_address_constant(result, &just_past_end)) {
+    if (!valid_address_constant(result)) {
       /* Use a different error message for cases where the original pointer
          addition was coded in [] form. */
-      if (op == (an_expr_operator_kind)eok_padd_subsc) {
+      if (op == (an_expr_operator_kind)eok_subscript) {
         *err_code = ec_subscript_out_of_range;
       } else {
         *err_code = ec_pointer_outside_base_object;
@@ -4968,7 +5007,16 @@ as the position for any diagnostics issued.
                    &err_severity);
           break;
         case eok_padd:
-        case eok_padd_subsc:
+          { a_constant_ptr ptr_con = constant_1;
+            a_constant_ptr int_con = constant_2;
+            /* The operands of pointer "+" can be in either order. */
+            if (is_pointer_type(constant_2->type)) {
+              ptr_con = constant_2;
+              int_con = constant_1;
+            }  /* if */
+            do_padd(ptr_con, op, int_con, result, &err_code, &err_severity);
+          }
+          break;
         case eok_psubtract:
           do_padd(constant_1, op, constant_2, result, &err_code,
                   &err_severity);
@@ -5037,14 +5085,14 @@ and set *ovflo to TRUE if an overflow occurred.
 }  /* accum_field_offset */
 
 
-void fold_field_selection(a_constant            *constant_1,
-                          a_symbol_ptr          field_sym,
-                          a_type_ptr            result_type,
-                          a_constant            *result,
-                          a_boolean             *template_constant)
+static void fold_field_selection(a_constant            *constant_1,
+                                 a_field_ptr           field,
+                                 a_type_ptr            result_type,
+                                 a_constant            *result,
+                                 a_boolean             *template_constant)
 /*
 Fold a constant field selection operation.  constant_1 is the pointer to the
-struct/union; field_sym points to the field.  The result type (pointer to the
+struct/union; field is the selected field.  The result type (pointer to the
 field type) is given by result_type.  The result is put in *result.
 If constant_1 is a template parameter constant, return *template_constant
 TRUE and do not fold the operation.  This folding operation is not done
@@ -5053,7 +5101,6 @@ through the usual interface because a field cannot be passed as a constant.
 {
   a_constant       offset;
   a_boolean        err;
-  a_symbol_ptr     anon_parent_sym;
 
   *template_constant = FALSE;
   copy_constant(constant_1, result);
@@ -5067,29 +5114,33 @@ through the usual interface because a field cannot be passed as a constant.
   } else {
     /* Take the pointer offset, ... */
     get_pointer_offset(constant_1, &offset);
-    check_assertion(field_sym->kind == (a_symbol_kind)sk_field);
-    /* If the field is a member of an anonymous union, add in the offset
-       of the anonymous union.  There may be multiple levels of anonymous
-       unions, so loop to do this. */
-    /* This works for the nonstandard anonymous unions too.  In fact, it's
-       only really needed for those, since it's only for anonymous structs
-       that the offset can be non-zero.  Still, for the sake of completeness
-       do it in all cases. */
-    anon_parent_sym = field_sym;
-    while ((anon_parent_sym =
-            anon_parent_sym->variant.field.anonymous_parent_object) != NULL &&
-           /* Ignore the last step if it's for a top-level (variable)
-              anonymous union. */
-           anon_parent_sym->kind != (a_symbol_kind)sk_variable) {
-      check_assertion(anon_parent_sym->kind == (a_symbol_kind)sk_field);
-      /* ... add the offset of the anonymous union, ... */
-      accum_field_offset(&offset, anon_parent_sym->variant.field.ptr, &err);
-    }  /* while */
-    /* ... add the offset of the field, ... */
-    accum_field_offset(&offset, field_sym->variant.field.ptr, &err);
-    /* ... and put the offset into the result pointer constant.  Note that
-       no overflow/object-size checking is needed, since the field has
-       to be within the underlying object. */
+    /* ... and add the offset of the field. */
+    accum_field_offset(&offset, field, &err);
+    if (!C_mode()) {
+      /* In C++ mode, special care must be taken with members of (standard)
+         anonymous unions, since such a union may introduce its own offset. */
+      a_symbol_ptr  au_parent_sym =
+                     symbol_for(field)->variant.field.anonymous_parent_object;
+      /* Since anonymous unions can be nested, loop to find the outermost
+         union. */
+      while (au_parent_sym != NULL &&
+             au_parent_sym->kind != (a_symbol_kind)sk_variable) {
+        a_field_ptr  au_parent;
+        check_assertion(au_parent_sym->kind == (a_symbol_kind)sk_field);
+        au_parent = au_parent_sym->variant.field.ptr;
+        if (au_parent->type->kind != (a_type_kind)tk_union) {
+          /* A nonstandard anonymous union: The field selection is explicitly
+             expanded for such cases, and so no special adjustment must be
+             made here. */
+          break;
+        }  /* if */
+        accum_field_offset(&offset, au_parent, &err);
+        au_parent_sym = au_parent_sym->variant.field.anonymous_parent_object;
+      }  /* while */
+    }  /* if */
+    /* Put the offset into the result pointer constant.  Note that no
+       overflow/object-size checking is needed, since the field has to be
+       within the underlying object. */
     set_pointer_offset(result, &offset, &err);
     implicit_cast(result, result_type);
   }  /* if */
@@ -5101,6 +5152,529 @@ through the usual interface because a field cannot be passed as a constant.
   }  /* if */
 #endif /* CHECKING */
 }  /* fold_field_selection */
+
+
+static a_boolean constant_padd_or_subscript(
+                                           an_expr_node_ptr expr,
+                                           a_constant       *con,
+                                           a_boolean        address_escapes,
+                                           a_boolean        *template_constant)
+/*
+expr is an expression for an eok_padd, eok_psubtract, or eok_subscript
+operation.  If its result (eok_padd, eok_psubtract) or address (lvalue
+eok_subscript) is constant, return the value/address in *con.
+address_escapes and template_constant are as for constant_lvalue_address
+(except that template_constant is always non-NULL).
+*/
+{
+  a_boolean        is_constant = FALSE;
+  an_expr_node_ptr ptr_op = expr->variant.operation.operands;
+  an_expr_node_ptr int_op = ptr_op->next;
+  a_constant       ptr_con;
+
+  *template_constant = FALSE;
+  if (expr->variant.operation.pointer_operand_is_second) {
+    /* The operands are in the order integer + pointer or integer[pointer]. */
+    int_op = expr->variant.operation.operands;
+    ptr_op = int_op->next;
+  }  /* if */
+  if (is_constant_node(int_op) &&
+      constant_rvalue_pointer(ptr_op, &ptr_con, address_escapes,
+                              template_constant)) {
+    /* Both operands are constant; fold to a constant address. */
+    a_constant_ptr    int_con = int_op->variant.constant;
+    an_error_code     err_code;
+    an_error_severity err_severity;
+    if (int_con->kind == (a_constant_repr_kind)ck_template_param ||
+        ptr_con.kind  == (a_constant_repr_kind)ck_template_param) {
+      /* At least one constant is a template parameter, so we're not going
+         to fold this to a constant address. */
+    } else {
+      do_padd(&ptr_con, expr->variant.operation.kind, int_con, con,
+              &err_code, &err_severity);
+      if (err_code == ec_no_error) {
+        is_constant = TRUE;
+        /* FIXME: warnings? */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return is_constant;
+}  /* constant_padd_or_subscript */
+
+
+static void make_constant_routine_address(a_routine_ptr  rout,
+                                          a_constant_ptr con,
+                                          a_boolean      address_escapes,
+                                          a_boolean      *template_constant)
+/*
+Helper routine for constant_lvalue_address and constant_rvalue_pointer to
+make a constant for the address of a routine.  address_escapes and
+template_constant are as for constant_lvalue_address (except that
+template-constant is always non-NULL).
+*/
+{
+  set_routine_address_constant(rout, con,
+                               /*set_address_taken=*/address_escapes);
+  if (!routine_type_is_nonstatic_member_function(rout->type) &&
+      rout->source_corresp.is_class_member &&
+      scp_parent_class(&rout->source_corresp)->
+                                 variant.class_struct_union.is_nonreal_class) {
+    /* In a prototype instantiation, a static member function of the
+       current class is template-dependent. */
+    *template_constant = TRUE;
+  }  /* if */
+}  /* make_constant_routine_address */
+
+
+a_boolean constant_lvalue_address(an_expr_node_ptr expr,
+                                  a_constant       *con,
+                                  a_boolean        address_escapes,
+                                  a_boolean        *template_constant)
+/*
+expr is an lvalue expression.  If it has a constant address, put that
+address in *con and return TRUE.  Otherwise, return FALSE.  address_escapes is
+TRUE if the address might escape from its immediate context and get saved
+somewhere (if in doubt, the safe value is TRUE).  *template_constant is
+returned TRUE if the constant is template-dependent.  If template_constant
+is NULL, a template-dependent constant is labeled as such at this level.
+Passing it in as non-NULL is a signal that the caller would prefer to handle
+that higher up.
+*/
+{
+  a_boolean is_constant_addr = FALSE;
+  a_boolean local_template_constant;
+
+  if (template_constant == NULL) {
+    template_constant = &local_template_constant;
+  }  /* if */
+  *template_constant = FALSE;
+  check_assertion(expr->is_lvalue || is_error_node(expr));
+  switch (expr->kind) {
+    case enk_error:
+      /* Assume an error expression could have been an lvalue with a
+         constant address. */
+      is_constant_addr = TRUE;
+      set_error_constant(con);
+      break;
+    case enk_variable:
+      /* An lvalue for a variable. */
+      { a_variable_ptr var = expr->variant.variable;
+        if (variable_has_constant_address(var)) {
+          /* The variable has a constant address. */
+          is_constant_addr = TRUE;
+          set_variable_address_constant(var, con,
+                                        /*set_address_taken=*/address_escapes);
+          if (var->source_corresp.is_class_member &&
+              scp_parent_class(&var->source_corresp)->
+                     variant.class_struct_union.is_nonreal_class) {
+            /* In a prototype instantiation, a static data member of the
+               current class is template-dependent. */
+            *template_constant = TRUE;
+          }  /* if */
+        }  /* if */
+      }
+      break;
+    case enk_routine:
+      /* An lvalue for a function. */
+      make_constant_routine_address(expr->variant.routine, con,
+                                    address_escapes,
+                                    template_constant);
+      is_constant_addr = TRUE;
+      break;
+    case enk_constant:
+      /* The address of a string is a constant. */
+      { a_constant_ptr econ = expr->variant.constant;
+        if (econ->kind == (a_constant_repr_kind)ck_string) {
+          is_constant_addr = TRUE;
+          set_constant_address_constant(econ, con);
+        }  /* if */
+      }
+      break;
+    case enk_operation:
+      { an_expr_node_ptr      op1 = expr->variant.operation.operands;
+        an_expr_node_ptr      op2 = op1->next;
+        an_expr_operator_kind op = expr->variant.operation.kind;
+        a_constant            conaddr1;
+        a_constant_ptr        pconaddr1;
+        /* FIXME: set *template_constant in some cases? */
+        switch (op) {
+          case eok_dot_field:
+            /* Field selection, x.y.  If the left operand is an lvalue with a
+               constant address, we can develop an address for the field. */
+            if (op1->is_lvalue &&
+                constant_lvalue_address(op1, &conaddr1, address_escapes,
+                                        template_constant)) {
+              pconaddr1 = &conaddr1;
+              goto handle_field_selection;
+            }  /* if */
+            break;
+          case eok_points_to_field:
+            /* Field selection, p->y.  If the left operand is a constant
+               address, we can develop an address for the field. */
+            if (!is_constant_node(op1)) break;
+            pconaddr1 = op1->variant.constant;
+handle_field_selection:
+            { a_field_ptr field;
+              check_assertion(op2->kind == (an_expr_node_kind)enk_field);
+              field = op2->variant.field;
+              if (field->is_bit_field &&
+                  !is_bit_field_whose_address_can_be_taken(field)) {
+                /* You can't take the address of a bit field.  The error is
+                   detected somewhere else.  Here, we just conclude we
+                   can't produce a constant address. */
+              } else {
+                /* Not a bit field, or a bit field whose address can be taken
+                   because it falls on byte boundaries. */
+                is_constant_addr = TRUE;
+                fold_field_selection(pconaddr1, field,
+                                     make_pointer_type(expr->type),
+                                     con, template_constant);
+              }  /* if */
+            }
+            break;
+          case eok_subscript:
+            /* Subscript operation. */
+            if (constant_padd_or_subscript(expr, con, address_escapes,
+                                           template_constant)) {
+              is_constant_addr = TRUE;
+            }  /* if */
+            break;
+          case eok_indirect:
+            /* "*" operation.  If the operand is a constant address, we can
+               use it as the address of the lvalue. */
+            if (is_constant_node(op1) &&
+                is_pointer_type(op1->type)) {
+              is_constant_addr = TRUE;
+              copy_constant(op1->variant.constant, con);
+              if (con->kind == (a_constant_repr_kind)ck_template_param) {
+                *template_constant = TRUE;
+              }  /* if */
+            }  /* if */
+            break;
+          case eok_ref_indirect:
+            /* Reference "*" operation.  If the operand is a constant
+               address, we can use it as the address of the lvalue. */
+            if (is_constant_node(op1) &&
+                is_reference_type(op1->type)) {
+              is_constant_addr = TRUE;
+              copy_constant(op1->variant.constant, con);
+              con->type = make_pointer_type(type_pointed_to(op1->type));
+              if (con->kind == (a_constant_repr_kind)ck_template_param) {
+                *template_constant = TRUE;
+              }  /* if */
+            }  /* if */
+            break;
+          case eok_lvalue:
+            /* The address of an eok_lvalue applied to a ck_template_param
+               constant is sometimes a constant. */
+            if (is_constant_node(op1)) {
+              a_constant_ptr acon = op1->variant.constant;
+              if (acon->kind == (a_constant_repr_kind)ck_template_param) {
+                if (acon->variant.template_param.kind ==
+                                 (a_template_param_constant_kind)tpck_member) {
+                  /* The address of an lvalue for a tpck_member constant can
+                     be represented by a tpck_address constant. */
+                  clear_constant(con, (a_constant_repr_kind)ck_template_param);
+                  set_template_param_constant_kind(
+                                 con,
+                                 (a_template_param_constant_kind)tpck_address);
+                  con->variant.template_param.variant.constant = acon;
+                  /* Note that we don't know whether the address is a pointer
+                     or pointer to member. */
+                  con->type = type_of_unknown_templ_param_nontype;
+                  is_constant_addr = TRUE;
+                } else if (acon->variant.template_param.kind ==
+                                       (a_template_param_constant_kind)
+                                                       tpck_unknown_function ||
+                           acon->variant.template_param.kind ==
+                                       (a_template_param_constant_kind)
+                                                       tpck_template_ref) {
+                  /* The address of an lvalue based on an unknown function
+                     constant is the constant itself (which represents an
+                     rvalue for the "address" of the function). */
+                  copy_constant(acon, con);
+                  is_constant_addr = TRUE;
+                }  /* if */
+              }  /* if */
+            }  /* if */
+            break;
+          default:
+            /* Other operators cannot be folded. */
+            break;
+        }  /* switch */
+      }
+      break;
+    default:
+      /* Other expression kinds cannot be folded. */
+      break;
+  }  /* switch */
+  if (template_constant == &local_template_constant) {
+    /* Handle tagging a template constant locally. */
+    if (local_template_constant &&
+        con->kind != (a_constant_repr_kind)ck_template_param) {
+      /* Make sure there is a ck_template_param on top of a template-dependent
+         case. */
+      a_constant local_constant;
+      copy_constant(con, &local_constant);
+      make_template_param_cast_constant(&local_constant, con, con->type,
+                                        /*is_explicit=*/FALSE);
+    }  /* if */
+  }  /* if */
+  return is_constant_addr;
+}  /* constant_lvalue_address */                                
+
+
+a_boolean constant_rvalue_pointer(an_expr_node_ptr expr,
+                                  a_constant       *con,
+                                  a_boolean        address_escapes,
+                                  a_boolean        *template_constant)
+/*
+expr is an rvalue expression of pointer type.  If it has a constant pointer
+value, put that value in *con and return TRUE.  Otherwise, return FALSE.
+address_escapes is TRUE if the address might escape from its immediate context
+and get saved somewhere (if in doubt, the safe value is TRUE).
+*template_constant is returned TRUE if the constant is template-dependent.
+If template_constant is NULL, a template-dependent constant is labeled
+as such at this level.  Passing it in as non-NULL is a signal that the
+caller would prefer to handle that higher up.
+*/
+{
+  a_boolean is_constant_ptr = FALSE;
+  a_boolean local_template_constant;
+
+  if (template_constant == NULL) {
+    template_constant = &local_template_constant;
+  }  /* if */
+  *template_constant = FALSE;
+  check_assertion(!expr->is_lvalue &&
+                  ((is_pointer_type(expr->type) ||
+                    is_template_param_type(expr->type) ||
+                    is_error_type(expr->type)) ||
+                   is_error_node(expr)));
+  switch (expr->kind) {
+    case enk_error:
+      /* Assume an error expression could have been an rvalue constant
+         pointer. */
+      is_constant_ptr = TRUE;
+      set_error_constant(con);
+      break;
+    case enk_variable:
+      /* An rvalue for a variable.  There aren't any pointer-typed constant
+         variables in the C or C++ languages currently. */
+      break;
+    case enk_routine:
+      /* An rvalue for a function.  That's a function pointer, which can
+         be rendered as a constant. */
+      make_constant_routine_address(expr->variant.routine, con,
+                                    address_escapes,
+                                    template_constant);
+      is_constant_ptr = TRUE;
+      break;
+    case enk_constant:
+      /* A constant with pointer type is a constant pointer value. */
+      copy_constant(expr->variant.constant, con);
+      is_constant_ptr = TRUE;
+      break;
+    case enk_operation:
+      { an_expr_node_ptr op1 = expr->variant.operation.operands;
+        a_constant       conaddr1;
+        switch (expr->variant.operation.kind) {
+          case eok_address_of:
+            /* "&" operation.  If the operand is an lvalue with a constant
+               address, the result is a constant pointer. */
+            if (constant_lvalue_address(op1, con, address_escapes,
+                                        template_constant)) {
+              is_constant_ptr = TRUE;
+            }  /* if */
+            break;
+          case eok_array_to_pointer:
+            /* Array-to-pointer decay operation.  If the operand is an lvalue
+               array with a constant address, the result is a constant
+               pointer. */
+            if (op1->is_lvalue &&
+                constant_lvalue_address(op1, con, address_escapes,
+                                        template_constant) &&
+                is_pointer_type(con->type)) {
+              implicit_cast(con,
+                            type_after_array_to_pointer_transformation(
+                                                  type_pointed_to(con->type)));
+              is_constant_ptr = TRUE;
+            }  /* if */
+            break;
+          case eok_padd:
+          case eok_psubtract:
+            /* p + i or i + p, or p - i.  These are constant if i is constant
+               and p is or can be made constant. */
+            if (constant_padd_or_subscript(expr, con, address_escapes,
+                                           template_constant)) {
+              is_constant_ptr = TRUE;
+            }  /* if */
+            break;
+          case eok_cast:
+            /* Pointer cast that passes through an address. */
+            if (is_pointer_type(expr->type) &&
+                is_pointer_type(op1->type)) {
+              /* Allow only an identity cast or a cv-qualification change. */
+              a_type_ptr target_type =
+                                  f_skip_typerefs(type_pointed_to(expr->type));
+              a_type_ptr source_type =
+                                  f_skip_typerefs(type_pointed_to(op1->type));
+              if (identical_types(target_type, source_type)) {
+                goto cast_case;
+              }  /* if */
+            }  /* if */
+            break;
+          case eok_base_class_cast:
+            /* Cast of a pointer to a base class pointer. */
+cast_case:
+            if (constant_rvalue_pointer(op1, &conaddr1, address_escapes,
+                                        template_constant)) {
+              an_error_code     err_code;
+              an_error_severity err_severity;
+              a_boolean         did_not_fold;
+              clear_constant(con, (a_constant_repr_kind)ck_error);
+              con->type = expr->type;
+              /* Access checking is not done because it was already
+                 done when the expression was put together. */
+              conv_pointer_to_whatever(&conaddr1, con,
+                                       /*check_cast_access=*/FALSE,
+                                       (a_boolean)expr->variant.operation.
+                                                            compiler_generated,
+                                       /*fold_constant_addr_exprs=*/TRUE,
+                                       (a_boolean)expr->variant.operation.
+                                                           is_reinterpret_cast,
+                                       &did_not_fold,
+                                       &error_position,
+                                       &err_code, &err_severity);
+              if (err_code == ec_no_error) {
+                is_constant_ptr = TRUE;
+              }  /* if */
+            }  /* if */
+            break;
+          default:
+            /* Other operators cannot be folded. */
+            break;
+        }  /* switch */
+      }
+      break;
+    default:
+      /* Other expression kinds cannot be folded. */
+      break;
+  }  /* switch */
+  if (template_constant == &local_template_constant) {
+    /* Handle tagging a template constant locally. */
+    if (local_template_constant &&
+        con->kind != (a_constant_repr_kind)ck_template_param) {
+      /* Make sure there is a ck_template_param on top of a template-dependent
+         case. */
+      a_constant local_constant;
+      copy_constant(con, &local_constant);
+      make_template_param_cast_constant(&local_constant, con, con->type,
+                                        /*is_explicit=*/FALSE);
+    }  /* if */
+  }  /* if */
+  return is_constant_ptr;
+}  /* constant_rvalue_pointer */                                
+
+
+static a_boolean identical_pointer_types_ignoring_qualifiers(a_type_ptr type1,
+                                                             a_type_ptr type2)
+/*
+Return TRUE if the two given types are pointer types whose underlying types
+are the same ignoring cv-qualifiers.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (is_pointer_type(type1) && is_pointer_type(type2)) {
+    a_type_ptr under1 = type_pointed_to(type1);
+    a_type_ptr under2 = type_pointed_to(type2);
+    result = identical_types_ignoring_qualifiers(under1, under2);
+  }  /* if */
+  return result;
+}  /* identical_pointer_types_ignoring_qualifiers */
+
+
+a_boolean constant_is_pointer_to_string_literal(a_constant *con,
+                                                a_constant **scon)
+/*
+Return TRUE if the indicated constant is a pointer to a string literal,
+i.e., a string literal that has decayed (or been cast to) a pointer to
+the underlying character type (possibly with different cv-qualifiers,
+e.g., a const string could be cast to plain char *).  The string need not
+be a narrow string literal.  If scon is non-NULL, *scon is set to point
+to the string literal constant if there is one.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (scon != NULL) *scon = NULL;
+  if (con->kind == (a_constant_repr_kind)ck_address &&
+      con->variant.address.kind == (an_address_base_kind)abk_constant &&
+      con->variant.address.offset == 0 &&
+      con->implicit_cast) {
+    a_constant_ptr acon = con->variant.address.variant.constant;
+    if (acon->kind == (a_constant_repr_kind)ck_string) {
+      /* We have a ck_address constant pointing to a ck_string constant.
+         Make sure the ck_address type is the type of the string after
+         array-to-pointer decay. */
+      a_type_ptr ts = type_after_array_to_pointer_transformation(acon->type);
+      if (identical_pointer_types_ignoring_qualifiers(con->type, ts)) {
+        result = TRUE;
+        if (scon != NULL) *scon = acon;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* constant_is_pointer_to_string_literal */
+
+
+a_boolean expr_is_pointer_to_string_literal(an_expr_node_ptr expr,
+                                            a_constant       **scon)
+/*
+Return TRUE if the indicated expression is a pointer to a string literal,
+i.e., a string literal that has decayed (or been cast to) a pointer to
+the underlying character type (possibly with different cv-qualifiers,
+e.g., a const string could be cast to plain char *).  The string need not
+be a narrow string literal.  If scon is non-NULL, *scon is set to point
+to the string literal constant if there is one.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (scon != NULL) *scon = NULL;
+  if (is_constant_node(expr)) {
+    if (constant_is_pointer_to_string_literal(expr->variant.constant, scon)) {
+      /* A constant for the address of a string literal, decayed to
+         a pointer to the underlying type. */
+      result = TRUE;
+    }  /* if */
+  } else if (is_operation_node(expr)) {
+    if (node_operator_is(expr, eok_array_to_pointer) ||
+        node_operator_is(expr, eok_cast)) {
+      an_expr_node_ptr op1 = expr->variant.operation.operands;
+      if (op1->is_lvalue && is_constant_node(op1) &&
+          op1->variant.constant->kind == (a_constant_repr_kind)ck_string) {
+        /* An expression for a string literal, decayed to a pointer to
+           the underlying type. */
+        /* For the cast case, make sure the cast type is the proper decayed
+           type. */
+        a_type_ptr decayed_type;
+        if (node_operator_is(expr, eok_cast) &&
+           !(decayed_type =
+                         type_after_array_to_pointer_transformation(op1->type),
+             identical_pointer_types_ignoring_qualifiers(decayed_type,
+                                                         expr->type))) {
+          /* The cast is to the wrong type. */
+        } else {
+          result = TRUE;
+          if (scon != NULL) *scon = op1->variant.constant;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* expr_is_pointer_to_string_literal */
 
 
 static a_boolean add_offset_of_accessed_member(an_expr_node_ptr   expr,
@@ -5121,22 +5695,27 @@ it is non-NULL).  Otherwise, return TRUE.
   an_integer_value  int_val;
 
   if (is_constant_node(expr)) {
-    /* Presumably the null constant to which the member access operations
-       were applied. */
+    /* Presumably the null constant that is the root of the tree. */
+    check_assertion(is_false_constant(expr->variant.constant));
     goto done;
   } else {
     check_assertion(is_operation_node(expr));
+    /* Do a recursive call to process the bottom of the tree first. */
     args = expr->variant.operation.operands;
     okay = add_offset_of_accessed_member(args, offset, pos);
   }  /* if */
   switch (expr->variant.operation.kind) {
-    case eok_field:
+    case eok_dot_field:
+    case eok_points_to_field:
       check_assertion(args->next->kind == (an_expr_node_kind)enk_field);
       accum_field_offset(offset, args->next->variant.field, &ovflo);
       break;
-    case eok_padd_subsc:
+    case eok_subscript:
       { a_type_ptr      elem_type = type_pointed_to(args->type);
         check_assertion(is_constant_node(args->next));
+        /* Note that while eok_subscript in general allows operands in
+           either order, in offsetof the subscript is always the second
+           operand. */
         accum_array_offset(offset, /*offset_is_signed=*/FALSE,
                            /*subtract=*/FALSE, args->next->variant.constant,
                            skip_typerefs(elem_type)->size,
@@ -5166,8 +5745,10 @@ it is non-NULL).  Otherwise, return TRUE.
         }  /* if */
       }
       break;
-    case eok_cast:
-      /* Nothing more to be done. */
+    case eok_array_to_pointer:
+    case eok_indirect:
+    case eok_address_of:
+      /* Just continue for these. */
       break;
     default:
       unexpected_condition();
@@ -5190,7 +5771,7 @@ expr is an enk_builtin_operation node for a __builtin_offsetof operation
 nondependent, store the integer value of the offset being represented in
 *constant.  Otherwise, store a ck_template_param constant in *constant (the
 constant will be of the tpck_expression variant and will point to the given
-expression).  If pos is non-NULL, diagnostics are issued that the position
+expression).  If pos is non-NULL, diagnostics are issued at the position
 it represents.
 */
 {
@@ -5245,10 +5826,7 @@ expression.
   type2 = arg2->variant.type_operand.type;
   if (is_template_dependent_type(type1) ||
       is_template_dependent_type(type2)) {
-    clear_constant(constant, (a_constant_repr_kind)ck_template_param);
-    set_template_param_constant_kind(
-                   constant, (a_template_param_constant_kind)tpck_expression);
-    constant->variant.template_param.variant.expr = expr;
+    make_template_param_expr_constant(expr, constant);
   } else {
     a_boolean  result = FALSE;
     type1 = skip_typerefs(type1);

@@ -455,8 +455,8 @@ static void promote_class_members(a_type_ptr  class_type,
 static void lower_boolean_controlling_expr(an_expr_node_ptr expr,
                                            a_boolean        is_full_expr);
 static void lower_related_class_cast(an_expr_node_ptr node,
-                                     a_boolean        is_lvalue,
-                                     a_boolean        lower_source);
+                                     a_boolean        lower_source,
+                                     a_boolean        assume_expr_is_non_null);
 static void change_result_type_of_operator_returning_bool(
                                                         an_expr_node_ptr expr);
 static void adjust_bool_operation_types(an_expr_node_ptr expr,
@@ -1908,9 +1908,10 @@ an address for the struct, and produces the address of the field.
   field_node->type = field->type;
   field_node->variant.field = field;
   node->next = field_node;
-  /* Use a different operator for bit field references. */
-  op = (field->is_bit_field) ? (an_expr_operator_kind)eok_value_bit_field :
-                               (an_expr_operator_kind)eok_value_field;
+  /* Use the appropriate field operator based on the type of node. */
+  op = (is_pointer_type(node->type)) ?
+                                   (an_expr_operator_kind)eok_points_to_field :
+                                   (an_expr_operator_kind)eok_dot_field;
   /* The selected field is an rvalue and therefore has no cv-qualifiers. */
   selection_type = rvalue_type(field->type);
   /* Make the field selection node. */
@@ -1962,9 +1963,10 @@ an_expr_node_ptr au_field_lvalue_selection_expr(an_expr_node_ptr node,
                                                 a_field_ptr      field)
 /*
 Make an expression for an lvalue reference to field "field" of "node" and
-return a pointer to it.  Differs from field_lvalue_selection_expr in that
-it will deal with fields of anonymous unions by adding the necessary
-intermediate field selections.
+return a pointer to it.  "node" is either a class lvalue, in which case the
+operator is ".", or a pointer to class, in which case the operator is "->".
+Differs from field_lvalue_selection_expr in that it will deal with fields
+of anonymous unions by adding the necessary intermediate field selections.
 */
 {
   node = field_lvalue_selection_expr(node, field);
@@ -2000,16 +2002,54 @@ intermediate field selections.
 }  /* au_field_lvalue_selection_expr */
 
 
+static void rewrite_dot_field_as_points_to_field(an_expr_node_ptr expr)
+/*
+expr contains an expression of the form "(*x).y"; change it to "x->y".
+*/
+{
+  an_expr_node_ptr operand = expr->variant.operation.operands;
+
+  check_assertion(is_operation_node(expr) && 
+                  node_operator_is(expr, eok_dot_field) &&
+                  is_operation_node(operand) &&
+                  node_operator_is(operand, eok_indirect));
+  operand->variant.operation.operands->next = operand->next;
+  set_node_operator(expr,
+                    (an_expr_operator_kind)eok_points_to_field,
+                    expr->type, expr->is_lvalue,
+                    operand->variant.operation.operands);
+}  /* rewrite_dot_field_as_points_to_field */
+
+
+static void rewrite_points_to_field_as_dot_field(an_expr_node_ptr expr)
+/*
+expr contains an expression of the form "(&x)->y"; change it to "x.y".
+*/
+{
+  an_expr_node_ptr operand = expr->variant.operation.operands;
+
+  check_assertion(is_operation_node(expr) && 
+                  node_operator_is(expr, eok_points_to_field) &&
+                  is_operation_node(operand) &&
+                  node_operator_is(operand, eok_address_of));
+  operand->variant.operation.operands->next = operand->next;
+  set_node_operator(expr, (an_expr_operator_kind)eok_dot_field,
+                    expr->type, expr->is_lvalue,
+                    operand->variant.operation.operands);
+}  /* rewrite_points_to_field_as_dot_field */
+
+
 void change_to_cast(an_expr_node_ptr node,
                     an_expr_node_ptr operand_node,
                     a_type_ptr       new_type)
 /*
 Change an existing node into a cast of operand_node to new_type.
+The lvalueness of node is determined by the lvalueness of node.
 */
 {
   set_expr_node_kind(node, (an_expr_node_kind)enk_operation);
   set_node_operator(node, (an_expr_operator_kind)eok_cast,
-                    new_type, operand_node);
+                    new_type, node->is_lvalue, operand_node);
   node->variant.operation.compiler_generated = TRUE;
 }  /* change_to_cast */
 
@@ -2150,31 +2190,52 @@ class type.  Such a field must exist.
   return result;
 }  /* field_at_offset */
 
+
+static an_expr_node_ptr make_class_lvalue_from_var(a_variable_ptr var)
+/*
+This utility function is used to create a class lvalue expression for
+the variable var (which may be a class variable or a pointer to a class
+variable).
+*/
+{
+  an_expr_node_ptr node;
+
+  if (is_pointer_type(var->type)) {
+    node = add_indirection_to_node(var_rvalue_expr(var));
+  } else {
+    node = var_lvalue_expr(var);
+  }  /* if */
+  check_assertion(is_immediate_class_type(node->type) && node->is_lvalue);
+  return node;
+}  /* make_class_lvalue_from_var */
+
 #if IA64_ABI
 
 static an_expr_node_ptr make_vtbl_entry_expr(an_expr_node_ptr      node,
                                              a_virtual_table_index idx)
 /*
 Make an expression for the value stored in the virtual table of the object
-pointed to by node, at the position given by idx.  idx is counted
-in virtual table entries.  The result is of type ptrdiff_t.
+pointed to by node (a class lvalue), at the position given by idx.
+idx is counted in virtual table entries.  The result is an rvalue
+of type ptrdiff_t.
 */
 {
-  an_expr_node_ptr  vptr_expr, vtbl_expr, index_expr, entry_expr;
+  an_expr_node_ptr  vtbl_expr, index_expr, entry_expr;
+#if CHECKING
+  a_type_ptr        node_type = skip_typerefs(node->type);
+#endif /* CHECKING */
 
-  /* Create an expression for the address of node's virtual table. */
-  vptr_expr = make_vptr_field_lvalue(node);
-  /* Dereference to obtain an expression for the virtual table. */
-  vtbl_expr = add_indirection_to_node(vptr_expr);
+  check_assertion(is_immediate_class_type(node_type) && node->is_lvalue);
+  /* Create an rvalue expression for the node's virtual table. */
+  vtbl_expr = make_vptr_field_lvalue(node);
+  vtbl_expr = rvalue_expr_for_lvalue(vtbl_expr);
   /* Build a constant containing the index into node's virtual table,
      counted in virtual table entries. */
   index_expr = node_for_integer_constant((long)idx, targ_ptrdiff_t_int_kind);
   vtbl_expr->next = index_expr;
   /* Index into the virtual table. */
-  entry_expr = make_operator_node((an_expr_operator_kind)eok_padd,
+  entry_expr = make_operator_node((an_expr_operator_kind)eok_subscript,
                                   pointer_to_vtbl_type(), vtbl_expr);
-  /* Dereference to obtain the desired value. */
-  entry_expr = add_indirection_to_node(entry_expr);
   return entry_expr;
 } /* make_vtbl_entry_expr */
 
@@ -2183,8 +2244,8 @@ in virtual table entries.  The result is of type ptrdiff_t.
 an_expr_node_ptr make_vbptr_field_lvalue(an_expr_node_ptr node,
                                          a_base_class_ptr bcp)
 /*
-Make an lvalue for the virtual base class pointer field for the base class
-indicated by bcp of the object pointed to by node.
+Make an lvalue for the virtual base class pointer field for the base
+class indicated by bcp of the class lvalue specified by node.
 The class object is not known to be a complete object (but we couldn't do
 any better if we did know it was a complete object).
 */
@@ -2193,7 +2254,8 @@ any better if we did know it was a complete object).
   a_base_class_ptr pointer_bcp;
   a_targ_size_t    pointer_offset;
 
-  class_type = type_pointed_to(node->type);
+  check_assertion(node->is_lvalue);
+  class_type = node->type;
   class_type = skip_typerefs(class_type);
 #if CHECKING
   if (!is_immediate_class_type(class_type)) {
@@ -2212,7 +2274,7 @@ any better if we did know it was a complete object).
                                   /*complete_object=*/FALSE);
     /* The following line does not use pointer_bcp->type because the type here
        could be either that type or the corresponding type-as-subobject. */
-    pointer_class_type = f_skip_typerefs(type_pointed_to(node->type));
+    pointer_class_type = f_skip_typerefs(node->type);
     pointer_offset -= pointer_bcp->offset;
   }  /* if */
   /* Generate the field selection in the original class or the base class
@@ -2231,7 +2293,7 @@ Make an lvalue for the virtual base class pointer field for the base class
 indicated by bcp of the object pointed to by var.
 */
 {
-  an_expr_node_ptr node = var_rvalue_expr(var);
+  an_expr_node_ptr node = make_class_lvalue_from_var(var);
 
   node = make_vbptr_field_lvalue(node, bcp);
   return node;
@@ -2241,14 +2303,15 @@ indicated by bcp of the object pointed to by var.
 
 an_expr_node_ptr make_vptr_field_lvalue(an_expr_node_ptr node)
 /*
-Make an lvalue for the virtual table pointer of the object pointed to by node.
-The class object is not known to be a complete object (but we couldn't do
-any better if we did know it was a complete object).
+Make an lvalue for the virtual table pointer of the class lvalue
+specified by node.  The class object is not known to be a complete object
+(but we couldn't do any better if we did know it was a complete object).
 */
 {
   a_type_ptr class_type, vptr_class_type;
 
-  class_type = type_pointed_to(node->type);
+  check_assertion(node->is_lvalue);
+  class_type = node->type;
   class_type = skip_typerefs(class_type);
 #if CHECKING
   if (!is_immediate_class_type(class_type)) {
@@ -2273,7 +2336,7 @@ any better if we did know it was a complete object).
       node = make_base_class_lvalue(node, vptr_bcp, /*complete_object=*/FALSE);
       /* The following line does not use vptr_bcp->type because the type here
          could be either that type or the corresponding type-as-subobject. */
-      vptr_class_type = f_skip_typerefs(type_pointed_to(node->type));
+      vptr_class_type = f_skip_typerefs(node->type);
       vptr_offset -= vptr_bcp->offset;
     }  /* if */
     /* Generate the field selection in the original class or the base class
@@ -2311,10 +2374,11 @@ any better if we did know it was a complete object).
 
 an_expr_node_ptr make_vptr_field_lvalue_from_var(a_variable_ptr var)
 /*
-Make an lvalue for the virtual table pointer of the object pointed to by var.
+Make an lvalue for the virtual table pointer of the object referred to
+by var.  var can have a class type or a pointer to a class type.
 */
 {
-  an_expr_node_ptr node = var_rvalue_expr(var);
+  an_expr_node_ptr node = make_class_lvalue_from_var(var);
 
   node = make_vptr_field_lvalue(node);
   return node;
@@ -2328,25 +2392,31 @@ Make an lvalue for the virtual table pointer of the object pointed to by var.
 an_expr_node_ptr make_any_vptr_rvalue(an_expr_node_ptr expr,
                                       an_expr_node_ptr *other_expr)
 /*
-Make an expression tree for the value of the virtual function table pointer
-from the class object whose address is given by the expression expr.
-If the class does not itself have a virtual function table pointer,
-use the pointer from any base class.  This is used for typeid and
-dynamic_cast, to get a virtual function table from which information
-on the type of the complete object can be extracted.  Since all base
-class virtual function tables will indicate the same complete object
-type, it doesn't matter which is selected.  If other_expr is non-NULL,
-it points to another copy of expr (e.g., via make_reusable_copy), and
-casts are added to that copy to make it point to the base class whose
-virtual function table pointer address is returned; *other_expr is
-set to point to the updated expression.
+Make an (rvalue) expression tree for the value of the virtual function
+table pointer from the class object whose address is given by the
+(rvalue) expression expr.  If the class does not itself have a virtual
+function table pointer, use the pointer from any base class.  This is
+used for typeid and dynamic_cast, to get a virtual function table from
+which information on the type of the complete object can be extracted.
+Since all base class virtual function tables will indicate the same
+complete object type, it doesn't matter which is selected.  If other_expr
+is non-NULL, it points to another copy of expr (e.g., via make_reusable_copy),
+and casts are added to that copy to make it point to the base class whose
+virtual function table pointer address is returned; *other_expr is set to
+point to the updated expression.
 */
 {
+#if !IA64_ABI
+  a_type_ptr class_type;
+#endif /* !IA64_ABI */
+
+  /* Get class lvalue from rvalue object pointer. */
+  expr = add_indirection_to_node(expr);
+#if IA64_ABI
   /* For the IA-64 ABI, every object with a virtual function pointer
      has it at offset zero, so we don't need to find a base class. */
-#if !IA64_ABI
-  a_type_ptr class_type = f_skip_typerefs(type_pointed_to(expr->type));
-
+#else /* !IA64_ABI */
+  class_type = f_skip_typerefs(expr->type);
   check_assertion_str(is_immediate_class_type(class_type),
                       "make_any_vptr_rvalue: not class");
   if (class_type->variant.class_struct_union.any_virtual_functions) {
@@ -2365,8 +2435,10 @@ set to point to the updated expression.
         expr = make_base_class_lvalue(expr, bcp, /*complete_object=*/FALSE);
         if (other_expr != NULL) {
           /* Do the same thing to *other_expr. */
+          *other_expr = add_indirection_to_node(*other_expr);
           *other_expr = make_base_class_lvalue(*other_expr, bcp,
                                                /*complete_object=*/FALSE);
+          *other_expr = add_address_of_to_node(*other_expr);
         }  /* if */
         goto found_base_class;
       }  /* if */
@@ -2375,14 +2447,56 @@ set to point to the updated expression.
                     "make_any_vptr_rvalue: no base class with virtuals found");
 found_base_class:;
   }  /* if */
-#endif /* !IA64_ABI */
+#endif /* IA64_ABI */
   /* Pick the virtual function pointer out of the class. */
   expr = make_vptr_field_lvalue(expr);
-  expr = add_indirection_to_node(expr);
+  expr = rvalue_expr_for_lvalue(expr);
   return expr;
 }  /* make_any_vptr_rvalue */
 
 #endif /* ABI_CHANGES_FOR_RTTI */
+
+an_expr_node_ptr add_cast_to_lvalue_if_necessary(an_expr_node_ptr node,
+                                                 a_type_ptr       type)
+/*
+This utility function is used to cast an lvalue expression given by
+node to the type specified by type (only if the expression type is different
+than the specified type).  The cast is performed by taking the address
+of the lvalue, casting the resulting expression to a pointer to type,
+and then performing an indirection on the result.  The result is always
+an lvalue.
+*/
+{
+  check_assertion(node->is_lvalue);
+  if (!il_identical_types(node->type, type)) {
+    node = add_address_of_to_node(node);
+    node = add_cast(node, make_pointer_type(type));
+    node = add_indirection_to_node(node);
+  }  /* if */
+  return node;
+}  /* add_cast_to_lvalue_if_necessary */
+
+
+an_expr_node_ptr rvalue_pointer_for_class_rvalue(an_expr_node_ptr expr)
+/*
+Return an rvalue pointer expression for the rvalue class expression, expr.
+Try to convert the rvalue expression into an rvalue pointer if possible;
+otherwise, copy the expression into a temporary and take its address.
+*/
+{
+  a_boolean converted;
+
+  check_assertion(!expr->is_lvalue && is_class_struct_union_type(expr->type));
+  conv_rvalue_expr_to_object_pointer(&expr, &converted);
+  if (!converted) {
+    /* Couldn't extract a pointer from the rvalue.  Copy the
+       rvalue to a temporary and take the address of the temporary. */
+    a_variable_ptr temp = assign_expr_to_temp(expr);
+    expr = make_comma_node(expr, var_addr_expr(temp));
+  }  /* if */
+  return expr;
+}  /* rvalue_pointer_for_class_rvalue */
+
 
 static an_expr_node_ptr select_lvalue_at_offset(an_expr_node_ptr  node,
                                                 a_type_ptr        class_type,
@@ -2390,14 +2504,15 @@ static an_expr_node_ptr select_lvalue_at_offset(an_expr_node_ptr  node,
                                                 a_type_ptr        type)
 /*
 Make an expression node that is an lvalue for an entity at the given offset
-in the object of type class_type pointed to by node.  The entity should have
-the given type.  Return a pointer to the new node.  (class_type may differ
-from type_pointed_to(node->type) in that it may be the corresponding "type
-as a subobject.")
+in the object of type class_type specified by node (an lvalue).  The entity
+should have the given type.  (class_type may differ from node->type in that
+it may be the corresponding "type as a subobject.")  Return a pointer to the
+new node.
 */
 {
   a_field_ptr  field;
 
+  check_assertion(node->is_lvalue);
   /* If the given offset corresponds to a field we can use that field to form
      the lvalue (the usual case).  Otherwise (e.g., for optimized empty base
      classes), we use pointer arithmetic. */
@@ -2407,13 +2522,15 @@ as a subobject.")
     if (offset != 0) {
       a_type_ptr char_ptr_type =
                     make_pointer_type(integer_type((an_integer_kind)ik_char));
+      node = add_address_of_to_node(node);
       node = add_cast_if_necessary(node, char_ptr_type);
       node->next = node_for_integer_constant((long)offset,
                                              targ_size_t_int_kind);
       node = make_operator_node((an_expr_operator_kind)eok_padd,
                                 char_ptr_type, node);
+      node = add_indirection_to_node(node);
     }  /* if */
-    node = add_cast_if_necessary(node, make_pointer_type(type));
+    node = add_cast_to_lvalue_if_necessary(node, type);
   } else {
     /* Create a field selection operation and add the appropriate cast
        if needed. */
@@ -2422,7 +2539,7 @@ as a subobject.")
       /* Presumably this is an optimized empty base class: it has no
          associated field and instead we use the field whose offset it
          shares. */
-      node = add_cast_if_necessary(node, make_pointer_type(type));
+      node = add_cast_to_lvalue_if_necessary(node, type);
     }  /* if */
   }  /* if */
   return node;
@@ -2435,8 +2552,9 @@ static an_expr_node_ptr make_vbase_class_lvalue(
                                               a_boolean        complete_object)
 /*
 Make an expression node that is an lvalue for the virtual base class bcp
-of the class pointed to by node.  The class object is known to be a complete
-object if complete_object is TRUE.  Return a pointer to the new node.
+of the class specified by node (an lvalue).  The class object is known to
+be a complete object if complete_object is TRUE.  Return a pointer to the
+new node.
 */
 {
   a_type_ptr       class_type, data_section_class_type;
@@ -2446,7 +2564,8 @@ object if complete_object is TRUE.  Return a pointer to the new node.
   a_boolean        temp_init_used;
 #endif /* IA64_ABI */
 
-  class_type = type_pointed_to(node->type);
+  check_assertion(node->is_lvalue);
+  class_type = node->type;
   class_type = skip_typerefs(class_type);
 #if CHECKING
   if (!is_immediate_class_type(class_type)) {
@@ -2469,7 +2588,7 @@ object if complete_object is TRUE.  Return a pointer to the new node.
         /* The following line does not use data_section_bcp->type because the
            type here could be either that type or the corresponding
            type-as-subobject. */
-        data_section_class_type = f_skip_typerefs(type_pointed_to(node->type));
+        data_section_class_type = f_skip_typerefs(node->type);
         data_section_offset -= data_section_bcp->offset;
       }  /* if */
     }
@@ -2483,7 +2602,7 @@ object if complete_object is TRUE.  Return a pointer to the new node.
 #if !IA64_ABI
     /* Cfront-like ABI. */
     node = make_vbptr_field_lvalue(node, bcp);
-    node = add_indirection_to_node(node);
+    node = add_indirection_to_node(rvalue_expr_for_lvalue(node));
 #else /* IA64_ABI */
     /* IA-64 ABI. */
     temp_init_node = NULL;
@@ -2499,6 +2618,7 @@ object if complete_object is TRUE.  Return a pointer to the new node.
     }  /* if */
     vbase_offset = make_vtbl_entry_expr(second_use,
                                         bcp->vbase_offset_index);
+    node = add_address_of_to_node(node);
     /* The vbase offset is stored in bytes.  Cast node to a "char*" so
        that pointer arithmetic is performed in bytes. */
     node = add_cast_to_char_star(node);
@@ -2509,6 +2629,8 @@ object if complete_object is TRUE.  Return a pointer to the new node.
                               node->type, node);
     /* Cast back to the desired pointer type. */
     node = add_cast(node, make_pointer_type(bcp->type));
+    /* Convert back to lvalue. */
+    node = add_indirection_to_node(node);
     if (temp_init_node != NULL) {
       /* Add the comma expression to initialize the temporary. */
       node = make_comma_node(temp_init_node, node);
@@ -2526,11 +2648,12 @@ an_expr_node_ptr make_vbase_class_lvalue_from_var(
                                               a_boolean        complete_object)
 /*
 Make an expression node that is an lvalue for the base class bcp of the
-class pointed to by var.  The class object is known to be a complete
+variable referred to by var (which can be a class object or a pointer to
+a class object).  The class object is known to be a complete
 object if complete_object is TRUE.  Return a pointer to the new node.
 */
 {
-  an_expr_node_ptr node = var_rvalue_expr(var);
+  an_expr_node_ptr node = make_class_lvalue_from_var(var);
 
   node = make_vbase_class_lvalue(node, bcp, complete_object);
   return node;
@@ -2543,8 +2666,8 @@ an_expr_node_ptr make_base_class_lvalue(an_expr_node_ptr node,
                                         a_boolean        complete_object)
 /*
 Make an expression node that is an lvalue for the base class bcp of the
-class object pointed to by node.  bcp may be a direct or indirect base
-class, and its derivation may include virtual steps.  The class object
+class object specified by the lvalue node.  bcp may be a direct or indirect
+base class, and its derivation may include virtual steps.  The class object
 is known to be a complete object if complete_object is TRUE.  Return a
 pointer to the new node.
 */
@@ -2553,7 +2676,8 @@ pointer to the new node.
   a_derivation_step_ptr dsp;
   a_base_class_ptr      derivation_bcp, step_bcp;
 
-  class_type = type_pointed_to(node->type);
+  check_assertion(node->is_lvalue);
+  class_type = node->type;
   class_type = skip_typerefs(class_type);
 #if CHECKING
   if (!is_immediate_class_type(class_type)) {
@@ -2602,7 +2726,7 @@ pointer to the new node.
         step_bcp = find_direct_base_class_of(step_class_type, step_bcp->type);
         check_assertion(step_bcp != NULL);
       }  /* if */
-      node_class_type = type_pointed_to(node->type);
+      node_class_type = node->type;
       node_class_type = skip_typerefs(node_class_type);
 #if CHECKING
       if (node_class_type != step_class_type &&
@@ -2626,64 +2750,109 @@ an_expr_node_ptr make_base_class_lvalue_from_var(
                                               a_boolean        complete_object)
 /*
 Make an expression node that is an lvalue for the base class bcp of the
-class pointed to by var.  The class object is known to be a complete
+class referred to by var.  var can be either a class object or a
+pointer to a class object.  The class object is known to be a complete
 object if complete_object is TRUE.  Return a pointer to the node.
 */
 {
-  an_expr_node_ptr node = var_rvalue_expr(var);
+  an_expr_node_ptr node = make_class_lvalue_from_var(var);
 
   node = make_base_class_lvalue(node, bcp, complete_object);
   return node;
 }  /* make_base_class_lvalue_from_var */
 
 
-static a_boolean cannot_be_null(an_expr_node_ptr expr)
+static void examine_expr_for_cannot_be_null(
+                                    an_expr_node_ptr                    expr,
+                                    an_expr_or_stmt_traversal_block_ptr tblock)
 /*
-Return TRUE if the value of the indicated expression cannot be NULL (0).
-This routine is used for an optimization, so it doesn't have to be perfect.
-The safe return value is FALSE.
+Called from the expression traversal routines to process an expression
+as part of determining whether it cannot be NULL.  The expression passed
+in is an addressing expression, meaning either an lvalue that identifies
+an object or an rvalue that is a pointer to an object.  For an lvalue,
+the test means its address cannot be NULL.
 */
 {
   a_boolean cannot_be = FALSE;
 
-  if (expr->kind == (an_expr_node_kind)enk_constant) {
-    a_constant_ptr con = expr->variant.constant;
-    if (con->kind == (a_constant_repr_kind)ck_integer) {
-      /* An integer constant is non-NULL if it's non-zero. */
-      cannot_be = !eqlit_integer_constant(con, (a_host_large_integer)0);
-    } else if (con->kind == (a_constant_repr_kind)ck_address) {
-      /* An address constant cannot be NULL. */
-      cannot_be = TRUE;
+  /* Note that the safe result is FALSE; TRUE means we have information
+     that guarantees that the expression is not NULL. */
+  if (expr->is_lvalue) {
+    /* The expression passed in is an lvalue for an object. */
+    if (expr->kind == (an_expr_node_kind)enk_variable) {
+      /* The address of a variable is generally non-NULL, but watch out for
+         extern variables affected by linker magic. */
+      cannot_be = variable_has_non_null_address(expr->variant.variable);
+    } else if (expr->kind == (an_expr_node_kind)enk_routine) {
+      /* The address of a routine is generally non-NULL, but watch out for
+         extern routines affected by linker magic. */
+      cannot_be = routine_has_non_null_address(expr->variant.routine);
+    } else if (is_operation_node(expr)) {
+      an_expr_operator_kind op = expr->variant.operation.kind;
+      an_expr_node_ptr      operand = expr->variant.operation.operands;
+      if (op == (an_expr_operator_kind)eok_dot_field ||
+          op == (an_expr_operator_kind)eok_points_to_field) {
+        /* The address of a field reference can't be NULL in a legal program,
+           but watch out for ((struct s *)0)->i. */
+        if (operand->next->variant.field->offset != 0) {
+          /* The field offset is non-zero, so even if the pointer is zero the
+             address will be non-zero. */
+          cannot_be = TRUE;
+        } else {
+          /* The field offset is zero, so keep going and check the class
+             object address. */
+        }  /* if */
+      }  /* if */
     }  /* if */
-  } else if (expr->kind == (an_expr_node_kind)enk_variable_address ||
-             expr->kind == (an_expr_node_kind)enk_routine_address ||
-             expr->kind == (an_expr_node_kind)enk_address_of_ellipsis) {
-    /* A variable or routine cannot have an address that's NULL, nor can
-       "&...". */
-    cannot_be = TRUE;
-  } else if (is_operation_node(expr)) {
-    an_expr_operator_kind op = expr->variant.operation.kind;
-    an_expr_node_ptr      operand = expr->variant.operation.operands;
-    if (op == (an_expr_operator_kind)eok_field) {
-      /* The address of a field reference can't be NULL in a legal program,
-         but watch out for ((struct s *)0)->i. */
-      cannot_be = (operand->next->variant.field->offset != 0 ||
-                   cannot_be_null(operand));
-    } else if (op == (an_expr_operator_kind)eok_base_class_cast ||
-               op == (an_expr_operator_kind)eok_derived_class_cast) {
-      /* A cast to a related class will not turn a non-NULL into a NULL. */
-      cannot_be = cannot_be_null(operand);
-    }  /* if */
-  } else if (expr->kind == (an_expr_node_kind)enk_variable) {
-    /* If the expression is the "this" variable for the current function,
-       it cannot be null. */
-    if (innermost_function_scope != NULL &&
-        innermost_function_scope->variant.routine.this_param_variable ==
+  } else {
+    /* The expression passed in is a pointer to an object. */
+    if (is_constant_node(expr)) {
+      a_constant_ptr con = expr->variant.constant;
+      if (con->kind == (a_constant_repr_kind)ck_integer) {
+        /* An integer constant (cast to a pointer type in this case) is
+           non-NULL if it's non-zero. */
+        cannot_be = !eqlit_integer_constant(con, (a_host_large_integer)0);
+      } else if (con->kind == (a_constant_repr_kind)ck_address) {
+        /* An address constant cannot be NULL as long as its value is known
+           at compile time. */
+        cannot_be = constant_bool_value_known_at_compile_time(con);
+      }  /* if */
+    } else if (expr->kind == (an_expr_node_kind)enk_variable) {
+      /* If the expression is the "this" variable for the current function,
+         it cannot be null. */
+      if (innermost_function_scope != NULL &&
+          innermost_function_scope->variant.routine.this_param_variable ==
                                                       expr->variant.variable) {
+        cannot_be = TRUE;
+      }  /* if */
+    } else if (expr->kind == (an_expr_node_kind)enk_address_of_ellipsis) {
+      /* "&..." cannot be NULL. */
       cannot_be = TRUE;
     }  /* if */
   }  /* if */
-  return cannot_be;
+  if (!tblock->terminate && cannot_be) {
+    tblock->result = cannot_be;
+    tblock->terminate = TRUE;
+  }  /* if */
+}  /* examine_expr_for_cannot_be_null */
+
+
+static a_boolean cannot_be_null(an_expr_node_ptr expr)
+/*
+Return TRUE if the value of the indicated expression (an rvalue of
+pointer type) cannot be NULL (0).  This routine is used for an optimization,
+so it doesn't have to be perfect.  The safe return value is FALSE.
+*/
+{
+  an_expr_or_stmt_traversal_block tblock;
+
+  check_assertion(!expr->is_lvalue &&
+                  is_pointer_type(expr->type));
+  clear_expr_or_stmt_traversal_block(&tblock);
+  tblock.process_expr = examine_expr_for_cannot_be_null;
+  tblock.follow_addressing_path = TRUE;
+  traverse_expr(expr, &tblock);
+  return tblock.result;
 }  /* cannot_be_null */
 
 
@@ -2751,7 +2920,7 @@ FALSE and *temp_var set to NULL.
         op == (an_expr_operator_kind)eok_sassign) {
       /* The expression is an assignment */
       an_expr_node_ptr operand1 = expr->variant.operation.operands;
-      if (is_variable_address_node(operand1) &&
+      if (is_variable_node(operand1) && operand1->is_lvalue &&
           operand1->variant.variable->source_corresp.name == NULL) {
         /* The destination is a temporary. */
         is_assign_to_temp = TRUE;
@@ -2765,14 +2934,15 @@ FALSE and *temp_var set to NULL.
 
 a_variable_ptr assign_expr_to_temp(an_expr_node_ptr expr)
 /*
-Change the indicated expression into an assignment of the expression to a
-temporary, and return a pointer to the temporary.
+Change the indicated rvalue expression into an assignment of the expression
+to a temporary, and return a pointer to the temporary.
 */
 {
   an_expr_node_ptr expr_copy, temp_node;
   a_variable_ptr   temp;
   a_type_ptr       temp_type;
 
+  check_assertion(expr->is_lvalue == FALSE);
   temp_type = expr->type;
 #if CHECKING
   /* Values of class types that have copy constructors can't be copied this
@@ -2794,7 +2964,7 @@ temporary, and return a pointer to the temporary.
   temp_node->next = expr_copy;
   set_expr_node_kind(expr, (an_expr_node_kind)enk_operation);
   set_node_operator(expr, lowered_assignment_operator(temp_type),
-                    temp_type, temp_node);
+                    temp_type, /*is_lvalue=*/FALSE, temp_node);
   return temp;
 }  /* assign_expr_to_temp */
 
@@ -2823,21 +2993,20 @@ static an_expr_node_ptr make_reusable_copy_full(
                                               a_boolean        *temp_init_used)
 /*
 Return a copy of the expression tree pointed to by expr, which is an
-rvalue (or an lvalue that can be treated like an rvalue).  If the expression
-has side effects, or if its value is affected by the values of variables
-and vars_can_change is TRUE, the original expression will be changed so
-that its value is stored in a temporary, and the copy will reference the
-temporary.  vars_can_change TRUE means arbitrary user code might be
-executed in the interval between the original use of the expression
+rvalue or lvalue.  If it is an lvalue, it is one whose address can be
+taken (e.g., the caller has eliminated bit-field lvalues).  If the
+expression has side effects, or if its value is affected by the values
+of variables and vars_can_change is TRUE, the original expression will
+be changed so that its value (if it's an rvalue) or its address (if
+it's an lvalue) is stored in a temporary, and the copy will reference
+the temporary.  vars_can_change TRUE means arbitrary user code might
+be executed in the interval between the original use of the expression
 and the use of the copy, and such code might change the values of
-(user) variables.  If, on the other hand, only code generated by IL
-lowering will execute in that interval, one can know that no (user)
-variables used in the expression will be altered and vars_can_change
-should be FALSE.  *temp_init_used is returned TRUE if a temporary was
+(user) variables.  *temp_init_used is returned TRUE if a temporary was
 used, including a reuse of an existing temporary.  When it is TRUE,
-the caller must take steps to ensure that expr is evaluated before
-the copy.  See make_expr_reusable_copy for a similar routine used
-in the front end proper.
+the caller must take steps to ensure that expr is evaluated before the
+copy.  See make_expr_reusable_copy for a similar routine used in the
+front end proper.
 */
 {
   an_expr_node_ptr expr_copy;
@@ -2859,8 +3028,27 @@ in the front end proper.
     expr_copy = copy_expr_tree(expr, CE_NO_OPTIONS);
   } else {
     /* Change the original expression to assign the value to a temporary,
-       and use the temporary for the reuse. */
-    expr_copy = assign_expr_to_temp_and_make_expr_for_reuse(expr);
+       and use the temporary for the reuse.  For an lvalue case,
+       the temporary is set to the address of the lvalue, so the original
+       expression "lvalue" becomes something like "*(temp = &lvalue)". */
+    an_expr_node_ptr expr_to_save = copy_node(expr);
+    a_boolean        lvalue_case = expr->is_lvalue;
+    if (lvalue_case) {
+      expr_to_save = add_address_of_to_node(expr_to_save);
+    }  /* if */
+    /* Assign the expression to a temporary. */
+    temp_var = assign_expr_to_temp(expr_to_save);
+    /* Add an indirection if we took the address above. */
+    if (lvalue_case) {
+      expr_to_save = add_indirection_to_node(expr_to_save);
+    }  /* if */
+    overwrite_node(expr, expr_to_save);
+    /* Make the expression for the temporary.  For an lvalue, put a "*"
+       on top of that because the temporary is a pointer to the lvalue. */
+    expr_copy = var_rvalue_expr(temp_var);
+    if (lvalue_case) {
+      expr_copy = add_indirection_to_node(expr_copy);
+    }  /* if */
     *temp_init_used = TRUE;
   }  /* if */
   return expr_copy;
@@ -2946,7 +3134,7 @@ list as given by operand.
   /* Don't need to call set_expr_result_not_used here; set_node_operator
      calls it. */
   node->result_is_not_used = node_result_is_not_used;
-  set_node_operator(node, op, type, operand);
+  set_node_operator(node, op, type, /*is_lvalue=*/FALSE, operand);
 }  /* change_node_to_operation */
 
 
@@ -3001,6 +3189,7 @@ will be after the expression added.
     /* Turn the original node into a comma node. */
     change_node_to_operation(orig_expr, (an_expr_operator_kind)eok_comma,
                              second_operand->type, first_operand);
+    orig_expr->is_lvalue = second_operand->is_lvalue;
     if (second_operand->kind == (an_expr_operator_kind)enk_operation) {
       orig_expr->variant.operation.returns_lvalue_instead_of_usual_rvalue =
       second_operand->variant.operation.returns_lvalue_instead_of_usual_rvalue;
@@ -3142,6 +3331,7 @@ determine the assignment operator from the type.
 {
   an_expr_node_ptr lvalue_expr, assign_node;
 
+  check_assertion(!rvalue_expr->is_lvalue);
   if (op == (an_expr_operator_kind)eok_last) {
     op = lowered_assignment_operator(lvalue_var->type);
   }  /* if */
@@ -3172,6 +3362,9 @@ statement was created (in an expression insert context).
   a_statement_ptr  assign_stmt;
   an_expr_node_ptr assign_node;
 
+  check_assertion(lvalue_expr->is_lvalue && 
+                  (!rvalue_expr->is_lvalue ||
+                   op == (an_expr_operator_kind)eok_bassign));
   assign_node = make_assignment_expr(lvalue_expr, op, rvalue_expr);
   /* Make and insert the expression statement. */
   assign_stmt = insert_expr_statement(assign_node, insert_location);
@@ -3874,6 +4067,79 @@ pointers to data members are properly initialized to -1 for NULL.
 
 #if ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS
 
+static a_variable_ptr get_variable_for_string_constant(a_constant_ptr constant)
+/*
+constant is a string literal whose string constant has sequence_number != 0.
+Create and return a static variable initialized with the string,
+and associate the variable with the constant.  If a variable has already
+been associated with this constant, return it rather than creating a new
+variable.
+*/
+{
+  a_variable_ptr string_var;
+
+  check_assertion(constant->kind == (a_constant_repr_kind)ck_string &&
+                  constant->variant.string.sequence_number != 0);
+  /* See if the variable has been allocated already.  If so, a pointer to
+     the variable will have been stored in the assoc_info field. */
+  if (constant->assoc_var_assigned) {
+    string_var = (a_variable_ptr)constant->source_corresp.assoc_info;
+  } else {
+    /* The variable must be allocated.  We make a local static variable
+       and then promote it to get it processed like other local static
+       variables. */
+    a_routine_ptr          routine;
+    a_memory_region_number region_to_switch_back_to = curr_il_region_number;
+    check_assertion(innermost_function_scope != NULL);
+    routine = innermost_function_scope->variant.routine.ptr;
+    switch_il_region(routine->assoc_scope);
+    string_var = make_lowered_variable((char *)NULL,
+                                       /*already_il_name=*/TRUE,
+                                       constant->type,
+                                       (a_storage_class)sc_static);
+    check_assertion(!in_file_scope(constant));
+    /* Use a local static variable init entry to point to the constant
+       in the function scope memory region. */
+    (void)make_local_static_variable_init(string_var, 
+                                          innermost_function_scope,
+                                          (an_init_kind)initk_static,
+                                          constant,
+                                          (a_dynamic_init_ptr)NULL);
+    /* Promote the variable out of the function, and make it external
+       if that's appropriate. */
+    promote_static_variable_out_of_function(string_var,
+                                            innermost_function_scope,
+                                            routine);
+    switch_back_to_original_region(region_to_switch_back_to);
+    /* Save the pointer in the assoc_info field so the variable can be
+       reused. */
+    constant->source_corresp.assoc_info = (char *)string_var;
+    constant->assoc_var_assigned = TRUE;
+  }  /* if */
+  return string_var;
+}  /* get_variable_for_string_constant */
+
+
+static void rewrite_string_constant_as_variable(an_expr_node_ptr expr)
+/*
+expr is an expression for a constant string literal whose string constant
+has sequence_number != 0.  Create a static variable initialized with the
+string, and change expr to be the address of that variable.  This is used
+for string literals that must have the same address across translation units
+(e.g., those in extern inline functions).
+*/
+{
+  a_constant_ptr string_con = expr->variant.constant;
+
+  check_assertion(expr->kind == (an_expr_node_kind)enk_constant &&
+                  string_con->kind == (a_constant_repr_kind)ck_string &&
+                  string_con->variant.string.sequence_number != 0 &&
+                  !string_con->implicit_cast);
+  set_expr_node_kind(expr, (an_expr_node_kind)enk_variable);
+  expr->variant.variable = get_variable_for_string_constant(string_con);
+}  /* rewrite_string_constant_as_variable */
+
+
 void rewrite_address_of_string_as_address_of_variable(a_constant_ptr addr_con)
 /*
 addr_con is an address constant for the address of a string literal,
@@ -3886,6 +4152,7 @@ in extern inline functions).
 {
   a_constant_ptr string_con;
   a_variable_ptr assoc_var;
+  a_constant     orig_con = *addr_con;
 
   check_assertion(addr_con->kind == (a_constant_repr_kind)ck_address &&
                   addr_con->variant.address.kind ==
@@ -3893,55 +4160,18 @@ in extern inline functions).
   string_con = addr_con->variant.address.variant.constant;
   check_assertion(string_con->kind == (a_constant_repr_kind)ck_string &&
                   string_con->variant.string.sequence_number != 0);
-  /* See if the variable has been allocated already.  If so, a pointer to
-     the variable will have been stored in the assoc_info field. */
-  if (string_con->assoc_var_assigned) {
-    assoc_var = (a_variable_ptr)string_con->source_corresp.assoc_info;
-  } else {
-    /* The variable must be allocated.  We make a local static variable
-       and then promote it to get it processed like other local static
-       variables. */
-    a_routine_ptr          routine;
-    a_memory_region_number region_to_switch_back_to = curr_il_region_number;
-    check_assertion(innermost_function_scope != NULL);
-    routine = innermost_function_scope->variant.routine.ptr;
-    switch_il_region(routine->assoc_scope);
-    assoc_var = make_lowered_variable((char *)NULL,
-                                      /*already_il_name=*/TRUE,
-                                      string_con->type,
-                                      (a_storage_class)sc_static);
-    check_assertion(!in_file_scope(string_con));
-    /* Use a local static variable init entry to point to the constant
-       in the function scope memory region. */
-    (void)make_local_static_variable_init(assoc_var, 
-                                          innermost_function_scope,
-                                          (an_init_kind)initk_static,
-                                          string_con,
-                                          (a_dynamic_init_ptr)NULL);
-    /* Promote the variable out of the function, and make it external
-       if that's appropriate. */
-    promote_static_variable_out_of_function(assoc_var,
-                                            innermost_function_scope,
-                                            routine);
-    switch_back_to_original_region(region_to_switch_back_to);
-    /* Save the pointer in the assoc_info field so the variable can be
-       reused. */
-    string_con->source_corresp.assoc_info = (char *)assoc_var;
-    string_con->assoc_var_assigned = TRUE;
+  /* Get the variable associated with this string or make a variable
+     if none has been allocated yet. */
+  assoc_var = get_variable_for_string_constant(string_con);
+  /* Rewrite the original constant as the address of the variable. */
+  set_variable_address_constant(assoc_var, addr_con,
+                                /*set_address_taken_flag=*/TRUE);
+  if (orig_con.implicit_cast) {
+    /* The original constant was cast to a different type, e.g.,
+       because its type decayed to a pointer. */
+    implicit_cast(addr_con, orig_con.type);
   }  /* if */
-  {
-    /* Rewrite the address constant as the address of the variable. */
-    a_constant orig_con;
-    orig_con = *addr_con;
-    set_variable_address_constant(assoc_var, addr_con,
-                                  /*set_address_taken_flag=*/TRUE);
-    if (orig_con.implicit_cast) {
-      /* The original constant was cast to a different type, e.g.,
-         because its type decayed to a pointer. */
-      implicit_cast(addr_con, orig_con.type);
-    }  /* if */
-    addr_con->next = orig_con.next;
-  }
+  addr_con->next = orig_con.next;
 }  /* rewrite_address_of_string_as_address_of_variable */
 
 #endif /* ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
@@ -3997,7 +4227,6 @@ Do IL lowering of the indicated constant and everything under it.
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
     switch (constant->kind) {
       case ck_integer:
-      case ck_string:
       case ck_float:
       case ck_designator:
       case ck_init_repeat:
@@ -4005,6 +4234,16 @@ Do IL lowering of the indicated constant and everything under it.
       case ck_label_difference:
 #endif /* GNU_EXTENSIONS_ALLOWED */
         /* No handling required. */
+        break;
+      case ck_string:
+        if (string_literals_are_const && 
+            is_const_qualified_type(constant->type)) {
+          /* If string literals are const qualified by the C++ front end,
+             the const qualification is removed here.  Adjustments to
+             the types of eok_address or eok_array_to_pointer nodes
+             (as well as any ck_address nodes) have already been made. */
+          constant->type = make_unqualified_type(constant->type);
+        }  /* if */
         break;
 #if C99_IL_EXTENSIONS_SUPPORTED
       case ck_complex:
@@ -4016,14 +4255,27 @@ Do IL lowering of the indicated constant and everything under it.
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
       case ck_address:
         switch (constant->variant.address.kind) {
-          case abk_routine:
           case abk_variable:
           case abk_label:
-            /* Variables, routines, and labels will have appeared on
-               lists attached to some scope. */
+            /* Variables and labels will have appeared on
+               lists attached to some scopes. */
+            break;
+          case abk_routine:
+            /* Make sure a routine's type is lowered. */
+            lower_os_type(constant->variant.address.variant.routine->type);
             break;
           case abk_constant:
             addressed_con = constant->variant.address.variant.constant;
+            if (string_literals_are_const &&
+                addressed_con->kind == (a_constant_repr_kind)ck_string &&
+                is_const_qualified_type(addressed_con->type) &&
+                !is_const_qualified_type(constant->type)) {
+              /* This ck_string constant is about to be lowered from
+                 a const qualified string to a non-const qualified string,
+                 so make sure the implicit_cast field is set (if it
+                 isn't already). */
+              constant->implicit_cast = TRUE; 
+            }  /* if */
             lower_os_constant(addressed_con);
 #if ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS
             if (addressed_con->kind == (a_constant_repr_kind)ck_string) {
@@ -8724,12 +8976,10 @@ Do IL lowering of the indicated asm entry and everything under it.
 
 
 void lower_expr_list(an_expr_node_ptr expr_list,
-                     unsigned int     is_lvalue_mask,
-                     unsigned int     is_bool_controlling_expr_mask)
+                     unsigned int     is_bool_controlling_expr_mask,
+                     unsigned int     assume_expr_is_non_null_mask)
 /*
 Do IL lowering of the indicated list of expressions and everything under it.
-is_lvalue_mask is a bit mask indicating which elements of the list are
-lvalues (0x1 for first operand, 0x2 for second operand, etc.)
 is_bool_controlling_expr_mask is a similar bit mask indicating operands
 that are boolean controlling expressions.
 */
@@ -8741,12 +8991,11 @@ that are boolean controlling expressions.
     if (is_bool_controlling_expr_mask & 1) {
       lower_boolean_controlling_expr(expr, /*is_full_expr=*/FALSE);
     } else {
-      lower_expr(expr, (a_boolean)(is_lvalue_mask & 1));
+      lower_expr_full(expr, assume_expr_is_non_null_mask & 1);
     }  /* if */
-    /* Move to the next bit in the lvalue mask. */
-    is_lvalue_mask >>= 1;
-    /* Move to the next bit in the boolean-controlling-expression mask. */
+    /* Move to the next bit in the masks. */
     is_bool_controlling_expr_mask >>= 1;
+    assume_expr_is_non_null_mask >>= 1;
   }  /* for */
 }  /* lower_expr_list */
 
@@ -8880,7 +9129,11 @@ to skip the input parameter).
   }  /* if */
   /* Track the current parameter type as we go through the list. */
   for (expr = expr_list; expr != NULL; expr = expr->next) {
-    lower_expr(expr, /*is_lvalue=*/FALSE);
+    lower_expr(expr);
+    /* Take the address of any lvalue arguments. */
+    if (expr->is_lvalue) {
+      overwrite_node(expr, add_address_of_to_node(copy_node(expr)));
+    }  /* if */
     if (param != NULL) {
       /* Prototyped parameter. */
       if (param->passed_via_copy_constructor &&
@@ -8948,7 +9201,8 @@ pointer to the overall expression remains the same.
   compare_node->next = source_node;
   source_node->next = null_constant_node2;
   set_node_operator(expr, (an_expr_operator_kind)eok_question,
-                    source_node->type, compare_node);
+                    source_node->type, expr->is_lvalue, compare_node);
+  adjust_returns_lvalue_instead_of_usual_rvalue_if_necessary(expr);
 }  /* add_null_preservation_code */
 
 
@@ -8982,7 +9236,6 @@ proper type if necessary.  If the offset is zero, return the original node.
 
 static void related_class_cast_step(
                                an_expr_node_ptr node,
-                               a_boolean        is_lvalue,
                                a_boolean        lower_source,
                                a_boolean        any_nonzero_offset,
                                a_type_ptr       virtual_step_class,
@@ -8990,24 +9243,26 @@ static void related_class_cast_step(
                                a_base_class_ptr *base_class_for_virtual_step,
                                a_boolean        *complete_object,
                                an_expr_node_ptr *result_node,
-                               a_targ_size_t    *derived_class_cast_offset)
+                               a_targ_size_t    *derived_class_cast_offset,
+                               a_boolean        assume_expr_is_non_null)
 /*
-Do one step in the lowering of a base or derived class cast.  node points
-to the cast.  On return, *result_node has been set to the lowered form;
-however, for derived casts, the pointer subtraction must still be generated
-by the caller (*derived_class_cast_offset indicates the amount to subtract),
+Do one step in the lowering of a base or derived class cast.  node
+points to an rvalue pointer expression for the cast.  On return,
+*result_node has been set to the lowered form; however, for derived
+casts, the pointer subtraction must still be generated by the caller
+(*derived_class_cast_offset indicates the amount to subtract),
 and for base class casts, a final cast to the proper type may still be
 required (for cases where the base class type is not the same as its
 type-as-subobject).  If code to preserve NULL pointers is needed, it is
 started, and *null_preservation_source_node is set to the original node
-to be tested when the null-preservation code is completed.
+to be tested when the null-preservation code is completed.  No code to
+preserve NULL pointers is needed when assume_expr_is_non_null is TRUE.
 *null_preservation_source_node == NULL means that no NULL-preservation code
-is required.  is_lvalue is TRUE if the node is being used as an lvalue.
-lower_source is TRUE if the underlying source expression needs to be lowered.
-This routine descends recursively through a sequence of base-class or
-derived-class casts so that the entire sequence can be treated as one
-operation.  This allows optimization of the code to preserve NULL pointer
-values: we may be able to determine that it is not needed at all by
+is required.  lower_source is TRUE if the underlying source expression needs
+to be lowered.  This routine descends recursively through a sequence of
+base-class or derived-class casts so that the entire sequence can be treated
+as one operation.  This allows optimization of the code to preserve NULL
+pointer values: we may be able to determine that it is not needed at all by
 examining the fundamental source node or the offsets in the base class
 casts (any_nonzero_offset is maintained going down to aid that determination).
 If we cannot suppress the NULL-preservation code, we can at least put it
@@ -9033,6 +9288,7 @@ more than once.
   a_base_class_ptr      bcp, virt_bcp;
   a_boolean             need_null_preservation_code;
 
+  check_assertion(!node->is_lvalue && is_pointer_type(node->type));
   *base_class_for_virtual_step = NULL;
   *complete_object = FALSE;
   op = node->variant.operation.kind;
@@ -9099,7 +9355,6 @@ more than once.
   if (is_operation_node(source_node) &&
       source_node->variant.operation.kind == op) {
     related_class_cast_step(source_node,
-                            is_lvalue,
                             lower_source,
                             any_nonzero_offset,
                             virtual_step_class,
@@ -9107,12 +9362,15 @@ more than once.
                             base_class_for_virtual_step,
                             complete_object,
                             &source_node,
-                            derived_class_cast_offset);
+                            derived_class_cast_offset,
+                            assume_expr_is_non_null);
   } else {
     /* The node below this one is not another cast, so we have reached the
        bottom of the sequence of casts. */
     /* Lower the source expression. */
-    if (lower_source) lower_expr(source_node, is_lvalue);
+    if (lower_source) {
+      lower_expr(source_node);
+    }  /* if */
     /* The offsets for derived class casts are summed on the way back up. */
     *derived_class_cast_offset = 0;
     if (virtual_step_class != NULL) {
@@ -9140,8 +9398,8 @@ more than once.
          (virtual_step_class).  Pass it back up to the invocation that
          will deal with the virtual step. */
       *base_class_for_virtual_step = virt_bcp;
-      if (node_complete_object_type(source_node, /*call_case=*/FALSE) ==
-                                                                source_class) {
+      if (pointer_expr_complete_object_type(source_node,
+                                        /*call_case=*/FALSE) == source_class) {
         /* We have a complete object, so it is possible to go directly to the
            virtual base class without using a pointer indirection. */
         *complete_object = TRUE;
@@ -9154,9 +9412,11 @@ more than once.
        special code if the expression being cast can be assumed to be
        non-NULL or if the transformation is a do-nothing transformation
        (the offset is zero). */
-    if (is_lvalue) {
-      /* The result of this cast is being used as an lvalue, so it must be
-         non-NULL. */
+    if (assume_expr_is_non_null) {
+      /* Caller assures us that no NULL test is necessary.  This happens
+         in cases where we're lowering a "this" parameter where we're
+         assured that "this" is non-NULL (or the call through "this" to
+         the member function would have failed). */
       need_null_preservation_code = FALSE;
     } else if (cannot_be_null(source_node)) {
       /* The source address is known not to be NULL. */
@@ -9213,30 +9473,37 @@ more than once.
       /* Generate the code for the virtual base class cast.  There are two
          subcases: when the source is known to be a complete object (in
          which case no indirection is needed), and when it is not. */
+      /* Add an indirection to get a class lvalue, then take its
+         address. */
+      source_node = add_indirection_to_node(source_node);
       source_node = make_vbase_class_lvalue(source_node,
                                             *base_class_for_virtual_step,
                                             *complete_object);
+      source_node = add_address_of_to_node(source_node);
       /* Now that we've dealt with the virtual hop, put things back to normal
          for levels above this one. */
       *base_class_for_virtual_step = NULL;
     }  /* if */
   } else {
     /* Non-virtual step. */
+    /* Add an indirection to get a class lvalue, then take its address. */
+    source_node = add_indirection_to_node(source_node);
     source_node = make_base_class_lvalue(source_node, bcp,
                                          /*complete_object=*/FALSE);
+    source_node = add_address_of_to_node(source_node);
   }  /* if */
   *result_node = source_node;
 }  /* related_class_cast_step */
 
 
 static void lower_related_class_cast(an_expr_node_ptr node,
-                                     a_boolean        is_lvalue,
-                                     a_boolean        lower_source)
+                                     a_boolean        lower_source,
+                                     a_boolean        assume_expr_is_non_null)
 /*
 Rewrite a cast from a class to a base class or from a base class to
-a derived class.  The result of the cast is being used as an lvalue if
-is_lvalue is TRUE.  The source expression under any base class casts
-needs to be lowered if lower_source is TRUE.
+a derived class.  The source expression under any base class casts
+needs to be lowered if lower_source is TRUE.  If assume_expr_is_non_null
+is TRUE no NULL-preservation code is required.
 */
 {
   an_expr_node_ptr null_preservation_source_node;
@@ -9255,7 +9522,6 @@ needs to be lowered if lower_source is TRUE.
      each step once; and (e) add all the offsets for derived-class
      casts into a single offset. */
   related_class_cast_step(node,
-                          is_lvalue,
                           lower_source,
                           /*any_nonzero_offset=*/FALSE,
                           /*virtual_step_class=*/(a_type_ptr)NULL,
@@ -9263,7 +9529,8 @@ needs to be lowered if lower_source is TRUE.
                           &base_class_for_virtual_step,
                           &complete_object,
                           &result_node,
-                          &derived_class_cast_offset);
+                          &derived_class_cast_offset,
+                          assume_expr_is_non_null);
   if (node->variant.operation.kind ==
                                (an_expr_operator_kind)eok_derived_class_cast) {
     /* A cast from a base class to a derived class.  The call above collected
@@ -9372,12 +9639,10 @@ class to the class of node in *offset.
 }  /* compute_pm_cast_offset */
 
 
-static void lower_pm_related_class_cast(an_expr_node_ptr node,
-                                        a_boolean        is_lvalue)
+static void lower_pm_related_class_cast(an_expr_node_ptr node)
 /*
 Rewrite a cast from a pointer to a member of a class to a pointer to a member
-of a base or derived class of that class.  The result of the cast is being
-used as an lvalue if is_lvalue is TRUE.
+of a base or derived class of that class.
 */
 {
   an_expr_node_ptr source_node, question_node, compare_node, plus_node;
@@ -9401,7 +9666,7 @@ used as an lvalue if is_lvalue is TRUE.
      class offset for the chain. */
   compute_pm_cast_offset(node, &source_node, &offset);
   /* Lower the underlying subtree. */
-  lower_expr(source_node, is_lvalue);
+  lower_expr(source_node);
   if (offset == 0) {
     /* When the offset is zero no cast is needed.  Overwrite the original
        node with the underlying node. */
@@ -9497,7 +9762,8 @@ used as an lvalue if is_lvalue is TRUE.
          original pointer-to-member-function type is available in case
          there is an eok_pm_call operation above this one. */
       set_node_operator(node, (an_expr_operator_kind)eok_comma,
-                        dest_type, comma_node);
+                        dest_type, node->is_lvalue, comma_node);
+      adjust_returns_lvalue_instead_of_usual_rvalue_if_necessary(node);
     } else {
       /* Pointer to data member.  Change the node to
            (pdm != 0) ? pdm + offset : 0
@@ -9555,7 +9821,8 @@ used as an lvalue if is_lvalue is TRUE.
 #endif /* IA64_ABI */
                                              targ_ptr_to_data_member_int_kind);
       set_node_operator(node, (an_expr_operator_kind)eok_question,
-                        dest_type, compare_node);
+                        dest_type, node->is_lvalue, compare_node);
+      adjust_returns_lvalue_instead_of_usual_rvalue_if_necessary(node);
     }  /* if */
   }  /* if */
 }  /* lower_pm_related_class_cast */
@@ -9638,10 +9905,14 @@ Lower an eok_dynamic_cast expression.  The subtree has already been lowered.
      vtable, and adjust the pointer. */
   if (is_pointer_type(cast_type) && 
       is_void_type(f_skip_typerefs(type_pointed_to(cast_type)))) {
-    an_expr_node_ptr offset_to_top_node, src_copy_copy;
+    an_expr_node_ptr offset_to_top_node, vtbl_class;
     /* Extract the offset to top node. */
-    src_copy_copy = make_reusable_copy(src_copy, /*vars_can_change=*/FALSE);
-    offset_to_top_node = make_vtbl_entry_expr(src_copy_copy, -2L);
+    vtbl_class = make_reusable_copy(src_copy, /*vars_can_change=*/FALSE);
+    /* De-reference a pointer type (if any) to get an lvalue class type. */
+    while (is_pointer_type(vtbl_class->type)) {
+      vtbl_class = add_indirection_to_node(vtbl_class);
+    }  /* while */
+    offset_to_top_node = make_vtbl_entry_expr(vtbl_class, -2L);
     /* Cast the original pointer to `char *' to avoid scaling when
        performing pointer arithmetic. */
     src_copy = add_cast_to_char_star(src_copy);
@@ -9783,7 +10054,8 @@ Lower an eok_dynamic_cast expression.  The subtree has already been lowered.
   /* Overwrite the original node with the "?" operator. */
   set_expr_node_kind(expr, (an_expr_node_kind)enk_operation);
   set_node_operator(expr, (an_expr_operator_kind)eok_question,
-                    expr->type, compare_node);
+                    expr->type, expr->is_lvalue, compare_node);
+  adjust_returns_lvalue_instead_of_usual_rvalue_if_necessary(expr);
 }  /* lower_dynamic_cast */
 
 #endif /* ABI_CHANGES_FOR_RTTI */
@@ -9824,6 +10096,7 @@ Lower an eok_bool_cast node, which converts an operand to bool.
   a_type_ptr            orig_type = expr->type;
 #endif /* DO_C99_IL_LOWERING */
 
+  check_assertion(!expr->is_lvalue);
   /* A cast to bool in C++ or C99 is rewritten as a "!= 0" test in C89. */
   operand = integral_promote_node(operand);
   /* underlying_type is needed here for the pointer-to-member case
@@ -9839,7 +10112,7 @@ Lower an eok_bool_cast node, which converts an operand to bool.
     result_type = integer_type((an_integer_kind)ik_int);
   }  /* if */
   op = which_binary_operator(tok_ne, operand_type);
-  set_node_operator(expr, op, result_type, operand);
+  set_node_operator(expr, op, result_type, /*is_lvalue=*/FALSE, operand);
   /* Note that in C++ the result type may still be "bool" here; if so, a
      cast will be inserted later.  The type will be "int" if
      adjust_bool_operation_types has discovered this case can be optimized.
@@ -9883,8 +10156,6 @@ lvalue to its logical "not".
        expr->result_is_not_used)) {
     /* Preincrement: ++x becomes (x = 1).  Also used for postincrement
        when result is not used. */
-    a_boolean returns_lvalue = expr->variant.operation.
-                                        returns_lvalue_instead_of_usual_rvalue;
     /* Build a constant one, but make sure it has bool type to preserve
        bool-correctness in the IL for back ends that care. */
     set_integer_constant(&result_constant,
@@ -9894,9 +10165,8 @@ lvalue to its logical "not".
     result_value_node = alloc_node_for_constant(&result_constant);
     operand_node->next = result_value_node;
     set_node_operator(expr, (an_expr_operator_kind)eok_iassign,
-                      expr->type, operand_node);
-    expr->variant.operation.returns_lvalue_instead_of_usual_rvalue =
-                                                                returns_lvalue;
+                      expr->type, expr->is_lvalue, operand_node);
+    adjust_returns_lvalue_instead_of_usual_rvalue_if_necessary(expr);
   } else {
     /* Postincrement: x++ becomes (temp = x, x = 1, temp).
        Postdecrement: x-- becomes (temp = x, x = !temp, temp).
@@ -9906,7 +10176,7 @@ lvalue to its logical "not".
     an_expr_node_ptr x_lvalue_copy =
                           make_lvalue_reusable_copy(operand_node,
                                                     /*vars_can_change=*/FALSE);
-    an_expr_node_ptr x_rvalue = add_indirection_to_node(operand_node);
+    an_expr_node_ptr x_rvalue = rvalue_expr_for_lvalue(operand_node);
     an_expr_node_ptr x_rvalue_copy =
                                   make_reusable_copy(x_rvalue,
                                                      /*vars_can_change=*/TRUE);
@@ -9936,21 +10206,23 @@ lvalue to its logical "not".
     }  /* if */
     /* Make the assignment: (x = 1) or (x = !temp). */
     x_lvalue_copy->next = result_value_node;
-    assign_node = make_operator_node((an_expr_operator_kind)eok_iassign,
-                                     x_rvalue->type, x_lvalue_copy);
+    assign_node = make_lvalue_operator_node((an_expr_operator_kind)eok_iassign,
+                                            x_rvalue->type, x_lvalue_copy);
     if (!predecr_case) {
       comma_node = make_comma_node(x_rvalue, assign_node);
       /* Change the original expression into a comma node whose second
          operand is the overall result. */
       comma_node->next = x_rvalue_copy;
       set_node_operator(expr, (an_expr_operator_kind)eok_comma,
-                        x_rvalue_copy->type, comma_node);
+                        x_rvalue_copy->type, expr->is_lvalue, comma_node);
+      adjust_returns_lvalue_instead_of_usual_rvalue_if_necessary(expr);
     } else {
       /* The prefix case: change the original expression into a
          comma node where the second operand is the assignment. */
       x_rvalue->next = assign_node;
       set_node_operator(expr, (an_expr_operator_kind)eok_comma,
-                        assign_node->type, x_rvalue);
+                        assign_node->type, expr->is_lvalue, x_rvalue);
+      adjust_returns_lvalue_instead_of_usual_rvalue_if_necessary(expr);
     }  /* if */
   }  /* if */
 }  /* lower_bool_incr_decr */                  
@@ -10066,16 +10338,11 @@ operator.  For example, eok_iadd_assign is translated to eok_iadd.
 }  /* corresponding_operator_for_compound_assignment */
 
 
-#if !LOWER_LVALUE_RETURNING_OPERATIONS
-/*ARGSUSED*/ /* <-- is_lvalue is not used in that case. */
-#endif /* !LOWER_LVALUE_RETURNING_OPERATIONS */
-void rewrite_compound_assignment(an_expr_node_ptr expr,
-                                 a_boolean        is_lvalue)
+void rewrite_compound_assignment(an_expr_node_ptr expr)
 /*
 Rewrite a compound assignment x @= y as x = x @ y.  If x has side effects,
 a temporary will be used, and the code will be something like
-(temp = &x, *temp = *temp @ y).  expr is being used as an lvalue if
-is_lvalue is TRUE.
+(temp = &x, *temp = *temp @ y).
 */
 {
   an_expr_operator_kind op = expr->variant.operation.kind, assign_op;
@@ -10085,12 +10352,13 @@ is_lvalue is TRUE.
   an_expr_node_ptr      op1_for_operation, op1_for_assign, op_node, op2_node;
   a_variable_ptr        temp_var = NULL;
   a_boolean             temp_init_used;
-  a_type_ptr            result_type = rvalue_type(type_pointed_to(op1->type));
+  a_type_ptr            result_type = rvalue_type(op1->type);
   a_type_ptr            operation_type;
   a_boolean             swap_operands = FALSE;
   a_boolean             result_is_lvalue = expr->variant.operation.
                                         returns_lvalue_instead_of_usual_rvalue;
 
+  check_assertion(result_is_lvalue == expr->is_lvalue);
   /* Determine the operation type, which is usually the second operand
      type. */
   operation_type = expression_operation_type(expr);
@@ -10128,7 +10396,8 @@ is_lvalue is TRUE.
     op1_for_operation = op1;
     op1 = op_node;
   }  /* if */
-  op1_for_operation = add_indirection_to_node(op1_for_operation);
+  /* op1_for_operation is used as an rvalue. */
+  op1_for_operation = rvalue_expr_for_lvalue(op1_for_operation);
   if (is_bool_type(op1_for_operation->type) &&
       is_pointer_type(op2->type)) {
     /* For the C++ bool += pointer case, do not change the operand types,
@@ -10181,6 +10450,7 @@ is_lvalue is TRUE.
     /* Not using a temporary. */
     if (result_is_lvalue) {
       op_node->type = expr->type;
+      op_node->is_lvalue = TRUE;
       op_node->variant.operation.returns_lvalue_instead_of_usual_rvalue = TRUE;
     }  /* if */
   } else {
@@ -10190,14 +10460,15 @@ is_lvalue is TRUE.
                                     var_rvalue_expr(temp_var));
     if (result_is_lvalue) {
       op2_node->type = expr->type;
+      op2_node->is_lvalue = result_is_lvalue;
       op2_node->variant.operation.returns_lvalue_instead_of_usual_rvalue =
                                                               result_is_lvalue;
     }  /* if */
 #if LOWER_LVALUE_RETURNING_OPERATIONS
-    lower_operations_returning_lvalue_instead_of_usual_rvalue(op2_node,
-                                                              is_lvalue);
+    lower_operations_returning_lvalue_instead_of_usual_rvalue(op2_node);
 #endif /* LOWER_LVALUE_RETURNING_OPERATIONS */
     op_node = make_comma_node(op_node, op2_node);
+    op_node->is_lvalue = result_is_lvalue;
     op_node->variant.operation.returns_lvalue_instead_of_usual_rvalue =
                                                               result_is_lvalue;
   }  /* if */
@@ -10208,7 +10479,8 @@ is_lvalue is TRUE.
 
 static void lower_gnu_min_max(an_expr_node_ptr expr)
 /*
-Lower the GNU C++ "<?" (min) and ">?" (max) operators.
+Lower the GNU C++ "<?" (min) and ">?" (max) operators.  expr can be either
+an lvalue or rvalue expression.
 */
 {
   an_expr_node_ptr      op1 = expr->variant.operation.operands;
@@ -10216,8 +10488,6 @@ Lower the GNU C++ "<?" (min) and ">?" (max) operators.
   an_expr_node_ptr      temp1, temp2, rel_node;
   an_expr_operator_kind op;
   a_boolean             op1_has_side_effects, op2_has_side_effects;
-  a_boolean             result_is_lvalue = expr->variant.operation.
-                                        returns_lvalue_instead_of_usual_rvalue;
 
   /* Rewrite
        a <? b
@@ -10251,13 +10521,12 @@ Lower the GNU C++ "<?" (min) and ">?" (max) operators.
     default:
       unexpected_condition_str("lower_gnu_min_max: bad operator");
   }  /* switch */
-  if (result_is_lvalue) {
-    /* In the lvalue-returning case, the operands are the addresses of
-       the values.  In order to compare the values, we have to add an
-       indirection to the nodes. */
+  if (expr->is_lvalue) {
+    /* In the lvalue-returning case, the operands are lvalues.
+       In order to compare the values, we have to convert them to rvalues. */
     op1->next = NULL;
-    op1 = add_indirection_to_node(op1);
-    op2 = add_indirection_to_node(op2);
+    op1 = rvalue_expr_for_lvalue(op1);
+    op2 = rvalue_expr_for_lvalue(op2);
     op1->next = op2;
   }  /* if */
   /* Make "(temp1 = a) < (temp2 = b)". */
@@ -10267,28 +10536,11 @@ Lower the GNU C++ "<?" (min) and ">?" (max) operators.
   rel_node->next = temp1;
   temp1->next = temp2;
   set_node_operator(expr, (an_expr_operator_kind)eok_question,
-                    temp1->type, rel_node);
+                    temp1->type, expr->is_lvalue, rel_node);
+  adjust_returns_lvalue_instead_of_usual_rvalue_if_necessary(expr);
 }  /* lower_gnu_min_max */
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
-
-static a_routine_ptr routine_from_node(an_expr_node_ptr node)
-/*
-node is an expression node that is the address of a specific routine.
-Extract and return a pointer to the routine entry.
-*/
-{
-  a_routine_ptr routine;
-
-#if CHECKING
-  if (node->kind != (an_expr_node_kind)enk_routine_address) {
-    internal_error("routine_from_node: func node not rout addr");
-  }  /* if */
-#endif /* CHECKING */
-  routine = node->variant.routine;
-  return routine;
-}  /* routine_from_node */
-
 #if !IA64_ABI
 
 static void add_implied_args_to_call(an_expr_node_ptr call_expr,
@@ -10327,23 +10579,26 @@ static an_expr_node_ptr make_vtbl_entry_node(an_expr_node_ptr func_node,
                                              an_expr_node_ptr object_node)
 /*
 Create an expression that computes the address of the virtual table entry
-for the function whose address is given by func_node for the object whose
-address is given by object_node.  Return a pointer to the expression
+for the function whose address is given by func_node for the object specified
+by the lvalue expression object_node.  Return a pointer to the expression
 created.
 */
 {
   a_routine_ptr             routine_ptr;
-  an_expr_node_ptr          select_vptr_node, vptr_node, vtbl_entry_node;
+  an_expr_node_ptr          vptr_node, vtbl_entry_node;
   an_expr_node_ptr          index_node;
   a_constant_ptr            index_con;
   a_virtual_function_number idx;
 
+  check_assertion(!object_node->is_lvalue);
   /* Find the routine entry. */
-  routine_ptr = routine_from_node(func_node);
+  routine_ptr = routine_from_function_expr(func_node);
+  check_assertion(routine_ptr != NULL);
   /* Make an expression tree for the value of the virtual function table
      pointer. */
-  select_vptr_node = make_vptr_field_lvalue(object_node);
-  vptr_node = add_indirection_to_node(select_vptr_node);
+  object_node = add_indirection_to_node(object_node);
+  vptr_node = make_vptr_field_lvalue(object_node);
+  vptr_node = rvalue_expr_for_lvalue(vptr_node);
   /* Add the index for the function to the base address of the virtual
      function to get the address of the applicable entry of the table. */
   idx = routine_ptr->virtual_function_number;
@@ -10375,10 +10630,10 @@ have already been lowered.
   an_expr_node_ptr cast_node; /*lint !e578*/
   a_variable_ptr   vtbl_temp_var;
 #endif /* !IA64_ABI */
-  an_expr_node_ptr vtbl_entry_node; 
+  an_expr_node_ptr vtbl_entry_node, object_node_copy;
 
   /* The original tree has an eok_virtual_call node with operands as follows:
-       (1) an enk_routine_address node for the virtual function.
+       (1) an enk_routine node for the virtual function.
        (2) a node for the object pointer.
        (3..n) optional additional arguments.
      Or, in C notation,
@@ -10427,6 +10682,9 @@ have already been lowered.
       assign_node = object_node;
       object_node = assign_expr_to_temp_and_make_expr_for_reuse(object_node);
     }  /* if */
+    /* Make a copy of the object address. */
+    object_node_copy = make_reusable_copy(object_node,
+                                   /*vars_can_change=*/args_have_side_effects);
     /* Make a node for the address of the virtual table entry for the
        function. */
     vtbl_entry_node = make_vtbl_entry_node(func_node, object_node);
@@ -10434,9 +10692,9 @@ have already been lowered.
     func_select_node = add_indirection_to_node(vtbl_entry_node);
     func_select_node = add_cast_if_necessary(func_select_node,
                                              func_node->type);
-    /* Make a copy of the object node for use as the "this" argument of
+    /* Make another copy of the object node for use as the "this" argument of
        the call. */
-    object_node = make_reusable_copy(object_node,
+    object_node = make_reusable_copy(object_node_copy,
                                    /*vars_can_change=*/args_have_side_effects);
   }
   if (return_node != NULL) {
@@ -10454,6 +10712,9 @@ have already been lowered.
      If "object" is not a reusable expression, the first occurrence of
      "object" above is replaced by "(object_temp = object)", and the
      second by "object_temp". */
+  /* Make a reusable copy of the object address. */
+  object_node_copy = make_reusable_copy(object_node,
+                                   /*vars_can_change=*/FALSE);
   /* Make a node for the address of the virtual table entry for the
      function. */
   vtbl_entry_node = make_vtbl_entry_node(func_node, object_node);
@@ -10472,8 +10733,9 @@ have already been lowered.
      table entry and adds it to the object pointer. */
   vtbl_temp_node = var_rvalue_expr(vtbl_temp_var);
   d_value_node = field_rvalue_selection_expr(vtbl_temp_node, mptr_d_field);
-  /* Make a reusable copy of the object address. */
-  object_node = make_reusable_copy(object_node, /*vars_can_change=*/FALSE);
+  /* Make another reusable copy of the object address. */
+  object_node = make_reusable_copy(object_node_copy,
+                                   /*vars_can_change=*/FALSE);
   /* Cast the node to "char *" to suppress scaling on the pointer addition. */
   cast_node = add_cast_to_char_star(object_node);
   /* Add the object pointer and the delta value. */
@@ -10491,7 +10753,7 @@ have already been lowered.
   }  /* if */
 #endif /* !IA64_ABI */
   /* Reuse the node that was originally the first operand of
-     the virtual call (i.e., the enk_routine_address node) as the new
+     the virtual call (i.e., the enk_routine node) as the new
      eok_call node.  Attach the function selection node, the object node, and
      the additional arguments to the call node as arguments. */
   change_node_to_operation(func_node, (an_expr_operator_kind)eok_call,
@@ -10502,7 +10764,7 @@ have already been lowered.
        operands. */
     assign_node->next = func_node;
     set_node_operator(expr, (an_expr_operator_kind)eok_comma, expr->type,
-                      assign_node);
+                      /*is_lvalue=*/FALSE, assign_node);
   } else {
     /* No assign_node, so just overwrite the original expression with
        the call node. */
@@ -10516,7 +10778,7 @@ static void lower_virtual_function_ptr(an_expr_node_ptr expr)
 Do IL Lowering of an eok_virtual_function_ptr node, which is used to
 get the address of a virtual function when a bound function is cast to
 a normal function pointer (an anachronism).  The operands of the expression
-have already been lowered.
+have already been lowered.  The expression is an rvalue.
 */
 {
   an_expr_node_ptr func_node, object_node;
@@ -10525,9 +10787,10 @@ have already been lowered.
 
   /* The original tree has an eok_virtual_function_ptr node with operands
      as follows:
-       (1) an enk_routine_address node for the virtual function.
+       (1) an enk_routine node for the virtual function.
        (2) a node for the object pointer.
   */
+  check_assertion(!expr->is_lvalue);
   func_node = expr->variant.operation.operands;
   object_node = func_node->next;
   func_node->next = NULL;
@@ -10548,7 +10811,8 @@ have already been lowered.
   /* Convert the original node into an indirection node that fetches the
      value in the "f" field. */
   set_node_operator(expr, (an_expr_operator_kind)eok_indirect, expr->type,
-                    func_select_node);
+                    /*is_lvalue=*/FALSE,
+                    rvalue_expr_for_lvalue(func_select_node));
 #else /* IA64_ABI */
   /* Get the function pointer stored in the virtual function table. */
   func_select_node = add_indirection_to_node(vtbl_entry_node);
@@ -10798,6 +11062,7 @@ the expression have already been lowered.
     cast_node = add_cast(padd_node, make_pointer_type(char_star_type()));
 #endif /* IA64_ABI */
     vtbl_addr_node = add_indirection_to_node(cast_node);
+    vtbl_addr_node = rvalue_expr_for_lvalue(vtbl_addr_node);
     pmf_node = make_reusable_copy(pmf_node, /*vars_can_change=*/FALSE);
     /* Make the index into the virtual function table. */
 #if !IA64_ABI
@@ -10911,7 +11176,8 @@ the expression have already been lowered.
      this_temp (and perhaps also func_temp) and the call under it. */
   this_temp_assign_node->next = call_node;
   set_node_operator(expr, (an_expr_operator_kind)eok_comma,
-                    expr->type, this_temp_assign_node);
+                    expr->type, expr->is_lvalue, this_temp_assign_node);
+  adjust_returns_lvalue_instead_of_usual_rvalue_if_necessary(expr);
 }  /* lower_pm_call */
 
 
@@ -10940,6 +11206,8 @@ the top node of the indicated statement (which is an expression statement).
   /* Extract the routine type. */
   if (op == (an_expr_operator_kind)eok_pm_call) {
     rout_type = pm_member_type_possibly_lowered(first_arg->type);
+  } else if (first_arg->is_lvalue) {
+    rout_type = first_arg->type;
   } else {
     rout_type = type_pointed_to(first_arg->type);
   }  /* if */
@@ -10951,14 +11219,16 @@ the top node of the indicated statement (which is an expression statement).
      Usually it will be unlowered. */
   rtsp = rout_type->variant.routine.extra_info;
   /* Lower the expression giving the address of the routine. */
-  lower_expr(arg_node, /*is_lvalue=*/FALSE);
+  lower_expr(arg_node);
   prev_arg_node = arg_node;
   arg_node = arg_node->next;
   /* If the routine has a "this" parameter, lower it separately. */
   if (rtsp->this_class != NULL) {
-    /* Treat the "this" parameter as an lvalue to avoid extra tests for NULL
-       on base class casts. */
-    lower_expr(arg_node, /*is_lvalue=*/TRUE);
+    /* Don't bother adding NULL-preservation code for the "this" paramater.
+       If "this" is NULL, dereferencing it is going to cause an error
+       whether or not the NULL-preservation test is added, so generate
+       slightly optimized code. */
+    lower_expr_full(arg_node, /*assume_expr_is_non_null=*/TRUE);
     if (rtsp->return_value_parameter_follows_this) {
       /* If a return value address argument will be added below, make sure
          it follows the "this" argument. */
@@ -10990,22 +11260,21 @@ the top node of the indicated statement (which is an expression statement).
       call_expr->type = void_type();
       call_expr->next = var_rvalue_expr(temp_var);
       set_node_operator(expr, (an_expr_operator_kind)eok_comma,
-                        call_expr->next->type, call_expr);
+                        call_expr->next->type, expr->is_lvalue, call_expr);
+      adjust_returns_lvalue_instead_of_usual_rvalue_if_necessary(expr);
     } else {
       /* This only happens under a dik_call_returning_class_via_cctor
          dynamic initialization entry. */
-      temp_node = make_init_entity_node(ipdp, /*using_as_address=*/TRUE,
-                                        /*using_as_dest=*/TRUE);
+      temp_node = make_address_of_init_entity_node(ipdp,
+                                                   /*using_as_dest=*/TRUE);
       /* Change the result type of the call to "void". */
       expr->type = void_type();
     }  /* if */
     temp_node->next = prev_arg_node->next;
     prev_arg_node->next = temp_node;
   }  /* if */
-  if (first_arg->kind == (an_expr_node_kind)enk_routine_address) {
-    /* We know the specific routine being called. */
-    routine = routine_from_node(first_arg);
-  }  /* if */
+  /* See if we know the specific routine being called. */
+  routine = routine_from_function_expr(first_arg);
   /* Lower the rest of the arguments. */
   lower_arg_expr_list(arg_node, rout_type, routine, (a_param_type_ptr)NULL);
   if (routine != NULL) {
@@ -11179,10 +11448,10 @@ first operand (but not the second) has been lowered already.
        constants, leave them alone and generate code that compares directly
        against the components of the pointer-to-member structure. */
     if (!is_constant_node(op1_node) && !operand1_lowered) {
-      lower_expr(op1_node, /*is_lvalue=*/FALSE);
+      lower_expr(op1_node);
     }  /* if */
     if (!is_constant_node(op2_node)) {
-      lower_expr(op2_node, /*is_lvalue=*/FALSE);
+      lower_expr(op2_node);
     } else {
       /* If op2_node is constant and op1_node is not, swap the operands to
          make the tests for constants below easier. */
@@ -11343,12 +11612,14 @@ first operand (but not the second) has been lowered already.
       compare_i_node->next = or_node;
       set_node_operator(expr,
                         (an_expr_operator_kind)(ne_case ? eok_lor : eok_land),
-                        or_node->type, compare_i_node);
+                        or_node->type, /*is_lvalue=*/FALSE, compare_i_node);
     }  /* if */
   } else {
     /* Pointer-to-data-member comparison: turns into integer comparison. */
-    if (!operand1_lowered) lower_expr(op1_node, /*is_lvalue=*/FALSE);
-    lower_expr(op2_node, /*is_lvalue=*/FALSE);
+    if (!operand1_lowered) {
+      lower_expr(op1_node);
+    }  /* if */
+    lower_expr(op2_node);
     if (!targ_ptr_to_data_member_is_promoted_integral_type()) {
       op1_node->next = NULL;
       op1_node = integral_promote_pm_node(op1_node);
@@ -11368,24 +11639,35 @@ first operand (but not the second) has been lowered already.
 
 static void lower_pm_field(an_expr_node_ptr expr)
 /*
-Lower a pointer-to-member selection of a data member.  The operands of
-the expression have already been lowered.
+Lower a pointer-to-member selection (both source form x->*pm and x.*pm)
+of a data member.  The operands of the expression have already been lowered.
+The expression can be an lvalue or an rvalue.
 */
 {
-  an_expr_node_ptr pdm_node, plus_node, object_node;
-  an_expr_node_ptr cast_node; /*lint !e578*/
+  an_expr_node_ptr       pdm_node, plus_node, object_node;
+  an_expr_node_ptr       cast_node; /*lint !e578*/
 #if !IA64_ABI
-  an_expr_node_ptr one_node, minus_node;
+  an_expr_node_ptr       one_node, minus_node;
 #endif /* !IA64_ABI */
 
-  /* p->*pdm is lowered to (member-type *)(((char *)p)+(pdm-1)).
+  /* p->*pdm is lowered to *((member-type *)(((char *)p)+(pdm-1))).
      pdm, the pointer to data member, has already been turned into an
      integral type.  The "-1" reverses the increment done to reserve 0
      as a NULL pointer to data member. */
-  /* In the IA-64 ABI, (member-type *)((char *)p + pdm). */
+  /* In the IA-64 ABI, *((member-type *)((char *)p + pdm)). */
   object_node = expr->variant.operation.operands;
   pdm_node = object_node->next;
   object_node->next = NULL;
+  if (is_class_struct_union_type(object_node->type)) {
+    /* Convert the class object (rvalue or lvalue) into a pointer. */
+    if (object_node->is_lvalue) {
+      object_node = add_address_of_to_node(object_node);
+    } else {
+      object_node = rvalue_pointer_for_class_rvalue(object_node);
+    }  /* if */
+  } else {
+    check_assertion(is_pointer_type(object_node->type));
+  }  /* if */
   /* Cast the object pointer node to "char *" to avoid scaling on the
      pointer addition. */
   cast_node = add_cast_to_char_star(object_node);
@@ -11406,21 +11688,202 @@ the expression have already been lowered.
 #endif /* IA64_ABI */
   plus_node = make_operator_node((an_expr_operator_kind)eok_padd,
                                  cast_node->type, cast_node);
-  /* Change the original node into a cast of the pointer expression to a
-     pointer to the data member type.  The original expression type is
-     already the correct pointer type. */
-  change_to_cast(expr, plus_node, expr->type);
+  /* Make sure the end result has the same type and lvalueness as the
+     original expression. */
+  plus_node = add_cast_if_necessary(plus_node, make_pointer_type(expr->type));
+  plus_node = add_indirection_to_node(plus_node);
+  if (!expr->is_lvalue) {
+    plus_node = rvalue_expr_for_lvalue(plus_node);
+  }  /* if */
+  check_assertion(il_identical_types(expr->type, plus_node->type) &&
+                  expr->is_lvalue == plus_node->is_lvalue);
+  overwrite_node(expr, plus_node);
 }  /* lower_pm_field */
+
+
+void adjust_returns_lvalue_instead_of_usual_rvalue_if_necessary(
+                                                         an_expr_node_ptr expr)
+/*
+This function sets the returns_lvalue_instead_of_usual_rvalue flag of the
+operation expression to TRUE if the expression is an lvalue.  Should only
+be called if the operation is one of those where the
+returns_lvalue_instead_of_usual_rvalue flag is appropriate (i.e.,
+an assignment (simple or compound), prefix ++/--, or "?" or "," operator).
+Typically called after a set_node_operator with one of the operators
+listed above.
+*/
+{
+  check_assertion(is_operation_node(expr));
+  if (expr->is_lvalue) {
+    expr->variant.operation.returns_lvalue_instead_of_usual_rvalue = TRUE;
+  }  /* if */
+}  /* adjust_returns_lvalue_instead_of_usual_rvalue_if_necessary */
+
+
+void optimize_expr_if_possible(an_expr_node_ptr expr)
+/*
+Perform some simple optimizations on expr if possible.  Sometimes, during
+lowering, two existing expressions are joined (e.g., during inlining) and the
+resultant expression can be optimized.
+*/
+{
+  if (is_operation_node(expr)) {
+    an_expr_node_ptr      child = expr->variant.operation.operands;
+    if (is_operation_node(child)) {
+      an_expr_operator_kind op = expr->variant.operation.kind;
+      an_expr_node_ptr      gchild = child->variant.operation.operands;
+      an_expr_node_ptr      comma_second_node = gchild->next;
+      a_boolean             optimized = TRUE;
+      if (((op == (an_expr_operator_kind)eok_address_of &&
+            node_operator_is(child, eok_indirect)) ||
+           (op == (an_expr_operator_kind)eok_indirect &&
+            node_operator_is(child, eok_address_of))) &&
+          il_identical_types(expr->type, gchild->type) &&
+          expr->is_lvalue == gchild->is_lvalue) {
+        /* Optimize "&*x" or "*&x" operations. */
+        overwrite_node(expr, gchild);
+      } else if (node_operator_is(child, eok_comma) &&
+                 is_operation_node(comma_second_node) && 
+                 op == (an_expr_operator_kind)eok_address_of &&
+                 node_operator_is(comma_second_node, eok_indirect) &&
+                 il_identical_types(expr->type,
+                        comma_second_node->variant.operation.operands->type) &&
+                 expr->is_lvalue ==
+                    comma_second_node->variant.operation.operands->is_lvalue) {
+        /* Optimize "&(..., *x)" operation.  Note that "*(..., &x)" is
+           explicitly not optimized because it can lead to an lvalue
+           comma expression during inlining which generates invalid C. */
+        overwrite_node(comma_second_node,
+                       comma_second_node->variant.operation.operands);
+        child->type = comma_second_node->type;
+        child->is_lvalue = comma_second_node->is_lvalue;
+        overwrite_node(expr, child);
+      } else if (op == (an_expr_operator_kind)eok_points_to_field &&
+                 node_operator_is(child, eok_address_of)) {
+        /* Optimize "(&x)->y" to "x.y". */
+        rewrite_points_to_field_as_dot_field(expr);
+      } else if (op == (an_expr_operator_kind)eok_dot_field &&
+                 node_operator_is(child, eok_indirect)) {
+        /* Optimize "(*x).y" to "x->y". */
+        rewrite_dot_field_as_points_to_field(expr);
+      } else {
+        optimized = FALSE;
+      } /* if */
+      if (optimized) {
+        /* See if further optimizations are possible. */
+        optimize_expr_if_possible(expr);
+      } /* if */
+    } /* if */
+  } /* if */
+}  /* optimize_expr_if_possible */
+
+
+static void lower_operation_on_const_string(an_expr_node_ptr expr)
+/*
+The expression, expr, is an enk_operation that operates on a const qualified
+string literal.  In C, string literals are not const qualified, and the
+ck_string constant will be lowered to a non-const qualified type (in
+lower_constant).  This routine adds a cast (by overwriting the expression with
+an eok_cast to a copy of the expression) to preserve the const-ness of the
+expression, if necessary.
+*/
+{
+  an_expr_node_ptr  operand = expr->variant.operation.operands;
+  a_type_ptr        orig_expr_type = expr->type;
+  a_type_ptr        orig_operand_type;
+
+  check_assertion(string_literals_are_const &&
+                  is_operation_node(expr) &&
+                  is_constant_node(operand) &&
+                  operand->variant.constant->kind ==
+                                              (a_constant_repr_kind)ck_string);
+  /* Remove const qualifier from expression and operand.  lower_constant
+     will remove const-ness from the ck_string. */
+  orig_operand_type = operand->type;
+  operand->type = make_unqualified_type(orig_operand_type);
+  if (node_operator_is(expr, eok_address_of)) {
+#ifdef CHECKING
+    a_type_ptr type = type_pointed_to(expr->type);
+    check_assertion(is_const_qualified_type(type));
+#endif /* CHECKING */
+    expr->type = make_pointer_type(operand->type);
+  } else if (node_operator_is(expr, eok_array_to_pointer)) {
+#ifdef CHECKING
+    a_type_ptr type = type_pointed_to(expr->type);
+    check_assertion(is_const_qualified_type(type));
+#endif /* CHECKING */
+    expr->type = make_pointer_type(array_element_type(operand->type));
+  } else if (node_operator_is(expr, eok_comma)) {
+    /* Add a cast so this do-nothing operation will retain the correct type.
+       The type of the eok_comma operation is unaffected by the type of
+       its first operand. */
+    a_boolean is_lvalue = operand->is_lvalue;
+    operand = add_cast(copy_node(operand), orig_operand_type);
+    operand->is_lvalue = is_lvalue;
+    overwrite_node(expr->variant.operation.operands, operand);
+  } else {
+    /* Make sure there aren't any other operations on ck_strings that
+       aren't covered above.  Some lvalue casts may already have dropped
+       the const qualifier. */
+    check_assertion(node_operator_is(expr, eok_lvalue_cast) &&
+                    il_identical_types(expr->type, operand->type));
+  }  /* if */
+  lower_expr(expr);
+  if (expr->type != orig_expr_type) {
+    /* The type of the expression has changed, a cast is necessary. */
+    overwrite_node(expr, add_cast(copy_node(expr), orig_expr_type));
+  }  /* if */
+}  /* lower_operation_on_const_string */
+
+
+static void process_newly_created_expr(an_expr_node_ptr expr)
+/*
+Some lowering techniques are only applied to expressions that contain
+a specific sequence of operations.  The expression passed to this routine,
+expr, is an expression whose pieces have individually been lowered, but
+one that was not lowered in it's current form, and as such it may now
+be eligible for certain types of lowering.  For example, an expression
+that was originally *(0, &x) may have been lowered to (0, *&x) and this
+routine is being called to take another look at *&x to see if this
+(already lowered) expression needs further adjusting.
+*/
+{
+  /* Perform some optimizations if they are applicable. */
+  optimize_expr_if_possible(expr);
+  /* See if this expression needs lvalue re-working. */
+  lower_operations_returning_lvalue_instead_of_usual_rvalue(expr);
+  /* See if we've just created an operation on a const string constant. */
+  if (string_literals_are_const &&
+      is_operation_node(expr) &&
+      is_constant_node(expr->variant.operation.operands) &&
+      expr->variant.operation.operands->variant.constant->kind ==
+                                             (a_constant_repr_kind)ck_string) {
+    /* This operation operates on a ck_string whose const-ness will be
+       removed during lowering of the constant.  Re-write the operation
+       as necessary to preserve the const-ness. */
+    lower_operation_on_const_string(expr);
+  }  /* if */
+#if LOWER_VARIABLE_LENGTH_ARRAYS
+  if (is_operation_node(expr) &&
+      node_operator_is(expr, eok_address_of) &&
+      is_vla_type(type_pointed_to(expr->type)) &&
+      is_variable_node(expr->variant.operation.operands) &&
+      !expr->variant.operation.operands->is_lvalue) {
+    /* We've just taken the address of a lowered VLA variable.  Some
+       adjustments are necessary. */
+    address_taken_of_lowered_vla(expr);
+  }  /* if */
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
+}  /* process_newly_created_expr */
 
 #if LOWER_LVALUE_RETURNING_OPERATIONS
 
 void lower_operations_returning_lvalue_instead_of_usual_rvalue(
-                                                    an_expr_node_ptr expr,
-                                                    a_boolean        is_lvalue)
+                                                         an_expr_node_ptr expr)
 /*
 Transform lvalue-returning assignments, prefix ++/-- operators, and "?" and
 "," operators to valid C.  If the expression passed in is not one of those
-it is left alone.  expr is being used as an lvalue if is_lvalue is TRUE.
+it is left alone.
 */
 {
   if (is_operation_node(expr)) {
@@ -11444,6 +11907,7 @@ it is left alone.  expr is being used as an lvalue if is_lvalue is TRUE.
       an_expr_node_ptr c2_init = NULL;
       a_type_ptr       expr_type = expr->type;
       a_boolean        orig_expr_result_is_not_used = expr->result_is_not_used;
+      a_boolean        orig_expr_is_lvalue = expr->is_lvalue;
       if (child_op == (an_expr_operator_kind)eok_question) {
         /* Lvalue "?" rewrite.  Change
              ((g1 ? g2 : g3) = c2)
@@ -11499,11 +11963,11 @@ it is left alone.  expr is being used as an lvalue if is_lvalue is TRUE.
         gchild1->next = newop1;
         overwrite_node(expr, child1);
       }  /* if */
-      if (!is_lvalue) {
+      if (!orig_expr_is_lvalue) {
         /* The "S" above was an rvalue.  Change the result node to an
            rvalue. */
         expr->variant.operation.returns_lvalue_instead_of_usual_rvalue = FALSE;
-        expr->type = newop1->type;
+        expr->is_lvalue = FALSE;
       }  /* if */
       /* If a temporary was introduced to hold the value of child2, insert
          its initialization now. */
@@ -11512,12 +11976,12 @@ it is left alone.  expr is being used as an lvalue if is_lvalue is TRUE.
         set_expr_insert_location(expr, &insert_loc);
         insert_expr(c2_init, &insert_loc);
       }  /* if */
-      /* Do further rewriting on the operations just inserted. */
-      lower_operations_returning_lvalue_instead_of_usual_rvalue(newop1,
-                                                                is_lvalue);
+      /* Although the child operations have been previously lowered,
+         the newly created child operations may have created opportunities
+         for further optimization, so re-visit them in their new form. */
+      process_newly_created_expr(newop1);
       if (newop2 != NULL) {
-        lower_operations_returning_lvalue_instead_of_usual_rvalue(newop2,
-                                                                  is_lvalue);
+        process_newly_created_expr(newop2);
       }  /* if */
       /* Restore the original expression type.  This matters when the
          operation above the "?" or "," is a cast. */
@@ -11547,8 +12011,9 @@ it is left alone.  expr is being used as an lvalue if is_lvalue is TRUE.
          because the second operand is not touched. */
       newop = copy_node(expr);
       /* Drop type qualifiers on the result type. */
-      newop->type = f_skip_typerefs(type_pointed_to(expr->type));
+      newop->type = f_skip_typerefs(expr->type);
       newop->variant.operation.returns_lvalue_instead_of_usual_rvalue = FALSE;
+      newop->is_lvalue = FALSE;
       /* newop->result_is_not_used is cleared by copy_type, as it should be. */
       /* For assignments, see if the source expression can have side
          effects on the variables used in the destination expression.
@@ -11564,12 +12029,11 @@ it is left alone.  expr is being used as an lvalue if is_lvalue is TRUE.
          second operand of the comma operator. */
       newop->next = make_lvalue_reusable_copy(child1, vars_can_change);
       /* newop->next->result_is_not_used is properly FALSE, since the
-         comma expression has non-void type (it's an lvalue, so it has
-         a pointer type). */
+         comma expression has non-void type (it's an lvalue). */
       /* Change the original node to an lvalue-returning comma node. */
       set_node_operator(expr, (an_expr_operator_kind)eok_comma,
-                        expr->type, newop);
-      expr->variant.operation.returns_lvalue_instead_of_usual_rvalue = TRUE;
+                        expr->type, expr->is_lvalue, newop);
+      adjust_returns_lvalue_instead_of_usual_rvalue_if_necessary(expr);
     }  /* if */
   }  /* if */
 }  /* lower_operations_returning_lvalue_instead_of_usual_rvalue */
@@ -11577,12 +12041,14 @@ it is left alone.  expr is being used as an lvalue if is_lvalue is TRUE.
 #endif /* LOWER_LVALUE_RETURNING_OPERATIONS */
 
 static void wrap_throw(an_expr_node_ptr node,
-                       a_type_ptr       other_operand_type)
+                       a_type_ptr       other_operand_type,
+                       a_boolean        is_lvalue)
 /*
 node is a lowered throw expression under a "?" operator, and the other
 operand of the operation has type other_operand_type, which is a non-void
 type.  Wrap the throw in a comma expression to give it the same type as the
-other operand.
+other operand.  Also adjust the lvalueness to match that of the eok_question
+operator (as specified by is_lvalue).
 */
 {
   a_boolean        nonscalar;
@@ -11595,10 +12061,12 @@ other operand.
      it's a struct), indirect through a null pointer to the right kind. */
   zero_type = other_operand_type;
   nonscalar = !is_scalar_type(other_operand_type);
-  if (nonscalar) zero_type = make_pointer_type(other_operand_type);
+  if (is_lvalue || nonscalar) {
+    zero_type = make_pointer_type(other_operand_type);
+  }  /* if */
   make_zero_of_proper_type(zero_type, &null_constant);
   zero_node = alloc_node_for_constant(&null_constant);
-  if (nonscalar) zero_node = add_indirection_to_node(zero_node);
+  if (is_lvalue || nonscalar) zero_node = add_indirection_to_node(zero_node);
   /* Make a copy of the original throw node so the original node can be
      overwritten by a comma node. */
   node_copy = copy_node(node);
@@ -11606,112 +12074,97 @@ other operand.
   /* Change the original node to a comma expression. */
   change_node_to_operation(node, (an_expr_operator_kind)eok_comma,
                            other_operand_type, node_copy);
+  /* Make sure the lvalueness of the new node is set correctly. */
+  if (is_lvalue) node->is_lvalue = TRUE;
 }  /* wrap_throw */
 
 
-static void rewrite_discarded_lvalue_as_rvalue(
-                                              an_expr_node_ptr expr,
-                                              a_boolean        can_change_type)
+static void change_discarded_lvalue_node_to_rvalue_if_possible(
+                                    an_expr_node_ptr                    expr,
+                                    an_expr_or_stmt_traversal_block_ptr tblock)
 /*
-expr points to an expression tree for an lvalue whose result is discarded.
-Rewrite it as an rvalue that has the same side effects.  can_change_type
-is TRUE if the type of the expression node can be changed (because the
-context doesn't care what the type is).
+Called from the expression traversal routines to process an expression
+as part of rewriting an expression whose result (at the top level) is 
+discarded.  An lvalue expression without side effects can be discarded, and
+the type of the expression can be modified if necessary in certain
+cases (e.g., if this is the top level of the expression).
 */
 {
   a_type_ptr       expr_type = expr->type;
   a_constant       zero_con;
   an_expr_node_ptr zero_node;
 
-  /* In many cases, the expression for an lvalue could simply be treated
-     as the rvalue address of the lvalue without any rewriting.  However, that
-     doesn't work right for (a) bit field lvalues, and (b) register variables
-     (the address_taken flag was not set on those variables).  And such things
-     can appear under lvalue-returning "?" and "," operations.  So eliminate
-     the entire expression if it has no side effects and if it does not have a
-     type that may require VLA-related quantities to be computed.  Otherwise,
-     go down through the tree and eliminate subtrees which have no side
-     effects, including the troublesome cases listed above. */
-  if (!node_has_side_effects(expr, (a_boolean *)NULL) &&
-      !is_variably_modified_type(expr_type)) {
-    /* No side effects, so replace the expression tree with one that casts
-       zero to the right pointer type. */
-    make_zero_of_proper_type(expr_type, &zero_con);
-    zero_node = alloc_node_for_constant(&zero_con);
-    overwrite_node(expr, zero_node);
-  } else {
-    /* The expression has some side effect, so at least part of it has to
-       be preserved.  Cases not handled specially here are left alone,
-       using the general "lvalue = rvalue address" equivalence. */
-    if (is_operation_node(expr)) {
-      an_expr_operator_kind op = expr->variant.operation.kind;
-      an_expr_node_ptr      op1 = expr->variant.operation.operands;
-      if (op == (an_expr_operator_kind)eok_padd_subsc ||
-          op == (an_expr_operator_kind)eok_padd ||
-          op == (an_expr_operator_kind)eok_psubtract ||
-          op == (an_expr_operator_kind)eok_field ||
-          op == (an_expr_operator_kind)eok_pm_field ||
-          ((op == (an_expr_operator_kind)eok_cast ||
-            op == (an_expr_operator_kind)eok_base_class_cast) &&
-           expr->variant.operation.compiler_generated)) {
-        /* These operations pass through lvalueness.  Go to the first
-           operand and continue. */
-        rewrite_discarded_lvalue_as_rvalue(op1, /*can_change_type=*/FALSE);
-      } else if (op == (an_expr_operator_kind)eok_bit_field) {
-        /* eok_bit_field returns an lvalue but it's not one whose
-           address can be taken, so the field-selection rewrite above can't
-           be used.  Also, changing to an eok_extract_bit_field does not work
-           when the bit field is volatile.  Just discard the bit field
-           selection and rewrite the first operand. */
-        rewrite_discarded_lvalue_as_rvalue(op1, /*can_change_type=*/FALSE);
-        if (!can_change_type) {
-          /* Add a cast to an integral type to preserve the original
-             bit-field selection result type. */
-          op1 = add_cast_if_necessary(op1, expr->type);
-        }  /* if */
-        overwrite_node(expr, op1);
-      } else if (expr->variant.operation.
-                                      returns_lvalue_instead_of_usual_rvalue) {
-        /* An lvalue-returning operation. */
-        expr->variant.operation.returns_lvalue_instead_of_usual_rvalue = FALSE;
-        if (op == (an_expr_operator_kind)eok_question) {
-          /* "?" operator.  Process the second and third operands. */
-          rewrite_discarded_lvalue_as_rvalue(op1->next,
-                                             /*can_change_type=*/FALSE);
-          rewrite_discarded_lvalue_as_rvalue(op1->next->next,
-                                             /*can_change_type=*/FALSE);
-        } else if (op == (an_expr_operator_kind)eok_comma ||
-                   op == (an_expr_operator_kind)eok_points_to_static ||
-                   op == (an_expr_operator_kind)eok_lvalue_dot_static ||
-                   op == (an_expr_operator_kind)eok_rvalue_dot_static) {
-          /* "," operator.  Process the second operand. */
-          /* Same processing for static selection. */
-          rewrite_discarded_lvalue_as_rvalue(op1->next, can_change_type);
-          /* If the type of the operand was changed, propagate that into
-             the result type of the comma expression. */
-          if (can_change_type) expr->type = expr_type = op1->next->type;
-        } else {
-          /* An lvalue-returning assignment or the like.  Changing the
-             operation not to return an lvalue turns the expression into
-             an rvalue, which makes it acceptable as C code.  However, it
-             also changes the result type, which has to be accommodated. */
-          expr->type = rvalue_type(type_pointed_to(expr_type));
-          if (!can_change_type) {
-            /* The expression type has been changed, but that's not allowed, so
-               add a comma node and a null cast to the right type to get the
-               original type back. */
-            an_expr_node_ptr expr_copy = copy_node(expr);
-
-            make_zero_of_proper_type(expr_type, &zero_con);
-            zero_node = alloc_node_for_constant(&zero_con);
-            expr_copy->next = zero_node;
-            change_node_to_operation(expr, (an_expr_operator_kind)eok_comma,
-                                     expr_type, expr_copy);
-          }  /* if */
-        }  /* if */
-      }  /* if */
+  if (expr->is_lvalue) {
+    /* Eliminate the entire expression if it has no side effects and if it
+       does not have a type that may require VLA-related quantities to be
+       computed.  Otherwise, go down through the tree and eliminate subtrees
+       which have no side effects. */
+    if (!node_has_side_effects(expr, (a_boolean *)NULL) &&
+        !is_variably_modified_type(expr_type)) {
+      /* No side effects, so replace the expression tree with one that casts
+         zero to the right pointer type. */
+      if (tblock->can_change_type) {
+        /* It's possible that a new type will be allocated here and since the
+           underlying type has not yet been lowered, make sure any type that
+           is allocated is marked as un-lowered. */
+        a_boolean saved_initial_value_for_il_lowering_flag =
+                                            initial_value_for_il_lowering_flag;
+        initial_value_for_il_lowering_flag = FALSE;
+        expr_type = make_pointer_type(expr_type);
+        initial_value_for_il_lowering_flag =
+                                      saved_initial_value_for_il_lowering_flag;
+      } /* if */
+      make_zero_of_proper_type(expr_type, &zero_con);
+      zero_node = alloc_node_for_constant(&zero_con);
+      overwrite_node(expr, zero_node);
+    } else if (tblock->can_change_type &&
+               (node_operator_is(expr, eok_indirect) ||
+                node_operator_is(expr, eok_ref_indirect))) {
+      /* Remove an indirection if it's okay to change the type. */
+      overwrite_node(expr, expr->variant.operation.operands);
+    } else {
+      /* We can't eliminate or modify this node.  No further walking of
+         this subtree is needed.  The top level expression will be
+         converted to an rvalue when the traversal is finished. */
+      tblock->suppress_subtree_walk = TRUE;
     }  /* if */
   }  /* if */
+  if (!expr->is_lvalue) {
+    /* No need to process this subtree any further, but don't terminate
+       processing altogether since other subtrees may still need to be
+       walked (e.g., in the case of eok_question). */
+    tblock->suppress_subtree_walk = TRUE;
+  }  /* if */
+  /* Can only change the type of the top level expression.  (There is room
+     for improvement here as certain operations (e.g., eok_comma) do allow
+     the ability to change the expressions of subtrees.) */
+  tblock->can_change_type = FALSE;
+}  /* change_discarded_lvalue_node_to_rvalue_if_possible */
+
+
+static void rewrite_discarded_lvalue_as_rvalue(an_expr_node_ptr expr)
+/*
+expr points to an expression tree for an lvalue whose result is discarded.
+Rewrite it as an rvalue that has the same side effects.  The expression
+can be optimized to remove any operations related to returning the
+result (since it is discarded), as long as the side effects remain.
+The type of the expression may also be modified if it would allow
+optimization.
+*/
+{
+  an_expr_or_stmt_traversal_block tblock;
+
+  check_assertion(expr->is_lvalue);
+  clear_expr_or_stmt_traversal_block(&tblock);
+  tblock.process_expr = change_discarded_lvalue_node_to_rvalue_if_possible;
+  tblock.follow_addressing_path = TRUE;
+  tblock.can_change_type = TRUE;
+  traverse_expr(expr, &tblock);
+  if (expr->is_lvalue) {
+    /* Couldn't discard or modify the expression, turn it into an rvalue. */
+    overwrite_node(expr, rvalue_expr_for_lvalue(expr));
+  }  /* if */
+  check_assertion(!expr->is_lvalue);
 }  /* rewrite_discarded_lvalue_as_rvalue */
 
 
@@ -11719,8 +12172,8 @@ static a_boolean is_optimizable_temp_init_indirection(
                                               an_expr_node_ptr operand_node,
                                               an_expr_node_ptr *temp_init_node)
 /*
-operand_node is the operand of an eok_indirection node.  If it is a cast
-over an enk_temp_init whose result is the address of the temporary, and
+operand_node is the operand of an eok_indirect node.  If it is a cast
+over an eok_address_of over an enk_temp_init whose result is a temporary, and
 the cast only adjusts cv-qualifiers that will be dropped by the indirection
 because the result of that is an rvalue, set *temp_init_node to point
 to the enk_temp_init node and return TRUE.  Otherwise, return FALSE.
@@ -11730,19 +12183,93 @@ to the enk_temp_init node and return TRUE.  Otherwise, return FALSE.
 
   *temp_init_node = NULL;
   if (is_operation_node(operand_node) &&
-      operand_node->variant.operation.kind == (an_expr_operator_kind)eok_cast){
-    an_expr_node_ptr init_node = operand_node->variant.operation.operands;
-    if (init_node->kind == (an_expr_node_kind)enk_temp_init &&
-        init_node->variant.init.result_is_addr) {
-      if (f_skip_typerefs(type_pointed_to(init_node->type)) ==
-          f_skip_typerefs(type_pointed_to(operand_node->type))) {
-        result = TRUE;
-        *temp_init_node = init_node;
+      node_operator_is(operand_node, eok_cast)) {
+    an_expr_node_ptr addr_node = operand_node->variant.operation.operands;
+    if (is_operation_node(addr_node) &&
+        node_operator_is(addr_node, eok_address_of)) {
+      an_expr_node_ptr init_node = addr_node->variant.operation.operands;
+      if (init_node->kind == (an_expr_node_kind)enk_temp_init &&
+          init_node->is_lvalue) {
+        if (f_skip_typerefs(type_pointed_to(addr_node->type)) ==
+            f_skip_typerefs(type_pointed_to(operand_node->type))) {
+          result = TRUE;
+          *temp_init_node = init_node;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
   return result;
 }  /* is_optimizable_temp_init_indirection */
+
+
+static unsigned int assume_operand_non_null_mask(
+                                      an_expr_node_ptr expr,
+                                      a_boolean        assume_expr_is_non_null)
+/*
+Given the expression node expr (of kind enk_operation), this routine
+returns a bit mask indicating which of its operands can safely be assumed
+to be non-NULL.  assume_expr_is_non_null specifies whether the input expression
+can be assumed to be non-NULL.  A "1" bit indicates an operand that can be
+assumed to be non-NULL, with the least-significant bit corresponding to the
+first operand, the bit after that corresponding to the second operand, etc.
+Note that assuming the expression is non-NULL simply suppresses null
+checks in some cases (e.g., related class casting) and doesn't actually
+mean that the expression cannot have a NULL value.
+*/
+{
+  an_expr_operator_kind  op;
+  unsigned int           pointer_dereference_expr_mask = 0;
+
+  check_assertion(is_operation_node(expr));
+  op = expr->variant.operation.kind;
+  switch (op) {
+    case eok_indirect:
+    case eok_ref_indirect:
+    case eok_points_to_field:
+    case eok_points_to_static:
+    case eok_pm_points_to_field:
+      /* First operation is a pointer that is dereferenced. */
+      pointer_dereference_expr_mask = 0x1;
+      break;
+    case eok_subscript:
+      /* Pointer operand can be either first or second. */
+      if (expr->variant.operation.pointer_operand_is_second) {
+        pointer_dereference_expr_mask = 0x2;
+      } else {
+        pointer_dereference_expr_mask = 0x1;
+      }  /* if */
+      break;
+    case eok_virtual_call:
+      /* Second operand should not be checked for null. */
+      pointer_dereference_expr_mask = 0x2;
+      break;
+    case eok_pm_call:
+      /* Neither operand should be null. */
+      pointer_dereference_expr_mask = 0x3;
+      break;
+    case eok_question:
+      /* If expression is assumed to be non-NULL, it's okay to assume
+         that the two (non-conditional) operands are also non-NULL. */
+      if (assume_expr_is_non_null) {
+        pointer_dereference_expr_mask = 0x6;
+      }  /* if */
+      break;
+    case eok_cast:
+      /* If we're casting one pointer or reference to another, the
+         operand can assume to be non-NULL if the expression is
+         assumed to be non-NULL. */
+      if (assume_expr_is_non_null && 
+          is_ptr_or_ref_type(expr->type) &&
+          is_ptr_or_ref_type(expr->variant.operation.operands->type)) {
+        pointer_dereference_expr_mask = 0x1;
+      }  /* if */
+      break;
+    default:
+      /* No pointer dereference. */
+      break;
+  }  /* switch */
+  return pointer_dereference_expr_mask;
+}  /* assume_operand_non_null_mask */
 
 
 unsigned int expr_boolean_controlling_expr_mask(an_expr_node_ptr expr)
@@ -11908,18 +12435,163 @@ given statement is subsequently modified.
 
 #endif /* DEBUG */
 
-void lower_expr(an_expr_node_ptr expr,
-                a_boolean        is_lvalue)
+static void change_expr_to_address_of_expr(an_expr_node_ptr expr)
+/*
+The expression expr is overwritten with an expression that returns
+the address of its current value.  The lvalue expression is changed to an
+rvalue expression as a result.
+*/
+{
+  an_expr_node_ptr  operands;
+
+  check_assertion(expr->is_lvalue);
+  if (is_operation_node(expr) && node_operator_is(expr, eok_comma)) {
+    /* Take the address of the second operand. */
+    operands = expr->variant.operation.operands;
+    change_expr_to_address_of_expr(operands->next);
+    expr->type = operands->next->type;
+    expr->is_lvalue = operands->next->is_lvalue;
+  } else if (is_operation_node(expr) && node_operator_is(expr, eok_question)) {
+    /* Take the address of the second and third operands. */
+    operands = expr->variant.operation.operands;
+    change_expr_to_address_of_expr(operands->next->next);
+    change_expr_to_address_of_expr(operands->next);
+    expr->type = operands->next->type;
+    expr->is_lvalue = operands->next->is_lvalue;
+  } else {
+    /* Simply overwrite the expression with an expression that returns
+       its address. */
+    overwrite_node(expr, add_address_of_to_node(copy_node(expr)));
+  }  /* if */
+  check_assertion(!expr->is_lvalue);
+}  /* change_expr_to_address_of_expr */
+
+
+static void lower_reference_to(an_expr_node_ptr expr)
+/*
+Lower an eok_reference_to expression (expr) by replacing the operation with an
+eok_address_of.
+*/
+{
+  an_expr_node_ptr  operand;
+
+  check_assertion(is_operation_node(expr) &&
+                  expr->variant.operation.kind == 
+                                      (an_expr_operator_kind)eok_reference_to);
+  operand = expr->variant.operation.operands;
+  if (is_operation_node(operand) &&
+      (node_operator_is(expr, eok_comma) ||
+       node_operator_is(expr, eok_question))) {
+    /* In cases where the operand can't have its address taken 
+       (i.e., eok_comma or eok_question), push the enk_address_of into
+       the operands as appropriate. */
+    change_expr_to_address_of_expr(operand);
+    overwrite_node(expr, operand);
+  } else {
+    /* Simply replace the eok_reference_to with an eok_address_of. */
+    set_node_operator(expr, (an_expr_operator_kind)eok_address_of,
+                      make_pointer_type(operand->type), /*is_lvalue=*/FALSE,
+                      operand);
+  }  /* if */
+  /* Lower the new expression. */
+  lower_expr(expr);
+}  /* lower_reference_to */
+
+
+static void lower_ref_indirect(an_expr_node_ptr expr)
+/*
+Lower an eok_ref_indirect expression (expr) by changing it to an
+eok_indirect node and changing the type of the operand from a reference type
+to a pointer type.
+*/
+{
+  an_expr_node_ptr  operand;
+
+  check_assertion(is_operation_node(expr) &&
+                  expr->variant.operation.kind == 
+                                      (an_expr_operator_kind)eok_ref_indirect);
+  operand = expr->variant.operation.operands;
+  expr->variant.operation.kind = (an_expr_operator_kind)eok_indirect;
+  lower_expr(expr);
+  /* Change reference type to pointer type.  Do this after lowering the
+     expression so the reference type still exists.  lower_dynamic_cast
+     currently depends on this behavior. */
+  operand->type = make_pointer_type(type_pointed_to(operand->type));
+}  /* lower_ref_indirect */
+
+
+static void lower_address_of(an_expr_node_ptr expr)
+/*
+Optimize an eok_address_of expression (expr) if possible.
+If the node is on top of an eok_indirect node, perform an optimization
+by eliminating both operations.  eok_ref_indirect nodes should have
+been lowered to eok_indirect nodes previously.
+*/
+{
+  an_expr_node_ptr  operand;
+
+  check_assertion(is_operation_node(expr) &&
+                  expr->variant.operation.kind == 
+                                        (an_expr_operator_kind)eok_address_of);
+  operand = expr->variant.operation.operands;
+  if (is_operation_node(operand) &&
+      node_operator_is(operand, eok_indirect) &&
+      il_identical_types(expr->type,
+                         operand->variant.operation.operands->type) &&
+      expr->is_lvalue == operand->variant.operation.operands->is_lvalue) {
+    /* Remove "&" on top of "*". */
+    overwrite_node(expr, operand->variant.operation.operands);
+  }  /* if */
+}  /* lower_address_of */
+
+
+static void lower_indirect(an_expr_node_ptr expr)
+/*
+Optimize an eok_indirect expression (expr) if possible.
+If the node is on top of an eok_address_of node, perform an optimization
+by eliminating both operations.  eok_reference_to nodes should have
+been lowered to eok_address_of nodes previously.
+*/
+{
+  an_expr_node_ptr  operand;
+
+  check_assertion(is_operation_node(expr) &&
+                  expr->variant.operation.kind == 
+                                          (an_expr_operator_kind)eok_indirect);
+  operand = expr->variant.operation.operands;
+  if (is_operation_node(operand) && 
+      node_operator_is(operand, eok_address_of) &&
+      il_identical_types(expr->type,
+                         operand->variant.operation.operands->type)) {
+    if (expr->is_lvalue == operand->variant.operation.operands->is_lvalue) {
+      /* Remove "*" on top of "&". */
+      overwrite_node(expr, operand->variant.operation.operands);
+    } else if (!expr->is_lvalue &&
+               operand->variant.operation.operands->is_lvalue) {
+      /* expr has been converted to an rvalue, convert the new expression
+         (after removing "*" and "&" operations) to an rvalue as well. */
+      overwrite_node(expr, rvalue_expr_for_lvalue(
+                                         operand->variant.operation.operands));
+    }  /* if */
+  }  /* if */
+}  /* lower_indirect */
+
+
+void lower_expr_full(an_expr_node_ptr expr,
+                     a_boolean        assume_expr_is_non_null)
 /*
 Do IL lowering of the indicated expression and everything under it.
-The expression is being used as an lvalue if is_lvalue is TRUE.
+assume_expr_is_non_null indicates whether the expression can be assumed
+to be non-NULL, thereby suppressing NULL-preservation checks if the expression
+contains a related class cast.  See lower_expr for typical invocation.
 */
 {
   an_expr_operator_kind op;
   an_expr_node_ptr      operand_node, operand2, operand3, throw_operand;
   an_expr_node_ptr      temp_init_node;
   a_variable_ptr        var, temp_var;
-  unsigned int          is_lvalue_mask, is_bool_controlling_expr_mask;
+  unsigned int          is_bool_controlling_expr_mask;
+  unsigned int          assume_expr_is_non_null_mask;
 #if DEBUG
   unsigned long         checksum;
 #endif /* DEBUG */
@@ -11933,99 +12605,134 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
     db_expression(expr);
   }  /* if */
 #endif /* DEBUG */
-  if (expr->void_expression_lvalue) {
-    /* A void expression that was left as an lvalue in C++.  Rewrite as
-       an rvalue. */
-    expr->void_expression_lvalue = FALSE;
-    rewrite_discarded_lvalue_as_rvalue(expr, /*can_change_type=*/TRUE);
+  if (expr->is_lvalue && expr->result_is_not_used) {
+#if DEBUG
+    if (db_flag_is_set("rewrite_expr") && !db_flag_is_set("lower_expr")) {
+      (void)fprintf(f_debug, "Lvalue expression before re-writing");
+      db_expr_range(expr);
+      fputs(":\n", f_debug);
+      db_expression(expr);
+    }  /* if */
+#endif /* DEBUG */
+    /* If the result of the lvalue is discarded, rewrite the expression
+       as an rvalue. */
+    rewrite_discarded_lvalue_as_rvalue(expr);
+#if DEBUG
+    if (db_flag_is_set("rewrite_expr") || db_flag_is_set("lower_expr")) {
+      (void)fprintf(f_debug, "Expression after being re-written as an rvalue");
+      db_expr_range(expr);
+      fputs(":\n", f_debug);
+      db_expression(expr);
+      /* Re-compute checksum. */
+      checksum = compute_checksum_for_expr(expr);
+    }  /* if */
+#endif /* DEBUG */
   }  /* if */
-  /* The argument to a decltype or typeof specifier need never be lowered. */
-  check_assertion(!expr->decltype_expression_lvalue);
   lower_os_type(expr->type);
-  if (expr->kind != (an_expr_node_kind)enk_field &&
+  if (!expr->is_lvalue &&
+      expr->kind != (an_expr_node_kind)enk_field &&
       is_qualified_type(expr->type)) {
     /* Remove cv-qualifiers from the types of class rvalues.  In C++, such
        rvalues retain their type qualifiers, but in C they do not. */
     expr->type = make_unqualified_type(expr->type);
   }  /* if */
   switch (expr->kind) {
-    case enk_routine_address:
+    case enk_routine:
     case enk_field:
     case enk_address_of_ellipsis:
       /* No processing required. */
       break;
-    case enk_variable_address:
+    case enk_variable:
 #if LOWER_VARIABLE_LENGTH_ARRAYS
-      if (expr->variant.variable->is_vla) {
+      if (expr->variant.variable->is_vla && expr->is_lvalue) {
         /* VLAs are lowered to pointers (to automatically managed storage).
            The pointer value should be used, not its address. */
         lower_vla_address(expr);
       }  /* if */
-      /*FALLTHROUGH*/
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
-    case enk_variable:
+      var = expr->variant.variable;
       /* If the variable is a parameter that's passed by copy constructor,
          an implicit indirection must be added. */
-      var = expr->variant.variable;
       /* assoc_param_type is NULL on the "this" parameter variable and
          the return value pointer variable. */
       if (var->is_parameter && var->assoc_param_type != NULL &&
           var->assoc_param_type->passed_via_copy_constructor) {
-        /* Add an indirection. */
-        if (expr->kind == (an_expr_node_kind)enk_variable_address) {
-          /* Address of variable becomes value of variable. */
-          expr->kind = (an_expr_node_kind)enk_variable;
-          /* The expression type is already as we want it; it was "wrong"
-             because the parameter type was changed in lowering, but the
-             indirection here cancels out the extra pointer-to on
-             the parameter type. */
-        } else {
-          /* Value of variable becomes value pointed to by variable.  Make
-             a copy of the enk_variable node and overwrite the original
-             node with an eok_indirect. */
-          an_expr_node_ptr var_value = copy_node(expr);
-          change_node_to_operation(expr, (an_expr_operator_kind)eok_indirect,
-                                   var_value->type, var_value);
-          /* Again, the type that was in the node is the one we want
-             because the pointer-to and indirection cancel out.
-             The type in the enk_variable node must be changed. */
-          var_value->type = make_pointer_type(var_value->type);
+        /* Add an indirection, but don't change the node's type or
+           lvalueness.  The type was "wrong" because the parameter type
+           was changed in lowering, but the indirection here cancels
+           out the extra pointer-to on the parameter type.*/
+        an_expr_node_ptr new_expr;
+        an_expr_node_ptr var_copy = copy_node(expr);
+        /* The type that was in the node is the one we want.
+           Add a pointer to the enk_variable node type so the new node type
+           will be correct. */
+        var_copy->type = make_pointer_type(var_copy->type);
+        if (var_copy->is_lvalue) {
+          /* Convert this node to an rvalue in preparation for the
+             indirection. */
+          var_copy = rvalue_expr_for_lvalue(var_copy);
         }  /* if */
+        new_expr = add_indirection_to_node(var_copy);
+        if (!expr->is_lvalue) {
+          /* Original expression was an rvalue, make sure new
+             expression is as well. */
+          new_expr = rvalue_expr_for_lvalue(new_expr);
+        }  /* if */
+        check_assertion(il_identical_types(new_expr->type, expr->type) &&
+                        new_expr->is_lvalue == expr->is_lvalue);
+        overwrite_node(expr, new_expr);
 #if DO_RETURN_VALUE_OPTIMIZATION_IN_LOWERING
       } else if (var_is_return_value_variable(var)) {
         /* The variable is the return value optimization variable for the
            current function, so rewrite it as a reference to the implicit
            parameter through which the return address is passed by the
            caller. */
-        if (expr->kind == (an_expr_node_kind)enk_variable_address) {
-          /* Rewrite address-of-local-variable as value-of-pointer-
-             parameter. */
-          set_expr_node_kind(expr, (an_expr_node_kind)enk_variable);
+        if (!expr->is_lvalue) {
+          /* Rewrite rvalue reference as value-of-pointer-parameter. */
           expr->variant.variable = return_value_pointer_variable;
         } else {
-          /* Rewrite value-of-local-variable as indirection through
+          /* Rewrite lvalue reference as indirection through
              return-value-parameter.  This comes up when the class has
              a copy constructor but no assignment operator function. */
           operand_node = var_rvalue_expr(return_value_pointer_variable);
           change_node_to_operation(expr, (an_expr_operator_kind)eok_indirect,
                                    expr->type, operand_node);
+          /* eok_indirect node is an lvalue. */
+          expr->is_lvalue = TRUE;
         }  /* if */
 #endif /* DO_RETURN_VALUE_OPTIMIZATION_IN_LOWERING */
       }  /* if */
       break;
     case enk_operation:
+#if LOWER_VARIABLE_LENGTH_ARRAYS
+      /* Before lowering operands of an expression, look for a couple
+         of special cases that operate on a VLA operand. */
+      if (vla_enabled && is_vla_type(expr->variant.operation.operands->type)) {
+        lower_vla_operations_before_operands_are_lowered(expr);
+      }  /* if */
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
       operand_node = expr->variant.operation.operands;
       op = expr->variant.operation.kind;
-      if (op == (an_expr_operator_kind)eok_base_class_cast ||
-          op == (an_expr_operator_kind)eok_derived_class_cast) {
+      /* Look for some special cases before the expression is lowered.
+         In each of these cases, the expr subtree must be lowered during
+         the special processing. */
+      if (op == (an_expr_operator_kind)eok_reference_to) {
+        /* Change a reference to operation to an address of operation. */
+        lower_reference_to(expr);
+      } else if (op == (an_expr_operator_kind)eok_ref_indirect) {
+        /* Change a reference indirection to a pointer indirection. */
+        lower_ref_indirect(expr);
+      } else if (op == (an_expr_operator_kind)eok_base_class_cast ||
+                 op == (an_expr_operator_kind)eok_derived_class_cast) {
         /* Cast to base or derived class is rewritten.  This call also
            lowers any subtree. */
-        lower_related_class_cast(expr, is_lvalue, /*lower_source=*/TRUE);
+        lower_related_class_cast(expr, /*lower_source=*/TRUE,
+                                 assume_expr_is_non_null);
       } else if (op == (an_expr_operator_kind)eok_pm_base_class_cast ||
                  op == (an_expr_operator_kind)eok_pm_derived_class_cast) {
         /* Cast of pointer-to-member to base or derived class is rewritten.
            This call also lowers any subtree. */
-        lower_pm_related_class_cast(expr, is_lvalue);
+        lower_pm_related_class_cast(expr);
       } else if (op == (an_expr_operator_kind)eok_call ||
                  op == (an_expr_operator_kind)eok_virtual_call ||
                  op == (an_expr_operator_kind)eok_pm_call) {
@@ -12061,23 +12768,37 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
       } else if (op == (an_expr_operator_kind)eok_indirect &&
                  is_optimizable_temp_init_indirection(operand_node,
                                                       &temp_init_node)) {
-        /* Optimize an indirection over a cast over an enk_temp_init,
-           where the cast only adjusts cv-qualifiers that will be dropped
-           anyway because the result is an rvalue. */
+        /* Optimize an indirection over a cast over an address of an
+           enk_temp_init, where the cast only adjusts cv-qualifiers that
+           will be dropped anyway. */
         a_type_ptr type = expr->type;
         check_assertion(temp_init_node->kind ==
-                                             (an_expr_node_kind)enk_temp_init);
-        temp_init_node->variant.init.result_is_addr = FALSE;
+                                            (an_expr_node_kind)enk_temp_init &&
+                        temp_init_node->is_lvalue);
+        if (!expr->is_lvalue) {
+          /* Convert enk_temp_init node to an rvalue if necessary. */
+          temp_init_node = rvalue_expr_for_lvalue(temp_init_node);
+        }  /* if */
         overwrite_node(expr, temp_init_node);
         expr->type = type;
         lower_temp_init(expr);
+      } else if (string_literals_are_const &&
+                 is_constant_node(operand_node) &&
+                 operand_node->variant.constant->kind ==
+                                             (a_constant_repr_kind)ck_string &&
+                 is_const_qualified_type(operand_node->type)) {
+        /* This operation operates on a ck_string whose const-ness will be
+           removed during lowering of the constant.  Re-write the operation
+           as necessary to preserve the const-ness. */
+        lower_operation_on_const_string(expr);
       } else {
         a_type_ptr  type;
-        /* Determine which operands if any are lvalues, and whether or not
-           the operand has boolean-controlling-expression operands. */
-        is_lvalue_mask = expr_lvalue_operand_mask(expr, is_lvalue);
+        /* Determine whether or not the operand has
+           boolean-controlling-expression operands. */
         is_bool_controlling_expr_mask =
                                       expr_boolean_controlling_expr_mask(expr);
+        assume_expr_is_non_null_mask =
+                   assume_operand_non_null_mask(expr, assume_expr_is_non_null);
         if (op == (an_expr_operator_kind)eok_question) {
           /* Look for a "?" operator where one of the operands is a throw
              expression and the other has a non-void type.  The throw
@@ -12111,11 +12832,19 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
                                       /*see_if_possible=*/FALSE);
         }  /* if */
         /* Lower the operands of the expression. */
-        lower_expr_list(operand_node, is_lvalue_mask,
-                        is_bool_controlling_expr_mask);
+        lower_expr_list(operand_node, is_bool_controlling_expr_mask,
+                        assume_expr_is_non_null_mask);
         /* Do any special lowering required for this operator after the
            operands have been lowered. */
         switch (op) {
+          case eok_address_of:
+            /* Optimize away an "&" operation in some cases. */
+            lower_address_of(expr);
+            break;
+          case eok_indirect:
+            /* Optimize away an "*" operation in some cases. */
+            lower_indirect(expr);
+            break;
 #if LOWER_COMPLEX
           case eok_xnegate:
             lower_c99_xnegate(expr);
@@ -12146,7 +12875,7 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
           case eok_xsubtract_assign:
           case eok_xmultiply_assign:
           case eok_xdivide_assign:
-            rewrite_compound_assignment(expr, /*is_lvalue=*/FALSE);
+            rewrite_compound_assignment(expr);
             break;
 #if GNU_COMPLEX_EXTENSIONS_ALLOWED
           case eok_xconj:
@@ -12154,8 +12883,6 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
             break;
           case eok_real_part:
           case eok_imag_part:
-          case eok_lvalue_real_part:
-          case eok_lvalue_imag_part:
             lower_complex_projection(expr);
             break;
 #endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
@@ -12164,8 +12891,8 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
             /* Determine virtual function address. */
             lower_virtual_function_ptr(expr);
             break;
-          case eok_vacuous_destructor_call:
-          case eok_value_vacuous_destructor_call:
+          case eok_dot_vacuous_destructor_call:
+          case eok_points_to_vacuous_destructor_call:
             /* A call of a "destructor" for a class or simple type that does
                not have one, e.g., p->int::~int().  Change the node into
                a cast to void. */
@@ -12222,8 +12949,7 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
             if (bool_is_keyword) {
               /* Incrementing a bool (which is deprecated) sets the bool to
                  true. */
-              a_type_ptr operand_type = type_pointed_to(operand_node->type);
-              if (is_bool_type(operand_type)) {
+              if (is_bool_type(operand_node->type)) {
                 lower_bool_incr_decr(expr);
               }  /* if */
             }  /* if */
@@ -12239,12 +12965,18 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
               lower_vla_pointer_difference(expr);
             }  /* if */
             break;
+          case eok_subscript:
+            if (vla_enabled && is_vla_type(expr->type)) {
+              /* VLA subscript operations depend on the run-time sizes of
+                 the VLA. */
+              lower_vla_pointer_integer_arithmetic(expr);
+            }  /* if */
+            break;
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
           case eok_padd_assign:
 #if LOWER_VARIABLE_LENGTH_ARRAYS
           case eok_padd:
           case eok_psubtract:
-          case eok_padd_subsc:
           case eok_psubtract_assign:
           case eok_ppre_incr:
           case eok_ppre_decr:
@@ -12290,9 +13022,8 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
             if (bool_is_keyword) {
               /* Compound assignments to bool don't exist in C89, and
                  must be lowered to get the value reduced to 0/1. */
-              a_type_ptr operand_type = type_pointed_to(operand_node->type);
-              if (is_bool_type(operand_type)) {
-                rewrite_compound_assignment(expr, is_lvalue);
+              if (is_bool_type(operand_node->type)) {
+                rewrite_compound_assignment(expr);
               }  /* if */
             }  /* if */
             break;
@@ -12308,21 +13039,32 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
             rewrite_class_assignment_if_necessary(expr);
             break;
           case eok_pm_field:
+          case eok_pm_points_to_field:
             /* Pointer-to-member selection of a data member. */
             lower_pm_field(expr);
             break;
-          case eok_field:
-          case eok_value_field:
-          case eok_bit_field:
-          case eok_value_bit_field:
-          case eok_extract_bit_field:
+          case eok_dot_field:
+            if (is_operation_node(operand_node) &&
+                node_operator_is(operand_node, eok_indirect)) {
+              /* Optimize "(*x).y" to "x->y". */
+              rewrite_dot_field_as_points_to_field(expr);
+            }  /* if */
             /* If a field selection refers to an anonymous union field,
                adjust it to make the anonymous union reference(s) explicit. */
             adjust_field_selection_for_anonymous_union_references(expr);
             break;
+          case eok_points_to_field:
+            if (is_operation_node(operand_node) &&
+                node_operator_is(operand_node, eok_address_of)) {
+              /* Optimize "(&x)->y" to "x.y". */
+              rewrite_points_to_field_as_dot_field(expr);
+            }  /* if */
+            /* If a field selection refers to an anonymous union field,
+               adjust it to make the anonymous union reference(s) explicit. */
+            adjust_field_selection_for_anonymous_union_references(expr);
+            break;
+          case eok_dot_static:
           case eok_points_to_static:
-          case eok_lvalue_dot_static:
-          case eok_rvalue_dot_static:
             /* Static member selection. */
             if (!node_has_side_effects(operand_node, (a_boolean *)NULL)) {
               /* If the first operand has no side effects, just throw it
@@ -12330,11 +13072,11 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
               overwrite_node(expr, operand_node->next);
             } else {
               /* Change a static selection to a comma operator (evaluate first
-                 operand, discard, evaluate second operand, return). */
+                 operand, discard, evaluate second operand, return). 
+                 Maintain lvalueness of the expression. */
               set_node_operator(expr, (an_expr_operator_kind)eok_comma,
-                                expr->type, operand_node);
-              expr->variant.operation.returns_lvalue_instead_of_usual_rvalue =
-                                                                         FALSE;
+                               expr->type, expr->is_lvalue, operand_node);
+              adjust_returns_lvalue_instead_of_usual_rvalue_if_necessary(expr);
             }  /* if */
             break;
 #if GNU_EXTENSIONS_ALLOWED
@@ -12350,8 +13092,11 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
 #endif /* GNU_EXTENSIONS_ALLOWED */
           case eok_question:
             /* If one operand is a throw and the other is non-void, wrap
-               the throw in a comma expression to give it the right type. */
-            if (throw_operand != NULL) wrap_throw(throw_operand, expr->type);
+               the throw in a comma expression to give it the right type
+               and lvalueness. */
+            if (throw_operand != NULL) {
+              wrap_throw(throw_operand, expr->type, expr->is_lvalue);
+            }  /* if */
             break;
 #if ASSIGNMENT_TO_THIS_ALLOWED
           case eok_passign:
@@ -12364,8 +13109,8 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
                 a_variable_ptr this_param_var =
                           innermost_function_scope->variant.routine.parameters;
 
-                if (operand_node->kind ==
-                                     (an_expr_node_kind)enk_variable_address &&
+                if (operand_node->kind == (an_expr_node_kind)enk_variable &&
+                    operand_node->is_lvalue &&
                     operand_node->variant.variable == this_param_var) {
                   /* This is an assignment to "this".  Add the wrapper code
                      (to initialize base classes, etc.) following the
@@ -12403,6 +13148,7 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
                      be overwritten. */
                   orig_expr_copy = copy_node(expr);
                   /* The copy is not an lvalue-returning operation. */
+                  orig_expr_copy->is_lvalue = FALSE;
                   orig_expr_copy->variant.operation.
                                 returns_lvalue_instead_of_usual_rvalue = FALSE;
                   orig_expr_copy->type = this_param_var->type;
@@ -12410,6 +13156,7 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
                   change_node_to_operation(expr,
                                            (an_expr_operator_kind)eok_comma,
                                            expr->type, orig_expr_copy);
+                  expr->is_lvalue = FALSE;
                   set_expr_insert_location(new_expr, &insert_location);
                   /* The insert location now specifies insertion before the
                      final expression.  Add the wrapper code there. */
@@ -12434,8 +13181,7 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
 #if LOWER_LVALUE_RETURNING_OPERATIONS
         /* Transform lvalue-returning assignments, prefix ++/--, and "?" and
            "," operators into valid C. */
-        lower_operations_returning_lvalue_instead_of_usual_rvalue(expr,
-                                                                  is_lvalue);
+        lower_operations_returning_lvalue_instead_of_usual_rvalue(expr);
 #endif /* LOWER_LVALUE_RETURNING_OPERATIONS */
       }  /* if */
       break;
@@ -12448,6 +13194,15 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
         lower_c99_constant_expr(expr);
       } else
 #endif /* GNU_EXTENSIONS_ALLOWED && LOWER_COMPLEX */
+#if ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS
+      if (expr->variant.constant->kind == (a_constant_repr_kind)ck_string &&
+          expr->variant.constant->variant.string.sequence_number != 0) {
+          /* This string must be the same across multiple translation
+             units (e.g., a string in an extern inline function).
+             Create a variable for it. */
+          rewrite_string_constant_as_variable(expr);
+      } else
+#endif /* ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
       /* Do not insert code here. */
       {
         lower_os_constant(expr->variant.constant);
@@ -12569,7 +13324,7 @@ The expression is being used as an lvalue if is_lvalue is TRUE.
     db_expression(expr);
   }  /* if */
 #endif /* DEBUG */
-}  /* lower_expr */
+}  /* lower_expr_full */
 
 
 void release_reusable_temporaries(void)
@@ -12595,13 +13350,11 @@ at the end of a full expression.
 /*ARGSUSED*/  /* <-- statement is not used in that case. */
 #endif /* !MINIMAL_INLINING */
 void lower_full_expr(an_expr_node_ptr expr,
-                     a_boolean        is_lvalue,
                      a_statement_ptr  statement)
 /*
 Lower a full expression, i.e., a top-level expression, one that is not
-inside another expression.  The expression is an lvalue if is_lvalue is TRUE.
-If the expression is the one in an expression statement, statement points
-to the statement; otherwise, it is NULL.
+inside another expression.  If the expression is the one in an
+expression statement, statement points to the statement; otherwise, it is NULL.
 */
 {
   a_context              context;
@@ -12626,7 +13379,28 @@ to the statement; otherwise, it is NULL.
       expr->type = make_unqualified_type(expr->type);
     }  /* if */
   }  /* if */
-
+  if (expr->is_lvalue) {
+#if DEBUG
+    if (db_flag_is_set("rewrite_expr")) {
+      (void)fprintf(f_debug, "Top level lvalue expression before re-writing");
+      db_expr_range(expr);
+      fputs(":\n", f_debug);
+      db_expression(expr);
+    }  /* if */
+#endif /* DEBUG */
+    /* A C++ lvalue expression whose value is discarded (because it is
+       at the top level).  Rewrite as an rvalue. */
+    rewrite_discarded_lvalue_as_rvalue(expr);
+#if DEBUG
+    if (db_flag_is_set("rewrite_expr")) {
+      (void)fprintf(f_debug, 
+                   "Top level expression after being re-written as an rvalue");
+      db_expr_range(expr);
+      fputs(":\n", f_debug);
+      db_expression(expr);
+    }  /* if */
+#endif /* DEBUG */
+  }  /* if */
   /* Lower the subexpression. */
 #if MINIMAL_INLINING
   if (inlining_enabled && statement != NULL && expr_to_lower == expr &&
@@ -12643,7 +13417,7 @@ to the statement; otherwise, it is NULL.
 #endif /* MINIMAL_INLINING */
   /* Do not insert code here; this is the "else" of an "if". */
   {
-    lower_expr(expr_to_lower, is_lvalue);
+    lower_expr(expr_to_lower);
   }  /* if */
 
   if (lifetime != NULL) {
@@ -12811,9 +13585,9 @@ is_full_expr is TRUE.
     adjust_bool_operation_types(expr, &adjusted, /*see_if_possible=*/FALSE);
   }  /* if */
   if (is_full_expr) {
-    lower_full_expr(expr, /*is_lvalue=*/FALSE, (a_statement_ptr)NULL);
+    lower_full_expr(expr, (a_statement_ptr)NULL);
   } else {
-    lower_expr(expr, /*is_lvalue=*/FALSE);
+    lower_expr(expr);
   }  /* if */
   /* This expression is supposed to have something on top that guarantees
      a 0/1 value.  If the rewriting has disturbed that, add a "!= 0" test.
@@ -14169,8 +14943,7 @@ Lower an stmk_return statement.
     /* Lower the returned expression.  It's an lvalue if the routine returns
        a reference type. */
     return_type = routine_type->variant.routine.return_type;
-    lower_full_expr(return_expr, /*is_lvalue=*/is_reference_type(return_type),
-                    (a_statement_ptr)NULL);
+    lower_full_expr(return_expr, (a_statement_ptr)NULL);
 #if CTORS_RETURN_THIS
   } else if (routine->special_kind==(a_special_function_kind)sfk_constructor) {
     /* A constructor returns "this". */
@@ -14388,14 +15161,13 @@ handled).
         lower_statement(statement->variant.for_loop.statement);
         loop_info = statement->variant.for_loop.extra_info;
         if (loop_info->increment != NULL) {
-          lower_full_expr(loop_info->increment, /*is_lvalue=*/FALSE,
-                          (a_statement_ptr)NULL);
+          lower_full_expr(loop_info->increment, (a_statement_ptr)NULL);
         }  /* if */
       }  /* if */
     } else {
       /* Switch statement. */
       check_assertion(expr != NULL);
-      lower_full_expr(expr, /*is_lvalue=*/FALSE, (a_statement_ptr)NULL);
+      lower_full_expr(expr, (a_statement_ptr)NULL);
       lower_statement(statement->variant.switch_stmt.body_statement);
     }  /* if */
   } else {
@@ -14520,7 +15292,7 @@ handled).
     /* Lower the value expression. */
     value_expr = csp->expr;
     if (is_switch_stmt) {
-      lower_full_expr(value_expr, /*is_lvalue=*/FALSE, (a_statement_ptr)NULL);
+      lower_full_expr(value_expr, (a_statement_ptr)NULL);
     } else {
       lower_boolean_controlling_expr(value_expr, /*is_full_expr=*/TRUE);
     }  /* if */
@@ -14583,8 +15355,7 @@ handled).
           a_statement_ptr incr_stmt =
                                     insert_expr_statement(loop_info->increment,
                                                           &insert_location);
-          lower_full_expr(loop_info->increment, /*is_lvalue=*/FALSE,
-                          incr_stmt);
+          lower_full_expr(loop_info->increment, incr_stmt);
           loop_info->increment = NULL;
         }  /* if */
       } else {
@@ -14722,13 +15493,7 @@ under it.  Used in both C++ and C mode.
     an_asm_entry_ptr   aep = statement->variant.asm_entry;
     an_asm_operand_ptr aop;
     for (aop = aep->operands; aop != NULL; aop = aop->next) {
-      a_boolean  is_lvalue;
-#if RECORD_RAW_ASM_OPERAND_DESCRIPTIONS
-      is_lvalue = aop->is_output_operand;
-#else /* !RECORD_RAW_ASM_OPERAND_DESCRIPTIONS */
-      is_lvalue = (aop->modifiers & (an_asm_operand_modifier)aom_output) != 0;
-#endif /* RECORD_RAW_ASM_OPERAND_DESCRIPTIONS */
-      lower_expr(aop->expression, is_lvalue);
+      lower_expr(aop->expression);
     }  /* for */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -14779,7 +15544,7 @@ Do IL lowering of the indicated statement and everything under it.
         lower_asm_statement(statement);
         break;
       case stmk_expr:
-        lower_full_expr(stmt_expr, /*is_lvalue=*/FALSE, statement);
+        lower_full_expr(stmt_expr, statement);
         break;
       case stmk_goto:
         /* Generate any cleanup actions required on exit from any blocks
@@ -14839,7 +15604,7 @@ Do IL lowering of the indicated statement and everything under it.
         lower_statement(statement->variant.microsoft_try->guarded_statement);
         if (statement->variant.microsoft_try->except_expr != NULL) {
           lower_full_expr(statement->variant.microsoft_try->except_expr,
-                          /*is_lvalue=*/FALSE, (a_statement_ptr)NULL);
+                          (a_statement_ptr)NULL);
         }  /* if */
         lower_statement(statement->variant.microsoft_try->cleanup_statement);
         break;

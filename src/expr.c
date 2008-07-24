@@ -51,7 +51,6 @@ expr.c -- Expression scanning routines.
 #endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
 
 /* Forward declarations. */
-static a_boolean operand_is_string_literal(an_operand *operand);
 static void fix_up_dynamic_init_dtors(void);
 static a_boolean cast_type_pre_check(a_type_ptr *type_cast_to,
                                      a_boolean  has_explicit_cv_qualifiers,
@@ -893,11 +892,32 @@ we want to go to check_for_operator_overloading to handle that).
 }  /* is_overloadable_type_operand */
 
 
+static void set_pointer_operand_is_second_flag(an_operand *operand)
+/*
+The indicated operand is the result of a subscript or pointer-addition
+operation that has the operands in the unusual order of the integral
+operand first and the pointer operand second.  Set the flag in the
+expression node to indicate that.
+*/
+{
+  if (is_expression_operand(operand)) {
+    an_expr_node_ptr expr = operand->variant.expression;
+    if (!is_error_node(expr)) {
+      check_assertion(is_operation_node(expr) &&
+                      (node_operator_is(expr, eok_subscript) ||
+                       node_operator_is(expr, eok_padd)));
+      expr->variant.operation.pointer_operand_is_second = TRUE;
+    }  /* if */
+  }  /* if */
+}  /* set_pointer_operand_is_second_flag */
+
+
 static void scan_subscript_operator(an_operand *operand_1,
                                     an_operand *result,
                                     a_boolean  for_builtin_offsetof)
 /*
-Scan array subscripting.  See section 3.3.2.1 of the standard.
+Scan array subscripting.  See section 6.5.2.1 of the C99 standard,
+[expr.sub] of the C++ standard.
 
 Syntax:
 	pointer-expression [ integral-expression ]
@@ -907,16 +927,17 @@ This routine is also used when scanning __builtin_offsetof constructs, in
 which case for_builtin_offsetof is set to TRUE.
 */
 {
-  an_operand         operand_2, operand_temp;
+  an_operand         operand_2;
   a_type_ptr         result_type;
   a_source_position  operator_position;
-  a_boolean          operands_have_been_reversed = FALSE;
   a_token_sequence_number
                      operator_tok_seq_number;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position  end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   a_boolean          err = FALSE, processed = FALSE;
+  an_operand         *pointer_operand, *integer_operand;
+  a_boolean          pointer_operand_is_second = FALSE;
 
   db_enter(4, "scan_subscript_operator");
 
@@ -995,64 +1016,60 @@ which case for_builtin_offsetof is set to TRUE.
       do_operand_transformations(operand_1, TOPT_NO_OPTIONS);
       do_operand_transformations(&operand_2, TOPT_NO_OPTIONS);
       /* One of the operands must have type "pointer to object type" and the 
-         other must be an integral expression.  See section 3.3.2.1 of the
-         standard.  If the first operand is integral or enum, switch them. */
+         other must be an integral expression. */
+      pointer_operand = operand_1;
+      integer_operand = &operand_2;
       if (is_integral_or_enum_type(operand_1->type)) {
         /* The subscript value is outside the brackets and the pointer value is
-           inside the brackets.  Switch them. */
-        copy_operand(operand_1, &operand_temp);
-        copy_operand(&operand_2, operand_1);
-        copy_operand(&operand_temp, &operand_2);
-        /* Remember that we did this so that we can adjust the position
-           information later on. */
-        operands_have_been_reversed = TRUE;
+           inside the brackets.  Swap them for the type checking. */
+        pointer_operand_is_second = TRUE;
+        pointer_operand = &operand_2;
+        integer_operand = operand_1;
       }  /* if */
 
-      /* The first operand must be a pointer to object. */
-      if (gcc_mode && is_pointer_type(operand_1->type) &&
-                      is_void_type(type_pointed_to(operand_1->type))) {
+      /* One operand must be a pointer to object. */
+      if (gcc_mode && is_pointer_type(pointer_operand->type) &&
+                      is_void_type(type_pointed_to(pointer_operand->type))) {
         /* GNU C allows a pointer to "void" to be subscripted. */
         pos_warning(ec_nonobject_pointer_arithmetic, &operator_position);
-        result_type = type_pointed_to(operand_1->type);
+        result_type = type_pointed_to(pointer_operand->type);
       } else if (
 #if PTR_TO_INCOMP_ARRAY_ARITHMETIC_ALLOWED
           /* Pointer to incomplete array is also allowed. */
-          check_object_or_incomp_array_pointer_operand(operand_1,
+          check_object_or_incomp_array_pointer_operand(pointer_operand,
                                                  ec_expr_not_pointer_to_object,
-                                                       &operand_2)
+                                                       integer_operand)
 #else /* !PTR_TO_INCOMP_ARRAY_ARITHMETIC_ALLOWED */
-          check_object_pointer_operand(operand_1,
+          check_object_pointer_operand(pointer_operand,
                                        ec_expr_not_pointer_to_object)
 #endif /* PTR_TO_INCOMP_ARRAY_ARITHMETIC_ALLOWED */
                                                                             ) {
-        result_type = type_pointed_to(operand_1->type);
+        result_type = type_pointed_to(pointer_operand->type);
       } else {
         result_type = error_type();
       }  /* if */
 
-      /* The subscript must be integral or enum. */
-      (void)check_integral_or_enum_operand(&operand_2);
-      if (for_builtin_offsetof && !is_constant_operand(&operand_2) &&
-          !is_error_operand(&operand_2)) {
-        pos_error(ec_subscript_must_be_constant, &operand_2.position);
-        make_error_operand(&operand_2);
+      /* The other operand must be integral or enum. */
+      (void)check_integral_or_enum_operand(integer_operand);
+      if (for_builtin_offsetof && !is_constant_operand(integer_operand) &&
+          !is_error_operand(integer_operand)) {
+        pos_error(ec_subscript_must_be_constant, &integer_operand->position);
+        make_error_operand(integer_operand);
       }  /* if */
-      /* Build the expression.  The order of the operands is pointer and
-         then the subscript, regardless of the original order of the two. */
+      /* Build the expression. */
       /* Note that the integral promotions are NOT done on the subscript;
-         this is as the standard wants it (they are to be done only where
-         indicated, and 3.3.2.1 does not say to do them). */
-      do_binary_operation((an_expr_operator_kind)eok_padd_subsc,
-                          operand_1, &operand_2, operand_1->type, result,
-                          &operator_position);
-      /* This is an lvalue; the expression or constant giving the address
-         has type pointer-to-X, but the operand has type X. */
+         this is as the standard wants it. */
+      do_binary_operation_full((an_expr_operator_kind)eok_subscript,
+                               operand_1, &operand_2, result_type,
+                               /*result_is_lvalue=*/TRUE, result,
+                               &operator_position);
       if (!is_error_operand(result)) {
-        result->type = result_type;
-        result->state = (an_operand_state)os_lvalue;
-        /* Preserve the reference entries from the first operand (the
-           array). */
-        result->ref_entries_list = operand_1->ref_entries_list;
+        if (pointer_operand_is_second) {
+          set_pointer_operand_is_second_flag(result);
+        }  /* if */
+        /* Preserve the reference entries from the pointer operand (the
+           array) because the result is an lvalue. */
+        result->ref_entries_list = pointer_operand->ref_entries_list;
       }  /* if */
     }  /* if */
   }  /* if */
@@ -1064,10 +1081,8 @@ which case for_builtin_offsetof is set to TRUE.
   (void)required_token(tok_rbracket, ec_exp_rbracket);
   remove_matching_stop_token(tok_rbracket);
 
-  set_operand_position(
-            result,
-            &(operands_have_been_reversed ? &operand_2 : operand_1)->position,
-            &end_position, &operator_position);
+  set_operand_position(result, &operand_1->position,
+                       &end_position, &operator_position);
   rule_out_expr_kinds(ROEK_INTEGRAL_CONSTANT, result);
   db_exit();
 }  /* scan_subscript_operator */
@@ -1612,14 +1627,16 @@ source position is after the closing parenthesis of the argument list.
         temp_init_node = error_node();
       } else {
         temp_init_node = alloc_temp_init_node(dest_type, dip,
-                                              /*result_is_addr=*/FALSE,
+                                              /*is_lvalue=*/FALSE,
                                               /*is_explicit_cast=*/FALSE);
       }  /* if */
     } else {
-      /* Existing enk_temp_init; make sure we get the value of the
-         temporary instead of its address.  Note that in this case dip
+      /* Existing enk_temp_init; make sure we get an rvalue for the
+         temporary instead of an lvalue.  Note that in this case dip
          is the dynamic init pointer extracted from that node. */
-      temp_init_node->variant.init.result_is_addr = FALSE;
+      if (temp_init_node->is_lvalue) {
+        temp_init_node = rvalue_expr_for_lvalue(temp_init_node);
+      }  /* if */
       temp_init_node->type = dest_type;
       /* Put the dynamic initialization on a destruction list if
          appropriate. */
@@ -1817,12 +1834,14 @@ static a_boolean fold_call_if_possible(an_operand  *op)
 /*
 The given operand must represent a function call.  Some GNU __builtin_xxx
 functions must be constant-folded.  This routine does so by replacing the
-given operand by a constant operand if appropriate.
+given operand by a constant operand if appropriate.  Returns TRUE if the call
+is folded.
 */
 {
   a_boolean         folded = FALSE;
   an_expr_node_ptr  call, args;
   a_constant        result;
+  a_routine_ptr     rp;
 
   check_assertion(is_expression_operand(op));
   call = op->variant.expression;
@@ -1830,9 +1849,8 @@ given operand by a constant operand if appropriate.
                   call->kind == (an_expr_node_kind)enk_operation);
   args = call->variant.operation.operands;
   if (call->variant.operation.kind == (an_expr_operator_kind)eok_call &&
-      args->kind == (an_expr_node_kind)enk_routine_address) {
+      (rp = routine_from_function_expr(args)) != NULL) {
     /* A direct call: Examine which routine is called. */
-    a_routine_ptr  rp = args->variant.routine;
     if (is_gnu_builtin_function(rp)) {
       a_type_ptr  result_type = skip_typerefs(call->type);
       args = args->next;
@@ -2045,12 +2063,8 @@ when appropriate -- evaluates a pseudo-call to the built-in function.
     check_assertion(is_integral_type(result_type));
     switch (bfk) {
       case bfk_constant_p:
-        /* Lvalue-to-rvalue transformation is needed to ensure that a global
-           variable lvalue (which is represented as an address constant) is not
-           treated as a constant by is_constant_operand.  Except for string
-           literals, GNU compilers do not treat address constants as constants.
-           (Note that operand_is_string_literal only works prior to applying
-           the lvalue-to-rvalue transformation.)  The GNU compiler front ends
+        /* Except for string literals, GNU compilers do not treat address
+           constants as constants.  The GNU compiler front ends
            only fold the call when the argument is a constant-expression, or
            when the calls appears in a namespace scope initializer; otherwise,
            the call is folded in the back end, and the result may depend on the
@@ -2059,13 +2073,10 @@ when appropriate -- evaluates a pseudo-call to the built-in function.
            default (setting it to FALSE matches the GNU compiler more closely,
            but requires support in the back end). */
         {
-          a_boolean  result_value = operand_is_string_literal(&arg);
-          do_operand_transformations(&arg, TOPT_NO_OPTIONS);
-          if (!result_value) {
-            result_value = is_constant_operand(&arg) &&
-                           arg.variant.constant.kind !=
-                                              (a_constant_repr_kind)ck_address;
-          }  /* if */
+          a_boolean  result_value = operand_is_string_literal(&arg) ||
+                                    (is_constant_operand(&arg) &&
+                                     arg.variant.constant.kind !=
+                                             (a_constant_repr_kind)ck_address);
           if (result_value || innermost_function_scope == NULL ||
               always_fold_calls_to_builtin_constant_p) {
             set_integer_constant(&result, (a_host_large_integer)result_value,
@@ -2156,10 +2167,7 @@ closing right parenthesis).
   a_routine_ptr            rout;
   a_builtin_function_kind  bfk;
 
-  check_assertion(
-          target->kind == (an_operand_kind)ok_constant &&
-          target->variant.constant.kind == (a_constant_repr_kind)ck_address);
-  rout = target->variant.constant.variant.address.variant.routine;
+  rout = routine_from_function_operand(target);
   bfk = rout->variant.builtin_function_kind;
   /* Check if this a generic __sync_... function and if so record the number
      of arguments expected by that function. */
@@ -2242,7 +2250,7 @@ closing right parenthesis).
       /* Find the concrete routine to dispatch the operation to. */
       a_symbol_ptr       sym;
       a_symbol_locator   loc;
-      a_source_position  pos;
+      an_operand         orig_operand;
       char               name[100], suffix[3];
       /* Construct the concrete routine's name: */
       check_assertion(strlen(builtin_function_kind_names[bfk]) < 90);
@@ -2263,9 +2271,14 @@ closing right parenthesis).
       }  /* for */
       check_assertion(sym != NULL);
       /* Update the operand: */
-      pos = target->position;
-      make_function_designator_operand(sym, target->is_qualified_name, &pos,
+      orig_operand = *target;
+      make_function_designator_operand(sym, target->is_qualified_name,
+                                       &orig_operand.position,
+                                       end_position_of_operand(&orig_operand),
                                        target->ref_entries_list, target);
+      conv_function_designator_to_ptr_to_function(target,
+                                                  /*allow_ctor=*/FALSE,
+                                                  /*will_call=*/TRUE);
       rout = sym->variant.routine.ptr;
     }  /* if */
   }  /* if */
@@ -2285,11 +2298,8 @@ modified by *bound_function_selector if the function is bound.  Even
 if the function is not bound, bound_function_selector points to an operand
 that can be filled in if an implicit selector is generated.
 On return, *result is set to an operand for the entire call.
-See section 3.3.2.2 of the standard.
-
-Syntax:
-	pointer-to-function-expression ( argument-expression-list    )
-								 opt
+See section 6.5.2.2 of the C99 standard and [expr.call] of the
+C++ standard.  The current token is the "(" of the call.
 */
 {
   an_expr_node_ptr  argument_list;
@@ -2395,9 +2405,9 @@ Syntax:
   } else if (is_expression_operand(operand) &&
              is_operation_node(operand->variant.expression) &&
              (op = operand->variant.expression->variant.operation.kind,
-              (op == (an_expr_operator_kind)eok_vacuous_destructor_call ||
-               op == (an_expr_operator_kind)eok_value_vacuous_destructor_call)
-                                                                           )) {
+              (op == (an_expr_operator_kind)eok_dot_vacuous_destructor_call ||
+               op == (an_expr_operator_kind)
+                                    eok_points_to_vacuous_destructor_call))) {
     /* This operand was generated from a vacuous destructor call, e.g.,
        p->int::~int().
     */
@@ -2418,7 +2428,7 @@ Syntax:
       /* A call of an object of a nonreal class type in a prototype
          instantiation cannot be resolved. */
       routine_type = NULL;
-      prep_generic_operand(operand, /*lvalue_expected=*/FALSE);
+      prep_generic_operand(operand);
       unknown_dependent_function = TRUE;
     } else {
       /* If the class is a template class make sure it is instantiated so its
@@ -2430,8 +2440,7 @@ Syntax:
       /* The operand becomes the selector object. */
       check_assertion(!operand->bound_function);
       copy_operand(operand, bound_function_selector);
-      conv_class_operand_to_object_pointer(bound_function_selector, 
-                                           /*will_be_an_lvalue=*/FALSE);
+      conv_class_operand_to_object_pointer(bound_function_selector);
       /* See if the class has an operator(). */
       member_function_symbol = opname_member_function_symbol(
                                         (an_opname_kind)onk_function_call,
@@ -2476,10 +2485,8 @@ Syntax:
         make_function_designator_operand(member_func_sym,
                                          (a_boolean)operand->is_qualified_name,
                                          &call_position,
+                                         end_position_or_null(&end_position),
                                          operand->ref_entries_list, operand);
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-        operand->end_position = end_position;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #if RECORD_FORM_OF_NAME_REFERENCE
         if (!operand->name_reference_set &&
             locator_for_curr_id.is_qualified_name) {
@@ -2500,11 +2507,9 @@ Syntax:
     }  /* if */
     /* Do standard transformations on the operand. */
     { a_transformation_options_set options =
+                               TOPT_WILL_CALL |
                                TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION |
                                TOPT_SUPPRESS_CHECK_FOR_INDEFINITE_FUNCTION;
-      /* In Microsoft mode, allow an explicit call of a constructor, e.g.,
-         "p->X::X()". */
-      if (microsoft_mode) options |= TOPT_ADDR_OF_CTOR_ALLOWED;
       do_operand_transformations(operand, options);
     }
     if (is_undefined_symbol_operand(operand)) {
@@ -2542,13 +2547,13 @@ Syntax:
         make_function_designator_operand(func_sym,
                                          /*is_qualified_name=*/FALSE,
                                          &func_sym->decl_position,
+                                         end_position_or_null(
+                                                       &end_function_position),
                                          operand->ref_entries_list,
                                          operand);
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-        operand->end_position = end_function_position;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
         conv_function_designator_to_ptr_to_function(operand,
-                                                    /*allow_ctor=*/FALSE);
+                                                    /*allow_ctor=*/FALSE,
+                                                    /*will_call=*/TRUE);
         routine = func_sym->variant.routine.ptr;
         routine_type = routine_symbol_type(func_sym);
       }  /* if */
@@ -2565,7 +2570,7 @@ Syntax:
          might be a class.  More testing for other dependent cases
          is done below. */
       routine_type = NULL;
-      prep_generic_operand(operand, /*lvalue_expected=*/FALSE);
+      prep_generic_operand(operand);
       unknown_dependent_function = TRUE;
     } else {
       /* Normal function, or call using pointer-to-member-function. */
@@ -2729,7 +2734,7 @@ Syntax:
            the selector pointer, so move/convert it back. */
         copy_operand(bound_function_selector, operand);
         conv_object_pointer_to_lvalue(operand);
-        prep_generic_operand(operand, /*lvalue_expected=*/FALSE);
+        prep_generic_operand(operand);
       } else {
         a_boolean have_selector = operand->bound_function;
         make_unknown_dependent_function_operand(
@@ -2842,7 +2847,7 @@ Syntax:
       call_node->variant.operation.
                                 arg_dependent_lookup_suppressed_on_call = TRUE;
     }  /* if */
-    make_expression_operand(call_node, call_node->type, result);
+    make_expression_operand(call_node, result);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (ignore_call) {
     /* Ignore a call of the form 0(x) -- copy the zero to the result. */
@@ -2854,14 +2859,10 @@ Syntax:
   } else {
     /* Build the call node and an operand for it. */
     a_boolean uses_operator_syntax = FALSE;
-    if (has_overloaded_call_operator &&
-        operand->kind == (an_operand_kind)ok_constant &&
-        operand->variant.constant.kind == (a_constant_repr_kind)ck_address &&
-        operand->variant.constant.variant.address.kind ==
-                                           (an_address_base_kind)abk_routine) {
-      a_routine_ptr rp =
-                     operand->variant.constant.variant.address.variant.routine;
-      if (rp->special_kind == (a_special_function_kind)sfk_operator &&
+    if (has_overloaded_call_operator) {
+      a_routine_ptr rp = routine_from_function_operand(operand);
+      if (rp != NULL &&
+          rp->special_kind == (a_special_function_kind)sfk_operator &&
           rp->variant.opname_kind == (an_opname_kind)onk_function_call) {
         /* The original "function" was a class object with an operator()
            member, and the resulting call is to an operator() (as opposed to
@@ -2957,20 +2958,22 @@ static void make_field_selection_operand(an_operand            *operand_1,
                                          an_expr_operator_kind op,
                                          a_symbol_ptr          field_sym,
                                          a_type_ptr            selection_type,
+                                         a_boolean             is_lvalue,
                                          an_operand            *result)
 /*
 Make an operand for a field selection.  *operand_1 is the left operand.
 op is the selection operator.  field_sym is the right operand (the field).
-selection_type is the result type.  The operand for the selection
-is created in *result.
+selection_type is the result type.  The result is an lvalue if is_lvalue
+is TRUE, an rvalue otherwise.  The operand for the selection is created in
+*result.  The current token must be the (possibly coalesced) field name.
 */
 {
   a_field_ptr field = field_sym->variant.field.ptr;
   an_operand  field_operand;
 
   make_field_operand(field, &field_operand);
-  build_binary_result_operand(operand_1, &field_operand, op,
-                              selection_type, result);
+  build_binary_result_operand_full(operand_1, &field_operand, op,
+                                   selection_type, is_lvalue, result);
 #if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
   /* When nonstandard anonymous unions are allowed, look for
      fields of such anonymous parents and insert the elided field
@@ -2980,7 +2983,8 @@ is created in *result.
     adjust_nonstandard_anonymous_object_field_references(orig_node,
                                                          field_sym,
                                                          /*std_also=*/FALSE);
-    make_expression_operand(orig_node, result->type, result);
+    make_expression_operand(orig_node, result);
+    if (orig_node->is_lvalue) set_lvalue_operand_state(result);
   }  /* if */
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
 }  /* make_field_selection_operand */
@@ -2990,32 +2994,27 @@ static void do_field_selection_operation(
                                an_operand        *operand_1,
                                a_type_ptr        class_struct_union_type,
                                a_boolean         is_arrow_operator,
-                               a_boolean         rvalue_result,
+                               a_boolean         is_lvalue,
                                a_symbol_ptr      field_sym,
-                               a_source_position *member_position,
                                a_ref_entry_ptr   rep,
                                an_operand        *result)
 /*
 Construct the result operand for a field selection operation.  The left
-operand (the class/struct/union) is given by operand_1.  The type
-of the class/struct/union (before C++ baseward casts, if any) is given
-by class_struct_union_type; it provides the type qualifiers that should
+operand (the class/struct/union or the pointer thereto) is given by operand_1.
+The type of the class/struct/union (before C++ baseward casts, if any) is
+given by class_struct_union_type; it provides the type qualifiers that should
 be attached to the result expression.  The operator is "->" if
-is_arrow_operator is TRUE, "." otherwise (more precisely, the flag means
-operand_1 is an rvalue pointer; the operation might have started out as a
-"." and have been rewritten in "->" form since then).  rvalue_result is
-TRUE if the result should be an rvalue.  field_sym points to the symbol
-for the right-side field.  *member_position gives its position.  rep
-points to an associated reference entry, or is NULL if none is needed.
-The result is placed in *result.
+is_arrow_operator is TRUE, "." otherwise.  is_lvalue is TRUE if the
+result should be an lvalue.  field_sym points to the symbol for the
+right-side field.  rep points to an associated reference entry, or is NULL
+if none is needed.  The result is placed in *result.  The current token
+must be the (possibly coalesced) field name.
 */
 {
   a_field_ptr           field;
   a_type_ptr            result_type;
-  a_boolean             operand_1_is_pointer;
   a_type_ptr            selection_type;
   an_expr_operator_kind op;
-  a_boolean             did_not_fold, template_constant;
   a_type_qualifier_set  qualifiers;
     
   field = field_sym->variant.field.ptr;
@@ -3029,21 +3028,22 @@ The result is placed in *result.
        Render as an ok_property_ref operand, which will be rewritten
        later as a function call. */
     clear_operand((an_operand_kind)ok_property_ref, result);
-    result->state = (an_operand_state)os_lvalue;
     result->type = unknown_type();
     result->variant.property_ref.field = field;
+    set_lvalue_operand_state(result);
     conv_selector_to_object_pointer(operand_1, &is_arrow_operator);
     result->variant.property_ref.object = make_node_from_operand(operand_1);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
     /* Determine the result type. */
-    operand_1_is_pointer = (is_arrow_operator || !is_an_rvalue(operand_1));
     qualifiers = get_type_qualifiers(class_struct_union_type);
     if (cfront_2_1_mode) {
       /* cfront 2.1 ignores the cv-qualifiers on the left operand. */
       result_type = field->type;
       if (qualifiers != TQ_NONE) {
         a_type_ptr unqual_class_type;
+        a_boolean  operand_1_was_rvalue = (is_an_rvalue(operand_1) &&
+                                           !is_arrow_operator);
         /* Drop the type qualifiers on the left operand to generate correct
            IL. */
         /* Adjust the type by turning the operand into a pointer (if
@@ -3059,10 +3059,11 @@ The result is placed in *result.
                      /*is_implicit_cast=*/TRUE,
                      /*is_reinterpret_cast=*/FALSE,
                      /*reinterpret_semantics=*/FALSE);
-        if (!operand_1_is_pointer) {
+        if (operand_1_was_rvalue) {
           /* For the class rvalue case, produce an rvalue again. */
           conv_object_pointer_to_lvalue(operand_1);
           conv_lvalue_to_rvalue(operand_1);
+          is_arrow_operator = FALSE;
         }  /* if */
         qualifiers = TQ_NONE;
       }  /* if */
@@ -3072,124 +3073,17 @@ The result is placed in *result.
          or union.  const is ignored if the field was declared mutable. */
       result_type = make_field_selection_type(field, qualifiers);
     }  /* if */
-    if (rvalue_result) result_type = rvalue_type(result_type);
-    /* Determine the IL operator to use.  If the first operand is a pointer
-       (either explicitly, or because it's an lvalue and the operation is "."),
-       eok_field is used.  Otherwise, the first operand is an rvalue and
-       eok_value_field must be used. */
-    /* Note that in both the "lvalue . field" case and the
-       "rvalue -> field" case, the left operand gives the address; the
-       lvalue/rvalue representation difference cancels the "."/"->"
-       difference. */
-    /* Different operators are used for the bit-field cases: 
-         eok_value_field -> eok_value_bit_field
-         eok_field       -> eok_bit_field
-    */
-    if (!operand_1_is_pointer) {
-      /* For "rvalue . field", the type of the selection is the same
-         as the result type. */
-      check_assertion(rvalue_result);
-      selection_type = result_type;
-      op = field->is_bit_field ? (an_expr_operator_kind)eok_value_bit_field :
-                                 (an_expr_operator_kind)eok_value_field;
-    } else {
-      /* For "lvalue . field" and "rvalue -> field", the type of the
-         selection (giving, as it does, the address of the resulting
-         lvalue) is pointer-to the field type. */
-      /* "rvalue . field" also comes here if a base-class cast was
-         needed on the rvalue, but it's been rewritten as "rvalue -> field",
-         with rvalue_result TRUE. */
-      selection_type = make_pointer_type(result_type);
-      op = field->is_bit_field ? (an_expr_operator_kind)eok_bit_field :
-                                 (an_expr_operator_kind)eok_field;
-    }  /* if */
-    did_not_fold = TRUE;
-    template_constant = FALSE;
-    if (is_constant_operand(operand_1) && curr_expr_is_evaluated() &&
-        expr_stack->favor_constant_result && operand_1_is_pointer
-#if UPC_EXTENSIONS_ALLOWED
-        /* Do not fold field operations for shared structs. */
-        && !(upc_mode && is_shared_qualified_type(class_struct_union_type))
-#endif /* UPC_EXTENSIONS_ALLOWED */
-                                                                           ) {
-      /* Don't try to fold bit fields except when their addresses
-         can be taken (as an extension). */
-      if (!field->is_bit_field ||
-          (addr_of_bit_field_allowed &&
-           is_bit_field_whose_address_can_be_taken(field, &selection_type))) {
-        /* Fold a field selection relative to a constant address into another
-           constant address.  Note that the "rvalue . field" case can't come
-           here, since a struct/union rvalue cannot be a constant.  This
-           folding is always done in constant expressions, but in some
-           nonconstant expressions it's not done because it's clearer to
-           have the field selection in the IL (the constant form has only
-           an offset, and loses the field name). */
-        clear_operand((an_operand_kind)ok_constant, result);
-        fold_field_selection(&operand_1->variant.constant, field_sym,
-                             selection_type, &result->variant.constant,
-                             &template_constant);
-        did_not_fold = template_constant;
-      }  /* if */
-    }  /* if */
-    if (did_not_fold) {
-      if (curr_expr_kind_is_const() && curr_expr_is_evaluated() &&
-          !template_constant) {
-        /* The operation must fold to a constant in a constant expression. */
-        pos_error(ec_expr_not_constant, member_position);
-        make_error_operand(result);
-      } else {
-        /* Construct the field selection expression tree. */
-        make_field_selection_operand(operand_1, op, field_sym, selection_type,
-                                     result);
-        if (template_constant) {
-          /* A field selection where the first operand is a template parameter
-             constant.  The expression tree for the selection is placed under
-             a template parameter constant. */
-          make_template_param_expr_constant_operand(
-                                                make_node_from_operand(result),
-                                                result);
-        }  /* if */
-      }  /* if */
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
-    } else if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
-      /* The field-selection operation was constant-folded; reconstruct the
-         original expression and record it in the constant: */
-      an_operand  result_op;
-      copy_operand(operand_1, &result_op);
-      make_field_selection_operand(operand_1, op, field_sym, selection_type,
-                                   &result_op);
-      check_assertion(is_expression_operand(&result_op));
-      result->variant.constant.expr = result_op.variant.expression;
-#if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
-    } else {
-      /* Ignore any range modifiers in the discarded expression. */
-      forget_expr_range_modifiers_in_operand(operand_1);
-#endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
-    }  /* if */
-    /* Set the operand type.  This is needed in particular if the result
-       is an lvalue, because the operand type has one less level of
-       "pointer-to" than does the expression node. */
-    result->type = result_type;
-    if (rvalue_result) {
-      /* The result is an rvalue. */
-      result->state = (an_operand_state)os_rvalue;
-      if (operand_1_is_pointer) {
-        /* This is the "rvalue . field" case where the first operand required
-           a base class cast and was therefore turned into a pointer.  An
-           indirection is needed after the field selection to turn the
-           expression for the address into an expression for the rvalue. */
-        an_expr_node_ptr node = make_node_from_operand(result);
-        node = add_indirection_to_node(node);
-        make_expression_operand(node, result_type, result);
-      }  /* if */
-    } else {
-      /* The result is an lvalue. */
-      result->state = (an_operand_state)os_lvalue;
-    }  /* if */
+    selection_type = result_type;
+    if (!is_lvalue) result_type = rvalue_type(result_type);
+    /* Determine the IL operator to use. */
+    op = is_arrow_operator ? (an_expr_operator_kind)eok_points_to_field :
+                             (an_expr_operator_kind)eok_dot_field;
+    /* Construct the field selection expression tree. */
+    make_field_selection_operand(operand_1, op, field_sym, selection_type,
+                                 is_lvalue, result);
     /* In C++, a field may have a reference type.  An implicit indirection
-       is done to get the value or address of the thing pointed to. */
-    if (C_dialect == C_dialect_cplusplus && is_reference_type(result_type)) {
+       is done to get the thing pointed to. */
+    if (!C_mode() && is_reference_type(result_type)) {
       add_reference_indirection(result);
     } else {
       /* Preserve the reference entries for the base struct.  Don't do this
@@ -3311,7 +3205,7 @@ have the EOPT_FIELD_FOR_OFFSETOF flag set in that case).
 */
 {
   a_symbol_ptr          member_sym, projection_member_sym;
-  a_boolean             is_arrow_operator, rvalue_result;
+  a_boolean             is_arrow_operator, is_lvalue;
   a_type_ptr            class_struct_union_type = NULL;
   a_type_ptr            orig_class_struct_union_type;
   a_boolean             err = FALSE, found_id = FALSE;
@@ -3353,10 +3247,8 @@ have the EOPT_FIELD_FOR_OFFSETOF flag set in that case).
              curr_expr_kind_is(ek_template_arg)) {
     /* Field selection is not allowed in integral constant expressions
        or template argument expressions. */
-    if (any_cfront_mode() || (microsoft_mode && !C_mode()) || sun_mode ||
-        (gpp_mode && gnu_version < 30400)) {
-      /* ... except in cfront, Microsoft, Sun, or GNU C++ mode, where
-         something like
+    if (current_mode_allows_field_selection_folding()) {
+      /* ... except in certain modes, where something like
            struct A { enum { e1 = 1 }; } a;
            int x[a.e1];
          is allowed.  The constant check is done at the end. */
@@ -3372,11 +3264,10 @@ have the EOPT_FIELD_FOR_OFFSETOF flag set in that case).
     }  /* if */
   } else if (curr_expr_kind_is(ek_init_constant) &&
              !C_mode() && is_arrow_operator &&
-             (microsoft_mode || sun_mode || 
-              (gpp_mode && gnu_version < 30400)) &&
+             current_mode_allows_field_selection_folding() &&
              (is_an_lvalue(operand_1) ||
               (is_an_rvalue(operand_1) && !is_constant_operand(operand_1)))) {
-    /* In Microsoft, Sun and GNU C++, a->e1 can be used as a constant if e1
+    /* In certain C++ modes, a->e1 can be used as a constant if e1
        is a constant member (like an enumerator).  The "a" expression
        requires a dereference (test just done), so this selection will
        get an error in the normal processing.  Suppress the dereference
@@ -3397,7 +3288,7 @@ have the EOPT_FIELD_FOR_OFFSETOF flag set in that case).
                                         (an_operator_arrow_block_ptr)NULL);
     }  /* if */
     { an_expression_kind saved_expr_kind = expr_stack->expression_kind;
-      if (allow_constant_selection) {
+      if (allow_constant_selection && is_arrow_operator) {
         /* For the cfront or Microsoft case that allows p->k in a constant
            expression, treat the "p" momentarily as part of a non-constant
            expression to get no error on the lvalue-to-rvalue conversion. */
@@ -3675,7 +3566,7 @@ qualified_name_check:
                use "->" instead.  Note that the test above has ensured that
                operand_1 here is an lvalue. */
             warning(ec_old_fashioned_field_selection);
-            take_address_of_lvalue(operand_1);
+            take_address_of_lvalue(operand_1, (a_source_position*)NULL);
             is_arrow_operator = TRUE;
           }  /* if */
           /* Cast the pointer to a pointer to the proper struct or union. */
@@ -3769,7 +3660,7 @@ qualified_name_check:
     if (!is_arrow_operator && is_an_lvalue(operand_1)) {
       /* "." operator.  Convert the lvalue to an rvalue pointer, then
          use "->" instead. */
-      take_address_of_lvalue(operand_1);
+      take_address_of_lvalue(operand_1, (a_source_position*)NULL);
       is_arrow_operator = TRUE;
     }  /* if */
     if (!is_class_struct_union_type(dtor_type)) {
@@ -3811,17 +3702,16 @@ qualified_name_check:
                                 /*is_object_pointer=*/TRUE);
       }  /* if */
     }  /* if */
-    /* Make an eok_vacuous_destructor_call node and an operand for it.
+    /* Make a vacuous destructor call node and an operand for it.
        This is a pretty weird representation for this case, but it's a pretty
        weird case.  scan_function_call checks for this construct. */
     node = make_node_from_operand(operand_1);
-    rvalue_case = !is_arrow_operator && is_an_rvalue(operand_1);
-    node = make_operator_node((an_expr_operator_kind)(rvalue_case ?
-                                eok_value_vacuous_destructor_call :
-                                eok_vacuous_destructor_call),
+    node = make_operator_node((an_expr_operator_kind)(is_arrow_operator ?
+                                eok_points_to_vacuous_destructor_call :
+                                eok_dot_vacuous_destructor_call),
                               void_type(),
                               node);
-    make_expression_operand(node, node->type, result);
+    make_expression_operand(node, result);
   } else {
     /* Record that the field was referenced, for cross-reference (etc.)
        purposes. */
@@ -3860,7 +3750,7 @@ qualified_name_check:
           /* Normal field selection. */
           /* The result is an rvalue if the operator is "." and the left
              operand is an rvalue. */
-          rvalue_result = !is_arrow_operator && is_an_rvalue(operand_1);
+          is_lvalue = is_arrow_operator || is_an_lvalue(operand_1);
           /* This operation uses the left-side operand, so cast the
              operand to the type of the member symbol. */
           cast_pointer_for_field_selection(operand_1, &is_arrow_operator,
@@ -3879,17 +3769,15 @@ qualified_name_check:
           } else {
             do_field_selection_operation(operand_1,
                                          orig_class_struct_union_type,
-                                         is_arrow_operator, rvalue_result,
-                                         member_sym, &member_position, rep,
-                                         result);
+                                         is_arrow_operator, is_lvalue,
+                                         member_sym, rep, result);
           }  /* if */
           break;
         case sk_static_data_member:
           /* Static data member reference. */
           make_lvalue_variable_operand(
                               member_sym->variant.static_data_member.variable,
-                              result, rep,
-                               /*record_expr=*/TRUE);
+                              result, rep);
           combine_unneeded_selector_with_operand(operand_1, is_arrow_operator,
                                                  result);
           break;
@@ -3943,6 +3831,8 @@ nonstatic_member_function:
                                                              is_qualified_name,
                                                  &locator_for_curr_id.
                                                                source_position,
+                                                 end_position_or_null(
+                                                          &end_pos_curr_token),
                                                  rep,
                                                  result);
                 set_operand_name_reference_from_locator_for_curr_id(result);
@@ -3956,15 +3846,10 @@ nonstatic_member_function:
             make_function_designator_operand(projection_member_sym,
                                              is_qualified_name,
                                              &member_position,
+                                             end_position_or_null(
+                                                          &end_pos_curr_token),
                                              rep,
                                              result);
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-            /* The end position must be set now rather than waiting until
-               the end, because combine_unneeded_selector_with_operand
-               will create a node that needs the end position for its
-               expr_range. */
-            result->end_position = end_pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
             set_operand_name_reference_from_locator_for_curr_id(result);
             combine_unneeded_selector_with_operand(operand_1,
                                                    is_arrow_operator,
@@ -4001,14 +3886,13 @@ nonstatic_member_function:
                                                         locator_for_curr_id.
                                                              is_qualified_name,
                                                   result);
-          result->state = (an_operand_state)os_function_designator;
+          change_template_param_constant_operand_to_lvalue(result);
           combine_unneeded_selector_with_operand(operand_1, is_arrow_operator,
                                                  result);
           break;
         case sk_constant:
           /* Member constant (e.g., an enumerator). */
           make_sym_constant_operand(member_sym, result);
-          change_nonreal_member_constant_operand_to_lvalue(result);
           combine_unneeded_selector_with_operand(operand_1, is_arrow_operator,
                                                  result);
           break;
@@ -4073,15 +3957,26 @@ nonstatic_member_function:
   if (allow_constant_selection) {
     /* If we are allowing field selection in a constant expression
        as an extension, check now that the result is constant and has
-       an appropriate type. */
+       an appropriate type.  allow_constant_selection TRUE means we
+       suppressed an error earlier in exchange for this check at the
+       end.  Note that there are other cases of selections allowed in
+       constant expressions that don't have the flag set. */
     a_boolean bad = TRUE;
-    if (is_constant_operand(result)) {
-      if (is_integral_or_enum_type(result->type)) {
-        bad = FALSE;
-      } else if ((curr_expr_kind_is(ek_init_constant) ||
-                  curr_expr_kind_is(ek_template_arg)) &&
-                 is_an_lvalue(result)) {
-        bad = FALSE;
+    if ((curr_expr_kind_is(ek_init_constant) ||
+         curr_expr_kind_is(ek_template_arg)) &&
+        is_an_lvalue(result)) {
+      /* In these expression kinds, an lvalue can be left as is, because its
+         address might be taken. */
+      bad = FALSE;
+    } else {
+      /* Otherwise, the result must be a constant of integral or enum type.
+         The conversion to rvalue exposes any underlying constant, and also
+         drops the field selection part leaving only the right operand. */
+      conv_lvalue_to_rvalue(result);
+      if (is_constant_operand(result)) {
+        if (is_integral_or_enum_type(result->type)) {
+          bad = FALSE;
+        }  /* if */
       }  /* if */
     }  /* if */
     if (bad) {
@@ -4120,7 +4015,7 @@ object bound with the function in *bound_function_selector.  See ARM 5.5.
                     operator_tok_seq_number;
   a_base_class_ptr  bcp;
   an_expr_node_ptr  select_node, object_node, pm_node;
-  a_boolean         rvalue_selection;
+  a_boolean         lvalue_selection;
 
   db_enter(4, "scan_ptr_to_member_operator");
 
@@ -4164,7 +4059,7 @@ object bound with the function in *bound_function_selector.  See ARM 5.5.
        check the operand types.  Just produce an expression with
        a generic operator.  This is for ".*" only; the "->*" case
        is handled by check_for_operator_overloading. */
-    template_binary_operation((an_expr_operator_kind)eok_pm_dot_field,
+    template_binary_operation((an_expr_operator_kind)eok_pm_field,
                               operand_1, &operand_2,
                               result, &operator_position);
     processed = TRUE;
@@ -4259,17 +4154,21 @@ object bound with the function in *bound_function_selector.  See ARM 5.5.
         make_error_operand(result);
       } else {
         /* The operands are compatible. */
-        if (any_cfront_mode() || microsoft_mode) {
+        if (is_arrow_operator ||
+            (is_an_lvalue(operand_1) || is_error_operand(operand_1))) {
+          /* The result is an lvalue if the operator is "->*" or if the
+             first operand is an lvalue (or might be, if an error). */
+          lvalue_selection = TRUE;
+        } else if (any_cfront_mode() || microsoft_mode) {
           /* ARM rules: the result is always an lvalue and that doesn't
              depend on the lvalueness of the left operand. */
-          rvalue_selection = FALSE;
+          lvalue_selection = TRUE;
+          /* Force the "->*" form to get an lvalue result. */
+          conv_selector_to_object_pointer(operand_1, &is_arrow_operator);
         } else {
-          /* The result is an lvalue if the operator is "->*" or if the
-             first operand is an lvalue. */
-          rvalue_selection = (!is_arrow_operator && is_an_rvalue(operand_1));
+          /* rvalue .* pm, result is an rvalue. */
+          lvalue_selection = FALSE;
         }  /* if */
-        /* Get an operand for the address of the object. */
-        conv_selector_to_object_pointer(operand_1, &is_arrow_operator);
         /* Cast the left operand to a base class if necessary.  This does the
            ambiguity and accessibility checking. */
         if (bcp != NULL) {
@@ -4279,9 +4178,10 @@ object bound with the function in *bound_function_selector.  See ARM 5.5.
                                   /*implicit_in_naming=*/FALSE,
                                   /*is_object_pointer=*/TRUE);
         }  /* if */
-        /* The result type is the member type pointed to by the second
-           operand. */
-        result_type = pm_member_type(operand_2_type);
+        /* Determine the result type, which is roughly the member type pointed
+           to by the second operand. */
+        result_type = make_pm_selection_type(qual_operand_1_type,
+                                             operand_2_type);
         if (is_function_type(result_type)) {
           /* Result is a bound function.  It can only be called or (as an
              anachronism) cast to a normal function pointer. */
@@ -4290,48 +4190,34 @@ object bound with the function in *bound_function_selector.  See ARM 5.5.
              if any pointers-to-members are in there we don't want to change
              the references from address-taken to reference on a call. */
           result->ref_entries_list = NULL;
+          /* Force the "->*" form because that's what's needed in a call. */
+          conv_selector_to_object_pointer(operand_1, &is_arrow_operator);
           copy_operand(operand_1, bound_function_selector);
           bind_member_function_operand_to_selector(result,
                                                    bound_function_selector);
         } else {
           /* Result is a data member. */
-          if (!(microsoft_mode && microsoft_version < 1200)) {
-            /* Add cv-qualifiers from the first operand to the result type.
-               (This was not in the ARM, but it's in the WP, and cfront does
-               it.)  Note: this isn't done for the pointer-to-member-function
-               case, since applying type qualifiers to a function type is
-               not allowed. */
-            result_type = type_plus_qualifiers_from_second_type(
-                                                          result_type,
-                                                          qual_operand_1_type);
-          }  /* if */
           /* Use an eok_pm_field node with the pointer to object and
              pointer-to-member as the operands. */
           object_node = make_node_from_operand(operand_1);
           pm_node = make_node_from_operand(&operand_2);
           object_node->next = pm_node;
-          select_node = make_operator_node((an_expr_operator_kind)eok_pm_field,
-                                           make_pointer_type(result_type),
-                                           object_node);
-          if (rvalue_selection) {
-            /* If the result is not an lvalue, add an indirection to turn
-               the data member address into the data member value. */
-            select_node = add_indirection_to_node(select_node);
-            /* Drop cv-qualifiers if necessary. */
-            result_type = select_node->type;
-          }  /* if */
-          make_expression_operand(select_node, result_type, result);
-          if (!rvalue_selection) {
+          select_node = make_operator_node(
+                               is_arrow_operator ?
+                                 (an_expr_operator_kind)eok_pm_points_to_field:
+                                 (an_expr_operator_kind)eok_pm_field,
+                               result_type,
+                               object_node);
+          make_expression_operand(select_node, result);
+          if (lvalue_selection) {
             /* The result is an lvalue. */
-            result->state = (an_operand_state)os_lvalue;
+            select_node->is_lvalue = TRUE;
+            set_lvalue_operand_state(result);
             /* Keep the references from the first operand. */
             result->ref_entries_list = operand_1->ref_entries_list;
           }  /* if */
-          /* If the field is a reference add an implicit indirection. */
-          if (C_dialect == C_dialect_cplusplus &&
-              is_reference_type(result_type)) {
-            add_reference_indirection(result);
-          }  /* if */
+          /* There shouldn't be any pointers to members to references. */
+          check_assertion(!is_reference_type(result_type));
         }  /* if */
       }  /* if */
     }  /* if */
@@ -4475,7 +4361,13 @@ in result.
     orig_operand = *result;
     expr = make_node_from_operand(result);
     expr = make_comma_node(temp_init_expr, expr);
-    make_expression_operand(expr, expr->type, result);
+    make_expression_operand(expr, result);
+    if (is_an_lvalue(&orig_operand) ||
+        is_a_function_designator(&orig_operand)) {
+      /* The original operand is an lvalue, so the result of the comma
+         operator is an lvalue. */
+      set_lvalue_operand_state(result);
+    }  /* if */
     restore_operand_details_incl_ref(result, &orig_operand);
   }  /* if */
 }  /* insert_temporary_initialization */
@@ -4814,14 +4706,15 @@ in having type qualifiers.  This routine is called only in C++ mode.
   an_expr_node_ptr node;
 
   if (!is_error_operand(result)) {
+    check_assertion(is_expression_operand(result));
     node = result->variant.expression;
+    node->is_lvalue = TRUE;
     node->variant.operation.returns_lvalue_instead_of_usual_rvalue = TRUE;
-    node->type = make_pointer_type(result_type);
-    result->type = result_type;
+    node->type = result->type = result_type;
     /* Keep the reference entries from the lvalue operand. */
     result->ref_entries_list = lvalue_operand->ref_entries_list;
   }  /* if */
-  result->state = (an_operand_state)os_lvalue;
+  set_lvalue_operand_state(result);
 }  /* change_assignment_result_to_lvalue */
 
 
@@ -5058,15 +4951,13 @@ Scan the prefix increment ("++") and decrement ("--") operators.  See section
 
 static void scan_ampersand_operator(an_operand *result)
 /*
-Scan the "&" (address of) operator.  The operand of the "&" operator must be
-either a function designator or an lvalue that is not a bit field or a register
-variable.  See section 3.3.3.2 of the C standard.  In C++, the operand may
-be a qualified name (a member of a class), in which case the value of the
-operation is a pointer-to-member (see ARM 5.3).
+Scan the "&" (address of) operator.  See section 6.5.3.2 in the C99 standard
+or [expr.unary.op] in the C++ standard.  The current token on entry is
+the "&".
 */
 {
   an_operand        operand;
-  a_source_position start_position;
+  a_source_position start_position, operator_position;
   a_token_sequence_number
                     operator_tok_seq_number;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -5078,7 +4969,7 @@ operation is a pointer-to-member (see ARM 5.3).
   db_enter(4, "scan_ampersand_operator");
 
   /* Save the source position of the operator. */
-  copy_source_position(pos_curr_token, start_position);
+  start_position = operator_position = pos_curr_token;
   operator_tok_seq_number = curr_token_sequence_number;
 
   if (curr_expr_kind_is(ek_pp)) {
@@ -5110,7 +5001,7 @@ operation is a pointer-to-member (see ARM 5.3).
       an_expr_node_ptr node =
                    alloc_expr_node((an_expr_node_kind)enk_address_of_ellipsis);
       node->type = void_star_tp;
-      make_expression_operand(node, void_star_tp, result);
+      make_expression_operand(node, result);
       if (strict_ansi_mode) {
         diagnostic(strict_ansi_error_severity, ec_nonstd_address_of_ellipsis);
       }  /* if */
@@ -5165,7 +5056,23 @@ operation is a pointer-to-member (see ARM 5.3).
           /* Likewise in Microsoft mode. */
           revert_microsoft_rvalue_to_lvalue_if_possible(&operand);
         }  /* if */
-        if (is_an_lvalue(&operand)) {
+        if ((c99_mode || gcc_mode) &&
+            is_expression_operand(&operand) &&
+            (expr = operand.variant.expression,
+             is_operation_node(expr)) &&
+             node_operator_is(expr, eok_indirect)) {
+          /* In C99 (see C99 standard section 6.5.3.2) and GNU C modes, a "&"
+             and a "*" operator cancel out, e.g., "&*x" is just "x".  This
+             is particularly significant when x is a pointer to void, in that
+             it avoids an error (note that *x is an rvalue in that case). */
+          expr = expr->variant.operation.operands;
+          make_expression_operand(expr, result);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+          /* Avoid changing the operator position in the expression when we
+             set the operand position below. */
+          operator_position = expr->operator_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+        } else if (is_an_lvalue(&operand)) {
           if (C_dialect == C_dialect_pcc && is_array_type(operand.type)) {
             /* In pcc mode "&array" is the same as "array" implicitly converted
                to a pointer.  It has type "pointer-to-array-element" rather
@@ -5187,8 +5094,7 @@ operation is a pointer-to-member (see ARM 5.3).
             }  /* if */
             /* Convert the lvalue operand to an rvalue operand for the
                pointer. */
-            take_address_of_lvalue(&operand);
-            operand.is_simple_string_literal = FALSE;
+            take_address_of_lvalue(&operand, &operator_position);
           }  /* if */
           /* Note that the copy preserves ref_entries_list. */
           copy_operand(&operand, result);
@@ -5196,10 +5102,16 @@ operation is a pointer-to-member (see ARM 5.3).
           /* "&" of a function designator.  Change it to a pointer to the
              function.  This includes overloaded functions and 
              member functions specified by qualified name. */
-          /* Change the error position to the "&". */
-          operand.position = start_position;
-          conv_function_designator_to_ptr_to_function(&operand,
-                                                      /*allow_ctor=*/FALSE);
+          if (is_expression_operand(&operand)) {
+            take_address_of_lvalue(&operand, &operator_position);
+          } else {
+            /* Handle cases like pointers to members. */
+            /* Change the error position to the "&". */
+            operand.position = start_position;
+            conv_function_designator_to_ptr_to_function(&operand,
+                                                        /*allow_ctor=*/FALSE,
+                                                        /*will_call=*/FALSE);
+          }  /* if */
           /* Note that the copy preserves ref_entries_list. */
           copy_operand(&operand, result);
         } else if (is_sym_for_member_operand(&operand)) {
@@ -5208,23 +5120,6 @@ operation is a pointer-to-member (see ARM 5.3).
           operand.position = start_position;
           conv_sym_for_member_operand_to_ptr_to_member(&operand);
           copy_operand(&operand, result);
-        } else if ((c99_mode || gcc_mode) &&
-                   is_an_rvalue(&operand) &&
-                   is_expression_operand(&operand) &&
-                   (expr = operand.variant.expression,
-                    is_operation_node(expr)) &&
-                   expr->variant.operation.kind ==
-                                         (an_expr_operator_kind)eok_indirect) {
-          /* In C99 (see C99 standard section 6.5.3.2) and GNU C modes, a "&"
-             and a "*" operator cancel out, e.g., "&*x" is just "x".  This
-             is significant when x is a pointer to void. */
-#if EXPR_RANGE_MODIFIERS_IN_IL
-          /* A range modifier for the indirection was (redundantly) added to
-             the indirection node.  Move it down to the operand node. */
-          move_expr_range_modifiers(expr, expr->variant.operation.operands);
-#endif /* EXPR_RANGE_MODIFIERS_IN_IL */
-          expr = expr->variant.operation.operands;
-          make_expression_operand(expr, expr->type, result);
         } else {
           /* "&" applied to something that is not an lvalue or a function
              designator or another permitted case. */
@@ -5254,16 +5149,8 @@ operation is a pointer-to-member (see ARM 5.3).
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   }  /* if */
 
-#if EXPR_RANGE_MODIFIERS_IN_IL
-  /* Do not use set_operand_position in order to maintain the position in the
-     underlying expression. */
-  set_base_operand_position(result, &start_position, &end_position);
-  add_expr_range_modifier(result, (an_expr_range_modifier_kind)erm_ampersand,
-                          &start_position, &end_position);
-#else /* !EXPR_RANGE_MODIFIERS_IN_IL */
   set_operand_position(result, &start_position, &end_position,
-                       &start_position);
-#endif /* EXPR_RANGE_MODIFIERS_IN_IL */
+                       &operator_position);
   rule_out_expr_kinds(ROEK_INTEGRAL_CONSTANT, result);
   db_exit();
 }  /* scan_ampersand_operator */
@@ -5491,15 +5378,19 @@ See section 3.3.3.2 of the standard.
       /* Non-operator-function cases. */
       do_operand_transformations(&operand, TOPT_NO_OPTIONS);
       if (check_pointer_operand(&operand, ec_bad_indirection_operand)) {
-        operand.type = type_pointed_to(operand.type);
-        if (is_function_type(operand.type)) {
-          /* This will become a function designator. */
-          operand.state = (an_operand_state)os_function_designator;
-        } else if (is_void_type(operand.type)) {
+        a_type_ptr operand_type = type_pointed_to(operand.type);
+        an_expr_node_ptr node;
+        /* Make the "*" operator node. */
+        node = make_lvalue_operator_node((an_expr_operator_kind)eok_indirect,
+                                         operand_type,
+                                         make_node_from_operand(&operand));
+        make_lvalue_expression_operand(node, result);
+        if (is_void_type(operand_type)) {
           /* Indirection through a void * pointer. */
           if (!C_mode()) {
             /* In C++ mode, this is an error.*/
             error_in_operand(ec_expr_not_object_pointer, &operand);
+            conv_to_error_operand(result);
           } else {
             /* In C mode, indirection through a void * pointer is valid,
                but the result is not an lvalue.  For example,
@@ -5511,27 +5402,16 @@ See section 3.3.3.2 of the standard.
                leave out cv-qualified void *; those apparently still convert
                to an lvalue.  (In GNU modes, the result is always an
                lvalue). */
-            if (!is_qualified_type(operand.type) && !gcc_mode) {
-              an_expr_node_ptr node = make_node_from_operand(&operand);
-              an_operand       orig_operand;
-              orig_operand = operand;
-              node = make_operator_node((an_expr_operator_kind)eok_indirect,
-                                        operand.type, node);
-              make_expression_operand(node, node->type, &operand);
-              restore_operand_details(&operand, &orig_operand);
-            } else {
-              /* Indirection through, e.g., const void * -- just convert to
-                 an lvalue. */
-              operand.state = (an_operand_state)os_lvalue;
+            if (!is_qualified_type(operand_type) && !gcc_mode) {
+              result->state = (an_operand_state)os_rvalue;
+              node->is_lvalue = FALSE;
             }  /* if */
           }  /* if */
-        } else {
-          /* Normal case -- just convert to an lvalue, keeping the same
-             underlying value. */
-          operand.state = (an_operand_state)os_lvalue;
         }  /* if */
-        /* Note that the copy preserves ref_entries_list. */
-        copy_operand(&operand, result);
+        if (is_an_lvalue(result)) {
+          /* Transfer references because the result is an lvalue. */
+          result->ref_entries_list = operand.ref_entries_list;
+        }  /* if */
         result->is_id_expression = FALSE; 
       } else {
         /* There was some error in the operand. */
@@ -5540,13 +5420,8 @@ See section 3.3.3.2 of the standard.
     }  /* if */
   }  /* if */
 
-  /* set_operand_position is not used on purpose, because we want to keep
-     the position that is in the underlying expression. */
-  set_base_operand_position(result, &start_position, &operand.end_position);
-#if EXPR_RANGE_MODIFIERS_IN_IL
-  add_expr_range_modifier(result, (an_expr_range_modifier_kind)erm_asterisk,
-                          &start_position, &operand.end_position);
-#endif /* EXPR_RANGE_MODIFIERS_IN_IL */
+  set_operand_position(result, &start_position, &operand.end_position,
+                       &start_position);
   rule_out_expr_kinds(ROEK_INTEGRAL_CONSTANT, result);
 
   db_exit();
@@ -5779,18 +5654,15 @@ the type.  If is_type is FALSE, this is a "sizeof expression", and
     node->variant.runtime_sizeof.variant.type = type;
   } else {
     /* sizeof expression. */
-    a_boolean        is_lvalue;
     an_expr_node_ptr expr;
     if (is_template_dependent_context()) {
       /* An expression in a prototype instantiation. */
-      prep_generic_operand(operand, /*lvalue_expected=*/FALSE);
+      prep_generic_operand(operand);
     }  /* if */
-    is_lvalue = is_an_lvalue(operand);
-    node->variant.runtime_sizeof.is_lvalue = is_lvalue;
     expr = make_node_from_operand(operand);
     node->variant.runtime_sizeof.variant.expr = expr;
     /* Make sure the referenced flag is set on a VLA variable. */
-    if (is_lvalue && is_variable_address_node(expr)) {
+    if (expr->is_lvalue && is_variable_node(expr)) {
       a_variable_ptr var = expr->variant.variable;
       var->source_corresp.referenced = TRUE;
     }  /* if */
@@ -6099,7 +5971,7 @@ Syntax:
       an_expr_node_ptr node =
                  make_runtime_sizeof_expr(is_type, orig_sizeof_type, &operand);
       operand_was_used = !is_type;
-      make_expression_operand(node, node->type, result);
+      make_expression_operand(node, result);
     }  /* if */
 #ifdef SIZEOF_TYPE_IS_UNKNOWN
   } else if (SIZEOF_TYPE_IS_UNKNOWN(sizeof_type)) {
@@ -6119,7 +5991,7 @@ Syntax:
       an_expr_node_ptr node =
                  make_runtime_sizeof_expr(is_type, orig_sizeof_type, &operand);
       operand_was_used = !is_type;
-      make_expression_operand(node, node->type, result);
+      make_expression_operand(node, result);
     }  /* if */
 #endif /* defined(SIZEOF_TYPE_IS_UNKNOWN) */
   } else {
@@ -6135,7 +6007,7 @@ Syntax:
                                   (a_template_param_constant_kind)tpck_sizeof);
         constant.variant.template_param.variant.templ_sizeof.type= sizeof_type;
         if (!is_type) {
-          prep_generic_operand(&operand, /*lvalue_expected=*/FALSE);
+          prep_generic_operand(&operand);
           constant.variant.template_param.variant.templ_sizeof.expr =
                                               make_node_from_operand(&operand);
           operand_was_used = TRUE;
@@ -6315,10 +6187,8 @@ implement <stdarg.h>, a standard feature.
       /* Field selection operations need special treatment in GNU modes. */
       an_expr_node_ptr       expr = operand.variant.expression;
       an_expr_operator_kind  opkind = expr->variant.operation.kind;
-      if (opkind == (an_expr_operator_kind)eok_field ||
-          opkind == (an_expr_operator_kind)eok_value_field ||
-          opkind == (an_expr_operator_kind)eok_bit_field ||
-          opkind == (an_expr_operator_kind)eok_value_bit_field) {
+      if (opkind == (an_expr_operator_kind)eok_dot_field ||
+          opkind == (an_expr_operator_kind)eok_points_to_field) {
         an_expr_node_ptr  field_op = expr->variant.operation.operands->next;
         a_targ_alignment  explicit_alignment = 0;
 #if USER_CONTROL_OF_STRUCT_PACKING
@@ -6394,7 +6264,7 @@ implement <stdarg.h>, a standard feature.
                                  (a_template_param_constant_kind)tpck_alignof);
     constant.variant.template_param.variant.templ_sizeof.type = alignof_type;
     if (!is_type) {
-      prep_generic_operand(&operand, /*lvalue_expected=*/FALSE);
+      prep_generic_operand(&operand);
       constant.variant.template_param.variant.templ_sizeof.expr =
                                               make_node_from_operand(&operand);
       operand_was_used = TRUE;
@@ -6469,6 +6339,22 @@ implement <stdarg.h>, a standard feature.
 }  /* scan_alignof_operator */
 
 
+static void make_dummy_lvalue_operand(a_type_ptr type,
+                                      an_operand *operand)
+/*
+Make a placeholder lvalue operand whose type is "type".
+*/
+{
+  an_expr_node_ptr     expr;
+  a_constant           zero_con;
+
+  make_zero_of_proper_type(make_pointer_type(type), &zero_con);
+  expr = alloc_node_for_constant(&zero_con);
+  expr = add_indirection_to_node(expr);
+  make_lvalue_expression_operand(expr, operand);
+}  /* make_dummy_lvalue_operand */
+
+
 static void scan_offsetof(an_operand  *result)
 /*
 Recent versions of the GNU compilers implement the offsetof macro using the
@@ -6526,11 +6412,8 @@ work is done by scan_field_selection_operator and scan_subscript_operator.
                     /*force_object_lifetime=*/FALSE,
                     /*suppress_object_lifetime=*/TRUE);
     expr_stack->unevaluated_expr_will_be_kept_in_il = TRUE;
-    clear_operand((an_operand_kind)ok_constant, &local_result);
-    local_result.type = type;
-    local_result.state = (an_operand_state)os_lvalue;
-    make_zero_of_proper_type(make_pointer_type(type),
-                             &local_result.variant.constant);
+    /* Make an lvalue of the right type to start the tree. */
+    make_dummy_lvalue_operand(type, &local_result);
     curr_token = tok_period;
     do {
       copy_operand(&local_result, &operand);
@@ -6872,27 +6755,17 @@ call node.
 }  /* type_of_call */
 
 
-static a_type_ptr decltype_from_address_constant(a_constant_ptr  cp)
+static an_expr_node_ptr strip_ref_indirect(an_expr_node_ptr expr)
 /*
-The given constant represents an address of a routine or variable passed to
-decltype.  Return the type of that routine or variable.
+Strip an eok_ref_indirect node, if any, from the top of the given expression.
 */
 {
-  a_type_ptr  result;
-
-  check_assertion(cp->kind == (a_constant_repr_kind)ck_address);
-  switch (cp->variant.address.kind) {
-    case abk_routine:
-      result = cp->variant.address.variant.routine->type;
-      break;
-    case abk_variable:
-      result = cp->variant.address.variant.variable->type;
-      break;
-    default:
-      unexpected_condition();
-  }  /* switch */
-  return result;
-}  /* decltype_from_address_constant */
+  if (is_operation_node(expr) &&
+      node_operator_is(expr, eok_ref_indirect)) {
+    expr = expr->variant.operation.operands;
+  }  /* if */
+  return expr;
+}  /* strip_ref_indirect */
 
 
 static a_type_ptr decltype_from_operand(an_operand  *operand,
@@ -6909,18 +6782,18 @@ non-parenthesized class member access expressions, and for calls.
 */
 {
   a_type_ptr        result = NULL;
-  an_expr_node_ptr  expr = is_expression_operand(operand) ?
-                                           operand->variant.expression : NULL;
+  an_expr_node_ptr  expr = NULL;
 
+  if (is_expression_operand(operand)) {
+    /* Strip a reference indirection from the expression, if present, so
+       we can see what's underneath. */
+    expr = strip_ref_indirect(operand->variant.expression);
+  }  /* if */
   if (expr != NULL && is_operation_node(expr) && !leading_paren_seen &&
-      !operand->is_operand_of_address_of &&
-      (node_operator_is(expr, eok_field) ||
-       node_operator_is(expr, eok_value_field) ||
-       node_operator_is(expr, eok_bit_field) ||
-       node_operator_is(expr, eok_value_bit_field) ||
-       node_operator_is(expr, eok_points_to_static) ||
-       node_operator_is(expr, eok_lvalue_dot_static) ||
-       node_operator_is(expr, eok_rvalue_dot_static))) {
+      (node_operator_is(expr, eok_dot_field) ||
+       node_operator_is(expr, eok_points_to_field) ||
+       node_operator_is(expr, eok_dot_static) ||
+       node_operator_is(expr, eok_points_to_static))) {
     /* Class member access: Produce the type of the selected member.  Note
        that some id-expressions end up being forms of class member access:
        Those are handled here too. */
@@ -6928,82 +6801,47 @@ non-parenthesized class member access expressions, and for calls.
     check_assertion(arg2 != NULL && arg2->next != NULL);
     arg2 = arg2->next;
     switch (expr->variant.operation.kind) {
-      case eok_field:
-      case eok_value_field:
-      case eok_bit_field:
-      case eok_value_bit_field:
-        if (arg2->kind == (an_expr_node_kind)enk_field) {
-          result = arg2->variant.field->type;
-        } else {
-          check_assertion(total_errors != 0);
-          result = error_type();
-        }  /* if */
+      case eok_dot_field:
+      case eok_points_to_field:
+        check_assertion(arg2->kind == (an_expr_node_kind)enk_field);
+        result = arg2->variant.field->type;
         break;
+      case eok_dot_static:
       case eok_points_to_static:
-      case eok_lvalue_dot_static:
-      case eok_rvalue_dot_static:
-        switch (arg2->kind) {
-          case enk_variable_address:
-            result = arg2->variant.variable->type;
-            break;
-          case enk_variable:
-            /* Something like decltype(int(a.i)) where a.i is a static data
-               member of type int.  The cast makes it an rvalue (hence the
-               enk_variable), but it also means that this is not one of the
-               decltype special cases. */
-            goto general_case;
-          case enk_routine_address:
-            result = arg2->variant.routine->type;
-            break;
-          case enk_constant:
-            check_assertion(arg2->variant.constant->kind ==
-                                     (a_constant_repr_kind)ck_template_param);
-            goto general_case;
-          default:
-            check_assertion(total_errors != 0);
-            result = error_type();
-        }  /* switch */
-        break;
+        /* The second argument of a static selection is a static data member
+           or static member function, which is essentially an id-expression. */
+        expr = strip_ref_indirect(arg2);
+        goto id_case;
       default:
         unexpected_condition();
     }  /* switch */
   } else if (operand->is_id_expression) {
     /* Produce the type of the entity referenced by the id-expression.
        Note that some id-expressions are represented as class member access
-       operations: So this case must appear after the class member access
+       operations, so this case must appear after the class member access
        case. */
+    check_assertion(!leading_paren_seen);
+id_case:
     if (expr != NULL) {
-      /* An lvalue expression referring to a local variable. */
-      check_assertion(is_an_lvalue(operand));
-      check_assertion_str(
-                     is_variable_address_node(expr) || is_variable_node(expr),
-                     "decltype_from_operand: unexpected id expression");
-      result = expr->variant.variable->type;
-    } else if (is_constant_operand(operand)) {
-      /* An id-expression resolving to a constant is either an lvalue
-         referring to a routine or a nonlocal variable, or an enumeration
-         constant. */
+      /* Expression for simple id, lvalue or rvalue. */
+      if (is_variable_node(expr)) {
+        result = expr->variant.variable->type;
+      } else if (is_routine_node(expr)) {
+        result = expr->variant.routine->type;
+      } else {
+        goto general_case;
+      }  /* if */
+    } else if (is_constant_operand(operand) && is_an_rvalue(operand)) {
+      /* An id-expression resolving to an rvalue constant is an
+         enumeration constant or something from a prototype instantiation.
+         The only lvalues represented in constant form are string literals,
+         and they don't require special handling. */
       a_constant_ptr  cp = &operand->variant.constant;
-      switch (cp->kind) {
-        case ck_address:
-          /* A variable or routine address. */
-          result = decltype_from_address_constant(cp);
-          break;
-        case ck_integer:
-          /* An enumeration constant. */
-          check_assertion(has_name(cp));
-          result = cp->type;
-          break;
-        case ck_template_param:
-          /* A dependent expression.  Fall back to the general case. */
-          goto general_case;
-        default:
-          unexpected_condition();
-      }  /* switch */
-    } else if (is_error_operand(operand)) {
-      result = error_type();
+      check_assertion(has_name(cp) ||
+                      cp->kind == (a_constant_repr_kind)ck_template_param);
+      result = cp->type;
     } else {
-      unexpected_condition();
+      goto general_case;
     }  /* if */
   } else if (expr != NULL && is_call_node(expr)) {
     /* Function or operator call: Produce the associated return type. */
@@ -7140,16 +6978,9 @@ NULL, the end position in its specifiers_range is updated.
     tp->variant.typeref.is_decltype = TRUE;
     tp->variant.typeref.decltype_expr_not_parenthesized = !leading_paren_seen;
     if (dependent_arg) {
-      prep_generic_operand(&operand, /*lvalue_expected=*/FALSE);
+      prep_generic_operand(&operand);
     }  /* if */
     expr = make_node_from_operand(&operand);
-    if (!dependent_arg && is_an_lvalue(&operand)) {
-      /* Since the argument of a decltype operator can be an lvalue or an
-         rvalue, we need an indication for how the expression node should be
-         interpreted.  (For the generic case, prep_generic_operand will have
-         added an eok_lvalue node if needed.) */
-      expr->decltype_expression_lvalue = TRUE;
-    }  /* if */
     /* The type entry is stored in the file scope memory region.  If the
        expression is a local expression,  the type entry cannot point
        directly to it, and instead we use the "a_local_expr_node_ref"
@@ -7305,16 +7136,9 @@ NULL, the end position in its specifiers_range is updated.
     typeof_type->variant.typeref.is_typeof = TRUE;
     if (!is_type) {
       if (dependent_arg) {
-        prep_generic_operand(&operand, /*lvalue_expected=*/FALSE);
+        prep_generic_operand(&operand);
       }  /* if */
       expr = make_node_from_operand(&operand);
-      if (!dependent_arg && is_an_lvalue(&operand)) {
-        /* Since the argument of a typeof operator can be an lvalue or an
-           rvalue, we need an indication for how the expression node should be
-           interpreted.  (For the generic case, prep_generic_operand will have
-           added an eok_lvalue node if needed.) */
-        expr->decltype_expression_lvalue = TRUE;
-      }  /* if */
       /* The type entry is stored in the file scope memory region.  If the
          expression is a local expression,  the type entry cannot point
          directly to it, and instead we use the "a_local_expr_node_ref"
@@ -7828,7 +7652,7 @@ the given expression is true.
   expr = wrap_up_full_expression(expr);
   expr = make_operator_node((an_expr_operator_kind)eok_assume, void_type(),
                             expr);
-  make_expression_operand(expr, expr->type, result);
+  make_expression_operand(expr, result);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -7919,12 +7743,13 @@ Create an operand (in *result) representing the application of a typeid
 operator.  typeid_type is the adjusted static type passed to the typeid
 operator, and typeid_expr is the expression from which the dynamic type should
 be retrieved (or NULL if only the static type should be used).  If
-make_constant is TRUE, a constant operand should be produced; otherwise, an
-expression operand whose top-level node is an enk_typeid entry should be
-created.
+make_constant is TRUE, an operand based on a constant address should be
+produced; otherwise, an expression operand whose top-level node is an
+enk_typeid entry should be created.
 */
 {
-  a_type_ptr const_type_info = make_qualified_type(
+  an_expr_node_ptr typeid_node;
+  a_type_ptr       const_type_info = make_qualified_type(
                                               type_of_type_info,
                                               (a_type_qualifier_set)TQ_CONST);
 
@@ -7949,21 +7774,18 @@ created.
       }  /* if */
       typeid_con.type = make_pointer_type(const_type_info);
     }  /* if */
-    make_constant_operand(&typeid_con, result);
-    result->type = const_type_info;
+    typeid_node = alloc_node_for_constant(&typeid_con);
+    /* Put the constant under a "*" operator to get an lvalue. */
+    typeid_node = add_indirection_to_node(typeid_node);
   } else {
     /* Normal case: Create an enk_typeid expression. */
-    an_expr_node_ptr  typeid_node;
     typeid_node = alloc_expr_node((an_expr_node_kind)enk_typeid);
     typeid_node->variant.typeid_info.expr = typeid_expr;
     typeid_node->variant.typeid_info.type = typeid_type;
-    typeid_node->implicit_reference_indirection = TRUE;
-    /* The result is a reference to type_info, which means a pointer to
-       type_info as an lvalue address. */
-    typeid_node->type = make_pointer_type(const_type_info);
-    make_expression_operand(typeid_node, const_type_info, result);
+    typeid_node->type = const_type_info;
+    typeid_node->is_lvalue = TRUE;
   }  /* if */
-  result->state = (an_operand_state)os_lvalue;
+  make_lvalue_expression_operand(typeid_node, result);
   set_used_in_exception_or_rtti_flag(typeid_type);
 }  /* make_typeid_operand */
 
@@ -7976,7 +7798,6 @@ Syntax:
 	typeid ( expression )
 	typeid ( type-id )
 
-This is the C++ syntax.  C++ type-id is the same as C type-name.
 */
 {
   a_source_position start_position;
@@ -8067,7 +7888,9 @@ This is the C++ syntax.  C++ type-id is the same as C type-name.
     if (is_an_lvalue(&operand) && is_polymorphic_class_type(typeid_type)) {
       if (is_expression_operand(&operand)) {
         if (operand_complete_object_type(&operand,
-                                         /*call_case=*/FALSE) != NULL) {
+                                         /*call_case=*/FALSE) != NULL &&
+            /* Special case for (*(T *)0), which should throw an exception. */
+            !op_is_null_address_lvalue(&operand)) {
           /* The complete object type can be determined, so runtime processing
              is not needed. */
           expr = NULL;
@@ -8075,9 +7898,6 @@ This is the C++ syntax.  C++ type-id is the same as C type-name.
           /* The type must be determined dynamically at runtime. */
           expr = operand.variant.expression;
         }  /* if */
-      } else if (op_is_null_pointer_value(&operand)) {
-        /* Special case for (*(T *)0), which should throw an exception. */
-        expr = make_node_from_operand(&operand);
       }  /* if */
     }  /* if */
     if (microsoft_template_arg_case) {
@@ -8089,7 +7909,7 @@ This is the C++ syntax.  C++ type-id is the same as C type-name.
       } else if (is_template_dependent_type(typeid_type)) {
         /* For template-dependent cases, we must record the expression (e.g.,
            for accurate reconstruction in the C++-generating back end). */
-        prep_generic_operand(&operand, /*lvalue_expected=*/FALSE);
+        prep_generic_operand(&operand);
         expr = make_node_from_operand(&operand);
       }  /* if */
     }  /* if */
@@ -8272,18 +8092,28 @@ When single_operand is TRUE, the <varargs.h> form is expected:
        most modes (the standard makes it undefined behavior), but we do accept
        it when emulating recent GNU C++ compilers. */
     if (is_an_lvalue(&operand) &&
-        is_expression_operand(&operand) &&
-        (is_variable_address_node(node2 = operand.variant.expression) ||
-         (gpp_mode && gnu_version >= 30200 && is_variable_node(node2))) &&
-        node2->variant.variable->is_parameter) {
-      /* Okay. */
+        is_expression_operand(&operand)) {
+      node2 = operand.variant.expression;
+      if (gpp_mode && gnu_version >= 30200) {
+        /* Strip a reference indirection in g++ mode so we can check what's
+           underneath. */
+        node2 = strip_ref_indirect(node2);
+      }  /* if */
+      if (is_variable_node(node2) &&
+          node2->variant.variable->is_parameter) {
+        /* Okay. */
 #if BUILTIN_VA_START_TAKES_ADDRESS_OF_VARIABLE
-      /* Many implementations of va_start expose the address of the
-         parameter variable.  Also consider this a use of the parameter. */
-      change_ref_kinds(operand.ref_entries_list, SRK_USE | SRK_ADDRESS_TAKEN);
+        /* Many implementations of va_start expose the address of the
+           parameter variable.  Also consider this a use of the parameter. */
+        change_ref_kinds(operand.ref_entries_list,
+                         SRK_USE | SRK_ADDRESS_TAKEN);
 #endif /* BUILTIN_VA_START_TAKES_ADDRESS_OF_VARIABLE */
-      if (!err) {
-        node1->next = node2;
+        if (!err) {
+          node1->next = node2;
+        }  /* if */
+      } else {
+        error_in_operand(ec_bad_va_start, &operand);
+        err = TRUE;
       }  /* if */
     } else {
       if (!is_error_operand(&operand)) {
@@ -8309,7 +8139,7 @@ When single_operand is TRUE, the <varargs.h> form is expected:
                              (an_expr_operator_kind)eok_va_start_single_operand
                            : (an_expr_operator_kind)eok_va_start),
                          void_type(), node1);
-    make_expression_operand(va_start_node, va_start_node->type, result);
+    make_expression_operand(va_start_node, result);
   }  /* if */
   set_operand_position(result, &start_position, &end_position,
                        &start_position);
@@ -8400,11 +8230,10 @@ and type is the type of the argument to be extracted.
     make_error_operand(result);
   } else if (va_arg_returns_lvalue) {
     /* Create an lvalue_va_arg expression node for an lvalue. */
-    an_expr_node_ptr va_arg_node =
-                   make_operator_node((an_expr_operator_kind)eok_lvalue_va_arg,
-                                      make_pointer_type(type), node);
-    make_expression_operand(va_arg_node, type, result);
-    result->state = (an_operand_state)os_lvalue;
+    an_expr_node_ptr va_arg_node = make_lvalue_operator_node(
+                                             (an_expr_operator_kind)eok_va_arg,
+                                             type, node);
+    make_lvalue_expression_operand(va_arg_node, result);
   } else {
     /* Create a va_arg expression node for an rvalue. */
     an_expr_node_ptr va_arg_node =
@@ -8414,7 +8243,7 @@ and type is the type of the argument to be extracted.
                 /*is_implicit_cast=*/FALSE, /*is_reinterpret_cast=*/FALSE,
                 /*reinterpret_semantics=*/FALSE, &start_position);
     }  /* if */
-    make_expression_operand(va_arg_node, va_arg_node->type, result);
+    make_expression_operand(va_arg_node, result);
   }  /* if */
   set_operand_position(result, &start_position, &end_position,
                        &start_position);
@@ -8470,7 +8299,7 @@ where va_list_var is a variable declared with the builtin type va_list.
     /* Create a va_end expression node. */
     an_expr_node_ptr va_end_node =
       make_operator_node((an_expr_operator_kind)eok_va_end, void_type(), node);
-    make_expression_operand(va_end_node, va_end_node->type, result);
+    make_expression_operand(va_end_node, result);
   }  /* if */
   set_operand_position(result, &start_position, &end_position,
                        &start_position);
@@ -8540,7 +8369,7 @@ builtin type va_list.
     node1->next = node2;
     va_copy_node = make_operator_node((an_expr_operator_kind)eok_va_copy,
                                        void_type(), node1);
-    make_expression_operand(va_copy_node, va_copy_node->type, result);
+    make_expression_operand(va_copy_node, result);
   }  /* if */
   set_operand_position(result, &start_position, &end_position,
                        &start_position);
@@ -8760,7 +8589,7 @@ which case it's the token after __uuidof.
                                   (a_template_param_constant_kind)tpck_uuidof);
       uuidof_con.variant.template_param.variant.templ_sizeof.type= uuidof_type;
       if (!is_type) {
-        prep_generic_operand(&operand, /*lvalue_expected=*/FALSE);
+        prep_generic_operand(&operand);
         uuidof_con.variant.template_param.variant.templ_sizeof.expr =
                                               make_node_from_operand(&operand);
         operand_was_used = TRUE;
@@ -8772,9 +8601,9 @@ which case it's the token after __uuidof.
          that is the result of the __uuidof operation. */
       make_uuidof_constant(uuidof_type, &uuidof_con);
     }  /* if */
-    make_constant_operand(&uuidof_con, result);
-    result->state = (an_operand_state)os_lvalue;
-    result->type = const_guid_type;
+    make_lvalue_expression_operand(add_indirection_to_node(
+                                         alloc_node_for_constant(&uuidof_con)),
+                                   result);
   }  /* if */
   if (operand_was_scanned) {
     if (!operand_was_used) {
@@ -8888,25 +8717,33 @@ the type defines something); FALSE is returned if there is an error.
 }  /* scan_new_style_cast */
 
 
-static a_boolean cast_expr_was_added(an_expr_node_ptr orig_operand_expr,
-                                     an_operand       *operand)
+static an_expr_node_ptr cast_expr_was_added(an_expr_node_ptr orig_operand_expr,
+                                            an_operand       *operand)
 /*
-Return TRUE if there is an expression node associated with operand, it is
-some form of cast expression or an enk_temp_init, and it is not the same as
+If there is an expression node associated with operand, it is some form of
+cast expression or an enk_temp_init, and it is not the same as
 orig_operand_expr (which may be NULL) -- i.e., it was added to operand by
-processing that occurred after orig_operand_expr was captured.
+processing that occurred after orig_operand_expr was captured -- return
+that node.  Otherwise, return NULL.
 */
 {
   an_expr_node_ptr curr_operand_expr = expr_node_from_operand(operand);
-  a_boolean        operand_has_added_cast_expr = FALSE;
+  an_expr_node_ptr node_to_return = NULL;
 
   if (curr_operand_expr != NULL &&
-      curr_operand_expr != orig_operand_expr &&
-      (curr_operand_expr->kind == (an_expr_node_kind)enk_temp_init ||
-       is_cast_operation_node(curr_operand_expr))) {
-    operand_has_added_cast_expr = TRUE;
+      curr_operand_expr != orig_operand_expr) {
+    if (is_operation_node(curr_operand_expr) &&
+        curr_operand_expr->variant.operation.compiler_generated &&
+        node_operator_is(curr_operand_expr, eok_indirect)) {
+      /* Remove the implicit indirection before checking for a cast. */
+      curr_operand_expr = curr_operand_expr->variant.operation.operands;
+    }  /* if */
+    if (curr_operand_expr->kind == (an_expr_node_kind)enk_temp_init ||
+        is_cast_operation_node(curr_operand_expr)) {
+      node_to_return = curr_operand_expr;
+    }  /* if */
   }  /* if */
-  return operand_has_added_cast_expr;
+  return node_to_return;
 }  /* cast_expr_was_added */
 
 
@@ -9061,7 +8898,7 @@ Syntax:
       if (operand_type_okay) {
         /* Turn the lvalue into an address so we can deal with it as a
            pointer. */
-        take_address_of_lvalue(&operand);
+        take_address_of_lvalue(&operand, (a_source_position*)NULL);
         operand_type = operand.type;
       } else {
         /* Bad operand type for a reference dynamic_cast. */
@@ -9132,7 +8969,7 @@ Syntax:
       expr = make_operator_node((an_expr_operator_kind)eok_dynamic_cast,
                                 cast_type, /* sic: want reference type. */
                                 make_node_from_operand(&operand));
-      make_expression_operand(expr, expr->type, result);
+      make_expression_operand(expr, result);
       set_used_in_exception_or_rtti_flag(operand_type);
       set_used_in_exception_or_rtti_flag(operation_type);
     }  /* if */
@@ -9142,15 +8979,20 @@ Syntax:
     make_error_operand(result);
   } else {
     if (reference_case) {
-      if (cast_expr_was_added(operand_expression, result)) {
-        an_expr_node_ptr result_expression = expr_node_from_operand(result);
+      an_expr_node_ptr result_expression =
+                               cast_expr_was_added(operand_expression, result);
+      if (result_expression != NULL && is_operation_node(result_expression)) {
         /* A node was created that can carry the information that this was a
            cast to a reference type: mark it accordingly. */
-        result_expression->implicit_reference_indirection = TRUE;
         result_expression->variant.operation.is_reference_cast = TRUE;
       }  /* if */
       /* For a dynamic cast to a reference type, the result is an lvalue. */
-      conv_object_pointer_to_lvalue(result);
+      if (is_reference_type(result->type)) {
+        add_reference_indirection(result);
+      } else {
+        /* This case was rewritten as a pointer cast. */
+        conv_object_pointer_to_lvalue(result);
+      }  /* if */
     }  /* if */
   }  /* if */
   set_operand_position(result, &start_position, &end_position,
@@ -9158,6 +9000,34 @@ Syntax:
   rule_out_expr_kinds(ROEK_CONSTANT, result);
   db_exit();
 }  /* scan_dynamic_cast_operator */
+
+
+static a_boolean is_okay_integral_constant_expression_result(
+                                                          a_constant *con,
+                                                          a_boolean  will_cast)
+/*
+Return TRUE if the indicated constant is an acceptable result for an
+integral constant expression.  If will_cast is TRUE, the constant will be cast
+to an integral type, and we are to judge whether that combination will be
+an acceptable result.
+*/
+{
+  a_boolean okay = FALSE;
+
+  if ((con->kind == (a_constant_repr_kind)ck_integer ||
+#if UPC_EXTENSIONS_ALLOWED
+       con->kind == (a_constant_repr_kind)ck_upc_threads ||
+       con->kind == (a_constant_repr_kind)ck_upc_mythread ||
+#endif /* UPC_EXTENSIONS_ALLOWED */
+       con->kind == (a_constant_repr_kind)ck_template_param ||
+       (will_cast && con->kind == (a_constant_repr_kind)ck_float)) &&
+      (will_cast ||
+       is_integral_or_enum_type(con->type) ||
+       is_template_param_type(con->type))) {
+    okay = TRUE;
+  }  /* if */
+  return okay;
+}  /* is_okay_integral_constant_expression_result */
 
 
 static void scan_extended_integral_constant_expression(a_boolean  allow_comma,
@@ -9196,21 +9066,7 @@ some dialects (GNU, Microsoft, Sun) allow extended forms of integer constants.
   do_operand_transformations(operand, TOPT_NO_OPTIONS);
   /* Make a constant from the operand. */
   extract_constant_from_operand(operand, &con);
-  /* Check that the constant is represented as an integer or floating constant.
-     (In UPC mode, the THREADS and MYTHREAD pseudo-constants are also
-     accepted.) */
-  if ((con.kind == (a_constant_repr_kind)ck_integer ||
-#if UPC_EXTENSIONS_ALLOWED
-       con.kind == (a_constant_repr_kind)ck_upc_threads ||
-       con.kind == (a_constant_repr_kind)ck_upc_mythread ||
-#endif /* UPC_EXTENSIONS_ALLOWED */
-       con.kind == (a_constant_repr_kind)ck_template_param ||
-       (will_cast && con.kind == (a_constant_repr_kind)ck_float)) &&
-      (will_cast ||
-       is_integral_or_enum_type(con.type) ||
-       is_template_param_type(con.type))) {
-    /* Okay. */
-  } else {
+  if (!is_okay_integral_constant_expression_result(&con, will_cast)) {
     /* The expression doesn't reduce to a value that will be an integer
        constant (possibly once cast to an integral type). */
     if (!is_error_constant(&con)) {
@@ -9762,7 +9618,7 @@ specification allow a variable-sized array as the top type.
                                          sizeof_node->type,
                                          new_array_dimension);
       }  /* if */
-      make_expression_operand(sizeof_node, sizeof_node->type, &sizeof_operand);
+      make_expression_operand(sizeof_node, &sizeof_operand);
     } else {
       /* Not a variable-dimension array.  The size is known at compile
          time, as in
@@ -9985,10 +9841,12 @@ specification allow a variable-sized array as the top type.
     overloaded_function_catch_up(proj_function_symbol,
                                  operator_new_symbol,
                                  /*is_qualified_name=*/FALSE,
+                                 /*is_operand_of_address_of=*/FALSE,
                                  &new_position,
                                  &new_position,  /* Not used. */
                                  &new_position,
                                  /*elided_reference=*/(new_routine==NULL),
+                                 /*result_is_lvalue=*/FALSE,
                                  /*address_taken=*/FALSE,
                                  (an_operand *)NULL,
                                  &access_error_reported);
@@ -10241,7 +10099,7 @@ specification allow a variable-sized array as the top type.
       ndsp->freeing_of_storage_on_exception = dyn_init_to_free_storage;
     }  /* if */
     /* Make an operand for the result. */
-    make_expression_operand(new_node, ptr_new_type, result);
+    make_expression_operand(new_node, result);
   }  /* if */
   /* Free the lists if they have not been freed already. */
   if (arg_operand_list != NULL) {
@@ -10612,7 +10470,7 @@ As an anachronism, allow an expression inside the [ ].
     }  /* if */
     ndsp->routine = delete_routine;
     /* Make an operand for the result. */
-    make_expression_operand(delete_node, void_type(), result);
+    make_expression_operand(delete_node, result);
   }  /* if */
 
   set_operand_position(result, &start_position, &operand.end_position,
@@ -10623,28 +10481,34 @@ As an anachronism, allow an expression inside the [ ].
 
 
 an_expr_node_ptr make_lvalue_cast_node(an_expr_node_ptr source_expr,
-                                       a_type_ptr       type_cast_to)
+                                       a_type_ptr       type_cast_to,
+                                       a_boolean        compiler_generated)
 /*
 Make an lvalue cast expression node that casts source_expr to type_cast_to.
 This is an extension used only in C mode and Microsoft and GNU C++ modes.
+The cast is compiler-generated if compiler_generated is TRUE.
 */
 {
   an_expr_node_ptr lvalue_cast_node;
 
   check_assertion_str(C_mode() || gpp_mode || microsoft_mode,
                       "make_lvalue_cast_node: lvalue cast in C++ mode");
-  lvalue_cast_node = make_operator_node((an_expr_operator_kind)eok_lvalue_cast,
-                                        make_pointer_type(type_cast_to),
-                                        source_expr);
+  check_assertion(source_expr->is_lvalue || is_error_node(source_expr));
+  lvalue_cast_node = make_lvalue_operator_node(
+                                        (an_expr_operator_kind)eok_lvalue_cast,
+                                        type_cast_to, source_expr);
+  lvalue_cast_node->variant.operation.compiler_generated = compiler_generated;
   return lvalue_cast_node;
 }  /* make_lvalue_cast_node */
 
 
 static void lvalue_cast(a_type_ptr type_cast_to,
-                        an_operand *result)
+                        an_operand *result,
+                        a_boolean  compiler_generated)
 /*
 Cast an operand for an lvalue (result) to a new type.  This "lvalue cast" is
 an extension only done in C mode and Microsoft and GNU C++ modes.
+The cast is compiler-generated if compiler_generated is TRUE.
 */
 {
   an_expr_node_ptr temp_node;
@@ -10652,29 +10516,15 @@ an extension only done in C mode and Microsoft and GNU C++ modes.
 
   check_assertion_str(C_mode() || gpp_mode || microsoft_mode,
                       "lvalue_cast: lvalue cast in C++ mode");
-  if (curr_expr_kind_is_const()) {
-    /* In a constant expression, keep the operand constant. */
-    take_address_of_lvalue(result);
-    cast_operand(make_pointer_type(type_cast_to),
-                 result,
-                 /*check_cast_access=*/FALSE,
-                 /*is_implicit_cast=*/FALSE,
-                 /*is_reinterpret_cast=*/FALSE,
-                 /*reinterpret_semantics=*/FALSE);
-    conv_object_pointer_to_lvalue(result);
-  } else {
-    /* Build an expression node for the lvalue cast.  Note that this is done
-       even if the lvalue address is represented by a constant.  That's so
-       conv_lvalue_to_rvalue can reverse the process. */
-    temp_node = make_lvalue_cast_node(make_node_from_operand(result),
-                                      type_cast_to);
-    /* Make an expression operand for the node.  Change the old one rather
-       than creating a new one so as not to disturb the other fields in the
-       operand. */
-    set_operand_kind(result, (an_operand_kind)ok_expression);
-    result->variant.expression = temp_node;
-    result->type = type_cast_to;
-  }  /* if */
+  /* Build an expression node for the lvalue cast. */
+  temp_node = make_lvalue_cast_node(make_node_from_operand(result),
+                                    type_cast_to, compiler_generated);
+  /* Make an expression operand for the node.  Change the old one rather
+     than creating a new one so as not to disturb the other fields in the
+     operand. */
+  set_operand_kind(result, (an_operand_kind)ok_expression);
+  result->variant.expression = temp_node;
+  result->type = type_cast_to;
   /* Preserve lvalue reference information. */
   result->ref_entries_list = ref_entry_list;
 }  /* lvalue_cast */
@@ -10819,10 +10669,6 @@ set the void_expression_lvalue flag in the expression.
     }  /* if */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-  if (is_an_lvalue(operand)) {
-    check_assertion(!C_mode());
-    node->void_expression_lvalue = TRUE;
-  }  /* if */
   return node;
 }  /* make_node_from_void_expression_operand */
 
@@ -10862,7 +10708,7 @@ Lvalue-to-rvalue transformations are done on the operand if appropriate
   node = make_operator_node((an_expr_operator_kind)eok_cast,
                             type_cast_to,
                             node);
-  make_expression_operand(node, type_cast_to, operand);
+  make_expression_operand(node, operand);
   rule_out_expr_kinds(ROEK_INTEGRAL_CONSTANT, operand);
 }  /* cast_operand_to_void */
 
@@ -11308,8 +11154,8 @@ for non-class operands).  This routine is called only in C++ mode.
                                            /*initializing_variable=*/FALSE,
                                            /*static_lifetime=*/FALSE,
                                            /*bitwise_assignment_param=*/FALSE,
+                                           /*leave_as_lvalue=*/TRUE,
                                            ec_bad_cast /* arbitrary */);
-            conv_object_pointer_to_lvalue(operand);
           }  /* if */
           *processed = TRUE;
         }  /* if */
@@ -11353,9 +11199,7 @@ for non-class operands).  This routine is called only in C++ mode.
             /* In Microsoft C++ mode, a function that returns a class type is
                considered to return an lvalue.  This was changed in
                MSVC++ 5.0. */
-            conv_class_operand_to_object_pointer(operand, 
-                                                 /*will_be_an_lvalue=*/TRUE);
-            conv_object_pointer_to_lvalue(operand);
+            conv_class_rvalue_operand_to_lvalue(operand);
           }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         } else if (failed) {
@@ -11423,16 +11267,17 @@ case a generic cast using the operator cast_op is generated.
                          /*is_reference_cast=*/TRUE);
     *processed = TRUE;
   } else if (is_an_lvalue(operand)) {
-    take_address_of_lvalue(operand);
+    take_address_of_lvalue(operand, (a_source_position*)NULL);
   } else if (is_a_function_designator(operand)) {
     conv_function_designator_to_ptr_to_function(operand,
-                                                /*allow_ctor=*/FALSE);
+                                                /*allow_ctor=*/FALSE,
+                                                /*will_call=*/FALSE);
   } else if ((allow_rvalue || any_cfront_mode() || 
               allow_nonconst_ref_anachronism) &&
              is_class_struct_union_type(operand->type)) {
     /* Allow a cast of a class rvalue to a reference type, when appropriate
        (e.g., for a static_cast to a reference-to-const type). */
-    conv_class_operand_to_object_pointer(operand, /*will_be_an_lvalue=*/FALSE);
+    conv_class_operand_to_object_pointer(operand);
   } else if (allow_rvalue) {
     /* Allow a cast of a non-class rvalue when appropriate (e.g., for
        a static_cast to a reference-to-const type).  This requires a
@@ -11442,14 +11287,15 @@ case a generic cast using the operator cast_op is generated.
     a_type_ptr         temp_type = type_pointed_to(orig_type_cast_to);
 
     temp_init_node = create_expr_temporary(temp_type,
-                                           /*result_is_addr=*/TRUE,
+                                           /*is_lvalue=*/TRUE,
                                            /*is_explicit_cast=*/TRUE,
                                            /*suppress_abstract_test=*/FALSE,
                                            (a_dynamic_init_kind)dik_expression,
                                            &operand->position,
                                            &dip);
     dip->variant.expression = make_node_from_operand(operand);
-    make_expression_operand(temp_init_node, temp_init_node->type, operand);
+    make_lvalue_expression_operand(temp_init_node, operand);
+    take_address_of_lvalue(operand, (a_source_position *)NULL);
   } else {
     if (!is_error_operand(operand)) {
       error_in_operand(ec_expr_not_an_lvalue, operand);
@@ -11474,35 +11320,31 @@ FALSE if the bound function case is not one that undergoes the conversion.
   /* Do not convert cases that result from the operators .* and ->*.
      It's not that there would be anything wrong with that; we just don't
      have a way of representing that in the IL. */
-  if (microsoft_version < 1300 && is_constant_operand(operand)) {
-    a_constant_ptr con;
-    a_symbol_ptr   sym;
-    an_operand     orig_operand;
+  if (microsoft_version < 1300) {
+    a_routine_ptr rout = routine_from_function_operand(operand);
+    if (rout != NULL) {
+      a_symbol_ptr sym = symbol_for(rout);
+      an_operand   orig_operand;
 
-    orig_operand = *operand;
-    pos_warning(ec_bound_function_must_be_called, &operand->position);
-    /* Find the function underlying the operand. */
-    con = &operand->variant.constant;
-    check_assertion(con->kind == (a_constant_repr_kind)ck_address &&
-                    con->variant.address.kind ==
-                                           (an_address_base_kind)abk_routine &&
-                    !con->implicit_cast);
-    sym = (a_symbol_ptr)
-             (con->variant.address.variant.routine->source_corresp.assoc_info);
-    check_assertion(sym != NULL);
-    /* Make a pointer-to-member for the function. */
-    make_ptr_to_member_constant_operand(sym,
-                                        sym,
-                                        &orig_operand.position,
-                                        /*check_protected_access=*/FALSE,
-                                        /*is_qualified_name=*/FALSE,
-                                        /*is_operand_of_address_of=*/FALSE,
-                                        operand);
-    restore_operand_details(operand, &orig_operand);
-    operand->bound_function = FALSE;
-    operand->position = bound_function_selector->position;
-    discard_operand(bound_function_selector);
-    converted = TRUE;
+      orig_operand = *operand;
+      pos_warning(ec_bound_function_must_be_called, &operand->position);
+      check_assertion(sym != NULL);
+      /* Make a pointer-to-member for the function. */
+      make_ptr_to_member_constant_operand(sym,
+                                          sym,
+                                          &orig_operand.position,
+                                          end_position_of_operand(
+                                                                &orig_operand),
+                                          /*check_protected_access=*/FALSE,
+                                          /*is_qualified_name=*/FALSE,
+                                          /*is_operand_of_address_of=*/FALSE,
+                                          operand);
+      restore_operand_details(operand, &orig_operand);
+      operand->bound_function = FALSE;
+      operand->position = bound_function_selector->position;
+      discard_operand(bound_function_selector);
+      converted = TRUE;
+    }  /* if */
   }  /* if */
   return converted;
 }  /* conv_bound_function_to_pointer_to_member */
@@ -11557,7 +11399,7 @@ merely transformed to something to which the cast may apply.
       func_ptr_node = make_operator_node(
                                (an_expr_operator_kind)eok_virtual_function_ptr,
                                operand->type, func_ptr_node);
-      make_expression_operand(func_ptr_node, func_ptr_node->type, operand);
+      make_expression_operand(func_ptr_node, operand);
     } else {
       /* The function is not a virtual function, so discard the
          selector object pointer and just use the routine address. */
@@ -11628,16 +11470,18 @@ to select one of the functions in the overload set.  See [over.over].
 
 
 static void microsoft_lvalue_cv_qual_adjustment(an_operand *operand,
-                                                a_type_ptr new_type)
+                                                a_type_ptr new_type,
+                                                a_boolean  compiler_generated)
 /*
 operand is being subjected to an lvalue cast to new_type in Microsoft
 mode.  The cast can adjust only the cv-qualification of the lvalue;
 the underlying type is the same.  If necessary, adjust the cv-qualification.
+The cast is compiler-generated if compiler_generated is TRUE.
 */
 {
   check_assertion(is_an_lvalue(operand) || is_error_operand(operand));
   if (!identical_types(operand->type, new_type)) {
-    lvalue_cast(new_type, operand);
+    lvalue_cast(new_type, operand, compiler_generated);
   }  /* if */
 }  /* microsoft_lvalue_cv_qual_adjustment */
 
@@ -11668,9 +11512,12 @@ address.
       expr = expr->variant.operation.operands;
     }  /* while */
     /* See if the thing underneath is the address of something.  Note that
-       fully constant cases get handled in folding and do not come here. */
-    if (is_variable_address_node(expr) ||
-        is_routine_address_node(expr)) {
+       the fully-constant case is handled in folding. */
+    if (!expr->is_lvalue &&
+        (is_routine_node(expr) ||
+         (is_operation_node(expr) &&
+          node_operator_is(expr, eok_address_of)))) {
+      /* Yes, it's a "&" operation or the address of a function. */
       a_targ_size_t addr_size = f_skip_typerefs(expr->type)->size;
       /* Drop out if an intermediate cast was to a smaller size, because
          a warning was already issued for that one. */
@@ -11715,13 +11562,17 @@ an lvalue cast in g++ mode.
 }  /* is_gpp_lvalue_cast */
 
 
+#if !EXTRA_SOURCE_POSITIONS_IN_IL
+/*ARGSUSED*/ /* <-- end_position is not used in that case. */
+#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
 static void do_cast(a_type_ptr               type_cast_to,
                     an_operand               *operand,
                     an_operand               *bound_function_selector,
                     a_local_expr_options_set local_options,
                     a_boolean                err,
                     a_source_position        *type_position,
-                    a_source_position        *start_position)
+                    a_source_position        *start_position,
+                    a_source_position        *end_position)
 /*
 Do a cast operation.  The operand *operand is to be cast to the type
 type_cast_to.  If it is a bound function (only in C++),
@@ -11729,7 +11580,8 @@ type_cast_to.  If it is a bound function (only in C++),
 err is TRUE if it has already been determined that the cast is invalid
 (this routine does additional checking).  type_position is the source
 position of the destination type in the cast.  start_position is the
-source position of the start of the cast.  This routine is called for
+source position of the start of the cast, and end_position is the
+end if end positions are being recorded.  This routine is called for
 C-style casts and C++ functional-notation type conversions.
 */
 {
@@ -11775,7 +11627,8 @@ C-style casts and C++ functional-notation type conversions.
         do_operand_transformations(operand,
                                    TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION |
                                   TOPT_SUPPRESS_CHECK_FOR_INDEFINITE_FUNCTION);
-        convert_function_template_to_single_function_if_possible(operand);
+        convert_function_template_to_single_function_if_possible(operand,
+                                                          /*will_call=*/FALSE);
       }  /* if */
       /* Check for casts that aren't valid in this kind of expression.
          Note that this check is done after the operand transformations
@@ -11830,7 +11683,8 @@ C-style casts and C++ functional-notation type conversions.
              this applies in C++ as well as C. */
           /* The cast can add or drop cv-qualifiers.  If it does, we
              have to add a cast. */
-          microsoft_lvalue_cv_qual_adjustment(operand, type_cast_to);
+          microsoft_lvalue_cv_qual_adjustment(operand, type_cast_to,
+                                              /*compiler_generated=*/FALSE);
 #if GNU_EXTENSIONS_ALLOWED
         } else if (gcc_mode && gnu_version < 40000 &&
                    identical_types_ignoring_qualifiers(source_type,
@@ -11840,7 +11694,7 @@ C-style casts and C++ functional-notation type conversions.
              it is not forced to an rvalue. */
         } else if (is_gpp_lvalue_cast(operand, type_cast_to)) {
           /* GNU C++ allows a limited form of lvalue cast on integral types. */
-          lvalue_cast(type_cast_to, operand);
+          lvalue_cast(type_cast_to, operand, /*compiler_generated=*/FALSE);
 #endif /* GNU_EXTENSIONS_ALLOWED */
         } else if (is_an_lvalue(operand) &&
                    (C_dialect == C_dialect_pcc || SVR4_C_mode ||
@@ -11848,17 +11702,14 @@ C-style casts and C++ functional-notation type conversions.
                    still_an_lvalue(source_type, type_cast_to)) {
           /* In pcc, SVR4 C, or Microsoft C mode, some lvalues cast to
              other types remain lvalues (e.g., int to unsigned). */
-          /* Use a special "lvalue cast" operator.  Always do the cast on
-             an expression node, even if the lvalue address is currently
-             given by a constant.  This is because all lvalue casts should
-             be clearly identifiable.  The lvalue cast operator looks a lot
-             like a normal cast, but its operand is an lvalue, and therefore
-             doesn't really have its address taken, which is important when
-             (e.g.) register entities are subjected to an lvalue cast.  See
-             the code in conv_lvalue_to_rvalue that removes the cast if
-             the cast lvalue is then converted to an rvalue (the usual
-             case). */
-          lvalue_cast(type_cast_to, operand);
+          /* Use a special "lvalue cast" operator.  The lvalue cast operator
+             looks a lot like a normal cast, but its operand is an lvalue,
+             and therefore doesn't really have its address taken, which is
+             important when (e.g.) register entities are subjected to an
+             lvalue cast.  See the code in conv_lvalue_expr_to_rvalue that
+             turns the lvalue cast into a simple cast if the cast lvalue is
+             then converted to an rvalue (the usual case). */
+          lvalue_cast(type_cast_to, operand, /*compiler_generated=*/FALSE);
         } else {
           a_boolean      reinterpret_semantics = FALSE;
           a_boolean      operand_is_constant;
@@ -11890,7 +11741,8 @@ C-style casts and C++ functional-notation type conversions.
             if (warning_suggested != ec_no_error) {
               pos_warning(warning_suggested, start_position);
             }  /* if */
-            if (is_cast_of_nonconstant_address_to_smaller_integer(
+            if (warning_suggested != ec_pointer_conversion_loses_bits &&
+                is_cast_of_nonconstant_address_to_smaller_integer(
                                                                operand,
                                                                type_cast_to)) {
               /* A cast of the address of a local variable to a small
@@ -11930,11 +11782,12 @@ C-style casts and C++ functional-notation type conversions.
                         start_position);
             make_function_designator_operand(rout_sym,
                                          (a_boolean)operand->is_qualified_name,
-                                             start_position,
+                                             start_position, end_position,
                                              (a_ref_entry_ptr)NULL,
                                              operand);
-            conv_function_designator_to_ptr_to_function(operand,
-                                                        /*allow_ctor=*/FALSE);
+            conv_expr_function_designator_to_ptr_to_function(
+                                                          operand,
+                                                          /*will_call=*/FALSE);
             cast_operand(type_cast_to, operand, /*check_cast_access=*/FALSE,
                          /*is_implicit_cast=*/FALSE, 
                          /*is_reinterpret_cast=*/FALSE,
@@ -11977,17 +11830,19 @@ C-style casts and C++ functional-notation type conversions.
   }  /* if */
   if (err) {
     conv_to_error_operand(operand);
-  } else if (cast_to_reference &&
-             cast_expr_was_added(operand_expression, operand)) {
-    an_expr_node_ptr result_expression = expr_node_from_operand(operand);
-    if (is_operation_node(result_expression)) {
+  } else if (cast_to_reference) {
+    an_expr_node_ptr result_expression =
+                              cast_expr_was_added(operand_expression, operand);
+    if (result_expression != NULL && is_operation_node(result_expression)) {
       /* A node was created that can carry the information that this was a
          cast to a reference type: mark it accordingly. */
-      result_expression->implicit_reference_indirection = TRUE;
       result_expression->variant.operation.is_reference_cast = TRUE;
     }  /* if */
   }  /* if */
   operand->position = *start_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  operand->end_position = *end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   rule_out_expr_kinds(ruled_out_expr_kinds, operand);
 }  /* do_cast */
 
@@ -12136,7 +11991,7 @@ Syntax:
         } else {
           /* Turn the lvalue into an address so we can deal with it as a
              pointer. */
-          take_address_of_lvalue(&operand);
+          take_address_of_lvalue(&operand, (a_source_position*)NULL);
           operand_type = operand.type;
         }  /* if */
       }  /* if */
@@ -12163,12 +12018,13 @@ Syntax:
       generic_cast_operand(&operand, operation_type, 
                            (an_expr_operator_kind)eok_const_cast,
                            /*is_implicit_cast=*/FALSE,
-                           /*is_reference_cast=*/FALSE);
+                           reference_case);
     } else if (microsoft_lvalue_cast_case) {
       /* The Microsoft case of an lvalue cast of an enum value to the same
          enum type with possibly adjusted cv-qualifiers does nothing but
          adjust the cv-qualifiers. */
-      microsoft_lvalue_cv_qual_adjustment(&operand, cast_type);
+      microsoft_lvalue_cv_qual_adjustment(&operand, cast_type,
+                                          /*compiler_generated=*/FALSE);
     } else {
       /* The types are already the same except for qualifiers.  The result
          is just the source cast to the destination type. */
@@ -12179,8 +12035,9 @@ Syntax:
                    /*reinterpret_semantics=*/FALSE);
     }  /* if */
     copy_operand(&operand, result);
-    /* For a cast to a reference type, the result is an lvalue. */
-    if (reference_case) {
+    /* For a cast to a reference type, the result is an lvalue.  (In the
+       template-dependent case, the subroutine has handled that already.) */
+    if (reference_case && !template_param_case) {
       conv_object_pointer_to_lvalue(result);
     }  /* if */
   }  /* if */
@@ -12251,12 +12108,12 @@ Syntax:
     }  /* if */
     if (!processed) {
       /* No user-defined conversion applies. */
-      a_boolean microsoft_lvalue_cast_case = FALSE;
+      a_boolean gnu_lvalue_cast_case = FALSE;
       if (is_gpp_lvalue_cast(result, type_cast_to)) {
         /* GNU C++ allows a limited form of lvalue cast on integral types. */
-        microsoft_lvalue_cast_case = TRUE;
+        gnu_lvalue_cast_case = TRUE;
       }  /* if */
-      if (!cast_to_reference && !cast_to_void && !microsoft_lvalue_cast_case) {
+      if (!cast_to_reference && !cast_to_void && !gnu_lvalue_cast_case) {
         /* Normal case (not a cast to reference or cast to void). */
         /* Do lvalue --> rvalue, array --> pointer, and function --> pointer
            conversions.  They must be done now because they affect the type
@@ -12265,7 +12122,8 @@ Syntax:
            be chosen by a cast to a pointer or pointer-to-member type. */
         do_operand_transformations(result,
                                   TOPT_SUPPRESS_CHECK_FOR_INDEFINITE_FUNCTION);
-        convert_function_template_to_single_function_if_possible(result);
+        convert_function_template_to_single_function_if_possible(result,
+                                                          /*will_call=*/FALSE);
       }  /* if */
       /* Check for casts that aren't valid in this kind of expression.
          Note that this check is done after the operand transformations
@@ -12308,9 +12166,9 @@ Syntax:
         } else if (cast_to_void) {
           /* Cast to (possibly cv-qualified) void. */
           cast_operand_to_void(result, type_cast_to);
-        } else if (microsoft_lvalue_cast_case) {
+        } else if (gnu_lvalue_cast_case) {
           /* GNU C++ allows a limited form of lvalue cast on integral types. */
-          lvalue_cast(type_cast_to, result);
+          lvalue_cast(type_cast_to, result, /*compiler_generated=*/FALSE);
         } else if (static_cast_conversion_possible(source_type,
                                                    operand_is_constant,
                                                    (a_boolean)result->
@@ -12413,14 +12271,16 @@ Syntax:
   }  /* if */
   if (err) {
     conv_to_error_operand(result);
-  } else if (!ignored && cast_expr_was_added(operand_expression, result)) {
-    /* An expression node was created that represents this static_cast:
-       mark it as resulting from a static_cast operation. */
-    an_expr_node_ptr result_expression = expr_node_from_operand(result);
-    result_expression->is_static_cast = TRUE;
-    if (cast_to_reference && is_operation_node(result_expression)) {
-      result_expression->implicit_reference_indirection = TRUE;
-      result_expression->variant.operation.is_reference_cast = TRUE;
+  } else if (!ignored) {
+    an_expr_node_ptr result_expression =
+                               cast_expr_was_added(operand_expression, result);
+    if (result_expression != NULL) {
+      /* An expression node was created that represents this static_cast:
+         mark it as resulting from a static_cast operation. */
+      result_expression->is_static_cast = TRUE;
+      if (cast_to_reference && is_operation_node(result_expression)) {
+        result_expression->variant.operation.is_reference_cast = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
   set_operand_position(result, &start_position, &end_position,
@@ -12589,13 +12449,12 @@ Syntax:
   }  /* if */
   if (err) {
     conv_to_error_operand(result);
-  } else if (cast_to_reference &&
-             cast_expr_was_added(operand_expression, result)) {
-    an_expr_node_ptr result_expression = expr_node_from_operand(result);
-    if (is_operation_node(result_expression)) {
+  } else if (cast_to_reference) {
+    an_expr_node_ptr result_expression =
+                               cast_expr_was_added(operand_expression, result);
+    if (result_expression != NULL && is_operation_node(result_expression)) {
       /* A node was created that can carry the information that this was a
          cast to a reference type: mark it accordingly. */
-      result_expression->implicit_reference_indirection = TRUE;
       result_expression->variant.operation.is_reference_cast = TRUE;
     }  /* if */
   }  /* if */
@@ -12651,11 +12510,14 @@ static void scan_complex_projection(an_operand  *result)
 Scan an expression of one of the following two forms:
   __real <expr>
   __imag <expr>
-The result is an lvalue if the argument expression is a lvalue.  These
+The result is an lvalue if the argument expression is an lvalue.  These
 operators cannot be overloaded.
 */
 {
   a_boolean              real_part = (curr_token == tok_gnu_real);
+  an_expr_operator_kind  op = (an_expr_operator_kind)(real_part ?
+                                                                eok_real_part :
+                                                                eok_imag_part);
   a_source_position      start_pos;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position      end_pos;
@@ -12688,39 +12550,31 @@ operators cannot be overloaded.
       a_constant  zero;
       make_zero_of_proper_type(operand.type, &zero);
       make_constant_operand(&zero, result);
-      result->state = (an_operand_state)os_rvalue;
-      result->type = operand.type;
     }  /* if */
     pos_warning(ec_real_and_imag_applied_to_real_value, &start_pos);
   } else if (is_complex_type(operand.type)) {
     /* A complex argument: The result type is the corresponding real
        floating-point type. */
-    a_type_ptr  result_type = float_type(skip_typerefs(operand.type)
+    a_type_ptr result_type = float_type(skip_typerefs(operand.type)
                                                        ->variant.float_kind);
     if (is_an_lvalue(&operand)) {
       /* If the argument is an lvalue, the result is also an lvalue. */
-      an_expr_operator_kind  op;
       an_expr_node_ptr       expr;
-      op = (an_expr_operator_kind)(real_part ? eok_lvalue_real_part
-                                             : eok_lvalue_imag_part);
       using_lvalue(&operand);
+      result_type = type_plus_qualifiers_from_second_type(result_type,
+                                                          operand.type);
       expr = make_node_from_operand(&operand);
-      expr = make_operator_node(op, make_pointer_type(result_type), expr);
-      make_expression_operand(expr, result_type, result);
-      result->state = (an_operand_state)os_lvalue;
+      expr = make_lvalue_operator_node(op, result_type, expr);
+      make_lvalue_expression_operand(expr, result);
       /* References to the projection should be passed through to the
          underlying rvalue. */
       result->ref_entries_list = operand.ref_entries_list;
     } else {
       /* The argument is an rvalue: The result too. */
-      do_unary_operation(
-           (an_expr_operator_kind)(real_part ? eok_real_part : eok_imag_part),
-           &operand, result_type, result, &start_pos);
+      do_unary_operation(op, &operand, result_type, result, &start_pos);
     }  /* if */
   } else if (is_template_param_type(operand.type)) {
-    template_unary_operation(
-           (an_expr_operator_kind)(real_part ? eok_real_part : eok_imag_part),
-           &operand, result, &start_pos);
+    template_unary_operation(op, &operand, result, &start_pos);
   } else {
     error_in_operand(ec_real_and_imag_require_complex_argument, &operand);
     make_error_operand(result);
@@ -12862,7 +12716,7 @@ both C and C++ modes.
       expr = alloc_expr_node((an_expr_node_kind)enk_statement);
       expr->variant.statement = sp;
       expr->type = expr_type;
-      make_expression_operand(expr, expr_type, result);
+      make_expression_operand(expr, result);
       current_routine_entry()->contains_statement_expression = TRUE;
       report_gnu_extension_if_needed(&start_position,
                                      ec_statement_expression_is_gnu_extension);
@@ -12988,13 +12842,12 @@ to the compound literal.
   } else {
     /* Non-static case.  Allocate an enk_temp_init node. */
     an_expr_node_ptr expr =
-             alloc_temp_init_node(literal_type, dip, /*result_is_addr=*/TRUE,
+             alloc_temp_init_node(literal_type, dip, /*is_lvalue=*/TRUE,
                                   /*is_explicit_cast=*/FALSE);
     /* The compound literal does not have lifetime limited to a full
        expression (C99 says the lifetime extends to the end of the block). */
     dip->has_temporary_lifetime = FALSE;
-    make_expression_operand(expr, literal_type, result);
-    result->state = (an_operand_state)os_lvalue;
+    make_lvalue_expression_operand(expr, result);
   }  /* if */
   rule_out_expr_kinds(ROEK_INTEGRAL_CONSTANT, result);
 }  /* scan_compound_literal */
@@ -13112,7 +12965,8 @@ Also scans GNU statement expressions:
         } else {
           /* Check compatibility of the types and do the cast. */
           do_cast(type_cast_to, result, &local_bound_function_selector,
-                  local_options, err, &type_position, &start_position);
+                  local_options, err, &type_position, &start_position,
+                  end_position_or_null(&end_position));
         }  /* if */
       }  /* if */
       set_operand_position(result, &start_position, &end_position,
@@ -13297,15 +13151,12 @@ The result is returned in *result.  See _expr.type.conv_ in the WP.
       make_error_operand(result);
     } else {
       dip->is_explicit_cast = TRUE;
-      make_expression_operand(temp_init_node, temp_init_node->type,
-                              result);
+      make_expression_operand(temp_init_node, result);
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (microsoft_bugs && microsoft_version < 1100) {
         /* In Microsoft C++ mode, a constructor is considered to return
            an lvalue.  This was changed in MSVC++ 5.0. */
-        conv_class_operand_to_object_pointer(result, 
-                                             /*will_be_an_lvalue=*/TRUE);
-        conv_object_pointer_to_lvalue(result);
+        conv_class_rvalue_operand_to_lvalue(result);
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
@@ -13319,9 +13170,9 @@ The result is returned in *result.  See _expr.type.conv_ in the WP.
        so go on to the normal cast code. */
     scan_dependent_parenthesized_initializer((an_arg_operand_ptr*)NULL, &dip);
     temp_init_node = alloc_temp_init_node(type_cast_to, dip,
-                                          /*result_is_addr=*/FALSE,
+                                          /*is_lvalue=*/FALSE,
                                           /*is_explicit_cast=*/TRUE);
-    make_expression_operand(temp_init_node, temp_init_node->type, result);
+    make_expression_operand(temp_init_node, result);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -13385,7 +13236,7 @@ The result is returned in *result.  See _expr.type.conv_ in the WP.
           }  /* if */
           temp_init_node =
                   create_expr_temporary(type_cast_to,
-                                        /*result_is_addr=*/FALSE,
+                                        /*is_lvalue=*/FALSE,
                                         /*is_explicit_cast=*/TRUE,
                                         /* Abstract class test done
                                            previously. */
@@ -13393,8 +13244,7 @@ The result is returned in *result.  See _expr.type.conv_ in the WP.
                                         init_kind,
                                         start_position,
                                         &dip);
-          make_expression_operand(temp_init_node, temp_init_node->type,
-                                  result);
+          make_expression_operand(temp_init_node, result);
         } else {
           /* A scalar type followed by (); generate the value a static
              object of that type would get by default (WP _expr.type.conv_),
@@ -13421,7 +13271,8 @@ The result is returned in *result.  See _expr.type.conv_ in the WP.
       } else {
         /* Check compatibility of the types and do the cast. */
         do_cast(type_cast_to, result, &local_bound_function_selector,
-                local_options, err, start_position, start_position);
+                local_options, err, start_position, start_position,
+                end_position_or_null(&end_pos_curr_token));
       }  /* if */
     }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -13627,12 +13478,11 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
   an_expr_operator_kind op = (an_expr_operator_kind)eok_error;
   a_token_kind          save_token;
   an_operand            operand_2;
-  an_operand            operand_temp;
   a_source_position     operator_position;
-  a_boolean             operands_have_been_reversed = FALSE;
   a_token_sequence_number
                         operator_tok_seq_number;
   a_boolean             operand_1_is_pointer;
+  a_boolean             pointer_operand_is_second = FALSE;
   a_boolean             both_operands_are_arithmetic = FALSE;
   a_boolean		pointer_difference           = FALSE;
   a_boolean             err = FALSE, processed = FALSE;
@@ -13826,6 +13676,7 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
                is_pointer_type(operand_2.type) &&
                is_integral_or_enum_type(operand_1->type)) {
       /* Integral/enum + pointer. */
+      pointer_operand_is_second = TRUE;
       /* The second operand must be a pointer to an object.  GNU C allows
          arithmetic on pointers to void and pointers to functions. */
       if (gcc_mode && (is_void_type(type_pointed_to(operand_2.type)) ||
@@ -13846,13 +13697,6 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
       }  /* if */
       /* The result type is the same as the pointer type in operand 2. */
       result_type = operation_type = operand_2.type;
-      /* Reverse the operands so that the pointer is always first. */
-      copy_operand(operand_1, &operand_temp);
-      copy_operand(&operand_2, operand_1);
-      copy_operand(&operand_temp, &operand_2);
-      /* Remember that we did this so that we can adjust the position
-         information later on. */
-      operands_have_been_reversed = TRUE;
     } else {
       /* Operand 1 is arithmetic or enum. */
       if (is_arithmetic_or_enum_type(operand_2.type)
@@ -13924,6 +13768,9 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
       }  /* if */
       do_binary_operation(op, operand_1, &operand_2,
                           result_type, result, &operator_position);
+      if (pointer_operand_is_second) {
+        set_pointer_operand_is_second_flag(result);
+      }  /* if */
       /* For pointer addition or subtraction (but not difference), preserve
          the reference entries for the pointer operand.  This is in case the
          result is turned back into an lvalue, as in "*(arr + 1) = x".
@@ -13935,11 +13782,8 @@ Scan the non-unary "+" and "-" operators.  See section 3.3.6 in the standard.
     }  /* if */
   }  /* if */
 
-  set_operand_position(
-        result,
-        &(operands_have_been_reversed ? &operand_2 : operand_1)->position,
-        &(operands_have_been_reversed ? operand_1 : &operand_2)->end_position,
-        &operator_position);
+  set_operand_position(result, &operand_1->position, &operand_2.end_position,
+                       &operator_position);
   db_exit();
 }  /* scan_add_operator */
 
@@ -14477,7 +14321,8 @@ Scan the GNU C++ minimum and maximum operators ("<?" and ">?").
        to the relational operators, except that lvalue-to-rvalue conversions
        are not always performed. */
     if (is_an_lvalue(operand_1) && is_an_lvalue(&operand_2) &&
-        identical_types(operand_1->type, operand_2.type)) {
+        identical_types(operand_1->type, operand_2.type) &&
+        !is_array_type(operand_1->type)) {
       /* If the types are identical, and both operands are lvalues, then
          the result is an lvalue. */
       result_is_lvalue = TRUE;
@@ -14579,14 +14424,16 @@ Scan the GNU C++ minimum and maximum operators ("<?" and ">?").
       do_binary_operation(op, operand_1, &operand_2,
                           result_type, result, &operator_position);
     } else {
-      build_binary_result_operand(operand_1, &operand_2, op,
-                                  result_type, result);
-      result->state = (an_operand_state)os_lvalue;
-      result->variant.expression->type = make_pointer_type(result_type);
-      result->variant.expression
+      build_binary_result_operand_full(operand_1, &operand_2, op,
+                                       result_type, /*result_is_lvalue=*/TRUE,
+                                       result);
+      if (!is_error_operand(result)) {
+        check_assertion(is_expression_operand(result));
+        result->variant.expression
             ->variant.operation.returns_lvalue_instead_of_usual_rvalue = TRUE;
-      result->ref_entries_list = merge_ref_lists(operand_1->ref_entries_list,
-                                                 operand_2.ref_entries_list);
+        result->ref_entries_list = merge_ref_lists(operand_1->ref_entries_list,
+                                                   operand_2.ref_entries_list);
+      }  /* if */
     }  /* if */
   }  /* if */
   set_operand_position(result, &operand_1->position, &operand_2.end_position,
@@ -15059,7 +14906,7 @@ operand.
   void_node->next = zero_node;
   comma_node = make_operator_node((an_expr_operator_kind)eok_comma,
                                   result_type, void_node);
-  make_expression_operand(comma_node, result_type, operand);
+  make_expression_operand(comma_node, operand);
   restore_operand_details(operand, &orig_operand);
 }  /* adjust_void_operand_for_microsoft_void_vs_scalar_conditional */
 
@@ -15475,8 +15322,10 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
              always treated as rvalues in the Microsoft compiler. */
         } else {
           result_type = make_unqualified_type(result_type);
-          microsoft_lvalue_cv_qual_adjustment(&operand_2, result_type);
-          microsoft_lvalue_cv_qual_adjustment(&operand_3, result_type);
+          microsoft_lvalue_cv_qual_adjustment(&operand_2, result_type,
+                                              /*compiler_generated=*/TRUE);
+          microsoft_lvalue_cv_qual_adjustment(&operand_3, result_type,
+                                              /*compiler_generated=*/TRUE);
         }  /* if */
       }  /* if */
     } else if (is_throw_operand(&operand_2)) {
@@ -15778,9 +15627,7 @@ This is used for checking/allowing assignment to "this" -- an anachronism.
     pos_diagnostic(exceptions_enabled ? es_error :
                                         anachronism_error_severity,
                    ec_assignment_to_this, &operand->position);
-    make_lvalue_variable_operand(this_var, operand,
-                                 operand->ref_entries_list,
-                                 /*record_expr=*/TRUE);
+    make_lvalue_variable_operand(this_var, operand, operand->ref_entries_list);
     current_routine_entry()->assignment_to_this_done = TRUE;
     this_var->param_value_has_been_changed = TRUE;
     if (exceptions_enabled &&
@@ -16677,7 +16524,7 @@ Scan the C++ throw operator.  See 15.2 in the ARM.  The syntax is
     if (err) {
       make_error_operand(result);
     } else {
-      make_expression_operand(throw_node, throw_node->type, result);
+      make_expression_operand(throw_node, result);
     }  /* if */
   }  /* if */
 
@@ -16706,7 +16553,7 @@ EOPT_DISALLOW_COMMA_OPERATOR).
   a_source_position operator_position;
   a_token_sequence_number
                     operator_tok_seq_number;
-  a_type_ptr        result_type, operation_type;
+  a_type_ptr        result_type;
   a_boolean         err = FALSE, processed = FALSE;
   a_boolean         result_is_an_lvalue = FALSE;
   an_expr_node_ptr  node;
@@ -16772,21 +16619,20 @@ EOPT_DISALLOW_COMMA_OPERATOR).
         do_operand_transformations(&operand_2, TOPT_NO_OPTIONS);
       }  /* if */
       /* The result type is the type of the second operand. */
-      operation_type = result_type = operand_2.type;
-      if (result_is_an_lvalue) operation_type = make_pointer_type(result_type);
+      result_type = operand_2.type;
       /* Make a comma operator expression. */
       node = make_node_from_void_expression_operand(operand_1);
       node->next = make_node_from_operand(&operand_2);
       node = make_operator_node((an_expr_operator_kind)eok_comma,
-                                operation_type, node);
-      make_expression_operand(node, operation_type, result);
+                                result_type, node);
+      make_expression_operand(node, result);
       /* In C++ mode, the result is an lvalue if the second operation
          is an lvalue. */
       if (result_is_an_lvalue) {
-        result->state = operand_2.state;
-        result->type = result_type;
+        set_lvalue_operand_state(result);
         result->variant.expression->variant.operation.
                                  returns_lvalue_instead_of_usual_rvalue = TRUE;
+        result->variant.expression->is_lvalue = TRUE;
         result->ref_entries_list = operand_2.ref_entries_list;
       }  /* if */
     }  /* if */
@@ -16821,13 +16667,11 @@ is built in *operand.  It's an lvalue for the field.
                   union_sym->kind == (a_symbol_kind)sk_variable);
   /* Start with an operand for the base anonymous union variable. */
   union_var = union_sym->variant.variable.ptr;
-  make_lvalue_variable_operand(union_var, &operand_1, (a_ref_entry_ptr)NULL,
-                               /*record_expr=*/FALSE);
+  make_lvalue_variable_operand(union_var, &operand_1, (a_ref_entry_ptr)NULL);
   /* Add a field selection to get to the field. */
   do_field_selection_operation(&operand_1, union_var->type,
                                /*is_arrow_operator=*/FALSE,
-                               /*rvalue_result=*/FALSE,
-                               sym_ptr, source_position, rep, result);
+                               /*is_lvalue=*/TRUE, sym_ptr, rep, result);
   result->position = *source_position;
 }  /* make_anonymous_union_field_operand */
 
@@ -16886,17 +16730,22 @@ to reflect the error.
              contains the class. */
           /* Only nonstatic variables are a problem. */
           if (!has_static_storage_duration(var->storage_class)) {
-            if (!strict_ansi_mode && !expr_stack->potentially_evaluated &&
-                (!expr_stack->is_decltype_or_typeof_arg_expression ||
-                 depth_innermost_function_scope == NO_SCOPE_DEPTH) &&
-                !is_vla_type(var->type)) {
+            if (curr_expr_kind_is_const() && var_constant_value(var) != NULL) {
+              /* Allow references to constant-valued variables in constant
+                 expressions.  This is not supported by the standard
+                 as of May 2008, but we're opening a core issue. */
+            } else if (!strict_ansi_mode &&
+                       !expr_stack->potentially_evaluated &&
+                       (!expr_stack->is_decltype_or_typeof_arg_expression ||
+                        depth_innermost_function_scope == NO_SCOPE_DEPTH) &&
+                        !is_vla_type(var->type)) {
               /* As an extension, allow references to nonstatic variables
                  inside sizeof expressions.  (Except VLA variables, since
                  sizeof applied to such variables involves a run-time
                  computation.)  We also allow decltype/typeof constructs if
                  they appear directly in the class definition itself and
                  not in a member function definition of the class (the latter
-                 would requiring a reference between two different function
+                 would require a reference between two different function
                  scope memory regions). */
               warning(ec_ref_to_nested_function_var);
             } else {
@@ -16999,7 +16848,7 @@ the sk_variable symbol.  Otherwise, return NULL.
 }  /* anonymous_parent_variable_of */
 
 
-static a_boolean current_mode_allows_field_selection_folding(void)
+a_boolean current_mode_allows_field_selection_folding(void)
 /*
 Return TRUE if the current context is a constant expression in a
 compilation mode that allows nonstandard folding of field selections
@@ -17016,7 +16865,7 @@ to constants.  For example,
 
   if ((any_cfront_mode() || sun_mode ||
        (microsoft_mode && !C_mode()) ||
-       (gpp_mode && gnu_version <= 30300)) &&
+       (gpp_mode && gnu_version < 30400)) &&
       (curr_expr_kind_is(ek_integral_constant) ||
        curr_expr_kind_is(ek_template_arg) ||
        curr_expr_kind_is(ek_init_constant))) {
@@ -17050,37 +16899,6 @@ followed by a field selection, return TRUE.
   }  /* if */
   return foldable;
 }  /* is_field_selection_of_type_foldable */
-
-
-static a_boolean is_field_selection_on_var_foldable(a_variable_ptr var)
-/*
-var indicates a variable referenced in an expression.  If the variable
-is followed by a field selection operator (e.g., ".") and we're
-in a constant expression and a dialect such that the field selection
-might be foldable to a constant, return TRUE.  For example,
-
-   struct A {
-     enum E { e1 = 1 };
-   } a;
-   int b[a.e1];  // a.e1 accepted as a constant in some modes.
-
-Note that there will still be a check later that the expression did
-in fact turn out to be a constant.
-*/
-{
-  a_boolean foldable = FALSE;
-
-  if (current_mode_allows_field_selection_folding()) {
-    /* We're in a constant expression and in a dialect that accepts
-       this construct. */
-    if (is_field_selection_of_type_foldable(var->type)) {
-      /* The variable has an appropriate type and is followed by a field
-         selection operator. */
-      foldable = TRUE;
-    }  /* if */
-  }  /* if */
-  return foldable;
-}  /* is_field_selection_on_var_foldable */
 
 
 static a_boolean is_field_selection_on_field_foldable(a_field_ptr field)
@@ -17318,10 +17136,6 @@ If p_sym_ptr is not NULL, set *p_sym_ptr to point to the symbol scanned
             if (!is_template_param_type(result->type)) {
               (void)check_integral_or_enum_operand(result);
             }  /* if */
-          } else if (!curr_expr_kind_is_const()) {
-            /* In a non-constant expression, treat a nonreal member as
-               an lvalue rather than a constant. */
-            change_nonreal_member_constant_operand_to_lvalue(result);
           }  /* if */
           okay_for_integral_const_expr = TRUE;
           break;
@@ -17331,103 +17145,41 @@ If p_sym_ptr is not NULL, set *p_sym_ptr to point to the symbol scanned
         case sk_variable:
           var_ptr = sym_ptr->variant.variable.ptr;
 variable:
-          if (curr_expr_kind_is_const()) {
-            /* A variable is allowed only in initializer expressions,
-               and only if it is static and its address is being taken
-               (i.e., it's not the variable's value that is wanted).
-               The "static" part is checked here; the "its address is
-               being taken" part is checked in conv_lvalue_to_rvalue.
-               We allow an lvalue out, and if it's converted to an rvalue,
-               it's an error.  This is necessary because of constructs
-               like "int *p = &a.i" -- the address of "a" is not taken,
-               but the lvalue never gets turned into an rvalue, so it's
-               okay. */
-            /* Note that in C++ initializer expressions are used only for
-               class constants (an extension) and for the argument of
-               __INTADDR__. */
-            if ((curr_expr_kind_is(ek_init_constant) ||
-                 curr_expr_kind_is(ek_template_arg)) &&
-                variable_has_constant_address(var_ptr,
-                                              /*in_expr_proc=*/TRUE) &&
-#if UPC_EXTENSIONS_ALLOWED
-                /* Disallow static initializations using addresses of shared
-                   data. */
-                !(upc_mode &&
-                  is_underlying_shared_qualified_type(var_ptr->type)) &&
-#endif /* UPC_EXTENSIONS_ALLOWED */
-                /* Disallow C++ reference variables in constant
-                   expressions, because of the extra indirection. */
-                !is_reference_type(var_ptr->type)) {
-              /* Make an lvalue operand for the variable. */
-              make_lvalue_variable_operand(var_ptr, result, rep,
-                                           /*record_expr=*/TRUE);
-            } else if (is_field_selection_on_var_foldable(var_ptr)) {
-              /* In cfront or Microsoft C++ mode, allow a class variable
-                 identifier followed by a field selection dot, or a pointer
-                 to class variable identifier followed by "->".  This is
-                 needed because cfront and MSVC++ allow things like x.e,
-                 where e is something like an enumerator constant, as part
-                 of a constant expression. */
-              /* Change the expression kind temporarily to avoid errors
-                 when the left operand is a reference. */
-              saved_expr_kind = expr_stack->expression_kind;
-              expr_stack->expression_kind = (an_expression_kind)ek_normal;
-              /* Make an lvalue operand for the variable. */
-              make_lvalue_variable_operand(var_ptr, result, rep,
-                                           /*record_expr=*/TRUE);
-              expr_stack->expression_kind = saved_expr_kind;
-            } else if (!C_mode() && is_const_variable(var_ptr)) {
-              /* In C++, integral const identifiers can be used in constant
-                 expressions.  */
-              a_constant_ptr con_val = var_constant_value(var_ptr);
-              if (con_val == NULL) {
-                /* The variable is const, but its value is not known at
-                   compile time. */
-                error_and_make_error_operand(ec_constant_value_not_known,
-                                             result);
-                change_refs_to_error(rep);
-                rep = NULL;
-              } else {
-                /* The identifier is const and has a known constant value. */
-                make_constant_variable_operand(con_val, var_ptr, result);
-                /* The value of the variable is used. */
-                change_ref_kinds(rep, SRK_USE);
-              }  /* if */
-            } else {
-              /* All other cases are not allowed. */
-              error_and_make_error_operand(ec_expr_not_constant, result);
-              change_refs_to_error(rep);
-              rep = NULL;
-            }  /* if */
-          } else {
-            /* Nonconstant expression. */
-            /* If we're inside a local class, we are not allowed to reference
-               non-static variables of the containing function.  If we're
-               inside a default argument expression, we're not allowed to
-               reference local variables of any containing function.
-               Check for those. */
-            if (bad_nested_function_variable_ref(sym_ptr, result, &rep)) {
-              /* Error. */
-            } else {
-              /* In C99 mode (except in GNU C mode) check that a variable
-                 referenced within an inline function is valid. */
-              if (c99_mode && !gcc_mode) {
-                check_reference_from_inline_function(sym_ptr);
-              }  /* if */
-              /* Make a variable operand that is a variable address node.
-                 The type of the operand is a pointer to the type of the
-                 variable. */
-              make_lvalue_variable_operand(var_ptr, result, rep,
-                                           /*record_expr=*/TRUE);
-            }  /* if */
-          }  /* if */
-          if (var_ptr->declared_with_auto_type_specifier &&
-              var_ptr->init_kind == (an_init_kind)initk_none) {
+          /* If we're inside a local class, we are not allowed to reference
+             non-static variables of the containing function.  If we're
+             inside a default argument expression, we're not allowed to
+             reference local variables of any containing function.
+             Check for those. */
+          if (bad_nested_function_variable_ref(sym_ptr, result, &rep)) {
+            /* Error. */
+          } else if (!C_mode() && curr_expr_kind_is(ek_integral_constant) &&
+                     is_const_variable(var_ptr) &&
+                     var_constant_value(var_ptr) == NULL) {
+            /* This is a const variable without a constant value, e.g.,
+                 extern const int x;
+               Put out a clearer error message than the generic "expression
+               must have a constant value". */
+            error_and_make_error_operand(ec_constant_value_not_known, result);
+          } else if (var_ptr->declared_with_auto_type_specifier &&
+                     var_ptr->init_kind == (an_init_kind)initk_none) {
             /* Something like "auto x = x;" is invalid. */
             error_and_make_error_operand(ec_auto_variable_in_own_initializer,
                                          result);
+          } else {
+            /* In C99 mode (except in GNU C mode) check that a variable
+               referenced within an inline function is valid. */
+            if (c99_mode && !gcc_mode) {
+              check_reference_from_inline_function(sym_ptr);
+            }  /* if */
+            /* Make a variable operand that is an lvalue. */
+            make_lvalue_variable_operand(var_ptr, result, rep);
           }  /* if */
-          set_operand_name_reference_from_locator_for_curr_id(result);
+          if (is_error_operand(result)) {
+            change_refs_to_error(rep);
+            rep = NULL;
+          } else {
+            set_operand_name_reference_from_locator_for_curr_id(result);
+          }  /* if */
           okay_for_integral_const_expr = TRUE;
           break;
         case sk_routine:
@@ -17456,6 +17208,8 @@ normal_function:
                                                              is_qualified_name,
                                              &locator_for_curr_id.
                                                                source_position,
+                                             end_position_or_null(
+                                                          &end_pos_curr_token),
                                              rep,
                                              result);
             set_operand_name_reference_from_locator_for_curr_id(result);
@@ -17556,10 +17310,8 @@ do_selection:
                 do_field_selection_operation(&this_pointer_operand,
                                              qual_class_type,
                                              /*is_arrow_operator=*/TRUE,
-                                             /*rvalue_result=*/FALSE,
+                                             /*is_lvalue=*/TRUE,
                                              sym_ptr,
-                                             &locator_for_curr_id.
-                                                               source_position,
                                              rep, result);
               } else {
                 /* There was some problem in constructing the "this"
@@ -17648,7 +17400,7 @@ overloaded_function:
                                                        locator_for_curr_id.
                                                              is_qualified_name,
                                                   result);
-          result->state = (an_operand_state)os_function_designator;
+          change_template_param_constant_operand_to_lvalue(result);
           break;
         case sk_undefined:
           /* Symbol was found in the symbol table, but it is undefined.  This
@@ -17730,8 +17482,7 @@ overloaded_function:
               sym_ptr->variant.param_id->dummy_vla_variable = var_ptr;
             }  /* if */
             /* Generate an expression node referring to the dummy variable. */
-            make_lvalue_variable_operand(var_ptr, result, rep,
-                                         /*record_expr=*/FALSE);
+            make_lvalue_variable_operand(var_ptr, result, rep);
             check_assertion(is_expression_operand(result));
             /* Create a_vla_fixup for the parameter, initialize its
                members, and link it into the list of vla fixups for the
@@ -17741,16 +17492,11 @@ overloaded_function:
           } else {
             /* Use of a parameter in a sizeof expression, something like
                  void f(a, int b[sizeof(a)]);
-               Create a constant pointer to the right type to make an lvalue
-               of the right type, since there is no variable yet (the
-               parameter is represented by an sk_parameter symbol). */
-            a_constant constant;
+               Create a dummy lvalue of the right type, since there is no
+               variable yet (the parameter is represented by an sk_parameter
+               symbol). */
             a_type_ptr param_type = sym_ptr->variant.param_id->type;
-
-            make_zero_of_proper_type(make_pointer_type(param_type), &constant);
-            make_constant_operand(&constant, result);
-            result->state = (an_operand_state)os_lvalue;
-            result->type = param_type;
+            make_dummy_lvalue_operand(param_type, result);
           }  /* if */
           break;
 #if CHECKING
@@ -17775,16 +17521,6 @@ overloaded_function:
   /* Remember whether or not this operand is the immediate operand of
      a "&" operator. */
   result->is_operand_of_address_of = is_operand_of_address_of;
-  if (is_expression_operand(result)) {
-    result->variant.expression->is_operand_of_address_of =
-                                                      is_operand_of_address_of;
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
-  } else if (is_constant_operand(result) &&
-             result->variant.constant.expr != NULL) {
-    result->variant.constant.expr->is_operand_of_address_of =
-                                                      is_operand_of_address_of;
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
-  }  /* if */
   if (!okay_for_integral_const_expr ||
       !(is_integral_type(result->type) ||
         is_template_param_type(result->type) ||
@@ -18383,8 +18119,7 @@ which of the various keywords was used.
     *name_var_ptr = name_var;
 have_variable:
     /* Create an operand that refers to the implicit static variable. */
-    make_lvalue_variable_operand(name_var, result, (a_ref_entry_ptr)NULL,
-                                 /*record_expr=*/FALSE);
+    make_lvalue_variable_operand(name_var, result, (a_ref_entry_ptr)NULL);
   }  /* if */
 end_of_routine:
   rule_out_expr_kinds(ROEK_INTEGRAL_CONSTANT, result);
@@ -18536,7 +18271,7 @@ and the other function-name tokens.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-static a_boolean operand_is_string_literal(an_operand *operand)
+a_boolean operand_is_string_literal(an_operand_ptr operand)
 /*
 Return TRUE if the indicated operand is an lvalue for a string literal
 (narrow or wide).
@@ -18545,18 +18280,10 @@ Return TRUE if the indicated operand is an lvalue for a string literal
   a_boolean is_string_literal = FALSE;
 
   if (is_an_lvalue(operand) &&
-      is_constant_operand(operand) &&
-      is_string_type(operand->type)) {
-    a_constant_ptr string_con = &operand->variant.constant;
-    if (string_con->kind == (a_constant_repr_kind)ck_address &&
-        string_con->variant.address.kind ==
-                                          (an_address_base_kind)abk_constant &&
-        string_con->variant.address.offset == 0 &&
-        !string_con->implicit_cast) {
-      string_con = string_con->variant.address.variant.constant;
-      if (string_con->kind == (a_constant_repr_kind)ck_string) {
-        is_string_literal = TRUE;
-      }  /* if */
+      is_constant_operand(operand)) {
+    a_constant_ptr con = &operand->variant.constant;
+    if (con->kind == (a_constant_repr_kind)ck_string) {
+      is_string_literal = TRUE;
     }  /* if */
   }  /* if */
   return is_string_literal;
@@ -18564,28 +18291,24 @@ Return TRUE if the indicated operand is an lvalue for a string literal
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-static a_boolean operand_is_cast_string_literal(an_operand *operand)
+static a_boolean operand_is_cast_string_literal(an_operand     *operand,
+                                                a_constant_ptr *string_con)
 /*
 Return TRUE if the indicated operand is a string literal (not wide) cast
-to pointer to char.  This comes up in a Microsoft quirk.
+to pointer to char.  Also set *string_con to point to the string
+constant.  This comes up in a Microsoft quirk.
 */
 {
   a_boolean is_cast_string_literal = FALSE;
 
+  *string_con = NULL;
   if (is_an_rvalue(operand) &&
       is_constant_operand(operand) &&
       is_pointer_type(operand->type) &&
       is_character_type(type_pointed_to(operand->type))) {
-    a_constant_ptr string_con = &operand->variant.constant;
-    if (string_con->kind == (a_constant_repr_kind)ck_address &&
-        string_con->variant.address.kind ==
-                                          (an_address_base_kind)abk_constant &&
-        string_con->variant.address.offset == 0 &&
-        string_con->implicit_cast) {
-      string_con = string_con->variant.address.variant.constant;
-      if (string_con->kind == (a_constant_repr_kind)ck_string) {
-        is_cast_string_literal = TRUE;
-      }  /* if */
+    if (constant_is_pointer_to_string_literal(&operand->variant.constant,
+                                              string_con)) {
+      is_cast_string_literal = TRUE;
     }  /* if */
   }  /* if */
   return is_cast_string_literal;
@@ -18746,14 +18469,10 @@ see expr.h).
         /* We're not inside a function. */
         error_and_make_error_operand(ec_this_used_incorrectly, &local_result);
       } else if (curr_expr_kind_is_const() &&
-                 /* cfront, Microsoft, Sun, and g++ allow this->k, where k is a
-                    constant, in a constant expression. */
-                 !((any_cfront_mode() || (microsoft_mode && !C_mode()) ||
-                    (gpp_mode && gnu_version <= 30300) || sun_mode) &&
-                   next_token() == tok_arrow &&
-                   (curr_expr_kind_is(ek_integral_constant) ||
-                    curr_expr_kind_is(ek_template_arg) ||
-                    curr_expr_kind_is(ek_init_constant)))) {
+                 /* Some modes allow this->k, where k is a constant, in a
+                    constant expression. */
+                 !(current_mode_allows_field_selection_folding() &&
+                   next_token() == tok_arrow)) {
         /* "this" cannot be used in a constant expression. */
         error_and_make_error_operand(ec_expr_not_constant, &local_result);
       } else {
@@ -19956,45 +19675,14 @@ a warning if the value returned is the address of a local variable.
 *err_pos gives the source position for the warning.
 */
 {
-  an_error_code err_code = ec_no_error;
+  a_boolean is_temp;
 
-  /* Remove casts and lvalue field selections. */
-  while (is_operation_node(expr) &&
-         (expr->variant.operation.kind ==
-                                  (an_expr_operator_kind)eok_cast ||
-          expr->variant.operation.kind ==
-                                  (an_expr_operator_kind)eok_base_class_cast ||
-          expr->variant.operation.kind ==
-                                  (an_expr_operator_kind)eok_field)) {
-    expr = expr->variant.operation.operands;
-  }  /* while */
-  if (is_variable_address_node(expr)) {
-    /* Check for the address of a variable that is non-static. */
-    a_variable_ptr var = expr->variant.variable;
-    if (!has_static_storage_duration(var->storage_class)) {
-      err_code = ec_returning_ptr_to_local_variable;
-    }  /* if */
-  } else if (is_constant_node(expr)) {
-    /* Check for a constant that is the address of a non-static variable. */
-    a_constant_ptr con = expr->variant.constant;
-    if (con->kind == (a_constant_repr_kind)ck_address &&
-        con->variant.address.kind == (an_address_base_kind)abk_variable) {
-      a_variable_ptr var = con->variant.address.variant.variable;
-      if (!has_static_storage_duration(var->storage_class)) {
-        err_code = ec_returning_ptr_to_local_variable;
-      }  /* if */
-    }  /* if */
-  } else if (expr->kind == (an_expr_node_kind)enk_temp_init) {
-    /* Check for the address of a temporary (e.g., the address of a compound
-       literal in C99 mode). */
-    if (expr->variant.init.result_is_addr &&
-        !expr->variant.init.static_temp) {
-      err_code = ec_returning_ptr_to_local_temp;
-    }  /* if */
-  }  /* if */
-  if (err_code != ec_no_error) { 
-    /* Issue the warning. */
-    pos_warning(err_code, err_pos);
+  if (is_address_of_auto_object(expr, &is_temp)) {
+    /* The expression is the address of a local entity.  Use a different
+       message for temporaries and local variables. */
+    pos_warning(is_temp ? ec_returning_ptr_to_local_temp :
+                          ec_returning_ptr_to_local_variable,
+                err_pos);
   }  /* if */
 }  /* check_for_return_of_address_of_local_variable */
 
@@ -20212,6 +19900,17 @@ and [expr.const] in the ISO C++98 standard.
     scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
     do_operand_transformations(&result, TOPT_NO_OPTIONS);
     extract_constant_from_operand(&result, constant);
+    if (!is_okay_integral_constant_expression_result(constant,
+                                                     /*will_cast=*/FALSE)) {
+      /* The expression doesn't reduce to an appropriately-typed constant.
+         The check here is mostly redundant, because non-integral values
+         can't generally enter the expression, but with some extensions it
+         is possible to get here with a non-integral expression. */
+      if (!is_error_constant(constant)) {
+        pos_error(ec_expr_not_integral_constant, &result.position);
+        set_error_constant(constant);
+      }  /* if */
+    }  /* if */
     pop_expr_stack();
   }  /* if */
 
@@ -20432,14 +20131,15 @@ memory region).  Do various error checks.
   check_assertion(constant != NULL && in_file_scope(constant));
   if (microsoft_mode && microsoft_version < 1310 &&
       is_pointer_type(param_type) &&
-      is_an_lvalue(operand) && is_constant_operand(operand) &&
-      identical_types(operand->type, param_type)) {
+      is_an_lvalue(operand) && is_expression_operand(operand) &&
+      identical_types(operand->type, param_type) &&
+      microsoft_template_arg_constant_lvalue_address(
+                                                   operand->variant.expression,
+                                                   constant)) {
     /* In Microsoft mode, an lvalue of type pointer to X can be used
        as the actual argument for a nontype template parameter of type
        pointer to X.  Fixed in MSVC++ 7.1. */
-    /* Make a constant from the operand. */
-    extract_constant_from_operand_with_fs_fixup(operand, constant);
-    constant->type = make_reference_type(param_type);
+    implicit_cast(constant, make_reference_type(param_type));
   } else {
     /* Convert to the required type if necessary.  Do not use user-defined
        conversions. */
@@ -20454,13 +20154,6 @@ memory region).  Do various error checks.
                              ec_bad_nontype_template_arg);
     /* Make a constant from the operand. */
     extract_constant_from_operand_with_fs_fixup(operand, constant);
-    /* If the template parameter has a reference type, give the constant
-       a reference type (instead of the pointer type it has). */
-    if (is_reference_type(param_type) && !is_error_operand(operand) &&
-        !is_template_param_type(constant->type)) {
-      check_assertion(is_pointer_type(constant->type));
-      constant->type = param_type;
-    }  /* if */
   }  /* if */
 #if DEBUG
   if (debug_level >= 3) {
@@ -20780,7 +20473,7 @@ nonstandard class member constants.  Assumes copy-initialization
          of the variable type later. */
       a_constant_ptr string_con;
       check_assertion(is_constant_operand(&result));
-      string_con = result.variant.constant.variant.address.variant.constant;
+      string_con = &result.variant.constant;
       check_assertion(string_con->kind == (a_constant_repr_kind)ck_string);
       if (!is_string_type(required_type) ||
           !check_string_constant_initializer(&required_type, string_con)) {
@@ -20968,14 +20661,14 @@ scan_aggregate_initializer_expression.
 }  /* scan_initializer_expression */
 
 
-an_expr_node_ptr prep_rvalue_arg_expr(an_expr_node_ptr  expr,
-                                      a_param_type_ptr  param,
-                                      a_source_position *err_pos)
+an_expr_node_ptr prep_generated_arg_expr(an_expr_node_ptr  expr,
+                                         a_param_type_ptr  param,
+                                         a_source_position *err_pos)
 /*
-expr (an rvalue) is the actual argument of a call corresponding to the
-formal parameter param.  Change its type appropriately and return a
-pointer to the updated expression.  If an error is detected, use
-err_pos as the error position.
+expr (an lvalue or rvalue) is the generated actual argument of a call
+corresponding to the formal parameter param.  Change its type appropriately
+and return a pointer to the updated expression ready to be used in the call.
+If an error is detected, use err_pos as the error position.
 */
 {
   an_operand              operand;
@@ -20990,7 +20683,8 @@ err_pos as the error position.
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
   /* Make an operand for the expression. */
-  make_expression_operand(expr, expr->type, &operand);
+  make_expression_operand(expr, &operand);
+  if (expr->is_lvalue) set_lvalue_operand_state(&operand);
   operand.position = *err_pos;
   /* Do the conversion. */
   prep_argument_operand(&operand, param, /*processed_arg=*/FALSE,
@@ -21002,7 +20696,7 @@ err_pos as the error position.
   pop_expr_stack();
   restore_expr_stack(saved_expr_stack);
   return expr;
-}  /* prep_rvalue_arg_expr */
+}  /* prep_generated_arg_expr */
 
 
 a_boolean scan_class_initializer_expression(a_decl_parse_state  *dps,
@@ -21103,6 +20797,7 @@ string initializers.
   an_expr_stack_entry expr_stack_entry;
   a_boolean           okay = TRUE, ambiguous;
   a_boolean           string_case = FALSE, empty_aggregate = FALSE;
+  a_constant_ptr      string_con;
   a_conv_descr        conversion;
   an_expression_kind  expr_kind;
 
@@ -21174,10 +20869,12 @@ string initializers.
           /* char array initialized by string literal, either one possibly
              wide.  Don't go down to the member type. */
           string_case = TRUE;
+          check_assertion(is_constant_operand(&result));
+          string_con = &result.variant.constant;
           goto required_type_determined;
 #if MICROSOFT_EXTENSIONS_ALLOWED
         } else if (microsoft_mode && is_string_type(required_type) &&
-                   operand_is_cast_string_literal(&result)) {
+                   operand_is_cast_string_literal(&result, &string_con)) {
           /* MSVC++ allows
                char x[] = { (char *)"ABC" };
           */
@@ -21203,19 +20900,10 @@ required_type_determined:
   if (is_aggregate_or_union_type(required_type)) {
     /* The entity being initialized has a class or array type. */
     if (string_case) {
-      a_constant_ptr con;
-      a_constant_ptr con2;
-      check_assertion(is_constant_operand(&result));
-      con = &result.variant.constant;
-      /* Return the ck_string constant under the ck_address constant. */
-      check_assertion(con->kind == (a_constant_repr_kind)ck_address &&
-                      con->variant.address.kind ==
-                                           (an_address_base_kind)abk_constant);
-      con2 = con->variant.address.variant.constant;
-      check_assertion(con2->kind == (a_constant_repr_kind)ck_string);
-      copy_constant(con2, constant);
+      check_assertion(string_con->kind == (a_constant_repr_kind)ck_string);
+      copy_constant(string_con, constant);
 #if RECORD_CONSTANT_EXPRESSIONS_IN_IL
-      constant->expr = con->expr;
+      constant->expr = string_con->expr;
 #if BACK_END_IS_CP_GEN_BE
       constant->suppress_expression_in_cp_gen_be = TRUE;
 #endif /* BACK_END_IS_CP_GEN_BE */
@@ -21506,14 +21194,20 @@ the __uuidof keyword.
   if (is_error_operand(&result)) {
     uuid_str = NULL;
   } else {
-    a_type_ptr     uuidof_type;
-    a_constant_ptr con;
-    check_assertion(is_constant_operand(&result));
-    con = &result.variant.constant;
-    check_assertion(con->kind == (a_constant_repr_kind)ck_address &&
-                    con->variant.address.kind ==
+    a_type_ptr uuidof_type;
+    a_constant con;
+    check_assertion(is_an_lvalue(&result) &&
+                    is_expression_operand(&result));
+    if (constant_lvalue_address(result.variant.expression, &con,
+                                /*address_escapes=*/FALSE,
+                                (a_boolean *)NULL)) {
+      check_assertion(con.kind == (a_constant_repr_kind)ck_address &&
+                      con.variant.address.kind ==
                                              (an_address_base_kind)abk_uuidof);
-    uuidof_type = con->variant.address.variant.type;
+      uuidof_type = con.variant.address.variant.type;
+    } else {
+      unexpected_condition();
+    }  /* if */
     if (uuidof_type == NULL) {
       /* Null GUID. */
       uuid_str = "0";
@@ -21622,7 +21316,7 @@ to the expression created.  The variable var must have an associated symbol.
   check_assertion(var->source_corresp.assoc_info != NULL);
   ref = ref_entry((a_symbol_ptr)var->source_corresp.assoc_info,
                   &var->source_corresp.decl_position);
-  make_lvalue_variable_operand(var, &operand, ref, /*record_expr=*/TRUE);
+  make_lvalue_variable_operand(var, &operand, ref);
   set_operand_position(&operand, &var->source_corresp.decl_position,
                       &var->source_corresp.decl_pos_info->identifier_range.end,
                        (a_source_position *)NULL);
@@ -21741,12 +21435,19 @@ a_template_arg IL entries with the field arg_operand pointing to an
 arg_operand entry.
 */
 {
-  a_boolean  contains_template_param = FALSE;
-  an_operand *operand = &arg_operand->operand;
+  a_boolean      contains_template_param = FALSE;
+  an_operand     *operand = &arg_operand->operand;
+  a_constant_ptr con;
 
   if (is_template_param_constant_operand(operand)) {
     contains_template_param = TRUE;
-  }  /* if */
+  } else if (is_an_lvalue(operand) &&
+             (con = value_of_constant_var_lvalue_operand(operand)) != NULL) {
+    /* A const variable with a dependent initializer is considered
+       dependent. */
+    if (con->kind == (a_constant_repr_kind)ck_template_param) {
+      contains_template_param = TRUE;
+    }  /* if */  }  /* if */
   return contains_template_param;
 }  /* arg_operand_contains_template_param */
 
@@ -21798,7 +21499,6 @@ a_routine_ptr find_assignment_operator_for_memberwise_copy(
                                               a_type_ptr        class_type,
                                               an_expr_node_ptr  source_expr,
                                               an_expr_node_ptr  dest_expr,
-                                              a_boolean         *pass_by_value,
                                               a_source_position *dest_decl_pos)
 /*
 Find the correct assignment operator to use in copying a base or member
@@ -21809,16 +21509,12 @@ issued).  This routine is a wrapper for
 select_assignment_operator_for_memberwise_copy, which should not be called
 directly.
 
-source_expr is an expression node of pointer type that refers to the base
-or member subobject of the class object that is being copied; dest_expr is
-an expression node of pointer type that refers to the corresponding
-subobject of the target object.  Because they are generated directly in the
-IL and do not reflect source constructs, they are neither lvalues nor
-rvalues but can be used as such as needed.  class_type is the type of the
-subobject to be copied.  *pass_by_value is set to reflect whether the
-parameter of the selected operator= has a reference type or not.
-dest_decl_pos is the position in the class definition of the base specifier
-or member declaration for the subobject to be copied.
+source_expr is an lvalue that refers to the base or member subobject of the
+class object that is being copied; dest_expr is an lvalue that refers to the
+corresponding subobject of the target object.  class_type is the type of the
+subobject to be copied.  dest_decl_pos is the position in the class
+definition of the base specifier or member declaration for the subobject
+to be copied.
 */
 {
   a_routine_ptr           assignment_operator;
@@ -21833,7 +21529,7 @@ or member declaration for the subobject to be copied.
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/TRUE);
   assignment_operator = select_assignment_operator_for_memberwise_copy(
-             class_type, source_expr, dest_expr, pass_by_value, dest_decl_pos);
+                            class_type, source_expr, dest_expr, dest_decl_pos);
   pop_expr_stack();
   restore_expr_stack(saved_expr_stack);
   return assignment_operator;
@@ -21873,9 +21569,11 @@ operator op, and return a pointer to it.
 */
 {
   an_expr_node_ptr assign_node;
-  a_type_ptr       result_type =
-                     make_unqualified_type(type_pointed_to(lvalue_expr->type));
+  a_type_ptr       result_type = make_unqualified_type(lvalue_expr->type);
 
+  check_assertion(lvalue_expr->is_lvalue && 
+                  (!rvalue_expr->is_lvalue ||
+                   op == (an_expr_operator_kind)eok_bassign));
   lvalue_expr->next = rvalue_expr;
   /* Make the assignment node. */
   assign_node = make_operator_node(op, result_type, lvalue_expr);
@@ -21935,8 +21633,7 @@ of this where the source should be considered an rvalue.
     /* Make a variable with the given type. */
     clear_variable(&src_var);
     src_var.type = src_type;
-    make_lvalue_variable_operand(&src_var, &src_op, (a_ref_entry_ptr)NULL,
-                                 /*record_expr=*/FALSE);
+    make_lvalue_variable_operand(&src_var, &src_op, (a_ref_entry_ptr)NULL);
     if (src_is_rvalue &&
         !is_array_type(src_type) &&
         !is_function_type(src_type)) { 

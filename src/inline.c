@@ -187,8 +187,8 @@ Display the indicated variable remapping for debugging purposes.
       an_expr_node_ptr expr = vrip->variant.expr;
       if (is_constant_node(expr)) {
         db_constant(vrip->variant.expr->variant.constant);
-      } else if (is_variable_address_node(expr)) {
-        fprintf(f_debug, "&");
+      } else if (is_variable_node(expr)) {
+        if (expr->is_lvalue) fprintf(f_debug, "&");
         db_name(&expr->variant.variable->source_corresp);
       } else {
         db_expression(expr);
@@ -317,16 +317,19 @@ static a_boolean is_constant_valued_expression(
                                             a_boolean        other_vars_change,
                                             a_boolean        *is_non_null)
 /*
-Return TRUE if the indicated expression has an invariant value over the
-duration of an inlined call.  That includes things like addresses of
-automatic variables.  If the expression is constant valued and the value
-is known to be non-null, return *is_non_null TRUE.  If it cannot be determined
-whether the constant is non-NULL, the safe value is FALSE.
-local_vars_change is TRUE if the values of unaliased local variables
-of the caller might change (e.g., if the argument expressions have
-side effects).  other_vars_change is TRUE if the values of other variables
-might change (e.g., if the argument expressions or the called function
-body have side effects).
+Return TRUE if the indicated expression (which can be an rvalue or lvalue) has
+an invariant value (or address in the lvalue case) over the duration of an
+inlined call.  That is, the expression can be evaluated more than once and get
+the same answer.  That includes things like addresses of automatic variables.
+If the expression is constant valued and the value is known to be non-null,
+return *is_non_null TRUE.  If it cannot be determined whether the constant is
+non-NULL, the safe value is FALSE.  local_vars_change is TRUE if the values of
+unaliased local variables of the caller might change (e.g., if the argument
+expressions have side effects).  other_vars_change is TRUE if the values of
+other variables might change (e.g., if the argument expressions or the called
+function body have side effects).  This routine does not investigate all
+possible cases (i.e., it may return FALSE when a more complete inspection would
+return TRUE).  See constant_lvalue_address and constant_rvalue_pointer.
 */
 {
   a_boolean is_constant_valued = FALSE;
@@ -349,17 +352,16 @@ body have side effects).
   } else if (is_ptr_to_member_function_constant_expr(expr)) {
     /* A pointer to member function constant is constant. */
     is_constant_valued = TRUE;
-  } else if (is_variable_address_node(expr)) {
-    is_constant_valued = TRUE;
-    /* We assume that variables other than extern variables have non-null
-       addresses.  extern variables might have zero addresses because of
-       linker magic like weak externals. */
-    *is_non_null = (expr->variant.variable->storage_class !=
-                    (a_storage_class)sc_extern);
   } else if (is_variable_node(expr)) {
     a_variable_ptr var = expr->variant.variable;
-    if ((var->is_parameter && !var->param_value_has_been_changed) ||
-        var->is_this_parameter) {
+    if (expr->is_lvalue) {
+      is_constant_valued = TRUE;
+      /* We assume that variables other than extern variables have non-null
+         addresses.  extern variables might have zero addresses because of
+         linker magic like weak externals. */
+      *is_non_null = variable_has_non_null_address(var);
+    } else if ((var->is_parameter && !var->param_value_has_been_changed) ||
+               var->is_this_parameter) {
       /* Unassigned parameters are constant-valued within a function.
          The "this" parameter can be considered constant even when
          it is assigned in the allocation section of a constructor.
@@ -382,26 +384,20 @@ body have side effects).
       is_constant_valued = TRUE;
     }  /* if */
     if (is_constant_valued && var->is_this_parameter) *is_non_null = TRUE;
-  } else if (is_routine_address_node(expr)) {
+  } else if (is_routine_node(expr)) {
     is_constant_valued = TRUE;
     /* We assume that routines other than extern routines have non-null
        addresses.  extern routines might have zero addresses because of
        linker magic like weak externals. */
-    *is_non_null = (expr->variant.routine->storage_class !=
-                    (a_storage_class)sc_extern);
+    *is_non_null = routine_has_non_null_address(expr->variant.routine);
   } else if (is_operation_node(expr)) {
     an_expr_operator_kind op = expr->variant.operation.kind;
-    if (op == (an_expr_operator_kind)eok_field) {
-      /* A field selection address is constant-valued if the address upon
-         which it is based is constant-valued.  This is important for
-         base-class field selections. */
-      is_constant_valued =
-                is_constant_valued_expression(expr->variant.operation.operands,
-                                              local_vars_change,
-                                              other_vars_change,
-                                              is_non_null);
-    } else if (op == (an_expr_operator_kind)eok_cast &&
-               is_pointer_type(expr->type)) {
+    if (op == (an_expr_operator_kind)eok_address_of ||
+        op == (an_expr_operator_kind)eok_array_to_pointer ||
+        (op == (an_expr_operator_kind)eok_cast &&
+         is_pointer_type(expr->type))) {
+      /* These operations are constant valued provided their first
+         operand is constant-valued. */
       /* A cast of a constant address is constant-valued.  This is useful on a
          cast of the address of a local variable to adjust its cv-qualification
          when it is passed as the "this" parameter to a constructor or
@@ -411,6 +407,22 @@ body have side effects).
                                               local_vars_change,
                                               other_vars_change,
                                               is_non_null);
+    } else if (expr->is_lvalue &&
+               (op == (an_expr_operator_kind)eok_dot_field ||
+                op == (an_expr_operator_kind)eok_points_to_field)) {
+      /* Field selection lvalue.  Invariant if the first operand is
+         invariant. */
+      is_constant_valued =
+                is_constant_valued_expression(expr->variant.operation.operands,
+                                              local_vars_change,
+                                              other_vars_change,
+                                              is_non_null);
+      if (!*is_non_null &&
+          expr->variant.operation.operands->next->variant.field->offset != 0) {
+        /* If the field offset is non-zero, the entire expression will
+           be non-zero even if the class address is zero. */
+        *is_non_null = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
   return is_constant_valued;
@@ -569,8 +581,8 @@ set the temporary variables; see finish_variable_remapping_for_inlining.
           /* We don't have the mechanism to handle class-valued
              variables, because their addresses can get taken implicitly
              when field selections are done.  We would have to support
-             remapping an enk_variable_address to some expression, which
-             we don't do currently.  Avoid that case. */
+             remapping the address of an enk_variable to some expression,
+             which we don't do currently.  Avoid that case. */
           (!is_class_struct_union_type(param_var->type) ||
            is_ptr_to_member_function_constant_expr(arg))) {
         /* The argument is constant-valued and the parameter is unmodified.
@@ -706,6 +718,7 @@ following the original expression.
         /* Add code to initialize the temporary from the argument
            expression. */
         vrip->arg_expr->next = NULL;
+        check_assertion(!vrip->arg_expr->is_lvalue);
         stmt = insert_var_assignment_statement(temp_var,
                                                (an_expr_operator_kind)eok_last,
                                                vrip->arg_expr,
@@ -780,9 +793,9 @@ other than a temporary variable.
 
 void adjust_copied_expression_for_inlining(an_expr_node_ptr expr)
 /*
-The indicated expression has just been created as a copy of an expression
-during inlining.  See whether it should be adjusted, e.g., because of remapped
-variables.
+The indicated (rvalue or lvalue) expression has just been created as a copy of
+an expression during inlining.  See whether it should be adjusted, e.g.,
+because of remapped variables.
 */
 {
   an_expr_node_kind                     kind = expr->kind;
@@ -792,46 +805,44 @@ variables.
   an_expr_node_ptr                      constant_expr;
 
   if (kind == (an_expr_node_kind)enk_variable) {
-    /* Value of a variable.  See if the variable is remapped. */
-    vrip = get_var_remapping_for_inlining(expr->variant.variable);
-    if (vrip != NULL) {
-      /* Yes, there is some kind of remapping. */
-      switch (vrip->kind) {
-        case vrk_temporary:
-          /* The variable is remapped to a temporary variable. */
-          expr->variant.variable = vrip->variant.variable;
-          vrip->temporary_used = TRUE;
-          break;
-        case vrk_constant_expr:
-          /* The variable is remapped to a constant-valued expression.
-             Look for some special cases. */
-          constant_expr = vrip->variant.expr;
-          if (is_constant_node(constant_expr)) {
-            /* The variable is remapped to a constant.  Use an enk_constant
-               instead. */
-            set_expr_node_kind(expr, (an_expr_node_kind)enk_constant);
-            expr->variant.constant = constant_expr->variant.constant;
-          } else if (is_variable_address_node(constant_expr)) {
-            /* The variable is remapped to the address of a variable. */
-            set_expr_node_kind(expr, (an_expr_node_kind)enk_variable_address);
-            expr->variant.variable = constant_expr->variant.variable;
-          } else {
-            /* Other, more complicated, cases.  Just copy the expression. */
-            overwrite_node(expr, copy_expr_tree_for_inlining(constant_expr));
-            /* Restore the original type, which might be slightly different
-               for pointer-to-member cases. */
-            expr->type = expr_type;
-          }  /* if */
-          break;
-        default:
-          unexpected_condition_str(
+    if (expr->is_lvalue) {
+      /* Address of a variable.  See if the variable is remapped. */
+      expr->variant.variable = remap_var_for_inlining(expr->variant.variable);
+    } else {
+      /* Value of a variable.  See if the variable is remapped. */
+      vrip = get_var_remapping_for_inlining(expr->variant.variable);
+      if (vrip != NULL) {
+        /* Yes, there is some kind of remapping. */
+        switch (vrip->kind) {
+          case vrk_temporary:
+            /* The variable is remapped to a temporary variable. */
+            expr->variant.variable = vrip->variant.variable;
+            vrip->temporary_used = TRUE;
+            break;
+          case vrk_constant_expr:
+            /* The variable is remapped to a constant-valued expression.
+               Look for some special cases. */
+            constant_expr = vrip->variant.expr;
+            if (is_constant_node(constant_expr)) {
+              /* The variable is remapped to a constant.  Use an enk_constant
+                 instead. */
+              set_expr_node_kind(expr, (an_expr_node_kind)enk_constant);
+              expr->variant.constant = constant_expr->variant.constant;
+            } else {
+              /* Other, more complicated, cases.  Just copy the expression. */
+              overwrite_node(expr, copy_expr_tree_for_inlining(constant_expr));
+              /* Restore the original type, which might be slightly different
+                 for pointer-to-member cases. */
+              expr->type = expr_type;
+            }  /* if */
+            break;
+          default:
+            unexpected_condition_str(
                       "adjust_copied_expression_for_inlining: bad remap kind");
-      }  /* switch */
-      vrip->remapping_used = TRUE;
+        }  /* switch */
+        vrip->remapping_used = TRUE;
+      }  /* if */
     }  /* if */
-  } else if (kind == (an_expr_node_kind)enk_variable_address) {
-    /* Address of a variable.  See if the variable is remapped. */
-    expr->variant.variable = remap_var_for_inlining(expr->variant.variable);
   } else if (kind == (an_expr_node_kind)enk_constant) {
     /* Value of a constant. */
     /* When doing inlining, we may have a constant here that is in
@@ -969,6 +980,8 @@ variables.
       set_expr_node_kind(expr, (an_expr_node_kind)enk_constant);
       expr->variant.constant = alloc_shareable_constant(&constant);
     }  /* if */
+    /* The expression crafted above is a candidate for optimization. */
+    optimize_expr_if_possible(expr);
   }  /* if */
 }  /* adjust_copied_expression_for_inlining */
 
@@ -1057,7 +1070,7 @@ otherwise, do no copying and return FALSE.
        special. */
     operand = expr->variant.operation.operands;
     operand2 = operand->next;
-    if (is_variable_address_node(operand)) {
+    if (is_variable_node(operand) && operand->is_lvalue) {
       a_variable_ptr var = operand->variant.variable;
       if (var->is_temp_for_constructor_this_inlined_param ||
           var->is_temp_for_unmodified_inlined_param) {
@@ -1172,7 +1185,11 @@ If not, *failed is set.
     goto cannot_inline_ever;
   } else {
     stmt_expr = statement->expr;
-    if (stmt_expr != NULL) stmt_expr = copy_expr_tree_for_inlining(stmt_expr);
+    if (stmt_expr != NULL) {
+      /* Make a copy of the expression tree (also performs substitution
+         of argument values for parameters). */
+      stmt_expr = copy_expr_tree_for_inlining(stmt_expr);
+    }  /* if */
     switch (statement->kind) {
 #if REPRESENT_EMPTY_STATEMENTS_IN_IL
       case stmk_empty:
@@ -1624,7 +1641,7 @@ statement).
 */
 {
   an_expr_node_ptr arg;
-  a_routine_ptr    routine = NULL;
+  a_routine_ptr    routine;
   a_statement_ptr  block_stmt;
 
   db_enter(4, "do_inlining_of_call");
@@ -1632,9 +1649,9 @@ statement).
                   expr->variant.operation.kind ==
                                               (an_expr_operator_kind)eok_call);
   arg = expr->variant.operation.operands;
-  if (is_routine_address_node(arg)) {
+  routine = routine_from_function_expr(arg);
+  if (routine != NULL) {
     /* We know which routine is being called. */
-    routine = arg->variant.routine;
     if (!routine->is_inline) {
       /* Make sure that if the routine gets marked as inline later an
          out-of-line copy is generated to satisfy this call. */

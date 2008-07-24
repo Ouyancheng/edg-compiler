@@ -289,6 +289,13 @@ typedef struct an_expr_or_stmt_traversal_block {
   a_boolean	process_template_parameter_constants_and_expressions;
 			/* If TRUE, constants and expressions that appear in
 			   ck_template_parameter constants are also walked. */
+  a_boolean	follow_addressing_path;
+			/* If TRUE, the subtree walk visits only the operands
+			   that lead to the ultimate underlying object for
+			   an addressing expression.  This can be used to
+			   determine some attribute of the underlying object
+			   (e.g., is it automatic) given an lvalue or a
+			   pointer rvalue for it. */
   a_boolean	expr_is_lvalue;
 			/* If TRUE, the expression currently being processed
 			   is an lvalue.  If FALSE, it's an rvalue. */
@@ -307,9 +314,24 @@ typedef struct an_expr_or_stmt_traversal_block {
   a_boolean	suppress_warning;
 			/* TRUE if a warning about an entity having no
 			   side effects should be suppressed. */
+  /* Fields used by compute_checksum_for_expr: */
   unsigned long	checksum;
-			/* Used during computation of a checksum 
-			   of an IL element. */
+			/* The running checksum for the expression. */
+  /* Fields used by expr_complete_object_type: */
+  a_type_ptr	complete_object_type;
+			/* The type of the complete object underlying the
+			   expression being traversed. */
+  a_boolean	call_case;
+			/* TRUE if expr_complete_object_type was called
+			   to determine the object type for a virtual function
+			   call. */
+  /* Fields used by is_lvalue_for_auto_object: */
+  a_boolean	is_temp;
+			/* TRUE if the underlying object is a temporary. */
+  /* Fields used by change_discarded_lvalue_node_to_rvalue_if_possible: */
+  a_boolean	can_change_type;
+			/* TRUE if the type of the expression can be
+			   modified if necessary. */
 } an_expr_or_stmt_traversal_block;
 
 extern void clear_expr_or_stmt_traversal_block(
