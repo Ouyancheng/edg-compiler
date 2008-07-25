@@ -1,5 +1,15 @@
 Version 3.11
 
+7/25/08  Improved performance in applications with many PCH files
+
+Some applications essentially have one precompiled header file for each
+primary source file.  In such cases, it is better to use the PCH file
+associated with the primary source file instead of searching through a
+potentially large number of PCH files for an optimal one.  In automatic
+precompiled header mode (i.e., when using the normal --pch option) the
+front end now looks for a PCH file that matches the primary source file
+before searching for other PCH files.
+
 7/25/08  Lowering: Pointers to functions with cv-qualified copy constructed
                    parameters
 

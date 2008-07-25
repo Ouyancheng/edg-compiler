@@ -1870,6 +1870,7 @@ directory.  Return TRUE if an applicable PCH was found.
 */
 {
   a_boolean		first;
+  a_boolean		first_from_dir;
   char			*file_name;
   a_source_position	best_result_so_far;
   a_boolean		is_applicable;
@@ -1887,10 +1888,22 @@ directory.  Return TRUE if an applicable PCH was found.
   }  /* if */
 #endif /* DEBUG */
   best_result_so_far = null_source_position;
-  for (first = TRUE;;first = FALSE) {
+  for (first = first_from_dir = TRUE;;first = FALSE) {
     a_pch_event_ptr	last_matching_event;
-    file_name = get_file_name_from_dir(first, pch_dir_name, PCH_FILE_SUFFIX,
-                                       current_directory_name);
+    if (first) {
+      /* The first time through the loop, look for a PCH file associated with
+         the primary source file.  If this one matches, use it and don't
+         search for a better match in the directory. */
+      file_name = derived_name(primary_source_file_name, PCH_FILE_SUFFIX);
+    } else {
+      /* On subsequent iterations of the loop, get a file name from the
+         PCH directory.  first_from_dir indicates that this is the first
+         call of this routine (i.e., the directory must be opened). */
+      file_name = get_file_name_from_dir(first_from_dir, pch_dir_name,
+                                         PCH_FILE_SUFFIX,
+                                         current_directory_name);
+      first_from_dir = FALSE;
+    }  /* if */
     /* A NULL pointer indicates there are no more matching file names. */
     if (file_name == NULL) break;
     /* If we've found an optimal PCH file, don't bother looking at more
@@ -1916,7 +1929,7 @@ directory.  Return TRUE if an applicable PCH was found.
     is_applicable = last_matching_event != NULL;
     if (is_applicable) result = TRUE;
 #if DEBUG
-    if (debug_level >= 1) {
+    if (db_flag_is_set("pch")) {
       fprintf(f_debug, "PCH file %s, applicable: %s",
               file_name, is_applicable ? "TRUE" : "FALSE");
       if (is_applicable) {
@@ -1943,8 +1956,12 @@ directory.  Return TRUE if an applicable PCH was found.
         ensure_file_name_buffer_space(file_name_buffer, file_name_length+1);
         (void)strcpy(file_name_buffer.name, file_name);
         /* If this file provides all possible events, don't bother
-           inspecting any other files. */
+           inspecting any other files.  Also skip other files if this is
+           the PCH file associated with the primary source file. */
         skip_remaining_entries = last_matching_event == pch_event_list_tail;
+        /* Exit the loop if the first entry (the one associated with the
+           primary source file and not read from the directory) matches. */
+        if (first) break;
       }  /* if */
     } else {
       if (verbose_pch_messages) {
