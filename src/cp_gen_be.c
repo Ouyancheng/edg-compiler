@@ -9796,7 +9796,12 @@ done_with_operation_after_parens:
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
         /* Do not insert code here. */
         {
-          gen_constant(constant, need_parens);
+          if (constant->kind == (a_constant_repr_kind)ck_address &&
+              constant->type != NULL && is_reference_type(constant->type)) {
+            form_lvalue_address_constant(constant, need_parens, &octl);
+          } else {
+            gen_constant(constant, need_parens);
+          }  /* if */
         }
       }
       break;
