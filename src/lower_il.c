@@ -9102,6 +9102,48 @@ a_param_type entry for the "this" parameter.
 }  /* param_type_for_this */
 
 
+/*ARGSUSED*/  /* <-- end_traversal is not used. */
+static a_boolean ttt_type_has_param_passed_via_cctor(a_type_ptr tp,
+                                                     a_boolean  *end_traversal)
+/*
+Return TRUE (and stop the type traversal) if the specified type (tp) is
+a function that has a parameter that is passed via copy constructor.
+end_traversal is not used.
+*/
+{
+  a_boolean result = FALSE;
+
+  tp = skip_typerefs(tp);
+  if (is_function_type(tp)) {
+    a_param_type_ptr              ptp;
+    a_routine_type_supplement_ptr rtsp = tp->variant.routine.extra_info;
+    if (rtsp != NULL) {
+      for (ptp = rtsp->param_type_list; ptp != NULL; ptp = ptp->next) {
+        if (ptp->passed_via_copy_constructor) {
+          result = TRUE;
+          break;
+        }  /* if */
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return result;
+}  /* ttt_type_has_param_passed_via_cctor */
+
+
+a_boolean type_has_param_passed_via_cctor(a_type_ptr tp)
+/*
+Traverse the type specified by tp to see if any component of the type
+contains a parameter whose type requires a copy constructor to be called.
+*/
+{
+  /* No need to traverse 'this' pointer nor exception specifications. */
+  a_type_tree_traversal_flag_set  tt_flags = TTT_RETURN_TYPE |
+                                             TTT_PARAM_TYPES;
+
+  return traverse_type_tree(tp, ttt_type_has_param_passed_via_cctor, tt_flags);
+}  /* type_has_param_passed_via_cctor */
+
+
 void lower_arg_expr_list(an_expr_node_ptr expr_list,
                          a_type_ptr       called_rout_type,
                          a_routine_ptr    called_rout,
@@ -9154,6 +9196,14 @@ to skip the input parameter).
            we're changing all functions to unprototyped (for cfront
            compatibility). */
         do_default_arg_promotions_on_node(expr);
+      } else if (needs_cast_because_type_has_param_passed_via_cctor(
+                                                                param->type)) {
+        /* As described above, arguments that are passed via a copy
+           constructor to a cv-qualified parameter are adjusted.  If we're
+           passing a type that contains a function where (at least) one of the
+           parameters has undergone this type conversion, we need to add
+           a cast to the destination type to avoid a type mismatch. */
+        change_to_cast(expr, copy_node(expr), param->type);
       }  /* if */
       param = param->next;
     } else {
@@ -13098,8 +13148,8 @@ contains a related class cast.  See lower_expr for typical invocation.
               wrap_throw(throw_operand, expr->type, expr->is_lvalue);
             }  /* if */
             break;
-#if ASSIGNMENT_TO_THIS_ALLOWED
           case eok_passign:
+#if ASSIGNMENT_TO_THIS_ALLOWED
             /* Check for assignment to "this" in a constructor. */
             if (innermost_function_scope != NULL) {
               a_routine_ptr curr_routine =
@@ -13165,8 +13215,16 @@ contains a related class cast.  See lower_expr for typical invocation.
                 }  /* if */
               }  /* if */
             }  /* if */
-            break;
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */
+            if (needs_cast_because_type_has_param_passed_via_cctor(
+                                                   operand_node->next->type)) {
+              /* Add a cast if the source of the assignment has a type
+                 that contains a function with a copy constructed parameter. */
+              expr->variant.operation.operands->next = add_cast(
+                                                           operand_node->next,
+                                                           operand_node->type);
+            }  /* if */
+            break;
           case eok_lvalue_from_struct_rvalue:
             /* Not expected in C++. */
             unexpected_condition_str(

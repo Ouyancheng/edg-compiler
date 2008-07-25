@@ -1445,6 +1445,13 @@ to by dip or con is already lowered.
   } else {
     op = lowered_assignment_operator(init_val_node->type);
   }  /* if */
+  if (needs_cast_because_type_has_param_passed_via_cctor(entity_node->type)) {
+    /* If the entity being assigned has a type that contains a
+       function with a parameter that is passed via a copy constructor,
+       we need to add a cast to the destination type to avoid a type
+       mismatch. */
+    init_val_node = add_cast(init_val_node, entity_node->type);
+  }  /* if */
   assign_node = make_assignment_expr_with_subobject_fix(entity_node,
                                                         have_complete_object,
                                                         op,
@@ -6260,6 +6267,48 @@ placed immediately following dip on the next_in_destruction_list chain.
 
 #endif /* VLA_DEALLOCATION_REQUIRED */
 
+static void add_cast_for_cv_qualified_cctor_param_if_necessary(
+                                                       a_constant_ptr constant)
+/*
+Scan the specified constant looking for any piece(s) of the constant that
+could be function pointers that have a cv-qualified copy constructor passed
+as an argument.  Such pointers are adjusted during lowering and an implicit
+cast needs to be added to these constants to avoid warnings when compiling
+the generated C code.  Note that setting implicit_cast on constants such
+as ck_address/abk_routine constants doesn't generate a cast unless the actual
+and desired types are different, so this must be handled external to
+this function.
+*/
+{
+  check_assertion(constant != NULL);
+  if (constant->type != NULL) {
+    if (needs_cast_because_type_has_param_passed_via_cctor(constant->type)) {
+      /* Some piece of this type needs a cast. */
+      if (constant->kind == (a_constant_repr_kind)ck_aggregate) {
+        /* Some piece of this aggregate needs a cast, recurse to find it. */
+        a_constant_ptr cp;
+        for (cp = constant->variant.aggregate.first_constant;
+             ;
+             cp = cp->next) {
+          add_cast_for_cv_qualified_cctor_param_if_necessary(cp);
+          if (cp == constant->variant.aggregate.last_constant) break;
+        }  /* for */
+      } else {
+        /* This component of the constant needs a cast. */
+        constant->implicit_cast = TRUE;
+      }  /* if */
+    }  /* if */
+  } else if (constant->kind == (a_constant_repr_kind)ck_init_repeat) {
+    /* See if a repeated constant needs a cast. */
+    add_cast_for_cv_qualified_cctor_param_if_necessary(
+                                       constant->variant.init_repeat.constant);
+  } else {
+    /* Only ck_init_repeat and ck_designator should have NULL types. */
+    check_assertion(constant->kind == (a_constant_repr_kind)ck_designator);
+  }  /* if */
+}  /* add_cast_for_cv_qualified_cctor_param_if_necessary */
+
+
 void lower_dynamic_init(a_dynamic_init_ptr     dip,
                         an_init_pos_descr_ptr  ipdp,
                         a_constructor_init_ptr ctor_init,
@@ -6958,6 +7007,9 @@ do_assignment:;
     if (simple_constant_init) {
       /* Initialization to a simple constant, including a fully-constant
          aggregate. */
+      /* See if an implicit cast is necessary for this constant (or any
+         sub-aggregate piece thereof). */
+      add_cast_for_cv_qualified_cctor_param_if_necessary(simple_constant);
       if (static_var_init) {
         /* Initialization of a static variable to a constant.  Can be
            done as a static initialization. */
@@ -8763,9 +8815,34 @@ Generate code for a stmk_init (dynamic initialization) statement.
     switch (dip->kind) {
       case dik_constant:
         lower_constant(dip->variant.constant);
+        if (dip->variant.constant->kind == (a_constant_repr_kind)ck_address &&
+            dip->variant.constant->variant.address.kind ==
+                                          (an_address_base_kind)abk_routine &&
+            needs_cast_because_type_has_param_passed_via_cctor(
+                                                dip->variant.constant->type)) {
+          /* Change the type of a routine address constant if needed. */
+          check_assertion(var != NULL);
+          dip->variant.constant->type = var->type;
+          dip->variant.constant->implicit_cast = TRUE;
+        } else {
+          /* See if an implicit cast is necessary for this constant (or any
+             sub-aggregate piece thereof). */
+          add_cast_for_cv_qualified_cctor_param_if_necessary(
+                                                        dip->variant.constant);
+        }  /* if */
         break;
       case dik_expression:
         lower_full_expr(dip->variant.expression, (a_statement_ptr)NULL);
+        if (needs_cast_because_type_has_param_passed_via_cctor(
+                                              dip->variant.expression->type)) {
+          /* If the expression in the dip has a type that contains a
+             function with a parameter that is passed via a copy constructor,
+             we need to add a cast to the destination type to avoid a type
+             mismatch. */
+          check_assertion(var != NULL);
+          dip->variant.expression = add_cast(dip->variant.expression,
+                                             var->type);
+        }  /* if */
         break;
 #if CHECKING
       default:

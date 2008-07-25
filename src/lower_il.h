@@ -1137,6 +1137,24 @@ extern an_expr_node_ptr add_cast_to_lvalue_if_necessary(an_expr_node_ptr node,
 
 extern an_expr_node_ptr rvalue_pointer_for_class_rvalue(an_expr_node_ptr expr);
 
+extern a_boolean type_has_param_passed_via_cctor(a_type_ptr tp);
+
+/*
+Macro that returns TRUE if the type specified by tp contains a function type
+with a parameter type that is passed via a copy constructor.  Such parameter
+types are rewritten during lowering to use a pointer (see
+add_indirection_to_cctor_param_type).  Cases where the copy constructed
+parameter is cv-qualified result in lowered function types that are
+incompatible with cv-qualified destinations in initializations, assignments and
+function calls.  Note that this test is sub-optimal in that it only checks for
+parameters being passed via copy constructor, not for ones that are also
+cv-qualified.  This is because the cv-qualifiers may already have been removed
+during lowering.  The result is that we may add a cast where none is necessary.
+*/
+#define needs_cast_because_type_has_param_passed_via_cctor(tp)  \
+  (!C_mode() && !make_all_functions_unprototyped &&             \
+   type_has_param_passed_via_cctor(tp))                         \
+
 #endif /* DO_IL_LOWERING */
 #endif /* NEED_NAME_MANGLING */
 

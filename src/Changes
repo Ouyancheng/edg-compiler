@@ -1,5 +1,23 @@
 Version 3.11
 
+7/25/08  Lowering: Pointers to functions with cv-qualified copy constructed
+                   parameters
+
+During lowering, function arguments that are passed via a copy constructor
+are re-written as pointers and any cv-qualification is dropped in the resulting
+lowered function type.  This can cause a type mismatch in generated C code when
+a function pointer with such a type is used as an argument, as the source of an
+assignment statement or in an initialization.  In such cases, a cast is now
+introduced to cast the function pointer to the proper type.  This change
+doesn't affect C or C++ modes where functions are unprototyped (i.e., in cfront
+mode or when MAKE_ALL_FUNCTIONS_UNPROTOTYPED is TRUE).  For example:
+
+  struct A { ~A(){} };
+  void g(const volatile A){}
+  int main() {
+    void (&r)(A) = g;
+  }
+
 7/24/08  Representation of lvalues in IL expressions changed
 
 The IL for expressions has been significantly changed (IL CHANGE).
