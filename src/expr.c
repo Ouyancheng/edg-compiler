@@ -12831,7 +12831,9 @@ to the compound literal.
        with the compound literal. */
     a_constant_ptr literal_con;
     literal_con = dip->variant.constant;
-    if (gnu_mode && !(local_options & EOPT_OPERAND_OF_ADDRESS_OF)) {
+    if (is_error_type(literal_con->type)) {
+      make_error_operand(result);
+    } else if (gnu_mode && !(local_options & EOPT_OPERAND_OF_ADDRESS_OF)) {
       /* In GNU mode, the compound literal is treated as a constant-
          expression.  In some cases, the constant may later be used to
          initialize a variable (if an lvalue is needed after all). */
