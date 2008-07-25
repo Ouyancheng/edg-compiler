@@ -1651,7 +1651,7 @@ nested class.
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     /* Go through the routine fixup entries to scan inline function bodies. */
-    /*lint --e{446} rfp modified in loop (LINTBUG) */
+    /*lint --e{850} rfp modified in loop (LINTBUG) */
     for (rfp = cssp->routine_fixup_list; rfp != NULL; rfp = next_rfp) {
       a_boolean	in_class_specialization =
                    rfp->class_type->

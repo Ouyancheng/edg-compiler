@@ -73,7 +73,7 @@ constants).  The number may have a "u" or "l" suffix, or both.
       /* The Microsoft compiler allows a suffix like "i32" indicating a
          32-bit integer.  "ui32" indicates an unsigned 32-bit integer. */
       /* Look for an "i" or "I" anywhere in the number. */
-      /*lint --e{446} temp_ptr modified in loop */
+      /*lint --e{850} temp_ptr modified in loop */
       for (temp_ptr = start_of_curr_token;
            temp_ptr <= real_end_pos;
            temp_ptr++) {

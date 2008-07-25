@@ -5634,7 +5634,7 @@ for the GNU C multiline string extension.
   }  /* if */
   if (source_line_modif_list != NULL) {
     a_source_line_modif_ptr slmp, next_slmp;
-    /*lint --e{446} slmp modified in loop */
+    /*lint --e{850} slmp modified in loop */
     for (slmp = source_line_modif_list; slmp != NULL; slmp = next_slmp) {
       next_slmp = slmp->next;
       /* Don't remove entries that are still needed because they hold
@@ -15710,7 +15710,7 @@ and < end_tsn are included in the string.
       if (ctp->token_sequence_number >= start_tsn) break;
     }  /* for */
   }  /* if */
-  /*lint --e{446} ctp modified in loop */
+  /*lint --e{850} ctp modified in loop */
   for (; ctp != NULL; ctp = ctp->next) {
     a_token_extra_info_kind	teik_kind;
     /* Stop when we run out of tokens or hit an end-of-source token. */

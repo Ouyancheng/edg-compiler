@@ -2211,7 +2211,7 @@ be forgotten.
         /* Quoted text will fit nicely on the next line. */
         goto start_line_and_indent;
       }  /* if */
-      /*lint --e{446} chars_to_take modified in loop */
+      /*lint --e{850} chars_to_take modified in loop */
       for (chars_to_take = chars_that_will_fit_on_line;
            chars_to_take > 0;
            chars_to_take--) {

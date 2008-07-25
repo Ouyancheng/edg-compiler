@@ -1735,7 +1735,7 @@ print the replacement text and expansions of macros.
   a_source_line_modif_ptr slmp;
   int                     level = 0;
 
-  /*lint --e{446} n_printed modified in loop */
+  /*lint --e{850} n_printed modified in loop */
   for (p = str, n_printed = 0;
                 n_printed != len;
                 n_printed++) {
@@ -2484,7 +2484,7 @@ In such cases, charize is TRUE.
      Delete end of token markers.  Keep track of when we are inside of
      a character constant or string literal, and put out a "\" in front
      of each " or \ within those. */
-  /*lint --e{446} p modified in loop */
+  /*lint --e{850} p modified in loop */
   for (p = map->raw_text; ; p++) {
     ch = *p;
     if (ch == LE_ESCAPE) {
@@ -5074,7 +5074,7 @@ macro described by macro_sym, i.e., "#define <name> <replacement>".
         case rt_text:
           /* Raw text.  rts_number gives its length.  Copy the text, ignoring
              end-of-token markers. */
-          /*lint --e{446} rts_number modified in loop */
+          /*lint --e{850} rts_number modified in loop */
           for (; rts_number > 0; rts_number--) {
             char ch = *ptr++;
             if (ch == LE_ESCAPE) {

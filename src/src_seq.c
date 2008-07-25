@@ -490,7 +490,7 @@ separate sublists.
 
   db_enter(4, "fixup_function_scope_source_sequence_list");
   check_assertion(sp->kind == (a_scope_kind)sck_function);
-  /*lint --e{446} loop variable modified */
+  /*lint --e{850} loop variable modified */
   for (ssep = sp->source_sequence_list; ssep != NULL; ssep = ssep->next) {
     if (in_file_scope(ssep)) {
       /* The source sequence entry belongs to the file scope memory region,
@@ -3040,7 +3040,7 @@ sequence entry for the definition of S will appear first.
 {
   /* Skip any tag type declarations and definitions, any macros, and any
      pragmas. */
-  /*lint --e{446} loop variable modified */
+  /*lint --e{850} loop variable modified */
   for (; ssep != NULL; ssep = ssep->next) {
     if (ss_entry_kind(ssep) == iek_type) {
       /* A type definition. */

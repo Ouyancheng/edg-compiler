@@ -1237,7 +1237,7 @@ type "type".
     }  /* if */
   } else {
     /* Output the parameter types. */
-    /*lint --e{446} param modified in loop */
+    /*lint --e{850} param modified in loop */
     for (; param != NULL; param = param->next) {
 #if !IA64_ABI
       /* See if the parameter type is the same as any existing parameter

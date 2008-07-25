@@ -958,7 +958,7 @@ Escapes in the string are processed only if process_escapes is TRUE.
   /* Copy the string, processing escapes if appropriate.  Note that space
      including unprocessed escapes was allocated in the output string, so
      there may be a bit of wasted space. */
-  /*lint --e{446} i modified in loop */
+  /*lint --e{850} i modified in loop */
   for (i = 1; i <= name_len; i++) {
     char *prev_pos = in_pos;
     conv_single_char(&in_pos, &remaining_mbc_char_count, process_escapes,

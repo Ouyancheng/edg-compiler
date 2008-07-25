@@ -1450,7 +1450,7 @@ dimensioned array type.
   a_boolean  result = FALSE;
 
   if (tp != NULL && upc_dynamic_threads()) {
-    /*lint --e{446} tp modified in loop */
+    /*lint --e{850} tp modified in loop */
     for (; tp != NULL && is_array_type(tp);
            tp = tp->variant.array.element_type) {
       tp = skip_typerefs(tp);

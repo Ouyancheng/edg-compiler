@@ -555,6 +555,21 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_ELF_visibility_pop_mismatch)*/
 /*lint -esym(769,ec_ELF_visibility_stack_empty)*/
 #endif /* !GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
+#if !GNU_VECTOR_TYPES_ALLOWED
+/*lint -esym(769,ec_vector_size_attribute_requires_integral_floating_or_enum_type)*/
+/*lint -esym(769,ec_vector_size_too_large)*/
+/*lint -esym(769,ec_vector_size_must_be_power_of_two)*/
+/*lint -esym(769,ec_vector_size_must_be_multiple_of_element_size)*/
+/*lint -esym(769,ec_mixed_vector_scalar_operation)*/
+/*lint -esym(769,ec_vectors_must_have_same_size)*/
+/*lint -esym(769,ec_dependent_vector_size)*/
+/*lint -esym(769,ec_vector_size_with_dependent_element_type)*/
+/*lint -esym(769,ec_vector_size_attribute_not_allowed)*/
+/*lint -esym(769,ec_vector_size_attribute_on_complex_type)*/
+/*lint -esym(769,ec_vector_size_must_be_integer_constant)*/
+/*lint -esym(769,ec_vector_element_type_mismatch)*/
+/*lint -esym(769,ec_vector_operation_requires_integer_vector)*/
+#endif /* @GNU_VECTOR_TYPES_ALLOWED */
 /*lint -esym(759,find_local_scope)*/
 /*lint -esym(765,find_local_scope)*/
 /*lint -esym(714,find_local_scope)*/

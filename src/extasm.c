@@ -401,7 +401,7 @@ done_with_modifiers:
     goto error_return;
   }  /* if */
   constraint = &operand->constraints;
-  /*lint --e{446} p modified in loop */
+  /*lint --e{850} p modified in loop */
   for (; *p != '\0'; p++) {
     /* The next thing in the string should be a constraint letter. */
     ck = (an_asm_operand_constraint_kind)aoc_invalid;

@@ -6314,7 +6314,7 @@ and therefore might be a projection symbol.  If there is an ambiguity return
   reduce_projection_symbol_to_fundamental_symbol(sym);
   is_overloaded = (sym->kind == (a_symbol_kind)sk_overloaded_function);
   if (is_overloaded) sym = sym->variant.overloaded_function.symbols;
-  /*lint --e{446} sym modified in loop */
+  /*lint --e{850} sym modified in loop */
   for (; sym != NULL;
        /*lint --e(506)*/
        sym = ABI_COMPATIBILITY_VERSION < 311
@@ -9526,7 +9526,7 @@ qualified reference either to A::i or to C::i will pick up A::i).
      its fundamental symbol. */
   reduce_projection_symbol_to_fundamental_symbol(sym1);
   /* Loop through the base classes of the class of which sym1 is a member. */
-  /*lint --e{446} bcp modified in loop */
+  /*lint --e{850} bcp modified in loop */
   for (bcp = base_classes_of(sym_parent_class(sym1));
        bcp != NULL;
        bcp = next_bcp) {

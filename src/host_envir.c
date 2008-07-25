@@ -3910,7 +3910,7 @@ null-terminated.
   char          *p;
   unsigned long len = 0;
 
-  /*lint --e{446} p modified in loop */
+  /*lint --e{850} p modified in loop */
   for (p = name; *p != '\0'; p++) {
     char ch = *p;
     if (!escape_nonprintable_chars || isprint((unsigned char)ch)) {
