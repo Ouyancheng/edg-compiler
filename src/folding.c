@@ -5546,7 +5546,9 @@ cast_case:
                                        &did_not_fold,
                                        &error_position,
                                        &err_code, &err_severity);
-              if (err_code == ec_no_error) {
+              /* A cast to a virtual base class might not fold to a
+                 constant even if the original pointer is a constant. */
+              if (err_code == ec_no_error && !did_not_fold) {
                 is_constant_ptr = TRUE;
               }  /* if */
             }  /* if */
