@@ -8773,6 +8773,14 @@ exit_loop:
 #endif /* DEBUG */
   state->storage_class = state->declared_storage_class;
   state->decl_specifiers_error = err;
+#if GNU_EXTENSIONS_ALLOWED
+  if (state->attributes != NULL) {
+    state->specifiers_type =
+                    apply_type_transforming_attributes(state->specifiers_type,
+                                                       &state->attributes);
+    state->p_declarator_attributes = last_attribute_link(&state->attributes);
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   /* state->type and state->declared_type may get updated by a subsequent call
      to declarator(...) or by other adjustments (e.g., decay of array types to
      pointer types). */
