@@ -5835,7 +5835,6 @@ be either an lvalue or rvalue and lvalueness is preserved.
         op1->next = NULL;
         set_node_operator(expr, (an_expr_operator_kind)eok_comma,
                           expr->type, op1->is_lvalue, op2);
-        adjust_returns_lvalue_instead_of_usual_rvalue_if_necessary(expr);
       }  /* if */
     } else {
       a_targ_size_t entity_size =

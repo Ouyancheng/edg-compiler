@@ -11656,15 +11656,26 @@ void set_node_operator(an_expr_node_ptr      node,
 /*
 Set the operator, type, and operand list in an operator expression node.
 Set the node's lvalueness as specified by is_lvalue.
-returns_lvalue_instead_of_usual_rvalue must be set appropriately by the
-caller.
 */
 {
   node->type = type;
   node->variant.operation.kind = kind;
   node->variant.operation.operands = operands;
   node->is_lvalue = is_lvalue;
-  node->variant.operation.returns_lvalue_instead_of_usual_rvalue = FALSE;
+#if DO_IL_LOWERING
+  if (il_lowering_underway && !C_mode() && is_lvalue &&
+      (kind == (an_expr_operator_kind)eok_comma ||
+       kind == (an_expr_operator_kind)eok_iassign ||
+       kind == (an_expr_operator_kind)eok_question)) {
+    /* Make sure that operators added during lowering have the
+       returns_lvalue_instead_of_usual_rvalue field set properly. */
+    node->variant.operation.returns_lvalue_instead_of_usual_rvalue = TRUE;
+  } else
+#endif /* DO_IL_LOWERING */
+  /* Do not insert code here. */
+  {
+    node->variant.operation.returns_lvalue_instead_of_usual_rvalue = FALSE;
+  }  /* if */
   if (kind == (an_expr_operator_kind)eok_comma) {
     /* The value of the first operand of a comma operator is not used. */
     set_expr_result_not_used(operands);

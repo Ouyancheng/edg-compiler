@@ -883,7 +883,7 @@ The operands of expr have not been lowered yet.
 }  /* lower_address_of_vla */
 
 
-void address_taken_of_lowered_vla(an_expr_node_ptr expr)
+void adjust_address_of_lowered_vla(an_expr_node_ptr expr)
 /*
 The given expr was created during the lowering process and is an eok_address_of
 on top of a VLA variable that had already been lowered.  Since this expression
@@ -905,7 +905,7 @@ already taken place.
   /* Convert the eok_address_of to a cast of the appropriate type. */
   set_node_operator(expr, (an_expr_operator_kind)eok_cast, vla_expr->type,
                     /*is_lvalue=*/FALSE, vla_expr);
-}  /* address_taken_of_lowered_vla */
+}  /* adjust_address_of_lowered_vla */
 
 
 static void lower_vla_array_to_pointer_decay(an_expr_node_ptr expr)

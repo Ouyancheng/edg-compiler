@@ -47,7 +47,7 @@ extern void lower_vla_cast(an_expr_node_ptr  expr);
 
 extern void lower_vla_address(an_expr_node_ptr  expr);
 
-extern void address_taken_of_lowered_vla(an_expr_node_ptr expr);
+extern void adjust_address_of_lowered_vla(an_expr_node_ptr expr);
 
 extern void lower_vla_dealloc(an_expr_node_ptr  expr);
 
