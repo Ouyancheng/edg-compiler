@@ -3220,7 +3220,7 @@ Display the name of an expression operator.
 
   switch (okind) {
     case eok_address_of:        s = "eok_address_of";             break;
-    case_reference_to:          s = "eok_reference_to";           break;
+    case eok_reference_to:      s = "eok_reference_to";           break;
     case eok_indirect:          s = "eok_indirect";               break;
     case eok_ref_indirect:      s = "eok_ref_indirect";           break;
     case eok_inegate:           s = "eok_inegate";                break;
