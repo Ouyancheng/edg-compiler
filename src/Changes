@@ -1478,7 +1478,9 @@ The new "parent_scope" field is currently set to null if setting it to the
 actual parent scope entry would violate the constraint that pointers in file
 scope memory cannot point to entries in function scope memory.  (E.g., a local
 class type is stored in file scope memory, and its "parent_scope" can
-therefore not point to a sck_block or sck_function scope entry.)
+therefore not point to a sck_block or sck_function scope entry.)  The macro
+get_parent_scope_of can be used to obtain the parent scope even when the
+parent_scope field itself is null.
 
 A related change was made to the representation of scopes: Type a_scope now
 includes a field "parent", which points to the enclosing scope (or null, in
