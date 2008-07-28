@@ -6195,7 +6195,7 @@ Set *var to the variable.
     expr = expr->variant.operation.operands;
     if (is_variable_node(expr) &&
         variable_has_constant_address(expr->variant.variable) &&
-        /* Avoid potential ordering issues with addresses of local variables. */
+        /* Avoid potential ordering issue with addresses of local variables. */
         !expr->variant.variable->source_corresp.is_local_to_function) {
       is_static_var_addr = TRUE;
       *var = expr->variant.variable;
