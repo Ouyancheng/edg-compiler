@@ -8941,8 +8941,8 @@ Do IL lowering of the indicated label and everything under it.
   if (!visited_yet(label)) {
     mark_as_visited(label);
     lower_source_correspondence(&label->source_corresp);
-    /* label->variant.exec_stmt need not be processed since it will be
-       found in the normal code traversal. */
+    /* label->exec_stmt need not be processed since it will be found in the
+       normal code traversal. */
   }  /* if */
 }  /* lower_label */
 
@@ -15385,7 +15385,7 @@ handled).
         /* The common lifetime for the goto and label is the lifetime of the
            label. */
         goto_stmt->variant.label.lifetime =
-                        break_label->variant.exec_stmt->variant.label.lifetime;
+                                break_label->exec_stmt->variant.label.lifetime;
         if_stmt = alloc_statement((a_statement_kind)stmk_if);
         /* The "if" statement tests the "not" of the value expression. */
         if_stmt->expr = make_operator_node((an_expr_operator_kind)eok_not,
@@ -18307,7 +18307,7 @@ The scope is the top scope in a memory region.
          because they are needed each time the label is referenced. */
       a_label_ptr lab;
       for (lab = scope->labels; lab != NULL; lab = lab->next) {
-        a_statement_ptr lab_stmt = lab->variant.exec_stmt;
+        a_statement_ptr lab_stmt = lab->exec_stmt;
         lab_stmt->variant.label.lifetime = NULL;
       }  /* for */
     }  /* if */

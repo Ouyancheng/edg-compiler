@@ -439,7 +439,7 @@ preceding and following cfdp that should be displayed.
         } else if (cfdp->kind == (a_control_flow_descr_kind)cfdk_goto) {
           olp = cfdp->variant.goto_statement.ptr->variant.label.lifetime;
           is_provisional = (cfdp->variant.goto_statement.ptr->
-                               variant.label.ptr->variant.exec_stmt == NULL);
+                               variant.label.ptr->exec_stmt == NULL);
         } else if (cfdp->kind == (a_control_flow_descr_kind)cfdk_block) {
           olp = cfdp->variant.block.object_lifetime;
         } else {
@@ -2499,7 +2499,7 @@ Put out the definition for the indicated label.  If label == NULL, do nothing.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     sp = add_statement_at_stmt_pos((a_statement_kind)stmk_label,
                                    &label->source_corresp.decl_position);
-    label->variant.exec_stmt = sp;
+    label->exec_stmt = sp;
     sp->variant.label.ptr = label;
   }  /* if */
   db_exit();
@@ -2575,7 +2575,7 @@ headed by goto_cfdp.
        variable-length arrays, however. */
     /* Create a control-flow entry to represent this label. */
     cfdp = alloc_control_flow_descr((a_control_flow_descr_kind)cfdk_label);
-    cfdp->variant.label_statement = label->variant.exec_stmt;
+    cfdp->variant.label_statement = label->exec_stmt;
     cfdp->source_pos = pos_curr_token;
     add_to_control_flow_descr_list(cfdp);
   }  /* if */
@@ -2583,7 +2583,7 @@ headed by goto_cfdp.
     /* Record the innermost object lifetime as the object lifetime associated
        with this label. */
     label_olp = innermost_block_object_lifetime(curr_object_lifetime);
-    label->variant.exec_stmt->variant.label.lifetime = label_olp;
+    label->exec_stmt->variant.label.lifetime = label_olp;
     /* For each branch that has this label as a target, record in the goto
        statement the common object lifetime (the one embracing both the label
        and the goto). */
@@ -6142,7 +6142,7 @@ rescan_statement:
            if needed. */
         label = scan_label(/*is_definition=*/TRUE, /*is_declaration=*/FALSE);
         /* See if the label has already been defined. */
-        if (label->variant.exec_stmt != NULL) {
+        if (label->exec_stmt != NULL) {
           sym_error(ec_already_defined,
                     (a_symbol_ptr)label->source_corresp.assoc_info);
           set_reachable(curr_reachability);
@@ -6150,11 +6150,11 @@ rescan_statement:
           /* The label has not previously been declared, so put out the
              definition. */
           define_label(label);
-          stmt_update_source_sequence_list(label->variant.exec_stmt);
+          stmt_update_source_sequence_list(label->exec_stmt);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
           check_assertion(curr_token == tok_colon);
           curr_construct_end_position = end_pos_curr_token;
-          set_stmt_source_position(label->variant.exec_stmt->end_position,
+          set_stmt_source_position(label->exec_stmt->end_position,
                                    curr_construct_end_position);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
           if (!C_mode()) {
@@ -6162,12 +6162,11 @@ rescan_statement:
                of.  If that lifetime turns out to be "useless," the label
                lifetime will be updated later.  See
                fixup_curr_block_labels_and_gotos. */
-            label->variant.exec_stmt->variant.label.lifetime =
-                                                          curr_object_lifetime;
+            label->exec_stmt->variant.label.lifetime = curr_object_lifetime;
           }  /* if */
           /* If there have been forward gotos referencing this label, check
              whether any have jumped over initializing declarations. */
-          check_for_jump_over_initialization(label->variant.exec_stmt,
+          check_for_jump_over_initialization(label->exec_stmt,
                                              &label->
                                                 source_corresp.decl_position);
           check_assertion(depth_innermost_function_scope > 0);
@@ -6195,7 +6194,7 @@ rescan_statement:
             /* Create an object lifetime to run from this point to the end of
                the current scope.  It's needed to handle backwards gotos to
                the current label. */
-            reset_curr_block_object_lifetime(label->variant.exec_stmt);
+            reset_curr_block_object_lifetime(label->exec_stmt);
           }  /* if */
         }  /* if */
 #if CHECKING

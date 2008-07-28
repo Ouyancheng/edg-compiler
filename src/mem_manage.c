@@ -1020,21 +1020,6 @@ memory is allocated in the memory region specified by "region".
 }  /* alloc_general_or_in_region */
 
 
-#ifdef FFE
-
-char *alloc_pufe(sizeof_t size)
-/*
-Allocate and return "size" bytes of storage that will last through
-compilation of one subprogram in the front end.
-*/
-{
-  /* At the moment, this does the same thing as alloc_fe. */
-  return (alloc_in_region(NULL_region_number, size));
-}  /* alloc_pufe */
-
-#endif /* ifdef FFE */
-
-
 static void add_memory_allocation(a_void_ptr	buffer,
 				  sizeof_t	size,
 				  a_boolean	resizable)

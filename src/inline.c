@@ -1221,7 +1221,7 @@ If not, *failed is set.
                                                       variant.block.statements;
         /* See if the label is a top-level label. */
         prev_stmt = NULL;
-        for (; stmt != NULL && stmt != label->variant.exec_stmt;
+        for (; stmt != NULL && stmt != label->exec_stmt;
              prev_stmt = stmt, stmt = stmt->next) {}
         if (stmt != NULL && prev_stmt != NULL) {
           /* The label is a top-level label.  See if the previous statement

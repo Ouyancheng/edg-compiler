@@ -11941,7 +11941,7 @@ statement for the label and insert it at *insert_location.
 
   label_stmt = alloc_statement((a_statement_kind)stmk_label);
   label_stmt->variant.label.ptr = temp_label;
-  temp_label->variant.exec_stmt = label_stmt;
+  temp_label->exec_stmt = label_stmt;
   temp_label->source_corresp.referenced = TRUE;
   add_to_labels_list(temp_label);
   /* The label should get the current object lifetime.  However, if the

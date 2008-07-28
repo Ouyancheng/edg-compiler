@@ -1945,9 +1945,6 @@ signedness.  If none is found, ik_none is returned.
     for (int_kind = (an_integer_kind)0;
          (int)int_kind < (int)ik_last;
          int_kind = (an_integer_kind)((int)int_kind + 1)) {
-#ifdef FIL
-      if (int_kind == (an_integer_kind)ik_unsized) continue;
-#endif /* ifdef FIL */
       get_integer_size_and_alignment(int_kind, &int_size, &int_alignment);
       if (int_size == size &&
           int_kind_is_signed[(int)int_kind] == is_signed &&
@@ -2016,9 +2013,6 @@ Initialize static variables related to const_ints.c.
   for (ikind = (an_integer_kind)ik_char;
        ikind < (an_integer_kind)ik_last;
        ikind++) {
-#ifdef FIL
-    if (ikind == (an_integer_kind)ik_unsized) break;
-#endif /* ifdef FIL */
     init_int_kind_min_max_values(ikind);
   }  /* for */
 }  /* const_ints_init */

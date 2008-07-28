@@ -5266,7 +5266,7 @@ be passed down.
     label = alloc_label();
     add_to_labels_list(label);
     label_stmt->variant.label.ptr = label;
-    label->variant.exec_stmt = label_stmt;
+    label->exec_stmt = label_stmt;
     /* Add the label statement at the start of the try compound statement. */
     check_assertion(dependent_stmt->kind == (a_statement_kind)stmk_block);
     label_stmt->next = dependent_stmt->variant.block.statements;

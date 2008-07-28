@@ -1,5 +1,13 @@
 Version 3.11
 
+7/28/08  Removal of FORTRAN-specific IL entities
+
+The FORTRAN-specific code previously guarded by the FIL and FFE macros has
+been removed from the front end  (IL CHANGE).  As part of this change
+two changes were made to the a_label entry: the variant.exec_stmt field
+is now simply exec_stmt and the used_in_assign field has been renamed
+address_taken.
+
 7/25/08  Improved performance in applications with many PCH files
 
 Some applications essentially have one precompiled header file for each

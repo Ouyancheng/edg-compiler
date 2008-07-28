@@ -234,9 +234,6 @@ That is what the remap function does.
   walk_list_remap_func = list_remap_function;
   clear_fe_pointers_during_walk = clear_fe_pointers;
   walking_file_scope = TRUE;
-#ifdef FFE
-  array_bound_walk_index = 0;
-#endif /* ifdef FFE */
 
   /* Process the IL header.  Note that all of these pointers are to the
      file scope memory region. */
@@ -338,9 +335,6 @@ have already been remapped.
   scope = il_header.region_scope_entry[region_number];
   flag_value_meaning_visited = !il_entry_prefix_of(scope).il_walk_flag;
   walking_secondary_trans_unit = in_secondary_trans_unit(scope);
-#ifdef FFE
-  array_bound_walk_index = 0;
-#endif /* ifdef FFE */
   /* The default termination test cannot be used when walking a
      secondary translation unit. */
   check_assertion(termination_test_function != NULL ||
@@ -392,9 +386,6 @@ flag_value_meaning_visited if it will be used by the termination test,
   walk_remap_func = remap_function;
   walk_list_remap_func = list_remap_function;
   clear_fe_pointers_during_walk = clear_fe_pointers;
-#ifdef FFE
-  array_bound_walk_index = 0;
-#endif /* ifdef FFE */
 
   remap_ptr(ptr, a_char_ptr, kind);
   walking_file_scope = in_file_scope(ptr);
@@ -2143,21 +2134,9 @@ running them through the indicated remapping function.
      are not maintained on an orphan list.  String types at the file
      scope that are referenced from a function scope are written in that
      function scope region. */
-#if defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED
+#if C99_IL_EXTENSIONS_SUPPORTED
   remap_orphan_entry_first(iek_internal_complex_value);
-#endif /* defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED */
-#ifdef FFE
-  remap_orphan_entry_first(iek_bound_info_entry);
-  remap_orphan_entry_first(iek_do_loop);
-  remap_orphan_entry_first(iek_label_list_entry);
-  remap_orphan_entry_first(iek_io_specifier);
-  remap_orphan_entry_first(iek_io_list_item);
-  remap_orphan_entry_first(iek_namelist_group_member);
-  remap_orphan_entry_first(iek_namelist_group);
-  remap_orphan_entry_first(iek_input_output_description);
-  remap_orphan_entry_first(iek_entry_param);
-  remap_orphan_entry_first(iek_entry_description);
-#endif /* ifdef FFE */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #ifdef CFE
   remap_orphan_entry_first(iek_namespace);
   remap_orphan_entry_first(iek_using_decl);
@@ -2255,21 +2234,9 @@ running them through the indicated remapping function.
      are not maintained on an orphan list.  String types at the file
      scope that are referenced from a function scope are written in that
      function scope region. */
-#if defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED
+#if C99_IL_EXTENSIONS_SUPPORTED
   remap_orphan_entry_last(iek_internal_complex_value);
-#endif /* defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED */
-#ifdef FFE
-  remap_orphan_entry_last(iek_bound_info_entry);
-  remap_orphan_entry_last(iek_do_loop);
-  remap_orphan_entry_last(iek_label_list_entry);
-  remap_orphan_entry_last(iek_io_specifier);
-  remap_orphan_entry_last(iek_io_list_item);
-  remap_orphan_entry_last(iek_namelist_group_member);
-  remap_orphan_entry_last(iek_namelist_group);
-  remap_orphan_entry_last(iek_input_output_description);
-  remap_orphan_entry_last(iek_entry_param);
-  remap_orphan_entry_last(iek_entry_description);
-#endif /* ifdef FFE */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #ifdef CFE
   remap_orphan_entry_last(iek_namespace);
   remap_orphan_entry_last(iek_using_decl);

@@ -40,22 +40,6 @@ C-specific IL structures.  CIL must be defined.
 */
 #define CIL 1
 #endif /* ifndef CIL */
-#ifdef FFE
-/*
-FFE may be defined when compiling a standalone program that should work
-for both C and Fortran intermediate language.
-*/
-#define FIL 1
-#endif /* ifdef FFE */
-#ifdef FIL
-/* 
-The optional conditional compilation switch FIL may also be defined for the
-C front end to ensure that Fortran-specific IL structures are included.
-These would otherwise be omitted from the IL.  This feature is provided
-so that both front ends can share a common back end with an identical
-interface.
-*/
-#endif /* ifdef FIL */
 
 /*
 EXTERN_C is used to declare an external function with C linkage.  When

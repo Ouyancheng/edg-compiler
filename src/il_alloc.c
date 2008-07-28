@@ -1349,9 +1349,6 @@ to default values.
       break;
     case tk_integer:
       pte->variant.integer.int_kind = (an_integer_kind)ik_int;
-#ifdef FIL
-      pte->variant.integer.logical_type = FALSE;
-#endif /* ifdef FIL */
       pte->variant.integer.explicitly_signed = FALSE;
       pte->variant.integer.enum_type = FALSE;
       pte->variant.integer.is_scoped_enum = FALSE;
@@ -1995,12 +1992,6 @@ Clear the fields of the given variable to default values.
 #if MINIMAL_INLINING
   vp->remapping_for_inlining      = NULL;
 #endif /* MINIMAL_INLINING */
-#ifdef FIL
-  vp->by_address                  = FALSE;
-  vp->base_var                    = NULL;
-  vp->association_offset          = 0;
-  vp->function_result_var_function= NULL;
-#endif /* ifdef FIL */
 }  /* clear__variable */
 
 
@@ -2347,11 +2338,6 @@ to it.  The entry is allocated in the file scope memory region.
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED && DO_IL_LOWERING
   rp->init_priority               = 0;
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED && DO_IL_LOWERING */
-#ifdef FIL
-  rp->is_fortran_entry            = FALSE;
-  rp->local_routine_scope         = NULL;
-  rp->intrinsic_func_code         = (an_intrinsic_function_code)ifc_none;
-#endif /* ifdef FIL */
 
   db_exit();
   return rp;
@@ -2484,9 +2470,9 @@ to it.
   lp->leave_label = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   lp->case_fallthrough_label = FALSE;
-#if defined(FIL) || GNU_EXTENSIONS_ALLOWED
-  lp->used_in_assign = FALSE;
-#endif /* defined(FIL) || GNU_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
+  lp->address_taken = FALSE;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
   lp->locally_declared = FALSE;
   lp->has_gnu_unused_attribute = FALSE;
@@ -2494,11 +2480,7 @@ to it.
 #if CENTERLINE_CHECKING
   lp->avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */
-  lp->variant.exec_stmt = NULL;
-#ifdef FIL
-  lp->kind = (a_label_kind)lk_executable;
-  lp->used_in_assign = FALSE;
-#endif /* ifdef FIL */
+  lp->exec_stmt = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   lp->num_microsoft_trys_inside_of = 0;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -2694,9 +2676,6 @@ its kind to the indicated kind.
   node->next = NULL;
   node->is_lvalue = FALSE;
   node->result_is_not_used = FALSE;
-#ifdef FIL
-  node->allow_reordering = FALSE;
-#endif /* ifdef FIL */
   node->is_initialization_guard = FALSE;
   node->generated_default_arg = FALSE;
 #if GNU_EXTENSIONS_ALLOWED
@@ -3424,9 +3403,6 @@ Initialize the variable fields of the scope entry pointed to by sp.
       sp->variant.routine.lifetime_of_local_static_vars = NULL;
       sp->variant.routine.this_param_variable           = NULL;
       sp->variant.routine.return_value_variable         = NULL;
-#ifdef FIL
-      sp->variant.routine.function_result_var = NULL;
-#endif /* ifdef FIL */
       break;
     case sck_condition:
       sp->variant.assoc_statement = NULL;
@@ -3487,10 +3463,6 @@ points to the associated routine if the kind is sck_function.
   sp->scope_refs                  = NULL;
   sp->pragmas                     = NULL;
   sp->depth_in_scope_stack        = NO_SCOPE_DEPTH;
-#ifdef FIL
-  sp->entries                     = NULL;
-  sp->namelist_groups             = NULL;
-#endif /* ifdef FIL */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   sp->source_sequence_list        = NULL;
   sp->src_seq_sublist_list        = NULL;

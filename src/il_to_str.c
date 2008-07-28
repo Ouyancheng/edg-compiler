@@ -953,47 +953,6 @@ be FALSE).
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #endif /* ifdef CFE */
-#ifdef FFE
-
-static void form_bound(a_bound_info_entry_ptr               biptr,
-                      an_il_to_str_output_control_block_ptr octl)
-/*
-Output the indicated dimension bound information entry in the way indicated
-by octl.
-*/
-{
-  char *str;
-
-  switch (biptr->kind) {
-    case bk_error:
-      str = "<error>";
-      break;
-    case bk_constant:
-      form_num((a_host_large_integer)biptr->variant.constant_bound, octl);
-      goto end_of_routine;
-    case bk_adjustable:
-      str = "<adjustable>";
-      break;
-    case bk_assumed:
-      str = "*";
-      break;
-    case bk_unknown_adjustable:
-      str = "<unknown-adjustable>";
-      break;
-    default:
-#if DEBUG
-      if (octl->debug_output) {
-        str = "**BAD-BOUND-KIND**";
-        break;
-      }  /* if */
-#endif /* DEBUG */
-      unexpected_condition_str("form_bound: bad bound kind");
-  }  /* switch */
-  octl->output_str(str);
-end_of_routine:;
-}  /* form_bound */
-
-#endif /* ifdef FFE */
 
 /*
 Template parameters are primarily characterized by their coordinates: the
@@ -1215,11 +1174,6 @@ by octl.
           octl->output_str("signed ");
         }  /* if */
 #endif /* ifdef CFE */
-#ifdef FFE
-        if (type->variant.integer.logical_type) {
-          octl->output_str("logical ");
-        }  /* if */
-#endif /* ifdef FFE */
         form_int_type_name(type, octl);
       }  /* if */
       break;
@@ -1379,59 +1333,6 @@ by octl.
       break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
 #endif /* ifdef CFE */
-#ifdef FFE
-    case tk_fcharacter:
-      octl->output_str("character*");
-      if (type->variant.fcharacter.star_star) {
-        octl->output_str("(*)");
-      } else {
-        form_unsigned_num((a_host_large_unsigned)
-                                        type->variant.fcharacter.length, octl);
-      }  /* if */
-      break;
-    case tk_hollerith:
-      octl->output_str("hollerith*");
-      form_unsigned_num((a_host_large_unsigned)
-                                         type->variant.hollerith_length, octl);
-      break;
-    case tk_farray:
-      { int i;
-        form_type_specifier(type->variant.farray.element_type, octl);
-        octl->output_str(" array(");
-        for (i = 0; i < type->variant.farray.number_of_dimensions; i++) {
-          a_bound_info_entry_ptr bound_info = type->variant.farray.bound_info;
-          if (i > 0) octl->output_str(", ");
-          form_bound(&bound_info[i], octl);
-          octl->output_str(":");
-          form_bound(&bound_info[i+type->variant.farray.number_of_dimensions],
-                     octl);
-        }  /* for */
-        octl->output_str(")");
-      }
-      break;
-#if !C99_IL_EXTENSIONS_SUPPORTED
-    case tk_complex:
-      form_float_kind_name(type->variant.float_kind, octl);
-      octl->output_str(" complex");
-      break;
-#endif /* !C99_IL_EXTENSIONS_SUPPORTED */
-    case tk_stmt_label:
-      octl->output_str("<stmt-label>");
-      break;
-    case tk_format:
-      octl->output_str("<format>");
-      break;
-    case tk_association:
-      octl->output_str("association of size ");
-      form_unsigned_num((a_host_large_unsigned)type->size, octl);
-      break;
-    case tk_unspec_routine:
-      octl->output_str("<unspec-routine>");
-      break;
-    case tk_blockdata:
-      octl->output_str("<blockdata>");
-      break;
-#endif /* ifdef FFE */
     case tk_unknown:
       check_assertion(!octl->gen_compilable_code);
       octl->output_str("<unknown-type>");
@@ -3971,9 +3872,6 @@ precedence confusion.  Do the output in the way described by octl.
 */
 {
   a_constant_repr_kind kind = constant->kind;
-#if defined(FFE) && !C99_IL_EXTENSIONS_SUPPORTED
-  a_float_kind         fkind;
-#endif /* defined(FFE) && !C99_IL_EXTENSIONS_SUPPORTED */
   a_type_ptr           con_type = NULL, orig_type;
   a_boolean            need_cast_close_paren = FALSE, is_enum;
   a_boolean            need_reinterpret_cast = FALSE;
@@ -4475,14 +4373,6 @@ do_sizeof_cases:
       }  /* switch */
       break;
 #endif /* ifdef CFE */
-#ifdef FFE
-    case ck_init_position:
-      octl->output_str("<init-position-constant>");
-      break;
-    case ck_hex_octal:
-      octl->output_str("<hex-octal-constant>");
-      break;
-#endif /* ifdef FFE */
 #ifdef CFE
     case ck_designator:
       if (constant->variant.designator.field != NULL) {

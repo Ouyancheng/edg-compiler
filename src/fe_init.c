@@ -1036,11 +1036,6 @@ source file's compilation.
 #endif /* DEBUG */
 
   il_header.plain_chars_are_signed = targ_has_signed_chars;
-#ifdef FIL
-  il_header.one_trip_do_loops = FALSE;
-  il_header.case_sensitive_identifiers = TRUE;
-  il_header.local_vars_are_static = FALSE;
-#endif /* ifdef FIL */
   /* il_header.region_scope_entry was initialized in mem_manage.c and already
      has meaningful value. */
   il_header.source_language =

@@ -525,15 +525,9 @@ static a_byte generated_precedence[] = {
   PREC_POSTFIX,		/* eok_assume */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* CIL */
-#if defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED
+#if C99_IL_EXTENSIONS_SUPPORTED
   PREC_PREFIX,		/* eok_xnegate */
-#endif /* defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED */
-#ifdef FIL
-  PREC_LOWEST,		/* eok_char_length */
-  PREC_LOWEST,		/* eok_address_of_value */
-  PREC_LOWEST,		/* eok_loc */
-  PREC_LOWEST,		/* eok_test_logical */
-#endif /* FIL */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
   PREC_PLUS_MINUS,	/* eok_iadd */
   PREC_PLUS_MINUS,	/* eok_isubtract */
   PREC_MULT_DIV,	/* eok_imultiply */
@@ -578,7 +572,7 @@ static a_byte generated_precedence[] = {
   PREC_PLUS_MINUS,	/* eok_padd */
   PREC_PLUS_MINUS,	/* eok_psubtract */
   PREC_ASSIGNMENT,	/* eok_passign */
-#if defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED
+#if C99_IL_EXTENSIONS_SUPPORTED
   PREC_PLUS_MINUS,	/* eok_xadd */
   PREC_PLUS_MINUS,	/* eok_xsubtract */
   PREC_MULT_DIV,	/* eok_xmultiply */
@@ -586,7 +580,7 @@ static a_byte generated_precedence[] = {
   PREC_EQ_NE,		/* eok_xeq */
   PREC_EQ_NE,		/* eok_xne */
   PREC_ASSIGNMENT,	/* eok_xassign */
-#endif /* defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #if C99_IL_EXTENSIONS_SUPPORTED
   PREC_ASSIGNMENT,	/* eok_xadd_assign */
   PREC_ASSIGNMENT,	/* eok_xsubtract_assign */
@@ -604,22 +598,6 @@ static a_byte generated_precedence[] = {
   PREC_POSTFIX,		/* eok_real_part */
   PREC_POSTFIX,		/* eok_imag_part */
 #endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
-#ifdef FIL
-  PREC_LOWEST,		/* eok_complex */
-  PREC_LOWEST,		/* eok_ceq */
-  PREC_LOWEST,		/* eok_cne */
-  PREC_LOWEST,		/* eok_cgt */
-  PREC_LOWEST,		/* eok_clt */
-  PREC_LOWEST,		/* eok_cge */
-  PREC_LOWEST,		/* eok_cle */
-  PREC_LOWEST,		/* eok_cassign */
-  PREC_LOWEST,		/* eok_concat */
-  PREC_LOWEST,		/* eok_i_to_i_expon */
-  PREC_LOWEST,		/* eok_f_to_i_expon */
-  PREC_LOWEST,		/* eok_x_to_i_expon */
-  PREC_LOWEST,		/* eok_f_to_f_expon */
-  PREC_LOWEST,		/* eok_x_to_x_expon */
-#endif /* FIL */
 #ifdef CIL
   PREC_MULT_DIV,	/* eok_remainder */
   PREC_PLUS_MINUS,	/* eok_pdiff */
@@ -679,26 +657,14 @@ static a_byte generated_precedence[] = {
 #endif /* CIL */
   PREC_AND_AND,		/* eok_land */
   PREC_OR_OR,		/* eok_lor */
-#ifdef FIL
-  PREC_LOWEST,		/* eok_neqv */
-  PREC_LOWEST,		/* eok_eqv */
-#endif /* FIL */
 #ifdef CIL
   PREC_QUEST_MARK,	/* eok_question */
 #endif /* CIL */
-#ifdef FIL
-  PREC_LOWEST,		/* eok_substring */
-  PREC_LOWEST,		/* eok_value_substring */
-#endif /* FIL */
   PREC_POSTFIX,		/* eok_call */
 #ifdef CIL
   PREC_POSTFIX,		/* eok_virtual_call */
   PREC_POSTFIX,		/* eok_pm_call */
 #endif /* CIL */
-#ifdef FIL
-  PREC_LOWEST,		/* eok_fsubscript */
-  PREC_LOWEST,		/* eok_value_fsubscript */
-#endif /* FIL */
   PREC_POSTFIX,		/* eok_va_start */
   PREC_POSTFIX,		/* eok_va_arg */
   PREC_POSTFIX,		/* eok_va_end */

@@ -4637,16 +4637,6 @@ file.
 #else /* !defined(FAVOR_CONSTANT_RESULT_FOR_NONSTATIC_INIT) */
   comment_undefined_macro_name(FAVOR_CONSTANT_RESULT_FOR_NONSTATIC_INIT);
 #endif /* defined(FAVOR_CONSTANT_RESULT_FOR_NONSTATIC_INIT) */
-#if defined(FFE)
-  define_numeric_valued_macro(FFE);
-#else /* !defined(FFE) */
-  comment_undefined_macro_name(FFE);
-#endif /* defined(FFE) */
-#if defined(FIL)
-  define_numeric_valued_macro(FIL);
-#else /* !defined(FIL) */
-  comment_undefined_macro_name(FIL);
-#endif /* defined(FIL) */
 #if defined(FILE_NAME_FOR_STDIN)
   define_string_valued_macro(FILE_NAME_FOR_STDIN);
 #else /* !defined(FILE_NAME_FOR_STDIN) */

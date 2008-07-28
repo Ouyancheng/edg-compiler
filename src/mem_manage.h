@@ -97,9 +97,6 @@ divisible by HOST_ALIGNMENT_REQUIRED.
 
 #endif /* ALIGNMENT_BITS == 0 */
 
-#ifdef FFE
-extern char *alloc_pufe(sizeof_t size);
-#endif /* ifdef FFE */
 /* Allocate space in "general" storage. */
 extern char *alloc_general(sizeof_t size);
 /* Free space in "general" storage. */

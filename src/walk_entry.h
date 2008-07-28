@@ -643,12 +643,12 @@ the file scope, do not process it (but record an orphan in the latter case).
             walk_string_ptr(ptr->variant.string.value, iek_string_text,
                             ptr->variant.string.length);
             break;
-#if defined(FFE) || C99_IL_EXTENSIONS_SUPPORTED
+#if C99_IL_EXTENSIONS_SUPPORTED
           case ck_complex:
             walk_ptr(ptr->variant.complex_value, an_internal_complex_value_ptr,
                      iek_internal_complex_value);
             break;
-#endif /* defined(FFE) || C99_IL_EXTENSIONS_SUPPORTED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #ifdef CFE
           case ck_address:
             switch (ptr->variant.address.kind) {
@@ -754,10 +754,6 @@ the file scope, do not process it (but record an orphan in the latter case).
           case ck_designator:
             remap_ptr(ptr->variant.designator.field, a_field_ptr, iek_field);
             break;
-#ifdef FFE
-          case ck_init_position:
-            break;
-#endif /* ifdef FFE */
           case ck_template_param:
             switch (ptr->variant.template_param.kind) {
               case tpck_param:
@@ -918,21 +914,12 @@ the file scope, do not process it (but record an orphan in the latter case).
           case tk_fixed_point:
 #endif /* FIXED_POINT_ALLOWED */
           case tk_float:
-#if defined(FFE) || C99_IL_EXTENSIONS_SUPPORTED
+#if C99_IL_EXTENSIONS_SUPPORTED
           case tk_complex:
-#endif /* defined(FFE) || C99_IL_EXTENSIONS_SUPPORTED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #if C99_IL_EXTENSIONS_SUPPORTED
           case tk_imaginary:
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
-#ifdef FFE
-          case tk_fcharacter:
-          case tk_hollerith:
-          case tk_stmt_label:
-          case tk_format:
-          case tk_association:
-          case tk_unspec_routine:
-          case tk_blockdata:
-#endif /* ifdef FFE */
             /* No pointers. */
             break;
           case tk_integer:
@@ -1052,34 +1039,6 @@ the file scope, do not process it (but record an orphan in the latter case).
                      a_routine_type_supplement_ptr,
                      iek_routine_type_supplement);
             break;
-#ifdef FFE
-          case tk_farray:
-            walk_ptr(ptr->variant.farray.element_type, a_type_ptr, iek_type);
-            remap_ptr(ptr->variant.farray.bound_info, a_bound_info_entry_ptr,
-                     iek_bound_info_entry);
-#if DO_SUBTREE_WALK
-            /* Walk each of the bound info entries; make the index in the array
-               available to facilitate writing these entries in the alternate
-               file format (the problem is that there is no room for the
-               entry number preceding each entry). */
-            {
-              int save_array_bound_walk_index = array_bound_walk_index;
-              int save_num_walk_array_bounds = num_walk_array_bounds;
-              a_bound_info_entry_ptr biptr;
-              num_walk_array_bounds =
-                                  2 * ptr->variant.farray.number_of_dimensions;
-              for (array_bound_walk_index = 0,
-                                        biptr = ptr->variant.farray.bound_info;
-                   array_bound_walk_index < num_walk_array_bounds;
-                   array_bound_walk_index++, biptr++) {
-                walk_ptr(biptr, a_bound_info_entry_ptr, iek_bound_info_entry);
-              }  /* for */
-              array_bound_walk_index = save_array_bound_walk_index;
-              num_walk_array_bounds = save_num_walk_array_bounds;
-            }
-#endif /* DO_SUBTREE_WALK */
-            break;
-#endif /* ifdef FFE */
           case tk_template_param:
             walk_ptr(ptr->variant.template_param.extra_info,
                      a_template_param_type_supplement_ptr,
@@ -1136,11 +1095,6 @@ the file scope, do not process it (but record an orphan in the latter case).
 #if MINIMAL_INLINING
         conditionally_clear_fe_pointer(ptr->remapping_for_inlining);
 #endif /* MINIMAL_INLINING */
-#ifdef FFE
-        remap_ptr(ptr->base_var, a_variable_ptr, iek_variable);
-        remap_ptr(ptr->function_result_var_function, a_routine_ptr,
-                  iek_routine);
-#endif /* ifdef FFE */
       }
       break;
 #ifdef CFE
@@ -1306,9 +1260,6 @@ the file scope, do not process it (but record an orphan in the latter case).
         }  /* if */
         walk_string_ptr(ptr->asm_name, iek_other_text, 0);
 #endif /* GNU_EXTENSIONS_ALLOWED */
-#ifdef FFE
-        walk_ptr(ptr->local_routine_scope, a_scope_ptr, iek_scope);
-#endif /* ifdef FFE */
       }
       break;
     case iek_label:
@@ -1316,27 +1267,7 @@ the file scope, do not process it (but record an orphan in the latter case).
         a_label_ptr ptr = (a_label_ptr)entry_ptr;
         walk_source_corresp(ptr->source_corresp);
         remap_next_ptr(ptr->next, a_label_ptr, iek_label);
-#ifdef FFE
-        switch (ptr->kind) {
-          case lk_unknown:
-          case lk_specification:
-            /* No pointers. */
-            break;
-          case lk_executable:
-          case lk_else_or_elseif:
-#endif /* ifdef FFE */
-            remap_ptr_not_needed(ptr->variant.exec_stmt, a_statement_ptr,
-                                 iek_statement);
-#ifdef FFE
-            break;
-          case lk_format:
-            walk_ptr(ptr->variant.format_constant, a_constant_ptr,
-                     iek_constant);
-            break;
-          default:
-            unexpected_condition_str("walk_entry_and_subtree: bad label kind");
-        }  /* switch */
-#endif /* ifdef FFE */
+        remap_ptr_not_needed(ptr->exec_stmt, a_statement_ptr, iek_statement);
       }
       break;
     case iek_expr_node:
@@ -1443,9 +1374,6 @@ do_set_proper_definition_needed_flag:
             walk_ptr(ptr->variant.constant, a_constant_ptr, iek_constant);
             break;
           case enk_variable:
-#ifdef FFE
-          case enk_char_variable_length:
-#endif /* ifdef FFE */
             /* Variables are handled from the scope that contains them.  Do
                not visit them here. */
             remap_ptr(ptr->variant.variable, a_variable_ptr, iek_variable);
@@ -1603,11 +1531,6 @@ do_set_proper_definition_needed_flag:
             break;
 #endif /* VLA_DEALLOCATIONS_IN_IL */
 #endif /* ifdef CFE */
-#ifdef FFE
-          case enk_stmt_label_value:
-            remap_ptr(ptr->variant.stmt_label_value, a_label_ptr, iek_label);
-            break;
-#endif /* ifdef FFE */
           case enk_type_operand:
             walk_ptr(ptr->variant.type_operand.type, a_type_ptr, iek_type);
             if (ptr->variant.type_operand.definition_needed) {
@@ -1741,9 +1664,6 @@ do_set_proper_definition_needed_flag:
           case stmk_empty:
 #endif /* REPRESENT_EMPTY_STATEMENTS_IN_IL */
           case stmk_expr:
-#ifdef FFE
-          case stmk_alt_return:
-#endif /* ifdef FFE */
 #if GNU_EXTENSIONS_ALLOWED
           case stmk_assigned_goto:
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -1856,42 +1776,6 @@ do_set_proper_definition_needed_flag:
             }  /* if */
             break;
 #endif /* ifdef CFE */
-#ifdef FFE
-          case stmk_fentry:
-            remap_ptr(ptr->variant.fentry.assoc_routine, a_routine_ptr,
-                      iek_routine);
-            walk_list(ptr->variant.fentry.prologue, a_statement_ptr,
-                      iek_statement);
-            break;
-          case stmk_ido:
-          case stmk_fdo:
-            walk_ptr(ptr->variant.do_stmt.loop_statement, a_statement_ptr,
-                     iek_statement);
-            walk_ptr(ptr->variant.do_stmt.do_info, a_do_loop_ptr,
-                     iek_do_loop);
-            break;
-          case stmk_iarith_if:
-          case stmk_farith_if:
-          case stmk_computed_goto:
-          case stmk_assigned_goto:
-            walk_list(ptr->variant.label_list, a_label_list_entry_ptr,
-                      iek_label_list_entry);
-            break;
-          case stmk_stop:
-          case stmk_pause:
-            walk_ptr(ptr->variant.stop_pause_string, a_constant_ptr,
-                     iek_constant);
-            break;
-          case stmk_set_array_shape:
-            remap_ptr(ptr->variant.array_variable, a_variable_ptr,
-                      iek_variable);
-            break;
-          case stmk_input_output:
-            walk_ptr(ptr->variant.input_output,
-                     an_input_output_description_ptr,
-                     iek_input_output_description);
-            break;
-#endif /* ifdef FFE */
           default:
             unexpected_condition_str(
                                  "walk_entry_and_subtree: bad statement kind");
@@ -2167,9 +2051,6 @@ do_set_proper_definition_needed_flag:
 #endif /* !NEEDED_FLAG_WALK && !KEEP_IN_IL_WALK */
         switch (kind) {
           case sck_file:
-#ifdef FFE
-          case sck_stmt_function:
-#endif  /* ifdef FFE */
             /* No pointers */
             break;
 #ifdef CFE
@@ -2220,10 +2101,6 @@ do_set_proper_definition_needed_flag:
             remap_ptr_not_needed(ptr->variant.routine.return_value_variable,
                                  a_variable_ptr, iek_variable);
 #endif  /* ifdef CFE */
-#ifdef FFE
-            walk_ptr(ptr->variant.routine.function_result_var, a_variable_ptr,
-                     iek_variable);
-#endif /* ifdef FFE */
             break;
           case sck_template_declaration:
           case sck_template_instantiation:
@@ -2347,12 +2224,6 @@ do_set_proper_definition_needed_flag:
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
         walk_list(ptr->ms_if_exists, an_ms_if_exists_ptr, iek_ms_if_exists);
 #endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
-#ifdef FFE
-        walk_list(ptr->entries, an_entry_description_ptr,
-                  iek_entry_description);
-        walk_list(ptr->namelist_groups, a_namelist_group_ptr,
-                  iek_namelist_group);
-#endif /* ifdef FFE */
         if (kind == (a_scope_kind)sck_function) {
           remap_ptr(ptr->variant.routine.ptr, a_routine_ptr, iek_routine);
           walk_ptr(ptr->assoc_block, a_statement_ptr, iek_statement);
@@ -2390,161 +2261,11 @@ do_set_proper_definition_needed_flag:
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       }
       break;
-#if defined(FFE) || C99_IL_EXTENSIONS_SUPPORTED
+#if C99_IL_EXTENSIONS_SUPPORTED
     case iek_internal_complex_value:
       /* No pointers. */
       break;
-#endif /* defined(FFE) || C99_IL_EXTENSIONS_SUPPORTED */
-#ifdef FFE
-    case iek_bound_info_entry:
-      {
-        a_bound_info_entry_ptr ptr = (a_bound_info_entry_ptr)entry_ptr;
-        if (ptr->kind == (a_bound_kind)bk_adjustable) {
-          walk_ptr(ptr->variant.adjustable_bound, an_expr_node_ptr,
-                   iek_expr_node);
-        }  /* if */
-      }
-      break;
-    case iek_do_loop:
-      {
-        a_do_loop_ptr ptr = (a_do_loop_ptr)entry_ptr;
-        remap_ptr(ptr->variable, a_variable_ptr, iek_variable);
-        walk_ptr(ptr->initial_value, an_expr_node_ptr, iek_expr_node);
-        walk_ptr(ptr->final_value, an_expr_node_ptr, iek_expr_node);
-        walk_ptr(ptr->increment, an_expr_node_ptr, iek_expr_node);
-      }
-      break;
-    case iek_label_list_entry:
-      {
-        a_label_list_entry_ptr ptr = (a_label_list_entry_ptr)entry_ptr;
-        remap_next_ptr(ptr->next, a_label_list_entry_ptr,
-                       iek_label_list_entry);
-        remap_ptr(ptr->label, a_label_ptr, iek_label);
-      }
-      break;
-    case iek_io_specifier:
-      {
-        an_io_specifier_ptr ptr = (an_io_specifier_ptr)entry_ptr;
-        remap_next_ptr(ptr->next, an_io_specifier_ptr, iek_io_specifier);
-        switch (ptr->transfer) {
-          case iost_label:
-            remap_ptr(ptr->variant.label, a_label_ptr, iek_label);
-            break;
-          case iost_expr_in:
-          case iost_var_out:
-            walk_ptr(ptr->variant.expr, an_expr_node_ptr, iek_expr_node);
-            break;
-          default:
-            unexpected_condition_str(
-                          "walk_entry_and_subtree: bad io specifier transfer");
-        }  /* switch */
-      }
-      break;
-    case iek_io_list_item:
-      {
-        an_io_list_item_ptr ptr = (an_io_list_item_ptr)entry_ptr;
-        remap_next_ptr(ptr->next, an_io_list_item_ptr, iek_io_list_item);
-        switch (ptr->kind) {
-          case iol_expr:
-          case iol_variable:
-            walk_ptr(ptr->variant.expr, an_expr_node_ptr, iek_expr_node);
-            break;
-          case iol_array:
-            remap_ptr(ptr->variant.array_var, a_variable_ptr, iek_variable);
-            break;
-          case iol_implied_do:
-            remap_ptr(ptr->variant.implied_do.variable, a_variable_ptr,
-                      iek_variable);
-            walk_ptr(ptr->variant.implied_do.initial_value, an_expr_node_ptr,
-                     iek_expr_node);
-            walk_ptr(ptr->variant.implied_do.final_value, an_expr_node_ptr,
-                     iek_expr_node);
-            walk_ptr(ptr->variant.implied_do.increment, an_expr_node_ptr,
-                     iek_expr_node);
-            walk_list(ptr->variant.implied_do.list, an_io_list_item_ptr,
-                      iek_io_list_item);
-            break;
-          default:
-            unexpected_condition_str(
-                              "walk_entry_and_subtree: bad io list item kind");
-        }  /* switch */
-      }
-      break;
-    case iek_namelist_group_member:
-      {
-        a_namelist_group_member_ptr ptr =
-                                        (a_namelist_group_member_ptr)entry_ptr;
-        remap_next_ptr(ptr->next, a_namelist_group_member_ptr,
-                       iek_namelist_group_member);
-        remap_ptr(ptr->variable, a_variable_ptr, iek_variable);
-      }
-      break;
-    case iek_namelist_group:
-      {
-        a_namelist_group_ptr ptr = (a_namelist_group_ptr)entry_ptr;
-        walk_source_corresp(ptr->source_corresp);
-        remap_next_ptr(ptr->next, a_namelist_group_ptr, iek_namelist_group);
-        walk_list(ptr->member_list, a_namelist_group_member_ptr,
-                  iek_namelist_group_member);
-      }
-      break;
-    case iek_input_output_description:
-      {
-        an_input_output_description_ptr ptr =
-                                    (an_input_output_description_ptr)entry_ptr;
-        if (ptr->unit_kind == (an_io_unit_kind)iou_external ||
-            ptr->unit_kind == (an_io_unit_kind)iou_internal) {
-          walk_ptr(ptr->unit_expr, an_expr_node_ptr, iek_expr_node);
-        }  /* if */
-        if (ptr->kind == (an_io_statement_kind)ios_encode ||
-            ptr->kind == (an_io_statement_kind)ios_decode) {
-          walk_ptr(ptr->encode_decode_length, an_expr_node_ptr,
-                   iek_expr_node);
-        }  /* if */
-        switch (ptr->format_kind) {
-          case iof_none:
-          case iof_error:
-          case iof_list_directed:
-          case iof_unformatted:
-            /* No pointers. */
-            break;
-          case iof_format_label:
-            remap_ptr(ptr->format.label, a_label_ptr, iek_label);
-            break;
-          case iof_assigned_var:
-          case iof_char_expr:
-            walk_ptr(ptr->format.expr, an_expr_node_ptr, iek_expr_node);
-            break;
-          case iof_namelist_directed:
-            remap_ptr(ptr->format.namelist_group, a_namelist_group_ptr,
-                      iek_namelist_group);
-            break;
-          default:
-            unexpected_condition_str(
-                       "walk_entry_and_subtree: bad input output format kind");
-        }  /* switch */
-        walk_list(ptr->specifier_list, an_io_specifier_ptr, iek_io_specifier);
-        walk_list(ptr->item_list, an_io_list_item_ptr, iek_io_list_item);
-      }
-      break;
-    case iek_entry_param:
-      {
-        an_entry_param_ptr ptr = (an_entry_param_ptr)entry_ptr;
-        remap_next_ptr(ptr->next, an_entry_param_ptr, iek_entry_param);
-        remap_ptr(ptr->param_var, a_variable_ptr, iek_variable);
-      }
-      break;
-    case iek_entry_description:
-      {
-        an_entry_description_ptr ptr = (an_entry_description_ptr)entry_ptr;
-        remap_next_ptr(ptr->next, an_entry_description_ptr,
-                       iek_entry_description);
-        remap_ptr(ptr->assoc_routine, a_routine_ptr, iek_routine);
-        walk_list(ptr->parameters, an_entry_param_ptr, iek_entry_param);
-        walk_ptr(ptr->function_result_var, a_variable_ptr, iek_variable);
-      }
-      break;
-#endif /* ifdef FFE */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #ifdef CFE
     case iek_namespace:
       {
@@ -3351,28 +3072,10 @@ of each kind.
      are not maintained on an orphan list.  String types at the file
      scope that are referenced from a function scope are written in that
      function scope region. */
-#if defined(FFE) || C99_IL_EXTENSIONS_SUPPORTED
+#if C99_IL_EXTENSIONS_SUPPORTED
   walk_orphan_entry_list_for_entry_kind(an_internal_complex_value_ptr,
                                         iek_internal_complex_value);
-#endif /* defined(FFE) || C99_IL_EXTENSIONS_SUPPORTED */
-#ifdef FFE
-  walk_orphan_entry_list_for_entry_kind(a_bound_info_entry_ptr,
-                                        iek_bound_info_entry);
-  walk_orphan_entry_list_for_entry_kind(a_do_loop_ptr, iek_do_loop);
-  walk_orphan_entry_list_for_entry_kind(a_label_list_entry_ptr,
-                                        iek_label_list_entry);
-  walk_orphan_entry_list_for_entry_kind(an_io_specifier_ptr, iek_io_specifier);
-  walk_orphan_entry_list_for_entry_kind(an_io_list_item_ptr, iek_io_list_item);
-  walk_orphan_entry_list_for_entry_kind(a_namelist_group_member_ptr,
-                                        iek_namelist_group_member);
-  walk_orphan_entry_list_for_entry_kind(a_namelist_group_ptr,
-                                        iek_namelist_group);
-  walk_orphan_entry_list_for_entry_kind(an_input_output_description_ptr,
-                                        iek_input_output_description);
-  walk_orphan_entry_list_for_entry_kind(an_entry_param_ptr, iek_entry_param);
-  walk_orphan_entry_list_for_entry_kind(an_entry_description_ptr,
-                                        iek_entry_description);
-#endif /* ifdef FFE */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #ifdef CFE
   walk_orphan_entry_list_for_entry_kind(a_namespace_ptr, iek_namespace);
   walk_orphan_entry_list_for_entry_kind(a_using_decl_ptr, iek_using_decl);

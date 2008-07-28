@@ -4342,7 +4342,7 @@ NULL.
       break;
     case sk_label:
       /* Label. */
-      if (sym->variant.label.ptr->variant.exec_stmt == NULL) {
+      if (sym->variant.label.ptr->exec_stmt == NULL) {
         /* A label that was used but never defined. */
         pos_sy_error(ec_never_defined, &sym->decl_position, sym);
       } else if (!sym->referenced) {

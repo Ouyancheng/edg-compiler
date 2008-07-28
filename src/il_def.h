@@ -38,27 +38,9 @@ and protected by the ifndef there.
 #endif /* ifndef MEM_TABLES_H */
 
 /*
-Specify the version stamp of the IL being generated.  Since the C and
-Fortran front ends share a merged IL definition but each actually requires
-only a subset, the C and F suffixes identify the subset being used.
+Specify the version stamp of the IL being generated.
 */
-#ifdef CIL
-#ifdef FIL
-/* This version of the IL includes all features. */
-#define IL_VERSION_NUMBER "3.10CF"
-#else /* !defined(FIL) */
-/* This version of the IL includes only those features required for
-   C and C++. */
 #define IL_VERSION_NUMBER "3.10C"
-#endif /* ifdef FIL */
-#else /* !defined(CIL) */
-#ifdef FIL
-/* This version of the IL includes only those features required for Fortran. */
-#define IL_VERSION_NUMBER "3.10F"
-#else /* !defined(FIL) */
- #error -- at least one of "CIL" and "FIL" must be defined.
-#endif /* ifdef FIL */
-#endif /* ifdef CIL */
 
 
 /* Pointers to the main tables in the intermediate language. */
@@ -446,24 +428,10 @@ typedef enum /*an_il_entry_kind*/ {
   iek_id_name,          /* String giving the name of an identifier. */
   iek_string_text,	/* Text of a string literal. */
   iek_other_text,	/* Text of a file name or similar information. */
-#if defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED
+#if C99_IL_EXTENSIONS_SUPPORTED
   iek_internal_complex_value,
 			/* an_internal_complex_value */
-#endif /* defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED */
-#ifdef FIL
-  iek_bound_info_entry,	/* a_bound_info_entry */
-  iek_do_loop,		/* a_do_loop */
-  iek_label_list_entry,	/* a_label_list_entry */
-  iek_io_specifier,	/* an_io_specifier */
-  iek_io_list_item,	/* an_io_list_item */
-  iek_namelist_group_member,
-			/* a_namelist_group_member */
-  iek_namelist_group,	/* a_namelist_group */
-  iek_input_output_description,
-			/* an_input_output_description */
-  iek_entry_param,	/* an_entry_param */
-  iek_entry_description,/* an_entry_description */
-#endif /* ifdef FIL */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #ifdef CIL
   iek_namespace,	/* a_namespace */
   iek_using_decl,	/* a_using_decl */
@@ -627,21 +595,9 @@ EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 /* iek_id_name */			"id-name",
 /* iek_string_text */			"string-text",
 /* iek_other_text */			"other-text",
-#if defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED
+#if C99_IL_EXTENSIONS_SUPPORTED
 /* iek_internal_complex_value */	"internal-complex-value",
-#endif /* defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED */
-#ifdef FIL
-/* iek_bound_info_entry */		"bound-info-entry",
-/* iek_do_loop */			"do-loop",
-/* iek_label_list_entry */		"label-list-entry",
-/* iek_io_specifier */			"io-specifier",
-/* iek_io_list_item */			"io-list-item",
-/* iek_namelist_group_member */		"namelist-group-member",
-/* iek_namelist_group */		"namelist-group",
-/* iek_input_output_description */	"input-output-description",
-/* iek_entry_param */			"entry-param",
-/* iek_entry_description */		"entry-description",
-#endif /* ifdef FIL */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #ifdef CIL
 /* iek_namespace */			"namespace",
 /* iek_using_decl */			"using-decl",
@@ -1664,23 +1620,14 @@ enum a_constant_repr_kind_tag {
                         /* char and enum types are handled as integers: see
                            the integer variant of a_type. */
 #endif /* ifdef CIL */
-#ifdef FIL
-                        /* LOGICALs are handled as integers: see the integer
-                           variant of a_type. */
-#endif /* ifdef FIL */
 #if FIXED_POINT_ALLOWED
   ck_fixed_point,       /* Fixed-point types. */
 #endif /* FIXED_POINT_ALLOWED */
   ck_string,            /* Character strings. */
-#ifdef FIL
-                        /* Used for Fortran hollerith constants and FORMAT
-                           strings, as well as for CHARACTER constants. */
-#endif /* ifdef FIL */
   ck_float,             /* All sizes of float. */
-#if defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED
-  ck_complex,           /* All sizes of C99's _Complex types.
-                           Also: Fortran Complex. */
-#endif /* defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED */
+#if C99_IL_EXTENSIONS_SUPPORTED
+  ck_complex,           /* All sizes of C99's _Complex types. */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #if C99_IL_EXTENSIONS_SUPPORTED
   ck_imaginary,         /* All sizes of C99's _Imaginary types. */
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
@@ -1711,12 +1658,6 @@ enum a_constant_repr_kind_tag {
 			   (C++ front end only, except when prototype
 			   instantiations are passed to a back end). */
 #endif /* ifdef CIL */
-#ifdef FIL
-  ck_init_position,     /* Used to specify an explicit initialization position
-                           in an aggregate. */
-  ck_hex_octal,         /* Hex and octal constants; does not appear in the
-                           final IL. */
-#endif /* ifdef FIL */
   ck_designator,        /* Used to change the "current object" in an
                            aggregate initializer (C99). */
 #if UPC_EXTENSIONS_ALLOWED
@@ -1748,7 +1689,7 @@ enum an_address_base_kind_tag {
 typedef a_byte an_address_base_kind;
 
 #endif /* ifdef CIL */
-#if defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED
+#if C99_IL_EXTENSIONS_SUPPORTED
 typedef struct an_internal_complex_value *an_internal_complex_value_ptr;
 typedef struct an_internal_complex_value {
   /* Internal representation for a complex value. */
@@ -1757,7 +1698,7 @@ typedef struct an_internal_complex_value {
                 imag;   /* Real and imaginary parts of the value. */ 
 } an_internal_complex_value;
 
-#endif /* defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 
 #ifdef CIL
 /*
@@ -2398,10 +2339,6 @@ typedef struct a_constant {
                            to an expression node representing that constant.
                            Otherwise, NULL. */
 #endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
-#ifdef FIL
-                        /* A ck_init_position entry also has a NULL type
-                           pointer. */
-#endif /* ifdef FIL */
   a_bit_field	character_kind:NUM_BITS_FOR_CHARACTER_KIND;
 			/* If this constant represents a character or string
 			   literal, this field indicates the character kind
@@ -2514,9 +2451,6 @@ typedef struct a_constant {
 			   the multiple of THREADS to be represented. */
 #endif /* UPC_EXTENSIONS_ALLOWED */
 #endif /* ifdef CIL */
-#ifdef FIL
-                        /* Used for all INTEGER and LOGICAL constants. */
-#endif /* ifdef FIL */
 #if FIXED_POINT_ALLOWED
     /* When kind == ck_fixed_point. */
     a_fixed_point_value
@@ -2564,13 +2498,13 @@ typedef struct a_constant {
                 float_value;
                         /* A floating-point value (real or imaginary) in
 			   internal form. */
-#if defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED
+#if C99_IL_EXTENSIONS_SUPPORTED
     /* When kind == ck_complex: */
     an_internal_complex_value_ptr
                 complex_value;
                         /* A complex value, represented internally as two
                            floating-point values. */
-#endif /* defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #ifdef CIL
     /* When kind == ck_address: */
     struct {
@@ -2818,34 +2752,6 @@ typedef struct a_constant {
       } variant;
     } template_param;
 #endif /* ifdef CIL */
-#ifdef FIL
-    /* When kind == ck_init_position: */
-    /* Specify the position at which the initialization for the constant
-       following this one in an aggregate should be done.  Can also be
-       viewed as a skip over some objects, leaving them uninitialized. */
-    struct {
-      a_targ_ptrdiff_t
-                offset; /* Offset in bytes from the base of the variable
-                           being initialized. */
-      a_targ_size_t
-                segment_size;
-                        /* Total number of consecutive bytes initialized by
-                           constant entries following this ck_init_position
-                           entry (i.e., the distance to the next gap in
-                           initialization or to the end of the variable
-                           being initialized). */
-    } init_position;
-    /* When kind == ck_hex_octal: */
-    /* (Does not appear outside of the Fortran front end.) */
-    struct {
-      a_byte    length;
-                        /* Number of bytes. */
-      a_byte    *bytes;
-                        /* The bytes of the constant, in the order written
-                           in the source form of the constant and with leading
-                           zero bytes dropped. */
-    } hex_octal;
-#endif /* ifdef FIL */
     /* When kind == ck_designator: */
     /* A ck_designator is only used in initialization, and as such is always
        an unshared constant. The designated field or element is initialized
@@ -2877,20 +2783,15 @@ enum a_type_kind_tag {
 #if C99_IL_EXTENSIONS_SUPPORTED
   tk_imaginary,         /* C99 imaginary types. */
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
-#if defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED
-  tk_complex,           /* Complex (C99 and Fortran).  Must have the same
-                           layout as an array of two reals of the appropriate
-                           size. */
-#endif /* defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED */
+#if C99_IL_EXTENSIONS_SUPPORTED
+  tk_complex,           /* Complex (C99).  Must have the same layout as an
+			   array of two reals of the appropriate size. */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
   tk_pointer,           /* Pointer type. */
 #ifdef CIL
 			/* Also used for reference in C++. */
 #endif /* ifdef CIL */
   tk_routine,           /* Function. */
-#ifdef FIL
-                        /* Also, Fortran main programs, subroutines and
-                           statement functions. */
-#endif /* ifdef FIL */
 #ifdef CIL
   tk_array,             /* Array. */
   tk_class,             /* Class. */
@@ -2908,23 +2809,6 @@ enum a_type_kind_tag {
   tk_vector,		/* GNU vector types. */
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
 #endif /* ifdef CIL */
-#ifdef FIL
-  /* Fortran-only types. */
-  tk_fcharacter,        /* Fortran character. */
-  tk_hollerith,         /* Hollerith constant.  Only used for actual
-                           arguments; elsewhere, hollerith constants are
-                           changed to something else. */
-  tk_farray,            /* Fortran array.  Can be multi-dimensional. */
-  tk_stmt_label,        /* Statement label value in ASSIGN or alternate
-                           return. */
-  tk_format,            /* FORMAT. */
-  tk_association,       /* COMMON block or storage association. */
-  tk_unspec_routine,    /* An unspecified routine is one for which
-                           return type is not known to be void (subroutine)
-                           or a standard type (function). */
-  tk_blockdata,         /* A pseudo-routine representing a BLOCK DATA
-                           subprogram. */
-#endif /* ifdef FIL */
   tk_unknown            /* Unknown. */
 };
 /* Define as "a_byte" to explicitly control storage size. */
@@ -2932,12 +2816,8 @@ typedef a_byte a_type_kind;
 
 enum an_integer_kind_tag {
   /* Enumeration of the possible integer kinds.  Some of these may be
-     the same on the target, but they are kept distinct in the front end. */
-#ifdef FIL
-  /* Some of these, in particular unsigned kinds, may not be used in the
-     Fortran front end.  They are included for completeness. */
-#endif /* ifdef FIL */
-  /* These must be listed in order of increasing size (or at least
+     the same on the target, but they are kept distinct in the front end.
+     These must be listed in order of increasing size (or at least
      non-decreasing size). */
 #ifdef CIL
   /* If you change this, you should also change int_kind_is_signed below. */
@@ -2959,10 +2839,6 @@ enum an_integer_kind_tag {
   ik_long_long,
   ik_unsigned_long_long,
 #endif /* LONG_LONG_ALLOWED */
-#ifdef FIL
-  ik_unsized,           /* Used only in the Fortran front end, for constants
-                           that do not yet have a size from context. */
-#endif /* ifdef FIL */
   ik_last,
   ik_none = ik_last
 };
@@ -2987,9 +2863,6 @@ EXTERN a_byte_boolean
   TRUE,		/* ik_long_long */
   FALSE,	/* ik_unsigned_long_long */
 #endif /* LONG_LONG_ALLOWED */
-#ifdef FIL
-  0,		/* ik_unsized */
-#endif /* ifdef FIL */
   111		/* ik_last ("111" is just an unusual value used to check the
 		   correctness of the initialization order) */
 }
@@ -3015,9 +2888,6 @@ EXTERN an_integer_kind
   (an_integer_kind)ik_unsigned_long_long,	/* ik_long_long */
   (an_integer_kind)ik_unsigned_long_long,	/* ik_unsigned_long_long */
 #endif /* LONG_LONG_ALLOWED */
-#ifdef FIL
-  (an_integer_kind)ik_unsized,			/* ik_unsized */
-#endif /* ifdef FIL */
   111		/* ik_last ("111" is just an unusual value used to check the
 		   correctness of the initialization order) */
 }
@@ -3063,13 +2933,7 @@ enum a_float_kind_tag {
      same on the target, but they are kept distinct in the front end. */
   /* These must be listed in order of increasing precision. */
   fk_float,
-#ifdef FIL
-                        /* Fortran REAL. */
-#endif /* ifdef FIL */
   fk_double,
-#ifdef FIL
-                        /* Fortran DOUBLE PRECISION. */
-#endif /* ifdef FIL */
   fk_long_double,
   fk_last
 };
@@ -4288,25 +4152,11 @@ typedef struct a_routine_type_supplement {
 			   non-NULL. */
 #endif /* DO_IL_LOWERING */
 #endif /* ifdef CIL */
-#ifdef FIL
-                        /* List of parameter types on a function or subroutine
-                           that has been defined or on a statement function.
-                           If assoc_routine is non-NULL (meaning the routine
-                           body has been scanned), a NULL list signifies
-                           that there are no dummy arguments. */
-#endif /* ifdef FIL */
   a_routine_ptr assoc_routine;
                         /* If this type is the type for a function that
                            has been defined (has a body), this points to
                            the associated function.  Otherwise, it is NULL. */
-#ifndef CIL
-#ifdef FIL  /* Note double definition of has_ellipsis. */
-  a_byte_boolean
-                has_ellipsis;
-                        /* TRUE if routine has a variable number of
-                           arguments (used with intrinsic functions only). */
-#endif /* ifdef FIL */
-#else /* defined(CIL) */
+#ifdef CIL
   a_bit_field	has_ellipsis:1;
                         /* TRUE if there is an ellipsis ("...") at the end of
                            the prototyped parameter list, indicating a
@@ -4483,7 +4333,7 @@ typedef struct a_routine_type_supplement {
 			   Also NULL in C mode or if exceptions are disabled
 			   for this compilation; also NULL if the type is not
 			   bound to a particular routine. */
-#endif /* ifndef CIL */
+#endif /* ifdef CIL */
 } a_routine_type_supplement;
 
 
@@ -5497,37 +5347,6 @@ typedef struct a_template_param_type_supplement {
 
 
 #endif /* ifdef CIL */
-#ifdef FIL
-enum a_bound_kind_tag {
-  /* Types of Fortran bounds. */
-  bk_error,
-  bk_constant,
-  bk_adjustable,
-  bk_assumed,           /* Used only for upper bound of last dimension:
-                           "*" in source means assumed size array. */
-  bk_unknown_adjustable /* Used only for parameter types in routine type
-                           interface specifications, to represent the fact
-                           that a bound is adjustable but the bound expression
-                           is not available outside of the routine. */
-};
-/* Define as "a_byte" to explicitly control storage size. */
-typedef a_byte a_bound_kind;
-typedef struct a_bound_info_entry *a_bound_info_entry_ptr;
-typedef struct a_bound_info_entry {
-  /* Gives information on one bound of a Fortran array. */
-  a_bound_kind  kind;   /* Kind of bound: constant, adjustable, or error. */
-  union {
-    /* When kind == bk_error or bk_assumed, no variant fields. */
-    /* When kind == bk_constant: */
-    long        constant_bound;
-                        /* The constant bound value. */
-    /* When kind == bk_adjustable: */
-    an_expr_node_ptr
-                adjustable_bound;
-                        /* The expression tree for an adjustable bound. */
-  } variant;
-} a_bound_info_entry;
-#endif /* ifdef FIL */
 
 /*
 Entry pointed to by the based_types field of a_type entries.  A list
@@ -5849,20 +5668,11 @@ typedef struct a_type {
 #endif /* DO_IL_LOWERING */
   union {
     /* When kind == tk_error, tk_unknown, or tk_void, no variant fields. */
-#ifdef FIL
-    /* Likewise, when kind == tk_stmt_label, tk_format, tk_association,
-       tk_unspec_routine, or tk_blockdata. */
-#endif /* ifdef FIL */
     /* When kind == tk_integer: */
     struct {
       an_integer_kind
                 int_kind;
                         /* Which kind of integer type. */
-#ifdef FIL
-      a_byte_boolean
-                logical_type;
-                        /* TRUE if this type is a LOGICAL type. */
-#endif /* ifdef FIL */
 #ifdef CIL
       a_bit_field
                 explicitly_signed:1;
@@ -5970,9 +5780,9 @@ typedef struct a_type {
 #if C99_IL_EXTENSIONS_SUPPORTED
     /* Also, when kind == tk_imaginary: */
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
-#if defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED
+#if C99_IL_EXTENSIONS_SUPPORTED
     /* Also, when kind == tk_complex: */
-#endif /* defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
     a_float_kind
                 float_kind;
                         /* Which size of float. */
@@ -6513,39 +6323,6 @@ typedef struct a_type {
     } vector;
 #endif /* GNU_EXTENSIONS_ALLOWED && GNU_VECTOR_TYPES_ALLOWED */
 #endif /* ifdef CIL */
-#ifdef FIL
-    /* When kind == tk_fcharacter: */
-    struct {
-      a_targ_size_t
-                length;
-                        /* Number of characters. */
-      a_byte_boolean
-                star_star;
-                        /* TRUE if the type is CHARACTER*(*), in which case
-                           length is meaningless. */
-    } fcharacter;
-    /* When kind == tk_hollerith: */
-    a_targ_size_t
-                hollerith_length;
-    /* When kind == tk_farray: */
-    struct {
-      /* Fortran array. */
-      a_type_ptr
-                element_type;
-                        /* Type of the elements of the array type. */
-      a_bound_info_entry_ptr
-                bound_info;
-                        /* Pointer to an array giving information on each
-                           bound.  The information on lower bounds is
-                           elements [0] through [number_of_dimensions-1],
-                           and the information on upper bounds is elements
-                           [number_of_dimensions] through
-                           [2*number_of_dimensions-1]; both sets list the
-                           dimensions in declaration order. */
-      a_byte    number_of_dimensions;
-                        /* Number of dimensions (1-7). */
-    } farray;
-#endif /* ifdef FIL */
   } variant;
 } a_type;
 
@@ -6578,13 +6355,6 @@ enum a_storage_class_tag {
   sc_asm,               /* An asm function.  Only used if ASM_FUNCTION_ALLOWED
                            is TRUE. */
 #endif /* ifdef CIL */
-#ifdef FIL
-  sc_local,             /* Auto or static at back end's preference. */
-  sc_common,            /* A COMMON block. */
-  sc_associated,        /* Variable is part of an association. */
-  sc_intrinsic,         /* Intrinsic function or subroutine. */
-  sc_pointer_based,     /* Pointee of a POINTER definition. */
-#endif /* ifdef FIL */
   sc_last
 };
 /* a_storage_class has already been defined as a_byte. */
@@ -6599,9 +6369,6 @@ EXTERN char     *db_storage_class_names[(int)sc_last + 1]
 #ifdef CIL
    "typedef", "register", "asm",
 #endif /* ifdef CIL */
-#ifdef FIL
-   "local", "common", "associated", "intrinsic", "pointer_based",
-#endif /* ifdef FIL */
    "last" /* used to check that initialization is right. */
 }
 #endif /* VAR_INITIALIZERS */
@@ -6641,16 +6408,6 @@ typedef union an_initializer {
 			   is truly constant, i.e., one that does not contain
 			   ck_dynamic_init constants.  Only used for static
 			   variables.  The constant is unshared. */
-#ifdef FIL
-                        /* If the variable is DATA initialized, this points
-                           to the initial value.  For arrays and COMMON
-                           blocks, the initializer is a ck_aggregate constant.
-                           For DATA-initialized user variables that belong to
-                           an EQUIVALENCE association or COMMON block, this
-                           field will be NULL; the initializer field of the
-                           association or COMMON block variable will supply
-                           the initial value. */
-#endif /* ifdef FIL */
 #ifdef CIL
   /* When the initialization kind is initk_dynamic: */
   a_dynamic_init_ptr
@@ -6779,11 +6536,6 @@ typedef struct a_vla_dimension {
 
 typedef struct a_variable {
   /* Description of a variable, including formal parameters of functions. */
-#ifdef FIL
-  /* Also used for Fortran COMMON blocks, associations, and function result
-     variables.  Front-end generated variables for associations may have NULL
-     names. */
-#endif /* ifdef FIL */
   /* The source_corresp field must be first. */
   a_source_correspondence
                 source_corresp;
@@ -6920,13 +6672,6 @@ typedef struct a_variable {
 #ifdef CIL
                         /* TRUE if this is a parameter of a function. */
 #endif /* ifdef CIL */
-#ifdef FIL
-                        /* TRUE if this is a dummy argument of a function,
-                           subroutine, or statement function. */
-  a_bit_field	by_address:1;
-			/* TRUE if is_parameter is TRUE and if the
-			   parameter is passed by address. */
-#endif /* ifdef FIL */
   a_bit_field	referenced_non_locally:1;
 			/* TRUE if the variable is a local static variable
 			   that is referenced from outside of its function
@@ -7225,24 +6970,6 @@ typedef struct a_variable {
 			   that currently applies to this variable for copies
 			   done for inlining.  Front end only. */
 #endif /* MINIMAL_INLINING */
-#ifdef FIL
-  a_variable_ptr
-                base_var;
-                        /* If storage_class is sc_associated, this points
-                           to the variable upon which this one is based.  If
-                           storage_class is sc_pointer_based, this points to
-                           the pointer variable. */
-  a_targ_size_t association_offset;
-                        /* If storage_class is sc_associated, this indicates
-                           the byte offset of this variable relative to the
-                           variable pointed to by base_var. */
-  a_routine_ptr function_result_var_function;
-                        /* If this variable is a function result variable
-                           (the variable with the same name as a function,
-                           to which one assigns the return value), this
-                           points to the associated function.  NULL
-                           otherwise. */
-#endif /* ifdef FIL */
 } a_variable;
 
 #ifdef CIL
@@ -7363,55 +7090,6 @@ typedef struct a_field {
 #endif /* BACK_END_IS_C_GEN_BE */
 } a_field;
 
-#endif /* ifdef CIL */
-#ifdef FIL
-/*
-Enumeration of Fortran intrinsic routines.  This list comprises the generic
-functions, not each specific intrinsic.  Functions that are rendered
-directly in the IL (like conversions) do not appear on this list.
-*/
-enum an_intrinsic_function_code_tag {
-  ifc_none,
-  ifc_aint, ifc_anint, ifc_nint, ifc_abs, ifc_mod, ifc_sign, ifc_dim,
-  ifc_dprod, ifc_max, ifc_min,
-  ifc_index, ifc_aimag, ifc_dimag, ifc_conjg, ifc_sqrt, ifc_exp,
-  ifc_log, ifc_log10, ifc_sin, ifc_cos, ifc_tan, ifc_asin, ifc_acos,
-  ifc_atan, ifc_atan2, ifc_sinh, ifc_cosh, ifc_tanh, ifc_lge, ifc_lgt,
-  ifc_lle, ifc_llt,
-  /* Military standard bit-manipulation intrinsics: */
-  ifc_ior, ifc_iand, ifc_not, ifc_ieor, ifc_ishft, ifc_ishftc,
-  ifc_ibits, ifc_mvbits, ifc_btest, ifc_ibset, ifc_ibclr,
-  ifc_last
-};
-/* Define as "a_byte" to explicitly control storage size. */
-typedef a_byte an_intrinsic_function_code;
-
-
-#if DEBUG
-#ifdef FFE
-/*
-Table of names corresponding to intrinsic functions, for debug purposes.
-*/
-EXTERN char     *db_intr_func_code_names[(int)ifc_last + 1]
-#if VAR_INITIALIZERS
-= {
-   "none",
-   "aint", "anint", "nint", "abs", "mod", "sign", "dim",
-   "dprod", "max", "min",
-   "index", "aimag", "dimag", "conjg", "sqrt", "exp",
-   "log", "log10", "sin", "cos", "tan", "asin", "acos",
-   "atan", "atan2", "sinh", "cosh", "tanh", "lge", "lgt",
-   "lle", "llt",
-   "ior", "iand", "not", "ieor", "ishft", "ishftc",
-   "ibits", "mvbits", "btest", "ibset", "ibclr",
-   "last" /* used to check that initialization is right. */
-}
-#endif /* VAR_INITIALIZERS */
-;
-#endif /* ifdef FFE */
-#endif /* DEBUG */
-#endif /* ifdef FIL */
-#ifdef CIL
 
 /*
 An enumeration of C++ special function kinds.  These may be user written
@@ -8660,10 +8338,6 @@ typedef struct a_routine {
                 source_corresp;
                         /* Information on any source entity that corresponds
                            to this entity. */
-#ifdef FIL
-                        /* For Fortran intrinsic routines, the name in
-                           source_corresp is NULL. */
-#endif /* ifdef FIL */
   a_routine_ptr next;
                         /* Pointer to the next routine declared in the same
                            scope, NULL if this routine is the last in the
@@ -8673,9 +8347,6 @@ typedef struct a_routine {
                            kind == tk_routine (or to a typeref that refers to
                            such a type), which gives the return type and
                            parameter information. */
-#ifdef FIL
-                        /* Fortran SUBROUTINEs have a type of tk_void. */
-#endif /* ifdef FIL */
   a_memory_region_number
                 assoc_scope;
                         /* If not NULL_region_number, this indicates the
@@ -8691,10 +8362,6 @@ typedef struct a_routine {
                         /* See also prototype_scope under
                            a_routine_type_supplement. */
 #endif /* ifdef CIL */
-#ifdef FIL
-                        /* For Fortran ENTRYs, this points to the scope for
-                           the primary routine. */
-#endif /* ifdef FIL */
   a_storage_class
                 storage_class;
                         /* Storage class.  The storage class is not necessarily
@@ -9298,24 +8965,6 @@ typedef struct a_routine {
 			   specific init_priority value.  This indicates
 			   the priority.  Zero otherwise. */
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED && DO_IL_LOWERING */
-#ifdef FIL
-  a_byte_boolean
-                is_fortran_entry;
-                        /* True if this routine entry represents a Fortran
-                           ENTRY somewhere in the current compilation. */
-  a_scope_ptr   local_routine_scope;
-                        /* For local routines (statement functions), this
-                           points directly to the associated scope in the
-                           same memory region.  It is NULL otherwise.  It
-                           is never true that local_routine_scope != NULL and
-                           assoc_scope != NULL_region_number. */
-  an_intrinsic_function_code
-                intrinsic_func_code;
-                        /* When storage_class == sc_intrinsic, code indicating
-                           which intrinsic function this is.  This must be
-                           combined with the result type to select a specific
-                           intrinsic. */
-#endif /* ifdef FIL */
 } a_routine;
 
 
@@ -9363,21 +9012,6 @@ typedef struct an_asm_entry {
 /*
 Data structures related to labels:
 */
-#ifdef FIL
-enum a_label_kind_tag {
-  /* Kinds of labels: */
-  lk_unknown,           /* Not known yet. */
-  lk_executable,        /* Executable statement. */
-  lk_specification,     /* Specification statement (ignored). */
-  lk_format,            /* FORMAT statement. */
-  lk_else_or_elseif     /* Label on an ELSE or ELSEIF statement (i.e., an
-                           executable statement that cannot be a branch
-                           target). */
-};
-/* Define as "a_byte" to explicitly control storage size. */
-typedef a_byte a_label_kind;
-
-#endif /* ifdef FIL */
 typedef struct a_label {
   /* Definition of a label on an executable statement.  The stmk_label
      instruction points to here. */
@@ -9414,12 +9048,11 @@ typedef struct a_label {
 			/* TRUE if this is a compiler-generated label that
 			   is used for a fall-through from one case of a
 			   switch to the next. */
-#if defined(FIL) || GNU_EXTENSIONS_ALLOWED
-  a_bit_field	used_in_assign:1;
-			/* TRUE if this label appears in an ASSIGN
-			   statement (Fortran) or has its address
+#if GNU_EXTENSIONS_ALLOWED
+  a_bit_field	address_taken:1;
+			/* TRUE if this label appears in had its address
 			   taken (GNU-extended C). */
-#endif /* defined(FIL) || GNU_EXTENSIONS_ALLOWED */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
   a_bit_field	locally_declared:1;
 			/* TRUE if this label was declared in a GNU C
@@ -9429,39 +9062,11 @@ typedef struct a_label {
 			   GNU "unused" attribute. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   bitfield_to_avoid_codecenter_warnings()
-#ifdef FIL
-  a_label_kind  kind;
-                        /* Kind of label: executable, format, specification.
-                           Set to something other than lk_unknown once
-                           something appears that forces a certain kind of
-                           label.  If defined == FALSE, though, the
-                           definition has not yet been found, and the kind
-                           here is based on the way the label has been used. */
-#endif /* ifdef FIL */
-  union {
-#ifdef FIL
-    /* When kind == lk_unknown or lk_specification, no variant fields. */
-    /* When kind == lk_executable or lk_else_or_elseif: */
-#else /* !defined(FIL) */
-#ifdef CIL
-    /* exec_stmt field appears as sole field in a union as a side-effect of
-       sharing IL with the EDG Fortran front end. */
-#endif /* ifdef CIL */
-#endif /* ifdef FIL */
-    a_statement_ptr
+  a_statement_ptr
                 exec_stmt;
                         /* Pointer to the stmk_label statement that defines
                            this statement.  During front end processing,
                            NULL until the definition is found. */
-#ifdef FIL
-    /* When kind == lk_format: */
-    a_constant_ptr
-                format_constant;
-                        /* Pointer to the constant defining the format.
-                           During front end processing, NULL until the
-                           definition is found. */
-#endif /* ifdef FIL */
-  } variant;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   unsigned long	num_microsoft_trys_inside_of;
 			/* Number of Microsoft try-finally or try-except
@@ -9539,15 +9144,6 @@ enum an_expr_node_kind_tag {
 			   the entry. */
 #endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
 #endif /* ifdef CIL */
-#ifdef FIL
-  enk_stmt_label_value, /* A statement label value for an ASSIGN or
-                           alternate return. */
-  enk_char_variable_length,
-                        /* Length of a CHARACTER variable. */
-  enk_data_implied_do_var,
-                        /* Value of a DATA implied-DO variable.  Only used
-                           in the front end. */
-#endif /* ifdef FIL */
   enk_routine,          /* A routine (function). */
 #if VLA_DEALLOCATIONS_IN_IL
   enk_vla_dealloc,      /* Used to indicate when a variable-length array
@@ -9705,24 +9301,9 @@ enum an_expr_operator_kind_tag {
 			   sense of the word. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* ifdef CIL */
-#if defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED
+#if C99_IL_EXTENSIONS_SUPPORTED
   eok_xnegate,          /* Complex negation. */
-#endif /* defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED */
-#ifdef FIL
-  eok_char_length,      /* Fortran LEN function (length of character
-                           expression). */
-  eok_address_of_value, /* Operand is a value; result is the address of that
-                           value stored somewhere. */
-  eok_loc,              /* Fortran LOC function.  Converts an lvalue designator
-                           to a straight address.  eok_loc(character_lvalue) is
-                           just the address, where character_lvalue has an
-                           associated length as well. */
-  eok_test_logical,     /* Convert a Fortran LOGICAL to a C-style 0/1
-                           boolean.  Used in IF statements and the like
-                           to test a LOGICAL.  If Fortran LOGICALs follow
-                           the C definition, then this is the same as
-                           a "!= 0" test. */
-#endif /* ifdef FIL */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
   /* The following have 2 operands: */
   eok_iadd,             /* Integer addition. */
   eok_isubtract,        /* Integer subtraction. */
@@ -9781,7 +9362,7 @@ enum an_expr_operator_kind_tag {
                            integer can be of any integral type; the integral
                            promotions are not done. */
   eok_passign,          /* Pointer assignment. */
-#if defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED
+#if C99_IL_EXTENSIONS_SUPPORTED
   eok_xadd,             /* Complex addition. */
   eok_xsubtract,        /* Complex subtraction. */
   eok_xmultiply,        /* Complex multiplication. */
@@ -9789,7 +9370,7 @@ enum an_expr_operator_kind_tag {
   eok_xeq,              /* Complex equality. */
   eok_xne,              /* Complex inequality. */
   eok_xassign,          /* Complex assignment. */
-#endif /* defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #if C99_IL_EXTENSIONS_SUPPORTED
   eok_xadd_assign,      /* Complex add assign operator. */
   eok_xsubtract_assign, /* Complex subtract assign operator. */
@@ -9812,25 +9393,6 @@ enum an_expr_operator_kind_tag {
                            The operand is an lvalue or rvalue of complex
                            type. */
 #endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
-#ifdef FIL
-  eok_complex,          /* Join two real operands, produce a complex as the
-                           result.  The first operand is the real part, the
-                           second the imaginary part. */
-  eok_ceq,              /* Fortran character string equality. */
-  eok_cne,              /* Fortran character string inequality. */
-  eok_cgt,              /* Fortran character string greater than. */
-  eok_clt,              /* Fortran character string less than. */
-  eok_cge,              /* Fortran character string greater than or equal. */
-  eok_cle,              /* Fortran character string less than or equal. */
-  eok_cassign,          /* Fortran character assignment, with padding or
-                           truncation if necessary. */
-  eok_concat,           /* Concatenation of two Fortran character values. */
-  eok_i_to_i_expon,     /* Integer to an integer power. */
-  eok_f_to_i_expon,     /* Real to an integer power. */
-  eok_x_to_i_expon,     /* Complex to an integer power. */
-  eok_f_to_f_expon,     /* Real to a real power. */
-  eok_x_to_x_expon,     /* Complex to a complex power. */
-#endif /* ifdef FIL */
 #ifdef CIL
   eok_remainder,        /* ("%" operator) */
   eok_pdiff,            /* Pointer difference.  Difference between two
@@ -9961,19 +9523,11 @@ enum an_expr_operator_kind_tag {
 #ifdef CIL
                         /* ("&&" operator) */
 #endif /* ifdef CIL */
-#ifdef FIL
-                        /* (.AND. operator). */
-#endif /* ifdef FIL */
   eok_lor,              /* Logical union, with the operand standardized
                            to integer/logical. */
 #ifdef CIL
                         /* ("||" operator) */
 #endif /* ifdef CIL */
-#ifdef FIL
-                        /* (.OR. operator). */
-  eok_neqv,             /* Fortran .NEQV. (exclusive-or).  Not bit-wise. */
-  eok_eqv,              /* Fortran .EQV. (not-exclusive-or).  Not bit-wise. */
-#endif /* ifdef FIL */
   /* The following have 3 operands: */
 #ifdef CIL
   eok_question,         /* Conditional expression ("?" operator).  Operand
@@ -9982,20 +9536,6 @@ enum an_expr_operator_kind_tag {
 			   is_gnu_two_operand_question_mark is TRUE (but
 			   three operands are still provided in that case). */
 #endif /* ifdef CIL */
-#ifdef FIL
-  eok_substring,        /* Fortran character substring.  The first operand
-                           is the address of the character entity; the
-                           second is the lower bound; the third is the
-                           upper bound.  Omitted lower or upper bounds are
-                           made explicit.  The result is the address
-                           of the substring (with an associated length). */
-  eok_value_substring,  /* Fortran character substring.  The first operand
-                           is the address of the character entity; the
-                           second is the lower bound; the third is the
-                           upper bound.  Omitted lower or upper bounds are
-                           made explicit.  The result is the value of the
-                           substring (i.e., the characters themselves). */
-#endif /* ifdef FIL */
   /* The following have n operands: */
   eok_call,             /* A call of a function or a subroutine.  The first
                            operand is the routine and the rest are its
@@ -10016,14 +9556,6 @@ enum an_expr_operator_kind_tag {
 			   member (function); the second is the "this" pointer;
 			   any "real" arguments follow. */
 #endif /* ifdef CIL */
-#ifdef FIL
-  eok_fsubscript,       /* Fortran subscripting operation.  The first operand
-                           is the array address; the rest are the subscripts.
-                           The result is the address of the array element. */
-  eok_value_fsubscript, /* Fortran subscripting operation.  The first operand
-                           is the array address; the rest are the subscripts.
-                           The result is the value of the array element. */
-#endif /* ifdef FIL */
   /* Operators used when the <stdarg.h> macros are treated as builtins: */
   eok_va_start,		/* va_start macro reference.  First operand is an
 			   lvalue variable of type va_list, second is
@@ -10441,16 +9973,6 @@ typedef struct an_expr_node {
   a_bit_field	result_is_not_used:1;
 			/* TRUE if the result of the expression is discarded,
 			   i.e., it's a void expression. */
-#ifdef FIL
-  a_bit_field	allow_reordering:1;
-			/* TRUE indicates that this expression can be subjected
-			   to execution order reordering, e.g., associative
-			   and distributive reordering.  Generally TRUE in
-			   Fortran, except when explicit parentheses appear. */
-#ifdef CIL
-			/* Always FALSE in C, by language definition. */
-#endif /* ifdef CIL */
-#endif /* ifdef FIL */
   a_bit_field	is_initialization_guard:1;
 			/* TRUE if this node is a "?" that guards a first-time
 			   test on an initialization.  When generating
@@ -10587,9 +10109,6 @@ typedef struct an_expr_node {
 			   constant. */
 
     /* When kind == enk_variable: */
-#ifdef FIL
-    /* Also, when kind == enk_char_variable_length: */
-#endif /* ifdef FIL */
     a_variable_ptr
                 variable;
                         /* A pointer to the variable. */
@@ -10765,21 +10284,6 @@ typedef struct an_expr_node {
 			  deallocated at this point. */
 #endif /* VLA_DEALLOCATIONS_IN_IL */
 #endif /* ifdef CIL */
-#ifdef FIL
-    /* When kind == enk_stmt_label_value: */
-    a_label_ptr stmt_label_value;
-                        /* A statement label value for this label, for use
-                           in an ASSIGN or alternate return. */
-    /* When kind == enk_data_implied_do_var: */
-    /* This is only used within the Fortran front end.  It does not survive
-       into the final IL. */
-    struct a_symbol
-                *data_implied_do_symbol;
-                        /* Pointer to the symbol for the DATA implied-DO
-                           variable.  "struct a_symbol" form is used to
-                           avoid forcing inclusion of the symbol table
-                           definitions everywhere. */
-#endif /* ifdef FIL */
     /* When kind == enk_type_operand: */
     struct {
       a_type_ptr
@@ -10839,9 +10343,6 @@ enum a_statement_kind_tag {
   stmk_expr,		/* Evaluate expression, throw away its value. */
   stmk_if,		/* if-then-else. */
   stmk_while,		/* Loop, test at top. */
-#ifdef FIL
-			/* Fortran DO WHILE. */
-#endif /* ifdef FIL */
   stmk_goto,		/* Goto. */
   stmk_label,		/* Code label. */
   stmk_return,		/* Return. */
@@ -10878,24 +10379,9 @@ enum a_statement_kind_tag {
   stmk_upc_fence,	/* Fence statement */
   stmk_upc_forall,	/* Forall statement */
 #endif /* UPC_EXTENSIONS_ALLOWED */
-#ifdef FIL
-  stmk_fentry,		/* Code label for an ENTRY. */
-  stmk_ido,		/* Integer DO. */
-  stmk_fdo,		/* Floating-point DO. */
-  stmk_iarith_if,	/* Integer arithmetic IF (three-way branch). */
-  stmk_farith_if,	/* Floating-point arithmetic IF (three-way branch). */
-  stmk_computed_goto,	/* Computed GOTO. */
-#endif /* ifdef FIL */
-#if defined(FIL) || GNU_EXTENSIONS_ALLOWED
+#if GNU_EXTENSIONS_ALLOWED
   stmk_assigned_goto,	/* Assigned GOTO. */
-#endif /* FIL || GNU_EXTENSIONS_ALLOWED */
-#ifdef FIL
-  stmk_alt_return,	/* Alternate RETURN. */
-  stmk_stop,		/* STOP. */
-  stmk_pause,		/* PAUSE. */
-  stmk_set_array_shape, /* Set adjustable array shape. */
-  stmk_input_output,	/* Fortran input/output. */
-#endif /* ifdef FIL */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if REPRESENT_EMPTY_STATEMENTS_IN_IL
   stmk_empty,		/* Empty ("null") statement. (";" in C/C++) */
 #endif /* REPRESENT_EMPTY_STATEMENTS_IN_IL */
@@ -11135,268 +10621,6 @@ typedef struct a_microsoft_try_supplement {
 
 #endif /* ifdef CIL */
 
-#ifdef FIL
-/*
-Extra information about a statement of kind stmk_ido or stmk_fdo (Fortran
-DO loop).
-*/
-typedef struct a_do_loop *a_do_loop_ptr;
-typedef struct a_do_loop {
-  a_variable_ptr
-                variable;
-                        /* The DO-loop control variable. */
-  an_expr_node_ptr
-                initial_value,
-                final_value,
-                increment;
-                        /* The initial, final, and increment values for the
-                           loop.  If the increment was omitted, increment
-                           points to a constant "1".  These expressions are
-                           made the same type as the control variable. */
-} a_do_loop;
-
-/*
-Structure used to supply a list of labels for stmk_iarith_if, stmk_farith_if,
-stmk_computed_goto, and stmk_assigned_goto.
-*/
-typedef struct a_label_list_entry *a_label_list_entry_ptr;
-typedef struct a_label_list_entry {
-  a_label_list_entry_ptr
-                next;
-                        /* Pointer to the next entry on the label list, or
-                           NULL if this is the last entry. */
-  a_label_ptr   label;
-                        /* The label. */
-} a_label_list_entry;
-
-/*
-Structure used to describe a Fortran input/output statement.
-*/
-enum an_io_statement_kind_tag {
-  /* I/O statement kinds: */
-  ios_open,
-  ios_close,
-  ios_read,
-  ios_write,            /* Includes PRINT. */
-  ios_inquire,
-  ios_backspace,
-  ios_endfile,
-  ios_rewind,
-  ios_encode,
-  ios_decode
-};
-/* Define as "a_byte" to explicitly control storage size. */
-typedef a_byte  an_io_statement_kind;
-
-enum an_io_specifier_keyword_tag {
-  /* I/O specifier keywords: */
-  iosk_rec, iosk_iostat, iosk_err, iosk_end, iosk_file, iosk_status,
-  iosk_access, iosk_form, iosk_recl, iosk_blank, iosk_exist, iosk_opened,
-  iosk_number, iosk_named, iosk_name, iosk_sequential, iosk_direct,
-  iosk_formatted, iosk_unformatted, iosk_nextrec,
-  iosk_last /* Must be last. */
-};
-/* Define as "a_byte" to explicitly control storage size. */
-typedef a_byte  an_io_specifier_keyword;
-/* Define NUM_IO_SPECIFIER_KEYWORDS to the value of iosk_last.  The symbolic
-   value cannot be used because NUM_IO_SPECIFIER_KEYWORDS is used in a
-   computation during preprocessing (see io_stmts.c). */
-#define NUM_IO_SPECIFIER_KEYWORDS 20
-
-enum an_io_specifier_transfer_tag {
-  /* Kinds of transfer of information associated with I/O specifiers: */
-  iost_label,           /* Label to be branched to, like END=. */
-  iost_expr_in,         /* Expression value in, like FILE=.  Expression
-                           can be integer or character. */
-  iost_var_out          /* Value out into a variable, like IOSTAT=.  Variable
-                           can be integer, character, or logical. */
-};
-/* Define as "a_byte" to explicitly control storage size. */
-typedef a_byte  an_io_specifier_transfer;
-
-typedef struct an_io_specifier *an_io_specifier_ptr;
-typedef struct an_io_specifier {
-  /* Information about one specifier in an I/O statement: */
-  an_io_specifier_ptr
-                next;   /* Pointer to the next specifier for this statement,
-                           or NULL if this is the last one. */ 
-  an_io_specifier_keyword
-                keyword;
-                        /* The keyword of the specifier. */
-  an_io_specifier_transfer
-                transfer;
-                        /* The direction of transfer for this specifier. */
-  union {
-    /* When transfer == iost_label: */
-    a_label_ptr label;  /* The label to be transferred to. */
-    /* When transfer == iost_expr_in or iost_var_out: */
-    an_expr_node_ptr
-                expr;   /* The variable or expression. */
-  } variant;
-} an_io_specifier; 
-
-enum an_io_list_item_kind_tag {
-  /* Kinds of items on a I/O list: */
-  iol_expr,             /* An expression being written out. */
-  iol_variable,         /* A variable being read in. */
-  iol_array,            /* A whole array. */
-  iol_implied_do        /* An implied-do list. */
-};
-/* Define as "a_byte" to explicitly control storage size. */
-typedef a_byte  an_io_list_item_kind;
-
-typedef struct an_io_list_item *an_io_list_item_ptr;
-typedef struct an_io_list_item {
-  /* A data item on an I/O statement list (something to be read or written). */
-  an_io_list_item_ptr
-                next;   /* Pointer to the next item on the list, or NULL
-                           if this is the last. */
-  an_io_list_item_kind
-                kind;   /* Kind of item. */
-  union {
-    /* When kind == iol_expr or iol_variable: */
-    an_expr_node_ptr
-                expr;   /* The expression or variable to be transferred. */
-    /* When kind == iol_array: */
-    a_variable_ptr
-                array_var;
-                        /* A whole array to be transferred. */
-    /* When kind == iol_implied_do: */
-    struct {
-      a_variable_ptr
-                variable;
-                        /* The implied-do variable (integer). */
-      an_expr_node_ptr
-                initial_value,
-                final_value,
-                increment;
-                        /* The initial, final, and increment expressions.
-                           If the increment expression was omitted, a constant
-                           1 is used. */
-      an_io_list_item_ptr
-                list;
-                        /* The list of items to be repeated. */
-    } implied_do;
-  } variant;
-} an_io_list_item;
-
-enum an_io_unit_kind_tag {
-  /* Kinds of I/O unit specifications: */
-  iou_none,             /* None needed for the operation. */
-  iou_error,            /* Some error in the specification. */
-  iou_external,         /* Specified as an integer. */
-  iou_default,          /* "*" for default external unit. */
-  iou_internal          /* Internal file. */
-};
-/* Define as "a_byte" to explicitly control storage size. */
-typedef a_byte  an_io_unit_kind;
-
-enum an_io_format_kind_tag {
-  /* Kinds of I/O format specifications: */
-  iof_none,             /* None needed for the operation. */
-  iof_error,            /* Some error in the specification. */
-  iof_format_label,     /* Normal format label. */
-  iof_assigned_var,     /* Integer variable to which a format label has
-                           been ASSIGNed. */
-  iof_char_expr,        /* Runtime format specified as a character
-                           expression. */
-  iof_list_directed,    /* "*" as format. */
-  iof_namelist_directed,/* Namelist-directed I/O. */
-  iof_unformatted       /* Unformatted (raw binary). */
-};
-/* Define as "a_byte" to explicitly control storage size. */
-typedef a_byte  an_io_format_kind;
-
-typedef struct a_namelist_group_member *a_namelist_group_member_ptr;
-typedef struct a_namelist_group_member {
-  /* Entity representing a member of a group of variables defined in a
-     NAMELIST statement. */
-  a_namelist_group_member_ptr
-                next;
-                        /* Next in the linked list of members of this
-                           namelist group. */
-  a_variable_ptr
-                variable;
-                        /* Variable (scalar or array) specified as a member
-                           of the current namelist group. */
-} a_namelist_group_member;
-
-typedef struct a_namelist_group *a_namelist_group_ptr;
-typedef struct a_namelist_group {
-  /* Entity representing a group of variables defined in a NAMELIST
-     statement and referenced by group name in namelist-directed I/O. */
-  /* The source_corresp field must be first. */
-  a_source_correspondence
-                source_corresp;
-                        /* Information on the source entity that corresponds
-                           to this entity. */
-  a_namelist_group_ptr
-                next;
-                        /* Next in the list of namelist groups defined for
-                           the current routine. */
-  a_namelist_group_member_ptr
-                member_list;
-                        /* Linked list of members of this namelist group,
-                           each member associated with a variable (scalar
-                           or array). */
-} a_namelist_group;
-  
-typedef struct an_input_output_description *an_input_output_description_ptr;
-typedef struct an_input_output_description {
-  an_io_statement_kind
-                kind;   /* The kind of I/O statement. */
-  /* Information on the unit: */
-  an_io_unit_kind
-                unit_kind;
-                        /* The kind of unit. */
-  an_expr_node_ptr
-                unit_expr;
-                        /* For iou_external, an integral expression giving
-                           the unit number; for iou_internal, a character
-                           variable or array (as an lvalue) that is the
-                           internal file.  For others, NULL.  For ENCODE or
-                           DECODE, can be a non-character array containing
-                           hollerith data. */
-  an_expr_node_ptr
-                encode_decode_length;
-                        /* For kind == ios_encode or kind == ios_decode,
-                           points to an integer expression giving the number
-                           of bytes to convert.  NULL otherwise. */
-  /* Information on the format: */
-  an_io_format_kind
-                format_kind;
-                        /* The kind of format. */
-  union {
-    /* When format_kind == iof_none, iof_error, iof_list_directed, or
-       iof_unformatted, no variant fields. */
-    /* When format_kind == iof_format_label: */
-    a_label_ptr label;
-                        /* Format label. */
-    /* When format_kind == iof_assigned_var or iof_char_expr: */
-    an_expr_node_ptr
-                expr;
-                        /* The expression giving the format variable or
-                           character expression.  Can be a non-character
-                           array containing hollerith data. */
-    /* When format_kind == iof_namelist_directed: */
-    a_namelist_group_ptr
-                namelist_group;
-                        /* Namelist group, which identifies the list of
-                           of group members.  item_list will always be NULL
-                           for namelist-directed I/O. */
-  } format;
-  /* Information on the specifiers: */
-  an_io_specifier_ptr
-                specifier_list;
-                        /* Linked list of specifiers, NULL if none. */
-  /* Information on the data items to be transferred: */
-  an_io_list_item_ptr
-                item_list;
-                        /* Linked list of data items to be transferred,
-                           NULL if none. */
-} an_input_output_description;
-
-#endif /* ifdef FIL */
 typedef struct a_statement {
   /* Definition of an executable statement. */
   a_stmt_source_position
@@ -11455,14 +10679,6 @@ typedef struct a_statement {
                              The selector expression for stmk_assigned_goto,
 			     if GNU extensions are allowed. */
 #endif /* ifdef CIL */
-#ifdef FIL
-                        /* Also:
-                             The integer expression to test for stmk_iarith_if.
-                             The float expression to test for stmk_farith_if.
-                             The selector expression for stmk_computed_goto.
-                             The selector expression for stmk_assigned_goto.
-                             The selector expression for stmk_alt_return. */
-#endif /* ifdef FIL */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_source_sequence_entry_ptr
 		source_sequence_entry;
@@ -11475,9 +10691,6 @@ typedef struct a_statement {
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   union {
     /* When kind == stmk_expr or stmk_empty, no variant fields. */
-#ifdef FIL
-    /* Likewise when kind == stmk_alt_return. */
-#endif /* ifdef FIL */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     /* Likewise when kind == stmk_decl. */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -11655,102 +10868,9 @@ typedef struct a_statement {
       } variant;
     } vla;
 #endif /* ifdef CIL */
-#ifdef FIL
-    /* When kind == stmk_fentry: */
-    struct {
-      a_routine_ptr
-                assoc_routine;
-                        /* Pointer to the routine entry for this Fortran
-                           ENTRY. */
-      a_statement_ptr
-                prologue;
-                        /* List of statements to be executed as a prologue
-                           on entry at this point. */
-    } fentry;
-    /* When kind == stmk_ido or stmk_fdo: */
-    struct {
-      a_statement_ptr
-                loop_statement;
-                        /* The statement that is the body of the loop.
-                           Points to a single statement, which will be a block
-                           statement if there are several dependent
-                           statements. */
-      a_do_loop_ptr
-                do_info;
-                        /* Other information about the loop. */
-    } do_stmt;
-    /* When kind == stmk_iarith_if, stmk_farith_if, stmk_computed_goto, or
-       stmk_assigned_goto: */
-    a_label_list_entry_ptr
-                label_list;
-                        /* The three labels (negative, zero, positive) for
-                           arithmetic IF.  The label list in source order
-                           for the other two cases.  NULL for an assigned GOTO
-                           without a label list. */
-    /* When kind == stmk_stop or stmk_pause: */
-    a_constant_ptr
-                stop_pause_string;
-                        /* Display string for Fortran STOP or PAUSE.  If the
-                           source form was an integer, it's been converted
-                           to a string.  NULL if there is no string. */
-    /* When kind == stmk_set_array_shape: */
-    a_variable_ptr
-                array_variable;
-                        /* The variable for the array whose shape is being
-                           established. */
-    /* When kind == stmk_input_output: */
-    an_input_output_description_ptr
-                input_output;
-                        /* Pointer to a block giving information on the
-                           I/O statement. */
-#endif /* ifdef FIL */
   } variant;
 } a_statement;
 
-#ifdef FIL
-/*
-Description of a Fortran ENTRY.  A list of these is attached to the scope
-for the primary routine.
-*/
-typedef struct an_entry_param *an_entry_param_ptr;
-typedef struct an_entry_param {
-  /* Definition of a parameter of a Fortran ENTRY.  This is necessary because
-     ENTRYs can duplicate parameters from the primary routine, or add new
-     parameters, and the ENTRY parameters can be in any order. */
-  an_entry_param_ptr
-                next;
-                        /* Pointer to the next ENTRY parameter, or NULL if
-                           this is the last one. */
-  a_variable_ptr
-                param_var;
-                        /* The variable for this parameter.  This may be part
-                           of the parameters list for the primary entry point,
-                           or on the local variables list of the current
-                           routine. */
-} an_entry_param;
-typedef struct an_entry_description *an_entry_description_ptr;
-typedef struct an_entry_description {
-  /* Note that the fields here duplicate four fields of the scope entry to
-     provide the same information for an ENTRY instead of the primary
-     routine. */
-  an_entry_description_ptr
-                next;
-                        /* Pointer to the next entry description in the
-                           current routine, NULL if this is the last. */
-  a_routine_ptr assoc_routine;
-                        /* Pointer to the routine associated with this
-                           ENTRY. */
-  an_entry_param_ptr
-                parameters;
-                        /* List of parameters (dummy arguments), in order
-                           of declaration.  NULL if none. */
-  a_variable_ptr
-                function_result_var;
-                        /* If the ENTRY is a function, pointer to the function
-                           result variable.  NULL otherwise. */
-} an_entry_description;
-
-#endif /* ifdef FIL */
 #ifdef CIL
 
 /* Data structure a_constructor_init, used for C++ only, describes the
@@ -12693,9 +11813,6 @@ enum a_scope_kind_tag {
 			/* The scope associated with a C++0x scoped enum
 			   type. */
 #endif /* ifdef CIL */
-#ifdef FIL
-  sck_stmt_function,	/* Statement function scope. */
-#endif /* ifdef FIL */
   sck_function		/* Function scope. */
 };
 /* Define as "a_byte" to explicitly control storage size. */
@@ -12748,9 +11865,6 @@ typedef struct a_scope {
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
   union {
     /* When kind == sck_file, no variant fields. */
-#ifdef FIL
-    /* When kind == sck_stmt_function, no variant fields. */
-#endif /* ifdef FIL */
 #ifdef CIL
     /* When kind == sck_block (also see assoc_block below): */
     a_handler_ptr
@@ -12780,10 +11894,6 @@ typedef struct a_scope {
 		ptr;
                         /* Pointer to the routine associated with this
 			   scope. */
-#ifdef FIL
-                        /* This is the primary routine if there are Fortran
-                           ENTRYs. */
-#endif /* ifdef FIL */
       a_variable_ptr
                 parameters;
                         /* List of parameters of the associated routine,
@@ -12820,14 +11930,6 @@ typedef struct a_scope {
 			   Note that the variable is also on the local
 			   variables list of this scope. */
 #endif /* ifdef CIL */
-#ifdef FIL
-      a_variable_ptr
-                function_result_var;
-                        /* If this scope is for a Fortran FUNCTION, this
-                           points to the function result variable (it has
-                           the same name as the function, and the function
-                           result is specified by assigning to it). */
-#endif /* ifdef FIL */
     } routine;
   } variant;
   a_statement_ptr
@@ -12978,16 +12080,6 @@ typedef struct a_scope {
 			   namespace and namespace extension scopes).
 			   Reactivating a class or namespace scope does
 			   not affect this value. */
-#ifdef FIL
-  an_entry_description_ptr
-                entries;
-                        /* List of descriptions of Fortran ENTRYs in this
-                           routine.  Only used at the function scope level. */
-  a_namelist_group_ptr
-                namelist_groups;
-                        /* List of NAMELIST groups of this scope, NULL if
-                           none.  Only used at the function scope level. */
-#endif /* ifdef FIL */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_source_sequence_entry_ptr
 		source_sequence_list;
@@ -13047,7 +12139,6 @@ typedef enum /* a_source_language */ {
   /* Code for source language. */
   sl_Cplusplus,
   sl_C,
-  sl_Fortran		/*lint -esym(769,sl_Fortran)*/
 } a_source_language;
 typedef struct an_il_header {
   a_source_file_ptr
@@ -13072,22 +12163,6 @@ typedef struct an_il_header {
                 plain_chars_are_signed;
                         /* TRUE if the plain char type is signed. */
 #endif /* ifdef CIL */
-#ifdef FIL
-  a_byte_boolean
-                one_trip_do_loops;
-                        /* TRUE if DO loops should execute the enclosed
-                           statements at least one time. */
-  a_byte_boolean
-                case_sensitive_identifiers;
-                        /* TRUE if identifiers are case-sensitive.  Typically
-                           FALSE in Fortran, but can be set by a command-line
-                           option or configured otherwise. */
-  a_byte_boolean
-                local_vars_are_static;
-                        /* If TRUE, variables with a storage class of sc_local
-                           should be allocated statically; if FALSE, they
-                           should be automatics. */
-#endif /* ifdef FIL */
   a_scope_ptr   *region_scope_entry;
                         /* Pointer to an array of scope pointers.
                            region_scope_entry[i] points to the scope entry
@@ -13304,12 +12379,9 @@ EXTERN char     *db_operator_names[(int)eok_last+1]
    "__assume",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* ifdef CIL */
-#if defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED
+#if C99_IL_EXTENSIONS_SUPPORTED
    "x-",
-#endif /* defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED */
-#ifdef FIL
-   "len ", "&", "loc ", "test",
-#endif /* ifdef FIL */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
    "i+", "i-", "i*", "i/", "i==", "i!=", "i>", "i<", "i>=", "i<=",
    "i<?", "i>?", "i=",
 #if FIXED_POINT_ALLOWED
@@ -13319,9 +12391,9 @@ EXTERN char     *db_operator_names[(int)eok_last+1]
    "f+", "f-", "f*", "f/", "f==", "f!=", "f>", "f<", "f>=", "f<=",
    "f<?", "f>?", "f=",
    "p+", "p-", "p=",
-#if defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED
+#if C99_IL_EXTENSIONS_SUPPORTED
    "x+", "x-", "x*", "x/", "x==", "x!=", "x=",
-#endif /* defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #if C99_IL_EXTENSIONS_SUPPORTED
    "x+=", "x-=", "x*=", "x/=",
    "j*", "j/", "fj+", "jf+", "fj-", "jf-",
@@ -13329,11 +12401,6 @@ EXTERN char     *db_operator_names[(int)eok_last+1]
 #if GNU_COMPLEX_EXTENSIONS_ALLOWED
    "x~", "__real", "__imag",
 #endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
-#ifdef FIL
-   "complex",
-   "c==", "c!=", "c>", "c<", "c>=", "c<=", "c=", "//",
-   "i**i", "r**i", "x**i", "r**r", "x**x",
-#endif /* ifdef FIL */
 #ifdef CIL
    "%",
    "pd", "p==", "p!=", "p>", "p<", "p>=", "p<=", "p<?", "p>?",
@@ -13354,23 +12421,14 @@ EXTERN char     *db_operator_names[(int)eok_last+1]
    "-> vacuous dtor",
 #endif /* ifdef CIL */
    "&&", "||",
-#ifdef FIL
-   ".neqv.", ".eqv.",
-#endif /* ifdef FIL */
 #ifdef CIL
    "?",
 #endif /* ifdef CIL */
-#ifdef FIL
-   "(:)", "v(:)",
-#endif /* ifdef FIL */
    "call",
 #ifdef CIL
    "virtcall",
    "pmcall",
 #endif /* ifdef CIL */
-#ifdef FIL
-   "()", "v()",
-#endif /* ifdef FIL */
    "va_start", "va_arg", "va_end", "va_copy", "va_start",
 #ifdef CIL
    "-G",
@@ -13461,21 +12519,9 @@ EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
   1 /* iek_id_name */,
   1 /* iek_string_text */,
   1 /* iek_other_text */,
-#if defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED
+#if C99_IL_EXTENSIONS_SUPPORTED
   sizeof(an_internal_complex_value),
-#endif /* defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED */
-#ifdef FIL
-  sizeof(a_bound_info_entry),
-  sizeof(a_do_loop),
-  sizeof(a_label_list_entry),
-  sizeof(an_io_specifier),
-  sizeof(an_io_list_item),
-  sizeof(a_namelist_group_member),
-  sizeof(a_namelist_group),
-  sizeof(an_input_output_description),
-  sizeof(an_entry_param),
-  sizeof(an_entry_description),
-#endif /* ifdef FIL */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #ifdef CIL
   sizeof(a_namespace),
   sizeof(a_using_decl),

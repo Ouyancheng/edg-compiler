@@ -170,28 +170,6 @@ encoded form.
   an_il_entry_prefix *epp;
   int                num_entries = 1;
 
-#ifdef FFE
-  if (entry_kind == iek_bound_info_entry) {
-    /* Bound information entries are allocated as a variable-length array
-       of fixed-length entries.  The entire array is preceded by the space
-       in which to store the entry prefix, but the entries are contiguous. */
-    if (array_bound_walk_index != 0) {
-      /* This is an entry after the first.  Find the space preceding the
-         array by using the current index number, provided by the il_walk
-         routines. */
-      epp = &il_entry_prefix_of((a_bound_info_entry_ptr)entry_ptr -
-                                                       array_bound_walk_index);
-      /* Return the right entry number. */
-      entry_number = epp->entry_number + array_bound_walk_index;
-      goto end_of_routine;
-    }  /* if */
-    /* The first entry.  The processing is fairly normal, except that
-       we increment the count of entries to account for all of the
-       entries in the array, so we can use consecutive entry numbers
-       for them.  That ensures they're contiguous when read back in. */
-    num_entries = num_walk_array_bounds;
-  }  /* if */
-#endif /* ifdef FFE */
   /* Determine the address of the entry prefix preceding the entry. */
   epp = &il_entry_prefix_of(entry_ptr);
   /* String entries can be referenced from several places, possibly in
@@ -297,9 +275,6 @@ encoded form.
     *count_ptr += num_entries;
   }  /* if */
   entry_number = epp->entry_number;
-#ifdef FFE
-end_of_routine:
-#endif /* ifdef FFE */
   /* Return the encoded form of the entry number in *encoded_number. */
   *encoded_number = entry_number;
   if (!epp->file_scope) *encoded_number |= FUNC_ENTRY_NUMBER_BIT;
@@ -349,17 +324,6 @@ corresponding encoded entry number, and return that number cast to "char *".
         display_il_entry_kind_and_ptr(entry_ptr, entry_kind);
 #endif /* DEBUG */
         internal_error("remap_ptr_to_entry_number: string entry");
-#ifdef FFE
-      } else if (entry_kind == iek_bound_info_entry) {
-        /* Likewise, bound information entries should already have been
-           processed.  We can't handle them here because we don't know where
-           the entry falls within the array of entries (see the variable
-           array_bound_walk_index). */
-#if DEBUG
-        display_il_entry_kind_and_ptr(entry_ptr, entry_kind);
-#endif /* DEBUG */
-        internal_error("remap_ptr_to_entry_number: bound info entry");
-#endif /* ifdef FFE */
       }  /* if */
 #endif /* CHECKING */
       if (entry_kind == iek_type &&

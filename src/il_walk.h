@@ -62,20 +62,6 @@ by the trans_copy.c code.
 #define REMAP_ONLY_ROUTINES_NEEDED FALSE
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE && ... */
 
-#ifdef FFE
-/*
-Array bound information entries cause some problems, because they are
-laid out as a variable-length array of fixed-length entries.  In the
-alternate file format, there is no room preceding each entry for the
-storage of the entry number.  To deal with this, the IL walk routines
-make the current index in the array of bound info entries available
-so that one can tell which entry one is dealing with.  num_walk_array_bounds
-indicates the total number of entries.
-*/
-EXTERN unsigned long array_bound_walk_index;
-EXTERN unsigned long num_walk_array_bounds;
-#endif /* ifdef FFE */
-
 EXTERN unsigned int
 		flag_value_meaning_visited;
 			/* Value to be placed in the il_walk_flag field

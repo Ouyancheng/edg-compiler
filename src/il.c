@@ -4472,7 +4472,7 @@ the indicated label.
   con->variant.address.kind = (an_address_base_kind)abk_label;
   con->variant.address.variant.label = label;
   /* Remember that the label has had its address taken. */
-  label->used_in_assign = TRUE;
+  label->address_taken = TRUE;
   /* The address of a label always has type "void *". */
   con->type = make_pointer_type(void_type());
 }  /* set_label_address_constant */
@@ -15562,7 +15562,7 @@ Copy a statement entry from "from" to "to".
   to->next = to_next;
   /* If the statement is a label, bind the a_label to the copy. */
   if (to->kind == (a_statement_kind)stmk_label) {
-    to->variant.label.ptr->variant.exec_stmt = to;
+    to->variant.label.ptr->exec_stmt = to;
   } else if (to->kind == (a_statement_kind)stmk_block) {
     /* If the statement is a block with an associated scope, change the
        back-pointer from the scope to point to the copy. */
@@ -19195,15 +19195,9 @@ static a_byte lvalue_rvalue_test[(int)eok_last+1] = {
   /* eok_assume: */			LVRV_NO_REQUIREMENTS,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* ifdef CIL */
-#if defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED
+#if C99_IL_EXTENSIONS_SUPPORTED
   /* eok_xnegate: */			LVRV_OPND1_IS_RVALUE,
-#endif /* defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED */
-#ifdef FIL
-  /* eok_char_length: */		LVRV_NO_REQUIREMENTS,
-  /* eok_address_of_value: */		LVRV_NO_REQUIREMENTS,
-  /* eok_loc: */			LVRV_NO_REQUIREMENTS,
-  /* eok_test_logical: */		LVRV_NO_REQUIREMENTS,
-#endif /* ifdef FIL */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
   /* eok_iadd: */			LVRV_OPND1_IS_RVALUE |
 					LVRV_OPND2_IS_RVALUE,
   /* eok_isubtract: */			LVRV_OPND1_IS_RVALUE |
@@ -19290,7 +19284,7 @@ static a_byte lvalue_rvalue_test[(int)eok_last+1] = {
 					LVRV_OPND2_IS_RVALUE,
   /* eok_passign: */			LVRV_OPND1_IS_LVALUE |
 					LVRV_OPND2_IS_RVALUE,
-#if defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED
+#if C99_IL_EXTENSIONS_SUPPORTED
   /* eok_xadd: */			LVRV_OPND1_IS_RVALUE |
 					LVRV_OPND2_IS_RVALUE,
   /* eok_xsubtract: */			LVRV_OPND1_IS_RVALUE |
@@ -19305,7 +19299,7 @@ static a_byte lvalue_rvalue_test[(int)eok_last+1] = {
 					LVRV_OPND2_IS_RVALUE,
   /* eok_xassign: */			LVRV_OPND1_IS_LVALUE |
 					LVRV_OPND2_IS_RVALUE,
-#endif /* defined(FIL) || C99_IL_EXTENSIONS_SUPPORTED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #if C99_IL_EXTENSIONS_SUPPORTED
   /* eok_xadd_assign: */		LVRV_OPND1_IS_LVALUE |
 					LVRV_OPND2_IS_RVALUE,
@@ -19333,22 +19327,6 @@ static a_byte lvalue_rvalue_test[(int)eok_last+1] = {
   /* eok_real_part: */			LVRV_NO_REQUIREMENTS,
   /* eok_imag_part: */			LVRV_NO_REQUIREMENTS,
 #endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
-#ifdef FIL
-  /* eok_complex: */			LVRV_NO_REQUIREMENTS,
-  /* eok_ceq: */			LVRV_NO_REQUIREMENTS,
-  /* eok_cne: */			LVRV_NO_REQUIREMENTS,
-  /* eok_cgt: */			LVRV_NO_REQUIREMENTS,
-  /* eok_clt: */			LVRV_NO_REQUIREMENTS,
-  /* eok_cge: */			LVRV_NO_REQUIREMENTS,
-  /* eok_cle: */			LVRV_NO_REQUIREMENTS,
-  /* eok_cassign: */			LVRV_NO_REQUIREMENTS,
-  /* eok_concat: */			LVRV_NO_REQUIREMENTS,
-  /* eok_i_to_i_expon: */		LVRV_NO_REQUIREMENTS,
-  /* eok_f_to_i_expon: */		LVRV_NO_REQUIREMENTS,
-  /* eok_x_to_i_expon: */		LVRV_NO_REQUIREMENTS,
-  /* eok_f_to_f_expon: */		LVRV_NO_REQUIREMENTS,
-  /* eok_x_to_x_expon: */		LVRV_NO_REQUIREMENTS,
-#endif /* ifdef FIL */
 #ifdef CIL
   /* eok_remainder: */			LVRV_OPND1_IS_RVALUE |
 					LVRV_OPND2_IS_RVALUE,
@@ -19460,27 +19438,15 @@ static a_byte lvalue_rvalue_test[(int)eok_last+1] = {
 					LVRV_OPND2_IS_RVALUE,
   /* eok_lor: */			LVRV_OPND1_IS_RVALUE |
 					LVRV_OPND2_IS_RVALUE,
-#ifdef FIL
-  /* eok_neqv: */			LVRV_NO_REQUIREMENTS,
-  /* eok_eqv: */			LVRV_NO_REQUIREMENTS,
-#endif /* ifdef FIL */
 #ifdef CIL
   /* eok_question: */			LVRV_OPND1_IS_RVALUE |
 					LVRV_OPND2_IS_LVALUE_IF_EXPR_IS,
 #endif /* ifdef CIL */
-#ifdef FIL
-  /* eok_substring: */			LVRV_NO_REQUIREMENTS,
-  /* eok_value_substring: */		LVRV_NO_REQUIREMENTS,
-#endif /* ifdef FIL */
   /* eok_call: */			LVRV_NO_REQUIREMENTS,
 #ifdef CIL
   /* eok_virtual_call: */		LVRV_NO_REQUIREMENTS,
   /* eok_pm_call: */			LVRV_OPND1_IS_RVALUE,
 #endif /* ifdef CIL */
-#ifdef FIL
-  /* eok_fsubscript: */			LVRV_NO_REQUIREMENTS,
-  /* eok_value_fsubscript: */		LVRV_NO_REQUIREMENTS,
-#endif /* ifdef FIL */
   /* eok_va_start: */			LVRV_OPND1_IS_LVALUE |
 					LVRV_OPND2_IS_LVALUE,
   /* eok_va_arg: */			LVRV_OPND1_IS_LVALUE,

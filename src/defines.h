@@ -320,7 +320,6 @@ Flags to be set for any version that uses the C++ generating back end.
 #define INCLUDE_EDG_TEST_PRAGMAS 1
 #define INCLUDE_EDG_TEST_ATTRIBUTES 1
 #ifndef _lint
-#define FIL 1
 #endif /* ifndef _lint */
 #ifndef CHECKING
 #define CHECKING 1
@@ -662,7 +661,6 @@ Flags to be set for any version that uses the C++ generating back end.
 #define TARG_SIZEOF_LONG_DOUBLE 12
 #define TARG_JMP_BUF_NUM_ELEMENTS 10
 #define TARG_USER_CONTROL_OF_STRUCT_PACKING_AFFECTS_BIT_FIELDS 0
-#define FIL 1
 #ifndef CHECKING
 #define CHECKING 1
 #endif /* ifndef CHECKING */
