@@ -4393,6 +4393,7 @@ in il_alloc_init.)
 #endif /* NEED_NAME_MANGLING */
   def_source_corresp.trans_unit_corresp = NULL;
   def_source_corresp.parent_scope = NULL;
+  def_source_corresp.enclosing_routine = NULL;
   def_source_corresp.decl_position = null_source_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   def_source_corresp.decl_pos_info = NULL;
@@ -4418,6 +4419,7 @@ in il_alloc_init.)
   def_source_corresp.name_linkage = (a_name_linkage_kind)nlk_none;
   def_source_corresp.has_associated_pragma = FALSE;
   def_source_corresp.is_local_to_function = FALSE;
+  def_source_corresp.parent_via_local_scope_ref = FALSE;
   def_source_corresp.is_class_member = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   def_source_corresp.has_associated_attribute = FALSE;

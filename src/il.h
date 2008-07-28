@@ -254,10 +254,17 @@ extern unsigned long assign_instantiation_needed_bit_number(void);
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 
 /*
-Macro to access the parent scope of an IL entry.
+Macro to access the parent_scope field of an IL entry.
 */
 #define parent_scope_of(ptr)                                                \
   ((ptr)->source_corresp.parent_scope)
+
+extern a_scope_ptr f_get_parent_scope_of(a_source_correspondence_ptr  scp);
+
+#define get_parent_scope_of(ptr)                                            \
+  ((ptr)->source_corresp.parent_via_local_scope_ref ?                       \
+                            f_get_parent_scope_of(&(ptr)->source_corresp)   \
+                          : parent_scope_of(ptr))
 
 /*
 Macros that return TRUE if an IL entry represents a namespace member.

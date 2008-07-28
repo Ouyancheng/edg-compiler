@@ -2691,7 +2691,6 @@ state.
 #endif /* DEBUG */
         sym_ptr->variant.enumeration.extra_info = essp;
         essp->dependent_type_fixup_list = NULL;
-        essp->enclosing_routine = NULL;
 #if IA64_ABI && NEED_NAME_MANGLING
         essp->discriminator = 0;
 #endif /* IA64_ABI && NEED_NAME_MANGLING */
@@ -2727,7 +2726,6 @@ state.
         cssp->dependent_type_fixup_list = NULL;
         cssp->operator_lookup_namespaces = NULL;
         cssp->friend_functions = NULL;
-        cssp->enclosing_routine = NULL;
         cssp->local_class_number = 0;
 #if MICROSOFT_EXTENSIONS_ALLOWED
         cssp->super_lookup_symbols = NULL;

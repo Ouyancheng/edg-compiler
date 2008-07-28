@@ -16290,6 +16290,29 @@ of the placeholder.
 }  /* unlink_classes_with_placeholders_in_scope */
 
 
+static void remove_scope_refs_for_placeholders(a_scope_ptr  scope)
+/*
+The given scope is a function scope.  Remove a_local_scope_ref entries
+pointing to placeholder typerefs since such placeholder types are about to
+be removed.
+*/
+{
+  a_local_scope_ref_ptr  *scope_ref = &scope->scope_refs;
+
+  while (*scope_ref != NULL) {
+    if ((*scope_ref)->referrer.kind == (a_byte_il_entry_kind)iek_type) {
+      a_type_ptr  tp = (a_type_ptr)(*scope_ref)->referrer.ptr;
+      if (tp->kind == (a_type_kind)tk_typeref &&
+          tp->variant.typeref.is_placeholder_for_nested_class_def) {
+        *scope_ref = (*scope_ref)->next;
+        continue;
+      }  /* if */
+    }  /* if */
+    scope_ref = &(*scope_ref)->next;
+  }  /* for */
+}  /* remove_scope_refs_for_placeholders */
+
+
 static void do_scope_class_member_promotion(a_scope_ptr scope)
 /*
 Do promotion of members of classes out of those classes in the indicated
@@ -16318,6 +16341,12 @@ and all subscopes.
        memory region; there are no namespaces there, but there can still
        be nested classes defined outside their parents. */
     unlink_classes_with_placeholders_in_scope(scope);
+    if (scope->kind == (a_scope_kind)sck_function &&
+        scope->scope_refs != NULL) {
+      /* Since the placeholder types will be removed, remove any
+         a_local_scope_ref entries pointing to them. */
+      remove_scope_refs_for_placeholders(scope);
+    }  /* if */
   }  /* if */
   /* Visit all types to find all classes. */
   /* Note that when processing a function or block scope we will be crossing

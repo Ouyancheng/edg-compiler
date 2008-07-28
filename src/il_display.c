@@ -597,6 +597,7 @@ Display the indicated source correspondence entry.
     disp_access("  access", (an_access_specifier)scp->access);
   }  /* if */
   disp_ptr("  parent_scope", (char *)scp->parent_scope, iek_scope);
+  disp_ptr("  enclosing_routine", (char *)scp->enclosing_routine, iek_routine);
 #endif /* ifdef CFE */
   disp_boolean("  referenced", (a_boolean)scp->referenced);
 #if MAINTAIN_NEEDED_FLAGS
@@ -604,6 +605,9 @@ Display the indicated source correspondence entry.
 #endif /* MAINTAIN_NEEDED_FLAGS */
   if (scp->is_local_to_function) {
     disp_boolean("  is_local_to_function", TRUE);
+  }  /* if */
+  if (scp->parent_via_local_scope_ref) {
+    disp_boolean("  parent_via_local_scope_ref", TRUE);
   }  /* if */
   if (scp->name != NULL) {
     disp_name_linkage("  name_linkage",

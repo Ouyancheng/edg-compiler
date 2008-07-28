@@ -1388,7 +1388,6 @@ typedef struct a_source_correspondence {
 			   units will have a non-NULL trans_unit_corresp
 			   pointer.  This points to a front end data structure
 			   and is for front end use only. */
-#ifdef CIL
   a_scope_ptr	parent_scope;
 			/* The scope in which the current entity was declared.
 			   Is is_class_member is TRUE, this points to a scope
@@ -1401,7 +1400,11 @@ typedef struct a_source_correspondence {
 			   that are members of prototype instantiations when
 			   those prototype instantiations are not recorded in
 			   the IL. */
-#endif /* ifdef CIL */
+  a_routine_ptr
+		enclosing_routine;
+			/* If the current entity is a member of a function or
+			   block scope, this points to the entry representing
+			   the enclosing routine.  Otherwise, NULL. */
   a_source_position
 		decl_position;
 			/* The source position at which this entity is
@@ -1471,6 +1474,11 @@ typedef struct a_source_correspondence {
 			   classes have the flag set to TRUE, and objects
 			   declared at file scope and within nonlocal classes
 			   have it set to FALSE. */
+  a_bit_field	parent_via_local_scope_ref:1;
+			/* TRUE if the parent scope is recorded in an entry of
+			   type a_local_scope_ref (because of memory region
+			   constraints).  This implies that parent_scope is
+			   NULL and enclosing_routine is non-NULL. */
   a_bit_field	is_class_member:1;
 			/* TRUE if the entry represents a C++ class member;
 			   also TRUE for fields in C.  (Note: it is set for

@@ -3514,7 +3514,6 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
         }  /* if */
         check_assertion(ssep != NULL && ssep->assoc_routine != NULL);
         cssp = symbol_supplement_for_class(class_type);
-        cssp->enclosing_routine = ssep->assoc_routine; 
         cssp->local_class_number = ssep->number_of_local_classes++;
       }  /* if */
       if (is_friend_decl && tag_id_present &&
@@ -4489,13 +4488,6 @@ describes Microsoft attributes preceding the enum specifier (if any).
         /* Enum declaration is not local to a function. */
         set_name_linkage_for_type(enum_type);
       }  /* if */
-    }  /* if */
-    if (depth_innermost_function_scope != NO_SCOPE_NUMBER) {
-      /* Record which function this enumeration type is defined in. */
-      a_scope_stack_entry_ptr  ssep =
-                                 &scope_stack[depth_innermost_function_scope];
-      tag_sym->variant.enumeration.extra_info->enclosing_routine
-                                                        = ssep->assoc_routine;
     }  /* if */
     /* When an enumeration is defined within a class definition, its access
        should be set based on the access recorded in the current scope stack

@@ -371,7 +371,7 @@ Set the definition_needed or keep_definition_in_il flag in a routine.
 /*
 Process the source correspondence field pointed to by ptr.
 */
-/* Macro to remap class or namespace parent only if it exists. */
+/* Macro to parent scope only if it exists. */
 #undef remap_parent
 #ifdef CFE
 #define remap_parent(ptr) \
@@ -467,6 +467,7 @@ necessary.
   walk_unmangled_name(ptr); \
   conditionally_clear_fe_pointer((ptr).trans_unit_corresp); \
   remap_parent(ptr); \
+  remap_ptr((ptr).enclosing_routine, a_routine_ptr, iek_routine); \
   remap_source_sequence_entry(ptr); \
   conditionally_clear_fe_pointer((ptr).assoc_info); \
   walk_per_instantiation_needed_flags(ptr); \
@@ -2324,7 +2325,6 @@ do_set_proper_definition_needed_flag:
         walk_list(ptr->routines, a_routine_ptr, iek_routine);
 #endif /* ifdef CFE */
         walk_list_not_needed(ptr->labels, a_label_ptr, iek_label);
-#ifdef CFE
         walk_list(ptr->scopes, a_scope_ptr, iek_scope);
         walk_list_with_keep_in_il_reset(ptr->namespaces, a_namespace_ptr,
                                         iek_namespace);
@@ -2339,7 +2339,6 @@ do_set_proper_definition_needed_flag:
         walk_list(ptr->expr_node_refs, a_local_expr_node_ref_ptr,
                   iek_local_expr_node_ref);
         walk_list(ptr->scope_refs, a_local_scope_ref_ptr, iek_local_scope_ref);
-#endif /* ifdef CFE */
         walk_list(ptr->pragmas, a_pragma_ptr, iek_pragma);
         walk_list(ptr->templates, a_template_ptr, iek_template);
 #if MICROSOFT_EXTENSIONS_ALLOWED

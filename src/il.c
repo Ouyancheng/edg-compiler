@@ -6542,7 +6542,7 @@ or the current scope.  This is used for member constants.
   }  /* if */
   pointers_block->last_constant = con_ptr;
   con_ptr->next = NULL;
-  if (con_ptr->source_corresp.parent_scope == NULL) {
+  if (parent_scope_of(con_ptr) == NULL) {
     /* Set the parent scope the first time the constant is added to a scope.
        IL lowering may add it to a different scope, but in that case we want
        to retain the original scope as the parent scope. */
@@ -6955,31 +6955,14 @@ Given a function-local type, return a pointer to the outermost
 function that encloses it.
 */
 {
-  a_routine_ptr enclosing_routine;
-
   check_assertion(type->source_corresp.is_local_to_function);
   /* For members of local classes, go up through all the containing
      classes to get to the class declared directly in the function. */
   while (type->source_corresp.is_class_member) {
     type = parent_class_of(type);
   }  /* while */
-  /* Get the surrounding function. */
-  if (is_enum_type(type)) {
-    a_symbol_ptr enum_sym = (a_symbol_ptr)type->source_corresp.assoc_info;
-    check_assertion(enum_sym != NULL);
-    enclosing_routine = enum_sym->variant.enumeration.extra_info
-                                                           ->enclosing_routine;
-  } else {
-    check_assertion(is_immediate_class_type(type));
-    enclosing_routine = symbol_supplement_for_class(type)->enclosing_routine;
-  }  /* if */
-  check_assertion(enclosing_routine != NULL);
-  /* A local type copied from a secondary translation unit still points
-     to a symbol from the secondary translation unit, which means that
-     the routine it points to is also in a secondary translation unit.
-     Remap it to the canonical routine. */
-  enclosing_routine = (a_routine_ptr)canonical_il_entry_of(enclosing_routine);
-  return enclosing_routine;
+  check_assertion(type->source_corresp.enclosing_routine != NULL);
+  return type->source_corresp.enclosing_routine;
 }  /* enclosing_routine_for_local_type */
 
 
@@ -7359,10 +7342,24 @@ a namespace placeholder if appropriate.
     }  /* if */
     type_ptr->next = NULL;
     /* Record the parent scope, unless that would violate a memory region
-       constraint.  Only update the parent the first time the entry is added
-       to the IL. */
-    if (in_file_scope(sp) && parent_scope_of(type_ptr) == NULL) {
-      type_ptr->source_corresp.parent_scope = sp;
+       constraint (in that case, record the enclosing routine).  Only update
+       the parent the first time the entry is added to the IL. */
+    if (parent_scope_of(type_ptr) == NULL) {
+      if (in_file_scope(sp)) {
+        type_ptr->source_corresp.parent_scope = sp;
+      } else {
+        /* Record a local scope reference.  We cannot just use
+           innermost_function_scope here because we may end here while
+           processing a class nested in scope sp, or even while processing a
+           member function of such a class. */
+        a_scope_ptr    func_scope;
+        a_scope_depth  sp_level = sp->depth_in_scope_stack, func_level;
+        func_level = scope_stack[sp_level].depth_innermost_function_scope;
+        func_scope = scope_stack[func_level].il_scope;
+        type_ptr->source_corresp.enclosing_routine =
+                                              func_scope->variant.routine.ptr;
+        make_local_scope_ref(sp, (char*)type_ptr, iek_type, func_scope);
+      }  /* if */
     }  /* if */
     if (pointers_block != NULL) pointers_block->last_type = type_ptr;
     /* In some cases we record the preceding entry on the list.  This allows
@@ -9352,19 +9349,20 @@ The scope can then be recovered using find_local_scope.
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
-a_scope_ptr find_local_scope(char  *referrer)
+static a_scope_ptr  find_local_scope_in_function_scope(char         *referrer,
+                                                       a_scope_ptr  fn_scope)
 /*
 referrer is an entry in the file scope memory region that implicitly refers to
-a scope L in a function scope memory region.  If innermost_function_scope is
-non-NULL and if it is the function containing scope L, return a pointer to L.
-Otherwise, return NULL.  (The result is determined by searching a list of
-a_local_scope_ref entries.)
+a scope L in a function scope memory region determined by fn_scope.  If
+fn_scope is non-NULL and if it is the function containing scope L, return a
+pointer to L.  Otherwise, return NULL.  (The result is determined by searching
+a list of a_local_scope_ref entries.)
 */
 {
   a_scope_ptr  result = NULL;
 
-  if (innermost_function_scope != NULL) {
-    a_local_scope_ref_ptr  ref = innermost_function_scope->scope_refs;
+  if (fn_scope != NULL) {
+    a_local_scope_ref_ptr  ref = fn_scope->scope_refs;
     for (; ref != NULL; ref = ref->next) {
       if (ref->referrer.ptr == referrer) {
         result = ref->scope;
@@ -9373,7 +9371,39 @@ a_local_scope_ref entries.)
     }  /* for */
   }  /* if */
   return result;
+}  /* find_local_scope_in_function_scope */
+
+
+a_scope_ptr find_local_scope(char  *referrer)
+/*
+Call find_local_scope_in_function_scope with innermost_function_scope.
+*/
+{
+  return find_local_scope_in_function_scope(referrer,
+                                            innermost_function_scope);
 }  /* find_local_scope */
+
+
+a_scope_ptr f_get_parent_scope_of(a_source_correspondence_ptr  scp)
+/*
+Determine and return the parent scope of the entity associated with scp.
+This may involve searching a list of a_local_scope_ref entries.  This routine
+is best called through the macro get_parent_scope_of.
+*/
+{
+  a_scope_ptr  result = scp->parent_scope;
+
+  if (scp->parent_via_local_scope_ref) {
+    check_assertion(result == NULL && scp->enclosing_routine != NULL);
+    if (scp->enclosing_routine->assoc_scope != NULL_region_number) {
+      a_scope_ptr  enclosing_fn_scope = il_header.region_scope_entry[
+                                         scp->enclosing_routine->assoc_scope];
+      result = find_local_scope_in_function_scope((char*)scp,
+                                                  enclosing_fn_scope);
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* f_get_parent_scope_of */
 
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
 
@@ -10722,13 +10752,11 @@ scope depth.
         var_ptr->storage_class == (a_storage_class)sc_static ||
         var_ptr->storage_class == (a_storage_class)sc_extern ||
         var_ptr->storage_class == (a_storage_class)sc_unspecified) {
-#if CHECKING
       /* Variables with static storage will always be allocated in file scope
          memory region, regardless of which scope's list they are on. */
-      if (!in_file_scope(var_ptr)) {
-        internal_error("add_to_variables_list: var not in file scope region");
-      }  /* if */
-#endif /* CHECKING */
+      check_assertion_str(
+                       in_file_scope(var_ptr),
+                       "add_to_variables_list: var not in file scope region");
       if (sp->variables == NULL) {
         sp->variables = var_ptr;
       } else {
@@ -10740,20 +10768,24 @@ scope depth.
          do not perform the update (e.g., when lowering moves static data
          members to file scope, the parent scope should remain the original
          class scope). */
-      if (in_file_scope(sp) && var_ptr->source_corresp.parent_scope == NULL) {
-        var_ptr->source_corresp.parent_scope = sp;
+      if (parent_scope_of(var_ptr) == NULL) {
+        if (in_file_scope(sp) && parent_scope_of(var_ptr) == NULL) {
+          var_ptr->source_corresp.parent_scope = sp;
+        } else {
+          var_ptr->source_corresp.enclosing_routine =
+                              innermost_function_scope->variant.routine.ptr;
+          make_local_scope_ref(sp, (char*)var_ptr, iek_variable,
+                               innermost_function_scope);
+        }  /* if */
       }  /* if */
     } else {
       check_assertion(ssep != NULL);
-#if CHECKING
       /* Variables with nonstatic storage will be allocated in the file scope
          memory region only when the scope is a function prototype scope (i.e.,
          in an error case). */
-      if (ssep->kind != (a_scope_kind)sck_func_prototype &&
-          in_file_scope(var_ptr)) {
-        internal_error("add_to_variables_list: var in file scope region");
-      }  /* if */
-#endif /* CHECKING */
+      check_assertion_str(ssep->kind == (a_scope_kind)sck_func_prototype ||
+                          !in_file_scope(var_ptr),
+                          "add_to_variables_list: var in file scope region");
       if (sp->nonstatic_variables == NULL) {
         sp->nonstatic_variables = var_ptr;
       } else {
@@ -10762,7 +10794,11 @@ scope depth.
       ssep->last_nonstatic_variable = var_ptr;
       /* Update the parent scope for the variable, except if it would violate
          a memory region constraint (only possible in error cases here). */
-      if (!in_file_scope(sp)) var_ptr->source_corresp.parent_scope = sp;
+      if (!in_file_scope(sp)) {
+        var_ptr->source_corresp.parent_scope = sp;
+        var_ptr->source_corresp.enclosing_routine =
+                              innermost_function_scope->variant.routine.ptr;
+      }  /* if */
     }  /* if */
     var_ptr->next = NULL;
   }  /* if */
@@ -11486,7 +11522,7 @@ rather than determined directly.
   sp = get_scope_for_list(scope_level, &rout_ptr->source_corresp,
                           &pointers_block);
   check_assertion_str(sp != NULL, "add_to_routines_list: NULL IL scope");
-  if (rout_ptr->source_corresp.parent_scope == NULL) {
+  if (parent_scope_of(rout_ptr) == NULL) {
     /* Only set the parent scope the first time the routine is added to a
        routines list.  It may be moved from that list to another list later on,
        but conceptually it is still a member of the original scope it appeared
@@ -11550,11 +11586,8 @@ might be the current block scope.
 #else /* !GNU_EXTENSIONS_ALLOWED */
   a_scope_ptr  scope = innermost_function_scope;
 #endif /* GNU_EXTENSIONS_ALLOWED */
-#if CHECKING
-  if (innermost_function_scope == NULL) {
-    internal_error("add_to_labels_list: not inside function");
-  }  /* if */
-#endif /* CHECKING */
+  check_assertion_str(innermost_function_scope != NULL,
+                      "add_to_labels_list: not inside function");
   if (scope->depth_in_scope_stack != NO_SCOPE_DEPTH) {
     /* The function scope is on the scope stack. */
     a_scope_stack_entry_ptr ssep = &scope_stack[scope->depth_in_scope_stack];
@@ -11575,6 +11608,8 @@ might be the current block scope.
   }  /* if */
   /* Set the parent scope pointer. */
   label_ptr->source_corresp.parent_scope = scope;
+  label_ptr->source_corresp.enclosing_routine =
+                              innermost_function_scope->variant.routine.ptr;
 }  /* add_to_labels_list */
 
 

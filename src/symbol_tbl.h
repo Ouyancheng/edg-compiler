@@ -904,9 +904,6 @@ typedef struct a_class_symbol_supplement {
 			   point to sk_namespace_projection symbols).  This
 			   list is used to assist with namespace and class
 			   directed lookup. */
-  a_routine_ptr	enclosing_routine;
-			/* For local classes, the routine in which the class
-			   was defined. */
   a_local_class_number
 		local_class_number;
 			/* For local classes, a number assigned to uniquely
@@ -1047,11 +1044,6 @@ typedef struct an_enum_symbol_supplement {
 			   dependent on it and require fixup when it is
 			   completed.  Once the enum is defined, the pointer
 			   is cleared. */
-  a_routine_ptr
-		enclosing_routine;
-			/* The routine (if any) in which this enum type is
-			   is defined.  NULL, if the type was not defined
-			   in a routine. */
 #if IA64_ABI && NEED_NAME_MANGLING
   a_discriminator
 		discriminator;
