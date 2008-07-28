@@ -2051,7 +2051,7 @@ Change an existing node into a cast of (rvalue) operand_node to new_type.
 The lvalueness of node is unchanged.
 */
 {
-  //FIXME: causes VLA aborts: check_assertion(!operand_node->is_lvalue);
+  /* FIXME: causes VLA aborts: check_assertion(!operand_node->is_lvalue); */
   set_expr_node_kind(node, (an_expr_node_kind)enk_operation);
   set_node_operator(node, (an_expr_operator_kind)eok_cast,
                     new_type, node->is_lvalue, operand_node);
