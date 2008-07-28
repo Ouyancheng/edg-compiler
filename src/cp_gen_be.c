@@ -488,7 +488,6 @@ static a_byte generated_precedence[] = {
   PREC_CAST,		/* eok_cast (NOTE: cases where the cast is not
                            generated are filtered out by
                            parens_may_be_needed) */
-#ifdef CIL
   PREC_CAST,		/* eok_base_class_cast */
   PREC_CAST,		/* eok_derived_class_cast */
   PREC_CAST,		/* eok_pm_base_class_cast */
@@ -524,7 +523,6 @@ static a_byte generated_precedence[] = {
 #if MICROSOFT_EXTENSIONS_ALLOWED
   PREC_POSTFIX,		/* eok_assume */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#endif /* CIL */
 #if C99_IL_EXTENSIONS_SUPPORTED
   PREC_PREFIX,		/* eok_xnegate */
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
@@ -598,7 +596,6 @@ static a_byte generated_precedence[] = {
   PREC_POSTFIX,		/* eok_real_part */
   PREC_POSTFIX,		/* eok_imag_part */
 #endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
-#ifdef CIL
   PREC_MULT_DIV,	/* eok_remainder */
   PREC_PLUS_MINUS,	/* eok_pdiff */
   PREC_EQ_NE,		/* eok_peq */
@@ -654,23 +651,17 @@ static a_byte generated_precedence[] = {
   PREC_POSTFIX,		/* eok_virtual_function_ptr */
   PREC_POSTFIX,		/* eok_dot_vacuous_destructor_call */
   PREC_POSTFIX,		/* eok_points_to_vacuous_destructor_call */
-#endif /* CIL */
   PREC_AND_AND,		/* eok_land */
   PREC_OR_OR,		/* eok_lor */
-#ifdef CIL
   PREC_QUEST_MARK,	/* eok_question */
-#endif /* CIL */
   PREC_POSTFIX,		/* eok_call */
-#ifdef CIL
   PREC_POSTFIX,		/* eok_virtual_call */
   PREC_POSTFIX,		/* eok_pm_call */
-#endif /* CIL */
   PREC_POSTFIX,		/* eok_va_start */
   PREC_POSTFIX,		/* eok_va_arg */
   PREC_POSTFIX,		/* eok_va_end */
   PREC_POSTFIX,		/* eok_va_copy */
   PREC_POSTFIX,		/* eok_va_start_single_operand */
-#ifdef CIL
   PREC_PREFIX,		/* eok_negate */
   PREC_POSTFIX,		/* eok_post_incr */
   PREC_POSTFIX,		/* eok_post_decr */
@@ -700,7 +691,6 @@ static a_byte generated_precedence[] = {
   PREC_LOWEST,		/* eok_rvalue */
   PREC_POSTFIX,		/* eok_generic_call */
   PREC_POSTFIX,		/* eok_generic_member_call */
-#endif /* CIL */
   PREC_LOWEST,		/* eok_error */
   PREC_LOWEST		/* eok_last */
 };  /* generated_precedence */

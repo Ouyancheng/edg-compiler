@@ -783,7 +783,6 @@ way described by octl.
   octl->output_str(str);
 }  /* form_float_kind_name */
 
-#ifdef CFE
 
 #if !UPC_EXTENSIONS_ALLOWED
 /*ARGSUSED*/ /* upc_block_size is only used when UPC extensions are allowed. */
@@ -951,8 +950,6 @@ be FALSE).
 }  /* form_calling_convention */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-
-#endif /* ifdef CFE */
 
 /*
 Template parameters are primarily characterized by their coordinates: the
@@ -1130,7 +1127,6 @@ by octl.
       octl->output_str("void");
       break;
     case tk_integer:
-#ifdef CFE
       /* Enum types are often handled specially. */
       if (type->variant.integer.enum_type &&
           /* Some enumeration types cannot be rendered in the C-generating
@@ -1163,17 +1159,13 @@ by octl.
         /* Output a bool type as "bool", except in the C generating
            back end, where it is output as its underlying type. */
         octl->output_str((char *)(octl->render_c99_bool ? "_Bool" : "bool"));
-      } else
-#endif /* ifdef CFE */
-      {
+      } else {
         /* Normal integer type. */
-#ifdef CFE
         if (type->variant.integer.explicitly_signed &&
             /* "signed" is not allowed when generating pcc code. */
             !octl->gen_pcc_code) {
           octl->output_str("signed ");
         }  /* if */
-#endif /* ifdef CFE */
         form_int_type_name(type, octl);
       }  /* if */
       break;
@@ -1213,7 +1205,6 @@ by octl.
     case tk_float:
       form_float_kind_name(type->variant.float_kind, octl);
       break;
-#ifdef CFE
     case tk_class:
     case tk_struct:
     case tk_union:
@@ -1332,7 +1323,6 @@ by octl.
       form_type_specifier(type->variant.vector.element_type, octl);
       break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
-#endif /* ifdef CFE */
     case tk_unknown:
       check_assertion(!octl->gen_compilable_code);
       octl->output_str("<unknown-type>");
@@ -1348,7 +1338,6 @@ by octl.
   }  /* switch */
 }  /* form_type_specifier */
 
-#ifdef CFE
 
 /*
 Return TRUE if the indicated typedef is "invisible" now because (a) it's
@@ -1411,7 +1400,6 @@ block, needed because it indicates whether local typedefs are invisible.
   return can_use_typedef;
 }  /* can_use_qualified_array_typedef */
 
-#endif /* ifdef CFE */
 
 static a_boolean is_member_typedef_that_should_be_ignored(
 				a_type_ptr				type,
@@ -1477,7 +1465,6 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
 {
   a_type_kind kind;
   a_boolean   suppress_const = (options & FTO_SUPPRESS_CONST) != 0;
-#ifdef CFE
   a_type_qualifier_set
               qualifiers = TQ_NONE;
 #if NEAR_AND_FAR_ALLOWED
@@ -1485,7 +1472,6 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
               near_and_far_qualifiers;
   a_boolean   near_and_far_need_trailing_space;
 #endif /* NEAR_AND_FAR_ALLOWED */
-#endif /* ifdef CFE */
   a_upc_block_size
               upc_block_size = UPC_BLOCK_SIZE_NONE;
 
@@ -1502,7 +1488,6 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
     octl->output_str("<something>");
     goto end_of_routine;
   }  /* if */
-#ifdef CFE
   options &= ~FTO_SUPPRESS_CONST;
   /* Remove type qualifiers but not typedefs.  Also drop typedefs
      that aren't visible here.  Accumulate the type qualifier set. */
@@ -1548,7 +1533,6 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
     need_trailing_space = TRUE;
   }  /* if */
 #endif /* NEAR_AND_FAR_ALLOWED */
-#endif /* ifdef CFE */
   kind = type->kind;
   if (kind == (a_type_kind)tk_pointer) {
     /* Pointer or reference type. */
@@ -1556,7 +1540,6 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
                          /*under_lhs_declarator=*/TRUE,
                          /*need_trailing_space=*/TRUE,
                          TQ_NONE, options, octl);
-#ifdef CFE
     /* Output "*" or "&" for pointer or reference. */
     if (type->variant.pointer.is_reference && !octl->c_generating_back_end) {
       octl->output_str("&");
@@ -1571,7 +1554,6 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
         octl->output_str(") ");
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#endif /* ifdef CFE */
       octl->output_str("*");
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (type->has_microsoft_w64_specifier &&
@@ -1591,15 +1573,12 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
         }  /* if */
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#ifdef CFE
     }  /* if */
     /* Output the type qualifiers on the pointer, if any. */
     if (qualifiers != TQ_NONE) {
       form_type_qualifier(qualifiers, upc_block_size, need_trailing_space,
                           octl);
     }  /* if */
-#endif /* ifdef CFE */
-#ifdef CFE
   } else if (kind == (a_type_kind)tk_ptr_to_member) {
     /* Pointer-to-member type. */
     form_type_first_part(type->variant.ptr_to_member.type,
@@ -1623,7 +1602,6 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
       form_type_qualifier(qualifiers, upc_block_size, need_trailing_space,
                           octl);
     }  /* if */
-#endif /* ifdef CFE */
   } else if (kind == (a_type_kind)tk_routine) {
     /* Function type. */
     /* A qualifier on a function type shouldn't be possible without a
@@ -1644,7 +1622,6 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
                                                             calling_convention,
                             octl);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#ifdef CFE
   } else if (kind == (a_type_kind)tk_array) {
     /* Array type. */
     /* A qualifier on an array type shouldn't be possible, period. */
@@ -1666,7 +1643,6 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
     /* This is a right-side declarator, so if it's under a left-side
        declarator parentheses are needed. */
     if (under_lhs_declarator) octl->output_str("(");
-#endif /* ifdef CFE */
   } else {
 handle_specifiers_type:
     /* No declarator part to process.  Handle the specifier type. */
@@ -1779,7 +1755,6 @@ in the way described by octl.
         octl->output_str(name_linkage_kind_names[linkage]);
       }  /* if */
     } /* if */
-#ifdef CFE
     /* Output a cv-qualifier for a member function, if there is one. */
     if (rtsp->this_class != NULL) {
       a_type_qualifier_set qualifiers = rtsp->qualifiers;
@@ -1789,7 +1764,6 @@ in the way described by octl.
                             /*need_trailing_space=*/FALSE, octl);
       }  /* if */
     }  /* if */
-#endif /* ifdef CFE */
   }  /* if */
 }  /* form_function_declarator */
 
@@ -1932,16 +1906,13 @@ If options contains FTO_SUPPRESS_CONST, suppress generation of top-level
 {
   a_type_kind kind;
   a_boolean   suppress_const = (options & FTO_SUPPRESS_CONST) != 0;
-#ifdef CFE
   a_type_qualifier_set
               qualifiers = TQ_NONE;
-#endif /* ifdef CFE */
 
   if (type == NULL) {
     /* NULL type pointer.  Handled in form_type_first_part. */
     goto end_of_routine;
   }  /* if */
-#ifdef CFE
   options &= ~FTO_SUPPRESS_CONST;
   /* Remove type qualifiers but not typedefs.  Also drop typedefs that aren't
      visible here.  The decltype and GNU typeof operators are like visible
@@ -1972,20 +1943,17 @@ If options contains FTO_SUPPRESS_CONST, suppress generation of top-level
     }  /* if */
     type = type->variant.typeref.type;
   }  /* while */
-#endif /* ifdef CFE */
   kind = type->kind;
   if (kind == (a_type_kind)tk_pointer) {
     /* Pointer or reference type. */
     form_type_second_part(type->variant.pointer.type,
                           /*under_lhs_declarator=*/TRUE,
                           options, octl);
-#ifdef CFE
   } else if (kind == (a_type_kind)tk_ptr_to_member) {
     /* Pointer-to-member type. */
     form_type_second_part(type->variant.ptr_to_member.type,
                           /*under_lhs_declarator=*/TRUE,
                           options, octl);
-#endif /* ifdef CFE */
   } else if (kind == (a_type_kind)tk_routine) {
     /* Function type. */
     /* This is a right-side declarator, so if it's under a left-side
@@ -1995,7 +1963,6 @@ If options contains FTO_SUPPRESS_CONST, suppress generation of top-level
     form_type_second_part(type->variant.routine.return_type,
                           /*under_lhs_declarator=*/FALSE,
                           options, octl);
-#ifdef CFE
   } else if (kind == (a_type_kind)tk_array) {
     /* Array type. */
     if (can_use_qualified_array_typedef(&type, &qualifiers, suppress_const,
@@ -2013,7 +1980,6 @@ If options contains FTO_SUPPRESS_CONST, suppress generation of top-level
                             /*under_lhs_declarator=*/FALSE,
                             options, octl);
     }  /* if */
-#endif /* ifdef CFE */
   }  /* if */
 end_of_routine:;
 }  /* form_type_second_part */
@@ -4211,7 +4177,6 @@ precedence confusion.  Do the output in the way described by octl.
       octl->output_str(")");
       break;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
-#ifdef CFE
     case ck_address:
       /* Address constant. */
       form_address_constant(constant, /*form_lvalue=*/FALSE, need_parens,
@@ -4244,7 +4209,6 @@ precedence confusion.  Do the output in the way described by octl.
     case ck_dynamic_init:
       form_dynamic_init_constant(constant, octl);
       break;
-#endif /* ifdef CFE */
     case ck_aggregate:
       octl->output_str("{");
       { a_constant_ptr sub_con = constant->variant.aggregate.first_constant;
@@ -4268,7 +4232,6 @@ precedence confusion.  Do the output in the way described by octl.
                     /*need_parens=*/FALSE, octl);
       octl->output_str(">");
       break;
-#ifdef CFE
     case ck_template_param:
       check_assertion(!octl->gen_compilable_code ||
                       prototype_instantiations_in_il);
@@ -4372,8 +4335,6 @@ do_sizeof_cases:
           octl->output_str("**BAD-TEMPLATE-PARAM-CONSTANT-KIND**");
       }  /* switch */
       break;
-#endif /* ifdef CFE */
-#ifdef CFE
     case ck_designator:
       if (constant->variant.designator.field != NULL) {
         a_field_ptr field = constant->variant.designator.field;
@@ -4386,7 +4347,6 @@ do_sizeof_cases:
         octl->output_str("] = ");
       } /* if */
       break;
-#endif /* ifdef CFE */
     default:
 #if DEBUG
       if (octl->debug_output) {

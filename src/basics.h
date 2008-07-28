@@ -26,21 +26,6 @@ parameters for this version.
    
 #include "defines.h"
 
-#ifndef CFE
-/*
-Set the conditional compilation switch indicating that this is the
-C front end being compiled.  CFE must be defined.
-*/
-#define CFE 1
-#endif /* ifndef CFE */
-#ifndef CIL
-/*
-Set the conditional compilation switch controlling the inclusion of
-C-specific IL structures.  CIL must be defined.
-*/
-#define CIL 1
-#endif /* ifndef CIL */
-
 /*
 EXTERN_C is used to declare an external function with C linkage.  When
 compiling with a C compiler this is just set to ``extern'', but when

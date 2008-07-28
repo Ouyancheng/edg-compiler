@@ -1,5 +1,10 @@
 Version 3.11
 
+7/28/08  Removal of tests of CIL and CFE
+
+Because the FORTRAN-specific parts of the IL have been removed (see below),
+the tests of CIL and CFE are no longer needed and have been removed.
+
 7/28/08  Removal of FORTRAN-specific IL entities
 
 The FORTRAN-specific code previously guarded by the FIL and FFE macros has

@@ -1875,7 +1875,6 @@ kind "kind" in *float_value. Return *err TRUE if there is some error.
   store_host_fp_value((a_host_fp_value)int_value, kind, float_value, err);
 }  /* fp_host_large_integer_to_float */
 
-#ifdef CFE
 
 void fp_host_large_unsigned_to_float(
                       a_float_kind            kind, 
@@ -1915,7 +1914,6 @@ Convert unsigned_value to a floating-point value of kind "kind" in
 #endif /* __MSC__ */
 }  /* fp_host_large_unsigned_to_float */
 
-#endif /* ifdef CFE */
 
 void fp_to_host_large_integer(
 			a_float_kind            kind,
@@ -1951,7 +1949,6 @@ mode, *depends_on_fp_mode is returned TRUE (*int_value is set anyway).
   *int_value = (a_host_large_integer)temp;
 }  /* fp_to_host_large_integer */
 
-#ifdef CFE
 
 #if !STANDALONE_UTILITY_PROGRAM
 
@@ -2010,8 +2007,6 @@ floating-point mode, *depends_on_fp_mode is returned TRUE
      value may be used in some modes. */
   *unsigned_value = (a_host_large_unsigned)temp;
 }  /* fp_to_host_large_unsigned */
-
-#endif /* ifdef CFE */
 
 
 a_boolean fp_is_zero_constant(a_float_kind            kind,

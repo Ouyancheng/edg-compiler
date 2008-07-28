@@ -2108,15 +2108,12 @@ running them through the indicated remapping function.
   remap_orphan_entry_first(iek_based_type_list_member);
   remap_orphan_entry_first(iek_type);
   remap_orphan_entry_first(iek_variable);
-#ifdef CFE
   remap_orphan_entry_first(iek_field);
   remap_orphan_entry_first(iek_exception_specification);
   remap_orphan_entry_first(iek_exception_specification_type);
-#endif /* ifdef CFE */
   remap_orphan_entry_first(iek_routine);
   remap_orphan_entry_first(iek_label);
   remap_orphan_entry_first(iek_expr_node);
-#ifdef CFE
   remap_orphan_entry_first(iek_for_loop);
   remap_orphan_entry_first(iek_switch_case_entry);
   remap_orphan_entry_first(iek_switch_stmt_descr);
@@ -2125,7 +2122,6 @@ running them through the indicated remapping function.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   remap_orphan_entry_first(iek_microsoft_try_supplement);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#endif /* ifdef CFE */
   remap_orphan_entry_first(iek_block);
   remap_orphan_entry_first(iek_statement);
   remap_orphan_entry_first(iek_object_lifetime);
@@ -2137,7 +2133,6 @@ running them through the indicated remapping function.
 #if C99_IL_EXTENSIONS_SUPPORTED
   remap_orphan_entry_first(iek_internal_complex_value);
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
-#ifdef CFE
   remap_orphan_entry_first(iek_namespace);
   remap_orphan_entry_first(iek_using_decl);
   remap_orphan_entry_first(iek_dynamic_init);
@@ -2162,7 +2157,6 @@ running them through the indicated remapping function.
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
   remap_orphan_entry_first(iek_eh_prologue_supplement);
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
-#endif /* ifdef CFE */
   remap_orphan_entry_first(iek_template_parameter);
   remap_orphan_entry_first(iek_template_decl);
 #if RECORD_FORM_OF_NAME_REFERENCE
@@ -2208,15 +2202,12 @@ running them through the indicated remapping function.
   remap_orphan_entry_last(iek_based_type_list_member);
   remap_orphan_entry_last(iek_type);
   remap_orphan_entry_last(iek_variable);
-#ifdef CFE
   remap_orphan_entry_last(iek_field);
   remap_orphan_entry_last(iek_exception_specification);
   remap_orphan_entry_last(iek_exception_specification_type);
-#endif /* ifdef CFE */
   remap_orphan_entry_last(iek_routine);
   remap_orphan_entry_last(iek_label);
   remap_orphan_entry_last(iek_expr_node);
-#ifdef CFE
   remap_orphan_entry_last(iek_for_loop);
   remap_orphan_entry_last(iek_switch_case_entry);
   remap_orphan_entry_last(iek_switch_stmt_descr);
@@ -2225,7 +2216,6 @@ running them through the indicated remapping function.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   remap_orphan_entry_last(iek_microsoft_try_supplement);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#endif /* ifdef CFE */
   remap_orphan_entry_last(iek_block);
   remap_orphan_entry_last(iek_statement);
   remap_orphan_entry_last(iek_object_lifetime);
@@ -2237,7 +2227,6 @@ running them through the indicated remapping function.
 #if C99_IL_EXTENSIONS_SUPPORTED
   remap_orphan_entry_last(iek_internal_complex_value);
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
-#ifdef CFE
   remap_orphan_entry_last(iek_namespace);
   remap_orphan_entry_last(iek_using_decl);
   remap_orphan_entry_last(iek_dynamic_init);
@@ -2262,7 +2251,6 @@ running them through the indicated remapping function.
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
   remap_orphan_entry_last(iek_eh_prologue_supplement);
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
-#endif /* ifdef CFE */
   remap_orphan_entry_last(iek_template_parameter);
   remap_orphan_entry_last(iek_template_decl);
 #if RECORD_FORM_OF_NAME_REFERENCE

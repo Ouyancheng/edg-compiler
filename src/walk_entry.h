@@ -373,16 +373,12 @@ Process the source correspondence field pointed to by ptr.
 */
 /* Macro to parent scope only if it exists. */
 #undef remap_parent
-#ifdef CFE
 #define remap_parent(ptr) \
 { remap_ptr_not_needed((ptr).parent_scope, a_scope_ptr, iek_scope); \
   if ((ptr).is_class_member) {  \
     set_proper_definition_needed_flag(scp_parent_class(&ptr)); \
   }  /* if */  \
 }  /* remap_parent */
-#else /* !defined(CFE) */
-#define remap_parent(ptr) /* Nothing */
-#endif /* ifdef CFE */
 
 /*
 Clear a front end pointer (to avoid passing it to the next phase) if
@@ -649,7 +645,6 @@ the file scope, do not process it (but record an orphan in the latter case).
                      iek_internal_complex_value);
             break;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
-#ifdef CFE
           case ck_address:
             switch (ptr->variant.address.kind) {
               case abk_routine:
@@ -740,7 +735,6 @@ the file scope, do not process it (but record an orphan in the latter case).
               walk_ptr(ptr->variant.dynamic_init, a_dynamic_init_ptr,
                        iek_dynamic_init);
             break;
-#endif /* ifdef CFE */
           case ck_aggregate:
             walk_list(ptr->variant.aggregate.first_constant, a_constant_ptr,
                       iek_constant);
@@ -855,12 +849,10 @@ the file scope, do not process it (but record an orphan in the latter case).
         a_routine_type_supplement_ptr ptr =
                                       (a_routine_type_supplement_ptr)entry_ptr;
         walk_list(ptr->param_type_list, a_param_type_ptr, iek_param_type);
-#ifdef CFE
         remap_ptr(ptr->this_class, a_type_ptr, iek_type);
         walk_ptr(ptr->prototype_scope, a_scope_ptr, iek_scope);
         walk_ptr(ptr->exception_specification, an_exception_specification_ptr,
                  iek_exception_specification);
-#endif /* ifdef CFE */
 #if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
         /* Do not walk the assoc_routine pointer for the needed or keep-in-il
            traversal.  We don't want this to force keeping of the routine
@@ -923,7 +915,6 @@ the file scope, do not process it (but record an orphan in the latter case).
             /* No pointers. */
             break;
           case tk_integer:
-#ifdef CFE
             if (ptr->variant.integer.enum_type) {
               if (is_scoped_enum_type(ptr)) {
                 walk_ptr(ptr->variant.integer.enum_info.assoc_scope,
@@ -946,18 +937,14 @@ the file scope, do not process it (but record an orphan in the latter case).
             walk_ptr(ptr->variant.integer.base_type, a_type_ptr, iek_type);
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL || BACK_END_IS_CP_GEN_BE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#endif /* ifdef CFE */
             break;
           case tk_pointer:
             walk_ptr(ptr->variant.pointer.type, a_type_ptr, iek_type);
-#ifdef CFE
 #if MICROSOFT_EXTENSIONS_ALLOWED
             remap_ptr(ptr->variant.pointer.base_variable, a_variable_ptr,
                       iek_variable);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#endif /* ifdef CFE */
             break;
-#ifdef CFE
           case tk_array:
             if (ptr->variant.array.is_variable_size_array &&
                 !ptr->variant.array.is_vla) {
@@ -1032,7 +1019,6 @@ the file scope, do not process it (but record an orphan in the latter case).
                       a_type_ptr, iek_type);
             walk_ptr(ptr->variant.ptr_to_member.type, a_type_ptr, iek_type);
             break;
-#endif /* ifdef CFE */
           case tk_routine:
             walk_ptr(ptr->variant.routine.return_type, a_type_ptr, iek_type);
             walk_ptr(ptr->variant.routine.extra_info,
@@ -1097,7 +1083,6 @@ the file scope, do not process it (but record an orphan in the latter case).
 #endif /* MINIMAL_INLINING */
       }
       break;
-#ifdef CFE
     case iek_field:
       {
         a_field_ptr ptr = (a_field_ptr)entry_ptr;
@@ -1148,7 +1133,6 @@ the file scope, do not process it (but record an orphan in the latter case).
 #endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
       }
       break;
-#endif /* ifdef CFE */
     case iek_routine:
       {
         a_routine_ptr ptr = (a_routine_ptr)entry_ptr;
@@ -1176,7 +1160,6 @@ the file scope, do not process it (but record an orphan in the latter case).
         /* assoc_scope points to a different memory region and is not
            walked automatically.  The entry_process_func can arrange
            to call walk_routine_scope_il if it wants to. */
-#ifdef CFE
         walk_list(ptr->template_arg_list, a_template_arg_ptr,
                   iek_template_arg);
         remap_ptr(ptr->assoc_template, a_template_ptr, iek_template);
@@ -1236,7 +1219,6 @@ the file scope, do not process it (but record an orphan in the latter case).
                   iek_class_list_entry);
 #endif /* KEEP_IN_IL_WALK */
 #endif /* !NEEDED_FLAG_WALK */
-#endif /* ifdef CFE */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         walk_ptr(ptr->declared_type, a_type_ptr, iek_type);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -1384,7 +1366,6 @@ do_set_proper_definition_needed_flag:
             remap_ptr(ptr->variant.routine, a_routine_ptr, iek_routine);
             set_proper_routine_definition_needed_flag(ptr->variant.routine);
             break;
-#ifdef CFE
           case enk_field:
             /* Fields are handled in processing the tag that contains
                them. */
@@ -1530,7 +1511,6 @@ do_set_proper_definition_needed_flag:
             remap_ptr(ptr->variant.vla_variable, a_variable_ptr, iek_variable);
             break;
 #endif /* VLA_DEALLOCATIONS_IN_IL */
-#endif /* ifdef CFE */
           case enk_type_operand:
             walk_ptr(ptr->variant.type_operand.type, a_type_ptr, iek_type);
             if (ptr->variant.type_operand.definition_needed) {
@@ -1547,7 +1527,6 @@ do_set_proper_definition_needed_flag:
         }  /* switch */
       }
       break;
-#ifdef CFE
     case iek_for_loop:
       {
         a_for_loop_ptr ptr = (a_for_loop_ptr)entry_ptr;
@@ -1630,9 +1609,7 @@ do_set_proper_definition_needed_flag:
       }
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#endif /* ifdef CFE */
     case iek_block:
-#ifdef CFE
       {
 #if !NEEDED_FLAG_WALK
         a_block_ptr ptr = (a_block_ptr)entry_ptr;
@@ -1644,7 +1621,6 @@ do_set_proper_definition_needed_flag:
                              iek_object_lifetime);
 #endif /* !NEEDED_FLAG_WALK */
       }
-#endif /* ifdef CFE */
       break;
     case iek_statement:
       /* Statements account for more than 10% of the IL nodes (they're the
@@ -1682,9 +1658,7 @@ do_set_proper_definition_needed_flag:
                      iek_statement);
             break;
           case stmk_while:
-#ifdef CFE
           case stmk_end_test_while:
-#endif /* ifdef CFE */
             walk_ptr(ptr->variant.loop_statement, a_statement_ptr,
                      iek_statement);
             break;
@@ -1710,7 +1684,6 @@ do_set_proper_definition_needed_flag:
             walk_list(ptr->variant.block.statements, a_statement_ptr,
                       iek_statement);
             break;
-#ifdef CFE
 #if UPC_EXTENSIONS_ALLOWED
           /* The upc_forall statement is handled like a for statement. */
           case stmk_upc_forall:
@@ -1775,7 +1748,6 @@ do_set_proper_definition_needed_flag:
                         iek_variable);
             }  /* if */
             break;
-#endif /* ifdef CFE */
           default:
             unexpected_condition_str(
                                  "walk_entry_and_subtree: bad statement kind");
@@ -2053,7 +2025,6 @@ do_set_proper_definition_needed_flag:
           case sck_file:
             /* No pointers */
             break;
-#ifdef CFE
           case sck_block:
             /* Call remap_ptr on the handler entry since it is also on a list
                pointed to from the try-block statement. */
@@ -2085,13 +2056,11 @@ do_set_proper_definition_needed_flag:
             remap_ptr_not_needed(ptr->variant.assoc_namespace, a_namespace_ptr,
                                  iek_namespace);
             break;
-#endif  /* ifdef CFE */
           case sck_function:
             /* "ptr", which points to the routine associated with this scope,
                is done after the declarations. */
             walk_list(ptr->variant.routine.parameters, a_variable_ptr,
                       iek_variable);
-#ifdef CFE
             walk_list(ptr->variant.routine.constructor_inits,
                       a_constructor_init_ptr, iek_constructor_init);
             walk_ptr(ptr->variant.routine.lifetime_of_local_static_vars,
@@ -2100,7 +2069,6 @@ do_set_proper_definition_needed_flag:
                      iek_variable);
             remap_ptr_not_needed(ptr->variant.routine.return_value_variable,
                                  a_variable_ptr, iek_variable);
-#endif  /* ifdef CFE */
             break;
           case sck_template_declaration:
           case sck_template_instantiation:
@@ -2116,7 +2084,6 @@ do_set_proper_definition_needed_flag:
            the file scope and function scopes. */
         walk_ptr(ptr->lifetime, an_object_lifetime_ptr, iek_object_lifetime);
         walk_list(ptr->constants, a_constant_ptr, iek_constant);
-#ifdef CFE
 #if DO_SUBTREE_WALK
 #if NEEDED_FLAG_WALK
         /* Do not walk the types and variables lists to set the "needed"
@@ -2195,12 +2162,6 @@ do_set_proper_definition_needed_flag:
         walk_list_not_needed(ptr->nonstatic_variables, a_variable_ptr,
                              iek_variable);
 #endif /* NEEDED_FLAG_WALK && defined(nonstatic_variable_always_needed) */
-#else /* ifndef CFE */
-        /* Not the C/C++ front end. */
-        walk_list(ptr->types, a_type_ptr, iek_type);
-        walk_list(ptr->variables, a_variable_ptr, iek_variable);
-        walk_list(ptr->routines, a_routine_ptr, iek_routine);
-#endif /* ifdef CFE */
         walk_list_not_needed(ptr->labels, a_label_ptr, iek_label);
         walk_list(ptr->scopes, a_scope_ptr, iek_scope);
         walk_list_with_keep_in_il_reset(ptr->namespaces, a_namespace_ptr,
@@ -2266,7 +2227,6 @@ do_set_proper_definition_needed_flag:
       /* No pointers. */
       break;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
-#ifdef CFE
     case iek_namespace:
       {
         a_namespace_ptr ptr = (a_namespace_ptr)entry_ptr;
@@ -2789,7 +2749,6 @@ after_entry_from_class:
       }
       break;
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
-#endif /* ifdef CFE */
 #if GENERATE_SOURCE_SEQUENCE_LISTS && !NEEDED_FLAG_WALK
     case iek_source_sequence_entry:
       {
@@ -3039,17 +2998,14 @@ of each kind.
                                         iek_based_type_list_member);
   walk_orphan_entry_list_for_entry_kind(a_type_ptr, iek_type);
   walk_orphan_entry_list_for_entry_kind(a_variable_ptr, iek_variable);
-#ifdef CFE
   walk_orphan_entry_list_for_entry_kind(a_field_ptr, iek_field);
   walk_orphan_entry_list_for_entry_kind(an_exception_specification_ptr,
                                         iek_exception_specification);
   walk_orphan_entry_list_for_entry_kind(an_exception_specification_type_ptr,
                                         iek_exception_specification_type);
-#endif /* ifdef CFE */
   walk_orphan_entry_list_for_entry_kind(a_routine_ptr, iek_routine);
   walk_orphan_entry_list_for_entry_kind(a_label_ptr, iek_label);
   walk_orphan_entry_list_for_entry_kind(an_expr_node_ptr, iek_expr_node);
-#ifdef CFE
   walk_orphan_entry_list_for_entry_kind(a_for_loop_ptr, iek_for_loop);
   walk_orphan_entry_list_for_entry_kind(a_switch_case_entry_ptr,
                                         iek_switch_case_entry);
@@ -3062,7 +3018,6 @@ of each kind.
   walk_orphan_entry_list_for_entry_kind(a_microsoft_try_supplement_ptr,
                                         iek_microsoft_try_supplement);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#endif /* ifdef CFE */
   walk_orphan_entry_list_for_entry_kind(a_block_ptr, iek_block);
   walk_orphan_entry_list_for_entry_kind(a_statement_ptr, iek_statement);
   walk_orphan_entry_list_for_entry_kind(an_object_lifetime_ptr,
@@ -3076,7 +3031,6 @@ of each kind.
   walk_orphan_entry_list_for_entry_kind(an_internal_complex_value_ptr,
                                         iek_internal_complex_value);
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
-#ifdef CFE
   walk_orphan_entry_list_for_entry_kind(a_namespace_ptr, iek_namespace);
   walk_orphan_entry_list_for_entry_kind(a_using_decl_ptr, iek_using_decl);
   walk_orphan_entry_list_for_entry_kind(a_dynamic_init_ptr, iek_dynamic_init);
@@ -3111,7 +3065,6 @@ of each kind.
   walk_orphan_entry_list_for_entry_kind(an_eh_prologue_supplement_ptr,
                                         iek_eh_prologue_supplement);
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
-#endif /* ifdef CFE */
   walk_orphan_entry_list_for_entry_kind(a_template_parameter_ptr,
                                         iek_template_parameter);
   walk_orphan_entry_list_for_entry_kind(a_template_decl_ptr,

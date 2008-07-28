@@ -19162,7 +19162,6 @@ static a_byte lvalue_rvalue_test[(int)eok_last+1] = {
   /* eok_unary_plus: */			LVRV_OPND1_IS_RVALUE,
   /* eok_not: */			LVRV_OPND1_IS_RVALUE,
   /* eok_cast: */			LVRV_OPND1_IS_LVALUE_IF_EXPR_IS,
-#ifdef CIL
   /* eok_base_class_cast: */		LVRV_OPND1_IS_LVALUE_IF_EXPR_IS,
   /* eok_derived_class_cast: */		LVRV_OPND1_IS_LVALUE_IF_EXPR_IS,
   /* eok_pm_base_class_cast: */		LVRV_OPND1_IS_LVALUE_IF_EXPR_IS,
@@ -19194,7 +19193,6 @@ static a_byte lvalue_rvalue_test[(int)eok_last+1] = {
 #if MICROSOFT_EXTENSIONS_ALLOWED
   /* eok_assume: */			LVRV_NO_REQUIREMENTS,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#endif /* ifdef CIL */
 #if C99_IL_EXTENSIONS_SUPPORTED
   /* eok_xnegate: */			LVRV_OPND1_IS_RVALUE,
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
@@ -19327,7 +19325,6 @@ static a_byte lvalue_rvalue_test[(int)eok_last+1] = {
   /* eok_real_part: */			LVRV_NO_REQUIREMENTS,
   /* eok_imag_part: */			LVRV_NO_REQUIREMENTS,
 #endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
-#ifdef CIL
   /* eok_remainder: */			LVRV_OPND1_IS_RVALUE |
 					LVRV_OPND2_IS_RVALUE,
   /* eok_pdiff: */			LVRV_OPND1_IS_RVALUE |
@@ -19433,20 +19430,15 @@ static a_byte lvalue_rvalue_test[(int)eok_last+1] = {
 					LVRV_NO_REQUIREMENTS,
   /* eok_points_to_vacuous_destructor_call: */
 					LVRV_OPND1_IS_RVALUE,	
-#endif /* ifdef CIL */
   /* eok_land: */			LVRV_OPND1_IS_RVALUE |
 					LVRV_OPND2_IS_RVALUE,
   /* eok_lor: */			LVRV_OPND1_IS_RVALUE |
 					LVRV_OPND2_IS_RVALUE,
-#ifdef CIL
   /* eok_question: */			LVRV_OPND1_IS_RVALUE |
 					LVRV_OPND2_IS_LVALUE_IF_EXPR_IS,
-#endif /* ifdef CIL */
   /* eok_call: */			LVRV_NO_REQUIREMENTS,
-#ifdef CIL
   /* eok_virtual_call: */		LVRV_NO_REQUIREMENTS,
   /* eok_pm_call: */			LVRV_OPND1_IS_RVALUE,
-#endif /* ifdef CIL */
   /* eok_va_start: */			LVRV_OPND1_IS_LVALUE |
 					LVRV_OPND2_IS_LVALUE,
   /* eok_va_arg: */			LVRV_OPND1_IS_LVALUE,
@@ -19454,7 +19446,6 @@ static a_byte lvalue_rvalue_test[(int)eok_last+1] = {
   /* eok_va_copy: */			LVRV_OPND1_IS_LVALUE |
 					LVRV_OPND2_IS_LVALUE,
   /* eok_va_start_single_operand: */	LVRV_OPND1_IS_LVALUE,	
-#ifdef CIL
   /* eok_negate: */			LVRV_OPND1_IS_RVALUE,
   /* eok_post_incr: */			LVRV_OPND1_IS_LVALUE,
   /* eok_post_decr: */			LVRV_OPND1_IS_LVALUE,
@@ -19501,7 +19492,6 @@ static a_byte lvalue_rvalue_test[(int)eok_last+1] = {
   /* eok_rvalue: */			LVRV_OPND1_IS_LVALUE,
   /* eok_generic_call: */		LVRV_NO_REQUIREMENTS,
   /* eok_generic_member_call: */	LVRV_NO_REQUIREMENTS,
-#endif /* ifdef CIL */
   /* eok_error: */			LVRV_NO_REQUIREMENTS,
   /* eok_last: */			LVRV_DISTINGUISHED_VALUE_FOR_LAST
 };  /* lvalue_rvalue_test */

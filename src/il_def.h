@@ -49,10 +49,8 @@ typedef struct a_constant    *a_constant_ptr;
 typedef struct a_template_arg *a_template_arg_ptr;
 typedef struct a_type        *a_type_ptr;
 typedef struct a_variable    *a_variable_ptr;
-#ifdef CIL
 typedef struct a_base_class  *a_base_class_ptr;
 typedef struct a_field       *a_field_ptr;
-#endif /* ifdef CIL */
 typedef struct a_routine     *a_routine_ptr;
 typedef struct a_label       *a_label_ptr;
 typedef struct an_expr_node  *an_expr_node_ptr;
@@ -259,8 +257,6 @@ typedef int	a_scope_depth;
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte a_storage_class;
 
-#ifdef CIL
-
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte an_opname_kind;
 
@@ -280,7 +276,6 @@ enum an_access_specifier_tag {
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte an_access_specifier;
 #define is_more_accessible(access1, access2) ((int)(access1) < (int)(access2))
-#endif /* ifdef CIL */
 
 /* Kind of name linkage (e.g., external name visibility).  Note that
    "name linkage" applies to names (in some implementations it controls
@@ -294,12 +289,10 @@ typedef a_byte an_access_specifier;
    and is_name_linkage_kind_subject_to_name_mangling. */
 enum a_name_linkage_kind_tag {
   nlk_none,		/* No linkage, as for a local variable. */
-#ifdef CIL
   nlk_internal,		/* Internal linkage, as for a file-scope static. */
   nlk_cplusplus_external,
 			/* C++ external linkage, as for an extern in C++.
 			   Implies name mangling if that technique is used. */
-#endif /* ifdef CIL */
   nlk_external,		/* External linkage, as for an external routine. */
   nlk_last_standard = nlk_external,
 #ifdef CUSTOM_NAME_LINKAGE_KINDS
@@ -367,10 +360,8 @@ EXTERN char *name_linkage_kind_names[(int)nlk_last+1]
 #if VAR_INITIALIZERS
 = {
   "no",			/* nlk_none */
-#ifdef CIL
   "internal",		/* nlk_internal */
   "C++",		/* nlk_cplusplus_external */
-#endif /* ifdef CIL */
   "C",			/* nlk_external */
 #ifdef CUSTOM_NAME_LINKAGE_KIND_NAMES
   /* An implementation can add additional linkage kind names by defining this
@@ -398,17 +389,14 @@ typedef enum /*an_il_entry_kind*/ {
 			/* a_based_type_list_member */
   iek_type,		/* a_type */
   iek_variable,		/* a_variable */
-#ifdef CIL
   iek_field,		/* a_field */
   iek_exception_specification,
 			/* an_exception_specification */
   iek_exception_specification_type,
 			/* an_exception_specification_type */
-#endif /* ifdef CIL */
   iek_routine,		/* a_routine */
   iek_label,		/* a_label */
   iek_expr_node,	/* an_expr_node */
-#ifdef CIL
   iek_for_loop,         /* a_for_loop */
   iek_switch_case_entry,
                         /* a_switch_case_entry */
@@ -420,7 +408,6 @@ typedef enum /*an_il_entry_kind*/ {
   iek_microsoft_try_supplement,
 			/* a_microsoft_try_supplement */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#endif /* ifdef CIL */
   iek_block,		/* a_block */
   iek_statement,	/* a_statement */
   iek_object_lifetime,	/* an_object_lifetime */
@@ -432,7 +419,6 @@ typedef enum /*an_il_entry_kind*/ {
   iek_internal_complex_value,
 			/* an_internal_complex_value */
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
-#ifdef CIL
   iek_namespace,	/* a_namespace */
   iek_using_decl,	/* a_using_decl */
   iek_dynamic_init,	/* a_dynamic_init */
@@ -481,7 +467,6 @@ typedef enum /*an_il_entry_kind*/ {
   iek_eh_prologue_supplement,
 			/* an_eh_prologue_supplement */
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
-#endif /* ifdef CIL */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   iek_source_sequence_entry,
 			/* a_source_sequence_entry */
@@ -570,15 +555,12 @@ EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 /* iek_based_type_list_member */	"based-type-list-member",
 /* iek_type */				"type",
 /* iek_variable */			"variable",
-#ifdef CIL
 /* iek_field */				"field",
 /* iek_exception_specification */	"exception-specification",
 /* iek_exception_specification_type */	"exception-specification-type",
-#endif /* ifdef CIL */
 /* iek_routine */			"routine",
 /* iek_label */				"label",
 /* iek_expr_node */			"expr-node",
-#ifdef CIL
 /* iek_for_loop */			"for-loop",
 /* iek_switch_case_entry */		"switch-case-entry",
 /* iek_switch_stmt_descr */		"switch-stmt-descr",
@@ -587,7 +569,6 @@ EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 #if MICROSOFT_EXTENSIONS_ALLOWED
 /* iek_microsoft_try_supplement */	"microsoft-try-supplement",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#endif /* ifdef CIL */
 /* iek_block */				"block",
 /* iek_statement */			"statement",
 /* iek_object_lifetime */		"object-lifetime",
@@ -598,7 +579,6 @@ EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 #if C99_IL_EXTENSIONS_SUPPORTED
 /* iek_internal_complex_value */	"internal-complex-value",
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
-#ifdef CIL
 /* iek_namespace */			"namespace",
 /* iek_using_decl */			"using-decl",
 /* iek_dynamic_init */			"dynamic-init",
@@ -634,7 +614,6 @@ EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
 /* iek_eh_prologue_supplement */	"eh-prologue-supplement",
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
-#endif /* ifdef CIL */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 /* iek_source_sequence_entry */		"source-sequence-entry",
 /* iek_src_seq_secondary_decl */	"src-seq-secondary-decl",
@@ -1181,7 +1160,6 @@ typedef struct an_ms_if_exists {
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 
-#ifdef CIL
 typedef union a_parent_class_or_namespace *a_parent_class_or_namespace_ptr;
 typedef union a_parent_class_or_namespace {
   /* This structure is used to indicate class or namespace membership and
@@ -1302,7 +1280,6 @@ typedef struct a_name_reference {
 
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
 
-#endif /* ifdef CIL */
 
 typedef struct a_source_correspondence *a_source_correspondence_ptr;
 typedef struct a_source_correspondence {
@@ -1383,14 +1360,12 @@ typedef struct a_source_correspondence {
 			   a previously allocated entry so that it can be
 			   reused. */
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
-#ifdef CIL
   a_bit_field /* an_access_specifier */
 		access:2;
 			/* The access control specified at the point of
 			   declaration.	 Restricted access may be indicated
 			   for class members only; all other entities are
 			   "public" by default.	 In C mode, always "public". */
-#endif /* ifdef CIL */
   a_bit_field	referenced:1;
 			/* TRUE if the item is referenced in the
 			   intermediate language.  This is always TRUE
@@ -1421,7 +1396,6 @@ typedef struct a_source_correspondence {
 			   and bound to this entity.  The pragma entry, which
 			   will contain a pointer to this entity, is found by
 			   calling find_assoc_pragma. */
-#ifdef CIL
   a_bit_field	is_local_to_function:1;
 			/* TRUE if a function scope intervenes in the scope
 			   stack between the scope to which the entity belongs
@@ -1566,7 +1540,6 @@ typedef struct a_source_correspondence {
 			   originally static and has been made external, e.g.,
 			   so that it can be referenced from multiple
 			   instantiation slices. */
-#endif /* ifdef CIL */
 #if RECORD_SCOPE_DEPTH_IN_IL
   a_scope_depth	scope_depth;
 			/* Scope nesting depth of this entity. */
@@ -1616,10 +1589,8 @@ enum a_constant_repr_kind_tag {
      for a constant: */
   ck_error,             /* Error. */
   ck_integer,           /* Integers. */
-#ifdef CIL
                         /* char and enum types are handled as integers: see
                            the integer variant of a_type. */
-#endif /* ifdef CIL */
 #if FIXED_POINT_ALLOWED
   ck_fixed_point,       /* Fixed-point types. */
 #endif /* FIXED_POINT_ALLOWED */
@@ -1631,7 +1602,6 @@ enum a_constant_repr_kind_tag {
 #if C99_IL_EXTENSIONS_SUPPORTED
   ck_imaginary,         /* All sizes of C99's _Imaginary types. */
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
-#ifdef CIL
   ck_address,           /* Address/pointer. */
   ck_ptr_to_member,	/* C++ pointer-to-member (data or function). */
 #if GNU_EXTENSIONS_ALLOWED
@@ -1648,16 +1618,12 @@ enum a_constant_repr_kind_tag {
 			   one that requires code.  Only used in C++ and in C
 			   modes that allow nonconstant initializers in
 			   aggregates. */
-#endif /* ifdef CIL */
   ck_aggregate,         /* For list of constants in initialization. */
   ck_init_repeat,       /* Used to specify a repeated initialization constant
-                           in an array. */
-#ifdef CIL
-			/* Used in C++, not in C. */
+                           in an array.  Used in C++, not in C. */
   ck_template_param,	/* Nontype parameter in a class template declaration
 			   (C++ front end only, except when prototype
 			   instantiations are passed to a back end). */
-#endif /* ifdef CIL */
   ck_designator,        /* Used to change the "current object" in an
                            aggregate initializer (C99). */
 #if UPC_EXTENSIONS_ALLOWED
@@ -1669,7 +1635,6 @@ enum a_constant_repr_kind_tag {
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte a_constant_repr_kind;
 
-#ifdef CIL
 enum an_address_base_kind_tag {
   /* When a constant is an address, there are several types of things that can
      be pointed to. */
@@ -1688,7 +1653,6 @@ enum an_address_base_kind_tag {
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte an_address_base_kind;
 
-#endif /* ifdef CIL */
 #if C99_IL_EXTENSIONS_SUPPORTED
 typedef struct an_internal_complex_value *an_internal_complex_value_ptr;
 typedef struct an_internal_complex_value {
@@ -1700,7 +1664,6 @@ typedef struct an_internal_complex_value {
 
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 
-#ifdef CIL
 /*
 Data structure describing an explicitly declared namespace.  An unnamed
 namespace is one in which the source_corresp.name field is a NULL pointer.
@@ -2284,7 +2247,6 @@ typedef struct a_template_param_coordinate {
                            associated. */
 } a_template_param_coordinate;
 
-#endif /* ifdef CIL */
 
 enum a_character_kind_tag {
   /* String and character literals can involve one of several character kinds
@@ -2441,16 +2403,13 @@ typedef struct a_constant {
     /* When kind == ck_integer or ck_upc_threads: */
     an_integer_value
 	        integer_value;
-                        /* A target integer. */
-#ifdef CIL
-                        /* Used for long, int, short, and char, in both
-                           signed and unsigned forms, and for enumerated
-                           type constants. */
+                        /* A target integer.  Used for long, int, short,
+			   and char, in both signed and unsigned forms,
+			   and for enumerated type constants. */
 #if UPC_EXTENSIONS_ALLOWED
 			/* When kind == ck_upc_threads, integer_value is
 			   the multiple of THREADS to be represented. */
 #endif /* UPC_EXTENSIONS_ALLOWED */
-#endif /* ifdef CIL */
 #if FIXED_POINT_ALLOWED
     /* When kind == ck_fixed_point. */
     a_fixed_point_value
@@ -2505,7 +2464,6 @@ typedef struct a_constant {
                         /* A complex value, represented internally as two
                            floating-point values. */
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
-#ifdef CIL
     /* When kind == ck_address: */
     struct {
       an_address_base_kind
@@ -2615,7 +2573,6 @@ typedef struct a_constant {
 			   the middle of a ck_aggregate constant list used as
 			   an initializer.  Obviously, this is not a constant.
 			   Only used in C++. */
-#endif /* ifdef CIL */
     /* When kind == ck_aggregate: */
     /* A ck_aggregate constant is used only in initialization.  As such, it
        is always an unshared constant. */
@@ -2628,12 +2585,9 @@ typedef struct a_constant {
     } aggregate;
     /* When kind == ck_init_repeat: */
     /* A ck_init_repeat constant is used only in initialization.  As such, it
-       is always an unshared constant. */
-#ifdef CIL
-    /* Used in C++ to initialize an array of class objects with
-       constructor initialization; the constant entry is a ck_dynamic_init
-       constant that identifies the default constructor. */
-#endif /* ifdef CIL */
+       is always an unshared constant.  Used in C++ to initialize an array
+       of class objects with constructor initialization; the constant entry is
+       a ck_dynamic_init constant that identifies the default constructor. */
     struct {
       a_constant_ptr
                 constant;
@@ -2659,7 +2613,6 @@ typedef struct a_constant {
 			   repeated.  This is used to mimic the gcc initializer
 			   layout in multi-dimensional arrays. */
     } init_repeat;
-#ifdef CIL
     /* When kind == ck_template_param (C++ front end only, except when
        prototype instantiations are passed to a back end): */
     struct {
@@ -2751,7 +2704,6 @@ typedef struct a_constant {
         } template_ref;
       } variant;
     } template_param;
-#endif /* ifdef CIL */
     /* When kind == ck_designator: */
     /* A ck_designator is only used in initialization, and as such is always
        an unshared constant. The designated field or element is initialized
@@ -2787,12 +2739,8 @@ enum a_type_kind_tag {
   tk_complex,           /* Complex (C99).  Must have the same layout as an
 			   array of two reals of the appropriate size. */
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
-  tk_pointer,           /* Pointer type. */
-#ifdef CIL
-			/* Also used for reference in C++. */
-#endif /* ifdef CIL */
+  tk_pointer,           /* Pointer type.  Also used for references in C++. */
   tk_routine,           /* Function. */
-#ifdef CIL
   tk_array,             /* Array. */
   tk_class,             /* Class. */
   tk_struct,            /* Struct. */
@@ -2808,7 +2756,6 @@ enum a_type_kind_tag {
 #if GNU_VECTOR_TYPES_ALLOWED
   tk_vector,		/* GNU vector types. */
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
-#endif /* ifdef CIL */
   tk_unknown            /* Unknown. */
 };
 /* Define as "a_byte" to explicitly control storage size. */
@@ -2819,14 +2766,10 @@ enum an_integer_kind_tag {
      the same on the target, but they are kept distinct in the front end.
      These must be listed in order of increasing size (or at least
      non-decreasing size). */
-#ifdef CIL
   /* If you change this, you should also change int_kind_is_signed below. */
-#endif /* ifdef CIL */
   ik_char,
-#ifdef CIL
                         /* Not used in pcc mode; ik_signed_char or
                            ik_unsigned_char is used instead. */
-#endif /* ifdef CIL */
   ik_signed_char,
   ik_unsigned_char,
   ik_short,
@@ -3436,7 +3379,6 @@ typedef struct a_param_type {
 			/* The type before any transformations (like
 			   array-to-pointer decay) were applied.  (NULL for
 			   compiler-generated parameters.) */
-#ifdef CIL
 #if RECORD_NAME_IN_PARAM_TYPE_ENTRY
   char          *name;
 			/* Pointer to null-terminated name, or NULL if none
@@ -3516,7 +3458,6 @@ typedef struct a_param_type {
 			/* Linked list of Microsoft attribute entries that
 			   apply to this parameter. */ 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#endif /* ifdef CIL */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_decl_position_supplement_ptr
 		decl_pos_info;
@@ -3880,7 +3821,6 @@ typedef struct a_pragma {
 } a_pragma;
 
 
-#ifdef CIL
 /* Type used to hold a lint varargs argument count: */
 typedef short a_lint_varargs_count;
 #define LINT_VARARGS_COUNT_MAX SHRT_MAX
@@ -4123,7 +4063,6 @@ about variables and routines.
 			   scope specifier. */
 #endif /* SUN_EXTENSIONS_ALLOWED */
 
-#endif /* ifdef CIL */
 
 /* Entry containing additional information about a routine type
 (segregated to keep down the size of a_type). */
@@ -4131,7 +4070,6 @@ typedef struct a_routine_type_supplement *a_routine_type_supplement_ptr;
 typedef struct a_routine_type_supplement {
   a_param_type_ptr
                 param_type_list;
-#ifdef CIL
 			/* List of parameter types.  If prototyped is TRUE,
 			   this is a list of the prototyped parameter types.
 			   If prototyped is FALSE, the function has an
@@ -4151,12 +4089,10 @@ typedef struct a_routine_type_supplement {
 			   function with no definition that has param_type_list
 			   non-NULL. */
 #endif /* DO_IL_LOWERING */
-#endif /* ifdef CIL */
   a_routine_ptr assoc_routine;
                         /* If this type is the type for a function that
                            has been defined (has a body), this points to
                            the associated function.  Otherwise, it is NULL. */
-#ifdef CIL
   a_bit_field	has_ellipsis:1;
                         /* TRUE if there is an ellipsis ("...") at the end of
                            the prototyped parameter list, indicating a
@@ -4333,7 +4269,6 @@ typedef struct a_routine_type_supplement {
 			   Also NULL in C mode or if exceptions are disabled
 			   for this compilation; also NULL if the type is not
 			   bound to a particular routine. */
-#endif /* ifdef CIL */
 } a_routine_type_supplement;
 
 
@@ -4443,7 +4378,6 @@ typedef struct a_template_arg {
 } a_template_arg;
 
 
-#ifdef CIL
 /* Data structures related to C++ classes (type entries of kind tk_class,
    tk_struct, and tk_union). */
 
@@ -5346,8 +5280,6 @@ typedef struct a_template_param_type_supplement {
 } a_template_param_type_supplement;
 
 
-#endif /* ifdef CIL */
-
 /*
 Entry pointed to by the based_types field of a_type entries.  A list
 of these entries gives pointers to types based on the type entry, e.g.,
@@ -5356,7 +5288,6 @@ pointer-to type entry.
 enum a_based_type_kind_tag {
   /* Indication of the relationship between the based type and the base
      type. */
-#ifdef CIL
   btk_qualified,	/* A (const, volatile, const-volatile, etc.) qualified
 			   version of the type. */
   btk_reference,	/* Reference to the type. */
@@ -5369,7 +5300,6 @@ enum a_based_type_kind_tag {
 			   resulted.  (For example, qualifying (int)[3] with
 			   const creates (const int)[3], and the original is
 			   recorded as a based type of the new type.) */
-#endif /* ifdef CIL */
   btk_pointer		/* Pointer to the type. */
 };
 /* Define as "a_byte" to explicitly control storage size. */
@@ -5673,7 +5603,6 @@ typedef struct a_type {
       an_integer_kind
                 int_kind;
                         /* Which kind of integer type. */
-#ifdef CIL
       a_bit_field
                 explicitly_signed:1;
                         /* TRUE if the type specifiers for this type included
@@ -5767,7 +5696,6 @@ typedef struct a_type {
 			   the underlying type (if any).  Otherwise NULL.
 			   If non-NULL, has_explicit_enum_base will be TRUE. */
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL || BACK_END_IS_CP_GEN_BE */
-#endif /* ifdef CIL */
     } integer;
 #if FIXED_POINT_ALLOWED
     /* When kind == tk_fixed_point: */
@@ -5791,7 +5719,6 @@ typedef struct a_type {
       a_type_ptr
                 type;
                         /* Type pointed to by this pointer type. */
-#ifdef CIL
 #if MICROSOFT_EXTENSIONS_ALLOWED
       a_variable_ptr
 		base_variable;
@@ -5809,21 +5736,19 @@ typedef struct a_type {
 			/* Bit set with bits to indicate the presence of one
 			   or more pointer modifiers (e.g., "__ptr32"). */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#endif /* ifdef CIL */
     } pointer;
     /* When kind == tk_routine: */
     struct {
       a_type_ptr
                 return_type;
-                        /* Return type of the function.  void type if
-                           a subroutine.  Might be an incomplete struct or
-                           union type if function isn't called. */
+                        /* Return type of the function.  Might be an
+			   incomplete struct or union type if function isn't
+			   called. */
       a_routine_type_supplement_ptr
                 extra_info;
                         /* Supplementary information, in a separate block
                            to keep down the size of a_type. */
     } routine;
-#ifdef CIL
     /* When kind == tk_array: */
     struct {
       a_type_ptr
@@ -6322,7 +6247,6 @@ typedef struct a_type {
 			   through the vector_size attribute. */
     } vector;
 #endif /* GNU_EXTENSIONS_ALLOWED && GNU_VECTOR_TYPES_ALLOWED */
-#endif /* ifdef CIL */
   } variant;
 } a_type;
 
@@ -6346,7 +6270,6 @@ enum a_storage_class_tag {
                            mapped to something else (extern or auto) when
                            that is possible, and the sc_unspecified value
                            only remains for external definitions. */
-#ifdef CIL
   sc_typedef,           /* Not ever used in variables or functions, but
                            in this enumeration for convenience when scanning
                            declarations. */
@@ -6354,7 +6277,6 @@ enum a_storage_class_tag {
                            parameters declared "register". */
   sc_asm,               /* An asm function.  Only used if ASM_FUNCTION_ALLOWED
                            is TRUE. */
-#endif /* ifdef CIL */
   sc_last
 };
 /* a_storage_class has already been defined as a_byte. */
@@ -6365,10 +6287,7 @@ Table of storage class names, for debug purposes.
 */
 EXTERN char     *db_storage_class_names[(int)sc_last + 1]
 #if VAR_INITIALIZERS
-= {"extern", "static", "auto", "unspecified",
-#ifdef CIL
-   "typedef", "register", "asm",
-#endif /* ifdef CIL */
+= {"extern", "static", "auto", "unspecified", "typedef", "register", "asm",
    "last" /* used to check that initialization is right. */
 }
 #endif /* VAR_INITIALIZERS */
@@ -6408,7 +6327,6 @@ typedef union an_initializer {
 			   is truly constant, i.e., one that does not contain
 			   ck_dynamic_init constants.  Only used for static
 			   variables.  The constant is unshared. */
-#ifdef CIL
   /* When the initialization kind is initk_dynamic: */
   a_dynamic_init_ptr
 		dynamic;
@@ -6419,11 +6337,8 @@ typedef union an_initializer {
 			   be statically initialized) but a destructor must
 			   be called when the variable's lifetime terminates,
 			   a dynamic init entry will also be supplied. */
-#endif /* ifdef CIL */
 } an_initializer;
 
-
-#ifdef CIL
 
 typedef struct a_local_static_variable_init *a_local_static_variable_init_ptr;
 typedef struct a_local_static_variable_init {
@@ -6459,9 +6374,6 @@ typedef struct a_local_static_variable_init {
 			   needed (e.g., when exceptions are not enabled). */
 } a_local_static_variable_init;
 
-#endif /* ifdef CIL */
-
-#ifdef CIL
 
 typedef struct a_vla_dimension *a_vla_dimension_ptr;
 typedef struct a_vla_dimension {
@@ -6532,7 +6444,6 @@ typedef struct a_vla_dimension {
 #endif /* DO_IL_LOWERING */
 } a_vla_dimension;
 
-#endif /* ifdef CIL */
 
 typedef struct a_variable {
   /* Description of a variable, including formal parameters of functions. */
@@ -6669,9 +6580,7 @@ typedef struct a_variable {
                         /* TRUE if the address of this variable has been
                            taken somewhere. */
   a_bit_field	is_parameter:1;
-#ifdef CIL
                         /* TRUE if this is a parameter of a function. */
-#endif /* ifdef CIL */
   a_bit_field	referenced_non_locally:1;
 			/* TRUE if the variable is a local static variable
 			   that is referenced from outside of its function
@@ -6886,14 +6795,12 @@ typedef struct a_variable {
 			   variable. */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   an_init_kind	init_kind;
-			/* Kind of initialization, if any. */
-#ifdef CIL
-			/* When init_kind == initk_function_local (local
+			/* Kind of initialization, if any.
+			   When init_kind == initk_function_local (local
 			   static variables only), the initializer is
 			   indicated by a local-static-variable-init entry
 			   on a linked list for the current function or block
 			   scope. */
-#endif /* ifdef CIL */
   an_initializer
 		initializer;
 			/* Union discriminated by init_kind and indicating the
@@ -6972,7 +6879,6 @@ typedef struct a_variable {
 #endif /* MINIMAL_INLINING */
 } a_variable;
 
-#ifdef CIL
 
 /*
 Data structures related to fields (members) of structs and unions:
@@ -7108,7 +7014,6 @@ enum a_special_function_kind_tag {
 typedef a_byte a_special_function_kind;
 
 #if DEBUG
-#ifdef CFE
 /*
 Table of names corresponding to special function kinds, for debug purposes.
 */
@@ -7120,7 +7025,6 @@ EXTERN char     *db_special_function_kinds[(int)sfk_last + 1]
 }
 #endif /* VAR_INITIALIZERS */
 ;
-#endif /* ifdef CFE */
 #endif /* DEBUG */
 
 /*
@@ -7156,7 +7060,6 @@ enum an_opname_kind_tag {
   onk_gnu_min,           /* "<?" */     onk_gnu_max,           /* ">?" */
   onk_last
 };
-#endif /* ifdef CIL */
 
 #define is_new_operator(op)                                         \
   ((op) == (an_opname_kind)onk_new ||                               \
@@ -8357,19 +8260,15 @@ typedef struct a_routine {
 			   processing, it means that scanning the function
 			   body has begun but is not yet complete.  See
 			   also the note about discarded function bodies
-			   under the "defined" flag. */
-#ifdef CIL
-                        /* See also prototype_scope under
-                           a_routine_type_supplement. */
-#endif /* ifdef CIL */
+			   under the "defined" flag.  See also prototype_scope
+			   under a_routine_type_supplement. */
   a_storage_class
                 storage_class;
                         /* Storage class.  The storage class is not necessarily
 			   what was written in the source program; it is
 			   standardized to show the effective storage class
-			   rather than the keyword that appeared. */
-#ifdef CIL
-			/* Note that the C concept of "storage class" is used
+			   rather than the keyword that appeared.
+			   Note that the C concept of "storage class" is used
 			   also in C++.  Other C++ uses of a storage class
 			   are not reflected in this field.  "static" on a
 			   class member, for example, is a storage class
@@ -8861,7 +8760,6 @@ typedef struct a_routine {
 			/* For instantiated entities, this points to the
 			   the template from which they were generated;
 			   otherwise, this is NULL. */
-#endif /* ifdef CIL */
 #if GNU_EXTENSIONS_ALLOWED
   char		*section;
 			/* If non-NULL, the section in which this
@@ -9089,7 +8987,6 @@ enum an_expr_node_kind_tag {
                            an_expr_operator_kind. */
   enk_constant,         /* A constant value. */
   enk_variable,         /* A variable. */
-#ifdef CIL
   enk_field,            /* Used in an eok_dot_field, eok_points_to_field, etc.
                            operation to indicate the field. */
   enk_temp_init,	/* Initialization of a temporary within an
@@ -9143,7 +9040,6 @@ enum an_expr_node_kind_tag {
 			   function, to give the value to be returned by
 			   the entry. */
 #endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
-#endif /* ifdef CIL */
   enk_routine,          /* A routine (function). */
 #if VLA_DEALLOCATIONS_IN_IL
   enk_vla_dealloc,      /* Used to indicate when a variable-length array
@@ -9236,7 +9132,6 @@ enum an_expr_operator_kind_tag {
 			   is also the code used for classic-syntax casts
 			   involving parameterized types (in prototype
 			   instantiations). */
-#ifdef CIL
   eok_base_class_cast,	/* C++ cast of a pointer to a class to a pointer to
 			   a direct base class.  The type of the expression
  			   indicates the type to cast to. */
@@ -9300,7 +9195,6 @@ enum an_expr_operator_kind_tag {
 			   operand is not evaluated in the traditional
 			   sense of the word. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#endif /* ifdef CIL */
 #if C99_IL_EXTENSIONS_SUPPORTED
   eok_xnegate,          /* Complex negation. */
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
@@ -9393,7 +9287,6 @@ enum an_expr_operator_kind_tag {
                            The operand is an lvalue or rvalue of complex
                            type. */
 #endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
-#ifdef CIL
   eok_remainder,        /* ("%" operator) */
   eok_pdiff,            /* Pointer difference.  Difference between two
                            pointers, returns an integer (ptrdiff_t). */
@@ -9517,35 +9410,24 @@ enum an_expr_operator_kind_tag {
   eok_points_to_vacuous_destructor_call,
 			/* Similar to eok_dot_vacuous_destructor_call, but
 			   for the "->" case, e.g., p->int::~int(). */
-#endif /* ifdef CIL */
   eok_land,             /* Logical intersection, with the operand standardized
-                           to integer/logical. */
-#ifdef CIL
-                        /* ("&&" operator) */
-#endif /* ifdef CIL */
+                           to integer/logical ("&&" operator) */
   eok_lor,              /* Logical union, with the operand standardized
-                           to integer/logical. */
-#ifdef CIL
-                        /* ("||" operator) */
-#endif /* ifdef CIL */
+                           to integer/logical ("||" operator) */
   /* The following have 3 operands: */
-#ifdef CIL
   eok_question,         /* Conditional expression ("?" operator).  Operand
                            has been standardized to integer/logical.  Also
 			   used for the GNU two-operand form, when
 			   is_gnu_two_operand_question_mark is TRUE (but
 			   three operands are still provided in that case). */
-#endif /* ifdef CIL */
   /* The following have n operands: */
-  eok_call,             /* A call of a function or a subroutine.  The first
-                           operand is the routine and the rest are its
-                           arguments. */
-#ifdef CIL
-			/* Note that the operand identifying the routine can
+  eok_call,             /* A call of a function.  The first operand is the
+			   routine and the rest are its arguments.
+			   Note that the operand identifying the routine can
 			   be an expression (e.g., for a call through a
 			   pointer), or eok_dot_static/eok_points_to_static
-			   for a static member function call. */
-			/* For member functions, a compiler-generated argument
+			   for a static member function call.
+			   For member functions, a compiler-generated argument
 			   for the object lvalue or pointer follows the first
 			   argument. */
   eok_virtual_call,	/* A call of a C++ virtual function.  The first operand
@@ -9555,7 +9437,6 @@ enum an_expr_operator_kind_tag {
 			   to member.  The first operand is the pointer to
 			   member (function); the second is the "this" pointer;
 			   any "real" arguments follow. */
-#endif /* ifdef CIL */
   /* Operators used when the <stdarg.h> macros are treated as builtins: */
   eok_va_start,		/* va_start macro reference.  First operand is an
 			   lvalue variable of type va_list, second is
@@ -9576,7 +9457,6 @@ enum an_expr_operator_kind_tag {
 			   operand.  This is typically used to implement the
 			   <varargs.h> variant of va_start (as opposed to the
 			   variant from <stdarg.h>). */
-#ifdef CIL
   /* Operators appearing in prototype instantiations.  The type of the
      operands is generally not known and after instantiation these operators
      may correspond to calls to overloaded operator functions.  Note that some
@@ -9625,7 +9505,6 @@ enum an_expr_operator_kind_tag {
 			/* Like eok_call, but called function details are
 			   not known.  Used for calls that are written in the
 			   bound-function p->f() or x.f() form. */
-#endif /* ifdef CIL */
   /* Special operators: */
   eok_error,            /* This is a special operator used in the cases when
                            the operator cannot be determined.  This operator
@@ -10117,7 +9996,6 @@ typedef struct an_expr_node {
     a_routine_ptr
                 routine;
                         /* A pointer to the routine. */
-#ifdef CIL
     /* When kind == enk_field: */
     a_field_ptr field;
 			/* A pointer to the field.  Used as an operand to an
@@ -10283,7 +10161,6 @@ typedef struct an_expr_node {
 			  previously allocated (stmk_vla_decl) and is
 			  deallocated at this point. */
 #endif /* VLA_DEALLOCATIONS_IN_IL */
-#endif /* ifdef CIL */
     /* When kind == enk_type_operand: */
     struct {
       a_type_ptr
@@ -10348,7 +10225,6 @@ enum a_statement_kind_tag {
   stmk_return,		/* Return. */
   stmk_block,		/* A list of statements, possibly one with its
 			   own declarations and scope. */
-#ifdef CIL
   stmk_end_test_while,	/* Loop, test at bottom. */
   stmk_for,		/* For loop. */
   stmk_switch_case,	/* A "case ... :" or "default:" construct. */
@@ -10371,7 +10247,6 @@ enum a_statement_kind_tag {
   stmk_vla_decl,	/* Declaration of a variable or typedef with
 			   variably modified type.  If the variable is a VLA,
 			   allocate storage for it. */
-#endif /* ifdef CIL */
 #if UPC_EXTENSIONS_ALLOWED
   stmk_upc_notify,	/* Notify statement (split barrier start) */
   stmk_upc_wait,	/* Wait statement (split barrier end) */
@@ -10398,7 +10273,6 @@ typedef struct a_block {
 		final_position;
                         /* Source position of the end of the block, for
 			   symbolic debug purposes. */
-#ifdef CIL
   a_scope_ptr   assoc_scope;
                         /* Pointer to the associated scope, or NULL if there
                            is no associated scope.  This is only used for
@@ -10434,10 +10308,8 @@ typedef struct a_block {
 			   variables within this block (can be modified with
 			   a UPC pragma). */
 #endif /* UPC_EXTENSIONS_ALLOWED */
-#endif /* ifdef CIL */
 } a_block;
 
-#ifdef CIL
 /* 
 Information about a for loop, pointed to from an stmk_for statement.  Note
 that the test expression and dependent statement are not mentioned in this
@@ -10619,7 +10491,6 @@ typedef struct a_microsoft_try_supplement {
 } a_microsoft_try_supplement;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-#endif /* ifdef CIL */
 
 typedef struct a_statement {
   /* Definition of an executable statement. */
@@ -10667,9 +10538,7 @@ typedef struct a_statement {
                              The expression to evaluate for stmk_expr.
                              The return value (or NULL) for stmk_return.
                              The expression to test for stmk_if.
-                             The expression to test for stmk_while. */
-#ifdef CIL
-                        /* Also:
+                             The expression to test for stmk_while.
                              The expression to test for stmk_end_test_while.
                              The expression to test (or NULL) for stmk_for.
                            Note that the "expression to test" in each of the
@@ -10678,7 +10547,6 @@ typedef struct a_statement {
                              The switch expression for stmk_switch.
                              The selector expression for stmk_assigned_goto,
 			     if GNU extensions are allowed. */
-#endif /* ifdef CIL */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_source_sequence_entry_ptr
 		source_sequence_entry;
@@ -10720,16 +10588,13 @@ typedef struct a_statement {
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     } if_stmt;
     /* When kind == stmk_while: */
-#ifdef CIL
     /* When kind == stmk_end_test_while: */
-#endif /* ifdef CIL */
     a_statement_ptr
                 loop_statement;
                         /* The statement that is the body of the loop.
                            Points to a single statement, which will be a block
                            statement if there are several dependent
                            statements. */
-#ifdef CIL
     /* When kind == stmk_for: */
 #if UPC_EXTENSIONS_ALLOWED
     /* When kind == stmk_upc_forall: */
@@ -10772,7 +10637,6 @@ typedef struct a_statement {
 			   fields describing the associated stmk_switch_case
 			   statements). */
     } switch_stmt;
-#endif /* ifdef CIL */
     /* When kind == stmk_goto or stmk_label: */
     struct {
       a_label_ptr
@@ -10807,7 +10671,6 @@ typedef struct a_statement {
                            a separate entry to keep the size of a_statement
                            down. */
     } block;
-#ifdef CIL
     /* When kind == stmk_init: */
     a_dynamic_init_ptr
 		dynamic_init;
@@ -10867,11 +10730,9 @@ typedef struct a_statement {
                            is allocated at this point. */
       } variant;
     } vla;
-#endif /* ifdef CIL */
   } variant;
 } a_statement;
 
-#ifdef CIL
 
 /* Data structure a_constructor_init, used for C++ only, describes the
    explicit and default initialization to be applied when a constructor is
@@ -10930,7 +10791,6 @@ typedef struct a_constructor_init {
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 } a_constructor_init;
 
-#endif /* ifdef CIL */
 
 /*
 Numbering for scopes.  Each new scope is given a number.  These
@@ -11739,7 +11599,6 @@ typedef struct a_local_scope_ref {
 enum a_scope_kind_tag {
   /* Kinds of scopes. */
   sck_file,		/* File scope. */
-#ifdef CIL
   sck_func_prototype,   /* Function prototype scope, used also during
 			   function declarators that are part of a
 			   function definition (since we don't know at
@@ -11812,7 +11671,6 @@ enum a_scope_kind_tag {
   sck_enum,
 			/* The scope associated with a C++0x scoped enum
 			   type. */
-#endif /* ifdef CIL */
   sck_function		/* Function scope. */
 };
 /* Define as "a_byte" to explicitly control storage size. */
@@ -11865,7 +11723,6 @@ typedef struct a_scope {
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
   union {
     /* When kind == sck_file, no variant fields. */
-#ifdef CIL
     /* When kind == sck_block (also see assoc_block below): */
     a_handler_ptr
 		assoc_handler;
@@ -11887,7 +11744,6 @@ typedef struct a_scope {
 		assoc_namespace;
 			/* Pointer to the namespace entry associated with this
 			   scope. */
-#endif /* ifdef CIL */
     /* When kind == sck_function: */
     struct {
       a_routine_ptr
@@ -11898,7 +11754,6 @@ typedef struct a_scope {
                 parameters;
                         /* List of parameters of the associated routine,
                            in declaration order.  NULL if no parameters. */
-#ifdef CIL
       a_constructor_init_ptr
 		constructor_inits;
 			/* List of constructor initializer entries; non-NULL
@@ -11929,7 +11784,6 @@ typedef struct a_scope {
 			   namely the variable pointed to by this field.
 			   Note that the variable is also on the local
 			   variables list of this scope. */
-#endif /* ifdef CIL */
     } routine;
   } variant;
   a_statement_ptr
@@ -11965,10 +11819,8 @@ typedef struct a_scope {
   a_variable_ptr
                 variables;
                         /* List of local variables of this scope, NULL
-                           if none. */
-#ifdef CIL
-			/* In a function or block scope, this is the list
-			   of variables with static allocation; in a scope
+                           if none.  In a function or block scope, this is the
+			   list of variables with static allocation; in a scope
 			   for a class, this is the list of static data
 			   members.  All variables on this list will be
 			   allocated in the file scope memory region. */
@@ -11978,7 +11830,6 @@ typedef struct a_scope {
 			   block scope.  Always NULL at file scope.  Variables
 			   on this list will be allocated in the function
 			   scope's memory region. */
-#endif /* ifdef CIL */
   a_label_ptr   labels; /* List of local labels of this scope, NULL
                            if none.  Only used at the function scope level
                            and for locally declared labels in GNU C mode
@@ -11987,11 +11838,9 @@ typedef struct a_scope {
                         /* List of local routines of this scope, NULL
                            if none.  Includes both routines with definitions
                            and those that are just declarations of interfaces
-                           to external routines. */
-#ifdef CIL
-			/* In a scope for a class, points to a list of the
-			   member functions for the class (both static and
-			   non-static). */
+                           to external routines.  In a scope for a class,
+			   points to a list of the member functions for the
+			   class (both static and non-static). */
   an_asm_entry_ptr
 		asm_entries;
 			/* List of asm entries representing asm declarations
@@ -12064,7 +11913,6 @@ typedef struct a_scope {
 			   order of entries on the list is not significant.
 			   The entries represent implicit references from the
 			   file scope memory region. */
-#endif /* ifdef CIL */
   a_pragma_ptr	pragmas;
 			/* A linked list of pragma entries.  They may be
 			   bound to specific declarations or statements or
@@ -12158,11 +12006,9 @@ typedef struct an_il_header {
                         /* A string that identifies the compiler version. */
   char          *time_of_compilation;
                         /* A string that identifies the time of compilation. */
-#ifdef CIL
   a_byte_boolean
                 plain_chars_are_signed;
                         /* TRUE if the plain char type is signed. */
-#endif /* ifdef CIL */
   a_scope_ptr   *region_scope_entry;
                         /* Pointer to an array of scope pointers.
                            region_scope_entry[i] points to the scope entry
@@ -12186,7 +12032,6 @@ typedef struct an_il_header {
                 source_language;
                         /* Code for the language in which the source program
                            is written. */
-#ifdef CIL
   a_byte_boolean
 		pcc_compatibility_mode;
 			/* TRUE if the source program was compiled as old-style
@@ -12199,7 +12044,6 @@ typedef struct an_il_header {
 			/* Records whether enum types are considered to be
 			   integral; normally, TRUE in C mode and FALSE in
 			   C++ mode. */
-#endif /* ifdef CIL */
 #if USER_CONTROL_OF_STRUCT_PACKING
   a_targ_alignment
 		default_max_member_alignment;
@@ -12364,7 +12208,6 @@ EXTERN char     *db_operator_names[(int)eok_last+1]
    "fx-",
 #endif /* FIXED_POINT_ALLOWED */
    "f-", "+", "!", "cast",
-#ifdef CIL
    "base class cast", "derived class cast",
    "pm base class cast", "pm derived class cast",
    "lvalue cast", "dynamic cast", "bool cast", "~",
@@ -12378,7 +12221,6 @@ EXTERN char     *db_operator_names[(int)eok_last+1]
 #if MICROSOFT_EXTENSIONS_ALLOWED
    "__assume",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#endif /* ifdef CIL */
 #if C99_IL_EXTENSIONS_SUPPORTED
    "x-",
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
@@ -12401,7 +12243,6 @@ EXTERN char     *db_operator_names[(int)eok_last+1]
 #if GNU_COMPLEX_EXTENSIONS_ALLOWED
    "x~", "__real", "__imag",
 #endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
-#ifdef CIL
    "%",
    "pd", "p==", "p!=", "p>", "p<", "p>=", "p<=", "p<?", "p>?",
    "pm==", "pm!=",
@@ -12419,25 +12260,18 @@ EXTERN char     *db_operator_names[(int)eok_last+1]
    "virt func ptr",
    ". vacuous dtor",
    "-> vacuous dtor",
-#endif /* ifdef CIL */
    "&&", "||",
-#ifdef CIL
    "?",
-#endif /* ifdef CIL */
    "call",
-#ifdef CIL
    "virtcall",
    "pmcall",
-#endif /* ifdef CIL */
    "va_start", "va_arg", "va_end", "va_copy", "va_start",
-#ifdef CIL
    "-G",
    "G++", "G--", "++G", "--G",
    "G+", "G-", "G*", "G/", "G==", "G!=", "G>", "G<", "G>=", "G<=",
    "G<?", "G>?", "G=", "G+=", "G-=", "G*=", "G/=",
    "static cast", "const cast", "reinterpret cast",
    "lvalue", "rvalue", "Gcall", "GMcall",
-#endif /* ifdef CIL */
    "error", "last"
 }
 #endif /* VAR_INITIALIZERS */
@@ -12494,15 +12328,12 @@ EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
   sizeof(a_based_type_list_member),
   sizeof(a_type),
   sizeof(a_variable),
-#ifdef CIL
   sizeof(a_field),
   sizeof(an_exception_specification),
   sizeof(an_exception_specification_type),
-#endif /* ifdef CIL */
   sizeof(a_routine),
   sizeof(a_label),
   sizeof(an_expr_node),
-#ifdef CIL
   sizeof(a_for_loop),
   sizeof(a_switch_case_entry),
   sizeof(a_switch_stmt_descr),
@@ -12511,7 +12342,6 @@ EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
 #if MICROSOFT_EXTENSIONS_ALLOWED
   sizeof(a_microsoft_try_supplement),
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#endif /* ifdef CIL */
   sizeof(a_block),
   sizeof(a_statement),
   sizeof(an_object_lifetime),
@@ -12522,7 +12352,6 @@ EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
 #if C99_IL_EXTENSIONS_SUPPORTED
   sizeof(an_internal_complex_value),
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
-#ifdef CIL
   sizeof(a_namespace),
   sizeof(a_using_decl),
   sizeof(a_dynamic_init),
@@ -12558,7 +12387,6 @@ EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
   sizeof(an_eh_prologue_supplement),
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
-#endif /* ifdef CIL */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   sizeof(a_source_sequence_entry),
   sizeof(a_src_seq_secondary_decl),

@@ -151,7 +151,6 @@ void fp_host_large_integer_to_float(a_float_kind            kind,
                                     an_internal_float_value *float_value,
                                     a_boolean               *err);
 
-#ifdef CFE
 extern void make_saturated_integer_for_float(
 			a_float_kind            kind,
 			an_internal_float_value *float_value,
@@ -163,7 +162,6 @@ extern void fp_host_large_unsigned_to_float(
                       a_host_large_unsigned   unsigned_value,
                       an_internal_float_value *float_value,
                       a_boolean               *err);
-#endif /* ifdef CFE */
 
 extern void fp_to_host_large_integer(
 			a_float_kind            kind,
@@ -172,14 +170,12 @@ extern void fp_to_host_large_integer(
 			a_boolean               *err,
 			a_boolean               *depends_on_fp_mode);
 
-#ifdef CFE
 extern void fp_to_host_large_unsigned(
 			a_float_kind            kind,
 			an_internal_float_value *float_value,
 			a_host_large_unsigned   *unsigned_value,
 			a_boolean               *err,
 			a_boolean               *depends_on_fp_mode);
-#endif /* ifdef CFE */
 
 extern a_boolean fp_is_zero_constant(a_float_kind            kind,
                                      an_internal_float_value *float_value);

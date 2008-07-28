@@ -305,10 +305,8 @@ be written.
     switch (entry_kind) {
       case iek_constant:
       case iek_variable:
-#ifdef CFE
       case iek_field:
       case iek_namespace:
-#endif /* ifdef CFE */
       case iek_routine:
       case iek_label:
 #if RECORD_MACROS_IN_IL
@@ -319,7 +317,6 @@ be written.
         name = ((a_constant_ptr)entry_ptr)->source_corresp.name;
         break;
       case iek_type:
-#ifdef CFE
         if (((a_type_ptr)entry_ptr)->source_corresp.name != NULL) {
           type_name_type = (a_type_ptr)entry_ptr;
         }  /* if */
@@ -327,7 +324,6 @@ be written.
       case iek_base_class:
         type_name_type = ((a_base_class_ptr)entry_ptr)->type;
         break;
-#endif /* ifdef CFE */
       default:;
     }  /* switch */
     if (name != NULL || type_name_type != NULL) {
@@ -398,7 +394,6 @@ be written.
   (void)printf("\n");
 }  /* disp_string_ptr */
 
-#ifdef CFE
 
 static void disp_access(char                *name,
                         an_access_specifier access)
@@ -419,7 +414,6 @@ Display the indicated access specifier with a name.
   (void)printf(s);
 }  /* disp_access */
 
-#endif /* ifdef CFE */
 
 static void disp_name_linkage(char                 *name,
                               a_name_linkage_kind  nlk)
@@ -588,14 +582,12 @@ Display the indicated source correspondence entry.
              iek_name_reference);
   }  /* if */
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
-#ifdef CFE
   if (scp->is_class_member) {
     disp_boolean("  is_class_member", TRUE);
     disp_access("  access", (an_access_specifier)scp->access);
   }  /* if */
   disp_ptr("  parent_scope", (char *)scp->parent_scope, iek_scope);
   disp_ptr("  enclosing_routine", (char *)scp->enclosing_routine, iek_routine);
-#endif /* ifdef CFE */
   disp_boolean("  referenced", (a_boolean)scp->referenced);
 #if MAINTAIN_NEEDED_FLAGS
   disp_boolean("  needed", (a_boolean)scp->needed);
@@ -988,7 +980,6 @@ display_constant_value:
       disp_name("float_value");
       goto display_constant_value;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
-#ifdef CFE
     case ck_address:
       (void)printf("ck_address\n");
       disp_name("address.kind");
@@ -1076,7 +1067,6 @@ display_constant_value:
       disp_ptr("dynamic_init", (char *)ptr->variant.dynamic_init,
                iek_dynamic_init);
       break;
-#endif /* ifdef CFE */
     case ck_aggregate:
       (void)printf("ck_aggregate\n");
       disp_ptr("first_constant", (char *)ptr->variant.aggregate.first_constant,
@@ -1173,7 +1163,6 @@ Display a_param_type entry.
   disp_ptr("next", (char *)ptr->next, iek_param_type);
   disp_ptr("type", (char *)ptr->type, iek_type);
   disp_ptr("declared_type", (char *)ptr->declared_type, iek_type);
-#ifdef CFE
 #if RECORD_NAME_IN_PARAM_TYPE_ENTRY
   if (ptr->name != NULL) {
     disp_string_ptr("name", ptr->name, iek_id_name, (sizeof_t)0);
@@ -1221,7 +1210,6 @@ Display a_param_type entry.
     disp_ptr("ms_attributes", (char *)ptr->ms_attributes, iek_ms_attribute);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#endif /* ifdef CFE */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (ptr->decl_pos_info != NULL) {
     disp_source_range("identifier_range",
@@ -1234,7 +1222,6 @@ Display a_param_type entry.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 }  /* disp_param_type */
 
-#ifdef CFE
 
 static void disp_pragma_kind_name(a_pragma_kind  kind)
 /*
@@ -1248,7 +1235,6 @@ used in the #pragma directive) is displayed.
  (void) printf("%s\n", s);
 }  /* disp_pragma_kind_name */
 
-#endif /* ifdef CFE */
 
 static void disp_type_qualifiers(a_type_qualifier_set qualifiers)
 /*
@@ -1270,7 +1256,6 @@ Display a_routine_type_supplement.
   if (ptr->has_ellipsis) {
     disp_boolean("has_ellipsis", (a_boolean)ptr->has_ellipsis);
   }  /* if */
-#ifdef CFE
   disp_boolean("prototyped", (a_boolean)ptr->prototyped);
   if (ptr->lint_argsused_flag) {
     disp_boolean("lint_argsused_flag", TRUE);
@@ -1342,7 +1327,6 @@ Display a_routine_type_supplement.
     disp_ptr("exception_specification", (char *)ptr->exception_specification,
              iek_exception_specification);
   }  /* if */
-#endif /* ifdef CFE */
 }  /* disp_routine_type_supplement */
 
 
@@ -1360,13 +1344,11 @@ Display the indicated based type list.
     (void)printf("\n");
     for (; ptr != NULL; ptr = ptr->next) {
       switch (ptr->kind) {
-#ifdef CFE
         case btk_qualified:      kind_str = "  qualified";               break;
         case btk_reference:      kind_str = "  reference";               break;
         case btk_ptr_to_member:  kind_str = "  ptr_to_member";           break;
         case btk_unqualified_array_type:
                                  kind_str = "  unqualified_array_type";  break;
-#endif /* ifdef CFE */
         case btk_pointer:        kind_str = "  pointer";                 break;
         default:                 kind_str = "  **BAD BASED TYPE KIND**"; break;
       }  /* switch */
@@ -1478,7 +1460,6 @@ Display the indicated type entry.
       (void)printf("tk_integer\n");
       disp_name("int_kind");
       (void)printf("%s\n", int_type_name(ptr));
-#ifdef CFE
       if (ptr->variant.integer.explicitly_signed) {
         disp_boolean("explicitly_signed", TRUE);
       }  /* if */
@@ -1537,7 +1518,6 @@ Display the indicated type entry.
                  (char *)ptr->variant.integer.enum_info.affiliated_type,
                  iek_type);
       }  /* if */
-#endif /* ifdef CFE */
       break;
 #if FIXED_POINT_ALLOWED
     case tk_fixed_point:
@@ -1578,7 +1558,6 @@ do_float_complex:
     case tk_pointer:
       (void)printf("tk_pointer\n");
       disp_ptr("type_pointed_to", (char *)ptr->variant.pointer.type, iek_type);
-#ifdef CFE
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (ptr->variant.pointer.base_variable != NULL) {
         disp_ptr("base_variable", (char *)ptr->variant.pointer.base_variable,
@@ -1593,7 +1572,6 @@ do_float_complex:
         form_pointer_modifiers(ptr->variant.pointer.modifiers, &octl);
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#endif /* ifdef CFE */
       break;
     case tk_routine:
       (void)printf("tk_routine\n");
@@ -1601,7 +1579,6 @@ do_float_complex:
                iek_type);
       disp_routine_type_supplement(ptr->variant.routine.extra_info);
       break;
-#ifdef CFE
     case tk_array:
       (void)printf("tk_array\n");
       disp_ptr("element_type", (char *)ptr->variant.array.element_type,
@@ -1880,7 +1857,6 @@ do_struct_union:
                iek_constant);
       break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
-#endif /* ifdef CFE */
     default:
       (void)printf("**BAD TYPE KIND**\n");
   }  /* switch */
@@ -1922,12 +1898,10 @@ Display the name for the indicated storage class.
     case sc_static:       s = "sc_static";             break;
     case sc_auto:         s = "sc_auto";               break;
     case sc_unspecified:  s = "sc_unspecified";        break;
-#ifdef CFE
     case sc_register:     s = "sc_register";           break;
     case sc_typedef:      s = "sc_typedef";            break;
     /* sc_asm is only used in versions with ASM_FUNCTION_ALLOWED set TRUE. */
     case sc_asm:          s = "sc_asm";                break;
-#endif /* ifdef CFE */
     default:              s = "**BAD STORAGE CLASS**"; break;
   }  /* switch */
   (void)printf("%s\n", s);
@@ -2243,7 +2217,6 @@ Display the indicated variable.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   disp_source_range("initializer_range", &ptr->initializer_range);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-#ifdef CFE
   if (ptr->is_handler_param) {
     disp_boolean("is_handler_param", TRUE);
   }  /* if */
@@ -2314,7 +2287,6 @@ Display the indicated variable.
     disp_boolean("has_flexible_array_initializer", TRUE);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */
-#endif /* ifdef CFE */
   if (ptr->declared_with_auto_type_specifier) {
     disp_boolean("declared_with_auto_type_specifier", TRUE);
   }  /* if */
@@ -2336,7 +2308,6 @@ Display the indicated variable.
   /* remapping_for_inlining is a front-end-only field. */
 }  /* disp_variable */
 
-#ifdef CFE
 
 static void disp_field(a_field_ptr ptr)
 /*
@@ -2592,7 +2563,6 @@ Display the name of the indicated constructor or destructor kind.
 
 #endif /* DO_IL_LOWERING && IA64_ABI */
 
-#endif /* ifdef CFE */
 
 static void disp_routine(a_routine_ptr ptr)
 /*
@@ -2605,7 +2575,6 @@ Display the indicated routine.
   disp_unsigned_long("assoc_scope", (unsigned long)ptr->assoc_scope);
   disp_name("storage_class");
   disp_storage_class_name(ptr->storage_class);
-#ifdef CFE
   if (ptr->special_kind != (a_special_function_kind)sfk_none) {
     disp_name("special_kind");
     disp_special_function_kind_name(ptr->special_kind);
@@ -2892,7 +2861,6 @@ Display the indicated routine.
     disp_string_ptr("asm_name", ptr->asm_name, iek_other_text, (sizeof_t)0);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
-#endif /* ifdef CFE */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   disp_ptr("declared_type", (char *)ptr->declared_type, iek_type);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -3016,7 +2984,6 @@ Display the name of an expression operator.
     case eok_unary_plus:        s = "eok_unary_plus";             break;
     case eok_not:               s = "eok_not";                    break;
     case eok_cast:              s = "eok_cast";                   break;
-#ifdef CFE
     case eok_base_class_cast:   s = "eok_base_class_cast";        break;
     case eok_derived_class_cast:
                                 s = "eok_derived_class_cast";     break;
@@ -3052,7 +3019,6 @@ Display the name of an expression operator.
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case eok_assume:            s = "eok_assume";                 break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#endif /* ifdef CFE */
 #if C99_IL_EXTENSIONS_SUPPORTED
     case eok_xnegate:           s = "eok_xnegate";                break;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
@@ -3126,7 +3092,6 @@ Display the name of an expression operator.
     case eok_fjsubtract:        s = "eok_fjsubtract";             break;
     case eok_jfsubtract:        s = "eok_jfsubtract";             break;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
-#ifdef CFE
     case eok_remainder:         s = "eok_remainder";              break;
     case eok_pdiff:             s = "eok_pdiff";                  break;
     case eok_peq:               s = "eok_peq";                    break;
@@ -3187,17 +3152,12 @@ Display the name of an expression operator.
     case eok_points_to_vacuous_destructor_call:
                                 s = "eok_points_to_vacuous_destructor_call";
                                                                   break;
-#endif /* ifdef CFE */
     case eok_land:              s = "eok_land";                   break;
     case eok_lor:               s = "eok_lor";                    break;
-#ifdef CFE
     case eok_question:          s = "eok_question";               break;
-#endif /* ifdef CFE */
     case eok_call:              s = "eok_call";                   break;
-#ifdef CFE
     case eok_virtual_call:      s = "eok_virtual_call";           break;
     case eok_pm_call:           s = "eok_pm_call";                break;
-#endif /* ifdef CFE */
     case eok_va_start:          s = "eok_va_start";               break;
     case eok_va_arg:            s = "eok_va_arg";                 break;
     case eok_va_end:            s = "eok_va_end";                 break;
@@ -3205,7 +3165,6 @@ Display the name of an expression operator.
     case eok_va_start_single_operand:
                                 s = "eok_va_start_single_operand";
                                                                   break;
-#ifdef CFE
     case eok_negate:            s = "eok_negate";                 break;
     case eok_post_incr:         s = "eok_post_incr";              break;
     case eok_post_decr:         s = "eok_post_decr";              break;
@@ -3236,7 +3195,6 @@ Display the name of an expression operator.
     case eok_generic_call:      s = "eok_generic_call";           break;
     case eok_generic_member_call:
 				s = "eok_generic_member_call";    break;
-#endif /* ifdef CFE */
     case eok_error:             s = "eok_error";                  break;
     default:                    s = "**BAD EXPR OPERATOR KIND**"; break;
   }  /* switch */
@@ -3457,7 +3415,6 @@ Display the indicated expression node.
       (void)printf("enk_routine\n");
       disp_ptr("routine", (char *)ptr->variant.routine, iek_routine);
       break;
-#ifdef CFE
     case enk_field:
       (void)printf("enk_field\n");
       disp_ptr("field", (char *)ptr->variant.field, iek_field);
@@ -3623,7 +3580,6 @@ cleanup_state_common:
                iek_variable);
       break;
 #endif /* VLA_DEALLOCATIONS_IN_IL */
-#endif /* ifdef CFE */
     case enk_type_operand:
       (void)printf("enk_type_operand\n");
       disp_ptr("type", (char *)ptr->variant.type_operand.type, iek_type);
@@ -3790,7 +3746,6 @@ Display the indicated block.
 */
 {
   disp_stmt_source_position("final_position", ptr->final_position);
-#ifdef CFE
   disp_ptr("assoc_scope", (char *)ptr->assoc_scope, iek_scope);
   disp_ptr("lifetime", (char *)ptr->lifetime, iek_object_lifetime);
   disp_boolean("end_of_block_reachable",
@@ -3803,7 +3758,6 @@ Display the indicated block.
   if (ptr->implicit_scope_not_allowed) {
     disp_boolean("implicit_scope_not_allowed", TRUE);
   }  /* if */
-#endif /* ifdef CFE */
 }  /* disp_block */
 
 
@@ -3869,12 +3823,10 @@ Display the indicated statement.
       break;
     case stmk_while:
       (void)printf("stmk_while\n");
-#ifdef CFE
       goto do_loop;
     case stmk_end_test_while:
       (void)printf("stmk_end_test_while\n");
 do_loop:
-#endif /* CFE */
       disp_ptr("expr", (char *)ptr->expr, iek_expr_node);
       disp_ptr("loop_statement", (char *)ptr->variant.loop_statement,
                iek_statement);
@@ -3912,7 +3864,6 @@ do_label:
       (void)printf("stmk_upc_fence\n");
       break;
 #endif /* UPC_EXTENSIONS_ALLOWED */
-#ifdef CFE
     case stmk_for:
 #if UPC_EXTENSIONS_ALLOWED
     case stmk_upc_forall:
@@ -4016,7 +3967,6 @@ do_label:
                  iek_variable);
       }  /* if */
       break;
-#endif /* ifdef CFE */
 #if GNU_EXTENSIONS_ALLOWED
     case stmk_assigned_goto:
       (void)printf("stmk_assigned_goto\n");
@@ -4485,7 +4435,6 @@ Display the indicated scope.
     case sck_file:
       (void)printf("sck_file\n");
       break;
-#ifdef CIL
     case sck_block:
       (void)printf("sck_block\n");
       if (ptr->variant.assoc_handler != NULL) {
@@ -4514,13 +4463,11 @@ do_assoc_type:
       disp_ptr("assoc_namespace", (char *)ptr->variant.assoc_namespace,
                iek_namespace);
       break;
-#endif /* ifdef CIL */
     case sck_function:
       (void)printf("sck_function\n");
       disp_ptr("routine.ptr", (char *)ptr->variant.routine.ptr, iek_routine);
       disp_ptr("parameters", (char *)ptr->variant.routine.parameters,
                iek_variable);
-#ifdef CIL
       disp_ptr("constructor_inits",
                (char *)ptr->variant.routine.constructor_inits,
                iek_constructor_init);
@@ -4537,7 +4484,6 @@ do_assoc_type:
                  (char *)ptr->variant.routine.return_value_variable,
                  iek_variable);
       }  /* if */
-#endif /* ifdef CIL */
       break;
     case sck_template_declaration:
     case sck_template_instantiation:
@@ -4550,13 +4496,10 @@ do_assoc_type:
   disp_ptr("constants", (char *)ptr->constants, iek_constant);
   disp_ptr("types", (char *)ptr->types, iek_type);
   disp_ptr("variables", (char *)ptr->variables, iek_variable);
-#ifdef CFE
   disp_ptr("nonstatic_variables", (char *)ptr->nonstatic_variables,
            iek_variable);
-#endif /* ifdef CFE */
   disp_ptr("labels", (char *)ptr->labels, iek_label);
   disp_ptr("routines", (char *)ptr->routines, iek_routine);
-#ifdef CFE
   disp_ptr("asm_entries", (char *)ptr->asm_entries, iek_asm_entry);
   disp_ptr("scopes", (char *)ptr->scopes, iek_scope);
   switch (ptr->kind) {
@@ -4589,7 +4532,6 @@ do_assoc_type:
       il_header.source_language != (a_source_language)sl_Cplusplus) {
     disp_ptr("vla_dimensions", (char *)ptr->vla_dimensions, iek_vla_dimension);
   }  /* if */
-#endif /* ifdef CFE */
   disp_ptr("pragmas", (char *)ptr->pragmas, iek_pragma);
 #if RECORD_HIDDEN_NAMES_IN_IL
   disp_ptr("hidden_names", (char *)ptr->hidden_names, iek_hidden_name);
@@ -4617,7 +4559,6 @@ do_assoc_type:
 }  /* disp_scope */
 
 
-#ifdef CFE
 static void disp_namespace(a_namespace_ptr  ptr)
 /*
 Display the indicated namespace entry.
@@ -5247,7 +5188,6 @@ Display the indicated asm entry.
 #endif /* GNU_EXTENSIONS_ALLOWED */
 }  /* disp_asm_entry */
 
-#endif /* CFE */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 
 static void disp_source_sequence_entry(a_source_sequence_entry_ptr ssep)
@@ -5435,7 +5375,6 @@ This routine is called during IL walking.
 #if C99_IL_EXTENSIONS_SUPPORTED
     case iek_internal_complex_value:
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
-#ifdef CFE
     case iek_try_supplement:
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case iek_microsoft_try_supplement:
@@ -5463,7 +5402,6 @@ This routine is called during IL walking.
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case iek_ms_attribute_arg:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#endif /* ifdef CFE */
 #if MACRO_INVOCATION_TREE_IN_IL
     case iek_macro_invocation_record_block:
 #endif /* MACRO_INVOCATION_TREE_IN_IL */
@@ -5500,7 +5438,6 @@ This routine is called during IL walking.
         case iek_expr_node:
           disp_expr_node((an_expr_node_ptr)entry_ptr);
           break;
-#ifdef CFE
         case iek_field:
           disp_field((a_field_ptr)entry_ptr);
           break;
@@ -5521,7 +5458,6 @@ This routine is called during IL walking.
         case iek_handler:
           disp_handler((a_handler_ptr)entry_ptr);
           break;
-#endif /* ifdef CFE */
         case iek_statement:
           disp_statement((a_statement_ptr)entry_ptr);
           break;
@@ -5563,7 +5499,6 @@ This routine is called during IL walking.
           disp_macro((a_macro_ptr)entry_ptr);
           break;
 #endif /* RECORD_MACROS_IN_IL */
-#ifdef CFE
         case iek_namespace:
           disp_namespace((a_namespace_ptr)entry_ptr);
           break;
@@ -5648,7 +5583,6 @@ This routine is called during IL walking.
           disp_name_qualifier((a_name_qualifier_ptr)entry_ptr);
           break;
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
-#endif /* ifdef CFE */
         case iek_seq_number_lookup_entry:
           disp_seq_number_lookup_entry(
                                     (a_seq_number_lookup_entry_ptr)entry_ptr);
@@ -5716,20 +5650,16 @@ Display the IL for the file scope in human-readable form.
                   iek_other_text, (sizeof_t)0);
   disp_string_ptr("time_of_compilation", il_header.time_of_compilation,
                   iek_other_text, (sizeof_t)0);
-#ifdef CFE
   disp_boolean("plain_chars_are_signed",
                (a_boolean)il_header.plain_chars_are_signed);
-#endif /* ifdef CFE */
   /* region_scope_entry is not displayed. */
   disp_name("source_language");
   disp_source_language_name(il_header.source_language);
   (void)printf("\n");
-#ifdef CFE
   disp_boolean("pcc_compatibility_mode",
                (a_boolean)il_header.pcc_compatibility_mode);
   disp_boolean("enum_type_is_integral",
                (a_boolean)il_header.enum_type_is_integral);
-#endif /* ifdef CFE */
 #if USER_CONTROL_OF_STRUCT_PACKING
   if (il_header.default_max_member_alignment != 0) {
     disp_unsigned_long("default_max_member_alignment",

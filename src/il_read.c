@@ -855,7 +855,6 @@ This ensures that "back end" components (including utilities like the IL
 display program) can query these entities.
 */
 {
-#ifdef CIL
   /* Make sure that the signedness of "plain" char is set correctly in
      int_kind_is_signed.  Doing this here ensures that it won't be overlooked
      in standalone utility programs. */
@@ -892,7 +891,6 @@ display program) can query these entities.
   gpp_mode = il_header.gpp_mode;
   gnu_version = il_header.gnu_version;
 #endif /* GNU_EXTENSIONS_ALLOWED */
-#endif /* ifdef CIL */
 }  /* init_flags_and_types */
 
 

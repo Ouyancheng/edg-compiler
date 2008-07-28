@@ -3714,11 +3714,6 @@ file.
 #else /* !defined(CENTERLINE_CHECKING) */
   comment_undefined_macro_name(CENTERLINE_CHECKING);
 #endif /* defined(CENTERLINE_CHECKING) */
-#if defined(CFE)
-  define_numeric_valued_macro(CFE);
-#else /* !defined(CFE) */
-  comment_undefined_macro_name(CFE);
-#endif /* defined(CFE) */
 #if defined(CFRONT_2_1_OBJECT_CODE_COMPATIBILITY)
   define_numeric_valued_macro(CFRONT_2_1_OBJECT_CODE_COMPATIBILITY);
 #else /* !defined(CFRONT_2_1_OBJECT_CODE_COMPATIBILITY) */
@@ -3744,11 +3739,6 @@ file.
 #else /* !defined(CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS) */
   comment_undefined_macro_name(CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS);
 #endif /* defined(CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS) */
-#if defined(CIL)
-  define_numeric_valued_macro(CIL);
-#else /* !defined(CIL) */
-  comment_undefined_macro_name(CIL);
-#endif /* defined(CIL) */
 #if defined(CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS)
   define_numeric_valued_macro(
                        CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS);
