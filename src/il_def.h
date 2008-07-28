@@ -11986,7 +11986,7 @@ a precompiled header file.
 typedef enum /* a_source_language */ {
   /* Code for source language. */
   sl_Cplusplus,
-  sl_C,
+  sl_C
 } a_source_language;
 typedef struct an_il_header {
   a_source_file_ptr
