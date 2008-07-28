@@ -576,6 +576,10 @@ extern int fileno(FILE *);
 /*lint -esym(759,tree_has_correct_lvalueness)*/
 /*lint -esym(765,tree_has_correct_lvalueness)*/
 /*lint -esym(714,tree_has_correct_lvalueness)*/
+/*lint -esym(759,f_get_parent_scope_of)*/
+/*lint -esym(765,f_get_parent_scope_of)*/
+/*lint -esym(714,f_get_parent_scope_of)*/
+/*lint -esym(755,get_parent_scope_of)*/
 /* Suppress spurious data access warnings. */
 /*lint -efunc(670,macro_invocation)*/
 /*lint -efunc(690,macro_invocation)*/
