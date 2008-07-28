@@ -1109,51 +1109,6 @@ display_constant_value:
   }  /* switch */
 }  /* disp_constant */
 
-#if GNU_EXTENSIONS_ALLOWED
-
-static void disp_type_mode(a_type_mode_kind mode)
-/*
-Display a type mode.
-*/
-{
-  switch (mode) {
-    case tmk_error:
-      printf("tmk_error\n");
-      break;
-    case tmk_QI:
-      printf("tmk_QI\n");
-      break;
-    case tmk_HI:
-      printf("tmk_HI\n");
-      break;
-    case tmk_SI:
-      printf("tmk_SI\n");
-      break;
-    case tmk_DI:
-      printf("tmk_DI\n");
-      break;
-    case tmk_SF:
-      printf("tmk_SF\n");
-      break;
-    case tmk_DF:
-      printf("tmk_DF\n");
-      break;
-    case tmk_XF:
-      printf("tmk_XF\n");
-      break;
-    case tmk_TF:
-      printf("tmk_TF\n");
-      break;
-    case tmk_none:
-      printf("tmk_none\n");
-      break;
-    default:
-      printf("**BAD TYPE MODE KIND**\n");
-      break;
-  }  /* switch */
-} /* disp_type_mode */
-
-#endif /* GNU_EXTENSIONS_ALLOWED */
 
 static void disp_param_type(a_param_type_ptr ptr)
 /*
@@ -1199,10 +1154,6 @@ Display a_param_type entry.
   }  /* if */
   if (ptr->nonnull) {
     disp_boolean("nonnull", TRUE);
-  }  /* if */
-  if (ptr->mode != (a_type_mode_kind)tmk_none) {
-    disp_name("mode");
-    disp_type_mode(ptr->mode);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED

@@ -1317,8 +1317,12 @@ by octl.
 #if GNU_VECTOR_TYPES_ALLOWED
     case tk_vector:
       octl->output_str("__attribute((vector_size(");
-      form_constant(type->variant.vector.size_constant, /*need_parens=*/FALSE,
-                    octl);
+      if (type->variant.vector.size_constant != NULL) {
+        form_constant(type->variant.vector.size_constant,
+                      /*need_parens=*/FALSE, octl);
+      } else {
+        form_unsigned_num((a_host_large_unsigned)type->size, octl);
+      }  /* if */
       octl->output_str("))) ");
       form_type_specifier(type->variant.vector.element_type, octl);
       break;

@@ -1839,17 +1839,6 @@ if this is the function declarator in a friend function declaration.
            associated with the routine type. */
         ptp = make_param_type(param_state.type, &param_type_pos);
         ptp->declared_type = param_state.declared_type;
-#if GNU_EXTENSIONS_ALLOWED
-        { /* See if there is a mode attribute.  If so, save it; it is
-             conceptually part of the declared_type. */
-          an_attribute_ptr  ap;
-          for (ap = param_state.attributes; ap != NULL; ap = ap->next) {
-            if (ap->kind == (an_attribute_kind)ak_mode) {
-              ptp->mode = ap->variant.mode;
-            }  /* if */
-          }  /* for */
-        }
-#endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
         if (param_state.ms_attributes != NULL) {
           apply_microsoft_attributes(&param_state.ms_attributes, (char*)ptp,

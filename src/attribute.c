@@ -653,7 +653,8 @@ pointed to be "pos" can be freed when this routine returns.
   copy_source_position(*pos, ap->position);
   switch (kind) {
     case ak_mode:
-      ap->variant.mode = (an_attribute_kind)tmk_error;
+      ap->variant.mode.kind = (an_attribute_kind)tmk_error;
+      ap->variant.mode.length = 0;
       break;
 #if USER_CONTROL_OF_STRUCT_PACKING
     case ak_aligned:
@@ -903,6 +904,64 @@ to TRUE, but no error message is issued.
 }  /* scan_integral_argument */
 
 
+static a_boolean scan_mode_attribute_arg(an_attribute_ptr  ap)
+/*
+Scan and record the mode attribute argument.  If it starts with "V1", "V2",
+"V4" or "V8", this is a vector mode. Record the mode kind and vector length
+(if any) in *ap.
+*/
+{
+  a_boolean  result = TRUE;
+  char       *name, *ename;
+  int        i;
+
+  /* Look for an identifier corresponding to the mode. */
+  if (curr_token != tok_identifier) {
+    result = FALSE;
+    goto done;
+  }  /* if */
+  /* Get the name of the mode. */
+  ename = name = locator_for_curr_id.symbol_header->identifier;
+#if GNU_VECTOR_TYPES_ALLOWED
+  if (name[0] == 'V' &&
+      (name[1] == '1' || name[1] == '2' || name[1] == '4' || name[1] == '8')) {
+    ap->variant.mode.length = name[1]-'0';
+    ename += 2;
+  }  /* if */
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+  /* Consume the name. */
+  (void)get_token();
+  /* Look it up. */
+  for (i = (int)tmk_first; i < (int)tmk_last; ++i) {
+    if (same_string_ignoring_underscores(type_mode_kind_names[i], ename)) {
+      break;
+    }  /* if */
+  }  /* for */
+  /* If it wasn't in the table, it might be one of the special
+     "byte", "word", or "pointer" values.  (These cannot have a 'V<digit>'
+     prefix.) */
+  if (i == (int)tmk_last) {
+    if (same_string_ignoring_underscores("byte", name)) {
+      i = (int)tmk_QI;
+    } else if (same_string_ignoring_underscores("word", name)) {
+      i = (int)targ_word_mode;
+#if TARG_ALL_POINTERS_SAME_SIZE
+    } else if (same_string_ignoring_underscores("pointer", name)) {
+      i = (int)targ_pointer_mode;
+#endif /* TARG_ALL_POINTERS_SAME_SIZE */
+    }  /* if */
+  }  /* if */
+  /* If the mode was not valid, issue an error message. */
+  if (i == (int)tmk_last) {
+    result = FALSE;
+    goto done;
+  }  /* if */
+  ap->variant.mode.kind = (a_type_mode_kind)i;
+done:
+  return result;
+}  /* scan_mode_attribute_arg */
+
+
 static a_boolean scan_attribute_arguments(an_attribute_ptr  attribute)
 /*
 Scan the arguments to an attribute, and store them in the attribute
@@ -946,39 +1005,7 @@ that do take arguments.
       break;
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
     case ak_mode:
-      /* Look for an identifier corresponding to the mode. */
-      if (curr_token != tok_identifier) {
-        goto error;
-      }  /* if */
-      /* Get the name of the mode. */
-      name = locator_for_curr_id.symbol_header->identifier;
-      /* Consume the name. */
-      (void)get_token();
-      /* Look it up. */
-      for (i = (int)tmk_first; i < (int)tmk_last; ++i) {
-        if (same_string_ignoring_underscores(type_mode_kind_names[i], 
-                                             name)) {
-          break;
-        }  /* if */
-      }  /* for */
-      /* If it wasn't in the table, it might be one of the special
-         "byte", "word", or "pointer" values. */
-      if (i == (int)tmk_last) {
-        if (same_string_ignoring_underscores("byte", name)) {
-          i = (int)tmk_QI;
-        } else if (same_string_ignoring_underscores("word", name)) {
-          i = (int)targ_word_mode;
-#if TARG_ALL_POINTERS_SAME_SIZE
-        } else if (same_string_ignoring_underscores("pointer", name)) {
-          i = (int)targ_pointer_mode;
-#endif /* TARG_ALL_POINTERS_SAME_SIZE */
-        }  /* if */
-      }  /* if */
-      /* If the mode was not valid, issue an error message. */
-      if (i == (int)tmk_last) {
-        goto error;
-      }  /* if */
-      attribute->variant.mode = (a_type_mode_kind)i;
+      result = scan_mode_attribute_arg(attribute);
       break;
     case ak_section:
     case ak_alias:
@@ -1683,6 +1710,32 @@ emitted is given by pos.
   return type;
 }  /* get_type_with_mode */
 
+
+static a_type_ptr apply_mode_attribute(a_type_ptr        type,
+                                       an_attribute_ptr  ap)
+/*
+Apply the given ak_mode attribute to the given type and return the resulting
+type.  If the given type is not a tk_integer or a tk_float, issue an error
+and return the given type.
+*/
+{
+  type = get_type_with_mode(type, ap->variant.mode.kind, &ap->position);
+#if GNU_VECTOR_TYPES_ALLOWED
+  if (ap->variant.mode.length != 0 &&
+      (type->kind == (a_type_kind)tk_integer ||
+       type->kind == (a_type_kind)tk_float)) {
+    /* get_type_with_mode will have issued an error if type->kind wasn't
+       tk_integer or tk_float. */
+    a_type_ptr  vtype = alloc_type((a_type_kind)tk_vector);
+    vtype->source_corresp.decl_position = ap->position;
+    vtype->size = type->size*ap->variant.mode.length;
+    vtype->variant.vector.element_type = type;
+    type = vtype;
+  }  /* if */
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+  return type;
+}  /* apply_mode_attribute */
+
 #if GNU_VECTOR_TYPES_ALLOWED
 
 static a_type_ptr apply_vector_size_attribute(a_type_ptr        elem_type,
@@ -1792,7 +1845,7 @@ attributes.  */
              int i;
 
            on a machine where sizeof(int) == 4. */
-        type = get_type_with_mode(type, ap->variant.mode, &ap->position);
+        type = apply_mode_attribute(type, ap);
         break;
       case ak_noreturn:
       case ak_volatile:
@@ -2727,12 +2780,12 @@ a typedef, is_typedef is TRUE.
       break;
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
     case ak_mode:
-      mode_type = get_type_with_mode(tp, ap->variant.mode, &ap->position);
+      mode_type = apply_mode_attribute(tp, ap);
       if (tp->kind != (a_type_kind)tk_integer &&
           tp->kind != (a_type_kind)tk_float) {
-        /* If tp had neither integer nor floating type, it is 
-           an error to use the mode attribute.  An error will have
-           been issued by get_type_with_mode. */
+        /* If tp had neither integer nor floating type, it is an error to use
+           the mode attribute.  An error will have been issued by
+           apply_mode_attribute. */
       } else {
         if (tp->kind == (a_type_kind)tk_integer) {
           tp->variant.integer.int_kind = mode_type->variant.integer.int_kind;
@@ -3003,7 +3056,7 @@ from the list.
   for (tap = to_apply; tap != NULL; tap = tap->next) {
     switch (tap->kind) {
       case ak_mode:
-        result = get_type_with_mode(result, tap->variant.mode, &tap->position);
+        result = apply_mode_attribute(result, tap);
         break;
 #if GNU_VECTOR_TYPES_ALLOWED
       case ak_vector_size:

@@ -224,10 +224,17 @@ typedef struct an_attribute {
 			   attribute applies. */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
     /* When kind == ak_mode. */
-    a_type_mode_kind
-		mode;
-			/* The mode for the entity to which this
-			   attribute applies. */
+    struct {
+      a_type_mode_kind
+		kind;
+			/* The element mode for the entity to which this
+			   attribute applies (does not include vector
+			   length). */
+      a_targ_size_t
+		length;
+			/* The vector length if this is a vector mode.
+			   Otherwise, zero. */
+    } mode;
     /* When kind == ak_section. */
     char        *section;
 			/* The section indicated for the entity to

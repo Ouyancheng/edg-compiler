@@ -3444,14 +3444,6 @@ typedef struct a_param_type {
 			   points to the fixup entry that provides information
 			   on how to evaluate the default argument
 			   expression.  Front end only. */
-#if GNU_EXTENSIONS_ALLOWED
-  a_type_mode_kind
-  		mode;
-			/* If this parameter was declared with an
-			   attribute that indicates a particular mode,
-			   then the mode is stored here.  Otherwise,
-			   the value is tmk_none. */
-#endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   an_ms_attribute_ptr
 		ms_attributes;
@@ -6243,8 +6235,9 @@ typedef struct a_type {
 			/* Type of the vector elements. */
       a_constant_ptr
 		size_constant;
-			/* A constant representing the size expressed
-			   through the vector_size attribute. */
+			/* A constant representing the size expressed through
+			   the vector_size attribute.  NULL if the type was
+			   formed with the mode attribute. */
     } vector;
 #endif /* GNU_EXTENSIONS_ALLOWED && GNU_VECTOR_TYPES_ALLOWED */
   } variant;
