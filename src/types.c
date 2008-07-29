@@ -560,8 +560,9 @@ The given type must be a tk_vector type.  Return TRUE if its size or its
 element type is template-dependent.
 */
 {
+  a_constant_ptr  sc;
   check_assertion(tp->kind == (a_type_kind)tk_vector);
-  a_constant_ptr  sc = tp->variant.vector.size_constant;
+  sc = tp->variant.vector.size_constant;
   return (sc != NULL && sc->kind == (a_constant_repr_kind)ck_template_param) ||
          is_template_dependent_type(tp->variant.vector.element_type);
 }  /* vector_type_is_template_dependent */
