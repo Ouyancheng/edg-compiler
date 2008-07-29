@@ -188,7 +188,7 @@ Display the indicated variable remapping for debugging purposes.
       if (is_constant_node(expr)) {
         db_constant(vrip->variant.expr->variant.constant);
       } else if (is_variable_node(expr)) {
-        if (expr->is_lvalue) fprintf(f_debug, "&");
+        if (expr->is_lvalue) fprintf(f_debug, "[lvalue]");
         db_name(&expr->variant.variable->source_corresp);
       } else {
         db_expression(expr);
@@ -292,8 +292,8 @@ variable.
 
 static a_boolean is_ptr_to_member_function_constant_expr(an_expr_node_ptr expr)
 /*
-Return TRUE if the indicated expression is the lowered version of a
-pointer to member function constant.
+Return TRUE if the indicated (rvalue or lvalue) expression is the lowered
+version of a pointer to member function constant.
 */
 {
   a_boolean is_pmf_con = FALSE;
@@ -578,11 +578,8 @@ set the temporary variables; see finish_variable_remapping_for_inlining.
         }  /* if */
       }  /* if */
       if (param_is_unmodified && arg_is_constant &&
-          /* We don't have the mechanism to handle class-valued
-             variables, because their addresses can get taken implicitly
-             when field selections are done.  We would have to support
-             remapping the address of an enk_variable to some expression,
-             which we don't do currently.  Avoid that case. */
+          /* A class value can't arbitrarily be copied to a class value; it
+             must be used at the original location. */
           (!is_class_struct_union_type(param_var->type) ||
            is_ptr_to_member_function_constant_expr(arg))) {
         /* The argument is constant-valued and the parameter is unmodified.
@@ -718,7 +715,6 @@ following the original expression.
         /* Add code to initialize the temporary from the argument
            expression. */
         vrip->arg_expr->next = NULL;
-        check_assertion(!vrip->arg_expr->is_lvalue);
         stmt = insert_var_assignment_statement(temp_var,
                                                (an_expr_operator_kind)eok_last,
                                                vrip->arg_expr,
@@ -806,7 +802,7 @@ because of remapped variables.
 
   if (kind == (an_expr_node_kind)enk_variable) {
     if (expr->is_lvalue) {
-      /* Address of a variable.  See if the variable is remapped. */
+      /* Variable lvalue.  See if the variable is remapped. */
       expr->variant.variable = remap_var_for_inlining(expr->variant.variable);
     } else {
       /* Value of a variable.  See if the variable is remapped. */
@@ -1070,7 +1066,7 @@ otherwise, do no copying and return FALSE.
        special. */
     operand = expr->variant.operation.operands;
     operand2 = operand->next;
-    if (is_variable_node(operand) && operand->is_lvalue) {
+    if (is_variable_node(operand)) {
       a_variable_ptr var = operand->variant.variable;
       if (var->is_temp_for_constructor_this_inlined_param ||
           var->is_temp_for_unmodified_inlined_param) {
