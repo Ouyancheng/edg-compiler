@@ -7347,15 +7347,24 @@ a control block with state information about this initializer.
 {
   a_variable_ptr        variable = dip->variable;
   FILE                  *save_f_C_output;
-  a_boolean             gen_assignments = TRUE;
+  a_boolean             is_vector_constant = FALSE;
 
+#if GNU_VECTOR_TYPES_ALLOWED
+  if (dip->kind == (a_dynamic_init_kind)dik_constant &&
+      dip->variant.constant->kind == (a_constant_repr_kind)ck_aggregate &&
+      is_vector_type(dip->variant.constant->type)) {
+    is_vector_constant = TRUE;
+  }  /* if */
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
   /* Direct the assignment output to the proper file. */
   set_init_file(variable, &save_f_C_output);
   if (dip->kind == (a_dynamic_init_kind)dik_constant &&
+      !is_vector_constant &&
       (dip->variant.constant->kind == (a_constant_repr_kind)ck_aggregate ||
        dip->variant.constant->kind == (a_constant_repr_kind)ck_string)) {
     /* Aggregate initialization.  Only comes up in C++, for aggregate
        initializations to constants done in the middle of blocks. */
+    a_boolean  gen_assignments = TRUE;
     dump_initializer_part(variable, variable->type, dip->variant.constant,
                           &gen_assignments, (a_gen_init_pos_descr_ptr)NULL,
                           icbp);
@@ -7368,6 +7377,12 @@ a control block with state information about this initializer.
         */
         dump_variable_name(variable);
         write_tok_str(" = ");
+        if (is_vector_constant) {
+          /* Vector constants take the form of compound literals.  The
+             call to dump_constant below will render the { ... } part of the
+             literal, but a leading cast must first be emitted. */
+          dump_cast(dip->variant.constant->type);
+        }  /* if */
         dump_constant(dip->variant.constant);
         write_tok_ch(';');
         break;
