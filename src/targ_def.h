@@ -2457,14 +2457,6 @@ This falls under undefined behavior.
 #endif /* ifndef USE_CCTOR_TO_PASS_CLASS_TO_ELLIPSIS */
 
 /*
-If this is TRUE, dead expressions under conditional operators "&&", "||",
-and "?" are eliminated.  For example, "1 ? i : j" becomes simply "i".
-*/
-#ifndef ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS
-#define ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS FALSE
-#endif /* ifndef ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS */
-
-/*
 If this is TRUE, the front end will attempt to optimize virtual
 function calls into non-virtual calls when it knows the complete
 object type in a call.  For many source-analysis applications

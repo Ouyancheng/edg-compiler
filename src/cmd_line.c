@@ -4556,12 +4556,6 @@ file.
 #else /* !defined(EDG_MULTIBYTE_CHAR_TEST_MODE) */
   comment_undefined_macro_name(EDG_MULTIBYTE_CHAR_TEST_MODE);
 #endif /* defined(EDG_MULTIBYTE_CHAR_TEST_MODE) */
-#if defined(ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS)
-  define_numeric_valued_macro(ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS);
-#else /* !defined(ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS) */
-  comment_undefined_macro_name(
-                              ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS);
-#endif /* defined(ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS) */
 #if defined(EMBEDDED_C_ALLOWED)
   define_numeric_valued_macro(EMBEDDED_C_ALLOWED);
 #else /* !defined(EMBEDDED_C_ALLOWED) */

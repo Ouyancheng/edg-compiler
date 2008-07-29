@@ -480,10 +480,6 @@ extern int fileno(FILE *);
 /*lint -esym(765, make_lvalue_reusable_copy_full)*/
 #endif /* FIXED_POINT_ALLOWED && !LOWER_FIXED_POINT */
 #endif /* DO_IL_LOWERING */
-#if !ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATORS
-/*lint -esym(759,add_to_end_of_temp_init_statements_list)*/
-/*lint -esym(765,add_to_end_of_temp_init_statements_list)*/
-#endif /* !ELIMINATE_DEAD_CODE_UNDER_CONDITIONAL_OPERATOR */
 #if DECL_MODIFIERS_IN_USE && \
     !(MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED)
 /*lint -esym(759,update_extended_decl_info_for_class)*/
