@@ -420,7 +420,6 @@ typedef int a_gen_decl_options_set;
 			   declarator. */
 static void gen_general_declaration_using_type(
                              a_type_ptr                   type,
-                             a_type_mode_kind             mode,
                              a_source_correspondence      *scp,
                              an_il_entry_kind             entry_kind,
                              a_src_seq_secondary_decl_ptr sec_decl,
@@ -4588,11 +4587,6 @@ default arguments should be suppressed (needed for template specializations).
           /* Watch out for unnamed parameters in C++. */
           gen_general_declaration_using_type(
                                           param_var->declared_type,
-#if GNU_EXTENSIONS_ALLOWED
-                                          param->mode,
-#else /* !GNU_EXTENSIONS_ALLOWED */
-                                          (a_type_mode_kind)tmk_none,
-#endif /* GNU_EXTENSIONS_ALLOWED */
                                           has_name(param_var) ?
                                              &param_var->source_corresp : NULL,
                                           iek_variable,
@@ -4642,12 +4636,6 @@ default arguments should be suppressed (needed for template specializations).
           form_type_first_part(param_type, /*under_lhs_declarator=*/FALSE,
                                /*need_trailing_space=*/FALSE,
                                extra_qual, FTO_NO_OPTIONS, &octl);
-#if GNU_EXTENSIONS_ALLOWED
-          if (param->mode != (a_type_mode_kind)tmk_none) {
-            form_mode_attribute(param->mode, /*need_leading_space=*/TRUE,
-                                &octl);
-          }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
 #if RECORD_NAME_IN_PARAM_TYPE_ENTRY
           if (param->name != NULL) {
             write_space();
@@ -4747,7 +4735,6 @@ entry if sec_decl is non-NULL.
 #endif /* !GNU_EXTENSIONS_ALLOWED */
 static void gen_general_declaration_using_type(
                               a_type_ptr                   type,
-                              a_type_mode_kind             mode,
                               a_source_correspondence      *scp,
                               an_il_entry_kind             entry_kind,
                               a_src_seq_secondary_decl_ptr sec_decl,
@@ -4794,12 +4781,6 @@ recorded).
                        suppress_specifiers ? FTO_SUPPRESS_SPECIFIERS :
                                              FTO_NO_OPTIONS,
                        &octl);
-#if GNU_EXTENSIONS_ALLOWED
-  /* If there is a mode attribute, emit it. */
-  if (mode != (a_type_mode_kind)tmk_none) {
-    form_mode_attribute(mode, /*need_leading_space=*/TRUE, &octl);
-  }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
   /* Write the name if there is one. */
   if (scp != NULL) {
     if (!(options & GDO_SUPPRESS_POSITION)) {
@@ -4847,8 +4828,7 @@ no name.  entry_kind indicates the IL entry kind (it is ignored if
 scp is NULL).
 */
 {
-  gen_general_declaration_using_type(type, (a_type_mode_kind)tmk_none,
-                                     scp, entry_kind,
+  gen_general_declaration_using_type(type, scp, entry_kind,
                                      (a_src_seq_secondary_decl_ptr)NULL,
                                      TQ_NONE,
                                      /*suppress_specifiers=*/FALSE,
@@ -5366,7 +5346,6 @@ declaration following this one is such a continuation.
   /* Generate the field type and name.  No name is displayed for unnamed
      bit fields and anonymous union fields. */
   gen_general_declaration_using_type(field->type,
-                                     (a_type_mode_kind)tmk_none,
                                      has_name(field) ? &field->source_corresp :
                                                        NULL,
                                      iek_field,
@@ -5795,7 +5774,6 @@ declaration following this one is such a continuation.
     } else {
       /* Normal typedef. */
       gen_general_declaration_using_type(under_type,
-                                         (a_type_mode_kind)tmk_none,
                                          &type->source_corresp,
                                          iek_type, sec_decl, TQ_NONE,
                                          suppress_specifiers,
@@ -11013,7 +10991,6 @@ Generate code for an instantiation directive.
         { a_variable_ptr var = (a_variable_ptr)idp->entity.ptr;
           gen_sun_link_scope_specifiers(var->decl_modifiers);
           gen_general_declaration_using_type(var->type,
-                                             (a_type_mode_kind)tmk_none,
                                              &var->source_corresp,
                                              kind,
                                             (a_src_seq_secondary_decl_ptr)NULL,
@@ -12491,7 +12468,7 @@ declaration following this one is such a continuation.
                               parent_namespace_of(var)->variant.assoc_scope));
   /* Output the variable name and its type.  Do not put out a name for
      anonymous union variables. */
-  gen_general_declaration_using_type(var_type, (a_type_mode_kind)tmk_none,
+  gen_general_declaration_using_type(var_type,
                                      has_name(var) ? &var->source_corresp :
                                                      NULL,
                                      iek_variable,
@@ -12821,10 +12798,8 @@ declarator (or NULL if it wasn't recorded).
     if (force_unqualified_name)  options |= GDO_FORCE_UNQUALIFIED_NAME;
     if (instantiation_directive) options |= GDO_SUPPRESS_POSITION;
     check_assertion(!is_definition);
-    gen_general_declaration_using_type(qual_rout_type, 
-                                       (a_type_mode_kind)tmk_none,
-                                       scp, iek_routine, sec_decl, TQ_NONE,
-                                       suppress_specifiers,
+    gen_general_declaration_using_type(qual_rout_type, scp, iek_routine,
+                                       sec_decl, TQ_NONE, suppress_specifiers,
                                        options, name_ref);
   } else {
     /* Normal routine case.  Do the declaration in a special way because
