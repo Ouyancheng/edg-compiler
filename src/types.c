@@ -561,8 +561,8 @@ element type is template-dependent.
 */
 {
   check_assertion(tp->kind == (a_type_kind)tk_vector);
-  return tp->variant.vector.size_constant->kind ==
-                                    (a_constant_repr_kind)ck_template_param ||
+  a_constant_ptr  sc = tp->variant.vector.size_constant;
+  return (sc != NULL && sc->kind == (a_constant_repr_kind)ck_template_param) ||
          is_template_dependent_type(tp->variant.vector.element_type);
 }  /* vector_type_is_template_dependent */
 

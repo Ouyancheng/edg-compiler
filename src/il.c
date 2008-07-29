@@ -1457,7 +1457,11 @@ Dump the contents of the indicated type entry, for debug purposes.
         fputs("vector of ", f_debug);
         db_abbreviated_type(tp->variant.vector.element_type);
         fputs(" (size = ", f_debug);
-        db_constant(tp->variant.vector.size_constant);
+        if (tp->variant.vector.size_constant != NULL) {
+          db_constant(tp->variant.vector.size_constant);
+        } else {
+          fprintf(f_debug, "%lu", (unsigned long)tp->size);
+        }  /* if */
         fputs(" )", f_debug);
         break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
