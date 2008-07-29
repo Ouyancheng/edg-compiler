@@ -11767,6 +11767,7 @@ resultant expression can be optimized.
             node_operator_is(child, eok_indirect)) ||
            (op == (an_expr_operator_kind)eok_indirect &&
             node_operator_is(child, eok_address_of))) &&
+          il_identical_types(expr->type, gchild->type) &&
           expr->is_lvalue == gchild->is_lvalue) {
         check_assertion(il_identical_types(expr->type, gchild->type));
         /* Optimize "&*x" or "*&x" operations. */
