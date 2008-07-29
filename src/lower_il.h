@@ -1013,9 +1013,6 @@ extern void add_indirection_to_cctor_param_type(a_param_type_ptr ptp);
 
 extern void lower_os_type(a_type_ptr type);
 
-extern void adjust_returns_lvalue_instead_of_usual_rvalue_if_necessary(
-                                                        an_expr_node_ptr expr);
-
 #if LOWER_LVALUE_RETURNING_OPERATIONS
 extern void lower_operations_returning_lvalue_instead_of_usual_rvalue(
                                                    an_expr_node_ptr expr);
