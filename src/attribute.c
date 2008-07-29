@@ -1006,6 +1006,7 @@ that do take arguments.
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
     case ak_mode:
       result = scan_mode_attribute_arg(attribute);
+      if (!result) goto error;
       break;
     case ak_section:
     case ak_alias:
