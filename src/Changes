@@ -1,5 +1,35 @@
 Version 3.11
 
+7/30/08  Prelinker loop when using implicit inclusion
+
+A prelinker loop could occur when using implicit inclusion if the scanning
+of the implicitly included file (but not the instantiation of the templates
+in the file) resulted in additional instantiations.  This has been fixed.
+
+file test.c:
+
+  #include "C.h"
+  template <class T> struct A {
+    static void f();
+  };
+  template <class T> void A<T>::f() {
+    C<T>::g();
+   }
+   int main() {
+       A<int>::f();
+   }
+   template <class T> int B<T>::g() { return 0; }
+
+file C.h:
+
+   template <class T> struct B { static int g(); };
+   template <class T> struct C { static void g(); };
+
+file C.c:
+
+  int x = B<int>::g();
+  template <class T> void C<T>::g() { }
+
 7/28/08  GNU compatibility: Vector modes (IL CHANGE)
 
 When GNU_VECTOR_TYPES_ALLOWED is TRUE, the front end now supports vector mode

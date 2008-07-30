@@ -17211,7 +17211,11 @@ file we simply return.
             }  /* if */
 #endif /* DEBUG */
 	  } else {
-            a_boolean	save_in_instantiation_wrapup = in_instantiation_wrapup;
+            /* Defer any instantiations caused by the processing of the
+               implicitly included file until after the file has been
+	       processed.  An "on-the-fly" instantiation could kick off
+               another implicit include. */
+            defer_inline_function_fixup_and_instantiations++;
             push_input_stack(f_source, (char *)NULL, display_name,
                              full_file_name, /*is_include_file=*/FALSE,
                              is_system_include, /*is_preinclude=*/FALSE,
@@ -17219,12 +17223,10 @@ file we simply return.
                              /*is_implicit_include=*/TRUE,
                              unicode_source_kind,
                              dir_entry, ifhp);
-            /* Clear the in_instantiation_wrapup flag while processing the
-               implicitly included file.  This suppresses on-the-fly
-               instantiations until the file has been completed. */
-            in_instantiation_wrapup = FALSE;
             scan_implicitly_included_template_definition_file();
-            in_instantiation_wrapup = save_in_instantiation_wrapup;
+            /* Process any deferred instantiations. */
+            defer_inline_function_fixup_and_instantiations--;
+            process_deferred_class_fixups_and_instantiations();
             if (in_instantiation_wrapup) {
               /* Set a flag if this implicit inclusion was done during
                  instantiation wrapup.  The presence of additional code
