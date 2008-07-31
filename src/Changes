@@ -1,5 +1,18 @@
 Version 3.11
 
+7/31/08  Internal error on unique function template specialization reference
+         with nontype template arguments
+
+An internal error (in create_initial_template_arg_list) could occur
+when using an explicit template argument list to identify a unique instance
+of a function template, and the explicit template argument list contained
+a nontype template argument.  Now fixed.
+
+  struct Base { template<int I> int func(void) { return I + 1; } };
+  struct Derived : public Base {};
+  typedef int (Derived::*func_ptr) (void);
+  void f(void) { func_ptr ptr = &Derived::func<1>; }
+
 7/30/08  Prelinker loop when using implicit inclusion
 
 A prelinker loop could occur when using implicit inclusion if the scanning

@@ -335,6 +335,17 @@ cast.
                                                        sym,
                                                        template_arg_list,
                                                        &new_template_arg_list);
+            /* If there is a match, the original template_arg_list is used
+               later to create the template instance, not the new list returned
+               above.  This is necessary because matching_template_function
+               (called below) requires an untransformed template argument
+               list (i.e., one in which any arg_operands have not yet been
+               converted to constants). */
+            if (new_template_arg_list != NULL) {
+              /* Discard the new list if one was returned. */
+              free_template_arg_list(new_template_arg_list);
+              new_template_arg_list = NULL;
+            }  /* if */
           }  /* if */
           if (routine_type == NULL) {
             /* The template could be converted to "void *", but that would
@@ -390,7 +401,7 @@ cast.
             /* A match. */
             match_sym = proj_sym;
             match_routine_type = routine_type;
-            match_template_arg_list = new_template_arg_list;
+            match_template_arg_list = template_arg_list;
             *match_level = aml_std_conversion;
             *std_conv = std_conversion;
             number_of_matches++;
