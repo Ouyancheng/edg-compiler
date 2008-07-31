@@ -2920,10 +2920,20 @@ after_entry_from_class:
 #endif /* EXPR_RANGE_MODIFIERS_IN_IL */
     case iek_local_scope_ref:
       { a_local_scope_ref_ptr ptr = (a_local_scope_ref_ptr)entry_ptr;
-        remap_next_ptr(ptr->next, a_local_scope_ref_ptr, iek_local_scope_ref);
-        remap_ptr_not_needed(ptr->scope, a_scope_ptr, iek_scope);
-        walk_ptr(ptr->referrer.ptr, a_char_ptr,
-                 (an_il_entry_kind)ptr->referrer.kind);
+#if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
+        if ((an_il_entry_kind)ptr->referrer.kind != iek_scope) {
+          /* If the referrer is an a_source_correspondence (to represent the
+             parent scope), do not follow the reference to determine whether
+             the entry is needed. */
+        } else
+#endif /* !(NEEDED_FLAG_WALK || KEEP_IN_IL_WALK) */
+        /* Do not insert code here. */
+        {
+          remap_next_ptr(ptr->next, a_local_scope_ref_ptr, iek_local_scope_ref);
+          remap_ptr_not_needed(ptr->scope, a_scope_ptr, iek_scope);
+          walk_ptr(ptr->referrer.ptr, a_char_ptr,
+                   (an_il_entry_kind)ptr->referrer.kind);
+        }  /* if */
       }
       break;
     case iek_id_name:
