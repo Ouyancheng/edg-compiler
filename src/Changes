@@ -1,5 +1,18 @@
 Version 3.11
 
+7/31/08  Memory corruption when USE_LONG_DOUBLE_FOR_HOST_FP_VALUE is FALSE
+
+The routine make_huge_fp_value could cause memory corruption when
+USE_LONG_DOUBLE_FOR_HOST_FP_VALUE and TARG_HAS_IEEE_FLOATING_POINT are both
+FALSE.  This has been fixed.  This example (which requires GNU mode) would
+write past the end of an_internal_float_value in such configurations,
+although on most systems this would not result in an abort or other
+observable incorrect behavior.
+
+  int main() {
+   long double f = __builtin_huge_vall();
+  }
+
 7/31/08  Internal error on unique function template specialization reference
          with nontype template arguments
 

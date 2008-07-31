@@ -765,6 +765,10 @@ point targets, the maximum value is positive infinity.
 {
   a_boolean  result;
 
+#if !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
+  /* When long double is mapped onto double, store this value as a double. */
+  if (kind == (a_float_kind)fk_long_double) kind = (a_float_kind)fk_double;
+#endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
 #if TARG_HAS_IEEE_FLOATING_POINT
   {
     /* With IEEE floating point, the generated value should be positive
