@@ -742,7 +742,7 @@ otherwise return FALSE.
     ppp = next_ppp;
   }  /* while */
 #if EXPENSIVE_CHECKING
-  if (list_start == NULL) {
+  if (list_start == NULL && !no_checking_pragmas) {
     list_start = alloc_pending_pragma
                  (pragma_description_for_pragma_kind[(int)pk_checking_pragma]);
 #if GENERATE_SOURCE_SEQUENCE_LISTS

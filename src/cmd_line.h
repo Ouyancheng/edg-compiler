@@ -1356,6 +1356,12 @@ EXTERN a_boolean
 			/* TRUE if the incorrect variant of partial ordering
 			   present in versions through 3.10 should be used. */
 
+EXTERN a_boolean
+		no_checking_pragmas;
+			/* TRUE if when using EXPENSIVE_CHECKING, the
+			   generation of checking pragmas should be
+			   suppressed. */
+
 #if DEBUG
 EXTERN a_boolean
 		display_space_used;
