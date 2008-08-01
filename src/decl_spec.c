@@ -1574,13 +1574,22 @@ caution when modifying this routine.
           if (is_injected_class_symbol(tag_sym)) {
             tag_sym = (a_symbol_ptr)(type_symbol_type(tag_sym)->
                                                     source_corresp.assoc_info);
-          } else if (allow_typedef &&
-                     tag_sym->kind == (a_symbol_kind)sk_type) {
-            /* A typedef name was scanned.  Work with the underlying class
-               symbol in what follows. */
+          } else if (tag_sym->kind == (a_symbol_kind)sk_type) {
             a_type_ptr  typedef_tp = skip_typerefs(tag_sym->variant.type.ptr);
-            if (is_immediate_class_type(typedef_tp)) {
-              tag_sym = (a_symbol_ptr)typedef_tp->source_corresp.assoc_info;
+            a_symbol_ptr	sym_of_type = symbol_for(typedef_tp);
+            if (allow_typedef) {
+              /* A typedef name was scanned.  Work with the underlying class
+                 symbol in what follows.  This supports an older g++ feature.
+                 See the setting of allow_typedef earlier in this routine. */
+              if (is_immediate_class_type(typedef_tp)) {
+                tag_sym = sym_of_type;
+              }  /* if */
+            } else if (gpp_mode && gnu_version < 30400 &&
+                       is_enum_type(typedef_tp) &&
+                       is_unnamed_tag_symbol(sym_of_type)) {
+              /* Older versions of g++ allow "enum" to be followed by a typedef
+                 to an unnamed enum. */
+              tag_sym = sym_of_type;
             }  /* if */
           }  /* if */
           if (tag_sym->kind != tag_kind) {

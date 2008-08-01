@@ -3668,13 +3668,28 @@ in a friend declaration.
       }  /* if */
     } else if (assoc_symbol->kind == (a_symbol_kind)sk_type &&
                !is_injected_class_name) {
-      if (gpp_mode && gnu_version < 30400 && 
-          (allow_typedef || assoc_symbol->is_class_member) &&
-          is_class_symbol(assoc_symbol)) {
-        /* Some versions of g++ allows "class <typedef-name>" when the typedef
-           name is a qualified name (determined by the called) or when the
-           typedef name is a class member (determined here).  Only allow this
-           if the type referred to is a class type. */
+      a_boolean	typedef_okay = FALSE;
+      if (gpp_mode && gnu_version < 30400) {
+        a_type_ptr	underlying_type = assoc_symbol->variant.type.ptr;
+        a_symbol_ptr	underlying_sym;
+        underlying_type = skip_typerefs(underlying_type);
+        underlying_sym = symbol_for(underlying_type);
+        if ((allow_typedef || assoc_symbol->is_class_member) &&
+            is_class_symbol(assoc_symbol)) {
+          /* Some versions of g++ allow "class <typedef-name>" when the
+             typedef name is a qualified name (determined by the called) or
+             when the typedef name is a class member (determined here).
+             Only allow this if the type referred to is a class type. */
+          typedef_okay = TRUE;
+        } else if (is_enum_symbol(assoc_symbol) &&
+                   is_unnamed_tag_symbol(underlying_sym)) {
+          /* Some versions of g++ allow "enum <typedef-name>" when the
+             typedef refers to an unnamed enumeration. */
+          typedef_okay = TRUE;
+        }  /* if */
+      }  /* if */
+      if (typedef_okay) {
+        /* The code above determined that a typedef is allowed in this case. */
       } else if (assoc_symbol->is_nonreal_nested_type) {
         /* A nested class of a prototype instantiation. */
       } else {

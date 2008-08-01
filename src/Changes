@@ -1,5 +1,14 @@
 Version 3.11
 
+8/1/08   GNU C++ compatibility: elaborated type specifier naming enum typedef
+
+Older versions of g++ (up to 3.3) allow an elaborated type specifier to
+name a typedef to an unnamed enum type.  We now emulate this in g++ mode
+when gnu_version is < 30400.
+
+  typedef enum {} T;
+  enum T t;
+
 8/1/08   Improve performance of free_all_memory_regions
 
 For very large programs the processing done by free_all_memory_regions
