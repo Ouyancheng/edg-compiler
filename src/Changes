@@ -1,5 +1,15 @@
 Version 3.11
 
+8/1/08   Improve performance of free_all_memory_regions
+
+For very large programs the processing done by free_all_memory_regions
+could be quite expensive because free_memory_region attempts to coalesce
+contiguous memory blocks back into larger ones.  Since free_all_memory_regions
+frees all memory, this processing is unnecessary.  free_all_memory_regions
+now simply discards all of the complete blocks allocated for memory
+regions.  This optimization is most significant when not writing an IL file
+(many of the memory regions are freed earlier when an IL file is used).
+
 7/31/08  Memory corruption when USE_LONG_DOUBLE_FOR_HOST_FP_VALUE is FALSE
 
 The routine make_huge_fp_value could cause memory corruption when

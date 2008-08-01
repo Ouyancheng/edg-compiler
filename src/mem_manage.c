@@ -1246,6 +1246,64 @@ needed (e.g., it has been written out to the IL file).
 }  /* free_memory_region */
 
 
+static void unlink_non_malloc_blocks(a_mem_block_header_ptr	*block_list)
+/*
+Go through the list of memory blocks in block_list and remove any entries
+that do not represent malloc allocations.
+*/
+{
+  a_mem_block_header_ptr hdr;
+  a_mem_block_header_ptr next_hdr;
+  a_mem_block_header_ptr prev_hdr;
+
+  for (prev_hdr = NULL, hdr = *block_list; hdr != NULL; hdr = next_hdr) {
+    next_hdr = hdr->next;
+    if (hdr->malloc_size == 0) {
+      if (prev_hdr == NULL) {
+        *block_list = next_hdr;
+      } else {
+        prev_hdr->next = next_hdr;
+      }  /* if */
+    } else {
+      prev_hdr = hdr;
+    }  /* if */
+  }  /* for */
+}  /* unlink_non_malloc_blocks */
+
+
+static void free_mem_blocks(a_mem_block_header_ptr	*block_list)
+/*
+Go through the list of memory blocks in block_list and free the entire
+block of any entries that represent actual malloc allocations.  Clear
+the block_list when done.
+*/
+{
+  a_mem_block_header_ptr hdr;
+  a_mem_block_header_ptr next_hdr;
+
+  for (hdr = *block_list; hdr != NULL; hdr = next_hdr) {
+    next_hdr = hdr->next;
+    /* There should only be malloc entries on the list when this routine
+       is called. */
+    check_assertion(hdr->malloc_size > 0);
+    free_complete_block(hdr);
+  }  /* for */
+  *block_list = NULL;
+}  /* free_mem_blocks */
+
+
+static void free_mem_blocks_for_region(a_memory_region_number	region_number)
+/*
+Go through the list of memory blocks in region_number and free the entire
+block of any entries that represent actual malloc allocations.  This is
+called by free_all_memory_regions to quickly free the all memory.
+*/
+{
+  free_mem_blocks(&mem_region_table[region_number]);
+  il_header.region_scope_entry[region_number] = NULL;
+}  /* free_mem_blocks_for_region */
+
+
 void free_all_memory_regions(void)
 /*
 Free all of the memory regions that have been used, including the front
@@ -1253,13 +1311,29 @@ end memory region.
 */
 {
   a_memory_region_number region_number;
+
+  /* Because we know that we are freeing all of the memory, this routine
+     simply frees the blocks that represent actual malloc allocations.
+     First we unlink blocks that don't represent malloc allocations because
+     they might be part of a block for which the malloc was done in a
+     different memory region. */
   for (region_number = highest_used_region_number;
        region_number != NULL_region_number;
        region_number--) {
-    free_memory_region(region_number);
+    unlink_non_malloc_blocks(&mem_region_table[region_number]);
+  }  /* for */
+  unlink_non_malloc_blocks(&mem_region_table[NULL_region_number]);
+  unlink_non_malloc_blocks(&reusable_blocks_list);
+  /* The only thing left on the block lists at this point will be actual
+     allocations. */
+  for (region_number = highest_used_region_number;
+       region_number != NULL_region_number;
+       region_number--) {
+    free_mem_blocks_for_region(region_number);
   }  /* for */
   /* Free the front end memory region. */
-  free_memory_region(NULL_region_number);
+  free_mem_blocks_for_region(NULL_region_number);
+  free_mem_blocks(&reusable_blocks_list);
 }  /* free_all_memory_regions */
 
 
