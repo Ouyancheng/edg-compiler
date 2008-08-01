@@ -1312,28 +1312,40 @@ end memory region.
 {
   a_memory_region_number region_number;
 
-  /* Because we know that we are freeing all of the memory, this routine
-     simply frees the blocks that represent actual malloc allocations.
-     First we unlink blocks that don't represent malloc allocations because
-     they might be part of a block for which the malloc was done in a
-     different memory region. */
-  for (region_number = highest_used_region_number;
-       region_number != NULL_region_number;
-       region_number--) {
-    unlink_non_malloc_blocks(&mem_region_table[region_number]);
-  }  /* for */
-  unlink_non_malloc_blocks(&mem_region_table[NULL_region_number]);
-  unlink_non_malloc_blocks(&reusable_blocks_list);
-  /* The only thing left on the block lists at this point will be actual
-     allocations. */
-  for (region_number = highest_used_region_number;
-       region_number != NULL_region_number;
-       region_number--) {
-    free_mem_blocks_for_region(region_number);
-  }  /* for */
-  /* Free the front end memory region. */
-  free_mem_blocks_for_region(NULL_region_number);
-  free_mem_blocks(&reusable_blocks_list);
+  if (okay_to_free_mem_blocks) {
+    /* Because we know that we are freeing all of the memory, this routine
+       simply frees the blocks that represent actual malloc allocations.
+       First we unlink blocks that don't represent malloc allocations because
+       they might be part of a block for which the malloc was done in a
+       different memory region. */
+    for (region_number = highest_used_region_number;
+         region_number != NULL_region_number;
+         region_number--) {
+      unlink_non_malloc_blocks(&mem_region_table[region_number]);
+    }  /* for */
+    unlink_non_malloc_blocks(&mem_region_table[NULL_region_number]);
+    unlink_non_malloc_blocks(&reusable_blocks_list);
+    /* The only thing left on the block lists at this point will be actual
+       allocations. */
+    for (region_number = highest_used_region_number;
+         region_number != NULL_region_number;
+         region_number--) {
+      free_mem_blocks_for_region(region_number);
+    }  /* for */
+    /* Free the front end memory region. */
+    free_mem_blocks_for_region(NULL_region_number);
+    free_mem_blocks(&reusable_blocks_list);
+  } else {
+    /* The memory can't be freed -- just return it to the reusable list
+       via the normal free_memory_region mechanism. */
+    for (region_number = highest_used_region_number;
+         region_number != NULL_region_number;
+         region_number--) {
+      free_memory_region(region_number);
+    }  /* for */
+    /* Free the front end memory region. */
+    free_memory_region(NULL_region_number);
+  }  /* if */
 }  /* free_all_memory_regions */
 
 
