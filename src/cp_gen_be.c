@@ -9238,6 +9238,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
         case eok_fdivide:
 #if C99_IL_EXTENSIONS_SUPPORTED
         case eok_xdivide:
+        case eok_jdivide:
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
           opstr = "/";
           break;

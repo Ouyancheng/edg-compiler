@@ -1,5 +1,19 @@
 Version 3.11
 
+8/4/08   Abort in cp_gen_be.c on imaginary division in C99 mode
+
+In C99 mode, dividing a real value by an imaginary value (C99 _Imaginary type)
+triggered an internal error in the C++-generating back end (cp_gen_be.c).
+For example:
+
+  int main() {
+    _Imaginary float jf;
+    float f;
+    jf = f/jf;  // Triggered an internal error in cp_gen_be.c.
+  }
+
+This is now fixed.
+
 8/1/08   GNU C++ compatibility: elaborated type specifier naming enum typedef
 
 Older versions of g++ (up to 3.3) allow an elaborated type specifier to
