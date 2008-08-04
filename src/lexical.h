@@ -927,7 +927,7 @@ typedef struct an_include_file_history {
 
 
 /*
-The order of these states is important - see near return of get_token().
+The order of these states is important.
 */
 #define IFG_STATE_START		0
 			/* The state when a file is first opened and before
