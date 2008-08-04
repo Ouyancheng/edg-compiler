@@ -11763,16 +11763,26 @@ resultant expression can be optimized.
       an_expr_node_ptr      gchild = child->variant.operation.operands;
       an_expr_node_ptr      comma_second_node = gchild->next;
       a_boolean             optimized = FALSE;
-      if (((op == (an_expr_operator_kind)eok_address_of &&
-            node_operator_is(child, eok_indirect)) ||
-           (op == (an_expr_operator_kind)eok_indirect &&
-            node_operator_is(child, eok_address_of))) &&
+      if (op == (an_expr_operator_kind)eok_address_of &&
+          node_operator_is(child, eok_indirect) &&
           il_identical_types(expr->type, gchild->type) &&
           expr->is_lvalue == gchild->is_lvalue) {
-        check_assertion(il_identical_types(expr->type, gchild->type));
-        /* Optimize "&*x" or "*&x" operations. */
+        /* Optimize "&*x" operation. */
         overwrite_node(expr, gchild);
         optimized = TRUE;
+      } else if (op == (an_expr_operator_kind)eok_indirect &&
+                 node_operator_is(child, eok_address_of) &&
+                 il_identical_types(expr->type, gchild->type)) {
+        if (expr->is_lvalue == gchild->is_lvalue) {
+          /* Optimize "*&x" operation. */
+          overwrite_node(expr, gchild);
+          optimized = TRUE;
+        } else if (!expr->is_lvalue && gchild->is_lvalue) {
+          /* expr has been converted to an rvalue, convert the new expression
+             (after removing "*" and "&" operations) to an rvalue as well. */
+          overwrite_node(expr, rvalue_expr_for_lvalue(gchild));
+          optimized = TRUE;
+        }  /* if */
       } else if (node_operator_is(child, eok_comma) &&
                  is_operation_node(comma_second_node) && 
                  op == (an_expr_operator_kind)eok_address_of &&
@@ -11788,6 +11798,7 @@ resultant expression can be optimized.
                        comma_second_node->variant.operation.operands);
         child->type = comma_second_node->type;
         child->is_lvalue = comma_second_node->is_lvalue;
+        child->variant.operation.returns_lvalue_instead_of_usual_rvalue = FALSE;
         overwrite_node(expr, child);
         optimized = TRUE;
       } else if (op == (an_expr_operator_kind)eok_points_to_field &&
@@ -12204,18 +12215,23 @@ optimization.
 
 
 static a_boolean is_optimizable_temp_init_indirection(
-                                              an_expr_node_ptr operand_node,
+                                              an_expr_node_ptr expr,
                                               an_expr_node_ptr *temp_init_node)
 /*
-operand_node is the operand of an eok_indirect node.  If it is a cast
+expr is an rvalue eok_indirect node.  If its operand is a cast
 over an eok_address_of over an enk_temp_init whose result is a temporary, and
 the cast only adjusts cv-qualifiers that will be dropped by the indirection
-because the result of that is an rvalue, set *temp_init_node to point
+(because the result of that is an rvalue), set *temp_init_node to point
 to the enk_temp_init node and return TRUE.  Otherwise, return FALSE.
 */
 {
   a_boolean result = FALSE;
+  an_expr_node_ptr  operand_node;
 
+  check_assertion(is_operation_node(expr) &&
+                  node_operator_is(expr, eok_indirect) &&
+                  !expr->is_lvalue);
+  operand_node = expr->variant.operation.operands;
   *temp_init_node = NULL;
   if (is_operation_node(operand_node) &&
       node_operator_is(operand_node, eok_cast)) {
@@ -12243,13 +12259,14 @@ static unsigned int assume_operand_non_null_mask(
 /*
 Given the expression node expr (of kind enk_operation), this routine
 returns a bit mask indicating which of its operands can safely be assumed
-to be non-NULL.  assume_expr_is_non_null specifies whether the input expression
-can be assumed to be non-NULL.  A "1" bit indicates an operand that can be
-assumed to be non-NULL, with the least-significant bit corresponding to the
-first operand, the bit after that corresponding to the second operand, etc.
-Note that assuming the expression is non-NULL simply suppresses null
-checks in some cases (e.g., related class casting) and doesn't actually
-mean that the expression cannot have a NULL value.
+to have a non-NULL value (for rvalues) or a non-NULL address (for lvalues).
+assume_expr_is_non_null specifies whether the input expression can be assumed
+to be non-NULL.  A "1" bit indicates an operand that can be assumed to be
+non-NULL, with the least-significant bit corresponding to the first operand,
+the bit after that corresponding to the second operand, etc.  Note that
+assuming the expression is non-NULL simply suppresses NULL checks in some cases
+(e.g., related class casting) and doesn't actually mean that the expression
+cannot have a NULL value.
 */
 {
   an_expr_operator_kind  op;
@@ -12275,11 +12292,13 @@ mean that the expression cannot have a NULL value.
       }  /* if */
       break;
     case eok_virtual_call:
-      /* Second operand should not be checked for null. */
+      /* The second operand is either an object lvalue or a pointer which has
+         already gone through the lookup of the function through the virtual
+         function table (which will abort if the pointer is NULL). */
       pointer_dereference_expr_mask = 0x2;
       break;
     case eok_pm_call:
-      /* Neither operand should be null. */
+      /* Neither operand should be NULL. */
       pointer_dereference_expr_mask = 0x3;
       break;
     case eok_question:
@@ -12291,7 +12310,7 @@ mean that the expression cannot have a NULL value.
       break;
     case eok_cast:
       /* If we're casting one pointer or reference to another, the
-         operand can assume to be non-NULL if the expression is
+         operand is assumed to be non-NULL if the expression is
          assumed to be non-NULL. */
       if (assume_expr_is_non_null && 
           is_ptr_or_ref_type(expr->type) &&
@@ -12505,29 +12524,19 @@ rvalue expression as a result.
 static void lower_reference_to(an_expr_node_ptr expr)
 /*
 Lower an eok_reference_to expression (expr) by replacing the operation with an
-eok_address_of.
+eok_address_of.  This is performed before an expression is lowered so the
+rest of lowering only sees an eok_address_of operator.
 */
 {
   an_expr_node_ptr  operand;
 
   check_assertion(is_operation_node(expr) &&
-                  expr->variant.operation.kind == 
-                                      (an_expr_operator_kind)eok_reference_to);
+                  node_operator_is(expr, eok_reference_to));
   operand = expr->variant.operation.operands;
-  if (is_operation_node(operand) &&
-      (node_operator_is(expr, eok_comma) ||
-       node_operator_is(expr, eok_question))) {
-    /* In cases where the operand can't have its address taken 
-       (i.e., eok_comma or eok_question), push the enk_address_of into
-       the operands as appropriate. */
-    change_expr_to_address_of_expr(operand);
-    overwrite_node(expr, operand);
-  } else {
-    /* Simply replace the eok_reference_to with an eok_address_of. */
-    set_node_operator(expr, (an_expr_operator_kind)eok_address_of,
-                      make_pointer_type(operand->type), /*is_lvalue=*/FALSE,
-                      operand);
-  }  /* if */
+  /* Simply replace the eok_reference_to with an eok_address_of. */
+  set_node_operator(expr, (an_expr_operator_kind)eok_address_of,
+                    make_pointer_type(operand->type), expr->is_lvalue,
+                    operand);
   /* Lower the new expression. */
   lower_expr(expr);
 }  /* lower_reference_to */
@@ -12537,14 +12546,14 @@ static void lower_ref_indirect(an_expr_node_ptr expr)
 /*
 Lower an eok_ref_indirect expression (expr) by changing it to an
 eok_indirect node and changing the type of the operand from a reference type
-to a pointer type.
+to a pointer type.  This is performed before an expression is lowered so the
+rest of lowering only sees an eok_indirect operator.
 */
 {
   an_expr_node_ptr  operand;
 
   check_assertion(is_operation_node(expr) &&
-                  expr->variant.operation.kind == 
-                                      (an_expr_operator_kind)eok_ref_indirect);
+                  node_operator_is(expr, eok_ref_indirect));
   operand = expr->variant.operation.operands;
   expr->variant.operation.kind = (an_expr_operator_kind)eok_indirect;
   lower_expr(expr);
@@ -12557,58 +12566,39 @@ to a pointer type.
 
 static void lower_address_of(an_expr_node_ptr expr)
 /*
-Optimize an eok_address_of expression (expr) if possible.
-If the node is on top of an eok_indirect node, perform an optimization
-by eliminating both operations.  eok_ref_indirect nodes should have
-been lowered to eok_indirect nodes previously.
+Lower an eok_address_of expression (expr).  eok_reference_to nodes have been
+lowered to eok_address_of nodes previously.
 */
 {
   an_expr_node_ptr  operand;
 
   check_assertion(is_operation_node(expr) &&
-                  expr->variant.operation.kind == 
-                                        (an_expr_operator_kind)eok_address_of);
+                  node_operator_is(expr, eok_address_of));
   operand = expr->variant.operation.operands;
   if (is_operation_node(operand) &&
-      node_operator_is(operand, eok_indirect) &&
-      il_identical_types(expr->type,
-                         operand->variant.operation.operands->type) &&
-      expr->is_lvalue == operand->variant.operation.operands->is_lvalue) {
-    /* Remove "&" on top of "*". */
-    overwrite_node(expr, operand->variant.operation.operands);
+      (node_operator_is(expr, eok_comma) ||
+       node_operator_is(expr, eok_question))) {
+    /* In cases where the operand can't have its address taken 
+       (i.e., eok_comma or eok_question), push the enk_address_of into
+       the operands as appropriate. */
+    change_expr_to_address_of_expr(operand);
+    overwrite_node(expr, operand);
   }  /* if */
+  /* See if the "&*x" optimization applies. */
+  optimize_expr_if_possible(expr);
 }  /* lower_address_of */
 
 
 static void lower_indirect(an_expr_node_ptr expr)
 /*
-Optimize an eok_indirect expression (expr) if possible.
-If the node is on top of an eok_address_of node, perform an optimization
-by eliminating both operations.  eok_reference_to nodes should have
-been lowered to eok_address_of nodes previously.
+Lower an eok_indirect expression (expr).  eok_ref_indirect nodes have
+been lowered to eok_indirect nodes previously.
 */
 {
-  an_expr_node_ptr  operand;
-
   check_assertion(is_operation_node(expr) &&
-                  expr->variant.operation.kind == 
-                                          (an_expr_operator_kind)eok_indirect);
-  operand = expr->variant.operation.operands;
-  if (is_operation_node(operand) && 
-      node_operator_is(operand, eok_address_of) &&
-      il_identical_types(expr->type,
-                         operand->variant.operation.operands->type)) {
-    if (expr->is_lvalue == operand->variant.operation.operands->is_lvalue) {
-      /* Remove "*" on top of "&". */
-      overwrite_node(expr, operand->variant.operation.operands);
-    } else if (!expr->is_lvalue &&
-               operand->variant.operation.operands->is_lvalue) {
-      /* expr has been converted to an rvalue, convert the new expression
-         (after removing "*" and "&" operations) to an rvalue as well. */
-      overwrite_node(expr, rvalue_expr_for_lvalue(
-                                         operand->variant.operation.operands));
-    }  /* if */
-  }  /* if */
+                  node_operator_is(expr, eok_indirect));
+  /* See if the "*&x" optimization applies. */
+  optimize_expr_if_possible(expr);
 }  /* lower_indirect */
 
 
@@ -12801,19 +12791,17 @@ cast.  See lower_expr for typical invocation.
         change_to_cast(expr, operand_node, expr->type);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       } else if (op == (an_expr_operator_kind)eok_indirect &&
-                 is_optimizable_temp_init_indirection(operand_node,
-                                                      &temp_init_node)) {
+                 !expr->is_lvalue &&
+                 is_optimizable_temp_init_indirection(expr, &temp_init_node)) {
         /* Optimize an indirection over a cast over an address of an
            enk_temp_init, where the cast only adjusts cv-qualifiers that
-           will be dropped anyway. */
+           will be dropped anyway because the result is an rvalue. */
         a_type_ptr type = expr->type;
         check_assertion(temp_init_node->kind ==
                                             (an_expr_node_kind)enk_temp_init &&
                         temp_init_node->is_lvalue);
-        if (!expr->is_lvalue) {
-          /* Convert enk_temp_init node to an rvalue if necessary. */
-          temp_init_node = rvalue_expr_for_lvalue(temp_init_node);
-        }  /* if */
+        /* Convert enk_temp_init node to an rvalue. */
+        temp_init_node = rvalue_expr_for_lvalue(temp_init_node);
         overwrite_node(expr, temp_init_node);
         expr->type = type;
         lower_temp_init(expr);
