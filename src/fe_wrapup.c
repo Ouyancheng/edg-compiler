@@ -820,6 +820,13 @@ and before the back end (if any) is executed.
      the IL (binary tree) form and set the related fields in il_header. */
   copy_macro_invocation_tree_to_il();
 #endif /* MACRO_INVOCATION_TREE_IN_IL */
+#if DEBUG
+  if (db_flag_is_set("source_file_for_seq_info")) {
+    /* Display some debug information about the source file to sequence
+       number translation process. */
+    db_source_file_for_seq_info();
+  }  /* if */
+
   /* Lower the file scope, remove unneeded entities, etc. */
   wrap_up_file_scopes();
 
@@ -828,12 +835,6 @@ and before the back end (if any) is executed.
      error being issued (otherwise, abort compilation). */
   check_expected_errors();
 #endif /* CHECKING */
-#if DEBUG
-  if (db_flag_is_set("source_file_for_seq_info")) {
-    /* Display some debug information about the source file to sequence
-       number translation process. */
-    db_source_file_for_seq_info();
-  }  /* if */
 #if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
   /* Display information about any range_modifiers that were created but that
      were not written to the IL file. */

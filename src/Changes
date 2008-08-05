@@ -1,5 +1,11 @@
 Version 3.11
 
+8/5/08   Reference to freed memory in db_source_file_for_seq_info
+
+When db_source_file_for_seq_info was called from fe_wrapup in configurations
+that write an IL file, it referenced memory that had already been freed.
+Now fixed.
+
 8/5/08   Checking for references to freed memory
 
 A mechanism to help detect references to freed memory has been added.  If
