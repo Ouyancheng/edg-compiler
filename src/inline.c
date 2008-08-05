@@ -394,7 +394,8 @@ return TRUE).  See constant_lvalue_address and constant_rvalue_pointer.
     an_expr_operator_kind op = expr->variant.operation.kind;
     if (op == (an_expr_operator_kind)eok_address_of ||
         op == (an_expr_operator_kind)eok_array_to_pointer ||
-        op == (an_expr_operator_kind)eok_cast) {
+        (op == (an_expr_operator_kind)eok_cast &&
+         is_pointer_type(expr->type))) {
       /* These operations are constant valued provided their first
          operand is constant-valued. */
       /* A cast of a constant address is constant-valued.  This is useful on a
