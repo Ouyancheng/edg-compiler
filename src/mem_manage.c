@@ -700,6 +700,12 @@ Free the storage associated with the indicated memory block.
   a_mem_block_header_ptr test_hdr, prev_hdr;
 
   db_enter(5, "free_mem_block");
+#if OVERWRITE_FREED_MEM_BLOCKS
+  /* Overwrite the memory being freed so that any reference to the freed
+     memory is more likely to be detected. */
+  memset(hdr->start_of_block, 0xdb,
+         size_t_arg(hdr->after_end_of_block - hdr->start_of_block));
+#endif /* OVERWRITE_FREED_MEM_BLOCKS */
   if (!okay_to_free_mem_blocks) {
     /* If memory blocks cannot be freed, don't attempt to merge the blocks.
        This is an optimization because the list of blocks can get quite large

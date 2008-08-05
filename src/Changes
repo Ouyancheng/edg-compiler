@@ -1,5 +1,14 @@
 Version 3.11
 
+8/5/08   Checking for references to freed memory
+
+A mechanism to help detect references to freed memory has been added.  If
+the configuration flag OVERWRITE_FREED_MEM_BLOCKS is set, memory blocks
+that are part of memory regions will be overwritten before being put on
+the available list or freed, so that any later references to the memory
+will be more likely to be noticed.  The new flag is set by default when
+EXPENSIVE_CHECKING is enabled.
+
 8/4/08   Abort in cp_gen_be.c on imaginary division in C99 mode
 
 In C99 mode, dividing a real value by an imaginary value (C99 _Imaginary type)

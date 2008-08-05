@@ -508,6 +508,20 @@ the macro, so one should not follow a reference to the macro.
 #endif /* CENTERLINE_CHECKING */
 
 /*
+Overwrite the contents of the blocks that make up memory regions before
+they are returned to the available list or freed.  This helps detect
+references to memory that has already been freed.  This is enabled
+by default when EXPENSIVE_CHECKING is requested.
+*/
+#ifndef OVERWRITE_FREED_MEM_BLOCKS
+#if EXPENSIVE_CHECKING
+#define OVERWRITE_FREED_MEM_BLOCKS TRUE
+#else /* !EXPENSIVE_CHECKING */
+#define OVERWRITE_FREED_MEM_BLOCKS FALSE
+#endif /* EXPENSIVE_CHECKING */
+#endif /* ifndef OVERWRITE_FREED_MEM_BLOCKS */
+
+/*
 Indication that a function does not return.  Used as the return type
 of the function.  Usually expands to "void", but can be changed to
 something else if the host C compiler has some way of indicating a
