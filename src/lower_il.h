@@ -1147,9 +1147,11 @@ function calls.  Note that this test is sub-optimal in that it only checks for
 parameters being passed via copy constructor, not for ones that are also
 cv-qualified.  This is because the cv-qualifiers may already have been removed
 during lowering.  The result is that we may add a cast where none is necessary.
+Casts are not needed for pointer to member function types.
 */
 #define needs_cast_because_type_has_param_passed_via_cctor(tp)  \
   (!C_mode() && !make_all_functions_unprototyped &&             \
+   !is_or_was_ptr_to_member_function_type(tp) &&                \
    type_has_param_passed_via_cctor(tp))                         \
 
 #endif /* DO_IL_LOWERING */

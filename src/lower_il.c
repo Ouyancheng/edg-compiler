@@ -9120,7 +9120,6 @@ end_traversal is not used.
 {
   a_boolean result = FALSE;
 
-  tp = skip_typerefs(tp);
   if (is_function_type(tp)) {
     a_param_type_ptr              ptp;
     a_routine_type_supplement_ptr rtsp = tp->variant.routine.extra_info;
@@ -9145,6 +9144,7 @@ contains a parameter whose type requires a copy constructor to be called.
 {
   /* No need to traverse 'this' pointer nor exception specifications. */
   a_type_tree_traversal_flag_set  tt_flags = TTT_RETURN_TYPE |
+                                             TTT_SKIP_TYPEREFS |
                                              TTT_PARAM_TYPES;
 
   return traverse_type_tree(tp, ttt_type_has_param_passed_via_cctor, tt_flags);
