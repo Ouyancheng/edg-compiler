@@ -1358,7 +1358,7 @@ EXTERN a_boolean
 
 EXTERN a_boolean
 		no_checking_pragmas;
-			/* TRUE if when using EXPENSIVE_CHECKING, the
+			/* TRUE if, when using EXPENSIVE_CHECKING, the
 			   generation of checking pragmas should be
 			   suppressed. */
 
