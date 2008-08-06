@@ -1598,8 +1598,6 @@ enum a_constant_repr_kind_tag {
   ck_float,             /* All sizes of float. */
 #if C99_IL_EXTENSIONS_SUPPORTED
   ck_complex,           /* All sizes of C99's _Complex types. */
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-#if C99_IL_EXTENSIONS_SUPPORTED
   ck_imaginary,         /* All sizes of C99's _Imaginary types. */
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
   ck_address,           /* Address/pointer. */
@@ -2734,8 +2732,6 @@ enum a_type_kind_tag {
   tk_float,             /* All float types. */
 #if C99_IL_EXTENSIONS_SUPPORTED
   tk_imaginary,         /* C99 imaginary types. */
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-#if C99_IL_EXTENSIONS_SUPPORTED
   tk_complex,           /* Complex (C99).  Must have the same layout as an
 			   array of two reals of the appropriate size. */
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
@@ -5699,8 +5695,6 @@ typedef struct a_type {
     /* When kind == tk_float: */
 #if C99_IL_EXTENSIONS_SUPPORTED
     /* Also, when kind == tk_imaginary: */
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-#if C99_IL_EXTENSIONS_SUPPORTED
     /* Also, when kind == tk_complex: */
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
     a_float_kind
@@ -8941,8 +8935,8 @@ typedef struct a_label {
 			   switch to the next. */
 #if GNU_EXTENSIONS_ALLOWED
   a_bit_field	address_taken:1;
-			/* TRUE if this label appears in had its address
-			   taken (GNU-extended C). */
+			/* TRUE if this label had its address taken
+			   (GNU-extended C). */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
   a_bit_field	locally_declared:1;
@@ -9116,7 +9110,7 @@ enum an_expr_operator_kind_tag {
   eok_unary_plus,	/* Unary "+" (integer, floating, or pointer).  See
 			   UNARY_PLUS_IN_IL. */
   eok_not,              /* Logical complement ("!" operator).  Operand has been
-                           standardized to integer/logical. */
+                           standardized to integer/boolean. */
   eok_cast,		/* Type cast.  The type of the expression indicates
 			   the type to cast to.	 The type can be void.
 			   Also note that C++ reinterpret_casts to pointer-to-
@@ -9257,8 +9251,6 @@ enum an_expr_operator_kind_tag {
   eok_xeq,              /* Complex equality. */
   eok_xne,              /* Complex inequality. */
   eok_xassign,          /* Complex assignment. */
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-#if C99_IL_EXTENSIONS_SUPPORTED
   eok_xadd_assign,      /* Complex add assign operator. */
   eok_xsubtract_assign, /* Complex subtract assign operator. */
   eok_xmultiply_assign, /* Complex multiply assign operator. */
@@ -9404,12 +9396,12 @@ enum an_expr_operator_kind_tag {
 			/* Similar to eok_dot_vacuous_destructor_call, but
 			   for the "->" case, e.g., p->int::~int(). */
   eok_land,             /* Logical intersection, with the operand standardized
-                           to integer/logical ("&&" operator) */
+                           to integer/boolean ("&&" operator) */
   eok_lor,              /* Logical union, with the operand standardized
-                           to integer/logical ("||" operator) */
+                           to integer/boolean ("||" operator) */
   /* The following have 3 operands: */
   eok_question,         /* Conditional expression ("?" operator).  Operand
-                           has been standardized to integer/logical.  Also
+                           has been standardized to integer/boolean.  Also
 			   used for the GNU two-operand form, when
 			   is_gnu_two_operand_question_mark is TRUE (but
 			   three operands are still provided in that case). */
@@ -10535,8 +10527,8 @@ typedef struct a_statement {
                              The expression to test for stmk_end_test_while.
                              The expression to test (or NULL) for stmk_for.
                            Note that the "expression to test" in each of the
-                           four cases is always standardized to an integer/
-                           logical expression.
+                           four caeses is always standardized to an integer/
+                           boolean  expression.
                              The switch expression for stmk_switch.
                              The selector expression for stmk_assigned_goto,
 			     if GNU extensions are allowed. */
@@ -12228,8 +12220,6 @@ EXTERN char     *db_operator_names[(int)eok_last+1]
    "p+", "p-", "p=",
 #if C99_IL_EXTENSIONS_SUPPORTED
    "x+", "x-", "x*", "x/", "x==", "x!=", "x=",
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-#if C99_IL_EXTENSIONS_SUPPORTED
    "x+=", "x-=", "x*=", "x/=",
    "j*", "j/", "fj+", "jf+", "fj-", "jf-",
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
