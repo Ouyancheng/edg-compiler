@@ -552,7 +552,8 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_ELF_visibility_stack_empty)*/
 #endif /* !GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 #if !GNU_VECTOR_TYPES_ALLOWED
-/*lint -esym(769,ec_vector_size_attribute_requires_integral_floating_or_enum_type)*/
+/*lint -esym(769,
+             ec_vector_size_attribute_requires_integral_floating_or_enum_type)*/
 /*lint -esym(769,ec_vector_size_too_large)*/
 /*lint -esym(769,ec_vector_size_must_be_power_of_two)*/
 /*lint -esym(769,ec_vector_size_must_be_multiple_of_element_size)*/
