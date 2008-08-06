@@ -565,7 +565,7 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_vector_size_must_be_integer_constant)*/
 /*lint -esym(769,ec_vector_element_type_mismatch)*/
 /*lint -esym(769,ec_vector_operation_requires_integer_vector)*/
-#endif /* @GNU_VECTOR_TYPES_ALLOWED */
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
 /*lint -esym(759,find_local_scope)*/
 /*lint -esym(765,find_local_scope)*/
 /*lint -esym(714,find_local_scope)*/
