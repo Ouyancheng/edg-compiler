@@ -11798,7 +11798,8 @@ resultant expression can be optimized.
                        comma_second_node->variant.operation.operands);
         child->type = comma_second_node->type;
         child->is_lvalue = comma_second_node->is_lvalue;
-        child->variant.operation.returns_lvalue_instead_of_usual_rvalue = FALSE;
+        child->variant.operation.returns_lvalue_instead_of_usual_rvalue =
+                                                                         FALSE;
         overwrite_node(expr, child);
         optimized = TRUE;
       } else if (op == (an_expr_operator_kind)eok_points_to_field &&
