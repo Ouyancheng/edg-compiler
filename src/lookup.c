@@ -3677,7 +3677,7 @@ in a friend declaration.
         if ((allow_typedef || assoc_symbol->is_class_member) &&
             is_class_symbol(assoc_symbol)) {
           /* Some versions of g++ allow "class <typedef-name>" when the
-             typedef name is a qualified name (determined by the called) or
+             typedef name is a qualified name (determined by the caller) or
              when the typedef name is a class member (determined here).
              Only allow this if the type referred to is a class type. */
           typedef_okay = TRUE;
