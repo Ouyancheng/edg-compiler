@@ -1290,7 +1290,12 @@ the block_list when done.
   for (hdr = *block_list; hdr != NULL; hdr = next_hdr) {
     next_hdr = hdr->next;
     /* There should only be malloc entries on the list when this routine
-       is called. */
+       is called.  Note that in other places in this file that call
+       free_complete_block the caller also checks that the malloc_size is the
+       same as the space used in the block.  That test is not needed here
+       because that test is used to prevent the freeing of split blocks.  But
+       here we know that the other parts of any split blocks have already
+       been removed from any lists so that the complete blocks can be freed. */
     check_assertion(hdr->malloc_size > 0);
     free_complete_block(hdr);
   }  /* for */
@@ -1340,6 +1345,8 @@ end memory region.
     }  /* for */
     /* Free the front end memory region. */
     free_mem_blocks_for_region(NULL_region_number);
+    /* There could be malloc blocks on the reusable blocks list, so free any
+       such blocks. */
     free_mem_blocks(&reusable_blocks_list);
   } else {
     /* The memory can't be freed -- just return it to the reusable list
