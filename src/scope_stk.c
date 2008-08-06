@@ -5702,7 +5702,7 @@ function scope, and remove any referrers that are unneeded.
   while (*scope_ref != NULL) {
     /* Don't consider a_local_scope_ref entries whose referrer is itself a
        scope. */
-    if ((*scope_ref)->referrer.kind != iek_scope) {
+    if ((*scope_ref)->referrer.kind != (a_byte_il_entry_kind)iek_scope) {
       a_source_correspondence_ptr  scp = (a_source_correspondence_ptr)
                                                    (*scope_ref)->referrer.ptr;
       if (!scp->needed) {
