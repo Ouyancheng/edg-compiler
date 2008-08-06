@@ -952,6 +952,13 @@ switches before this point.
 #endif /* !defined(SUN_TARGET_VERSION_NUMBER) && ... */
 
 /*
+Overwrite freed memory to detect later uses.
+*/
+#ifndef OVERWRITE_FREED_MEM_BLOCKS
+#define OVERWRITE_FREED_MEM_BLOCKS 1
+#endif /* ifndef OVERWRITE_FREED_MEM_BLOCKS */
+
+/*
 If using lint on a non-Sun platform, define some features that are in the
 SUN_TEST_VERSION but not the EDG_TEST_VERSION.
 */
