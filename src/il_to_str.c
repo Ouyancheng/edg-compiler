@@ -4697,32 +4697,6 @@ described by octl.
   return need_leading_space;
 }  /* form_type_attributes */
 
-#if BACK_END_IS_CP_GEN_BE
-
-void form_mode_attribute(
-                    a_type_mode_kind                       mode,
-                    a_boolean                              need_leading_space,
-                    an_il_to_str_output_control_block_ptr  octl)
-/* 
-Output the GNU type mode in the way described by octl.  If need_leading_space
-is TRUE, precede the attribute with a leading space.
-*/
-{
-  if (!octl->gen_compilable_code
-#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
-      || gcc_is_generated_code_target
-#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
-                                     ) {
-    if (need_leading_space) {
-      octl->output_str(" ");
-    }  /* if */
-    octl->output_str("__attribute__((__mode__(");
-    octl->output_str(type_mode_kind_names[(int)mode]);
-    octl->output_str(")))");
-  }  /* if */
-}  /* form_mode_attribute */
-
-#endif /* BACK_END_IS_CP_GEN_BE */
 
 a_boolean form_variable_attributes(
                     a_variable_ptr                         var,

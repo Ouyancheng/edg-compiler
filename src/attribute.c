@@ -907,8 +907,8 @@ to TRUE, but no error message is issued.
 static a_boolean scan_mode_attribute_arg(an_attribute_ptr  ap)
 /*
 Scan and record the mode attribute argument.  If it starts with "V1", "V2",
-"V4" or "V8", this is a vector mode. Record the mode kind and vector length
-(if any) in *ap.
+"V4" or "V8", this is a vector mode.  Record the mode kind and vector length
+(if any) in *ap.  Return TRUE if a valid mode was scanned.
 */
 {
   a_boolean  result = TRUE;
@@ -1722,16 +1722,20 @@ and return the given type.
 {
   type = get_type_with_mode(type, ap->variant.mode.kind, &ap->position);
 #if GNU_VECTOR_TYPES_ALLOWED
-  if (ap->variant.mode.length != 0 &&
-      (type->kind == (a_type_kind)tk_integer ||
-       type->kind == (a_type_kind)tk_float)) {
-    /* get_type_with_mode will have issued an error if type->kind wasn't
-       tk_integer or tk_float. */
-    a_type_ptr  vtype = alloc_type((a_type_kind)tk_vector);
-    vtype->source_corresp.decl_position = ap->position;
-    vtype->size = type->size*ap->variant.mode.length;
-    vtype->variant.vector.element_type = type;
-    type = vtype;
+  if (ap->variant.mode.length != 0) {
+    a_type_ptr            unqual_type = skip_typerefs(type);
+    a_type_qualifier_set  qualifiers = get_type_qualifiers(type);
+    if (unqual_type->kind != (a_type_kind)tk_integer &&
+        unqual_type->kind != (a_type_kind)tk_float) {
+      /* get_type_with_mode will have issued an error if type->kind wasn't
+         tk_integer or tk_float. */
+    } else {
+      a_type_ptr  vtype = alloc_type((a_type_kind)tk_vector);
+      vtype->source_corresp.decl_position = ap->position;
+      vtype->size = type->size*ap->variant.mode.length;
+      vtype->variant.vector.element_type = unqual_type;
+      type = make_qualified_type(vtype, qualifiers);
+    }  /* if */
   }  /* if */
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
   return type;
@@ -2787,6 +2791,7 @@ a typedef, is_typedef is TRUE.
         /* If tp had neither integer nor floating type, it is an error to use
            the mode attribute.  An error will have been issued by
            apply_mode_attribute. */
+        check_assertion(tp->kind !=  (a_type_kind)tk_typeref);
       } else {
         if (tp->kind == (a_type_kind)tk_integer) {
           tp->variant.integer.int_kind = mode_type->variant.integer.int_kind;
