@@ -1,5 +1,20 @@
 Version 3.11
 
+8/7/08   [EDGcpfe/9120]
+Template with dependent explicit argument is dependent argument to call
+
+A function template with an explicit argument list that contains at
+least one template-dependent argument is now considered dependent
+as an argument to a call.  That makes an example like the following
+be accepted in strict mode:
+
+  template <class T, int> void One(T*) {}
+  template <class T> int Two(void (*)(T*)) { return 0; }
+  template <int I> static int Foo(void *)
+  { return Two<int> (One<int, I>); }
+  int g(int (*)(void*));
+  int main() { return g(Foo<8>); }
+
 8/7/08   Constant expressions unconditionally recorded in IL
 
 The features previously controlled by RECORD_CONSTANT_EXPRESSIONS_IN_IL,

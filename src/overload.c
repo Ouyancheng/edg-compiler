@@ -1901,6 +1901,8 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
         /* There is a suitable indefinite function, or more than one.
            arg_summary->match_level has been set appropriately. */
         arg_summary->conversion.std = std_conversion;
+        /* The unknown dependent case should have been caught higher up. */
+        check_assertion(!unknown_dependent_function);
         if (ambiguous) arg_summary->conversion.unusable = TRUE;
         if (chosen_function != NULL &&
             (chosen_function->kind == (a_symbol_kind)sk_routine ||
@@ -5447,6 +5449,25 @@ end_of_function:
 }  /* any_function_has_dependent_param_or_default_arg */
 
 
+static a_boolean is_template_dependent_indefinite_function(an_operand *operand)
+/*
+Return TRUE if the indicated operand is a template-dependent indefinite
+function.
+*/
+{
+  a_boolean dep = FALSE;
+
+  if (is_indefinite_function_operand(operand) &&
+      operand->is_template_id &&
+      template_arg_list_involves_template_param(operand->template_arg_list)) {
+    /* An indefinite function with a template-dependent explicit template
+       argument list is template-dependent. */
+    dep = TRUE;
+  }  /* if */
+  return dep;
+}  /* is_template_dependent_indefinite_function */
+
+
 static a_boolean is_symbol_for_which_overload_resolution_should_be_deferred(
                                                               a_symbol_ptr sym)
 /*
@@ -5624,7 +5645,8 @@ and return NULL.  This routine is called only in C++ mode.
     for (arg_operand = arg_operand_list;
          arg_operand != NULL;
          arg_operand = arg_operand->next) {
-      if (is_template_dependent_type(arg_operand->operand.type)) {
+      if (is_template_dependent_type(arg_operand->operand.type) ||
+          is_template_dependent_indefinite_function(&arg_operand->operand)) {
         dependent_call = TRUE;
         break;
       }  /* if */
