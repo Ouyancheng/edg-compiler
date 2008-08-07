@@ -4233,9 +4233,7 @@ Do IL lowering of the indicated constant and everything under it.
     mark_as_visited(constant);
     lower_source_correspondence(&constant->source_corresp);
     if (constant->type != NULL) lower_os_type(constant->type);
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
     /* Leave constant->expr unlowered if it is present. */
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
     switch (constant->kind) {
       case ck_integer:
       case ck_float:

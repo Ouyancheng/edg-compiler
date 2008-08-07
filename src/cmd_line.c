@@ -5393,21 +5393,11 @@ file.
 #else /* !defined(RECOGNIZE_MICROSOFT_ATTRIBUTES) */
   comment_undefined_macro_name(RECOGNIZE_MICROSOFT_ATTRIBUTES);
 #endif /* defined(RECOGNIZE_MICROSOFT_ATTRIBUTES) */
-#if defined(RECORD_CONSTANT_EXPRESSIONS_IN_IL)
-  define_numeric_valued_macro(RECORD_CONSTANT_EXPRESSIONS_IN_IL);
-#else /* !defined(RECORD_CONSTANT_EXPRESSIONS_IN_IL) */
-  comment_undefined_macro_name(RECORD_CONSTANT_EXPRESSIONS_IN_IL);
-#endif /* defined(RECORD_CONSTANT_EXPRESSIONS_IN_IL) */
 #if defined(RECORD_FORM_OF_NAME_REFERENCE)
   define_numeric_valued_macro(RECORD_FORM_OF_NAME_REFERENCE);
 #else /* !defined(RECORD_FORM_OF_NAME_REFERENCE) */
   comment_undefined_macro_name(RECORD_FORM_OF_NAME_REFERENCE);
 #endif /* defined(RECORD_FORM_OF_NAME_REFERENCE) */
-#if defined(RECORD_GENERAL_CONSTANT_EXPRESSIONS_IN_IL)
-  define_numeric_valued_macro(RECORD_GENERAL_CONSTANT_EXPRESSIONS_IN_IL);
-#else /* !defined(RECORD_GENERAL_CONSTANT_EXPRESSIONS_IN_IL) */
-  comment_undefined_macro_name(RECORD_GENERAL_CONSTANT_EXPRESSIONS_IN_IL);
-#endif /* defined(RECORD_GENERAL_CONSTANT_EXPRESSIONS_IN_IL) */
 #if defined(RECORD_HIDDEN_NAMES_IN_IL)
   define_numeric_valued_macro(RECORD_HIDDEN_NAMES_IN_IL);
 #else /* !defined(RECORD_HIDDEN_NAMES_IN_IL) */
@@ -5433,12 +5423,6 @@ file.
 #else /* !defined(RECORD_SCOPE_DEPTH_IN_IL) */
   comment_undefined_macro_name(RECORD_SCOPE_DEPTH_IN_IL);
 #endif /* defined(RECORD_SCOPE_DEPTH_IN_IL) */
-#if defined(RECORD_TEMPLATE_DECL_CONSTANT_EXPRESSIONS_IN_IL)
-  define_numeric_valued_macro(RECORD_TEMPLATE_DECL_CONSTANT_EXPRESSIONS_IN_IL);
-#else /* !defined(RECORD_TEMPLATE_DECL_CONSTANT_EXPRESSIONS_IN_IL) */
-  comment_undefined_macro_name(
-                              RECORD_TEMPLATE_DECL_CONSTANT_EXPRESSIONS_IN_IL);
-#endif /* defined(RECORD_TEMPLATE_DECL_CONSTANT_EXPRESSIONS_IN_IL) */
 #if defined(RECORD_TEMPLATE_STRINGS)
   define_numeric_valued_macro(RECORD_TEMPLATE_STRINGS);
 #else /* !defined(RECORD_TEMPLATE_STRINGS) */

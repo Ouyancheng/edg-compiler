@@ -861,11 +861,9 @@ Display the indicated constant entry.
   disp_source_corresp(&ptr->source_corresp, iek_constant);
   disp_ptr("next", (char *)ptr->next, iek_constant);
   disp_ptr("type", (char *)ptr->type, iek_type);
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
   if (ptr->expr != NULL) {
     disp_ptr("expr", (char *)ptr->expr, iek_expr_node);
   }  /* if */
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
   if (ptr->implicit_cast) {
     disp_boolean("implicit_cast", TRUE);
   }  /* if */
@@ -904,11 +902,11 @@ Display the indicated constant entry.
     disp_boolean("flexible_array_initializer", TRUE);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL && BACK_END_IS_CP_GEN_BE
+#if BACK_END_IS_CP_GEN_BE
   if (ptr->suppress_expression_in_cp_gen_be) {
     disp_boolean("suppress_expression_in_cp_gen_be", TRUE);
   }  /* if */
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL && BACK_END_IS_CP_GEN_BE */
+#endif /* BACK_END_IS_CP_GEN_BE */
   if (ptr->uses_designated_initializers) {
     disp_boolean("uses_designated_initializers", TRUE);
   }  /* if */
@@ -1562,12 +1560,10 @@ do_float_complex:
       if (ptr->variant.array.constant_bound_expr_in_local_expr_node_ref) {
         disp_boolean("constant_bound_expr_in_local_expr_node_ref", TRUE);
       }  /* if */
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
       if (ptr->variant.array.bound_constant != NULL) {
         disp_ptr("bound_constant",
                  (char *)ptr->variant.array.bound_constant, iek_constant);
       }  /* if */
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
       break;
     case tk_class:
       (void)printf("tk_class\n");
@@ -2270,10 +2266,8 @@ Display the indicated field.
     disp_unsigned_long("offset_bit_remainder",
                        (unsigned long)ptr->offset_bit_remainder);
     disp_unsigned_long("bit_size", (unsigned long)ptr->bit_size);
-#if RECORD_GENERAL_CONSTANT_EXPRESSIONS_IN_IL
     disp_ptr("bit_size_constant", (char *)ptr->bit_size_constant,
              iek_constant);
-#endif /* RECORD_GENERAL_CONSTANT_EXPRESSIONS_IN_IL */
     if (ptr->declared_bit_size != ptr->bit_size) {
       disp_unsigned_long("declared_bit_size", ptr->declared_bit_size);
 #if BACK_END_IS_C_GEN_BE

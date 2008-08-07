@@ -1819,10 +1819,8 @@ value is TRUE.
       /* No subtree to copy. */
       break;
     case ok_constant:
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
       /* Avoid having two constants pointing at the same expression. */
       operand->variant.constant.expr = NULL;
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
       break;
     case ok_expression:
       { an_expr_node_ptr expr;
@@ -2072,14 +2070,12 @@ destroyed its source position, etc.  Restore such things from
        the operand and the expression (e.g., because of indirection) and
        we'd like to preserve that over some transformation like
        lvalue-to-rvalue conversion. */
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
   } else if (is_constant_operand(orig_operand) &&
              is_constant_operand(operand) &&
              orig_operand->variant.constant.expr != NULL &&
              orig_operand->variant.constant.expr ==
                                              operand->variant.constant.expr) {
     /* Same for a case where an expression was recorded for a constant. */
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
   } else {
     set_operand_expr_position_if_expr(operand, (a_source_position *)NULL);
   }  /* if */
@@ -2270,11 +2266,9 @@ The position of the current token will be used as the operand position.
   con_ptr = sym->variant.constant;
   copy_constant(con_ptr, &constant);
   break_instance_source_corresp(&constant.source_corresp);
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
   /* Detach any associated expression on template argument values accessed
      as the values of template parameters. */
   constant.expr = NULL;
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
   if (is_reference_type(constant.type)) {
     /* The constant has a reference type.  This happens for a constant
        that is an argument for a nontype template parameter that has
@@ -3205,7 +3199,6 @@ user-defined conversions.
              is.  Don't clear the flag once it gets set (an implicit cast
              after a reinterpret_cast still counts as a reinterpret_cast). */
           local_constant.is_reinterpret_cast |= is_reinterpret_cast;
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
           if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
             an_expr_node_ptr orig_expr = operand->variant.constant.expr;
             local_constant.expr = orig_expr;
@@ -3240,7 +3233,6 @@ user-defined conversions.
             forget_expr_range_modifiers_in_operand(operand);
 #endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
           }  /* if */
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
           make_constant_operand(&local_constant, operand);
           restore_operand_form_of_name_reference(operand, &orig_operand);
         }  /* if */
@@ -3287,8 +3279,8 @@ user-defined conversions.
         /* If the pointer to member is to a related class, or the pointer
            to function differs because of a conversion (e.g., a C++ vs.
            C linkage on the function type), adjust the operand. */
-        /* This also takes care of recording the cast when
-           RECORD_CONSTANT_EXPRESSIONS_IN_IL is TRUE. */
+        /* This also takes care of recording the cast as part of the
+           expression representation of the constant. */
         cast_operand(new_type, operand, check_cast_access,
                      is_implicit_cast,
                      is_reinterpret_cast, reinterpret_semantics);
@@ -6846,7 +6838,6 @@ operator_position indicates the operator position.
                                        make_node_from_operand(result), result);
         }  /* if */
       }  /* if */
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
     } else if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
       /* The operation was folded to a constant.  We're recording
          expressions for constants, so build an expression and point the
@@ -6865,7 +6856,6 @@ operator_position indicates the operator position.
       forget_expr_range_modifiers_in_operand(operand_1);
       forget_expr_range_modifiers_in_operand(operand_2);
 #endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
     }  /* if */
   }  /* if */
   result->ruled_out_expr_kinds = (operand_1->ruled_out_expr_kinds |
@@ -7279,7 +7269,6 @@ indicates the operator position.
       }  /* if */
     } else {
       /* The operation was folded to a constant. */
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
       if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
         /* The operation was folded to a constant.  We're recording
            expressions for constants, so build an expression and point the
@@ -7293,7 +7282,6 @@ indicates the operator position.
         forget_expr_range_modifiers_in_operand(operand);
 #endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
       }  /* if */
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
       make_constant_operand(&result_constant, result);
     }  /* if */
   }  /* if */
@@ -7621,7 +7609,6 @@ still provided).
         /* The result is not a null pointer constant. */
         result->variant.constant.null_pointer_constant_ruled_out = TRUE;
       }  /* if */
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
       if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
         /* Create an expression to be recorded in the constant. */
         an_operand result_expr;
@@ -7631,7 +7618,6 @@ still provided).
         check_assertion(is_expression_operand(&result_expr));
         result->variant.constant.expr = result_expr.variant.expression;
       }  /* if */
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
 #if BACK_END_IS_CP_GEN_BE
     } else if (is_expression_operand(result)) {
       /* Force the C++-generating back end to keep a promotion cast
@@ -7834,7 +7820,6 @@ an lvalue.
   rule_out_expr_kinds(ROEK_CONSTANT, result);
 }  /* add_reference_indirection */
 
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
 
 static an_expr_node_ptr expr_to_record_for_variable(a_variable_ptr variable,
                                                     a_boolean      is_lvalue)
@@ -7864,7 +7849,6 @@ if is_lvalue is TRUE.  Return NULL if the expression cannot be generated.
   return expr;
 }  /* expr_to_record_for_variable */
 
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
 
 static void force_constant_to_be_dependent(a_constant *constant)
 /*
@@ -8040,9 +8024,9 @@ constant initial value is treated as having a nonconstant initial value.
              is_const_variable(var) &&
              !is_volatile_qualified_type(var->type)) {
     /* initk_function_local initialization can come up with local static
-       variables when RECORD_CONSTANT_EXPRESSIONS_IN_IL is TRUE (the
-       expression is function-local, and that forces the initializer
-       constant to be made function-local as well). */
+       variables when recording a constant expression (the expression is
+       function-local, and that forces the initializer constant to be made
+       function-local as well). */
     get_variable_initializer(var, (a_scope_ptr)NULL, &init_kind, &initializer);
     if (init_kind == (an_init_kind)initk_static) {
       /* The variable has a constant initial value. */
@@ -9502,11 +9486,9 @@ explicit "&" operator in the source and *operator_position gives its position.
         conv_to_error_operand(operand);
       } else {
         a_boolean need_expr = did_not_fold;
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
         if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
           need_expr = TRUE;
         }  /* if */
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
         if (need_expr) {
           if (expr == NULL) {
             expr = make_node_from_operand(operand);
@@ -9529,10 +9511,8 @@ explicit "&" operator in the source and *operator_position gives its position.
         }  /* if */
         if (did_not_fold) {
           make_expression_operand(expr, operand);
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
         } else if (need_expr) {
           operand->variant.constant.expr = expr;
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
         }  /* if */
       }  /* if */
       restore_operand_details_incl_ref(operand, &orig_operand);
@@ -10333,7 +10313,6 @@ it might produce an error).
   a_boolean      processed = FALSE;
   a_boolean      template_constant = FALSE;
   a_type_ptr     rvalue_node_type;
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_range saved_expr_range;
   a_source_position
@@ -10342,7 +10321,6 @@ it might produce an error).
   saved_expr_range = node->expr_range;
   saved_operator_position = node->operator_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
   if (constant_case != NULL) *constant_case = FALSE;
   if (con_value != NULL) *con_value = NULL;
   check_assertion(node->is_lvalue || is_error_node(node));
@@ -10361,7 +10339,6 @@ it might produce an error).
       /* Look for constant-valued variables in C++. */
       a_variable_ptr variable;
       con_expr_value = value_of_constant_var_lvalue_expr(node, &variable);
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
       if (con_expr_value != NULL) {
 #if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
         /* Ignore any range modifiers in the expression being discarded. */
@@ -10371,7 +10348,6 @@ it might produce an error).
            rvalue version of the expression. */
         node = expr_to_record_for_variable(variable, /*is_lvalue=*/FALSE);
       }  /* if */
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
     }  /* if */
   } else if (is_operation_node(node)) {
     an_expr_operator_kind op = node->variant.operation.kind;
@@ -10542,19 +10518,17 @@ it might produce an error).
         /* The result is a constant expression, and the caller can take a
            constant result directly. */
         con_expr_value = node->variant.constant;
-        /* Note that in this case we don't record the expression if
-           RECORD_CONSTANT_EXPRESSIONS_IN_IL is TRUE.  It's an enk_constant
-           node, which wouldn't be useful. */
+        /* Note that in this case we don't record the expression for the
+           constant.  It's an enk_constant node, which wouldn't be useful. */
         node = NULL;
       }  /* if */
     }  /* if */
   }  /* if */
   /* At this point,
        -- If con_expr_value != NULL, the expression has a constant value.
-          If RECORD_CONSTANT_EXPRESSIONS_IN_IL is TRUE, node will also
-          have been set to the rvalue version of the expression, to be recorded
-          in the constant, or NULL if no expression should be recorded.
-          constant_case will be non-NULL.
+          node will also have been set to the rvalue version of the
+          expression, to be recorded in the constant, or NULL if no
+          expression should be recorded.  constant_case will be non-NULL.
        -- If template_constant is TRUE, the expression has a constant result
           that is template-dependent.  node will have been set to the rvalue
           version of the expression, to be used under a template parameter
@@ -10565,7 +10539,6 @@ it might produce an error).
   */
   if (con_expr_value != NULL) {
     /* The expression is constant-valued. */
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
     if (node != NULL &&
         curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
       /* Record the expression in the constant.  The expression "node" has
@@ -10583,7 +10556,6 @@ it might produce an error).
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       node = NULL;
     }  /* if */
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
 #if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
     if (node != NULL) {
       /* Ignore any range modifiers in the expression being discarded. */
@@ -10865,9 +10837,7 @@ current mode -- just do it.
                         type_after_array_to_pointer_transformation(expr->type);
     implicit_cast(&conaddr, ptr_type);
     make_constant_operand(&conaddr, operand);
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
     operand->variant.constant.expr = expr;
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
   } else if (curr_expr_kind_is_const() && curr_expr_is_evaluated()) {
     /* The array-to-pointer operation must fold to a constant in a constant
        expression. */
@@ -11022,9 +10992,7 @@ function, which means (among other things) that its address will not escape.
     /* The address is constant and a constant is preferred in the current
        context. */
     make_constant_operand(&constant, operand);
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
     operand->variant.constant.expr = expr;
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
   } else {
     /* Turn the lvalue function into an rvalue function, staying in
        expression form. */
@@ -11860,9 +11828,7 @@ types to get a boolean expression (see process_boolean_controlling_expression).
               check_assertion(is_constant_operand(&orig_operand));
               con->null_pointer_constant_ruled_out =
                  orig_operand.variant.constant.null_pointer_constant_ruled_out;
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
               con->expr = orig_operand.variant.constant.expr;
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
             }  /* if */
           }
           break;
@@ -11950,12 +11916,10 @@ position information from the operand itself.
         }  /* if */
       }  /* for */
     }  /* if */
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
     if (is_constant_node(node) &&
         node->variant.constant->expr == operand_node) {
       copy_modifiers = FALSE;
     }  /* if */
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
     if (copy_modifiers) {
       copy_expr_range_modifiers(operand_node, node);
     }  /* if */

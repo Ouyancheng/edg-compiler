@@ -1027,9 +1027,7 @@ typedef int an_expr_copy_options_set;
 			   it's the address of a stack variable). */
 #define CE_COPYING_EXPRESSION_FOR_CONSTANT 0x200
 			/* TRUE if the expressions associated with constants
-			   should also be copied (used only in configurations
-			   in which RECORD_CONSTANT_EXPRESSIONS_IN_IL is
-			   TRUE). */
+			   should also be copied. */
 
 a_constant_ptr copy_constant_full(a_constant_ptr           old_constant,
                                   a_constant_ptr           new_constant,

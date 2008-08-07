@@ -1819,7 +1819,6 @@ the way described by octl.
   } else if (type->variant.array.is_variable_size_array) {
     an_expr_node_ptr count = type->variant.array.variant.element_count_expr;
     form_expression(count, octl);
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
   } else if (type->variant.array.constant_bound_expr_in_local_expr_node_ref &&
              !type->variant.array.is_template_dependent_size_array &&
              innermost_function_scope != NULL &&
@@ -1839,7 +1838,6 @@ the way described by octl.
        the bound is more than just a literal (e.g., "2*2" instead of "4"). */
     form_constant(type->variant.array.bound_constant,
                   /*need_parens=*/FALSE, octl);
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
   } else if (type->variant.array.is_template_dependent_size_array) {
     an_expr_node_ptr *expr_ptr = NULL;
     a_constant_ptr   constant =
@@ -1856,11 +1854,9 @@ the way described by octl.
       tkind = constant->variant.template_param.kind;
       if (tkind == (a_template_param_constant_kind)tpck_expression) {
         expr_ptr = &constant->variant.template_param.variant.expr;
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
       } else if (tkind == (a_template_param_constant_kind)tpck_cast ||
                  tkind == (a_template_param_constant_kind)tpck_address) {
         expr_ptr = &constant->variant.template_param.variant.constant->expr;
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
       } else if (tkind == (a_template_param_constant_kind)tpck_sizeof ||
                  tkind == (a_template_param_constant_kind)tpck_alignof ||
                  tkind == (a_template_param_constant_kind)tpck_uuidof ||
@@ -3865,7 +3861,6 @@ precedence confusion.  Do the output in the way described by octl.
       }
     }  /* if */
 #endif /* CHECKING */
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
   } else if (constant_should_be_put_out_as_expr(constant) &&
              !octl->c_generating_back_end &&
              octl->output_expression != NULL) {
@@ -3873,7 +3868,6 @@ precedence confusion.  Do the output in the way described by octl.
        rather than the folded constant. */
     octl->output_expression(constant->expr, /*suppress_parens=*/FALSE);
     goto done;
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
   } else {
     con_type = skip_typerefs(orig_type);
     /* See if we need a cast to the constant result type. */
@@ -4362,9 +4356,7 @@ do_sizeof_cases:
   }  /* switch */
   if (need_reinterpret_cast) octl->output_str(")");
   if (need_cast_close_paren) octl->output_str(")");
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
 done:;
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
 }  /* form_constant */
 
 

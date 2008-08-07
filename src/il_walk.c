@@ -2564,9 +2564,7 @@ default values.
   tblock->suppress_subtree_walk = FALSE;
   tblock->result = FALSE;
   tblock->process_non_dynamic_constants = FALSE;
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
   tblock->process_expressions_for_constants = FALSE;
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
   tblock->process_template_parameter_constants_and_expressions = FALSE;
   tblock->follow_addressing_path = FALSE;
   tblock->expr_is_lvalue = FALSE;
@@ -2607,7 +2605,6 @@ specified in the control block.  A constant can have a "tree" when
 it's the initializer for an aggregate.
 */
 {
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
   if (constant->expr != NULL &&
       tblock->process_expressions_for_constants) {
     /* This constant is the result of folding a constant expression.
@@ -2615,7 +2612,6 @@ it's the initializer for an aggregate.
     traverse_expr(constant->expr, tblock);
     goto end_of_routine;
   }  /* if */
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
   if (tblock->process_constant != NULL) {
     /* Call the user-provided routine. */
     tblock->process_constant(constant, tblock);

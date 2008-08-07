@@ -717,9 +717,7 @@ removed from the IL (as a result of constant folding, for example).
     clear_expr_or_stmt_traversal_block(&tblock);
     tblock.process_expr = forget_expr_range_modifiers_in_node;
     tblock.process_non_dynamic_constants = TRUE;
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
     tblock.process_expressions_for_constants = TRUE;
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
     tblock.process_template_parameter_constants_and_expressions = TRUE;
     traversal_end = end_expr;
     traverse_expr(top_expr, &tblock);
@@ -739,9 +737,7 @@ removed from the IL (as a result of constant folding, for example).
   clear_expr_or_stmt_traversal_block(&tblock);
   tblock.process_expr = forget_expr_range_modifiers_in_node;
   tblock.process_non_dynamic_constants = TRUE;
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
   tblock.process_expressions_for_constants = TRUE;
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
   tblock.process_template_parameter_constants_and_expressions = TRUE;
   traversal_end = NULL;
   traverse_constant(con, &tblock);
@@ -1910,7 +1906,6 @@ is folded.
         copy_operand(op, &orig_op);
         make_constant_operand(&result, op);
         restore_operand_details(op, &orig_op);
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
         if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
           op->variant.constant.expr = call;
 #if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
@@ -1919,7 +1914,6 @@ is folded.
           forget_expr_range_modifiers_in_tree(call, (an_expr_node_ptr)NULL);
 #endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
         }  /* if */
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
       }  /* if */
     }  /* if */
   }  /* if */
@@ -2131,7 +2125,6 @@ when appropriate -- evaluates a pseudo-call to the built-in function.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   result_op->end_position = pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
   /* We do not record the pseudo-call expression in the constant because the
      IL currently has no way to distinguish lvalue arguments from rvalue
      arguments. */
@@ -2139,7 +2132,6 @@ when appropriate -- evaluates a pseudo-call to the built-in function.
   /* Ignore any range modifiers in the expression that was scanned. */
   forget_expr_range_modifiers_in_operand(&arg);
 #endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
   (void)required_token(tok_rparen, ec_exp_rparen);
   remove_matching_stop_token(tok_rparen);
 }  /* scan_gnu_builtin_pseudo_call */
@@ -6018,7 +6010,6 @@ Syntax:
         set_unsigned_integer_constant(&constant,
                                       (a_host_large_unsigned)sizeof_type->size,
                                       targ_size_t_int_kind);
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
         /* Make a sizeof expression that sits behind the constant and
            gives the original expression. */
         if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
@@ -6046,7 +6037,6 @@ Syntax:
           operand_was_used = !is_type;
           switch_to_scope_region(depth_scope_stack, &region_to_switch_back_to);
         }  /* if */
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
       }  /* if */
     }  /* if */
     make_constant_operand(&constant, result);
@@ -9113,7 +9103,6 @@ because the feature is used to implement offsetof, a standard feature.
                /*check_cast_access=*/TRUE, /*is_implicit_cast=*/TRUE,
                /*is_reinterpret_cast=*/FALSE,
                /*reinterpret_semantics=*/FALSE);
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
   /* There is no IL operator for __INTADDR__, so we cannot really record the
      expression that formed the resulting constant. */
 #if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
@@ -9122,7 +9111,6 @@ because the feature is used to implement offsetof, a standard feature.
   forget_expr_range_modifiers_in_operand(result);
 #endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
   result->variant.constant.expr = NULL;
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -13000,7 +12988,6 @@ Also scans GNU statement expressions:
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       (void)required_token(tok_rparen, ec_exp_rparen);
       remove_matching_stop_token(tok_rparen);
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
       if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded() &&
           is_constant_operand(result) &&
           !is_template_param_expression_constant_operand(result) &&
@@ -13012,7 +12999,6 @@ Also scans GNU statement expressions:
            constant.) */
         result->variant.constant.expr = make_node_from_operand(result);
       }  /* if */
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
       /* Do not use set_operand_position because we want to leave the
          position in any underlying expression unchanged (we didn't add
          anything to the expression to represent the parentheses, so the
@@ -14737,7 +14723,6 @@ standard.
                    /*reinterpret_semantics=*/FALSE);
       /* The result is not a null pointer constant. */
       result->variant.constant.null_pointer_constant_ruled_out = TRUE;
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
       if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
         an_operand temp_operand;
         /* Record an expression under the constant. */
@@ -14753,7 +14738,6 @@ standard.
         forget_expr_range_modifiers_in_operand(&operand_2);
 #endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
       }  /* if */
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
     }  /* if */
   }  /* if */
 
@@ -18314,9 +18298,7 @@ The given operand (an expression or a constant) should be marked as having
 been annotated in the source with the GNU keyword __extension__.
 */
 {
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
   an_expr_node_ptr  expr;
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
 
   switch (op->kind) {
     case ok_error:
@@ -18326,7 +18308,6 @@ been annotated in the source with the GNU keyword __extension__.
       op->variant.expression->marked_as_gnu_extension = TRUE;
       break;
     case ok_constant:
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
       expr = op->variant.constant.expr;
       if (expr == NULL &&
           curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
@@ -18337,7 +18318,6 @@ been annotated in the source with the GNU keyword __extension__.
       if (expr != NULL) {
         expr->marked_as_gnu_extension = TRUE;
       }  /* if */
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
       break;
     default:
       /* Ignore others, which can come up in error cases. */
@@ -19740,10 +19720,8 @@ required_type will be void if the expression should have void type
       dip_expr = (*dip)->variant.expression;
     } else if ((*dip)->kind == (a_dynamic_init_kind)dik_constructor) {
       dip_expr = (*dip)->variant.constructor.args;
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
     } else if ((*dip)->kind == (a_dynamic_init_kind)dik_constant) {
       dip_expr = (*dip)->variant.constant->expr;
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
     } else {
       dip_expr = NULL;
     }  /* if */
@@ -19924,9 +19902,9 @@ Scan an integral constant expression.  The constant will be allocated
 (by the caller) in the file scope memory region, so switch to the file
 scope while scanning the constant, so that anything allocated during
 the scan will be allocated in the file scope memory region.  (This is
-significant when RECORD_CONSTANT_EXPRESSIONS_IN_IL is TRUE; we want the
-expression for the constant to be in the file scope memory region so
-that the constant can point to it).
+significant for expressions that represent the original form in which a
+constant expression was specified; we want the expression for the constant
+to be in the file scope memory region so that the constant can point to it).
 */
 {
   a_memory_region_number  region_to_switch_back_to;
@@ -20198,10 +20176,8 @@ memory region).  If param_type is NULL, the parameter type is not known.
     }  /* if */
     extract_constant_from_operand_with_fs_fixup(&result, constant);
   }  /* if */
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
   check_assertion(constant->expr == NULL ||
                   curr_expr_kind_is_one_in_which_const_exprs_are_recorded());
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
   pop_expr_stack();
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   curr_construct_end_position = result.end_position;
@@ -20473,12 +20449,10 @@ nonstandard class member constants.  Assumes copy-initialization
         set_error_constant(constant);
       } else {
         copy_constant(string_con, constant);
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
         constant->expr = expr_node_from_operand(&result);
 #if BACK_END_IS_CP_GEN_BE
         constant->suppress_expression_in_cp_gen_be = TRUE;
 #endif /* BACK_END_IS_CP_GEN_BE */
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
       }  /* if */
     } else {
       /* Not string literal case (compound literal). */
@@ -20893,12 +20867,10 @@ required_type_determined:
     if (string_case) {
       check_assertion(string_con->kind == (a_constant_repr_kind)ck_string);
       copy_constant(string_con, constant);
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
       constant->expr = string_con->expr;
 #if BACK_END_IS_CP_GEN_BE
       constant->suppress_expression_in_cp_gen_be = TRUE;
 #endif /* BACK_END_IS_CP_GEN_BE */
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
       *is_constant = TRUE;
     } else if (gcc_mode && is_an_rvalue(&result) &&
                result.kind == (an_operand_kind)ok_constant &&

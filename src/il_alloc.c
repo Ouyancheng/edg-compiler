@@ -793,9 +793,7 @@ associated variant fields to default values.
   set_default_source_corresp(cp->source_corresp);
   cp->next           = NULL;
   cp->type           = NULL;
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
   cp->expr           = NULL;
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
   cp->character_kind = (a_character_kind)chk_default;
   cp->implicit_cast  = FALSE;
   cp->explicit_cast_applied = FALSE;
@@ -814,9 +812,9 @@ associated variant fields to default values.
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED
   cp->flexible_array_initializer = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL && BACK_END_IS_CP_GEN_BE
+#if BACK_END_IS_CP_GEN_BE
   cp->suppress_expression_in_cp_gen_be = FALSE;
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL && BACK_END_IS_CP_GEN_BE */
+#endif /* BACK_END_IS_CP_GEN_BE */
   cp->uses_designated_initializers = FALSE;
 #if CENTERLINE_CHECKING
   cp->avoid_codecenter_warnings = 0;
@@ -1407,9 +1405,7 @@ to default values.
       pte->variant.array.bound_is_zero = FALSE;
       pte->variant.array.is_static = FALSE;
       pte->variant.array.variant.number_of_elements = 0;
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
       pte->variant.array.bound_constant = NULL;
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
 #if UPC_EXTENSIONS_ALLOWED
       pte->variant.array.is_threads_dimension = FALSE;
 #endif /* UPC_EXTENSIONS_ALLOWED */
@@ -2058,9 +2054,7 @@ to it.
 #if CENTERLINE_CHECKING
   fp->avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */
-#if RECORD_GENERAL_CONSTANT_EXPRESSIONS_IN_IL
   fp->bit_size_constant    = NULL;
-#endif /* RECORD_GENERAL_CONSTANT_EXPRESSIONS_IN_IL */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   fp->get_property_name    = NULL;
   fp->put_property_name    = NULL;

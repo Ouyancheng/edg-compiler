@@ -264,14 +264,12 @@ typedef struct an_expr_or_stmt_traversal_block {
 			   expressions) are also walked.  Ordinarily, they
 			   are not walked because we are primarily looking for
 			   expressions and statements. */
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
   a_boolean	process_expressions_for_constants;
 			/* If TRUE, the expressions recorded for constants
 			   are traversed.  The user routines are NOT called
 			   for any constant with a recorded expression --
 			   the model is that the expression replaces the
 			   constant in the traversal. */
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
   a_boolean	process_template_parameter_constants_and_expressions;
 			/* If TRUE, constants and expressions that appear in
 			   ck_template_parameter constants are also walked. */

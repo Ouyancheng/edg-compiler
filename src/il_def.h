@@ -2292,13 +2292,11 @@ typedef struct a_constant {
                         /* The type of the constant.  Will be compatible
                            with the representation below.  A ck_init_repeat or
                            ck_designator entry has a NULL type pointer. */
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
   an_expr_node_ptr
                 expr;
                         /* If the constant is not just a literal this points
                            to an expression node representing that constant.
                            Otherwise, NULL. */
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
   a_bit_field	character_kind:NUM_BITS_FOR_CHARACTER_KIND;
 			/* If this constant represents a character or string
 			   literal, this field indicates the character kind
@@ -2374,7 +2372,7 @@ typedef struct a_constant {
 			   initializer, TRUE if the initializer is for a
 			   flexible array member. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL && BACK_END_IS_CP_GEN_BE
+#if BACK_END_IS_CP_GEN_BE
   a_bit_field	suppress_expression_in_cp_gen_be:1;
 			/* Use the value of the constant rather than the
 			   recorded expression in the output of the
@@ -2384,7 +2382,7 @@ typedef struct a_constant {
 			   some dialects), the generated constant will be
 			   acceptable while the generated expression will
 			   not. */
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL && BACK_END_IS_CP_GEN_BE */
+#endif /* BACK_END_IS_CP_GEN_BE */
   a_bit_field	uses_designated_initializers:1;
 			/* For a ck_aggregate constant in an initializer,
 			   TRUE if the initializer contains designated
@@ -5819,14 +5817,12 @@ typedef struct a_type {
         a_constant_ptr
 		element_count_constant;
       } variant;
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
       a_constant_ptr
 		bound_constant;
 			/* A constant representing the number of elements in
 			   the array.  For template-dependent dimensions, this
 			   holds the same value as the variant
 			   element_count_constant above. */
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
     } array;
     /* When kind == tk_class, tk_struct, or tk_union: */
     struct {
@@ -6949,12 +6945,10 @@ typedef struct a_field {
 			   and have not been declared in the source,
 			   e.g., the virtual function table pointer. */
   bitfield_to_avoid_codecenter_warnings()
-#if RECORD_GENERAL_CONSTANT_EXPRESSIONS_IN_IL
   a_constant_ptr
 		bit_size_constant;
 			/* An IL constant representing the size of the bit
 			   field.  (NULL if this is not a bit field.) */ 
-#endif /* RECORD_GENERAL_CONSTANT_EXPRESSIONS_IN_IL */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   char		*get_property_name,
 		*put_property_name;

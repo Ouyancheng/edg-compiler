@@ -1631,11 +1631,9 @@ Dump the contents of the indicated expression node for debug purposes.
         db_expr_range_modifier(node->range_modifiers, level + 4);
       }  /* if */
 #endif /* EXPR_RANGE_MODIFIERS_IN_IL */
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
       if (const_ptr->expr != NULL) {
         db_expr_node(const_ptr->expr, level + 2);
       }  /* if */
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
       break;
     case enk_variable:
       fputs("variable: ", f_debug);
@@ -1846,9 +1844,8 @@ Dump the contents of the indicated expression node for debug purposes.
       node->range_modifiers != NULL) {
     /* The range modifiers for enk_operation and enk_constant nodes were
        dumped above, so they would precede the display of the operands or
-       (in case RECORD_CONSTANT_EXPRESSIONS_IN_IL is TRUE) the expression
-       for a constant.  The range modifiers for all other nodes are
-       displayed here. */
+       the expression for a constant.  The range modifiers for all other
+       nodes are displayed here. */
     db_expr_range_modifier(node->range_modifiers, level + 4);
   }  /* if */
 #endif /* EXPR_RANGE_MODIFIERS_IN_IL */
@@ -4187,14 +4184,12 @@ fix them.
 */
 {
   if (in_file_scope(cp)) {
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
     if (cp->expr != NULL) {
       /* If a constant in the file scope memory region has an attached
          expression in a function scope memory region, break the link to
          the expression. */
       if (!in_file_scope(cp->expr)) cp->expr = NULL;
     }  /* if */
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
     if (cp->kind == (a_constant_repr_kind)ck_template_param) {
       a_template_param_constant_kind kind = cp->variant.template_param.kind;
       if (kind == (a_template_param_constant_kind)tpck_sizeof ||
@@ -5006,7 +5001,6 @@ copy_constant_full should be called to start a copy.
         unexpected_condition_str("i_copy_constant_full: bad templ param kind");
     }  /* if */
   }  /* if */
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
   if (options & CE_DOING_INLINING_OF_FUNCTION_CALL) {
     /* When copying for inlining, the expression pointed to is in a
        function scope memory region and can't be used in the new function
@@ -5020,7 +5014,6 @@ copy_constant_full should be called to start a copy.
        memory region. */
     new_constant->expr = copy_expr_tree(old_constant->expr, options);
   }  /* if */
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
   if (may_be_shared) {
     new_constant = alloc_shareable_constant(new_constant);
   } else if (new_constant_in_il) {
@@ -6145,13 +6138,11 @@ at the file scope (it would contain a pointer down into a function scope).
     default:
       unexpected_condition_str("has_non_file_scope_ref: bad constant kind");
   }  /* switch */
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
   if (!has_nfs_ref && cp->expr != NULL && !in_file_scope(cp->expr)) {
     /* The constant recorded an expression that is not allocated in file
        scope. */
     has_nfs_ref = TRUE;
   }  /* if */
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
   return has_nfs_ref;
 }  /* has_non_file_scope_ref */
 
@@ -6201,12 +6192,10 @@ put it on a list of constants).
     } else {
       scp = alloc_unshared_constant(cp);
     }  /* if */
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
   } else if (cp->expr != NULL) {
     /* Constants that track the expression that generated them should
        not be shared. */
     scp = alloc_unshared_constant(cp);
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
 #if RECORD_FORM_OF_NAME_REFERENCE
   } else if (cp->kind == (a_constant_repr_kind)ck_ptr_to_member &&
              cp->variant.ptr_to_member.name_reference != NULL) {
@@ -6223,8 +6212,8 @@ put it on a list of constants).
     scp = alloc_unshared_constant(cp);
   } else if (cp->kind == (a_constant_repr_kind)ck_aggregate) {
     /* Don't share aggregate constants (they come up for compound literals
-       used to initialize static variables in gcc mode, when
-       RECORD_CONSTANT_EXPRESSIONS_IN_IL is TRUE). */
+       used to initialize static variables in gcc mode, when recording
+       constant expressions). */
     scp = alloc_unshared_constant(cp);
   } else if (cp->kind == (a_constant_repr_kind)ck_string &&
              !string_literals_shared) {
@@ -9269,13 +9258,11 @@ The expression can then be recovered using find_local_expr_node.
          ->variant.template_param.variant.templ_sizeof.local_expr_ref = TRUE;
       break;
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
     case lerk_array_bound:
       new_ref->referrer.kind = (a_byte_il_entry_kind)iek_type;
       ((a_type_ptr)referrer)->variant.array.
                              constant_bound_expr_in_local_expr_node_ref = TRUE;
       break;
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
     case lerk_decltype:
       new_ref->referrer.kind = (a_byte_il_entry_kind)iek_type;
       break;
@@ -13673,8 +13660,7 @@ be called to start a copy.
            function-scope memory region. */
         an_expr_copy_options_set subcopy_options = options;
         if (!(options & CE_COPYING_EXPRESSION_FOR_CONSTANT)) {
-          /* Constants with associated expressions (in configurations with
-             RECORD_CONSTANT_EXPRESSIONS_IN_IL) cannot be shared, so
+          /* Constants with associated expressions cannot be shared, so
              constants appearing in such expressions should not be shared
              either; otherwise, request that the copied constant be
              shared. */
@@ -19585,9 +19571,7 @@ their is_lvalue flag set incorrectly, TRUE otherwise.
 
   clear_expr_or_stmt_traversal_block(&tblock);
   tblock.process_expr = check_node_operand_lvalueness;
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
   tblock.process_expressions_for_constants = TRUE;
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
   tblock.process_template_parameter_constants_and_expressions = TRUE;
   traverse_expr(root, &tblock);
   return !tblock.result;

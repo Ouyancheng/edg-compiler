@@ -6485,13 +6485,7 @@ TRUE if the selector is a pointer, and FALSE if it is a class.
                     !node_has_side_effects(selector_expr, (a_boolean *)NULL) ||
                     is_error_node(selector_expr));
     make_constant_operand(orig_expr->variant.constant, operand);
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
     operand->variant.constant.expr = expr;
-#else /* !RECORD_CONSTANT_EXPRESSIONS_IN_IL */
-#if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
-    forget_expr_range_modifiers_in_tree(expr, (an_expr_node_ptr)NULL);
-#endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
   } else {
     make_expression_operand(expr, operand);
     operand->state = saved_operand_state;

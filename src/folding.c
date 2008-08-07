@@ -1587,9 +1587,6 @@ proper result (often, an error constant).
 }  /* issue_folding_diagnostic */
 
 
-#if !RECORD_CONSTANT_EXPRESSIONS_IN_IL
-/*ARGSUSED*/ /* <-- maintain_expression is unused in that case. */
-#endif /* !RECORD_CONSTANT_EXPRESSIONS_IN_IL */
 void type_change_constant(a_constant        *constant,
 			  a_type_ptr        new_type,
 			  a_boolean         is_implicit_cast,
@@ -1615,8 +1612,8 @@ expressions should be folded (e.g., base class casts); if it is FALSE,
 *did_not_fold is set instead for those.  If is_reinterpret_cast is TRUE,
 this cast is a reinterpret_cast; related-class casts are treated like
 casts between unrelated classes.  If maintain_expression is TRUE,
-and RECORD_CONSTANT_EXPRESSIONS_IN_IL is TRUE, any expression attached
-to the constant is maintained, by adding a cast if necessary.
+any expression attached to the constant is maintained, by adding a
+cast if necessary.
 */
 {
   a_type_ptr        constant_type, new_type_with_typedefs;
@@ -1969,7 +1966,6 @@ exit:
        if its result depends on the floating-point mode. */
     *did_not_fold = TRUE;
   }  /* if */
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
   if (maintain_expression && constant->expr != NULL &&
       (int)err_severity < (int)es_error && !*did_not_fold) {
     /* Transfer the source expression from the old constant to the new one,
@@ -1994,7 +1990,6 @@ exit:
   } else {
     new_constant.expr = NULL;
   }  /* if */
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
   /* Return the new constant value. */
   copy_constant(&new_constant, constant);
   db_exit();
@@ -5796,9 +5791,7 @@ it represents.
     } else {
       clear_constant(constant, (a_constant_repr_kind)ck_error);
     }  /* if */
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
     constant->expr = expr;
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
   }  /* if */
   constant->type = expr->type;
 }  /* fold_offsetof */
@@ -5842,9 +5835,7 @@ expression.
     clear_constant(constant, (a_constant_repr_kind)ck_integer);
     set_integer_value(&constant->variant.integer_value,
                       (a_host_large_integer)result);
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
     constant->expr = expr;
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
   }  /* if */
   constant->type = expr->type;
 }  /* fold_is_base_of */
@@ -5926,9 +5917,7 @@ tpck_expression variant and will point to the given expression.
     clear_constant(constant, (a_constant_repr_kind)ck_integer);
     set_integer_value(&constant->variant.integer_value,
                       (a_host_large_integer)result);
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
     constant->expr = expr;
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
   }  /* if */
   constant->type = expr->type;
 }  /* fold_is_convertible_to */
@@ -6166,9 +6155,7 @@ result_known:
       set_integer_value(&constant->variant.integer_value,
                         (a_host_large_integer)result);
     }  /* if */
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
     constant->expr = expr;
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
   }  /* if */
   constant->type = expr->type;
 }  /* fold_unary_type_trait_helper */
@@ -6207,9 +6194,7 @@ tpck_expression variant and will point to the given expression.
     clear_constant(constant, (a_constant_repr_kind)ck_integer);
     set_integer_value(&constant->variant.integer_value,
                       (a_host_large_integer)result);
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
     constant->expr = expr;
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
   }  /* if */
   constant->type = expr->type;
 }  /* fold_types_compatible */
@@ -6243,9 +6228,7 @@ non-NULL diagnostics are issued at the indicated position.
   }  /* for */
   if (has_error) {
     clear_constant(constant, (a_constant_repr_kind)ck_error);
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
     constant->expr = expr;
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
   } else {
     switch (expr->variant.builtin_operation.kind) {
       case bok_offsetof:

@@ -5736,7 +5736,6 @@ called to scan the second constant in a GNU C case range.
        can cause an error if the selector type is "int" and the case
        label value is in the "long" range. */
     if (sssep != NULL) {
-#if RECORD_GENERAL_CONSTANT_EXPRESSIONS_IN_IL
       an_expr_node_ptr expr = constant.expr;
       if (expr == NULL &&
           !identical_types(constant.type, sssep->switch_selector_type)) {
@@ -5748,7 +5747,6 @@ called to scan the second constant in a GNU C case range.
         expr->expr_range.end   = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       }  /* if */
-#endif /* RECORD_GENERAL_CONSTANT_EXPRESSIONS_IN_IL */
       type_change_constant(&constant, sssep->switch_selector_type,
                            /*is_implicit_cast=*/TRUE,
                            /*constant_context=*/TRUE,
@@ -5758,9 +5756,7 @@ called to scan the second constant in a GNU C case range.
                            /*maintain_expression=*/TRUE,
                            &did_not_fold, &error_position);
       check_assertion(!did_not_fold);
-#if RECORD_GENERAL_CONSTANT_EXPRESSIONS_IN_IL
       constant.expr = expr;
-#endif /* RECORD_GENERAL_CONSTANT_EXPRESSIONS_IN_IL */
     }  /* if */
     /* Allocate a copy of the case constant. */
     constant_ptr = alloc_unshared_constant(&constant);

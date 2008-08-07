@@ -4692,10 +4692,8 @@ describes Microsoft attributes preceding the enum specifier (if any).
         remove_stop_token(tok_assign);
         err = FALSE;
         template_param = FALSE;
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
         /* Forget about expressions scanned in previous constants. */
         constant.expr = NULL;
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
         /* See if "= constant-expression" follows. */
         if (curr_token == tok_assign) {
           (void)get_token();

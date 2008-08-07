@@ -3192,9 +3192,8 @@ constructs.
       tmp->init_kind = (an_init_kind)initk_static;
       if (!in_file_scope(constant)) {
         /* The constant is local to a function (this happens, for example,
-           when RECORD_CONSTANT_EXPRESSIONS_IN_IL is TRUE).  Make a copy
-           in the file scope so it can be pointed to from the file-scope
-           variable. */
+           for recorded constant expressions).  Make a copy in the file
+           scope so it can be pointed to from the file-scope variable. */
         a_memory_region_number region_to_switch_back_to;
         switch_to_file_scope_region(&region_to_switch_back_to);
         constant = alloc_unshared_constant(constant);

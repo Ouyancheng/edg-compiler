@@ -611,9 +611,7 @@ the file scope, do not process it (but record an orphan in the latter case).
         a_constant_ptr ptr = (a_constant_ptr)entry_ptr;
         remap_next_ptr(ptr->next, a_constant_ptr, iek_constant);
         walk_ptr(ptr->type, a_type_ptr, iek_type);
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
         walk_ptr(ptr->expr, an_expr_node_ptr, iek_expr_node);
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
 #if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
         if (ptr->type != NULL) {
           definition_needed_if_class(ptr->type);
@@ -819,8 +817,8 @@ the file scope, do not process it (but record an orphan in the latter case).
            if we're processing a call in a function memory region and the
            type of the function, in the file scope, has not been lowered
            yet. */
-        /* When RECORD_CONSTANT_EXPRESSIONS_IN_IL is TRUE, the expressions
-           under constants are unlowered.  If that's true when IL lowering
+        /* For recorded constant expressions, the expressions under the
+           constants are unlowered.  If that's true when IL lowering
            is done (unusual, but okay), there may be some default_arg_expr
            pointers that are not cleared to NULL.  A back end shouldn't be
            looking at them, but clear the pointer on an IL read to make
@@ -954,10 +952,8 @@ the file scope, do not process it (but record an orphan in the latter case).
               walk_ptr(ptr->variant.array.variant.element_count_constant,
                        a_constant_ptr, iek_constant);
             }  /* if */
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
             walk_ptr(ptr->variant.array.bound_constant,
                      a_constant_ptr, iek_constant);
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
 #if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
             /* In some error cases, some array types on the vla_dimensions
                list are incomplete during the needed flag and keep-in-IL
@@ -1090,9 +1086,7 @@ the file scope, do not process it (but record an orphan in the latter case).
         remap_next_ptr(ptr->next, a_field_ptr, iek_field);
         walk_ptr(ptr->type, a_type_ptr, iek_type);
         definition_needed_if_class(ptr->type);
-#if RECORD_GENERAL_CONSTANT_EXPRESSIONS_IN_IL
         walk_ptr(ptr->bit_size_constant, a_constant_ptr, iek_constant);
-#endif /* RECORD_GENERAL_CONSTANT_EXPRESSIONS_IN_IL */
 #if MICROSOFT_EXTENSIONS_ALLOWED
         walk_string_ptr(ptr->get_property_name, iek_other_text, 0);
         walk_string_ptr(ptr->put_property_name, iek_other_text, 0);

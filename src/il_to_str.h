@@ -295,7 +295,6 @@ extern void form_pm_constant(
                       a_boolean                             need_parens,
                       an_il_to_str_output_control_block_ptr octl);
 
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
 /* Return TRUE if the given constant has associated information about
    the expression it came from and should be put out in expression
    form.  Don't be fooled by enumeration constants, which also have a
@@ -309,7 +308,6 @@ extern void form_pm_constant(
 #define constant_should_be_put_out_as_expr(constant)           \
   ((constant)->expr != NULL && !is_enum_constant(constant))
 #endif /* BACK_END_IS_CP_GEN_BE */
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
 
 extern void form_uuidof_reference(a_constant_ptr                        con,
                                   an_il_to_str_output_control_block_ptr octl);

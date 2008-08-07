@@ -2361,7 +2361,7 @@ template-dependent expression.
   a_template_arg_ptr  template_arg_list;
   a_constant_ptr      unk_func_con;
 
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL && IA64_ABI
+#if IA64_ABI
   /* If an expression was recorded for the constant, and we're in
      a template-dependent expression, use the pointer to get
      the unfolded version of the expression as required by the IA-64
@@ -2380,7 +2380,7 @@ template-dependent expression.
     mangled_encoding_for_expression(con->expr, in_dependent_expr, mctl);
     goto end_of_routine;
   }  /* if */
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL && IA64_ABI */
+#endif /* IA64_ABI */
   switch (con->kind) {
     case ck_error:
       /* This might come up in mangling names for template instantiations. */
@@ -2554,9 +2554,9 @@ do_unknown_function:
       internal_error("literal_representation: bad constant kind");
 #endif /* CHECKING */
   }  /* switch */
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL && IA64_ABI
+#if IA64_ABI
 end_of_routine:;
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL && IA64_ABI */
+#endif /* IA64_ABI */
 }  /* literal_representation */
 
 

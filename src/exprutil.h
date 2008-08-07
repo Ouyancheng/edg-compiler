@@ -459,18 +459,11 @@ the address of null_source_position.
 /*
 Get the expression node, if any, associated with an operand.
 */
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
 #define expr_node_from_operand(operand)                                    \
   (is_expression_operand(operand) ? (operand)->variant.expression :        \
    is_template_param_expression_constant_operand(operand) ?                \
          (operand)->variant.constant.variant.template_param.variant.expr : \
    is_constant_operand(operand) ? (operand)->variant.constant.expr : NULL)
-#else /* !RECORD_CONSTANT_EXPRESSIONS_IN_IL */
-#define expr_node_from_operand(operand)                                    \
-  (is_expression_operand(operand) ? (operand)->variant.expression :        \
-   is_template_param_expression_constant_operand(operand) ?                \
-   (operand)->variant.constant.variant.template_param.variant.expr : NULL)
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
 
 
 /*
@@ -705,45 +698,21 @@ kinds are at the beginning of the list.
 #define curr_expr_kind_is_const()                                     \
   ((int)(curr_expr_kind()) <= (int)ek_init_constant)
 
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
 
 /*
 Macro that returns TRUE if the current expression kind is one in which
 expressions are recorded for constants.  They are never recorded for
 preprocessing expressions (because the constants are never saved).
-With RECORD_GENERAL_CONSTANT_EXPRESSIONS_IN_IL, they are recorded in
-general but not for template argument expressions (because a template
-can be specified many times with a different argument expression each
-time).  With RECORD_TEMPLATE_DECL_CONSTANT_EXPRESSIONS_IN_IL, they
-are recorded for expressions in template declarations, including
-template arguments.
+Otherwise they are recorded in general but not for template argument
+expressions except as noted below (because a template can be specified
+many times with a different argument expression each time).  They are also
+recorded for expressions in template declarations, including template
+arguments.
 */
-#if RECORD_TEMPLATE_DECL_CONSTANT_EXPRESSIONS_IN_IL && \
-    RECORD_GENERAL_CONSTANT_EXPRESSIONS_IN_IL
 #define curr_expr_kind_is_one_in_which_const_exprs_are_recorded() \
   (!curr_expr_kind_is(ek_pp) && \
    (!curr_expr_kind_is(ek_template_arg) || \
     depth_template_declaration_scope != NO_SCOPE_DEPTH))
-#else /* !(RECORD_TEMPLATE_DECL_CONSTANT_EXPRESSIONS_IN_IL && ... ) */
-#if RECORD_GENERAL_CONSTANT_EXPRESSIONS_IN_IL
-#define curr_expr_kind_is_one_in_which_const_exprs_are_recorded() \
-  (!curr_expr_kind_is(ek_pp) && !curr_expr_kind_is(ek_template_arg))
-#else /* !RECORD_GENERAL_CONSTANT_EXPRESSIONS_IN_IL */
-#if RECORD_TEMPLATE_DECL_CONSTANT_EXPRESSIONS_IN_IL
-#define curr_expr_kind_is_one_in_which_const_exprs_are_recorded() \
-  (!curr_expr_kind_is(ek_pp) && \
-   depth_template_declaration_scope != NO_SCOPE_DEPTH)
-#else /* !RECORD_TEMPLATE_DECL_CONSTANT_EXPRESSIONS_IN_IL */
- #error -- RECORD_GENERAL_CONSTANT_EXPRESSIONS_IN_IL or \
-           RECORD_TEMPLATE_DECL_CONSTANT_EXPRESSIONS_IN_IL must be set
-#endif /* RECORD_TEMPLATE_DECL_CONSTANT_EXPRESSIONS_IN_IL */
-#endif /* RECORD_GENERAL_CONSTANT_EXPRESSIONS_IN_IL */
-#endif /* RECORD_TEMPLATE_DECL_CONSTANT_EXPRESSIONS_IN_IL && ... */
-#else /* !RECORD_CONSTANT_EXPRESSIONS_IN_IL */
-#if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
-#define curr_expr_kind_is_one_in_which_const_exprs_are_recorded() FALSE
-#endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
 
 /*
 Macro that returns TRUE if the current expression is evaluated, i.e.,

@@ -5357,13 +5357,9 @@ declaration following this one is such a continuation.
   if (field->is_bit_field) {
     /* A bit field.  Put out the size. */
     write_tok_ch(':');
-#if RECORD_GENERAL_CONSTANT_EXPRESSIONS_IN_IL
     if (field->bit_size_constant != NULL) {
       gen_constant(field->bit_size_constant, /*need_parens=*/FALSE);
-    } else
-#endif /* RECORD_GENERAL_CONSTANT_EXPRESSIONS_IN_IL */
-    /* Do not insert code here */
-    {
+    } else {
       write_unsigned_num((unsigned long)field->bit_size);
     }  /* if */
   }  /* if */
@@ -13149,9 +13145,7 @@ handle_as_definition:
       an_expr_or_stmt_traversal_block tblock;
       clear_expr_or_stmt_traversal_block(&tblock);
       tblock.process_expr = gen_typedef_for_unnamed_pseudo_dtor_type;
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
       tblock.process_expressions_for_constants = TRUE;
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
       traverse_statement(scope->assoc_block, &tblock);
       /* Reset the output file to the declaration position in case any
          typedefs were generated. */

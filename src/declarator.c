@@ -2321,9 +2321,7 @@ enk_variable node that refers to a variable in a local scope.
   clear_expr_or_stmt_traversal_block(&tblock);
   tblock.process_expr = check_for_routine_scope_variable;
   tblock.process_non_dynamic_constants = TRUE;
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
   tblock.process_expressions_for_constants = TRUE;
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
   tblock.process_template_parameter_constants_and_expressions = TRUE;
   traverse_expr(expr, &tblock);
   return tblock.result;
@@ -2630,7 +2628,6 @@ constant.
          region, because they will be pointed to by the array type, which
          is in the file scope memory region. */
       switch_to_file_scope_region(&region_to_switch_back_to);
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
       if (is_constant_bound) {
         /* Save the constant for the bound, which has an attached
            expression. */
@@ -2639,7 +2636,6 @@ constant.
         il_constant = alloc_shareable_constant(&constant);
         (*new_type_ptr)->variant.array.bound_constant = il_constant;
       }  /* if */
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
       if (template_dependent_bound) {
         /* Template-dependent bound (constant but not a known value). */
         a_template_param_constant_kind tkind;
@@ -2653,13 +2649,11 @@ constant.
           make_bound_expr_referenceable_from_file_scope(
                              &il_constant->variant.template_param.variant.expr,
                              *new_type_ptr);
-#if RECORD_CONSTANT_EXPRESSIONS_IN_IL
         } else if (tkind == (a_template_param_constant_kind)tpck_cast ||
                    tkind == (a_template_param_constant_kind)tpck_address) {
           make_bound_expr_referenceable_from_file_scope(
                    &il_constant->variant.template_param.variant.constant->expr,
                    *new_type_ptr);
-#endif /* RECORD_CONSTANT_EXPRESSIONS_IN_IL */
         } else if (tkind == (a_template_param_constant_kind)tpck_sizeof ||
                    tkind == (a_template_param_constant_kind)tpck_alignof ||
                    tkind == (a_template_param_constant_kind)tpck_uuidof ||
