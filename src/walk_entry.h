@@ -906,8 +906,6 @@ the file scope, do not process it (but record an orphan in the latter case).
           case tk_float:
 #if C99_IL_EXTENSIONS_SUPPORTED
           case tk_complex:
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-#if C99_IL_EXTENSIONS_SUPPORTED
           case tk_imaginary:
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
             /* No pointers. */
