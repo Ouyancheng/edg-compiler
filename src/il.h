@@ -261,6 +261,11 @@ Macro to access the parent_scope field of an IL entry.
 
 extern a_scope_ptr f_get_parent_scope_of(a_source_correspondence_ptr  scp);
 
+/*
+Macro to get the parent scope of an IL entry.  This differs from the macro
+"parent_scope_of" (see above) in that it works even for entities in file scope
+memory whose parent scope is in function scope memory.
+*/
 #define get_parent_scope_of(ptr)                                            \
   ((ptr)->source_corresp.parent_via_local_scope_ref ?                       \
                             f_get_parent_scope_of(&(ptr)->source_corresp)   \

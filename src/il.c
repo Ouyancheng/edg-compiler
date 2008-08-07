@@ -7342,12 +7342,13 @@ a namespace placeholder if appropriate.
         type_ptr->source_corresp.parent_scope = sp;
       } else {
         /* Record a local scope reference.  We cannot just use
-           innermost_function_scope here because we may end here while
+           innermost_function_scope here because we may end up here while
            processing a class nested in scope sp, or even while processing a
            member function of such a class. */
         a_scope_ptr    func_scope;
         a_scope_depth  sp_level = sp->depth_in_scope_stack, func_level;
         func_level = scope_stack[sp_level].depth_innermost_function_scope;
+        check_assertion(func_level != NO_SCOPE_DEPTH);
         func_scope = scope_stack[func_level].il_scope;
         type_ptr->source_corresp.enclosing_routine =
                                               func_scope->variant.routine.ptr;
@@ -9340,8 +9341,8 @@ The scope can then be recovered using find_local_scope.
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
-static a_scope_ptr  find_local_scope_in_function_scope(char         *referrer,
-                                                       a_scope_ptr  fn_scope)
+static a_scope_ptr find_local_scope_in_function_scope(char         *referrer,
+                                                      a_scope_ptr  fn_scope)
 /*
 referrer is an entry in the file scope memory region that implicitly refers to
 a scope L in a function scope memory region determined by fn_scope.  If
@@ -10760,7 +10761,7 @@ scope depth.
          members to file scope, the parent scope should remain the original
          class scope). */
       if (parent_scope_of(var_ptr) == NULL) {
-        if (in_file_scope(sp) && parent_scope_of(var_ptr) == NULL) {
+        if (in_file_scope(sp)) {
           var_ptr->source_corresp.parent_scope = sp;
         } else {
           var_ptr->source_corresp.enclosing_routine =
