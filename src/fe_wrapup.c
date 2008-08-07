@@ -826,6 +826,7 @@ and before the back end (if any) is executed.
        number translation process. */
     db_source_file_for_seq_info();
   }  /* if */
+#endif /* DEBUG */
 
   /* Lower the file scope, remove unneeded entities, etc. */
   wrap_up_file_scopes();
@@ -835,6 +836,7 @@ and before the back end (if any) is executed.
      error being issued (otherwise, abort compilation). */
   check_expected_errors();
 #endif /* CHECKING */
+#if DEBUG
 #if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
   /* Display information about any range_modifiers that were created but that
      were not written to the IL file. */
