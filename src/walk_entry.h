@@ -368,10 +368,7 @@ Set the definition_needed or keep_definition_in_il flag in a routine.
 #define set_proper_routine_definition_needed_flag(ptr) /* Nothing */
 #endif /* NEEDED_FLAG_WALK || KEEP_IN_IL_WALK */
 
-/*
-Process the source correspondence field pointed to by ptr.
-*/
-/* Macro to parent scope only if it exists. */
+/* Macro to remap parent scope only if it exists. */
 #undef remap_parent
 #define remap_parent(ptr) \
 { remap_ptr_not_needed((ptr).parent_scope, a_scope_ptr, iek_scope); \
@@ -418,6 +415,9 @@ necessary.
 #define walk_name_reference_list(ptr) /* Nothing */  
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
 
+/*
+Process the source correspondence field pointed to by ptr.
+*/
 #undef walk_source_corresp
 #if NEEDED_FLAG_WALK
 #define walk_source_corresp(ptr) \
