@@ -2886,8 +2886,6 @@ Display the indicated label.
   if (ptr->address_taken) {
     disp_boolean("address_taken", (a_boolean)ptr->address_taken);
   }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
-#if GNU_EXTENSIONS_ALLOWED
   if (ptr->locally_declared) {
     disp_boolean("locally_declared", TRUE);
   }  /* if */
