@@ -118,9 +118,9 @@ names as arguments to the "mode" attribute in GNU mode.  For example:
 
   __attribute((mode(V4SI))) int x;  // Vector of 4 int elements.
 
-See also the Changes entry of 7/15/08 which describes the vector_size
+See also the Changes entry of 7/15/08, which describes the vector_size
 attribute.  As part of this change, the "mode" field of a_param_type entries
-has been removed (an IL Change).
+has been removed (an IL CHANGE).
 
 7/28/08  Removal of tests of CIL and CFE
 
