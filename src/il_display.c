@@ -973,8 +973,6 @@ display_constant_value:
       (void)printf("ck_complex\n");
       disp_name("complex_value");
       goto display_constant_value;
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-#if C99_IL_EXTENSIONS_SUPPORTED
     case ck_imaginary:
       (void)printf("ck_imaginary\n");
       disp_name("float_value");
@@ -1494,11 +1492,9 @@ Display the indicated type entry.
       (void)printf("tk_float\n");
 #if C99_IL_EXTENSIONS_SUPPORTED
       goto do_float_complex;
-#if C99_IL_EXTENSIONS_SUPPORTED
     case tk_imaginary:
       (void)printf("tk_imaginary\n");
       goto do_float_complex;
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
     case tk_complex:
       (void)printf("tk_complex\n");
 do_float_complex:
@@ -3030,8 +3026,6 @@ Display the name of an expression operator.
     case eok_xeq:               s = "eok_xeq";                    break;
     case eok_xne:               s = "eok_xne";                    break;
     case eok_xassign:           s = "eok_xassign";                break;
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-#if C99_IL_EXTENSIONS_SUPPORTED
     case eok_xadd_assign:       s = "eok_xadd_assign";            break;
     case eok_xsubtract_assign:  s = "eok_xsubtract_assign";       break;
     case eok_xmultiply_assign:  s = "eok_xmultiply_assign";       break;
