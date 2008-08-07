@@ -1,5 +1,12 @@
 Version 3.11
 
+8/7/08   Constant expressions unconditionally recorded in IL
+
+The features previously controlled by RECORD_CONSTANT_EXPRESSIONS_IN_IL,
+RECORD_TEMPLATE_DECL_CONSTANT_EXPRESSIONS_IN_IL, and
+RECORD_GENERAL_CONSTANT_EXPRESSIONS_IN_IL are now unconditionally included
+in the front end.  These macros are no longer used.
+
 8/5/08   Reference to freed memory in db_source_file_for_seq_info
 
 When db_source_file_for_seq_info was called from fe_wrapup in configurations
