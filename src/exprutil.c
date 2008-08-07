@@ -5909,9 +5909,9 @@ array is multi-dimensional.  Return the array type in *array_type.
       con->variant.address.kind == (an_address_base_kind)abk_variable &&
       con->implicit_cast &&
       is_pointer_type(con->type)) {
-    a_type_ptr var_type = con->variant.address.variant.variable->type;
-    a_type_ptr con_underlying_type = type_pointed_to(con->type);
-    sizeof_t   var_size = skip_typerefs(var_type)->size;
+    a_type_ptr    var_type = con->variant.address.variant.variable->type;
+    a_type_ptr    con_underlying_type = type_pointed_to(con->type);
+    a_targ_size_t var_size = skip_typerefs(var_type)->size;
     while (is_array_type(var_type)) {
       a_type_ptr element_type = array_element_type(var_type);
       if (identical_types(element_type, con_underlying_type)) {
