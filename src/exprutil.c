@@ -10555,6 +10555,14 @@ it might produce an error).
       }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       node = NULL;
+    } else if (con_expr_value->expr != NULL) {
+      /* We need to clear the expression pointer in the constant (someone
+         decided we don't want to record the expression, possibly because
+         of memory region problems). */
+      a_constant con_copy;
+      copy_constant(con_expr_value, &con_copy);
+      con_copy.expr = NULL;
+      con_expr_value = alloc_shareable_constant(&con_copy);
     }  /* if */
 #if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
     if (node != NULL) {
