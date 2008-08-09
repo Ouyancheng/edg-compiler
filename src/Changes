@@ -1,5 +1,21 @@
 Version 3.11
 
+8/9/08   [EDGcpfe/7930]
+GNU C++ compatibility: friend injection enabled/disabled based on gnu_version
+
+Formerly, friend injection was not specially enabled or disabled in g++
+mode (the default friend injection mode was used).  In g++ mode, friend
+injection is now enabled if gnu_version is < 40100 and disabled otherwise.
+
+  class X {
+    friend void f(X*);
+    friend class Y;
+  };
+  int main() {
+    Y* y;  // Y not declared without friend injection
+    f(0);  // f not declared without friend injection
+  }
+
 8/7/08   [EDGcpfe/9120]
 Template with dependent explicit argument is dependent argument to call
 

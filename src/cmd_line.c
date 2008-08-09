@@ -3105,6 +3105,10 @@ exclude the GNU C++ mode already.  Hence those are not checked again here.)
     /* Default arguments are part of the deduced function type in g++ mode. */
     nonstandard_default_arg_deduction = TRUE;
   }  /* if */
+  if (!option_kind_used[(int)optk_friend_injection]) {
+    /* g++ versions prior to 4.1 do injection of friends. */
+    friend_injection_enabled = gnu_version < 40100;
+  }  /* if */
 #if VLA_ALLOWED
   if (!(option_kind_used[(int)optk_vla])) {
     /* Support for VLAs is turned on by default in g++ mode. */
