@@ -13677,14 +13677,30 @@ If insert_location == NULL, no initialization code is generated.
   "initial_processing_on_destr...: destructible entity descr already present");
   dip->destructible_entity_descr = dedp = alloc_destructible_entity_descr();
   if (dip->is_freeing_of_storage_on_exception) {
-    a_routine_ptr delete_routine = dip->destructor;
-    if (dip->is_array_freeing ||
-        !is_default_operator_delete(delete_routine)) {
+    a_new_delete_supplement_ptr ndsp = dip->assoc_new;
+#if ABI_CHANGES_FOR_PLACEMENT_DELETE
+    /* Take a look at the "new" operator associated with this destruction;
+       if it's one that we're going to treat as a placement new during
+       processing in lower_new, set the placement_new flag now and remove it
+       from the destruction list below. */
+    if (ndsp != NULL && !ndsp->placement_new && ndsp->routine != NULL) {
+      a_param_type_ptr params =
+                          unlowered_param_type_list_for_routine(ndsp->routine);
+      if (params != NULL && params->next != NULL) {
+        /* Treat an operator new with default arguments as a placement new.
+           See core issue 127. */
+        check_assertion_str(params->next->has_default_arg,
+                                "placement_new not set but more than one arg");
+        ndsp->placement_new = TRUE;
+      }  /* if */
+    }  /* if */
+#endif /* ABI_CHANGES_FOR_PLACEMENT_DELETE */
+    if (dip->is_array_freeing || (ndsp != NULL && ndsp->placement_new)) {
       /* Freeing of arrays is handled by runtime routines, so the freeing
          on exception is no longer visible at this level. */
-      /* Likewise for a placement delete.  In that case an internal "try"
-         block is inserted, with the "catch" a call of the placement delete
-         routine. */
+      /* Likewise for a placement delete (or operator new with default
+         arguments).  In that case an internal "try" block is inserted, with
+         the "catch" a call of the placement delete routine. */
       remove_from_destruction_list(dip);
       goto end_of_routine;
     }  /* if */

@@ -6358,7 +6358,7 @@ and therefore might be a projection symbol.  If there is an ambiguity return
 }  /* find_default_operator_new_sym */
 
 
-a_boolean is_default_operator_delete(a_routine_ptr routine)
+static a_boolean is_default_operator_delete(a_routine_ptr routine)
 /*
 Return TRUE if the indicated routine (an operator delete function) is
 a default operator delete function (including the class variant with

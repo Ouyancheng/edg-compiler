@@ -82,6 +82,8 @@ typedef struct an_init_pos_descr
    processing routines, but a pointer to it appears in a front-end only
    field in the IL; its structure is not known here). */
 typedef struct an_arg_operand *an_arg_operand_ptr;
+typedef struct a_new_delete_supplement
+                              *a_new_delete_supplement_ptr;
 
 /*
 Data structures related to source position and correspondence:
@@ -2129,6 +2131,13 @@ typedef struct a_dynamic_init {
 			   Set by IL lowering, only for entries with
 			   is_optimized_class_rvalue_question_mark TRUE.
 			   Note that this points to a stack variable. */
+  a_new_delete_supplement_ptr
+		assoc_new;
+			/* If non-NULL, points to the a_new_delete_supplement
+			   structure associated with this destruction.  Can
+			   be NULL for destructions generated during lowering.
+			   Must be non-NULL for destructions associated with
+			   a placement new. */
 #endif /* DO_IL_LOWERING */
   an_object_lifetime_ptr
 		lifetime_of_overlapping_temps;
@@ -9625,7 +9634,6 @@ typedef struct a_condition_supplement {
 
 
 /* Description of a C++ "new" or "delete" operation. */
-typedef struct a_new_delete_supplement *a_new_delete_supplement_ptr;
 typedef struct a_new_delete_supplement {
   a_byte_boolean
 		is_new;

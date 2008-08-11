@@ -10085,6 +10085,11 @@ specification allow a variable-sized array as the top type.
       /* Remember the dynamic init entry, if any, used to free storage
          if an exception is thrown before the initialization is finished. */
       ndsp->freeing_of_storage_on_exception = dyn_init_to_free_storage;
+#if DO_IL_LOWERING
+      if (dyn_init_to_free_storage != NULL) {
+        dyn_init_to_free_storage->assoc_new = ndsp;
+      }  /* if */
+#endif /* DO_IL_LOWERING */
     }  /* if */
     /* Make an operand for the result. */
     make_expression_operand(new_node, result);

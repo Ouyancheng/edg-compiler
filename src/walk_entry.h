@@ -2307,6 +2307,10 @@ do_set_proper_definition_needed_flag:
 #if DO_IL_LOWERING
         conditionally_clear_fe_pointer(ptr->destructible_entity_descr);
         conditionally_clear_fe_pointer(ptr->init_destination);
+        if (ptr->assoc_new != NULL) {
+          remap_ptr_not_needed(ptr->assoc_new, a_new_delete_supplement_ptr,
+                               iek_new_delete_supplement);
+        }  /* if */
 #endif /* DO_IL_LOWERING */
         remap_ptr(ptr->lifetime_of_overlapping_temps, an_object_lifetime_ptr,
                   iek_object_lifetime);

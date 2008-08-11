@@ -1,5 +1,30 @@
 Version 3.11
 
+8/11/08  [EDGcpfe/9141]
+Assertion failure: "add_dyn_init_cleanup: no temps"
+
+An object allocated by a new operator with a default argument must be
+deleted by its matching deallocation function during exception handling.
+In cases where an object requiring initialization was allocated by a
+new operator with a default argument, and a matching deallocation delete
+function existed, and the allocation had an overlapping temporary lifetime with
+another dynamic initialization, an assertion failure was triggered during
+lowering.  This has now been fixed.
+
+  typedef unsigned int size_t;
+  struct A {
+    virtual void f() {}
+    void *operator new(size_t sz, size_t t = 0) { return 0; }
+    void operator delete(void *p, size_t sz) { }
+  };
+  struct B {  
+    B (A* p);
+    ~B ();
+  }; 
+  int main() {
+    B b(new A);  // triggered an assertion failure
+  }
+
 8/9/08   [EDGcpfe/7930]
 GNU C++ compatibility: friend injection enabled/disabled based on gnu_version
 
