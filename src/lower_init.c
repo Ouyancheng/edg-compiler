@@ -6279,31 +6279,64 @@ and desired types are different, so this must be handled external to
 this function.
 */
 {
+  a_constant_ptr cp;
+
   check_assertion(constant != NULL);
   if (constant->type != NULL) {
-    if (needs_cast_because_type_has_param_passed_via_cctor(constant->type)) {
-      /* Some piece of this type needs a cast. */
-      if (constant->kind == (a_constant_repr_kind)ck_aggregate) {
-        /* Some piece of this aggregate needs a cast, recurse to find it. */
-        a_constant_ptr cp;
+    if (constant->kind == (a_constant_repr_kind)ck_aggregate) {
+      if (is_array_type(constant->type)) {
+        /* The underlying type of all array elements is the same, meaning
+           that all elements need a cast or none do. */
+        if (needs_cast_because_type_has_param_passed_via_cctor(
+                              underlying_array_element_type(constant->type))) {
+          if (is_array_type(array_element_type(constant->type))) {
+            /* Recurse to get to the bottom most level of the array. */
+            for (cp = constant->variant.aggregate.first_constant;
+                 cp != NULL;
+                 cp = cp->next) {
+              add_cast_for_cv_qualified_cctor_param_if_necessary(cp);
+            }  /* for */
+          } else {
+            /* We could recurse here, but since we know we're at the
+               bottom of an array, all of whose elements need a cast,
+               save some time and just set the implicit_cast field on
+               each element. */
+            for (cp = constant->variant.aggregate.first_constant;
+                 cp != NULL;
+                 cp = cp->next) {
+              if (cp->kind == (a_constant_repr_kind)ck_init_repeat) {
+                /* Recurse for repeated constants. */
+                add_cast_for_cv_qualified_cctor_param_if_necessary(
+                                             cp->variant.init_repeat.constant);
+              } else {
+                cp->implicit_cast = TRUE;
+              }  /* if */
+            }  /* for */
+          }  /* if */
+        }  /* if */
+      } else {
+        /* We have to check each field of a non-array aggregate initialization
+           individually. */
         for (cp = constant->variant.aggregate.first_constant;
-             ;
+             cp != NULL;
              cp = cp->next) {
           add_cast_for_cv_qualified_cctor_param_if_necessary(cp);
-          if (cp == constant->variant.aggregate.last_constant) break;
         }  /* for */
-      } else {
-        /* This component of the constant needs a cast. */
-        constant->implicit_cast = TRUE;
       }  /* if */
+    } else if (needs_cast_because_type_has_param_passed_via_cctor(
+                                                             constant->type)) {
+      /* This component of the constant needs a cast. */
+      constant->implicit_cast = TRUE;
     }  /* if */
   } else if (constant->kind == (a_constant_repr_kind)ck_init_repeat) {
-    /* See if a repeated constant needs a cast. */
+    /* Recurse for repeated constants. */
     add_cast_for_cv_qualified_cctor_param_if_necessary(
                                        constant->variant.init_repeat.constant);
+  } else if (constant->kind == (a_constant_repr_kind)ck_designator) {
+    /* Ignore designators. */
   } else {
     /* Only ck_init_repeat and ck_designator should have NULL types. */
-    check_assertion(constant->kind == (a_constant_repr_kind)ck_designator);
+    unexpected_condition();
   }  /* if */
 }  /* add_cast_for_cv_qualified_cctor_param_if_necessary */
 

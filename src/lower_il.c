@@ -9118,8 +9118,10 @@ end_traversal is not used.
 {
   a_boolean result = FALSE;
 
-  tp = skip_typerefs(tp);
   if (is_function_type(tp)) {
+    /* See if this function has a parameter that is passed via a copy
+       constructor.  skip_typerefs is not needed because the TTT_SKIP_TYPEREFS
+       flag ensures that any typerefs have already been stripped from tp. */
     a_param_type_ptr              ptp;
     a_routine_type_supplement_ptr rtsp = tp->variant.routine.extra_info;
     if (rtsp != NULL) {
@@ -9143,6 +9145,7 @@ contains a parameter whose type requires a copy constructor to be called.
 {
   /* No need to traverse 'this' pointer nor exception specifications. */
   a_type_tree_traversal_flag_set  tt_flags = TTT_RETURN_TYPE |
+                                             TTT_SKIP_TYPEREFS |
                                              TTT_PARAM_TYPES;
 
   return traverse_type_tree(tp, ttt_type_has_param_passed_via_cctor, tt_flags);
@@ -9202,11 +9205,11 @@ to skip the input parameter).
            compatibility). */
         do_default_arg_promotions_on_node(expr);
       } else if (needs_cast_because_type_has_param_passed_via_cctor(
-                                                                param->type)) {
+                                                                 expr->type)) {
         /* As described above, arguments that are passed via a copy
            constructor to a cv-qualified parameter are adjusted.  If we're
            passing a type that contains a function where (at least) one of the
-           parameters has undergone this type conversion, we need to add
+           parameters will undergo this type conversion, we need to add
            a cast to the destination type to avoid a type mismatch. */
         change_to_cast(expr, copy_node(expr), param->type);
       }  /* if */
@@ -13191,9 +13194,8 @@ cast.  See lower_expr for typical invocation.
                                                    operand_node->next->type)) {
               /* Add a cast if the source of the assignment has a type
                  that contains a function with a copy constructed parameter. */
-              expr->variant.operation.operands->next = add_cast(
-                                                           operand_node->next,
-                                                           operand_node->type);
+              operand_node->next = add_cast(operand_node->next,
+                                            operand_node->type);
             }  /* if */
             break;
           case eok_lvalue_from_struct_rvalue:
