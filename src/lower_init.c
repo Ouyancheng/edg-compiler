@@ -6287,8 +6287,8 @@ this function.
       if (is_array_type(constant->type)) {
         /* The underlying type of all array elements is the same, meaning
            that all elements need a cast or none do. */
-        if (needs_cast_because_type_has_param_passed_via_cctor(
-                              underlying_array_element_type(constant->type))) {
+        a_type_ptr elem_type = underlying_array_element_type(constant->type);
+        if (needs_cast_because_type_has_param_passed_via_cctor(elem_type)) {
           if (is_array_type(array_element_type(constant->type))) {
             /* Recurse to get to the bottom most level of the array. */
             for (cp = constant->variant.aggregate.first_constant;
