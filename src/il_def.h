@@ -2133,11 +2133,12 @@ typedef struct a_dynamic_init {
 			   Note that this points to a stack variable. */
   a_new_delete_supplement_ptr
 		assoc_new;
-			/* If non-NULL, points to the a_new_delete_supplement
-			   structure associated with this destruction.  Can
-			   be NULL for destructions generated during lowering.
-			   Must be non-NULL for destructions associated with
-			   a placement new. */
+			/* When is_freeing_of_storage_on_exception is TRUE,
+			   points to the a_new_delete_supplement structure
+			   associated with this destruction; NULL otherwise.
+			   Can also be NULL for destructions generated during
+			   lowering.  Must be non-NULL for destructions
+			   associated with a placement new. */
 #endif /* DO_IL_LOWERING */
   an_object_lifetime_ptr
 		lifetime_of_overlapping_temps;
