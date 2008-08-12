@@ -10819,6 +10819,7 @@ current mode -- just do it.
   an_expr_node_ptr expr;
   a_constant       conaddr;
   an_operand       orig_operand;
+  a_boolean        need_expr = FALSE, need_expr_for_constant = FALSE;
 
   orig_operand = *operand;
   expr = make_node_from_operand(operand);
@@ -10846,15 +10847,26 @@ current mode -- just do it.
                         type_after_array_to_pointer_transformation(expr->type);
     implicit_cast(&conaddr, ptr_type);
     make_constant_operand(&conaddr, operand);
-    operand->variant.constant.expr = expr;
+    need_expr = curr_expr_kind_is_one_in_which_const_exprs_are_recorded();
+    need_expr_for_constant = need_expr;
   } else if (curr_expr_kind_is_const() && curr_expr_is_evaluated()) {
     /* The array-to-pointer operation must fold to a constant in a constant
        expression. */
     error_in_operand(ec_expr_not_constant, operand);
   } else {
+    /* Keep the result in expression form. */
+    need_expr = TRUE;
+  }  /* if */
+  if (need_expr) {
     /* Make an expression for the decayed pointer. */
     expr = conv_array_expr_to_pointer(expr);
-    make_expression_operand(expr, operand);
+    /* Save it as either the overall result or as the backing expression
+       for a constant result. */
+    if (need_expr_for_constant) {
+      operand->variant.constant.expr = expr;
+    } else {
+      make_expression_operand(expr, operand);
+    }  /* if */
   }  /* if */
   /* Restore the original source position, etc.  Keep the
      reference entries because if the pointer to the array is
@@ -10971,6 +10983,7 @@ function, which means (among other things) that its address will not escape.
   a_constant       constant;
   an_operand       orig_operand;
   a_boolean        try_folding = FALSE;
+  a_boolean        need_expr = FALSE, need_expr_for_constant = FALSE;
 
   check_assertion(is_expression_operand(operand) &&
                   is_a_function_designator(operand));
@@ -11001,14 +11014,28 @@ function, which means (among other things) that its address will not escape.
     /* The address is constant and a constant is preferred in the current
        context. */
     make_constant_operand(&constant, operand);
-    operand->variant.constant.expr = expr;
+    need_expr = curr_expr_kind_is_one_in_which_const_exprs_are_recorded();
+    need_expr_for_constant = need_expr;
   } else {
-    /* Turn the lvalue function into an rvalue function, staying in
-       expression form. */
+    /* Keep the result in expression form. */
+    need_expr = TRUE;
+  }  /* if */
+  if (need_expr) {
+    /* Make an rvalue expression from the lvalue function expression. */
     expr = conv_lvalue_expr_to_rvalue(expr, (a_boolean *)NULL,
                                       (a_constant **)NULL,
                                       &operand->position);
-    make_expression_operand(expr, operand);
+    /* Save it as either the overall result or as the backing expression
+       for a constant result. */
+    if (need_expr_for_constant) {
+      /* A constant expression doesn't give you any more information than
+         the constant itself has, so drop it. */
+      if (!is_constant_node(expr)) {
+        operand->variant.constant.expr = expr;
+      }  /* if */
+    } else {
+      make_expression_operand(expr, operand);
+    }  /* if */
   }  /* if */
   restore_operand_details_incl_ref(operand, &orig_operand);
 }  /* conv_expr_function_designator_to_ptr_to_function */
