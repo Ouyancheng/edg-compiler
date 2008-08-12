@@ -3202,7 +3202,8 @@ user-defined conversions.
           if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
             an_expr_node_ptr orig_expr = operand->variant.constant.expr;
             local_constant.expr = orig_expr;
-            if (!is_implicit_cast || operand->type != new_type) {
+            if (!is_implicit_cast ||
+                !identical_types(operand->type, new_type)) {
               /* Record a cast expression for the constant (inhibit normal
                  diagnostics during that process, since they were already
                  issued). */
