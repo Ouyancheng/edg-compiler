@@ -8966,6 +8966,20 @@ there's some possibility of precedence confusion and need_parens is TRUE.
         case eok_indirect:
           if (!expr->variant.operation.compiler_generated) {
             write_tok_ch('*');
+            if (is_constant_node(operand_1)) {
+              a_constant_ptr con = operand_1->variant.constant;
+              if (con->kind == (a_constant_repr_kind)ck_address &&
+                  (con->variant.address.kind ==
+                                            (an_address_base_kind)abk_uuidof ||
+                   con->variant.address.kind ==
+                                           (an_address_base_kind)abk_typeid)) {
+                /* The fact that these address constants are under an
+                   explicit eok_indirect operation indicates that they
+                   implicitly incorporate an "&" operator that was explicit
+                   in the source but is not represented in the IL. */
+                write_tok_ch('&');
+              }  /* if */
+            }  /* if */
           } else {
             /* This may be the implicit dereference on top of a
                compiler-generated lvalue adjustment (adding qualification
