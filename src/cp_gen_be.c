@@ -3445,19 +3445,7 @@ Output the indicated constant.  If need_parens is TRUE, parentheses are
 placed around the constant if there's any possibility of precedence confusion.
 */
 {
-  if (constant->kind == (a_constant_repr_kind)ck_address &&
-      (constant->variant.address.kind == (an_address_base_kind)abk_uuidof ||
-       constant->variant.address.kind == (an_address_base_kind)abk_typeid)) {
-    /* These should be generated as the built-in functions directly rather
-       than as ordinary address constants. */
-    if (constant->variant.address.kind == (an_address_base_kind)abk_uuidof) {
-      form_uuidof_reference(constant, &octl);
-    } else {
-      form_typeid_reference(constant, &octl);
-    }  /* if */
-  } else {
-    form_constant(constant, need_parens, &octl);
-  }  /* if */
+  form_constant(constant, need_parens, &octl);
 }  /* gen_constant */
 
 
@@ -8966,6 +8954,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
         case eok_indirect:
           if (!expr->variant.operation.compiler_generated) {
             write_tok_ch('*');
+          } else {
             if (is_constant_node(operand_1)) {
               a_constant_ptr con = operand_1->variant.constant;
               if (con->kind == (a_constant_repr_kind)ck_address &&
@@ -8973,19 +8962,18 @@ there's some possibility of precedence confusion and need_parens is TRUE.
                                             (an_address_base_kind)abk_uuidof ||
                    con->variant.address.kind ==
                                            (an_address_base_kind)abk_typeid)) {
-                /* The fact that these address constants are under an
-                   explicit eok_indirect operation indicates that they
-                   implicitly incorporate an "&" operator that was explicit
-                   in the source but is not represented in the IL. */
-                write_tok_ch('&');
+                /* The generated code for this address constant will
+                   contain an "&", even though the source did not, so the
+                   compiler-generated "*" must be put out as well. */
+                write_tok_ch('*');
               }  /* if */
+            } else {
+              /* This may be the implicit dereference on top of a
+                 compiler-generated lvalue adjustment (adding qualification
+                 and/or doing base-class adjustments).  If so, strip those
+                 off and just generate the underlying lvalue node. */
+              operand_1 = strip_lvalue_cast_sequence(operand_1);
             }  /* if */
-          } else {
-            /* This may be the implicit dereference on top of a
-               compiler-generated lvalue adjustment (adding qualification
-               and/or doing base-class adjustments).  If so, strip those
-               off and just generate the underlying lvalue node. */
-            operand_1 = strip_lvalue_cast_sequence(operand_1);
           }  /* if */
           gen_expr_with_parens(operand_1);
           goto done_with_operation;
