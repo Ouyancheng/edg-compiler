@@ -11864,7 +11864,9 @@ types to get a boolean expression (see process_boolean_controlling_expression).
               check_assertion(is_constant_operand(&orig_operand));
               con->null_pointer_constant_ruled_out =
                  orig_operand.variant.constant.null_pointer_constant_ruled_out;
-              con->expr = orig_operand.variant.constant.expr;
+              if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
+                con->expr = orig_operand.variant.constant.expr;
+              }  /* if */
             }  /* if */
           }
           break;

@@ -6462,37 +6462,12 @@ TRUE if the selector is a pointer, and FALSE if it is a class.
   an_expr_node_ptr      selector_expr, expr, orig_expr;
   an_operand_state      saved_operand_state = operand->state;
   an_expr_operator_kind op;
+  a_boolean             need_expr = FALSE, need_expr_for_constant = FALSE;
 
   orig_operand = *operand;
   selector_expr = make_node_from_operand(bound_function_selector);
   orig_expr = make_node_from_operand(operand);
-  if (curr_il_region_number == file_scope_region_number &&
-      is_variable_node(selector_expr) &&
-      selector_expr->variant.variable->is_this_parameter) {
-    /* For an expression like "this->x" scanned in a construct that must be
-       represented at file scope, like an array bound, discard the selector
-       because "this" can't be referenced in the file scope. */
-    expr = orig_expr;
-#if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
-    forget_expr_range_modifiers_in_tree(selector_expr, (an_expr_node_ptr)NULL);
-#endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
-    selector_expr = NULL;
-  } else {
-    selector_expr->next = orig_expr;
-    /* Determine the operator to use. */
-    if (is_arrow_operator) {
-      op = (an_expr_operator_kind)eok_points_to_static;
-    } else {
-      op = (an_expr_operator_kind)eok_dot_static;
-    }  /* if */
-    /* Make a node for the selector and the operand. */
-    expr = make_operator_node(op, orig_expr->type, selector_expr);
-    if (orig_expr->is_lvalue) {
-      expr->variant.operation.returns_lvalue_instead_of_usual_rvalue = TRUE;
-      expr->is_lvalue = TRUE;
-    } /* if */
-  }  /* if */
-  if (!expr->is_lvalue &&
+  if (!orig_expr->is_lvalue &&
       is_constant_node(orig_expr) &&
       curr_expr_kind_is_const()) {
     /* In constant expressions, produce a constant result for an rvalue.
@@ -6500,20 +6475,58 @@ TRUE if the selector is a pointer, and FALSE if it is a class.
        others stay as lvalues at this point and are converted to the constant
        when lvalue-to-rvalue conversion is done. */
     /* The is_constant_node test may seem redundant, but is needed for
-       template-dependent constants in prototype instantiations.,
+       template-dependent constants in prototype instantiations,
        because such constants are considered to have side effects. */
-    check_assertion(selector_expr == NULL ||
-                    is_constant_node(selector_expr) ||
+    check_assertion(is_constant_node(selector_expr) ||
                     !node_has_side_effects(selector_expr, (a_boolean *)NULL) ||
                     is_error_node(selector_expr));
     make_constant_operand(orig_expr->variant.constant, operand);
-    operand->variant.constant.expr = expr;
+    need_expr = curr_expr_kind_is_one_in_which_const_exprs_are_recorded();
+    need_expr_for_constant = need_expr;
   } else {
-    make_expression_operand(expr, operand);
-    operand->state = saved_operand_state;
-    /* Restore the reference entries list too so that we can get
-       address_taken set on the function. */
-    restore_operand_details_incl_ref(operand, &orig_operand);
+    /* In all other cases, the result will be an expression. */
+    need_expr = TRUE;
+  }  /* if */
+  if (need_expr) {
+    /* Make an expression for the selection. */
+    if (curr_il_region_number == file_scope_region_number &&
+        is_variable_node(selector_expr) &&
+        selector_expr->variant.variable->is_this_parameter) {
+      /* For an expression like "this->x" scanned in a construct that must be
+         represented at file scope, like an array bound, discard the selector
+         because "this" can't be referenced in the file scope. */
+      expr = orig_expr;
+#if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
+      forget_expr_range_modifiers_in_tree(selector_expr,
+                                          (an_expr_node_ptr)NULL);
+#endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
+    } else {
+      /* Make an expression for a static selection. */
+      selector_expr->next = orig_expr;
+      /* Determine the operator to use. */
+      if (is_arrow_operator) {
+        op = (an_expr_operator_kind)eok_points_to_static;
+      } else {
+        op = (an_expr_operator_kind)eok_dot_static;
+      }  /* if */
+      /* Make a node for the selector and the operand. */
+      expr = make_operator_node(op, orig_expr->type, selector_expr);
+      if (orig_expr->is_lvalue) {
+        expr->variant.operation.returns_lvalue_instead_of_usual_rvalue = TRUE;
+        expr->is_lvalue = TRUE;
+      } /* if */
+    }  /* if */
+    /* Save the expression as either the overall result or as the backing
+       expression for a constant result. */
+    if (need_expr_for_constant) {
+      operand->variant.constant.expr = expr;
+    } else {
+      make_expression_operand(expr, operand);
+      operand->state = saved_operand_state;
+      /* Restore the reference entries list too so that we can get
+         address_taken set on the function. */
+      restore_operand_details_incl_ref(operand, &orig_operand);
+    }  /* if */
   }  /* if */
   rule_out_expr_kinds(ROEK_CONSTANT, operand);
 }  /* combine_unneeded_selector_with_operand */

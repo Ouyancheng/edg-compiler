@@ -20454,10 +20454,6 @@ nonstandard class member constants.  Assumes copy-initialization
         set_error_constant(constant);
       } else {
         copy_constant(string_con, constant);
-        constant->expr = expr_node_from_operand(&result);
-#if BACK_END_IS_CP_GEN_BE
-        constant->suppress_expression_in_cp_gen_be = TRUE;
-#endif /* BACK_END_IS_CP_GEN_BE */
       }  /* if */
     } else {
       /* Not string literal case (compound literal). */
@@ -20872,10 +20868,6 @@ required_type_determined:
     if (string_case) {
       check_assertion(string_con->kind == (a_constant_repr_kind)ck_string);
       copy_constant(string_con, constant);
-      constant->expr = string_con->expr;
-#if BACK_END_IS_CP_GEN_BE
-      constant->suppress_expression_in_cp_gen_be = TRUE;
-#endif /* BACK_END_IS_CP_GEN_BE */
       *is_constant = TRUE;
     } else if (gcc_mode && is_an_rvalue(&result) &&
                result.kind == (an_operand_kind)ok_constant &&
