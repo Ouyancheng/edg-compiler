@@ -6430,8 +6430,10 @@ work is done by scan_field_selection_operator and scan_subscript_operator.
                                        (a_builtin_operation_kind)bok_offsetof;
       node->variant.builtin_operation.operands = args;
       clear_operand((an_operand_kind)ok_constant, result);
-      fold_builtin_operation_if_possible(node, &result->variant.constant,
-                                         &start_pos);
+      fold_builtin_operation_if_possible(
+                     node, &result->variant.constant,
+                     curr_expr_kind_is_one_in_which_const_exprs_are_recorded(),
+                     &start_pos);
       result->type = result->variant.constant.type;
       result->state = (an_operand_state)os_rvalue;
     } else {
@@ -6543,8 +6545,10 @@ the constant cases.)
     expr->variant.builtin_operation.kind = (a_builtin_operation_kind)kind;
     expr->variant.builtin_operation.operands = arg1;
     clear_operand((an_operand_kind)ok_constant, result);
-    fold_builtin_operation_if_possible(expr, &result->variant.constant,
-                                       &start_pos);
+    fold_builtin_operation_if_possible(
+                     expr, &result->variant.constant,
+                     curr_expr_kind_is_one_in_which_const_exprs_are_recorded(),
+                     &start_pos);
     result->type = result->variant.constant.type;
     result->state = (an_operand_state)os_rvalue;
   } else {

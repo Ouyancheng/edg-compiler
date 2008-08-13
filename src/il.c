@@ -12528,6 +12528,7 @@ expression.  See copy_template_param_expr for the parameter descriptions.
     expr_copy->variant.builtin_operation.operands = new_args;
     /* Attempt to fold the operation. */
     fold_builtin_operation_if_possible(expr_copy, constant,
+                                       /*maintain_expression=*/FALSE,
                                        (a_source_position*)NULL);
     if (is_error_constant(constant)) {
       *copy_error = TRUE;

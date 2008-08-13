@@ -5761,6 +5761,7 @@ done:
 
 static void fold_offsetof(an_expr_node_ptr   expr,
                           a_constant_ptr     constant,
+                          a_boolean          maintain_expression,
                           a_source_position  *pos)
 /*
 expr is an enk_builtin_operation node for a __builtin_offsetof operation
@@ -5768,8 +5769,9 @@ expr is an enk_builtin_operation node for a __builtin_offsetof operation
 nondependent, store the integer value of the offset being represented in
 *constant.  Otherwise, store a ck_template_param constant in *constant (the
 constant will be of the tpck_expression variant and will point to the given
-expression).  If pos is non-NULL, diagnostics are issued at the position
-it represents.
+expression).  If maintain_expression is TRUE, the backing expression for
+the returned constant will be set as well.  If pos is non-NULL, diagnostics
+are issued at the position it indicates.
 */
 {
   an_expr_node_ptr  arg1 = expr->variant.builtin_operation.operands,
@@ -5791,14 +5793,15 @@ it represents.
     } else {
       clear_constant(constant, (a_constant_repr_kind)ck_error);
     }  /* if */
-    constant->expr = expr;
+    if (maintain_expression) constant->expr = expr;
   }  /* if */
   constant->type = expr->type;
 }  /* fold_offsetof */
 
 
 static void fold_is_base_of(an_expr_node_ptr   expr,
-                            a_constant_ptr     constant)
+                            a_constant_ptr     constant,
+                            a_boolean          maintain_expression)
 /*
 expr is an enk_builtin_operation node for an __is_base_of operation.  If the
 operand types are nondependent, store a boolean constant in *constant.  The
@@ -5807,7 +5810,9 @@ qualified) class types the first of which is a base class of the second one;
 otherwise, the constant will have value "false".  If either of the operand
 types is dependent, store a ck_template_param constant in *constant.  The
 constant will be of the tpck_expression variant and will point to the given
-expression.
+expression.  If maintain_expression is TRUE, the backing expression for
+the returned constant will be set as well.
+
 */
 {
   an_expr_node_ptr  arg1 = expr->variant.builtin_operation.operands,
@@ -5835,14 +5840,15 @@ expression.
     clear_constant(constant, (a_constant_repr_kind)ck_integer);
     set_integer_value(&constant->variant.integer_value,
                       (a_host_large_integer)result);
-    constant->expr = expr;
+    if (maintain_expression) constant->expr = expr;
   }  /* if */
   constant->type = expr->type;
 }  /* fold_is_base_of */
 
 
 static void fold_is_convertible_to(an_expr_node_ptr   expr,
-                                   a_constant_ptr     constant)
+                                   a_constant_ptr     constant,
+                                   a_boolean          maintain_expression)
 /*
 expr is an enk_builtin_operation node for an __is_convertible_to operation,
 which implements the C++ TR1 is_convertible type relationship predicate
@@ -5851,6 +5857,8 @@ is "true" if the first operand type is "implicitly convertible to" the
 second operand type.  If either of the operand types is dependent, store
 a ck_template_param constant in *constant.  The constant will be of the
 tpck_expression variant and will point to the given expression.
+If maintain_expression is TRUE, the backing expression for the returned
+constant will be set as well.
 */
 {
   an_expr_node_ptr  arg1 = expr->variant.builtin_operation.operands,
@@ -5917,7 +5925,7 @@ tpck_expression variant and will point to the given expression.
     clear_constant(constant, (a_constant_repr_kind)ck_integer);
     set_integer_value(&constant->variant.integer_value,
                       (a_host_large_integer)result);
-    constant->expr = expr;
+    if (maintain_expression) constant->expr = expr;
   }  /* if */
   constant->type = expr->type;
 }  /* fold_is_convertible_to */
@@ -5926,6 +5934,7 @@ tpck_expression variant and will point to the given expression.
 static void fold_unary_type_trait_helper(
                                     an_expr_node_ptr   expr,
                                     a_constant_ptr     constant,
+                                    a_boolean          maintain_expression,
                                     a_source_position  *pos,
                                     a_boolean          complete_class_property)
 /*
@@ -5937,6 +5946,8 @@ true for the type represented by its operand.  otherwise, the constant will
 have value "false".  If the operand type is dependent, store a
 ck_template_param constant in *constant.  The constant will be of the
 tpck_expression variant and will point to the given expression.
+If maintain_expression is TRUE, the backing expression for the returned
+constant will be set as well.
 */
 {
   an_expr_node_ptr  arg = expr->variant.builtin_operation.operands;
@@ -6155,7 +6166,7 @@ result_known:
       set_integer_value(&constant->variant.integer_value,
                         (a_host_large_integer)result);
     }  /* if */
-    constant->expr = expr;
+    if (maintain_expression) constant->expr = expr;
   }  /* if */
   constant->type = expr->type;
 }  /* fold_unary_type_trait_helper */
@@ -6163,7 +6174,8 @@ result_known:
 #if GNU_EXTENSIONS_ALLOWED
 
 static void fold_types_compatible(an_expr_node_ptr   expr,
-                                  a_constant_ptr     constant)
+                                  a_constant_ptr     constant,
+                                  a_boolean          maintain_expression)
 /*
 expr is an enk_builtin_operation node for a GNU C __builtin_types_compatible
 operation.  If the operand types are nondependent, store a boolean constant in
@@ -6172,6 +6184,8 @@ are "compatible" (ignoring top-level qualifiers); otherwise, the constant will
 have value "false".  If either of the operand types is dependent, store a
 ck_template_param constant in *constant.  The constant will be of the
 tpck_expression variant and will point to the given expression.
+If maintain_expression is TRUE, the backing expression for the returned
+constant will be set as well.
 */
 {
   an_expr_node_ptr  arg1 = expr->variant.builtin_operation.operands,
@@ -6194,7 +6208,7 @@ tpck_expression variant and will point to the given expression.
     clear_constant(constant, (a_constant_repr_kind)ck_integer);
     set_integer_value(&constant->variant.integer_value,
                       (a_host_large_integer)result);
-    constant->expr = expr;
+    if (maintain_expression) constant->expr = expr;
   }  /* if */
   constant->type = expr->type;
 }  /* fold_types_compatible */
@@ -6203,6 +6217,7 @@ tpck_expression variant and will point to the given expression.
 
 void fold_builtin_operation_if_possible(an_expr_node_ptr   expr,
                                         a_constant_ptr     constant,
+                                        a_boolean          maintain_expression,
                                         a_source_position  *pos)
 /*
 The given expression is a node of kind enk_builtin_operation.  If any of
@@ -6212,6 +6227,8 @@ ck_template_param constant (of the tpck_expression variant) is stored in
 folding is successful, the result is returned through *constant.  if the
 folding fails, an error constant is returned through *constant and if pos is
 non-NULL diagnostics are issued at the indicated position.
+If maintain_expression is TRUE, the backing expression for the returned
+constant is set as well.
 */
 {
   a_boolean         has_error = FALSE;
@@ -6228,15 +6245,14 @@ non-NULL diagnostics are issued at the indicated position.
   }  /* for */
   if (has_error) {
     clear_constant(constant, (a_constant_repr_kind)ck_error);
-    constant->expr = expr;
   } else {
     switch (expr->variant.builtin_operation.kind) {
       case bok_offsetof:
-        fold_offsetof(expr, constant, pos);
+        fold_offsetof(expr, constant, maintain_expression, pos);
         break;
 #if GNU_EXTENSIONS_ALLOWED
       case bok_types_compatible:
-        fold_types_compatible(expr, constant);
+        fold_types_compatible(expr, constant, maintain_expression);
         break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
       case bok_has_assign:
@@ -6256,21 +6272,21 @@ non-NULL diagnostics are issued at the indicated position.
       case bok_is_polymorphic:
         /* Various type trait helpers that require their single argument to be
            a complete class type. */
-        fold_unary_type_trait_helper(expr, constant, pos,
+        fold_unary_type_trait_helper(expr, constant, maintain_expression, pos,
                                      /*complete_class_property=*/TRUE);
         break;
       case bok_is_class:
       case bok_is_enum:
       case bok_is_union:
         /* Various type trait helpers that take a single argument. */
-        fold_unary_type_trait_helper(expr, constant, pos,
+        fold_unary_type_trait_helper(expr, constant, maintain_expression, pos,
                                      /*complete_class_property=*/FALSE);
         break;
       case bok_is_base_of:
-        fold_is_base_of(expr, constant);
+        fold_is_base_of(expr, constant, maintain_expression);
         break;
       case bok_is_convertible_to:
-        fold_is_convertible_to(expr, constant);
+        fold_is_convertible_to(expr, constant, maintain_expression);
         break;
       default:
         unexpected_condition();
