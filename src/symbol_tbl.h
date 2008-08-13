@@ -73,7 +73,7 @@ A symbol-reference kind is a bit vector whose values are defined in
 symbol_ref.h.  The typedef declaration is here to avoid mutual inclusion
 problems.
 */
-typedef int a_symbol_reference_kind;
+typedef unsigned long a_symbol_reference_kind;
 
 /* Unique sequence number identifying a declaration in a given scope. */
 typedef unsigned long a_decl_sequence_number;

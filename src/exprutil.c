@@ -10689,24 +10689,28 @@ cases so we don't do it here.
       /* Convert the expression to an rvalue. */
       node = conv_lvalue_expr_to_rvalue(node, &constant_case, &con_value,
                                         &operand->position);
-      if (con_value != NULL) {
-        /* The value of the expression is a constant.  Make a constant
-           operand instead of the expression operand. */
+      if (constant_case) {
+        /* The value of the expression is a constant, e.g., a
+           constant-valued variable in C++ has been replaced by its value.
+           Make a constant operand instead of the expression operand. */
+        check_assertion(con_value != NULL);
+        /* Add the reference kind that indicates a use only for the purpose
+           of extracting a constant value. */
+        change_some_ref_kinds(operand->ref_entries_list, SRK_USE,
+                              (SRK_USE | SRK_CONST_VALUE_USE));
         make_constant_operand(con_value, operand);
-      } else {
-        /* The value of the rvalue expression is not a constant. */
-        make_expression_operand(node, operand);
-      }  /* if */
-      if (curr_expr_kind_is_const() && !constant_case) {
+      } else if (curr_expr_kind_is_const()) {
         /* An lvalue cannot be converted to an rvalue in a constant
-           expression.  The constant_case flag indicates cases where a
-           constant-valued variable has been replaced by its value,
-           which is allowed in C++. */
+           expression.  We've previously ruled out the cases that result
+           in a constant. */
         operand->position = orig_operand.position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
         operand->end_position = orig_operand.end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
         error_in_operand(ec_expr_not_constant, operand);
+      } else {
+        /* The value of the rvalue expression is not a constant. */
+        make_expression_operand(node, operand);
       }  /* if */
     }  /* if */
     /* Restore the operand's source position. */

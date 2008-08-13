@@ -1967,6 +1967,11 @@ projection symbol.
       /* Do not set IL referenced flag. */
     } else {
       if (sym_kind == (a_symbol_kind)sk_static_data_member &&
+          /* Avoid references that aren't "uses" according to the standard,
+             e.g., a reference to a constant-valued static data member that
+             is immediately converted to a constant is not a "use" that
+             should cause instantiation of the static data member. */
+          !(kind & SRK_CONST_VALUE_USE) &&
           /* Don't instantiate things in default arguments.  They get
              instantiated if the default argument is actually used. */
           !(kind & SRK_DEFAULT_ARG_EXPR)) {

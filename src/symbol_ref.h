@@ -47,13 +47,13 @@ bit vector.  For example, bits could be defined to describe the specific ways
 in which an address can be taken (e.g., to discriminate between taking the
 address of a const and taking the address of a nonconst object).
 */
-#define SRK_NONE 0x0
+#define SRK_NONE ((a_symbol_reference_kind)0x0)
 			/*lint -esym(755,SRK_NONE)*/
-#define SRK_DECLARATION 0x1
+#define SRK_DECLARATION ((a_symbol_reference_kind)0x1)
 			/* Any declaration. */
-#define SRK_DEFINITION 0x2
+#define SRK_DEFINITION ((a_symbol_reference_kind)0x2)
 			/* A declaration that is also definition. */
-#define SRK_REFERENCE 0x4
+#define SRK_REFERENCE ((a_symbol_reference_kind)0x4)
 			/* Any kind of reference.  Most commonly a reference
 			   will be a use, a modification, an "address-taken",
 			   or a reference in an error context (see following
@@ -63,59 +63,65 @@ address of a const and taking the address of a nonconst object).
 			   declaration, to a label in a goto statement, to a
 			   routine name in a call, to a variable in a sizeof
 			   operation, etc.). */
-#define SRK_USE 0x8
+#define SRK_USE ((a_symbol_reference_kind)0x8)
 			/* A use of the value of an object.  Both the use and
 			   modification bits may be set for a given reference
 			   (e.g., an increment). */
-#define SRK_MODIFICATION 0x10
+#define SRK_MODIFICATION ((a_symbol_reference_kind)0x10)
 			/* A reference that changes the value of an object.
 			   Both the use and modification bits may be set for a
 			   given reference (e.g., an increment). */
-#define SRK_ADDRESS_TAKEN 0x20
+#define SRK_ADDRESS_TAKEN ((a_symbol_reference_kind)0x20)
 			/* A reference in which the address of an object or
 			   function is taken. */
-#define SRK_ERROR 0x40
+#define SRK_ERROR ((a_symbol_reference_kind)0x40)
 			/* A reference of some sort, but because of an error
 			   in the source the kind of reference is uncertain;
 			   such a reference is treated both as a use and as a
 			   modification, in order to suppress use/def
 			   diagnostics. */
-#define SRK_IMPLICIT 0x80
+#define SRK_IMPLICIT ((a_symbol_reference_kind)0x80)
 			/* A reference or declaration is implicit. */
-#define SRK_FRIEND 0x100
+#define SRK_FRIEND ((a_symbol_reference_kind)0x100)
 			/* Or'ed with SRK_DECLARATION, a friend declaration. */
-#define SRK_TENTATIVE_DEF 0x200
+#define SRK_TENTATIVE_DEF ((a_symbol_reference_kind)0x200)
 			/* Or'ed with SRK_DEFINITION, a variable declaration
 			   is a tentative definition (C only). */
-#define SRK_IMPLICIT_TEMPLATE_ARG 0x400
+#define SRK_IMPLICIT_TEMPLATE_ARG ((a_symbol_reference_kind)0x400)
 			/* Within a template instantiation, an implicit
 			   reference to a name involved in a template argument
 			   by means of an explicit reference to a template
 			   parameter. */
-#define SRK_INITIALIZATION 0x800
+#define SRK_INITIALIZATION ((a_symbol_reference_kind)0x800)
 			/* Or'ed with SRK_DEFINITION to indicate an explicit
 			   or implicit variable initialization.  In addition,
 			   may be or'ed with SRK_REFERENCE to indicate an
 			   explicit reference in a mem-initializer list. */
-#define SRK_CONST_ADDRESS_TAKEN 0x1000
+#define SRK_CONST_ADDRESS_TAKEN ((a_symbol_reference_kind)0x1000)
 			/* Or'ed with SRK_ADDRESS_TAKEN to indicate an
 			   address taken in a way that can't modify the object
 			   without casting away constness. */
-#define SRK_PROTO_INST_REF 0x2000
+#define SRK_PROTO_INST_REF ((a_symbol_reference_kind)0x2000)
 			/* A reference in a prototype instantiation, in
 			   a context where we can't tell what kind of use
 			   was made. */
-#define SRK_DEFAULT_ARG_EXPR 0x4000
+#define SRK_DEFAULT_ARG_EXPR ((a_symbol_reference_kind)0x4000)
 			/* A reference in a default argument expression. */
-#define SRK_TEMPLATE_INSTANTIATION 0x8000
+#define SRK_TEMPLATE_INSTANTIATION ((a_symbol_reference_kind)0x8000)
 			/* A (full or partial) template instantiation. */
+#define SRK_CONST_VALUE_USE ((a_symbol_reference_kind)0x10000)
+			/* Or'd with SRK_USE, indicates a case where the
+			   value of a const-valued variable is used, but the
+			   variable itself is not "used" according to the
+			   C++ standard definition, because the value is
+			   never fetched from the variable in memory. */
 #define SRK_ALL_REFERENCES \
   (SRK_USE | SRK_MODIFICATION | SRK_ADDRESS_TAKEN | SRK_ERROR | \
-   SRK_PROTO_INST_REF)
+   SRK_PROTO_INST_REF | SRK_CONST_VALUE_USE)
 			/* All types of references.  Used to mask off those
 			   bits. */
 #define SRK_ALL_VARIABLE_USES \
-  (SRK_USE | SRK_ADDRESS_TAKEN | SRK_PROTO_INST_REF)
+  (SRK_USE | SRK_ADDRESS_TAKEN | SRK_PROTO_INST_REF | SRK_CONST_VALUE_USE)
 			/* All reference kinds that constitute "use" of a
 			   variable's value in one way or another. */
 #define SRK_ALL_VARIABLE_MODIFICATIONS \
