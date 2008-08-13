@@ -19480,7 +19480,7 @@ only if IL lowering is done.
 */
 {
   if (instance_required) {
-    /* This routine or variable is template-based. */
+    /* An instantiation of this routine or static data member is required. */
     make_instantiation_info_var("__TIR__", scp);
   }  /* if */
   if (do_not_instantiate) {
@@ -19514,7 +19514,7 @@ is TRUE).
   char	*flag_ptr = flags;
 
   if (instance_required) {
-    /* This routine or variable is template-based. */
+    /* An instantiation of this routine or static data member is required. */
     *flag_ptr++ = 'T';
   }  /* if */
   if (do_not_instantiate) {
