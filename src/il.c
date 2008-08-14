@@ -13824,11 +13824,6 @@ be called to start a copy.
           expr_copy->variant.runtime_sizeof.is_type = TRUE;
           expr_copy->variant.runtime_sizeof.variant.type =
                                expr->variant.runtime_sizeof.variant.expr->type;
-#if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
-          /* The original expression is being abandoned, so we must ignore
-             any range modifiers associated with it. */
-          forget_expr_range_modifiers_in_tree(expr, (an_expr_node_ptr)NULL);
-#endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
         } else {
           expr_copy->variant.runtime_sizeof.variant.expr =
                     i_copy_expr_tree(expr->variant.runtime_sizeof.variant.expr,

@@ -583,9 +583,6 @@ Flags to be set for any version that uses the C++ generating back end.
    and tracing facilities. */
 #define EXTRA_SOURCE_POSITIONS_IN_IL 1
 #define EXPR_RANGE_MODIFIERS_IN_IL 1
-#if IL_SHOULD_BE_WRITTEN_TO_FILE && defined(CP_GEN_BE_VERSION)
-#define CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS 1
-#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE && defined(CP_GEN_BE_VERSION) */
 #define FULL_SOURCE_POS_IN_IL_STATEMENT 1
 #ifndef FULLY_RESOLVED_MACRO_POSITIONS
 #define FULLY_RESOLVED_MACRO_POSITIONS 1

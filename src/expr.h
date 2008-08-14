@@ -290,40 +290,6 @@ extern void move_expr_range_modifiers(an_expr_node_ptr from_node,
 #endif /* EXPR_RANGE_MODIFIERS_IN_IL */
 
 /*
-Flag controlling whether a (fairly expensive) check should be made for "lost"
-expr range modifiers (i.e., modifiers that were attached to expr nodes that
-were discarded as a result of some transformation of expression operands).
-*/
-#ifndef CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
-#if EXPR_RANGE_MODIFIERS_IN_IL && DEBUG && EXPENSIVE_CHECKING && \
-    IL_SHOULD_BE_WRITTEN_TO_FILE && ALTERNATE_IL_FILE_FORMAT
-#define CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS TRUE
-#else /* !(EXPR_RANGE_MODIFIERS_IN_IL && DEBUG && ...) */
-#define CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS FALSE
-#endif /* EXPR_RANGE_MDOIFIERS_IN_IL && DEBUG && ... */
-#endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
-
-#if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
-#if !EXPR_RANGE_MODIFIERS_IN_IL
- #error CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS requires that \
-        EXPR_RANGE_MODIFIERS_IN_IL be TRUE.
-#endif /* !EXPR_RANGE_MODIFIERS_IN_IL */
-#if !(IL_SHOULD_BE_WRITTEN_TO_FILE && ALTERNATE_IL_FILE_FORMAT)
-/* Checking for loss of range modifiers is done during the IL walk done
-   while writing the IL in the alternate file format. */
- #error CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS requires that both \
-        IL_SHOULD_BE_WRITTEN_TO_FILE and ALTERNATE_IL_FILE_FORMAT be TRUE
-#endif /* !(IL_SHOULD_BE_WRITTEN_TO_FILE && ALTERNATE_IL_FILE_FORMAT) */
-
-extern void remove_expr_range_modifier(an_expr_range_modifier_ptr ermp);
-extern void forget_expr_range_modifiers_in_tree(an_expr_node_ptr top_expr,
-                                                an_expr_node_ptr end_expr);
-extern void forget_expr_range_modifiers_in_constant(a_constant_ptr con);
-extern void forget_expr_range_modifiers_in_operand(an_operand_ptr operand);
-extern void display_lost_expr_range_modifiers(void);
-#endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
-
-/*
 Macro that is TRUE if the node is an operation node.
 */
 #define is_operation_node(node)						\

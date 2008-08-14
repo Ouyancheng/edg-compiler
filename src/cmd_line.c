@@ -3740,11 +3740,6 @@ file.
 #else /* !defined(CHECKING) */
   comment_undefined_macro_name(CHECKING);
 #endif /* defined(CHECKING) */
-#if defined(CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS)
-  define_numeric_valued_macro(CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS);
-#else /* !defined(CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS) */
-  comment_undefined_macro_name(CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS);
-#endif /* defined(CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS) */
 #if defined(CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS)
   define_numeric_valued_macro(
                        CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS);

@@ -9875,9 +9875,6 @@ be updated on return.
   /* Note that if the base type was not integral it has been replaced by
      "int" by this point. */
   field->bit_size_constant = alloc_shareable_constant(size_constant);
-#if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
-  forget_expr_range_modifiers_in_constant(size_constant);
-#endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
   if (is_error_constant(size_constant)) {
     /* Use small value to avoid more errors, but not 1 which is special. */
     declared_bit_field_size = bit_field_size = targ_char_bit;

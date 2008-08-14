@@ -11753,14 +11753,6 @@ all arguments were explicit.
         pos_error(ec_nonexternal_entity_in_template_arg, &arg_pos);
         set_error_constant(constant);
       }  /* if */
-#if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
-      if (is_prototype_instantiation_context()) {
-        /* In a prototype instantiation, template argument lists are often
-           discarded, so we won't bother trying to check for lost range
-           modifiers in this constant. */
-        forget_expr_range_modifiers_in_constant(constant);
-      }  /* if */
-#endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
       arg_ptr->variant.constant = constant;
     } else {
       /* A template template argument. */

@@ -44,11 +44,6 @@ expr.c -- Expression scanning routines.
 /* Needed for GNU statement expression, ({...}). */
 #include "statements.h"
 #endif /* GNU_EXTENSIONS_ALLOWED */
-#if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
-/* Needed for traverse_expr when forgetting range modifiers in discarded
-   nodes. */
-#include "il_walk.h"
-#endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
 
 /* Forward declarations. */
 static void fix_up_dynamic_init_dtors(void);
@@ -583,217 +578,6 @@ are set appropriately.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
 #if EXPR_RANGE_MODIFIERS_IN_IL
-#if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
-
-/*
-Macro to test whether two range modifiers cover the same source range.
-*/
-#if FULLY_RESOLVED_MACRO_POSITIONS
-#define source_ranges_are_the_same(a, b)                              \
-    ((a)->range.start.seq == (b)->range.start.seq &&                  \
-     (a)->range.start.orig_seq == (b)->range.start.orig_seq &&        \
-     (a)->range.start.column == (b)->range.start.column &&            \
-     (a)->range.start.orig_column == (b)->range.start.orig_column &&  \
-     (a)->range.end.seq == (b)->range.end.seq &&                      \
-     (a)->range.end.orig_seq == (b)->range.end.orig_seq &&            \
-     (a)->range.end.column == (b)->range.end.column &&                \
-     (a)->range.end.orig_column == (b)->range.end.orig_column)
-#else /* !FULLY_RESOLVED_MACRO_POSITIONS */
-#define source_ranges_are_the_same(a, b)                              \
-    ((a)->range.start.seq == (b)->range.start.seq &&                  \
-     (a)->range.start.column == (b)->range.start.column &&            \
-     (a)->range.end.seq == (b)->range.end.seq &&                      \
-     (a)->range.end.column == (b)->range.end.column)
-#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
-
-
-static void remember_expr_range_modifier(an_expr_range_modifier_ptr ermp)
-/*
-Keep a copy of all range modifiers so that we can check to make sure none
-were omitted from the IL file.
-*/
-{
-  if (!remove_unneeded_entities
-#if !PROTOTYPE_INSTANTIATIONS_IN_IL
-      && !is_prototype_instantiation_context()
-#endif /* !PROTOTYPE_INSTANTIATIONS_IL_IL */
-      ) {
-    /* Only save a copy of the range modifier if we are not removing unneeded
-       entities: the check for whether all range modifiers were written to
-       the IL file is meaningless if entities can be removed.  We also don't
-       want to remember modifiers occurring in a prototype instantiation that
-       will be discarded. */
-    an_expr_range_modifier_ptr copy_ermp =
-                                      alloc_fe_of_type(an_expr_range_modifier);
-    (void)memcpy((char *)copy_ermp, (char *)ermp,
-                                               sizeof(an_expr_range_modifier));
-    copy_ermp->next = all_range_modifiers;
-    all_range_modifiers = copy_ermp;
-  }  /* if */
-}  /* remember_expr_range_modifier */
-
-
-void remove_expr_range_modifier(an_expr_range_modifier_ptr to_remove)
-/*
-Remove the first expr_range_modifier from all_range_modifiers that matches
-the position and kind of the one designated by to_remove.  (This is
-intended to be called when the specified range modifier is written to the
-IL file, leaving the list empty after the IL file has been completely
-written.)
-*/
-{
-  if (!remove_unneeded_entities) {
-    /* We only keep track of range modifiers if we are not removing
-       unneeded entities. */
-    an_expr_range_modifier_ptr ermp;
-    an_expr_range_modifier_ptr last_ermp = NULL;
-
-    /* Just do a linear search: this is debugging code and doesn't have to be
-       fast. */
-    for (ermp = all_range_modifiers;
-         ermp != NULL && (!source_ranges_are_the_same(ermp, to_remove) ||
-                          ermp->kind != to_remove->kind);
-         ermp = ermp->next) {
-      last_ermp = ermp;
-    }  /* for */
-    if (ermp != NULL) {
-      /* The specified range modifier has not yet been removed (it can
-         appear multiple times in the IL as a result of copied expressions,
-         e.g., in the body of an inline function).  Remove it now. */
-      if (last_ermp == NULL) {
-        all_range_modifiers = ermp->next;
-      } else {
-        last_ermp->next = ermp->next;
-      }  /* if */
-    }  /* if */
-  }  /* if */
-}  /* remove_expr_range_modifier */
-
-
-/*
-The ending point (which is not to be processed) for the traversal of an
-expression for which range modifiers are to be ignored; NULL if the entire
-expression tree is being discarded.  This should be set only by
-forget_expr_range_modifiers_in_tree.
-*/
-static an_expr_node_ptr traversal_end;
-
-static void forget_expr_range_modifiers_in_node(
-                                    an_expr_node_ptr                    expr,
-                                    an_expr_or_stmt_traversal_block_ptr tblock)
-/*
-Remove any range modifiers in the specified expression node from the list
-of range modifiers.  This is called from traverse_expr.
-*/
-{
-  an_expr_range_modifier_ptr ermp;
-
-  if (expr == traversal_end) {
-    /* We've finished processing the part of the tree that is being
-       abandoned. */
-    tblock->terminate = TRUE;
-  } else {
-    for (ermp = expr->range_modifiers; ermp != NULL; ermp = ermp->next) {
-      remove_expr_range_modifier(ermp);
-    }  /* for */
-  }  /* if */
-}  /* forget_expr_range_modifiers_in_node */
-
-
-void forget_expr_range_modifiers_in_tree(an_expr_node_ptr top_expr,
-                                         an_expr_node_ptr end_expr)
-/*
-Remove any range modifiers in the expression tree rooted in top_expr (which
-may be NULL) from the list of range modifiers.  If end_expr is non-NULL, it
-designates a (direct or indirect) operand of top_expr, and only range
-modifiers in top_expr and any nodes in the tree between top_expr and
-end_expr are removed.  This function is called when an expression is
-removed from the IL (as a result of constant folding, for example).
-*/
-{
-  an_expr_or_stmt_traversal_block tblock;
-
-  if (top_expr != NULL) {
-    clear_expr_or_stmt_traversal_block(&tblock);
-    tblock.process_expr = forget_expr_range_modifiers_in_node;
-    tblock.process_non_dynamic_constants = TRUE;
-    tblock.process_expressions_for_constants = TRUE;
-    tblock.process_template_parameter_constants_and_expressions = TRUE;
-    traversal_end = end_expr;
-    traverse_expr(top_expr, &tblock);
-  }  /* if */
-}  /* forget_expr_range_modifiers_in_tree */
-
-
-void forget_expr_range_modifiers_in_constant(a_constant_ptr con)
-/*
-Remove any range modifiers in all expressions reachable from con from the
-list of range modifiers.  This function is called when a constant is
-removed from the IL (as a result of constant folding, for example).
-*/
-{
-  an_expr_or_stmt_traversal_block tblock;
-
-  clear_expr_or_stmt_traversal_block(&tblock);
-  tblock.process_expr = forget_expr_range_modifiers_in_node;
-  tblock.process_non_dynamic_constants = TRUE;
-  tblock.process_expressions_for_constants = TRUE;
-  tblock.process_template_parameter_constants_and_expressions = TRUE;
-  traversal_end = NULL;
-  traverse_constant(con, &tblock);
-}  /* forget_expr_range_modifiers_in_constant */
-
-
-void forget_expr_range_modifiers_in_operand(an_operand_ptr operand)
-/*
-Remove any range modifiers in all expressions reachable from operand from
-the list of range modifiers.  This function is called when an operand is
-discarded (as a result of constant folding, for example).
-*/
-{
-  if (operand->kind == (an_operand_kind)ok_expression) {
-    forget_expr_range_modifiers_in_tree(operand->variant.expression,
-                                        (an_expr_node_ptr)NULL);
-  } else if (operand->kind == (an_operand_kind)ok_constant) {
-    forget_expr_range_modifiers_in_constant(&operand->variant.constant);
-  }  /* if */
-}  /* forget_expr_range_modifiers_in_operand */
-
-
-void display_lost_expr_range_modifiers(void)
-/*
-Display any range modifiers in the list headed by all_range_modifiers and
-trip an assertion if there are any.  This function is intended to be called
-after the IL has been completely written to a file, which removes each
-modifier from the list as it is written, so any remaining in the list are
-"lost."
-*/
-{
-  an_expr_range_modifier_ptr ermp;
-
-  if (total_errors == 0) {
-    /* Only check for lost modifiers if no errors have occurred: a
-       modifier may have been added and its node later replaced with an
-       error node. */
-    for (ermp = all_range_modifiers; ermp != NULL; ermp = ermp->next) {
-      (void)fprintf(f_debug, "%s: %lu/%lu - %lu/%lu\n",
-                    expr_range_modifier_kind_names[(int)ermp->kind],
-#if FULLY_RESOLVED_MACRO_POSITIONS
-                    ermp->range.start.orig_seq, ermp->range.start.orig_column,
-                    ermp->range.end.orig_seq, ermp->range.end.orig_column
-#else /* !FULLY_RESOLVED_MACRO_POSITIONS */
-                    ermp->range.start.seq, ermp->range.start.column,
-                    ermp->range.end.seq, ermp->range.end.column
-#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
-                    );
-    }  /* for */
-    check_assertion(all_range_modifiers == NULL);
-  }  /* if */
-}  /* display_lost_expr_range_modifiers */
-
-#endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
-
-
 static void add_expr_range_modifier(an_operand                  *result,
                                     an_expr_range_modifier_kind kind,
                                     a_source_position           *start,
@@ -821,9 +605,6 @@ modifiers and set the modifier's range to the specified positions.
     ermp->range.end = *end;
     ermp->next = expr->range_modifiers;
     expr->range_modifiers = ermp;
-#if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
-    remember_expr_range_modifier(ermp);
-#endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
   }  /* if */
 }  /* add_expr_range_modifier */
 
@@ -1908,11 +1689,6 @@ is folded.
         restore_operand_details(op, &orig_op);
         if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
           op->variant.constant.expr = call;
-#if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
-        } else {
-          /* Ignore range modifiers in discarded expression. */
-          forget_expr_range_modifiers_in_tree(call, (an_expr_node_ptr)NULL);
-#endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
         }  /* if */
       }  /* if */
     }  /* if */
@@ -2128,10 +1904,6 @@ when appropriate -- evaluates a pseudo-call to the built-in function.
   /* We do not record the pseudo-call expression in the constant because the
      IL currently has no way to distinguish lvalue arguments from rvalue
      arguments. */
-#if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
-  /* Ignore any range modifiers in the expression that was scanned. */
-  forget_expr_range_modifiers_in_operand(&arg);
-#endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
   (void)required_token(tok_rparen, ec_exp_rparen);
   remove_matching_stop_token(tok_rparen);
 }  /* scan_gnu_builtin_pseudo_call */
@@ -6026,11 +5798,6 @@ Syntax:
                so we suppress the recording of the expression in all
                cases, and just record the type. */
             is_type = TRUE;
-#if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
-            /* Forget about all range modifiers in the expression that's
-               being abandoned, too. */
-            forget_expr_range_modifiers_in_operand(&operand);
-#endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
           }  /* if */
           constant.expr = make_runtime_sizeof_expr(is_type, orig_sizeof_type,
                                                    &operand);
@@ -6313,9 +6080,6 @@ implement <stdarg.h>, a standard feature.
   if (operand_was_scanned && !operand_was_used) {
     /* The expression was discarded. */
     undo_side_effects_for_discarded_unevaluated_expression();
-#if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
-    forget_expr_range_modifiers_in_operand(&operand);
-#endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   end_position = end_pos_curr_token;
@@ -6960,9 +6724,6 @@ NULL, the end position in its specifiers_range is updated.
     /* We'll just return the error type. */
     /* The expression is discarded. */
     undo_side_effects_for_discarded_unevaluated_expression();
-#if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
-    forget_expr_range_modifiers_in_operand(&operand);
-#endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
   } else {
     a_type_ptr  tp = alloc_type((a_type_kind)tk_typeref);
     a_boolean   dependent_arg = is_template_dependent_context() &&
@@ -7118,9 +6879,6 @@ NULL, the end position in its specifiers_range is updated.
     if (!is_type) {
       /* The expression is discarded. */
       undo_side_effects_for_discarded_unevaluated_expression();
-#if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
-      forget_expr_range_modifiers_in_operand(&operand);
-#endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
     }  /* if */
   } else {
     a_type_ptr  typeof_type = alloc_type((a_type_kind)tk_typeref);
@@ -7509,9 +7267,6 @@ Issue an error and return an error type if the type is not fixed-point.
       tp = error_type();
     }  /* if */
   }  /* if */
-#if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
-  forget_expr_range_modifiers_in_operand(&operand);
-#endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
   return tp;
 }  /* scan_fixed_point_type_generic_expression_and_return_type */
 
@@ -7705,15 +7460,6 @@ This is allowed in both Microsoft C and C++ modes.
                         /*unknown_dependent_function=*/FALSE,
                         (an_arg_operand_ptr *)NULL,
                         &end_position);
-#if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
-    /* The argument expressions will be discarded.  Scan through the argument
-       list (we can use arg_list itself for that purpose, as it won't be used
-       for anything else) and ignore any associated range modifiers. */
-    while (arg_list != NULL) {
-      forget_expr_range_modifiers_in_tree(arg_list, (an_expr_node_ptr)NULL);
-      arg_list = arg_list->next;
-    }  /* while */
-#endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
   }  /* if */
   /* The value of __noop is an int 0. */
   make_integer_constant_operand(result, (a_host_large_integer)0L);
@@ -8603,9 +8349,6 @@ which case it's the token after __uuidof.
     if (!operand_was_used) {
       /* The expression was discarded. */
       undo_side_effects_for_discarded_unevaluated_expression();
-#if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
-      forget_expr_range_modifiers_in_operand(&operand);
-#endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
     }  /* if */
     pop_expr_stack();
   }  /* if */
@@ -9109,11 +8852,6 @@ because the feature is used to implement offsetof, a standard feature.
                /*reinterpret_semantics=*/FALSE);
   /* There is no IL operator for __INTADDR__, so we cannot really record the
      expression that formed the resulting constant. */
-#if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
-  /* Because we are abandoning the expression, we need also to "forget" any
-     range modifiers created for it. */
-  forget_expr_range_modifiers_in_operand(result);
-#endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
   result->variant.constant.expr = NULL;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   end_position = end_pos_curr_token;
@@ -14739,13 +14477,6 @@ standard.
         build_binary_result_operand(operand_1, &operand_2, op,
                                     result_type, &temp_operand);
         result->variant.constant.expr = make_node_from_operand(&temp_operand);
-#if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
-      } else {
-        /* Ignore any range modifiers resulting from the two discarded
-           expressions. */
-        forget_expr_range_modifiers_in_operand(operand_1);
-        forget_expr_range_modifiers_in_operand(&operand_2);
-#endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
       }  /* if */
     }  /* if */
   }  /* if */
@@ -19215,10 +18946,6 @@ bad_start_of_primary:
       if (is_scalar_type(result->type) ||
           is_template_param_type(result->type)) {
         a_constant constant;
-#if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
-        /* Ignore any range modifiers in the discarded expression. */
-        forget_expr_range_modifiers_in_operand(result);
-#endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
         make_zero_of_proper_type(result->type, &constant);
         make_constant_operand(&constant, result);
         result->position = local_result.position;
@@ -19740,11 +19467,6 @@ required_type will be void if the expression should have void type
          a dynamic initialization that has an expression; move any range
          modifiers down to it so they are not lost. */
       move_expr_range_modifiers(operand_expr, dip_expr);
-#if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
-    } else {
-      forget_expr_range_modifiers_in_tree(operand_expr,
-                                          (an_expr_node_ptr)NULL);
-#endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
     }  /* if */
 #endif /* EXPR_RANGE_MODIFIERS_IN_IL */
   } else {

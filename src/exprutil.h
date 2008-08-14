@@ -1499,9 +1499,6 @@ extern void copy_expr_range_modifiers(an_expr_node_ptr old_node,
                                       an_expr_node_ptr new_node);
 extern void f_copy_operand_position_to_expr(an_operand       *operand,
                                             an_expr_node_ptr node);
-#if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
-extern an_expr_range_modifier_ptr all_range_modifiers;
-#endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
 #endif /* EXPR_RANGE_MODIFIERS_IN_IL */
 
 extern a_boolean is_cast_operation_node(an_expr_node_ptr expr);

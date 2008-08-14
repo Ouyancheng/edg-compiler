@@ -6496,10 +6496,6 @@ TRUE if the selector is a pointer, and FALSE if it is a class.
          represented at file scope, like an array bound, discard the selector
          because "this" can't be referenced in the file scope. */
       expr = orig_expr;
-#if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
-      forget_expr_range_modifiers_in_tree(selector_expr,
-                                          (an_expr_node_ptr)NULL);
-#endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
     } else {
       /* Make an expression for a static selection. */
       selector_expr->next = orig_expr;
@@ -13007,13 +13003,6 @@ happen only in C++ mode.
       set_temp_init_dynamic_init_lifetime(temp_init_node);
     }  /* if */
     *p_temp_init_node = temp_init_node;
-#if CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS
-  } else if (temp_init_node != NULL) {
-    /* The temp_init_node is being abandoned: ignore any associated range
-       modifiers. */
-    forget_expr_range_modifiers_in_tree(temp_init_node,
-                                        (an_expr_node_ptr)NULL);
-#endif /* CHECK_FOR_LOSS_OF_EXPR_RANGE_MODIFIERS */
   }  /* if */
   *p_dip = dip;
 }  /* determine_dynamic_init_for_class_init */
