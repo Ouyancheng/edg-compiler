@@ -8955,6 +8955,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           if (!expr->variant.operation.compiler_generated) {
             write_tok_ch('*');
           } else {
+            a_boolean need_asterisk = FALSE;
             if (is_constant_node(operand_1)) {
               a_constant_ptr con = operand_1->variant.constant;
               if (con->kind == (a_constant_repr_kind)ck_address &&
@@ -8965,8 +8966,11 @@ there's some possibility of precedence confusion and need_parens is TRUE.
                 /* The generated code for this address constant will
                    contain an "&", even though the source did not, so the
                    compiler-generated "*" must be put out as well. */
-                write_tok_ch('*');
+                need_asterisk = TRUE;
               }  /* if */
+            }  /* if */
+            if (need_asterisk) {
+              write_tok_ch('*');
             } else {
               /* This may be the implicit dereference on top of a
                  compiler-generated lvalue adjustment (adding qualification
