@@ -1426,6 +1426,9 @@ typeinfo variable in a COMDAT group.
        or dllexport. */
     typeinfo_var->decl_modifiers &= ~(a_decl_modifier)DM_DLLFLAGS;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED && GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+    typeinfo_var->ELF_visibility = (an_ELF_visibility_kind)evk_unspecified;
+#endif /* GNU_EXTENSIONS_ALLOWED && GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 #if SUN_EXTENSIONS_ALLOWED
     /* If the typeinfo object has  internal linkage, we cannot give it a Sun
        link scope. */
@@ -2228,9 +2231,10 @@ pointers-to-members).
          non-class cases). */
       define_typeinfo_var(type, force_static, use_comdat);
     } else if (is_immediate_class_type(type)) {
-#if MICROSOFT_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED || \
+    (GNU_EXTENSIONS_ALLOWED && GNU_VISIBILITY_ATTRIBUTE_ALLOWED)
       a_class_type_supplement_ptr  ctsp = class_type_supp(type);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED || ... */
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (microsoft_mode &&
           typeinfo_var->storage_class != (a_storage_class)sc_static) {
@@ -2240,6 +2244,13 @@ pointers-to-members).
         typeinfo_var->decl_modifiers |= (ctsp->decl_modifiers & DM_DLLFLAGS);
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED && GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+      if (typeinfo_var->storage_class != (a_storage_class)sc_static) {
+        /* Adjust the ELF visibility of the externally visible typeinfo
+           variable.  (This may be updated if the variable becomes static.) */
+        typeinfo_var->ELF_visibility = ctsp->ELF_visibility;
+      }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED && GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 #if SUN_EXTENSIONS_ALLOWED
       if ((ctsp->decl_modifiers & DM_ANY_SUN_LINK_SCOPE) != 0 &&
           typeinfo_var->storage_class != (a_storage_class)sc_static) {
