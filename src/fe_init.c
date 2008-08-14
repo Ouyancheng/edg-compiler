@@ -67,6 +67,8 @@ Initialize global variables that may be used by standalone utility programs.
 extern time_t time(time_t *timer);
 #endif /* __SYSV__ || __BSD__ */
 
+#include <errno.h>
+
 /*
 Note: EVERY .h file that includes an external variable must be included in
 fe_init.c.  (Those which are already specified in fe_common.h are omitted in
@@ -734,23 +736,14 @@ static void open_pp_output_file(void)
 Open the preprocessing output file.
 */
 {
-  a_boolean cannot_open, bad_name;
-
   if (pp_file_name == NULL) {
     /* If no name was specified, default is stdout. */
     f_pp_output = stdout;
   } else {
     /* An explicit name was specified. */
-    f_pp_output = open_output_file(pp_file_name, /*binary_file=*/FALSE,
-                                   /*update_mode=*/FALSE,
-                                   &cannot_open, &bad_name);
-    if (bad_name) {
-      str_command_line_error(ec_cl_invalid_preprocessor_output_file,
-                             pp_file_name);
-    } else if (cannot_open) {
-      str_command_line_error(ec_cl_cannot_open_preprocessor_output_file,
-                             pp_file_name);
-    }  /* if */
+    f_pp_output = open_output_file_with_error(
+                    pp_file_name, /*binary_file=*/FALSE, /*update_mode=*/FALSE,
+                    OFF_COMMAND_LINE, ec_preprocessing_output);
   }  /* if */
 }  /* open_pp_output_file */
 
@@ -761,8 +754,6 @@ static void open_il_file(void)
 Open the intermediate language file.
 */
 {
-  a_boolean cannot_open, bad_name;
-
   if (il_file_name == NULL) {
     /* No explicit IL file name was specified. */
 #if BACK_END_SHOULD_BE_CALLED
@@ -797,14 +788,10 @@ Open the intermediate language file.
     il_file_name = derived_name(primary_source_file_name, IL_FILE_SUFFIX);
 #endif /* BACK_END_SHOULD_BE_CALLED */
   }  /* if */
-  f_il_output = open_output_file(il_file_name, /*binary_file=*/TRUE,
-                                 /*update_mode=*/BACK_END_SHOULD_BE_CALLED,
-                                 &cannot_open, &bad_name);
-  if (bad_name) {
-    str_command_line_error(ec_cl_invalid_il_output_file, il_file_name);
-  } else if (cannot_open) {
-    str_command_line_error(ec_cl_cannot_open_il_output_file, il_file_name);
-  }  /* if */
+  f_il_output = open_output_file_with_error(
+                    il_file_name, /*binary_file=*/TRUE,
+                    /*update_mode=*/BACK_END_SHOULD_BE_CALLED,
+                    OFF_COMMAND_LINE, ec_il_output);
 #if BACK_END_SHOULD_BE_CALLED
 have_il_file:;
 #endif /* BACK_END_SHOULD_BE_CALLED */

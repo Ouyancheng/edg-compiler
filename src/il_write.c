@@ -21,6 +21,8 @@ il_write.c -- Write the intermediate language to a file.
 #pragma hdrstop
 #endif /* ifdef PCH_PRAGMA_GUARD */
 
+#include <errno.h>
+
 /* Everything in this file has to do with writing the IL file. */
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
 
@@ -488,7 +490,7 @@ Finish writing the IL file, if there is one.
     /* Seek back to just after the "magic" string at the beginning of the
        file. */
     if (fseek(f_il_output,(long)LEN_IL_FILE_MAGIC_STRING,SEEK_SET) != 0) {
-      error_code_catastrophe(ec_file_write_error, ec_intermediate_language_1);
+      file_write_error(ec_intermediate_language_1, errno);
     }  /* if */
     /* Write the number of regions. */
     (void)fwrite((char *)&highest_used_region_number,
@@ -500,7 +502,7 @@ Finish writing the IL file, if there is one.
 		 sizeof(a_file_position), 1, f_il_output);
     /* Flush the IL file and check for errors on it. */
     if (fflush(f_il_output) || ferror(f_il_output)) {
-      error_code_catastrophe(ec_file_write_error, ec_intermediate_language_2);
+      file_write_error(ec_intermediate_language_2, errno);
     }  /* if */
   }  /* if */
 }  /* finish_il_file */
@@ -522,8 +524,7 @@ a temporary_file.
       /* The  intermediate language file is being written to an external
          file; close it. */
       if (fclose(f_il_output)) {
-        error_code_catastrophe(ec_file_write_error,
-                               ec_intermediate_language_3);
+        file_write_error(ec_intermediate_language_3, errno);
       }  /* if */
 #if BACK_END_SHOULD_BE_CALLED
     }  /* if */
@@ -638,7 +639,7 @@ its length.
   if (fwrite(entry_ptr, size_t_arg(entry_length), 1, f_il_output) != 1) {
     /* Error on write.  This check supplements the check done when the
        file is closed. */
-    error_code_catastrophe(ec_file_write_error, ec_intermediate_language_4);
+    file_write_error(ec_intermediate_language_4, errno);
   }  /* if */
   if (!is_string_entry) {
     /* Restore the original pointers. */
@@ -788,8 +789,7 @@ Write the indicated memory region to the file f_il_output.
       /* Go back and write the array of entry counts.  This time it matters
          which one we write. */
       if (fseek(f_il_output, count_array_pos, SEEK_SET) != 0) {
-        error_code_catastrophe(ec_file_write_error,
-                               ec_intermediate_language_5);
+        file_write_error(ec_intermediate_language_5, errno);
       }  /* if */
       /* The first entry of the array is skipped. */
       (void)fwrite((char *)&(writing_file_scope_il ?
@@ -800,8 +800,7 @@ Write the indicated memory region to the file f_il_output.
          for future writes.  SEEK_END is not used because ANSI doesn't 
          guarantee it for binary files. */
       if (fseek(f_il_output, end_pos, SEEK_SET) != 0) {
-        error_code_catastrophe(ec_file_write_error,
-                               ec_intermediate_language_6);
+        file_write_error(ec_intermediate_language_6, errno);
       }  /* if */
     }
 #else /* !ALTERNATE_IL_FILE_FORMAT */
@@ -862,8 +861,7 @@ Write the indicated memory region to the file f_il_output.
                     1, f_il_output) != 1)) {
           /* Error on write.  This check supplements the check done when the
              file is closed. */
-          error_code_catastrophe(ec_file_write_error,
-                                 ec_intermediate_language_7);
+          file_write_error(ec_intermediate_language_7, errno);
         }  /* if */
       }  /* for */
     }
@@ -892,8 +890,7 @@ Write the indicated memory region to the file f_il_output.
                        sizeof(a_memory_region_number)+
                        2*sizeof(a_file_position)),
                 SEEK_SET) != 0) {
-        error_code_catastrophe(ec_file_write_error,
-                               ec_intermediate_language_8);
+        file_write_error(ec_intermediate_language_8, errno);
       }  /* if */
       /* Save il_header; it gets modified, written, then restored. */
       (void)memcpy(il_header_copy, (char *)&il_header, sizeof(il_header));
@@ -931,8 +928,7 @@ Write the indicated memory region to the file f_il_output.
       /* Restore the position at the end of the file.  SEEK_END is not
          used because ANSI doesn't guarantee it for binary files. */
       if (fseek(f_il_output, end_pos, SEEK_SET) != 0) {
-        error_code_catastrophe(ec_file_write_error,
-                               ec_intermediate_language_9);
+        file_write_error(ec_intermediate_language_9, errno);
       }  /* if */
     }  /* if */
   }  /* if */

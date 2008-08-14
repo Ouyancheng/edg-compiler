@@ -765,9 +765,6 @@ static void open_template_info_file(void)
 Open the template information file.
 */
 {
-  a_boolean	cannot_open;
-  a_boolean	bad_name;
-
   check_assertion_str2(use_template_info_file, "open_template_info_file:",
                       "use_template_info_file is FALSE");
   check_assertion_str2(generate_template_files(), "open_template_info_file:",
@@ -780,15 +777,11 @@ Open the template information file.
 #endif /* DEBUG */
   /* Open a file in which the list of generated file names will be
      returned. */
-  f_template_info = open_output_file(template_info_file_name,
-                                     /*binary_file=*/FALSE,
-                                     /*update_mode=*/FALSE,
-                                     &cannot_open, &bad_name);
-  if (bad_name) {
-    str_catastrophe(ec_invalid_output_file, template_info_file_name);
-  } else if (cannot_open) {
-    str_catastrophe(ec_cannot_open_output_file, template_info_file_name);
-  }  /* if */
+  f_template_info = open_output_file_with_error(template_info_file_name,
+                                                /*binary_file=*/FALSE,
+                                                /*update_mode=*/FALSE,
+                                                OFF_NO_OPTIONS,
+                                                ec_template_information);
 }  /* open_template_info_file */
 
 
@@ -840,11 +833,8 @@ already exists.
 {
   if (f_template_info != NULL) {
     /* Close the file if it is open. */
-    if (fclose(f_template_info)) {
-      f_template_info = NULL;
-      error_code_catastrophe(ec_file_write_error,
-                             ec_template_information_file);
-    }  /* if */
+    close_output_file_with_error(&f_template_info,
+                                 ec_template_information);
   }  /* if */
   if (!automatic_instantiation_mode ||
       !any_instantiations_required() || total_errors != 0) {
@@ -870,23 +860,15 @@ static void open_exported_template_file_for_output(void)
 Open the template information file.
 */
 {
-  a_boolean	cannot_open;
-  a_boolean	bad_name;
-
   check_assertion_str2(generate_template_files(),
                        "open_exported_template_file_for_output:",
                        "generate_template_files() is FALSE");
   /* Open the file into which information about exported template will
      be written. */
-  f_exported_template = open_output_file(exported_template_file_name,
-                                         /*binary_file=*/FALSE,
-                                         /*update_mode=*/FALSE,
-                                         &cannot_open, &bad_name);
-  if (bad_name) {
-    str_catastrophe(ec_invalid_output_file, exported_template_file_name);
-  } else if (cannot_open) {
-    str_catastrophe(ec_cannot_open_output_file, exported_template_file_name);
-  }  /* if */
+  f_exported_template = open_output_file_with_error(
+                            exported_template_file_name, /*binary_file=*/FALSE,
+                            /*update_mode=*/FALSE, OFF_NO_OPTIONS,
+                            ec_exported_template);
 }  /* open_exported_template_file_for_output */
 
 
@@ -930,16 +912,17 @@ close it now.  If no entries were written, remove any file that might
 have already existed.
 */
 {
-  if (f_exported_template != NULL) {
+  a_boolean	exported_template_file_opened;
+
+  exported_template_file_opened = f_exported_template != NULL;
+  if (exported_template_file_opened) {
     /* Write the "end of file" entry. */
     write_to_exported_template_file(etlt_end, "");
     /* Close the file if it is open. */
-    if (fclose(f_exported_template)) {
-      f_exported_template = NULL;
-      error_code_catastrophe(ec_file_write_error, ec_exported_template_file);
-    }  /* if */
+    close_output_file_with_error(&f_exported_template,
+                                 ec_exported_template);
   }  /* if */
-  if (f_exported_template == NULL || total_errors != 0 ||
+  if (!exported_template_file_opened || total_errors != 0 ||
       remove_exported_template_file) {
     /* If there were no entries written to the exported template file,
        delete any old version of the file.  The file is also deleted if any
@@ -18181,7 +18164,9 @@ file.  Return TRUE if the file was successfully opened.
   if (strcmp(primary_source_file_name, FILE_NAME_FOR_STDIN) != 0) {
     /* Only open the file if the input is coming from a file. */
     check_assertion(instantiation_request_file_name != NULL);
-    f_instantiation_request = fopen(instantiation_request_file_name, "r");
+    f_instantiation_request = fopen_with_error(instantiation_request_file_name,
+                                               "r", OFF_OKAY_IF_NOT_FOUND,
+                                                ec_instantiation_request);
   }  /* if */
   return f_instantiation_request != NULL;
 }  /* open_instantiation_request_file */
@@ -18234,11 +18219,8 @@ Return TRUE if any entries were read.
 
   if (definition_list_file_name != NULL && generate_template_files()) {
     /* Open the definition list file. */
-    f_definition_list = fopen(definition_list_file_name, "r");
-    if (f_definition_list == NULL) {
-      str_catastrophe(ec_cannot_open_definition_list_file,
-                      definition_list_file_name);
-    }  /* if */
+    f_definition_list = fopen_with_error(definition_list_file_name, "r",
+                                         OFF_NO_OPTIONS, ec_definition_list);
     /* Read the list of instances from the definition list file and
        create an entry in the instance lookup table that is flagged
        as being in the definition list file. */
@@ -18352,7 +18334,9 @@ if one already exists.
     /* Only create the file if the input is coming from a file.  Note
        that the file will have been closed after all input was read so
        it must be reopened now. */
-    f_ii_file = fopen(instantiation_request_file_name, "r");
+    f_ii_file = fopen_with_error(instantiation_request_file_name,
+                                 "r", OFF_OKAY_IF_NOT_FOUND,
+                                 ec_instantiation_request);
     if (automatic_instantiation_mode && any_instantiations_required()) {
       if (!use_template_info_file) {
         /* If the file does not exist, create it.  The file is only
@@ -18371,22 +18355,17 @@ if one already exists.
          already exists.  This is done even when using a template
          information file so that unused .ii files will be cleaned up. */
       if (f_ii_file != NULL) {
-        if (fclose(f_ii_file)) {
-          /* Close the file before removing it.  This is necessary on
-             some operating systems. */
-          error_code_catastrophe(ec_file_write_error,
-                                 ec_instantiation_request_file);
-        }  /* if */
+        /* Close the file before removing it.  This is necessary on
+           some operating systems. */
+        close_output_file_with_error(&f_ii_file,
+                                     ec_instantiation_request);
         delete_file(instantiation_request_file_name);
-        f_ii_file = NULL;
       }  /* if */
     }  /* if */
   }  /* if */
   if (f_ii_file != NULL) {
-    if (fclose(f_ii_file)) {
-      error_code_catastrophe(ec_file_write_error,
-                             ec_instantiation_request_file);
-    }  /* if */
+    close_output_file_with_error(&f_ii_file,
+                                 ec_instantiation_request);
   }  /* if */
 }  /* create_or_remove_instantiation_request_file */
 
@@ -18554,10 +18533,8 @@ Returns a pointer to the FILE structure for the file.
     fprintf(f_debug, "Opening export template file: %s\n", full_name);
   }  /* if */
 #endif /* DEBUG */
-  f_file = fopen(full_name, "r");
-  if (f_file == NULL) {
-    str_catastrophe(ec_cannot_open_exported_template_file, full_name);
-  }  /* if */
+  f_file = fopen_with_error(full_name, "r", OFF_NO_OPTIONS,
+                            ec_exported_template);
   return f_file;
 }  /* open_exported_template_file_for_input */
 
@@ -18746,7 +18723,8 @@ Attempt to open the export information in the directory specified by
     fprintf(f_debug, "Opening export information file: %s\n", file_name);
   }  /* if */
 #endif /* DEBUG */
-  f_file = fopen(file_name, "r");
+  f_file = fopen_with_error(file_name, "r",
+                            OFF_OKAY_IF_NOT_FOUND, ec_export_info);
   return f_file;
 } /* open_export_info_file */
 
@@ -19548,11 +19526,8 @@ for adding the entries to the actual instantiation request file.
 #endif /* MAINTAIN_NEEDED_FLAGS */
 
   check_assertion(definition_list_file_name != NULL);
-  f_definition_list = fopen(definition_list_file_name, "w");
-  if (f_definition_list == NULL) {
-    str_catastrophe(ec_cannot_open_definition_list_file,
-                    definition_list_file_name);
-  }  /* if */
+  f_definition_list = fopen_with_error(definition_list_file_name, "w",
+                                       OFF_NO_OPTIONS, ec_definition_list);
   /* Write a special string to the start of the list of entities to
      be added to the request file.  This is used by the prelinker to
      verify that the file was created by the front end, and is not
@@ -19601,11 +19576,7 @@ for adding the entries to the actual instantiation request file.
     }  /* if */
 #endif /* DEBUG */
   }  /* for */
-  if (fclose(f_definition_list)) {
-    f_definition_list = NULL;
-    error_code_catastrophe(ec_file_write_error, ec_definition_list_file);
-  }  /* if */
-  f_definition_list = NULL;
+  close_output_file_with_error(&f_definition_list, ec_definition_list);
 }  /* add_entities_to_request_file */
 
 #if ONE_INSTANTIATION_PER_OBJECT

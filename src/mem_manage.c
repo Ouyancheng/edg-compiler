@@ -22,6 +22,8 @@ mem_manage.c -- Memory management routines.
 #pragma hdrstop
 #endif /* ifdef PCH_PRAGMA_GUARD */
 
+#include <errno.h>
+
 #ifndef STDLIB_H_INCLUDED
 #if __BSD__
 extern char *malloc(unsigned size);
@@ -457,7 +459,7 @@ PCH was created.
   }  /* if */
   addr = map_file_region(mmap_size_allocated, size, mmap_file_offset);
   if (addr == NULL) {
-    catastrophe(ec_unable_to_get_mapped_memory);
+    errno_catastrophe(ec_unable_to_get_mapped_memory_reason, errno);
   }  /* if */
   mmap_size_allocated += size;
   mmap_file_offset += size;

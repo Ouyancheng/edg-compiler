@@ -254,7 +254,7 @@ source of substitutions in message segments.  The sequence number in
 message segment descriptor is used as an index into the appropriate array.
 */
 
-#define MAX_ERR_SEG_KIND_PER_MSG 2
+#define MAX_ERR_SEG_KIND_PER_MSG 3
 				/* The maximum number of error message
 				   arguments of any message segment kind. */
 
@@ -3616,6 +3616,311 @@ diagnostic should be suppressed.
   return result;
 }  /* diagnostic_already_issued_for_diag_once */
 
+#endif /* !STANDALONE_UTILITY_PROGRAM */
+
+/* Forward declaration. */
+static DOES_NOT_RETURN error_code_errno_catastrophe(
+                                      an_error_code error_code,
+                                      an_error_code error_code2,
+                                      int           errno_value);
+
+
+static void open_file_error_full(an_error_severity	severity,
+				 an_error_code		file_kind,
+                                 char			*file_name,
+				 an_open_file_result	*open_result,
+				 a_source_position	*error_pos)
+/*
+Write an error message about opening the file named file_name.  file_kind is
+an error code for a message that describes the kind of file being opened.
+open_result is the entry that describes the kind of failure, which was
+returned by the file open routine.
+*/
+{
+  char				*reason = NULL;
+  an_open_file_result_set	flags = open_result->flags;
+  an_error_code			error_code;
+  a_source_position		local_error_pos = *error_pos;
+
+  /* Determine if a open failure reason should be displayed, and if so
+     what it should be. */
+  if ((flags & OFR_NOT_FOUND) != 0) {
+    /* Do not display a reason if the file was not found. */
+  } else if ((flags & OFR_CANNOT_OPEN) != 0) {
+    /* Use strerror to determine the reason based on the errno value. */
+    reason = strerror(open_result->errno_value);
+  } else if ((flags & OFR_NOT_REGULAR) != 0) {
+    reason = error_text(ec_not_regular);
+  } else if ((flags & OFR_IS_DIRECTORY) != 0) {
+    reason = error_text(ec_is_directory);
+  } else if ((flags & OFR_BAD_NAME) != 0) {
+    reason = error_text(ec_illegal_file_name);
+  }  /* if */
+  error_code = reason == NULL ? ec_cannot_open_file
+                              : ec_cannot_open_file_reason;
+  init_error_params();
+  error_msg_strings[1] = error_text(file_kind);
+  error_msg_strings[2] = file_name;
+  if (reason != NULL) {
+    error_msg_strings[3] = reason;
+  }  /* if */
+  /* If the error is to be issued as a command-line error, provide an
+     appropriate source position. */
+  if (severity == (an_error_severity)es_command_line_error) {
+    local_error_pos.seq = 0;
+    local_error_pos.column = SP_COL_CMD_LINE;
+  }  /* if */
+
+  diag_message(error_code, &local_error_pos, severity, dck_standalone);
+}  /* open_file_error_full */
+
+
+void open_file_error(an_error_severity		severity,
+		     an_error_code		file_kind,
+                     char			*file_name,
+		     an_open_file_result	*open_result)
+/*
+Write an error message about opening the file named file_name.  file_kind is
+an error code for a message that describes the kind of file being opened.
+open_result is the entry returned by the file open routine that describes
+the kind of failure.
+*/
+{
+  open_file_error_full(severity, file_kind, file_name, open_result,
+                       &error_position);
+}  /* open_file_error */
+
+
+DOES_NOT_RETURN open_output_file_error(a_boolean         bad_name,
+                                       an_error_code     file_kind,
+                                       char              *file_name,
+                                       an_error_severity severity)
+/*
+Write an error message about opening the output file named file_name,
+and terminate the compilation.
+*/
+{
+  an_open_file_result	open_result;
+
+  clear_open_file_result(&open_result);
+  if (bad_name) open_result.flags |= OFR_BAD_NAME;
+  /* If the error is to be issued as a command-line error, provide an
+     appropriate source position. */
+  if (severity == (an_error_severity)es_command_line_error) {
+    error_position.seq = 0;
+    error_position.column = SP_COL_CMD_LINE;
+  }  /* if */
+  open_file_error(severity, file_kind, file_name, &open_result);
+#ifdef __GNUC__
+  /* Avoid gcc warning.  open_file_error does not return in this case. */
+  exit_compilation(es_internal_error);
+#endif /* __GNUC__ */
+}  /* open_output_file_error */
+
+
+DOES_NOT_RETURN file_write_error(an_error_code	file_kind,
+				 int		errno_value)
+/*
+Issue an error that a write to the file specified by file_kind failed.
+errno_value provides information about the cause of the failure.
+*/
+{
+  if (errno_value == 0) {
+    pos_st_catastrophe(ec_file_write_error, &error_position,
+                       error_text(file_kind));
+  } else {
+    error_code_errno_catastrophe(ec_file_write_error_errno,
+                                 file_kind, errno_value);
+  }  /* if */
+}  /* file_write_error */
+
+
+static a_boolean open_error_should_be_issued(
+					an_open_file_flag_set	open_flags,
+					an_open_file_result	*open_result,
+					an_error_severity	*severity)
+/*
+The open of a file failed with open_result.  Based on open_flags, determine
+whether an error should be issued or a NULL file pointer should be returned
+to the caller.  Return TRUE if an error should be issued.  Set severity
+to the error severity of the error to be issued.
+*/
+{
+  a_boolean	issue_error = FALSE;
+
+  if ((open_result->flags & OFR_NOT_FOUND) != 0 &&
+      (open_flags & OFF_OKAY_IF_NOT_FOUND) == 0) {
+    issue_error = TRUE;
+  } else if ((open_result->flags & OFR_CANNOT_OPEN) != 0 &&
+             (open_flags & OFF_OKAY_IF_CANNOT_OPEN) == 0) {
+    issue_error = TRUE;
+  } else if ((open_result->flags & OFR_NOT_REGULAR) != 0 &&
+             (open_flags & OFF_OKAY_IF_NOT_REGULAR) == 0) {
+    issue_error = TRUE;
+  } else if ((open_result->flags & OFR_IS_DIRECTORY) != 0 &&
+             (open_flags & OFF_OKAY_IF_DIRECTORY) == 0) {
+    issue_error = TRUE;
+  } else if ((open_result->flags & OFR_BAD_NAME) != 0) {
+    issue_error = TRUE;
+#if DEBUG
+  } else if ((open_flags & OFF_FORCE_ERROR) != 0) {
+    /* If this debug flag is specified, force an error to be issued. */
+    issue_error = TRUE;
+#endif /* DEBUG */
+  }  /* if */
+  *severity = (open_flags & OFF_COMMAND_LINE) != 0 ? es_command_line_error
+                                                   : es_catastrophe;
+  return issue_error;
+}  /* open_error_should_be_issued */
+
+
+FILE *open_source_file_with_error(char                  *file_name,
+				  an_open_file_flag_set	open_flags,
+				  an_open_file_result	*open_result,
+		                  a_unicode_source_kind *unicode_source_kind)
+/*
+Open the given file as a source input file, and return a pointer to the
+file, or NULL if the file cannot be opened (and no error is issued).
+open_flags indicates the cases in which NULL should be returned and
+the cases in which an error should be issued.  *unicode_source_kind is set
+to indicate the Unicode encoding form for the file, or usk_none if the file
+is not Unicode.
+*/
+{
+  FILE			*file;
+  an_error_severity	severity;
+
+  file = open_source_file(file_name, open_result, unicode_source_kind);
+#if DEBUG
+  /* Pretend the open failed if OFF_FORCE_ERROR is specified. */
+  if ((open_flags & OFF_FORCE_ERROR) != 0) file = NULL;
+#endif /* DEBUG */
+  if (file == NULL &&
+      open_error_should_be_issued(open_flags, open_result, &severity)) {
+    /* Note that open_file_error does not return when called from here. */
+    open_file_error(severity, ec_source, file_name, open_result);
+  }  /* if */
+  return file;
+}  /* open_source_file_with_error */
+
+
+void close_output_file_with_error(FILE		**f_output,
+				  an_error_code	file_kind)
+/*
+Check for errors in writing the output file and close it.  Issue a diagnostic
+if an error was detected while the file was being closed.  The file variable
+passed by the caller is cleared.
+*/
+{
+  if (*f_output != NULL) {
+    int		errno_value;
+    /* Make a copy of the file variable and clear the copy from the caller. */
+    FILE	*f_temp = *f_output;
+    *f_output = NULL;
+    if (close_output_file(f_temp, &errno_value)) {
+      file_write_error(file_kind, errno_value);
+    }  /* if */
+  }  /* if */
+}  /* close_output_file_with_error */
+
+
+FILE *fopen_with_error(char			*file_name,
+		       char			*mode,
+		       an_open_file_flag_set	open_flags,
+		       an_error_code		file_kind)
+/*
+Open the given file_name using mode as the open mode.  Return the file
+pointer, or NULL if the file cannot be opened (and no error is issued).
+open_flags indicates the cases in which NULL should be returned and
+the cases in which an error should be issued.  file_kind is the error
+code for the description of the file to be used if an error is issued.
+*/
+{
+  FILE			*file;
+  an_open_file_result	open_result;
+  an_error_severity	severity;
+
+  file = fopen_with_result(file_name, mode, &open_result);
+#if DEBUG
+  /* Pretend the open failed if OFF_FORCE_ERROR is specified. */
+  if ((open_flags & OFF_FORCE_ERROR) != 0) file = NULL;
+#endif /* DEBUG */
+  if (file == NULL &&
+      open_error_should_be_issued(open_flags, &open_result, &severity)) {
+    /* Note that open_file_error does not return when called from here. */
+    open_file_error(severity, file_kind, file_name, &open_result);
+  }  /* if */
+  return file;
+}  /* fopen_with_error */
+
+
+FILE *open_output_file_with_error(char			*file_name,
+				  a_boolean		binary_file,
+				  a_boolean		update_mode,
+				  an_open_file_flag_set	open_flags,
+				  an_error_code		file_kind)
+/*
+Open the given file_name as an output file.  binary_file is TRUE if
+the file should be opened as a binary file instead of a text file.
+update_mode is TRUE if the file should be opened in update mode so it
+can be read as well as written.  Return the file pointer, or NULL if
+the file cannot be opened (and no error is issued).  open_flags
+indicates the cases in which NULL should be returned and the cases
+in which an error should be issued.  file_kind is the error code for
+the description of the file to be used if an error is issued.
+*/
+{
+  FILE			*file;
+  an_open_file_result	open_result;
+  an_error_severity	severity;
+
+  file = open_output_file(file_name, binary_file, update_mode, &open_result);
+#if DEBUG
+  /* Pretend the open failed if OFF_FORCE_ERROR is specified. */
+  if ((open_flags & OFF_FORCE_ERROR) != 0) file = NULL;
+#endif /* DEBUG */
+  if (file == NULL &&
+      open_error_should_be_issued(open_flags, &open_result, &severity)) {
+    /* Note that open_file_error does not return when called from here. */
+    open_file_error(severity, file_kind, file_name, &open_result);
+  }  /* if */
+  return file;
+}  /* open_output_file_with_error */
+
+
+FILE *open_input_file_with_error(char			*file_name,
+				 a_boolean		binary_file,
+				 an_open_file_flag_set	open_flags,
+				 an_error_code		file_kind)
+/*
+Open the given file_name as an input file.  Return the file pointer, or
+NULL if the file cannot be opened (and no error is issued).  binary_file
+is TRUE if the file should be opened as a binary file instead of a
+text file.  open_flags indicates the cases in which NULL should be
+returned and the cases in which an error should be issued.  file_kind
+is the error code for the description of the file to be used if an
+error is issued.
+*/
+{
+  FILE			*file;
+  an_open_file_result	open_result;
+  an_error_severity	severity;
+
+  file = open_input_file(file_name, binary_file, &open_result);
+#if DEBUG
+  /* Pretend the open failed if OFF_FORCE_ERROR is specified. */
+  if ((open_flags & OFF_FORCE_ERROR) != 0) file = NULL;
+#endif /* DEBUG */
+  if (file == NULL &&
+      open_error_should_be_issued(open_flags, &open_result, &severity)) {
+    /* Note that open_file_error does not return when called from here. */
+    open_file_error(severity, file_kind, file_name, &open_result);
+  }  /* if */
+  return file;
+}  /* open_input_file_with_error */
+
+
+#if !STANDALONE_UTILITY_PROGRAM
 
 static void display_trans_unit_context(
 			a_source_position	*error_pos,
@@ -4814,16 +5119,30 @@ indicated error_position, and then terminate the compilation.
 }  /* pos_str2_catastrophe */
 
 
-DOES_NOT_RETURN error_code_catastrophe(an_error_code error_code,
-				       an_error_code error_code2)
-/*
-Report the catastrophe indicated by error_code at the position indicated by
-error_position, and then terminate the compilation.  error_code2 is used
-to create a fill-in string.
-*/
+DOES_NOT_RETURN errno_catastrophe(an_error_code error_code,
+                                  int           errno_value)
 {
-  str_catastrophe(error_code, error_text(error_code2));
-}  /* error_code_catastrophe */
+  str_catastrophe(error_code, strerror(errno_value));
+}  /* errno_catastrophe */
+
+
+DOES_NOT_RETURN str_errno_catastrophe(an_error_code error_code,
+                                      char          *error_string,
+                                      int           errno_value)
+{
+  pos_str2_catastrophe(error_code, error_string,
+                       strerror(errno_value), &error_position);
+}  /* str_errno_catastrophe */
+
+
+static DOES_NOT_RETURN error_code_errno_catastrophe(
+                                      an_error_code error_code,
+                                      an_error_code error_code2,
+                                      int           errno_value)
+{
+  pos_str2_catastrophe(error_code, error_text(error_code2),
+                       strerror(errno_value), &error_position);
+}  /* error_code_errno_catastrophe */
 
 
 DOES_NOT_RETURN catastrophe(an_error_code error_code)

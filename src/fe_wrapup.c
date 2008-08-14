@@ -850,31 +850,13 @@ and before the back end (if any) is executed.
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
 
   /* Close the preprocessing output file, if needed. */
-  if (f_pp_output != NULL) {
-    /* Check for errors in writing the pp output file, then close it. */
-    if (fflush(f_pp_output) || ferror(f_pp_output) ||
-        (f_pp_output != stdout && fclose(f_pp_output))) {
-      error_code_catastrophe(ec_file_write_error, ec_preprocessing_output);
-    }  /* if */
-  }  /* if */
-  f_pp_output = NULL;
+  close_output_file_with_error(&f_pp_output, ec_preprocessing_output);
 
   /* Close the raw listing file if one is being generated. */
-  if (f_raw_listing != NULL) {
-    if (fflush(f_raw_listing) || ferror(f_raw_listing) ||
-        fclose(f_raw_listing)) {
-      error_code_catastrophe(ec_file_write_error, ec_raw_listing);
-    }  /* if */
-  }  /* if */
-  f_raw_listing = NULL;
+  close_output_file_with_error(&f_raw_listing, ec_raw_listing);
 
   /* Close the cross-reference file if one is being generated. */
-  if (f_xref_info != NULL) {
-    if (fflush(f_xref_info) || ferror(f_xref_info) || fclose(f_xref_info)) {
-      error_code_catastrophe(ec_file_write_error, ec_cross_reference);
-    }  /* if */
-  }  /* if */
-  f_xref_info = NULL;
+  close_output_file_with_error(&f_xref_info, ec_cross_reference);
 
 #if DEBUG
   if (display_space_used || debug_level > 0 || db_flag_is_set("space_used")) {

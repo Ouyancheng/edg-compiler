@@ -1,5 +1,21 @@
 Version 3.11
 
+8/14/08  [EDGcpfe/6432]
+Additional information about file I/O failures
+
+Formerly, when the front end detected an I/O failure, it would produce a
+general message such as "cannot open source file ..." or "error
+while writing ... file", but no information was provided about the cause
+of the failure.  The general message is still used in the common case of
+attempting to open a file that does not exist, but for other kinds of errors
+additional information is provided in the message.  For example, if you
+specify a source file that you don't have permission to read, the message
+will say 'cannot open source file "x.c": Permission denied'.  For some of
+the errors, the text is provided by our error_msg.txt file.  In most cases
+the text is provided by the host system's strerror routine.  A few of
+the Windows-specific routines in host_envir.c use the Windows routines
+GetLastError and FormatMessage to produce the text.
+
 8/11/08  [EDGcpfe/9141]
 Assertion failure: "add_dyn_init_cleanup: no temps"
 

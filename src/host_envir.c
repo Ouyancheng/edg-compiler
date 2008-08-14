@@ -1201,6 +1201,16 @@ directory or some other kind of special file).
 }  /* is_regular_file */
 
 
+void clear_open_file_result(an_open_file_result	*open_result)
+/*
+Clear the fields of an_open_file_result entry.
+*/
+{
+  open_result->flags = 0;
+  open_result->errno_value = 0;  
+}  /* clear_open_file_result */
+
+
 #if UNICODE_SOURCE_SUPPORTED
 
 static void do_check_for_byte_order_mark(
@@ -1263,7 +1273,9 @@ is the name of the file, which is used for diagnostic purposes.
       if (fseek(f_file, 0L, SEEK_SET) != 0) {
         /* The seek could not be done.  This implies some change
            in the file since last it was opened. */
-        str_catastrophe(ec_source_file_could_not_be_opened, file_name);
+        an_open_file_result	open_result;
+        clear_open_file_result(&open_result);
+        open_file_error(es_catastrophe, ec_source, file_name, &open_result);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -1271,19 +1283,56 @@ is the name of the file, which is used for diagnostic purposes.
 
 #endif /* UNICODE_SOURCE_SUPPORTED */
 
+FILE *fopen_with_result(char			*file_name,
+		        char			*mode,
+		        an_open_file_result	*open_result)
+/*
+Interface to fopen_interface that maps any resulting error into
+an_open_file_result (*open_result).
+*/
+{
+  FILE	*f_result;
+
+  clear_open_file_result(open_result);
+  if (strlen(file_name) == 0) {
+    open_result->flags |= OFR_BAD_NAME;
+    f_result = NULL;
+  } else if ((f_result = fopen_interface(file_name, mode)) == NULL) {
+    open_result->errno_value = errno;
+    /* fopen will return ENOENT for "no such file or directory".  Map this onto
+       "not found".  All other errors are mapped onto "cannot open". */
+    if (errno == ENOENT) {
+      open_result->flags |= OFR_NOT_FOUND;
+    } else {
+      open_result->flags |= OFR_CANNOT_OPEN;
+    }  /* if */
+  } else {
+    /* File opened okay. */
+    /* Check the file type. */
+    if (!is_regular_file(file_name)) {
+      /* Not a "regular" file. */
+      if (is_directory(file_name)) {
+        open_result->flags |= OFR_IS_DIRECTORY;
+      } else {
+        open_result->flags |= OFR_NOT_REGULAR;
+      }  /* if */
+      (void)fclose(f_result);
+      f_result = NULL;
+    }  /* if */
+  }  /* if */
+  return f_result;
+}  /* fopen_with_result */
+
+
 FILE *open_source_file(char                  *file_name,
-                       a_boolean             *not_found,
-                       a_boolean             *bad_format,
-                       a_boolean             *bad_name,
+		       an_open_file_result   *open_result,
                        a_unicode_source_kind *unicode_source_kind)
 /*
 Open the given file as a source input file, and return a pointer to the
-file block, or NULL if the file cannot be opened.  In the error case,
-one of the three flags is set to indicate the type of error: file not found,
-file found but it has a format inappropriate for a source file, or syntax
-of the file name is bad.  *unicode_source_kind is set to indicate
-the Unicode encoding form for the file, or usk_none if the file is not
-Unicode.
+file, or NULL if the file cannot be opened.  In the error case, return
+information about the failure in *open_result.  *unicode_source_kind
+is set to indicate the Unicode encoding form for the file, or usk_none if the
+file is not Unicode.
 */
 {
   FILE        *temp_file;
@@ -1293,32 +1342,17 @@ Unicode.
     fprintf(f_debug, "About to open %s\n", file_name);
   }  /* if */
 #endif /* DEBUG */
-  *not_found = *bad_format = *bad_name = FALSE;
   *unicode_source_kind = usk_none;
-  if (strlen(file_name) == 0) {
-    *bad_name = TRUE;
-    temp_file = NULL;
-  } else if ((temp_file = fopen_interface(file_name, FOPEN_MODE_FOR_READ)) ==
-                                                                        NULL) {
-    *not_found = TRUE;
-  } else {
-    /* File opened okay. */
-    /* Check the file type. */
-    if (!is_regular_file(file_name)) {
-      /* Not a "regular" file. */
-      *bad_format = TRUE;
-      (void)fclose(temp_file);
-      temp_file = NULL;
-    } else {
+  temp_file = fopen_with_result(file_name, FOPEN_MODE_FOR_READ, open_result);
 #if UNICODE_SOURCE_SUPPORTED
-      /* If the file contains a byte order mark, advance past it. */
-      if (check_for_byte_order_mark) {
-        do_check_for_byte_order_mark(temp_file, unicode_source_kind,
-                                     file_name);
-      }  /* if */
-#endif /* UNICODE_SOURCE_SUPPORTED */
+  if (temp_file != NULL) {
+    /* If the file contains a byte order mark, advance past it. */
+    if (check_for_byte_order_mark) {
+      do_check_for_byte_order_mark(temp_file, unicode_source_kind,
+                                   file_name);
     }  /* if */
   }  /* if */
+#endif /* UNICODE_SOURCE_SUPPORTED */
   return(temp_file);
 }  /* open_source_file */
 
@@ -1408,57 +1442,74 @@ writing.  This helps avoid problems with clobbering of input files.
 }  /* okay_as_output_file */
 
 
-FILE *open_output_file(char          *file_name,
-                       a_boolean     binary_file,
-                       a_boolean     update_mode,
-                       a_boolean     *cannot_open,
-                       a_boolean     *bad_name)
+FILE *open_output_file(char			*file_name,
+                       a_boolean		binary_file,
+                       a_boolean		update_mode,
+		       an_open_file_result	*open_result)
 /*
 Open the given file as an output file, and return a pointer to the
-file block, or NULL if the file cannot be opened.  In the error case,
-one of the two flags is set to indicate the type of error: file could
-not be opened or the file name is bad (incorrectly formed or has an
-illegal suffix).  binary_file is TRUE if the file should be opened as
-a binary file instead of a text file.  update_mode is TRUE if the file
-should be opened in update mode so it can be read as well as written.
+file, or NULL if the file cannot be opened.  In the error case,
+*open_result indicates the type of error.  binary_file is TRUE if the
+file should be opened as a binary file instead of a text file.
+update_mode is TRUE if the file should be opened in update mode so it
+can be read as well as written.
 */
 {
   FILE *temp_file;
   char *mode;
 
-#if DEBUG
-  if (debug_level >= 2) {
-    fprintf(f_debug, "About to open output file %s\n", file_name);
-  }  /* if */
-#endif /* DEBUG */
-  *cannot_open = *bad_name = FALSE;
-  if (!okay_as_output_file(file_name)) {
-    *bad_name = TRUE;
-    temp_file = NULL;
+  if (update_mode) {
+    mode = (char *)(binary_file ? FOPEN_MODE_FOR_BINARY_UPDATE :
+                                  FOPEN_MODE_FOR_UPDATE);
   } else {
-    if (update_mode) {
-      mode = (char *)(binary_file ? FOPEN_MODE_FOR_BINARY_UPDATE :
-                                    FOPEN_MODE_FOR_UPDATE);
-    } else {
-      mode = (char *)(binary_file ? FOPEN_MODE_FOR_BINARY_WRITE
-                                  : FOPEN_MODE_FOR_WRITE);
-    }  /* if */
-    temp_file = fopen_interface(file_name, mode);
-    if (temp_file == NULL) *cannot_open = TRUE;
+    mode = (char *)(binary_file ? FOPEN_MODE_FOR_BINARY_WRITE
+                                : FOPEN_MODE_FOR_WRITE);
   }  /* if */
-
-  return(temp_file);
+  temp_file = fopen_with_result(file_name, mode, open_result);
+  return temp_file;
 }  /* open_output_file */
 
 
-FILE *open_input_file(char          *file_name,
-                      a_boolean     binary_file)
+a_boolean close_output_file(FILE	*f_output,
+			    int		*errno_value)
+/*
+Check for errors in writing the output file, then close it.  If an error
+occurred return TRUE.  Set *errno_value to the errno of the operation that
+caused the error.
+*/
+{
+  a_boolean has_error = FALSE;
+
+  *errno_value = 0;
+  if (f_output != NULL) {
+    if (fflush(f_output)) {
+      *errno_value = errno;
+      has_error = TRUE;
+    }  /* if */
+    if (ferror(f_output)) {
+      has_error = TRUE;
+    }  /* if */
+    if (f_output != stdout) {
+      if (fclose(f_output) && !has_error) {
+        *errno_value = errno;
+        has_error = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return has_error;
+}  /* close_output_file */
+
+
+FILE *open_input_file(char			*file_name,
+                      a_boolean			binary_file,
+		      an_open_file_result	*open_result)
 /*
 Open the given file as an input file, and return a pointer to the
-file block, or NULL if the file cannot be opened.  binary_file is TRUE if
+file, or NULL if the file cannot be opened.  binary_file is TRUE if
 the file should be opened as a binary file instead of a text file.
 If the file can be opened and is a regular file, return the FILE pointer,
-otherwise return NULL.
+otherwise return NULL.  If the open fails, *open_result indicates the
+reason for the failure.
 */
 {
   FILE *temp_file;
@@ -1469,14 +1520,10 @@ otherwise return NULL.
     fprintf(f_debug, "About to open input file %s\n", file_name);
   }  /* if */
 #endif /* DEBUG */
-  if (!is_regular_file(file_name)) {
-    temp_file = NULL;
-  } else {
-    mode = (char *)(binary_file ? FOPEN_MODE_FOR_BINARY_READ :
-                                  FOPEN_MODE_FOR_READ);
-    /* Open the file. */
-    temp_file = fopen_interface(file_name, mode);
-  }  /* if */
+  mode = (char *)(binary_file ? FOPEN_MODE_FOR_BINARY_READ :
+                                FOPEN_MODE_FOR_READ);
+  /* Open the file. */
+  temp_file = fopen_with_result(file_name, mode, open_result);
   return(temp_file);
 }  /* open_input_file */
 
@@ -1501,7 +1548,7 @@ Delete the file with the indicated name.  It shouldn't be open currently.
 #endif /* __VMS__ */
 #endif /* __ANSIC__ */
   if (status != 0) {
-    str_catastrophe(ec_file_delete_error, file_name);
+    str_errno_catastrophe(ec_file_delete_error_reason, file_name, errno);
   }  /* if */
 }  /* delete_file */
 
@@ -1585,16 +1632,17 @@ file should be a binary file if binary_file is TRUE.
       /* The file exists already. */
     } else {
       /* The file does not exist.  Try opening it. */
+      char *mode = (char *)(binary_file ? FOPEN_MODE_FOR_BINARY_UPDATE
+                                        : FOPEN_MODE_FOR_UPDATE);
       /* coverity[toctou] */
-      temp_file = fopen_interface(buffer,
-                                  binary_file ? FOPEN_MODE_FOR_BINARY_UPDATE :
-                                                FOPEN_MODE_FOR_UPDATE);
+      temp_file = fopen_interface(buffer, mode);
       if (temp_file != NULL) goto have_file;
     }  /* if */
     /* Retry with incremented file names a certain number of times.  After
        that, give up (the problem may be that the directory name is bad). */
   } while (retry_count-- > 0);
-  str_catastrophe(ec_cannot_open_temp_file, buffer);
+  open_output_file_error(/*bad_name=*/FALSE, ec_temporary, buffer,
+                         es_catastrophe);
 have_file:;
 #if __MICROSOFT_OS__
   /* Can't delete the file now, so add it to the list of files to be cleaned
@@ -2692,6 +2740,31 @@ static HANDLE	f_map_object;
 			/* The file handle of the map object associated with
 			   the mapped input file. */
 
+static DOES_NOT_RETURN str_GetLastError_catastrophe(an_error_code error_code,
+                                                    char          *file_name)
+/*
+Use the WIN32 routines to get and format the last error that occurred.
+Issue a catastrophic error using the specified error_code, file_name, and
+the string returned that describes the error.
+*/
+{
+  LPVOID lpMsgBuf;
+  a_boolean msg_ok = FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER |
+                                     FORMAT_MESSAGE_FROM_SYSTEM |
+                                     FORMAT_MESSAGE_IGNORE_INSERTS,
+                                   /*lpSource=*/NULL,
+                                   GetLastError(),
+                                   /* Default language */
+                                   MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+                                   (LPTSTR) &lpMsgBuf,
+                                   /*nSize=*/0,
+                                   /*Arguments=*/NULL);
+  pos_str2_catastrophe(error_code, file_name,
+                       msg_ok ? (char *)lpMsgBuf
+                              : (char *)"(cannot determine reason)",
+                       &error_position);
+}  /* str_GetLastError_catastrophe */
+
 void open_mapped_il_temp_file(void)
 /*
 Open a temporary file to be used for allocation of file mapped
@@ -2713,7 +2786,8 @@ memory for IL memory blocks.
                                                   FILE_FLAG_DELETE_ON_CLOSE,
                            (HANDLE)NULL);
   if (f_mmap_file == INVALID_HANDLE_VALUE) {
-    str_catastrophe(ec_cannot_open_temp_file, temp_file_name);
+    str_GetLastError_catastrophe(ec_cannot_open_temp_file_reason,
+                                 temp_file_name);
   }  /* if */
   db_exit();
 }  /* open_mapped_il_temp_file */
@@ -2748,15 +2822,16 @@ fopen, so this open must be done in shared mode.
     /* This shouldn't happen because the file must have already been
        successfully opened as a normal input file before this routine is
        called. */
-    str_command_line_error(ec_cl_cannot_open_pch_input_file,
-                           file_name);
+    str_GetLastError_catastrophe(ec_cannot_open_pch_input_file_reason,
+                                 file_name);
   }  /* if */
   f_map_object = CreateFileMapping(f_mapped_input, NULL,
                                    PAGE_WRITECOPY, 0, 0, NULL);
   check_assertion_str(f_map_object != INVALID_HANDLE_VALUE,
                       "CreateFileMapping failed");
   if (f_map_object == INVALID_HANDLE_VALUE) {
-    catastrophe(ec_unable_to_get_mapped_memory);
+    str_GetLastError_catastrophe(ec_unable_to_get_mapped_memory_reason,
+                                 file_name);
   }  /* if */
 }  /* open_mapped_input_file */
 
@@ -2842,7 +2917,8 @@ page size.
 a_void_ptr map_input_file_to_region(FILE		*file,
                                     sizeof_t		offset,
 				    sizeof_t		size,
-				    a_void_ptr		address)
+				    a_void_ptr		address,
+                                    char                *file_name)
 /*
 Map the data pointed to by "file", starting at "offset" bytes,
 for "size" bytes to the address specified by "address".
@@ -2866,6 +2942,11 @@ file to a memory region.
             address, (unsigned long)size, (unsigned long)offset);
   }  /* if */
 #endif /* DEBUG */
+  if (result_addr == NULL) {
+    error_position = null_source_position;
+    str_GetLastError_catastrophe(ec_unable_to_get_mapped_memory_reason,
+                                 file_name);
+  }  /* if */
   return result_addr;
 }  /* map_input_file_to_region */
 
@@ -2998,7 +3079,8 @@ page size.
 a_void_ptr map_input_file_to_region(FILE		*file,
                                     sizeof_t		offset,
 				    sizeof_t		size,
-				    a_void_ptr		address)
+				    a_void_ptr		address,
+                                    char                *file_name)
 /*
 Map the data pointed to by "file", starting at "offset" bytes,
 for "size" bytes to the address specified by "address".
@@ -3028,6 +3110,11 @@ file to a memory region.
             address, (unsigned long)size, (unsigned long)offset);
   }  /* if */
 #endif /* DEBUG */
+  if (result_addr == NULL) {
+    error_position = null_source_position;
+    str_errno_catastrophe(ec_unable_to_get_mapped_memory_reason, file_name,
+                          errno);
+  }  /* if */
   return result_addr;
 }  /* map_input_file_to_region */
 

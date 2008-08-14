@@ -30,6 +30,8 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(755,EXTERN_C)*/
 /*lint -esym(750,chdir_with_check)*/
 /*lint -esym(769,ec_cannot_chdir)*/
+/*lint -esym(769,ec_cannot_open_pch_input_file_reason)*/
+/*lint -esym(769,ec_cannot_open_temp_file_reason)*/
 /*lint -esym(759,change_non_id_characters)*/
 /*lint -esym(765,change_non_id_characters)*/
 /*lint -esym(759,type_from_src_seq_declaration)*/
@@ -236,6 +238,7 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(765,form_typeid_reference)*/
 /*lint -esym(759,decltype_arg)*/
 /*lint -esym(765,decltype_arg)*/
+/*lint -esym(769,ec_C_plus_plus)*/
 #if MICROSOFT_EXTENSIONS_ALLOWED
 /*lint -esym(759,form_calling_convention)*/
 /*lint -esym(765,form_calling_convention)*/
@@ -552,8 +555,8 @@ extern int fileno(FILE *);
 /*lint -esym(769,ec_ELF_visibility_stack_empty)*/
 #endif /* !GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 #if !GNU_VECTOR_TYPES_ALLOWED
-/*lint -esym(769,
-             ec_vector_size_attribute_requires_integral_floating_or_enum_type)*/
+/*lint -esym(
+  769,ec_vector_size_attribute_requires_integral_floating_or_enum_type)*/
 /*lint -esym(769,ec_vector_size_too_large)*/
 /*lint -esym(769,ec_vector_size_must_be_power_of_two)*/
 /*lint -esym(769,ec_vector_size_must_be_multiple_of_element_size)*/

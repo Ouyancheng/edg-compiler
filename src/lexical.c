@@ -25,6 +25,8 @@ and parsing of them into tokens.
 #pragma hdrstop
 #endif /* ifdef PCH_PRAGMA_GUARD */
 
+#include <errno.h>
+
 /* Additional header files. */
 #include "class_decl.h"
 #include "decls.h"
@@ -2877,7 +2879,7 @@ is TRUE.
            most lines and supplements the check done when the file is closed.
            Checking here is so that a disk full error is caught fairly
            quickly. */
-        error_code_catastrophe(ec_file_write_error, ec_preprocessing_output);
+        file_write_error(ec_preprocessing_output, errno);
       }  /* if */
       /* The newline at the end of the source line is represented by
          an LE_ESCAPE/LE_NEWLINE lexical escape sequence, so no newline
@@ -3097,7 +3099,7 @@ orig_line_modif_list modifications apply to the indicated text.
         /* Error in writing the raw listing file.  This check supplements 
            the check done when the file is closed.  Checking here is done so
            that a disk full error is caught fairly quickly. */
-        error_code_catastrophe(ec_file_write_error, ec_raw_listing);
+        file_write_error(ec_raw_listing, errno);
       }  /* if */
       /* Write the final newline (the source line contains an
          LE_ESCAPE/LE_NEWLINE escape rather than an actual newline
@@ -3995,55 +3997,50 @@ done:
 
 static FILE *try_to_open_source_file(
                                     char                  *name_to_try,
-                                    char                  *file_name,
+				    an_open_file_result   *open_result,
                                     a_unicode_source_kind *unicode_source_kind)
 /*
-Try to open the source file specified by name_to_try.  file_name is
-the name to be used in an error message.  *unicode_source_kind is set
-to indicate the Unicode encoding form for the file, or usk_none if the file
-is not Unicode.
+Try to open the source file specified by name_to_try.  *open_result
+stores information about why the file could not be opened if the open
+fails.  *unicode_source_kind is set to indicate the Unicode encoding
+form for the file, or usk_none if the file is not Unicode.
 */
 {
   FILE		*new_input_file;
-  a_boolean	not_found = FALSE;
-  a_boolean	bad_format = FALSE;
-  a_boolean	bad_name = FALSE;
 
-  new_input_file = open_source_file(name_to_try, &not_found,
-                                    &bad_format, &bad_name,
-                                    unicode_source_kind);
-  /* If not_found is FALSE then either name_to_try is non-NULL
-     (i.e., the input file was opened) or else there was an error
-     on the open.  In either case, stop searching. */
-  if (not_found) {
-    /* Issue a catastrophic error if the file could not be opened
-       because of an error.  Bad format errors are simply ignored as
-       this is typically a result of finding a directory with
-       the specified name. */
-    if (bad_name) {
-      str_catastrophe(ec_illegal_source_file_name, file_name);
-    }  /* if */
-  }  /* if */
+  /* Open the specified file.  The flags specify the kinds of errors that
+     cause the routine to return a NULL file pointer.  If a failure type
+     is not listed here, the open routine will issue a catastrophic error
+     for that kind of failure. */
+  new_input_file = open_source_file_with_error(name_to_try,
+					       OFF_OKAY_IF_NOT_FOUND |
+					         OFF_OKAY_IF_DIRECTORY |
+					         OFF_OKAY_IF_NOT_REGULAR |
+					         OFF_OKAY_IF_CANNOT_OPEN,
+					       open_result,
+				               unicode_source_kind);
   return new_input_file;
 }  /* try_to_open_source_file */
 
 
 static a_boolean try_to_open_source_file_if_not_already_included(
                                     char                  *name_to_try,
-                                    char                  *file_name,
                                     FILE                  **new_input_file,
                                     a_boolean             *suppress_include,
+				    an_open_file_result   *open_result,
                                     a_unicode_source_kind *unicode_source_kind)
 /*
-Try to open the source file specified by name_to_try.  file_name is
-the name to be used in an error message.  Before attempting to open the
-file, check whether an inclusion of the file should be suppressed because
-the file has already been included.  Return TRUE if the file was found (the
-file was either opened or a previously included file was found).  If the
-file was opened, the file pointer is returned in new_input_file.  If the
-include is to be suppressed because the file was already included, TRUE is
-returned in suppress_include.  *unicode_source_kind is set to indicate the
-Unicode encoding form for the file, or usk_none if the file is not Unicode.
+Try to open the source file specified by name_to_try.  Before
+attempting to open the file, check whether an inclusion of the file
+should be suppressed because the file has already been included.
+Return TRUE if the file was found (the file was either opened or a
+previously included file was found).  If the file was opened, the file
+pointer is returned in new_input_file.  If the include is to be
+suppressed because the file was already included, TRUE is returned in
+suppress_include.  *unicode_source_kind is set to indicate the Unicode
+encoding form for the file, or usk_none if the file is not Unicode.
+*open_result stores information about why the file could not be opened
+if the open fails.
 */
 {
   an_include_file_history_ptr	ifhp = NULL;
@@ -4059,7 +4056,8 @@ Unicode encoding form for the file, or usk_none if the file is not Unicode.
     found = TRUE;
   } else {
     /* It was not previously included. Attempt to open the file. */
-    *new_input_file = try_to_open_source_file(name_to_try, file_name,
+    *new_input_file = try_to_open_source_file(name_to_try,
+                                              open_result,
                                               unicode_source_kind);
     found = *new_input_file != NULL;
   }  /* if */
@@ -4217,6 +4215,7 @@ static a_boolean search_for_input_file(
 			char				**name_found,
 			FILE				**new_input_file,
 			a_boolean			*suppress_include,
+			an_open_file_result		*open_result,
                         a_unicode_source_kind           *unicode_source_kind,
 			a_directory_name_entry_ptr	*dir_entry)
 /*
@@ -4237,6 +4236,8 @@ file pointer is returned in new_input_file.  If the include is to be
 suppressed because the file was already included, TRUE is returned in
 suppress_include.  *unicode_source_kind is set to indicate the Unicode
 encoding form for the file, or usk_none if the file is not Unicode.
+*open_result stores information about why the file could not be opened if
+the open fails.
 */
 {
   a_file_suffix_ptr		fsp;
@@ -4277,7 +4278,8 @@ encoding form for the file, or usk_none if the file is not Unicode.
   if (!use_search_path || is_absolute_file_name(file_name)) {
     /* File name is absolute, so search path is not used. */
     name_to_try = file_name;
-    *new_input_file = try_to_open_source_file(name_to_try, file_name,
+    *new_input_file = try_to_open_source_file(name_to_try,
+                                              open_result,
                                               unicode_source_kind);
     file_found = *new_input_file != NULL;
   } else if (search_path == NULL) {
@@ -4318,8 +4320,9 @@ encoding form for the file, or usk_none if the file is not Unicode.
           /* Attempt to open the file from the previous search. */
           name_to_try = isrp->result_file;
           file_found = try_to_open_source_file_if_not_already_included(
-                             name_to_try, file_name, new_input_file,
-                             suppress_include, unicode_source_kind);
+                             name_to_try, new_input_file,
+                             suppress_include, open_result,
+                             unicode_source_kind);
         }  /* if */
       }  /* if */
       if (!file_found) {
@@ -4342,8 +4345,9 @@ encoding form for the file, or usk_none if the file is not Unicode.
           /* We don't need to replace the suffix.  Just try the
              file/directory combination just constructed. */
           file_found = try_to_open_source_file_if_not_already_included(
-                             name_to_try, file_name, new_input_file,
-                             suppress_include, unicode_source_kind);
+                             name_to_try, new_input_file,
+                             suppress_include, open_result,
+                             unicode_source_kind);
         } else {
           /* We need to replace the suffix.  Go through the list of
              suffixes. */
@@ -4365,8 +4369,9 @@ encoding form for the file, or usk_none if the file is not Unicode.
             name_to_try = buffer->buffer;
             /* Now try to open the modified file. */
             file_found = try_to_open_source_file_if_not_already_included(
-                             name_to_try, file_name, new_input_file,
-                             suppress_include, unicode_source_kind);
+                             name_to_try, new_input_file,
+                             suppress_include, open_result,
+                             unicode_source_kind);
             if (file_found) break;
             if (fsp->next != NULL) {
               /* Copy the original file name back into the buffer. */
@@ -4469,6 +4474,7 @@ a catastrophic error is not issued, FALSE is returned.
   a_directory_name_entry_ptr  search_path;
   a_boolean		      file_found = FALSE;
   a_boolean		      input_from_stdin = FALSE;
+  an_open_file_result	      open_result;
 
   db_enter(2, "open_file_for_input");
   *dir_entry = NULL;
@@ -4506,7 +4512,8 @@ a catastrophic error is not issued, FALSE is returned.
                                        is_implicit_include, is_system_include,
                                        &temp_file_name,
                                        new_input_file, suppress_include,
-                                       unicode_source_kind, dir_entry);
+                                       &open_result, unicode_source_kind,
+                                       dir_entry);
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
   } else {
     file_found = search_for_input_file(file_name, use_search_path, search_path,
@@ -4515,16 +4522,16 @@ a catastrophic error is not issued, FALSE is returned.
                                        is_system_include,
                                        &temp_file_name,
                                        new_input_file, suppress_include,
-                                       unicode_source_kind, dir_entry);
+                                       &open_result, unicode_source_kind,
+                                       dir_entry);
     if (!file_found) {
       /* The file could not be opened.  This is normally a catastrophic error
          unless continue_on_open_failure is TRUE. */
       if (continue_on_open_failure) {
-        pos_st_diagnostic(es_discretionary_error,
-                          ec_source_file_could_not_be_opened, &error_position,
-                          file_name);
+        open_file_error(es_discretionary_error, ec_source, file_name,
+                        &open_result);
       } else {
-        str_catastrophe(ec_source_file_could_not_be_opened, file_name);
+        open_file_error(es_catastrophe, ec_source, file_name, &open_result);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -4938,6 +4945,7 @@ at the next level down.
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
     curr_ise = &input_stack[depth_input_stack];
     if (curr_ise->file == NULL) {
+      an_open_file_result	open_result;
 #if DEBUG
       if (debug_level >= 2) {
         fprintf(f_debug, "re-opening at level %d, name = \"%s\", pos = %ld\n",
@@ -4947,20 +4955,21 @@ at the next level down.
 #endif /* DEBUG */
       /* This include file was closed on a push_input_stack to keep down
          the number of open files.  Re-open it and reposition it now. */
-      if ((curr_ise->file = reopen_source_file(curr_ise->full_name,
-                                               &unicode_source_kind)) == NULL||
-          unicode_source_kind != curr_ise->unicode_source_kind){
+      curr_ise->file = open_source_file(curr_ise->full_name, &open_result,
+                                        &unicode_source_kind);
+      if (curr_ise->file == NULL ||
+          unicode_source_kind != curr_ise->unicode_source_kind) {
         /* File could not be re-opened; it was probably deleted since the
-           compilation started.  Or, the Unicode encoding changed since it was
+           compilation started or the Unicode encoding changed since it was
            last opened. */
-        str_catastrophe(ec_source_file_could_not_be_opened,
-                        curr_ise->full_name);
+        open_file_error(es_catastrophe, ec_source, curr_ise->full_name,
+                        &open_result);
       }  /* if */
       if (fseek(curr_ise->file, curr_ise->position, SEEK_SET) != 0) {
         /* The seek could not be done.  Again, this implies some change
            in the file since last it was opened. */
-        str_catastrophe(ec_source_file_could_not_be_opened,
-                        curr_ise->full_name);
+        open_file_error(es_catastrophe, ec_source, curr_ise->full_name,
+                        &open_result);
       }  /* if */
     }  /* if */
     curr_input_stream = curr_ise->file;

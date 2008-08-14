@@ -84,6 +84,8 @@ a "for"] would have to be rewritten.)
 #include "fe_init.h"
 #endif /* STANDALONE_CP_GEN_BE */
 
+#include <errno.h>
+
 #if !GNU_EXTENSIONS_ALLOWED
 
 /* We still have to define a_type_mode_kind because it appears in some
@@ -1784,7 +1786,7 @@ End the current line of output.
     /* Error in writing the output file.  This check supplements the check
        done when the file is closed.  The check here helps catch a disk full
        error quickly. */
-    error_code_catastrophe(ec_file_write_error, ec_generated_c_output);
+    file_write_error(ec_generated_c_output, errno);
   }  /* if */
   curr_output_line++;
   curr_output_column = 0;
@@ -13735,7 +13737,6 @@ Generate C++ or C from the intermediate language.
 */
 {
   char              *C_output_file_name;
-  a_boolean         cannot_open, bad_name;
   a_source_file_ptr prim_source_file;
 #if STANDALONE_UTILITY_PROGRAM
   /* This is a command-line option normally, but it's not available in the
@@ -13757,15 +13758,10 @@ Generate C++ or C from the intermediate language.
       C_output_file_name = derived_name(primary_source_file_name,
                                         GEN_C_FILE_SUFFIX);
     }  /* if */
-    f_C_output = open_output_file(C_output_file_name, /*binary_file=*/FALSE,
-                                  /*update_mode=*/FALSE,
-                                  &cannot_open, &bad_name);
-    if (bad_name) {
-      str_command_line_error(ec_cl_invalid_C_output_file, C_output_file_name);
-    } else if (cannot_open) {
-      str_command_line_error(ec_cl_cannot_open_C_output_file,
-                             C_output_file_name);
-    }  /* if */
+    f_C_output = open_output_file_with_error(C_output_file_name,
+                                             /*binary_file=*/FALSE,
+                                             /*update_mode=*/FALSE,
+                                             OFF_NO_OPTIONS, ec_C_plus_plus);
   }  /* if */
 
   /* Start with a #line directive that identifies the primary file.  If the
@@ -13781,12 +13777,7 @@ Generate C++ or C from the intermediate language.
 
   /* Finish the last line, if there is one. */
   end_output_line_if_begun();
-  /* Check for errors in writing the output file, then close it. */
-  if (fflush(f_C_output) || ferror(f_C_output) ||
-      (f_C_output != stdout && fclose(f_C_output))) {
-    error_code_catastrophe(ec_file_write_error, ec_generated_c_output);
-  }  /* if */
-  f_C_output = NULL;
+  close_output_file_with_error(&f_C_output, ec_generated_c_output);
 }  /* cp_gen_be */
 
 

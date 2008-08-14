@@ -1959,7 +1959,8 @@ If it is not acceptable, issue an error.
 */
 {
   if (!okay_as_output_file(file_name)) {
-    str_command_line_error(ec_cl_invalid_pch_output_file, file_name);
+    open_output_file_error(/*bad_name=*/TRUE, ec_precompiled_header, file_name,
+                           es_command_line_error);
   }  /* if */
 }  /* check_pch_file_name */
 
@@ -6520,7 +6521,6 @@ Process the arguments on the command line that invoked the compiler.
 {
   an_option_description_ptr	odp;
   char 			        *ofile_name = NULL;
-  a_boolean			cannot_open, bad_name;
   a_boolean			source_file_name_optional = FALSE;
   char				*instantiation_mode_string = NULL;
   a_directory_name_entry_ptr	include_path_boundary = NULL;
@@ -6885,47 +6885,23 @@ Process the arguments on the command line that invoked the compiler.
            file/line information, and indications of which lines are which,
            to be read later by a program that will generate an
            interspersed listing). */
-        f_raw_listing = open_output_file(opt_arg, /*binary_file=*/FALSE,
-                                         /*update_mode=*/FALSE,
-                                         &cannot_open, &bad_name);
-        if (bad_name) {
-          str_command_line_error(ec_cl_invalid_raw_listing_output_file,
-                                 opt_arg);
-        } else if (cannot_open) {
-          str_command_line_error(ec_cl_cannot_open_raw_listing_output_file,
-                                 opt_arg);
-        }  /* if */
+        f_raw_listing = open_output_file_with_error(
+                         opt_arg, /*binary_file=*/FALSE, /*update_mode=*/FALSE,
+                         OFF_COMMAND_LINE, ec_raw_listing);
         break;
       case optk_generate_cross_reference:
         /* Generate a file of cross-reference information (locations and
 	   kinds of references to symbols) */
-        f_xref_info = open_output_file(opt_arg, /*binary_file=*/FALSE,
-                                       /*update_mode=*/FALSE,
-                                       &cannot_open, &bad_name);
-        if (bad_name) {
-          str_command_line_error(ec_cl_invalid_xref_output_file,
-                                 opt_arg);
-        } else if (cannot_open) {
-          str_command_line_error(ec_cl_cannot_open_xref_output_file,
-                                 opt_arg);
-        }  /* if */
+        f_xref_info = open_output_file_with_error(
+                         opt_arg, /*binary_file=*/FALSE, /*update_mode=*/FALSE,
+                         OFF_COMMAND_LINE, ec_cross_reference);
         break;
       case optk_stderr_file_name:
         /* Redirect error output to a file.  This is useful on systems where
            redirection is not well supported. */
-        { FILE *f_new_error;
-          f_new_error = open_output_file(opt_arg, /*binary_file=*/FALSE,
-                                         /*update_mode=*/FALSE,
-                                         &cannot_open, &bad_name);
-          if (bad_name) {
-            str_command_line_error(ec_cl_invalid_error_output_file,
-                                   opt_arg);
-          } else if (cannot_open) {
-            str_command_line_error(ec_cl_cannot_open_error_output_file,
-                                   opt_arg);
-          }  /* if */
-          f_error = f_new_error;
-        }
+        f_error = open_output_file_with_error(
+                         opt_arg, /*binary_file=*/FALSE, /*update_mode=*/FALSE,
+                         OFF_COMMAND_LINE, ec_error);
 #if DEBUG
         /* Direct debug output to the new error output file. */
         f_debug = f_error;

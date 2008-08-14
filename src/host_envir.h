@@ -2341,6 +2341,66 @@ EXTERN a_directory_name_entry_ptr
 			   been allocated in IL memory.  Used so that the
 			   strings can be shared. */
 
+/*
+Flags used to indicate the behavior of the file open routines.  These flags
+are used by routines such as fopen_with_error to determine whether
+an error should be issued, or a NULL file pointer returned.
+*/
+typedef int an_open_file_flag_set;
+
+#define OFF_NO_OPTIONS		0x0
+#define OFF_OKAY_IF_NOT_FOUND	0x1
+			/* TRUE if a NULL file pointer should be returned if
+			   the file does not exist.  FALSE if an error should
+			   be issued. */
+#define OFF_OKAY_IF_CANNOT_OPEN	0x2
+			/* TRUE if a NULL file pointer should be returned if
+			   the file exists but cannot be opened.  FALSE if an
+			   error should be issued. */
+#define OFF_OKAY_IF_NOT_REGULAR	0x4
+			/* TRUE if a NULL file pointer should be returned if
+			   the file exists but is not a regular file.  FALSE
+			   if an error should be issued. */
+#define OFF_OKAY_IF_DIRECTORY	0x8
+			/* TRUE if a NULL file pointer should be returned if
+			   the file names a directory.  FALSE if an error
+			   should be issued. */
+#define OFF_COMMAND_LINE	0x10
+			/* TRUE if an open failure should be reported as a
+			   command-line error. */
+#if DEBUG
+#define OFF_FORCE_ERROR		0x8000000
+			/* TRUE if the open operation should be considered to
+			   have failed.  For debugging purposes. */
+#endif /* DEBUG */
+
+/*
+Flags used to indicate the failure reason when a NULL pointer is returned
+by a file open routine.
+*/
+typedef int an_open_file_result_set;
+typedef struct an_open_file_result {
+  an_open_file_result_set
+		flags;
+			/* Bit flags that indicate any errors that may have
+			   occurred while opening the file. */
+  int		errno_value;
+			/* The errno value if the file could not be opened. */
+} an_open_file_result;
+
+#define OFR_NOT_FOUND		0x1
+			/* The specified name was not found. */
+#define OFR_CANNOT_OPEN		0x2
+			/* The name exists but cannot be opened. */
+#define OFR_NOT_REGULAR		0x4
+			/* The name specifies a file that is not a regular
+			   file. */
+#define OFR_IS_DIRECTORY	0x8
+			/* The name specifies a directory. */
+#define OFR_BAD_NAME		0x10
+			/* The name specifies an invalid file name. */
+
+
 #if MAKE_FRONT_END_CALLABLE
 #include <setjmp.h> 
 
@@ -2352,6 +2412,7 @@ EXTERN jmp_buf	edg_main_setjmp_buffer;
 			   to the main routine in the event of an error. */
 #endif /* MAKE_FRONT_END_CALLABLE */
 
+void clear_open_file_result(an_open_file_result	*open_result);
 
 /* Add the default system include file search path. */
 extern void add_default_include_search_path(
@@ -2509,26 +2570,34 @@ extern a_boolean is_directory(char *file_name);
 extern a_boolean is_absolute_file_name(char *file_name);
 
 /* Open a source file. */
-extern FILE *open_source_file(char                  *file_name,
-                              a_boolean             *not_found,
-                              a_boolean             *bad_format,
-                              a_boolean             *bad_name,
-                              a_unicode_source_kind *unicode_source_kind);
+extern
+FILE *open_source_file(char                  *file_name,
+		       an_open_file_result   *open_result,
+                       a_unicode_source_kind *unicode_source_kind);
 /* Reopen a source file. */
 extern FILE *reopen_source_file(char                  *file_name,
                                 a_unicode_source_kind *unicode_source_kind);
 /* Open an output file. */
-extern FILE *open_output_file(char          *file_name,
-                              a_boolean     binary_file,
-                              a_boolean     update_mode,
-                              a_boolean     *cannot_open,
-                              a_boolean     *bad_name);
+extern
+FILE *open_output_file(char			*file_name,
+                       a_boolean		binary_file,
+                       a_boolean		update_mode,
+		       an_open_file_result	*open_result);
 
 a_boolean okay_as_output_file(char *file_name);
 
+extern FILE *fopen_with_result(char			*file_name,
+			       char			*mode,
+			       an_open_file_result	*open_result);
+
+extern a_boolean close_output_file(FILE	*f_output,
+				   int	*errno_value);
+
 /* Open an input file. */
-extern FILE *open_input_file(char          *file_name,
-                             a_boolean     binary_file);
+extern
+FILE *open_input_file(char			*file_name,
+                      a_boolean			binary_file,
+		      an_open_file_result	*open_result);
 
 extern void delete_file(char *file_name);
 
@@ -2621,7 +2690,8 @@ extern
 a_void_ptr map_input_file_to_region(FILE		*file,
                                     sizeof_t		offset,
 				    sizeof_t		size,
-				    a_void_ptr		address);
+				    a_void_ptr		address,
+                                    char                *file_name);
 
 extern void unmap_memory(a_void_ptr	addr,
 			 sizeof_t	size);

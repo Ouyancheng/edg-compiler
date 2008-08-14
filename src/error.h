@@ -264,6 +264,22 @@ extern DOES_NOT_RETURN command_line_error(an_error_code error_code);
 /*lint -sem(str_command_line_error, r_no)*/
 extern DOES_NOT_RETURN str_command_line_error(an_error_code error_code,
                                               char          *fill_in_string);
+
+extern
+void open_file_error(an_error_severity		severity,
+		     an_error_code		file_kind,
+                     char			*file_name,
+		     an_open_file_result	*open_result);
+
+/*lint -sem(open_output_file_error, r_no)*/
+extern
+DOES_NOT_RETURN open_output_file_error(a_boolean         bad_name,
+                                       an_error_code     file_kind,
+                                       char              *file_name,
+                                       an_error_severity severity);
+/*lint -sem(file_write_error, r_no)*/
+extern DOES_NOT_RETURN file_write_error(an_error_code file_kind,
+                                        int           errno_value);
 extern void pos_st_diagnostic(an_error_severity error_severity,
                               an_error_code     error_code,
                               a_source_position *error_pos,
@@ -440,10 +456,6 @@ extern DOES_NOT_RETURN pos_st_catastrophe(an_error_code     error_code,
 /*lint -sem(str_catastrophe, r_no)*/
 extern DOES_NOT_RETURN str_catastrophe(an_error_code error_code,
                                        char          *error_string);
-/*lint -sem(error_code_catastrophe, r_no)*/
-extern DOES_NOT_RETURN error_code_catastrophe(an_error_code error_code,
-					      an_error_code error_code2);
-
 /*lint -sem(catastrophe, r_no)*/
 extern DOES_NOT_RETURN catastrophe(an_error_code error_code);
 
@@ -453,6 +465,13 @@ extern DOES_NOT_RETURN pos_str2_catastrophe(an_error_code     error_code,
                                             char              *error_string2,
     				            a_source_position *error_pos);
 
+/*lint -sem(errno_catastrophe, r_no)*/
+extern DOES_NOT_RETURN errno_catastrophe(an_error_code error_code,
+                                         int           errno_value);
+/*lint -sem(str_errno_catastrophe, r_no)*/
+extern DOES_NOT_RETURN str_errno_catastrophe(an_error_code error_code,
+                                             char          *error_string,
+                                             int           errno_value);
 /* Interfaces for producing multiple message diagnostics. */
 extern void pos_start_diagnostic(an_error_severity  error_severity,
                                  an_error_code      error_code,
@@ -506,6 +525,34 @@ extern void pch_message(an_error_code error_code,
    		        char	      *fill_in_str);
 
 extern void diag_pragma(struct a_pending_pragma *ppp);
+
+extern
+FILE *fopen_with_error(char			*file_name,
+		       char			*mode,
+		       an_open_file_flag_set	open_flags,
+		       an_error_code		file_kind);
+
+extern
+FILE *open_output_file_with_error(char			*file_name,
+				  a_boolean		binary_file,
+				  a_boolean		update_mode,
+				  an_open_file_flag_set	open_flags,
+				  an_error_code		file_kind);
+
+extern
+FILE *open_input_file_with_error(char			*file_name,
+				 a_boolean		binary_file,
+				 an_open_file_flag_set	open_flags,
+				 an_error_code		file_kind);
+
+extern void close_output_file_with_error(FILE		**f_output,
+					 an_error_code	file_kind);
+
+extern
+FILE *open_source_file_with_error(char                  *file_name,
+				  an_open_file_flag_set	open_flags,
+				  an_open_file_result	*open_result,
+		                  a_unicode_source_kind *unicode_source_kind);
 
 extern void embedded_cplusplus_noncompliance_diagnostic(
                                               a_source_position  *error_pos,

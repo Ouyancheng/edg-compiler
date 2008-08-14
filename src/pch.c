@@ -22,6 +22,8 @@ pch.c -- Precompiled header processing.
 #pragma hdrstop
 #endif /* ifdef PCH_PRAGMA_GUARD */
 
+#include <errno.h>
+
 /* Additional header files. */
 #include "pch.h"
 #include "decls.h"
@@ -145,7 +147,7 @@ error.
 */
 {
   error_position = null_source_position;
-  error_code_catastrophe(ec_file_write_error, ec_pch);
+  file_write_error(ec_pch, errno);
 }  /* pch_write_error */
 
 
@@ -682,8 +684,6 @@ static void open_pch_output_file(void)
 Create or truncate the precompiled header file.
 */
 {
-  a_boolean	cannot_open;
-  a_boolean	bad_name;
   char		*file_name;
 
   if (create_precompiled_header) {
@@ -698,15 +698,11 @@ Create or truncate the precompiled header file.
        same file that they are reading. */
     delete_file(pch_file_name);
   }  /* if */
-  f_pch_output = open_output_file(pch_file_name, /*binary_file=*/TRUE,
-                                  /*update_mode=*/FALSE,
-                                  &cannot_open, &bad_name);
-  if (bad_name) {
-    str_command_line_error(ec_cl_invalid_pch_output_file, pch_file_name);
-  } else if (cannot_open) {
-    str_command_line_error(ec_cl_cannot_open_pch_output_file,
-                           pch_file_name);
-  }  /* if */
+  f_pch_output = open_output_file_with_error(pch_file_name,
+                                             /*binary_file=*/TRUE,
+                                             /*update_mode=*/FALSE,
+                                             OFF_NO_OPTIONS,
+					     ec_precompiled_header);
 }  /* open_pch_output_file */
 
 
@@ -717,12 +713,17 @@ If the file cannot be opened, and the name was explicitly specified by the
 user, then issue an error.
 */
 {
-  f_pch_input = open_input_file(file_name, /*binary_file=*/TRUE);
-  if (f_pch_input == NULL && !automatic_pch_processing) {
-    /* Only issue an error if the input file was explicitly specified. */
-    str_command_line_error(ec_cl_cannot_open_pch_input_file,
-                           file_name);
+  an_open_file_flag_set	open_flags = OFF_NO_OPTIONS;
+
+  if (automatic_pch_processing) {
+    /* Silently ignore errors if the input file was not explicitly
+       specified. */
+    open_flags = OFF_OKAY_IF_NOT_FOUND | OFF_OKAY_IF_CANNOT_OPEN |
+                 OFF_OKAY_IF_NOT_REGULAR | OFF_OKAY_IF_DIRECTORY;
   }  /* if */
+  f_pch_input = open_input_file_with_error(file_name, /*binary_file=*/TRUE,
+                                           open_flags,
+                                           ec_precompiled_header);
   return f_pch_input != NULL;
 }  /* open_pch_input_file */
 
@@ -1232,7 +1233,6 @@ the PCH file.
 */
 {
   int		i;
-  a_void_ptr	addr;
   sizeof_t	offset;
 
 
@@ -1244,15 +1244,10 @@ the PCH file.
   for (i = 0; i < new_alloc_history_entries; ++i) {
     a_mem_alloc_history_ptr	mahp = &new_alloc_history[i];
     offset = do_page_alignment(offset);
-    addr = map_input_file_to_region(f_pch_input, offset,
-                                    mahp->size, mahp->addr);
+    (void)map_input_file_to_region(f_pch_input, offset,
+                                   mahp->size, mahp->addr,
+                                   pch_input_file_name);
     offset += mahp->size;
-    if (addr == NULL) {
-      /* We were unable to get the desired mapped memory.  This is
-         something we can't recover from. */
-      error_position = null_source_position;
-      catastrophe(ec_unable_to_get_mapped_memory);
-    }  /* if */
     /* Create a memory allocation history entry for this block. */
     record_mapped_mem_block(mahp->addr, mahp->size);
 #if DEBUG

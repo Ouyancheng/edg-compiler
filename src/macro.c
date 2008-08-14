@@ -7312,10 +7312,8 @@ Return the file descriptor.
                                   (a_text_buffer_ptr)NULL);
   append_to_path_name(buf, PREDEFINED_MACRO_FILE_NAME);
   file_name = buf->buffer;
-  f_file = fopen(file_name, "r");
-  if (f_file == NULL) {
-    str_catastrophe(ec_cannot_open_predef_macro_file, file_name);
-  }  /* if */
+  f_file = fopen_with_error(file_name, "r", OFF_NO_OPTIONS,
+                            ec_predef_macro);
   return f_file;
 }  /* open_predefined_macro_file */
 

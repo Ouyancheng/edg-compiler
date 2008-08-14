@@ -46,6 +46,8 @@ instead of K&R C.
 /* Header files common to all files. */
 #include "fe_common.h"
 
+#include <errno.h>
+
 /* Additional header files. */
 #include "c_gen_be.h"
 
@@ -556,7 +558,7 @@ End the current line of output.
     /* Error in writing the output file.  This check supplements the check
        done when the file is closed.  The check here helps catch a disk full
        error quickly. */
-    error_code_catastrophe(ec_file_write_error, ec_generated_c_output);
+    file_write_error(ec_generated_c_output, errno);
   }  /* if */
   /* Keep track of the current position if we know where we are. */
   if (curr_output_pos_known) curr_output_line++;
@@ -5550,7 +5552,7 @@ the file.
 
   /* Seek to the beginning of the file. */
   if (fseek(f, 0L, SEEK_SET) != 0) {
-    error_code_catastrophe(ec_file_write_error, ec_temporary);
+    file_write_error(ec_temporary, errno);
   }  /* if */
   end_output_line_if_begun();
   /* We're counting on the fact that the initialization code will have its
@@ -8933,7 +8935,6 @@ Generate a C output file (with the given name) from the intermediate language.
 If C_output_file_name is NULL, use stdout for the output.
 */
 {
-  a_boolean         cannot_open, bad_name;
   a_scope_ptr       scope;
   a_source_file_ptr prim_source_file;
 
@@ -8941,15 +8942,10 @@ If C_output_file_name is NULL, use stdout for the output.
     /* For a NULL name, use stdout. */
     f_C_output = stdout;
   } else {
-    f_C_output = open_output_file(C_output_file_name, /*binary_file=*/FALSE,
-                                  /*update_mode=*/FALSE,
-                                  &cannot_open, &bad_name);
-    if (bad_name) {
-      str_command_line_error(ec_cl_invalid_C_output_file, C_output_file_name);
-    } else if (cannot_open) {
-      str_command_line_error(ec_cl_cannot_open_C_output_file,
-                             C_output_file_name);
-    }  /* if */
+    f_C_output = open_output_file_with_error(C_output_file_name,
+                                             /*binary_file=*/FALSE,
+                                             /*update_mode=*/FALSE,
+                                             OFF_NO_OPTIONS, ec_C);
   }  /* if */
   /* Remember the primary output file. */
   f_primary = f_C_output;
@@ -9011,12 +9007,8 @@ If C_output_file_name is NULL, use stdout for the output.
 
   /* Finish the last line, if there is one. */
   end_output_line_if_begun();
-  /* Check for errors in writing the output file, then close it. */
-  if (fflush(f_C_output) || ferror(f_C_output) ||
-      (f_C_output != stdout && fclose(f_C_output))) {
-    error_code_catastrophe(ec_file_write_error, ec_generated_c_output);
-  }  /* if */
-  f_primary = f_C_output = NULL;
+  close_output_file_with_error(&f_C_output, ec_generated_c_output);
+  f_primary = NULL;
 }  /* generate_C_output_file */
 
 
