@@ -6526,6 +6526,9 @@ Process the arguments on the command line that invoked the compiler.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   int                           i;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  char				*error_file_name = NULL;
+  char				*xref_file_name = NULL;
+  char				*listing_file_name = NULL;
 
   /* Set a current position indicating we are looking at the command line. */
   pos_curr_token.seq = 0;
@@ -6880,27 +6883,17 @@ Process the arguments on the command line that invoked the compiler.
            file/line information, and indications of which lines are which,
            to be read later by a program that will generate an
            interspersed listing). */
-        f_raw_listing = open_output_file_with_error(
-                         opt_arg, /*binary_file=*/FALSE, /*update_mode=*/FALSE,
-                         OFF_COMMAND_LINE, ec_raw_listing);
+        listing_file_name = opt_arg;
         break;
       case optk_generate_cross_reference:
         /* Generate a file of cross-reference information (locations and
 	   kinds of references to symbols) */
-        f_xref_info = open_output_file_with_error(
-                         opt_arg, /*binary_file=*/FALSE, /*update_mode=*/FALSE,
-                         OFF_COMMAND_LINE, ec_cross_reference);
+        xref_file_name = opt_arg;
         break;
       case optk_stderr_file_name:
         /* Redirect error output to a file.  This is useful on systems where
            redirection is not well supported. */
-        f_error = open_output_file_with_error(
-                         opt_arg, /*binary_file=*/FALSE, /*update_mode=*/FALSE,
-                         OFF_COMMAND_LINE, ec_error);
-#if DEBUG
-        /* Direct debug output to the new error output file. */
-        f_debug = f_error;
-#endif /* DEBUG */
+        error_file_name = opt_arg;
         break;
       case optk_output_file_name:
         /* Specify output file for preprocessing output or IL. */
@@ -8068,6 +8061,31 @@ enable_microsoft_mode:
      something. */
   if (ofile_name != NULL) {
     command_line_error(ec_cl_no_output_file_needed);
+  }  /* if */
+  /* Now that any command-line errors have been diagnosed, open files
+     specified on the command-line. */
+  if (listing_file_name != NULL) {
+        f_raw_listing = open_output_file_with_error(
+                         listing_file_name, /*binary_file=*/FALSE,
+                         /*update_mode=*/FALSE, OFF_COMMAND_LINE,
+                         ec_raw_listing);
+  }  /* if */
+  if (xref_file_name != NULL) {
+    f_xref_info = open_output_file_with_error(
+                         xref_file_name, /*binary_file=*/FALSE,
+                         /*update_mode=*/FALSE, OFF_COMMAND_LINE,
+                         ec_cross_reference);
+  }  /* if */
+  if (error_file_name != NULL) {
+    /* The error file should be opened last so that any errors from the
+       other file opens will be directed to the old error output file. */
+    f_error = open_output_file_with_error(
+                         error_file_name, /*binary_file=*/FALSE,
+                         /*update_mode=*/FALSE, OFF_COMMAND_LINE, ec_error);
+#if DEBUG
+    /* Direct debug output to the new error output file. */
+    f_debug = f_error;
+#endif /* DEBUG */
   }  /* if */
   /* Set the predefined macro mode values based on the command-line options
      used. */

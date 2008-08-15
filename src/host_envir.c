@@ -1391,53 +1391,17 @@ but checks on whether the file name suffix is something a compiler should be
 writing.  This helps avoid problems with clobbering of input files.
 */
 {
-  a_boolean okay = FALSE;
-  char      *last_slash, *name_start, *last_dot;
+  a_boolean okay = TRUE;
 
   if (primary_source_file_name != NULL &&
       strcmp(file_name, primary_source_file_name) == 0) {
     /* Name is the same as the primary source file name, so it's not okay.
-       This catches cases where the primary source file does not have a
-       .c suffix.  Note, however, that it won't catch cases where the
+       Note, however, that it won't catch cases where the
        source file name and output file name are the same file but
        written in different ways, as for example with different but
        equivalent directory names. */
     okay = FALSE;
-  } else {
-    /* Find the base name by removing the directory and suffix. */
-    last_slash = end_of_directory_name(file_name);
-    if (last_slash == NULL) {
-      /* No directory name, start of file name is start of base name. */
-      name_start = file_name;
-    } else {
-      /* Start of base name is after the directory name. */
-      name_start = last_slash + 1;
-    }  /* if */
-    /* Find suffix, if any. */
-    if ((last_dot = mbc_strrchr(name_start, '.')) == NULL) {
-      /* No suffix. */
-      okay = TRUE;
-    } else {
-      /* Has suffix.  Check for ".f", ".c", and ".a" and disallow those. */
-      if (strcmp(last_dot, ".a") == 0 ||
-          strcmp(last_dot, ".f") == 0 ||
-          (strcmp(last_dot, ".c") == 0)) {
-        okay = FALSE;
-#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
-        /* However, the generated C suffix is allowed if using c_gen_be. */
-        { int	suffix_start = strlen(name_start) - sizeof(GEN_C_FILE_SUFFIX);
-          if (suffix_start >= 0 &&
-              strcmp(name_start + suffix_start + 1, GEN_C_FILE_SUFFIX) == 0) {
-            okay = TRUE;
-          }  /* if */
-       }
-#endif /* BACK_END_IS_C_GEN_BE || ... */
-      } else {
-        okay = TRUE;
-      }  /* if */
-    }  /* if */
   }  /* if */
-  
   return(okay);
 }  /* okay_as_output_file */
 
@@ -1458,14 +1422,20 @@ can be read as well as written.
   FILE *temp_file;
   char *mode;
 
-  if (update_mode) {
-    mode = (char *)(binary_file ? FOPEN_MODE_FOR_BINARY_UPDATE :
-                                  FOPEN_MODE_FOR_UPDATE);
+  if (!okay_as_output_file(file_name)) {
+    clear_open_file_result(open_result);
+    open_result->flags |= OFR_BAD_NAME;
+    temp_file = NULL;
   } else {
-    mode = (char *)(binary_file ? FOPEN_MODE_FOR_BINARY_WRITE
-                                : FOPEN_MODE_FOR_WRITE);
+    if (update_mode) {
+      mode = (char *)(binary_file ? FOPEN_MODE_FOR_BINARY_UPDATE :
+                                    FOPEN_MODE_FOR_UPDATE);
+    } else {
+      mode = (char *)(binary_file ? FOPEN_MODE_FOR_BINARY_WRITE
+                                  : FOPEN_MODE_FOR_WRITE);
+    }  /* if */
+    temp_file = fopen_with_result(file_name, mode, open_result);
   }  /* if */
-  temp_file = fopen_with_result(file_name, mode, open_result);
   return temp_file;
 }  /* open_output_file */
 

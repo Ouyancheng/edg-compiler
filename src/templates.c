@@ -18319,6 +18319,7 @@ if one already exists.
 */
 {
   FILE		*f_ii_file = NULL;
+  a_boolean	open_for_write = FALSE;
 
   if (strcmp(primary_source_file_name, FILE_NAME_FOR_STDIN) != 0) {
     /* The name of the instantiation request file should have already
@@ -18340,6 +18341,7 @@ if one already exists.
            the existence of the file is used as a signal to the driver. */
         if (f_ii_file == NULL) {
           f_ii_file = fopen(instantiation_request_file_name, "a");
+          open_for_write = TRUE;
           if (f_ii_file == NULL) {
             str_catastrophe(ec_cannot_create_instantiation_request_file,
                             instantiation_request_file_name);
@@ -18353,15 +18355,23 @@ if one already exists.
       if (f_ii_file != NULL) {
         /* Close the file before removing it.  This is necessary on
            some operating systems. */
-        close_output_file_with_error(&f_ii_file,
-                                     ec_instantiation_request);
+        if (open_for_write) {
+          close_output_file_with_error(&f_ii_file,
+                                       ec_instantiation_request);
+        } else {
+          (void)fclose(f_ii_file);
+        }  /* if */
         delete_file(instantiation_request_file_name);
       }  /* if */
     }  /* if */
   }  /* if */
   if (f_ii_file != NULL) {
-    close_output_file_with_error(&f_ii_file,
-                                 ec_instantiation_request);
+    if (open_for_write) {
+      close_output_file_with_error(&f_ii_file,
+                                   ec_instantiation_request);
+    } else {
+      (void)fclose(f_ii_file);
+    }  /* if */
   }  /* if */
 }  /* create_or_remove_instantiation_request_file */
 

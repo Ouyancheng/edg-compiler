@@ -59,6 +59,20 @@ the text is provided by the host system's strerror routine.  A few of
 the Windows-specific routines in host_envir.c use the Windows routines
 GetLastError and FormatMessage to produce the text.
 
+As part of this change, the handling of output file error checking has
+been revised.  The front end no longer prohibits the use of certain file
+suffixes for output files.  The suffix list was incomplete, so rather than
+try to provide a complete list of suffixes, the opening of output files
+is now postponed until the primary source file has been identified.  The
+front end ensures that the primary source file is not accidentally overwritten
+as a result of a mistyped command line (e.g., "edgcpfe --xref x.c x.c").
+
+If the --error_output option is used to redirect diagnostics to a file other
+than stderr, the new file is now opened after all command-line processing
+has been done.  This ensures that all command-line diagnostics will be
+issued to stderr.  Formerly, command-line diagnostics that followed the
+--error_output option would be directed to the new file.
+
 8/11/08  [EDGcpfe/9141]
 Assertion failure: "add_dyn_init_cleanup: no temps"
 
