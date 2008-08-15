@@ -1282,9 +1282,7 @@ is the destination of an initialization operation.
     /* When VLAs are lowered, the array variable becomes a pointer to the
        allocated space. */
     if (var->is_vla) {
-      lower_vla_address(entity_node);
-      /* Add an indirection to convert this expression to an lvalue. */
-      entity_node = add_indirection_to_node(entity_node);
+      lower_vla_variable_lvalue(entity_node);
       vla_has_been_lowered = TRUE;
     }  /* if */
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */

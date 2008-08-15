@@ -2047,14 +2047,14 @@ void change_to_cast(an_expr_node_ptr node,
                     an_expr_node_ptr operand_node,
                     a_type_ptr       new_type)
 /*
-Change an existing node into a cast of (rvalue) operand_node to new_type.
-The lvalueness of node is unchanged.
+Change an existing node into a cast of operand_node to new_type.
+operand_node (as well as the resulting node) are rvalues.
 */
 {
-  /* FIXME: causes VLA aborts: check_assertion(!operand_node->is_lvalue); */
+  check_assertion(!operand_node->is_lvalue);
   set_expr_node_kind(node, (an_expr_node_kind)enk_operation);
   set_node_operator(node, (an_expr_operator_kind)eok_cast,
-                    new_type, node->is_lvalue, operand_node);
+                    new_type, /*is_lvalue=*/FALSE, operand_node);
   node->variant.operation.compiler_generated = TRUE;
 }  /* change_to_cast */
 
@@ -10873,6 +10873,7 @@ have already been lowered.  The expression is an rvalue.
 #else /* IA64_ABI */
   /* Get the function pointer stored in the virtual function table. */
   func_select_node = add_indirection_to_node(vtbl_entry_node);
+  func_select_node = rvalue_expr_for_lvalue(func_select_node);
   change_to_cast(expr, func_select_node, expr->type);
 #endif /* IA64_ABI */
 }  /* lower_virtual_function_ptr */
@@ -11920,17 +11921,6 @@ adjusting.
        as necessary to preserve the const-ness. */
     lower_operation_on_const_string(expr, /*lower_source=*/FALSE);
   }  /* if */
-#if LOWER_VARIABLE_LENGTH_ARRAYS
-  if (is_operation_node(expr) &&
-      node_operator_is(expr, eok_address_of) &&
-      is_vla_type(type_pointed_to(expr->type)) &&
-      is_variable_node(expr->variant.operation.operands) &&
-      !expr->variant.operation.operands->is_lvalue) {
-    /* We've just taken the address of a lowered VLA variable.  Some
-       adjustments are necessary. */
-    adjust_address_of_lowered_vla(expr);
-  }  /* if */
-#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
 }  /* process_newly_combined_expression */
 
 #if LOWER_LVALUE_RETURNING_OPERATIONS
@@ -12680,60 +12670,66 @@ cast.  See lower_expr for typical invocation.
 #if LOWER_VARIABLE_LENGTH_ARRAYS
       if (expr->variant.variable->is_vla && expr->is_lvalue) {
         /* VLAs are lowered to pointers (to automatically managed storage).
-           The pointer value should be used, not its address. */
-        lower_vla_address(expr);
-      }  /* if */
+           The pointer value should be used. */
+        lower_vla_variable_lvalue(expr);
+        /* The expression is no longer an enk_variable expression, so
+           skip the checks below (they don't apply to array variables
+           anyway). */
+      } else
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
-      var = expr->variant.variable;
-      /* If the variable is a parameter that's passed by copy constructor,
-         an implicit indirection must be added. */
-      /* assoc_param_type is NULL on the "this" parameter variable and
-         the return value pointer variable. */
-      if (var->is_parameter && var->assoc_param_type != NULL &&
-          var->assoc_param_type->passed_via_copy_constructor) {
-        /* Add an indirection, but don't change the node's type or
-           lvalueness.  The type was "wrong" because the parameter type
-           was changed in lowering, but the indirection here cancels
-           out the extra pointer-to on the parameter type.*/
-        an_expr_node_ptr new_expr;
-        an_expr_node_ptr var_copy = copy_node(expr);
-        /* The type that was in the node is the one we want.
-           Add a pointer to the enk_variable node type so the new node type
-           will be correct. */
-        var_copy->type = make_pointer_type(var_copy->type);
-        if (var_copy->is_lvalue) {
-          /* Convert this node to an rvalue in preparation for the
-             indirection. */
-          var_copy = rvalue_expr_for_lvalue(var_copy);
-        }  /* if */
-        new_expr = add_indirection_to_node(var_copy);
-        if (!expr->is_lvalue) {
-          /* Original expression was an rvalue, make sure new
-             expression is as well. */
-          new_expr = rvalue_expr_for_lvalue(new_expr);
-        }  /* if */
-        check_assertion(il_identical_types(new_expr->type, expr->type) &&
-                        new_expr->is_lvalue == expr->is_lvalue);
-        overwrite_node(expr, new_expr);
+      /* Do not add code here. */
+      {
+        var = expr->variant.variable;
+        /* If the variable is a parameter that's passed by copy constructor,
+           an implicit indirection must be added. */
+        /* assoc_param_type is NULL on the "this" parameter variable and
+           the return value pointer variable. */
+        if (var->is_parameter && var->assoc_param_type != NULL &&
+            var->assoc_param_type->passed_via_copy_constructor) {
+          /* Add an indirection, but don't change the node's type or
+             lvalueness.  The type was "wrong" because the parameter type
+             was changed in lowering, but the indirection here cancels
+             out the extra pointer-to on the parameter type.*/
+          an_expr_node_ptr new_expr;
+          an_expr_node_ptr var_copy = copy_node(expr);
+          /* The type that was in the node is the one we want.
+             Add a pointer to the enk_variable node type so the new node type
+             will be correct. */
+          var_copy->type = make_pointer_type(var_copy->type);
+          if (var_copy->is_lvalue) {
+            /* Convert this node to an rvalue in preparation for the
+               indirection. */
+            var_copy = rvalue_expr_for_lvalue(var_copy);
+          }  /* if */
+          new_expr = add_indirection_to_node(var_copy);
+          if (!expr->is_lvalue) {
+            /* Original expression was an rvalue, make sure new
+               expression is as well. */
+            new_expr = rvalue_expr_for_lvalue(new_expr);
+          }  /* if */
+          check_assertion(il_identical_types(new_expr->type, expr->type) &&
+                          new_expr->is_lvalue == expr->is_lvalue);
+          overwrite_node(expr, new_expr);
 #if DO_RETURN_VALUE_OPTIMIZATION_IN_LOWERING
-      } else if (var_is_return_value_variable(var)) {
-        /* The variable is the return value optimization variable for the
-           current function, so rewrite it as a reference to the implicit
-           parameter through which the return address is passed by the
-           caller. */
-        if (!expr->is_lvalue) {
-          /* Rewrite rvalue reference as value-of-pointer-parameter. */
-          expr->variant.variable = return_value_pointer_variable;
-        } else {
-          /* Rewrite lvalue reference as indirection through
-             return-value-parameter.  This comes up when the class has
-             a copy constructor but no assignment operator function. */
-          operand_node = var_rvalue_expr(return_value_pointer_variable);
-          change_node_to_operation(expr, (an_expr_operator_kind)eok_indirect,
-                                   expr->type, operand_node,
-                                   /*is_lvalue=*/TRUE);
-        }  /* if */
+        } else if (var_is_return_value_variable(var)) {
+          /* The variable is the return value optimization variable for the
+             current function, so rewrite it as a reference to the implicit
+             parameter through which the return address is passed by the
+             caller. */
+          if (!expr->is_lvalue) {
+            /* Rewrite rvalue reference as value-of-pointer-parameter. */
+            expr->variant.variable = return_value_pointer_variable;
+          } else {
+            /* Rewrite lvalue reference as indirection through
+               return-value-parameter.  This comes up when the class has
+               a copy constructor but no assignment operator function. */
+            operand_node = var_rvalue_expr(return_value_pointer_variable);
+            change_node_to_operation(expr, (an_expr_operator_kind)eok_indirect,
+                                     expr->type, operand_node,
+                                     /*is_lvalue=*/TRUE);
+          }  /* if */
 #endif /* DO_RETURN_VALUE_OPTIMIZATION_IN_LOWERING */
+        }  /* if */
       }  /* if */
       break;
     case enk_operation:
