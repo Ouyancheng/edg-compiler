@@ -1760,6 +1760,7 @@ ec_exported_template;INTERNAL;"exported template"
 ec_export_info;INTERNAL;"export information"
 ec_template_information;INTERNAL;"template information"
 ec_il_output;;"IL output"
+ec_restrict_qualifier_dropped;;"conversion drops \"__restrict\" qualifier"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

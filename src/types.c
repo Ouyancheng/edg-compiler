@@ -4795,18 +4795,58 @@ to a pointer to dest_type.
   return okay;
 }  /* exception_spec_conversion_possible */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
 
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/  /* <-- ignore_unaligned is unused in that case. */
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
+static a_boolean handle_microsoft_dropping_of_qualifiers(
+                                  a_type_qualifier_set *source_type_qualifiers,
+                                  a_type_qualifier_set *dest_type_qualifiers,
+                                  a_type_ptr           dest_type,
+                                  an_error_code        *warning_code)
+/*
+MSVC++ does some strange things with certain qualifiers in conversions.
+Dropping __unaligned and __restrict is considered to be like adding those
+qualifiers.  (This is from a source at Microsoft, and he didn't know why
+that is done.)  *source_type_qualifiers and *dest_type_qualifiers give
+the source and destination type qualifiers.  If they indicate the
+strange cases we care about, adjust the qualifiers and set *warning_code
+to indicate the particular weird case.  Otherwise, leave *warning_code
+unchanged.  dest_type is the destination type (possibly with typerefs
+not stripped), for use in a test.  Return TRUE if any adjustment
+was made.
+*/
+{
+  a_boolean adj_made = FALSE;
+
+  check_assertion(microsoft_mode);
+  if ((*source_type_qualifiers & TQ_UNALIGNED) &&
+      !(*dest_type_qualifiers  & TQ_UNALIGNED)) {
+    *source_type_qualifiers &=  ~TQ_UNALIGNED;
+    *dest_type_qualifiers   |=   TQ_UNALIGNED;
+    adj_made = TRUE;
+    if (f_skip_typerefs(dest_type)->alignment != 1) {
+      *warning_code = ec_unaligned_qualifier_dropped;
+    }  /* if */
+  }  /* if */
+  if ((*source_type_qualifiers & TQ_RESTRICT) &&
+      !(*dest_type_qualifiers  & TQ_RESTRICT)) {
+    *source_type_qualifiers &=  ~TQ_RESTRICT;
+    *dest_type_qualifiers   |=   TQ_RESTRICT;
+    adj_made = TRUE;
+    *warning_code = ec_restrict_qualifier_dropped;
+  }  /* if */
+  return adj_made;
+}  /* handle_microsoft_dropping_of_qualifiers */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
 a_boolean qualification_conversion_possible_full(
-                                        a_type_ptr source_type,
-                                        a_type_ptr dest_type,
-                                        a_boolean  *p_qualifiers_added,
-                                        a_boolean  ignore_underlying_type,
-                                        a_boolean  ignore_unaligned,
-                                        a_type_ptr *underlying_source_type,
-                                        a_type_ptr *underlying_dest_type)
+                                        a_type_ptr    source_type,
+                                        a_type_ptr    dest_type,
+                                        a_boolean     *p_qualifiers_added,
+                                        a_boolean     ignore_underlying_type,
+                                        an_error_code *warning_suggested,
+                                        a_type_ptr    *underlying_source_type,
+                                        a_type_ptr    *underlying_dest_type)
 /*
 Return TRUE if source_type and dest_type are compatible types except that
 dest_type may have some additional type qualifiers at some level(s).
@@ -4837,25 +4877,33 @@ If ignore_underlying_type is TRUE, return TRUE once we've reached the
 underlying type of either source_type or dest_type and return the types
 that were reached in underlying_source_type and underlying_dest_type if
 requested to do so by the caller by providing non-NULL values for those
-parameters.  If ignore_unaligned is TRUE, ignore the Microsoft __unaligned
-qualifier in the testing.
+parameters.  If warning_suggested is non-NULL, it will be set to any
+warning suggested for the conversion, or to ec_no_error if no warning
+is needed (this is useful for some weird Microsoft-mode handling of
+the __unaligned and __restrict qualifiers).
 */
 {
-  a_boolean   same;
-  a_boolean   previous_qualifiers_include_const = TRUE;
-  a_boolean   qualifiers_added = FALSE;
+  a_boolean     same;
+  a_boolean     previous_qualifiers_include_const = TRUE;
+  a_boolean     qualifiers_added = FALSE;
+  an_error_code warning_code = ec_no_error;
 
+  if (warning_suggested != NULL) *warning_suggested = ec_no_error;
   for (same = TRUE; same == TRUE;) {
-    a_type_qualifier_set dest_type_qualifiers;
-    a_type_qualifier_set source_type_qualifiers;
-    dest_type_qualifiers = get_type_qualifiers(dest_type);
-    source_type_qualifiers = get_type_qualifiers(source_type);
+    a_type_qualifier_set dest_type_qualifiers = get_type_qualifiers(dest_type);
+    a_type_qualifier_set source_type_qualifiers =
+                                              get_type_qualifiers(source_type);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (ignore_unaligned &&
-        !(dest_type_qualifiers & TQ_UNALIGNED) &&
-        (source_type_qualifiers & TQ_UNALIGNED)) {
-      /* The Microsoft-specific qualifier "__unaligned" can be dropped. */
-      source_type_qualifiers &= ~TQ_UNALIGNED;
+    a_boolean            ms_qualifier_adj_made = FALSE;
+    a_type_qualifier_set orig_dest_type_qualifiers = dest_type_qualifiers;
+    a_type_qualifier_set orig_source_type_qualifiers = source_type_qualifiers;
+    if (microsoft_mode) {
+      /* MSVC++ allows some weird dropping of certain qualifiers. */
+      ms_qualifier_adj_made = handle_microsoft_dropping_of_qualifiers(
+                                              &source_type_qualifiers,
+                                              &dest_type_qualifiers,
+                                              dest_type,
+                                              &warning_code);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (is_template_param_type(dest_type) ||
@@ -4875,8 +4923,20 @@ qualifier in the testing.
       if (any_qualifier_in_set_missing(source_type_qualifiers,
 				       dest_type_qualifiers)) {
 	qualifiers_added = TRUE;
-	same = previous_qualifiers_include_const;
-	if (!same) break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if (ms_qualifier_adj_made &&
+            !any_qualifier_in_set_missing(orig_source_type_qualifiers,
+                                          orig_dest_type_qualifiers)) {
+          /* Some qualifiers were adjusted for the Microsoft case discussed
+             above, but no qualifiers were being added originally.  Don't
+             require that previous steps all have const. */
+        } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        /* Do not insert code here. */
+        {
+          same = previous_qualifiers_include_const;
+          if (!same) break;
+        }  /* if */
       }  /* if */
       /* See if this qualifier includes const. */
       if ((dest_type_qualifiers & TQ_CONST) == 0) {
@@ -4918,14 +4978,19 @@ qualifier in the testing.
       *underlying_dest_type = dest_type;
     }  /* if */
   }  /* if */
+  /* Return any warning code, e.g., for the Microsoft trick with __unaligned
+     and __restrict described above. */
+  if (warning_suggested != NULL && same) *warning_suggested = warning_code;
   return same;
 }  /* qualification_conversion_possible_full */
 
 
-a_boolean qualification_conversion_possible(a_type_ptr source_type,
-					    a_type_ptr dest_type,
-					    a_boolean  *p_qualifiers_added,
-                                            a_boolean  ignore_underlying_type)
+a_boolean qualification_conversion_possible(
+                                          a_type_ptr    source_type,
+                                          a_type_ptr    dest_type,
+                                          a_boolean     *p_qualifiers_added,
+                                          an_error_code *warning_suggested,
+                                          a_boolean     ignore_underlying_type)
 /*
 Interface to qualification_conversion_possible_full that supplies default
 values for the underlying source and destination return values.
@@ -4933,14 +4998,14 @@ values for the underlying source and destination return values.
 {
   return qualification_conversion_possible_full(
                  source_type, dest_type, p_qualifiers_added,
-                 ignore_underlying_type, /*ignore_unaligned=*/FALSE,
+                 ignore_underlying_type, warning_suggested,
                  (a_type_ptr*)NULL, (a_type_ptr*)NULL);
 }  /* qualification_conversion_possible */
 
 
-a_boolean cast_removes_qualifiers(a_type_ptr source_type,
-                                  a_type_ptr dest_type,
-                                  a_boolean  *unaligned_case)
+a_boolean cast_removes_qualifiers(a_type_ptr    source_type,
+                                  a_type_ptr    dest_type,
+                                  an_error_code *warning_suggested)
 /*
 Return TRUE if a cast from source_type to dest_type is a cast
 that, by the rules in the WP [expr.const.cast], casts away const.
@@ -4956,15 +5021,17 @@ the underlying type pointed to.
 If the conversion does not "cast away const" by this definition, return
 FALSE.
 
-If the cast removes the Microsoft __unaligned qualifier, return
-*unaligned_case TRUE.
+If warning_suggested is non-NULL, if the conversion is okay (i.e., it does not
+cast away const, and this routine returns FALSE) but is suspect, return
+*warning_suggested set to a warning to be issued; otherwise return
+*warning suggested set to ec_no_error.
 */
 {
   a_boolean	qualifiers_added;
   a_boolean	result = FALSE;
   a_boolean	check_further = TRUE;
 
-  *unaligned_case = FALSE;
+  if (warning_suggested != NULL) *warning_suggested = ec_no_error;
   if (is_pointer_type(dest_type) && is_pointer_type(source_type)) {
     dest_type = type_pointed_to(dest_type);
     source_type = type_pointed_to(source_type);
@@ -4984,20 +5051,9 @@ If the cast removes the Microsoft __unaligned qualifier, return
        are casting away constness. */
     if (!qualification_conversion_possible(source_type, dest_type,
                                            &qualifiers_added,
+                                           warning_suggested,
                                            /*ignore_underlying_type=*/TRUE)) {
       result = TRUE;
-      if (microsoft_mode &&
-          qualification_conversion_possible_full(
-                                               source_type, dest_type,
-                                               &qualifiers_added,
-                                               /*ignore_underlying_type=*/TRUE,
-                                               /*ignore_unaligned=*/TRUE,
-                                               (a_type_ptr*)NULL,
-                                               (a_type_ptr*)NULL)) {
-        /* MSVC allows dropping __unaligned on a cast.  Return a flag
-           for that case. */
-        *unaligned_case = TRUE;
-      }  /* if */
     }  /* if */
   }  /* if */
   return result;
@@ -5101,6 +5157,7 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
   a_type_ptr       unqual_dest_type_pointed_to, unqual_source_type_pointed_to;
   a_base_class_ptr bcp;
   a_boolean        qualifiers_added, qualifiers_checked;
+  an_error_code    warning_suggested;
 
   db_enter(5, "impl_pointer_conversion");
 #if DEBUG
@@ -5275,6 +5332,7 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
                                      (source_type_pointed_to,
 				      dest_type_pointed_to,
 				      &qualifiers_added,
+                                      &warning_suggested,
                                       /*ignore_underlying_type=*/FALSE)) {
           /* Allow conversion between pointers where type qualifiers are
              being added at levels other than the first, e.g.,
@@ -5283,6 +5341,7 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
           okay = TRUE;
           std_conv->nontrivial_conversion = FALSE;
           std_conv->type_qualifiers_added = qualifiers_added;
+          std_conv->warning_suggested = warning_suggested;
           qualifiers_checked = TRUE;
         } else if ((!suppress_extensions || any_cfront_mode()) &&
                     same_type_with_added_qualifiers(
@@ -5366,14 +5425,14 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
       a_type_qualifier_set source_type_qualifiers =
                                    get_type_qualifiers(source_type_pointed_to);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      a_boolean            unaligned_dropped = FALSE;
-      if (!(dest_type_qualifiers & TQ_UNALIGNED) &&
-          (source_type_qualifiers & TQ_UNALIGNED)) {
-        /* The Microsoft-specific qualifier "__unaligned" can be dropped.
-           Since this is somewhat suspect, we will issue a warning about it
-           (see below) except if another conversion warning is issued. */
-        unaligned_dropped = TRUE;
-        source_type_qualifiers &= ~TQ_UNALIGNED;
+      an_error_code ms_qualifier_warning = ec_no_error;
+      if (microsoft_mode) {
+        /* MSVC++ allows some weird dropping of certain qualifiers. */
+        (void)handle_microsoft_dropping_of_qualifiers(
+                                                &source_type_qualifiers,
+                                                &dest_type_qualifiers,
+                                                unqual_dest_type_pointed_to,
+                                                &ms_qualifier_warning);
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       if (dest_type_qualifiers == source_type_qualifiers) {
@@ -5428,11 +5487,11 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
         std_conv->type_qualifiers_added = TRUE;
       }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (unaligned_dropped && std_conv->warning_suggested == ec_no_error &&
-          unqual_dest_type_pointed_to->alignment != 1) {
-        /* Trigger a diagnostic about the __unaligned property being
-           implicitly dropped. */
-        std_conv->warning_suggested = ec_unaligned_qualifier_dropped;
+      if (ms_qualifier_warning != ec_no_error &&
+          std_conv->warning_suggested == ec_no_error) {
+        /* Trigger a diagnostic about the __unaligned or __restrict
+           qualifier being implicitly dropped. */
+        std_conv->warning_suggested = ms_qualifier_warning;
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
@@ -5595,6 +5654,7 @@ probably the types of the operands of an operation).
     /* This is not the special function case, so the normal check will work. */
     correspond = qualification_conversion_possible
                                   (source_type, dest_type, qualifiers_added,
+                                   (an_error_code *)NULL,
                                    /*ignore_underlying_type=*/FALSE);
   } else {
     /* We have two function types from member pointers.  See if they
@@ -5634,7 +5694,8 @@ See ARM 5.17 (assignment operators) and 4.8 (standard conversions for
 pointers to members).
 */
 {
-  a_boolean  okay = FALSE;
+  a_boolean     okay = FALSE;
+  an_error_code warning_suggested;
  
   db_enter(5, "impl_ptr_to_member_conversion");
 #if DEBUG
@@ -5715,9 +5776,11 @@ pointers to members).
           } else if (qualification_conversion_possible
                                 (source_type_pointed_to, dest_type_pointed_to,
 		                 &qualifiers_added,
+                                 &warning_suggested,
                                  /*ignore_underlying_type=*/FALSE)) {
             /* This is an allowed qualification conversion. */
             std_conv->type_qualifiers_added = qualifiers_added;
+            std_conv->warning_suggested = warning_suggested;
           }  /* if */
         }  /* if */
       } else if (is_template_dependent_context() &&
@@ -6172,8 +6235,8 @@ exception specifications are not checked.
     if (!allow_qualifier_or_eh_mismatch &&
         ((is_pointer(source_type) && is_pointer(dest_type)) ||
         (is_ptr_to_member(source_type) && is_ptr_to_member(dest_type)))) {
-      a_boolean unaligned_case;
-      if (cast_removes_qualifiers(source_type, dest_type, &unaligned_case)) {
+      if (cast_removes_qualifiers(source_type, dest_type,
+                                  (an_error_code *)NULL)) {
         okay = FALSE;
       }  /* if */
     }  /* if */
@@ -6268,7 +6331,11 @@ C++ mode.  See [expr.static.cast].
                                          &impl_std_conv) != FALSE;
     if (impl_okay &&
         (impl_std_conv.warning_suggested == ec_no_error ||
-         impl_std_conv.is_mild_warning)) {
+         impl_std_conv.is_mild_warning ||
+         /* Special-case two warnings we'd like to go with without testing the
+            inverse conversion. */
+         impl_std_conv.warning_suggested == ec_restrict_qualifier_dropped ||
+         impl_std_conv.warning_suggested == ec_unaligned_qualifier_dropped)) {
       /* There is an implicit conversion, and it's not questionable. */
       okay = TRUE;
       *warning_suggested = impl_std_conv.warning_suggested;

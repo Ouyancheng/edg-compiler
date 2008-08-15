@@ -5888,13 +5888,13 @@ argument deduction purposes.
       match = qualification_conversion_possible_full(
                                      templ_type, type, (a_boolean*)NULL,
                                      /*ignore_underlying_type=*/TRUE,
-                                     /*ignore_unaligned=*/FALSE,
+                                     (an_error_code *)NULL,
                                      &templ_type_underlying, &type_underlying);
     } else {
       match = qualification_conversion_possible_full(
                                      type, templ_type, (a_boolean*)NULL,
                                      /*ignore_underlying_type=*/TRUE,
-                                     /*ignore_unaligned=*/FALSE,
+                                     (an_error_code *)NULL,
                                      &type_underlying, &templ_type_underlying);
     }  /* if */
     if (match) {

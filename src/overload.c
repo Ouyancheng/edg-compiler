@@ -1852,11 +1852,13 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
         && pointer_types_have_same_repr(param_type, arg_type)
 #endif /* ifdef pointer_types_have_same_repr */
                                                              ) {
-      a_type_ptr arg_type_pointed_to = type_pointed_to(arg_type);
-      a_type_ptr param_type_pointed_to = type_pointed_to(param_type);
+      a_type_ptr    arg_type_pointed_to = type_pointed_to(arg_type);
+      a_type_ptr    param_type_pointed_to = type_pointed_to(param_type);
+      an_error_code warning_suggested;
       if (qualification_conversion_possible(arg_type_pointed_to,
                                             param_type_pointed_to,
                                             (a_boolean *)NULL,
+                                            &warning_suggested,
                                             /*ignore_underlying_type=*/FALSE)){
         /* Some qualifiers are being added.  This is the
            "T* --> qualified T *" case, which should be remembered
@@ -1865,6 +1867,7 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
            would not come here. */
         arg_summary->match_level = aml_exact;
         arg_summary->conversion.std.type_qualifiers_added = TRUE;
+        arg_summary->conversion.std.warning_suggested = warning_suggested;
         if (param_is_reference) {
           /* This is a Microsoft bug extension.  Mark it as less desirable. */
           arg_summary->tiebreaker_anachronism_used = TRUE;

@@ -1,5 +1,20 @@
 Version 3.11
 
+8/15/08  [EDGcpfe/9157]
+Dropping of __restrict qualifier allowed in Microsoft-mode conversion
+
+Microsoft mode now allows the implicit dropping of a __restrict type
+qualifier in a conversion.  (Actually, MSVC8 considers dropping
+__restrict as identical to adding __restrict, though we don't know
+why.)  The handling for __unaligned has been changed to the same,
+which is a more accurate emulation of MSVC's behavior (see Changes
+entries of 4/23/08 and 9/19/07 for previous iterations on this).
+
+  int **p;
+  void test(int * __restrict * m) {
+    p = m;  // Now accepted in Microsoft mode (with microsoft_version >= 1400)
+  }
+
 8/14/08  [EDGcpfe/9136]
 ELF visibility of external variables created during IL lowering
 

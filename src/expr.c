@@ -11972,7 +11972,6 @@ Syntax:
             conv_object_pointer_to_lvalue(result);
           }  /* if */
         } else {
-          a_boolean unaligned_case;
           /* Not a valid cast. */
           err = TRUE;
           if (is_class_struct_union_type(orig_type_cast_to)) {
@@ -11984,16 +11983,10 @@ Syntax:
                                                     /*ignore_qualifiers=*/TRUE,
                                                      (a_boolean *)NULL) &&
                      cast_removes_qualifiers(source_type, type_cast_to,
-                                             &unaligned_case)) {
-            if (unaligned_case) {
-              /* Use a special message for dropping Microsoft __unaligned. */
-              pos_warning(ec_unaligned_qualifier_dropped, &start_position);
-              err = FALSE;
-            } else {
-              /* Use a special message for casting away constness. */
-              pos_st_error(ec_cannot_cast_away_const, &start_position,
-                           "static_cast");
-            }  /* if */
+                                             &warning_suggested)) {
+            /* Use a special message for casting away constness. */
+            pos_st_error(ec_cannot_cast_away_const, &start_position,
+                         "static_cast");
           } else {
             /* Generic message. */
             /* Note: If this is changed to display the types involved,
@@ -12118,26 +12111,28 @@ Syntax:
       if (reinterpret_cast_conversion_possible(source_type,
                                                type_cast_to,
                                                &warning_suggested)) {
-        a_boolean unaligned_case;
+        an_error_code warning_suggested2;
         /* Valid reinterpret_cast conversion. */
         if (cast_removes_qualifiers(source_type, type_cast_to,
-                                    &unaligned_case)) {
+                                    &warning_suggested2)) {
           /* This reinterpret_cast casts away constness, which is not
              allowed. */
-          if (unaligned_case) {
-            /* Use a special message for dropping Microsoft __unaligned. */
-            pos_warning(ec_unaligned_qualifier_dropped, &start_position);
-          } else if (is_const_string_literal_in_microsoft_mode) {
+          if (is_const_string_literal_in_microsoft_mode) {
             /* MSVC++ allows a cast of a string literal that removes
                const (presumably because formerly strings were not const). */
           } else {
             pos_st_error(ec_cannot_cast_away_const, &start_position,
                          "reinterpret_cast");
           }  /* if */
-        }  /* if */
-        if (warning_suggested != ec_no_error) {
-          /* Issue warning on oddball cases. */
-          pos_warning(warning_suggested, &start_position);
+        } else {
+          /* This reinterpret_cast does not cast away constness. */
+          if (warning_suggested == ec_no_error) {
+            warning_suggested = warning_suggested2;
+          }  /* if */
+          if (warning_suggested != ec_no_error) {
+            /* Issue warning on oddball cases. */
+            pos_warning(warning_suggested, &start_position);
+          }  /* if */
         }  /* if */
         if (is_template_dependent_context() &&
             (is_template_dependent_type(source_type) ||
