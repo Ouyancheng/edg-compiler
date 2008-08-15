@@ -4554,6 +4554,33 @@ if it is implicit in its parent class or namespace).
 
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 
+static void form_alignment_attributes(
+                   a_type_ptr                             type,
+                   a_boolean                              *need_leading_space,
+                   an_il_to_str_output_control_block_ptr  octl)
+/*
+Output GNU "aligned" and "packed" attributes as recorded in the given type.
+If *need_leading_space is TRUE, precede the attribute with a leading space.
+If an attribute is output, set *need_leading_space to TRUE.  Do the output
+in the way described by octl.
+*/
+{
+#if USER_CONTROL_OF_STRUCT_PACKING
+  if (type->alignment_set_explicitly) {
+    /* Output an attribute to indicate the explicit alignment. */
+    form_unsigned_argument_attribute("__aligned__",
+                                     (a_host_large_unsigned)type->alignment,
+                                     need_leading_space, octl);
+  }  /* if */
+  if ((is_immediate_class_type(type) &&
+       type->variant.class_struct_union.is_packed) ||
+      (is_immediate_enum_type(type) && type->variant.integer.packed)) {
+    form_simple_attribute("__packed__", need_leading_space, octl);
+  }  /* if */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
+}  /* form_alignment_attributes */
+
+
 static void form_routine_type_attributes(
                    a_type_ptr                             type,
                    a_boolean                              *need_leading_space,
@@ -4568,6 +4595,7 @@ Do the output in the way described by octl.
   a_routine_type_supplement_ptr 
                       rtsp = skip_typerefs(type)->variant.routine.extra_info;
 
+  form_alignment_attributes(type, need_leading_space, octl);
   if (rtsp->result_should_be_used && !octl->c_generating_back_end) {
     /* If we're generating output for the C-generating back end, we do not
        output the attribute __warn_unused_result__ because any diagnostics it
@@ -4650,19 +4678,12 @@ described by octl.
     /* First emit the attributes that when appearing on a typedef would be
        recorded in the typedef entry itself (as opposed to the underlying
        type). */
-#if USER_CONTROL_OF_STRUCT_PACKING
-    if (type->alignment_set_explicitly) {
-      /* Output an attribute to indicate the explicit alignment. */
-      form_unsigned_argument_attribute("__aligned__",
-                                       (a_host_large_unsigned)type->alignment,
-                                       &need_leading_space, octl);
+    if (type->kind != (a_type_kind)tk_routine) {
+      form_alignment_attributes(type, &need_leading_space, octl);
+    } else {
+      /* For routine types, the alignment attributes are emitted by the call
+         to form_routine_type_attributes (below). */
     }  /* if */
-    if ((is_immediate_class_type(type) &&
-         type->variant.class_struct_union.is_packed) ||
-        (is_immediate_enum_type(type) && type->variant.integer.packed)) {
-      form_simple_attribute("__packed__", &need_leading_space, octl);
-    }  /* if */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
     if (is_immediate_class_type(type) && !octl->c_generating_back_end) {
       form_ELF_visibility_attribute(class_type_supp(type)->ELF_visibility,

@@ -2726,7 +2726,14 @@ messages about any invalid attributes.
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
 #if USER_CONTROL_OF_STRUCT_PACKING
       case ak_aligned:
-        invalid_severity = es_discretionary_error;
+        if (gnu_version >= 40300) {
+          ensure_routine_type_is_modifiable(&rp->type);
+          skip_typerefs(rp->type)->alignment = ap->variant.alignment;
+          skip_typerefs(rp->type)->alignment_set_explicitly = TRUE;
+          break;
+        } else {
+          invalid_severity = es_discretionary_error;
+        }  /* if */
         /*FALLTHROUGH*/
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
       default:
@@ -3354,6 +3361,13 @@ Copy any GNU type attributes in type dst to type src.
         { a_routine_type_supplement_ptr src_rtsp, dst_rtsp;
           src_rtsp = src->variant.routine.extra_info;
           dst_rtsp = dst->variant.routine.extra_info;
+#if USER_CONTROL_OF_STRUCT_PACKING
+          if (src->alignment_set_explicitly &&
+              src->alignment > dst->alignment) {
+            dst->alignment = src->alignment;
+            dst->alignment_set_explicitly = TRUE;
+          }  /* if */
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #if GNU_X86_ATTRIBUTES_ALLOWED
           if (src_rtsp->calling_convention !=
                                            (a_calling_convention)cc_default &&

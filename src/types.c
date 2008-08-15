@@ -185,13 +185,13 @@ predicates.
 
 #if GNU_EXTENSIONS_ALLOWED
 
-/* Macro that is TRUE if the two types have the same type attributes.
+/* Macro that is TRUE if the two types have the same alignment attributes.
    The types are already known not to be typerefs and to have the same type
    kind.  The alignment on an array always reflects an alignment attribute
    specified through a typedef on top of it, and is therefore ignored here.
    Incomplete types do not have their alignments set yet.  Nonreal dependent
    types do not have meaningful alignments either. */
-#define same_type_attributes(type_1, type_2) \
+#define same_alignment_attributes(type_1, type_2) \
   ((type_1)->alignment == (type_2)->alignment || \
    is_array(type_1) || \
    is_incomplete(type_1) || is_incomplete(type_2) || \
@@ -3716,7 +3716,7 @@ for more information.
     }  /* switch */
 #if GNU_EXTENSIONS_ALLOWED
     if (gnu_mode && identical &&
-        !same_type_attributes(type_1, type_2)) {
+        !same_alignment_attributes(type_1, type_2)) {
       /* The types have different attributes, so the types are different. */
       identical = FALSE;
     }  /* if */
@@ -4198,14 +4198,15 @@ for exact pointer equality.
 #endif /* CHECKING */
       }  /* switch */
 #if GNU_EXTENSIONS_ALLOWED
-      if (gnu_mode && compat &&
-          !same_type_attributes(type_1, type_2)) {
-        /* The types have different attributes, so the types are different. */
+      if (gnu_mode && compat && type_1->kind != (a_type_kind)tk_routine &&
+          !same_alignment_attributes(type_1, type_2)) {
+        /* The types have different alignments, so the types are
+           incompatible. */
         if (error_matches_anything &&
             (is_or_contains_error_type(type_1) ||
              is_or_contains_error_type(type_2))) {
-          /* If an error type match is involved, ignore an attribute
-             difference (specifically, an alignment difference). */
+          /* If an error type match is involved, ignore an alignment
+             difference. */
         } else {
           compat = FALSE;
         }  /* if */
