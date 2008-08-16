@@ -1972,6 +1972,9 @@ projection symbol.
              is immediately converted to a constant is not a "use" that
              should cause instantiation of the static data member. */
           !(kind & SRK_CONST_VALUE_USE) &&
+          /* Don't instantiate things in prototype instantiations.  They
+             get instantiated if referenced out of a real instantiation. */
+          !(kind & SRK_PROTO_INST_REF) &&
           /* Don't instantiate things in default arguments.  They get
              instantiated if the default argument is actually used. */
           !(kind & SRK_DEFAULT_ARG_EXPR)) {
