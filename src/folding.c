@@ -2436,7 +2436,13 @@ the reason is that the constant is a template parameter constant).
     /* The UPC pseudo-constants are not true constants.  As a result, we do
        not fold unary operations involving these constants. */
     *did_not_fold = TRUE;  
-#endif /* UPC_EXTENSIONS_ALLOWED */ 
+#endif /* UPC_EXTENSIONS_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED
+  } else if (constant->kind == (a_constant_repr_kind)ck_label_difference) {
+    /* The representation for a GNU label difference (&&K-&&L) is not
+       a constant known at compile time. */
+    *did_not_fold = TRUE;
+#endif /* GNU_EXTENSIONS_ALLOWED */
   } else {
     clear_constant(result, (a_constant_repr_kind)ck_error);
     result->type = result_type;
@@ -4739,6 +4745,13 @@ as the position for any diagnostics issued.
     /* An operation on a template parameter constant cannot be folded. */
     *did_not_fold = TRUE;
     *template_constant = TRUE;
+#if GNU_EXTENSIONS_ALLOWED
+  } else if (constant_1->kind == (a_constant_repr_kind)ck_label_difference ||
+             constant_2->kind == (a_constant_repr_kind)ck_label_difference) {
+    /* The representation for a GNU label difference (&&K-&&L) is not
+       a constant known at compile time. */
+    *did_not_fold = TRUE;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 #if UPC_EXTENSIONS_ALLOWED
   } else if (upc_mode &&
              (constant_1->kind == (a_constant_repr_kind)ck_upc_mythread || 
