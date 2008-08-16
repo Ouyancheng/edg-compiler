@@ -1984,7 +1984,7 @@ Clear the fields of the given variable to default values.
 #if MINIMAL_INLINING
   vp->remapping_for_inlining      = NULL;
 #endif /* MINIMAL_INLINING */
-}  /* clear__variable */
+}  /* clear_variable */
 
 
 a_variable_ptr alloc_variable(a_storage_class  storage_class)
