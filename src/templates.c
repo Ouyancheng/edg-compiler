@@ -18360,6 +18360,7 @@ if one already exists.
                                        ec_instantiation_request);
         } else {
           (void)fclose(f_ii_file);
+          f_ii_file = NULL;
         }  /* if */
         delete_file(instantiation_request_file_name);
       }  /* if */
@@ -18371,6 +18372,7 @@ if one already exists.
                                    ec_instantiation_request);
     } else {
       (void)fclose(f_ii_file);
+      f_ii_file = NULL;
     }  /* if */
   }  /* if */
 }  /* create_or_remove_instantiation_request_file */
