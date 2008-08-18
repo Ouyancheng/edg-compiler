@@ -678,7 +678,7 @@ ec_pch_curr_directory_changed;;"precompiled header file %sq was not generated in
 ec_pch_header_files_have_changed;;"header files used to generate precompiled header file %sq have changed"
 ec_pch_cmd_line_option_mismatch;;"the command line options do not match those used when precompiled header file %sq was created"
 ec_pch_file_prefix_mismatch;;"the initial sequence of preprocessing directives is not compatible with those of precompiled header file %sq"
-ec_unable_to_get_mapped_memory_reason;;"unable to obtain mapped memory for %sq: %s2"
+ec_unable_to_get_mapped_memory;;"unable to obtain mapped memory for %sq"
 ec_using_pch;;"\"%s\": using precompiled header file \"%s\""
 ec_creating_pch;;"\"%s\": creating precompiled header file \"%s\""
 ec_memory_mismatch;;"memory usage conflict with precompiled header file %sq"
@@ -1761,6 +1761,7 @@ ec_export_info;INTERNAL;"export information"
 ec_template_information;INTERNAL;"template information"
 ec_il_output;;"IL output"
 ec_restrict_qualifier_dropped;;"conversion drops \"__restrict\" qualifier"
+ec_unable_to_get_mapped_memory_reason;;"unable to obtain mapped memory for %sq: %s2"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

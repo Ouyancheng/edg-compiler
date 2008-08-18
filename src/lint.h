@@ -238,7 +238,7 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(765,form_typeid_reference)*/
 /*lint -esym(759,decltype_arg)*/
 /*lint -esym(765,decltype_arg)*/
-/*lint -esym(769,ec_C_plus_plus)*/
+/*lint -esym(769,ec_generated_c_plus_plus)*/
 #if MICROSOFT_EXTENSIONS_ALLOWED
 /*lint -esym(759,form_calling_convention)*/
 /*lint -esym(765,form_calling_convention)*/

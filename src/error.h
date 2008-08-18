@@ -465,9 +465,6 @@ extern DOES_NOT_RETURN pos_str2_catastrophe(an_error_code     error_code,
                                             char              *error_string2,
     				            a_source_position *error_pos);
 
-/*lint -sem(errno_catastrophe, r_no)*/
-extern DOES_NOT_RETURN errno_catastrophe(an_error_code error_code,
-                                         int           errno_value);
 /*lint -sem(str_errno_catastrophe, r_no)*/
 extern DOES_NOT_RETURN str_errno_catastrophe(an_error_code error_code,
                                              char          *error_string,

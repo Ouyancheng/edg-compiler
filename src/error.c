@@ -5127,18 +5127,6 @@ indicated error_position, and then terminate the compilation.
 }  /* pos_str2_catastrophe */
 
 
-DOES_NOT_RETURN errno_catastrophe(an_error_code error_code,
-                                  int           errno_value)
-/*
-Report the indicated catastrophe with errno converted to a string fill-in
-at the position indicated by error_position, and then terminate the
-compilation.
-*/
-{
-  str_catastrophe(error_code, strerror(errno_value));
-}  /* errno_catastrophe */
-
-
 DOES_NOT_RETURN str_errno_catastrophe(an_error_code error_code,
                                       char          *error_string,
                                       int           errno_value)
