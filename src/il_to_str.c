@@ -4554,6 +4554,9 @@ if it is implicit in its parent class or namespace).
 
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 
+#if !USER_CONTROL_OF_STRUCT_PACKING
+/*ARGSUSED*/ /* The parameters are only used in some configurations. */
+#endif /* !USER_CONTROL_OF_STRUCT_PACKING */
 static void form_alignment_attributes(
                    a_type_ptr                             type,
                    a_boolean                              *need_leading_space,
