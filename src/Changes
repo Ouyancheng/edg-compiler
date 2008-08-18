@@ -1,5 +1,22 @@
 Version 3.11
 
+8/18/08  [EDGcpfe/9051]
+Internal error: "get_integer_attributes: not integral type"
+
+In configurations with RECORD_CONSTANT_EXPRESSIONS_IN_IL set to TRUE,
+inlining of calls that contain operations on pointer to data members could
+result in an internal error: "get_integer_attributes: not integral type".
+This is now fixed.  For example:
+
+  struct A { int i; };
+  struct D : public A {
+    int A_pmd_fa(D *pD, int D::*pmd) { return pD->*pmd; }
+  };
+  main() {
+    D *pD;
+    pD->A_pmd_fa(pD, &A::i);
+  }
+
 8/15/08  [EDGcpfe/9094]
 GNU compatibility: Attribute "aligned" on functions
 
