@@ -2833,7 +2833,8 @@ at *insert_location and *insert_location is updated.
   object_addr_table_node->next = node_for_integer_constant((long)entry_number,
                                                          targ_size_t_int_kind);
   subsc_node = make_lvalue_operator_node((an_expr_operator_kind)eok_subscript,
-                                         object_addr_table_node->type,
+                                         type_pointed_to(
+                                                 object_addr_table_node->type),
                                          object_addr_table_node);
   object_addr_node = add_cast_if_necessary(make_address_of_init_entity_node(
                                                       ipdp,

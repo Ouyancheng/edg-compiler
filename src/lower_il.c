@@ -2237,7 +2237,7 @@ of type ptrdiff_t.
   vtbl_expr->next = index_expr;
   /* Index into the virtual table. */
   entry_expr = make_operator_node((an_expr_operator_kind)eok_subscript,
-                                  pointer_to_vtbl_type(), vtbl_expr);
+                                  make_vtbl_entry_type(), vtbl_expr);
   return entry_expr;
 } /* make_vtbl_entry_expr */
 

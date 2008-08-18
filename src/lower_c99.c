@@ -1494,7 +1494,8 @@ necessary.
   imag_part->next = node_for_integer_constant(
                                            (long)1, targ_ptrdiff_t_int_kind);
   imag_part = make_lvalue_operator_node((an_expr_operator_kind)eok_subscript,
-                                        imag_part->type, imag_part);
+                                        type_pointed_to(imag_part->type),
+                                        imag_part);
   return imag_part;
 }  /* make_imag_part */
 
