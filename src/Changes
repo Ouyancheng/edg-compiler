@@ -17,6 +17,19 @@ This is now fixed.  For example:
     pD->A_pmd_fa(pD, &A::i);
   }
 
+8/16/08  [EDGcpfe/9149]
+Excess instantiations of static data members
+
+The front end recorded the need for instantiations of static data members
+of class templates unnecessarily in some cases.  Specifically, it did so
+when or static data member was used in a prototype instantiation or
+when a constant-valued static data member was used only as a constant.
+These extra instantiations were largely invisible because removal of
+unneeded entities would eliminate those static data members, which would
+clear the instantiation request.  However, users with configurations
+that have both automatic template instantiation and no removal of
+unneeded entities would have seen the instantiations.  Now fixed.
+
 8/15/08  [EDGcpfe/9094]
 GNU compatibility: Attribute "aligned" on functions
 
