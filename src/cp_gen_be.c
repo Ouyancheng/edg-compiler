@@ -13758,11 +13758,10 @@ Generate C++ or C from the intermediate language.
       C_output_file_name = derived_name(primary_source_file_name,
                                         GEN_C_FILE_SUFFIX);
     }  /* if */
-    f_C_output = open_output_file_with_error(C_output_file_name,
-                                             /*binary_file=*/FALSE,
-                                             /*update_mode=*/FALSE,
-                                             OFF_NO_OPTIONS,
-                                             ec_generated_c_plus_plus);
+    f_C_output = open_output_file_with_error_handling(
+                                     C_output_file_name, /*binary_file=*/FALSE,
+                                     /*update_mode=*/FALSE, OFF_NO_OPTIONS,
+                                     ec_generated_c_plus_plus);
   }  /* if */
 
   /* Start with a #line directive that identifies the primary file.  If the
@@ -13778,7 +13777,7 @@ Generate C++ or C from the intermediate language.
 
   /* Finish the last line, if there is one. */
   end_output_line_if_begun();
-  close_output_file_with_error(&f_C_output, ec_generated_c_plus_plus);
+  close_output_file_with_error_handling(&f_C_output, ec_generated_c_plus_plus);
 }  /* cp_gen_be */
 
 

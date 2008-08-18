@@ -4013,13 +4013,11 @@ the file pointer if the open succeeds, or NULL otherwise.
      cause the routine to return a NULL file pointer.  If a failure type
      is not listed here, the open routine will issue a catastrophic error
      for that kind of failure. */
-  new_input_file = open_source_file_with_error(name_to_try,
-					       OFF_OKAY_IF_NOT_FOUND |
-					         OFF_OKAY_IF_DIRECTORY |
-					         OFF_OKAY_IF_NOT_REGULAR |
-					         OFF_OKAY_IF_CANNOT_OPEN,
-					       open_result,
-				               unicode_source_kind);
+  new_input_file = open_source_file_with_error_handling(
+                          name_to_try,
+                          OFF_OKAY_IF_NOT_FOUND | OFF_OKAY_IF_DIRECTORY |
+                            OFF_OKAY_IF_NOT_REGULAR | OFF_OKAY_IF_CANNOT_OPEN,
+                          open_result, unicode_source_kind);
   return new_input_file;
 }  /* try_to_open_source_file */
 
@@ -4529,10 +4527,10 @@ a catastrophic error is not issued, FALSE is returned.
       /* The file could not be opened.  This is normally a catastrophic error
          unless continue_on_open_failure is TRUE. */
       if (continue_on_open_failure) {
-        open_file_error(es_discretionary_error, ec_source, file_name,
+        file_open_error(es_discretionary_error, ec_source, file_name,
                         &open_result);
       } else {
-        open_file_error(es_catastrophe, ec_source, file_name, &open_result);
+        file_open_error(es_catastrophe, ec_source, file_name, &open_result);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -4963,13 +4961,13 @@ at the next level down.
         /* File could not be re-opened; it was probably deleted since the
            compilation started or the Unicode encoding changed since it was
            last opened. */
-        open_file_error(es_catastrophe, ec_source, curr_ise->full_name,
+        file_open_error(es_catastrophe, ec_source, curr_ise->full_name,
                         &open_result);
       }  /* if */
       if (fseek(curr_ise->file, curr_ise->position, SEEK_SET) != 0) {
         /* The seek could not be done.  Again, this implies some change
            in the file since last it was opened. */
-        open_file_error(es_catastrophe, ec_source, curr_ise->full_name,
+        file_open_error(es_catastrophe, ec_source, curr_ise->full_name,
                         &open_result);
       }  /* if */
     }  /* if */

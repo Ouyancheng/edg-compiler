@@ -845,13 +845,13 @@ and before the back end (if any) is executed.
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
 
   /* Close the preprocessing output file, if needed. */
-  close_output_file_with_error(&f_pp_output, ec_preprocessing_output);
+  close_output_file_with_error_handling(&f_pp_output, ec_preprocessing_output);
 
   /* Close the raw listing file if one is being generated. */
-  close_output_file_with_error(&f_raw_listing, ec_raw_listing);
+  close_output_file_with_error_handling(&f_raw_listing, ec_raw_listing);
 
   /* Close the cross-reference file if one is being generated. */
-  close_output_file_with_error(&f_xref_info, ec_cross_reference);
+  close_output_file_with_error_handling(&f_xref_info, ec_cross_reference);
 
 #if DEBUG
   if (display_space_used || debug_level > 0 || db_flag_is_set("space_used")) {

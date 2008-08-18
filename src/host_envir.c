@@ -1275,7 +1275,7 @@ is the name of the file, which is used for diagnostic purposes.
            in the file since last it was opened. */
         an_open_file_result	open_result;
         clear_open_file_result(&open_result);
-        open_file_error(es_catastrophe, ec_source, file_name, &open_result);
+        file_open_error(es_catastrophe, ec_source, file_name, &open_result);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -1614,7 +1614,7 @@ file should be a binary file if binary_file is TRUE.
     /* Retry with incremented file names a certain number of times.  After
        that, give up (the problem may be that the directory name is bad). */
   } while (retry_count-- > 0);
-  open_output_file_error(/*bad_name=*/FALSE, ec_temporary, buffer,
+  output_file_open_error(/*bad_name=*/FALSE, ec_temporary, buffer,
                          es_catastrophe);
 have_file:;
 #if __MICROSOFT_OS__

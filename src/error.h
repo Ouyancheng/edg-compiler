@@ -266,14 +266,14 @@ extern DOES_NOT_RETURN str_command_line_error(an_error_code error_code,
                                               char          *fill_in_string);
 
 extern
-void open_file_error(an_error_severity		severity,
+void file_open_error(an_error_severity		severity,
 		     an_error_code		file_kind,
                      char			*file_name,
 		     an_open_file_result	*open_result);
 
-/*lint -sem(open_output_file_error, r_no)*/
+/*lint -sem(output_file_open_error, r_no)*/
 extern
-DOES_NOT_RETURN open_output_file_error(a_boolean         bad_name,
+DOES_NOT_RETURN output_file_open_error(a_boolean         bad_name,
                                        an_error_code     file_kind,
                                        char              *file_name,
                                        an_error_severity severity);
@@ -533,26 +533,29 @@ FILE *fopen_with_error(char			*file_name,
 		       an_error_code		file_kind);
 
 extern
-FILE *open_output_file_with_error(char			*file_name,
-				  a_boolean		binary_file,
-				  a_boolean		update_mode,
-				  an_open_file_flag_set	open_flags,
-				  an_error_code		file_kind);
+FILE *open_output_file_with_error_handling(
+					char			*file_name,
+					a_boolean		binary_file,
+					a_boolean		update_mode,
+					an_open_file_flag_set	open_flags,
+					an_error_code		file_kind);
 
 extern
-FILE *open_input_file_with_error(char			*file_name,
-				 a_boolean		binary_file,
-				 an_open_file_flag_set	open_flags,
-				 an_error_code		file_kind);
+FILE *open_input_file_with_error_handling(
+				char			*file_name,
+				a_boolean		binary_file,
+				an_open_file_flag_set	open_flags,
+				an_error_code		file_kind);
 
-extern void close_output_file_with_error(FILE		**f_output,
-					 an_error_code	file_kind);
+extern void close_output_file_with_error_handling(FILE		**f_output,
+						  an_error_code	file_kind);
 
 extern
-FILE *open_source_file_with_error(char                  *file_name,
-				  an_open_file_flag_set	open_flags,
-				  an_open_file_result	*open_result,
-		                  a_unicode_source_kind *unicode_source_kind);
+FILE *open_source_file_with_error_handling(
+				char			*file_name,
+				an_open_file_flag_set	open_flags,
+				an_open_file_result	*open_result,
+				a_unicode_source_kind	*unicode_source_kind);
 
 extern void embedded_cplusplus_noncompliance_diagnostic(
                                               a_source_position  *error_pos,

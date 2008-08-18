@@ -777,11 +777,10 @@ Open the template information file.
 #endif /* DEBUG */
   /* Open a file in which the list of generated file names will be
      returned. */
-  f_template_info = open_output_file_with_error(template_info_file_name,
-                                                /*binary_file=*/FALSE,
-                                                /*update_mode=*/FALSE,
-                                                OFF_NO_OPTIONS,
-                                                ec_template_information);
+  f_template_info = open_output_file_with_error_handling(
+                                template_info_file_name, /*binary_file=*/FALSE,
+                                /*update_mode=*/FALSE, OFF_NO_OPTIONS,
+                                ec_template_information);
 }  /* open_template_info_file */
 
 
@@ -833,8 +832,8 @@ already exists.
 {
   if (f_template_info != NULL) {
     /* Close the file if it is open. */
-    close_output_file_with_error(&f_template_info,
-                                 ec_template_information);
+    close_output_file_with_error_handling(&f_template_info,
+                                          ec_template_information);
   }  /* if */
   if (!automatic_instantiation_mode ||
       !any_instantiations_required() || total_errors != 0) {
@@ -865,7 +864,7 @@ Open the template information file.
                        "generate_template_files() is FALSE");
   /* Open the file into which information about exported template will
      be written. */
-  f_exported_template = open_output_file_with_error(
+  f_exported_template = open_output_file_with_error_handling(
                             exported_template_file_name, /*binary_file=*/FALSE,
                             /*update_mode=*/FALSE, OFF_NO_OPTIONS,
                             ec_exported_template);
@@ -919,8 +918,8 @@ have already existed.
     /* Write the "end of file" entry. */
     write_to_exported_template_file(etlt_end, "");
     /* Close the file if it is open. */
-    close_output_file_with_error(&f_exported_template,
-                                 ec_exported_template);
+    close_output_file_with_error_handling(&f_exported_template,
+                                          ec_exported_template);
   }  /* if */
   if (!exported_template_file_opened || total_errors != 0 ||
       remove_exported_template_file) {
@@ -18356,8 +18355,8 @@ if one already exists.
         /* Close the file before removing it.  This is necessary on
            some operating systems. */
         if (open_for_write) {
-          close_output_file_with_error(&f_ii_file,
-                                       ec_instantiation_request);
+          close_output_file_with_error_handling(&f_ii_file,
+                                                ec_instantiation_request);
         } else {
           (void)fclose(f_ii_file);
           f_ii_file = NULL;
@@ -18368,8 +18367,8 @@ if one already exists.
   }  /* if */
   if (f_ii_file != NULL) {
     if (open_for_write) {
-      close_output_file_with_error(&f_ii_file,
-                                   ec_instantiation_request);
+      close_output_file_with_error_handling(&f_ii_file,
+                                            ec_instantiation_request);
     } else {
       (void)fclose(f_ii_file);
       f_ii_file = NULL;
@@ -19584,7 +19583,8 @@ for adding the entries to the actual instantiation request file.
     }  /* if */
 #endif /* DEBUG */
   }  /* for */
-  close_output_file_with_error(&f_definition_list, ec_definition_list);
+  close_output_file_with_error_handling(&f_definition_list,
+                                        ec_definition_list);
 }  /* add_entities_to_request_file */
 
 #if ONE_INSTANTIATION_PER_OBJECT

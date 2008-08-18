@@ -1959,7 +1959,7 @@ If it is not acceptable, issue an error.
 */
 {
   if (!okay_as_output_file(file_name)) {
-    open_output_file_error(/*bad_name=*/TRUE, ec_precompiled_header, file_name,
+    output_file_open_error(/*bad_name=*/TRUE, ec_precompiled_header, file_name,
                            es_command_line_error);
   }  /* if */
 }  /* check_pch_file_name */
@@ -8065,13 +8065,13 @@ enable_microsoft_mode:
   /* Now that any command-line errors have been diagnosed, open files
      specified on the command-line. */
   if (listing_file_name != NULL) {
-    f_raw_listing = open_output_file_with_error(
+    f_raw_listing = open_output_file_with_error_handling(
                          listing_file_name, /*binary_file=*/FALSE,
                          /*update_mode=*/FALSE, OFF_COMMAND_LINE,
                          ec_raw_listing);
   }  /* if */
   if (xref_file_name != NULL) {
-    f_xref_info = open_output_file_with_error(
+    f_xref_info = open_output_file_with_error_handling(
                          xref_file_name, /*binary_file=*/FALSE,
                          /*update_mode=*/FALSE, OFF_COMMAND_LINE,
                          ec_cross_reference);
@@ -8079,7 +8079,7 @@ enable_microsoft_mode:
   if (error_file_name != NULL) {
     /* The error file should be opened last so that any errors from the
        other file opens will be directed to the old error output file. */
-    f_error = open_output_file_with_error(
+    f_error = open_output_file_with_error_handling(
                          error_file_name, /*binary_file=*/FALSE,
                          /*update_mode=*/FALSE, OFF_COMMAND_LINE, ec_error);
 #if DEBUG

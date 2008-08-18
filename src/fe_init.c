@@ -741,7 +741,7 @@ Open the preprocessing output file.
     f_pp_output = stdout;
   } else {
     /* An explicit name was specified. */
-    f_pp_output = open_output_file_with_error(
+    f_pp_output = open_output_file_with_error_handling(
                     pp_file_name, /*binary_file=*/FALSE, /*update_mode=*/FALSE,
                     OFF_COMMAND_LINE, ec_preprocessing_output);
   }  /* if */
@@ -788,7 +788,7 @@ Open the intermediate language file.
     il_file_name = derived_name(primary_source_file_name, IL_FILE_SUFFIX);
 #endif /* BACK_END_SHOULD_BE_CALLED */
   }  /* if */
-  f_il_output = open_output_file_with_error(
+  f_il_output = open_output_file_with_error_handling(
                     il_file_name, /*binary_file=*/TRUE,
                     /*update_mode=*/BACK_END_SHOULD_BE_CALLED,
                     OFF_COMMAND_LINE, ec_il_output);

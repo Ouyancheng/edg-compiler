@@ -698,11 +698,9 @@ Create or truncate the precompiled header file.
        same file that they are reading. */
     delete_file(pch_file_name);
   }  /* if */
-  f_pch_output = open_output_file_with_error(pch_file_name,
-                                             /*binary_file=*/TRUE,
-                                             /*update_mode=*/FALSE,
-                                             OFF_NO_OPTIONS,
-					     ec_precompiled_header);
+  f_pch_output = open_output_file_with_error_handling(
+                    pch_file_name, /*binary_file=*/TRUE, /*update_mode=*/FALSE,
+                    OFF_NO_OPTIONS, ec_precompiled_header);
 }  /* open_pch_output_file */
 
 
@@ -721,9 +719,10 @@ user, then issue an error.
     open_flags = OFF_OKAY_IF_NOT_FOUND | OFF_OKAY_IF_CANNOT_OPEN |
                  OFF_OKAY_IF_NOT_REGULAR | OFF_OKAY_IF_DIRECTORY;
   }  /* if */
-  f_pch_input = open_input_file_with_error(file_name, /*binary_file=*/TRUE,
-                                           open_flags,
-                                           ec_precompiled_header);
+  f_pch_input = open_input_file_with_error_handling(file_name,
+                                                    /*binary_file=*/TRUE,
+                                                    open_flags,
+                                                    ec_precompiled_header);
   return f_pch_input != NULL;
 }  /* open_pch_input_file */
 

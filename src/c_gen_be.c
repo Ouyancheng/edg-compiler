@@ -8942,10 +8942,10 @@ If C_output_file_name is NULL, use stdout for the output.
     /* For a NULL name, use stdout. */
     f_C_output = stdout;
   } else {
-    f_C_output = open_output_file_with_error(C_output_file_name,
-                                             /*binary_file=*/FALSE,
-                                             /*update_mode=*/FALSE,
-                                             OFF_NO_OPTIONS, ec_generated_c);
+    f_C_output = open_output_file_with_error_handling(
+                                     C_output_file_name, /*binary_file=*/FALSE,
+                                     /*update_mode=*/FALSE, OFF_NO_OPTIONS,
+                                     ec_generated_c);
   }  /* if */
   /* Remember the primary output file. */
   f_primary = f_C_output;
@@ -9007,7 +9007,7 @@ If C_output_file_name is NULL, use stdout for the output.
 
   /* Finish the last line, if there is one. */
   end_output_line_if_begun();
-  close_output_file_with_error(&f_C_output, ec_generated_c);
+  close_output_file_with_error_handling(&f_C_output, ec_generated_c);
   f_primary = NULL;
 }  /* generate_C_output_file */
 

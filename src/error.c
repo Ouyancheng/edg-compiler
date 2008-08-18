@@ -3625,7 +3625,7 @@ static DOES_NOT_RETURN error_code_errno_catastrophe(
                                       int           errno_value);
 
 
-static void open_file_error_full(an_error_severity	severity,
+static void file_open_error_full(an_error_severity	severity,
 				 an_error_code		file_kind,
                                  char			*file_name,
 				 an_open_file_result	*open_result,
@@ -3672,10 +3672,10 @@ returned by the file open routine.
   }  /* if */
 
   diag_message(error_code, &local_error_pos, severity, dck_standalone);
-}  /* open_file_error_full */
+}  /* file_open_error_full */
 
 
-void open_file_error(an_error_severity		severity,
+void file_open_error(an_error_severity		severity,
 		     an_error_code		file_kind,
                      char			*file_name,
 		     an_open_file_result	*open_result)
@@ -3686,12 +3686,12 @@ open_result is the entry returned by the file open routine that describes
 the kind of failure.
 */
 {
-  open_file_error_full(severity, file_kind, file_name, open_result,
+  file_open_error_full(severity, file_kind, file_name, open_result,
                        &error_position);
-}  /* open_file_error */
+}  /* file_open_error */
 
 
-DOES_NOT_RETURN open_output_file_error(a_boolean         bad_name,
+DOES_NOT_RETURN output_file_open_error(a_boolean         bad_name,
                                        an_error_code     file_kind,
                                        char              *file_name,
                                        an_error_severity severity)
@@ -3714,12 +3714,12 @@ error is issued instead.
     error_position.seq = 0;
     error_position.column = SP_COL_CMD_LINE;
   }  /* if */
-  open_file_error(severity, file_kind, file_name, &open_result);
+  file_open_error(severity, file_kind, file_name, &open_result);
 #ifdef __GNUC__
-  /* Avoid gcc warning.  open_file_error does not return in this case. */
+  /* Avoid gcc warning.  file_open_error does not return in this case. */
   exit_compilation(es_internal_error);
 #endif /* __GNUC__ */
-}  /* open_output_file_error */
+}  /* output_file_open_error */
 
 
 DOES_NOT_RETURN file_write_error(an_error_code	file_kind,
@@ -3778,10 +3778,11 @@ to the error severity of the error to be issued.
 }  /* open_error_should_be_issued */
 
 
-FILE *open_source_file_with_error(char                  *file_name,
-				  an_open_file_flag_set	open_flags,
-				  an_open_file_result	*open_result,
-		                  a_unicode_source_kind *unicode_source_kind)
+FILE *open_source_file_with_error_handling(
+				char			*file_name,
+				an_open_file_flag_set	open_flags,
+				an_open_file_result	*open_result,
+				a_unicode_source_kind	*unicode_source_kind)
 /*
 Open the given file as a source input file, and return a pointer to the
 file, or NULL if the file cannot be opened (and no error is issued).
@@ -3801,15 +3802,15 @@ is not Unicode.
 #endif /* DEBUG */
   if (file == NULL &&
       open_error_should_be_issued(open_flags, open_result, &severity)) {
-    /* Note that open_file_error does not return when called from here. */
-    open_file_error(severity, ec_source, file_name, open_result);
+    /* Note that file_open_error does not return when called from here. */
+    file_open_error(severity, ec_source, file_name, open_result);
   }  /* if */
   return file;
-}  /* open_source_file_with_error */
+}  /* open_source_file_with_error_handling */
 
 
-void close_output_file_with_error(FILE		**f_output,
-				  an_error_code	file_kind)
+void close_output_file_with_error_handling(FILE			**f_output,
+					   an_error_code	file_kind)
 /*
 Check for errors in writing an output file and close it.  Issue a diagnostic
 if an error was detected while the file was being closed.  The file variable
@@ -3826,7 +3827,7 @@ that describes the kind of file being closed.
       file_write_error(file_kind, errno_value);
     }  /* if */
   }  /* if */
-}  /* close_output_file_with_error */
+}  /* close_output_file_with_error_handling */
 
 
 FILE *fopen_with_error(char			*file_name,
@@ -3852,18 +3853,19 @@ code for the description of the file to be used if an error is issued.
 #endif /* DEBUG */
   if (file == NULL &&
       open_error_should_be_issued(open_flags, &open_result, &severity)) {
-    /* Note that open_file_error does not return when called from here. */
-    open_file_error(severity, file_kind, file_name, &open_result);
+    /* Note that file_open_error does not return when called from here. */
+    file_open_error(severity, file_kind, file_name, &open_result);
   }  /* if */
   return file;
 }  /* fopen_with_error */
 
 
-FILE *open_output_file_with_error(char			*file_name,
-				  a_boolean		binary_file,
-				  a_boolean		update_mode,
-				  an_open_file_flag_set	open_flags,
-				  an_error_code		file_kind)
+FILE *open_output_file_with_error_handling(
+					char			*file_name,
+					a_boolean		binary_file,
+					a_boolean		update_mode,
+					an_open_file_flag_set	open_flags,
+					an_error_code		file_kind)
 /*
 Open the given file_name as an output file.  binary_file is TRUE if
 the file should be opened as a binary file instead of a text file.
@@ -3886,17 +3888,18 @@ the description of the file to be used if an error is issued.
 #endif /* DEBUG */
   if (file == NULL &&
       open_error_should_be_issued(open_flags, &open_result, &severity)) {
-    /* Note that open_file_error does not return when called from here. */
-    open_file_error(severity, file_kind, file_name, &open_result);
+    /* Note that file_open_error does not return when called from here. */
+    file_open_error(severity, file_kind, file_name, &open_result);
   }  /* if */
   return file;
-}  /* open_output_file_with_error */
+}  /* open_output_file_with_error_handling */
 
 
-FILE *open_input_file_with_error(char			*file_name,
-				 a_boolean		binary_file,
-				 an_open_file_flag_set	open_flags,
-				 an_error_code		file_kind)
+FILE *open_input_file_with_error_handling(
+				char			*file_name,
+				a_boolean		binary_file,
+				an_open_file_flag_set	open_flags,
+				an_error_code		file_kind)
 /*
 Open the given file_name as an input file.  Return the file pointer, or
 NULL if the file cannot be opened (and no error is issued).  binary_file
@@ -3918,11 +3921,11 @@ error is issued.
 #endif /* DEBUG */
   if (file == NULL &&
       open_error_should_be_issued(open_flags, &open_result, &severity)) {
-    /* Note that open_file_error does not return when called from here. */
-    open_file_error(severity, file_kind, file_name, &open_result);
+    /* Note that file_open_error does not return when called from here. */
+    file_open_error(severity, file_kind, file_name, &open_result);
   }  /* if */
   return file;
-}  /* open_input_file_with_error */
+}  /* open_input_file_with_error_handling */
 
 
 #if !STANDALONE_UTILITY_PROGRAM
