@@ -1244,9 +1244,8 @@ the PCH file.
   for (i = 0; i < new_alloc_history_entries; ++i) {
     a_mem_alloc_history_ptr	mahp = &new_alloc_history[i];
     offset = do_page_alignment(offset);
-    (void)map_input_file_to_region(f_pch_input, offset,
-                                   mahp->size, mahp->addr,
-                                   pch_input_file_name);
+    map_input_file_to_region(f_pch_input, offset, mahp->size, mahp->addr,
+                             pch_input_file_name);
     offset += mahp->size;
     /* Create a memory allocation history entry for this block. */
     record_mapped_mem_block(mahp->addr, mahp->size);

@@ -2369,7 +2369,7 @@ typedef int an_open_file_flag_set;
 			/* TRUE if an open failure should be reported as a
 			   command-line error. */
 #if DEBUG
-#define OFF_FORCE_ERROR		0x8000000
+#define OFF_FORCE_ERROR		0x80000000
 			/* TRUE if the open operation should be considered to
 			   have failed.  For debugging purposes. */
 #endif /* DEBUG */
@@ -2687,11 +2687,11 @@ a_void_ptr map_file_region(sizeof_t	curr_size,
 			   long         file_offset);
 
 extern
-a_void_ptr map_input_file_to_region(FILE		*file,
-                                    sizeof_t		offset,
-				    sizeof_t		size,
-				    a_void_ptr		address,
-                                    char                *file_name);
+void map_input_file_to_region(FILE		*file,
+                              sizeof_t		offset,
+			      sizeof_t		size,
+			      a_void_ptr	address,
+			      char		*file_name);
 
 extern void unmap_memory(a_void_ptr	addr,
 			 sizeof_t	size);

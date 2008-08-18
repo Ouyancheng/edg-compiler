@@ -1457,6 +1457,7 @@ caused the error.
       has_error = TRUE;
     }  /* if */
     if (ferror(f_output)) {
+      *errno_value = errno;
       has_error = TRUE;
     }  /* if */
     if (f_output != stdout) {
@@ -1508,6 +1509,8 @@ Delete the file with the indicated name.  It shouldn't be open currently.
 */
 {
   int status;
+
+  errno = 0;
 #if __ANSIC__
   status = remove(file_name);
 #else /* __ANSIC__ */
@@ -2884,17 +2887,19 @@ page size.
 
 
 /*ARGSUSED*/ /* <-- Because "file" is not used. */
-a_void_ptr map_input_file_to_region(FILE		*file,
-                                    sizeof_t		offset,
-				    sizeof_t		size,
-				    a_void_ptr		address,
-                                    char                *file_name)
+void map_input_file_to_region(FILE		*file,
+                              sizeof_t		offset,
+			      sizeof_t		size,
+			      a_void_ptr	address,
+			      char		*file_name)
 /*
 Map the data pointed to by "file", starting at "offset" bytes,
 for "size" bytes to the address specified by "address".
 This mapping is done as a FILE_MAP_COPY mapping so that any changes to
 the data will be local.  This is used to map a section of a PCH
-file to a memory region.
+file to a memory region.  If the memory cannot be mapped, a catastrophic
+error is issued.  file_name is the name of the mapped input file
+to be used if a diagnostic is issued.
 */
 {
   a_void_ptr	result_addr;
@@ -2917,7 +2922,6 @@ file to a memory region.
     str_GetLastError_catastrophe(ec_unable_to_get_mapped_memory_reason,
                                  file_name);
   }  /* if */
-  return result_addr;
 }  /* map_input_file_to_region */
 
 
@@ -3046,17 +3050,19 @@ page size.
 }  /* map_file_region */
 
 
-a_void_ptr map_input_file_to_region(FILE		*file,
-                                    sizeof_t		offset,
-				    sizeof_t		size,
-				    a_void_ptr		address,
-                                    char                *file_name)
+void map_input_file_to_region(FILE		*file,
+                              sizeof_t		offset,
+			      sizeof_t		size,
+			      a_void_ptr	address,
+			      char		*file_name)
 /*
 Map the data pointed to by "file", starting at "offset" bytes,
 for "size" bytes to the address specified by "address".
 This mapping is done as a private mapping so that any changes to
 the data will be local.  This is used to map a section of a PCH
-file to a memory region.
+file to a memory region.  If the memory cannot be mapped, a catastrophic
+error is issued.  file_name is the name of the mapped input file
+to be used if a diagnostic is issued.
 */
 {
   int		fd = fileno(file); /*lint !e718 !e746*/
@@ -3085,7 +3091,6 @@ file to a memory region.
     str_errno_catastrophe(ec_unable_to_get_mapped_memory_reason, file_name,
                           errno);
   }  /* if */
-  return result_addr;
 }  /* map_input_file_to_region */
 
 

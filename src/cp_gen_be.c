@@ -1786,7 +1786,7 @@ End the current line of output.
     /* Error in writing the output file.  This check supplements the check
        done when the file is closed.  The check here helps catch a disk full
        error quickly. */
-    file_write_error(ec_generated_c_output, errno);
+    file_write_error(ec_generated_c_plus_plus, errno);
   }  /* if */
   curr_output_line++;
   curr_output_column = 0;
@@ -13761,7 +13761,8 @@ Generate C++ or C from the intermediate language.
     f_C_output = open_output_file_with_error(C_output_file_name,
                                              /*binary_file=*/FALSE,
                                              /*update_mode=*/FALSE,
-                                             OFF_NO_OPTIONS, ec_C_plus_plus);
+                                             OFF_NO_OPTIONS,
+                                             ec_generated_c_plus_plus);
   }  /* if */
 
   /* Start with a #line directive that identifies the primary file.  If the
@@ -13777,7 +13778,7 @@ Generate C++ or C from the intermediate language.
 
   /* Finish the last line, if there is one. */
   end_output_line_if_begun();
-  close_output_file_with_error(&f_C_output, ec_generated_c_output);
+  close_output_file_with_error(&f_C_output, ec_generated_c_plus_plus);
 }  /* cp_gen_be */
 
 

@@ -558,7 +558,7 @@ End the current line of output.
     /* Error in writing the output file.  This check supplements the check
        done when the file is closed.  The check here helps catch a disk full
        error quickly. */
-    file_write_error(ec_generated_c_output, errno);
+    file_write_error(ec_generated_c, errno);
   }  /* if */
   /* Keep track of the current position if we know where we are. */
   if (curr_output_pos_known) curr_output_line++;
@@ -8945,7 +8945,7 @@ If C_output_file_name is NULL, use stdout for the output.
     f_C_output = open_output_file_with_error(C_output_file_name,
                                              /*binary_file=*/FALSE,
                                              /*update_mode=*/FALSE,
-                                             OFF_NO_OPTIONS, ec_C);
+                                             OFF_NO_OPTIONS, ec_generated_c);
   }  /* if */
   /* Remember the primary output file. */
   f_primary = f_C_output;
@@ -9007,7 +9007,7 @@ If C_output_file_name is NULL, use stdout for the output.
 
   /* Finish the last line, if there is one. */
   end_output_line_if_begun();
-  close_output_file_with_error(&f_C_output, ec_generated_c_output);
+  close_output_file_with_error(&f_C_output, ec_generated_c);
   f_primary = NULL;
 }  /* generate_C_output_file */
 

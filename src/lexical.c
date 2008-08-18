@@ -4003,7 +4003,8 @@ static FILE *try_to_open_source_file(
 Try to open the source file specified by name_to_try.  *open_result
 stores information about why the file could not be opened if the open
 fails.  *unicode_source_kind is set to indicate the Unicode encoding
-form for the file, or usk_none if the file is not Unicode.
+form for the file, or usk_none if the file is not Unicode.  Return
+the file pointer if the open succeeds, or NULL otherwise.
 */
 {
   FILE		*new_input_file;

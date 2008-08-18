@@ -8065,7 +8065,7 @@ enable_microsoft_mode:
   /* Now that any command-line errors have been diagnosed, open files
      specified on the command-line. */
   if (listing_file_name != NULL) {
-        f_raw_listing = open_output_file_with_error(
+    f_raw_listing = open_output_file_with_error(
                          listing_file_name, /*binary_file=*/FALSE,
                          /*update_mode=*/FALSE, OFF_COMMAND_LINE,
                          ec_raw_listing);

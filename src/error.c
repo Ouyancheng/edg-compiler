@@ -3697,7 +3697,11 @@ DOES_NOT_RETURN open_output_file_error(a_boolean         bad_name,
                                        an_error_severity severity)
 /*
 Write an error message about opening the output file named file_name,
-and terminate the compilation.
+and terminate the compilation.  This routine is used in contexts in which
+a file open result is not available.   file_kind is an error code for a
+message that describes the kind of file being opened.  Normally a "cannot open
+file" error is issued, but if bad_name is TRUE an "illegal file name"
+error is issued instead.
 */
 {
   an_open_file_result	open_result;
@@ -3807,9 +3811,10 @@ is not Unicode.
 void close_output_file_with_error(FILE		**f_output,
 				  an_error_code	file_kind)
 /*
-Check for errors in writing the output file and close it.  Issue a diagnostic
+Check for errors in writing an output file and close it.  Issue a diagnostic
 if an error was detected while the file was being closed.  The file variable
-passed by the caller is cleared.
+passed by the caller is cleared.  file_kind is an error code for a message
+that describes the kind of file being closed.
 */
 {
   if (*f_output != NULL) {
@@ -5121,6 +5126,11 @@ indicated error_position, and then terminate the compilation.
 
 DOES_NOT_RETURN errno_catastrophe(an_error_code error_code,
                                   int           errno_value)
+/*
+Report the indicated catastrophe with errno converted to a string fill-in
+at the position indicated by error_position, and then terminate the
+compilation.
+*/
 {
   str_catastrophe(error_code, strerror(errno_value));
 }  /* errno_catastrophe */
@@ -5129,6 +5139,11 @@ DOES_NOT_RETURN errno_catastrophe(an_error_code error_code,
 DOES_NOT_RETURN str_errno_catastrophe(an_error_code error_code,
                                       char          *error_string,
                                       int           errno_value)
+/*
+Report the indicated catastrophe with the fill-in string error_string and
+with errno converted to a string fill-in at the position indicated by
+error_position, and then terminate the compilation.
+*/
 {
   pos_str2_catastrophe(error_code, error_string,
                        strerror(errno_value), &error_position);
@@ -5139,6 +5154,11 @@ static DOES_NOT_RETURN error_code_errno_catastrophe(
                                       an_error_code error_code,
                                       an_error_code error_code2,
                                       int           errno_value)
+/*
+Report the indicated catastrophe with the indicated fill-in strings
+and with errno converted to a string fill-in at the position indicated by
+error_position, and then terminate the compilation.
+*/
 {
   pos_str2_catastrophe(error_code, error_text(error_code2),
                        strerror(errno_value), &error_position);
