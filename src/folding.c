@@ -4983,19 +4983,27 @@ as the position for any diagnostics issued.
                        &err_severity);
           break;
         case eok_shiftl:
+#if FIXED_POINT_ALLOWED
           if (operation_type_kind == (a_type_kind)tk_fixed_point) {
             do_fxshiftl(constant_1, constant_2, result, &err_code,
                         &err_severity);
-          } else {
+          } else
+#endif /* FIXED_POINT_ALLOWED */
+          /* Do not insert code here. */
+          {
             do_shiftl(constant_1, constant_2, result, &err_code,
                       &err_severity);
           }  /* if */
           break;
         case eok_shiftr:
+#if FIXED_POINT_ALLOWED
           if (operation_type_kind == (a_type_kind)tk_fixed_point) {
             do_fxshiftr(constant_1, constant_2, result, &err_code,
                         &err_severity);
-          } else {
+          } else
+#endif /* FIXED_POINT_ALLOWED */
+          /* Do not insert code here. */
+          {
             do_shiftr(constant_1, constant_2, result, &err_code,
                       &err_severity);
           }  /* if */
