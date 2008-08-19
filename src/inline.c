@@ -900,12 +900,12 @@ because of remapped variables.
               (con2->kind != (a_constant_repr_kind)ck_integer &&
                con2->kind != (a_constant_repr_kind)ck_address)) {
             /* Do not fold. */
-          } else if (is_ptr_to_member_type(expr_type)) {
-            /* The result is a pointer to data member type (which will
-               eventually be lowered but isn't yet).  This causes
-               problems with some of the folding routines, so don't fold
-               this operation. */
           } else {
+            if (is_ptr_to_member_type(expr_type)) {
+              /* The result is a pointer to data member type (which will
+                 eventually be lowered but isn't yet). */
+              expr_type = integer_type(targ_ptr_to_data_member_int_kind);
+            }  /* if */
             /* Setting evaluated_context to FALSE suppresses warnings on
                errors like division by zero.  Instead, did_not_fold is
                returned TRUE. */
