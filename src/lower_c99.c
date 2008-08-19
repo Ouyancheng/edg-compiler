@@ -3015,7 +3015,6 @@ _Bool type, and VLA types.
         default:;
       }  /* switch */
       break;
-      break;
 #if LOWER_COMPLEX
     case eok_jmultiply:
       lower_c99_jmultiply(expr);

@@ -11353,7 +11353,7 @@ tk_unknown is returned.
       result = skip_typerefs(expr->variant.operation.operands->type)->kind;
       if (result == (a_type_kind)tk_class || result == (a_type_kind)tk_union) {
         /* Normalize the type kind to tk_struct for all class types. */
-        result = tk_struct;
+        result = (a_type_kind)tk_struct;
       }  /* if */
       break;
     case eok_add_assign:
@@ -11366,7 +11366,9 @@ tk_unknown is returned.
     case eok_and_assign:
     case eok_or_assign:
     case eok_xor_assign:
-      result = skip_typerefs(compound_assignment_operation_type(expr))->kind;
+      { a_type_ptr  op_type = compound_assignment_operation_type(expr);
+        result = skip_typerefs(op_type)->kind;
+      }
       break;
     case eok_padd_assign:
     case eok_psubtract_assign:
