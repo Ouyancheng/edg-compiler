@@ -9198,6 +9198,7 @@ static int ELF_visibility_strictness[] = {
   1   /* evk_default */
 };
 
+/* ARGSUSED */  /* force_end_of_traversal is not used. */
 static a_boolean ttt_check_ELF_visibility_of_type(
                                            a_type_ptr  type,
                                            a_boolean   *force_end_of_traversal)
