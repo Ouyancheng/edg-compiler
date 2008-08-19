@@ -15773,6 +15773,7 @@ operand.
     case eok_subtract_assign:
     case eok_multiply_assign:
     case eok_divide_assign:
+    case eok_remainder_assign:
     case eok_shiftl_assign:
     case eok_shiftr_assign:
     case eok_and_assign:
