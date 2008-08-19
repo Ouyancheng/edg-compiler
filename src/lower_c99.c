@@ -2297,20 +2297,25 @@ lowering on the "!= 0" comparison generated, e.g., for complex values.
         /* Do further lowering for fixed-point != 0. */
         lower_c99_expr(expr->variant.operation.operands->next);
         lower_c99_fixed_point_operation(expr);
-       break;
+        break;
 #endif /* LOWER_FIXED_POINT */
 #if LOWER_COMPLEX
+      case tk_float:
       case tk_imaginary:
-        /* Do further lowering for imaginary != 0. */
-        /* Lower the imaginary zero constant. */
-        lower_c99_expr(expr->variant.operation.operands->next);
-       break;
+        /* Do further lowering for imaginary != 0 if needed. */
+        { an_expr_node_ptr  op2 = expr->variant.operation.operands->next;
+          if (is_imaginary_type(op2->type)) {
+            /* Lower the imaginary zero constant. */
+            lower_c99_expr(expr->variant.operation.operands->next);
+          }  /* if */
+        }
+        break;
       case tk_complex:
         /* Do further lowering for complex != 0. */
         /* Lower the complex zero constant. */
-       lower_c99_expr(expr->variant.operation.operands->next);
-       lower_c99_xne(expr);
-       break;
+        lower_c99_expr(expr->variant.operation.operands->next);
+        lower_c99_xne(expr);
+        break;
 #endif /* LOWER_COMPLEX */
       default:;
     }  /* switch */
