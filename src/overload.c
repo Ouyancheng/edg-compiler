@@ -10501,7 +10501,7 @@ for non-unary operations).  The result operand is returned in *result.
 */
 {
   an_expr_operator_kind generic_op =
-                        generic_operator_for_opname_kind(kind, unary_operator);
+                               operator_for_opname_kind(kind, unary_operator);
 
   if (unary_operator) {
     template_unary_operation(generic_op, operand_1, result,
@@ -11071,7 +11071,7 @@ select_best_function:
               lhs_node = add_indirection_to_node(lhs_node);
               lhs_node->next = rhs_node;
               assign_node = make_lvalue_operator_node(
-                                            (an_expr_operator_kind)eok_sassign,
+                                            (an_expr_operator_kind)eok_assign,
                                             lhs_node->type, lhs_node);
               assign_node->variant.operation.
                                  returns_lvalue_instead_of_usual_rvalue = TRUE;

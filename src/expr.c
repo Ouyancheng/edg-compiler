@@ -4373,64 +4373,29 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       } else {
         /* Determine the IL operator to use. */
-        a_type_kind kind = skip_typerefs(result_type)->kind;
-        if (is_increment) {
-          switch (kind) {
-            case tk_integer:
-              op = (an_expr_operator_kind)eok_ipost_incr;
-              break;
+        a_type_ptr  op_type = skip_typerefs(result_type);
+        op = is_increment ? (an_expr_operator_kind)eok_post_incr
+                          : (an_expr_operator_kind)eok_post_decr;
+        switch (op_type->kind) {
+          case tk_integer:
+          case tk_float:
+          case tk_pointer:
+            /* Nothing more to check. */
+            break;
 #if FIXED_POINT_ALLOWED
-            case tk_fixed_point:
-              op = (an_expr_operator_kind)eok_fxpost_incr;
-              if (skip_typerefs(result_type)
-                                        ->variant.fixed_point.is_fract_type) {
-                /* _Fract types can only represent values between -1 and 1:
-                   incrementing by one is rarely intentional in that domain. */
-                pos_warning(ec_operation_may_not_fit_in_fixed_point_result,
-                            &operator_position);
-              }  /* if */
-              break;
+          case tk_fixed_point:
+            if (op_type->variant.fixed_point.is_fract_type) {
+              /* _Fract types can only represent values between -1 and 1:
+                 adding or subtracting one is rarely intentional in that
+                 domain. */
+              pos_warning(ec_operation_may_not_fit_in_fixed_point_result,
+                          &operator_position);
+            }  /* if */
+            break;
 #endif /* FIXED_POINT_ALLOWED */
-            case tk_float:
-              op = (an_expr_operator_kind)eok_fpost_incr;
-              break;
-            case tk_pointer:
-              op = (an_expr_operator_kind)eok_ppost_incr;
-              break;
-#if CHECKING
-            default:
-              internal_error("scan_postfix_incr_decr: bad type for ++");
-#endif /* CHECKING */
-          }  /* switch */
-        } else {
-          switch (kind) {
-            case tk_integer:
-              op = (an_expr_operator_kind)eok_ipost_decr;
-              break;
-#if FIXED_POINT_ALLOWED
-            case tk_fixed_point:
-              op = (an_expr_operator_kind)eok_fxpost_decr;
-              if (skip_typerefs(result_type)
-                                        ->variant.fixed_point.is_fract_type) {
-                /* _Fract types can only represent values between -1 and 1:
-                   decrementing by one is rarely intentional in that domain. */
-                pos_warning(ec_operation_may_not_fit_in_fixed_point_result,
-                            &operator_position);
-              }  /* if */
-              break;
-#endif /* FIXED_POINT_ALLOWED */
-            case tk_float:
-              op = (an_expr_operator_kind)eok_fpost_decr;
-              break;
-            case tk_pointer:
-              op = (an_expr_operator_kind)eok_ppost_decr;
-              break;
-#if CHECKING
-            default:
-              internal_error("scan_postfix_incr_decr: bad type for --");
-#endif /* CHECKING */
-          }  /* switch */
-        }  /* if */
+          default:
+            unexpected_condition_str("scan_postfix_incr_decr: bad type");
+        }  /* switch */
         build_unary_result_operand(operand, op, result_type, result);
       }  /* if */
     }  /* if */
@@ -4632,64 +4597,29 @@ Scan the prefix increment ("++") and decrement ("--") operators.  See section
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       } else {
         /* Determine the IL operator to use. */
-        a_type_kind kind = skip_typerefs(result_type)->kind;
-        if (is_increment) {
-          switch (kind) {
-            case tk_integer:
-              op = (an_expr_operator_kind)eok_ipre_incr;
-              break;
+        a_type_ptr  op_type = skip_typerefs(result_type);
+        op = is_increment ? (an_expr_operator_kind)eok_pre_incr
+                          : (an_expr_operator_kind)eok_pre_decr;
+        switch (op_type->kind) {
+          case tk_integer:
+          case tk_float:
+          case tk_pointer:
+            /* Nothing more to check. */
+            break;
 #if FIXED_POINT_ALLOWED
-            case tk_fixed_point:
-              op = (an_expr_operator_kind)eok_fxpre_incr;
-              if (skip_typerefs(result_type)
-                                        ->variant.fixed_point.is_fract_type) {
-                /* _Fract types can only represent values between -1 and 1:
-                   incrementing by one is rarely intentional in that domain. */
-                pos_warning(ec_operation_may_not_fit_in_fixed_point_result,
-                            &start_position);
-              }  /* if */
-              break;
+          case tk_fixed_point:
+            if (op_type->variant.fixed_point.is_fract_type) {
+              /* _Fract types can only represent values between -1 and 1:
+                 adding or subtracting one is rarely intentional in that
+                 domain. */
+              pos_warning(ec_operation_may_not_fit_in_fixed_point_result,
+                          &start_position);
+            }  /* if */
+            break;
 #endif /* FIXED_POINT_ALLOWED */
-            case tk_float:
-              op = (an_expr_operator_kind)eok_fpre_incr;
-              break;
-            case tk_pointer:
-              op = (an_expr_operator_kind)eok_ppre_incr;
-              break;
-#if CHECKING
-            default:
-              internal_error("scan_prefix_incr_decr: bad type for ++");
-#endif /* CHECKING */
-          }  /* switch */
-        } else {
-          switch (kind) {
-            case tk_integer:
-              op = (an_expr_operator_kind)eok_ipre_decr;
-              break;
-#if FIXED_POINT_ALLOWED
-            case tk_fixed_point:
-              op = (an_expr_operator_kind)eok_fxpre_decr;
-              if (skip_typerefs(result_type)
-                                        ->variant.fixed_point.is_fract_type) {
-                /* _Fract types can only represent values between -1 and 1:
-                   decrementing by one is rarely intentional in that domain. */
-                pos_warning(ec_operation_may_not_fit_in_fixed_point_result,
-                            &start_position);
-              }  /* if */
-              break;
-#endif /* FIXED_POINT_ALLOWED */
-            case tk_float:
-              op = (an_expr_operator_kind)eok_fpre_decr;
-              break;
-            case tk_pointer:
-              op = (an_expr_operator_kind)eok_ppre_decr;
-              break;
-#if CHECKING
-            default:
-              internal_error("scan_prefix_incr_decr: bad type for --");
-#endif /* CHECKING */
-          }  /* switch */
-        }  /* if */
+          default:
+            unexpected_condition_str("scan_prefix_incr_decr: bad type");
+        }  /* switch */
         build_unary_result_operand(&operand, op, result_type, result);
         /* In C++, the prefix ++ and -- operators return lvalues. */
         if (C_dialect == C_dialect_cplusplus) {
@@ -5317,17 +5247,10 @@ arithmetic type.  The operand of "~" must have integral type.  See section
         result_type = boolean_result_type();
         break;
       case tok_minus:
-#if C99_IL_EXTENSIONS_SUPPORTED
-        /* Note that imaginary types fall through to use the normal
-           floating-point operator. */
-        if (is_complex_type(operand.type)) {
-          op = (an_expr_operator_kind)eok_xnegate;
-        } else
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-        /* Do not insert code here. */
+        op = (an_expr_operator_kind)eok_negate;
+        /* Check that the type is arithmetic, with some caveats. */
 #if FIXED_POINT_ALLOWED
         if (is_fixed_point_type(operand.type)) {
-          op = (an_expr_operator_kind)eok_fxnegate;
           if (f_skip_typerefs(operand.type)->variant.fixed_point.is_unsigned) {
             /* Warn on negation of an unsigned value. */
             pos_warning(ec_unsigned_fixed_point_negation, &start_position);
@@ -5338,16 +5261,10 @@ arithmetic type.  The operand of "~" must have integral type.  See section
 #if GNU_VECTOR_TYPES_ALLOWED
         if (gnu_mode && is_vector_type(operand.type)) {
           /* Vector types are arithmetic types in some sense. */
-          op = (an_expr_operator_kind)eok_negate;
         } else
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
         /* Do not insert code here. */
         {
-          if (is_floating_type(operand.type)) {
-            op = (an_expr_operator_kind)eok_fnegate;
-          } else {
-            op = (an_expr_operator_kind)eok_inegate;
-          }  /* if */
           (void)check_arithmetic_or_enum_operand(&operand);
         }  /* if */
         break;
@@ -5814,7 +5731,7 @@ Syntax:
     an_operand mo1, mo2;
     make_upc_thread_operand(&mo2, (a_constant_repr_kind)ck_upc_threads);
     copy_operand(result, &mo1);
-    do_binary_operation((an_expr_operator_kind)eok_imultiply,
+    do_binary_operation((an_expr_operator_kind)eok_multiply,
                         &mo1, &mo2, integer_type(targ_size_t_int_kind),
                         result, &start_position);
   }  /* if */
@@ -9344,7 +9261,7 @@ specification allow a variable-sized array as the top type.
         sizeof_node = node_for_host_large_integer(
                (a_host_large_integer)element_type->size, targ_size_t_int_kind);
         new_array_dimension->next = sizeof_node;
-        sizeof_node = make_operator_node((an_expr_operator_kind)eok_imultiply,
+        sizeof_node = make_operator_node((an_expr_operator_kind)eok_multiply,
                                          sizeof_node->type,
                                          new_array_dimension);
       }  /* if */
@@ -15705,8 +15622,8 @@ See section 3.3.16 of the standard.
               /* Warn about fixed-point arithmetic cases that are likely to
                  overflow. */
               an_expr_operator_kind  fxop = (an_expr_operator_kind)
-                  ((save_token == tok_plus_assign) ? eok_fxadd_assign
-                                                   : eok_fxsubtract_assign);
+                  ((save_token == tok_plus_assign) ? eok_add_assign
+                                                   : eok_subtract_assign);
               check_mixed_integer_fixed_point_arithmetic(operand_1, &operand_2,
                                                          fxop);
             }  /* if */

@@ -1,5 +1,27 @@
 Version 3.11
 
+8/19/08  [EDGcpfe/9097]
+Representation of operators in IL expressions (IL CHANGE)
+
+Operators in IL expressions are represented using values ("codes") of type 
+an_expr_operator_kind.  Previously, many operators (like addition, subtraction,
+etc.) were mapped on distinct codes depending on the class of types the
+operation applied to.  For example, addition was encoded with eok_iadd for
+integer-like types, eok_fadd for non-complex floating-point types, etc.
+
+Now, each operator is mostly mapped onto a single code, and a new "type_kind"
+field in type an_expr_node indicates which type class the operator applies to.
+A few exceptions remain for cases where we decided that the semantics of the
+operator were sufficiently unique to warrant a different operator kind.  Most
+notable is the case of pointer arithmetic, which is still represented using
+eok_padd, eok_psubtract, and eok_pdiff rather than the more generic eok_add
+and eok_subtract.
+
+This is a significant IL CHANGE, and customers will likely have to change
+their code.  However, we expect that it will simplify code in many cases, and
+it also will ease any future addition of operations on new type kinds.
+
+
 8/18/08  [EDGcpfe/9051]
 Internal error: "get_integer_attributes: not integral type"
 

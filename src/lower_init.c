@@ -1438,11 +1438,7 @@ to by dip or con is already lowered.
   /* Make an assignment statement.  Note that we know that no constructor
      (copy or other) is involved because we have this kind of dynamic
      initialization. */
-  if (string_literal_case) {
-    op = (an_expr_operator_kind)eok_bassign;
-  } else {
-    op = lowered_assignment_operator(init_val_node->type);
-  }  /* if */
+  op = (an_expr_operator_kind)(string_literal_case ? eok_bassign : eok_assign);
   if (needs_cast_because_type_has_param_passed_via_cctor(entity_node->type)) {
     /* If the entity being assigned has a type that contains a
        function with a parameter that is passed via a copy constructor,
@@ -1615,7 +1611,7 @@ subobject.  Insert the statement at *insert_location and update
         is_pointer_type(type) ||
         is_class_struct_union_type(type) ||
         is_ptr_to_member_type(type)) {
-      op = lowered_assignment_operator(type);
+      op = (an_expr_operator_kind)eok_assign;
     } else {
       /* For other kinds, use a block move. */
       op = (an_expr_operator_kind)eok_bassign;
@@ -2703,7 +2699,7 @@ IA-64 ABI, the routines called are different.
     /* Generate the assignment expression.  It is inserted below. */
     assign_elem_size_node = make_assignment_expr(
                                             cookie_ptr_node,
-                                            (an_expr_operator_kind)eok_iassign,
+                                            (an_expr_operator_kind)eok_assign,
                                             size_elem_node);
 #endif /* IA64_ABI_USE_VARIANT_ARRAY_COOKIES */
     /* If there was padding, we must set the value indicating how many
@@ -2726,7 +2722,7 @@ IA-64 ABI, the routines called are different.
                                        /*vars_can_change=*/FALSE);
     /* Perform the assignment. */
     assign_node = make_assignment_expr(cookie_ptr_node, 
-                                       (an_expr_operator_kind)eok_iassign,
+                                       (an_expr_operator_kind)eok_assign,
                                        cookie_value_node);
   }  /* if */
   call_node = make_vec_new_call(arg_entity_node, entity_type, num_elem_node, 
@@ -3199,7 +3195,7 @@ given by "scope".
                            &null_constant);
   null_constant_node = alloc_node_for_constant(&null_constant);
   this_param_node->next = null_constant_node;
-  if_node = make_operator_node((an_expr_operator_kind)eok_pne,
+  if_node = make_operator_node((an_expr_operator_kind)eok_ne,
                                integer_type((an_integer_kind)ik_int),
                                this_param_node);
   /* Add the "if" statement. */
@@ -3396,9 +3392,7 @@ default_arg_list.
        and then return the temporary later. */
     if (!void_return) {
       temp_var = make_lowered_temporary(call_node->type);
-      call_node = make_var_assignment_expr(temp_var,
-                                           (an_expr_operator_kind)eok_last,
-                                           call_node);
+      call_node = make_var_assignment_expr(temp_var, call_node);
     }  /* if */
     /* Insert the call as a statement. */
     (void)insert_expr_statement(call_node, &insert_location);
@@ -4015,7 +4009,7 @@ insertion within the "if".
   /* Make "test_var != 0". */
   test_var_node = var_rvalue_expr(test_var);
   test_var_node->next = node_for_integer_constant(0L, (an_integer_kind)ik_int);
-  compare_node = make_operator_node((an_expr_operator_kind)eok_ine,
+  compare_node = make_operator_node((an_expr_operator_kind)eok_ne,
                                     integer_type((an_integer_kind)ik_int),
                                     test_var_node);
   /* Make an "if" statement and insert it into the program. */
@@ -4815,7 +4809,7 @@ to be inserted, it is inserted at *insert_location.
     if (is_expr_insert_location_kind(insert_location->kind)) {
        /* The insert location is inside an expression, so use an stmk_expr. */
       (void)insert_assignment_statement(var_lvalue_expr(cond_var),
-                                        (an_expr_operator_kind)eok_iassign,
+                                        (an_expr_operator_kind)eok_assign,
                                        alloc_node_for_constant(&zero_constant),
                                         insert_location);
     } else {
@@ -4856,7 +4850,6 @@ to a nonzero value.
 {
   (void)insert_var_assignment_statement(
                             conditional_flag_var,
-                            (an_expr_operator_kind)eok_iassign,
                             node_for_integer_constant(1L,
                                                       (an_integer_kind)ik_int),
                             insert_location);
@@ -4872,7 +4865,6 @@ variable to a zero value.
 {
   (void)insert_var_assignment_statement(
                             conditional_flag_var,
-                            (an_expr_operator_kind)eok_iassign,
                             node_for_integer_constant(0L,
                                                       (an_integer_kind)ik_int),
                             insert_location);
@@ -5250,7 +5242,7 @@ and update *insert_location accordingly.
     field_node = field_lvalue_selection_expr(var_lvalue_expr(var),
                                              needed_destruction_object_field);
     assign_stmt = insert_assignment_statement(field_node,
-                                            (an_expr_operator_kind)eok_passign,
+                                            (an_expr_operator_kind)eok_assign,
                                               object_node,
                                               insert_location);
     set_stmt_pos_to_code_pos_for_lowering(assign_stmt);
@@ -5520,7 +5512,7 @@ location is the insert_location2 value (after the assignment statement).
                                                   (an_integer_kind)ik_char);
 #endif /* IA64_ABI_USE_INT_STATIC_INIT_GUARD */
 #endif /* IA64_ABI */
-  compare_node = make_operator_node((an_expr_operator_kind)eok_ieq,
+  compare_node = make_operator_node((an_expr_operator_kind)eok_eq,
                                     int_type, test_var_node);
   /* Make an "if" statement and insert it into the program. */
   insert_if_statement(compare_node, /*is_initialization_guard=*/TRUE,
@@ -5539,7 +5531,6 @@ location is the insert_location2 value (after the assignment statement).
 #if !IA64_ABI
   /* Make "test_var = 1" and insert it inside the "if" statement. */
   (void)insert_var_assignment_statement(*test_var,
-                                        (an_expr_operator_kind)eok_iassign,
                                         node_for_integer_constant(1L,
                                                       (an_integer_kind)ik_int),
                                         insert_location2);
@@ -5569,7 +5560,7 @@ location is the insert_location2 value (after the assignment statement).
     /* Add required "!= 0" test on acquire call. */
     acquire_node->next = node_for_integer_constant(0L,
                                                    (an_integer_kind)ik_int);
-    acquire_node = make_operator_node((an_expr_operator_kind)eok_ine,
+    acquire_node = make_operator_node((an_expr_operator_kind)eok_ne,
                                       acquire_node->type, acquire_node);
     set_block_start_insert_location(outer_then, &outer_block_insert_location);
     insert_if_statement(acquire_node, /*is_initialization_guard=*/TRUE,
@@ -5602,7 +5593,7 @@ indicate that the initialization is complete.  Insert the code at
 #if IA64_ABI_USE_INT_STATIC_INIT_GUARD
   /* ARM EABI specifies to use least significant bit for guard test. */
   (void)insert_assignment_statement(var_lvalue_expr(local_static_guard_var),
-                                    (an_expr_operator_kind)eok_iassign,
+                                    (an_expr_operator_kind)eok_assign,
                                     node_for_integer_constant(1L,
                                                       (an_integer_kind)ik_int),
                                     insert_location);
@@ -5610,7 +5601,7 @@ indicate that the initialization is complete.  Insert the code at
   /* IA-64 ABI specifies to use first byte for guard test. */
   (void)insert_assignment_statement(add_cast_to_char_star(
                                       var_lvalue_expr(local_static_guard_var)),
-                                    (an_expr_operator_kind)eok_iassign,
+                                    (an_expr_operator_kind)eok_assign,
                                     node_for_integer_constant(1L,
                                                      (an_integer_kind)ik_char),
                                     insert_location);
@@ -5793,13 +5784,12 @@ static a_routine_ptr
 
 void rewrite_class_assignment_if_necessary(an_expr_node_ptr expr)
 /*
-expr is an eok_sassign assignment.  It's defined to do what the
-C++ generated bitwise operator= would do, which is copy the data
-of the class but not any tail padding.  If a C structure assignment
-would copy too much, replace the assignment with the proper operation.
-For an empty class, eliminate the copy (since it's supposed to
-copy nothing) but keep any side effects.  The given expression can
-be either an lvalue or rvalue and lvalueness is preserved.
+expr is an struct assignment.  It's defined to do what the C++ generated
+bitwise operator= would do, which is copy the data of the class but not any
+tail padding.  If a C structure assignment would copy too much, replace the
+assignment with the proper operation.  For an empty class, eliminate the copy
+(since it's supposed to copy nothing) but keep any side effects.  The given
+expression can be either an lvalue or rvalue and lvalueness is preserved.
 */
 {
   a_type_ptr class_type;
@@ -5884,7 +5874,7 @@ If the assignment is to a subobject, alter the assignment appropriately.
 
   assign_node = make_assignment_expr(dest_node, op, source_node);
   if (!have_complete_object &&
-      op == (an_expr_operator_kind)eok_sassign) {
+      node_operator_has_type_kind(assign_node, tk_struct)) {
     /* Fix subobject assignments. */
     rewrite_class_assignment_if_necessary(assign_node);
   }  /* if */
@@ -5920,7 +5910,6 @@ to a constructor to be called after the zeroing have been done.
   a_variable_ptr                model_var, entity_var, count_var;
   a_statement_ptr               loop_stmt, copy_stmt;
   an_expr_node_ptr              entity_expr, ctor_entity_expr, copy_expr;
-  an_expr_operator_kind         assign_op;
   
   /* Build the routine entry.  It has two parameters: a pointer to an entity
      of the indicated type and a count of the number of entities to
@@ -5954,11 +5943,11 @@ to a constructor to be called after the zeroing have been done.
   if (need_array_count) {
     /* Build a loop to zero-initialize the entities. */
     loop_stmt = alloc_statement((a_statement_kind)stmk_while);
-    loop_stmt->expr = make_operator_node((an_expr_operator_kind)eok_ipost_decr,
+    loop_stmt->expr = make_operator_node((an_expr_operator_kind)eok_post_decr,
                                          count_type,
                                          var_lvalue_expr(count_var));
     /* The access to the entity increments it each time a store is done. */
-    entity_expr = make_operator_node((an_expr_operator_kind)eok_ppost_incr,
+    entity_expr = make_operator_node((an_expr_operator_kind)eok_post_incr,
                                      pointer_type,
                                      var_lvalue_expr(entity_var));
     entity_expr = add_indirection_to_node(entity_expr);
@@ -5978,12 +5967,10 @@ to a constructor to be called after the zeroing have been done.
   }  /* if */
   /* Build an expression to copy the model variable to the entity to
      be initialized. */
-  assign_op = lowered_assignment_operator(type);
   copy_expr = make_assignment_expr_with_subobject_fix(
-                                                   entity_expr,
-                                                   have_complete_object,
-                                                   assign_op,
-                                                   var_rvalue_expr(model_var));
+                                            entity_expr, have_complete_object,
+                                            (an_expr_operator_kind)eok_assign,
+                                            var_rvalue_expr(model_var));
   if (ctor_routine != NULL) {
     /* Add a call of the indicated constructor after the copying/zeroing
        code. */
@@ -6115,7 +6102,7 @@ from entity_type itself.  Insert the code for the call at *insert_location.
                                      (a_host_large_integer)array_element_count,
                                      targ_size_t_int_kind);
         num_elem_node = make_operator_node(
-                                          (an_expr_operator_kind)eok_imultiply,
+                                          (an_expr_operator_kind)eok_multiply,
                                           num_elem_node->type,
                                           num_elem_node);
       }  /* if */
@@ -6158,7 +6145,7 @@ from entity_type itself.  Insert the code for the call at *insert_location.
       num_elem_node->next = node_for_host_large_integer(
                                              (a_host_large_integer)entity_size,
                                              targ_size_t_int_kind);
-      entity_size_node=make_operator_node((an_expr_operator_kind)eok_imultiply,
+      entity_size_node=make_operator_node((an_expr_operator_kind)eok_multiply,
                                           num_elem_node->type,
                                           num_elem_node);
     }  /* if */
@@ -7160,7 +7147,7 @@ the block associated with the innermost function scope.
     /* For the simple, non-aggregate case, the constant can be assigned
        directly. */
     source_node = make_node_for_il_constant(constant);
-    op = lowered_assignment_operator(variable->type);
+    op = (an_expr_operator_kind)eok_assign;
   } else {
     /* For aggregate cases, create an unnamed temporary that
        gets the original initialization, then use an eok_bassign to
@@ -7324,7 +7311,7 @@ of the array.
       }  /* if */
       check_assertion(is_operation_node(size_node) &&
                       size_node->variant.operation.kind ==
-                                         (an_expr_operator_kind)eok_imultiply);
+                                         (an_expr_operator_kind)eok_multiply);
       nonconstant_node = size_node->variant.operation.operands;
       constant_node = nonconstant_node->next;
       check_assertion(is_constant_node(constant_node));
@@ -7359,7 +7346,7 @@ of the array.
         constant_node = alloc_node_for_constant(&size_constant);
         nonconstant_node->next = constant_node;
         num_elem_node = make_operator_node(
-                                          (an_expr_operator_kind)eok_imultiply,
+                                          (an_expr_operator_kind)eok_multiply,
                                           nonconstant_node->type,
                                           nonconstant_node);
       }  /* if */
@@ -7553,7 +7540,7 @@ arrays with class elements.
 #endif /* IA64_ABI  */
       if (prefix_size_node != NULL) {
         size_node->next = prefix_size_node;
-        size_node = make_operator_node((an_expr_operator_kind)eok_iadd,
+        size_node = make_operator_node((an_expr_operator_kind)eok_add,
                                        size_node->type, size_node);
         size_node->next = size_node_next;
       }  /* if */
@@ -7566,13 +7553,12 @@ arrays with class elements.
     /* Make "temp = (type *)new-call(...)". */
     temp_var = make_local_temporary(ptr_elem_type);
     assign_node = make_var_assignment_expr(temp_var,
-                                           (an_expr_operator_kind)eok_passign,
                                            add_cast_if_necessary(new_node,
                                                                ptr_elem_type));
     /* Add the != NULL test. */
     make_zero_of_proper_type(ptr_elem_type, &null_constant);
     assign_node->next = alloc_node_for_constant(&null_constant);
-    compare_node = make_operator_node((an_expr_operator_kind)eok_pne,
+    compare_node = make_operator_node((an_expr_operator_kind)eok_ne,
                                       integer_type((an_integer_kind)ik_int),
                                       assign_node);
 #if ABI_CHANGES_FOR_PLACEMENT_DELETE
@@ -7593,9 +7579,7 @@ arrays with class elements.
       add_node = make_operator_node((an_expr_operator_kind)eok_padd,
                                     temp_var_node->type, temp_var_node);
       add_node = add_cast_if_necessary(add_node, ptr_elem_type);
-      assign_node = make_var_assignment_expr(temp_var,
-                                            (an_expr_operator_kind)eok_passign,
-                                             add_node);
+      assign_node = make_var_assignment_expr(temp_var, add_node);
       insert_expr(assign_node, &insert_location);
     }  /* if */
 #endif /* ABI_CHANGES_FOR_PLACEMENT_DELETE */
@@ -7681,9 +7665,7 @@ arrays with class elements.
        the zeroing call. */
     zero_temp_var = make_lowered_temporary(vec_new_node->type);
     /* Assign the result of the "new" call to the temporary. */
-    vec_new_node = make_var_assignment_expr(zero_temp_var,
-                                            (an_expr_operator_kind)eok_last,
-                                            vec_new_node);
+    vec_new_node = make_var_assignment_expr(zero_temp_var, vec_new_node);
   }  /* if */
   insert_expr(vec_new_node, &insert_location);
   if (dip != NULL && dip->kind == (a_dynamic_init_kind)dik_zero) {
@@ -7980,14 +7962,13 @@ The subtree of the node has not yet been lowered.
       temp_var = make_local_temporary(ptr_base_type);
       /* Assign the entity address expression to the temporary. */
       assign_node = make_var_assignment_expr(temp_var,
-                                            (an_expr_operator_kind)eok_passign,
                                              add_cast_if_necessary(call_node,
                                                                ptr_base_type));
       /* Compare the assignment node to a NULL constant of the right type. */
       make_zero_of_proper_type(ptr_base_type, &null_constant);
       null_node = alloc_node_for_constant(&null_constant);
       assign_node->next = null_node;
-      compare_node = make_operator_node((an_expr_operator_kind)eok_pne,
+      compare_node = make_operator_node((an_expr_operator_kind)eok_ne,
                                         integer_type((an_integer_kind)ik_int),
                                         assign_node);
       set_expr_creation_insert_location(&insert_location);
@@ -8221,7 +8202,7 @@ tricks.
     /* Make "ptr_node != NULL". */
     make_zero_of_proper_type(ptr_node_test->type, &null_constant);
     ptr_node_test->next = alloc_node_for_constant(&null_constant);
-    compare_node = make_operator_node((an_expr_operator_kind)eok_pne,
+    compare_node = make_operator_node((an_expr_operator_kind)eok_ne,
                                       integer_type((an_integer_kind)ik_int),
                                       ptr_node_test);
     /* Make "(ptr_node != NULL) ? dtor(...) : (void)0". */
@@ -8679,7 +8660,7 @@ This routine returns TRUE if guard code was emitted.
     test_var_node = var_rvalue_expr(test_var);
     test_var_node->next = node_for_integer_constant(0L,
                                                     (an_integer_kind)ik_int);
-    compare_node = make_operator_node((an_expr_operator_kind)eok_ieq,
+    compare_node = make_operator_node((an_expr_operator_kind)eok_eq,
                                       integer_type((an_integer_kind)ik_int),
                                       test_var_node);
     /* Make an "if" statement and insert it into the program. */
@@ -8688,7 +8669,6 @@ This routine returns TRUE if guard code was emitted.
                         insert_location2, (an_insert_location *)NULL);
     /* Make "test_var = 1" and insert it inside the "if" statement. */
     (void)insert_var_assignment_statement(test_var,
-                                          (an_expr_operator_kind)eok_iassign,
                                           node_for_integer_constant(1L,
                                                       (an_integer_kind)ik_int),
                                           insert_location2);
@@ -10365,9 +10345,7 @@ when constructing or destroying a complete object of type class_type.
     vtbl_var->source_corresp.referenced = TRUE;
   }
 #endif /* IA64_ABI */
-  (void)insert_var_assignment_statement(construction_vtbls_var,
-                                        (an_expr_operator_kind)eok_passign,
-                                        array_addr,
+  (void)insert_var_assignment_statement(construction_vtbls_var, array_addr,
                                         insert_location);
 }  /* insert_default_construction_vtbls_assignment */
 
@@ -10454,9 +10432,7 @@ is the "this" parameter variable for the constructor or destructor.
                  make_construction_vtbl_transfer_pointer_lvalue(trans_ptr_node,
                                                                 class_type);
   trans_ptr_node = add_cast(trans_ptr_node, construction_vtbls_var->type);
-  (void)insert_var_assignment_statement(construction_vtbls_var,
-                                        (an_expr_operator_kind)eok_passign,
-                                        trans_ptr_node,
+  (void)insert_var_assignment_statement(construction_vtbls_var, trans_ptr_node,
                                         insert_location);
 }  /* receive_construction_vtbls_in_subobject_constructor */
 
@@ -10483,7 +10459,7 @@ Insert the code at *insert_location.
                                                          subobject_class_type);
   array_addr = add_cast(array_addr, trans_ptr_node->type);
   (void)insert_assignment_statement(trans_ptr_node,
-                                    (an_expr_operator_kind)eok_passign,
+                                    (an_expr_operator_kind)eok_assign,
                                     array_addr,
                                     insert_location);
 }  /* set_transfer_pointer */
@@ -10830,7 +10806,7 @@ Insert the code at the location given by insert_location.
        pointer in the current class. */
     vptr_node = make_vptr_field_lvalue_from_var(this_param_var);
     (void)insert_assignment_statement(vptr_node,
-                                      (an_expr_operator_kind)eok_passign,
+                                      (an_expr_operator_kind)eok_assign,
                                       vtbl_addr_node,
                                       insert_location);
   }  /* if */
@@ -10991,15 +10967,13 @@ constructor, but may instead be after an assignment to "this".
     vbase_param_node = var_rvalue_expr(vbase_param_var);
     /* Make a node comparing the parameter against NULL. */
     vbase_param_node->next = null_constant_node;
-    compare_node = make_operator_node((an_expr_operator_kind)eok_peq,
+    compare_node = make_operator_node((an_expr_operator_kind)eok_eq,
                                       integer_type((an_integer_kind)ik_int),
                                       vbase_param_node);
     /* Set the local variable. */
     complete_var = make_lowered_temporary(
                                         integer_type((an_integer_kind)ik_int));
-    (void)insert_var_assignment_statement(complete_var,
-                                          (an_expr_operator_kind)eok_iassign,
-                                          compare_node,
+    (void)insert_var_assignment_statement(complete_var, compare_node,
                                           insert_location);
 #if DO_FULL_PORTABLE_EH_LOWERING
     if (exceptions_enabled && scope->lifetime != NULL) {
@@ -11020,7 +10994,7 @@ constructor, but may instead be after an assignment to "this".
     complete_var_node = var_rvalue_expr(complete_var);
     complete_var_node->next = 
                         node_for_integer_constant(0L, (an_integer_kind)ik_int);
-    compare_node = make_operator_node((an_expr_operator_kind)eok_ine,
+    compare_node = make_operator_node((an_expr_operator_kind)eok_ne,
                                       integer_type((an_integer_kind)ik_int),
                                       complete_var_node);
     insert_if_statement(compare_node,
@@ -11061,9 +11035,7 @@ constructor, but may instead be after an assignment to "this".
         vaddr_node = add_address_of_to_node(vaddr_node);
         vaddr_node = add_cast_if_necessary(vaddr_node, vbase_param_var->type);
         /* Make an assignment to set the virtual base class parameter. */
-        assign_node = make_var_assignment_expr(vbase_param_var,
-                                            (an_expr_operator_kind)eok_passign,
-                                               vaddr_node);
+        assign_node = make_var_assignment_expr(vbase_param_var, vaddr_node);
         /* Set the base class pointer if it is allocated in this class.
            If it is shared with a base class, the base class constructor
            will set it. */
@@ -11078,7 +11050,7 @@ constructor, but may instead be after an assignment to "this".
           /* Assign the base class address to the virtual base class
              pointer. */
           vbptr_node->next = assign_node;
-          assign_node = make_operator_node((an_expr_operator_kind)eok_passign,
+          assign_node = make_operator_node((an_expr_operator_kind)eok_assign,
                                            assign_node->type, vbptr_node);
         }  /* if */
         /* Insert the assignment statement. */
@@ -11160,7 +11132,7 @@ constructor, but may instead be after an assignment to "this".
           /* Make an assignment statement that copies the implicit parameter
              value into the virtual base class pointer. */
           (void)insert_assignment_statement(vbptr_node,
-                                            (an_expr_operator_kind)eok_passign,
+                                            (an_expr_operator_kind)eok_assign,
                                             vbase_param_node,
                                             &else_insert_location);
         }  /* if */
@@ -11243,7 +11215,7 @@ constructor, but may instead be after an assignment to "this".
       vptr_node = make_vptr_field_lvalue(vptr_node);
       /* Make and insert the assignment statement. */
       (void)insert_assignment_statement(vptr_node,
-                                        (an_expr_operator_kind)eok_passign,
+                                        (an_expr_operator_kind)eok_assign,
                                         vtbl_addr_node,
                                         insert_location);
     }  /* if */
@@ -11346,9 +11318,7 @@ constructor scope, and also lower the user code.
       /* Make "this = new_rout(size)". */
       unqual_this_param_type = f_skip_typerefs(this_param_var->type);
       call_node = add_cast_if_necessary(call_node, unqual_this_param_type);
-      assign_node = make_var_assignment_expr(this_param_var,
-                                            (an_expr_operator_kind)eok_passign,
-                                             call_node);
+      assign_node = make_var_assignment_expr(this_param_var, call_node);
       if (exceptions_enabled &&
           /* The delete routine pointer can be null if the operator delete for
              the class is ambiguous. */
@@ -11402,14 +11372,14 @@ constructor scope, and also lower the user code.
       null_constant_node = alloc_node_for_constant(&null_constant);
       assign_node->next = null_constant_node;
       int_type = integer_type((an_integer_kind)ik_int);
-      new_compare_node = make_operator_node((an_expr_operator_kind)eok_pne,
+      new_compare_node = make_operator_node((an_expr_operator_kind)eok_ne,
                                             int_type, assign_node);
       /* Make "this != NULL || (this = new-rout(size)) != NULL". */
       this_param_node = var_rvalue_expr(this_param_var);
       make_zero_of_proper_type(unqual_this_param_type, &null_constant);
       null_constant_node = alloc_node_for_constant(&null_constant);
       this_param_node->next = null_constant_node;
-      this_compare_node = make_operator_node((an_expr_operator_kind)eok_pne,
+      this_compare_node = make_operator_node((an_expr_operator_kind)eok_ne,
                                              int_type, this_param_node);
       this_compare_node->next = new_compare_node;
       if_node = make_operator_node((an_expr_operator_kind)eok_lor,
@@ -11675,7 +11645,7 @@ points to an int variable that is non-zero if the object is complete.
   zero_constant_node = node_for_integer_constant(0L, (an_integer_kind)ik_int);
   /* Make a node comparing the variable against zero. */
   complete_obj_node->next = zero_constant_node;
-  compare_node = make_operator_node((an_expr_operator_kind)eok_ine,
+  compare_node = make_operator_node((an_expr_operator_kind)eok_ne,
                                     integer_type((an_integer_kind)ik_int),
                                     complete_obj_node);
   return compare_node;
@@ -12293,13 +12263,11 @@ destructor scope, and also lower the user code.
       null_constant_node = alloc_node_for_constant(&null_constant);
       vtt_param_node = var_rvalue_expr(vtt_param_var);
       vtt_param_node->next = null_constant_node;
-      compare_node = make_operator_node((an_expr_operator_kind)eok_peq,
+      compare_node = make_operator_node((an_expr_operator_kind)eok_eq,
                                         integer_type((an_integer_kind)ik_int),
                                         vtt_param_node);
       (void)insert_var_assignment_statement(dtor_info.complete_obj_var,
-                                            (an_expr_operator_kind)eok_iassign,
-                                            compare_node,
-                                            &insert_location);
+                                            compare_node, &insert_location);
     }
 #endif /* IA64_ABI */
     /* Put out code that tests whether we are destroying a complete object. */
@@ -12421,7 +12389,7 @@ destructor scope, and also lower the user code.
       }  /* if */
       /* Make and insert the assignment statement. */
       (void)insert_assignment_statement(vptr_node,
-                                        (an_expr_operator_kind)eok_passign,
+                                        (an_expr_operator_kind)eok_assign,
                                         vtbl_addr_node,
                                         &insert_location);
     }  /* if */
@@ -12498,7 +12466,7 @@ destructor scope, and also lower the user code.
     zero_constant_node = node_for_integer_constant(0L,
                                                    (an_integer_kind)ik_int);
     and_node->next = zero_constant_node;
-    if_node = make_operator_node((an_expr_operator_kind)eok_ine,
+    if_node = make_operator_node((an_expr_operator_kind)eok_ne,
                                  int_type, and_node);
 #if ASSIGNMENT_TO_THIS_ALLOWED
     /* If an assignment to "this" was done in the body of the destructor,
@@ -12512,7 +12480,7 @@ destructor scope, and also lower the user code.
                                &null_constant);
       null_constant_node = alloc_node_for_constant(&null_constant);
       this_param_node->next = null_constant_node;
-      this_compare_node = make_operator_node((an_expr_operator_kind)eok_pne,
+      this_compare_node = make_operator_node((an_expr_operator_kind)eok_ne,
                                              int_type, this_param_node);
       /* Make "this != NULL && (param & 0x1) != 0". */
       this_compare_node->next = if_node;
@@ -13077,10 +13045,7 @@ The overriding function must have a definition in the current compilation.
       this_adjustment = add_cast_if_necessary(this_adjustment, 
                                               this_param->type);
       /* Perform the assignment. */
-      this_adjustment = 
-                      make_var_assignment_expr(this_param,
-                                               (an_expr_operator_kind)eok_last,
-                                               this_adjustment);
+      this_adjustment = make_var_assignment_expr(this_param, this_adjustment);
     }  /* if */
     if (routine->vcall_index != 0) {
       /* Adjust from the virtual base to the final overrider.  This code
@@ -13117,9 +13082,7 @@ The overriding function must have a definition in the current compilation.
       vcall_expr = add_cast_if_necessary(vcall_expr,
                                          this_param->type);
       /* Perform the assignment. */
-      vcall_expr = make_var_assignment_expr(this_param,
-                                            (an_expr_operator_kind)eok_last,
-                                            vcall_expr);
+      vcall_expr = make_var_assignment_expr(this_param, vcall_expr);
       /* If there was already a delta adjustment, combine the two. */
       if (this_adjustment != NULL) {
         this_adjustment = make_comma_node(this_adjustment, vcall_expr);

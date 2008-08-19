@@ -457,7 +457,7 @@ body has any side effects that can affect the values of argument expressions.
            of argument expressions. */
         if (is_operation_node(expr)) {
           an_expr_operator_kind op = expr->variant.operation.kind;
-          if (is_simple_scalar_assignment(op)) {
+          if (is_simple_assignment(op)) {
             an_expr_node_ptr op1 = expr->variant.operation.operands;
             if (!node_has_side_effects(op1, (a_boolean *)NULL)) {
               expr = op1->next;
@@ -715,9 +715,7 @@ following the original expression.
         /* Add code to initialize the temporary from the argument
            expression. */
         vrip->arg_expr->next = NULL;
-        stmt = insert_var_assignment_statement(temp_var,
-                                               (an_expr_operator_kind)eok_last,
-                                               vrip->arg_expr,
+        stmt = insert_var_assignment_statement(temp_var, vrip->arg_expr,
                                                &local_insert_location);
         set_stmt_pos_to_code_pos_for_lowering(stmt);
         temp_var->initialization_rewritten_as_assignment = TRUE;
@@ -876,13 +874,18 @@ because of remapped variables.
       /* See copy_and_simplify_short_circuited_operation for the
          short-circuited operations. */
       switch (op) {
-        case eok_ieq: case eok_ine: case eok_igt:
-        case eok_ilt: case eok_ige: case eok_ile:
-        case eok_peq: case eok_pne:
-        case eok_iadd:
-        case eok_isubtract:
-        case eok_imultiply:
-        case eok_idivide:
+        case eok_add:
+        case eok_subtract:
+        case eok_gt:
+        case eok_lt:
+        case eok_ge:
+        case eok_le:
+          if (!node_operator_has_type_kind(expr, tk_integer)) break;
+          /*FALLTHROUGH*/
+        case eok_eq:
+        case eok_ne:
+        case eok_multiply:
+        case eok_divide:
         case eok_remainder:
         case eok_and:
         case eok_or:
@@ -917,7 +920,9 @@ because of remapped variables.
                              &code_pos_for_lowering);
           }  /* if */
           break;
-        case eok_inegate:
+        case eok_negate:
+          if (!node_operator_has_type_kind(expr, tk_integer)) break;
+          /*FALLTHROUGH*/
         case eok_complement:
         case eok_not:
           /* See comment above; avoid pointers to data members.  This is
@@ -946,8 +951,9 @@ because of remapped variables.
         /* The expression can be folded. */
         has_constant_value = TRUE;
       }  /* if */
-    } else if (op == (an_expr_operator_kind)eok_pne ||
-               op == (an_expr_operator_kind)eok_peq) {
+    } else if ((op == (an_expr_operator_kind)eok_ne ||
+                op == (an_expr_operator_kind)eok_eq) &&
+               node_operator_has_type_kind(expr, tk_pointer)) {
       /* A special case where we can do folding even with a nonconstant
          operand: &variable != 0 is always 1.  The "== 0" case is
          always 0. */
@@ -967,7 +973,7 @@ because of remapped variables.
           a_host_large_integer	temp_value;
           has_constant_value = TRUE;
           temp_value = (a_host_large_integer)
-                             ((op == (an_expr_operator_kind)eok_pne)? 1L : 0L);
+                              ((op == (an_expr_operator_kind)eok_ne)? 1L : 0L);
           set_integer_constant(&constant, temp_value,
                                (an_integer_kind)ik_int);
         }  /* if */
@@ -1062,8 +1068,9 @@ otherwise, do no copying and return FALSE.
         unexpected_condition();
       }  /* if */
     }  /* if */
-  } else if (op == (an_expr_operator_kind)eok_iassign ||
-             op == (an_expr_operator_kind)eok_passign) {
+  } else if (is_simple_assignment(op) &&
+             (node_operator_has_type_kind(expr, tk_integer) ||
+              node_operator_has_type_kind(expr, tk_pointer))) {
     /* If this is an assignment to a temporary with special properties
        created previously by inlining, we may be able to do something
        special. */
@@ -1488,7 +1495,7 @@ If not, *failed is set.
           /* Assign the initial value to the variable. */
           var_expr = var_lvalue_expr(var);
           var_expr->next = init_expr;
-          expr = make_operator_node(lowered_assignment_operator(var->type),
+          expr = make_operator_node((an_expr_operator_kind)eok_assign,
                                     f_skip_typerefs(var->type),
                                     var_expr);
           stmt = insert_expr_statement(expr, insert_location);

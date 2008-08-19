@@ -4370,17 +4370,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           is_unary = TRUE;
           opstr = "*";
           break;
-        case eok_inegate:
-#if FIXED_POINT_ALLOWED && !LOWER_FIXED_POINT
-        case eok_fxnegate:
-#endif /* FIXED_POINT_ALLOWED && !LOWER_FIXED_POINT */
-        case eok_fnegate:
-#if C99_IL_EXTENSIONS_SUPPORTED
-        case eok_xnegate:
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-#if GNU_VECTOR_TYPES_ALLOWED
         case eok_negate:
-#endif /* GNU_VECTOR_TYPES_ALLOWED */
           is_unary = TRUE;
           opstr = "-";
           break;
@@ -4469,13 +4459,8 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           opstr = "__imag";
           break;
 #endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
-#if FIXED_POINT_ALLOWED && !LOWER_FIXED_POINT
-        case eok_fxpost_incr:
-#endif /* FIXED_POINT_ALLOWED && !LOWER_FIXED_POINT */
-        case eok_fpost_incr:
-        case eok_ipost_incr:
-        case eok_ppost_incr:
-          /* Post-increment operators. */
+        case eok_post_incr:
+          /* Post-increment operator. */
 #if !C_GEN_BE_GENERATES_ANSI_C
           /* If the field being incremented is a bit field, generate code to
              truncate/adjust the result of the assignment. */
@@ -4487,13 +4472,8 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           end_adjust_bit_field_value(expr);
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
           goto done_with_unary_operation;
-#if FIXED_POINT_ALLOWED && !LOWER_FIXED_POINT
-        case eok_fxpre_incr:
-#endif /* FIXED_POINT_ALLOWED && !LOWER_FIXED_POINT */
-        case eok_ipre_incr:
-        case eok_fpre_incr:
-        case eok_ppre_incr:
-          /* Pre-increment operators. */
+        case eok_pre_incr:
+          /* Pre-increment operator. */
 #if !C_GEN_BE_GENERATES_ANSI_C
           /* If the field being incremented is a bit field, generate code to
              truncate/adjust the result of the assignment. */
@@ -4505,13 +4485,8 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           end_adjust_bit_field_value(expr);
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
           goto done_with_unary_operation;
-#if FIXED_POINT_ALLOWED && !LOWER_FIXED_POINT
-        case eok_fxpost_decr:
-#endif /* FIXED_POINT_ALLOWED && !LOWER_FIXED_POINT */
-        case eok_fpost_decr:
-        case eok_ipost_decr:
-        case eok_ppost_decr:
-          /* Post-decrement operators. */
+        case eok_post_decr:
+          /* Post-decrement operator. */
 #if !C_GEN_BE_GENERATES_ANSI_C
           /* If the field being incremented is a bit field, generate code to
              truncate/adjust the result of the assignment. */
@@ -4523,13 +4498,8 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           end_adjust_bit_field_value(expr);
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
           goto done_with_unary_operation;
-#if FIXED_POINT_ALLOWED && !LOWER_FIXED_POINT
-        case eok_fxpre_decr:
-#endif /* FIXED_POINT_ALLOWED && !LOWER_FIXED_POINT */
-        case eok_ipre_decr:
-        case eok_fpre_decr:
-        case eok_ppre_decr:
-          /* Pre-decrement operators. */
+        case eok_pre_decr:
+          /* Pre-decrement operator. */
 #if !C_GEN_BE_GENERATES_ANSI_C
           /* If the field being incremented is a bit field, generate code to
              truncate/adjust the result of the assignment. */
@@ -4565,54 +4535,30 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           write_tok_str(")");
           goto done_with_unary_operation;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        case eok_iadd:
-#if FIXED_POINT_ALLOWED && !LOWER_FIXED_POINT
-        case eok_fxadd:
-#endif /* FIXED_POINT_ALLOWED && !LOWER_FIXED_POINT */
-        case eok_fadd:
+        case eok_add:
 #if C99_IL_EXTENSIONS_SUPPORTED
-        case eok_xadd:
         case eok_fjadd:
         case eok_jfadd:
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
         case eok_padd:
-#if GNU_VECTOR_TYPES_ALLOWED
-        case eok_add:
-#endif /* GNU_VECTOR_TYPES_ALLOWED */
           opstr = "+";
           break;
-        case eok_isubtract:
-#if FIXED_POINT_ALLOWED && !LOWER_FIXED_POINT
-        case eok_fxsubtract:
-#endif /* FIXED_POINT_ALLOWED && !LOWER_FIXED_POINT */
-        case eok_fsubtract:
+        case eok_subtract:
 #if C99_IL_EXTENSIONS_SUPPORTED
-        case eok_xsubtract:
         case eok_fjsubtract:
         case eok_jfsubtract:
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
         case eok_psubtract:
         case eok_pdiff:
-#if GNU_VECTOR_TYPES_ALLOWED
-        case eok_subtract:
-#endif /* GNU_VECTOR_TYPES_ALLOWED */
           opstr = "-";
           break;
-        case eok_imultiply:
-#if FIXED_POINT_ALLOWED && !LOWER_FIXED_POINT
-        case eok_fxmultiply:
-#endif /* FIXED_POINT_ALLOWED && !LOWER_FIXED_POINT */
-        case eok_fmultiply:
+        case eok_multiply:
 #if C99_IL_EXTENSIONS_SUPPORTED
-        case eok_xmultiply:
         case eok_jmultiply:
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
-#if GNU_VECTOR_TYPES_ALLOWED
-        case eok_multiply:
-#endif /* GNU_VECTOR_TYPES_ALLOWED */
           opstr = "*";
           break;
-        case eok_idivide:
+        case eok_divide:
 #if !C_GEN_BE_GENERATES_ANSI_C
           /* If the second operand is a constant 0, put out the division as
              "op1 / (0, 0)" to avoid an error from pcc. */
@@ -4623,80 +4569,10 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           }  /* if */
           /*FALLTHROUGH*/
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
-#if FIXED_POINT_ALLOWED && !LOWER_FIXED_POINT
-        case eok_fxdivide:
-#endif /* FIXED_POINT_ALLOWED && !LOWER_FIXED_POINT */
-        case eok_fdivide:
 #if C99_IL_EXTENSIONS_SUPPORTED
-        case eok_xdivide:
         case eok_jdivide:
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
-#if GNU_VECTOR_TYPES_ALLOWED
-        case eok_divide:
-#endif /* GNU_VECTOR_TYPES_ALLOWED */
           opstr = "/";
-          break;
-        case eok_peq:
-        case eok_ieq:
-#if FIXED_POINT_ALLOWED && !LOWER_FIXED_POINT
-        case eok_fxeq:
-#endif /* FIXED_POINT_ALLOWED && !LOWER_FIXED_POINT */
-        case eok_feq:
-#if C99_IL_EXTENSIONS_SUPPORTED
-        case eok_xeq:
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-          opstr = "==";
-          break;
-        case eok_pne:
-        case eok_ine:
-#if FIXED_POINT_ALLOWED && !LOWER_FIXED_POINT
-        case eok_fxne:
-#endif /* FIXED_POINT_ALLOWED && !LOWER_FIXED_POINT */
-        case eok_fne:
-#if C99_IL_EXTENSIONS_SUPPORTED
-        case eok_xne:
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-          opstr = "!=";
-          break;
-        case eok_pgt:
-          pointer_comparison = TRUE;
-          /* Fall-through into following code. */
-        case eok_igt:
-#if FIXED_POINT_ALLOWED && !LOWER_FIXED_POINT
-        case eok_fxgt:
-#endif /* FIXED_POINT_ALLOWED && !LOWER_FIXED_POINT */
-        case eok_fgt:
-          opstr = ">";
-          break;
-        case eok_plt:
-          pointer_comparison = TRUE;
-          /* Fall-through into following code. */
-        case eok_ilt:
-#if FIXED_POINT_ALLOWED && !LOWER_FIXED_POINT
-        case eok_fxlt:
-#endif /* FIXED_POINT_ALLOWED && !LOWER_FIXED_POINT */
-        case eok_flt:
-          opstr = "<";
-          break;
-        case eok_pge:
-          pointer_comparison = TRUE;
-          /* Fall-through into following code. */
-        case eok_ige:
-#if FIXED_POINT_ALLOWED && !LOWER_FIXED_POINT
-        case eok_fxge:
-#endif /* FIXED_POINT_ALLOWED && !LOWER_FIXED_POINT */
-        case eok_fge:
-          opstr = ">=";
-          break;
-        case eok_ple:
-          pointer_comparison = TRUE;
-          /* Fall-through into following code. */
-        case eok_ile:
-#if FIXED_POINT_ALLOWED && !LOWER_FIXED_POINT
-        case eok_fxle:
-#endif /* FIXED_POINT_ALLOWED && !LOWER_FIXED_POINT */
-        case eok_fle:
-          opstr = "<=";
           break;
         case eok_remainder:
 #if !C_GEN_BE_GENERATES_ANSI_C
@@ -4710,45 +4586,49 @@ there's some possibility of precedence confusion and need_parens is TRUE.
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
           opstr = "%";
           break;
-        case eok_iassign:
-#if FIXED_POINT_ALLOWED && !LOWER_FIXED_POINT
-        case eok_fxassign:
-#endif /* FIXED_POINT_ALLOWED && !LOWER_FIXED_POINT */
-        case eok_fassign:
-#if C99_IL_EXTENSIONS_SUPPORTED
-        case eok_xassign:
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-        case eok_passign:
-        case eok_sassign:
-#if GNU_VECTOR_TYPES_ALLOWED
+        case eok_shiftl:
+          opstr = "<<";
+          break;
+        case eok_shiftr:
+          opstr = ">>";
+          break;
+        case eok_eq:
+          opstr = "==";
+          break;
+        case eok_ne:
+          opstr = "!=";
+          break;
+        case eok_gt:
+          pointer_comparison = node_operator_has_type_kind(expr, tk_pointer);
+          opstr = ">";
+          break;
+        case eok_lt:
+          pointer_comparison = node_operator_has_type_kind(expr, tk_pointer);
+          opstr = "<";
+          break;
+        case eok_ge:
+          pointer_comparison = node_operator_has_type_kind(expr, tk_pointer);
+          opstr = ">=";
+          break;
+        case eok_le:
+          pointer_comparison = node_operator_has_type_kind(expr, tk_pointer);
+          opstr = "<=";
+          break;
         case eok_assign:
-#endif /* GNU_VECTOR_TYPES_ALLOWED */
           opstr = "=";
           goto process_assignment;
-        case eok_imultiply_assign:
-#if FIXED_POINT_ALLOWED && !LOWER_FIXED_POINT
-        case eok_fxmultiply_assign:
-#endif /* FIXED_POINT_ALLOWED && !LOWER_FIXED_POINT */
-        case eok_fmultiply_assign:
-#if C99_IL_EXTENSIONS_SUPPORTED
-        case eok_xmultiply_assign:
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-#if GNU_VECTOR_TYPES_ALLOWED
+        case eok_add_assign:
+        case eok_padd_assign:
+          opstr = "+=";
+          goto process_assignment;
+        case eok_subtract_assign:
+        case eok_psubtract_assign:
+          opstr = "-=";
+          goto process_assignment;
         case eok_multiply_assign:
-#endif /* GNU_VECTOR_TYPES_ALLOWED */
           opstr = "*=";
           goto process_assignment;
-        case eok_idivide_assign:
-#if FIXED_POINT_ALLOWED && !LOWER_FIXED_POINT
-        case eok_fxdivide_assign:
-#endif /* FIXED_POINT_ALLOWED && !LOWER_FIXED_POINT */
-        case eok_fdivide_assign:
-#if C99_IL_EXTENSIONS_SUPPORTED
-        case eok_xdivide_assign:
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-#if GNU_VECTOR_TYPES_ALLOWED
         case eok_divide_assign:
-#endif /* GNU_VECTOR_TYPES_ALLOWED */
           opstr = "/=";
           goto process_assignment;
         case eok_remainder_assign:
@@ -4766,43 +4646,9 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           }  /* if */
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
           goto process_assignment;
-        case eok_iadd_assign:
-#if FIXED_POINT_ALLOWED && !LOWER_FIXED_POINT
-        case eok_fxadd_assign:
-#endif /* FIXED_POINT_ALLOWED && !LOWER_FIXED_POINT */
-        case eok_fadd_assign:
-#if C99_IL_EXTENSIONS_SUPPORTED
-        case eok_xadd_assign:
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-        case eok_padd_assign:
-#if GNU_VECTOR_TYPES_ALLOWED
-        case eok_add_assign:
-#endif /* GNU_VECTOR_TYPES_ALLOWED */
-          opstr = "+=";
-          goto process_assignment;
-        case eok_isubtract_assign:
-#if FIXED_POINT_ALLOWED && !LOWER_FIXED_POINT
-        case eok_fxsubtract_assign:
-#endif /* FIXED_POINT_ALLOWED && !LOWER_FIXED_POINT */
-        case eok_fsubtract_assign:
-#if C99_IL_EXTENSIONS_SUPPORTED
-        case eok_xsubtract_assign:
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-        case eok_psubtract_assign:
-#if GNU_VECTOR_TYPES_ALLOWED
-        case eok_subtract_assign:
-#endif /* GNU_VECTOR_TYPES_ALLOWED */
-          opstr = "-=";
-          goto process_assignment;
-#if FIXED_POINT_ALLOWED && !LOWER_FIXED_POINT
-        case eok_fxshiftl_assign:
-#endif /* FIXED_POINT_ALLOWED && !LOWER_FIXED_POINT */
         case eok_shiftl_assign:
           opstr = "<<=";
           goto process_assignment;
-#if FIXED_POINT_ALLOWED && !LOWER_FIXED_POINT
-        case eok_fxshiftr_assign:
-#endif /* FIXED_POINT_ALLOWED && !LOWER_FIXED_POINT */
         case eok_shiftr_assign:
           opstr = ">>=";
           goto process_assignment;
@@ -4906,18 +4752,6 @@ process_assignment:
           }  /* if */
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
           goto done_with_binary_operation;
-#if FIXED_POINT_ALLOWED && !LOWER_FIXED_POINT
-        case eok_fxshiftl:
-#endif /* FIXED_POINT_ALLOWED && !LOWER_FIXED_POINT */
-        case eok_shiftl:
-          opstr = "<<";
-          break;
-#if FIXED_POINT_ALLOWED && !LOWER_FIXED_POINT
-        case eok_fxshiftr:
-#endif /* FIXED_POINT_ALLOWED && !LOWER_FIXED_POINT */
-        case eok_shiftr:
-          opstr = ">>";
-          break;
         case eok_and:
           opstr = "&";
           break;
@@ -5445,7 +5279,7 @@ by parentheses.
     }  /* while */
 #endif /* KEEP_OBJECT_LIFETIME_INFO_IN_LOWERED_IL_WHEN_EH_ENABLED */
     if (temp_node->kind == (an_expr_node_kind)enk_operation &&
-        temp_node->variant.operation.kind == (an_expr_operator_kind)eok_ine) {
+        temp_node->variant.operation.kind == (an_expr_operator_kind)eok_ne) {
       /* The operator is "!=".  Look for a constant operand. */
       con_op = NULL;
       first_op = temp_node->variant.operation.operands;

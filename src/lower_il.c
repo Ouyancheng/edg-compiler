@@ -591,7 +591,8 @@ that an insertion will be made.
        in the Sun cc compiler.
     */
     if (is_operation_node(node) &&
-        node->variant.operation.kind == (an_expr_operator_kind)eok_ine) {
+        node->variant.operation.kind == (an_expr_operator_kind)eok_ne &&
+        node_operator_has_type_kind(node, tk_integer)) {
       a_constant_ptr   con = NULL;
       an_expr_node_ptr first_op = node->variant.operation.operands;
       an_expr_node_ptr second_op = first_op->next;
@@ -612,9 +613,7 @@ that an insertion will be made.
     temp_var = make_lowered_temporary(node_type);
     /* Make a copy of the original node, then assign it to the temporary. */
     node_copy = copy_node(node);
-    assign_node = make_var_assignment_expr(temp_var,
-                                           (an_expr_operator_kind)eok_last,
-                                           node_copy);
+    assign_node = make_var_assignment_expr(temp_var, node_copy);
     /* Change the original node to a comma expression. */
     assign_node->next = var_rvalue_expr(temp_var);
     change_node_to_operation(node, (an_expr_operator_kind)eok_comma,
@@ -2868,53 +2867,6 @@ so it doesn't have to be perfect.  The safe return value is FALSE.
 }  /* cannot_be_null */
 
 
-static an_expr_operator_kind lowered_ptr_to_member_assignment_operator(
-                                                               a_type_ptr type)
-/*
-type is (or was, before lowering) a pointer-to-member type.  Return the
-expression operator that does assignment (in lowered form) for that type.
-*/
-{
-  an_expr_operator_kind op;
-
-  if (is_or_was_ptr_to_member_function_type(type)) {
-    /* Pointer to member function assignment. */
-    op = (an_expr_operator_kind)eok_sassign;
-  } else {
-    /* Pointer to data member assignment. */
-    op = (an_expr_operator_kind)eok_iassign;
-  }  /* if */
-  return op;
-}  /* lowered_ptr_to_member_assignment_operator */
-
-
-an_expr_operator_kind lowered_assignment_operator(a_type_ptr type)
-/*
-Return the expression operator that does assignment for operands of the
-indicated type.
-*/
-{
-  an_expr_operator_kind op;
-
-  op = which_binary_operator(tok_assign, type);
-  if (op == (an_expr_operator_kind)eok_pmassign) {
-    /* Pointer-to-member assignment.  Lower now. */
-    op = lowered_ptr_to_member_assignment_operator(type);
-#if LOWER_FIXED_POINT
-  } else if (op == (an_expr_operator_kind)eok_fxassign) {
-    /* Fixed-point assignment becomes integer assignment. */
-    op = (an_expr_operator_kind)eok_iassign;
-#endif /* LOWER_FIXED_POINT */
-#if LOWER_COMPLEX
-  } else if (op == (an_expr_operator_kind)eok_xassign) {
-    /* Complex assignment becomes structure assignment. */
-    op = (an_expr_operator_kind)eok_sassign;
-#endif /* LOWER_COMPLEX */
-  }  /* if */
-  return op;
-}  /* lowered_assignment_operator */
-
-
 static a_boolean is_assignment_to_temp(an_expr_node_ptr expr,
                                        a_variable_ptr   *temp_var)
 /*
@@ -2928,8 +2880,7 @@ FALSE and *temp_var set to NULL.
   *temp_var = NULL;
   if (is_operation_node(expr)) {
     an_expr_operator_kind op = expr->variant.operation.kind;
-    if (is_simple_scalar_assignment(op) ||
-        op == (an_expr_operator_kind)eok_sassign) {
+    if (is_simple_assignment(op)) {
       /* The expression is an assignment */
       an_expr_node_ptr operand1 = expr->variant.operation.operands;
       if (is_variable_node(operand1) &&
@@ -2976,7 +2927,7 @@ to a temporary, and return a pointer to the temporary.
   expr_copy = copy_node(expr);
   temp_node->next = expr_copy;
   set_expr_node_kind(expr, (an_expr_node_kind)enk_operation);
-  set_node_operator(expr, lowered_assignment_operator(temp_type),
+  set_node_operator(expr, (an_expr_operator_kind)eok_assign,
                     temp_type, /*is_lvalue=*/FALSE, temp_node);
   return temp;
 }  /* assign_expr_to_temp */
@@ -3329,21 +3280,15 @@ statement.
 }  /* insert_expr_statement_set_pos */
 
 
-an_expr_node_ptr make_var_assignment_expr(a_variable_ptr         lvalue_var,
-                                          an_expr_operator_kind  op,
-                                          an_expr_node_ptr       rvalue_expr)
+an_expr_node_ptr make_var_assignment_expr(a_variable_ptr    lvalue_var,
+                                          an_expr_node_ptr  rvalue_expr)
 /*
-Make an expression that assigns rvalue_expr to the variable lvalue_var using
-assignment operator op, and return a pointer to it.  If op is eok_last,
-determine the assignment operator from the type.
+Make an expression that assigns rvalue_expr to the variable lvalue_var.
 */
 {
   an_expr_node_ptr lvalue_expr, assign_node;
 
   check_assertion(!rvalue_expr->is_lvalue);
-  if (op == (an_expr_operator_kind)eok_last) {
-    op = lowered_assignment_operator(lvalue_var->type);
-  }  /* if */
   /* Make an expression for the lvalue. */
   lvalue_expr = var_lvalue_expr(lvalue_var);
   /* If this variable is a parameter, mark it as having been changed. */
@@ -3351,7 +3296,9 @@ determine the assignment operator from the type.
     lvalue_var->param_value_has_been_changed = TRUE;
   }  /* if */
   /* Make the assignment node. */
-  assign_node = make_assignment_expr(lvalue_expr, op, rvalue_expr);
+  assign_node = make_assignment_expr(lvalue_expr,
+                                     (an_expr_operator_kind)eok_assign,
+                                     rvalue_expr);
   return assign_node;
 }  /* make_var_assignment_expr */
 
@@ -3383,22 +3330,20 @@ statement was created (in an expression insert context).
 
 a_statement_ptr insert_var_assignment_statement(
                                         a_variable_ptr         lvalue_var,
-                                        an_expr_operator_kind  op,
                                         an_expr_node_ptr       rvalue_expr,
                                         an_insert_location_ptr insert_location)
 /*
-Make a statement that assigns rvalue_expr to lvalue_var using assignment
-operator op.  Insert the statement at *insert_location and update
-*insert_location.  Return a pointer to the statement, or NULL if no
-statement was created (in an expression insert context).  If op is
-eok_last, determine the assignment operator from the type.
+Make a statement that assigns rvalue_expr to lvalue_var.  Insert the statement
+at *insert_location and update *insert_location.  Return a pointer to the
+statement, or NULL if no statement was created (in an expression insert
+context).
 */
 {
   a_statement_ptr  assign_stmt;
   an_expr_node_ptr assign_node;
 
   /* Make the assignment node. */
-  assign_node = make_var_assignment_expr(lvalue_var, op, rvalue_expr);
+  assign_node = make_var_assignment_expr(lvalue_var, rvalue_expr);
   /* Make and insert the statement for the assignment. */
   assign_stmt = insert_expr_statement(assign_node, insert_location);
   return assign_stmt;
@@ -9258,7 +9203,7 @@ pointer to the overall expression remains the same.
   null_constant_node2 = alloc_node_for_constant(&null_constant);
   /* Make a node comparing the original source node against NULL. */
   orig_source_node->next = null_constant_node1;
-  compare_node = make_operator_node((an_expr_operator_kind)eok_pne,
+  compare_node = make_operator_node((an_expr_operator_kind)eok_ne,
                                     integer_type((an_integer_kind)ik_int),
                                     orig_source_node);
   /* Make a conditional operator node out of the original node. */
@@ -9761,7 +9706,7 @@ of a base or derived class of that class.
       select_i_node = integral_promote_node(select_i_node);
       select_i_node->next = node_for_promoted_integer_constant(0L,
                                          TARG_VIRTUAL_FUNCTION_INDEX_INT_KIND);
-      compare_node = make_operator_node((an_expr_operator_kind)eok_ine,
+      compare_node = make_operator_node((an_expr_operator_kind)eok_ne,
                                         integer_type((an_integer_kind)ik_int),
                                         select_i_node);
 #else /* IA64_ABI */
@@ -9772,7 +9717,7 @@ of a base or derived class of that class.
       select_f_node = add_cast(select_f_node, promoted_ptrdiff_t_type);
       select_f_node->next = node_for_promoted_integer_constant(0L,
                                                       targ_ptrdiff_t_int_kind);
-      compare_node = make_operator_node((an_expr_operator_kind)eok_ine,
+      compare_node = make_operator_node((an_expr_operator_kind)eok_ne,
                                         integer_type((an_integer_kind)ik_int),
                                         select_f_node);
       temp_node = var_lvalue_expr(temp_var);
@@ -9780,7 +9725,7 @@ of a base or derived class of that class.
       select_d_node = add_cast(select_d_node, promoted_ptrdiff_t_type);
       select_d_node->next = node_for_promoted_integer_constant(0L,
                                                       targ_ptrdiff_t_int_kind);
-      compare2_node = make_operator_node((an_expr_operator_kind)eok_ine,
+      compare2_node = make_operator_node((an_expr_operator_kind)eok_ne,
                                          integer_type((an_integer_kind)ik_int),
                                          select_d_node);
       compare_node->next = compare2_node;
@@ -9805,7 +9750,7 @@ of a base or derived class of that class.
       promote_integer_constant(&offset_constant);
       offset_node = alloc_node_for_constant(&offset_constant);
       select_d_node->next = offset_node;
-      incr_node = make_operator_node((an_expr_operator_kind)eok_iadd_assign,
+      incr_node = make_operator_node((an_expr_operator_kind)eok_add_assign,
                                      mptr_d_field->type, select_d_node);
       /* Make "(temp.i != 0) ? temp.d += offset : 0". */
       compare_node->next = incr_node;
@@ -9813,9 +9758,7 @@ of a base or derived class of that class.
       question_node = make_operator_node((an_expr_operator_kind)eok_question,
                                          incr_node->type, compare_node);
       /* Make "temp = pmf". */
-      assign_node = make_var_assignment_expr(temp_var,
-                                            (an_expr_operator_kind)eok_sassign,
-                                             source_node);
+      assign_node = make_var_assignment_expr(temp_var, source_node);
       /* Make "(temp = pmf, (temp.i != 0) ? temp.d += offset : 0)". */
       comma_node = make_comma_node(assign_node, question_node);
       /* Overwrite the original node with a "," operator to make the
@@ -9844,16 +9787,16 @@ of a base or derived class of that class.
                                              -1L,
 #endif /* IA64_ABI */
                                              targ_ptr_to_data_member_int_kind);
-      compare_node = make_operator_node((an_expr_operator_kind)eok_ine,
+      compare_node = make_operator_node((an_expr_operator_kind)eok_ne,
                                         integer_type((an_integer_kind)ik_int),
                                         source_node);
       /* Make "pdm + offset". */
       source_node = make_reusable_copy(source_node, /*vars_can_change=*/FALSE);
       /* If the offset is negative, subtract it instead of adding. */
       if (offset >= 0) {
-        op = (an_expr_operator_kind)eok_iadd;
+        op = (an_expr_operator_kind)eok_add;
       } else {
-        op = (an_expr_operator_kind)eok_isubtract;
+        op = (an_expr_operator_kind)eok_subtract;
         offset = -offset;
       }  /* if */
       /* Make a node for the offset constant. */
@@ -10074,7 +10017,7 @@ lowered.
       make_zero_of_proper_type(call_node->type, &constant);
       null_constant_node = alloc_node_for_constant(&constant);
       call_node->next = null_constant_node;
-      compare_node = make_operator_node((an_expr_operator_kind)eok_pne,
+      compare_node = make_operator_node((an_expr_operator_kind)eok_ne,
                                         integer_type((an_integer_kind)ik_int),
                                         call_node);
       /* Build "__cxa_bad_cast()" */
@@ -10104,7 +10047,7 @@ lowered.
     make_zero_of_proper_type(src->type, &constant);
     null_constant_node = alloc_node_for_constant(&constant);
     src->next = null_constant_node;
-    compare_node = make_operator_node((an_expr_operator_kind)eok_pne,
+    compare_node = make_operator_node((an_expr_operator_kind)eok_ne,
                                       integer_type((an_integer_kind)ik_int),
                                       src);
     /* Make the NULL for the third operand of the "?". */
@@ -10191,7 +10134,8 @@ Lower an eok_bool_cast node, which converts an operand to bool.
   } else
 #endif /* DO_C99_IL_LOWERING */
   /* Do not insert code here. */
-  if (expr->variant.operation.kind == (an_expr_operator_kind)eok_pmne) {
+  if (expr->variant.operation.kind == (an_expr_operator_kind)eok_ne &&
+      node_operator_has_type_kind(expr, tk_ptr_to_member)) {
     /* For the pointer-to-member case, the comparison must be lowered. */
     mark_as_not_visited(zero_node->variant.constant);
     /* Note that zero_node is not lowered; that allows the subroutine to
@@ -10203,7 +10147,7 @@ Lower an eok_bool_cast node, which converts an operand to bool.
 
 void lower_bool_incr_decr(an_expr_node_ptr expr)
 /*
-Rewrite an increment of a bool (eok_ipost_incr or eok_ipre_incr).
+Rewrite an increment of a bool (eok_post_incr or eok_pre_incr).
 Those operations set the lvalue to true instead of incrementing.
 For C99 mode, also handles decrement of a bool, which sets the
 lvalue to its logical "not".
@@ -10213,8 +10157,8 @@ lvalue to its logical "not".
   an_expr_node_ptr result_value_node;
   a_constant       result_constant;
 
-  if (expr->variant.operation.kind == (an_expr_operator_kind)eok_ipre_incr ||
-      (expr->variant.operation.kind == (an_expr_operator_kind)eok_ipost_incr &&
+  if (expr->variant.operation.kind == (an_expr_operator_kind)eok_pre_incr ||
+      (expr->variant.operation.kind == (an_expr_operator_kind)eok_post_incr &&
        expr->result_is_not_used)) {
     /* Preincrement: ++x becomes (x = 1).  Also used for postincrement
        when result is not used. */
@@ -10226,7 +10170,7 @@ lvalue to its logical "not".
     result_constant.type = bool_type();
     result_value_node = alloc_node_for_constant(&result_constant);
     operand_node->next = result_value_node;
-    set_node_operator(expr, (an_expr_operator_kind)eok_iassign,
+    set_node_operator(expr, (an_expr_operator_kind)eok_assign,
                       expr->type, expr->is_lvalue, operand_node);
   } else {
     /* Postincrement: x++ becomes (temp = x, x = 1, temp).
@@ -10243,9 +10187,9 @@ lvalue to its logical "not".
                                                      /*vars_can_change=*/TRUE);
     an_expr_node_ptr assign_node, comma_node;
     a_boolean        predecr_case = (expr->variant.operation.kind ==
-                                         (an_expr_operator_kind)eok_ipre_decr);
+                                          (an_expr_operator_kind)eok_pre_decr);
 
-    if (expr->variant.operation.kind == (an_expr_operator_kind)eok_ipost_incr){
+    if (expr->variant.operation.kind == (an_expr_operator_kind)eok_post_incr){
       /* Increment. */
       /* Build a constant one, but make sure it has bool type to preserve
          bool-correctness in the IL for back ends that care. */
@@ -10267,7 +10211,7 @@ lvalue to its logical "not".
     }  /* if */
     /* Make the assignment: (x = 1) or (x = !temp). */
     x_lvalue_copy->next = result_value_node;
-    assign_node = make_lvalue_operator_node((an_expr_operator_kind)eok_iassign,
+    assign_node = make_lvalue_operator_node((an_expr_operator_kind)eok_assign,
                                             x_rvalue->type, x_lvalue_copy);
     if (!predecr_case) {
       comma_node = make_comma_node(x_rvalue, assign_node);
@@ -10291,76 +10235,24 @@ static an_expr_operator_kind corresponding_operator_for_compound_assignment(
                                                       an_expr_operator_kind op)
 /*
 op is a compound assignment operator.  Return the corresponding simple
-operator.  For example, eok_iadd_assign is translated to eok_iadd.
+operator.  For example, eok_add_assign is translated to eok_add.
 */
 {
   switch (op) {
-#if C99_IL_EXTENSIONS_SUPPORTED
-    case eok_xadd_assign:
-      op = (an_expr_operator_kind)eok_xadd;
+    case eok_add_assign:
+      op = (an_expr_operator_kind)eok_add;
       break;
-    case eok_xsubtract_assign:
-      op = (an_expr_operator_kind)eok_xsubtract;
+    case eok_subtract_assign:
+      op = (an_expr_operator_kind)eok_subtract;
       break;
-    case eok_xmultiply_assign:
-      op = (an_expr_operator_kind)eok_xmultiply;
+    case eok_multiply_assign:
+      op = (an_expr_operator_kind)eok_multiply;
       break;
-    case eok_xdivide_assign:
-      op = (an_expr_operator_kind)eok_xdivide;
-      break;
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-    case eok_iadd_assign:
-      op = (an_expr_operator_kind)eok_iadd;
-      break;
-    case eok_isubtract_assign:
-      op = (an_expr_operator_kind)eok_isubtract;
-      break;
-    case eok_imultiply_assign:
-      op = (an_expr_operator_kind)eok_imultiply;
-      break;
-    case eok_idivide_assign:
-      op = (an_expr_operator_kind)eok_idivide;
+    case eok_divide_assign:
+      op = (an_expr_operator_kind)eok_divide;
       break;
     case eok_remainder_assign:
       op = (an_expr_operator_kind)eok_remainder;
-      break;
-#if FIXED_POINT_ALLOWED
-    case eok_fxadd_assign:
-      op = (an_expr_operator_kind)eok_fxadd;
-      break;
-    case eok_fxsubtract_assign:
-      op = (an_expr_operator_kind)eok_fxsubtract;
-      break;
-    case eok_fxmultiply_assign:
-      op = (an_expr_operator_kind)eok_fxmultiply;
-      break;
-    case eok_fxdivide_assign:
-      op = (an_expr_operator_kind)eok_fxdivide;
-      break;
-    case eok_fxshiftl_assign:
-      op = (an_expr_operator_kind)eok_fxshiftl;
-      break;
-    case eok_fxshiftr_assign:
-      op = (an_expr_operator_kind)eok_fxshiftr;
-      break;
-#endif /* FIXED_POINT_ALLOWED */
-    case eok_fadd_assign:
-      op = (an_expr_operator_kind)eok_fadd;
-      break;
-    case eok_fsubtract_assign:
-      op = (an_expr_operator_kind)eok_fsubtract;
-      break;
-    case eok_fmultiply_assign:
-      op = (an_expr_operator_kind)eok_fmultiply;
-      break;
-    case eok_fdivide_assign:
-      op = (an_expr_operator_kind)eok_fdivide;
-      break;
-    case eok_padd_assign:
-      op = (an_expr_operator_kind)eok_padd;
-      break;
-    case eok_psubtract_assign:
-      op = (an_expr_operator_kind)eok_psubtract;
       break;
     case eok_shiftl_assign:
       op = (an_expr_operator_kind)eok_shiftl;
@@ -10377,17 +10269,11 @@ operator.  For example, eok_iadd_assign is translated to eok_iadd.
     case eok_xor_assign:
       op = (an_expr_operator_kind)eok_xor;
       break;
-    case eok_add_assign:
-      op = (an_expr_operator_kind)eok_add;
+    case eok_padd_assign:
+      op = (an_expr_operator_kind)eok_padd;
       break;
-    case eok_subtract_assign:
-      op = (an_expr_operator_kind)eok_subtract;
-      break;
-    case eok_multiply_assign:
-      op = (an_expr_operator_kind)eok_multiply;
-      break;
-    case eok_divide_assign:
-      op = (an_expr_operator_kind)eok_divide;
+    case eok_psubtract_assign:
+      op = (an_expr_operator_kind)eok_psubtract;
       break;
     default:
       unexpected_condition_str(
@@ -10404,7 +10290,7 @@ a temporary will be used, and the code will be something like
 (temp = &x, *temp = *temp @ y).
 */
 {
-  an_expr_operator_kind op = expr->variant.operation.kind, assign_op;
+  an_expr_operator_kind op = expr->variant.operation.kind;
   an_expr_node_ptr      op1 = expr->variant.operation.operands;
   an_expr_node_ptr      op2 = op1->next;
   a_boolean             vars_can_change;
@@ -10420,7 +10306,7 @@ a temporary will be used, and the code will be something like
   check_assertion(result_is_lvalue == expr->is_lvalue);
   /* Determine the operation type, which is usually the second operand
      type. */
-  operation_type = expression_operation_type(expr);
+  operation_type = compound_assignment_operation_type(expr);
   /* Make a copy of op1 to be used as the left operand of the underlying
      operation.  op1 itself will be used as the left operand of the
      assignment. */ 
@@ -10503,8 +10389,8 @@ a temporary will be used, and the code will be something like
   /* Cast the result of the operation to the result type. */
   op_node = add_lowered_cast_if_necessary(op_node, result_type);
   /* Assign the result to op1 (or the temporary). */
-  assign_op = lowered_assignment_operator(result_type);
-  op_node = make_assignment_expr(op1_for_assign, assign_op, op_node);
+  op_node = make_assignment_expr(op1_for_assign,
+                                 (an_expr_operator_kind)eok_assign, op_node);
   if (temp_var == NULL) {
     /* Not using a temporary. */
     if (result_is_lvalue) {
@@ -10514,8 +10400,7 @@ a temporary will be used, and the code will be something like
     }  /* if */
   } else {
     /* Add the final copy of the temporary to op1, and a comma expression. */
-    op2_node = make_assignment_expr(op1,
-                                    assign_op,
+    op2_node = make_assignment_expr(op1, (an_expr_operator_kind)eok_assign,
                                     var_rvalue_expr(temp_var));
     if (result_is_lvalue) {
       op2_node->type = expr->type;
@@ -10559,23 +10444,11 @@ an lvalue or rvalue expression.
   temp2 = make_reusable_copy(op2, op1_has_side_effects);
   /* Determine the comparison operator to use. */
   switch (expr->variant.operation.kind) {
-    case eok_ignu_min:
-      op = (an_expr_operator_kind)eok_ilt;
+    case eok_gnu_min:
+      op = (an_expr_operator_kind)eok_lt;
       break;
-    case eok_fgnu_min:
-      op = (an_expr_operator_kind)eok_flt;
-      break;
-    case eok_pgnu_min:
-      op = (an_expr_operator_kind)eok_plt;
-      break;
-    case eok_ignu_max:
-      op = (an_expr_operator_kind)eok_igt;
-      break;
-    case eok_fgnu_max:
-      op = (an_expr_operator_kind)eok_fgt;
-      break;
-    case eok_pgnu_max:
-      op = (an_expr_operator_kind)eok_pgt;
+    case eok_gnu_max:
+      op = (an_expr_operator_kind)eok_gt;
       break;
     default:
       unexpected_condition_str("lower_gnu_min_max: bad operator");
@@ -10778,9 +10651,7 @@ have already been lowered.
   /* Make the vtbl_temp temporary and an lvalue for it, and assign the
      virtual function table entry address to it. */
   vtbl_temp_var = make_local_temporary(vtbl_entry_node->type);
-  assign_node = make_var_assignment_expr(vtbl_temp_var,
-                                         (an_expr_operator_kind)eok_passign,
-                                         vtbl_entry_node);
+  assign_node = make_var_assignment_expr(vtbl_temp_var, vtbl_entry_node);
   /* Make an expression that extracts the "f" (function pointer) from the
      virtual table entry and casts it to the right function pointer type. */
   vtbl_temp_node = var_rvalue_expr(vtbl_temp_var);
@@ -11038,9 +10909,7 @@ the expression have already been lowered.
   /* Cast back to the object pointer type. */
   cast_node = add_cast(padd_node, object_type);
   /* Make "(this_temp = (object_type *)((char *)object + pmf.d)". */
-  this_temp_assign_node = make_var_assignment_expr(this_temp_var,
-                                            (an_expr_operator_kind)eok_passign,
-                                                   cast_node);
+  this_temp_assign_node = make_var_assignment_expr(this_temp_var, cast_node);
   if (pointer_to_member_call_optimization_allowed &&
       class_type->variant.class_struct_union.extra_info->assoc_scope != NULL &&
       !class_type->variant.class_struct_union.
@@ -11060,7 +10929,7 @@ the expression have already been lowered.
     select_i_node = integral_promote_node(select_i_node);
     select_i_node->next = node_for_promoted_integer_constant(0L,
                                          TARG_VIRTUAL_FUNCTION_INDEX_INT_KIND);
-    compare_node = make_operator_node((an_expr_operator_kind)eok_ilt,
+    compare_node = make_operator_node((an_expr_operator_kind)eok_lt,
                                       integer_type((an_integer_kind)ik_int),
                                       select_i_node);
 #else /* IA64_ABI */
@@ -11084,7 +10953,7 @@ the expression have already been lowered.
                                        select_fd_node);
     select_fd_node->next = node_for_promoted_integer_constant(0L,
                                                     targ_ptrdiff_t_int_kind);
-    compare_node = make_operator_node((an_expr_operator_kind)eok_ieq,
+    compare_node = make_operator_node((an_expr_operator_kind)eok_eq,
                                       integer_type((an_integer_kind)ik_int),
                                       select_fd_node);
 #endif /* IA64_ABI */
@@ -11138,7 +11007,7 @@ the expression have already been lowered.
        offset. */
     offset_node->next = node_for_integer_constant(1L,
                                                   targ_ptrdiff_t_int_kind);
-    offset_node = make_operator_node((an_expr_operator_kind)eok_isubtract,
+    offset_node = make_operator_node((an_expr_operator_kind)eok_subtract,
                                      offset_node->type,
                                      offset_node);
 #endif /* !IA64_ABI_USE_VARIANT_PTR_TO_MEMBER_FUNCTION_REPR */
@@ -11154,9 +11023,7 @@ the expression have already been lowered.
 #endif /* IA64_ABI */
     /* Make the temporary variable for the "vtbl_temp". */
     vtbl_temp_var = make_local_temporary(ptr_to_vtbl_entry_type);
-    vtbl_temp_assign_node = make_var_assignment_expr(vtbl_temp_var,
-                                            (an_expr_operator_kind)eok_passign,
-                                                     padd_node);
+    vtbl_temp_assign_node = make_var_assignment_expr(vtbl_temp_var, padd_node);
 #if !IA64_ABI
     /* Make "this_temp = (object_type *)((char *)this_temp + vtbl_temp->d)",
        which adjusts the "this" pointer to be passed to the virtual
@@ -11170,9 +11037,7 @@ the expression have already been lowered.
                                    this_temp_node->type,
                                    this_temp_node);
     cast_node = add_cast(padd_node, object_type);
-    this_increment_node = make_var_assignment_expr(this_temp_var,
-                                            (an_expr_operator_kind)eok_passign,
-                                                   cast_node);
+    this_increment_node = make_var_assignment_expr(this_temp_var, cast_node);
     /* Make "vtbl_temp->f", the address of the virtual function to call. */
     vtbl_f_value = field_rvalue_selection_expr(var_rvalue_expr(vtbl_temp_var),
                                                mptr_f_field);
@@ -11199,7 +11064,6 @@ the expression have already been lowered.
     /* Store it in func_temp. */
     func_temp_var = make_local_temporary(ptr_routine_type);
     func_temp_assign_node = make_var_assignment_expr(func_temp_var,
-                                            (an_expr_operator_kind)eok_passign,
                                                      func_addr_node);
     /* Combine the assignment to this_temp and the assignment to
        func_temp into one expression using a comma operator. */
@@ -11459,7 +11323,7 @@ first operand (but not the second) has been lowered already.
   an_expr_node_ptr and_node, or_node;
   a_type_ptr       int_type, orig_expr_type = expr->type;
   a_boolean        ne_case = (expr->variant.operation.kind ==
-                                              (an_expr_operator_kind)eok_pmne);
+                                               (an_expr_operator_kind)eok_ne);
   a_boolean        vars_can_change;
   a_field_ptr      mptr_if_field;
 
@@ -11529,7 +11393,7 @@ first operand (but not the second) has been lowered already.
     /* Make "op1.i == op2.i" (or "!=" for the ne_case). */
     /* "op1.f == op2.f" (or "!=") for the IA-64 ABI case. */
     compare_i_node = make_operator_node(
-                          (an_expr_operator_kind)(ne_case ? eok_ine : eok_ieq),
+                          (an_expr_operator_kind)(ne_case ? eok_ne : eok_eq),
                           int_type, select1_node);
 #if !IA64_ABI_VARIANT_PMF
     if (is_constant_node(select1_node) &&
@@ -11579,7 +11443,7 @@ first operand (but not the second) has been lowered already.
 #endif /* IA64_ABI */
                                                                              );
         compare_i0_node = make_operator_node
-                        ((an_expr_operator_kind) (ne_case ? eok_ine : eok_ieq),
+                        ((an_expr_operator_kind) (ne_case ? eok_ne : eok_eq),
                          int_type, select1_node);
       }  /* if */
 #if IA64_ABI_VARIANT_PMF
@@ -11611,7 +11475,7 @@ first operand (but not the second) has been lowered already.
                                                       0L,
                                                       targ_ptrdiff_t_int_kind);
       select1_node = make_operator_node
-                         ((an_expr_operator_kind)(ne_case ? eok_ine : eok_ieq),
+                         ((an_expr_operator_kind)(ne_case ? eok_ne : eok_eq),
                           int_type, select1_node);
       compare_i0_node->next = select1_node;
       compare_i0_node = make_operator_node
@@ -11627,7 +11491,7 @@ first operand (but not the second) has been lowered already.
                                             vars_can_change);
       select1_node->next = select2_node;
       compare_d_node = make_operator_node
-                        ((an_expr_operator_kind) (ne_case ? eok_ine : eok_ieq),
+                        ((an_expr_operator_kind) (ne_case ? eok_ne : eok_eq),
                          int_type, select1_node);
 #if !IA64_ABI
       /* Make "op1.f == op2.f" (or "!=" for the ne_case). */
@@ -11639,7 +11503,7 @@ first operand (but not the second) has been lowered already.
                                             vars_can_change);
       select1_node->next = select2_node;
       compare_f_node = make_operator_node
-                        ((an_expr_operator_kind) (ne_case ? eok_pne : eok_peq),
+                        ((an_expr_operator_kind) (ne_case ? eok_ne : eok_eq),
                          int_type, select1_node);
       /* Make "(op1.d == op2.d && op1.f == op2.f)" (or "||" for the
          ne_case). */
@@ -11683,8 +11547,8 @@ first operand (but not the second) has been lowered already.
       op2_node = integral_promote_pm_node(op2_node);
       op1_node->next = op2_node;
     }  /* if */
-    expr->variant.operation.kind = ne_case ? (an_expr_operator_kind)eok_ine :
-                                             (an_expr_operator_kind)eok_ieq;
+    expr->variant.operation.kind = ne_case ? (an_expr_operator_kind)eok_ne :
+                                             (an_expr_operator_kind)eok_eq;
   }  /* if */
   /* Restore the "bool" type of the expression if it has one, to 
      cause a later rewrite step (adding a cast) if appropriate. */
@@ -11735,7 +11599,7 @@ The expression can be an lvalue or an rvalue.
   one_node = node_for_promoted_integer_constant(1L,
                                              targ_ptr_to_data_member_int_kind);
   pdm_node->next = one_node;
-  minus_node = make_operator_node((an_expr_operator_kind)eok_isubtract,
+  minus_node = make_operator_node((an_expr_operator_kind)eok_subtract,
                                   pdm_node->type, pdm_node);
   /* Make the pointer addition node "((char *)p)+(pdm-1)". */
   cast_node->next = minus_node;
@@ -12600,6 +12464,112 @@ been lowered to eok_indirect nodes previously.
 }  /* lower_indirect */
 
 
+static void lower_assignment_operator(an_expr_node_ptr  expr)
+/*
+The given node is an eok_assign node.  Lower the node if needed.
+*/
+{
+  an_expr_node_ptr  operand_node = expr->variant.operation.operands;
+
+  switch (expr->variant.operation.type_kind) {
+#if LOWER_COMPLEX
+    case tk_complex:
+      /* Complex assignment becomes structure assignment. */
+      expr->variant.operation.type_kind = (a_type_kind)tk_struct;
+      break;
+#endif /* LOWER_COMPLEX */
+    case tk_pointer:
+#if ASSIGNMENT_TO_THIS_ALLOWED
+      /* Check for assignment to "this" in a constructor. */
+      if (innermost_function_scope != NULL) {
+        a_routine_ptr curr_routine =
+                                 innermost_function_scope->variant.routine.ptr;
+        if (curr_routine->special_kind ==
+                                    (a_special_function_kind)sfk_constructor) {
+          a_variable_ptr this_param_var =
+                          innermost_function_scope->variant.routine.parameters;
+          if (operand_node->kind == (an_expr_node_kind)enk_variable &&
+              operand_node->is_lvalue &&
+              operand_node->variant.variable == this_param_var) {
+            /* This is an assignment to "this".  Add the wrapper code (to
+               initialize base classes, etc.) following the assignment to
+               "this".  Add a comma expression on top that produces the same
+               value as the original assignment, in case the value of the
+               assignment is used.  That is,
+                 this = expr
+               becomes
+                 ((this = expr), this)
+               which then becomes
+                 ((this = expr), (initialization, this))
+            */
+            an_expr_node_ptr   new_expr, orig_expr_copy;
+            an_insert_location insert_location;
+            if (expr->variant.operation.
+                                      returns_lvalue_instead_of_usual_rvalue) {
+              /* The assignment returns an lvalue, i.e., the address of the
+                 "this" parameter. */
+              new_expr = var_lvalue_expr(this_param_var);
+              /* Add a cast to restore the const qualifier on the expression
+                 type.  The const on the "this" parameter variable type has
+                 been removed by IL lowering so that assignments can be done,
+                 but this expression -- built before the const was removed --
+                 includes the const. */
+              new_expr = add_cast_if_necessary(new_expr, expr->type);
+            } else {
+              /* The assignment returns an rvalue, i.e., the value of the
+                 "this" parameter. */
+              new_expr = var_rvalue_expr(this_param_var);
+            }  /* if */
+            /* Change "this = expr" to "((this = expr), this)" by converting
+               the original expression to a comma node.  Make a copy of the
+               original node so the original node can be overwritten. */
+            orig_expr_copy = copy_node(expr);
+            /* The copy is not an lvalue-returning operation. */
+            orig_expr_copy->is_lvalue = FALSE;
+            orig_expr_copy->variant.operation.
+                                returns_lvalue_instead_of_usual_rvalue = FALSE;
+            orig_expr_copy->type = this_param_var->type;
+            orig_expr_copy->next = new_expr;
+            change_node_to_operation(expr,
+                                     (an_expr_operator_kind)eok_comma,
+                                     expr->type, orig_expr_copy,
+                                     /*is_lvalue=*/FALSE);
+            set_expr_insert_location(new_expr, &insert_location);
+            /* The insert location now specifies insertion before the final
+               expression.  Add the wrapper code there. */
+            add_constructor_wrapper_code(innermost_function_scope,
+                                         &insert_location);
+          }  /* if */
+        }  /* if */
+      }  /* if */
+#endif /* ASSIGNMENT_TO_THIS_ALLOWED */
+      if (needs_cast_because_type_has_param_passed_via_cctor(
+                                                   operand_node->next->type)) {
+        /* Add a cast if the source of the assignment has a type that contains
+           a function with a copy constructed parameter. */
+        operand_node->next = add_cast(operand_node->next, operand_node->type);
+      }  /* if */
+      break;
+    case tk_ptr_to_member:
+      /* Pointer-to-member assignment turns into integer assignment for
+         pointers to data members, struct assignment for pointers to member
+         functions. */
+      if (is_or_was_ptr_to_member_function_type(operand_node->type)) {
+        expr->variant.operation.type_kind = (a_type_kind)tk_struct;
+      } else {
+        expr->variant.operation.type_kind = (a_type_kind)tk_integer;
+      }  /* if */
+      break;
+    case tk_struct:
+      rewrite_class_assignment_if_necessary(expr);
+      break; 
+    default:
+      /* Nothing to do. */
+      break;
+  }  /* switch */
+}  /* lower_assignment_operator */
+
+
 void lower_expr_full(an_expr_node_ptr expr,
                      a_boolean        assume_expr_is_non_null)
 /*
@@ -12767,8 +12737,9 @@ cast.  See lower_expr for typical invocation.
                  op == (an_expr_operator_kind)eok_pm_call) {
         /* Calls of various kinds. */
         lower_call(expr, (an_init_pos_descr_ptr)NULL, (a_statement_ptr)NULL);
-      } else if (op == (an_expr_operator_kind)eok_pmeq ||
-                 op == (an_expr_operator_kind)eok_pmne) {
+      } else if (node_operator_has_type_kind(expr, tk_ptr_to_member) &&
+                 (op == (an_expr_operator_kind)eok_eq ||
+                  op == (an_expr_operator_kind)eok_ne)) {
         /* Lower pointer-to-member comparison before the operands have been
            lowered, to allow an optimization on comparisons to constants. */
         lower_pm_comparison(expr, /*operand1_lowered=*/FALSE);
@@ -12873,36 +12844,39 @@ cast.  See lower_expr for typical invocation.
             lower_indirect(expr);
             break;
 #if LOWER_COMPLEX
-          case eok_xnegate:
-            lower_c99_xnegate(expr);
+          case eok_negate:
+            if (node_operator_has_type_kind(expr, tk_complex)) {
+              lower_c99_xnegate(expr);
+            }  /*if */
             break;
-          case eok_xadd:
-            lower_c99_xadd(expr);
+          case eok_add:
+            if (node_operator_has_type_kind(expr, tk_complex)) {
+              lower_c99_xadd(expr);
+            }  /*if */
             break;
-          case eok_xsubtract:
-            lower_c99_xsubtract(expr);
+          case eok_subtract:
+            if (node_operator_has_type_kind(expr, tk_complex)) {
+              lower_c99_xsubtract(expr);
+            }  /*if */
             break;
-          case eok_xmultiply:
-            lower_c99_xmultiply(expr);
+          case eok_multiply:
+            if (node_operator_has_type_kind(expr, tk_complex)) {
+              lower_c99_xmultiply(expr);
+            }  /*if */
+          case eok_divide:
+            if (node_operator_has_type_kind(expr, tk_complex)) {
+              lower_c99_xdivide(expr);
+            }  /*if */
             break;
-          case eok_xdivide:
-            lower_c99_xdivide(expr);
+          case eok_eq:
+            if (node_operator_has_type_kind(expr, tk_complex)) {
+              lower_c99_xeq(expr);
+            }  /*if */
             break;
-          case eok_xeq:
-            lower_c99_xeq(expr);
-            break;
-          case eok_xne:
-            lower_c99_xne(expr);
-            break;
-          case eok_xassign:
-            /* Complex assignment becomes structure assignment. */
-            expr->variant.operation.kind = (an_expr_operator_kind)eok_sassign;
-            break;
-          case eok_xadd_assign:
-          case eok_xsubtract_assign:
-          case eok_xmultiply_assign:
-          case eok_xdivide_assign:
-            rewrite_compound_assignment(expr);
+          case eok_ne:
+            if (node_operator_has_type_kind(expr, tk_complex)) {
+              lower_c99_xne(expr);
+            }  /*if */
             break;
 #if GNU_COMPLEX_EXTENSIONS_ALLOWED
           case eok_xconj:
@@ -12914,6 +12888,9 @@ cast.  See lower_expr for typical invocation.
             break;
 #endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
 #endif /* LOWER_COMPLEX */
+          case eok_assign:
+            lower_assignment_operator(expr);
+            break;
           case eok_virtual_function_ptr:
             /* Determine virtual function address. */
             lower_virtual_function_ptr(expr);
@@ -12971,15 +12948,29 @@ cast.  See lower_expr for typical invocation.
           case eok_bool_cast:
             lower_bool_cast(expr);
             break;
-          case eok_ipost_incr:
-          case eok_ipre_incr:
+          case eok_post_incr:
+          case eok_pre_incr:
             if (bool_is_keyword) {
               /* Incrementing a bool (which is deprecated) sets the bool to
                  true. */
               if (is_bool_type(operand_node->type)) {
                 lower_bool_incr_decr(expr);
+                break;
               }  /* if */
             }  /* if */
+          /*FALLTHROUGH*/
+          case eok_pre_decr:
+          case eok_post_decr:
+#if LOWER_VARIABLE_LENGTH_ARRAYS
+            if (vla_enabled && is_pointer_type(expr->type) &&
+                is_vla_type(type_pointed_to(expr->type))) {
+              /* Arithmetic on pointers to VLAs depends on the run-time sizes
+                 of those VLAs.  Since the VLAs are lowered, the pointer
+                 arithmetic must be transformed to explicitly include the
+                 run-time sizes. */
+              lower_vla_pointer_integer_arithmetic(expr);
+            }  /* if */
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
             break;
 #if LOWER_VARIABLE_LENGTH_ARRAYS
           case eok_pdiff:
@@ -13005,10 +12996,6 @@ cast.  See lower_expr for typical invocation.
           case eok_padd:
           case eok_psubtract:
           case eok_psubtract_assign:
-          case eok_ppre_incr:
-          case eok_ppre_decr:
-          case eok_ppost_incr:
-          case eok_ppost_decr:
             if (vla_enabled && is_vla_type(type_pointed_to(expr->type))) {
               /* Arithmetic on pointers to VLAs depends on the run-time sizes
                  of those VLAs.  Since the VLAs are lowered, the pointer
@@ -13024,46 +13011,25 @@ cast.  See lower_expr for typical invocation.
             }  /* if */
             /*FALLTHROUGH*/
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
-          case eok_iadd_assign:
-          case eok_isubtract_assign:
-          case eok_imultiply_assign:
-          case eok_idivide_assign:
+          case eok_add_assign:
+          case eok_subtract_assign:
+          case eok_multiply_assign:
+          case eok_divide_assign:
           case eok_remainder_assign:
           case eok_shiftl_assign:
           case eok_shiftr_assign:
           case eok_and_assign:
           case eok_or_assign:
           case eok_xor_assign:
-#if FIXED_POINT_ALLOWED
-          case eok_fxadd_assign:
-          case eok_fxsubtract_assign:
-          case eok_fxmultiply_assign:
-          case eok_fxdivide_assign:
-          case eok_fxshiftl_assign:
-          case eok_fxshiftr_assign:
-#endif /* FIXED_POINT_ALLOWED */
-          case eok_fadd_assign:
-          case eok_fsubtract_assign:
-          case eok_fmultiply_assign:
-          case eok_fdivide_assign:
-            if (bool_is_keyword) {
+            if (bool_is_keyword && is_bool_type(operand_node->type)) {
               /* Compound assignments to bool don't exist in C89, and
                  must be lowered to get the value reduced to 0/1. */
-              if (is_bool_type(operand_node->type)) {
-                rewrite_compound_assignment(expr);
-              }  /* if */
+              rewrite_compound_assignment(expr);
+#if LOWER_COMPLEX
+            } else if (node_operator_has_type_kind(expr, tk_complex)) {
+              rewrite_compound_assignment(expr);
+#endif /* LOWER_COMPLEX */
             }  /* if */
-            break;
-          case eok_pmassign:
-            /* Pointer-to-member assignment turns into integer assignment
-               for pointers to data members, struct assignment for pointers
-               to member functions. */
-            expr->variant.operation.kind =
-                 lowered_ptr_to_member_assignment_operator(operand_node->next->
-                                                                         type);
-            break;
-          case eok_sassign:
-            rewrite_class_assignment_if_necessary(expr);
             break;
           case eok_pm_field:
           case eok_pm_points_to_field:
@@ -13106,12 +13072,8 @@ cast.  See lower_expr for typical invocation.
             }  /* if */
             break;
 #if GNU_EXTENSIONS_ALLOWED
-          case eok_ignu_min:
-          case eok_fgnu_min:
-          case eok_pgnu_min:
-          case eok_ignu_max:
-          case eok_fgnu_max:
-          case eok_pgnu_max:
+          case eok_gnu_min:
+          case eok_gnu_max:
             /* GNU C++ "<? and ">?". */
             lower_gnu_min_max(expr);
             break;
@@ -13122,82 +13084,6 @@ cast.  See lower_expr for typical invocation.
                and lvalueness. */
             if (throw_operand != NULL) {
               wrap_throw(throw_operand, expr->type, expr->is_lvalue);
-            }  /* if */
-            break;
-          case eok_passign:
-#if ASSIGNMENT_TO_THIS_ALLOWED
-            /* Check for assignment to "this" in a constructor. */
-            if (innermost_function_scope != NULL) {
-              a_routine_ptr curr_routine =
-                                 innermost_function_scope->variant.routine.ptr;
-              if (curr_routine->special_kind ==
-                                    (a_special_function_kind)sfk_constructor) {
-                a_variable_ptr this_param_var =
-                          innermost_function_scope->variant.routine.parameters;
-
-                if (operand_node->kind == (an_expr_node_kind)enk_variable &&
-                    operand_node->is_lvalue &&
-                    operand_node->variant.variable == this_param_var) {
-                  /* This is an assignment to "this".  Add the wrapper code
-                     (to initialize base classes, etc.) following the
-                     assignment to "this".  Add a comma expression on top
-                     that produces the same value as the original assignment,
-                     in case the value of the assignment is used.  That is,
-                       this = expr
-                     becomes
-                       ((this = expr), this)
-                     which then becomes
-                       ((this = expr), (initialization, this))
-                  */
-                  an_expr_node_ptr   new_expr, orig_expr_copy;
-                  an_insert_location insert_location;
-
-                  if (expr->variant.operation.
-                                      returns_lvalue_instead_of_usual_rvalue) {
-                    /* The assignment returns an lvalue, i.e., the address
-                       of the "this" parameter. */
-                    new_expr = var_lvalue_expr(this_param_var);
-                    /* Add a cast to restore the const qualifier on the
-                       expression type.  The const on the "this" parameter
-                       variable type has been removed by IL lowering so that
-                       assignments can be done, but this expression -- built
-                       before the const was removed -- includes the const. */
-                    new_expr = add_cast_if_necessary(new_expr, expr->type);
-                  } else {
-                    /* The assignment returns an rvalue, i.e., the value
-                       of the "this" parameter. */
-                    new_expr = var_rvalue_expr(this_param_var);
-                  }  /* if */
-                  /* Change "this = expr" to "((this = expr), this)" by
-                     converting the original expression to a comma node.
-                     Make a copy of the original node so the original node can
-                     be overwritten. */
-                  orig_expr_copy = copy_node(expr);
-                  /* The copy is not an lvalue-returning operation. */
-                  orig_expr_copy->is_lvalue = FALSE;
-                  orig_expr_copy->variant.operation.
-                                returns_lvalue_instead_of_usual_rvalue = FALSE;
-                  orig_expr_copy->type = this_param_var->type;
-                  orig_expr_copy->next = new_expr;
-                  change_node_to_operation(expr,
-                                           (an_expr_operator_kind)eok_comma,
-                                           expr->type, orig_expr_copy,
-                                           /*is_lvalue=*/FALSE);
-                  set_expr_insert_location(new_expr, &insert_location);
-                  /* The insert location now specifies insertion before the
-                     final expression.  Add the wrapper code there. */
-                  add_constructor_wrapper_code(innermost_function_scope,
-                                               &insert_location);
-                }  /* if */
-              }  /* if */
-            }  /* if */
-#endif /* ASSIGNMENT_TO_THIS_ALLOWED */
-            if (needs_cast_because_type_has_param_passed_via_cctor(
-                                                   operand_node->next->type)) {
-              /* Add a cast if the source of the assignment has a type
-                 that contains a function with a copy constructed parameter. */
-              operand_node->next = add_cast(operand_node->next,
-                                            operand_node->type);
             }  /* if */
             break;
           case eok_lvalue_from_struct_rvalue:
@@ -15063,7 +14949,6 @@ Lower an stmk_return statement.
        into
           { *arg = expr; return;}
     */
-    an_expr_operator_kind assign_op;
     an_expr_node_ptr      lvalue_expr;
     a_type_ptr            return_value_type;
     check_assertion(return_expr != NULL && make_block &&
@@ -15074,15 +14959,13 @@ Lower an stmk_return statement.
     make_block = FALSE;
     /* Create and insert the assignment statement. */
     return_value_type = type_pointed_to(return_value_pointer_variable->type);
-    assign_op = lowered_assignment_operator(return_value_type);
     lvalue_expr = var_lvalue_expr(return_value_pointer_variable);
     lvalue_expr = add_cast_if_necessary(lvalue_expr, make_pointer_type(
                          make_pointer_type(skip_typerefs(return_value_type))));
     lvalue_expr = add_indirection_to_node(lvalue_expr);
-    assign_statement = insert_assignment_statement(lvalue_expr,
-                                                   assign_op,
-                                                   return_expr,
-                                                   &insert_location);
+    assign_statement = insert_assignment_statement(
+                                lvalue_expr, (an_expr_operator_kind)eok_assign,
+                                return_expr, &insert_location);
     set_stmt_pos_to_code_pos_for_lowering(assign_statement);
     return_expr = NULL;
   }  /* if */
@@ -15143,9 +15026,7 @@ Lower an stmk_return statement.
       make_block = FALSE;
       /* Insert the "temp = return-expr;" statement. */
       assign_statement = insert_var_assignment_statement(
-                                            temp_var,
-                                            (an_expr_operator_kind)eok_last,
-                                            return_expr, &insert_location);
+                                      temp_var, return_expr, &insert_location);
       set_stmt_pos_to_code_pos_for_lowering(assign_statement);
     }  /* if */
   }  /* if */

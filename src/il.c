@@ -10990,40 +10990,18 @@ Return TRUE if and only if the given operator is a compound assignment.
   a_boolean  result;
 
   switch (op) {
-#if C99_IL_EXTENSIONS_SUPPORTED
-    case eok_xadd_assign:
-    case eok_xsubtract_assign:
-    case eok_xmultiply_assign:
-    case eok_xdivide_assign:
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-    case eok_iadd_assign:
-    case eok_isubtract_assign:
-    case eok_imultiply_assign:
-    case eok_idivide_assign:
+    case eok_add_assign:
+    case eok_subtract_assign:
+    case eok_multiply_assign:
+    case eok_divide_assign:
     case eok_remainder_assign:
-#if FIXED_POINT_ALLOWED
-    case eok_fxadd_assign:
-    case eok_fxsubtract_assign:
-    case eok_fxmultiply_assign:
-    case eok_fxdivide_assign:
-    case eok_fxshiftl_assign:
-    case eok_fxshiftr_assign:
-#endif /* FIXED_POINT_ALLOWED */
-    case eok_fadd_assign:
-    case eok_fsubtract_assign:
-    case eok_fmultiply_assign:
-    case eok_fdivide_assign:
-    case eok_padd_assign:
-    case eok_psubtract_assign:
     case eok_shiftl_assign:
     case eok_shiftr_assign:
     case eok_and_assign:
     case eok_or_assign:
     case eok_xor_assign:
-    case eok_add_assign:
-    case eok_subtract_assign:
-    case eok_multiply_assign:
-    case eok_divide_assign:
+    case eok_padd_assign:
+    case eok_psubtract_assign:
       result = TRUE;
       break;
     default:
@@ -11113,62 +11091,337 @@ type (i.e., a non-floating-point arithmetic type).
 
 #endif /* FIXED_POINT_ALLOWED */
 
-a_type_ptr expression_operation_type(an_expr_node_ptr expr)
+a_type_ptr compound_assignment_operation_type(an_expr_node_ptr expr)
 /*
-Return the "operation type" of the given enk_operation node.  Ordinarily,
-this is simply expr->type, but there are some special cases that
-require more work: compound assignment operators and, especially,
-fixed-point operations.
+Return the "operation type" of the given compound assignment node.  Special
+care must be taken with fixed-point operands in particular.
 */
 {
-  a_type_ptr            operation_type = expr->type;
+  a_type_ptr            operation_type = expr->type, op1_type, op2_type;
   an_expr_operator_kind op;
+  an_expr_node_ptr      op1, op2;
 
   check_assertion(is_operation_node(expr));
   op = expr->variant.operation.kind;
-  if (is_compound_assignment_operator(op)) {
-    /* Compound operators require special handling. */
-    an_expr_node_ptr op1 = expr->variant.operation.operands;
-    an_expr_node_ptr op2 = op1->next;
-    a_type_ptr       op1_type = rvalue_type(op1->type);
-    a_type_ptr       op2_type = op2->type;
-
-    /* Usually, the operation type is the type of the second operand,
-       because the second operand will have been cast to the operation
-       type. */
-    operation_type = op2_type;
-    if (op == (an_expr_operator_kind)eok_shiftl_assign
-        || op == (an_expr_operator_kind)eok_shiftr_assign
+  check_assertion(is_compound_assignment_operator(op));
+  op1 = expr->variant.operation.operands;
+  op2 = op1->next;
+  op1_type = rvalue_type(op1->type);
+  op2_type = op2->type;
+  /* Usually, the operation type is the type of the second operand, because
+     the second operand will have been cast to the operation type. */
+  operation_type = op2_type;
+  if (op == (an_expr_operator_kind)eok_shiftl_assign ||
+      op == (an_expr_operator_kind)eok_shiftr_assign) {
+    /* Shifts.  The operation type is given by the first operand. */
+    operation_type = op1_type;
+    /* Except for the C++ bool <<= integral case. */
+    if (is_bool_type(operation_type)) operation_type = op2_type;
+  } else if (op == (an_expr_operator_kind)eok_padd_assign ||
+             op == (an_expr_operator_kind)eok_psubtract_assign) {
+    /* Pointer += and -=.  The operation type is given by the first
+       operand. */
+    operation_type = op1_type;
+    /* Except for the C++ bool += pointer case. */
+    if (is_bool_type(operation_type)) operation_type = op2_type;
 #if FIXED_POINT_ALLOWED
-        || op == (an_expr_operator_kind)eok_fxshiftl_assign
-        || op == (an_expr_operator_kind)eok_fxshiftr_assign
-#endif /* FIXED_POINT_ALLOWED */
-                                                           ) {
-      /* Shifts.  The operation type is given by the first operand. */
+  } else if (is_fixed_point_type(op1_type) || is_fixed_point_type(op2_type)) {
+    /* One or two fixed-point operands.  The operation type must be computed
+       from the operand types.  This is more complicated than the usual case
+       because the operands are not brought to a common type. */
+    /* Ensure that this is a C mode.  Otherwise, we'd have to deal with
+       template-dependent types. */
+    check_assertion(C_mode());
+    if (is_floating_type(op1_type)) {
       operation_type = op1_type;
-      /* Except for the C++ bool <<= integral case. */
-      if (is_bool_type(operation_type)) operation_type = op2_type;
-    } else if (op == (an_expr_operator_kind)eok_padd_assign ||
-               op == (an_expr_operator_kind)eok_psubtract_assign) {
-      /* Pointer += and -=.  The operation type is given by the first
-         operand. */
-      operation_type = op1_type;
-      /* Except for the C++ bool += pointer case. */
-      if (is_bool_type(operation_type)) operation_type = op2_type;
-#if FIXED_POINT_ALLOWED
-    } else if (op == (an_expr_operator_kind)eok_fxadd_assign ||
-               op == (an_expr_operator_kind)eok_fxsubtract_assign ||
-               op == (an_expr_operator_kind)eok_fxmultiply_assign ||
-               op == (an_expr_operator_kind)eok_fxdivide_assign) {
-      /* Fixed-point operations.  The operation type must be computed
-         from the operand types.  This is more complicated than the usual
-         case because the operands are not brought to a common type. */
+    } else if (is_floating_type(op2_type)) {
+      operation_type = op2_type;
+    } else {
       operation_type = fixed_point_result_type(op1_type, op2_type);
-#endif /* FIXED_POINT_ALLOWED */
     }  /* if */
+#endif /* FIXED_POINT_ALLOWED */
   }  /* if */
   return operation_type;
-}  /* expression_operation_type */
+}  /* compound_assignment_operation_type */
+
+
+a_type_kind binary_operation_type_kind(an_expr_operator_kind  op,
+                                       a_type_ptr             op1_type,
+                                       a_type_ptr             op2_type)
+/*
+Determine the "operation type kind" for the given binary operator kind applied 
+to operands of the given type.
+*/
+{
+  a_type_kind  result, kind1, kind2;
+
+  op1_type = skip_typerefs(op1_type);
+  op2_type = skip_typerefs(op2_type);
+  kind1 = op1_type->kind;
+  kind2 = op2_type->kind;
+  if (kind1 == kind2) {
+    result = kind1;
+#if C99_IL_EXTENSIONS_SUPPORTED 
+    if (result == (a_type_kind)tk_imaginary) {
+      /* "Imaginary op Imaginary" is usually equivalent to "float op float".
+         The exception is "Imaginary * Imaginary", which requires an additional
+         negation.  We therefore use tk_imaginary only for the latter case. */
+      if (op != (an_expr_operator_kind)eok_multiply) {
+        result = (a_type_kind)tk_float;
+      }  /* if */
+    }  /* if */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+  } else if (kind1 == (a_type_kind)tk_template_param ||
+             kind2 == (a_type_kind)tk_template_param ||
+             is_template_dependent_type(op1_type) ||
+             is_template_dependent_type(op2_type)) {
+    result = (a_type_kind)tk_template_param;
+  } else if (kind1 == (a_type_kind)tk_pointer ||
+             kind2 == (a_type_kind)tk_pointer) {
+    result = (a_type_kind)tk_ptr_to_member;
+  } else if (kind1 == (a_type_kind)tk_ptr_to_member ||
+             kind2 == (a_type_kind)tk_ptr_to_member) {
+    result = (a_type_kind)tk_ptr_to_member;
+#if C99_IL_EXTENSIONS_SUPPORTED 
+  } else if (kind1 == (a_type_kind)tk_imaginary ||
+             kind2 == (a_type_kind)tk_imaginary) {
+    /* Operations involving an imaginary operand and another type (tk_float or
+       tk_complex). */
+    if (kind1 == (a_type_kind)tk_complex || kind2 == (a_type_kind)tk_complex) {
+      result = (a_type_kind)tk_complex;
+    } else {
+      check_assertion(kind1 == (a_type_kind)tk_float ||
+                      kind2 == (a_type_kind)tk_float);
+      /* A mixed tk_float/tk_imaginary operation.  Addition and substraction
+         operators don't actually require addition or subtraction, but the
+         assembly of a complex value; so the operation type is recorded as
+         tk_complex in that case.  Division by an imaginary number requires a
+         negation on top of the regular floating-point division; so that case
+         has operation type tk_imaginary.  Multiplication and other division
+         cases only require the corresponding floating-point operation; we
+         record tk_float for those. */
+      if (op == (an_expr_operator_kind)eok_fjadd ||
+          op == (an_expr_operator_kind)eok_jfadd ||
+          op == (an_expr_operator_kind)eok_fjsubtract ||
+          op == (an_expr_operator_kind)eok_jfsubtract) {
+        result = (a_type_kind)tk_complex;
+      } else if (kind2 == (a_type_kind)tk_imaginary &&
+                 (op == (an_expr_operator_kind)eok_divide ||
+                  op == (an_expr_operator_kind)eok_divide_assign)) {
+        result = (a_type_kind)tk_imaginary;
+      } else {
+        result = (a_type_kind)tk_float;
+      }  /* if */
+    }  /* if */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+#if FIXED_POINT_ALLOWED
+  } else if (kind1 == (a_type_kind)tk_fixed_point) {
+    result = (kind2 == (a_type_kind)tk_integer) ? kind1 : kind2;
+  } else if (kind2 == (a_type_kind)tk_fixed_point) {
+    result = (kind1 == (a_type_kind)tk_integer) ? kind2 : kind1;
+#endif /* FIXED_POINT_ALLOWED */
+  } else {
+    unexpected_condition();
+  }  /* if */
+  return result;
+}  /* binary_operation_type_kind */
+
+
+static a_type_kind operation_type_kind(an_expr_node_ptr  expr)
+/*
+Return the kind of type the given enk_operation node acts on.  This is best
+thought of as an indication the kind of specialized machine register that
+might be used to implement the operation.  E.g., when comparing two integers
+the result is tk_integer, when adding and integer to a pointer the result is
+tk_pointer, and when adding two vectors of integers the result is tk_vector.
+Many operations don't specifically apply to a particular type kind; for those
+tk_unknown is returned.
+*/
+{
+  a_type_kind  result;
+  a_type_ptr   expr_type = skip_typerefs(expr->type);
+
+  check_assertion(expr->kind == (an_expr_node_kind)enk_operation);
+  switch (expr->variant.operation.kind) {
+    case eok_address_of:
+    case eok_reference_to:
+    case eok_indirect:
+    case eok_ref_indirect:
+      result = (a_type_kind)tk_pointer;
+      break;
+    case eok_cast:
+    case eok_lvalue_cast:
+      /* Since eok_cast and eok_lvalue_cast potentially involves unrelated
+         type kinds, we do not attempt to characterize an "operation type" for
+         these cases. */
+      result = (a_type_kind)tk_unknown;
+      break;
+    case eok_base_class_cast:
+    case eok_derived_class_cast:
+    case eok_pm_base_class_cast:
+    case eok_pm_derived_class_cast:
+      result = (a_type_kind)tk_pointer;
+      break;
+    case eok_dynamic_cast:
+      result = (a_type_kind)tk_pointer;
+      break;
+    case eok_bool_cast:
+      result = skip_typerefs(expr->variant.operation.operands->type)->kind;
+      break;
+    case eok_lvalue_from_struct_rvalue:
+      result = (a_type_kind)tk_struct;
+      break;
+    case eok_array_to_pointer:
+      result = (a_type_kind)tk_array;
+      break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case eok_assume:
+      result = (a_type_kind)tk_integer;
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case eok_negate:
+    case eok_unary_plus:
+    case eok_complement:
+      result = expr_type->kind;
+      break;
+    case eok_not:
+      result = skip_typerefs(expr->variant.operation.operands->type)->kind;
+      break;
+#if GNU_COMPLEX_EXTENSIONS_ALLOWED
+    case eok_xconj:
+    case eok_real_part:
+    case eok_imag_part:
+#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
+    case eok_post_incr:
+    case eok_post_decr:
+    case eok_pre_incr:
+    case eok_pre_decr:
+      result = expr_type->kind;
+      break;
+    case eok_add:
+    case eok_subtract:
+    case eok_multiply:
+    case eok_divide:
+    case eok_remainder:
+      result = expr_type->kind;
+      break;
+#if C99_IL_EXTENSIONS_SUPPORTED
+    case eok_jmultiply:
+    case eok_jdivide:
+      result = (a_type_kind)tk_imaginary;
+      break;
+    case eok_fjadd:
+    case eok_jfadd:
+    case eok_fjsubtract:
+    case eok_jfsubtract:
+      result = (a_type_kind)tk_complex;
+      break;
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+    case eok_padd:
+    case eok_psubtract:
+    case eok_pdiff:
+      result = (a_type_kind)tk_pointer;
+      break;
+    case eok_shiftl:
+    case eok_shiftr:
+      /* The "operation type kind" is determined by the first operand (the
+         value being shifted). */
+      result = skip_typerefs(expr->variant.operation.operands->type)->kind;
+      break;
+    case eok_and:
+    case eok_or:
+    case eok_xor:
+      result = expr_type->kind;
+      break;
+    case eok_eq:
+    case eok_ne:
+    case eok_gt:
+    case eok_lt:
+    case eok_ge:
+    case eok_le:
+      { an_expr_node_ptr  arg1 = expr->variant.operation.operands,
+                          arg2 = arg1->next;
+        result = binary_operation_type_kind(expr->variant.operation.kind,
+                                            arg1->type, arg2->type);
+      }
+      break;
+    case eok_gnu_min:
+    case eok_gnu_max:
+      result = expr_type->kind;
+      break;
+    case eok_assign:
+      result = skip_typerefs(expr->variant.operation.operands->type)->kind;
+      if (result == (a_type_kind)tk_class || result == (a_type_kind)tk_union) {
+        /* Normalize the type kind to tk_struct for all class types. */
+        result = tk_struct;
+      }  /* if */
+      break;
+    case eok_add_assign:
+    case eok_subtract_assign:
+    case eok_multiply_assign:
+    case eok_divide_assign:
+    case eok_remainder_assign:
+    case eok_shiftl_assign:
+    case eok_shiftr_assign:
+    case eok_and_assign:
+    case eok_or_assign:
+    case eok_xor_assign:
+      result = skip_typerefs(compound_assignment_operation_type(expr))->kind;
+      break;
+    case eok_padd_assign:
+    case eok_psubtract_assign:
+      result = (a_type_kind)tk_pointer;
+      break;
+    case eok_bassign:
+      result = (a_type_kind)tk_unknown;
+      break;
+    case eok_land:
+    case eok_lor:
+      result = (a_type_kind)tk_integer;
+      break;
+    case eok_comma:
+      result = (a_type_kind)tk_unknown;
+      break;
+    case eok_subscript:
+      result = (a_type_kind)tk_pointer;
+      break;
+    case eok_dot_field:
+    case eok_points_to_field:
+    case eok_pm_field:
+    case eok_pm_points_to_field:
+    case eok_dot_static:
+    case eok_points_to_static:
+    case eok_virtual_function_ptr:
+    case eok_dot_vacuous_destructor_call:
+    case eok_points_to_vacuous_destructor_call:
+    case eok_question:
+    case eok_call:
+    case eok_virtual_call:
+    case eok_pm_call:
+    case eok_va_start:
+    case eok_va_arg:
+    case eok_va_end:
+    case eok_va_copy:
+    case eok_va_start_single_operand:
+      result = (a_type_kind)tk_unknown;
+      break;
+    case eok_static_cast:
+    case eok_const_cast:
+    case eok_reinterpret_cast:
+    case eok_lvalue:
+    case eok_rvalue:
+    case eok_generic_call:
+    case eok_generic_member_call:
+      result = (a_type_kind)tk_template_param;
+      break;
+    case eok_error:
+      result = (a_type_kind)tk_error;
+      break;
+    default:
+      unexpected_condition_str("operation_type_kind: unexpected operation");
+  }  /* switch */
+  return result;
+}  /* operation_type_kind */
 
 
 /*
@@ -11647,7 +11900,8 @@ void set_node_operator(an_expr_node_ptr      node,
                        an_expr_node_ptr      operands)
 /*
 Set the operator, type, and operand list in an operator expression node.
-Set the node's lvalueness as specified by is_lvalue.
+Set the node's lvalueness as specified by is_lvalue.  Also set the "operation
+type kind" as a function of the operator kind and the type of the operands.
 */
 {
   node->type = type;
@@ -11657,7 +11911,7 @@ Set the node's lvalueness as specified by is_lvalue.
 #if DO_IL_LOWERING
   if (il_lowering_underway && !C_mode() && is_lvalue &&
       (kind == (an_expr_operator_kind)eok_comma ||
-       kind == (an_expr_operator_kind)eok_iassign ||
+       kind == (an_expr_operator_kind)eok_assign ||
        kind == (an_expr_operator_kind)eok_question)) {
     /* Make sure that operators added during lowering have the
        returns_lvalue_instead_of_usual_rvalue field set properly. */
@@ -11679,6 +11933,7 @@ Set the node's lvalueness as specified by is_lvalue.
   if (node->result_is_not_used) {
     set_expr_result_not_used(node);
   }  /* if */
+  node->variant.operation.type_kind = operation_type_kind(node);
 }  /* set_node_operator */
 
 
@@ -12001,8 +12256,11 @@ to TRUE.  *source_pos gives the source position for errors.
        operation. */
     do_promotion = FALSE;
     switch (op) {
-      case eok_inegate:
       case eok_negate:
+        { a_type_kind  type_kind = skip_typerefs(type_1)->kind;
+          do_promotion = type_kind == (a_type_kind)tk_integer;
+        }
+        break;
       case eok_unary_plus:
       case eok_complement:
         do_promotion = TRUE;
@@ -12020,121 +12278,48 @@ to TRUE.  *source_pos gives the source position for errors.
     /* Two-operand operation. */
     do_usual_arith_conversions = do_promotion = FALSE;
     switch (op) {
-      case eok_iadd:
-      case eok_fadd:
       case eok_add:
-      case eok_isubtract:
-      case eok_fsubtract:
       case eok_subtract:
-      case eok_imultiply:
-      case eok_fmultiply:
       case eok_multiply:
-      case eok_idivide:
-      case eok_fdivide:
       case eok_divide:
-      case eok_ieq:
-      case eok_feq:
-      case eok_eq:
-      case eok_ine:
-      case eok_fne:
-      case eok_ne:
-      case eok_igt:
-      case eok_fgt:
-      case eok_gt:
-      case eok_ilt:
-      case eok_flt:
-      case eok_lt:
-      case eok_ige:
-      case eok_fge:
-      case eok_ge:
-      case eok_ile:
-      case eok_fle:
-      case eok_le:
       case eok_and:
       case eok_or:
       case eok_xor:
       case eok_remainder:
-#if GNU_EXTENSIONS_ALLOWED
-      case eok_gnu_min:
-      case eok_gnu_max:
-      case eok_ignu_min:
-      case eok_ignu_max:
-      case eok_fgnu_min:
-      case eok_fgnu_max:
-      case eok_pgnu_min:
-      case eok_pgnu_max:
-#if C99_IL_EXTENSIONS_SUPPORTED
-      case eok_xadd:
-      case eok_xsubtract:
-      case eok_xmultiply:
-      case eok_xdivide:
-      case eok_xeq:
-      case eok_xne:
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-#endif /* GNU_EXTENSIONS_ALLOWED */
         do_usual_arith_conversions = TRUE;
-        break;
-      case eok_iadd_assign:
-      case eok_fadd_assign:
-      case eok_add_assign:
-      case eok_isubtract_assign:
-      case eok_fsubtract_assign:
-      case eok_subtract_assign:
-      case eok_fmultiply_assign:
-      case eok_multiply_assign:
-      case eok_idivide_assign:
-      case eok_fdivide_assign:
-      case eok_divide_assign:
-      case eok_remainder_assign:
-      case eok_and_assign:
-      case eok_or_assign:
-#if C99_IL_EXTENSIONS_SUPPORTED
-      case eok_xadd_assign:
-      case eok_xsubtract_assign:
-      case eok_xmultiply_assign:
-      case eok_xdivide_assign:
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-        do_usual_arith_conversions = TRUE;
-        assignment_case = TRUE;
         break;
       case eok_shiftl:
       case eok_shiftr:
         do_promotion = TRUE;
+        break;
+      case eok_eq:
+      case eok_ne:
+      case eok_gt:
+      case eok_lt:
+      case eok_ge:
+      case eok_le:
+#if GNU_EXTENSIONS_ALLOWED
+      case eok_gnu_min:
+      case eok_gnu_max:
+#endif /* GNU_EXTENSIONS_ALLOWED */
+        do_usual_arith_conversions = TRUE;
+        break;
+      case eok_add_assign:
+      case eok_subtract_assign:
+      case eok_multiply_assign:
+      case eok_divide_assign:
+      case eok_remainder_assign:
+      case eok_and_assign:
+      case eok_or_assign:
+      case eok_xor_assign:
+        do_usual_arith_conversions = TRUE;
+        assignment_case = TRUE;
         break;
       case eok_shiftl_assign:
       case eok_shiftr_assign:
         do_promotion = TRUE;
         assignment_case = TRUE;
         break;
-#if FIXED_POINT_ALLOWED
-      /* These are currently used only in C modes. */
-      case eok_fxnegate:
-      case eok_fxpost_incr:
-      case eok_fxpost_decr:
-      case eok_fxpre_incr:
-      case eok_fxpre_decr:
-      case eok_fxadd:
-      case eok_fxsubtract:
-      case eok_fxmultiply:
-      case eok_fxdivide:
-      case eok_fxshiftl:
-      case eok_fxshiftr:
-      case eok_fxeq:
-      case eok_fxne:
-      case eok_fxgt:
-      case eok_fxlt:
-      case eok_fxge:
-      case eok_fxle:
-      case eok_fxassign:
-      case eok_fxadd_assign:
-      case eok_fxsubtract_assign:
-      case eok_fxmultiply_assign:
-      case eok_fxdivide_assign:
-      case eok_fxshiftl_assign:
-      case eok_fxshiftr_assign:
-        unexpected_condition_str("fixed-point operators not implemented");
-        break;
-#endif /* FIXED_POINT_ALLOWED */
 #if C99_IL_EXTENSIONS_SUPPORTED
       /* The following imaginary type operators are used only in C mode.
          If they are added for C++ mode, bear in mind that
@@ -12228,44 +12413,37 @@ to an already-allocated constant; otherwise, constant points to the
 }  /* alloc_copied_template_param_expr */
   
   
-static a_boolean operator_is_foldable(an_expr_operator_kind op)
+static a_boolean operator_is_foldable(an_expr_node_ptr  expr)
 /*
-Return TRUE if the indicated operation should be folded when doing
+Return TRUE if the indicated expression node should be folded when doing
 template argument substitution.
 */
 {
-  a_boolean is_foldable = FALSE;
+  a_boolean              is_foldable = FALSE;
+  an_expr_operator_kind  op = expr->variant.operation.kind;
 
   switch (op) {
-    case eok_address_of:
-    case eok_inegate:
     case eok_negate:
+    case eok_add:
+    case eok_subtract:
+    case eok_multiply:
+    case eok_divide:
+    case eok_remainder:
+    case eok_eq:
+    case eok_ne:
+    case eok_gt:
+    case eok_lt:
+    case eok_ge:
+    case eok_le:
+      is_foldable = node_operator_has_type_kind(expr, tk_integer) ||
+                    node_operator_has_type_kind(expr, tk_template_param);
+      break;
+    case eok_address_of:
     case eok_unary_plus:
     case eok_complement:
     case eok_not:
-    case eok_iadd:
-    case eok_add:
-    case eok_isubtract:
-    case eok_subtract:
-    case eok_imultiply:
-    case eok_multiply:
-    case eok_idivide:
-    case eok_divide:
-    case eok_remainder:
     case eok_shiftl:
     case eok_shiftr:
-    case eok_ieq:
-    case eok_eq:
-    case eok_ine:
-    case eok_ne:
-    case eok_igt:
-    case eok_gt:
-    case eok_ilt:
-    case eok_lt:
-    case eok_ige:
-    case eok_ge:
-    case eok_ile:
-    case eok_le:
     case eok_and:
     case eok_or:
     case eok_xor:
@@ -12276,12 +12454,6 @@ template argument substitution.
 #if GNU_EXTENSIONS_ALLOWED
     case eok_gnu_min:
     case eok_gnu_max:
-    case eok_ignu_min:
-    case eok_ignu_max:
-    case eok_fgnu_min:
-    case eok_fgnu_max:
-    case eok_pgnu_min:
-    case eok_pgnu_max:
 #endif /* GNU_EXTENSIONS_ALLOWED */
       is_foldable = TRUE;
       break;
@@ -12290,56 +12462,6 @@ template argument substitution.
   }  /* switch */
   return is_foldable;
 }  /* operator_is_foldable */
-
-
-an_expr_operator_kind substitute_integer_operator_for_generic(
-                                                      an_expr_operator_kind op)
-/*
-If op is a generic operator (e.g., eok_add), return the corresponding
-integer operator (e.g., eok_iadd).  Otherwise, return the operator
-passed in.
-*/
-{
-  switch (op) {
-    case eok_negate:
-      op = (an_expr_operator_kind)eok_inegate;
-      break;
-    case eok_add:
-      op = (an_expr_operator_kind)eok_iadd;
-      break;
-    case eok_subtract:
-      op = (an_expr_operator_kind)eok_isubtract;
-      break;
-    case eok_multiply:
-      op = (an_expr_operator_kind)eok_imultiply;
-      break;
-    case eok_divide:
-      op = (an_expr_operator_kind)eok_idivide;
-      break;
-    case eok_eq:
-      op = (an_expr_operator_kind)eok_ieq;
-      break;
-    case eok_ne:
-      op = (an_expr_operator_kind)eok_ine;
-      break;
-    case eok_gt:
-      op = (an_expr_operator_kind)eok_igt;
-      break;
-    case eok_lt:
-      op = (an_expr_operator_kind)eok_ilt;
-      break;
-    case eok_ge:
-      op = (an_expr_operator_kind)eok_ige;
-      break;
-    case eok_le:
-      op = (an_expr_operator_kind)eok_ile;
-      break;
-    default:
-      /* No change. */
-      break;
-  }  /* switch */
-  return op;
-}  /* substitute_integer_operator_for_generic */
 
 
 static an_expr_node_ptr copy_template_param_expr_as_lvalue(
@@ -12617,7 +12739,7 @@ options is a set of name lookup options.
                                                        copy_error,
                                                        constant,
                                                        alloc_con);
-      } else if (!operator_is_foldable(op)) {
+      } else if (!operator_is_foldable(expr)) {
         /* For operators we can't ever fold (e.g., calls), give up on
            deduction.  This is a limitation with respect to the standard,
            but going down this road eventually requires overload
@@ -12685,9 +12807,6 @@ options is a set of name lookup options.
                                                        source_pos,
                                                        options,
                                                        copy_error);
-        } else {
-          /* Change generic operators to integer operators. */
-          op = substitute_integer_operator_for_generic(op);
         }  /* if */
         if (new_operand_1 == NULL &&
             new_operand_2 == NULL &&
@@ -13436,7 +13555,7 @@ a constant that is the previous value incremented by one.
                        (an_integer_kind)ik_int);
   operands->next = alloc_node_for_constant(&one_val);
   con->variant.template_param.variant.expr =
-                           make_operator_node((an_expr_operator_kind)eok_iadd,
+                           make_operator_node((an_expr_operator_kind)eok_add,
                                               con->type,
                                               operands);
   con->variant.template_param.variant.expr->
@@ -13455,25 +13574,8 @@ be added on a tested condition in the IL.
 
   switch (op) {
     case eok_land: case eok_lor: case eok_not:
-    case eok_ieq: case eok_feq: case eok_peq:
-    case eok_ine: case eok_fne: case eok_pne:
-    case eok_igt: case eok_fgt: case eok_pgt:
-    case eok_ilt: case eok_flt: case eok_plt:
-    case eok_ige: case eok_fge: case eok_pge:
-    case eok_ile: case eok_fle: case eok_ple:
-    case eok_pmne: case eok_pmeq:
-#if C99_IL_EXTENSIONS_SUPPORTED
-    case eok_xeq:
-    case eok_xne:
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-#if FIXED_POINT_ALLOWED
-    case eok_fxeq:
-    case eok_fxne:
-    case eok_fxgt:
-    case eok_fxlt:
-    case eok_fxge:
-    case eok_fxle:
-#endif /* FIXED_POINT_ALLOWED */
+    case eok_eq: case eok_ne:
+    case eok_gt: case eok_lt: case eok_ge: case eok_le:
     case eok_bool_cast:
       returns_bool = TRUE;
       break;
@@ -14826,60 +14928,24 @@ to TRUE if a warning about the expression doing nothing should be suppressed.
   an_expr_operator_kind op = node->variant.operation.kind;
 
   switch (op) {
-    case eok_ipost_incr:
-    case eok_fpost_incr:
-    case eok_ppost_incr:
-    case eok_ipost_decr:
-    case eok_fpost_decr:
-    case eok_ppost_decr:
-    case eok_ipre_incr:
-    case eok_fpre_incr:
-    case eok_ppre_incr:
-    case eok_ipre_decr:
-    case eok_fpre_decr:
-    case eok_ppre_decr:
-#if FIXED_POINT_ALLOWED
-    case eok_fxpost_incr:
-    case eok_fxpost_decr:
-    case eok_fxpre_incr:
-    case eok_fxpre_decr:
-    case eok_fxassign:
-    case eok_fxadd_assign:
-    case eok_fxsubtract_assign:
-    case eok_fxmultiply_assign:
-    case eok_fxdivide_assign:
-    case eok_fxshiftl_assign:
-    case eok_fxshiftr_assign:
-#endif /* FIXED_POINT_ALLOWED */
-    case eok_iassign:
-    case eok_fassign:
-    case eok_passign:
-    case eok_sassign:
+    case eok_post_incr:
+    case eok_post_decr:
+    case eok_pre_incr:
+    case eok_pre_decr:
+    case eok_assign:
     case eok_bassign:
-    case eok_pmassign:
-    case eok_imultiply_assign:
-    case eok_fmultiply_assign:
-    case eok_idivide_assign:
-    case eok_fdivide_assign:
+    case eok_add_assign:
+    case eok_subtract_assign:
+    case eok_multiply_assign:
+    case eok_divide_assign:
     case eok_remainder_assign:
-    case eok_iadd_assign:
-    case eok_fadd_assign:
-    case eok_padd_assign:
-    case eok_isubtract_assign:
-    case eok_fsubtract_assign:
-    case eok_psubtract_assign:
     case eok_shiftl_assign:
     case eok_shiftr_assign:
     case eok_and_assign:
     case eok_or_assign:
     case eok_xor_assign:
-#if C99_IL_EXTENSIONS_SUPPORTED
-    case eok_xassign:
-    case eok_xmultiply_assign:
-    case eok_xdivide_assign:
-    case eok_xadd_assign:
-    case eok_xsubtract_assign:
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+    case eok_padd_assign:
+    case eok_psubtract_assign:
     case eok_call:
     case eok_virtual_call:
     case eok_pm_call:
@@ -14887,15 +14953,6 @@ to TRUE if a warning about the expression doing nothing should be suppressed.
     case eok_va_arg:
     case eok_va_end:
     case eok_va_copy:
-    case eok_post_incr:
-    case eok_post_decr:
-    case eok_pre_incr:
-    case eok_pre_decr:
-    case eok_assign:
-    case eok_add_assign:
-    case eok_subtract_assign:
-    case eok_multiply_assign:
-    case eok_divide_assign:
     case eok_generic_call:
     case eok_generic_member_call:
       /* These all cause side effects. */
@@ -14931,33 +14988,43 @@ to TRUE if a warning about the expression doing nothing should be suppressed.
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case eok_cast:
+#if C99_IL_EXTENSIONS_SUPPORTED
       if (c99_mode &&
           (is_floating_type(node->type) ||
            is_floating_type(node->variant.operation.operands->type))) {
         /* Floating-point conversions can cause side effects in C99. */
         goto c99_float_operations;
-      } else if (vla_enabled && type_has_side_effects(node->type)) {
+      }  /* if */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+      if (vla_enabled && type_has_side_effects(node->type)) {
         has_side_effects = TRUE;
       }  /* if */
       break;
-    case eok_fnegate:
-    case eok_fadd:
-    case eok_fsubtract:
-    case eok_fmultiply:
-    case eok_fdivide:
-    case eok_feq:
-    case eok_fne:
-    case eok_fgt:
-    case eok_flt:
-    case eok_fge:
-    case eok_fle:
-    case eok_fgnu_min:
-    case eok_fgnu_max:
+#if C99_IL_EXTENSIONS_SUPPORTED
+    case eok_negate:
+    case eok_add:
+    case eok_subtract:
+    case eok_multiply:
+    case eok_divide:
+    case eok_eq:
+    case eok_ne:
+    case eok_gt:
+    case eok_lt:
+    case eok_ge:
+    case eok_le:
+    case eok_gnu_min:
+    case eok_gnu_max:
+      /* In C99, the floating-point status flags can be tested, so a
+         floating-point operation is considered to have side effects. */
+      if (!c99_mode) {
+        break;
+      } else if (!node_operator_has_type_kind(node, tk_float) &&
+                 !node_operator_has_type_kind(node, tk_complex) &&
+                 !node_operator_has_type_kind(node, tk_imaginary)) {
+        break;
+      }  /* if */
 c99_float_operations:
-      if (c99_mode) {
-        /* In C99, the floating-point status flags can be tested, so a
-           floating-point operation is considered to have side effects. */
-        a_boolean fp_operations_can_cause_side_effects = FALSE;
+      { a_boolean fp_operations_can_cause_side_effects = FALSE;
         /* Floating-point operations can cause side effects unless
            FENV_ACCESS is set to off.  Outside of the front end proper,
            we don't know the current state of that flag so we assume
@@ -14973,8 +15040,9 @@ c99_float_operations:
                   (curr_fenv_access_state != (a_stdc_pragma_value)stdc_pv_off);
         }  /* if */
         if (fp_operations_can_cause_side_effects) has_side_effects = TRUE;
-      }  /* if */
+      }
       break;
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
     default:
       /* Other operations have no side effects at this level.  The operands
          might still cause side effects. */
@@ -15700,67 +15768,28 @@ operand.
 
   switch (op) {
     case eok_lvalue_cast:
-    case eok_iassign:
-    case eok_fassign:
-    case eok_passign:
-    case eok_sassign:
-    case eok_pmassign:
-    case eok_iadd_assign:
-    case eok_isubtract_assign:
-    case eok_imultiply_assign:
-    case eok_idivide_assign:
-    case eok_remainder_assign:
-    case eok_fadd_assign:
-    case eok_fsubtract_assign:
-    case eok_fmultiply_assign:
-    case eok_fdivide_assign:
-    case eok_padd_assign:
-    case eok_psubtract_assign:
+    case eok_assign:
+    case eok_add_assign:
+    case eok_subtract_assign:
+    case eok_multiply_assign:
+    case eok_divide_assign:
     case eok_shiftl_assign:
     case eok_shiftr_assign:
     case eok_and_assign:
     case eok_or_assign:
     case eok_xor_assign:
-    case eok_ipost_decr:
-    case eok_ipre_decr:
-    case eok_fpost_decr:
-    case eok_fpre_decr:
-    case eok_ppost_decr:
-    case eok_ppre_decr:
-    case eok_ipost_incr:
-    case eok_ipre_incr:
-    case eok_fpost_incr:
-    case eok_fpre_incr:
-    case eok_ppost_incr:
-    case eok_ppre_incr:
-#if FIXED_POINT_ALLOWED
-    case eok_fxpost_decr:
-    case eok_fxpre_decr:
-    case eok_fxpost_incr:
-    case eok_fxpre_incr:
-    case eok_fxassign:
-    case eok_fxadd_assign:
-    case eok_fxsubtract_assign:
-    case eok_fxmultiply_assign:
-    case eok_fxdivide_assign:
-    case eok_fxshiftl_assign:
-    case eok_fxshiftr_assign:
-#endif /* FIXED_POINT_ALLOWED */
+    case eok_padd_assign:
+    case eok_psubtract_assign:
+    case eok_post_decr:
+    case eok_pre_decr:
+    case eok_post_incr:
+    case eok_pre_incr:
     case eok_va_start:
     case eok_va_arg:
     case eok_va_end:
     case eok_va_copy:
     case eok_va_start_single_operand:
-    case eok_post_incr:
-    case eok_post_decr:
-    case eok_pre_incr:
-    case eok_pre_decr:
-    case eok_assign:
     case eok_bassign:
-    case eok_add_assign:
-    case eok_subtract_assign:
-    case eok_multiply_assign:
-    case eok_divide_assign:
     case eok_lvalue:
       takes_lvalue = TRUE;
       break;
@@ -19148,163 +19177,53 @@ Definition of the bits in lvalue_rvalue_test.
 #define LVRV_DISTINGUISHED_VALUE_FOR_LAST	0xfd
 
 static a_byte lvalue_rvalue_test[(int)eok_last+1] = {
+  /* eok_lvalue: */			LVRV_OPND1_IS_RVALUE,
+  /* eok_rvalue: */			LVRV_OPND1_IS_LVALUE,
   /* eok_address_of: */			LVRV_OPND1_IS_LVALUE,
   /* eok_reference_to: */		LVRV_OPND1_IS_LVALUE,
   /* eok_indirect: */			LVRV_OPND1_IS_RVALUE,
   /* eok_ref_indirect: */		LVRV_OPND1_IS_RVALUE,
-  /* eok_inegate: */			LVRV_OPND1_IS_RVALUE,
-#if FIXED_POINT_ALLOWED
-  /* eok_fxnegate: */			LVRV_OPND1_IS_RVALUE,
-#endif /* FIXED_POINT_ALLOWED */
-  /* eok_fnegate: */			LVRV_OPND1_IS_RVALUE,
-  /* eok_unary_plus: */			LVRV_OPND1_IS_RVALUE,
-  /* eok_not: */			LVRV_OPND1_IS_RVALUE,
   /* eok_cast: */			LVRV_OPND1_IS_LVALUE_IF_EXPR_IS,
+  /* eok_lvalue_cast: */		LVRV_OPND1_IS_LVALUE,
   /* eok_base_class_cast: */		LVRV_OPND1_IS_LVALUE_IF_EXPR_IS,
   /* eok_derived_class_cast: */		LVRV_OPND1_IS_LVALUE_IF_EXPR_IS,
   /* eok_pm_base_class_cast: */		LVRV_OPND1_IS_LVALUE_IF_EXPR_IS,
   /* eok_pm_derived_class_cast: */	LVRV_OPND1_IS_LVALUE_IF_EXPR_IS,
-  /* eok_lvalue_cast: */		LVRV_OPND1_IS_LVALUE,
   /* eok_dynamic_cast: */		LVRV_OPND1_IS_LVALUE_IF_EXPR_IS,
   /* eok_bool_cast: */			LVRV_OPND1_IS_RVALUE,
-  /* eok_complement: */			LVRV_OPND1_IS_RVALUE,
-  /* eok_ipost_incr: */			LVRV_OPND1_IS_LVALUE,
-  /* eok_ipost_decr: */			LVRV_OPND1_IS_LVALUE,
-  /* eok_ipre_incr: */			LVRV_OPND1_IS_LVALUE,
-  /* eok_ipre_decr: */			LVRV_OPND1_IS_LVALUE,
-#if FIXED_POINT_ALLOWED
-  /* eok_fxpost_incr: */		LVRV_OPND1_IS_LVALUE,
-  /* eok_fxpost_decr: */		LVRV_OPND1_IS_LVALUE,
-  /* eok_fxpre_incr: */			LVRV_OPND1_IS_LVALUE,
-  /* eok_fxpre_decr: */			LVRV_OPND1_IS_LVALUE,
-#endif /* FIXED_POINT_ALLOWED */
-  /* eok_fpost_incr: */			LVRV_OPND1_IS_LVALUE,
-  /* eok_fpost_decr: */			LVRV_OPND1_IS_LVALUE,
-  /* eok_fpre_incr: */			LVRV_OPND1_IS_LVALUE,
-  /* eok_fpre_decr: */			LVRV_OPND1_IS_LVALUE,
-  /* eok_ppost_incr: */			LVRV_OPND1_IS_LVALUE,
-  /* eok_ppost_decr: */			LVRV_OPND1_IS_LVALUE,
-  /* eok_ppre_incr: */			LVRV_OPND1_IS_LVALUE,
-  /* eok_ppre_decr: */			LVRV_OPND1_IS_LVALUE,
   /* eok_lvalue_from_struct_rvalue: */	LVRV_OPND1_IS_RVALUE,
   /* eok_array_to_pointer: */		LVRV_NO_REQUIREMENTS,
+  /* eok_dot_vacuous_destructor_call: */
+					LVRV_NO_REQUIREMENTS,
+  /* eok_points_to_vacuous_destructor_call: */
+					LVRV_OPND1_IS_RVALUE,	
 #if MICROSOFT_EXTENSIONS_ALLOWED
   /* eok_assume: */			LVRV_NO_REQUIREMENTS,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if C99_IL_EXTENSIONS_SUPPORTED
-  /* eok_xnegate: */			LVRV_OPND1_IS_RVALUE,
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-  /* eok_iadd: */			LVRV_OPND1_IS_RVALUE |
+  /* eok_negate: */			LVRV_OPND1_IS_RVALUE,
+  /* eok_unary_plus: */			LVRV_OPND1_IS_RVALUE,
+  /* eok_complement: */			LVRV_OPND1_IS_RVALUE,
+  /* eok_not: */			LVRV_OPND1_IS_RVALUE,
+#if GNU_COMPLEX_EXTENSIONS_ALLOWED
+  /* eok_xconj: */			LVRV_OPND1_IS_RVALUE,
+  /* eok_real_part: */			LVRV_NO_REQUIREMENTS,
+  /* eok_imag_part: */			LVRV_NO_REQUIREMENTS,
+#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
+  /* eok_post_incr: */			LVRV_OPND1_IS_LVALUE,
+  /* eok_post_decr: */			LVRV_OPND1_IS_LVALUE,
+  /* eok_pre_incr: */			LVRV_OPND1_IS_LVALUE,
+  /* eok_pre_decr: */			LVRV_OPND1_IS_LVALUE,
+  /* eok_add: */			LVRV_OPND1_IS_RVALUE |
 					LVRV_OPND2_IS_RVALUE,
-  /* eok_isubtract: */			LVRV_OPND1_IS_RVALUE |
+  /* eok_subtract: */			LVRV_OPND1_IS_RVALUE |
 					LVRV_OPND2_IS_RVALUE,
-  /* eok_imultiply: */			LVRV_OPND1_IS_RVALUE |
+  /* eok_multiply: */			LVRV_OPND1_IS_RVALUE |
 					LVRV_OPND2_IS_RVALUE,
-  /* eok_idivide: */			LVRV_OPND1_IS_RVALUE |
+  /* eok_divide: */			LVRV_OPND1_IS_RVALUE |
 					LVRV_OPND2_IS_RVALUE,
-  /* eok_ieq: */			LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_ine: */			LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_igt: */			LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_ilt: */			LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_ige: */			LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_ile: */			LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_ignu_min: */			LVRV_OPND1_IS_LVALUE_IF_EXPR_IS |
-					LVRV_OPND2_IS_LVALUE_IF_EXPR_IS,
-  /* eok_ignu_max: */			LVRV_OPND1_IS_LVALUE_IF_EXPR_IS |
-					LVRV_OPND2_IS_LVALUE_IF_EXPR_IS,
-  /* eok_iassign: */			LVRV_OPND1_IS_LVALUE |
-					LVRV_OPND2_IS_RVALUE,
-#if FIXED_POINT_ALLOWED
-  /* eok_fxadd: */			LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_fxsubtract: */			LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_fxmultiply: */			LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_fxdivide: */			LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_fxshiftl: */			LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_fxshiftr: */			LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_fxeq: */			LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_fxne: */			LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_fxgt: */			LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_fxlt: */			LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_fxge: */			LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_fxle: */			LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_fxassign: */			LVRV_OPND1_IS_LVALUE |
-					LVRV_OPND2_IS_RVALUE,
-#endif /* FIXED_POINT_ALLOWED */
-  /* eok_fadd: */			LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_fsubtract: */			LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_fmultiply: */			LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_fdivide: */			LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_feq: */			LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_fne: */			LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_fgt: */			LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_flt: */			LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_fge: */			LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_fle: */			LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_fgnu_min: */			LVRV_OPND1_IS_LVALUE_IF_EXPR_IS |
-					LVRV_OPND2_IS_LVALUE_IF_EXPR_IS,
-  /* eok_fgnu_max: */			LVRV_OPND1_IS_LVALUE_IF_EXPR_IS |
-					LVRV_OPND2_IS_LVALUE_IF_EXPR_IS,
-  /* eok_fassign: */			LVRV_OPND1_IS_LVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_padd: */			LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_psubtract: */			LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_passign: */			LVRV_OPND1_IS_LVALUE |
+  /* eok_remainder: */			LVRV_OPND1_IS_RVALUE |
 					LVRV_OPND2_IS_RVALUE,
 #if C99_IL_EXTENSIONS_SUPPORTED
-  /* eok_xadd: */			LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_xsubtract: */			LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_xmultiply: */			LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_xdivide: */			LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_xeq: */			LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_xne: */			LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_xassign: */			LVRV_OPND1_IS_LVALUE |
-					LVRV_OPND2_IS_RVALUE,
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-#if C99_IL_EXTENSIONS_SUPPORTED
-  /* eok_xadd_assign: */		LVRV_OPND1_IS_LVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_xsubtract_assign: */		LVRV_OPND1_IS_LVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_xmultiply_assign: */		LVRV_OPND1_IS_LVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_xdivide_assign: */		LVRV_OPND1_IS_LVALUE |
-					LVRV_OPND2_IS_RVALUE,
   /* eok_jmultiply: */			LVRV_OPND1_IS_RVALUE |
 					LVRV_OPND2_IS_RVALUE,
   /* eok_jdivide: */			LVRV_OPND1_IS_RVALUE |
@@ -19318,99 +19237,12 @@ static a_byte lvalue_rvalue_test[(int)eok_last+1] = {
   /* eok_jfsubtract: */			LVRV_OPND1_IS_RVALUE |
 					LVRV_OPND2_IS_RVALUE,
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
-#if GNU_COMPLEX_EXTENSIONS_ALLOWED
-  /* eok_xconj: */			LVRV_OPND1_IS_RVALUE,
-  /* eok_real_part: */			LVRV_NO_REQUIREMENTS,
-  /* eok_imag_part: */			LVRV_NO_REQUIREMENTS,
-#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
-  /* eok_remainder: */			LVRV_OPND1_IS_RVALUE |
+  /* eok_padd: */			LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_psubtract: */			LVRV_OPND1_IS_RVALUE |
 					LVRV_OPND2_IS_RVALUE,
   /* eok_pdiff: */			LVRV_OPND1_IS_RVALUE |
 					LVRV_OPND2_IS_RVALUE,
-  /* eok_peq: */			LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_pne: */			LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_pgt: */			LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_plt: */			LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_pge: */			LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_ple: */			LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_pgnu_min: */			LVRV_OPND1_IS_LVALUE_IF_EXPR_IS |
-					LVRV_OPND2_IS_LVALUE_IF_EXPR_IS,
-  /* eok_pgnu_max: */			LVRV_OPND1_IS_LVALUE_IF_EXPR_IS |
-					LVRV_OPND2_IS_LVALUE_IF_EXPR_IS,
-  /* eok_pmeq: */			LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_pmne: */			LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_sassign: */			LVRV_OPND1_IS_LVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_bassign: */			LVRV_OPND1_IS_LVALUE |
-					LVRV_OPND2_IS_LVALUE,
-  /* eok_pmassign: */			LVRV_OPND1_IS_LVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_iadd_assign: */		LVRV_OPND1_IS_LVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_isubtract_assign: */		LVRV_OPND1_IS_LVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_imultiply_assign: */		LVRV_OPND1_IS_LVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_idivide_assign: */		LVRV_OPND1_IS_LVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_remainder_assign: */		LVRV_OPND1_IS_LVALUE |
-					LVRV_OPND2_IS_RVALUE,
-#if FIXED_POINT_ALLOWED
-  /* eok_fxadd_assign: */		LVRV_OPND1_IS_LVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_fxsubtract_assign: */		LVRV_OPND1_IS_LVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_fxmultiply_assign: */		LVRV_OPND1_IS_LVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_fxdivide_assign: */		LVRV_OPND1_IS_LVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_fxshiftl_assign: */		LVRV_OPND1_IS_LVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_fxshiftr_assign: */		LVRV_OPND1_IS_LVALUE |
-					LVRV_OPND2_IS_RVALUE,
-#endif /* FIXED_POINT_ALLOWED */
-  /* eok_fadd_assign: */		LVRV_OPND1_IS_LVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_fsubtract_assign: */		LVRV_OPND1_IS_LVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_fmultiply_assign: */		LVRV_OPND1_IS_LVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_fdivide_assign: */		LVRV_OPND1_IS_LVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_padd_assign: */		LVRV_OPND1_IS_LVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_psubtract_assign: */		LVRV_OPND1_IS_LVALUE |
-					LVRV_OPND2_IS_RVALUE,
-#if FIXED_POINT_ALLOWED
-#endif /* FIXED_POINT_ALLOWED */
-  /* eok_shiftl_assign: */		LVRV_OPND1_IS_LVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_shiftr_assign: */		LVRV_OPND1_IS_LVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_and_assign: */			LVRV_OPND1_IS_LVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_or_assign: */			LVRV_OPND1_IS_LVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_xor_assign: */			LVRV_OPND1_IS_LVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_subscript: */			LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_dot_field: */			LVRV_OPND1_IS_LVALUE_IF_EXPR_IS,
-  /* eok_points_to_field: */		LVRV_OPND1_IS_RVALUE,
-  /* eok_pm_field: */			LVRV_OPND1_IS_LVALUE_IF_EXPR_IS |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_pm_points_to_field: */		LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_dot_static: */			LVRV_NO_REQUIREMENTS,
-  /* eok_points_to_static: */		LVRV_OPND1_IS_RVALUE,
   /* eok_shiftl: */			LVRV_OPND1_IS_RVALUE |
 					LVRV_OPND2_IS_RVALUE,
   /* eok_shiftr: */			LVRV_OPND1_IS_RVALUE |
@@ -19420,42 +19252,6 @@ static a_byte lvalue_rvalue_test[(int)eok_last+1] = {
   /* eok_or: */				LVRV_OPND1_IS_RVALUE |
 					LVRV_OPND2_IS_RVALUE,
   /* eok_xor: */			LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_comma: */			LVRV_OPND2_IS_LVALUE_IF_EXPR_IS,
-  /* eok_virtual_function_ptr: */	LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_dot_vacuous_destructor_call: */
-					LVRV_NO_REQUIREMENTS,
-  /* eok_points_to_vacuous_destructor_call: */
-					LVRV_OPND1_IS_RVALUE,	
-  /* eok_land: */			LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_lor: */			LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_question: */			LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_LVALUE_IF_EXPR_IS,
-  /* eok_call: */			LVRV_NO_REQUIREMENTS,
-  /* eok_virtual_call: */		LVRV_NO_REQUIREMENTS,
-  /* eok_pm_call: */			LVRV_OPND1_IS_RVALUE,
-  /* eok_va_start: */			LVRV_OPND1_IS_LVALUE |
-					LVRV_OPND2_IS_LVALUE,
-  /* eok_va_arg: */			LVRV_OPND1_IS_LVALUE,
-  /* eok_va_end: */			LVRV_OPND1_IS_LVALUE,
-  /* eok_va_copy: */			LVRV_OPND1_IS_LVALUE |
-					LVRV_OPND2_IS_LVALUE,
-  /* eok_va_start_single_operand: */	LVRV_OPND1_IS_LVALUE,	
-  /* eok_negate: */			LVRV_OPND1_IS_RVALUE,
-  /* eok_post_incr: */			LVRV_OPND1_IS_LVALUE,
-  /* eok_post_decr: */			LVRV_OPND1_IS_LVALUE,
-  /* eok_pre_incr: */			LVRV_OPND1_IS_LVALUE,
-  /* eok_pre_decr: */			LVRV_OPND1_IS_LVALUE,
-  /* eok_add: */			LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_subtract: */			LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_multiply: */			LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
-  /* eok_divide: */			LVRV_OPND1_IS_RVALUE |
 					LVRV_OPND2_IS_RVALUE,
   /* eok_eq: */				LVRV_OPND1_IS_RVALUE |
 					LVRV_OPND2_IS_RVALUE,
@@ -19483,11 +19279,56 @@ static a_byte lvalue_rvalue_test[(int)eok_last+1] = {
 					LVRV_OPND2_IS_RVALUE,
   /* eok_divide_assign: */		LVRV_OPND1_IS_LVALUE |
 					LVRV_OPND2_IS_RVALUE,
+  /* eok_remainder_assign: */		LVRV_OPND1_IS_LVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_shiftl_assign: */		LVRV_OPND1_IS_LVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_shiftr_assign: */		LVRV_OPND1_IS_LVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_and_assign: */			LVRV_OPND1_IS_LVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_or_assign: */			LVRV_OPND1_IS_LVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_xor_assign: */			LVRV_OPND1_IS_LVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_padd_assign: */		LVRV_OPND1_IS_LVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_psubtract_assign: */		LVRV_OPND1_IS_LVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_bassign: */			LVRV_OPND1_IS_LVALUE |
+					LVRV_OPND2_IS_LVALUE,
+  /* eok_land: */			LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_lor: */			LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_comma: */			LVRV_OPND2_IS_LVALUE_IF_EXPR_IS,
+  /* eok_subscript: */			LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_dot_field: */			LVRV_OPND1_IS_LVALUE_IF_EXPR_IS,
+  /* eok_points_to_field: */		LVRV_OPND1_IS_RVALUE,
+  /* eok_pm_field: */			LVRV_OPND1_IS_LVALUE_IF_EXPR_IS |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_pm_points_to_field: */		LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_dot_static: */			LVRV_NO_REQUIREMENTS,
+  /* eok_points_to_static: */		LVRV_OPND1_IS_RVALUE,
+  /* eok_virtual_function_ptr: */	LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_RVALUE,
+  /* eok_question: */			LVRV_OPND1_IS_RVALUE |
+					LVRV_OPND2_IS_LVALUE_IF_EXPR_IS,
+  /* eok_call: */			LVRV_NO_REQUIREMENTS,
+  /* eok_virtual_call: */		LVRV_NO_REQUIREMENTS,
+  /* eok_pm_call: */			LVRV_OPND1_IS_RVALUE,
+  /* eok_va_start: */			LVRV_OPND1_IS_LVALUE |
+					LVRV_OPND2_IS_LVALUE,
+  /* eok_va_arg: */			LVRV_OPND1_IS_LVALUE,
+  /* eok_va_end: */			LVRV_OPND1_IS_LVALUE,
+  /* eok_va_copy: */			LVRV_OPND1_IS_LVALUE |
+					LVRV_OPND2_IS_LVALUE,
+  /* eok_va_start_single_operand: */	LVRV_OPND1_IS_LVALUE,	
   /* eok_static_cast: */		LVRV_OPND1_IS_LVALUE_IF_EXPR_IS,
   /* eok_const_cast: */			LVRV_OPND1_IS_LVALUE_IF_EXPR_IS,
   /* eok_reinterpret_cast: */		LVRV_OPND1_IS_LVALUE_IF_EXPR_IS,
-  /* eok_lvalue: */			LVRV_OPND1_IS_RVALUE,
-  /* eok_rvalue: */			LVRV_OPND1_IS_LVALUE,
   /* eok_generic_call: */		LVRV_NO_REQUIREMENTS,
   /* eok_generic_member_call: */	LVRV_NO_REQUIREMENTS,
   /* eok_error: */			LVRV_NO_REQUIREMENTS,

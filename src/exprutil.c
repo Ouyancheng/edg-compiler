@@ -4282,17 +4282,17 @@ set *op to eok_last, and leave *result_type unchanged.
         /* Determine the IL operator to use. */
         switch (op_token) {
           case tok_plus:
-            *op = (an_expr_operator_kind)eok_fadd;
+            *op = (an_expr_operator_kind)eok_add;
             break;
           case tok_minus:
-            *op = (an_expr_operator_kind)eok_fsubtract;
+            *op = (an_expr_operator_kind)eok_subtract;
             break;
           case tok_plus_assign:
-            *op = (an_expr_operator_kind)eok_fadd_assign;
+            *op = (an_expr_operator_kind)eok_add_assign;
             is_compound_assignment = TRUE;
             break;
           case tok_minus_assign:
-            *op = (an_expr_operator_kind)eok_fsubtract_assign;
+            *op = (an_expr_operator_kind)eok_subtract_assign;
             is_compound_assignment = TRUE;
             break;
           default:
@@ -4377,7 +4377,7 @@ set *op to eok_last, and leave *result_type unchanged.
                  like a float multiplication followed by a negation. */
               *op = (an_expr_operator_kind)eok_jmultiply;
             } else {
-              *op = (an_expr_operator_kind)eok_fmultiply;
+              *op = (an_expr_operator_kind)eok_multiply;
             }  /* if */
             break;
           case tok_divide:
@@ -4387,7 +4387,7 @@ set *op to eok_last, and leave *result_type unchanged.
                       x/(y*__I__) == -(x/y)*__I__                      */
               *op = (an_expr_operator_kind)eok_jdivide;
             } else {
-              *op = (an_expr_operator_kind)eok_fdivide;
+              *op = (an_expr_operator_kind)eok_divide;
             }  /* if */
             break;
           case tok_times_assign:
@@ -4404,11 +4404,11 @@ set *op to eok_last, and leave *result_type unchanged.
                 make_expression_operand(node2, operand_2);
               }
             }  /* if */
-            *op = (an_expr_operator_kind)eok_fmultiply_assign;
+            *op = (an_expr_operator_kind)eok_multiply_assign;
             is_compound_assignment = TRUE;
             break;
           case tok_divide_assign:
-            *op = (an_expr_operator_kind)eok_fdivide_assign;
+            *op = (an_expr_operator_kind)eok_divide_assign;
             is_compound_assignment = TRUE;
             break;
           default:
@@ -4889,10 +4889,10 @@ for cases that are likely to overflow (e.g., _Fract + int).
       (tp1->kind == (a_type_kind)tk_integer &&
        tp2->kind == (a_type_kind)tk_fixed_point)) {
     /* Mixed-type (integer/fixed-point) arithmetic. */
-    if (op == (an_expr_operator_kind)eok_fxadd ||
-        op == (an_expr_operator_kind)eok_fxsubtract ||
-        op == (an_expr_operator_kind)eok_fxadd_assign ||
-        op == (an_expr_operator_kind)eok_fxsubtract_assign) {
+    if (op == (an_expr_operator_kind)eok_add ||
+        op == (an_expr_operator_kind)eok_subtract ||
+        op == (an_expr_operator_kind)eok_add_assign ||
+        op == (an_expr_operator_kind)eok_subtract_assign) {
       /* Addition and subtraction involving _Fract types and integer types
          can easily lead to overflow because _Fract types can only hold
          (at most) values between -1 and +1. */
@@ -4906,7 +4906,7 @@ for cases that are likely to overflow (e.g., _Fract + int).
         fract_type_involved = tp1->variant.fixed_point.is_fract_type;
       }  /* if */
       if (fract_type_involved) {
-        if (op == (an_expr_operator_kind)eok_fxsubtract &&
+        if (op == (an_expr_operator_kind)eok_subtract &&
             tp2->variant.fixed_point.is_unsigned &&
             op_is_zero_constant(operand_1)) {
           /* Special warning on 0 - x when x is unsigned. */
@@ -6060,487 +6060,137 @@ type is an error type, return eok_error.
 */
 {
   an_expr_operator_kind op;
+  a_type_kind           type_kind = skip_typerefs(type)->kind;
 
-  switch (skip_typerefs(type)->kind) {
-    case tk_integer:
-      switch (token) {
-	case tok_plus:
-	  op = (an_expr_operator_kind)eok_iadd;
-	  break;
-	case tok_minus:
-	  op = (an_expr_operator_kind)eok_isubtract;
-	  break;
-        case tok_star:
-          op = (an_expr_operator_kind)eok_imultiply;
-          break;
-        case tok_divide:
-          op = (an_expr_operator_kind)eok_idivide;
-          break;
-        case tok_remainder:
-          op = (an_expr_operator_kind)eok_remainder;
-          break;
-	case tok_shift_right:
-	  op = (an_expr_operator_kind)eok_shiftr;
-	  break;
-	case tok_shift_left:
-	  op = (an_expr_operator_kind)eok_shiftl;
-	  break;
-	case tok_lt:
-	  op = (an_expr_operator_kind)eok_ilt;
-	  break;
-	case tok_gt:
-	  op = (an_expr_operator_kind)eok_igt;
-	  break;
-	case tok_le:
-	  op = (an_expr_operator_kind)eok_ile;
-	  break;
-	case tok_ge:
-	  op = (an_expr_operator_kind)eok_ige;
-	  break;
-	case tok_eq:
-	  op = (an_expr_operator_kind)eok_ieq;
-	  break;
-	case tok_ne:
-	  op = (an_expr_operator_kind)eok_ine;
-	  break;
-	case tok_ampersand:
-	  op = (an_expr_operator_kind)eok_and;
-	  break;
-	case tok_excl_or:
-	  op = (an_expr_operator_kind)eok_xor;
-	  break;
-	case tok_or:
-	  op = (an_expr_operator_kind)eok_or;
-	  break;
-	case tok_and_and:
-	  op = (an_expr_operator_kind)eok_land;
-	  break;
-	case tok_or_or:
-	  op = (an_expr_operator_kind)eok_lor;
-	  break;
-#if GNU_EXTENSIONS_ALLOWED
-	case tok_gnu_min:
-	  op = (an_expr_operator_kind)eok_ignu_min;
-	  break;
-	case tok_gnu_max:
-	  op = (an_expr_operator_kind)eok_ignu_max;
-	  break;
-#endif /* GNU_EXTENSIONS_ALLOWED */
-	case tok_assign:
-	  op = (an_expr_operator_kind)eok_iassign;
-	  break;
-	case tok_times_assign:
-	  op = (an_expr_operator_kind)eok_imultiply_assign;
-	  break;
-	case tok_divide_assign:
-	  op = (an_expr_operator_kind)eok_idivide_assign;
-	  break;
-	case tok_remainder_assign:
-	  op = (an_expr_operator_kind)eok_remainder_assign;
-	  break;
-	case tok_plus_assign:
-	  op = (an_expr_operator_kind)eok_iadd_assign;
-	  break;
-	case tok_minus_assign:
-	  op = (an_expr_operator_kind)eok_isubtract_assign;
-	  break;
-	case tok_shift_left_assign:
-	  op = (an_expr_operator_kind)eok_shiftl_assign;
-	  break;
-	case tok_shift_right_assign:
-	  op = (an_expr_operator_kind)eok_shiftr_assign;
-	  break;
-	case tok_and_assign:
-	  op = (an_expr_operator_kind)eok_and_assign;
-	  break;
-	case tok_excl_or_assign:
-	  op = (an_expr_operator_kind)eok_xor_assign;
-	  break;
-	case tok_or_assign:
-	  op = (an_expr_operator_kind)eok_or_assign;
-	  break;
-#if CHECKING
-        default:
-          internal_error("which_binary_operator: bad int operator");
-#endif /* CHECKING */
-      }  /* switch */
-      break;
-
-#if FIXED_POINT_ALLOWED
-    case tk_fixed_point:
-      switch (token) {
-	case tok_plus:
-	  op = (an_expr_operator_kind)eok_fxadd;
-	  break;
-	case tok_minus:
-	  op = (an_expr_operator_kind)eok_fxsubtract;
-	  break;
-	case tok_star:
-	  op = (an_expr_operator_kind)eok_fxmultiply;
-	  break;
-	case tok_divide:
-	  op = (an_expr_operator_kind)eok_fxdivide;
-	  break;
-	case tok_shift_right:
-	  op = (an_expr_operator_kind)eok_fxshiftr;
-	  break;
-	case tok_shift_left:
-	  op = (an_expr_operator_kind)eok_fxshiftl;
-	  break;
-	case tok_lt:
-	  op = (an_expr_operator_kind)eok_fxlt;
-	  break;
-	case tok_gt:
-	  op = (an_expr_operator_kind)eok_fxgt;
-	  break;
-	case tok_le:
-	  op = (an_expr_operator_kind)eok_fxle;
-	  break;
-	case tok_ge:
-	  op = (an_expr_operator_kind)eok_fxge;
-	  break;
-	case tok_eq:
-	  op = (an_expr_operator_kind)eok_fxeq;
-	  break;
-	case tok_ne:
-	  op = (an_expr_operator_kind)eok_fxne;
-	  break;
-	case tok_assign:
-	  op = (an_expr_operator_kind)eok_fxassign;
-	  break;
-	case tok_times_assign:
-	  op = (an_expr_operator_kind)eok_fxmultiply_assign;
-	  break;
-	case tok_divide_assign:
-	  op = (an_expr_operator_kind)eok_fxdivide_assign;
-	  break;
-	case tok_plus_assign:
-	  op = (an_expr_operator_kind)eok_fxadd_assign;
-	  break;
-	case tok_minus_assign:
-	  op = (an_expr_operator_kind)eok_fxsubtract_assign;
-	  break;
-	case tok_shift_left_assign:
-	  op = (an_expr_operator_kind)eok_fxshiftl_assign;
-	  break;
-	case tok_shift_right_assign:
-	  op = (an_expr_operator_kind)eok_fxshiftr_assign;
-	  break;
-	default:
-	  unexpected_condition_str(
-	                   "which_binary_operator: bad fixed-point operator");
-      }  /* switch */
-      break;
-#endif /* FIXED_POINT_ALLOWED */
-
-    case tk_float:
-      switch (token) {
-	case tok_plus:
-	  op = (an_expr_operator_kind)eok_fadd;
-	  break;
-	case tok_minus:
-	  op = (an_expr_operator_kind)eok_fsubtract;
-	  break;
-        case tok_star:
-          op = (an_expr_operator_kind)eok_fmultiply;
-          break;
-        case tok_divide:
-          op = (an_expr_operator_kind)eok_fdivide;
-          break;
-	case tok_lt:
-	  op = (an_expr_operator_kind)eok_flt;
-	  break;
-	case tok_gt:
-	  op = (an_expr_operator_kind)eok_fgt;
-	  break;
-	case tok_le:
-	  op = (an_expr_operator_kind)eok_fle;
-	  break;
-	case tok_ge:
-	  op = (an_expr_operator_kind)eok_fge;
-	  break;
-	case tok_eq:
-	  op = (an_expr_operator_kind)eok_feq;
-	  break;
-	case tok_ne:
-	  op = (an_expr_operator_kind)eok_fne;
-	  break;
-#if GNU_EXTENSIONS_ALLOWED
-	case tok_gnu_min:
-	  op = (an_expr_operator_kind)eok_fgnu_min;
-	  break;
-	case tok_gnu_max:
-	  op = (an_expr_operator_kind)eok_fgnu_max;
-	  break;
-#endif /* GNU_EXTENSIONS_ALLOWED */
-	case tok_assign:
-	  op = (an_expr_operator_kind)eok_fassign;
-	  break;
-	case tok_times_assign:
-	  op = (an_expr_operator_kind)eok_fmultiply_assign;
-	  break;
-	case tok_divide_assign:
-	  op = (an_expr_operator_kind)eok_fdivide_assign;
-	  break;
-	case tok_plus_assign:
-	  op = (an_expr_operator_kind)eok_fadd_assign;
-	  break;
-	case tok_minus_assign:
-	  op = (an_expr_operator_kind)eok_fsubtract_assign;
-	  break;
-#if CHECKING
-        default:
-	  internal_error("which_binary_operator: bad float operator");
-#endif /* CHECKING */
-      }  /* switch */
-      break;
-
+  switch (token) {
+    case tok_plus:
 #if C99_IL_EXTENSIONS_SUPPORTED
-    case tk_imaginary:
-      switch (token) {
-        case tok_plus:
-          op = (an_expr_operator_kind)eok_fadd;
-          break;
-        case tok_minus:
-          op = (an_expr_operator_kind)eok_fsubtract;
-          break;
-        case tok_star:
-          op = (an_expr_operator_kind)eok_jmultiply;
-          break;
-        case tok_divide:
-          op = (an_expr_operator_kind)eok_fdivide;
-          break;
-        case tok_eq:
-          op = (an_expr_operator_kind)eok_feq;
-          break;
-        case tok_ne:
-          op = (an_expr_operator_kind)eok_fne;
-          break;
-        case tok_assign:
-          op = (an_expr_operator_kind)eok_fassign;
-          break;
-        case tok_times_assign:
-          op = (an_expr_operator_kind)eok_fmultiply_assign;
-          break;
-        case tok_divide_assign:
-          op = (an_expr_operator_kind)eok_fdivide_assign;
-          break;
-        case tok_plus_assign:
-          op = (an_expr_operator_kind)eok_fadd_assign;
-          break;
-        case tok_minus_assign:
-          op = (an_expr_operator_kind)eok_fsubtract_assign;
-          break;
-#if CHECKING
-        default:
-          internal_error("which_binary_operator: bad float operator");
-#endif /* CHECKING */
-      }  /* switch */
-      break;
-
-    case tk_complex:
-      switch (token) {
-        case tok_plus:
-          op = (an_expr_operator_kind)eok_xadd;
-          break;
-        case tok_minus:
-          op = (an_expr_operator_kind)eok_xsubtract;
-          break;
-        case tok_star:
-          op = (an_expr_operator_kind)eok_xmultiply;
-          break;
-        case tok_divide:
-          op = (an_expr_operator_kind)eok_xdivide;
-          break;
-        case tok_eq:
-          op = (an_expr_operator_kind)eok_xeq;
-          break;
-        case tok_ne:
-          op = (an_expr_operator_kind)eok_xne;
-          break;
-        case tok_assign:
-          op = (an_expr_operator_kind)eok_xassign;
-          break;
-        case tok_times_assign:
-          op = (an_expr_operator_kind)eok_xmultiply_assign;
-          break;
-        case tok_divide_assign:
-          op = (an_expr_operator_kind)eok_xdivide_assign;
-          break;
-        case tok_plus_assign:
-          op = (an_expr_operator_kind)eok_xadd_assign;
-          break;
-        case tok_minus_assign:
-          op = (an_expr_operator_kind)eok_xsubtract_assign;
-          break;
-#if CHECKING
-        default:
-          internal_error("which_binary_operator: bad float operator");
-#endif /* CHECKING */
-      }  /* switch */
-      break;
+      check_assertion(type_kind != (a_type_kind)tk_imaginary);
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
-
-    case tk_pointer:
-      switch (token) {
-	case tok_lt:
-	  op = (an_expr_operator_kind)eok_plt;
-	  break;
-	case tok_gt:
-	  op = (an_expr_operator_kind)eok_pgt;
-	  break;
-	case tok_le:
-	  op = (an_expr_operator_kind)eok_ple;
-	  break;
-	case tok_ge:
-	  op = (an_expr_operator_kind)eok_pge;
-	  break;
-	case tok_eq:
-	  op = (an_expr_operator_kind)eok_peq;
-	  break;
-	case tok_ne:
-	  op = (an_expr_operator_kind)eok_pne;
-	  break;
+      op = (an_expr_operator_kind)(type_kind == (a_type_kind)tk_pointer ?
+                                                           eok_padd : eok_add);
+      break;
+    case tok_minus:
+#if C99_IL_EXTENSIONS_SUPPORTED
+      check_assertion(type_kind != (a_type_kind)tk_imaginary);
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+      op = (an_expr_operator_kind)(type_kind == (a_type_kind)tk_pointer ?
+                                                 eok_psubtract : eok_subtract);
+      break;
+    case tok_star:
+#if C99_IL_EXTENSIONS_SUPPORTED
+      check_assertion(type_kind != (a_type_kind)tk_imaginary);
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+      op = (an_expr_operator_kind)eok_multiply;
+      break;
+    case tok_divide:
+#if C99_IL_EXTENSIONS_SUPPORTED
+      check_assertion(type_kind != (a_type_kind)tk_imaginary);
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+      op = (an_expr_operator_kind)eok_divide;
+      break;
+    case tok_remainder:
+      op = (an_expr_operator_kind)eok_remainder;
+      break;
+    case tok_shift_right:
+      op = (an_expr_operator_kind)eok_shiftr;
+      break;
+    case tok_shift_left:
+      op = (an_expr_operator_kind)eok_shiftl;
+      break;
+    case tok_lt:
+      op = (an_expr_operator_kind)eok_lt;
+      break;
+    case tok_gt:
+      op = (an_expr_operator_kind)eok_gt;
+      break;
+    case tok_le:
+      op = (an_expr_operator_kind)eok_le;
+      break;
+    case tok_ge:
+      op = (an_expr_operator_kind)eok_ge;
+      break;
+    case tok_eq:
+      op = (an_expr_operator_kind)eok_eq;
+      break;
+    case tok_ne:
+      op = (an_expr_operator_kind)eok_ne;
+      break;
+    case tok_ampersand:
+      op = (an_expr_operator_kind)eok_and;
+      break;
+    case tok_excl_or:
+      op = (an_expr_operator_kind)eok_xor;
+      break;
+    case tok_or:
+      op = (an_expr_operator_kind)eok_or;
+      break;
+    case tok_and_and:
+      op = (an_expr_operator_kind)eok_land;
+      break;
+    case tok_or_or:
+      op = (an_expr_operator_kind)eok_lor;
+      break;
 #if GNU_EXTENSIONS_ALLOWED
-	case tok_gnu_min:
-	  op = (an_expr_operator_kind)eok_pgnu_min;
-	  break;
-	case tok_gnu_max:
-	  op = (an_expr_operator_kind)eok_pgnu_max;
-	  break;
+    case tok_gnu_min:
+      op = (an_expr_operator_kind)eok_gnu_min;
+      break;
+    case tok_gnu_max:
+      op = (an_expr_operator_kind)eok_gnu_max;
+      break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
-	case tok_assign:
-	  op = (an_expr_operator_kind)eok_passign;
-	  break;
-	case tok_plus:
-	  op = (an_expr_operator_kind)eok_padd;
-	  break;
-	case tok_minus:
-	  op = (an_expr_operator_kind)eok_psubtract;
-	  break;
-	case tok_plus_assign:
-	  op = (an_expr_operator_kind)eok_padd_assign;
-	  break;
-	case tok_minus_assign:
-	  op = (an_expr_operator_kind)eok_psubtract_assign;
-	  break;
-#if CHECKING
-        default:
-	  internal_error("which_binary_operator: bad ptr operator");
-#endif /* CHECKING */
-      }  /* switch */
+    case tok_assign:
+      op = (an_expr_operator_kind)eok_assign;
       break;
-
-    case tk_ptr_to_member:
-      switch (token) {
-	case tok_eq:
-	  op = (an_expr_operator_kind)eok_pmeq;
-	  break;
-	case tok_ne:
-	  op = (an_expr_operator_kind)eok_pmne;
-	  break;
-	case tok_assign:
-	  op = (an_expr_operator_kind)eok_pmassign;
-	  break;
-#if CHECKING
-        default:
-	  internal_error("which_binary_operator: bad ptr-to-member operator");
-#endif /* CHECKING */
-      }  /* switch */
+    case tok_times_assign:
+      op = (an_expr_operator_kind)eok_multiply_assign;
       break;
-
-    case tk_class:
-    case tk_struct:
-    case tk_union:
-      switch (token) {
-	case tok_assign:
-	  op = (an_expr_operator_kind)eok_sassign;
-	  break;
-#if CHECKING
-        default:
-	  internal_error("which_binary_operator: bad struct operator");
-#endif /* CHECKING */
-      }  /* switch */
+    case tok_divide_assign:
+      op = (an_expr_operator_kind)eok_divide_assign;
       break;
-
-#if GNU_VECTOR_TYPES_ALLOWED
-    case tk_vector:
-      switch (token) {
-	case tok_plus:
-	  op = (an_expr_operator_kind)eok_add;
-	  break;
-	case tok_minus:
-	  op = (an_expr_operator_kind)eok_subtract;
-	  break;
-	case tok_star:
-	  op = (an_expr_operator_kind)eok_multiply;
-	  break;
-	case tok_divide:
-	  op = (an_expr_operator_kind)eok_divide;
-	  break;
-	case tok_ampersand:
-	  op = (an_expr_operator_kind)eok_and;
-	  break;
-	case tok_excl_or:
-	  op = (an_expr_operator_kind)eok_xor;
-	  break;
-	case tok_or:
-	  op = (an_expr_operator_kind)eok_or;
-	  break;
-	case tok_assign:
-	  op = (an_expr_operator_kind)eok_assign;
-	  break;
-	case tok_times_assign:
-	  op = (an_expr_operator_kind)eok_multiply_assign;
-	  break;
-	case tok_divide_assign:
-	  op = (an_expr_operator_kind)eok_divide_assign;
-	  break;
-	case tok_plus_assign:
-	  op = (an_expr_operator_kind)eok_add_assign;
-	  break;
-	case tok_minus_assign:
-	  op = (an_expr_operator_kind)eok_subtract_assign;
-	  break;
-	case tok_and_assign:
-	  op = (an_expr_operator_kind)eok_and_assign;
-	  break;
-	case tok_excl_or_assign:
-	  op = (an_expr_operator_kind)eok_xor_assign;
-	  break;
-	case tok_or_assign:
-	  op = (an_expr_operator_kind)eok_or_assign;
-	  break;
-	default:
-	  unexpected_condition_str(
-	                        "which_binary_operator: bad vector operator");
-      }  /* switch */
+    case tok_remainder_assign:
+      op = (an_expr_operator_kind)eok_remainder_assign;
       break;
-#endif /* GNU_VECTOR_TYPES_ALLOWED */
-    case tk_error:
-      op = (an_expr_operator_kind)eok_error;
+    case tok_plus_assign:
+      op = (an_expr_operator_kind)(type_kind == (a_type_kind)tk_pointer ?
+                                             eok_padd_assign : eok_add_assign);
+      break;
+    case tok_minus_assign:
+      op = (an_expr_operator_kind)(type_kind == (a_type_kind)tk_pointer ?
+                                   eok_psubtract_assign : eok_subtract_assign);
+      break;
+    case tok_shift_left_assign:
+      op = (an_expr_operator_kind)eok_shiftl_assign;
+      break;
+    case tok_shift_right_assign:
+      op = (an_expr_operator_kind)eok_shiftr_assign;
+      break;
+    case tok_and_assign:
+      op = (an_expr_operator_kind)eok_and_assign;
+      break;
+    case tok_excl_or_assign:
+      op = (an_expr_operator_kind)eok_xor_assign;
+      break;
+    case tok_or_assign:
+      op = (an_expr_operator_kind)eok_or_assign;
       break;
 #if CHECKING
     default:
-      internal_error("which_binary_operator: bad type");
+      internal_error("which_binary_operator: bad int operator");
 #endif /* CHECKING */
   }  /* switch */
+  if (type_kind == (a_type_kind)tk_error) {
+    op = (an_expr_operator_kind)eok_error;
+  }  /* if */
   return op;
 }  /* which_binary_operator */
 
 
-an_expr_operator_kind generic_operator_for_opname_kind(
-                                                 an_opname_kind kind,
-                                                 a_boolean      unary_operator)
+an_expr_operator_kind operator_for_opname_kind(an_opname_kind kind,
+                                               a_boolean      unary_operator)
 /*
-Return the generic operator that corresponds to the indicated operator
-kind.  The operation is a unary operation if unary_operator is TRUE.
-A "generic operator" is used for template-dependent operations for
-which it's not possible to know the operand types or the result type.
-In some cases, the operator is the same as the one usually used,
-e.g., eok_complement for "~".  In others, it's a special generic untyped
-version of the operator, e.g., eok_add for "+" instead of eok_iadd or
-eok_fadd or eok_padd.
+Return the operator (eok_...) that corresponds to the indicated operator kind.
+The operation is a unary operation if unary_operator is TRUE.
 */
 {
   an_expr_operator_kind op;
@@ -6697,7 +6347,7 @@ eok_fadd or eok_padd.
     }  /* switch */
   }  /* if */
   return op;
-}  /* generic_operator_for_opname_kind */
+}  /* operator_for_opname_kind */
 
 
 void do_binary_operation_full(an_expr_operator_kind op,
@@ -7112,8 +6762,7 @@ This routine is a wrapper for do_binary_operation for the case where
 an expression is being built from operands whose types are based
 on template parameter types.  When the current expression kind is
 constant, this can happen in nontype template arguments.  Otherwise,
-it happens in prototype instantiations.  op is the generic operator to
-be used (e.g., eok_add, not eok_iadd).
+it happens in prototype instantiations.  op is the operator to be used.
 */
 {
   a_type_ptr result_type = type_of_unknown_templ_param_nontype;
@@ -7126,7 +6775,6 @@ be used (e.g., eok_add, not eok_iadd).
        allowed on operands involving template parameter types, so
        switch to the integral version of the generic operator if
        there is one. */
-    op = substitute_integer_operator_for_generic(op);
     known_not_overloaded = TRUE;
   } else {
     /* The current expression is not a constant expression. */
@@ -7255,7 +6903,7 @@ an expression is being built from an operand whose type is based
 on template parameter types.  When the current expression kind is
 constant, this can happen in nontype template arguments.  Otherwise,
 it happens in prototype instantiations.  op is the generic operator to
-be used (e.g., eok_negate, not eok_inegate).
+be used.
 */
 {
   a_type_ptr result_type = type_of_unknown_templ_param_nontype;
@@ -7283,13 +6931,6 @@ be used (e.g., eok_negate, not eok_inegate).
     } else {
       /* In all other cases, the operand is an rvalue. */
       do_constant_generic_operand_transformations(operand);
-    }  /* if */
-    /* In a constant expression, only operations on integral types are
-       allowed on operands involving template parameter types, so
-       switch to the integral version of the generic operator if
-       there is one. */
-    if (op == (an_expr_operator_kind)eok_negate) {
-      op = (an_expr_operator_kind)eok_inegate;
     }  /* if */
     known_not_overloaded = TRUE;
   } else {
@@ -11667,7 +11308,7 @@ types to get a boolean expression (see process_boolean_controlling_expression).
     if (is_operation_node(expr)) {
       op = expr->variant.operation.kind;
       operand1 = expr->variant.operation.operands;
-      if (is_simple_scalar_assignment(op)) {
+      if (is_simple_assignment(op)) {
         /* An assignment operator at the top level.  Check for
            "x = constant", which was probably intended to be
            "x == constant". */

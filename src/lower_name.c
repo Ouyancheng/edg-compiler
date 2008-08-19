@@ -4758,14 +4758,6 @@ If the operator is unrecognized, return *bad_operator TRUE.
       num_operands = 1;
       break;
 #endif /* ifdef MANGLING_STRING_FOR_OPERATOR_DEREFERENCE */
-    case eok_inegate:
-#if FIXED_POINT_ALLOWED
-    case eok_fxnegate:
-#endif /* FIXED_POINT_ALLOWED */
-    case eok_fnegate:
-#if C99_IL_EXTENSIONS_SUPPORTED
-    case eok_xnegate:
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
     case eok_negate:
       opkind = (an_opname_kind)onk_minus;
       num_operands = 1;
@@ -4799,114 +4791,40 @@ If the operator is unrecognized, return *bad_operator TRUE.
       opkind = (an_opname_kind)onk_compl;
       num_operands = 1;
       break;
-    case eok_iadd:
-#if FIXED_POINT_ALLOWED
-    case eok_fxadd:
-#endif /* FIXED_POINT_ALLOWED */
-    case eok_fadd:
-#if C99_IL_EXTENSIONS_SUPPORTED
-    case eok_xadd:
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
     case eok_add:
       opkind = (an_opname_kind)onk_plus;
       break;
-    case eok_isubtract:
-#if FIXED_POINT_ALLOWED
-    case eok_fxsubtract:
-#endif /* FIXED_POINT_ALLOWED */
-    case eok_fsubtract:
-#if C99_IL_EXTENSIONS_SUPPORTED
-    case eok_xsubtract:
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
     case eok_subtract:
       opkind = (an_opname_kind)onk_minus;
       break;
-    case eok_imultiply:
-#if FIXED_POINT_ALLOWED
-    case eok_fxmultiply:
-#endif /* FIXED_POINT_ALLOWED */
-    case eok_fmultiply:
-#if C99_IL_EXTENSIONS_SUPPORTED
-    case eok_xmultiply:
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
     case eok_multiply:
       opkind = (an_opname_kind)onk_star;
       break;
-    case eok_idivide:
-#if FIXED_POINT_ALLOWED
-    case eok_fxdivide:
-#endif /* FIXED_POINT_ALLOWED */
-    case eok_fdivide:
-#if C99_IL_EXTENSIONS_SUPPORTED
-    case eok_xdivide:
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
     case eok_divide:
       opkind = (an_opname_kind)onk_divide;
       break;
-    case eok_ieq:
-#if FIXED_POINT_ALLOWED
-    case eok_fxeq:
-#endif /* FIXED_POINT_ALLOWED */
-    case eok_feq:
-#if C99_IL_EXTENSIONS_SUPPORTED
-    case eok_xeq:
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
     case eok_eq:
       opkind = (an_opname_kind)onk_eq;
       break;
-    case eok_ine:
-#if FIXED_POINT_ALLOWED
-    case eok_fxne:
-#endif /* FIXED_POINT_ALLOWED */
-    case eok_fne:
-#if C99_IL_EXTENSIONS_SUPPORTED
-    case eok_xne:
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
     case eok_ne:
       opkind = (an_opname_kind)onk_ne;
       break;
-    case eok_igt:
-#if FIXED_POINT_ALLOWED
-    case eok_fxgt:
-#endif /* FIXED_POINT_ALLOWED */
-    case eok_fgt:
     case eok_gt:
       opkind = (an_opname_kind)onk_gt;
       break;
-    case eok_ilt:
-#if FIXED_POINT_ALLOWED
-    case eok_fxlt:
-#endif /* FIXED_POINT_ALLOWED */
-    case eok_flt:
     case eok_lt:
       opkind = (an_opname_kind)onk_lt;
       break;
-    case eok_ige:
-#if FIXED_POINT_ALLOWED
-    case eok_fxge:
-#endif /* FIXED_POINT_ALLOWED */
-    case eok_fge:
     case eok_ge:
       opkind = (an_opname_kind)onk_ge;
       break;
-    case eok_ile:
-#if FIXED_POINT_ALLOWED
-    case eok_fxle:
-#endif /* FIXED_POINT_ALLOWED */
-    case eok_fle:
     case eok_le:
       opkind = (an_opname_kind)onk_le;
       break;
 #if GNU_EXTENSIONS_ALLOWED
-    case eok_ignu_min:
-    case eok_fgnu_min:
-    case eok_pgnu_min:
     case eok_gnu_min:
       opkind = (an_opname_kind)onk_gnu_min;
       break;
-    case eok_ignu_max:
-    case eok_fgnu_max:
-    case eok_pgnu_max:
     case eok_gnu_max:
       opkind = (an_opname_kind)onk_gnu_max;
       break;
@@ -4914,15 +4832,9 @@ If the operator is unrecognized, return *bad_operator TRUE.
     case eok_remainder:
       opkind = (an_opname_kind)onk_remainder;
       break;
-#if FIXED_POINT_ALLOWED
-    case eok_fxshiftl:
-#endif /* FIXED_POINT_ALLOWED */
     case eok_shiftl:
       opkind = (an_opname_kind)onk_shift_left;
       break;
-#if FIXED_POINT_ALLOWED
-     case eok_fxshiftr:
-#endif /* FIXED_POINT_ALLOWED */
     case eok_shiftr:
       opkind = (an_opname_kind)onk_shift_right;
       break;

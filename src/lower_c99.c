@@ -319,7 +319,7 @@ assignment to the given expression tree (which could be NULL initially).
     vla_dim->total_number_of_elements = make_lowered_temporary(ptrdiff_type);
     assign_ops = var_lvalue_expr(vla_dim->total_number_of_elements);
     assign_ops->next = add_cast_if_necessary(expr, ptrdiff_type);
-    assign_ops = make_operator_node((an_expr_operator_kind)eok_iassign,
+    assign_ops = make_operator_node((an_expr_operator_kind)eok_assign,
                                     ptrdiff_type, assign_ops);
     if (*inits == NULL) {
       *inits = assign_ops;
@@ -445,7 +445,7 @@ variables also make indexing into the VLA arrays more efficient.
         if (var_expr != NULL && const_expr != NULL) {
           /* Multiply the constant and variable parts. */
           var_expr->next = const_expr;
-          rhs = make_operator_node((an_expr_operator_kind)eok_imultiply,
+          rhs = make_operator_node((an_expr_operator_kind)eok_multiply,
                                    ptrdiff_type, var_expr);
         } else if (var_expr != NULL) {
           rhs = var_expr;
@@ -455,7 +455,7 @@ variables also make indexing into the VLA arrays more efficient.
         /* Now multiply the variable associated with vla_dim with the rhs
            value. */
         lhs->next = rhs;
-        acc = make_operator_node((an_expr_operator_kind)eok_imultiply_assign,
+        acc = make_operator_node((an_expr_operator_kind)eok_multiply_assign,
                                  ptrdiff_type, lhs);
         /* Insert the accumulation expression in the right location. */
         if (accums == NULL) {
@@ -544,7 +544,7 @@ the expression type is ptrdiff_t.
     result->next =
             node_for_host_large_integer((a_host_large_integer)constant_factor,
                                         targ_ptrdiff_t_int_kind);
-    result = make_operator_node((an_expr_operator_kind)eok_imultiply,
+    result = make_operator_node((an_expr_operator_kind)eok_multiply,
                                 ptrdiff_type, result);
   }  /* if */
   return result;
@@ -590,7 +590,7 @@ VLA lowering).
                                           make_lowered_temporary(ptrdiff_type);
       count_init = var_lvalue_expr(vla_var->vla_element_count_variable);
       count_init->next = add_cast_if_necessary(count_expr, ptrdiff_type);
-      count_init = make_operator_node((an_expr_operator_kind)eok_iassign,
+      count_init = make_operator_node((an_expr_operator_kind)eok_assign,
                                       ptrdiff_type, count_init);
     }  /* if */
     size_expr = var_rvalue_expr(vla_var->vla_element_count_variable);
@@ -602,7 +602,7 @@ VLA lowering).
       size_expr->next =
                node_for_host_large_integer((a_host_large_integer)element_size,
                                            targ_ptrdiff_t_int_kind);
-      size_expr = make_operator_node((an_expr_operator_kind)eok_imultiply,
+      size_expr = make_operator_node((an_expr_operator_kind)eok_multiply,
                                      ptrdiff_type, size_expr);
     }  /* if */
     if (count_init != NULL) {
@@ -729,7 +729,7 @@ incremented or decremented will no longer be one.
         (*integer_op)->next = NULL;
         offset = add_lowered_cast_if_necessary(*integer_op, ptrdiff_type);
         scale_factor->next = offset;
-        *integer_op = make_operator_node((an_expr_operator_kind)eok_imultiply,
+        *integer_op = make_operator_node((an_expr_operator_kind)eok_multiply,
                                          ptrdiff_type, scale_factor);
         (*integer_op)->next = save_next;
       }
@@ -742,27 +742,27 @@ incremented or decremented will no longer be one.
       offset = add_lowered_cast_if_necessary(offset, ptrdiff_type);
       scale_factor->next = offset;
       expr->variant.operation.operands->next =
-                      make_operator_node((an_expr_operator_kind)eok_imultiply,
+                      make_operator_node((an_expr_operator_kind)eok_multiply,
                                          ptrdiff_type, scale_factor);
       break;
-    case eok_ppre_incr:
+    case eok_pre_incr:
       /* Turn pre-increment into a += operator. */
       expr->variant.operation.kind = (an_expr_operator_kind)eok_padd_assign;
       expr->variant.operation.operands->next = scale_factor;
       break;
-    case eok_ppre_decr:
+    case eok_pre_decr:
       /* Turn pre-decrement into a -= operator. */
       expr->variant.operation.kind =
                                   (an_expr_operator_kind)eok_psubtract_assign;
       expr->variant.operation.operands->next = scale_factor;
       break;
-    case eok_ppost_incr:
-    case eok_ppost_decr:
+    case eok_post_incr:
+    case eok_post_decr:
       /* expr++ is transformed also transformed into a += operator, but we
          need to save the original value to produce the result of the
          expression.  expr-- is entirely similar. */
       /* x@@ -> ((temp = x, x @= scale), temp) */
-      op = (op == (an_expr_operator_kind)eok_ppost_incr) ?
+      op = (op == (an_expr_operator_kind)eok_post_incr) ?
                                    (an_expr_operator_kind)eok_padd_assign :
                                    (an_expr_operator_kind)eok_psubtract_assign;
       /* The original lvalue: */
@@ -809,7 +809,7 @@ be scaled down by the number of elements in the VLAs pointed to.
   scale_factor = vla_size_expr(array_type, /*byte_count=*/FALSE);
   copy = copy_node(expr);
   copy->next = scale_factor;
-  overwrite_node(expr, make_operator_node((an_expr_operator_kind)eok_idivide,
+  overwrite_node(expr, make_operator_node((an_expr_operator_kind)eok_divide,
                                           ptrdiff_type, copy));
 }  /* lower_vla_pointer_difference */ 
 
@@ -965,7 +965,7 @@ lower_vla_dimensions).
           count = dim_expr;
         } else {
           count->next = dim_expr;
-          count = make_operator_node((an_expr_operator_kind)eok_imultiply,
+          count = make_operator_node((an_expr_operator_kind)eok_multiply,
                                      ptrdiff_type, count);
         }  /* if */
       } else {
@@ -981,13 +981,13 @@ lower_vla_dimensions).
       count->next = node_for_host_large_integer(
                                         (a_host_large_integer)constant_factor,
                                         targ_ptrdiff_t_int_kind);
-      count = make_operator_node((an_expr_operator_kind)eok_imultiply,
+      count = make_operator_node((an_expr_operator_kind)eok_multiply,
                                  ptrdiff_type, count);
     }  /* if */
     /* Assign the total number of elements to the variable we created. */
     count_init = var_lvalue_expr(var->vla_element_count_variable);
     count_init->next = count;
-    count_init = make_operator_node((an_expr_operator_kind)eok_iassign,
+    count_init = make_operator_node((an_expr_operator_kind)eok_assign,
                                     ptrdiff_type, count_init);
     /* Create an expression statement to actually perform the computation.
        Insert it before the stmk_vla_decl statement.  We cannot use 
@@ -1507,10 +1507,10 @@ followed by a sign inversion ( (__I__*a)*(__I__*b) = -(a*b) ).
 */
 {
   expr->variant.operation.operands =
-                  make_operator_node((an_expr_operator_kind)eok_fmultiply,
+                  make_operator_node((an_expr_operator_kind)eok_multiply,
                                      expr->type,
                                      expr->variant.operation.operands);
-  expr->variant.operation.kind = (an_expr_operator_kind)eok_fnegate;
+  expr->variant.operation.kind = (an_expr_operator_kind)eok_negate;
 }  /* lower_c99_jmultiply */
 
 
@@ -1521,10 +1521,10 @@ division followed by a sign inversion ( a/(b*__I__) = -(a/b)*__I__ ).
 */
 {
   expr->variant.operation.operands =
-                  make_operator_node((an_expr_operator_kind)eok_fdivide,
+                  make_operator_node((an_expr_operator_kind)eok_divide,
                                      expr->type,
                                      expr->variant.operation.operands);
-  expr->variant.operation.kind = (an_expr_operator_kind)eok_fnegate;
+  expr->variant.operation.kind = (an_expr_operator_kind)eok_negate;
 }  /* lower_c99_jdivide */
 
 
@@ -1558,10 +1558,10 @@ negating one part in the "-" case.
            (temp.real = operand_1, temp.imag = operand_2)
       */
       real_part_lvalue->next = operand_1;
-      assign_1 = make_operator_node((an_expr_operator_kind)eok_fassign,
+      assign_1 = make_operator_node((an_expr_operator_kind)eok_assign,
                                     operand_1->type, real_part_lvalue);
       imag_part_lvalue->next = operand_2;
-      assign_2 = make_operator_node((an_expr_operator_kind)eok_fassign,
+      assign_2 = make_operator_node((an_expr_operator_kind)eok_assign,
                                     operand_2->type, imag_part_lvalue);
       break;
     case eok_jfadd:
@@ -1569,10 +1569,10 @@ negating one part in the "-" case.
            (temp.imag = operand_1, temp.real = operand_2)
       */
       imag_part_lvalue->next = operand_1;
-      assign_1 = make_operator_node((an_expr_operator_kind)eok_fassign,
+      assign_1 = make_operator_node((an_expr_operator_kind)eok_assign,
                                     operand_1->type, imag_part_lvalue);
       real_part_lvalue->next = operand_2;
-      assign_2 = make_operator_node((an_expr_operator_kind)eok_fassign,
+      assign_2 = make_operator_node((an_expr_operator_kind)eok_assign,
                                     operand_2->type, real_part_lvalue);
       break;
     case eok_fjsubtract:
@@ -1580,12 +1580,12 @@ negating one part in the "-" case.
            (temp.real = operand_1, temp.imag = -operand_2)
       */
       real_part_lvalue->next = operand_1;
-      assign_1 = make_operator_node((an_expr_operator_kind)eok_fassign,
+      assign_1 = make_operator_node((an_expr_operator_kind)eok_assign,
                                     operand_1->type, real_part_lvalue);
-      operand_2 = make_operator_node((an_expr_operator_kind)eok_fnegate,
+      operand_2 = make_operator_node((an_expr_operator_kind)eok_negate,
                                      operand_2->type, operand_2);
       imag_part_lvalue->next = operand_2;
-      assign_2 = make_operator_node((an_expr_operator_kind)eok_fassign,
+      assign_2 = make_operator_node((an_expr_operator_kind)eok_assign,
                                     operand_2->type, imag_part_lvalue);
       break;
     case eok_jfsubtract:
@@ -1593,12 +1593,12 @@ negating one part in the "-" case.
            (temp.imag = operand_1, temp.real = -operand_2)
       */
       imag_part_lvalue->next = operand_1;
-      assign_1 = make_operator_node((an_expr_operator_kind)eok_fassign,
+      assign_1 = make_operator_node((an_expr_operator_kind)eok_assign,
                                     operand_1->type, imag_part_lvalue);
-      operand_2 = make_operator_node((an_expr_operator_kind)eok_fnegate,
+      operand_2 = make_operator_node((an_expr_operator_kind)eok_negate,
                                      operand_2->type, operand_2);
       real_part_lvalue->next = operand_2;
-      assign_2 = make_operator_node((an_expr_operator_kind)eok_fassign,
+      assign_2 = make_operator_node((an_expr_operator_kind)eok_assign,
                                     operand_2->type, real_part_lvalue);
       break;
     default:
@@ -2290,28 +2290,31 @@ lowering on the "!= 0" comparison generated, e.g., for complex values.
 */
 {
   check_assertion(is_operation_node(expr));
-#if LOWER_COMPLEX
-  if (expr->variant.operation.kind == (an_expr_operator_kind)eok_xne) {
-    /* Do further lowering for complex != 0. */
-    /* Lower the complex zero constant. */
-    lower_c99_expr(expr->variant.operation.operands->next);
-    lower_c99_xne(expr);
-  } else if (expr->variant.operation.kind == (an_expr_operator_kind)eok_fne&&
-             is_imaginary_type(expr->variant.operation.operands->next->type)) {
-    /* Do further lowering for imaginary != 0. */
-    /* Lower the imaginary zero constant. */
-    lower_c99_expr(expr->variant.operation.operands->next);
-  } else
-#endif /* LOWER_COMPLEX */
-  {
+  if (expr->variant.operation.kind == (an_expr_operator_kind)eok_ne) {
+    switch (expr->variant.operation.type_kind) {
 #if LOWER_FIXED_POINT
-    if (expr->variant.operation.kind == (an_expr_operator_kind)eok_fxne) {
-      /* Do further lowering for fixed-point != 0. */
-      lower_c99_expr(expr->variant.operation.operands->next);
-      lower_c99_fixed_point_operation(expr);
-    }  /* if */
+      case tk_fixed_point:
+        /* Do further lowering for fixed-point != 0. */
+        lower_c99_expr(expr->variant.operation.operands->next);
+        lower_c99_fixed_point_operation(expr);
+       break;
 #endif /* LOWER_FIXED_POINT */
-  }
+#if LOWER_COMPLEX
+      case tk_imaginary:
+        /* Do further lowering for imaginary != 0. */
+        /* Lower the imaginary zero constant. */
+        lower_c99_expr(expr->variant.operation.operands->next);
+       break;
+      case tk_complex:
+        /* Do further lowering for complex != 0. */
+        /* Lower the complex zero constant. */
+       lower_c99_expr(expr->variant.operation.operands->next);
+       lower_c99_xne(expr);
+       break;
+#endif /* LOWER_COMPLEX */
+      default:;
+    }  /* switch */
+  }  /* if */
 }  /* post_lower_c99_bool_cast */
 
 
@@ -2410,67 +2413,67 @@ Lower a fixed-point operation expression.
 
   /* Select the proper runtime routine for the operation. */
   switch (op) {
-    case eok_fxnegate:
+    case eok_negate:
       routine_name = "_Fixed_negate";
       routine = &fixed_negate_routine;
       is_unary = TRUE;
       break;
-    case eok_fxeq:
+    case eok_eq:
       routine_name = "_Fixed_eq";
       routine = &fixed_eq_routine;
       is_comparison = TRUE;
       break;
-    case eok_fxne:
+    case eok_ne:
       routine_name = "_Fixed_ne";
       routine = &fixed_ne_routine;
       is_comparison = TRUE;
       break;
-    case eok_fxgt:
+    case eok_gt:
       routine_name = "_Fixed_gt";
       routine = &fixed_gt_routine;
       is_comparison = TRUE;
       break;
-    case eok_fxlt:
+    case eok_lt:
       routine_name = "_Fixed_lt";
       routine = &fixed_lt_routine;
       is_comparison = TRUE;
       break;
-    case eok_fxge:
+    case eok_ge:
       routine_name = "_Fixed_ge";
       routine = &fixed_ge_routine;
       is_comparison = TRUE;
       break;
-    case eok_fxle:
+    case eok_le:
       routine_name = "_Fixed_le";
       routine = &fixed_le_routine;
       is_comparison = TRUE;
       break;
-    case eok_fxadd:
+    case eok_add:
       routine_name = "_Fixed_add";
       routine = &fixed_add_routine;
       need_result_fxtype = TRUE;
       break;
-    case eok_fxsubtract:
+    case eok_subtract:
       routine_name = "_Fixed_subtract";
       routine = &fixed_subtract_routine;
       need_result_fxtype = TRUE;
       break;
-    case eok_fxmultiply:
+    case eok_multiply:
       routine_name = "_Fixed_multiply";
       routine = &fixed_multiply_routine;
       need_result_fxtype = TRUE;
       break;
-    case eok_fxdivide:
+    case eok_divide:
       routine_name = "_Fixed_divide";
       routine = &fixed_divide_routine;
       need_result_fxtype = TRUE;
       break;
-    case eok_fxshiftl:
+    case eok_shiftl:
       routine_name = "_Fixed_shiftl";
       routine = &fixed_shiftl_routine;
       is_shift = TRUE;
       break;
-    case eok_fxshiftr:
+    case eok_shiftr:
       routine_name = "_Fixed_shiftr";
       routine = &fixed_shiftr_routine;
       is_shift = TRUE;
@@ -2545,7 +2548,7 @@ static void lower_c99_fixed_point_incr_decr(an_expr_node_ptr expr)
 Lower the indicated fixed-point increment or decrement operation.
 */
 {
-  an_expr_operator_kind op = expr->variant.operation.kind, assign_op;
+  an_expr_operator_kind op = expr->variant.operation.kind;
   an_expr_node_ptr      op1 = expr->variant.operation.operands;
   an_expr_node_ptr      op1_for_argument, op1_for_assign, op_node, op2_node;
   an_expr_node_ptr      fxmask_expr;
@@ -2558,22 +2561,22 @@ Lower the indicated fixed-point increment or decrement operation.
   int                   shift_amount = 0;
 
   switch (op) {
-    case eok_fxpost_incr:
+    case eok_post_incr:
       is_post_op = TRUE;
       routine_name = "_Fixed_incr";
       routine = &fixed_incr_routine;
       break;
-    case eok_fxpost_decr:
+    case eok_post_decr:
       is_post_op = TRUE;
       routine_name = "_Fixed_decr";
       routine = &fixed_decr_routine;
       break;
-    case eok_fxpre_incr:
+    case eok_pre_incr:
       is_post_op = FALSE;
       routine_name = "_Fixed_incr";
       routine = &fixed_incr_routine;
       break;
-    case eok_fxpre_decr:
+    case eok_pre_decr:
       is_post_op = FALSE;
       routine_name = "_Fixed_decr";
       routine = &fixed_decr_routine;
@@ -2597,7 +2600,6 @@ Lower the indicated fixed-point increment or decrement operation.
                                                     /*vars_can_change=*/FALSE,
                                                     &temp_init_used);
   op1_for_assign = op1;
-  assign_op = lowered_assignment_operator(result_type);
   if (temp_init_used || is_post_op) {
     /* op1 is complicated and was assigned to a temporary.  Make sure that
        the temporary is initialized before it is used by doing the
@@ -2611,8 +2613,7 @@ Lower the indicated fixed-point increment or decrement operation.
     op1_for_assign = op1_for_argument;
     op1_for_argument = var_lvalue_expr(temp_var);
     /* Make the (temp = *(t = &x)) assignment, to be inserted later. */
-    op2_node = make_var_assignment_expr(temp_var, assign_op,
-                                        rvalue_expr_for_lvalue(op1));
+    op2_node = make_var_assignment_expr(temp_var, rvalue_expr_for_lvalue(op1));
   }  /* if */
   /* Make the argument for the call. */
   op1_for_argument = add_cast_to_fxvalue_type(op1_for_argument);
@@ -2632,7 +2633,8 @@ Lower the indicated fixed-point increment or decrement operation.
      desired type. */
   op_node = add_cast_if_necessary(op_node, result_type);
   /* Assign the result to op1 (or the temporary). */
-  op_node = make_assignment_expr(op1_for_assign, assign_op, op_node);
+  op_node = make_assignment_expr(
+                   op1_for_assign, (an_expr_operator_kind)eok_assign, op_node);
   if (temp_var != NULL) {
     /* Combine the assignment to the temporary and the assignment that
        does the incr/decr call and stores it back in the original
@@ -2778,40 +2780,238 @@ others) for operations involving complex types, fixed-point types, the
 _Bool type, and VLA types.
 */
 {
+  a_type_kind  op_kind;
+
   check_assertion(expr->kind == (an_expr_node_kind)enk_operation);
+  op_kind = expr->variant.operation.type_kind;
   switch (expr->variant.operation.kind) {
+    case eok_negate:
+      switch (op_kind) {
+#if LOWER_FIXED_POINT
+        case tk_fixed_point:
+          lower_c99_fixed_point_operation(expr);
+          break;
+#endif /* LOWER_FIXED_POINT */
 #if LOWER_COMPLEX
-    case eok_xnegate:
-      lower_c99_xnegate(expr);
+        case tk_complex:
+          lower_c99_xnegate(expr);
+          break;
+#endif /* LOWER_COMPLEX */
+        default:
+          break;
+      }  /* switch */
       break;
-    case eok_xadd:
-      lower_c99_xadd(expr);
+    case eok_post_incr:
+    case eok_post_decr:
+    case eok_pre_incr:
+    case eok_pre_decr:
+      switch (op_kind) {
+        case tk_integer:
+          if (is_bool_type(expr->type)) {
+          /* Increments/decrements of bool. */
+            lower_bool_incr_decr(expr);
+          }  /* if */
+          break;
+#if LOWER_FIXED_POINT
+        case tk_fixed_point:
+          lower_c99_fixed_point_incr_decr(expr);
+          break;
+#endif /* LOWER_FIXED_POINT */
+#if LOWER_VARIABLE_LENGTH_ARRAYS
+        case tk_pointer:
+          if (vla_enabled &&
+              is_vla_type(type_pointed_to(skip_typerefs(expr->type)))) {
+            /* Arithmetic on pointers to VLAs depends on the run-time sizes of
+               those VLAs.  Since the VLAs are lowered, the pointer arithmetic
+               must be transformed to explicitly include the run-time sizes. */
+            lower_vla_pointer_integer_arithmetic(expr);
+          }  /* if */
+          break;
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
+        default:
+          break;
+      }  /* switch */
       break;
-    case eok_xsubtract:
-      lower_c99_xsubtract(expr);
+    case eok_add:
+      switch (op_kind) {
+#if LOWER_FIXED_POINT
+        case tk_fixed_point:
+          lower_c99_fixed_point_operation(expr);
+          break;
+#endif /* LOWER_FIXED_POINT */
+#if LOWER_COMPLEX
+        case tk_complex:
+          lower_c99_xadd(expr);
+          break;
+#endif /* LOWER_COMPLEX */
+        default:
+          break;
+      }  /* switch */
       break;
-    case eok_xmultiply:
-      lower_c99_xmultiply(expr);
+    case eok_subtract:
+      switch (op_kind) {
+#if LOWER_FIXED_POINT
+        case tk_fixed_point:
+          lower_c99_fixed_point_operation(expr);
+          break;
+#endif /* LOWER_FIXED_POINT */
+#if LOWER_COMPLEX
+        case tk_complex:
+          lower_c99_xsubtract(expr);
+          break;
+#endif /* LOWER_COMPLEX */
+        default:
+          break;
+      }  /* switch */
       break;
-    case eok_xdivide:
-      lower_c99_xdivide(expr);
+    case eok_multiply:
+      switch (op_kind) {
+#if LOWER_FIXED_POINT
+        case tk_fixed_point:
+          lower_c99_fixed_point_operation(expr);
+          break;
+#endif /* LOWER_FIXED_POINT */
+#if LOWER_COMPLEX
+        case tk_complex:
+          lower_c99_xmultiply(expr);
+          break;
+#endif /* LOWER_COMPLEX */
+        default:
+          break;
+      }  /* switch */
       break;
-    case eok_xeq:
-      lower_c99_xeq(expr);
+    case eok_divide:
+      switch (op_kind) {
+#if LOWER_FIXED_POINT
+        case tk_fixed_point:
+          lower_c99_fixed_point_operation(expr);
+          break;
+#endif /* LOWER_FIXED_POINT */
+#if LOWER_COMPLEX
+        case tk_complex:
+          lower_c99_xdivide(expr);
+          break;
+#endif /* LOWER_COMPLEX */
+        default:
+          break;
+      }  /* switch */
       break;
-    case eok_xne:
-      lower_c99_xne(expr);
+#if LOWER_FIXED_POINT
+    case eok_shiftl:
+    case eok_shiftr:
+      if (op_kind == (a_type_kind)tk_fixed_point) {
+        lower_c99_fixed_point_operation(expr);
+      }  /* if */
       break;
-    case eok_xassign:
-      /* Complex assignment becomes structure assignment. */
-      expr->variant.operation.kind = (an_expr_operator_kind)eok_sassign;
+#endif /* LOWER_FIXED_POINT */
+    case eok_eq:
+      switch (op_kind) {
+#if LOWER_FIXED_POINT
+        case tk_fixed_point:
+          lower_c99_fixed_point_operation(expr);
+          break;
+#endif /* LOWER_FIXED_POINT */
+#if LOWER_COMPLEX
+        case tk_complex:
+          lower_c99_xeq(expr);
+          break;
+#endif /* LOWER_COMPLEX */
+        default:
+          break;
+      }  /* switch */
       break;
-    case eok_xadd_assign:
-    case eok_xsubtract_assign:
-    case eok_xmultiply_assign:
-    case eok_xdivide_assign:
-      rewrite_compound_assignment(expr);
+    case eok_ne:
+      switch (op_kind) {
+#if LOWER_FIXED_POINT
+        case tk_fixed_point:
+          lower_c99_fixed_point_operation(expr);
+          break;
+#endif /* LOWER_FIXED_POINT */
+#if LOWER_COMPLEX
+        case tk_complex:
+          lower_c99_xne(expr);
+          break;
+#endif /* LOWER_COMPLEX */
+        default:
+          break;
+      }  /* switch */
       break;
+#if LOWER_FIXED_POINT
+    case eok_gt:
+    case eok_lt:
+    case eok_ge:
+    case eok_le:
+      if (op_kind == (a_type_kind)tk_fixed_point) {
+        lower_c99_fixed_point_operation(expr);
+      }  /* if */
+      break;
+#endif /* LOWER_FIXED_POINT */
+
+    case eok_assign:
+      switch (op_kind) {
+#if LOWER_FIXED_POINT
+        case tk_fixed_point:
+          /* Fixed-point assignment becomes integer assignment. */
+          expr->variant.operation.type_kind = (a_type_kind)tk_integer;
+          break;
+#endif /* LOWER_FIXED_POINT */
+#if LOWER_COMPLEX
+        case tk_complex:
+          /* Complex assignment becomes structure assignment. */
+          expr->variant.operation.type_kind = (a_type_kind)tk_struct;
+          break;
+#endif /* LOWER_COMPLEX */
+        default:;
+      }  /* switch */
+      break;
+    case eok_add_assign:
+    case eok_subtract_assign:
+    case eok_multiply_assign:
+    case eok_divide_assign:
+    case eok_remainder_assign:
+    case eok_shiftl_assign:
+    case eok_shiftr_assign:
+    case eok_and_assign:
+    case eok_or_assign:
+    case eok_xor_assign:
+      switch (op_kind) {
+        case tk_integer:
+          if (is_bool_type(expr->type)) {
+            /* Compound assignments to bool don't exist in C89, and must be
+               lowered to get the value reduced to 0/1. */
+            rewrite_compound_assignment(expr);
+          }  /* if */
+          break;
+        case tk_float:
+          if (is_bool_type(expr->type)
+#if LOWER_FIXED_POINT
+              || is_fixed_point_type(expr->type)
+#endif /* LOWER_FIXED_POINT */
+                                                ) {
+            /* Rewrite operations that involve floating-point arithmetic, but
+               whose final result is a boolean or fixed-point value.  E.g.,
+                 _Bool b = 1; b += 2.3;  // Requires normalization
+               or
+                 _Accum int acc = 0k; acc += 1.2;
+            */
+            rewrite_compound_assignment(expr);
+          }  /* if */
+          break;
+#if LOWER_FIXED_POINT
+        case tk_fixed_point:
+          rewrite_compound_assignment(expr);
+          break;
+#endif /* LOWER_FIXED_POINT */
+#if LOWER_COMPLEX
+        case tk_complex:
+          rewrite_compound_assignment(expr);
+          break;
+#endif /* LOWER_COMPLEX */
+        default:;
+      }  /* switch */
+      break;
+      break;
+#if LOWER_COMPLEX
     case eok_jmultiply:
       lower_c99_jmultiply(expr);
       break;
@@ -2839,85 +3039,6 @@ _Bool type, and VLA types.
     case eok_bool_cast:
       lower_c99_cast(expr);
       break;
-#if FIXED_POINT_ALLOWED
-    case eok_fxassign:
-#if LOWER_FIXED_POINT
-      /* Fixed-point assignment becomes integer assignment. */
-      expr->variant.operation.kind = (an_expr_operator_kind)eok_iassign;
-#endif /* LOWER_FIXED_POINT */
-      break;
-    case eok_fxnegate:
-    case eok_fxadd:
-    case eok_fxsubtract:
-    case eok_fxmultiply:
-    case eok_fxdivide:
-    case eok_fxshiftl:
-    case eok_fxshiftr:
-    case eok_fxeq:
-    case eok_fxne:
-    case eok_fxgt:
-    case eok_fxlt:
-    case eok_fxge:
-    case eok_fxle:
-      /* Fixed-point operations. */
-#if LOWER_FIXED_POINT
-      lower_c99_fixed_point_operation(expr);
-#endif /* LOWER_FIXED_POINT */
-      break;
-    case eok_fxadd_assign:
-    case eok_fxsubtract_assign:
-    case eok_fxmultiply_assign:
-    case eok_fxdivide_assign:
-    case eok_fxshiftl_assign:
-    case eok_fxshiftr_assign:
-#if LOWER_FIXED_POINT
-      rewrite_compound_assignment(expr);
-#endif /* LOWER_FIXED_POINT */
-      break;
-    case eok_fxpost_incr:
-    case eok_fxpost_decr:
-    case eok_fxpre_incr:
-    case eok_fxpre_decr:
-#if LOWER_FIXED_POINT
-      lower_c99_fixed_point_incr_decr(expr);
-#endif /* LOWER_FIXED_POINT */
-      break;
-#endif /* FIXED_POINT_ALLOWED */
-    case eok_iadd_assign:
-    case eok_isubtract_assign:
-    case eok_imultiply_assign:
-    case eok_idivide_assign:
-    case eok_remainder_assign:
-    case eok_shiftl_assign:
-    case eok_shiftr_assign:
-    case eok_and_assign:
-    case eok_or_assign:
-    case eok_xor_assign:
-    case eok_fadd_assign:
-    case eok_fsubtract_assign:
-    case eok_fmultiply_assign:
-    case eok_fdivide_assign:
-      /* Compound assignments to bool don't exist in C89, and
-         must be lowered to get the value reduced to 0/1. */
-      if (is_bool_type(expr->type)) {
-        rewrite_compound_assignment(expr);
-#if LOWER_FIXED_POINT
-      } else if (is_fixed_point_type(expr->type)) {
-        /* Also rewrite operations that involve a fixed-point operand but
-           aren't a fixed-point operation (e.g., fixed_point += double). */
-        rewrite_compound_assignment(expr);
-#endif /* LOWER_FIXED_POINT */
-      }  /* if */
-      break;
-    case eok_ipost_incr:
-    case eok_ipre_incr:
-    case eok_ipost_decr:
-    case eok_ipre_decr:
-      /* Increments/decrements of bool. */
-      if (is_bool_type(expr->type)) {
-        lower_bool_incr_decr(expr);
-      }  /* if */
-      break;
     case eok_call:
       lower_c99_call(expr);
       break;
@@ -2932,10 +3053,6 @@ _Bool type, and VLA types.
     case eok_psubtract:
     case eok_padd_assign:
     case eok_psubtract_assign:
-    case eok_ppre_incr:
-    case eok_ppre_decr:
-    case eok_ppost_incr:
-    case eok_ppost_decr:
       if (vla_enabled && is_vla_type(type_pointed_to(expr->type))) {
         /* Arithmetic on pointers to VLAs depends on the run-time sizes of
            those VLAs.  Since the VLAs are lowered, the pointer arithmetic

@@ -474,196 +474,43 @@ gen_expr_with_parens to generate the expression containing the operator.  If
 a given operator may be generated in different forms, this table should
 reflect the one with the lowest precedence.
 */
-static a_byte generated_precedence[] = {
+static a_byte generated_precedence[(int)eok_last+1] = {
+  PREC_LOWEST,		/* eok_lvalue */
+  PREC_LOWEST,		/* eok_rvalue */
   PREC_PREFIX,		/* eok_address_of */
   PREC_LOWEST,		/* eok_reference_to */
   PREC_PREFIX,		/* eok_indirect */
   PREC_LOWEST,		/* eok_ref_indirect */
-  PREC_PREFIX,		/* eok_inegate */
-#if FIXED_POINT_ALLOWED
-  PREC_PREFIX,		/* eok_fxnegate */
-#endif /* FIXED_POINT_ALLOWED */
-  PREC_PREFIX,		/* eok_fnegate */
-  PREC_PREFIX,		/* eok_unary_plus */
-  PREC_PREFIX,		/* eok_not */
   PREC_CAST,		/* eok_cast (NOTE: cases where the cast is not
                            generated are filtered out by
                            parens_may_be_needed) */
+  PREC_CAST,		/* eok_lvalue_cast */
   PREC_CAST,		/* eok_base_class_cast */
   PREC_CAST,		/* eok_derived_class_cast */
   PREC_CAST,		/* eok_pm_base_class_cast */
   PREC_CAST,		/* eok_pm_derived_class_cast */
-  PREC_CAST,		/* eok_lvalue_cast */
   PREC_POSTFIX,		/* eok_dynamic_cast */
   PREC_CAST,		/* eok_bool_cast */
-  PREC_PREFIX,		/* eok_complement */
-  PREC_POSTFIX,		/* eok_ipost_incr */
-  PREC_POSTFIX,		/* eok_ipost_decr */
-  PREC_PREFIX,		/* eok_ipre_incr */
-  PREC_PREFIX,		/* eok_ipre_decr */
-#if FIXED_POINT_ALLOWED
-  PREC_POSTFIX,		/* eok_fxpost_incr */
-  PREC_POSTFIX,		/* eok_fxpost_decr */
-  PREC_PREFIX,		/* eok_fxpre_incr */
-  PREC_PREFIX,		/* eok_fxpre_decr */
-#endif /* FIXED_POINT_ALLOWED */
-  PREC_POSTFIX,		/* eok_fpost_incr */
-  PREC_POSTFIX,		/* eok_fpost_decr */
-  PREC_PREFIX,		/* eok_fpre_incr */
-  PREC_PREFIX,		/* eok_fpre_decr */
-  PREC_POSTFIX,		/* eok_ppost_incr */
-  PREC_POSTFIX,		/* eok_ppost_decr */
-  PREC_PREFIX,		/* eok_ppre_incr */
-  PREC_PREFIX,		/* eok_ppre_decr */
   PREC_LOWEST,		/* eok_lvalue_from_struct_rvalue (NOTE: the
                            generated code for this operator just copies the
                            operand up, so we don't know anything about how
                            it might actually be generated, hence the
                            PREC_LOWEST) */
   PREC_LOWEST,		/* eok_array_to_pointer */
+  PREC_POSTFIX,		/* eok_dot_vacuous_destructor_call */
+  PREC_POSTFIX,		/* eok_points_to_vacuous_destructor_call */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   PREC_POSTFIX,		/* eok_assume */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if C99_IL_EXTENSIONS_SUPPORTED
-  PREC_PREFIX,		/* eok_xnegate */
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-  PREC_PLUS_MINUS,	/* eok_iadd */
-  PREC_PLUS_MINUS,	/* eok_isubtract */
-  PREC_MULT_DIV,	/* eok_imultiply */
-  PREC_MULT_DIV,	/* eok_idivide */
-  PREC_EQ_NE,		/* eok_ieq */
-  PREC_EQ_NE,		/* eok_ine */
-  PREC_RELATIONAL,	/* eok_igt */
-  PREC_RELATIONAL,	/* eok_ilt */
-  PREC_RELATIONAL,	/* eok_ige */
-  PREC_RELATIONAL,	/* eok_ile */
-  PREC_GNU_MIN_MAX,	/* eok_ignu_min */
-  PREC_GNU_MIN_MAX,	/* eok_ignu_max */
-  PREC_ASSIGNMENT,	/* eok_iassign */
-#if FIXED_POINT_ALLOWED
-  PREC_PLUS_MINUS,	/* eok_fxadd */
-  PREC_PLUS_MINUS,	/* eok_fxsubtract */
-  PREC_MULT_DIV,	/* eok_fxmultiply */
-  PREC_MULT_DIV,	/* eok_fxdivide */
-  PREC_SHIFT,		/* eok_fxshiftl */
-  PREC_SHIFT,		/* eok_fxshiftr */
-  PREC_EQ_NE,		/* eok_fxeq */
-  PREC_EQ_NE,		/* eok_fxne */
-  PREC_RELATIONAL,	/* eok_fxgt */
-  PREC_RELATIONAL,	/* eok_fxlt */
-  PREC_RELATIONAL,	/* eok_fxge */
-  PREC_RELATIONAL,	/* eok_fxle */
-  PREC_ASSIGNMENT,	/* eok_fxassign */
-#endif /* FIXED_POINT_ALLOWED */
-  PREC_PLUS_MINUS,	/* eok_fadd */
-  PREC_PLUS_MINUS,	/* eok_fsubtract */
-  PREC_MULT_DIV,	/* eok_fmultiply */
-  PREC_MULT_DIV,	/* eok_fdivide */
-  PREC_EQ_NE,		/* eok_feq */
-  PREC_EQ_NE,		/* eok_fne */
-  PREC_RELATIONAL,	/* eok_fgt */
-  PREC_RELATIONAL,	/* eok_flt */
-  PREC_RELATIONAL,	/* eok_fge */
-  PREC_RELATIONAL,	/* eok_fle */
-  PREC_GNU_MIN_MAX,	/* eok_fgnu_min */
-  PREC_GNU_MIN_MAX,	/* eok_fgnu_max */
-  PREC_ASSIGNMENT,	/* eok_fassign */
-  PREC_PLUS_MINUS,	/* eok_padd */
-  PREC_PLUS_MINUS,	/* eok_psubtract */
-  PREC_ASSIGNMENT,	/* eok_passign */
-#if C99_IL_EXTENSIONS_SUPPORTED
-  PREC_PLUS_MINUS,	/* eok_xadd */
-  PREC_PLUS_MINUS,	/* eok_xsubtract */
-  PREC_MULT_DIV,	/* eok_xmultiply */
-  PREC_MULT_DIV,	/* eok_xdivide */
-  PREC_EQ_NE,		/* eok_xeq */
-  PREC_EQ_NE,		/* eok_xne */
-  PREC_ASSIGNMENT,	/* eok_xassign */
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-#if C99_IL_EXTENSIONS_SUPPORTED
-  PREC_ASSIGNMENT,	/* eok_xadd_assign */
-  PREC_ASSIGNMENT,	/* eok_xsubtract_assign */
-  PREC_ASSIGNMENT,	/* eok_xmultiply_assign */
-  PREC_ASSIGNMENT,	/* eok_xdivide_assign */
-  PREC_MULT_DIV,	/* eok_jmultiply */
-  PREC_MULT_DIV,	/* eok_jdivide */
-  PREC_PLUS_MINUS,	/* eok_fjadd */
-  PREC_PLUS_MINUS,	/* eok_jfadd */
-  PREC_PLUS_MINUS,	/* eok_fjsubtract */
-  PREC_PLUS_MINUS,	/* eok_jfsubtract */
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+  PREC_PREFIX,		/* eok_negate */
+  PREC_PREFIX,		/* eok_unary_plus */
+  PREC_PREFIX,		/* eok_complement */
+  PREC_PREFIX,		/* eok_not */
 #if GNU_COMPLEX_EXTENSIONS_ALLOWED
   PREC_PREFIX,		/* eok_xconj */
   PREC_POSTFIX,		/* eok_real_part */
   PREC_POSTFIX,		/* eok_imag_part */
 #endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
-  PREC_MULT_DIV,	/* eok_remainder */
-  PREC_PLUS_MINUS,	/* eok_pdiff */
-  PREC_EQ_NE,		/* eok_peq */
-  PREC_EQ_NE,		/* eok_pne */
-  PREC_RELATIONAL,	/* eok_pgt */
-  PREC_RELATIONAL,	/* eok_plt */
-  PREC_RELATIONAL,	/* eok_pge */
-  PREC_RELATIONAL,	/* eok_ple */
-  PREC_GNU_MIN_MAX,	/* eok_pgnu_min */
-  PREC_GNU_MIN_MAX,	/* eok_pgnu_max */
-  PREC_EQ_NE,		/* eok_pmeq */
-  PREC_EQ_NE,		/* eok_pmne */
-  PREC_ASSIGNMENT,	/* eok_sassign */
-  PREC_ASSIGNMENT,	/* eok_bassign */
-  PREC_ASSIGNMENT,	/* eok_pmassign */
-  PREC_ASSIGNMENT,	/* eok_iadd_assign */
-  PREC_ASSIGNMENT,	/* eok_isubtract_assign */
-  PREC_ASSIGNMENT,	/* eok_imultiply_assign */
-  PREC_ASSIGNMENT,	/* eok_idivide_assign */
-  PREC_ASSIGNMENT,	/* eok_remainder_assign */
-#if FIXED_POINT_ALLOWED
-  PREC_ASSIGNMENT,	/* eok_fxadd_assign */
-  PREC_ASSIGNMENT,	/* eok_fxsubtract_assign */
-  PREC_ASSIGNMENT,	/* eok_fxmultiply_assign */
-  PREC_ASSIGNMENT,	/* eok_fxdivide_assign */
-  PREC_ASSIGNMENT,	/* eok_fxshiftl_assign */
-  PREC_ASSIGNMENT,	/* eok_fxshiftr_assign */
-#endif /* FIXED_POINT_ALLOWED */
-  PREC_ASSIGNMENT,	/* eok_fadd_assign */
-  PREC_ASSIGNMENT,	/* eok_fsubtract_assign */
-  PREC_ASSIGNMENT,	/* eok_fmultiply_assign */
-  PREC_ASSIGNMENT,	/* eok_fdivide_assign */
-  PREC_ASSIGNMENT,	/* eok_padd_assign */
-  PREC_ASSIGNMENT,	/* eok_psubtract_assign */
-  PREC_ASSIGNMENT,	/* eok_shiftl_assign */
-  PREC_ASSIGNMENT,	/* eok_shiftr_assign */
-  PREC_ASSIGNMENT,	/* eok_and_assign */
-  PREC_ASSIGNMENT,	/* eok_or_assign */
-  PREC_ASSIGNMENT,	/* eok_xor_assign */
-  PREC_POSTFIX,		/* eok_subscript */
-  PREC_POSTFIX,		/* eok_dot_field */
-  PREC_POSTFIX,		/* eok_points_to_field */
-  PREC_PTR_TO_MEMBER,	/* eok_pm_field */
-  PREC_PTR_TO_MEMBER,	/* eok_pm_points_to_field */
-  PREC_POSTFIX,		/* eok_dot_static */
-  PREC_POSTFIX,		/* eok_points_to_static */
-  PREC_SHIFT,		/* eok_shiftl */
-  PREC_SHIFT,		/* eok_shiftr */
-  PREC_AND,		/* eok_and */
-  PREC_OR,		/* eok_or */
-  PREC_EXCL_OR,		/* eok_xor */
-  PREC_COMMA,		/* eok_comma */
-  PREC_POSTFIX,		/* eok_virtual_function_ptr */
-  PREC_POSTFIX,		/* eok_dot_vacuous_destructor_call */
-  PREC_POSTFIX,		/* eok_points_to_vacuous_destructor_call */
-  PREC_AND_AND,		/* eok_land */
-  PREC_OR_OR,		/* eok_lor */
-  PREC_QUEST_MARK,	/* eok_question */
-  PREC_POSTFIX,		/* eok_call */
-  PREC_POSTFIX,		/* eok_virtual_call */
-  PREC_POSTFIX,		/* eok_pm_call */
-  PREC_POSTFIX,		/* eok_va_start */
-  PREC_POSTFIX,		/* eok_va_arg */
-  PREC_POSTFIX,		/* eok_va_end */
-  PREC_POSTFIX,		/* eok_va_copy */
-  PREC_POSTFIX,		/* eok_va_start_single_operand */
-  PREC_PREFIX,		/* eok_negate */
   PREC_POSTFIX,		/* eok_post_incr */
   PREC_POSTFIX,		/* eok_post_decr */
   PREC_PREFIX,		/* eok_pre_incr */
@@ -672,6 +519,23 @@ static a_byte generated_precedence[] = {
   PREC_PLUS_MINUS,	/* eok_subtract */
   PREC_MULT_DIV,	/* eok_multiply */
   PREC_MULT_DIV,	/* eok_divide */
+  PREC_MULT_DIV,	/* eok_remainder */
+#if C99_IL_EXTENSIONS_SUPPORTED
+  PREC_MULT_DIV,	/* eok_jmultiply */
+  PREC_MULT_DIV,	/* eok_jdivide */
+  PREC_PLUS_MINUS,	/* eok_fjadd */
+  PREC_PLUS_MINUS,	/* eok_jfadd */
+  PREC_PLUS_MINUS,	/* eok_fjsubtract */
+  PREC_PLUS_MINUS,	/* eok_jfsubtract */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+  PREC_PLUS_MINUS,	/* eok_padd */
+  PREC_PLUS_MINUS,	/* eok_psubtract */
+  PREC_PLUS_MINUS,	/* eok_pdiff */
+  PREC_SHIFT,		/* eok_shiftl */
+  PREC_SHIFT,		/* eok_shiftr */
+  PREC_AND,		/* eok_and */
+  PREC_OR,		/* eok_or */
+  PREC_EXCL_OR,		/* eok_xor */
   PREC_EQ_NE,		/* eok_eq */
   PREC_EQ_NE,		/* eok_ne */
   PREC_RELATIONAL,	/* eok_gt */
@@ -685,11 +549,38 @@ static a_byte generated_precedence[] = {
   PREC_ASSIGNMENT,	/* eok_subtract_assign */
   PREC_ASSIGNMENT,	/* eok_multiply_assign */
   PREC_ASSIGNMENT,	/* eok_divide_assign */
+  PREC_ASSIGNMENT,	/* eok_remainder_assign */
+  PREC_ASSIGNMENT,	/* eok_shiftl_assign */
+  PREC_ASSIGNMENT,	/* eok_shiftr_assign */
+  PREC_ASSIGNMENT,	/* eok_and_assign */
+  PREC_ASSIGNMENT,	/* eok_or_assign */
+  PREC_ASSIGNMENT,	/* eok_xor_assign */
+  PREC_ASSIGNMENT,	/* eok_padd_assign */
+  PREC_ASSIGNMENT,	/* eok_psubtract_assign */
+  PREC_ASSIGNMENT,	/* eok_bassign */
+  PREC_AND_AND,		/* eok_land */
+  PREC_OR_OR,		/* eok_lor */
+  PREC_COMMA,		/* eok_comma */
+  PREC_POSTFIX,		/* eok_subscript */
+  PREC_POSTFIX,		/* eok_dot_field */
+  PREC_POSTFIX,		/* eok_points_to_field */
+  PREC_PTR_TO_MEMBER,	/* eok_pm_field */
+  PREC_PTR_TO_MEMBER,	/* eok_pm_points_to_field */
+  PREC_POSTFIX,		/* eok_dot_static */
+  PREC_POSTFIX,		/* eok_points_to_static */
+  PREC_POSTFIX,		/* eok_virtual_function_ptr */
+  PREC_QUEST_MARK,	/* eok_question */
+  PREC_POSTFIX,		/* eok_call */
+  PREC_POSTFIX,		/* eok_virtual_call */
+  PREC_POSTFIX,		/* eok_pm_call */
+  PREC_POSTFIX,		/* eok_va_start */
+  PREC_POSTFIX,		/* eok_va_arg */
+  PREC_POSTFIX,		/* eok_va_end */
+  PREC_POSTFIX,		/* eok_va_copy */
+  PREC_POSTFIX,		/* eok_va_start_single_operand */
   PREC_POSTFIX,		/* eok_static_cast */
   PREC_POSTFIX,		/* eok_const_cast */
   PREC_POSTFIX,		/* eok_reinterpret_cast */
-  PREC_LOWEST,		/* eok_lvalue */
-  PREC_LOWEST,		/* eok_rvalue */
   PREC_POSTFIX,		/* eok_generic_call */
   PREC_POSTFIX,		/* eok_generic_member_call */
   PREC_LOWEST,		/* eok_error */
@@ -6683,16 +6574,7 @@ any type.
 
   if (is_operation_node(expr) && expr->variant.operation.compiler_generated) {
     an_expr_operator_kind op = expr->variant.operation.kind;
-    if (op == (an_expr_operator_kind)eok_ine ||
-        op == (an_expr_operator_kind)eok_fne ||
-#if C99_IL_EXTENSIONS_SUPPORTED
-        op == (an_expr_operator_kind)eok_xne ||
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-#if FIXED_POINT_ALLOWED
-        op == (an_expr_operator_kind)eok_fxne ||
-#endif /* FIXED_POINT_ALLOWED */
-        op == (an_expr_operator_kind)eok_pne ||
-        op == (an_expr_operator_kind)eok_pmne) {
+    if (op == (an_expr_operator_kind)eok_ne) {
       an_expr_node_ptr op2 = expr->variant.operation.operands->next;
       if (is_constant_node(op2)) {
         a_constant_ptr constant = op2->variant.constant;
@@ -7137,9 +7019,6 @@ temporary expressions).
           break;
 #if GNU_EXTENSIONS_ALLOWED
         case eok_gnu_min:
-        case eok_ignu_min:
-        case eok_fgnu_min:
-        case eok_pgnu_min:
           /* Lvalue-returning GNU C++ minimum operator. Both operands are
              lvalues. */
           if (need_parens) write_tok_ch('(');
@@ -7150,9 +7029,6 @@ temporary expressions).
           processed = TRUE;
           break;
         case eok_gnu_max:
-        case eok_ignu_max:
-        case eok_fgnu_max:
-        case eok_pgnu_max:
           /* Lvalue-returning GNU C++ maximum operator. Both operands are
              lvalues. */
           if (need_parens) write_tok_ch('(');
@@ -7854,7 +7730,7 @@ return FALSE.
        where it isn't is a multi-dimensional array.) */
     if (is_operation_node(size_expr) &&
         size_expr->variant.operation.kind ==
-                                        (an_expr_operator_kind)eok_imultiply) {
+                                        (an_expr_operator_kind)eok_multiply) {
       an_expr_node_ptr operand_1 = size_expr->variant.operation.operands;
       an_expr_node_ptr operand_2 = operand_1->next;
       if (is_constant_node(operand_2)) {
@@ -8996,14 +8872,6 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           goto done_with_operation;
 #endif /* GNU_EXTENSIONS_ALLOWED */
         case eok_negate:
-        case eok_inegate:
-#if FIXED_POINT_ALLOWED
-        case eok_fxnegate:
-#endif /* FIXED_POINT_ALLOWED */
-        case eok_fnegate:
-#if C99_IL_EXTENSIONS_SUPPORTED
-        case eok_xnegate:
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
           opstr = "-";
           break;
         case eok_unary_plus:
@@ -9123,13 +8991,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           opstr = "~";
           break;
         case eok_post_incr:
-        case eok_fpost_incr:
-#if FIXED_POINT_ALLOWED
-        case eok_fxpost_incr:
-#endif /* FIXED_POINT_ALLOWED */
-        case eok_ipost_incr:
-        case eok_ppost_incr:
-          /* Post-increment operators. */
+          /* Post-increment operator. */
           if (is_generic_expression) {
             /* This is a generic expression, so we don't know whether the
                operand is required to be an lvalue or not. */
@@ -9140,24 +9002,12 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           write_tok_str("++");
           goto done_with_operation;
         case eok_pre_incr:
-        case eok_ipre_incr:
-#if FIXED_POINT_ALLOWED
-        case eok_fxpre_incr:
-#endif /* FIXED_POINT_ALLOWED */
-        case eok_fpre_incr:
-        case eok_ppre_incr:
-          /* Pre-increment operators. */
+          /* Pre-increment operator. */
           opstr = "++";
           operand_1_is_lvalue = TRUE;
           break;
         case eok_post_decr:
-        case eok_fpost_decr:
-#if FIXED_POINT_ALLOWED
-        case eok_fxpost_decr:
-#endif /* FIXED_POINT_ALLOWED */
-        case eok_ipost_decr:
-        case eok_ppost_decr:
-          /* Post-decrement operators. */
+          /* Post-decrement operator. */
           if (is_generic_expression) {
             /* This is a generic expression, so we don't know whether the
                operand is required to be an lvalue or not. */
@@ -9168,13 +9018,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           write_tok_str("--");
           goto done_with_operation;
         case eok_pre_decr:
-        case eok_ipre_decr:
-#if FIXED_POINT_ALLOWED
-        case eok_fxpre_decr:
-#endif /* FIXED_POINT_ALLOWED */
-        case eok_fpre_decr:
-        case eok_ppre_decr:
-          /* Pre-decrement operators. */
+          /* Pre-decrement operator. */
           opstr = "--";
           operand_1_is_lvalue = TRUE;
           break;
@@ -9194,13 +9038,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           goto done_with_operation;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         case eok_add:
-        case eok_iadd:
-#if FIXED_POINT_ALLOWED
-        case eok_fxadd:
-#endif /* FIXED_POINT_ALLOWED */
-        case eok_fadd:
 #if C99_IL_EXTENSIONS_SUPPORTED
-        case eok_xadd:
         case eok_fjadd:
         case eok_jfadd:
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
@@ -9208,13 +9046,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           opstr = "+";
           break;
         case eok_subtract:
-        case eok_isubtract:
-#if FIXED_POINT_ALLOWED
-        case eok_fxsubtract:
-#endif /* FIXED_POINT_ALLOWED */
-        case eok_fsubtract:
 #if C99_IL_EXTENSIONS_SUPPORTED
-        case eok_xsubtract:
         case eok_fjsubtract:
         case eok_jfsubtract:
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
@@ -9223,144 +9055,71 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           opstr = "-";
           break;
         case eok_multiply:
-        case eok_imultiply:
-#if FIXED_POINT_ALLOWED
-        case eok_fxmultiply:
-#endif /* FIXED_POINT_ALLOWED */
-        case eok_fmultiply:
 #if C99_IL_EXTENSIONS_SUPPORTED
-        case eok_xmultiply:
         case eok_jmultiply:
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
           opstr = "*";
           break;
         case eok_divide:
-        case eok_idivide:
-#if FIXED_POINT_ALLOWED
-        case eok_fxdivide:
-#endif /* FIXED_POINT_ALLOWED */
-        case eok_fdivide:
 #if C99_IL_EXTENSIONS_SUPPORTED
-        case eok_xdivide:
         case eok_jdivide:
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
           opstr = "/";
           break;
+        case eok_remainder:
+          opstr = "%";
+          break;
+        case eok_shiftl:
+          opstr = "<<";
+          break;
+        case eok_shiftr:
+          opstr = ">>";
+          break;
         case eok_eq:
-        case eok_ieq:
-#if FIXED_POINT_ALLOWED
-        case eok_fxeq:
-#endif /* FIXED_POINT_ALLOWED */
-        case eok_feq:
-#if C99_IL_EXTENSIONS_SUPPORTED
-        case eok_xeq:
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-        case eok_peq:
-        case eok_pmeq:
           opstr = "==";
           break;
         case eok_ne:
-        case eok_ine:
-#if FIXED_POINT_ALLOWED
-        case eok_fxne:
-#endif /* FIXED_POINT_ALLOWED */
-        case eok_fne:
-#if C99_IL_EXTENSIONS_SUPPORTED
-        case eok_xne:
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-        case eok_pne:
-        case eok_pmne:
           opstr = "!=";
           break;
         case eok_gt:
-        case eok_igt:
-#if FIXED_POINT_ALLOWED
-        case eok_fxgt:
-#endif /* FIXED_POINT_ALLOWED */
-        case eok_fgt:
-        case eok_pgt:
           opstr = ">";
           break;
         case eok_lt:
-        case eok_ilt:
-#if FIXED_POINT_ALLOWED
-        case eok_fxlt:
-#endif /* FIXED_POINT_ALLOWED */
-        case eok_flt:
-        case eok_plt:
           opstr = "<";
           break;
         case eok_ge:
-        case eok_ige:
-#if FIXED_POINT_ALLOWED
-        case eok_fxge:
-#endif /* FIXED_POINT_ALLOWED */
-        case eok_fge:
-        case eok_pge:
           opstr = ">=";
           break;
         case eok_le:
-        case eok_ile:
-#if FIXED_POINT_ALLOWED
-        case eok_fxle:
-#endif /* FIXED_POINT_ALLOWED */
-        case eok_fle:
-        case eok_ple:
           opstr = "<=";
           break;
 #if GNU_EXTENSIONS_ALLOWED
         case eok_gnu_min:
-        case eok_ignu_min:
-        case eok_fgnu_min:
-        case eok_pgnu_min:
           opstr = "<?";
           break;
         case eok_gnu_max:
-        case eok_ignu_max:
-        case eok_fgnu_max:
-        case eok_pgnu_max:
           opstr = ">?";
           break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
-        case eok_remainder:
-          opstr = "%";
-          break;
         case eok_assign:
-        case eok_iassign:
-#if FIXED_POINT_ALLOWED
-        case eok_fxassign:
-#endif /* FIXED_POINT_ALLOWED */
-        case eok_fassign:
-#if C99_IL_EXTENSIONS_SUPPORTED
-        case eok_xassign:
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-        case eok_passign:
-        case eok_sassign:
-        case eok_pmassign:
           opstr = "=";
           operand_1_is_lvalue = TRUE;
           break;
+        case eok_add_assign:
+        case eok_padd_assign:
+          opstr = "+=";
+          operand_1_is_lvalue = TRUE;
+          break;
+        case eok_subtract_assign:
+        case eok_psubtract_assign:
+          opstr = "-=";
+          operand_1_is_lvalue = TRUE;
+          break;
         case eok_multiply_assign:
-        case eok_imultiply_assign:
-#if FIXED_POINT_ALLOWED
-        case eok_fxmultiply_assign:
-#endif /* FIXED_POINT_ALLOWED */
-        case eok_fmultiply_assign:
-#if C99_IL_EXTENSIONS_SUPPORTED
-        case eok_xmultiply_assign:
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
           opstr = "*=";
           operand_1_is_lvalue = TRUE;
           break;
         case eok_divide_assign:
-        case eok_idivide_assign:
-#if FIXED_POINT_ALLOWED
-        case eok_fxdivide_assign:
-#endif /* FIXED_POINT_ALLOWED */
-        case eok_fdivide_assign:
-#if C99_IL_EXTENSIONS_SUPPORTED
-        case eok_xdivide_assign:
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
           opstr = "/=";
           operand_1_is_lvalue = TRUE;
           break;
@@ -9368,42 +9127,10 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           opstr = "%=";
           operand_1_is_lvalue = TRUE;
           break;
-        case eok_add_assign:
-        case eok_iadd_assign:
-#if FIXED_POINT_ALLOWED
-        case eok_fxadd_assign:
-#endif /* FIXED_POINT_ALLOWED */
-        case eok_fadd_assign:
-#if C99_IL_EXTENSIONS_SUPPORTED
-        case eok_xadd_assign:
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-        case eok_padd_assign:
-          opstr = "+=";
-          operand_1_is_lvalue = TRUE;
-          break;
-        case eok_subtract_assign:
-        case eok_isubtract_assign:
-#if FIXED_POINT_ALLOWED
-        case eok_fxsubtract_assign:
-#endif /* FIXED_POINT_ALLOWED */
-        case eok_fsubtract_assign:
-#if C99_IL_EXTENSIONS_SUPPORTED
-        case eok_xsubtract_assign:
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-        case eok_psubtract_assign:
-          opstr = "-=";
-          operand_1_is_lvalue = TRUE;
-          break;
-#if FIXED_POINT_ALLOWED
-        case eok_fxshiftl_assign:
-#endif /* FIXED_POINT_ALLOWED */
         case eok_shiftl_assign:
           opstr = "<<=";
           operand_1_is_lvalue = TRUE;
           break;
-#if FIXED_POINT_ALLOWED
-        case eok_fxshiftr_assign:
-#endif /* FIXED_POINT_ALLOWED */
         case eok_shiftr_assign:
           opstr = ">>=";
           operand_1_is_lvalue = TRUE;
@@ -9448,18 +9175,6 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           /* Static member selection, x.m. */
           gen_dot_static(operand_1, ".", operand_2);
           goto done_with_operation;
-#if FIXED_POINT_ALLOWED
-        case eok_fxshiftl:
-#endif /* FIXED_POINT_ALLOWED */
-        case eok_shiftl:
-          opstr = "<<";
-          break;
-#if FIXED_POINT_ALLOWED
-        case eok_fxshiftr:
-#endif /* FIXED_POINT_ALLOWED */
-        case eok_shiftr:
-          opstr = ">>";
-          break;
         case eok_and:
           opstr = "&";
           break;

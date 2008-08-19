@@ -327,6 +327,13 @@ node) is "op".
   ((node)->variant.operation.kind == (an_expr_operator_kind)(op))
 
 /*
+Return TRUE if the operator in node "node" (which must be an operation node)
+applies to the given type kind.
+*/
+#define node_operator_has_type_kind(node, tkind)                    \
+  ((node)->variant.operation.type_kind == (a_type_kind)(tkind))
+
+/*
 Return TRUE if "node" is a function call operation.
 */
 #define is_call_node(node)                                              \
@@ -341,13 +348,7 @@ Return TRUE if "node" is a function call operation.
 Return TRUE if the given operator is a gnu min/max operator (>? or <?).
 */
 #define is_gnu_min_max_operator(op) \
- ((op) == (an_expr_operator_kind)eok_ignu_min || \
-  (op) == (an_expr_operator_kind)eok_ignu_max || \
-  (op) == (an_expr_operator_kind)eok_fgnu_min || \
-  (op) == (an_expr_operator_kind)eok_fgnu_max || \
-  (op) == (an_expr_operator_kind)eok_pgnu_min || \
-  (op) == (an_expr_operator_kind)eok_pgnu_max || \
-  (op) == (an_expr_operator_kind)eok_gnu_min || \
+ ((op) == (an_expr_operator_kind)eok_gnu_min || \
   (op) == (an_expr_operator_kind)eok_gnu_max)
 #endif /* GNU_EXTENSIONS_ALLOWED */
 

@@ -2452,25 +2452,35 @@ the reason is that the constant is a template parameter constant).
          on it. */
       *did_not_fold = TRUE;
     } else {
+      a_type_kind  type_kind = skip_typerefs(constant->type)->kind;
       switch (op) {
-        case eok_fnegate:
-          do_fnegate(constant, result, &err_code, &err_severity,
-                     &depends_on_fp_mode);
-          break;
-        case eok_inegate:
-          do_inegate(constant, result, &err_code, &err_severity);
-          break;
+        case eok_negate:
+          switch (type_kind) {
+            case tk_integer:
+              do_inegate(constant, result, &err_code, &err_severity);
+              break;
 #if FIXED_POINT_ALLOWED
-        case eok_fxnegate:
-          do_fxnegate(constant, result, &err_code, &err_severity);
-          break;
+            case tk_fixed_point:
+              do_fxnegate(constant, result, &err_code, &err_severity);
+              break;
 #endif /* FIXED_POINT_ALLOWED */
+            case tk_float:
 #if C99_IL_EXTENSIONS_SUPPORTED
-        case eok_xnegate:
-          do_xnegate(constant, result, &err_code, &err_severity,
-                     &depends_on_fp_mode);
-          break;
+            case tk_imaginary:
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
+              do_fnegate(constant, result, &err_code, &err_severity,
+                         &depends_on_fp_mode);
+              break;
+#if C99_IL_EXTENSIONS_SUPPORTED
+            case tk_complex:
+              do_xnegate(constant, result, &err_code, &err_severity,
+                         &depends_on_fp_mode);
+              break;
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+            default:
+              unexpected_condition();
+          }  /* switch */
+          break;
         case eok_unary_plus:
           copy_constant(constant, result);
           break;
@@ -3033,12 +3043,12 @@ operator "op", and return a 0 or 1 integer in "result".
   cmp = cmp_integer_constants(constant_1, constant_2);
   /* Now determine the result value for this particular operator. */
   switch (op) {
-    case eok_ieq:  result_value = (cmp == 0); break;
-    case eok_ine:  result_value = (cmp != 0); break;
-    case eok_igt:  result_value = (cmp >  0); break;
-    case eok_ilt:  result_value = (cmp <  0); break;
-    case eok_ige:  result_value = (cmp >= 0); break;
-    case eok_ile:  result_value = (cmp <= 0); break;
+    case eok_eq:  result_value = (cmp == 0); break;
+    case eok_ne:  result_value = (cmp != 0); break;
+    case eok_gt:  result_value = (cmp >  0); break;
+    case eok_lt:  result_value = (cmp <  0); break;
+    case eok_ge:  result_value = (cmp >= 0); break;
+    case eok_le:  result_value = (cmp <= 0); break;
 #if CHECKING
     default:       internal_error("do_icompare: bad operator");
 #endif /* CHECKING */
@@ -3067,14 +3077,14 @@ GNU C++ minimum and maximum operators ("<?" and ">?").
 {
   if (cmp_integer_constants(constant_1, constant_2) <= 0) {
     /* The first constant is no larger than the second one. */
-    if (op == (an_expr_operator_kind)eok_ignu_min) {
+    if (op == (an_expr_operator_kind)eok_gnu_min) {
       copy_constant(constant_1, result);
     } else {
       copy_constant(constant_2, result);
     }  /* if */
   } else {
     /* The first constant is larger. */
-    if (op == (an_expr_operator_kind)eok_ignu_min) {
+    if (op == (an_expr_operator_kind)eok_gnu_min) {
       copy_constant(constant_2, result);
     } else {
       copy_constant(constant_1, result);
@@ -3421,7 +3431,7 @@ relational operator "op", and return a 0 or 1 integer in "result".
   /* Now determine the result value for this particular operator. */
   if (unordered) {
    *depends_on_fp_mode = TRUE;
-   if (op == (an_expr_operator_kind)eok_fne) {
+   if (op == (an_expr_operator_kind)eok_ne) {
      /* If two values are unordered, they are unequal.  This is needed for
         NaN != NaN. */
      result_value = 1;
@@ -3430,12 +3440,12 @@ relational operator "op", and return a 0 or 1 integer in "result".
    }  /* if */
   } else {
     switch (op) {
-      case eok_feq:  result_value = (cmp == 0); break;
-      case eok_fne:  result_value = (cmp != 0); break;
-      case eok_fgt:  result_value = (cmp >  0); break;
-      case eok_flt:  result_value = (cmp <  0); break;
-      case eok_fge:  result_value = (cmp >= 0); break;
-      case eok_fle:  result_value = (cmp <= 0); break;
+      case eok_eq:  result_value = (cmp == 0); break;
+      case eok_ne:  result_value = (cmp != 0); break;
+      case eok_gt:  result_value = (cmp >  0); break;
+      case eok_lt:  result_value = (cmp <  0); break;
+      case eok_ge:  result_value = (cmp >= 0); break;
+      case eok_le:  result_value = (cmp <= 0); break;
 #if CHECKING
       default:       internal_error("do_fcompare: bad operator");
 #endif /* CHECKING */
@@ -3597,12 +3607,12 @@ relational operator "op", and return a 0 or 1 integer in "result".
   cmp = fxp_compare(constant_1, constant_2);
   /* Now determine the result value for this particular operator. */
   switch (op) {
-    case eok_fxeq:  result_value = (cmp == 0); break;
-    case eok_fxne:  result_value = (cmp != 0); break;
-    case eok_fxgt:  result_value = (cmp >  0); break;
-    case eok_fxlt:  result_value = (cmp <  0); break;
-    case eok_fxge:  result_value = (cmp >= 0); break;
-    case eok_fxle:  result_value = (cmp <= 0); break;
+    case eok_eq:  result_value = (cmp == 0); break;
+    case eok_ne:  result_value = (cmp != 0); break;
+    case eok_gt:  result_value = (cmp >  0); break;
+    case eok_lt:  result_value = (cmp <  0); break;
+    case eok_ge:  result_value = (cmp >= 0); break;
+    case eok_le:  result_value = (cmp <= 0); break;
 #if CHECKING
     default:        internal_error("do_fxcompare: bad operator");
 #endif /* CHECKING */
@@ -3638,7 +3648,7 @@ GNU C++ minimum and maximum operators ("<?" and ">?").
                                   &constant_2->variant.float_value,
                                   &unordered);
 
-  if (op == (an_expr_operator_kind)eok_fgnu_min) {
+  if (op == (an_expr_operator_kind)eok_gnu_min) {
     if (!unordered && order < 0) {
       /* The first constant is less than the second. */
       copy_constant(constant_1, result);
@@ -3968,10 +3978,10 @@ thereof).
      NaN != NaN. */
   result_value = (real_cmp != 0) || (imag_cmp != 0) ||
                  real_unordered || imag_unordered;
-  if (op == (an_expr_operator_kind)eok_xeq) {
+  if (op == (an_expr_operator_kind)eok_eq) {
     result_value = !result_value;
   } else {
-    check_assertion(op == (an_expr_operator_kind)eok_xne);
+    check_assertion(op == (an_expr_operator_kind)eok_ne);
   }  /* if */
   set_constant_kind(result, (a_constant_repr_kind)ck_integer);
   set_integer_value(&result->variant.integer_value,
@@ -4296,7 +4306,7 @@ Do addition or subtraction on one pointer (constant_1) and one integer
 Note that the integer can be of any type, specifically unsigned.
 Also used to add or subtract a constant from an address constant
 that has been cast to an integral type, as in "int i = (int)&j + 1;";
-in that case, the operator is eok_iadd or eok_isubtract.
+in that case, the operator is eok_add or eok_subtract.
 *err_code and *err_severity are set to indicate any error/warning
 detected, or *err_code == ec_no_error if everything went fine.
 */
@@ -4309,8 +4319,8 @@ detected, or *err_code == ec_no_error if everything went fine.
   *err_code = ec_no_error;
   *err_severity = es_warning;
 
-  if (op == (an_expr_operator_kind)eok_iadd ||
-      op == (an_expr_operator_kind)eok_isubtract) {
+  if (op == (an_expr_operator_kind)eok_add ||
+      op == (an_expr_operator_kind)eok_subtract) {
     /* For the (int)address +- constant case, the size (scaling) is 1. */
     integer_case = TRUE;
     size = 1;
@@ -4337,7 +4347,7 @@ detected, or *err_code == ec_no_error if everything went fine.
   /* Perform the necessary multiply-add or multiply-subtract. */
   accum_array_offset(&offset, offset_is_signed,
                      (op == (an_expr_operator_kind)eok_psubtract ||
-                      op == (an_expr_operator_kind)eok_isubtract),
+                      op == (an_expr_operator_kind)eok_subtract),
                       constant_2, size, (integer_case && !offset_is_signed),
                       &err);
   if (!err) {
@@ -4515,12 +4525,12 @@ set if the operation cannot be folded.
     /* Compare the offsets, then generate a result value. */
     cmp = cmp_integer_constants(&offset_1, &offset_2);
     switch (op) {
-      case eok_peq:  result_value = (cmp == 0); break;
-      case eok_pne:  result_value = (cmp != 0); break;
-      case eok_pgt:  result_value = (cmp >  0); break;
-      case eok_plt:  result_value = (cmp <  0); break;
-      case eok_pge:  result_value = (cmp >= 0); break;
-      case eok_ple:  result_value = (cmp <= 0); break;
+      case eok_eq:  result_value = (cmp == 0); break;
+      case eok_ne:  result_value = (cmp != 0); break;
+      case eok_gt:  result_value = (cmp >  0); break;
+      case eok_lt:  result_value = (cmp <  0); break;
+      case eok_ge:  result_value = (cmp >= 0); break;
+      case eok_le:  result_value = (cmp <= 0); break;
 #if CHECKING
       default:       internal_error("do_pcompare: bad operator");
 #endif /* CHECKING */
@@ -4575,7 +4585,7 @@ and *result is set to an integer 0 or 1 for the result.
   }  /* if */
   /* result_value is now set for the "==" case.  Complement it for the "!="
      case. */
-  if (op == (an_expr_operator_kind)eok_pmne) result_value = !result_value;
+  if (op == (an_expr_operator_kind)eok_ne) result_value = !result_value;
   set_constant_kind(result, (a_constant_repr_kind)ck_integer);
   set_integer_value(&result->variant.integer_value,
                     (a_host_large_integer)result_value);
@@ -4662,7 +4672,7 @@ then converting the result back to being THREADS-based if appropriate.
           break;
         }  /* if */
         /*FALLTHROUGH*/
-      case eok_imultiply: 
+      case eok_multiply: 
         binary_operation(op, constant_1, constant_2, result_type, result, 
                          constant_context, evaluated_context, did_not_fold,
                          template_constant, err_pos); 
@@ -4672,8 +4682,8 @@ then converting the result back to being THREADS-based if appropriate.
           set_integer_constant_to_upc_threads(result); 
         }  /* if */ 
         break; 
-      case eok_iadd: 
-      case eok_isubtract: 
+      case eok_add: 
+      case eok_subtract: 
         /* Check for adding or subtracting zero */ 
         if (is_zero_constant(nonthread_constant)) { 
           binary_operation(op, constant_1, constant_2, result_type, result, 
@@ -4774,12 +4784,12 @@ as the position for any diagnostics issued.
               constant_2->kind == (a_constant_repr_kind)ck_fixed_point) &&
              (constant_1->kind != (a_constant_repr_kind)ck_fixed_point ||
               constant_2->kind != (a_constant_repr_kind)ck_fixed_point) &&
-             (op != (an_expr_operator_kind)eok_fxshiftl) &&
-             (op != (an_expr_operator_kind)eok_fxshiftr) &&
-             (op != (an_expr_operator_kind)eok_fxadd) &&
-             (op != (an_expr_operator_kind)eok_fxsubtract) &&
-             (op != (an_expr_operator_kind)eok_fxmultiply) &&
-             (op != (an_expr_operator_kind)eok_fxdivide)) {
+             (op != (an_expr_operator_kind)eok_shiftl) &&
+             (op != (an_expr_operator_kind)eok_shiftr) &&
+             (op != (an_expr_operator_kind)eok_add) &&
+             (op != (an_expr_operator_kind)eok_subtract) &&
+             (op != (an_expr_operator_kind)eok_multiply) &&
+             (op != (an_expr_operator_kind)eok_divide)) {
     /* Fixed-point operations, except for the ones listed above,
        are not folded if the other operand is not also fixed-point. */
     *did_not_fold = TRUE;
@@ -4795,8 +4805,8 @@ as the position for any diagnostics issued.
            (int)addr_constant + int_constant
            (int)addr_constant - int_constant
          by using the pointer add/subtract routine. */
-      if ((op == (an_expr_operator_kind)eok_iadd ||
-           op == (an_expr_operator_kind)eok_isubtract) &&
+      if ((op == (an_expr_operator_kind)eok_add ||
+           op == (an_expr_operator_kind)eok_subtract) &&
           constant_2->kind == (a_constant_repr_kind)ck_integer) {
 #if CHECKING
         if (!is_integral_or_enum_type(constant_2->type)) {
@@ -4807,7 +4817,7 @@ as the position for any diagnostics issued.
                 &err_severity);
       } else if ((gcc_mode ||
                   (gpp_mode && gnu_version < 40000)) &&
-                 op == (an_expr_operator_kind)eok_isubtract &&
+                 op == (an_expr_operator_kind)eok_subtract &&
                  is_addr_constant_cast_to_integral_type(constant_2)) {
         /* Allow
              (int)addr_constant - (int)addr_constant
@@ -4829,7 +4839,7 @@ as the position for any diagnostics issued.
          we can handle the special case
            int_constant + (int)addr_constant
          by using the pointer add routine. */
-      if (op == (an_expr_operator_kind)eok_iadd &&
+      if (op == (an_expr_operator_kind)eok_add &&
           constant_1->kind == (a_constant_repr_kind)ck_integer) {
 #if CHECKING
         if (!is_integral_or_enum_type(constant_1->type)) {
@@ -4849,51 +4859,198 @@ as the position for any diagnostics issued.
         *did_not_fold = TRUE;
       }  /* if */
     } else {
+      a_type_kind  operation_type_kind =
+            binary_operation_type_kind(op, constant_1->type, constant_2->type);
       switch (op) {
-        case eok_iadd:
-          do_iadd(constant_1, constant_2, result, &err_code, &err_severity);
+        case eok_add:
+          switch (operation_type_kind) {
+            case tk_integer:
+              do_iadd(constant_1, constant_2, result, &err_code,
+                      &err_severity);
+              break;
+#if FIXED_POINT_ALLOWED
+            case tk_fixed_point:
+              do_fxadd(constant_1, constant_2, result,
+                       did_not_fold, &err_code, &err_severity);
+              break;
+#endif /* FIXED_POINT_ALLOWED */
+            case tk_float:
+#if C99_IL_EXTENSIONS_SUPPORTED
+            case tk_imaginary:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+              do_fadd(constant_1, constant_2, result, &err_code,
+                      &err_severity, &depends_on_fp_mode);
+              break;
+#if C99_IL_EXTENSIONS_SUPPORTED
+            case tk_complex:
+              do_xadd(constant_1, constant_2, result, &err_code,
+                      &err_severity, &depends_on_fp_mode);
+              break;
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+            default:
+              unexpected_condition();
+          }  /* switch */
           break;
-        case eok_isubtract:
-          do_isubtract(constant_1, constant_2, result, &err_code,
-                       &err_severity);
+        case eok_subtract:
+        switch (operation_type_kind) {
+          case tk_integer:
+            do_isubtract(constant_1, constant_2, result, &err_code,
+                    &err_severity);
+            break;
+#if FIXED_POINT_ALLOWED
+          case tk_fixed_point:
+            do_fxsubtract(constant_1, constant_2, result,
+                     did_not_fold, &err_code, &err_severity);
+            break;
+#endif /* FIXED_POINT_ALLOWED */
+          case tk_float:
+#if C99_IL_EXTENSIONS_SUPPORTED
+          case tk_imaginary:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+            do_fsubtract(constant_1, constant_2, result, &err_code,
+                    &err_severity, &depends_on_fp_mode);
+            break;
+#if C99_IL_EXTENSIONS_SUPPORTED
+          case tk_complex:
+            do_xsubtract(constant_1, constant_2, result, &err_code,
+                    &err_severity, &depends_on_fp_mode);
+            break;
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+          default:
+            unexpected_condition();
+        }  /* switch */
+        break;
+      case eok_multiply:
+          switch (operation_type_kind) {
+            case tk_integer:
+              do_imultiply(constant_1, constant_2, result, &err_code,
+                           &err_severity);
+              break;
+#if FIXED_POINT_ALLOWED
+            case tk_fixed_point:
+              do_fxmultiply(constant_1, constant_2, result,
+                            did_not_fold, &err_code, &err_severity);
+              break;
+#endif /* FIXED_POINT_ALLOWED */
+            case tk_float:
+#if C99_IL_EXTENSIONS_SUPPORTED
+            case tk_imaginary:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+              do_fmultiply(constant_1, constant_2, result,
+                           &err_code, &err_severity, &depends_on_fp_mode);
+              break;
+#if C99_IL_EXTENSIONS_SUPPORTED
+            case tk_complex:
+              do_xmultiply(constant_1, constant_2, result,
+                           &err_code, &err_severity, &depends_on_fp_mode);
+              break;
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+            default:
+              unexpected_condition();
+          }  /* switch */
           break;
-        case eok_imultiply:
-          do_imultiply(constant_1, constant_2, result, &err_code,
-                       &err_severity);
+        case eok_divide:
+          switch (operation_type_kind) {
+            case tk_integer:
+              do_idivide(constant_1, constant_2, result, &err_code,
+                         &err_severity);
+              break;
+#if FIXED_POINT_ALLOWED
+            case tk_fixed_point:
+              do_fxdivide(constant_1, constant_2, result,
+                          did_not_fold, &err_code, &err_severity);
+              break;
+#endif /* FIXED_POINT_ALLOWED */
+            case tk_float:
+#if C99_IL_EXTENSIONS_SUPPORTED
+            case tk_imaginary:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+              do_fdivide(constant_1, constant_2, result,
+                         &err_code, &err_severity, &depends_on_fp_mode);
+              break;
+#if C99_IL_EXTENSIONS_SUPPORTED
+            case tk_complex:
+              do_xdivide(constant_1, constant_2, result,
+                         &err_code, &err_severity, &depends_on_fp_mode);
+              break;
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+            default:
+              unexpected_condition();
+          }  /* switch */
           break;
         case eok_remainder:
           do_remainder(constant_1, constant_2, result, &err_code,
                        &err_severity);
           break;
-        case eok_idivide:
-          do_idivide(constant_1, constant_2, result, &err_code, &err_severity);
-          break;
         case eok_shiftl:
-          do_shiftl(constant_1, constant_2, result, &err_code, &err_severity);
+          if (operation_type_kind == (a_type_kind)tk_fixed_point) {
+            do_fxshiftl(constant_1, constant_2, result, &err_code,
+                        &err_severity);
+          } else {
+            do_shiftl(constant_1, constant_2, result, &err_code,
+                      &err_severity);
+          }  /* if */
           break;
         case eok_shiftr:
-          do_shiftr(constant_1, constant_2, result, &err_code, &err_severity);
+          if (operation_type_kind == (a_type_kind)tk_fixed_point) {
+            do_fxshiftr(constant_1, constant_2, result, &err_code,
+                        &err_severity);
+          } else {
+            do_shiftr(constant_1, constant_2, result, &err_code,
+                      &err_severity);
+          }  /* if */
           break;
-        case eok_ieq:
-        case eok_ine:
-        case eok_igt:
-        case eok_ilt:
-        case eok_ige:
-        case eok_ile:
-          do_icompare(constant_1, op, constant_2, result);
+        case eok_eq:
+        case eok_ne:
+        case eok_gt:
+        case eok_lt:
+        case eok_ge:
+        case eok_le:
+          switch (operation_type_kind) {
+            case tk_integer:
+              do_icompare(constant_1, op, constant_2, result);
+              break;
+#if FIXED_POINT_ALLOWED
+            case tk_fixed_point:
+              do_fxcompare(constant_1, op, constant_2, result);
+              break;
+#endif /* FIXED_POINT_ALLOWED */
+            case tk_float:
+              do_fcompare(constant_1, op, constant_2, result,
+                          &depends_on_fp_mode);
+              break;
+#if C99_IL_EXTENSIONS_SUPPORTED
+            case tk_complex:
+              do_xcompare(constant_1, op, constant_2, result);
+              break;
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+            case tk_pointer:
+              do_pcompare(constant_1, op, constant_2, result, did_not_fold,
+                          &err_code, &err_severity);
+              break;
+            case tk_ptr_to_member:
+              do_pmcompare(constant_1, op, constant_2, result);
+              break;
+            default:
+              unexpected_condition();
+          }  /* switch */
           break;
 #if GNU_EXTENSIONS_ALLOWED
-        case eok_ignu_max:
-        case eok_ignu_min:
-          do_ignu_min_max(constant_1, op, constant_2, result);
-          break;
-        case eok_fgnu_max:
-        case eok_fgnu_min:
-          do_fgnu_min_max(constant_1, op, constant_2, result);
-          break;
-        case eok_pgnu_max:
-        case eok_pgnu_min:
-          *did_not_fold = TRUE;
+        case eok_gnu_max:
+        case eok_gnu_min:
+          switch (operation_type_kind) {
+            case tk_integer:
+              do_ignu_min_max(constant_1, op, constant_2, result);
+              break;
+            case tk_float:
+              do_fgnu_min_max(constant_1, op, constant_2, result);
+              break;
+            case tk_pointer:
+              *did_not_fold = TRUE;
+              break;
+            default:
+              unexpected_condition();
+          }  /* switch */
           break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
         case eok_and:
@@ -4911,86 +5068,8 @@ as the position for any diagnostics issued.
         case eok_lor:
           do_lor(constant_1, constant_2, result, did_not_fold);
           break;
-        case eok_fadd:
-          do_fadd(constant_1, constant_2, result, &err_code, &err_severity,
-                  &depends_on_fp_mode);
-          break;
-        case eok_fsubtract:
-          do_fsubtract(constant_1, constant_2, result, &err_code,
-                       &err_severity, &depends_on_fp_mode);
-          break;
-        case eok_fmultiply:
-          do_fmultiply(constant_1, constant_2, result, &err_code,
-                       &err_severity, &depends_on_fp_mode);
-          break;
-        case eok_fdivide:
-          do_fdivide(constant_1, constant_2, result, &err_code, &err_severity,
-                     &depends_on_fp_mode);
-          break;
-        case eok_feq:
-        case eok_fne:
-        case eok_fgt:
-        case eok_flt:
-        case eok_fge:
-        case eok_fle:
-          do_fcompare(constant_1, op, constant_2, result, &depends_on_fp_mode);
-          break;
 
-#if FIXED_POINT_ALLOWED
-        case eok_fxadd:
-          do_fxadd(constant_1, constant_2, result,
-                   did_not_fold, &err_code, &err_severity);
-          break;
-        case eok_fxsubtract:
-          do_fxsubtract(constant_1, constant_2, result,
-                        did_not_fold, &err_code, &err_severity);
-          break;
-        case eok_fxmultiply:
-          do_fxmultiply(constant_1, constant_2, result,
-                        did_not_fold, &err_code, &err_severity);
-          break;
-        case eok_fxdivide:
-          do_fxdivide(constant_1, constant_2, result,
-                      did_not_fold, &err_code, &err_severity);
-          break;
-        case eok_fxeq:
-        case eok_fxne:
-        case eok_fxgt:
-        case eok_fxlt:
-        case eok_fxge:
-        case eok_fxle:
-          do_fxcompare(constant_1, op, constant_2, result);
-          break;
-        case eok_fxshiftl:
-          do_fxshiftl(constant_1, constant_2, result, &err_code,
-                      &err_severity);
-          break;
-        case eok_fxshiftr:
-          do_fxshiftr(constant_1, constant_2, result, &err_code,
-                      &err_severity);
-          break;
-#endif /* FIXED_POINT_ALLOWED */
 #if C99_IL_EXTENSIONS_SUPPORTED
-        case eok_xadd:
-          do_xadd(constant_1, constant_2, result, &err_code, &err_severity,
-                  &depends_on_fp_mode);
-          break;
-        case eok_xsubtract:
-          do_xsubtract(constant_1, constant_2, result,
-                       &err_code, &err_severity, &depends_on_fp_mode);
-          break;
-        case eok_xmultiply:
-          do_xmultiply(constant_1, constant_2, result,
-                       &err_code, &err_severity, &depends_on_fp_mode);
-          break;
-        case eok_xdivide:
-          do_xdivide(constant_1, constant_2, result,
-                     &err_code, &err_severity, &depends_on_fp_mode);
-          break;
-        case eok_xeq:
-        case eok_xne:
-          do_xcompare(constant_1, op, constant_2, result);
-          break;
         case eok_jmultiply:
           do_jmultiply(constant_1, constant_2, result,
                        &err_code, &err_severity, &depends_on_fp_mode);
@@ -5028,19 +5107,6 @@ as the position for any diagnostics issued.
         case eok_psubtract:
           do_padd(constant_1, op, constant_2, result, &err_code,
                   &err_severity);
-          break;
-        case eok_pge:
-        case eok_plt:
-        case eok_pgt:
-        case eok_pne:
-        case eok_peq:
-        case eok_ple:
-          do_pcompare(constant_1, op, constant_2, result, did_not_fold,
-                      &err_code, &err_severity);
-          break;
-        case eok_pmeq:
-        case eok_pmne:
-          do_pmcompare(constant_1, op, constant_2, result);
           break;
 #if CHECKING
         default:

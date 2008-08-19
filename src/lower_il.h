@@ -847,10 +847,8 @@ extern a_statement_ptr insert_expr_statement_set_pos(
                                        an_expr_node_ptr       node,
                                        an_insert_location_ptr insert_location);
 
-extern an_expr_node_ptr make_var_assignment_expr(
-                                          a_variable_ptr         lvalue_var,
-                                          an_expr_operator_kind  op,
-                                          an_expr_node_ptr       rvalue_expr);
+extern an_expr_node_ptr make_var_assignment_expr(a_variable_ptr   lvalue_var,
+                                                 an_expr_node_ptr rvalue_expr);
 
 extern a_statement_ptr insert_assignment_statement(
                                        an_expr_node_ptr       lvalue_expr,
@@ -860,7 +858,6 @@ extern a_statement_ptr insert_assignment_statement(
 
 extern a_statement_ptr insert_var_assignment_statement(
                                        a_variable_ptr         lvalue_var,
-                                       an_expr_operator_kind  op,
                                        an_expr_node_ptr       rvalue_expr,
                                        an_insert_location_ptr insert_location);
 
@@ -1053,8 +1050,6 @@ extern void lower_arg_expr_list(an_expr_node_ptr expr_list,
                                 a_type_ptr       called_rout_type,
                                 a_routine_ptr    called_rout,
                                 a_param_type_ptr param);
-
-extern an_expr_operator_kind lowered_assignment_operator(a_type_ptr type);
 
 extern void lower_bool_cast(an_expr_node_ptr expr);
 

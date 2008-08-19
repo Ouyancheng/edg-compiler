@@ -9099,6 +9099,14 @@ enum an_expr_operator_kind_tag {
      in this file, lvalue_rvalue_test in il.c, disp_expr_operator_name in
      il_display.c, and generated_precedence in cp_gen_be.c. */
   /* The following have 1 operand: */
+  eok_lvalue,           /* Indicates that the operand (marked as an rvalue,
+                           but really something with unknown lvalueness) is
+                           to be used as if it were an lvalue.  The eok_lvalue
+                           node itself is marked as an lvalue. */
+  eok_rvalue,           /* Indicates that the operand (marked as an lvalue,
+                           but really something with unknown lvalueness) is
+                           to be used as if it were an rvalue.  The eok_rvalue
+                           node itself is marked as an rvalue. */
   eok_address_of,	/* Address-of operator ("&"). */
   eok_reference_to,	/* Turns an lvalue into a reference, i.e., the
 			   reference equivalent of eok_address_of. */
@@ -9106,15 +9114,6 @@ enum an_expr_operator_kind_tag {
   eok_ref_indirect,	/* Implicit indirection through a reference to get an
 			   lvalue, i.e., the reference equivalent of
 			   eok_indirect. */
-  eok_inegate,          /* Integer negation. */
-#if FIXED_POINT_ALLOWED
-  eok_fxnegate,         /* Fixed-point negation. */
-#endif /* FIXED_POINT_ALLOWED */
-  eok_fnegate,          /* Floating negation. */
-  eok_unary_plus,	/* Unary "+" (integer, floating, or pointer).  See
-			   UNARY_PLUS_IN_IL. */
-  eok_not,              /* Logical complement ("!" operator).  Operand has been
-                           standardized to integer/boolean. */
   eok_cast,		/* Type cast.  The type of the expression indicates
 			   the type to cast to.	 The type can be void.
 			   Also note that C++ reinterpret_casts to pointer-to-
@@ -9123,6 +9122,10 @@ enum an_expr_operator_kind_tag {
 			   is also the code used for classic-syntax casts
 			   involving parameterized types (in prototype
 			   instantiations). */
+  eok_lvalue_cast,	/* Like eok_cast, but used to cast an lvalue.
+			   An lvalue cast to a like-sized type can remain an
+			   lvalue.  An extension: used in some C modes and
+			   in Microsoft and GNU C++ modes. */
   eok_base_class_cast,	/* C++ cast of a pointer to a class to a pointer to
 			   a direct base class.  The type of the expression
  			   indicates the type to cast to. */
@@ -9140,33 +9143,10 @@ enum an_expr_operator_kind_tag {
 			   a pointer to a member of a direct derived class.
 			   The type of the expression indicates the type to
 			   cast to. */
-  eok_lvalue_cast,	/* Like eok_cast, but used to cast an lvalue.
-			   An lvalue cast to a like-sized type can remain an
-			   lvalue.  An extension: used in some C modes and
-			   in Microsoft and GNU C++ modes. */
   eok_dynamic_cast,	/* C++ dynamic_cast operation. */
   eok_bool_cast,	/* C++ and C99 cast to bool.  Operand can be
 			   arithmetic, enum, pointer, or pointer-to-member,
 			   and result is the equivalent of "operand != 0". */
-  eok_complement,       /* Integer bitwise complement ("~" operator). */
-  eok_ipost_incr,       /* Integer post increment. */
-  eok_ipost_decr,       /* Integer post decrement. */
-  eok_ipre_incr,        /* Integer pre increment. */
-  eok_ipre_decr,        /* Integer pre decrement. */
-#if FIXED_POINT_ALLOWED
-  eok_fxpost_incr,      /* Fixed-point post increment. */
-  eok_fxpost_decr,      /* Fixed-point post decrement. */
-  eok_fxpre_incr,       /* Fixed-point pre increment. */
-  eok_fxpre_decr,       /* Fixed-point pre decrement. */
-#endif /* FIXED_POINT_ALLOWED */
-  eok_fpost_incr,       /* Floating post increment. */
-  eok_fpost_decr,       /* Floating post decrement. */
-  eok_fpre_incr,        /* Floating pre increment. */
-  eok_fpre_decr,        /* Floating pre decrement. */
-  eok_ppost_incr,       /* Pointer post increment. */
-  eok_ppost_decr,       /* Pointer post decrement. */
-  eok_ppre_incr,        /* Pointer pre increment. */
-  eok_ppre_decr,        /* Pointer pre decrement. */
   eok_lvalue_from_struct_rvalue,
 			/* C mode: placed above an expression that is a struct
 			   rvalue, produces an lvalue for the struct (this can
@@ -9181,84 +9161,52 @@ enum an_expr_operator_kind_tag {
   eok_array_to_pointer,
 			/* Array to pointer decay: converts an array lvalue or
 			   rvalue to a pointer to its first element. */
+  eok_dot_vacuous_destructor_call,
+			/* Call of a "destructor" for a class or simple type
+			   that does not have one, e.g., x.int::~int().
+			   The result is void. */
+  eok_points_to_vacuous_destructor_call,
+			/* Similar to eok_dot_vacuous_destructor_call, but
+			   for the "->" case, e.g., p->int::~int(). */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   eok_assume,		/* Microsoft __assume(expr).  Note that the
 			   operand is not evaluated in the traditional
 			   sense of the word. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if C99_IL_EXTENSIONS_SUPPORTED
-  eok_xnegate,          /* Complex negation. */
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+  eok_negate,           /* Arithmetic negation. */
+  eok_unary_plus,	/* Unary "+" (arithmetic or pointer).  See
+			   UNARY_PLUS_IN_IL. */
+  eok_complement,       /* Integer bitwise complement ("~" operator). */
+  eok_not,              /* Logical complement ("!" operator).  Operand has been
+                           standardized to integer/boolean. */
+#if GNU_COMPLEX_EXTENSIONS_ALLOWED
+  eok_xconj,            /* Complex conjugation operator. */
+  eok_real_part,        /* Produce the real part of a complex number.  The
+                           operand is an lvalue or rvalue of complex type. */
+  eok_imag_part,        /* Produce the imaginary part of a complex number.
+                           The operand is an lvalue or rvalue of complex
+                           type. */
+#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
+  eok_post_incr,        /* Post increment. */
+  eok_post_decr,        /* Post decrement. */
+  eok_pre_incr,         /* Pre increment. */
+  eok_pre_decr,         /* Pre decrement. */
   /* The following have 2 operands: */
-  eok_iadd,             /* Integer addition. */
-  eok_isubtract,        /* Integer subtraction. */
-  eok_imultiply,        /* Integer multiplication. */
-  eok_idivide,          /* Integer division. */
-  eok_ieq,              /* Integer equality. */
-  eok_ine,              /* Integer inequality. */
-  eok_igt,              /* Integer greater than. */
-  eok_ilt,              /* Integer less than. */
-  eok_ige,              /* Integer greater than or equal. */
-  eok_ile,              /* Integer less than or equal. */
-  eok_ignu_min,         /* Integer minimum operator (a GNU C++ extension).
-                           Operands and result may be lvalues or rvalues. */
-  eok_ignu_max,         /* Integer maximum operator (a GNU C++ extension).
-                           Operands and result may be lvalues or rvalues. */
-  eok_iassign,          /* Integer assignment. */
-#if FIXED_POINT_ALLOWED
-  /* The following binary fixed-point operations may have one operand
-     of integral type.  (No "promotion" to a fixed-point or other type
-     is done for mixed-type arithmetic.) */
-  eok_fxadd,            /* Fixed-point addition. */
-  eok_fxsubtract,       /* Fixed-point subtraction. */
-  eok_fxmultiply,       /* Fixed-point multiplication. */
-  eok_fxdivide,         /* Fixed-point division. */
-  eok_fxshiftl,         /* Fixed-point left shift ("<<" operator). */
-  eok_fxshiftr,         /* Fixed-point right shift (">>" operator). */
-  eok_fxeq,             /* Fixed-point equality. */
-  eok_fxne,             /* Fixed-point inequality. */
-  eok_fxgt,             /* Fixed-point greater than. */
-  eok_fxlt,             /* Fixed-point less than. */
-  eok_fxge,             /* Fixed-point greater than or equal. */
-  eok_fxle,             /* Fixed-point less than or equal. */
-  eok_fxassign,         /* Fixed-point assignment. */
-#endif /* FIXED_POINT_ALLOWED */
-  eok_fadd,             /* Floating addition. */
-  eok_fsubtract,        /* Floating subtraction. */
-  eok_fmultiply,        /* Floating multiplication. */
-  eok_fdivide,          /* Floating division. */
-  eok_feq,              /* Floating equality. */
-  eok_fne,              /* Floating inequality. */
-  eok_fgt,              /* Floating greater than. */
-  eok_flt,              /* Floating less than. */
-  eok_fge,              /* Floating greater than or equal. */
-  eok_fle,              /* Floating less than or equal. */
-  eok_fgnu_min,         /* Floating minimum operator (a GNU C++ extension).
-                           Operands and result may be lvalues or rvalues. */
-  eok_fgnu_max,         /* Floating maximum operator (a GNU C++ extension).
-                           Operands and result may be lvalues or rvalues. */
-  eok_fassign,          /* Floating assignment. */
-  eok_padd,		/* Pointer addition.  One operand is a pointer, the
-			   other an integer, in either order.  Note that the
-			   integer can be of any integral type; the integral
-			   promotions are not done. */
-  eok_psubtract,        /* Pointer subtraction.  First operand is always the
-                           pointer, second always the integer.  Note that the
-                           integer can be of any integral type; the integral
-                           promotions are not done. */
-  eok_passign,          /* Pointer assignment. */
+  eok_add,		/* Addition.  Not used for pointer arithmetic (see
+			   eok_padd), nor for mixed real/imaginary addition
+			   (see eok_fjadd and eok_jfadd). */
+  eok_subtract,		/* Subtraction.  Not used for pointer arithmetic (see
+			   eok_psubtract and eok_pdiff), nor for mixed real/
+			   imaginary subtraction (see eok_fjsubtract and
+			   eok_jfsubtract). */
+  eok_multiply,		/* Multiplication.  Not used to represent the
+			   multiplication of two _Imaginary values in C99
+			   mode (see eok_jmultiply). */
+  eok_divide,		/* Division.  Not used to represent the division of a
+			   real value by an _Imaginary value in C99 mode (see
+			   eok_jdivide). */
+  eok_remainder,        /* ("%" operator) */
 #if C99_IL_EXTENSIONS_SUPPORTED
-  eok_xadd,             /* Complex addition. */
-  eok_xsubtract,        /* Complex subtraction. */
-  eok_xmultiply,        /* Complex multiplication. */
-  eok_xdivide,          /* Complex division. */
-  eok_xeq,              /* Complex equality. */
-  eok_xne,              /* Complex inequality. */
-  eok_xassign,          /* Complex assignment. */
-  eok_xadd_assign,      /* Complex add assign operator. */
-  eok_xsubtract_assign, /* Complex subtract assign operator. */
-  eok_xmultiply_assign, /* Complex multiply assign operator. */
-  eok_xdivide_assign,   /* Complex divide assign operator. */
   eok_jmultiply,        /* Imaginary multiplication.  Imaginary times
                            imaginary gives a real result. */
   eok_jdivide,          /* Division of real by imaginary gives an
@@ -9268,75 +9216,72 @@ enum an_expr_operator_kind_tag {
   eok_fjsubtract,       /* Real - imaginary, produces complex. */
   eok_jfsubtract,       /* Imaginary - real, produces complex. */
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
-#if GNU_COMPLEX_EXTENSIONS_ALLOWED
-  eok_xconj,            /* Complex conjugation operator. */
-  eok_real_part,        /* Produce the real part of a complex number.  The
-                           operand is an lvalue or rvalue of complex type. */
-  eok_imag_part,        /* Produce the imaginary part of a complex number.
-                           The operand is an lvalue or rvalue of complex
-                           type. */
-#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
-  eok_remainder,        /* ("%" operator) */
+  eok_padd,		/* Pointer addition.  One operand is a pointer, the
+			   other an integer, in either order.  Note that the
+			   integer can be of any integral type; the integral
+			   promotions are not done. */
+  eok_psubtract,        /* Pointer subtraction.  First operand is always the
+                           pointer, second always the integer.  Note that the
+                           integer can be of any integral type; the integral
+                           promotions are not done. */
   eok_pdiff,            /* Pointer difference.  Difference between two
                            pointers, returns an integer (ptrdiff_t). */
-  eok_peq,              /* Pointer equality. */
-  eok_pne,              /* Pointer inequality. */
-  eok_pgt,              /* Pointer greater than. */
-  eok_plt,              /* Pointer less than. */
-  eok_pge,              /* Pointer greater than or equal. */
-  eok_ple,              /* Pointer less than or equal. */
-  eok_pgnu_min,         /* Pointer minimum operator (a GNU C++ extension).
-                           Operands and result may be lvalues or rvalues. */
-  eok_pgnu_max,         /* Pointer maximum operator (a GNU C++ extension).
-                           Operands and result may be lvalues or rvalues. */
-  eok_pmeq,		/* Pointer-to-member equality. */
-  eok_pmne,		/* Pointer-to-member inequality. */
-  eok_sassign,		/* Structure assignment.  In unlowered C++ IL, this
-			   means the operation performed by the generated
-			   bitwise operator=, which is defined to copy only
-			   the data of the class, and not any tail padding
-			   (in other words, it has to be usable to copy a
-			   subobject base class; for an empty base class,
-			   it should copy nothing).  In lowered C++ IL or
-			   in C, this means just a normal C struct copy,
-			   which copies sizeof(struct) bytes. */
-  eok_bassign,		/* Block assignment.  Only used in C++ after IL
-			   lowering, for copy constructors etc.  Both the
-			   source and destination are lvalues; does a memcpy
-			   equivalent. */
-  eok_pmassign,		/* Pointer-to-member assignment.  Only used in C++. */
-  eok_iadd_assign,      /* Integer add assign operator. */
-  eok_isubtract_assign, /* Integer subtract assign operator. */
-  eok_imultiply_assign, /* Integer multiply assign operator. */
-  eok_idivide_assign,   /* Integer divide assign operator. */
+  eok_shiftl,           /* Left shift ("<<" operator). */
+  eok_shiftr,           /* Right shift (">>" operator). */
+  eok_and,              /* Bitwise and ("&" operator). */
+  eok_or,               /* Bitwise or ("|" operator). */
+  eok_xor,              /* Exclusive or ("^" operator). */
+  eok_eq,               /* Equality. */
+  eok_ne,               /* Inequality. */
+  eok_gt,               /* Greater than. */
+  eok_lt,               /* Less than. */
+  eok_ge,               /* Greater than or equal. */
+  eok_le,               /* Less than or equal. */
+  eok_gnu_min,          /* Minimum operator (a GNU C++ extension).  Operands
+                           and result may be lvalues or rvalues. */
+  eok_gnu_max,          /* Maximum operator (a GNU C++ extension).  Operands
+                           and result may be lvalues or rvalues. */
+  eok_assign,           /* Assignment.  For struct assignments (i.e., when the
+			   associated operation type kind is tk_struct), the
+			   meaning wrt. tail padding depends on the IL kind.
+			   In unlowered C++ IL, it is the operation performed
+			   by the generated bitwise operator=, which is defined
+			   to copy only the data of the class, and not any tail
+			   padding (in other words, it has to be usable to copy
+			   a subobject base class; for an empty base class, it
+			   should copy nothing).  In lowered C++ IL or in C,
+			   this means just a normal C struct copy, which copies
+			   sizeof(struct) bytes. */
+  eok_add_assign,       /* Add assign operator. */
+  eok_subtract_assign,  /* Subtract assign operator. */
+  eok_multiply_assign,  /* Multiply assign operator. */
+  eok_divide_assign,    /* Divide assign operator. */
   eok_remainder_assign, /* Remainder assign operator. */
-#if FIXED_POINT_ALLOWED
-  /* The following compound assignment operations may have one operand
-     of integral type.  (No "promotion" to a fixed-point or other type
-     is done for mixed-type arithmetic.) */
-  eok_fxadd_assign,     /* Fixed-point add assign operator. */
-  eok_fxsubtract_assign,/* Fixed-point subtract assign operator. */
-  eok_fxmultiply_assign,/* Fixed-point multiply assign operator. */
-  eok_fxdivide_assign,  /* Fixed-point divide assign operator. */
-  eok_fxshiftl_assign,  /* Fixed-point left shift assign operator. */
-  eok_fxshiftr_assign,  /* Fixed-point right shift assign operator. */
-#endif /* FIXED_POINT_ALLOWED */
-  eok_fadd_assign,      /* Floating add assign operator. */
-  eok_fsubtract_assign, /* Floating subtract assign operator. */
-  eok_fmultiply_assign, /* Floating multiply assign operator. */
-  eok_fdivide_assign,   /* Floating divide assign operator. */
-  eok_padd_assign,      /* Pointer add assign operator.  In unlowered IL,
-                           one strange case is bool += pointer. */
-  eok_psubtract_assign, /* Pointer subtract assign operator. */
 #if FIXED_POINT_ALLOWED
   /* The left operand of a shift expression may have an integral or fixed-point
      type. */
 #endif /* FIXED_POINT_ALLOWED */
-  eok_shiftl_assign,    /* Left shift assign operator. */
-  eok_shiftr_assign,    /* Right shift assign operator. */
+  eok_shiftl_assign,    /* Left shift assign operator.  The first operand may
+			   have integral or fixed-point type; the second
+			   operand always has integral type. */
+  eok_shiftr_assign,    /* Right shift assign operator.  The first operand may
+			   have integral or fixed-point type; the second
+			   operand always has integral type. */
   eok_and_assign,       /* Bitwise and assign operator. */
   eok_or_assign,        /* Bitwise or assign operator. */
   eok_xor_assign,       /* Exclusive or assign operator. */
+  eok_padd_assign,      /* Pointer add assign operator.  In unlowered IL,
+                           one strange case is bool += pointer. */
+  eok_psubtract_assign, /* Pointer subtract assign operator. */
+  eok_bassign,		/* Block assignment.  Only used in C++ after IL
+			   lowering, for copy constructors etc.  Both the
+			   source and destination are lvalues; does a memcpy
+			   equivalent. */
+  eok_land,             /* Logical intersection, with the operand standardized
+                           to integer/boolean ("&&" operator) */
+  eok_lor,              /* Logical union, with the operand standardized
+                           to integer/boolean ("||" operator) */
+  eok_comma,            /* The comma operator. */
   eok_subscript,	/* Subscripting operation.  The operands are the
 			   pointer to the first element of the array and the
 			   integral subscript value, in either order. */
@@ -9375,16 +9320,6 @@ enum an_expr_operator_kind_tag {
 			   identifying a static member function, or an
 			   enk_constant identifying a member constant (e.g.,
 			   an enumerator). */
-#if FIXED_POINT_ALLOWED
-  /* The left operand of a shift expression may have an integral or fixed-point
-     type. */
-#endif /* FIXED_POINT_ALLOWED */
-  eok_shiftl,           /* Left shift ("<<" operator). */
-  eok_shiftr,           /* Right shift (">>" operator). */
-  eok_and,              /* Bitwise and ("&" operator). */
-  eok_or,               /* Bitwise or ("|" operator). */
-  eok_xor,              /* Exclusive or ("^" operator). */
-  eok_comma,            /* The comma operator. */
   eok_virtual_function_ptr,
 			/* Produce a normal function pointer for a C++ virtual
 			   member function.  This is (only) used to implement
@@ -9392,17 +9327,6 @@ enum an_expr_operator_kind_tag {
 			   of a virtual function (NOT a pointer-to-member);
 			   the second is a pointer to a class object.  The
 			   result is a pointer to the selected function. */
-  eok_dot_vacuous_destructor_call,
-			/* Call of a "destructor" for a class or simple type
-			   that does not have one, e.g., x.int::~int().
-			   The result is void. */
-  eok_points_to_vacuous_destructor_call,
-			/* Similar to eok_dot_vacuous_destructor_call, but
-			   for the "->" case, e.g., p->int::~int(). */
-  eok_land,             /* Logical intersection, with the operand standardized
-                           to integer/boolean ("&&" operator) */
-  eok_lor,              /* Logical union, with the operand standardized
-                           to integer/boolean ("||" operator) */
   /* The following have 3 operands: */
   eok_question,         /* Conditional expression ("?" operator).  Operand
                            has been standardized to integer/boolean.  Also
@@ -9418,7 +9342,7 @@ enum an_expr_operator_kind_tag {
 			   for a static member function call.
 			   For member functions, a compiler-generated argument
 			   for the object lvalue or pointer follows the first
-			   argument. */
+			   operand. */
   eok_virtual_call,	/* A call of a C++ virtual function.  The first operand
 			   is the routine, the second is the object lvalue or
 			   pointer, and the rest are the other arguments. */
@@ -9446,47 +9370,12 @@ enum an_expr_operator_kind_tag {
 			   operand.  This is typically used to implement the
 			   <varargs.h> variant of va_start (as opposed to the
 			   variant from <stdarg.h>). */
-  /* Operators appearing in prototype instantiations.  The type of the
-     operands is generally not known and after instantiation these operators
-     may correspond to calls to overloaded operator functions.  Note that some
-     of the other operators that do not have different codes for different
-     operand types can also be used with generic types (e.g., 
-     eok_complement). */
-  eok_negate,           /* Generic negation. */
-  eok_post_incr,        /* Generic post increment. */
-  eok_post_decr,        /* Generic post decrement. */
-  eok_pre_incr,         /* Generic pre increment. */
-  eok_pre_decr,         /* Generic pre decrement. */
-  eok_add,              /* Generic addition. */
-  eok_subtract,         /* Generic subtraction. */
-  eok_multiply,         /* Generic multiplication. */
-  eok_divide,           /* Generic division. */
-  eok_eq,               /* Generic equality. */
-  eok_ne,               /* Generic inequality. */
-  eok_gt,               /* Generic greater than. */
-  eok_lt,               /* Generic less than. */
-  eok_ge,               /* Generic greater than or equal. */
-  eok_le,               /* Generic less than or equal. */
-  eok_gnu_min,          /* Generic minimum operator (a GNU C++ extension).
-                           Operands and result may be lvalues or rvalues. */
-  eok_gnu_max,          /* Generic maximum operator (a GNU C++ extension).
-                           Operands and result may be lvalues or rvalues. */
-  eok_assign,           /* Generic assignment. */
-  eok_add_assign,       /* Generic add assign operator. */
-  eok_subtract_assign,  /* Generic subtract assign operator. */
-  eok_multiply_assign,  /* Generic multiply assign operator. */
-  eok_divide_assign,    /* Generic divide assign operator. */
+  /* Operators appearing in prototype instantiations.  These describe the
+     syntactic appearance of constructs that would map to other operators
+     (above) if precise type information were known. */
   eok_static_cast,      /* Generic static_cast from the source. */
   eok_const_cast,       /* Generic const_cast from the source. */
   eok_reinterpret_cast, /* Generic reinterpret_cast from the source. */
-  eok_lvalue,           /* Indicates that the operand (marked as an rvalue,
-                           but really something with unknown lvalueness) is
-                           to be used as if it were an lvalue.  The eok_lvalue
-                           node itself is marked as an lvalue. */
-  eok_rvalue,           /* Indicates that the operand (marked as an lvalue,
-                           but really something with unknown lvalueness) is
-                           to be used as if it were an rvalue.  The eok_rvalue
-                           node itself is marked as an rvalue. */
   eok_generic_call,	/* Like eok_call, but called function details are
 			   not known.  Used for calls that are not written in
 			   the bound-function p->f() or x.f() form. */
@@ -9869,6 +9758,18 @@ typedef struct an_expr_node {
       an_expr_operator_kind
                 kind;
                         /* What kind of operation it is. */
+      a_type_kind
+		type_kind;
+			/* The kind of type the operation acts on.  E.g., when
+			   comparing two complex values it is tk_complex, when
+			   adding an integer to a pointer it is tk_pointer, and
+			   when adding two vectors of integers the result is
+			   tk_vector.  This may differ from the "kind" of the
+			   result type, and the "kind" of an operand type.
+			   For operations that don't act on a specific type
+			   (e.g., eok_cast) it is tk_unknown.  For template-
+			   dependent operations, it is often tk_template_param
+			   (but it may be tk_unknown). */
       a_bit_field
 		returns_lvalue_instead_of_usual_rvalue:1;
 			/* TRUE if the operation is an assignment (simple or
@@ -12191,73 +12092,44 @@ EXTERN an_il_header il_header;
 /* Table of debug names for expression operators. */
 EXTERN char     *db_operator_names[(int)eok_last+1]
 #if VAR_INITIALIZERS
-= {"&", "ref-&", "*", "ref-*", "i-",
-#if FIXED_POINT_ALLOWED
-   "fx-",
-#endif /* FIXED_POINT_ALLOWED */
-   "f-", "+", "!", "cast",
+= {"lvalue", "rvalue",
+   "&", "ref-&", "*", "ref-*",
+   "cast", "lvalue cast",
    "base class cast", "derived class cast",
    "pm base class cast", "pm derived class cast",
-   "lvalue cast", "dynamic cast", "bool cast", "~",
-   "i++", "i--", "++i", "--i",
-#if FIXED_POINT_ALLOWED
-   "fx++", "fx--", "++fx", "--fx",
-#endif /* FIXED_POINT_ALLOWED */
-   "f++", "f--", "++f", "--f",
-   "p++", "p--", "++p", "--p",
+   "dynamic cast", "bool cast",
    "lvalue<==", "array-decay",
+   ". vacuous dtor", "-> vacuous dtor",
 #if MICROSOFT_EXTENSIONS_ALLOWED
    "__assume",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if C99_IL_EXTENSIONS_SUPPORTED
-   "x-",
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-   "i+", "i-", "i*", "i/", "i==", "i!=", "i>", "i<", "i>=", "i<=",
-   "i<?", "i>?", "i=",
-#if FIXED_POINT_ALLOWED
-   "fx+", "fx-", "fx*", "fx/", "fx<<", "fx>>", "fx==", "fx!=", "fx>",
-   "fx<", "fx>=", "fx<=", "fx=",
-#endif /* FIXED_POINT_ALLOWED */
-   "f+", "f-", "f*", "f/", "f==", "f!=", "f>", "f<", "f>=", "f<=",
-   "f<?", "f>?", "f=",
-   "p+", "p-", "p=",
-#if C99_IL_EXTENSIONS_SUPPORTED
-   "x+", "x-", "x*", "x/", "x==", "x!=", "x=",
-   "x+=", "x-=", "x*=", "x/=",
-   "j*", "j/", "fj+", "jf+", "fj-", "jf-",
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+   "-", "+", "~", "!",
 #if GNU_COMPLEX_EXTENSIONS_ALLOWED
    "x~", "__real", "__imag",
 #endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
-   "%",
-   "pd", "p==", "p!=", "p>", "p<", "p>=", "p<=", "p<?", "p>?",
-   "pm==", "pm!=",
-   "s=", "b=", "pm=",
-   "i+=", "i-=", "i*=", "i/=", "%=",
-#if FIXED_POINT_ALLOWED
-   "fx+=", "fx-=", "fx*=", "fx/=", "fx<<=", "fx>>=",
-#endif /* FIXED_POINT_ALLOWED */
-   "f+=", "f-=", "f*=", "f/=",
+   "v++", "v--", "++v", "--v",
+   "+", "-", "*", "/", "%",
+#if C99_IL_EXTENSIONS_SUPPORTED
+   "j*", "j/", "fj+", "jf+", "fj-", "jf-",
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+   "p+", "p-", "pd",
+   "<<", ">>", "&", "|", "^",
+   "==", "!=", ">", "<", ">=", "<=",
+   "<?", ">?",
+   "=",
+   "+=", "-=", "*=", "/=", "%=", "<<=", ">>=", "&=", "|=", "^=",
    "p+=", "p-=",
-   "<<=", ">>=", "&=", "|=", "^=",
+   "b=",
+   "&&", "||", ",",
    "[]", ".", "->", ".*", "->*", ".static", "->static",
-   "<<", ">>",
-   "&", "|", "^", ",",
    "virt func ptr",
-   ". vacuous dtor",
-   "-> vacuous dtor",
-   "&&", "||",
    "?",
    "call",
    "virtcall",
    "pmcall",
    "va_start", "va_arg", "va_end", "va_copy", "va_start",
-   "-G",
-   "G++", "G--", "++G", "--G",
-   "G+", "G-", "G*", "G/", "G==", "G!=", "G>", "G<", "G>=", "G<=",
-   "G<?", "G>?", "G=", "G+=", "G-=", "G*=", "G/=",
    "static cast", "const cast", "reinterpret cast",
-   "lvalue", "rvalue", "Gcall", "GMcall",
+   "Gcall", "GMcall",
    "error", "last"
 }
 #endif /* VAR_INITIALIZERS */

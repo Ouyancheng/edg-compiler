@@ -1467,7 +1467,7 @@ extern a_boolean is_address_of_auto_object(an_expr_node_ptr  expr,
 extern an_expr_operator_kind which_binary_operator(a_token_kind token,
 						   a_type_ptr   type);
 
-extern an_expr_operator_kind generic_operator_for_opname_kind(
+extern an_expr_operator_kind operator_for_opname_kind(
                                                 an_opname_kind kind,
                                                 a_boolean      unary_operator);
 

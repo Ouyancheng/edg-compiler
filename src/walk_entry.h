@@ -1276,14 +1276,13 @@ the file scope, do not process it (but record an orphan in the latter case).
               switch (ptr->variant.operation.kind) {
                 case eok_psubtract:
                 case eok_pdiff:
-                case eok_ppost_incr:
-                case eok_ppost_decr:
-                case eok_ppre_incr:
-                case eok_ppre_decr:
+                case eok_post_incr:
+                case eok_post_decr:
+                case eok_pre_incr:
+                case eok_pre_decr:
                 case eok_padd_assign:
                 case eok_psubtract_assign:
-                  /* First operand is a pointer. */
-                  /* Avoid problems in prototype instantiations. */
+                  /* First operand may be a pointer. */
                   if (!is_pointer_type(op1_type)) break;
                   optype = type_pointed_to(op1_type);
                   goto do_definition_needed_if_class;

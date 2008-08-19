@@ -2374,7 +2374,7 @@ conversion in cases where its value is not used.
     make_zero_of_proper_type(typeid_expr->type, &null_constant);
     null_constant_node = alloc_node_for_constant(&null_constant);
     typeid_expr->next = null_constant_node;
-    compare_node = make_operator_node((an_expr_operator_kind)eok_pne,
+    compare_node = make_operator_node((an_expr_operator_kind)eok_ne,
                                       integer_type((an_integer_kind)ik_int),
                                       typeid_expr);
     /* Make code to get the virtual function table pointer. */
@@ -2841,7 +2841,7 @@ at *insert_location and *insert_location is updated.
                                                       /*using_as_dest=*/FALSE),
                                            void_star_type());
   (void)insert_assignment_statement(subsc_node,
-                                    (an_expr_operator_kind)eok_passign,
+                                    (an_expr_operator_kind)eok_assign,
                                     object_addr_node, insert_location);
 }  /* init_object_addr_table_entry */
 
@@ -3818,9 +3818,7 @@ The region table variable is created if necessary.
 #endif /* IA64_ABI */
     /* Assign the VTT pointer to a temporary. */
     temp_var = make_lowered_temporary(make_virtual_table_table_pointer_type());
-    (void)insert_var_assignment_statement(temp_var,
-                                          (an_expr_operator_kind)eok_passign,
-                                          vtt_addr_node,
+    (void)insert_var_assignment_statement(temp_var, vtt_addr_node,
                                           insert_location);
     set_var_indirect_init_pos_descr(temp_var, &ipd);
     make_handle_for_entity(&ipd, &subobject_vtable_handle, insert_location);
@@ -4014,9 +4012,8 @@ The assignment is inserted at *insert_location and *insert_location is
 updated.
 */
 {
-  (void)insert_var_assignment_statement(make_eh_curr_region_var(),
-                                        (an_expr_operator_kind)eok_iassign,
-                                        node, insert_location);
+  (void)insert_var_assignment_statement(make_eh_curr_region_var(), node,
+                                        insert_location);
 }  /* assign_to_eh_curr_region */
 
 
@@ -4556,18 +4553,17 @@ the caller to do insertion after the code inserted.
                                                  ehse_next_field);
   (void)insert_assignment_statement(
                               local_frame_next,
-                              (an_expr_operator_kind)eok_passign,
+                              (an_expr_operator_kind)eok_assign,
                               var_rvalue_expr(make_curr_eh_stack_entry_var()),
                               insert_location);
   (void)insert_var_assignment_statement(curr_eh_stack_entry_var,
-                                        (an_expr_operator_kind)eok_passign,
                                         var_addr_expr(local_frame),
                                         insert_location);
   local_frame_kind = field_lvalue_selection_expr(var_lvalue_expr(local_frame),
                                                  ehse_kind_field);
   (void)insert_assignment_statement(
                               local_frame_kind,
-                              (an_expr_operator_kind)eok_iassign,
+                              (an_expr_operator_kind)eok_assign,
                               node_for_integer_constant((long)kind,
                                             (an_integer_kind)ik_unsigned_char),
                               insert_location);
@@ -4605,7 +4601,6 @@ inserted at *insert_location.
   local_frame_next = field_rvalue_selection_expr(var_lvalue_expr(stack_frame),
                                                  ehse_next_field);
   (void)insert_var_assignment_statement(curr_eh_stack_entry_var,
-                                        (an_expr_operator_kind)eok_passign,
                                         local_frame_next,
                                         insert_location);
 }  /* pop_eh_stack_frame */
@@ -4682,9 +4677,8 @@ statement if necessary.
                       ehse_throw_spec_field);
     /* Assign the array address to throw_frame.variant.throw_spec */
     (void)insert_assignment_statement(throw_frame_throw_spec,
-                                      (an_expr_operator_kind)eok_passign,
-                                      spec_array_node,
-                                      &insert_location);
+                                      (an_expr_operator_kind)eok_assign,
+                                      spec_array_node, &insert_location);
   }  /* if */
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
   if (scope->lifetime != NULL || routine->contains_try_block) {
@@ -4725,7 +4719,7 @@ statement if necessary.
       /* Assign the region table address to
          func_frame.variant.function.regions */
       (void)insert_assignment_statement(func_frame_function_regions,
-                                        (an_expr_operator_kind)eok_passign,
+                                        (an_expr_operator_kind)eok_assign,
                                        array_var_lvalue_expr(region_table_var),
                                         &insert_location);
     }  /* if */
@@ -4742,7 +4736,7 @@ statement if necessary.
       /* Assign the object address table address to
          func_frame.variant.function.obj_table */
       (void)insert_assignment_statement(func_frame_function_obj_table,
-                                        (an_expr_operator_kind)eok_passign,
+                                        (an_expr_operator_kind)eok_assign,
                                         array_var_lvalue_expr(
                                                         object_addr_table_var),
                                         &insert_location);
@@ -4759,7 +4753,7 @@ statement if necessary.
       /* Assign the object address table address to
          func_frame.variant.function.array_table */
       (void)insert_assignment_statement(func_frame_function_array_table,
-                                        (an_expr_operator_kind)eok_passign,
+                                        (an_expr_operator_kind)eok_assign,
                                         array_var_lvalue_expr(array_table_var),
                                         &insert_location);
     }  /* if */
@@ -4776,13 +4770,12 @@ statement if necessary.
     /* Copy the global variable __eh_curr_region into
        func_frame.variant.function.saved_region_number */
     (void)insert_assignment_statement(func_frame_function_saved_region_number,
-                                      (an_expr_operator_kind)eok_iassign,
+                                      (an_expr_operator_kind)eok_assign,
                                       var_rvalue_expr(
                                                     make_eh_curr_region_var()),
                                       &insert_location);
     /* Reset __eh_curr_region to null_eh_region_number. */
     (void)insert_var_assignment_statement(eh_curr_region_var,
-                                          (an_expr_operator_kind)eok_iassign,
                                           node_for_integer_constant(
                                                  (long)null_eh_region_number,
                                                  TARG_REGION_NUMBER_INT_KIND),
@@ -5095,7 +5088,7 @@ with zero is built, and a pointer to it is returned in *setjmp_compare_node.
                     ehse_try_catch_entries_field);
   if (catch_array_var != NULL) {
     (void)insert_assignment_statement(try_frame_catch_entries,
-                                      (an_expr_operator_kind)eok_passign,
+                                      (an_expr_operator_kind)eok_assign,
                                       array_var_lvalue_expr(catch_array_var),
                                       insert_location);
   } else {
@@ -5103,7 +5096,7 @@ with zero is built, and a pointer to it is returned in *setjmp_compare_node.
     make_zero_of_proper_type(ehse_try_catch_entries_field->type,
                              &null_constant);
     (void)insert_assignment_statement(try_frame_catch_entries,
-                                      (an_expr_operator_kind)eok_passign,
+                                      (an_expr_operator_kind)eok_assign,
                                       alloc_node_for_constant(&null_constant),
                                       insert_location);
   }  /* if */
@@ -5117,7 +5110,7 @@ with zero is built, and a pointer to it is returned in *setjmp_compare_node.
                     ehse_try_rtinfo_field);
   make_zero_of_proper_type(ehse_try_rtinfo_field->type, &null_constant);
   (void)insert_assignment_statement(try_frame_rtinfo,
-                                    (an_expr_operator_kind)eok_passign,
+                                    (an_expr_operator_kind)eok_assign,
                                     alloc_node_for_constant(&null_constant),
                                     insert_location);
   /* Set the region_number field to the region number at entry to the try
@@ -5131,7 +5124,7 @@ with zero is built, and a pointer to it is returned in *setjmp_compare_node.
                       ehse_try_field),
                     ehse_try_region_number_field);
   (void)insert_assignment_statement(try_frame_region_number,
-                                    (an_expr_operator_kind)eok_iassign,
+                                    (an_expr_operator_kind)eok_assign,
                                     var_rvalue_expr(make_eh_curr_region_var()),
                                     insert_location);
   /* Change the original stmk_try_block statement into an if statement
@@ -5159,7 +5152,7 @@ with zero is built, and a pointer to it is returned in *setjmp_compare_node.
                                        try_frame_setjmp_buffer);
   /* Generate the comparison against zero. */
   setjmp_call->next = node_for_integer_constant(0L, (an_integer_kind)ik_int);
-  *setjmp_compare_node = make_operator_node((an_expr_operator_kind)eok_ieq,
+  *setjmp_compare_node = make_operator_node((an_expr_operator_kind)eok_eq,
                                             setjmp_call->type, setjmp_call);
 }  /* initialize_eh_stack_entry_for_try */
 
@@ -5324,7 +5317,7 @@ be passed down.
       catch_clause_number_node->next = 
                             node_for_integer_constant(catch_clause_number,
                                                       (an_integer_kind)ik_int);
-      compare_node = make_operator_node((an_expr_operator_kind)eok_ieq,
+      compare_node = make_operator_node((an_expr_operator_kind)eok_eq,
                                         catch_clause_number_node->type,
                                         catch_clause_number_node);
       if_stmt = alloc_statement((a_statement_kind)stmk_if);
@@ -5802,9 +5795,7 @@ Lower an enk_throw expression node.
     /* Cast the pointer to the right type. */
     call_node = add_cast_if_necessary(call_node, ptr_throw_type);
     /* Make the node to assign the pointer to the temporary. */
-    assign_node = make_var_assignment_expr(temp_var,
-                                           (an_expr_operator_kind)eok_passign,
-                                           call_node);
+    assign_node = make_var_assignment_expr(temp_var, call_node);
     /* Make the call to the __throw routine, which actually does the
        throw.  It has no arguments. */
     call_node = make_runtime_rout_call("__throw", &throw_routine,

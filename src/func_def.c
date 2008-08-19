@@ -2182,13 +2182,13 @@ operator routine or do bitwise assignment.
               /* Make "++tmp < num_elements". */
               temp_node = var_lvalue_expr(temp_var);
               temp_incr_node = make_operator_node(
-                                          (an_expr_operator_kind)eok_ipre_incr,
+                                          (an_expr_operator_kind)eok_pre_incr,
                                           size_t_type, temp_node);
               num_elems = skip_typerefs(array_type)->size / tp->size;
               temp_incr_node->next = node_for_host_large_integer(
                         (a_host_large_integer)num_elems, targ_size_t_int_kind);
               compare_node =
-                      make_operator_node((an_expr_operator_kind)eok_ilt,
+                      make_operator_node((an_expr_operator_kind)eok_lt,
                                          boolean_result_type(),
                                          temp_incr_node);
               /* Make the do-while statement. */

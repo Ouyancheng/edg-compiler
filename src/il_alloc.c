@@ -2516,6 +2516,7 @@ fields to default values.
       break;
     case enk_operation:
       node->variant.operation.kind = (an_expr_operator_kind)eok_last;
+      node->variant.operation.type_kind = (a_type_kind)tk_unknown;
       node->variant.operation.returns_lvalue_instead_of_usual_rvalue = FALSE;
       node->variant.operation.compiler_generated = FALSE;
       node->variant.operation.is_reinterpret_cast = FALSE;

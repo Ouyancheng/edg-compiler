@@ -1316,6 +1316,81 @@ Display the indicated template parameter type supplement.
 }  /* disp_template_param_type_supplement */
 
 
+static char* type_kind_string(a_type_kind  type_kind)
+/*
+Return a string corresponding to the indicated type kind.
+*/
+{
+  char  *str;
+
+  switch (type_kind) {
+    case tk_error:
+      str = "tk_error";
+      break;
+    case tk_unknown:
+      str = "tk_error";
+      break;
+    case tk_void:
+      str = "tk_error";
+      break;
+    case tk_integer:
+      str = "tk_error";
+      break;
+#if FIXED_POINT_ALLOWED
+    case tk_fixed_point:
+      str = "tk_fixed_point";
+      break;
+#endif /* FIXED_POINT_ALLOWED */
+    case tk_float:
+      str = "tk_float";
+      break;
+#if C99_IL_EXTENSIONS_SUPPORTED
+    case tk_imaginary:
+      str = "tk_imaginary";
+      break;
+    case tk_complex:
+      str = "tk_complex";
+      break;
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+    case tk_pointer:
+      str = "tk_pointer";
+      break;
+    case tk_routine:
+      str = "tk_routine";
+      break;
+    case tk_array:
+      str = "tk_array";
+      break;
+    case tk_class:
+      str = "tk_class";
+      break;
+    case tk_struct:
+      str = "tk_struct";
+      break;
+    case tk_union:
+      str = "tk_union";
+      break;
+    case tk_typeref:
+      str = "tk_typeref";
+      break;
+    case tk_ptr_to_member:
+      str = "tk_ptr_to_member";
+      break;
+    case tk_template_param:
+      str = "tk_template_param";
+      break;
+#if GNU_VECTOR_TYPES_ALLOWED
+    case tk_vector:
+      str = "tk_vector";
+      break;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+    default:
+      str = "**BAD TYPE KIND**";
+  }  /* switch */
+  return str;
+}  /* type_kind_string */
+
+
 static void disp_type(a_type_ptr ptr)
 /*
 Display the indicated type entry.
@@ -1393,18 +1468,10 @@ Display the indicated type entry.
   }  /* if */
 #endif /* DO_IL_LOWERING */
   disp_name("kind");
+  (void)printf("%s\n", type_kind_string(ptr->kind));
+  /* Display variant fields (if applicable). */
   switch (ptr->kind) {
-    case tk_error:
-      (void)printf("tk_error\n");
-      break;
-    case tk_unknown:
-      (void)printf("tk_unknown\n");
-      break;
-    case tk_void:
-      (void)printf("tk_void\n");
-      break;
     case tk_integer:
-      (void)printf("tk_integer\n");
       disp_name("int_kind");
       (void)printf("%s\n", int_type_name(ptr));
       if (ptr->variant.integer.explicitly_signed) {
@@ -1470,7 +1537,6 @@ Display the indicated type entry.
     case tk_fixed_point:
       {
         a_fixed_point_precision  prec = ptr->variant.fixed_point.precision;
-        (void)printf("tk_fixed_point\n");
         disp_name("precision");
         printf("%s\n",
                (prec == (a_fixed_point_precision)fpp_short)   ? "short" :
@@ -1487,21 +1553,14 @@ Display the indicated type entry.
       break;
 #endif /* FIXED_POINT_ALLOWED */
     case tk_float:
-      (void)printf("tk_float\n");
 #if C99_IL_EXTENSIONS_SUPPORTED
-      goto do_float_complex;
     case tk_imaginary:
-      (void)printf("tk_imaginary\n");
-      goto do_float_complex;
     case tk_complex:
-      (void)printf("tk_complex\n");
-do_float_complex:
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
       disp_name("float_kind");
       (void)printf("%s\n", float_kind_name(ptr->variant.float_kind));
       break;
     case tk_pointer:
-      (void)printf("tk_pointer\n");
       disp_ptr("type_pointed_to", (char *)ptr->variant.pointer.type, iek_type);
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (ptr->variant.pointer.base_variable != NULL) {
@@ -1519,13 +1578,11 @@ do_float_complex:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case tk_routine:
-      (void)printf("tk_routine\n");
       disp_ptr("return_type", (char *)ptr->variant.routine.return_type,
                iek_type);
       disp_routine_type_supplement(ptr->variant.routine.extra_info);
       break;
     case tk_array:
-      (void)printf("tk_array\n");
       disp_ptr("element_type", (char *)ptr->variant.array.element_type,
                iek_type);
       if (ptr->variant.array.qualifiers != TQ_NONE) {
@@ -1566,14 +1623,8 @@ do_float_complex:
       }  /* if */
       break;
     case tk_class:
-      (void)printf("tk_class\n");
-      goto do_struct_union;
     case tk_struct:
-      (void)printf("tk_struct\n");
-      goto do_struct_union;
     case tk_union:
-      (void)printf("tk_union\n");
-do_struct_union:
       disp_ptr("field_list",
                (char *)ptr->variant.class_struct_union.field_list, iek_field);
       if (ptr->variant.class_struct_union.extra_info != NULL) {
@@ -1709,7 +1760,6 @@ do_struct_union:
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
       break;
     case tk_typeref:
-      (void)printf("tk_typeref\n");
       disp_ptr("typeref_type", (char *)ptr->variant.typeref.type,
                iek_type);
 #if DO_IL_LOWERING
@@ -1767,7 +1817,6 @@ do_struct_union:
 #endif /* GNU_EXTENSIONS_ALLOWED */
       break;
     case tk_ptr_to_member:
-      (void)printf("tk_ptr_to_member\n");
       disp_ptr("class_of_which_a_member",
                (char *)ptr->variant.ptr_to_member.class_of_which_a_member,
                iek_type);
@@ -1780,7 +1829,6 @@ do_struct_union:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case tk_template_param:
-      (void)printf("tk_template_param\n");
       disp_name("kind");
       switch (ptr->variant.template_param.kind) {
         case tptk_param:    (void)printf("tptk_param\n");    break;
@@ -1793,7 +1841,6 @@ do_struct_union:
       break;
 #if GNU_VECTOR_TYPES_ALLOWED
     case tk_vector:
-      (void)printf("tk_vector\n");
       disp_ptr("element_type", (char *)ptr->variant.vector.element_type,
                iek_type);
       disp_ptr("size_constant", (char *)ptr->variant.vector.size_constant,
@@ -1801,7 +1848,8 @@ do_struct_union:
       break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
     default:
-      (void)printf("**BAD TYPE KIND**\n");
+      /* Nothing more to be done. */
+      break;
   }  /* switch */
 }  /* disp_type */
 
@@ -2915,11 +2963,7 @@ Display the name of an expression operator.
     case eok_reference_to:      s = "eok_reference_to";           break;
     case eok_indirect:          s = "eok_indirect";               break;
     case eok_ref_indirect:      s = "eok_ref_indirect";           break;
-    case eok_inegate:           s = "eok_inegate";                break;
-#if FIXED_POINT_ALLOWED
-    case eok_fxnegate:          s = "eok_fxnegate";               break;
-#endif /* FIXED_POINT_ALLOWED */
-    case eok_fnegate:           s = "eok_fnegate";                break;
+    case eok_negate:            s = "eok_negate";                 break;
     case eok_unary_plus:        s = "eok_unary_plus";             break;
     case eok_not:               s = "eok_not";                    break;
     case eok_cast:              s = "eok_cast";                   break;
@@ -2934,94 +2978,43 @@ Display the name of an expression operator.
     case eok_dynamic_cast:      s = "eok_dynamic_cast";           break;
     case eok_bool_cast:         s = "eok_bool_cast";              break;
     case eok_complement:        s = "eok_complement";             break;
-    case eok_ipost_incr:        s = "eok_ipost_incr";             break;
-    case eok_ipost_decr:        s = "eok_ipost_decr";             break;
-    case eok_ipre_incr:         s = "eok_ipre_incr";              break;
-    case eok_ipre_decr:         s = "eok_ipre_decr";              break;
-#if FIXED_POINT_ALLOWED
-    case eok_fxpost_incr:       s = "eok_fxpost_incr";            break;
-    case eok_fxpost_decr:       s = "eok_fxpost_decr";            break;
-    case eok_fxpre_incr:        s = "eok_fxpre_incr";             break;
-    case eok_fxpre_decr:        s = "eok_fxpre_decr";             break;
-#endif /* FIXED_POINT_ALLOWED */
-    case eok_fpost_incr:        s = "eok_fpost_incr";             break;
-    case eok_fpost_decr:        s = "eok_fpost_decr";             break;
-    case eok_fpre_incr:         s = "eok_fpre_incr";              break;
-    case eok_fpre_decr:         s = "eok_fpre_decr";              break;
-    case eok_ppost_incr:        s = "eok_ppost_incr";             break;
-    case eok_ppost_decr:        s = "eok_ppost_decr";             break;
-    case eok_ppre_incr:         s = "eok_ppre_incr";              break;
-    case eok_ppre_decr:         s = "eok_ppre_decr";              break;
+    case eok_post_incr:         s = "eok_post_incr";              break;
+    case eok_post_decr:         s = "eok_post_decr";              break;
+    case eok_pre_incr:          s = "eok_pre_incr";               break;
+    case eok_pre_decr:          s = "eok_pre_decr";               break;
     case eok_lvalue_from_struct_rvalue:
                                 s = "eok_lvalue_from_struct_rvalue";break;
     case eok_array_to_pointer:  s = "eok_array_to_pointer";       break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case eok_assume:            s = "eok_assume";                 break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case eok_add:               s = "eok_add";                    break;
+    case eok_subtract:          s = "eok_subtract";               break;
+    case eok_multiply:          s = "eok_multiply";               break;
+    case eok_divide:            s = "eok_divide";                 break;
+    case eok_remainder:         s = "eok_remainder";              break;
+    case eok_shiftl:            s = "eok_shiftl";                 break;
+    case eok_shiftr:            s = "eok_shiftr";                 break;
+    case eok_eq:                s = "eok_eq";                     break;
+    case eok_ne:                s = "eok_ne";                     break;
+    case eok_gt:                s = "eok_gt";                     break;
+    case eok_lt:                s = "eok_lt";                     break;
+    case eok_ge:                s = "eok_ge";                     break;
+    case eok_le:                s = "eok_le";                     break;
+    case eok_gnu_min:           s = "eok_gnu_min";                break;
+    case eok_gnu_max:           s = "eok_gnu_max";                break;
+    case eok_assign:            s = "eok_assign";                 break;
+    case eok_add_assign:        s = "eok_add_assign";             break;
+    case eok_subtract_assign:   s = "eok_subtract_assign";        break;
+    case eok_multiply_assign:   s = "eok_multiply_assign";        break;
+    case eok_divide_assign:     s = "eok_divide_assign";          break;
+    case eok_remainder_assign:  s = "eok_remainder_assign";       break;
+    case eok_shiftl_assign:     s = "eok_shiftl_assign";          break;
+    case eok_shiftr_assign:     s = "eok_shiftr_assign";          break;
+    case eok_and_assign:        s = "eok_and_assign";             break;
+    case eok_or_assign:         s = "eok_or_assign";              break;
+    case eok_xor_assign:        s = "eok_xor_assign";             break;
 #if C99_IL_EXTENSIONS_SUPPORTED
-    case eok_xnegate:           s = "eok_xnegate";                break;
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-#if GNU_COMPLEX_EXTENSIONS_ALLOWED
-    case eok_xconj:             s = "eok_xconj";                  break;
-    case eok_real_part:         s = "eok_real_part";              break;
-    case eok_imag_part:         s = "eok_imag_part";              break;
-#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
-    case eok_iadd:              s = "eok_iadd";                   break;
-    case eok_isubtract:         s = "eok_isubtract";              break;
-    case eok_imultiply:         s = "eok_imultiply";              break;
-    case eok_idivide:           s = "eok_idivide";                break;
-    case eok_ieq:               s = "eok_ieq";                    break;
-    case eok_ine:               s = "eok_ine";                    break;
-    case eok_igt:               s = "eok_igt";                    break;
-    case eok_ilt:               s = "eok_ilt";                    break;
-    case eok_ige:               s = "eok_ige";                    break;
-    case eok_ile:               s = "eok_ile";                    break;
-    case eok_ignu_min:          s = "eok_ignu_min";               break;
-    case eok_ignu_max:          s = "eok_ignu_max";               break;
-    case eok_iassign:           s = "eok_iassign";                break;
-#if FIXED_POINT_ALLOWED
-    case eok_fxadd:             s = "eok_fxadd";                  break;
-    case eok_fxsubtract:        s = "eok_fxsubtract";             break;
-    case eok_fxmultiply:        s = "eok_fxmultiply";             break;
-    case eok_fxdivide:          s = "eok_fxdivide";               break;
-    case eok_fxshiftl:          s = "eok_fxshiftl";               break;
-    case eok_fxshiftr:          s = "eok_fxshiftr";               break;
-    case eok_fxeq:              s = "eok_fxeq";                   break;
-    case eok_fxne:              s = "eok_fxne";                   break;
-    case eok_fxgt:              s = "eok_fxgt";                   break;
-    case eok_fxlt:              s = "eok_fxlt";                   break;
-    case eok_fxge:              s = "eok_fxge";                   break;
-    case eok_fxle:              s = "eok_fxle";                   break;
-    case eok_fxassign:          s = "eok_fxassign";               break;
-#endif /* FIXED_POINT_ALLOWED */
-    case eok_fadd:              s = "eok_fadd";                   break;
-    case eok_fsubtract:         s = "eok_fsubtract";              break;
-    case eok_fmultiply:         s = "eok_fmultiply";              break;
-    case eok_fdivide:           s = "eok_fdivide";                break;
-    case eok_feq:               s = "eok_feq";                    break;
-    case eok_fne:               s = "eok_fne";                    break;
-    case eok_fgt:               s = "eok_fgt";                    break;
-    case eok_flt:               s = "eok_flt";                    break;
-    case eok_fge:               s = "eok_fge";                    break;
-    case eok_fle:               s = "eok_fle";                    break;
-    case eok_fgnu_min:          s = "eok_fgnu_min";               break;
-    case eok_fgnu_max:          s = "eok_fgnu_max";               break;
-    case eok_fassign:           s = "eok_fassign";                break;
-    case eok_padd:              s = "eok_padd";                   break;
-    case eok_psubtract:         s = "eok_psubtract";              break;
-    case eok_passign:           s = "eok_passign";                break;
-#if C99_IL_EXTENSIONS_SUPPORTED
-    case eok_xadd:              s = "eok_xadd";                   break;
-    case eok_xsubtract:         s = "eok_xsubtract";              break;
-    case eok_xmultiply:         s = "eok_xmultiply";              break;
-    case eok_xdivide:           s = "eok_xdivide";                break;
-    case eok_xeq:               s = "eok_xeq";                    break;
-    case eok_xne:               s = "eok_xne";                    break;
-    case eok_xassign:           s = "eok_xassign";                break;
-    case eok_xadd_assign:       s = "eok_xadd_assign";            break;
-    case eok_xsubtract_assign:  s = "eok_xsubtract_assign";       break;
-    case eok_xmultiply_assign:  s = "eok_xmultiply_assign";       break;
-    case eok_xdivide_assign:    s = "eok_xdivide_assign";         break;
     case eok_jmultiply:         s = "eok_jmultiply";              break;
     case eok_jdivide:           s = "eok_jdivide";                break;
     case eok_fjadd:             s = "eok_fjadd";                  break;
@@ -3029,45 +3022,17 @@ Display the name of an expression operator.
     case eok_fjsubtract:        s = "eok_fjsubtract";             break;
     case eok_jfsubtract:        s = "eok_jfsubtract";             break;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
-    case eok_remainder:         s = "eok_remainder";              break;
+#if GNU_COMPLEX_EXTENSIONS_ALLOWED
+    case eok_xconj:             s = "eok_xconj";                  break;
+    case eok_real_part:         s = "eok_real_part";              break;
+    case eok_imag_part:         s = "eok_imag_part";              break;
+#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
+    case eok_padd:              s = "eok_padd";                   break;
+    case eok_psubtract:         s = "eok_psubtract";              break;
     case eok_pdiff:             s = "eok_pdiff";                  break;
-    case eok_peq:               s = "eok_peq";                    break;
-    case eok_pne:               s = "eok_pne";                    break;
-    case eok_pgt:               s = "eok_pgt";                    break;
-    case eok_plt:               s = "eok_plt";                    break;
-    case eok_pge:               s = "eok_pge";                    break;
-    case eok_ple:               s = "eok_ple";                    break;
-    case eok_pgnu_min:          s = "eok_pgnu_min";               break;
-    case eok_pgnu_max:          s = "eok_pgnu_max";               break;
-    case eok_pmeq:              s = "eok_pmeq";                   break;
-    case eok_pmne:              s = "eok_pmne";                   break;
-    case eok_sassign:           s = "eok_sassign";                break;
     case eok_bassign:           s = "eok_bassign";                break;
-    case eok_pmassign:          s = "eok_pmassign";               break;
-    case eok_iadd_assign:       s = "eok_iadd_assign";            break;
-    case eok_isubtract_assign:  s = "eok_isubtract_assign";       break;
-    case eok_imultiply_assign:  s = "eok_imultiply_assign";       break;
-    case eok_idivide_assign:    s = "eok_idivide_assign";         break;
-    case eok_remainder_assign:  s = "eok_remainder_assign";       break;
-#if FIXED_POINT_ALLOWED
-    case eok_fxadd_assign:      s = "eok_fxadd_assign";           break;
-    case eok_fxsubtract_assign: s = "eok_fxsubtract_assign";      break;
-    case eok_fxmultiply_assign: s = "eok_fxmultiply_assign";      break;
-    case eok_fxdivide_assign:   s = "eok_fxdivide_assign";        break;
-    case eok_fxshiftl_assign:   s = "eok_fxshiftl_assign";        break;
-    case eok_fxshiftr_assign:   s = "eok_fxshiftr_assign";        break;
-#endif /* FIXED_POINT_ALLOWED */
-    case eok_fadd_assign:       s = "eok_fadd_assign";            break;
-    case eok_fsubtract_assign:  s = "eok_fsubtract_assign";       break;
-    case eok_fmultiply_assign:  s = "eok_fmultiply_assign";       break;
-    case eok_fdivide_assign:    s = "eok_fdivide_assign";         break;
     case eok_padd_assign:       s = "eok_padd_assign";            break;
     case eok_psubtract_assign:  s = "eok_psubtract_assign";       break;
-    case eok_shiftl_assign:     s = "eok_shiftl_assign";          break;
-    case eok_shiftr_assign:     s = "eok_shiftr_assign";          break;
-    case eok_and_assign:        s = "eok_and_assign";             break;
-    case eok_or_assign:         s = "eok_or_assign";              break;
-    case eok_xor_assign:        s = "eok_xor_assign";             break;
     case eok_subscript:         s = "eok_subscript";              break;
     case eok_dot_field:         s = "eok_dot_field";              break;
     case eok_points_to_field:   s = "eok_points_to_field";        break;
@@ -3075,8 +3040,6 @@ Display the name of an expression operator.
     case eok_pm_points_to_field:s = "eok_pm_points_to_field";     break;
     case eok_dot_static:        s = "eok_dot_static";             break;
     case eok_points_to_static:  s = "eok_points_to_static";       break;
-    case eok_shiftl:            s = "eok_shiftl";                 break;
-    case eok_shiftr:            s = "eok_shiftr";                 break;
     case eok_and:               s = "eok_and";                    break;
     case eok_or:                s = "eok_or";                     break;
     case eok_xor:               s = "eok_xor";                    break;
@@ -3102,28 +3065,6 @@ Display the name of an expression operator.
     case eok_va_start_single_operand:
                                 s = "eok_va_start_single_operand";
                                                                   break;
-    case eok_negate:            s = "eok_negate";                 break;
-    case eok_post_incr:         s = "eok_post_incr";              break;
-    case eok_post_decr:         s = "eok_post_decr";              break;
-    case eok_pre_incr:          s = "eok_pre_incr";               break;
-    case eok_pre_decr:          s = "eok_pre_decr";               break;
-    case eok_add:               s = "eok_add";                    break;
-    case eok_subtract:          s = "eok_subtract";               break;
-    case eok_multiply:          s = "eok_multiply";               break;
-    case eok_divide:            s = "eok_divide";                 break;
-    case eok_eq:                s = "eok_eq";                     break;
-    case eok_ne:                s = "eok_ne";                     break;
-    case eok_gt:                s = "eok_gt";                     break;
-    case eok_lt:                s = "eok_lt";                     break;
-    case eok_ge:                s = "eok_ge";                     break;
-    case eok_le:                s = "eok_le";                     break;
-    case eok_gnu_min:           s = "eok_gnu_min";                break;
-    case eok_gnu_max:           s = "eok_gnu_max";                break;
-    case eok_assign:            s = "eok_assign";                 break;
-    case eok_add_assign:        s = "eok_add_assign";             break;
-    case eok_subtract_assign:   s = "eok_subtract_assign";        break;
-    case eok_multiply_assign:   s = "eok_multiply_assign";        break;
-    case eok_divide_assign:     s = "eok_divide_assign";          break;
     case eok_static_cast:       s = "eok_static_cast";            break;
     case eok_const_cast:        s = "eok_const_cast";             break;
     case eok_reinterpret_cast:  s = "eok_reinterpret_cast";       break;
@@ -3294,6 +3235,8 @@ Display the indicated expression node.
       disp_name("operation.kind");
       disp_expr_operator_name(ptr->variant.operation.kind);
       (void)printf("\n");
+      disp_name("operation.type_kind");
+      (void)printf("%s\n", type_kind_string(ptr->kind));
       if (ptr->variant.operation.returns_lvalue_instead_of_usual_rvalue) {
         disp_boolean("returns_lvalue_instead_of_usual_rvalue", TRUE);
       }  /* if */
@@ -4910,12 +4853,7 @@ Display the indicated class type supplement entry.
     a_type_ptr  class_type = ptr->assoc_scope->variant.assoc_type;
     if (class_type != NULL && class_type->kind != ptr->orig_type_kind) {
       disp_name("orig_type_kind");
-      switch (ptr->orig_type_kind) {
-        case tk_struct:  (void)printf("struct\n"); break;
-        case tk_union:   (void)printf("union\n"); break;
-        case tk_class:   (void)printf("class\n"); break;
-        default:         (void)printf("**BAD TYPE KIND**\n");
-      }  /* switch */
+      (void)printf("%s\n", type_kind_string(ptr->orig_type_kind));
     }  /* if */
   }  /* if */
   if (ptr->inheritance_kind != (an_inheritance_kind)ihk_none) {

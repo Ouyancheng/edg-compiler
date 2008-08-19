@@ -869,24 +869,11 @@ extern void skip_common_type_qualifiers(a_type_ptr  *type1,
                                         a_type_ptr  *type2);
 
 /*
-Helper macro for is_simple_scalar_assignment below.
-*/
-#if FIXED_POINT_ALLOWED
-#define or_is_simple_fixed_point_assignment(op)                             \
-  || ((op) == (an_expr_operator_kind)eok_fxassign)
-#else /* !FIXED_POINT_ALLOWED */
-#define or_is_simple_fixed_point_assignment(op) /* Nothing */
-#endif /* FIXED_POINT_ALLOWED */
-
-/*
 Macro that is TRUE if the given operator kind is a simple (i.e., not
-compound) scalar assignment.
+compound) assignment.
 */
-#define is_simple_scalar_assignment(op)                                     \
-  ((op) == (an_expr_operator_kind)eok_iassign ||                            \
-   (op) == (an_expr_operator_kind)eok_fassign ||                            \
-   (op) == (an_expr_operator_kind)eok_passign                               \
-   or_is_simple_fixed_point_assignment((op)))
+#define is_simple_assignment(op)                                            \
+  ((op) == (an_expr_operator_kind)eok_assign)
 
 /*
 Macro that is TRUE for a dynamic initialization that initializes a
@@ -1163,7 +1150,11 @@ extern a_boolean is_compound_assignment_operator(an_expr_operator_kind op);
 extern a_type_ptr fixed_point_result_type(a_type_ptr  type_1,
                                           a_type_ptr  type_2);
 
-extern a_type_ptr expression_operation_type(an_expr_node_ptr expr);
+extern a_type_ptr compound_assignment_operation_type(an_expr_node_ptr expr);
+
+extern a_type_kind binary_operation_type_kind(an_expr_operator_kind  op,
+                                              a_type_ptr             op1_type,
+                                              a_type_ptr             op2_type);
 
 extern void perform_scheduled_routine_moves(void);
 
@@ -1229,9 +1220,6 @@ extern an_expr_node_ptr node_for_host_large_integer(
                                              an_integer_kind		kind);
 
 extern a_boolean is_bad_type_for_template_arg_operand(a_type_ptr type);
-
-extern an_expr_operator_kind substitute_integer_operator_for_generic(
-                                                     an_expr_operator_kind op);
 
 /*
 Flags used to specify options to copy_type_with_substitution.
