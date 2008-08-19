@@ -9176,6 +9176,69 @@ effects does not itself create a side effect at the point of reference.
 }  /* type_has_side_effects */
 
 #if DO_IL_LOWERING
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+
+/*
+A variable tracking the strictest ELF visibility during a type traversal with
+ttt_ELF_visibility_of_type.
+*/
+static
+	an_ELF_visibility_kind
+		strictest_ELF_visibility_in_traversal;
+
+/*
+An array mapping each ELF visibility kind to a "strictness".  The routine
+ttt_ELF_visibility_of_type is used to find the highest strictness in a type.
+*/
+static int ELF_visibility_strictness[] = {
+  0,  /* evk_unspecified */
+  3,  /* evk_hidden */
+  2,  /* evk_protected */
+  4,  /* evk_internal */
+  1   /* evk_default */
+};
+
+static a_boolean ttt_check_ELF_visibility_of_type(
+                                           a_type_ptr  type,
+                                           a_boolean   *force_end_of_traversal)
+/*
+This is a service function designed to be called from traverse_type_tree
+(whence the ttt_ prefix).  It always returns FALSE, but updates the file
+scope variable strictest_ELF_visibility_in_traversal with the ELF visibility
+of the given type if that type is a class type with a stricter ELF visibility
+than recorded so far.
+*/
+{
+  if (is_immediate_class_type(type)) {
+    an_ELF_visibility_kind  curr_visibility =
+                                        class_type_supp(type)->ELF_visibility;
+    if (ELF_visibility_strictness[curr_visibility] >
+           ELF_visibility_strictness[strictest_ELF_visibility_in_traversal]) {
+      strictest_ELF_visibility_in_traversal = curr_visibility;
+    }  /* if */
+  }  /* if */
+  return FALSE;
+}  /* ttt_check_ELF_visibility_of_type */
+
+
+an_ELF_visibility_kind ELF_visibility_of_type(a_type_ptr  type)
+/*
+Return the ELF visibility of the given type.
+*/
+{
+  a_type_tree_traversal_flag_set  ttt_flags = (TTT_RETURN_TYPE |
+                                               TTT_THIS_PARAM_TYPE |
+                                               TTT_PARAM_TYPES |
+                                               TTT_TEMPLATE_ARGS |
+                                               TTT_SKIP_TYPEREFS);
+  strictest_ELF_visibility_in_traversal =
+                                      (an_ELF_visibility_kind)evk_unspecified;
+  check_assertion(!C_mode()); 
+  (void)traverse_type_tree(type, ttt_check_ELF_visibility_of_type, ttt_flags);
+  return strictest_ELF_visibility_in_traversal;
+}  /* ELF_visibility_of_type */
+
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 
 void lower_vla_dimensions_in_type(a_type_ptr  tp)
 /*

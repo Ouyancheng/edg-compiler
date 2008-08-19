@@ -4401,9 +4401,9 @@ definition.
     vtbl_var->decl_modifiers |= (ctsp->decl_modifiers & DM_DLLFLAGS);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if GNU_EXTENSIONS_ALLOWED && GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
   vtbl_var->ELF_visibility = ctsp->ELF_visibility;
-#endif /* GNU_EXTENSIONS_ALLOWED && GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 #if SUN_EXTENSIONS_ALLOWED
   if ((ctsp->decl_modifiers & DM_ANY_SUN_LINK_SCOPE) != 0) {
     /* Set any required __global/__symbolic/__hidden attributes.  If the
@@ -6875,9 +6875,9 @@ for the same virtual function table variable; see note below.
          dllexport. */
       vtbl_var->decl_modifiers &= ~(a_decl_modifier)DM_DLLFLAGS;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if GNU_EXTENSIONS_ALLOWED && GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
       vtbl_var->ELF_visibility = (an_ELF_visibility_kind)evk_unspecified;
-#endif /* GNU_EXTENSIONS_ALLOWED && GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 #if SUN_EXTENSIONS_ALLOWED
       /* If the table has internal linkage, we cannot give it a Sun link
          scope. */
@@ -16650,11 +16650,11 @@ been removed from the scope variables list).
       variable->decl_modifiers |= (routine->decl_modifiers & DM_DLLFLAGS);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if GNU_EXTENSIONS_ALLOWED && GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
     /* The variable acquires the same ELF module visibility as its enclosing
        routine. */
     variable->ELF_visibility = routine->ELF_visibility;
-#endif /* GNU_EXTENSIONS_ALLOWED && GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
   }  /* if */
   add_to_variables_list(variable, DEPTH_OF_FILE_SCOPE);
   variable->promoted_local_static = TRUE;

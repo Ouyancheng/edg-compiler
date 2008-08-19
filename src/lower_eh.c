@@ -879,6 +879,9 @@ all denote the same type.
                                         integer_type((an_integer_kind)ik_char),
                                           (a_storage_class)sc_unspecified);
     id_object_var->source_corresp.name_has_been_mangled = TRUE;
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+    id_object_var->ELF_visibility = ELF_visibility_of_type(type);
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
     /* The id object variable is optional if the vtable is optional. */
     set_optional_vtable_flag_to_match_type(id_object_var, type);
   }  /* if */
@@ -1232,6 +1235,9 @@ variable is returned.
   /* Initialize the variable. */
   typeinfo_name_var->init_kind = (an_init_kind)initk_static;
   typeinfo_name_var->initializer.constant = string_con;
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+  typeinfo_name_var->ELF_visibility = ELF_visibility_of_type(type);
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
   if (use_comdat) {
     put_variable_into_comdat_group(typeinfo_name_var);
     /* The typeinfo string variable is optional if the vtable is optional. */
@@ -1426,9 +1432,9 @@ typeinfo variable in a COMDAT group.
        or dllexport. */
     typeinfo_var->decl_modifiers &= ~(a_decl_modifier)DM_DLLFLAGS;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if GNU_EXTENSIONS_ALLOWED && GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
     typeinfo_var->ELF_visibility = (an_ELF_visibility_kind)evk_unspecified;
-#endif /* GNU_EXTENSIONS_ALLOWED && GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 #if SUN_EXTENSIONS_ALLOWED
     /* If the typeinfo object has  internal linkage, we cannot give it a Sun
        link scope. */
@@ -2231,10 +2237,9 @@ pointers-to-members).
          non-class cases). */
       define_typeinfo_var(type, force_static, use_comdat);
     } else if (is_immediate_class_type(type)) {
-#if MICROSOFT_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED || \
-    (GNU_EXTENSIONS_ALLOWED && GNU_VISIBILITY_ATTRIBUTE_ALLOWED)
+#if MICROSOFT_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED
       a_class_type_supplement_ptr  ctsp = class_type_supp(type);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED || ... */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || SUN_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (microsoft_mode &&
           typeinfo_var->storage_class != (a_storage_class)sc_static) {
@@ -2244,13 +2249,13 @@ pointers-to-members).
         typeinfo_var->decl_modifiers |= (ctsp->decl_modifiers & DM_DLLFLAGS);
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if GNU_EXTENSIONS_ALLOWED && GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
       if (typeinfo_var->storage_class != (a_storage_class)sc_static) {
         /* Adjust the ELF visibility of the externally visible typeinfo
            variable.  (This may be updated if the variable becomes static.) */
-        typeinfo_var->ELF_visibility = ctsp->ELF_visibility;
+        typeinfo_var->ELF_visibility = ELF_visibility_of_type(type);
       }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED && GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 #if SUN_EXTENSIONS_ALLOWED
       if ((ctsp->decl_modifiers & DM_ANY_SUN_LINK_SCOPE) != 0 &&
           typeinfo_var->storage_class != (a_storage_class)sc_static) {

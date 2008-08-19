@@ -5475,6 +5475,11 @@ location is the insert_location2 value (after the assignment statement).
       (*test_var)->storage_class = (a_storage_class)sc_extern;
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+    /* The guard variable should also have the same ELF visibility as the
+       guarded variable. */
+    (*test_var)->ELF_visibility = guarded_var->ELF_visibility;
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
   } else {
     /* The guard variable need not be visible outside of the function,
        so an unnamed variable is fine. */
@@ -8702,6 +8707,11 @@ This routine returns TRUE if guard code was emitted.
     guard_code_emitted = TRUE;
   }  /* if */
 #endif /* IA64_ABI */
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+  /* The guard variable should also have the same ELF visibility as the
+     guarded variable. */
+  test_var->ELF_visibility = variable->ELF_visibility;
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 end_of_routine:
   return guard_code_emitted;
 }  /* add_static_data_member_init_guard_test */
@@ -10276,6 +10286,9 @@ to the variable.
     var->decl_modifiers |= (ctsp->decl_modifiers & DM_DLLFLAGS);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+  var->ELF_visibility = ctsp->ELF_visibility;
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
   ctsp->virtual_table_table_var = var;
 done:
 #endif /* IA64_ABI */

@@ -863,6 +863,9 @@ extern a_boolean is_variably_modified_type(a_type_ptr  tp);
 extern a_boolean is_nonlocal_variably_modified_type(a_type_ptr  tp);
 extern a_boolean type_has_side_effects(a_type_ptr  tp);
 #if DO_IL_LOWERING
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+extern an_ELF_visibility_kind ELF_visibility_of_type(a_type_ptr  type);
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 extern void lower_vla_dimensions_in_type(a_type_ptr  tp);
 #endif /* DO_IL_LOWERING */
 extern a_boolean is_directly_variably_modified_type(a_type_ptr  tp);
