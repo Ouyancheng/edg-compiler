@@ -548,8 +548,8 @@ type.
             /* An array type cannot have its element type be an abstract class
                type.  An exception in some modes are parameter types (since
                they are always transformed into pointer types). */
-            report_abstract_class_error(ec_array_of_abstract_class,
-                                        temp_type, &error_position);
+            report_abstract_class(es_error, ec_array_of_abstract_class,
+                                  temp_type, &error_position);
           }  /* if */
         } else if (is_pointer_type(temp_type)) {
           /* Partial pointer type: Okay. */

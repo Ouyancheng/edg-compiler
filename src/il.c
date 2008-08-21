@@ -6720,14 +6720,32 @@ diagnostic if the parameter type is an abstract class.
              for abstract classes.  Also note that this logic assumes that
              passed_via_copy_constructor will never be set elsewhere. */
           if (param_type->variant.class_struct_union.abstract) {
+            an_error_severity  sev = es_error;
+#if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
+            if ((gpp_mode || microsoft_mode) &&
+                (is_nonspecialized_instantiation_context() ||
+                 depth_template_declaration_scope != NO_SCOPE_DEPTH)) {
+              /* Microsoft and GNU C++ accept abstract class parameter in
+                 non-top-level function types created during declarations and
+                 instantiations of function templates. */
+              a_scope_depth  level = 0;
+              while (scope_stack[depth_scope_stack-level].kind ==
+                                            (a_scope_kind)sck_func_prototype) {
+                level += 1;
+              }  /* while */
+              /* If the level is larger than 1, this is a non-top-level
+                 parameter type. */
+              if (level > 1) sev = es_warning;
+            }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
             if (err_pos->seq == 0) {
               /* A null error position indicates a parameter type for which
                  there is no corresponding source position -- e.g., a type
                  is being copied for some reason.  Issue no diagnostic in
                  such cases. */
             } else {
-              report_abstract_class_error(ec_abstract_class_param_type,
-                                          param_type, err_pos);
+              report_abstract_class(sev, ec_abstract_class_param_type,
+                                    param_type, err_pos);
             }  /* if */
           }  /* if */
         }  /* if */
@@ -15421,8 +15439,9 @@ the case if the return type was incomplete at the point of definition.
                  we're dealing with a definition.  So a separate test will be
                  performed when parsing the definition. */
             } else {
-              report_abstract_class_error(ec_function_returning_abstract_class,
-                                          return_type, err_pos);
+              report_abstract_class(
+                               es_error, ec_function_returning_abstract_class,
+                               return_type, err_pos);
             }  /* if */
           }  /* if */
         }  /* if */

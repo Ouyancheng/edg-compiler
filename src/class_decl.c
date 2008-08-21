@@ -2337,22 +2337,23 @@ located.
 }  /* report_pure_virtual_functions */
 
 
-void report_abstract_class_error(an_error_code      error_code,
-                                 a_type_ptr         class_type,
-                                 a_source_position  *error_pos)
+void report_abstract_class(an_error_severity  severity,
+                           an_error_code      error_code,
+                           a_type_ptr         class_type,
+                           a_source_position  *diag_pos)
 /*
-Issue an error (using the message specified by error_code) on an incorrect
-use of an object of abstract class type, as indicated by class_type.
-*error_pos is the source position at which the error should be issued.
-Except for some Microsoft-specific cases, the diagnostic includes a list
-of pure virtual functions, to assist the user in correcting the class
-declarations that produced the problem.
+Issue a diagnostic (using the message specified by error_code and with the
+given severity) on an incorrect use of an object of abstract class type, as
+indicated by class_type.  *diag_pos is the source position at which the
+diagnostic should be issued.  Except for some Microsoft-specific cases, the
+diagnostic includes a list of pure virtual functions, to assist the user in
+correcting the class declarations that produced the problem.
 */
 {
   a_boolean  found = FALSE;
 
   class_type = skip_typerefs(class_type);
-  pos_ty_start_error(error_code, error_pos, class_type);
+  pos_ty_start_diagnostic(severity, error_code, diag_pos, class_type);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (class_type->variant.class_struct_union.is_interface) {
     ty_add_diag_info(ec_type_is_interface, class_type);
@@ -2382,7 +2383,7 @@ declarations that produced the problem.
   }  /* if */
   /* Terminate the supplementary messages. */
   end_error();
-}  /* report_abstract_class_error */
+}  /* report_abstract_class */
 
 
 static void insert_in_virtual_function_override_list(
@@ -8526,8 +8527,8 @@ specific information about the member declaration, respectively.
     member_type = error_type();
   } else if (is_abstract_class_type(member_type)) {
     /* Abstract class objects are prohibited (ARM 10.3). */
-    report_abstract_class_error(ec_abstract_class_object_not_allowed,
-                                member_type, &locator->source_position);
+    report_abstract_class(es_error, ec_abstract_class_object_not_allowed,
+                          member_type, &locator->source_position);
 #if GNU_EXTENSIONS_ALLOWED
   } else if (decl_state->attributes != NULL) {
     member_type = apply_attributes_to_variable_type(decl_state->attributes,
@@ -10208,8 +10209,8 @@ declarations.
     a_boolean  is_ref = is_reference_type(field_type);
     if (is_abstract_class_type(field_type)) {
       /* Abstract class objects are prohibited (ARM 10.3). */
-      report_abstract_class_error(ec_abstract_class_object_not_allowed,
-                                  field_type, &locator->source_position);
+      report_abstract_class(es_error, ec_abstract_class_object_not_allowed,
+                            field_type, &locator->source_position);
     } else if (strict_ansi_mode && is_union_type(class_type) && is_ref) {
       /* Unions are not allowed to have members of reference type. */
       pos_diagnostic(strict_ansi_error_severity, ec_ref_not_allowed_in_union,
