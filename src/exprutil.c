@@ -11404,13 +11404,7 @@ types to get a boolean expression (see process_boolean_controlling_expression).
             if (!constant_bool_value_known_at_compile_time(con)) {
               /* The value of this constant is not known until link time
                  and therefore this has to be left as an expression. */
-              if (con->kind == (a_constant_repr_kind)ck_template_param &&
-                  con->variant.template_param.kind ==
-                             (a_template_param_constant_kind)tpck_expression) {
-                expr = con->variant.template_param.variant.expr;
-              } else {
-                expr = alloc_node_for_constant(con);
-              }  /* if */
+              expr = make_node_from_operand(operand);
               norm_expr = normalize_boolean_controlling_expr(expr);
               if (con->kind == (a_constant_repr_kind)ck_template_param) {
                 /* For a template parameter constant, make a ck_template_param
