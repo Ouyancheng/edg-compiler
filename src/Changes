@@ -1,5 +1,20 @@
 Version 3.11
 
+8/21/08  [EDGcpfe/9180]
+GNU compatibility: Allow promotion to long long in C99 mode
+
+In cases where both gcc mode and c99 mode are enabled (i.e., emulating
+gcc -std=c99), promotion to long long is now allowed.  Long long promotion
+remains disabled in gcc mode when c99 mode is not specified.  This changes
+the behavior of this program when --gcc and --c99 are specified together:
+
+  int printf(const char *,...);
+  int main() {
+   long long l = -2147483648L;
+   printf("%lld\n", l);   // now prints -2147483648
+   return 0;
+  }
+
 8/21/08  [EDGcpfe/9183]
 Declaration specifiers flag without effect
 

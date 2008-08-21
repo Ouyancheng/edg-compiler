@@ -3012,7 +3012,12 @@ exclude the GNU modes already.  Hence those are not checked again here.)
 #endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
   /* Treat "long long" as a standard feature. */
   long_long_is_standard = TRUE;
-  long_long_promotion_allowed = FALSE;
+  if (c99_mode) {
+    /* If we're emulating gcc's -std=c99 mode, allow promotion to long long. */
+    long_long_promotion_allowed = TRUE;
+  } else {
+    long_long_promotion_allowed = FALSE;
+  }  /* if */
   /* Hexadecimal floating point constants are permitted. */
   hex_floating_point_constants_allowed = TRUE;
   null_chars_allowed_in_source = TRUE;
