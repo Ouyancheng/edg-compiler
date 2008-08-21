@@ -196,22 +196,19 @@ extern void decl_spec_one_time_init(void);
 #define DSI_MARKED_AS_GNU_EXTENSION ((a_decl_flag_set)0x40000)
 			/* If this bit is set the declaration was preceded by
 			   the GNU keyword __extension__. */
-#define DSI_IN_ABSTRACT_FUNC_DECLARATOR ((a_decl_flag_set)0x80000)
-			/* If this bit is set the declaration is part of an
-			   abstract function declarator. */
-#define DSI_NO_REAL_DECLARATOR ((a_decl_flag_set)0x100000)
+#define DSI_NO_REAL_DECLARATOR ((a_decl_flag_set)0x80000)
 			/* If this bit is set, the specifiers cannot be
 			   followed by a real declarator (e.g., in a cast). */
-#define DSI_MICROSOFT_SECONDARY_SPECIFIERS ((a_decl_flag_set)0x200000)
+#define DSI_MICROSOFT_SECONDARY_SPECIFIERS ((a_decl_flag_set)0x100000)
 			/* If this bit is set, secondary specifiers (a
 			   Microsoft extension/bug) are scanned. */
-#define DSI_MICROSOFT_ATTRIBUTES_ALLOWED ((a_decl_flag_set)0x400000)
+#define DSI_MICROSOFT_ATTRIBUTES_ALLOWED ((a_decl_flag_set)0x200000)
 			/* If this bit is set, Microsoft attributes are valid
 			   declaration specifiers. */
-#define DSI_GNU_ATTRIBUTES_ALLOWED ((a_decl_flag_set)0x800000)
+#define DSI_GNU_ATTRIBUTES_ALLOWED ((a_decl_flag_set)0x400000)
 			/* If this bit is set, GNU attributes are valid
 			   declaration specifiers. */
-#define DSI_REGISTER_ID_ALLOWED ((a_decl_flag_set)0x1000000)
+#define DSI_REGISTER_ID_ALLOWED ((a_decl_flag_set)0x800000)
 			/* If this bit is set, Embedded C register names are
 			   valid declaration specifiers. */
 #define DSI_LAST DSI_REGISTER_ID_ALLOWED

@@ -1633,7 +1633,6 @@ if this is the function declarator in a friend function declaration.
                                          DSI_TYPE_SPECIFIER_ALLOWED |
                                          DSI_IS_PARAMETER |
                                          DSI_CHECK_FOR_DANGLING_TYPE_SPECIFIER;
-        if (func_info == NULL) dsi_flags |= DSI_IN_ABSTRACT_FUNC_DECLARATOR;
         if (gnu_mode) {
           if (curr_token == tok_extension) {
             /* Ignore the GNU C __extension__ annotation. */

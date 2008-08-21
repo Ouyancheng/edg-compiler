@@ -7284,11 +7284,9 @@ storage_class_specifier:
         break;
       case tok_lbracket:
         if (any_decl_specifiers_seen || !microsoft_mode || C_mode() ||
-            (input_flags & DSI_IN_ABSTRACT_FUNC_DECLARATOR) != 0 ||
             (input_flags & DSI_MICROSOFT_ATTRIBUTES_ALLOWED) == 0) {
           /* Microsoft attributes have to precede any specifiers.  They are
-             only recognized in Microsoft C++ mode.  Attributes are not
-             allowed on parameters of abstract declarators. */
+             only recognized in Microsoft C++ mode. */
           goto something_unexpected;
         } else {
           /* Microsoft attributes are valid here.  Append them to any

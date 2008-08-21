@@ -1,5 +1,12 @@
 Version 3.11
 
+8/21/08  [EDGcpfe/9183]
+Declaration specifiers flag without effect
+
+The macro DSI_IN_ABSTRACT_FUNC_DECLARATOR (used as a flag value for calls to
+decl_specifiers) has been removed.  It's use in the front end had no effect,
+and it was not actually set for abstract function declarators.
+
 8/19/08  [EDGcpfe/9097]
 Representation of operators in IL expressions (IL CHANGE)
 
