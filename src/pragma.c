@@ -635,7 +635,7 @@ entries from the current token pragma list.  The source sequence
 entries must be created before any entries are removed to preserve
 the original source ordering information.
 
-The empty source sequence entry will be changed to an eok_pragma entry and
+The empty source sequence entry will be changed to an iek_pragma entry and
 completed when the corresponding IL pragma entry is created (or removed
 if it turns out that no IL pragma entry is created).
 */
