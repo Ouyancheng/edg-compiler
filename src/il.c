@@ -11275,8 +11275,13 @@ tk_unknown is returned.
     case eok_lvalue_cast:
       /* Since eok_cast and eok_lvalue_cast potentially involves unrelated
          type kinds, we do not attempt to characterize an "operation type" for
-         these cases. */
-      result = (a_type_kind)tk_unknown;
+         these cases if the source and destination type kind are different. */
+      if (expr_type->kind ==
+               skip_typerefs(expr->variant.operation.operands->type)->kind) {
+        result = expr_type->kind;
+      } else {
+        result = (a_type_kind)tk_unknown;
+      }  /* if */
       break;
     case eok_base_class_cast:
     case eok_derived_class_cast:
@@ -11425,11 +11430,13 @@ tk_unknown is returned.
     case eok_va_start_single_operand:
       result = (a_type_kind)tk_unknown;
       break;
+    case eok_lvalue:
+    case eok_rvalue:
+      result = (a_type_kind)expr_type->kind;
+      break;
     case eok_static_cast:
     case eok_const_cast:
     case eok_reinterpret_cast:
-    case eok_lvalue:
-    case eok_rvalue:
     case eok_generic_call:
     case eok_generic_member_call:
       result = (a_type_kind)tk_template_param;

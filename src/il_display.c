@@ -1633,7 +1633,7 @@ Display the indicated type entry.
                  iek_class_type_supplement);
       } else {
         disp_name("extra_info");
-        printf("*ERROR (NULL)*\n");
+        printf("**BAD (MISSING) CLASS TYPE SUPPLEMENT**\n");
       }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (ptr->variant.class_struct_union.is_interface) {
