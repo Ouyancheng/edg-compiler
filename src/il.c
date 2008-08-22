@@ -11243,7 +11243,7 @@ to operands of the given type.
   }  /* if */
   if (result == (a_type_kind)tk_class || result == (a_type_kind)tk_union) {
     /* Normalize the type kind to tk_struct for all class types. */
-    result = tk_struct;
+    result = (a_type_kind)tk_struct;
   }  /* if */
   return result;
 }  /* binary_operation_type_kind */
@@ -11449,7 +11449,7 @@ tk_unknown is returned.
   }  /* switch */
   if (result == (a_type_kind)tk_class || result == (a_type_kind)tk_union) {
     /* Normalize the type kind to tk_struct for all class types. */
-    result = tk_struct;
+    result = (a_type_kind)tk_struct;
   }  /* if */
   return result;
 }  /* operation_type_kind */
