@@ -874,28 +874,25 @@ because of remapped variables.
       /* See copy_and_simplify_short_circuited_operation for the
          short-circuited operations. */
       switch (op) {
-        case eok_gt:
-        case eok_lt:
-        case eok_ge:
-        case eok_le:
-          if (!node_operator_type_kind_is(expr, tk_integer)) {
-            /* These operators can have pointer operands, but we do not want
-               to fold those cases. */
-            break;
-          }  /* if */
-          /*FALLTHROUGH*/
-        case eok_eq:
-        case eok_ne:
         case eok_add:
         case eok_subtract:
         case eok_multiply:
         case eok_divide:
         case eok_remainder:
+        case eok_padd:
+        case eok_psubtract:
+        case eok_pdiff:
+        case eok_shiftl:
+        case eok_shiftr:
         case eok_and:
         case eok_or:
         case eok_xor:
-        case eok_shiftl:
-        case eok_shiftr:
+        case eok_eq:
+        case eok_ne:
+        case eok_gt:
+        case eok_lt:
+        case eok_ge:
+        case eok_le:
           /* Avoid folding operations on pointers to data members that haven't
              been lowered into integers yet (because the constant is in the
              file scope).  Test is done for integer/pointer to be conservative
