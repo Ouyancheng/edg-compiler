@@ -4892,35 +4892,35 @@ as the position for any diagnostics issued.
           }  /* switch */
           break;
         case eok_subtract:
-        switch (operation_type_kind) {
-          case tk_integer:
-            do_isubtract(constant_1, constant_2, result, &err_code,
-                    &err_severity);
-            break;
+          switch (operation_type_kind) {
+            case tk_integer:
+              do_isubtract(constant_1, constant_2, result, &err_code,
+                      &err_severity);
+              break;
 #if FIXED_POINT_ALLOWED
-          case tk_fixed_point:
-            do_fxsubtract(constant_1, constant_2, result,
-                     did_not_fold, &err_code, &err_severity);
-            break;
+            case tk_fixed_point:
+              do_fxsubtract(constant_1, constant_2, result,
+                       did_not_fold, &err_code, &err_severity);
+              break;
 #endif /* FIXED_POINT_ALLOWED */
-          case tk_float:
+            case tk_float:
 #if C99_IL_EXTENSIONS_SUPPORTED
-          case tk_imaginary:
+            case tk_imaginary:
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
-            do_fsubtract(constant_1, constant_2, result, &err_code,
-                    &err_severity, &depends_on_fp_mode);
-            break;
+              do_fsubtract(constant_1, constant_2, result, &err_code,
+                      &err_severity, &depends_on_fp_mode);
+              break;
 #if C99_IL_EXTENSIONS_SUPPORTED
-          case tk_complex:
-            do_xsubtract(constant_1, constant_2, result, &err_code,
-                    &err_severity, &depends_on_fp_mode);
-            break;
+            case tk_complex:
+              do_xsubtract(constant_1, constant_2, result, &err_code,
+                      &err_severity, &depends_on_fp_mode);
+              break;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
-          default:
-            unexpected_condition();
-        }  /* switch */
-        break;
-      case eok_multiply:
+            default:
+              unexpected_condition();
+          }  /* switch */
+          break;
+        case eok_multiply:
           switch (operation_type_kind) {
             case tk_integer:
               do_imultiply(constant_1, constant_2, result, &err_code,

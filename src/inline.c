@@ -874,16 +874,20 @@ because of remapped variables.
       /* See copy_and_simplify_short_circuited_operation for the
          short-circuited operations. */
       switch (op) {
-        case eok_add:
-        case eok_subtract:
         case eok_gt:
         case eok_lt:
         case eok_ge:
         case eok_le:
-          if (!node_operator_has_type_kind(expr, tk_integer)) break;
+          if (!node_operator_type_kind_is(expr, tk_integer)) {
+            /* These operators can have pointer operands, but we do not want
+               to fold those cases. */
+            break;
+          }  /* if */
           /*FALLTHROUGH*/
         case eok_eq:
         case eok_ne:
+        case eok_add:
+        case eok_subtract:
         case eok_multiply:
         case eok_divide:
         case eok_remainder:
@@ -921,7 +925,7 @@ because of remapped variables.
           }  /* if */
           break;
         case eok_negate:
-          if (!node_operator_has_type_kind(expr, tk_integer)) break;
+          if (!node_operator_type_kind_is(expr, tk_integer)) break;
           /*FALLTHROUGH*/
         case eok_complement:
         case eok_not:
@@ -953,7 +957,7 @@ because of remapped variables.
       }  /* if */
     } else if ((op == (an_expr_operator_kind)eok_ne ||
                 op == (an_expr_operator_kind)eok_eq) &&
-               node_operator_has_type_kind(expr, tk_pointer)) {
+               node_operator_type_kind_is(expr, tk_pointer)) {
       /* A special case where we can do folding even with a nonconstant
          operand: &variable != 0 is always 1.  The "== 0" case is
          always 0. */
@@ -1069,8 +1073,8 @@ otherwise, do no copying and return FALSE.
       }  /* if */
     }  /* if */
   } else if (is_simple_assignment(op) &&
-             (node_operator_has_type_kind(expr, tk_integer) ||
-              node_operator_has_type_kind(expr, tk_pointer))) {
+             (node_operator_type_kind_is(expr, tk_integer) ||
+              node_operator_type_kind_is(expr, tk_pointer))) {
     /* If this is an assignment to a temporary with special properties
        created previously by inlining, we may be able to do something
        special. */

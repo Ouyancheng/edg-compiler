@@ -2306,7 +2306,7 @@ lowering on the "!= 0" comparison generated, e.g., for complex values.
         { an_expr_node_ptr  op2 = expr->variant.operation.operands->next;
           if (is_imaginary_type(op2->type)) {
             /* Lower the imaginary zero constant. */
-            lower_c99_expr(expr->variant.operation.operands->next);
+            lower_c99_expr(op2);
           }  /* if */
         }
         break;
@@ -2825,7 +2825,7 @@ _Bool type, and VLA types.
 #if LOWER_VARIABLE_LENGTH_ARRAYS
         case tk_pointer:
           if (vla_enabled &&
-              is_vla_type(type_pointed_to(skip_typerefs(expr->type)))) {
+              is_vla_type(type_pointed_to(expr->type))) {
             /* Arithmetic on pointers to VLAs depends on the run-time sizes of
                those VLAs.  Since the VLAs are lowered, the pointer arithmetic
                must be transformed to explicitly include the run-time sizes. */
@@ -2997,7 +2997,7 @@ _Bool type, and VLA types.
                whose final result is a boolean or fixed-point value.  E.g.,
                  _Bool b = 1; b += 2.3;  // Requires normalization
                or
-                 _Accum int acc = 0k; acc += 1.2;
+                 _Accum acc = 0k; acc += 1.2;
             */
             rewrite_compound_assignment(expr);
           }  /* if */

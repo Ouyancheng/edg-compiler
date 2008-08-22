@@ -11196,7 +11196,7 @@ to operands of the given type.
     result = (a_type_kind)tk_template_param;
   } else if (kind1 == (a_type_kind)tk_pointer ||
              kind2 == (a_type_kind)tk_pointer) {
-    result = (a_type_kind)tk_ptr_to_member;
+    result = (a_type_kind)tk_pointer;
   } else if (kind1 == (a_type_kind)tk_ptr_to_member ||
              kind2 == (a_type_kind)tk_ptr_to_member) {
     result = (a_type_kind)tk_ptr_to_member;
@@ -11210,7 +11210,7 @@ to operands of the given type.
     } else {
       check_assertion(kind1 == (a_type_kind)tk_float ||
                       kind2 == (a_type_kind)tk_float);
-      /* A mixed tk_float/tk_imaginary operation.  Addition and substraction
+      /* A mixed tk_float/tk_imaginary operation.  Addition and subtraction
          operators don't actually require addition or subtraction, but the
          assembly of a complex value; so the operation type is recorded as
          tk_complex in that case.  Division by an imaginary number requires a
@@ -11241,6 +11241,10 @@ to operands of the given type.
   } else {
     unexpected_condition();
   }  /* if */
+  if (result == (a_type_kind)tk_class || result == (a_type_kind)tk_union) {
+    /* Normalize the type kind to tk_struct for all class types. */
+    result = tk_struct;
+  }  /* if */
   return result;
 }  /* binary_operation_type_kind */
 
@@ -11248,9 +11252,9 @@ to operands of the given type.
 static a_type_kind operation_type_kind(an_expr_node_ptr  expr)
 /*
 Return the kind of type the given enk_operation node acts on.  This is best
-thought of as an indication the kind of specialized machine register that
+thought of as an indication of the kind of specialized machine register that
 might be used to implement the operation.  E.g., when comparing two integers
-the result is tk_integer, when adding and integer to a pointer the result is
+the result is tk_integer, when adding an integer to a pointer the result is
 tk_pointer, and when adding two vectors of integers the result is tk_vector.
 Many operations don't specifically apply to a particular type kind; for those
 tk_unknown is returned.
@@ -11369,10 +11373,6 @@ tk_unknown is returned.
       break;
     case eok_assign:
       result = skip_typerefs(expr->variant.operation.operands->type)->kind;
-      if (result == (a_type_kind)tk_class || result == (a_type_kind)tk_union) {
-        /* Normalize the type kind to tk_struct for all class types. */
-        result = (a_type_kind)tk_struct;
-      }  /* if */
       break;
     case eok_add_assign:
     case eok_subtract_assign:
@@ -11440,6 +11440,10 @@ tk_unknown is returned.
     default:
       unexpected_condition_str("operation_type_kind: unexpected operation");
   }  /* switch */
+  if (result == (a_type_kind)tk_class || result == (a_type_kind)tk_union) {
+    /* Normalize the type kind to tk_struct for all class types. */
+    result = tk_struct;
+  }  /* if */
   return result;
 }  /* operation_type_kind */
 
@@ -12277,11 +12281,11 @@ to TRUE.  *source_pos gives the source position for errors.
     do_promotion = FALSE;
     switch (op) {
       case eok_negate:
+      case eok_unary_plus:
         { a_type_kind  type_kind = skip_typerefs(type_1)->kind;
           do_promotion = type_kind == (a_type_kind)tk_integer;
         }
         break;
-      case eok_unary_plus:
       case eok_complement:
         do_promotion = TRUE;
         break;
@@ -12444,6 +12448,7 @@ template argument substitution.
 
   switch (op) {
     case eok_negate:
+    case eok_unary_plus:
     case eok_add:
     case eok_subtract:
     case eok_multiply:
@@ -12455,11 +12460,10 @@ template argument substitution.
     case eok_lt:
     case eok_ge:
     case eok_le:
-      is_foldable = node_operator_has_type_kind(expr, tk_integer) ||
-                    node_operator_has_type_kind(expr, tk_template_param);
+      is_foldable = node_operator_type_kind_is(expr, tk_integer) ||
+                    node_operator_type_kind_is(expr, tk_template_param);
       break;
     case eok_address_of:
-    case eok_unary_plus:
     case eok_complement:
     case eok_not:
     case eok_shiftl:
@@ -15038,9 +15042,9 @@ to TRUE if a warning about the expression doing nothing should be suppressed.
          floating-point operation is considered to have side effects. */
       if (!c99_mode) {
         break;
-      } else if (!node_operator_has_type_kind(node, tk_float) &&
-                 !node_operator_has_type_kind(node, tk_complex) &&
-                 !node_operator_has_type_kind(node, tk_imaginary)) {
+      } else if (!node_operator_type_kind_is(node, tk_float) &&
+                 !node_operator_type_kind_is(node, tk_complex) &&
+                 !node_operator_type_kind_is(node, tk_imaginary)) {
         break;
       }  /* if */
 c99_float_operations:
@@ -15812,7 +15816,7 @@ operand.
     case eok_va_copy:
     case eok_va_start_single_operand:
     case eok_bassign:
-    case eok_lvalue:
+    case eok_rvalue:
       takes_lvalue = TRUE;
       break;
     default:
@@ -19199,8 +19203,6 @@ Definition of the bits in lvalue_rvalue_test.
 #define LVRV_DISTINGUISHED_VALUE_FOR_LAST	0xfd
 
 static a_byte lvalue_rvalue_test[(int)eok_last+1] = {
-  /* eok_lvalue: */			LVRV_OPND1_IS_RVALUE,
-  /* eok_rvalue: */			LVRV_OPND1_IS_LVALUE,
   /* eok_address_of: */			LVRV_OPND1_IS_LVALUE,
   /* eok_reference_to: */		LVRV_OPND1_IS_LVALUE,
   /* eok_indirect: */			LVRV_OPND1_IS_RVALUE,
@@ -19348,6 +19350,8 @@ static a_byte lvalue_rvalue_test[(int)eok_last+1] = {
   /* eok_va_copy: */			LVRV_OPND1_IS_LVALUE |
 					LVRV_OPND2_IS_LVALUE,
   /* eok_va_start_single_operand: */	LVRV_OPND1_IS_LVALUE,	
+  /* eok_lvalue: */			LVRV_OPND1_IS_RVALUE,
+  /* eok_rvalue: */			LVRV_OPND1_IS_LVALUE,
   /* eok_static_cast: */		LVRV_OPND1_IS_LVALUE_IF_EXPR_IS,
   /* eok_const_cast: */			LVRV_OPND1_IS_LVALUE_IF_EXPR_IS,
   /* eok_reinterpret_cast: */		LVRV_OPND1_IS_LVALUE_IF_EXPR_IS,

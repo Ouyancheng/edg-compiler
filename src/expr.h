@@ -320,17 +320,17 @@ Macro that is TRUE if the node is an error node.
 	((node)->kind == (an_expr_node_kind)enk_error)
 
 /*
-Return TRUE if the operator in node "node" (which must be an operation
+Return TRUE if the operator in the given node (which must be an operation
 node) is "op".
 */
 #define node_operator_is(node, op)                                      \
   ((node)->variant.operation.kind == (an_expr_operator_kind)(op))
 
 /*
-Return TRUE if the operator in node "node" (which must be an operation node)
-applies to the given type kind.
+Return TRUE if the given node (which must be an operation node) has its
+type_kind field set to the given value.
 */
-#define node_operator_has_type_kind(node, tkind)                    \
+#define node_operator_type_kind_is(node, tkind)                    \
   ((node)->variant.operation.type_kind == (a_type_kind)(tkind))
 
 /*

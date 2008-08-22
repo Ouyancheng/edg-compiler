@@ -592,7 +592,7 @@ that an insertion will be made.
     */
     if (is_operation_node(node) &&
         node->variant.operation.kind == (an_expr_operator_kind)eok_ne &&
-        node_operator_has_type_kind(node, tk_integer)) {
+        node_operator_type_kind_is(node, tk_integer)) {
       a_constant_ptr   con = NULL;
       an_expr_node_ptr first_op = node->variant.operation.operands;
       an_expr_node_ptr second_op = first_op->next;
@@ -10135,7 +10135,7 @@ Lower an eok_bool_cast node, which converts an operand to bool.
 #endif /* DO_C99_IL_LOWERING */
   /* Do not insert code here. */
   if (expr->variant.operation.kind == (an_expr_operator_kind)eok_ne &&
-      node_operator_has_type_kind(expr, tk_ptr_to_member)) {
+      node_operator_type_kind_is(expr, tk_ptr_to_member)) {
     /* For the pointer-to-member case, the comparison must be lowered. */
     mark_as_not_visited(zero_node->variant.constant);
     /* Note that zero_node is not lowered; that allows the subroutine to
@@ -12737,7 +12737,7 @@ cast.  See lower_expr for typical invocation.
                  op == (an_expr_operator_kind)eok_pm_call) {
         /* Calls of various kinds. */
         lower_call(expr, (an_init_pos_descr_ptr)NULL, (a_statement_ptr)NULL);
-      } else if (node_operator_has_type_kind(expr, tk_ptr_to_member) &&
+      } else if (node_operator_type_kind_is(expr, tk_ptr_to_member) &&
                  (op == (an_expr_operator_kind)eok_eq ||
                   op == (an_expr_operator_kind)eok_ne)) {
         /* Lower pointer-to-member comparison before the operands have been
@@ -12845,36 +12845,36 @@ cast.  See lower_expr for typical invocation.
             break;
 #if LOWER_COMPLEX
           case eok_negate:
-            if (node_operator_has_type_kind(expr, tk_complex)) {
+            if (node_operator_type_kind_is(expr, tk_complex)) {
               lower_c99_xnegate(expr);
             }  /*if */
             break;
           case eok_add:
-            if (node_operator_has_type_kind(expr, tk_complex)) {
+            if (node_operator_type_kind_is(expr, tk_complex)) {
               lower_c99_xadd(expr);
             }  /*if */
             break;
           case eok_subtract:
-            if (node_operator_has_type_kind(expr, tk_complex)) {
+            if (node_operator_type_kind_is(expr, tk_complex)) {
               lower_c99_xsubtract(expr);
             }  /*if */
             break;
           case eok_multiply:
-            if (node_operator_has_type_kind(expr, tk_complex)) {
+            if (node_operator_type_kind_is(expr, tk_complex)) {
               lower_c99_xmultiply(expr);
             }  /*if */
           case eok_divide:
-            if (node_operator_has_type_kind(expr, tk_complex)) {
+            if (node_operator_type_kind_is(expr, tk_complex)) {
               lower_c99_xdivide(expr);
             }  /*if */
             break;
           case eok_eq:
-            if (node_operator_has_type_kind(expr, tk_complex)) {
+            if (node_operator_type_kind_is(expr, tk_complex)) {
               lower_c99_xeq(expr);
             }  /*if */
             break;
           case eok_ne:
-            if (node_operator_has_type_kind(expr, tk_complex)) {
+            if (node_operator_type_kind_is(expr, tk_complex)) {
               lower_c99_xne(expr);
             }  /*if */
             break;
@@ -12958,7 +12958,7 @@ cast.  See lower_expr for typical invocation.
                 break;
               }  /* if */
             }  /* if */
-          /*FALLTHROUGH*/
+            /*FALLTHROUGH*/
           case eok_pre_decr:
           case eok_post_decr:
 #if LOWER_VARIABLE_LENGTH_ARRAYS
@@ -13003,10 +13003,11 @@ cast.  See lower_expr for typical invocation.
                  run-time sizes. */
               lower_vla_pointer_integer_arithmetic(expr);
             }  /* if */
-            if (op != (an_expr_operator_kind)eok_padd_assign) {
+            if (op != (an_expr_operator_kind)eok_padd_assign &&
+                op != (an_expr_operator_kind)eok_psubtract_assign) {
               /* An eok_padd_assign operation of the form "bool_val += ptr"
                  needs a different transformation handled by the fall-through
-                 code. */
+                 code.  The same applies to eok_padd_subtract. */
               break;
             }  /* if */
             /*FALLTHROUGH*/
@@ -13026,7 +13027,7 @@ cast.  See lower_expr for typical invocation.
                  must be lowered to get the value reduced to 0/1. */
               rewrite_compound_assignment(expr);
 #if LOWER_COMPLEX
-            } else if (node_operator_has_type_kind(expr, tk_complex)) {
+            } else if (node_operator_type_kind_is(expr, tk_complex)) {
               rewrite_compound_assignment(expr);
 #endif /* LOWER_COMPLEX */
             }  /* if */

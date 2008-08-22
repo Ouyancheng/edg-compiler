@@ -9099,14 +9099,6 @@ enum an_expr_operator_kind_tag {
      in this file, lvalue_rvalue_test in il.c, disp_expr_operator_name in
      il_display.c, and generated_precedence in cp_gen_be.c. */
   /* The following have 1 operand: */
-  eok_lvalue,           /* Indicates that the operand (marked as an rvalue,
-                           but really something with unknown lvalueness) is
-                           to be used as if it were an lvalue.  The eok_lvalue
-                           node itself is marked as an lvalue. */
-  eok_rvalue,           /* Indicates that the operand (marked as an lvalue,
-                           but really something with unknown lvalueness) is
-                           to be used as if it were an rvalue.  The eok_rvalue
-                           node itself is marked as an rvalue. */
   eok_address_of,	/* Address-of operator ("&"). */
   eok_reference_to,	/* Turns an lvalue into a reference, i.e., the
 			   reference equivalent of eok_address_of. */
@@ -9180,12 +9172,13 @@ enum an_expr_operator_kind_tag {
   eok_not,              /* Logical complement ("!" operator).  Operand has been
                            standardized to integer/boolean. */
 #if GNU_COMPLEX_EXTENSIONS_ALLOWED
-  eok_xconj,            /* Complex conjugation operator. */
+  eok_xconj,            /* Complex conjugation ("~") operator. */
   eok_real_part,        /* Produce the real part of a complex number.  The
-                           operand is an lvalue or rvalue of complex type. */
-  eok_imag_part,        /* Produce the imaginary part of a complex number.
-                           The operand is an lvalue or rvalue of complex
-                           type. */
+			   operand is an lvalue or rvalue of complex type.
+			   (This is the GNU "__real" operator.) */
+  eok_imag_part,        /* Produce the imaginary part of a complex number.  The
+			   operand is an lvalue or rvalue of complex type.
+			   (This is the GNU "__imag" operator.) */
 #endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
   eok_post_incr,        /* Post increment. */
   eok_post_decr,        /* Post decrement. */
@@ -9205,10 +9198,10 @@ enum an_expr_operator_kind_tag {
   eok_divide,		/* Division.  Not used to represent the division of a
 			   real value by an _Imaginary value in C99 mode (see
 			   eok_jdivide). */
-  eok_remainder,        /* ("%" operator) */
+  eok_remainder,        /* "%" operator. */
 #if C99_IL_EXTENSIONS_SUPPORTED
-  eok_jmultiply,        /* Imaginary multiplication.  Imaginary times
-                           imaginary gives a real result. */
+  eok_jmultiply,        /* Multiplication of two imaginary values.  The result
+			   is real (i.e., non-imaginary). */
   eok_jdivide,          /* Division of real by imaginary gives an
                            imaginary result with a sign change. */
   eok_fjadd,            /* Real + imaginary, produces complex. */
@@ -9231,16 +9224,16 @@ enum an_expr_operator_kind_tag {
   eok_and,              /* Bitwise and ("&" operator). */
   eok_or,               /* Bitwise or ("|" operator). */
   eok_xor,              /* Exclusive or ("^" operator). */
-  eok_eq,               /* Equality. */
-  eok_ne,               /* Inequality. */
-  eok_gt,               /* Greater than. */
-  eok_lt,               /* Less than. */
-  eok_ge,               /* Greater than or equal. */
-  eok_le,               /* Less than or equal. */
-  eok_gnu_min,          /* Minimum operator (a GNU C++ extension).  Operands
-                           and result may be lvalues or rvalues. */
-  eok_gnu_max,          /* Maximum operator (a GNU C++ extension).  Operands
-                           and result may be lvalues or rvalues. */
+  eok_eq,               /* Equality ("=="). */
+  eok_ne,               /* Inequality ("!="). */
+  eok_gt,               /* Greater than (">"). */
+  eok_lt,               /* Less than ("<"). */
+  eok_ge,               /* Greater than or equal (">="). */
+  eok_le,               /* Less than or equal ("<= */
+  eok_gnu_min,          /* Minimum operator ("<?", a GNU C++ extension).
+			   Operands and result may be lvalues or rvalues. */
+  eok_gnu_max,          /* Maximum operator (">?", a GNU C++ extension).
+			   Operands and result may be lvalues or rvalues. */
   eok_assign,           /* Assignment.  For struct assignments (i.e., when the
 			   associated operation type kind is tk_struct), the
 			   meaning wrt. tail padding depends on the IL kind.
@@ -9252,27 +9245,23 @@ enum an_expr_operator_kind_tag {
 			   should copy nothing).  In lowered C++ IL or in C,
 			   this means just a normal C struct copy, which copies
 			   sizeof(struct) bytes. */
-  eok_add_assign,       /* Add assign operator. */
-  eok_subtract_assign,  /* Subtract assign operator. */
-  eok_multiply_assign,  /* Multiply assign operator. */
-  eok_divide_assign,    /* Divide assign operator. */
-  eok_remainder_assign, /* Remainder assign operator. */
-#if FIXED_POINT_ALLOWED
-  /* The left operand of a shift expression may have an integral or fixed-point
-     type. */
-#endif /* FIXED_POINT_ALLOWED */
-  eok_shiftl_assign,    /* Left shift assign operator.  The first operand may
-			   have integral or fixed-point type; the second
-			   operand always has integral type. */
-  eok_shiftr_assign,    /* Right shift assign operator.  The first operand may
-			   have integral or fixed-point type; the second
-			   operand always has integral type. */
-  eok_and_assign,       /* Bitwise and assign operator. */
-  eok_or_assign,        /* Bitwise or assign operator. */
-  eok_xor_assign,       /* Exclusive or assign operator. */
-  eok_padd_assign,      /* Pointer add assign operator.  In unlowered IL,
-                           one strange case is bool += pointer. */
-  eok_psubtract_assign, /* Pointer subtract assign operator. */
+  eok_add_assign,       /* Add assign operator ("+="). */
+  eok_subtract_assign,  /* Subtract assign operator ("-="). */
+  eok_multiply_assign,  /* Multiply assign operator ("*=". */
+  eok_divide_assign,    /* Divide assign operator ("/="). */
+  eok_remainder_assign, /* Remainder assign operator ("%="). */
+  eok_shiftl_assign,    /* Left shift assign operator ("<<=").  The first
+			   operand may have integral or fixed-point type; the
+			   second operand always has integral type. */
+  eok_shiftr_assign,    /* Right shift assign operator (">>=").  The first
+			   operand may have integral or fixed-point type; the
+			   second operand always has integral type. */
+  eok_and_assign,       /* Bitwise and assign operator ("&="). */
+  eok_or_assign,        /* Bitwise or assign operator ("|="). */
+  eok_xor_assign,       /* Exclusive or assign operator ("^="). */
+  eok_padd_assign,      /* Pointer add assign operator ("+=").  In unlowered
+			   IL, one strange case is bool += pointer. */
+  eok_psubtract_assign, /* Pointer subtract assign operator ("-="). */
   eok_bassign,		/* Block assignment.  Only used in C++ after IL
 			   lowering, for copy constructors etc.  Both the
 			   source and destination are lvalues; does a memcpy
@@ -9281,7 +9270,7 @@ enum an_expr_operator_kind_tag {
                            to integer/boolean ("&&" operator) */
   eok_lor,              /* Logical union, with the operand standardized
                            to integer/boolean ("||" operator) */
-  eok_comma,            /* The comma operator. */
+  eok_comma,            /* The comma operator (","). */
   eok_subscript,	/* Subscripting operation.  The operands are the
 			   pointer to the first element of the array and the
 			   integral subscript value, in either order. */
@@ -9370,9 +9359,17 @@ enum an_expr_operator_kind_tag {
 			   operand.  This is typically used to implement the
 			   <varargs.h> variant of va_start (as opposed to the
 			   variant from <stdarg.h>). */
-  /* Operators appearing in prototype instantiations.  These describe the
-     syntactic appearance of constructs that would map to other operators
+  /* Operators appearing in prototype instantiations.  These typically describe
+     the syntactic appearance of constructs that would map to other operators
      (above) if precise type information were known. */
+  eok_lvalue,           /* Indicates that the operand (marked as an rvalue,
+                           but really something with unknown lvalueness) is
+                           to be used as if it were an lvalue.  The eok_lvalue
+                           node itself is marked as an lvalue. */
+  eok_rvalue,           /* Indicates that the operand (marked as an lvalue,
+                           but really something with unknown lvalueness) is
+                           to be used as if it were an rvalue.  The eok_rvalue
+                           node itself is marked as an rvalue. */
   eok_static_cast,      /* Generic static_cast from the source. */
   eok_const_cast,       /* Generic const_cast from the source. */
   eok_reinterpret_cast, /* Generic reinterpret_cast from the source. */
@@ -9767,9 +9764,16 @@ typedef struct an_expr_node {
 			   tk_vector.  This may differ from the "kind" of the
 			   result type, and the "kind" of an operand type.
 			   For operations that don't act on a specific type
-			   (e.g., eok_cast) it is tk_unknown.  For template-
+			   (e.g., eok_call) it is tk_unknown.  For template-
 			   dependent operations, it is often tk_template_param
-			   (but it may be tk_unknown). */
+			   (but it may be tk_unknown).  For operations on
+			   imaginary values, it is tk_imaginary only if the
+			   operation is materially different from the
+			   corresponding real floating-point operation (e.g.,
+			   imag-imag and imag*real are tk_float, but imag*imag
+			   is tk_imaginary).  For operations on class types
+			   this field is always tk_struct (not tk_class or
+			   tk_union). */
       a_bit_field
 		returns_lvalue_instead_of_usual_rvalue:1;
 			/* TRUE if the operation is an assignment (simple or
@@ -12092,8 +12096,7 @@ EXTERN an_il_header il_header;
 /* Table of debug names for expression operators. */
 EXTERN char     *db_operator_names[(int)eok_last+1]
 #if VAR_INITIALIZERS
-= {"lvalue", "rvalue",
-   "&", "ref-&", "*", "ref-*",
+= {"&", "ref-&", "*", "ref-*",
    "cast", "lvalue cast",
    "base class cast", "derived class cast",
    "pm base class cast", "pm derived class cast",
@@ -12107,7 +12110,7 @@ EXTERN char     *db_operator_names[(int)eok_last+1]
 #if GNU_COMPLEX_EXTENSIONS_ALLOWED
    "x~", "__real", "__imag",
 #endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
-   "v++", "v--", "++v", "--v",
+   "pre ++", "pre --", "post ++", "post --",
    "+", "-", "*", "/", "%",
 #if C99_IL_EXTENSIONS_SUPPORTED
    "j*", "j/", "fj+", "jf+", "fj-", "jf-",
@@ -12127,7 +12130,8 @@ EXTERN char     *db_operator_names[(int)eok_last+1]
    "call",
    "virtcall",
    "pmcall",
-   "va_start", "va_arg", "va_end", "va_copy", "va_start",
+   "va_start", "va_arg", "va_end", "va_copy", "va_start (single op)",
+   "lvalue", "rvalue",
    "static cast", "const cast", "reinterpret cast",
    "Gcall", "GMcall",
    "error", "last"

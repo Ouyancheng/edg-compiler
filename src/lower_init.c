@@ -5789,7 +5789,7 @@ static a_routine_ptr
 
 void rewrite_class_assignment_if_necessary(an_expr_node_ptr expr)
 /*
-expr is an struct assignment.  It's defined to do what the C++ generated
+expr is a struct assignment.  It's defined to do what the C++ generated
 bitwise operator= would do, which is copy the data of the class but not any
 tail padding.  If a C structure assignment would copy too much, replace the
 assignment with the proper operation.  For an empty class, eliminate the copy
@@ -5879,7 +5879,7 @@ If the assignment is to a subobject, alter the assignment appropriately.
 
   assign_node = make_assignment_expr(dest_node, op, source_node);
   if (!have_complete_object &&
-      node_operator_has_type_kind(assign_node, tk_struct)) {
+      node_operator_type_kind_is(assign_node, tk_struct)) {
     /* Fix subobject assignments. */
     rewrite_class_assignment_if_necessary(assign_node);
   }  /* if */

@@ -6771,10 +6771,6 @@ it happens in prototype instantiations.  op is the operator to be used.
   if (curr_expr_kind_is_const()) {
     do_constant_generic_operand_transformations(operand_1);
     do_constant_generic_operand_transformations(operand_2);
-    /* In a constant expression, only operations on integral types are
-       allowed on operands involving template parameter types, so
-       switch to the integral version of the generic operator if
-       there is one. */
     known_not_overloaded = TRUE;
   } else {
     /* The current expression is not a constant expression. */
@@ -6902,8 +6898,7 @@ This routine is a wrapper for do_unary_operation for the case where
 an expression is being built from an operand whose type is based
 on template parameter types.  When the current expression kind is
 constant, this can happen in nontype template arguments.  Otherwise,
-it happens in prototype instantiations.  op is the generic operator to
-be used.
+it happens in prototype instantiations.  op is the operator to be used.
 */
 {
   a_type_ptr result_type = type_of_unknown_templ_param_nontype;

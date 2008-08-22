@@ -4562,14 +4562,15 @@ there's some possibility of precedence confusion and need_parens is TRUE.
 #if !C_GEN_BE_GENERATES_ANSI_C
           /* If the second operand is a constant 0, put out the division as
              "op1 / (0, 0)" to avoid an error from pcc. */
-          if (expr_is_zero_constant(operand_2)) {
+          if (node_operator_type_kind_is(expr, tk_integer) &&
+              expr_is_zero_constant(operand_2)) {
             dump_expr_with_parens(operand_1);
             write_tok_str(" / (0,0)");
             goto done_with_binary_operation;
           }  /* if */
-          /*FALLTHROUGH*/
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
 #if C99_IL_EXTENSIONS_SUPPORTED
+          /*FALLTHROUGH*/
         case eok_jdivide:
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
           opstr = "/";
@@ -4599,19 +4600,19 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           opstr = "!=";
           break;
         case eok_gt:
-          pointer_comparison = node_operator_has_type_kind(expr, tk_pointer);
+          pointer_comparison = node_operator_type_kind_is(expr, tk_pointer);
           opstr = ">";
           break;
         case eok_lt:
-          pointer_comparison = node_operator_has_type_kind(expr, tk_pointer);
+          pointer_comparison = node_operator_type_kind_is(expr, tk_pointer);
           opstr = "<";
           break;
         case eok_ge:
-          pointer_comparison = node_operator_has_type_kind(expr, tk_pointer);
+          pointer_comparison = node_operator_type_kind_is(expr, tk_pointer);
           opstr = ">=";
           break;
         case eok_le:
-          pointer_comparison = node_operator_has_type_kind(expr, tk_pointer);
+          pointer_comparison = node_operator_type_kind_is(expr, tk_pointer);
           opstr = "<=";
           break;
         case eok_assign:

@@ -475,8 +475,6 @@ a given operator may be generated in different forms, this table should
 reflect the one with the lowest precedence.
 */
 static a_byte generated_precedence[(int)eok_last+1] = {
-  PREC_LOWEST,		/* eok_lvalue */
-  PREC_LOWEST,		/* eok_rvalue */
   PREC_PREFIX,		/* eok_address_of */
   PREC_LOWEST,		/* eok_reference_to */
   PREC_PREFIX,		/* eok_indirect */
@@ -578,6 +576,8 @@ static a_byte generated_precedence[(int)eok_last+1] = {
   PREC_POSTFIX,		/* eok_va_end */
   PREC_POSTFIX,		/* eok_va_copy */
   PREC_POSTFIX,		/* eok_va_start_single_operand */
+  PREC_LOWEST,		/* eok_lvalue */
+  PREC_LOWEST,		/* eok_rvalue */
   PREC_POSTFIX,		/* eok_static_cast */
   PREC_POSTFIX,		/* eok_const_cast */
   PREC_POSTFIX,		/* eok_reinterpret_cast */

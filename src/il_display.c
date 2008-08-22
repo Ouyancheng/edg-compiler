@@ -1328,13 +1328,13 @@ Return a string corresponding to the indicated type kind.
       str = "tk_error";
       break;
     case tk_unknown:
-      str = "tk_error";
+      str = "tk_unknown";
       break;
     case tk_void:
-      str = "tk_error";
+      str = "tk_void";
       break;
     case tk_integer:
-      str = "tk_error";
+      str = "tk_integer";
       break;
 #if FIXED_POINT_ALLOWED
     case tk_fixed_point:
@@ -1631,6 +1631,9 @@ Display the indicated type entry.
         disp_ptr("extra_info",
                  (char *)ptr->variant.class_struct_union.extra_info,
                  iek_class_type_supplement);
+      } else {
+        disp_name("extra_info");
+        printf("*ERROR (NULL)*\n");
       }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (ptr->variant.class_struct_union.is_interface) {
@@ -2963,10 +2966,8 @@ Display the name of an expression operator.
     case eok_reference_to:      s = "eok_reference_to";           break;
     case eok_indirect:          s = "eok_indirect";               break;
     case eok_ref_indirect:      s = "eok_ref_indirect";           break;
-    case eok_negate:            s = "eok_negate";                 break;
-    case eok_unary_plus:        s = "eok_unary_plus";             break;
-    case eok_not:               s = "eok_not";                    break;
     case eok_cast:              s = "eok_cast";                   break;
+    case eok_lvalue_cast:       s = "eok_lvalue_cast";            break;
     case eok_base_class_cast:   s = "eok_base_class_cast";        break;
     case eok_derived_class_cast:
                                 s = "eok_derived_class_cast";     break;
@@ -2974,27 +2975,54 @@ Display the name of an expression operator.
                                 s = "eok_pm_base_class_cast";     break;
     case eok_pm_derived_class_cast:
                                 s = "eok_pm_derived_class_cast";  break;
-    case eok_lvalue_cast:       s = "eok_lvalue_cast";            break;
     case eok_dynamic_cast:      s = "eok_dynamic_cast";           break;
     case eok_bool_cast:         s = "eok_bool_cast";              break;
+    case eok_lvalue_from_struct_rvalue:
+                                s = "eok_lvalue_from_struct_rvalue";break;
+    case eok_array_to_pointer:  s = "eok_array_to_pointer";       break;
+    case eok_dot_vacuous_destructor_call:
+                                s = "eok_dot_vacuous_destructor_call";
+                                                                  break;
+    case eok_points_to_vacuous_destructor_call:
+                                s = "eok_points_to_vacuous_destructor_call";
+                                                                  break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case eok_assume:            s = "eok_assume";                 break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case eok_negate:            s = "eok_negate";                 break;
+    case eok_unary_plus:        s = "eok_unary_plus";             break;
     case eok_complement:        s = "eok_complement";             break;
+    case eok_not:               s = "eok_not";                    break;
+#if GNU_COMPLEX_EXTENSIONS_ALLOWED
+    case eok_xconj:             s = "eok_xconj";                  break;
+    case eok_real_part:         s = "eok_real_part";              break;
+    case eok_imag_part:         s = "eok_imag_part";              break;
+#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
     case eok_post_incr:         s = "eok_post_incr";              break;
     case eok_post_decr:         s = "eok_post_decr";              break;
     case eok_pre_incr:          s = "eok_pre_incr";               break;
     case eok_pre_decr:          s = "eok_pre_decr";               break;
-    case eok_lvalue_from_struct_rvalue:
-                                s = "eok_lvalue_from_struct_rvalue";break;
-    case eok_array_to_pointer:  s = "eok_array_to_pointer";       break;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    case eok_assume:            s = "eok_assume";                 break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case eok_add:               s = "eok_add";                    break;
     case eok_subtract:          s = "eok_subtract";               break;
     case eok_multiply:          s = "eok_multiply";               break;
     case eok_divide:            s = "eok_divide";                 break;
     case eok_remainder:         s = "eok_remainder";              break;
+#if C99_IL_EXTENSIONS_SUPPORTED
+    case eok_jmultiply:         s = "eok_jmultiply";              break;
+    case eok_jdivide:           s = "eok_jdivide";                break;
+    case eok_fjadd:             s = "eok_fjadd";                  break;
+    case eok_jfadd:             s = "eok_jfadd";                  break;
+    case eok_fjsubtract:        s = "eok_fjsubtract";             break;
+    case eok_jfsubtract:        s = "eok_jfsubtract";             break;
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+    case eok_padd:              s = "eok_padd";                   break;
+    case eok_psubtract:         s = "eok_psubtract";              break;
+    case eok_pdiff:             s = "eok_pdiff";                  break;
     case eok_shiftl:            s = "eok_shiftl";                 break;
     case eok_shiftr:            s = "eok_shiftr";                 break;
+    case eok_and:               s = "eok_and";                    break;
+    case eok_or:                s = "eok_or";                     break;
+    case eok_xor:               s = "eok_xor";                    break;
     case eok_eq:                s = "eok_eq";                     break;
     case eok_ne:                s = "eok_ne";                     break;
     case eok_gt:                s = "eok_gt";                     break;
@@ -3014,25 +3042,12 @@ Display the name of an expression operator.
     case eok_and_assign:        s = "eok_and_assign";             break;
     case eok_or_assign:         s = "eok_or_assign";              break;
     case eok_xor_assign:        s = "eok_xor_assign";             break;
-#if C99_IL_EXTENSIONS_SUPPORTED
-    case eok_jmultiply:         s = "eok_jmultiply";              break;
-    case eok_jdivide:           s = "eok_jdivide";                break;
-    case eok_fjadd:             s = "eok_fjadd";                  break;
-    case eok_jfadd:             s = "eok_jfadd";                  break;
-    case eok_fjsubtract:        s = "eok_fjsubtract";             break;
-    case eok_jfsubtract:        s = "eok_jfsubtract";             break;
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-#if GNU_COMPLEX_EXTENSIONS_ALLOWED
-    case eok_xconj:             s = "eok_xconj";                  break;
-    case eok_real_part:         s = "eok_real_part";              break;
-    case eok_imag_part:         s = "eok_imag_part";              break;
-#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
-    case eok_padd:              s = "eok_padd";                   break;
-    case eok_psubtract:         s = "eok_psubtract";              break;
-    case eok_pdiff:             s = "eok_pdiff";                  break;
-    case eok_bassign:           s = "eok_bassign";                break;
     case eok_padd_assign:       s = "eok_padd_assign";            break;
     case eok_psubtract_assign:  s = "eok_psubtract_assign";       break;
+    case eok_bassign:           s = "eok_bassign";                break;
+    case eok_land:              s = "eok_land";                   break;
+    case eok_lor:               s = "eok_lor";                    break;
+    case eok_comma:             s = "eok_comma";                  break;
     case eok_subscript:         s = "eok_subscript";              break;
     case eok_dot_field:         s = "eok_dot_field";              break;
     case eok_points_to_field:   s = "eok_points_to_field";        break;
@@ -3040,20 +3055,8 @@ Display the name of an expression operator.
     case eok_pm_points_to_field:s = "eok_pm_points_to_field";     break;
     case eok_dot_static:        s = "eok_dot_static";             break;
     case eok_points_to_static:  s = "eok_points_to_static";       break;
-    case eok_and:               s = "eok_and";                    break;
-    case eok_or:                s = "eok_or";                     break;
-    case eok_xor:               s = "eok_xor";                    break;
-    case eok_comma:             s = "eok_comma";                  break;
     case eok_virtual_function_ptr:
                                 s = "eok_virtual_function_ptr";   break;
-    case eok_dot_vacuous_destructor_call:
-                                s = "eok_dot_vacuous_destructor_call";
-                                                                  break;
-    case eok_points_to_vacuous_destructor_call:
-                                s = "eok_points_to_vacuous_destructor_call";
-                                                                  break;
-    case eok_land:              s = "eok_land";                   break;
-    case eok_lor:               s = "eok_lor";                    break;
     case eok_question:          s = "eok_question";               break;
     case eok_call:              s = "eok_call";                   break;
     case eok_virtual_call:      s = "eok_virtual_call";           break;
@@ -3065,11 +3068,11 @@ Display the name of an expression operator.
     case eok_va_start_single_operand:
                                 s = "eok_va_start_single_operand";
                                                                   break;
+    case eok_lvalue:            s = "eok_lvalue";                 break;
+    case eok_rvalue:            s = "eok_rvalue";                 break;
     case eok_static_cast:       s = "eok_static_cast";            break;
     case eok_const_cast:        s = "eok_const_cast";             break;
     case eok_reinterpret_cast:  s = "eok_reinterpret_cast";       break;
-    case eok_lvalue:            s = "eok_lvalue";                 break;
-    case eok_rvalue:            s = "eok_rvalue";                 break;
     case eok_generic_call:      s = "eok_generic_call";           break;
     case eok_generic_member_call:
 				s = "eok_generic_member_call";    break;
