@@ -250,7 +250,7 @@ typedef a_seq_number a_stmt_source_position;
 
 /* Type of a scope nesting depth.  This is the depth within the scope_stack. */
 /* Defined here (instead of the more obvious symbol_tbl.h) to avoid mutual
-   mutual dependency problems. */
+   dependency problems. */
 typedef int	a_scope_depth;
 
 #define NO_SCOPE_DEPTH (-1)
