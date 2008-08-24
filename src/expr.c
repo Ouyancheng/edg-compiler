@@ -1901,9 +1901,6 @@ when appropriate -- evaluates a pseudo-call to the built-in function.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   result_op->end_position = pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  /* We do not record the pseudo-call expression in the constant because the
-     IL currently has no way to distinguish lvalue arguments from rvalue
-     arguments. */
   (void)required_token(tok_rparen, ec_exp_rparen);
   remove_matching_stop_token(tok_rparen);
 }  /* scan_gnu_builtin_pseudo_call */
