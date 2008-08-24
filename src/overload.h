@@ -513,6 +513,9 @@ extern void selector_match_with_this_param(
                                a_type_ptr           this_param_type,
                                an_arg_match_summary *arg_summary);
 
+extern
+a_boolean is_template_dependent_indefinite_function(an_operand *operand);
+
 extern a_symbol_ptr select_overloaded_function(
                          a_symbol_ptr             overloaded_function_symbol,
                          a_boolean                is_template_id,

@@ -21039,6 +21039,8 @@ arg_operand entry.
 
   if (is_template_param_constant_operand(operand)) {
     contains_template_param = TRUE;
+  } else if (is_template_dependent_indefinite_function(operand)) {
+    contains_template_param = TRUE;
   } else if (is_an_lvalue(operand) &&
              (con = value_of_constant_var_lvalue_operand(operand)) != NULL) {
     /* A const variable with a dependent initializer is considered

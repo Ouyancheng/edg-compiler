@@ -5452,7 +5452,7 @@ end_of_function:
 }  /* any_function_has_dependent_param_or_default_arg */
 
 
-static a_boolean is_template_dependent_indefinite_function(an_operand *operand)
+a_boolean is_template_dependent_indefinite_function(an_operand *operand)
 /*
 Return TRUE if the indicated operand is a template-dependent indefinite
 function.
