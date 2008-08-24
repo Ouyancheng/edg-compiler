@@ -14177,15 +14177,25 @@ see conversion_to_class_possible.
                                     &local_conversion)) {
     an_operand orig_operand;
     orig_operand = *source_operand;
-    /* Yes.  Build an enk_temp_init node and a dynamic init entry that
-       will initialize the temporary.  The temporary's address is passed
-       to the called routine. */
-    determine_dynamic_init_for_class_init(source_operand, param_type,
-                                          conversion, (a_conv_descr *)NULL,
-                                          /*fill_in_dtor=*/TRUE,
-                                          &dip, &temp_init_node);
-    make_lvalue_expression_operand(temp_init_node, source_operand);
-    restore_operand_details(source_operand, &orig_operand);
+    if (is_abstract_class_type(param_type)) {
+      /* The type is an abstract class type, so a parameter of the type
+         cannot be passed.  This is usually caught when the parameter
+         declaration is handled, but some modes allow such declarations
+         by with a warning. */
+      report_abstract_class(es_error, ec_abstract_class_param_type,
+                            param_type, &source_operand->position);
+      conv_to_error_operand(source_operand);
+    } else {
+     /* Build an enk_temp_init node and a dynamic init entry that
+         will initialize the temporary.  The temporary's address is passed
+         to the called routine. */
+      determine_dynamic_init_for_class_init(source_operand, param_type,
+                                            conversion, (a_conv_descr *)NULL,
+                                            /*fill_in_dtor=*/TRUE,
+                                            &dip, &temp_init_node);
+      make_lvalue_expression_operand(temp_init_node, source_operand);
+      restore_operand_details(source_operand, &orig_operand);
+    }  /* if */
     rule_out_expr_kinds(ROEK_CONSTANT, source_operand);
   }  /* if */
 }  /* prep_arg_passed_via_copy_constructor */
