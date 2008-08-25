@@ -14619,12 +14619,13 @@ rest.
   op1->next = au_field_node;
   new_op1 = make_operator_node(node->variant.operation.kind,
                                new_selection_type, op1);
-  /* Assign appropriate lvalueness to new node. */
+  /* Assign appropriate lvalueness to the new node. */
   if (op == (an_expr_operator_kind)eok_dot_field) {
     new_op1->is_lvalue = op1->is_lvalue;
   } else {
     new_op1->is_lvalue = TRUE;
   }  /* if */
+  new_op1->variant.operation.compiler_generated = TRUE;
   /* Attach the new selection to the original selection. */
   new_op1->next = op2;
   node->variant.operation.operands = new_op1;
