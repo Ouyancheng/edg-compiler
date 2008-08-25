@@ -4925,7 +4925,7 @@ copy_constant_full should be called to start a copy.
             old_constant_pointed_to->variant.string.sequence_number != 0) {
           /* Rewrite a string literal with sequence_number != 0 as a
              static variable. */
-           rewrite_address_of_string_as_address_of_variable(new_constant);
+          rewrite_address_of_string_as_address_of_variable(new_constant);
         } else
 #endif /* DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
         /* Do not insert code here. */
