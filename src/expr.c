@@ -3520,19 +3520,10 @@ qualified_name_check:
                                                  access_control_error_reported,
                                            /*do_protected_member_check=*/TRUE,
                                            &member_position);
-          if (curr_expr_kind_is(ek_init_constant) &&
-              (local_options & EOPT_OPERAND_OF_ADDRESS_OF) &&
-              member_sym->variant.field.ptr->is_bit_field) {
-            /* Can't take the address of a bit field.  This is checked
-               specially to get a better error message. */
-            pos_error(ec_address_of_bit_field, &member_position);
-            make_error_operand(result);
-          } else {
-            do_field_selection_operation(operand_1,
-                                         orig_class_struct_union_type,
-                                         is_arrow_operator, is_lvalue,
-                                         member_sym, rep, result);
-          }  /* if */
+          do_field_selection_operation(operand_1,
+                                       orig_class_struct_union_type,
+                                       is_arrow_operator, is_lvalue,
+                                       member_sym, rep, result);
           break;
         case sk_static_data_member:
           /* Static data member reference. */
