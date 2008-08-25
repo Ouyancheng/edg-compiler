@@ -15802,6 +15802,8 @@ operand.
   a_boolean takes_lvalue;
 
   switch (op) {
+    case eok_address_of:
+    case eok_reference_to:
     case eok_lvalue_cast:
     case eok_assign:
     case eok_add_assign:
