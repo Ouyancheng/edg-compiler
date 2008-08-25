@@ -6841,10 +6841,10 @@ even though calls actually always use the rvalue form.
       routine = con->variant.address.variant.routine;
     }  /* if */
   } else {
-    while (is_operation_node(expr) && node_operator_is(expr, eok_address_of)) {
+    if (is_operation_node(expr) && node_operator_is(expr, eok_address_of)) {
       /* Remove "&" if present. */
       expr = expr->variant.operation.operands;
-    }  /* while */
+    }  /* if */
     if (is_routine_node(expr)) {
       routine = expr->variant.routine;
     }  /* if */
@@ -14501,9 +14501,10 @@ an_expr_node_ptr field_lvalue_selection_expr(an_expr_node_ptr node,
 Make an expression for an lvalue reference to field "field" of "node" and
 return a pointer to it.  "node" is either a class lvalue, in which case the
 operator is ".", or a pointer to class, in which case the operator is "->".
-Note that this does NOT add extra intermediate selections for anonymous unions
-(either standard or nonstandard).  Within the front end proper, use
-fe_field_lvalue_selection_expr instead.
+This is intended for generated code and not for the source "." or "->"
+operators.  Note that this does NOT add extra intermediate selections for
+anonymous unions (either standard or nonstandard).  Within the front end
+proper, use fe_field_lvalue_selection_expr instead.
 */
 {
   an_expr_operator_kind op;
@@ -14557,9 +14558,10 @@ an_expr_node_ptr field_rvalue_selection_expr(an_expr_node_ptr node,
 /*
 Make an expression for an rvalue reference to field "field" of "node" and
 return a pointer to it.  "node" is a class rvalue, and the operator used is
-".".  Note that this does NOT add extra intermediate selections for anonymous
-unions (either standard or nonstandard).  Within the front end proper, use
-fe_field_rvalue_selection_expr instead.
+".".  This is intended for generated code, and not for the source "."
+operator.  Note that this does NOT add extra intermediate selections for
+anonymous unions (either standard or nonstandard).  Within the front end
+proper, use fe_field_rvalue_selection_expr instead.
 */
 {
   /* Make the expression node for an lvalue reference. */
