@@ -14182,8 +14182,8 @@ see conversion_to_class_possible.
          cannot be passed.  This is usually caught when the parameter
          declaration is handled, but some modes allow such declarations
          by with a warning. */
-      report_abstract_class(es_error, ec_abstract_class_param_type,
-                            param_type, &source_operand->position);
+      abstract_class_diagnostic(es_error, ec_abstract_class_param_type,
+                                param_type, &source_operand->position);
       conv_to_error_operand(source_operand);
     } else {
      /* Build an enk_temp_init node and a dynamic init entry that

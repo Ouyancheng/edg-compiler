@@ -6744,8 +6744,8 @@ diagnostic if the parameter type is an abstract class.
                  is being copied for some reason.  Issue no diagnostic in
                  such cases. */
             } else {
-              report_abstract_class(sev, ec_abstract_class_param_type,
-                                    param_type, err_pos);
+              abstract_class_diagnostic(sev, ec_abstract_class_param_type,
+                                        param_type, err_pos);
             }  /* if */
           }  /* if */
         }  /* if */
@@ -15450,7 +15450,7 @@ the case if the return type was incomplete at the point of definition.
                  we're dealing with a definition.  So a separate test will be
                  performed when parsing the definition. */
             } else {
-              report_abstract_class(
+              abstract_class_diagnostic(
                                es_error, ec_function_returning_abstract_class,
                                return_type, err_pos);
             }  /* if */

@@ -378,8 +378,9 @@ the routine that is being defined or called; may be NULL.
           /* In GNU C++ mode, we only check for abstract return types on
              function definitions.  In other C++ modes, this is done whenever
              a function type is created. */
-          report_abstract_class(es_error, ec_function_returning_abstract_class,
-                                orig_return_type, err_pos);
+          abstract_class_diagnostic(
+                               es_error, ec_function_returning_abstract_class,
+                               orig_return_type, err_pos);
           err = TRUE;
         }  /* if */
       } else {

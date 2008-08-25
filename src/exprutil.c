@@ -8079,8 +8079,8 @@ TRUE.  *position is the position of the reference.  Used only in C++.
   if (!suppress_abstract_test && !microsoft_bugs &&
       is_abstract_class_type(temp_type)) {
     /* It's an error to create a temporary of an abstract class type. */
-    report_abstract_class(es_error, ec_abstract_class_object_not_allowed,
-                          temp_type, position);
+    abstract_class_diagnostic(es_error, ec_abstract_class_object_not_allowed,
+                              temp_type, position);
   }  /* if */
   return temp_init_node;
 }  /* create_expr_temporary */

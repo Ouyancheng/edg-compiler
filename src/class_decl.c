@@ -2337,10 +2337,10 @@ located.
 }  /* report_pure_virtual_functions */
 
 
-void report_abstract_class(an_error_severity  severity,
-                           an_error_code      error_code,
-                           a_type_ptr         class_type,
-                           a_source_position  *diag_pos)
+void abstract_class_diagnostic(an_error_severity  severity,
+                               an_error_code      error_code,
+                               a_type_ptr         class_type,
+                               a_source_position  *diag_pos)
 /*
 Issue a diagnostic (using the message specified by error_code and with the
 given severity) on an incorrect use of an object of abstract class type, as
@@ -2383,7 +2383,7 @@ correcting the class declarations that produced the problem.
   }  /* if */
   /* Terminate the supplementary messages. */
   end_error();
-}  /* report_abstract_class */
+}  /* abstract_class_diagnostic */
 
 
 static void insert_in_virtual_function_override_list(
@@ -8527,8 +8527,8 @@ specific information about the member declaration, respectively.
     member_type = error_type();
   } else if (is_abstract_class_type(member_type)) {
     /* Abstract class objects are prohibited (ARM 10.3). */
-    report_abstract_class(es_error, ec_abstract_class_object_not_allowed,
-                          member_type, &locator->source_position);
+    abstract_class_diagnostic(es_error, ec_abstract_class_object_not_allowed,
+                              member_type, &locator->source_position);
 #if GNU_EXTENSIONS_ALLOWED
   } else if (decl_state->attributes != NULL) {
     member_type = apply_attributes_to_variable_type(decl_state->attributes,
@@ -10209,8 +10209,8 @@ declarations.
     a_boolean  is_ref = is_reference_type(field_type);
     if (is_abstract_class_type(field_type)) {
       /* Abstract class objects are prohibited (ARM 10.3). */
-      report_abstract_class(es_error, ec_abstract_class_object_not_allowed,
-                            field_type, &locator->source_position);
+      abstract_class_diagnostic(es_error, ec_abstract_class_object_not_allowed,
+                                field_type, &locator->source_position);
     } else if (strict_ansi_mode && is_union_type(class_type) && is_ref) {
       /* Unions are not allowed to have members of reference type. */
       pos_diagnostic(strict_ansi_error_severity, ec_ref_not_allowed_in_union,

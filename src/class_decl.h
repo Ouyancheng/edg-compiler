@@ -109,10 +109,10 @@ extern a_boolean microsoft_routine_def_is_unmovable(a_routine_ptr  rtn);
 
 extern a_boolean is_two_argument_delete(a_routine_ptr delete_routine);
 
-extern void report_abstract_class(an_error_severity  severity,
-                                  an_error_code      error_code,
-                                  a_type_ptr         class_type,
-                                  a_source_position  *error_pos);
+extern void abstract_class_diagnostic(an_error_severity  severity,
+                                      an_error_code      error_code,
+                                      a_type_ptr         class_type,
+                                      a_source_position  *error_pos);
 
 extern void check_anonymous_union_symbols(a_symbol_ptr  assoc_object_sym,
                                           a_type_ptr    class_type,

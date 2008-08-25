@@ -10248,7 +10248,8 @@ pos is used to mark the location that carries any diagnostic.
          handle it. */
     }  /* if */
   } else if (is_abstract_class_type(type)) {
-    report_abstract_class(es_error, ec_abstract_class_catch_type, type, pos);
+    abstract_class_diagnostic(es_error, ec_abstract_class_catch_type, type,
+                              pos);
     result = TRUE;
   }  /* if */
   return result;
@@ -13368,8 +13369,8 @@ if one is present.
   }  /* if */
   if (!C_mode() && var_ptr != NULL && is_abstract_class_type(state->type)) {
     /* Abstract class objects are prohibited (ARM 10.3). */
-    report_abstract_class(es_error, ec_abstract_class_object_not_allowed,
-                          state->type, &locator->source_position);
+    abstract_class_diagnostic(es_error, ec_abstract_class_object_not_allowed,
+                              state->type, &locator->source_position);
   }  /* if */
   /* Set the error position to the start of the initializer (that is, to
      the "=" if there is one) or to where the initializer should be in

@@ -10805,9 +10805,9 @@ can be completed for the dependent types, too.
                  that class type has turned out to be an abstract class. */
               check_assertion(is_array_type(tp));
               if (is_abstract_class_type(tp->variant.array.element_type)) {
-                report_abstract_class(es_error, ec_array_of_abstract_class,
-                                      tp->variant.array.element_type,
-                                       &dtfp->decl_position);
+                abstract_class_diagnostic(es_error, ec_array_of_abstract_class,
+                                          tp->variant.array.element_type,
+                                          &dtfp->decl_position);
               }  /* if */
             }  /* if */
             break;

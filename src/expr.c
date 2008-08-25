@@ -9170,8 +9170,8 @@ specification allow a variable-sized array as the top type.
   } else if (is_abstract_class_type(new_type)) {
     /* The type is an abstract class type, so an object of the type
        cannot be allocated. */
-    report_abstract_class(es_error, ec_abstract_class_object_not_allowed,
-                          new_type, &type_position);
+    abstract_class_diagnostic(es_error, ec_abstract_class_object_not_allowed,
+                              new_type, &type_position);
     err = TRUE;
   } else if (vla_enabled && is_variably_modified_type(new_type)) {
     /* Variable-length arrays are not allowed.  These can only come from
@@ -10215,7 +10215,7 @@ be set to the source position of the type.
       if (is_abstract_class_type(type_cast_to) &&
           /* Except in Microsoft mode before version 7.0. */
           !(microsoft_bugs && microsoft_version < 1300)) {
-        report_abstract_class(
+        abstract_class_diagnostic(
           es_error, ec_cast_to_abstract_class, type_cast_to, &error_position);
         err = TRUE;
       }  /* if */
@@ -16078,8 +16078,8 @@ Scan the C++ throw operator.  See 15.2 in the ARM.  The syntax is
         }  /* if */
       }  /* if */
     } else if (is_abstract_class_type(throw_type)) {
-      report_abstract_class(es_error, ec_abstract_class_object_not_allowed,
-                            throw_type, &operand.position);
+      abstract_class_diagnostic(es_error, ec_abstract_class_object_not_allowed,
+                                throw_type, &operand.position);
       conv_to_error_operand(&operand);
     }  /* if */
   }  /* if */
