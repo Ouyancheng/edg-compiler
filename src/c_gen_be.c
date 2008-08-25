@@ -4007,7 +4007,6 @@ closing parentheses needed if any code was generated there.
 */
 {
   an_expr_node_ptr operand;
-  a_field_ptr      dest_field;
 
   /* No need to add this code if the result of the operation is not used. */
   if (!node->result_is_not_used) {
@@ -4258,7 +4257,6 @@ there's some possibility of precedence confusion and need_parens is TRUE.
   unsigned long                  comma_column;
 #if !C_GEN_BE_GENERATES_ANSI_C
   a_field_ptr                    field;
-  a_boolean                      is_signed;
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
 #if !ALLOW_VOID_QUESTION_OPERAND_IN_GENERATED_C
   a_boolean                      void_operand;

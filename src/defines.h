@@ -315,6 +315,21 @@ Flags to be set for any version that uses the C++ generating back end.
 
 #if LINUX_TEST_VERSION
 
+/*
+For testing purposes, if we're not generating code for an ANSI C compiler,
+make double the same size and alignment as long double.
+*/
+#if !C_GEN_BE_GENERATES_ANSI_C
+#ifdef TARG_SIZEOF_DOUBLE
+#undef TARG_SIZEOF_DOUBLE
+#endif /* TARG_SIZEOF_DOUBLE */
+#define TARG_SIZEOF_DOUBLE TARG_SIZEOF_LONG_DOUBLE
+#ifdef TARG_ALIGNOF_DOUBLE
+#undef TARG_ALIGNOF_DOUBLE
+#endif /* TARG_ALIGNOF_DOUBLE */
+#define TARG_ALIGNOF_DOUBLE TARG_ALIGNOF_LONG_DOUBLE
+#endif /* !C_GEN_BE_GENERATES_ANSI_C */
+
 /* Linux test version definitions. */
 #define INCLUDE_EDG_TEST_PRAGMAS 1
 #define INCLUDE_EDG_TEST_ATTRIBUTES 1
@@ -336,7 +351,9 @@ Flags to be set for any version that uses the C++ generating back end.
 #define USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING 0
 #define PRAGMA_WEAK_ALLOWED 1
 #define USER_CONTROL_OF_STRUCT_PACKING 1
+#ifndef ASM_FUNCTION_ALLOWED
 #define ASM_FUNCTION_ALLOWED 1
+#endif /* ASM_FUNCTION_ALLOWED */
 #define INCLUDE_COMMENTS_IN_ASM_FUNC_BODY 1
 #define TARG_ZERO_WIDTH_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT 1
 #ifndef TARG_ZERO_WIDTH_BIT_FIELD_ALIGNMENT

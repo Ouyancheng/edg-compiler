@@ -6390,6 +6390,10 @@ end_of_comment:
   fetch_pp_tokens = saved_fetch_pp_tokens;
 }  /* skip_pcc_mode_half_comment */
 
+#if ASM_SUPPORT_NEEDED && !ASM_FUNCTION_ALLOWED
+static void copy_from_source_to_asm_func_buffer(char *stop_char,
+                                                char *after_comment_stop_char);
+#endif /* ASM_SUPPORT_NEEDED && !ASM_FUNCTION_ALLOWED */
 
 /*
 Test whether curr_char_loc is the start of a comment.  It is already
