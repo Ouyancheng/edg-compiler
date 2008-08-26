@@ -4,9 +4,10 @@ Version 3.11
 Result of eok_bassign is now void
 
 The result of the IL operator eok_bassign is now "void".  Previously, the
-result of eok_bassign was its first operand (an lvalue).  (eok_bassign is an
-operator kind only produced by IL lowering; it represents a bcopy/memcpy-like
-operation.)
+result of eok_bassign was its first operand (an lvalue).  (eok_bassign
+represents a bcopy/memcpy-like operation.  It is only produced by internally
+generated code such as generated copy-constructors and expressions created by
+IL lowering.)
 
 
 8/21/08  [EDGcpfe/9126]
