@@ -11655,9 +11655,9 @@ resultant expression can be optimized.
           overwrite_node(expr, rvalue_expr_for_lvalue(gchild));
           optimized = TRUE;
         }  /* if */
-      } else if (node_operator_is(child, eok_comma) &&
+      } else if (op == (an_expr_operator_kind)eok_address_of &&
+                 node_operator_is(child, eok_comma) &&
                  is_operation_node(comma_second_node) && 
-                 op == (an_expr_operator_kind)eok_address_of &&
                  node_operator_is(comma_second_node, eok_indirect) &&
                  expr->is_lvalue ==
                     comma_second_node->variant.operation.operands->is_lvalue) {
@@ -11670,6 +11670,28 @@ resultant expression can be optimized.
                        comma_second_node->variant.operation.operands);
         child->type = comma_second_node->type;
         child->is_lvalue = comma_second_node->is_lvalue;
+        child->variant.operation.returns_lvalue_instead_of_usual_rvalue =
+                                                                         FALSE;
+        overwrite_node(expr, child);
+        optimized = TRUE;
+      } else if (op == (an_expr_operator_kind)eok_address_of &&
+                 (node_operator_is(child, eok_comma) ||
+                  node_operator_is(child, eok_question))) {
+        /* Some C compilers won't accept &(1, x) or &(a ? b : c), so turn these
+           into (1, &x) and (a ? &b: &c) respectively by propagating the
+           eok_address_of operator to the second operator of the eok_comma
+           operation or the second and third operators of the eok_question
+           operation. */
+        an_expr_node_ptr  third_op = comma_second_node->next;
+        comma_second_node = add_address_of_to_node(comma_second_node);
+        if (third_op != NULL) {
+          check_assertion(node_operator_is(child, eok_question));
+          third_op = add_address_of_to_node(third_op);
+        }  /* if */
+        comma_second_node->next = third_op;
+        child->variant.operation.operands->next = comma_second_node;
+        child->type = comma_second_node->type;
+        child->is_lvalue = FALSE;
         child->variant.operation.returns_lvalue_instead_of_usual_rvalue =
                                                                          FALSE;
         overwrite_node(expr, child);
