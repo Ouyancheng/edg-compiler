@@ -13025,11 +13025,10 @@ cast.  See lower_expr for typical invocation.
                  run-time sizes. */
               lower_vla_pointer_integer_arithmetic(expr);
             }  /* if */
-            if (op != (an_expr_operator_kind)eok_padd_assign &&
-                op != (an_expr_operator_kind)eok_psubtract_assign) {
+            if (op != (an_expr_operator_kind)eok_padd_assign) {
               /* An eok_padd_assign operation of the form "bool_val += ptr"
                  needs a different transformation handled by the fall-through
-                 code.  The same applies to eok_padd_subtract. */
+                 code. */
               break;
             }  /* if */
             /*FALLTHROUGH*/
