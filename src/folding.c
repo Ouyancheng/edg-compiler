@@ -5276,7 +5276,6 @@ address_escapes and template_constant are as for constant_lvalue_address
               &err_code, &err_severity);
       if (err_code == ec_no_error) {
         is_constant = TRUE;
-        /* FIXME: warnings? */
       }  /* if */
     }  /* if */
   }  /* if */
@@ -5378,7 +5377,6 @@ that higher up.
         an_expr_operator_kind op = expr->variant.operation.kind;
         a_constant            conaddr1;
         a_constant_ptr        pconaddr1;
-        /* FIXME: set *template_constant in some cases? */
         switch (op) {
           case eok_dot_field:
             /* Field selection, x.y.  If the left operand is an lvalue with a

@@ -9313,7 +9313,6 @@ e.g., in a back end.
     /* A temporary initialization indicating the value of a temporary.
        Change it to an lvalue for the temporary. */
     possible = TRUE;
-    /* FIXME: set lvalue_type to cv-qualified lvalue type of temp? */
   } else if (node->kind == (an_expr_node_kind)enk_typeid) {
     /* An rvalue for a typeid can be turned back into an lvalue. */
     possible = TRUE;
@@ -9826,9 +9825,6 @@ of the is_lvalue flag is TRUE.
 #endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
             okay = TRUE;
             break;
-          /* FIXME: eok_base_class_cast, eok_derived_class_cast,
-             eok_call returning reference, eok_cast or eok_dynamic_cast to
-             a reference type. */
           case eok_lvalue_cast:  /* Not rvalueable; when converted to an
                                     rvalue it gets rewritten as a normal
                                     cast. */

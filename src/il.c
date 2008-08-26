@@ -14827,7 +14827,7 @@ top-level node is considered -- fetches in child nodes are not.
       case enk_temp_init:
         /* An rvalue temp init fetches the value of the temporary. */
         does_fetch = TRUE;
-        fetched_type = node->type;  /* FIXME: cv-qualifiers. */
+        fetched_type = node->type;
         break;
       case enk_typeid:
         /* An rvalue typeid fetches the typeinfo object. */
@@ -14901,9 +14901,6 @@ process_ptr_to_member_selection:
                                                                    op1->type);
               break;
 #endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
-            /* FIXME: eok_base_class_cast,
-               eok_derived_class_cast, eok_call returning
-               reference, eok_cast or eok_dynamic_cast to a reference type. */
             case eok_lvalue_cast:  /* Not rvalueable; when converted to an
                                       rvalue it gets rewritten as a normal
                                       cast. */
