@@ -15613,7 +15613,7 @@ in IL lowering and in generated routines (like assignment operator functions).
   /* Make the assignment node. */
   dest->next = source;
   node = make_operator_node((an_expr_operator_kind)eok_bassign,
-                            dest->type, dest);
+                            void_type(), dest);
   /* Allocate the statement. */
   stmt = alloc_expr_statement(node);
   return stmt;

@@ -21157,11 +21157,13 @@ operator op, and return a pointer to it.
 */
 {
   an_expr_node_ptr assign_node;
-  a_type_ptr       result_type = make_unqualified_type(lvalue_expr->type);
+  a_boolean        is_bassign = (op == (an_expr_operator_kind)eok_bassign);
+  a_type_ptr       result_type;
 
+  result_type = is_bassign ? void_type()
+                           : make_unqualified_type(lvalue_expr->type);
   check_assertion(lvalue_expr->is_lvalue && 
-                  (!rvalue_expr->is_lvalue ||
-                   op == (an_expr_operator_kind)eok_bassign));
+                  (!rvalue_expr->is_lvalue || is_bassign));
   lvalue_expr->next = rvalue_expr;
   /* Make the assignment node. */
   assign_node = make_operator_node(op, result_type, lvalue_expr);

@@ -9265,7 +9265,7 @@ enum an_expr_operator_kind_tag {
   eok_bassign,		/* Block assignment.  Only used in C++ after IL
 			   lowering, for copy constructors etc.  Both the
 			   source and destination are lvalues; does a memcpy
-			   equivalent. */
+			   equivalent.  The result is void. */
   eok_land,             /* Logical intersection, with the operand standardized
                            to integer/boolean ("&&" operator) */
   eok_lor,              /* Logical union, with the operand standardized
