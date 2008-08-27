@@ -4700,13 +4700,13 @@ process_assignment:
             /* Use a block copy. */
 #if __BSD__
             /* BSD UNIX -- use bcopy. */
-            write_tok_str("bcopy((char *)&");
+            write_tok_str("(void)bcopy((char *)&");
             dump_lvalue(operand_2);
             write_tok_str(", (char *)&");
             dump_lvalue(operand_1);
 #else  /* !__BSD__ */
             /* System V or ANSI -- use memcpy. */
-            write_tok_str("memcpy((char *)&");
+            write_tok_str("(void)memcpy((char *)&");
             dump_lvalue(operand_1);
             write_tok_str(", (char *)&");
             dump_lvalue(operand_2);
