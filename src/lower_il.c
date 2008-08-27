@@ -2507,10 +2507,6 @@ otherwise, copy the expression into a temporary and take its address.
        rvalue to a temporary and take the address of the temporary. */
     a_variable_ptr temp = assign_expr_to_temp(expr);
     expr = make_comma_node(expr, var_addr_expr(temp));
-  } else {
-    /* The converted expression may now contain a construct like &(x, y), in
-       which case it needs to be rewritten. */
-    optimize_expr_if_possible(expr);
   }  /* if */
   return expr;
 }  /* rvalue_pointer_for_class_rvalue */
@@ -9504,7 +9500,6 @@ more than once.
                                          /*complete_object=*/FALSE);
     source_node = add_address_of_to_node(source_node);
   }  /* if */
-  optimize_expr_if_possible(source_node);
   *result_node = source_node;
 }  /* related_class_cast_step */
 

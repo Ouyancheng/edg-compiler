@@ -14400,6 +14400,29 @@ designated an rvalue.
       /* Cancel "&" and "*". */
       node = node->variant.operation.operands;
       check_assertion(!node->is_lvalue);
+#if DO_IL_LOWERING
+    } else if (is_operation_node(node) &&
+               il_lowering_underway &&
+               (node_operator_is(node, eok_comma) ||
+                node_operator_is(node, eok_question))) {
+      /* Some C compilers won't accept &(1, x) or &(a ? b : c), so turn these
+         into (1, &x) and (a ? &b: &c) respectively by propagating the
+         eok_address_of operator to the second operator of the eok_comma
+         operation or the second and third operators of the eok_question
+         operation. */
+      an_expr_node_ptr  second_op = node->variant.operation.operands->next;
+      an_expr_node_ptr  third_op = second_op->next;
+      second_op = add_address_of_to_node(second_op);
+      if (third_op != NULL) {
+        check_assertion(node_operator_is(node, eok_question));
+        third_op = add_address_of_to_node(third_op);
+      }  /* if */
+      second_op->next = third_op;
+      node->variant.operation.operands->next = second_op;
+      node->type = second_op->type;
+      node->is_lvalue = FALSE;
+      node->variant.operation.returns_lvalue_instead_of_usual_rvalue = FALSE;
+#endif /* DO_IL_LOWERING */
     } else {
       /* Set the address_taken flag for variables and routines. */
       if (is_variable_node(node)) {
