@@ -9504,6 +9504,7 @@ more than once.
                                          /*complete_object=*/FALSE);
     source_node = add_address_of_to_node(source_node);
   }  /* if */
+  optimize_expr_if_possible(source_node);
   *result_node = source_node;
 }  /* related_class_cast_step */
 
