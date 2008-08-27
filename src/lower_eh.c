@@ -2365,6 +2365,8 @@ conversion in cases where its value is not used.
     } else {
       /* Turn typeid_expr lvalue into an rvalue pointer. */
       typeid_expr = add_address_of_to_node(typeid_expr);
+      /* Optimize the newly created expression if necessary. */
+      optimize_expr_if_possible(typeid_expr);
     }  /* if */
     /* Build the runtime call __get_typeid((typeid_expr != NULL) ? vptr : NULL)
        where vptr is the virtual function table pointer value from the

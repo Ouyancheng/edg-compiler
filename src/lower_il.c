@@ -11691,6 +11691,9 @@ resultant expression can be optimized.
         if (third_op != NULL) {
           check_assertion(node_operator_is(child, eok_question));
           third_op = add_address_of_to_node(third_op);
+          /* Adding an eok_address_of may qualify this operand for further
+             optimization.  The second operation will be inspected below. */
+          optimize_expr_if_possible(third_op);
         }  /* if */
         comma_second_node->next = third_op;
         child->variant.operation.operands->next = comma_second_node;
