@@ -2790,10 +2790,8 @@ and end up at "a".
       /* The expression is an lvalue. */
       switch (op) {
         case eok_dot_field:
-          /* x.y:  Follow x if it's an lvalue. */
-          if (operand1->is_lvalue) {
-            traverse_expr(operand1, tblock);
-          }  /* if */
+          /* x.y:  Follow x. */
+          traverse_expr(operand1, tblock);
           break;
         case eok_points_to_field:
           /* p->y:  Follow p. */
