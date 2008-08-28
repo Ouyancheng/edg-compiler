@@ -9204,7 +9204,7 @@ to stricter/less visibility).
     default:              unexpected_condition();
   }  /* switch */
   return result;
-};
+}
 
 
 /* ARGSUSED */  /* force_end_of_traversal is not used. */
