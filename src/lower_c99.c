@@ -39,6 +39,33 @@ lower_c99.c -- Routines to transform C99 IL constructs into constructs
 
 #endif /* DO_IL_LOWERING */
 #if DO_C99_IL_LOWERING
+
+a_boolean c99_il_lowering_needed()
+/*
+Return TRUE if the current mode or configuration requires the lowering of C
+constructs (the name of this function is historical; lowering may be required
+for non-C99 dialects and even for plain C89).
+*/
+{
+  a_boolean  result;
+
+  if (suppress_il_lowering || total_errors != 0) {
+    result = FALSE;
+  } else if (c99_mode || gcc_mode || compound_literals_allowed ||
+             vla_enabled || designators_allowed || 
+             lowering_normalizes_boolean_controlling_expressions) {
+    result = TRUE;
+#if FIXED_POINT_ALLOWED
+  } else if (fixed_point_enabled) {
+    result = TRUE;
+#endif /* FIXED_POINT_ALLOWED */
+  } else {
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* c99_il_lowering_needed */
+
+
 /* Forward declarations (needed because of mutual recursion situations). */
 static void lower_c99_constant_list(a_constant_ptr constant_list);
 static void lower_c99_statement(a_statement_ptr statement);
@@ -3583,14 +3610,18 @@ expression (i.e., not an expression inside some other expression) if
 is_full_expr is TRUE.
 */
 {
+  a_boolean  normalize = lowering_normalizes_boolean_controlling_expressions &&
+                         !is_bool_type(expr->type);
   if (is_full_expr) {
     lower_c99_full_expr(expr);
   } else {
     lower_c99_expr(expr);
   }  /* if */
-  /* This expression is supposed to have something on top that guarantees
-     a 0/1 value.  If the rewriting has disturbed that, add a "!= 0" test. */
-  normalize_lowered_boolean_controlling_expression(expr);
+  if (normalize) {
+    /* Ensure that the expression has a 0/1 value (e.g., by adding a "!= 0"
+       test on top of it. */
+    normalize_boolean_controlling_expr(expr);
+  }  /* if */
 }  /* lower_c99_boolean_controlling_expr */
 
 
@@ -4186,21 +4217,6 @@ Replace the imaginary and complex C99 types by their lowered representations.
 }  /* lower_c99_nonreal_float_types */
 
 #endif /* LOWER_COMPLEX */
-#if C99_IL_EXTENSIONS_SUPPORTED
-
-static void lower_c99_bool_type(void)
-/*
-Replace the C99 _Bool type by its lowered representation.
-*/
-{
-  if (bool_type_used_in_primary_IL()) {
-    a_type_ptr type = bool_type();
-    /* Clear the bool flag and make this a simple integral type. */
-    type->variant.integer.bool_type = FALSE;
-  }  /* if */
-}  /* lower_c99_bool_type */
-
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #if LOWER_FIXED_POINT
 
 a_type_ptr lowered_integer_type_for_fixed_point_type(a_type_ptr fx_type)
@@ -4329,9 +4345,6 @@ Do C99 lowering for a memory region (for the file scope or a function scope).
 #if LOWER_COMPLEX
     lower_c99_nonreal_float_types();
 #endif /* LOWER_COMPLEX */
-#if C99_IL_EXTENSIONS_SUPPORTED
-    lower_c99_bool_type();
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #if LOWER_FIXED_POINT
     if (fixed_point_enabled) {
       lower_c99_fixed_point_types();

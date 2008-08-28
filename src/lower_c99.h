@@ -89,18 +89,7 @@ void lower_complex_projection(an_expr_node_ptr  expr);
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #endif /* LOWER_COMPLEX */
 #if DO_C99_IL_LOWERING
-
-#if FIXED_POINT_ALLOWED
-#define or_fixed_point_lowering_needed() || fixed_point_enabled
-#else /* !FIXED_POINT_ALLOWED */
-#define or_fixed_point_lowering_needed() /* Nothing */
-#endif /* FIXED_POINT_ALLOWED */
-
-#define c99_il_lowering_needed()                                             \
-  ((c99_mode || gcc_mode || compound_literals_allowed || vla_enabled ||      \
-    designators_allowed                                                      \
-    or_fixed_point_lowering_needed()) &&                                     \
-   !suppress_il_lowering && total_errors == 0)
+extern a_boolean c99_il_lowering_needed();
 #else /* !DO_C99_IL_LOWERING */
 #define c99_il_lowering_needed() FALSE
 #endif /* DO_C99_IL_LOWERING */

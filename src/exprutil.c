@@ -31,7 +31,6 @@ exprutil.c -- Expression scanning utility routines.
 #include "il_walk.h"
 
 /* Declarations needed because of forward references: */
-static a_boolean is_bit_field_extract_node(an_expr_node_ptr node);
 static a_boolean is_bit_field_expr(an_expr_node_ptr node);
 static
 an_expr_node_ptr conv_rvalue_expr_to_lvalue(an_expr_node_ptr node,
@@ -2776,7 +2775,7 @@ indicates that the cast comes from a reinterpret_cast construct in the source.
 }  /* add_cast_to_node */
 
 
-static a_boolean is_bit_field_extract_node(an_expr_node_ptr node)
+a_boolean is_bit_field_extract_node(an_expr_node_ptr node)
 /*
 Return TRUE if the given expression node is a bit-field extraction.
 */
@@ -3468,8 +3467,7 @@ in C.
 }  /* is_a_cplusplus_lvalue */
 
 
-static a_type_ptr type_after_bit_field_integral_promotion(
-                                                         an_expr_node_ptr node)
+a_type_ptr type_after_bit_field_integral_promotion(an_expr_node_ptr node)
 /*
 node is a bit-field selection operation (lvalue or rvalue).  Determine the
 type that would result from applying the integral promotions to the selection
@@ -3593,27 +3591,6 @@ if the type is not integral).
   }  /* if */
   return promoted_type;
 }  /* operand_type_after_integral_promotion */
-
-
-static a_type_ptr node_type_after_integral_promotion(an_expr_node_ptr node)
-/*
-Determine the type that would result from applying the integral promotions
-to the indicated expression.  Return the promoted type, which may be the
-same as the original type.  The expression is an rvalue.
-*/
-{
-  a_type_ptr promoted_type;
-
-  /* Check for bit-field accesses, which require special handling.
-     The special processing is not done in pcc mode. */
-  if (C_dialect != C_dialect_pcc &&
-      is_bit_field_extract_node(node)) {
-    promoted_type = type_after_bit_field_integral_promotion(node);
-  } else {
-    promoted_type = type_after_integral_promotion(node->type);
-  }  /* if */
-  return promoted_type;
-}  /* node_type_after_integral_promotion */
 
 
 void promote_operand(an_operand *operand)
@@ -11225,55 +11202,6 @@ C, and false or true in C++).
 }  /* boolean_result_type */
 
 
-static an_expr_node_ptr normalize_boolean_controlling_expr(
-                                                         an_expr_node_ptr expr)
-/*
-expr is a boolean controlling expression, and the keyword bool is disabled.
-Add a "!= 0" test on top of the given expression if necessary to normalize
-it, and return a pointer to the possibly-modified expression.
-*/
-{
-  a_boolean  add_ne_0;
-  a_constant con;
-
-  if (!is_operation_node(expr)) {
-    /* Add an appropriate "!= 0" on top of variable and variable address
-       references. */
-    add_ne_0 = TRUE;
-  } else {
-    /* If the top of the expression is not an operator that returns
-       a boolean 0/1, add a "!= 0" of the right kind on top. */
-    add_ne_0 = !is_operator_returning_bool(expr->variant.operation.kind);
-  }  /* if */
-  if (add_ne_0) {
-    /* Add a "!= 0" of the appropriate type on top of the expression
-       to standardize it. */
-    a_type_ptr type = expr->type;
-    if (is_integral_type(type)) {
-      /* Simulate the usual arithmetic conversions. */
-      type = node_type_after_integral_promotion(expr);
-      if (!same_entities(type, expr->type)) {
-        cast_node(&expr, type,
-                  /*check_cast_access=*/FALSE,
-                  /*is_implicit_cast=*/TRUE,
-                  /*is_reinterpret_cast=*/FALSE,
-                  /*reinterpret_semantics=*/FALSE,
-                  &error_position);
-      }  /* if */
-    }  /* if */
-    make_zero_of_proper_type(type, &con);
-    expr->next = alloc_node_for_constant(&con);
-    /* Build a "!=" node of the right kind, pointing to the original
-       expression and the zero constant node. */
-    expr = make_operator_node(which_binary_operator(tok_ne, type),
-                              integer_type((an_integer_kind)ik_int),
-                              expr);
-    expr->variant.operation.compiler_generated = TRUE;
-  }  /* if */
-  return expr;
-}  /* normalize_boolean_controlling_expr */
-
-
 a_boolean check_boolean_controlling_expr(an_operand *operand)
 /*
 Do some checks on a boolean controlling expression (e.g., "i != 0" in 
@@ -11287,7 +11215,7 @@ types to get a boolean expression (see process_boolean_controlling_expression).
 */
 {
   a_boolean             okay = FALSE;
-  an_expr_node_ptr      expr, norm_expr;
+  an_expr_node_ptr      expr;
   an_expr_operator_kind op;
   an_expr_node_ptr      operand1;
   an_operand            orig_operand;
@@ -11372,57 +11300,6 @@ types to get a boolean expression (see process_boolean_controlling_expression).
     } else {
       /* Check that the operand is a scalar. */
       okay = check_scalar_operand(operand);
-    }  /* if */
-    if (okay) {
-      /* Standardize the operand. */
-      switch (operand->kind) {
-        case ok_error:
-          /* No action. */
-          break;
-        case ok_expression:
-          expr = operand->variant.expression;
-          /* Add a "!= 0" of the appropriate type on top of the expression
-             if necessary to normalize it. */
-          norm_expr = normalize_boolean_controlling_expr(expr);
-          if (norm_expr != expr) {
-            make_expression_operand(norm_expr, operand);
-          }  /* if */
-          break;
-        case ok_constant:
-          /* The expression is constant.  Make a standard integer 0 or 1
-             constant. */
-          { a_constant_ptr con = &operand->variant.constant;
-            if (!constant_bool_value_known_at_compile_time(con)) {
-              /* The value of this constant is not known until link time
-                 and therefore this has to be left as an expression. */
-              expr = make_node_from_operand(operand);
-              norm_expr = normalize_boolean_controlling_expr(expr);
-              if (con->kind == (a_constant_repr_kind)ck_template_param) {
-                /* For a template parameter constant, make a ck_template_param
-                   expression constant as the result. */
-                make_template_param_expr_constant_operand(norm_expr, operand);
-              } else {
-                make_expression_operand(norm_expr, operand);
-              }  /* if */
-            } else {
-              /* Normal case (constant bool value is known at compile time). */
-              make_integer_constant_operand(operand,
-                       (a_host_large_integer)(!op_is_false_constant(operand)));
-              operand->ruled_out_expr_kinds =
-                                             orig_operand.ruled_out_expr_kinds;
-              check_assertion(is_constant_operand(&orig_operand));
-              con->null_pointer_constant_ruled_out =
-                 orig_operand.variant.constant.null_pointer_constant_ruled_out;
-              if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
-                con->expr = orig_operand.variant.constant.expr;
-              }  /* if */
-            }  /* if */
-          }
-          break;
-        default:
-          unexpected_condition_str(
-                       "check_boolean_controlling_expr: bad operand kind");
-      }  /* switch */
     }  /* if */
   }  /* if */
   if (okay) {

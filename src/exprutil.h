@@ -1334,6 +1334,9 @@ extern an_expr_node_ptr lvalue_before_type_adjustment(an_expr_node_ptr expr);
 
 extern a_boolean is_a_cplusplus_lvalue(an_operand *operand);
 
+extern a_type_ptr type_after_bit_field_integral_promotion(
+                                                       an_expr_node_ptr node);
+
 extern void make_error_operand(an_operand *operand);
 
 extern void operand_will_not_be_used_because_of_error(an_operand *operand);
@@ -1495,6 +1498,8 @@ extern void add_base_class_casts(a_base_class_ptr  bcp,
                                  a_boolean         implicit_in_naming,
                                  an_expr_node_ptr  *p_node,
                                  a_source_position *err_pos);
+
+extern a_boolean is_bit_field_extract_node(an_expr_node_ptr node);
 
 extern void cast_node(an_expr_node_ptr  *p_node,
 		      a_type_ptr        type,

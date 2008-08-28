@@ -2124,6 +2124,77 @@ still pointer to member and therefore doesn't look promotable.
   return expr;
 }  /* integral_promote_pm_node */
 
+
+static a_type_ptr node_type_after_integral_promotion(an_expr_node_ptr node)
+/*
+Determine the type that would result from applying the integral promotions
+to the indicated expression.  Return the promoted type, which may be the
+same as the original type.  The expression is an rvalue.
+*/
+{
+  a_type_ptr promoted_type;
+
+  /* Check for bit-field accesses, which require special handling.
+     The special processing is not done in pcc mode. */
+  if (C_dialect != C_dialect_pcc && is_bit_field_extract_node(node)) {
+    promoted_type = type_after_bit_field_integral_promotion(node);
+  } else {
+    promoted_type = type_after_integral_promotion(node->type);
+  }  /* if */
+  return promoted_type;
+}  /* node_type_after_integral_promotion */
+
+
+void normalize_boolean_controlling_expr(an_expr_node_ptr expr)
+/*
+expr is a boolean controlling expression.  Ensure that it produces a value of
+zero or one (e.g., by adding a "!= 0" test on top of it).
+*/
+{
+  if (is_constant_node(expr) &&
+      constant_bool_value_known_at_compile_time(expr->variant.constant)) {
+    /* Constant expressions can be replaced by a 0 or 1 integer constant. */
+    a_constant  norm_con;
+    set_integer_constant(&norm_con,
+                         (a_host_large_integer)
+                                    !is_false_constant(expr->variant.constant),
+                         (an_integer_kind)ik_int);
+    expr->variant.constant = alloc_shareable_constant(&norm_con);
+    expr->type = norm_con.type;
+  } else {
+    a_boolean  add_ne_0;
+    if (!is_operation_node(expr)) {
+      /* Add an appropriate "!= 0" on top of variable and variable address
+         references. */
+      add_ne_0 = TRUE;
+    } else {
+      /* If the top of the expression is not an operator that returns
+         a boolean 0/1, add a "!= 0" of the right kind on top. */
+      add_ne_0 = !is_operator_returning_bool(expr->variant.operation.kind);
+    }  /* if */
+    if (add_ne_0) {
+      /* Add a "!= 0" of the appropriate type on top of the expression
+         to standardize it. */
+      an_expr_node_ptr  expr_copy = copy_node(expr);
+      a_constant        zero;
+      a_type_ptr type = expr_copy->type;
+      if (is_integral_type(type)) {
+        /* Simulate the usual arithmetic conversions. */
+        type = node_type_after_integral_promotion(expr_copy);
+        expr_copy = add_cast_if_necessary(expr_copy, type);
+      }  /* if */
+      make_zero_of_proper_type(type, &zero);
+      expr_copy->next = alloc_node_for_constant(&zero);
+      /* Build a "!=" node pointing to the original expression and the zero
+         constant node. */
+      change_node_to_operation(expr, (an_expr_operator_kind)eok_ne,
+                               integer_type((an_integer_kind)ik_int),
+                               expr_copy, /*is_lvalue=*/FALSE);
+      expr->variant.operation.compiler_generated = TRUE;
+    }  /* if */
+  }  /* if */
+}  /* normalize_boolean_controlling_expr */
+
 #if DO_FULL_PORTABLE_EH_LOWERING || ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
 
 an_expr_node_ptr array_var_lvalue_expr(a_variable_ptr var)
@@ -10116,7 +10187,7 @@ Lower an eok_bool_cast node, which converts an operand to bool.
        have to be added later, because we really want a "bool" result. */
     result_type = integer_type((an_integer_kind)ik_int);
   }  /* if */
-  op = which_binary_operator(tok_ne, operand_type);
+  op = (an_expr_operator_kind)eok_ne;
   set_node_operator(expr, op, result_type, /*is_lvalue=*/FALSE, operand);
   /* Note that in C++ the result type may still be "bool" here; if so, a
      cast will be inserted later.  The type will be "int" if
@@ -13467,52 +13538,6 @@ with an enk_object_lifetime node on top.
 }  /* adjust_bool_operation_types */
 
 
-void normalize_lowered_boolean_controlling_expression(an_expr_node_ptr expr)
-/*
-expr is a boolean controlling expression that has been lowered.
-It is supposed to have something on top that guarantees a 0/1 value.
-If that has been disturbed by lowering, add a "!= 0" test or the like.
-*/
-{
-  check_assertion(is_integral_or_enum_type(expr->type));
-  if (is_operation_node(expr) &&
-      is_operator_returning_bool(expr->variant.operation.kind)) {
-    /* The top of the expression is an operator that returns a boolean
-       value, so it's okay. */
-  } else if (is_constant_node(expr)) {
-    /* A constant here ought to be okay already. */
-    /* If the constant has bool type, make it int. */
-    if (bool_is_keyword) {
-      a_constant     constant;
-      a_constant_ptr conp;
-      set_integer_constant(&constant,
-                           (a_host_large_integer)
-                                    !is_false_constant(expr->variant.constant),
-                           (an_integer_kind)ik_int);
-      conp = alloc_shareable_constant(&constant);
-      expr->variant.constant = conp;
-      expr->type = constant.type;
-    }  /* if */
-  } else {
-    /* A variable (e.g., a generated temporary), an operator that is
-       not guaranteed to return a boolean value, or something else
-       that is not guaranteed to return 0/1.  Add a "!= 0". */
-    an_expr_node_ptr copy_expr = copy_node(expr);
-    a_constant       zero_constant;
-    an_expr_node_ptr zero_node;
-
-    copy_expr = integral_promote_node(copy_expr);
-    make_zero_of_proper_type(copy_expr->type, &zero_constant);
-    zero_node = alloc_node_for_constant(&zero_constant);
-    copy_expr->next = zero_node;
-    change_node_to_operation(expr,
-                             which_binary_operator(tok_ne, copy_expr->type),
-                             integer_type((an_integer_kind)ik_int),
-                             copy_expr, /*is_lvalue=*/FALSE);
-  }  /* if */
-}  /* normalize_lowered_boolean_controlling_expression */
-
-
 static void lower_boolean_controlling_expr(an_expr_node_ptr expr,
                                            a_boolean        is_full_expr)
 /*
@@ -13522,6 +13547,9 @@ expression (i.e., not an expression inside some other expression) if
 is_full_expr is TRUE.
 */
 {
+  a_boolean  normalize = lowering_normalizes_boolean_controlling_expressions &&
+                         !is_bool_type(expr->type);
+
   if (bool_is_keyword) {
     /* When bool is enabled, adjust the result type of top-level
        bool-returning operations to be int. */
@@ -13533,17 +13561,17 @@ is_full_expr is TRUE.
   } else {
     lower_expr(expr);
   }  /* if */
-  /* This expression is supposed to have something on top that guarantees
-     a 0/1 value.  If the rewriting has disturbed that, add a "!= 0" test.
-     When bool is enabled, this transformation is necessary even if no
-     rewriting has occurred, for things like "if (bool_var) ...". */
-  if (expr->kind == (an_expr_node_kind)enk_object_lifetime) {
-    check_assertion_str(is_full_expr,
+  if (normalize) {
+    /* Ensure that the expression has a 0/1 value (e.g., by adding a "!= 0"
+       test on top of it). */
+    if (expr->kind == (an_expr_node_kind)enk_object_lifetime) {
+      check_assertion_str(is_full_expr,
          "lower_boolean_controlling_expr: enk_object_lifetime not at top (2)");
-    /* If an enk_object_lifetime node is (still) on top, look under that. */
-    expr = expr->variant.object_lifetime.expr;
+      /* If an enk_object_lifetime node is (still) on top, look under that. */
+      expr = expr->variant.object_lifetime.expr;
+    }  /* if */
+    normalize_boolean_controlling_expr(expr);
   }  /* if */
-  normalize_lowered_boolean_controlling_expression(expr);
 }  /* lower_boolean_controlling_expr */
 
 

@@ -464,6 +464,23 @@ is off by default.
 #endif /* LOWER_FIXED_POINT && !FIXED_POINT_ALLOWED */
 
 /*
+Flag that is TRUE if IL lowering should normalize boolean controlling
+expressions (e.g., expr in "if (expr)...") to always produce 0/1.
+The normalization is often achieved by adding a "!= 0" comparison to the
+controlling expression.  This is the initial value of the global variable
+lowering_normalizes_boolean_controlling_expressions.
+*/
+#ifndef LOWERING_NORMALIZES_BOOLEAN_CONTROLLING_EXPRESSIONS
+#define LOWERING_NORMALIZES_BOOLEAN_CONTROLLING_EXPRESSIONS FALSE
+#endif /* LOWERING_NORMALIZES_BOOLEAN_CONTROLLING_EXPRESSIONS */
+
+#if LOWERING_NORMALIZES_BOOLEAN_CONTROLLING_EXPRESSIONS && !DO_IL_LOWERING
+ #error -- LOWERING_NORMALIZES_BOOLEAN_CONTROLLING_EXPRESSIONS requires \
+           DO_IL_LOWERING
+#endif /* LOWERING_NORMALIZES_BOOLEAN_CONTROLLING_EXPRESSIONS && ... */
+
+
+/*
 Flag that is TRUE if the "long long" data type and the associated language
 features (e.g., suffixes for constants) are allowed.  "long long" is
 standard in C99, and Microsoft mode needs the IL support for __int64.

@@ -1,5 +1,21 @@
 Version 3.11
 
+8/28/08  [EDGcpfe/9099]
+Normalization of boolean controlling expressions
+
+Previously, boolean controlling expressions (e.g., the expression that
+determines which way an if-statement branches) were unconditionally normalized
+to produce a 0/1 value.  This normalization (often achieved by adding a "!= 0"
+on top of the expression appearing in the source) was performed in the front
+end proper.
+
+This normalization is now optional and it is performed as part of the IL
+lowering process.  Whether normalization happens is determined by the new
+configuration macro LOWERING_NORMALIZES_BOOLEAN_CONTROLLING_EXPRESSIONS.
+Setting this macro to TRUE causes IL lowering to happen even for plain C89
+input source.
+
+
 8/25/08  [EDGcpfe/9110]
 Result of eok_bassign is now void
 

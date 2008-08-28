@@ -1038,8 +1038,7 @@ extern void optimize_expr_if_possible(an_expr_node_ptr expr);
 extern void lower_full_expr(an_expr_node_ptr expr,
                             a_statement_ptr  statement);
 
-extern
-void normalize_lowered_boolean_controlling_expression(an_expr_node_ptr expr);
+extern void normalize_boolean_controlling_expr(an_expr_node_ptr expr);
 
 extern a_param_type_ptr unlowered_param_type_list_for_routine(
                                                   a_routine_ptr routine);
