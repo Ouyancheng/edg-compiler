@@ -1,5 +1,14 @@
 Version 3.11
 
+8/28/08  [EDGcpfe/9099,EDGcpfe/7640]
+C99 _Bool type after lowering
+
+Previously, the "bool_type" flag of the IL entry representing the C99 _Bool
+type was set to FALSE by IL lowering (thereby making the type it describes
+identical to the underlying integer type of _Bool).  This is no longer done:
+The bool_type flag remains TRUE in the lowered IL.
+
+
 8/28/08  [EDGcpfe/9099]
 Normalization of boolean controlling expressions
 
