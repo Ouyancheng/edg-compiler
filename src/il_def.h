@@ -11595,7 +11595,13 @@ typedef struct a_scope {
   a_scope_ptr
 		parent;
 			/* Pointer to the parent scope.  NULL when kind ==
-			   sck_file. */
+			   sck_file.  Also NULL if pointing to the parent
+			   would cause a memory region problem, i.e., when
+			   a scope for a function-local entity is in the
+			   file-scope memory region and its parent is in a
+			   function-scope memory region.  In that case, an
+			   entry of type a_local_scope_ref is allocated to
+			   point to the parent. */
   a_scope_number
 		number;	/* Scope number (unique identifier) for this scope. */
   a_scope_kind	kind;
