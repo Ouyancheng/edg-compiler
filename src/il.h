@@ -730,10 +730,6 @@ extern a_type_ptr wchar_t_type(void);
 
 extern a_type_ptr eff_wchar_t_type(void);
 
-#if C99_IL_EXTENSIONS_SUPPORTED
-extern a_boolean bool_type_used_in_primary_IL(void);
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-
 extern a_type_ptr bool_type(void);
 
 #if FIXED_POINT_ALLOWED

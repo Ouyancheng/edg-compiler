@@ -7948,20 +7948,6 @@ and the (cv-unqualified) type of the elements of wide string literals.
 }  /* eff_wchar_t_type */
 
 
-#if C99_IL_EXTENSIONS_SUPPORTED
-
-a_boolean bool_type_used_in_primary_IL(void)
-/*
-Return TRUE if the bool type has been used in the primary IL so far.  This
-routine should be called to determine if the bool type should be lowered.
-*/
-{
-  check_assertion(is_primary_translation_unit);
-  return il_bool_type != NULL;
-}  /* bool_type_used_in_primary_IL */
-
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-
 a_type_ptr bool_type(void)
 /*
 Make or find a type entry for a bool type and return a pointer to it.
