@@ -21,10 +21,10 @@ il_write.c -- Write the intermediate language to a file.
 #pragma hdrstop
 #endif /* ifdef PCH_PRAGMA_GUARD */
 
-#include <errno.h>
-
 /* Everything in this file has to do with writing the IL file. */
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
+
+#include <errno.h>
 
 #if !ORPHAN_PROCESSING_NEEDED
  #error -- ORPHAN_PROCESSING_NEEDED must be set if IL writing is needed.
