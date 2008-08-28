@@ -9204,7 +9204,7 @@ to stricter/less visibility).
     default:              unexpected_condition();
   }  /* switch */
   return result;
-}
+}  /* ELF_visibility_strictness */
 
 
 /* ARGSUSED */  /* force_end_of_traversal is not used. */
