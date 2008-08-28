@@ -9186,17 +9186,26 @@ static
 	an_ELF_visibility_kind
 		strictest_ELF_visibility_in_traversal;
 
+
+static int ELF_visibility_strictness(an_ELF_visibility_kind evk)
 /*
-An array mapping each ELF visibility kind to a "strictness".  The routine
-ttt_ELF_visibility_of_type is used to find the highest strictness in a type.
+Map the given ELF visibility kind to a "strictness" (a higher value corresponds
+to stricter/less visibility).
 */
-static int ELF_visibility_strictness[] = {
-  0,  /* evk_unspecified */
-  3,  /* evk_hidden */
-  2,  /* evk_protected */
-  4,  /* evk_internal */
-  1   /* evk_default */
+{
+  int result;
+
+  switch (evk) {
+    case evk_unspecified: result = 0; break;
+    case evk_hidden:      result = 3; break;
+    case evk_protected:   result = 2; break;
+    case evk_internal:    result = 4; break;
+    case evk_default:     result = 1; break;
+    default:              unexpected_condition();
+  }  /* switch */
+  return result;
 };
+
 
 /* ARGSUSED */  /* force_end_of_traversal is not used. */
 static a_boolean ttt_check_ELF_visibility_of_type(
@@ -9213,8 +9222,8 @@ than recorded so far.
   if (is_immediate_class_type(type)) {
     an_ELF_visibility_kind  curr_visibility =
                                         class_type_supp(type)->ELF_visibility;
-    if (ELF_visibility_strictness[curr_visibility] >
-           ELF_visibility_strictness[strictest_ELF_visibility_in_traversal]) {
+    if (ELF_visibility_strictness(curr_visibility) >
+           ELF_visibility_strictness(strictest_ELF_visibility_in_traversal)) {
       strictest_ELF_visibility_in_traversal = curr_visibility;
     }  /* if */
   }  /* if */
