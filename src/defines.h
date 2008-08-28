@@ -203,6 +203,9 @@ Flags to be set for any version that uses the C++ generating back end.
 
 /* Options common to Sun-hosted versions. */
 
+#if BACK_END_IS_C_GEN_BE
+#define LOWERING_NORMALIZES_BOOLEAN_CONTROLLING_EXPRESSIONS 1
+#endif
 #ifndef INSTANTIATE_EXTERN_INLINE
 #ifdef SUNOS
 #define INSTANTIATE_EXTERN_INLINE 0
