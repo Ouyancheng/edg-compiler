@@ -89,7 +89,7 @@ void lower_complex_projection(an_expr_node_ptr  expr);
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #endif /* LOWER_COMPLEX */
 #if DO_C99_IL_LOWERING
-extern a_boolean c99_il_lowering_needed();
+extern a_boolean c99_il_lowering_needed(void);
 #else /* !DO_C99_IL_LOWERING */
 #define c99_il_lowering_needed() FALSE
 #endif /* DO_C99_IL_LOWERING */

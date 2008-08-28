@@ -40,7 +40,7 @@ lower_c99.c -- Routines to transform C99 IL constructs into constructs
 #endif /* DO_IL_LOWERING */
 #if DO_C99_IL_LOWERING
 
-a_boolean c99_il_lowering_needed()
+a_boolean c99_il_lowering_needed(void)
 /*
 Return TRUE if the current mode or configuration requires the lowering of C
 constructs (the name of this function is historical; lowering may be required
