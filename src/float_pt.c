@@ -134,7 +134,7 @@ static a_boolean lint_is_finite(long double x) /*lint !e528*/
 {return x == 0.0; }
 static a_boolean lint_is_NaN(long double x) /*lint !e528*/
 {return x == 0.0; }
-#define NEED_LONG_DOUBLE_IS_FINITE 1
+#define NEED_LONG_DOUBLE_IS_FINITE 0
 #endif /* ifdef _lint */
 
 
