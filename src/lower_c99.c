@@ -2308,7 +2308,6 @@ destination) to a runtime call).
 }  /* lower_c99_fixed_point_cast */
 
 #endif /* LOWER_FIXED_POINT */
-#if DO_C99_IL_LOWERING
 
 void post_lower_c99_bool_cast(an_expr_node_ptr expr)
 /*
@@ -2349,6 +2348,7 @@ lowering on the "!= 0" comparison generated, e.g., for complex values.
   }  /* if */
 }  /* post_lower_c99_bool_cast */
 
+#if DO_C99_IL_LOWERING
 
 void lower_c99_cast(an_expr_node_ptr  expr)
 /*

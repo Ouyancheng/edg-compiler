@@ -1,5 +1,20 @@
 Version 3.11
 
+8/29/08  [EDGcpfe/9198]
+
+Invalid IL for cast of complex value to bool in g++ mode
+
+In g++ mode with lowering of complex types enabled (LOWER_COMPLEX is TRUE),
+the front end failed to fully lower the cast of a complex value to bool.
+This could also lead to the generation of invalid code by the C-generating
+back end.  For example:
+
+  _Complex float z;
+  void f() { if (z) {} }  // The implicit cast of "z" to bool (in g++ mode)
+                          // was previously not fully lowered.
+
+This is now fixed.
+
 8/28/08  [EDGcpfe/9099,EDGcpfe/7640]
 C99 _Bool type after lowering
 

@@ -10193,18 +10193,6 @@ Lower an eok_bool_cast node, which converts an operand to bool.
      cast will be inserted later.  The type will be "int" if
      adjust_bool_operation_types has discovered this case can be optimized.
      In C mode, the result type is always "int". */
-#if DO_C99_IL_LOWERING
-  if (C_mode()) {
-    /* Do additional lowering for the complex, imaginary, and fixed-point
-       cases. */
-    an_expr_node_ptr expr_copy;
-    post_lower_c99_bool_cast(expr);
-    /* Add a final cast to bool, because that's what we really need. */
-    expr_copy = copy_node(expr);
-    change_to_cast(expr, expr_copy, orig_type);
-  } else
-#endif /* DO_C99_IL_LOWERING */
-  /* Do not insert code here. */
   if (expr->variant.operation.kind == (an_expr_operator_kind)eok_ne &&
       node_operator_type_kind_is(expr, tk_ptr_to_member)) {
     /* For the pointer-to-member case, the comparison must be lowered. */
@@ -10212,6 +10200,14 @@ Lower an eok_bool_cast node, which converts an operand to bool.
     /* Note that zero_node is not lowered; that allows the subroutine to
        generate better code. */
     lower_pm_comparison(expr, /*operand1_lowered=*/TRUE);
+  } else if (C_mode() || gpp_mode) {
+    /* Do additional lowering for the complex, imaginary, and fixed-point
+       cases. */
+    an_expr_node_ptr expr_copy;
+    post_lower_c99_bool_cast(expr);
+    /* Add a final cast to bool, because that's what we really need. */
+    expr_copy = copy_node(expr);
+    change_to_cast(expr, expr_copy, orig_type);
   }  /* if */
 }  /* lower_bool_cast */
 
