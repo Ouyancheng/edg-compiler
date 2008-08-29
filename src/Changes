@@ -1,7 +1,6 @@
 Version 3.11
 
 8/29/08  [EDGcpfe/9198]
-
 Invalid IL for cast of complex value to bool in g++ mode
 
 In g++ mode with lowering of complex types enabled (LOWER_COMPLEX is TRUE),
@@ -14,6 +13,7 @@ back end.  For example:
                           // was previously not fully lowered.
 
 This is now fixed.
+
 
 8/28/08  [EDGcpfe/9099,EDGcpfe/7640]
 C99 _Bool type after lowering
