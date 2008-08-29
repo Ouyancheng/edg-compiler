@@ -37,7 +37,6 @@ lower_c99.c -- Routines to transform C99 IL constructs into constructs
 #include "il_walk.h"
 #endif /* MAINTAIN_NEEDED_FLAGS */
 
-#endif /* DO_IL_LOWERING */
 #if DO_C99_IL_LOWERING
 
 a_boolean c99_il_lowering_needed(void)
@@ -77,7 +76,6 @@ static void lower_c99_fixed_point_operation(an_expr_node_ptr expr);
 #endif /* LOWER_FIXED_POINT */
 #endif /* DO_C99_IL_LOWERING */
 
-#if DO_IL_LOWERING
 
 #if DO_C99_IL_LOWERING
 #define lower_any_c99_expr(expr)  lower_c99_expr(expr)
@@ -1102,7 +1100,6 @@ done:;
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
 }  /* lower_runtime_sizeof */
 
-#endif /* DO_IL_LOWERING */
 #if LOWER_COMPLEX || LOWER_FIXED_POINT
 
 static char* select_name_from_float_kind(a_float_kind  fkind,
@@ -4359,7 +4356,6 @@ Do C99 lowering for a memory region (for the file scope or a function scope).
 }  /* lower_c99_il_memory_region */
 
 #endif /* DO_C99_IL_LOWERING */
-#if DO_IL_LOWERING
 
 void lower_c99_one_time_init(void)
 /*
