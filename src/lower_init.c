@@ -275,6 +275,7 @@ calling sequence.
     /* No existing routine, create one. */
     *routine = make_rout_entry(name, (a_storage_class)sc_extern, return_type,
                                (a_type_ptr)NULL);
+    (*routine)->compiler_generated = TRUE;
     rout_type = (*routine)->type;
     rout_type->variant.routine.extra_info->prototyped = TRUE;
     if (param1_type != NULL) {

@@ -3607,17 +3607,23 @@ expression (i.e., not an expression inside some other expression) if
 is_full_expr is TRUE.
 */
 {
-  a_boolean  normalize = lowering_normalizes_boolean_controlling_expressions &&
-                         !is_bool_type(expr->type);
-  if (is_full_expr) {
-    lower_c99_full_expr(expr);
-  } else {
-    lower_c99_expr(expr);
-  }  /* if */
+  a_boolean  normalize = (!is_bool_type(expr->type) &&
+                          lowering_normalizes_boolean_controlling_expressions);
+
+#if LOWER_COMPLEX
+  /* We also normalize the expression if it has a complex type that will be
+     lowered to a struct type. */
+  if (is_complex_type(expr->type)) normalize = TRUE;
+#endif /* LOWER_COMPLEX */
   if (normalize) {
     /* Ensure that the expression has a 0/1 value (e.g., by adding a "!= 0"
        test on top of it. */
     normalize_boolean_controlling_expr(expr);
+  }  /* if */
+  if (is_full_expr) {
+    lower_c99_full_expr(expr);
+  } else {
+    lower_c99_expr(expr);
   }  /* if */
 }  /* lower_c99_boolean_controlling_expr */
 

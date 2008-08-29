@@ -13546,6 +13546,23 @@ is_full_expr is TRUE.
   a_boolean  normalize = lowering_normalizes_boolean_controlling_expressions &&
                          !is_bool_type(expr->type);
 
+#if LOWER_COMPLEX
+  /* We also normalize the expression if it has a complex type that will be
+     lowered to a struct type. */
+  if (is_complex_type(expr->type)) normalize = TRUE;
+#endif /* LOWER_COMPLEX */
+  if (normalize) {
+    /* Ensure that the expression has a 0/1 value (e.g., by adding a "!= 0"
+       test on top of it). */
+    an_expr_node_ptr  expr_to_normalize = expr;
+    if (expr->kind == (an_expr_node_kind)enk_object_lifetime) {
+      check_assertion_str(is_full_expr,
+         "lower_boolean_controlling_expr: enk_object_lifetime not at top (2)");
+      /* If an enk_object_lifetime node is (still) on top, look under that. */
+      expr_to_normalize = expr->variant.object_lifetime.expr;
+    }  /* if */
+    normalize_boolean_controlling_expr(expr_to_normalize);
+  }  /* if */
   if (bool_is_keyword) {
     /* When bool is enabled, adjust the result type of top-level
        bool-returning operations to be int. */
@@ -13556,17 +13573,6 @@ is_full_expr is TRUE.
     lower_full_expr(expr, (a_statement_ptr)NULL);
   } else {
     lower_expr(expr);
-  }  /* if */
-  if (normalize) {
-    /* Ensure that the expression has a 0/1 value (e.g., by adding a "!= 0"
-       test on top of it). */
-    if (expr->kind == (an_expr_node_kind)enk_object_lifetime) {
-      check_assertion_str(is_full_expr,
-         "lower_boolean_controlling_expr: enk_object_lifetime not at top (2)");
-      /* If an enk_object_lifetime node is (still) on top, look under that. */
-      expr = expr->variant.object_lifetime.expr;
-    }  /* if */
-    normalize_boolean_controlling_expr(expr);
   }  /* if */
 }  /* lower_boolean_controlling_expr */
 
