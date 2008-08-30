@@ -12908,7 +12908,7 @@ options is a set of name lookup options.
           } else if (!is_arithmetic_or_enum_type(constant_1.type) ||
                      (operand_2 != NULL &&
                       !is_arithmetic_or_enum_type(constant_2.type)) ||
-                     (operand_2 != NULL &&
+                     (operand_3 != NULL &&
                       !is_arithmetic_or_enum_type(constant_3.type))) {
             /* Substitution produced an operation on non-arithmetic types
                (e.g., an attempt at pointer arithmetic).  This is another
