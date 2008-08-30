@@ -1522,15 +1522,13 @@ information.)
 #define has_name_before_mangling(entry) \
   (unmangled_name_of(&(entry)->source_corresp) != NULL)
 
-/*
-Clear the parent information in the indicated entity to remove the entity
-from any class or namespace of which it might be a member.
-*/
-#define clear_parent(entity) \
-{ (entity)->source_corresp.is_class_member = FALSE; \
-  (entity)->source_corresp.parent_scope = NULL; \
-}  /* clear_parent */
+extern void clear_local_scope_ref_if_present(a_source_correspondence *scp);
 
+extern void clear_parent(a_source_correspondence *scp);
+
+extern void set_parent_scope(a_source_correspondence *scp,
+                             an_il_entry_kind        entry_kind,
+                             a_scope_ptr             parent_scope);
 
 /*
 Return TRUE if a constant is an error constant.

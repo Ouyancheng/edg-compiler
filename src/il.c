@@ -4020,10 +4020,58 @@ static an_expr_node_ptr i_copy_expr_tree(an_expr_node_ptr          expr,
                                          an_expr_copy_options_set  options,
                                          a_tree_copy_control_block *cblock);
 
+void clear_local_scope_ref_if_present(a_source_correspondence *scp)
+/*
+If the entity with the indicated source correspondence has an associated
+a_local_scope_ref entry (because of a memory region problem in pointing
+to the parent scope), delete it.
+*/
+{
+  if (scp->parent_via_local_scope_ref) {
+    /* Find and remove the associated a_local_scope_ref entry. */
+    check_assertion(scp->enclosing_routine != NULL &&
+                    scp->enclosing_routine->assoc_scope != NULL_region_number);
+    { a_scope_ptr  enclosing_fn_scope = il_header.region_scope_entry[
+                                         scp->enclosing_routine->assoc_scope];
+      a_local_scope_ref_ptr ref, prev_ref;
+      check_assertion(enclosing_fn_scope != NULL);
+      for (prev_ref = NULL, ref = enclosing_fn_scope->scope_refs;
+           ; prev_ref = ref, ref = ref->next) {
+        check_assertion_str(ref != NULL,
+                            "clear_parent: local scope ref entry not found");
+        if (ref->referrer.ptr == (char *)scp) break;
+      }  /* for */
+      if (prev_ref == NULL) {
+        enclosing_fn_scope->scope_refs = ref->next;
+      } else {
+        prev_ref->next = ref->next;
+      }  /* if */
+    }
+    scp->parent_via_local_scope_ref = FALSE;
+  }  /* if */      
+}  /* clear_local_scope_ref_if_present */
 
-static void set_parent_scope(a_source_correspondence *scp,
-                             an_il_entry_kind        entry_kind,
-                             a_scope_ptr             parent_scope)
+
+void clear_parent(a_source_correspondence *scp)
+/*
+Clear parent scope and class/namespace membership information from the
+indicated source correspondence.  The parent pointer is set to point to
+the file scope, unless it was NULL, in which case it is left alone.
+*/
+{
+  clear_local_scope_ref_if_present(scp);
+  scp->is_class_member = FALSE;
+  scp->is_local_to_function = FALSE;
+  scp->enclosing_routine = NULL;
+  if (scp->parent_scope != NULL) {
+    scp->parent_scope = il_header.primary_scope;
+  }  /* if */
+}  /* clear_parent */
+
+
+void set_parent_scope(a_source_correspondence *scp,
+                      an_il_entry_kind        entry_kind,
+                      a_scope_ptr             parent_scope)
 /*
 Set the parent scope of the entity whose source correspondence is given
 by scp, and whose kind is entry_kind, to parent_scope.  If there's a memory
@@ -4032,7 +4080,9 @@ scope is not currently on the scope stack, innermost_function_scope must be
 set correctly.
 */
 {
-  check_assertion(parent_scope != NULL);
+  check_assertion(parent_scope != NULL &&
+                  scp->parent_scope == NULL &&
+                  !scp->parent_via_local_scope_ref);
   scp->parent_scope = parent_scope;
   if (!in_file_scope(parent_scope)) {
     /* The entity is a member of a function-local scope. */
@@ -4084,7 +4134,9 @@ which must be either the file scope or a namespace scope.
     pointers_block->last_namespace->next = nsp;
   }  /* if */
   pointers_block->last_namespace = nsp;
-  set_parent_scope(&nsp->source_corresp, iek_namespace, sp);
+  if (parent_scope_of(nsp) == NULL) {
+    set_parent_scope(&nsp->source_corresp, iek_namespace, sp);
+  }  /* if */
 }  /* add_to_namespaces_list */
 
 
@@ -7393,7 +7445,8 @@ a namespace placeholder if appropriate.
     type_ptr->next = NULL;
     /* Record the parent scope.  Only update the parent the first time the
        entry is added to the IL. */
-    if (parent_scope_of(type_ptr) == NULL) {
+    if (parent_scope_of(type_ptr) == NULL &&
+        !type_ptr->source_corresp.parent_via_local_scope_ref) {
       set_parent_scope(&type_ptr->source_corresp, iek_type, sp);
     }  /* if */
     if (pointers_block != NULL) pointers_block->last_type = type_ptr;
@@ -10786,7 +10839,8 @@ scope depth.
          already recorded, do not perform the update (e.g., when lowering
          moves static data members to file scope, the parent scope should
          remain the original class scope). */
-      if (parent_scope_of(var_ptr) == NULL) {
+      if (parent_scope_of(var_ptr) == NULL &&
+          !var_ptr->source_corresp.parent_via_local_scope_ref) {
         set_parent_scope(&var_ptr->source_corresp, iek_variable, sp);
       }  /* if */
     } else {
@@ -11842,7 +11896,9 @@ Add the given routine to the asm entries list for the current scope.
   }  /* if */
   pointers_block->last_asm_entry = asm_entry_ptr;
   asm_entry_ptr->next = NULL;
-  set_parent_scope(&asm_entry_ptr->source_corresp, iek_asm_entry, sp);
+  if (parent_scope_of(asm_entry_ptr) == NULL) {
+    set_parent_scope(&asm_entry_ptr->source_corresp, iek_asm_entry, sp);
+  }  /* if */
 }  /* add_to_asm_entries_list */
 
 

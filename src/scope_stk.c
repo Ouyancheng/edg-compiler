@@ -5689,38 +5689,6 @@ discarded right after they have been generated.
   return discard;
 }  /* function_body_should_be_discarded */
 
-#if MAINTAIN_NEEDED_FLAGS
-
-static void remove_scope_refs_for_unneeded_referrers(a_scope_ptr  sp)
-/*
-Traverse the list of a_local_scope_ref entries associated with the given
-function scope, and remove any referrers that are unneeded.
-*/
-{
-  a_local_scope_ref_ptr  *scope_ref = &sp->scope_refs;
-
-  while (*scope_ref != NULL) {
-    /* Don't consider a_local_scope_ref entries whose referrer is itself a
-       scope. */
-    if ((*scope_ref)->referrer.kind != (a_byte_il_entry_kind)iek_scope) {
-      a_source_correspondence_ptr  scp = (a_source_correspondence_ptr)
-                                                   (*scope_ref)->referrer.ptr;
-      if (!scp->needed) {
-#if DEBUG
-        if (db_flag_is_set("dump_scope_ref")) {
-          fprintf(f_debug, "Eliminating a_local_scope_ref for ");
-          db_sym((a_symbol*)scp->assoc_info);
-        }  /* if */
-#endif /* DEBUG */
-        *scope_ref = (*scope_ref)->next;
-        continue;
-      }  /* if */
-    }  /* if */
-    scope_ref = &(*scope_ref)->next;
-  }  /* while */
-}  /* remove_scope_refs_for_unneeded_referrers */
-
-#endif /* MAINTAIN_NEEDED_FLAGS */
 
 void finish_function_body_processing(a_scope_ptr scope,
                                      a_boolean   will_discard_function_body)
@@ -5800,9 +5768,6 @@ thrown away by the caller.
        allows the subtrees to be swept in the future because they
        can no longer change.*/
     walk_subtrees_of_local_entities(scope);
-    /* Some a_local_scope_ref entries may end up dangling after unneeded
-       entities are removed. */
-    remove_scope_refs_for_unneeded_referrers(scope);
     if (routine->defined && lowering_done) { /*lint !e774*/
       /* If the definition_needed flag is set already, sweep the body
          now that lowering has been done. */

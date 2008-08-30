@@ -7458,12 +7458,15 @@ this routine to do a relatively simple copy of the all the fields.
     mangle_subobject_class_name(class_type, subobject_type);
     subobject_type->source_corresp.decl_position = 
                                       class_type->source_corresp.decl_position;
-    subobject_type->source_corresp.parent_scope =
-                                    class_type->source_corresp.parent_scope;
     subobject_type->source_corresp.is_class_member =
                                     class_type->source_corresp.is_class_member;
     subobject_type->source_corresp.is_local_to_function =
                                class_type->source_corresp.is_local_to_function;
+    /* Clear the default file scope parent set by make_lowered_class_type so
+       it can be set again. */
+    subobject_type->source_corresp.parent_scope = NULL;
+    set_parent_scope(&subobject_type->source_corresp, iek_type,
+                     get_parent_scope_of(class_type));
     /* Ideally, the referenced flag would not be set if the class type is
        not referenced.  However, the class type might not be referenced now
        (part-way through the compilation) and then be referenced later. */
@@ -15813,7 +15816,6 @@ Promote the asm entries on the asm_entries list of the indicated scope
     }  /* if */
 #endif /* DEBUG */
     add_to_asm_entries_list(asm_entry);
-    asm_entry->source_corresp.is_local_to_function = FALSE;
   }  /* for */
   /* Clear the list of asm entries.  Since the scope is for a namespace,
      we know it cannot be on the scope stack now, and therefore we do not
@@ -16551,6 +16553,7 @@ with the outermost enclosing class, for later promotion out of the class
                                   /*scoped_enum_type=*/(a_type_ptr)NULL);
       /* The is_local_to_function flag in the type is not cleared yet.  That
          happens at the end of lowering. */
+      clear_local_scope_ref_if_present(&type->source_corresp);
       if (routine_class == NULL) {
         /* Not promoting from a member function: just add to the file-scope
            types list. */
@@ -16687,6 +16690,7 @@ been removed from the scope variables list).
                               /*final=*/FALSE, routine, scope,
                               /*scoped_enum_type=*/(a_type_ptr)NULL);
   variable->source_corresp.is_local_to_function = FALSE;
+  clear_local_scope_ref_if_present(&variable->source_corresp);
   if (has_name(variable) &&
       routine_might_exist_in_multiple_copies(routine)) {
     /* A routine whose body might exist in multiple copies, such as
@@ -17795,7 +17799,7 @@ that were promoted out of local classes).
   for (con = il_header.primary_scope->constants;
        con != NULL;
        con = con->next) {
-    clear_parent(con);
+    clear_parent(&con->source_corresp);
     con->source_corresp.is_local_to_function = FALSE;
   }  /* for */
 }  /* clear_parent_info_on_constants */
@@ -17814,7 +17818,7 @@ completeness ...).
   for (var = il_header.primary_scope->variables;
        var != NULL;
        var = var->next) {
-    clear_parent(var);
+    clear_parent(&var->source_corresp);
     var->source_corresp.is_local_to_function = FALSE;
   }  /* for */
 }  /* clear_parent_info_on_variables */
@@ -17835,52 +17839,45 @@ way to know the associated class for those.
   for (rout = il_header.primary_scope->routines;
        rout != NULL;
        rout = rout->next) {
-    clear_parent(rout);
+    clear_parent(&rout->source_corresp);
     rout->source_corresp.is_local_to_function = FALSE;
   }  /* for */
 }  /* clear_parent_info_on_routines */
 
 
-static void clear_parent_info_on_type_list(a_type_ptr type_list,
-                                           a_boolean  function_local)
+static void clear_parent_info_on_types(void)
 /*
-Clear class/namespace membership information on the types in the indicated
-list.  If function_local is FALSE, also clear the is_local_to_function flag.
+Clear class/namespace membership information and the is_local_to_function
+flag (where appropriate) on all file-scope types.  This is done late in
+file scope lowering so that the information is around for the use of IL
+lowering, e.g., for promotion of types out of namespaces via placeholders.
 */
 {
   a_type_ptr type;
 
-  for (type = type_list; type != NULL; type = type->next) {
-    clear_parent(type);
-    if (!function_local) type->source_corresp.is_local_to_function = FALSE;
-  }  /* for */
-}  /* clear_parent_info_on_type_list */
-
-
-static void clear_parent_info_on_types(void)
-/*
-Clear class/namespace membership information and the is_local_to_function
-flag (where appropriate) on all types (including orphans from function
-and block scopes).  This is done late in file scope lowering so that the
-information is around for the use of IL lowering, e.g., for promotion
-of types out of namespaces via placeholders.
-*/
-{
-  a_scope_orphaned_list_header_ptr solhp;
-
-  /* Note that this routine is called at the end of lowering a memory
-     region, so the IL is flattened here; there are no nested classes
-     and no namespaces. */
-  clear_parent_info_on_type_list(il_header.primary_scope->types,
-                                 /*function_local=*/FALSE);
-  /* Process local types by visiting the types on orphan lists. */
-  for (solhp = il_header.scope_orphaned_list_headers;
-       solhp != NULL;
-       solhp = solhp->next) {
-    clear_parent_info_on_type_list(solhp->orphaned_types,
-                                   /*function_local=*/TRUE);
+  for (type = il_header.primary_scope->types;
+       type != NULL;
+       type = type->next) {
+    clear_parent(&type->source_corresp);
+    type->source_corresp.is_local_to_function = FALSE;
   }  /* for */
 }  /* clear_parent_info_on_types */
+
+
+static void clear_parent_info_on_asm_entries(void)
+/*
+Clear class/namespace membership information on all asm entries in the
+file scope.
+*/
+{
+  an_asm_entry_ptr aep;
+
+  for (aep = il_header.primary_scope->asm_entries;
+       aep != NULL;
+       aep = aep->next) {
+    clear_parent(&aep->source_corresp);
+  }  /* for */
+}  /* clear_parent_info_on_asm_entries */
 
 
 void clear_parent_information(void)
@@ -17903,6 +17900,8 @@ flag).
   clear_parent_info_on_routines();
   /* Clear parent information on types. */
   clear_parent_info_on_types();
+  /* Clear parent information on asm entries. */
+  clear_parent_info_on_asm_entries();
 }  /* clear_parent_information */
 
 
