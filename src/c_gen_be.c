@@ -3398,8 +3398,8 @@ scope types, the two instances of the type would not be compatible.
 
 
 /*
-Helper macro for check_parent_info; calls db_name to display the name of an
-entity, but only if DEBUG code is enabled.
+Helper macro for check_membership_info; calls db_name to display the name
+of an entity, but only if DEBUG code is enabled.
 */
 #if DEBUG && !STANDALONE_UTILITY_PROGRAM
 #define display_entity_if_debug_enabled(entity) \
