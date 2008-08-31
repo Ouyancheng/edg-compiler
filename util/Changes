@@ -1,5 +1,11 @@
 Version 3.11
 
+8/31/08  [EDGcpfe/9197]
+Demangling of identifiers containing "$" in IA-64 ABI
+
+The name demangler for the IA-64 ABI now handles identifier names
+that contain the "$" character.
+
 7/22/08  Demangling of GNU vector_size attribute
 
 The demangler now handles mangled names that include the GNU

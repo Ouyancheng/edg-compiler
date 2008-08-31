@@ -4080,7 +4080,7 @@ output the rest of the string).  This is used for an EDG extension.
            accumulated. */
         bad_mangled_name(dctl);
         break;
-      } else if (!isalnum((unsigned char)*ptr) && *ptr != '_') {
+      } else if (!isalnum((unsigned char)*ptr) && *ptr != '_' && *ptr != '$') {
         /* Invalid character in identifier. */
         /* g++ names for unnamed namespaces contain bad characters,
            e.g., periods. */
