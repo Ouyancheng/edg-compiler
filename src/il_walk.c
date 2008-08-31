@@ -1033,16 +1033,6 @@ as needed.
       }  /* while */
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-  } else if (entry_kind == (an_il_entry_kind)iek_scope) {
-    a_scope_ptr  scope = (a_scope_ptr)entry_ptr;
-    /*lint --e(506) */
-    if (scope->kind == (a_scope_kind)sck_class_struct_union &&
-        !should_walk_subtree((char*)scope->variant.assoc_type, iek_type,
-                             /*is_class=*/TRUE)) {
-      /* Don't walk the subtree of a class scope if we wouldn't walk the
-         associated class type. */
-      prune = TRUE;
-    }  /* if */
   }  /* if */
   return prune;
 }  /* prune_needed_flag_il_walk */
