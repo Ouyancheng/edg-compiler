@@ -1721,27 +1721,15 @@ to be kept.
       if (parent_will_exist_after_lowering(entry_ptr, entry_kind))
 #endif /* DO_IL_LOWERING */
       /* Do not insert code here. */
-      { a_type_ptr  parent_class = NULL;
-        /* should_walk_subtree returns FALSE only for a_type, a_variable,
-           a_routine, and a_scope entries. */
-        if (entry_kind == iek_scope) {
-          a_scope_ptr  scope = (a_scope_ptr)entry_ptr;
-          if (scope->parent != NULL &&
-              scope->parent->kind == (a_scope_kind)sck_class_struct_union) {
-            parent_class = scope->parent->variant.assoc_type;
-          }  /* if */
-        } else {
-          a_source_correspondence *scp =
+      { a_source_correspondence *scp =
                             source_corresp_for_il_entry(entry_ptr, entry_kind);
-          check_assertion(scp != NULL);
-          if (scp->is_class_member) parent_class = scp_parent_class(scp); 
-        }  /* if */
-        if (parent_class != NULL) {
-          /* A member of a class. */
+        check_assertion(scp != NULL);
+        if (scp->is_class_member) {
+          a_type_ptr parent_class = scp_parent_class(scp); 
           walk_tree_and_set_keep_in_il((char *)parent_class, iek_type);
           set_class_keep_definition_in_il(parent_class);
         }  /* if */
-      }  /* if */
+      }
     }  /* if */
     /* For an entity that has linkage, mark the associated canonical entry
        to be kept in the IL too, since that's the one that will be copied
