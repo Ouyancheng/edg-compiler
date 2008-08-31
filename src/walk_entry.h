@@ -2911,7 +2911,10 @@ after_entry_from_class:
       break;
 #endif /* EXPR_RANGE_MODIFIERS_IN_IL */
     case iek_local_scope_ref:
-      { a_local_scope_ref_ptr ptr = (a_local_scope_ref_ptr)entry_ptr;
+      {
+#if !NEEDED_FLAG_WALK
+        a_local_scope_ref_ptr ptr = (a_local_scope_ref_ptr)entry_ptr;
+#endif /* !NEEDED_FLAG_WALK */
         remap_next_ptr(ptr->next, a_local_scope_ref_ptr, iek_local_scope_ref);
         remap_ptr_not_needed(ptr->scope, a_scope_ptr, iek_scope);
         remap_ptr_not_needed(ptr->referrer.ptr, a_char_ptr,
