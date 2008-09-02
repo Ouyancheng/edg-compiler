@@ -35,6 +35,8 @@ extern an_expr_node_ptr lower_vla_dimensions(a_type_ptr  tp);
 
 extern void lower_vla_types(void);
 
+extern void lower_vla_variable_types(a_variable_ptr variable_list);
+
 extern void lower_vla_decl(a_statement_ptr  stmt);
 
 extern void lower_set_vla_size(a_statement_ptr  stmt);

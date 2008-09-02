@@ -228,16 +228,9 @@ in a_type entries to avoid visiting any type node more than once.
   } else {
     tp->visited_for_vla_lowering = TRUE;
     if (tp->kind == (a_type_kind)tk_array && is_vla_type(tp)) {
-      /* VLA types will be lowered to pointers to the underlying element
-         type. */
+      /* VLA types will be lowered to the underlying element type by
+         lower_vla_types. */
       record_vla_type_for_lowering(tp);
-    } else if (tp->kind == (a_type_kind)tk_pointer) {
-      /* Pointers to VLA types must be lowered to pointers to the element type
-         of the VLA. */
-      a_type_ptr  tptp = type_pointed_to(tp);
-      if (is_vla_type(tptp)) {
-        record_vla_type_for_lowering(tp);
-      }  /* if */
     }  /* if */
   }  /* if */
   return FALSE;
@@ -269,40 +262,43 @@ Lower all VLA types that were recorded by record_vla_type_for_lowering.
 {
   a_type_list_entry_ptr  entry;
 
-  /* VLAs and pointer to VLAs must be lowered to pointers to the underlying
-     element type.  To avoid ordering problems due to two types being lowered
-     depending on one another, this is done in two passes.  In the first
-     pass the underlying element type is brought up.  In the second pass,
-     array types are turned into pointer types. */
   for (entry = vla_types; entry != NULL; entry = entry->next) {
     if (entry->type->kind == (a_type_kind)tk_array) {
-      /* A VLA type to be lowered. */
-      entry->type->variant.array.element_type =
+      /* A VLA type is lowered to its underlying element type. */
+      /* A do-nothing typeref is added here so we don't actually copy the
+         underlying type, but rather refer to the original type. */
+      a_type_ptr  type_ref = alloc_type((a_type_kind)tk_typeref);
+      type_ref->variant.typeref.type = 
                                     underlying_array_element_type(entry->type);
-    } else if (entry->type->kind == (a_type_kind)tk_pointer) {
-      /* This should be a pointer-to-VLA type: Make it point to the underlying
-         element type (unless a previous iteration of this loop already removed
-         the VLA component of this type).  That is all that is needed for this
-         case: The second pass will not further transform the type. */
-      a_type_ptr  tp = type_pointed_to(entry->type);
-      entry->type->variant.pointer.type = underlying_array_element_type(tp);
+      *entry->type = *type_ref;
     } else if (entry->type->kind == (a_type_kind)tk_typeref) {
+      /* A VLA typedef is now marked as no longer variably modified. */
       check_assertion(typeref_is_typedef(entry->type));
       entry->type->variant.typeref.has_variably_modified_type = FALSE;
     }  /* if */
   }  /* for */
-  for (entry = vla_types; entry != NULL; entry = entry->next) {
-    if (entry->type->kind == (a_type_kind)tk_array) {
-      /* The previous pass made sure the element type of this array is not
-         itself an array and conversely that no other array types have this
-         array type as element type.  We can now safely turn the array into
-         a pointer type. */
-      *entry->type =
-                   *make_pointer_type(entry->type->variant.array.element_type);
-    }  /* if */
-  }  /* for */
   free_list_of_type_list_entries(vla_types);
 }  /* lower_vla_types */
+
+
+void lower_vla_variable_types(a_variable_ptr variable_list)
+/*
+Lower the type of all VLA variables on variable_list by adding a pointer
+to the current type.  The variable itself has already been lowered, and
+the type will be further lowered (by lower_vla_types) where the VLA type will
+be lowered to its underlying element type.  This step must be performed
+after lowering of all executable code that uses the variable, but before
+the VLA types themselves are lowered.
+*/
+{
+  a_variable_ptr variable;
+
+  for (variable = variable_list; variable != NULL; variable = variable->next) {
+    if (is_vla_type(variable->type)) {
+      variable->type = make_pointer_type(variable->type);
+    }  /* if */
+  }  /* for */
+}  /* lower_vla_variable_types */
 
 
 void prepare_to_lower_variably_modified_typedef(a_type_ptr  type)
@@ -842,17 +838,18 @@ be scaled down by the number of elements in the VLAs pointed to.
 void lower_vla_variable_lvalue(an_expr_node_ptr  expr)
 /*
 The given expr is an lvalue enk_variable for a VLA variable.  Since VLA
-variables don't really have lvalues, convert an lvalue for VLA variable V
-to *(T *)V.  V's type (once lowered) will be pointer to the underlying array
-element type.  Note that although the expression is a variable node expression
-on input, it won't be on output.
+variables don't really have lvalues, convert an lvalue for VLA variable v
+whose type is array [] of T to *(T *)v.  v's type (once fully lowered) will be
+pointer to the underlying array element type.  Note that although the
+expression is a variable node expression on input, it won't be on output.
 */
 {
   an_expr_node_ptr  new_expr;
 
   check_assertion(is_variable_node(expr) && expr->is_lvalue);
+  expr->type = make_pointer_type(expr->type);
   new_expr = rvalue_expr_for_lvalue(expr);
-  new_expr = add_cast(copy_node(new_expr), make_pointer_type(expr->type));
+  new_expr = add_cast(copy_node(new_expr), expr->type);
   overwrite_node(expr, add_indirection_to_node(new_expr));
   /* If the underlying element type is qualified, a new VLA type might
      have been created, so record it. */
@@ -4130,6 +4127,17 @@ Do C99 lowering for all entities in and under the given scope.
     }  /* if */
 #endif /* MINIMAL_INLINING */
 #if LOWER_VARIABLE_LENGTH_ARRAYS
+    if (vla_enabled) {
+      /* Lower the type of any VLA variables in this function scope. */
+      a_scope_ptr sp;
+      lower_vla_variable_types(scope->variant.routine.parameters);
+      lower_vla_variable_types(scope->nonstatic_variables);
+      for (sp = scope->scopes; sp != NULL; sp = sp->next) {
+        if (sp->kind == (a_scope_kind)sck_block) {
+          lower_vla_variable_types(sp->nonstatic_variables);
+        }  /* if */
+      }  /* for */
+    }  /* if */
     /* Discard the VLA dimensions list since the VLAs have all been lowered. */
     scope->vla_dimensions = NULL;
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */

@@ -42,9 +42,6 @@ il.c -- Construction of intermediate language trees.
 #if MINIMAL_INLINING
 #include "inline.h"
 #endif /* MINIMAL_INLINING */
-#if LOWER_VARIABLE_LENGTH_ARRAYS
-#include "lower_c99.h"
-#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
 #endif /* DO_IL_LOWERING */
 #include "trans_copy.h"
 
@@ -14486,13 +14483,6 @@ designated an rvalue.
       node = make_operator_node((an_expr_operator_kind)eok_address_of,
                                 make_pointer_type(node->type), node);
       node->variant.operation.compiler_generated = TRUE;
-#if LOWER_VARIABLE_LENGTH_ARRAYS
-    if (vla_enabled && !node->type->visited_for_vla_lowering) {
-      /* If we've just introduced a new VLA type, we need to record it for
-         later lowering. */
-      record_vla_component_types_for_lowering(node->type);
-    }  /* if */
-#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
     }  /* if */
   }  /* if */
   return node;
