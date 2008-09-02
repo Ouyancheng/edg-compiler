@@ -1,25 +1,5 @@
 Version 3.11
 
-8/29/08  [EDGcpfe/7699]
-Abort during argument deduction involving address constants
-
-In some fairly unusual cases, the front end aborted (usually with an internal
-error "not integral type" in get_integer_attributes) during the deduction of
-template arguments that involve computations on address constants.  For
-example:
-
-  template<int> struct X {};
-  template<typename T> X<T()+1> f();  // (1)
-  template<typename T> void f();      // (2)
-  int main() {
-    f<int*>();  // An attempt to partially instantiate template (1) previously
-  }             // triggered an abort.  Now, (1) fails to deduce and (2) is
-                // selected instead.
-
-This is now fixed and such situations are now treated as an ordinary deduction
-failure.
-
-
 8/29/08  [EDGcpfe/9198]
 Invalid IL for cast of complex value to bool in g++ mode
 

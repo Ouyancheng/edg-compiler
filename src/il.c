@@ -12898,24 +12898,13 @@ options is a set of name lookup options.
           if (alloc_con_1 != NULL) copy_constant(alloc_con_1, &constant_1);
           if (alloc_con_2 != NULL) copy_constant(alloc_con_2, &constant_2);
           if (alloc_con_3 != NULL) copy_constant(alloc_con_3, &constant_3);
-          if (constant_1.kind == (a_constant_repr_kind)ck_template_param ||
-              (operand_2 != NULL &&
-               constant_2.kind == (a_constant_repr_kind)ck_template_param) ||
-              (operand_3 != NULL &&
-               constant_3.kind == (a_constant_repr_kind)ck_template_param)) {
-            /* Do not fold if any of the constants is still a template
-               parameter constant. */
-          } else if (!is_arithmetic_or_enum_type(constant_1.type) ||
-                     (operand_2 != NULL &&
-                      !is_arithmetic_or_enum_type(constant_2.type)) ||
-                     (operand_3 != NULL &&
-                      !is_arithmetic_or_enum_type(constant_3.type))) {
-            /* Substitution produced an operation on non-arithmetic types
-               (e.g., an attempt at pointer arithmetic).  This is another
-               case we cannot reliably fold (see above) and therefore we
-               give up on deduction. */
-            *copy_error = TRUE;
-          } else {
+          /* Do not fold if any of the constants is still a
+             template parameter constant. */
+          if (constant_1.kind != (a_constant_repr_kind)ck_template_param &&
+              (operand_2 == NULL ||
+               constant_2.kind != (a_constant_repr_kind)ck_template_param) &&
+              (operand_3 == NULL ||
+               constant_3.kind != (a_constant_repr_kind)ck_template_param)) {
             /* All the operands are constants and not template parameter
                constants.  Fold the operation. */
             a_boolean did_not_fold, template_constant;
