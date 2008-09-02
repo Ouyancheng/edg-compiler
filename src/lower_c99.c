@@ -301,6 +301,27 @@ the VLA types themselves are lowered.
 }  /* lower_vla_variable_types */
 
 
+void lower_vla_variable_types_in_scope(a_scope_ptr scope)
+/*
+Lower the type of all VLA variables in the specified function or block scope.
+*/
+{
+  a_scope_ptr sp;
+
+  check_assertion(scope->kind == (a_scope_kind)sck_function || 
+                  scope->kind == (a_scope_kind)sck_block);
+  if (scope->kind == (a_scope_kind)sck_function) {
+    lower_vla_variable_types(scope->variant.routine.parameters);
+  }  /* if */
+  lower_vla_variable_types(scope->nonstatic_variables);
+  for (sp = scope->scopes; sp != NULL; sp = sp->next) {
+    if (sp->kind == (a_scope_kind)sck_block) {
+      lower_vla_variable_types_in_scope(sp);
+    }  /* if */
+  }  /* for */
+}  /* lower_vla_variable_types_in_scope */
+
+
 void prepare_to_lower_variably_modified_typedef(a_type_ptr  type)
 /*
 The given type must be a typeref representing a typedef.  Record any variably-
@@ -4129,14 +4150,7 @@ Do C99 lowering for all entities in and under the given scope.
 #if LOWER_VARIABLE_LENGTH_ARRAYS
     if (vla_enabled) {
       /* Lower the type of any VLA variables in this function scope. */
-      a_scope_ptr sp;
-      lower_vla_variable_types(scope->variant.routine.parameters);
-      lower_vla_variable_types(scope->nonstatic_variables);
-      for (sp = scope->scopes; sp != NULL; sp = sp->next) {
-        if (sp->kind == (a_scope_kind)sck_block) {
-          lower_vla_variable_types(sp->nonstatic_variables);
-        }  /* if */
-      }  /* for */
+      lower_vla_variable_types_in_scope(scope);
     }  /* if */
     /* Discard the VLA dimensions list since the VLAs have all been lowered. */
     scope->vla_dimensions = NULL;

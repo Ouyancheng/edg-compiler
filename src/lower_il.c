@@ -17666,17 +17666,8 @@ Do IL lowering of the indicated scope and everything under it.
 #endif /* IA64_ABI */
 #if LOWER_VARIABLE_LENGTH_ARRAYS
     if (vla_enabled) {
-      /* Lower the type of all VLA variables before VLA types themselves
-         are lowered.  VLAs can't appear in the file scope and can't be
-         static. */
-      a_scope_ptr sp;
-      lower_vla_variable_types(scope->variant.routine.parameters);
-      lower_vla_variable_types(scope->nonstatic_variables);
-      for (sp = scope->scopes; sp != NULL; sp = sp->next) {
-        if (sp->kind == (a_scope_kind)sck_block) {
-          lower_vla_variable_types(sp->nonstatic_variables);
-        }  /* if */
-      }  /* for */
+      /* Lower the type of any VLA variables in this function scope. */
+      lower_vla_variable_types_in_scope(scope);
     }  /* if */
     /* Discard the VLA dimensions list since the VLAs have all been lowered. */
     scope->vla_dimensions = NULL;

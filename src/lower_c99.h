@@ -37,6 +37,8 @@ extern void lower_vla_types(void);
 
 extern void lower_vla_variable_types(a_variable_ptr variable_list);
 
+extern void lower_vla_variable_types_in_scope(a_scope_ptr scope);
+
 extern void lower_vla_decl(a_statement_ptr  stmt);
 
 extern void lower_set_vla_size(a_statement_ptr  stmt);
