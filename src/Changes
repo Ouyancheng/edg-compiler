@@ -36,8 +36,8 @@ end proper.
 This normalization is now optional and it is performed as part of the IL
 lowering process.  Whether normalization happens is determined by the new
 configuration macro LOWERING_NORMALIZES_BOOLEAN_CONTROLLING_EXPRESSIONS.
-Setting this macro to TRUE causes IL lowering to happen even for plain C89
-input source.
+Note that a consequence of setting this macro to TRUE is that IL lowering
+will happen even for plain C89 input source.
 
 
 8/25/08  [EDGcpfe/9110]
