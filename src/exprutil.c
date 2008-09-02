@@ -11208,8 +11208,7 @@ Do some checks on a boolean controlling expression (e.g., "i != 0" in
 "(i != 0) ? j : k").  Check that (if bool is enabled) it has bool type
 or can be converted to it, or (if bool is disabled) it's a scalar
 (arithmetic or pointer) or a pointer to member; return FALSE if not.
-Also (if bool is enabled) convert the expression to bool, or (if
-bool is disabled) normalize the expression to "!= 0" form if necessary.
+Also, convert the expression to bool if bool is enabled.
 This routine does not attempt conversions from class types to built-in
 types to get a boolean expression (see process_boolean_controlling_expression).
 */
