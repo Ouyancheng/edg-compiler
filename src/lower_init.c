@@ -5947,11 +5947,17 @@ to a constructor to be called after the zeroing have been done.
   lower_initializer(model_var, &model_var->init_kind, &model_var->initializer,
                     &insert_location);
   if (need_array_count) {
+    a_constant        zero;
+    an_expr_node_ptr  expr;
     /* Build a loop to zero-initialize the entities. */
     loop_stmt = alloc_statement((a_statement_kind)stmk_while);
-    loop_stmt->expr = make_operator_node((an_expr_operator_kind)eok_post_decr,
-                                         count_type,
-                                         var_lvalue_expr(count_var));
+    expr = make_operator_node((an_expr_operator_kind)eok_post_decr,
+                              count_type, var_lvalue_expr(count_var));
+    make_zero_of_proper_type(count_var->type, &zero);
+    expr->next = alloc_node_for_constant(&zero);
+    loop_stmt->expr = make_operator_node((an_expr_operator_kind)eok_ne,
+                                         integer_type((an_integer_kind)ik_int),
+                                         expr);
     /* The access to the entity increments it each time a store is done. */
     entity_expr = make_operator_node((an_expr_operator_kind)eok_post_incr,
                                      pointer_type,
