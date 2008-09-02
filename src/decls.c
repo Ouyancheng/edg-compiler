@@ -9194,13 +9194,21 @@ is being scanned as part of a GNU local label declaration.
        exception is a GNU local label declaration.  Use a locator with an
        undefined source position; the decl_position will be handled
        explicitly shortly. */
-    a_scope_depth  depth = is_declaration ? decl_scope_level
-                                          : depth_innermost_function_scope;
+    a_memory_region_number region_to_switch_back_to;
+    a_scope_depth          depth;
+    check_assertion(depth_innermost_function_scope != NO_SCOPE_DEPTH);
+    depth = is_declaration ? decl_scope_level : depth_innermost_function_scope;
     locator_for_curr_id.source_position = null_source_position;
     label_sym = enter_symbol((a_symbol_kind)sk_label, &locator_for_curr_id,
                              depth, /*suppress_error=*/TRUE);
-    /* Allocate the IL label and attach it to the symbol. */
+    /* Allocate the IL label and attach it to the symbol.  Be careful to
+       allocate it in the current function scope memory region (the file scope
+       memory region may be the default when e.g. dealing with label addresses
+       appearing in template arguments). */
+    switch_to_scope_region(depth_innermost_function_scope,
+                           &region_to_switch_back_to);
     label_sym->variant.label.ptr = label = alloc_label();
+    switch_back_to_original_region(region_to_switch_back_to);
 #if GNU_EXTENSIONS_ALLOWED
     label->locally_declared = is_declaration;
 #endif /* GNU_EXTENSIONS_ALLOWED */

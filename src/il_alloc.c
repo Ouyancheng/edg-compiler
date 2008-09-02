@@ -2445,6 +2445,8 @@ to it.
 
   db_enter(5, "alloc_label");
 
+  /* Labels should always be allocated in a function scope memory region. */
+  check_assertion(curr_il_region_number != file_scope_region_number);
   lp = (a_label_ptr)alloc_cil(sizeof(a_label));
 #if DEBUG
   num_labels_allocated++;
