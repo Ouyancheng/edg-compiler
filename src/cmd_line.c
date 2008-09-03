@@ -4746,6 +4746,11 @@ file.
 #else /* !defined(GNU_TARGET_VERSION_NUMBER) */
   comment_undefined_macro_name(GNU_TARGET_VERSION_NUMBER);
 #endif /* defined(GNU_TARGET_VERSION_NUMBER) */
+#if defined(GNU_VECTOR_TYPES_ALLOWED)
+  define_numeric_valued_macro(GNU_VECTOR_TYPES_ALLOWED);
+#else /* !defined(GNU_VECTOR_TYPES_ALLOWED) */
+  comment_undefined_macro_name(GNU_VECTOR_TYPES_ALLOWED);
+#endif /* defined(GNU_VECTOR_TYPES_ALLOWED) */
 #if defined(GNU_VISIBILITY_ATTRIBUTE_ALLOWED)
   define_numeric_valued_macro(GNU_VISIBILITY_ATTRIBUTE_ALLOWED);
 #else /* !defined(GNU_VISIBILITY_ATTRIBUTE_ALLOWED) */
