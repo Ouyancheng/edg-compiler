@@ -34,6 +34,13 @@ lower_il.c -- Lower C++ intermediate language to C intermediate language.
 #include "layout.h"
 #include "il_walk.h"
 #include "templates.h"
+
+#if PARENS_IN_IL
+/* IL lowering doesn't check for and skip over eok_parens nodes, so
+   PARENS_IN_IL cannot be set to TRUE in lowering. */
+ #error -- PARENS_IN_IL cannot be set when IL lowering is done.
+#endif /* PARENS_IN_IL */
+
 #endif /* DO_IL_LOWERING */
 
 /* Only include this code if it is needed.  The first few routines are

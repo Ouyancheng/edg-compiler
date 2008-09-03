@@ -90,6 +90,11 @@ instead of K&R C.
 #endif /* ASM_FUNCTION_ALLOWED */
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
 
+#if PARENS_IN_IL
+/* The C-generating back end doesn't handle the eok_parens operator. */
+ #error -- PARENS_IN_IL cannot be set when the C-generating back end is used.
+#endif /* PARENS_IN_IL */
+
 /*
 See if the target is the SunPro C compiler.
 */
