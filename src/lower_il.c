@@ -16534,7 +16534,9 @@ with the outermost enclosing class, for later promotion out of the class
       next_type = type->next;
       if (type_is_typedef(type) &&
           type->variant.typeref.has_variably_modified_type) {
-        /* Variably modified types cannot be moved outside their scope. */
+        /* Variably modified types cannot be moved outside their scope.
+           This type will just disappear. */
+        clear_local_scope_ref_if_present(&type->source_corresp);
         continue;
       }  /* if */
 #if DEBUG
