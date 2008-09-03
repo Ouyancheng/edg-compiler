@@ -4253,14 +4253,14 @@ met.
   a_boolean result = FALSE;
 
   if (is_pointer_type(ptr_type)) {
-    a_type_ptr pointed_to_type = type_pointed_to(ptr_type);
+    a_type_ptr pointed_to_type = skip_typerefs(type_pointed_to(ptr_type));
+    targ_type = skip_typerefs(targ_type);
 #if STANDALONE_C_GEN_BE
     /* identical_types is not available in a standalone configuration, so
        just test if the type points are the same. */
-    result = skip_typerefs(pointed_to_type) == skip_typerefs(targ_type);
+    result = pointed_to_type == targ_type;
 #else /* !STANDALONE_C_GEN_BE */
-    result = identical_types(f_skip_typerefs(pointed_to_type),
-                             f_skip_typerefs(targ_type));
+    result = identical_types(pointed_to_type, targ_type);
 #endif /* STANDALONE_C_GEN_BE */
   }  /* if */
   return result;
