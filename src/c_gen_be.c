@@ -4259,8 +4259,8 @@ met.
        just test if the type points are the same. */
     result = skip_typerefs(pointed_to_type) == skip_typerefs(targ_type);
 #else /* !STANDALONE_C_GEN_BE */
-    result = identical_types(skip_typerefs(pointed_to_type),
-                             skip_typerefs(targ_type));
+    result = identical_types(f_skip_typerefs(pointed_to_type),
+                             f_skip_typerefs(targ_type));
 #endif /* STANDALONE_C_GEN_BE */
   }  /* if */
   return result;
@@ -4357,14 +4357,14 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           }  /* if */
         }  /* for */
       }
-      if (op == eok_address_of &&
+      if (op == (an_expr_operator_kind)eok_address_of &&
           !pointer_type_is_consistent(expr->type, operand_1->type)) {
 #if DEBUG && !STANDALONE_UTILITY_PROGRAM
         db_expression(expr);
 #endif /* DEBUG && !STANDALONE_UTILITY_PROGRAM */
         internal_error("dump_expr: wrong result type for &");
       }  /* if */
-      if (op == eok_subscript &&
+      if (op == (an_expr_operator_kind)eok_subscript &&
           !pointer_type_is_consistent(
                                  subscript_or_padd_pointer_operand(expr)->type,
                                  expr->type)) {
