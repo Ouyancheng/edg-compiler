@@ -284,11 +284,6 @@ extern a_boolean compute_is_convertible(a_type_ptr  src_type,
                                         a_type_ptr  dst_type,
                                         a_boolean   src_is_rvalue);
 
-#if EXPR_RANGE_MODIFIERS_IN_IL
-extern void move_expr_range_modifiers(an_expr_node_ptr from_node,
-                                      an_expr_node_ptr to_node);
-#endif /* EXPR_RANGE_MODIFIERS_IN_IL */
-
 /*
 Macro that is TRUE if the node is an operation node.
 */

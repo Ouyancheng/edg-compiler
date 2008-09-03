@@ -1256,10 +1256,6 @@ the file scope, do not process it (but record an orphan in the latter case).
         walk_ptr(ptr->name_reference, a_name_reference_ptr,
                  iek_name_reference);
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
-#if EXPR_RANGE_MODIFIERS_IN_IL
-        walk_list(ptr->range_modifiers, an_expr_range_modifier_ptr,
-                  iek_expr_range_modifier);
-#endif /* EXPR_RANGE_MODIFIERS_IN_IL */
         switch (ptr->kind) {
           case enk_error:
             /* No pointers. */
@@ -2899,17 +2895,6 @@ after_entry_from_class:
                  (an_il_entry_kind)ptr->referrer.kind);
       }
       break;
-#if EXPR_RANGE_MODIFIERS_IN_IL
-    case iek_expr_range_modifier:
-#if !DO_SUBTREE_WALK
-      {
-        an_expr_range_modifier_ptr ptr = (an_expr_range_modifier_ptr)entry_ptr;
-        remap_next_ptr(ptr->next, an_expr_range_modifier_ptr,
-                       iek_expr_range_modifier);
-      }
-#endif /* !DO_SUBTREE_WALK */
-      break;
-#endif /* EXPR_RANGE_MODIFIERS_IN_IL */
     case iek_local_scope_ref:
       {
 #if !NEEDED_FLAG_WALK

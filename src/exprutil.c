@@ -5320,9 +5320,6 @@ when gnu_version would ordinarily indicate they should not be.
           texpr = fe_field_lvalue_selection_expr(texpr, field);
           make_lvalue_expression_operand(texpr, operand);
           restore_operand_details(operand, &orig_operand);
-#if EXPR_RANGE_MODIFIERS_IN_IL
-          move_expr_range_modifiers(expr, expr_node_from_operand(operand));
-#endif /* EXPR_RANGE_MODIFIER_IN_IL */
         } else {
           /* We failed to make an lvalue.  Keep the original operation
              and  relink the operands. */
@@ -11317,85 +11314,6 @@ types to get a boolean expression (see process_boolean_controlling_expression).
   restore_operand_details(operand, &orig_operand);
   return okay;
 }  /* check_boolean_controlling_expr */
-
-#if EXPR_RANGE_MODIFIERS_IN_IL
-
-void copy_expr_range_modifiers(an_expr_node_ptr old_node,
-                               an_expr_node_ptr new_node)
-/*
-If old_node has range modifiers, create copies of them in new_node.
-*/
-{
-  if (old_node->range_modifiers != NULL) {
-    an_expr_range_modifier_ptr orig_ermp;
-    an_expr_range_modifier_ptr last_ermp = NULL;
-    for (orig_ermp = old_node->range_modifiers; orig_ermp != NULL;
-         orig_ermp = orig_ermp->next) {
-      an_expr_range_modifier_ptr new_ermp =
-                                    alloc_expr_range_modifier(orig_ermp->kind);
-      new_ermp->range = orig_ermp->range;
-      if (last_ermp != NULL) {
-        last_ermp->next = new_ermp;
-      } else {
-        new_node->range_modifiers = new_ermp;
-      }  /* if */
-      last_ermp = new_ermp;
-    }  /* for */
-  }  /* if */
-}  /* copy_expr_range_modifiers */
-
-
-void f_copy_operand_position_to_expr(an_operand       *operand,
-                                     an_expr_node_ptr node)
-/*
-Copy the source position from an expression operand into an expression
-node.  If the node associated with the operand has range modifiers, use the
-position information and modifiers from that node; otherwise, use the
-position information from the operand itself.
-*/
-{
-  an_expr_node_ptr operand_node = expr_node_from_operand(operand);
-  an_expr_node_ptr opnd;
-  a_boolean        copy_modifiers = TRUE;
-
-  if (operand_node != NULL &&
-      operand_node->range_modifiers != NULL) {
-    /* The operand's node has range modifiers, indicating that there were
-       additional syntactic components (indirection, address of, parentheses)
-       subsumed by the node in addition to the expression it directly
-       denotes.  We must clone that detailed position information in the new
-       node rather than just copying the operand source range. */
-    node->expr_range = operand_node->expr_range;
-    node->operator_position = operand_node->operator_position;
-    /* We should only copy the range modifiers themselves if the operand
-       node is not "below" the new node, i.e., one of the new node's
-       operands if it's an operator node or the expression of a constant
-       node. */
-    if (is_operation_node(node)) {
-      for (opnd = node->variant.operation.operands;
-           copy_modifiers && opnd != NULL; opnd = opnd->next) {
-        if (opnd == operand_node) {
-          copy_modifiers = FALSE;
-        }  /* if */
-      }  /* for */
-    }  /* if */
-    if (is_constant_node(node) &&
-        node->variant.constant->expr == operand_node) {
-      copy_modifiers = FALSE;
-    }  /* if */
-    if (copy_modifiers) {
-      copy_expr_range_modifiers(operand_node, node);
-    }  /* if */
-  } else {
-    /* The operand's node has no range modifiers, so the operand's position
-       information should accurately describe the source range of the
-       expression. */
-    node->expr_range.start = operand->position;
-    node->expr_range.end = operand->end_position;
-  }  /* if */
-}  /* f_copy_operand_position_to_expr */
-
-#endif /* EXPR_RANGE_MODIFIERS_IN_IL */
 
 
 a_boolean is_cast_operation_node(an_expr_node_ptr expr)

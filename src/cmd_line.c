@@ -4612,11 +4612,6 @@ file.
 #else /* !defined(EXPORT_INFO_FILE_NAME) */
   comment_undefined_macro_name(EXPORT_INFO_FILE_NAME);
 #endif /* defined(EXPORT_INFO_FILE_NAME) */
-#if defined(EXPR_RANGE_MODIFIERS_IN_IL)
-  define_numeric_valued_macro(EXPR_RANGE_MODIFIERS_IN_IL);
-#else /* !defined(EXPR_RANGE_MODIFIERS_IN_IL) */
-  comment_undefined_macro_name(EXPR_RANGE_MODIFIERS_IN_IL);
-#endif /* defined(EXPR_RANGE_MODIFIERS_IN_IL) */
 #if defined(EXTRA_SOURCE_POSITIONS_IN_IL)
   define_numeric_valued_macro(EXTRA_SOURCE_POSITIONS_IN_IL);
 #else /* !defined(EXTRA_SOURCE_POSITIONS_IN_IL) */

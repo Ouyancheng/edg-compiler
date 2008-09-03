@@ -577,60 +577,6 @@ are set appropriately.
 
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
-#if EXPR_RANGE_MODIFIERS_IN_IL
-static void add_expr_range_modifier(an_operand                  *result,
-                                    an_expr_range_modifier_kind kind,
-                                    a_source_position           *start,
-                                    a_source_position           *end)
-/*
-If the operand designated by result has an associated expression node, add
-a range modifier of the specified kind at the head of its linked list of
-modifiers and set the modifier's range to the specified positions.
-*/
-{
-  an_expr_node_ptr expr = expr_node_from_operand(result);
-
-  /* Scan down through any compiler-generated nodes (except for those
-     resulting from operator-notation calls to overloaded operator
-     functions) to the node that has range information. */
-  while (expr != NULL &&
-         is_operation_node(expr) &&
-         expr->variant.operation.compiler_generated &&
-         !expr->variant.operation.call_uses_operator_syntax) {
-    expr = expr->variant.operation.operands;
-  }  /* while */
-  if (expr != NULL) {
-    an_expr_range_modifier_ptr ermp = alloc_expr_range_modifier(kind);
-    ermp->range.start = *start;
-    ermp->range.end = *end;
-    ermp->next = expr->range_modifiers;
-    expr->range_modifiers = ermp;
-  }  /* if */
-}  /* add_expr_range_modifier */
-
-
-void move_expr_range_modifiers(an_expr_node_ptr from_node,
-                               an_expr_node_ptr to_node)
-/*
-Move any range modifiers from from_node to to_node, which is assumed to be
-an operand (direct or indirect) of from_node -- that is, any existing range
-modifiers in to_node will be linked at the tail of the list of modifiers
-being moved there.
-*/
-{
-  an_expr_range_modifier_ptr ermp;
-
-  if (from_node->range_modifiers != NULL) {
-    for (ermp = from_node->range_modifiers; ermp->next != NULL;
-         ermp = ermp->next) {}
-    ermp->next = to_node->range_modifiers;
-    to_node->range_modifiers = from_node->range_modifiers;
-    from_node->range_modifiers = NULL;
-  }  /* if */
-}  /* move_expr_range_modifiers */
-
-#endif /* EXPR_RANGE_MODIFIERS_IN_IL */
-
 /*
 Macro to record source positions in an_operand at the end of scanning
 an expression.  result is the result operand.  start_pos and end_pos
@@ -12651,10 +12597,6 @@ Also scans GNU statement expressions:
          anything to the expression to represent the parentheses, so the
          expression still represents the thing inside the parentheses). */
       set_base_operand_position(result, &start_position, &end_position);
-#if EXPR_RANGE_MODIFIERS_IN_IL
-      add_expr_range_modifier(result, (an_expr_range_modifier_kind)erm_parens,
-                              &start_position, &end_position);
-#endif /* EXPR_RANGE_MODIFIERS_IN_IL */
     }  /* if */
   }  /* if */
 
@@ -19332,10 +19274,6 @@ required_type will be void if the expression should have void type
   scan_expr(&result, PREC_LOWEST, EOPT_NO_OPTIONS);
   if (return_by_cctor_case) {
     /* The current routine returns its value via a copy constructor. */
-#if EXPR_RANGE_MODIFIERS_IN_IL
-    an_expr_node_ptr dip_expr;
-    an_expr_node_ptr operand_expr;
-#endif /* EXPR_RANGE_MODIFIERS_IN_IL */
     /* Check for the possibility of the return value optimization. */
     check_return_value_optimization(&result);
     /* Build a dynamic initialization entry for the return statement. */
@@ -19347,28 +19285,6 @@ required_type will be void if the expression should have void type
     /* Fix up destructor references in the overall expression. */
     fix_up_dynamic_init_dtors();
     expression = NULL;
-#if EXPR_RANGE_MODIFIERS_IN_IL
-    if (*dip == NULL) {
-      dip_expr = NULL;
-    } else if ((*dip)->kind == (a_dynamic_init_kind)dik_expression ||
-               (*dip)->kind ==
-                     (a_dynamic_init_kind)dik_call_returning_class_via_cctor) {
-      dip_expr = (*dip)->variant.expression;
-    } else if ((*dip)->kind == (a_dynamic_init_kind)dik_constructor) {
-      dip_expr = (*dip)->variant.constructor.args;
-    } else if ((*dip)->kind == (a_dynamic_init_kind)dik_constant) {
-      dip_expr = (*dip)->variant.constant->expr;
-    } else {
-      dip_expr = NULL;
-    }  /* if */
-    operand_expr = expr_node_from_operand(&result);
-    if (operand_expr != NULL && dip_expr != NULL && dip_expr != operand_expr) {
-      /* The expression node at the top of the operand is being replaced by
-         a dynamic initialization that has an expression; move any range
-         modifiers down to it so they are not lost. */
-      move_expr_range_modifiers(operand_expr, dip_expr);
-    }  /* if */
-#endif /* EXPR_RANGE_MODIFIERS_IN_IL */
   } else {
     /* Normal case. */
     if (is_void_type(required_type)) {

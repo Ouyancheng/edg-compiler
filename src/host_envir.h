@@ -945,33 +945,13 @@ for that purpose.
 #endif /* REPRESENT_EMPTY_STATEMENTS_IN_IL */
 
 /*
-Flag that, if TRUE, causes source position information to be recorded for
-certain operators and punctuation that are not directly represented by IL
-expression nodes.  (See the definition of an_expr_range_modifier in
-il_def.h for details.)  Note that a TRUE setting implies that
-EXTRA_SOURCE_POSITIONS_IN_IL is TRUE as well, which can significantly
-increase memory use.
-*/
-#ifndef EXPR_RANGE_MODIFIERS_IN_IL
-#define EXPR_RANGE_MODIFIERS_IN_IL FALSE
-#endif /* EXPR_RANGE_MODIFIERS_IN_IL */
-
-/*
 Flag that is TRUE to cause additional IL entries to contain source position
 information.  Note that this can take a lot of extra space, so you should
 enable this only if you really need it.
 */
 #ifndef EXTRA_SOURCE_POSITIONS_IN_IL
-#if EXPR_RANGE_MODIFIERS_IN_IL
-#define EXTRA_SOURCE_POSITIONS_IN_IL TRUE
-#else /* !EXPR_RANGE_MODIFIERS_IN_IL */
 #define EXTRA_SOURCE_POSITIONS_IN_IL FALSE
-#endif /* EXPR_RANGE_MODIFIERS_IN_IL */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-#if EXPR_RANGE_MODIFIERS_IN_IL && !EXTRA_SOURCE_POSITIONS_IN_IL
- #error -- EXTRA_SOURCE_POSITIONS_IN_IL must be TRUE if \
-           EXPR_RANGE_MODIFIERS_IN_IL is TRUE
-#endif /* EXPR_RANGE_MODIFIERS_IN_IL && !EXTRA_SOURCE_POSITIONS_IN_IL */
 
 /*
 Flag that is TRUE to cause the IL entry for a statement to contain a full

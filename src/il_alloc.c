@@ -126,10 +126,6 @@ static unsigned long
 		num_name_references_allocated,
                 num_name_qualifiers_allocated;
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
-#if EXPR_RANGE_MODIFIERS_IN_IL
-static unsigned long
-		num_expr_range_modifiers_allocated;
-#endif /* EXPR_RANGE_MODIFIERS_IN_IL */
 #if RECORD_MACROS_IN_IL
 static unsigned long
 		num_macros_allocated;
@@ -2681,9 +2677,6 @@ its kind to the indicated kind.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   node->expr_range = null_source_range; 
   node->operator_position = null_source_position;
-#if EXPR_RANGE_MODIFIERS_IN_IL
-  node->range_modifiers = NULL;
-#endif /* EXPR_RANGE_MODIFIERS_IN_IL */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #if RECORD_FORM_OF_NAME_REFERENCE
   node->name_reference = NULL;
@@ -4072,30 +4065,6 @@ values, and return a pointer to it.
 }  /* alloc_ms_attribute_arg */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-
-#if EXPR_RANGE_MODIFIERS_IN_IL
-
-an_expr_range_modifier_ptr alloc_expr_range_modifier(
-                                              an_expr_range_modifier_kind kind)
-/*
-Allocate an expr range modifier entry, set its fields to default values, and
-return a pointer to it.
-*/
-{
-  an_expr_range_modifier_ptr ermp;
-
-  ermp = (an_expr_range_modifier_ptr)alloc_cil(sizeof(an_expr_range_modifier));
-#if DEBUG
-  num_expr_range_modifiers_allocated++;
-#endif /* DEBUG */
-  ermp->kind = kind;
-  ermp->next = NULL;
-  ermp->range = null_source_range;
-  return ermp;
-}  /* alloc_expr_range_modifier */
-
-#endif /* EXPR_RANGE_MODIFIERS_IN_IL */
-
 #if DEBUG
 
 unsigned long show_il_alloc_space_used(unsigned long grand_total)
@@ -4239,10 +4208,6 @@ Display and return the amount of space used for various IL tables.
   db_space_used("name qualifiers", num_name_qualifiers_allocated,
                 a_name_qualifier);
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
-#if EXPR_RANGE_MODIFIERS_IN_IL
-  db_space_used("expr range modifiers", num_expr_range_modifiers_allocated,
-                an_expr_range_modifier);
-#endif /* EXPR_RANGE_MODIFIERS_IN_IL */
 #if RECORD_MACROS_IN_IL
   db_space_used("macros", num_macros_allocated, a_macro);
 #endif /* RECORD_MACROS_IN_IL */
@@ -4533,9 +4498,6 @@ in il_alloc_init.)
       pch_saved_var_array_elem(num_name_references_allocated),
       pch_saved_var_array_elem(num_name_qualifiers_allocated),
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
-#if EXPR_RANGE_MODIFIERS_IN_IL
-      pch_saved_var_array_elem(num_expr_range_modifiers_allocated),
-#endif /* EXPR_RANGE_MODIFIERS_IN_IL */
 #if RECORD_MACROS_IN_IL
       pch_saved_var_array_elem(num_macros_allocated),
 #endif /* RECORD_MACROS_IN_IL */
@@ -4711,9 +4673,6 @@ initializations that are done for each compilation.
   num_name_references_allocated          = 0;
   num_name_qualifiers_allocated          = 0;
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
-#if EXPR_RANGE_MODIFIERS_IN_IL
-  num_expr_range_modifiers_allocated     = 0;
-#endif /* EXPR_RANGE_MODIFIERS_IN_IL */
 #if RECORD_MACROS_IN_IL
   num_macros_allocated                   = 0;
 #endif /* RECORD_MACROS_IN_IL */
