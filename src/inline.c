@@ -825,9 +825,11 @@ because of remapped variables.
             } else {
               /* Other, more complicated, cases.  Just copy the expression. */
               overwrite_node(expr, copy_expr_tree_for_inlining(constant_expr));
-              /* Restore the original type, which might be slightly different
-                 for pointer-to-member cases. */
-              expr->type = expr_type;
+              if (is_ptr_to_member_type(expr_type)) {
+                /* Restore the original type, which might be slightly different
+                   for pointer-to-member cases. */
+                expr->type = expr_type;
+              }  /* if */
             }  /* if */
             break;
           default:

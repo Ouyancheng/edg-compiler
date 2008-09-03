@@ -12081,90 +12081,94 @@ operator (as specified by is_lvalue).
 }  /* wrap_throw */
 
 
-static void change_discarded_lvalue_node_to_rvalue_if_possible(
-                                    an_expr_node_ptr                    expr,
-                                    an_expr_or_stmt_traversal_block_ptr tblock)
-/*
-Called from the expression traversal routines to process an expression
-as part of rewriting an expression whose result (at the top level) is 
-discarded.  An lvalue expression without side effects can be discarded, and
-the type of the expression can be modified if necessary in certain
-cases (e.g., if this is the top level of the expression).
-*/
-{
-  a_type_ptr       expr_type = expr->type;
-  a_constant       zero_con;
-  an_expr_node_ptr zero_node;
-
-  if (expr->is_lvalue) {
-    /* Eliminate the entire expression if it has no side effects and if it
-       does not have a type that may require VLA-related quantities to be
-       computed.  Otherwise, go down through the tree and eliminate subtrees
-       which have no side effects. */
-    if (!node_has_side_effects(expr, (a_boolean *)NULL) &&
-        !is_variably_modified_type(expr_type)) {
-      /* No side effects, so replace the expression tree with one that casts
-         zero to the right pointer type. */
-      if (tblock->can_change_type) {
-        /* It's possible that a new type will be allocated here and since the
-           underlying type has not yet been lowered, make sure any type that
-           is allocated is marked as un-lowered. */
-        a_boolean saved_initial_value_for_il_lowering_flag =
-                                            initial_value_for_il_lowering_flag;
-        initial_value_for_il_lowering_flag = FALSE;
-        expr_type = make_pointer_type(expr_type);
-        initial_value_for_il_lowering_flag =
-                                      saved_initial_value_for_il_lowering_flag;
-      } /* if */
-      make_zero_of_proper_type(expr_type, &zero_con);
-      zero_node = alloc_node_for_constant(&zero_con);
-      overwrite_node(expr, zero_node);
-    } else if (tblock->can_change_type &&
-               (node_operator_is(expr, eok_indirect) ||
-                node_operator_is(expr, eok_ref_indirect))) {
-      /* Remove an indirection if it's okay to change the type. */
-      overwrite_node(expr, expr->variant.operation.operands);
-    } else {
-      /* We can't eliminate or modify this node.  No further walking of
-         this subtree is needed.  The top level expression will be
-         converted to an rvalue when the traversal is finished. */
-      tblock->suppress_subtree_walk = TRUE;
-    }  /* if */
-  }  /* if */
-  if (!expr->is_lvalue) {
-    /* No need to process this subtree any further, but don't terminate
-       processing altogether since other subtrees may still need to be
-       walked (e.g., in the case of eok_question). */
-    tblock->suppress_subtree_walk = TRUE;
-  }  /* if */
-  /* Can only change the type of the top level expression.  (There is room
-     for improvement here as certain operations (e.g., eok_comma) do allow
-     the ability to change the expressions of subtrees.) */
-  tblock->can_change_type = FALSE;
-}  /* change_discarded_lvalue_node_to_rvalue_if_possible */
-
-
 static void rewrite_discarded_lvalue_as_rvalue(an_expr_node_ptr expr)
 /*
-expr points to an expression tree for an lvalue whose result is discarded.
+expr points to an expression tree for an lvalue whose result is discarded
+(e.g., top level void expression or first operand of a comma operator).
 Rewrite it as an rvalue that has the same side effects.  The expression
 can be optimized to remove any operations related to returning the
 result (since it is discarded), as long as the side effects remain.
 The type of the expression may also be modified if it would allow
-optimization.
+optimization.  The resulting expression is an rvalue.
 */
 {
-  an_expr_or_stmt_traversal_block tblock;
+  a_constant       zero_con;
+  an_expr_node_ptr zero_node;
 
   check_assertion(expr->is_lvalue);
-  clear_expr_or_stmt_traversal_block(&tblock);
-  tblock.process_expr = change_discarded_lvalue_node_to_rvalue_if_possible;
-  tblock.follow_addressing_path = TRUE;
-  tblock.can_change_type = TRUE;
-  traverse_expr(expr, &tblock);
-  if (expr->is_lvalue) {
-    /* Couldn't discard or modify the expression, turn it into an rvalue. */
-    overwrite_node(expr, rvalue_expr_for_lvalue(expr));
+  if (!node_has_side_effects(expr, (a_boolean *)NULL) &&
+      !is_variably_modified_type(expr->type)) {
+    /* No side effects, so replace the expression with a zero of type int. */
+    make_zero_of_proper_type(integer_type((an_integer_kind)ik_int), &zero_con);
+    zero_node = alloc_node_for_constant(&zero_con);
+    overwrite_node(expr, zero_node);
+  } else if (is_operation_node(expr)) {
+    /* The expression has some side effect and must be maintained.  Generally
+       speaking, taking the address of an lvalue expression will turn it
+       into an rvalue, but there are some cases to be wary of. */
+    an_expr_node_ptr  op1 = expr->variant.operation.operands;
+    if (node_operator_is(expr, eok_dot_field)) {
+      /* Can't take the address of a bit-field selection; drop the
+         field selection. */
+      if (op1->is_lvalue) {
+        rewrite_discarded_lvalue_as_rvalue(op1);
+      }  /* if */
+      overwrite_node(expr, op1);
+    } else if (node_operator_is(expr, eok_points_to_field)) {
+      /* Discard the field selection operator. */
+      overwrite_node(expr, op1);
+    } else if (expr->variant.operation.returns_lvalue_instead_of_usual_rvalue)
+                                                                              {
+      an_expr_node_ptr  op2 = op1->next;
+      if (node_operator_is(expr, eok_question)) {
+        /* Rewrite the second and third operands as rvalues, and then mark
+           this expression as an rvalue. */
+        rewrite_discarded_lvalue_as_rvalue(op2);
+        rewrite_discarded_lvalue_as_rvalue(op2->next);
+        if (!il_identical_types(op2->type, op2->next->type)) {
+          /* Types have changed, so (arbitrarily) cast the second operand to
+             the type of the third operand so they have the same type once
+             again. */
+          overwrite_node(op2, add_cast(copy_node(op2), op2->next->type));
+        }  /* if */
+        expr->is_lvalue = FALSE;
+        expr->variant.operation.returns_lvalue_instead_of_usual_rvalue = FALSE;
+        expr->type = op2->type;
+      } else if (node_operator_is(expr, eok_comma) ||
+                 node_operator_is(expr, eok_dot_static) ||
+                 node_operator_is(expr, eok_points_to_static)) {
+        /* Rewrite the second operand as an rvalue, and then mark this
+           expression as an rvalue. */
+        rewrite_discarded_lvalue_as_rvalue(op2);
+        expr->is_lvalue = FALSE;
+        expr->variant.operation.returns_lvalue_instead_of_usual_rvalue = FALSE;
+        expr->type = op2->type;
+      } else if (node_operator_is(expr, eok_gnu_min) ||
+                 node_operator_is(expr, eok_gnu_max)) {
+        /* Convert the expression to an rvalue using rvalue_expr_for_lvalue
+           (because operands would be fetched anyway, so changing to rvalue
+           doesn't add any side effects on volatile). */
+        overwrite_node(expr, rvalue_expr_for_lvalue(expr));
+      } else {
+        /* Other lvalue-returning operations (i.e., assignment, pre-incr,
+           post-incr).  Simply clear the flags to change the operation from
+           an lvalue to an rvalue (of the correct type). */
+        expr->is_lvalue = FALSE;
+        expr->variant.operation.returns_lvalue_instead_of_usual_rvalue = FALSE;
+        expr->type = rvalue_type(expr->type);
+      }  /* if */
+    } else {
+      /* Change the lvalue to an rvalue by adding an "&" on top of the
+         expression (bit-field selections and register variables that
+         contribute directly to the lvalue address should have been
+         eliminated).  (The eok_indirect and eok_ref_indirect cases get
+         optimized automatically because the added "&" cancels with them.) */
+      overwrite_node(expr, add_address_of_to_node(copy_node(expr)));
+    }  /* if */
+  } else {
+    /* Change the lvalue to an rvalue by adding an "&" on top of the
+       expression. */
+    overwrite_node(expr, add_address_of_to_node(copy_node(expr)));
   }  /* if */
   check_assertion(!expr->is_lvalue);
 }  /* rewrite_discarded_lvalue_as_rvalue */
