@@ -240,21 +240,21 @@ indirection through the VLA variable (see lower_vla_variable_lvalue).
 Such operations are identified during the lowering of expressions.
 
 VLA types are also lowered to non-VLA types.  A VLA type, 'array [EXPR] of T',
-is lowered to 'T' and VLA variable types, are lowered from 'array [EXPR] of T'
+is lowered to 'T', and VLA variable types are lowered from 'array [EXPR] of T'
 to 'pointer to T'.  This VLA type lowering process consists of these three
 steps:
 
-During lowering, types that contain a VLA component are identified by calls to
-record_vla_component_types_for_lowering and queued (on the vla_types list) for
-later processing.  No changes to VLA types are made at this time (the type
-contains information about VLA dimensions).
+1)  During lowering, types that contain a VLA component are identified by calls
+    to record_vla_component_types_for_lowering and queued (on the vla_types
+    list) for later processing.  No changes to VLA types are made at this time
+    (the type contains information about VLA dimensions).
 
-After expressions have been lowered in a scope, the type of all VLA variables
-and parameters in the scope is modified to be a pointer to its previous (still
-VLA) type.
+2)  After expressions have been lowered in a scope, the type of all VLA
+    variables and parameters in the scope is modified to be a pointer to its
+    previous (still VLA) type.
 
-Lastly, in lower_vla_types, the entire list of VLA types is walked and each
-VLA type is replaced with the underlying element type.
+3)  Lastly, in lower_vla_types, the entire list of VLA types is walked and each
+    VLA type is replaced with the underlying element type.
 */
 
 static a_type_list_entry_ptr
