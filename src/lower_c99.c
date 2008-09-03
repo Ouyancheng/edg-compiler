@@ -924,9 +924,9 @@ be scaled down by the number of elements in the VLAs pointed to.
 void lower_vla_variable_lvalue(an_expr_node_ptr  expr)
 /*
 The given expr is an lvalue enk_variable for a VLA variable.  Since VLA
-variables don't really have lvalues, convert an lvalue for VLA variable v
-whose type is array [] of T to *(T *)v.  v's type (once fully lowered) will be
-pointer to the underlying array element type.  Note that although the
+variables don't really have lvalues, convert an lvalue for VLA variable v,
+whose type is array [] of T, to *(T *)v.  v's type (once fully lowered) will be
+'pointer to the underlying array element type'.  Note that although the
 expression is a variable node expression on input, it won't be on output.
 */
 {
@@ -937,8 +937,9 @@ expression is a variable node expression on input, it won't be on output.
   new_expr = rvalue_expr_for_lvalue(expr);
   new_expr = add_cast(copy_node(new_expr), expr->type);
   overwrite_node(expr, add_indirection_to_node(new_expr));
-  /* If the underlying element type is qualified, a new VLA type might
-     have been created, so record it. */
+  /* If the underlying element type is cv-qualified, a new unqualified
+     VLA type might have been created (during the lvalue to rvalue
+     conversion above), so record it. */
   record_vla_component_types_for_lowering(expr->type);
 }  /* lower_vla_variable_lvalue */
 
@@ -4214,7 +4215,7 @@ Do C99 lowering for all entities in and under the given scope.
 #endif /* MINIMAL_INLINING */
 #if LOWER_VARIABLE_LENGTH_ARRAYS
     if (vla_enabled) {
-      /* Lower the type of any VLA variables in this function scope. */
+      /* Lowers the type of any VLA variables in this function scope. */
       lower_vla_variable_types_in_scope(scope);
     }  /* if */
     /* Discard the VLA dimensions list since the VLAs have all been lowered. */
