@@ -3634,7 +3634,7 @@ symbol must be added to the inactive list.
       check_assertion_str2(scope_stack[scope_depth].kind !=
                                                    (a_scope_kind)sck_pragma,
                            "link_symbol_into_symbol_table:",
-                           "attemping to add symbol to pragma scope");
+                           "attempting to add symbol to pragma scope");
       if (scope_stack[scope_depth].kind ==
                                       (a_scope_kind)sck_namespace_extension ||
           scope_stack[scope_depth].kind == (a_scope_kind)sck_file) {
