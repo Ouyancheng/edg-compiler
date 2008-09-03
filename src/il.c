@@ -11221,7 +11221,12 @@ to operands of the given type.
   op2_type = skip_typerefs(op2_type);
   kind1 = op1_type->kind;
   kind2 = op2_type->kind;
-  if (kind1 == kind2) {
+  if (op == (an_expr_operator_kind)eok_land ||
+      op == (an_expr_operator_kind)eok_lor) {
+    /* Logical operators may have operands of any scalar types, but they are
+       really an operation on two boolean/integer values. */
+    result = (a_type_kind)tk_integer;
+  } else if (kind1 == kind2) {
     result = kind1;
 #if C99_IL_EXTENSIONS_SUPPORTED 
     if (result == (a_type_kind)tk_imaginary) {
@@ -11282,11 +11287,6 @@ to operands of the given type.
   } else if (kind2 == (a_type_kind)tk_fixed_point) {
     result = (kind1 == (a_type_kind)tk_integer) ? kind2 : kind1;
 #endif /* FIXED_POINT_ALLOWED */
-  } else if (op == (an_expr_operator_kind)eok_land ||
-             op == (an_expr_operator_kind)eok_lor) {
-    /* Logical operators may have operands of any scalar types, but they are
-       really an operation on two boolean/integer values. */
-    result = (a_type_kind)tk_integer;
   } else {
     unexpected_condition();
   }  /* if */
