@@ -19224,6 +19224,7 @@ static a_byte lvalue_rvalue_test[(int)eok_last+1] = {
 #if MICROSOFT_EXTENSIONS_ALLOWED
   /* eok_assume: */			LVRV_NO_REQUIREMENTS,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  /* eok_parens: */			LVRV_NO_REQUIREMENTS,
   /* eok_negate: */			LVRV_OPND1_IS_RVALUE,
   /* eok_unary_plus: */			LVRV_OPND1_IS_RVALUE,
   /* eok_complement: */			LVRV_OPND1_IS_RVALUE,
