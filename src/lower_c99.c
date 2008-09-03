@@ -192,6 +192,71 @@ Lower the expression in a VLA dimension entry.
 
 #if LOWER_VARIABLE_LENGTH_ARRAYS
 
+/*
+The front end can be configured to transform variable-length array IL
+into plain C89 IL by setting the macro LOWER_VARIABLE_LENGTH_ARRAYS to TRUE.
+The allocation and deallocation of VLA storage is handled by portable
+routines in the run-time support library (these routines ultimately rely
+on the standard malloc and free functions).
+
+By way of example, this VLA code snippet:
+
+  void f(int n, int m) {
+    int v[n][m];
+    n = v[1][m];
+  }
+
+generates this lowered C pseudo-code:
+
+  void f(int n, int m) {
+    auto long __T8592264;
+    auto long __T8592528;
+    auto int *v;
+    ((__T8592264 = n) ,
+     (__T8592528 = m)) ,
+     (__T8592264 *= __T8592528);
+    __vla_alloc((void *)(&v), (__T8592264 * 4L));
+    n = (((int *)(&(v[(__T8592528 * 1)])))[m]);
+    __vla_dealloc((void *)(&v));
+  }
+
+As can be seen in the example, VLA variables are lowered to a pointer to the
+underlying type of the array (int in this case).  Storage for the VLA is
+allocated at the beginning of the scope in which the VLA is defined by calling
+the __vla_alloc run-time routine.  VLA storage is likewise deallocated by
+calling __vla_dealloc when the variable goes out of scope.  VLAs are found only
+in function and block scopes and are never static.
+
+Temporary helper variables (e.g., __T8592264 and __T8592528 in the example
+above) are created to hold the size of significant components of variable
+dimensions.  The temporary helper variables are used to properly scale
+operations involving a VLA operand.  See lower_vla_dimensions for a full
+description.
+
+In addition to rewriting operations for scaling purposes, operations involving
+the lvalue of a VLA expression must be rewritten.  For example, the lvalue of
+a VLA variable (really a pointer in the lowered code) is replaced by an
+indirection through the VLA variable (see lower_vla_variable_lvalue).
+Such operations are identified during the lowering of expressions.
+
+VLA types are also lowered to non-VLA types.  A VLA type, 'array [EXPR] of T',
+is lowered to 'T' and VLA variable types, are lowered from 'array [EXPR] of T'
+to 'pointer to T'.  This VLA type lowering process consists of these three
+steps:
+
+During lowering, types that contain a VLA component are identified by calls to
+record_vla_component_types_for_lowering and queued (on the vla_types list) for
+later processing.  No changes to VLA types are made at this time (the type
+contains information about VLA dimensions).
+
+After expressions have been lowered in a scope, the type of all VLA variables
+and parameters in the scope is modified to be a pointer to its previous (still
+VLA) type.
+
+Lastly, in lower_vla_types, the entire list of VLA types is walked and each
+VLA type is replaced with the underlying element type.
+*/
+
 static a_type_list_entry_ptr
 		vla_types;
 			/* A list of all the VLA type entries.  The types are
