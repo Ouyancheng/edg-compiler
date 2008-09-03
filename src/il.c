@@ -12870,6 +12870,7 @@ options is a set of name lookup options.
                                                      &alloc_con_3);
           }  /* if */
         }  /* if */
+        if (*copy_error) break;
         /* Do the usual arithmetic conversion or the like on the operands
            after substitution. */
         do_conversions_on_operands_of_copied_template_expr(
@@ -12879,6 +12880,7 @@ options is a set of name lookup options.
                   operand_3 != NULL, &new_operand_3, &constant_3, &alloc_con_3,
                   source_pos, &operation_type,
                   copy_error);
+        if (*copy_error) break;
         if (op == (an_expr_operator_kind)eok_cast) {
           /* Determine the result type of a cast by substitution. */
           operation_type = copy_type_with_substitution(operation_type,
@@ -12887,6 +12889,7 @@ options is a set of name lookup options.
                                                        source_pos,
                                                        options,
                                                        copy_error);
+          if (*copy_error) break;
         }  /* if */
         if (new_operand_1 == NULL &&
             new_operand_2 == NULL &&
