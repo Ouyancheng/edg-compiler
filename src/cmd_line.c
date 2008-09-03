@@ -5303,6 +5303,11 @@ file.
 #else /* !defined(OPTIMIZE_VIRTUAL_FUNCTION_CALLS) */
   comment_undefined_macro_name(OPTIMIZE_VIRTUAL_FUNCTION_CALLS);
 #endif /* defined(OPTIMIZE_VIRTUAL_FUNCTION_CALLS) */
+#if defined(PARENS_IN_IL)
+  define_numeric_valued_macro(PARENS_IN_IL);
+#else /* !defined(PARENS_IN_IL) */
+  comment_undefined_macro_name(PARENS_IN_IL);
+#endif /* defined(PARENS_IN_IL) */
 #if defined(PASS_ELEM_COUNT_TO_RUNTIME_AS_PTRDIFF_T)
   define_numeric_valued_macro(PASS_ELEM_COUNT_TO_RUNTIME_AS_PTRDIFF_T);
 #else /* !defined(PASS_ELEM_COUNT_TO_RUNTIME_AS_PTRDIFF_T) */

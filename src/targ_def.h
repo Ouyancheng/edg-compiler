@@ -3557,6 +3557,17 @@ a code generator.
 #endif /* ifndef UNARY_PLUS_IN_IL */
 
 /*
+This switch controls whether the eok_parens operator is put out for
+parentheses.  If the switch is FALSE, parentheses do not appear in the IL.
+*/
+#ifndef PARENS_IN_IL
+#define PARENS_IN_IL FALSE
+#endif /* ifndef PARENS_IN_IL */
+#if PARENS_IN_IL && DO_IL_LOWERING
+ #error -- PARENS_IN_IL cannot be set when IL lowering is done
+#endif /* PARENS_IN_IL && DO_IL_LOWERING */
+
+/*
 VLA_DEALLOC_STATEMENTS_IN_IL was previously used to determine whether special
 statements (no longer part of our IL specification) should be included in the
 IL.  Now we generate enk_vla_dealloc expression nodes instead.  In some cases
