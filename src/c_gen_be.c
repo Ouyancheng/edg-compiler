@@ -4258,7 +4258,8 @@ met.
   a_boolean result = FALSE;
 
   if (is_pointer_type(ptr_type)) {
-    a_type_ptr pointed_to_type = skip_typerefs(type_pointed_to(ptr_type));
+    a_type_ptr pointed_to_type = type_pointed_to(ptr_type);
+    pointed_to_type = skip_typerefs(pointed_to_type);
     targ_type = skip_typerefs(targ_type);
 #if STANDALONE_C_GEN_BE
     /* identical_types is not available in a standalone configuration, so
