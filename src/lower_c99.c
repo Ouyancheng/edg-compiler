@@ -249,8 +249,8 @@ steps:
     list) for later processing.  No changes to VLA types are made at this time
     (the type contains information about VLA dimensions).
 
-2)  After expressions have been lowered in a scope, the type of all VLA
-    variables and parameters in the scope is modified to be a pointer to its
+2)  After expressions have been lowered in a scope, the type of each VLA
+    variable and parameter in the scope is modified to be a pointer to its
     previous (still VLA) type.
 
 3)  Lastly, in lower_vla_types, the entire list of VLA types is walked and each
