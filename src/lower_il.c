@@ -2197,11 +2197,10 @@ zero or one (e.g., by adding a "!= 0" test on top of it).
 
 #if DO_FULL_PORTABLE_EH_LOWERING || ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
 
-an_expr_node_ptr array_var_lvalue_expr(a_variable_ptr var)
+an_expr_node_ptr array_first_element_addr_expr(a_variable_ptr var)
 /*
-Create an expression tree for the address of the array associated with the
-variable var, and return a pointer to it.  This differs from var_lvalue_expr
-in that it does the cast to pointer-to-element.
+Create an rvalue pointer expression for the address of the first element of the
+array associated with the variable var, and return it.
 */
 {
   an_expr_node_ptr node;
@@ -2209,7 +2208,7 @@ in that it does the cast to pointer-to-element.
   node = var_lvalue_expr(var);
   node = add_cast(node, make_pointer_type(array_element_type(var->type)));
   return node;
-}  /* array_var_lvalue_expr */
+}  /* array_first_element_addr_expr */
 
 #endif /* DO_FULL_PORTABLE_EH_LOWERING || ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
 

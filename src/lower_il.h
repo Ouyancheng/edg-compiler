@@ -776,7 +776,7 @@ extern an_expr_node_ptr add_lowered_cast_if_necessary(
 extern an_expr_node_ptr add_cast_to_char_star(an_expr_node_ptr node);
 
 #if DO_FULL_PORTABLE_EH_LOWERING || ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
-extern an_expr_node_ptr array_var_lvalue_expr(a_variable_ptr var);
+extern an_expr_node_ptr array_first_element_addr_expr(a_variable_ptr var);
 #endif /* DO_FULL_PORTABLE_EH_LOWERING || ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
 
 extern an_expr_node_ptr make_node_for_il_constant(a_constant_ptr constant);

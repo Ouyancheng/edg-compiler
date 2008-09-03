@@ -2834,7 +2834,8 @@ at *insert_location and *insert_location is updated.
      object, i.e.,
        object_addr_table[n] = (void *)ipdp-address;
   */
-  object_addr_table_node = array_var_lvalue_expr(object_addr_table_var);
+  object_addr_table_node =
+                          array_first_element_addr_expr(object_addr_table_var);
   object_addr_table_node->next = node_for_integer_constant((long)entry_number,
                                                          targ_size_t_int_kind);
   subsc_node = make_lvalue_operator_node((an_expr_operator_kind)eok_subscript,
@@ -4672,7 +4673,7 @@ statement if necessary.
       spec_array_node = alloc_node_for_constant(&null_constant);
     } else {
       /* Use the address of the first element of the array. */
-      spec_array_node = array_var_lvalue_expr(spec_array_var);
+      spec_array_node = array_first_element_addr_expr(spec_array_var);
     }  /* if */
     /* Make an expression for throw_frame.variant.throw_spec */
     throw_frame_throw_spec = 
@@ -4725,7 +4726,8 @@ statement if necessary.
          func_frame.variant.function.regions */
       (void)insert_assignment_statement(func_frame_function_regions,
                                         (an_expr_operator_kind)eok_assign,
-                                       array_var_lvalue_expr(region_table_var),
+                                       array_first_element_addr_expr(
+                                                             region_table_var),
                                         &insert_location);
     }  /* if */
     if (object_addr_table_var != NULL) {
@@ -4742,7 +4744,7 @@ statement if necessary.
          func_frame.variant.function.obj_table */
       (void)insert_assignment_statement(func_frame_function_obj_table,
                                         (an_expr_operator_kind)eok_assign,
-                                        array_var_lvalue_expr(
+                                        array_first_element_addr_expr(
                                                         object_addr_table_var),
                                         &insert_location);
     }  /* if */
@@ -4759,7 +4761,8 @@ statement if necessary.
          func_frame.variant.function.array_table */
       (void)insert_assignment_statement(func_frame_function_array_table,
                                         (an_expr_operator_kind)eok_assign,
-                                        array_var_lvalue_expr(array_table_var),
+                                        array_first_element_addr_expr(
+                                                              array_table_var),
                                         &insert_location);
     }  /* if */
     /* Generate an assignment to save __eh_curr_region in the stack. */
@@ -5094,7 +5097,8 @@ with zero is built, and a pointer to it is returned in *setjmp_compare_node.
   if (catch_array_var != NULL) {
     (void)insert_assignment_statement(try_frame_catch_entries,
                                       (an_expr_operator_kind)eok_assign,
-                                      array_var_lvalue_expr(catch_array_var),
+                                      array_first_element_addr_expr(
+                                                              catch_array_var),
                                       insert_location);
   } else {
     /* Internal try -- no catch_array_var. */
@@ -5733,7 +5737,7 @@ Lower an enk_throw expression node.
     typeinfo_node->next = size_node;
     if (ptr_flags_var != NULL) {
       /* Build the parameter list for __throw_setup_ptr. */
-      size_node->next = array_var_lvalue_expr(ptr_flags_var);
+      size_node->next = array_first_element_addr_expr(ptr_flags_var);
     } else {
       flags_node = node_for_integer_constant((long)flags_value,
                                              (an_integer_kind)ik_int);

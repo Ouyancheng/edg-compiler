@@ -10318,7 +10318,7 @@ array itself; if FALSE, it is a pointer to the first element of the array.
 
   check_assertion(construction_vtbls_var != NULL);
   if (var_is_array) {
-    expr = array_var_lvalue_expr(construction_vtbls_var);
+    expr = array_first_element_addr_expr(construction_vtbls_var);
   } else {
     expr = var_rvalue_expr(construction_vtbls_var);
   }  /* if */
@@ -10352,7 +10352,7 @@ when constructing or destroying a complete object of type class_type.
   a_variable_ptr   array_var =
                        make_construction_vtbls_array(class_type, 
                                                      ctsp->construction_vtbls);
-  an_expr_node_ptr array_addr = array_var_lvalue_expr(array_var);
+  an_expr_node_ptr array_addr = array_first_element_addr_expr(array_var);
 
 #if IA64_ABI
   {
