@@ -1,5 +1,23 @@
 Version 3.11
 
+9/4/08   [EDGcpfe/9143]
+GNU compatibility: Alias names mapping on multiple declarations
+
+In GNU modes, when an alias attribute referred to an asm name used for
+multiple declarations, the last declaration with that asm name was picked
+(arbitrarily) as the aliased declaration.  Now, the earliest declaration
+that is either defined or itself an alias is picked instead.  This avoids
+some spurious warnings and results in IL that more closely matches the
+behavior of the GCC compiler and its assembler.  For example:
+
+  void f() {}
+  void f1() __asm("X") __attribute((alias("f")));
+  void f2() __asm("X");
+  void g() __attribute((alias("X")));
+    // Previously aliased to f2 (with a warning), and recorded as __asm("X").
+    // Now aliased to f1 (with no asm name for g).
+
+
 9/4/08   [EDGcpfe/9206]
 C++-generating back end: incorrect handling of function try blocks
 

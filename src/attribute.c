@@ -33,70 +33,6 @@ attribute.c -- Processing of attributes, a GCC extension.
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 #if GNU_EXTENSIONS_ALLOWED
-
-/* Pointer to a hash table mapping explicit asm names (a GNU extension) to
-   symbols corresponding to the entities declared with the explicit asm
-   names.  This is used when looking up alias names (which should find asm
-   names). */
-static a_hash_table_ptr
-	asm_name_map;
-
-
-static a_boolean compare_for_asm_name_map(a_void_ptr  entry,
-                                          a_void_ptr  key)
-/*
-Compare the asm name associated with entry (entry is a symbol pointer) to the
-given key (key is a pointer to a character string).  Return TRUE if they are
-equal.
-*/
-{
-  a_symbol_ptr  sym = (a_symbol_ptr)entry;
-  char          *str;
-
-  switch (sym->kind) {
-    case sk_variable:
-      check_assertion(sym->variant.variable.ptr->asm_name_is_valid);
-      str = sym->variant.variable.ptr->asm_name_or_reg.name;
-      break;
-    case sk_routine:
-      str = sym->variant.routine.ptr->asm_name;
-      break;
-    default:
-      unexpected_condition();
-  }  /* switch */
-  return strcmp(str, (char*)key) == 0;
-}  /* compare_for_asm_name_map */
-
-
-void record_asm_name_for_lookup(a_symbol_ptr  sym)
-/*
-The given symbol represents a variable or a routine with a GNU asm name.
-Record that name-symbol pair for easy lookup later on (in case a GNU alias
-attribute refers to that name).
-*/
-{
-  a_symbol_ptr  *p_sym;
-  char          *str;
-
-  switch (sym->kind) {
-    case sk_variable:
-      check_assertion(sym->variant.variable.ptr->asm_name_is_valid);
-      str = sym->variant.variable.ptr->asm_name_or_reg.name;
-      break;
-    case sk_routine:
-      str = sym->variant.routine.ptr->asm_name;
-      break;
-    default:
-      unexpected_condition();
-  }  /* switch */
-  check_assertion(str != NULL);
-  p_sym = (a_symbol_ptr*)hash_find(asm_name_map, (a_void_ptr)str,
-                                   /*create=*/TRUE);
-  /* If multiple entities are declared with the same asm name, the last one
-     will be the one recorded. */
-  *p_sym = sym;
-}  /* record_asm_name_for_lookup */
-
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
 
 /*
@@ -263,6 +199,10 @@ typedef struct an_alias_fixup {
 static an_alias_fixup_ptr
 	alias_fixup_list;
 
+/* Pointer to the last element on the list of alias fixups. */
+static an_alias_fixup_ptr
+	last_alias_fixup;
+
 /* Pointer to a list of available (freed) alias fixups. */
 static an_alias_fixup_ptr
 	avail_alias_fixups;
@@ -292,8 +232,14 @@ Allocate a fixup entry for a new alias described by the given parameters.
     ++num_alias_fixups_allocated;
 #endif /* DEBUG */
   }  /* if */
-  entry->next = alias_fixup_list;
-  alias_fixup_list = entry;
+  /* Append the entry at the of the fixup list. */
+  if (alias_fixup_list == NULL) {
+    alias_fixup_list = entry;
+  } else {
+    last_alias_fixup->next = entry;
+  }  /* if */
+  last_alias_fixup = entry;
+  /* Fill in the entry's fields. */
   entry->alias = alias;
   entry->alias_name = alias_name;
   entry->aliased_name = aliased_name;
@@ -363,12 +309,14 @@ cycle of aliased entities.  Break the cycle if that is the case.
 }  /* report_any_alias_loop */
 
 
-static a_boolean undefined_aliased_entity(a_symbol_ptr        aliased_sym,
-                                          an_alias_fixup_ptr  entry)
+static a_boolean undefined_aliased_entity(a_symbol_ptr   aliased_sym,
+                                          a_symbol_kind  needed_kind)
 /*
-The given fixup entry represents an "alias" (or "weakref") attribute and
-looking up the aliased name produced aliased_sym.  Return TRUE if aliased_sym
-should be treated as an undefined entity.
+Return TRUE if aliased_sym (found through lookup for an alias attribute)
+should be treated as an undefined entity (this includes the case where
+aliased_sym is NULL).  If aliased_sym->kind is different from needed_kind,
+return FALSE.  Similarly, if aliased_sym is itself an alias, treat it as
+being defined (i.e., return FALSE).
 */
 {
   a_boolean  result = FALSE;
@@ -377,7 +325,7 @@ should be treated as an undefined entity.
     /* The alias is to a name not at all declared in the current translation
        unit. */
     result = TRUE;
-  } else if (aliased_sym->kind != entry->alias->kind) {
+  } else if (aliased_sym->kind != needed_kind) {
     /* The alias refers to an entity of a kind different from that implied
        by the alias declaration (e.g., a variable alias referring to a
        function declaration).  Don't treat that as an undefined case: An error
@@ -389,6 +337,74 @@ should be treated as an undefined entity.
   }  /* if */
   return result;
 }  /* undefined_aliased_entity */
+
+
+/* Pointer to a hash table mapping explicit asm names (a GNU extension) to
+   symbols corresponding to the entities declared with the explicit asm
+   names.  This is used when looking up alias names (which should find asm
+   names). */
+static a_hash_table_ptr
+	asm_name_map;
+
+
+static a_boolean compare_for_asm_name_map(a_void_ptr  entry,
+                                          a_void_ptr  key)
+/*
+Compare the asm name associated with entry (entry is a symbol pointer) to the
+given key (key is a pointer to a character string).  Return TRUE if they are
+equal.
+*/
+{
+  a_symbol_ptr  sym = (a_symbol_ptr)entry;
+  char          *str;
+
+  switch (sym->kind) {
+    case sk_variable:
+      check_assertion(sym->variant.variable.ptr->asm_name_is_valid);
+      str = sym->variant.variable.ptr->asm_name_or_reg.name;
+      break;
+    case sk_routine:
+      str = sym->variant.routine.ptr->asm_name;
+      break;
+    default:
+      unexpected_condition();
+  }  /* switch */
+  return strcmp(str, (char*)key) == 0;
+}  /* compare_for_asm_name_map */
+
+
+void record_asm_name_for_lookup(a_symbol_ptr  sym)
+/*
+The given symbol represents a variable or a routine.  If it has a GNU asm name,
+record the name-symbol pair for easy lookup later on (in case a GNU alias
+attribute refers to that name).
+*/
+{
+  a_symbol_ptr  *p_sym;
+  char          *str = NULL;
+
+  switch (sym->kind) {
+    case sk_variable:
+      if (sym->variant.variable.ptr->asm_name_is_valid) {
+        str = sym->variant.variable.ptr->asm_name_or_reg.name;
+      }  /* if */
+      break;
+    case sk_routine:
+      str = sym->variant.routine.ptr->asm_name;
+      break;
+    default:
+      unexpected_condition();
+  }  /* switch */
+  if (str != NULL) {
+    p_sym = (a_symbol_ptr*)hash_find(asm_name_map, (a_void_ptr)str,
+                                     /*create=*/TRUE);
+    /* If multiple entities are declared with the same asm name, retain the
+       first one if it is "defined".  Otherwise, record the new one instead. */
+    if (*p_sym == NULL || undefined_aliased_entity(*p_sym, (*p_sym)->kind)) {
+      *p_sym = sym;
+    }  /* if */
+  }  /* if */
+}  /* record_asm_name_for_lookup */
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
@@ -402,7 +418,7 @@ Traverse the list of alias fixups and set the alias fields as needed.
   a_symbol_locator    locator;
   a_source_position   *pos;
 
-  alias_fixup_list = NULL;
+  alias_fixup_list = last_alias_fixup = NULL;
   while (entries != NULL) {
     aliased_sym = NULL;
     entry = entries;
@@ -477,7 +493,7 @@ Traverse the list of alias fixups and set the alias fields as needed.
       unexpected_condition();
 #endif /* REDEFINE_EXTNAME_PRAGMA_ENABLED */
 #if GNU_EXTENSIONS_ALLOWED
-    } else if (undefined_aliased_entity(aliased_sym, entry)) {
+    } else if (undefined_aliased_entity(aliased_sym, entry->alias->kind)) {
       /* The aliased entity was not defined in this translation unit (either
          not declared at all, or declared but not defined).  GCC versions
          prior to 4.0 (on Intel platforms) treat this as an alternative way to
@@ -537,6 +553,10 @@ Traverse the list of alias fixups and set the alias fields as needed.
         default:
           unexpected_condition();
       }  /* switch */
+      /* Applying an alias attribute may make the alias the preferred symbol
+         associated with its asm name (if any): Call record_asm_name_for_lookup
+         to update asm_name_map if needed. */
+      record_asm_name_for_lookup(entry->alias);
       /* The aliased entity is referenced ("used") in the alias specification;
          only now, however, do we know the symbol to mark it as used. */
       record_symbol_reference(SRK_USE | SRK_REFERENCE, aliased_sym,
@@ -3495,6 +3515,7 @@ attributes.
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
       pch_saved_var_array_elem(asm_name_map),
       pch_saved_var_array_elem(alias_fixup_list),
+      pch_saved_var_array_elem(last_alias_fixup),
       pch_saved_var_array_elem(avail_alias_fixups),
 #if DEBUG
 #if GNU_EXTENSIONS_ALLOWED
@@ -3546,6 +3567,7 @@ be initialized for each compilation.
 #endif /* GNU_EXTENSIONS_ALLOWED */
   avail_alias_fixups = NULL;
   alias_fixup_list = NULL;
+  last_alias_fixup = NULL;
 #if DEBUG
   num_alias_fixups_allocated = 0;
 #if REDEFINE_EXTNAME_PRAGMA_ENABLED
