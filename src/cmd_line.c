@@ -5308,6 +5308,11 @@ file.
 #else /* !defined(OPTIMIZE_VIRTUAL_FUNCTION_CALLS) */
   comment_undefined_macro_name(OPTIMIZE_VIRTUAL_FUNCTION_CALLS);
 #endif /* defined(OPTIMIZE_VIRTUAL_FUNCTION_CALLS) */
+#if defined(OVERWRITE_FREED_MEM_BLOCKS)
+  define_numeric_valued_macro(OVERWRITE_FREED_MEM_BLOCKS);
+#else /* !defined(OVERWRITE_FREED_MEM_BLOCKS) */
+  comment_undefined_macro_name(OVERWRITE_FREED_MEM_BLOCKS);
+#endif /* defined(OVERWRITE_FREED_MEM_BLOCKS) */
 #if defined(PARENS_IN_IL)
   define_numeric_valued_macro(PARENS_IN_IL);
 #else /* !defined(PARENS_IN_IL) */
