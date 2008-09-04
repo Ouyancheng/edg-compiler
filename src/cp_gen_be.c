@@ -8796,6 +8796,9 @@ there's some possibility of precedence confusion and need_parens is TRUE.
            and g++ 3.2 (at least) gets confused by a constructor "call"
            surrounded by parentheses, e.g., (X()). */
         need_parens = FALSE;
+      } else if (op == (an_expr_operator_kind)eok_parens) {
+        /* No extra parentheses around parentheses. */
+        need_parens = FALSE;
       }  /* if */
       if (need_parens) m_write_tok_ch('(');
       if (expr->variant.operation.returns_lvalue_instead_of_usual_rvalue) {
@@ -9038,6 +9041,11 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           write_tok_str(")");
           goto done_with_operation;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        case eok_parens:
+          write_tok_ch('(');
+          gen_expression(operand_1);
+          write_tok_ch(')');
+          break;
         case eok_add:
 #if C99_IL_EXTENSIONS_SUPPORTED
         case eok_fjadd:

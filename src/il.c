@@ -11297,6 +11297,7 @@ tk_unknown is returned.
       result = (a_type_kind)tk_integer;
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case eok_parens:
     case eok_negate:
     case eok_unary_plus:
     case eok_complement:
