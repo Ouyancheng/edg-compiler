@@ -12103,8 +12103,7 @@ optimization.  The resulting expression is an rvalue.
   an_expr_node_ptr zero_node;
 
   check_assertion(expr->is_lvalue);
-  if (!node_has_side_effects(expr, (a_boolean *)NULL) &&
-      !is_variably_modified_type(expr->type)) {
+  if (!node_has_side_effects(expr, (a_boolean *)NULL)) {
     /* No side effects, so replace the expression with a zero of type int. */
     make_zero_of_proper_type(integer_type((an_integer_kind)ik_int), &zero_con);
     zero_node = alloc_node_for_constant(&zero_con);
