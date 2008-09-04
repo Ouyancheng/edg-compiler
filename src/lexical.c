@@ -15189,6 +15189,8 @@ not be returned.
       (curr_token == tok_colon && is_constructor)) {
     /* Initialize a local stop token set. */
     clear_token_set_array(stop_tokens);
+    /* Save the token sequence number of the first token of the definition. */
+    if (first_tsn != NULL) *first_tsn = curr_token_sequence_number;
     /* Make a note whether this is a function try block.  This controls whether
        we look for catch clauses later. */
     try_found = curr_token == tok_try;
@@ -15197,8 +15199,6 @@ not be returned.
       cache_curr_token(p_token_cache);
       (void)get_token();
     }  /* if */
-    /* Save the token sequence number of the first token of the definition. */
-    if (first_tsn != NULL) *first_tsn = curr_token_sequence_number;
     if (curr_token == tok_colon) {
       /* This is a ctor-initializer list on a constructor.  Cache it. */
       cache_to_compound_stmt(p_token_cache, stop_tokens);

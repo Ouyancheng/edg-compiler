@@ -1,5 +1,17 @@
 Version 3.11
 
+9/4/08   [EDGcpfe/9206]
+C++-generating back end: incorrect handling of function try blocks
+
+In modes in which the C++-generating back end generates template bodies from
+recorded template strings, function try blocks were not handled properly
+resulting in the "try" keyword being emitted twice in the generated code.
+This has been fixed.
+
+  template <class T> struct A {
+   ~A() try { } catch(int) { }
+  };
+
 9/3/08   [EDGcpfe/7699]
 Abort during argument deduction involving address constants
 
