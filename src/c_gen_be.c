@@ -4263,7 +4263,7 @@ met.
     targ_type = skip_typerefs(targ_type);
 #if STANDALONE_C_GEN_BE
     /* identical_types is not available in a standalone configuration, so
-       just test if the type points are the same. */
+       just test if the types pointed to are the same. */
     result = pointed_to_type == targ_type;
 #else /* !STANDALONE_C_GEN_BE */
     result = identical_types(pointed_to_type, targ_type);
