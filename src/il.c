@@ -12117,6 +12117,19 @@ and return a pointer to it.
 }  /* node_for_host_large_integer */
 
 
+an_expr_node_ptr f_skip_parens(an_expr_node_ptr expr)
+/*
+Strip parentheses (eok_parens nodes) off an expression, and return the
+underlying expression.
+*/
+{
+  while (is_operation_node(expr) && node_operator_is(expr, eok_parens)) {
+    expr = expr->variant.operation.operands;
+  }  /* while */
+  return expr;
+}  /* f_skip_parens */
+
+
 a_boolean is_bad_type_for_template_arg_operand(a_type_ptr type)
 /*
 Return TRUE if type is a bad type for an operand of an expression in
