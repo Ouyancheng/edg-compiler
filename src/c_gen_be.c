@@ -4244,7 +4244,7 @@ return a pointer to that variable; otherwise, return NULL.
   return var;
 }  /* variable_referenced_by_lvalue */
 
-#if CHECKING
+#if CHECKING && !STANDALONE_C_GEN_BE
 
 static a_boolean pointer_type_is_consistent(a_type_ptr ptr_type,
                                             a_type_ptr targ_type)
@@ -4259,20 +4259,12 @@ met.
 
   if (is_pointer_type(ptr_type)) {
     a_type_ptr pointed_to_type = type_pointed_to(ptr_type);
-    pointed_to_type = skip_typerefs(pointed_to_type);
-    targ_type = skip_typerefs(targ_type);
-#if STANDALONE_C_GEN_BE
-    /* identical_types is not available in a standalone configuration, so
-       just test if the types pointed to are the same. */
-    result = pointed_to_type == targ_type;
-#else /* !STANDALONE_C_GEN_BE */
     result = identical_types(pointed_to_type, targ_type);
-#endif /* STANDALONE_C_GEN_BE */
   }  /* if */
   return result;
 }  /* pointer_type_is_consistent */
 
-#endif /* CHECKING */
+#endif /* CHECKING && !STANDALONE_C_GEN_BE */
 
 static void dump_expr(an_expr_node_ptr expr,
                       a_boolean        need_parens)
@@ -4363,22 +4355,28 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           }  /* if */
         }  /* for */
       }
+#if !STANDALONE_C_GEN_BE
+      /* Check that the result and operand types are consistent for
+         certain operators.  (We do not perform the check in a standalone
+         program because it relies on identical_types, which is not
+         available in that environment.) */
       if (op == (an_expr_operator_kind)eok_address_of &&
           !pointer_type_is_consistent(expr->type, operand_1->type)) {
-#if DEBUG && !STANDALONE_UTILITY_PROGRAM
+#if DEBUG
         db_expression(expr);
-#endif /* DEBUG && !STANDALONE_UTILITY_PROGRAM */
+#endif /* DEBUG */
         internal_error("dump_expr: wrong result type for &");
       }  /* if */
       if (op == (an_expr_operator_kind)eok_subscript &&
           !pointer_type_is_consistent(
                                  subscript_or_padd_pointer_operand(expr)->type,
                                  expr->type)) {
-#if DEBUG && !STANDALONE_UTILITY_PROGRAM
+#if DEBUG
         db_expression(expr);
-#endif /* DEBUG && !STANDALONE_UTILITY_PROGRAM */
+#endif /* DEBUG */
         internal_error("dump_expr: wrong result type for subscript");
       }  /* if */
+#endif /* !STANDALONE_C_GEN_BE */
 #endif /* CHECKING */
       switch (op) {
         /* One-operand operators. */
