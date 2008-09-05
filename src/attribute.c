@@ -233,6 +233,7 @@ Allocate a fixup entry for a new alias described by the given parameters.
 #endif /* DEBUG */
   }  /* if */
   /* Append the entry at the of the fixup list. */
+  entry->next = NULL;
   if (alias_fixup_list == NULL) {
     alias_fixup_list = entry;
   } else {
