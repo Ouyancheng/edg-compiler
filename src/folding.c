@@ -5329,6 +5329,7 @@ that higher up.
     template_constant = &local_template_constant;
   }  /* if */
   *template_constant = FALSE;
+  expr = skip_parens(expr);
   check_assertion(expr->is_lvalue || is_error_node(expr));
   switch (expr->kind) {
     case enk_error:
@@ -5377,6 +5378,8 @@ that higher up.
         an_expr_operator_kind op = expr->variant.operation.kind;
         a_constant            conaddr1;
         a_constant_ptr        pconaddr1;
+        op1 = skip_parens(op1);
+        if (op2 != NULL) op2 = skip_parens(op2);
         switch (op) {
           case eok_dot_field:
             /* Field selection, x.y.  If the left operand is an lvalue with a
@@ -5526,6 +5529,7 @@ caller would prefer to handle that higher up.
     template_constant = &local_template_constant;
   }  /* if */
   *template_constant = FALSE;
+  expr = skip_parens(expr);
   check_assertion(!expr->is_lvalue &&
                   ((is_pointer_type(expr->type) ||
                     is_template_param_type(expr->type) ||
@@ -5558,6 +5562,7 @@ caller would prefer to handle that higher up.
     case enk_operation:
       { an_expr_node_ptr op1 = expr->variant.operation.operands;
         a_constant       conaddr1;
+        op1 = skip_parens(op1);
         switch (expr->variant.operation.kind) {
           case eok_address_of:
             /* "&" operation.  If the operand is an lvalue with a constant
@@ -5725,6 +5730,7 @@ to the string literal constant if there is one.
   a_boolean result = FALSE;
 
   if (scon != NULL) *scon = NULL;
+  expr = skip_parens(expr);
   if (is_constant_node(expr)) {
     if (constant_is_pointer_to_string_literal(expr->variant.constant, scon)) {
       /* A constant for the address of a string literal, decayed to
@@ -5732,25 +5738,31 @@ to the string literal constant if there is one.
       result = TRUE;
     }  /* if */
   } else if (is_operation_node(expr)) {
-    if (node_operator_is(expr, eok_array_to_pointer) ||
-        node_operator_is(expr, eok_cast)) {
-      an_expr_node_ptr op1 = expr->variant.operation.operands;
+    an_expr_node_ptr cast_expr = NULL;
+    if (node_operator_is(expr, eok_cast)) {
+      /* Remember a cast on top of the expression for later testing. */
+      cast_expr = expr;
+      expr = skip_parens(expr->variant.operation.operands);
+    }  /* if */
+    if (is_operation_node(expr) &&
+        node_operator_is(expr, eok_array_to_pointer)) {
+      an_expr_node_ptr op1 = skip_parens(expr->variant.operation.operands);
       if (op1->is_lvalue && is_constant_node(op1) &&
           op1->variant.constant->kind == (a_constant_repr_kind)ck_string) {
         /* An expression for a string literal, decayed to a pointer to
            the underlying type. */
-        /* For the cast case, make sure the cast type is the proper decayed
-           type. */
-        a_type_ptr decayed_type;
-        if (node_operator_is(expr, eok_cast) &&
-           !(decayed_type =
-                         type_after_array_to_pointer_transformation(op1->type),
-             identical_pointer_types_ignoring_qualifiers(decayed_type,
-                                                         expr->type))) {
-          /* The cast is to the wrong type. */
-        } else {
-          result = TRUE;
-          if (scon != NULL) *scon = op1->variant.constant;
+        if (cast_expr != NULL) {
+          /* For the cast case, make sure the cast type is the proper decayed
+             type. */
+          a_type_ptr decayed_type =
+                         type_after_array_to_pointer_transformation(op1->type);
+          if (!identical_pointer_types_ignoring_qualifiers(decayed_type,
+                                                           cast_expr->type)) {
+            /* The cast is to the wrong type. */
+          } else {
+            result = TRUE;
+            if (scon != NULL) *scon = op1->variant.constant;
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
@@ -5776,6 +5788,7 @@ it is non-NULL).  Otherwise, return TRUE.
   an_expr_node_ptr  args;
   an_integer_value  int_val;
 
+  /* eok_parens shouldn't appear in these generated operations. */
   if (is_constant_node(expr)) {
     /* Presumably the null constant that is the root of the tree. */
     check_assertion(is_false_constant(expr->variant.constant));
@@ -5793,13 +5806,14 @@ it is non-NULL).  Otherwise, return TRUE.
       accum_field_offset(offset, args->next->variant.field, &ovflo);
       break;
     case eok_subscript:
-      { a_type_ptr      elem_type = type_pointed_to(args->type);
-        check_assertion(is_constant_node(args->next));
+      { a_type_ptr       elem_type = type_pointed_to(args->type);
+        an_expr_node_ptr arg2 = skip_parens(args->next);
+        check_assertion(is_constant_node(arg2));
         /* Note that while eok_subscript in general allows operands in
            either order, in offsetof the subscript is always the second
            operand. */
         accum_array_offset(offset, /*offset_is_signed=*/FALSE,
-                           /*subtract=*/FALSE, args->next->variant.constant,
+                           /*subtract=*/FALSE, arg2->variant.constant,
                            skip_typerefs(elem_type)->size,
                            /*no_ovflo_on_unsigned_add=*/FALSE, &ovflo);
       }
@@ -5862,6 +5876,7 @@ are issued at the position it indicates.
   an_expr_node_ptr  arg1 = expr->variant.builtin_operation.operands,
                     arg2 = arg1->next;
 
+  /* eok_parens shouldn't appear here, since the construct is generated. */
   check_assertion(arg1 != NULL && arg2 != NULL && arg2->next == NULL &&
                   arg1->kind == (an_expr_node_kind)enk_type_operand);
   if (is_template_dependent_type(arg1->variant.type_operand.type)) {
@@ -5904,6 +5919,7 @@ the returned constant will be set as well.
                     arg2 = arg1->next;
   a_type_ptr        type1, type2;
 
+  /* eok_parens shouldn't appear here, since the construct is generated. */
   check_assertion(arg1 != NULL && arg2 != NULL && arg2->next == NULL &&
                   arg1->kind == (an_expr_node_kind)enk_type_operand &&
                   arg2->kind == (an_expr_node_kind)enk_type_operand);
@@ -5950,6 +5966,7 @@ constant will be set as well.
                     arg2 = arg1->next;
   a_type_ptr        type1, type2;
 
+  /* eok_parens shouldn't appear here, since the construct is generated. */
   check_assertion(arg1 != NULL && arg2 != NULL && arg2->next == NULL &&
                   arg1->kind == (an_expr_node_kind)enk_type_operand &&
                   arg2->kind == (an_expr_node_kind)enk_type_operand);
@@ -6038,6 +6055,7 @@ constant will be set as well.
   an_expr_node_ptr  arg = expr->variant.builtin_operation.operands;
   a_type_ptr        type;
 
+  /* eok_parens shouldn't appear here, since the construct is generated. */
   check_assertion(arg != NULL && arg->next == NULL &&
                   arg->kind == (an_expr_node_kind)enk_type_operand);
   type = arg->variant.type_operand.type;
@@ -6277,6 +6295,7 @@ constant will be set as well.
                     arg2 = arg1->next;
   a_type_ptr        type1, type2;
 
+  /* eok_parens shouldn't appear here, since the construct is generated. */
   check_assertion(arg1 != NULL && arg2 != NULL && arg2->next == NULL &&
                   arg1->kind == (an_expr_node_kind)enk_type_operand &&
                   arg2->kind == (an_expr_node_kind)enk_type_operand);
