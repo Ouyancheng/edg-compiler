@@ -12096,11 +12096,13 @@ Rewrite it as an rvalue that has the same side effects.  The expression
 can be optimized to remove any operations related to returning the
 result (since it is discarded), as long as the side effects remain.
 The type of the expression may also be modified if it would allow
-optimization.  The resulting expression is an rvalue.
+optimization.  The resulting expression is an rvalue.  The value of
+expr->next is preserved.
 */
 {
   a_constant       zero_con;
   an_expr_node_ptr zero_node;
+  an_expr_node_ptr next_node = expr->next;
 
   check_assertion(expr->is_lvalue);
   if (!node_has_side_effects(expr, (a_boolean *)NULL)) {
@@ -12129,13 +12131,14 @@ optimization.  The resulting expression is an rvalue.
       if (node_operator_is(expr, eok_question)) {
         /* Rewrite the second and third operands as rvalues, and then mark
            this expression as an rvalue. */
+        an_expr_node_ptr  op3 = op2->next;
         rewrite_discarded_lvalue_as_rvalue(op2);
-        rewrite_discarded_lvalue_as_rvalue(op2->next);
-        if (!il_identical_types(op2->type, op2->next->type)) {
+        rewrite_discarded_lvalue_as_rvalue(op3);
+        if (!il_identical_types(op2->type, op3->type)) {
           /* Types have changed, so (arbitrarily) cast the second operand to
              the type of the third operand so they have the same type once
              again. */
-          overwrite_node(op2, add_cast(copy_node(op2), op2->next->type));
+          overwrite_node(op2, add_cast(copy_node(op2), op3->type));
         }  /* if */
         expr->is_lvalue = FALSE;
         expr->variant.operation.returns_lvalue_instead_of_usual_rvalue = FALSE;
@@ -12176,6 +12179,7 @@ optimization.  The resulting expression is an rvalue.
        expression. */
     overwrite_node(expr, add_address_of_to_node(copy_node(expr)));
   }  /* if */
+  expr->next = next_node;
   check_assertion(!expr->is_lvalue);
 }  /* rewrite_discarded_lvalue_as_rvalue */
 

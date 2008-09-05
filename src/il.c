@@ -12034,20 +12034,25 @@ void overwrite_node(an_expr_node_ptr node,
 /*
 Overwrite the expression node "node" with the contents of the node
 "source_node".  This is used to remove do-nothing nodes by promoting
-their operands.
+their operands.  The routine does nothing if the source and destination
+nodes are the same.
 */
 {
-  an_expr_node_ptr node_next = node->next;
-  a_boolean        result_is_not_used = node->result_is_not_used;
+  an_expr_node_ptr node_next;
+  a_boolean        result_is_not_used;
 
-  /* Copy the node.  Preserve the original "next" field and the 
-     result_is_not_used flag. */
-  /* Note that the new/delete supplement from the source node is used
-     by the destination node; no copy is needed. */
-  *node = *source_node;
-  node->next = node_next;
-  node->result_is_not_used = result_is_not_used;
-  if (result_is_not_used) set_expr_result_not_used(node);
+  if (node != source_node) {
+    /* Copy the node.  Preserve the original "next" field and the 
+       result_is_not_used flag. */
+    node_next = node->next;
+    result_is_not_used = node->result_is_not_used;
+    /* Note that the new/delete supplement from the source node is used
+       by the destination node; no copy is needed. */
+    *node = *source_node;
+    node->next = node_next;
+    node->result_is_not_used = result_is_not_used;
+    if (result_is_not_used) set_expr_result_not_used(node);
+  }  /* if */
 }  /* overwrite_node */
 
 
