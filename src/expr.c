@@ -280,6 +280,7 @@ be issued.
        This is because we assume that a programmer who casts something
        to void is doing so for some good reason, and also because the
        macro for "assert" expands to a (void)0 when NDEBUG is defined. */
+    check_node = skip_parens(check_node);
     if (is_operation_node(check_node) &&
          check_node->variant.operation.kind ==
                                              (an_expr_operator_kind)eok_cast &&
@@ -1562,7 +1563,7 @@ is folded.
 */
 {
   a_boolean         folded = FALSE;
-  an_expr_node_ptr  call, args;
+  an_expr_node_ptr  call, args, args2;
   a_constant        result;
   a_routine_ptr     rp;
 
@@ -1577,6 +1578,8 @@ is folded.
     if (is_gnu_builtin_function(rp)) {
       a_type_ptr  result_type = skip_typerefs(call->type);
       args = args->next;
+      args2 = args->next;
+      args = skip_parens(args);
       switch (rp->variant.builtin_function_kind) {
         case bfk_constant_p:
         case bfk_classify_type:
@@ -1602,7 +1605,7 @@ is folded.
         case bfk_nan:
         case bfk_nanl:
           /* A non-signaling (or "quiet") Not-a-Number value. */
-          if (args != NULL && args->next == NULL &&
+          if (args != NULL && args2 == NULL &&
               args->kind == (an_expr_node_kind)enk_constant &&
               is_empty_string_literal(args->variant.constant) &&
               is_floating_type(result_type)) {
@@ -2009,7 +2012,7 @@ See section 6.5.2.2 of the C99 standard and [expr.call] of the
 C++ standard.  The current token is the "(" of the call.
 */
 {
-  an_expr_node_ptr  argument_list;
+  an_expr_node_ptr  argument_list, expr;
   a_type_ptr        routine_type = NULL;
   a_type_ptr        orig_routine_type = NULL;
   a_symbol_ptr      overloaded_function_symbol = NULL;
@@ -2110,8 +2113,9 @@ C++ standard.  The current token is the "(" of the call.
        expressions. */
     error_in_operand(ec_bad_constant_function_call, operand);
   } else if (is_expression_operand(operand) &&
-             is_operation_node(operand->variant.expression) &&
-             (op = operand->variant.expression->variant.operation.kind,
+             (expr = skip_parens(operand->variant.expression),
+              is_operation_node(expr)) &&
+             (op = expr->variant.operation.kind,
               (op == (an_expr_operator_kind)eok_dot_vacuous_destructor_call ||
                op == (an_expr_operator_kind)
                                     eok_points_to_vacuous_destructor_call))) {
@@ -2587,7 +2591,7 @@ C++ standard.  The current token is the "(" of the call.
                            found_through_adl, uses_operator_syntax,
                            &call_position, result);
 #if GNU_EXTENSIONS_ALLOWED
-    if (call_may_be_folded) {
+    if (call_may_be_folded && !is_error_operand(result)) {
       /* Some __builtin_xxx functions act as constant-expressions. */
       call_folded_to_constant = fold_call_if_possible(result);
     }  /* if */
@@ -3040,7 +3044,7 @@ have the EOPT_FIELD_FOR_OFFSETOF flag set in that case).
           /* MSVC++ treats a field selection off a function call returning
              a POD type as an lvalue.  Note that f().i is an rvalue but
              A().i (where A is a POD class name) is not. */
-          an_expr_node_ptr op_1 = operand_1->variant.expression;
+          an_expr_node_ptr op_1 = skip_parens(operand_1->variant.expression);
           if (is_operation_node(op_1)) {
             an_expr_operator_kind op = op_1->variant.operation.kind;
             if (op == (an_expr_operator_kind)eok_call) {
@@ -4686,7 +4690,7 @@ the "&".
         }  /* if */
         if ((c99_mode || gcc_mode) &&
             is_expression_operand(&operand) &&
-            (expr = operand.variant.expression,
+            (expr = skip_parens(operand.variant.expression),
              is_operation_node(expr)) &&
              node_operator_is(expr, eok_indirect)) {
           /* In C99 (see C99 standard section 6.5.3.2) and GNU C modes, a "&"
@@ -4768,8 +4772,8 @@ the "&".
         }  /* if */
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
       }  /* if */
-      /* For something like "&x", the is_id_expression may have been copied
-         over as "TRUE".  Clear it now. */
+      /* For something like "&x", the is_id_expression flag may have been
+         copied over as "TRUE".  Clear it now. */
       result->is_id_expression = FALSE;
     }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -5277,6 +5281,7 @@ the type.  If is_type is FALSE, this is a "sizeof expression", and
     expr = make_node_from_operand(operand);
     node->variant.runtime_sizeof.variant.expr = expr;
     /* Make sure the referenced flag is set on a VLA variable. */
+    expr = skip_parens(expr);
     if (expr->is_lvalue && is_variable_node(expr)) {
       a_variable_ptr var = expr->variant.variable;
       var->source_corresp.referenced = TRUE;
@@ -5791,9 +5796,10 @@ implement <stdarg.h>, a standard feature.
     operand_was_scanned = TRUE;
 #if GNU_EXTENSIONS_ALLOWED
     if (gnu_mode && is_expression_operand(&operand) &&
-        operand.variant.expression->kind == (an_expr_node_kind)enk_operation) {
+        skip_parens(operand.variant.expression)->kind ==
+                                            (an_expr_node_kind)enk_operation) {
       /* Field selection operations need special treatment in GNU modes. */
-      an_expr_node_ptr       expr = operand.variant.expression;
+      an_expr_node_ptr       expr = skip_parens(operand.variant.expression);
       an_expr_operator_kind  opkind = expr->variant.operation.kind;
       if (opkind == (an_expr_operator_kind)eok_dot_field ||
           opkind == (an_expr_operator_kind)eok_points_to_field) {
@@ -6341,7 +6347,7 @@ static a_type_ptr type_of_call(an_expr_node_ptr  expr)
 Return the type of the routine called by expr (the static type, which may be
 different from the type of the routine that is actually invoked if virtual
 function overriding is involved).  The caller must ensure that expr is a
-call node.
+call node (parens must be stripped off already if necessary).
 */
 {
   a_type_ptr  result;
@@ -6364,14 +6370,18 @@ call node.
 }  /* type_of_call */
 
 
-static an_expr_node_ptr strip_ref_indirect(an_expr_node_ptr expr)
+static an_expr_node_ptr strip_ref_indirect(an_expr_node_ptr expr,
+                                           a_boolean        parens_also)
 /*
 Strip an eok_ref_indirect node, if any, from the top of the given expression.
+If parens_also is TRUE, skip parentheses also.
 */
 {
+  if (parens_also) expr = skip_parens(expr);
   if (is_operation_node(expr) &&
       node_operator_is(expr, eok_ref_indirect)) {
     expr = expr->variant.operation.operands;
+    if (parens_also) expr = skip_parens(expr);
   }  /* if */
   return expr;
 }  /* strip_ref_indirect */
@@ -6396,8 +6406,11 @@ non-parenthesized class member access expressions, and for calls.
   if (is_expression_operand(operand)) {
     /* Strip a reference indirection from the expression, if present, so
        we can see what's underneath. */
-    expr = strip_ref_indirect(operand->variant.expression);
+    expr = strip_ref_indirect(operand->variant.expression,
+                              /*parens_also=*/FALSE);
   }  /* if */
+  /* Note that skip_parens is not called here, because parentheses are
+     significant. */
   if (expr != NULL && is_operation_node(expr) && !leading_paren_seen &&
       (node_operator_is(expr, eok_dot_field) ||
        node_operator_is(expr, eok_points_to_field) ||
@@ -6419,7 +6432,7 @@ non-parenthesized class member access expressions, and for calls.
       case eok_points_to_static:
         /* The second argument of a static selection is a static data member
            or static member function, which is essentially an id-expression. */
-        expr = strip_ref_indirect(arg2);
+        expr = strip_ref_indirect(arg2, /*parens_also=*/FALSE);
         goto id_case;
       default:
         unexpected_condition();
@@ -6433,6 +6446,7 @@ non-parenthesized class member access expressions, and for calls.
 id_case:
     if (expr != NULL) {
       /* Expression for simple id, lvalue or rvalue. */
+      /* Note that parens are significant and are not skipped if present. */
       if (is_variable_node(expr)) {
         result = expr->variant.variable->type;
       } else if (is_routine_node(expr)) {
@@ -6452,8 +6466,11 @@ id_case:
     } else {
       goto general_case;
     }  /* if */
-  } else if (expr != NULL && is_call_node(expr)) {
-    /* Function or operator call: Produce the associated return type. */
+  } else if (expr != NULL &&
+             (expr = strip_ref_indirect(expr, /*parens_also=*/TRUE),
+              is_call_node(expr))) {
+    /* Function or operator call: Produce the associated return type.
+       Parens around the call are ignored. */
     result = type_of_call(expr);
     if (!is_error_type(result)) {
       result = result->variant.routine.return_type;
@@ -7688,8 +7705,9 @@ When single_operand is TRUE, the <varargs.h> form is expected:
       if (gpp_mode && gnu_version >= 30200) {
         /* Strip a reference indirection in g++ mode so we can check what's
            underneath. */
-        node2 = strip_ref_indirect(node2);
+        node2 = strip_ref_indirect(node2, /*parens_also=*/TRUE);
       }  /* if */
+      node2 = skip_parens(node2);
       if (is_variable_node(node2) &&
           node2->variant.variable->is_parameter) {
         /* Okay. */
@@ -8320,6 +8338,8 @@ that node.  Otherwise, return NULL.
 
   if (curr_operand_expr != NULL &&
       curr_operand_expr != orig_operand_expr) {
+    /* eok_parens are not dropped on purpose.  We're looking at a compiler-
+       generated IL sequence for a cast, which wouldn't have parens in it. */
     if (is_operation_node(curr_operand_expr) &&
         curr_operand_expr->variant.operation.compiler_generated &&
         node_operator_is(curr_operand_expr, eok_indirect)) {
@@ -10245,6 +10265,7 @@ set the void_expression_lvalue flag in the expression.
        warned about. */
     /* A cast is not treated as a "use" of a returned value in this context. */
     an_expr_node_ptr  expr = remove_cast_operations(node);
+    expr = skip_parens(expr);
     if (is_call_node(expr)) {
       /* Retrieve the type of the routine being called. */
       a_type_ptr  tp = type_of_call(expr);
@@ -11086,7 +11107,7 @@ address.
 
   if (is_integral_type(type_cast_to) &&
       is_expression_operand(operand)) {
-    an_expr_node_ptr expr = operand->variant.expression;
+    an_expr_node_ptr expr = skip_parens(operand->variant.expression);
     a_targ_size_t    smallest_size = ~(a_targ_size_t)0;
     /* Skip over any casts to integral or pointer types. */
     while (is_operation_node(expr) &&
@@ -11095,7 +11116,7 @@ address.
       /* Keep track of the smallest cast size in the sequence. */
       a_targ_size_t cast_size = f_skip_typerefs(expr->type)->size;
       if (cast_size < smallest_size) smallest_size = cast_size;
-      expr = expr->variant.operation.operands;
+      expr = skip_parens(expr->variant.operation.operands);
     }  /* while */
     /* See if the thing underneath is the address of something.  Note that
        the fully-constant case is handled in folding. */
@@ -12558,6 +12579,9 @@ Also scans GNU statement expressions:
       /* This is an expression in parentheses. */
       /* Parentheses do not affect the fact that the expression is the
          immediate operand of a cast, so pass down that option. */
+      a_boolean                need_expr = FALSE;
+      a_boolean                need_expr_for_constant = FALSE;
+      an_expr_node_ptr         expr = NULL;
       a_local_expr_options_set options =
                                       (local_options &
                                                 (EOPT_OPERAND_OF_CAST |
@@ -12573,30 +12597,66 @@ Also scans GNU statement expressions:
         options |= (local_options & EOPT_PTR_TO_MEMBER_CONTEXT);
       }  /* if */
       scan_expr_full(result, bound_function_selector, PREC_LOWEST, options);
-      /* Something like "(i)" is not an id-expression; clear the flag that
-         was recorded for the "i" subexpression in such cases. */
-      result->is_id_expression = FALSE;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       (void)required_token(tok_rparen, ec_exp_rparen);
       remove_matching_stop_token(tok_rparen);
-      if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded() &&
-          is_constant_operand(result) &&
-          !is_template_param_expression_constant_operand(result) &&
-          result->variant.constant.expr == NULL) {
-        /* Record an expression for a constant so that we have the position
-           of the constant and also the position of the constant surrounded
-           by parentheses.  (We don't set constant.expr for a tpck_expression
-           constant because there is already an expression in such a
-           constant.) */
-        result->variant.constant.expr = make_node_from_operand(result);
+      if (!PARENS_IN_IL) {  /*lint !e506*/
+        /* eok_parens nodes are not being recorded. */
+      } else if (is_constant_operand(result)) {
+        /* For a constant operand, make an expression including the parens
+           only if we're recording backing expressions. */
+        if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
+          need_expr = TRUE;
+          need_expr_for_constant = TRUE;
+        }  /* if */
+      } else {
+        /* For non-constant operands, force the operand to expression form
+           and add the parens. */
+        need_expr = TRUE;
       }  /* if */
-      /* Do not use set_operand_position because we want to leave the
-         position in any underlying expression unchanged (we didn't add
-         anything to the expression to represent the parentheses, so the
-         expression still represents the thing inside the parentheses). */
-      set_base_operand_position(result, &start_position, &end_position);
+      if (need_expr) {
+        /* Make an expression with an eok_parens node over the operand. */
+        expr = make_node_from_operand(result);
+        if (expr->is_lvalue) {
+          expr = make_lvalue_operator_node((an_expr_operator_kind)eok_parens,
+                                           expr->type, expr);
+        } else {
+          expr = make_operator_node((an_expr_operator_kind)eok_parens,
+                                    expr->type, expr);
+        }  /* if */
+      }  /* if */
+      if (need_expr && !need_expr_for_constant) {
+        /* Save the expression, with added eok_parens, as the overall
+           result. */
+        an_operand orig_operand;
+        orig_operand = *result;
+        if (expr->is_lvalue) {
+          make_lvalue_expression_operand(expr, result);
+        } else {
+          make_expression_operand(expr, result);
+        }  /* if */
+        set_operand_position(result, &start_position, &end_position,
+                             &start_position);
+        restore_operand_details_incl_ref(result, &orig_operand);
+      } else {
+        /* The overall result is not changed by the addition of parentheses. */
+        if (need_expr_for_constant) {
+          /* Record the backing expression for a constant.  The expression
+             has the added eok_parens. */
+          check_assertion(is_constant_operand(result));
+          result->variant.constant.expr = expr;
+        }  /* if */
+        /* Do not use set_operand_position because we want to leave the
+           position in any underlying expression unchanged (we didn't add
+           anything to the expression to represent the parentheses, so the
+           expression still represents the thing inside the parentheses). */
+        set_base_operand_position(result, &start_position, &end_position);
+      }  /* if */
+      /* Something like "(i)" is not an id-expression; clear the flag that
+         was recorded for the "i" subexpression in such cases. */
+      result->is_id_expression = FALSE;
     }  /* if */
   }  /* if */
 
@@ -14434,7 +14494,8 @@ expression.
 */
 #define is_throw_operand(operand)                                     \
   (is_expression_operand(operand) &&                                  \
-   (operand)->variant.expression->kind == (an_expr_node_kind)enk_throw)
+   skip_parens((operand)->variant.expression)->kind ==                \
+                                        (an_expr_node_kind)enk_throw)
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
@@ -15214,10 +15275,10 @@ accepted as a null pointer constant.
       is_void_type(operand->type) &&
       is_pointer_type(dest_type)) {
     if (is_expression_operand(operand)) {
-      an_expr_node_ptr expr = operand->variant.expression;
+      an_expr_node_ptr expr = skip_parens(operand->variant.expression);
       if (is_operation_node(expr) &&
           expr->variant.operation.kind == (an_expr_operator_kind)eok_cast) {
-        expr = expr->variant.operation.operands;
+        expr = skip_parens(expr->variant.operation.operands);
         if (is_constant_node(expr) &&
             is_null_pointer_constant(expr->variant.constant)) {
           /* The expression is (void)0.  Replace it by 0. */
