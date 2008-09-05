@@ -1578,8 +1578,10 @@ is folded.
     if (is_gnu_builtin_function(rp)) {
       a_type_ptr  result_type = skip_typerefs(call->type);
       args = args->next;
-      args2 = args->next;
-      args = skip_parens(args);
+      if (args != NULL) {
+        args2 = args->next;
+        args = skip_parens(args);
+      }  /* if */
       switch (rp->variant.builtin_function_kind) {
         case bfk_constant_p:
         case bfk_classify_type:
