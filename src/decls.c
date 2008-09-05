@@ -8926,6 +8926,20 @@ symbol entry, and return a pointer to it in state->sym.
                                  (a_namespace_ptr)NULL);
         nsp = parent_namespace_or_null(tp);
       }  /* if */
+      if (microsoft_bugs) {
+        /* The Microsoft C++ compiler effectively ignores a typedef of a named
+           class type to the same name.  E.g.:
+             typedef struct S {} S;
+             void S();  // Accepted in Microsoft mode.
+           Enumeration types are treated similarly. */
+        a_type_ptr  unqual_type = skip_typerefs(type_ptr);
+        if ((is_immediate_class_type(unqual_type) ||
+             is_immediate_enum_type(unqual_type)) &&
+            symbol_for(unqual_type)->header == sym->header &&
+            identical_types(tp, unqual_type)) {
+          sym->is_invisible = TRUE;
+        }  /* if */
+      }  /* if */
     }  /* if */
     record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, sym,
                               &locator->source_position,

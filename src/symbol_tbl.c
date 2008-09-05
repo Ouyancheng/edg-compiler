@@ -3282,6 +3282,20 @@ this is not allowed, an error will be issued by the caller.
       /* MSVC++ allows an elaborated-type-specifier used in a class scope to
          inject a type in the surrounding non-class scope and hide an
          existing typedef-name in that scope. */
+#if CHECKING
+      a_type_ptr  tp = type_symbol_type(old_sym);
+      tp  = skip_typerefs(tp);
+      check_assertion((is_immediate_class_type(tp) ||
+                       is_immediate_enum_type(tp)) &&
+                      symbol_for(tp)->header == old_sym->header);
+#endif /* CHECKING */
+      err = FALSE;
+    } else if (microsoft_bugs && old_sym->is_invisible &&
+               old_sym->kind == (a_symbol_kind)sk_type &&
+               !is_tag_symbol_kind(new_sym->kind)) {
+      /* MSVC++ effectively ignores a typedef of a named class to its own name
+         (e.g., "typedef class C {} C;").  decl_typedef will have marked the
+         associated symbol as "invisible". */
       err = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else if (scope_stack[scope_depth].in_prototype_instantiation &&

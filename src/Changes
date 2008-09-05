@@ -1,5 +1,14 @@
 Version 3.11
 
+9/5/08   [EDGcpfe/8651]
+Microsoft compatibility: Typedefs for class and enum types
+
+In Microsoft bugs mode, a typedef for a named class or enum to that same name
+is marked as invisible and does not affect later declarations.  For example:
+
+  typedef struct S {} S;
+  double S = 1.0;  // Now accepted in Microsoft bugs mode.
+
 9/4/08   [EDGcpfe/9143]
 GNU compatibility: Alias names mapping on multiple declarations
 
