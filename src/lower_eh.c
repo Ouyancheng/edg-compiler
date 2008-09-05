@@ -2308,7 +2308,7 @@ Do lowering of an enk_typeid expression node, i.e., a C++ typeid operation.
 The expression itself may be an rvalue or an lvalue, while the argument
 expression is always an lvalue.  enk_typeid expressions always leave the
 front end as lvalues, but may have undergone an lvalue-to-rvalue
-conversion in cases where its value is not used.
+conversion in cases where their value is not used.
 */
 {
   a_type_ptr       typeid_type = expr->variant.typeid_info.type;
@@ -2349,23 +2349,27 @@ conversion in cases where its value is not used.
     }  /* for */
 #endif /* !IA64_ABI */
   } else {
-    check_assertion(typeid_expr->is_lvalue);
+    check_assertion(typeid_expr->is_lvalue && is_operation_node(typeid_expr));
     /* Polymorphic class case with expression. */
     check_assertion(is_immediate_class_type(typeid_type) &&
                     is_polymorphic_class_type(typeid_type));
     lower_expr(typeid_expr);
-    /* The expression is an lvalue with the form *p or p[x].  Since the
-       expression gives the address of the lvalue, it really has the form
-       p or p + x.  In the latter case, discard x. */
-    if (is_operation_node(typeid_expr) &&
-        typeid_expr->variant.operation.kind ==
-                                        (an_expr_operator_kind)eok_subscript) {
+    /* The expression is an lvalue.  The standard specifically notes that
+       if the expression is obtained by applying the unary * operator to a
+       pointer, and the pointer is a null pointer value, a std::bad_typeid
+       exception is thrown.  Taking the address of the lvalue will strip an
+       eok_indirect operator if one exists and yield an rvalue pointer
+       which can be tested against NULL. */
+    /* As an extension to the *p rule above, discard any subscript if the
+       top level operation is an eok_subscript (i.e., p[x] -- really *(p + x)
+       -- becomes simply p). */
+    if (node_operator_is(typeid_expr, eok_subscript)) {
       typeid_expr = subscript_or_padd_pointer_operand(typeid_expr);
       typeid_expr->next = NULL;
     } else {
-      /* Turn typeid_expr lvalue into an rvalue pointer. */
       typeid_expr = add_address_of_to_node(typeid_expr);
     }  /* if */
+    check_assertion(!typeid_expr->is_lvalue);
     /* Build the runtime call __get_typeid((typeid_expr != NULL) ? vptr : NULL)
        where vptr is the virtual function table pointer value from the
        class object.  If NULL is passed to the runtime routine, it throws
@@ -2389,10 +2393,9 @@ conversion in cases where its value is not used.
     /* Make (std::type_info*)vptr[-1]. */
     minus_one_expr = node_for_integer_constant(-1L, (an_integer_kind)ik_int);
     vptr_expr->next = minus_one_expr;
-    vptr_expr = make_lvalue_operator_node((an_expr_operator_kind)eok_subscript,
-                                          integer_type(
-                                                      targ_ptrdiff_t_int_kind),
-                                          vptr_expr);
+    vptr_expr = make_operator_node((an_expr_operator_kind)eok_subscript,
+                                   integer_type(targ_ptrdiff_t_int_kind),
+                                   vptr_expr);
     vptr_expr = add_cast_if_necessary(vptr_expr, 
                                make_pointer_type(make_user_typeinfo_type()));
     /* Make "__cxa_bad_typeid(), (std::typeinfo*)0". */
@@ -4042,7 +4045,6 @@ if it has not already been made.  Return a pointer to it.
 
 static a_variable_ptr make_caught_object_address_var(void)
 /*
-Make an expression node representing the address of the object 
 Make __caught_object_address, a global variable used for exception processing,
 if it has not already been made.  Return a pointer to it.
 */
