@@ -2116,7 +2116,12 @@ Add to the mangled name the name of the variable.  Used in cfront ABI only.
 
   check_assertion(str != NULL);
   reserve_space_for_length(&length_reservation, mctl);
-  add_str_to_mangled_name(str, mctl);
+  if (is_class_or_namespace_member(variable)) {
+    /* Static data member or namespace member variable. */
+    mangled_member_variable_name(variable, mctl);
+  } else {
+    add_str_to_mangled_name(str, mctl);
+  }  /* if */
   fill_in_length(&length_reservation, mctl);
 }  /* mangled_variable_name */
 
