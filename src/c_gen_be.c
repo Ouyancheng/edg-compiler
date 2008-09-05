@@ -4384,14 +4384,23 @@ there's some possibility of precedence confusion and need_parens is TRUE.
 #endif /* DEBUG */
         internal_error("dump_expr: wrong result type for subscript");
       }  /* if */
-      if (op == (an_expr_operator_kind)eok_indirect &&
-          !pointer_type_is_consistent(
-                             operand_1->type, expr->type,
+      if (op == (an_expr_operator_kind)eok_indirect) {
+        a_type_ptr result_type = expr->type;
+        if (is_pointer_type(result_type) &&
+            is_function_type(type_pointed_to(result_type))) {
+          /* An expression with function type immediately decays back to a
+             pointer to function; we need to check against the function
+             type itself. */
+          result_type = type_pointed_to(result_type);
+        }  /* if */
+        if (!pointer_type_is_consistent(
+                             operand_1->type, result_type,
                              /*drop_qualifiers_under_ptr=*/!expr->is_lvalue)) {
 #if DEBUG
-        db_expression(expr);
+          db_expression(expr);
 #endif /* DEBUG */
-        internal_error("dump_expr: wrong result type for &");
+          internal_error("dump_expr: wrong result type for &");
+        }  /* if */
       }  /* if */
 #endif /* !STANDALONE_C_GEN_BE */
 #endif /* CHECKING */
