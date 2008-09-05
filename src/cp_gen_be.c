@@ -9045,7 +9045,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           write_tok_ch('(');
           gen_expression(operand_1);
           write_tok_ch(')');
-          break;
+          goto done_with_operation;
         case eok_add:
 #if C99_IL_EXTENSIONS_SUPPORTED
         case eok_fjadd:
