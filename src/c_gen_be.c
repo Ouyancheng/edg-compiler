@@ -4254,8 +4254,8 @@ static a_boolean pointer_type_is_consistent(
 Check whether a pointer type is what it is supposed to be.  Return FALSE if
 ptr_type is, in fact, not a pointer type or if the type to which it points
 is not targ_type and TRUE if the conditions are met.  If
-drop_qualifiers_under_ptr is TRUE, a pointer to a cv-qualified type is
-considered to match a cv-unqualified target type.
+drop_qualifiers_under_ptr is TRUE, the cv-unqualified version of the
+pointed-to type is used for the comparison.
 */
 {
   a_boolean result = FALSE;
@@ -4263,7 +4263,7 @@ considered to match a cv-unqualified target type.
   if (is_pointer_type(ptr_type)) {
     a_type_ptr pointed_to_type = type_pointed_to(ptr_type);
     if (drop_qualifiers_under_ptr) {
-      pointed_to_type = skip_typerefs(pointed_to_type);
+      pointed_to_type = make_unqualified_type(pointed_to_type);
     }  /* if */
     result = identical_types(pointed_to_type, targ_type);
   }  /* if */
@@ -4376,13 +4376,22 @@ there's some possibility of precedence confusion and need_parens is TRUE.
       }  /* if */
       if (op == (an_expr_operator_kind)eok_subscript &&
           !pointer_type_is_consistent(
-                                 subscript_or_padd_pointer_operand(expr)->type,
-                                 expr->type,
-                                 /*drop_qualifiers_under_ptr=*/TRUE)) {
+                             subscript_or_padd_pointer_operand(expr)->type,
+                             expr->type,
+                             /*drop_qualifiers_under_ptr=*/!expr->is_lvalue)) {
 #if DEBUG
         db_expression(expr);
 #endif /* DEBUG */
         internal_error("dump_expr: wrong result type for subscript");
+      }  /* if */
+      if (op == (an_expr_operator_kind)eok_indirect &&
+          !pointer_type_is_consistent(
+                             operand_1->type, expr->type,
+                             /*drop_qualifiers_under_ptr=*/!expr->is_lvalue)) {
+#if DEBUG
+        db_expression(expr);
+#endif /* DEBUG */
+        internal_error("dump_expr: wrong result type for &");
       }  /* if */
 #endif /* !STANDALONE_C_GEN_BE */
 #endif /* CHECKING */
