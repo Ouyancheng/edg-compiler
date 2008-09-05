@@ -5437,6 +5437,8 @@ are allowed under a sizeof (etc.) in a template argument expression.
 {
   a_boolean eq = FALSE;
 
+  if (node1 != NULL) node1 = skip_parens(node1);
+  if (node2 != NULL) node2 = skip_parens(node2);
   if (node1 == NULL && node2 == NULL) {
     eq = TRUE;
   } else if (node1 == NULL || node2 == NULL) {
@@ -5957,6 +5959,7 @@ contains it among its operands (in a position that can be deduced from).
   check_assertion(cp == NULL ||
                   cp->variant.template_param.kind ==
                                 (a_template_param_constant_kind)tpck_param);
+  node = skip_parens(node);
   if (node->kind == (an_expr_node_kind)enk_constant) {
     cp2 = node->variant.constant;
     if (cp2->kind == (a_constant_repr_kind)ck_template_param) {
@@ -6854,6 +6857,7 @@ even though calls actually always use the rvalue form.
 {
   a_routine_ptr routine = NULL;
 
+  expr = skip_parens(expr);
   if (is_operation_node(expr)) {
     an_expr_operator_kind op = expr->variant.operation.kind;
     if (op == (an_expr_operator_kind)eok_dot_static ||
@@ -6873,7 +6877,7 @@ even though calls actually always use the rvalue form.
   } else {
     if (is_operation_node(expr) && node_operator_is(expr, eok_address_of)) {
       /* Remove "&" if present. */
-      expr = expr->variant.operation.operands;
+      expr = skip_parens(expr->variant.operation.operands);
     }  /* if */
     if (is_routine_node(expr)) {
       routine = expr->variant.routine;
@@ -11110,6 +11114,8 @@ care must be taken with fixed-point operands in particular.
   check_assertion(is_compound_assignment_operator(op));
   op1 = expr->variant.operation.operands;
   op2 = op1->next;
+  op1 = skip_parens(op1);
+  op2 = skip_parens(op2);
   op1_type = rvalue_type(op1->type);
   op2_type = op2->type;
   /* Usually, the operation type is the type of the second operand, because
@@ -11909,6 +11915,10 @@ the value of the expression is discarded.
          are not used if the entire operation is not used. */
       set_expr_result_not_used(operand_1->next);
       set_expr_result_not_used(operand_1->next->next);
+    } else if (op == (an_expr_operator_kind)eok_parens) {
+      /* Given parentheses, the operand is not used if the entire operation
+         is not used. */
+      set_expr_result_not_used(operand_1);
     }  /* if */
   } else if (node->kind == (an_expr_node_kind)enk_object_lifetime) {
     set_expr_result_not_used(node->variant.object_lifetime.expr);
@@ -12458,13 +12468,15 @@ to an already-allocated constant; otherwise, constant points to the
   
 static a_boolean operator_is_foldable(an_expr_node_ptr  expr)
 /*
-Return TRUE if the indicated expression node should be folded when doing
-template argument substitution.
+Return TRUE if the indicated enk_operation expression node should be folded
+when doing template argument substitution.
 */
 {
   a_boolean              is_foldable = FALSE;
-  an_expr_operator_kind  op = expr->variant.operation.kind;
+  an_expr_operator_kind  op;
 
+  check_assertion(is_operation_node(expr));
+  op = expr->variant.operation.kind;
   switch (op) {
     case eok_negate:
     case eok_unary_plus:
@@ -12498,6 +12510,7 @@ template argument substitution.
     case eok_gnu_min:
     case eok_gnu_max:
 #endif /* GNU_EXTENSIONS_ALLOWED */
+    case eok_parens:
       is_foldable = TRUE;
       break;
     default:
@@ -12911,6 +12924,9 @@ options is a set of name lookup options.
                                    &did_not_fold,
                                    source_pos);
               check_assertion(!did_not_fold);
+              *alloc_con = NULL;
+            } else if (op == (an_expr_operator_kind)eok_parens) {
+              copy_constant(&constant_1, constant);
               *alloc_con = NULL;
             } else {
               /* One-operand operation. */
@@ -14392,6 +14408,22 @@ a pointer to the new expression.  The returned node is designated an lvalue.
 }  /* add_ref_indirection_to_node */
 
 
+static void set_address_taken_for_variable_or_routine_expr(
+                                                         an_expr_node_ptr node)
+/*
+If node is an expression for a simple variable or routine, set the
+address_taken flag on the underlying entity.
+*/
+{
+  node = skip_parens(node);
+  if (is_variable_node(node)) {
+    set_variable_address_taken(node->variant.variable);
+  } else if (is_routine_node(node)) {
+    node->variant.routine->address_taken = TRUE;
+  }  /* if */
+}  /* set_address_taken_for_variable_or_routine_expr */
+
+
 an_expr_node_ptr add_address_of_to_node(an_expr_node_ptr node)
 /*
 Add an eok_address_of operation on top of the given node, and return a
@@ -14437,11 +14469,7 @@ designated an rvalue.
 #endif /* DO_IL_LOWERING */
     } else {
       /* Set the address_taken flag for variables and routines. */
-      if (is_variable_node(node)) {
-        set_variable_address_taken(node->variant.variable);
-      } else if (is_routine_node(node)) {
-        node->variant.routine->address_taken = TRUE;
-      }  /* if */
+      set_address_taken_for_variable_or_routine_expr(node);
       node->next = NULL;
       node = make_operator_node((an_expr_operator_kind)eok_address_of,
                                 make_pointer_type(node->type), node);
@@ -14463,11 +14491,7 @@ node is designated an rvalue.
   if (!is_error_node(node)) {
     check_assertion(node->is_lvalue);
     /* Set the address_taken flag for variables and routines. */
-    if (is_variable_node(node)) {
-      set_variable_address_taken(node->variant.variable);
-    } else if (is_routine_node(node)) {
-      node->variant.routine->address_taken = TRUE;
-    }  /* if */
+    set_address_taken_for_variable_or_routine_expr(node);
     node->next = NULL;
     node = make_operator_node((an_expr_operator_kind)eok_reference_to,
                               make_reference_type(node->type), node);
@@ -14601,6 +14625,7 @@ rest.
      a pointer or not) and the top field selection operator becomes "." in
      all cases (its first operand is always a class, the value returned from
      the introduced field selection). */
+  check_assertion(is_operation_node(node));
   op = node->variant.operation.kind;
   op1 = node->variant.operation.operands;
   op2 = op1->next;
@@ -14844,6 +14869,7 @@ top-level node is considered -- fetches in child nodes are not.
   /* Note that this routine is very similar to is_rvalueable_node
      and conv_rvalue_expr_to_lvalue. */
   if (p_fetched_type != NULL) *p_fetched_type = NULL;
+  node = skip_parens(node);
   /* Only rvalue expressions can fetch something from memory. */
   if (!node->is_lvalue) {
     switch (node->kind) {
@@ -14869,6 +14895,8 @@ top-level node is considered -- fetches in child nodes are not.
           an_expr_node_ptr      op2 = op1->next;
           a_type_ptr            operand_type;
 
+          op1 = skip_parens(op1);
+          if (op2 != NULL) op2 = skip_parens(op2);
           /* Lvalue-returning operations shouldn't have is_lvalue FALSE. */
           check_assertion(!node->variant.operation.
                                        returns_lvalue_instead_of_usual_rvalue);
@@ -14906,8 +14934,9 @@ process_ptr_to_member_selection:
             case eok_subscript:
               /* Swap operands if the pointer operand is second. */
               if (is_pointer_type(op2->type)) {
+                an_expr_node_ptr saved_op1 = op1;
                 op1 = op2;
-                op2 = node->variant.operation.operands;
+                op2 = saved_op1;
               }  /* if */
               /*FALLTHROUGH*/
             case eok_indirect:
@@ -15291,6 +15320,7 @@ of this determination.
 {
   a_boolean is_invariant = FALSE;
 
+  expr = skip_parens(expr);
   if (vars_can_change) {
     /* Variable values can change. */
     if (is_constant_node(expr) || is_routine_node(expr)) {
@@ -19382,6 +19412,7 @@ static a_byte lvalue_rvalue_test[(int)eok_last+1] = {
   /* eok_error: */			LVRV_NO_REQUIREMENTS,
   /* eok_last: */			LVRV_DISTINGUISHED_VALUE_FOR_LAST
 };  /* lvalue_rvalue_test */
+
 
 a_boolean node_operands_have_correct_lvalueness(an_expr_node_ptr node)
 /*
