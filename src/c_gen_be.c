@@ -4252,15 +4252,16 @@ static a_boolean pointer_type_is_consistent(
                                           a_boolean  drop_qualifiers_under_ptr)
 /*
 Check whether a pointer type is what it is supposed to be.  Return FALSE if
-ptr_type is, in fact, not a pointer type or if the type to which it points
-is not targ_type and TRUE if the conditions are met.  If
-drop_qualifiers_under_ptr is TRUE, the cv-unqualified version of the
+ptr_type is, in fact, not a pointer type (or a reference type -- in some
+cases, reference types are not lowered to pointer types) or if the type to
+which it points is not targ_type; return TRUE if the conditions are met.
+If drop_qualifiers_under_ptr is TRUE, the cv-unqualified version of the
 pointed-to type is used for the comparison.
 */
 {
   a_boolean result = FALSE;
 
-  if (is_pointer_type(ptr_type)) {
+  if (is_ptr_or_ref_type(ptr_type)) {
     a_type_ptr pointed_to_type = type_pointed_to(ptr_type);
     if (drop_qualifiers_under_ptr) {
       pointed_to_type = make_unqualified_type(pointed_to_type);
@@ -4387,7 +4388,9 @@ there's some possibility of precedence confusion and need_parens is TRUE.
       if (op == (an_expr_operator_kind)eok_indirect) {
         a_type_ptr result_type = expr->type;
         if (is_pointer_type(result_type) &&
-            is_function_type(type_pointed_to(result_type))) {
+            is_function_type(type_pointed_to(result_type)) &&
+            is_ptr_or_ref_type(operand_1->type) &&
+            is_function_type(type_pointed_to(operand_1->type))) {
           /* An expression with function type immediately decays back to a
              pointer to function; we need to check against the function
              type itself. */
@@ -4399,7 +4402,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
 #if DEBUG
           db_expression(expr);
 #endif /* DEBUG */
-          internal_error("dump_expr: wrong result type for &");
+          internal_error("dump_expr: wrong result type for *");
         }  /* if */
       }  /* if */
 #endif /* !STANDALONE_C_GEN_BE */

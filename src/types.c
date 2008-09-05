@@ -3368,7 +3368,7 @@ for more information.
       /* The type qualifiers do not match, so the types are not identical. */
       /* identical = FALSE;  -- Already set. */
       goto done;
-    } else if (!C_mode()) {
+    } else if (!C_mode() && in_front_end) {
       /* Peel off tk_typeref layers looking for template-dependent decltype or
          typeof nodes. */
       while (type_1->kind == (a_type_kind)tk_typeref) {
