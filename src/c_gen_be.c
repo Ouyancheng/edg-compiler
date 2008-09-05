@@ -4246,19 +4246,25 @@ return a pointer to that variable; otherwise, return NULL.
 
 #if CHECKING && !STANDALONE_C_GEN_BE
 
-static a_boolean pointer_type_is_consistent(a_type_ptr ptr_type,
-                                            a_type_ptr targ_type)
+static a_boolean pointer_type_is_consistent(
+                                          a_type_ptr ptr_type,
+                                          a_type_ptr targ_type,
+                                          a_boolean  drop_qualifiers_under_ptr)
 /*
-Check whether a pointer type is what it is supposed to be.  Return FALSE
-if ptr_type is, in fact, not a pointer type or if the type to which it
-points is not targ_type (modulo typerefs) and TRUE if the conditions are
-met.
+Check whether a pointer type is what it is supposed to be.  Return FALSE if
+ptr_type is, in fact, not a pointer type or if the type to which it points
+is not targ_type and TRUE if the conditions are met.  If
+drop_qualifiers_under_ptr is TRUE, a pointer to a cv-qualified type is
+considered to match a cv-unqualified target type.
 */
 {
   a_boolean result = FALSE;
 
   if (is_pointer_type(ptr_type)) {
     a_type_ptr pointed_to_type = type_pointed_to(ptr_type);
+    if (drop_qualifiers_under_ptr) {
+      pointed_to_type = skip_typerefs(pointed_to_type);
+    }  /* if */
     result = identical_types(pointed_to_type, targ_type);
   }  /* if */
   return result;
@@ -4361,7 +4367,8 @@ there's some possibility of precedence confusion and need_parens is TRUE.
          program because it relies on identical_types, which is not
          available in that environment.) */
       if (op == (an_expr_operator_kind)eok_address_of &&
-          !pointer_type_is_consistent(expr->type, operand_1->type)) {
+          !pointer_type_is_consistent(expr->type, operand_1->type,
+                                      /*drop_qualifiers_under_ptr=*/FALSE)) {
 #if DEBUG
         db_expression(expr);
 #endif /* DEBUG */
@@ -4370,7 +4377,8 @@ there's some possibility of precedence confusion and need_parens is TRUE.
       if (op == (an_expr_operator_kind)eok_subscript &&
           !pointer_type_is_consistent(
                                  subscript_or_padd_pointer_operand(expr)->type,
-                                 expr->type)) {
+                                 expr->type,
+                                 /*drop_qualifiers_under_ptr=*/TRUE)) {
 #if DEBUG
         db_expression(expr);
 #endif /* DEBUG */
