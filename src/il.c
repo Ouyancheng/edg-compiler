@@ -12121,6 +12121,7 @@ and return a pointer to it.
   return node;
 }  /* node_for_host_large_integer */
 
+#if PARENS_IN_IL
 
 an_expr_node_ptr f_skip_parens(an_expr_node_ptr expr)
 /*
@@ -12134,6 +12135,7 @@ underlying expression.
   return expr;
 }  /* f_skip_parens */
 
+#endif /* PARENS_IN_IL */
 
 a_boolean is_bad_type_for_template_arg_operand(a_type_ptr type)
 /*

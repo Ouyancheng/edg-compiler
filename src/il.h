@@ -253,7 +253,9 @@ extern unsigned long assign_instantiation_needed_bit_number(void);
 
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 
+#if PARENS_IN_IL
 extern an_expr_node_ptr f_skip_parens(an_expr_node_ptr expr);
+#endif /* PARENS_IN_IL */
 
 /*
 Strip parentheses off an expression and return the underlying expression.
