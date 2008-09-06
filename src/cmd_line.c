@@ -7811,7 +7811,10 @@ enable_microsoft_mode:
     check_upc_mode();
   }  /* if */
 #endif /* UPC_EXTENSIONS_ALLOWED */
-  if (nonclass_prototype_instantiations) {
+  if (nonclass_prototype_instantiations &&
+      !option_kind_used[(int)optk_implicit_typename]) {
+    /* When doing nonclass prototype instantiations, disable implicit typename
+       unless it was explicitly enabled. */
     implicit_typename_enabled = FALSE;
   }  /* if */
   /* Set restrict_enabled if any form of the restrict keyword is allowed. */
