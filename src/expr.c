@@ -1607,15 +1607,17 @@ is folded.
         case bfk_nan:
         case bfk_nanl:
           /* A non-signaling (or "quiet") Not-a-Number value. */
-          if (args != NULL && args2 == NULL &&
-              args->kind == (an_expr_node_kind)enk_constant &&
-              is_empty_string_literal(args->variant.constant) &&
-              is_floating_type(result_type)) {
-            clear_constant(&result, (a_constant_repr_kind)ck_float);
-            result.type = call->type;
-            folded = make_fp_nan(&result.variant.float_value,
-                                 result_type->variant.float_kind);
-          }  /* if */
+          { a_constant_ptr scon;
+            if (args != NULL && args2 == NULL &&
+                expr_is_pointer_to_string_literal(args, &scon) &&
+                is_empty_string_literal(scon) &&
+                is_floating_type(result_type)) {
+              clear_constant(&result, (a_constant_repr_kind)ck_float);
+              result.type = call->type;
+              folded = make_fp_nan(&result.variant.float_value,
+                                   result_type->variant.float_kind);
+            }  /* if */
+          }
           break;
         case bfk_inff:
         case bfk_inf:
