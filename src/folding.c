@@ -5751,6 +5751,7 @@ to the string literal constant if there is one.
           op1->variant.constant->kind == (a_constant_repr_kind)ck_string) {
         /* An expression for a string literal, decayed to a pointer to
            the underlying type. */
+        result = TRUE;
         if (cast_expr != NULL) {
           /* For the cast case, make sure the cast type is the proper decayed
              type. */
@@ -5759,11 +5760,10 @@ to the string literal constant if there is one.
           if (!identical_pointer_types_ignoring_qualifiers(decayed_type,
                                                            cast_expr->type)) {
             /* The cast is to the wrong type. */
-          } else {
-            result = TRUE;
-            if (scon != NULL) *scon = op1->variant.constant;
+            result = FALSE;
           }  /* if */
         }  /* if */
+        if (result && scon != NULL) *scon = op1->variant.constant;
       }  /* if */
     }  /* if */
   }  /* if */
