@@ -1,5 +1,17 @@
 Version 3.11
 
+9/7/08   [EDGcpfe/5460, EDGcpfe/7192, EDGcpfe/7756, EDGcpfe/9188]
+Assertion failure with nested template with same name as friend template
+
+A template friend declaration that declared a class template with the
+same name as a nested class of the enclosing class template resulted
+in an internal error in find_class_template_member.  Now fixed.
+
+  template <class T> class A {
+    template <class U> friend struct B; 
+    template <class U> struct B { }; 
+  };
+
 9/6/08   [EDGcpfe/9209]
 Allow implicit typename to be used when parsing nonclass templates
 

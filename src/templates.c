@@ -12104,13 +12104,15 @@ friend_template_checks_done:
     add_befriending_class_to_class_template(tssp,
                                             decl_state->class_declared_in);
   }  /* if */
-  if (sym->is_class_member && sym->kind == (a_symbol_kind)sk_class_template &&
-      !is_redecl && !suppress_redecl_error) {
+  if (sym->is_class_member && sym->kind == (a_symbol_kind)sk_class_template) {
     /* This is a member class template declaration.  See if the enclosing
        class was also generated from a template.  If so, find the
        corresponding class template symbol from the prototype instantiation. */
-    if (decl_state->in_prototype_instantiation ||
-        decl_state->partial_spec_outside_of_class_template) {
+    if (decl_state->is_template_friend) {
+      /* Friend declarations are not matched up in this way with generated
+         instantiations. */
+    } else if (decl_state->in_prototype_instantiation ||
+               decl_state->partial_spec_outside_of_class_template) {
       /* Save the token sequence number associated with this declaration.
          This is done here for function templates that are class members.
          This information is used later to match a template declaration in
@@ -12119,9 +12121,18 @@ friend_template_checks_done:
          token sequence number at this point because we're at what
          might be the start of the definition, and this token is sometimes
          removed from the cache when generating template strings. */
-      tssp->token_sequence_number = tsn_for_class_template;
+      if (tssp->token_sequence_number == NO_TOKEN_SEQUENCE_NUMBER) {
+        /* Save the token sequence number if it is not already set.  This
+           is not done via the is_redecl flag because a friend template
+           declaration in a prototype instantiation is sometimes considered
+           as a declaration of a member, causing a declaration of a nested
+           class with the same name to sometimes be considered to be a
+           redeclaration. */
+        tssp->token_sequence_number = tsn_for_class_template;
+      }  /* if */
     } else {
-      if (decl_state->class_declared_in != NULL) {
+      if (decl_state->class_declared_in != NULL &&
+          !is_redecl && !suppress_redecl_error) {
         /* Only do this for the original declaration inside the class. */
         find_class_template_member(sym, sym_parent_class(sym),
                                    tsn_for_class_template);
