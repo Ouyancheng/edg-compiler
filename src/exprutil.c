@@ -1664,6 +1664,7 @@ before calling the lower-level copy routine.
   an_expr_node_ptr expr_copy;
 
   *temp_init_used = FALSE;
+  expr = skip_parens(expr);
   check_assertion(expr->is_lvalue || is_error_node(expr));
   if (is_bit_field_expr(expr)) {
     /* You can't take the address of a bit field, so break it down
@@ -2714,17 +2715,6 @@ indicates that the cast comes from a reinterpret_cast construct in the source.
      new expression). */
   (*p_node)->next = NULL;
   if (!C_mode() && !reinterpret_semantics &&
-      is_operation_node(*p_node) &&
-      node_operator_is(*p_node, eok_dynamic_cast) &&
-      is_reference_type(old_type) && is_pointer_type(new_type)) {
-    /* Casting a dynamic_cast of a reference to a pointer.  For comparison
-       purposes change the reference type to a pointer type.
-       eok_dynamic_cast is a special case in the IL -- the reference
-       type is needed to distinguish the case of a cast to a reference
-       type, which has different semantics. */
-    old_type = make_pointer_type(type_pointed_to(old_type));
-  }  /* if */
-  if (!C_mode() && !reinterpret_semantics &&
       related_class_pointers(old_type, new_type, &baseward_cast, &bcp)) {
     /* C++ cast from a pointer to a class to a pointer to a related
        (base or derived) class. */
@@ -2913,6 +2903,7 @@ conversions.
                        is_reinterpret_cast, reinterpret_semantics, err_pos);
     } else {
       /* The operation was successfully folded to a constant. */
+      check_assertion(is_constant_node(node));
       node->variant.constant = alloc_shareable_constant(&local_constant);
       node->variant.constant->is_reinterpret_cast = is_reinterpret_cast;
       node->type = new_type;
@@ -3430,6 +3421,8 @@ the original expression.
      proper type, and then uses "*" to get back to an lvalue.  That's
      based on what adjust_lvalue_type does, and the code here would have
      to change if adjust_lvalue_type changes. */
+  /* No skip_parens needed here because the sequence we are looking for
+     is compiler-generated. */
   if (is_operation_node(texpr) && node_operator_is(texpr, eok_indirect) &&
       texpr->variant.operation.compiler_generated) {
     texpr = texpr->variant.operation.operands;
@@ -3476,13 +3469,18 @@ The node is not actually promoted; it is up to the caller to do the cast if
 desired.
 */
 {
-  a_type_ptr      type, promoted_type;
-  a_field_ptr     field;
-  an_integer_kind ikind, orig_ikind;
-  unsigned int    field_size;
+  a_type_ptr       type, promoted_type;
+  a_field_ptr      field;
+  an_integer_kind  ikind, orig_ikind;
+  unsigned int     field_size;
+  an_expr_node_ptr field_node;
 
   db_enter(4, "type_after_bit_field_integral_promotion");
-  field = node->variant.operation.operands->next->variant.field;
+  check_assertion(is_operation_node(node));
+  field_node = node->variant.operation.operands->next;
+  check_assertion(field_node != NULL &&
+                  field_node->kind == (an_expr_node_kind)enk_field);
+  field = field_node->variant.field;
   field_size = field->bit_size;
   type = node->type;
   if (!node->is_lvalue) type = rvalue_type(type);
@@ -3574,7 +3572,7 @@ if the type is not integral).
   /* Check for bit-field accesses, which require special handling.
      The special processing is not done in pcc mode. */
   if (C_dialect != C_dialect_pcc && is_expression_operand(operand)) {
-    an_expr_node_ptr node = operand->variant.expression;
+    an_expr_node_ptr node = skip_parens(operand->variant.expression);
     if (is_bit_field_extract_node(node)) {
       promoted_type = type_after_bit_field_integral_promotion(node);
     }  /* if */
@@ -4501,11 +4499,11 @@ the null pointer constant returned in *operand_constant.
 {
   *operand_is_constant = FALSE;
   if (is_expression_operand(operand)) {
-    an_expr_node_ptr expr = operand->variant.expression;
+    an_expr_node_ptr expr = skip_parens(operand->variant.expression);
     if (is_operation_node(expr) &&
         expr->variant.operation.kind == (an_expr_operator_kind)eok_comma) {
       /* The operand is a comma expression. */
-      expr = expr->variant.operation.operands->next;
+      expr = skip_parens(expr->variant.operation.operands->next);
       if (is_constant_node(expr) &&
           is_or_might_be_null_pointer_constant(expr->variant.constant)) {
         /* The operand is a comma node with a second operand that is a
@@ -5103,6 +5101,7 @@ member function.  If no nonreal member is found, return NULL.
   an_expr_node_ptr rewritten_expr = NULL;
 
   *is_function = FALSE;
+  expr = skip_parens(expr);
   if (!expr->is_lvalue) {
     if (is_constant_node(expr)) {
       a_constant_ptr con = expr->variant.constant;
@@ -5183,7 +5182,7 @@ returning a class by value).
       is_an_rvalue(operand) &&
       is_class_struct_union_type(operand->type) &&
       is_expression_operand(operand)) {
-    an_expr_node_ptr expr = operand->variant.expression;
+    an_expr_node_ptr expr = skip_parens(operand->variant.expression);
     a_boolean        revertible = FALSE;
     check_assertion(!expr->is_lvalue);
     if (expr->kind == (an_expr_node_kind)enk_temp_init) {
@@ -5245,7 +5244,7 @@ when gnu_version would ordinarily indicate they should not be.
       a_boolean             do_recovery = FALSE;
       a_boolean             casts_removed = FALSE;
       a_type_ptr            type_cast_to = NULL, type_before_cast = NULL;
-      an_expr_node_ptr      expr = operand->variant.expression;
+      an_expr_node_ptr      expr = skip_parens(operand->variant.expression);
       an_expr_operator_kind op;
       a_boolean             same_size_cast_case = FALSE;
       if (gpp_mode && gnu_version < 40000 &&
@@ -5257,7 +5256,7 @@ when gnu_version would ordinarily indicate they should not be.
           /* g++ ignores a cast to the same type.  Usually this front end
              drops it in the IL as well, but a configuration flag like
              PRESERVE_EFFECTLESS_EXPLICIT_CASTS_IN_IL may prevent that. */
-          expr = expr->variant.operation.operands;
+          expr = skip_parens(expr->variant.operation.operands);
         }  /* if */
       }  /* if */
       if (drop_same_size_casts &&
@@ -5274,6 +5273,7 @@ when gnu_version would ordinarily indicate they should not be.
           same_size_cast_case = TRUE;
         }  /* if */
       }  /* if */
+      /* expr has parentheses, if any, stripped at this point. */
       if (is_operation_node(expr)) op = expr->variant.operation.kind;
       if ((gnu_version < 40000 || same_size_cast_case) &&
           is_operation_node(expr) &&
@@ -5388,7 +5388,7 @@ when gnu_version would ordinarily indicate they should not be.
     }  /* if */
   } else if (is_an_lvalue(operand)) {
     if (is_expression_operand(operand)) {
-      an_expr_node_ptr expr = operand->variant.expression;
+      an_expr_node_ptr expr = skip_parens(operand->variant.expression);
       if (gpp_mode &&
           gnu_version < 30400 &&
           is_operation_node(expr) &&
@@ -5481,12 +5481,12 @@ lvalue.  If there is an error, change the operand to an error operand.
       !is_const_qualified_type(type)) {
     /* In SVR4 C compatibility mode, this routine can be called for an
        lvalue cast that would normally be illegal.  Issue a warning. */
-    if (SVR4_C_mode &&
-        is_expression_operand(operand) &&
-        is_operation_node(operand->variant.expression) &&
-        operand->variant.expression->variant.operation.kind ==
-                                      (an_expr_operator_kind)eok_lvalue_cast) {
-      pos_warning(ec_expr_not_a_modifiable_lvalue, &operand->position);
+    if (SVR4_C_mode && is_expression_operand(operand)) {
+      an_expr_node_ptr expr = skip_parens(operand->variant.expression);
+      if (is_operation_node(expr) &&
+          node_operator_is(expr, eok_lvalue_cast)) {
+        pos_warning(ec_expr_not_a_modifiable_lvalue, &operand->position);
+      }  /* if */
     }  /* if */
     okay = TRUE;
     if (is_class_struct_union_type(type)) {
@@ -5751,7 +5751,7 @@ or floating type).
 
   if (is_expression_operand(operand)) {
     /* Check if the expression is a constant zero. */
-    node = operand->variant.expression;
+    node = skip_parens(operand->variant.expression);
     if (is_constant_node(node) && is_zero_constant(node->variant.constant)) {
       is_constant_zero = TRUE;
     }  /* if */
@@ -5776,7 +5776,7 @@ to rule out certain cases before calling this routine.
 
   if (is_expression_operand(operand)) {
     /* Check if the expression is a false constant. */
-    node = operand->variant.expression;
+    node = skip_parens(operand->variant.expression);
     if (is_constant_node(node) && is_false_constant(node->variant.constant)) {
       is_constant_false = TRUE;
     }  /* if */
@@ -5896,9 +5896,10 @@ are also checked (e.g., a + 5, where 5 is beyond the end of the array a).
   a_boolean        prev_subsc_just_past_end = FALSE;
 
   *just_past_end = FALSE;
+  node = skip_parens(node);
   if (is_operation_node(node) &&
       node_operator_is(node, eok_indirect)) {
-    ptr_node = node->variant.operation.operands;
+    ptr_node = skip_parens(node->variant.operation.operands);
     if (is_operation_node(ptr_node)) {
       if (node_operator_is(ptr_node, eok_array_to_pointer)) {
         /* Indirection over an array-decay is effectively a [0] subscript at
@@ -5907,7 +5908,7 @@ are also checked (e.g., a + 5, where 5 is beyond the end of the array a).
            do the subscript analysis on the previous subscript, and its
            validity and just-past-end flag will be correct for this level
            as well. */
-        node = ptr_node->variant.operation.operands;
+        node = skip_parens(ptr_node->variant.operation.operands);
       } else if (node_operator_is(ptr_node, eok_padd)) {
         /* Indirection over a pointer "+" is equivalent to subscripting. */
         node = ptr_node;
@@ -5926,6 +5927,8 @@ are also checked (e.g., a + 5, where 5 is beyond the end of the array a).
       sub_node = ptr_node;
       ptr_node = sub_node->next;
     }  /* if */
+    ptr_node = skip_parens(ptr_node);
+    sub_node = skip_parens(sub_node);
     if (is_constant_node(sub_node)) {
       sub_con = sub_node->variant.constant;
       if (sub_con->kind == (a_constant_repr_kind)ck_integer) {
@@ -6978,8 +6981,8 @@ entries for the operands.
   }  /* if */
   if (is_expression_operand(operand_2) &&
       is_expression_operand(operand_3)) {
-    an_expr_node_ptr op_2 = operand_2->variant.expression;
-    an_expr_node_ptr op_3 = operand_3->variant.expression;
+    an_expr_node_ptr op_2 = skip_parens(operand_2->variant.expression);
+    an_expr_node_ptr op_3 = skip_parens(operand_3->variant.expression);
     /* See if the second and third operands are both temporaries. */
     if (op_2->kind == (an_expr_node_kind)enk_temp_init &&
         op_3->kind == (an_expr_node_kind)enk_temp_init) {
@@ -7173,6 +7176,8 @@ still provided).
       /* Force the C++-generating back end to keep a promotion cast
          at the top of this expression. */
       an_expr_node_ptr expr = result->variant.expression;
+      /* No skip_parens needed here; the promotion cast is on top of everything
+         else because it's compiler-generated. */
       if (is_operation_node(expr) &&
           expr->variant.operation.kind == (an_expr_operator_kind)eok_cast &&
           expr->variant.operation.compiler_generated) {
@@ -7493,16 +7498,18 @@ a_boolean operand_is_lvalue_for_variable(an_operand      *operand,
 /*
 If the given operand represents an lvalue for a variable, return TRUE and
 make *var point to the IL entry for that variable.  Otherwise, return FALSE.
+A variable surrounded by parentheses still counts as the simple variable.
 */
 {
   a_boolean  result = FALSE;
 
   *var = NULL;
-  if (is_expression_operand(operand) &&
-      is_variable_node(operand->variant.expression) &&
-      operand->variant.expression->is_lvalue) {
-    result = TRUE;
-    *var = operand->variant.expression->variant.variable;
+  if (is_expression_operand(operand)) {
+    an_expr_node_ptr expr = skip_parens(operand->variant.expression);
+    if (is_variable_node(expr) && expr->is_lvalue) {
+      result = TRUE;
+      *var = expr->variant.variable;
+    }  /* if */
   }  /* if */
   return result;
 }  /* operand_is_lvalue_for_variable */
@@ -8121,6 +8128,7 @@ derived class cast nodes will be created and the return value will be NULL.
   a_type_ptr       this_node_class;
   a_type_ptr       operand_class;
 
+  base_cast_node = skip_parens(base_cast_node);
   while (is_operation_node(base_cast_node) &&
          base_cast_node->variant.operation.kind ==
                                              (an_expr_operator_kind)eok_cast &&
@@ -8137,7 +8145,7 @@ derived class cast nodes will be created and the return value will be NULL.
          operand types, except for qualification.  (E.g., base_cast_node
          might point to "(const T*)(T*)", where "(T*)" is the base class
          cast, and we need to skip over "(const T*)".) */
-      base_cast_node = base_cast_node->variant.operation.operands;
+      base_cast_node = skip_parens(base_cast_node->variant.operation.operands);
     } else {
       /* Not a skippable eok_cast node. */
       break;
@@ -8238,7 +8246,7 @@ chain of casts is used to disambiguate the derivation path.
                                   (an_expr_operator_kind)eok_base_class_cast) {
           /* The expression tree might have nodes other than
              eok_base_class_cast operations (e.g., cv-qualification
-             casts), but we can ignore those. */
+             casts, parentheses), but we can ignore those. */
           a_type_ptr this_derived =
             f_skip_typerefs(type_pointed_to(this_node->
                                             variant.operation.operands->type));
@@ -8339,16 +8347,12 @@ a function expression to which the argument list (including the implicit
            ctor/dtor "this" parameter and identify the final overrider, so
            we don't need to restrict the implicit "this" argument expression
            to one that lets us actually call the final overrider. */
-        for (node = implicit_this_arg;
+        for (node = skip_parens(implicit_this_arg);
              is_operation_node(node) &&
-             (node->variant.operation.kind ==
-                                (an_expr_operator_kind)eok_cast ||
-              node->variant.operation.kind ==
-                                (an_expr_operator_kind)eok_base_class_cast ||
-              node->variant.operation.kind ==
-                                (an_expr_operator_kind)eok_derived_class_cast);
-             node = node->variant.operation.operands) {}
-
+             (node_operator_is(node, eok_cast) ||
+              node_operator_is(node, eok_base_class_cast) ||
+              node_operator_is(node, eok_derived_class_cast));
+             node = skip_parens(node->variant.operation.operands)) {}
         if (is_variable_node(node) && node->variant.variable ==
               innermost_function_scope->variant.routine.this_param_variable) {
           /* The call's object expression uses the constructor/destructor's
@@ -8785,7 +8789,7 @@ as part of seeing whether an expression is a bit field selection.
        selection because it's not integral.  For example, on a.b[5].c
        there's no point in continuing on to the subtree a.b[5] because
        it's class-typed all the way down from there. */
-    tblock->suppress_subtree_walk = FALSE;
+    tblock->suppress_subtree_walk = TRUE;
   } else if (is_bit_field_extract_node(expr)) {
     /* This expression is a bit-field selection. */
     tblock->result = TRUE;
@@ -8894,7 +8898,7 @@ and if so, return TRUE.
   a_field_ptr      field;
 
   check_assertion(is_expression_operand(operand));
-  node = operand->variant.expression;
+  node = skip_parens(operand->variant.expression);
   /* Only handle the simplest case, not something like "&(i ? x.a : x.b)".
      A case like that could be handled, but it's tricky, since the
      subexpressions could have different types. */
@@ -8922,6 +8926,7 @@ address in addition to the cases usually covered.
 {
   a_boolean is_constant_addr = FALSE;
 
+  expr = skip_parens(expr);
   if (constant_lvalue_address(expr, conaddr,
                               /*address_escapes=*/TRUE,
                               (a_boolean *)NULL)) {
@@ -8994,16 +8999,17 @@ explicit "&" operator in the source and *operator_position gives its position.
             operand_is_string_literal(operand)) {
           a_constant       conaddr;
           an_expr_node_ptr test_expr;
-          test_expr = expr = make_node_from_operand(operand);
+          expr = make_node_from_operand(operand);
+          test_expr = skip_parens(expr);
           if (curr_expr_kind_is_const() &&
-              is_operation_node(expr) &&
-              (node_operator_is(expr, eok_dot_static) ||
-               node_operator_is(expr, eok_points_to_static))) {
+              is_operation_node(test_expr) &&
+              (node_operator_is(test_expr, eok_dot_static) ||
+               node_operator_is(test_expr, eok_points_to_static))) {
             /* In constant expressions, test the second operand of a static
                selection to see if its address is constant, e.g., for
                something like &x.static_member.  The first operand will not
                have side effects because this is a constant expression. */
-            test_expr = expr->variant.operation.operands->next;
+            test_expr = test_expr->variant.operation.operands->next;
             /* Note that expr remains set to the original expression so
                that if we do fold to a constant we will record the original
                static selection as the associated expression. */
@@ -9225,8 +9231,12 @@ If node points to a sequence of eok_cast operations, return the (non-eok_cast)
 node pointed to by that sequence.  Otherwise, return node.
 */
 {
-  while (is_operation_node(node) && node_operator_is(node, eok_cast)) {
-    node = node->variant.operation.operands;
+  an_expr_node_ptr snode;
+
+  /* Parentheses above (but not below) a cast are skipped also. */
+  while ((snode = skip_parens(node), is_operation_node(snode)) &&
+         node_operator_is(snode, eok_cast)) {
+    node = snode->variant.operation.operands;
   }  /* while */
   return node;
 }  /* remove_cast_operations */
@@ -9275,7 +9285,10 @@ e.g., in a back end.
     node = remove_cast_operations(node);
   }  /* if */
   check_assertion(!node->is_lvalue);
+  check_assertion(in_front_end);
   lvalue_type = node->type;
+  /* No skip_parens here.  Parentheses are handled under the enk_operation
+     case. */
   if (is_variable_node(node)) {
     /* The value of a variable.  Change it to an lvalue for the variable. */
     possible = TRUE;
@@ -9297,8 +9310,11 @@ e.g., in a back end.
     an_expr_operator_kind op = node->variant.operation.kind;
     an_expr_node_ptr      op1 = node->variant.operation.operands;
     an_expr_node_ptr      op2 = op1->next;
-    an_expr_node_ptr      op3;
+    an_expr_node_ptr      op3 = NULL;
     a_boolean             op1_possible, op2_possible, op3_possible;
+    /* Note that skip_parens is not called on the operands at this
+       point, because we still want to be able to unlink/relink the original
+       operands. */
     if (op == (an_expr_operator_kind)eok_indirect ||
         op == (an_expr_operator_kind)eok_ref_indirect) {
       /* The top operator is an indirection, so we can just change the node
@@ -9316,6 +9332,23 @@ e.g., in a back end.
         lvalue_type = type_pointed_to(op1->type);
       } else if (is_pointer_type(op2->type)) {
         lvalue_type = type_pointed_to(op2->type);
+      }  /* if */
+    } else if (op == (an_expr_operator_kind)eok_parens) {
+      /* Parentheses: just do a recursive call on the operand. */
+      (void)conv_rvalue_expr_to_lvalue(op1, &possible,
+                                       /*see_if_possible=*/TRUE,
+                                       gcc_lvalue,
+                                       ignore_casts,
+                                       &lvalue_type);
+      if (possible) {
+        if (!see_if_possible) {
+          op1 = conv_rvalue_expr_to_lvalue(op1, &op1_possible,
+                                           /*see_if_possible=*/FALSE,
+                                           gcc_lvalue,
+                                           ignore_casts,
+                                           (a_type_ptr *)NULL);
+          node->variant.operation.operands = op1;
+        }  /* if */
       }  /* if */
     } else if (op == (an_expr_operator_kind)eok_question) {
       a_boolean  op2_is_throw = FALSE, op3_is_throw = FALSE;
@@ -9335,7 +9368,7 @@ e.g., in a back end.
                                          /*gcc_lvalue=*/FALSE,
                                          ignore_casts, &lvalue_type);
         if (!op2_possible &&
-            op2->kind == (an_expr_node_kind)enk_throw) {
+            skip_parens(op2)->kind == (an_expr_node_kind)enk_throw) {
           op2_is_throw = TRUE;
           op2_possible = TRUE;
         }  /* if */
@@ -9344,7 +9377,7 @@ e.g., in a back end.
                                          /*gcc_lvalue=*/FALSE,
                                          ignore_casts, &lvalue_type);
         if (!op3_possible &&
-            op3->kind == (an_expr_node_kind)enk_throw) {
+            skip_parens(op3)->kind == (an_expr_node_kind)enk_throw) {
           op3_is_throw = TRUE;
           op3_possible = TRUE;
         }  /* if */
@@ -9668,6 +9701,7 @@ for a variable, *p_var is set to point to the variable.
   a_constant_ptr con_var_value = NULL;
 
   if (p_var != NULL) *p_var = NULL;
+  node = skip_parens(node);
   check_assertion(node->is_lvalue || is_error_node(node));
   if (is_variable_node(node)) {
     /* The expression is an lvalue for a variable. */
@@ -9802,6 +9836,8 @@ of the is_lvalue flag is TRUE.
           case eok_lvalue_cast:  /* Not rvalueable; when converted to an
                                     rvalue it gets rewritten as a normal
                                     cast. */
+          case eok_parens:       /* Not rvalueable: to change to an rvalue,
+                                    change the underlying operand too. */
           case eok_dot_static:
           case eok_points_to_static:
           default:
@@ -9870,6 +9906,8 @@ it might produce an error).
   } else {
     rvalue_node_type = rvalue_type(node->type);
   } /* if */
+  /* No skip_parens here.  Parentheses are handled under the enk_operation
+     case. */
   if (is_variable_node(node)) {
     if (constant_case != NULL && !C_mode()) {
       /* Look for constant-valued variables in C++. */
@@ -9888,19 +9926,25 @@ it might produce an error).
     an_expr_node_ptr      op3;
     a_boolean             local_constant_case;
     a_boolean             *allow_folding = NULL;
+    /* No skip_parens on the operands.  We want to be able to unlink/relink
+       the original operands.  Parentheses are handled like any other
+       operation. */
     /* Set allow_folding for recursive calls.  It just needs to be
        non-NULL if we want to allow constant folding, and it has to
        point to something that it is harmless to alter. */
     if (constant_case != NULL) allow_folding = &local_constant_case;
     if (op == (an_expr_operator_kind)eok_subscript) {
-      if (allow_folding != NULL &&
-          is_constant_node(op1) && is_constant_node(op2)) {
-        /* Something like "abc"[1] can be folded to the character value. */
-        if (!strict_ansi_mode &&
-            conv_subscript_in_string_to_char(op1->variant.constant,
-                                             op2->variant.constant,
-                                             &result_con)) {
-          con_expr_value = alloc_shareable_constant(&result_con);
+      if (allow_folding != NULL) {
+        op1 = skip_parens(op1);
+        op2 = skip_parens(op2);
+        if (is_constant_node(op1) && is_constant_node(op2)) {
+          /* Something like "abc"[1] can be folded to the character value. */
+          if (!strict_ansi_mode &&
+              conv_subscript_in_string_to_char(op1->variant.constant,
+                                               op2->variant.constant,
+                                               &result_con)) {
+            con_expr_value = alloc_shareable_constant(&result_con);
+          }  /* if */
         }  /* if */
       }  /* if */
       node->is_lvalue = FALSE;
@@ -9918,11 +9962,11 @@ it might produce an error).
         op2->next = NULL;
         /* Expressions produced by conv_rvalue_expr_to_lvalue
            can have a throw as one arm of the lvalue. */
-        if (op2->kind != (an_expr_node_kind)enk_throw) {
+        if (skip_parens(op2)->kind != (an_expr_node_kind)enk_throw) {
           op2 = conv_lvalue_expr_to_rvalue(op2, allow_folding,
                                            (a_constant_ptr *)NULL, err_pos);
         }  /* if */
-        if (op3->kind != (an_expr_node_kind)enk_throw) {
+        if (skip_parens(op3)->kind != (an_expr_node_kind)enk_throw) {
           op3 = conv_lvalue_expr_to_rvalue(op3, allow_folding,
                                            (a_constant_ptr *)NULL, err_pos);
         }  /* if */
@@ -9930,6 +9974,9 @@ it might produce an error).
         op2->next = op3;
         /* If all three operands are now constant, the overall result is
            constant. */
+        op1 = skip_parens(op1);
+        op2 = skip_parens(op2);
+        op3 = skip_parens(op3);
         if (allow_folding != NULL &&
             is_constant_node(op1) &&
             is_constant_node(op2) &&
@@ -9961,6 +10008,7 @@ it might produce an error).
                                          (a_constant_ptr *)NULL,
                                          err_pos);
         op1->next = op2;
+        /* No skip_parens needed on op2. */
         if (allow_folding != NULL &&
             is_constant_node(op2) &&
             current_mode_allows_field_selection_folding()) {
@@ -9980,6 +10028,8 @@ it might produce an error).
                                          (a_constant_ptr *)NULL, err_pos);
         node->variant.operation.operands = op1;
         op1->next = op2;
+        op1 = skip_parens(op1);
+        op2 = skip_parens(op2);
         if (allow_folding != NULL && err_pos != NULL &&
             is_constant_node(op1) && is_constant_node(op2)) {
           /* Both operands are now constant so fold to a constant result. */
@@ -10013,12 +10063,28 @@ it might produce an error).
       node->variant.operation.returns_lvalue_instead_of_usual_rvalue = FALSE;
       node->is_lvalue = FALSE;
       node->type = rvalue_node_type;
+    } else if (op == (an_expr_operator_kind)eok_parens) {
+      /* For parentheses, turn the underlying expression into an rvalue, and
+         remark the parenthesis node as an rvalue. */
+      op1 = conv_lvalue_expr_to_rvalue(op1, allow_folding,
+                                       (a_constant_ptr *)NULL, err_pos);
+      node->variant.operation.operands = op1;
+      node->is_lvalue = FALSE;
+      node->type = op1->type;
+      op1 = skip_parens(op1);
+      if (allow_folding != NULL && is_constant_node(op1)) {
+        /* The operand is now constant so the overall expression is
+           constant. */
+        con_expr_value = op1->variant.constant;
+      }  /* if */
+      processed = TRUE;
     } else if (op == (an_expr_operator_kind)eok_lvalue_cast) {
       /* An lvalue cast becomes a simple cast on the operand, after the
          latter is turned into an rvalue. */
       op1 = conv_lvalue_expr_to_rvalue(op1, allow_folding,
                                        (a_constant_ptr *)NULL, err_pos);
       node->variant.operation.operands = op1;
+      op1 = skip_parens(op1);
       if (allow_folding != NULL && err_pos != NULL && is_constant_node(op1)) {
         /* The operand is now constant so try to fold the cast to a
            constant. */
@@ -10045,11 +10111,14 @@ it might produce an error).
       node = op1;
       check_assertion(!node->is_lvalue);
       processed = TRUE;
-      if (is_constant_node(node) &&
-          constant_case != NULL && con_value != NULL) {
+      op1 = skip_parens(op1);
+      if (allow_folding != NULL && is_constant_node(op1) &&
+          con_value != NULL) {
         /* The result is a constant expression, and the caller can take a
-           constant result directly. */
-        con_expr_value = node->variant.constant;
+           constant result directly.  (If the caller won't take a constant
+           result directly, we'd just create another expression node below
+           to return the constant, so we might as well use the one we have.) */
+        con_expr_value = op1->variant.constant;
         /* Note that in this case we don't record the expression for the
            constant.  It's an enk_constant node, which wouldn't be useful. */
         node = NULL;
@@ -10286,6 +10355,7 @@ decay on it, and return a pointer to the decayed expression.
 {
   a_type_ptr ptr_type = type_after_array_to_pointer_transformation(node->type);
 
+  /* No skip_parens here; parentheses are handled as an operator below. */
   if (is_operation_node(node) &&
       node->variant.operation.returns_lvalue_instead_of_usual_rvalue) {
     /* Certain cases of lvalue-returning operations are transformed
@@ -10329,6 +10399,13 @@ decay on it, and return a pointer to the decayed expression.
     node->variant.operation.returns_lvalue_instead_of_usual_rvalue = FALSE;
     node->is_lvalue = FALSE;
     node->type = ptr_type;
+  } else if (is_operation_node(node) && node_operator_is(node, eok_parens)) {
+    /* Parentheses -- do a recursive call on the operand. */
+    an_expr_node_ptr op1 = node->variant.operation.operands;
+    op1 = conv_array_expr_to_pointer(op1);
+    node->variant.operation.operands = op1;
+    node->is_lvalue = op1->is_lvalue;
+    node->type = op1->type;
   } else {
     /* Normal case -- add an eok_array_to_pointer to do the decay. */
     node = make_operator_node((an_expr_operator_kind)eok_array_to_pointer,
@@ -10352,10 +10429,11 @@ current mode -- just do it.
 
   orig_operand = *operand;
   expr = make_node_from_operand(operand);
-  if (gnu_mode && !expr->is_lvalue && is_constant_node(expr)) {
+  if (gnu_mode && !expr->is_lvalue && is_constant_node(skip_parens(expr))) {
     /* In GNU mode, some compound literals are taken as array rvalue constants.
        Convert such a constant to an lvalue for a temporary containing the
        constant, so we can do array decay on that. */
+    expr = skip_parens(expr);
     make_lvalue_operand_from_compound_constant(expr->variant.constant,
                                                operand);
     /* Restore the source position in case we give an error. */
@@ -10636,7 +10714,7 @@ function, which means (among other things) that its address will not escape.
     /* No nonstatic member functions should come here because this form of
        operand is not used for them except in bound function cases, which were
        handled above. */
-    { an_expr_node_ptr expr = operand->variant.expression;
+    { an_expr_node_ptr expr = skip_parens(operand->variant.expression);
       if (is_routine_node(expr)) {
         a_routine_ptr rout = expr->variant.routine;
         a_type_ptr    rout_type = skip_typerefs(rout->type);
@@ -11219,7 +11297,7 @@ types to get a boolean expression (see process_boolean_controlling_expression).
 
   /* Check for possible misuse of "=" where "==" was intended. */
   if (is_expression_operand(operand)) {
-    expr = operand->variant.expression;
+    expr = skip_parens(operand->variant.expression);
     if (is_operation_node(expr)) {
       op = expr->variant.operation.kind;
       operand1 = expr->variant.operation.operands;
