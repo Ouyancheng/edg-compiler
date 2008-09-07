@@ -2804,6 +2804,10 @@ and end up at "a".
           if (tblock->terminate) goto end_of_routine;
           traverse_expr(operand2->next, tblock);
           break;
+        case eok_parens:
+          /* (p):  Follow p. */
+          traverse_expr(operand1, tblock);
+          break;
         default:
           if (expr->variant.operation.returns_lvalue_instead_of_usual_rvalue) {
             /* An lvalue-returning operation other than those handled
