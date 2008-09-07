@@ -2349,7 +2349,7 @@ conversion in cases where their value is not used.
     }  /* for */
 #endif /* !IA64_ABI */
   } else {
-    check_assertion(typeid_expr->is_lvalue && is_operation_node(typeid_expr));
+    check_assertion(typeid_expr->is_lvalue);
     /* Polymorphic class case with expression. */
     check_assertion(is_immediate_class_type(typeid_type) &&
                     is_polymorphic_class_type(typeid_type));
@@ -2363,7 +2363,8 @@ conversion in cases where their value is not used.
     /* As an extension to the *p rule above, discard any subscript if the
        top level operation is an eok_subscript (i.e., p[x] -- really *(p + x)
        -- becomes simply p). */
-    if (node_operator_is(typeid_expr, eok_subscript)) {
+    if (is_operation_node(typeid_expr) &&
+        node_operator_is(typeid_expr, eok_subscript)) {
       typeid_expr = subscript_or_padd_pointer_operand(typeid_expr);
       typeid_expr->next = NULL;
     } else {
