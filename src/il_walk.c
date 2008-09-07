@@ -2893,6 +2893,10 @@ and end up at "a".
           /* Comma and static selection pass through the second operand. */
           traverse_expr(operand2, tblock);
           break;
+        case eok_parens:
+          /* (p):  Follow p. */
+          traverse_expr(operand1, tblock);
+          break;
         default:
           break;
       }  /* switch */
