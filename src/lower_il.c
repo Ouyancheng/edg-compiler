@@ -10585,7 +10585,7 @@ them.  The call has already been lowered.
 static an_expr_node_ptr make_vtbl_entry_node(an_expr_node_ptr func_node,
                                              an_expr_node_ptr object_node)
 /*
-Create an expression that computes the address of the virtual table entry
+Create an expression that yields an rvalue pointer for the virtual table entry
 for the function whose address is given by func_node for the object specified
 by the lvalue expression object_node.  Return a pointer to the expression
 created.
@@ -10809,20 +10809,17 @@ have already been lowered.  The expression is an rvalue.
   vtbl_entry_node = make_vtbl_entry_node(func_node, object_node);
 #if !IA64_ABI
   /* Make an expression that extracts the "f" (function pointer) from the
-     virtual table entry, as an lvalue. */
-  func_select_node = field_lvalue_selection_expr(vtbl_entry_node,
+     virtual table entry. */
+  func_select_node = field_rvalue_selection_expr(vtbl_entry_node,
                                                  mptr_f_field);
-  /* Convert the original node into an indirection node that fetches the
-     value in the "f" field. */
-  set_node_operator(expr, (an_expr_operator_kind)eok_indirect, expr->type,
-                    /*is_lvalue=*/FALSE,
-                    rvalue_expr_for_lvalue(func_select_node));
+  func_select_node = add_indirection_to_node(func_select_node);
 #else /* IA64_ABI */
   /* Get the function pointer stored in the virtual function table. */
   func_select_node = add_indirection_to_node(vtbl_entry_node);
+#endif /* IA64_ABI */
+  /* Make sure the resulting expression is an rvalue of the correct type. */
   func_select_node = rvalue_expr_for_lvalue(func_select_node);
   change_to_cast(expr, func_select_node, expr->type);
-#endif /* IA64_ABI */
 }  /* lower_virtual_function_ptr */
 
 
