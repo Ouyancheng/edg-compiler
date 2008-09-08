@@ -12608,6 +12608,12 @@ Also scans GNU statement expressions:
       remove_matching_stop_token(tok_rparen);
       if (!PARENS_IN_IL) {  /*lint !e506*/
         /* eok_parens nodes are not being recorded. */
+      } else if (result->bound_function) {
+        /* Can't maintain parentheses on a bound function, because we separate
+           the selector object and the function.  For example, in
+             (p->f)();
+           result is just the "f" part here.  Putting parentheses around it
+           would give "(f)", which doesn't match the source. */
       } else if (is_constant_operand(result)) {
         /* For a constant operand, make an expression including the parens
            only if we're recording backing expressions. */
@@ -12615,10 +12621,12 @@ Also scans GNU statement expressions:
           need_expr = TRUE;
           need_expr_for_constant = TRUE;
         }  /* if */
-      } else {
-        /* For non-constant operands, force the operand to expression form
-           and add the parens. */
+      } else if (is_expression_operand(result)) {
+        /* For expression, add the parens. */
         need_expr = TRUE;
+      } else {
+        /* For other cases, like indefinite functions, we can't create an
+           expression at this time, so we just lose the parentheses. */
       }  /* if */
       if (need_expr) {
         /* Make an expression with an eok_parens node over the operand. */
