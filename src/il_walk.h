@@ -312,10 +312,6 @@ typedef struct an_expr_or_stmt_traversal_block {
   /* Fields used by is_lvalue_for_auto_object: */
   a_boolean	is_temp;
 			/* TRUE if the underlying object is a temporary. */
-  /* Fields used by change_discarded_lvalue_node_to_rvalue_if_possible: */
-  a_boolean	can_change_type;
-			/* TRUE if the type of the expression can be
-			   modified if necessary. */
 } an_expr_or_stmt_traversal_block;
 
 extern void clear_expr_or_stmt_traversal_block(

@@ -2554,7 +2554,6 @@ default values.
   tblock->complete_object_type = NULL;
   tblock->call_case = FALSE;
   tblock->is_temp = FALSE;
-  tblock->can_change_type = FALSE;
 }  /* clear_expr_or_stmt_traversal_block */
 
 
