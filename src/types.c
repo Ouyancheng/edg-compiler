@@ -2992,8 +2992,8 @@ Return TRUE if the two given integer types have the same representation
                                             type_2->variant.integer.bool_type);
   return same_repr;
 }  /* same_repr_int_types */
-#endif /* SAME_REPR_INTS_INTERCHANGEABLE_IN_IL */
 
+#endif /* SAME_REPR_INTS_INTERCHANGEABLE_IN_IL */
 
 static a_boolean identical_array_type_level(a_type_ptr  type_1,
                                             a_type_ptr  type_2)
@@ -3011,6 +3011,8 @@ Return TRUE if the two array types have identical bounds.
       /* Both arrays have variable bounds. */
       an_expr_node *node_1 = type_1->variant.array.variant.element_count_expr;
       an_expr_node *node_2 = type_2->variant.array.variant.element_count_expr;
+      node_1 = skip_parens(node_1);
+      node_2 = skip_parens(node_2);
       if (node_1->kind == (an_expr_node_kind)enk_constant &&
           node_2->kind == (an_expr_node_kind)enk_constant) {
         identical = eq_constants(node_1->variant.constant,

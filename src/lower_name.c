@@ -2670,6 +2670,8 @@ part of a template-dependent expression.
   unsigned long    num_operands;
 #endif /* !IA64_ABI */
 
+  /* Drop parentheses. */
+  expr = skip_parens(expr);
   /* Drop eok_lvalue and eok_rvalue. */
   while (is_operation_node(expr) &&
          ((op = expr->variant.operation.kind),
@@ -2683,7 +2685,7 @@ part of a template-dependent expression.
             expr->variant.operation.compiler_generated)
 #endif /* IA64_ABI */
                                                        ))) {
-    expr = expr->variant.operation.operands;
+    expr = skip_parens(expr->variant.operation.operands);
   }  /* while */
   switch (expr->kind) {
     case enk_constant:
