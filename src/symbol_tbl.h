@@ -3149,12 +3149,11 @@ typedef struct a_vla_fixup {
 			   fixup is required. */
   an_expr_node_ptr
                 expr;   /* If array_type is NULL, a pointer to an enk_variable
-			   or enk_variable_address expression node which needs
-			   to be patched with the correct variable for the
-			   function parameter.  If array_type is non-NULL, a
-			   pointer to an expression representing a variable
-			   dimension, and dimension expression fixup will be
-			   done. */
+			   expression node which needs to be patched with the
+			   correct variable for the function parameter.
+			   If array_type is non-NULL, a pointer to an
+			   expression representing a variable dimension, and
+			   dimension expression fixup will be done. */
   a_symbol_ptr	param_sym;
 			/* If array_type is NULL, a pointer to the parameter
 			   symbol associated with the param variable fixup.
