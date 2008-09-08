@@ -1543,12 +1543,13 @@ static an_expr_node_ptr select_complex_vals(an_expr_node_ptr  expr)
 The given expression node represents a complex lvalue or rvalue.  Return a node
 (constructed on top of the given one) for "<expr>.Vals" where "Vals" is the
 single field of the lowered complex type.  The returned node is an rvalue
-(if an lvalue is needed, the caller should perform the needed transformation).
+pointer.
 */
 {
-  an_expr_node_ptr  result;
-  a_field_ptr       vals_field;
-  a_type_ptr        ctype = skip_typerefs(expr->type), ptr_to_elem_type;
+  an_expr_node_ptr      result;
+  a_field_ptr           vals_field;
+  a_type_ptr            ctype = skip_typerefs(expr->type), ptr_to_elem_type;
+  a_type_qualifier_set  cv_qualifiers;
 
   check_assertion(!is_pointer_type(ctype));
   if (!expr->is_lvalue) {
@@ -1560,8 +1561,11 @@ single field of the lowered complex type.  The returned node is an rvalue
     check_assertion(!expr->is_lvalue);
   }  /* if */
   vals_field = complex_vals_field(ctype);
-  ptr_to_elem_type = type_after_array_to_pointer_transformation(
-                                                             vals_field->type);
+  /* Maintain any cv-qualifiers. */
+  cv_qualifiers = get_top_level_type_qualifiers(expr->type)
+                                                    & (TQ_CONST | TQ_VOLATILE);
+  ctype = make_qualified_type(vals_field->type, cv_qualifiers);
+  ptr_to_elem_type = type_after_array_to_pointer_transformation(ctype);
   /* Construct "<expr>._Vals". */
   result = field_lvalue_selection_expr(expr, vals_field);
   /* Perform array to pointer decay. */
@@ -1599,8 +1603,8 @@ necessary.
   an_expr_node_ptr  imag_part = select_complex_vals(expr);
 
   /* Select the second element from the "Vals" field. */
-  imag_part->next = node_for_integer_constant(
-                                           (long)1, targ_ptrdiff_t_int_kind);
+  imag_part->next = node_for_integer_constant((long)1,
+                                              targ_ptrdiff_t_int_kind);
   imag_part = make_lvalue_operator_node((an_expr_operator_kind)eok_subscript,
                                         type_pointed_to(imag_part->type),
                                         imag_part);
