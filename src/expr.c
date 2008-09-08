@@ -12641,9 +12641,9 @@ Also scans GNU statement expressions:
         } else {
           make_expression_operand(expr, result);
         }  /* if */
+        restore_operand_details_incl_ref(result, &orig_operand);
         set_operand_position(result, &start_position, &end_position,
                              &start_position);
-        restore_operand_details_incl_ref(result, &orig_operand);
       } else {
         /* The overall result is not changed by the addition of parentheses. */
         if (need_expr_for_constant) {
