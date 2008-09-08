@@ -187,6 +187,7 @@ modes) a call of a function that may not return, update the current
   if (node->kind == (an_expr_node_kind)enk_object_lifetime) {
     node = node->variant.object_lifetime.expr;
   }  /* if */
+  node = skip_parens(node);
   if (node->kind == (an_expr_node_kind)enk_throw) {
     /* A throw expression. */
     /* This could be much fancier and could check for things like
@@ -196,18 +197,13 @@ modes) a call of a function that may not return, update the current
     set_unreachable(curr_reachability);
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED
   } else if (microsoft_mode || gnu_mode) {
-    if (node->kind == (an_expr_node_kind)enk_operation &&
-        (node->variant.operation.kind == (an_expr_operator_kind)eok_call ||
-         node->variant.operation.kind ==
-                                    (an_expr_operator_kind)eok_generic_call ||
-         node->variant.operation.kind ==
-                             (an_expr_operator_kind)eok_generic_member_call)) {
-      a_boolean  routine_does_not_return = FALSE;
+    if (is_call_node(node)) {
+      a_boolean routine_does_not_return = FALSE;
       node = node->variant.operation.operands;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (microsoft_mode &&
-          node->kind == (an_expr_node_kind)enk_routine) {
-        if (node->variant.routine->decl_modifiers & DM_NORETURN) {
+      if (microsoft_mode) {
+        a_routine_ptr rout = routine_from_function_expr(node);
+        if (rout != NULL && rout->decl_modifiers & DM_NORETURN) {
           routine_does_not_return = TRUE;
         }  /* if */
       }  /* if */
@@ -2911,10 +2907,13 @@ Return TRUE if the indicated expression has a constant value that is true.
 The safe answer, if the truth cannot be discovered, is FALSE.
 */
 {
-  a_boolean is_true_constant = (is_constant_node(expr) &&
-                                constant_bool_value_known_at_compile_time(
+  a_boolean is_true_constant;
+
+  expr = skip_parens(expr);
+  is_true_constant = (is_constant_node(expr) &&
+                      constant_bool_value_known_at_compile_time(
                                                      expr->variant.constant) &&
-                                !is_false_constant(expr->variant.constant));
+                      !is_false_constant(expr->variant.constant));
   return is_true_constant;
 }  /* is_true_constant_expr */
 
@@ -3635,7 +3634,7 @@ See also 3.6.4.2.
   scan_condition(sp, &is_condition_decl);
   if (!is_error_node(sp->expr)) {
     /* Issue a remark if the selector is constant. */
-    if (is_constant_node(sp->expr)) {
+    if (is_constant_node(skip_parens(sp->expr))) {
       remark(ec_switch_selector_expr_is_constant);
     }  /* if */
   }  /* if */
