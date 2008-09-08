@@ -6463,6 +6463,7 @@ TRUE if the selector is a pointer, and FALSE if it is a class.
 {
   an_operand            orig_operand;
   an_expr_node_ptr      selector_expr, expr, orig_expr;
+  an_expr_node_ptr      stripped_selector_expr, stripped_orig_expr;
   an_operand_state      saved_operand_state = operand->state;
   an_expr_operator_kind op;
   a_boolean             need_expr = FALSE, need_expr_for_constant = FALSE;
@@ -6470,8 +6471,10 @@ TRUE if the selector is a pointer, and FALSE if it is a class.
   orig_operand = *operand;
   selector_expr = make_node_from_operand(bound_function_selector);
   orig_expr = make_node_from_operand(operand);
-  if (!orig_expr->is_lvalue &&
-      is_constant_node(orig_expr) &&
+  stripped_selector_expr = skip_parens(selector_expr);
+  stripped_orig_expr = skip_parens(orig_expr);
+  if (!stripped_orig_expr->is_lvalue &&
+      is_constant_node(stripped_orig_expr) &&
       curr_expr_kind_is_const()) {
     /* In constant expressions, produce a constant result for an rvalue.
        Note that only things like enumerator values are handled here.  Most
@@ -6480,10 +6483,11 @@ TRUE if the selector is a pointer, and FALSE if it is a class.
     /* The is_constant_node test may seem redundant, but is needed for
        template-dependent constants in prototype instantiations,
        because such constants are considered to have side effects. */
-    check_assertion(is_constant_node(selector_expr) ||
-                    !node_has_side_effects(selector_expr, (a_boolean *)NULL) ||
-                    is_error_node(selector_expr));
-    make_constant_operand(orig_expr->variant.constant, operand);
+    check_assertion(is_constant_node(stripped_selector_expr) ||
+                    !node_has_side_effects(stripped_selector_expr,
+                                           (a_boolean *)NULL) ||
+                    is_error_node(stripped_selector_expr));
+    make_constant_operand(stripped_orig_expr->variant.constant, operand);
     need_expr = curr_expr_kind_is_one_in_which_const_exprs_are_recorded();
     need_expr_for_constant = need_expr;
   } else {
@@ -6493,8 +6497,8 @@ TRUE if the selector is a pointer, and FALSE if it is a class.
   if (need_expr) {
     /* Make an expression for the selection. */
     if (curr_il_region_number == file_scope_region_number &&
-        is_variable_node(selector_expr) &&
-        selector_expr->variant.variable->is_this_parameter) {
+        is_variable_node(stripped_selector_expr) &&
+        stripped_selector_expr->variant.variable->is_this_parameter) {
       /* For an expression like "this->x" scanned in a construct that must be
          represented at file scope, like an array bound, discard the selector
          because "this" can't be referenced in the file scope. */
@@ -6905,7 +6909,7 @@ current function.  If so, and if p_this_var is non-NULL, also set
 
   if (p_this_var != NULL) *p_this_var = NULL;
   if (is_an_rvalue(operand) && is_expression_operand(operand)) {
-    operand_expr = operand->variant.expression;
+    operand_expr = skip_parens(operand->variant.expression);
     if (is_variable_node(operand_expr)) {
       /* The operand is an rvalue that is the value of a simple variable. */
       operand_var = operand_expr->variant.variable;
@@ -7661,22 +7665,25 @@ format string can be deduced, set appropriate fields in arg_block.
 */
 {
   a_constant_ptr con_ptr;
+#if GNU_EXTENSIONS_ALLOWED
+  a_routine_ptr  rout;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
+  node = skip_parens(node);
   /* Skip any cast operations (e.g., from char* to char const*). */
   while (node->kind == (an_expr_node_kind)enk_operation &&
          node->variant.operation.kind == (an_expr_operator_kind)eok_cast) {
-    node = node->variant.operation.operands;
+    node = skip_parens(node->variant.operation.operands);
   }  /* while */
 #if GNU_EXTENSIONS_ALLOWED
   /* Check to see if this argument is a call to a routine with the
      "format_arg" attribute. */
-  if (node->kind == (an_expr_node_kind)enk_operation &&
-      node->variant.operation.kind == (an_expr_operator_kind)eok_call &&
-      is_routine_node(node->variant.operation.operands)) {
-    a_routine_ptr                 rout;
+  if (is_operation_node(node) &&
+      node_operator_is(node, eok_call) &&
+      (rout = routine_from_function_expr(node->variant.operation.operands))
+                                                                     != NULL) {
     a_routine_type_supplement_ptr rtsp;
     int                           arg_ctr;
-    rout = node->variant.operation.operands->variant.routine;
     rtsp = skip_typerefs(rout->type)->variant.routine.extra_info;
     if (rtsp->arg_pragma != (a_pragma_kind)pk_printf_args &&
         rtsp->arg_pragma != (a_pragma_kind)pk_scanf_args &&
@@ -12674,13 +12681,14 @@ a_boolean operand_is_temp_init(an_operand *operand)
 /*
 Return TRUE if the given operand is an expression operand for an enk_temp_init
 (which represents an expression temporary).  Whether the enk_temp_init
-returns the value or address of the temporary is immaterial.
+returns the value or address of the temporary is immaterial.  Note that
+there might be parentheses on top of the enk_temp_init node.
 */
 {
   a_boolean is_temp_init = FALSE;
 
   if (is_expression_operand(operand)) {
-    an_expr_node_ptr node = operand->variant.expression;
+    an_expr_node_ptr node = skip_parens(operand->variant.expression);
     if (node->kind == (an_expr_node_kind)enk_temp_init) {
       /* The operand is an enk_temp_init for the value of a temporary. */
       is_temp_init = TRUE;
@@ -12712,7 +12720,8 @@ for a return, because the caller will do the destruction).
   *p_dip = NULL;
   if (operand_is_temp_init(source_operand)) {
     /* The operand is an enk_temp_init. */
-    temp_init_node = source_operand->variant.expression;
+    temp_init_node = skip_parens(source_operand->variant.expression);
+    check_assertion(temp_init_node->kind == (an_expr_node_kind)enk_temp_init);
     dip = temp_init_node->variant.init.dynamic_init;
     /* Avoid problems with dynamic inits with kind dik_none, created for
        functional-notation casts with no arguments (e.g., X()) for classes
@@ -13256,6 +13265,7 @@ like
 
   if (is_expression_operand(operand)) {
     node = operand->variant.expression;
+    node = skip_parens(node);
     check_assertion(node->is_lvalue || is_error_node(node));
     /* Drop any adjustment of the lvalue type.  (See adjust_lvalue_type.) */
     node = lvalue_before_type_adjustment(node);
@@ -13263,9 +13273,10 @@ like
        says that if the object bound to is a subobject of a complete object
        that is a temporary, the complete object temporary has its lifetime
        extended.) */
+    node = skip_parens(node);
     while (is_operation_node(node) &&
            node_operator_is(node, eok_dot_field)) {
-      node = node->variant.operation.operands;
+      node = skip_parens(node->variant.operation.operands);
     }  /* while */
     if (node->kind == (an_expr_node_kind)enk_temp_init) {
       if (static_lifetime) node->variant.init.static_temp = TRUE;
@@ -13305,7 +13316,7 @@ The type of the operand will be updated if necessary.
 
   /* See whether the operand is simply a reference to a variable. */
   if (is_expression_operand(operand)) {
-    expr = operand->variant.expression;
+    expr = skip_parens(operand->variant.expression);
     if (is_variable_node(expr)) {
       var = expr->variant.variable;
     }  /* if */
@@ -13318,12 +13329,18 @@ The type of the operand will be updated if necessary.
     complete_variable_type_is_needed(var);
     if (var->type != orig_var_type) {
       /* Modify the operand to get the right type in all the right places. */
-      check_assertion(expr != NULL && is_variable_node(expr));
       if (is_an_lvalue(operand)) {
         operand->type = var->type;
       } else {
         operand->type = rvalue_type(var->type);
       }  /* if */
+      expr = operand->variant.expression;
+      while (is_operation_node(expr) && node_operator_is(expr, eok_parens)) {
+        /* Record the updated type on any parentheses above the variable. */
+        expr->type = operand->type;
+        expr = expr->variant.operation.operands;
+      }  /* while */
+      check_assertion(is_variable_node(expr));
       expr->type = operand->type;
     }  /* if */
   }  /* if */
@@ -13533,7 +13550,7 @@ non-const to the indicated (rvalue) operand.
      see determine_arg_match_level. */
   if (is_an_rvalue(operand)) {
     if (is_expression_operand(operand)) {
-      an_expr_node_ptr expr = operand->variant.expression;
+      an_expr_node_ptr expr = skip_parens(operand->variant.expression);
       if (expr->kind == (an_expr_node_kind)enk_new_delete) {
         a_new_delete_supplement_ptr ndsp = expr->variant.new_delete;
         if (ndsp->is_new) {
@@ -13587,7 +13604,7 @@ temporary is added.
   if (is_an_rvalue(operand) &&
       is_class_struct_union_type(operand->type) &&
       is_expression_operand(operand)) {
-    an_expr_node_ptr expr = operand->variant.expression;
+    an_expr_node_ptr expr = skip_parens(operand->variant.expression);
     if (is_operation_node(expr) &&
         expr->variant.operation.kind == (an_expr_operator_kind)eok_question) {
       temp_init_from_operand(operand, /*result_is_lvalue=*/FALSE);
@@ -13992,7 +14009,7 @@ been found to be acceptable, and *conversion describes it.
           if (cfront_argument_case ||
               (cfront_3_0_mode && innermost_function_scope != NULL) ||
               (cfront_2_1_mode && operand_is_temp_init(source_operand) &&
-               source_operand->variant.expression->variant.
+               skip_parens(source_operand->variant.expression)->variant.
                                  init.dynamic_init->kind ==
                                        (a_dynamic_init_kind)dik_constructor)) {
             /* In cfront mode we allow this also for a ref to non-const if
