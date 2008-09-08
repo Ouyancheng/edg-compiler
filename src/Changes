@@ -1,5 +1,16 @@
 Version 3.11
 
+9/8/08   [EDGcpfe/8651]
+Microsoft compatibility: Typedefs for class and enum types
+
+In Microsoft bugs mode, a typedef for a named class or enum to that same name
+(and declared in the same scope) is marked as invisible and does not affect
+later declarations.  For example:
+
+  typedef struct S {} S;
+  double S = 1.0;  // Now accepted in Microsoft bugs mode.
+
+
 9/7/08   [EDGcpfe/5460, EDGcpfe/7192, EDGcpfe/7756, EDGcpfe/9188]
 Assertion failure with nested template with same name as friend template
 
