@@ -6242,6 +6242,7 @@ to be used to name the member.  Only used in C++.
      because it is implicit in the naming.  Node (2) is also passed over,
      but since it is not implicit in the naming, *naming_class is set
      to class B.  Node (3) is returned. */
+  /* No skip_parens needed here. */
   while (is_operation_node(node) &&
          node->variant.operation.kind ==
                                   (an_expr_operator_kind)eok_base_class_cast &&
@@ -6293,6 +6294,7 @@ remove them all.  Return the updated pointer to the object expression and
 set *op to the operator used in that selection.
 */
 {
+  /* No skip_parens needed. */
   while (is_operation_node(object_expr)) {
     a_boolean             done = TRUE;
     an_expr_operator_kind this_op = object_expr->variant.operation.kind;
@@ -6452,18 +6454,21 @@ and pm_expr is a pointer to member.  The caller will put parentheses around
 this selection.
 */
 {
+  an_expr_node_ptr stripped_object_expr;
+
   /* Generally, it's better to use the "->*" form, because it avoids
      putting an extra "*" on top of an expression, which might refer
      to an overloaded "operator*".  Use the ".*" form for simple variables
      and cases with an implied reference indirection. */
   /* Also note that only "->*" can be overloaded, so if there are implicit
      conversions involved we want to go with "->*". */
-  if (is_operation_node(object_expr) &&
-      object_expr->variant.operation.compiler_generated &&
-      node_operator_is(object_expr, eok_address_of)) {
+  stripped_object_expr = skip_parens(object_expr);
+  if (is_operation_node(stripped_object_expr) &&
+      stripped_object_expr->variant.operation.compiler_generated &&
+      node_operator_is(stripped_object_expr, eok_address_of)) {
     /* Remove a compiler-generated address-of converting an lvalue to
        a pointer. */
-    object_expr = object_expr->variant.operation.operands;
+    object_expr = stripped_object_expr->variant.operation.operands;
   }  /* if */
   if (object_expr->is_lvalue) {
     /* ".*" case. */
@@ -6496,11 +6501,12 @@ of a "?" operation returning a class rvalue.  Generate code for it.
     check_assertion(dip->kind == (a_dynamic_init_kind)dik_constructor);
     arg = dip->variant.constructor.args;
     check_assertion(arg != NULL && arg->next == NULL);
+    arg = skip_parens(arg);
     while (is_operation_node(arg) &&
            arg->variant.operation.compiler_generated) {
       /* Remove compiler-generated nodes that adjust cv-qualification,
          handle references, etc. */
-      arg = arg->variant.operation.operands;
+      arg = skip_parens(arg->variant.operation.operands);
     }  /* while */
     check_assertion(is_operation_node(arg) &&
                     arg->variant.operation.kind ==
@@ -6573,6 +6579,7 @@ any type.
 {
   a_boolean is_ne_0 = FALSE;
 
+  /* No skip_parens needed here. */
   if (is_operation_node(expr) && expr->variant.operation.compiler_generated) {
     an_expr_operator_kind op = expr->variant.operation.kind;
     if (op == (an_expr_operator_kind)eok_ne) {
@@ -6786,6 +6793,7 @@ to indicate x.y or p->y where y is a static member.
   a_boolean is_dot_static = FALSE;
 
   /* Strip eok_lvalue or eok_rvalue nodes. */
+  expr = skip_parens(expr);
   while (is_operation_node(expr) &&
       (expr->variant.operation.kind == (an_expr_operator_kind)eok_lvalue ||
        expr->variant.operation.kind == (an_expr_operator_kind)eok_rvalue)) {
@@ -12405,12 +12413,13 @@ flags on the classes found on an earlier call.
   a_param_type_ptr ptp;
 
   for (ptp = param_type_list; ptp != NULL; ptp = ptp->next) {
-    an_expr_node_ptr expr = ptp->default_arg_expr;
+    an_expr_node_ptr expr = skip_parens(ptp->default_arg_expr);
     if (expr != NULL) {
       a_source_correspondence *scp = NULL;
       if (is_operation_node(expr)) {
         an_expr_operator_kind op = expr->variant.operation.kind;
-        an_expr_node_ptr      op1 = expr->variant.operation.operands;
+        an_expr_node_ptr      op1 =
+                                 skip_parens(expr->variant.operation.operands);
         if (op == (an_expr_operator_kind)eok_call ||
             op == (an_expr_operator_kind)eok_generic_call ||
             op == (an_expr_operator_kind)eok_generic_member_call) {
