@@ -2230,12 +2230,13 @@ See the documentation above for the bit values.
 
 static an_expr_node_ptr add_cast_to_fxvalue_type(an_expr_node_ptr expr)
 /*
-Cast the indicated expression to the fxvalue type used to interface
+Cast the indicated rvalue expression to the fxvalue type used to interface
 to the fixed-point runtime routines.
 */
 {
   a_type_ptr type = expr->type;
 
+  check_assertion(!expr->is_lvalue);
   if (is_fixed_point_type(type)) {
     type = lowered_integer_type_for_fixed_point_type(type);
     if (is_signed_integral_type(type)) {

@@ -10451,6 +10451,7 @@ is the "this" parameter variable for the constructor or destructor.
   trans_ptr_node =
                  make_construction_vtbl_transfer_pointer_lvalue(trans_ptr_node,
                                                                 class_type);
+  trans_ptr_node = rvalue_expr_for_lvalue(trans_ptr_node);
   trans_ptr_node = add_cast(trans_ptr_node, construction_vtbls_var->type);
   (void)insert_var_assignment_statement(construction_vtbls_var, trans_ptr_node,
                                         insert_location);
