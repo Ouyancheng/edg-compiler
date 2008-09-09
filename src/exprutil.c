@@ -5114,7 +5114,6 @@ member function.  If no nonreal member is found, return NULL.
   an_expr_node_ptr rewritten_expr = NULL;
 
   *is_function = FALSE;
-  expr = skip_parens(expr);
   if (!expr->is_lvalue) {
     if (is_constant_node(expr)) {
       a_constant_ptr con = expr->variant.constant;
@@ -5137,6 +5136,16 @@ member function.  If no nonreal member is found, return NULL.
       if (rewritten_expr != NULL) {
         expr->is_lvalue = TRUE;
         expr->variant.operation.returns_lvalue_instead_of_usual_rvalue = TRUE;
+        expr->type = rewritten_expr->type;
+      }  /* if */
+    } else if (is_operation_node(expr) &&
+               node_operator_is(expr, eok_parens)) {
+      /* For parentheses, do a recursive call. */
+      an_expr_node_ptr op1 = expr->variant.operation.operands;
+      rewritten_expr = conv_nonreal_member_constant_expr_to_lvalue(op1,
+                                                                  is_function);
+      if (rewritten_expr != NULL) {
+        expr->is_lvalue = TRUE;
         expr->type = rewritten_expr->type;
       }  /* if */
     }  /* if */
