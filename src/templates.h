@@ -90,6 +90,10 @@ typedef struct a_tmpl_decl_state {
   a_boolean	is_template_template_param;
 			/* TRUE when scanning the template parameter clauses
 			   of a template template declaration. */
+  a_boolean	is_template_template_param_rescan;
+			/* TRUE when rescanning a template template parameter
+			   whose declaration depends on other template
+			   parameters. */
   a_source_position
 		export_position;
 			/* If export_present is TRUE, the position of the

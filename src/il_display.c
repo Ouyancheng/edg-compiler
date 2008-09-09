@@ -4358,6 +4358,9 @@ do_assoc_type:
       }  /* if */
       break;
     case sck_template_declaration:
+      /* Only present when prototype instantiations are included in the IL. */
+      (void)printf("sck_template_declaration\n");
+      break;
     case sck_template_instantiation:
       /* Front end only. */
     default:

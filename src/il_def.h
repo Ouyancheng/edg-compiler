@@ -11466,7 +11466,8 @@ enum a_scope_kind_tag {
                         /* Template parameter declaration scope, used while
                            scanning the parameter list and declaration of a
                            class or function template (C++ only).  Used only
-                           in the front end. */
+                           in the front end except when prototype
+			   instantiations are included in the IL. */
   sck_template_instantiation,
                         /* Used during the instantiation of class and function
                            templates to make the template arguments visible
@@ -11552,6 +11553,7 @@ typedef struct a_scope {
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
   union {
     /* When kind == sck_file, no variant fields. */
+    /* When kind == sck_template_declaration, no variant fields. */
     /* When kind == sck_block (also see assoc_block below): */
     a_handler_ptr
 		assoc_handler;

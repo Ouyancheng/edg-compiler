@@ -1932,6 +1932,25 @@ the scope being pushed.
       sp = alloc_scope(kind, ssep->number, (a_routine_ptr)NULL);
       sp->depth_in_scope_stack = depth_scope_stack;
       break;
+    case sck_template_declaration:
+      /* When prototype instantiations are recorded in the IL, IL scopes
+         exist for template declarations.  Only template declaration scopes
+         from the original source are included.  Scopes pushed for the
+         rescan of dependent template template parameters do not have IL
+         scopes. */
+      if (prototype_instantiations_in_il &&
+          (options & PS_IS_TEMPLATE_PARAM_RESCAN) == 0) {
+        /* Template declaration scopes always have parameter declarations, so
+           we know a scope is required.  The scope will always be in the file
+           scope except for error cases. */
+        sp = alloc_scope((a_scope_kind)sck_template_declaration, ssep->number,
+                         (a_routine_ptr)NULL);
+        /* Add it to the scopes list for the enclosing scope. */
+        add_to_scopes_list(sp, ssep-1);
+      }  /* if */
+      /* Use the enclosing memory region. */
+      ssep->il_memory_region = (ssep-1)->il_memory_region;
+      break;
     default:
       /* For scopes for which a new memory region is not begun, the associated
          memory region is the same as for the enclosing scope (there must be an
@@ -3738,19 +3757,24 @@ push_template_instantiation_scope.
 }  /* pop_template_instantiation_scope */
 
 
-void push_template_declaration_scope(a_template_decl_info_ptr decl_info)
+void push_template_declaration_scope(
+		a_template_decl_info_ptr	decl_info,
+		a_boolean			is_template_param_rescan)
 /*
-Push a template declaration scope.
+Push a template declaration scope.  is_template_param_rescan is TRUE if this
+scope is for the rescan of a dependent template template parameter.
 */
 {
+  a_push_scope_options_set	ps_options = PS_NO_OPTIONS;
+
+  if (is_template_param_rescan) ps_options |= PS_IS_TEMPLATE_PARAM_RESCAN;
   (void)push_scope_full((a_scope_kind)sck_template_declaration,
                         NO_SCOPE_NUMBER,
                         (a_type_ptr)NULL, (a_routine_ptr)NULL,
                         (a_namespace_ptr)NULL, (a_symbol_ptr)NULL,
                         (a_symbol_ptr)NULL, (a_template_arg_ptr)NULL,
                         decl_info,
-                        (an_object_lifetime_ptr)NULL,
-                        PS_NO_OPTIONS);
+                        (an_object_lifetime_ptr)NULL, ps_options);
 }  /* push_template_declaration_scope */
 
 
@@ -6304,8 +6328,18 @@ End a name scope by popping an entry off the scope stack.
       }  /* if */
     }  /* if */
     if (il_scope != NULL) {
-      /* There is an allocated IL scope entry. */
-      il_scope->scopes = ssep->first_scope;
+      /* There is an allocated IL scope entry.  Add the scopes from the scope
+         stack entry to the end of the list pointed to by the IL scope.  The
+         IL scope will normally be NULL but can be non-null for a reactivated
+         file scope. */
+      if (il_scope->scopes != NULL) {
+        a_scope_ptr	last_scope;
+        for (last_scope = il_scope->scopes;
+             last_scope->next != NULL; last_scope = last_scope->next) {}
+        last_scope->next = ssep->first_scope;
+      } else {
+        il_scope->scopes = ssep->first_scope;
+      }  /* if */
     } else {
       /* Add the list of scopes to the list for the parent scope. */
       if (parent_ssep->first_scope == NULL) {

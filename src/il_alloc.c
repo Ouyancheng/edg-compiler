@@ -3373,6 +3373,7 @@ Initialize the variable fields of the scope entry pointed to by sp.
   sp->kind   = kind;
   switch (kind) {
     case sck_file:
+    case sck_template_declaration:
       break;
     case sck_block:
       sp->variant.assoc_handler = NULL;

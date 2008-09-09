@@ -453,6 +453,7 @@ Initialize a template declaration state block.
   tdsp->partial_spec_outside_of_class_template = FALSE;
   tdsp->has_dependent_templ_param = FALSE;
   tdsp->is_template_template_param = FALSE;
+  tdsp->is_template_template_param_rescan = FALSE;
   tdsp->export_position = null_source_position;
   tdsp->access = (an_access_specifier)as_public;
   tdsp->nesting_depth = 0;
@@ -2302,7 +2303,8 @@ symbol table.
 {
   a_template_param_ptr	tpp;
 
-  push_template_declaration_scope(decl_info);
+  push_template_declaration_scope(decl_info,
+                                  /*is_template_param_rescan=*/FALSE);
   for (tpp = decl_info->parameters; tpp != NULL; tpp = tpp->next) {
     a_symbol_ptr	sym = tpp->param_symbol;
     (void)enter_copy_of_symbol(sym, depth_scope_stack,
@@ -12838,6 +12840,32 @@ created for it along the way.
 }  /* record_template_param_symbol */
 
 
+static a_boolean parent_scope_should_be_set_for_template_param(void)
+/*
+Return TRUE if we are in a context in which the parent scope should be
+set for a template parameter.  The parent scope is set for the original
+declaration of a template parameter, but not when a template parameter
+is rescanned (because it depends on other template parameters), and only
+when prototype instantiations are included in the IL.
+*/
+{
+  a_boolean	result = FALSE;
+
+  if (prototype_instantiations_in_il) {
+    a_scope_stack_entry_ptr	ssep;
+    ssep = &scope_stack_top();
+    /* When a template parameter is initially scanned (when prototype
+       instantiations are included in the IL), the enclosing scope
+       will be a template declaration scope with an associated IL scope. */
+    if (ssep->kind == (a_scope_kind)sck_template_declaration &&
+        ssep->il_scope != NULL) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */  
+  return result;
+}  /* parent_scope_should_be_set_for_template_param */
+
+
 static a_template_param_ptr scan_type_template_param(
 		a_tmpl_decl_state_ptr decl_state,
 		a_template_param_list_pos	template_param_list_pos)
@@ -12877,6 +12905,12 @@ parameter entry for the parameter.
                            coordinates.position = template_param_list_pos;
   set_type_size(template_param_type);
   set_source_corresp(&template_param_type->source_corresp, sym);
+  if (parent_scope_should_be_set_for_template_param()) {
+    /* In some modes, the parent scope is set for template parameters. */
+    set_parent_scope(&template_param_type->source_corresp, iek_type,
+                     scope_stack[decl_scope_level].il_scope);
+    add_to_types_list(template_param_type, depth_scope_stack);
+  }  /* if */
   if (!is_named) {
     /* Reset the name in the source correspondence entry.  An unnamed
        type is represented by NULL, not "<unnamed>" as indicated by the
@@ -12984,6 +13018,12 @@ parameter depends on a template parameter.
   param_con->variant.template_param.
                     variant.coordinates.position = template_param_list_pos;
   set_source_corresp(&param_con->source_corresp, sym);
+  if (parent_scope_should_be_set_for_template_param()) {
+    /* In some modes, the parent scope is set for template parameters. */
+    set_parent_scope(&param_con->source_corresp, iek_constant,
+                     scope_stack[decl_scope_level].il_scope);
+    add_to_constants_list(param_con, /*at_file_scope=*/FALSE);
+  }  /* if */
   if (is_unnamed) {
     /* Reset the name in the source correspondence entry.  An unnamed
        type is represented by NULL, not "<unnamed>" as indicated by the
@@ -13094,6 +13134,8 @@ parameter based on the current state.
   new_state->enclosing_scope = curr_state->enclosing_scope;
   new_state->param_list_cache = curr_state->param_list_cache;
   new_state->is_template_template_param = TRUE;
+  new_state->is_template_template_param_rescan =
+                                 curr_state->is_template_template_param_rescan;
 }  /* set_decl_state_for_template_param */
 
 
@@ -13167,6 +13209,11 @@ depends on a another template parameter.
   tssp = sym->variant.template_info;
   templ_ptr = alloc_template();
   set_source_corresp(&templ_ptr->source_corresp, sym);
+  if (parent_scope_should_be_set_for_template_param()) {
+    set_parent_scope(&templ_ptr->source_corresp, iek_template,
+                     scope_stack[decl_scope_level].il_scope);
+    add_to_templates_list(templ_ptr, depth_scope_stack);
+  }  /* if */
   templ_ptr->kind = (a_template_kind)templk_template_template_param;
   if (prototype_instantiations_in_il) {
     /* Keep a record of the parameterization structure.  (Needed, e.g., in the
@@ -13500,6 +13547,7 @@ template template parameter.
   new_state->in_prototype_instantiation = ssep->in_prototype_instantiation;
   new_state->param_list_cache = param->cache.tokens;
   new_state->is_template_template_param = TRUE;
+  new_state->is_template_template_param_rescan = TRUE;
 }  /* set_decl_state_for_template_template_rescan */
 
 
@@ -15416,7 +15464,8 @@ information).  See the definition of a_tmpl_decl_state for details.
         /* Record the default name linkage at the point of declaration. */
         template_decl_info->name_linkage =
                          scope_stack[depth_scope_stack].default_name_linkage;
-        push_template_declaration_scope(template_decl_info);
+        push_template_declaration_scope(
+            template_decl_info, decl_state->is_template_template_param_rescan);
         check_assertion(!decl_state->is_full_specialization);
         decl_state->number_of_template_decl_scopes++;
         /* Save a pointer to the template declaration information in the

@@ -51,6 +51,10 @@ typedef int a_push_scope_options_set;
 			/* TRUE if when pushing a template instantiation scope,
 			   the class definition context should be ignored
 			   during normal lookups. */
+#define PS_IS_TEMPLATE_PARAM_RESCAN	0x200
+			/* TRUE for a template declaration scope pushed for the
+			   rescan of a dependent template template
+			   parameter. */
 
 #define SIZE_FUNCTION_SHAREABLE_CONSTANTS_TABLE 31
 			/* Size of the shareable constants hash table for
@@ -1150,9 +1154,9 @@ extern void push_file_scope(a_boolean	is_reactivation);
 
 extern void push_block_scope_with_lifetime(an_object_lifetime_ptr olp);
 
-extern
-void push_template_declaration_scope(a_template_decl_info_ptr decl_info);
-
+extern void push_template_declaration_scope(
+		a_template_decl_info_ptr	decl_info,
+		a_boolean			is_template_param_rescan);
 
 extern a_scope_ptr push_for_init_scope(void);
 

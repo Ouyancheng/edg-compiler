@@ -2010,6 +2010,7 @@ do_set_proper_definition_needed_flag:
 #endif /* !NEEDED_FLAG_WALK && !KEEP_IN_IL_WALK */
         switch (kind) {
           case sck_file:
+          case sck_template_declaration:
             /* No pointers */
             break;
           case sck_block:
@@ -2057,7 +2058,6 @@ do_set_proper_definition_needed_flag:
             remap_ptr_not_needed(ptr->variant.routine.return_value_variable,
                                  a_variable_ptr, iek_variable);
             break;
-          case sck_template_declaration:
           case sck_template_instantiation:
             /* Front end only. */
 #if NEEDED_FLAG_WALK || KEEP_IN_IL_WALK
