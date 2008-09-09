@@ -2678,6 +2678,7 @@ Lower the indicated fixed-point increment or decrement operation.
   unsigned long         fxmask;
   int                   shift_amount = 0;
 
+  check_assertion(op1->is_lvalue);
   switch (op) {
     case eok_post_incr:
       is_post_op = TRUE;
@@ -2734,6 +2735,7 @@ Lower the indicated fixed-point increment or decrement operation.
     op2_node = make_var_assignment_expr(temp_var, rvalue_expr_for_lvalue(op1));
   }  /* if */
   /* Make the argument for the call. */
+  op1_for_argument = rvalue_expr_for_lvalue(op1_for_argument);
   op1_for_argument = add_cast_to_fxvalue_type(op1_for_argument);
   /* Build up the fxmask argument describing the operand and result types. */
   fxmask = fxcontrol_value();
