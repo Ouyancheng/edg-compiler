@@ -2792,6 +2792,14 @@ Allocate a scope entry in the new region and return a pointer to it.
 }  /* new_il_region */
 
 
+/* Forward declaration. */
+static void update_seq_cache(a_source_file_ptr	source_file,
+			     a_seq_number	first_seq_number,
+			     a_seq_number	last_seq_number,
+			     long		line_offset,
+			     a_boolean		physical_line);
+
+
 static void add_seq_number_lookup_entry(a_source_file_ptr	source_file,
 					a_seq_number		seq_number,
 					a_line_number		line_number)
@@ -2864,6 +2872,10 @@ is used.
   snlep->first = seq_number;
   snlep->last = MAX_SEQ_NUMBER;
   snlep->line_number = line_number;
+  /* It is likely that the next sequence number translation will refer to
+     this entry, so set the cache to point to it. */
+  update_seq_cache(source_file, seq_number, MAX_SEQ_NUMBER,
+                 -(long)seq_number + line_number, FALSE);
 }  /* add_seq_number_lookup_entry */
 
 
@@ -2962,8 +2974,6 @@ in a directory marked as a system include directory.
      source file entry. */
   add_seq_number_lookup_entry(sfp, sfp->first_seq_number,
                               sfp->first_line_number);
-  /* Clear the cached sequence number conversion information. */
-  reset_seq_cache();
   db_exit();
 } /* record_start_of_source_file */
 

@@ -1,5 +1,16 @@
 Version 3.11
 
+9/9/08   [EDGcpfe/9210]
+Optimization in sequence number to file and line translation
+
+The sequence number to file/line translation uses a cache so that multiple
+translations that refer to the same source file region can be handled quickly.
+When a new entry is added to the lookup table, the cache is now updated to
+refer to the new entry rather than simply clearing the cache as was done
+previously.  This is of particular use when a cross-reference file is being
+generated as that process involves many additional sequence number
+translations.
+
 9/8/08   [EDGcpfe/8651]
 Microsoft compatibility: Typedefs for class and enum types
 
