@@ -2213,7 +2213,10 @@ array associated with the variable var, and return it.
   an_expr_node_ptr node;
 
   node = var_lvalue_expr(var);
-  node = add_cast(node, make_pointer_type(array_element_type(var->type)));
+  node = make_operator_node((an_expr_operator_kind)eok_array_to_pointer,
+                            type_after_array_to_pointer_transformation(
+                                                                    var->type),
+                            node);
   return node;
 }  /* array_first_element_addr_expr */
 
@@ -10240,6 +10243,7 @@ lvalue to its logical "not".
        when result is not used. */
     /* Build a constant one, but make sure it has bool type to preserve
        bool-correctness in the IL for back ends that care. */
+    /* Expression can be an lvalue or an rvalue. */
     set_integer_constant(&result_constant,
                          (a_host_large_integer)1,
                          targ_bool_int_kind);
@@ -10249,8 +10253,8 @@ lvalue to its logical "not".
     set_node_operator(expr, (an_expr_operator_kind)eok_assign,
                       expr->type, expr->is_lvalue, operand_node);
   } else {
-    /* Postincrement: x++ becomes (temp = x, x = 1, temp).
-       Postdecrement: x-- becomes (temp = x, x = !temp, temp).
+    /* Postincrement: x++ becomes (temp = x, (x = 1, temp)).
+       Postdecrement: x-- becomes (temp = x, (x = !temp, temp)).
        Predecrement:  --x becomes (temp = x, x = !temp).
        Decrement follows the C99 requirement; it's not valid in C++. */
 
@@ -10265,6 +10269,8 @@ lvalue to its logical "not".
     a_boolean        predecr_case = (expr->variant.operation.kind ==
                                           (an_expr_operator_kind)eok_pre_decr);
 
+    /* Expression can only be an rvalue. */
+    check_assertion(!expr->is_lvalue);
     if (expr->variant.operation.kind == (an_expr_operator_kind)eok_post_incr){
       /* Increment. */
       /* Build a constant one, but make sure it has bool type to preserve
@@ -10287,21 +10293,21 @@ lvalue to its logical "not".
     }  /* if */
     /* Make the assignment: (x = 1) or (x = !temp). */
     x_lvalue_copy->next = result_value_node;
-    assign_node = make_lvalue_operator_node((an_expr_operator_kind)eok_assign,
-                                            x_rvalue->type, x_lvalue_copy);
+    assign_node = make_operator_node((an_expr_operator_kind)eok_assign,
+                                     x_rvalue->type, x_lvalue_copy);
     if (!predecr_case) {
       comma_node = make_comma_node(x_rvalue, assign_node);
       /* Change the original expression into a comma node whose second
          operand is the overall result. */
       comma_node->next = x_rvalue_copy;
       set_node_operator(expr, (an_expr_operator_kind)eok_comma,
-                        x_rvalue_copy->type, expr->is_lvalue, comma_node);
+                        x_rvalue_copy->type, /*is_lvalue=*/FALSE, comma_node);
     } else {
       /* The prefix case: change the original expression into a
          comma node where the second operand is the assignment. */
       x_rvalue->next = assign_node;
       set_node_operator(expr, (an_expr_operator_kind)eok_comma,
-                        assign_node->type, expr->is_lvalue, x_rvalue);
+                        assign_node->type, /*is_lvalue=*/FALSE, x_rvalue);
     }  /* if */
   }  /* if */
 }  /* lower_bool_incr_decr */                  
@@ -10696,9 +10702,10 @@ have already been lowered.
        function. */
     vtbl_entry_node = make_vtbl_entry_node(func_node, object_node);
     /* Get the function pointer stored in the virtual function table. */
-    func_select_node = add_indirection_to_node(vtbl_entry_node);
-    func_select_node = add_cast_if_necessary(func_select_node,
-                                             func_node->type);
+    func_select_node = add_cast_if_necessary(vtbl_entry_node,
+                                           make_pointer_type(func_node->type));
+    func_select_node = add_indirection_to_node(func_select_node);
+    func_select_node = rvalue_expr_for_lvalue(func_select_node);
     /* The expression pointed to by object_node may have been modified,
        so use the copy we made. */
     object_node = object_node_copy;
@@ -11120,8 +11127,11 @@ the expression have already been lowered.
     comma_node = make_comma_node(comma_node, vtbl_f_value);
 #else /* IA64_ABI */
     /* Make "*vtbl_temp", the address of the virtual function to call. */
-    vtbl_f_value = add_indirection_to_node(var_rvalue_expr(vtbl_temp_var));
-    vtbl_f_value = add_cast(vtbl_f_value, select_f_node->type);
+    vtbl_f_value = var_rvalue_expr(vtbl_temp_var);
+    vtbl_f_value = add_cast(vtbl_f_value,
+                            make_pointer_type(select_f_node->type));
+    vtbl_f_value = add_indirection_to_node(vtbl_f_value);
+    vtbl_f_value = rvalue_expr_for_lvalue(vtbl_f_value);
     comma_node = make_comma_node(vtbl_temp_assign_node, vtbl_f_value);
 #endif /* IA64_ABI */
     /* Assemble the "?:" operator. */
@@ -12074,7 +12084,13 @@ operator (as specified by is_lvalue).
   }  /* if */
   make_zero_of_proper_type(zero_type, &null_constant);
   zero_node = alloc_node_for_constant(&null_constant);
-  if (is_lvalue || nonscalar) zero_node = add_indirection_to_node(zero_node);
+  if (is_lvalue || nonscalar) {
+    zero_node = add_indirection_to_node(zero_node);
+    if (!is_lvalue) {
+      /* Make sure the node has the correct lvalueness. */
+      zero_node = rvalue_expr_for_lvalue(zero_node);
+    }  /* if */
+  }  /* if */
   /* Make a copy of the original throw node so the original node can be
      overwritten by a comma node. */
   node_copy = copy_node(node);

@@ -4729,7 +4729,7 @@ statement if necessary.
          func_frame.variant.function.regions */
       (void)insert_assignment_statement(func_frame_function_regions,
                                         (an_expr_operator_kind)eok_assign,
-                                       array_first_element_addr_expr(
+                                        array_first_element_addr_expr(
                                                              region_table_var),
                                         &insert_location);
     }  /* if */
@@ -5143,17 +5143,19 @@ with zero is built, and a pointer to it is returned in *setjmp_compare_node.
      that looks like
        if (setjmp(try_frame.variant.try_block.setjmp_buffer) == 0) ...
   */
-  /* Make try_frame.variant.try_block.setjmp_buffer.  Note the cast from
-     pointer-to-array to pointer-to-element. */
+  /* Make try_frame.variant.try_block.setjmp_buffer. */
   try_frame_setjmp_buffer = 
-                 add_cast(
-                   field_lvalue_selection_expr(
-                     field_lvalue_selection_expr(
-                       field_lvalue_selection_expr(var_lvalue_expr(try_frame),
-                                                   ehse_variant_field),
-                       ehse_try_field),
-                     ehse_try_setjmp_buffer_field),
-                   make_pointer_type(array_element_type(make_jmp_buf_type())));
+                    field_lvalue_selection_expr(
+                      field_lvalue_selection_expr(
+                        field_lvalue_selection_expr(var_lvalue_expr(try_frame),
+                                                    ehse_variant_field),
+                        ehse_try_field),
+                      ehse_try_setjmp_buffer_field);
+  /* Perform an array decay on the argument. */
+  try_frame_setjmp_buffer = make_operator_node(
+               (an_expr_operator_kind)eok_array_to_pointer,
+               type_after_array_to_pointer_transformation(make_jmp_buf_type()),
+               try_frame_setjmp_buffer);
   /* Make the setjmp call. */
 #if 0
   /* We shouldn't assume setjmp is a routine. */
