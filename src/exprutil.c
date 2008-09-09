@@ -2848,7 +2848,7 @@ conversions.
     need_cast = FALSE;
   }  /* if */
   if (!need_cast) {
-    /* We don't need to add a cast. */
+    /* We don't need to add a cast.  Just update the type in the node. */
     if (is_implicit_cast && is_cast_operation_node(node) &&
         !node->variant.operation.compiler_generated) {
       /* If the existing node represents a cast that appeared explicitly in
@@ -3110,7 +3110,18 @@ user-defined conversions.
             if (con_expr != orig_con_expr) {
               overwrite_node(orig_con_expr, con_expr);
             }  /* if */
-            node->type = new_type;
+            while (node != orig_con_expr) {
+              /* Reset the type on comma and parenthesis nodes from the top
+                 down to the node that's now a null pointer constant. */
+              check_assertion(is_operation_node(node));
+              node->type = new_type;
+              if (node_operator_is(node, eok_parens)) {
+                node = node->variant.operation.operands;
+              } else {
+                check_assertion(node_operator_is(node, eok_comma));
+                node = node->variant.operation.operands->next;
+              }  /* if */
+            }  /* while */
           } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           /* Do not insert code here. */
