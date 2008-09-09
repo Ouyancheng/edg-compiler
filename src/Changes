@@ -1,5 +1,26 @@
 Version 3.11
 
+9/9/08   [EDGcpfe/9108]
+New representation for parentheses
+
+IL CHANGE: Parentheses are now (optionally) represented in the IL by
+means of expression nodes with an operator of eok_parens.  These are
+not usually generated; PARENS_IN_IL must be set to TRUE to request
+them.  When present, these nodes represent instances of parentheses
+in source expressions, and, if EXTRA_SOURCE_POSITIONS_IN_IL is TRUE,
+provide detailed position information on those parentheses.
+
+The mechanism previously enabled by EXPR_RANGE_MODIFIERS_IN_IL, which
+used an_expr_range_modifier entries to provide source positions
+for operators that were not explicit in the IL, has been eliminated.
+
+Parentheses are not used or allowed in versions that use IL lowering,
+so compiler customers will see no difference from this change.
+Customers that do enable PARENS_IN_IL should note that it introduces
+a problem very similar to the skip_typerefs problem for types: one
+must be careful to strip parentheses off an expression before checking
+the operator.  That can be done by calling skip_parens.
+
 9/9/08   [EDGcpfe/9210]
 Optimization in sequence number to file and line translation
 
