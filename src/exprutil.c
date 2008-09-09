@@ -9803,69 +9803,6 @@ an extension in both C and C++.
 }  /* conv_subscript_in_string_to_char */
 
 
-#if CHECKING
-
-static a_boolean is_rvalueable_node(an_expr_node_ptr node)
-/*
-Return TRUE if the indicated lvalue node is one that can be converted to an
-rvalue by simply clearing the is_lvalue flag.  Such nodes are ones where
-an lvalue-to-rvalue conversion can be implied because the "usual" setting
-of the is_lvalue flag is TRUE.
-*/
-{
-  a_boolean okay = FALSE;
-
-  /* Note that this routine is very similar to node_does_fetch and
-     conv_rvalue_expr_to_lvalue. */
-  check_assertion(node->is_lvalue || is_error_node(node));
-  switch (node->kind) {
-    case enk_error:
-    case enk_variable:
-    case enk_temp_init:
-    case enk_routine:
-    case enk_typeid:
-      okay = TRUE;
-      break;
-    case enk_operation:
-      if (node->variant.operation.returns_lvalue_instead_of_usual_rvalue) {
-        okay = TRUE;
-      } else {
-        an_expr_operator_kind op = node->variant.operation.kind;
-        switch (op) {
-          case eok_dot_field:
-          case eok_points_to_field:
-          case eok_pm_field:
-          case eok_pm_points_to_field:
-          case eok_indirect:
-          case eok_ref_indirect:
-          case eok_subscript:
-          case eok_va_arg:
-#if GNU_COMPLEX_EXTENSIONS_ALLOWED
-          case eok_real_part:
-          case eok_imag_part:
-#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
-            okay = TRUE;
-            break;
-          case eok_lvalue_cast:  /* Not rvalueable; when converted to an
-                                    rvalue it gets rewritten as a normal
-                                    cast. */
-          case eok_parens:       /* Not rvalueable: to change to an rvalue,
-                                    change the underlying operand too. */
-          case eok_dot_static:
-          case eok_points_to_static:
-          default:
-            break;
-        }  /* switch */
-      }  /* if */
-      break;
-    default:
-      break;
-  }  /* switch */
-  return okay;
-}  /* is_rvalueable_node */
-
-#endif /* CHECKING */
-
 an_expr_node_ptr conv_lvalue_expr_to_rvalue(an_expr_node_ptr  node,
                                             a_boolean         *constant_case,
                                             a_constant_ptr    *con_value,

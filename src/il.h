@@ -1851,6 +1851,8 @@ extern a_boolean compare_template_param_constant_expressions(
 extern void rebuild_structures_on_il_read(void);
 
 #if CHECKING
+extern a_boolean is_rvalueable_node(an_expr_node_ptr node);
+
 extern a_boolean node_operands_have_correct_lvalueness(an_expr_node_ptr node);
 
 extern a_boolean tree_has_correct_lvalueness(an_expr_node_ptr root);

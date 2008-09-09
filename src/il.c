@@ -19236,6 +19236,80 @@ scan_alignof_operator for details).
 }  /* alignment_of_variable */
 
 #if CHECKING
+a_boolean is_rvalueable_node(an_expr_node_ptr node)
+/*
+Return TRUE if the indicated lvalue node is one that can be converted to an
+rvalue by simply clearing the is_lvalue flag.  Such nodes are ones where
+an lvalue-to-rvalue conversion can be implied because the "usual" setting
+of the is_lvalue flag is TRUE.
+*/
+{
+  a_boolean okay = FALSE;
+
+  /* Note that this routine is very similar to node_does_fetch and
+     conv_rvalue_expr_to_lvalue. */
+  check_assertion(node->is_lvalue || is_error_node(node));
+  switch (node->kind) {
+    case enk_error:
+    case enk_variable:
+    case enk_temp_init:
+    case enk_routine:
+    case enk_typeid:
+      okay = TRUE;
+      break;
+    case enk_operation:
+      if (node->variant.operation.returns_lvalue_instead_of_usual_rvalue) {
+        okay = TRUE;
+      } else {
+        an_expr_operator_kind op = node->variant.operation.kind;
+        switch (op) {
+          case eok_dot_field:
+          case eok_points_to_field:
+          case eok_pm_field:
+          case eok_pm_points_to_field:
+          case eok_indirect:
+          case eok_ref_indirect:
+          case eok_subscript:
+          case eok_va_arg:
+#if GNU_COMPLEX_EXTENSIONS_ALLOWED
+          case eok_real_part:
+          case eok_imag_part:
+#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
+            okay = TRUE;
+            break;
+          case eok_lvalue_cast:  /* Not rvalueable; when converted to an
+                                    rvalue it gets rewritten as a normal
+                                    cast. */
+          case eok_parens:       /* Not rvalueable: to change to an rvalue,
+                                    change the underlying operand too. */
+          case eok_dot_static:
+          case eok_points_to_static:
+          default:
+            break;
+        }  /* switch */
+      }  /* if */
+      break;
+    default:
+      break;
+  }  /* switch */
+  return okay;
+}  /* is_rvalueable_node */
+
+static a_boolean might_be_decayed_lvalue(an_expr_node_ptr node)
+/*
+Return TRUE if node (which must be an rvalue) could be the result of an
+lvalue-to-rvalue conversion.
+*/
+{
+  a_boolean rvalueable_node;
+
+  check_assertion(!node->is_lvalue);
+  node->is_lvalue = TRUE;
+  rvalueable_node = is_rvalueable_node(node);
+  node->is_lvalue = FALSE;
+  return rvalueable_node;
+}  /* might_be_decayed_lvalue */
+
 /*
 The following table defines whether the operands of a given operation node
 are expected to be lvalues or rvalues.
@@ -19258,13 +19332,13 @@ static a_byte lvalue_rvalue_test[(int)eok_last+1] = {
   /* eok_reference_to: */		LVRV_OPND1_IS_LVALUE,
   /* eok_indirect: */			LVRV_OPND1_IS_RVALUE,
   /* eok_ref_indirect: */		LVRV_OPND1_IS_RVALUE,
-  /* eok_cast: */			LVRV_OPND1_IS_LVALUE_IF_EXPR_IS,
+  /* eok_cast: */			LVRV_OPND1_IS_RVALUE,
   /* eok_lvalue_cast: */		LVRV_OPND1_IS_LVALUE,
-  /* eok_base_class_cast: */		LVRV_OPND1_IS_LVALUE_IF_EXPR_IS,
-  /* eok_derived_class_cast: */		LVRV_OPND1_IS_LVALUE_IF_EXPR_IS,
-  /* eok_pm_base_class_cast: */		LVRV_OPND1_IS_LVALUE_IF_EXPR_IS,
-  /* eok_pm_derived_class_cast: */	LVRV_OPND1_IS_LVALUE_IF_EXPR_IS,
-  /* eok_dynamic_cast: */		LVRV_OPND1_IS_LVALUE_IF_EXPR_IS,
+  /* eok_base_class_cast: */		LVRV_OPND1_IS_RVALUE,
+  /* eok_derived_class_cast: */		LVRV_OPND1_IS_RVALUE,
+  /* eok_pm_base_class_cast: */		LVRV_OPND1_IS_RVALUE,
+  /* eok_pm_derived_class_cast: */	LVRV_OPND1_IS_RVALUE,
+  /* eok_dynamic_cast: */		LVRV_OPND1_IS_RVALUE,
   /* eok_bool_cast: */			LVRV_OPND1_IS_RVALUE,
   /* eok_lvalue_from_struct_rvalue: */	LVRV_OPND1_IS_RVALUE,
   /* eok_array_to_pointer: */		LVRV_NO_REQUIREMENTS,
@@ -19273,7 +19347,7 @@ static a_byte lvalue_rvalue_test[(int)eok_last+1] = {
   /* eok_points_to_vacuous_destructor_call: */
 					LVRV_OPND1_IS_RVALUE,	
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  /* eok_assume: */			LVRV_NO_REQUIREMENTS,
+  /* eok_assume: */			LVRV_OPND1_IS_RVALUE,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* eok_parens: */			LVRV_NO_REQUIREMENTS,
   /* eok_negate: */			LVRV_OPND1_IS_RVALUE,
@@ -19386,8 +19460,10 @@ static a_byte lvalue_rvalue_test[(int)eok_last+1] = {
 					LVRV_OPND2_IS_RVALUE,
   /* eok_pm_points_to_field: */		LVRV_OPND1_IS_RVALUE |
 					LVRV_OPND2_IS_RVALUE,
-  /* eok_dot_static: */			LVRV_NO_REQUIREMENTS,
-  /* eok_points_to_static: */		LVRV_OPND1_IS_RVALUE,
+  /* eok_dot_static: */			LVRV_OPND1_IS_LVALUE |
+                                        LVRV_OPND2_IS_LVALUE_IF_EXPR_IS,
+  /* eok_points_to_static: */		LVRV_OPND1_IS_RVALUE |
+                                        LVRV_OPND2_IS_LVALUE_IF_EXPR_IS,
   /* eok_virtual_function_ptr: */	LVRV_OPND1_IS_RVALUE |
 					LVRV_OPND2_IS_RVALUE,
   /* eok_question: */			LVRV_OPND1_IS_RVALUE |
@@ -19404,9 +19480,9 @@ static a_byte lvalue_rvalue_test[(int)eok_last+1] = {
   /* eok_va_start_single_operand: */	LVRV_OPND1_IS_LVALUE,	
   /* eok_lvalue: */			LVRV_OPND1_IS_RVALUE,
   /* eok_rvalue: */			LVRV_OPND1_IS_LVALUE,
-  /* eok_static_cast: */		LVRV_OPND1_IS_LVALUE_IF_EXPR_IS,
-  /* eok_const_cast: */			LVRV_OPND1_IS_LVALUE_IF_EXPR_IS,
-  /* eok_reinterpret_cast: */		LVRV_OPND1_IS_LVALUE_IF_EXPR_IS,
+  /* eok_static_cast: */		LVRV_NO_REQUIREMENTS,
+  /* eok_const_cast: */			LVRV_NO_REQUIREMENTS,
+  /* eok_reinterpret_cast: */		LVRV_NO_REQUIREMENTS,
   /* eok_generic_call: */		LVRV_NO_REQUIREMENTS,
   /* eok_generic_member_call: */	LVRV_NO_REQUIREMENTS,
   /* eok_error: */			LVRV_NO_REQUIREMENTS,
@@ -19428,7 +19504,10 @@ have the is_lvalue flag set incorrectly; return TRUE otherwise.
     an_expr_node_ptr      operand_1 = node->variant.operation.operands;
     an_expr_node_ptr      operand_2 = operand_1->next;
 
-    if ((operand_1->is_lvalue && (flags & LVRV_OPND1_IS_RVALUE)) ||
+    if ((operand_1->is_lvalue && 
+         ((flags & LVRV_OPND1_IS_RVALUE) ||
+          (!node->is_lvalue && !might_be_decayed_lvalue(node) &&
+           (flags & LVRV_OPND1_IS_LVALUE_IF_EXPR_IS)))) ||
         (!operand_1->is_lvalue &&
          ((flags & LVRV_OPND1_IS_LVALUE) ||
           (node->is_lvalue &&
@@ -19436,7 +19515,10 @@ have the is_lvalue flag set incorrectly; return TRUE otherwise.
       operand_error = TRUE;
     }  /* if */
     if (operand_2 != NULL &&
-        ((operand_2->is_lvalue && (flags & LVRV_OPND2_IS_RVALUE)) ||
+        ((operand_2->is_lvalue &&
+          ((flags & LVRV_OPND2_IS_RVALUE) ||
+           (!node->is_lvalue && !might_be_decayed_lvalue(node) &&
+            (flags & LVRV_OPND2_IS_LVALUE_IF_EXPR_IS)))) ||
          (!operand_2->is_lvalue &&
           ((flags & LVRV_OPND2_IS_LVALUE) ||
            (node->is_lvalue &&

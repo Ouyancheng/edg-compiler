@@ -4329,6 +4329,16 @@ there's some possibility of precedence confusion and need_parens is TRUE.
 #endif /* DEBUG && !STANDALONE_UTILITY_PROGRAM */
         internal_error("dump_expr: is_lvalue incorrectly set");
       }  /* if */
+      /* Check that eok_cast is not used for array-decay operations.
+         (That was the pattern in an earlier version of the IL, but such
+         conversions should now be represented by eok_array_to_pointer.) */
+      if (op == (an_expr_operator_kind)eok_cast && is_pointer_type(expr->type)
+          && is_array_type(operand_1->type)) {
+#if DEBUG && !STANDALONE_UTILITY_PROGRAM
+        db_expression(expr);
+#endif /* DEBUG && !STANDALONE_UTILITY_PROGRAM */
+        internal_error("dump_expr: eok_cast used for array-to-ptr decay");
+      }  /* if */
       /* Check the correctness of the result_is_not_used flags on the
          operands. */
       { an_expr_node_ptr op_node;
