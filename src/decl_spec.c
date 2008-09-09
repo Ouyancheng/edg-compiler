@@ -4440,6 +4440,7 @@ describes Microsoft attributes preceding the enum specifier (if any).
     /* Set a default representation of "int", which may be adjusted later. */
     enum_type->variant.integer.int_kind = (an_integer_kind)ik_int;
     enum_type->variant.integer.enum_type = TRUE;
+    enum_type->variant.integer.enum_info.affiliated_type = NULL;
     if (scope_stack[effective_decl_level].kind ==
                                            (a_scope_kind)sck_func_prototype) {
       enum_type->declared_in_function_prototype = TRUE;
