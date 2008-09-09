@@ -3110,18 +3110,20 @@ user-defined conversions.
             if (con_expr != orig_con_expr) {
               overwrite_node(orig_con_expr, con_expr);
             }  /* if */
-            while (node != orig_con_expr) {
-              /* Reset the type on comma and parenthesis nodes from the top
-                 down to the node that's now a null pointer constant. */
-              check_assertion(is_operation_node(node));
-              node->type = new_type;
-              if (node_operator_is(node, eok_parens)) {
-                node = node->variant.operation.operands;
-              } else {
-                check_assertion(node_operator_is(node, eok_comma));
-                node = node->variant.operation.operands->next;
-              }  /* if */
-            }  /* while */
+            { an_expr_node_ptr tnode = node;
+              while (tnode != orig_con_expr) {
+                /* Reset the type on comma and parenthesis nodes from the top
+                   down to the node that's now a null pointer constant. */
+                check_assertion(is_operation_node(tnode));
+                tnode->type = new_type;
+                if (node_operator_is(tnode, eok_parens)) {
+                  tnode = tnode->variant.operation.operands;
+                } else {
+                  check_assertion(node_operator_is(tnode, eok_comma));
+                  tnode = tnode->variant.operation.operands->next;
+                }  /* if */
+              }  /* while */
+            }
           } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           /* Do not insert code here. */
