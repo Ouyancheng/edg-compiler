@@ -30,7 +30,7 @@ Implicit typename processing is disabled by default in modes in which
 nonclass templates are parsed.  Formerly, this was done even if implicit
 typename was explicitly enabled by a command-line option.  Implicit
 typename is no longer disabled if it was explicitly requested (even though
-this combination seldom what the user really wants).
+this combination is seldom what the user really wants).
 
 9/4/08   [EDGcpfe/9143]
 GNU compatibility: Alias names mapping on multiple declarations
