@@ -12464,6 +12464,31 @@ to an already-allocated constant; otherwise, constant points to the
   }  /* if */
   return expr;
 }  /* alloc_copied_template_param_expr */
+
+
+static a_type_ptr type_of_copied_template_param_expr(
+                                                    an_expr_node_ptr expr,
+                                                    a_constant       *constant,
+                                                    a_constant_ptr   alloc_con)
+/*
+Return the type of a copied template parameter expression.
+If expr is non-NULL, the expression already exists and the type of expr
+is returned.  Otherwise, if alloc_con is non-NULL, it is a pointer
+to an already-allocated constant, and its type is returned.  Otherwise,
+constant points to the (unallocated) constant value, and its type is returned.
+*/
+{
+  a_type_ptr type;
+
+  if (expr != NULL) {
+    type = expr->type;
+  } else if (alloc_con != NULL) {
+    type = alloc_con->type;
+  } else {
+    type = constant->type;
+  }  /* if */
+  return type;
+}  /* type_of_copied_template_param_expr */
   
   
 static a_boolean operator_is_foldable(an_expr_node_ptr  expr)
@@ -12866,6 +12891,12 @@ options is a set of name lookup options.
                                                        options,
                                                        copy_error);
           if (*copy_error) break;
+        } else if (op == (an_expr_operator_kind)eok_parens) {
+          /* The result type of a parenthesis operator is its (substituted)
+             operand type. */
+          operation_type = type_of_copied_template_param_expr(new_operand_1,
+                                                              alloc_con_1,
+                                                              &constant_1);
         }  /* if */
         if (new_operand_1 == NULL &&
             new_operand_2 == NULL &&
