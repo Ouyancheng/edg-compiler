@@ -6571,58 +6571,6 @@ in determining how to generate dynamic initializations).
 }  /* gen_temp_init */
 
 
-static a_boolean is_compiler_generated_ne_0_operation(an_expr_node_ptr expr)
-/*
-Return TRUE if expr is a compiler-generated comparison of the form x != 0 of
-any type.
-*/
-{
-  a_boolean is_ne_0 = FALSE;
-
-  /* No skip_parens needed here. */
-  if (is_operation_node(expr) && expr->variant.operation.compiler_generated) {
-    an_expr_operator_kind op = expr->variant.operation.kind;
-    if (op == (an_expr_operator_kind)eok_ne) {
-      an_expr_node_ptr op2 = expr->variant.operation.operands->next;
-      if (is_constant_node(op2)) {
-        a_constant_ptr constant = op2->variant.constant;
-        a_boolean      save_implicit_cast = constant->implicit_cast;
-        /* is_zero_constant treats implicitly-cast integer 0 constants as
-           nonzero.  However, a null pointer appears as implicitly cast to
-           the pointer type, so we must temporarily disable the cast. */
-        constant->implicit_cast = FALSE;
-        if (is_zero_constant(constant)) {
-          is_ne_0 = TRUE;
-        }  /* if */
-        constant->implicit_cast = save_implicit_cast;
-      }  /* if */
-    }  /* if */
-  }  /* if */
-  return is_ne_0;
-}  /* is_compiler_generated_ne_0_operation */
-
-#if GNU_EXTENSIONS_ALLOWED
-
-static void strip_first_operand_of_two_operand_question_mark(
-                                                     an_expr_node_ptr *operand)
-/*
-*operand is the first operand of a GNU two-operand "?" operator.  Adjust
-it as necessary.
-*/
-{
-  if (C_mode()) {
-    if (is_compiler_generated_ne_0_operation(*operand)) {
-      /* Remove a "!= 0" on top if it was implicitly generated.  It changes
-         the type of the first operand, which is not good for its use as the
-         implied second operand. */
-      *operand = (*operand)->variant.operation.operands;
-      (*operand)->next = NULL;
-    }  /* if */
-  }  /* if */
-}  /* strip_first_operand_of_two_operand_question_mark */
-
-#endif /* GNU_EXTENSIONS_ALLOWED */
-
 static a_boolean is_const_string_literal_cast(an_expr_node_ptr expr)
 /*
 expr is a compiler-generated cast.  Return TRUE if it is a cast that
@@ -6987,11 +6935,6 @@ temporary expressions).
           /* Lvalue-returning "?".  Put out the second and third operands as
              lvalues. */
           if (need_parens) write_tok_ch('(');
-#if GNU_EXTENSIONS_ALLOWED
-          if (node->variant.operation.is_gnu_two_operand_question_mark) {
-            strip_first_operand_of_two_operand_question_mark(&operand_1);
-          }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
           gen_boolean_controlling_expression(operand_1);
           write_tok_str(" ? ");
 #if GNU_EXTENSIONS_ALLOWED
@@ -9218,11 +9161,6 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           goto done_with_operation;
         case eok_question:
           /* Three operand operator. */
-#if GNU_EXTENSIONS_ALLOWED
-          if (expr->variant.operation.is_gnu_two_operand_question_mark) {
-            strip_first_operand_of_two_operand_question_mark(&operand_1);
-          }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
           gen_boolean_controlling_expression(operand_1);
           write_tok_str(" ? ");
 #if GNU_EXTENSIONS_ALLOWED
@@ -9656,13 +9594,6 @@ of a statement or short-circuit operator, and also a full expression
 {
   /* Process any tags declared within the expression (e.g., in casts). */
   skip_embedded_declarations();
-  if (is_compiler_generated_ne_0_operation(expr)) {
-    /* The comparison against 0 did not appear in the source but was added
-       by the front end.  Generate just the left operand instead of the
-       comparison, which should be closer to what the original source looked
-       like. */
-    expr = expr->variant.operation.operands;
-  }  /* if */
   gen_expression(expr);
 }  /* gen_full_boolean_controlling_expression */
 
@@ -9673,13 +9604,6 @@ Generate code for the indicated expression, which could be the controlling
 expression in a ?: or a term of a logical expression.
 */
 {
-  if (is_compiler_generated_ne_0_operation(expr)) {
-    /* The comparison against 0 did not appear in the source but was added
-       by the front end.  Generate just the left operand instead of the
-       comparison, which should be closer to what the original source looked
-       like. */
-    expr = expr->variant.operation.operands;
-  }  /* if */
   gen_expr_with_parens(expr);
 }  /* gen_boolean_controlling_expression */
 
