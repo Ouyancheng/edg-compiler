@@ -1549,7 +1549,6 @@ pointer.
   an_expr_node_ptr      result;
   a_field_ptr           vals_field;
   a_type_ptr            ctype = skip_typerefs(expr->type), ptr_to_elem_type;
-  a_type_qualifier_set  cv_qualifiers;
 
   check_assertion(!is_pointer_type(ctype));
   if (!expr->is_lvalue) {
@@ -1561,14 +1560,10 @@ pointer.
     check_assertion(!expr->is_lvalue);
   }  /* if */
   vals_field = complex_vals_field(ctype);
-  /* Maintain any cv-qualifiers. */
-  cv_qualifiers = get_top_level_type_qualifiers(expr->type)
-                                                    & (TQ_CONST | TQ_VOLATILE);
-  ctype = make_field_selection_type(vals_field, cv_qualifiers);
-  ptr_to_elem_type = type_after_array_to_pointer_transformation(ctype);
   /* Construct "<expr>._Vals". */
   result = field_lvalue_selection_expr(expr, vals_field);
   /* Perform array to pointer decay. */
+  ptr_to_elem_type = type_after_array_to_pointer_transformation(result->type);
   result = make_operator_node((an_expr_operator_kind)eok_array_to_pointer,
                               ptr_to_elem_type, result);
   return result;
