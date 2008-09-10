@@ -4105,13 +4105,19 @@ variable.
        and then promote it to get it processed like other local static
        variables. */
     a_routine_ptr          routine;
+    a_type_ptr             constant_type = constant->type;
     a_memory_region_number region_to_switch_back_to = curr_il_region_number;
     check_assertion(innermost_function_scope != NULL);
     routine = innermost_function_scope->variant.routine.ptr;
+    if (string_literals_are_const && is_const_qualified_type(constant_type)) {
+      /* The expression on top of this has already stripped the const
+         qualification, so make sure the variable type matches. */
+      constant_type = make_unqualified_type(constant_type);
+    }  /* if */
     switch_il_region(routine->assoc_scope);
     string_var = make_lowered_variable((char *)NULL,
                                        /*already_il_name=*/TRUE,
-                                       constant->type,
+                                       constant_type,
                                        (a_storage_class)sc_static);
     check_assertion(!in_file_scope(constant));
     /* Use a local static variable init entry to point to the constant
