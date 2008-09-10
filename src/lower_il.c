@@ -12817,7 +12817,8 @@ cast.  See lower_expr for typical invocation.
             operand_node = var_rvalue_expr(return_value_pointer_variable);
             /* Make sure the types are consistent (cv-qualification can
                be mismatched here). */
-            operand_node->type = make_pointer_type(expr->type);
+            operand_node = add_cast_if_necessary(operand_node,
+                                                make_pointer_type(expr->type));
             change_node_to_operation(expr, (an_expr_operator_kind)eok_indirect,
                                      expr->type, operand_node,
                                      /*is_lvalue=*/TRUE);
