@@ -1564,7 +1564,7 @@ pointer.
   /* Maintain any cv-qualifiers. */
   cv_qualifiers = get_top_level_type_qualifiers(expr->type)
                                                     & (TQ_CONST | TQ_VOLATILE);
-  ctype = make_qualified_type(vals_field->type, cv_qualifiers);
+  ctype = make_field_selection_type(vals_field, cv_qualifiers);
   ptr_to_elem_type = type_after_array_to_pointer_transformation(ctype);
   /* Construct "<expr>._Vals". */
   result = field_lvalue_selection_expr(expr, vals_field);
