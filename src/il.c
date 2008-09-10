@@ -19502,9 +19502,9 @@ static a_byte lvalue_rvalue_test[(int)eok_last+1] = {
   /* eok_pm_points_to_field: */		LVRV_OPND1_IS_RVALUE |
 					LVRV_OPND2_IS_RVALUE,
   /* eok_dot_static: */			LVRV_OPND1_IS_LVALUE |
-                                        LVRV_OPND2_IS_LVALUE_IF_EXPR_IS,
+					LVRV_OPND2_IS_LVALUE_IF_EXPR_IS,
   /* eok_points_to_static: */		LVRV_OPND1_IS_RVALUE |
-                                        LVRV_OPND2_IS_LVALUE_IF_EXPR_IS,
+					LVRV_OPND2_IS_LVALUE_IF_EXPR_IS,
   /* eok_virtual_function_ptr: */	LVRV_OPND1_IS_RVALUE |
 					LVRV_OPND2_IS_RVALUE,
   /* eok_question: */			LVRV_OPND1_IS_RVALUE |
