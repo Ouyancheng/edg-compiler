@@ -2152,55 +2152,37 @@ same as the original type.  The expression is an rvalue.
 }  /* node_type_after_integral_promotion */
 
 
-void normalize_boolean_controlling_expr(an_expr_node_ptr expr)
+an_expr_node_ptr boolean_controlling_expr(an_expr_node_ptr expr)
 /*
-expr is a boolean controlling expression.  Ensure that it produces a value of
-zero or one (e.g., by adding a "!= 0" test on top of it).
+If lowering_normalizes_boolean_controlling_expressions is TRUE and the given
+expression is not an operator producing a boolean value, return an expression
+node obtained by adding "!= 0" on top of the given node.  Also always perform
+this normalization if the expression produces a pointer-to-member value.
+Otherwise, return the given node.
 */
 {
-  if (is_constant_node(expr) &&
-      constant_bool_value_known_at_compile_time(expr->variant.constant)) {
-    /* Constant expressions can be replaced by a 0 or 1 integer constant. */
-    a_constant  norm_con;
-    set_integer_constant(&norm_con,
-                         (a_host_large_integer)
-                                    !is_false_constant(expr->variant.constant),
-                         (an_integer_kind)ik_int);
-    expr->variant.constant = alloc_shareable_constant(&norm_con);
-    expr->type = norm_con.type;
-  } else {
-    a_boolean  add_ne_0;
-    if (!is_operation_node(expr)) {
-      /* Add an appropriate "!= 0" on top of variable and variable address
-         references. */
-      add_ne_0 = TRUE;
-    } else {
-      /* If the top of the expression is not an operator that returns
-         a boolean 0/1, add a "!= 0" of the right kind on top. */
-      add_ne_0 = !is_operator_returning_bool(expr->variant.operation.kind);
+  an_expr_node_ptr  result = expr;
+
+  if ((lowering_normalizes_boolean_controlling_expressions &&
+       (!is_operation_node(expr) ||
+        !is_operator_returning_bool(expr->variant.operation.kind))) ||
+      is_or_was_ptr_to_member_function_type(expr->type) ||
+      is_or_was_ptr_to_data_member_type(expr->type)) {
+    a_constant  zero;
+    a_type_ptr  type = expr->type;
+    if (is_integral_type(type)) {
+      /* Simulate the usual arithmetic conversions. */
+      type = node_type_after_integral_promotion(result);
+      result = add_cast_if_necessary(result, type);
     }  /* if */
-    if (add_ne_0) {
-      /* Add a "!= 0" of the appropriate type on top of the expression
-         to standardize it. */
-      an_expr_node_ptr  expr_copy = copy_node(expr);
-      a_constant        zero;
-      a_type_ptr type = expr_copy->type;
-      if (is_integral_type(type)) {
-        /* Simulate the usual arithmetic conversions. */
-        type = node_type_after_integral_promotion(expr_copy);
-        expr_copy = add_cast_if_necessary(expr_copy, type);
-      }  /* if */
-      make_zero_of_proper_type(type, &zero);
-      expr_copy->next = alloc_node_for_constant(&zero);
-      /* Build a "!=" node pointing to the original expression and the zero
-         constant node. */
-      change_node_to_operation(expr, (an_expr_operator_kind)eok_ne,
-                               integer_type((an_integer_kind)ik_int),
-                               expr_copy, /*is_lvalue=*/FALSE);
-      expr->variant.operation.compiler_generated = TRUE;
-    }  /* if */
+    make_zero_of_proper_type(type, &zero);
+    result->next = alloc_node_for_constant(&zero);
+    result = make_operator_node((an_expr_operator_kind)eok_ne,
+                                integer_type((an_integer_kind)ik_int),
+                                result);
   }  /* if */
-}  /* normalize_boolean_controlling_expr */
+  return result;
+}  /* boolean_controlling_expr */
 
 #if DO_FULL_PORTABLE_EH_LOWERING || ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
 
@@ -9265,35 +9247,26 @@ static void add_null_preservation_code(an_expr_node_ptr expr,
                                        an_expr_node_ptr orig_source_node)
 /*
 Add the equivalent of
-   (orig_source_node != NULL) ? expr : NULL
+   orig_source_node ? expr : NULL
 on top of expr.  The node pointed to by expr is overwritten, so the
 pointer to the overall expression remains the same.
 */
 {
   a_constant       null_constant;
-  an_expr_node_ptr null_constant_node1, null_constant_node2, compare_node;
-  an_expr_node_ptr source_node;
+  an_expr_node_ptr test_node, source_node, null_constant_node;
 
   /* Make a copy of the expr node; it will be reused below as the
      conditional operator node. */
   source_node = copy_node(expr);
   /* Make a NULL pointer constant of the right type. */
-  make_zero_of_proper_type(orig_source_node->type, &null_constant);
-  /* Make two expression nodes pointing to two NULL constants with
-     possibly different types. */
-  null_constant_node1 = alloc_node_for_constant(&null_constant);
-  null_constant.type = source_node->type;
-  null_constant_node2 = alloc_node_for_constant(&null_constant);
-  /* Make a node comparing the original source node against NULL. */
-  orig_source_node->next = null_constant_node1;
-  compare_node = make_operator_node((an_expr_operator_kind)eok_ne,
-                                    integer_type((an_integer_kind)ik_int),
-                                    orig_source_node);
+  make_zero_of_proper_type(source_node->type, &null_constant);
+  null_constant_node = alloc_node_for_constant(&null_constant);
   /* Make a conditional operator node out of the original node. */
-  compare_node->next = source_node;
-  source_node->next = null_constant_node2;
+  test_node = boolean_controlling_expr(orig_source_node);
+  test_node->next = source_node;
+  source_node->next = null_constant_node;
   set_node_operator(expr, (an_expr_operator_kind)eok_question,
-                    source_node->type, expr->is_lvalue, compare_node);
+                    source_node->type, expr->is_lvalue, test_node);
 }  /* add_null_preservation_code */
 
 
@@ -9736,12 +9709,10 @@ Rewrite a cast from a pointer to a member of a class to a pointer to a member
 of a base or derived class of that class.
 */
 {
-  an_expr_node_ptr source_node, question_node, compare_node, plus_node;
+  an_expr_node_ptr source_node, question_node, test_node, plus_node;
   an_expr_node_ptr offset_node, temp_node;
-#if !IA64_ABI
-  an_expr_node_ptr select_i_node;
-#else /* IA64_ABI */
-  an_expr_node_ptr select_f_node, compare2_node;
+#if IA64_ABI
+  an_expr_node_ptr test2_node;
   a_type_ptr       promoted_ptrdiff_t_type;
 #endif /* !IA64_ABI */
   an_expr_node_ptr select_d_node, incr_node, assign_node, comma_node;
@@ -9767,12 +9738,11 @@ of a base or derived class of that class.
     /* The offset is non-zero, so some work is needed. */
     if (is_or_was_ptr_to_member_function_type(dest_type)) {
       /* Pointer to member function.  Change the node to
-           (temp = pmf, (temp.i != 0) ? temp.d += offset : 0, temp)
+           (temp = pmf, temp.i ? temp.d += offset : 0, temp)
          The IA-64 version is
-           (temp = pmf, (temp.f != 0) ? temp.d += offset : 0, temp)
+           (temp = pmf, temp.f ? temp.d += offset : 0, temp)
          normally, and
-           (temp = pmf, (temp.f != 0 || temp.d != 0)
-                                      ? temp.d += offset : 0, temp)
+           (temp = pmf, (temp.f || temp.d) ? temp.d += offset : 0, temp)
          for the variant of the ABI for architectures where the address
          of a function might have a low-order bit of 1.
       */
@@ -9781,40 +9751,24 @@ of a base or derived class of that class.
       (void)make_mptr_type();
       /* Create the temporary. */
       temp_var = make_local_temporary(source_node->type);
-      /* Make "temp.i != 0". */
+      /* Make a "temp" lvalue. */
       temp_node = var_lvalue_expr(temp_var);
 #if !IA64_ABI
-      /* Make (temp.i != 0). */
-      select_i_node = field_rvalue_selection_expr(temp_node, mptr_i_field);
-      select_i_node = integral_promote_node(select_i_node);
-      select_i_node->next = node_for_promoted_integer_constant(0L,
-                                         TARG_VIRTUAL_FUNCTION_INDEX_INT_KIND);
-      compare_node = make_operator_node((an_expr_operator_kind)eok_ne,
-                                        integer_type((an_integer_kind)ik_int),
-                                        select_i_node);
+      /* Make the temp.i boolean controlling expression. */
+      test_node = field_rvalue_selection_expr(temp_node, mptr_i_field);
+      test_node = boolean_controlling_expr(test_node);
 #else /* IA64_ABI */
       promoted_ptrdiff_t_type = type_after_integral_promotion(
                                         integer_type(targ_ptrdiff_t_int_kind));
-      /* Make (temp.f != 0 || temp.d != 0). */
-      select_f_node = field_rvalue_selection_expr(temp_node, mptr_f_field);
-      select_f_node = add_cast(select_f_node, promoted_ptrdiff_t_type);
-      select_f_node->next = node_for_promoted_integer_constant(0L,
-                                                      targ_ptrdiff_t_int_kind);
-      compare_node = make_operator_node((an_expr_operator_kind)eok_ne,
-                                        integer_type((an_integer_kind)ik_int),
-                                        select_f_node);
+      /* Make (temp.f || temp.d). */
+      test_node = field_rvalue_selection_expr(temp_node, mptr_f_field);
+      test_node = boolean_controlling_expr(test_node);
       temp_node = var_lvalue_expr(temp_var);
-      select_d_node = field_rvalue_selection_expr(temp_node, mptr_d_field);
-      select_d_node = add_cast(select_d_node, promoted_ptrdiff_t_type);
-      select_d_node->next = node_for_promoted_integer_constant(0L,
-                                                      targ_ptrdiff_t_int_kind);
-      compare2_node = make_operator_node((an_expr_operator_kind)eok_ne,
-                                         integer_type((an_integer_kind)ik_int),
-                                         select_d_node);
-      compare_node->next = compare2_node;
-      compare_node = make_operator_node((an_expr_operator_kind)eok_lor,
-                                         integer_type((an_integer_kind)ik_int),
-                                         compare_node);
+      test2_node = field_rvalue_selection_expr(temp_node, mptr_d_field);
+      test_node->next = boolean_controlling_expr(test2_node);
+      test_node = make_operator_node((an_expr_operator_kind)eok_lor,
+                                     integer_type((an_integer_kind)ik_int),
+                                     test_node);
 #endif /* IA64_ABI */
       /* Make "temp.d += offset". */
       temp_node = var_lvalue_expr(temp_var);
@@ -9835,14 +9789,14 @@ of a base or derived class of that class.
       select_d_node->next = offset_node;
       incr_node = make_operator_node((an_expr_operator_kind)eok_add_assign,
                                      mptr_d_field->type, select_d_node);
-      /* Make "(temp.i != 0) ? temp.d += offset : 0". */
-      compare_node->next = incr_node;
+      /* Make "temp.i ? temp.d += offset : 0". */
+      test_node->next = incr_node;
       incr_node->next = node_for_integer_constant(0L, TARG_DELTA_INT_KIND);
       question_node = make_operator_node((an_expr_operator_kind)eok_question,
-                                         incr_node->type, compare_node);
+                                         incr_node->type, test_node);
       /* Make "temp = pmf". */
       assign_node = make_var_assignment_expr(temp_var, source_node);
-      /* Make "(temp = pmf, (temp.i != 0) ? temp.d += offset : 0)". */
+      /* Make "(temp = pmf, temp.i ? temp.d += offset : 0)". */
       comma_node = make_comma_node(assign_node, question_node);
       /* Overwrite the original node with a "," operator to make the
          full expression. */
@@ -9870,7 +9824,7 @@ of a base or derived class of that class.
                                              -1L,
 #endif /* IA64_ABI */
                                              targ_ptr_to_data_member_int_kind);
-      compare_node = make_operator_node((an_expr_operator_kind)eok_ne,
+      test_node = make_operator_node((an_expr_operator_kind)eok_ne,
                                         integer_type((an_integer_kind)ik_int),
                                         source_node);
       /* Make "pdm + offset". */
@@ -9900,7 +9854,7 @@ of a base or derived class of that class.
         plus_node = add_cast(plus_node, pm_type);
       }  /* if */
       /* Make the "?" operation by overwriting the original node. */
-      compare_node->next = plus_node;
+      test_node->next = plus_node;
       plus_node->next = node_for_integer_constant(
 #if !IA64_ABI 
                                                   0L,
@@ -9909,7 +9863,7 @@ of a base or derived class of that class.
 #endif /* IA64_ABI */
                                              targ_ptr_to_data_member_int_kind);
       set_node_operator(node, (an_expr_operator_kind)eok_question,
-                        dest_type, node->is_lvalue, compare_node);
+                        dest_type, node->is_lvalue, test_node);
     }  /* if */
   }  /* if */
 }  /* lower_pm_related_class_cast */
@@ -9941,7 +9895,7 @@ lowered.
 #else /* IA64_ABI */
   an_expr_node_ptr hint_expr;
 #endif /* IA64_ABI */
-  an_expr_node_ptr null_constant_node, compare_node;
+  an_expr_node_ptr null_constant_node, test_node;
   an_expr_node_ptr desired_type_node, static_type_node, call_node;
   a_type_ptr       cast_type = expr->type, underlying_cast_type;
   a_constant       constant;
@@ -9949,17 +9903,15 @@ lowered.
 
   /* Rewrite the dynamic cast as
 #if IA64_ABI
-       (src != NULL) ? __dynamic_cast    (src, static_type, desired_type, hint)
-                     : NULL or
-       (temp =         __dynamic_cast    (src, static_type, desired_type, 
-                                          hint))
-                     ? temp : __cxa_bad_cast()
+       src ?   __dynamic_cast(src, static_type, desired_type, hint) : NULL
+     or
+       (temp = __dynamic_cast(src, static_type, desired_type, hint))
+           ? temp : __cxa_bad_cast()
 #else // !IA64_ABI
-       (src != NULL) ? __dynamic_cast    (src, vptr, desired_type, orig_src,
-                                          static_type)
-                     : NULL or
-       (src != NULL) ? __dynamic_cast_ref(src, vptr, desired_type, orig_src,
-                                          static_type)
+       src ? __dynamic_cast    (src, vptr, desired_type, orig_src, static_type)
+                     : NULL
+     or
+       src ? __dynamic_cast_ref(src, vptr, desired_type, orig_src, static_type)
                      : NULL
 #endif // !IA64_ABI
      The second form is for a cast to a reference type.  src is the
@@ -10096,13 +10048,6 @@ lowered.
       /* Create a temporary to store the result of the call. */
       call_copy = make_reusable_copy(call_node, /*vars_can_change=*/FALSE);
       call_copy = add_cast_if_necessary(call_copy, expr->type);
-      /* Build "(temp = __dynamic_cast(...)) != NULL". */
-      make_zero_of_proper_type(call_node->type, &constant);
-      null_constant_node = alloc_node_for_constant(&constant);
-      call_node->next = null_constant_node;
-      compare_node = make_operator_node((an_expr_operator_kind)eok_ne,
-                                        integer_type((an_integer_kind)ik_int),
-                                        call_node);
       /* Build "__cxa_bad_cast()" */
       bad_cast_node = make_runtime_rout_call("__cxa_bad_cast",
                                              &bad_cast_routine,
@@ -10112,7 +10057,8 @@ lowered.
       bad_cast_node = make_comma_node(bad_cast_node,
                                       alloc_node_for_constant(&constant));
       /* Build the conditional. */
-      compare_node->next = call_copy;
+      test_node = boolean_controlling_expr(call_node);
+      test_node->next = call_copy;
       call_copy->next = bad_cast_node;
     }  /* if */
 #endif /* IA64_ABI */
@@ -10125,25 +10071,18 @@ lowered.
     /* Add a cast to the right type (from the void* return of the runtime
        routine). */
     call_node = add_cast_if_necessary(call_node, expr->type);
-    /* Make (src != NULL). */
-    /* Make a NULL pointer constant of the right type. */
-    make_zero_of_proper_type(src->type, &constant);
-    null_constant_node = alloc_node_for_constant(&constant);
-    src->next = null_constant_node;
-    compare_node = make_operator_node((an_expr_operator_kind)eok_ne,
-                                      integer_type((an_integer_kind)ik_int),
-                                      src);
     /* Make the NULL for the third operand of the "?". */
     make_zero_of_proper_type(expr->type, &constant);
     null_constant_node = alloc_node_for_constant(&constant);
-    /* Assemble "(src != NULL) ? __dynamic_cast(...) : NULL". */
-    compare_node->next = call_node;
+    /* Assemble "src ? __dynamic_cast(...) : NULL". */
+    test_node = boolean_controlling_expr(src);
+    test_node->next = call_node;
     call_node->next = null_constant_node;
   }  /* if */
   /* Overwrite the original node with the "?" operator. */
   set_expr_node_kind(expr, (an_expr_node_kind)enk_operation);
   set_node_operator(expr, (an_expr_operator_kind)eok_question,
-                    expr->type, expr->is_lvalue, compare_node);
+                    expr->type, expr->is_lvalue, test_node);
 }  /* lower_dynamic_cast */
 
 #endif /* ABI_CHANGES_FOR_RTTI */
@@ -13573,6 +13512,74 @@ with an enk_object_lifetime node on top.
 }  /* adjust_bool_operation_types */
 
 
+void normalize_boolean_controlling_expr_if_needed(an_expr_node_ptr  expr)
+/*
+The given expression is a boolean controlling expression.  If needed (which
+depends in part on the current configuration) ensure that it produces a 0/1
+value.
+*/
+{
+  if (expr->kind == (an_expr_node_kind)enk_object_lifetime) {
+    /* If an enk_object_lifetime node is (still) on top, look under that. */
+    expr = expr->variant.object_lifetime.expr;
+  }  /* if */
+  /* Discard any eok_bool_cast on top of a scalar expression (it is usually
+     added implicitly in C++ modes): Its effect is identical to normalization
+     (and is not required if normalization is not required). */
+  if (is_operation_node(expr) && node_operator_is(expr, eok_bool_cast)) {
+    a_type_ptr  op_type = expr->variant.operation.operands->type;
+    if (is_scalar_type(op_type)) {
+      /* The test for scalar types excludes pointer-to-member types. */
+      overwrite_node(expr, expr->variant.operation.operands);
+    }  /* if */
+  }  /* if */
+  if (is_constant_node(expr) &&
+      constant_bool_value_known_at_compile_time(expr->variant.constant)) {
+    /* The constant expression can be replaced by a 0 or 1 constant. */
+    a_constant  norm_con;
+    set_integer_constant(&norm_con,
+                         (a_host_large_integer)
+                                    !is_false_constant(expr->variant.constant),
+                         (an_integer_kind)ik_int);
+    expr->variant.constant = alloc_shareable_constant(&norm_con);
+    expr->type = norm_con.type;
+  } else {
+    a_boolean  normalize = !is_bool_type(expr->type) &&
+                           lowering_normalizes_boolean_controlling_expressions;
+#if LOWER_COMPLEX
+    /* We also normalize the expression if it has a complex type that will be
+       lowered to a struct type. */
+    if (is_complex_type(expr->type)) normalize = TRUE;
+#endif /* LOWER_COMPLEX */
+    if (normalize) {
+      if (is_operation_node(expr) &&
+          is_operator_returning_bool(expr->variant.operation.kind)) {
+        /* The operator at the top already is known to produce a 0/1 value. */
+      } else {
+        /* Ensure that the expression has a 0/1 value by adding a "!= 0" test
+           on top of it. */
+        an_expr_node_ptr  expr_copy = copy_node(expr);
+        a_constant        zero;
+        a_type_ptr type = expr_copy->type;
+        if (is_integral_type(type)) {
+          /* Simulate the usual arithmetic conversions. */
+          type = node_type_after_integral_promotion(expr_copy);
+          expr_copy = add_cast_if_necessary(expr_copy, type);
+        }  /* if */
+        make_zero_of_proper_type(type, &zero);
+        expr_copy->next = alloc_node_for_constant(&zero);
+        /* Build a "!=" node pointing to the original expression and the zero
+           constant node. */
+        change_node_to_operation(expr, (an_expr_operator_kind)eok_ne,
+                                 integer_type((an_integer_kind)ik_int),
+                                 expr_copy, /*is_lvalue=*/FALSE);
+        expr->variant.operation.compiler_generated = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* normalize_boolean_controlling_expr_if_needed */
+
+
 static void lower_boolean_controlling_expr(an_expr_node_ptr expr,
                                            a_boolean        is_full_expr)
 /*
@@ -13582,26 +13589,10 @@ expression (i.e., not an expression inside some other expression) if
 is_full_expr is TRUE.
 */
 {
-  a_boolean  normalize = lowering_normalizes_boolean_controlling_expressions &&
-                         !is_bool_type(expr->type);
-
-#if LOWER_COMPLEX
-  /* We also normalize the expression if it has a complex type that will be
-     lowered to a struct type. */
-  if (is_complex_type(expr->type)) normalize = TRUE;
-#endif /* LOWER_COMPLEX */
-  if (normalize) {
-    /* Ensure that the expression has a 0/1 value (e.g., by adding a "!= 0"
-       test on top of it). */
-    an_expr_node_ptr  expr_to_normalize = expr;
-    if (expr->kind == (an_expr_node_kind)enk_object_lifetime) {
-      check_assertion_str(is_full_expr,
-         "lower_boolean_controlling_expr: enk_object_lifetime not at top (2)");
-      /* If an enk_object_lifetime node is (still) on top, look under that. */
-      expr_to_normalize = expr->variant.object_lifetime.expr;
-    }  /* if */
-    normalize_boolean_controlling_expr(expr_to_normalize);
-  }  /* if */
+  normalize_boolean_controlling_expr_if_needed(expr);
+  check_assertion_str(expr->kind != (an_expr_node_kind)enk_object_lifetime ||
+                      is_full_expr,
+             "lower_boolean_controlling_expr: enk_object_lifetime not at top");
   if (bool_is_keyword) {
     /* When bool is enabled, adjust the result type of top-level
        bool-returning operations to be int. */

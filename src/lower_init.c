@@ -3182,23 +3182,15 @@ Pop function corresponding to push_generated_routine_context.
 
 static void add_null_test_around_routine(a_scope_ptr scope)
 /*
-Add "if (this != NULL)" around the whole routine whose top scope is
-given by "scope".
+Add "if (this)" around the whole routine whose top scope is given by "scope".
 */
 {
   a_variable_ptr   this_param_var = scope->variant.routine.parameters;
-  an_expr_node_ptr this_param_node, null_constant_node, if_node;
-  a_constant       null_constant;
+  an_expr_node_ptr this_param_node, if_node;
 
-  /* Make "if (this != NULL)". */
+  /* Make boolean controlling expression "this". */
   this_param_node = var_rvalue_expr(this_param_var);
-  make_zero_of_proper_type(f_skip_typerefs(this_param_var->type),
-                           &null_constant);
-  null_constant_node = alloc_node_for_constant(&null_constant);
-  this_param_node->next = null_constant_node;
-  if_node = make_operator_node((an_expr_operator_kind)eok_ne,
-                               integer_type((an_integer_kind)ik_int),
-                               this_param_node);
+  if_node = boolean_controlling_expr(this_param_node);
   /* Add the "if" statement. */
   enclose_routine_in_if(scope, if_node, (a_variable_ptr)NULL);
 }  /* add_null_test_around_routine */
@@ -3996,7 +3988,7 @@ Add a sequence of code that tests conditional flag set on initialization
 of a variable.  This is used in deciding whether or not to call a
 destructor on the variable.  The sequence is
 
-    if (test_var != 0) {
+    if (test_var) {
       ... destruction of variable being destroyed
     }
 
@@ -4005,16 +3997,13 @@ for further insertion following the "if".  *insert_location2 is set for
 insertion within the "if".
 */
 {
-  an_expr_node_ptr test_var_node, compare_node;
+  an_expr_node_ptr test_var_node;
 
-  /* Make "test_var != 0". */
+  /* Make the boolean controlling expression "test_var". */
   test_var_node = var_rvalue_expr(test_var);
-  test_var_node->next = node_for_integer_constant(0L, (an_integer_kind)ik_int);
-  compare_node = make_operator_node((an_expr_operator_kind)eok_ne,
-                                    integer_type((an_integer_kind)ik_int),
-                                    test_var_node);
+  test_var_node = boolean_controlling_expr(test_var_node);
   /* Make an "if" statement and insert it into the program. */
-  insert_if_statement(compare_node, /*is_initialization_guard=*/FALSE,
+  insert_if_statement(test_var_node, /*is_initialization_guard=*/FALSE,
                       insert_location, (a_statement_ptr *)NULL,
                       insert_location2, (an_insert_location *)NULL);
 }  /* add_conditional_flag_test */
@@ -5563,11 +5552,8 @@ location is the insert_location2 value (after the assignment statement).
        make_runtime_rout_call("__cxa_guard_release", &guard_release_routine,
                              void_type(),
                              var_addr_expr(*test_var));
-    /* Add required "!= 0" test on acquire call. */
-    acquire_node->next = node_for_integer_constant(0L,
-                                                   (an_integer_kind)ik_int);
-    acquire_node = make_operator_node((an_expr_operator_kind)eok_ne,
-                                      acquire_node->type, acquire_node);
+    /* Make the acquire call a boolean controlling expression. */
+    acquire_node = boolean_controlling_expr(acquire_node);
     set_block_start_insert_location(outer_then, &outer_block_insert_location);
     insert_if_statement(acquire_node, /*is_initialization_guard=*/TRUE,
                         &outer_block_insert_location, block_stmt,
@@ -5947,17 +5933,12 @@ to a constructor to be called after the zeroing have been done.
   lower_initializer(model_var, &model_var->init_kind, &model_var->initializer,
                     &insert_location);
   if (need_array_count) {
-    a_constant        zero;
     an_expr_node_ptr  expr;
     /* Build a loop to zero-initialize the entities. */
     loop_stmt = alloc_statement((a_statement_kind)stmk_while);
     expr = make_operator_node((an_expr_operator_kind)eok_post_decr,
                               count_type, var_lvalue_expr(count_var));
-    make_zero_of_proper_type(count_var->type, &zero);
-    expr->next = alloc_node_for_constant(&zero);
-    loop_stmt->expr = make_operator_node((an_expr_operator_kind)eok_ne,
-                                         integer_type((an_integer_kind)ik_int),
-                                         expr);
+    loop_stmt->expr = boolean_controlling_expr(expr);
     /* The access to the entity increments it each time a store is done. */
     entity_expr = make_operator_node((an_expr_operator_kind)eok_post_incr,
                                      pointer_type,
@@ -7451,7 +7432,7 @@ arrays with class elements.
   a_dynamic_init_ptr          dip = ndsp->dynamic_init, elem_dip;
   a_routine_ptr               new_routine = ndsp->routine;
   a_type_ptr                  array_type, elem_type, ptr_elem_type;
-  an_expr_node_ptr            entity_node, new_node, compare_node;
+  an_expr_node_ptr            entity_node, new_node, test_node;
   an_expr_node_ptr            assign_node, num_elem_node, vec_new_node;
   a_constant                  null_constant;
   a_variable_ptr              temp_var, zero_temp_var;
@@ -7498,8 +7479,7 @@ arrays with class elements.
          A *p = new (x, y, z) A[3];
        The "new" call is assigned to a temporary, and entity_node uses
        the temporary, as in
-         ((temp = (type *)new-call(...)) != NULL ?
-                                 (type *)__vec_new(temp, ...) : NULL)
+         (temp = (type *)new-call(...)) ? (type *)__vec_new(temp, ...) : NULL
     */
     /* Prepare the argument list for the "new" call. */
     check_assertion_str(new_routine != NULL,
@@ -7567,12 +7547,7 @@ arrays with class elements.
     assign_node = make_var_assignment_expr(temp_var,
                                            add_cast_if_necessary(new_node,
                                                                ptr_elem_type));
-    /* Add the != NULL test. */
-    make_zero_of_proper_type(ptr_elem_type, &null_constant);
-    assign_node->next = alloc_node_for_constant(&null_constant);
-    compare_node = make_operator_node((an_expr_operator_kind)eok_ne,
-                                      integer_type((an_integer_kind)ik_int),
-                                      assign_node);
+    test_node = boolean_controlling_expr(assign_node);
 #if ABI_CHANGES_FOR_PLACEMENT_DELETE
     /* Add the array prefix size to get from the address returned to
        the actual starting address of the array. */
@@ -7702,11 +7677,11 @@ arrays with class elements.
   vec_new_node = insert_location.variant.expr;
   if (ndsp->placement_new) {
     /* Placement new.  Add the "?" operator over the whole expression. */
-    compare_node->next = vec_new_node;
+    test_node->next = vec_new_node;
     make_zero_of_proper_type(vec_new_node->type, &null_constant);
     vec_new_node->next = alloc_node_for_constant(&null_constant);
     vec_new_node = make_operator_node((an_expr_operator_kind)eok_question,
-                                      vec_new_node->type, compare_node);
+                                      vec_new_node->type, test_node);
   }  /* if */
   /* Overwrite expr with a cast of the result of __vec_new (of type void *)
      to the right pointer type. */
@@ -7878,7 +7853,7 @@ The subtree of the node has not yet been lowered.
   a_dynamic_init_ptr          dip = ndsp->dynamic_init;
   a_type_ptr                  base_type, ptr_base_type;
   a_variable_ptr              temp_var;
-  an_expr_node_ptr            assign_node, compare_node;
+  an_expr_node_ptr            assign_node, test_node;
   an_expr_node_ptr            init_node, call_node, null_node, delete_args;
   a_constant                  null_constant;
   an_insert_location          insert_location;
@@ -7976,13 +7951,6 @@ The subtree of the node has not yet been lowered.
       assign_node = make_var_assignment_expr(temp_var,
                                              add_cast_if_necessary(call_node,
                                                                ptr_base_type));
-      /* Compare the assignment node to a NULL constant of the right type. */
-      make_zero_of_proper_type(ptr_base_type, &null_constant);
-      null_node = alloc_node_for_constant(&null_constant);
-      assign_node->next = null_node;
-      compare_node = make_operator_node((an_expr_operator_kind)eok_ne,
-                                        integer_type((an_integer_kind)ik_int),
-                                        assign_node);
       set_expr_creation_insert_location(&insert_location);
       if (is_array_type(ndsp->type) &&
           dip->kind == (a_dynamic_init_kind)dik_zero &&
@@ -8040,15 +8008,16 @@ The subtree of the node has not yet been lowered.
         }  /* if */
       }
       init_node = insert_location.variant.expr;
-      /* Build the ?: operation.  Its first argument is the comparison of
-         the temp pointer against NULL; its second is the initialization code;
-         and its third is another NULL constant of the right type. */
+      /* Build the ?: operation.  Its first argument is the test of the temp
+         pointer; its second is the initialization code; and its third is a
+         NULL constant of the right type. */
+      test_node = boolean_controlling_expr(assign_node);
       make_zero_of_proper_type(ptr_base_type, &null_constant);
       null_node = alloc_node_for_constant(&null_constant);
-      compare_node->next = init_node;
+      test_node->next = init_node;
       init_node->next = null_node;
       call_node = make_operator_node((an_expr_operator_kind)eok_question,
-                                     ptr_base_type, compare_node);
+                                     ptr_base_type, test_node);
     }  /* if */
     /* Turn the original enk_new_delete node into a cast to the right
        pointer type. */
@@ -8110,9 +8079,7 @@ tricks.
 #if !DTORS_RETURN_THIS
   an_expr_node_ptr ptr_node_delete;
 #endif /* !DTORS_RETURN_THIS */
-  an_expr_node_ptr compare_node;
   a_type_ptr       class_type;
-  a_constant       null_constant;
   a_routine_ptr    dtor_routine = dip->destructor;
   a_boolean        need_null_ptr_test = FALSE;
 #if !IA64_ABI
@@ -8161,7 +8128,7 @@ tricks.
 #if !DTORS_RETURN_THIS
     if (delete_routine != NULL) vars_can_change = TRUE;
 #endif /* !DTORS_RETURN_THIS */
-    ptr_node_test = ptr_node;
+    ptr_node_test = boolean_controlling_expr(ptr_node);
     ptr_node = make_reusable_copy(ptr_node, vars_can_change);
   }  /* if */
 #if !DTORS_RETURN_THIS
@@ -8208,20 +8175,14 @@ tricks.
   }  /* if */
   if (need_null_ptr_test) {
     /* Add a null pointer test, producing
-         (ptr_node != NULL) ? dtor(...) : (void)0
-                                       ^ plus possible delete call here
+         ptr_node ? dtor(...) : (void)0
+                             ^ plus possible delete call here
     */
-    /* Make "ptr_node != NULL". */
-    make_zero_of_proper_type(ptr_node_test->type, &null_constant);
-    ptr_node_test->next = alloc_node_for_constant(&null_constant);
-    compare_node = make_operator_node((an_expr_operator_kind)eok_ne,
-                                      integer_type((an_integer_kind)ik_int),
-                                      ptr_node_test);
-    /* Make "(ptr_node != NULL) ? dtor(...) : (void)0". */
-    compare_node->next = call_node;
-    compare_node->next->next = zero_cast_to_void();
+    /* Make "ptr_node ? dtor(...) : (void)0". */
+    ptr_node_test->next = call_node;
+    call_node->next = zero_cast_to_void();
     call_node = make_operator_node((an_expr_operator_kind)eok_question,
-                                   call_node->type, compare_node);
+                                   call_node->type, ptr_node_test);
   }  /* if */
   return call_node;
 }  /* make_dtor_call_for_delete */
@@ -11009,16 +10970,11 @@ constructor, but may instead be after an assignment to "this".
     }  /* if */
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
     /* Make an "if" statement with a block statement under it:
-         if (complete != 0) {}
-                             ^--- additional statements will be inserted.
+         if (complete) {}
+                        ^--- additional statements will be inserted.
     */
     complete_var_node = var_rvalue_expr(complete_var);
-    complete_var_node->next = 
-                        node_for_integer_constant(0L, (an_integer_kind)ik_int);
-    compare_node = make_operator_node((an_expr_operator_kind)eok_ne,
-                                      integer_type((an_integer_kind)ik_int),
-                                      complete_var_node);
-    insert_if_statement(compare_node,
+    insert_if_statement(boolean_controlling_expr(complete_var_node),
                         /*is_initialization_guard=*/FALSE,
                         insert_location, (a_statement_ptr *)NULL,
                         &insert_location2,
@@ -11310,7 +11266,7 @@ constructor scope, and also lower the user code.
   {
 #if NEW_CAN_BE_FOLDED_INTO_CTOR
     /* Add code to allocate storage if "this" is NULL:
-         if (this != NULL || (this = new-rout(size)) != NULL)
+         if (this || (this = new_rout(size)))
        The entire rest of the routine (both wrapper code and user code)
        is placed in the dependent statement of the "if". */
     /* Ordering issue: we want to do the call of make_region_table_entry
@@ -11321,15 +11277,13 @@ constructor scope, and also lower the user code.
        short of inserting the "if" and do that at the end. */
     a_type_ptr         int_type, unqual_this_param_type;
     an_expr_node_ptr   size_node, call_node, assign_node;
-    an_expr_node_ptr   new_compare_node, this_param_node;
-    an_expr_node_ptr   null_constant_node, this_compare_node;
-    a_constant         null_constant;
+    an_expr_node_ptr   this_param_node, this_test_node;
 
     /* If there is no default new routine for the class, do not put out
        the code.  This happens if the class has a class-specific new but
        not one that takes a single argument. */
     if (new_routine != NULL) {
-      /* Make "new-rout(size)". */
+      /* Make "new_rout(size)". */
       size_node = node_for_host_large_integer(
                                         (a_host_large_integer)class_type->size,
                                         targ_size_t_int_kind);
@@ -11388,23 +11342,13 @@ constructor scope, and also lower the user code.
                              /*set_cond_flag_if_any=*/TRUE,
                              curr_context, &expr_insert_location);
       }  /* if */
-      /* Make "(this = new_rout(size)) != NULL". */
-      make_zero_of_proper_type(unqual_this_param_type, &null_constant);
-      null_constant_node = alloc_node_for_constant(&null_constant);
-      assign_node->next = null_constant_node;
-      int_type = integer_type((an_integer_kind)ik_int);
-      new_compare_node = make_operator_node((an_expr_operator_kind)eok_ne,
-                                            int_type, assign_node);
-      /* Make "this != NULL || (this = new-rout(size)) != NULL". */
+      /* Make "this || (this = new_rout(size))". */
       this_param_node = var_rvalue_expr(this_param_var);
-      make_zero_of_proper_type(unqual_this_param_type, &null_constant);
-      null_constant_node = alloc_node_for_constant(&null_constant);
-      this_param_node->next = null_constant_node;
-      this_compare_node = make_operator_node((an_expr_operator_kind)eok_ne,
-                                             int_type, this_param_node);
-      this_compare_node->next = new_compare_node;
+      this_test_node = boolean_controlling_expr(this_param_node);
+      this_test_node->next = boolean_controlling_expr(assign_node);
+      int_type = integer_type((an_integer_kind)ik_int);
       if_node = make_operator_node((an_expr_operator_kind)eok_lor,
-                                   int_type, this_compare_node);
+                                   int_type, this_test_node);
       /* The "if" statement is inserted later. */
     }  /* if */
 #endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
@@ -11435,7 +11379,7 @@ constructor scope, and also lower the user code.
   {
     if (new_routine != NULL) {
       /* Insert an "if" around the whole routine, specifically
-         "if (this != NULL || (this = new-rout(size)) != NULL)".
+         "if (this != NULL || (this = new_rout(size)) != NULL)".
          As mentioned above, this must be done after the user code is
          lowered. */
       enclose_routine_in_if(scope, if_node, this_param_var);
@@ -11658,18 +11602,11 @@ complete object, and return a pointer to it.  dtor_info->complete_obj_var
 points to an int variable that is non-zero if the object is complete.
 */
 {
-  an_expr_node_ptr complete_obj_node, zero_constant_node, compare_node;
+  an_expr_node_ptr complete_obj_node;
 
   /* Make an expression node for the whole-object-indicator variable. */
   complete_obj_node = var_rvalue_expr(dtor_info->complete_obj_var);
-  /* Make an expression node pointing to the zero constant. */
-  zero_constant_node = node_for_integer_constant(0L, (an_integer_kind)ik_int);
-  /* Make a node comparing the variable against zero. */
-  complete_obj_node->next = zero_constant_node;
-  compare_node = make_operator_node((an_expr_operator_kind)eok_ne,
-                                    integer_type((an_integer_kind)ik_int),
-                                    complete_obj_node);
-  return compare_node;
+  return boolean_controlling_expr(complete_obj_node);
 }  /* expr_for_dtor_complete_object_test */
 
 
@@ -12466,7 +12403,7 @@ destructor scope, and also lower the user code.
     an_expr_node_ptr this_param_node;
     an_expr_node_ptr and_node, two_constant_node, if_node;
     a_type_ptr       int_type = integer_type((an_integer_kind)ik_int);
-    an_expr_node_ptr zero_constant_node, complete_obj_param_node;
+    an_expr_node_ptr complete_obj_param_node;
 
     if (!epilogue_setup_done) {
       a_boolean label_added;
@@ -12483,33 +12420,21 @@ destructor scope, and also lower the user code.
     complete_obj_param_node->next = two_constant_node;
     and_node = make_operator_node((an_expr_operator_kind)eok_and,
                                   int_type, complete_obj_param_node);
-    /* Make "(param & 0x1) != 0". */
-    zero_constant_node = node_for_integer_constant(0L,
-                                                   (an_integer_kind)ik_int);
-    and_node->next = zero_constant_node;
-    if_node = make_operator_node((an_expr_operator_kind)eok_ne,
-                                 int_type, and_node);
+    if_node = boolean_controlling_expr(and_node);
 #if ASSIGNMENT_TO_THIS_ALLOWED
     /* If an assignment to "this" was done in the body of the destructor,
-       also test "this != NULL". */
+       also test that "this" isn't NULL. */
     if (dtor_routine->assignment_to_this_done) {
-      an_expr_node_ptr null_constant_node, this_compare_node;
-      a_constant       null_constant;
-      /* Make "this != NULL". */
+      an_expr_node_ptr this_test_node;
       this_param_node = var_rvalue_expr(this_param_var);
-      make_zero_of_proper_type(f_skip_typerefs(this_param_var->type),
-                               &null_constant);
-      null_constant_node = alloc_node_for_constant(&null_constant);
-      this_param_node->next = null_constant_node;
-      this_compare_node = make_operator_node((an_expr_operator_kind)eok_ne,
-                                             int_type, this_param_node);
-      /* Make "this != NULL && (param & 0x1) != 0". */
-      this_compare_node->next = if_node;
+      this_test_node = boolean_controlling_expr(this_param_node);
+      /* Make "this && (param & 0x1)". */
+      this_test_node->next = if_node;
       if_node = make_operator_node((an_expr_operator_kind)eok_land,
-                                   int_type, this_compare_node);
+                                   int_type, this_test_node);
     }  /* if */
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */
-    /* Make "if ((param & 0x1) != 0)". */
+    /* Make "if (param & 0x1)". */
     insert_if_statement(if_node, /*is_initialization_guard=*/FALSE,
                         &insert_location, (a_statement_ptr *)NULL,
                         &insert_location2, (an_insert_location *)NULL);

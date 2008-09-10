@@ -1011,6 +1011,7 @@ otherwise, do no copying and return FALSE.
       op == (an_expr_operator_kind)eok_lor ||
       op == (an_expr_operator_kind)eok_land) {
     /* This is a short-circuited operation. */
+    a_boolean  op1_known_true = FALSE, op1_known_false = FALSE;
     processed = TRUE;
     operand = expr->variant.operation.operands;
     operand2 = operand->next;
@@ -1018,58 +1019,76 @@ otherwise, do no copying and return FALSE.
     /* Copy the first operand.  In the process, simplify to a constant if
        possible by substituting for parameter variables. */
     operand = copy_expr_tree_for_inlining(operand);
-    if (!is_constant_node(operand) ||
-        !constant_bool_value_known_at_compile_time(operand->variant.constant)){
-      /* The first operand is not constant, so this operation cannot be
-         simplified.  Just copy the rest of the operands. */
+    if (is_constant_node(operand)) {
+      /* A constant expression: See if the constant has a known boolean
+         control value. */
+      a_constant_ptr con = operand->variant.constant;
+      if (constant_bool_value_known_at_compile_time(con)) {
+        op1_known_false = is_false_constant(con);
+        op1_known_true = !op1_known_false;
+      }  /* if */
+    } else {
+      /* Some non-constant expressions are known to convert to a "true"
+         boolean value.  Specifically, the address of variables and
+         functions. */
+      a_boolean  non_null = FALSE;
+      op1_known_true = is_constant_valued_expression(operand,
+                                                    /*local_vars_change=*/TRUE,
+                                                    /*other_vars_change=*/TRUE,
+                                                    &non_null) &&
+                       non_null;
+    }  /* if */
+    if (op1_known_true || op1_known_false) {
+      /* The first operand is known false or known true, so the operation can
+         be simplified. */
+      if (op == (an_expr_operator_kind)eok_question) {
+        /* "?" operation.  Keep the second or third operand on the basis
+           of the value of the first operand. */
+        if (op1_known_true) {
+          /* The first operand is true, so keep the second operand. */
+          operand2 = copy_expr_tree_for_inlining(operand2);
+          overwrite_node(expr, operand2);
+        } else {
+          /* The first operand is false, so keep the third operand. */
+          operand3 = copy_expr_tree_for_inlining(operand3);
+          overwrite_node(expr, operand3);
+        }  /* if */
+      } else if (op == (an_expr_operator_kind)eok_lor) {
+        /* "||" operation. */
+        if (op1_known_true) {
+          /* The first operand is true, so the overall operation has the
+             value true. */
+          overwrite_node(expr, operand);
+        } else {
+          /* The first operand is false, so the second operand is the value
+             of the expression. */
+          operand2 = copy_expr_tree_for_inlining(operand2);
+          overwrite_node(expr, operand2);
+        }  /* if */
+      } else if (op == (an_expr_operator_kind)eok_land) {
+        /* "&&" operation. */
+        if (op1_known_true) {
+          /* The first operand is true, so the second operand is the value
+             of the expression. */
+          operand2 = copy_expr_tree_for_inlining(operand2);
+          overwrite_node(expr, operand2);
+        } else {
+          /* The first operand is false, so the overall operation has the
+             value false. */
+          overwrite_node(expr, operand);
+        }  /* if */
+      } else {
+        unexpected_condition();
+      }  /* if */
+    } else {
+      /* The first operand is not known false or known true, so this operation
+         cannot be simplified.  Just copy the rest of the operands. */
       operand2 = copy_expr_tree_for_inlining(operand2);
       if (operand3 != NULL) operand3 = copy_expr_tree_for_inlining(operand3);
       /* Link the copied operands together. */
       expr->variant.operation.operands = operand;
       operand->next = operand2;
       operand2->next = operand3;
-    } else {
-      /* The first operand is constant, so the operation can be simplified. */
-      a_constant_ptr con = operand->variant.constant;
-      if (op == (an_expr_operator_kind)eok_question) {
-        /* "?" operation.  Keep the second or third operand on the basis
-           of the value of the first operand. */
-        if (is_false_constant(con)) {
-          /* The constant is false, so keep the third operand. */
-          operand3 = copy_expr_tree_for_inlining(operand3);
-          overwrite_node(expr, operand3);
-        } else {
-          /* The constant is true, so keep the second operand. */
-          operand2 = copy_expr_tree_for_inlining(operand2);
-          overwrite_node(expr, operand2);
-        }  /* if */
-      } else if (op == (an_expr_operator_kind)eok_lor) {
-        /* "||" operation. */
-        if (is_false_constant(con)) {
-          /* The first operand is false, so the second operand is the value
-             of the expression. */
-          operand2 = copy_expr_tree_for_inlining(operand2);
-          overwrite_node(expr, operand2);
-        } else {
-          /* The first operand is true, so the overall operation has the
-             value true. */
-          overwrite_node(expr, operand);
-        }  /* if */
-      } else if (op == (an_expr_operator_kind)eok_land) {
-        /* "&&" operation. */
-        if (is_false_constant(con)) {
-          /* The first operand is false, so the overall operation has the
-             value false. */
-          overwrite_node(expr, operand);
-        } else {
-          /* The first operand is true, so the second operand is the value
-             of the expression. */
-          operand2 = copy_expr_tree_for_inlining(operand2);
-          overwrite_node(expr, operand2);
-        }  /* if */
-      } else {
-        unexpected_condition();
-      }  /* if */
     }  /* if */
   } else if (is_simple_assignment(op) &&
              (node_operator_type_kind_is(expr, tk_integer) ||

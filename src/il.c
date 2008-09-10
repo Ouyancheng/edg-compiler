@@ -13668,9 +13668,8 @@ a constant that is the previous value incremented by one.
 
 a_boolean is_operator_returning_bool(an_expr_operator_kind op)
 /*
-Return TRUE iff the indicated operator returns a bool (C++) or int (C)
-result.  These are the operators for which an implicit "!= 0" need not
-be added on a tested condition in the IL.
+Return TRUE iff the indicated operator returns a bool (C++) or 0/1 int (C)
+result.
 */
 {
   a_boolean returns_bool;

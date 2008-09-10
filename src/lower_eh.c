@@ -2313,7 +2313,7 @@ conversion in cases where their value is not used.
 {
   a_type_ptr       typeid_type = expr->variant.typeid_info.type;
   an_expr_node_ptr typeid_expr = expr->variant.typeid_info.expr;
-  an_expr_node_ptr new_expr, null_constant_node, compare_node;
+  an_expr_node_ptr new_expr, null_constant_node, test_node;
   an_expr_node_ptr vptr_expr;
   a_variable_ptr   typeinfo_var;
   a_constant       null_constant;
@@ -2371,22 +2371,14 @@ conversion in cases where their value is not used.
       typeid_expr = add_address_of_to_node(typeid_expr);
     }  /* if */
     check_assertion(!typeid_expr->is_lvalue);
-    /* Build the runtime call __get_typeid((typeid_expr != NULL) ? vptr : NULL)
+    /* Build the runtime call __get_typeid(typeid_expr ? vptr : NULL)
        where vptr is the virtual function table pointer value from the
        class object.  If NULL is passed to the runtime routine, it throws
        bad_typeid. */
     /* For the IA-64 ABI, generate
-         (typeid_expr != NULL) ? (typeinfo*)(vptr[-1]) :
-                                 (__cxa_bad_typeid(), (typeinfo*)0)
+         typeid_expr ? (typeinfo*)(vptr[-1]) :
+                       (__cxa_bad_typeid(), (typeinfo*)0)
     */
-    /* Make "typeid_expr != NULL". */
-    /* Make a NULL pointer constant of the right type. */
-    make_zero_of_proper_type(typeid_expr->type, &null_constant);
-    null_constant_node = alloc_node_for_constant(&null_constant);
-    typeid_expr->next = null_constant_node;
-    compare_node = make_operator_node((an_expr_operator_kind)eok_ne,
-                                      integer_type((an_integer_kind)ik_int),
-                                      typeid_expr);
     /* Make code to get the virtual function table pointer. */
     vptr_expr = make_reusable_copy(typeid_expr, /*vars_can_change=*/FALSE);
     vptr_expr = make_any_vptr_rvalue(vptr_expr, (an_expr_node_ptr *)NULL);
@@ -2415,20 +2407,22 @@ conversion in cases where their value is not used.
     null_constant_node = alloc_node_for_constant(&null_constant);
     bad_typeid_expr = make_comma_node(bad_typeid_expr, null_constant_node);
     /* Assemble the "?" operation. */
-    compare_node->next = vptr_expr;
+    test_node = boolean_controlling_expr(typeid_expr);
+    test_node->next = vptr_expr;
     vptr_expr->next = bad_typeid_expr;
     new_expr = make_operator_node((an_expr_operator_kind)eok_question,
-                                  vptr_expr->type, compare_node);
+                                  vptr_expr->type, test_node);
 #else /* !IA64_ABI */
     /* Make a NULL pointer constant of the vptr type. */
     make_zero_of_proper_type(vptr_expr->type, &null_constant);
     null_constant_node = alloc_node_for_constant(&null_constant);
     /* Assemble the "?" operation. */
-    compare_node->next = vptr_expr;
+    test_node = boolean_controlling_expr(typeid_expr);
+    test_node->next = vptr_expr;
     vptr_expr->next = null_constant_node;
     question_node = make_operator_node((an_expr_operator_kind)eok_question,
                                        vptr_expr->type,
-                                       compare_node);
+                                       test_node);
     /* Make the __get_typeid call. */
     new_expr = make_runtime_rout_call("__get_typeid", &get_typeid_routine,
                                  make_pointer_type(make_user_typeinfo_type()),
