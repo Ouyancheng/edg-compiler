@@ -13063,7 +13063,8 @@ cast.  See lower_expr for typical invocation.
               lower_vla_dimensions_in_type(type);
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
             }  /* if */
-            if (type == void_type() && operand_node->is_lvalue) {
+            if (skip_typerefs(type) == void_type() &&
+                operand_node->is_lvalue) {
               /* We have an lvalue that is cast to a void type.  Rewrite
                  this discarded lvalue as an rvalue. */
               rewrite_discarded_lvalue_as_rvalue(operand_node);
