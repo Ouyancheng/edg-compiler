@@ -6656,6 +6656,7 @@ table.
     goto done;
   } /* if */
   primary_function = NULL;
+  /*lint --e{850} entry_number modified in loop */
   for (; entry_number <= highest_entry_number; entry_number++) {
     /* Find the virtual function with the number "entry_number". */
     primary_function = find_virtual_function(entry_number,
@@ -6893,7 +6894,7 @@ for the same virtual function table variable; see note below.
     number_of_virtual_functions = 0;
   } else {
     number_of_virtual_functions = ctsp->highest_virtual_function_number -
-                                            FIRST_VIRTUAL_FUNCTION_NUMBER + 1;
+                                           (FIRST_VIRTUAL_FUNCTION_NUMBER + 1);
   }  /* if */
   vtbl_var->type->variant.array.variant.number_of_elements +=
                                               number_of_virtual_functions 
