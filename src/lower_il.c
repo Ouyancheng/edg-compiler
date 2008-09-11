@@ -9720,8 +9720,7 @@ of a base or derived class of that class.
   an_expr_node_ptr offset_node, temp_node;
 #if IA64_ABI
   an_expr_node_ptr test2_node;
-  a_type_ptr       promoted_ptrdiff_t_type;
-#endif /* !IA64_ABI */
+#endif /* IA64_ABI */
   an_expr_node_ptr select_d_node, incr_node, assign_node, comma_node;
   a_constant       offset_constant;
   a_targ_ptrdiff_t offset;
@@ -9765,8 +9764,6 @@ of a base or derived class of that class.
       test_node = field_rvalue_selection_expr(temp_node, mptr_i_field);
       test_node = boolean_controlling_expr(test_node);
 #else /* IA64_ABI */
-      promoted_ptrdiff_t_type = type_after_integral_promotion(
-                                        integer_type(targ_ptrdiff_t_int_kind));
       /* Make (temp.f || temp.d). */
       test_node = field_rvalue_selection_expr(temp_node, mptr_f_field);
       test_node = boolean_controlling_expr(test_node);
