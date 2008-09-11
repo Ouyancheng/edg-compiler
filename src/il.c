@@ -12146,12 +12146,14 @@ and return a pointer to it.
 an_expr_node_ptr f_skip_parens(an_expr_node_ptr expr)
 /*
 Strip parentheses (eok_parens nodes) off an expression, and return the
-underlying expression.
+underlying expression.  If the argument passed in is NULL, return NULL.
 */
 {
-  while (is_operation_node(expr) && node_operator_is(expr, eok_parens)) {
-    expr = expr->variant.operation.operands;
-  }  /* while */
+  if (expr != NULL) {
+    while (is_operation_node(expr) && node_operator_is(expr, eok_parens)) {
+      expr = expr->variant.operation.operands;
+    }  /* while */
+  }  /* if */
   return expr;
 }  /* f_skip_parens */
 
