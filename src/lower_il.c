@@ -2267,7 +2267,7 @@ the variable var (a pointer to a class variable).
 
   check_assertion(is_pointer_type(var->type));
   node = add_indirection_to_node(var_rvalue_expr(var));
-  check_assertion(is_immediate_class_type(node->type) && node->is_lvalue);
+  check_assertion(is_class_struct_union_type(node->type) && node->is_lvalue);
   return node;
 }  /* make_class_lvalue_from_var */
 
@@ -3146,7 +3146,7 @@ static void change_node_to_operation(an_expr_node_ptr      node,
                                      a_boolean             is_lvalue)
 /*
 Change node to an operation node with operator op, type type, lvalueness
-as specified by is_lvalue and operand list as given by operand.
+as specified by is_lvalue, and operand list as given by operand.
 */
 {
   an_expr_node_ptr node_next;
@@ -11664,8 +11664,7 @@ resultant expression can be optimized.
       a_boolean             optimized = FALSE;
       if (op == (an_expr_operator_kind)eok_address_of &&
           node_operator_is(child, eok_indirect) &&
-          il_identical_types(expr->type, gchild->type) &&
-          expr->is_lvalue == gchild->is_lvalue) {
+          il_identical_types(expr->type, gchild->type)) {
         /* Optimize "&*x" operation. */
         overwrite_node(expr, gchild);
         optimized = TRUE;
@@ -11685,9 +11684,7 @@ resultant expression can be optimized.
       } else if (op == (an_expr_operator_kind)eok_address_of &&
                  node_operator_is(child, eok_comma) &&
                  is_operation_node(comma_second_node) && 
-                 node_operator_is(comma_second_node, eok_indirect) &&
-                 expr->is_lvalue ==
-                    comma_second_node->variant.operation.operands->is_lvalue) {
+                 node_operator_is(comma_second_node, eok_indirect)) {
         /* Optimize "&(..., *x)" operation.  Note that "*(..., &x)" is
            explicitly not optimized because it can lead to an lvalue
            comma expression during inlining which generates invalid C. */
@@ -11784,15 +11781,11 @@ expression, if necessary.  If lower_source is TRUE, the expression is lowered.
 #endif /* CHECKING */
     expr->type = make_pointer_type(array_element_type(operand->type));
   } else if (node_operator_is(expr, eok_comma)) {
-    /* Add a cast so this do-nothing operation will retain the correct type.
-       The type of the eok_comma operation is unaffected by the type of
-       its first operand. */
-    if (operand->is_lvalue) {
-      operand = add_cast_to_lvalue_if_necessary(copy_node(operand),
-                                                orig_operand_type);
-    } else {
-      operand = add_cast(copy_node(operand), orig_operand_type);
-    }  /* if */
+    /* This is a case like ("abc", x).  Add a cast so this do-nothing operation
+       will retain the correct type.  The type of the eok_comma operation is
+       unaffected by the type of its first operand. */
+    operand = add_cast_to_lvalue_if_necessary(copy_node(operand),
+                                              orig_operand_type);
     overwrite_node(expr->variant.operation.operands, operand);
   } else if (node_operator_is(expr, eok_lvalue_cast) &&
              il_identical_types(expr->type, operand->type)) {
