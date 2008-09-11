@@ -12,14 +12,14 @@ in an error).  The Microsoft and GNU compilers do not implement the rules
 required by the standard, so our behavior in Microsoft and GNU modes matches
 the behavior of those compilers as noted below.
 
-  // Now results in an error in except in g++ mode when gnu_version is < 30400
+  // Now results in an error except in g++ mode when gnu_version is < 30400
   namespace N {
     const int a = 42;
     enum N { e };
     int i = N::a; // error: N refers to enum not namespace
   }
 
-  // Now results in an error in except in g++ mode when gnu_version is < 30400
+  // Now results in an error except in g++ mode when gnu_version is < 30400
   // and Microsoft mode
   namespace M {
     const int a = 42;
