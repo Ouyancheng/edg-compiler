@@ -6893,8 +6893,9 @@ for the same virtual function table variable; see note below.
   if (ctsp->highest_virtual_function_number == VIRTUAL_FUNCTION_NUMBER_NONE) {
     number_of_virtual_functions = 0;
   } else {
+    /*lint --e(835)*/
     number_of_virtual_functions = ctsp->highest_virtual_function_number -
-                                           (FIRST_VIRTUAL_FUNCTION_NUMBER + 1);
+                                            FIRST_VIRTUAL_FUNCTION_NUMBER + 1;
   }  /* if */
   vtbl_var->type->variant.array.variant.number_of_elements +=
                                               number_of_virtual_functions 
