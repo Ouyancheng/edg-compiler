@@ -500,7 +500,7 @@ static a_byte generated_precedence[(int)eok_last+1] = {
 #if MICROSOFT_EXTENSIONS_ALLOWED
   PREC_POSTFIX,		/* eok_assume */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  PREC_LOWEST,		/* eok_parens */
+  PREC_PRIMARY,		/* eok_parens */
   PREC_PREFIX,		/* eok_negate */
   PREC_PREFIX,		/* eok_unary_plus */
   PREC_PREFIX,		/* eok_complement */

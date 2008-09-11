@@ -30,7 +30,8 @@ exprutil.h -- Declarations related to expression parsing.
 The operators and their precedences are:
 
 Operators			Precedence	Associativity
-[] () . -> ++ --		18		L       [] subscripting
+()				19		N/A	() syntactic grouping
+[] () . -> ++ --		18		L	[] subscripting
 							() function call
 							++ -- postfix
 ++ -- & * + - ~ ! sizeof	17		R	Prefix operators
@@ -57,6 +58,7 @@ Precedence level 0 is used to bracket a complete expression.
 */
 #define LEFT_ASSOC  TRUE
 #define RIGHT_ASSOC FALSE
+#define PREC_PRIMARY    19
 #define PREC_POSTFIX    18
 #define PREC_PREFIX     17
 #define PREC_CAST       16
