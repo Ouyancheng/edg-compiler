@@ -5129,6 +5129,7 @@ done_with_operation:
          consistent with the type of the variable to which it refers. */
       { a_type_ptr tp = expr->type;
         a_type_ptr expected_type = expr->variant.variable->type;
+        a_boolean  types_match;
         if (is_array_type(tp) && is_array_type(expected_type) &&
             ((!tp->variant.array.is_variable_size_array &&
               !tp->variant.array.is_template_dependent_size_array &&
@@ -5147,7 +5148,29 @@ done_with_operation:
           /* Qualifiers are dropped on rvalues. */
           expected_type = make_unqualified_type(expected_type);
         }  /* if */
-        check_assertion_str(il_identical_types(tp, expected_type),
+        types_match = il_identical_types(tp, expected_type);
+        if (!types_match) {
+          /* Under some conditions, a variable that refers to a typeinfo
+             class can have its type changed to refer to a different class
+             after the generation of an enk_variable node, so that the
+             node's type still refers to the original class.  We work
+             around that case by considering two class types to be a match
+             if their names both begin with "__" (making them reserved
+             names). */
+          tp = skip_typerefs(tp);
+          expected_type = skip_typerefs(expected_type);
+          if (is_immediate_class_type(tp) &&
+              is_immediate_class_type(expected_type)) {
+            const char *name1 = tp->source_corresp.name;
+            const char *name2 = expected_type->source_corresp.name;
+            if (name1 != NULL && name2 != NULL &&
+                name1[0] == '_' && name1[1] == '_' &&
+                name2[0] == '_' && name2[1] == '_') {
+              types_match = TRUE;
+            }  /* if */
+          }  /* if */
+        }  /* if */
+        check_assertion_str(types_match,
                             "dump_expr: enk_variable has wrong type");
       }
 #endif /* CHECKING && !STANDALONE_C_GEN_BE */
