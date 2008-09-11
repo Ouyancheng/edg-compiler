@@ -13311,7 +13311,17 @@ TRUE, the class member is preferred over the normal lookup symbol.
        destructor. */
     *is_vacuous_dtor = TRUE;
   }  /* if */
-  if (sym == NULL && (might_be_vacuous_dtor ||
+  if (sym != NULL && might_be_vacuous_dtor) {
+    /* If the lookup above returned something that is only valid as a vacuous
+       destructor, set the is_vacuous destructor flag. */
+    a_boolean	only_valid_as_vacuous_dtor = FALSE;
+    if (is_enum_symbol(sym)) {
+      only_valid_as_vacuous_dtor = !enum_qualifiers_enabled;
+    } else if (sym->kind == (a_symbol_kind)sk_type && !is_class_symbol(sym)) {
+      only_valid_as_vacuous_dtor = TRUE;
+    }  /* if */
+    *is_vacuous_dtor = only_valid_as_vacuous_dtor;
+  } else if (sym == NULL && (might_be_vacuous_dtor ||
                       (microsoft_bugs && microsoft_version < 1300 &&
                        !in_if_exists))) {
     /* The lookup has failed so far.  If this might be a vacuous destructor,
@@ -13884,7 +13894,9 @@ selection operator, in which case it points to the type of the left operand.
           qualifier_is_type = TRUE;
           qualifier_type_is_class = FALSE;
           qualifier_is_enum = TRUE;
-        } else if (qualifier_sym->kind == (a_symbol_kind)sk_type ||
+        } else if ((qualifier_sym->kind == (a_symbol_kind)sk_type &&
+                   (is_template_param_type(qualifier_sym->variant.type.ptr) ||
+                    is_vacuous_dtor)) ||
                    (qualifier_sym->kind == (a_symbol_kind)sk_enum_tag &&
                     is_vacuous_dtor)) {
             /* The class symbol points to a type.  This is the case when
@@ -14098,18 +14110,11 @@ selection operator, in which case it points to the type of the left operand.
                 qualifier_sym = class_qualified_id_lookup
                                          (&locator_for_curr_id, qualifier_type,
                                           lookup_options);
-                /* If the class lookup fails, and a vacuous destructor is
-                   allowed, do another lookup without the requirement that
-                   a class be found. */
-                if (qualifier_sym == NULL && might_be_vacuous_dtor) {
-                  qualifier_sym = class_qualified_id_lookup(
-                                          &locator_for_curr_id, qualifier_type,
-                                          IDL_NO_OPTIONS);
+                /* If the class lookup returns a symbol that is only valid as
+                   a vacuous destructor, set the is_vacuous_dtor flag. */
+                if (might_be_vacuous_dtor &&
+                    !is_valid_qualifier_symbol(qualifier_sym)) {
                   is_vacuous_dtor = TRUE;
-                  if (qualifier_sym != NULL &&
-                      !is_type_symbol(qualifier_sym)) {
-                    qualifier_sym = NULL;
-                  }  /* if */
                 }  /* if */
               }  /* if */
             } else {
@@ -14120,20 +14125,14 @@ selection operator, in which case it points to the type of the left operand.
                                          (&locator_for_curr_id,
                                           qualifier_namespace,
                                           lookup_options);
-              /* If the namespace lookup fails, and a vacuous destructor is
-                 allowed, do another lookup without the requirement that
-                 a class be found.  This could occur for a vacuous
-                 destructor reference of the form i->N::T::~T, where N
-                 is a namespace, and T is a typedef in that namespace. */
-              if (qualifier_sym == NULL && might_be_vacuous_dtor) {
-                qualifier_sym = namespace_qualified_id_lookup
-                                                       (&locator_for_curr_id,
-                                                        qualifier_namespace,
-                                                        IDL_NO_OPTIONS);
+              /* If the namespace lookup returns a symbol that is only valid as
+                 a vacuous destructor, set the is_vacuous_dtor flag.
+                 This could occur for a vacuous destructor reference of
+                 the form i->N::T::~T, where N is a namespace, and T is a
+                 typedef in that namespace. */
+              if (might_be_vacuous_dtor &&
+                  !is_valid_qualifier_symbol(qualifier_sym)) {
                 is_vacuous_dtor = TRUE;
-                if (qualifier_sym != NULL && !is_type_symbol(qualifier_sym)) {
-                  qualifier_sym = NULL;
-                }  /* if */
               }  /* if */
             }  /* if */
           }  /* if */

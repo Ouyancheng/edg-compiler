@@ -1,5 +1,32 @@
 Version 3.11
 
+9/10/08  [EDGcpfe/7621]
+Lookup of names in name qualifiers
+
+The lookup of names before the "::" in a qualified name did not correctly
+implement the behavior required by the standard.  If the lookup of a name
+before the "::" encountered an enum name or a non-class typedef that name
+was ignored and the lookup continued to look for names in enclosing scopes.
+The standard requires that such names be returned by the lookup (resulting
+in an error).  The Microsoft and GNU compilers do not implement the rules
+required by the standard, so our behavior in Microsoft and GNU modes matches
+the behavior of those compilers as noted below.
+
+  // Now results in an error in except in g++ mode when gnu_version is < 30400
+  namespace N {
+    const int a = 42;
+    enum N { e };
+    int i = N::a; // error: N refers to enum not namespace
+  }
+
+  // Now results in an error in except in g++ mode when gnu_version is < 30400
+  // and Microsoft mode
+  namespace M {
+    const int a = 42;
+    typedef int M;
+    int i = M::a; // error: M refers to typedef not namespace
+  }
+
 9/9/08   [EDGcpfe/9108]
 New representation for parentheses
 
