@@ -1,5 +1,29 @@
 Version 3.11
 
+9/11/08  [EDGcpfe/9208]
+Invalid IL for designators into anonymous unions
+
+In some modes (like Microsoft C99 mode), a designator can refer to a field of
+a nested anonymous union.  In some cases involving multiple levels of
+anonymous unions (including "nonstandard anonymous unions"), the IL describing
+an initializer containing designators into those unions was invalid.
+For example:
+
+  struct X {
+    union {  // Anonymous union.
+      int i;
+      struct {  // Nonstandard anonymous union.
+        float f;
+        short s;
+      };
+    };
+  };
+  struct X x = { .s = 7 };  // Invalid IL create for the aggregate initializer
+                            // constant.
+
+This is now fixed.
+
+
 9/10/08  [EDGcpfe/7621]
 Lookup of names in name qualifiers
 

@@ -1082,6 +1082,19 @@ NULL if the return value is not needed.
 }  /* designator_coming */ 
 
 
+static a_boolean designator_is_next(an_aggregate_init_context   *context)
+/*
+Return TRUE if the next constant to create is a ck_designator.  This may be
+a designator appearing explicitly in the source, or part of an implicit field
+designator chain resulting from a designator construct referring to an
+anonymous union member.
+*/
+{
+  return designator_coming((a_boolean *)NULL) ||
+         context->anonymous_union_field_sym != NULL;
+}  /* designator_is_next */
+
+
 static a_boolean tentative_aggregate_init(
                                    an_aggregate_init_info_ptr  init_info,
                                    an_aggregate_init_context   *context,
@@ -1250,7 +1263,7 @@ and GNU C modes, the processing is similar to that in C++.
        (gnu_mode && is_array_type(context->type) &&
         !skip_typerefs(context->type)->variant.array.bound_is_zero)) &&
       (curr_token != tok_lbrace || context->pending_init_con != NULL) &&
-      !top_level && !designator_coming((a_boolean *)NULL)) {
+      !top_level && !designator_is_next(context)) {
     /* If this is an aggregate, whole object initialization is possible but
        not required.  Indeed, if the initializing expression can initialize
        the first initializable member of an aggregate, then that should be
@@ -2121,7 +2134,7 @@ this function points to a tree that includes a dynamic-init entry.
               ((curr_token == tok_lbrace &&
                 context.pending_init_con == NULL) ||
                (init_info->designation_state != ds_complete_designation &&
-                designator_coming((a_boolean *)NULL))))) {
+                designator_is_next(&context))))) {
     /* Initialization of a class/struct/union, array (complete or incomplete),
        or GNU vector ("aggregate types" are required here).  The result will
        be an aggregate constant except when an array of char is initialized by
@@ -2559,7 +2572,7 @@ this function points to a tree that includes a dynamic-init entry.
           if (curr_token == tok_rbrace) {
             took_extra_comma = any_more_initializers;
             any_more_initializers = FALSE;
-          } else if (designator_coming((a_boolean *)NULL)) {
+          } else if (designator_is_next(&context)) {
             /* A designator ends a non-brace-enclosed list of initializers,
                but if it is brace-enclosed then an upcoming designator means
                more initializers are following. */
