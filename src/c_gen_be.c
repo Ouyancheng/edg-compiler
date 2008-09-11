@@ -4397,13 +4397,12 @@ there's some possibility of precedence confusion and need_parens is TRUE.
       }  /* if */
       if (op == (an_expr_operator_kind)eok_indirect) {
         a_type_ptr result_type = expr->type;
-        if (is_pointer_type(result_type) &&
-            is_function_type(type_pointed_to(result_type)) &&
+        if (!expr->is_lvalue && is_pointer_type(result_type) &&
             is_ptr_or_ref_type(operand_1->type) &&
             is_function_type(type_pointed_to(operand_1->type))) {
-          /* An expression with function type immediately decays back to a
-             pointer to function; we need to check against the function
-             type itself. */
+          /* An lvalue-to-rvalue conversion on an expression with function
+             type decays back to a pointer to function; we need to check
+             against the function type itself. */
           result_type = type_pointed_to(result_type);
         }  /* if */
         if (!pointer_type_is_consistent(
@@ -5125,6 +5124,33 @@ done_with_operation:
       dump_constant(expr->variant.constant);
       break;
     case enk_variable:
+#if CHECKING && !STANDALONE_C_GEN_BE
+      /* Check to make sure that the type of the expression node is
+         consistent with the type of the variable to which it refers. */
+      { a_type_ptr tp = expr->type;
+        a_type_ptr expected_type = expr->variant.variable->type;
+        if (is_array_type(tp) && is_array_type(expected_type) &&
+            ((!tp->variant.array.is_variable_size_array &&
+              !tp->variant.array.is_template_dependent_size_array &&
+              tp->variant.array.variant.number_of_elements == 0) ||
+             (!expected_type->variant.array.is_variable_size_array &&
+              !expected_type->variant.array.is_template_dependent_size_array &&
+              expected_type->variant.array.variant.number_of_elements == 0))) {
+          /* In some cases (block extern declarations, late template
+             instantiation, designated initializers, etc.) a variable type
+             and the result type of an enk_variable may differ in the
+             presence or absence of a major array bound.  In such cases, we
+             compare the element type instead. */
+          tp = array_element_type(tp);
+          expected_type = array_element_type(expected_type);
+        } else if (!expr->is_lvalue) {
+          /* Qualifiers are dropped on rvalues. */
+          expected_type = make_unqualified_type(expected_type);
+        }  /* if */
+        check_assertion_str(il_identical_types(tp, expected_type),
+                            "dump_expr: enk_variable has wrong type");
+      }
+#endif /* CHECKING && !STANDALONE_C_GEN_BE */
       dump_variable_reference_node(expr);
       break;
     case enk_routine:
