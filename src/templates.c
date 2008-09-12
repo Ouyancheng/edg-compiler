@@ -7205,7 +7205,7 @@ a pointer over a reference type or creating an array of references.
             /* A reference to reference.  We may have to merge qualifiers. */
             new_type = make_reference_to_reference(
                          tp, get_type_qualifiers(type->variant.pointer.type),
-                         copy_error);
+                         /*qual_pos=*/(a_source_position*)NULL, copy_error);
           } else {
             new_type = make_reference_type(tp);
           }  /* if */

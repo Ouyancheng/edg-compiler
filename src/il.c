@@ -8754,6 +8754,7 @@ an existing entry if possible.
 #endif /* !NEAR_AND_FAR_ALLOWED */
 a_type_ptr make_reference_to_reference(a_type_ptr            base_ref_type,
                                        a_type_qualifier_set  qualifiers,
+                                       a_source_position     *qual_pos,
                                        a_boolean             *is_error)
 /*
 Make a type "T cv1 &" where T is a reference type given by base_ref_type and
@@ -8763,6 +8764,9 @@ cv1 and cv2.  If cv1 does not add qualifiers to cv2, base_ref_type itself is
 returned.
 If the given reference type is restrict-qualified (e.g. "int & restrict"),
 the restrict qualifier is silently dropped.
+If some of the cv1 qualifiers are ignored (e.g., because they'd apply to a
+function type) and qual_pos is non-NULL, a warning is issued at the position
+indicated by qual_pos.
 When is_error is NULL, a diagnostic is issued in error cases (e.g., when the
 result would produce a result that is both "near" and "far").  Otherwise,
 *is_error is set to TRUE and no diagnostic is issued (useful during type
@@ -8793,11 +8797,24 @@ deduction for templates).  In all error cases, an error type is returned.
         (top_qualifiers & TQ_RESTRICT) != TQ_NONE) {
       /* Additional qualifiers must be merged in or a restrict qualifier must
          be dropped. */
-      qualifiers &= ~TQ_RESTRICT;
       top_qualifiers &= ~TQ_RESTRICT;
+      if (qualifiers != TQ_NONE) {
+        if (is_function_type(under_ref)) {
+          /* Ignore qualifiers applied to a function type. */
+          if (qual_pos != NULL) {
+            pos_warning(ec_cv_qualified_function_type, qual_pos);
+          }  /* if */
+          qualifiers = TQ_NONE;
+        } else if (qualifiers & TQ_RESTRICT) {
+          if (qual_pos != NULL) {
+            pos_warning(ec_restrict_qualifier_ignored, qual_pos);
+          }  /* if */
+          qualifiers &= ~TQ_RESTRICT;
+        }  /* if */
+      }  /* if */
       result = under_ref;
       if (qualifiers != TQ_NONE) {
-        result = make_qualified_type(under_ref, qualifiers);
+          result = make_qualified_type(result, qualifiers);
       }  /* if */
       result = make_reference_type(result);
       if (top_qualifiers != TQ_NONE) {

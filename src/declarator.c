@@ -3504,8 +3504,11 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
                                  pending_ptr_mods.based_pos);
           if (is_reference_type(temp_type)) {
             if (ref_to_ref_allowed) {
+              a_source_position_ptr  qual_pos =
+                   (state->qualifiers == TQ_RESTRICT) ? &state->restrict_pos
+                                                      : &state->qualifiers_pos;
               complete_type = make_reference_to_reference(
-                                complete_type, state->qualifiers,
+                                complete_type, state->qualifiers, qual_pos,
                                 (a_boolean*)NULL);
               state->unused_qualifiers = FALSE;
             } else {
@@ -5131,11 +5134,14 @@ function_lparen:
          of specifiers_type being a reference (i.e., the specifiers contained
          a typedef or template parameter referring to a reference).  Otherwise,
          an error should be issued. */
+      a_source_position_ptr  qual_pos =
+                   (state->qualifiers == TQ_RESTRICT) ? &state->restrict_pos
+                                                      : &state->qualifiers_pos;
       if (specifiers_type == NULL || !is_reference_type(specifiers_type)) {
         error(ec_reference_to_reference);
       }  /* if */
       derived_type = make_reference_to_reference(complete_type,
-                                                 state->qualifiers,
+                                                 state->qualifiers, qual_pos,
                                                  (a_boolean*)NULL);
       state->unused_qualifiers = FALSE;
       /* The second reference component is essentially ignored.  We do not

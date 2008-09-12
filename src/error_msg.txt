@@ -1762,6 +1762,7 @@ ec_template_information;INTERNAL;"template information"
 ec_il_output;;"IL output"
 ec_restrict_qualifier_dropped;;"conversion drops \"__restrict\" qualifier"
 ec_unable_to_get_mapped_memory_reason;;"unable to obtain mapped memory for %sq: %s2"
+ec_restrict_qualifier_ignored;;"restrict qualifier is ignored"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
