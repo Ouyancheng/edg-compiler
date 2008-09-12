@@ -19337,6 +19337,7 @@ of the is_lvalue flag is TRUE.
   return okay;
 }  /* is_rvalueable_node */
 
+
 static a_boolean might_be_decayed_lvalue(an_expr_node_ptr node)
 /*
 Return TRUE if node (which must be an rvalue) could be the result of an
@@ -19502,8 +19503,7 @@ static a_byte lvalue_rvalue_test[(int)eok_last+1] = {
 					LVRV_OPND2_IS_RVALUE,
   /* eok_pm_points_to_field: */		LVRV_OPND1_IS_RVALUE |
 					LVRV_OPND2_IS_RVALUE,
-  /* eok_dot_static: */			LVRV_OPND1_IS_LVALUE |
-					LVRV_OPND2_IS_LVALUE_IF_EXPR_IS,
+  /* eok_dot_static: */			LVRV_OPND2_IS_LVALUE_IF_EXPR_IS,
   /* eok_points_to_static: */		LVRV_OPND1_IS_RVALUE |
 					LVRV_OPND2_IS_LVALUE_IF_EXPR_IS,
   /* eok_virtual_function_ptr: */	LVRV_OPND1_IS_RVALUE |
