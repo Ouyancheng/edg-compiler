@@ -894,6 +894,8 @@ error, issue it at *err_pos.  result->type need not be set on entry.
     pos_ty_error(ec_ambiguous_base_class, err_pos, bcp->type);
     set_error_constant(result);
   } else {
+    an_expr_node_ptr expr = constant_1->expr;
+    constant_1->expr = NULL;
     copy_constant(constant_1, result);
     /* Loop through the classes between the derived class and the
        base class.  Check accessibility at each step and generate the
@@ -964,6 +966,15 @@ error, issue it at *err_pos.  result->type need not be set on entry.
     new_type = make_identically_qualified_type(curr_type, orig_type);
     implicit_or_explicit_cast(result, make_pointer_type(new_type),
                               is_implicit_cast);
+    /* Record the backing expression if the folding was successful. */
+    if (*did_not_fold) {
+      expr = NULL;
+    } else if (expr != NULL) {
+      add_base_class_casts(bcp, orig_type, /*check_cast_access=*/FALSE,
+                           is_implicit_cast, /*implicit_in_naming=*/FALSE,
+                           &expr, err_pos);
+    }  /* if */
+    result->expr = expr;
   }  /* if */
 }  /* fold_base_class_cast */
 
@@ -999,6 +1010,8 @@ desired derived type.  If there is an error, it is issued at *err_pos.
                   derived_class_type, bcp->type);
     set_error_constant(result);
   } else {
+    an_expr_node_ptr expr = constant_1->expr;
+    constant_1->expr = NULL;
     copy_constant(constant_1, result);
     /* Determine the offset and adjust it for the cast. */
     get_pointer_offset(result, &offset);
@@ -1023,6 +1036,11 @@ desired derived type.  If there is an error, it is issued at *err_pos.
       set_pointer_offset(result, &offset, &err);
     }  /* if */
     implicit_or_explicit_cast(result, new_type, /*is_implicit_cast=*/FALSE);
+    /* Update the backing expression if one was present. */
+    if (expr != NULL) {
+      add_derived_class_casts(type_pointed_to(new_type), bcp, &expr, err_pos);
+    }  /* if */
+    result->expr = expr;
   }  /* if */
 }  /* fold_derived_class_cast */
 

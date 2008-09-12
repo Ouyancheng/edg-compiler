@@ -1496,6 +1496,11 @@ extern void add_base_class_casts(a_base_class_ptr  bcp,
                                  an_expr_node_ptr  *p_node,
                                  a_source_position *err_pos);
 
+extern void add_derived_class_casts(a_type_ptr        new_type_pointed_to,
+                                    a_base_class_ptr  bcp,
+                                    an_expr_node_ptr  *p_node,
+                                    a_source_position *err_pos);
+
 extern a_boolean is_bit_field_extract_node(an_expr_node_ptr node);
 
 extern void cast_node(an_expr_node_ptr  *p_node,

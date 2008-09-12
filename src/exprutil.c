@@ -2508,10 +2508,10 @@ what's needed).
 }  /* add_a_derived_class_cast */
 
 
-static void add_derived_class_casts(a_type_ptr        new_type_pointed_to,
-                                    a_base_class_ptr  bcp,
-                                    an_expr_node_ptr  *p_node,
-                                    a_source_position *err_pos)
+void add_derived_class_casts(a_type_ptr        new_type_pointed_to,
+                             a_base_class_ptr  bcp,
+                             an_expr_node_ptr  *p_node,
+                             a_source_position *err_pos)
 /*
 Add casts to *p_node to change its type from pointer to a class type to
 pointer to new_type_pointed_to, a derived class of that class; bcp indicates
