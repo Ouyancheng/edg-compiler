@@ -2531,6 +2531,25 @@ found_base_class:;
 
 #endif /* ABI_CHANGES_FOR_RTTI */
 
+static an_expr_node_ptr add_cast_to_lvalue(an_expr_node_ptr node,
+                                    a_type_ptr       type)
+/*
+This utility function is used to cast an lvalue expression given by
+node to the type specified by type.  The cast is performed by taking the
+address of the lvalue, casting the resulting expression to a pointer to type,
+and then performing an indirection on the result.  The result is always an
+lvalue.  Note that this technique can't be used for base class casts, but it
+can be used for cv-qualification or type adjustment.
+*/
+{
+  check_assertion(node->is_lvalue);
+  node = add_address_of_to_node(node);
+  node = add_cast(node, make_pointer_type(type));
+  node = add_indirection_to_node(node);
+  return node;
+}  /* add_cast_to_lvalue */
+
+
 an_expr_node_ptr add_cast_to_lvalue_if_necessary(an_expr_node_ptr node,
                                                  a_type_ptr       type)
 /*
@@ -2545,9 +2564,7 @@ but it can be used for cv-qualification or type adjustment.
 {
   check_assertion(node->is_lvalue);
   if (!il_identical_types(node->type, type)) {
-    node = add_address_of_to_node(node);
-    node = add_cast(node, make_pointer_type(type));
-    node = add_indirection_to_node(node);
+    node = add_cast_to_lvalue(node, type);
   }  /* if */
   return node;
 }  /* add_cast_to_lvalue_if_necessary */
@@ -12720,10 +12737,10 @@ cast.  See lower_expr for typical invocation.
              out the extra pointer-to on the parameter type.*/
           an_expr_node_ptr new_expr;
           an_expr_node_ptr var_copy = copy_node(expr);
-          /* The type that was in the node is the one we want.
-             Add a pointer to the enk_variable node type so the new node type
-             will be correct. */
-          var_copy->type = make_pointer_type(var_copy->type);
+          /* Make sure the type of the enk_variable_node matches that of
+             the variable.  Add a pointer to the enk_variable node type so the
+             new node type will be correct. */
+          var_copy->type = make_pointer_type(type_pointed_to(var->type));
           if (var_copy->is_lvalue) {
             /* Convert this node to an rvalue in preparation for the
                indirection. */
@@ -12761,6 +12778,30 @@ cast.  See lower_expr for typical invocation.
                                      /*is_lvalue=*/TRUE);
           }  /* if */
 #endif /* DO_RETURN_VALUE_OPTIMIZATION_IN_LOWERING */
+#if ASSIGNMENT_TO_THIS_ALLOWED
+        } else if (innermost_function_scope != NULL &&
+                   innermost_function_scope->variant.routine.
+                                                  this_param_variable == var &&
+                   should_drop_const_on_this_param_variable(
+                        innermost_function_scope->variant.routine.ptr,
+                        innermost_function_scope->variant.routine.ptr->type) &&
+                   !identical_types(var->type, expr->type)) {
+          /* If assignment to 'this' is allowed (an anachronism), the
+             const qualification of the 'this' parameter has already been
+             stripped in lower_scope.  Change the type of the enk_variable
+             expression to match.  Add a cast to keep the type of the overall
+             expression the same. */
+          a_type_ptr        expr_type = expr->type;
+          an_expr_node_ptr  new_expr;
+          expr->type = var->type;
+          new_expr = copy_node(expr);
+          if (expr->is_lvalue) {
+            new_expr = add_cast_to_lvalue(new_expr, expr_type);
+          } else {
+            new_expr = add_cast(new_expr, expr_type);
+          }  /* if */
+          overwrite_node(expr, new_expr);
+#endif /* ASSIGNMENT_TO_THIS_ALLOWED */
         }  /* if */
       }  /* if */
       break;
