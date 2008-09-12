@@ -658,26 +658,6 @@ the expression type is ptrdiff_t.
 }  /* vla_size_expr */
 
 
-static an_expr_node_ptr expr_for_address_of_vla_var(a_variable_ptr vla_var)
-/*
-Generate an rvalue expression for the address of the specified vla_var,
-suitable for use as an argument to a run-time routine.  The result is cast
-to void *.
-*/
-{
-  an_expr_node_ptr  result;
-
-  check_assertion(is_vla_type(vla_var->type));
-  result = var_lvalue_expr(vla_var);
-  /* Change the type of the expression node to reflect the eventual
-     (post lowering) type of the VLA variable. */
-  result->type = make_pointer_type(result->type);
-  result = add_address_of_to_node(result);
-  result = add_cast(result, void_star_type());
-  return result;
-}  /* expr_for_address_of_vla_var */
-
-
 static a_routine_ptr  vla_alloc_routine;
 
 
@@ -689,7 +669,7 @@ indicating the number of elements in the VLA (needed by other parts of C++
 VLA lowering).
 */
 {
-  an_expr_node_ptr  result = expr_for_address_of_vla_var(vla_var), size_expr;
+  an_expr_node_ptr  result = var_addr_expr(vla_var), size_expr;
   a_type_ptr        ptrdiff_type = integer_type(targ_ptrdiff_t_int_kind);
 
   if (C_mode()) {
@@ -737,6 +717,7 @@ VLA lowering).
     }  /* if */
   }  /* if */
   size_expr = add_cast_if_necessary(size_expr, ptrdiff_type);
+  result = add_cast_if_necessary(result, void_star_type());
   result->next = size_expr;
   result = make_prototyped_runtime_call("__vla_alloc", &vla_alloc_routine,
                                         void_type(), void_star_type(),
@@ -786,8 +767,9 @@ well).
 */
 {
   a_variable_ptr    vla_var = expr->variant.vla_variable;
-  an_expr_node_ptr  arg = expr_for_address_of_vla_var(vla_var);
+  an_expr_node_ptr  arg = var_addr_expr(vla_var);
 
+  arg = add_cast_if_necessary(arg, void_star_type());
   overwrite_node(expr,
                  make_prototyped_runtime_call("__vla_dealloc",
                                               &vla_dealloc_routine,
@@ -985,10 +967,15 @@ an expression with VLA type.  The operands of expr have not been lowered yet.
          by taking the address of the expression. */
       operand = add_address_of_to_node(operand);
     } else if (is_variable_node(operand)) {
-      /* Change the lvalue reference to an rvalue pointer.  The underlying
-         variable type will be modified to a pointer to the (still qualified)
-         underlying type.  The overall type of the expression remains the same
-         as the array decay is replaced with a cast of the same type below. */
+      /* Change the lvalue reference to an rvalue pointer.  VLA variables
+         are lowered from 'array [] of T' to 'pointer to T'.  Expressions
+         (like this one) that refer to VLA variables must also have the
+         correct type.  This step changes the operand type from 
+         'array [] of T' to 'pointer to array [] of T'.  Once lower_vla_types
+         is called, this expression's type will match that of the lowered VLA
+         variable ('pointer to T').  The overall type of the expression remains
+         the same as the array decay is replaced with a cast of the same type
+         below. */
       a_type_ptr  new_operand_type = make_pointer_type(operand->type);
       operand = rvalue_expr_for_lvalue(operand);
       operand->type = new_operand_type;

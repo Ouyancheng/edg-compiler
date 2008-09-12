@@ -14313,7 +14313,20 @@ for variables with reference type.  This is intended for generated code and
 not for implementation of "&" in the source code.
 */
 {
-  return add_address_of_to_node(var_lvalue_expr(var));
+  an_expr_node_ptr  node = var_lvalue_expr(var);
+#if LOWER_VARIABLE_LENGTH_ARRAYS
+  if (il_lowering_underway && vla_enabled && is_vla_type(var->type)) {
+    /* Add a pointer-to to the type of the VLA enk_variable node.
+       VLA variables are eventually lowered to 'pointer-to
+       underlying-element-type'; expressions that refer to them are modified
+       in two steps, first by adding a 'pointer-to' (as we're doing here), then
+       in lower_vla_types (when the expression type will be changed from
+       'pointer to array [] of T' to 'pointer to T'). */
+    node->type = make_pointer_type(node->type);
+  }  /* if */
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
+  node = add_address_of_to_node(node);
+  return node;
 }  /* var_addr_expr */
 
 
