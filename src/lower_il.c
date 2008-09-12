@@ -12804,18 +12804,10 @@ cast.  See lower_expr for typical invocation.
           /* If assignment to 'this' is allowed (an anachronism), the
              const qualification of the 'this' parameter has already been
              stripped in lower_scope.  Change the type of the enk_variable
-             expression to match.  Add a cast to keep the type of the overall
-             expression the same. */
-          a_type_ptr        expr_type = expr->type;
-          an_expr_node_ptr  new_expr;
+             expression to match that of the variable (most likely this is
+             simply removing a const qualification).  Note that this changes
+             the type of the overall expression. */
           expr->type = var->type;
-          new_expr = copy_node(expr);
-          if (expr->is_lvalue) {
-            new_expr = add_cast_to_lvalue(new_expr, expr_type);
-          } else {
-            new_expr = add_cast(new_expr, expr_type);
-          }  /* if */
-          overwrite_node(expr, new_expr);
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */
         }  /* if */
       }  /* if */
