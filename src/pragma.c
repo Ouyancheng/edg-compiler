@@ -827,7 +827,7 @@ there is additional processing to be done.
                but pragmas are not expected to be bound to function prototype
                scopes.  Similarly, template declaration scopes have IL scopes
                when prototype intantiations are included in the IL, but
-               cannot have pragmas bound do them. */
+               cannot have pragmas bound to them. */
             case sck_func_prototype:
             case sck_condition:
             case sck_function_access:
