@@ -8128,7 +8128,7 @@ tricks.
 #if !DTORS_RETURN_THIS
     if (delete_routine != NULL) vars_can_change = TRUE;
 #endif /* !DTORS_RETURN_THIS */
-    ptr_node_test = boolean_controlling_expr(ptr_node);
+    ptr_node_test = ptr_node;
     ptr_node = make_reusable_copy(ptr_node, vars_can_change);
   }  /* if */
 #if !DTORS_RETURN_THIS
@@ -8179,6 +8179,7 @@ tricks.
                              ^ plus possible delete call here
     */
     /* Make "ptr_node ? dtor(...) : (void)0". */
+    ptr_node_test = boolean_controlling_expr(ptr_node_test);
     ptr_node_test->next = call_node;
     call_node->next = zero_cast_to_void();
     call_node = make_operator_node((an_expr_operator_kind)eok_question,
@@ -11379,7 +11380,7 @@ constructor scope, and also lower the user code.
   {
     if (new_routine != NULL) {
       /* Insert an "if" around the whole routine, specifically
-         "if (this != NULL || (this = new_rout(size)) != NULL)".
+         "if (this || (this = new_rout(size)))".
          As mentioned above, this must be done after the user code is
          lowered. */
       enclose_routine_in_if(scope, if_node, this_param_var);
@@ -12392,7 +12393,7 @@ destructor scope, and also lower the user code.
   code_pos_for_lowering = error_position = closing_brace_pos;
   /* Add code to free the storage if the "free" bit (0x1) is on in the
      added parameter:
-       if ((param & 0x1) != 0) delete-routine((void *)this);
+       if (param & 0x1) delete-routine((void *)this);
      Watch out for the case where the delete routine pointer is NULL; this
      happens if a derived class inherits more than one delete routine, and
      therefore they're ambiguous.

@@ -2152,34 +2152,49 @@ same as the original type.  The expression is an rvalue.
 }  /* node_type_after_integral_promotion */
 
 
+static an_expr_node_ptr make_operands_for_ne_0(an_expr_node_ptr expr)
+/*
+The given operand must be compared against zero (or null).  Apply integral
+promotions to the expression if needed, append a zero of the proper type as
+the next operand, and return the resulting operand pair.
+*/
+{
+  a_constant  zero;
+  a_type_ptr  type = expr->type;
+
+  if (is_integral_type(type)) {
+    /* Simulate the usual arithmetic conversions. */
+    type = node_type_after_integral_promotion(expr);
+    expr = add_cast_if_necessary(expr, type);
+  }  /* if */
+  make_zero_of_proper_type(type, &zero);
+  expr->next = alloc_node_for_constant(&zero);
+  return expr;
+}  /* make_operands_for_ne_0 */
+
+
 an_expr_node_ptr boolean_controlling_expr(an_expr_node_ptr expr)
 /*
 If lowering_normalizes_boolean_controlling_expressions is TRUE and the given
 expression is not an operator producing a boolean value, return an expression
 node obtained by adding "!= 0" on top of the given node.  Also always perform
 this normalization if the expression produces a pointer-to-member value.
-Otherwise, return the given node.
+Otherwise, return the given node.  This routine is intended for code generated
+by lowering (as opposed to that resulting from direct lowering of source code).
 */
 {
   an_expr_node_ptr  result = expr;
 
+  check_assertion(!is_complex_type(expr->type) &&
+                  !is_class_struct_union_type(expr->type));
   if ((lowering_normalizes_boolean_controlling_expressions &&
        (!is_operation_node(expr) ||
         !is_operator_returning_bool(expr->variant.operation.kind))) ||
       is_or_was_ptr_to_member_function_type(expr->type) ||
       is_or_was_ptr_to_data_member_type(expr->type)) {
-    a_constant  zero;
-    a_type_ptr  type = expr->type;
-    if (is_integral_type(type)) {
-      /* Simulate the usual arithmetic conversions. */
-      type = node_type_after_integral_promotion(result);
-      result = add_cast_if_necessary(result, type);
-    }  /* if */
-    make_zero_of_proper_type(type, &zero);
-    result->next = alloc_node_for_constant(&zero);
     result = make_operator_node((an_expr_operator_kind)eok_ne,
                                 integer_type((an_integer_kind)ik_int),
-                                result);
+                                make_operands_for_ne_0(expr));
   }  /* if */
   return result;
 }  /* boolean_controlling_expr */
@@ -13584,6 +13599,13 @@ value.
   } else {
     a_boolean  normalize = !is_bool_type(expr->type) &&
                            lowering_normalizes_boolean_controlling_expressions;
+    if (is_or_was_ptr_to_member_function_type(expr->type) ||
+        is_or_was_ptr_to_data_member_type(expr->type)) {
+      /* Uses of pointer-to-member values as boolean controlling expressions
+         should always be normalized, since such values may be lowered to a
+         nonscalar type. */
+      normalize = TRUE;
+    }  /* if */
 #if LOWER_COMPLEX
     /* We also normalize the expression if it has a complex type that will be
        lowered to a struct type. */
@@ -13596,21 +13618,10 @@ value.
       } else {
         /* Ensure that the expression has a 0/1 value by adding a "!= 0" test
            on top of it. */
-        an_expr_node_ptr  expr_copy = copy_node(expr);
-        a_constant        zero;
-        a_type_ptr type = expr_copy->type;
-        if (is_integral_type(type)) {
-          /* Simulate the usual arithmetic conversions. */
-          type = node_type_after_integral_promotion(expr_copy);
-          expr_copy = add_cast_if_necessary(expr_copy, type);
-        }  /* if */
-        make_zero_of_proper_type(type, &zero);
-        expr_copy->next = alloc_node_for_constant(&zero);
-        /* Build a "!=" node pointing to the original expression and the zero
-           constant node. */
         change_node_to_operation(expr, (an_expr_operator_kind)eok_ne,
                                  integer_type((an_integer_kind)ik_int),
-                                 expr_copy, /*is_lvalue=*/FALSE);
+                                 make_operands_for_ne_0(copy_node(expr)),
+                                 /*is_lvalue=*/FALSE);
         expr->variant.operation.compiler_generated = TRUE;
       }  /* if */
     }  /* if */
