@@ -100,6 +100,7 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(714,enter_assert_predicate)*/
 /*lint -esym(759,enter_assert_predicate)*/
 /*lint -esym(765,enter_assert_predicate)*/
+/*lint -esym(755,PREC_PRIMARY)*/
 
 /* Used in the main programs for the standalone c_gen_be, cp_gen_be, and
    il_display: */
