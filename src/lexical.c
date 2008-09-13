@@ -14167,9 +14167,6 @@ selection operator, in which case it points to the type of the left operand.
                      valid except possibly as a vacuous destructor. */
                   is_vacuous_dtor = TRUE;
                 }  /* if */
-                if (qualifier_sym != NULL && !is_type_symbol(qualifier_sym)) {
-                  qualifier_sym = NULL;
-                }  /* if */
               }  /* if */
             }  /* if */
           }  /* if */
