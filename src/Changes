@@ -5,7 +5,7 @@ Base and derived class casts in backing expressions for address constants
 
 The backing expressions for address constants now include base class and
 derived class casts where appropriate.  Formerly, the backing expression
-was left unchanged when a such a cast was folded, which no longer matched
+was left unchanged when such a cast was folded, which no longer matched
 the constant (though it was harmless in terms of C++-generating back end
 output).  Now fixed.
 
