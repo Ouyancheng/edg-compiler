@@ -4036,8 +4036,8 @@ extern a_boolean overload_set_contains_template(a_symbol_ptr sym);
                                               (a_type_kind)tk_template_param)
 
 /*
-Return TRUE if a symbol is one should be found in a lookup of a name used as
-part of the qualifier in a qualified name.  The C++ standard requires that
+Return TRUE if a symbol is one that should be found in a lookup of a name used
+as part of the qualifier in a qualified name.  The C++ standard requires that
 any type name be found by the lookup even though some kinds of types will
 later result in an error.  Certain invalid types (enums and/or typedefs to
 non-class types) are ignored in Microsoft and g++ mode.  This macro should
@@ -4055,7 +4055,7 @@ only be used in C++ mode.
 /*
 Return TRUE if sym represents an entity that can be used as the qualifier
 in a qualified name.  symbol_may_precede_qualifier is TRUE if the name
-should be found by lookup, this macro is then used to determine if the
+should be found by lookup; this macro is then used to determine if the
 symbol found by the lookup is semantically valid.
 */
 #define is_valid_qualifier_symbol(sym)					\
