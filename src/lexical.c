@@ -13731,7 +13731,7 @@ selection operator, in which case it points to the type of the left operand.
                                                  IDL_NO_OPTIONS);
             is_vacuous_dtor = TRUE;
           } else if (!is_valid_qualifier_symbol(qualifier_sym)) {
-            /* A symbol was found by the first lookup, but it not valid except
+            /* A symbol was found by the first lookup, but is not valid except
                possibly as a vacuous destructor. */
             is_vacuous_dtor = TRUE;
           }  /* if */
@@ -14131,7 +14131,7 @@ selection operator, in which case it points to the type of the left operand.
                                           IDL_NO_OPTIONS);
                     is_vacuous_dtor = TRUE;
                   } else if (!is_valid_qualifier_symbol(qualifier_sym)) {
-                    /* A symbol was found by the first lookup, but it not
+                    /* A symbol was found by the first lookup, but is not
                        valid except possibly as a vacuous destructor. */
                     is_vacuous_dtor = TRUE;
                   }  /* if */
@@ -14163,7 +14163,7 @@ selection operator, in which case it points to the type of the left operand.
                                                         IDL_NO_OPTIONS);
                   is_vacuous_dtor = TRUE;
                 } else if (!is_valid_qualifier_symbol(qualifier_sym)) {
-                  /* A symbol was found by the first lookup, but it not
+                  /* A symbol was found by the first lookup, but is not
                      valid except possibly as a vacuous destructor. */
                   is_vacuous_dtor = TRUE;
                 }  /* if */
