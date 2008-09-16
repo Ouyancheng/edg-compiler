@@ -129,6 +129,11 @@ extensions.
 #define or_is_fixed_point_type_keyword(tok)  /* Nothing */
 #endif /* FIXED_POINT_ALLOWED */
 
+/*
+Macro that can be redefined by users to include checking for user-defined
+type keyword extensions.  If you change this, see also type_keyword.
+*/
+#define or_is_extension_type_keyword(tok)  /* Nothing */
 
 /*
 Macro that is TRUE if the indicated token is a type keyword, e.g., int.
@@ -143,7 +148,8 @@ If you change this, see also type_keyword.
    (tok) == tok_bool                                                  \
    or_is_c99_type_keyword(tok)                                        \
    or_is_microsoft_type_keyword(tok)                                  \
-   or_is_fixed_point_type_keyword(tok)) 
+   or_is_fixed_point_type_keyword(tok)                                \
+   or_is_extension_type_keyword(tok)) 
 
 /*
 Macro to be used in conjunction with is_class_type_keyword to check for
