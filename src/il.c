@@ -8814,7 +8814,7 @@ deduction for templates).  In all error cases, an error type is returned.
       }  /* if */
       result = under_ref;
       if (qualifiers != TQ_NONE) {
-          result = make_qualified_type(result, qualifiers);
+        result = make_qualified_type(result, qualifiers);
       }  /* if */
       result = make_reference_type(result);
       if (top_qualifiers != TQ_NONE) {
