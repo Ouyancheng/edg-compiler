@@ -7120,23 +7120,14 @@ still provided).
                        constant_bool_value_known_at_compile_time(
                                                  &operand_1->variant.constant);
   if (operand_1_is_const) {
+    /* Decide whether we want to fold.  We must fold in cases where the
+       result must be a constant expression (or could be one), but in other
+       cases we don't.  In some of those other cases we don't fold because we
+       can't easily do so (for example, if there were destructible objects
+       attached to the second or third operand). */
     if (curr_expr_kind_is_const()) {
       /* In constant expressions we must always fold. */
       do_folding = TRUE;
-    } else if (!identical_types(operand_2->type, operand_3->type)) {
-      /* Can't fold cases where the operand types do not match (e.g.,
-         because one is a throw and the other is not). */
-      /* do_folding = FALSE; -- already set. */
-    } else if (class_rvalue_case) {
-      /* Don't fold when the result is a class rvalue, because a copy
-         is required. */
-      /* do_folding = FALSE; -- already set. */
-    } else if (curr_object_lifetime != NULL &&
-               curr_object_lifetime->destructions != NULL) {
-      /* Don't remove dead code that might contain destructions, because
-         we don't want to run through the expression to find the
-         destruction to unlink it. */
-      /* do_folding = FALSE; -- already set. */
     } else if (is_constant_operand(operand_2) &&
                is_constant_operand(operand_3)) {
       /* Fold if the second and third operands are constants. */
@@ -7147,16 +7138,6 @@ still provided).
          This deals with cases like 0 ? 1 : 1/0, in which the last operand
          would not be in constant form because it couldn't be folded. */
       do_folding = TRUE;
-    } else if (gcc_mode) {
-      /* gcc mode allows reversion of a "?" operation to an lvalue, so
-         do not fold because that would prevent that process.
-         Note that constant cases do get folded because of the code
-         above. */
-      do_folding = FALSE;
-    } else {
-      /* Otherwise, we can fold at our discretion. */
-      /* do_folding = FALSE; -- already set. */
-      if (expr_stack->favor_constant_result) do_folding = TRUE;
     }  /* if */
   }  /* if */
   if (do_folding) {
