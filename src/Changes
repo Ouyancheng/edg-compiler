@@ -1,5 +1,33 @@
 Version 3.11
 
+9/22/08  [EDGcpfe/9232]
+GNU C++ compatibility: missing "template" keyword on dependent call
+
+The g++ compiler accepts a call of a dependent function template without
+the use of the "template" keyword if a normal lookup in the scope of the
+reference finds a function template or an overload set containing a
+function template (even though that function template will not end up being
+the one that is actually called).  We now emulate this in g++ mode.  Formerly,
+an error would be issued in modes in which nonclass prototype instantiations
+are done (gnu_version >= 30400 or the --parse_templates option is used).
+
+  template <typename T> struct A {
+    template <typename U> void f(U);
+  };
+  template<typename T> struct B {
+    template <typename U> void f(U);
+    void f(){}
+    A<T> a;
+    void g(T t) {
+      a.f<T>(t);  // accepted in g++ mode - should be written as:
+                  // m_impl.f template <T>(t); 
+    }
+  };
+  int main() {
+    B<int> b;
+    b.g(1);
+  }
+
 9/12/08  [EDGcpfe/9203]
 Base and derived class casts in backing expressions for address constants
 

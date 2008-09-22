@@ -13085,9 +13085,13 @@ the normal lookup symbol.
       class_sym = NULL;
     } else if (class_fund_sym->is_nonreal_member &&
                !is_template_symbol(class_fund_sym) &&
-               is_template_or_injected_template_symbol(normal_fund_sym)) {
+               (is_template_or_injected_template_symbol(normal_fund_sym) ||
+                (gpp_mode &&
+                 symbol_is_or_contains_template(normal_fund_sym)))) {
       /* The class symbols is a nonreal nontemplate and the normal symbol
-         is a template.  Use the normal symbol. */
+         is a template.  Use the normal symbol.  In g++ mode, a function
+         template or overload set containing a function template causes
+         the template symbol to be returned. */
       class_sym = NULL;
     } else {
       /* The name is a member of the class that is not a template.  Use that
