@@ -1037,6 +1037,19 @@ not being eliminated.
 }  /* transfer_type_details */
 
 
+static void transfer_variable_flags(a_variable_ptr variable,
+                                    a_variable_ptr corresp_variable)
+/*
+The variable identified by "variable" is about to be eliminated.
+If there is any useful information in flags in that variable, e.g.,
+about attributes, merge it into corresp_variable, which is not being
+eliminated.
+*/
+{
+  corresp_variable->address_taken |= variable->address_taken;
+}  /* transfer_variable_flags */
+
+
 static void transfer_routine_flags(a_routine_ptr routine,
                                    a_routine_ptr corresp_routine)
 /*
@@ -1361,6 +1374,12 @@ to the secondary translation unit.
       } else {
         prev_variable->next = variable->next;
       }  /* if */
+      /* Transfer any information that should be preserved in the canonical
+         entry. */
+      { a_variable_ptr corresp_variable =
+                               (a_variable_ptr)canonical_il_entry_of(variable);
+        transfer_variable_flags(variable, corresp_variable);
+      }
       if (variable->storage_class == (a_storage_class)sc_unspecified) {
         /* Delete the definition of this variable. */
         clear_variable_definition(variable);

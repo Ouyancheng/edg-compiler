@@ -1,5 +1,22 @@
 Version 3.11
 
+9/22/08  [EDGcpfe/9222]
+Preserve address_taken flag on variable merged from multiple translation units
+
+The address_taken flag setting on a variable in a secondary translation
+unit is now transferred to the corresponding primary translation unit
+variable when the variables are merged.  For example:
+
+file1.cpp:
+  extern int i;
+
+file2.cpp:
+  extern int i;
+  int *p = &i;
+
+The remaining instance of variable "i" in the merged IL now has its
+address_taken flag set.
+
 9/22/08  [EDGcpfe/9232]
 GNU C++ compatibility: missing "template" keyword on dependent call
 
