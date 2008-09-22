@@ -133,7 +133,9 @@ extensions.
 Macro that can be redefined by users to include checking for user-defined
 type keyword extensions.  If you change this, see also type_keyword.
 */
+#ifndef or_is_fixed_point_type_keyword
 #define or_is_extension_type_keyword(tok)  /* Nothing */
+#endif /* or_is_fixed_point_type_keyword */
 
 /*
 Macro that is TRUE if the indicated token is a type keyword, e.g., int.
