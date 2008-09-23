@@ -11456,7 +11456,6 @@ tk_unknown is returned.
       result = (a_type_kind)tk_unknown;
       break;
     case eok_lvalue:
-    case eok_rvalue:
       result = (a_type_kind)expr_type->kind;
       break;
     case eok_static_cast:
@@ -12838,17 +12837,6 @@ options is a set of name lookup options.
                                                        source_pos,
                                                        options,
                                                        copy_error);
-      } else if (op == (an_expr_operator_kind)eok_rvalue) {
-        /* Copy the operand of an eok_rvalue node an an rvalue. */
-        expr_copy = copy_template_param_expr_as_rvalue(expr,
-                                                       template_arg_list,
-                                                       template_param_list,
-                                                       guide_type,
-                                                       source_pos,
-                                                       options,
-                                                       copy_error,
-                                                       constant,
-                                                       alloc_con);
       } else if (!operator_is_foldable(expr)) {
         /* For operators we can't ever fold (e.g., calls), give up on
            deduction.  This is a limitation with respect to the standard,
@@ -15932,7 +15920,6 @@ operand.
     case eok_va_copy:
     case eok_va_start_single_operand:
     case eok_bassign:
-    case eok_rvalue:
       takes_lvalue = TRUE;
       break;
     default:
@@ -19551,7 +19538,6 @@ static a_byte lvalue_rvalue_test[(int)eok_last+1] = {
 					LVRV_OPND2_IS_LVALUE,
   /* eok_va_start_single_operand: */	LVRV_OPND1_IS_LVALUE,	
   /* eok_lvalue: */			LVRV_OPND1_IS_RVALUE,
-  /* eok_rvalue: */			LVRV_OPND1_IS_LVALUE,
   /* eok_static_cast: */		LVRV_NO_REQUIREMENTS,
   /* eok_const_cast: */			LVRV_NO_REQUIREMENTS,
   /* eok_reinterpret_cast: */		LVRV_NO_REQUIREMENTS,

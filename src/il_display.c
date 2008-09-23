@@ -3070,7 +3070,6 @@ Display the name of an expression operator.
                                 s = "eok_va_start_single_operand";
                                                                   break;
     case eok_lvalue:            s = "eok_lvalue";                 break;
-    case eok_rvalue:            s = "eok_rvalue";                 break;
     case eok_static_cast:       s = "eok_static_cast";            break;
     case eok_const_cast:        s = "eok_const_cast";             break;
     case eok_reinterpret_cast:  s = "eok_reinterpret_cast";       break;

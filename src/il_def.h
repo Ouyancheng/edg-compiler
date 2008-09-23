@@ -9360,10 +9360,6 @@ enum an_expr_operator_kind_tag {
                            but really something with unknown lvalueness) is
                            to be used as if it were an lvalue.  The eok_lvalue
                            node itself is marked as an lvalue. */
-  eok_rvalue,           /* Indicates that the operand (marked as an lvalue,
-                           but really something with unknown lvalueness) is
-                           to be used as if it were an rvalue.  The eok_rvalue
-                           node itself is marked as an rvalue. */
   eok_static_cast,      /* Generic static_cast from the source. */
   eok_const_cast,       /* Generic const_cast from the source. */
   eok_reinterpret_cast, /* Generic reinterpret_cast from the source. */
@@ -12070,7 +12066,7 @@ EXTERN char     *db_operator_names[(int)eok_last+1]
    "virtcall",
    "pmcall",
    "va_start", "va_arg", "va_end", "va_copy", "va_start (single op)",
-   "lvalue", "rvalue",
+   "lvalue",
    "static cast", "const cast", "reinterpret cast",
    "Gcall", "GMcall",
    "error", "last"

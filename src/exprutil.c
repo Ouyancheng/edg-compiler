@@ -6549,8 +6549,8 @@ involving template parameter types.  lvalue_expected is TRUE to indicate
 that an lvalue is expected/required, and rvalue_expected is TRUE to indicate
 that an rvalue is expected/required.  If neither is TRUE, either an rvalue
 or an lvalue is acceptable in the context where the expression will be used.
-An eok_lvalue or eok_rvalue node will be inserted if necessary to adjust
-the lvalueness of the expression.
+An eok_lvalue node will be inserted if necessary to adjust the lvalueness of
+the expression.
 */
 {
   an_expr_node_ptr expr;
@@ -6571,15 +6571,7 @@ the lvalueness of the expression.
     do_generic_operand_transformations(operand);
   }  /* if */
   if (is_an_lvalue(operand) || is_a_function_designator(operand)) {
-    if (rvalue_expected) {
-      /* The operand is an lvalue, and the operation expects an rvalue.
-         Add an eok_rvalue node. */
-      a_type_ptr rtype = rvalue_type(operand->type);
-      expr = make_node_from_operand(operand);
-      expr = make_operator_node((an_expr_operator_kind)eok_rvalue,
-                                rtype, expr);
-      make_expression_operand(expr, operand);
-    }  /* if */
+    check_assertion(!rvalue_expected);
   } else if (is_an_rvalue(operand)) {
     if (lvalue_expected) {
       /* The operand is an rvalue, and the operation expects an lvalue.

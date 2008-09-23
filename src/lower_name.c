@@ -2672,11 +2672,10 @@ part of a template-dependent expression.
 
   /* Drop parentheses. */
   expr = skip_parens(expr);
-  /* Drop eok_lvalue and eok_rvalue. */
+  /* Drop eok_lvalue. */
   while (is_operation_node(expr) &&
          ((op = expr->variant.operation.kind),
-          (op == (an_expr_operator_kind)eok_lvalue ||
-           op == (an_expr_operator_kind)eok_rvalue
+          (op == (an_expr_operator_kind)eok_lvalue
 #if IA64_ABI
            /* Also drop implicit casts in the IA-64 ABI. */
                                                    ||
@@ -4868,7 +4867,6 @@ If the operator is unrecognized, return *bad_operator TRUE.
       num_operands = 3;
       break;
     case eok_lvalue:                     /* Handled higher up */
-    case eok_rvalue:                     /* Handled higher up */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case eok_assume:                     /* Handled higher up */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

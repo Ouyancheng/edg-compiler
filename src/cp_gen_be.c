@@ -578,7 +578,6 @@ static a_byte generated_precedence[(int)eok_last+1] = {
   PREC_POSTFIX,		/* eok_va_copy */
   PREC_POSTFIX,		/* eok_va_start_single_operand */
   PREC_LOWEST,		/* eok_lvalue */
-  PREC_LOWEST,		/* eok_rvalue */
   PREC_POSTFIX,		/* eok_static_cast */
   PREC_POSTFIX,		/* eok_const_cast */
   PREC_POSTFIX,		/* eok_reinterpret_cast */
@@ -3102,13 +3101,12 @@ operands to be parenthesized at that level.
       tblock->result = TRUE;
       tblock->terminate = TRUE;
     } else if (!(expr->variant.operation.compiler_generated ||
-                 op == (an_expr_operator_kind)eok_lvalue ||
-                 op == (an_expr_operator_kind)eok_rvalue)) {
+                 op == (an_expr_operator_kind)eok_lvalue)) {
       /* Compiler-generated operations like casts to the parameter type
          are typically skipped in the generated output and thus won't
          cause the operand to be parenthesized.  Everything else
          presumably will, so we don't need to scan any further.  (In
-         some cases, conversions to lvalue and rvalue are not marked as
+         some cases, conversions to lvalue are not marked as
          compiler-generated, so they must be skipped explicitly.) */
       tblock->terminate = TRUE;
     }  /* if */
@@ -6740,11 +6738,10 @@ to indicate x.y or p->y where y is a static member.
 {
   a_boolean is_dot_static = FALSE;
 
-  /* Strip eok_lvalue or eok_rvalue nodes. */
+  /* Strip eok_lvalue nodes. */
   expr = skip_parens(expr);
   while (is_operation_node(expr) &&
-      (expr->variant.operation.kind == (an_expr_operator_kind)eok_lvalue ||
-       expr->variant.operation.kind == (an_expr_operator_kind)eok_rvalue)) {
+         expr->variant.operation.kind == (an_expr_operator_kind)eok_lvalue) {
     expr = expr->variant.operation.operands;
   }  /* while */
   if (is_operation_node(expr) &&
@@ -7175,14 +7172,6 @@ temporary expressions).
               }  /* if */
             }  /* if */
           }  /* if */
-          break;
-        case eok_rvalue:
-          /* Operand is generic but used where an rvalue is expected. */
-          saved_is_lvalue = operand_1->is_lvalue;
-          operand_1->is_lvalue = FALSE;
-          gen_expr(operand_1, need_parens);
-          operand_1->is_lvalue = saved_is_lvalue;
-          processed = TRUE;
           break;
         case eok_lvalue:
           /* Operand is generic but used where an lvalue is expected. */
@@ -8735,11 +8724,6 @@ there's some possibility of precedence confusion and need_parens is TRUE.
         gen_lvalue_full(operand_1, need_parens,
                         /*obj_expr_of_mfunc_operator=*/FALSE);
         goto done_with_operation_after_parens;
-      } else if (op == (an_expr_operator_kind)eok_rvalue) {
-        /* Operand is an lvalue where an rvalue was expected. */
-        /* Done early to optimize parentheses. */
-        gen_expr(operand_1, need_parens);
-        goto done_with_operation_after_parens;
       } else if (op == (an_expr_operator_kind)eok_call ||
                  op == (an_expr_operator_kind)eok_virtual_call) {
         /* Suppress parentheses around a function call.  They're not needed
@@ -8913,7 +8897,6 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           /* Handled in gen_lvalue_full. */
           unexpected_condition();
         case eok_lvalue:
-        case eok_rvalue:
           /* Handled above. */
           unexpected_condition();
         case eok_pm_field:
