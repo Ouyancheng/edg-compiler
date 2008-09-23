@@ -2063,7 +2063,7 @@ destroyed its source position, etc.  Restore such things from
                                    orig_operand->access_control_error_reported;
   operand->is_operand_of_address_of = orig_operand->is_operand_of_address_of;
   operand->is_using_decl_name = orig_operand->is_using_decl_name;
-  operand->ruled_out_expr_kinds = orig_operand->ruled_out_expr_kinds;
+  operand->ruled_out_expr_kinds |= orig_operand->ruled_out_expr_kinds;
 }  /* restore_operand_details */
 
 

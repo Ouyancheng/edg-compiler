@@ -12801,6 +12801,7 @@ The result is returned in *result.  See _expr.type.conv_ in the WP.
     } else {
       dip->is_explicit_cast = TRUE;
       make_expression_operand(temp_init_node, result);
+      rule_out_expr_kinds(ROEK_CONSTANT, result);
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (microsoft_bugs && microsoft_version < 1100) {
         /* In Microsoft C++ mode, a constructor is considered to return
@@ -12894,6 +12895,7 @@ The result is returned in *result.  See _expr.type.conv_ in the WP.
                                         start_position,
                                         &dip);
           make_expression_operand(temp_init_node, result);
+          rule_out_expr_kinds(ROEK_CONSTANT, result);
         } else {
           /* A scalar type followed by (); generate the value a static
              object of that type would get by default (WP _expr.type.conv_),
