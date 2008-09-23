@@ -13615,7 +13615,7 @@ of an error), return FALSE.
 static void scan_rel_operator(an_operand *operand_1,
                               an_operand *result)
 /*
-Scan the "<", ">", "<=", and "=>" operators.  See section 3.3.8 of the
+Scan the "<", ">", "<=", and ">=" operators.  See section 3.3.8 of the
 standard.
 */
 {
