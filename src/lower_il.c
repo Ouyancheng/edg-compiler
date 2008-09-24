@@ -2160,17 +2160,46 @@ the next operand, and return the resulting operand pair.
 */
 {
   a_constant  zero;
-  a_type_ptr  type = expr->type;
 
-  if (is_integral_type(type)) {
+  if (is_integral_type(expr->type)) {
     /* Simulate the usual arithmetic conversions. */
-    type = node_type_after_integral_promotion(expr);
-    expr = add_cast_if_necessary(expr, type);
+    expr = add_cast_if_necessary(expr,
+                                 node_type_after_integral_promotion(expr));
   }  /* if */
-  make_zero_of_proper_type(type, &zero);
+  /* underlying_type is needed here for the pointer-to-member case if the type
+     is already lowered. */
+  make_zero_of_proper_type(underlying_type(expr->type), &zero);
   expr->next = alloc_node_for_constant(&zero);
   return expr;
 }  /* make_operands_for_ne_0 */
+
+
+static void lower_ne_0_normalization(an_expr_node_ptr  expr)
+/*
+The given operation is a "x != 0" operation generated for boolean normalization
+purposes (either to implement eok_bool_cast, or to normalize a boolean
+controlling expression).  The second operand is the unlowered zero; the first
+operand has been lowered already.  Lower the comparison if needed (e.g., if
+the first operand is a pointer-to-member value).
+*/
+{
+  an_expr_node_ptr  zero_node;
+
+  check_assertion(is_operation_node(expr) && node_operator_is(expr, eok_ne));
+  zero_node = expr->variant.operation.operands->next;
+  check_assertion(zero_node != NULL && is_constant_node(zero_node));
+  if (node_operator_type_kind_is(expr, tk_ptr_to_member)) {
+    /* For the pointer-to-member case, the comparison must be lowered. */
+    mark_as_not_visited(zero_node->variant.constant);
+    /* Note that zero_node is not lowered; that allows the subroutine to
+       generate better code. */
+    lower_pm_comparison(expr, /*operand1_lowered=*/TRUE);
+  } else if (C_mode() || gpp_mode) {
+    /* Do additional lowering for the complex, imaginary, and fixed-point
+       cases. */
+    post_lower_c99_bool_cast(expr);
+  }  /* if */
+}  /* lower_ne_0_normalization */
 
 
 an_expr_node_ptr boolean_controlling_expr(an_expr_node_ptr expr)
@@ -10155,49 +10184,23 @@ Lower an eok_bool_cast node, which converts an operand to bool.
 */
 {
   an_expr_node_ptr      operand = expr->variant.operation.operands;
-  an_expr_node_ptr      zero_node;
-  a_constant            zero_constant;
-  an_expr_operator_kind op;
-  a_type_ptr            operand_type, result_type;
-#if DO_C99_IL_LOWERING
-  a_type_ptr            orig_type = expr->type;
-#endif /* DO_C99_IL_LOWERING */
+  a_type_ptr            result_type, orig_type = expr->type;
 
   check_assertion(!expr->is_lvalue);
   /* A cast to bool in C++ or C99 is rewritten as a "!= 0" test in C89. */
-  operand = integral_promote_node(operand);
-  /* underlying_type is needed here for the pointer-to-member case
-     if the type is already lowered. */
-  operand_type = underlying_type(operand->type);
-  make_zero_of_proper_type(operand_type, &zero_constant);
-  zero_node = alloc_node_for_constant(&zero_constant);
-  operand->next = zero_node;
+  operand = make_operands_for_ne_0(operand);
   result_type = expr->type;
   if (C_mode()) {
     /* In C99, the result type of the comparison is "int".  A cast will
        have to be added later, because we really want a "bool" result. */
     result_type = integer_type((an_integer_kind)ik_int);
   }  /* if */
-  op = (an_expr_operator_kind)eok_ne;
-  set_node_operator(expr, op, result_type, /*is_lvalue=*/FALSE, operand);
-  /* Note that in C++ the result type may still be "bool" here; if so, a
-     cast will be inserted later.  The type will be "int" if
-     adjust_bool_operation_types has discovered this case can be optimized.
-     In C mode, the result type is always "int". */
-  if (expr->variant.operation.kind == (an_expr_operator_kind)eok_ne &&
-      node_operator_type_kind_is(expr, tk_ptr_to_member)) {
-    /* For the pointer-to-member case, the comparison must be lowered. */
-    mark_as_not_visited(zero_node->variant.constant);
-    /* Note that zero_node is not lowered; that allows the subroutine to
-       generate better code. */
-    lower_pm_comparison(expr, /*operand1_lowered=*/TRUE);
-  } else if (C_mode() || gpp_mode) {
-    /* Do additional lowering for the complex, imaginary, and fixed-point
-       cases. */
-    an_expr_node_ptr expr_copy;
-    post_lower_c99_bool_cast(expr);
+  set_node_operator(expr, (an_expr_operator_kind)eok_ne, result_type,
+                    /*is_lvalue=*/FALSE, operand);
+  lower_ne_0_normalization(expr);
+  if (!identical_types(expr->type, orig_type)) {
     /* Add a final cast to bool, because that's what we really need. */
-    expr_copy = copy_node(expr);
+    an_expr_node_ptr expr_copy = copy_node(expr);
     change_to_cast(expr, expr_copy, orig_type);
   }  /* if */
 }  /* lower_bool_cast */
@@ -13559,16 +13562,6 @@ value.
     /* If an enk_object_lifetime node is (still) on top, look under that. */
     expr = expr->variant.object_lifetime.expr;
   }  /* if */
-  /* Discard any eok_bool_cast on top of a scalar expression (it is usually
-     added implicitly in C++ modes): Its effect is identical to normalization
-     (and is not required if normalization is not required). */
-  if (is_operation_node(expr) && node_operator_is(expr, eok_bool_cast)) {
-    a_type_ptr  op_type = expr->variant.operation.operands->type;
-    if (is_scalar_type(op_type)) {
-      /* The test for scalar types excludes pointer-to-member types. */
-      overwrite_node(expr, expr->variant.operation.operands);
-    }  /* if */
-  }  /* if */
   if (is_constant_node(expr) &&
       constant_bool_value_known_at_compile_time(expr->variant.constant)) {
     /* The constant expression can be replaced by a 0 or 1 constant. */
@@ -13580,8 +13573,7 @@ value.
     expr->variant.constant = alloc_shareable_constant(&norm_con);
     expr->type = norm_con.type;
   } else {
-    a_boolean  normalize = !is_bool_type(expr->type) &&
-                           lowering_normalizes_boolean_controlling_expressions;
+    a_boolean  normalize = lowering_normalizes_boolean_controlling_expressions;
     if (is_or_was_ptr_to_member_function_type(expr->type) ||
         is_or_was_ptr_to_data_member_type(expr->type)) {
       /* Uses of pointer-to-member values as boolean controlling expressions
@@ -13606,6 +13598,7 @@ value.
                                  make_operands_for_ne_0(copy_node(expr)),
                                  /*is_lvalue=*/FALSE);
         expr->variant.operation.compiler_generated = TRUE;
+        lower_ne_0_normalization(expr);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -13621,10 +13614,19 @@ expression (i.e., not an expression inside some other expression) if
 is_full_expr is TRUE.
 */
 {
-  normalize_boolean_controlling_expr_if_needed(expr);
   check_assertion_str(expr->kind != (an_expr_node_kind)enk_object_lifetime ||
                       is_full_expr,
              "lower_boolean_controlling_expr: enk_object_lifetime not at top");
+  /* Discard any eok_bool_cast on top of a scalar expression (it is usually
+     added implicitly in C++ modes): Its effect is identical to normalization
+     (and is not required if normalization is not required). */
+  if (is_operation_node(expr) && node_operator_is(expr, eok_bool_cast)) {
+    a_type_ptr  op_type = expr->variant.operation.operands->type;
+    if (is_scalar_type(op_type)) {
+      /* The test for scalar types excludes pointer-to-member types. */
+      overwrite_node(expr, expr->variant.operation.operands);
+    }  /* if */
+  }  /* if */
   if (bool_is_keyword) {
     /* When bool is enabled, adjust the result type of top-level
        bool-returning operations to be int. */
@@ -13636,6 +13638,7 @@ is_full_expr is TRUE.
   } else {
     lower_expr(expr);
   }  /* if */
+  normalize_boolean_controlling_expr_if_needed(expr);
 }  /* lower_boolean_controlling_expr */
 
 

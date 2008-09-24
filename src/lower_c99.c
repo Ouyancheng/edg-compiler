@@ -3706,12 +3706,12 @@ expression (i.e., not an expression inside some other expression) if
 is_full_expr is TRUE.
 */
 {
-  normalize_boolean_controlling_expr_if_needed(expr);
   if (is_full_expr) {
     lower_c99_full_expr(expr);
   } else {
     lower_c99_expr(expr);
   }  /* if */
+  normalize_boolean_controlling_expr_if_needed(expr);
 }  /* lower_c99_boolean_controlling_expr */
 
 
