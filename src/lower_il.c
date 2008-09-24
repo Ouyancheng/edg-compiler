@@ -11686,7 +11686,7 @@ The expression can be an lvalue or an rvalue.
 }  /* lower_pm_field */
 
 
-void optimize_expr_if_possible(an_expr_node_ptr expr)
+static void optimize_expr_if_possible(an_expr_node_ptr expr)
 /*
 Perform some simple optimizations on expr if possible.  Note that operations
 are optimized regardless of whether or not the operations are compiler
