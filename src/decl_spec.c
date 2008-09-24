@@ -3779,7 +3779,18 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
          keyword and the type name are ignored if the elaborated name specifier
          is not followed by a class type definition and if this is not an
          explicit class template instantiation directive. */
-      if (is_class_definition ||
+      a_boolean  definition_follows = is_class_definition;
+      if (!definition_follows && tag_sym != NULL && tag_sym->is_class_member &&
+          !is_explicit_instantiation) {
+        /* We may be dealing with a class nested in a class template.  E.g.:
+             template<class T> struct S { class __attribute((...)) N {}; };
+           The nested declaration will look like "class __attribute((...)) N;"
+           in such cases (with the definition being processed after the
+           enclosing class is completed). */
+        a_symbol_ptr  proto_sym = corresp_prototype_for_class_symbol(tag_sym);
+        definition_follows = (proto_sym != NULL && proto_sym->defined);
+      }  /* if */
+      if (definition_follows ||
           (is_explicit_instantiation && !is_declarator_start())) {
         apply_attributes_to_type(attributes, class_type, /*is_typedef=*/FALSE);
       } else {
