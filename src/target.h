@@ -359,16 +359,6 @@ EXTERN a_targ_alignment
 			   16-bit Microsoft mode). */
 #endif /* NEAR_AND_FAR_ALLOWED */
 
-EXTERN a_targ_ptrdiff_t
-		targ_ptrdiff_t_max;
-			/* Maximum ptrdiff_t value. Initialized to the default
-			   value but reconfigurable. */
-
-EXTERN a_targ_ptrdiff_t
-		targ_ptrdiff_t_min;
-			/* Minimum ptrdiff_t value.  Initialized to the default
-			   value but reconfigurable. */
-
 EXTERN an_integer_kind
 		targ_ptrdiff_t_int_kind;
 			/* Representation for ptrdiff_t -- the integer kind
