@@ -7,7 +7,7 @@ The front end previously ignored GNU attributes specified on class definitions
 appearing in class templates.  For example:
 
   template<typename T> struct X {
-    struct __attribute((aligned(64))) struct N {};
+    struct __attribute((aligned(64))) Y {};
   };
   X<int>::Y y;  // Previously the attribute on N was ignored.
 
