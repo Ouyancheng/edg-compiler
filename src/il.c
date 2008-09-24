@@ -13019,7 +13019,12 @@ options is a set of name lookup options.
           if (new_operand_2 != NULL) {
             new_operand_2->next = new_operand_3;
           }  /* if */
-          expr_copy = make_operator_node(op, operation_type, new_operand_1);
+          /* Note that the copy and operator setting here are done in a way
+             that preserves any incidental flags set on the operation, e.g.,
+             compiler_generated. */
+          expr_copy = copy_node(expr);
+          set_node_operator(expr_copy, op, operation_type,
+                            expr->is_lvalue, new_operand_1);
         }  /* if */
       }  /* if */
       break;
