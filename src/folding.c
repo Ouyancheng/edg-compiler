@@ -1701,6 +1701,13 @@ cast if necessary.
     *did_not_fold = TRUE;
     goto exit;
   }  /* if */
+#if GNU_VECTOR_TYPES_ALLOWED
+  if (is_vector_type(new_type)) {
+    /* We don't attempt to fold casts to vector types. */
+    *did_not_fold = TRUE;
+    goto exit;
+  }  /* if */
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
 #if UPC_EXTENSIONS_ALLOWED
   if (upc_mode &&
       (constant->kind == (a_constant_repr_kind)ck_upc_threads ||
