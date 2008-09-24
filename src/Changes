@@ -17,6 +17,33 @@ file2.cpp:
 The remaining instance of variable "i" in the merged IL now has its
 address_taken flag set.
 
+9/22/08  [EDGcpfe/9234]
+Missing "template" keyword on dependent call
+
+Core issue 141 fixed a defect in the standard that required a "<" to be
+interpreted as the start of a template argument list in a context such as
+"x.y<..." if the normal lookup in the scope of the reference found a
+function template.  The similar rule for class templates makes sense, but
+for function templates there is no way in that context that a valid program
+could use the template found by the normal lookup.  We now implement the
+resolution of core issue 141 and issue a diagnostic on the example below
+(in modes in which nonclass templates are parsed).  This is very similar to
+the GNU compatibility issue below except that the front end only allowed
+the invalid code for this entry when the current context found a function
+template, not when it found an overload set containing a function template
+(as in the entry below).
+
+  template <typename T> struct A {
+    template <typename U> void f(U);
+  };
+  template<typename T> struct B {
+    template <typename U> void f(U);
+    A<T> a;
+    void g(T t) {
+      a.f<T>(t);  // an error should be issued here
+    }
+  };
+
 9/22/08  [EDGcpfe/9232]
 GNU C++ compatibility: missing "template" keyword on dependent call
 
