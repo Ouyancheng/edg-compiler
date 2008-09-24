@@ -13564,8 +13564,12 @@ depends in part on the current configuration) ensure that it produces a 0/1
 value.
 */
 {
+  an_expr_node_ptr  object_lifetime = NULL;
+
   if (expr->kind == (an_expr_node_kind)enk_object_lifetime) {
-    /* If an enk_object_lifetime node is (still) on top, look under that. */
+    /* If an enk_object_lifetime node is (still) on top, look under that.
+       Remember the node to adjust its type later on. */
+    object_lifetime = expr;
     expr = expr->variant.object_lifetime.expr;
   }  /* if */
   if (is_constant_node(expr) &&
@@ -13608,6 +13612,13 @@ value.
       }  /* if */
     }  /* if */
   }  /* if */
+  if (object_lifetime != NULL) {
+    /* The type of the expression under the object lifetime node may have
+       changed (e.g., from "bool" to "int").  Adjust the object lifetime node
+       accordingly. */
+    object_lifetime->type = object_lifetime->variant.object_lifetime.expr
+                                           ->type;
+  }  /* if */
 }  /* normalize_boolean_controlling_expr_if_needed */
 
 
@@ -13620,17 +13631,21 @@ expression (i.e., not an expression inside some other expression) if
 is_full_expr is TRUE.
 */
 {
-  check_assertion_str(expr->kind != (an_expr_node_kind)enk_object_lifetime ||
-                      is_full_expr,
+  an_expr_node_ptr  top_op = expr;
+
+  if (top_op->kind == (an_expr_node_kind)enk_object_lifetime) {
+    check_assertion_str(is_full_expr,
              "lower_boolean_controlling_expr: enk_object_lifetime not at top");
+    top_op = top_op->variant.object_lifetime.expr;
+  }  /* if */
   /* Discard any eok_bool_cast on top of a scalar expression (it is usually
      added implicitly in C++ modes): Its effect is identical to normalization
      (and is not required if normalization is not required). */
-  if (is_operation_node(expr) && node_operator_is(expr, eok_bool_cast)) {
-    a_type_ptr  op_type = expr->variant.operation.operands->type;
+  if (is_operation_node(top_op) && node_operator_is(top_op, eok_bool_cast)) {
+    a_type_ptr  op_type = top_op->variant.operation.operands->type;
     if (is_scalar_type(op_type)) {
       /* The test for scalar types excludes pointer-to-member types. */
-      overwrite_node(expr, expr->variant.operation.operands);
+      overwrite_node(top_op, top_op->variant.operation.operands);
     }  /* if */
   }  /* if */
   if (bool_is_keyword) {
