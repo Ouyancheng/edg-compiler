@@ -3691,6 +3691,9 @@ one not contained inside another expression.
 */
 {
   lower_c99_expr(expr);
+  /* Perform a second pass on the lowered expression to optimize it
+     and clean up any remaining issues. */
+  optimize_lowered_expression_if_possible(expr);
   end_of_c99_full_expr();
 }  /* lower_c99_full_expr */
 

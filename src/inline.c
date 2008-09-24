@@ -988,8 +988,8 @@ because of remapped variables.
       set_expr_node_kind(expr, (an_expr_node_kind)enk_constant);
       expr->variant.constant = alloc_shareable_constant(&constant);
     }  /* if */
-    /* The expression crafted above is a candidate for optimization. */
-    optimize_expr_if_possible(expr);
+    /* The inlined expression may have opportunities for optimization. */
+    optimize_lowered_expression_if_possible(expr);
   }  /* if */
 }  /* adjust_copied_expression_for_inlining */
 

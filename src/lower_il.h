@@ -1035,6 +1035,8 @@ extern void release_reusable_temporaries(void);
 
 extern void optimize_expr_if_possible(an_expr_node_ptr expr);
 
+extern void optimize_lowered_expression_if_possible(an_expr_node_ptr expr);
+
 extern void lower_full_expr(an_expr_node_ptr expr,
                             a_statement_ptr  statement);
 

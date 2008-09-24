@@ -3340,6 +3340,9 @@ is created.
 {
   a_statement_ptr stmt;
 
+  /* The expression we're about to insert has already been lowered, but
+     may need additional cleanup/optimization before we insert it. */
+  optimize_lowered_expression_if_possible(node);
   if (is_expr_insert_location_kind(insert_location->kind)) {
     /* Insert within an expression.  The statement need not be created. */
     insert_expr(node, insert_location);
@@ -11682,9 +11685,10 @@ The expression can be an lvalue or an rvalue.
 
 void optimize_expr_if_possible(an_expr_node_ptr expr)
 /*
-Perform some simple optimizations on expr if possible.  Sometimes, during
-lowering, two existing expressions are joined (e.g., during inlining) and the
-resultant expression can be optimized.
+Perform some simple optimizations on expr if possible.  Note that operations
+are optimized regardless of whether or not the operations are compiler
+generated.  This routine operates only on the current node (and not recursively
+throughout the entire expression).
 */
 {
   if (is_operation_node(expr)) {
@@ -11693,82 +11697,66 @@ resultant expression can be optimized.
       an_expr_operator_kind op = expr->variant.operation.kind;
       an_expr_node_ptr      gchild = child->variant.operation.operands;
       an_expr_node_ptr      comma_second_node = gchild->next;
-      a_boolean             optimized = FALSE;
-      if (op == (an_expr_operator_kind)eok_address_of &&
-          node_operator_is(child, eok_indirect) &&
-          il_identical_types(expr->type, gchild->type)) {
-        /* Optimize "&*x" operation. */
-        overwrite_node(expr, gchild);
-        optimized = TRUE;
+      if (op == (an_expr_operator_kind)eok_address_of) {
+        if (node_operator_is(child, eok_indirect) &&
+            il_identical_types(expr->type, gchild->type)) {
+          /* Optimize "&*x" operation. */
+          overwrite_node(expr, gchild);
+        } else if (node_operator_is(child, eok_comma) &&
+                   is_operation_node(comma_second_node) && 
+                   node_operator_is(comma_second_node, eok_indirect)) {
+          /* Optimize "&(..., *x)" operation.  Note that "*(..., &x)" is
+             explicitly not optimized because it can lead to an lvalue
+             comma expression during inlining which generates invalid C. */
+          check_assertion(il_identical_types(expr->type,
+                         comma_second_node->variant.operation.operands->type));
+          overwrite_node(comma_second_node,
+                         comma_second_node->variant.operation.operands);
+          child->type = comma_second_node->type;
+          child->is_lvalue = comma_second_node->is_lvalue;
+          child->variant.operation.returns_lvalue_instead_of_usual_rvalue =
+                                                                         FALSE;
+          overwrite_node(expr, child);
+        } else if (node_operator_is(child, eok_comma) ||
+                   node_operator_is(child, eok_question)) {
+          /* Some C compilers won't accept &(1, x) or &(a ? b : c), so turn
+             these into (1, &x) and (a ? &b: &c) respectively by propagating
+             the eok_address_of operator to the second operator of the
+             eok_comma operation or the second and third operators of the
+             eok_question operation. */
+          an_expr_node_ptr  third_op = comma_second_node->next;
+          comma_second_node = add_address_of_to_node(comma_second_node);
+          if (third_op != NULL) {
+            check_assertion(node_operator_is(child, eok_question));
+            third_op = add_address_of_to_node(third_op);
+          }  /* if */
+          comma_second_node->next = third_op;
+          child->variant.operation.operands->next = comma_second_node;
+          child->type = comma_second_node->type;
+          child->is_lvalue = FALSE;
+          child->variant.operation.returns_lvalue_instead_of_usual_rvalue =
+                                                                         FALSE;
+          overwrite_node(expr, child);
+        }  /* if */
       } else if (op == (an_expr_operator_kind)eok_indirect &&
                  node_operator_is(child, eok_address_of) &&
                  il_identical_types(expr->type, gchild->type)) {
         if (expr->is_lvalue == gchild->is_lvalue) {
           /* Optimize "*&x" operation. */
           overwrite_node(expr, gchild);
-          optimized = TRUE;
         } else if (!expr->is_lvalue && gchild->is_lvalue) {
           /* expr has been converted to an rvalue, convert the new expression
              (after removing "*" and "&" operations) to an rvalue as well. */
           overwrite_node(expr, rvalue_expr_for_lvalue(gchild));
-          optimized = TRUE;
         }  /* if */
-      } else if (op == (an_expr_operator_kind)eok_address_of &&
-                 node_operator_is(child, eok_comma) &&
-                 is_operation_node(comma_second_node) && 
-                 node_operator_is(comma_second_node, eok_indirect)) {
-        /* Optimize "&(..., *x)" operation.  Note that "*(..., &x)" is
-           explicitly not optimized because it can lead to an lvalue
-           comma expression during inlining which generates invalid C. */
-        check_assertion(il_identical_types(expr->type,
-                        comma_second_node->variant.operation.operands->type));
-        overwrite_node(comma_second_node,
-                       comma_second_node->variant.operation.operands);
-        child->type = comma_second_node->type;
-        child->is_lvalue = comma_second_node->is_lvalue;
-        child->variant.operation.returns_lvalue_instead_of_usual_rvalue =
-                                                                         FALSE;
-        overwrite_node(expr, child);
-        optimized = TRUE;
-      } else if (op == (an_expr_operator_kind)eok_address_of &&
-                 (node_operator_is(child, eok_comma) ||
-                  node_operator_is(child, eok_question))) {
-        /* Some C compilers won't accept &(1, x) or &(a ? b : c), so turn these
-           into (1, &x) and (a ? &b: &c) respectively by propagating the
-           eok_address_of operator to the second operator of the eok_comma
-           operation or the second and third operators of the eok_question
-           operation. */
-        an_expr_node_ptr  third_op = comma_second_node->next;
-        comma_second_node = add_address_of_to_node(comma_second_node);
-        if (third_op != NULL) {
-          check_assertion(node_operator_is(child, eok_question));
-          third_op = add_address_of_to_node(third_op);
-          /* Adding an eok_address_of may qualify this operand for further
-             optimization.  The second operation will be inspected below. */
-          optimize_expr_if_possible(third_op);
-        }  /* if */
-        comma_second_node->next = third_op;
-        child->variant.operation.operands->next = comma_second_node;
-        child->type = comma_second_node->type;
-        child->is_lvalue = FALSE;
-        child->variant.operation.returns_lvalue_instead_of_usual_rvalue =
-                                                                         FALSE;
-        overwrite_node(expr, child);
-        optimized = TRUE;
       } else if (op == (an_expr_operator_kind)eok_points_to_field &&
                  node_operator_is(child, eok_address_of)) {
         /* Optimize "(&x)->y" to "x.y". */
         rewrite_points_to_field_as_dot_field(expr);
-        optimized = TRUE;
       } else if (op == (an_expr_operator_kind)eok_dot_field &&
                  node_operator_is(child, eok_indirect)) {
         /* Optimize "(*x).y" to "x->y". */
         rewrite_dot_field_as_points_to_field(expr);
-        optimized = TRUE;
-      } /* if */
-      if (optimized) {
-        /* See if further optimizations are possible. */
-        optimize_expr_if_possible(expr);
       } /* if */
     } /* if */
   } /* if */
@@ -11784,6 +11772,9 @@ ck_string constant will be lowered to a non-const qualified type (in
 lower_constant).  This routine adds a cast (by overwriting the expression with
 an eok_cast to a copy of the expression) to preserve the const-ness of the
 expression, if necessary.  If lower_source is TRUE, the expression is lowered.
+This routine can be called during lowering or as part of a lowering post-pass
+where expressions are re-checked (lowering may have created new combinations of
+operations that didn't require processing on the first pass).
 */
 {
   an_expr_node_ptr  operand;
@@ -11801,16 +11792,8 @@ expression, if necessary.  If lower_source is TRUE, the expression is lowered.
   orig_operand_type = operand->type;
   operand->type = make_unqualified_type(orig_operand_type);
   if (node_operator_is(expr, eok_address_of)) {
-#if CHECKING
-    a_type_ptr type = type_pointed_to(expr->type);
-    check_assertion(is_const_qualified_type(type));
-#endif /* CHECKING */
     expr->type = make_pointer_type(operand->type);
   } else if (node_operator_is(expr, eok_array_to_pointer)) {
-#if CHECKING
-    a_type_ptr type = type_pointed_to(expr->type);
-    check_assertion(is_const_qualified_type(type));
-#endif /* CHECKING */
     expr->type = make_pointer_type(array_element_type(operand->type));
   } else if (node_operator_is(expr, eok_comma)) {
     /* This is a case like ("abc", x).  Add a cast so this do-nothing operation
@@ -11819,9 +11802,8 @@ expression, if necessary.  If lower_source is TRUE, the expression is lowered.
     operand = add_cast_to_lvalue_if_necessary(copy_node(operand),
                                               orig_operand_type);
     overwrite_node(expr->variant.operation.operands, operand);
-  } else if (node_operator_is(expr, eok_lvalue_cast) &&
-             il_identical_types(expr->type, operand->type)) {
-    /* Some lvalue casts may already have dropped the const qualifier. */
+  } else if (node_operator_is(expr, eok_lvalue_cast)) {
+    /* Leave the cast type as is. */
   } else {
     unexpected_condition();
   }  /* if */
@@ -11835,34 +11817,49 @@ expression, if necessary.  If lower_source is TRUE, the expression is lowered.
 }  /* lower_operation_on_const_string */
 
 
-static void process_newly_combined_expression(an_expr_node_ptr expr)
+/*ARGSUSED*/  /* <-- tblock is not used. */
+static void optimize_lowered_expr_node_if_possible(
+                                    an_expr_node_ptr                    expr,
+                                    an_expr_or_stmt_traversal_block_ptr tblock)
 /*
-The expression passed to this routine, expr, is an expression whose top level
-operator has just been placed upon an operand (as part of being lowered).  Both
-the top-level operator and the operand have already been lowered separately,
-but now that they have been combined, they may be eligible for certain types of
-lowering.  For example, an expression that was originally *(0, &x) may have
-been lowered to (0, *&x) and this routine is being called to take another look
-at *&x to see if this (already lowered in pieces) expression needs further
-adjusting.
+This routine is called for each node of an expression during expression 
+traversal by optimize_lowered_expression_if_possible.  Perform any
+optimizations or cleanups that are applicable to this expression node.
 */
 {
   /* Perform some optimizations if they are applicable. */
   optimize_expr_if_possible(expr);
-  /* See if this expression needs lvalue re-working. */
-  lower_operations_returning_lvalue_instead_of_usual_rvalue(expr);
-  /* See if we've just created an operation on a const string constant. */
+  /* See if we have an operation on a string constant. */
   if (string_literals_are_const &&
       is_operation_node(expr) &&
       is_constant_node(expr->variant.operation.operands) &&
       expr->variant.operation.operands->variant.constant->kind ==
                                              (a_constant_repr_kind)ck_string) {
-    /* This operation operates on a ck_string whose const-ness will be
-       removed during lowering of the constant.  Re-write the operation
-       as necessary to preserve the const-ness. */
+    /* This operation operates on a ck_string whose const-ness has been
+       (or will be) removed during lowering of the constant.  Re-write the
+       operation as necessary to preserve the const-ness. */
     lower_operation_on_const_string(expr, /*lower_source=*/FALSE);
   }  /* if */
-}  /* process_newly_combined_expression */
+}  /* optimize_lowered_expr_node_if_possible */
+
+
+void optimize_lowered_expression_if_possible(an_expr_node_ptr expr)
+/*
+The expression passed to this routine, expr, is an expression that has just
+been lowered or inlined.  This routine traverses the entire expression and
+looks for any optimization opportunities as well as a couple of cases where the
+lowering or inlining process has created sequences of operations that need
+further adjusting.  For example, an expression that was originally *(0, &x) may
+have been lowered to (0, *&x) and this routine is being called to take another
+look at *&x to see if this expression needs further adjusting.
+*/
+{
+  an_expr_or_stmt_traversal_block tblock;
+
+  clear_expr_or_stmt_traversal_block(&tblock);
+  tblock.process_expr = optimize_lowered_expr_node_if_possible;
+  traverse_expr(expr, &tblock);
+}  /* optimize_lowered_expression_if_possible */
 
 #if LOWER_LVALUE_RETURNING_OPERATIONS
 
@@ -11964,12 +11961,11 @@ it is left alone.
         set_expr_insert_location(expr, &insert_loc);
         insert_expr(c2_init, &insert_loc);
       }  /* if */
-      /* Although the child operations have been previously lowered,
-         the newly created child operations may have created opportunities
-         for further optimization, so re-visit them in their new form. */
-      process_newly_combined_expression(newop1);
+      /* See if either of the newly created operations need further
+         lowering. */
+      lower_operations_returning_lvalue_instead_of_usual_rvalue(newop1);
       if (newop2 != NULL) {
-        process_newly_combined_expression(newop2);
+        lower_operations_returning_lvalue_instead_of_usual_rvalue(newop2);
       }  /* if */
       /* Restore the original expression type.  This matters when the
          operation above the "?" or "," is a cast. */
@@ -12536,7 +12532,7 @@ lowered to eok_address_of nodes previously.
     change_expr_to_address_of_expr(operand);
     overwrite_node(expr, operand);
   }  /* if */
-  /* See if the "&*x" optimization applies. */
+  /* See if an optimization applies. */
   optimize_expr_if_possible(expr);
 }  /* lower_address_of */
 
@@ -12549,7 +12545,7 @@ been lowered to eok_indirect nodes previously.
 {
   check_assertion(is_operation_node(expr) &&
                   node_operator_is(expr, eok_indirect));
-  /* See if the "*&x" optimization applies. */
+  /* See if an optimization applies. */
   optimize_expr_if_possible(expr);
 }  /* lower_indirect */
 
@@ -12897,7 +12893,9 @@ cast.  See lower_expr for typical invocation.
                  is_const_qualified_type(operand_node->type)) {
         /* This operation operates on a ck_string whose const-ness will be
            removed during lowering of the constant.  Re-write the operation
-           as necessary to preserve the const-ness. */
+           as necessary to preserve the const-ness.  Do so before lowering
+           while the ck_strings are still identifiable (and not turned
+           into variables as they are in some configurations). */
         lower_operation_on_const_string(expr, /*lower_source=*/TRUE);
       } else {
         a_type_ptr  type;
@@ -13152,21 +13150,15 @@ cast.  See lower_expr for typical invocation.
             lower_pm_field(expr);
             break;
           case eok_dot_field:
-            if (is_operation_node(operand_node) &&
-                node_operator_is(operand_node, eok_indirect)) {
-              /* Optimize "(*x).y" to "x->y". */
-              rewrite_dot_field_as_points_to_field(expr);
-            }  /* if */
+            /* See if an optimization applies. */
+            optimize_expr_if_possible(expr);
             /* If a field selection refers to an anonymous union field,
                adjust it to make the anonymous union reference(s) explicit. */
             adjust_field_selection_for_anonymous_union_references(expr);
             break;
           case eok_points_to_field:
-            if (is_operation_node(operand_node) &&
-                node_operator_is(operand_node, eok_address_of)) {
-              /* Optimize "(&x)->y" to "x.y". */
-              rewrite_points_to_field_as_dot_field(expr);
-            }  /* if */
+            /* See if an optimization applies. */
+            optimize_expr_if_possible(expr);
             /* If a field selection refers to an anonymous union field,
                adjust it to make the anonymous union reference(s) explicit. */
             adjust_field_selection_for_anonymous_union_references(expr);
@@ -13449,6 +13441,9 @@ expression statement, statement points to the statement; otherwise, it is NULL.
   {
     lower_expr(expr_to_lower);
   }  /* if */
+  /* Perform a second pass on the lowered expression to optimize it
+     and clean up any remaining issues. */
+  optimize_lowered_expression_if_possible(expr_to_lower);
 
   if (lifetime != NULL) {
     /* More processing for the enk_object_lifetime case. */
