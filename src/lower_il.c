@@ -11740,6 +11740,12 @@ throughout the entire expression).
           child->variant.operation.returns_lvalue_instead_of_usual_rvalue =
                                                                          FALSE;
           overwrite_node(expr, child);
+        } else if (node_operator_is(child, eok_subscript)) {
+          /* Optimize &x[y] to x + y. */
+          child->next = expr->next;
+          set_node_operator(child, (an_expr_operator_kind)eok_padd,
+                            expr->type, expr->is_lvalue, gchild);
+          overwrite_node(expr, child);
         }  /* if */
       } else if (op == (an_expr_operator_kind)eok_indirect &&
                  node_operator_is(child, eok_address_of) &&
