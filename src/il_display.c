@@ -2977,8 +2977,6 @@ Display the name of an expression operator.
                                 s = "eok_pm_derived_class_cast";  break;
     case eok_dynamic_cast:      s = "eok_dynamic_cast";           break;
     case eok_bool_cast:         s = "eok_bool_cast";              break;
-    case eok_lvalue_from_struct_rvalue:
-                                s = "eok_lvalue_from_struct_rvalue";break;
     case eok_array_to_pointer:  s = "eok_array_to_pointer";       break;
     case eok_dot_vacuous_destructor_call:
                                 s = "eok_dot_vacuous_destructor_call";

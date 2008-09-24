@@ -9132,17 +9132,6 @@ enum an_expr_operator_kind_tag {
   eok_bool_cast,	/* C++ and C99 cast to bool.  Operand can be
 			   arithmetic, enum, pointer, or pointer-to-member,
 			   and result is the equivalent of "operand != 0". */
-  eok_lvalue_from_struct_rvalue,
-			/* C mode: placed above an expression that is a struct
-			   rvalue, produces an lvalue for the struct (this can
-			   be implemented by storing the value in a temporary
-			   and returning the address of the temporary).  This
-			   is used in implementing subscripting of rvalue
-			   arrays in C mode (an extension in C89, standard in
-			   C99).  It may also be generated during IL lowering.
-			   The underlying expression can be a call that returns
-			   a struct, a struct assignment, or a comma
-			   operation. */
   eok_array_to_pointer,
 			/* Array to pointer decay: converts an array lvalue or
 			   rvalue to a pointer to its first element. */
@@ -12035,7 +12024,7 @@ EXTERN char     *db_operator_names[(int)eok_last+1]
    "base class cast", "derived class cast",
    "pm base class cast", "pm derived class cast",
    "dynamic cast", "bool cast",
-   "lvalue<==", "array-decay",
+   "array-decay",
    ". vacuous dtor", "-> vacuous dtor",
 #if MICROSOFT_EXTENSIONS_ALLOWED
    "__assume",

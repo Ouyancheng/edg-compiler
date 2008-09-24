@@ -11319,9 +11319,6 @@ tk_unknown is returned.
     case eok_bool_cast:
       result = skip_typerefs(expr->variant.operation.operands->type)->kind;
       break;
-    case eok_lvalue_from_struct_rvalue:
-      result = (a_type_kind)tk_struct;
-      break;
     case eok_array_to_pointer:
       result = (a_type_kind)tk_array;
       break;
@@ -19400,7 +19397,6 @@ static a_byte lvalue_rvalue_test[(int)eok_last+1] = {
   /* eok_pm_derived_class_cast: */	LVRV_OPND1_IS_RVALUE,
   /* eok_dynamic_cast: */		LVRV_OPND1_IS_RVALUE,
   /* eok_bool_cast: */			LVRV_OPND1_IS_RVALUE,
-  /* eok_lvalue_from_struct_rvalue: */	LVRV_OPND1_IS_RVALUE,
   /* eok_array_to_pointer: */		LVRV_NO_REQUIREMENTS,
   /* eok_dot_vacuous_destructor_call: */
 					LVRV_NO_REQUIREMENTS,

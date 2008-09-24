@@ -1559,17 +1559,18 @@ pointer.
   a_field_ptr           vals_field;
   a_type_ptr            ctype = skip_typerefs(expr->type), ptr_to_elem_type;
 
-  check_assertion(!is_pointer_type(ctype));
+  check_assertion(is_complex_type(ctype));
   if (!expr->is_lvalue) {
-    /* Turn the rvalue struct (the lowered complex type) into an 
-       rvalue address that represents an lvalue. */
-    expr = make_operator_node(
-                         (an_expr_operator_kind)eok_lvalue_from_struct_rvalue,
-                         make_pointer_type(expr->type), expr);
-    check_assertion(!expr->is_lvalue);
+    /* Assign the rvalue to a temporary and create a comma operation
+       to return the address of the temporary (i.e., (temp = expr, &temp) ). */
+    an_expr_node_ptr assign_node;
+    a_variable_ptr   temp_var = make_local_temporary(ctype);
+    assign_node = make_var_assignment_expr(temp_var, expr);
+    expr = make_comma_node(assign_node, var_addr_expr(temp_var));
   }  /* if */
   vals_field = complex_vals_field(ctype);
-  /* Construct "<expr>._Vals". */
+  /* Construct "<expr>._Vals".  expr can be either an rvalue or an lvalue,
+     result is an lvalue. */
   result = field_lvalue_selection_expr(expr, vals_field);
   /* Perform array to pointer decay. */
   ptr_to_elem_type = type_after_array_to_pointer_transformation(result->type);

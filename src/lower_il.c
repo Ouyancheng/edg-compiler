@@ -13201,10 +13201,6 @@ cast.  See lower_expr for typical invocation.
               wrap_throw(throw_operand, expr->type, expr->is_lvalue);
             }  /* if */
             break;
-          case eok_lvalue_from_struct_rvalue:
-            /* Not expected in C++. */
-            unexpected_condition_str(
-                                  "lower_expr: eok_lvalue_from_struct_rvalue");
           default:
             /* No action on most operators. */
             break;

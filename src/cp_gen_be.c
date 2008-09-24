@@ -489,11 +489,6 @@ static a_byte generated_precedence[(int)eok_last+1] = {
   PREC_CAST,		/* eok_pm_derived_class_cast */
   PREC_POSTFIX,		/* eok_dynamic_cast */
   PREC_CAST,		/* eok_bool_cast */
-  PREC_LOWEST,		/* eok_lvalue_from_struct_rvalue (NOTE: the
-                           generated code for this operator just copies the
-                           operand up, so we don't know anything about how
-                           it might actually be generated, hence the
-                           PREC_LOWEST) */
   PREC_LOWEST,		/* eok_array_to_pointer */
   PREC_POSTFIX,		/* eok_dot_vacuous_destructor_call */
   PREC_POSTFIX,		/* eok_points_to_vacuous_destructor_call */
@@ -7050,13 +7045,6 @@ temporary expressions).
           if (need_parens) write_tok_ch(')');
           processed = TRUE;
           break;
-        case eok_lvalue_from_struct_rvalue:
-          /* Used in C mode to allow subscripting of an rvalue array.  The
-             operand expression is put out as an rvalue, and the underlying
-             C compiler will presumably do the right thing. */
-          gen_expr(operand_1, need_parens);
-          processed = TRUE;
-          break;
         case eok_lvalue_cast:
           /* Lvalue cast. */
           if (need_parens) write_tok_ch('(');
@@ -8960,10 +8948,6 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           opstr = "--";
           operand_1_is_lvalue = TRUE;
           break;
-        case eok_lvalue_from_struct_rvalue:
-          /* This operator shouldn't get past gen_lvalue. */
-          unexpected_condition_str(
-                          "gen_expr: eok_lvalue_from_struct_rvalue as rvalue");
         case eok_array_to_pointer:
           /* Array to pointer decay -- just output the operand. */
           gen_expression(operand_1);
