@@ -6328,18 +6328,8 @@ End a name scope by popping an entry off the scope stack.
       }  /* if */
     }  /* if */
     if (il_scope != NULL) {
-      /* There is an allocated IL scope entry.  Add the scopes from the scope
-         stack entry to the end of the list pointed to by the IL scope.  The
-         IL scope will normally be NULL but can be non-null for a reactivated
-         file scope. */
-      if (il_scope->scopes != NULL) {
-        a_scope_ptr	last_scope;
-        for (last_scope = il_scope->scopes;
-             last_scope->next != NULL; last_scope = last_scope->next) {}
-        last_scope->next = ssep->first_scope;
-      } else {
-        il_scope->scopes = ssep->first_scope;
-      }  /* if */
+      /* There is an allocated IL scope entry. */
+      il_scope->scopes = ssep->first_scope;
     } else {
       /* Add the list of scopes to the list for the parent scope. */
       if (parent_ssep->first_scope == NULL) {

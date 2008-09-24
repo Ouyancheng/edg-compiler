@@ -3737,6 +3737,7 @@ initialize its fields, and return a pointer to it.
 #endif /* DEBUG */
   tdp->parent       = NULL;
   tdp->param_list   = NULL;
+  tdp->scope        = NULL;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   tdp->template_pos = null_source_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */

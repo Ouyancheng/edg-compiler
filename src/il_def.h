@@ -10800,6 +10800,11 @@ typedef struct a_template_decl {
 		param_list;
 			/* The list of template parameters for this template
 			   entity (not including enclosing parameters). */
+  a_scope_ptr	scope;
+			/* The template declaration scope containing the
+			   template parameter declarations.  NULL for an
+			   entry that represents an empty template parameter
+			   list of a specialization (e.g., "template <>"). */
   a_source_position
 		template_pos;
 			/* The position of the "template" keyword. */

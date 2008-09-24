@@ -3962,6 +3962,9 @@ Display the indicated template declaration information.
     disp_ptr("parent", (char*)ptr->parent, iek_template_decl);
   }  /* if */
   disp_ptr("param_list", (char*)ptr->param_list, iek_template_parameter);
+  if (ptr->scope != NULL) {
+     disp_ptr("scope", (char*)ptr->scope, iek_scope);
+  }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   disp_source_position("template_pos", &ptr->template_pos);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */

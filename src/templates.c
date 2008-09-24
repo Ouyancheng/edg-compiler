@@ -15480,6 +15480,7 @@ information).  See the definition of a_tmpl_decl_state for details.
         if (prototype_instantiations_in_il) {
           template_decl =
                         make_template_decl(decl_state->decl_info->parameters);
+          template_decl->scope = scope_stack_top().il_scope;
           template_decl->template_pos = template_pos;
           if (decl_state->il_template_entry != NULL) {
             template_decl->parent =

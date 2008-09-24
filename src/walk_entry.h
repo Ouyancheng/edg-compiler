@@ -1808,6 +1808,7 @@ do_set_proper_definition_needed_flag:
         walk_ptr(ptr->parent, a_template_decl_ptr, iek_template_decl);
         walk_list(ptr->param_list, a_template_parameter_ptr,
                   iek_template_parameter);
+        if (ptr->scope != NULL) walk_ptr(ptr->scope, a_scope_ptr, iek_scope);
       }
       break;
     case iek_template:
