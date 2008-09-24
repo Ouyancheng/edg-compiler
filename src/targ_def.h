@@ -1653,23 +1653,6 @@ shared pointer).
 typedef a_host_large_integer a_targ_ptrdiff_t;  /* Must be
                                                    a_host_large_integer. */
 
-/* TARG_PTRDIFF_T_MAX and TARG_PTRDIFF_T_MIN define the limits of the host
-   representation of ptrdiff_t constants; the range they define can be equal
-   to or smaller than the integer size implied by TARG_PTRDIFF_T_INT_KIND.
-   Except when the target ptrdiff_t is smaller than the host
-   a_targ_ptrdiff_t, they should be the maximum and minimum values
-   of the host a_targ_ptrdiff_t. */
-#ifndef TARG_PTRDIFF_T_MAX
-#define TARG_PTRDIFF_T_MAX ((a_targ_ptrdiff_t)LONG_MAX)
-			/* Default value, used to initialize global variable
-			   targ_ptrdiff_t_max. */
-#endif /* !defined(TARG_PTRDIFF_T_MAX) */
-#ifndef TARG_PTRDIFF_T_MIN
-#define TARG_PTRDIFF_T_MIN ((a_targ_ptrdiff_t)LONG_MIN)
-			/* Default value, used to initialize global variable
-			   targ_ptrdiff_t_min. */
-#endif /* !defined(TARG_PTRDIFF_T_MIN) */
-
 /* Pick a typical representation for ptrdiff_t: the smaller of int or long
    that can hold a pointer value. */
 #ifndef TARG_PTRDIFF_T_INT_KIND

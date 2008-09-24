@@ -1,5 +1,13 @@
 Version 3.11
 
+9/24/08  [EDGcpfe/9238]
+targ_ptrdiff_t_min and targ_ptrdiff_t_max are not used
+
+targ_ptrdiff_t_min, targ_ptrdiff_t_max, TARG_PTRDIFF_T_MIN and
+TARG_PTRDIFF_T_MAX are not actually used in the front end except for
+their initialization and in consistency checking code. They have now
+been eliminated.
+
 9/24/08  [EDGcpfe/9226]
 GNU attributes on classes nested in class templates
 

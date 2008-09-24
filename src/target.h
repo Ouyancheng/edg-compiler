@@ -1040,8 +1040,6 @@ EXTERN an_integer_kind
 #define TARG_POINTER_MODE targ_pointer_mode
 #define TARG_WORD_MODE targ_word_mode
 #endif /* GNU_EXTENSIONS_ALLOWED */
-#define TARG_PTRDIFF_T_MAX targ_ptrdiff_t_max
-#define TARG_PTRDIFF_T_MIN targ_ptrdiff_t_min
 #define TARG_PTRDIFF_T_INT_KIND targ_ptrdiff_t_int_kind
 #define TARG_SIZE_T_MAX targ_size_t_max
 #define TARG_SIZE_T_INT_KIND targ_size_t_int_kind

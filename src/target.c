@@ -151,7 +151,6 @@ Perform consistency check on target configuration variables.
 {
   a_targ_size_t    size, size_max_value;
   a_targ_alignment alignment;
-  a_targ_ptrdiff_t diff_max_value;
   a_boolean        err;
 
   /* The target char may be no bigger than the host long. */
@@ -194,25 +193,6 @@ Perform consistency check on target configuration variables.
   size_max_value |= 1;
   if (size_max_value < targ_size_t_max) {
     internal_error("check_target_config: targ_size_t_max is too large");
-  }  /* if */
-  /* targ_ptrdiff_t_max and targ_ptrdiff_t_min must fit in the target
-     integer type targ_ptrdiff_t_int_kind (but they need not fit exactly). */
-  get_integer_size_and_alignment((an_integer_kind)targ_ptrdiff_t_int_kind,
-                                 &size, &alignment);
-  size *= targ_char_bit;
-  if (size > sizeof(a_targ_ptrdiff_t)*CHAR_BIT) {
-    size = sizeof(a_targ_ptrdiff_t)*CHAR_BIT;
-  }  /* if */
-  /* Make a mask of "size-1" 1 bits for the maximum value. */
-  diff_max_value = ((((a_targ_ptrdiff_t)1 << (size-2))-1) << 1);
-  /* Final "or" done separately to avoid a bug in Borland C++ 3.0 with -O. */
-  diff_max_value |= 1;
-  if (diff_max_value < targ_ptrdiff_t_max) {
-    internal_error("check_target_config: targ_ptrdiff_t_max is too large");
-  }  /* if */
-  /* This test depends on a two's complement representation. */
-  if (-targ_ptrdiff_t_max-1 != targ_ptrdiff_t_min) {
-    internal_error("check_target_config: invalid targ_ptrdiff_t_min");
   }  /* if */
 #if LONG_LONG_ALLOWED
   if (TARG_SIZEOF_LARGEST_INTEGER < targ_sizeof_long_long) {
@@ -418,8 +398,6 @@ This is done before command line processing.
   targ_sizeof_near_pointer = TARG_SIZEOF_NEAR_POINTER;
   targ_alignof_near_pointer = TARG_ALIGNOF_NEAR_POINTER;
 #endif /* NEAR_AND_FAR_ALLOWED */
-  targ_ptrdiff_t_max = TARG_PTRDIFF_T_MAX;
-  targ_ptrdiff_t_min = TARG_PTRDIFF_T_MIN;
   targ_ptrdiff_t_int_kind = TARG_PTRDIFF_T_INT_KIND;
   targ_size_t_max = TARG_SIZE_T_MAX;
   targ_size_t_int_kind = TARG_SIZE_T_INT_KIND;
