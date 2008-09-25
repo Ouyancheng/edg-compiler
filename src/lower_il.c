@@ -10264,10 +10264,10 @@ lvalue to its logical "not".
       result_value_node = alloc_node_for_constant(&result_constant);
     } else {
       /* Decrement.  Build !temp. */
-      result_value_node = make_operator_node((an_expr_operator_kind)eok_not,
-                                             integer_type(
-                                                      (an_integer_kind)ik_int),
-                                             x_rvalue_copy);
+      result_value_node = make_operator_node(
+                                      (an_expr_operator_kind)eok_not,
+                                      integer_type((an_integer_kind)ik_int),
+                                      boolean_controlling_expr(x_rvalue_copy));
       result_value_node = add_cast(result_value_node, x_rvalue->type);
       if (!predecr_case) {
         x_rvalue_copy = make_reusable_copy(x_rvalue, /*vars_can_change=*/TRUE);

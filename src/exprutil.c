@@ -29,6 +29,9 @@ exprutil.c -- Expression scanning utility routines.
 #include "pch.h"
 #include "func_def.h"
 #include "il_walk.h"
+#if DO_IL_LOWERING
+#include "lower_il.h"
+#endif /* DO_IL_LOWERING */
 
 /* Declarations needed because of forward references: */
 static a_boolean is_bit_field_expr(an_expr_node_ptr node);
@@ -1696,6 +1699,15 @@ before calling the lower-level copy routine.
       operand3 = operand2->next;
       vars_can_change |= node_has_side_effects(expr, (a_boolean *)NULL);
       operand1_copy = copy_func(operand1, vars_can_change, temp_init_used);
+#if DO_IL_LOWERING
+      if (il_lowering_underway) {
+        /* We are producing a lowered eok_question and modifying an existing
+           one: Ensure that both have a normalized first operand (in the
+           configurations that require it). */
+        normalize_boolean_controlling_expr_if_needed(operand1);
+        normalize_boolean_controlling_expr_if_needed(operand1_copy);
+      }  /* if */
+#endif /* DO_IL_LOWERING */
       operand2_copy = lvalue_expr_reusable_copy(operand2, vars_can_change,
                                                 copy_func,
                                                 &local_temp_init_used);
