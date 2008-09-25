@@ -1569,8 +1569,7 @@ pointer.
     expr = make_comma_node(assign_node, var_addr_expr(temp_var));
   }  /* if */
   vals_field = complex_vals_field(ctype);
-  /* Construct "<expr>._Vals".  expr can be either an rvalue or an lvalue,
-     result is an lvalue. */
+  /* Construct "expr._Vals" or "expr->_Vals". */
   result = field_lvalue_selection_expr(expr, vals_field);
   /* Perform array to pointer decay. */
   ptr_to_elem_type = type_after_array_to_pointer_transformation(result->type);
