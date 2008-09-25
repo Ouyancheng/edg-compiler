@@ -11686,7 +11686,7 @@ The expression can be an lvalue or an rvalue.
 }  /* lower_pm_field */
 
 
-static void optimize_expr_if_possible(an_expr_node_ptr expr)
+static void optimize_node_if_possible(an_expr_node_ptr expr)
 /*
 Perform some simple optimizations on expr if possible.  Note that operations
 are optimized regardless of whether or not the operations are compiler
@@ -11769,7 +11769,7 @@ throughout the entire expression).
       } /* if */
     } /* if */
   } /* if */
-}  /* optimize_expr_if_possible */
+}  /* optimize_node_if_possible */
 
 
 static void lower_operation_on_const_string(an_expr_node_ptr expr,
@@ -11837,7 +11837,7 @@ optimizations or cleanups that are applicable to this expression node.
 */
 {
   /* Perform some optimizations if they are applicable. */
-  optimize_expr_if_possible(expr);
+  optimize_node_if_possible(expr);
   /* See if we have an operation on a string constant. */
   if (string_literals_are_const &&
       is_operation_node(expr) &&
@@ -12446,38 +12446,6 @@ given statement is subsequently modified.
 
 #endif /* DEBUG */
 
-static void change_expr_to_address_of_expr(an_expr_node_ptr expr)
-/*
-The expression expr is overwritten with an expression that returns
-the address of its current value.  The lvalue expression is changed to an
-rvalue expression as a result.
-*/
-{
-  an_expr_node_ptr  operands;
-
-  check_assertion(expr->is_lvalue);
-  if (is_operation_node(expr) && node_operator_is(expr, eok_comma)) {
-    /* Take the address of the second operand. */
-    operands = expr->variant.operation.operands;
-    change_expr_to_address_of_expr(operands->next);
-    expr->type = operands->next->type;
-    expr->is_lvalue = operands->next->is_lvalue;
-  } else if (is_operation_node(expr) && node_operator_is(expr, eok_question)) {
-    /* Take the address of the second and third operands. */
-    operands = expr->variant.operation.operands;
-    change_expr_to_address_of_expr(operands->next->next);
-    change_expr_to_address_of_expr(operands->next);
-    expr->type = operands->next->type;
-    expr->is_lvalue = operands->next->is_lvalue;
-  } else {
-    /* Simply overwrite the expression with an expression that returns
-       its address. */
-    overwrite_node(expr, add_address_of_to_node(copy_node(expr)));
-  }  /* if */
-  check_assertion(!expr->is_lvalue);
-}  /* change_expr_to_address_of_expr */
-
-
 static void lower_reference_to(an_expr_node_ptr expr)
 /*
 Lower an eok_reference_to expression (expr) by replacing the operation with an
@@ -12494,7 +12462,7 @@ rest of lowering only sees an eok_address_of operator.
   set_node_operator(expr, (an_expr_operator_kind)eok_address_of,
                     make_pointer_type(operand->type), expr->is_lvalue,
                     operand);
-  /* Lower the new expression. */
+  /* Lower (and potentially optimize) the new expression. */
   lower_expr(expr);
 }  /* lower_reference_to */
 
@@ -12513,50 +12481,13 @@ rest of lowering only sees an eok_indirect operator.
                   node_operator_is(expr, eok_ref_indirect));
   operand = expr->variant.operation.operands;
   expr->variant.operation.kind = (an_expr_operator_kind)eok_indirect;
+  /* Lower (and potentially optimize) the new expression. */
   lower_expr(expr);
   /* Change reference type to pointer type.  Do this after lowering the
      expression so the reference type still exists.  lower_dynamic_cast
      currently depends on this behavior. */
   operand->type = make_pointer_type(type_pointed_to(operand->type));
 }  /* lower_ref_indirect */
-
-
-static void lower_address_of(an_expr_node_ptr expr)
-/*
-Lower an eok_address_of expression (expr).  eok_reference_to nodes have been
-lowered to eok_address_of nodes previously.
-*/
-{
-  an_expr_node_ptr  operand;
-
-  check_assertion(is_operation_node(expr) &&
-                  node_operator_is(expr, eok_address_of));
-  operand = expr->variant.operation.operands;
-  if (is_operation_node(operand) &&
-      (node_operator_is(expr, eok_comma) ||
-       node_operator_is(expr, eok_question))) {
-    /* In cases where the operand can't have its address taken 
-       (i.e., eok_comma or eok_question), push the enk_address_of into
-       the operands as appropriate. */
-    change_expr_to_address_of_expr(operand);
-    overwrite_node(expr, operand);
-  }  /* if */
-  /* See if an optimization applies. */
-  optimize_expr_if_possible(expr);
-}  /* lower_address_of */
-
-
-static void lower_indirect(an_expr_node_ptr expr)
-/*
-Lower an eok_indirect expression (expr).  eok_ref_indirect nodes have
-been lowered to eok_indirect nodes previously.
-*/
-{
-  check_assertion(is_operation_node(expr) &&
-                  node_operator_is(expr, eok_indirect));
-  /* See if an optimization applies. */
-  optimize_expr_if_possible(expr);
-}  /* lower_indirect */
 
 
 static void lower_assignment_operator(an_expr_node_ptr  expr)
@@ -12953,12 +12884,9 @@ cast.  See lower_expr for typical invocation.
            operands have been lowered. */
         switch (op) {
           case eok_address_of:
-            /* Optimize away an "&" operation in some cases. */
-            lower_address_of(expr);
-            break;
           case eok_indirect:
-            /* Optimize away an "*" operation in some cases. */
-            lower_indirect(expr);
+            /* See if an optimization applies. */
+            optimize_node_if_possible(expr);
             break;
 #if LOWER_COMPLEX
           case eok_negate:
@@ -13160,14 +13088,14 @@ cast.  See lower_expr for typical invocation.
             break;
           case eok_dot_field:
             /* See if an optimization applies. */
-            optimize_expr_if_possible(expr);
+            optimize_node_if_possible(expr);
             /* If a field selection refers to an anonymous union field,
                adjust it to make the anonymous union reference(s) explicit. */
             adjust_field_selection_for_anonymous_union_references(expr);
             break;
           case eok_points_to_field:
             /* See if an optimization applies. */
-            optimize_expr_if_possible(expr);
+            optimize_node_if_possible(expr);
             /* If a field selection refers to an anonymous union field,
                adjust it to make the anonymous union reference(s) explicit. */
             adjust_field_selection_for_anonymous_union_references(expr);
