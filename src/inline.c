@@ -329,7 +329,11 @@ expressions have side effects).  other_vars_change is TRUE if the values of
 other variables might change (e.g., if the argument expressions or the called
 function body have side effects).  This routine does not investigate all
 possible cases (i.e., it may return FALSE when a more complete inspection would
-return TRUE).  See constant_lvalue_address and constant_rvalue_pointer.
+return TRUE).  See constant_lvalue_address and constant_rvalue_pointer for
+more definitive determinations of whether or not an expression is constant
+valued, but this routine has some differences in underlying assumptions
+(e.g., "this" is considered constant, addresses of string literals are not)
+that are specific to inlining and therefore yield different results.
 */
 {
   a_boolean is_constant_valued = FALSE;
@@ -407,6 +411,31 @@ return TRUE).  See constant_lvalue_address and constant_rvalue_pointer.
                                               local_vars_change,
                                               other_vars_change,
                                               is_non_null);
+    } else if (op == (an_expr_operator_kind)eok_padd ||
+               op == (an_expr_operator_kind)eok_psubtract ||
+               (expr->is_lvalue &&
+                op == (an_expr_operator_kind)eok_subscript)) {
+      /* These operations are constant provided both operands are as well.
+         Note that pointer and integer operands can be in either order 
+         (for eok_padd and eok_subscript) but we don't care here. */
+      a_boolean op1_is_non_null, op2_is_non_null;
+      if (is_constant_valued_expression(expr->variant.operation.operands,
+                                        local_vars_change,
+                                        other_vars_change,
+                                        &op1_is_non_null)) {
+        is_constant_valued = is_constant_valued_expression(
+                                        expr->variant.operation.operands->next,
+                                        local_vars_change,
+                                        other_vars_change,
+                                        &op2_is_non_null);
+        if (op == (an_expr_operator_kind)eok_psubtract) {
+          /* Can't make any guarantees about is_non_null, so leave it FALSE. */
+        } else {
+          /* If either operand is non-null, the sum will be non-null
+             as well. */
+          *is_non_null = op1_is_non_null || op2_is_non_null;
+        }  /* if */
+      }  /* if */
     } else if (expr->is_lvalue &&
                (op == (an_expr_operator_kind)eok_dot_field ||
                 op == (an_expr_operator_kind)eok_points_to_field)) {
