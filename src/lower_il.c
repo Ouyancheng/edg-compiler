@@ -12018,7 +12018,7 @@ it is left alone.
       if (child2 != NULL && !vars_can_change) {
         vars_can_change = node_has_side_effects(child2, (a_boolean *)NULL);
       }  /* if */
-      /* Attach a copy of the lvalue address to the assignment node, as the
+      /* Attach a copy of the lvalue to the assignment node, as the
          second operand of the comma operator. */
       newop->next = make_lvalue_reusable_copy(child1, vars_can_change);
       /* newop->next->result_is_not_used is properly FALSE, since the
