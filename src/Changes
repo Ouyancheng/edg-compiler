@@ -17,10 +17,10 @@ appearing in class templates.  For example:
   template<typename T> struct X {
     struct __attribute((aligned(64))) Y {};
   };
-  X<int>::Y y;  // Previously the attribute on N was ignored.
+  X<int>::Y y;  // Previously the attribute on Y was ignored.
 
 This behavior was unintentional and is now fixed: The attributes are applied
-a expected.
+as expected.
 
 
 9/22/08  [EDGcpfe/9222]
