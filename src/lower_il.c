@@ -12532,8 +12532,7 @@ The given node is an eok_assign node.  Lower the node if needed.
             an_insert_location insert_location;
             if (expr->variant.operation.
                                       returns_lvalue_instead_of_usual_rvalue) {
-              /* The assignment returns an lvalue, i.e., the address of the
-                 "this" parameter. */
+              /* Create an lvalue for the "this" parameter. */
               new_expr = var_lvalue_expr(this_param_var);
               /* Add a cast to restore the const qualifier on the expression
                  type.  The const on the "this" parameter variable type has
