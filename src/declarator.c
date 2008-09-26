@@ -534,13 +534,18 @@ type.
             !is_partial_type(temp_type)) {
           /* Usually okay. */
           if (flexible_array_members_allowed) {
-            /* A struct or union containing a member that is a zero-length
-               array cannot be an array element type. */
+            /* A struct or union containing a flexible array member is usually
+               not allowed to be an array element type.  An exception is made
+               GNU modes. */
             if (is_class_struct_union_type(temp_type) &&
                 temp_type->variant.class_struct_union.
                                 contains_flexible_array_member) {
-              error(ec_flexible_array_member_not_allowed);
-              err = TRUE;
+              if (gnu_mode) {
+                warning(ec_nonstandard_array_with_flexible_array_element);
+              } else {
+                error(ec_flexible_array_member_not_allowed);
+                err = TRUE;
+              }  /* if */
             }  /* if */
           }  /* if */
           if (!(parameter_type && (sun_mode || gpp_mode)) &&

@@ -1,5 +1,19 @@
 Version 3.11
 
+9/26/08  [EDGcpfe/9217]
+GNU C compatibility: Array elements with flexible array members
+
+In GNU C mode, the front end now accepts (with a warning) arrays whose
+element type is a class type with a flexible array member.  For example:
+
+  struct F { int n; float x[]; };  // Flexible array member x.
+  struct F y[3];  // Now accepted in GNU C mode (with a warning).
+
+(Note: In GNU C++ mode, such code was already accepted, because "flexible
+array members" are treated as zero-length array members in that mode.  See
+Changes entry of 10/17/02.)
+
+
 9/26/09  [EDGcpfe/9241]
 Microsoft compatibility: internal error on class template in Microsoft
 in-class specialization
