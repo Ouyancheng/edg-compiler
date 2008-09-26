@@ -5386,9 +5386,9 @@ is indeed limited to those result values.  Otherwise, return FALSE.
 
 #if KEEP_OBJECT_LIFETIME_INFO_IN_LOWERED_IL_WHEN_EH_ENABLED
   /* Ignore an enk_object_lifetime node if present -- look under it. */
-  while (node->kind == (an_expr_node_kind)enk_object_lifetime) {
+  if (node->kind == (an_expr_node_kind)enk_object_lifetime) {
     node = node->variant.object_lifetime.expr;
-  }  /* while */
+  }  /* if */
 #endif /* KEEP_OBJECT_LIFETIME_INFO_IN_LOWERED_IL_WHEN_EH_ENABLED */
   if (node->kind == (an_expr_node_kind)enk_constant) {
     a_constant_ptr  cp = node->variant.constant;
