@@ -1340,7 +1340,7 @@ Return the type of a pointer to a virtual table table.
 }  /* make_virtual_table_table_pointer_type */
 
 
-a_type_ptr underlying_type(a_type_ptr type)
+a_type_ptr get_underlying_type(a_type_ptr type)
 /*
 Drop typerefs, watching out for a typeref with orig_type set.  For that
 case, return the original type that was rewritten into that typeref.
@@ -1358,7 +1358,7 @@ case, return the original type that was rewritten into that typeref.
     type = type->variant.typeref.type;
   }  /* while */
   return type;
-}  /* underlying_type */
+}  /* get_underlying_type */
 
 
 static a_type_ptr pm_member_type_possibly_lowered(a_type_ptr type)
@@ -1369,7 +1369,7 @@ its member type.
 {
   a_type_ptr member_type;
 
-  type = underlying_type(type);
+  type = get_underlying_type(type);
   member_type = pm_member_type(type);
   return member_type;
 }  /* pm_member_type_possibly_lowered */
@@ -1383,7 +1383,7 @@ its class type.
 {
   a_type_ptr class_type;
 
-  type = underlying_type(type);
+  type = get_underlying_type(type);
   class_type = pm_class_type(type);
   return class_type;
 }  /* pm_class_type_possibly_lowered */
@@ -2166,9 +2166,9 @@ the next operand, and return the resulting operand pair.
     expr = add_cast_if_necessary(expr,
                                  node_type_after_integral_promotion(expr));
   }  /* if */
-  /* underlying_type is needed here for the pointer-to-member case if the type
-     is already lowered. */
-  make_zero_of_proper_type(underlying_type(expr->type), &zero);
+  /* get_underlying_type is needed here for the pointer-to-member case if the
+     type is already lowered. */
+  make_zero_of_proper_type(get_underlying_type(expr->type), &zero);
   expr->next = alloc_node_for_constant(&zero);
   return expr;
 }  /* make_operands_for_ne_0 */
@@ -3059,9 +3059,9 @@ to a temporary, and return a pointer to the temporary.
 an_expr_node_ptr assign_expr_to_temp_and_make_expr_for_reuse(
                                                          an_expr_node_ptr expr)
 /*
-Change the indicated expression into an assignment of the expression to a
-temporary, then create and return a new expression that refers to the
-temporary.
+Change the indicated expression (an rvalue) into an assignment of the
+expression to a temporary, then create and return a new expression that refers
+to the temporary.
 */
 {
   an_expr_node_ptr expr_copy;

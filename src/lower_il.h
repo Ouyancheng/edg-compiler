@@ -744,7 +744,7 @@ extern void lower_initializer(a_variable_ptr     variable,
                               an_insert_location *insert_location);
 #endif /* IA64_ABI */
 
-extern a_type_ptr underlying_type(a_type_ptr type);
+extern a_type_ptr get_underlying_type(a_type_ptr type);
 
 extern a_type_ptr pm_class_type_possibly_lowered(a_type_ptr type);
 

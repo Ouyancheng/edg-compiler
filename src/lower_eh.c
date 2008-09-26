@@ -2600,7 +2600,7 @@ the cv-qualifiers and passes the type through.
 #endif /* IA64_ABI */
 #endif /* GENERATE_EH_TABLES */
   /* Strip typerefs but watch out for rewritten pointers-to-members. */
-  eff_type = underlying_type(eff_type);
+  eff_type = get_underlying_type(eff_type);
   return eff_type;
 }  /* eff_type_for_typeinfo */
 
