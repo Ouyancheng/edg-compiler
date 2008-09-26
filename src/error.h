@@ -496,33 +496,6 @@ extern void str_add_diag_info(an_error_code error_code,
 extern void add_diag_info(an_error_code error_code);
 void add_diag_info_with_pos_insert(an_error_code      error_code,
                                    a_source_position  *pos);
-#if !STANDALONE_UTILITY_PROGRAM
-extern void pos_sy_start_diagnostic(an_error_severity  error_severity,
-                                    an_error_code      error_code,
-                                    a_source_position *error_pos,
-                                    struct a_symbol   *symbol);
-extern void pos_sy_start_error(an_error_code     error_code,
-                               a_source_position *error_pos,
-                               struct a_symbol   *symbol);
-extern void pos_stsy_start_error(an_error_code     error_code,
-                                 a_source_position *error_pos,
-                                 char              *error_string,
-                                 struct a_symbol   *symbol);
-extern void pos_sy_start_warning(an_error_code     error_code,
-                                 a_source_position *error_pos,
-                                 struct a_symbol   *symbol);
-extern void pos_sy2_warning(an_error_code     error_code,
-                            a_source_position *error_pos,
-                            struct a_symbol   *symbol1,
-                            struct a_symbol   *symbol2);
-extern void sym_add_diag_info(an_error_code   error_code,
-                              struct a_symbol *symbol);
-
-extern void pch_message(an_error_code error_code,
-   		        char	      *fill_in_str);
-
-extern void diag_pragma(struct a_pending_pragma *ppp);
-
 extern
 FILE *fopen_with_error(char			*file_name,
 		       char			*mode,
@@ -553,6 +526,33 @@ FILE *open_source_file_with_error_handling(
 				an_open_file_flag_set	open_flags,
 				an_open_file_result	*open_result,
 				a_unicode_source_kind	*unicode_source_kind);
+
+#if !STANDALONE_UTILITY_PROGRAM
+extern void pos_sy_start_diagnostic(an_error_severity  error_severity,
+                                    an_error_code      error_code,
+                                    a_source_position *error_pos,
+                                    struct a_symbol   *symbol);
+extern void pos_sy_start_error(an_error_code     error_code,
+                               a_source_position *error_pos,
+                               struct a_symbol   *symbol);
+extern void pos_stsy_start_error(an_error_code     error_code,
+                                 a_source_position *error_pos,
+                                 char              *error_string,
+                                 struct a_symbol   *symbol);
+extern void pos_sy_start_warning(an_error_code     error_code,
+                                 a_source_position *error_pos,
+                                 struct a_symbol   *symbol);
+extern void pos_sy2_warning(an_error_code     error_code,
+                            a_source_position *error_pos,
+                            struct a_symbol   *symbol1,
+                            struct a_symbol   *symbol2);
+extern void sym_add_diag_info(an_error_code   error_code,
+                              struct a_symbol *symbol);
+
+extern void pch_message(an_error_code error_code,
+   		        char	      *fill_in_str);
+
+extern void diag_pragma(struct a_pending_pragma *ppp);
 
 extern void embedded_cplusplus_noncompliance_diagnostic(
                                               a_source_position  *error_pos,
