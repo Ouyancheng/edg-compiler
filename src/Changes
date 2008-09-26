@@ -1,5 +1,30 @@
 Version 3.11
 
+9/26/09  [EDGcpfe/9241]
+Microsoft compatibility: internal error on class template in Microsoft
+in-class specialization
+
+An internal error could occur on a Microsoft in-class specialization that
+contained a class template.  The internal error could occur in a number
+of places depending on the example.  In this example, the internal error
+occurred in prep_generic_operand_full.  Now fixed.
+
+ template<int N> struct A { };
+ template<> struct A<1> {
+      template <typename T> struct B {
+        typedef T* const ptr_B;
+      };
+ };
+  struct C {
+    template<int N> struct D { };
+    template<> struct D<1> {
+      template<class T> struct B {
+        typename A<1>::B<T>::ptr_B b_ptr;
+        B(typename A<1>::B<T>::ptr_B p):b_ptr(p){}
+      };
+    };
+  };
+
 9/26/08  [EDGcpfe/9217]
 GNU compatibility: Attributes in casts
 

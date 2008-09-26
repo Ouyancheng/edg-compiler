@@ -14793,10 +14793,13 @@ classes.
       }  /* if */
     }  /* if */
     /* If this class is nested in an in-class specialization, consider it
-       an in-class specialization too. */
+       an in-class specialization too.  An exception is made for a class
+       template declared within an in-class specialization. */
     if (tag_sym->is_class_member &&
         sym_parent_class(tag_sym)
-                    ->variant.class_struct_union.is_in_class_specialization) {
+                    ->variant.class_struct_union.is_in_class_specialization &&
+        (!class_type->variant.class_struct_union.is_prototype_instantiation ||
+         ctsp->template_arg_list == NULL)) {
       class_type->variant.class_struct_union.is_in_class_specialization = TRUE;
     }  /* if */
     class_state.is_template_instantiation = is_template_instantiation;
