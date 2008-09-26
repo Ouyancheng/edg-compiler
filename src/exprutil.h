@@ -1518,8 +1518,6 @@ extern void make_upc_thread_operand(an_operand            *operand,
                                     a_constant_repr_kind  kind);
 #endif /* UPC_EXTENSIONS_ALLOWED */
 
-extern a_boolean is_cast_operation_node(an_expr_node_ptr expr);
-
 #if DEBUG
 extern unsigned long show_expr_space_used(void);
 #endif /* DEBUG */

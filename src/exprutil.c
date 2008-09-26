@@ -11338,27 +11338,6 @@ types to get a boolean expression (see process_boolean_controlling_expression).
 }  /* check_boolean_controlling_expr */
 
 
-a_boolean is_cast_operation_node(an_expr_node_ptr expr)
-/*
-Returns TRUE if expr is an operation node that is one of the cast
-operations.
-*/
-{
-  return (is_operation_node(expr) &&
-          (node_operator_is(expr, eok_cast) ||
-           node_operator_is(expr, eok_base_class_cast) ||
-           node_operator_is(expr, eok_derived_class_cast) ||
-           node_operator_is(expr, eok_pm_base_class_cast) ||
-           node_operator_is(expr, eok_pm_derived_class_cast) ||
-           node_operator_is(expr, eok_lvalue_cast) ||
-           node_operator_is(expr, eok_dynamic_cast) ||
-           node_operator_is(expr, eok_bool_cast) ||
-           node_operator_is(expr, eok_static_cast) ||
-           node_operator_is(expr, eok_const_cast) ||
-           node_operator_is(expr, eok_reinterpret_cast)));
-}  /* is_cast_operation_node */
-
-
 #if DEBUG
 unsigned long show_expr_space_used(void)
 /*
