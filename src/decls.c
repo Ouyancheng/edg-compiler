@@ -9486,7 +9486,21 @@ needed).
   init_decl_parse_state(&state);
   copy_source_position(pos_curr_token, state.start_pos);
   dsi_flags = DSI_TYPE_SPECIFIER_ALLOWED | DSI_NO_REAL_DECLARATOR;
+  if (gnu_mode) {
+    /* GNU attributes are allowed, but those that don't actually transform a
+       type will be ignored. */
+    dsi_flags |= DSI_GNU_ATTRIBUTES_ALLOWED;
+  }  /* if */
   decl_specifiers(dsi_flags, &state, (a_decl_pos_block_ptr)NULL);
+#if GNU_EXTENSIONS_ALLOWED
+  if (state.attributes != NULL) {
+    /* Attributes were scanned that didn't directly directly affect the
+       specifiers type: Ignore them with a warning. */
+    pos_warning(ec_gnu_attributes_ignored, &state.attributes->position);
+    free_attribute_list(state.attributes);
+    state.attributes = NULL;
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   if (type_defined != NULL) {
     *type_defined = (state.dso_flags & DSO_DEFINES_SOMETHING) != 0;
   }  /* if */
