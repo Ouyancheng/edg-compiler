@@ -1,5 +1,11 @@
 Version 3.11
 
+9/26/08  [EDGcpfe/9231]
+GNU compatibility: __builtin_memchr
+
+In GNU modes, the front end now predeclares __builtin_memchr.
+
+
 9/24/08  [EDGcpfe/9238]
 targ_ptrdiff_t_min and targ_ptrdiff_t_max are not used
 

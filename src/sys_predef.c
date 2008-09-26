@@ -710,6 +710,8 @@ Enter the standard predeclared functions for GCC.
   enter_gnu_builtin_func1(_lroundf, long, floating);
   enter_gnu_builtin_func1(_lroundl, long, long_double);
   enter_gnu_builtin_func1(_malloc, void_star, size_t);
+  enter_gnu_builtin_func3(_memchr, void_star,
+                          const_void_star, int, size_t);
   enter_gnu_builtin_func3(_memcmp, int,
                           const_void_star, const_void_star, size_t);
   enter_gnu_builtin_func3(_memcpy, void_star,

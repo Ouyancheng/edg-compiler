@@ -7371,6 +7371,7 @@ enum a_builtin_function_kind_tag {
   bfk_lroundf,                  /* "__builtin_lroundf" */
   bfk_lroundl,                  /* "__builtin_lroundl" */
   bfk_malloc,                   /* "__builtin_malloc" */
+  bfk_memchr,                   /* "__builtin_memchr" */
   bfk_memcmp,                   /* "__builtin_memcmp" */
   bfk_memcpy,                   /* "__builtin_memcpy" */
   bfk_memmove,                  /* "__builtin_memmove" */
@@ -7939,6 +7940,7 @@ EXTERN char *builtin_function_kind_names[(int)bfk_last + 1]
   /* bfk_lroundf */                  "__builtin_lroundf",
   /* bfk_lroundl */                  "__builtin_lroundl",
   /* bfk_malloc */                   "__builtin_malloc",
+  /* bfk_memchr */                   "__builtin_memchr",
   /* bfk_memcmp */                   "__builtin_memcmp",
   /* bfk_memcpy */                   "__builtin_memcpy",
   /* bfk_memmove */                  "__builtin_memmove",
