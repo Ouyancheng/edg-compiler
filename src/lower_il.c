@@ -11740,6 +11740,28 @@ throughout the entire expression).
           child->variant.operation.returns_lvalue_instead_of_usual_rvalue =
                                                                          FALSE;
           overwrite_node(expr, child);
+        } else if (node_operator_is(child, eok_dot_field) &&
+                   (is_operation_node(gchild) &&
+                    node_operator_is(gchild, eok_comma))) {
+          /* Some C compilers won't accept &(1, x).f, so turn this into
+             (1, &x.f). */
+          an_expr_node_ptr new_comma_second_node;
+          an_expr_node_ptr field = child->variant.operation.operands->next;
+          check_assertion(gchild->is_lvalue && !expr->is_lvalue);
+          comma_second_node = gchild->variant.operation.operands->next;
+          comma_second_node->next = field;
+          new_comma_second_node = make_lvalue_operator_node(
+                                          (an_expr_operator_kind)eok_dot_field,
+                                          field->type, 
+                                          comma_second_node);
+          new_comma_second_node = add_address_of_to_node(
+                                                        new_comma_second_node);
+          gchild->variant.operation.operands->next = new_comma_second_node;
+          gchild->type = new_comma_second_node->type;
+          gchild->is_lvalue = FALSE;
+          gchild->variant.operation.returns_lvalue_instead_of_usual_rvalue =
+                                                                         FALSE;
+          overwrite_node(expr, gchild);
         } else if (node_operator_is(child, eok_subscript)) {
           /* Optimize &x[y] to x + y. */
           child->next = expr->next;
