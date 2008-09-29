@@ -1003,6 +1003,22 @@ with a C back end.
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL && DO_IL_LOWERING */
 
 /*
+Flag that is TRUE if IL lowering should normalize boolean controlling
+expressions (e.g., expr in "if (expr)...") to always produce 0/1.
+The normalization is often achieved by adding a "!= 0" comparison to the
+controlling expression.  This is the initial value of the global variable
+lowering_normalizes_boolean_controlling_expressions.
+*/
+#ifndef LOWERING_NORMALIZES_BOOLEAN_CONTROLLING_EXPRESSIONS
+#define LOWERING_NORMALIZES_BOOLEAN_CONTROLLING_EXPRESSIONS FALSE
+#endif /* LOWERING_NORMALIZES_BOOLEAN_CONTROLLING_EXPRESSIONS */
+
+#if LOWERING_NORMALIZES_BOOLEAN_CONTROLLING_EXPRESSIONS && !DO_IL_LOWERING
+ #error -- LOWERING_NORMALIZES_BOOLEAN_CONTROLLING_EXPRESSIONS requires \
+           DO_IL_LOWERING
+#endif /* LOWERING_NORMALIZES_BOOLEAN_CONTROLLING_EXPRESSIONS && ... */
+
+/*
 If DO_IL_LOWERING is TRUE, this gives the routine name used for the
 C++ file-scope initialization routine.  The name is not really
 significant (except as a cfront compatibility issue), but the C-generating
@@ -2955,6 +2971,15 @@ EXTERN char	*predef_macro_mode_names[(int)pmm_last + 1]
 }
 #endif /* VAR_INITIALIZERS */
 ;
+
+EXTERN a_boolean
+		lowering_normalizes_boolean_controlling_expressions
+#if VAR_INITIALIZERS
+                         = LOWERING_NORMALIZES_BOOLEAN_CONTROLLING_EXPRESSIONS
+#endif /* VAR_INITIALIZERS */
+                                                                              ;
+			/* TRUE if IL lowering should normalize boolean
+			   controlling expressions to always produce 0/1. */
 
 #endif /* ifndef HOST_ENVIR_H */
 

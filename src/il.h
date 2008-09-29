@@ -1883,15 +1883,6 @@ EXTERN a_upc_block_size
 			/* The maximum allowable UPC block size. */
 #endif /* UPC_EXTENSIONS_ALLOWED */
 
-EXTERN a_boolean
-		lowering_normalizes_boolean_controlling_expressions
-#if VAR_INITIALIZERS
-                         = LOWERING_NORMALIZES_BOOLEAN_CONTROLLING_EXPRESSIONS
-#endif /* VAR_INITIALIZERS */
-                                                                              ;
-			/* TRUE if IL lowering should normalize boolean
-			   controlling expressions to always produce 0/1. */
-
 #endif /* ifndef IL_H */
 
 /******************************************************************************

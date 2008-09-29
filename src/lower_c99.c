@@ -2399,44 +2399,46 @@ destination) to a runtime call).
 
 #endif /* LOWER_FIXED_POINT */
 
-void post_lower_c99_bool_cast(an_expr_node_ptr expr)
+void lower_c99_ne_0_if_needed(an_expr_node_ptr expr)
 /*
-Called from lower_bool_cast to check for and do any additional
-lowering on the "!= 0" comparison generated, e.g., for complex values.
+The given operation is a "x != 0" operation generated for boolean normalization
+purposes (either to implement eok_bool_cast, or to normalize a boolean
+controlling expression).  If the comparison involves C99 types that require
+lowering (like complex or fixed-point types), perform that lowering.  The first
+operand is lowered already, but the second operand (i.e., the zero constant) is
+not.
 */
 {
-  check_assertion(is_operation_node(expr));
-  if (expr->variant.operation.kind == (an_expr_operator_kind)eok_ne) {
-    switch (expr->variant.operation.type_kind) {
+  check_assertion(is_operation_node(expr) && node_operator_is(expr, eok_ne));
+  switch (expr->variant.operation.type_kind) {
 #if LOWER_FIXED_POINT
-      case tk_fixed_point:
-        /* Do further lowering for fixed-point != 0. */
-        lower_c99_expr(expr->variant.operation.operands->next);
-        lower_c99_fixed_point_operation(expr);
-        break;
+    case tk_fixed_point:
+      /* Do further lowering for fixed-point != 0. */
+      lower_c99_expr(expr->variant.operation.operands->next);
+      lower_c99_fixed_point_operation(expr);
+      break;
 #endif /* LOWER_FIXED_POINT */
 #if LOWER_COMPLEX
-      case tk_float:
-      case tk_imaginary:
-        /* Do further lowering for imaginary != 0 if needed. */
-        { an_expr_node_ptr  op2 = expr->variant.operation.operands->next;
-          if (is_imaginary_type(op2->type)) {
-            /* Lower the imaginary zero constant. */
-            lower_c99_expr(op2);
-          }  /* if */
-        }
-        break;
-      case tk_complex:
-        /* Do further lowering for complex != 0. */
-        /* Lower the complex zero constant. */
-        lower_c99_expr(expr->variant.operation.operands->next);
-        lower_c99_xne(expr);
-        break;
+    case tk_float:
+    case tk_imaginary:
+      /* Do further lowering for imaginary != 0 if needed. */
+      { an_expr_node_ptr  op2 = expr->variant.operation.operands->next;
+        if (is_imaginary_type(op2->type)) {
+          /* Lower the imaginary zero constant. */
+          lower_c99_expr(op2);
+        }  /* if */
+      }
+      break;
+    case tk_complex:
+      /* Do further lowering for complex != 0. */
+      /* Lower the complex zero constant. */
+      lower_c99_expr(expr->variant.operation.operands->next);
+      lower_c99_xne(expr);
+      break;
 #endif /* LOWER_COMPLEX */
-      default:;
-    }  /* switch */
-  }  /* if */
-}  /* post_lower_c99_bool_cast */
+    default:;
+  }  /* switch */
+}  /* lower_c99_ne_0_if_needed */
 
 #if DO_C99_IL_LOWERING
 

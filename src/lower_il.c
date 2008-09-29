@@ -2156,7 +2156,8 @@ static an_expr_node_ptr make_operands_for_ne_0(an_expr_node_ptr expr)
 /*
 The given operand must be compared against zero (or null).  Apply integral
 promotions to the expression if needed, append a zero of the proper type as
-the next operand, and return the resulting operand pair.
+the next operand, and return the resulting operand pair.  (The appended zero
+is not lowered.)
 */
 {
   a_constant  zero;
@@ -2197,7 +2198,7 @@ the first operand is a pointer-to-member value).
   } else if (C_mode() || gpp_mode) {
     /* Do additional lowering for the complex, imaginary, and fixed-point
        cases. */
-    post_lower_c99_bool_cast(expr);
+    lower_c99_ne_0_if_needed(expr);
   }  /* if */
 }  /* lower_ne_0_normalization */
 
@@ -9894,8 +9895,8 @@ of a base or derived class of that class.
 #endif /* IA64_ABI */
                                              targ_ptr_to_data_member_int_kind);
       test_node = make_operator_node((an_expr_operator_kind)eok_ne,
-                                        integer_type((an_integer_kind)ik_int),
-                                        source_node);
+                                     integer_type((an_integer_kind)ik_int),
+                                     source_node);
       /* Make "pdm + offset". */
       source_node = make_reusable_copy(source_node, /*vars_can_change=*/FALSE);
       /* If the offset is negative, subtract it instead of adding. */
@@ -13486,9 +13487,9 @@ with an enk_object_lifetime node on top.
 
 void normalize_boolean_controlling_expr_if_needed(an_expr_node_ptr  expr)
 /*
-The given expression is a boolean controlling expression.  If needed (which
-depends in part on the current configuration) ensure that it produces a 0/1
-value.
+The given expression is a lowered boolean controlling expression.  If needed
+(which depends in part on the current configuration) ensure that it produces
+a 0/1 value.  This routine is called for both C and C++ expressions.
 */
 {
   an_expr_node_ptr  object_lifetime = NULL;
@@ -13536,6 +13537,13 @@ value.
                                  /*is_lvalue=*/FALSE);
         expr->variant.operation.compiler_generated = TRUE;
         lower_ne_0_normalization(expr);
+        if (!(is_operation_node(expr) && node_operator_is(expr, eok_ne))) {
+          /* In some cases (e.g., testing a complex value), lowering the "!= 0"
+             comparison replaces the operation by a call to a run-time support
+             routine.  Add another "!= 0" operation on top to avoid surprising
+             a back end. */
+          normalize_boolean_controlling_expr_if_needed(expr);
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
