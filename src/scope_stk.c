@@ -1942,11 +1942,9 @@ the scope being pushed.
           (options & PS_IS_TEMPLATE_PARAM_RESCAN) == 0) {
         /* Template declaration scopes always have parameter declarations, so
            we know a scope is required.  The scope will always be in the file
-           scope except for error cases. */
+           scope memory region except for error cases. */
         sp = alloc_scope((a_scope_kind)sck_template_declaration, ssep->number,
                          (a_routine_ptr)NULL);
-        /* Add it to the scopes list for the enclosing scope. */
-        add_to_scopes_list(sp, ssep-1);
       }  /* if */
       /* Use the enclosing memory region. */
       ssep->il_memory_region = (ssep-1)->il_memory_region;
