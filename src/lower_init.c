@@ -1138,12 +1138,11 @@ position modifier.
 static an_expr_node_ptr drop_const_on_init_entity_node(
                                              an_expr_node_ptr      entity_node)
 /*
-The entity whose address is given by the expression entity_node is to
-be initialized by executable code.  If it is "const", drop the const by
-casting so the entity can be written to.  ipdp is the init position
-description for the complete entity being initialized (or NULL for
-an internal adjustment, e.g., for an array element).  entity_node
-is either an lvalue or an rvalue pointer.
+The (lvalue or rvalue pointer) entity given by the expression entity_node is to
+be initialized by executable code.  If it is "const", drop the const by casting
+so the entity can be written to.  ipdp is the init position description for the
+complete entity being initialized (or NULL for an internal adjustment, e.g.,
+for an array element).
 */
 {
   a_type_ptr entity_type = entity_node->type;
@@ -1177,7 +1176,7 @@ static an_expr_node_ptr modify_init_entity_node(
                                         a_boolean                is_vla)
 /*
 Add the address modifiers from the list given by "modifiers" (from an
-init position description) to the entity address expression "entity_node"
+init position description) to the entity lvalue expression "entity_node"
 and return a pointer to the modified expression tree.  If using_as_dest is
 TRUE, the entity is the destination of an initialization operation.
 If is_vla is TRUE, this is the first modifier on a base variable that
@@ -1186,6 +1185,7 @@ is a variable-length array.
 {
   an_expr_node_ptr elem_num_node;
 
+  check_assertion(entity_node->is_lvalue);
   /* If there are no modifiers, return the original node. */
   if (modifiers != NULL) {
     /* Process the modifiers preceding the final modifier, then add the final
@@ -1208,10 +1208,14 @@ is a variable-length array.
                                            /*complete_object=*/FALSE);
     } else {
       /* Add an array element selection. */
+      check_assertion(is_array_type(entity_node->type));
       /* Do the pointer decay from array to pointer to element. */
       if (is_vla) {
-        /* When VLAs are lowered, the array variable was turned into a
-           pointer so no decay is needed. */
+        /* We have an lvalue for a VLA (type "array[EXPR] of T").  Take
+           the address of the node (yielding type 
+           "pointer to array[EXPR] of T" -- which will be rewritten
+           (by lower_vla_types) to "pointer to T" -- the same type that
+           results from an array decay). */
         entity_node = add_address_of_to_node(entity_node);
       } else {
         a_type_ptr elem_type = entity_node->type;
@@ -1258,7 +1262,7 @@ is the destination of an initialization operation.
 {
   an_expr_node_ptr entity_node;
   a_variable_ptr   var = ipdp->variable;
-  a_boolean        vla_has_been_lowered = FALSE;
+  a_boolean        is_vla = FALSE;
 
   /* Make a node for the base address. */
 #if !DO_FULL_PORTABLE_EH_LOWERING
@@ -1284,7 +1288,7 @@ is the destination of an initialization operation.
        allocated space. */
     if (var->is_vla) {
       lower_vla_variable_lvalue(entity_node);
-      vla_has_been_lowered = TRUE;
+      is_vla = TRUE;
     }  /* if */
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
   }  /* if */
@@ -1304,8 +1308,7 @@ is the destination of an initialization operation.
   } else {
     /* Normal case. */
     entity_node = modify_init_entity_node(entity_node, ipdp->modifiers,
-                                          using_as_dest,
-                                          vla_has_been_lowered);
+                                          using_as_dest, is_vla);
   }  /* if */
   if (ipdp->array_element_sequence) {
     /* For an array element sequence that covers more than one dimension
@@ -1315,17 +1318,8 @@ is the destination of an initialization operation.
   }  /* if */
   check_assertion(entity_node->is_lvalue);
   if (!result_is_lvalue) {
-#if LOWER_VARIABLE_LENGTH_ARRAYS
-    if (vla_has_been_lowered) {
-      /* Take the address of the expression. */
-      entity_node = add_address_of_to_node(entity_node);
-    } else
-#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
-    /* Do not insert code here. */
-    {
-      /* Convert this to an rvalue. */
-      entity_node = rvalue_expr_for_lvalue(entity_node);
-    }  /* if */
+    /* Convert this to an rvalue. */
+    entity_node = rvalue_expr_for_lvalue(entity_node);
   }  /* if */
   return entity_node;
 }  /* make_init_entity_node */
@@ -1415,9 +1409,8 @@ to by dip or con is already lowered.
           new_type->variant.array.element_type = make_qualified_type(
                                                  array_element_type(con->type),
                                                  TQ_CONST);
-          init_val_node = make_operator_node(
-                                        (an_expr_operator_kind)eok_lvalue_cast,
-                                        new_type, init_val_node);
+          init_val_node = add_cast_to_lvalue_if_necessary(init_val_node,
+                                                          new_type);
           init_val_node->is_lvalue = TRUE;
         }  /* if */
         string_literal_case = TRUE;
@@ -1517,9 +1510,9 @@ If ctor_init is non-NULL, it points to a constructor-initializer entry
 that indicates a copy of a member of a class; if ctor_init is NULL, the
 copy is of the object thrown by an exception handling "throw" into the
 parameter of the catch clause.  In either case, create an expression to
-describe the address of the implied source and return a pointer to it.
-dest describes the entity being initialized.  If result_is_lvalue is TRUE,
-the returned expression will be used as an lvalue, else an rvalue.
+describe the implied source and return a pointer to it.  dest describes the
+entity being initialized.  The returned expression will be an lvalue if
+result_is_lvalue is TRUE, otherwise an rvalue.
 */
 {
   an_expr_node_ptr     source_node;
@@ -1592,7 +1585,7 @@ subobject.  Insert the statement at *insert_location and update
   a_type_ptr            type;
   an_expr_operator_kind op;
 
-  /* Make an expression for the address of the source entity. */
+  /* Make an rvalue expression for the source entity. */
   source_node = implied_source_of_copy(ctor_init, dest,
                                        /*result_is_lvalue=*/FALSE);
   type = source_node->type;
@@ -3953,8 +3946,6 @@ dynamic init pointer because of the make_destruction_routine case.
     /* Cast the entity node pointer to the right type.  It might be a pointer
        to the class type-as-subobject. */
     this_param_type = implicit_this_param_type_of(dtor_routine->type);
-    check_assertion(is_pointer_type(entity_node->type) ==
-                                             is_pointer_type(this_param_type));
     entity_node = add_cast_if_necessary(entity_node,
                                         f_skip_typerefs(this_param_type));
 #if IA64_ABI
@@ -5127,21 +5118,17 @@ time of program termination.  Insert any generated code at *insert_location
 and update *insert_location accordingly.
 */
 {
-#if !IA64_ABI
+#if IA64_ABI
+  an_expr_node_ptr       dtor_node, dso_handle_node;
+#else /* !IA64_ABI */
   a_variable_ptr         var;
-  a_constant_ptr         aggr_con;
-#endif /* !IA64_ABI */
+  a_constant_ptr         aggr_con, next_con;
+#endif /* IA64_ABI */
   a_constant_ptr         object_con, dtor_con;
-#if !IA64_ABI
-  a_constant_ptr         next_con;
-#endif /* !IA64_ABI */
   a_boolean              complex_cleanup, complex_address;
   a_routine_ptr          dtor_routine;
   an_expr_node_ptr       object_node, call_node;
   a_type_ptr             entity_type = type_from_init_pos_descr(ipdp);
-#if IA64_ABI
-  an_expr_node_ptr       dtor_node, dso_handle_node;
-#endif /* IA64_ABI */
 
   /* Record the required destruction by generating a call of the runtime
      routine __record_needed_destruction.  A data structure passed to
@@ -5798,7 +5785,7 @@ expression can be either an lvalue or rvalue and lvalueness is preserved.
       /* An empty class.  Eliminate the assignment but keep any side
          effects. */
       /* We're either going to overwrite the expression with op1 or create
-         a comma node with op1 as the second argument, in either case op1
+         a comma node with op1 as the second argument.  In either case op1
          needs to have the same lvalueness as the original expression. */
       if (!returns_lvalue) {
         op1 = rvalue_expr_for_lvalue(op1);
@@ -6002,9 +5989,9 @@ static void insert_runtime_zeroing_call(an_expr_node_ptr   entity_node,
                                         an_expr_node_ptr   entity_size_node,
                                         an_insert_location *insert_location)
 /*
-Create a runtime routine call to zero the rvalue pointer entity given
-by entity_node, with size given by entity_size_node.  Insert the code at
-*insert_location.
+Create a runtime routine call to zero the entity pointed to by the rvalue
+expression entity_node.  The number of bytes to zero is given by
+entity_size_node.  Insert the code at *insert_location.
 */
 {
   an_expr_node_ptr memzero_call;
@@ -6046,8 +6033,8 @@ static void insert_call_to_zero_entity(a_type_ptr         entity_type,
                                        a_targ_size_t      array_element_count,
                                        an_insert_location *insert_location)
 /*
-Create a runtime routine call to zero the rvalue entity specified
-by entity_node whose type is entity_type, and which is
+Create a runtime routine call to zero the entity specified by entity_node
+(an rvalue pointer expression) whose type is entity_type, and which is
 a complete object if have_complete_object is TRUE.  If num_elem_node
 is non-NULL, the entity is an array and the expression value gives
 the number of elements (the entity_type in that case is the array
@@ -6060,7 +6047,8 @@ from entity_type itself.  Insert the code for the call at *insert_location.
 {
   a_type_ptr element_type = entity_type;
 
-  check_assertion(!entity_node->is_lvalue);
+  check_assertion(!entity_node->is_lvalue &&
+                  is_pointer_type(entity_node->type));
   if (array_element_count == 0) array_element_count = 1;
   if (is_array_type(entity_type)) {
     element_type = underlying_array_element_type(entity_type);
@@ -6675,12 +6663,11 @@ C99 mode for the same reason.
             array_element_count = ipdp->array_element_count;
             entity_type = ipdp->array_element_type;
           }  /* if */
-          entity_node = make_init_entity_node(ipdp, 
-                                              /*result_is_lvalue=*/TRUE,
-                                              /*using_as_dest=*/FALSE);
+          entity_node = make_address_of_init_entity_node(ipdp, 
+                                                      /*using_as_dest=*/FALSE);
           insert_call_to_zero_entity(entity_type,
                                      have_complete_object,
-                                     add_address_of_to_node(entity_node),
+                                     entity_node,
                                      (an_expr_node_ptr)NULL,
                                      array_element_count,
                                      eff_insert_location);
@@ -6790,8 +6777,6 @@ do_assignment:;
       ctor_routine_type = ctor_routine->type;
       ctor_routine_type = skip_typerefs(ctor_routine_type);
       this_param_type = implicit_this_param_type_of(ctor_routine_type);
-      check_assertion(is_pointer_type(entity_node->type) ==
-                                             is_pointer_type(this_param_type));
       entity_node = add_cast_if_necessary(entity_node,
                                           f_skip_typerefs(this_param_type));
       source_node = NULL;
@@ -8301,15 +8286,16 @@ Do IL lowering of an enk_temp_init expression node.
   a_boolean          *eff_keep_dynamic_init = NULL;
 
   dip = expr->variant.init.dynamic_init;
-  if (dip->kind == (a_dynamic_init_kind)dik_expression && !result_is_lvalue &&
+  if (dip->kind == (a_dynamic_init_kind)dik_expression &&
+      !result_is_lvalue &&
       dip->destructor == NULL &&
       !dip->is_reused_value &&
       !dip->is_optimized_class_rvalue_question_mark &&
       dip->master_entry == NULL) {
-    /* For a simple expression temporary case where the address of the
-       temporary is not taken, just lower the expression and create no
-       temporary.  This is a useful for cases where a function returns
-       a class by value (i.e., the class has no copy constructor). */
+    /* For a simple expression temporary case where the temporary is used
+       directly as an rvalue, just lower the expression and create no
+       temporary.  This is a useful for cases where a function returns a class
+       by value (i.e., the class has no copy constructor). */
     lower_expr(dip->variant.expression);
     overwrite_node(expr, dip->variant.expression);
   } else {
@@ -8372,25 +8358,18 @@ Do IL lowering of an enk_temp_init expression node.
       /* Normal case (not return). */
       dip->variable = temp_var;
       if (dip->is_partially_initialized_compound_literal) {
-        /* Note that compound literals created
-           outside of functions do not use enk_temp_init so they are not
-           seen here (the front end creates an initialized static variable
-           for them). */
+        /* Note that compound literals created outside of functions do not use
+           enk_temp_init so they are not seen here (the front end creates an
+           initialized static variable for them). */
         temp_var->is_partially_initialized = TRUE;
       }  /* if */
       if (variably_modified) {
         temp_var->has_variably_modified_type = TRUE;
       }  /* if */
-      /* Change the enk_temp_init to a temporary variable or the address of
-         the temporary variable.  Either way, expr is now an rvalue (it'll
-         be changed back to an lvalue if appropriate at the end of this
-         function). */
-      if (result_is_lvalue) {
-        overwrite_node(expr, var_addr_expr(temp_var));
-      } else {
-        set_expr_node_kind(expr, (an_expr_node_kind)enk_variable);
-        expr->variant.variable = temp_var;
-      }  /* if */
+      /* Change the enk_temp_init node to an enk_variable node that refers to
+         the temporary variable.  The lvalueness of the node is unchanged. */
+      set_expr_node_kind(expr, (an_expr_node_kind)enk_variable);
+      expr->variant.variable = temp_var;
       /* Generate code for the dynamic init. */
       set_var_init_pos_descr(temp_var, &ipd);
     }  /* if */
@@ -8491,7 +8470,6 @@ Do IL lowering of an enk_temp_init expression node.
                type_pointed_to call below. */
             a_type_ptr first_op_type = type_pointed_to(first_operand->type);
             a_type_ptr expr_type = expr->type;
-            if (result_is_lvalue) expr_type = type_pointed_to(expr->type);
             /* See whether the type of the first operand is the same as the
                required result type or close enough that we can cast to adjust
                cv-qualifiers.  The first pointer level has been removed
@@ -8507,13 +8485,10 @@ Do IL lowering of an enk_temp_init expression node.
               /* If necessary, add a cast to adjust qualification. */
               if (!il_identical_types(expr_type, first_op_type)) {
                 first_operand->next = NULL;
-                first_operand = add_cast(first_operand, expr->type);
+                first_operand = add_cast(first_operand,
+                                         make_pointer_type(expr->type));
               }  /* if */
-              if (!result_is_lvalue) {
-                /* If the result of the initialization is the class value,
-                   add an indirection to the constructor call. */
-                first_operand = add_indirection_to_node(first_operand);
-              }  /* if */
+              first_operand = add_indirection_to_node(first_operand);
             }  /* if */
           }  /* if */
           if (can_optimize) {
@@ -8532,10 +8507,7 @@ Do IL lowering of an enk_temp_init expression node.
       overwrite_node(expr, new_expr);
     }  /* if */
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
-    if (result_is_lvalue && !expr->is_lvalue) {
-      /* Convert the rvalue back to an lvalue. */
-      overwrite_node(expr, add_indirection_to_node(copy_node(expr)));
-    } else if (expr->is_lvalue && !result_is_lvalue) {
+    if (expr->is_lvalue && !result_is_lvalue) {
       /* Convert lvalue to an rvalue. */
       overwrite_node(expr, rvalue_expr_for_lvalue(expr));
     }  /* if */
@@ -10338,7 +10310,7 @@ static an_expr_node_ptr make_construction_vtbl_transfer_pointer_lvalue(
                                                    a_type_ptr       class_type)
 /*
 expr is an lvalue expression for a class object.  class_type is
-the type of class object to, provided because the underlying type of
+the type of class object pointed to, provided because the underlying type of
 expr might be a type-as-subobject.  Modify the expression so that it is
 an lvalue for the transfer pointer in the object, and return a pointer
 to the modified expression.  The transfer pointer is a virtual function
@@ -12287,7 +12259,10 @@ destructor scope, and also lower the user code.
                                         dtor_info.destruction_vtbls_var,
                                         /*var_is_array=*/FALSE,
                                         bcp->index_in_construction_vtbl_array);
+      /* Add an indirection and convert it to an rvalue for use in
+         the assignment statement below. */
       vtbl_addr_node = add_indirection_to_node(vtbl_addr_node);
+      vtbl_addr_node = rvalue_expr_for_lvalue(vtbl_addr_node);
     } else
 #endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
     /* Do not insert code here; this is the "else" of an "if". */
@@ -12342,10 +12317,6 @@ destructor scope, and also lower the user code.
       vptr_node = make_base_class_lvalue_from_var(this_param_var, bcp,
                                                   /*complete_object=*/FALSE);
       vptr_node = make_vptr_field_lvalue(vptr_node);
-      /* Convert to rvalue if necessary. */
-      if (vtbl_addr_node->is_lvalue) {
-        vtbl_addr_node = rvalue_expr_for_lvalue(vtbl_addr_node);
-      }  /* if */
       /* Make and insert the assignment statement. */
       (void)insert_assignment_statement(vptr_node,
                                         (an_expr_operator_kind)eok_assign,
