@@ -10,10 +10,10 @@ was usually modified directly (an "IL shorthand"), although in some cases
 nothing was recorded at all.
 
 Now, casts that appear in the source are always represented using an actual
-node (with a caveat for GNU and Microsoft modes; see below).  In addition,
-implicit casts are always recorded as an eok_cast node, unless the cast
-does not change the type (and "bitfieldness") of the expression.  The IL
-shorthand of modifying an expression nodes type directly, has been removed.
+node.  In addition, if an implicit cast has any effect at all (either by
+changing a type, or by removing "bitfieldness") then it is recorded with an
+eok_cast node; otherwise, it is not recorded at all.  The IL shorthand of
+modifying the "type" field of an expression node directly, has been removed.
 
 In GNU and Microsoft nodes, some casts with no effect are still not recorded
 to match the behavior of GNU and Microsoft compilers (specifically, to retain
