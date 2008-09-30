@@ -1138,11 +1138,11 @@ position modifier.
 static an_expr_node_ptr drop_const_on_init_entity_node(
                                              an_expr_node_ptr      entity_node)
 /*
-The (lvalue or rvalue pointer) entity given by the expression entity_node is to
-be initialized by executable code.  If it is "const", drop the const by casting
-so the entity can be written to.  ipdp is the init position description for the
-complete entity being initialized (or NULL for an internal adjustment, e.g.,
-for an array element).
+The entity given by the expression entity_node is to be initialized by
+executable code.  entity_node can be either an rvalue pointer or an lvalue.
+If it is "const", drop the const by casting so the entity can be written to.
+ipdp is the init position description for the complete entity being initialized
+(or NULL for an internal adjustment, e.g., for an array element).
 */
 {
   a_type_ptr entity_type = entity_node->type;
@@ -1264,7 +1264,7 @@ is the destination of an initialization operation.
   a_variable_ptr   var = ipdp->variable;
   a_boolean        is_vla = FALSE;
 
-  /* Make a node for the base address. */
+  /* Make a node for the base entity. */
 #if !DO_FULL_PORTABLE_EH_LOWERING
   if (ipdp->thrown_object_address) {
     /* The address is the address in the runtime to which a thrown object
@@ -1272,54 +1272,61 @@ is the destination of an initialization operation.
     entity_node = make_thrown_object_address_node();
     entity_node = add_cast_if_necessary(entity_node,
                                         make_pointer_type(ipdp->base_type));
+    check_assertion(!is_const_qualified_type(ipdp->base_type));
+    if (result_is_lvalue) {
+      entity_node = add_indirection_to_node(entity_node);
+    }  /* if */
   } else
 #endif /* !DO_FULL_PORTABLE_EH_LOWERING */
   /* Do not insert code here; this is the else of the above if. */
-  if (ipdp->indirect_through_variable) {
-    /* Indirect through the variable. */
-    check_assertion(var != NULL);
-    entity_node = add_indirection_to_node(var_rvalue_expr(var));
-  } else {
-    /* Normal case, a simple variable. */
-    check_assertion(var != NULL);
-    entity_node = var_lvalue_expr(var);
+  {
+    if (ipdp->indirect_through_variable) {
+      /* Indirect through the variable. */
+      check_assertion(var != NULL);
+      entity_node = add_indirection_to_node(var_rvalue_expr(var));
+    } else {
+      /* Normal case, a simple variable. */
+      check_assertion(var != NULL);
+      entity_node = var_lvalue_expr(var);
 #if LOWER_VARIABLE_LENGTH_ARRAYS
-    /* When VLAs are lowered, the array variable becomes a pointer to the
-       allocated space. */
-    if (var->is_vla) {
-      lower_vla_variable_lvalue(entity_node);
-      is_vla = TRUE;
-    }  /* if */
+      /* When VLAs are lowered, the array variable becomes a pointer to the
+         allocated space. */
+      if (var->is_vla) {
+        lower_vla_variable_lvalue(entity_node);
+        is_vla = TRUE;
+      }  /* if */
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
-  }  /* if */
-  if (using_as_dest) {
-    /* The entity will be used as the destination of an initialization, so
-       drop "const" (if present) from the type to make it modifiable. */
-    entity_node = drop_const_on_init_entity_node(entity_node);
-  }  /* if */
-  /* Add the modifiers to the base address. */
-  if (ipdp->base_of_complete_object) {
-    /* A base class of a complete object can be addressed more efficiently. */
-    check_assertion(ipdp->modifiers != NULL &&
-                    ipdp->modifiers->curr_base != NULL);
-    entity_node = make_base_class_lvalue(entity_node,
-                                         ipdp->modifiers->curr_base,
-                                         /*complete_object=*/TRUE);
-  } else {
-    /* Normal case. */
-    entity_node = modify_init_entity_node(entity_node, ipdp->modifiers,
-                                          using_as_dest, is_vla);
-  }  /* if */
-  if (ipdp->array_element_sequence) {
-    /* For an array element sequence that covers more than one dimension
-       of an array, get the type right for the underlying element. */
-    entity_node = add_cast_to_lvalue_if_necessary(entity_node,
-                                                  ipdp->array_element_type);
-  }  /* if */
-  check_assertion(entity_node->is_lvalue);
-  if (!result_is_lvalue) {
-    /* Convert this to an rvalue. */
-    entity_node = rvalue_expr_for_lvalue(entity_node);
+    }  /* if */
+    if (using_as_dest) {
+      /* The entity will be used as the destination of an initialization, so
+         drop "const" (if present) from the type to make it modifiable. */
+      entity_node = drop_const_on_init_entity_node(entity_node);
+    }  /* if */
+    /* Add the modifiers to the base entity address. */
+    if (ipdp->base_of_complete_object) {
+      /* A base class of a complete object can be addressed more
+         efficiently. */
+      check_assertion(ipdp->modifiers != NULL &&
+                      ipdp->modifiers->curr_base != NULL);
+      entity_node = make_base_class_lvalue(entity_node,
+                                           ipdp->modifiers->curr_base,
+                                           /*complete_object=*/TRUE);
+    } else {
+      /* Normal case. */
+      entity_node = modify_init_entity_node(entity_node, ipdp->modifiers,
+                                            using_as_dest, is_vla);
+    }  /* if */
+    if (ipdp->array_element_sequence) {
+      /* For an array element sequence that covers more than one dimension
+         of an array, get the type right for the underlying element. */
+      entity_node = add_cast_to_lvalue_if_necessary(entity_node,
+                                                    ipdp->array_element_type);
+    }  /* if */
+    check_assertion(entity_node->is_lvalue);
+    if (!result_is_lvalue) {
+      /* Convert this to an rvalue. */
+      entity_node = rvalue_expr_for_lvalue(entity_node);
+    }  /* if */
   }  /* if */
   return entity_node;
 }  /* make_init_entity_node */
@@ -1411,7 +1418,6 @@ to by dip or con is already lowered.
                                                  TQ_CONST);
           init_val_node = add_cast_to_lvalue_if_necessary(init_val_node,
                                                           new_type);
-          init_val_node->is_lvalue = TRUE;
         }  /* if */
         string_literal_case = TRUE;
       } else {
@@ -5196,39 +5202,16 @@ and update *insert_location accordingly.
   }  /* if */
   set_routine_address_constant(dtor_routine, dtor_con,
                                /*set_address_taken_flag=*/TRUE);
-#if !IA64_ABI
-  implicit_cast(dtor_con, make_vptp_type());
-  /* Link the aggregate constant together. */
-  aggr_con->variant.aggregate.first_constant = next_con;
-  next_con->next = object_con;
-  object_con->next = dtor_con;
-  aggr_con->variant.aggregate.last_constant = dtor_con;
-#endif /* !IA64_ABI */
+#if IA64_ABI
   if (!complex_cleanup && complex_address) {
-    /* For simple cleanup with a complex address, compute the object address
-       in code and store it in the object field of the struct. */
-#if !IA64_ABI
-    an_expr_node_ptr field_node;
-    a_statement_ptr  assign_stmt;
-#endif /* !IA64_ABI */
+    /* For simple cleanup with a complex address, get an rvalue pointer for
+       the object to be destroyed at exit.  This will be used as the second
+       argument to __cxa_atexit. */
     object_node = make_init_entity_node(ipdp, /*result_is_lvalue=*/FALSE,
                                         /*using_as_dest=*/FALSE);
-#if !IA64_ABI
-    object_node = add_cast_if_necessary(object_node,
-                                        needed_destruction_object_field->type);
-    field_node = field_lvalue_selection_expr(var_lvalue_expr(var),
-                                             needed_destruction_object_field);
-    assign_stmt = insert_assignment_statement(field_node,
-                                            (an_expr_operator_kind)eok_assign,
-                                              object_node,
-                                              insert_location);
-    set_stmt_pos_to_code_pos_for_lowering(assign_stmt);
-#else /* IA64_ABI */
   } else {
     object_node = alloc_node_for_constant(object_con);
-#endif /* IA64_ABI */
   }  /* if */
-#if IA64_ABI
   dtor_node = alloc_node_for_constant(dtor_con);
   if (dso_handle_var == NULL) {
     /* Make the hidden variable that identifies the current DSO, i.e. it
@@ -5251,14 +5234,37 @@ and update *insert_location accordingly.
                                      integer_type((an_integer_kind)ik_int),
                                      dtor_node);
 #else /* !IA64_ABI */
+  implicit_cast(dtor_con, make_vptp_type());
+  /* Link the aggregate constant together. */
+  aggr_con->variant.aggregate.first_constant = next_con;
+  next_con->next = object_con;
+  object_con->next = dtor_con;
+  aggr_con->variant.aggregate.last_constant = dtor_con;
+  if (!complex_cleanup && complex_address) {
+    /* For simple cleanup with a complex address, get an rvalue pointer for
+       the object and store it in the object field of the struct. */
+    an_expr_node_ptr field_node;
+    a_statement_ptr  assign_stmt;
+    object_node = make_init_entity_node(ipdp, /*result_is_lvalue=*/FALSE,
+                                        /*using_as_dest=*/FALSE);
+    object_node = add_cast_if_necessary(object_node,
+                                        needed_destruction_object_field->type);
+    field_node = field_lvalue_selection_expr(var_lvalue_expr(var),
+                                             needed_destruction_object_field);
+    assign_stmt = insert_assignment_statement(field_node,
+                                            (an_expr_operator_kind)eok_assign,
+                                              object_node,
+                                              insert_location);
+    set_stmt_pos_to_code_pos_for_lowering(assign_stmt);
+  }  /* if */
   /* Make a call of __record_needed_destruction.  Its argument is the
      address of the structure variable created above. */
   call_node = make_runtime_rout_call("__record_needed_destruction",
                                      &record_needed_destruction_routine,
                                      void_type(), var_addr_expr(var));
+#endif /* IA64_ABI */
   /* Make a statement containing the call and insert it at the right
      location. */
-#endif /* !IA64_ABI */
   (void)insert_expr_statement_set_pos(call_node, insert_location);
   /* Remove the dynamic initialization from the destruction list, since
      its destruction is now handled by the static cleanup mechanism. */
@@ -6034,7 +6040,7 @@ static void insert_call_to_zero_entity(a_type_ptr         entity_type,
                                        an_insert_location *insert_location)
 /*
 Create a runtime routine call to zero the entity specified by entity_node
-(an rvalue pointer expression) whose type is entity_type, and which is
+whose type is entity_type.  entity_node is an rvalue pointer that points to
 a complete object if have_complete_object is TRUE.  If num_elem_node
 is non-NULL, the entity is an array and the expression value gives
 the number of elements (the entity_type in that case is the array
@@ -6136,38 +6142,6 @@ from entity_type itself.  Insert the code for the call at *insert_location.
                                 insert_location);
   }  /* if */
 }  /* insert_call_to_zero_entity */
-
-
-static a_boolean is_address_of_static_variable(an_expr_node_ptr expr,
-                                               a_variable_ptr   *var)
-/*
-Return TRUE if the indicated expression is the address of a variable with
-static storage duration, including cases where that is implicitly cast
-to some other type.  Return FALSE for nominally-static variables
-that have non-constant addresses, e.g., thread-local variables.
-Set *var to the variable.
-*/
-{
-  a_boolean is_static_var_addr = FALSE;
-
-  *var = NULL;
-  while (is_operation_node(expr) &&
-         expr->variant.operation.kind == (an_expr_operator_kind)eok_cast &&
-         expr->variant.operation.compiler_generated) {
-    expr = expr->variant.operation.operands;
-  }  /* while */
-  if (is_operation_node(expr) && node_operator_is(expr, eok_address_of)) {
-    expr = expr->variant.operation.operands;
-    if (is_variable_node(expr) &&
-        variable_has_constant_address(expr->variant.variable) &&
-        /* Avoid potential ordering issue with addresses of local variables. */
-        !expr->variant.variable->source_corresp.is_local_to_function) {
-      is_static_var_addr = TRUE;
-      *var = expr->variant.variable;
-    }  /* if */
-  }  /* if */
-  return is_static_var_addr;
-}  /* is_address_of_static_variable */
 
 
 static void lower_optimized_class_rvalue_question_mark(
@@ -6729,20 +6703,20 @@ C99 mode for the same reason.
           /* Normal case: not a full expression. */
           lower_expr(source_node);
         }  /* if */
-        { a_variable_ptr var;
+        { a_constant con;
           if (!simple_constant_init_opt_ruled_out &&
-              is_address_of_static_variable(source_node, &var)) {
-            /* The initial value is a simple constant (the address of a
-               static variable).  Rewrite the initialization as a simple
-               static initialization. */
-            a_constant con;
+              !processing_file_scope_init_routine &&
+              is_pointer_type(source_node->type) &&
+              constant_rvalue_pointer(source_node, &con,
+                                      /*address_escapes=*/TRUE,
+                                      /*template_constant=*/NULL)) {
+            /* The initial value is a simple constant.  Rewrite the
+               initialization as a simple static initialization.  We can't do
+               this optimization when we're processing file scope
+               initializations (otherwise we may generate address constants
+               that are not available at file-scope).  */
             simple_constant_init = TRUE;
-            set_variable_address_constant(var, &con,
-                                          /*set_address_taken_flag=*/TRUE);
-            if (!il_identical_types(con.type, source_node->type)){
-              implicit_cast(&con, source_node->type);
-            }  /* if */
-            simple_constant = alloc_shareable_constant(&con);
+            simple_constant = alloc_unshared_constant(&con);
             break;
           }  /* if */
         }

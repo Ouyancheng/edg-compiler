@@ -137,7 +137,7 @@ EXTERN an_init_pos_modifier_ptr
 typedef struct an_init_pos_descr *an_init_pos_descr_ptr;
 typedef struct an_init_pos_descr {
   /* An initialization position description.  Starts with a variable (the
-     variable itself or what it points to).  That base address may be
+     variable itself or what it points to).  That base entity may be
      modified by a modifiers list. */
   a_variable_ptr
 		variable;
@@ -152,7 +152,7 @@ typedef struct an_init_pos_descr {
   a_byte_boolean
 		indirect_through_variable;
 			/* If TRUE, variable is a pointer and its value gives
-			   the base address. */
+			   the base entity address. */
   a_byte_boolean
 		array_element_sequence;
 			/* TRUE if the entity is a sequence of array elements
