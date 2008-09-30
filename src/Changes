@@ -6,8 +6,8 @@ Representation of casts
 Previously, casts with no effect and some casts that changed the type of a
 value without affecting the underlying representation were not represented
 using an explicit eok_cast node.  Instead, the underlying expression's type
-was usually modified directly (an "IL shorthand"), although in some nothing
-was recorded at all.
+was usually modified directly (an "IL shorthand"), although in some cases
+nothing was recorded at all.
 
 Now, casts that appear in the source are always represented using an actual
 node (with a caveat for GNU and Microsoft modes; see below).  In addition,
