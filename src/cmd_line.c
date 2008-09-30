@@ -5411,11 +5411,6 @@ file.
 #else /* !defined(PREDEFINED_MACRO_FILE_NAME) */
   comment_undefined_macro_name(PREDEFINED_MACRO_FILE_NAME);
 #endif /* defined(PREDEFINED_MACRO_FILE_NAME) */
-#if defined(PRESERVE_EFFECTLESS_EXPLICIT_CASTS_IN_IL)
-  define_numeric_valued_macro(PRESERVE_EFFECTLESS_EXPLICIT_CASTS_IN_IL);
-#else /* !defined(PRESERVE_EFFECTLESS_EXPLICIT_CASTS_IN_IL) */
-  comment_undefined_macro_name(PRESERVE_EFFECTLESS_EXPLICIT_CASTS_IN_IL);
-#endif /* defined(PRESERVE_EFFECTLESS_EXPLICIT_CASTS_IN_IL) */
 #if defined(PRESERVE_TOP_LEVEL_CASTS_TO_VOID_IN_IL)
   define_numeric_valued_macro(PRESERVE_TOP_LEVEL_CASTS_TO_VOID_IN_IL);
 #else /* !defined(PRESERVE_TOP_LEVEL_CASTS_TO_VOID_IN_IL) */

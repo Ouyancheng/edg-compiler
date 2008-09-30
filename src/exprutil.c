@@ -2800,11 +2800,11 @@ void cast_node(an_expr_node_ptr  *p_node,
                a_source_position *err_pos)
 /*
 Change the type of a node.  If the node is a constant, a conversion is done on
-the constant value; otherwise a cast operator is added on top of the
-node.  Check access on the cast if check_cast_access is TRUE.  If
-is_implicit_cast is TRUE, this is an implicit cast rather than an
-explicit one.  Warnings about truncation etc. are issued only if
-is_implicit_cast is TRUE.  is_reinterpret_cast is TRUE if this is
+the constant value; otherwise a cast operator is added on top of the node
+(except for implicit casts that have no effect).  Check access on the cast if
+check_cast_access is TRUE.  If is_implicit_cast is TRUE, this is an implicit
+cast rather than an explicit one.  Warnings about truncation etc. are issued
+only if is_implicit_cast is TRUE.  is_reinterpret_cast is TRUE if this is
 a reinterpret_cast in the source; reinterpret_semantics is TRUE if the
 behavior is the same as a reinterpret_cast (without necessarily having that
 construct appear in the source).  *err_pos gives the source position for
@@ -2824,62 +2824,29 @@ conversions.
 
   /* Drop any qualifiers on the destination type, as appropriate. */
   new_type = rvalue_type(new_type);
-  /* See whether the cast is actually needed.  Implicit casts that do
-     not change the type, for example, are not needed. */
-  if (!il_identical_types(node->type, new_type)) {
-    /* A cast that changes the type is needed. */
+  /* See whether a cast operator should be added. */
+  if (!is_implicit_cast) {
+    /* Explicit casts must always be represented. */
     need_cast = TRUE;
-  } else if (is_bit_field_extract_node(node)) {
-    /* Don't allow dropping a cast to the same type over a bit-field
-       extraction node, because the node with the cast has different
-       integral promotion behavior. */
-    need_cast = TRUE;
-  } else if (is_operation_node(node) &&
-             node->variant.operation.kind ==
-                                     (an_expr_operator_kind)eok_dynamic_cast &&
-             is_reference_type(node->type) != is_reference_type(new_type)) {
-    /* Don't allow an implicit change of a dynamic-cast-to-reference to
-       a dynamic-cast-to-pointer, because the runtime semantics are
-       different. */
-    need_cast = TRUE;
-  } else if (!is_implicit_cast) {
-    if (!gpp_mode && is_floating_type(new_type)) {
-      /* A do-nothing cast to a floating-point type can force the
-         implementation to drop down from any increased precision of
-         intermediate values to the exact precision of the type.
-         See C99 standard 6.3.1.5 and 6.3.1.8.  g++ doesn't do this, and
-         it's important to throw away the cast so that lvalue assignments
-         are handled right. */
+  } else {
+    /* An implicit cast: In some cases, such casts have no effect and need
+       not be represented in the IL. */
+    if (!identical_types(node->type, new_type)) {
+      /* The cast is needed since it changes the type of the expression. */ 
+      need_cast = TRUE;
+    } else if (is_bit_field_extract_node(node)) {
+      /* Don't allow dropping a cast to the same type over a bit-field
+         extraction node, because the node with the cast has different
+         integral promotion behavior. */
       need_cast = TRUE;
     } else {
-      /* Do-nothing explicit casts are preserved in some configurations. */
-      need_cast = PRESERVE_EFFECTLESS_EXPLICIT_CASTS_IN_IL;
+      /* An implicit cast with no effect: No cast node should be created. */
+      need_cast = FALSE;
     }  /* if */
-  } else {
-    /* Do-nothing implicit casts are not needed. */
-    need_cast = FALSE;
   }  /* if */
   if (!need_cast) {
-    /* We don't need to add a cast.  Just update the type in the node. */
-    if (is_implicit_cast && is_cast_operation_node(node) &&
-        !node->variant.operation.compiler_generated) {
-      /* If the existing node represents a cast that appeared explicitly in
-         the source and this would have been an implicit cast, leave the
-         type of the node alone -- it might be needed for source analysis
-         or for the C++-generating back end. */
-    } else {
-      /* Otherwise, put the new type in the node (since it may be
-         "identical" but not exactly the same). */
-      node->type = new_type;
-    }  /* if */
-    if (!is_implicit_cast && is_operation_node(node) &&
-        node->variant.operation.kind == (an_expr_operator_kind)eok_cast &&
-        node->variant.operation.compiler_generated) {
-      /* An explicit cast over an equivalent implicit cast, and we wouldn't
-         otherwise keep the new cast.  Turn the old cast into an explicit
-         cast. */
-      node->variant.operation.compiler_generated = FALSE;
-    }  /* if */
+    check_assertion(is_implicit_cast);
+    /* We don't need to add a cast. */
   } else if (m_is_error_type(new_type) ||
              (m_is_error_type(node->type) &&
               is_class_struct_union_type(new_type))) {
@@ -3163,11 +3130,10 @@ user-defined conversions.
           /* Cast of a constant did not fold. */
           if (curr_expr_kind_is_const() && curr_expr_is_evaluated()) {
             error_in_operand(ec_expr_not_constant, operand);
-          } else if (il_identical_types(operand->type, new_type)) {
-            /* If the new type is identical to the old type, just put the
-               new type in the node (since it may be "identical" but not
-               exactly the same). */
-            operand->type = new_type;
+          } else if (is_implicit_cast &&
+                     identical_types(operand->type, new_type)) {
+            /* If the new type is identical to the old type, not cast is
+               needed. */
           } else {
             /* Create an expression node for the cast of the constant. */
             /* Note that the constant type-change was attempted on a
@@ -5287,9 +5253,7 @@ when gnu_version would ordinarily indicate they should not be.
         type_cast_to = expr->type;
         type_before_cast = expr->variant.operation.operands->type;
         if (identical_types(type_cast_to, type_before_cast)) {
-          /* g++ ignores a cast to the same type.  Usually this front end
-             drops it in the IL as well, but a configuration flag like
-             PRESERVE_EFFECTLESS_EXPLICIT_CASTS_IN_IL may prevent that. */
+          /* g++ ignores a cast to the same type. */
           expr = skip_parens(expr->variant.operation.operands);
         }  /* if */
       }  /* if */

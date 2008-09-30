@@ -2454,20 +2454,6 @@ this is best left turned off.
 #endif /* OPTIMIZE_VIRTUAL_FUNCTION_CALLS */
 
 /*
-If this is TRUE, explicit casts that do nothing, for example
-  int i = 0; int j = (int)i;
-are preserved in the IL.  This may be desirable for certain source-analysis
-applications.
-*/
-#ifndef PRESERVE_EFFECTLESS_EXPLICIT_CASTS_IN_IL
-#if BACK_END_IS_CP_GEN_BE
-#define PRESERVE_EFFECTLESS_EXPLICIT_CASTS_IN_IL TRUE
-#else /* !BACK_END_IS_CP_GEN_BE */
-#define PRESERVE_EFFECTLESS_EXPLICIT_CASTS_IN_IL FALSE
-#endif /* BACK_END_IS_CP_GEN_BE */
-#endif /* ifndef PRESERVE_EFFECTLESS_EXPLICIT_CASTS_IN_IL */
-
-/*
 Switch that controls whether top-level casts to void, for example
   (void)f(x);
 are retained in the IL.  This may be desirable for certain source-analysis

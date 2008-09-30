@@ -179,6 +179,12 @@ constants to pointer types.  The cast is implicit if is_implicit_cast is
 TRUE.
 */
 {
+  if (cp->expr != NULL &&
+      (!is_implicit_cast || !identical_types(cp->type, new_type))) {
+    cp->expr = make_operator_node((an_expr_operator_kind)eok_cast, new_type,
+                                  cp->expr);
+    cp->expr->variant.operation.compiler_generated = is_implicit_cast;
+  }  /* if */
   cp->type = new_type;
   cp->implicit_cast = TRUE;
   if (!is_implicit_cast) {
@@ -1997,7 +2003,8 @@ exit:
        adding a cast if there was a type change.  Note that the cast added
        is always an eok_cast, so this shouldn't be used if there's the
        possibility that a base-class cast or the like is involved. */
-    if (constant->type == new_constant.type) {
+    if (is_implicit_cast &&
+        identical_types(constant->type, new_constant.type)) {
       new_constant.expr = constant->expr;
     } else {
       an_expr_node_ptr cast_expr =

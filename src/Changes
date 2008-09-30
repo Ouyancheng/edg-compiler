@@ -1,5 +1,32 @@
 Version 3.11
 
+9/30/08  [EDGcpfe/9100]
+Representation of casts
+
+Previously, casts with no effect and some casts that changed the type of a
+value without affecting the underlying representation were not represented
+using an explicit eok_cast node.  Instead, the underlying expression's type
+was usually modified directly (an "IL shorthand"), although in some nothing
+was recorded at all.
+
+Now, casts that appear in the source are always represented using an actual
+node (with a caveat for GNU and Microsoft modes; see below).  In addition,
+implicit casts are always recorded as an eok_cast node, unless the cast
+does not change the type (and "bitfieldness") of the expression.  The IL
+shorthand of modifying an expression nodes type directly, has been removed.
+
+In GNU and Microsoft nodes, some casts with no effect are still not recorded
+to match the behavior of GNU and Microsoft compilers (specifically, to retain
+the lvalueness of the cast expression).  For example:
+
+  void f(int x) {
+    (int)x = 3;  // Accept in GNU C mode: The cast is not recorded.
+  }
+
+The configuration macro PRESERVE_EFFECTLESS_EXPLICIT_CASTS_IN_IL has been
+deleted, since its function is now subsumed in the changes described above.
+
+
 9/26/08  [EDGcpfe/9217]
 GNU C compatibility: Array elements with flexible array members
 
