@@ -1486,6 +1486,69 @@ return_point:
 }  /* scan_opt_arg_number */
 
 
+static char *file_name_from_opt_arg(char *optstr)
+/*
+The command-line argument given by optstr is a file name or directory
+name.  Return the string to be used for the file name, translated if
+necessary for character set issues.  The original pointer is returned
+if no change is needed, and that's allocated wherever
+command-line arguments are allocated.  If this routine allocates
+a new string, it does so in general memory, in a unique allocation
+for this call, so the string will be available throughout this
+compilation.
+*/
+{
+  char *file_name = optstr;
+
+#if UNICODE_SOURCE_SUPPORTED
+  if (default_unicode_source_kind == usk_none) {
+    /* The command line is in a non-Unicode encoding, which means it's
+       encoded as Latin-1.  If it contains characters > 0x7f, they must be
+       rewritten as UTF-8 because UTF-8 is the standard internal encoding
+       for file names. */
+    a_boolean     conversion_needed = FALSE;
+    sizeof_t      size_needed = 0;
+    unsigned char *p;
+    /* Look to see whether the string contains any characters that
+       require conversion.  Also determine the size needed if we have to
+       allocate space for the converted copy. */
+    for (p = (unsigned char *)optstr; *p != '\0'; p++) {
+      size_needed++;
+      if (*p > 0x7f) {
+        /* The character is something like a European accented character and
+           must be converted. */
+        conversion_needed = TRUE;
+        size_needed++;
+      }  /* if */
+    }  /* for */
+    if (conversion_needed) {
+      /* The string contains at least one character that needs to be rewritten
+         as UTF-8.  Allocate and fill a new string. */
+      char *dest;
+      dest = file_name = alloc_general(size_needed+1);
+      for (p = (unsigned char *)optstr; *p != '\0'; p++) {
+        unsigned long ch = (unsigned long)*p;
+        if (ch > 0x7f) {
+          /* Convert one character in the file name to two UTF-8 characters. */
+          char arr[4];
+          (void)wide_char_to_utf8(ch, arr);
+          *dest++ = arr[0];
+          ch = arr[1];
+        }  /* if */
+        *dest++ = (char)ch;
+      }  /* for */
+      *dest = '\0';
+    }  /* if */
+  } else {
+    /* We don't have code to handle UTF-16 as the default character set
+       from the command line. */
+    check_assertion(default_unicode_source_kind == usk_utf8);
+  }  /* if */
+#endif /* UNICODE_SOURCE_SUPPORTED */
+  return file_name;
+}  /* file_name_from_opt_arg */
+
+
 static void process_diag_override_option(an_option_kind kind,
 					 char		*arg)
 /*
@@ -6775,24 +6838,24 @@ Process the arguments on the command line that invoked the compiler.
         break;
       case optk_ii_file_name:
         /* The name of the instantiation information file to be used. */
-        ii_file_name = opt_arg;
+        ii_file_name = file_name_from_opt_arg(opt_arg);
         break;
       case optk_suppress_instantiation_flags:
         /* Enable or disable automatic instantiation processing. */
         suppress_instantiation_flags = opt_value;
         break;
       case optk_template_info_file:
-        template_info_file_name = opt_arg;
+        template_info_file_name = file_name_from_opt_arg(opt_arg);
         break;
       case optk_definition_list_file_name:
-        definition_list_file_name = opt_arg;
+        definition_list_file_name = file_name_from_opt_arg(opt_arg);
         break;
       case optk_exported_template_file_name:
-        exported_template_file_name = opt_arg;
+        exported_template_file_name = file_name_from_opt_arg(opt_arg);
         break;
       case optk_template_directory:
         /* A directory name to be added to the template search path.*/
-        add_to_template_search_path(opt_arg);
+        add_to_template_search_path(file_name_from_opt_arg(opt_arg));
         break;
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
@@ -6877,13 +6940,14 @@ Process the arguments on the command line that invoked the compiler.
           put_dir_of_each_opened_source_file_on_incl_search_path = FALSE;
         } else {
           /* Normal -I directive. */
-          add_to_include_search_path(opt_arg, kind == optk_system_include_dir);
+          add_to_include_search_path(file_name_from_opt_arg(opt_arg),
+                                     kind == optk_system_include_dir);
         }  /* if */
         break;
       case optk_preinclude:
       case optk_preinclude_macros:
         /* File to include at the beginning of compilation. */
-        process_preinclude_option(kind, opt_arg);
+        process_preinclude_option(kind, file_name_from_opt_arg(opt_arg));
         break;
       case optk_define_macro:
         /* Define a macro symbol.  Just save the string for later
@@ -6910,21 +6974,21 @@ Process the arguments on the command line that invoked the compiler.
            file/line information, and indications of which lines are which,
            to be read later by a program that will generate an
            interspersed listing). */
-        listing_file_name = opt_arg;
+        listing_file_name = file_name_from_opt_arg(opt_arg);
         break;
       case optk_generate_cross_reference:
         /* Generate a file of cross-reference information (locations and
 	   kinds of references to symbols) */
-        xref_file_name = opt_arg;
+        xref_file_name = file_name_from_opt_arg(opt_arg);
         break;
       case optk_stderr_file_name:
         /* Redirect error output to a file.  This is useful on systems where
            redirection is not well supported. */
-        error_file_name = opt_arg;
+        error_file_name = file_name_from_opt_arg(opt_arg);
         break;
       case optk_output_file_name:
         /* Specify output file for preprocessing output or IL. */
-        ofile_name = opt_arg;
+        ofile_name = file_name_from_opt_arg(opt_arg);
         break;
 #if BACK_END_IS_C_GEN_BE
       case optk_module_list_for_union_init:
@@ -6988,7 +7052,7 @@ Process the arguments on the command line that invoked the compiler.
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
       case optk_gen_c_file_name:
         /* The name to be used for the generated C file. */
-        gen_c_file_name = opt_arg;
+        gen_c_file_name = file_name_from_opt_arg(opt_arg);
         break;
       case optk_msvc_target_version:
         /* The Microsoft C/C++ compiler being targeted. */
@@ -7000,22 +7064,22 @@ Process the arguments on the command line that invoked the compiler.
         check_assertion(opt_value == TRUE);
         create_precompiled_header = TRUE;
         precompiled_header_processing_required = TRUE;
-        pch_output_file_name = opt_arg;
+        pch_output_file_name = file_name_from_opt_arg(opt_arg);
         automatic_pch_processing = FALSE;
         use_precompiled_header = FALSE;
         /* Make sure the specified name is acceptable as a PCH file name. */
-        check_pch_file_name(opt_arg);
+        check_pch_file_name(pch_output_file_name);
         break;
       case optk_use_pch:
         /* Use a precompiled header file as part of this compilation. */
         check_assertion(opt_value == TRUE);
         use_precompiled_header = TRUE;
-        pch_input_file_name = opt_arg;
+        pch_input_file_name = file_name_from_opt_arg(opt_arg);
         precompiled_header_processing_required = TRUE;
         automatic_pch_processing = FALSE;
         create_precompiled_header = FALSE;
         /* Make sure the specified name is acceptable as a PCH file name. */
-        check_pch_file_name(opt_arg);
+        check_pch_file_name(pch_input_file_name);
         break;
       case optk_pch:
         /* Do automatic precompiled header processing as part of this
@@ -7049,7 +7113,7 @@ Process the arguments on the command line that invoked the compiler.
 #endif /* !USE_MMAP_FOR_MEMORY_REGIONS */
       case optk_pch_dir:
         /* Directory to be used for PCH files. */
-        pch_dir_name = opt_arg;
+        pch_dir_name = file_name_from_opt_arg(opt_arg);
         if (!is_directory(pch_dir_name)) {
           str_command_line_error(ec_cl_invalid_pch_directory, pch_dir_name);
         }  /* if */
@@ -7277,7 +7341,7 @@ enable_microsoft_mode:
         one_instantiation_per_object = opt_value;
         break;
       case optk_instantiation_dir:
-        instantiation_dir_name = opt_arg;
+        instantiation_dir_name = file_name_from_opt_arg(opt_arg);
         if (!is_directory(instantiation_dir_name)) {
           str_command_line_error(ec_cl_invalid_instantiation_directory,
                                  instantiation_dir_name);
@@ -7298,7 +7362,7 @@ enable_microsoft_mode:
         break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       case optk_import_dir:
-        import_dir_name = opt_arg;
+        import_dir_name = file_name_from_opt_arg(opt_arg);
         if (!is_directory(import_dir_name)) {
           str_command_line_error(ec_cl_invalid_import_directory,
                                  import_dir_name);
@@ -7515,7 +7579,7 @@ enable_microsoft_mode:
         break;
 #endif /* NAMED_ADDRESS_SPACES_ALLOWED */
       case optk_edg_base_directory:
-        edg_base_directory = opt_arg;
+        edg_base_directory = file_name_from_opt_arg(opt_arg);
         if (!is_directory(edg_base_directory)) {
           str_command_line_error(ec_cl_invalid_edg_base_directory,
                                  edg_base_directory);
@@ -7927,7 +7991,7 @@ enable_microsoft_mode:
   opt_arg = argv[opt_ind++];
   /* If the name is "-", use stdin for input. */
   if (strcmp(opt_arg, "-") == 0) opt_arg = FILE_NAME_FOR_STDIN;
-  primary_source_file_name = opt_arg;
+  primary_source_file_name = file_name_from_opt_arg(opt_arg);
   if (put_dir_of_each_opened_source_file_on_incl_search_path) {
     /* Add the directory of the source file to the front of the include file
        search path.  gs_directory_of returns the directory part of the
@@ -8163,7 +8227,7 @@ Call the translation unit routine for the secondary translation units.
   while (argc_file_list > 0) {
     /* There is another file. */
     argc_file_list--;
-    file_name = *(argv_file_list)++;
+    file_name = file_name_from_opt_arg(*argv_file_list++);
     if (put_dir_of_each_opened_source_file_on_incl_search_path) {
       /* Update the first entry of the include file search list, the one
          that contains the directory of the primary source file. */
@@ -8196,7 +8260,7 @@ proc_command_line handles the first file directly.
   if (another_file) {
     /* There is another file. */
     argc_file_list--;
-    primary_source_file_name = *(argv_file_list)++;
+    primary_source_file_name = file_name_from_opt_arg(*argv_file_list++);
     if (put_dir_of_each_opened_source_file_on_incl_search_path) {
       /* Update the first entry of the include file search list, the one
          that contains the directory of the primary source file. */
