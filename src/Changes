@@ -13,7 +13,7 @@ Now, casts that appear in the source are always represented using an actual
 node.  In addition, if an implicit cast has any effect at all (either by
 changing a type, or by removing "bitfieldness") then it is recorded with an
 eok_cast node; otherwise, it is not recorded at all.  The IL shorthand of
-modifying the "type" field of an expression node directly, has been removed.
+modifying the "type" field of an expression node directly has been removed.
 
 In GNU and Microsoft nodes, some casts with no effect are still not recorded
 to match the behavior of GNU and Microsoft compilers (specifically, to retain
