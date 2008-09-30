@@ -6039,8 +6039,8 @@ static void insert_call_to_zero_entity(a_type_ptr         entity_type,
                                        a_targ_size_t      array_element_count,
                                        an_insert_location *insert_location)
 /*
-Create a runtime routine call to zero the entity specified by entity_node
-whose type is entity_type.  entity_node is an rvalue pointer that points to
+Create a runtime routine call to zero the entity specified by entity_node,
+whose type is entity_type; it is an rvalue pointer that points to
 a complete object if have_complete_object is TRUE.  If num_elem_node
 is non-NULL, the entity is an array and the expression value gives
 the number of elements (the entity_type in that case is the array
