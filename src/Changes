@@ -39,7 +39,7 @@ occurred in prep_generic_operand_full.  Now fixed.
     };
   };
 
-9/26/08  [EDGcpfe/9217]
+9/26/08  [EDGcpfe/9229]
 GNU compatibility: Attributes in casts
 
 In GNU mode, the front end previously issued an error when encountering an
