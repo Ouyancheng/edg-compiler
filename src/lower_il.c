@@ -12689,9 +12689,8 @@ cast.  See lower_expr for typical invocation.
           an_expr_node_ptr new_expr;
           an_expr_node_ptr var_copy = copy_node(expr);
           /* Make sure the type of the enk_variable_node matches that of
-             the variable.  Add a pointer to the enk_variable node type so the
-             new node type will be correct. */
-          var_copy->type = make_pointer_type(type_pointed_to(var->type));
+             the variable. */
+          var_copy->type = var->type;
           if (var_copy->is_lvalue) {
             /* Convert this node to an rvalue in preparation for the
                indirection. */
