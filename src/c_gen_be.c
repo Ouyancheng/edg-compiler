@@ -4271,6 +4271,67 @@ pointed-to type is used for the comparison.
   return result;
 }  /* pointer_type_is_consistent */
 
+
+static void check_type_of_variable_node(an_expr_node_ptr expr)
+/*
+Check the type of a variable node to make sure it is consistent with the
+type of the variable to which it refers.
+*/
+{
+  a_type_ptr tp = expr->type;
+  a_type_ptr expected_type;
+  a_boolean  types_match;
+
+  check_assertion_str(is_variable_node(expr),
+                      "check_type_of_variable_node: wrong kind of node");
+  expected_type = expr->variant.variable->type;
+  if (is_array_type(tp) && is_array_type(expected_type) &&
+      (is_incomplete_array_type(tp) ||
+       is_incomplete_array_type(expected_type))) {
+    /* In some cases (block extern declarations, late template
+       instantiation, designated initializers, etc.) a variable type
+       and the result type of an enk_variable may differ in the
+       presence or absence of a major array bound.  In such cases, we
+       compare the element type instead. */
+    tp = array_element_type(tp);
+    expected_type = array_element_type(expected_type);
+  } else if (!expr->is_lvalue) {
+    /* Qualifiers are dropped on rvalues.  (We don't have to do this for
+       types that fell into the preceding case because the lvalue-to-rvalue
+       conversion would have caused the array type to decay to a pointer,
+       so the cases are mutually exclusive.) */
+    expected_type = make_unqualified_type(expected_type);
+  }  /* if */
+  types_match = il_identical_types(tp, expected_type);
+  if (!types_match) {
+    /* Under some conditions, a variable that refers to a typeinfo
+       class can have its type changed to refer to a different class
+       after the generation of an enk_variable node, so that the
+       node's type still refers to the original class.  We work
+       around that case by considering two class types to be a match
+       if their names both begin with "__" (making them reserved
+       names that should not appear in user code). */
+    tp = skip_typerefs(tp);
+    expected_type = skip_typerefs(expected_type);
+    if (is_immediate_class_type(tp) &&
+        is_immediate_class_type(expected_type)) {
+      const char *name1 = tp->source_corresp.name;
+      const char *name2 = expected_type->source_corresp.name;
+      if (name1 != NULL && name2 != NULL &&
+          name1[0] == '_' && name1[1] == '_' &&
+          name2[0] == '_' && name2[1] == '_') {
+        types_match = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  if (!types_match) {
+#if DEBUG
+    db_expression(expr);
+#endif /* DEBUG */
+    internal_error("check_type_of_variable_node: enk_variable has wrong type");
+  }  /* if */
+}  /* check_type_of_variable_node */
+
 #endif /* CHECKING && !STANDALONE_C_GEN_BE */
 
 static void dump_expr(an_expr_node_ptr expr,
@@ -5113,54 +5174,7 @@ done_with_operation:
       break;
     case enk_variable:
 #if CHECKING && !STANDALONE_C_GEN_BE
-      /* Check to make sure that the type of the expression node is
-         consistent with the type of the variable to which it refers. */
-      { a_type_ptr tp = expr->type;
-        a_type_ptr expected_type = expr->variant.variable->type;
-        a_boolean  types_match;
-        if (is_array_type(tp) && is_array_type(expected_type) &&
-            ((!tp->variant.array.is_variable_size_array &&
-              !tp->variant.array.is_template_dependent_size_array &&
-              tp->variant.array.variant.number_of_elements == 0) ||
-             (!expected_type->variant.array.is_variable_size_array &&
-              !expected_type->variant.array.is_template_dependent_size_array &&
-              expected_type->variant.array.variant.number_of_elements == 0))) {
-          /* In some cases (block extern declarations, late template
-             instantiation, designated initializers, etc.) a variable type
-             and the result type of an enk_variable may differ in the
-             presence or absence of a major array bound.  In such cases, we
-             compare the element type instead. */
-          tp = array_element_type(tp);
-          expected_type = array_element_type(expected_type);
-        } else if (!expr->is_lvalue) {
-          /* Qualifiers are dropped on rvalues. */
-          expected_type = make_unqualified_type(expected_type);
-        }  /* if */
-        types_match = il_identical_types(tp, expected_type);
-        if (!types_match) {
-          /* Under some conditions, a variable that refers to a typeinfo
-             class can have its type changed to refer to a different class
-             after the generation of an enk_variable node, so that the
-             node's type still refers to the original class.  We work
-             around that case by considering two class types to be a match
-             if their names both begin with "__" (making them reserved
-             names). */
-          tp = skip_typerefs(tp);
-          expected_type = skip_typerefs(expected_type);
-          if (is_immediate_class_type(tp) &&
-              is_immediate_class_type(expected_type)) {
-            const char *name1 = tp->source_corresp.name;
-            const char *name2 = expected_type->source_corresp.name;
-            if (name1 != NULL && name2 != NULL &&
-                name1[0] == '_' && name1[1] == '_' &&
-                name2[0] == '_' && name2[1] == '_') {
-              types_match = TRUE;
-            }  /* if */
-          }  /* if */
-        }  /* if */
-        check_assertion_str(types_match,
-                            "dump_expr: enk_variable has wrong type");
-      }
+      check_type_of_variable_node(expr);
 #endif /* CHECKING && !STANDALONE_C_GEN_BE */
       dump_variable_reference_node(expr);
       break;
