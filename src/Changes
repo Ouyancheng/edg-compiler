@@ -41,7 +41,7 @@ array members" are treated as zero-length array members in that mode.  See
 Changes entry of 10/17/02.)
 
 
-9/26/09  [EDGcpfe/9241]
+9/26/08  [EDGcpfe/9241]
 Microsoft compatibility: internal error on class template in Microsoft
 in-class specialization
 
