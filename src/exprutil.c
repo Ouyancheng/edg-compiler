@@ -3132,7 +3132,7 @@ user-defined conversions.
             error_in_operand(ec_expr_not_constant, operand);
           } else if (is_implicit_cast &&
                      identical_types(operand->type, new_type)) {
-            /* If the new type is identical to the old type, not cast is
+            /* If the new type is identical to the old type, no cast is
                needed. */
           } else {
             /* Create an expression node for the cast of the constant. */
