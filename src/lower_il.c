@@ -11706,8 +11706,8 @@ throughout the entire expression).
       an_expr_node_ptr      gchild = child->variant.operation.operands;
       an_expr_node_ptr      comma_second_node = gchild->next;
       if (op == (an_expr_operator_kind)eok_address_of) {
-        if (node_operator_is(child, eok_indirect) &&
-            il_identical_types(expr->type, gchild->type)) {
+        if (node_operator_is(child, eok_indirect)) {
+          check_assertion(il_identical_types(expr->type, gchild->type));
           /* Optimize "&*x" operation. */
           overwrite_node(expr, gchild);
         } else if (node_operator_is(child, eok_comma) &&
