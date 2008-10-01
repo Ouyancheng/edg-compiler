@@ -3278,6 +3278,8 @@ will be after the expression added.
     change_node_to_operation(orig_expr, (an_expr_operator_kind)eok_comma,
                              second_operand->type, first_operand,
                              second_operand->is_lvalue);
+    orig_expr->variant.operation.returns_lvalue_instead_of_usual_rvalue =
+                                                          orig_expr->is_lvalue;
   }  /* if */
 }  /* insert_expr */
 
@@ -9073,9 +9075,11 @@ void lower_expr_list(an_expr_node_ptr expr_list,
                      unsigned int     assume_expr_is_non_null_mask)
 /*
 Do IL lowering of the indicated list of expressions and everything under it.
-is_bool_controlling_expr_mask is a similar bit mask indicating operands
+is_bool_controlling_expr_mask is a bit mask indicating operands
 that are boolean controlling expressions.  assume_expr_is_non_null_mask is a
 bit mask that indicates which operands can safely be assumed to be non-NULL.
+The least significant bit of these masks corresponds to the first expression
+in the list.
 */
 {
   an_expr_node_ptr expr;
@@ -12073,6 +12077,8 @@ operator (as specified by is_lvalue).
   /* Change the original node to a comma expression. */
   change_node_to_operation(node, (an_expr_operator_kind)eok_comma,
                            other_operand_type, node_copy, is_lvalue);
+  node->variant.operation.returns_lvalue_instead_of_usual_rvalue =
+                                                               node->is_lvalue;
 }  /* wrap_throw */
 
 

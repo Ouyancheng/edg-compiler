@@ -240,9 +240,10 @@ indirection through the VLA variable (see lower_vla_variable_lvalue).
 Such operations are identified during the lowering of expressions.
 
 VLA types are also lowered to non-VLA types.  A VLA type, 'array [EXPR] of T',
-is lowered to 'T', and VLA variable types are lowered from 'array [EXPR] of T'
-to 'pointer to T'.  This VLA type lowering process consists of these three
-steps:
+or 'array [EXPR] of array [EXPR] of T' are both lowered to 'T', and VLA
+variable types are lowered from 'array [EXPR] of T' to 'pointer to T'.
+Multi-dimensional VLA variable types are also lowered to 'pointer to T'.  This
+VLA type lowering process consists of these three steps:
 
 1)  During lowering, types that contain a VLA component are identified by calls
     to record_vla_component_types_for_lowering and queued (on the vla_types
@@ -255,6 +256,30 @@ steps:
 
 3)  Lastly, in lower_vla_types, the entire list of VLA types is walked and each
     VLA type is replaced with the underlying element type.
+
+There are "variably-modified" types, which are types that contain a VLA but
+aren't just a VLA (e.g., a pointer to VLA).  Static variables can have
+variably-modified types, even though they can't have VLA types.
+
+The expressions in a VLA are evaluated at the point of declaration
+(as indicated by an stmk_set_vla_size statement), either of a VLA variable or a
+variable with a variably-modified type.  (Or a cast that uses a
+variably-modified type.)  For VLA variables, the allocation is additionally
+done at that point.  For the others, there's no allocation.
+
+The front end produces a stmk_vla_decl statement at the point of declaration of
+a variable or typedef with a variably modified type.  Lowering uses this as a
+trigger to produce a call to the __vla_alloc run-time call (when the
+stmk_vla_decl refers to a variable).
+
+In C mode, the point of deallocation is indicated by an enk_vla_dealloc
+expression node (see VLA_DEALLOCATIONS_IN_IL).  In C++ mode, the deallocation
+is handled by the object lifetime mechanism (the deallocation is like
+destruction of a variable on exit from its scope).
+
+When LOWER_VARIABLE_LENGTH_ARRAYS is FALSE, the back end must be prepared to
+handle variably modified types, as well as stmk_set_vla_size and stmk_vla_decl
+statements, and enk_vla_dealloc nodes (when VLA_DEALLOCATIONS_IN_IL is TRUE).
 */
 
 static a_type_list_entry_ptr
@@ -923,11 +948,13 @@ be scaled down by the number of elements in the VLAs pointed to.
 
 void lower_vla_variable_lvalue(an_expr_node_ptr  expr)
 /*
-The given expr is an lvalue enk_variable for a VLA variable.  Since VLA
-variables don't really have lvalues, convert an lvalue for VLA variable v,
-whose type is array [] of T, to *(T *)v.  v's type (once fully lowered) will be
-'pointer to the underlying array element type'.  Note that although the
-expression is a variable node expression on input, it won't be on output.
+The given expr is an lvalue enk_variable for a VLA variable.  VLA variable
+lvalues need to be rewritten because the VLA variable gets changed to be a
+pointer to the array instead of the array itself.  Convert an lvalue for VLA
+variable v, whose type is array [] of T, to *(T *)v.  v's type (once fully
+lowered) will be 'pointer to the underlying array element type'.  Note that
+although the expression is a variable node expression on input, it won't be on
+output.
 */
 {
   an_expr_node_ptr  new_expr;
@@ -955,33 +982,32 @@ an expression with VLA type.  The operands of expr have not been lowered yet.
   check_assertion(is_operation_node(expr) &&
                   node_operator_is(expr, eok_array_to_pointer) &&
                   is_vla_type(operand->type) &&
-                  !expr->is_lvalue);
-  if (operand->is_lvalue) {
-    if (is_operation_node(operand) &&
-        (node_operator_is(operand, eok_subscript) ||
-         node_operator_is(operand, eok_indirect) ||
-         node_operator_is(operand, eok_ref_indirect))) {
-      /* When these operands are later lowered, their types will have
-         been changed such that they return the underlying element type
-         rather than a pointer to that type.  Rectify this situation
-         by taking the address of the expression. */
-      operand = add_address_of_to_node(operand);
-    } else if (is_variable_node(operand)) {
-      /* Change the lvalue reference to an rvalue pointer.  VLA variables
-         are lowered from 'array [] of T' to 'pointer to T'.  Expressions
-         (like this one) that refer to VLA variables must also have the
-         correct type.  This step changes the operand type from 
-         'array [] of T' to 'pointer to array [] of T'.  Once lower_vla_types
-         is called, this expression's type will match that of the lowered VLA
-         variable ('pointer to T').  The overall type of the expression remains
-         the same as the array decay is replaced with a cast of the same type
-         below. */
-      a_type_ptr  new_operand_type = make_pointer_type(operand->type);
-      operand = rvalue_expr_for_lvalue(operand);
-      operand->type = new_operand_type;
-    } else {
-      unexpected_condition();
-    }  /* if */
+                  !expr->is_lvalue &&
+                  operand->is_lvalue);
+  if (is_operation_node(operand) &&
+      (node_operator_is(operand, eok_subscript) ||
+       node_operator_is(operand, eok_indirect) ||
+       node_operator_is(operand, eok_ref_indirect))) {
+    /* When these operands are later lowered, their types will have
+       been changed such that they return the underlying element type
+       rather than a pointer to that type.  Rectify this situation
+       by taking the address of the expression. */
+    operand = add_address_of_to_node(operand);
+  } else if (is_variable_node(operand)) {
+    /* Change the lvalue reference to an rvalue pointer.  VLA variables
+       are lowered from 'array [] of T' to 'pointer to T'.  Expressions
+       (like this one) that refer to VLA variables must also have the
+       correct type.  This step changes the operand type from 
+       'array [] of T' to 'pointer to array [] of T'.  Once lower_vla_types
+       is called, this expression's type will match that of the lowered VLA
+       variable ('pointer to T').  The overall type of the expression remains
+       the same as the array decay is replaced with a cast of the same type
+       below. */
+    a_type_ptr  new_operand_type = make_pointer_type(operand->type);
+    operand = rvalue_expr_for_lvalue(operand);
+    operand->type = new_operand_type;
+  } else {
+    unexpected_condition();
   }  /* if */
   /* Change the operation to a cast of the same type.  This cast will
      later be changed to a cast to pointer to the underlying array
@@ -1162,12 +1188,12 @@ expression.
     if (precomputation->is_lvalue) {
       precomputation = add_address_of_to_node(precomputation);
     }  /* if */
-    if (!(vla_enabled && is_vla_type(vla_type))) {
-      goto done;
-    }  /* if */
     /* Lower the argument expression, but be sure to have extracted the
        type first.  (The lowered type is no longer a VLA.) */
     lower_any_expr(precomputation);
+    if (!(vla_enabled && is_vla_type(vla_type))) {
+      goto done;
+    }  /* if */
   }  /* if */
   byte_count = vla_size_expr(vla_type, /*byte_count=*/TRUE);
   byte_count = add_cast_if_necessary(byte_count,
@@ -1180,7 +1206,7 @@ done:;
 #else /* !LOWER_VARIABLE_LENGTH_ARRAYS */
   /* We're not lowering the run-time sizeof operator, but we may have to
      lower the argument if that argument is an expression.  (expr->type
-     was lowered by the caller.)*/
+     was lowered by the caller.) */
   if (expr->variant.runtime_sizeof.is_type) {
     a_type_ptr  type = expr->variant.runtime_sizeof.variant.type;
     lower_vla_dimensions_in_type(type);
@@ -1552,7 +1578,7 @@ static an_expr_node_ptr select_complex_vals(an_expr_node_ptr  expr)
 The given expression node represents a complex lvalue or rvalue.  Return a node
 (constructed on top of the given one) for "<expr>.Vals" where "Vals" is the
 single field of the lowered complex type.  The returned node is an rvalue
-pointer.
+pointer (because the field Vals is an array, which decays to a pointer).
 */
 {
   an_expr_node_ptr      result;
@@ -2808,15 +2834,16 @@ match the adjusted parameter types if needed.
 {
   an_expr_node_ptr  target;
   a_type_ptr        call_type;
+  a_routine_ptr     callee;
 
   check_assertion(is_operation_node(call) && node_operator_is(call, eok_call));
   target = call->variant.operation.operands;
-  call_type = f_skip_typerefs(type_pointed_to(target->type));
-  if (target->kind == (an_expr_node_kind)enk_routine) {
+  callee = routine_from_function_expr(target);
+  if (callee != NULL) {
     /* A known callee. */
-    a_routine_ptr                  callee = target->variant.routine;
     a_routine_type_supplement_ptr  callee_rtsp, call_rtsp;
     callee_rtsp = skip_typerefs(callee->type)->variant.routine.extra_info;
+    call_type = f_skip_typerefs(type_pointed_to(target->type));
     check_assertion(is_function_type(call_type));
     call_rtsp = call_type->variant.routine.extra_info;
     if (callee_rtsp->prototyped && call_rtsp->prototyped &&
@@ -2829,6 +2856,15 @@ match the adjusted parameter types if needed.
       an_expr_node_ptr  *ip = &target->next;
       a_param_type_ptr  ptp = callee_rtsp->param_type_list;
       target->type = make_pointer_type(callee->type);
+      if (!is_routine_node(target)) {
+        /* In cases where the function is invoked as (&f)(a), target will
+           be an eok_address_of and the underlying enk_routine's type needs
+           to be changed as well. */
+        check_assertion(is_operation_node(target) &&
+                        node_operator_is(target, eok_address_of) &&
+                        is_routine_node(target->variant.operation.operands));
+        target->variant.operation.operands->type = callee->type;
+      }  /* if */
       while (ap != NULL) {
         ap = ap->next;
         if (ptp != NULL) {
@@ -3398,7 +3434,6 @@ in C99 mode to represent a compound literal.
   a_dynamic_init_ptr dip = expr->variant.init.dynamic_init;
   a_variable_ptr     var;
   a_type_ptr         temp_type = expr->type;
-  a_boolean          result_is_lvalue = expr->is_lvalue;
   an_insert_location insert_location;
   an_init_pos_descr  ipd;
   a_boolean          keep_dynamic_init;
@@ -3434,14 +3469,10 @@ in C99 mode to represent a compound literal.
   if (variably_modified) {
     var->has_variably_modified_type = TRUE;
   }  /* if */
-  /* Change the enk_temp_init to a reference to the value or address
-     of the temporary. */
-  if (result_is_lvalue) {
-    overwrite_node(expr, var_addr_expr(var));
-  } else {
-    set_expr_node_kind(expr, (an_expr_node_kind)enk_variable);
-    expr->variant.variable = var;
-  }  /* if */
+  /* Change the enk_temp_init node to an enk_variable node; its lvalueness is
+     unchanged. */
+  set_expr_node_kind(expr, (an_expr_node_kind)enk_variable);
+  expr->variant.variable = var;
   /* Set the insert point preceding the (modified) original expression. */
   set_expr_insert_location(expr, &insert_location);
   set_var_init_pos_descr(var, &ipd);
@@ -3489,10 +3520,6 @@ in C99 mode to represent a compound literal.
     overwrite_node(expr, new_expr);
   }  /* if */
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
-  if (result_is_lvalue) {
-    /* Add an indirection. */
-    overwrite_node(expr, add_indirection_to_node(copy_node(expr)));
-  }  /* if */
 }  /* lower_c99_temp_init */
 
 
@@ -3500,8 +3527,9 @@ static void lower_c99_expr_list(an_expr_node_ptr list,
                                 unsigned int     is_bool_controlling_expr_mask)
 /*
 Lower the given (short) list of expressions (normally, the operands of an
-operator).  is_bool_controlling_expr_mask is a similar bit mask indicating
-operands that are boolean controlling expressions.
+operator).  is_bool_controlling_expr_mask is a bit mask indicating
+operands that are boolean controlling expressions.  The least significant bit
+of the mask corresponds to the first expression in the list.
 */
 {
   an_expr_node_ptr  expr;
