@@ -13703,9 +13703,13 @@ an_expr_node_ptr add_cast(an_expr_node_ptr node,
 /*
 Add a cast to new_type to the node and return the cast node.
 new_type should not have any top-level type qualifiers.
+The cast is marked as compiler-generated.
 */
 {
-  return make_operator_node((an_expr_operator_kind)eok_cast, new_type, node);
+  an_expr_node_ptr expr = make_operator_node((an_expr_operator_kind)eok_cast,
+                                             new_type, node);
+  expr->variant.operation.compiler_generated = TRUE;
+  return expr;
 }  /* add_cast */
 
 
@@ -13715,6 +13719,7 @@ an_expr_node_ptr add_cast_if_necessary(an_expr_node_ptr node,
 Add a cast to new_type to the node and return the cast node.  If the
 type of the node is already new_type return the original node.
 new_type should not have any top-level type qualifiers.
+If a cast is added it is marked as compiler-generated.
 */
 {
   if (!il_identical_types(node->type, new_type)) {
