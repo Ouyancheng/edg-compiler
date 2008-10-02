@@ -2086,6 +2086,69 @@ Display the difference in CPU time and elapsed time between two timers.
 }  /* display_time_used */
 
 
+char *file_name_in_internal_encoding(char *orig_name)
+/*
+orig_name is the null-terminated name of a file or directory as provided
+by the environment, e.g., from the command line or from a system call.
+Convert it if necessary to the character encoding used internally
+for file names.  In particular, when the internal representation
+is UTF-8, translate Latin-1 characters to their UTF-8 representations.
+If some translation is required, a new string is allocated in general
+storage, it is filled with the converted form, and its address is returned.
+If no conversion is required, the original string is returned.
+*/
+{
+  char *file_name = orig_name;
+
+#if UNICODE_SOURCE_SUPPORTED
+  if (DEFAULT_UNICODE_SOURCE_KIND == usk_none) {  /*lint !e506*/
+    /* The environment uses a non-Unicode encoding, which means it's
+       encoded as Latin-1.  If it contains characters > 0x7f, they must be
+       rewritten as UTF-8 because UTF-8 is the standard internal encoding
+       for file names. */
+    a_boolean     conversion_needed = FALSE;
+    sizeof_t      size_needed = 0;
+    unsigned char *p;
+    /* Look to see whether the string contains any characters that
+       require conversion.  Also determine the size needed if we have to
+       allocate space for the converted copy. */
+    for (p = (unsigned char *)orig_name; *p != '\0'; p++) {
+      size_needed++;
+      if (*p > 0x7f) {
+        /* The character is something like a European accented character and
+           must be converted. */
+        conversion_needed = TRUE;
+        size_needed++;
+      }  /* if */
+    }  /* for */
+    if (conversion_needed) {
+      /* The string contains at least one character that needs to be rewritten
+         as UTF-8.  Allocate and fill a new string. */
+      char *dest;
+      dest = file_name = alloc_general(size_needed+1);
+      for (p = (unsigned char *)orig_name; *p != '\0'; p++) {
+        unsigned long ch = (unsigned long)*p;
+        if (ch > 0x7f) {
+          /* Convert one character in the file name to two UTF-8 characters. */
+          char arr[4];
+          (void)wide_char_to_utf8(ch, arr);
+          *dest++ = arr[0];
+          ch = arr[1];
+        }  /* if */
+        *dest++ = (char)ch;
+      }  /* for */
+      *dest = '\0';
+    }  /* if */
+  } else {
+    /* We don't have code to handle UTF-16 as the default character set
+       from the environment. */
+    check_assertion(DEFAULT_UNICODE_SOURCE_KIND == usk_utf8); /*lint !e506*/
+  }  /* if */
+#endif /* UNICODE_SOURCE_SUPPORTED */
+  return file_name;
+}  /* file_name_in_internal_encoding */
+
+
 /*
 Change to the specified directory, make sure the operation succeeded.
 Not used in some configurations.
@@ -2434,14 +2497,13 @@ buffer.
     }  /* if */
     break;
   }  /* for */
-  return temp_text_buffer;
 #else /* !USE_GETCWD */
   /* Make sure there is enough space for the largest path name that can
      be returned. */
   ensure_temp_text_buffer_space(MAXPATHLEN);
   (void)getwd(temp_text_buffer);
-  return temp_text_buffer;
 #endif /* USE_GETCWD */
+  return file_name_in_internal_encoding(temp_text_buffer);
 }  /* get_curr_dir_name */
 
 
