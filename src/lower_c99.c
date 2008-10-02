@@ -3703,11 +3703,14 @@ Do C99 lowering on the indicated expression.
 }  /* lower_c99_expr */
 
 
-static void end_of_c99_full_expr(void)
+static void end_of_c99_full_expr(an_expr_node_ptr expr)
 /*
 Do end-of-full-expression processing for C99 lowering.
 */
 {
+  /* Perform a second pass on the lowered expression to optimize it
+     and clean up any remaining issues. */
+  optimize_lowered_expression_if_possible(expr);
   /* Release any reusable temporaries that were allocated. */
   release_reusable_temporaries();
 }  /* end_of_c99_full_expr */
@@ -3720,10 +3723,7 @@ one not contained inside another expression.
 */
 {
   lower_c99_expr(expr);
-  /* Perform a second pass on the lowered expression to optimize it
-     and clean up any remaining issues. */
-  optimize_lowered_expression_if_possible(expr);
-  end_of_c99_full_expr();
+  end_of_c99_full_expr(expr);
 }  /* lower_c99_full_expr */
 
 static void lower_c99_boolean_controlling_expr(an_expr_node_ptr expr,
@@ -3953,7 +3953,7 @@ Do C99 lowering on the indicated statement.
         /* Expression statement.  Pass in the statement to allow better
            inlining. */
         lower_c99_expr_full(statement->expr, statement);
-        end_of_c99_full_expr();
+        end_of_c99_full_expr(statement->expr);
         break;
       case stmk_if:
         lower_c99_boolean_controlling_expr(statement->expr,
