@@ -3369,15 +3369,8 @@ qualified_name_check:
     operand_will_not_be_used_because_of_error(operand_1);
   } else if (is_vacuous_destructor_reference) {
     an_expr_node_ptr node;
-    a_boolean        rvalue_case;
     /* A reference to a destructor for a class or simple type that does not
        have one, e.g., p->int::~int(). */
-    if (!is_arrow_operator && is_an_lvalue(operand_1)) {
-      /* "." operator.  Convert the lvalue to an rvalue pointer, then
-         use "->" instead. */
-      take_address_of_lvalue(operand_1, (a_source_position*)NULL);
-      is_arrow_operator = TRUE;
-    }  /* if */
     if (!is_class_struct_union_type(dtor_type)) {
       /* For a non-class case, make sure the operand type reflects the
          type used to refer to the "destructor".  This allows the
@@ -3386,13 +3379,20 @@ qualified_name_check:
            int *p;
            p->T::~T();
          and get the name "T" in the output. */
-      rvalue_case = !is_arrow_operator && is_an_rvalue(operand_1);
-      cast_operand(rvalue_case ? dtor_type : make_pointer_type(dtor_type),
-                   operand_1,
-                   /*check_cast_access=*/FALSE,
-                   /*is_implicit_cast=*/TRUE,
-                   /*is_reinterpret_cast=*/FALSE,
-                   /*reinterpret_semantics=*/FALSE);
+      /* We don't use cast_operand here because we really want to force
+         the type change. */
+      node = make_node_from_operand(operand_1);
+      node->type = is_arrow_operator ? make_pointer_type(dtor_type) :
+                                       dtor_type;
+      { an_operand orig_operand;
+        orig_operand = *operand_1;
+        if (node->is_lvalue) {
+          make_lvalue_expression_operand(node, operand_1);
+        } else {
+          make_expression_operand(node, operand_1);
+        }  /* if */
+        restore_operand_details_incl_ref(operand_1, &orig_operand);
+      }
     } else {
       /* Class case. */
       dtor_type = skip_typerefs(dtor_type);
@@ -3417,9 +3417,7 @@ qualified_name_check:
                                 /*is_object_pointer=*/TRUE);
       }  /* if */
     }  /* if */
-    /* Make a vacuous destructor call node and an operand for it.
-       This is a pretty weird representation for this case, but it's a pretty
-       weird case.  scan_function_call checks for this construct. */
+    /* Make a vacuous destructor call node and an operand for it. */
     node = make_node_from_operand(operand_1);
     node = make_operator_node((an_expr_operator_kind)(is_arrow_operator ?
                                 eok_points_to_vacuous_destructor_call :

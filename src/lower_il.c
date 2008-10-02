@@ -12950,6 +12950,11 @@ cast.  See lower_expr for typical invocation.
             /* A call of a "destructor" for a class or simple type that does
                not have one, e.g., p->int::~int().  Change the node into
                a cast to void. */
+            if (operand_node->is_lvalue) {
+              /* For the lvalue.T::~T() case, take the address of the lvalue
+                 and then cast that to void. */
+              operand_node = add_address_of_to_node(operand_node);
+            }  /* if */
             change_to_cast(expr, operand_node, expr->type);
             break;
           case eok_cast:
