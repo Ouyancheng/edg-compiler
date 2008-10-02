@@ -3705,12 +3705,15 @@ Do C99 lowering on the indicated expression.
 
 static void end_of_c99_full_expr(an_expr_node_ptr expr)
 /*
-Do end-of-full-expression processing for C99 lowering.
+Do end-of-full-expression processing for C99 lowering of expr.  expr may
+be NULL in cases where the expression was eliminiated (e.g., inlining).
 */
 {
-  /* Perform a second pass on the lowered expression to optimize it
-     and clean up any remaining issues. */
-  optimize_lowered_expression_if_possible(expr);
+  if (expr != NULL) {
+    /* Perform a second pass on the lowered expression to optimize it
+       and clean up any remaining issues. */
+    optimize_lowered_expression_if_possible(expr);
+  }  /* if */
   /* Release any reusable temporaries that were allocated. */
   release_reusable_temporaries();
 }  /* end_of_c99_full_expr */
