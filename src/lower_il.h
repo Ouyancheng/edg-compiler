@@ -1126,9 +1126,6 @@ extern void il_lower_init(void);
 
 extern void clear_parent_information(void);
 
-extern an_expr_node_ptr add_cast_to_lvalue_if_necessary(an_expr_node_ptr node,
-                                                        a_type_ptr       type);
-
 extern an_expr_node_ptr rvalue_pointer_for_class_rvalue(an_expr_node_ptr expr);
 
 extern a_boolean type_has_param_passed_via_cctor(a_type_ptr tp);

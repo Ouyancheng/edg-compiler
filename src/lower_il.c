@@ -2576,45 +2576,6 @@ found_base_class:;
 
 #endif /* ABI_CHANGES_FOR_RTTI */
 
-static an_expr_node_ptr add_cast_to_lvalue(an_expr_node_ptr node,
-                                    a_type_ptr       type)
-/*
-This utility function is used to cast an lvalue expression given by
-node to the type specified by type.  The cast is performed by taking the
-address of the lvalue, casting the resulting expression to a pointer to type,
-and then performing an indirection on the result.  The result is always an
-lvalue.  Note that this technique can't be used for base class casts, but it
-can be used for cv-qualification or type adjustment.
-*/
-{
-  check_assertion(node->is_lvalue);
-  node = add_address_of_to_node(node);
-  node = add_cast(node, make_pointer_type(type));
-  node = add_indirection_to_node(node);
-  return node;
-}  /* add_cast_to_lvalue */
-
-
-an_expr_node_ptr add_cast_to_lvalue_if_necessary(an_expr_node_ptr node,
-                                                 a_type_ptr       type)
-/*
-This utility function is used to cast an lvalue expression given by
-node to the type specified by type (only if the expression type is different
-than the specified type).  The cast is performed by taking the address
-of the lvalue, casting the resulting expression to a pointer to type,
-and then performing an indirection on the result.  The result is always
-an lvalue.  Note that this technique can't be used for base class casts,
-but it can be used for cv-qualification or type adjustment.
-*/
-{
-  check_assertion(node->is_lvalue);
-  if (!il_identical_types(node->type, type)) {
-    node = add_cast_to_lvalue(node, type);
-  }  /* if */
-  return node;
-}  /* add_cast_to_lvalue_if_necessary */
-
-
 an_expr_node_ptr rvalue_pointer_for_class_rvalue(an_expr_node_ptr expr)
 /*
 Return an rvalue pointer expression for the rvalue class expression, expr.

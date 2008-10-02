@@ -13724,6 +13724,47 @@ new_type should not have any top-level type qualifiers.
 }  /* add_cast_if_necessary */
 
 
+an_expr_node_ptr add_cast_to_lvalue(an_expr_node_ptr node,
+                                    a_type_ptr       type)
+/*
+Cast the lvalue expression given by node to the type specified by type.
+This adjusts the type of the lvalue without creating a new object.
+The cast is performed by taking the address of the lvalue, casting the
+resulting expression to a pointer to type, and then performing an
+indirection on the result.  The operations are marked as compiler-generated.
+The result is always an lvalue.  Note that this routine doesn't handle
+base class casts, only minor cv-qualification or type adjustment.
+*/
+{
+  check_assertion(node->is_lvalue);
+  node = add_address_of_to_node(node);
+  node = add_cast(node, make_pointer_type(type));
+  node = add_indirection_to_node(node);
+  return node;
+}  /* add_cast_to_lvalue */
+
+
+an_expr_node_ptr add_cast_to_lvalue_if_necessary(an_expr_node_ptr node,
+                                                 a_type_ptr       type)
+/*
+Cast the lvalue expression given by node to the type specified by type,
+but do nothing if the node already has the desired type.
+This adjusts the type of the lvalue without creating a new object.
+The cast is performed by taking the address of the lvalue, casting the
+resulting expression to a pointer to type, and then performing an
+indirection on the result.  The operations are marked as compiler-generated.
+The result is always an lvalue.  Note that this routine doesn't handle
+base class casts, only minor cv-qualification or type adjustment.
+*/
+{
+  check_assertion(node->is_lvalue);
+  if (!il_identical_types(node->type, type)) {
+    node = add_cast_to_lvalue(node, type);
+  }  /* if */
+  return node;
+}  /* add_cast_to_lvalue_if_necessary */
+
+
 an_expr_node_ptr copy_node(an_expr_node_ptr expr)
 /*
 Allocate a copy of an expression node and return a pointer to it.
