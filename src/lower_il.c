@@ -3239,8 +3239,6 @@ will be after the expression added.
     change_node_to_operation(orig_expr, (an_expr_operator_kind)eok_comma,
                              second_operand->type, first_operand,
                              second_operand->is_lvalue);
-    orig_expr->variant.operation.returns_lvalue_instead_of_usual_rvalue =
-                                                          orig_expr->is_lvalue;
   }  /* if */
 }  /* insert_expr */
 
@@ -12038,8 +12036,6 @@ operator (as specified by is_lvalue).
   /* Change the original node to a comma expression. */
   change_node_to_operation(node, (an_expr_operator_kind)eok_comma,
                            other_operand_type, node_copy, is_lvalue);
-  node->variant.operation.returns_lvalue_instead_of_usual_rvalue =
-                                                               node->is_lvalue;
 }  /* wrap_throw */
 
 

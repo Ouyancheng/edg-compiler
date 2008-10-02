@@ -11965,12 +11965,15 @@ type kind" as a function of the operator kind and the type of the operands.
   node->variant.operation.operands = operands;
   node->is_lvalue = is_lvalue;
 #if DO_IL_LOWERING
-  if (il_lowering_underway && !C_mode() && is_lvalue &&
+  if (il_lowering_underway && is_lvalue &&
       (kind == (an_expr_operator_kind)eok_comma ||
        kind == (an_expr_operator_kind)eok_assign ||
        kind == (an_expr_operator_kind)eok_question)) {
     /* Make sure that operators added during lowering have the
        returns_lvalue_instead_of_usual_rvalue field set properly. */
+    /* Note that these lvalue returning operations will be re-written
+       in optimize_lowered_expression_if_possible to produce rvalue operations
+       (since these are not valid C constructs). */
     node->variant.operation.returns_lvalue_instead_of_usual_rvalue = TRUE;
   } else
 #endif /* DO_IL_LOWERING */

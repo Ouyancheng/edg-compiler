@@ -264,13 +264,12 @@ variably-modified types, even though they can't have VLA types.
 The expressions in a VLA are evaluated at the point of declaration
 (as indicated by an stmk_set_vla_size statement), either of a VLA variable or a
 variable with a variably-modified type.  (Or a cast that uses a
-variably-modified type.)  For VLA variables, the allocation is additionally
-done at that point.  For the others, there's no allocation.
+variably-modified type.)
 
 The front end produces a stmk_vla_decl statement at the point of declaration of
 a variable or typedef with a variably modified type.  Lowering uses this as a
 trigger to produce a call to the __vla_alloc run-time call (when the
-stmk_vla_decl refers to a variable).
+stmk_vla_decl refers to a variable).  For the others, there's no allocation.
 
 In C mode, the point of deallocation is indicated by an enk_vla_dealloc
 expression node (see VLA_DEALLOCATIONS_IN_IL).  In C++ mode, the deallocation
