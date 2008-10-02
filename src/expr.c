@@ -3379,20 +3379,32 @@ qualified_name_check:
            int *p;
            p->T::~T();
          and get the name "T" in the output. */
-      /* We don't use cast_operand here because we really want to force
-         the type change. */
+      /* We force the type into the expression even when it's equivalent to
+         what's already there, so we can't use cast_operand here. */
+      a_type_ptr new_type = is_arrow_operator ? make_pointer_type(dtor_type) :
+                                                dtor_type;
+      an_operand orig_operand;
+      orig_operand = *operand_1;
       node = make_node_from_operand(operand_1);
-      node->type = is_arrow_operator ? make_pointer_type(dtor_type) :
-                                       dtor_type;
-      { an_operand orig_operand;
-        orig_operand = *operand_1;
+      if (!identical_types(node->type, new_type)) {
+        /* There is an actual type change here (probably one involving
+           cv-qualifiers). */
         if (node->is_lvalue) {
-          make_lvalue_expression_operand(node, operand_1);
+          node = add_cast_to_lvalue(node, new_type);
         } else {
-          make_expression_operand(node, operand_1);
+          node = add_cast(node, new_type);
         }  /* if */
-        restore_operand_details_incl_ref(operand_1, &orig_operand);
-      }
+      } else {
+        /* No actual type change, but update the type anyway to make sure
+           we have the right "spelling" of the type, with typedef if needed. */
+        node->type = new_type;
+      }  /* if */
+      if (node->is_lvalue) {
+        make_lvalue_expression_operand(node, operand_1);
+      } else {
+        make_expression_operand(node, operand_1);
+      }  /* if */
+      restore_operand_details_incl_ref(operand_1, &orig_operand);
     } else {
       /* Class case. */
       dtor_type = skip_typerefs(dtor_type);
