@@ -12908,9 +12908,9 @@ cast.  See lower_expr for typical invocation.
                not have one, e.g., p->int::~int().  Change the node into
                a cast to void. */
             if (operand_node->is_lvalue) {
-              /* For the lvalue.T::~T() case, take the address of the lvalue
+              /* For the lvalue.T::~T() case, change the lvalue to an rvalue
                  and then cast that to void. */
-              operand_node = add_address_of_to_node(operand_node);
+              rewrite_discarded_lvalue_as_rvalue(operand_node);
             }  /* if */
             change_to_cast(expr, operand_node, expr->type);
             break;
