@@ -14942,6 +14942,86 @@ be suppressed.
 }  /* examine_dynamic_init_for_side_effect */
 
 
+a_boolean is_rvalueable_node(an_expr_node_ptr node)
+/*
+Return TRUE if the indicated node is one in which an lvalue-to-rvalue
+conversion ("load from memory") at the end can be indicated simply by
+clearing the is_lvalue flag.  The node can be an lvalue or rvalue:
+if it is an lvalue, then clearing the flag will add the load.  If
+it is an rvalue, then the flag has already been cleared and the node
+already indicates the load.
+*/
+{
+  a_boolean rvalueable = FALSE;
+
+  /* Note that this routine is very similar to node_does_fetch and
+     conv_rvalue_expr_to_lvalue. */
+  switch (node->kind) {
+    case enk_error:
+    case enk_variable:
+    case enk_temp_init:
+    case enk_routine:
+    case enk_typeid:
+      rvalueable = TRUE;
+      break;
+    case enk_operation:
+      if (node->variant.operation.returns_lvalue_instead_of_usual_rvalue) {
+        /* Nodes with this flag set are not rvalueable.  You can clear the
+           returns_lvalue_instead_of_usual_rvalue flag and the is_lvalue flag
+           to make the node an rvalue, but there would still be no "load"
+           at this level. */
+      } else {
+        an_expr_operator_kind op = node->variant.operation.kind;
+        switch (op) {
+          case eok_dot_field:
+          case eok_pm_field:
+            /* These are rvalueable if the first operand is an lvalue.
+               If the first operand is an rvalue, there's no place we can
+               load from; the rvalue has already been "loaded". */
+            rvalueable = node->variant.operation.operands->is_lvalue;
+            break;
+          case eok_points_to_field:
+          case eok_pm_points_to_field:
+          case eok_subscript:
+          case eok_indirect:
+          case eok_ref_indirect:
+          case eok_va_arg:
+#if GNU_COMPLEX_EXTENSIONS_ALLOWED
+          case eok_real_part:
+          case eok_imag_part:
+#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
+            rvalueable = TRUE;
+            break;
+          case eok_lvalue_cast:  /* Not rvalueable; when converted to an
+                                    rvalue it gets rewritten as a normal
+                                    cast. */
+          case eok_parens:       /* Not rvalueable: to change to an rvalue,
+                                    change the underlying operand too. */
+          case eok_dot_static:   /* Ditto. */
+          case eok_points_to_static:  /* Ditto. */
+          default:
+            break;
+        }  /* switch */
+      }  /* if */
+      break;
+    default:
+      break;
+  }  /* switch */
+  return rvalueable;
+}  /* is_rvalueable_node */
+
+
+a_boolean node_includes_lvalue_to_rvalue_conv(an_expr_node_ptr node)
+/*
+Return TRUE if node includes an implicit lvalue-to-rvalue conversion
+("load from memory").  This is indicated by the is_lvalue flag being
+FALSE in a node where the default setting would be TRUE.
+*/
+{
+  return !node->is_lvalue && is_rvalueable_node(node);
+}  /* node_includes_lvalue_to_rvalue_conv */
+
+
 static a_boolean node_does_fetch(an_expr_node_ptr node,
                                  a_type_ptr       *p_fetched_type)
 /*
@@ -14997,8 +15077,14 @@ top-level node is considered -- fetches in child nodes are not.
               if (!is_pointer_type(op1->type)) break;
               operand_type = type_pointed_to(op1->type);
 process_field_selection:
-              /* An rvalue field selection fetches the field as additionally
-                 qualified by the class type. */
+              /* A field selection that returns an rvalue fetches the field
+                 as additionally qualified by the class type.  Note that the
+                 code here differs from node_includes_lvalue_to_rvalue_conv in
+                 considering that rvalue.field is a fetch of the field even
+                 though there's no lvalue-to-rvalue conversion.  That makes
+                 sense because this routine is used to check for side effects,
+                 and a selection of a volatile field from a non-volatile
+                 class object does cause a side effect. */
               does_fetch = TRUE;
               check_assertion(op2 != NULL &&
                               op2->kind == (an_expr_node_kind)enk_field);
@@ -15036,6 +15122,10 @@ process_ptr_to_member_selection:
               does_fetch = TRUE;
               fetched_type = type_pointed_to(op1->type);
               break;
+          case eok_va_arg:
+            does_fetch = TRUE;
+            fetched_type = node->type;
+            break;
 #if GNU_COMPLEX_EXTENSIONS_ALLOWED
             case eok_real_part:
             case eok_imag_part:
@@ -19323,81 +19413,6 @@ scan_alignof_operator for details).
 }  /* alignment_of_variable */
 
 #if CHECKING
-a_boolean is_rvalueable_node(an_expr_node_ptr node)
-/*
-Return TRUE if the indicated lvalue node is one that can be converted to an
-rvalue by simply clearing the is_lvalue flag.  Such nodes are ones where
-an lvalue-to-rvalue conversion can be implied because the "usual" setting
-of the is_lvalue flag is TRUE.
-*/
-{
-  a_boolean okay = FALSE;
-
-  /* Note that this routine is very similar to node_does_fetch and
-     conv_rvalue_expr_to_lvalue. */
-  check_assertion(node->is_lvalue || is_error_node(node));
-  switch (node->kind) {
-    case enk_error:
-    case enk_variable:
-    case enk_temp_init:
-    case enk_routine:
-    case enk_typeid:
-      okay = TRUE;
-      break;
-    case enk_operation:
-      if (node->variant.operation.returns_lvalue_instead_of_usual_rvalue) {
-        okay = TRUE;
-      } else {
-        an_expr_operator_kind op = node->variant.operation.kind;
-        switch (op) {
-          case eok_dot_field:
-          case eok_points_to_field:
-          case eok_pm_field:
-          case eok_pm_points_to_field:
-          case eok_indirect:
-          case eok_ref_indirect:
-          case eok_subscript:
-          case eok_va_arg:
-#if GNU_COMPLEX_EXTENSIONS_ALLOWED
-          case eok_real_part:
-          case eok_imag_part:
-#endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
-            okay = TRUE;
-            break;
-          case eok_lvalue_cast:  /* Not rvalueable; when converted to an
-                                    rvalue it gets rewritten as a normal
-                                    cast. */
-          case eok_parens:       /* Not rvalueable: to change to an rvalue,
-                                    change the underlying operand too. */
-          case eok_dot_static:
-          case eok_points_to_static:
-          default:
-            break;
-        }  /* switch */
-      }  /* if */
-      break;
-    default:
-      break;
-  }  /* switch */
-  return okay;
-}  /* is_rvalueable_node */
-
-
-static a_boolean might_be_decayed_lvalue(an_expr_node_ptr node)
-/*
-Return TRUE if node (which must be an rvalue) could be the result of an
-lvalue-to-rvalue conversion.
-*/
-{
-  a_boolean rvalueable_node;
-
-  check_assertion(!node->is_lvalue);
-  node->is_lvalue = TRUE;
-  rvalueable_node = is_rvalueable_node(node);
-  node->is_lvalue = FALSE;
-  return rvalueable_node;
-}  /* might_be_decayed_lvalue */
-
 /*
 The following table defines whether the operands of a given operation node
 are expected to be lvalues or rvalues.
@@ -19581,7 +19596,7 @@ If node is an operation expression node, return FALSE if any of its operands
 have the is_lvalue flag set incorrectly; return TRUE otherwise.
 */
 {
-  a_boolean        operand_error = FALSE;
+  a_boolean operand_error = FALSE;
 
   if (is_operation_node(node)) {
     an_expr_operator_kind op = node->variant.operation.kind;
@@ -19589,45 +19604,61 @@ have the is_lvalue flag set incorrectly; return TRUE otherwise.
     an_expr_node_ptr      operand_1 = node->variant.operation.operands;
     an_expr_node_ptr      operand_2 = operand_1->next;
 
-    if ((operand_1->is_lvalue && 
-         ((flags & LVRV_OPND1_IS_RVALUE) ||
-          (!node->is_lvalue && !might_be_decayed_lvalue(node) &&
-           (flags & LVRV_OPND1_IS_LVALUE_IF_EXPR_IS)))) ||
-        (!operand_1->is_lvalue &&
-         ((flags & LVRV_OPND1_IS_LVALUE) ||
-          (node->is_lvalue &&
-           (flags & LVRV_OPND1_IS_LVALUE_IF_EXPR_IS))))) {
-      operand_error = TRUE;
+    if (flags & LVRV_OPND1_IS_RVALUE) {
+      /* The first operand is supposed to be an rvalue. */
+      if (operand_1->is_lvalue) operand_error = TRUE;
+    } else if (flags & LVRV_OPND1_IS_LVALUE) {
+      /* The first operand is supposed to be an lvalue. */
+      if (!operand_1->is_lvalue) operand_error = TRUE;
+    } else if (flags & LVRV_OPND1_IS_LVALUE_IF_EXPR_IS) {
+      /* The first operand is supposed to be an lvalue if and only if
+         the expression returns an lvalue.  This is complicated, however,
+         by the fact that the expression may have an implied lvalue-to-rvalue
+         conversion. */
+      a_boolean eff_node_is_lvalue = node->is_lvalue;
+      if (node_includes_lvalue_to_rvalue_conv(node)) {
+        eff_node_is_lvalue = TRUE;
+      }  /* if */
+      if (eff_node_is_lvalue != operand_1->is_lvalue) operand_error = TRUE;
     }  /* if */
-    if (operand_2 != NULL &&
-        ((operand_2->is_lvalue &&
-          ((flags & LVRV_OPND2_IS_RVALUE) ||
-           (!node->is_lvalue && !might_be_decayed_lvalue(node) &&
-            (flags & LVRV_OPND2_IS_LVALUE_IF_EXPR_IS)))) ||
-         (!operand_2->is_lvalue &&
-          ((flags & LVRV_OPND2_IS_LVALUE) ||
-           (node->is_lvalue &&
-            (flags & LVRV_OPND2_IS_LVALUE_IF_EXPR_IS)))))) {
-      if (gpp_mode && op == (an_expr_operator_kind)eok_va_start &&
-          is_variable_node(operand_2) &&
-          operand_2->type->kind == (a_type_kind)tk_pointer &&
-          operand_2->type->variant.pointer.is_reference) {
-        /* g++ allows use of va_start with a parameter of reference
-           type.  This situation is represented in the IL as an rvalue
-           variable designating the parameter and is not an error. */
-      } else {
+    if (flags & LVRV_OPND2_IS_RVALUE) {
+      /* The second operand is supposed to be an rvalue. */
+      if (operand_2->is_lvalue) operand_error = TRUE;
+    } else if (flags & LVRV_OPND2_IS_LVALUE) {
+      /* The second operand is supposed to be an lvalue. */
+      if (!operand_2->is_lvalue) operand_error = TRUE;
+    } else if (flags & LVRV_OPND2_IS_LVALUE_IF_EXPR_IS) {
+      /* The second operand is supposed to be an lvalue if and only if
+         the expression returns an lvalue.  This is complicated, however,
+         by the fact that the expression may have an implied lvalue-to-rvalue
+         conversion. */
+      a_boolean eff_node_is_lvalue = node->is_lvalue;
+      if (node_includes_lvalue_to_rvalue_conv(node)) {
+        eff_node_is_lvalue = TRUE;
+      }  /* if */
+      if (eff_node_is_lvalue != operand_2->is_lvalue) {
+        /* Probably an error, but check for one special case. */
+        if (gpp_mode && op == (an_expr_operator_kind)eok_va_start &&
+            is_variable_node(operand_2) &&
+            operand_2->type->kind == (a_type_kind)tk_pointer &&
+            operand_2->type->variant.pointer.is_reference) {
+          /* g++ allows use of va_start with a parameter of reference
+             type.  This situation is represented in the IL as an rvalue
+             variable designating the parameter and is not an error. */
+        } else {
+          operand_error = TRUE;
+        }  /* if */
+      } else if (op == (an_expr_operator_kind)eok_question &&
+                 eff_node_is_lvalue != operand_2->next->is_lvalue) {
+        /* An lvalue result for ?: also requires that the third operand be
+           an lvalue. */
         operand_error = TRUE;
       }  /* if */
-    }  /* if */
-    if (op == (an_expr_operator_kind)eok_question && node->is_lvalue &&
-        !operand_2->next->is_lvalue) {
-      /* An lvalue result for ?: requires that both the second and
-         third operands be lvalues. */
-      operand_error = TRUE;
     }  /* if */
   }  /* if */
   return !operand_error;
 }  /* node_operands_have_correct_lvalueness */
+
 
 static void check_node_operand_lvalueness(
                                     an_expr_node_ptr                    node,

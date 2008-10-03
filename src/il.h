@@ -893,6 +893,10 @@ variable-length array (VLA).
   ((dip)->variable != NULL && (dip)->variable->is_vla)
 
 
+extern a_boolean is_rvalueable_node(an_expr_node_ptr node);
+
+extern a_boolean node_includes_lvalue_to_rvalue_conv(an_expr_node_ptr node);
+
 extern a_boolean dynamic_init_has_side_effects(
                                         a_dynamic_init_ptr dip,
                                         a_boolean          *suppress_warning);
@@ -1858,8 +1862,6 @@ extern a_boolean compare_template_param_constant_expressions(
 extern void rebuild_structures_on_il_read(void);
 
 #if CHECKING
-extern a_boolean is_rvalueable_node(an_expr_node_ptr node);
-
 extern a_boolean node_operands_have_correct_lvalueness(an_expr_node_ptr node);
 
 extern a_boolean tree_has_correct_lvalueness(an_expr_node_ptr root);
