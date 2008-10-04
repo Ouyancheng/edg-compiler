@@ -19626,17 +19626,7 @@ have the is_lvalue flag set incorrectly; return TRUE otherwise.
       if (operand_2->is_lvalue) operand_error = TRUE;
     } else if (flags & LVRV_OPND2_IS_LVALUE) {
       /* The second operand is supposed to be an lvalue. */
-      if (!operand_2->is_lvalue) operand_error = TRUE;
-    } else if (flags & LVRV_OPND2_IS_LVALUE_IF_EXPR_IS) {
-      /* The second operand is supposed to be an lvalue if and only if
-         the expression returns an lvalue.  This is complicated, however,
-         by the fact that the expression may have an implied lvalue-to-rvalue
-         conversion. */
-      a_boolean eff_node_is_lvalue = node->is_lvalue;
-      if (node_includes_lvalue_to_rvalue_conv(node)) {
-        eff_node_is_lvalue = TRUE;
-      }  /* if */
-      if (eff_node_is_lvalue != operand_2->is_lvalue) {
+      if (!operand_2->is_lvalue) {
         /* Probably an error, but check for one special case. */
         if (gpp_mode && op == (an_expr_operator_kind)eok_va_start &&
             is_variable_node(operand_2) &&
@@ -19648,6 +19638,18 @@ have the is_lvalue flag set incorrectly; return TRUE otherwise.
         } else {
           operand_error = TRUE;
         }  /* if */
+      }  /* if */
+    } else if (flags & LVRV_OPND2_IS_LVALUE_IF_EXPR_IS) {
+      /* The second operand is supposed to be an lvalue if and only if
+         the expression returns an lvalue.  This is complicated, however,
+         by the fact that the expression may have an implied lvalue-to-rvalue
+         conversion. */
+      a_boolean eff_node_is_lvalue = node->is_lvalue;
+      if (node_includes_lvalue_to_rvalue_conv(node)) {
+        eff_node_is_lvalue = TRUE;
+      }  /* if */
+      if (eff_node_is_lvalue != operand_2->is_lvalue) {
+        operand_error = TRUE;
       } else if (op == (an_expr_operator_kind)eok_question &&
                  eff_node_is_lvalue != operand_2->next->is_lvalue) {
         /* An lvalue result for ?: also requires that the third operand be
