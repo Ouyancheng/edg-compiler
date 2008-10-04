@@ -15122,10 +15122,10 @@ process_ptr_to_member_selection:
               does_fetch = TRUE;
               fetched_type = type_pointed_to(op1->type);
               break;
-          case eok_va_arg:
-            does_fetch = TRUE;
-            fetched_type = node->type;
-            break;
+            case eok_va_arg:
+              does_fetch = TRUE;
+              fetched_type = node->type;
+              break;
 #if GNU_COMPLEX_EXTENSIONS_ALLOWED
             case eok_real_part:
             case eok_imag_part:
