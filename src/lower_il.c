@@ -1440,6 +1440,27 @@ function.
 }  /* is_or_was_ptr_to_member_function_type */
 
 
+a_boolean is_ptr_to_member_function_constant_expr(an_expr_node_ptr expr)
+/*
+Return TRUE if the indicated (rvalue or lvalue) expression is the lowered
+version of a pointer to member function constant.
+*/
+{
+  a_boolean is_pmf_con = FALSE;
+
+  if (is_variable_node(expr)) {
+    a_variable_ptr var = expr->variant.variable;
+    if (!has_name(var) &&
+        /* Variables for constants are initialized.  Temporaries are not. */
+        var->init_kind == (an_init_kind)initk_static &&
+        is_or_was_ptr_to_member_function_type(var->type)) {
+      is_pmf_con = TRUE;
+    }  /* if */
+  }  /* if */
+  return is_pmf_con;
+}  /* is_ptr_to_member_function_constant_expr */
+
+
 void add_temporary_to_scope(a_variable_ptr temp,
                             a_scope_ptr    scope)
 /*
@@ -11997,34 +12018,31 @@ it is left alone.
 #endif /* LOWER_LVALUE_RETURNING_OPERATIONS */
 
 static void wrap_throw(an_expr_node_ptr node,
-                       a_type_ptr       other_operand_type,
-                       a_boolean        is_lvalue)
+                       an_expr_node_ptr question_node)
 /*
-node is a lowered throw expression under a "?" operator, and the other
-operand of the operation has type other_operand_type, which is a non-void
-type.  Wrap the throw in a comma expression to give it the same type as the
-other operand.  Also adjust the lvalueness to match that of the eok_question
-operator (as specified by is_lvalue).
+node is a lowered throw expression under the "?" operator specified by
+question_node.  Wrap the throw in a comma expression to give it the same type
+and lvalueness as question_node.
 */
 {
   a_boolean        nonscalar;
-  a_type_ptr       zero_type;
+  a_type_ptr       zero_type, question_node_type = question_node->type;
   a_constant       null_constant;
   an_expr_node_ptr node_copy, zero_node;
 
   /* Make an operand that has the same type as the other operand.  If the
      type is scalar, use a zero cast to that type.  Otherwise (e.g., if
      it's a struct), indirect through a null pointer to the right kind. */
-  zero_type = other_operand_type;
-  nonscalar = !is_scalar_type(other_operand_type);
-  if (is_lvalue || nonscalar) {
-    zero_type = make_pointer_type(other_operand_type);
+  zero_type = question_node_type;
+  nonscalar = !is_scalar_type(question_node_type);
+  if (question_node->is_lvalue || nonscalar) {
+    zero_type = make_pointer_type(question_node_type);
   }  /* if */
   make_zero_of_proper_type(zero_type, &null_constant);
   zero_node = alloc_node_for_constant(&null_constant);
-  if (is_lvalue || nonscalar) {
+  if (question_node->is_lvalue || nonscalar) {
     zero_node = add_indirection_to_node(zero_node);
-    if (!is_lvalue) {
+    if (!question_node->is_lvalue) {
       /* Make sure the node has the correct lvalueness. */
       zero_node = rvalue_expr_for_lvalue(zero_node);
     }  /* if */
@@ -12035,7 +12053,8 @@ operator (as specified by is_lvalue).
   node_copy->next = zero_node;
   /* Change the original node to a comma expression. */
   change_node_to_operation(node, (an_expr_operator_kind)eok_comma,
-                           other_operand_type, node_copy, is_lvalue);
+                           question_node_type, node_copy,
+                           question_node->is_lvalue);
 }  /* wrap_throw */
 
 
@@ -12410,6 +12429,252 @@ given statement is subsequently modified.
 
 #endif /* DEBUG */
 
+a_boolean is_constant_valued_expression(an_expr_node_ptr expr,
+                                        a_boolean        local_vars_change,
+                                        a_boolean        other_vars_change,
+                                        a_boolean        *is_non_null)
+/*
+Return TRUE if the indicated expression (which can be an rvalue or lvalue) has
+an invariant value (or address in the lvalue case) over the duration of an
+inlined call.  That is, the expression can be evaluated more than once and get
+the same answer.  That includes things like addresses of automatic variables.
+If the expression is constant valued and the value is known to be non-null,
+return *is_non_null TRUE.  If it cannot be determined whether the constant is
+non-NULL, the safe value is FALSE.  local_vars_change is TRUE if the values of
+unaliased local variables of the caller might change (e.g., if the argument
+expressions have side effects).  other_vars_change is TRUE if the values of
+other variables might change (e.g., if the argument expressions or the called
+function body have side effects).  This routine does not investigate all
+possible cases (i.e., it may return FALSE when a more complete inspection would
+return TRUE).  See constant_lvalue_address and constant_rvalue_pointer for
+more definitive determinations of whether or not an expression is constant
+valued, but this routine has some differences in underlying assumptions
+(e.g., "this" is considered constant, addresses of string literals are not)
+that are specific to inlining and therefore yield different results.
+*/
+{
+  a_boolean is_constant_valued = FALSE;
+
+  *is_non_null = FALSE;
+  if (is_constant_node(expr)) {
+    a_constant_ptr con = expr->variant.constant;
+    is_constant_valued = TRUE;
+    /* Don't treat string literals as constant, because if we generate C code
+       and refer to the constant several times, the address of the string
+       literal will be different on each reference. */
+    if (con->kind == (a_constant_repr_kind)ck_address &&
+        con->variant.address.kind == (an_address_base_kind)abk_constant &&
+        con->variant.address.variant.constant->kind ==
+                                             (a_constant_repr_kind)ck_string) {
+      is_constant_valued = FALSE;
+    }  /* if */
+    *is_non_null = constant_bool_value_known_at_compile_time(con) &&
+                   !is_false_constant(con);
+  } else if (is_ptr_to_member_function_constant_expr(expr)) {
+    /* A pointer to member function constant is constant. */
+    is_constant_valued = TRUE;
+  } else if (is_variable_node(expr)) {
+    a_variable_ptr var = expr->variant.variable;
+    if (expr->is_lvalue) {
+      is_constant_valued = TRUE;
+      /* We assume that variables other than extern variables have non-null
+         addresses.  extern variables might have zero addresses because of
+         linker magic like weak externals. */
+      *is_non_null = variable_has_non_null_address(var);
+    } else if ((var->is_parameter && !var->param_value_has_been_changed) ||
+               var->is_this_parameter) {
+      /* Unassigned parameters are constant-valued within a function.
+         The "this" parameter can be considered constant even when
+         it is assigned in the allocation section of a constructor.
+         It can't be considered constant if there is an assignment to
+         "this", but routines with such an assignment are considered
+         to be not inlinable. */
+      is_constant_valued = TRUE;
+    } else if (!local_vars_change &&
+               var->source_corresp.is_local_to_function &&
+               !var->address_taken &&
+               !has_static_storage_duration(var->storage_class)) {
+      /* This is a local variable, and local variables are invariant
+         over the lifetime of the call.  Local static variables are
+         excluded because the flow of control can get back to the same
+         function and change a static variable's value. */
+      is_constant_valued = TRUE;
+    } else if (!other_vars_change) {
+      /* The values of all variables are invariant over the lifetime
+         of the call. */
+      is_constant_valued = TRUE;
+    }  /* if */
+    if (is_constant_valued && var->is_this_parameter) *is_non_null = TRUE;
+  } else if (is_routine_node(expr)) {
+    is_constant_valued = TRUE;
+    /* We assume that routines other than extern routines have non-null
+       addresses.  extern routines might have zero addresses because of
+       linker magic like weak externals. */
+    *is_non_null = routine_has_non_null_address(expr->variant.routine);
+  } else if (is_operation_node(expr)) {
+    an_expr_operator_kind op = expr->variant.operation.kind;
+    if (op == (an_expr_operator_kind)eok_address_of ||
+        op == (an_expr_operator_kind)eok_array_to_pointer ||
+        (op == (an_expr_operator_kind)eok_cast &&
+         is_pointer_type(expr->type))) {
+      /* These operations are constant valued provided their first
+         operand is constant-valued. */
+      /* A cast of a constant address is constant-valued.  This is useful on a
+         cast of the address of a local variable to adjust its cv-qualification
+         when it is passed as the "this" parameter to a constructor or
+         destructor. */
+      is_constant_valued =
+                is_constant_valued_expression(expr->variant.operation.operands,
+                                              local_vars_change,
+                                              other_vars_change,
+                                              is_non_null);
+    } else if (op == (an_expr_operator_kind)eok_padd ||
+               op == (an_expr_operator_kind)eok_psubtract ||
+               (expr->is_lvalue &&
+                op == (an_expr_operator_kind)eok_subscript)) {
+      /* These operations are constant provided both operands are as well.
+         Note that pointer and integer operands can be in either order 
+         (for eok_padd and eok_subscript) but we don't care here. */
+      a_boolean op1_is_non_null, op2_is_non_null;
+      if (is_constant_valued_expression(expr->variant.operation.operands,
+                                        local_vars_change,
+                                        other_vars_change,
+                                        &op1_is_non_null)) {
+        is_constant_valued = is_constant_valued_expression(
+                                        expr->variant.operation.operands->next,
+                                        local_vars_change,
+                                        other_vars_change,
+                                        &op2_is_non_null);
+        if (op == (an_expr_operator_kind)eok_psubtract) {
+          /* Can't make any guarantees about is_non_null, so leave it FALSE. */
+        } else {
+          /* If either operand is non-null, the sum will be non-null
+             as well. */
+          *is_non_null = op1_is_non_null || op2_is_non_null;
+        }  /* if */
+      }  /* if */
+    } else if (expr->is_lvalue &&
+               (op == (an_expr_operator_kind)eok_dot_field ||
+                op == (an_expr_operator_kind)eok_points_to_field)) {
+      /* Field selection lvalue.  Invariant if the first operand is
+         invariant. */
+      is_constant_valued =
+                is_constant_valued_expression(expr->variant.operation.operands,
+                                              local_vars_change,
+                                              other_vars_change,
+                                              is_non_null);
+      if (!*is_non_null &&
+          expr->variant.operation.operands->next->variant.field->offset != 0) {
+        /* If the field offset is non-zero, the entire expression will
+           be non-zero even if the class address is zero. */
+        *is_non_null = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return is_constant_valued;
+}  /* is_constant_valued_expression */
+
+
+a_boolean value_is_known_at_compile_time(an_expr_node_ptr expr,
+                                         a_boolean        *value)
+/*
+See if the value of expr can be determined at compile time; if so, determine
+the boolean value of the expression and set *value as appropriate.  Returns
+TRUE if the value of the expression is known.  This routine does not
+investigate all possible cases (i.e., it may return FALSE when a more complete
+inspection would return TRUE).
+*/
+{
+  a_boolean value_is_known = FALSE;
+
+  if (is_constant_node(expr)) {
+    /* A constant expression: See if the constant has a known boolean
+       control value. */
+    a_constant_ptr con = expr->variant.constant;
+    if (constant_bool_value_known_at_compile_time(con)) {
+      *value = !is_false_constant(con);
+      value_is_known = TRUE;
+    }  /* if */
+  } else {
+    /* Some non-constant expressions are known to convert to a "true"
+       boolean value.  Specifically, the address of variables and
+       functions. */
+    a_boolean  non_null = FALSE;
+    *value = is_constant_valued_expression(expr,
+                                           /*local_vars_change=*/TRUE,
+                                           /*other_vars_change=*/TRUE,
+                                           &non_null) &&
+             non_null;
+    value_is_known = *value;
+  }  /* if */
+  return value_is_known;
+}  /* value_is_known_at_compile_time */
+
+
+static void eliminate_dead_code_under_logical_operator(an_expr_node_ptr expr)
+/*
+In cases where the second operand of an eok_land or eok_lor operation
+(as specified by expr) is known not to be executed, replace the expression
+with its first operand.
+*/
+{
+  an_expr_operator_kind op;
+  an_expr_node_ptr      op1, op2;
+  a_boolean             op1_value;
+
+  check_assertion(is_operation_node(expr) &&
+                  (node_operator_is(expr, eok_land) ||
+                   node_operator_is(expr, eok_lor)));
+  op1 = expr->variant.operation.operands;
+  op2 = op1->next;
+  if (value_is_known_at_compile_time(op1, &op1_value) &&
+      !has_statement_expression(op2)) {
+    /* The first operand is an expression whose value we know at compile time;
+       see if we can eliminate the second operand altogether based upon the
+       value of the first operand. */
+    check_assertion(!node_has_side_effects(op1, (a_boolean *)NULL));
+    op = expr->variant.operation.kind;
+    if ((op == (an_expr_operator_kind)eok_land && !op1_value) ||
+        (op == (an_expr_operator_kind)eok_lor && op1_value)) {
+      /* Replace the original expression with the first operand. */
+      overwrite_node(expr, op1);
+    }  /* if */
+  }  /* if */
+}  /* eliminate_dead_code_under_logical_operator */
+
+
+static void eliminate_dead_code_under_question_operator(an_expr_node_ptr expr)
+/*
+In cases where the first operand of an eok_question operation (as specified by
+expr) is known at compilation time, overwrite the expression with the second or
+third operand depending on the value of the first operand.
+*/
+{
+  an_expr_node_ptr  op1, removed_op, replacement_op;
+  a_boolean         op1_value;
+
+  check_assertion(is_operation_node(expr) &&
+                  node_operator_is(expr, eok_question));
+  op1 = expr->variant.operation.operands;
+  if (value_is_known_at_compile_time(op1, &op1_value)) {
+    check_assertion(!node_has_side_effects(op1, (a_boolean *)NULL));
+    if (op1_value) {
+      /* Condition is true, rewrite expr with second operand if possible. */
+      replacement_op = op1->next;
+      removed_op = op1->next->next;
+    } else {
+      /* Condition is false, rewrite expr with third operand if possible. */
+      replacement_op = op1->next->next;
+      removed_op = op1->next;
+    }  /* if */
+    if (!has_statement_expression(removed_op)) {
+      /* Replace the original expression with the appropriate operand. */
+      overwrite_node(expr, replacement_op);
+    }  /* if */
+  }  /* if */
+}  /* eliminate_dead_code_under_question_operator */
+
+
 static void lower_reference_to(an_expr_node_ptr expr)
 /*
 Lower an eok_reference_to expression (expr) by replacing the operation with an
@@ -12573,8 +12838,6 @@ cast.  See lower_expr for typical invocation.
   an_expr_node_ptr      operand_node, operand2, operand3, throw_operand;
   an_expr_node_ptr      temp_init_node;
   a_variable_ptr        var, temp_var;
-  unsigned int          is_bool_controlling_expr_mask;
-  unsigned int          assume_expr_is_non_null_mask;
 #if DEBUG
   unsigned long         checksum;
 #endif /* DEBUG */
@@ -12801,12 +13064,6 @@ cast.  See lower_expr for typical invocation.
         lower_operation_on_const_string(expr, /*lower_source=*/TRUE);
       } else {
         a_type_ptr  type;
-        /* Determine whether or not the operand has
-           boolean-controlling-expression operands. */
-        is_bool_controlling_expr_mask =
-                                      expr_boolean_controlling_expr_mask(expr);
-        assume_expr_is_non_null_mask =
-                   assume_operand_non_null_mask(expr, assume_expr_is_non_null);
         if (op == (an_expr_operator_kind)eok_question) {
           /* Look for a "?" operator where one of the operands is a throw
              expression and the other has a non-void type.  The throw
@@ -12839,9 +13096,12 @@ cast.  See lower_expr for typical invocation.
           adjust_bool_operation_types(operand_node, &adjusted,
                                       /*see_if_possible=*/FALSE);
         }  /* if */
-        /* Lower the operands of the expression. */
-        lower_expr_list(operand_node, is_bool_controlling_expr_mask,
-                        assume_expr_is_non_null_mask);
+        /* Lower the operands of the expression before lowering the
+           expression node itself. */
+        lower_expr_list(operand_node,
+                        expr_boolean_controlling_expr_mask(expr),
+                        assume_operand_non_null_mask(expr,
+                                                     assume_expr_is_non_null));
         /* Do any special lowering required for this operator after the
            operands have been lowered. */
         switch (op) {
@@ -13089,13 +13349,21 @@ cast.  See lower_expr for typical invocation.
             lower_gnu_min_max(expr);
             break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
+          case eok_land:
+          case eok_lor:
+            /* Eliminate dead code if possible. */
+            eliminate_dead_code_under_logical_operator(expr);
+            break;
           case eok_question:
             /* If one operand is a throw and the other is non-void, wrap
                the throw in a comma expression to give it the right type
                and lvalueness. */
             if (throw_operand != NULL) {
-              wrap_throw(throw_operand, expr->type, expr->is_lvalue);
+              wrap_throw(throw_operand, expr);
             }  /* if */
+            /* If the value of the conditional is known at compile time
+               this expression is a candidate for rewriting. */
+            eliminate_dead_code_under_question_operator(expr);
             break;
           default:
             /* No action on most operators. */

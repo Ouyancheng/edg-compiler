@@ -1023,6 +1023,18 @@ extern unsigned int expr_boolean_controlling_expr_mask(an_expr_node_ptr expr);
 
 extern void lower_reuse_value_expr(an_expr_node_ptr expr);
 
+extern a_boolean is_ptr_to_member_function_constant_expr(
+                                                        an_expr_node_ptr expr);
+
+extern a_boolean is_constant_valued_expression(
+                                            an_expr_node_ptr expr,
+                                            a_boolean        local_vars_change,
+                                            a_boolean        other_vars_change,
+                                            a_boolean        *is_non_null);
+
+extern a_boolean value_is_known_at_compile_time(an_expr_node_ptr expr,
+                                                a_boolean        *value);
+
 extern void lower_expr_full(an_expr_node_ptr expr,
                             a_boolean        assume_expr_is_non_null);
 

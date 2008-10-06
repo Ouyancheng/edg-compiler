@@ -290,174 +290,6 @@ variable.
 }  /* make_remapping_temporary */
 
 
-static a_boolean is_ptr_to_member_function_constant_expr(an_expr_node_ptr expr)
-/*
-Return TRUE if the indicated (rvalue or lvalue) expression is the lowered
-version of a pointer to member function constant.
-*/
-{
-  a_boolean is_pmf_con = FALSE;
-
-  if (is_variable_node(expr)) {
-    a_variable_ptr var = expr->variant.variable;
-    if (!has_name(var) &&
-        /* Variables for constants are initialized.  Temporaries are not. */
-        var->init_kind == (an_init_kind)initk_static &&
-        is_or_was_ptr_to_member_function_type(var->type)) {
-      is_pmf_con = TRUE;
-    }  /* if */
-  }  /* if */
-  return is_pmf_con;
-}  /* is_ptr_to_member_function_constant_expr */
-
-
-static a_boolean is_constant_valued_expression(
-                                            an_expr_node_ptr expr,
-                                            a_boolean        local_vars_change,
-                                            a_boolean        other_vars_change,
-                                            a_boolean        *is_non_null)
-/*
-Return TRUE if the indicated expression (which can be an rvalue or lvalue) has
-an invariant value (or address in the lvalue case) over the duration of an
-inlined call.  That is, the expression can be evaluated more than once and get
-the same answer.  That includes things like addresses of automatic variables.
-If the expression is constant valued and the value is known to be non-null,
-return *is_non_null TRUE.  If it cannot be determined whether the constant is
-non-NULL, the safe value is FALSE.  local_vars_change is TRUE if the values of
-unaliased local variables of the caller might change (e.g., if the argument
-expressions have side effects).  other_vars_change is TRUE if the values of
-other variables might change (e.g., if the argument expressions or the called
-function body have side effects).  This routine does not investigate all
-possible cases (i.e., it may return FALSE when a more complete inspection would
-return TRUE).  See constant_lvalue_address and constant_rvalue_pointer for
-more definitive determinations of whether or not an expression is constant
-valued, but this routine has some differences in underlying assumptions
-(e.g., "this" is considered constant, addresses of string literals are not)
-that are specific to inlining and therefore yield different results.
-*/
-{
-  a_boolean is_constant_valued = FALSE;
-
-  *is_non_null = FALSE;
-  if (is_constant_node(expr)) {
-    a_constant_ptr con = expr->variant.constant;
-    is_constant_valued = TRUE;
-    /* Don't treat string literals as constant, because if we generate C code
-       and refer to the constant several times, the address of the string
-       literal will be different on each reference. */
-    if (con->kind == (a_constant_repr_kind)ck_address &&
-        con->variant.address.kind == (an_address_base_kind)abk_constant &&
-        con->variant.address.variant.constant->kind ==
-                                             (a_constant_repr_kind)ck_string) {
-      is_constant_valued = FALSE;
-    }  /* if */
-    *is_non_null = constant_bool_value_known_at_compile_time(con) &&
-                   !is_false_constant(con);
-  } else if (is_ptr_to_member_function_constant_expr(expr)) {
-    /* A pointer to member function constant is constant. */
-    is_constant_valued = TRUE;
-  } else if (is_variable_node(expr)) {
-    a_variable_ptr var = expr->variant.variable;
-    if (expr->is_lvalue) {
-      is_constant_valued = TRUE;
-      /* We assume that variables other than extern variables have non-null
-         addresses.  extern variables might have zero addresses because of
-         linker magic like weak externals. */
-      *is_non_null = variable_has_non_null_address(var);
-    } else if ((var->is_parameter && !var->param_value_has_been_changed) ||
-               var->is_this_parameter) {
-      /* Unassigned parameters are constant-valued within a function.
-         The "this" parameter can be considered constant even when
-         it is assigned in the allocation section of a constructor.
-         It can't be considered constant if there is an assignment to
-         "this", but routines with such an assignment are considered
-         to be not inlinable. */
-      is_constant_valued = TRUE;
-    } else if (!local_vars_change &&
-               var->source_corresp.is_local_to_function &&
-               !var->address_taken &&
-               !has_static_storage_duration(var->storage_class)) {
-      /* This is a local variable, and local variables are invariant
-         over the lifetime of the call.  Local static variables are
-         excluded because the flow of control can get back to the same
-         function and change a static variable's value. */
-      is_constant_valued = TRUE;
-    } else if (!other_vars_change) {
-      /* The values of all variables are invariant over the lifetime
-         of the call. */
-      is_constant_valued = TRUE;
-    }  /* if */
-    if (is_constant_valued && var->is_this_parameter) *is_non_null = TRUE;
-  } else if (is_routine_node(expr)) {
-    is_constant_valued = TRUE;
-    /* We assume that routines other than extern routines have non-null
-       addresses.  extern routines might have zero addresses because of
-       linker magic like weak externals. */
-    *is_non_null = routine_has_non_null_address(expr->variant.routine);
-  } else if (is_operation_node(expr)) {
-    an_expr_operator_kind op = expr->variant.operation.kind;
-    if (op == (an_expr_operator_kind)eok_address_of ||
-        op == (an_expr_operator_kind)eok_array_to_pointer ||
-        (op == (an_expr_operator_kind)eok_cast &&
-         is_pointer_type(expr->type))) {
-      /* These operations are constant valued provided their first
-         operand is constant-valued. */
-      /* A cast of a constant address is constant-valued.  This is useful on a
-         cast of the address of a local variable to adjust its cv-qualification
-         when it is passed as the "this" parameter to a constructor or
-         destructor. */
-      is_constant_valued =
-                is_constant_valued_expression(expr->variant.operation.operands,
-                                              local_vars_change,
-                                              other_vars_change,
-                                              is_non_null);
-    } else if (op == (an_expr_operator_kind)eok_padd ||
-               op == (an_expr_operator_kind)eok_psubtract ||
-               (expr->is_lvalue &&
-                op == (an_expr_operator_kind)eok_subscript)) {
-      /* These operations are constant provided both operands are as well.
-         Note that pointer and integer operands can be in either order 
-         (for eok_padd and eok_subscript) but we don't care here. */
-      a_boolean op1_is_non_null, op2_is_non_null;
-      if (is_constant_valued_expression(expr->variant.operation.operands,
-                                        local_vars_change,
-                                        other_vars_change,
-                                        &op1_is_non_null)) {
-        is_constant_valued = is_constant_valued_expression(
-                                        expr->variant.operation.operands->next,
-                                        local_vars_change,
-                                        other_vars_change,
-                                        &op2_is_non_null);
-        if (op == (an_expr_operator_kind)eok_psubtract) {
-          /* Can't make any guarantees about is_non_null, so leave it FALSE. */
-        } else {
-          /* If either operand is non-null, the sum will be non-null
-             as well. */
-          *is_non_null = op1_is_non_null || op2_is_non_null;
-        }  /* if */
-      }  /* if */
-    } else if (expr->is_lvalue &&
-               (op == (an_expr_operator_kind)eok_dot_field ||
-                op == (an_expr_operator_kind)eok_points_to_field)) {
-      /* Field selection lvalue.  Invariant if the first operand is
-         invariant. */
-      is_constant_valued =
-                is_constant_valued_expression(expr->variant.operation.operands,
-                                              local_vars_change,
-                                              other_vars_change,
-                                              is_non_null);
-      if (!*is_non_null &&
-          expr->variant.operation.operands->next->variant.field->offset != 0) {
-        /* If the field offset is non-zero, the entire expression will
-           be non-zero even if the class address is zero. */
-        *is_non_null = TRUE;
-      }  /* if */
-    }  /* if */
-  }  /* if */
-  return is_constant_valued;
-}  /* is_constant_valued_expression */
-
-
 static a_boolean func_body_has_side_effects(a_routine_ptr routine)
 /*
 Return TRUE if the indicated routine's body has side effects.  The
@@ -1040,7 +872,7 @@ otherwise, do no copying and return FALSE.
       op == (an_expr_operator_kind)eok_lor ||
       op == (an_expr_operator_kind)eok_land) {
     /* This is a short-circuited operation. */
-    a_boolean  op1_known_true = FALSE, op1_known_false = FALSE;
+    a_boolean  op1_value;
     processed = TRUE;
     operand = expr->variant.operation.operands;
     operand2 = operand->next;
@@ -1048,32 +880,13 @@ otherwise, do no copying and return FALSE.
     /* Copy the first operand.  In the process, simplify to a constant if
        possible by substituting for parameter variables. */
     operand = copy_expr_tree_for_inlining(operand);
-    if (is_constant_node(operand)) {
-      /* A constant expression: See if the constant has a known boolean
-         control value. */
-      a_constant_ptr con = operand->variant.constant;
-      if (constant_bool_value_known_at_compile_time(con)) {
-        op1_known_false = is_false_constant(con);
-        op1_known_true = !op1_known_false;
-      }  /* if */
-    } else {
-      /* Some non-constant expressions are known to convert to a "true"
-         boolean value.  Specifically, the address of variables and
-         functions. */
-      a_boolean  non_null = FALSE;
-      op1_known_true = is_constant_valued_expression(operand,
-                                                    /*local_vars_change=*/TRUE,
-                                                    /*other_vars_change=*/TRUE,
-                                                    &non_null) &&
-                       non_null;
-    }  /* if */
-    if (op1_known_true || op1_known_false) {
+    if (value_is_known_at_compile_time(operand, &op1_value)) {
       /* The first operand is known false or known true, so the operation can
          be simplified. */
       if (op == (an_expr_operator_kind)eok_question) {
         /* "?" operation.  Keep the second or third operand on the basis
            of the value of the first operand. */
-        if (op1_known_true) {
+        if (op1_value) {
           /* The first operand is true, so keep the second operand. */
           operand2 = copy_expr_tree_for_inlining(operand2);
           overwrite_node(expr, operand2);
@@ -1084,7 +897,7 @@ otherwise, do no copying and return FALSE.
         }  /* if */
       } else if (op == (an_expr_operator_kind)eok_lor) {
         /* "||" operation. */
-        if (op1_known_true) {
+        if (op1_value) {
           /* The first operand is true, so the overall operation has the
              value true. */
           overwrite_node(expr, operand);
@@ -1096,7 +909,7 @@ otherwise, do no copying and return FALSE.
         }  /* if */
       } else if (op == (an_expr_operator_kind)eok_land) {
         /* "&&" operation. */
-        if (op1_known_true) {
+        if (op1_value) {
           /* The first operand is true, so the second operand is the value
              of the expression. */
           operand2 = copy_expr_tree_for_inlining(operand2);
