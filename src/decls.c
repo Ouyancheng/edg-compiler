@@ -9603,6 +9603,9 @@ within this routine if is_parenthesized comes in FALSE.
   a_decl_flag_set             dsi_flags;
   a_decl_pos_block            decl_pos_block;
   a_boolean                   rparen_in_new_declarator = FALSE;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_boolean                   end_pos_set = FALSE;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
   db_enter(3, "new_type_name");
   /* Check for the parenthesized form. */
@@ -9654,6 +9657,13 @@ within this routine if is_parenthesized comes in FALSE.
          right parenthesis was consumed as part of declarator processing. */
       check_assertion(gpp_mode && gnu_version < 30400);
     } else {
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      if (curr_token == tok_rparen) {
+        /* Remember the right parenthesis position as the end position. */
+        curr_construct_end_position = end_pos_curr_token;
+        end_pos_set = TRUE;
+      }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       (void)required_token(tok_rparen, ec_exp_rparen);
       remove_stop_token(tok_rparen);
     }  /* if */
@@ -9728,7 +9738,9 @@ within this routine if is_parenthesized comes in FALSE.
     state->type = complete_type;
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  if (decl_pos_block.declarator_range.end.seq != 0) {
+  if (end_pos_set) {
+    /* End position set already, for parenthesized case. */
+  } else if (decl_pos_block.declarator_range.end.seq != 0) {
     curr_construct_end_position = decl_pos_block.declarator_range.end;
   } else {
     curr_construct_end_position = decl_pos_block.specifiers_range.end;

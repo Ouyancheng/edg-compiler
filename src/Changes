@@ -1,5 +1,20 @@
 Version 3.11
 
+10/6/08  [EDGcpfe/9261]
+End position on "new" expression with parenthesized type
+
+The end position indicated in a "new" expression was incorrect when
+the type specified is parenthesized and there is no initializer.
+The position indicated was the end of the declarator instead of the
+position of the closing parenthesis.  Now fixed.
+
+  typedef void (**ppfn)(void);
+  int main() {
+    ppfn fn;
+    fn = new (void(*)(void));  // End position is now correct
+  }
+
+
 9/30/08  [EDGcpfe/9100]
 Representation of casts
 
