@@ -9266,7 +9266,11 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           }  /* if */
           gen_lvalue(operand_1);
           write_tok_ch(',');
-          gen_lvalue(operand_2);
+          if (operand_2->is_lvalue) {
+            gen_lvalue(operand_2);
+          } else {
+            gen_expression(operand_2);
+          }  /* if */
           write_tok_ch(')');
           enable_line_wrapping();
           goto done_with_operation;
