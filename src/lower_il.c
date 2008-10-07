@@ -12615,7 +12615,10 @@ static void eliminate_dead_code_under_logical_operator(an_expr_node_ptr expr)
 /*
 In cases where the second operand of an eok_land or eok_lor operation
 (as specified by expr) is known not to be executed, replace the expression
-with its first operand.
+with its first operand.  Note that this optimization is conservative in
+two ways: some values that are known at compile time are not detected as such
+(e.g., (0, 0)), and any expression that has a side effect will not be
+removed.
 */
 {
   an_expr_operator_kind op;
@@ -12627,12 +12630,15 @@ with its first operand.
                    node_operator_is(expr, eok_lor)));
   op1 = expr->variant.operation.operands;
   op2 = op1->next;
+  /* Removing a node that creates destructible entities or contains a
+     statement expression can cause problems (e.g., destruction of an entity
+     that was never created).  Checking for side effects eliminates these
+     cases. */
   if (value_is_known_at_compile_time(op1, &op1_value) &&
       !node_has_side_effects(op2, (a_boolean*)NULL)) {
     /* The first operand is an expression whose value we know at compile time;
        see if we can eliminate the second operand altogether based upon the
        value of the first operand. */
-    check_assertion(!node_has_side_effects(op1, (a_boolean *)NULL));
     op = expr->variant.operation.kind;
     if ((op == (an_expr_operator_kind)eok_land && !op1_value) ||
         (op == (an_expr_operator_kind)eok_lor && op1_value)) {
@@ -12647,7 +12653,10 @@ static void eliminate_dead_code_under_question_operator(an_expr_node_ptr expr)
 /*
 In cases where the first operand of an eok_question operation (as specified by
 expr) is known at compilation time, overwrite the expression with the second or
-third operand depending on the value of the first operand.
+third operand depending on the value of the first operand.  Note that this
+optimization is conservative in two ways: some values that are known at compile
+time are not detected as such (e.g., (0, 0)), and any expression that has a
+side effect will not be removed.
 */
 {
   an_expr_node_ptr  op1, removed_op, replacement_op;
@@ -12657,7 +12666,6 @@ third operand depending on the value of the first operand.
                   node_operator_is(expr, eok_question));
   op1 = expr->variant.operation.operands;
   if (value_is_known_at_compile_time(op1, &op1_value)) {
-    check_assertion(!node_has_side_effects(op1, (a_boolean *)NULL));
     if (op1_value) {
       /* Condition is true, rewrite expr with second operand if possible. */
       replacement_op = op1->next;
@@ -12667,6 +12675,10 @@ third operand depending on the value of the first operand.
       replacement_op = op1->next->next;
       removed_op = op1->next;
     }  /* if */
+    /* Removing a node that creates destructible entities or contains
+       a statement expression can cause problems (e.g., destruction of an
+       entity that was never created).  Checking for side effects eliminates
+       these cases. */
     if (!node_has_side_effects(removed_op, (a_boolean *)NULL)) {
       /* Replace the original expression with the appropriate operand. */
       overwrite_node(expr, replacement_op);
