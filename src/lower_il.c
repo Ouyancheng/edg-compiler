@@ -12628,7 +12628,7 @@ with its first operand.
   op1 = expr->variant.operation.operands;
   op2 = op1->next;
   if (value_is_known_at_compile_time(op1, &op1_value) &&
-      !has_statement_expression(op2)) {
+      !node_has_side_effects(op2, (a_boolean*)NULL)) {
     /* The first operand is an expression whose value we know at compile time;
        see if we can eliminate the second operand altogether based upon the
        value of the first operand. */
@@ -12667,7 +12667,7 @@ third operand depending on the value of the first operand.
       replacement_op = op1->next->next;
       removed_op = op1->next;
     }  /* if */
-    if (!has_statement_expression(removed_op)) {
+    if (!node_has_side_effects(removed_op, (a_boolean *)NULL)) {
       /* Replace the original expression with the appropriate operand. */
       overwrite_node(expr, replacement_op);
     }  /* if */
