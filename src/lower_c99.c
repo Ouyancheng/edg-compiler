@@ -501,7 +501,7 @@ variables also make indexing into the VLA arrays more efficient.
     a_boolean       dim_var_created;
     /* Skip over pointer and type qualifier components.  If we encounter a
        typedef we can stop since variably modified typedefs have their own
-       stmk_decl that would have caused this processing for the underlying
+       stmk_vla_decl that would have caused this processing for the underlying
        type already.  For this reason we cannot easily call is_vla_type since
        it ignores typedefs.  (Note that we don't have to worry about pointer
        to member types since they are not allowed to be variably modified.) */
@@ -3934,9 +3934,7 @@ Do C99 lowering on the indicated statement.
 #if ASM_FUNCTION_ALLOWED
       case stmk_asm_func_body:
 #endif /* ASM_FUNCTION_ALLOWED */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
       case stmk_decl:
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if REPRESENT_EMPTY_STATEMENTS_IN_IL
       case stmk_empty:
 #endif /* REPRESENT_EMPTY_STATEMENTS_IN_IL */

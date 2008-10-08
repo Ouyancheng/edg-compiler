@@ -1753,9 +1753,7 @@ the current statement sequence.
 #if REPRESENT_EMPTY_STATEMENTS_IN_IL
       kind == (a_statement_kind)stmk_empty ||
 #endif /* REPRESENT_EMPTY_STATEMENTS_IN_IL */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
       kind == (a_statement_kind)stmk_decl ||
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       kind == (a_statement_kind)stmk_set_vla_size) {
     /* Not an executable statement. */
   } else {
@@ -1819,217 +1817,74 @@ over.
   add_to_control_flow_descr_list(cfdp);
 }  /* record_trivial_init_control_flow */
 
-#if GENERATE_SOURCE_SEQUENCE_LISTS
 
 static void decl_statement(a_boolean  marked_as_gnu_extension)
 /*
-Unless one is already active, put out an stmk_decl statement to mark the
-start of a sequence of declarations.  If marked_as_gnu_extension is TRUE,
-the __extension__ keyword was scanned just before the upcoming declaration.
+Parse a declaration statement.  An stmk_decl statement is created for the
+statement and the declared entities are recorded in it (except for entities
+declared in embedded scopes, like function prototype scopes or block scopes
+for GNU statement expressions).  If marked_as_gnu_extension is TRUE, the
+__extension__ keyword was scanned just before the upcoming declaration.
 */
 {
   a_struct_stmt_stack_entry_ptr  sssep;
-  a_statement_ptr                sp = NULL;
-  a_source_sequence_entry_ptr    prev_ssep, ssep;
 
-  db_enter(4, "decl_statement");
-  if (!source_sequence_entries_disallowed) {
-    /* We are in a context in which source sequence entries are being
-       generated. */
-    sssep = &struct_stmt_stack[depth_stmt_stack];
-    sp = sssep->curr_decl_statement;
-    if (sp == NULL) {
-      /* This is the first of a string of one or more declarations.  Create
-         the stmk_decl pseudo statement and update the structured statement
-         stack. */
-      sp = add_statement((a_statement_kind)stmk_decl);
-#if SRC_SEQ_ENTRIES_FOR_DECL_STMTS
-      /* Introduce a source sequence entry for the stmk_decl statement.  This
-         is not strictly needed (when SRC_SEQ_ENTRIES_FOR_DECL_STMTS is FALSE,
-         we have the statement point to the source sequence entry for the
-         first declaration in the associated sequence; see below), but it
-         simplifies the code needed to collect the declarations associated
-         with a stmk_decl statement. */
-      add_to_source_sequence_list((char*)sp, (an_il_entry_kind)iek_statement);
-#endif /* SRC_SEQ_ENTRIES_FOR_DECL_STMTS */
-      sssep->curr_decl_statement = sp;
-      /* Remember the most recently entered source sequence entry on the list
-         for the current function.  It will be used to find the source
-         sequence entry corresponding to the current declaration. */
-      prev_ssep = scope_stack[depth_scope_stack].end_of_source_sequence_list;
-    } else {
-      /* The top of the structured statement stack already points to a
-         decl-statement, meaning the current declaration is within (i.e., not
-         at the start of) a string of declarations. */
-      if (sp->source_sequence_entry != NULL) {
-        /* Normal case -- previous declaration was as expected. */
-        prev_ssep = NULL;
-      } else {
-        /* The initial declaration must not have resulted in a source sequence
-           entry's being added to the list.  Proceed as if this were the first
-           declaration. */
-        prev_ssep = scope_stack[depth_scope_stack].end_of_source_sequence_list;
-      }  /* if */
-    }  /* if */
-    /* Back up over empty source sequence entries (they may be deleted later)
-       and those that represent pragmas or macros. */
-    while (prev_ssep != NULL) {
-      an_il_entry_kind  kind = ss_entry_kind(prev_ssep);
-      if (kind == (an_il_entry_kind)iek_none ||
-#if RECORD_MACROS_IN_IL
-          kind == (an_il_entry_kind)iek_macro ||
-#endif /* RECORD_MACROS_IN_IL */
-          kind == (an_il_entry_kind)iek_pragma) {
-        prev_ssep = prev_ssep->prev;
-      } else {
-        /* We've found a source sequence entry that can help us find the
-           source sequence entry to point to from the decl statement. */
-        break;
-      }  /* if */
-    }  /* while */
-#if DEBUG
-    if (prev_ssep != NULL) {
-      if (debug_level >= 4 || db_flag_is_set("dump_decl_stmt")) {
-        fputs("before calling declaration, ss list starting at prev_ssep:\n",
-              f_debug);
-        db_ss_list(prev_ssep);
-      }  /* if */
-    }  /* if */
-#endif /* if DEBUG */
-  }  /* if */
-  /* Now process the declaration. */
+  sssep = &struct_stmt_stack[depth_stmt_stack];
+  sssep->curr_decl_statement = add_statement((a_statement_kind)stmk_decl);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  add_to_source_sequence_list((char*)sssep->curr_decl_statement,
+                              (an_il_entry_kind)iek_statement);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   local_declaration(marked_as_gnu_extension);
-  if (!source_sequence_entries_disallowed) {
-    /* Update the source sequence entry pointer, if required. */
-    if (sp->source_sequence_entry != NULL) {
-      /* The decl-statement already has a pointer to the source sequence entry
-         for the first declaration. */
-    } else {
-      /* In the ordinary case, prev_ssep->next is the source sequence entry
-         to which the stmk_decl statement should refer.  However, if any
-         pragmas have intervened, we advance past any that are not explicitly
-         bound to the next declaration.  Macros are also skipped -- they
-         should not be pointed to by the stmk_decl statement. */
-      if (prev_ssep == NULL) {
-        ssep = scope_stack[depth_scope_stack].source_sequence_list;
-      } else {
-        ssep = prev_ssep->next;
-      }  /* if */
-      while (ssep != NULL) {
-        if (ss_entry_kind(ssep) == (an_il_entry_kind)iek_pragma) {
-          /* The source sequence entry represents a pragma.  See if it's
-             a binds-to-next-decl pragma. */
-          a_pragma_kind  pkind = ((a_pragma_ptr)ssep->entity.ptr)->kind;
-          if (pragma_description_for_pragma_kind[(int)pkind]->
-                                                        may_bind_to_decl) {
-            /* Point the decl-statement at this source sequence entry, since
-               it is the first associated with the declaration. */
-            break;
-          } else {
-            /* It's a pragma but not a binds-to-next-decl pragma, so skip
-               past it. */
-            ssep = ssep->next;
-          }  /* if */
-        } else if (ss_entry_kind(ssep) == (an_il_entry_kind)iek_none) {
-          /* Ignore it.  It may be associated with a pragma that has not
-             yet been processed. */
-          ssep = ssep->next;
-#if RECORD_MACROS_IN_IL
-        } else if (ss_entry_kind(ssep) == (an_il_entry_kind)iek_macro) {
-          ssep = ssep->next;
-#endif /* RECORD_MACROS_IN_IL */
-        } else {
-          /* Assume this to be the source sequence entry created by the
-             declaration. */
-          break;
-        }  /* if */
-      }  /* for */
-      sp->source_sequence_entry = ssep;
-#if DEBUG
-      if (debug_level >= 4 || db_flag_is_set("dump_decl_stmt")) {
-        a_source_sequence_entry_ptr  ss_list;
-
-        if (prev_ssep != NULL) {
-          ss_list = prev_ssep;
-        } else {
-          ss_list = scope_stack[depth_scope_stack].source_sequence_list;
-        }  /* if */
-        fprintf(f_debug, "after calling declaration, ss list%s%s",
-                         prev_ssep == NULL ? "" : " starting at prev_ssep",
-                         ss_list == NULL ? " is empty, " : ":\n");
-        if (ss_list != NULL) db_ss_list(ss_list);
-        fprintf(f_debug, "decl statement points at%s",
-                           ssep == NULL ? " NULL\n" : ":\n  ");
-        if (ssep != NULL) db_source_sequence_entry(ssep);
-      }  /* if */
-#endif /* if DEBUG */
-    }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  if (sssep->for_init) {
+    /* Add a source sequence entry marking the end of the for-init
+       declaration.  This marker is necessary in case what immediately
+       follows in the source sequence list is an entry for a condition
+       declaration.  E.g., without the marker, there would be no
+       distinction between "for (int i = 0; int j = 3; --j);" and
+       "for (int i = 0, j = 3; ; --j);". */
+    add_end_of_construct_source_sequence_entry(
+                                         (char *)sssep->curr_decl_statement,
+                                         (a_byte_il_entry_kind)iek_statement);
   }  /* if */
-  db_exit();
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  sssep->curr_decl_statement = NULL;
 }  /* decl_statement */
 
 
+void record_entity_in_decl_stmt_if_needed(a_symbol_ptr  sym)
 /*
-If there is a currently active decl-statement, "terminate" it by removing it
-from the structured statement stack entry.
-*/
-#define wrapup_decl_statement()						\
-{ if (depth_stmt_stack != -1) {						\
-    struct_stmt_stack[depth_stmt_stack].curr_decl_statement = NULL;	\
-  }									\
-}  /* wrapup_decl_statement */
-
-
-static void stmt_update_source_sequence_entry(
-                                          a_statement_ptr              sp,
-                                          a_source_sequence_entry_ptr  ssep)
-/*
-Associate the given source sequence entry with the given statement.
+If we are in a declaration statement, update its associated list of declared
+entities to include the entity described by sym.  Only entities declared in
+function or block scopes are recorded (in particular, entities declared in
+function prototype scope are not recorded).
 */
 {
-  if (!source_sequence_entries_disallowed) {
-    if (C_dialect == C_dialect_cplusplus
-#if GNU_EXTENSIONS_ALLOWED
-        && !(sp->kind == (a_statement_kind)stmk_block &&
-             sp->variant.block.extra_info->is_statement_expression)
-#endif /* GNU_EXTENSIONS_ALLOWED */
-                                                                   ) {
-      /* If the previous statement was a decl-statement, deactivate it. */
-      wrapup_decl_statement();
+  if (depth_stmt_stack >= 0 && sym != NULL &&
+      (scope_stack[depth_scope_stack].kind == (a_scope_kind)sck_function ||
+       scope_stack[depth_scope_stack].kind == (a_scope_kind)sck_block)) {
+    a_struct_stmt_stack_entry_ptr
+                                 sssep = &struct_stmt_stack[depth_stmt_stack];
+    if (sssep->curr_decl_statement != NULL) {
+      an_il_entity_list_entry_ptr  *p = &sssep->curr_decl_statement
+                                              ->variant.decl.entities;
+      an_il_entry_kind             entity_kind;
+      /* Skip to the end of the list to append a new entry. */
+      while (*p != NULL) p = &(*p)->next;
+      *p = alloc_il_entity_list_entry();
+      (*p)->entity.ptr = il_entry_for_symbol(sym, &entity_kind);
+      (*p)->entity.kind = (a_byte_il_entry_kind)entity_kind;
     }  /* if */
-    f_update_source_sequence_list((char *)sp, iek_statement, ssep);
   }  /* if */
-}  /* stmt_update_source_sequence_entry */
+}  /* record_entity_in_decl_stmt_if_needed */
 
-
-static void stmt_update_source_sequence_list(a_statement_ptr  sp)
-/*
-Allocate a source sequence entry for statement sp and add it to the list for
-the current function scope.
-*/
-{
-  if (!source_sequence_entries_disallowed) {
-    if (C_dialect == C_dialect_cplusplus
-#if GNU_EXTENSIONS_ALLOWED
-        && !(sp->kind == (a_statement_kind)stmk_block &&
-             sp->variant.block.extra_info->is_statement_expression)
-#endif /* GNU_EXTENSIONS_ALLOWED */
-                                                                   ) {
-      /* If the previous statement was a decl-statement, deactivate it. */
-      wrapup_decl_statement();
-    }  /* if */
-    f_update_source_sequence_list((char *)sp, iek_statement,
-                                  (a_source_sequence_entry_ptr)NULL);
-  }  /* if */
-}  /* stmt_update_source_sequence_list */
-
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+#define stmt_update_source_sequence_list(sp)                          \
+  update_source_sequence_list((char *)sp, iek_statement,              \
+                              (a_source_sequence_entry_ptr)NULL);
 #else /* !GENERATE_SOURCE_SEQUENCE_LISTS */
-
-#define decl_statement(marked_as_gnu_extension)                       \
-  local_declaration(marked_as_gnu_extension)
-#define wrapup_decl_statement()                    /* Nothing */
 #define stmt_update_source_sequence_list(sp)       /* Nothing */
-
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 #if VLA_DEALLOCATIONS_IN_IL
@@ -2757,9 +2612,7 @@ statement is the top block of a GNU statement expression ({ ... }).
   sssep->last_switch_case_on_sorted_list = NULL;
   sssep->extra_block          = NULL;
   sssep->last_dep_statement   = NULL;
-#if GENERATE_SOURCE_SEQUENCE_LISTS
   sssep->curr_decl_statement  = NULL;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   sssep->break_label          = NULL;
   sssep->break_statements     = NULL;
   sssep->continue_label       = NULL;
@@ -4294,20 +4147,6 @@ statement.
       }  /* if */
     }  /* if */
     decl_statement(/*marked_as_gnu_extension=*/FALSE);
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-    sssep = &struct_stmt_stack[depth_stmt_stack];
-    if (sssep->curr_decl_statement != NULL) {
-      /* Add a source sequence entry marking the end of the for-init
-         declaration.  This marker is necessary in case what immediately
-         follows in the source sequence list is an entry for a
-         condition declaration. */
-      add_end_of_construct_source_sequence_entry(
-                                        (char *)sssep->curr_decl_statement,
-                                        (a_byte_il_entry_kind)iek_statement);
-    }  /* if */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-    /* Immediately deactivate the decl-statement. */
-    wrapup_decl_statement();
   } else {
     /* Scan an expression.  It may be omitted. */
     if (curr_token != tok_semicolon) expression_statement(
@@ -5483,7 +5322,7 @@ See also 3.6.6.4.
     sp = add_statement_at_stmt_pos((a_statement_kind)stmk_return,
                                    &return_pos);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-    stmt_update_source_sequence_entry(sp, src_seq_entry);
+    update_source_sequence_list((char*)sp, iek_statement, src_seq_entry);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
   if (sp != NULL) {
@@ -5501,7 +5340,7 @@ See also 3.6.6.4.
       sp = add_statement_at_stmt_pos((a_statement_kind)stmk_return,
                                      &return_pos);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-      stmt_update_source_sequence_entry(sp, src_seq_entry);
+      update_source_sequence_list((char*)sp, iek_statement, src_seq_entry);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     }  /* if */
   }  /* if */
@@ -5786,7 +5625,6 @@ GNU also allows the "case range" form:
 
   db_enter(4, "case_label");
 
-  wrapup_decl_statement();
   add_stop_token(tok_colon);
   /* See if we are within a switch body by looking at the entries in
      the structured statement stack. */
@@ -5864,7 +5702,6 @@ Scan a default case label definition.  The syntax is:
 
   db_enter(4, "default_label");
 
-  wrapup_decl_statement();
   label_position = pos_curr_token;
   /* Ignore the initial "default". */
 #if CHECKING
@@ -6132,7 +5969,6 @@ rescan_statement:
           !is_error_locator(locator_for_curr_id) &&
           next_token() == tok_colon) {
         /* This is a label definition. */
-        wrapup_decl_statement();
         /* Scan the label identifier, and enter it into the symbol table
            if needed. */
         label = scan_label(/*is_definition=*/TRUE, /*is_declaration=*/FALSE);
@@ -6521,7 +6357,6 @@ e.g., ({ ... }).
         (void)select_curr_construct_pragmas(/*add_to_list=*/FALSE);
         decl_statement(marked_as_gnu_extension);
       } else {
-        wrapup_decl_statement();
         /* Scan a statement. */
         any_statements = TRUE;
         statement(/*is_dependent_statement=*/FALSE, marked_as_gnu_extension);
@@ -6529,7 +6364,6 @@ e.g., ({ ... }).
     }  /* if */
   }  /* while */
 
-  wrapup_decl_statement();
   /* Move cached #pragma declarations (if any) to the current scope stack
      entry.  This is needed for lint "notreached" comments, and also, if this
      is the top level block of the function, so that they can be examined

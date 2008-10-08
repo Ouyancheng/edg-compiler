@@ -7948,6 +7948,12 @@ process_class_specifier:
                           &defines_something, decl_pos_block)) {
                 err = TRUE;
               }  /* if */
+              if ((declares_something || defines_something) &&
+                  *type_ptr != NULL) {
+                /* In a block/function scope, record the entity if it declares
+                   the class name in that scope, or if it defines the class. */
+                record_entity_in_decl_stmt_if_needed(symbol_for(*type_ptr));
+              }  /* if */
               basic_type = bt_struct_union;
               is_elaborated_type_specifier = TRUE;
             }  /* if */
@@ -7990,6 +7996,9 @@ process_class_specifier:
               err = TRUE;
               basic_type = bt_error;
             } else {
+              if (defines_something) {
+                record_entity_in_decl_stmt_if_needed(symbol_for(*type_ptr));
+              }  /* if */
               basic_type = bt_enum;
               is_elaborated_type_specifier = TRUE;
             }  /* if */

@@ -1,5 +1,24 @@
 Version 3.11
 
+10/8/08  [EDGcpfe/8856]
+Representation of declaration statements
+
+Previously, stmk_decl statement entries represented a sequence of one or more
+consecutive declaration statements.  Such entries were only generated when
+GENERATE_SOURCE_SEQUENCE_LISTS was TRUE, and they pointed either to a source
+sequence entry pointing back to the stmk_decl entry (when the macro
+SRC_SEQ_ENTRIES_FOR_DECL_STMTS was TRUE) or to the source sequence entry for
+the first declared entity (when SRC_SEQ_ENTRIES_FOR_DECL_STMTS was FALSE).
+
+Now, stmk_decl statements are generated in all configurations  and a distinct
+stmk_decl entry is created for each declaration statement. If source sequence
+entries are generated, they point to their own source sequence entry.  (The
+configuration macro SRC_SEQ_ENTRIES_FOR_DECL_STMTS has been removed.)
+Furthermore, stmk_decl statement entries now point to a list of variables,
+functions and types declared by the declaration statement (in its own scope;
+e.g., types declared in an embedded function prototype scope are not included).
+
+
 10/6/08  [EDGcpfe/9261]
 End position on "new" expression with parenthesized type
 

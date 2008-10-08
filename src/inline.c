@@ -1422,11 +1422,9 @@ If not, *failed is set.
           new_statement->variant.for_loop.extra_info->increment=increment_expr;
         }
         break;
-#if GENERATE_SOURCE_SEQUENCE_LISTS
       case stmk_decl:
         /* Statement that marks the location of declarations.  Ignored here. */
         break;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       case stmk_asm:
       case stmk_switch_case:
       case stmk_switch:

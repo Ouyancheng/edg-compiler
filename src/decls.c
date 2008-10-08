@@ -13095,6 +13095,7 @@ proceed after the call.
   }  /* if */          
   decl_routine(locator, state, func_info, SRK_DECLARATION, &linkage,
                &prev_type, &ext_sym, decl_pos_block);
+  record_entity_in_decl_stmt_if_needed(state->sym);
   /* Diagnose attempts to initialize a function entity. */
   if (has_initializer) {
     a_boolean  paren_form =
@@ -13392,6 +13393,7 @@ if one is present.
     decl_variable(locator, state, srk_flags, &linkage, &ext_sym,
                   decl_pos_block);
     var_ptr = state->sym->variant.variable.ptr;
+    record_entity_in_decl_stmt_if_needed(state->sym);
     /* Fetch the type of the symbol again, since it might have been
        changed when reconciled with the original declaration. */
     state->type = var_ptr->type;
@@ -13623,6 +13625,7 @@ decl_pos_block.
   }  /* if */
   check_nonfunction_declaration_errors(state, locator);
   decl_typedef(locator, state, (a_type_ptr)NULL, decl_pos_block);
+  record_entity_in_decl_stmt_if_needed(state->sym);
 #if GNU_EXTENSIONS_ALLOWED
   if (curr_token == tok_assign && gcc_mode && gnu_version < 30100 &&
       !state->has_explicit_type_specifier) {
@@ -14409,7 +14412,7 @@ check_for_semicolon:
   /* Check for a final semicolon. */
   if (required_token_no_advance(tok_semicolon, ec_exp_semicolon)) {
 advance_past_final_token:
-#if GENERATE_SOURCE_SEQUENCE_LISTS && EXTRA_SOURCE_POSITIONS_IN_IL
+#if EXTRA_SOURCE_POSITIONS_IN_IL
     if (depth_stmt_stack >= 0) {
       a_statement_ptr  decl_stmt =
                        struct_stmt_stack[depth_stmt_stack].curr_decl_statement;
@@ -14417,7 +14420,7 @@ advance_past_final_token:
         decl_stmt->end_position = pos_curr_token;
       }  /* if */
     }  /* if */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS && EXTRA_SOURCE_POSITIONS_IN_IL */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     if (access_checks_deferred) {
       /* We are processing a declaration for which access checks were
          deferred.  Normally, any deferred checks will have already been

@@ -2502,6 +2502,28 @@ Display the indicated routine list and name.
 }  /* disp_routine_list */
 
 
+static void disp_entity_list(char                        *name,
+                             an_il_entity_list_entry_ptr ptr)
+/*
+Display the indicated entity list and name.
+*/
+{
+  if (ptr == NULL) {
+    disp_ptr(name, (char *)ptr, iek_il_entity_list_entry);
+  } else {
+    disp_name(name);
+    for (; ptr != NULL; ptr = ptr->next) {
+      (void)printf("  ");
+      disp_ptr(name, ptr->entity.ptr, ptr->entity.kind);
+      (void)printf("\n");
+      /* Only display the list name for the first entry. */
+      name = "";
+    }  /* for */
+  }  /* if */
+}  /* disp_entity_list */
+
+
+
 static void disp_template_arg_list(char                *name,
                                    a_template_arg_ptr  ptr)
 /*
@@ -3813,12 +3835,11 @@ do_label:
       disp_microsoft_try_supplement(ptr->variant.microsoft_try);
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
     case stmk_decl:
       /* "Decl" pseudo-statement. */
       (void)printf("stmk_decl\n");
+      disp_entity_list("entities", ptr->variant.decl.entities);
       break;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     case stmk_set_vla_size:
       (void)printf("stmk_set_vla_size\n");
       disp_ptr("vla_dimension", (char *)ptr->variant.vla_dimension,

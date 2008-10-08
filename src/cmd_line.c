@@ -5502,11 +5502,6 @@ file.
 #else /* !defined(SAME_REPR_INTS_INTERCHANGEABLE_IN_IL) */
   comment_undefined_macro_name(SAME_REPR_INTS_INTERCHANGEABLE_IN_IL);
 #endif /* defined(SAME_REPR_INTS_INTERCHANGEABLE_IN_IL) */
-#if defined(SRC_SEQ_ENTRIES_FOR_DECL_STMTS)
-  define_numeric_valued_macro(SRC_SEQ_ENTRIES_FOR_DECL_STMTS);
-#else /* !defined(SRC_SEQ_ENTRIES_FOR_DECL_STMTS) */
-  comment_undefined_macro_name(SRC_SEQ_ENTRIES_FOR_DECL_STMTS);
-#endif /* defined(SRC_SEQ_ENTRIES_FOR_DECL_STMTS) */
 #if defined(STACK_REFERENCED_INCLUDE_DIRECTORIES)
   define_numeric_valued_macro(STACK_REFERENCED_INCLUDE_DIRECTORIES);
 #else /* !defined(STACK_REFERENCED_INCLUDE_DIRECTORIES) */

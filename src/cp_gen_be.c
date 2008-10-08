@@ -9661,9 +9661,7 @@ Generate code for the indicated "for" statement.
       /* Anything other than a declaration, e.g., all C cases. */
       gen_statement(init_stmt);
     } else {
-#if SRC_SEQ_ENTRIES_FOR_DECL_STMTS
       check_for_and_take_source_seq_entry(init_stmt->source_sequence_entry);
-#endif /* SRC_SEQ_ENTRIES_FOR_DECL_STMTS */
       /* Process the declaration/initialization.  If there are several, they
          must be put out as a comma-separated list.  A loop is necessary
          in case a tag is declared in the specifiers list. */
@@ -10989,6 +10987,138 @@ Generate the GNU C clobber specifications for the given asm entry.
   
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
+static void gen_declaration_statement(a_statement_ptr  statement)
+/*
+Generate the declaration associated with the given stmk_decl statement.
+*/
+{
+#if CHECKING
+  an_il_entity_list_entry_ptr   ep = statement->variant.decl.entities;
+  a_source_sequence_scan_state  saved_state;
+#endif /* CHECKING */
+
+  check_for_and_take_source_seq_entry(statement->source_sequence_entry);
+#if CHECKING
+  /* Check that the sequence of source sequence entries generated for this
+     declaration statement matches the "declared entities" list recorded in
+     the statement.  Some entities in the source sequence entries list
+     (such as block-scopes for GNU statement expressions) aren't recorded
+     on the entities list associated with an stmk_decl. */
+  save_source_sequence_scan_state(&saved_state);
+  for (;;) {
+    a_src_seq_secondary_decl_ptr  sec_decl;
+    char                          *entry_ptr;
+    an_il_entry_kind              entry_kind;
+    a_boolean                     is_definition;
+    a_boolean                     from_func_prototype = FALSE;
+    a_type_ptr                    def_type = NULL;
+    advance_past_preprocessing_directives();
+    check_assertion (curr_source_sequence_entry != NULL);
+    /* Extract the entity/kind from the current source sequence entry. */
+    if (curr_src_seq_entry_is_secondary_decl(&sec_decl)) {
+      entry_ptr = sec_decl->entity.ptr;
+      entry_kind = (an_il_entry_kind)sec_decl->entity.kind;
+      is_definition = FALSE;
+      from_func_prototype = sec_decl->declared_in_func_prototype;
+    } else {
+      entry_ptr = curr_source_sequence_entry->entity.ptr;
+      entry_kind =
+              (an_il_entry_kind)curr_source_sequence_entry->entity.kind;
+      is_definition = TRUE;
+      if (entry_kind == iek_type) {
+        a_type_ptr  tp = (a_type_ptr)entry_ptr;
+        if (is_tag_type(tp) ||
+            (tp->kind == (a_type_kind)tk_typeref &&
+             typeref_is_decltype_or_typeof(tp))) {
+          def_type = (a_type_ptr)entry_ptr;
+        }  /* if */
+        from_func_prototype = tp->declared_in_function_prototype;
+      } else if (entry_kind == iek_using_decl ||
+                 entry_kind == iek_namespace) {
+        /* Using-declarations and namespace aliases aren't recorded in
+           stmk_decl statements: There is therefore nothing more to check. */
+        break;
+      }  /* if */
+    }  /* if */
+    if (ep != NULL && ep->entity.ptr == entry_ptr) {
+      /* The normal case of a source sequence entry matching an entity
+         recorded in the stmk_decl's entities list. */
+      if (def_type != NULL) {
+        skip_type_definition_source_sequence_entries(def_type);
+      } else {
+        adv_curr_source_sequence_entry();
+      }  /* if */
+      ep = ep->next;
+    } else if (from_func_prototype) {
+      /* A source sequence entry for a declaration in a prototype scope.  For
+         example:
+             void f(union U *p);
+         will create two source sequence entries: One for "f" and one for "p",
+         but the latter won't be on the stmk_decl's entities list.  Move on to
+         the next declared entity (if any). */
+      if (def_type != NULL) {
+        skip_type_definition_source_sequence_entries(def_type);
+      } else {
+        adv_curr_source_sequence_entry();
+      }  /* if */
+    } else if (def_type != NULL) {
+      /* A defined type that isn't recorded on the stmk_decl's entities list
+         and wasn't declared inside a function prototype.  This must be a
+         typeof/decltype construct */
+      check_assertion(def_type->kind == (a_type_kind)tk_typeref &&
+                      typeref_is_decltype_or_typeof(def_type));
+      skip_type_definition_source_sequence_entries(def_type);
+#if GNU_EXTENSIONS_ALLOWED
+    } else if (curr_src_seq_entry_is_for_statement_expression()) {
+      /* A GNU statement expression embedded in the declaration statement.
+         (A GNU statement expression that's part of the next statement would
+         have been preceded by a statement node that causes us to exit this
+         loop.) */
+      skip_block_statement();
+#endif /* GNU_EXTENSIONS_ALLOWED */
+    } else if (entry_kind == iek_statement) {
+      /* Next statement.  We should have seen all entities declared by this
+         declaration statement. */
+      break;
+    } else if (sec_decl != NULL && sec_decl->implicit_decl) {
+      /* An implicit declaration of a function (possible in C mode).  Such a
+         declaration is not recorded in the stmk_decl statement. */
+      adv_curr_source_sequence_entry();
+    } else if (entry_kind == iek_variable) {
+      /* This must be an anonymous union parent object: It appears in the list
+         of source sequence entries, but not on the list associated with the
+         stmk_decl statement. */
+      a_variable_ptr  var = (a_variable_ptr)entry_ptr;
+      check_assertion(var->is_anonymous_parent_object);
+      adv_curr_source_sequence_entry();
+    } else if (entry_kind == iek_src_seq_end_of_construct) {
+      /* An end-of-construct marker.  This is either the end of the compound
+         statement in which the declaration statement appeared, or the end of
+         a variable initializer. */
+      a_src_seq_end_of_construct_ptr ssecp;
+      ssecp = ss_entry_ptr(curr_source_sequence_entry,
+                           a_src_seq_end_of_construct_ptr);
+      if (ss_entry_kind(ssecp) == iek_statement) {
+        /* This should be the end of a block statement.  We should have seen
+           all entities declared by this declaration statement. */
+        a_statement_ptr  block = ss_entry_ptr(ssecp, a_statement_ptr);
+        check_assertion(block->kind == (a_statement_kind)stmk_block);
+        check_assertion(ep == NULL);
+        break;
+      } else {
+        check_assertion(ss_entry_kind(ssecp) == iek_variable);
+        adv_curr_source_sequence_entry();
+      }  /* if */
+    } else {
+      unexpected_condition();
+    }  /* if */
+  }  /* for */
+  check_assertion(ep == NULL);
+  restore_source_sequence_scan_state(&saved_state);
+#endif /* CHECKING */
+  gen_declaration(/*for_init=*/FALSE);
+}  /* gen_declaration_statement */
+
 
 static void gen_statement_full(a_statement_ptr statement,
                                a_boolean       suppress_trailing_space)
@@ -11288,31 +11418,7 @@ statement unless suppress_trailing_space is TRUE.
 #endif /* ASM_FUNCTION_ALLOWED */
     case stmk_decl:
       /* Statement that marks the location of declarations. */
-      /* Avoid problems with vestigial stmk_decls that point to nothing. */
-      if (statement->source_sequence_entry != NULL) {
-        /* Loop until the last declaration is processed.  Usually this means
-           processing source sequence entries until a non-declaration is found,
-           but if another stmk_decl follows this one we stop on the first
-           declaration associated with that one. */
-        a_source_sequence_entry_ptr stop_on_decl = NULL;
-        a_statement_ptr             next_statement = statement->next;
-        if (next_statement != NULL &&
-            next_statement->kind == (a_statement_kind)stmk_decl) {
-          stop_on_decl = next_statement->source_sequence_entry;
-        }  /* if */
-        /* Note that there will always be at least an end-of-construct entry
-           for the closing brace of the function, so we won't run off the
-           end of the list. */
-#if SRC_SEQ_ENTRIES_FOR_DECL_STMTS
-        check_for_and_take_source_seq_entry(statement->source_sequence_entry);
-#endif /* SRC_SEQ_ENTRIES_FOR_DECL_STMTS */
-        while (curr_source_sequence_entry != stop_on_decl &&
-               ((void)process_preprocessing_directives(),
-                curr_src_seq_entry_is_decl())) {
-          /* Process the declaration entry and its source sequence entry. */
-          gen_declaration(/*for_init=*/FALSE);
-        }  /* while */
-      }  /* if */
+      gen_declaration_statement(statement);
       suppress_trailing_space = TRUE;
       break;
     case stmk_set_vla_size:
@@ -13186,11 +13292,12 @@ sequence entry.  For multiple declarations that appear in a comma-list,
 do the list of declarations.  This routine handles all the normal declarations
 that appear in the file scope, namespace scopes, block scopes, and class
 scopes, and is also used for for-init statements (for_init is TRUE in
-that case) and old-style parameter declarations.
+that case) and old-style parameter declarations (but not prototype-scope
+parameter declarations).
 */
 {
   an_il_entry_kind kind;
-  a_boolean        suppress_specifiers = FALSE, another_decl_in_comma_list;
+  a_boolean        suppress_specifiers = FALSE;
 #if USER_CONTROL_OF_STRUCT_PACKING
   a_boolean        pragma_pack_was_already_set = need_pragma_pack_restore;
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
@@ -13209,9 +13316,13 @@ that case) and old-style parameter declarations.
     if (!curr_src_seq_entry_is_decl()) goto end_of_routine;
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  /* Loop for comma lists. */
-  for (;;) {
-    another_decl_in_comma_list = FALSE;
+  /* Loop for comma lists.  This loop also skips entries representing non-
+     autonomous type declarations (the rendering of those types is triggered
+     by the associated autonomous declaration instead of by the associated
+     source sequence entry). */
+  while (curr_source_sequence_entry != NULL) {
+    a_boolean                     another_decl = FALSE;
+    a_src_seq_secondary_decl_ptr  sec_decl = NULL;
     /* Process macros, pragmas. */
     (void)process_preprocessing_directives();
     kind = ss_entry_kind(curr_source_sequence_entry);
@@ -13221,31 +13332,48 @@ that case) and old-style parameter declarations.
     } else if (kind == (an_il_entry_kind)iek_src_seq_secondary_decl) {
       /* A secondary declaration, i.e., a declaration of something that
          is also defined/declared elsewhere. */
-      a_src_seq_secondary_decl_ptr
-                         sec_decl = ss_entry_ptr(curr_source_sequence_entry,
-                                                 a_src_seq_secondary_decl_ptr);
+      sec_decl = ss_entry_ptr(curr_source_sequence_entry,
+                              a_src_seq_secondary_decl_ptr);
       kind = ss_entry_kind(sec_decl);
     }  /* if */
     switch (kind) {
       case iek_type:
-        gen_type_decl(suppress_specifiers, &another_decl_in_comma_list);
+        { a_type_ptr  type = sec_decl != NULL ?
+                          ss_entry_ptr(sec_decl, a_type_ptr) :
+                          ss_entry_ptr(curr_source_sequence_entry, a_type_ptr);
+          gen_type_decl(suppress_specifiers, &another_decl);
+          if (!suppress_specifiers && !is_autonomous_decl(type, sec_decl)) {
+            /* We haven't rendered a declarator yet (since suppress_specifier
+               is FALSE) and the call to gen_type_decl didn't render anything
+               because the current source sequence entry was for a non-
+               autonomous type.  Continue the loop to render a declaration. */
+            another_decl = TRUE;
+          } else if (type->kind == (a_type_kind)tk_typeref &&
+                     typeref_is_typedef(type)) {
+            /* We just rendered a typedef.  If another declarator follows,
+               specifiers shouldn't be repeated. */
+            suppress_specifiers = TRUE;
+          }  /* if */
+        }
         break;
       case iek_variable:
         gen_variable_decl(/*is_condition=*/FALSE, for_init,
-                          suppress_specifiers,
-                          &another_decl_in_comma_list);
+                          suppress_specifiers, &another_decl);
+        suppress_specifiers = TRUE;
         break;
       case iek_routine:
-        gen_routine_decl(suppress_specifiers, &another_decl_in_comma_list);
+        gen_routine_decl(suppress_specifiers, &another_decl);
+        suppress_specifiers = TRUE;
         break;
       case iek_field:
-        gen_field_decl(suppress_specifiers, &another_decl_in_comma_list);
+        gen_field_decl(suppress_specifiers, &another_decl);
+        suppress_specifiers = TRUE;
         break;
       case iek_constant:
         if (curr_name_context_is_a_class()) {
           /* C++ member constant. */
-          gen_member_constant_decl(suppress_specifiers,
-                                   &another_decl_in_comma_list);
+          gen_member_constant_decl(suppress_specifiers, &another_decl);
+          suppress_specifiers = TRUE;
         } else {
           /* Manifest constant macros are ignored. */
           adv_curr_source_sequence_entry();
@@ -13278,9 +13406,11 @@ that case) and old-style parameter declarations.
         unexpected_condition_str(
                         "gen_declaration: bad entity kind on source seq list");
     }  /* switch */
-    if (!another_decl_in_comma_list) break;
-    /* Loop to do another declaration as part of a comma list. */
-    suppress_specifiers = TRUE;
+    if (!another_decl) break;
+    /* Loop to do another declaration: Either because the previous declaration
+       was a non-autonomous type (as in "struct S {} x;") or because the
+       previous declaration generated a declarator which will be followed by
+       another declarator in a comma list. */
   }  /* for */
 #if USER_CONTROL_OF_STRUCT_PACKING
   if (need_pragma_pack_restore && !pragma_pack_was_already_set) {

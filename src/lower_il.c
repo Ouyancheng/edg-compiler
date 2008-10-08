@@ -3278,10 +3278,8 @@ Do the same for any other stmk_inits immediately following it.
        foll_stmt = foll_stmt->next) {
     if (foll_stmt->kind == (a_statement_kind)stmk_init) {
       foll_stmt->variant.dynamic_init->follows_an_exec_statement = TRUE;
-#if GENERATE_SOURCE_SEQUENCE_LISTS
     } else if (foll_stmt->kind == (a_statement_kind)stmk_decl) {
       /* Ignore stmk_decl statements. */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     } else {
       /* Some other kind of statement. */
       break;
@@ -15862,11 +15860,9 @@ Do IL lowering of the indicated statement and everything under it.
         lower_statement(statement->variant.microsoft_try->cleanup_statement);
         break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
       case stmk_decl:
         /* Statement that marks the location of declarations.  Ignored here. */
         break;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       case stmk_set_vla_size:
         /* A statement that marks the point at which a VLA bound should be
            computed. */

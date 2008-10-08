@@ -7417,17 +7417,14 @@ statement expression, i.e., ({...}).
   }  /* if */
   /* Identify the line number except for lines that put out their own
      line info. */
-  if (kind != (a_statement_kind)stmk_label
-      && kind != (a_statement_kind)stmk_for
+  if (kind != (a_statement_kind)stmk_label &&
+      kind != (a_statement_kind)stmk_for &&
 #if UPC_EXTENSIONS_ALLOWED
-      && kind != (a_statement_kind)stmk_upc_forall
+      kind != (a_statement_kind)stmk_upc_forall &&
 #endif /* UPC_EXTENSIONS_ALLOWED */
-      && kind != (a_statement_kind)stmk_init
-      && kind != (a_statement_kind)stmk_asm
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-      && kind != (a_statement_kind)stmk_decl
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-                                                       ) {
+      kind != (a_statement_kind)stmk_init &&
+      kind != (a_statement_kind)stmk_asm &&
+      kind != (a_statement_kind)stmk_decl) {
     set_output_position_for_stmt(&statement->position);
   }  /* if */
   switch (kind) {
@@ -7705,11 +7702,9 @@ statement expression, i.e., ({...}).
       indent -= 2;
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
     case stmk_decl:
       /* Statement that marks the location of declarations.  Ignored here. */
       break;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     case stmk_set_vla_size:
 #if LOWER_VARIABLE_LENGTH_ARRAYS
       unexpected_condition_str("VLA statement unexpected");
@@ -7790,10 +7785,7 @@ top-level list in a GNU C statement expression if is_statement_expr is TRUE.
     /* Put out extra braces before declarative statements that would
        otherwise be put out after executable statements in a block. */
     a_boolean is_exec_stmt =
-                      (
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-                       statement->kind != (a_statement_kind)stmk_decl &&
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+                      (statement->kind != (a_statement_kind)stmk_decl &&
                        statement->kind != (a_statement_kind)stmk_vla_decl &&
                        statement->kind != (a_statement_kind)stmk_set_vla_size);
     if (statement->kind == (a_statement_kind)stmk_vla_decl &&

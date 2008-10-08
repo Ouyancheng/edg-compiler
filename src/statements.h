@@ -328,15 +328,10 @@ typedef struct a_struct_stmt_stack_entry {
 			   the structured statement (or under extra_block,
 			   if that is non-NULL).  NULL if there are
 			   no dependent statements. */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
   a_statement_ptr
 		curr_decl_statement;
-			/* When kind == ssk_compound, pointer to the current
-			   stmk_decl statement, if any, governing a series of
-			   declarations; when a statement that is not a
-			   declaration is reached, this pointer is cleared; it
-			   is reset once a new declaration is encountered. */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+			/* While parsing a declaration statement, this points
+                           to the associated stmk_decl entry. */
   a_label_ptr	break_label;
 			/* Label to be branched to for a break out of this
 			   statement.  NULL until needed. */
@@ -455,6 +450,8 @@ extern void new_struct_stmt_stack(a_struct_stmt_stack_state *saved_state);
 extern void restore_struct_stmt_stack(a_struct_stmt_stack_state *saved_state);
 
 extern a_boolean inside_statement_expression(void);
+
+extern void record_entity_in_decl_stmt_if_needed(a_symbol_ptr  sym);
 
 extern void statements_one_time_init(void);
 

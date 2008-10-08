@@ -2136,9 +2136,7 @@ Dump a statement kind, for debug purposes.
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case stmk_microsoft_try:   s = "microsoft-try";     break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
     case stmk_decl:            s = "decl";              break;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     case stmk_set_vla_size:    s = "set-vla-size";      break;
     case stmk_vla_decl:        s = "vla-decl";          break;
 #if GNU_EXTENSIONS_ALLOWED

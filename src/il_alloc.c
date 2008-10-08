@@ -93,7 +93,8 @@ static unsigned long
 		num_il_entry_prefixes_allocated,
 		string_literal_text_space_allocated,
 		num_seq_number_lookup_entries_allocated,
-                num_trans_unit_copy_address_pointers_allocated;
+                num_trans_unit_copy_address_pointers_allocated,
+                num_il_entity_list_entries_allocated;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 static unsigned long
 		num_source_sequence_entries_allocated,
@@ -3019,11 +3020,9 @@ fields to default values.
       }
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
     case stmk_decl:
-      /* No variant fields. */
+      sp->variant.decl.entities = NULL;
       break;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     case stmk_set_vla_size:
       sp->variant.vla_dimension = NULL;
       break;
@@ -4067,6 +4066,26 @@ values, and return a pointer to it.
 }  /* alloc_ms_attribute_arg */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+an_il_entity_list_entry_ptr alloc_il_entity_list_entry(void)
+/*
+Allocate an entry for a list of arbitrary IL entries, and return a pointer to
+it.  The entry is allocated in the current memory region.
+*/
+{
+  an_il_entity_list_entry_ptr  entry;
+
+  entry = (an_il_entity_list_entry_ptr)
+                                  alloc_cil(sizeof(an_il_entity_list_entry));
+  entry->next = NULL;
+  clear_tagged_ptr(entry->entity);
+#if DEBUG
+  ++num_il_entity_list_entries_allocated;
+#endif /* DEBUG */
+  return entry;
+}  /* alloc_il_entity_list_entry */
+
+
 #if DEBUG
 
 unsigned long show_il_alloc_space_used(unsigned long grand_total)
@@ -4085,6 +4104,8 @@ Display and return the amount of space used for various IL tables.
   db_space_used("constant", num_constants_allocated, a_constant);
   db_space_used("String literal text", string_literal_text_space_allocated,
                 char);
+  db_space_used("IL entity list entries", num_il_entity_list_entries_allocated,
+                an_il_entity_list_entry);
   db_space_used("param type", num_param_types_allocated, a_param_type);
   db_space_used("routine type supplement",
                 num_routine_type_supplements_allocated,
@@ -4516,6 +4537,7 @@ in il_alloc_init.)
 #if ASM_SUPPORT_NEEDED
       pch_saved_var_array_elem(asm_function_body_space_allocated),
 #endif /* ASM_SUPPORT_NEEDED */
+      pch_saved_var_array_elem(num_il_entity_list_entries_allocated),
 #endif /* if DEBUG */
       pch_saved_var_array_terminating_elem()
     };
@@ -4691,6 +4713,7 @@ initializations that are done for each compilation.
 #if ASM_SUPPORT_NEEDED
   asm_function_body_space_allocated      = 0;
 #endif /* ASM_SUPPORT_NEEDED */
+  num_il_entity_list_entries_allocated   = 0;
 #endif /* DEBUG */
 }  /* il_alloc_init */
 

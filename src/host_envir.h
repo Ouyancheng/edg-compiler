@@ -1059,20 +1059,6 @@ back end is being used.
 #endif /* DO_IL_LOWERING && GENERATE_SOURCE_SEQUENCE_LISTS */
 
 /*
-Flag that is TRUE if stmk_decl entries (which are placeholders for
-declaration statements) should have their own source sequence lists.
-Setting this to TRUE simplifies code that searches for the declarations
-associated with a stmk_decl entry.
-*/
-#ifndef SRC_SEQ_ENTRIES_FOR_DECL_STMTS
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-#define SRC_SEQ_ENTRIES_FOR_DECL_STMTS TRUE
-#else /* GENERATE_SOURCE_SEQUENCE_LISTS */
-#define SRC_SEQ_ENTRIES_FOR_DECL_STMTS FALSE
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-#endif /* ifndef SRC_SEQ_ENTRIES_FOR_DECL_STMTS */
-
-/*
 Flag that is TRUE if source sequence lists are being generated and if they
 should include (member and nonmember) function template instantiations and
 static data member template instantiations.

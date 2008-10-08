@@ -3251,10 +3251,8 @@ as specified in the control block.
       }
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
     case stmk_decl:
       break;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     case stmk_set_vla_size:
       { a_vla_dimension_ptr vlap = statement->variant.vla_dimension;
         traverse_expr(vlap->dimension_expr, tblock);

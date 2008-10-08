@@ -527,6 +527,8 @@ typedef enum /*an_il_entry_kind*/ {
 			/* a_static_assertion */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   iek_local_scope_ref,	/* a_local_scope_ref */
+  iek_il_entity_list_entry,
+			/* an_il_entity_list_entry */
   iek_last		/* Marks the end of the list. */
 } an_il_entry_kind;
 
@@ -659,6 +661,7 @@ EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 /* iek_static_assertion */		"static-assertion",
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 /* iek_local_scope_ref */		"local-scope-ref",
+/* iek_il_entity_list_entry */		"il-entity-list-entry",
 /* iek_last */				"last"
 } /* il_entry_kind_names */
 #endif /* VAR_INITIALIZERS */
@@ -806,6 +809,22 @@ typedef struct a_tagged_pointer {
   char		*ptr;
 			/* A generic pointer to the entry. */
 } a_tagged_pointer;
+
+
+typedef struct an_il_entity_list_entry *an_il_entity_list_entry_ptr;
+typedef struct an_il_entity_list_entry {
+  /* An entry used to represent an element of a list of (tagged) pointers to
+     arbitrary IL entries.  If all the entries are known to be routines, 
+     a_routine_list_entry nodes can be used instead.  Similarly, if all entries
+     are known to be class types, a_class_list_entry may be more
+     appropriate. */
+  an_il_entity_list_entry_ptr
+                next;
+			/* Next in a linked list of entries. */
+  a_tagged_pointer
+		entity;
+			/* Tagged pointer to an IL entity. */
+} an_il_entity_list_entry;
 
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 
@@ -10049,10 +10068,7 @@ enum a_statement_kind_tag {
 #if MICROSOFT_EXTENSIONS_ALLOWED
   stmk_microsoft_try,	/* Microsoft try-finally or try-except. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-  stmk_decl,		/* One or more consecutive declarations within a
-			   given function or block scope. */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  stmk_decl,		/* A declaration statement. */
   stmk_set_vla_size,	/* Set the size of a VLA type. */
   stmk_vla_decl,	/* Declaration of a variable or typedef with
 			   variably modified type.  If the variable is a VLA,
@@ -10363,15 +10379,10 @@ typedef struct a_statement {
 			/* Pointer to source sequence entry that represents
 			   the place this statement appears within the current
 			   function scope relative to other statements as well
-			   as declarations, comments, etc.  When kind is
-			   stmk_decl, it points to the first of a series of
-			   entries representing declarations. */
+			   as declarations, comments, etc. */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   union {
     /* When kind == stmk_expr or stmk_empty, no variant fields. */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-    /* Likewise when kind == stmk_decl. */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if GNU_EXTENSIONS_ALLOWED
     /* Likewise for stmk_assigned_goto in C/C++ IL. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -10511,6 +10522,13 @@ typedef struct a_statement {
     a_microsoft_try_supplement_ptr
 		microsoft_try;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    /* When kind == stmk_decl: */
+    struct {
+      an_il_entity_list_entry_ptr
+		entities;
+			/* A list of tagged pointers to the entities declared
+			   by this statement. */
+    } decl;
     /* When kind == stmk_set_vla_size: */
     a_vla_dimension_ptr
                 vla_dimension;
@@ -12226,6 +12244,7 @@ EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
   sizeof(a_static_assertion),
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   sizeof(a_local_scope_ref),
+  sizeof(an_il_entity_list_entry),
   IEK_LAST_CHECK_SIZE /* iek_last */
 }
 #endif /* VAR_INITIALIZERS */

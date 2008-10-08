@@ -1717,11 +1717,10 @@ do_set_proper_definition_needed_flag:
                      iek_microsoft_try_supplement);
             break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
           case stmk_decl:
-            /* No pointers */
+            walk_list(ptr->variant.decl.entities, an_il_entity_list_entry_ptr,
+                      iek_il_entity_list_entry);
             break;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
           case stmk_set_vla_size:
             remap_ptr(ptr->variant.vla_dimension, a_vla_dimension_ptr,
                       iek_vla_dimension);
@@ -2905,6 +2904,18 @@ after_entry_from_class:
         remap_ptr_not_needed(ptr->scope, a_scope_ptr, iek_scope);
         remap_ptr_not_needed(ptr->referrer.ptr, a_char_ptr,
                              (an_il_entry_kind)ptr->referrer.kind);
+      }
+      break;
+    case iek_il_entity_list_entry:
+      {
+#if !NEEDED_FLAG_WALK
+        an_il_entity_list_entry_ptr  ptr =
+                                       (an_il_entity_list_entry_ptr)entry_ptr;
+#endif /* !NEEDED_FLAG_WALK */
+        remap_next_ptr(ptr->next, an_il_entity_list_entry_ptr,
+                       iek_il_entity_list_entry);
+        remap_ptr_not_needed(ptr->entity.ptr, a_char_ptr,
+                             (an_il_entry_kind)ptr->entity.kind);
       }
       break;
     case iek_id_name:
