@@ -2511,13 +2511,16 @@ Display the indicated entity list and name.
   if (ptr == NULL) {
     disp_ptr(name, (char *)ptr, iek_il_entity_list_entry);
   } else {
-    disp_name(name);
     for (; ptr != NULL; ptr = ptr->next) {
-      (void)printf("  ");
-      disp_ptr(name, ptr->entity.ptr, ptr->entity.kind);
+      if (name != NULL) {
+        disp_name(name);
+      } else {
+        (void)printf("%*c", Label_indent, ' ');
+      }  /* if */
+      disp_ptr_value(ptr->entity.ptr, ptr->entity.kind);
       (void)printf("\n");
       /* Only display the list name for the first entry. */
-      name = "";
+      name = NULL;
     }  /* for */
   }  /* if */
 }  /* disp_entity_list */
@@ -5296,6 +5299,7 @@ This routine is called during IL walking.
 #if MACRO_INVOCATION_TREE_IN_IL
     case iek_macro_invocation_record_block:
 #endif /* MACRO_INVOCATION_TREE_IN_IL */
+    case iek_il_entity_list_entry:
       break;
     default:
       (void)printf("\n");

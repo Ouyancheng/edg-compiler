@@ -7235,9 +7235,14 @@ Generate the code for a "case ... :" or "default:" label in a switch statement.
 #endif /* GNU_EXTENSIONS_ALLOWED */
     write_tok_ch(':');
   }  /* if */
+  /* If no statement follows, add an empty statement to make the generated
+     code valid.  E.g., generate "{ case 2:; }" rather than "{ case 2: }".
+     Skip over declaration statements, since they aren't rendered here. */
+  while (stmt->next != NULL &&
+         stmt->next->kind == (a_statement_kind)stmk_decl) {
+    stmt = stmt->next;
+  }  /* while */
   if (stmt->next == NULL) {
-    /* If no statement follows, add an empty statement to make the generated
-       code valid.  E.g., generate "{ case 2:; }" rather than "{ case 2: }". */
     write_tok_ch(';');
   }  /* if */
 }  /* dump_switch_case */
