@@ -16756,7 +16756,7 @@ have been promoted.
 {
   a_statement_ptr  block = scope->assoc_block, *p_stmt;
 
-  check_assertion(block != NULL);
+  if (block == NULL) goto done;
   p_stmt = &block->variant.block.statements;
   while (*p_stmt != NULL) {
     if (n_types == 0) goto done;
@@ -17138,7 +17138,7 @@ of variables that have been promoted.
 {
   a_statement_ptr  block = scope->assoc_block, *p_stmt;
 
-  check_assertion(block != NULL);
+  if (block == NULL) goto done;
   p_stmt = &block->variant.block.statements;
   while (*p_stmt != NULL) {
     if (n_vars == 0) goto done;
