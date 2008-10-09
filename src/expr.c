@@ -14362,20 +14362,11 @@ standard.
         /* In constant expressions we must always reduce, so that
            1 || 2/0, for example, comes out as a constant. */
         reduce = TRUE;
-      } else if (curr_object_lifetime != NULL &&
-                 curr_object_lifetime->destructions != NULL) {
-        /* Don't remove dead code that might contain destructions, because
-           we don't want to run through the expression to find the
-           destruction to unlink it. */
-        /* reduce = FALSE; -- already set. */
       } else if ((operand_2.ruled_out_expr_kinds & ROEK_CONSTANT) == 0) {
-      /* Reduce if the second operand has the form of a constant expression.
-         This deals with cases like 0 && 1/0, in which the second operand
-         would not be in constant form because it couldn't be folded. */
+        /* Reduce if the second operand has the form of a constant expression.
+           This deals with cases like 0 && 1/0, in which the second operand
+           would not be in constant form because it couldn't be folded. */
         reduce = TRUE;
-      } else {
-        /* Otherwise, we can reduce at our discretion. */
-        if (expr_stack->favor_constant_result) reduce = TRUE;
       }  /* if */
     }  /* if */
     if (!reduce) {
