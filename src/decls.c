@@ -140,6 +140,7 @@ and efficient initialization.
   ps->source_sequence_entry = NULL;
   ps->param_id = NULL;
   ps->upc_block_size = UPC_BLOCK_SIZE_NONE;
+  ps->p_postfix_entities = NULL;
 }  /* init_null_decl_parse_state */
 
 
@@ -14166,12 +14167,12 @@ Broadly speaking, three kinds of declarations are handled here:
   a_boolean                    access_checks_deferred = FALSE;
   a_token_kind                 final_token = tok_semicolon;
   a_decl_parse_state           state;
+  a_statement_ptr              decl_stmt = NULL;
   a_decl_pos_block             decl_pos_block;
   a_type_qualifier_set         saved_qualifiers;
   a_source_position            saved_qualifiers_pos;
 
   db_enter(3, "declaration");
-
   if (gnu_mode && !marked_as_gnu_extension && curr_token == tok_extension) {
     /* Ignore the GNU C __extension__ annotation. */
     (void)get_token();
@@ -14187,6 +14188,12 @@ Broadly speaking, three kinds of declarations are handled here:
   state.is_old_style_param_decl = is_old_style_param_decl;
   state.is_top_level_declaration = is_top_level_declaration;
   clear_decl_pos_block(&decl_pos_block);
+  if (depth_stmt_stack >= 0) {
+    decl_stmt = struct_stmt_stack[depth_stmt_stack].curr_decl_statement;
+    if (decl_stmt != NULL) {
+      state.p_postfix_entities = &decl_stmt->variant.decl.entities;
+    }  /* if */
+  }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
   if (decl_scope_level == depth_innermost_namespace_scope) {
@@ -14259,7 +14266,8 @@ Broadly speaking, three kinds of declarations are handled here:
   saved_qualifiers_pos = state.qualifiers_pos;
   /* Scan the declarator list. */
   do {
-    an_attribute_ptr  declarator_attributes = NULL;
+    an_il_entity_list_entry_ptr  saved_entities = NULL;
+    an_attribute_ptr             declarator_attributes = NULL;
     if (!first_declarator) {
       /* We've just skipped a comma separating two declarators. */
       start_secondary_declarator(&state);
@@ -14333,6 +14341,14 @@ Broadly speaking, three kinds of declarations are handled here:
        again at the end of the loop). */
     *state.p_declarator_attributes = declarator_attributes;
 #endif /* GNU_EXTENSIONS_ALLOWED */
+    if (state.p_postfix_entities != NULL) {
+      /* If we are in a declaration statement, temporarily put aside any
+         associated entities that were declared after the last declarator-id.
+         They will be appended (below) after the entity associated with that
+         declarator-id. */
+      saved_entities = *state.p_postfix_entities;
+      *state.p_postfix_entities = NULL;
+    }  /* if */
     if (is_old_style_param_decl) {
       prep_old_style_param_decl(&state, &func_info, param_id_list, &locator);
     }  /* if */
@@ -14367,6 +14383,15 @@ Broadly speaking, three kinds of declarations are handled here:
       typedef_declaration(&state, &locator, &decl_pos_block);
     }  /* if */
     done_with_func_info(func_info);
+    if (saved_entities != NULL) {
+      /* Append entities declared after the declarator-id (e.g., in an array
+         dimension) to the list of entities associated with the current
+         declaration statement. */
+      while (*state.p_postfix_entities != NULL) {
+        state.p_postfix_entities = &(*state.p_postfix_entities)->next;
+      }  /* while */
+      *state.p_postfix_entities = saved_entities;
+    }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     if (!first_declarator) {
       mark_decl_after_first_in_comma_list(&state);
@@ -14410,38 +14435,31 @@ deferred_fixups:
   }  /* if */
 check_for_semicolon:
   /* Check for a final semicolon. */
-  if (required_token_no_advance(tok_semicolon, ec_exp_semicolon)) {
+  if (!required_token_no_advance(tok_semicolon, ec_exp_semicolon)) {
+    goto return_point;
+  }  /* if */
 advance_past_final_token:
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-    if (depth_stmt_stack >= 0) {
-      a_statement_ptr  decl_stmt =
-                       struct_stmt_stack[depth_stmt_stack].curr_decl_statement;
-      if (decl_stmt != NULL) {
-        decl_stmt->end_position = pos_curr_token;
-      }  /* if */
-    }  /* if */
+  if (decl_stmt != NULL) decl_stmt->end_position = pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    if (access_checks_deferred) {
-      /* We are processing a declaration for which access checks were
-         deferred.  Normally, any deferred checks will have already been
-         performed.  In error cases, they may not have been.  If any
-         remain, do them now. */
-      end_deferral_of_access_checks();
-      access_checks_deferred = FALSE;
-    }  /* if */
-    if (state.is_linkage_spec_decl) {
-      pop_name_linkage();
-      state.restore_name_linkage = FALSE;
-    }  /* if */
-    if (curr_token == final_token) {
-      /* Advance past the final token of the declaration (which should be a
-         ';' or '}').  However, if the current declaration is a top-level
-         declaration, set a global flag to enable checking for a header
-         stop. */
-      if (is_top_level_declaration) next_token_is_top_level_decl_start = TRUE;
-      (void)get_token();
-      next_token_is_top_level_decl_start = FALSE;
-    }  /* if */
+  if (access_checks_deferred) {
+    /* We are processing a declaration for which access checks were deferred.
+       Normally, any deferred checks will have already been performed.  In
+       error cases, they may not have been.  If any remain, do them now. */
+    end_deferral_of_access_checks();
+    access_checks_deferred = FALSE;
+  }  /* if */
+  if (state.is_linkage_spec_decl) {
+    pop_name_linkage();
+    state.restore_name_linkage = FALSE;
+  }  /* if */
+  if (curr_token == final_token) {
+    /* Advance past the final token of the declaration (which should be a
+       ';' or '}').  However, if the current declaration is a top-level
+       declaration, set a global flag to enable checking for a header stop. */
+    if (is_top_level_declaration) next_token_is_top_level_decl_start = TRUE;
+    (void)get_token();
+    next_token_is_top_level_decl_start = FALSE;
   }  /* if */
 return_point:
   check_pending_qualifiers_used(&state);

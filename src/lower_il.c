@@ -16783,7 +16783,7 @@ have been promoted.
     } else {
       p_stmt = &(*p_stmt)->next;
     }  /* if */
-  }  /* for */
+  }  /* while */
 done:;
 }  /* delete_types_from_decl_stmts */
 
@@ -17167,7 +17167,7 @@ of variables that have been promoted.
     } else {
       p_stmt = &(*p_stmt)->next;
     }  /* if */
-  }  /* for */
+  }  /* while */
 done:;
 }  /* delete_static_variables_from_decl_stmts */
 

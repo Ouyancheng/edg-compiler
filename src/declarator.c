@@ -4651,6 +4651,13 @@ The syntax is:
 #endif /* DEBUG */
       *declarator_ssep = add_empty_source_sequence_entry();
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+      if (state->p_postfix_entities != NULL) {
+        /* If we're in a declaration statement, record the end of the
+           associated entities list. */
+        while (*state->p_postfix_entities != NULL) {
+          state->p_postfix_entities = &(*state->p_postfix_entities)->next;
+        }  /* while */
+      }  /* if */
       *output_flags |= DO_REAL_DECLARATOR_SCANNED;
       /* Process the name declared here. */
       scan_real_declarator_id(input_flags, output_flags, locator,

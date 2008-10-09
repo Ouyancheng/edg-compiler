@@ -462,6 +462,12 @@ typedef struct a_decl_parse_state {
 			/* The UPC block size associated with any UPC shared
 			   qualifier (or UPC_BLOCK_SIZE_NONE if there is no
 			   such qualifier). */
+  an_il_entity_list_entry_ptr
+		*p_postfix_entities;
+			/* While parsing a declaration statement (decl_stmt),
+			   this pointer keeps track of associated entities
+			   that appeared after a declarator-id for which no
+			   associated entry has been created yet. */
 } a_decl_parse_state;
 
 
