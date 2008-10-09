@@ -5584,8 +5584,9 @@ indicate that the initialization is complete.  Insert the code at
                                     insert_location);
 #else /* !IA64_ABI_USE_INT_STATIC_INIT_GUARD */
   /* IA-64 ABI specifies to use first byte for guard test. */
-  (void)insert_assignment_statement(add_cast_to_char_star(
-                                      var_lvalue_expr(local_static_guard_var)),
+  (void)insert_assignment_statement(add_cast_to_lvalue(
+                                      var_lvalue_expr(local_static_guard_var),
+                                      char_star_type()),
                                     (an_expr_operator_kind)eok_assign,
                                     node_for_integer_constant(1L,
                                                      (an_integer_kind)ik_char),
