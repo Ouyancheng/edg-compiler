@@ -16745,6 +16745,49 @@ by things that will be in the file scope.
 }  /* local_entities_should_be_promoted */
 
 
+static void delete_types_from_decl_stmts(a_scope_ptr    scope,
+                                         unsigned long  n_types)
+/*
+Types declared in the indicated scope (sck_function or sck_block) have been
+promoted out of the enclosing function.  Remove any references to these types
+from declaration statements (stmk_decl).  n_types is the number of types that
+have been promoted.
+*/
+{
+  a_statement_ptr  block = scope->assoc_block, *p_stmt;
+
+  check_assertion(block != NULL);
+  p_stmt = &block->variant.block.statements;
+  while (*p_stmt != NULL) {
+    if (n_types == 0) goto done;
+    if ((*p_stmt)->kind == (a_statement_kind)stmk_decl) {
+      an_il_entity_list_entry_ptr  *p_entry =
+                                            &(*p_stmt)->variant.decl.entities;
+      /* Traverse the entities list and remove the entries referring to
+         types. */
+      while (*p_entry != NULL && n_types > 0) {
+        if ((*p_entry)->entity.kind == (a_byte_il_entry_kind)iek_type) {
+          n_types -= 1;
+          *p_entry = (*p_entry)->next;
+        } else {
+          p_entry = &(*p_entry)->next;
+        }  /* if */
+      }  /* while */
+      if ((*p_stmt)->variant.decl.entities == NULL) {
+        /* If there are no entities left associated with the statement, remove
+           the statement altogether. */
+        *p_stmt = (*p_stmt)->next;
+      } else {
+        p_stmt = &(*p_stmt)->next;
+      }  /* if */
+    } else {
+      p_stmt = &(*p_stmt)->next;
+    }  /* if */
+  }  /* for */
+done:;
+}  /* delete_types_from_decl_stmts */
+
+
 static void promote_types_out_of_function(a_scope_ptr   scope,
                                           a_routine_ptr routine)
 /*
@@ -16755,7 +16798,8 @@ with the outermost enclosing class, for later promotion out of the class
 (and into the file scope) along with the class members.
 */
 {
-  a_type_ptr type, next_type;
+  unsigned long  n_promoted_types = 0;
+  a_type_ptr     type, next_type;
 
   /* See if there are types to promote. */
   type = scope->types;
@@ -16792,6 +16836,7 @@ with the outermost enclosing class, for later promotion out of the class
       }  /* if */
     }  /* if */
     for (; type != NULL; type = next_type) {
+      n_promoted_types += 1;
       next_type = type->next;
       if (type_is_typedef(type) &&
           type->variant.typeref.has_variably_modified_type) {
@@ -16856,6 +16901,9 @@ with the outermost enclosing class, for later promotion out of the class
     /* Clear the types list now that all types have been promoted. */
     scope->types = NULL;
     set_last_type_pointer_for_scope(scope, (a_type_ptr)NULL);
+    /* Remove the types from any stmk_decl statements they are referred
+       from. */
+    delete_types_from_decl_stmts(scope, n_promoted_types);
   }  /* if */
 }  /* promote_types_out_of_function */
 
@@ -17079,6 +17127,51 @@ been removed from the scope variables list).
 }  /* promote_static_variable_out_of_function */
 
 
+static void delete_static_variables_from_decl_stmts(a_scope_ptr    scope,
+                                                    unsigned long  n_vars)
+/*
+Static variables declared in the indicated scope (sck_function or sck_block)
+have been promoted out of the enclosing function.  Remove any references to
+these variables from declaration statements (stmk_decl).  n_vars is the number
+of variables that have been promoted.
+*/
+{
+  a_statement_ptr  block = scope->assoc_block, *p_stmt;
+
+  check_assertion(block != NULL);
+  p_stmt = &block->variant.block.statements;
+  while (*p_stmt != NULL) {
+    if (n_vars == 0) goto done;
+    if ((*p_stmt)->kind == (a_statement_kind)stmk_decl) {
+      an_il_entity_list_entry_ptr  *p_entry =
+                                            &(*p_stmt)->variant.decl.entities;
+      /* Traverse the entities list and remove the entries referring to
+         static variables. */
+      while (*p_entry != NULL && n_vars > 0) {
+        if ((*p_entry)->entity.kind == (a_byte_il_entry_kind)iek_variable &&
+            has_static_storage_duration(
+                      ((a_variable*)(*p_entry)->entity.ptr)->storage_class)) {
+          n_vars -= 1;
+          *p_entry = (*p_entry)->next;
+        } else {
+          p_entry = &(*p_entry)->next;
+        }  /* if */
+      }  /* while */
+      if ((*p_stmt)->variant.decl.entities == NULL) {
+        /* If there are no entities left associated with the statement, remove
+           the statement altogether. */
+        *p_stmt = (*p_stmt)->next;
+      } else {
+        p_stmt = &(*p_stmt)->next;
+      }  /* if */
+    } else {
+      p_stmt = &(*p_stmt)->next;
+    }  /* if */
+  }  /* for */
+done:;
+}  /* delete_static_variables_from_decl_stmts */
+
+
 static void promote_static_variables_out_of_function(
                                                 a_scope_ptr   scope,
                                                 a_routine_ptr routine)
@@ -17087,18 +17180,18 @@ Promote the static variables in the indicated scope (a function or block
 scope that is part of the indicated routine) to the file scope.
 */
 {
+  unsigned long  n_vars = 0;
   a_variable_ptr variable;
 
   /* See if there are local static variables to promote. */
   if (scope->variables != NULL) {
     while (scope->variables != NULL) {
+      n_vars += 1;
       /* Promote a local static variable to file scope. */
       variable = scope->variables;
       /* Remove the variable from the scope list. */
       scope->variables = variable->next;
-      promote_static_variable_out_of_function(variable,
-                                              scope,
-                                              routine);
+      promote_static_variable_out_of_function(variable, scope, routine);
     }  /* while */
     /* Clear the scope stack pointer to the last static variable now that
        the whole list has been cleared. */
@@ -17107,6 +17200,9 @@ scope that is part of the indicated routine) to the file scope.
         assoc_pointers_block_of(&scope_stack[depth])->last_variable = NULL;
       }  /* if */
     }
+    /* Remove the variables from any stmk_decl statements they are referred
+       from. */
+    delete_static_variables_from_decl_stmts(scope, n_vars);
   }  /* if */
 }  /* promote_static_variables_out_of_function */
 
