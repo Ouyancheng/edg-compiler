@@ -188,8 +188,6 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(714,find_assoc_pragma)*/
 /*lint -esym(759,find_assoc_pragma)*/
 /*lint -esym(765,find_assoc_pragma)*/
-/*lint -esym(759,add_base_class_casts)*/
-/*lint -esym(765,add_base_class_casts)*/
 /*lint -esym(714,add_to_end_of_destructions_list)*/
 /*lint -esym(759,add_to_end_of_destructions_list)*/
 /*lint -esym(765,add_to_end_of_destructions_list)*/

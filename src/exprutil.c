@@ -2426,10 +2426,12 @@ void add_base_class_casts(a_base_class_ptr  bcp,
                           an_expr_node_ptr  *p_node,
                           a_source_position *err_pos)
 /*
-Add casts to *p_node to change its type from a pointer to a class type to
-a pointer to a base class of that class; bcp indicates the base class
+Add casts to *p_node to change its type from (a pointer to) a class type to
+(a pointer to) a base class of that class; bcp indicates the base class
 and qualifiers_model indicates the qualifiers to be placed on that class
-type.  Access control is done on the cast if check_cast_access is TRUE.
+type.  *p_node can be an rvalue pointer to class, a class lvalue, or a
+class rvalue.  qualifiers_model is a potentially cv-qualified class type.
+Access control is done on the cast if check_cast_access is TRUE.
 is_implicit_cast is TRUE if the cast is implicit.  implicit_in_naming
 is TRUE for casts that are generated implicitly in referencing a member
 of a class (roughly, in getting from the name used in the source --
@@ -2442,8 +2444,10 @@ routine is only used in C++ mode.
   a_type_ptr            curr_type, qual_curr_type;
   a_derivation_step_ptr dsp;
   a_base_class_ptr      base_class;
+  a_boolean             pointer_case;
 
   /* The code here looks like fold_base_class_cast. */
+  check_assertion(is_class_struct_union_type(qualifiers_model));
   if (bcp->ambiguous) {
     /* The cast is ambiguous. */
     pos_ty_error(ec_ambiguous_base_class, err_pos, bcp->type);
@@ -2455,8 +2459,11 @@ routine is only used in C++ mode.
     access_okay = TRUE;
     /* No access checking in prototype instantiations. */
     if (is_template_dependent_context()) check_cast_access = FALSE;
-    curr_type = type_pointed_to((*p_node)->type);
+    curr_type = (*p_node)->type;
+    pointer_case = is_pointer_type(curr_type);
+    if (pointer_case) curr_type = type_pointed_to(curr_type);
     curr_type = skip_typerefs(curr_type);
+    check_assertion(is_immediate_class_type(curr_type));
     for (dsp = cast_derivation_path_of(bcp); dsp != NULL; dsp = dsp->next) {
       base_class = dsp->base_class;
       /* Check that the base class is accessible from the current class. */
@@ -2478,8 +2485,16 @@ routine is only used in C++ mode.
          type. */
       qual_curr_type = make_identically_qualified_type(curr_type,
                                                        qualifiers_model);
-      *p_node = make_operator_node((an_expr_operator_kind)eok_base_class_cast,
-                                   make_pointer_type(qual_curr_type), *p_node);
+      if (pointer_case) qual_curr_type = make_pointer_type(qual_curr_type);
+      if ((*p_node)->is_lvalue) {
+        *p_node = make_lvalue_operator_node(
+                                   (an_expr_operator_kind)eok_base_class_cast,
+                                   qual_curr_type, *p_node);
+      } else {
+        *p_node = make_operator_node(
+                                   (an_expr_operator_kind)eok_base_class_cast,
+                                   qual_curr_type, *p_node);
+      }  /* if */
       (*p_node)->variant.operation.compiler_generated = is_implicit_cast;
       (*p_node)->variant.operation.implicit_in_member_naming =
                                                             implicit_in_naming;
@@ -3267,28 +3282,24 @@ convert operand to an address and set *is_arrow_operator to TRUE.
 
 void base_class_cast_operand(an_operand       *operand,
                              a_base_class_ptr bcp,
-                             a_boolean        *is_arrow_operator,
                              a_boolean        check_cast_access,
                              a_boolean        is_implicit_cast,
                              a_boolean        implicit_in_naming,
                              a_boolean        is_object_pointer)
 /*
-Cast operand (of class or pointer-to-class type) to its base class
-identified by bcp.  If *is_arrow_operator is TRUE, operand is being
-used as a pointer ("->"); otherwise, it is being used as an object (".").
-*is_arrow_operator will be set to TRUE on return to indicate that the
-operation was normalized into "->" form.  Alternatively, if the caller
-passes is_arrow_operator == NULL, the operation is assumed to be in
-pointer form.  Do access control checking on the cast if
-check_cast_access is TRUE.  The cast is implicit if is_implicit_cast
-is TRUE.  implicit_in_naming is TRUE for casts that are generated
-implicitly in referencing a member of a class (roughly, in getting
-from the name used in the source -- the projection symbol -- to the
-member actually used in the IL).  is_object_pointer is TRUE if the
-pointer is asserted to be an object pointer (meaning it points at an
-object and is not a null pointer, though in fact the reason for this
-flag has to do with using 0 as a pointer in the usual version of
-the offsetof macro).  This routine is only used in C++ mode.
+Cast operand to its base class identified by bcp.  operand can be an
+rvalue pointer to class, a class lvalue, or a class rvalue.  The
+result will be of the same kind (pointer, lvalue, or rvalue).
+Do access control checking on the cast if check_cast_access is TRUE.
+The cast is implicit if is_implicit_cast is TRUE.  implicit_in_naming
+is TRUE for casts that are generated implicitly in referencing a
+member of a class (roughly, in getting from the name used in the
+source -- the projection symbol -- to the member actually used in the
+IL).  is_object_pointer is TRUE if the pointer is asserted to be an
+object pointer (meaning it points at an object and is not a null
+pointer, though in fact the reason for this flag has to do with using
+0 as a pointer in the usual version of the offsetof macro).  This
+routine is used only in C++ mode.
 */
 {
   a_boolean        did_not_fold;
@@ -3298,10 +3309,6 @@ the offsetof macro).  This routine is only used in C++ mode.
 
   /* Save the original operand position, etc. */
   orig_operand = *operand;
-  if (is_arrow_operator != NULL) {
-    /* Convert to "->" form by getting an address for the operand. */
-    conv_selector_to_object_pointer(operand, is_arrow_operator);
-  }  /* if */
   if (is_error_operand(operand)) {
     /* Leave an error operand alone. */
   } else {
@@ -3325,12 +3332,18 @@ the offsetof macro).  This routine is only used in C++ mode.
         error_in_operand(ec_expr_not_constant, operand);
       } else {
         /* Build an expression node or nodes for the cast. */
+        a_type_ptr orig_type = operand->type;
+        if (is_pointer_type(orig_type)) orig_type = type_pointed_to(orig_type);
         node = make_node_from_operand(operand);
-        add_base_class_casts(bcp, type_pointed_to(operand->type),
+        add_base_class_casts(bcp, orig_type,
                              check_cast_access, is_implicit_cast,
                              implicit_in_naming,
                              &node, &orig_operand.position);
-        make_expression_operand(node, operand);
+        if (node->is_lvalue) {
+          make_lvalue_expression_operand(node, operand);
+        } else {
+          make_expression_operand(node, operand);
+        }  /* if */
       }  /* if */
     } else {
       /* The cast was folded to a constant. */
@@ -3377,7 +3390,7 @@ reference) and not something explicit like a cast.
         if (!same_entities(source_class_type, dest_class_type) &&
             (bcp = find_base_class_of(source_class_type,
                                       dest_class_type)) != NULL) {
-          base_class_cast_operand(operand, bcp, (a_boolean *)NULL,
+          base_class_cast_operand(operand, bcp,
                                   /*check_cast_access=*/TRUE,
                                   /*is_implicit_cast=*/TRUE,
                                   /*implicit_in_naming=*/FALSE,
@@ -8099,6 +8112,7 @@ derived class cast nodes will be created and the return value will be NULL.
   a_type_ptr       this_node_class;
   a_type_ptr       operand_class;
 
+  check_assertion(is_pointer_type(base_cast_node->type));
   base_cast_node = skip_parens(base_cast_node);
   while (is_operation_node(base_cast_node) &&
          base_cast_node->variant.operation.kind ==
@@ -8541,7 +8555,7 @@ expression in the result because of transformations on the return value).
   } else if (microsoft_bugs && microsoft_version < 1100 && !C_mode() &&
 	       is_class_struct_union_type(result->type)) {
     /* In Microsoft C++ mode, a function that returns a class type is
-	 considered to return an lvalue.  This was changed in MSVC++ 5.0. */
+       considered to return an lvalue.  This was changed in MSVC++ 5.0. */
     conv_class_rvalue_operand_to_lvalue(result);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
@@ -9499,6 +9513,28 @@ e.g., in a back end.
                                                 get_type_qualifiers(
                                                                   class_type));
       }  /* if */
+    } else if (op == (an_expr_operator_kind)eok_base_class_cast ||
+               op == (an_expr_operator_kind)eok_derived_class_cast) {
+      /* Base and derived class casts (class rvalue --> class rvalue).
+         Try to transform the operand to an lvalue. */
+      (void)conv_rvalue_expr_to_lvalue(op1, &possible,
+                                       /*see_if_possible=*/TRUE,
+                                       gcc_lvalue,
+                                       /*ignore_casts=*/FALSE,
+                                       &lvalue_type);
+      if (possible) {
+        lvalue_type = type_plus_qualifiers_from_second_type(node->type,
+                                                            lvalue_type);
+        if (!see_if_possible) {
+          node->is_lvalue = TRUE;
+          op1 = conv_rvalue_expr_to_lvalue(op1, &possible,
+                                           /*see_if_possible=*/FALSE,
+                                           gcc_lvalue,
+                                           /*ignore_casts=*/FALSE,
+                                           (a_type_ptr *)NULL);
+          node->variant.operation.operands = op1;
+        }  /* if */
+      }  /* if */
 #if GNU_COMPLEX_EXTENSIONS_ALLOWED
     } else if (op == (an_expr_operator_kind)eok_imag_part ||
                op == (an_expr_operator_kind)eok_real_part) {
@@ -9971,6 +10007,18 @@ it might produce an error).
       node->variant.operation.returns_lvalue_instead_of_usual_rvalue = FALSE;
       node->is_lvalue = FALSE;
       node->type = rvalue_node_type;
+    } else if (op == (an_expr_operator_kind)eok_base_class_cast ||
+               op == (an_expr_operator_kind)eok_derived_class_cast) {
+      /* Base or derived class cast (class lvalue --> class lvalue).
+         Apply the transformation to the operand; the cast becomes a
+         cast from a class rvalue to a class rvalue. */
+      op1 = conv_lvalue_expr_to_rvalue(op1, allow_folding,
+                                       (a_constant_ptr *)NULL,
+                                       err_pos);
+      node->variant.operation.operands = op1;
+      node->is_lvalue = FALSE;
+      node->type = rvalue_node_type;
+      processed = TRUE;
     } else if (op == (an_expr_operator_kind)eok_parens) {
       /* For parentheses, turn the underlying expression into an rvalue, and
          remark the parenthesis node as an rvalue. */

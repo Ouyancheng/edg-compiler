@@ -1603,7 +1603,9 @@ Dump the contents of the indicated expression node for debug purposes.
       fputs("\n", f_debug);
       break;
     case enk_temp_init:
-      fprintf(f_debug, "temp init: ");
+      fprintf(f_debug, "temp init, result type: ");
+      db_abbreviated_type(node->type);
+      fputs(", ", f_debug);
       db_dynamic_initializer(node->variant.init.dynamic_init, level+2);
       break;
     case enk_new_delete:
@@ -11282,10 +11284,21 @@ Many operations don't specifically apply to a particular type kind; for those
 tk_unknown is returned.
 */
 {
-  a_type_kind  result;
-  a_type_ptr   expr_type = skip_typerefs(expr->type);
+  a_type_kind      result, expr_kind, operand_kind;
+  an_expr_node_ptr op1;
 
   check_assertion(expr->kind == (an_expr_node_kind)enk_operation);
+  expr_kind = skip_typerefs(expr->type)->kind;
+  op1 = expr->variant.operation.operands;
+  if (op1 == NULL) {
+    /* In some rare cases, the operand is not attached yet when this routine
+       is called.  That should only happen when the operand type is not used
+       in determining the operation type kind (checked below). */
+#define INVALID_TYPE_KIND ((a_type_kind)~0)
+    operand_kind = INVALID_TYPE_KIND;
+  } else {
+    operand_kind = skip_typerefs(op1->type)->kind;
+  }  /* if */
   switch (expr->variant.operation.kind) {
     case eok_address_of:
     case eok_reference_to:
@@ -11295,27 +11308,28 @@ tk_unknown is returned.
       break;
     case eok_cast:
     case eok_lvalue_cast:
-      /* Since eok_cast and eok_lvalue_cast potentially involves unrelated
+      /* Since eok_cast and eok_lvalue_cast potentially involve unrelated
          type kinds, we do not attempt to characterize an "operation type" for
          these cases if the source and destination type kind are different. */
-      if (expr_type->kind ==
-               skip_typerefs(expr->variant.operation.operands->type)->kind) {
-        result = expr_type->kind;
+      if (expr_kind == operand_kind) {
+        result = expr_kind;
       } else {
         result = (a_type_kind)tk_unknown;
       }  /* if */
       break;
     case eok_base_class_cast:
     case eok_derived_class_cast:
+      result = expr_kind;
+      break;
     case eok_pm_base_class_cast:
     case eok_pm_derived_class_cast:
-      result = (a_type_kind)tk_pointer;
+      result = operand_kind;
       break;
     case eok_dynamic_cast:
       result = (a_type_kind)tk_pointer;
       break;
     case eok_bool_cast:
-      result = skip_typerefs(expr->variant.operation.operands->type)->kind;
+      result = operand_kind;
       break;
     case eok_array_to_pointer:
       result = (a_type_kind)tk_array;
@@ -11329,10 +11343,10 @@ tk_unknown is returned.
     case eok_negate:
     case eok_unary_plus:
     case eok_complement:
-      result = expr_type->kind;
+      result = expr_kind;
       break;
     case eok_not:
-      result = skip_typerefs(expr->variant.operation.operands->type)->kind;
+      result = operand_kind;
       break;
 #if GNU_COMPLEX_EXTENSIONS_ALLOWED
     case eok_xconj:
@@ -11343,14 +11357,14 @@ tk_unknown is returned.
     case eok_post_decr:
     case eok_pre_incr:
     case eok_pre_decr:
-      result = expr_type->kind;
+      result = expr_kind;
       break;
     case eok_add:
     case eok_subtract:
     case eok_multiply:
     case eok_divide:
     case eok_remainder:
-      result = expr_type->kind;
+      result = expr_kind;
       break;
 #if C99_IL_EXTENSIONS_SUPPORTED
     case eok_jmultiply:
@@ -11373,12 +11387,12 @@ tk_unknown is returned.
     case eok_shiftr:
       /* The "operation type kind" is determined by the first operand (the
          value being shifted). */
-      result = skip_typerefs(expr->variant.operation.operands->type)->kind;
+      result = operand_kind;
       break;
     case eok_and:
     case eok_or:
     case eok_xor:
-      result = expr_type->kind;
+      result = expr_kind;
       break;
     case eok_eq:
     case eok_ne:
@@ -11394,10 +11408,10 @@ tk_unknown is returned.
       break;
     case eok_gnu_min:
     case eok_gnu_max:
-      result = expr_type->kind;
+      result = expr_kind;
       break;
     case eok_assign:
-      result = skip_typerefs(expr->variant.operation.operands->type)->kind;
+      result = operand_kind;
       break;
     case eok_add_assign:
     case eok_subtract_assign:
@@ -11451,7 +11465,7 @@ tk_unknown is returned.
       result = (a_type_kind)tk_unknown;
       break;
     case eok_lvalue:
-      result = (a_type_kind)expr_type->kind;
+      result = expr_kind;
       break;
     case eok_static_cast:
     case eok_const_cast:
@@ -11470,6 +11484,9 @@ tk_unknown is returned.
     /* Normalize the type kind to tk_struct for all class types. */
     result = (a_type_kind)tk_struct;
   }  /* if */
+  /* See above for special handling when the operation has no operand.
+     Verify that we didn't draw any conclusion from the operand type. */
+  check_assertion(result != INVALID_TYPE_KIND);
   return result;
 }  /* operation_type_kind */
 
@@ -14996,7 +15013,9 @@ already indicates the load.
           case eok_parens:       /* Not rvalueable: to change to an rvalue,
                                     change the underlying operand too. */
           case eok_dot_static:   /* Ditto. */
-          case eok_points_to_static:  /* Ditto. */
+          case eok_points_to_static:    /* Ditto. */
+          case eok_base_class_cast:     /* Ditto. */
+          case eok_derived_class_cast:  /* Ditto. */
           default:
             break;
         }  /* switch */
@@ -15139,7 +15158,9 @@ process_ptr_to_member_selection:
                                       cast. */
             case eok_dot_static:   /* Handled when the second operand is
                                       handled. */
-            case eok_points_to_static:  /* Ditto. */
+            case eok_points_to_static:    /* Ditto. */
+            case eok_base_class_cast:     /* Not rvalueable. */
+            case eok_derived_class_cast:  /* Not rvalueable. */
             default:
               break;
           }  /* switch */
@@ -19435,8 +19456,8 @@ static a_byte lvalue_rvalue_test[(int)eok_last+1] = {
   /* eok_ref_indirect: */		LVRV_OPND1_IS_RVALUE,
   /* eok_cast: */			LVRV_OPND1_IS_RVALUE,
   /* eok_lvalue_cast: */		LVRV_OPND1_IS_LVALUE,
-  /* eok_base_class_cast: */		LVRV_OPND1_IS_RVALUE,
-  /* eok_derived_class_cast: */		LVRV_OPND1_IS_RVALUE,
+  /* eok_base_class_cast: */		LVRV_OPND1_IS_LVALUE_IF_EXPR_IS,
+  /* eok_derived_class_cast: */		LVRV_OPND1_IS_LVALUE_IF_EXPR_IS,
   /* eok_pm_base_class_cast: */		LVRV_OPND1_IS_RVALUE,
   /* eok_pm_derived_class_cast: */	LVRV_OPND1_IS_RVALUE,
   /* eok_dynamic_cast: */		LVRV_OPND1_IS_RVALUE,

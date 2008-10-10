@@ -1318,7 +1318,6 @@ extern void conv_selector_to_object_pointer(an_operand *operand,
 
 extern void base_class_cast_operand(an_operand       *operand_1,
                                     a_base_class_ptr bcp,
-                                    a_boolean        *is_arrow_operator,
                                     a_boolean        check_cast_access,
                                     a_boolean        is_implicit_cast,
                                     a_boolean        implicit_in_naming,

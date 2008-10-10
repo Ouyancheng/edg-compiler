@@ -1681,8 +1681,6 @@ class will be instantiated if necessary so that its base classes are known.
 {
   a_base_class_ptr bcp = NULL;
 
-  /* Check for C++ mode.  This is important because the class type supplement
-     is not allocated in C mode. */
   if (C_dialect == C_dialect_cplusplus) {
     derived_class = skip_typerefs(derived_class);
     base_class = skip_typerefs(base_class);

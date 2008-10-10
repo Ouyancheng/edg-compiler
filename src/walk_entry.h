@@ -1311,16 +1311,22 @@ do_definition_needed_if_class:
                       !is_class_struct_union_type(type_pointed_to(op1_type))) {
                     break;
                   }  /* if */
-                  goto cast_source_type_must_be_pointer_to_complete_class;
-                case eok_base_class_cast:
-cast_source_type_must_be_pointer_to_complete_class:
-                  /* First operand is a pointer to class. */
                   optype = f_skip_typerefs(type_pointed_to(op1_type));
                   goto do_set_proper_definition_needed_flag;
+                case eok_base_class_cast:
+                  /* First operand must be a complete class (lvalue, rvalue,
+                     or pointer to class). */
+                  optype = op1_type;
+                  goto do_related_class_cast_set_definition_needed;
                 case eok_derived_class_cast:
-                  /* Destination class (pointed to by result type) must be
-                     complete. */
-                  optype = f_skip_typerefs(type_pointed_to(ptr->type));
+                  /* Destination type must be a complete class (or pointer
+                     to complete class). */
+                  optype = ptr->type;
+do_related_class_cast_set_definition_needed:
+                  if (is_pointer_type(optype)) {
+                    optype = type_pointed_to(optype);
+                  }  /* if */
+                  optype = skip_typerefs(optype);
                   goto do_set_proper_definition_needed_flag;
                 case eok_pm_base_class_cast:
                   /* First operand is a pointer to member. */

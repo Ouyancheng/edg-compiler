@@ -463,7 +463,6 @@ static void promote_class_members(a_type_ptr  class_type,
 static void lower_boolean_controlling_expr(an_expr_node_ptr expr,
                                            a_boolean        is_full_expr);
 static void lower_related_class_cast(an_expr_node_ptr node,
-                                     a_boolean        lower_source,
                                      a_boolean        assume_expr_is_non_null);
 static void change_result_type_of_operator_returning_bool(
                                                         an_expr_node_ptr expr);
@@ -2616,6 +2615,60 @@ otherwise, copy the expression into a temporary and take its address.
   }  /* if */
   return expr;
 }  /* rvalue_pointer_for_class_rvalue */
+
+
+static an_expr_node_ptr rvalue_pointer_for_class_expression(
+                                                         an_expr_node_ptr expr)
+/*
+Return an rvalue pointer expression for the class expression expr.
+expr is either an rvalue class pointer (in which case no conversion
+is necessary), or a class rvalue, or a class lvalue.  In the latter two cases
+convert the expression into an rvalue pointer and return the converted
+expression.
+*/
+{
+  if (expr->is_lvalue) {
+    /* Class lvalue. */
+    expr = add_address_of_to_node(expr);
+  } else if (!is_pointer_type(expr->type)) {
+    /* Class rvalue. */
+    expr = rvalue_pointer_for_class_rvalue(expr);
+  } else {
+    /* Rvalue pointer.  No change is necessary. */
+  }  /* if */
+  check_assertion(!expr->is_lvalue &&
+                  is_pointer_type(expr->type) &&
+                  is_class_struct_union_type(type_pointed_to(expr->type)));
+  return expr;
+}  /* rvalue_pointer_for_class_expression */
+
+
+static an_expr_node_ptr convert_rvalue_pointer_to_original_form(
+                                                    an_expr_node_ptr expr,
+                                                    an_expr_node_ptr orig_expr)
+/*
+Convert the rvalue pointer expression expr into the same form of expression
+as orig_expr; i.e., into a class rvalue or class lvalue if necessary.
+Return the converted expression.  This routine basically does the reverse
+of the conversion that is performed in rvalue_pointer_for_class_expression.
+*/
+{
+  check_assertion(!expr->is_lvalue && is_pointer_type(expr->type));
+  if (orig_expr->is_lvalue) {
+    /* Class lvalue. */
+    expr = add_indirection_to_node(expr);
+  } else if (!is_pointer_type(orig_expr->type)) {
+    /* Class rvalue. */
+    expr = add_indirection_to_node(expr);
+    expr = rvalue_expr_for_lvalue(expr);
+  } else {
+    /* Rvalue pointer.  No change is necessary. */
+  }  /* if */
+  check_assertion(expr->is_lvalue == orig_expr->is_lvalue &&
+                  is_pointer_type(expr->type) ==
+                                             is_pointer_type(orig_expr->type));
+  return expr;
+}  /* convert_rvalue_pointer_to_original_form */
 
 
 static an_expr_node_ptr select_lvalue_at_offset(an_expr_node_ptr  node,
@@ -9304,12 +9357,14 @@ static void add_null_preservation_code(an_expr_node_ptr expr,
 Add the equivalent of
    orig_source_node ? expr : NULL
 on top of expr.  The node pointed to by expr is overwritten, so the
-pointer to the overall expression remains the same.
+pointer to the overall expression remains the same.  expr and orig_source_node
+are both rvalues.
 */
 {
   a_constant       null_constant;
   an_expr_node_ptr test_node, source_node, null_constant_node;
 
+  check_assertion(!expr->is_lvalue && !orig_source_node->is_lvalue);
   /* Make a copy of the expr node; it will be reused below as the
      conditional operator node. */
   source_node = copy_node(expr);
@@ -9329,14 +9384,17 @@ static an_expr_node_ptr add_decr_code_to_pointer_node(
                                                   an_expr_node_ptr source_node,
                                                   a_targ_size_t    byte_offset)
 /*
-Generate expression nodes to subtract byte_offset from the pointer represented
-by source_node.  Return a pointer to the new expression.  The expression will
-have type "char *" and the caller is responsible for the cast back to the
-proper type if necessary.  If the offset is zero, return the original node.
+Generate expression nodes to subtract byte_offset from the rvalue pointer
+represented by source_node.  Return a pointer to the new expression.  The
+expression will have type "char *" and the caller is responsible for the cast
+back to the proper type if necessary.  If the offset is zero, return the
+original node.
 */
 {
   an_expr_node_ptr cast_to_char_star_node, offset_constant_node;
 
+  check_assertion(!source_node->is_lvalue &&
+                  is_pointer_type(source_node->type));
   if (byte_offset != 0) {
     /* Cast the original node to char * to avoid scaling problems. */
     cast_to_char_star_node = add_cast_to_char_star(source_node);
@@ -9355,7 +9413,6 @@ proper type if necessary.  If the offset is zero, return the original node.
 
 static void related_class_cast_step(
                                an_expr_node_ptr node,
-                               a_boolean        lower_source,
                                a_boolean        any_nonzero_offset,
                                a_type_ptr       virtual_step_class,
                                an_expr_node_ptr *null_preservation_source_node,
@@ -9365,28 +9422,29 @@ static void related_class_cast_step(
                                a_targ_size_t    *derived_class_cast_offset,
                                a_boolean        assume_expr_is_non_null)
 /*
-Do one step in the lowering of a base or derived class cast.  node
-points to an rvalue pointer expression for the cast.  On return,
-*result_node has been set to the lowered form; however, for derived
-casts, the pointer subtraction must still be generated by the caller
-(*derived_class_cast_offset indicates the amount to subtract),
-and for base class casts, a final cast to the proper type may still be
-required (for cases where the base class type is not the same as its
-type-as-subobject).  If code to preserve NULL pointers is needed, it is
-started, and *null_preservation_source_node is set to the original node
-to be tested when the null-preservation code is completed.
-*null_preservation_source_node == NULL means that no NULL-preservation code
-is required.  No code to preserve NULL pointers is needed when
-assume_expr_is_non_null is TRUE.  lower_source is TRUE if the underlying source
-expression needs to be lowered.  This routine descends recursively through a
-sequence of base-class or derived-class casts so that the entire sequence can
-be treated as one operation.  This allows optimization of the code to preserve
-NULL pointer values: we may be able to determine that it is not needed at all
-by examining the fundamental source node or the offsets in the base class
-casts (any_nonzero_offset is maintained going down to aid that determination).
-If we cannot suppress the NULL-preservation code, we can at least put it
-just once around the whole sequence instead of around each cast in the
-sequence.  The recursive technique also allows optimization of casts
+Do one step in the lowering of a base or derived class cast.  node points to an
+expression for the cast.  node can take the form of an rvalue pointer, class
+rvalue, or class lvalue.  On return, *result_node has been set to the (mostly)
+lowered expression; however, for derived casts, the pointer subtraction must
+still be generated by the caller (*derived_class_cast_offset indicates the
+amount to subtract), and for base class casts, a final cast to the proper type
+may still be required (for cases where the base class type is not the same as
+its type-as-subobject).  Additionally, *result_node is left in rvalue pointer
+form and must be converted back to the original form by the caller, if so
+desired.  If code to preserve NULL pointers is needed, it is started, and
+*null_preservation_source_node is set to the original node to be tested when
+the null-preservation code is completed.  *null_preservation_source_node ==
+NULL means that no NULL-preservation code is required.  No code to preserve
+NULL pointers is needed when assume_expr_is_non_null is TRUE.  The underlying
+source expression is lowered by this routine.  This routine descends
+recursively through a sequence of base-class or derived-class casts so that the
+entire sequence can be treated as one operation.  This allows optimization of
+the code to preserve NULL pointer values: we may be able to determine that it
+is not needed at all by examining the fundamental source node or the offsets in
+the base class casts (any_nonzero_offset is maintained going down to aid that
+determination).  If we cannot suppress the NULL-preservation code, we can at
+least put it just once around the whole sequence instead of around each cast in
+the sequence.  The recursive technique also allows optimization of casts
 to virtual base classes.  When a virtual step is found while descending,
 virtual_step_class is set to the virtual base class type.  Then, when the
 bottom is reached, we can set *base_class_for_virtual_step to correspond
@@ -9402,47 +9460,46 @@ more than once.
 {
   an_expr_operator_kind op;
   a_boolean             derived, handle_virtual_at_this_level;
-  an_expr_node_ptr      source_node;
+  an_expr_node_ptr      source_node, local_result_node;
   a_type_ptr            source_class, dest_class;
   a_base_class_ptr      bcp, virt_bcp;
   a_boolean             need_null_preservation_code;
 
-  check_assertion(!node->is_lvalue && is_pointer_type(node->type));
+  check_assertion(is_operation_node(node) &&
+                  (node_operator_is(node, eok_derived_class_cast) ||
+                   node_operator_is(node, eok_base_class_cast)) &&
+                  node->is_lvalue ==
+                                 node->variant.operation.operands->is_lvalue &&
+                  is_ptr_or_ref_type(node->type) ==
+                   is_ptr_or_ref_type(node->variant.operation.operands->type));
   *base_class_for_virtual_step = NULL;
   *complete_object = FALSE;
   op = node->variant.operation.kind;
   derived = (op == (an_expr_operator_kind)eok_derived_class_cast);
+  source_node = node->variant.operation.operands;
   /* Determine the source and destination class types and the relationship
      between them. */
-  source_node = node->variant.operation.operands;
-#if CHECKING
-  if (!is_ptr_or_ref_type(source_node->type)) {
-    internal_error("related_class_cast_step: source not ptr");
+  if (node->is_lvalue || !is_ptr_or_ref_type(node->type)) {
+    /* Class lvalue or class rvalue. */
+    source_class = source_node->type;
+    dest_class = node->type;
+  } else {
+    /* Rvalue pointer. */
+    source_class = type_pointed_to(source_node->type);
+    dest_class = type_pointed_to(node->type);
   }  /* if */
-  if (!is_ptr_or_ref_type(node->type)) {
-    internal_error("related_class_cast_step: dest not ptr");
-  }  /* if */
-#endif /* CHECKING */
-  source_class = type_pointed_to(source_node->type);
   source_class = skip_typerefs(source_class);
-  dest_class = type_pointed_to(node->type);
   dest_class = skip_typerefs(dest_class);
-#if CHECKING
-  if (!is_immediate_class_type(source_class)) {
-    internal_error("related_class_cast_step: source not class");
-  }  /* if */
-  if (!is_immediate_class_type(dest_class)) {
-    internal_error("related_class_cast_step: dest not class");
-  }  /* if */
-#endif /* CHECKING */
+  check_assertion(is_immediate_class_type(source_class) &&
+                  is_immediate_class_type(dest_class));
   prelower_class_type(source_class);
   prelower_class_type(dest_class);
   /* Find the base class entry that relates the source_class to the
      dest_class. */
-  if (!derived) {
-    bcp = find_direct_or_virtual_base_class_of(source_class, dest_class);
-  } else {
+  if (derived) {
     bcp = find_direct_or_virtual_base_class_of(dest_class, source_class);
+  } else {
+    bcp = find_direct_or_virtual_base_class_of(source_class, dest_class);
   }  /* if */
   /* If this step is to a virtual base class, and no previous step was a
      step to a virtual base class, pass the virtual base class type down
@@ -9474,22 +9531,26 @@ more than once.
   if (is_operation_node(source_node) &&
       source_node->variant.operation.kind == op) {
     related_class_cast_step(source_node,
-                            lower_source,
                             any_nonzero_offset,
                             virtual_step_class,
                             null_preservation_source_node,
                             base_class_for_virtual_step,
                             complete_object,
-                            &source_node,
+                            &local_result_node,
                             derived_class_cast_offset,
                             assume_expr_is_non_null);
   } else {
     /* The node below this one is not another cast, so we have reached the
        bottom of the sequence of casts. */
     /* Lower the source expression. */
-    if (lower_source) {
-      lower_expr_full(source_node, assume_expr_is_non_null);
-    }  /* if */
+    lower_expr_full(source_node, assume_expr_is_non_null);
+    /* We've reached the bottom of the expression; start building the
+       returned result in local_result_node.  It's easier to do this with an
+       rvalue pointer, so convert source_node (which can be an rvalue
+       pointer, class rvalue, or class lvalue) to the desired form.
+       At the end of processing the entire sequence of related casts (in
+       lower_related_class_cast), convert this back to its original form. */
+    local_result_node = rvalue_pointer_for_class_expression(source_node);
     /* The offsets for derived class casts are summed on the way back up. */
     *derived_class_cast_offset = 0;
     if (virtual_step_class != NULL) {
@@ -9517,7 +9578,7 @@ more than once.
          (virtual_step_class).  Pass it back up to the invocation that
          will deal with the virtual step. */
       *base_class_for_virtual_step = virt_bcp;
-      if (pointer_expr_complete_object_type(source_node,
+      if (pointer_expr_complete_object_type(local_result_node,
                                         /*call_case=*/FALSE) == source_class) {
         /* We have a complete object, so it is possible to go directly to the
            virtual base class without using a pointer indirection. */
@@ -9537,7 +9598,7 @@ more than once.
          assured that "this" is non-NULL (or the call through "this" to
          the member function would have failed). */
       need_null_preservation_code = FALSE;
-    } else if (cannot_be_null(source_node)) {
+    } else if (cannot_be_null(local_result_node)) {
       /* The source address is known not to be NULL. */
       need_null_preservation_code = FALSE;
     } else if (virtual_step_class != NULL && !*complete_object) {
@@ -9565,15 +9626,17 @@ more than once.
          This involves making a reusable copy of the current source node
          and passing it up to lower_related_class_cast which will
          call add_null_preservation_code. */
-      *null_preservation_source_node = source_node;
-      source_node = make_reusable_copy(source_node, /*vars_can_change=*/FALSE);
+      *null_preservation_source_node = local_result_node;
+      local_result_node = make_reusable_copy(local_result_node,
+                                             /*vars_can_change=*/FALSE);
     }  /* if */
   }  /* if */
-  /* Here, source_node points to the processed version of the operand
-     of node.  Now generate the code for this step in the cast sequence. */
+  /* Here, local_result_node (an rvalue pointer) points to the processed
+     version of the operand of node.  Now generate the code for this step in
+     the cast sequence. */
   /* Refetch the source class type in case what's been returned from lower
      levels has the class type-as-subobject instead of the class type. */
-  source_class = type_pointed_to(source_node->type);
+  source_class = type_pointed_to(local_result_node->type);
   source_class = skip_typerefs(source_class);
   if (derived) {
     /* The offsets in a sequence of derived casts are added together.
@@ -9594,11 +9657,11 @@ more than once.
          which case no indirection is needed), and when it is not. */
       /* Add an indirection to get a class lvalue, then take its
          address. */
-      source_node = add_indirection_to_node(source_node);
-      source_node = make_vbase_class_lvalue(source_node,
-                                            *base_class_for_virtual_step,
-                                            *complete_object);
-      source_node = add_address_of_to_node(source_node);
+      local_result_node = add_indirection_to_node(local_result_node);
+      local_result_node = make_vbase_class_lvalue(local_result_node,
+                                                  *base_class_for_virtual_step,
+                                                  *complete_object);
+      local_result_node = add_address_of_to_node(local_result_node);
       /* Now that we've dealt with the virtual hop, put things back to normal
          for levels above this one. */
       *base_class_for_virtual_step = NULL;
@@ -9606,23 +9669,23 @@ more than once.
   } else {
     /* Non-virtual step. */
     /* Add an indirection to get a class lvalue, then take its address. */
-    source_node = add_indirection_to_node(source_node);
-    source_node = make_base_class_lvalue(source_node, bcp,
-                                         /*complete_object=*/FALSE);
-    source_node = add_address_of_to_node(source_node);
+    local_result_node = add_indirection_to_node(local_result_node);
+    local_result_node = make_base_class_lvalue(local_result_node, bcp,
+                                               /*complete_object=*/FALSE);
+    local_result_node = add_address_of_to_node(local_result_node);
   }  /* if */
-  *result_node = source_node;
+  *result_node = local_result_node;
 }  /* related_class_cast_step */
 
 
 static void lower_related_class_cast(an_expr_node_ptr node,
-                                     a_boolean        lower_source,
                                      a_boolean        assume_expr_is_non_null)
 /*
-Rewrite a cast from a class to a base class or from a base class to
-a derived class.  The source expression under any base class casts
-needs to be lowered if lower_source is TRUE.  If assume_expr_is_non_null
-is TRUE no NULL-preservation code is required.
+Rewrite a cast from a class to a base class or from a base class to a derived
+class.  The expression "node" can be either a class lvalue, class rvalue, or an
+rvalue pointer to a class.  The source expression under any base class casts
+is lowered by this routine.  If assume_expr_is_non_null is TRUE no
+NULL-preservation code is required.
 */
 {
   an_expr_node_ptr null_preservation_source_node;
@@ -9631,7 +9694,9 @@ is TRUE no NULL-preservation code is required.
   a_targ_size_t    derived_class_cast_offset;
   a_boolean        complete_object;
   a_boolean        is_derived_cast = FALSE;
+  a_type_ptr       node_type = node->type;
 
+  /* Assertion checks on inputs are performed in related_class_cast_step. */
   /* Use a recursive routine to pick up a sequence of base-class or
      derived-class casts and generate the code for it.  Using a recursive
      routine allows us to (a) find the whole sequence; (b) put
@@ -9640,8 +9705,9 @@ is TRUE no NULL-preservation code is required.
      objects; (d) only look up the base class entry corresponding to
      each step once; and (e) add all the offsets for derived-class
      casts into a single offset. */
+  /* Note that upon return, result_node will be an rvalue pointer and needs
+     to be converted back to the same form as node. */
   related_class_cast_step(node,
-                          lower_source,
                           /*any_nonzero_offset=*/FALSE,
                           /*virtual_step_class=*/(a_type_ptr)NULL,
                           &null_preservation_source_node,
@@ -9671,24 +9737,28 @@ is TRUE no NULL-preservation code is required.
   /* The result of all the processing must overwrite the original node.
      If a final cast is required (as for the derived-class cast case or
      selection of a base class whose subobject type is different than
-     its normal type), change the original node into a cast.  Otherwise,
-     overwrite the original node with the result_node, and discard the
-     result_node. */
-  if (types_are_compatible(node->type, result_node->type)) {
-    /* No final cast is needed, so overwrite the original node with the
-       contents of the result_node.  The storage used for result_node is
-       just lost. */
-    overwrite_node(node, result_node);
-  } else {
-    /* A final cast is needed, so change the original node into the proper
-       cast. */
+     its normal type), add a cast. */
+  if (!is_ptr_or_ref_type(node_type)) {
+    /* For the class rvalue and class lvalue cases, add a pointer to the
+       type.  When the node is converted below, the resulting type
+       will be correct. */
+    node_type = make_pointer_type(node_type);
+  }  /* if */
+  if (!identical_types(node_type, result_node->type)) {
+    /* A final cast is needed. */
     a_boolean saved_compiler_generated =
                                     node->variant.operation.compiler_generated;
-    change_to_cast(node, result_node, node->type);
+    result_node = add_cast(result_node, node_type);
     if (is_derived_cast) {
-      node->variant.operation.compiler_generated = saved_compiler_generated;
+      result_node->variant.operation.compiler_generated =
+                                                      saved_compiler_generated;
     }  /* if */
   }  /* if */
+  /* Convert result_node (an rvalue pointer) to the same form as the
+     original node. */
+  result_node = convert_rvalue_pointer_to_original_form(result_node, node);
+  /* Overwrite the original node with the contents of the result_node. */
+  overwrite_node(node, result_node);
 }  /* lower_related_class_cast */
 
 
@@ -10455,9 +10525,6 @@ a temporary will be used, and the code will be something like
       op2_node->variant.operation.returns_lvalue_instead_of_usual_rvalue =
                                                               result_is_lvalue;
     }  /* if */
-#if LOWER_LVALUE_RETURNING_OPERATIONS
-    lower_operations_returning_lvalue_instead_of_usual_rvalue(op2_node);
-#endif /* LOWER_LVALUE_RETURNING_OPERATIONS */
     op_node = make_comma_node(op_node, op2_node);
     op_node->is_lvalue = result_is_lvalue;
     op_node->variant.operation.returns_lvalue_instead_of_usual_rvalue =
@@ -11628,11 +11695,7 @@ The expression can be an lvalue or an rvalue.
   object_node->next = NULL;
   if (node_operator_is(expr, eok_pm_field)) {
     /* Convert the class object (rvalue or lvalue) into a pointer. */
-    if (object_node->is_lvalue) {
-      object_node = add_address_of_to_node(object_node);
-    } else {
-      object_node = rvalue_pointer_for_class_rvalue(object_node);
-    }  /* if */
+    object_node = rvalue_pointer_for_class_expression(object_node);
   } else {
     check_assertion(is_pointer_type(object_node->type));
   }  /* if */
@@ -11682,47 +11745,11 @@ throughout the entire expression).
     if (is_operation_node(child)) {
       an_expr_operator_kind op = expr->variant.operation.kind;
       an_expr_node_ptr      gchild = child->variant.operation.operands;
-      an_expr_node_ptr      comma_second_node = gchild->next;
       if (op == (an_expr_operator_kind)eok_address_of) {
         if (node_operator_is(child, eok_indirect)) {
           check_assertion(il_identical_types(expr->type, gchild->type));
           /* Optimize "&*x" operation. */
           overwrite_node(expr, gchild);
-        } else if (node_operator_is(child, eok_comma) &&
-                   is_operation_node(comma_second_node) && 
-                   node_operator_is(comma_second_node, eok_indirect)) {
-          /* Optimize "&(..., *x)" operation.  Note that "*(..., &x)" is
-             explicitly not optimized because it can lead to an lvalue
-             comma expression during inlining which generates invalid C. */
-          check_assertion(il_identical_types(expr->type,
-                         comma_second_node->variant.operation.operands->type));
-          overwrite_node(comma_second_node,
-                         comma_second_node->variant.operation.operands);
-          child->type = comma_second_node->type;
-          child->is_lvalue = comma_second_node->is_lvalue;
-          child->variant.operation.returns_lvalue_instead_of_usual_rvalue =
-                                                                         FALSE;
-          overwrite_node(expr, child);
-        } else if (node_operator_is(child, eok_comma) ||
-                   node_operator_is(child, eok_question)) {
-          /* Some C compilers won't accept &(1, x) or &(a ? b : c), so turn
-             these into (1, &x) and (a ? &b: &c) respectively by propagating
-             the eok_address_of operator to the second operator of the
-             eok_comma operation or the second and third operators of the
-             eok_question operation. */
-          an_expr_node_ptr  third_op = comma_second_node->next;
-          comma_second_node = add_address_of_to_node(comma_second_node);
-          if (third_op != NULL) {
-            check_assertion(node_operator_is(child, eok_question));
-            third_op = add_address_of_to_node(third_op);
-          }  /* if */
-          comma_second_node->next = third_op;
-          child->variant.operation.operands->next = comma_second_node;
-          child->type = comma_second_node->type;
-          child->is_lvalue = FALSE;
-          child->variant.operation.returns_lvalue_instead_of_usual_rvalue =
-                                                                         FALSE;
-          overwrite_node(expr, child);
         } else if (node_operator_is(child, eok_subscript)) {
           /* Optimize &x[y] to x + y. */
           child->next = expr->next;
@@ -11807,51 +11834,6 @@ operations that didn't require processing on the first pass).
     overwrite_node(expr, add_cast(copy_node(expr), orig_expr_type));
   }  /* if */
 }  /* lower_operation_on_const_string */
-
-
-/*ARGSUSED*/  /* <-- tblock is not used. */
-static void optimize_lowered_expr_node_if_possible(
-                                    an_expr_node_ptr                    expr,
-                                    an_expr_or_stmt_traversal_block_ptr tblock)
-/*
-This routine is called for each node of an expression during expression 
-traversal by optimize_lowered_expression_if_possible.  Perform any
-optimizations or cleanups that are applicable to this expression node.
-*/
-{
-  /* Perform some optimizations if they are applicable. */
-  optimize_node_if_possible(expr);
-  /* See if we have an operation on a string constant. */
-  if (string_literals_are_const &&
-      is_operation_node(expr) &&
-      is_constant_node(expr->variant.operation.operands) &&
-      expr->variant.operation.operands->variant.constant->kind ==
-                                             (a_constant_repr_kind)ck_string) {
-    /* This operation operates on a ck_string whose const-ness has been
-       (or will be) removed during lowering of the constant.  Re-write the
-       operation as necessary to preserve the const-ness. */
-    lower_operation_on_const_string(expr, /*lower_source=*/FALSE);
-  }  /* if */
-}  /* optimize_lowered_expr_node_if_possible */
-
-
-void optimize_lowered_expression_if_possible(an_expr_node_ptr expr)
-/*
-The expression passed to this routine, expr, is an expression that has just
-been lowered or inlined.  This routine traverses the entire expression and
-looks for any optimization opportunities as well as a couple of cases where the
-lowering or inlining process has created sequences of operations that need
-further adjusting.  For example, an expression that was originally *(0, &x) may
-have been lowered to (0, *&x) and this routine is being called to take another
-look at *&x to see if this expression needs further adjusting.
-*/
-{
-  an_expr_or_stmt_traversal_block tblock;
-
-  clear_expr_or_stmt_traversal_block(&tblock);
-  tblock.process_expr = optimize_lowered_expr_node_if_possible;
-  traverse_expr(expr, &tblock);
-}  /* optimize_lowered_expression_if_possible */
 
 #if LOWER_LVALUE_RETURNING_OPERATIONS
 
@@ -11959,6 +11941,22 @@ it is left alone.
       if (newop2 != NULL) {
         lower_operations_returning_lvalue_instead_of_usual_rvalue(newop2);
       }  /* if */
+      if (string_literals_are_const) {
+        /* See if these operations now operate on a ck_string whose const-ness
+           has been (or will be) removed during lowering of the constant.
+           Re-write the operations as necessary to preserve the const-ness. */
+        if (is_constant_node(newop1->variant.operation.operands) &&
+            newop1->variant.operation.operands->variant.constant->kind ==
+                                             (a_constant_repr_kind)ck_string) {
+          lower_operation_on_const_string(newop1, /*lower_source=*/FALSE);
+        }  /* if */
+        if (newop2 != NULL &&
+            is_constant_node(newop2->variant.operation.operands) &&
+            newop2->variant.operation.operands->variant.constant->kind ==
+                                             (a_constant_repr_kind)ck_string) {
+          lower_operation_on_const_string(newop2, /*lower_source=*/FALSE);
+        }  /* if */
+      }  /* if */
       /* Restore the original expression type.  This matters when the
          operation above the "?" or "," is a cast. */
       expr->type = expr_type;
@@ -12013,7 +12011,76 @@ it is left alone.
   }  /* if */
 }  /* lower_operations_returning_lvalue_instead_of_usual_rvalue */
 
+
+/*ARGSUSED*/  /* <-- tblock is not used. */
+static void lower_node_returning_lvalue_instead_of_usual_rvalue(
+                                    an_expr_node_ptr                    expr,
+                                    an_expr_or_stmt_traversal_block_ptr tblock)
+/*
+This routine is called for each node of an expression during expression 
+traversal by optimize_lowered_expression_if_possible.  Transform
+lvalue-returning assignments, prefix ++/--, and "?" and "," operators into
+valid C.  This must be called as part of post processing during the expression
+traversal because some lvalue-returning C constructs are themselves rewritten
+in terms of lvalue-returning C constructs.  For example, &(0, A).f is rewritten
+to &(0, A.f) when the eok_dot_field operator is processed, resulting in an
+lvalue-returning eok_comma operation, which is further rewritten as (0, &A.f)
+when the eok_address_of node is processed on the next iteration.
+*/
+{
+  lower_operations_returning_lvalue_instead_of_usual_rvalue(expr);
+}  /* lower_node_returning_lvalue_instead_of_usual_rvalue */
+
 #endif /* LOWER_LVALUE_RETURNING_OPERATIONS */
+
+/*ARGSUSED*/  /* <-- tblock is not used. */
+static void optimize_lowered_expr_node_if_possible(
+                                    an_expr_node_ptr                    expr,
+                                    an_expr_or_stmt_traversal_block_ptr tblock)
+/*
+This routine is called for each node of an expression during expression 
+traversal by optimize_lowered_expression_if_possible.  Perform any
+optimizations or cleanups that are applicable to this expression node.
+*/
+{
+  /* Perform some optimizations if they are applicable. */
+  optimize_node_if_possible(expr);
+  /* See if we have an operation on a string constant. */
+  if (string_literals_are_const &&
+      is_operation_node(expr) &&
+      is_constant_node(expr->variant.operation.operands) &&
+      expr->variant.operation.operands->variant.constant->kind ==
+                                             (a_constant_repr_kind)ck_string) {
+    /* This operation operates on a ck_string whose const-ness has been
+       (or will be) removed during lowering of the constant.  Re-write the
+       operation as necessary to preserve the const-ness. */
+    lower_operation_on_const_string(expr, /*lower_source=*/FALSE);
+  }  /* if */
+}  /* optimize_lowered_expr_node_if_possible */
+
+
+void optimize_lowered_expression_if_possible(an_expr_node_ptr expr)
+/*
+The expression passed to this routine, expr, is an expression that has just
+been lowered or inlined.  This routine traverses the entire expression and
+looks for any optimization opportunities as well as a couple of cases where the
+lowering or inlining process has created sequences of operations that need
+further adjusting.  For example, an expression that was originally *(0, &x) may
+have been lowered to (0, *&x) and this routine is being called to take another
+look at *&x to see if this expression needs further adjusting.
+*/
+{
+  an_expr_or_stmt_traversal_block tblock;
+
+  clear_expr_or_stmt_traversal_block(&tblock);
+  tblock.process_expr = optimize_lowered_expr_node_if_possible;
+#if LOWER_LVALUE_RETURNING_OPERATIONS
+  tblock.process_post_expr =
+                           lower_node_returning_lvalue_instead_of_usual_rvalue;
+#endif /* LOWER_LVALUE_RETURNING_OPERATIONS */
+  traverse_expr(expr, &tblock);
+}  /* optimize_lowered_expression_if_possible */
+
 
 static void wrap_throw(an_expr_node_ptr node,
                        an_expr_node_ptr question_node)
@@ -13006,8 +13073,7 @@ cast.  See lower_expr for typical invocation.
                  op == (an_expr_operator_kind)eok_derived_class_cast) {
         /* Cast to base or derived class is rewritten.  This call also
            lowers any subtree. */
-        lower_related_class_cast(expr, /*lower_source=*/TRUE,
-                                 assume_expr_is_non_null);
+        lower_related_class_cast(expr, assume_expr_is_non_null);
       } else if (op == (an_expr_operator_kind)eok_pm_base_class_cast ||
                  op == (an_expr_operator_kind)eok_pm_derived_class_cast) {
         /* Cast of pointer-to-member to base or derived class is rewritten.
@@ -13382,11 +13448,6 @@ cast.  See lower_expr for typical invocation.
         /* Change the type of operators that return "bool" in C++ to
            the "int" required in C. */
         change_result_type_of_operator_returning_bool(expr);
-#if LOWER_LVALUE_RETURNING_OPERATIONS
-        /* Transform lvalue-returning assignments, prefix ++/--, and "?" and
-           "," operators into valid C. */
-        lower_operations_returning_lvalue_instead_of_usual_rvalue(expr);
-#endif /* LOWER_LVALUE_RETURNING_OPERATIONS */
       }  /* if */
       break;
     case enk_constant:

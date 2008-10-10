@@ -9132,13 +9132,17 @@ enum an_expr_operator_kind_tag {
 			   An lvalue cast to a like-sized type can remain an
 			   lvalue.  An extension: used in some C modes and
 			   in Microsoft and GNU C++ modes. */
-  eok_base_class_cast,	/* C++ cast of a pointer to a class to a pointer to
-			   a direct base class.  The type of the expression
- 			   indicates the type to cast to. */
+  eok_base_class_cast,	/* C++ cast of a class to a direct base class.  The
+			   type of the expression indicates the type to cast
+			   to.  The operand can be a class lvalue, a class
+			   rvalue, or an rvalue pointer to class.  The result
+			   is of the same kind (lvalue, rvalue, or pointer). */
   eok_derived_class_cast,
-			/* C++ cast of a pointer to a class to a pointer to
-			   a direct derived class.  The type of the expression
- 			   indicates the type to cast to. */
+			/* C++ cast of a class to a direct derived class.  The
+			   type of the expression indicates the type to cast
+			   to.  The operand can be a class lvalue, a class
+			   rvalue, or an rvalue pointer to class.  The result
+			   is of the same kind (lvalue, rvalue, or pointer). */
   eok_pm_base_class_cast,
 			/* C++ cast of a pointer to a member of a class to
 			   a pointer to a member of a direct base class.

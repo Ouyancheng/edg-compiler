@@ -3422,7 +3422,7 @@ qualified_name_check:
         a_base_class_ptr bcp =
                         find_base_class_of(class_struct_union_type, dtor_type);
         check_assertion(bcp != NULL);
-        base_class_cast_operand(operand_1, bcp, &is_arrow_operator,
+        base_class_cast_operand(operand_1, bcp,
                                 /*check_cast_access=*/TRUE,
                                 /*is_implicit_cast=*/TRUE,
                                 /*implicit_in_naming=*/FALSE,
@@ -3478,7 +3478,7 @@ qualified_name_check:
           is_lvalue = is_arrow_operator || is_an_lvalue(operand_1);
           /* This operation uses the left-side operand, so cast the
              operand to the type of the member symbol. */
-          cast_pointer_for_field_selection(operand_1, &is_arrow_operator,
+          cast_pointer_for_field_selection(operand_1, is_arrow_operator,
                                            member_sym, projection_member_sym,
                                            (a_boolean)locator_for_curr_id.
                                                  access_control_error_reported,
@@ -3521,7 +3521,7 @@ nonstatic_member_function:
                    adjustment is done there (it might not be done if a
                    static member function is selected). */
                 cast_pointer_for_field_selection(operand_1,
-                                                 &is_arrow_operator,
+                                                 is_arrow_operator,
                                                  member_sym,
                                                  projection_member_sym,
                                                  (a_boolean)
@@ -3888,7 +3888,7 @@ object bound with the function in *bound_function_selector.  See ARM 5.5.
         /* Cast the left operand to a base class if necessary.  This does the
            ambiguity and accessibility checking. */
         if (bcp != NULL) {
-          base_class_cast_operand(operand_1, bcp, &is_arrow_operator,
+          base_class_cast_operand(operand_1, bcp,
                                   /*check_cast_access=*/TRUE,
                                   /*is_implicit_cast=*/TRUE,
                                   /*implicit_in_naming=*/FALSE,
@@ -8571,7 +8571,7 @@ Syntax:
                                     &baseward_cast, &bcp) &&
              baseward_cast) {
     /* This is a known cast from derived to base. */
-    base_class_cast_operand(&operand, bcp, (a_boolean *)NULL,
+    base_class_cast_operand(&operand, bcp,
                             /*check_cast_access=*/TRUE,
                             /*is_implicit_cast=*/FALSE,
                             /*implicit_in_naming=*/FALSE,

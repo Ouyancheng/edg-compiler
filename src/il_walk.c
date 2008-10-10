@@ -2768,6 +2768,8 @@ and end up at "a".
       switch (op) {
         case eok_dot_field:
           /* x.y:  Follow x. */
+          /* We don't have to test for the rvalue.field case here because its
+             result is an rvalue and therefore wouldn't get here. */
           traverse_expr(operand1, tblock);
           break;
         case eok_points_to_field:
@@ -2776,6 +2778,8 @@ and end up at "a".
           break;
         case eok_pm_field:
           /* x.*pm:  Follow x. */
+          /* We don't have to test for the rvalue.*pm case here because its
+             result is an rvalue and therefore wouldn't get here. */
           traverse_expr(operand1, tblock);
           break;
         case eok_pm_points_to_field:
@@ -2807,6 +2811,12 @@ and end up at "a".
           /* (p):  Follow p. */
           traverse_expr(operand1, tblock);
           break;
+        case eok_base_class_cast:
+          /* Cast of a class lvalue to a base class. */
+          /* Pointer casts and casts of a class rvalue to a base class would
+             not get here because they produce an rvalue result. */
+          traverse_expr(operand1, tblock);
+          break;
         default:
           if (expr->variant.operation.returns_lvalue_instead_of_usual_rvalue) {
             /* An lvalue-returning operation other than those handled
@@ -2833,8 +2843,10 @@ and end up at "a".
       /* The expression is an rvalue pointer (references are permitted
          during the lowering process). */
 #if DO_IL_LOWERING
-      check_assertion((is_ptr_or_ref_type(expr->type) ||
-                       is_template_param_type(expr->type) ||
+      check_assertion(((il_lowering_underway ?
+                          is_ptr_or_ref_type(expr->type) :
+                          (is_pointer_type(expr->type) ||
+                           is_template_param_type(expr->type))) ||
                        is_error_type(expr->type)) ||
                       is_error_node(expr));
 #else /* !DO_IL_LOWERING */
@@ -2864,6 +2876,7 @@ and end up at "a".
           break;
         case eok_base_class_cast:
           /* Cast of a pointer to a base class pointer. */
+          /* Casts of class lvalues or rvalues wouldn't get here. */
           traverse_expr(operand1, tblock);
           break;
         case eok_cast:

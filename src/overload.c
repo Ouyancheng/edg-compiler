@@ -6537,7 +6537,7 @@ TRUE if the selector is a pointer, and FALSE if it is a class.
 
 void cast_pointer_for_field_selection(
                                an_operand        *operand_1,
-                               a_boolean         *is_arrow_operator,
+                               a_boolean         is_arrow_operator,
                                a_symbol_ptr      member_sym,
                                a_symbol_ptr      projection_member_sym,
                                a_boolean         access_control_error_reported,
@@ -6548,8 +6548,7 @@ Adjust the left operand of a "->" or "." operation, if necessary, to make
 it point to a class/struct/union of the type containing the member.
 This is significant in C++, where the member may be in a base class of the
 left-operand class, and baseward casts are needed.  operand_1 is the left
-operand.  *is_arrow_operator is TRUE for "->", FALSE for "." (it will be set
-to TRUE on return if the operation is normalized into "->" form).
+operand.  is_arrow_operator is TRUE for "->", FALSE for ".".
 member_sym is the referenced member (possibly a projection symbol, but the
 presence or absence of a projection is largely ignored).
 projection_member_sym is either the same as member_sym or a projection
@@ -6570,7 +6569,7 @@ source position of the member name reference.
   /* Leave an error operand alone. */
   if (!is_error_operand(operand_1)) {
     class_struct_union_type = operand_1->type;
-    if (*is_arrow_operator) {
+    if (is_arrow_operator) {
       if (is_template_param_or_nonreal_class_type(class_struct_union_type)) {
         /* Pointer type is unknown, in a prototype instantiation.  Or, the
            selector is a nonreal class type, which might have an operator->
@@ -6618,7 +6617,7 @@ source position of the member name reference.
           check_assertion(total_errors != 0);
         } else {
           /* Cast the left operand to the proper type. */
-          base_class_cast_operand(operand_1, bcp, is_arrow_operator,
+          base_class_cast_operand(operand_1, bcp,
                                   /*check_cast_access=*/
                                                 !access_control_error_reported,
                                   /*is_implicit_cast=*/TRUE,
@@ -6639,7 +6638,7 @@ source position of the member name reference.
         /* Normally, when a projection symbol is used it means the name was
            specified as a simple name.  This is not the case for a projection
            symbol created for a Microsoft __super lookup. */
-        base_class_cast_operand(operand_1, bcp, is_arrow_operator,
+        base_class_cast_operand(operand_1, bcp,
                                 /*check_cast_access=*/FALSE,
                                 /*is_implicit_cast=*/TRUE,
                                 /*implicit_in_naming=*/
@@ -6695,7 +6694,7 @@ source position of the member name reference.
           /* Normally, when a projection symbol is used it means the name was
              specified as a simple name.  This is not the case for a projection
              symbol created for a Microsoft __super lookup. */
-          base_class_cast_operand(operand_1, bcp, is_arrow_operator,
+          base_class_cast_operand(operand_1, bcp,
                                   /*check_cast_access=*/FALSE,
                                   /*is_implicit_cast=*/TRUE,
                                   /*implicit_in_naming=*/
@@ -6876,9 +6875,8 @@ only in C++ mode.  Note that this routine is called only for an implicit
         /* Note that no ARM 11.5 protected member access check is needed,
            because an access through "this" is always acceptable under the
            rules in that section. */
-        a_boolean is_arrow_operator = TRUE;
         cast_pointer_for_field_selection(result,
-                                         &is_arrow_operator,
+                                         /*is_arrow_operator=*/TRUE,
                                          member_sym,
                                          projection_member_sym,
                                          access_control_error_reported,
@@ -6962,7 +6960,6 @@ position of the function name identifier in the call.
   a_symbol_ptr base_function_symbol = fundamental_symbol_of(function_symbol);
   a_boolean    access_error_reported;
   a_type_ptr   routine_type;
-  a_boolean    is_arrow_operator = TRUE;
 
   /* Do whatever would have been done to the function had we known
      originally which specific function was intended. */
@@ -7004,7 +7001,7 @@ position of the function name identifier in the call.
          to access a protected member. */
       selector_position = bound_function_selector->position;
       cast_pointer_for_field_selection(bound_function_selector,
-                                       &is_arrow_operator,
+                                       /*is_arrow_operator=*/TRUE,
                                        function_symbol,
                                        overloaded_function_symbol,
                                        access_error_reported,
@@ -7020,7 +7017,7 @@ position of the function name identifier in the call.
     if (*have_selector) {
       /* Attach the unneeded selector provided to the function operand. */
       combine_unneeded_selector_with_operand(bound_function_selector,
-                                             is_arrow_operator,
+                                             /*is_arrow_operator=*/TRUE,
                                              function_operand);
       *have_selector = FALSE;
     }  /* if */
@@ -10293,7 +10290,7 @@ gives the type of the routine being called.
          cast, because the cast is really necessary only because the function
          is inherited from a base class.  This is not clear from the ARM,
          but cfront and Borland do it this way. */
-      base_class_cast_operand(operand, bcp, (a_boolean *)NULL,
+      base_class_cast_operand(operand, bcp,
                               /*check_cast_access=*/FALSE,
                               /*is_implicit_cast=*/TRUE,
                               /*implicit_in_naming=*/FALSE,
@@ -10319,23 +10316,32 @@ the operand type to access the same class object with a new type.
 On return, the operand is an lvalue.
 */
 {
-  /* Convert to a pointer to the object. */
-  conv_class_operand_to_object_pointer(operand);
   if (bcp != NULL) {
     /* Cast the pointer to the proper base class. */
     base_class_cast_operand(operand, bcp,
-                            (a_boolean *)NULL,
                             /*check_cast_access=*/TRUE,
                             /*is_implicit_cast=*/TRUE,
                             /*implicit_in_naming=*/FALSE,
                             /*is_object_pointer=*/TRUE);
   }  /* if */
-  /* Adjust cv-qualifiers. */
-  cast_operand(make_pointer_type(dest_type), operand,
-               /*check_cast_access=*/TRUE, /*is_implicit_cast=*/TRUE,
-               /*is_reinterpret_cast=*/FALSE, /*reinterpret_semantics=*/FALSE);
-  /* Make an address (an lvalue) for the adjusted class object. */
-  conv_object_pointer_to_lvalue(operand);
+  if (!identical_types(operand->type, dest_type)) {
+    /* Do any cv-qualifier adjustment. */
+    if (is_an_lvalue(operand)) {
+      adjust_lvalue_type(operand, dest_type);
+    } else {
+      /* Handle the rvalue case by converting to pointer form and casting. */
+      an_operand orig_operand;
+      orig_operand = *operand;
+      conv_class_operand_to_object_pointer(operand);
+      cast_operand(make_pointer_type(dest_type), operand,
+                   /*check_cast_access=*/TRUE, /*is_implicit_cast=*/TRUE,
+                   /*is_reinterpret_cast=*/FALSE,
+                   /*reinterpret_semantics=*/FALSE);
+      /* Convert back to an lvalue (there's no way to produce an rvalue). */
+      conv_object_pointer_to_lvalue(operand);
+      restore_operand_details(operand, &orig_operand);
+    }  /* if */
+  }  /* if */
 }  /* adjust_class_object_type */
 
 

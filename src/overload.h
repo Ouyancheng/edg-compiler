@@ -576,7 +576,7 @@ extern void combine_unneeded_selector_with_operand(
 
 extern void cast_pointer_for_field_selection(
                                an_operand        *operand_1,
-                               a_boolean         *is_arrow_operator,
+                               a_boolean         is_arrow_operator,
                                a_symbol_ptr      member_sym,
                                a_symbol_ptr      projection_member_sym,
                                a_boolean         access_control_error_reported,

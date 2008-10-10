@@ -5479,6 +5479,33 @@ handle_field_selection:
               }  /* if */
             }  /* if */
             break;
+          case eok_base_class_cast:
+            /* A cast of a class lvalue to a base class. */
+            check_assertion(op1->is_lvalue);
+            if (constant_lvalue_address(op1, &conaddr1, address_escapes,
+                                        template_constant)) {
+              /* The operand has a constant address.  Fold the base class
+                 cast into it. */
+              a_boolean        did_not_fold;
+              a_base_class_ptr bcp;
+              check_assertion(is_class_struct_union_type(op1->type) &&
+                              is_class_struct_union_type(expr->type));
+              bcp = find_base_class_of(op1->type, expr->type);
+              check_assertion(bcp != NULL);
+              fold_base_class_cast(&conaddr1, bcp, con,
+                                   /*check_cast_access=*/FALSE,
+                                   (a_boolean)expr->variant.operation.
+                                                            compiler_generated,
+                                   /*is_object_pointer=*/FALSE,
+                                   &did_not_fold,
+                                   &error_position);
+              /* A cast to a virtual base class might not fold to a
+                 constant even if the original pointer is a constant. */
+              if (!did_not_fold) {
+                is_constant_addr = TRUE;
+              }  /* if */
+            }  /* if */
+            break;
           case eok_lvalue:
             /* The address of an eok_lvalue applied to a ck_template_param
                constant is sometimes a constant. */
@@ -5643,6 +5670,7 @@ caller would prefer to handle that higher up.
             break;
           case eok_base_class_cast:
             /* Cast of a pointer to a base class pointer. */
+            /* Casts of a class lvalue or rvalue shouldn't get here. */
 cast_case:
             if (constant_rvalue_pointer(op1, &conaddr1, address_escapes,
                                         template_constant)) {
@@ -5851,12 +5879,17 @@ it is non-NULL).  Otherwise, return TRUE.
       }
       break;
     case eok_base_class_cast:
-      { a_type_ptr        dtype = type_pointed_to(args->type);
-        a_type_ptr        btype = type_pointed_to(expr->type);
+      { a_type_ptr        dtype = args->type;
+        a_type_ptr        btype = expr->type;
+        a_base_class_ptr  bcp;
         /* Look for the base class to which the cast refers, and update
            *offset accordingly.  Since the field was unambiguous, the
            base class should be unambiguous too. */
-        a_base_class_ptr  bcp = find_base_class_of(dtype, btype);
+        if (is_pointer_type(dtype)) {
+          dtype = type_pointed_to(dtype);
+          btype = type_pointed_to(btype);
+        }  /* if */
+        bcp = find_base_class_of(dtype, btype);
         check_assertion(bcp != NULL && !bcp->ambiguous);
         if (bcp->is_virtual) {
           /* We don't currently allow the offset of a member of a virtual
