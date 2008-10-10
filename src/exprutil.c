@@ -7119,6 +7119,14 @@ still provided).
          This deals with cases like 0 ? 1 : 1/0, in which the last operand
          would not be in constant form because it couldn't be folded. */
       do_folding = TRUE;
+    } else if (!identical_types(operand_2->type, operand_3->type)) {
+      /* Can't fold cases where the operand types do not match (e.g.,
+         because one is a throw and the other is not). */
+      /* do_folding = FALSE; -- already set. */
+    } else if (class_rvalue_case) {
+      /* Don't fold when the result is a class rvalue, because a copy
+         is required. */
+      /* do_folding = FALSE; -- already set. */
     } else if (!strict_ansi_mode && expr_stack->favor_constant_result) {
       /* If we'd prefer a constant result, fold. */
       do_folding = TRUE;
