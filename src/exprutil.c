@@ -7119,6 +7119,9 @@ still provided).
          This deals with cases like 0 ? 1 : 1/0, in which the last operand
          would not be in constant form because it couldn't be folded. */
       do_folding = TRUE;
+    } else if (!strict_ansi_mode && expr_stack->favor_constant_result) {
+      /* If we'd prefer a constant result, fold. */
+      do_folding = TRUE;
     }  /* if */
   }  /* if */
   if (do_folding) {

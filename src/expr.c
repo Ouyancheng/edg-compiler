@@ -14367,6 +14367,9 @@ standard.
            This deals with cases like 0 && 1/0, in which the second operand
            would not be in constant form because it couldn't be folded. */
         reduce = TRUE;
+      } else if (!strict_ansi_mode && expr_stack->favor_constant_result) {
+        /* If we'd prefer a constant result, reduce. */
+        reduce = TRUE;
       }  /* if */
     }  /* if */
     if (!reduce) {
