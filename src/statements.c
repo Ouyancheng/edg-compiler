@@ -1836,6 +1836,9 @@ __extension__ keyword was scanned just before the upcoming declaration.
                               (an_il_entry_kind)iek_statement);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   local_declaration(marked_as_gnu_extension);
+  /* Re-load sssep since the call to local_declaration may have caused the
+     statement stack to be reallocated. */
+  sssep = &struct_stmt_stack[depth_stmt_stack];
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   if (sssep->for_init) {
     /* Add a source sequence entry marking the end of the for-init
