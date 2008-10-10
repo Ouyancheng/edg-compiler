@@ -880,7 +880,7 @@ otherwise, do no copying and return FALSE.
     /* Copy the first operand.  In the process, simplify to a constant if
        possible by substituting for parameter variables. */
     operand = copy_expr_tree_for_inlining(operand);
-    if (value_is_known_at_compile_time(operand, &op1_value)) {
+    if (bool_value_is_known_at_compile_time(operand, &op1_value)) {
       /* The first operand is known false or known true, so the operation can
          be simplified. */
       if (op == (an_expr_operator_kind)eok_question) {

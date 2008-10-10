@@ -12573,8 +12573,8 @@ that are specific to inlining and therefore yield different results.
 }  /* is_constant_valued_expression */
 
 
-a_boolean value_is_known_at_compile_time(an_expr_node_ptr expr,
-                                         a_boolean        *value)
+a_boolean bool_value_is_known_at_compile_time(an_expr_node_ptr expr,
+                                              a_boolean        *value)
 /*
 See if the value of expr can be determined at compile time; if so, determine
 the boolean value of the expression and set *value as appropriate.  Returns
@@ -12606,7 +12606,7 @@ inspection would return TRUE).
     value_is_known = *value;
   }  /* if */
   return value_is_known;
-}  /* value_is_known_at_compile_time */
+}  /* bool_value_is_known_at_compile_time */
 
 
 static void eliminate_dead_code_under_logical_operator(an_expr_node_ptr expr)
@@ -12632,7 +12632,7 @@ removed.
      statement expression can cause problems (e.g., destruction of an entity
      that was never created).  Checking for side effects eliminates these
      cases. */
-  if (value_is_known_at_compile_time(op1, &op1_value) &&
+  if (bool_value_is_known_at_compile_time(op1, &op1_value) &&
       !node_has_side_effects(op2, (a_boolean*)NULL)) {
     /* The first operand is an expression whose value we know at compile time;
        see if we can eliminate the second operand altogether based upon the
@@ -12663,7 +12663,7 @@ side effect will not be removed.
   check_assertion(is_operation_node(expr) &&
                   node_operator_is(expr, eok_question));
   op1 = expr->variant.operation.operands;
-  if (value_is_known_at_compile_time(op1, &op1_value)) {
+  if (bool_value_is_known_at_compile_time(op1, &op1_value)) {
     if (op1_value) {
       /* Condition is true, rewrite expr with second operand if possible. */
       replacement_op = op1->next;
