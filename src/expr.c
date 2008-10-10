@@ -2669,17 +2669,20 @@ same offset, an error is issued and NULL is returned.
 }  /* other_field_with_same_name */
 
 
-static void make_field_selection_operand(an_operand            *operand_1,
-                                         an_expr_operator_kind op,
-                                         a_symbol_ptr          field_sym,
-                                         a_type_ptr            selection_type,
-                                         a_boolean             is_lvalue,
-                                         an_operand            *result)
+static void make_field_selection_operand(
+                                      an_operand            *operand_1,
+                                      an_expr_operator_kind op,
+                                      a_symbol_ptr          field_sym,
+                                      a_type_ptr            selection_type,
+                                      a_boolean             is_lvalue,
+                                      a_boolean             compiler_generated,
+                                      an_operand            *result)
 /*
 Make an operand for a field selection.  *operand_1 is the left operand.
 op is the selection operator.  field_sym is the right operand (the field).
 selection_type is the result type.  The result is an lvalue if is_lvalue
-is TRUE, an rvalue otherwise.  The operand for the selection is created in
+is TRUE, an rvalue otherwise.  The field selection is compiler-generated
+if compiler_generated is TRUE.  The operand for the selection is created in
 *result.  The current token must be the (possibly coalesced) field name.
 */
 {
@@ -2689,6 +2692,11 @@ is TRUE, an rvalue otherwise.  The operand for the selection is created in
   make_field_operand(field, &field_operand);
   build_binary_result_operand_full(operand_1, &field_operand, op,
                                    selection_type, is_lvalue, result);
+  check_assertion(is_expression_operand(result) &&
+                  is_operation_node(result->variant.expression));
+  if (compiler_generated) {
+    result->variant.expression->variant.operation.compiler_generated = TRUE;
+  }  /* if */
 #if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
   /* When nonstandard anonymous unions are allowed, look for
      fields of such anonymous parents and insert the elided field
@@ -2710,6 +2718,7 @@ static void do_field_selection_operation(
                                a_type_ptr        class_struct_union_type,
                                a_boolean         is_arrow_operator,
                                a_boolean         is_lvalue,
+                               a_boolean         compiler_generated,
                                a_symbol_ptr      field_sym,
                                a_ref_entry_ptr   rep,
                                an_operand        *result)
@@ -2720,7 +2729,9 @@ The type of the class/struct/union (before C++ baseward casts, if any) is
 given by class_struct_union_type; it provides the type qualifiers that should
 be attached to the result expression.  The operator is "->" if
 is_arrow_operator is TRUE, "." otherwise.  is_lvalue is TRUE if the
-result should be an lvalue.  field_sym points to the symbol for the
+result should be an lvalue.  compiler_generated is TRUE if this
+selection is compiler-generated (e.g., an implicit "this->" on a nonstatic
+data member reference).  field_sym points to the symbol for the
 right-side field.  rep points to an associated reference entry, or is NULL
 if none is needed.  The result is placed in *result.  The current token
 must be the (possibly coalesced) field name.
@@ -2795,7 +2806,7 @@ must be the (possibly coalesced) field name.
                              (an_expr_operator_kind)eok_dot_field;
     /* Construct the field selection expression tree. */
     make_field_selection_operand(operand_1, op, field_sym, selection_type,
-                                 is_lvalue, result);
+                                 is_lvalue, compiler_generated, result);
     /* In C++, a field may have a reference type.  An implicit indirection
        is done to get the thing pointed to. */
     if (!C_mode() && is_reference_type(result_type)) {
@@ -3487,6 +3498,7 @@ qualified_name_check:
           do_field_selection_operation(operand_1,
                                        orig_class_struct_union_type,
                                        is_arrow_operator, is_lvalue,
+                                       /*compiler_generated=*/FALSE,
                                        member_sym, rep, result);
           break;
         case sk_static_data_member:
@@ -16307,7 +16319,9 @@ is built in *operand.  It's an lvalue for the field.
   /* Add a field selection to get to the field. */
   do_field_selection_operation(&operand_1, union_var->type,
                                /*is_arrow_operator=*/FALSE,
-                               /*is_lvalue=*/TRUE, sym_ptr, rep, result);
+                               /*is_lvalue=*/TRUE,
+                               /*compiler_generated=*/TRUE,
+                               sym_ptr, rep, result);
   result->position = *source_position;
 }  /* make_anonymous_union_field_operand */
 
@@ -16947,6 +16961,7 @@ do_selection:
                                              qual_class_type,
                                              /*is_arrow_operator=*/TRUE,
                                              /*is_lvalue=*/TRUE,
+                                             /*compiler_generated=*/TRUE,
                                              sym_ptr,
                                              rep, result);
               } else {
