@@ -2703,9 +2703,14 @@ new node.
     }  /* if */
     node = add_cast_to_lvalue_if_necessary(node, type);
   } else {
-    /* Create a field selection operation and add the appropriate cast
-       if needed. */
-    node = field_lvalue_selection_expr(node, field);
+    if (offset == 0 && type != field->type) {
+      /* No need for a field selection for offset zero (a cast is being
+         added below anyway). */
+    } else {
+      /* Create a field selection operation and add the appropriate cast
+         if needed. */
+      node = field_lvalue_selection_expr(node, field);
+    }  /* if */
     if (type != field->type) {
       /* Presumably this is an optimized empty base class: it has no
          associated field and instead we use the field whose offset it
