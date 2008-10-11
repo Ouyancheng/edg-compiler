@@ -2843,12 +2843,19 @@ and end up at "a".
       /* The expression is an rvalue pointer (references are permitted
          during the lowering process). */
 #if DO_IL_LOWERING
+#if STANDALONE_UTILITY_PROGRAM
+      check_assertion((is_ptr_or_ref_type(expr->type) ||
+                       is_template_param_type(expr->type) ||
+                       is_error_type(expr->type)) ||
+                      is_error_node(expr));
+#else /* !STANDALONE_UTILITY_PROGRAM */
       check_assertion(((il_lowering_underway ?
                           is_ptr_or_ref_type(expr->type) :
                           (is_pointer_type(expr->type) ||
                            is_template_param_type(expr->type))) ||
                        is_error_type(expr->type)) ||
                       is_error_node(expr));
+#endif /* STANDALONE_UTILITY_PROGRAM */
 #else /* !DO_IL_LOWERING */
       check_assertion((is_pointer_type(expr->type) ||
                        is_template_param_type(expr->type) ||
