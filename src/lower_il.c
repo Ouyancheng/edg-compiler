@@ -2703,7 +2703,7 @@ new node.
     }  /* if */
     node = add_cast_to_lvalue_if_necessary(node, type);
   } else {
-    if (offset == 0 && type != field->type) {
+    if (offset == 0 && !il_identical_types(type, field->type)) {
       /* No need for a field selection for offset zero (a cast is being
          added below anyway). */
     } else {
