@@ -14900,7 +14900,7 @@ classes.
                            NO_SCOPE_NUMBER, class_type, (a_routine_ptr)NULL);
     scope_stack_top().class_def_state = &class_state;
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-    if (gpp_mode) {
+    if (!C_mode()) {
       scope_stack_top().ELF_visibility = ctsp->ELF_visibility;
     }  /* if */
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */

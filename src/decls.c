@@ -5579,14 +5579,14 @@ for use in generating cross-reference output describing this declaration.
                  variable_ptr, dps->asm_name, is_register, &dps->asm_name_pos,
                  symbol_for(variable_ptr)->defined && !is_variable_def);
     }  /* if */
-#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-    /* Update the ELF visibility if applicable. */
-    { an_ELF_visibility_kind  visibility = variable_ptr->ELF_visibility;
-      update_for_default_ELF_visibility(&visibility);
-      variable_ptr->ELF_visibility = visibility;
-    }
-#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
   }  /* if */
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+  /* Update the ELF visibility if applicable. */
+  { an_ELF_visibility_kind  visibility = variable_ptr->ELF_visibility;
+    update_for_default_ELF_visibility(&visibility);
+    variable_ptr->ELF_visibility = visibility;
+  }
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if NAMED_REGISTERS_ALLOWED
   if (named_registers_enabled) {
@@ -7364,19 +7364,19 @@ skip_overloading:;
                    routine_ptr, dps->asm_name, &dps->asm_name_pos,
                    routine_has_been_defined(routine_ptr) && !is_function_def);
     }  /* if */
-#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-    /* Update the ELF visibility if applicable. */
-    { an_ELF_visibility_kind  visibility = routine_ptr->ELF_visibility;
-      update_for_default_ELF_visibility(&visibility);
-      routine_ptr->ELF_visibility = visibility;
-    }
-#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
     if (attributes != NULL) {
       /* The list of attributes was duplicated earlier: We're responsible
          for freeing it. */
       free_attribute_list(attributes);
     }  /* if */
   }  /* if */
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+  /* Update the ELF visibility if applicable. */
+  { an_ELF_visibility_kind  visibility = routine_ptr->ELF_visibility;
+    update_for_default_ELF_visibility(&visibility);
+    routine_ptr->ELF_visibility = visibility;
+  }
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
   if (!routine_ptr->source_corresp.is_deprecated &&

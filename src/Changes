@@ -1,5 +1,19 @@
 Version 3.11
 
+10/13/08 [EDGcpfe/9260]
+ELF visibility semantics in non-GNU modes
+
+In GNU modes, the front end supports the "visibility" attribute and pragma to
+control the ELF visibility of functions and variables (including generated
+variables like typeinfo objects).  In order to make it easier for customers to
+adopt similar facilities in other dialects, the code implementing the main
+semantics of these GNU constructs has been enabled even when gcc_mode and
+gpp_mode are FALSE.  By themselves, these changes do not affect the behavior
+of the front end because the syntax to control ELF visibility still requires
+a GNU mode.  The configuration macros GNU_VISIBILITY_ATTRIBUTE_ALLOWED and
+GNU_EXTENSIONS_ALLOWED must still be TRUE to enable the code.
+
+
 10/13/08 [EDGcpfe/9106]
 IL representation for casts of class values to base and derived classes
 
