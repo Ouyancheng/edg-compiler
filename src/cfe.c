@@ -61,8 +61,10 @@ MAKE_FRONT_END_CALLABLE is TRUE.
   a_timer	    opt_start_time;
   a_timer	    opt_end_time;
 #endif /* USING_KAI_INLINER */
+#if BACK_END_SHOULD_BE_CALLED
   a_timer	    be_start_time;
   a_timer	    be_end_time;
+#endif /* BACK_END_SHOULD_BE_CALLED */
   a_timer	    end_time;
 
 #if DEBUG
