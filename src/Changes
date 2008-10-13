@@ -1,5 +1,15 @@
 Version 3.11
 
+10/13/08 [EDGcpfe/9106]
+IL representation for casts of class values to base and derived classes
+
+IL CHANGE:  The eok_base_class_cast and eok_derived_class_cast
+operators now apply to class lvalues and class rvalues in addition to
+pointers to class objects.  The form and type of the result matches
+the form and type of the operand (e.g., an eok_base_class_cast that
+casts a class rvalue to a base class produces a class rvalue result).
+
+
 10/13/08 [EDGcpfe/9103]
 Elimination of dead code under conditional operators
 
@@ -11,6 +21,7 @@ like "1 || x" is no longer transformed to simply "1" in the front end.
 IL lowering now does these transformations instead, so customers
 using IL lowering will see essentially no difference, and customers
 not using IL lowering will never see the dead code removed.
+
 
 10/8/08  [EDGcpfe/8856]
 Representation of declaration statements
