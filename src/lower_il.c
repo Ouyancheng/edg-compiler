@@ -16850,6 +16850,7 @@ have been promoted.
       p_stmt = &(*p_stmt)->next;
     }  /* if */
   }  /* while */
+  check_assertion(n_types == 0);
 done:;
 }  /* delete_types_from_decl_stmts */
 
@@ -17234,6 +17235,7 @@ of variables that have been promoted.
       p_stmt = &(*p_stmt)->next;
     }  /* if */
   }  /* while */
+  check_assertion(n_vars == 0);
 done:;
 }  /* delete_static_variables_from_decl_stmts */
 
