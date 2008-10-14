@@ -8931,19 +8931,18 @@ done_with_operation_after_parens:
          This is unfortunate since we don't really want to duplicate the
          expression for the second reference to it.  But we don't have
          much choice. */
-      { a_dynamic_init_ptr dip = expr->variant.reused_value_init;
-        gen_dynamic_init(dip, expr->type, /*parenthesized_init=*/FALSE,
-                         /*force_parens=*/FALSE,
-                         /*obj_expr_of_mfunc_operator=*/FALSE,
-                         expr->is_static_cast);
-      }
+      dip = expr->variant.reused_value_init;
+      gen_dynamic_init(dip, expr->type, /*parenthesized_init=*/FALSE,
+                       /*force_parens=*/FALSE,
+                       /*obj_expr_of_mfunc_operator=*/FALSE,
+                       expr->is_static_cast);
       break;
     case enk_temp_init:
       /* Temporary creation/initialization. */
       if (expr->is_lvalue) {
         /* Using the temp as an lvalue. */
         a_type_ptr         temp_type = expr->type;
-        a_dynamic_init_ptr dip = expr->variant.init.dynamic_init;
+        dip = expr->variant.init.dynamic_init;
         if (C_mode()) {
           /* Address of temp-init in C.  This comes up for the address
              of a C99 compound literal. */
@@ -8992,7 +8991,6 @@ done_with_operation_after_parens:
   /* If an extra set of parentheses was added because of the reference
      indirection trick above. close the set now. */
   if (need_reference_close_paren) write_tok_ch(')');
-done_with_expr:;
 }  /* gen_expr */
 
 

@@ -11938,7 +11938,7 @@ the value of the expression is discarded.
      the subnode type without changing the parent node type (or the sibling
      node type, in the "?" case).  The transformation done in lower_temp_init
      is the difficult case. */
-  /* If you change this, see also check_result_not_used_flag. */
+  /* If you change this, see also check_operation_node_consistency. */
   if (node->kind == (an_expr_node_kind)enk_operation &&
       is_void_type(node->type)) {
     an_expr_operator_kind op = node->variant.operation.kind;
@@ -19633,8 +19633,8 @@ have the is_lvalue flag set incorrectly; return TRUE otherwise.
              operand. */
         } else
 #endif /* !DO_IL_LOWERING */
-        /* Do not insert code here. */
-        operand_error = TRUE;
+          /* Do not insert code here. */
+          operand_error = TRUE;
       }  /* if */
     } else if (flags & LVRV_OPND1_IS_LVALUE) {
       /* The first operand is supposed to be an lvalue. */
@@ -19841,6 +19841,10 @@ node, and report any failure as an internal error.
                    is_void_type(expr->type)) {
           /* Okay, this is a cast to void, and the flag is set
              correctly. */
+        } else if (op == (an_expr_operator_kind)eok_parens &&
+                   expr->result_is_not_used) {
+          /* Okay, this is the operand of a parenthesis node that is also
+             not used, so the flag is set correctly. */
         } else {
           /* The flag is set incorrectly. */
 #if DEBUG && !STANDALONE_UTILITY_PROGRAM
