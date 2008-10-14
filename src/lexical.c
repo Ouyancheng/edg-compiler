@@ -2187,17 +2187,20 @@ END_EXTERN_C_BLOCK
 
 
 static void get_source_pos_from_macro_text_map(
-                                a_macro_text_map_ptr            mtmp,
-                                sizeof_t                        offset,
+				a_source_line_modif_ptr		slmp,
+				char				*loc_in_line,
                                 a_seq_number                    *seq,
                                 a_column_number                 *column,
                                 a_macro_invocation_record_index *macro_context)
 /*
-Find the source position associated with the specified offset in the specified
-macro text map and return the results in *seq, *column, and *macro_context.
+Find the source position associated with the specified line location
+(loc_in_line) in the macro text map specified by slmp and return the
+results in *seq, *column, and *macro_context.
 */
 {
+  a_macro_text_map_ptr       mtmp = &slmp->text_map;
   a_macro_text_map_entry_ptr mtmep;
+  sizeof_t                   offset = loc_in_line - slmp->inserted_text;
 
   /* Call bsearch to find the macro text map entry that covers the specified
      offset.  Note the "-1" in the bsearch argument for the number of entries;
@@ -2216,10 +2219,23 @@ macro text map and return the results in *seq, *column, and *macro_context.
      the start of the region. */
   *seq = mtmep->corresponding_source_pos.seq;
   if (mtmep->corresponding_source_pos.seq != 0) {
+#if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
+    /* When multibyte characters are supported, we need to step through the
+       text to compute the number of logical columns. */
+    char	*ptr;
+    *column = mtmep->corresponding_source_pos.column;
+    ptr = slmp->inserted_text;
+    while (ptr < loc_in_line) {
+      int numch = mbc_length_simple(ptr);
+      *column += 1;
+      ptr += numch;
+    }  /* while */
+#else /* !MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
     /* Apply the offset from the start of the region in the buffer to the
        column position. */
     *column = mtmep->corresponding_source_pos.column +
                                              (offset - mtmep->start_of_region);
+#endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
   } else {
     /* Special positions like predefined macros and command line macros are
        identified by special values of the column field, which must be
@@ -5153,6 +5169,13 @@ reallocate curr_source_line to make it bigger.
   new_curr_source_line = realloc_buffer(curr_source_line,
                                          (sizeof_t)(old_size+1),
                                          (sizeof_t)(new_size+1));
+#if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
+  /* Reallocate the logical character info array to have the same size as
+     the source line. */
+  logical_char_info = (char**)realloc_buffer((char*)logical_char_info,
+                                     (sizeof_t)(old_size * sizeof(char*)),
+                                     (sizeof_t)(new_size * sizeof(char*)));
+#endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
   /* Update any pointers to the old curr_source_line in the
      curr_source_line data structure. */
   adjust_curr_source_line_structure_after_realloc(curr_source_line,
@@ -5176,6 +5199,111 @@ Make sure the curr source line can hold at least min_len characters.
   }  /* while */
 }  /* ensure_min_curr_source_line_length */
 
+
+#if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
+/*
+Macro to set cached_logical_char_info_entried_used.  Expands to nothing
+if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED is FALSE.
+*/
+#define set_cached_logical_char_info_entried_used(new_val)		\
+  (cached_logical_char_info_entries_used = (new_val))
+#else /* !MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
+#define set_cached_logical_char_info_entried_used(new_val) /* nothing */
+#endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
+
+#if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
+
+/*
+The value of logical_char_info_entries_used is saved at the beginning of
+the token scanning process so that for tokens that contain multibyte
+characters we can quickly determine the logical column offset of the start
+of the token.
+*/
+static int cached_logical_char_info_entries_used;
+
+
+static int f_logical_column_offset(char	*loc_in_line)
+/*
+Compute the logical column offset (the difference between the actual byte
+number of the source line and the logical column number) for cases where
+loc_in_line is not after the last entry in the logical column info table.
+*/
+{
+  int	low = 0;
+  int	high = logical_char_info_entries_used;
+  int	idx;
+  char	*idx_ptr;
+
+  if (loc_in_line < logical_char_info[0]) {
+    /* The location precedes the first multibyte character. */
+    idx = 0;
+  } else if (cached_logical_char_info_entries_used != 0 &&
+             (cached_logical_char_info_entries_used ==
+                                              logical_char_info_entries_used ||
+             (loc_in_line >=
+                logical_char_info[cached_logical_char_info_entries_used - 1] &&
+              loc_in_line <
+                  logical_char_info[cached_logical_char_info_entries_used]))) {
+    /* We saved the value of logical_char_info_entries_used at the start of
+       the token and loc_in_line refers to a position after the saved entry
+       but before the one that follows it.  Use that value. */
+    idx = cached_logical_char_info_entries_used;
+  } else {
+    /* Find the entry in the logical_char_info array that is <= loc_in_line and
+       where the next entry is > loc_in_line.  This is done using a binary
+       search. */
+    for (;;) {
+      idx = (low + high) / 2;
+      idx_ptr = logical_char_info[idx];
+      if (idx_ptr > loc_in_line) {
+        high = idx;
+      } else if (idx_ptr <= loc_in_line &&
+                 logical_char_info[idx + 1] > loc_in_line) {
+        break;
+      } else {
+        low = idx;
+      }  /* if */
+    }  /* for */
+    /* Add one to convert from an array index to the actual column offset. */
+    idx++;
+  }  /* if */
+  return idx;
+}  /* f_logical_column_offset */
+
+#endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
+
+/*
+Return TRUE if the simple version of the logical column conversion can be
+used, FALSE otherwise.  The simple conversion can be done if there are
+no logical_char_info entries used, or if loc_in_line is greater than or
+equal to the last entry in the logical column info array.
+*/
+#if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
+
+#define simple_logical_column_conversion_possible(loc_in_line)		\
+  (logical_char_info_entries_used == 0 ||				\
+   (loc_in_line) >= logical_char_info[logical_char_info_entries_used - 1])
+
+#endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
+
+/*
+Compute the logical column offset (the difference between the actual byte
+number of the source line and the logical column number).  In most cases
+a simple conversion can be done.  For other cases, call a function to do
+the conversion.
+*/
+#if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
+
+#define logical_column_offset(loc_in_line)			\
+  (simple_logical_column_conversion_possible(loc_in_line)	\
+              ? logical_char_info_entries_used			\
+              : f_logical_column_offset(loc_in_line))
+
+#else /* !MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
+
+#define logical_column_offset(loc_in_line) (0) /*lint --e(835)*/
+
+#endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
 
 void conv_line_loc_to_source_pos(char              *loc_in_line,
                                  a_source_position *position_var)
@@ -5219,10 +5347,8 @@ macro_line_loc_to_source_pos should be used when speed is critical.
        so the position can be put into it once determined. */
     orig_slmp = slmp = assoc_source_line_modif(adj_loc_in_line);
 #if FULLY_RESOLVED_MACRO_POSITIONS
-    get_source_pos_from_macro_text_map(
-                            &orig_slmp->text_map,
-                            (sizeof_t)(loc_in_line - orig_slmp->inserted_text),
-                            &orig_seq, &orig_column, &macro_context);
+    get_source_pos_from_macro_text_map(orig_slmp, loc_in_line, &orig_seq,
+                                       &orig_column, &macro_context);
     use_orig_position = TRUE;
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
     for (;;) {
@@ -5292,7 +5418,8 @@ macro_line_loc_to_source_pos should be used when speed is critical.
      line. */
   position_var->seq    = seq_number;
   position_var->column = adj_loc_in_line - start_of_curr_phys_line +
-                         column_adjustment + 1;
+                         column_adjustment + 1 -
+                         logical_column_offset(adj_loc_in_line);
 have_position:
   /* Save the position determined in the innermost source line modification
      that covers this location.  That will make succeeding calls of
@@ -5362,7 +5489,8 @@ most common case.
       (within_curr_source_line(loc_in_line) && \
        orig_line_modif_list == NULL)) { \
     (position_var).seq    = curr_seq_number; \
-    (position_var).column = (loc_in_line) - curr_source_line + 1; \
+    (position_var).column = (loc_in_line) - curr_source_line + \
+                             1 - logical_column_offset(loc_in_line); \
     copy_pos_to_orig_pos((position_var)); \
     set_macro_context_to_none((position_var)); \
   } else { \
@@ -5821,6 +5949,7 @@ return_with_line:
   /* Set the input character position to the start of the line. */
   if (!extend_current_line) {
     curr_char_loc = curr_source_line;
+    logical_char_info_entries_used = 0;
     any_tokens_gotten_from_curr_source_line = FALSE;
   }  /* if */
 
@@ -6243,6 +6372,10 @@ used only within the lexical input routines.
       if (err) {
         is_id = FALSE;
       } else {
+#if EDG_MULTIBYTE_CHAR_TEST_MODE
+        /* Consider all multi-byte characters as identifier characters. */
+        is_id = TRUE;
+#else /* !EDG_MULTIBYTE_CHAR_TEST_MODE */
 #if USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING
         /* We don't have the wide character classification functions if we're
            using our own SJIS functions. */
@@ -6254,6 +6387,7 @@ used only within the lexical input routines.
         is_id = iswalpha(wc) ||
                 (!is_identifier_start && iswdigit(wc));
 #endif /* USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING */
+#endif /* EDG_MULTIBYTE_CHAR_TEST_MODE */
       }  /* if */
     }  /* if */
 #else /* UNICODE_SOURCE_SUPPORTED */
@@ -6418,6 +6552,33 @@ of a comment is assumed.  Also tests for "//" in C++ mode.
      *(curr_char_loc+1) == '*')                                       \
     or_microsoft_mode_slash_slash() ))
 
+
+#if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
+
+/*
+Create an entry in the logical_char_info array for ptr.
+*/
+#define add_logical_char_info_entry(ptr)				\
+  (logical_char_info[logical_char_info_entries_used++] = (ptr))
+
+/*
+Increment curr_char_loc by a total of len characters.  For each character
+except the first, create an entry in the logical character info table.
+*/
+#define incr_curr_char_loc_for_multibyte_char(len)			\
+{									\
+  if (len > 1 && within_curr_source_line(curr_char_loc)) {		\
+    int icclfmc_idx;							\
+    curr_char_loc++;							\
+    for (icclfmc_idx = 1; icclfmc_idx < (len); icclfmc_idx++) {		\
+      add_logical_char_info_entry(++curr_char_loc);			\
+    }  /* for */							\
+  } else {								\
+    curr_char_loc += (len);						\
+  }  /* if */								\
+}  /* incr_curr_char_loc_for_multibyte_char */
+
+#endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
 
 void skip_white_space(void)
 /*
@@ -6768,10 +6929,8 @@ normal_comment:
         /* Advance past the "/" and "*". */
         curr_char_loc += 2;
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
-#if STAR_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR
         /* Initialize for scanning multibyte characters in the comment. */
         mbc_scan_init_if_multibyte_chars_in_source_enabled();
-#endif /* STAR_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR */
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
         if (!in_preprocessing_directive && !currently_in_pp_if_skip) {
           /* Look for the special lint comments "notreached", "argsused", and
@@ -6938,10 +7097,8 @@ normal_comment:
             /* Reset the start of comment location for subsequent lines. */
             comment_start_loc = curr_source_line;
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
-#if STAR_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR
             /* Initialize for scanning multibyte characters in the comment. */
             mbc_scan_init_if_multibyte_chars_in_source_enabled();
-#endif /* STAR_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR */
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
           } else {
             /* Not an escape, i.e., a normal character. */
@@ -6956,13 +7113,15 @@ normal_comment:
             }  /* if */
             /* Advance to the next character position. */
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
-#if STAR_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR
             if (multibyte_chars_in_source_enabled) {
               /* Advance to the next character, dealing with multibyte
                  characters. */
-              curr_char_loc += lex_mbc_length_simple(curr_char_loc);
+              int mbc_len;
+              mbc_len = lex_mbc_length_simple(curr_char_loc);
+              /* Increment curr_char_loc by mbc_len and create any logical
+                 character index entries. */
+              incr_curr_char_loc_for_multibyte_char(mbc_len);
             } else
-#endif /* STAR_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR */
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
             /* Do not insert code here -- this is the "else" of an "if". */
             {
@@ -7956,7 +8115,9 @@ was.  The caller is responsible for issuing error messages.
       if (multibyte_chars_in_source_enabled) {
         /* Advance to the next character, dealing with multibyte characters. */
         int numch = lex_mbc_length_simple(curr_char_loc);
-        curr_char_loc += numch;
+         /* Increment curr_char_loc by numch and create any logical
+            character index entries. */
+        incr_curr_char_loc_for_multibyte_char(numch);
         switch (character_kind) {
           case chk_char:
             nchars += (unsigned long)numch;
@@ -9198,6 +9359,18 @@ and also put that into error_position.
   error_position = pos_curr_token;                                    \
 }  /* remember_token_start */
 
+
+/*
+Set start_of_curr_token to the current character location and (when multibyte
+characters are enabled) save the value of logical_char_info_entries_used
+to make the byte to logical column translation faster.
+*/
+#define record_start_of_curr_token()					\
+{									\
+  start_of_curr_token = curr_char_loc;					\
+  set_cached_logical_char_info_entried_used(logical_char_info_entries_used); \
+}  /* record_start_of_curr_token */
+
 /*
 Return TRUE if we are getting tokens from an inserted token string.
 */
@@ -9361,7 +9534,7 @@ rescan_token:
   }  /* if */
 start_of_token_scan:  /* Restart here after scanning white space. */
   /* Remember the start character position of the token. */
-  start_of_curr_token = curr_char_loc;
+  record_start_of_curr_token();
   /* Branch to different processing code according to the first
      character of the token.  *curr_char_loc must be used instead of
      ch because ch is not set when arriving at start_of_token_scan
@@ -9386,7 +9559,7 @@ return_end_of_source_token:
            string being scanned in isolation from the rest of the source.
            Return end of file. */
         ctoken = tok_end_of_source;
-        start_of_curr_token = curr_char_loc;
+        record_start_of_curr_token();
         /* Remember the character position of the end of the token. */
         end_of_curr_token = curr_char_loc + LE_ESCAPE_LEN - 1;
         /* Determine the source position of the end of source token. */
@@ -9432,7 +9605,7 @@ return_end_of_source_token:
         /* Marker put into text preceding a macro name to indicate that the
            macro name should not be expanded. */
         curr_char_loc += LE_ESCAPE_LEN;
-        start_of_curr_token = curr_char_loc;
+        record_start_of_curr_token();
         is_inert_macro = TRUE;
         goto id_scan;
       } else if (ch == LE_NULL) {
@@ -9569,7 +9742,7 @@ return_end_of_source_token:
            skipped over a comment and we've come upon another "/", but
            the code here works that that case too.) */
         if (*curr_char_loc != '/') goto start_of_token_scan;
-        start_of_curr_token = curr_char_loc;
+        record_start_of_curr_token();
         if (fetch_pp_tokens && curr_char_loc[1] == '/') {
           /* In some strange Microsoft cases, a "//" in a macro expansion
              is treated as a comment.  Here it ended up being half a comment
@@ -9859,7 +10032,9 @@ id_scan:
              invalid character as an invalid token. */
           continue_scan = TRUE;
           contains_ucn_or_multibyte_char = TRUE;
-          curr_char_loc += numch;
+          /* Increment curr_char_loc by numch and create any logical
+             character index entries. */
+          incr_curr_char_loc_for_multibyte_char(numch);
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
         }  /* if */
       } while (continue_scan);
@@ -10146,7 +10321,9 @@ check_start_of_pp_directive:
         a_boolean err;
         int numch = lex_mbc_length(curr_char_loc, &err);
         if (!err) {
-          curr_char_loc += numch;
+          /* Increment curr_char_loc by numch and create any logical
+             character index entries. */
+          incr_curr_char_loc_for_multibyte_char(numch);
           goto save_end_position;
         }  /* if */
       }
@@ -16073,6 +16250,7 @@ host-target conversions are performed.
     curr_source_line[orig_len+4] = LE_ESCAPE;
     curr_source_line[orig_len+5] = LE_END_OF_LINE;
     start_of_curr_token = curr_char_loc = curr_source_line;
+    logical_char_info_entries_used = 0;
     /* Tokenize the string. */
     curr_char_loc++;
     num_chars = 0;
@@ -16110,6 +16288,12 @@ are handled in lexical_init.)
                             (sizeof_t)(CURR_SOURCE_LINE_INITIAL_ALLOCATION+1));
   after_end_of_curr_source_line = curr_source_line +
                                     CURR_SOURCE_LINE_INITIAL_ALLOCATION;
+#if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
+  logical_char_info = (char**)alloc_resizable_buffer(
+            (sizeof_t)(CURR_SOURCE_LINE_INITIAL_ALLOCATION * sizeof(char*)));
+#endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
+  logical_char_info_entries_used = 0;
+  set_cached_logical_char_info_entried_used(0);
   raw_listing_buffer = NULL;
   after_end_of_raw_listing_buffer = NULL;
   if (f_raw_listing != NULL) {

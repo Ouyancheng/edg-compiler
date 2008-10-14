@@ -1111,6 +1111,17 @@ the pointers in all source line modifications will be adjusted as needed.
       char **ptr_ptr = prp->ptr_variable;
       fix_ptr(*ptr_ptr);
     }  /* for */
+#if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
+    /* If we are reallocating the curr_source_line array, adjust the
+       logical_char_info array, which contains pointers into
+       curr_source_line. */
+    if (old_ptr == curr_source_line) {
+      int	idx;
+      for (idx = 0; idx < logical_char_info_entries_used; idx++) {
+        fix_ptr(logical_char_info[idx]);
+      }  /* for */
+    }  /* if */
+#endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
   }  /* if */
   db_exit();
 }  /* adjust_curr_source_line_structure_after_realloc */
@@ -6976,6 +6987,7 @@ TRUE) and "-U" (when process_undefs is TRUE) options on the command line.
       curr_source_line[du_len+2] = LE_ESCAPE;
       curr_source_line[du_len+3] = LE_END_OF_LINE;
       curr_char_loc = curr_source_line;
+      logical_char_info_entries_used = 0;
       proc_define();
       /* Reset curr_command_line_macro_def so that diagnostics are no longer
          attributed to the command-line option we just processed. */

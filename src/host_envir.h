@@ -1965,19 +1965,17 @@ encodings mean the same thing).  See also REWRITE_UCN_ESCAPE_CHAR_IN_LOWERING.
 #endif /* IDENTIFIER_STRINGS_ALLOW_MULTIBYTE_CHARS */
 
 /*
-Indication of whether backslash, question mark, and star can appear as part of
-a multibyte character sequence.  If they cannot, processing for line splices,
-trigraphs, and C-style comments can be made more efficient.  For the
-Japanese EUC encoding, for example, those character codes never appear
-as part of other sequences, and these switches should be set to FALSE.
-The safe answer, in all cases, is TRUE: it may be slower than necessary,
-but it always gets the right answer.
+Indication of whether backslash, and question mark can appear as part of
+a multibyte character sequence.  If they cannot, processing for line splices
+and trigraphs can be made more efficient.  For the Japanese EUC encoding,
+for example, those character codes never appear as part of other sequences,
+and these switches should be set to FALSE.  The safe answer, in all cases,
+is TRUE: it may be slower than necessary, but it always gets the right answer.
 */
 #if UNICODE_SOURCE_SUPPORTED
 /* These characters do not appear in UTF-8 encoding. */
 #define BACKSLASH_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR FALSE
 #define QUESTION_MARK_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR FALSE
-#define STAR_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR FALSE
 #endif /* UNICODE_SOURCE_SUPPORTED */
 #ifndef BACKSLASH_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR
 #define BACKSLASH_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR TRUE
@@ -1985,9 +1983,6 @@ but it always gets the right answer.
 #ifndef QUESTION_MARK_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR
 #define QUESTION_MARK_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR TRUE
 #endif /* ifndef QUESTION_MARK_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR */
-#ifndef STAR_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR
-#define STAR_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR TRUE
-#endif /* ifndef STAR_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR */
 
 /*
 Macro that returns TRUE if a given character might be the beginning

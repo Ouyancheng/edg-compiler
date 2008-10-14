@@ -1938,7 +1938,6 @@ original character at that position.
       if (!pass_for_caret) { \
          putcwdb(*loc_in_line); \
       } \
-      curr_column++; \
     }  /* while */ \
   }  /* if */ \
   loc_in_line++; \

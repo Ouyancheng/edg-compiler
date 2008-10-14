@@ -1,5 +1,21 @@
 Version 3.11
 
+10/14/08  [EDGcpfe/9235]
+Column number in source position is now a logical column number
+
+Formerly, the column field of a_source_position was the byte number within
+the source line.  This is the same as a logical column number except when
+multibyte characters are used.  The byte number had been an acceptable
+representation even for source that uses multibyte characters, but presented
+problems now that the front end can read UTF-16 files.  When the front end
+reads UTF-16 source the characters are converted into UTF-8 internally.
+Consequently, the byte number represented the position in the internal
+representation, which cannot be readily mapped back to a position in the
+original source line.  To address this, the column number field now represents
+the logical column number, in which each source character counts as one
+logical character regardless of the number of bytes used to represent it.
+
+
 10/13/08 [EDGcpfe/9260]
 ELF visibility semantics in non-GNU modes
 

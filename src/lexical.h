@@ -1249,6 +1249,33 @@ EXTERN char	*after_end_of_curr_source_line;
 			   as an aid to checking for overflow, etc.  A variable
 			   because curr_source_line line can reallocated larger
 			   if needed. */
+#if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
+EXTERN char	**logical_char_info;
+			/* A dynamically allocated array that is used to
+			   convert a pointer into curr_source_line from a
+			   raw byte offset to a logical column number.  Each
+			   multibyte character in the source line represents
+			   one logical character.  When a non-initial character
+			   of a token is encountered, the pointer to that
+			   non-initial character is stored in the next
+			   available entry in this array (the first such
+			   pointer is in element zero, the second in element
+			   one, etc.).  The array is allocated with the same
+			   number of elements as curr_source_line to guarantee
+			   that it is not possible to overflow the array.
+			   To convert a pointer into curr_source_line into
+			   a logical column number, you need to find the entry
+			   in this array that contains the largest pointer that
+			   is <= the pointer you are looking for.  The array
+			   index+1 is the adjustment needed to convert to
+			   a logical column number. */
+#endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
+EXTERN int	logical_char_info_entries_used;
+			/* The number of entries in the logical_char_info
+			   array that are in use for the current source
+			   line (zero if no entries are in use).  Only
+			   referenced when MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
+			   is TRUE. */
 EXTERN a_seq_number
 		curr_seq_number;
 			/* The sequence number of the first physical line
