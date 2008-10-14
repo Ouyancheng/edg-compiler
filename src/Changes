@@ -249,7 +249,7 @@ are done (gnu_version >= 30400 or the --parse_templates option is used).
     A<T> a;
     void g(T t) {
       a.f<T>(t);  // accepted in g++ mode - should be written as:
-                  // m_impl.f template <T>(t); 
+                  // a.f template <T>(t); 
     }
   };
   int main() {
