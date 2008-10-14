@@ -7898,7 +7898,8 @@ with a template argument that is a template template parameter.
         tssp = template_supplement_for_template(tap->variant.templ.ptr);
         /* Determine whether the template pointed to is a template template
            parameter. */
-        if (tssp->variant.class_template.template_template_param) {
+        if (tssp != NULL &&
+            tssp->variant.class_template.template_template_param) {
           *force_end_of_traversal = found = TRUE;
           break;
         }  /* if */
@@ -8532,13 +8533,13 @@ its parameters?).
               }  /* if */
             }  /* for */
           }  /* if */
-          if (!status && type_ptr->source_corresp.is_class_member) {
+          if (!status && type_ptr->source_corresp.is_class_member &&
+              in_front_end) {
             /* If this class is a member of a proxy class, traverse the type
                of the template parameter with which the proxy class is
                associated. */
             tp = parent_class_of(type_ptr);
-            check_assertion(in_front_end &&
-                            tp->source_corresp.assoc_info != NULL);
+            check_assertion(tp->source_corresp.assoc_info != NULL);
             tp = symbol_supplement_for_class(tp)
                                              ->template_param_for_proxy_class;
             if (tp != NULL) {

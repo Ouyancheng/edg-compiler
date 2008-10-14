@@ -1865,6 +1865,8 @@ extern void rebuild_structures_on_il_read(void);
 extern a_boolean node_operands_have_correct_lvalueness(an_expr_node_ptr node);
 
 extern a_boolean tree_has_correct_lvalueness(an_expr_node_ptr root);
+
+extern void check_operation_node_consistency(an_expr_node_ptr expr);
 #endif /* CHECKING */
 
 extern void il_reset(void);

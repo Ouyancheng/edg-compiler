@@ -5163,7 +5163,7 @@ field.
   a_template_symbol_supplement_ptr	tssp;
 
   tssp = templ_ptr->template_info;
-  if (tssp == NULL) {
+  if (tssp == NULL && in_front_end) {
     sym = (a_symbol_ptr)templ_ptr->source_corresp.assoc_info;
     tssp = template_supplement_for_symbol(sym);
   }  /* if */
@@ -11335,11 +11335,14 @@ it is based; otherwise, return NULL.  This routine is only called for
 types that are known to be template classes.
 */
 {
-  a_symbol_ptr	result;
+  a_symbol_ptr	result = NULL;
   a_class_symbol_supplement_ptr	cssp;
 
-  cssp = symbol_supplement_for_class(type);
-  result = cssp->class_template;
+  if (in_front_end) {
+    /* The symbol table is not available after the front end terminates. */
+    cssp = symbol_supplement_for_class(type);
+    result = cssp->class_template;
+  }  /* if */
   return result;
 }  /* f_class_template_for_type */
 

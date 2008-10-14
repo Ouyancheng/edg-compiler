@@ -19625,15 +19625,25 @@ have the is_lvalue flag set incorrectly; return TRUE otherwise.
 
     if (flags & LVRV_OPND1_IS_RVALUE) {
       /* The first operand is supposed to be an rvalue. */
-      if (operand_1->is_lvalue) operand_error = TRUE;
+      if (operand_1->is_lvalue) {
+#if !DO_IL_LOWERING
+        if (!C_mode() && node_operator_is(node, eok_cast) &&
+            is_void_type(node->type)) {
+          /* In C++, a cast to void or a dependent type can have an lvalue
+             operand. */
+        } else
+#endif /* !DO_IL_LOWERING */
+        /* Do not insert code here. */
+        operand_error = TRUE;
+      }  /* if */
     } else if (flags & LVRV_OPND1_IS_LVALUE) {
       /* The first operand is supposed to be an lvalue. */
       if (!operand_1->is_lvalue) operand_error = TRUE;
     } else if (flags & LVRV_OPND1_IS_LVALUE_IF_EXPR_IS) {
-      /* The first operand is supposed to be an lvalue if and only if
-         the expression returns an lvalue.  This is complicated, however,
-         by the fact that the expression may have an implied lvalue-to-rvalue
-         conversion. */
+      /* The first operand is supposed to be an lvalue if and only if the
+         expression returns an lvalue.  This is complicated, however, by
+         the fact that the expression may have an implied
+         lvalue-to-rvalue conversion. */
       a_boolean eff_node_is_lvalue = node->is_lvalue;
       if (node_includes_lvalue_to_rvalue_conv(node)) {
         eff_node_is_lvalue = TRUE;
@@ -19661,21 +19671,42 @@ have the is_lvalue flag set incorrectly; return TRUE otherwise.
     } else if (flags & LVRV_OPND2_IS_LVALUE_IF_EXPR_IS) {
       /* The second operand is supposed to be an lvalue if and only if
          the expression returns an lvalue.  This is complicated, however,
-         by the fact that the expression may have an implied lvalue-to-rvalue
-         conversion. */
+         by the fact that the expression may have an implied
+         lvalue-to-rvalue conversion. */
       a_boolean eff_node_is_lvalue = node->is_lvalue;
       if (node_includes_lvalue_to_rvalue_conv(node)) {
         eff_node_is_lvalue = TRUE;
       }  /* if */
       if (eff_node_is_lvalue != operand_2->is_lvalue) {
-        operand_error = TRUE;
+        if (node->is_lvalue && op == (an_expr_operator_kind)eok_question &&
+            operand_2->kind == (an_expr_node_kind)enk_throw) {
+          /* It's okay for an lvalue eok_question node to have an rvalue
+             enk_throw operand. */
+        } else {
+          operand_error = TRUE;
+        }  /* if */
       } else if (op == (an_expr_operator_kind)eok_question &&
                  eff_node_is_lvalue != operand_2->next->is_lvalue) {
         /* An lvalue result for ?: also requires that the third operand be
            an lvalue. */
-        operand_error = TRUE;
+        if (node->is_lvalue && op == (an_expr_operator_kind)eok_question &&
+            operand_2->next->kind == (an_expr_node_kind)enk_throw) {
+          /* It's okay for an lvalue eok_question node to have an rvalue
+             enk_throw operand. */
+        } else {
+          operand_error = TRUE;
+        }  /* if */
       }  /* if */
     }  /* if */
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+    if (operand_error &&
+        (is_template_dependent_type(node->type) ||
+         is_template_dependent_type(operand_1->type) ||
+         (operand_2 != NULL && is_template_dependent_type(operand_2->type)))) {
+      /* Generic operands are not always lvalue-correct. */
+      operand_error = FALSE;
+    }  /* if */
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
   }  /* if */
   return !operand_error;
 }  /* node_operands_have_correct_lvalueness */
@@ -19697,6 +19728,7 @@ TRUE and terminates the traversal.
   }  /* if */
 }  /* check_node_operand_lvalueness */
 
+
 a_boolean tree_has_correct_lvalueness(an_expr_node_ptr root)
 /*
 Return FALSE if any of the nodes in the expression tree rooted in root have
@@ -19712,6 +19744,158 @@ their is_lvalue flag set incorrectly, TRUE otherwise.
   traverse_expr(root, &tblock);
   return !tblock.result;
 }  /* tree_has_correct_lvalueness */
+
+
+static a_boolean pointer_type_is_consistent(
+                                          a_type_ptr ptr_type,
+                                          a_type_ptr targ_type,
+                                          a_boolean  drop_qualifiers_under_ptr)
+/*
+Check whether a pointer type is what it is supposed to be.  Return FALSE if
+ptr_type is, in fact, not a pointer type (or a reference type -- in some
+cases, reference types are not lowered to pointer types) or if the type to
+which it points is not targ_type; return TRUE if the conditions are met.
+If drop_qualifiers_under_ptr is TRUE, the cv-unqualified version of the
+pointed-to type is used for the comparison.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (is_ptr_or_ref_type(ptr_type)) {
+    a_type_ptr pointed_to_type = type_pointed_to(ptr_type);
+#if !DO_IL_LOWERING
+    if (!C_mode() && is_class_struct_union_type(pointed_to_type)) {
+      /* In C++, keep qualifiers on class rvalues. */
+      drop_qualifiers_under_ptr = FALSE;
+    }  /* if */
+#endif /* DO_IL_LOWERING */
+    if (drop_qualifiers_under_ptr) {
+      pointed_to_type = make_unqualified_type(pointed_to_type);
+    }  /* if */
+    result = identical_types(pointed_to_type, targ_type);
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+    if (!result &&
+        (is_template_dependent_type(pointed_to_type) ||
+         is_template_dependent_type(targ_type))) {
+      /* Consistency is not enforceable with generic operands. */
+      result = TRUE;
+    }  /* if */
+  } else if (is_template_dependent_type(ptr_type) ||
+             is_template_dependent_type(targ_type)) {
+    /* With dependent types, the "pointer" type might not be a pointer. */
+    result = TRUE;
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
+  }  /* if */
+  return result;
+}  /* pointer_type_is_consistent */
+
+
+void check_operation_node_consistency(an_expr_node_ptr expr)
+/*
+Apply various consistency checks to expr, which must be an enk_operation
+node, and report any failure as an internal error.
+*/
+{
+  an_expr_operator_kind op;
+  an_expr_node_ptr      operand_1;
+
+  check_assertion(is_operation_node(expr));
+  op = expr->variant.operation.kind;
+  operand_1 = expr->variant.operation.operands;
+  if (!node_operands_have_correct_lvalueness(expr)) {
+    /* At least one of the operands is an lvalue when an rvalue is
+       expected or vice-versa. */
+#if DEBUG && !STANDALONE_UTILITY_PROGRAM
+    db_expression(expr);
+#endif /* DEBUG && !STANDALONE_UTILITY_PROGRAM */
+    internal_error("is_lvalue incorrectly set");
+  }  /* if */
+  /* Check that eok_cast is not used for array-decay operations.
+     (That was the pattern in an earlier version of the IL, but such
+     conversions should now be represented by eok_array_to_pointer.) */
+  if (op == (an_expr_operator_kind)eok_cast && is_pointer_type(expr->type)
+      && is_array_type(operand_1->type)) {
+#if DEBUG && !STANDALONE_UTILITY_PROGRAM
+    db_expression(expr);
+#endif /* DEBUG && !STANDALONE_UTILITY_PROGRAM */
+    internal_error("eok_cast used for array-to-ptr decay");
+  }  /* if */
+  /* Check the correctness of the result_is_not_used flags on the
+     operands. */
+  { an_expr_node_ptr op_node;
+    for (op_node = operand_1; op_node != NULL; op_node = op_node->next) {
+      if (op_node->result_is_not_used) {
+        /* Usually, it's a bad thing if the value of an operand is
+           not used by the operation, but check for special cases. */
+        if (op == (an_expr_operator_kind)eok_comma &&
+            (op_node == operand_1 || expr->result_is_not_used)) {
+          /* Okay, this is an operand of a comma operation, and the flag
+             is set correctly. */
+        } else if (op == (an_expr_operator_kind)eok_question &&
+                   op_node != operand_1 &&
+                   expr->result_is_not_used) {
+          /* Okay, this is an operand after the first on a "?"
+             operation, and the flag is set correctly. */
+        } else if (op == (an_expr_operator_kind)eok_cast &&
+                   expr->result_is_not_used &&
+                   is_void_type(expr->type)) {
+          /* Okay, this is a cast to void, and the flag is set
+             correctly. */
+        } else {
+          /* The flag is set incorrectly. */
+#if DEBUG && !STANDALONE_UTILITY_PROGRAM
+          db_expression(expr);
+          db_expression(op_node);
+#endif /* DEBUG && !STANDALONE_UTILITY_PROGRAM */
+          internal_error("result_is_not_used set wrong on operand");
+        }  /* if */
+      }  /* if */
+    }  /* for */
+  }
+#if !STANDALONE_UTILITY_PROGRAM
+  /* Check that the result and operand types are consistent for
+     certain operators.  (We do not perform the check in a standalone
+     program because it relies on identical_types, which is not
+     available in that environment.) */
+  if (op == (an_expr_operator_kind)eok_address_of &&
+      !pointer_type_is_consistent(expr->type, operand_1->type,
+                                  /*drop_qualifiers_under_ptr=*/FALSE)) {
+#if DEBUG
+    db_expression(expr);
+#endif /* DEBUG */
+    internal_error("wrong result type for &");
+  }  /* if */
+  if (op == (an_expr_operator_kind)eok_subscript &&
+      !pointer_type_is_consistent(
+                         subscript_or_padd_pointer_operand(expr)->type,
+                         expr->type,
+                         /*drop_qualifiers_under_ptr=*/!expr->is_lvalue)) {
+#if DEBUG
+    db_expression(expr);
+#endif /* DEBUG */
+    internal_error("wrong result type for subscript");
+  }  /* if */
+  if (op == (an_expr_operator_kind)eok_indirect) {
+    a_type_ptr result_type = expr->type;
+    if (!expr->is_lvalue && is_pointer_type(result_type) &&
+        is_ptr_or_ref_type(operand_1->type) &&
+        is_function_type(type_pointed_to(operand_1->type))) {
+      /* An lvalue-to-rvalue conversion on an expression with function
+         type decays back to a pointer to function; we need to check
+         against the function type itself. */
+      result_type = type_pointed_to(result_type);
+    }  /* if */
+    if (!pointer_type_is_consistent(
+                         operand_1->type, result_type,
+                         /*drop_qualifiers_under_ptr=*/!expr->is_lvalue)) {
+#if DEBUG
+      db_expression(expr);
+#endif /* DEBUG */
+      internal_error("wrong result type for *");
+    }  /* if */
+  }  /* if */
+#endif /* !STANDALONE_UTILITY_PROGRAM */
+}  /* check_operation_node_consistency */
 #endif /* CHECKING */
 
 #if DEBUG

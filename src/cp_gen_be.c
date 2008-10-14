@@ -125,14 +125,6 @@ static unsigned long
 			/* The number of characters written to the current
 			   line of output.  Zero means nothing has been
 			   written so far. */
-static unsigned long
-		last_arrow_column;
-			/* The column position at which the most recent
-			   "->" was written by handle_operator_call. */
-static a_line_number
-		last_arrow_line;
-			/* The line number on which the most recent "->"
-			   was written by handle_operator_call. */
 static a_boolean
 		curr_output_pos_known;
 			/* TRUE if the current output position is known. */
@@ -372,14 +364,6 @@ static void gen_pending_pragma_pack(void);
 static void gen_template_header(a_template_decl_ptr tdp);
 static void gen_template(void);
 static an_expr_node_ptr strip_lvalue_cast_sequence(an_expr_node_ptr expr);
-static void gen_lvalue_full(an_expr_node_ptr node,
-                            a_boolean        need_parens,
-                            a_boolean        obj_expr_of_mfunc_operator);
-#define gen_lvalue(node) gen_lvalue_full(node, /*need_parens=*/TRUE,  \
-                                         /*obj_expr_of_mfunc_operator=*/FALSE)
-#define gen_lvalue_no_parens(node) gen_lvalue_full(                   \
-                                         node, /*need_parens=*/FALSE, \
-                                         /*obj_expr_of_mfunc_operator=*/FALSE)
 static void gen_lvalue_object_expr(
                                   an_expr_node_ptr expr,
                                   a_boolean        obj_expr_of_mfunc_operator);
@@ -441,15 +425,20 @@ static void gen_full_cast(a_type_ptr            dest_type,
                           a_boolean             is_reinterpret_cast,
                           a_boolean             is_static_cast);
 static void gen_expr(an_expr_node_ptr expr,
-                     a_boolean        need_parens);
+                     a_boolean        need_parens,
+                     a_boolean        obj_expr_of_mfunc_operator);
 /* Interfaces to gen_expr for the usual cases. */
 /* Note that gen_expr_with_parens does not force parentheses around the
    expression; it puts them there if there's some possibility of
    precedence confusion.  gen_expression never puts parentheses
    around the expression (it's used in contexts that have already
    provided parentheses or the like). */
-#define gen_expr_with_parens(expr) gen_expr(expr, /*need_parens=*/TRUE)
-#define gen_expression(expr)       gen_expr(expr, /*need_parens=*/FALSE)
+#define gen_expr_with_parens(expr) gen_expr(                                  \
+                                       expr, /*need_parens=*/TRUE,            \
+                                       /*obj_expr_of_mfunc_operator=*/FALSE)
+#define gen_expression(expr)       gen_expr(                                  \
+                                       expr, /*need_parens=*/FALSE,           \
+                                       /*obj_expr_of_mfunc_operator=*/FALSE)
 static void gen_boolean_controlling_expression(an_expr_node_ptr expr);
 
 /*
@@ -3164,7 +3153,8 @@ give the dynamic initialization entry and type for the compound literal.
     check_assertion(is_scalar &&
                     dip->kind == (a_dynamic_init_kind)dik_expression);
     parens_needed = expr_has_comma_operation(dip->variant.expression);
-    gen_expr(dip->variant.expression, parens_needed);
+    gen_expr(dip->variant.expression, parens_needed,
+             /*obj_expr_of_mfunc_operator=*/FALSE);
   }  /* if */
   if (is_scalar) write_tok_ch('}');
   write_tok_ch(')');
@@ -4246,7 +4236,7 @@ parameter.
     if (param->passed_via_copy_constructor) {
       /* For a default argument for a parameter passed via a copy constructor,
          the default argument expression is an address. */
-      gen_lvalue_no_parens(expr);
+      gen_expression(expr);
     } else if (is_pointer_type(param->type) &&
                is_constant_node(expr) &&
                expr->variant.constant->kind ==
@@ -6382,11 +6372,9 @@ this selection.
   }  /* if */
   if (op == (an_expr_operator_kind)eok_points_to_field) {
     gen_expr(object_expr,
-             parens_may_be_needed(generated_precedence[op], object_expr));
-    if (!is_operator_syntax_arrow(object_expr)) {
-      /* Don't output "->" if handle_operator_call already did. */
-      write_tok_str("->");
-    }  /* if */
+             parens_may_be_needed(generated_precedence[op], object_expr),
+             /*obj_expr_of_mfunc_operator=*/FALSE);
+    write_tok_str("->");
   } else if (is_variable_node(object_expr) &&
              object_expr->variant.variable->is_anonymous_parent_object) {
     /* For an anonymous union variable, do not put out the variable or "."
@@ -6397,10 +6385,6 @@ this selection.
     if (field_expr->variant.field->source_corresp.qualification_needed) {
       write_tok_str("::");
     }  /* if */
-  } else if (is_operator_syntax_arrow(object_expr)) {
-    /* This expression implicitly invokes an operator->() function; generate
-       it in the original "x->y" form. */
-    gen_expression(object_expr);
   } else {
     /* Normal "." case. */ 
     gen_expr_with_parens(object_expr);
@@ -6463,13 +6447,12 @@ this selection.
        a pointer. */
     object_expr = stripped_object_expr->variant.operation.operands;
   }  /* if */
+  gen_expr_with_parens(object_expr);
   if (object_expr->is_lvalue) {
     /* ".*" case. */
-    gen_lvalue(object_expr);
     write_tok_str(".*");
   } else {
     /* "->*" form. */
-    gen_expr_with_parens(object_expr);
     write_tok_str("->*");
   }  /* if */
   gen_expr_with_parens(pm_expr);
@@ -6505,7 +6488,7 @@ of a "?" operation returning a class rvalue.  Generate code for it.
                     arg->variant.operation.kind ==
                                           (an_expr_operator_kind)eok_question);
     /* The value of the "?" is an lvalue. */
-    gen_lvalue(arg);
+    gen_expr_with_parens(arg);
   }  /* if */
 }  /* gen_class_rvalue_question_mark */
 
@@ -6622,9 +6605,7 @@ static void gen_dot_static(an_expr_node_ptr operand_1,
 /*
 operand_1 and operand_2 are the operands of a "dot-static" operation, e.g.,
 eok_lvalue_dot_static.  Put out the operation, with the operator indicated
-by opstr.  opstr will be "" if the generated code for operand_1 will
-include the operator (for an operator->() call generated by
-handle_operator_call).
+by opstr.
 */
 {
   a_boolean        unknown_function_case = FALSE;
@@ -6644,14 +6625,11 @@ handle_operator_call).
        use "->" with a non-pointer value. */
     opstr = ".";
   }  /* if */
-  if (operand_1->is_lvalue) {
-    gen_lvalue(operand_1);
+  gen_expr_with_parens(operand_1);
+  if (operand_1->is_lvalue &&
+      is_template_param_or_nonreal_class_type(operand_1_type)) {
     /* Watch out for prototype instantiations. */
-    if (is_template_param_or_nonreal_class_type(operand_1_type)) {
-      operand_1_type = NULL;
-    }  /* if */
-  } else {
-    gen_expr_with_parens(operand_1);
+    operand_1_type = NULL;
   }  /* if */
   if (operand_1_type != NULL && opstr[0] != '.') {
     /* Watch out for prototype instantiations. */
@@ -6714,12 +6692,10 @@ handle_operator_call).
   if (unknown_function_case) {
     /* Put out an unknown function without a leading "&". */
     form_unknown_function_constant(con, &octl);
-  } else if (operand_2->is_lvalue) {
-    gen_lvalue_no_parens(operand_2);
   } else {
     /* Put parentheses around the expression if it was changed to the ","
        form. */
-    gen_expr(operand_2, use_comma);
+    gen_expr(operand_2, use_comma, /*obj_expr_of_mfunc_operator=*/FALSE);
   }  /* if */
   if (need_context_pop) pop_name_context();
 }  /* gen_dot_static */
@@ -6795,7 +6771,7 @@ Output a new-style cast.
     check_assertion(is_operation_node(operand) &&
                     operand->variant.operation.compiler_generated &&
                     node_operator_is(operand, eok_address_of));
-    gen_lvalue_no_parens(operand->variant.operation.operands);
+    gen_expression(operand->variant.operation.operands);
   } else {
     gen_expression(expr->variant.operation.operands);
   }  /* if */
@@ -6829,7 +6805,7 @@ Generate a va_arg operator.  Used when <stdarg.h> is treated as a builtin.
   } else {
     write_tok_str("va_arg(");
   }  /* if */
-  gen_lvalue(operand_1);
+  gen_expr_with_parens(operand_1);
   write_tok_ch(',');
   gen_type(type);
   write_tok_ch(')');
@@ -6873,406 +6849,6 @@ original lvalue.
 }  /* strip_lvalue_cast_sequence */
 
 
-static void gen_lvalue_full(an_expr_node_ptr node,
-                            a_boolean        need_parens,
-                            a_boolean        obj_expr_of_mfunc_operator)
-/*
-Generate an expression that the IL sees as an lvalue address, and C sees as
-an expression.  In effect, add an indirection to the expression.  The
-expression is surrounded by parentheses if there's some possibility of
-precedence confusion and need_parens is TRUE.  If obj_expr_of_mfunc_operator
-is TRUE, this lvalue is used as the object expression in a call to an
-overloaded operator member function that is being generated using operator
-notation rather than as a function call (used in determining how to generate
-temporary expressions).
-*/
-{
-  an_expr_node_kind  kind;
-  a_boolean          processed = FALSE;
-  a_dynamic_init_ptr dip;
-  a_boolean          saved_is_lvalue;
-
-  /* If the lvalue address is a constant that came from an expression, go to
-     the expression.  This allows optimizations. */
-  if (is_constant_node(node) &&
-      constant_should_be_put_out_as_expr(node->variant.constant)) {
-    node = node->variant.constant->expr;
-  }  /* if */
-  if (is_operation_node(node) && node_operator_is(node, eok_reference_to)) {
-    /* This is the implicit dereference of a node with reference type.  Put
-       out the node being dereferenced. */
-    node = node->variant.operation.operands;
-  }  /* if */
-  check_assertion(node->is_lvalue ||
-                  node->kind == (an_expr_node_kind)enk_object_lifetime);
-  kind = node->kind;
-  if (kind == (an_expr_node_kind)enk_variable) {
-    /* Address of variable: just write the variable name. */
-    gen_name_from_variable_node(node);
-    processed = TRUE;
-  } else if (kind == (an_expr_node_kind)enk_routine) {
-    /* A routine: just write the routine name. */
-    gen_name_from_routine_node(node, /*unqualified=*/FALSE,
-                               /*use_ampersand=*/FALSE);
-    processed = TRUE;
-  } else if (kind == (an_expr_node_kind)enk_operation) {
-    an_expr_operator_kind op = node->variant.operation.kind;
-    an_expr_node_ptr      operand_1 = node->variant.operation.operands;
-    an_expr_node_ptr      operand_2 = operand_1->next;
-    if (node->variant.operation.returns_lvalue_instead_of_usual_rvalue) {
-      /* An operation that returns an lvalue, e.g., an lvalue-returning
-         assignment. */
-      switch (op) {
-        case eok_question:
-          /* Lvalue-returning "?".  Put out the second and third operands as
-             lvalues. */
-          if (need_parens) write_tok_ch('(');
-          gen_boolean_controlling_expression(operand_1);
-          write_tok_str(" ? ");
-#if GNU_EXTENSIONS_ALLOWED
-          if (node->variant.operation.is_gnu_two_operand_question_mark) {
-            /* The GNU two-operand case, e.g., x ?: y.  Skip the
-               synthesized second operand. */
-          } else
-#endif /* GNU_EXTENSIONS_ALLOWED */
-          /* Do not insert code here. */
-          if (operand_2->kind == (an_expr_node_kind)enk_throw) {
-            /* An lvalue created out of a class rvalue can have a throw
-               in one of the arms.  Treat it as an rvalue. */
-            gen_expr_with_parens(operand_2);
-          } else {
-            gen_lvalue(operand_2);
-          }  /* if */
-          write_tok_str(" : ");
-          if (operand_2->next->kind == (an_expr_node_kind)enk_throw) {
-            gen_expr_with_parens(operand_2->next);
-          } else {
-            gen_lvalue(operand_2->next);
-          }  /* if */
-          if (need_parens) write_tok_ch(')');
-          processed = TRUE;
-          break;
-        case eok_comma:
-          /* Lvalue-returning ",".  Put out the second operand as an lvalue. */
-          if (need_parens) write_tok_ch('(');
-          gen_expr_with_parens(operand_1);
-          write_tok_str(", ");
-          gen_lvalue(operand_2);
-          if (need_parens) write_tok_ch(')');
-          processed = TRUE;
-          break;
-#if GNU_EXTENSIONS_ALLOWED
-        case eok_gnu_min:
-          /* Lvalue-returning GNU C++ minimum operator. Both operands are
-             lvalues. */
-          if (need_parens) write_tok_ch('(');
-          gen_lvalue(operand_1);
-          write_tok_str(" <? ");
-          gen_lvalue(operand_2);
-          if (need_parens) write_tok_ch(')');
-          processed = TRUE;
-          break;
-        case eok_gnu_max:
-          /* Lvalue-returning GNU C++ maximum operator. Both operands are
-             lvalues. */
-          if (need_parens) write_tok_ch('(');
-          gen_lvalue(operand_1);
-          write_tok_str(" >? ");
-          gen_lvalue(operand_2);
-          if (need_parens) write_tok_ch(')');
-          processed = TRUE;
-          break;
-#endif /* GNU_EXTENSIONS_ALLOWED */
-        case eok_points_to_static:
-          /* Static member selection, p->m. */
-          if (need_parens) write_tok_ch('(');
-          /* If operand_1 is an invocation of operator->() that will be
-             generated as "->", pass "" as the opstr instead of "->" to
-             avoid generating "->->". */
-          gen_dot_static(operand_1,
-                         (char *)(is_operator_syntax_arrow(operand_1) ?
-                                                                    "" : "->"),
-                         operand_2);
-          if (need_parens) write_tok_ch(')');
-          processed = TRUE;
-          break;
-        case eok_dot_static:
-          /* Static member selection, x.m. */
-          if (need_parens) write_tok_ch('(');
-          gen_dot_static(operand_1, ".", operand_2);
-          if (need_parens) write_tok_ch(')');
-          processed = TRUE;
-          break;
-        default:
-          /* Other case (e.g., lvalue-returning assignment).  Just put the
-             expression out. */
-          node->variant.operation.returns_lvalue_instead_of_usual_rvalue=FALSE;
-          node->is_lvalue = FALSE;
-          gen_expr(node, need_parens);
-          node->variant.operation.returns_lvalue_instead_of_usual_rvalue=TRUE;
-          node->is_lvalue = TRUE;
-          processed = TRUE;
-          break;
-      }  /* switch */
-    } else if (is_operator_syntax_arrow(node)) {
-      /* node is a call to an operator->() that was expressed in the source
-         using operator syntax ("a->b").  Generate it in that form. */
-      gen_expression(node);
-      processed = TRUE;
-    } else {
-      switch (op) {
-        case eok_subscript:
-          /* The expression is a subscripting operation. */
-          if (need_parens) write_tok_ch('(');
-          gen_expr_with_parens(operand_1);
-          gen_array_subscript(operand_2);
-          if (need_parens) write_tok_ch(')');
-          processed = TRUE;
-          break;
-        case eok_dot_field:
-        case eok_points_to_field:
-          if (need_parens) write_tok_ch('(');
-          gen_simple_field_selection(operand_1, operand_2, op);
-          if (need_parens) write_tok_ch(')');
-          processed = TRUE;
-          break;
-        case eok_pm_field:
-          /* The expression is a "->*", which has an implicit "&"
-             in front of it (in C++ terms).  Adding the indirection removes 
-             the "&". */
-          if (need_parens) write_tok_ch('(');
-          gen_pm_simple_field_selection(operand_1, operand_2);
-          if (need_parens) write_tok_ch(')');
-          processed = TRUE;
-          break;
-        case eok_lvalue_cast:
-          /* Lvalue cast. */
-          if (need_parens) write_tok_ch('(');
-          if (!node->variant.operation.compiler_generated) {
-            gen_cast(node->type);
-          }  /* if */
-          gen_lvalue(operand_1);
-          if (need_parens) write_tok_ch(')');
-          processed = TRUE;
-          break;
-        case eok_cast:
-        case eok_base_class_cast:
-        case eok_derived_class_cast:
-          /* Cast. */
-          if (node->variant.operation.compiler_generated &&
-              !node->variant.operation.keep_cast_for_cp_gen_be) {
-            /* Implicit cast.  Remove to avoid problems with casting address
-               of enk_temp_init to some related type. */
-            gen_lvalue_full(operand_1, need_parens,
-                            obj_expr_of_mfunc_operator);
-            processed = TRUE;
-          } else {
-            /* Explicit cast.  In C++, handle as a reference cast.  In C,
-               leave to be done in the general way. */
-            if (!C_mode()) {
-              /* Only use the reference cast form if the underlying type is
-                 a class.  It may be necessary in that case, to avoid putting
-                 a "&" in front of a class object that has operator&
-                 overloaded.  For other cases, it's not necessary, it might
-                 prod weak areas in compilers, and it's in fact wrong for
-                 cases where the original source casts a "void *" pointer
-                 to another pointer type and then dereferences it. */
-              a_boolean is_reference_cast = FALSE;
-              /* Incorporate any implicit steps attached to the explicit
-                 cast. */
-              while (is_operation_node(operand_1) &&
-                     operand_1->variant.operation.
-                                              implicit_step_of_explicit_cast) {
-                operand_1 = operand_1->variant.operation.operands;
-              }  /* while */
-              if (node->variant.operation.is_reference_cast) {
-                /* We're told explicitly that the source form was a
-                   reference cast. */
-                is_reference_cast = TRUE;
-              } else {
-                /* Try to figure out whether the source form was a
-                   reference cast (or, failing that, whether the generated
-                   code can be a reference cast). */
-                a_type_ptr source_type = operand_1->type;
-                if (is_pointer_type(source_type) &&
-                    is_class_struct_union_type(type_pointed_to(source_type))) {
-                  a_type_ptr dest_type = node->type;
-                  if (dest_type->kind == (a_type_kind)tk_typeref &&
-                      typeref_is_typedef(dest_type)) {
-                    /* The destination type is a typedef for a pointer type,
-                       so the cast must have been to that type rather than
-                       the reference type. */
-                  } else if (is_template_param_type(dest_type)) {
-                    /* A cast to a template parameter type in a prototype
-                       instantiation. */
-                  } else if (operand_1->kind ==
-                                            (an_expr_node_kind)enk_temp_init &&
-                             !sun_is_generated_code_target) {
-                    /* The operand is a class temporary (rvalue).  While the
-                       Sun C++ compiler accepts code of the form
-
-                           struct S { };
-                           S f();
-                           ... (T&)f() ...
-
-                       and rejects the alternative representation,
-
-                           ... *(T*)&f() ...
-
-                       other compilers reject a cast of a class rvalue to a
-                       reference type unless the target type is a
-                       const-qualified reference to the same class type or
-                       one of its bases but do allow taking the address of
-                       a class rvalue. */
-                    if (!node->variant.operation.is_reinterpret_cast &&
-                        is_pointer_type(dest_type)) {
-                      /* This is not a reinterpret_cast, and the target
-                         type is a pointer to some type, so a reference
-                         cast is possible, depending on the relationship
-                         between the source and target types. */
-                      dest_type = type_pointed_to(dest_type);
-                      source_type =
-                                 f_skip_typerefs(type_pointed_to(source_type));
-                      if (get_type_qualifiers(dest_type) == TQ_CONST &&
-                          (op == (an_expr_operator_kind)eok_base_class_cast ||
-                           skip_typerefs(dest_type) == source_type)) {
-                        /* A cast to a const-qualified base class type or
-                           to the same type -- a reference cast can be
-                           used. */
-                        is_reference_cast = TRUE;
-                      }  /* if */
-                    }  /* if */
-                  } else {
-                    /* The cast can be generated as a reference cast. */
-                    is_reference_cast = TRUE;
-                  }  /* if */
-                }  /* if */
-              }  /* if */
-              if (is_reference_cast) {
-                /* Generate a cast to a reference type. */
-                if (need_parens) write_tok_ch('(');
-                gen_full_cast(node->type, operand_1,
-                              /*is_reference_cast=*/TRUE,
-                              node->variant.operation.is_reinterpret_cast,
-                              node->is_static_cast);
-                if (need_parens) write_tok_ch(')');
-                processed = TRUE;
-              }  /* if */
-            }  /* if */
-          }  /* if */
-          break;
-        case eok_lvalue:
-          /* Operand is generic but used where an lvalue is expected. */
-          saved_is_lvalue = operand_1->is_lvalue;
-          operand_1->is_lvalue = TRUE;
-          gen_expr(operand_1, need_parens);
-          operand_1->is_lvalue = saved_is_lvalue;
-          processed = TRUE;
-          break;
-#if GNU_EXTENSIONS_ALLOWED
-        case eok_real_part:
-          /* __real applied to an lvalue -- no explicit indirection needed. */
-          write_tok_str("__real(");
-          gen_lvalue_no_parens(operand_1);
-          write_tok_ch(')');
-          processed = TRUE;
-          break;
-        case eok_imag_part:
-          /* __imag applied to an lvalue -- no explicit indirection needed. */
-          write_tok_str("__imag(");
-          gen_lvalue_no_parens(operand_1);
-          write_tok_ch(')');
-          processed = TRUE;
-          break;
-#endif /* GNU_EXTENSIONS_ALLOWED */
-        default:
-          break;
-      }  /* switch */
-    }  /* if */
-  } else if (kind == (an_expr_node_kind)enk_constant &&
-             node->variant.constant->kind ==
-                                     (a_constant_repr_kind)ck_template_param) {
-    /* Using a template parameter constant as an lvalue in a prototype
-       instantiation.  Optimize if the constant refers to the address
-       of a member (to avoid "*" and "&" operators). */
-    a_constant_ptr constant = node->variant.constant;
-    a_template_param_constant_kind tpkind =
-                                         constant->variant.template_param.kind;
-    if (tpkind == (a_template_param_constant_kind)tpck_address) {
-      check_assertion(constant->expr == NULL);
-      /* Put out the member name without the "&". */
-      form_constant(constant->variant.template_param.variant.constant,
-		    need_parens, &octl);
-      processed = TRUE;
-    } else if (tpkind ==
-                       (a_template_param_constant_kind)tpck_unknown_function ||
-               tpkind ==
-                       (a_template_param_constant_kind)tpck_template_ref) {
-      /* A tpck_unknown_function or tpck_template_ref constant represents
-         the address of the unknown function.  Drop the "&" to make an
-         lvalue. */
-      form_unknown_function_constant(constant, &octl);
-      processed = TRUE;
-    } else if (tpkind == (a_template_param_constant_kind)tpck_cast) {
-      /* In some cases, a do-nothing tpck_cast is used to make it clear
-         that a constant is template-dependent.  Drop such a cast. */
-        a_constant_ptr sub_con =
-                             constant->variant.template_param.variant.constant;
-      if (constant->type == sub_con->type) {
-        if (sub_con->kind == (a_constant_repr_kind)ck_address) {
-          form_lvalue_address_constant(sub_con, /*need_parens=*/TRUE, &octl);
-          processed = TRUE;
-        }  /* if */
-      }  /* if */
-    } else if (tpkind == (a_template_param_constant_kind)tpck_uuidof) {
-      /* A tpck_uuidof constant represents the address of the Microsoft
-         __uuidof.  Drop the "&" to make an lvalue. */
-      form_uuidof_reference(constant, &octl);
-      processed = TRUE;
-    } else if (tpkind == (a_template_param_constant_kind)tpck_typeid) {
-      /* A tpck_typeid constant represents the address of a typeid(...) result.
-         Drop the "&" to make an lvalue. */
-      form_typeid_reference(constant, &octl);
-      processed = TRUE;
-    }  /* if */
-  } else if (kind == (an_expr_node_kind)enk_constant &&
-             node->variant.constant->kind == (a_constant_repr_kind)ck_address){
-    /* Using an address constant as the lvalue address. */
-    form_lvalue_address_constant(node->variant.constant, /*need_parens=*/TRUE,
-                                 &octl);
-    processed = TRUE;
-  } else if (kind == (an_expr_node_kind)enk_temp_init &&
-             node->is_lvalue) {
-    /* A temporary initialization with the address of the temporary used as
-       the node value.  Just put out the underlying value. */
-    gen_temp_init(node, obj_expr_of_mfunc_operator);
-    processed = TRUE;
-  } else if (kind == (an_expr_node_kind)enk_temp_init &&
-             (dip = node->variant.init.dynamic_init)->is_reused_value &&
-             (dip->kind == (a_dynamic_init_kind)dik_expression ||
-              dip->kind ==
-                    (a_dynamic_init_kind)dik_call_returning_class_via_cctor)) {
-    /* A reused-value temporary initialization, which will be elided in
-       the output.  Just put out the underlying value. */
-    gen_lvalue_full(dip->variant.expression, /*need_parens=*/TRUE,
-                    obj_expr_of_mfunc_operator);
-    processed = TRUE;
-  } else if (kind == (an_expr_node_kind)enk_object_lifetime) {
-    /* Ignore an enk_object_lifetime; the thing underneath is processed as
-       an lvalue. */
-    gen_lvalue_full(node->variant.object_lifetime.expr, need_parens,
-                    obj_expr_of_mfunc_operator);
-    processed = TRUE;
-  }  /* if */
-  if (!processed) {
-    /* Not a special case: just put out the expression. */
-    node->is_lvalue = FALSE;
-    gen_expr(node, need_parens);
-    node->is_lvalue = TRUE;
-  }  /* if */
-}  /* gen_lvalue_full */
-
-
 static an_expr_node_ptr skip_implicit_ptr_type_qualifier_adjustment_cast(
                                                          an_expr_node_ptr expr)
 /*
@@ -7311,8 +6887,8 @@ Generate an lvalue expression that is used as the object expression in a
 member access.  If it is a constant node, use the expression inside the
 constant.  Skip over any compiler-generated base class and qualification
 casts, as well as a compiler-generated eok_address_of operator (that
-converts an lvalue into the "this" pointer).  Parentheses are always
-added, and obj_expr_of_mfunc_operator is passed on to gen_lvalue_full.
+converts an lvalue into the "this" pointer).  Parentheses are always added,
+and obj_expr_of_mfunc_operator is passed on to gen_expr.
 */
 {
   a_type_ptr naming_class;
@@ -7329,22 +6905,7 @@ added, and obj_expr_of_mfunc_operator is passed on to gen_lvalue_full.
     /* Skip over the eok_address_of node to the underlying lvalue. */
     expr = expr->variant.operation.operands;
   }  /* if */
-  if (expr->is_lvalue) {
-    gen_lvalue_full(expr, /*need_parens=*/TRUE, obj_expr_of_mfunc_operator);
-  } else if (is_constant_node(expr) &&
-             expr->variant.constant->kind ==
-                                            (a_constant_repr_kind)ck_address &&
-             expr->variant.constant->variant.address.kind ==
-                                          (an_address_base_kind)abk_variable) {
-    /* This is an address constant expression -- treat it like an lvalue. */
-    expr->is_lvalue = TRUE;
-    gen_lvalue(expr);
-    expr->is_lvalue = FALSE;
-  } else {
-    /* Rvalues can be used as object expressions, so just generate the
-       expression. */
-    gen_expr_with_parens(expr);
-  }  /* if */
+  gen_expr(expr, /*need_parens=*/TRUE, obj_expr_of_mfunc_operator);
 }  /* gen_lvalue_object_expr */
 
 
@@ -7454,8 +7015,7 @@ obscure Microsoft bug).
         }  /* if */
       }  /* if */
     }  /* if */
-    /* Put the expression out as an lvalue to remove a level of indirection. */
-    gen_lvalue_full(expr, need_parens, /*obj_expr_of_mfunc_operator=*/FALSE);
+    gen_expr(expr, need_parens, /*obj_expr_of_mfunc_operator=*/FALSE);
     if (close_paren_needed) {
       write_tok_ch(')');
     }  /* if */
@@ -7469,7 +7029,7 @@ obscure Microsoft bug).
     form_integer_constant(expr->variant.constant, /*suppress_cast=*/TRUE,
                           need_parens, &octl);
   } else {
-    gen_expr(expr, need_parens);
+    gen_expr(expr, need_parens, /*obj_expr_of_mfunc_operator=*/FALSE);
   }  /* if */
 }  /* gen_initializer_expr */
 
@@ -7530,11 +7090,7 @@ when the corresponding flag is TRUE.
        the cast to; it wasn't there in the source, so skip over it here. */
     expr = expr->variant.operation.operands;
   }  /* if */
-  if (expr->is_lvalue) {
-    gen_lvalue(expr);
-  } else {
-    gen_expr_with_parens(expr);
-  }  /* if */
+  gen_expr_with_parens(expr);
   if (is_reinterpret_cast || is_static_cast) {
     write_tok_ch(')');
   }  /* if */
@@ -7575,7 +7131,7 @@ function call, notation.
                            /*mbr_fcn_default_arg_expr=*/FALSE);
     } else {
       /* Parameter type not known. */
-      gen_expr(arg, need_parens);
+      gen_expr(arg, need_parens, /*obj_expr_of_mfunc_operator=*/FALSE);
     }  /* if */
   }  /* if */
 }  /* gen_argument */
@@ -7831,7 +7387,6 @@ If suppress_virtual is TRUE, suppress virtual-ness on the function reference.
  #error -- OPTIMIZE_VIRTUAL_FUNCTION_CALLS should be FALSE for the \
            C++-generating back end
 #endif /* OPTIMIZE_VIRTUAL_FUNCTION_CALLS */
-    an_expr_node_ptr restore_lvalue_flag = NULL;
     /* Remove any cast that just adjusts the type qualifiers (e.g., adds
        const); it's implied by the context. */
     object_expr= skip_implicit_ptr_type_qualifier_adjustment_cast(object_expr);
@@ -7849,14 +7404,10 @@ If suppress_virtual is TRUE, suppress virtual-ness on the function reference.
         object_expr->variant.operation.compiler_generated) {
       /* Skip over the eok_address_of node to the underlying lvalue. */
       object_expr = object_expr->variant.operation.operands;
-    } else if (is_cast_operation_node(object_expr) &&
-               object_expr->variant.operation.is_reference_cast) {
-      /* This is a node that was originally a reference cast in the source,
-         so treat the cast itself like an lvalue, too. */
-      restore_lvalue_flag = object_expr;
-      object_expr->is_lvalue = TRUE;
     }  /* if */
-    if (!object_expr->is_lvalue) {
+    if (!(object_expr->is_lvalue ||
+          (is_cast_operation_node(object_expr) &&
+           object_expr->variant.operation.is_reference_cast))) {
       /* Use a pointer and "->".  Don't do it when there's an implicit
          reference indirection on the object, because that will add a "&"
          that may mean the wrong thing if operator& is overloaded. */
@@ -7898,31 +7449,26 @@ If suppress_virtual is TRUE, suppress virtual-ness on the function reference.
         suppress_this = FALSE;
       }  /* if */
       if (!suppress_this) {
-        if (is_operator_syntax_arrow(object_expr)) {
-          /* Generation of object_expr will include the "->" token. */
-          gen_expression(object_expr);
-        } else {
-          a_boolean use_arrow = TRUE;
-          if (object_expr->kind == (an_expr_node_kind)enk_reuse_value) {
-            /* This can come up in accesses to Microsoft property fields.
-               We need to look inside the reused value to see if there's
-               an implicit "&" that will be stripped off so we can tell
-               whether to generate "->" or ".". */
-            a_dynamic_init_ptr dip = object_expr->variant.reused_value_init;
-            if (dip->kind == (a_dynamic_init_kind)dik_expression) {
-              an_expr_node_ptr orig_expr =
-                           strip_lvalue_cast_sequence(dip->variant.expression);
-              if (!is_pointer_type(orig_expr->type)) {
-                use_arrow = FALSE;
-              }  /* if */
+        a_boolean use_arrow = TRUE;
+        if (object_expr->kind == (an_expr_node_kind)enk_reuse_value) {
+          /* This can come up in accesses to Microsoft property fields.
+             We need to look inside the reused value to see if there's
+             an implicit "&" that will be stripped off so we can tell
+             whether to generate "->" or ".". */
+          a_dynamic_init_ptr dip = object_expr->variant.reused_value_init;
+          if (dip->kind == (a_dynamic_init_kind)dik_expression) {
+            an_expr_node_ptr orig_expr =
+                         strip_lvalue_cast_sequence(dip->variant.expression);
+            if (!is_pointer_type(orig_expr->type)) {
+              use_arrow = FALSE;
             }  /* if */
           }  /* if */
-          gen_expr_with_parens(object_expr);
-          if (use_arrow) {
-            write_tok_str("->");
-          } else {
-            write_tok_str(".");
-          }  /* if */
+        }  /* if */
+        gen_expr_with_parens(object_expr);
+        if (use_arrow) {
+          write_tok_str("->");
+        } else {
+          write_tok_str(".");
         }  /* if */
       }  /* if */
     } else {
@@ -7940,14 +7486,11 @@ If suppress_virtual is TRUE, suppress virtual-ness on the function reference.
         write_tok_str("((");
         overparenthesize = TRUE;
       }  /* if */
-      gen_lvalue(object_expr);
+      gen_expr_with_parens(object_expr);
       if (overparenthesize) {
         write_tok_str("))");
       }  /* if */
       write_tok_ch('.');
-      if (restore_lvalue_flag != NULL) {
-        restore_lvalue_flag->is_lvalue = FALSE;
-      }  /* if */
     }  /* if */
   }  /* if */
   if (suppress_virtual && rout->is_virtual) {
@@ -8210,13 +7753,17 @@ return FALSE and let the caller generate the code normally.
     /* For most operators we can use the opname_names table to get the
        operator representation.  Function call and subscript operators,
        however, come in two parts, one before the second operand and one
-       after. */
+       after.  The arrow operator is suppressed altogether (because it
+       is supplied by the expansion of the top-level expression node). */
     if (op == (an_opname_kind)onk_function_call) {
       op_name = "(";
       right_half = ")";
     } else if (op == (an_opname_kind)onk_subscript) {
       op_name = "[";
       right_half = "]";
+    } else if (op == (an_opname_kind)onk_arrow) {
+      op_name = "";
+      right_half = NULL;
     } else {
       op_name = opname_names[op];
       right_half = NULL;
@@ -8254,23 +7801,7 @@ return FALSE and let the caller generate the code normally.
       write_tok_ch(')');
     }  /* if */
 
-    if (op == (an_opname_kind)onk_arrow) {
-      /* "->" must be handled specially, because a single "->" in the source
-         can turn into multiple calls to operator-> functions (when one
-         returns a class object rather than a pointer).  Consequently,
-         generating the operand may have already output a "->" for a nested
-         operator->() invocation.  To avoid generating "a->->->b" in such
-         cases, we only output "->" if there isn't one already at the current
-         location (which can only happen in this cascade case, otherwise
-         there must have been subsequent output since the last "->" from an
-         operator->() call). */
-      if (last_arrow_column != curr_output_column ||
-          last_arrow_line != curr_output_line) {
-        write_tok_str(op_name);
-        last_arrow_column = curr_output_column;
-        last_arrow_line = curr_output_line;
-      }  /* if */
-    } else if (arg != NULL ||
+    if (arg != NULL ||
                op == (an_opname_kind)onk_function_call) {
       /* Either there's a second argument or this is a function call
          operator, so the operator follows the first operand. */
@@ -8407,7 +7938,7 @@ Generate code for the indicated expression, which is a non-virtual call.
     } else {
       if (op == (an_expr_operator_kind)eok_generic_member_call) {
         /* Unknown member function call. */
-        gen_lvalue(args);
+        gen_expr_with_parens(args);
         write_tok_str(".");
         args = args->next;
       }  /* if */
@@ -8485,7 +8016,7 @@ handled through recursion.
           node_operator_is(expr, eok_points_to_field)) {
         gen_field_reference(arg2);
       } else {
-        gen_lvalue_no_parens(arg2);
+        gen_expression(arg2);
       }  /* if */
       break;
     case eok_subscript:
@@ -8654,7 +8185,8 @@ Render the given GNU statement expression.
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 static void gen_expr(an_expr_node_ptr expr,
-                     a_boolean        need_parens)
+                     a_boolean        need_parens,
+                     a_boolean        obj_expr_of_mfunc_operator)
 /*
 Generate code for the indicated expression.  Put parentheses around it if
 there's some possibility of precedence confusion and need_parens is TRUE.
@@ -8662,14 +8194,12 @@ there's some possibility of precedence confusion and need_parens is TRUE.
 {
   /* Note: don't extract things from expr here in the declarations, because
      expr may be changed just below for the reference indirection case. */
-  char             *opstr;
-  an_expr_node_ptr operand_1, operand_2;
-  a_boolean        operand_1_is_lvalue = FALSE;
-  a_boolean        need_op1_parens;
-  a_boolean        need_reference_close_paren = FALSE;
-  an_expr_operator_kind
-                   op;
-  a_boolean        is_generic_expression;
+  char                  *opstr;
+  an_expr_node_ptr      operand_1, operand_2;
+  a_boolean             need_op1_parens;
+  a_boolean             need_reference_close_paren = FALSE;
+  an_expr_operator_kind op;
+  a_dynamic_init_ptr    dip;
 
   check_assertion_str(expr != NULL, "gen_expr: NULL expression");
   /* If expression is a constant that came from an expression, go to
@@ -8680,14 +8210,25 @@ there's some possibility of precedence confusion and need_parens is TRUE.
       expr = constant->expr;
     }  /* if */
   }  /* if */
+#if CHECKING
+  if (is_operation_node(expr)) {
+    check_operation_node_consistency(expr);
+  }  /* if */
+#endif /* CHECKING */
 #if GNU_EXTENSIONS_ALLOWED
   if (expr->marked_as_gnu_extension) {
     write_tok_str("__extension__ "); 
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   if (expr->is_lvalue) {
-    gen_lvalue_full(expr, need_parens, /*obj_expr_of_mfunc_operator=*/FALSE);
-    goto done_with_expr;
+    if (is_operation_node(expr) && node_operator_is(expr, eok_reference_to)) {
+      /* This is the implicit dereference of a node with reference type.
+         Put out the node being dereferenced. */
+      expr = expr->variant.operation.operands;
+#if CHECKING
+      check_operation_node_consistency(expr);
+#endif /* CHECKING */
+    }  /* if */
   }  /* if */
   if (is_operation_node(expr) && node_operator_is(expr, eok_ref_indirect)) {
     /* Skip over the reference indirection and just generate the
@@ -8702,15 +8243,10 @@ there's some possibility of precedence confusion and need_parens is TRUE.
       op = expr->variant.operation.kind;
       operand_1 = expr->variant.operation.operands;
       operand_2 = operand_1->next;
-      is_generic_expression =
-                          expr->type->kind == (a_type_kind)tk_template_param &&
-                          expr->type->variant.template_param.kind ==
-                                      (a_template_param_type_kind)tptk_unknown;
       if (op == (an_expr_operator_kind)eok_lvalue) {
-        /* Operand is an rvalue where an lvalue was expected. */
+        /* Operand is generic but used where an lvalue was expected. */
         /* Done early to optimize parentheses. */
-        gen_lvalue_full(operand_1, need_parens,
-                        /*obj_expr_of_mfunc_operator=*/FALSE);
+        gen_expr(operand_1, need_parens, /*obj_expr_of_mfunc_operator=*/FALSE);
         goto done_with_operation_after_parens;
       } else if (op == (an_expr_operator_kind)eok_call ||
                  op == (an_expr_operator_kind)eok_virtual_call) {
@@ -8724,37 +8260,16 @@ there's some possibility of precedence confusion and need_parens is TRUE.
         need_parens = FALSE;
       }  /* if */
       if (need_parens) m_write_tok_ch('(');
-      if (expr->variant.operation.returns_lvalue_instead_of_usual_rvalue) {
-        /* Lvalue-returning version, used as an rvalue.  Need "&" in front. */
-        if (!is_pointer_type(expr->type)) {
-          m_write_tok_ch('&');
-        } else {
-          gen_ampersand(type_pointed_to(expr->type));
-        }  /* if */
-        gen_lvalue(expr);
-        goto done_with_operation;
-      }  /* if */
       switch (op) {
         /* One-operand operators. */
         case eok_address_of:
-          write_tok_ch('&');
-          if (is_generic_expression) {
-            /* This is a generic expression, so we don't know whether the
-               operand is required to be an lvalue or not. */
-            gen_expr_with_parens(operand_1);
-          } else {
-            /* Ordinary operation, operand must be lvalue. */
-            gen_lvalue(operand_1);
+          if (!expr->variant.operation.compiler_generated) {
+            write_tok_ch('&');
           }  /* if */
+          gen_expr_with_parens(operand_1);
           goto done_with_operation;
         case eok_reference_to:
-          if (is_generic_expression) {
-            /* This is a generic expression, so we don't know whether the
-               operand is required to be an lvalue or not. */
-            gen_expression(operand_1);
-          } else {
-            gen_lvalue_no_parens(operand_1);
-          }  /* if */
+          gen_expression(operand_1);
           goto done_with_operation;
         case eok_indirect:
           if (!expr->variant.operation.compiler_generated) {
@@ -8882,8 +8397,11 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           }  /* if */
           goto done_with_operation;
         case eok_lvalue_cast:
-          /* Handled in gen_lvalue_full. */
-          unexpected_condition();
+          if (!expr->variant.operation.compiler_generated) {
+            gen_cast(expr->type);
+          }  /* if */
+          gen_expr_with_parens(operand_1);
+          goto done_with_operation;
         case eok_lvalue:
           /* Handled above. */
           unexpected_condition();
@@ -8918,35 +8436,21 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           break;
         case eok_post_incr:
           /* Post-increment operator. */
-          if (is_generic_expression) {
-            /* This is a generic expression, so we don't know whether the
-               operand is required to be an lvalue or not. */
-            gen_expr_with_parens(operand_1);
-          } else {
-            gen_lvalue(operand_1);
-          }  /* if */
+          gen_expr_with_parens(operand_1);
           write_tok_str("++");
           goto done_with_operation;
         case eok_pre_incr:
           /* Pre-increment operator. */
           opstr = "++";
-          operand_1_is_lvalue = TRUE;
           break;
         case eok_post_decr:
           /* Post-decrement operator. */
-          if (is_generic_expression) {
-            /* This is a generic expression, so we don't know whether the
-               operand is required to be an lvalue or not. */
-            gen_expr_with_parens(operand_1);
-          } else {
-            gen_lvalue(operand_1);
-          }  /* if */
+          gen_expr_with_parens(operand_1);
           write_tok_str("--");
           goto done_with_operation;
         case eok_pre_decr:
           /* Pre-decrement operator. */
           opstr = "--";
-          operand_1_is_lvalue = TRUE;
           break;
         case eok_array_to_pointer:
           /* Array to pointer decay -- just output the operand. */
@@ -9030,49 +8534,38 @@ there's some possibility of precedence confusion and need_parens is TRUE.
 #endif /* GNU_EXTENSIONS_ALLOWED */
         case eok_assign:
           opstr = "=";
-          operand_1_is_lvalue = TRUE;
           break;
         case eok_add_assign:
         case eok_padd_assign:
           opstr = "+=";
-          operand_1_is_lvalue = TRUE;
           break;
         case eok_subtract_assign:
         case eok_psubtract_assign:
           opstr = "-=";
-          operand_1_is_lvalue = TRUE;
           break;
         case eok_multiply_assign:
           opstr = "*=";
-          operand_1_is_lvalue = TRUE;
           break;
         case eok_divide_assign:
           opstr = "/=";
-          operand_1_is_lvalue = TRUE;
           break;
         case eok_remainder_assign:
           opstr = "%=";
-          operand_1_is_lvalue = TRUE;
           break;
         case eok_shiftl_assign:
           opstr = "<<=";
-          operand_1_is_lvalue = TRUE;
           break;
         case eok_shiftr_assign:
           opstr = ">>=";
-          operand_1_is_lvalue = TRUE;
           break;
         case eok_and_assign:
           opstr = "&=";
-          operand_1_is_lvalue = TRUE;
           break;
         case eok_or_assign:
           opstr = "|=";
-          operand_1_is_lvalue = TRUE;
           break;
         case eok_xor_assign:
           opstr = "^=";
-          operand_1_is_lvalue = TRUE;
           break;
         case eok_bassign:
           /* eok_bassign is generated only by IL lowering */
@@ -9093,10 +8586,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           /* If operand_1 is an invocation of operator->() that will be
              generated as "->", pass "" as the opstr instead of "->" to
              avoid generating "->->". */
-          gen_dot_static(operand_1,
-                         (char *)(is_operator_syntax_arrow(operand_1) ?
-                                                                    "" : "->"),
-                         operand_2);
+          gen_dot_static(operand_1, "->", operand_2);
           goto done_with_operation;
         case eok_dot_static:
           /* Static member selection, x.m. */
@@ -9205,10 +8695,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
             gen_expr_with_parens(operand_1);
             if (op ==
                 (an_expr_operator_kind)eok_points_to_vacuous_destructor_call) {
-              if (!is_operator_syntax_arrow(operand_1)) {
-                /* Don't output "->" if handle_operator_call already did. */
-                write_tok_str("->");
-              }  /* if */
+              write_tok_str("->");
               type = type_pointed_to(type);
             } else {
               write_tok_ch('.');
@@ -9264,13 +8751,9 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           } else {
             write_tok_str("va_start(");
           }  /* if */
-          gen_lvalue(operand_1);
+          gen_expr_with_parens(operand_1);
           write_tok_ch(',');
-          if (operand_2->is_lvalue) {
-            gen_lvalue(operand_2);
-          } else {
-            gen_expression(operand_2);
-          }  /* if */
+          gen_expression(operand_2);
           write_tok_ch(')');
           enable_line_wrapping();
           goto done_with_operation;
@@ -9283,7 +8766,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           } else {
             write_tok_str("va_start(");
           }  /* if */
-          gen_lvalue(operand_1);
+          gen_expr_with_parens(operand_1);
           write_tok_ch(')');
           enable_line_wrapping();
           goto done_with_operation;
@@ -9300,7 +8783,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           } else {
             write_tok_str("va_end(");
           }  /* if */
-          gen_lvalue_no_parens(operand_1);
+          gen_expression(operand_1);
           write_tok_ch(')');
           enable_line_wrapping();
           goto done_with_operation;
@@ -9313,9 +8796,9 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           } else {
             write_tok_str("va_copy(");
           }  /* if */
-          gen_lvalue(operand_1);
+          gen_expr_with_parens(operand_1);
           write_tok_ch(',');
-          gen_lvalue(operand_2);
+          gen_expr_with_parens(operand_2);
           write_tok_ch(')');
           enable_line_wrapping();
           goto done_with_operation;
@@ -9340,24 +8823,16 @@ there's some possibility of precedence confusion and need_parens is TRUE.
         need_op1_parens = parens_may_be_needed(generated_precedence[op],
                                                operand_1);
       }  /* if */
-      if (is_generic_expression) {
-        /* This is a generic operation, so we don't know whether the first
-           operand is required to be an lvalue or not. */
-        operand_1_is_lvalue = FALSE;
-      }  /* if */
-      if (operand_1_is_lvalue) {
-        gen_lvalue_full(operand_1, need_op1_parens,
-                        /*obj_expr_of_mfunc_operator=*/FALSE);
-      } else {
-        gen_expr(operand_1, need_op1_parens);
-      }  /* if */
+      gen_expr(operand_1, need_op1_parens,
+               /*obj_expr_of_mfunc_operator=*/FALSE);
       if (operand_2 != NULL) {
         /* Binary operator. */
         m_write_space();
         write_tok_str(opstr);
         m_write_space();
         gen_expr(operand_2, parens_may_be_needed(generated_precedence[op],
-                                                 operand_2));
+                                                 operand_2),
+                 /*obj_expr_of_mfunc_operator=*/FALSE);
       }  /* if */
 done_with_operation:
       if (need_parens) m_write_tok_ch(')');
@@ -9410,7 +8885,8 @@ done_with_operation_after_parens:
       break;
     case enk_object_lifetime:
       /* Definition of object lifetime (for temporaries).  Ignored. */
-      gen_expr(expr->variant.object_lifetime.expr, need_parens);
+      gen_expr(expr->variant.object_lifetime.expr, need_parens,
+               obj_expr_of_mfunc_operator);
       break;
     case enk_typeid:
       /* C++ typeid operator. */
@@ -9420,7 +8896,7 @@ done_with_operation_after_parens:
         gen_type(expr->variant.typeid_info.type);
       } else {
         /* Use expression. */
-        gen_lvalue_no_parens(expr->variant.typeid_info.expr);
+        gen_expression(expr->variant.typeid_info.expr);
       }  /* if */
       write_tok_ch(')');
       break;
@@ -9432,7 +8908,7 @@ done_with_operation_after_parens:
       } else {
         /* sizeof(expr). */
         if (expr->variant.runtime_sizeof.variant.expr->is_lvalue) {
-          gen_lvalue_no_parens(expr->variant.runtime_sizeof.variant.expr);
+          gen_expression(expr->variant.runtime_sizeof.variant.expr);
         } else {
           an_expr_node_ptr sizeof_expr =
                                      expr->variant.runtime_sizeof.variant.expr;
@@ -9465,38 +8941,28 @@ done_with_operation_after_parens:
     case enk_temp_init:
       /* Temporary creation/initialization. */
       if (expr->is_lvalue) {
-        /* Using the address of the temp. */
+        /* Using the temp as an lvalue. */
         a_type_ptr         temp_type = expr->type;
         a_dynamic_init_ptr dip = expr->variant.init.dynamic_init;
-        write_tok_ch('(');
-        gen_ampersand(temp_type);
         if (C_mode()) {
           /* Address of temp-init in C.  This comes up for the address
              of a C99 compound literal. */
           gen_compound_literal((a_constant_ptr)NULL, dip, temp_type);
         } else {
-          /* Address of temp-init in C++. */
-          if ((microsoft_dialect_is_generated_code_target ||
-               gcc_is_generated_code_target) &&
-              is_class_struct_union_type(temp_type) &&
-              dip->kind == (a_dynamic_init_kind)dik_expression &&
-              is_operation_node(dip->variant.expression) &&
-              node_operator_is(dip->variant.expression, eok_call)) {
-            /* MSVC++ and g++ can take the address of a function call. */
-            gen_temp_init(expr, /*obj_expr_of_mfunc_operator=*/FALSE);
-          } else {
-            /* Otherwise, assume that the target dialect allows an rvalue
-               to be cast to a reference type. */
-            write_tok_ch('(');
-            gen_type(temp_type);
-            write_tok_str(" &)");
-            gen_temp_init(expr, /*obj_expr_of_mfunc_operator=*/FALSE);
-          }  /* if */
+          /* Lvalue temp-init in C++. */
+          gen_temp_init(expr, obj_expr_of_mfunc_operator);
         }  /* if */
-        write_tok_ch(')');
+      } else if ((dip = expr->variant.init.dynamic_init)->is_reused_value &&
+                 (dip->kind == (a_dynamic_init_kind)dik_expression ||
+                  dip->kind ==
+                    (a_dynamic_init_kind)dik_call_returning_class_via_cctor)) {
+        /* A reused-value temporary initialization, which will be elided in
+           the output.  Just put out the underlying value. */
+        gen_expr(dip->variant.expression, /*need_parens=*/TRUE,
+                 obj_expr_of_mfunc_operator);
       } else {
         /* Normal case (using the value of the temp). */
-        gen_temp_init(expr, /*obj_expr_of_mfunc_operator=*/FALSE);
+        gen_temp_init(expr, obj_expr_of_mfunc_operator);
       }  /* if */
       break;
     case enk_new_delete:
@@ -9540,7 +9006,7 @@ to render.  suppress_parens is TRUE if top-level parentheses should not be
 added to the output.
 */
 {
-  gen_expr(expr, !suppress_parens);
+  gen_expr(expr, !suppress_parens, /*obj_expr_of_mfunc_operator=*/FALSE);
 }  /* f_gen_expression */
 
 
@@ -10926,11 +10392,7 @@ Generate the GNU C operand descriptions for the given asm entry.
     m_write_ch('"');
 #endif /* RECORD_RAW_ASM_OPERAND_DESCRIPTIONS */
     write_tok_str(" (");
-    if (output) {
-      gen_lvalue(aop->expression);
-    } else {
-      gen_expression(aop->expression);
-    }  /* if */
+    gen_expression(aop->expression);
     m_write_ch(')');
     /* Move to the next operand (if any). */
     aop = aop->next;
@@ -13567,8 +13029,6 @@ Initialize for the C++/C-generating back end.
   curr_output_file = NULL;
   curr_output_line = 0;
   curr_output_column = 0;  /* Special value meaning there is no output line. */
-  last_arrow_column = 0;
-  last_arrow_line = 0;
   curr_output_pos_known = FALSE;
   output_position_is_pending = FALSE;
   curr_source_sequence_entry = NULL;

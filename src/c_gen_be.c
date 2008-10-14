@@ -4246,32 +4246,6 @@ return a pointer to that variable; otherwise, return NULL.
 
 #if CHECKING && !STANDALONE_C_GEN_BE
 
-static a_boolean pointer_type_is_consistent(
-                                          a_type_ptr ptr_type,
-                                          a_type_ptr targ_type,
-                                          a_boolean  drop_qualifiers_under_ptr)
-/*
-Check whether a pointer type is what it is supposed to be.  Return FALSE if
-ptr_type is, in fact, not a pointer type (or a reference type -- in some
-cases, reference types are not lowered to pointer types) or if the type to
-which it points is not targ_type; return TRUE if the conditions are met.
-If drop_qualifiers_under_ptr is TRUE, the cv-unqualified version of the
-pointed-to type is used for the comparison.
-*/
-{
-  a_boolean result = FALSE;
-
-  if (is_ptr_or_ref_type(ptr_type)) {
-    a_type_ptr pointed_to_type = type_pointed_to(ptr_type);
-    if (drop_qualifiers_under_ptr) {
-      pointed_to_type = make_unqualified_type(pointed_to_type);
-    }  /* if */
-    result = identical_types(pointed_to_type, targ_type);
-  }  /* if */
-  return result;
-}  /* pointer_type_is_consistent */
-
-
 static void check_type_of_variable_node(an_expr_node_ptr expr)
 /*
 Check the type of a variable node to make sure it is consistent with the
@@ -4382,100 +4356,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
                           op == (an_expr_operator_kind)eok_comma,
                           "dump_expr: lvalue-returning operation");
 #if CHECKING
-      if (!node_operands_have_correct_lvalueness(expr)) {
-        /* At least one of the operands is an lvalue when an rvalue is
-           expected or vice-versa. */
-#if DEBUG && !STANDALONE_UTILITY_PROGRAM
-        db_expression(expr);
-#endif /* DEBUG && !STANDALONE_UTILITY_PROGRAM */
-        internal_error("dump_expr: is_lvalue incorrectly set");
-      }  /* if */
-      /* Check that eok_cast is not used for array-decay operations.
-         (That was the pattern in an earlier version of the IL, but such
-         conversions should now be represented by eok_array_to_pointer.) */
-      if (op == (an_expr_operator_kind)eok_cast && is_pointer_type(expr->type)
-          && is_array_type(operand_1->type)) {
-#if DEBUG && !STANDALONE_UTILITY_PROGRAM
-        db_expression(expr);
-#endif /* DEBUG && !STANDALONE_UTILITY_PROGRAM */
-        internal_error("dump_expr: eok_cast used for array-to-ptr decay");
-      }  /* if */
-      /* Check the correctness of the result_is_not_used flags on the
-         operands. */
-      { an_expr_node_ptr op_node;
-        for (op_node = operand_1; op_node != NULL; op_node = op_node->next) {
-          if (op_node->result_is_not_used) {
-            /* Usually, it's a bad thing if the value of an operand is
-               not used by the operation, but check for special cases. */
-            if (op == (an_expr_operator_kind)eok_comma &&
-                (op_node == operand_1 || expr->result_is_not_used)) {
-              /* Okay, this is an operand of a comma operation, and the flag
-                 is set correctly. */
-            } else if (op == (an_expr_operator_kind)eok_question &&
-                       op_node != operand_1 &&
-                       expr->result_is_not_used) {
-              /* Okay, this is an operand after the first on a "?"
-                 operation, and the flag is set correctly. */
-            } else if (op == (an_expr_operator_kind)eok_cast &&
-                       expr->result_is_not_used &&
-                       is_void_type(expr->type)) {
-              /* Okay, this is a cast to void, and the flag is set
-                 correctly. */
-            } else {
-              /* The flag is set incorrectly. */
-#if DEBUG && !STANDALONE_UTILITY_PROGRAM
-              db_expression(expr);
-              db_expression(op_node);
-#endif /* DEBUG && !STANDALONE_UTILITY_PROGRAM */
-              internal_error(
-                        "dump_expr: result_is_not_used set wrong on operand");
-            }  /* if */
-          }  /* if */
-        }  /* for */
-      }
-#if !STANDALONE_C_GEN_BE
-      /* Check that the result and operand types are consistent for
-         certain operators.  (We do not perform the check in a standalone
-         program because it relies on identical_types, which is not
-         available in that environment.) */
-      if (op == (an_expr_operator_kind)eok_address_of &&
-          !pointer_type_is_consistent(expr->type, operand_1->type,
-                                      /*drop_qualifiers_under_ptr=*/FALSE)) {
-#if DEBUG
-        db_expression(expr);
-#endif /* DEBUG */
-        internal_error("dump_expr: wrong result type for &");
-      }  /* if */
-      if (op == (an_expr_operator_kind)eok_subscript &&
-          !pointer_type_is_consistent(
-                             subscript_or_padd_pointer_operand(expr)->type,
-                             expr->type,
-                             /*drop_qualifiers_under_ptr=*/!expr->is_lvalue)) {
-#if DEBUG
-        db_expression(expr);
-#endif /* DEBUG */
-        internal_error("dump_expr: wrong result type for subscript");
-      }  /* if */
-      if (op == (an_expr_operator_kind)eok_indirect) {
-        a_type_ptr result_type = expr->type;
-        if (!expr->is_lvalue && is_pointer_type(result_type) &&
-            is_ptr_or_ref_type(operand_1->type) &&
-            is_function_type(type_pointed_to(operand_1->type))) {
-          /* An lvalue-to-rvalue conversion on an expression with function
-             type decays back to a pointer to function; we need to check
-             against the function type itself. */
-          result_type = type_pointed_to(result_type);
-        }  /* if */
-        if (!pointer_type_is_consistent(
-                             operand_1->type, result_type,
-                             /*drop_qualifiers_under_ptr=*/!expr->is_lvalue)) {
-#if DEBUG
-          db_expression(expr);
-#endif /* DEBUG */
-          internal_error("dump_expr: wrong result type for *");
-        }  /* if */
-      }  /* if */
-#endif /* !STANDALONE_C_GEN_BE */
+      check_operation_node_consistency(expr);
 #endif /* CHECKING */
       switch (op) {
         /* One-operand operators. */
