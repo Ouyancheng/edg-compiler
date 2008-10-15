@@ -11990,6 +11990,12 @@ typedef struct an_il_header {
 			   be regenerated from strings, since in-class member
 			   definitions would not have their prototype
 			   instantiation recorded. */
+  a_byte_boolean
+		il_has_C_semantics;
+			/* TRUE if the IL has C language semantics.  The
+			   IL has C semantics if the source program was
+			   compiled in C mode, or if the source program was
+			   compiled in C++ mode and then lowered. */
 #if ONE_INSTANTIATION_PER_OBJECT
   char		*instantiation_dir_name;
 			/* When each instantiation is placed in its own object

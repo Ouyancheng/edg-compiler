@@ -1053,6 +1053,7 @@ source file's compilation.
   il_header.il_has_all_prototype_instantiations =
                                             prototype_instantiations_in_il &&
                                             nonclass_prototype_instantiations;
+  il_header.il_has_C_semantics = C_mode();
 #if ONE_INSTANTIATION_PER_OBJECT
   il_header.number_of_external_nonclass_template_entities = 0;
 #endif /* ONE_INSTANTIATION_PER_OBJECT */

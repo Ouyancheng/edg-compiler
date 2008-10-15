@@ -5584,6 +5584,7 @@ Display the IL for the file scope in human-readable form.
   disp_boolean("vla_used", (a_boolean)il_header.vla_used);
   disp_boolean("il_has_all_prototype_instantiations",
                (a_boolean)il_header.il_has_all_prototype_instantiations);
+  disp_boolean("il_has_C_semantics", (a_boolean)il_header.il_has_C_semantics);
 #if ONE_INSTANTIATION_PER_OBJECT
   if (il_header.instantiation_dir_name != NULL) {
     disp_string_ptr("instantiation_dir_name",

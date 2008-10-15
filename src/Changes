@@ -1,5 +1,14 @@
 Version 3.11
 
+10/15/08 [EDGcpfe/9282]
+New flag in il_header: il_has_C_semantics
+
+A new flag has been added to the il_header; il_has_C_semantics now indicates
+whether the IL has C semantics (TRUE) or C++ semantics (FALSE).  There are
+subtle differences between the two; for example, in C++ IL, it's okay to cast
+an lvalue directly to void.
+
+
 10/14/08  [EDGcpfe/9235]
 Column number in source position is now a logical column number
 
