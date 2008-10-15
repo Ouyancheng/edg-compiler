@@ -6158,36 +6158,6 @@ this one is such a continuation.
 }  /* gen_type_decl */
 
 
-static void gen_ampersand(a_type_ptr type)
-/*
-Output an ampersand to indicate taking the address of something.  However,
-if the something (which has type "type") is an array or function, suppress
-the ampersand since C will assume one.
-*/
-{
-  if (is_function_type(type)) {
-    /* No ampersand needed. */
-  } else if (il_header.pcc_compatibility_mode && is_array_type(type)) {
-    /* pcc C compilers don't like ampersands in front of arrays.  However,
-       the address we want here must have type "pointer-to-array", and
-       the implicit decay to pointer will give "pointer-to-array-element",
-       so cast the decayed pointer to the right type. */
-    write_tok_ch('(');
-    /* Write the specifiers and the first part of the declarator. */
-    form_type_first_part_simple(type, /*under_lhs_declarator=*/TRUE,
-                               /*need_trailing_space=*/FALSE, &octl);
-    /* Add an extra "pointer-to". */
-    write_tok_ch('*');
-    /* Write the second part of the declarator. */
-    form_type_second_part_simple(type, /*under_lhs_declarator=*/TRUE,
-                                 &octl);
-    write_tok_ch(')');
-  } else {
-    write_tok_ch('&');
-  }  /* if */
-}  /* gen_ampersand */
-
-
 static an_expr_node_ptr optimized_expr_for_selection(
                                                 an_expr_node_ptr object_expr,
                                                 a_type_ptr       *naming_class)
@@ -6440,13 +6410,7 @@ this selection.
   /* Also note that only "->*" can be overloaded, so if there are implicit
      conversions involved we want to go with "->*". */
   stripped_object_expr = skip_parens(object_expr);
-  if (is_operation_node(stripped_object_expr) &&
-      stripped_object_expr->variant.operation.compiler_generated &&
-      node_operator_is(stripped_object_expr, eok_address_of)) {
-    /* Remove a compiler-generated address-of converting an lvalue to
-       a pointer. */
-    object_expr = stripped_object_expr->variant.operation.operands;
-  }  /* if */
+  object_expr = strip_lvalue_cast_sequence(stripped_object_expr);
   gen_expr_with_parens(object_expr);
   if (object_expr->is_lvalue) {
     /* ".*" case. */
@@ -6905,7 +6869,16 @@ and obj_expr_of_mfunc_operator is passed on to gen_expr.
     /* Skip over the eok_address_of node to the underlying lvalue. */
     expr = expr->variant.operation.operands;
   }  /* if */
-  gen_expr(expr, /*need_parens=*/TRUE, obj_expr_of_mfunc_operator);
+  if (!expr->is_lvalue && is_constant_node(expr) &&
+      expr->variant.constant->kind == (a_constant_repr_kind)ck_address &&
+      !constant_should_be_put_out_as_expr(expr->variant.constant)) {
+    /* Put this out as an lvalue constant, even though it is not marked
+       as an lvalue. */
+    form_lvalue_address_constant(expr->variant.constant,
+                                 /*need_parens=*/TRUE, &octl);
+  } else {
+    gen_expr(expr, /*need_parens=*/TRUE, obj_expr_of_mfunc_operator);
+  }  /* if */
 }  /* gen_lvalue_object_expr */
 
 
