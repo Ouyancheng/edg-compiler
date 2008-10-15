@@ -19626,15 +19626,13 @@ have the is_lvalue flag set incorrectly; return TRUE otherwise.
     if (flags & LVRV_OPND1_IS_RVALUE) {
       /* The first operand is supposed to be an rvalue. */
       if (operand_1->is_lvalue) {
-#if !DO_IL_LOWERING
-        if (!C_mode() && node_operator_is(node, eok_cast) &&
+        if (!il_header.il_has_C_semantics &&
+            node_operator_is(node, eok_cast) &&
             is_void_type(node->type)) {
-          /* In C++, a cast to void or a dependent type can have an lvalue
-             operand. */
-        } else
-#endif /* !DO_IL_LOWERING */
-          /* Do not insert code here. */
+          /* In C++, a cast to void can have an lvalue operand. */
+        } else {
           operand_error = TRUE;
+        }  /* if */
       }  /* if */
     } else if (flags & LVRV_OPND1_IS_LVALUE) {
       /* The first operand is supposed to be an lvalue. */
@@ -19763,12 +19761,11 @@ pointed-to type is used for the comparison.
 
   if (is_ptr_or_ref_type(ptr_type)) {
     a_type_ptr pointed_to_type = type_pointed_to(ptr_type);
-#if !DO_IL_LOWERING
-    if (!C_mode() && is_class_struct_union_type(pointed_to_type)) {
+    if (!il_header.il_has_C_semantics &&
+        is_class_struct_union_type(pointed_to_type)) {
       /* In C++, keep qualifiers on class rvalues. */
       drop_qualifiers_under_ptr = FALSE;
     }  /* if */
-#endif /* DO_IL_LOWERING */
     if (drop_qualifiers_under_ptr) {
       pointed_to_type = make_unqualified_type(pointed_to_type);
     }  /* if */
