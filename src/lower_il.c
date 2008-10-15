@@ -11941,21 +11941,25 @@ it is left alone.
         insert_expr(c2_init, &insert_loc);
       }  /* if */
       /* See if either of the newly created operations need further
-         lowering. */
+         optimization or lvalue lowering. */
+      optimize_node_if_possible(newop1);
       lower_operations_returning_lvalue_instead_of_usual_rvalue(newop1);
       if (newop2 != NULL) {
+        optimize_node_if_possible(newop2);
         lower_operations_returning_lvalue_instead_of_usual_rvalue(newop2);
       }  /* if */
       if (string_literals_are_const) {
         /* See if these operations now operate on a ck_string whose const-ness
            has been (or will be) removed during lowering of the constant.
            Re-write the operations as necessary to preserve the const-ness. */
-        if (is_constant_node(newop1->variant.operation.operands) &&
+        if (is_operation_node(newop1) &&
+            is_constant_node(newop1->variant.operation.operands) &&
             newop1->variant.operation.operands->variant.constant->kind ==
                                              (a_constant_repr_kind)ck_string) {
           lower_operation_on_const_string(newop1, /*lower_source=*/FALSE);
         }  /* if */
         if (newop2 != NULL &&
+            is_operation_node(newop2) &&
             is_constant_node(newop2->variant.operation.operands) &&
             newop2->variant.operation.operands->variant.constant->kind ==
                                              (a_constant_repr_kind)ck_string) {
