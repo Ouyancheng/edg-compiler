@@ -7372,12 +7372,7 @@ If suppress_virtual is TRUE, suppress virtual-ness on the function reference.
       /* Use the expression that the constant represents. */
       object_expr = object_expr->variant.constant->expr;
     }  /* if */
-    if (is_operation_node(object_expr) &&
-        node_operator_is(object_expr, eok_address_of) &&
-        object_expr->variant.operation.compiler_generated) {
-      /* Skip over the eok_address_of node to the underlying lvalue. */
-      object_expr = object_expr->variant.operation.operands;
-    }  /* if */
+    object_expr = strip_lvalue_cast_sequence(object_expr);
     if (!(object_expr->is_lvalue ||
           (is_cast_operation_node(object_expr) &&
            object_expr->variant.operation.is_reference_cast))) {
@@ -8550,9 +8545,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           goto done_with_operation;
         case eok_dot_field:
         case eok_points_to_field:
-          write_tok_ch('(');
           gen_simple_field_selection(operand_1, operand_2, op);
-          write_tok_ch(')');
           goto done_with_operation;
         case eok_points_to_static:
           /* Static member selection, p->m. */
