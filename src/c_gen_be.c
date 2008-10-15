@@ -4347,13 +4347,9 @@ there's some possibility of precedence confusion and need_parens is TRUE.
       expr_type = skip_typerefs(expr->type);
       op = expr->variant.operation.kind;
       is_unary = FALSE;
-      /* Lvalue cases should have been rewritten by IL lowering.  Some "?"
-         and "," cases may remain, where the semantics are the same as in
-         C. */
+      /* Lvalue cases should have been rewritten by IL lowering. */
       check_assertion_str(!expr->variant.operation.
-                                      returns_lvalue_instead_of_usual_rvalue ||
-                          op == (an_expr_operator_kind)eok_question ||
-                          op == (an_expr_operator_kind)eok_comma,
+                                        returns_lvalue_instead_of_usual_rvalue,
                           "dump_expr: lvalue-returning operation");
 #if CHECKING
       check_operation_node_consistency(expr);
