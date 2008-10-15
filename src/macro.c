@@ -638,15 +638,21 @@ text map entries.
 }  /* init_text_map_position_tracker */
 
 
-static void add_token_to_macro_text_map(
-                              a_text_map_position_tracker_ptr tmpt,
-                              sizeof_t                        next_targ_offset)
+static void add_token_part_to_macro_text_map(
+                             a_text_map_position_tracker_ptr tmpt,
+                             char                            *token_part_start,
+                             a_source_position	             *token_part_pos,
+                             a_boolean                       force_new_region,
+                             sizeof_t                        next_targ_offset)
 /*
-This routine is called for each token that is to be added to a buffer with
-which a macro text map is associated.  It updates the macro text map pointed
-to by tmpt->text_map to reflect copying the current token into the target
-buffer at next_targ_offset and makes any necessary adjustments to the state
-information in *tmpt.
+This routine is called for each token or portion of a token that is to
+be added to a buffer with which a macro text map is associated.  It updates
+the macro text map pointed to by tmpt->text_map to reflect copying the
+current token into the target buffer at next_targ_offset and makes any
+necessary adjustments to the state information in *tmpt.  token_part_start
+points to the start of the token or portion thereof.  token_part_pos is
+the source position of token_part_start.  force_new_region is TRUE if a new
+text map entry must be created.
 */
 {
   sizeof_t  rel_src_offset;
@@ -656,10 +662,12 @@ information in *tmpt.
   if (tmpt->src_slmp != NULL) {
     /* Previous tokens were from the inserted text of a source line
        modification. */
-    a_boolean in_curr_slmp = ptr_in_range(start_of_curr_token,
+    a_boolean in_curr_slmp = ptr_in_range(token_part_start,
                                           tmpt->src_slmp->inserted_text,
                                           tmpt->src_slmp->end_inserted_text);
-    if (!in_curr_slmp) {
+    if (force_new_region) {
+      new_region_required = TRUE;
+    } else if (!in_curr_slmp) {
       /* If the new token is not part of the inserted_text of the source line
          modification from which the previous tokens came, we need a new
          region. */
@@ -667,7 +675,7 @@ information in *tmpt.
     } else {
       /* Check to see if the new token will be at the same relative offset in
          the target as it was in the source; if not, we need a new region. */
-      rel_src_offset = start_of_curr_token -
+      rel_src_offset = token_part_start -
               tmpt->src_slmp->inserted_text - tmpt->src_region_starting_offset;
       rel_targ_offset = next_targ_offset - tmpt->targ_region_starting_offset;
       new_region_required = (rel_src_offset != rel_targ_offset);
@@ -685,23 +693,22 @@ information in *tmpt.
         /* Release the associated source line modification. */
         --tmpt->src_slmp->num_active_position_trackers;
       }  /* if */
-      if (within_curr_source_line(start_of_curr_token)) {
+      if (within_curr_source_line(token_part_start)) {
         /* We fell out of the source line modification back to the original
            source line. */
-        tmpt->src_region_starting_offset = start_of_curr_token -
-                                                              curr_source_line;
+        tmpt->src_region_starting_offset = token_part_start - curr_source_line;
         tmpt->src_slmp = NULL;
-        tmpt->starting_pos.seq = pos_curr_token.seq;
-        tmpt->starting_pos.column = pos_curr_token.column;
+        tmpt->starting_pos.seq = token_part_pos->seq;
+        tmpt->starting_pos.column = token_part_pos->column;
       } else {
         /* We're still in a source line modification. */
         if (!in_curr_slmp) {
           /* We entered or re-entered a different source line modification
              from the one we were in. */
-          tmpt->src_slmp = assoc_source_line_modif(start_of_curr_token);
+          tmpt->src_slmp = assoc_source_line_modif(token_part_start);
           ++tmpt->src_slmp->num_active_position_trackers;
         }  /* if */
-        tmpt->src_region_starting_offset = start_of_curr_token -
+        tmpt->src_region_starting_offset = token_part_start -
                                                  tmpt->src_slmp->inserted_text;
       }  /* if */
       tmpt->targ_region_starting_offset = next_targ_offset;
@@ -710,16 +717,18 @@ information in *tmpt.
   } else {
     /* Previous tokens were from the current source line. */
     a_boolean in_same_source_line =
-                                within_curr_source_line(start_of_curr_token) &&
-                                tmpt->starting_pos.seq == pos_curr_token.seq;
-    if (!in_same_source_line) {
+                               within_curr_source_line(token_part_start) &&
+                               tmpt->starting_pos.seq == token_part_pos->seq;
+    if (force_new_region) {
+      new_region_required = TRUE;
+    } else if (!in_same_source_line) {
       /* If the new token is not part of the same source line from which the
          previous tokens came, we need a new region. */
       new_region_required = TRUE;
     } else {
       /* Check to see if the new token will be at the same relative offset in
          the target as it was in the source; if not, we need a new region. */
-      rel_src_offset = start_of_curr_token - curr_source_line -
+      rel_src_offset = token_part_start - curr_source_line -
                                               tmpt->src_region_starting_offset;
       rel_targ_offset = next_targ_offset - tmpt->targ_region_starting_offset;
       new_region_required = (rel_src_offset != rel_targ_offset);
@@ -732,19 +741,18 @@ information in *tmpt.
                                   tmpt->starting_pos.seq,
                                   tmpt->starting_pos.column,
                                   tmpt->macro_context);
-      if (within_curr_source_line(start_of_curr_token)) {
+      if (within_curr_source_line(token_part_start)) {
         /* The new token is still in the current source line. */
-        tmpt->src_region_starting_offset = start_of_curr_token -
-                                                              curr_source_line;
-        tmpt->starting_pos.seq = pos_curr_token.seq;
-        tmpt->starting_pos.column = pos_curr_token.column;
+        tmpt->src_region_starting_offset = token_part_start - curr_source_line;
+        tmpt->starting_pos.seq = token_part_pos->seq;
+        tmpt->starting_pos.column = token_part_pos->column;
       } else {
         /* We've entered a source line modification. */
-        tmpt->src_slmp = assoc_source_line_modif(start_of_curr_token);
+        tmpt->src_slmp = assoc_source_line_modif(token_part_start);
         ++tmpt->src_slmp->num_active_position_trackers;
         tmpt->starting_pos.seq = 0;
         tmpt->starting_pos.column = SP_COL_UNKNOWN;
-        tmpt->src_region_starting_offset = start_of_curr_token -
+        tmpt->src_region_starting_offset = token_part_start -
                                                  tmpt->src_slmp->inserted_text;
       }  /* if */
       tmpt->targ_region_starting_offset = next_targ_offset;
@@ -755,6 +763,52 @@ information in *tmpt.
   check_assertion(!(tmpt->src_slmp != NULL &&
                     tmpt->src_slmp->inserted_text + tmpt->src_region_len >
                     tmpt->src_slmp->end_inserted_text));
+}  /* add_token_part_to_macro_text_map */
+
+
+static void add_token_to_macro_text_map(
+                              a_text_map_position_tracker_ptr tmpt,
+                              sizeof_t                        next_targ_offset)
+/*
+This routine is called for each token to be added to a buffer with which a
+macro text map is associated.  It calls add_token_part_to_macro_text_map
+for the start of the token and again for the character following any
+multibyte character in the token.
+*/
+{
+  add_token_part_to_macro_text_map(tmpt, start_of_curr_token, &pos_curr_token,
+                                   /*force_new_region=*/FALSE,
+                                   next_targ_offset);
+#if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
+  /* Check if this token contains multibyte characters.  The only token shorter
+     than three characters that can contain a multibyte sequence is an
+     identifier. */
+  if (multibyte_chars_in_source_enabled &&
+      (end_of_curr_token - start_of_curr_token > 2 ||
+       curr_token == tok_identifier)) {
+    a_source_position	token_part_pos = pos_curr_token;
+    char  *ptr = start_of_curr_token;
+    /* Step through the characters of the token. */
+    for (;;) {
+      int numch = mbc_length_simple(ptr);
+      ptr += numch;
+      /* Stop when we reach the end of the token.  If the last character of
+         the token is a multibyte character a new region will be forced
+         elsewhere for the token that follows (if any). */
+      if (ptr > end_of_curr_token) break;
+      next_targ_offset += numch;
+      /* The column number is only incremented for each logical character. */
+      token_part_pos.column++;
+      if (numch > 1) {
+        /* A multibyte character was found.  Start a new text map entry for
+           the character that follows. */
+        add_token_part_to_macro_text_map(tmpt, ptr, &token_part_pos,
+                                         /*force_new_region=*/TRUE,
+                                         next_targ_offset);
+      }  /* if */
+    }  /* for */
+  }  /* if */
+#endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
 }  /* add_token_to_macro_text_map */
 
 

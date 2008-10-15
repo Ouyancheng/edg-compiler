@@ -2219,23 +2219,10 @@ results in *seq, *column, and *macro_context.
      the start of the region. */
   *seq = mtmep->corresponding_source_pos.seq;
   if (mtmep->corresponding_source_pos.seq != 0) {
-#if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
-    /* When multibyte characters are supported, we need to step through the
-       text to compute the number of logical columns. */
-    char	*ptr;
-    *column = mtmep->corresponding_source_pos.column;
-    ptr = slmp->inserted_text;
-    while (ptr < loc_in_line) {
-      int numch = mbc_length_simple(ptr);
-      *column += 1;
-      ptr += numch;
-    }  /* while */
-#else /* !MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
     /* Apply the offset from the start of the region in the buffer to the
        column position. */
     *column = mtmep->corresponding_source_pos.column +
                                              (offset - mtmep->start_of_region);
-#endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
   } else {
     /* Special positions like predefined macros and command line macros are
        identified by special values of the column field, which must be
