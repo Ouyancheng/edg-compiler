@@ -573,6 +573,9 @@ extern int fileno(FILE *);
 /*lint -esym(759,find_local_scope)*/
 /*lint -esym(765,find_local_scope)*/
 /*lint -esym(714,find_local_scope)*/
+/*lint -esym(759,node_operands_have_correct_lvalueness)*/
+/*lint -esym(765,node_operands_have_correct_lvalueness)*/
+/*lint -esym(714,node_operands_have__correct_lvalueness)*/
 /*lint -esym(759,tree_has_correct_lvalueness)*/
 /*lint -esym(765,tree_has_correct_lvalueness)*/
 /*lint -esym(714,tree_has_correct_lvalueness)*/
