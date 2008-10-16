@@ -3711,7 +3711,7 @@ be NULL in cases where the expression was eliminiated (e.g., inlining).
   if (expr != NULL) {
     /* Perform a second pass on the lowered expression to optimize it
        and clean up any remaining issues. */
-    optimize_lowered_expression_if_possible(expr);
+    perform_post_pass_on_lowered_expression(expr);
   }  /* if */
   /* Release any reusable temporaries that were allocated. */
   release_reusable_temporaries();

@@ -3356,6 +3356,25 @@ so the next insertion will be after the statement added.
   a_statement_ptr         insert_stmt;
   an_insert_location_kind kind = insert_location->kind;
 
+  if (statement->expr != NULL) {
+    /* If the statement we're about to insert has any expressions, make sure
+       they have been run through the lowering post pass before the statement
+       is inserted. */
+    perform_post_pass_on_lowered_expression(statement->expr);
+    if (statement->kind == (a_statement_kind)stmk_for) {
+      /* For statements have additional expressions. */
+      if (statement->variant.for_loop.extra_info->increment != NULL) {
+        perform_post_pass_on_lowered_expression(
+                            statement->variant.for_loop.extra_info->increment);
+      }  /* if */
+#if UPC_EXTENSIONS_ALLOWED
+      if (statement->variant.for_loop.extra_info->affinity != NULL) {
+        perform_post_pass_on_lowered_expression(
+                             statement->variant.for_loop.extra_info->affinity);
+      }  /* if */
+#endif /* UPC_EXTENSIONS_ALLOWED */
+    }  /* if */
+  }  /* if */
   if (is_expr_insert_location_kind(kind)) {
     /* Insert within an expression. */
 #if CHECKING
@@ -3408,17 +3427,17 @@ is created.
 {
   a_statement_ptr stmt;
 
-  /* The expression we're about to insert has already been lowered, but
-     may need additional cleanup/optimization before we insert it. */
-  optimize_lowered_expression_if_possible(node);
   if (is_expr_insert_location_kind(insert_location->kind)) {
     /* Insert within an expression.  The statement need not be created. */
+    /* Run a lowering post pass on the expression before we insert it. */
+    perform_post_pass_on_lowered_expression(node);
     insert_expr(node, insert_location);
     stmt = NULL;
   } else {
     /* Make the expression statement. */
     stmt = alloc_expr_statement(node);
     /* Insert the statement at the right location. */
+    /* The lowering post pass is performed by insert_statement. */
     insert_statement(stmt, insert_location);
   }  /* if */
   return stmt;
@@ -12015,7 +12034,7 @@ static void lower_node_returning_lvalue_instead_of_usual_rvalue(
                                     an_expr_or_stmt_traversal_block_ptr tblock)
 /*
 This routine is called for each node of an expression during expression 
-traversal by optimize_lowered_expression_if_possible.  Transform
+traversal by perform_post_pass_on_lowered_expression.  Transform
 lvalue-returning assignments, prefix ++/--, and "?" and "," operators into
 valid C.  This must be called as part of post processing during the expression
 traversal because some lvalue-returning C constructs are themselves rewritten
@@ -12031,12 +12050,12 @@ when the eok_address_of node is processed on the next iteration.
 #endif /* LOWER_LVALUE_RETURNING_OPERATIONS */
 
 /*ARGSUSED*/  /* <-- tblock is not used. */
-static void optimize_lowered_expr_node_if_possible(
+static void perform_post_pass_on_lowered_node(
                                     an_expr_node_ptr                    expr,
                                     an_expr_or_stmt_traversal_block_ptr tblock)
 /*
 This routine is called for each node of an expression during expression 
-traversal by optimize_lowered_expression_if_possible.  Perform any
+traversal by perform_post_pass_on_lowered_expression.  Perform any
 optimizations or cleanups that are applicable to this expression node.
 */
 {
@@ -12046,30 +12065,32 @@ optimizations or cleanups that are applicable to this expression node.
      (or will be) removed during lowering of the constant, re-write the
      operation as necessary to preserve the const-ness. */
   lower_operation_on_const_string_if_necessary(expr);
-}  /* optimize_lowered_expr_node_if_possible */
+}  /* perform_post_pass_on_lowered_node */
 
 
-void optimize_lowered_expression_if_possible(an_expr_node_ptr expr)
+void perform_post_pass_on_lowered_expression(an_expr_node_ptr expr)
 /*
-The expression passed to this routine, expr, is an expression that has just
-been lowered or inlined.  This routine traverses the entire expression and
-looks for any optimization opportunities as well as a couple of cases where the
-lowering or inlining process has created sequences of operations that need
-further adjusting.  For example, an expression that was originally *(0, &x) may
-have been lowered to (0, *&x) and this routine is being called to take another
-look at *&x to see if this expression needs further adjusting.
+The expression passed to this routine, expr, is an expression that has been
+lowered, inlined, or created during lowering.  This routine traverses the
+entire expression and looks for any optimization opportunities as well as a
+couple of cases where the lowering or inlining process has created sequences of
+operations that need further adjusting.  For example, an expression that was
+originally *(0, &x) may have been lowered to (0, *&x) and this routine is being
+called to take another look at *&x to see if this expression needs further
+adjusting.  Calling this routine multiple times on the same expression
+(though not recommended) is harmless.
 */
 {
   an_expr_or_stmt_traversal_block tblock;
 
   clear_expr_or_stmt_traversal_block(&tblock);
-  tblock.process_expr = optimize_lowered_expr_node_if_possible;
+  tblock.process_expr = perform_post_pass_on_lowered_node;
 #if LOWER_LVALUE_RETURNING_OPERATIONS
   tblock.process_post_expr =
                            lower_node_returning_lvalue_instead_of_usual_rvalue;
 #endif /* LOWER_LVALUE_RETURNING_OPERATIONS */
   traverse_expr(expr, &tblock);
-}  /* optimize_lowered_expression_if_possible */
+}  /* perform_post_pass_on_lowered_expression */
 
 
 static void wrap_throw(an_expr_node_ptr node,
@@ -13671,7 +13692,7 @@ expression statement, statement points to the statement; otherwise, it is NULL.
   }  /* if */
   /* Perform a second pass on the lowered expression to optimize it
      and clean up any remaining issues. */
-  optimize_lowered_expression_if_possible(expr_to_lower);
+  perform_post_pass_on_lowered_expression(expr_to_lower);
 
   if (lifetime != NULL) {
     /* More processing for the enk_object_lifetime case. */

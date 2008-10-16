@@ -849,8 +849,8 @@ because of remapped variables.
       set_expr_node_kind(expr, (an_expr_node_kind)enk_constant);
       expr->variant.constant = alloc_shareable_constant(&constant);
     }  /* if */
-    /* The inlined expression may have opportunities for optimization. */
-    optimize_lowered_expression_if_possible(expr);
+    /* Perform a lowering post pass on this inlined expression. */
+    perform_post_pass_on_lowered_expression(expr);
   }  /* if */
 }  /* adjust_copied_expression_for_inlining */
 
