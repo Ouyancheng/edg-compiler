@@ -1697,6 +1697,16 @@ been allocated for it.  Set the parent pointer for the IL scope entry.
           sp->parent = scp_parent_namespace(scp)->variant.assoc_scope;
         } else if (!scp->is_local_to_function) {
           sp->parent = scope_stack[DEPTH_OF_FILE_SCOPE].il_scope;
+        } else if (scope_stack[decl_scope_level].kind ==
+                                            (a_scope_kind)sck_func_prototype) {
+          /* A local class or enum defined in a prototype scope.  E.g.:
+               void f() {
+                 void g(struct S {} *p);
+               }
+             This is always an error, but the parent is set anyway for error
+             recovery purposes. */
+          sp->parent = ensure_il_scope_exists(&scope_stack[decl_scope_level]);
+          expect_error();
         } else {
           /* A local type not nested in another local type.  The parent cannot
              be set because of memory region constraints.  Create an implicit
