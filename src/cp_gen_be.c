@@ -10420,129 +10420,76 @@ Generate the declaration associated with the given stmk_decl statement.
 {
 #if CHECKING
   an_il_entity_list_entry_ptr   ep = statement->variant.decl.entities;
-  a_source_sequence_scan_state  saved_state;
+  a_source_sequence_scan_state  start_state, end_state;
+  a_scope_ptr                   scope = curr_name_context->assoc_scope;
 #endif /* CHECKING */
 
   check_for_and_take_source_seq_entry(statement->source_sequence_entry);
 #if CHECKING
+  save_source_sequence_scan_state(&start_state);
+#endif /* CHECKING */
+  gen_declaration(/*for_init=*/FALSE);
+#if CHECKING
   /* Check that the sequence of source sequence entries generated for this
      declaration statement matches the "declared entities" list recorded in
-     the statement.  Some entities in the source sequence entries list
-     (such as block-scopes for GNU statement expressions) aren't recorded
-     on the entities list associated with an stmk_decl. */
-  save_source_sequence_scan_state(&saved_state);
-  for (;;) {
+     the statement.  Specifically, any type, variable, or function declared
+     in the current scope should be recorded in the current statement. */
+  check_assertion(scope != NULL &&
+                  (scope->kind == (a_scope_kind)sck_function ||
+                   scope->kind == (a_scope_kind)sck_block));
+  /* Rewind the source sequence entry state. */
+  save_source_sequence_scan_state(&end_state);
+  restore_source_sequence_scan_state(&start_state);
+  while (curr_source_sequence_entry != end_state.curr_source_sequence_entry) {
     a_src_seq_secondary_decl_ptr  sec_decl;
     char                          *entry_ptr;
     an_il_entry_kind              entry_kind;
-    a_boolean                     is_definition;
-    a_boolean                     from_func_prototype = FALSE;
-    a_type_ptr                    def_type = NULL;
     advance_past_preprocessing_directives();
     check_assertion (curr_source_sequence_entry != NULL);
     /* Extract the entity/kind from the current source sequence entry. */
     if (curr_src_seq_entry_is_secondary_decl(&sec_decl)) {
       entry_ptr = sec_decl->entity.ptr;
       entry_kind = (an_il_entry_kind)sec_decl->entity.kind;
-      is_definition = FALSE;
-      from_func_prototype = sec_decl->declared_in_func_prototype;
     } else {
       entry_ptr = curr_source_sequence_entry->entity.ptr;
       entry_kind =
               (an_il_entry_kind)curr_source_sequence_entry->entity.kind;
-      is_definition = TRUE;
-      if (entry_kind == iek_type) {
-        a_type_ptr  tp = (a_type_ptr)entry_ptr;
-        if (is_tag_type(tp) ||
-            (tp->kind == (a_type_kind)tk_typeref &&
-             typeref_is_decltype_or_typeof(tp))) {
-          def_type = (a_type_ptr)entry_ptr;
-        }  /* if */
-        from_func_prototype = tp->declared_in_function_prototype;
-      } else if (entry_kind == iek_using_decl ||
-                 entry_kind == iek_namespace) {
-        /* Using-declarations and namespace aliases aren't recorded in
-           stmk_decl statements: There is therefore nothing more to check. */
-        break;
-      }  /* if */
     }  /* if */
-    if (ep != NULL && ep->entity.ptr == entry_ptr) {
-      /* The normal case of a source sequence entry matching an entity
-         recorded in the stmk_decl's entities list. */
-      if (def_type != NULL) {
-        skip_type_definition_source_sequence_entries(def_type);
-      } else {
-        adv_curr_source_sequence_entry();
-      }  /* if */
-      ep = ep->next;
-    } else if (from_func_prototype) {
-      /* A source sequence entry for a declaration in a prototype scope.  For
-         example:
-             void f(union U *p);
-         will create two source sequence entries: One for "f" and one for "p",
-         but the latter won't be on the stmk_decl's entities list.  Move on to
-         the next declared entity (if any). */
-      if (def_type != NULL) {
-        skip_type_definition_source_sequence_entries(def_type);
-      } else {
-        adv_curr_source_sequence_entry();
-      }  /* if */
-    } else if (def_type != NULL) {
-      /* A defined type that isn't recorded on the stmk_decl's entities list
-         and wasn't declared inside a function prototype.  This must be a
-         typeof/decltype construct */
-      check_assertion(def_type->kind == (a_type_kind)tk_typeref &&
-                      typeref_is_decltype_or_typeof(def_type));
-      skip_type_definition_source_sequence_entries(def_type);
-#if GNU_EXTENSIONS_ALLOWED
-    } else if (curr_src_seq_entry_is_for_statement_expression()) {
-      /* A GNU statement expression embedded in the declaration statement.
-         (A GNU statement expression that's part of the next statement would
-         have been preceded by a statement node that causes us to exit this
-         loop.) */
-      skip_block_statement();
-#endif /* GNU_EXTENSIONS_ALLOWED */
-    } else if (entry_kind == iek_statement) {
-      /* Next statement.  We should have seen all entities declared by this
-         declaration statement. */
-      break;
-    } else if (sec_decl != NULL && sec_decl->implicit_decl) {
-      /* An implicit declaration of a function (possible in C mode).  Such a
-         declaration is not recorded in the stmk_decl statement. */
-      adv_curr_source_sequence_entry();
-    } else if (entry_kind == iek_variable) {
-      /* This must be an anonymous union parent object: It appears in the list
-         of source sequence entries, but not on the list associated with the
-         stmk_decl statement. */
-      a_variable_ptr  var = (a_variable_ptr)entry_ptr;
-      check_assertion(var->is_anonymous_parent_object);
-      adv_curr_source_sequence_entry();
-    } else if (entry_kind == iek_src_seq_end_of_construct) {
-      /* An end-of-construct marker.  This is either the end of the compound
-         statement in which the declaration statement appeared, or the end of
-         a variable initializer. */
-      a_src_seq_end_of_construct_ptr ssecp;
-      ssecp = ss_entry_ptr(curr_source_sequence_entry,
-                           a_src_seq_end_of_construct_ptr);
-      if (ss_entry_kind(ssecp) == iek_statement) {
-        /* This should be the end of a block statement.  We should have seen
-           all entities declared by this declaration statement. */
-        a_statement_ptr  block = ss_entry_ptr(ssecp, a_statement_ptr);
-        check_assertion(block->kind == (a_statement_kind)stmk_block);
-        check_assertion(ep == NULL);
+    switch (entry_kind) {
+      case iek_type:
+      case iek_routine:
+      case iek_variable:
+        { a_source_correspondence  *scp = (a_source_correspondence*)entry_ptr;
+          if (ep != NULL && ep->entity.ptr == entry_ptr) {
+            /* The entry referred to by the current source sequence entry
+               matches that in the stmk_decl list: Advance to the next entry
+               on that list.  Note that the current source sequence entry may
+               not correspond to the declaration that caused *ep to be created.
+               For example:
+                 void f() { typeof(({ int g(); g(); })) g(); }
+               Here the stmk_decl entry will have only one associated entry,
+               created for the last "g()" declarator.  However, this loop will
+               match it against the first "g()" declarator (the one in the GNU
+               statement expression).  This won't make this checking code fail,
+               but it could mean that some invalid IL doesn't get caught. */
+            ep = ep->next;
+          } else if (scp->decl_position.seq != 0) {
+            /* This is a user-declared type, routine, or variable (and not,
+               e.g., a typeof/decltype type or an anonymous union parent
+               object).  For it not to appear on the stmk_decl list it must
+               have been declared in another scope. */
+            check_assertion(f_get_parent_scope_of(scp) != scope);
+          }  /* if */
+        }
         break;
-      } else {
-        check_assertion(ss_entry_kind(ssecp) == iek_variable);
-        adv_curr_source_sequence_entry();
-      }  /* if */
-    } else {
-      unexpected_condition();
-    }  /* if */
-  }  /* for */
+      default:
+        break;
+    }  /* switch */
+    adv_curr_source_sequence_entry();
+  }  /* while */
   check_assertion(ep == NULL);
-  restore_source_sequence_scan_state(&saved_state);
+  restore_source_sequence_scan_state(&end_state);
 #endif /* CHECKING */
-  gen_declaration(/*for_init=*/FALSE);
 }  /* gen_declaration_statement */
 
 

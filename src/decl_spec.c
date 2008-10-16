@@ -3545,6 +3545,9 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
     if (is_friend_decl) srk_flags |= SRK_FRIEND;
     record_symbol_declaration(srk_flags, tag_sym, &locator.source_position,
                               (a_source_sequence_entry_ptr)NULL);
+    /* If this declaration is associated with a declaration statement, update
+       the associated stmk_decl statement. */
+    record_entity_in_decl_stmt_if_needed(tag_sym);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     /* Set the first_declaration flag in the associated source-sequence
        secondary declaration entry.  The corresponding field in the class
@@ -3666,6 +3669,9 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
       }  /* if */
       record_symbol_declaration(srk_flags, tag_sym, &locator.source_position,
                                 (a_source_sequence_entry_ptr)NULL);
+      /* If this declaration is associated with a declaration statement,
+         update the associated stmk_decl statement. */
+      record_entity_in_decl_stmt_if_needed(tag_sym);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       if ((is_predeclared_type_decl || previously_invisible) &&
           !is_class_definition) {
@@ -4487,6 +4493,9 @@ describes Microsoft attributes preceding the enum specifier (if any).
       enum_type->source_corresp.decl_position = locator.source_position;
       enum_type->variant.integer.originally_unnamed = TRUE;
     }  /* if */
+    /* If this declaration is associated with a declaration statement, update
+       the associated stmk_decl statement. */
+    record_entity_in_decl_stmt_if_needed(tag_sym);
     if (!C_mode()) {
       if (class_of_which_a_member != NULL) {
         /* Add a pointer to the parent class in the symbol and the type. */
@@ -7948,12 +7957,6 @@ process_class_specifier:
                           &defines_something, decl_pos_block)) {
                 err = TRUE;
               }  /* if */
-              if ((declares_something || defines_something) &&
-                  *type_ptr != NULL) {
-                /* In a block/function scope, record the entity if it declares
-                   the class name in that scope, or if it defines the class. */
-                record_entity_in_decl_stmt_if_needed(symbol_for(*type_ptr));
-              }  /* if */
               basic_type = bt_struct_union;
               is_elaborated_type_specifier = TRUE;
             }  /* if */
@@ -7996,9 +7999,6 @@ process_class_specifier:
               err = TRUE;
               basic_type = bt_error;
             } else {
-              if (defines_something) {
-                record_entity_in_decl_stmt_if_needed(symbol_for(*type_ptr));
-              }  /* if */
               basic_type = bt_enum;
               is_elaborated_type_specifier = TRUE;
             }  /* if */

@@ -1864,20 +1864,34 @@ function or block scopes are recorded (in particular, entities declared in
 function prototype scope are not recorded).
 */
 {
-  if (depth_stmt_stack >= 0 && sym != NULL &&
-      (scope_stack[depth_scope_stack].kind == (a_scope_kind)sck_function ||
-       scope_stack[depth_scope_stack].kind == (a_scope_kind)sck_block)) {
-    a_struct_stmt_stack_entry_ptr
+  if (depth_stmt_stack >= 0 && sym != NULL) {
+    a_scope_depth  decl_level = depth_scope_stack;
+    /* Determine in which scope the symbol was declared.  Usually, this is the
+       scope currently on top of the scope stack. */
+    while (scope_stack[decl_level].number != sym->decl_scope &&
+           decl_level >= 0) {
+      decl_level -= 1;
+    }  /* while */
+    if (decl_level >= 0 &&
+        (scope_stack[decl_level].kind == (a_scope_kind)sck_function ||
+         scope_stack[decl_level].kind == (a_scope_kind)sck_block)) {
+      a_memory_region_number     region_to_switch_back_to;
+      a_struct_stmt_stack_entry_ptr
                                  sssep = &struct_stmt_stack[depth_stmt_stack];
-    if (sssep->curr_decl_statement != NULL) {
-      an_il_entity_list_entry_ptr  *p = &sssep->curr_decl_statement
-                                              ->variant.decl.entities;
-      an_il_entry_kind             entity_kind;
-      /* Skip to the end of the list to append a new entry. */
-      while (*p != NULL) p = &(*p)->next;
-      *p = alloc_il_entity_list_entry();
-      (*p)->entity.ptr = il_entry_for_symbol(sym, &entity_kind);
-      (*p)->entity.kind = (a_byte_il_entry_kind)entity_kind;
+      if (sssep->curr_decl_statement != NULL) {
+        an_il_entity_list_entry_ptr  *p = &sssep->curr_decl_statement
+                                                ->variant.decl.entities;
+        an_il_entry_kind             entity_kind;
+        /* Skip to the end of the list to append a new entry. */
+        while (*p != NULL) p = &(*p)->next;
+        /* Ensure the entry is allocated in the same memory region as the
+           stmk_decl statement. */
+        switch_to_scope_region(decl_level, &region_to_switch_back_to);
+        *p = alloc_il_entity_list_entry();
+        switch_back_to_original_region(region_to_switch_back_to);
+        (*p)->entity.ptr = il_entry_for_symbol(sym, &entity_kind);
+        (*p)->entity.kind = (a_byte_il_entry_kind)entity_kind;
+      }  /* if */
     }  /* if */
   }  /* if */
 }  /* record_entity_in_decl_stmt_if_needed */
