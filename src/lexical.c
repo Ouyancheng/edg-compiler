@@ -5189,13 +5189,13 @@ Make sure the curr source line can hold at least min_len characters.
 
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
 /*
-Macro to set cached_logical_char_info_entried_used.  Expands to nothing
+Macro to set cached_logical_char_info_entries_used.  Expands to nothing
 if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED is FALSE.
 */
-#define set_cached_logical_char_info_entried_used(new_val)		\
+#define set_cached_logical_char_info_entries_used(new_val)		\
   (cached_logical_char_info_entries_used = (new_val))
 #else /* !MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
-#define set_cached_logical_char_info_entried_used(new_val) /* nothing */
+#define set_cached_logical_char_info_entries_used(new_val) /* nothing */
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
 
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
@@ -9355,7 +9355,7 @@ to make the byte to logical column translation faster.
 #define record_start_of_curr_token()					\
 {									\
   start_of_curr_token = curr_char_loc;					\
-  set_cached_logical_char_info_entried_used(logical_char_info_entries_used); \
+  set_cached_logical_char_info_entries_used(logical_char_info_entries_used); \
 }  /* record_start_of_curr_token */
 
 /*
@@ -16280,7 +16280,7 @@ are handled in lexical_init.)
             (sizeof_t)(CURR_SOURCE_LINE_INITIAL_ALLOCATION * sizeof(char*)));
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
   logical_char_info_entries_used = 0;
-  set_cached_logical_char_info_entried_used(0);
+  set_cached_logical_char_info_entries_used(0);
   raw_listing_buffer = NULL;
   after_end_of_raw_listing_buffer = NULL;
   if (f_raw_listing != NULL) {
