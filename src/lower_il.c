@@ -12076,9 +12076,9 @@ entire expression and looks for any optimization opportunities as well as a
 couple of cases where the lowering or inlining process has created sequences of
 operations that need further adjusting.  For example, an expression that was
 originally *(0, &x) may have been lowered to (0, *&x) and this routine is being
-called to take another look at *&x to see if this expression needs further
-adjusting.  Calling this routine multiple times on the same expression
-(though not recommended) is harmless.
+called to take another look at *&x and optimize it to simply x.  Calling this
+routine multiple times on the same expression (though not recommended) is
+harmless.
 */
 {
   an_expr_or_stmt_traversal_block tblock;
