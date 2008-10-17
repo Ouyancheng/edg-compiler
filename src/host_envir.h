@@ -1965,7 +1965,7 @@ encodings mean the same thing).  See also REWRITE_UCN_ESCAPE_CHAR_IN_LOWERING.
 #endif /* IDENTIFIER_STRINGS_ALLOW_MULTIBYTE_CHARS */
 
 /*
-Indication of whether backslash, and question mark can appear as part of
+Indication of whether backslash and question mark can appear as part of
 a multibyte character sequence.  If they cannot, processing for line splices
 and trigraphs can be made more efficient.  For the Japanese EUC encoding,
 for example, those character codes never appear as part of other sequences,
