@@ -8169,39 +8169,44 @@ generic node to be treated as an lvalue).
 
   check_assertion(is_constant_node(expr));
   constant = expr->variant.constant;
-  tpkind = constant->variant.template_param.kind;
-  if (tpkind == (a_template_param_constant_kind)tpck_address) {
-    check_assertion(constant->expr == NULL);
-    /* Put out the member name without the "&". */
-    form_constant(constant->variant.template_param.variant.constant,
-                  need_parens, &octl);
-    processed = TRUE;
-  } else if (tpkind == (a_template_param_constant_kind)tpck_unknown_function ||
-             tpkind == (a_template_param_constant_kind)tpck_template_ref) {
-    /* A tpck_unknown_function or tpck_template_ref constant represents the
-       address of the unknown function.  Drop the "&" to make an lvalue. */
-    form_unknown_function_constant(constant, &octl);
-    processed = TRUE;
-  } else if (tpkind == (a_template_param_constant_kind)tpck_cast) {
-    /* In some cases, a do-nothing tpck_cast is used to make it clear that
-       a constant is template-dependent.  Drop such a cast. */
-    a_constant_ptr sub_con = constant->variant.template_param.variant.constant;
-    if (constant->type == sub_con->type) {
-      if (sub_con->kind == (a_constant_repr_kind)ck_address) {
-        form_lvalue_address_constant(sub_con, /*need_parens=*/TRUE, &octl);
-        processed = TRUE;
+  if (constant->kind == (a_constant_repr_kind)ck_template_param) {
+    tpkind = constant->variant.template_param.kind;
+    if (tpkind == (a_template_param_constant_kind)tpck_address) {
+      check_assertion(constant->expr == NULL);
+      /* Put out the member name without the "&". */
+      form_constant(constant->variant.template_param.variant.constant,
+                    need_parens, &octl);
+      processed = TRUE;
+    } else if (tpkind ==
+                       (a_template_param_constant_kind)tpck_unknown_function ||
+               tpkind == (a_template_param_constant_kind)tpck_template_ref) {
+      /* A tpck_unknown_function or tpck_template_ref constant represents
+         the address of the unknown function.  Drop the "&" to make an
+         lvalue. */
+      form_unknown_function_constant(constant, &octl);
+      processed = TRUE;
+    } else if (tpkind == (a_template_param_constant_kind)tpck_cast) {
+      /* In some cases, a do-nothing tpck_cast is used to make it clear that
+         a constant is template-dependent.  Drop such a cast. */
+      a_constant_ptr sub_con =
+                             constant->variant.template_param.variant.constant;
+      if (constant->type == sub_con->type) {
+        if (sub_con->kind == (a_constant_repr_kind)ck_address) {
+          form_lvalue_address_constant(sub_con, /*need_parens=*/TRUE, &octl);
+          processed = TRUE;
+        }  /* if */
       }  /* if */
+    } else if (tpkind == (a_template_param_constant_kind)tpck_uuidof) {
+      /* A tpck_uuidof constant represents the address of the Microsoft
+         __uuidof.  Drop the "&" to make an lvalue. */
+      form_uuidof_reference(constant, &octl);
+      processed = TRUE;
+    } else if (tpkind == (a_template_param_constant_kind)tpck_typeid) {
+      /* A tpck_typeid constant represents the address of a typeid(...)
+         result.  Drop the "&" to make an lvalue. */
+      form_typeid_reference(constant, &octl);
+      processed = TRUE;
     }  /* if */
-  } else if (tpkind == (a_template_param_constant_kind)tpck_uuidof) {
-    /* A tpck_uuidof constant represents the address of the Microsoft
-       __uuidof.  Drop the "&" to make an lvalue. */
-    form_uuidof_reference(constant, &octl);
-    processed = TRUE;
-  } else if (tpkind == (a_template_param_constant_kind)tpck_typeid) {
-    /* A tpck_typeid constant represents the address of a typeid(...)
-       result.  Drop the "&" to make an lvalue. */
-    form_typeid_reference(constant, &octl);
-    processed = TRUE;
   } else if (constant->kind == (a_constant_repr_kind)ck_address) {
     /* Using an address constant as the lvalue address. */
     form_lvalue_address_constant(constant, /*need_parens=*/TRUE, &octl);
