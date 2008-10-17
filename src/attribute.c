@@ -935,6 +935,7 @@ Scan and record the mode attribute argument.  If it starts with "V1", "V2",
   a_boolean  result = TRUE;
   char       *name, *ename;
   int        i;
+  sizeof_t   name_len, ename_len;
 
   /* Look for an identifier corresponding to the mode. */
   if (curr_token != tok_identifier) {
@@ -942,19 +943,31 @@ Scan and record the mode attribute argument.  If it starts with "V1", "V2",
     goto done;
   }  /* if */
   /* Get the name of the mode. */
-  ename = name = locator_for_curr_id.symbol_header->identifier;
+  name = locator_for_curr_id.symbol_header->identifier;
+  name_len = locator_for_curr_id.symbol_header->identifier_length;
+  /* Strip off double underscores if applicable.  The underscores must be
+     present both before and after the mode name. */
+  if (name_len > 4 && name[0] == '_' && name[1] == '_' &&
+      name[name_len-1] == '_' && name[name_len-2] == '_') {
+    name += 2;
+    name_len -= 4;
+  }  /* if */
+  ename = name;
+  ename_len = name_len;
 #if GNU_VECTOR_TYPES_ALLOWED
   if (name[0] == 'V' &&
       (name[1] == '1' || name[1] == '2' || name[1] == '4' || name[1] == '8')) {
     ap->variant.mode.length = name[1]-'0';
     ename += 2;
+    ename_len -= 2;
   }  /* if */
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
   /* Consume the name. */
   (void)get_token();
   /* Look it up. */
   for (i = (int)tmk_first; i < (int)tmk_last; ++i) {
-    if (same_string_ignoring_underscores(type_mode_kind_names[i], ename)) {
+    if (strncmp(type_mode_kind_names[i], ename, size_t_arg(ename_len)) == 0 &&
+        (sizeof_t)strlen(type_mode_kind_names[i]) == ename_len) {
       break;
     }  /* if */
   }  /* for */
@@ -962,12 +975,12 @@ Scan and record the mode attribute argument.  If it starts with "V1", "V2",
      "byte", "word", or "pointer" values.  (These cannot have a 'V<digit>'
      prefix.) */
   if (i == (int)tmk_last) {
-    if (same_string_ignoring_underscores("byte", name)) {
+    if (strncmp("byte", name, 4) == 0 && name_len == 4) {
       i = (int)tmk_QI;
-    } else if (same_string_ignoring_underscores("word", name)) {
+    } else if (strncmp("word", name, 4) == 0 && name_len == 4) {
       i = (int)targ_word_mode;
 #if TARG_ALL_POINTERS_SAME_SIZE
-    } else if (same_string_ignoring_underscores("pointer", name)) {
+    } else if (strncmp("pointer", name, 7) == 0 && name_len == 7) {
       i = (int)targ_pointer_mode;
 #endif /* TARG_ALL_POINTERS_SAME_SIZE */
     }  /* if */
