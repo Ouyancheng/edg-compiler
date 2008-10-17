@@ -1868,8 +1868,8 @@ function prototype scope are not recorded).
     a_scope_depth  decl_level = depth_scope_stack;
     /* Determine in which scope the symbol was declared.  Usually, this is the
        scope currently on top of the scope stack. */
-    while (scope_stack[decl_level].number != sym->decl_scope &&
-           decl_level >= 0) {
+    while (decl_level >= 0 &&
+           scope_stack[decl_level].number != sym->decl_scope) {
       decl_level -= 1;
     }  /* while */
     if (decl_level >= 0 &&
