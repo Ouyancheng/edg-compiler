@@ -11808,10 +11808,10 @@ throughout the entire expression).
 
 static void lower_operation_on_const_string_if_necessary(an_expr_node_ptr expr)
 /*
-Check to see if the expression, expr, is an enk_operation that operates on a
+Check to see if the expression expr is an enk_operation that operates on a
 const qualified lvalue string literal.  If it does, this routine adds a cast
 (by overwriting the expression with an eok_cast to a copy of the expression) to
-preserve the const-ness of the expression.  In C, string literals are not const
+preserve the constness of the expression.  In C, string literals are not const
 qualified, and the ck_string constant will be lowered to a non-const qualified
 type (in lower_constant).  This routine can be called during lowering or as
 part of a lowering post-pass where expressions are re-checked (lowering may
@@ -11829,7 +11829,7 @@ the first pass).
         operand->is_lvalue &&
         operand->variant.constant->kind == (a_constant_repr_kind)ck_string) {
       /* Remove const qualifier from expression and operand.  lower_constant
-         will remove const-ness from the ck_string. */
+         will remove constness from the ck_string. */
       orig_expr_type = expr->type;
       orig_operand_type = operand->type;
       operand->type = make_unqualified_type(orig_operand_type);
@@ -12061,9 +12061,9 @@ optimizations or cleanups that are applicable to this expression node.
 {
   /* Perform some optimizations if they are applicable. */
   optimize_node_if_possible(expr);
-  /* If this operation operates on a ck_string whose const-ness has been
+  /* If this operation operates on a ck_string whose constness has been
      (or will be) removed during lowering of the constant, re-write the
-     operation as necessary to preserve the const-ness. */
+     operation as necessary to preserve the constness. */
   lower_operation_on_const_string_if_necessary(expr);
 }  /* perform_post_pass_on_lowered_node */
 
@@ -13069,9 +13069,9 @@ cast.  See lower_expr for typical invocation.
         lower_vla_operations_before_operands_are_lowered(expr);
       }  /* if */
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
-      /* See if this operation operates on a ck_string whose const-ness will be
+      /* See if this operation operates on a ck_string whose constness will be
          removed during lowering of the constant.  If so, re-write the
-         operation as necessary to preserve the const-ness.  Do so before
+         operation as necessary to preserve the constness.  Do so before
          lowering while the ck_strings are still identifiable (and not turned
          into variables as they are in some configurations). */
       lower_operation_on_const_string_if_necessary(expr);
