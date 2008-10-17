@@ -5244,8 +5244,7 @@ loc_in_line is not after the last entry in the logical column info table.
       idx_ptr = logical_char_info[idx];
       if (idx_ptr > loc_in_line) {
         high = idx;
-      } else if (idx_ptr <= loc_in_line &&
-                 logical_char_info[idx + 1] > loc_in_line) {
+      } else if (logical_char_info[idx + 1] > loc_in_line) {
         break;
       } else {
         low = idx;
