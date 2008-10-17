@@ -6557,7 +6557,7 @@ Create an entry in the logical_char_info array for ptr.
   (logical_char_info[logical_char_info_entries_used++] = (ptr))
 
 /*
-Increment curr_char_loc by a total of len characters.  For each character
+Increment curr_char_loc by a total of len bytes.  For each bytes
 except the first, create an entry in the logical character info table.
 */
 #define incr_curr_char_loc_for_multibyte_char(len)			\
