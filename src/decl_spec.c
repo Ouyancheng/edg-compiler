@@ -4913,17 +4913,20 @@ describes Microsoft attributes preceding the enum specifier (if any).
              but not until after all the constants have been scanned.  (This
              affects cases in which an enum constant expression involves a
              previously declared enum constant from the same enumeration.) */
-          /* In C++ specify membership and access. */
-          if (class_of_which_a_member != NULL) {
-            /* Set the parent class. */
-            set_class_membership(enum_sym, &enum_con->source_corresp,
-                                 class_of_which_a_member);
-          } else if (sym_is_namespace_member(tag_sym)) {
-            /* Set the parent namespace. */
-            set_namespace_membership(enum_sym, &enum_con->source_corresp,
-                                     sym_parent_namespace(tag_sym));
+          if (!is_scoped_enum) {
+            /* In C++ specify membership and access (except for scoped enum
+               constants). */
+            if (class_of_which_a_member != NULL) {
+              /* Set the parent class. */
+              set_class_membership(enum_sym, &enum_con->source_corresp,
+                                   class_of_which_a_member);
+            } else if (sym_is_namespace_member(tag_sym)) {
+              /* Set the parent namespace. */
+              set_namespace_membership(enum_sym, &enum_con->source_corresp,
+                                       sym_parent_namespace(tag_sym));
+            }  /* if */
+            enum_con->source_corresp.access = access;
           }  /* if */
-          enum_con->source_corresp.access = access;
         }  /* if */
         record_symbol_declaration(SRK_DECLARATION | SRK_DEFINITION, enum_sym,
                                   &locator.source_position, enum_con_ssep);
