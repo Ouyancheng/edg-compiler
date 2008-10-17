@@ -5214,6 +5214,11 @@ static int f_logical_column_offset(char	*loc_in_line)
 Compute the logical column offset (the difference between the actual byte
 number of the source line and the logical column number) for cases where
 loc_in_line is not after the last entry in the logical column info table.
+To convert a pointer into curr_source_line into a logical column
+number, you need to find the entry in the logical_char_info array that
+contains the largest pointer that is <= the pointer you are looking
+for.  The array index+1 is the adjustment needed to convert to a
+logical column number.
 */
 {
   int	low = 0;
@@ -5276,7 +5281,11 @@ equal to the last entry in the logical column info array.
 Compute the logical column offset (the difference between the actual byte
 number of the source line and the logical column number).  In most cases
 a simple conversion can be done.  For other cases, call a function to do
-the conversion.
+the conversion.  To convert a pointer into curr_source_line into a
+logical column number, you need to find the entry in the
+logical_char_info array that contains the largest pointer that is <=
+the pointer you are looking for.  The array index+1 is the adjustment
+needed to convert to a logical column number.
 */
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
 
