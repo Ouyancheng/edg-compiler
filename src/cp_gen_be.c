@@ -364,9 +364,6 @@ static void gen_pending_pragma_pack(void);
 static void gen_template_header(a_template_decl_ptr tdp);
 static void gen_template(void);
 static an_expr_node_ptr strip_lvalue_cast_sequence(an_expr_node_ptr expr);
-static void gen_lvalue_object_expr(
-                                  an_expr_node_ptr expr,
-                                  a_boolean        obj_expr_of_mfunc_operator);
 static void gen_initializer_constant(a_constant_ptr constant,
                                      a_type_ptr     type,
                                      a_boolean      suppress_braces);
@@ -6403,12 +6400,6 @@ this selection.
 {
   an_expr_node_ptr stripped_object_expr;
 
-  /* Generally, it's better to use the "->*" form, because it avoids
-     putting an extra "*" on top of an expression, which might refer
-     to an overloaded "operator*".  Use the ".*" form for simple variables
-     and cases with an implied reference indirection. */
-  /* Also note that only "->*" can be overloaded, so if there are implicit
-     conversions involved we want to go with "->*". */
   stripped_object_expr = skip_parens(object_expr);
   object_expr = strip_lvalue_cast_sequence(stripped_object_expr);
   gen_expr_with_parens(object_expr);
@@ -6796,6 +6787,16 @@ original lvalue.
       node = constant->expr;
     }  /* if */
   }  /* if */
+  if (node->kind == (an_expr_node_kind)enk_temp_init) {
+    a_dynamic_init_ptr dip = node->variant.init.dynamic_init;
+    if (dip->is_reused_value &&
+        (dip->kind == (a_dynamic_init_kind)dik_expression ||
+         dip->kind ==
+                    (a_dynamic_init_kind)dik_call_returning_class_via_cctor)) {
+      /* The temporary expression might include an lvalue cast sequence. */
+      node = dip->variant.expression;
+    }  /* if*/
+  }  /* if */
   while(is_operation_node(node) &&
       node->variant.operation.compiler_generated &&
       (node_operator_is(node, eok_cast) ||
@@ -6844,42 +6845,42 @@ try_again:
 }  /* skip_implicit_ptr_type_qualifier_adjustment_cast */
 
 
-static void gen_lvalue_object_expr(an_expr_node_ptr expr,
+static void gen_object_expr_for_implicit_call(
+                                   an_expr_node_ptr expr,
                                    a_boolean        obj_expr_of_mfunc_operator)
 /*
-Generate an lvalue expression that is used as the object expression in a
-member access.  If it is a constant node, use the expression inside the
-constant.  Skip over any compiler-generated base class and qualification
-casts, as well as a compiler-generated eok_address_of operator (that
-converts an lvalue into the "this" pointer).  Parentheses are always added,
-and obj_expr_of_mfunc_operator is passed on to gen_expr.
+Generate code for expr, the object expression in an implicit member
+function call (an overloaded operator or a conversion function).
+obj_expr_of_mfunc_operator, which will be TRUE in the overloaded operator
+case, is passed along to gen_expr.
 */
 {
-  a_type_ptr naming_class;
-
   while (is_constant_node(expr) &&
       constant_should_be_put_out_as_expr(expr->variant.constant)) {
     expr = expr->variant.constant->expr;
   }  /* while */
-  expr = skip_implicit_ptr_type_qualifier_adjustment_cast(expr);
-  expr = optimized_expr_for_selection(expr, &naming_class);
-  if (is_operation_node(expr) &&
-      node_operator_is(expr, eok_address_of) &&
-      expr->variant.operation.compiler_generated) {
-    /* Skip over the eok_address_of node to the underlying lvalue. */
-    expr = expr->variant.operation.operands;
-  }  /* if */
+  expr = strip_lvalue_cast_sequence(expr);
   if (!expr->is_lvalue && is_constant_node(expr) &&
       expr->variant.constant->kind == (a_constant_repr_kind)ck_address &&
       !constant_should_be_put_out_as_expr(expr->variant.constant)) {
-    /* Put this out as an lvalue constant, even though it is not marked
-       as an lvalue. */
+    /* This constant is not an lvalue but needs to be put out as one.
+       This situation arises for code like:
+
+           struct S { int operator+(int) const; } s;
+           int i = s + 1;
+
+       The object expression for the call to S::operator+(int) is an
+       rvalue constant whose value is "(const S*)&s".  If that were in
+       expression form, strip_lvalue_cast_sequence would produce the
+       lvalue "s", as required, but because the lvalue cast sequence is
+       implicit in the constant value, we need to short-circuit the
+       normal processing and call form_lvalue_address_constant directly. */
     form_lvalue_address_constant(expr->variant.constant,
                                  /*need_parens=*/TRUE, &octl);
   } else {
     gen_expr(expr, /*need_parens=*/TRUE, obj_expr_of_mfunc_operator);
   }  /* if */
-}  /* gen_lvalue_object_expr */
+}  /* gen_object_expr_for_implicit_call */
 
 
 /*
@@ -7549,7 +7550,8 @@ call in the normal way.
     if (expr->variant.operation.compiler_generated &&
         !expr->variant.operation.keep_cast_for_cp_gen_be) {
       /* This is an implicit conversion.  Put out just the operand. */
-      gen_lvalue_object_expr(operand_2, /*obj_expr_of_mfunc_operator=*/FALSE);
+      gen_object_expr_for_implicit_call(operand_2,
+                                        /*obj_expr_of_mfunc_operator=*/FALSE);
       handled = TRUE;
     } else if (in_ctor_default_argument &&
                msvc_is_generated_code_target &&
@@ -7567,7 +7569,8 @@ call in the normal way.
          class type is enclosed in parentheses in that context. */
       gen_type_name(bare_return_type);
       write_tok_ch('(');
-      gen_lvalue_object_expr(operand_2, /*obj_expr_of_mfunc_operator=*/FALSE);
+      gen_object_expr_for_implicit_call(operand_2,
+                                        /*obj_expr_of_mfunc_operator=*/FALSE);
       write_tok_ch(')');
       handled = TRUE;
     } else {
@@ -7575,7 +7578,8 @@ call in the normal way.
          cases, e.g., when the conversion function cannot be named. */
       write_tok_ch('(');
       gen_cast(return_type);
-      gen_lvalue_object_expr(operand_2, /*obj_expr_of_mfunc_operator=*/FALSE);
+      gen_object_expr_for_implicit_call(operand_2,
+                                        /*obj_expr_of_mfunc_operator=*/FALSE);
       write_tok_ch(')');
       handled = TRUE;
     }  /* if */
@@ -7756,7 +7760,8 @@ return FALSE and let the caller generate the code normally.
     if (routine_type_is_nonstatic_member_function(rp->type)) {
       /* The first operand is the member function's "this" pointer:
          generate it as an lvalue. */
-      gen_lvalue_object_expr(arg, /*obj_expr_of_mfunc_operator=*/TRUE);
+      gen_object_expr_for_implicit_call(arg,
+                                        /*obj_expr_of_mfunc_operator=*/TRUE);
       arg = arg->next;
     } else {
       /* For non-member functions, there's a parameter declaration to
@@ -7769,8 +7774,7 @@ return FALSE and let the caller generate the code normally.
       write_tok_ch(')');
     }  /* if */
 
-    if (arg != NULL ||
-               op == (an_opname_kind)onk_function_call) {
+    if (arg != NULL || op == (an_opname_kind)onk_function_call) {
       /* Either there's a second argument or this is a function call
          operator, so the operator follows the first operand. */
       a_boolean spaces_needed = (op != (an_opname_kind)onk_function_call &&
@@ -8222,6 +8226,12 @@ static void gen_expr(an_expr_node_ptr expr,
 /*
 Generate code for the indicated expression.  Put parentheses around it if
 there's some possibility of precedence confusion and need_parens is TRUE.
+If obj_expr_of_mfunc_operator is TRUE, this expression is the object
+expression in a call to an operator member function that was written in
+function notation.  For some generated-code targets, temporaries appearing
+in that position must be generated with a special code pattern, so the flag
+must be passed along to gen_temp_init and in any recursive calls to
+gen_expr that might end up generating this expr as a temporary.
 */
 {
   /* Note: don't extract things from expr here in the declarations, because
@@ -8282,8 +8292,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
             handle_lvalue_constant_node(operand_1, need_parens)) {
           /* Output was done by the subroutine. */
         } else {
-          gen_expr(operand_1, need_parens,
-                   /*obj_expr_of_mfunc_operator=*/FALSE);
+          gen_expr(operand_1, need_parens, obj_expr_of_mfunc_operator);
         }  /* if */
         goto done_with_operation_after_parens;
       } else if (op == (an_expr_operator_kind)eok_call ||
@@ -8301,13 +8310,13 @@ there's some possibility of precedence confusion and need_parens is TRUE.
       switch (op) {
         /* One-operand operators. */
         case eok_address_of:
-          if (!expr->variant.operation.compiler_generated) {
-            write_tok_ch('&');
-          }  /* if */
+          check_assertion(!expr->variant.operation.compiler_generated);
+          write_tok_ch('&');
           gen_expr_with_parens(operand_1);
           goto done_with_operation;
         case eok_reference_to:
-          gen_expression(operand_1);
+          gen_expr(operand_1, /*need_parens=*/FALSE,
+                   obj_expr_of_mfunc_operator);
           goto done_with_operation;
         case eok_indirect:
           if (!expr->variant.operation.compiler_generated) {
@@ -8391,7 +8400,8 @@ there's some possibility of precedence confusion and need_parens is TRUE.
                  int, so we must suppress generation of such casts. */
               octl.suppress_cast_on_short_integral_const = TRUE;
             }  /* if */
-            gen_expression(operand_1);
+            gen_expr(operand_1, /*need_parens=*/FALSE,
+                     obj_expr_of_mfunc_operator);
             octl.suppress_cast_on_short_integral_const =
                                  saved_suppress_cast_on_short_integral_const;
           } else {
@@ -8408,7 +8418,8 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           /* Special casts. */
           if (expr->variant.operation.compiler_generated) {
             /* For an implicit cast, just put the underlying operand. */
-            gen_expression(operand_1);
+            gen_expr(operand_1, /*need_parens=*/FALSE,
+                     obj_expr_of_mfunc_operator);
           } else {
             /* Incorporate any cast steps that were implicit in an explicit
                cast. */
@@ -8438,7 +8449,8 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           if (!expr->variant.operation.compiler_generated) {
             gen_cast(expr->type);
           }  /* if */
-          gen_expr_with_parens(operand_1);
+          gen_expr(operand_1, /*need_parens=*/TRUE,
+                   obj_expr_of_mfunc_operator);
           goto done_with_operation;
         case eok_lvalue:
           /* Handled above. */
@@ -8503,7 +8515,8 @@ there's some possibility of precedence confusion and need_parens is TRUE.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         case eok_parens:
           write_tok_ch('(');
-          gen_expression(operand_1);
+          gen_expr(operand_1, /*need_parens=*/FALSE,
+                   obj_expr_of_mfunc_operator);
           write_tok_ch(')');
           goto done_with_operation;
         case eok_add:

@@ -5163,7 +5163,7 @@ field.
   a_template_symbol_supplement_ptr	tssp;
 
   tssp = templ_ptr->template_info;
-  if (tssp == NULL && in_front_end) {
+  if (tssp == NULL) {
     sym = (a_symbol_ptr)templ_ptr->source_corresp.assoc_info;
     tssp = template_supplement_for_symbol(sym);
   }  /* if */

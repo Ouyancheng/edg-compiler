@@ -19700,7 +19700,9 @@ have the is_lvalue flag set incorrectly; return TRUE otherwise.
     if (operand_error &&
         (is_template_dependent_type(node->type) ||
          is_template_dependent_type(operand_1->type) ||
-         (operand_2 != NULL && is_template_dependent_type(operand_2->type)))) {
+         (operand_2 != NULL && is_template_dependent_type(operand_2->type)) ||
+         (operand_2 != NULL && operand_2->next != NULL &&
+          is_template_dependent_type(operand_2->next->type)))) {
       /* Generic operands are not always lvalue-correct. */
       operand_error = FALSE;
     }  /* if */
@@ -19744,20 +19746,20 @@ their is_lvalue flag set incorrectly, TRUE otherwise.
 }  /* tree_has_correct_lvalueness */
 
 
-static a_boolean pointer_type_is_consistent(
-                                          a_type_ptr ptr_type,
-                                          a_type_ptr targ_type,
-                                          a_boolean  drop_qualifiers_under_ptr)
+static a_boolean pointer_type_is_consistent(a_type_ptr ptr_type,
+                                            a_type_ptr targ_type,
+                                            a_boolean  targ_type_is_rvalue)
 /*
 Check whether a pointer type is what it is supposed to be.  Return FALSE if
 ptr_type is, in fact, not a pointer type (or a reference type -- in some
 cases, reference types are not lowered to pointer types) or if the type to
 which it points is not targ_type; return TRUE if the conditions are met.
-If drop_qualifiers_under_ptr is TRUE, the cv-unqualified version of the
-pointed-to type is used for the comparison.
+If targ_type_is_rvalue is TRUE, cv-qualification of the pointed-to type
+is ignored, except for C++ class rvalues.
 */
 {
   a_boolean result = FALSE;
+  a_boolean drop_qualifiers_under_ptr = targ_type_is_rvalue;
 
   if (is_ptr_or_ref_type(ptr_type)) {
     a_type_ptr pointed_to_type = type_pointed_to(ptr_type);
@@ -19860,7 +19862,7 @@ node, and report any failure as an internal error.
      available in that environment.) */
   if (op == (an_expr_operator_kind)eok_address_of &&
       !pointer_type_is_consistent(expr->type, operand_1->type,
-                                  /*drop_qualifiers_under_ptr=*/FALSE)) {
+                                  /*targ_type_is_rvalue=*/FALSE)) {
 #if DEBUG
     db_expression(expr);
 #endif /* DEBUG */
@@ -19870,7 +19872,7 @@ node, and report any failure as an internal error.
       !pointer_type_is_consistent(
                          subscript_or_padd_pointer_operand(expr)->type,
                          expr->type,
-                         /*drop_qualifiers_under_ptr=*/!expr->is_lvalue)) {
+                         /*targ_type_is_rvalue=*/!expr->is_lvalue)) {
 #if DEBUG
     db_expression(expr);
 #endif /* DEBUG */
@@ -19888,7 +19890,7 @@ node, and report any failure as an internal error.
     }  /* if */
     if (!pointer_type_is_consistent(
                          operand_1->type, result_type,
-                         /*drop_qualifiers_under_ptr=*/!expr->is_lvalue)) {
+                         /*targ_type_is_rvalue=*/!expr->is_lvalue)) {
 #if DEBUG
       db_expression(expr);
 #endif /* DEBUG */

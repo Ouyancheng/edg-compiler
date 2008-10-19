@@ -7895,7 +7895,13 @@ with a template argument that is a template template parameter.
          tap = tap->next) {
       if (is_template_templ_arg(tap)) {
         a_template_symbol_supplement_ptr	tssp;
-        tssp = template_supplement_for_template(tap->variant.templ.ptr);
+        /* Note: the following line accesses template_info directly instead
+           of calling template_supplement_for_template(), as would be
+           normal practice.  The reason for this is that this code may be
+           executed from a back end, and template_supplement_for_template()
+           sometimes uses symbol table information, which is only available
+           in the front end. */
+        tssp = tap->variant.templ.ptr->template_info;
         /* Determine whether the template pointed to is a template template
            parameter. */
         if (tssp != NULL &&
