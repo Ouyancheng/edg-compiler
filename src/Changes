@@ -1,5 +1,16 @@
 Version 3.11
 
+10/20/08 [EDGcpfe/9297]
+Enable support for type traits when emulating g++ versions 4.3 and higher
+
+g++ 4.3 now provides support for type traits (see Changes entry of 3/21/06 and
+http://gcc.gnu.org/onlinedocs/gcc/Type-Traits.html).  Accordingly, when
+emulating g++ version 4.3 and later, support for type traits is now enabled
+in the front end (support continues to be disabled in earlier versions of g++
+emulation).  The --no_type_traits_helpers option can be used on the command
+line to override, if necessary.
+
+
 10/15/08 [EDGcpfe/9282]
 New flag in il_header: il_has_C_semantics
 

@@ -3048,9 +3048,6 @@ exclude the GNU modes already.  Hence those are not checked again here.)
   if (!(option_kind_used[(int)optk_stdc_zero_in_system_headers])) {
     stdc_zero_in_system_headers = DEFAULT_GNU_STDC_ZERO_IN_SYSTEM_HEADERS;
   }  /* if */
-  if (!option_kind_used[(int)optk_type_traits_helpers]) {
-    type_traits_helpers_enabled = FALSE;
-  }  /* if */
   mixed_string_concat_enabled = TRUE;
   if (!option_kind_used[(int)optk_check_concatenations]) {
     /* The GNU preprocessor disallows macro concatenation ("a ## b") that
@@ -3159,6 +3156,10 @@ exclude the GNU C++ mode already.  Hence those are not checked again here.)
   }  /* if */
   if (!(option_kind_used[(int)optk_const_string_literals])) {
     string_literals_are_const = TRUE;
+  }  /* if */
+  if (!option_kind_used[(int)optk_type_traits_helpers]) {
+    /* g++ supports type traits in versions 4.3 and later. */
+    type_traits_helpers_enabled = (gnu_version >= 40300);
   }  /* if */
   c_and_cpp_function_types_are_distinct = FALSE;
   allow_default_arg_on_template_member_definition = TRUE;
