@@ -6857,12 +6857,13 @@ expression appeared in the source as an object reference but the front end
 converted it to a pointer for passing as the "this" parameter of the member
 function.  This routine strips off the sequence of compiler-generated nodes
 (eok_address_of and possibly various casts) that were added on top of the
-original object expression.  obj_expr_of_mfunc_operator, which will be TRUE
+original object expression so that it will be generated as the original
+object reference expression.  obj_expr_of_mfunc_operator, which will be TRUE
 in the overloaded operator case, is passed along to gen_expr.
 */
 {
   while (is_constant_node(expr) &&
-      constant_should_be_put_out_as_expr(expr->variant.constant)) {
+         constant_should_be_put_out_as_expr(expr->variant.constant)) {
     expr = expr->variant.constant->expr;
   }  /* while */
   expr = strip_lvalue_cast_sequence(expr);
