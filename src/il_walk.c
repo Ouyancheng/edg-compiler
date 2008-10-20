@@ -2817,6 +2817,11 @@ and end up at "a".
              not get here because they produce an rvalue result. */
           traverse_expr(operand1, tblock);
           break;
+        case eok_lvalue_adjust:
+          /* eok_lvalue_adjust operations are used to adjust the
+             cv-qualification (and maybe type) of an lvalue. */
+          traverse_expr(operand1, tblock);
+          break;
         default:
           if (expr->variant.operation.returns_lvalue_instead_of_usual_rvalue) {
             /* An lvalue-returning operation other than those handled

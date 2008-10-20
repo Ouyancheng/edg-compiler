@@ -2993,6 +2993,7 @@ Display the name of an expression operator.
     case eok_ref_indirect:      s = "eok_ref_indirect";           break;
     case eok_cast:              s = "eok_cast";                   break;
     case eok_lvalue_cast:       s = "eok_lvalue_cast";            break;
+    case eok_lvalue_adjust:     s = "eok_lvalue_adjust";          break;
     case eok_base_class_cast:   s = "eok_base_class_cast";        break;
     case eok_derived_class_cast:
                                 s = "eok_derived_class_cast";     break;

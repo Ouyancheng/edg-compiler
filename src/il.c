@@ -11308,7 +11308,8 @@ tk_unknown is returned.
       break;
     case eok_cast:
     case eok_lvalue_cast:
-      /* Since eok_cast and eok_lvalue_cast potentially involve unrelated
+    case eok_lvalue_adjust:
+      /* Since eok_cast and the similar operators potentially involve unrelated
          type kinds, we do not attempt to characterize an "operation type" for
          these cases if the source and destination type kind are different. */
       if (expr_kind == operand_kind) {
@@ -13752,17 +13753,15 @@ an_expr_node_ptr add_cast_to_lvalue(an_expr_node_ptr node,
 /*
 Cast the lvalue expression given by node to the type specified by type.
 This adjusts the type of the lvalue without creating a new object.
-The cast is performed by taking the address of the lvalue, casting the
-resulting expression to a pointer to type, and then performing an
-indirection on the result.  The operations are marked as compiler-generated.
-The result is always an lvalue.  Note that this routine doesn't handle
-base class casts, only minor cv-qualification or type adjustment.
+The operation is marked as compiler-generated.  The result is an lvalue.
+Note that an lvalue cast cannot handle base class casts, only minor
+cv-qualification or type adjustment.
 */
 {
-  check_assertion(node->is_lvalue);
-  node = add_address_of_to_node(node);
-  node = add_cast(node, make_pointer_type(type));
-  node = add_indirection_to_node(node);
+  check_assertion(node->is_lvalue || is_error_node(node));
+  node = make_lvalue_operator_node((an_expr_operator_kind)eok_lvalue_adjust,
+                                   type, node);
+  node->variant.operation.compiler_generated = TRUE;
   return node;
 }  /* add_cast_to_lvalue */
 
@@ -13773,14 +13772,11 @@ an_expr_node_ptr add_cast_to_lvalue_if_necessary(an_expr_node_ptr node,
 Cast the lvalue expression given by node to the type specified by type,
 but do nothing if the node already has the desired type.
 This adjusts the type of the lvalue without creating a new object.
-The cast is performed by taking the address of the lvalue, casting the
-resulting expression to a pointer to type, and then performing an
-indirection on the result.  The operations are marked as compiler-generated.
-The result is always an lvalue.  Note that this routine doesn't handle
-base class casts, only minor cv-qualification or type adjustment.
+The operation is marked as compiler-generated.  The result is an lvalue.
+Note that an lvalue cast cannot handle base class casts, only minor
+cv-qualification or type adjustment.
 */
 {
-  check_assertion(node->is_lvalue);
   if (!il_identical_types(node->type, type)) {
     node = add_cast_to_lvalue(node, type);
   }  /* if */
@@ -15000,6 +14996,7 @@ already indicates the load.
           case eok_subscript:
           case eok_indirect:
           case eok_ref_indirect:
+          case eok_lvalue_adjust:
           case eok_va_arg:
 #if GNU_COMPLEX_EXTENSIONS_ALLOWED
           case eok_real_part:
@@ -15138,6 +15135,11 @@ process_ptr_to_member_selection:
               if (!is_pointer_type(op1->type)) break;
               does_fetch = TRUE;
               fetched_type = type_pointed_to(op1->type);
+              break;
+            case eok_lvalue_adjust:
+              /* Type adjustment of an lvalue. */
+              does_fetch = TRUE;
+              fetched_type = node->type;
               break;
             case eok_va_arg:
               does_fetch = TRUE;
@@ -16034,6 +16036,7 @@ operand.
     case eok_address_of:
     case eok_reference_to:
     case eok_lvalue_cast:
+    case eok_lvalue_adjust:
     case eok_assign:
     case eok_add_assign:
     case eok_subtract_assign:
@@ -19456,6 +19459,7 @@ static a_byte lvalue_rvalue_test[(int)eok_last+1] = {
   /* eok_ref_indirect: */		LVRV_OPND1_IS_RVALUE,
   /* eok_cast: */			LVRV_OPND1_IS_RVALUE,
   /* eok_lvalue_cast: */		LVRV_OPND1_IS_LVALUE,
+  /* eok_lvalue_adjust: */		LVRV_OPND1_IS_LVALUE,
   /* eok_base_class_cast: */		LVRV_OPND1_IS_LVALUE_IF_EXPR_IS,
   /* eok_derived_class_cast: */		LVRV_OPND1_IS_LVALUE_IF_EXPR_IS,
   /* eok_pm_base_class_cast: */		LVRV_OPND1_IS_RVALUE,

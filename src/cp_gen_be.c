@@ -469,6 +469,7 @@ static a_byte generated_precedence[(int)eok_last+1] = {
                            generated are filtered out by
                            parens_may_be_needed) */
   PREC_CAST,		/* eok_lvalue_cast */
+  PREC_LOWEST,		/* eok_lvalue_adjust */
   PREC_CAST,		/* eok_base_class_cast */
   PREC_CAST,		/* eok_derived_class_cast */
   PREC_CAST,		/* eok_pm_base_class_cast */
@@ -8092,6 +8093,8 @@ problems.
         (node_operator_is(operand, eok_reference_to) ||
          node_operator_is(operand, eok_ref_indirect) ||
          ((node_operator_is(operand, eok_cast) ||
+           node_operator_is(operand, eok_lvalue_cast) ||
+           node_operator_is(operand, eok_lvalue_adjust) ||
            node_operator_is(operand, eok_base_class_cast) ||
            node_operator_is(operand, eok_derived_class_cast) ||
            node_operator_is(operand, eok_bool_cast) ||
@@ -8461,6 +8464,12 @@ gen_expr that might end up generating this expr as a temporary.
           }  /* if */
           gen_expr(operand_1, /*need_parens=*/TRUE,
                    obj_expr_of_mfunc_operator);
+          goto done_with_operation;
+        case eok_lvalue_adjust:
+          /* Always compiler-generated, so it has no source representation. */
+          check_assertion(expr->variant.operation.compiler_generated);
+          gen_expr(operand_1, /*need_parens=*/FALSE,
+                   /*obj_expr_of_mfunc_operator=*/FALSE);
           goto done_with_operation;
         case eok_lvalue:
           /* Handled above. */

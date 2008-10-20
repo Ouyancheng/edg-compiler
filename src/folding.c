@@ -5506,6 +5506,18 @@ handle_field_selection:
               }  /* if */
             }  /* if */
             break;
+          case eok_lvalue_adjust:
+            /* eok_lvalue_adjust operations are used to adjust the
+               cv-qualification (and maybe type) of an lvalue. */
+            if (constant_lvalue_address(op1, &conaddr1, address_escapes,
+                                        template_constant)) {
+              /* The address of the operand is constant.  Adjust its type
+                 and it is also the address of the result lvalue. */
+              copy_constant(&conaddr1, con);
+              implicit_cast(con, make_pointer_type(expr->type));
+              is_constant_addr = TRUE;
+            }  /* if */
+            break;
           case eok_lvalue:
             /* The address of an eok_lvalue applied to a ck_template_param
                constant is sometimes a constant. */

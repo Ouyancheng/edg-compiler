@@ -2672,13 +2672,15 @@ part of a template-dependent expression.
 
   /* Drop parentheses. */
   expr = skip_parens(expr);
-  /* Drop eok_lvalue. */
+  /* Drop implicit operations. */
   while (is_operation_node(expr) &&
          ((op = expr->variant.operation.kind),
-          (op == (an_expr_operator_kind)eok_lvalue
+          (op == (an_expr_operator_kind)eok_lvalue ||
+           op == (an_expr_operator_kind)eok_lvalue_adjust
+
 #if IA64_ABI
            /* Also drop implicit casts in the IA-64 ABI. */
-                                                   ||
+                                                          ||
            ((op == (an_expr_operator_kind)eok_cast ||
              op == (an_expr_operator_kind)eok_bool_cast) &&
             expr->variant.operation.compiler_generated)

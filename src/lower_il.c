@@ -11845,7 +11845,8 @@ the first pass).
         operand = add_cast_to_lvalue_if_necessary(copy_node(operand),
                                                   orig_operand_type);
         overwrite_node(expr->variant.operation.operands, operand);
-      } else if (node_operator_is(expr, eok_lvalue_cast)) {
+      } else if (node_operator_is(expr, eok_lvalue_cast) ||
+                 node_operator_is(expr, eok_lvalue_adjust)) {
         /* Leave the cast type as is. */
       } else {
         unexpected_condition();

@@ -3719,6 +3719,13 @@ on every expression.
             form_type(expr->type, octl);
             octl->output_str(")");
             form_expression(operand, octl);
+          } else if (op == (an_expr_operator_kind)eok_parens) {
+            /* Parentheses.  One set is already put out, so we don't need
+               another. */
+            form_expression(operand, octl);
+          } else if (op == (an_expr_operator_kind)eok_lvalue_adjust) {
+            /* Lvalue type adjustment (always implicit, so ignore). */
+            form_expression(operand, octl);
           } else if (operand->next == NULL) {
             /* Unary operators. */
             octl->output_str(op_str);

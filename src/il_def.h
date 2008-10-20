@@ -9128,10 +9128,29 @@ enum an_expr_operator_kind_tag {
 			   is also the code used for classic-syntax casts
 			   involving parameterized types (in prototype
 			   instantiations). */
-  eok_lvalue_cast,	/* Like eok_cast, but used to cast an lvalue.
-			   An lvalue cast to a like-sized type can remain an
-			   lvalue.  An extension: used in some C modes and
-			   in Microsoft and GNU C++ modes. */
+  eok_lvalue_cast,	/* Used to represent a nonstandard feature present
+			   in some older C modes and in Microsoft and GNU C++
+			   modes, in which an lvalue operand can be cast to a
+			   new type and the result is still an lvalue.
+			   The new type (indicated by the type of the
+			   expression) is always similar to the operand type
+			   (e.g., they could be integral types with the same
+			   size but different signedness).  The cast creates
+			   an lvalue that refers to the same underlying object
+			   but with a slightly different type. */
+  eok_lvalue_adjust,	/* Similar to eok_lvalue_cast, but used for implicit
+			   lvalue type adjustments related to standard language
+			   features, for example when adjusting cv-qualifiers
+			   to bind a reference.  The operand is an lvalue.
+			   The result is an lvalue for the same object but
+			   with a different type (indicated by the type of the
+			   expression).  Typically used to adjust
+			   cv-qualifiers, but can also change the underlying
+			   object type in significant ways (e.g., from one
+			   class type to another).  Cannot handle base or
+			   derived class adjustments.  Unlike eok_lvalue_cast,
+			   this operation is rvalueable (it can include an
+			   implicit lvalue-to-rvalue conversion). */
   eok_base_class_cast,	/* C++ cast of a class to a direct base class.  The
 			   type of the expression indicates the type to cast
 			   to.  The operand can be a class lvalue, a class
@@ -12055,7 +12074,7 @@ EXTERN an_il_header il_header;
 EXTERN char     *db_operator_names[(int)eok_last+1]
 #if VAR_INITIALIZERS
 = {"&", "ref-&", "*", "ref-*",
-   "cast", "lvalue cast",
+   "cast", "lvalue cast", "lvalue adjust",
    "base class cast", "derived class cast",
    "pm base class cast", "pm derived class cast",
    "dynamic cast", "bool cast",

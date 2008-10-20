@@ -3803,47 +3803,67 @@ Dump a va_arg operator.  Used when <stdarg.h> is treated as a builtin.
 }  /* dump_va_arg */
 
 
+static void dump_lvalue_cast(an_expr_node_ptr node,
+                             a_boolean        suppress_indirection)
+/*
+Dump an expression that is an lvalue cast (eok_lvalue_cast or
+eok_lvalue_adjust).  If suppress_indirection is TRUE, suppress the "*"
+on top of the expansion.
+*/
+{
+  a_boolean        use_simple_cast = FALSE;
+  an_expr_node_ptr operand_1 = node->variant.operation.operands;
+
+  write_tok_ch('(');
+  /* Generate the lvalue cast as an indirection on a pointer cast.
+     This avoids depending too much on the underlying compiler's
+     implementation of lvalue casts.  Note that this will not work for
+     a bit-field, so generate a simple cast for those cases. */
+  if (is_operation_node(operand_1) &&
+      (node_operator_is(operand_1, eok_dot_field) ||
+       node_operator_is(operand_1, eok_points_to_field))) {
+    a_field_ptr field;
+    check_assertion(operand_1->variant.operation.operands->next->kind ==
+                                                 (an_expr_node_kind)enk_field);
+    field = operand_1->variant.operation.operands->next->variant.field;
+    if (field->is_bit_field) {
+      use_simple_cast = TRUE;
+    }  /* if */
+  }  /* if */
+  if (use_simple_cast) {
+    check_assertion(!suppress_indirection);
+    dump_cast(node->type);
+  } else {
+    if (!suppress_indirection) write_tok_ch('*');
+    dump_cast_to_pointer_to(node->type);
+    if (is_operation_node(operand_1) &&
+        node_operator_is(operand_1, eok_indirect)) {
+      /* Cancel "&" over "*" to avoid a gcc bug when the underlying type
+         is incomplete. */
+      operand_1 = operand_1->variant.operation.operands;
+    } else if (is_operation_node(operand_1) &&
+               (node_operator_is(operand_1, eok_lvalue_cast) ||
+                node_operator_is(operand_1, eok_lvalue_adjust))) {
+      /* Cancel "&" over the "*" at the top of an lvalue cast to avoid a
+         gcc bug when the underlying type is incomplete. */
+      dump_lvalue_cast(operand_1, /*suppress_indirection=*/TRUE);
+      goto after_operand_output;
+    } else {
+      write_tok_ch('&');
+    }  /* if */
+  }  /* if */
+  dump_lvalue(operand_1);
+after_operand_output:
+  write_tok_ch(')');
+}  /* dump_lvalue_cast */
+
+
 static void dump_lvalue(an_expr_node_ptr node)
 /*
 Dump an expression that is marked in the IL as an lvalue.
 */
 {
-  an_expr_node_ptr operand_1;
-
-  /* Put out an lvalue cast in original form. */
-  if (node->kind == (an_expr_node_kind)enk_operation &&
-      node->variant.operation.kind == (an_expr_operator_kind)eok_lvalue_cast) {
-    a_boolean use_simple_cast = FALSE;
-    operand_1 = node->variant.operation.operands;
-    write_tok_ch('(');
-    /* Generate the lvalue cast as an indirection on a pointer cast.
-       This avoids depending too much on the underlying compiler's
-       implementation of lvalue casts.  Note that this will not work for
-       a bit-field, so generate a simple cast for those cases. */
-    if (is_operation_node(operand_1) &&
-        (node_operator_is(operand_1, eok_dot_field) ||
-         node_operator_is(operand_1, eok_points_to_field))) {
-      a_field_ptr field;
-      check_assertion(operand_1->variant.operation.operands->next->kind ==
-                                                 (an_expr_node_kind)enk_field);
-      field = operand_1->variant.operation.operands->next->variant.field;
-      if (field->is_bit_field) {
-        use_simple_cast = TRUE;
-      }  /* if */
-    }  /* if */
-    if (use_simple_cast) {
-      dump_cast(node->type);
-    } else {
-      write_tok_ch('*');
-      dump_cast_to_pointer_to(node->type);
-      write_tok_ch('&');
-    }  /* if */
-    dump_lvalue(operand_1);
-    write_tok_ch(')');
-  } else {
-    /* Normal case. */
-    dump_expr_with_parens(node);
-  }  /* if */
+  dump_expr_with_parens(node);
 }  /* dump_lvalue */
 
 
@@ -4319,7 +4339,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
   an_expr_node_ptr               call_argument;
   a_boolean                      is_unary;
   char                           *opstr;
-  an_expr_node_ptr               operand_1, operand_2;
+  an_expr_node_ptr               operand_1, operand_2, operand_3;
   a_type_ptr                     expr_type;
   a_boolean                      pointer_comparison = FALSE;
   char                           *pointer_comparison_cast;
@@ -4369,9 +4389,19 @@ there's some possibility of precedence confusion and need_parens is TRUE.
               dump_expression(operand_1);
               goto done_with_unary_operation;
             }  /* if */
-            if (underlying_type != operand_1->type ||
-                (is_const_qualified_type(underlying_type) && var != NULL &&
-                 suppress_const_for_mutable_or_init(var))) {
+            if (is_operation_node(operand_1) &&
+                (node_operator_is(operand_1, eok_lvalue_cast) ||
+                 node_operator_is(operand_1, eok_lvalue_adjust))) {
+              /* To avoid a gcc bug, cancel the "&" here against the "*" at
+                 the top of the expansion of an lvalue cast.  gcc has problems
+                 if the underlying type is incomplete, even though C99 says
+                 "&*p" should be treated as equivalent to simply "p". */
+              dump_lvalue_cast(operand_1, /*suppress_indirection=*/TRUE);
+              goto done_with_unary_operation;
+            } else if (underlying_type != operand_1->type ||
+                       (is_const_qualified_type(underlying_type) &&
+                        var != NULL &&
+                        suppress_const_for_mutable_or_init(var))) {
               /* For some cases where const qualifiers were removed on
                  variables because of initialization, the address of the
                  variable is less-qualified than it should be, and in a way
@@ -4451,19 +4481,8 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           }  /* if */
           goto done_with_unary_operation;
         case eok_lvalue_cast:
-          write_tok_ch('(');
-          if (expr->is_lvalue) {
-            /* Add a level of indirection to get an lvalue of the correct
-               type. */
-            write_tok_ch('*');
-            dump_cast_to_pointer_to(expr_type);
-          } else {
-            /* Just cast to the target type. */
-            dump_cast(expr_type);
-          }  /* if */
-          write_tok_ch('&');
-          dump_lvalue(operand_1);
-          write_tok_ch(')');
+        case eok_lvalue_adjust:
+          dump_lvalue_cast(expr, /*suppress_indirection=*/FALSE);
           goto done_with_unary_operation;
 #if GNU_COMPLEX_EXTENSIONS_ALLOWED
         case eok_xconj:
@@ -4802,10 +4821,11 @@ process_assignment:
           check_assertion_str(operand_2 != NULL && operand_2->next != NULL &&
                               operand_2->next->next == NULL,
                               "dump_expr: wrong # of operands for ?");
+          operand_3 = operand_2->next;
 #if CHECKING
 #if !STANDALONE_UTILITY_PROGRAM
           if (!il_identical_types(operand_2->type, expr_type) ||
-              !il_identical_types(operand_2->next->type, expr_type)) {
+              !il_identical_types(operand_3->type, expr_type)) {
 #if DEBUG
             db_expression(expr);
 #endif /* DEBUG */
@@ -4825,14 +4845,19 @@ process_assignment:
           /* The SUNPRO C compiler doesn't like "?" operators where the
              branches are struct rvalues with different type qualifiers.
              That's a bug -- in standard C the qualifiers on rvalues are
-             dropped.  For the simple (variable) case, do some casting to
-             drop the type qualifiers. */
-          if (is_class_struct_union_type(expr_type) &&
-              is_variable_node(operand_2) &&
-              is_qualified_type(operand_2->variant.variable->type)) {
-            write_tok_ch('*');
-            dump_cast_to_pointer_to(expr_type);
-            write_tok_ch('&');
+             dropped.  For a few simple cases, do some casting to drop
+             the type qualifiers. */
+          if (is_class_struct_union_type(expr_type)) {
+            if ((is_variable_node(operand_2) &&
+                 is_qualified_type(operand_2->variant.variable->type)) ||
+                (is_operation_node(operand_2) &&
+                 node_operator_is(operand_2, eok_indirect) &&
+                 is_qualified_type(type_pointed_to(
+                              operand_2->variant.operation.operands->type)))) {
+              write_tok_ch('*');
+              dump_cast_to_pointer_to(expr_type);
+              write_tok_ch('&');
+            }  /* if */                  
           }  /* if */
 #endif /* SUNPRO_C_IS_C_GEN_BE_TARGET */
           dump_expr_with_parens(operand_2);
@@ -4841,20 +4866,25 @@ process_assignment:
 #endif /* !ALLOW_VOID_QUESTION_OPERAND_IN_GENERATED_C */
           write_tok_str(" : ");
 #if !ALLOW_VOID_QUESTION_OPERAND_IN_GENERATED_C
-          void_operand = is_void_type(operand_2->next->type);
+          void_operand = is_void_type(operand_3->type);
           if (void_operand) write_tok_ch('(');
 #endif /* !ALLOW_VOID_QUESTION_OPERAND_IN_GENERATED_C */
 #if SUNPRO_C_IS_C_GEN_BE_TARGET
           /* See comment above.*/
-          if (is_class_struct_union_type(expr_type) &&
-              is_variable_node(operand_2->next) &&
-              is_qualified_type(operand_2->next->variant.variable->type)) {
-            write_tok_ch('*');
-            dump_cast_to_pointer_to(expr_type);
-            write_tok_ch('&');
+          if (is_class_struct_union_type(expr_type)) {
+            if ((is_variable_node(operand_3) &&
+                 is_qualified_type(operand_3->variant.variable->type)) ||
+                (is_operation_node(operand_3) &&
+                 node_operator_is(operand_3, eok_indirect) &&
+                 is_qualified_type(type_pointed_to(
+                              operand_3->variant.operation.operands->type)))) {
+              write_tok_ch('*');
+              dump_cast_to_pointer_to(expr_type);
+              write_tok_ch('&');
+            }  /* if */                  
           }  /* if */
 #endif /* SUNPRO_C_IS_C_GEN_BE_TARGET */
-          dump_expr_with_parens(operand_2->next);
+          dump_expr_with_parens(operand_3);
 #if !ALLOW_VOID_QUESTION_OPERAND_IN_GENERATED_C
           if (void_operand) write_tok_str(",0)");
 #endif /* !ALLOW_VOID_QUESTION_OPERAND_IN_GENERATED_C */

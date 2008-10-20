@@ -10118,7 +10118,10 @@ an_expr_node_ptr make_lvalue_cast_node(an_expr_node_ptr source_expr,
 /*
 Make an lvalue cast expression node that casts source_expr to type_cast_to.
 This is an extension used only in C mode and Microsoft and GNU C++ modes.
-The cast is compiler-generated if compiler_generated is TRUE.
+The cast is compiler-generated if compiler_generated is TRUE.  This is
+a special cast related to nonstandard features; see add_cast_to_lvalue
+for the routine that is used for lvalue type adjustments of a more
+usual nature.
 */
 {
   an_expr_node_ptr lvalue_cast_node;
@@ -10147,7 +10150,7 @@ The cast is compiler-generated if compiler_generated is TRUE.
   a_ref_entry_ptr  ref_entry_list = result->ref_entries_list;
 
   check_assertion_str(C_mode() || gpp_mode || microsoft_mode,
-                      "lvalue_cast: lvalue cast in C++ mode");
+                      "lvalue_cast: lvalue cast in unexpected mode");
   /* Build an expression node for the lvalue cast. */
   temp_node = make_lvalue_cast_node(make_node_from_operand(result),
                                     type_cast_to, compiler_generated);

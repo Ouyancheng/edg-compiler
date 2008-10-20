@@ -3327,8 +3327,14 @@ routine is used only in C++ mode.
     }  /* if */
     if (did_not_fold) {
       /* The cast could not be folded to a constant. */
-      if (curr_expr_kind_is_const() && curr_expr_is_evaluated()) {
-        /* The cast must fold to a constant in a constant expression. */
+      if (curr_expr_kind_is_const() &&
+          !(is_an_lvalue(operand) &&
+            (curr_expr_kind_is(ek_template_arg) ||
+             curr_expr_kind_is(ek_init_constant))) &&
+          curr_expr_is_evaluated()) {
+        /* The cast must fold to a constant in a constant expression.
+           Certain expression kinds allow an lvalue because its address might
+           be taken later. */
         error_in_operand(ec_expr_not_constant, operand);
       } else {
         /* Build an expression node or nodes for the cast. */
@@ -3378,8 +3384,6 @@ reference) and not something explicit like a cast.
       /* If you change this, see lvalue_before_type_adjustment. */
       an_operand orig_operand;
       orig_operand = *operand;
-      /* Make a pointer to the object. */
-      take_address_of_lvalue(operand, (a_source_position*)NULL);
       if (is_class_struct_union_type(operand_type) &&
           is_class_struct_union_type(dest_type)) {
         a_type_ptr       source_class_type = skip_typerefs(operand_type);
@@ -3397,13 +3401,12 @@ reference) and not something explicit like a cast.
                                   /*is_object_pointer=*/FALSE);
         }  /* if */
       }  /* if */
-      /* Adjust cv-qualifiers if necessary. */
-      cast_operand(make_pointer_type(dest_type), operand,
-                   /*check_cast_access=*/TRUE, /*is_implicit_cast=*/TRUE,
-                   /*is_reinterpret_cast=*/FALSE,
-                    /*reinterpret_semantics=*/FALSE);
-      /* Convert back to an lvalue. */
-      conv_object_pointer_to_lvalue(operand);
+      if (!identical_types(operand->type, dest_type)) {
+        /* Adjust cv-qualifiers if necessary. */
+        an_expr_node_ptr expr = make_node_from_operand(operand);
+        expr = add_cast_to_lvalue(expr, dest_type);
+        make_lvalue_expression_operand(expr, operand);
+      }  /* if */
       restore_operand_details_incl_ref(operand, &orig_operand);
     }  /* if */
   }  /* if */
@@ -3421,31 +3424,27 @@ the original expression.
   an_expr_node_ptr texpr = expr;
 
   check_assertion(expr->is_lvalue || is_error_node(expr));
-  /* An lvalue adjustment takes the address of the lvalue, casts that to the
-     proper type, and then uses "*" to get back to an lvalue.  That's
-     based on what adjust_lvalue_type does, and the code here would have
-     to change if adjust_lvalue_type changes. */
+  /* An lvalue adjustment is zero or more base class casts followed optionally
+     by an lvalue adjustment to adjust the cv-qualification.  That's based on
+     what adjust_lvalue_type does, and the code here would have to change if
+     adjust_lvalue_type changes. */
   /* No skip_parens needed here because the sequence we are looking for
      is compiler-generated. */
-  if (is_operation_node(texpr) && node_operator_is(texpr, eok_indirect) &&
-      texpr->variant.operation.compiler_generated) {
+  if (is_operation_node(texpr) &&
+      node_operator_is(texpr, eok_lvalue_adjust) &&
+      identical_types_ignoring_qualifiers(
+                                    texpr->type,
+                                    texpr->variant.operation.operands->type)) {
+    /* Drop a cv-qualification-adjusting lvalue cast. */
     texpr = texpr->variant.operation.operands;
-    while (is_operation_node(texpr) &&
-           (node_operator_is(texpr, eok_cast) ||
-            node_operator_is(texpr, eok_base_class_cast)) &&
-           texpr->variant.operation.compiler_generated) {
-      /* Drop type-adjusting casts. */
-      texpr = texpr->variant.operation.operands;
-    }  /* while */
-    /* Check for the final "&". */
-    if (is_operation_node(texpr) && node_operator_is(texpr, eok_address_of) &&
-        texpr->variant.operation.compiler_generated) {
-      /* We found the underlying lvalue expression. */
-      expr = texpr->variant.operation.operands;
-      check_assertion(expr->is_lvalue || is_error_node(expr));
-    }  /* if */
   }  /* if */
-  return expr;
+  while (is_operation_node(texpr) &&
+         node_operator_is(texpr, eok_base_class_cast) &&
+         texpr->variant.operation.compiler_generated) {
+    /* Drop base class casts. */
+    texpr = texpr->variant.operation.operands;
+  }  /* while */
+  return texpr;
 }  /* lvalue_before_type_adjustment */
 
 
@@ -9537,7 +9536,6 @@ e.g., in a back end.
         lvalue_type = type_plus_qualifiers_from_second_type(node->type,
                                                             lvalue_type);
         if (!see_if_possible) {
-          node->is_lvalue = TRUE;
           op1 = conv_rvalue_expr_to_lvalue(op1, &possible,
                                            /*see_if_possible=*/FALSE,
                                            gcc_lvalue,
@@ -9546,6 +9544,10 @@ e.g., in a back end.
           node->variant.operation.operands = op1;
         }  /* if */
       }  /* if */
+    } else if (op == (an_expr_operator_kind)eok_lvalue_adjust) {
+      /* Lvalue type adjustment with an lvalue-to-rvalue conversion built
+         into it.  We can undo that by simply changing the flag. */
+      possible = TRUE;
 #if GNU_COMPLEX_EXTENSIONS_ALLOWED
     } else if (op == (an_expr_operator_kind)eok_imag_part ||
                op == (an_expr_operator_kind)eok_real_part) {
