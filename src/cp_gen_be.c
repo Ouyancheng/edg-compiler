@@ -6772,9 +6772,11 @@ static an_expr_node_ptr strip_lvalue_cast_sequence(an_expr_node_ptr expr)
 /*
 When the front end needs to add a cast to an lvalue node (to add
 cv-qualification, for example), it inserts a compiler-generated sequence of
-nodes equivalent to "*(const T*)&" on top of the lvalue node.  This routine
-recognizes this pattern (in which case, expr points to a cast node -- the
-eok_indirect node was recognized and skipped by the caller) and returns the
+nodes equivalent to "*(const T*)&" on top of the lvalue node.  A similar
+pattern is used to convert an object reference into a pointer for use as
+the "this" parameter of a member function.  This routine recognizes this
+pattern (in which case, expr points to a cast node -- the eok_indirect
+node, if any, was recognized and skipped by the caller) and returns the
 original lvalue.
 */
 {
@@ -6850,9 +6852,13 @@ static void gen_object_expr_for_implicit_call(
                                    a_boolean        obj_expr_of_mfunc_operator)
 /*
 Generate code for expr, the object expression in an implicit member
-function call (an overloaded operator or a conversion function).
-obj_expr_of_mfunc_operator, which will be TRUE in the overloaded operator
-case, is passed along to gen_expr.
+function call (an overloaded operator or a conversion function).  The
+expression appeared in the source as an object reference but the front end
+converted it to a pointer for passing as the "this" parameter of the member
+function.  This routine strips off the sequence of compiler-generated nodes
+(eok_address_of and possibly various casts) that were added on top of the
+original object expression.  obj_expr_of_mfunc_operator, which will be TRUE
+in the overloaded operator case, is passed along to gen_expr.
 */
 {
   while (is_constant_node(expr) &&
@@ -8648,7 +8654,22 @@ gen_expr that might end up generating this expr as a temporary.
           opstr = "^";
           break;
         case eok_comma:
-          gen_expr_with_parens(operand_1);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          if (operand_1->kind == (an_expr_node_kind)enk_temp_init &&
+              operand_1->variant.init.dynamic_init->is_reused_value) {
+            /* This is probably the expansion of a Microsoft property
+               reference.  In such cases, the front end inserts
+               compiler-generated nodes to convert the property field
+               expression to the "this" pointer for the accessor function,
+               and these must be stripped before generating the code for
+               the expression. */
+            gen_expr_with_parens(strip_lvalue_cast_sequence(operand_1));
+          } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+          /* Do not insert code here. */
+          {
+            gen_expr_with_parens(operand_1);
+          }  /* if */
           write_tok_str(", ");
           gen_expr_with_parens(operand_2);
           goto done_with_operation;
