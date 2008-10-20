@@ -8632,9 +8632,6 @@ gen_expr that might end up generating this expr as a temporary.
           goto done_with_operation;
         case eok_points_to_static:
           /* Static member selection, p->m. */
-          /* If operand_1 is an invocation of operator->() that will be
-             generated as "->", pass "" as the opstr instead of "->" to
-             avoid generating "->->". */
           gen_dot_static(operand_1, "->", operand_2);
           goto done_with_operation;
         case eok_dot_static:
