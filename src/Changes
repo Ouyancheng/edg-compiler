@@ -1,5 +1,18 @@
 Version 3.11
 
+10/20/08 [EDGcpfe/9296]
+GNU C++ compatibility: Default arguments in friend function declarations
+
+In GNU C++ mode, the front end now always accepts default arguments in friend
+function declarations.  Previously, the default arguments were only accepted
+if friend injection was enabled (see also the Changes entry of 8/9/08).
+For example:
+
+  struct S { 
+    friend void f(int n = 3);  // Now always accepted in GNU C++ mode.
+  };
+
+
 10/20/08 [EDGcpfe/9298]
 Microsoft compatibility: typename accepted on globally qualified name
 

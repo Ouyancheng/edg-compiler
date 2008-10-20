@@ -6532,8 +6532,10 @@ for use in generating cross-reference output describing this declaration.
                                 ->variant.routine.extra_info->param_type_list;
 
         /* Friend functions that name an existing declaration should not
-           introduce default arguments. */
-        if (!friend_injection_enabled && is_friend_decl &&
+           introduce default arguments.  Such default arguments are accepted,
+           however, in GNU C++ mode or when friend name injection is
+           enabled. */
+        if (!(friend_injection_enabled || gpp_mode ) && is_friend_decl &&
             func_info->any_default_args) {
           pos_error(ec_friend_cannot_add_default_arguments,
                     &locator->source_position);
