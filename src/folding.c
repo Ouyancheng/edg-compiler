@@ -6230,6 +6230,11 @@ constant will be set as well.
                    __has_nothrow_copy should return FALSE (in non-Microsoft
                    modes). */
                 goto result_known;
+              } else if (gpp_mode && rp->compiler_generated) {
+                /* g++ appears to treat nontrivial generated copy-constructors
+                   as possibly throwing. */
+                result = FALSE;
+                goto result_known;
               }  /* if */
             }  /* if */
           }  /* if */

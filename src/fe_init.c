@@ -294,6 +294,9 @@ recognized in Microsoft modes.
     enter_keyword((a_token_kind)tok_has_user_destructor,
                   "__has_user_destructor");
   }  /* if */
+  if (!gpp_mode) {
+    enter_keyword((a_token_kind)tok_is_pod, "__is_pod");
+  }  /* if */
   enter_keyword((a_token_kind)tok_has_nothrow_assign,
                 "__has_nothrow_assign");
   enter_keyword((a_token_kind)tok_has_nothrow_constructor,
@@ -316,7 +319,6 @@ recognized in Microsoft modes.
                 "__is_convertible_to");
   enter_keyword((a_token_kind)tok_is_empty, "__is_empty");
   enter_keyword((a_token_kind)tok_is_enum, "__is_enum");
-  enter_keyword((a_token_kind)tok_is_pod, "__is_pod");
   enter_keyword((a_token_kind)tok_is_polymorphic, "__is_polymorphic");
   enter_keyword((a_token_kind)tok_is_union, "__is_union");
 }  /* enter_type_traits_helpers */
