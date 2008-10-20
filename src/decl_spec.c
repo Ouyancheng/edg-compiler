@@ -5186,7 +5186,8 @@ a declaration.
   (void)is_generalized_identifier_start(GID_IS_TYPENAME);
   if (microsoft_mode &&
       (curr_token != tok_identifier ||
-       !locator_for_curr_id.is_qualified_name)) {
+       !locator_for_curr_id.is_qualified_name ||
+       locator_for_curr_id.is_file_scope_qualified_name)) {
     /* An invalid typename specifier that is accepted in Microsoft mode.
        Simply return and let decl_specifiers process the rest of the type. */
     goto done;

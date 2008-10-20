@@ -1,5 +1,17 @@
 Version 3.11
 
+10/20/08 [EDGcpfe/9298]
+Microsoft compatibility: typename accepted on globally qualified name
+
+The Microsoft compiler allows a globally qualified name to be used in
+a typename specifier.  We now accept this in Microsoft mode.
+
+  template <typename T> struct A {};
+  template <class U> struct B {
+    typedef typename ::A<U> my_A;
+  };
+
+
 10/20/08 [EDGcpfe/9297]
 Enable support for type traits when emulating g++ versions 4.3 and higher
 
