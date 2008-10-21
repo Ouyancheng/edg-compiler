@@ -3552,10 +3552,6 @@ the scope must be the file scope.
 }  /* dump_scope_types */
 
 
-/* Forward declaration. */
-static void dump_lvalue(an_expr_node_ptr node);
-
-
 static void dump_cast(a_type_ptr type)
 /*
 Generate a cast to the indicated type.
@@ -3771,9 +3767,8 @@ parentheses.
     if (mutable_case) write_tok_ch(')');
     write_tok_str("->");
   } else {
-    /* Normal "." case: because the result is an lvalue, the left operand
-       must be an lvalue. */
-    dump_lvalue(operand_1);
+    /* "." case. */
+    dump_expr_with_parens(operand_1);
     write_tok_ch('.');
   }  /* if */
   dump_field_from_second_operand(expr);
@@ -3795,7 +3790,7 @@ Dump a va_arg operator.  Used when <stdarg.h> is treated as a builtin.
   } else {
     write_tok_str("va_arg(");
   }  /* if */
-  dump_lvalue(operand_1);
+  dump_expr_with_parens(operand_1);
   write_tok_ch(',');
   dump_type(type, /*add_pointer_to=*/FALSE);
   write_tok_ch(')');
@@ -3852,19 +3847,10 @@ on top of the expansion.
       write_tok_ch('&');
     }  /* if */
   }  /* if */
-  dump_lvalue(operand_1);
+  dump_expr_with_parens(operand_1);
 after_operand_output:
   write_tok_ch(')');
 }  /* dump_lvalue_cast */
-
-
-static void dump_lvalue(an_expr_node_ptr node)
-/*
-Dump an expression that is marked in the IL as an lvalue.
-*/
-{
-  dump_expr_with_parens(node);
-}  /* dump_lvalue */
 
 
 static a_boolean optimizable_rvalue_selection(an_expr_node_ptr expr,
@@ -3972,7 +3958,7 @@ to a temp and select the field from the temp.
       dump_temp_name((char *)expr);
     }  /* if */
   } else {
-    dump_lvalue(struct_expr);
+    dump_expr_with_parens(struct_expr);
   }  /* if */
   /* Add the field selection. */
   if (node_operator_is(expr, eok_points_to_field)) {
@@ -4508,7 +4494,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
              truncate/adjust the result of the assignment. */
           adjust_bit_field_value(expr);
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
-          dump_lvalue(operand_1);
+          dump_expr_with_parens(operand_1);
           write_tok_str("++");
 #if !C_GEN_BE_GENERATES_ANSI_C
           end_adjust_bit_field_value(expr);
@@ -4522,7 +4508,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           adjust_bit_field_value(expr);
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
           write_tok_str("++");
-          dump_lvalue(operand_1);
+          dump_expr_with_parens(operand_1);
 #if !C_GEN_BE_GENERATES_ANSI_C
           end_adjust_bit_field_value(expr);
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
@@ -4534,7 +4520,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
              truncate/adjust the result of the assignment. */
           adjust_bit_field_value(expr);
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
-          dump_lvalue(operand_1);
+          dump_expr_with_parens(operand_1);
           write_tok_str("--");
 #if !C_GEN_BE_GENERATES_ANSI_C
           end_adjust_bit_field_value(expr);
@@ -4548,7 +4534,7 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           adjust_bit_field_value(expr);
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
           write_tok_str("--");
-          dump_lvalue(operand_1);
+          dump_expr_with_parens(operand_1);
 #if !C_GEN_BE_GENERATES_ANSI_C
           end_adjust_bit_field_value(expr);
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
@@ -4699,7 +4685,7 @@ process_assignment:
           adjust_bit_field_value(expr);
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
           /* Write the left operand. */
-          dump_lvalue(operand_1);
+          dump_expr_with_parens(operand_1);
           /* Write the operation string and the right operand. */
           m_write_space();
           m_write_tok_str(opstr);
@@ -4725,7 +4711,7 @@ process_assignment:
             /* The copy can be done by an assignment.  (This case is here
                for completeness; the front end doesn't actually generate any
                of these.) */
-            dump_lvalue(operand_1);
+            dump_expr_with_parens(operand_1);
             write_tok_str(" = *");
             dump_expr_with_parens(operand_2);
           } else {
@@ -4733,15 +4719,15 @@ process_assignment:
 #if __BSD__
             /* BSD UNIX -- use bcopy. */
             write_tok_str("(void)bcopy((char *)&");
-            dump_lvalue(operand_2);
+            dump_expr_with_parens(operand_2);
             write_tok_str(", (char *)&");
-            dump_lvalue(operand_1);
+            dump_expr_with_parens(operand_1);
 #else  /* !__BSD__ */
             /* System V or ANSI -- use memcpy. */
             write_tok_str("(void)memcpy((char *)&");
-            dump_lvalue(operand_1);
+            dump_expr_with_parens(operand_1);
             write_tok_str(", (char *)&");
-            dump_lvalue(operand_2);
+            dump_expr_with_parens(operand_2);
 #endif /* __BSD__ */
             /* Add the length of the move. */
             { a_type_ptr operand_1_type = skip_typerefs(operand_1->type);
@@ -4950,9 +4936,9 @@ process_assignment:
           } else {
             write_tok_str("va_start(");
           }  /* if */
-          dump_lvalue(operand_1);
+          dump_expr_with_parens(operand_1);
           write_tok_ch(',');
-          dump_lvalue(operand_2);
+          dump_expr_with_parens(operand_2);
           write_tok_ch(')');
           enable_line_wrapping();
           goto done_with_operation;
@@ -4965,7 +4951,7 @@ process_assignment:
           } else {
             write_tok_str("va_start(");
           }  /* if */
-          dump_lvalue(operand_1);
+          dump_expression(operand_1);
           write_tok_ch(')');
           enable_line_wrapping();
           goto done_with_operation;
@@ -4982,7 +4968,7 @@ process_assignment:
           } else {
             write_tok_str("va_end(");
           }  /* if */
-          dump_lvalue(operand_1);
+          dump_expression(operand_1);
           write_tok_ch(')');
           enable_line_wrapping();
           goto done_with_operation;
@@ -4995,9 +4981,9 @@ process_assignment:
           } else {
             write_tok_str("va_copy(");
           }  /* if */
-          dump_lvalue(operand_1);
+          dump_expr_with_parens(operand_1);
           write_tok_ch(',');
-          dump_lvalue(operand_2);
+          dump_expr_with_parens(operand_2);
           write_tok_ch(')');
           enable_line_wrapping();
           goto done_with_operation;
@@ -5114,7 +5100,7 @@ done_with_operation:
       } else {
         /* sizeof(expr). */
         if (expr->variant.runtime_sizeof.variant.expr->is_lvalue) {
-          dump_lvalue(expr->variant.runtime_sizeof.variant.expr);
+          dump_expression(expr->variant.runtime_sizeof.variant.expr);
         } else {
           an_expr_node_ptr sizeof_expr =
                                      expr->variant.runtime_sizeof.variant.expr;
@@ -6711,11 +6697,7 @@ Dump the GNU C operand descriptions for the given asm entry.
     m_write_ch('"');
 #endif /* RECORD_RAW_ASM_OPERAND_DESCRIPTIONS */
     write_tok_str(" (");
-    if (output) {
-      dump_lvalue(aop->expression);
-    } else {
-      dump_expression(aop->expression);
-    }  /* if */
+    dump_expression(aop->expression);
     m_write_ch(')');
     /* Move to the next operand (if any). */
     aop = aop->next;
