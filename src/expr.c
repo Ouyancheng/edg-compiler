@@ -14729,6 +14729,9 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
   if (!required_token(tok_colon, ec_exp_colon)) {
     /* The colon is missing. */
     make_error_operand(result);
+    /* Make sure operand_3 has a valid source position. */
+    copy_operand(&operand_2, &operand_3);
+    conv_to_error_operand(&operand_3);
     goto error_exit;
   }  /* if */
 

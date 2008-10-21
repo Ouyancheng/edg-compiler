@@ -1,5 +1,18 @@
 Version 3.11
 
+10/21/08 [EDGcpfe/9173]
+Use of uninitialized variable for source position after error in "?"
+
+The processing for the error of a missing ":" in a "?" operator made
+use of an uninitialized variable in setting the end position of the
+operation when EXTRA_SOURCE_POSITIONS_IN_IL is TRUE.  Now fixed.
+
+  int main() {
+    int i = 1;
+    i ? i;  // End position on error operand was garbage
+  }
+
+
 10/21/08 [EDGcpfe/9288]
 More emulation of GNU lvalue casts
 
