@@ -9310,195 +9310,176 @@ e.g., in a back end.
     /* Note that skip_parens is not called on the operands at this
        point, because we still want to be able to unlink/relink the original
        operands. */
-    if (op == (an_expr_operator_kind)eok_indirect ||
-        op == (an_expr_operator_kind)eok_ref_indirect) {
-      /* The top operator is an indirection, so we can just change the node
-         to an lvalue. */
-      possible = TRUE;
-      if (is_pointer_type(op1->type)) {
-        lvalue_type = type_pointed_to(op1->type);
-      }  /* if */
-    } else if (op == (an_expr_operator_kind)eok_subscript) {
-      /* "[]" operator -- transform to an lvalue. */
-      possible = TRUE;
-      /* Get the lvalue type from the pointer operand, which can be either
-         one. */
-      if (is_pointer_type(op1->type)) {
-        lvalue_type = type_pointed_to(op1->type);
-      } else if (is_pointer_type(op2->type)) {
-        lvalue_type = type_pointed_to(op2->type);
-      }  /* if */
-    } else if (op == (an_expr_operator_kind)eok_parens) {
-      /* Parentheses: just do a recursive call on the operand. */
-      (void)conv_rvalue_expr_to_lvalue(op1, &possible,
-                                       /*see_if_possible=*/TRUE,
-                                       gcc_lvalue,
-                                       ignore_casts,
-                                       &lvalue_type);
-      if (possible) {
-        if (!see_if_possible) {
-          op1 = conv_rvalue_expr_to_lvalue(op1, &op1_possible,
-                                           /*see_if_possible=*/FALSE,
+    switch (op) {
+      case eok_indirect:
+      case eok_ref_indirect:
+        /* The top operator is an indirection, so we can just change the node
+           to an lvalue. */
+        possible = TRUE;
+        if (is_pointer_type(op1->type)) {
+          lvalue_type = type_pointed_to(op1->type);
+        }  /* if */
+        break;
+      case eok_subscript:
+        /* "[]" operator -- transform to an lvalue. */
+        possible = TRUE;
+        /* Get the lvalue type from the pointer operand, which can be either
+           one. */
+        if (is_pointer_type(op1->type)) {
+          lvalue_type = type_pointed_to(op1->type);
+        } else if (is_pointer_type(op2->type)) {
+          lvalue_type = type_pointed_to(op2->type);
+        }  /* if */
+        break;
+      case eok_parens:
+        /* Parentheses: just do a recursive call on the operand. */
+        (void)conv_rvalue_expr_to_lvalue(op1, &possible,
+                                         /*see_if_possible=*/TRUE,
+                                         gcc_lvalue,
+                                         ignore_casts,
+                                         &lvalue_type);
+        if (possible) {
+          if (!see_if_possible) {
+            op1 = conv_rvalue_expr_to_lvalue(op1, &op1_possible,
+                                             /*see_if_possible=*/FALSE,
+                                             gcc_lvalue,
+                                             ignore_casts,
+                                             (a_type_ptr *)NULL);
+            node->variant.operation.operands = op1;
+          }  /* if */
+        }  /* if */
+        break;
+      case eok_question:
+        { a_boolean  op2_is_throw = FALSE, op3_is_throw = FALSE;
+          /* "?" operator -- transform each branch independently to an
+             lvalue. */
+          op3 = op2->next;
+          if (C_mode() && !gcc_lvalue) {
+            /* Can't generate an lvalue "?" in C mode in general. */
+          } else if (is_void_type(lvalue_type)) {
+            /* Can't generate an lvalue when the result type is void. */
+          } else if (!gcc_lvalue) {
+            /* See if both branches can be rewritten.  Note that except for
+               throw cases we know that the two operands have the same type,
+               because they've been converted to a common type.  That
+               doesn't guarantee that they can be converted to lvalues. */
+            (void)conv_rvalue_expr_to_lvalue(op2, &op2_possible,
+                                             /*see_if_possible=*/TRUE,
+                                             /*gcc_lvalue=*/FALSE,
+                                             ignore_casts, &lvalue_type);
+            if (!op2_possible &&
+                skip_parens(op2)->kind == (an_expr_node_kind)enk_throw) {
+              op2_is_throw = TRUE;
+              op2_possible = TRUE;
+            }  /* if */
+            (void)conv_rvalue_expr_to_lvalue(op3, &op3_possible,
+                                             /*see_if_possible=*/TRUE,
+                                             /*gcc_lvalue=*/FALSE,
+                                             ignore_casts, &lvalue_type);
+            if (!op3_possible &&
+                skip_parens(op3)->kind == (an_expr_node_kind)enk_throw) {
+              op3_is_throw = TRUE;
+              op3_possible = TRUE;
+            }  /* if */
+            possible = (op2_possible && op3_possible);
+          } else {
+            /* Test whether this expression can be rewritten as an lvalue
+               in gcc mode. */
+            possible = okay_as_gcc_lvalue_question(op2, op3, ignore_casts,
+                                                   &lvalue_type);
+          }  /* if */
+          if (possible) {
+            if (!see_if_possible) {
+              node->variant.operation.returns_lvalue_instead_of_usual_rvalue =
+                                                                          TRUE;
+              node->is_lvalue = TRUE;
+              op2->next = NULL;
+              if (!op2_is_throw) {
+                op2 = conv_rvalue_expr_to_lvalue(op2, &op2_possible,
+                                                 /*see_if_possible=*/FALSE,
+                                                 gcc_lvalue,
+                                                 ignore_casts,
+                                                 (a_type_ptr *)NULL);
+              }  /* if */
+              if (!op3_is_throw) {
+                op3 = conv_rvalue_expr_to_lvalue(op3, &op3_possible,
+                                                 /*see_if_possible=*/FALSE,
+                                                 gcc_lvalue,
+                                                 ignore_casts,
+                                                 (a_type_ptr *)NULL);
+              }  /* if */
+              if (gcc_lvalue) {
+                /* For the gcc case, cast the operands to the right result
+                   type if necessary. */
+                if (!identical_types(op2->type, lvalue_type)) {
+                  op2 = make_lvalue_cast_node(op2, lvalue_type,
+                                              /*compiler_generated=*/TRUE);
+                }  /* if */
+                if (!identical_types(op3->type, lvalue_type)) {
+                  op3 = make_lvalue_cast_node(op3, lvalue_type,
+                                              /*compiler_generated=*/TRUE);
+                }  /* if */
+              }  /* if */
+              op1->next = op2;
+              op2->next = op3;
+            }  /* if */
+          }  /* if */
+        }
+        break;
+      case eok_comma:
+      case eok_dot_static:
+      case eok_points_to_static:
+        /* "," operator -- try to transform the second operand to an lvalue. */
+        /* Same processing for static selection. */
+        /* Can't do this in C mode in general. */
+        if (!C_mode() || gcc_lvalue) {
+          (void)conv_rvalue_expr_to_lvalue(op2, &op2_possible,
+                                           /*see_if_possible=*/TRUE,
                                            gcc_lvalue,
                                            ignore_casts,
-                                           (a_type_ptr *)NULL);
-          node->variant.operation.operands = op1;
+                                           &lvalue_type);
+          if (op2_possible) {
+            possible = TRUE;
+            if (!see_if_possible) {
+              node->variant.operation.returns_lvalue_instead_of_usual_rvalue =
+                                                                          TRUE;
+              node->is_lvalue = TRUE;
+              op2 = conv_rvalue_expr_to_lvalue(op2, &op2_possible,
+                                               /*see_if_possible=*/FALSE,
+                                               gcc_lvalue,
+                                               ignore_casts,
+                                               (a_type_ptr *)NULL);
+              op1->next = op2;
+            }  /* if */
+          }  /* if */
         }  /* if */
-      }  /* if */
-    } else if (op == (an_expr_operator_kind)eok_question) {
-      a_boolean  op2_is_throw = FALSE, op3_is_throw = FALSE;
-      /* "?" operator -- transform each branch independently to an lvalue. */
-      op3 = op2->next;
-      if (C_mode() && !gcc_lvalue) {
-        /* Can't generate an lvalue "?" in C mode in general. */
-      } else if (is_void_type(lvalue_type)) {
-        /* Can't generate an lvalue when the result type is void. */
-      } else if (!gcc_lvalue) {
-        /* See if both branches can be rewritten.  Note that except for
-           throw cases we know that the two operands have the same type,
-           because they've been converted to a common type.  That
-           doesn't guarantee that they can be converted to lvalues. */
+        break;
+#if GNU_EXTENSIONS_ALLOWED
+      case eok_gnu_min:
+      case eok_gnu_max:
+        /* GNU C++ min/max operators (<? and >?) -- transform both operands
+           to lvalues. */
+        (void)conv_rvalue_expr_to_lvalue(op1, &op1_possible,
+                                         /*see_if_possible=*/TRUE,
+                                         /*gcc_lvalue=*/FALSE,
+                                         ignore_casts, &lvalue_type);
         (void)conv_rvalue_expr_to_lvalue(op2, &op2_possible,
                                          /*see_if_possible=*/TRUE,
                                          /*gcc_lvalue=*/FALSE,
                                          ignore_casts, &lvalue_type);
-        if (!op2_possible &&
-            skip_parens(op2)->kind == (an_expr_node_kind)enk_throw) {
-          op2_is_throw = TRUE;
-          op2_possible = TRUE;
-        }  /* if */
-        (void)conv_rvalue_expr_to_lvalue(op3, &op3_possible,
-                                         /*see_if_possible=*/TRUE,
-                                         /*gcc_lvalue=*/FALSE,
-                                         ignore_casts, &lvalue_type);
-        if (!op3_possible &&
-            skip_parens(op3)->kind == (an_expr_node_kind)enk_throw) {
-          op3_is_throw = TRUE;
-          op3_possible = TRUE;
-        }  /* if */
-        possible = (op2_possible && op3_possible);
-      } else {
-        /* Test whether this expression can be rewritten as an lvalue
-           in gcc mode. */
-        possible = okay_as_gcc_lvalue_question(op2, op3, ignore_casts,
-                                               &lvalue_type);
-      }  /* if */
-      if (possible) {
-        if (!see_if_possible) {
-          node->variant.operation.returns_lvalue_instead_of_usual_rvalue= TRUE;
-          node->is_lvalue = TRUE;
-          op2->next = NULL;
-          if (!op2_is_throw) {
-            op2 = conv_rvalue_expr_to_lvalue(op2, &op2_possible,
-                                             /*see_if_possible=*/FALSE,
-                                             gcc_lvalue,
-                                             ignore_casts,
-                                             (a_type_ptr *)NULL);
-          }  /* if */
-          if (!op3_is_throw) {
-            op3 = conv_rvalue_expr_to_lvalue(op3, &op3_possible,
-                                             /*see_if_possible=*/FALSE,
-                                             gcc_lvalue,
-                                             ignore_casts,
-                                             (a_type_ptr *)NULL);
-          }  /* if */
-          if (gcc_lvalue) {
-            /* For the gcc case, cast the operands to the right result
-               type if necessary. */
-            if (!identical_types(op2->type, lvalue_type)) {
-              op2 = make_lvalue_cast_node(op2, lvalue_type,
-                                          /*compiler_generated=*/TRUE);
-            }  /* if */
-            if (!identical_types(op3->type, lvalue_type)) {
-              op3 = make_lvalue_cast_node(op3, lvalue_type,
-                                          /*compiler_generated=*/TRUE);
-            }  /* if */
-          }  /* if */
-          op1->next = op2;
-          op2->next = op3;
-        }  /* if */
-      }  /* if */
-    } else if (op == (an_expr_operator_kind)eok_comma ||
-               op == (an_expr_operator_kind)eok_dot_static ||
-               op == (an_expr_operator_kind)eok_points_to_static) {
-      /* "," operator -- try to transform the second operand to an lvalue. */
-      /* Same processing for static selection. */
-      /* Can't do this in C mode in general. */
-      if (!C_mode() || gcc_lvalue) {
-        (void)conv_rvalue_expr_to_lvalue(op2, &op2_possible,
-                                          /*see_if_possible=*/TRUE,
-                                          gcc_lvalue,
-                                          ignore_casts,
-                                          &lvalue_type);
-        if (op2_possible) {
-          possible = TRUE;
+        possible = (op1_possible && op2_possible);
+        if (possible) {
           if (!see_if_possible) {
             node->variant.operation.returns_lvalue_instead_of_usual_rvalue =
                                                                           TRUE;
             node->is_lvalue = TRUE;
-            op2 = conv_rvalue_expr_to_lvalue(op2, &op2_possible,
+            op1->next = NULL;
+            op1 = conv_rvalue_expr_to_lvalue(op1, &op1_possible,
                                              /*see_if_possible=*/FALSE,
                                              gcc_lvalue,
                                              ignore_casts,
                                              (a_type_ptr *)NULL);
-            op1->next = op2;
-          }  /* if */
-        }  /* if */
-      }  /* if */
-#if GNU_EXTENSIONS_ALLOWED
-    } else if (gpp_mode && is_gnu_min_max_operator(op)) {
-      /* GNU C++ min/max operators (<? and >?) -- transform both operands
-         to lvalues. */
-      (void)conv_rvalue_expr_to_lvalue(op1, &op1_possible,
-                                       /*see_if_possible=*/TRUE,
-                                       /*gcc_lvalue=*/FALSE,
-                                       ignore_casts, &lvalue_type);
-      (void)conv_rvalue_expr_to_lvalue(op2, &op2_possible,
-                                       /*see_if_possible=*/TRUE,
-                                       /*gcc_lvalue=*/FALSE,
-                                       ignore_casts, &lvalue_type);
-      possible = (op1_possible && op2_possible);
-      if (possible) {
-        if (!see_if_possible) {
-          node->variant.operation.returns_lvalue_instead_of_usual_rvalue= TRUE;
-          node->is_lvalue = TRUE;
-          op1->next = NULL;
-          op1 = conv_rvalue_expr_to_lvalue(op1, &op1_possible,
-                                           /*see_if_possible=*/FALSE,
-                                           gcc_lvalue,
-                                           ignore_casts,
-                                           (a_type_ptr *)NULL);
-          op2 = conv_rvalue_expr_to_lvalue(op2, &op2_possible,
-                                           /*see_if_possible=*/FALSE,
-                                           gcc_lvalue,
-                                           ignore_casts,
-                                           (a_type_ptr *)NULL);
-          node->variant.operation.operands = op1;
-          op1->next = op2;
-        }  /* if */
-      }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
-    } else if (op == (an_expr_operator_kind)eok_dot_field) {
-      /* Selection of a field from a class. */
-      a_type_ptr class_type;
-      if (op1->is_lvalue) {
-        /* The selection has an lvalue-to-rvalue conversion built into it, so
-           we can undo that by simply changing the flag. */
-        possible = TRUE;
-        class_type = op1->type;
-      } else {
-        /* The selection is a selection out of an rvalue, so we try to
-           convert the first operand to an lvalue. */
-        (void)conv_rvalue_expr_to_lvalue(op1, &op1_possible,
-                                         /*see_if_possible=*/TRUE,
-                                         gcc_lvalue,
-                                         ignore_casts,
-                                         &class_type);
-        if (op1_possible) {
-          possible = TRUE;
-          if (!see_if_possible) {
-            op1->next = NULL;
-            op1 = conv_rvalue_expr_to_lvalue(op1, &op1_possible,
+            op2 = conv_rvalue_expr_to_lvalue(op2, &op2_possible,
                                              /*see_if_possible=*/FALSE,
                                              gcc_lvalue,
                                              ignore_casts,
@@ -9507,60 +9488,99 @@ e.g., in a back end.
             op1->next = op2;
           }  /* if */
         }  /* if */
-      }  /* if */
-      if (possible) {
-        lvalue_type = make_field_selection_type(op2->variant.field,
+        break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
+      case eok_dot_field:
+        /* Selection of a field from a class. */
+        { a_type_ptr class_type;
+          if (op1->is_lvalue) {
+            /* The selection has an lvalue-to-rvalue conversion built into it,
+               so we can undo that by simply changing the flag. */
+            possible = TRUE;
+            class_type = op1->type;
+          } else {
+            /* The selection is a selection out of an rvalue, so we try to
+               convert the first operand to an lvalue. */
+            (void)conv_rvalue_expr_to_lvalue(op1, &op1_possible,
+                                             /*see_if_possible=*/TRUE,
+                                             gcc_lvalue,
+                                             ignore_casts,
+                                             &class_type);
+            if (op1_possible) {
+              possible = TRUE;
+              if (!see_if_possible) {
+                op1->next = NULL;
+                op1 = conv_rvalue_expr_to_lvalue(op1, &op1_possible,
+                                                 /*see_if_possible=*/FALSE,
+                                                 gcc_lvalue,
+                                                 ignore_casts,
+                                                 (a_type_ptr *)NULL);
+                node->variant.operation.operands = op1;
+                op1->next = op2;
+              }  /* if */
+            }  /* if */
+          }  /* if */
+          if (possible) {
+            lvalue_type = make_field_selection_type(op2->variant.field,
                                               get_type_qualifiers(class_type));
-      }  /* if */
-    } else if (op == (an_expr_operator_kind)eok_points_to_field) {
-      /* Selection of a field from a class, "->" form.  The selection has
-         an lvalue-to-rvalue conversion built into it, so we can undo that
-         by simply changing the flag. */
-      possible = TRUE;
-      if (is_pointer_type(op1->type)) {
-        a_type_ptr class_type = type_pointed_to(op1->type);
-        lvalue_type = make_field_selection_type(op2->variant.field,
-                                                get_type_qualifiers(
-                                                                  class_type));
-      }  /* if */
-    } else if (op == (an_expr_operator_kind)eok_base_class_cast ||
-               op == (an_expr_operator_kind)eok_derived_class_cast) {
-      /* Base and derived class casts (class rvalue --> class rvalue).
-         Try to transform the operand to an lvalue. */
-      (void)conv_rvalue_expr_to_lvalue(op1, &possible,
-                                       /*see_if_possible=*/TRUE,
-                                       gcc_lvalue,
-                                       /*ignore_casts=*/FALSE,
-                                       &lvalue_type);
-      if (possible) {
-        lvalue_type = type_plus_qualifiers_from_second_type(node->type,
-                                                            lvalue_type);
-        if (!see_if_possible) {
-          op1 = conv_rvalue_expr_to_lvalue(op1, &possible,
-                                           /*see_if_possible=*/FALSE,
-                                           gcc_lvalue,
-                                           /*ignore_casts=*/FALSE,
-                                           (a_type_ptr *)NULL);
-          node->variant.operation.operands = op1;
-        }  /* if */
-      }  /* if */
-    } else if (op == (an_expr_operator_kind)eok_lvalue_adjust) {
-      /* Lvalue type adjustment with an lvalue-to-rvalue conversion built
-         into it.  We can undo that by simply changing the flag. */
-      possible = TRUE;
-#if GNU_COMPLEX_EXTENSIONS_ALLOWED
-    } else if (op == (an_expr_operator_kind)eok_imag_part ||
-               op == (an_expr_operator_kind)eok_real_part) {
-      /* GNU __imag and __real. */
-      if (op1->is_lvalue) {
-        /* The selection has an lvalue-to-rvalue conversion built into it,
-           so we can undo that by simply changing the flag. */
+          }  /* if */
+        }
+        break;
+      case eok_points_to_field:
+        /* Selection of a field from a class, "->" form.  The selection has
+           an lvalue-to-rvalue conversion built into it, so we can undo that
+           by simply changing the flag. */
         possible = TRUE;
-        lvalue_type = type_plus_qualifiers_from_second_type(node->type,
-                                                            op1->type);
-      }  /* if */
+        if (is_pointer_type(op1->type)) {
+          a_type_ptr class_type = type_pointed_to(op1->type);
+          lvalue_type = make_field_selection_type(op2->variant.field,
+                                                  get_type_qualifiers(
+                                                                  class_type));
+        }  /* if */
+        break;
+      case eok_base_class_cast:
+      case eok_derived_class_cast:
+        /* Base and derived class casts (class rvalue --> class rvalue).
+           Try to transform the operand to an lvalue. */
+        (void)conv_rvalue_expr_to_lvalue(op1, &possible,
+                                         /*see_if_possible=*/TRUE,
+                                         gcc_lvalue,
+                                         /*ignore_casts=*/FALSE,
+                                         &lvalue_type);
+        if (possible) {
+          lvalue_type = type_plus_qualifiers_from_second_type(node->type,
+                                                              lvalue_type);
+          if (!see_if_possible) {
+            op1 = conv_rvalue_expr_to_lvalue(op1, &possible,
+                                             /*see_if_possible=*/FALSE,
+                                             gcc_lvalue,
+                                             /*ignore_casts=*/FALSE,
+                                             (a_type_ptr *)NULL);
+            node->variant.operation.operands = op1;
+          }  /* if */
+        }  /* if */
+        break;
+      case eok_lvalue_adjust:
+        /* Lvalue type adjustment with an lvalue-to-rvalue conversion built
+           into it.  We can undo that by simply changing the flag. */
+        possible = TRUE;
+        break;
+#if GNU_COMPLEX_EXTENSIONS_ALLOWED
+      case eok_imag_part:
+      case eok_real_part:
+        /* GNU __imag and __real. */
+        if (op1->is_lvalue) {
+          /* The selection has an lvalue-to-rvalue conversion built into it,
+             so we can undo that by simply changing the flag. */
+          possible = TRUE;
+          lvalue_type = type_plus_qualifiers_from_second_type(node->type,
+                                                              op1->type);
+        }  /* if */
+        break;
 #endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
-    }  /* if */
+      default:
+        break;
+    }  /* switch */
   } else if (is_error_node(node)) {
     /* An error node stays the same. */
     possible = TRUE;
@@ -9890,25 +9910,7 @@ it might produce an error).
        non-NULL if we want to allow constant folding, and it has to
        point to something that it is harmless to alter. */
     if (constant_case != NULL) allow_folding = &local_constant_case;
-    if (op == (an_expr_operator_kind)eok_subscript) {
-      if (allow_folding != NULL) {
-        op1 = skip_parens(op1);
-        op2 = skip_parens(op2);
-        if (is_constant_node(op1) && is_constant_node(op2)) {
-          /* Something like "abc"[1] can be folded to the character value. */
-          if (!strict_ansi_mode &&
-              conv_subscript_in_string_to_char(op1->variant.constant,
-                                               op2->variant.constant,
-                                               &result_con)) {
-            con_expr_value = alloc_shareable_constant(&result_con);
-          }  /* if */
-        }  /* if */
-      }  /* if */
-      node->is_lvalue = FALSE;
-      node->type = rvalue_node_type;
-      processed = TRUE;
-    } else if (node->variant.operation.
-                                      returns_lvalue_instead_of_usual_rvalue) {
+    if (node->variant.operation.returns_lvalue_instead_of_usual_rvalue) {
       /* Operation that returns an lvalue where the C case would return
          an rvalue.  Convert it to the C form. */
       if (op == (an_expr_operator_kind)eok_question) {
@@ -10020,78 +10022,111 @@ it might produce an error).
       node->variant.operation.returns_lvalue_instead_of_usual_rvalue = FALSE;
       node->is_lvalue = FALSE;
       node->type = rvalue_node_type;
-    } else if (op == (an_expr_operator_kind)eok_base_class_cast ||
-               op == (an_expr_operator_kind)eok_derived_class_cast) {
-      /* Base or derived class cast (class lvalue --> class lvalue).
-         Apply the transformation to the operand; the cast becomes a
-         cast from a class rvalue to a class rvalue. */
-      op1 = conv_lvalue_expr_to_rvalue(op1, allow_folding,
-                                       (a_constant_ptr *)NULL,
-                                       err_pos);
-      node->variant.operation.operands = op1;
-      node->is_lvalue = FALSE;
-      node->type = rvalue_node_type;
-      processed = TRUE;
-    } else if (op == (an_expr_operator_kind)eok_parens) {
-      /* For parentheses, turn the underlying expression into an rvalue, and
-         remark the parenthesis node as an rvalue. */
-      op1 = conv_lvalue_expr_to_rvalue(op1, allow_folding,
-                                       (a_constant_ptr *)NULL, err_pos);
-      node->variant.operation.operands = op1;
-      node->is_lvalue = FALSE;
-      node->type = op1->type;
-      op1 = skip_parens(op1);
-      if (allow_folding != NULL && is_constant_node(op1)) {
-        /* The operand is now constant so the overall expression is
-           constant. */
-        con_expr_value = op1->variant.constant;
-      }  /* if */
-      processed = TRUE;
-    } else if (op == (an_expr_operator_kind)eok_lvalue_cast) {
-      /* An lvalue cast becomes a simple cast on the operand, after the
-         latter is turned into an rvalue. */
-      op1 = conv_lvalue_expr_to_rvalue(op1, allow_folding,
-                                       (a_constant_ptr *)NULL, err_pos);
-      node->variant.operation.operands = op1;
-      op1 = skip_parens(op1);
-      if (allow_folding != NULL && err_pos != NULL && is_constant_node(op1)) {
-        /* The operand is now constant so try to fold the cast to a
-           constant. */
-        a_boolean did_not_fold;
-        copy_constant(op1->variant.constant, &result_con);
-        type_change_constant(&result_con, rvalue_node_type,
-                             /*is_implicit_cast=*/FALSE,
-                             curr_expr_kind_is_const(),
-                             curr_expr_is_evaluated(),
-                             (a_boolean)expr_stack->favor_constant_result,
-                             /*is_reinterpret_cast=*/FALSE,
-                             /*maintain_expression=*/TRUE,
-                             &did_not_fold, err_pos);
-        check_assertion(!did_not_fold);
-        con_expr_value = alloc_shareable_constant(&result_con);
-      }  /* if */
-      set_node_operator(node, (an_expr_operator_kind)eok_cast,
-                        rvalue_node_type, /*is_lvalue=*/FALSE, op1);
-      processed = TRUE;
-    } else if (op == (an_expr_operator_kind)eok_lvalue) {
-      /* A node that forces an rvalue to be considered to be an lvalue, in
-         a prototype instantiation. */
-      /* Return the rvalue operand of the eok_lvalue operation. */
-      node = op1;
-      check_assertion(!node->is_lvalue);
-      processed = TRUE;
-      op1 = skip_parens(op1);
-      if (allow_folding != NULL && is_constant_node(op1) &&
-          con_value != NULL) {
-        /* The result is a constant expression, and the caller can take a
-           constant result directly.  (If the caller won't take a constant
-           result directly, we'd just create another expression node below
-           to return the constant, so we might as well use the one we have.) */
-        con_expr_value = op1->variant.constant;
-        /* Note that in this case we don't record the expression for the
-           constant.  It's an enk_constant node, which wouldn't be useful. */
-        node = NULL;
-      }  /* if */
+    } else {
+      /* Operations that don't have returns_lvalue_instead_of_usual_rvalue
+         set. */
+      switch (op) {
+        case eok_subscript:
+          if (allow_folding != NULL) {
+            op1 = skip_parens(op1);
+            op2 = skip_parens(op2);
+            if (is_constant_node(op1) && is_constant_node(op2)) {
+              /* Something like "abc"[1] can be folded to the character
+                 value. */
+              if (!strict_ansi_mode &&
+                  conv_subscript_in_string_to_char(op1->variant.constant,
+                                                   op2->variant.constant,
+                                                   &result_con)) {
+                con_expr_value = alloc_shareable_constant(&result_con);
+              }  /* if */
+            }  /* if */
+          }  /* if */
+          node->is_lvalue = FALSE;
+          node->type = rvalue_node_type;
+          processed = TRUE;
+          break;
+        case eok_base_class_cast:
+        case eok_derived_class_cast:
+          /* Base or derived class cast (class lvalue --> class lvalue).
+             Apply the transformation to the operand; the cast becomes a
+             cast from a class rvalue to a class rvalue. */
+          op1 = conv_lvalue_expr_to_rvalue(op1, allow_folding,
+                                           (a_constant_ptr *)NULL,
+                                           err_pos);
+          node->variant.operation.operands = op1;
+          node->is_lvalue = FALSE;
+          node->type = rvalue_node_type;
+          processed = TRUE;
+          break;
+        case eok_parens:
+          /* For parentheses, turn the underlying expression into an rvalue,
+             and re-mark the parenthesis node as an rvalue. */
+          op1 = conv_lvalue_expr_to_rvalue(op1, allow_folding,
+                                           (a_constant_ptr *)NULL, err_pos);
+          node->variant.operation.operands = op1;
+          node->is_lvalue = FALSE;
+          node->type = op1->type;
+          op1 = skip_parens(op1);
+          if (allow_folding != NULL && is_constant_node(op1)) {
+            /* The operand is now constant so the overall expression is
+               constant. */
+            con_expr_value = op1->variant.constant;
+          }  /* if */
+          processed = TRUE;
+          break;
+        case eok_lvalue_cast:
+          /* An lvalue cast becomes a simple cast on the operand, after the
+             latter is turned into an rvalue. */
+          op1 = conv_lvalue_expr_to_rvalue(op1, allow_folding,
+                                           (a_constant_ptr *)NULL, err_pos);
+          node->variant.operation.operands = op1;
+          op1 = skip_parens(op1);
+          if (allow_folding != NULL && err_pos != NULL &&
+              is_constant_node(op1)) {
+            /* The operand is now constant so try to fold the cast to a
+               constant. */
+            a_boolean did_not_fold;
+            copy_constant(op1->variant.constant, &result_con);
+            type_change_constant(&result_con, rvalue_node_type,
+                                 /*is_implicit_cast=*/FALSE,
+                                 curr_expr_kind_is_const(),
+                                 curr_expr_is_evaluated(),
+                                 (a_boolean)expr_stack->favor_constant_result,
+                                 /*is_reinterpret_cast=*/FALSE,
+                                 /*maintain_expression=*/TRUE,
+                                 &did_not_fold, err_pos);
+            check_assertion(!did_not_fold);
+            con_expr_value = alloc_shareable_constant(&result_con);
+          }  /* if */
+          set_node_operator(node, (an_expr_operator_kind)eok_cast,
+                            rvalue_node_type, /*is_lvalue=*/FALSE, op1);
+          processed = TRUE;
+          break;
+        case eok_lvalue:
+          /* A node that forces an rvalue to be considered to be an lvalue, in
+             a prototype instantiation. */
+          /* Return the rvalue operand of the eok_lvalue operation. */
+          node = op1;
+          check_assertion(!node->is_lvalue);
+          processed = TRUE;
+          op1 = skip_parens(op1);
+          if (allow_folding != NULL && is_constant_node(op1) &&
+              con_value != NULL) {
+            /* The result is a constant expression, and the caller can take a
+               constant result directly.  (If the caller won't take a constant
+               result directly, we'd just create another expression node below
+               to return the constant, so we might as well use the one we
+               have.) */
+            con_expr_value = op1->variant.constant;
+            /* Note that in this case we don't record the expression for the
+               constant.  It's an enk_constant node, which wouldn't be
+               useful. */
+            node = NULL;
+          }  /* if */
+          break;
+        default:
+          break;
+      }  /* switch */
     }  /* if */
   }  /* if */
   /* At this point,
