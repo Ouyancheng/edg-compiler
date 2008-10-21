@@ -464,7 +464,7 @@ typedef struct a_decl_parse_state {
 			   such qualifier). */
   an_il_entity_list_entry_ptr
 		*p_postfix_entities;
-			/* While parsing a declaration statement (decl_stmt),
+			/* While parsing a declaration statement (stmk_decl),
 			   this pointer keeps track of associated entities
 			   that appeared after a declarator-id for which no
 			   associated entry has been created yet. */
