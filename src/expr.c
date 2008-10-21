@@ -1385,27 +1385,26 @@ function.
 }  /* is_gnu_builtin_function */
 
 
-static a_boolean is_foldable_gnu_builtin_function_operand(
-                                                      an_operand  *op,
-                                                      a_boolean   *pseudo_call)
+static a_boolean is_foldable_gnu_builtin_function(a_routine_ptr rp,
+                                                  a_boolean     *pseudo_call)
 /*
-Return TRUE if and only if the given operand corresponds to a GNU built-in
-function and calls to that function might be valid constant-expressions.
+Return TRUE if and only if the routine rp is a GNU built-in function and
+calls to that function might be valid constant-expressions.
 *pseudo_call is set to TRUE if the arguments to the built-in function call
 are not treated like standard call arguments (e.g., if they behave like
 sizeof arguments); otherwise, *pseudo_call is set to FALSE.
+pseudo_call can be NULL if that information is not needed.
 */
 {
   a_boolean  result = FALSE;
-  a_routine_ptr  rp = routine_from_function_operand(op);
 
-  *pseudo_call = FALSE;
+  if (pseudo_call != NULL) *pseudo_call = FALSE;
   if (rp != NULL && is_gnu_builtin_function(rp)) {
     switch (rp->variant.builtin_function_kind) {
       case bfk_classify_type:
       case bfk_constant_p:
       case bfk_choose_expr:
-        *pseudo_call = TRUE;
+        if (pseudo_call != NULL) *pseudo_call = TRUE;
         /*FALLTHROUGH*/
       case bfk_huge_valf:
       case bfk_huge_val:
@@ -1424,6 +1423,28 @@ sizeof arguments); otherwise, *pseudo_call is set to FALSE.
         /* Nothing to be done. */
         break;
     }  /* switch */
+  }  /* if */
+  return result;
+}  /* is_foldable_gnu_builtin_function */
+
+
+static a_boolean is_foldable_gnu_builtin_function_operand(
+                                                      an_operand  *op,
+                                                      a_boolean   *pseudo_call)
+/*
+Return TRUE if and only if the given operand corresponds to a GNU built-in
+function and calls to that function might be valid constant-expressions.
+*pseudo_call is set to TRUE if the arguments to the built-in function call
+are not treated like standard call arguments (e.g., if they behave like
+sizeof arguments); otherwise, *pseudo_call is set to FALSE.
+*/
+{
+  a_routine_ptr rp = routine_from_function_operand(op);
+  a_boolean     result = FALSE;
+
+  *pseudo_call = FALSE;
+  if (rp != NULL && is_foldable_gnu_builtin_function(rp, pseudo_call)) {
+    result = TRUE;
   }  /* if */
   return result;
 }  /* is_foldable_gnu_builtin_function_operand */
@@ -16849,7 +16870,14 @@ variable:
             goto overloaded_function;
           }  /* if */
 normal_function:
-          if (curr_expr_kind_is(ek_integral_constant)) {
+          if (curr_expr_kind_is(ek_integral_constant)
+#if GNU_EXTENSIONS_ALLOWED
+              && (!gnu_mode ||
+                  !is_foldable_gnu_builtin_function(
+                                              sym_ptr->variant.routine.ptr,
+                                              (a_boolean *)NULL))
+#endif /* GNU_EXTENSIONS_ALLOWED */
+                                                                 ) {
             /* Function identifiers are not allowed in integral constant
                expressions. */
             error_and_make_error_operand(ec_expr_not_constant, result);

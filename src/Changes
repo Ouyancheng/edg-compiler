@@ -1,5 +1,20 @@
 Version 3.11
 
+10/21/08 [EDGcpfe/8514]
+GNU __builtin_constant_p in integral constant expressions
+
+The GNU builtin function __builtin_constant_p (and some similar functions
+that can return a constant value) are now allowed in integral constant
+expressions in g++ mode when gnu_version >= 40000.
+
+  int main() {
+    switch (1) {
+      case (__builtin_constant_p(2) ? 3 : 4):  // Now accepted
+      return 0;
+    }
+  }
+
+
 10/21/08 [EDGcpfe/9173]
 Use of uninitialized variable for source position after error in "?"
 
