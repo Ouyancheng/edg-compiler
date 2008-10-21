@@ -43,6 +43,9 @@ For example:
     friend void f(int n = 3);  // Now always accepted in GNU C++ mode.
   };
 
+Also, the error emitted for cases like this in other modes (when friend
+injection is disabled) has been made discretionary.
+
 
 10/20/08 [EDGcpfe/9298]
 Microsoft compatibility: typename accepted on globally qualified name

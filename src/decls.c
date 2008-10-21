@@ -6537,8 +6537,9 @@ for use in generating cross-reference output describing this declaration.
            enabled. */
         if (!(friend_injection_enabled || gpp_mode ) && is_friend_decl &&
             func_info->any_default_args) {
-          pos_error(ec_friend_cannot_add_default_arguments,
-                    &locator->source_position);
+          pos_diagnostic(es_discretionary_error,
+                         ec_friend_cannot_add_default_arguments,
+                         &locator->source_position);
         }  /* if */
         if (strict_ansi_mode && routine_ptr->befriending_classes != NULL &&
             old_decl_has_body && linked_symbol->is_invisible) {
