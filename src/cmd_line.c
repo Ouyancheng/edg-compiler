@@ -3157,9 +3157,10 @@ exclude the GNU C++ mode already.  Hence those are not checked again here.)
   if (!(option_kind_used[(int)optk_const_string_literals])) {
     string_literals_are_const = TRUE;
   }  /* if */
-  if (!option_kind_used[(int)optk_type_traits_helpers]) {
+  if (!option_kind_used[(int)optk_type_traits_helpers] &&
+      gnu_version >= 40300) {
     /* g++ supports type traits in versions 4.3 and later. */
-    type_traits_helpers_enabled = (gnu_version >= 40300);
+    type_traits_helpers_enabled = TRUE;
   }  /* if */
   c_and_cpp_function_types_are_distinct = FALSE;
   allow_default_arg_on_template_member_definition = TRUE;
