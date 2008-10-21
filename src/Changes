@@ -1,5 +1,16 @@
 Version 3.11
 
+10/20/08 [EDGcpfe/9269]
+New eok_lvalue_adjust operator to adjust lvalue type
+
+IL CHANGE: A new eok_lvalue_adjust operator has been added, which is
+used to adjust the type of an lvalue.  That is, its operand is an lvalue,
+and it produces an lvalue that refers to the same object but with a new
+type.  This operator is typically used to adjust the cv-qualifiers
+on an lvalue (e.g., to add "const").  It is not eliminated by IL lowering,
+so it will be seen even in lowered IL.
+
+
 10/20/08 [EDGcpfe/9296]
 GNU C++ compatibility: Default arguments in friend function declarations
 
