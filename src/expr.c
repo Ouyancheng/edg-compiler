@@ -15944,6 +15944,15 @@ Return TRUE if the indicated token is one that could start an expression.
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case tok_uuidof:
     case tok_microsoft_lprefix:
+    case tok_super:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if UPC_EXTENSIONS_ALLOWED
+    case tok_upc_localsizeof:
+    case tok_upc_elemsizeof:
+    case tok_upc_blocksizeof:
+    case tok_upc_threads:
+    case tok_upc_mythread:
+#endif /* UPC_EXTENSIONS_ALLOWED */
     case tok_has_assign:
     case tok_has_copy:
     case tok_has_nothrow_assign:
@@ -15964,15 +15973,6 @@ Return TRUE if the indicated token is one that could start an expression.
     case tok_is_pod:
     case tok_is_polymorphic:
     case tok_is_union:
-    case tok_super:
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if UPC_EXTENSIONS_ALLOWED
-    case tok_upc_localsizeof:
-    case tok_upc_elemsizeof:
-    case tok_upc_blocksizeof:
-    case tok_upc_threads:
-    case tok_upc_mythread:
-#endif /* UPC_EXTENSIONS_ALLOWED */
     case tok_dynamic_cast:
     case tok_const_cast:
     case tok_static_cast:
