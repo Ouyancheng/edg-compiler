@@ -1,5 +1,25 @@
 Version 3.11
 
+10/21/08 [EDGcpfe/9288]
+More emulation of GNU lvalue casts
+
+gcc ignored a cast to the same type in versions prior to 4.0, which
+meant a cast like that did not force an expression to be an rvalue.
+It appears that in some cases casts like that to class types are
+still mostly ignored in versions 4.1 and later.  We have made a
+change to approximately emulate that.
+
+  struct A {int i;} a;
+  void g(struct A);
+  void f() {
+    ((struct A)a).i = 0;  // No error now in gcc 4.1 mode
+    int i;
+    (int)i = 0;           // Still error in gcc 4.1 mode
+    (struct A)a = a;      // gcc 4.1 gives error, we give no error now
+    g((const struct A)a); // No error now in gcc 4.1 mode
+  }
+
+
 10/20/08 [EDGcpfe/9269]
 New eok_lvalue_adjust operator to adjust lvalue type
 

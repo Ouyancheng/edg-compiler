@@ -11322,7 +11322,10 @@ C-style casts and C++ functional-notation type conversions.
           microsoft_lvalue_cv_qual_adjustment(operand, type_cast_to,
                                               /*compiler_generated=*/FALSE);
 #if GNU_EXTENSIONS_ALLOWED
-        } else if (gcc_mode && gnu_version < 40000 &&
+        } else if (gcc_mode &&
+                   (gnu_version < 40000 ||
+                    (gnu_version >= 40100 &&
+                     is_class_struct_union_type(type_cast_to))) &&
                    identical_types_ignoring_qualifiers(source_type,
                                                        type_cast_to)) {
           /* GNU C ignores a do-nothing cast.  The result does not change
