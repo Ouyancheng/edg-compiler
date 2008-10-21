@@ -484,6 +484,13 @@ extern void debug_exit(void);
 #define EXPENSIVE_CHECKING FALSE
 #endif /* ifndef EXPENSIVE_CHECKING */
 
+#ifndef ADD_CHECKING_PRAGMAS_FOR_INTERNAL_TESTING
+/* Include code that tests the processing of pragmas by inserting pragma
+   constructs in many locations.  This may increase compilation time
+   significantly. */
+#define ADD_CHECKING_PRAGMAS_FOR_INTERNAL_TESTING EXPENSIVE_CHECKING
+#endif /* ADD_CHECKING_PRAGMAS_FOR_INTERNAL_TESTING */
+
 #ifndef CENTERLINE_CHECKING
 /* Include checking code that is specific to versions that use Codecenter.
    In particular, this enables the declaration and initialization of the

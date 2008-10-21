@@ -372,10 +372,10 @@ possible.
     case pk_test_bind_next_pass:
       break;
 #endif /* INCLUDE_EDG_TEST_PRAGMAS */
-#if EXPENSIVE_CHECKING
+#if ADD_CHECKING_PRAGMAS_FOR_INTERNAL_TESTING
     case pk_checking_pragma:
       break;
-#endif /* EXPENSIVE_CHECKING */
+#endif /* ADD_CHECKING_PRAGMAS_FOR_INTERNAL_TESTING */
 #if DEBUG
     case pk_db_opt:
     case pk_db_name:
@@ -741,7 +741,7 @@ otherwise return FALSE.
     }  /* if */
     ppp = next_ppp;
   }  /* while */
-#if EXPENSIVE_CHECKING
+#if ADD_CHECKING_PRAGMAS_FOR_INTERNAL_TESTING
   if (list_start == NULL && !no_checking_pragmas) {
     list_start = alloc_pending_pragma
                  (pragma_description_for_pragma_kind[(int)pk_checking_pragma]);
@@ -749,7 +749,7 @@ otherwise return FALSE.
     list_start->source_sequence_entry = add_empty_source_sequence_entry();
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
-#endif /* EXPENSIVE_CHECKING */
+#endif /* ADD_CHECKING_PRAGMAS_FOR_INTERNAL_TESTING */
   *curr_list_of_curr_construct_pragmas() = list_start;
   /* Call process_curr_token_pragmas to handle other pragma kinds.  This
      ensures that any immediate pragmas will be processed before any
@@ -1993,7 +1993,7 @@ Initialize the pragma description table.
 		 /*read_string_as_header_name=*/FALSE,
                  es_error);
 #endif /* INCLUDE_EDG_TEST_PRAGMAS */
-#if EXPENSIVE_CHECKING
+#if ADD_CHECKING_PRAGMAS_FOR_INTERNAL_TESTING
   (void)add_next_construct_pragma_kind_description
 		((a_pragma_kind)pk_checking_pragma,
 		 (a_next_construct_pragma_function_ptr)NULL,
@@ -2009,7 +2009,7 @@ Initialize the pragma description table.
 		 /*il_info_is_complete=*/FALSE,
 		 /*read_string_as_header_name=*/FALSE,
                  es_none);
-#endif /* EXPENSIVE_CHECKING */
+#endif /* ADD_CHECKING_PRAGMAS_FOR_INTERNAL_TESTING */
 #if DEBUG
   (void)add_immediate_pragma_kind_description
 		((a_pragma_kind)pk_db_opt,

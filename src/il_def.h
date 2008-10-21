@@ -3606,10 +3606,10 @@ enum a_pragma_kind_tag {
   pk_test_other,
   pk_test_bind_next_pass,
 #endif /* INCLUDE_EDG_TEST_PRAGMAS */
-#if EXPENSIVE_CHECKING
-  /* Used by checking code when EXPENSIVE_CHECKING is TRUE. */
+#if ADD_CHECKING_PRAGMAS_FOR_INTERNAL_TESTING
+  /* Used for internal testing. */
   pk_checking_pragma,
-#endif /* EXPENSIVE_CHECKING */
+#endif /* ADD_CHECKING_PRAGMAS_FOR_INTERNAL_TESTING */
 #if DEBUG
   pk_db_opt,		/* Used to specify a debugging option string. */
   pk_db_name,		/* Used to specify a debug entity name. */
@@ -3704,9 +3704,9 @@ EXTERN char *pragma_ids[(int)pk_last + 1]
 /* pk_test_other */		"test_other",
 /* pk_test_bind_next_pass */	"test_bind_next_pass",
 #endif /* INCLUDE_EDG_TEST_PRAGMAS */
-#if EXPENSIVE_CHECKING
+#if ADD_CHECKING_PRAGMAS_FOR_INTERNAL_TESTING
 /* pk_checking_pragma */        "checking_pragma",
-#endif /* EXPENSIVE_CHECKING */
+#endif /* ADD_CHECKING_PRAGMAS_FOR_INTERNAL_TESTING */
 #if DEBUG
 /* pk_db_opt */			"db_opt",
 /* pk_db_name */		"db_name",

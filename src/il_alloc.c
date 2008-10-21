@@ -3184,10 +3184,10 @@ in the current IL memory region.
     case pk_test_bind_next_pass:
 #endif /* INCLUDE_EDG_TEST_PRAGMAS */
       break;
-#if EXPENSIVE_CHECKING
+#if ADD_CHECKING_PRAGMAS_FOR_INTERNAL_TESTING
     case pk_checking_pragma:
       break;
-#endif /* EXPENSIVE_CHECKING */
+#endif /* ADD_CHECKING_PRAGMAS_FOR_INTERNAL_TESTING */
 #if DEBUG
     case pk_db_opt:
     case pk_db_name:
