@@ -4914,8 +4914,9 @@ describes Microsoft attributes preceding the enum specifier (if any).
              affects cases in which an enum constant expression involves a
              previously declared enum constant from the same enumeration.) */
           if (!is_scoped_enum) {
-            /* In C++ specify membership and access (except for scoped enum
-               constants). */
+            /* In C++ specify membership and access.  That doesn't apply to
+               scoped enum constants; setting parent_scope (done above) is
+               sufficient for those. */
             if (class_of_which_a_member != NULL) {
               /* Set the parent class. */
               set_class_membership(enum_sym, &enum_con->source_corresp,
