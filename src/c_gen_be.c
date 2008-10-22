@@ -4434,7 +4434,6 @@ there's some possibility of precedence confusion and need_parens is TRUE.
                   implicit conversions from "void *" in some cases.)
           */
           if (expr->variant.operation.compiler_generated &&
-              il_header.source_language == sl_C &&
               is_pointer_type(expr->type) &&
               is_directly_variably_modified_type(expr->type)) {
             /* Do not put out an implicit cast to a variably-modified type. */
