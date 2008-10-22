@@ -12694,7 +12694,8 @@ depends on a template parameter type, return TRUE in *template_dependent
      by the standard.  Floating point template parameters are still
      accepted when floating_point_template_parameters_allowed is TRUE.
      Template parameters of array type are permitted even though there
-     is no way to make use of them. */
+     is no way to make use of them.  GNU vector types are not permitted
+     either. */
   tp = skip_typerefs(state.type);
   if (is_void_type(tp)) {
     /* A parameter type of void is not allowed. */
@@ -12721,6 +12722,11 @@ depends on a template parameter type, return TRUE in *template_dependent
        C++ mode. */
     pos_error(ec_fixed_template_parameter, &state.start_pos);
 #endif /* FIXED_POINT_ALLOWED */
+#if GNU_VECTOR_TYPES_ALLOWED
+  } else if (tp->kind == (a_type_kind)tk_vector) {
+    pos_error(ec_vector_template_parameter, &state.start_pos);
+    state.type = error_type();
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
   }  /* if */
   *param_type_ptr = state.type;
 }  /* scan_a_template_parameter_declaration */

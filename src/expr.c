@@ -12410,8 +12410,7 @@ to the compound literal.
   a_routine_ptr           dtor = NULL;
 
   check_assertion((C_mode() || gpp_mode) &&
-                  !curr_expr_kind_is(ek_pp) &&
-                  !curr_expr_kind_is(ek_template_arg));
+                  !curr_expr_kind_is(ek_pp));
   /* Note: the following doesn't test innermost_function_scope or
      curr_il_region_number because it has to consider compound literals in
      function parameter lists as non-static. */
