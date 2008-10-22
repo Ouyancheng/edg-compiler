@@ -12688,7 +12688,7 @@ inspection would return TRUE).
 }  /* bool_value_is_known_at_compile_time */
 
 
-static void eliminate_dead_code_under_logical_operator(an_expr_node_ptr expr)
+void eliminate_dead_code_under_logical_operator(an_expr_node_ptr expr)
 /*
 In cases where the second operand of an eok_land or eok_lor operation
 (as specified by expr) is known not to be executed, replace the expression
@@ -12712,7 +12712,8 @@ removed.
      that was never created).  Checking for side effects eliminates these
      cases. */
   if (bool_value_is_known_at_compile_time(op1, &op1_value) &&
-      !node_has_side_effects(op2, (a_boolean*)NULL)) {
+      ((C_mode() && !has_statement_expression(op2)) ||
+       !node_has_side_effects(op2, (a_boolean*)NULL))) {
     /* The first operand is an expression whose value we know at compile time;
        see if we can eliminate the second operand altogether based upon the
        value of the first operand. */
@@ -12726,7 +12727,7 @@ removed.
 }  /* eliminate_dead_code_under_logical_operator */
 
 
-static void eliminate_dead_code_under_question_operator(an_expr_node_ptr expr)
+void eliminate_dead_code_under_question_operator(an_expr_node_ptr expr)
 /*
 In cases where the first operand of an eok_question operation (as specified by
 expr) is known at compilation time, overwrite the expression with the second or
@@ -12756,7 +12757,8 @@ side effect will not be removed.
        a statement expression can cause problems (e.g., destruction of an
        entity that was never created).  Checking for side effects eliminates
        these cases. */
-    if (!node_has_side_effects(removed_op, (a_boolean *)NULL)) {
+    if ((C_mode() && !has_statement_expression(removed_op)) ||
+        !node_has_side_effects(removed_op, (a_boolean *)NULL)) {
       /* Replace the original expression with the appropriate operand. */
       overwrite_node(expr, replacement_op);
     }  /* if */

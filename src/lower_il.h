@@ -1035,6 +1035,10 @@ extern a_boolean is_constant_valued_expression(
 extern a_boolean bool_value_is_known_at_compile_time(an_expr_node_ptr expr,
                                                      a_boolean        *value);
 
+extern void eliminate_dead_code_under_logical_operator(an_expr_node_ptr expr);
+
+extern void eliminate_dead_code_under_question_operator(an_expr_node_ptr expr);
+
 extern void lower_expr_full(an_expr_node_ptr expr,
                             a_boolean        assume_expr_is_non_null);
 

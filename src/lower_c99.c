@@ -3231,6 +3231,16 @@ _Bool type, and VLA types.
       }  /* if */
       break;
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
+    case eok_land:
+    case eok_lor:
+      /* Eliminate dead code if possible. */
+      eliminate_dead_code_under_logical_operator(expr);
+      break;
+    case eok_question:
+      /* If the value of the conditional is known at compile time
+         this expression is a candidate for rewriting. */
+      eliminate_dead_code_under_question_operator(expr);
+      break;
     default:
       /* Nothing needs to be done. */
       break;
@@ -3568,17 +3578,13 @@ second parameter.
       }  /* if */
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
       /* First lower all the operands (if any). */
-      /* Determine which operands if any are lvalues or boolean controlling
+      /* Determine which operands if any are boolean controlling
          expressions. */
       bool_controlling_expr_mask = expr_boolean_controlling_expr_mask(expr);
       lower_c99_expr_list(expr->variant.operation.operands,
                           bool_controlling_expr_mask);
       /* Then transform the current operator if needed. */
       lower_c99_operator(expr);
-#if LOWER_LVALUE_RETURNING_OPERATIONS
-      /* Transform lvalue-returning "?" and "," operators into valid C. */
-      lower_operations_returning_lvalue_instead_of_usual_rvalue(expr);
-#endif /* LOWER_LVALUE_RETURNING_OPERATIONS */
 #if MINIMAL_INLINING
       if (is_call_node(expr)) {
         /* Do inlining of a call if appropriate. */
