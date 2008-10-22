@@ -1,5 +1,16 @@
 Version 3.11
 
+10/22/08 [EDGcpfe/8781]
+Operation type for shift-assignment
+
+When lowering compound assignment operators the front end casts the first
+operand to an "operation type".  This operation type is determined by the
+function compound_assignment_operation_type (called expression_operation_type
+in earlier versions), but produced erroneous results for the <<= and >>=
+operators when the first argument was a small integral type (like char or
+unsigned short) requiring integral promotion.  This is now fixed.
+
+
 10/21/08 [EDGcpfe/8514]
 GNU __builtin_constant_p in integral constant expressions
 

@@ -11148,12 +11148,13 @@ care must be taken with fixed-point operands in particular.
   /* Usually, the operation type is the type of the second operand, because
      the second operand will have been cast to the operation type. */
   operation_type = op2_type;
-  if (op == (an_expr_operator_kind)eok_shiftl_assign ||
-      op == (an_expr_operator_kind)eok_shiftr_assign) {
-    /* Shifts.  The operation type is given by the first operand. */
-    operation_type = op1_type;
-    /* Except for the C++ bool <<= integral case. */
-    if (is_bool_type(operation_type)) operation_type = op2_type;
+  if ((op == (an_expr_operator_kind)eok_shiftl_assign ||
+       op == (an_expr_operator_kind)eok_shiftr_assign) &&
+      C_dialect != C_dialect_pcc) {
+    /* Shifts.  The operation type is given by the first operand (after
+       integral promotions).  (pcc doesn't treat shifts differently from
+       ordinary arithmetic operations.) */
+    operation_type = type_after_integral_promotion(op1_type);
   } else if (op == (an_expr_operator_kind)eok_padd_assign ||
              op == (an_expr_operator_kind)eok_psubtract_assign) {
     /* Pointer += and -=.  The operation type is given by the first
