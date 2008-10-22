@@ -6346,10 +6346,22 @@ the expression reflects an implicit member access ("this->y"), so the
     op = (an_expr_operator_kind)eok_dot_field;
   }  /* if */
   if (op == (an_expr_operator_kind)eok_points_to_field) {
-    if (!expr->variant.operation.compiler_generated) {
-      /* A compiler-generated eok_points_to_field represents an implicit
-         member access ("this->y"), which should not appear in the
-         generated code. */
+    if (expr->variant.operation.compiler_generated) {
+      if (is_variable_node(object_expr) &&
+          object_expr->variant.variable->is_this_parameter) {
+        /* This is an implicit member access ("this->y"), so nothing should
+           be generated for the object expression and operator. */
+      } else {
+        /* This situation occurs for access to non-static data members
+           in unevaluated contexts, such as "sizeof(X::y)", which appears
+           in the IL as "sizeof(((X*)0)->y)" with a compiler-generated
+           eok_points_to_field.  We need to generate the qualifier here. */
+        check_assertion(field_expr->kind == (an_expr_node_kind)enk_field);
+        gen_class_qualifier(parent_class_of(field_expr->variant.field),
+                            GN_BOUND_MEMBER, (a_boolean *)NULL);
+      }  /* if */
+    } else {
+      /* Normal member selection. */
       gen_expr(object_expr,
                parens_may_be_needed(generated_precedence[op], object_expr),
                /*obj_expr_of_mfunc_operator=*/FALSE);
