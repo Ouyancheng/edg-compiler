@@ -6304,19 +6304,26 @@ syntax ("a->b") rather than an explicit function call.
   return result;
 }  /* is_operator_syntax_arrow */
 
-static void gen_simple_field_selection(an_expr_node_ptr      object_expr,
-                                       an_expr_node_ptr      field_expr,
-                                       an_expr_operator_kind op)
+static void gen_simple_field_selection(an_expr_node_ptr expr)
 /*
-Generate "object_expr . field_expr" or "object_expr -> field_expr",
-depending on the operator kind.  object_expr is an lvalue or rvalue and
-field_expr is an enk_field node.  The caller will put parentheses around
-this selection.
+Generate "x.y" or "x->y", depending on expr (which must be either an
+eok_dot_field or eok_points_to_field).  If expr is compiler-generated,
+the expression reflects an implicit member access ("this->y"), so the
+"this->" is suppressed.
 */
 {
-  a_type_ptr       naming_class, selection_class;
-  a_boolean        need_context_pop = FALSE;
+  an_expr_node_ptr      object_expr;
+  an_expr_node_ptr      field_expr;
+  an_expr_operator_kind op;
+  a_type_ptr            naming_class, selection_class;
+  a_boolean             need_context_pop = FALSE;
 
+  check_assertion(is_operation_node(expr) &&
+                  (node_operator_is(expr, eok_dot_field) ||
+                   node_operator_is(expr, eok_points_to_field)));
+  object_expr = expr->variant.operation.operands;
+  field_expr = object_expr->next;
+  op = expr->variant.operation.kind;
   if (il_header.source_language == sl_Cplusplus) {
     /* Remove unnecessary base class casts. */
     object_expr = optimized_expr_for_selection(object_expr, &naming_class);
@@ -6339,10 +6346,15 @@ this selection.
     op = (an_expr_operator_kind)eok_dot_field;
   }  /* if */
   if (op == (an_expr_operator_kind)eok_points_to_field) {
-    gen_expr(object_expr,
-             parens_may_be_needed(generated_precedence[op], object_expr),
-             /*obj_expr_of_mfunc_operator=*/FALSE);
-    write_tok_str("->");
+    if (!expr->variant.operation.compiler_generated) {
+      /* A compiler-generated eok_points_to_field represents an implicit
+         member access ("this->y"), which should not appear in the
+         generated code. */
+      gen_expr(object_expr,
+               parens_may_be_needed(generated_precedence[op], object_expr),
+               /*obj_expr_of_mfunc_operator=*/FALSE);
+      write_tok_str("->");
+    }  /* if */
   } else if (is_variable_node(object_expr) &&
              object_expr->variant.variable->is_anonymous_parent_object) {
     /* For an anonymous union variable, do not put out the variable or "."
@@ -8647,7 +8659,7 @@ gen_expr that might end up generating this expr as a temporary.
           goto done_with_operation;
         case eok_dot_field:
         case eok_points_to_field:
-          gen_simple_field_selection(operand_1, operand_2, op);
+          gen_simple_field_selection(expr);
           goto done_with_operation;
         case eok_points_to_static:
           /* Static member selection, p->m. */
