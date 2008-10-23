@@ -6175,10 +6175,10 @@ to be used to name the member.  Only used in C++.
 
        struct A { int i; };
        struct B : public A {};
-       struct C : public B {} c;
-       {  .... c.B::i ... }
+       struct C : public B {} *p;
+       {  .... p->B::i ... }
 
-           eok_field
+      eok_points_to_field
              /   \___________________________ field A::i
             /
         Cast to A * (implicit_in_member_naming == TRUE)    (1)
@@ -6187,16 +6187,21 @@ to be used to name the member.  Only used in C++.
         Cast to B *                                        (2)
             |
             V
-        Addr of c                                          (3)
+            p                                              (3)
 
      Expression (1) is given to this routine.  Node (1) is passed over
      because it is implicit in the naming.  Node (2) is also passed over,
      but since it is not implicit in the naming, *naming_class is set
      to class B.  Node (3) is returned. */
   /* No skip_parens needed here. */
+  if (is_operation_node(node) && node_operator_is(node, eok_cast) &&
+      node->variant.operation.compiler_generated) {
+    /* In some modes, a compiler-generated cast is added on top of any
+       base class casts to deal with cv-qualification differences. */
+    node = node->variant.operation.operands;
+  }  /* if */
   while (is_operation_node(node) &&
-         node->variant.operation.kind ==
-                                  (an_expr_operator_kind)eok_base_class_cast &&
+         node_operator_is(node, eok_base_class_cast) &&
          node->variant.operation.compiler_generated) {
     if (!node->variant.operation.implicit_in_member_naming &&
         naming_node == NULL) {
