@@ -3157,10 +3157,12 @@ exclude the GNU C++ mode already.  Hence those are not checked again here.)
   if (!(option_kind_used[(int)optk_const_string_literals])) {
     string_literals_are_const = TRUE;
   }  /* if */
-  if (!option_kind_used[(int)optk_type_traits_helpers] &&
-      gnu_version >= 40300) {
-    /* g++ supports type traits in versions 4.3 and later. */
-    type_traits_helpers_enabled = TRUE;
+  if (!option_kind_used[(int)optk_type_traits_helpers]) {
+    /* g++ supports type traits in versions 4.3 and later.  Earlier versions
+       use those identifiers in system headers, so type_traits_helpers_enabled
+       should be FALSE when gnu_version < 40300 (even if the associated macro
+       DEFAULT_TYPE_TRAITS_HELPERS_ENABLED is TRUE). */
+    type_traits_helpers_enabled = (gnu_version >= 40300);
   }  /* if */
   c_and_cpp_function_types_are_distinct = FALSE;
   allow_default_arg_on_template_member_definition = TRUE;
