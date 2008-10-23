@@ -1,5 +1,15 @@
 Version 3.11
 
+10/23/08 [EDGcpfe/8822]
+printf/scanf checking of arguments with template-dependent types
+
+The checking of the arguments for printf/scanf-like functions now
+considers arguments with template-dependent types to match any
+formatting specifier.  This comes up only in modes that do prototype
+instantiations of functions.  Formerly, such checks produced a spurious
+warning about an incompatible argument.
+
+
 10/23/08 [EDGcpfe/8474]
 Array rvalue as first operand of GNU two-operand "?"
 

@@ -7522,6 +7522,11 @@ specifier).
   } else if (alt_type != NULL &&
              types_are_compatible(alt_type, eff_argument_type)) {
     /* The type matches the alternate acceptable type. */
+  } else if (is_template_param_type(eff_argument_type) ||
+             (is_pointer_type(eff_argument_type) &&
+              is_template_param_type(type_pointed_to(eff_argument_type)) &&
+              is_pointer_type(eff_required_type))) {
+    /* A template parameter type could match anything. */
   } else if ((weakly_typed || any_signedness) &&
              is_integral_or_enum_type(eff_required_type) &&
              is_integral_or_enum_type(eff_argument_type) &&
