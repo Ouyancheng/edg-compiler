@@ -25,12 +25,12 @@ an array rvalue.  Now fixed.
 10/22/08 [EDGcpfe/8781]
 Operation type for shift-assignment
 
-When lowering compound assignment operators the front end casts the first
-operand to an "operation type".  This operation type is determined by the
+When implementing a compound assignment operator, its operands must be
+converted to the "operation type".  This operation type is determined by the
 function compound_assignment_operation_type (called expression_operation_type
-in earlier versions), but produced erroneous results for the <<= and >>=
-operators when the first argument was a small integral type (like char or
-unsigned short) requiring integral promotion.  This is now fixed.
+in earlier versions), but that function produced erroneous results for the <<=
+and >>= operators when the first argument was a small integral type (like char
+or unsigned short) requiring integral promotion.  This is now fixed.
 
 
 10/21/08 [EDGcpfe/8514]
