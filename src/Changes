@@ -1,5 +1,17 @@
 Version 3.11
 
+10/23/08 [EDGcpfe/8474]
+Array rvalue as first operand of GNU two-operand "?"
+
+The front end aborted on processing a GNU two-operand "?" operator
+(one where the second operand is omitted) when the first operand is
+an array rvalue.  Now fixed.
+
+  struct s { char c[1]; };
+  struct s f(void);
+  char *f(void) { return (f().c ? : 0); }
+
+
 10/22/08 [EDGcpfe/8781]
 Operation type for shift-assignment
 

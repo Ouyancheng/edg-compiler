@@ -14701,6 +14701,11 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
     a_boolean temp_init_used;
     a_boolean vars_can_change = (!C_mode() &&
                                  is_class_struct_union_type(operand_1->type));
+    if (is_array_type(operand_1->type)) {
+      /* If the first operand is an array, do the decay to pointer before
+         cloning it. */
+      conv_array_operand_to_pointer_operand(operand_1);
+    }  /* if */
     clone_operand(operand_1, &operand_2, vars_can_change, &temp_init_used);
   }  /* if */
   /* Check the first operand's type. */
