@@ -18526,12 +18526,12 @@ keep_in_il because, for example, they appear on orphan lists.
           solhp->orphaned_types != NULL ||
           solhp->orphaned_namespaces != NULL) {
         prev_solhp = solhp;
-        /* The scope-orphaned-list header is being retained in the IL, and
-           it points to the routine, so be sure the routine entry is kept,
-           too. */
-        if (!il_entry_prefix_of(rp).keep_in_il) {
-          mark_to_keep_in_il((char *)rp, (an_il_entry_kind)iek_routine);
-        }  /* if */
+        /* The routine entry (not the body) should already be marked as
+           keep-in-il, because the enclosing_routine pointer of the
+           local entities should point to the enclosing function, so
+           marking a local entity as keep-in-il should mark the routine
+           also. */
+        check_assertion(il_entry_prefix_of(rp).keep_in_il);
       } else {
         /* Unlink it. */
         if (prev_solhp == NULL) {
