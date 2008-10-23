@@ -8471,7 +8471,6 @@ gen_expr that might end up generating this expr as a temporary.
              appropriate operand and operator. */
           gen_pm_simple_field_selection(operand_1, operand_2);
           goto done_with_operation;
-          break;
         case eok_static_cast:
         case eok_reinterpret_cast:
         case eok_const_cast:
