@@ -44,7 +44,7 @@ More emulation of GNU lvalue casts
 
 gcc ignored a cast to the same type in versions prior to 4.0, which
 meant a cast like that did not force an expression to be an rvalue.
-It appears that in some cases casts like that to class types are
+It appears that in some cases casts like that to struct/union types are
 still mostly ignored in versions 4.1 and later.  We have made a
 change to approximately emulate that.
 
