@@ -3027,17 +3027,8 @@ TRUE, force the generation of an unqualified name.  If use_ampersand is
 TRUE, prefix the name with "&".
 */
 {
-  a_routine_ptr rout = NULL;
+  a_routine_ptr rout = routine_from_function_expr(node);
 
-  if (is_routine_node(node)) {
-    rout = node->variant.routine;
-  } else if (is_constant_node(node)) {
-    a_constant_ptr con = node->variant.constant;
-    if (con->kind == (a_constant_repr_kind)ck_address &&
-        con->variant.address.kind == (an_address_base_kind)abk_routine) {
-      rout = con->variant.address.variant.routine;
-    }  /* if */
-  }  /* if */
   check_assertion(rout != NULL);
   if (use_ampersand) {
     write_tok_ch('&');
@@ -4231,16 +4222,10 @@ parameter.
 
   if (expr != NULL) {
     write_tok_str(" = ");
-    if (param->passed_via_copy_constructor) {
-      /* For a default argument for a parameter passed via a copy constructor,
-         the default argument expression is an address. */
-      gen_expression(expr);
-    } else if (is_pointer_type(param->type) &&
-               is_constant_node(expr) &&
-               expr->variant.constant->kind ==
-                                            (a_constant_repr_kind)ck_integer &&
-               cmplit_integer_constant(expr->variant.constant,
-                                       (a_host_large_integer)0) == 0) {
+    if (is_pointer_type(param->type) && is_constant_node(expr) &&
+        expr->variant.constant->kind == (a_constant_repr_kind)ck_integer &&
+        cmplit_integer_constant(expr->variant.constant,
+                                               (a_host_large_integer)0) == 0) {
       /* A null pointer constant default argument.  Use a simple "0" and
          count on implicit conversion.  This works around a bug in
          MSVC++ 5.0. */
@@ -6160,13 +6145,13 @@ static an_expr_node_ptr optimized_expr_for_selection(
                                                 an_expr_node_ptr object_expr,
                                                 a_type_ptr       *naming_class)
 /*
-object_expr is an expression that gives the address of a class object.
-It is being used as the address for a member selection.  Examine the
-base-class casts on the object, if there are any, and determine which
-of those can be folded into the member name.  Return the expression to
-be used to address the object (the part not including the casts that
-can be elided), and set *naming_class to the class qualifier name
-to be used to name the member.  Only used in C++.
+object_expr is an expression that is an lvalue for or pointer to a class
+object.  It is being used as the left operand in a member selection.
+Examine the base-class casts on the object, if there are any, and determine
+which of those can be folded into the member name.  Return the expression
+to be used to address the object (the part not including the casts that can
+be elided), and set *naming_class to the class qualifier name to be used to
+name the member.  Only used in C++.
 */
 {
   an_expr_node_ptr node = object_expr, naming_node = NULL;
@@ -6283,21 +6268,9 @@ syntax ("a->b") rather than an explicit function call.
   if (is_operation_node(expr) &&
       expr->variant.operation.call_uses_operator_syntax) {
     an_expr_node_ptr func_expr = expr->variant.operation.operands;
-    a_routine_ptr    rp;
+    a_routine_ptr    rp = routine_from_function_expr(func_expr);
 
-    if (func_expr != NULL && is_constant_node(func_expr)) {
-      a_constant_ptr cp = func_expr->variant.constant;
-      check_assertion_str(cp->kind == (a_constant_repr_kind)ck_address &&
-                          cp->variant.address.kind ==
-                                             (an_address_base_kind)abk_routine,
-                 "is_operator_syntax_arrow: operand not a function constant.");
-      rp = cp->variant.address.variant.routine;
-    } else {
-      check_assertion_str(func_expr != NULL &&
-                          func_expr->kind == (an_expr_node_kind)enk_routine,
-                 "is_operator_syntax_arrow: operand not a function constant.");
-      rp = func_expr->variant.routine;
-    }  /* if */
+    check_assertion(rp != NULL);
     check_assertion_str(rp->special_kind ==
 	                                 (a_special_function_kind)sfk_operator,
       "is_operator_syntax_arrow: non-operator function using operator syntax");
@@ -6423,9 +6396,11 @@ the expression reflects an implicit member access ("this->y"), so the
 static void gen_pm_simple_field_selection(an_expr_node_ptr object_expr,
                                           an_expr_node_ptr pm_expr)
 /*
-Generate "object_expr .* pm_expr".  object_expr is an address (or lvalue),
-and pm_expr is a pointer to member.  The caller will put parentheses around
-this selection.
+Generate "object_expr .* pm_expr" or "object_expr ->* pm_expr", depending
+on object_expr.  object_expr is either an lvalue for an object (the ".*"
+case) or an rvalue for a pointer to an object (the "->*") case, and pm_expr
+is a pointer to member.  The caller will put parentheses around this
+selection.
 */
 {
   an_expr_node_ptr stripped_object_expr;
@@ -6588,9 +6563,9 @@ static void gen_dot_static(an_expr_node_ptr operand_1,
                            char             *opstr,
                            an_expr_node_ptr operand_2)
 /*
-operand_1 and operand_2 are the operands of a "dot-static" operation, e.g.,
-eok_lvalue_dot_static.  Put out the operation, with the operator indicated
-by opstr.
+operand_1 and operand_2 are the operands of an eok_dot_static or
+eok_points_to_static operator.  Put out the operation, with the operator
+indicated by opstr.
 */
 {
   a_boolean        unknown_function_case = FALSE;
@@ -6829,10 +6804,10 @@ original lvalue.
       node = dip->variant.expression;
     }  /* if*/
   }  /* if */
-  while(is_operation_node(node) &&
-      node->variant.operation.compiler_generated &&
-      (node_operator_is(node, eok_cast) ||
-       node_operator_is(node, eok_base_class_cast))) {
+  while (is_operation_node(node) &&
+         node->variant.operation.compiler_generated &&
+         (node_operator_is(node, eok_cast) ||
+          node_operator_is(node, eok_base_class_cast))) {
     node = node->variant.operation.operands;
   }  /* while */
   if (is_operation_node(node) &&
@@ -7366,20 +7341,11 @@ Generate "object->function", a bound function expression.
 If suppress_virtual is TRUE, suppress virtual-ness on the function reference.
 */
 {
-  a_routine_ptr rout = NULL;
+  a_routine_ptr rout = routine_from_function_expr(func_expr);
   a_type_ptr    naming_class, selection_class;
   a_boolean     force_qualified_name = FALSE;
   a_boolean     suppress_this = FALSE;
 
-  if (is_routine_node(func_expr)) {
-    rout = func_expr->variant.routine;
-  } else if (is_constant_node(func_expr)) {
-    a_constant_ptr con = func_expr->variant.constant;
-    if (con->kind == (a_constant_repr_kind)ck_address &&
-        con->variant.address.kind == (an_address_base_kind)abk_routine) {
-      rout = con->variant.address.variant.routine;
-    }  /* if */
-  }  /* if */
   check_assertion(rout != NULL);
   if (is_template_param_or_nonreal_class_type(object_expr->type)) {
     /* In a prototype instantiation, the left operand can be a class type
@@ -7702,7 +7668,7 @@ return FALSE and let the caller generate the code normally.
 
   if (expr->variant.operation.call_uses_operator_syntax) {
     an_expr_node_ptr              func_expr = expr->variant.operation.operands;
-    a_routine_ptr                 rp = NULL;
+    a_routine_ptr                 rp = routine_from_function_expr(func_expr);
     a_type_ptr                    rout_type;
     a_routine_type_supplement_ptr rtsp;
     a_param_type_ptr              param;
@@ -7714,16 +7680,6 @@ return FALSE and let the caller generate the code normally.
     char                          *op_name;
     char                          *right_half;
 
-    check_assertion(func_expr != NULL);
-    if (is_routine_node(func_expr)) {
-      rp = func_expr->variant.routine;
-    } else if (is_constant_node(func_expr)) {
-      a_constant_ptr con = func_expr->variant.constant;
-      if (con->kind == (a_constant_repr_kind)ck_address &&
-          con->variant.address.kind == (an_address_base_kind)abk_routine) {
-        rp = con->variant.address.variant.routine;
-      }  /* if */
-    }  /* if */
     check_assertion_str(rp != NULL,
                      "handle_operator_call: operand not a function constant.");
     check_assertion_str(rp->special_kind ==
@@ -7916,16 +7872,15 @@ Generate code for the indicated expression, which is a non-virtual call.
       write_tok_ch('(');
       need_arg_dep_close_paren = TRUE;
     }  /* if */
-    if (is_routine_node(func_expr)) {
-      rout = func_expr->variant.routine;
-    } else if (is_constant_node(func_expr)) {
-      a_constant_ptr con = func_expr->variant.constant;
-      if (con->kind == (a_constant_repr_kind)ck_address &&
-          con->variant.address.kind == (an_address_base_kind)abk_routine) {
-        rout = con->variant.address.variant.routine;
-      }  /* if */
-    }  /* if */
-    if (rout != NULL) {
+    rout = routine_from_function_expr(func_expr);
+    if (is_dot_static) {
+      /* Call of a static member function identified by a static
+         selection, e.g., p->f().  Put out the selection without
+         surrounding parentheses, to avoid problems with overloaded
+         functions (the function identifier must be right next to the
+         argument parentheses). */
+      gen_expression(func_expr);
+    } else if (rout != NULL) {
       /* We can tell which routine is being called. */
       a_type_ptr    rout_type = skip_typerefs(rout->type);
       if (rout_type->variant.routine.extra_info->this_class != NULL) {
@@ -7940,13 +7895,6 @@ Generate code for the indicated expression, which is a non-virtual call.
                expr->variant.operation.only_found_through_arg_dependent_lookup,
                /*use_ampersand=*/FALSE);
       }  /* if */
-    } else if (is_dot_static) {
-      /* Call of a static member function identified by a static
-         selection, e.g., p->f().  Put out the selection without
-         surrounding parentheses, to avoid problems with overloaded
-         functions (the function identifier must be right next to the
-         argument parentheses). */
-      gen_expression(func_expr);
     } else {
       if (op == (an_expr_operator_kind)eok_generic_member_call) {
         /* Unknown member function call. */
@@ -8009,6 +7957,12 @@ handled through recursion.
     case eok_points_to_field:
     case eok_dot_static:
     case eok_points_to_static:
+      /* The source form of a __builtin_offsetof construct always uses a
+         "." operator.  The "points_to" cases here are for code in which
+         the front end converts the first operand to a pointer (typically
+         to allow the addition of cv-qualification or base casts); the
+         operation and operand are re-normalized to "." by
+         strip_lvalue_cast_sequence. */
 #if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
       arg1 = remove_nonstandard_anonymous_union_field_selections(arg1, &op);
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
@@ -8121,7 +8075,9 @@ problems.
     if (is_operation_node(operand) &&
         (node_operator_is(operand, eok_reference_to) ||
          node_operator_is(operand, eok_ref_indirect) ||
-         ((node_operator_is(operand, eok_cast) ||
+         (operand->variant.operation.compiler_generated &&
+          !operand->variant.operation.keep_cast_for_cp_gen_be &&
+          (node_operator_is(operand, eok_cast) ||
            node_operator_is(operand, eok_lvalue_cast) ||
            node_operator_is(operand, eok_lvalue_adjust) ||
            node_operator_is(operand, eok_base_class_cast) ||
@@ -8131,8 +8087,6 @@ problems.
            node_operator_is(operand, eok_pm_derived_class_cast) ||
            node_operator_is(operand, eok_address_of) ||
            node_operator_is(operand, eok_indirect)) &&
-          operand->variant.operation.compiler_generated &&
-          !operand->variant.operation.keep_cast_for_cp_gen_be &&
           !is_const_string_literal_cast(operand)))) {
       operand = operand->variant.operation.operands;
       operand_changed = TRUE;
@@ -8152,7 +8106,7 @@ problems.
     }  /* if */
   } while (operand_changed);
   if (operand->kind == (an_expr_node_kind)enk_variable ||
-             operand->kind == (an_expr_node_kind)enk_temp_init) {
+      operand->kind == (an_expr_node_kind)enk_temp_init) {
     /* These can't have precedence problems. */
     parens_needed = FALSE;
   } else if (is_operation_node(operand) &&
@@ -8507,18 +8461,16 @@ gen_expr that might end up generating this expr as a temporary.
           opstr = ".*";
           break;
         case eok_pm_points_to_field:
-          { an_expr_node_ptr new_op1 = strip_lvalue_cast_sequence(operand_1);
-            if (new_op1 != operand_1 && new_op1->is_lvalue) {
-              /* The original source contained a ".*" operator which, to
-                 accommodate compiler-generated casts, was turned into a
-                 "->*" operator.  Restore the original form and original
-                 operand. */
-              operand_1 = new_op1;
-              opstr = ".*";
-            } else {
-              opstr = "->*";
-            }  /* if */
-          }
+          /* Unlike eok_pm_field, which always represents ".*" in the
+             source and thus can be generated using the default processing,
+             eok_pm_points_to_field sometimes represents "->*" and
+             sometimes ".*" (in the latter case, a compiler-generated
+             eok_address_of is added by the front end to produce a
+             pointer).  gen_simple_pm_field_selection has the logic
+             necessary to distinguish these cases and generate the
+             appropriate operand and operator. */
+          gen_pm_simple_field_selection(operand_1, operand_2);
+          goto done_with_operation;
           break;
         case eok_static_cast:
         case eok_reinterpret_cast:
@@ -8765,8 +8717,9 @@ gen_expr that might end up generating this expr as a temporary.
                             /*skip_num=*/0);
           goto done_with_operation;
         case eok_pm_call:
-          /* Call of a function identified by a "->*" operation.  First
-             operand is the pointer-to-member; the second is the object. */
+          /* Call of a function identified by a ".*" or "->*" operation.
+             First operand is the pointer-to-member; the second is the
+             object. */
           write_tok_ch('(');
           gen_pm_simple_field_selection(operand_2, operand_1);
           write_tok_ch(')');
@@ -9056,8 +9009,8 @@ done_with_operation_after_parens:
         a_type_ptr         temp_type = expr->type;
         dip = expr->variant.init.dynamic_init;
         if (C_mode()) {
-          /* Address of temp-init in C.  This comes up for the address
-             of a C99 compound literal. */
+          /* Lvalue for a temp-init in C.  This comes up for a C99 compound
+             literal. */
           gen_compound_literal((a_constant_ptr)NULL, dip, temp_type);
         } else {
           /* Lvalue temp-init in C++. */
