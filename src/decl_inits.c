@@ -2295,11 +2295,13 @@ this function points to a tree that includes a dynamic-init entry.
             /* Members of unions or aggregates cannot have size zero (which
                either indicates an incomplete type or a zero-length array in
                some modes)... */
-            if (is_array_type(member_type) && curr_field->next == NULL) {
+            if (is_array_type(member_type) &&
+                (curr_field->next == NULL || kind == (a_type_kind)tk_union)) {
               /* ... except that in several modes it's okay to declare a field
                  of zero-sized array type when it's the last field in the
-                 struct.  (See also: check_field_type.)  Only in Microsoft and
-                 GNU modes can such a field be initialized. */
+                 struct (or any field in a union).  (See also:
+                 check_field_type.)  Only in Microsoft and GNU modes can such
+                 a field be initialized. */
               if (microsoft_mode || gcc_mode) {
                 a_type_ptr  element_type =
                                    underlying_array_element_type(member_type);
