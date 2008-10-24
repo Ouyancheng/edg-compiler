@@ -12688,6 +12688,21 @@ inspection would return TRUE).
 }  /* bool_value_is_known_at_compile_time */
 
 
+static a_boolean dead_code_expr_can_be_eliminated(an_expr_node_ptr expr)
+/*
+The expression is dead code and is a candidate for removal;
+return TRUE if the expression can be safely eliminated and FALSE if the
+expression must remain.  Expressions that contain a destructible entity or
+statement expression are disqualified.  Note that this test is conservative
+(i.e., it's always okay to return FALSE) and that a more detailed look at the
+expression might result in allowing the elimination.
+*/
+{
+  return (C_mode() && !has_statement_expression(expr)) ||
+          !node_has_side_effects(expr, (a_boolean *)NULL);
+}  /* dead_code_expr_can_be_eliminated */
+
+
 void eliminate_dead_code_under_logical_operator(an_expr_node_ptr expr)
 /*
 In cases where the second operand of an eok_land or eok_lor operation
@@ -12707,13 +12722,8 @@ removed.
                    node_operator_is(expr, eok_lor)));
   op1 = expr->variant.operation.operands;
   op2 = op1->next;
-  /* Removing a node that creates destructible entities or contains a
-     statement expression can cause problems (e.g., destruction of an entity
-     that was never created).  Checking for side effects eliminates these
-     cases. */
   if (bool_value_is_known_at_compile_time(op1, &op1_value) &&
-      ((C_mode() && !has_statement_expression(op2)) ||
-       !node_has_side_effects(op2, (a_boolean*)NULL))) {
+      dead_code_expr_can_be_eliminated(op2)) {
     /* The first operand is an expression whose value we know at compile time;
        see if we can eliminate the second operand altogether based upon the
        value of the first operand. */
@@ -12753,12 +12763,7 @@ side effect will not be removed.
       replacement_op = op1->next->next;
       removed_op = op1->next;
     }  /* if */
-    /* Removing a node that creates destructible entities or contains
-       a statement expression can cause problems (e.g., destruction of an
-       entity that was never created).  Checking for side effects eliminates
-       these cases. */
-    if ((C_mode() && !has_statement_expression(removed_op)) ||
-        !node_has_side_effects(removed_op, (a_boolean *)NULL)) {
+    if (dead_code_expr_can_be_eliminated(removed_op)) {
       /* Replace the original expression with the appropriate operand. */
       overwrite_node(expr, replacement_op);
     }  /* if */
