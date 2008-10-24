@@ -1,5 +1,27 @@
 Version 3.11
 
+10/23/08 [EDGcpfe/9309]
+Microsoft compatibility: Unions with flexible array members
+
+Various modes, including Microsoft modes, accept a class or struct type whose
+last field has a class type with a flexible array member.  In Microsoft mode,
+such flexible members are also allowed in union types, and in those cases the
+the flexible member can be any member (not just the last one).  In Microsoft
+bugs mode, the front end now allows a field of such a union type to be
+followed by another field, if the flexible member in the union is not the
+last field.  (This matches the behavior of Microsoft compilers.)
+For example:
+
+  union X {
+    float f[];  // Flexible array in a union, but not the last field.
+    int i;
+  };
+  struct Y {
+    union X x;  // Accepted in Microsoft bugs mode, even though x is not the
+    int y;      // last field.
+  };
+
+
 10/23/08 [EDGcpfe/8822]
 printf/scanf checking of arguments with template-dependent types
 

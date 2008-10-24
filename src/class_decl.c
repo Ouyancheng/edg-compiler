@@ -10024,6 +10024,30 @@ done:;
 }  /* apply_bit_field_size */
 
 
+static a_boolean last_field_is_flexible(a_type_ptr  class_type)
+/*
+Return TRUE if the last field (if any) of the given class type (possibly a
+typedef) has an incomplete array type, or has a class type that has the flag
+contains_flexible_array_member set to TRUE.
+*/
+{
+  a_type_ptr  tp = skip_typerefs(class_type);
+  a_field_ptr fp = tp->variant.class_struct_union.field_list;
+  a_boolean   result = FALSE;
+
+  if (fp != NULL) {
+    a_type_ptr  field_type;
+    while (fp->next != NULL) fp = fp->next;
+    field_type = skip_typerefs(fp->type);
+    result = is_incomplete_array_type(field_type) ||
+             (is_immediate_class_type(field_type) &&
+              field_type
+                 ->variant.class_struct_union.contains_flexible_array_member);
+  }  /* if */
+  return result;
+}  /* last_field_is_flexible */
+
+
 static void check_field_type(a_symbol_locator        *locator,
                              a_class_def_state_ptr   class_state,
                              a_member_decl_info_ptr  decl_info,
@@ -10064,17 +10088,27 @@ declarations.
         class_type->variant.class_struct_union.
                               contains_flexible_array_member) {
       a_field_ptr  prev_field = class_state->end_of_field_list;
-
       check_assertion(prev_field != NULL &&
                       is_class_struct_union_type(prev_field->type) &&
                       skip_typerefs(prev_field->type)->
                                         variant.class_struct_union.
                                         contains_flexible_array_member);
-      pos_error(ec_flexible_array_member_not_allowed,
-                &prev_field->source_corresp.decl_position);
-      prev_field->type = error_type();
-      class_type->variant.class_struct_union.
-                                  contains_flexible_array_member = FALSE;
+      if (microsoft_bugs && is_union_type(prev_field->type) &&
+          !last_field_is_flexible(prev_field->type)) {
+        /* Microsoft compilers allow flexible array members anywhere in unions,
+           and if the last field of a union does not contain a flexible array,
+           a field of that union type may be followed by another field.
+           For example:
+             union X { float f[]; int i; };  // f is not the last field.
+             struct Y { X x; int y; };  // Accepted in Microsoft bugs mode.
+           We emulate this in Microsoft bugs mode. */
+      } else {
+        pos_error(ec_flexible_array_member_not_allowed,
+                  &prev_field->source_corresp.decl_position);
+        prev_field->type = error_type();
+      }  /* if */
+      class_type->variant.class_struct_union.contains_flexible_array_member =
+                                                                        FALSE;
     }  /* if */
   }  /* if */
   /* The type specified must be complete. */
@@ -10109,6 +10143,10 @@ declarations.
                array type.  The problem of a zero-sized union is dealt with
                in the layout code. */
             incomplete_okay = TRUE;
+            class_type
+                ->variant.class_struct_union.contains_flexible_array_member =
+                                                                          TRUE;
+
           }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         } else {
