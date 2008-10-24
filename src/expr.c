@@ -16884,7 +16884,8 @@ normal_function:
                                                                  ) {
             /* Function identifiers are not allowed in integral constant
                expressions. */
-            error_and_make_error_operand(ec_expr_not_constant, result);
+            error_and_make_error_operand(ec_expr_not_integral_constant,
+                                         result);
             change_refs_to_error(rep);
             rep = NULL;
           } else {
