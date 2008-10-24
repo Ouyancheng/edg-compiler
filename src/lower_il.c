@@ -11861,7 +11861,7 @@ the first pass).
 
 #if LOWER_LVALUE_RETURNING_OPERATIONS
 
-void lower_operations_returning_lvalue_instead_of_usual_rvalue(
+static void lower_operations_returning_lvalue_instead_of_usual_rvalue(
                                                          an_expr_node_ptr expr)
 /*
 Transform lvalue-returning assignments, prefix ++/-- operators, and "?" and
