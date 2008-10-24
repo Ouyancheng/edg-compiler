@@ -6155,7 +6155,9 @@ static a_boolean inverse_impl_conversion_possible(
 Return TRUE if the conversion source_type --> dest_type can be done as
 a static_cast because the inverse dest_type --> source_type can be done as
 an implicit conversion.  This is used for checking the part of static_cast
-that allows the inverse of any standard conversion.  typerefs are already
+that allows the inverse of any standard conversion.  This function also
+returns TRUE for a few conversions allowed by static_cast but not quite the
+inverse of an implicit conversion (e.g., enum --> enum).  typerefs are already
 removed from the types.  suppress_extensions is TRUE if conversions that
 are extensions should not be allowed (what constitutes an extension depends
 on C_dialect, of course).  If the conversion is possible, *std_conv is
@@ -6245,6 +6247,9 @@ exception specifications are not checked.
     /* Core Issue 128 makes enum --> enum a valid static_cast.  This also
        covers the case of integer --> scoped enum (the unscoped case is a
        normal inverse of an implicit conversion). */
+    okay = TRUE;
+  } else if (is_enum_type(source_type) && is_integral_type(dest_type)) {
+    /* Similarly, Core Issue 671 makes scoped enum --> integer valid. */
     okay = TRUE;
   } else if (!C_mode() &&
              is_bool_type(source_type) && is_enum_type(dest_type)) {
