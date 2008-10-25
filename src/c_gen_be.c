@@ -3212,10 +3212,12 @@ with a routine.
 */
 {
   sizeof_t mangled_name_length, alloc_length, name_length, routine_name_length;
-  char     *mangled_name, *store_at, *routine_name = NULL;
-  char     buffer[50];
+  sizeof_t scoped_enum_type_name_length;
+  char     *mangled_name, *store_at; 
+  char     *scoped_enum_type_name = NULL, *routine_name = NULL;
+  char     buffer[50], buffer0[50];
 #if IA64_ABI
-  char     buffer2[50], buffer0[50];
+  char     buffer2[50], buffer3[50];
 #endif /* IA64_ABI */
 
   /* Leave the name alone if the type is unnamed or if the name has
@@ -3228,23 +3230,52 @@ with a routine.
     } else {
       routine_name_length = 0;
     }  /* if */
+    if (scp_is_enum_member(scp)) {
+      /* Scoped enumerators need to have the type of the scoped enumeration
+         in the mangling to preserve uniqueness. */
+      a_type_ptr  scoped_enum_type = scp_parent_scoped_enum_type(scp);
+      scoped_enum_type_name = scoped_enum_type->source_corresp.unmangled_name;
+      if (scoped_enum_type_name == NULL) {
+        scoped_enum_type_name = scoped_enum_type->source_corresp.name;
+      }  /* if */
+      check_assertion(scoped_enum_type_name != NULL);
+      scoped_enum_type_name_length = strlen(scoped_enum_type_name);
+    } else {
+      scoped_enum_type_name_length = 0;
+    }  /* if */
 #if !IA64_ABI
-    /* Cfront-like ABI: The encoding is the original name, two
-       underscores, the mangled name of the routine, and "__Lnn" where
-       "nn" is the scope number. */
-    (void)sprintf(buffer, "__L%lu", (unsigned long)scope_number);
-    mangled_name_length = name_length + 2 + routine_name_length +
-                          strlen(buffer);
+    if (scoped_enum_type_name_length == 0) {
+      /* Cfront-like ABI: 
+           original-name __ mangled-routine-name __L scope-number
+         The encoding is the original name, two underscores, the mangled name
+         of the routine, and "__Lnn" where "nn" is the scope number. */
+      (void)sprintf(buffer, "__L%lu", (unsigned long)scope_number);
+      mangled_name_length = name_length + 2 + routine_name_length +
+                            strlen(buffer);
+    } else {
+      /* Cfront-like ABI:
+           enumerator-name __ length enum-name __L scope-number __ routine-name
+         For a scoped enumerator, the enum name must appear in the mangling
+         to differentiate from a non-scoped enumerator with the same name.  
+         The length above encompasses the enum name, local discriminator and
+         mangled routine name. */
+      sizeof_t overall_enum_name_length;
+      (void)sprintf(buffer, "__L%lu__", (unsigned long)scope_number);
+      overall_enum_name_length = scoped_enum_type_name_length + 
+                                 strlen(buffer) + routine_name_length;
+      (void)sprintf(buffer0, "%lu", (unsigned long)overall_enum_name_length);
+      mangled_name_length = name_length + 2 + strlen(buffer0) +
+                            overall_enum_name_length;
+    }  /* if */
 #else /* IA64_ABI */
-    /* IA-64 ABI encoding:
+    /* Typical IA-64 ABI encoding:
          _Z Z function-mangled-name E name-with-length _ discriminator
+       IA-64 ABI encoding for scoped enumerator:
+         _Z Z function-mangled-name E N enum-name-with-length name-with-length
+             E _ discriminator
        We don't have an accurate discriminator value, so we use the
        scope number for that.  The routine name already has the "_Z"
        at the front, unless the routine is extern "C". */
-    /* buffer0 will contain the _ZZ and anything else that needs to be
-       added at the front of the routine name.  buffer will contain the
-       "E" and the length for the entity name.  buffer2 will contain the
-       "_" and the discriminator number. */
     (void)strcpy(buffer0, "_ZZ");
     if (routine_name == NULL) {
       /* For an unnamed routine, we put out no name.  That doesn't produce
@@ -3260,11 +3291,29 @@ with a routine.
       (void)sprintf(buffer, "%lu", (unsigned long)routine_name_length);
       (void)strcat(buffer0, buffer);
     }  /* if */
-    (void)sprintf(buffer, "E%lu", (unsigned long)name_length);
-    (void)sprintf(buffer2, "_%lu", (unsigned long)scope_number);
+    if (scoped_enum_type_name_length == 0) {
+      /* buffer0 will contain the _ZZ and anything else that needs to be
+         added at the front of the routine name.  buffer will contain the
+         "E" and the length for the entity name.  buffer3 will contain the
+         "_" and the discriminator number. */
+      (void)sprintf(buffer, "E%lu", (unsigned long)name_length);
+      buffer2[0] = '\0';
+      (void)sprintf(buffer3, "_%lu", (unsigned long)scope_number);
+    } else {
+      /* buffer0 will contain the _ZZ and anything else that needs to be
+         added at the front of the routine name.  buffer will contain the
+         "EN" and the length for the enum name.  buffer2 will contain the
+         length of the enumerator name and buffer3 will contain the
+         "E_" and the discriminator number. */
+      (void)sprintf(buffer, "EN%lu", 
+                                  (unsigned long)scoped_enum_type_name_length);
+      (void)sprintf(buffer2, "%lu", (unsigned long)name_length);
+      (void)sprintf(buffer3, "E_%lu", (unsigned long)scope_number);
+    }  /* if */
     mangled_name_length = strlen(buffer0) +
                           routine_name_length + strlen(buffer) +
-                          name_length + strlen(buffer2);
+                          scoped_enum_type_name_length + strlen(buffer2) +
+                          name_length + strlen(buffer3);
 #endif /* !IA64_ABI */
     /* Allocate space for the mangled name and build it. */
     alloc_length = mangled_name_length + 1;
@@ -3276,11 +3325,24 @@ with a routine.
     store_at = mangled_name + name_length;
     *store_at++ = '_';
     *store_at++ = '_';
-    if (routine_name != NULL) {
-      (void)strcpy(store_at, routine_name);
-      store_at += routine_name_length;
+    if (scoped_enum_type_name_length == 0) {
+      if (routine_name != NULL) {
+        (void)strcpy(store_at, routine_name);
+        store_at += routine_name_length;
+      }  /* if */
+      (void)strcpy(store_at, buffer);
+    } else {
+      (void)strcpy(store_at, buffer0);
+      store_at += strlen(buffer0);
+      (void)strcpy(store_at, scoped_enum_type_name);
+      store_at += scoped_enum_type_name_length;
+      (void)strcpy(store_at, buffer);
+      store_at += strlen(buffer);
+      if (routine_name != NULL) {
+        (void)strcpy(store_at, routine_name);
+        store_at += routine_name_length;
+      }  /* if */
     }  /* if */
-    (void)strcpy(store_at, buffer);
 #else /* IA64_ABI */
     (void)strcpy(mangled_name, buffer0);
     store_at = mangled_name + strlen(buffer0);
@@ -3290,12 +3352,18 @@ with a routine.
     }  /* if */
     (void)strcpy(store_at, buffer);  /* E plus name length. */
     store_at += strlen(buffer);
+    if (scoped_enum_type_name_length != 0) {
+      (void)strcpy(store_at, scoped_enum_type_name);
+      store_at += scoped_enum_type_name_length;
+      (void)strcpy(store_at, buffer2);  /* Nested scope type name (if any). */
+      store_at += strlen(buffer2);
+    }  /* if */
     (void)strcpy(store_at, scp->name);
     store_at += name_length;
-    (void)strcpy(store_at, buffer2);  /* _ plus scope number. */
+    (void)strcpy(store_at, buffer3);  /* _ plus scope number. */
 #endif /* !IA64_ABI */
     /* Put the mangled name into the source correspondence entry. */
-    /* The old name is just thrown away. */
+    scp->unmangled_name = scp->name;
     scp->name = mangled_name;
     scp->name_has_been_mangled = TRUE;
     scp->is_local_to_function = FALSE;

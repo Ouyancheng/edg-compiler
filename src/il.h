@@ -285,10 +285,17 @@ memory whose parent scope is in function scope memory.
                           : parent_scope_of(ptr))
 
 /*
+Macro that returns TRUE if an IL entry represents a scoped enumerator.
+*/
+#define scp_is_enum_member(scp)                                             \
+  ((scp)->parent_scope != NULL &&                                           \
+   (scp)->parent_scope->kind == (a_scope_kind)sck_enum)
+
+/*
 Macros that return TRUE if an IL entry represents a namespace member.
 */
 #define scp_is_namespace_member(scp)                                        \
-  ((scp)->parent_scope != NULL &&                                             \
+  ((scp)->parent_scope != NULL &&                                           \
    (scp)->parent_scope->kind == (a_scope_kind)sck_namespace)
 
 #define is_namespace_member(ptr)                                            \
@@ -304,7 +311,29 @@ Macros that return TRUE if an IL entry represents a class or namespace member.
   (scp_is_class_or_namespace_member(&(ptr)->source_corresp))
 
 /*
-Macros that returns the parent namespace of a namespace member. 
+Macro that returns the parent type of a scoped enumerator. 
+*/
+#if defined(_lint)
+/* When linting, duplicate the macro argument to catch side-effects that would
+   be duplicated in the EXPENSIVE_CHECKING version, but don't call
+   check_assertion since that results in spurious lint errors when the macro
+   is used in a macro that itself duplicates its argument. */
+#define scp_parent_scoped_enum_type(scp)                                    \
+  ((void)scp_is_enum_member(scp),                                           \
+   (scp)->parent_scope->variant.assoc_type)
+#else /* !defined(_lint) */
+#if EXPENSIVE_CHECKING
+#define scp_parent_scoped_enum_type(scp)                                    \
+  (check_assertion(scp_is_enum_member(scp)),                                \
+   (scp)->parent_scope->variant.assoc_type)
+#else /* !EXPENSIVE_CHECKING */
+#define scp_parent_scoped_enum_type(scp)                                    \
+  ((scp)->parent_scope->variant.assoc_type)
+#endif /* EXPENSIVE_CHECKING */
+#endif /* defined(_lint) */
+
+/*
+Macros that return the parent namespace of a namespace member. 
 */
 #if defined(_lint)
 /* When linting, duplicate the macro argument to catch side-effects that would

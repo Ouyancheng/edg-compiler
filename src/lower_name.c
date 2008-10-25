@@ -3708,13 +3708,13 @@ static void r_mangled_parent_qualifier(a_source_correspondence  *scp,
                                        a_mangling_control_block *mctl)
 /*
 Add to the mangled name the encoding for the parent qualifier needed in
-the mangled name for a member of a class or namespace whose source
-correspondence is pointed to by scp.  nesting_level is used to track
-recursive calls of this routine to deal with multiple levels of parents.
-nesting_level == 1 refers to the innermost qualifier of a type,
-nesting_level == 2 is the next level out, etc.  The value is not
-used in the IA-64 ABI.  See the macro mangled_parent_qualifier, which
-supplies the usual nesting_level == 1.
+the mangled name for a member of a class, namespace member, or scoped
+enumerator whose source correspondence is pointed to by scp.  nesting_level is
+used to track recursive calls of this routine to deal with multiple levels of
+parents.  nesting_level == 1 refers to the innermost qualifier of a type,
+nesting_level == 2 is the next level out, etc.  The value is not used in the
+IA-64 ABI.  See the macro mangled_parent_qualifier, which supplies the usual
+nesting_level == 1.
 */
 {
   a_type_ptr              type = NULL;
@@ -3820,6 +3820,11 @@ supplies the usual nesting_level == 1.
 #endif /* !IA64_ABI */
     parent_scp = &type->source_corresp;
     more_levels = type_needs_parent_qualifier(type);
+  } else if (scp_is_enum_member(scp)) {
+    /* Scoped enumerator. */
+    type = scp_parent_scoped_enum_type(scp);
+    parent_scp = &type->source_corresp;
+    more_levels = type_needs_parent_qualifier(type);
   } else {
     /* Namespace member. */
     check_assertion(scp_is_namespace_member(scp));
@@ -3886,6 +3891,33 @@ new_substitution:
     /* Add a substitution for this type. */
     alloc_substitution((char *)type, iek_type, mctl);
 #endif /* IA64_ABI */
+  } else if (scp_is_enum_member(scp)) {
+    /* Scoped enumerator. */
+    char *name;
+    name = unmangled_name_of(&type->source_corresp);
+    if (name == NULL) {
+      /* For an unnamed enum, generate a name (or use the name previously
+         generated). */
+      give_unnamed_enum_a_name(type);
+      name = type->source_corresp.name;
+    }  /* if */
+#if IA64_ABI
+    if (add_substitution_if_available((char *)type, iek_type, mctl)) {
+      goto done;
+    } else {
+      if (more_levels) {
+        /* This level is nested inside something else.  Do a recursive call to
+           deal with all of the parents. */
+        r_mangled_parent_qualifier(parent_scp, nesting_level + 1, mctl);
+      }  /* if */
+    }  /* if */
+#endif /* IA64_ABI */
+    /* Put out the enum name along with its length. */
+    mangled_name_with_length(name, mctl);
+#if IA64_ABI
+    /* Add a substitution for this type. */
+    alloc_substitution((char *)type, iek_type, mctl);
+#endif /* IA64_ABI */
   } else {
     /* Namespace name. */
     a_namespace_ptr nsp = scp_parent_namespace_or_null(scp);
@@ -3936,22 +3968,27 @@ entities that indicates the enclosing function.
 */
 {
   *need_nested_name_close = FALSE;
-  /* Add the encoding for the function if this is a local type or a
-     member of a local class. */
+  /* Add the encoding for the function if this is a local type,
+     member of a local class, or a scoped enumerator. */
   if (scp->is_local_to_function) {
     if (kind == iek_type) {
       add_prefix_for_local_type((a_type_ptr)scp, mctl);
     } else if (scp->is_class_member) {
       add_prefix_for_local_type(scp_parent_class(scp), mctl);
+    } else if (scp_is_enum_member(scp)) {
+      /* Local scoped enumerators are mangled elsewhere, but scoped
+         enumerators that are members of a local class are mangled here. */
+      add_prefix_for_local_type(scp_parent_scoped_enum_type(scp), mctl);
     }  /* if */
   }  /* if */
   if (is_source_corresp_in_namespace_std(scp)) {
     /* Special encoding for "std::".*/
     add_str_to_mangled_name("St", mctl);
   } else if ((kind == iek_type) ? type_needs_parent_qualifier((a_type*)scp) :
-                                  scp_is_class_or_namespace_member(scp)) {
-    /* The entity is a class or namespace member and needs a parent
-       qualifier. */
+                                  (scp_is_class_or_namespace_member(scp) ||
+                                   scp_is_enum_member(scp))) {
+    /* The entity is a class member, namespace member, or scoped enumerator
+       and needs a parent qualifier. */
     /* Mark the start of the nested name. */
     add_to_mangled_name('N', mctl);
     *need_nested_name_close = TRUE;
@@ -5602,11 +5639,11 @@ static void mangled_member_name(a_source_correspondence  *scp,
                                 an_il_entry_kind         kind,
                                 a_mangling_control_block *mctl)
 /*
-Add to the mangled name the encoding for the name of the class or
-namespace member whose source correspondence is given by scp and
-whose kind is given by "kind".  This routine must be called only for
-static data member variables, namespace member variables, and class
-and namespace member constants.
+Add to the mangled name the encoding for the name of the class, 
+namespace member, or scoped enum type whose source correspondence is
+given by scp and whose kind is given by "kind".  This routine must be called
+only for static data member variables, namespace member variables,
+scoped enumerators and class and namespace member constants.
 */
 {
 #if !IA64_ABI
@@ -5889,8 +5926,8 @@ final processing like compression and truncation.
 static void mangle_member_constant_name(a_constant_ptr con)
 /*
 Mangle the name of the indicated member constant, if necessary.  con
-is either an enumerator constant, a namespace member constant, or (as an
-extension) a declared class member constant.
+is either an enumerator constant, a scoped enumerator constant, a namespace
+member constant, or (as an extension) a declared class member constant.
 */
 {
   a_mangling_control_block mctl;
@@ -5908,86 +5945,6 @@ extension) a declared class member constant.
     (void)end_mangling(&con->source_corresp, /*final=*/TRUE, &mctl);
   }  /* if */
 }  /* mangle_member_constant_name */
-
-
-static void mangle_scoped_enum_constant_name(a_type_ptr     enum_type,
-                                             a_constant_ptr con)
-/*
-Mangle the name of the scoped enumerator specified by con, whose type is
-enum_type.  Scoped enumerators don't have external linkage so mangled
-names can't escape into externally visible symbols.  The mangling is
-mainly to avoid conflicts in generated C code.  Treat the scoped
-enumerator and scoped enumeration type as additional nesting levels
-(in addition to any namespace and class membership).  Note that the
-IA-64 version of the mangled symbols cannot be decoded as they begin with
-the prefix "__" rather than "_Z".
-*/
-{
-  a_mangling_control_block mctl;
-  char                     *unmangled_enum_type_name;
-#if IA64_ABI
-  a_boolean                need_nested_name_close = FALSE;
-#else /* !IA64_ABI */
-  a_length_reservation     length_reservation;
-#endif /* IA64_ABI */
-
-  error_position = con->source_corresp.decl_position;
-  if (!con->source_corresp.name_has_been_mangled) {
-    start_mangling(&mctl);
-    unmangled_enum_type_name = unmangled_name_of(&enum_type->source_corresp);
-    if (unmangled_enum_type_name == NULL) {
-      /* For an unnamed scoped enumeration, generate a name (or use the name
-         previously generated). */
-      unmangled_enum_type_name = give_unnamed_enum_a_name(enum_type);
-    }  /* if */
-
-#if IA64_ABI
-    /* Add a prefix to avoid name conflicts.  Don't use "_Z" because it's
-       sort of reserved for external names.  The mangling here is mostly
-       to avoid conflicts in generated C code. */
-    add_str_to_mangled_name("__", &mctl);
-    /* Begin with nested parents or namespaces of scoped enum type, if any. */
-    mangled_ia64_parent_qualifier(&enum_type->source_corresp, iek_type,
-                                  &need_nested_name_close, &mctl);
-    /* If the type wasn't nested, begin a nesting level (because it will
-       be "nested" after we add the enumerator). */
-    if (!need_nested_name_close) {
-      add_to_mangled_name('N', &mctl);
-      need_nested_name_close = TRUE;
-    }  /* if */
-    /* Add scoped enum type name. */
-    mangled_name_with_length(unmangled_enum_type_name, &mctl);
-    add_discriminator_if_necessary(&enum_type->source_corresp, &mctl);
-    /* Add scoped enumerator name. */
-    mangled_name_with_length(unmangled_name_of(&con->source_corresp), &mctl);
-    close_ia64_nested_name(need_nested_name_close, &mctl);
-#else /* !IA64_ABI */
-    /* Start with scoped enumerator name. */
-    add_str_to_mangled_name(unmangled_name_of(&con->source_corresp), &mctl);
-    add_str_to_mangled_name(PREFIX_ON_NESTED_TYPE_NAME, &mctl);
-    if (type_needs_parent_qualifier(enum_type)) {
-      /* The enum type is a member of a class or namespace, so put out a
-         qualifier.  Note that the count starts at 2 because the enum type
-         name itself is level 1. */
-      r_mangled_parent_qualifier(&enum_type->source_corresp,
-                                 (unsigned long)2,
-                                 &mctl);
-    }  /* if */
-    reserve_space_for_length(&length_reservation, &mctl);
-    add_str_to_mangled_name(unmangled_enum_type_name, &mctl);
-    if (enum_type->source_corresp.is_local_to_function &&
-        !enum_type->source_corresp.is_class_member) {
-      /* Add a suffix identifying this enumerator as local to a function. */
-      a_routine_ptr enclosing_routine =
-                                   enclosing_routine_for_local_type(enum_type);
-      unsigned long scope_number = enclosing_routine->assoc_scope;
-      add_local_name_suffix(scope_number, enclosing_routine, &mctl);
-    }  /* if */
-    fill_in_length(&length_reservation, &mctl);
-#endif /* IA64_ABI */
-    (void)end_mangling(&con->source_corresp, /*final=*/TRUE, &mctl);
-  }  /* if */
-}  /* mangle_scoped_enum_constant_name */
 
 
 static void do_type_list_other_name_mangling(a_type_ptr type_list)
@@ -6018,17 +5975,20 @@ including classes.
       do_type_list_other_name_mangling(ctsp->promoted_local_types);
 #endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
 #endif /* DO_IL_LOWERING */
-    } else if (is_immediate_enum_type(type)) {
-      /* Mangle the names of member enum constants. */
+    } else if (is_immediate_enum_type(type) &&
+               (is_class_or_namespace_member(type) ||
+                (is_scoped_enum_type(type) &&
+                 !type->source_corresp.is_local_to_function))) {
+      /* Mangle the names of member enum constants as well as scoped
+         enum constants.  Scoped enumerators are typically mangled here
+         unless they are local to a function (in which case they are
+         mangled later -- the memory region may not be available at this
+         point in time and is needed for local type mangling). */
       a_constant_ptr enum_con;
       for (enum_con = enum_constants(type);
            enum_con != NULL;
            enum_con = enum_con->next) {
-        if (is_scoped_enum_type(type)) {
-          mangle_scoped_enum_constant_name(type, enum_con);
-        } else if (is_class_or_namespace_member(type)) {
-          mangle_member_constant_name(enum_con);
-        }  /* if */
+        mangle_member_constant_name(enum_con);
       }  /* for */
     }  /* if */
   }  /* for */
@@ -6822,17 +6782,14 @@ void mangle_promoted_entity_name(a_source_correspondence *scp,
                                  an_il_entry_kind        kind,
                                  a_boolean               final,
                                  a_routine_ptr           routine,
-                                 a_scope_ptr             scope,
-                                 a_type_ptr              scoped_enum_type)
+                                 a_scope_ptr             scope)
 /*
 scp points to the source correspondence field of an entity that is
 being promoted out of the routine "routine" (or one of its block
 scopes) to the file scope.  kind indicates the kind of entity (type,
 constant, or variable; not routine).  scope indicates the scope out
 of which the entity is being promoted (a function or block scope).
-Give the entity a mangled name if necessary.  For scoped enumerator
-constants, the scoped_enum_type specifies the type of the scoped enumeration
-(NULL for unscoped enumerator constants).  If final is TRUE, do
+Give the entity a mangled name if necessary.  If final is TRUE, do
 the final name mangling, which may produce a name that can no longer
 be embedded in other mangled names.
 */
@@ -6840,7 +6797,6 @@ be embedded in other mangled names.
   a_mangling_control_block mctl;
   a_boolean                is_string = FALSE;
   unsigned long            sequence_number = 0;
-  char                     *scoped_enum_type_name = NULL;
 
   check_assertion(kind == iek_variable ||
                   kind == iek_constant ||
@@ -6884,13 +6840,15 @@ be embedded in other mangled names.
      configurations. */
   if (!scp->name_has_been_mangled &&
       (scp->name != NULL || is_string /*lint --e(845)*/)) {
-    if (scoped_enum_type != NULL) {
+    char *scoped_enum_type_name = NULL;
+    if (scp_is_enum_member(scp)) {
+      a_type_ptr  scoped_enum_type = scp_parent_scoped_enum_type(scp);
       /* We're mangling a scoped enumerator.  The name of the scoped
          enumeration to which it belongs will be part of the mangled name.
          If the enumeration is unnamed, give it a name. */
       check_assertion(kind == iek_constant);
-      scoped_enum_type_name =
-                          unmangled_name_of(&scoped_enum_type->source_corresp);
+      scoped_enum_type_name = unmangled_name_of(
+                                            &scoped_enum_type->source_corresp);
       if (scoped_enum_type_name == NULL) {
         scoped_enum_type_name = give_unnamed_enum_a_name(scoped_enum_type);
       }  /* if */
@@ -6953,21 +6911,22 @@ be embedded in other mangled names.
     }  /* if */
     add_prefix_for_local_entity(routine, &mctl);
     if (!is_string) {
-      if (scoped_enum_type_name != NULL) {
+      if (scoped_enum_type_name == NULL) {
+        mangled_name_with_length(scp->name, &mctl);
+      } else {
         /* Created a nested name with the scoped enumeration type and the
            scoped enumerator name.  This isn't specified in the IA64 ABI
            and is mostly to avoid conflicts in generated C code
-           (enumerators don't have external linkage). */
+           (enumerators don't have external linkage).  No need to worry about
+           enclosing classes or namespaces since the enum type is local
+           to a function. */
         add_to_mangled_name('N', &mctl);
         mangled_name_with_length(scoped_enum_type_name, &mctl);
-      }  /* if */
-      mangled_name_with_length(scp->name, &mctl);
-      if (scoped_enum_type_name != NULL) {
+        mangled_name_with_length(scp->name, &mctl);
         /* Close the nested name. */
         add_to_mangled_name('E', &mctl);
-      } else {
-        add_discriminator_if_necessary(scp, &mctl);
       }  /* if */
+      add_discriminator_if_necessary(scp, &mctl);
     } else {
       /* String literal.  The name is "s" and the discriminator encodes the
          sequence number.  Note that sequence numbers start with one and
