@@ -3250,6 +3250,7 @@ with a routine.
          The encoding is the original name, two underscores, the mangled name
          of the routine, and "__Lnn" where "nn" is the scope number. */
       (void)sprintf(buffer, "__L%lu", (unsigned long)scope_number);
+      buffer0[0] = '\0';
       mangled_name_length = name_length + 2 + routine_name_length +
                             strlen(buffer);
     } else {
@@ -3325,7 +3326,7 @@ with a routine.
     store_at = mangled_name + name_length;
     *store_at++ = '_';
     *store_at++ = '_';
-    if (scoped_enum_type_name_length == 0) {
+    if (scoped_enum_type_name == NULL) {
       if (routine_name != NULL) {
         (void)strcpy(store_at, routine_name);
         store_at += routine_name_length;
@@ -3352,7 +3353,7 @@ with a routine.
     }  /* if */
     (void)strcpy(store_at, buffer);  /* E plus name length. */
     store_at += strlen(buffer);
-    if (scoped_enum_type_name_length != 0) {
+    if (scoped_enum_type_name != NULL) {
       (void)strcpy(store_at, scoped_enum_type_name);
       store_at += scoped_enum_type_name_length;
       (void)strcpy(store_at, buffer2);  /* Nested scope type name (if any). */

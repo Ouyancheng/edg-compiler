@@ -3898,8 +3898,7 @@ new_substitution:
     if (name == NULL) {
       /* For an unnamed enum, generate a name (or use the name previously
          generated). */
-      give_unnamed_enum_a_name(type);
-      name = type->source_corresp.name;
+      name = give_unnamed_enum_a_name(type);
     }  /* if */
 #if IA64_ABI
     if (add_substitution_if_available((char *)type, iek_type, mctl)) {
