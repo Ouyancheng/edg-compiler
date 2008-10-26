@@ -3671,11 +3671,8 @@ bind correctly to the entity whose address is taken.
 */
 {
   if (is_function_type(type)) {
-    if (annotate) {
-      start_comment();
-      write_tok_ch('&');
-      end_comment();
-    }  /* if */
+    /* Do nothing -- there is no need for an ampersand for the address of
+       a function. */
   } else if (is_array_type(type)) {
 #if C_GEN_BE_GENERATES_ANSI_C
     /* Generating ANSI C. */
@@ -3784,63 +3781,6 @@ node.  The output is usually just the variable name.
     dump_variable_name(var);
   }  /* if */
 }  /* dump_variable_reference_node */
-
-
-static void dump_lvalue_field_selection(an_expr_node_ptr expr)
-/*
-expr is a field selection that returns an lvalue for a field.  Dump it as
-an lvalue.  It is assumed that the caller will surround the output with
-parentheses.
-*/
-{
-  an_expr_node_ptr operand_1 = expr->variant.operation.operands;
-  a_field_ptr      field = operand_1->next->variant.field;
-  a_boolean        mutable_case = FALSE;
-  a_type_ptr       unqual_underlying_type;
-
-  /* Look for a field selection of a mutable field from a const structure.
-     A cast to remove the const must be added to the address of the struct
-     in that case so that the resulting selected field will be nonconst. */
-  if (field->is_mutable) {
-    a_type_ptr underlying_operand_1_type;
-    if (node_operator_is(expr, eok_points_to_field)) {
-      underlying_operand_1_type = type_pointed_to(operand_1->type);
-    } else {
-      underlying_operand_1_type = operand_1->type;
-    }  /* if */
-    if (is_const_qualified_type(underlying_operand_1_type)) {
-      mutable_case = TRUE;
-      unqual_underlying_type = f_skip_typerefs(underlying_operand_1_type);
-    }  /* if */
-  }  /* if */
-  if (node_operator_is(expr, eok_points_to_field) || mutable_case) {
-    if (mutable_case) {
-      /* For the mutable case, cast away const on the struct address. */
-      write_tok_ch('(');
-      dump_cast_to_pointer_to(unqual_underlying_type);
-      if (node_operator_is(expr, eok_dot_field)) {
-        /* This was originally "x.y", so we need to convert the left
-           operand into a pointer value. */
-        if (is_operation_node(operand_1) &&
-            node_operator_is(operand_1, eok_indirect)) {
-          /* We can just skip the "*" to get the pointer value. */
-          operand_1 = operand_1->variant.operation.operands;
-        } else {
-          /* Take the address of the left operand. */
-          write_tok_ch('&');
-        }  /* if */
-      }  /* if */
-    }  /* if */
-    dump_expr_with_parens(operand_1);
-    if (mutable_case) write_tok_ch(')');
-    write_tok_str("->");
-  } else {
-    /* "." case. */
-    dump_expr_with_parens(operand_1);
-    write_tok_ch('.');
-  }  /* if */
-  dump_field_from_second_operand(expr);
-}  /* dump_lvalue_field_selection */
 
 
 static void dump_va_arg(an_expr_node_ptr expr)
@@ -3967,20 +3907,28 @@ be optimized by dump_rvalue_selection.
 }  /* optimizable_rvalue_selection */
 
 
-static void dump_rvalue_selection(an_expr_node_ptr expr)
+static void dump_field_selection(an_expr_node_ptr expr)
 /*
-Dump an rvalue field selection, i.e., one where a field or bit field is
-used as an rvalue.  Because pcc compilers do not allow selection of a field
-from an rvalue struct (which is allowed in ANSI C), copy an rvalue struct
-to a temp and select the field from the temp.
+expr is a field selection, i.e., eok_dot_field or eok_points_to_field.
+Because pcc compilers do not allow selection of a field from an rvalue
+struct (which is allowed in ANSI C), we handle the "." case with an rvalue
+left operand by copying the operand to a temporary and then selecting the
+field from the temporary.  It is assumed that the caller will surround the
+output with parentheses if needed.
 */
 {
-  an_expr_node_ptr struct_expr, comma_operand_1, comma_operand_2;
-  a_boolean        comma_case;
+  an_expr_node_ptr struct_expr;
+  a_field_ptr      field;
+  a_boolean        mutable_case = FALSE;
   a_boolean        need_closing_paren = FALSE;
 
-  struct_expr = expr->variant.operation.operands;
-  if (!struct_expr->is_lvalue) {
+  check_assertion(is_operation_node(expr) &&
+                  (node_operator_is(expr, eok_dot_field) ||
+                   node_operator_is(expr, eok_points_to_field)));
+  struct_expr= expr->variant.operation.operands;
+  field = struct_expr->next->variant.field;
+  if (node_operator_is(expr, eok_dot_field) && !struct_expr->is_lvalue) {
+    a_boolean comma_case;
     /* The overall code is
          (_T123456 = expr, _T123456.field)
        The temporary has been generated on a pre-scan of this code.
@@ -4002,8 +3950,9 @@ to a temp and select the field from the temp.
          reference to a struct/union variable. */
       if (comma_case) {
         /* (expr2, variable).field --> (expr2, variable.field) */
-        comma_operand_1 = struct_expr->variant.operation.operands;
-        comma_operand_2 = comma_operand_1->next;
+        an_expr_node_ptr comma_operand_1 =
+                                       struct_expr->variant.operation.operands;
+        an_expr_node_ptr comma_operand_2 = comma_operand_1->next;
         dump_expr_with_parens(comma_operand_1);
         write_tok_str(", ");
         dump_expr_with_parens(comma_operand_2);
@@ -4025,20 +3974,58 @@ to a temp and select the field from the temp.
       write_tok_str(", ");
       dump_temp_name((char *)expr);
     }  /* if */
-  } else {
-    dump_expr_with_parens(struct_expr);
-  }  /* if */
-  /* Add the field selection. */
-  if (node_operator_is(expr, eok_points_to_field)) {
-    write_tok_str("->");
-  } else {
     write_tok_ch('.');
+  } else {
+    a_type_ptr unqual_underlying_type;
+    /* Look for a field selection of a mutable field from a const
+       structure.  (This cannot occur in the rvalue case above because
+       lowering of class rvalues removes cv-qualification.)  A cast to
+       remove the const must be added to the address of the struct in that
+       case so that the resulting selected field will be nonconst. */
+    if (field->is_mutable) {
+      a_type_ptr underlying_struct_type;
+      if (node_operator_is(expr, eok_points_to_field)) {
+        underlying_struct_type = type_pointed_to(struct_expr->type);
+      } else {
+        underlying_struct_type = struct_expr->type;
+      }  /* if */
+      if (is_const_qualified_type(underlying_struct_type)) {
+        mutable_case = TRUE;
+        unqual_underlying_type = f_skip_typerefs(underlying_struct_type);
+      }  /* if */
+    }  /* if */
+    if (node_operator_is(expr, eok_points_to_field) || mutable_case) {
+      if (mutable_case) {
+        /* For the mutable case, cast away const on the struct address. */
+        write_tok_ch('(');
+        dump_cast_to_pointer_to(unqual_underlying_type);
+        if (node_operator_is(expr, eok_dot_field)) {
+          /* This was originally "x.y", so we need to convert the left
+             operand into a pointer value. */
+          if (is_operation_node(struct_expr) &&
+              node_operator_is(struct_expr, eok_indirect)) {
+            /* We can just skip the "*" to get the pointer value. */
+            struct_expr = struct_expr->variant.operation.operands;
+          } else {
+            /* Take the address of the left operand. */
+            write_tok_ch('&');
+          }  /* if */
+        }  /* if */
+      }  /* if */
+      dump_expr_with_parens(struct_expr);
+      if (mutable_case) write_tok_ch(')');
+      write_tok_str("->");
+    } else {
+      /* "." case. */
+      dump_expr_with_parens(struct_expr);
+      write_tok_ch('.');
+    }  /* if */
   }  /* if */
   dump_field_from_second_operand(expr);
   if (need_closing_paren) {
     write_tok_ch(')');
   }  /* if */
-}  /* dump_rvalue_selection */
+}  /* dump_field_selection */
 
 #if !C_GEN_BE_GENERATES_ANSI_C
 
@@ -4166,7 +4153,7 @@ Return TRUE if the indicated expression is a zero constant.
 
 static void dump_routine_address(an_expr_node_ptr expr)
 /*
-Generate code for an enk_routine expression node, i.e., the address of a
+Generate code for an enk_routine expression node, i.e., the name of a
 routine.
 */
 {
@@ -4195,10 +4182,6 @@ routine.
     need_parens = TRUE;
     dump_cast_to_pointer_to(expr_rout_type);
   }  /* if */
-  /* We're counting on the fact that dump_ampersand will not put out anything
-     except an annotation comment.  If that is not the case, parentheses might
-     be required around "&function". */
-  dump_ampersand(rout_type);
   dump_routine_name(rout);
   if (need_parens) write_tok_ch(')');
 }  /* dump_routine_address */
@@ -4281,6 +4264,7 @@ be performed as executable code.
   return suppress_const;
 }  /* suppress_const_for_mutable_or_init */
 
+
 static a_variable_ptr variable_referenced_by_lvalue(an_expr_node_ptr expr)
 /*
 If the specified expr node (which must be an lvalue) refers to a variable,
@@ -4311,7 +4295,7 @@ return a pointer to that variable; otherwise, return NULL.
          operand. */
       expr = expr->variant.operation.operands;
     }  /* if */
-  }  /* for */
+  }  /* while */
   if (is_variable_node(expr)) {
     var = expr->variant.variable;
   }
@@ -4508,20 +4492,9 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           } else {
             dump_cast(expr->type);
           }  /* if */
-          if (operand_1->kind == (an_expr_node_kind)enk_variable &&
-              is_array_type(operand_1->variant.variable->type)) {
-            /* A cast of the address of an array.  Optimize this case: the
-               normal expansion of the address of an array includes a cast
-               (to "pointer to array").  Skip that cast. */
-            if (annotate) {
-              start_comment();
-              write_tok_ch('&');
-              end_comment();
-            }  /* if */
-            dump_variable_reference_node(operand_1);
-          } else if (is_pointer_type(operand_1->type) &&
-                     is_integral_or_enum_type(expr_type) &&
-                     expr_type->size < skip_typerefs(operand_1->type)->size) {
+          if (is_pointer_type(operand_1->type) &&
+              is_integral_or_enum_type(expr_type) &&
+              expr_type->size < skip_typerefs(operand_1->type)->size) {
             /* Casting from a pointer type to a smaller integral type.  Go by
                way of unsigned long to avoid errors or warnings from the
                underlying C compiler. */
@@ -4779,7 +4752,7 @@ process_assignment:
                for completeness; the front end doesn't actually generate any
                of these.) */
             dump_expr_with_parens(operand_1);
-            write_tok_str(" = *");
+            write_tok_str(" = ");
             dump_expr_with_parens(operand_2);
           } else {
             /* Use a block copy. */
@@ -4823,11 +4796,7 @@ process_assignment:
             write_tok_str("(__sexten(");
           }  /* if */
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
-          if (expr->is_lvalue) {
-            dump_lvalue_field_selection(expr);
-          } else {
-            dump_rvalue_selection(expr);
-          }  /* if */
+          dump_field_selection(expr);
 #if !C_GEN_BE_GENERATES_ANSI_C
           if (field->is_bit_field && field->bit_field_is_signed) {
             write_tok_ch(',');
@@ -7778,15 +7747,13 @@ prescan temporaries in the indicated expression.
     an_expr_operator_kind op = node->variant.operation.kind;
     an_expr_node_ptr      op1 = node->variant.operation.operands;
     a_type_ptr            op1_type = op1->type;
-    if ((op == (an_expr_operator_kind)eok_dot_field ||
-         op == (an_expr_operator_kind)eok_points_to_field) &&
-        !op1->is_lvalue) {
+    if (op == (an_expr_operator_kind)eok_dot_field && !op1->is_lvalue) {
       /* Selection of a field from an rvalue; may need a temp for the
          struct/union. */
       a_boolean comma_case;
       if (optimizable_rvalue_selection(node, &comma_case)) {
         /* The transformation can be optimized and does not need the temp.
-           See dump_rvalue_selection. */
+           See dump_field_selection. */
       } else {
         /* Declare the temporary. */
         dump_general_declaration_using_type(op1_type, NO_SCP, NO_VARIABLE,
