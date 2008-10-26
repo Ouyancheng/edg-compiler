@@ -2394,17 +2394,6 @@ typedef struct a_constant {
 			   initializer, TRUE if the initializer is for a
 			   flexible array member. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */
-#if BACK_END_IS_CP_GEN_BE
-  a_bit_field	suppress_expression_in_cp_gen_be:1;
-			/* Use the value of the constant rather than the
-			   recorded expression in the output of the
-			   C++-generating back end.  In some cases (e.g.,
-			   aggregate initialization with a string expression
-			   rather than a string literal, which is allowed in
-			   some dialects), the generated constant will be
-			   acceptable while the generated expression will
-			   not. */
-#endif /* BACK_END_IS_CP_GEN_BE */
   a_bit_field	uses_designated_initializers:1;
 			/* For a ck_aggregate constant in an initializer,
 			   TRUE if the initializer contains designated

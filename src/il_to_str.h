@@ -302,8 +302,7 @@ extern void form_pm_constant(
    their definitions, but shouldn't be put out in expression form. */
 #if BACK_END_IS_CP_GEN_BE
 #define constant_should_be_put_out_as_expr(constant)           \
-  ((constant)->expr != NULL && !is_enum_constant(constant) &&  \
-   !(constant)->suppress_expression_in_cp_gen_be)
+  ((constant)->expr != NULL && !is_enum_constant(constant)
 #else /* !BACK_END_IS_CP_GEN_BE */
 #define constant_should_be_put_out_as_expr(constant)           \
   ((constant)->expr != NULL && !is_enum_constant(constant))

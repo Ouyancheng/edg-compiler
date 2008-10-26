@@ -902,11 +902,6 @@ Display the indicated constant entry.
     disp_boolean("flexible_array_initializer", TRUE);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */
-#if BACK_END_IS_CP_GEN_BE
-  if (ptr->suppress_expression_in_cp_gen_be) {
-    disp_boolean("suppress_expression_in_cp_gen_be", TRUE);
-  }  /* if */
-#endif /* BACK_END_IS_CP_GEN_BE */
   if (ptr->uses_designated_initializers) {
     disp_boolean("uses_designated_initializers", TRUE);
   }  /* if */

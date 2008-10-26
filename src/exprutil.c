@@ -3191,10 +3191,6 @@ user-defined conversions.
                                &operand->position);
               error_threshold = saved_error_threshold;
             }  /* if */
-#if BACK_END_IS_CP_GEN_BE
-            local_constant.suppress_expression_in_cp_gen_be =
-                    operand->variant.constant.suppress_expression_in_cp_gen_be;
-#endif /* BACK_END_IS_CP_GEN_BE */
           }  /* if */
           make_constant_operand(&local_constant, operand);
           restore_operand_form_of_name_reference(operand, &orig_operand);
