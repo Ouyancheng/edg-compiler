@@ -3865,43 +3865,43 @@ after_operand_output:
 static a_boolean optimizable_rvalue_selection(an_expr_node_ptr expr,
                                               a_boolean        *comma_case)
 /*
-Return TRUE if the given expression (an rvalue selection operation) is
-an eok_points_to_field operation or if its first operand has one of the forms
+Return TRUE if the given expression (an eok_dot_field operation whose first
+operand is an rvalue) if its first operand has one of the forms
   variable
-  (something, variable)
+  (something, lvalue-expression)
   *expression
 *comma_case is returned TRUE to indicate the second case.  These forms can
-be optimized by dump_rvalue_selection.
+be optimized by dump_field_selection.  (Some forms are generated only by IL
+lowering and do not occur in the unlowered IL.)
 */
 {
   a_boolean        optimizable = FALSE;
   an_expr_node_ptr struct_expr, comma_operand_2;
 
+  check_assertion(is_operation_node(expr) &&
+                  node_operator_is(expr, eok_dot_field) &&
+                  !expr->variant.operation.operands->is_lvalue);
   *comma_case = FALSE;
-  if (node_operator_is(expr, eok_points_to_field)) {
+  struct_expr = expr->variant.operation.operands;
+  if (is_variable_node(struct_expr)) {
+    /* The field is being selected from a simple variable (IL lowering
+       generates some cases like this for pointer-to-member calls). */
     optimizable = TRUE;
-  } else {
-    struct_expr = expr->variant.operation.operands;
-    if (struct_expr->kind == (an_expr_node_kind)enk_variable) {
-      /* The field is being selected from a simple variable (IL lowering
-         generates some cases like this for pointer-to-member calls). */
-      optimizable = TRUE;
-    } else if (struct_expr->kind == (an_expr_node_kind)enk_operation) {
-      an_expr_operator_kind op = struct_expr->variant.operation.kind;
-      if (op == (an_expr_operator_kind)eok_comma) {
-        /* The first operand is a comma expression. */
-        /* Check for a second operand of the comma expression that is the
-           value of a variable. */
-        comma_operand_2 = struct_expr->variant.operation.operands->next;
-        if (comma_operand_2->kind == (an_expr_node_kind)enk_variable) {
-          optimizable = TRUE;
-          *comma_case = TRUE;
-        }  /* if */
-      } else if (op == (an_expr_operator_kind)eok_indirect) {
-        /* The first operand is *expression, so we can easily refer to it
-           as an lvalue. */
+  } else if (is_operation_node(struct_expr)) {
+    an_expr_operator_kind op = struct_expr->variant.operation.kind;
+    if (op == (an_expr_operator_kind)eok_comma) {
+      /* The first operand is a comma expression. */
+      /* Check for a second operand of the comma expression that is an
+         lvalue. */
+      comma_operand_2 = struct_expr->variant.operation.operands->next;
+      if (comma_operand_2->is_lvalue) {
         optimizable = TRUE;
+        *comma_case = TRUE;
       }  /* if */
+    } else if (op == (an_expr_operator_kind)eok_indirect) {
+      /* The first operand is *expression, so we can easily refer to it
+         as an lvalue. */
+      optimizable = TRUE;
     }  /* if */
   }  /* if */
   return optimizable;
@@ -3950,7 +3950,7 @@ output with parentheses if needed.
       /* This is an optimizable case.  Add the field selection to the existing
          reference to a struct/union variable. */
       if (comma_case) {
-        /* (expr2, variable).field --> (expr2, variable.field) */
+        /* (expr2, expr).field --> (expr2, expr.field) */
         an_expr_node_ptr comma_operand_1 =
                                        struct_expr->variant.operation.operands;
         an_expr_node_ptr comma_operand_2 = comma_operand_1->next;
