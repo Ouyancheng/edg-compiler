@@ -1805,18 +1805,18 @@ is non-NULL, in which case that is the function scope.
             char *temp = NULL;
             char *name = NULL;
 #if RECORD_NAME_IN_PARAM_TYPE_ENTRY
-            /* We have the name, so put it out. */
-            name = param->name;
-#else /* !RECORD_NAME_IN_PARAM_TYPE_ENTRY */
-            /* We don't have the name. */
-            if (gcc_is_generated_code_target && c99_mode) {
+            /* If we have the name, put it out (unless it is reserved). */
+            if (param->name != NULL && !is_C_reserved_word(param->name)) {
+              name = param->name;
+            }  /* if */
+#endif /* RECORD_NAME_IN_PARAM_TYPE_ENTRY */
+            if (gcc_is_generated_code_target && c99_mode && name == NULL) {
               /* gcc has difficulty with [*] VLA parameter types when the
                  parameter is unnamed, so generate a temporary name in C99
                  mode.  (We don't have an easy way to test whether the
                  parameter has a VLA [*] in it.) */
               temp = (char *)param;
             }  /* if */
-#endif /* RECORD_NAME_IN_PARAM_TYPE_ENTRY */
             /* If the type was qualified in the original, and the qualifiers
                were removed in C++, restore them here. */
             dump_general_declaration_using_type(param->type, NO_SCP,
