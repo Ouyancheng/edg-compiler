@@ -2127,7 +2127,8 @@ this function points to a tree that includes a dynamic-init entry.
        and we fall through.  Otherwise, all the required work was done. */
   } else if (is_aggregate_or_union_type(context.type) ||
 #if GNU_VECTOR_TYPES_ALLOWED
-             (gnu_mode && is_vector_type(context.type)) ||
+             (gnu_mode && is_vector_type(context.type) &&
+              curr_token == tok_lbrace) ||
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
              ((is_error_type(context.type) ||
                is_template_param_type(context.type)) &&
@@ -2139,7 +2140,8 @@ this function points to a tree that includes a dynamic-init entry.
        or GNU vector ("aggregate types" are required here).  The result will
        be an aggregate constant except when an array of char is initialized by
        a string.  The initial values can either appear inside a brace-enclosed
-       list, or at the current level. */
+       list, or at the current level (except for vectors, where the braces
+       cannot be omitted if element values are specified). */
     if (curr_token == tok_lbrace && context.pending_init_con == NULL) {
       /* Make sure it's truly an aggregate and not some non-aggregate class: */
       if (is_class_struct_union_type(context.type) &&
