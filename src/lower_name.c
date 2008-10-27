@@ -3095,6 +3095,36 @@ If the indicated enum type is unnamed, give it a name and return the name.
 }  /* give_unnamed_enum_a_name */
 
 
+static void give_unnamed_template_param_member_a_name(a_type_ptr type)
+/*
+Give an unnamed template param member type that refers to an unnamed
+enum or class member the same name as the original type (which
+has previously or will now become named via a call to
+give_unnamed_*_a_name).  Set its name_has_been_mangled flag to
+match that of the original type.
+*/
+{
+  a_type_ptr nested_type;
+
+  check_assertion(!has_name(type) &&
+                  type->kind == (a_type_kind)tk_template_param &&
+                  type->variant.template_param.kind == 
+                                  (a_template_param_constant_kind)tptk_member);
+  nested_type = type->variant.template_param.extra_info->orig_nested_type;
+  if (nested_type != NULL) {
+    if (is_immediate_class_type(nested_type)) {
+      type->source_corresp.name = give_unnamed_class_a_name(nested_type);
+      type->source_corresp.name_has_been_mangled =
+                             nested_type->source_corresp.name_has_been_mangled;
+    } else if (is_immediate_enum_type(nested_type)) {
+      type->source_corresp.name = give_unnamed_enum_a_name(nested_type);
+      type->source_corresp.name_has_been_mangled =
+                             nested_type->source_corresp.name_has_been_mangled;
+    }  /* if */
+  }  /* if */
+}  /* give_unnamed_template_param_member_a_name */
+
+
 /*
 Seed number for unnamed member variable names.
 */
@@ -4439,6 +4469,9 @@ Add to the mangled name the encoding for the type "type".
             break;
           case tptk_member:
             /* Type selected from a template parameter type, e.g., T::x. */
+            if (!has_name(type)) {
+              give_unnamed_template_param_member_a_name(type);
+            }  /* if */
             mangled_type_name_full(type, /*check_for_subst=*/FALSE, mctl);
             break;
           default:
@@ -5808,24 +5841,7 @@ is what mangled_type_name generates, plus a prefix.
     } else if (type->kind == (a_type_kind)tk_template_param &&
                type->variant.template_param.kind == 
                                  (a_template_param_constant_kind)tptk_member) {
-      a_type_ptr nested_type = type->variant.template_param.extra_info->
-                                                              orig_nested_type;
-      /* Give an unnamed template param member that refers to an unnamed
-         enum or class member the same name as the original type (which
-         has previously or will now become named via a call to
-         give_unnamed_*_a_name).  Set its name_has_been_mangled flag to
-         match that of the original type. */
-      if (nested_type != NULL) {
-        if (is_immediate_class_type(nested_type)) {
-          type->source_corresp.name = give_unnamed_class_a_name(nested_type);
-          type->source_corresp.name_has_been_mangled =
-                             nested_type->source_corresp.name_has_been_mangled;
-        } else if (is_immediate_enum_type(nested_type)) {
-          type->source_corresp.name = give_unnamed_enum_a_name(nested_type);
-          type->source_corresp.name_has_been_mangled =
-                             nested_type->source_corresp.name_has_been_mangled;
-        }  /* if */
-      }  /* if */
+      give_unnamed_template_param_member_a_name(type);
     }  /* if */
   }  /* if */
   /* do_type_name_mangling gets called twice, once from template processing

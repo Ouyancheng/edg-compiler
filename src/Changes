@@ -1,5 +1,20 @@
 Version 3.11
 
+10/27/08 [EDGcpfe/9214]
+Assertion failure when unnamed dependent enum type is used in cfront ABI
+
+The use of an unnamed enum type as a dependent type in a class template caused
+an assertion failure in lower_name.c when using the cfront ABI.  This
+regression occurred as a result of changes described by the Changes entry
+of 9/13/07.  Here is an example that previously aborted and is now fixed:
+
+  template <int I> struct S {
+    typedef enum { e } E;   // caused an assertion failure in lower_name.c
+    void f(E);
+  };
+  S<0> s;
+
+
 10/23/08 [EDGcpfe/9309]
 Microsoft compatibility: Unions with flexible array members
 
