@@ -2015,10 +2015,6 @@ exit:
       cast_expr->variant.operation.is_reinterpret_cast = is_reinterpret_cast;
       new_constant.expr = cast_expr;
     }  /* if */
-#if BACK_END_IS_CP_GEN_BE
-    new_constant.suppress_expression_in_cp_gen_be =
-                                    constant->suppress_expression_in_cp_gen_be;
-#endif /* BACK_END_IS_CP_GEN_BE */
   } else {
     new_constant.expr = NULL;
   }  /* if */

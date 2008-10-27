@@ -300,13 +300,8 @@ extern void form_pm_constant(
    form.  Don't be fooled by enumeration constants, which also have a
    non-NULL expression pointer if they were given an explicit value in
    their definitions, but shouldn't be put out in expression form. */
-#if BACK_END_IS_CP_GEN_BE
-#define constant_should_be_put_out_as_expr(constant)           \
-  ((constant)->expr != NULL && !is_enum_constant(constant)
-#else /* !BACK_END_IS_CP_GEN_BE */
 #define constant_should_be_put_out_as_expr(constant)           \
   ((constant)->expr != NULL && !is_enum_constant(constant))
-#endif /* BACK_END_IS_CP_GEN_BE */
 
 extern void form_uuidof_reference(a_constant_ptr                        con,
                                   an_il_to_str_output_control_block_ptr octl);
