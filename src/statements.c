@@ -5760,6 +5760,81 @@ Scan a default case label definition.  The syntax is:
   db_exit();
 }  /* default_label */
 
+
+static void label_definition(void)
+/*
+Scan and process a label definition.  (The current token is a label name and
+it is followed by a colon.)
+*/
+{
+  a_label_ptr      label;
+
+  /* Scan the label identifier, and enter it into the symbol table if
+     needed. */
+  label = scan_label(/*is_definition=*/TRUE, /*is_declaration=*/FALSE);
+  /* See if the label has already been defined. */
+  if (label->exec_stmt != NULL) {
+    sym_error(ec_already_defined, symbol_for(label));
+    set_reachable(curr_reachability);
+  } else {
+    /* The label has not previously been declared, so put out the
+       definition. */
+    define_label(label);
+    stmt_update_source_sequence_list(label->exec_stmt);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    curr_construct_end_position = end_pos_curr_token;
+    set_stmt_source_position(label->exec_stmt->end_position,
+                             curr_construct_end_position);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    if (!C_mode()) {
+      /* Record the innermost object lifetime that this label is part of.  If
+         that lifetime turns out to be "useless," the label lifetime will be
+         updated later.  See fixup_curr_block_labels_and_gotos. */
+      label->exec_stmt->variant.label.lifetime = curr_object_lifetime;
+    }  /* if */
+    /* If there have been forward gotos referencing this label, check whether
+       any have jumped over initializing declarations. */
+    check_for_jump_over_initialization(label->exec_stmt,
+                                       &label->source_corresp.decl_position);
+    check_assertion(depth_innermost_function_scope > 0);
+    scope_stack[depth_innermost_function_scope].last_label_decl_seq =
+                                                  symbol_for(label)->decl_seq;
+    if (!C_mode()) {
+      a_struct_stmt_stack_entry_ptr  sssep;
+      /* Flag all enclosing blocks to "invalidate" their currently active
+         object lifetimes. */
+      sssep = &struct_stmt_stack[depth_stmt_stack];
+      for (; sssep >= struct_stmt_stack; --sssep) {
+        if (sssep->kind == (a_struct_stmt_kind)ssk_compound) {
+          sssep->label_invalidates_curr_block_object_lifetime = TRUE;
+          if (sssep->is_catch_clause) {
+            /* Don't propagate the invalidation flag out of a catch clause. */
+            break;
+          }  /* if */
+        } else if (sssep->kind == (a_struct_stmt_kind)ssk_try_block) {
+          /* Don't propagate the invalidation flag out of a try block. */
+          break;
+        }  /* if */
+      }  /* for */
+      /* Create an object lifetime to run from this point to the end of
+         the current scope.  It's needed to handle backwards gotos to
+         the current label. */
+      reset_curr_block_object_lifetime(label->exec_stmt);
+    }  /* if */
+  }  /* if */
+  check_assertion_str(curr_token == tok_colon, "statement: expected colon");
+  (void)get_token();
+#if GNU_EXTENSIONS_ALLOWED
+  if (gnu_mode && curr_token == tok_attribute) {
+    an_attribute_ptr  attributes = scan_attributes();
+    if (attributes != NULL) {
+      apply_attributes_to_label(attributes, label);
+      free_attribute_list(attributes);
+    }  /* if */
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+}  /* label_definition */
+
 #if UPC_EXTENSIONS_ALLOWED
 
 static void upc_barrier_style_statement(void)
@@ -5846,22 +5921,6 @@ Parse a statement of the form
 
 #endif /* UPC_EXTENSIONS_ALLOWED */
 
-#if GNU_EXTENSIONS_ALLOWED
-
-static void gnu_attributes_for_label(a_label_ptr  label)
-/*
-Scan the attributes following a label and apply them to that label.
-*/
-{
-  an_attribute_ptr  attributes = scan_attributes();
-
-  if (attributes != NULL) {
-    apply_attributes_to_label(attributes, label);
-  }  /* if */
-}  /* gnu_attributes_for_label */
-
-#endif /* GNU_EXTENSIONS_ALLOWED */
-
 static void statement(a_boolean is_dependent_statement,
                       a_boolean marked_as_gnu_extension)
 /*
@@ -5871,7 +5930,6 @@ statement (of an "if", etc.).  If marked_as_gnu_extension is TRUE,
 this statement was preceded by the GNU keyword __extension__.
 */
 {
-  a_label_ptr      label;
   a_boolean        prev_was_label = FALSE;
   a_boolean        get_another_statement;
 
@@ -5968,6 +6026,7 @@ rescan_statement:
       get_another_statement = TRUE;
       break;
     case tok_default:
+default_label_case:
       /* Default label (3.6.1). */
       default_label();
       prev_was_label = TRUE;
@@ -5985,80 +6044,17 @@ rescan_statement:
           !locator_for_curr_id.is_operator_name &&
           !is_error_locator(locator_for_curr_id) &&
           next_token() == tok_colon) {
-        /* This is a label definition. */
-        /* Scan the label identifier, and enter it into the symbol table
-           if needed. */
-        label = scan_label(/*is_definition=*/TRUE, /*is_declaration=*/FALSE);
-        /* See if the label has already been defined. */
-        if (label->exec_stmt != NULL) {
-          sym_error(ec_already_defined,
-                    (a_symbol_ptr)label->source_corresp.assoc_info);
-          set_reachable(curr_reachability);
+        /* This is a label definition.  In Microsoft mode, it might be the
+           "default" label of a switch statement. */
+        if (microsoft_mode && microsoft_version >= 1400 &&
+            check_context_sensitive_keyword(tok_default, "default")) {
+          goto default_label_case;
         } else {
-          /* The label has not previously been declared, so put out the
-             definition. */
-          define_label(label);
-          stmt_update_source_sequence_list(label->exec_stmt);
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-          check_assertion(curr_token == tok_colon);
-          curr_construct_end_position = end_pos_curr_token;
-          set_stmt_source_position(label->exec_stmt->end_position,
-                                   curr_construct_end_position);
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-          if (!C_mode()) {
-            /* Record the innermost object lifetime that this label is part
-               of.  If that lifetime turns out to be "useless," the label
-               lifetime will be updated later.  See
-               fixup_curr_block_labels_and_gotos. */
-            label->exec_stmt->variant.label.lifetime = curr_object_lifetime;
-          }  /* if */
-          /* If there have been forward gotos referencing this label, check
-             whether any have jumped over initializing declarations. */
-          check_for_jump_over_initialization(label->exec_stmt,
-                                             &label->
-                                                source_corresp.decl_position);
-          check_assertion(depth_innermost_function_scope > 0);
-          scope_stack[depth_innermost_function_scope].last_label_decl_seq =
-                   ((a_symbol_ptr)label->source_corresp.assoc_info)->decl_seq;
-          if (!C_mode()) {
-            a_struct_stmt_stack_entry_ptr  sssep;
-
-            /* Flag all enclosing blocks to "invalidate" their currently active
-               object lifetimes. */
-            sssep = &struct_stmt_stack[depth_stmt_stack];
-            for (; sssep >= struct_stmt_stack; --sssep) {
-              if (sssep->kind == (a_struct_stmt_kind)ssk_compound) {
-                sssep->label_invalidates_curr_block_object_lifetime = TRUE;
-                if (sssep->is_catch_clause) {
-                  /* Don't propagate the invalidation flag out of a catch
-                     clause. */
-                  break;
-                }  /* if */
-              } else if (sssep->kind == (a_struct_stmt_kind)ssk_try_block) {
-                /* Don't propagate the invalidation flag out of a try block. */
-                break;
-              }  /* if */
-            }  /* for */
-            /* Create an object lifetime to run from this point to the end of
-               the current scope.  It's needed to handle backwards gotos to
-               the current label. */
-            reset_curr_block_object_lifetime(label->exec_stmt);
-          }  /* if */
+          label_definition();
+          prev_was_label = TRUE;
+          get_another_statement = TRUE;
+          break;
         }  /* if */
-#if CHECKING
-        if (curr_token != tok_colon) {
-          internal_error("statement: expected colon");
-        }  /* if */
-#endif /* CHECKING */
-        (void)get_token();
-#if GNU_EXTENSIONS_ALLOWED
-        if (gnu_mode && curr_token == tok_attribute) {
-          gnu_attributes_for_label(label);
-        }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
-        prev_was_label = TRUE;
-        get_another_statement = TRUE;
-        break;
       }  /* if */
       /* Other cases are expression statements. */
       goto expr_statement;

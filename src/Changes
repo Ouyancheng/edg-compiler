@@ -1,5 +1,28 @@
 Version 3.11
 
+10/27/08 [EDGcpfe/9315]
+Microsoft compatibility: The keyword "default"
+
+Recent Microsoft compilers (MSVC8 and later) treat the identifier "default"
+as a keyword only when it is followed by a colon.  In Microsoft mode with
+microsoft_version >= 1400, we approximate that behavior by treating the
+identifier "default" as a keyword only when it is followed by a colon in a
+location where a label can legitimately appear.  For example:
+
+  // Assume Microsoft mode with microsoft_version >= 1400.
+  int default(int default) {  // "default" is twice an ordinary identifier.
+    switch (default) {        // "default" is an ordinary identifier.
+      default:                // "default" is a keyword.
+        return default ? default : 3;
+    }                         // "default" is twice an ordinary identifier.
+  }
+
+Note that the last occurrence of "default" above is treated as a keyword by
+Microsoft compilers (because it is followed by a colon), but not by the EDG
+front end (because a label cannot appear there).  The example is therefore
+accepted by the EDG front end in Microsoft mode, but not by MSVC8.
+
+
 10/27/08 [EDGcpfe/9214]
 Assertion failure when unnamed dependent enum type is used in cfront ABI
 

@@ -334,7 +334,12 @@ Install the keywords in the symbol table.
   enter_keyword((a_token_kind)tok_case,      "case");
   enter_keyword((a_token_kind)tok_char,      "char");
   enter_keyword((a_token_kind)tok_continue,  "continue");
-  enter_keyword((a_token_kind)tok_default,   "default");
+  if (!(microsoft_mode && microsoft_version >= 1400)) {
+    /* Newer Microsoft compilers treat "default" as an ordinary identifier in
+       most contexts, and turn it into a keyword only when it is followed by
+       a colon. */
+    enter_keyword((a_token_kind)tok_default,   "default");
+  }  /* if */
   enter_keyword((a_token_kind)tok_do,        "do");
   enter_keyword((a_token_kind)tok_double,    "double");
   enter_keyword((a_token_kind)tok_else,      "else");
