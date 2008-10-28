@@ -4125,31 +4125,37 @@ for exact pointer equality.
           /* For functions, the return types must be compatible, the parameter
              types must be compatible, and the "this" parameter types (if any)
              must be compatible. */
-          rtsp1 = type_1->variant.routine.extra_info;
-          rtsp2 = type_2->variant.routine.extra_info;
-          if (f_types_are_compatible(type_1->variant.routine.return_type,
-                                     type_2->variant.routine.return_type,
-                                     flags) &&
-              param_types_are_compatible(type_1, type_2, flags) &&
-              ((flags & TCF_IGNORE_THIS_CLASS_TYPE) ||
-               (rtsp1->qualifiers == rtsp2->qualifiers &&
-                ((rtsp1->this_class == NULL) ?
-                    (rtsp2->this_class == NULL) :
-                    (rtsp2->this_class != NULL &&
-                     f_types_are_compatible(rtsp1->this_class,
-                                            rtsp2->this_class, flags))))) &&
-              (ignore_calling_conventions ||
-               (routine_linkages_are_compatible(
+          { a_type_compat_flags_set  rt_flags;
+            rtsp1 = type_1->variant.routine.extra_info;
+            rtsp2 = type_2->variant.routine.extra_info;
+            if (flags & TCF_IGNORE_RETURN_TYPE_QUALIFIERS) {
+              /* Don't propagate the flag to embedded function types. */
+              flags &= ~TCF_IGNORE_RETURN_TYPE_QUALIFIERS;
+              rt_flags = flags | TCF_IGNORE_TYPE_QUALIFIERS;
+            } else {
+              rt_flags = flags;
+            }  /* if */
+            if (f_types_are_compatible(type_1->variant.routine.return_type,
+                                       type_2->variant.routine.return_type,
+                                       rt_flags) &&
+                param_types_are_compatible(type_1, type_2, flags) &&
+                ((flags & TCF_IGNORE_THIS_CLASS_TYPE) ||
+                 (rtsp1->qualifiers == rtsp2->qualifiers &&
+                  ((rtsp1->this_class == NULL) ?
+                      (rtsp2->this_class == NULL) :
+                      (rtsp2->this_class != NULL &&
+                       f_types_are_compatible(rtsp1->this_class,
+                                              rtsp2->this_class, flags))))) &&
+                (ignore_calling_conventions ||
+                 (routine_linkages_are_compatible(
                              (a_name_linkage_kind)rtsp1->routine_name_linkage,
                              (a_name_linkage_kind)rtsp2->routine_name_linkage,
-                             is_impl_conv)
-#if MICROSOFT_EXTENSIONS_ALLOWED
-                && (!microsoft_mode ||
-                    calling_conventions_are_compatible(type_1, type_2))
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                                                                       ))) {
-            compat = TRUE;
-          }  /* if */
+                             is_impl_conv) &&
+                  (!microsoft_mode ||
+                   calling_conventions_are_compatible(type_1, type_2))))) {
+              compat = TRUE;
+            }  /* if */
+          }
           break;
         case tk_ptr_to_member:
           /* Pointer-to-member types are compatible if they refer to the same

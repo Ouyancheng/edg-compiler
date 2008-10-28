@@ -582,6 +582,9 @@ Bit flags for calls of f_types_are_compatible et al.
 			   (i.e., from an old-style function definition).
 			   Compare the parameter types without the usual
 			   default promotions.  (Used in GNU C mode.) */
+#define TCF_IGNORE_RETURN_TYPE_QUALIFIERS 0x400
+			/* Ignore qualifiers when testing the return type of
+			   a top-level function type.  (Used in GNU C mode.) */
 #define TCF_NO_FLAGS 0x0
 typedef int a_type_compat_flags_set;
 

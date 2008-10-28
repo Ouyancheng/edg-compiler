@@ -5959,35 +5959,45 @@ is_function_def is TRUE if the redeclaration is a definition.
   a_routine_ptr  rp = linked_sym->variant.routine.ptr;
   a_type_ptr     old_return_type = return_type_of(rp->type);
   a_type_ptr     new_return_type = return_type_of(new_type);
+  a_boolean      compat = FALSE;
 
   if (gcc_mode &&
       !skip_typerefs(new_type)->variant.routine.extra_info->prototyped &&
-      skip_typerefs(rp->type)->variant.routine.extra_info->prototyped &&
-      f_types_are_compatible(rp->type, new_type,
-                             TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING |
-                             TCF_NO_DEFAULT_ARG_PROMOTIONS)) {
-    /* GNU C compilers accept old-style definitions with unpromoted
-       types after having seen a prototype (also with unpromoted type).
-       In that case, the prototype declaration is retained for typing
-       purposes.  If a nondefining unprototype declaration follows a
-       a nondefining prototyped declaration, GNU C ignores the
-       prototype. */
-    *old_type = rp->type;
-    if (new_type->kind == (a_type_kind)tk_routine) {
-      /* The later declaration was not through a typedef. */
-      if (!old_decl_has_body && !is_function_def) {
-        /* Neither declaration was a definition. */
-        pos_sy_warning(ec_prototype_lost, diag_pos, linked_sym);
-        rp->type = new_type;
-      } else if (new_type->variant.routine.extra_info
-                         ->old_style_params_scanned) {
-        /* The later declaration was an old-style definition.  Record the fact
-           that old-style parameters were scanned (even though we will retain
-           the prototype type).  Among other things, this may indicate that
-           source sequence entries were recorded for the old-style
-           parameters. */
-        skip_typerefs(*old_type)->variant.routine.extra_info
-                                ->old_style_params_scanned = TRUE;
+      skip_typerefs(rp->type)->variant.routine.extra_info->prototyped) {
+    /* GNU C compilers relax compatibility requirements when an old-style
+       definition follows a prototyped declaration. */
+    a_type_compat_flags_set  tcf = TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING;
+    if (gnu_version < 40000) {
+      /* GCC 2.x and 3.x ignore return type qualifiers in this case. */
+      tcf |= TCF_IGNORE_RETURN_TYPE_QUALIFIERS;
+      compat = f_types_are_compatible(rp->type, new_type, tcf);
+    }  /* if */
+    if (!compat) {
+      /* Unpromoted argument types are considered compatible in this case. */
+      tcf |= TCF_NO_DEFAULT_ARG_PROMOTIONS;
+      compat = f_types_are_compatible(rp->type, new_type, tcf);
+    }  /* if */
+    if (compat) {
+    /* The prototype declaration is retained for typing purposes.  If a
+       nondefining unprototyped declaration follows a nondefining prototyped
+       declaration, GNU C ignores the prototype. */
+      *old_type = rp->type;
+      if (new_type->kind == (a_type_kind)tk_routine) {
+        /* The later declaration was not through a typedef. */
+        if (!old_decl_has_body && !is_function_def) {
+          /* Neither declaration was a definition. */
+          pos_sy_warning(ec_prototype_lost, diag_pos, linked_sym);
+          rp->type = new_type;
+        } else if (new_type->variant.routine.extra_info
+                           ->old_style_params_scanned) {
+          /* The later declaration was an old-style definition.  Record that
+             old-style parameters were scanned (even though we will retain the
+             prototype type).  Among other things, this may indicate that
+             source sequence entries were recorded for the old-style
+             parameters. */
+          skip_typerefs(*old_type)->variant.routine.extra_info
+                                  ->old_style_params_scanned = TRUE;
+        }  /* if */
       }  /* if */
     }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
@@ -5998,6 +6008,7 @@ is_function_def is TRUE if the redeclaration is a definition.
        remove) the old declaration by setting linked_redecl_error to TRUE. */
     pos_sy_warning(ec_builtin_function_hidden, diag_pos, linked_sym);
     *linked_redecl_error = TRUE;
+    compat = TRUE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
   } else if (SVR4_C_mode &&
              incompatible_types_are_SVR4_compatible(new_type, rp->type)) {
@@ -6012,6 +6023,7 @@ is_function_def is TRUE if the redeclaration is a definition.
     if (is_function_def) {
       rp->type = new_type;
     }  /* if */
+    compat = TRUE;
   } else if (microsoft_mode && C_mode() &&
              interchangeable_types(old_return_type, new_return_type)) {
     /* In Microsoft C mode "anything goes" as far as function redeclarations
@@ -6023,7 +6035,9 @@ is_function_def is TRUE if the redeclaration is a definition.
     if (is_function_def || !old_decl_has_body) {
       rp->type = new_type;
     }  /* if */
-  } else {
+    compat = TRUE;
+  }  /* if */
+  if (!compat) {
     /* Issue an error on incompatible declarations. */
     pos_sy_error(error_code, diag_pos, linked_sym);
     if (rp->storage_class == (a_storage_class)sc_static) {

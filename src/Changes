@@ -1,5 +1,18 @@
 Version 3.11
 
+10/28/08 [EDGcpfe/9312]
+GNU C compatibility: Unprototyped redeclarations
+
+In GNU C mode with gnu_version < 40000, when a function is first declared with
+a prototyped declaration and then redeclared with an unprototyped declaration,
+type qualifier differences are ignored on the function's return type.
+For example:
+
+  const int f(void);    // Prototyped declaration.
+  int f() { return 0; } // Unprototyped declaration: Missing "const" is
+                        // accepted when gnu_version < 40000.
+
+
 10/28/08 [EDGcpfe/5824,EDGcpfe/9316]
 Out-of-order constructor initializers
 
