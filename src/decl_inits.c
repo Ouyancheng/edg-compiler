@@ -4142,6 +4142,65 @@ end_of_routine:
 }  /* are_disjoint_members_of_union */
 
 
+static a_symbol_ptr ctor_init_symbol(a_constructor_init_ptr  cip)
+/*
+Return a symbol associated with cip: A field symbol if cip represents the
+initialization of a field, or a class type symbol if it represents the
+initialization of a base class.
+*/
+{
+  a_symbol_ptr  result = NULL;
+
+  if (cip->kind == (a_constructor_init_kind)cik_field) {
+    result = symbol_for(cip->variant.field);
+  } else {
+    result = symbol_for(cip->variant.base_class->type);
+  }  /* if */
+  check_assertion(result != NULL);
+  return result;
+}  /* ctor_init_symbol */
+
+
+static void check_out_of_order_init(a_constructor_init_ptr  new_cip,
+                                    a_constructor_init_ptr  *p_prev_cip,
+                                    a_boolean               *diag_issued)
+/*
+new_cip represents a new constructor initializer and *p_prev_cip represents
+the previous initializer for the same constructor definition (or NULL, if
+there was no previous initializer).  If *diag_issued is FALSE, issue a remark
+if the new initializer will occurr before the previous initializer, and set
+*diag_issued to TRUE.  In all cases, set *p_prev_cip to new_cip.
+*/
+{
+  if (!*diag_issued) {
+    a_boolean  is_out_of_order = FALSE;
+    if (*p_prev_cip == NULL) {
+      /* There was no previous initializer, so there cannot be an out-of-order
+         item yet. */
+    } else if (new_cip->kind < (*p_prev_cip)->kind) {
+      /* The previous item was of a kind that is initialized after the current
+         item. */
+      is_out_of_order = TRUE;
+    } else if (new_cip->kind == (*p_prev_cip)->kind) {
+      /* The previous item was of the same kind as the current item.  See if
+         the new item comes after it on the initialization-order list. */
+      a_constructor_init_ptr  cip = *p_prev_cip;
+      for (; cip != NULL; cip = cip->next) {
+        if (cip == new_cip) break;
+      }  /* if */
+      is_out_of_order = (cip == NULL);
+    }  /* if */
+    if (is_out_of_order) {
+      pos_sy2_diagnostic(es_remark, ec_out_of_order_ctor_init, &error_position,
+                         ctor_init_symbol(new_cip),
+                         ctor_init_symbol(*p_prev_cip));
+      *diag_issued = TRUE;
+    }  /* if */
+  }  /* if */
+  *p_prev_cip = new_cip;
+}  /* check_out_of_order_init */
+
+
 a_constructor_init_ptr ctor_initializer(a_routine_ptr  ctor_rout,
                                         a_boolean      user_defined)
 /*
@@ -4355,7 +4414,10 @@ initialized.  These are addressed in the course of the processing.
      fields need it.  It remains to scan the user specified initializers,
      if any, and to integrate them into the lists. */
   if (user_defined && curr_token == tok_colon) {
-    /* User-specified initializers are present.  Bypass the colon. */
+    /* User-specified initializers are present. */
+    a_boolean               out_of_order_diag_issued = FALSE;
+    a_constructor_init_ptr  prev_init = NULL;
+    /* Bypass the colon. */
     (void)get_token();
     add_stop_token(tok_lbrace);
     /* Loop through the comma-separated list of initializers. */
@@ -4399,6 +4461,9 @@ initialized.  These are addressed in the course of the processing.
                             ec_base_class_init_anachronism, init_type);
             if (new_cip->initializer != NULL) {
               type_error(ec_base_class_already_initialized, init_type);
+            } else {
+              check_out_of_order_init(new_cip, &prev_init,
+                                      &out_of_order_diag_issued);
             }  /* if */
           }  /* if */
           /* Back up so that the left paren will be rescanned. */
@@ -4553,7 +4618,7 @@ initialized.  These are addressed in the course of the processing.
             for (cip = cip_list; cip != NULL; cip = cip->next) {
               if (cip->initializer != NULL) {
                 /* Note: at this point cip_list includes only fields, so we can
-                   assume new_cip->kind is cik_field. */
+                   assume cip->kind is cik_field. */
                 if (cip->variant.field == field) {
                   /* Error on duplicate initialization will be issued below. */
                 } else if (!microsoft_mode &&
@@ -4644,6 +4709,8 @@ initialized.  These are addressed in the course of the processing.
              entry to which the initializer should be attached.  It has been
              located in or inserted into the list of such entries at a spot
              corresponding to its declaration order. */
+          check_out_of_order_init(new_cip, &prev_init,
+                                   &out_of_order_diag_issued);
         } else if (is_class_symbol(member_or_base_sym) ||
                    template_param_init) {
           /* It is a base class of the current class for which initialization
@@ -4749,6 +4816,9 @@ initialized.  These are addressed in the course of the processing.
             new_cip->compiler_generated = FALSE;
             if (new_cip->initializer != NULL) {
               type_error(ec_base_class_already_initialized, bcp->type);
+            } else {
+              check_out_of_order_init(new_cip, &prev_init,
+                                      &out_of_order_diag_issued);
             }  /* if */
           }  /* if */
         } else {

@@ -1,5 +1,18 @@
 Version 3.11
 
+10/28/08 [EDGcpfe/5824,EDGcpfe/9316]
+Out-of-order constructor initializers
+
+A remark is now issued if the initializer for members and bases specified on a
+constructor definition do not appear in the order in which the initializations
+will happen.  For example:
+
+  struct S {
+    S(int i, int j): y(i), x(j) {}  // Remark: The initialization of x happens
+    int x, y;                       // before that of y.
+  };
+
+
 10/28/08 [EDGcpfe/9324]
 IA-64 ABI name mangling for enumerators and namespace member constants
 
