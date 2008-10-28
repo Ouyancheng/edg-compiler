@@ -3865,8 +3865,8 @@ after_operand_output:
 static a_boolean optimizable_rvalue_selection(an_expr_node_ptr expr,
                                               a_boolean        *comma_case)
 /*
-Return TRUE if the given expression (an eok_dot_field operation whose first
-operand is an rvalue) if its first operand has one of the forms
+Return TRUE if the first operand of the given expression (an eok_dot_field
+operation whose first operand is an rvalue) has one of the forms
   variable
   (something, lvalue-expression)
   *expression
@@ -3910,11 +3910,8 @@ lowering and do not occur in the unlowered IL.)
 
 static void dump_field_selection(an_expr_node_ptr expr)
 /*
-expr is a field selection, i.e., eok_dot_field or eok_points_to_field.
-Because pcc compilers do not allow selection of a field from an rvalue
-struct (which is allowed in ANSI C), we handle the "." case with an rvalue
-left operand by copying the operand to a temporary and then selecting the
-field from the temporary.  It is assumed that the caller will surround the
+Generate code for expr, a field selection operation, i.e., eok_dot_field or
+eok_points_to_field.  It is assumed that the caller will surround the
 output with parentheses if needed.
 */
 {
@@ -3926,11 +3923,13 @@ output with parentheses if needed.
   check_assertion(is_operation_node(expr) &&
                   (node_operator_is(expr, eok_dot_field) ||
                    node_operator_is(expr, eok_points_to_field)));
-  struct_expr= expr->variant.operation.operands;
+  struct_expr = expr->variant.operation.operands;
   field = struct_expr->next->variant.field;
   if (node_operator_is(expr, eok_dot_field) && !struct_expr->is_lvalue) {
     a_boolean comma_case;
-    /* The overall code is
+    /* Because pcc compilers do not allow selection of a field from an
+       rvalue struct (which is allowed in ANSI C), in most cases we
+       generate this code in the form
          (_T123456 = expr, _T123456.field)
        The temporary has been generated on a pre-scan of this code.
        If the struct expression is just a variable, the field selection is
