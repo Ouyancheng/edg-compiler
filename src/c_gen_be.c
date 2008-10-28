@@ -4266,41 +4266,51 @@ be performed as executable code.
 }  /* suppress_const_for_mutable_or_init */
 
 
-static a_variable_ptr variable_referenced_by_lvalue(an_expr_node_ptr expr)
 /*
-If the specified expr node (which must be an lvalue) refers to a variable,
-either directly (i.e., expr is an enk_variable node), as the left operand
-of a member selection, or as the array operand of a subscripting operation,
-return a pointer to that variable; otherwise, return NULL.
+The variable found while traversing the expression passed to
+variable_referenced_by_lvalue (see below).
+*/
+static a_variable_ptr var_seen_during_lvalue_traversal;
+
+
+static void set_var_in_lvalue_traversal(
+                                    an_expr_node_ptr                    expr,
+                                    an_expr_or_stmt_traversal_block_ptr tblock)
+/*
+Called from variable_referenced_by_lvalue via traverse_expr.  If expr is
+an enk_variable node with a struct or array type (i.e., a variable that
+has subobjects), set var_seen_during_lvalue_traversal to point to that
+variable and terminate the traversal.
 */
 {
-  a_variable_ptr var = NULL;
+  if (is_variable_node(expr)) {
+    a_variable_ptr var = expr->variant.variable;
+    if (is_array_type(var->type) ||
+        is_class_struct_union_type(var->type)) {
+      var_seen_during_lvalue_traversal = var;
+      tblock->terminate = TRUE;
+    }  /* if */
+  }  /* if */
+}  /* set_var_in_lvalue_traversal */
+
+
+static a_variable_ptr variable_referenced_by_lvalue(an_expr_node_ptr expr)
+/*
+Walk down the expression tree rooted in expr, which must be an lvalue,
+looking for an enk_variable node designating a variable that is or contains
+the object to which the lvalue refers.  If such a node is found, return a
+pointer to the variable; otherwise, return NULL.
+*/
+{
+  an_expr_or_stmt_traversal_block tblock;
 
   check_assertion(expr->is_lvalue);
-  /* Scan down through selection and subscripting nodes (including the
-     array-to-pointer decay that occurs when a variable is subscripted). */
-  while (is_operation_node(expr) &&
-         (node_operator_is(expr, eok_array_to_pointer) ||
-          node_operator_is(expr, eok_dot_field) ||
-          node_operator_is(expr, eok_subscript) ||
-          (node_operator_is(expr, eok_indirect) &&
-           is_operation_node(expr->variant.operation.operands) &&
-           node_operator_is(expr->variant.operation.operands, eok_padd)))) {
-    if (node_operator_is(expr, eok_subscript) ||
-        node_operator_is(expr, eok_padd)) {
-      /* The pointer in subscripting and pointer addition can be either
-         operand. */
-      expr = subscript_or_padd_pointer_operand(expr);
-    } else {
-      /* In the other cases, the variable (if any) will be in the first
-         operand. */
-      expr = expr->variant.operation.operands;
-    }  /* if */
-  }  /* while */
-  if (is_variable_node(expr)) {
-    var = expr->variant.variable;
-  }
-  return var;
+  var_seen_during_lvalue_traversal = NULL;
+  clear_expr_or_stmt_traversal_block(&tblock);
+  tblock.process_expr = set_var_in_lvalue_traversal;
+  tblock.follow_addressing_path = TRUE;
+  traverse_expr(expr, &tblock);
+  return var_seen_during_lvalue_traversal;
 }  /* variable_referenced_by_lvalue */
 
 #if CHECKING && !STANDALONE_C_GEN_BE
