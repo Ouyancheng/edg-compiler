@@ -5950,12 +5950,12 @@ member constant, or (as an extension) a declared class member constant.
   error_position = con->source_corresp.decl_position;
   if (!con->source_corresp.name_has_been_mangled) {
     start_mangling(&mctl);
-#if IA64_ABI
-    /* Add a prefix to avoid name conflicts.  Don't use "_Z" because it's
-       sort of reserved for external names.  The mangling here is mostly
-       to avoid conflicts in generated C code.*/
-    add_str_to_mangled_name("__", &mctl);
-#endif /* !IA64_ABI */
+    /* Strictly speaking, the "_Z" prefix that is added in the IA-64 ABI by
+       the call below could be any prefix that would cause the name to
+       be unique (it had been "__").  Using "_Z" allows these names to
+       be demangled and matches the mangling for promoted entities of the
+       same type. */
+    add_mangled_name_prefix(&mctl);
     mangled_member_name(&con->source_corresp,  iek_constant, &mctl);
     (void)end_mangling(&con->source_corresp, /*final=*/TRUE, &mctl);
   }  /* if */

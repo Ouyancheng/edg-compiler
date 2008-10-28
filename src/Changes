@@ -1,5 +1,26 @@
 Version 3.11
 
+10/28/08 [EDGcpfe/9324]
+IA-64 ABI name mangling for enumerators and namespace member constants
+
+Previously, the names of enumerators and namespace member constants were
+mangled using a "__" prefix in IA-64 ABI mode; a change has been made to use
+the "_Z" prefix instead.  This change allows these mangled names to be
+decoded and is consistent with manglings that occur for similar types
+that are defined in functions.  See also a similar change on 12/19/06 for
+local nested classes.  Here is an example:
+
+  struct S {
+    enum E { e };   // mangling for e had been __N1S1eE, now _ZN1S1eE
+  };
+  namespace N {
+    enum E { e };   // mangling for e had been __N1N1eE, now _ZN1N1eE
+  }
+  void f() {
+    enum E { e };   // mangling for e still _ZZ1fvE1e_5
+  }
+
+
 10/27/08 [EDGcpfe/9315]
 Microsoft compatibility: The keyword "default"
 
