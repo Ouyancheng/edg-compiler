@@ -5978,9 +5978,9 @@ is_function_def is TRUE if the redeclaration is a definition.
       compat = f_types_are_compatible(rp->type, new_type, tcf);
     }  /* if */
     if (compat) {
-    /* The prototype declaration is retained for typing purposes.  If a
-       nondefining unprototyped declaration follows a nondefining prototyped
-       declaration, GNU C ignores the prototype. */
+      /* The prototyped declaration is retained for typing purposes.  If a
+         nondefining unprototyped declaration follows a nondefining prototyped
+         declaration, GNU C ignores the prototype. */
       *old_type = rp->type;
       if (new_type->kind == (a_type_kind)tk_routine) {
         /* The later declaration was not through a typedef. */
