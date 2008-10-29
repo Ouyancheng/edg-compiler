@@ -5683,7 +5683,7 @@ Add to the mangled name the encoding for the name of the class,
 namespace member, or scoped enum type whose source correspondence is
 given by scp and whose kind is given by "kind".  This routine must be called
 only for static data member variables, namespace member variables,
-scoped enumerators and class and namespace member constants.
+scoped enumerators, and class and namespace member constants.
 */
 {
 #if !IA64_ABI
