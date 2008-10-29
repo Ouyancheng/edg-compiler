@@ -10584,6 +10584,10 @@ typedef struct a_statement {
 /* A list of these is also used on destructors to indicate destructor
    calls that must be made for base classes and members. */
 enum a_constructor_init_kind_tag {
+  /* The order of the following constants matters: It reflects the order in
+     which class subobjects are initialized (virtual base classes are
+     initialized before nonvirtual direct base classes, and all base classes
+     are initialized before nonstatic data members). */
   cik_virtual_base_class,
 			/* Object to be initialized is a virtual base class. */
   cik_direct_base_class,

@@ -1766,7 +1766,7 @@ ec_restrict_qualifier_ignored;;"restrict qualifier is ignored"
 ec_gnu_attributes_ignored;;"attributes ignored here"
 ec_nonstandard_array_with_flexible_array_element;;"array of elements containing a flexible array member is nonstandard"
 ec_vector_template_parameter;;"a template parameter may not have a vector type"
-ec_out_of_order_ctor_init;;"initialization of %n1 happens before that of %n2"
+ec_out_of_order_ctor_init;;"the initialization of %n1 will be done before that of %n2"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

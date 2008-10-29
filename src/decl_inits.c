@@ -4182,12 +4182,17 @@ if the new initializer will occur before the previous initializer, and set
          item. */
       is_out_of_order = TRUE;
     } else if (new_cip->kind == (*p_prev_cip)->kind) {
-      /* The previous item was of the same kind as the current item.  See if
-         the new item comes after it on the initialization-order list. */
+      /* The previous item was of the same kind as the current item, so they
+         should both be on the same list.  See if the new item comes after it
+         on the initialization-order list (which would mean the order of the
+         two initializers matches the order in which the corresponding
+         initializations are done). */
       a_constructor_init_ptr  cip = *p_prev_cip;
       for (; cip != NULL; cip = cip->next) {
         if (cip == new_cip) break;
       }  /* if */
+      /* If new_cip was not found after *p_prev_cip, presumably it came before
+         *p_prev_cip, and an out-of-order diagnostic should be issued. */
       is_out_of_order = (cip == NULL);
     }  /* if */
     if (is_out_of_order) {
