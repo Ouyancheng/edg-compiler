@@ -3369,10 +3369,11 @@ be issued at the given position.
          declarations). */
     } else if (old_dll_flags == 0) {
       /* This is the first time a DLL interface is specified: If there was a
-         previous declaration, issue an error. */
+         previous declaration, issue a discretionary error. */
       if (is_redecl) {
-        pos_sy_error(ec_redeclaration_adds_dll_interface, diag_pos,
-                     symbol_for(routine));
+        pos_sy_diagnostic(es_discretionary_error,
+                          ec_redeclaration_adds_dll_interface, diag_pos,
+                          symbol_for(routine));
       }  /* if */
       routine->decl_modifiers |= new_dll_flags;
       if ((new_dll_flags & DM_DLLEXPORT) != 0) {
@@ -3655,10 +3656,11 @@ position. */
          attribute on or from a block-extern declaration. */
     } else if (old_dll_flags == 0) {
       /* This is the first time a DLL interface is specified: If there was a
-         previous declaration, issue an error. */
+         previous declaration, issue a discretionary error. */
       if (is_redecl) {
-        pos_sy_error(ec_redeclaration_adds_dll_interface, diag_pos,
-                     symbol_for(var));
+        pos_sy_diagnostic(es_discretionary_error,
+                          ec_redeclaration_adds_dll_interface,
+                          diag_pos, symbol_for(var));
       }  /* if */
       var->decl_modifiers |= new_dll_flags;
       if ((new_dll_flags & DM_DLLEXPORT) != 0) {

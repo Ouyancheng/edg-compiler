@@ -1,5 +1,18 @@
 Version 3.11
 
+10/29/08 [EDGcpfe/9276]
+Diagnostic when introducing a DLL attribute on a redeclaration
+
+In Microsoft mode, an error is issued if a variable or function was first
+declared without a DLL attribute (dllimport or dllexport), and later was
+redeclared with such an attribute.  Now, that error is discretionary (and
+the DLL attribute is applied to the entity).  For example:
+
+  int f();
+  __declspec(dllimport) int f();  // The error issued for this redeclaration
+                                  // is now discretionary.
+
+
 10/29/08 [EDGcpfe/8156, EDGcpfe/7042]
 Assertion failure in mangled_class_encoding
 
