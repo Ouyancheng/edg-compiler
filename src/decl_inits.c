@@ -4168,7 +4168,7 @@ static void check_out_of_order_init(a_constructor_init_ptr  new_cip,
 new_cip represents a new constructor initializer and *p_prev_cip represents
 the previous initializer for the same constructor definition (or NULL, if
 there was no previous initializer).  If *diag_issued is FALSE, issue a remark
-if the new initializer will occurr before the previous initializer, and set
+if the new initializer will occur before the previous initializer, and set
 *diag_issued to TRUE.  In all cases, set *p_prev_cip to new_cip.
 */
 {
@@ -4710,7 +4710,7 @@ initialized.  These are addressed in the course of the processing.
              located in or inserted into the list of such entries at a spot
              corresponding to its declaration order. */
           check_out_of_order_init(new_cip, &prev_init,
-                                   &out_of_order_diag_issued);
+                                  &out_of_order_diag_issued);
         } else if (is_class_symbol(member_or_base_sym) ||
                    template_param_init) {
           /* It is a base class of the current class for which initialization
