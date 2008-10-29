@@ -127,7 +127,7 @@ diagnostics.
 */
 #undef is_finite /*lint !e750*/
 #undef is_NaN /*lint !e750*/
-#undef NEED_LONG_DOUBLE_IS_FINITE
+#undef NEED_LONG_DOUBLE_IS_FINITE  /*lint !e750*/
 #define is_finite(x) lint_is_finite((long double)x)
 #define is_NaN(x) lint_is_NaN((long double)x)
 static a_boolean lint_is_finite(long double x) /*lint !e528*/
