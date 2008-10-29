@@ -3606,6 +3606,14 @@ that fact should be put out.
                             "mangled_class_encoding: tptk_member has no name");
         mangled_name_with_length(name, mctl);
         break;
+      case tptk_unknown:
+        /* For something like T::x, where T is a template parameter and the
+           type of "x" isn't known here, just put out a "?".  This should
+           occur only in nonreal classes in configurations that generate
+           prototype instantiations. */
+        check_assertion(type->variant.class_struct_union.is_nonreal_class);
+        mangled_name_with_length("?", mctl);
+        break;
       default:
         unexpected_condition_str(
                             "mangled_class_encoding: bad template param kind");

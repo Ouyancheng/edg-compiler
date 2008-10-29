@@ -1,5 +1,20 @@
 Version 3.11
 
+10/29/08 [EDGcpfe/8156, EDGcpfe/7042]
+Assertion failure in mangled_class_encoding
+
+In IA-64 ABI configurations where PROTOTYPE_INSTANTIATIONS_IN_IL and
+MANGLE_ALL_NAMES are both TRUE, an attempt to produce a mangled name for a
+non-type member of a template parameter class whose type is unknown yielded
+an assertion failure ("mangled_class_encoding: bad template param kind").
+This is now fixed.  Here is an example that previously aborted:
+
+  template <class T> struct S { };
+  template<class T> int f(S<T>* p) {
+    return (p->x).template f<typename S<T>::t> ();
+  }
+
+
 10/28/08 [EDGcpfe/9312]
 GNU C compatibility: Unprototyped redeclarations
 
