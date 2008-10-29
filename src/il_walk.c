@@ -2845,8 +2845,10 @@ and end up at "a".
           break;
       }  /* switch */
     } else {
-      /* The expression is an rvalue pointer (references are permitted
-         during the lowering process). */
+      /* The expression is an rvalue pointer (IL lowering turns references
+         into pointers, so the check below allows references during and
+         after IL lowering, as indicated by il_lowering_underway and
+         il_header.il_has_C_semantics, respectively). */
 #if DO_IL_LOWERING
 #if STANDALONE_UTILITY_PROGRAM
       check_assertion((is_ptr_or_ref_type(expr->type) ||
@@ -2854,7 +2856,8 @@ and end up at "a".
                        is_error_type(expr->type)) ||
                       is_error_node(expr));
 #else /* !STANDALONE_UTILITY_PROGRAM */
-      check_assertion(((il_lowering_underway ?
+      check_assertion((((il_lowering_underway ||
+                         il_header.il_has_C_semantics) ?
                           is_ptr_or_ref_type(expr->type) :
                           (is_pointer_type(expr->type) ||
                            is_template_param_type(expr->type))) ||
