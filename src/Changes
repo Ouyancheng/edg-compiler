@@ -16,13 +16,13 @@ For example:
 10/28/08 [EDGcpfe/5824,EDGcpfe/9316]
 Out-of-order constructor initializers
 
-A remark is now issued if the initializer for members and bases specified on a
-constructor definition do not appear in the order in which the initializations
-will happen.  For example:
+A remark is now issued if the initializers for members and bases specified
+on a constructor definition do not appear in the order in which the
+initializations will be done.  For example:
 
   struct S {
-    S(int i, int j): y(i), x(j) {}  // Remark: The initialization of x happens
-    int x, y;                       // before that of y.
+    S(int i, int j): y(i), x(j) {}  // Remark: The initialization of x is
+    int x, y;                       // done before that of y.
   };
 
 
