@@ -6028,7 +6028,7 @@ rescan_statement:
     case tok_default:
 #if MICROSOFT_EXTENSIONS_ALLOWED
 default_label_case:
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* Default label (3.6.1). */
       default_label();
       prev_was_label = TRUE;
