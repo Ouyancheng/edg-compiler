@@ -4156,6 +4156,7 @@ for exact pointer equality.
                     calling_conventions_are_compatible(type_1, type_2))
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                                                                        ))) {
+              compat = TRUE;
             }  /* if */
           }
           break;
