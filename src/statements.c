@@ -6046,10 +6046,14 @@ default_label_case:
           next_token() == tok_colon) {
         /* This is a label definition.  In Microsoft mode, it might be the
            "default" label of a switch statement. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
         if (microsoft_mode && microsoft_version >= 1400 &&
             check_context_sensitive_keyword(tok_default, "default")) {
           goto default_label_case;
-        } else {
+        } else
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
+        /* Do not insert code here. */
+        {
           label_definition();
           prev_was_label = TRUE;
           get_another_statement = TRUE;
