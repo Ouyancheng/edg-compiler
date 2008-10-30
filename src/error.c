@@ -4844,6 +4844,22 @@ at the indicated position.
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
+void pos_stty_warning(an_error_code     error_code,
+                      a_source_position *error_pos,
+                      char              *error_string,
+                      a_type_ptr        type)
+/*
+Report the indicated error (with the indicated fill-in string) at the
+indicated position.
+*/
+{
+  init_error_params();
+  error_msg_strings[1] = error_string;
+  error_msg_types[1] = type;
+  diag_message(error_code, error_pos, es_warning, dck_standalone);
+}  /* pos_stty_warning */
+
+
 void pos_st_error(an_error_code     error_code,
                   a_source_position *error_pos,
                   char              *error_string)

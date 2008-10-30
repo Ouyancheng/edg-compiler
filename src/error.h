@@ -401,6 +401,10 @@ extern void pos_stsy_warning(an_error_code     error_code,
                              char              *error_string,
                              struct a_symbol   *symbol);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
+extern void pos_stty_warning(an_error_code     error_code,
+                             a_source_position *error_pos,
+                             char              *error_string,
+                             struct a_type     *type);
 extern void pos_st_error(an_error_code     error_code,
                          a_source_position *error_pos,
                          char              *error_string);

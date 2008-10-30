@@ -1,5 +1,17 @@
 Version 4.0
 
+10/30/08 [EDGcpfe/9245]
+GNU attribute diagnostics
+
+Several diagnostics for GNU attributes have been revised to include the name
+of the attribute that is involved.  This is especially useful in contexts
+where several attributes are encapsulated in a macro.  For example:
+
+  #define X __attribute((noreturn)) __attribute((warn_unused_result))
+  X void f();  // warn_unused_result is ignored when the return type
+               // is void.
+
+
 10/30/08 [EDGcpfe/9326]
 GNU C++ mode: explicit template argument list on call turns off argument
 dependent lookup

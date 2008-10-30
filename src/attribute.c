@@ -1901,7 +1901,8 @@ attributes.  */
 	   context, even though it is conceptually similar. */
         if (!is_pointer_type(type) ||
             !is_function_type(type_pointed_to(type))) {
-          pos_ty_warning(ec_attr_requires_func_type, &ap->position, type);
+          pos_stty_warning(ec_attr_requires_func_type, &ap->position,
+                           attribute_kind_names[(int)ap->kind], type);
         } else {
           /* Temporarily remove "ap" from the attributes list so that
              we can use copy_type_and_apply_attributes. */
@@ -2515,7 +2516,8 @@ messages about any invalid attributes.
         if (gnu_version >= 40000 && innermost_function_scope != NULL) {
           /* Recent versions of GCC ignore attributes on block-extern function
              declarations. */
-          pos_warning(ec_local_function_attribute_ignored, &ap->position);
+          pos_st_warning(ec_local_function_attribute_ignored, &ap->position,
+                         attribute_kind_names[(int)ap->kind]);
           break;
         }  /* if */
         if (ap->kind == (an_attribute_kind)ak_weakref) {
@@ -2869,10 +2871,12 @@ a typedef, is_typedef is TRUE.
           tp = type_pointed_to(tp);
         }  /* if */
         if (!is_function_type(tp)) {
-          pos_ty_warning(ec_attr_requires_func_type, &ap->position, tp);
+          pos_stty_warning(ec_attr_requires_func_type, &ap->position,
+                           attribute_kind_names[(int)ap->kind], tp);
         } else if (ptr_type == NULL &&
                    ap->kind != (an_attribute_kind)ak_warn_unused_result) {
-          pos_warning(ec_attr_requires_ptr_to_func_type, &ap->position);
+          pos_st_warning(ec_attr_requires_ptr_to_func_type, &ap->position,
+                         attribute_kind_names[(int)ap->kind]);
         } else {
           if (ptr_type != NULL) {
             tp = copy_type_and_apply_attributes(
@@ -2927,7 +2931,8 @@ a typedef, is_typedef is TRUE.
                    is_function_type(type_pointed_to(tp))) {
           p_rtp = &tp->variant.pointer.type;
         } else {
-          pos_ty_warning(ec_attr_requires_func_type, &ap->position, tp);
+          pos_stty_warning(ec_attr_requires_func_type, &ap->position,
+                           attribute_kind_names[(int)ap->kind], tp);
         }  /* if */
         if (p_rtp != NULL) {
           /* Skip any typerefs on top of the routine type. */
@@ -2955,7 +2960,8 @@ a typedef, is_typedef is TRUE.
           tp = type_pointed_to(tp);
         }  /* if */
         if (!is_function_type(tp)) {
-          pos_ty_warning(ec_attr_requires_func_type, &ap->position, tp);
+          pos_stty_warning(ec_attr_requires_func_type, &ap->position,
+                           attribute_kind_names[(int)ap->kind], tp);
         } else {
           ensure_routine_type_is_modifiable(&tp);
           rtsp = skip_typerefs(tp)->variant.routine.extra_info;
@@ -2975,7 +2981,8 @@ a typedef, is_typedef is TRUE.
           tp = type_pointed_to(tp);
         }  /* if */
         if (!is_function_type(tp)) {
-          pos_ty_warning(ec_attr_requires_func_type, &ap->position, tp);
+          pos_stty_warning(ec_attr_requires_func_type, &ap->position,
+                           attribute_kind_names[(int)ap->kind], tp);
         } else {
           ensure_routine_type_is_modifiable(&tp);
           rtsp = skip_typerefs(tp)->variant.routine.extra_info;
