@@ -3729,15 +3729,20 @@ template argument lists, and types promoted out of functions.
 
 #endif /* !IA64_ABI */
 
-/* Return TRUE if the indicated type needs a parent (class or namespace)
-   qualifier. */
+/* Return TRUE if the indicated entity needs a parent (class, namespace, or
+   scoped enum) qualifier.  scp is an a_source_correspondence pointer for the
+   entity.  kind is the an_il_entry_kind for the entity. */
 #if !CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
-#define type_needs_parent_qualifier(type)                             \
-  (is_class_or_namespace_member(type))
+/*ARGSUSED*/  /* <-- kind is unused in this configuration. */
+#define entity_needs_parent_qualifier(scp, kind)                      \
+  (scp_is_class_or_namespace_member(scp) ||                           \
+   scp_is_enum_member(scp))
 #else /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
-#define type_needs_parent_qualifier(type)                             \
-  ((is_class_or_namespace_member(type)) &&                            \
-   !type->use_cfront_transitional_nested_type_name_mangling)
+#define entity_needs_parent_qualifier(scp, kind)                      \
+  ((scp_is_class_or_namespace_member(scp) ||                          \
+    scp_is_enum_member(scp)) &&                                       \
+     !(((kind) == (an_il_entry_kind)iek_type) &&                      \
+       (a_type *)(scp)->use_cfront_transitional_nested_type_name_mangling))
 #endif /* !CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
 
 
@@ -3857,12 +3862,14 @@ nesting_level == 1.
     }  /* if */
 #endif /* !IA64_ABI */
     parent_scp = &type->source_corresp;
-    more_levels = type_needs_parent_qualifier(type);
+    more_levels = entity_needs_parent_qualifier(&type->source_corresp,
+                                                iek_type);
   } else if (scp_is_enum_member(scp)) {
     /* Scoped enumerator. */
     type = scp_parent_scoped_enum_type(scp);
     parent_scp = &type->source_corresp;
-    more_levels = type_needs_parent_qualifier(type);
+    more_levels = entity_needs_parent_qualifier(&type->source_corresp,
+                                                iek_type);
   } else {
     /* Namespace member. */
     check_assertion(scp_is_namespace_member(scp));
@@ -4021,9 +4028,7 @@ entities that indicates the enclosing function.
   if (is_source_corresp_in_namespace_std(scp)) {
     /* Special encoding for "std::".*/
     add_str_to_mangled_name("St", mctl);
-  } else if ((kind == iek_type) ? type_needs_parent_qualifier((a_type*)scp) :
-                                  (scp_is_class_or_namespace_member(scp) ||
-                                   scp_is_enum_member(scp))) {
+  } else if (entity_needs_parent_qualifier(scp, kind)) {
     /* The entity is a class member, namespace member, or scoped enumerator
        and needs a parent qualifier. */
     /* Mark the start of the nested name. */
@@ -4142,7 +4147,7 @@ and for unnamed classes and enums.  Nested types are encoded as such.
     name += sizeof(PREFIX_ON_NESTED_TYPE_NAME) - 1;
     add_str_to_mangled_name(name, mctl);
     goto done;
-  } else if (type_needs_parent_qualifier(type)) {
+  } else if (entity_needs_parent_qualifier(&type->source_corresp, iek_type)) {
     /* The type is a member of a class or namespace, so put out a qualifier.
        Note that the count starts at 2 because the type name itself is level
        1. */
@@ -4204,7 +4209,7 @@ operation; compare mangled_class_name (no "_internal").
 */
 {
 #if !IA64_ABI
-  if (type_needs_parent_qualifier(type)) {
+  if (entity_needs_parent_qualifier(&type->source_corresp, iek_type)) {
 #endif /* !IA64_ABI */
     /* For a nested class, use the nested type encoding for the class. */
     mangled_type_name(type, mctl);
@@ -5859,7 +5864,7 @@ is what mangled_type_name generates, plus a prefix.
       /* Ignore placeholder typerefs. */
       (type->kind != (a_type_kind)tk_typeref || typeref_is_typedef(type)) &&
       /* Mangle nested types. */
-      (type_needs_parent_qualifier(type) ||
+      (entity_needs_parent_qualifier(&type->source_corresp, iek_type) ||
        /* Mangle class types with template arguments. */
        (is_immediate_class_type(type) &&
         type->variant.class_struct_union.extra_info->
@@ -6516,7 +6521,7 @@ for use in a virtual function table name.
 {
 #if ABI_COMPATIBILITY_VERSION >= 230 && CFRONT_OBJECT_CODE_COMPATIBILITY
   /* cfront mode. */
-  if (type_needs_parent_qualifier(type)) {
+  if (entity_needs_parent_qualifier(&type->source_corresp, iek_type)) {
     /* The type is a nested type.  Add a length in front of the mangled
        form (e.g., "7Q2_1A1B" instead of "Q2_1A1B"). */
     a_length_reservation length_reservation;
@@ -6867,8 +6872,7 @@ be embedded in other mangled names.
     if (scp_is_enum_member(scp)) {
       a_type_ptr  scoped_enum_type = scp_parent_scoped_enum_type(scp);
       /* We're mangling a scoped enumerator.  The name of the scoped
-         enumeration to which it belongs will be part of the mangled name.
-         If the enumeration is unnamed, give it a name. */
+         enumeration to which it belongs will be part of the mangled name. */
       check_assertion(kind == iek_constant);
       scoped_enum_type_name = unmangled_name_of(
                                             &scoped_enum_type->source_corresp);
