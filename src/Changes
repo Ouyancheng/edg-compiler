@@ -1,4 +1,25 @@
-Version 3.11
+Version 4.0
+
+10/30/08 [EDGcpfe/9326]
+GNU C++ mode: explicit template argument list on call turns off argument
+dependent lookup
+
+g++ appears to suppress argument-dependent lookup on a call if an
+explicit template argument list is specified.  (This is nonstandard;
+14.8.1p8 of the C++ standard has a clear statement and example showing
+that argument-dependent lookup should still be done in that case.)
+This behavior is now emulated in GNU C++ mode.
+
+  template <class T> void f(T *);
+  namespace N {
+    template <class T> void f(T);
+    struct A {};
+  }
+  int main() {
+    N::A a;
+    f<N::A>(a);  // g++ does not do argument-dependent lookup, gives error
+  }
+
 
 10/29/08 [EDGcpfe/9276]
 Diagnostic when introducing a DLL attribute on a redeclaration

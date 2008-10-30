@@ -2101,6 +2101,11 @@ C++ standard.  The current token is the "(" of the call.
     if (operand->is_routine_name_followed_by_left_paren &&
         !operand->is_qualified_name) {
       do_arg_dep_lookup = TRUE;
+      if (gpp_mode && operand->is_template_id) {
+        /* g++ does not do argument-dependent lookup when an explicit
+           template argument list is specified. */
+        do_arg_dep_lookup = FALSE;
+      }  /* if */
     } else if (is_undefined_symbol_operand(operand) ||
                is_indefinite_function_operand(operand)) {
       /* For the cases that are simple names, record that argument dependent
