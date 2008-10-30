@@ -3742,7 +3742,7 @@ template argument lists, and types promoted out of functions.
   ((scp_is_class_or_namespace_member(scp) ||                          \
     scp_is_enum_member(scp)) &&                                       \
      !(((kind) == (an_il_entry_kind)iek_type) &&                      \
-       (a_type *)(scp)->use_cfront_transitional_nested_type_name_mangling))
+       ((a_type *)(scp))->use_cfront_transitional_nested_type_name_mangling))
 #endif /* !CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
 
 
