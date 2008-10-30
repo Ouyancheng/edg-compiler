@@ -15238,6 +15238,13 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
                         operand_2.type, operand_3.type);
           err = TRUE;
         }  /* if */
+#if GNU_VECTOR_TYPES_ALLOWED
+      } else if (is_vector_type(operand_2.type) &&
+                 identical_types(operand_2.type, operand_3.type)) {
+        /* The second and third operand can be identical vector types (other
+           combinations involving vector types are invalid). */
+        result_type = skip_typerefs(operand_2.type);
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
       } else if (is_error_type(operand_2.type) ||
                  is_error_type(operand_3.type)) {
         /* One or both of the operands have an error type. */
