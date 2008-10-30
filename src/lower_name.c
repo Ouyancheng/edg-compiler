@@ -3731,9 +3731,9 @@ template argument lists, and types promoted out of functions.
 
 /* Return TRUE if the indicated entity needs a parent (class, namespace, or
    scoped enum) qualifier.  scp is an a_source_correspondence pointer for the
-   entity.  kind is the an_il_entry_kind for the entity. */
+   entity.  kind is the an_il_entry_kind for the entity (unused when
+   CFRONT_2_1_OBJECT_CODE_COMPATIBILITY is FALSE). */
 #if !CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
-/*ARGSUSED*/  /* <-- kind is unused in this configuration. */
 #define entity_needs_parent_qualifier(scp, kind)                      \
   (scp_is_class_or_namespace_member(scp) ||                           \
    scp_is_enum_member(scp))
