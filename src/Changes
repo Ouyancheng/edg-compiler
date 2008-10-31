@@ -1,5 +1,26 @@
 Version 4.0
 
+10/31/08 [EDGcpfe/9331]
+Microsoft compatibility: Extended modifiers on enum specifiers
+
+Previously, in Microsoft mode, the front end issued an error on all __declspec
+modifiers appearing on C-mode enum specifiers, and silently ignored most other
+modifiers on enum specifiers.  This has now been revised to match the behavior
+of Microsoft compilers: Some modifiers result in an error in both C and C++
+modes, some result in an error in C mode only, and most others are ignored
+(with a warning).  As before, the only valid modifier with an effect is the
+__declspec(uuid(...)) modifier in C++ mode (see also Changes entry of
+1/26/01).  For example:
+
+  enum __declspec(uuid("11111111-1111-1111-1111-111111111111") E1;
+                                         // Okay in Microsoft C++ mode, but
+                                         // an error in Microsoft C mode.
+  enum __declspec(dllexport) E2 { e2 };  // Now ignored with a warning.
+  enum __single_inheritance E3 { e3 };   // Now an error in Microsoft C mode,
+                                         // but ignored with a warning in C++
+                                         // mode.
+
+
 10/30/08 [EDGcpfe/9245]
 GNU attribute diagnostics
 

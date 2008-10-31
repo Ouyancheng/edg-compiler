@@ -52,6 +52,7 @@ typedef struct an_extended_decl_info_block {
 #if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
 extern void scan_extended_decl_modifiers(
                             a_boolean                    is_class_decl,
+                            a_boolean                    is_enum_decl,
                             a_boolean                    is_member_decl,
                             an_extended_decl_info_block  *extended_decl_info,
                             a_boolean                    *err);

@@ -11587,6 +11587,7 @@ declaration of a partial specialization declared outside of its class.
     a_boolean	err = FALSE;
     clear_extended_decl_info_block(extended_decl_info);
     scan_extended_decl_modifiers(/*is_class_decl=*/TRUE,
+                                 /*is_enum_decl=*/FALSE,
                                  decl_state->is_member_decl,
                                  &extended_decl_info, &err);
   }  /* if */

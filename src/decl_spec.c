@@ -436,6 +436,7 @@ in IL memory.  NULL may be returned for certain syntax errors.
 static void scan_declspec_attributes(
                                 a_decl_modifiers_block_ptr  decl_modifiers,
                                 a_boolean                   is_class_decl,
+                                a_boolean                   is_enum_decl,
                                 a_boolean                   is_member_decl,
                                 a_boolean                   *err)
 /*
@@ -472,9 +473,10 @@ Return the modifiers that were found by updating the decl_modifiers block.
 Issue a warning for an unrecognized modifier.  If an error occurs (e.g., a
 syntax error), set err to TRUE.  err is unchanged if there are no errors.
 is_class_decl is TRUE if the modifiers apply to a class declaration (e.g.,
-"class __declspec(dllexport) A ...") rather than to a declarator.
-is_member_decl is TRUE if the modifiers are being scanned as part of the
-declaration of a class member.
+"class __declspec(dllexport) A ...") rather than to a declarator.  Similarly,
+is_enum_decl is set to TRUE for the corresponding syntactic location in an
+enum declaration.  is_member_decl is TRUE if the modifiers are being scanned
+as part of the declaration of a class member.
 */
 {
   check_assertion(curr_token == tok_declspec);
@@ -515,32 +517,32 @@ declaration of a class member.
           decl_modifiers->flags |= DM_DLLIMPORT;
         }  /* if */
       } else if (strcmp(modifier, "thread") == 0) {
-        if (is_class_decl) {
-          /* "thread" is not allowed on a class declaration. */
+        if (is_class_decl || is_enum_decl) {
+          /* "thread" is not allowed on a class/enum declaration. */
           pos_st_warning(ec_decl_modifiers_invalid_for_this_decl,
                          &pos_curr_token, modifier);
         } else {
           decl_modifiers->flags |= DM_THREAD;
         }  /* if */
       } else if (strcmp(modifier, "naked") == 0) {
-        if (is_class_decl) {
-          /* "naked" is not allowed on a class declaration. */
+        if (is_class_decl || is_enum_decl) {
+          /* "naked" is not allowed on a class/enum declaration. */
           pos_st_warning(ec_decl_modifiers_invalid_for_this_decl,
                          &pos_curr_token, modifier);
         } else {
           decl_modifiers->flags |= DM_NAKED;
         }  /* if */
       } else if (strcmp(modifier, "selectany") == 0) {
-        if (is_class_decl) {
-          /* "selectany" is not allowed on a class declaration. */
+        if (is_class_decl || is_enum_decl) {
+          /* "selectany" is not allowed on a class/enum declaration. */
           pos_st_warning(ec_decl_modifiers_invalid_for_this_decl,
                          &pos_curr_token, modifier);
         } else {
           decl_modifiers->flags |= DM_SELECTANY;
         }  /* if */
       } else if (!C_mode() && strcmp(modifier, "nothrow") == 0) {
-        if (is_class_decl) {
-          /* "nothrow" is not allowed on a class declaration. */
+        if (is_class_decl || is_enum_decl) {
+          /* "nothrow" is not allowed on a class/enum declaration. */
           pos_st_warning(ec_decl_modifiers_invalid_for_this_decl,
                          &pos_curr_token, modifier);
         } else {
@@ -555,15 +557,15 @@ declaration of a class member.
           decl_modifiers->flags |= DM_NOVTABLE;
         }  /* if */
       } else if (strcmp(modifier, "noreturn") == 0) {
-        if (is_class_decl) {
-          /* "noreturn" is not allowed on a class declaration. */
+        if (is_class_decl || is_enum_decl) {
+          /* "noreturn" is not allowed on a class/enum declaration. */
           pos_st_warning(ec_decl_modifiers_invalid_for_this_decl,
                          &pos_curr_token, modifier);
         } else {
           decl_modifiers->flags |= DM_NORETURN;
         }  /* if */
       } else if (strcmp(modifier, "noinline") == 0) {
-        if (is_class_decl) {
+        if (is_class_decl || is_enum_decl) {
           /* "noinline" is not allowed on a class declaration. */
           pos_st_warning(ec_decl_modifiers_invalid_for_this_decl,
                          &pos_curr_token, modifier);
@@ -579,8 +581,8 @@ declaration of a class member.
            for being diagnosed in some cases). */
         scan_declspec_implementation_key();
       } else if (!C_mode() && strcmp(modifier, "uuid") == 0) {
-        if (!is_class_decl) {
-          /* "uuid" is allowed only on a C++ class declaration. */
+        if (!is_class_decl && !is_enum_decl) {
+          /* "uuid" is allowed only on a C++ class/enum declaration. */
           pos_st_warning(ec_decl_modifiers_invalid_for_this_decl,
                          &pos_curr_token, modifier);
           if (next_token() == tok_lparen) {
@@ -603,8 +605,8 @@ declaration of a class member.
           }  /* if */
         }  /* if */
       } else if (!C_mode() && strcmp(modifier, "property") == 0) {
-        if (is_class_decl || !is_member_decl) {
-          /* "property" is not allowed on a class declaration, and
+        if (is_class_decl || is_enum_decl || !is_member_decl) {
+          /* "property" is not allowed on a class/enum declaration, and
              not on a non-member declaration. */
           pos_diagnostic(es_discretionary_error,
                          ec_declspec_property_not_allowed,
@@ -655,8 +657,8 @@ declaration of a class member.
         }  /* if */
       } else if (microsoft_version >= 1400 &&
                  strcmp(modifier, "noalias") == 0) {
-        if (is_class_decl) {
-          /* "noalias" is not allowed on a class declaration. */
+        if (is_class_decl || is_enum_decl) {
+          /* "noalias" is not allowed on a class/enum declaration. */
           pos_st_error(ec_decl_modifiers_invalid_for_this_decl,
                        &pos_curr_token, modifier);
         } else {
@@ -664,8 +666,8 @@ declaration of a class member.
         }  /* if */
       } else if (microsoft_version >= 1400 &&
                  strcmp(modifier, "restrict") == 0) {
-        if (is_class_decl) {
-          /* "restrict" is not allowed on a class declaration. */
+        if (is_class_decl || is_enum_decl) {
+          /* "restrict" is not allowed on a class/enum declaration. */
           pos_st_error(ec_decl_modifiers_invalid_for_this_decl,
                        &pos_curr_token, modifier);
         } else {
@@ -1157,36 +1159,41 @@ to a source position used for diagnostics.
 #endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 void scan_extended_decl_modifiers(
                              a_boolean                    is_class_decl,
+                             a_boolean                    is_enum_decl,
                              a_boolean                    is_member_decl,
                              an_extended_decl_info_block  *extended_decl_info,
                              a_boolean                    *err)
 /*
 Scan extended declaration modifiers (e.g., Microsoft extensions) and
 record them in the specified extended-decl-info block.  is_class_decl is
-TRUE if the current declaration is of a class; is_member_decl is TRUE
-if it's a declaration of a class member.  *err is returned TRUE for certain
-kinds of errors.
+TRUE if the current declaration is of a class; is_enum_decl is TRUE if it's
+of an enumeration type.  is_member_decl is TRUE if it's a declaration of a
+class member.  *err is returned TRUE for certain kinds of errors.
 */
 {
   for (;;) {
 #if NEAR_AND_FAR_ALLOWED
-    if (is_class_decl && !C_mode() && is_near_or_far()) {
-      /* Memory attribute like "near". */
-      scan_near_or_far(&extended_decl_info->qualifiers);
-      continue;
+    if (is_near_or_far()) {
+      if (is_enum_decl || (is_class_decl && !C_mode())) {
+        /* Memory attribute like "near". */
+        scan_near_or_far(&extended_decl_info->qualifiers);
+        continue;
+      }  /* if */
     }  /* if */
 #endif /* NEAR_AND_FAR_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (curr_token == tok_declspec) {
       /* __declspec(...) */
       scan_declspec_attributes(&extended_decl_info->decl_modifiers,
-                               is_class_decl, is_member_decl, err);
+                               is_class_decl, is_enum_decl, is_member_decl,
+                               err);
       continue;
     }  /* if */
-    if (is_class_decl && curr_token == tok_identifier) {
-      /* This is a class declaration, so if the next token is an identifier
-         it is probably the class name.  But it might also be the "inheritance
-         kind". */
+    if (((is_class_decl && !C_mode()) || is_enum_decl) &&
+        curr_token == tok_identifier) {
+      /* This is a class or enum declaration, so if the next token is an
+         identifier it is probably the class/enum name.  But it might also be
+         the "inheritance kind". */
       if (!C_mode() &&
           scan_inheritance_kind(&extended_decl_info->inheritance_kind,
                                 &extended_decl_info->inheritance_kind_pos)) {
@@ -1212,9 +1219,9 @@ and issues a warning indicating that they are being ignored.
   /* Issue a warning that it's being ignored. */
   warning(ec_decl_modifiers_ignored);
   clear_extended_decl_info_block(extended_decl_info);
-  scan_extended_decl_modifiers(/*is_class_decl=*/FALSE,
-                               /* is_member_decl=*/FALSE,
-                               &extended_decl_info, &local_err);
+  scan_extended_decl_modifiers(/*is_class_decl=*/FALSE, /*is_enum_decl=*/FALSE,
+                               /* is_member_decl=*/FALSE, &extended_decl_info,
+                               &local_err);
 }  /* scan_and_discard_extended_decl_modifiers */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
@@ -2861,6 +2868,7 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
          passed on to scan_class_definition and applied to each member
          declaration, where appropriate. */
       scan_extended_decl_modifiers(/*is_class_decl=*/TRUE,
+                                   /*is_enum_decl=*/FALSE,
                                    /*is_member_decl=*/FALSE,
                                    &extended_decl_info, &local_err);
     }  /* if */
@@ -4209,6 +4217,53 @@ base specifier.
   }  /* if */
 }  /* set_enum_representation */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static void check_extended_decl_info_for_enum(
+                                         an_extended_decl_info_block  *info,
+                                         a_source_position            *pos)
+/*
+*info describes any Microsoft extended modifiers that were scanned (at the
+given position) as part of an enum specifier.  Issue an error or warning for
+any such modifiers that are invalid or ignored.
+*/
+{
+  an_error_severity       sev = es_none;
+  a_decl_modifiers_block  *mods = &info->decl_modifiers;
+
+  /* An inheritance kind on an enum specifier is an error in C mode, but
+     ignored in C++ mode (with a warning). */
+  if (info->inheritance_kind != (an_inheritance_kind)ihk_none) {
+    if (C_mode()) {
+      pos_error(ec_inheritance_kind_not_allowed_in_C,
+                &info->inheritance_kind_pos);
+    } else {
+      pos_warning(ec_inheritance_kind_ignored_on_enum,
+                  &info->inheritance_kind_pos);
+    }  /* if */
+  }  /* if */
+  if (mods->alignment != 0 ||
+      mods->get_property_name != NULL || mods->put_property_name != NULL) {
+    /* These modifiers are errors on enum specifiers in both C and C++. */
+    sev = es_discretionary_error;
+  } else if (C_mode() && mods->uuid_string != NULL) {
+    /* __declspec(uuid(...)) is an error on C-mode enum types. */
+    sev = es_discretionary_error;
+  } else if (mods->is_microsoft_intrinsic ||
+             mods->allocate_segname != NULL ||
+             mods->flags != DM_NONE ||
+             info->qualifiers != TQ_NONE) {
+    /* Most modifiers are just ignored on enum specifiers: Issue a warning. */
+    sev = es_warning;
+  }  /* if */
+  if (sev == es_warning) {
+    pos_warning(ec_extended_modifier_ignored_on_enum, pos);
+  } else if (sev != es_none) {
+    pos_diagnostic(sev, ec_extended_modifier_not_allowed_on_enum, pos);
+  }  /* if */
+}  /* check_extended_decl_info_for_enum */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if !EXTRA_SOURCE_POSITIONS_IN_IL
 /*ARGSUSED*/ /* decl_pos_block is not used unless extra source-position
@@ -4315,16 +4370,17 @@ describes Microsoft attributes preceding the enum specifier (if any).
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode) {
-    a_boolean  local_err;
-    /* Scan any __declspec decl-modifiers "as if" this were a class.  Only
-       uuid(...) specifiers will be recorded however. */
-    if (C_mode() && curr_token == tok_declspec) {
-      diagnostic(es_discretionary_error, ec_enum_declspec_in_c_mode);
-    }  /* if */
+    /* Scan Microsoft-specific modifiers.  Most are invalid or ignored, but
+       __declspec(uuid(...)) will be recorded in C++ mode. */
+    a_boolean          local_err;
+    a_source_position  diag_pos;
+    diag_pos = pos_curr_token;
     clear_extended_decl_info_block(extended_decl_info);
-    scan_extended_decl_modifiers(/*is_class_decl=*/TRUE,
+    scan_extended_decl_modifiers(/*is_class_decl=*/FALSE,
+                                 /*is_enum_decl=*/TRUE,
                                  /*is_member_decl=*/FALSE,
                                  &extended_decl_info, &local_err);
+    check_extended_decl_info_for_enum(&extended_decl_info, &diag_pos);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
@@ -6535,7 +6591,8 @@ of an error.
      scan the list of declaration modifiers. */
   switch (curr_token) {
     case tok_declspec:
-      scan_extended_decl_modifiers(/*is_class_decl=*/FALSE, is_member_decl,
+      scan_extended_decl_modifiers(/*is_class_decl=*/FALSE,
+                                   /*is_enum_decl=*/FALSE, is_member_decl,
                                    &extended_decl_info, err);
       *decl_specifiers_seen |= DS_DECLSPEC;
       is_declspec = TRUE;
