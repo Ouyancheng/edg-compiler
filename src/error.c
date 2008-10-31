@@ -4849,8 +4849,8 @@ void pos_stty_warning(an_error_code     error_code,
                       char              *error_string,
                       a_type_ptr        type)
 /*
-Report the indicated error (with the indicated fill-in string) at the
-indicated position.
+Report the indicated warning (with the indicated fill-in string and type) at
+the indicated position.
 */
 {
   init_error_params();
@@ -4895,7 +4895,7 @@ void pos_stty_error(an_error_code     error_code,
                     char              *error_string,
                     a_type_ptr        type)
 /*
-Report the indicated error (with the indicated fill-in string) at the
+Report the indicated error (with the indicated fill-in string and type) at the
 indicated position.
 */
 {
