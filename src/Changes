@@ -1,5 +1,25 @@
 Version 4.0
 
+10/31/08 [EDGcpfe/8528, EDGcpfe/8747]
+C++0x: Scoped enumeration types
+
+In C++0x mode, the front end now accepts scoped enumeration types (defined
+with the keyword sequence "enum class") and explicit underlying integer types
+for enumeration types.  For example:
+
+  enum class Primary { red, green, blue };
+  enum class Danger { green, yellow, red };    // No conflict on "red".
+  enum Code: unsigned char { yes, no, maybe }; // sizeof(Code) == 1
+  void f() {
+    Primary p = Primary::red;  // Enum-qualifier is required to access
+                               // scoped enumerator constants.
+    Code c = Code::maybe;  // Enum qualifier is allowed (but not required)
+  }                        // for ordinary enumeration types.
+
+This change was voted into the C++ committee's working paper for the next
+standard in July 2007 (meeting in Toronto, through proposal numbered N2347).
+
+
 10/31/08 [EDGcpfe/9331]
 Microsoft compatibility: Extended modifiers on enum specifiers
 
