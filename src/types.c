@@ -5984,7 +5984,7 @@ See conversion_possible.
          a conversion of an enum type to itself, so this is an error case:
          you can't convert other types to enum implicitly. */
       if (cfront_2_1_mode && is_integral_or_enum(source_type) &&
-          !is_scoped_enum_type(dest_type)) {
+          !integer_type_is_scoped_enum(dest_type)) {
         /* cfront 2.1 allows conversion of integral or other enum types to
            an enum, with a warning.  (It also allows floating point types
            to be converted to an enum, but it doesn't seem necessary to

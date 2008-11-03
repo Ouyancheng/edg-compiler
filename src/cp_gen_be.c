@@ -2412,7 +2412,7 @@ the meaning of need_closing_paren.
 */
 {
   check_assertion(is_immediate_enum_type(enum_type) &&
-                  is_scoped_enum_type(enum_type));
+                  integer_type_is_scoped_enum(enum_type));
   if (has_name(enum_type)) {
     gen_name(&enum_type->source_corresp, iek_type, options | GN_QUALIFIER,
              need_closing_paren);
@@ -2641,7 +2641,7 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
          qualification with the enum type (except inside the enum
          definition). */
       a_constant_ptr  con = (a_constant_ptr)scp;
-      if (is_enum_constant(con) && is_scoped_enum_type(con->type)) {
+      if (is_enum_constant(con) && integer_type_is_scoped_enum(con->type)) {
         if (curr_name_context->assoc_scope !=
                            con->type->variant.integer.enum_info.assoc_scope) {
           gen_enum_qualifier(con->type,
@@ -4780,7 +4780,7 @@ is the one associated with the definition of the enum.
   /* Position the output file to the definition position. */
   set_output_position(&type->source_corresp.decl_position);
   /* Generate "enum <name>" or "enum class <name>". */
-  if (is_scoped_enum_type(type)) {
+  if (integer_type_is_scoped_enum(type)) {
     write_tok_str("enum class");
   } else {
     write_tok_str("enum");

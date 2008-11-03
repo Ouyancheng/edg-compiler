@@ -173,7 +173,7 @@ an enum type).
 Return TRUE if a type is a (direct) scoped enum type.  This macro assumes that
 the given type is a tk_integer type.
 */
-#define is_scoped_enum_type(type)                                     \
+#define integer_type_is_scoped_enum(type)                             \
   ((type)->variant.integer.is_scoped_enum)
 
 #define is_tag_type(type)                                             \

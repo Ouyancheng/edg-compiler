@@ -912,7 +912,7 @@ the file scope, do not process it (but record an orphan in the latter case).
             break;
           case tk_integer:
             if (ptr->variant.integer.enum_type) {
-              if (is_scoped_enum_type(ptr)) {
+              if (integer_type_is_scoped_enum(ptr)) {
                 walk_ptr(ptr->variant.integer.enum_info.assoc_scope,
                          a_scope_ptr, iek_scope);
               } else {
@@ -929,10 +929,10 @@ the file scope, do not process it (but record an orphan in the latter case).
 #if DO_IL_LOWERING
             conditionally_clear_fe_pointer(ptr->variant.integer.uuid_variable);
 #endif /* DO_IL_LOWERING */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if PROTOTYPE_INSTANTIATIONS_IN_IL || BACK_END_IS_CP_GEN_BE
             walk_ptr(ptr->variant.integer.base_type, a_type_ptr, iek_type);
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL || BACK_END_IS_CP_GEN_BE */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             break;
           case tk_pointer:
             walk_ptr(ptr->variant.pointer.type, a_type_ptr, iek_type);

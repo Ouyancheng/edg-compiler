@@ -1455,9 +1455,9 @@ caution when modifying this routine.
          !is_ref_within_new_expr)) {
       /* The token following the tag marks the start of a class or enum
          definition. Determine whether it is the resolution of a previous
-         incomplete declaration.  (In recent Microsoft compilers, a colon
-         can indicate an enum definition with an explicit underlying
-         type.) */
+         incomplete declaration.  (In some modes -- including C++0x mode and
+         some Microsoft C++ modes -- a colon can indicate an enum definition
+         with an explicit underlying type.) */
       /* Note that we had to check the is_ref_within_new_expr flag because a
          colon has a different meaning in an expression context than in a
          declaration context (namely, it may belong to a ?: operator). */

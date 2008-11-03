@@ -1123,7 +1123,7 @@ extern void set_unsigned_integer_constant(a_constant		*cp,
    location of the list is different depending on whether it's a scoped enum
    or not. */
 #define enum_constants(tp)                                                   \
-  (is_scoped_enum_type((tp)) ?                                               \
+  (integer_type_is_scoped_enum((tp)) ?                                       \
       (tp)->variant.integer.enum_info.assoc_scope->constants :               \
       (tp)->variant.integer.enum_info.constant_list)
      

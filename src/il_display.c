@@ -1488,7 +1488,7 @@ Display the indicated type entry.
       }  /* if */
       if (ptr->variant.integer.enum_type) {
         disp_boolean("enum_type", TRUE);
-        if (is_scoped_enum_type(ptr)) {
+        if (integer_type_is_scoped_enum(ptr)) {
           disp_boolean("is_scoped_enum", TRUE);
         }  /* if */       
 #if GNU_EXTENSIONS_ALLOWED
@@ -1499,7 +1499,7 @@ Display the indicated type entry.
         if (ptr->variant.integer.originally_unnamed) {
           disp_boolean("originally_unnamed", TRUE);
         }  /* if */
-        if (is_scoped_enum_type(ptr)) {
+        if (integer_type_is_scoped_enum(ptr)) {
           disp_ptr("enum_info.assoc_scope",
                    (char*)ptr->variant.integer.enum_info.assoc_scope,
                    iek_scope);
@@ -1515,13 +1515,13 @@ Display the indicated type entry.
         }  /* if */
         /* uuid_variable not displayed since it is used for IL lowering
            only. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if PROTOTYPE_INSTANTIATIONS_IN_IL || BACK_END_IS_CP_GEN_BE
         if (ptr->variant.integer.base_type != NULL) {
           disp_ptr("base_type", (char *)ptr->variant.integer.base_type,
                    iek_type);
         }  /* if */
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL || BACK_END_IS_CP_GEN_BE */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       } else if (ptr->variant.integer.enum_info.affiliated_type != NULL) {
         disp_ptr("enum_info.affiliated_type",
                  (char *)ptr->variant.integer.enum_info.affiliated_type,

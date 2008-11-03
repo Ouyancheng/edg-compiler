@@ -6005,7 +6005,7 @@ including classes.
 #endif /* DO_IL_LOWERING */
     } else if (is_immediate_enum_type(type) &&
                (is_class_or_namespace_member(type) ||
-                (is_scoped_enum_type(type) &&
+                (integer_type_is_scoped_enum(type) &&
                  !type->source_corresp.is_local_to_function))) {
       /* Mangle the names of member enum constants as well as scoped
          enum constants.  Scoped enumerators are typically mangled here

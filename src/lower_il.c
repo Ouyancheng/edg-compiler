@@ -8360,7 +8360,7 @@ Do IL lowering of the indicated type and everything under it.
         break;
       case tk_integer:
         if (type->variant.integer.enum_type) {
-          if (is_scoped_enum_type(type)) {
+          if (integer_type_is_scoped_enum(type)) {
             lower_scope(type->variant.integer.enum_info.assoc_scope);
           } else {
             lower_constant_list(type->variant.integer.enum_info.constant_list);
