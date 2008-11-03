@@ -1354,10 +1354,10 @@ to default values.
 #if DO_IL_LOWERING
       pte->variant.integer.uuid_variable = NULL;
 #endif /* DO_IL_LOWERING */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if PROTOTYPE_INSTANTIATIONS_IN_IL || BACK_END_IS_CP_GEN_BE
       pte->variant.integer.base_type = NULL;
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL || BACK_END_IS_CP_GEN_BE */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if CENTERLINE_CHECKING
       pte->variant.integer.avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */
