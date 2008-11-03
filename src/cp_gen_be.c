@@ -1237,6 +1237,7 @@ process_preprocessing_directives.
   }  /* while */
 }  /* advance_past_preprocessing_directives */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
 
 static a_boolean curr_src_seq_entry_is_decl(void)
 /*
@@ -1258,9 +1259,7 @@ Return TRUE if the current source sequence entry is for a declaration.
       case iek_template:
       case iek_namespace:
       case iek_using_decl:
-#if MICROSOFT_EXTENSIONS_ALLOWED
       case iek_ms_attribute:
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         /* This is a declaration. */
         is_decl = TRUE;
         break;
@@ -1271,6 +1270,7 @@ Return TRUE if the current source sequence entry is for a declaration.
   return is_decl;
 }  /* curr_src_seq_entry_is_decl */
 
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static a_boolean curr_src_seq_entry_is_secondary_decl(
                                         a_src_seq_secondary_decl_ptr *sec_decl)
