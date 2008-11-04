@@ -1,5 +1,21 @@
 Version 4.0
 
+11/4/08  [EDGcpfe/9215, EDGcpfe/9333]
+GNU C/C99 compatibility: Implicit int
+
+In GNU C99 mode, if no type specifier appears on a declaration, "int" is
+implied (with a warning).  For example:
+
+  f();  // Declares function f returning int.
+
+This is true also for variable declarations that do not include any kind of
+specifier.  For example:
+
+  x;  // Declares variable x of type int.
+
+The latter behavior is also a change in non-C99 GNU C mode.
+
+
 10/31/08 [EDGcpfe/8528, EDGcpfe/8747]
 C++0x: Scoped enumeration types
 

@@ -9384,14 +9384,15 @@ Note that this routine determines whether the "implicit int" rule applies.
     if (!is_function) {
       severity = es_warning;
     }  /* if */
-  } else if (C_mode() && (!c99_mode || microsoft_mode)) {
+  } else if (C_mode() && (!c99_mode || microsoft_mode || gcc_mode)) {
     /* In C89 modes the "implicit int" rule applies in most cases, but it's
        nonstandard for declarations that aren't function definitions and
        have no decl-specifiers at all (e.g., "f();").  The standard cases
        usually deserve a remark. */
     /* The combination of Microsoft mode and C99 mode is treated like a C89
        mode in this respect (Microsoft compilers currently don't have a true
-       C99 mode). */
+       C99 mode).  GNU C doesn't enforce the standard constraints in its C99
+       mode either. */
     if (is_function) {
       /* The "main" function is silently accepted without any specifiers. */
       if (!is_main_function) {
@@ -9405,15 +9406,17 @@ Note that this routine determines whether the "implicit int" rule applies.
              is for the missing type specifier rather than for the missing
              specifiers in general.  (The message indicates that "int" is
              implicit.) */
-          severity = es_remark;
+          severity = (gcc_mode && c99_mode) ? es_warning : es_remark;
           error_code = ec_missing_type_specifier;
         }  /* if */
       }  /* if */
     } else {
       /* A non-function declaration. */
       if (!any_decl_specifiers) {
-        /* Microsoft compilers are as permissive as pcc in this case. */
-        severity = microsoft_mode ? es_warning : es_discretionary_error;
+        /* Microsoft and GNU compilers are as permissive as pcc in this
+           case. */
+        severity = (microsoft_mode || gcc_mode) ? es_warning
+                                                : es_discretionary_error;
       } else {
         severity = es_warning;
       }  /* if */
