@@ -4242,8 +4242,7 @@ any such modifiers that are invalid or ignored.
                   &info->inheritance_kind_pos);
     }  /* if */
   }  /* if */
-  if (mods->alignment != 0 ||
-      mods->get_property_name != NULL || mods->put_property_name != NULL) {
+  if (mods->get_property_name != NULL || mods->put_property_name != NULL) {
     /* These modifiers are errors on enum specifiers in both C and C++. */
     sev = es_discretionary_error;
   } else if (C_mode() && mods->uuid_string != NULL) {
@@ -4251,6 +4250,7 @@ any such modifiers that are invalid or ignored.
     sev = es_discretionary_error;
   } else if (mods->is_microsoft_intrinsic ||
              mods->allocate_segname != NULL ||
+             mods->alignment != 0 ||
              mods->flags != DM_NONE ||
              info->qualifiers != TQ_NONE) {
     /* Most modifiers are just ignored on enum specifiers: Issue a warning. */
