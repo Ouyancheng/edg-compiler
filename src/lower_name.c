@@ -1529,8 +1529,8 @@ ignored if expr != NULL.
               ^---- "O" to end the operation encoding.
              ^----- Count of operands, always 0 for sizeof.
           ^^^------ Encoding for type.
-        ^^--------- Operation ("sz" for sizeof, "af" for __ALIGNOF__, or
-                    "uu" for uuidof)
+        ^^--------- Operation ("sz" for sizeof, "af" for __ALIGNOF__,
+                    "uu" for __uuidof, or "ty" for typeid)
        ^----------- "O" for operation.
      mangled_encoding_for_expression generates a compatible structure, so
      if you change this be sure to change that as well.
@@ -2649,6 +2649,16 @@ something in error or skipped over.  The mangling used is a constant zero.
                                 mctl);
 }  /* add_mangling_for_placeholder_expression */
 
+/*
+Macro that returns TRUE if the expression is a tpck_typeid template parameter
+constant.
+*/
+#define is_typeid_template_param(expr)                                   \
+  (((expr)->kind == (an_expr_node_kind)enk_constant) &&                  \
+   ((expr)->variant.constant->kind ==                                    \
+                            (a_constant_repr_kind)ck_template_param &&   \
+    (expr)->variant.constant->variant.template_param.kind ==             \
+                           (a_template_param_constant_kind)tpck_typeid))
 
 static void mangled_encoding_for_expression(
                                     an_expr_node_ptr         expr,
@@ -2666,6 +2676,7 @@ part of a template-dependent expression.
   an_expr_node_ptr operand;
   an_expr_operator_kind
                    op;
+  a_boolean        changed, suppress_address_of_on_typeid = FALSE;
 #if !IA64_ABI
   unsigned long    num_operands;
 #endif /* !IA64_ABI */
@@ -2673,27 +2684,65 @@ part of a template-dependent expression.
   /* Drop parentheses. */
   expr = skip_parens(expr);
   /* Drop implicit operations. */
-  while (is_operation_node(expr) &&
-         ((op = expr->variant.operation.kind),
-          (op == (an_expr_operator_kind)eok_lvalue ||
-           op == (an_expr_operator_kind)eok_lvalue_adjust
-
+  do {
+    changed = FALSE;
+    if (is_operation_node(expr)) {
+      op = expr->variant.operation.kind;
+        if (op == (an_expr_operator_kind)eok_lvalue ||
+            op == (an_expr_operator_kind)eok_lvalue_adjust
 #if IA64_ABI
-           /* Also drop implicit casts in the IA-64 ABI. */
-                                                          ||
-           ((op == (an_expr_operator_kind)eok_cast ||
-             op == (an_expr_operator_kind)eok_bool_cast) &&
-            expr->variant.operation.compiler_generated)
+            /* Also drop implicit casts in the IA-64 ABI. */
+                                                           ||
+            ((op == (an_expr_operator_kind)eok_cast ||
+              op == (an_expr_operator_kind)eok_bool_cast) &&
+             expr->variant.operation.compiler_generated)
 #endif /* IA64_ABI */
-                                                       ))) {
-    expr = skip_parens(expr->variant.operation.operands);
-  }  /* while */
+                                                        ) {
+        expr = skip_parens(expr->variant.operation.operands);
+        changed = TRUE;
+#if IA64_ABI
+      } else if (expr->variant.operation.compiler_generated &&
+                 op == (an_expr_operator_kind)eok_indirect &&
+                 is_typeid_template_param(expr->variant.operation.operands)) {
+        /* Suppress the implicit "&" operation on a typeid template parameter
+           constant if it is under a compiler generated "*". */
+        expr = skip_parens(expr->variant.operation.operands);
+        suppress_address_of_on_typeid = TRUE;
+        changed = TRUE;
+      } else if (expr->variant.operation.compiler_generated &&
+                 is_operation_node(expr->variant.operation.operands)) {
+        an_expr_node_ptr  child = expr->variant.operation.operands;
+        if (child->variant.operation.compiler_generated &&
+            ((op == (an_expr_operator_kind)eok_address_of &&
+              child->kind == (an_expr_operator_kind)eok_indirect) ||
+             (op == (an_expr_operator_kind)eok_indirect &&
+              child->kind == (an_expr_operator_kind)eok_address_of))) {
+          /* Remove compiler generated "&*" or "*&" sequences. */
+          expr = skip_parens(child->variant.operation.operands);
+          changed = TRUE;
+        }  /* if */
+#endif /* IA64_ABI */
+      }  /* if */
+    }  /* if */
+  } while (changed);
   switch (expr->kind) {
     case enk_constant:
-      mangled_encoding_for_constant(expr->variant.constant,
-                                    /*old_form=*/FALSE,
-                                    in_dependent_expr,
-                                    mctl);
+#if IA64_ABI
+      if (is_typeid_template_param(expr) && !suppress_address_of_on_typeid) {
+        /* Add an implicit "&" to a tpck_typeid template parameter constant. */
+        mangled_address_of_entity(&expr->variant.constant->source_corresp,
+                                  (an_il_entry_kind)iek_constant,
+                                  (a_routine_info_block *)NULL,
+                                  mctl);
+      } else
+#endif /* IA64_ABI */
+      /* Do not insert code here. */
+      {
+        mangled_encoding_for_constant(expr->variant.constant,
+                                      /*old_form=*/FALSE,
+                                      in_dependent_expr,
+                                      mctl);
+      }  /* if */
       break;
     case enk_operation:
 #if MICROSOFT_EXTENSIONS_ALLOWED
