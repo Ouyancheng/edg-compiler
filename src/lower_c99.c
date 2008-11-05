@@ -77,22 +77,6 @@ static void lower_c99_fixed_point_operation(an_expr_node_ptr expr);
 #endif /* DO_C99_IL_LOWERING */
 
 
-#if DO_C99_IL_LOWERING
-#define lower_any_c99_expr(expr)  lower_c99_expr(expr)
-#else /* !DO_C99_IL_LOWERING */
-#define lower_any_c99_expr(expr)  /* Nothing */
-#endif /* DO_C99_IL_LOWERING */
-
-#define lower_any_cpp_expr(expr)  lower_expr(expr)
-
-#define lower_any_expr(expr)                                                \
-  if (C_mode()) {                                                           \
-    lower_any_c99_expr(expr);                                               \
-  } else {                                                                  \
-    lower_any_cpp_expr(expr);                                               \
-  }  /* if */
-
-
 static an_expr_node_ptr make_prototyped_runtime_call_full(
                                                char             *name,
                                                a_routine_ptr    *routine,
@@ -3234,12 +3218,12 @@ _Bool type, and VLA types.
     case eok_land:
     case eok_lor:
       /* Eliminate dead code if possible. */
-      eliminate_dead_code_under_logical_operator(expr);
+      lower_logical_operator(expr);
       break;
     case eok_question:
       /* If the value of the conditional is known at compile time
          this expression is a candidate for rewriting. */
-      eliminate_dead_code_under_question_operator(expr);
+      lower_question_operator(expr);
       break;
     default:
       /* Nothing needs to be done. */

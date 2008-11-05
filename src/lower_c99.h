@@ -21,6 +21,24 @@ lower_c99.h -- Declarations related to lower_c99.c.
 
 #include "il.h"
 
+#if DO_C99_IL_LOWERING
+#define lower_any_c99_expr(expr)  lower_c99_expr(expr)
+#else /* !DO_C99_IL_LOWERING */
+#define lower_any_c99_expr(expr)  /* Nothing */
+#endif /* DO_C99_IL_LOWERING */
+
+#define lower_any_cpp_expr(expr)  lower_expr(expr)
+
+/*
+Macro to lower an expression as either a C or C++ expression as appropriate.
+*/
+#define lower_any_expr(expr)                                                \
+  if (C_mode()) {                                                           \
+    lower_any_c99_expr(expr);                                               \
+  } else {                                                                  \
+    lower_any_cpp_expr(expr);                                               \
+  }  /* if */
+
 extern void lower_runtime_sizeof(an_expr_node_ptr expr);
 
 extern void lower_vla_dimension_expression(a_vla_dimension_ptr  vdp);

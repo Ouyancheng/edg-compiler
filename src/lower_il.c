@@ -12688,6 +12688,38 @@ inspection would return TRUE).
 }  /* bool_value_is_known_at_compile_time */
 
 
+static void examine_expr_for_destructible_temp(
+                                    an_expr_node_ptr                    node,
+                                    an_expr_or_stmt_traversal_block_ptr tblock)
+/*
+Called during an expression traversal; returns TRUE (via tblock) and
+terminates the traversal if a temporary init with a dynamic destructor
+is found.
+*/
+{
+  if (node->kind == (an_expr_node_kind)enk_temp_init &&
+      node->variant.init.dynamic_init->destructor != NULL) {
+    tblock->result = TRUE;
+    tblock->terminate = TRUE;
+  }  /* if */
+}  /* examine_expr_for_destructible_temp */
+
+
+static a_boolean expr_has_destructible_temp(an_expr_node_ptr expr)
+/*
+Return TRUE if the indicated expression contains a temporary init with
+an associated dynamic init indicating a destruction.
+*/
+{
+  an_expr_or_stmt_traversal_block tblock;
+
+  clear_expr_or_stmt_traversal_block(&tblock);
+  tblock.process_expr = examine_expr_for_destructible_temp;
+  traverse_expr(expr, &tblock);
+  return tblock.result;
+}  /* expr_has_destructible_temp */
+
+
 static a_boolean dead_code_expr_can_be_eliminated(an_expr_node_ptr expr)
 /*
 The expression is dead code and is a candidate for removal;
@@ -12698,19 +12730,18 @@ statement expression are disqualified.  Note that this test is conservative
 expression might result in allowing the elimination.
 */
 {
-  return (C_mode() && !has_statement_expression(expr)) ||
-          !node_has_side_effects(expr, (a_boolean *)NULL);
+  return (!has_statement_expression(expr)) && 
+          (C_mode() || !expr_has_destructible_temp(expr));
 }  /* dead_code_expr_can_be_eliminated */
 
 
-void eliminate_dead_code_under_logical_operator(an_expr_node_ptr expr)
+void lower_logical_operator(an_expr_node_ptr expr)
 /*
 In cases where the second operand of an eok_land or eok_lor operation
 (as specified by expr) is known not to be executed, replace the expression
-with its first operand.  Note that this optimization is conservative in
-two ways: some values that are known at compile time are not detected as such
-(e.g., (0, 0)), and any expression that has a side effect will not be
-removed.
+with its first operand.  Note that this optimization is conservative;
+some values that are known at compile time are not detected as such
+(e.g., (0, 0)).  expr is lowered by this routine.
 */
 {
   an_expr_operator_kind op;
@@ -12722,6 +12753,9 @@ removed.
                    node_operator_is(expr, eok_lor)));
   op1 = expr->variant.operation.operands;
   op2 = op1->next;
+  /* Lower the conditional first (increases the chance that the value will be
+     recognized as known at compile time). */
+  lower_boolean_controlling_expr(op1, /*is_full_expr=*/FALSE);
   if (bool_value_is_known_at_compile_time(op1, &op1_value) &&
       dead_code_expr_can_be_eliminated(op2)) {
     /* The first operand is an expression whose value we know at compile time;
@@ -12730,45 +12764,93 @@ removed.
     op = expr->variant.operation.kind;
     if ((op == (an_expr_operator_kind)eok_land && !op1_value) ||
         (op == (an_expr_operator_kind)eok_lor && op1_value)) {
-      /* Replace the original expression with the first operand. */
+      /* Replace the original expression with the first operand (already
+         lowered above). */
       overwrite_node(expr, op1);
+    } else {
+      lower_boolean_controlling_expr(op2, /*is_full_expr=*/FALSE);
     }  /* if */
+  } else {
+    lower_boolean_controlling_expr(op2, /*is_full_expr=*/FALSE);
   }  /* if */
-}  /* eliminate_dead_code_under_logical_operator */
+}  /* lower_logical_operator */
 
 
-void eliminate_dead_code_under_question_operator(an_expr_node_ptr expr)
+void lower_question_operator(an_expr_node_ptr expr)
 /*
-In cases where the first operand of an eok_question operation (as specified by
-expr) is known at compilation time, overwrite the expression with the second or
-third operand depending on the value of the first operand.  Note that this
-optimization is conservative in two ways: some values that are known at compile
-time are not detected as such (e.g., (0, 0)), and any expression that has a
-side effect will not be removed.
+This routine lowers the specified eok_question expression.  Lowering of
+the expression consists of two tasks: eliminating dead code if possible and
+maintaining the proper types if one (and only one) of the last two operands is
+a throw.  In cases where the first operand is known at compilation time,
+overwrite the expression with the second or third operand depending on the
+value of the first operand.  Note that this optimization is conservative: some
+values that are known at compile time are not detected as such (e.g., (0, 0)).
+expr is lowered by this routine.
 */
 {
-  an_expr_node_ptr  op1, removed_op, replacement_op;
+  an_expr_node_ptr  op1, op2, op3, removed_op, replacement_op;
+  an_expr_node_ptr  throw_op = NULL;
   a_boolean         op1_value;
 
   check_assertion(is_operation_node(expr) &&
                   node_operator_is(expr, eok_question));
   op1 = expr->variant.operation.operands;
+  op2 = op1->next;
+  op3 = op2->next;
+  /* Look for a "?" operator where one of the operands is a throw
+     expression and the other has a non-void type.  The throw
+     operation will be adjusted by putting a comma operation over
+     it to give that operand the right type. */
+  /* Note that we test now, before lowering, when it's easy to spot
+     a throw node, but we do the rewrite after lowering. */
+  if (!is_void_type(expr->type)) {
+    if (op2->kind == (an_expr_node_kind)enk_throw) {
+      /* op2 is a throw and op3 is not. */
+      throw_op = op2;
+    } else if (op3->kind == (an_expr_node_kind)enk_throw) {
+      /* op3 is a throw and op2 is not. */
+      throw_op = op3;
+    }  /* if */
+  }  /* if */
+  /* Lower the conditional first (increases the chance that the value will be
+     recognized as known at compile time). */
+  lower_boolean_controlling_expr(op1, /*is_full_expr=*/FALSE);
   if (bool_value_is_known_at_compile_time(op1, &op1_value)) {
     if (op1_value) {
       /* Condition is true, rewrite expr with second operand if possible. */
-      replacement_op = op1->next;
-      removed_op = op1->next->next;
+      replacement_op = op2;
+      removed_op = op3;
     } else {
       /* Condition is false, rewrite expr with third operand if possible. */
-      replacement_op = op1->next->next;
-      removed_op = op1->next;
+      replacement_op = op3;
+      removed_op = op2;
     }  /* if */
     if (dead_code_expr_can_be_eliminated(removed_op)) {
       /* Replace the original expression with the appropriate operand. */
+      if (throw_op == replacement_op) {
+        /* We're replacing the expression with a throw operand; make sure
+           it has the proper type. */
+        wrap_throw(throw_op, expr);
+        throw_op = NULL;
+      }  /* if */
+      lower_expr(replacement_op);
       overwrite_node(expr, replacement_op);
+    } else {
+      /* Make sure the entire expression is lowered. */
+      lower_any_expr(op2);
+      lower_any_expr(op3);
     }  /* if */
+  } else {
+    /* Make sure the entire expression is lowered. */
+    lower_any_expr(op2);
+    lower_any_expr(op3);
   }  /* if */
-}  /* eliminate_dead_code_under_question_operator */
+  if (throw_op != NULL) {
+    /* Wrap a throw in a comma expression to give it the right type and
+       lvalueness. */
+    wrap_throw(throw_op, expr);
+  }  /* if */
+}  /* lower_question_operator */
 
 
 static void lower_reference_to(an_expr_node_ptr expr)
@@ -12931,7 +13013,7 @@ cast.  See lower_expr for typical invocation.
 */
 {
   an_expr_operator_kind op;
-  an_expr_node_ptr      operand_node, operand2, operand3, throw_operand;
+  an_expr_node_ptr      operand_node;
   an_expr_node_ptr      temp_init_node;
   a_variable_ptr        var, temp_var;
 #if DEBUG
@@ -13152,30 +13234,15 @@ cast.  See lower_expr for typical invocation.
         overwrite_node(expr, temp_init_node);
         expr->type = type;
         lower_temp_init(expr);
+      } else if (op == (an_expr_operator_kind)eok_question) {
+        /* Lower a question operator and everything under it. */
+        lower_question_operator(expr);
+      } else if (op == (an_expr_operator_kind)eok_land ||
+                 op == (an_expr_operator_kind)eok_lor) {
+        /* Lower a logical operator and everything under it. */
+        lower_logical_operator(expr);
       } else {
         a_type_ptr  type;
-        if (op == (an_expr_operator_kind)eok_question) {
-          /* Look for a "?" operator where one of the operands is a throw
-             expression and the other has a non-void type.  The throw
-             operation will be adjusted by putting a comma operation over
-             it to give that operand the right type. */
-          /* Note that we test now, before lowering, when it's easy to spot
-             a throw node, but we do the rewrite after lowering. */
-          throw_operand = NULL;
-          /* Rule out cases where both operands are throws or one is a throw
-             and the other one is void. */
-          if (!is_void_type(expr->type)) {
-            operand2 = operand_node->next;
-            operand3 = operand2->next;
-            if (operand2->kind == (an_expr_node_kind)enk_throw) {
-              /* operand2 is a throw and operand3 is not. */
-              throw_operand = operand2;
-            } else if (operand3->kind == (an_expr_node_kind)enk_throw) {
-              /* operand3 is a throw and operand2 is not. */
-              throw_operand = operand3;
-            }  /* if */
-          }  /* if */
-        }  /* if */
         if (bool_is_keyword && op == (an_expr_operator_kind)eok_cast &&
             is_bool_type(operand_node->type)) {
           /* A cast can eliminate the need for an extra cast on a
@@ -13439,22 +13506,6 @@ cast.  See lower_expr for typical invocation.
             lower_gnu_min_max(expr);
             break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
-          case eok_land:
-          case eok_lor:
-            /* Eliminate dead code if possible. */
-            eliminate_dead_code_under_logical_operator(expr);
-            break;
-          case eok_question:
-            /* If one operand is a throw and the other is non-void, wrap
-               the throw in a comma expression to give it the right type
-               and lvalueness. */
-            if (throw_operand != NULL) {
-              wrap_throw(throw_operand, expr);
-            }  /* if */
-            /* If the value of the conditional is known at compile time
-               this expression is a candidate for rewriting. */
-            eliminate_dead_code_under_question_operator(expr);
-            break;
           default:
             /* No action on most operators. */
             break;
