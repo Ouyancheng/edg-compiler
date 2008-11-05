@@ -4,7 +4,7 @@ Version 4.0
 GNU C/C99 compatibility: Implicit int
 
 In GNU C99 mode, if no type specifier appears on a declaration, "int" is
-implied (with a warning).  For example:
+implied (with a warning).  Previously, an error was issued.  For example:
 
   f();  // Declares function f returning int.
 
@@ -13,7 +13,8 @@ specifier.  For example:
 
   x;  // Declares variable x of type int.
 
-The latter behavior is also a change in non-C99 GNU C mode.
+The latter behavior (accepting variable declarations without any specifier) is
+also a change in non-C99 GNU C mode.
 
 
 10/31/08 [EDGcpfe/8528, EDGcpfe/8747]
