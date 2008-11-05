@@ -859,7 +859,7 @@ position following what was demangled.
     p += op_length;
     /* Put parentheses around the operation. */
     write_id_ch('(', dctl);
-    /* For a cast, sizeof, or __alignof__, get the type. */
+    /* For a cast, sizeof, __alignof__, __uuidof__, or typeid, get the type. */
     if (takes_type) {
       if (strcmp(operator_str, "cast") == 0) {
         write_id_ch('(', dctl);
@@ -897,7 +897,7 @@ position following what was demangled.
     }  /* if */
     /* Get the count of operands. */
     p = get_single_digit_number(p, &num_operands, dctl);
-    /* sizeof and __alignof__ take zero operands. */
+    /* sizeof, __alignof__, __uuidof, and typeid all take zero operands. */
     if (num_operands != 0) {
       if (is_builtin_operation) {
         /* Builtin operation has a variable number of operations, and
@@ -1208,6 +1208,9 @@ encoding, return NULL.
     *takes_type = TRUE;
   } else if (start_of_id_is("uu", ptr, dctl)) {
     s = "__uuidof(";
+    *takes_type = TRUE;
+  } else if (start_of_id_is("ty", ptr, dctl)) {
+    s = "typeid(";
     *takes_type = TRUE;
   } else if (start_of_id_is("bi", ptr, dctl)) {
     s = "builtin-operation";
@@ -3986,6 +3989,18 @@ if necessary, e.g., "]" for subscripting; it is set to "" if not needed.
           *close_str = ")";
           *num_operands = 0;
           *length = 11;
+        } else if (start_of_id_is("v17typeide", ptr)) {
+          /* typeid(expr) */
+          str = "typeid(";
+          *close_str = ")";
+          *num_operands = 1;
+          *length = 10;
+        } else if (start_of_id_is("v16typeid", ptr)) {
+          /* typeid(type) */
+          str = "typeid(";
+          *close_str = ")";
+          *num_operands = 0;
+          *length = 9;
         } else if (start_of_id_is("v23min", ptr)) {
           /* GNU "<?" */
           str = "<?";
@@ -4423,7 +4438,7 @@ The syntax is:
         ptr = demangle_expression(ptr, dctl);
       } else {
         /* Special cases: sizeof(type), __alignof__(type),
-           __uuidof(type), scope resolution "::" */
+           __uuidof(type), typeid(type), scope resolution "::" */
         if (strcmp(op_str, "sizeof(") == 0) {
           /* sizeof(type). */
           write_id_str(op_str, dctl);
@@ -4434,6 +4449,10 @@ The syntax is:
           ptr = demangle_type(ptr, dctl);
         } else if (strcmp(op_str, "__uuidof(") == 0) {
           /* __uuidof(type). */
+          write_id_str(op_str, dctl);
+          ptr = demangle_type(ptr, dctl);
+        } else if (strcmp(op_str, "typeid(") == 0) {
+          /* typeid(type). */
           write_id_str(op_str, dctl);
           ptr = demangle_type(ptr, dctl);
         } else if (strcmp(op_str, "::") == 0) {

@@ -1,5 +1,16 @@
 Version 3.11
 
+11/3/08  [EDGcpfe/8945]
+Demangling of typeid operator
+
+A change has been made to demangle the typeid operator in a mangled
+encoding for an expression.  In the Cfront ABI, the "ty" string indicates
+the typeid operator; in the IA-64 ABI the strings "v17typeide" and "v16typeid"
+are used (the former representation is used when typeid refers to an
+expression, the latter a type).  This case comes up in Microsoft mode for
+template parameters.
+
+
 8/31/08  [EDGcpfe/9197]
 Demangling of identifiers containing "$" in IA-64 ABI
 
