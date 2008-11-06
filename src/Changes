@@ -4,9 +4,10 @@ Version 4.0
 Selector on call can now be class lvalue or rvalue in addition to pointer
 
 IL CHANGE: The selector object on a member function call can now be a
-class lvalue or rvalue.  Formerly, it was always a pointer to a class object.
-eok_call, eok_virtual_call, eok_pm_call, and eok_virtual_function_ptr
-now allow such a class-typed object.
+class lvalue, a class rvalue, or a pointer to a class object.  Formerly,
+it was always a pointer to a class object.  eok_call, eok_virtual_call,
+eok_pm_call, and eok_virtual_function_ptr now allow such a class-typed
+object.
 
 
 11/6/08  [EDGcpfe/9268]
