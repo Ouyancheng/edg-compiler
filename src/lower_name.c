@@ -2649,6 +2649,8 @@ something in error or skipped over.  The mangling used is a constant zero.
                                 mctl);
 }  /* add_mangling_for_placeholder_expression */
 
+#if IA64_ABI
+
 /*
 Macro that returns TRUE if the expression is a tpck_typeid template parameter
 constant.
@@ -2659,6 +2661,8 @@ constant.
                             (a_constant_repr_kind)ck_template_param &&   \
     (expr)->variant.constant->variant.template_param.kind ==             \
                            (a_template_param_constant_kind)tpck_typeid))
+
+#endif /* IA64_ABI */
 
 static void mangled_encoding_for_expression(
                                     an_expr_node_ptr         expr,
@@ -2676,10 +2680,12 @@ part of a template-dependent expression.
   an_expr_node_ptr operand;
   an_expr_operator_kind
                    op;
-  a_boolean        done, suppress_address_of_on_typeid = FALSE;
-#if !IA64_ABI
+  a_boolean        done;
+#if IA64_ABI
+  a_boolean        suppress_address_of_on_typeid = FALSE;
+#else /* !IA64_ABI */
   unsigned long    num_operands;
-#endif /* !IA64_ABI */
+#endif /* IA64_ABI */
 
   /* Drop parentheses. */
   expr = skip_parens(expr);
@@ -2688,16 +2694,16 @@ part of a template-dependent expression.
     done = TRUE;
     if (is_operation_node(expr)) {
       op = expr->variant.operation.kind;
-        if (op == (an_expr_operator_kind)eok_lvalue ||
-            op == (an_expr_operator_kind)eok_lvalue_adjust
+      if (op == (an_expr_operator_kind)eok_lvalue ||
+          op == (an_expr_operator_kind)eok_lvalue_adjust
 #if IA64_ABI
-            /* Also drop implicit casts in the IA-64 ABI. */
-                                                           ||
-            ((op == (an_expr_operator_kind)eok_cast ||
-              op == (an_expr_operator_kind)eok_bool_cast) &&
-             expr->variant.operation.compiler_generated)
+          /* Also drop implicit casts in the IA-64 ABI. */
+                                                         ||
+          ((op == (an_expr_operator_kind)eok_cast ||
+            op == (an_expr_operator_kind)eok_bool_cast) &&
+           expr->variant.operation.compiler_generated)
 #endif /* IA64_ABI */
-                                                        ) {
+                                                      ) {
         expr = skip_parens(expr->variant.operation.operands);
         done = FALSE;
 #if IA64_ABI
