@@ -15,7 +15,11 @@ eok_class_rvalue_adjust operator
 
 IL CHANGE: A new operator, eok_class_rvalue_adjust, has been added to
 indicate cv-qualifier adjustments on class rvalues, for example when
-they are used as selector objects on member function calls.
+they are used as selector objects on member function calls.  When
+LOWER_CLASS_RVALUE_ADJUST is TRUE, IL lowering will rewrite these
+adjustments by taking the address of the class rvalue, casting the
+pointer to the proper type, and indirecting to get back to a class
+object.
 
 
 11/4/08  [EDGcpfe/9215, EDGcpfe/9333]
