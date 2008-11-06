@@ -68,8 +68,6 @@ for non-C99 dialects and even for plain C89).
 /* Forward declarations (needed because of mutual recursion situations). */
 static void lower_c99_constant_list(a_constant_ptr constant_list);
 static void lower_c99_statement(a_statement_ptr statement);
-static void lower_c99_boolean_controlling_expr(an_expr_node_ptr expr,
-                                               a_boolean        is_full_expr);
 #if LOWER_FIXED_POINT
 static void lower_c99_fixed_point_constant(a_constant_ptr constant);
 static void lower_c99_fixed_point_operation(an_expr_node_ptr expr);
@@ -3718,8 +3716,8 @@ one not contained inside another expression.
   end_of_c99_full_expr(expr);
 }  /* lower_c99_full_expr */
 
-static void lower_c99_boolean_controlling_expr(an_expr_node_ptr expr,
-                                               a_boolean        is_full_expr)
+void lower_c99_boolean_controlling_expr(an_expr_node_ptr expr,
+                                        a_boolean        is_full_expr)
 /*
 Lower a boolean controlling expression, e.g., the expression in an "if"
 statement.  The expression is not an lvalue.  The expression is a full

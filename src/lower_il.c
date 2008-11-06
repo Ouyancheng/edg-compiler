@@ -12755,7 +12755,7 @@ some values that are known at compile time are not detected as such
   op2 = op1->next;
   /* Lower the conditional first (increases the chance that the value will be
      recognized as known at compile time). */
-  lower_boolean_controlling_expr(op1, /*is_full_expr=*/FALSE);
+  lower_any_boolean_controlling_expr(op1, /*is_full_expr=*/FALSE);
   if (bool_value_is_known_at_compile_time(op1, &op1_value) &&
       dead_code_expr_can_be_eliminated(op2)) {
     /* The first operand is an expression whose value we know at compile time;
@@ -12768,10 +12768,10 @@ some values that are known at compile time are not detected as such
          lowered above). */
       overwrite_node(expr, op1);
     } else {
-      lower_boolean_controlling_expr(op2, /*is_full_expr=*/FALSE);
+      lower_any_boolean_controlling_expr(op2, /*is_full_expr=*/FALSE);
     }  /* if */
   } else {
-    lower_boolean_controlling_expr(op2, /*is_full_expr=*/FALSE);
+    lower_any_boolean_controlling_expr(op2, /*is_full_expr=*/FALSE);
   }  /* if */
 }  /* lower_logical_operator */
 
@@ -12814,7 +12814,7 @@ expr is lowered by this routine.
   }  /* if */
   /* Lower the conditional first (increases the chance that the value will be
      recognized as known at compile time). */
-  lower_boolean_controlling_expr(op1, /*is_full_expr=*/FALSE);
+  lower_any_boolean_controlling_expr(op1, /*is_full_expr=*/FALSE);
   if (bool_value_is_known_at_compile_time(op1, &op1_value)) {
     if (op1_value) {
       /* Condition is true, rewrite expr with second operand if possible. */

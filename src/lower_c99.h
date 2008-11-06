@@ -39,6 +39,17 @@ Macro to lower an expression as either a C or C++ expression as appropriate.
     lower_any_cpp_expr(expr);                                               \
   }  /* if */
 
+/*
+Macro to lower a boolean controlling expression as either a C or C++ expression
+as appropriate.
+*/
+#define lower_any_boolean_controlling_expr(expr, is_full_expr)              \
+  if (C_mode()) {                                                           \
+    lower_c99_boolean_controlling_expr(expr, is_full_expr);                 \
+  } else {                                                                  \
+    lower_boolean_controlling_expr(expr, is_full_expr);                     \
+  }  /* if */
+
 extern void lower_runtime_sizeof(an_expr_node_ptr expr);
 
 extern void lower_vla_dimension_expression(a_vla_dimension_ptr  vdp);
@@ -133,6 +144,9 @@ extern void lower_c99_operator(an_expr_node_ptr expr);
 extern void lower_c99_expr(an_expr_node_ptr expr);
 
 extern void lower_c99_full_expr(an_expr_node_ptr expr);
+
+extern void lower_c99_boolean_controlling_expr(an_expr_node_ptr expr,
+                                               a_boolean        is_full_expr);
 
 extern void lower_c99_il_memory_region(a_memory_region_number region_number);
 
