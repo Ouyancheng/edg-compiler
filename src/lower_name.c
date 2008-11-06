@@ -2676,7 +2676,7 @@ part of a template-dependent expression.
   an_expr_node_ptr operand;
   an_expr_operator_kind
                    op;
-  a_boolean        changed, suppress_address_of_on_typeid = FALSE;
+  a_boolean        done, suppress_address_of_on_typeid = FALSE;
 #if !IA64_ABI
   unsigned long    num_operands;
 #endif /* !IA64_ABI */
@@ -2685,7 +2685,7 @@ part of a template-dependent expression.
   expr = skip_parens(expr);
   /* Drop implicit operations. */
   do {
-    changed = FALSE;
+    done = TRUE;
     if (is_operation_node(expr)) {
       op = expr->variant.operation.kind;
         if (op == (an_expr_operator_kind)eok_lvalue ||
@@ -2699,7 +2699,7 @@ part of a template-dependent expression.
 #endif /* IA64_ABI */
                                                         ) {
         expr = skip_parens(expr->variant.operation.operands);
-        changed = TRUE;
+        done = FALSE;
 #if IA64_ABI
       } else if (expr->variant.operation.compiler_generated &&
                  op == (an_expr_operator_kind)eok_indirect &&
@@ -2708,7 +2708,6 @@ part of a template-dependent expression.
            constant if it is under a compiler generated "*". */
         expr = skip_parens(expr->variant.operation.operands);
         suppress_address_of_on_typeid = TRUE;
-        changed = TRUE;
       } else if (expr->variant.operation.compiler_generated &&
                  is_operation_node(expr->variant.operation.operands)) {
         an_expr_node_ptr  child = expr->variant.operation.operands;
@@ -2719,12 +2718,12 @@ part of a template-dependent expression.
               child->kind == (an_expr_operator_kind)eok_address_of))) {
           /* Remove compiler generated "&*" or "*&" sequences. */
           expr = skip_parens(child->variant.operation.operands);
-          changed = TRUE;
+          done = FALSE;
         }  /* if */
 #endif /* IA64_ABI */
       }  /* if */
     }  /* if */
-  } while (changed);
+  } while (!done);
   switch (expr->kind) {
     case enk_constant:
 #if IA64_ABI
