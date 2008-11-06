@@ -464,6 +464,22 @@ is off by default.
 #endif /* LOWER_FIXED_POINT && !FIXED_POINT_ALLOWED */
 
 /*
+Flag that is TRUE if the eok_class_rvalue_adjust operator should be
+rewritten and eliminated by IL lowering.  The operator adjusts the
+cv-qualifiers on a class rvalue (e.g., as part of binding a reference).
+*/
+#ifndef LOWER_CLASS_RVALUE_ADJUST
+#if BACK_END_IS_C_GEN_BE
+#define LOWER_CLASS_RVALUE_ADJUST TRUE
+#else /* !BACK_END_IF_C_GEN_BE */
+#define LOWER_CLASS_RVALUE_ADJUST FALSE
+#endif /* BACK_END_IS_C_GEN_BE */
+#endif /* LOWER_CLASS_RVALUE_ADJUST */
+#if LOWER_CLASS_RVALUE_ADJUST && !DO_IL_LOWERING
+ #error -- LOWER_CLASS_RVALUE_ADJUST cannot be TRUE if IL lowering is not done
+#endif /* LOWER_CLASS_RVALUE_ADJUST && !DO_IL_LOWERING */
+
+/*
 Flag that is TRUE if the "long long" data type and the associated language
 features (e.g., suffixes for constants) are allowed.  "long long" is
 standard in C99, and Microsoft mode needs the IL support for __int64.

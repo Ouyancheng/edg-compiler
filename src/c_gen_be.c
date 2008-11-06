@@ -95,6 +95,10 @@ instead of K&R C.
  #error -- PARENS_IN_IL cannot be set when the C-generating back end is used.
 #endif /* PARENS_IN_IL */
 
+#if !LOWER_CLASS_RVALUE_ADJUST
+ #error -- The C-generating back end requires LOWER_CLASS_RVALUE_ADJUST TRUE
+#endif /* !LOWER_CLASS_RVALUE_ADJUST */
+
 /*
 See if the target is the SunPro C compiler.
 */

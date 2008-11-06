@@ -1312,7 +1312,7 @@ Dump the contents of the indicated type entry, for debug purposes.
           fputs("<unprototyped>", f_debug);
         }  /* if */
         if (rtsp->this_class != NULL) {
-          /* Display the type of *this (without qualifications. */
+          /* Display the type of *this (without qualifications). */
           fputs("this: ", f_debug);
           db_type_name(rtsp->this_class);
           comma_required = TRUE;
@@ -11319,6 +11319,9 @@ tk_unknown is returned.
         result = (a_type_kind)tk_unknown;
       }  /* if */
       break;
+    case eok_class_rvalue_adjust:
+      result = (a_type_kind)tk_struct;
+      break;
     case eok_base_class_cast:
     case eok_derived_class_cast:
       result = expr_kind;
@@ -13783,6 +13786,22 @@ cv-qualification or type adjustment.
   }  /* if */
   return node;
 }  /* add_cast_to_lvalue_if_necessary */
+
+
+an_expr_node_ptr add_rvalue_class_adjust_node(an_expr_node_ptr node,
+                                              a_type_ptr       type)
+/*
+Add an eok_class_rvalue_adjust node to the indicated expression, to
+adjust its type to "type", and return a pointer to the resulting expression.
+*/
+{
+  check_assertion(!node->is_lvalue &&
+                  is_class_struct_union_type(type));
+  node = make_operator_node((an_expr_operator_kind)eok_class_rvalue_adjust,
+                            type, node);
+  node->variant.operation.compiler_generated = TRUE;
+  return node;
+}  /* add_rvalue_class_adjust_node */
 
 
 an_expr_node_ptr copy_node(an_expr_node_ptr expr)
@@ -19461,6 +19480,7 @@ static a_byte lvalue_rvalue_test[(int)eok_last+1] = {
   /* eok_cast: */			LVRV_OPND1_IS_RVALUE,
   /* eok_lvalue_cast: */		LVRV_OPND1_IS_LVALUE,
   /* eok_lvalue_adjust: */		LVRV_OPND1_IS_LVALUE,
+  /* eok_class_rvalue_adjust: */	LVRV_OPND1_IS_RVALUE,
   /* eok_base_class_cast: */		LVRV_OPND1_IS_LVALUE_IF_EXPR_IS,
   /* eok_derived_class_cast: */		LVRV_OPND1_IS_LVALUE_IF_EXPR_IS,
   /* eok_pm_base_class_cast: */		LVRV_OPND1_IS_RVALUE,
@@ -19589,8 +19609,7 @@ static a_byte lvalue_rvalue_test[(int)eok_last+1] = {
   /* eok_dot_static: */			LVRV_OPND2_IS_LVALUE_IF_EXPR_IS,
   /* eok_points_to_static: */		LVRV_OPND1_IS_RVALUE |
 					LVRV_OPND2_IS_LVALUE_IF_EXPR_IS,
-  /* eok_virtual_function_ptr: */	LVRV_OPND1_IS_RVALUE |
-					LVRV_OPND2_IS_RVALUE,
+  /* eok_virtual_function_ptr: */	LVRV_OPND1_IS_RVALUE,
   /* eok_question: */			LVRV_OPND1_IS_RVALUE |
 					LVRV_OPND2_IS_LVALUE_IF_EXPR_IS,
   /* eok_call: */			LVRV_NO_REQUIREMENTS,

@@ -5025,6 +5025,11 @@ file.
 #else /* !defined(LONG_LONG_ALLOWED) */
   comment_undefined_macro_name(LONG_LONG_ALLOWED);
 #endif /* defined(LONG_LONG_ALLOWED) */
+#if defined(LOWER_CLASS_RVALUE_ADJUST)
+  define_numeric_valued_macro(LOWER_CLASS_RVALUE_ADJUST);
+#else /* !defined(LOWER_CLASS_RVALUE_ADJUST) */
+  comment_undefined_macro_name(LOWER_CLASS_RVALUE_ADJUST);
+#endif /* defined(LOWER_CLASS_RVALUE_ADJUST) */
 #if defined(LOWER_COMPLEX)
   define_numeric_valued_macro(LOWER_COMPLEX);
 #else /* !defined(LOWER_COMPLEX) */

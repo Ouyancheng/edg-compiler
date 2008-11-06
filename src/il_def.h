@@ -9142,6 +9142,14 @@ enum an_expr_operator_kind_tag {
 			   derived class adjustments.  Unlike eok_lvalue_cast,
 			   this operation is rvalueable (it can include an
 			   implicit lvalue-to-rvalue conversion). */
+  eok_class_rvalue_adjust,
+			/* Used to adjust the cv-qualifiers on a class rvalue.
+			   The operand is an rvalue with class type.  The
+			   result is the same class rvalue with its type
+			   changed to the type of the rvalue-adjust expression.
+			   Used only in C++.  Always compiler-generated.
+			   Eliminated by IL lowering if
+			   LOWER_CLASS_RVALUE_ADJUST is TRUE. */
   eok_base_class_cast,	/* C++ cast of a class to a direct base class.  The
 			   type of the expression indicates the type to cast
 			   to.  The operand can be a class lvalue, a class
@@ -9332,8 +9340,9 @@ enum an_expr_operator_kind_tag {
 			   member function.  This is (only) used to implement
 			   a C++ anachronism.  The first operand is the address
 			   of a virtual function (NOT a pointer-to-member);
-			   the second is a pointer to a class object.  The
-			   result is a pointer to the selected function. */
+			   the second is the selector object (class lvalue,
+			   class rvalue, or pointer to class).  The result
+			   is a pointer to the selected function. */
   /* The following have 3 operands: */
   eok_question,         /* Conditional expression ("?" operator).  Operand
                            has been standardized to integer/boolean.  Also
@@ -9348,15 +9357,17 @@ enum an_expr_operator_kind_tag {
 			   pointer), or eok_dot_static/eok_points_to_static
 			   for a static member function call.
 			   For member functions, a compiler-generated argument
-			   for the object lvalue or pointer follows the first
-			   operand. */
+			   for the selector object (class lvalue, class rvalue,
+			   or pointer to class) follows the first operand. */
   eok_virtual_call,	/* A call of a C++ virtual function.  The first operand
-			   is the routine, the second is the object lvalue or
-			   pointer, and the rest are the other arguments. */
+			   is the routine, the second is the selector object
+			   (class lvalue, class rvalue, or pointer to class),
+			   and the rest are the other arguments. */
   eok_pm_call,		/* A C++ call of a function identified by a pointer
 			   to member.  The first operand is the pointer to
-			   member (function); the second is the "this" pointer;
-			   any "real" arguments follow. */
+			   member (function); the second is the selector
+			   object (class lvalue, class rvalue, or pointer to
+			   class); the arguments follow. */
   /* Operators used when the <stdarg.h> macros are treated as builtins: */
   eok_va_start,		/* va_start macro reference.  First operand is an
 			   lvalue variable of type va_list, second is
@@ -12069,7 +12080,7 @@ EXTERN an_il_header il_header;
 EXTERN char     *db_operator_names[(int)eok_last+1]
 #if VAR_INITIALIZERS
 = {"&", "ref-&", "*", "ref-*",
-   "cast", "lvalue cast", "lvalue adjust",
+   "cast", "lvalue cast", "lvalue adjust", "class rvalue adjust",
    "base class cast", "derived class cast",
    "pm base class cast", "pm derived class cast",
    "dynamic cast", "bool cast",

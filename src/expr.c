@@ -1163,23 +1163,25 @@ source position is after the closing parenthesis of the argument list.
     /* The constructors are overloaded.  Select the proper one. */
     /* Note that a special case allows passing have_selector == TRUE and
        NULL for the selector operand when dealing with constructors. */
-    constructor_sym = select_overloaded_function(constructor_sym,
-                                                 /*is_template_id=*/FALSE,
-                                                 (a_template_arg_ptr)NULL,
-                                                 /*have_selector=*/TRUE,
-                                                 (an_operand *)NULL,
-                                                 arg_operand_list,
-                                                 /*do_arg_dep_lookup=*/FALSE,
-                                                 /*force_dependent=*/FALSE,
-                                                 ec_no_matching_constructor,
-                                                 ec_ambiguous_constructor,
-                                                 source_pos,
-                                                 (a_token_sequence_number)0,
-                                                 (a_boolean *)NULL,
-                                                 &unknown_dependent_ctor,
-                                                 (a_boolean *)NULL,
-                                                 (a_symbol_ptr *)NULL,
-                                                 &arg_match_list);
+    constructor_sym = select_overloaded_function(
+                                          constructor_sym,
+                                          /*is_template_id=*/FALSE,
+                                          (a_template_arg_ptr)NULL,
+                                          /*have_selector=*/TRUE,
+                                          (an_operand *)NULL,
+                                          /*selector_is_object_pointer=*/FALSE,
+                                          arg_operand_list,
+                                          /*do_arg_dep_lookup=*/FALSE,
+                                          /*force_dependent=*/FALSE,
+                                          ec_no_matching_constructor,
+                                          ec_ambiguous_constructor,
+                                          source_pos,
+                                          (a_token_sequence_number)0,
+                                          (a_boolean *)NULL,
+                                          &unknown_dependent_ctor,
+                                          (a_boolean *)NULL,
+                                          (a_symbol_ptr *)NULL,
+                                          &arg_match_list);
   }  /* if */
   if (constructor_sym != NULL) {
     /* No error; we know which constructor is to be called. */
@@ -2073,6 +2075,7 @@ C++ standard.  The current token is the "(" of the call.
   a_boolean         arg_dep_lookup_suppressed = FALSE;
   a_boolean         found_through_adl = FALSE;
   a_boolean         has_overloaded_call_operator = FALSE;
+  a_boolean         selector_is_object_pointer;
 
   db_enter(4, "scan_function_call");
 
@@ -2181,7 +2184,6 @@ C++ standard.  The current token is the "(" of the call.
       /* The operand becomes the selector object. */
       check_assertion(!operand->bound_function);
       copy_operand(operand, bound_function_selector);
-      conv_class_operand_to_object_pointer(bound_function_selector);
       /* See if the class has an operator(). */
       member_function_symbol = opname_member_function_symbol(
                                         (an_opname_kind)onk_function_call,
@@ -2376,6 +2378,8 @@ C++ standard.  The current token is the "(" of the call.
     change_some_ref_kinds(operand->ref_entries_list, SRK_ADDRESS_TAKEN,
                           SRK_REFERENCE);
   }  /* if */
+  selector_is_object_pointer = (operand->bound_function &&
+                               is_pointer_type(bound_function_selector->type));
 
 #if GNU_EXTENSIONS_ALLOWED && GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
   if (routine != NULL && is_gnu_builtin_function(routine)) {
@@ -2445,6 +2449,7 @@ C++ standard.  The current token is the "(" of the call.
                                             operand->bound_function ||
                                                        try_surrogate_functions,
                                             bound_function_selector,
+                                            selector_is_object_pointer,
                                             arg_operand_list,
                                             do_arg_dep_lookup,
                                             try_surrogate_functions,
@@ -2472,9 +2477,8 @@ C++ standard.  The current token is the "(" of the call.
       if (try_surrogate_functions) {
         /* Leave the operand alone if it's a class operand for which
            we tried surrogate functions.  The original operand became
-           the selector pointer, so move/convert it back. */
+           the selector, so move it back to "operand". */
         copy_operand(bound_function_selector, operand);
-        conv_object_pointer_to_lvalue(operand);
         prep_generic_operand(operand);
       } else {
         a_boolean have_selector = operand->bound_function;
@@ -2487,7 +2491,7 @@ C++ standard.  The current token is the "(" of the call.
         if (have_selector) {
           /* This comes up with operator() cases. */
           combine_unneeded_selector_with_operand(bound_function_selector,
-                                                 /*is_arrow_operator=*/TRUE,
+                                                 selector_is_object_pointer,
                                                  operand);
         }  /* if */
       }  /* if */
@@ -2513,14 +2517,14 @@ C++ standard.  The current token is the "(" of the call.
     /* Non-overloaded function case. */
     if (operand->bound_function && routine_type != NULL) {
       /* Non-static member function call. */
-      /* Check that the selector pointer is compatible with the "this"
+      /* Check that the selector object is compatible with the "this"
          parameter type.  It isn't, for example, if we are calling a
          non-const-qualified function with a const-qualified object.
          Note that if a base class cast was required, it has already been
          done during the function binding, so the differences at this
          point (other than for error cases) are const/non-const differences. */
       selector_match_with_this_param(bound_function_selector,
-                                     /*selector_is_object_pointer=*/TRUE,
+                                     selector_is_object_pointer,
                                      routine,
                                      implicit_this_param_type_of(routine_type),
                                      &this_match_summary);
@@ -2531,10 +2535,7 @@ C++ standard.  The current token is the "(" of the call.
         issue_warning_from_arg_match_summary(&this_match_summary,
                                              &bound_function_selector->
                                                                      position);
-        /* If the function is const, change the reference kinds on the
-           selector. */
-        change_refs_on_selector_if_const_function(routine_type,
-                                                  bound_function_selector);
+        change_refs_on_selector(routine_type, bound_function_selector);
       } else if (microsoft_bugs && microsoft_version <= 1300 &&
                  routine == NULL &&
                  is_ptr_to_member_type(operand->type)) {
@@ -3548,13 +3549,10 @@ nonstatic_member_function:
             if (curr_expr_kind_is(ek_init_constant)) {
               error_and_make_error_operand(ec_expr_not_constant, result);
             } else {
-              /* The function will require a "this" pointer, so get a pointer
-                 (rather than an rvalue) for the first operand. */
-              conv_selector_to_object_pointer(operand_1, &is_arrow_operator);
               if (!force_indefinite_function &&
                   member_sym->kind == (a_symbol_kind)sk_member_function) {
                 /* For a simple non-overloaded function, adjust the selector
-                   to point to the proper class.  We don't do this for the
+                   to the proper class.  We don't do this for the
                    cases that go through overload resolution, since that
                    adjustment is done there (it might not be done if a
                    static member function is selected). */
@@ -3944,8 +3942,6 @@ object bound with the function in *bound_function_selector.  See ARM 5.5.
              if any pointers-to-members are in there we don't want to change
              the references from address-taken to reference on a call. */
           result->ref_entries_list = NULL;
-          /* Force the "->*" form because that's what's needed in a call. */
-          conv_selector_to_object_pointer(operand_1, &is_arrow_operator);
           copy_operand(operand_1, bound_function_selector);
           bind_member_function_operand_to_selector(result,
                                                    bound_function_selector);
@@ -9374,7 +9370,7 @@ specification allow a variable-sized array as the top type.
                                       arg_operand_list,
                                       /*have_selector=*/FALSE,
                                       (an_operand *)NULL,
-                                      /*selector_is_object_pointer=*/TRUE))) {
+                                      /*selector_is_object_pointer=*/FALSE))) {
         opname_kind = (an_opname_kind)onk_new;
         operator_new_symbol = opname_function_symbol(opname_kind);
       }  /* if */
@@ -9385,23 +9381,24 @@ specification allow a variable-sized array as the top type.
          this call does not adjust the argument types or build the function
          call, since we may yet fold the call into a constructor call. */
       proj_function_symbol = select_overloaded_function(
-                                              operator_new_symbol,
-                                              /*is_template_id=*/FALSE,
-                                              (a_template_arg_ptr)NULL,
-                                              /*have_selector=*/FALSE,
-                                              (an_operand *)NULL,
-                                              arg_operand_list,
-                                              /*do_arg_dep_lookup=*/FALSE,
-                                              force_dependent,
-                                              ec_no_matching_new_function,
-                                              ec_ambiguous_overloaded_function,
-                                              &new_position,
-                                              (a_token_sequence_number)0,
-                                              (a_boolean *)NULL,
-                                              &unknown_dependent_new,
-                                              (a_boolean *)NULL,
-                                              (a_symbol_ptr *)NULL,
-                                              &arg_match_list);
+                                          operator_new_symbol,
+                                          /*is_template_id=*/FALSE,
+                                          (a_template_arg_ptr)NULL,
+                                          /*have_selector=*/FALSE,
+                                          (an_operand *)NULL,
+                                          /*selector_is_object_pointer=*/FALSE,
+                                          arg_operand_list,
+                                          /*do_arg_dep_lookup=*/FALSE,
+                                          force_dependent,
+                                          ec_no_matching_new_function,
+                                          ec_ambiguous_overloaded_function,
+                                          &new_position,
+                                          (a_token_sequence_number)0,
+                                          (a_boolean *)NULL,
+                                          &unknown_dependent_new,
+                                          (a_boolean *)NULL,
+                                          (a_symbol_ptr *)NULL,
+                                          &arg_match_list);
       if (proj_function_symbol != NULL) {
         function_symbol = fundamental_symbol_of(proj_function_symbol);
       } else {
@@ -11055,7 +11052,7 @@ merely transformed to something to which the cast may apply.
          runtime. */
       /* Make a node for the function pointer. */
       func_ptr_node = make_node_from_operand(operand);
-      /* Make a node for the bound object address. */
+      /* Make a node for the bound selector object. */
       object_node = make_node_from_operand(bound_function_selector);
       func_ptr_node->next = object_node;
       func_ptr_node = make_operator_node(

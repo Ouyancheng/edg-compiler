@@ -3087,6 +3087,9 @@ to a temporary, and return a pointer to the temporary.
   }  /* if */
 #endif /* CHECKING */
   temp = make_lowered_temporary(temp_type);
+  if (is_const_qualified_type(temp_type)) {
+    temp->initialization_rewritten_as_assignment = TRUE;
+  }  /* if */
   temp_node = var_lvalue_expr(temp);
   expr_copy = copy_node(expr);
   temp_node->next = expr_copy;
@@ -10855,12 +10858,15 @@ have already been lowered.  The expression is an rvalue.
   /* The original tree has an eok_virtual_function_ptr node with operands
      as follows:
        (1) an enk_routine node for the virtual function.
-       (2) a node for the object pointer.
+       (2) a node for the object pointer.  The node can be a class lvalue,
+           class rvalue, or pointer to class.
   */
   check_assertion(!expr->is_lvalue);
   func_node = expr->variant.operation.operands;
   object_node = func_node->next;
   func_node->next = NULL;
+  /* Change the object selector into pointer to a class. */
+  object_node = rvalue_pointer_for_class_expression(object_node);
 #if !IA64_ABI
   /* The rewritten form is as follows:
        (object->__vptr)+index)->f
@@ -11284,6 +11290,10 @@ the top node of the indicated statement (which is an expression statement).
   arg_node = arg_node->next;
   /* If the routine has a "this" parameter, lower it separately. */
   if (rtsp->this_class != NULL) {
+    /* The selector object can be a class lvalue, class rvalue, or pointer
+       to class.  Convert it to a pointer to class in all cases. */
+    overwrite_node(arg_node, rvalue_pointer_for_class_expression(
+                                                         copy_node(arg_node)));
     /* Don't bother adding NULL-preservation code for the "this" parameter.
        If "this" is NULL, dereferencing it is going to cause an error
        whether or not the NULL-preservation test is added, so generate
@@ -13005,6 +13015,23 @@ The given node is an eok_assign node.  Lower the node if needed.
   }  /* switch */
 }  /* lower_assignment_operator */
 
+#if LOWER_CLASS_RVALUE_ADJUST
+
+static void lower_class_rvalue_adjust(an_expr_node_ptr expr)
+/*
+Lower the eok_class_rvalue_adjust expression (which is used to adjust
+cv-qualifiers on a class rvalue).
+*/
+{
+  an_expr_node_ptr  node;
+
+  node = rvalue_pointer_for_class_rvalue(expr->variant.operation.operands);
+  node = add_cast(node, make_pointer_type(expr->type));
+  node = add_indirection_to_node(node);
+  overwrite_node(expr, rvalue_expr_for_lvalue(node));
+}  /* lower_class_rvalue_adjust */
+
+#endif /* LOWER_CLASS_RVALUE_ADJUST */
 
 void lower_expr_full(an_expr_node_ptr expr,
                      a_boolean        assume_expr_is_non_null)
@@ -13058,6 +13085,10 @@ cast.  See lower_expr for typical invocation.
   }  /* if */
   lower_os_type(expr->type);
   if (!expr->is_lvalue &&
+#if LOWER_CLASS_RVALUE_ADJUST
+      !(is_operation_node(expr) &&
+        node_operator_is(expr, eok_class_rvalue_adjust)) &&
+#endif /* LOWER_CLASS_RVALUE_ADJUST */
       expr->kind != (an_expr_node_kind)enk_field &&
       is_qualified_type(expr->type)) {
     /* Remove cv-qualifiers from the types of class rvalues.  In C++, such
@@ -13386,6 +13417,11 @@ cast.  See lower_expr for typical invocation.
           case eok_bool_cast:
             lower_bool_cast(expr);
             break;
+#if LOWER_CLASS_RVALUE_ADJUST
+          case eok_class_rvalue_adjust:
+            lower_class_rvalue_adjust(expr);
+            break;
+#endif /* LOWER_CLASS_RVALUE_ADJUST */
           case eok_post_incr:
           case eok_pre_incr:
             if (bool_is_keyword) {

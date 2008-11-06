@@ -1,5 +1,22 @@
 Version 4.0
 
+11/6/08  [EDGcpfe/9268]
+Selector on call can now be class lvalue or rvalue in addition to pointer
+
+IL CHANGE: The selector object on a member function call can now be a
+class lvalue or rvalue.  Formerly, it was always a pointer to a class object.
+eok_call, eok_virtual_call, eok_pm_call, and eok_virtual_function_ptr
+now allow such a class-typed object.
+
+
+11/6/08  [EDGcpfe/9268]
+eok_class_rvalue_adjust operator
+
+IL CHANGE: A new operator, eok_class_rvalue_adjust, has been added to
+indicate cv-qualifier adjustments on class rvalues, for example when
+they are used as selector objects on member function calls.
+
+
 11/4/08  [EDGcpfe/9215, EDGcpfe/9333]
 GNU C/C99 compatibility: Implicit int
 

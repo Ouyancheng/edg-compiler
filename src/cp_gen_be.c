@@ -470,6 +470,7 @@ static a_byte generated_precedence[(int)eok_last+1] = {
                            parens_may_be_needed) */
   PREC_CAST,		/* eok_lvalue_cast */
   PREC_LOWEST,		/* eok_lvalue_adjust */
+  PREC_LOWEST,		/* eok_class_rvalue_adjust */
   PREC_CAST,		/* eok_base_class_cast */
   PREC_CAST,		/* eok_derived_class_cast */
   PREC_CAST,		/* eok_pm_base_class_cast */
@@ -6145,13 +6146,13 @@ static an_expr_node_ptr optimized_expr_for_selection(
                                                 an_expr_node_ptr object_expr,
                                                 a_type_ptr       *naming_class)
 /*
-object_expr is an expression that is an lvalue for or pointer to a class
-object.  It is being used as the left operand in a member selection.
-Examine the base-class casts on the object, if there are any, and determine
-which of those can be folded into the member name.  Return the expression
-to be used to address the object (the part not including the casts that can
-be elided), and set *naming_class to the class qualifier name to be used to
-name the member.  Only used in C++.
+object_expr is an expression that is an lvalue or rvalue for, or pointer
+to, a class object.  It is being used as the left operand in a member
+selection.  Examine the base-class casts on the object, if there are any,
+and determine which of those can be folded into the member name.  Return
+the expression to be used to address the object (the part not including the
+casts that can be elided), and set *naming_class to the class qualifier
+name to be used to name the member.  Only used in C++.
 */
 {
   an_expr_node_ptr node = object_expr, naming_node = NULL;
@@ -6821,35 +6822,46 @@ original lvalue.
 }  /* strip_lvalue_cast_sequence */
 
 
-static an_expr_node_ptr skip_implicit_ptr_type_qualifier_adjustment_cast(
+static an_expr_node_ptr skip_implicit_type_qualifier_adjustment_cast(
                                                          an_expr_node_ptr expr)
 /*
-Remove any implicit casts on the top of the expression that merely adjust
-the type qualifiers on a pointer type (e.g., add const), and return the
-underlying expression.
+Remove any implicit casts (eok_cast, eok_lvalue_adjust, or
+eok_class_rvalue_adjust) on the top of the expression that merely change
+the type qualifiers on a type (e.g., add const), and return the underlying
+expression.
 */
 {
 try_again:
-  if (is_operation_node(expr) &&
-      expr->variant.operation.kind == (an_expr_operator_kind)eok_cast &&
-      expr->variant.operation.compiler_generated) {
-    a_type_ptr dest_type = expr->type;
-    a_type_ptr source_type = expr->variant.operation.operands->type;
-    if (is_pointer_type(dest_type) && is_pointer_type(source_type)) {
-      dest_type = type_pointed_to(dest_type);
-      source_type = type_pointed_to(source_type);
-      if (skip_typerefs(dest_type) == skip_typerefs(source_type)) {
-        /* The underlying types are the same ignoring qualifiers.  Since
-           this is an implicit cast, the qualifiers must be the same or
-           must increase with the cast. */
-        /* This is a cast that just adjusts the type qualifiers. */
-        expr = expr->variant.operation.operands;
-        goto try_again;
+  if (is_operation_node(expr)) {
+    if (node_operator_is(expr, eok_cast) &&
+        expr->variant.operation.compiler_generated) {
+      a_type_ptr dest_type = expr->type;
+      a_type_ptr source_type = expr->variant.operation.operands->type;
+      if (is_pointer_type(dest_type) && is_pointer_type(source_type)) {
+        dest_type = type_pointed_to(dest_type);
+        source_type = type_pointed_to(source_type);
+        if (skip_typerefs(dest_type) == skip_typerefs(source_type)) {
+          /* The underlying types are the same ignoring qualifiers.  Since
+             this is an implicit cast, the qualifiers must be the same or
+             must increase with the cast. */
+          /* This is a cast that just adjusts the type qualifiers. */
+          expr = expr->variant.operation.operands;
+          goto try_again;
+        }  /* if */
       }  /* if */
+    } else if (node_operator_is(expr, eok_class_rvalue_adjust) ||
+               (node_operator_is(expr, eok_lvalue_adjust) &&
+                skip_typerefs(expr->type) ==
+                      skip_typerefs(expr->variant.operation.operands->type))) {
+      /* This is a cv-qualification adjustment (that is the only operation
+         performed by eok_class_rvalue_adjust, so no type check is
+         needed). */
+      expr = expr->variant.operation.operands;
+      goto try_again;
     }  /* if */
   }  /* if */
   return expr;
-}  /* skip_implicit_ptr_type_qualifier_adjustment_cast */
+}  /* skip_implicit_type_qualifier_adjustment_cast */
 
 
 static void gen_object_expr_for_implicit_call(
@@ -6947,7 +6959,7 @@ obscure Microsoft bug).
     a_boolean close_paren_needed = FALSE;
     /* Remove any cast that just adjusts the type qualifiers (e.g., adds
        const); it's implied by the context. */
-    expr = skip_implicit_ptr_type_qualifier_adjustment_cast(expr);
+    expr = skip_implicit_type_qualifier_adjustment_cast(expr);
     /* Remove any implicit base-class casts; they're implied by the context. */
     while (is_operation_node(expr) &&
            expr->variant.operation.kind ==
@@ -7347,7 +7359,8 @@ If suppress_virtual is TRUE, suppress virtual-ness on the function reference.
   a_boolean     suppress_this = FALSE;
 
   check_assertion(rout != NULL);
-  if (is_template_param_or_nonreal_class_type(object_expr->type)) {
+  if (is_template_param_or_nonreal_class_type(object_expr->type) &&
+      is_pointer_type(object_expr->type)) {
     /* In a prototype instantiation, the left operand can be a class type
        that might have an operator-> function.  This can come up only
        when the function is a member function named with a qualified name,
@@ -7369,10 +7382,14 @@ If suppress_virtual is TRUE, suppress virtual-ness on the function reference.
 #endif /* OPTIMIZE_VIRTUAL_FUNCTION_CALLS */
     /* Remove any cast that just adjusts the type qualifiers (e.g., adds
        const); it's implied by the context. */
-    object_expr= skip_implicit_ptr_type_qualifier_adjustment_cast(object_expr);
+    object_expr= skip_implicit_type_qualifier_adjustment_cast(object_expr);
     /* Remove unnecessary base class casts. */
     object_expr = optimized_expr_for_selection(object_expr, &naming_class);
-    selection_class = type_pointed_to(object_expr->type);
+    if (is_pointer_type(object_expr->type)) {
+      selection_class = type_pointed_to(object_expr->type);
+    } else {
+      selection_class = object_expr->type;
+    }  /* if */
     selection_class = skip_typerefs(selection_class);
     if (is_constant_node(object_expr) &&
         constant_should_be_put_out_as_expr(object_expr->variant.constant)) {
@@ -7380,12 +7397,8 @@ If suppress_virtual is TRUE, suppress virtual-ness on the function reference.
       object_expr = object_expr->variant.constant->expr;
     }  /* if */
     object_expr = strip_lvalue_cast_sequence(object_expr);
-    if (!(object_expr->is_lvalue ||
-          (is_cast_operation_node(object_expr) &&
-           object_expr->variant.operation.is_reference_cast))) {
-      /* Use a pointer and "->".  Don't do it when there's an implicit
-         reference indirection on the object, because that will add a "&"
-         that may mean the wrong thing if operator& is overloaded. */
+    if (is_pointer_type(object_expr->type)) {
+      /* Use a pointer and "->". */
       if (is_variable_node(object_expr) &&
           object_expr->variant.variable->is_this_parameter) {
         /* Suppress "this->", as it's implied. */
@@ -8080,6 +8093,7 @@ problems.
           (node_operator_is(operand, eok_cast) ||
            node_operator_is(operand, eok_lvalue_cast) ||
            node_operator_is(operand, eok_lvalue_adjust) ||
+           node_operator_is(operand, eok_class_rvalue_adjust) ||
            node_operator_is(operand, eok_base_class_cast) ||
            node_operator_is(operand, eok_derived_class_cast) ||
            node_operator_is(operand, eok_bool_cast) ||
@@ -8449,6 +8463,7 @@ gen_expr that might end up generating this expr as a temporary.
                    obj_expr_of_mfunc_operator);
           goto done_with_operation;
         case eok_lvalue_adjust:
+        case eok_class_rvalue_adjust:
           /* Always compiler-generated, so it has no source representation. */
           check_assertion(expr->variant.operation.compiler_generated);
           gen_expr(operand_1, /*need_parens=*/FALSE,

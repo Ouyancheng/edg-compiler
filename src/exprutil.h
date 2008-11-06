@@ -1218,9 +1218,11 @@ extern an_expr_node_ptr create_expr_temporary(
 
 extern a_routine_ptr routine_from_function_operand(an_operand *operand);
 
+#if OPTIMIZE_VIRTUAL_FUNCTION_CALLS
 extern an_expr_node_ptr retrace_base_casts(an_expr_node_ptr base_cast_node,
                                            a_type_ptr       target_class,
                                            an_expr_node_ptr *new_top_of_tree);
+#endif /* OPTIMIZE_VIRTUAL_FUNCTION_CALLS */
 
 extern a_routine_ptr final_overrider(a_routine_ptr    base_class_function,
                                      an_expr_node_ptr implicit_this_arg,

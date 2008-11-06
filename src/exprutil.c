@@ -7108,6 +7108,9 @@ still provided).
                is_constant_operand(operand_3)) {
       /* Fold if the second and third operands are constants. */
       do_folding = TRUE;
+    } else if (result_is_an_lvalue) {
+      /* Don't fold when the result is an lvalue. */
+      do_folding = FALSE;
     } else if (!(operand_2->ruled_out_expr_kinds & ROEK_CONSTANT) &&
                !(operand_3->ruled_out_expr_kinds & ROEK_CONSTANT)) {
       /* Fold if all the operands have the form of a constant expression.
@@ -8080,6 +8083,7 @@ for the function, even though calls actually always use the rvalue form.
   return routine;
 }  /* routine_from_function_operand */
 
+#if OPTIMIZE_VIRTUAL_FUNCTION_CALLS
 
 an_expr_node_ptr retrace_base_casts(an_expr_node_ptr base_cast_node,
                                     a_type_ptr       target_class,
@@ -8103,7 +8107,7 @@ target types are the same except for qualification, followed by an
 eok_base_class_cast node.  target_class is the type at which the scan is
 to terminate ("TN").  new_top_of_tree points to an expression node pointer
 that will be set to point to the new eok_derived_class_cast node that
-produces the ultimate type (the cast to "TN").
+produces the ultimate type (the cast to "TN*").
 
 If the tree of derived class cast nodes is successfully created, the
 return value is the newly-created derived class cast node for this level;
@@ -8112,64 +8116,112 @@ operand (it is the caller's responsibility to set the operand to point
 to the caller's node or to the original top of the tree).  If the original
 tree of cast nodes does not satisfy the requirements described above, no
 derived class cast nodes will be created and the return value will be NULL.
+
+On successful return, *new_top_of_tree points to the top of a sequence
+of base class casts, and the function result points to the bottom of
+that sequence, which is a cast that has no operand yet.  The top-most
+caller will attach that bottom node to the original tree, forming an
+expression (at *new_top_of_tree) that casts the original expression
+back to the target_class.  In the recursive calls, this routine adds
+another cast to the bottom of the list being built up, and returns a
+pointer to the bottom-most entry.
+
+The casts can also be done on class objects (lvalue or rvalue) in addition
+to the pointer-to-class case described above.
 */
 {
   an_expr_node_ptr new_derived_cast_node = NULL;
   a_type_ptr       this_node_class;
   a_type_ptr       operand_class;
+  a_type_ptr       orig_node_type = base_cast_node->type;
+  a_boolean        pointer_case = is_pointer_type(orig_node_type);
 
-  check_assertion(is_pointer_type(base_cast_node->type));
   base_cast_node = skip_parens(base_cast_node);
-  while (is_operation_node(base_cast_node) &&
-         base_cast_node->variant.operation.kind ==
-                                             (an_expr_operator_kind)eok_cast &&
-         is_pointer_type(base_cast_node->type) &&
-         is_pointer_type(base_cast_node->variant.operation.operands->type)) {
-    a_type_ptr target_type = type_pointed_to(base_cast_node->type);
-    a_type_ptr source_type =
+  if (pointer_case) {
+    /* The object is a pointer to class.  Skip any casts that adjust the
+       cv-qualifiers. */
+    while (is_operation_node(base_cast_node) &&
+           node_operator_is(base_cast_node, eok_cast) &&
+           is_pointer_type(base_cast_node->type) &&
+           is_pointer_type(base_cast_node->variant.operation.operands->type)) {
+      a_type_ptr target_type = type_pointed_to(base_cast_node->type);
+      a_type_ptr source_type =
              type_pointed_to(base_cast_node->variant.operation.operands->type);
-    target_type = skip_typerefs(target_type);
-    source_type = skip_typerefs(source_type);
-    if (identical_types(target_type, source_type)) {
-      /* Scan over any eok_cast nodes preceding the eok_base_class_cast node
-         for this level.  Such eok_cast nodes must have the same target and
-         operand types, except for qualification.  (E.g., base_cast_node
-         might point to "(const T*)(T*)", where "(T*)" is the base class
-         cast, and we need to skip over "(const T*)".) */
+      target_type = skip_typerefs(target_type);
+      source_type = skip_typerefs(source_type);
+      if (identical_types(target_type, source_type)) {
+        base_cast_node=skip_parens(base_cast_node->variant.operation.operands);
+      } else {
+        /* Not a skippable eok_cast node. */
+        break;
+      }  /* if */
+    }  /* while */
+  } else {
+    /* The object is a class lvalue or rvalue.  Skip any nodes that adjust
+       the cv-qualifiers. */
+    while (is_operation_node(base_cast_node) &&
+           (node_operator_is(base_cast_node, eok_lvalue_adjust) ||
+            node_operator_is(base_cast_node, eok_class_rvalue_adjust)) &&
+           identical_types_ignoring_qualifiers(base_cast_node->type,
+                                               base_cast_node->variant.
+                                                   operation.operands->type)) {
       base_cast_node = skip_parens(base_cast_node->variant.operation.operands);
-    } else {
-      /* Not a skippable eok_cast node. */
-      break;
-    }  /* if */
-  }  /* while */
+    }  /* while */
+  }  /* if */
   if (is_operation_node(base_cast_node) &&
-      base_cast_node->variant.operation.kind ==
-                                  (an_expr_operator_kind)eok_base_class_cast) {
+      node_operator_is(base_cast_node, eok_base_class_cast)) {
     /* This is an eok_base_class_cast node, so processing can continue.
        Any other kind of node renders the tree impossible to invert and
        will result in terminating the traversal and returning NULL
        instead of a new derived class cast node. */
     a_base_class_ptr base_class;
+    a_type_ptr       cast_dest_type;
 
-    this_node_class = f_skip_typerefs(type_pointed_to(base_cast_node->type));
-    operand_class =
-            f_skip_typerefs(type_pointed_to(base_cast_node->
-                                            variant.operation.operands->type));
+    this_node_class = base_cast_node->type;
+    if (pointer_case) this_node_class = type_pointed_to(this_node_class);
+    this_node_class = skip_typerefs(this_node_class);
+    operand_class = base_cast_node->variant.operation.operands->type;
+    if (pointer_case) operand_class = type_pointed_to(operand_class);
+    operand_class = skip_typerefs(operand_class);
+    cast_dest_type = operand_class;
+    if (pointer_case) cast_dest_type = make_pointer_type(operand_class);
+    check_assertion(is_immediate_class_type(this_node_class) &&
+                    is_immediate_class_type(operand_class));
     base_class = find_base_class_of(operand_class, this_node_class);
     if (!base_class->is_virtual) {
       /* Not virtual.  (We cannot cast to a virtual derived class, so
          failing this test will terminate the traversal and return NULL
          instead of a new derived class cast node.) */
-      if (identical_types(operand_class, target_class)) {
-        /* We've reached the end of the traversal successfully.  Create a
-           derived class cast node targeting the operand class type and
-           set *new_top_of_tree to point to it. */
-        new_derived_cast_node =
+      /* Create the bottom-most node in the chain of derived-class casts.
+         If we've reached the end of the traversal, this is also the top-most
+         node. */
+      new_derived_cast_node =
               make_operator_node((an_expr_operator_kind)eok_derived_class_cast,
-                                 make_pointer_type(operand_class),
+                                 cast_dest_type,
                                  (an_expr_node_ptr)NULL);
-        new_derived_cast_node->variant.operation.compiler_generated = TRUE;
+      if (base_cast_node->is_lvalue) new_derived_cast_node->is_lvalue = TRUE;
+      new_derived_cast_node->variant.operation.compiler_generated = TRUE;
+      if (identical_types(operand_class, target_class)) {
+        /* We've reached the end of the traversal successfully.  The node
+           we just created is also the top of the tree. */
         *new_top_of_tree = new_derived_cast_node;
+        /* See if a final cv-qualifier adjustment is needed on top. */
+        if (pointer_case) orig_node_type = type_pointed_to(orig_node_type);
+        cast_dest_type = type_plus_qualifiers_from_second_type(operand_class,
+                                                               orig_node_type);
+        if (pointer_case) cast_dest_type = make_pointer_type(cast_dest_type);
+        if (!identical_types((*new_top_of_tree)->type, cast_dest_type)) {
+          if (pointer_case) {
+            *new_top_of_tree = add_cast(*new_top_of_tree, cast_dest_type);
+          } else if ((*new_top_of_tree)->is_lvalue) {
+            *new_top_of_tree = add_cast_to_lvalue(*new_top_of_tree,
+                                                  cast_dest_type);
+          } else {
+            /* Class rvalue case. */
+            *new_top_of_tree = add_rvalue_class_adjust_node(*new_top_of_tree,
+                                                            cast_dest_type);
+          }  /* if */
+        }  /* if */
       } else {
         /* We're not done with the traversal.  Call this routine recursively
            to complete it */
@@ -8177,15 +8229,12 @@ derived class cast nodes will be created and the return value will be NULL.
                  retrace_base_casts(base_cast_node->variant.operation.operands,
                                     target_class, new_top_of_tree);
         if (new_parent != NULL) {
-          /* The rest of the traversal succeeded, so create the derived
-             class cast node for this level and link it to the bottom of
-             the tree resulting from the recursive invocations. */
-          new_derived_cast_node =
-             make_operator_node((an_expr_operator_kind)eok_derived_class_cast,
-                                make_pointer_type(operand_class),
-                                (an_expr_node_ptr)NULL);
-          new_derived_cast_node->variant.operation.compiler_generated = TRUE;
+          /* The rest of the traversal succeeded, so link the node created
+             above to the bottom of the tree of casts. */
           new_parent->variant.operation.operands = new_derived_cast_node;
+        } else {
+          /* Discard the node we created. */
+          new_derived_cast_node = NULL;
         }  /* if */
       }  /* if */
     }  /* if */
@@ -8193,6 +8242,7 @@ derived class cast nodes will be created and the return value will be NULL.
   return new_derived_cast_node;
 }  /* retrace_base_casts */
 
+#endif /* OPTIMIZE_VIRTUAL_FUNCTION_CALLS */
 
 a_routine_ptr final_overrider(a_routine_ptr    base_class_function,
                               an_expr_node_ptr implicit_this_arg,
@@ -8228,6 +8278,7 @@ chain of casts is used to disambiguate the derivation path.
          final overrider. */
       an_expr_node_ptr this_node;
       a_type_ptr       this_base = class_of_function;
+      a_boolean        pointer_case = is_pointer_type(implicit_this_arg->type);
 
       for (this_node = implicit_this_arg;
            is_operation_node(this_node) &&
@@ -8238,9 +8289,9 @@ chain of casts is used to disambiguate the derivation path.
           /* The expression tree might have nodes other than
              eok_base_class_cast operations (e.g., cv-qualification
              casts, parentheses), but we can ignore those. */
-          a_type_ptr this_derived =
-            f_skip_typerefs(type_pointed_to(this_node->
-                                            variant.operation.operands->type));
+          a_type_ptr this_derived =this_node->variant.operation.operands->type;
+          if (pointer_case) this_derived = type_pointed_to(this_derived);
+          this_derived = skip_typerefs(this_derived);
           base_class = find_base_class_of(this_derived, class_of_function);
           for (virt_func = base_class->overriding_virtual_functions;
                virt_func != NULL; virt_func = virt_func->next) {
@@ -8361,9 +8412,15 @@ a function expression to which the argument list (including the implicit
   if (!bad_pure_virt_call && microsoft_bugs && microsoft_version < 1300) {
     /* MSVC++ 6.0 allowed a cast to an abstract class type, so we need to
        check for that case, too. */
-    a_type_ptr object_type =
-                         pointer_expr_complete_object_type(implicit_this_arg,
-                                                           /*call_case=*/TRUE);
+    a_type_ptr object_type = NULL;
+
+    if (is_pointer_type(implicit_this_arg->type)) {
+      object_type = pointer_expr_complete_object_type(implicit_this_arg,
+                                                      /*call_case=*/TRUE);
+    } else if (implicit_this_arg->is_lvalue) {
+      object_type = expr_complete_object_type(implicit_this_arg,
+                                              /*call_case=*/TRUE);
+    }  /* if */
     if (object_type != NULL) {
       /* We know the complete object type, so we can find the actual target
          of this call. */
@@ -8619,37 +8676,47 @@ overall call is constructed in *result.
     }  /* if */
     if (function_operand->bound_function) {
       /* Bound function.  bound_function_selector indicates the object. */
-      implicit_this_argument = make_node_from_operand(bound_function_selector);
       if (is_template_dependent_context() &&
           is_template_dependent_type(bound_function_selector->type)) {
-        /* In a prototype instantiation, a selector might have a class
-           type (because that class might have an operator-> function we
-           don't know about), or it might have a pointer type that's not
-           demonstrably related to the "this" type.  Leave it alone. */
+        /* In a prototype instantiation, a selector might have a type that's
+           not demonstrably related to the "this" type.  Leave it alone. */
       } else {
         a_type_ptr this_type = implicit_this_param_type_of(function_type);
 #if CHECKING
         /* There shouldn't be a base-class adjustment here.  If there is,
            make_this_pointer_operand or cast_pointer_for_field_selection
            did not do their job. */
-        { a_boolean        baseward_cast;
-          a_base_class_ptr bcp;
-          check_assertion(!related_class_pointers(this_type,
-                                                  implicit_this_argument->type,
-                                                  &baseward_cast,
-                                                  &bcp));
+        { a_type_ptr arg_class_type = bound_function_selector->type;
+          a_type_ptr this_class_type = type_pointed_to(this_type);
+          if (is_pointer_type(arg_class_type)) {
+            arg_class_type = type_pointed_to(arg_class_type);
+          }  /* if */
+          this_class_type = skip_typerefs(this_class_type);
+          arg_class_type = skip_typerefs(arg_class_type);
+          /* Using types_are_compatible so that an error type is considered
+             compatible with anything. */
+          check_assertion(types_are_compatible(arg_class_type,
+                                               this_class_type));
         }
 #endif /* CHECKING */
         /* Cast if necessary to handle any const etc. adjustment. */
-        cast_node(&implicit_this_argument,
-                  this_type,
-                  /*check_cast_access=*/FALSE,  /* sic */
-                  /*is_implicit_cast=*/TRUE,
-                  /*is_reinterpret_cast=*/FALSE,
-                  /*reinterpret_semantics=*/FALSE,
-                  &bound_function_selector->position);
+        if (is_pointer_type(bound_function_selector->type)) {
+          /* The selector is a pointer to class. */
+          cast_operand(this_type, bound_function_selector,
+                       /*check_cast_access=*/FALSE,  /* sic */
+                       /*is_implicit_cast=*/TRUE,
+                       /*is_reinterpret_cast=*/FALSE,
+                       /*reinterpret_semantics=*/FALSE);
+        } else {
+          /* The selector is a class lvalue or rvalue. */
+          adjust_class_object_type(bound_function_selector,
+                                   type_pointed_to(this_type),
+                                   (a_base_class_ptr)NULL);
+        }  /* if */    
       }  /* if */
-      /* Pass a "this" pointer as the first argument. */
+      /* Pass the selector object as the first argument.  It can be a pointer
+         to class, a class lvalue, or a class rvalue. */
+      implicit_this_argument = make_node_from_operand(bound_function_selector);
       implicit_this_argument->next = argument_list;
       argument_list = implicit_this_argument;
     }  /* if */
@@ -9560,6 +9627,21 @@ e.g., in a back end.
         /* Lvalue type adjustment with an lvalue-to-rvalue conversion built
            into it.  We can undo that by simply changing the flag. */
         possible = TRUE;
+        break;
+      case eok_class_rvalue_adjust:
+        /* cv-qualifier adjustment on a class rvalue.  Try to turn the operand
+           into an lvalue. */
+        (void)conv_rvalue_expr_to_lvalue(op1, &possible,
+                                         see_if_possible,
+                                         gcc_lvalue,
+                                         /*ignore_casts=*/FALSE,
+                                         (a_type_ptr *)NULL);
+        if (possible && !see_if_possible) {
+          /* Change the eok_class_rvalue_adjust to an eok_lvalue_adjust
+             that changes the cv-qualifiers. */
+          set_node_operator(node, (an_expr_operator_kind)eok_lvalue_adjust,
+                            node->type, /*is_lvalue=*/TRUE, op1);
+        }  /* if */
         break;
 #if GNU_COMPLEX_EXTENSIONS_ALLOWED
       case eok_imag_part:
@@ -10854,28 +10936,29 @@ is a "get" if put_operand is NULL.
         }  /* if */
         /* Do overload resolution to determine the function to call. */
         if (select_and_prepare_to_call_overloaded_function(
-                                            getput_sym,
-                                            /*is_template_id=*/FALSE,
-                                            (a_template_arg_ptr)NULL,
-                                            /*have_selector=*/TRUE,
-                                            &bound_function_selector,
-                                            arg_operand_list,
-                                            /*do_arg_dep_lookup=*/FALSE,
-                                            /*try_surrogate_functions=*/FALSE,
-                                            /*is_qualified_name=*/FALSE,
-                                            /*is_property=*/TRUE,
-                                            ec_no_matching_function,
-                                            ec_ambiguous_overloaded_function,
-                                            &locator.source_position,
-                                            (a_token_sequence_number)0,
-                                            &locator.source_position,
-                                            &locator.source_position,
-                                            &locator.source_position,
-                                            (a_source_position *)NULL,
-                                            (a_boolean *)NULL,
-                                            (a_boolean *)NULL,
-                                            &function_operand,
-                                            &argument_list) == NULL) {
+                                           getput_sym,
+                                           /*is_template_id=*/FALSE,
+                                           (a_template_arg_ptr)NULL,
+                                           /*have_selector=*/TRUE,
+                                           &bound_function_selector,
+                                           /*selector_is_object_pointer=*/TRUE,
+                                           arg_operand_list,
+                                           /*do_arg_dep_lookup=*/FALSE,
+                                           /*try_surrogate_functions=*/FALSE,
+                                           /*is_qualified_name=*/FALSE,
+                                           /*is_property=*/TRUE,
+                                           ec_no_matching_function,
+                                           ec_ambiguous_overloaded_function,
+                                           &locator.source_position,
+                                           (a_token_sequence_number)0,
+                                           &locator.source_position,
+                                           &locator.source_position,
+                                           &locator.source_position,
+                                           (a_source_position *)NULL,
+                                           (a_boolean *)NULL,
+                                           (a_boolean *)NULL,
+                                           &function_operand,
+                                           &argument_list) == NULL) {
           /* Some error. */
           conv_to_error_operand(operand);
         } else {

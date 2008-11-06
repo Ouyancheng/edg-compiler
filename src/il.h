@@ -1309,6 +1309,9 @@ extern an_expr_node_ptr add_cast_to_lvalue(an_expr_node_ptr node,
 extern an_expr_node_ptr add_cast_to_lvalue_if_necessary(an_expr_node_ptr node,
                                                         a_type_ptr       type);
 
+extern an_expr_node_ptr add_rvalue_class_adjust_node(an_expr_node_ptr node,
+                                                     a_type_ptr       type);
+
 extern an_expr_node_ptr copy_node(an_expr_node_ptr expr);
 
 extern an_expr_node_ptr copy_list_of_expr_trees(

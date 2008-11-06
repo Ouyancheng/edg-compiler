@@ -522,6 +522,7 @@ extern a_symbol_ptr select_overloaded_function(
                          a_template_arg_ptr       template_arg_list,
                          a_boolean                have_selector,
                          an_operand               *bound_function_selector,
+                         a_boolean                selector_is_object_pointer,
                          an_arg_operand_ptr       arg_operand_list,
                          a_boolean                do_arg_dep_lookup,
                          a_boolean                force_dependent,
@@ -606,9 +607,8 @@ extern void start_call_argument_processing(a_type_ptr         function_type,
 extern void process_call_argument_list(an_arg_operand_ptr  args,
                                        an_arg_check_block  *arg_block);
 
-extern void change_refs_on_selector_if_const_function(
-                                          a_type_ptr routine_type,
-                                          an_operand *bound_function_selector);
+extern void change_refs_on_selector(a_type_ptr routine_type,
+                                    an_operand *bound_function_selector);
 
 extern void adjust_overloaded_function_call_arguments(
                            a_symbol_ptr             function_symbol,
@@ -626,6 +626,7 @@ extern a_type_ptr select_and_prepare_to_call_overloaded_function(
                            a_template_arg_ptr      template_arg_list,
                            a_boolean               have_selector,
                            an_operand              *bound_function_selector,
+                           a_boolean               selector_is_object_pointer,
                            an_arg_operand_ptr      arg_operand_list,
                            a_boolean               do_arg_dep_lookup,
                            a_boolean               try_surrogate_functions,
@@ -643,6 +644,10 @@ extern a_type_ptr select_and_prepare_to_call_overloaded_function(
                            a_boolean               *found_through_adl,
                            an_operand              *function_operand,
                            an_expr_node_ptr        *arg_expr_list);
+
+void adjust_class_object_type(an_operand       *operand,
+                              a_type_ptr       dest_type,
+                              a_base_class_ptr bcp);
 
 a_boolean conversion_from_class_possible(
                             an_operand               *source_operand,
