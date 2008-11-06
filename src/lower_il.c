@@ -12693,8 +12693,7 @@ static void examine_expr_for_destructible_temp(
                                     an_expr_or_stmt_traversal_block_ptr tblock)
 /*
 Called during an expression traversal; returns TRUE (via tblock) and
-terminates the traversal if a temporary init with a dynamic destructor
-is found.
+terminates the traversal if a temporary init with a destructor is found.
 */
 {
   if (node->kind == (an_expr_node_kind)enk_temp_init &&
@@ -12741,7 +12740,10 @@ In cases where the second operand of an eok_land or eok_lor operation
 (as specified by expr) is known not to be executed, replace the expression
 with its first operand.  Note that this optimization is conservative;
 some values that are known at compile time are not detected as such
-(e.g., (0, 0)).  expr is lowered by this routine.
+(e.g., (0, 0)).  On input, expr (and its operands) have not yet been lowered;
+they are lowered by this routine.  This routine is used in both C and C++
+lowering and should be careful to call the appropriate routines when lowering
+expressions.
 */
 {
   an_expr_operator_kind op;
@@ -12785,7 +12787,9 @@ a throw.  In cases where the first operand is known at compilation time,
 overwrite the expression with the second or third operand depending on the
 value of the first operand.  Note that this optimization is conservative: some
 values that are known at compile time are not detected as such (e.g., (0, 0)).
-expr is lowered by this routine.
+On input, expr (and its operands) have not yet been lowered; they are lowered
+by this routine.  This routine is used in both C and C++ lowering and should be
+careful to call the appropriate routines when lowering expressions.
 */
 {
   an_expr_node_ptr  op1, op2, op3, removed_op, replacement_op;
