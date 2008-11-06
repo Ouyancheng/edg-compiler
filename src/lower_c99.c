@@ -3213,16 +3213,6 @@ _Bool type, and VLA types.
       }  /* if */
       break;
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
-    case eok_land:
-    case eok_lor:
-      /* Eliminate dead code if possible. */
-      lower_logical_operator(expr);
-      break;
-    case eok_question:
-      /* If the value of the conditional is known at compile time
-         this expression is a candidate for rewriting. */
-      lower_question_operator(expr);
-      break;
     default:
       /* Nothing needs to be done. */
       break;
@@ -3559,20 +3549,32 @@ second parameter.
         lower_vla_operations_before_operands_are_lowered(expr);
       }  /* if */
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
-      /* First lower all the operands (if any). */
-      /* Determine which operands if any are boolean controlling
-         expressions. */
-      bool_controlling_expr_mask = expr_boolean_controlling_expr_mask(expr);
-      lower_c99_expr_list(expr->variant.operation.operands,
-                          bool_controlling_expr_mask);
-      /* Then transform the current operator if needed. */
-      lower_c99_operator(expr);
+      /* Look for some special cases before the expression is lowered.
+         In each of these cases, the expr subtree must be lowered during
+         the special processing. */
+      if (node_operator_is(expr, eok_question)) {
+        /* Lower a question operator and everything under it. */
+        lower_question_operator(expr);
+      } else if (node_operator_is(expr, eok_land) ||
+                 node_operator_is(expr, eok_lor)) {
+        /* Lower a logical operator and everything under it. */
+        lower_logical_operator(expr);
+      } else {
+        /* First lower all the operands (if any). */
+        /* Determine which operands if any are boolean controlling
+           expressions. */
+        bool_controlling_expr_mask = expr_boolean_controlling_expr_mask(expr);
+        lower_c99_expr_list(expr->variant.operation.operands,
+                            bool_controlling_expr_mask);
+        /* Then transform the current operator if needed. */
+        lower_c99_operator(expr);
 #if MINIMAL_INLINING
-      if (is_call_node(expr)) {
-        /* Do inlining of a call if appropriate. */
-        if (inlining_enabled) do_inlining_of_call(expr, statement);
-      }  /* if */
+        if (is_call_node(expr)) {
+          /* Do inlining of a call if appropriate. */
+          if (inlining_enabled) do_inlining_of_call(expr, statement);
+        }  /* if */
 #endif /* MINIMAL_INLINING */
+      }  /* if */
       break;
     case enk_constant:
       lower_c99_constant_expr(expr);
