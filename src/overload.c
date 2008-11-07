@@ -10363,6 +10363,8 @@ On return, the operand is an lvalue.
     /* Do any cv-qualifier adjustment. */
     if (is_error_operand(operand)) {
       /* Leave an error operand alone. */
+    } else if (is_error_type(dest_type)) {
+      conv_to_error_operand(operand);
     } else if (is_an_lvalue(operand)) {
       adjust_lvalue_type(operand, dest_type);
     } else {
