@@ -12094,7 +12094,7 @@ EXTERN char     *db_operator_names[(int)eok_last+1]
 #if GNU_COMPLEX_EXTENSIONS_ALLOWED
    "x~", "__real", "__imag",
 #endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
-   "pre ++", "pre --", "post ++", "post --",
+   "post ++", "post --", "pre ++", "pre --",
    "+", "-", "*", "/", "%",
 #if C99_IL_EXTENSIONS_SUPPORTED
    "j*", "j/", "fj+", "jf+", "fj-", "jf-",
