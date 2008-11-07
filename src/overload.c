@@ -10351,31 +10351,29 @@ the operand type to access the same class object with a new type.
 On return, the operand is an lvalue.
 */
 {
-  if (is_error_operand(operand)) {
-    /* Leave an error operand alone. */
-  } else {
-    if (bcp != NULL) {
-      /* Cast the pointer to the proper base class. */
-      base_class_cast_operand(operand, bcp,
-                              /*check_cast_access=*/TRUE,
-                              /*is_implicit_cast=*/TRUE,
-                              /*implicit_in_naming=*/FALSE,
-                              /*is_object_pointer=*/TRUE);
-    }  /* if */
-    if (!identical_types(operand->type, dest_type)) {
-      /* Do any cv-qualifier adjustment. */
-      if (is_an_lvalue(operand)) {
-        adjust_lvalue_type(operand, dest_type);
-      } else {
-        an_expr_node_ptr node;
-        an_operand       orig_operand;
-        orig_operand = *operand;
-        check_assertion (is_an_rvalue(operand));
-        node = make_node_from_operand(operand);
-        node = add_rvalue_class_adjust_node(node, dest_type);
-        make_expression_operand(node, operand);
-        restore_operand_details(operand, &orig_operand);
-      }  /* if */
+  if (bcp != NULL) {
+    /* Cast the pointer to the proper base class. */
+    base_class_cast_operand(operand, bcp,
+                            /*check_cast_access=*/TRUE,
+                            /*is_implicit_cast=*/TRUE,
+                            /*implicit_in_naming=*/FALSE,
+                            /*is_object_pointer=*/TRUE);
+  }  /* if */
+  if (!identical_types(operand->type, dest_type)) {
+    /* Do any cv-qualifier adjustment. */
+    if (is_error_operand(operand)) {
+      /* Leave an error operand alone. */
+    } else if (is_an_lvalue(operand)) {
+      adjust_lvalue_type(operand, dest_type);
+    } else {
+      an_expr_node_ptr node;
+      an_operand       orig_operand;
+      orig_operand = *operand;
+      check_assertion (is_an_rvalue(operand));
+      node = make_node_from_operand(operand);
+      node = add_rvalue_class_adjust_node(node, dest_type);
+      make_expression_operand(node, operand);
+      restore_operand_details(operand, &orig_operand);
     }  /* if */
   }  /* if */
 }  /* adjust_class_object_type */
