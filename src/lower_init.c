@@ -495,9 +495,9 @@ an_expr_node_ptr make_call_node(a_routine_ptr      routine,
 Make an expression that calls routine "routine" with arguments "arg_list",
 and return a pointer to it.  arg_list is assumed to be lowered already.
 A virtual call is generated if the routine is virtual and honor_virtual
-is TRUE.  The virtual call is *not* lowered.  If insert_location is not
-NULL, an expression statement containing the created call node is inserted
-at *insert_location.
+is TRUE.  The virtual call is *not* lowered; the caller must do that.
+If insert_location is not NULL, an expression statement containing the
+created call node is inserted at *insert_location.
 */
 {
   an_expr_node_ptr      call_node, rout_node;
@@ -531,7 +531,10 @@ at *insert_location.
      at the point of definition, which means the type here will not be
      attached to any list and will not get lowered unless we do it here. */
   lower_os_type(routine->type);
-  /* Choose the right operation (virtual call or non-virtual call). */
+  /* Choose the right operation (virtual call or non-virtual call).
+     Note that eok_member_call is not an option.  We are either generating
+     a fully lowered call (eok_call) or a virtual call that must be lowered
+     by the caller (eok_virtual_call). */
   if (routine->is_virtual && honor_virtual) {
     op = (an_expr_operator_kind)eok_virtual_call;
   } else {

@@ -2571,12 +2571,12 @@ C++ standard.  The current token is the "(" of the call.
        a prototype instantiation.  Make a generic call. */
     an_expr_node_ptr function_node, call_node, implicit_this_argument;
     function_node = make_node_from_operand(operand);
-    op = (an_expr_operator_kind)eok_generic_call;
+    op = (an_expr_operator_kind)eok_call;
     if (operand->bound_function) {
       implicit_this_argument = make_node_from_operand(bound_function_selector);
       implicit_this_argument->next = argument_list;
       argument_list = implicit_this_argument;
-      op = (an_expr_operator_kind)eok_generic_member_call;
+      op = (an_expr_operator_kind)eok_member_call;
     }  /* if */
     function_node->next = argument_list;
     call_node = make_operator_node(op,
@@ -3089,6 +3089,9 @@ have the EOPT_FIELD_FOR_OFFSETOF flag set in that case).
           an_expr_node_ptr op_1 = skip_parens(operand_1->variant.expression);
           if (is_operation_node(op_1)) {
             an_expr_operator_kind op = op_1->variant.operation.kind;
+            /* eok_member_call is deliberately excluded here because MSVC++
+               does this trick only with non-member calls.  (Checked in
+               MSVC++ 7.1.) */ 
             if (op == (an_expr_operator_kind)eok_call) {
               if (symbol_supplement_for_class(orig_class_struct_union_type)->
                                                                       is_POD) {
@@ -6394,8 +6397,10 @@ static a_type_ptr type_of_call(an_expr_node_ptr  expr)
 /*
 Return the type of the routine called by expr (the static type, which may be
 different from the type of the routine that is actually invoked if virtual
-function overriding is involved).  The caller must ensure that expr is a
-call node (parens must be stripped off already if necessary).
+function overriding is involved).  The returned type is usually a routine
+type, but it can be a template parameter type or an error type.  The caller
+must ensure that expr is a call node (parens must be stripped off already
+if necessary).
 */
 {
   a_type_ptr  result;
@@ -6406,12 +6411,17 @@ call node (parens must be stripped off already if necessary).
     if (node_operator_is(expr, eok_pm_call)) {
       check_assertion(result->kind == (a_type_kind)tk_ptr_to_member);
       result = pm_member_type(result);
-    } else {
-      check_assertion(result->kind == (a_type_kind)tk_pointer);
+    } else if (result->kind == (a_type_kind)tk_pointer) {
       result = type_pointed_to(result);
+    } else if (is_template_param_type(result)) {
+      /* We don't know what routine is called. */
+      result = type_of_unknown_templ_param_nontype;
+    } else {
+      unexpected_condition();
     }  /* if */
     result = skip_typerefs(result);
     check_assertion(result->kind == (a_type_kind)tk_routine ||
+                    result->kind == (a_type_kind)tk_template_param ||
                     is_error_type(result));
   }  /* if */
   return result;
@@ -6520,7 +6530,7 @@ id_case:
     /* Function or operator call: Produce the associated return type.
        Parens around the call are ignored. */
     result = type_of_call(expr);
-    if (!is_error_type(result)) {
+    if (result->kind == (a_type_kind)tk_routine) {
       result = result->variant.routine.return_type;
     }  /* if */
   } else {
@@ -10321,7 +10331,7 @@ set the void_expression_lvalue flag in the expression.
     if (is_call_node(expr)) {
       /* Retrieve the type of the routine being called. */
       a_type_ptr  tp = type_of_call(expr);
-      if (!is_error_type(tp) &&
+      if (tp->kind == (a_type_kind)tk_routine &&
           tp->variant.routine.extra_info->result_should_be_used) {
         pos_warning(ec_call_result_should_be_used, &operand->position);
       }  /* if */

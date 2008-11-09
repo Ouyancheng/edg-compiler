@@ -2231,22 +2231,14 @@ operator routine or do bitwise assignment.
               dest_expr->is_lvalue = TRUE;
               /* Now that we have element lvalues, we can find the right
                  assignment operator. */
-              rp = find_assignment_operator_for_memberwise_copy(
+            }  /* if */
+            /* Find the assignment operator to do the copy. */
+            rp = find_assignment_operator_for_memberwise_copy(
                                             tp, source_expr, dest_expr,
                                             &fp->source_corresp.decl_position);
-              if (rp == NULL) {
-                /* Error has already been issued in the subroutine. */
-                continue;
-              }  /* if */
-            } else {
-              /* Find the assignment operator to do the copy. */
-              rp = find_assignment_operator_for_memberwise_copy(
-                                            tp, source_expr, dest_expr,
-                                            &fp->source_corresp.decl_position);
-              if (rp == NULL) {
-                /* Error has already been issued in the subroutine. */
-                continue;
-              }  /* if */
+            if (rp == NULL) {
+              /* Error has already been issued in the subroutine. */
+              continue;
             }  /* if */
             call_stmt = make_assignment_call(source_expr, dest_expr, rp,
                                              err_pos);

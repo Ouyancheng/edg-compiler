@@ -1502,10 +1502,9 @@ end_of_routine:
 void do_inlining_of_call(an_expr_node_ptr expr,
                          a_statement_ptr  statement)
 /*
-expr is a lowered eok_call expression.  If the routine called is an inline
-function, do inlining on the expression.  If statement is non-NULL, the
-call is the top node of the indicated statement (which is an expression
-statement).
+expr is a lowered call expression.  If the routine called is an inline
+function, do inlining on the expression.  If statement is non-NULL, the call
+is the top node of the indicated statement (which is an expression statement).
 */
 {
   an_expr_node_ptr arg;
@@ -1513,9 +1512,10 @@ statement).
   a_statement_ptr  block_stmt;
 
   db_enter(4, "do_inlining_of_call");
+  /* Note that other kinds of calls (like eok_member_call) have been lowered
+     to eok_call already. */
   check_assertion(is_operation_node(expr) &&
-                  expr->variant.operation.kind ==
-                                              (an_expr_operator_kind)eok_call);
+                  node_operator_is(expr, eok_call));
   arg = expr->variant.operation.operands;
   routine = routine_from_function_expr(arg);
   if (routine != NULL) {

@@ -9350,24 +9350,33 @@ enum an_expr_operator_kind_tag {
 			   is_gnu_two_operand_question_mark is TRUE (but
 			   three operands are still provided in that case). */
   /* The following have n operands: */
-  eok_call,             /* A call of a function.  The first operand is the
-			   routine and the rest are its arguments.
-			   Note that the operand identifying the routine can
-			   be an expression (e.g., for a call through a
-			   pointer), or eok_dot_static/eok_points_to_static
-			   for a static member function call.
-			   For member functions, a compiler-generated argument
-			   for the selector object (class lvalue, class rvalue,
-			   or pointer to class) follows the first operand. */
-  eok_virtual_call,	/* A call of a C++ virtual function.  The first operand
-			   is the routine, the second is the selector object
-			   (class lvalue, class rvalue, or pointer to class),
-			   and the rest are the other arguments. */
-  eok_pm_call,		/* A C++ call of a function identified by a pointer
+  eok_call,             /* A call of a non-member function or static member
+			   function.  Also any call in C.  The first operand
+			   identifies the routine and the rest are its
+			   arguments.  Note that the operand specifying the
+			   routine can be an expression (e.g., for a call
+			   through a pointer), or eok_dot_static/
+			   eok_points_to_static for a static member function
+			   call. */
+  eok_member_call,	/* A call of a non-static member function that does
+			   not require virtual function semantics.  The first
+			   operand identifies the member function (as a
+			   routine address, not a pointer-to-member).  The
+			   second operand is the selector object (class lvalue
+			   or class rvalue for the "x.f()" form, or pointer to
+			   class for the "p->f()" form).  The remaining
+			   operands are the arguments. */
+  eok_virtual_call,	/* A call of a virtual function.  Same operands as
+			   eok_member_call, but virtual call semantics apply.
+			   The routine identified is the one statically named
+			   in the source, not necessarily the one that will be
+			   called. */
+  eok_pm_call,		/* A call of a function identified by a pointer
 			   to member.  The first operand is the pointer to
 			   member (function); the second is the selector
-			   object (class lvalue, class rvalue, or pointer to
-			   class); the arguments follow. */
+			   object (class lvalue or class rvalue for the
+			   "(x.*pmf)()" form, or pointer to class for the
+			   "(p->*pmf)()" form); the arguments follow. */
   /* Operators used when the <stdarg.h> macros are treated as builtins: */
   eok_va_start,		/* va_start macro reference.  First operand is an
 			   lvalue variable of type va_list, second is
@@ -9398,13 +9407,6 @@ enum an_expr_operator_kind_tag {
   eok_static_cast,      /* Generic static_cast from the source. */
   eok_const_cast,       /* Generic const_cast from the source. */
   eok_reinterpret_cast, /* Generic reinterpret_cast from the source. */
-  eok_generic_call,	/* Like eok_call, but called function details are
-			   not known.  Used for calls that are not written in
-			   the bound-function p->f() or x.f() form. */
-  eok_generic_member_call,
-			/* Like eok_call, but called function details are
-			   not known.  Used for calls that are written in the
-			   bound-function p->f() or x.f() form. */
   /* Special operators: */
   eok_error,            /* This is a special operator used in the cases when
                            the operator cannot be determined.  This operator
@@ -12112,12 +12114,12 @@ EXTERN char     *db_operator_names[(int)eok_last+1]
    "virt func ptr",
    "?",
    "call",
-   "virtcall",
+   "member call",
+   "virtual call",
    "pmcall",
    "va_start", "va_arg", "va_end", "va_copy", "va_start (single op)",
    "lvalue",
    "static cast", "const cast", "reinterpret cast",
-   "Gcall", "GMcall",
    "error", "last"
 }
 #endif /* VAR_INITIALIZERS */

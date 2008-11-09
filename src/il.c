@@ -11460,6 +11460,7 @@ tk_unknown is returned.
     case eok_points_to_vacuous_destructor_call:
     case eok_question:
     case eok_call:
+    case eok_member_call:
     case eok_virtual_call:
     case eok_pm_call:
     case eok_va_start:
@@ -11475,8 +11476,6 @@ tk_unknown is returned.
     case eok_static_cast:
     case eok_const_cast:
     case eok_reinterpret_cast:
-    case eok_generic_call:
-    case eok_generic_member_call:
       result = (a_type_kind)tk_template_param;
       break;
     case eok_error:
@@ -15231,14 +15230,13 @@ to TRUE if a warning about the expression doing nothing should be suppressed.
     case eok_padd_assign:
     case eok_psubtract_assign:
     case eok_call:
+    case eok_member_call:
     case eok_virtual_call:
     case eok_pm_call:
     case eok_va_start:
     case eok_va_arg:
     case eok_va_end:
     case eok_va_copy:
-    case eok_generic_call:
-    case eok_generic_member_call:
       /* These all cause side effects. */
       has_side_effects = TRUE;
       break;
@@ -19613,6 +19611,7 @@ static a_byte lvalue_rvalue_test[(int)eok_last+1] = {
   /* eok_question: */			LVRV_OPND1_IS_RVALUE |
 					LVRV_OPND2_IS_LVALUE_IF_EXPR_IS,
   /* eok_call: */			LVRV_NO_REQUIREMENTS,
+  /* eok_member_call: */		LVRV_NO_REQUIREMENTS,
   /* eok_virtual_call: */		LVRV_NO_REQUIREMENTS,
   /* eok_pm_call: */			LVRV_OPND1_IS_RVALUE,
   /* eok_va_start: */			LVRV_OPND1_IS_LVALUE |
@@ -19626,8 +19625,6 @@ static a_byte lvalue_rvalue_test[(int)eok_last+1] = {
   /* eok_static_cast: */		LVRV_NO_REQUIREMENTS,
   /* eok_const_cast: */			LVRV_NO_REQUIREMENTS,
   /* eok_reinterpret_cast: */		LVRV_NO_REQUIREMENTS,
-  /* eok_generic_call: */		LVRV_NO_REQUIREMENTS,
-  /* eok_generic_member_call: */	LVRV_NO_REQUIREMENTS,
   /* eok_error: */			LVRV_NO_REQUIREMENTS,
   /* eok_last: */			LVRV_DISTINGUISHED_VALUE_FOR_LAST
 };  /* lvalue_rvalue_test */

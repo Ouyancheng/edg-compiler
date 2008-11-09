@@ -11372,8 +11372,12 @@ the top node of the indicated statement (which is an expression statement).
     /* Call of a function specified by a pointer-to-member. */
     lower_pm_call(call_expr);
   } else {
-    check_assertion(op == (an_expr_operator_kind)eok_call);
-    /* Normal call. */
+    check_assertion((op == (an_expr_operator_kind)eok_call ||
+                     op == (an_expr_operator_kind)eok_member_call) &&
+                    is_operation_node(expr) &&
+                    expr->variant.operation.kind == op);
+    /* Normal member or non-member call. */
+    expr->variant.operation.kind = (an_expr_operator_kind)eok_call;
 #if MINIMAL_INLINING
     if (inlining_enabled) do_inlining_of_call(call_expr, statement);
 #endif /* MINIMAL_INLINING */
@@ -13222,6 +13226,7 @@ cast.  See lower_expr for typical invocation.
            This call also lowers any subtree. */
         lower_pm_related_class_cast(expr);
       } else if (op == (an_expr_operator_kind)eok_call ||
+                 op == (an_expr_operator_kind)eok_member_call ||
                  op == (an_expr_operator_kind)eok_virtual_call ||
                  op == (an_expr_operator_kind)eok_pm_call) {
         /* Calls of various kinds. */
@@ -13775,8 +13780,8 @@ expression statement, statement points to the statement; otherwise, it is NULL.
 #if MINIMAL_INLINING
   if (inlining_enabled && statement != NULL && expr_to_lower == expr &&
       is_operation_node(expr_to_lower) &&
-      expr_to_lower->variant.operation.kind ==
-                                             (an_expr_operator_kind)eok_call) {
+      (node_operator_is(expr_to_lower, eok_call) ||
+       node_operator_is(expr_to_lower, eok_member_call))) {
     /* Special-case a call as the top expression so inlining can be
        done with statement insertions.  Don't do this if an enk_object_lifetime
        appears (it could be done, but it's more complicated because of

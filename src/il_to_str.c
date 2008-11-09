@@ -3690,9 +3690,7 @@ on every expression.
           char *op_str = db_operator_names[expr->variant.operation.kind];
           an_expr_operator_kind op = expr->variant.operation.kind;
           octl->output_str("(");
-          if (op == (an_expr_operator_kind)eok_call ||
-              op == (an_expr_operator_kind)eok_virtual_call ||
-              op == (an_expr_operator_kind)eok_pm_call) {
+          if (is_call_node(expr)) {
             /* Calls. */
             form_expression(operand, octl);
             octl->output_str("(");

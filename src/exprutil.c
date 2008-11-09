@@ -8525,10 +8525,14 @@ transformations on the return value).
     /* Call using a pointer-to-member-function. */
     op = (an_expr_operator_kind)eok_pm_call;
   } else if (is_virtual) {
-    /* Call of a virtual function. */
+    /* Virtual call of nonstatic member function. */
     op = (an_expr_operator_kind)eok_virtual_call;
+  } else if (routine_type_is_nonstatic_member_function(function_type)) {
+    /* Non-virtual call of nonstatic member function. */
+    op = (an_expr_operator_kind)eok_member_call;
   } else {
-    /* Normal call. */
+    /* C mode call, call of non-member function, or call of static member
+       function. */
     op = (an_expr_operator_kind)eok_call;
   }  /* if */
   /* Make an expression for the function call. */

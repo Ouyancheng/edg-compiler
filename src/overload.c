@@ -7699,7 +7699,8 @@ format string can be deduced, set appropriate fields in arg_block.
   /* Check to see if this argument is a call to a routine with the
      "format_arg" attribute. */
   if (is_operation_node(node) &&
-      node_operator_is(node, eok_call) &&
+      (node_operator_is(node, eok_call) ||
+       node_operator_is(node, eok_member_call)) &&
       (rout = routine_from_function_expr(node->variant.operation.operands))
                                                                      != NULL) {
     a_routine_type_supplement_ptr rtsp;

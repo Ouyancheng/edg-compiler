@@ -1,5 +1,15 @@
 Version 4.0
 
+11/9/08  [EDGcpfe/9343]
+eok_member_call operator
+
+IL CHANGE:  Non-virtual member function calls are now represented by
+a new eok_member_call operator rather than an eok_call operator.
+eok_generic_call and eok_generic_member_call, formerly used for
+dependent calls in prototype instantiations, have been eliminated;
+eok_call or eok_member_call are now used for those as well.
+
+
 11/6/08  [EDGcpfe/9268]
 Selector on call can now be class lvalue or rvalue in addition to pointer
 

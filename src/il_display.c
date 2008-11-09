@@ -3081,6 +3081,7 @@ Display the name of an expression operator.
                                 s = "eok_virtual_function_ptr";   break;
     case eok_question:          s = "eok_question";               break;
     case eok_call:              s = "eok_call";                   break;
+    case eok_member_call:       s = "eok_member_call";            break;
     case eok_virtual_call:      s = "eok_virtual_call";           break;
     case eok_pm_call:           s = "eok_pm_call";                break;
     case eok_va_start:          s = "eok_va_start";               break;
@@ -3094,9 +3095,6 @@ Display the name of an expression operator.
     case eok_static_cast:       s = "eok_static_cast";            break;
     case eok_const_cast:        s = "eok_const_cast";             break;
     case eok_reinterpret_cast:  s = "eok_reinterpret_cast";       break;
-    case eok_generic_call:      s = "eok_generic_call";           break;
-    case eok_generic_member_call:
-				s = "eok_generic_member_call";    break;
     case eok_error:             s = "eok_error";                  break;
     default:                    s = "**BAD EXPR OPERATOR KIND**"; break;
   }  /* switch */
