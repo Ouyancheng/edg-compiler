@@ -6412,7 +6412,7 @@ if necessary).
       result = pm_member_type(result);
     } else if (result->kind == (a_type_kind)tk_pointer) {
       result = type_pointed_to(result);
-    } else if (is_template_param_type(result)) {
+    } else if (could_be_dependent_class_type(result)) {
       /* We don't know what routine is called. */
       result = type_of_unknown_templ_param_nontype;
     } else {
