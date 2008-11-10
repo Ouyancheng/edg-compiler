@@ -8771,8 +8771,19 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
     }
 #endif /* DECL_MODIFIERS_IN_USE */
 #if GNU_EXTENSIONS_ALLOWED
-    if (gpp_mode && attributes != NULL) {
-      apply_attributes_to_routine(attributes, rp);
+    if (gpp_mode) {
+      if (attributes != NULL) {
+        apply_attributes_to_routine(attributes, rp);
+      }  /* if */
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+      if (rp->source_corresp.is_class_member &&
+          rp->ELF_visibility == (an_ELF_visibility_kind)evk_unspecified) {
+        /* If no visibility attribute was specified on the function, propagate
+           any visibility that was specified on the enclosing class */
+        a_type_ptr  parent_class = parent_class_of(rp);
+        rp->ELF_visibility = class_type_supp(parent_class)->ELF_visibility;
+      }  /* if */
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
     /* Add it to the routines list of the appropriate scope; NO_SCOPE_DEPTH
@@ -16775,8 +16786,28 @@ that follows.
         }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
         if (dps->attributes != NULL) {
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+          an_ELF_visibility_kind  saved_ELF_visibility = rp->ELF_visibility;
+          if (!already_specialized) {
+            /* Clear any ELF visibility implied by the template in case the
+               attributes on the specialization specify a new visibility.
+               (This only applies to the first declaration of an explicit
+               specialization.  Subsequent declarations must keep the
+               visibility specified or implied by the first.) */
+            rp->ELF_visibility = (an_ELF_visibility_kind)evk_unspecified;
+          }  /* if */
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
           /* Apply the attributes to the routine. */
           apply_attributes_to_routine(dps->attributes, rp);
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+          if (!already_specialized &&
+              rp->ELF_visibility == (an_ELF_visibility_kind)evk_unspecified) {
+            /* If no visibility attribute was specified on the specialization,
+               restore any visibility that was applied to the partial
+               instance. */
+            rp->ELF_visibility = saved_ELF_visibility;
+          }  /* if */
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
         }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if DECL_MODIFIERS_IN_USE

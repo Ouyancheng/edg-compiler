@@ -8318,6 +8318,14 @@ declarations.)
         tssp->attributes = decl_info->decl_state.attributes;
         decl_info->decl_state.attributes = NULL;
       }  /* if */
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+      if (rtn->ELF_visibility == (an_ELF_visibility_kind)evk_unspecified) {
+        /* If no ELF visibility attribute was specified on the member template
+           itself, adopt any visibility that might have been specified for the
+           enclosing class. */
+        rtn->ELF_visibility = class_type_supp(class_type)->ELF_visibility;
+      }  /* if */
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */

@@ -1,5 +1,30 @@
 Version 4.0
 
+11/10/08 [EDGcpfe/9189]
+GNU C++ compatibility: ELF visibility and function templates
+
+In GNU C++ mode, the ELF visibility attribute specified on a class type now
+applies to the instances of that class' member templates by default (that
+default may still be overridden by an attribute on the member template).
+For example:
+
+  struct __attribute((visibility("hidden"))) S {
+    template<typename T> void f1() {}
+  };
+  template void S::f1<int>();  // S::f1<int> now has "hidden" ELF visibility.
+
+Furthermore, an ELF visibility attribute specified on the explicit
+specialization of a function template that itself had an ELF visibility
+attribute, no longer triggers a warning about an attribute conflict; instead,
+the visibility specified on the specialization now takes precedence.
+For example:
+
+  template<typename T> __attribute((visibility("protected"))) void g() {}
+  template<>  __attribute((visibility("internal"))) void g<double>() {}
+        // Specialization no longer triggers a warning; g<double> has
+        // "internal" visibility.
+
+
 11/9/08  [EDGcpfe/9343]
 eok_member_call operator
 
