@@ -2569,17 +2569,16 @@ C++ standard.  The current token is the "(" of the call.
   } else if (unknown_dependent_function) {
     /* A call of a function whose type is not completely known, in
        a prototype instantiation.  Make a generic call. */
-    an_expr_node_ptr function_node, call_node, implicit_this_argument;
+    an_expr_node_ptr function_node, call_node;
     function_node = make_node_from_operand(operand);
     op = (an_expr_operator_kind)eok_call;
-    if (operand->bound_function) {
-      implicit_this_argument = make_node_from_operand(bound_function_selector);
-      implicit_this_argument->next = argument_list;
-      argument_list = implicit_this_argument;
-      op = (an_expr_operator_kind)eok_member_call;
-    }  /* if */
     function_node->next = argument_list;
-    call_node = make_operator_node(op,
+    /* Since we don't know what function is called, we don't know if it
+       is a nonstatic member function, so the "bound function" part of the
+       call is represented as a dot-static operation.  So we don't expect to
+       see a true bound function here. */
+    check_assertion(!operand->bound_function);
+    call_node = make_operator_node((an_expr_operator_kind)eok_call,
                                    type_of_unknown_templ_param_nontype,
                                    function_node);
     /* Coverity bug: This code is not dead: arg_dep_lookup_suppressed is
