@@ -12851,7 +12851,7 @@ careful to call the appropriate routines when lowering expressions.
         wrap_throw(throw_op, expr);
         throw_op = NULL;
       }  /* if */
-      lower_expr(replacement_op);
+      lower_any_expr(replacement_op);
       overwrite_node(expr, replacement_op);
     } else {
       /* Make sure the entire expression is lowered. */
