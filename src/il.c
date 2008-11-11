@@ -12204,6 +12204,10 @@ a template argument, i.e., it is not integral or enum.
 
   if (is_integral_or_enum_type(type)) {
     is_bad_type = FALSE;
+  } else if (gpp_mode && is_floating_type(type)) {
+    /* g++ allows floating-point values in a template argument as long as
+       the final result is integral.  Checked in 3.4 - 4.3. */
+    is_bad_type = FALSE;
   } else if (is_template_param_type(type)) {
     /* This comes up in the deduction done to determine if one function
        is more specialized than another. */

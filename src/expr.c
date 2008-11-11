@@ -18242,6 +18242,10 @@ see expr.h).
             /* Guard against something like "int(3.0/1)". */
             token_ends_expr(next_token(), prec_level, local_options)) {
           float_con_allowed_in_integral_const_expr = TRUE;
+        } else if (gpp_mode && curr_expr_kind_is(ek_template_arg)) {
+          /* g++ allows float constants in template argument expressions
+             as long as the overall result is integral.  Checked in 3.2-4.3. */
+          float_con_allowed_in_integral_const_expr = TRUE;
         }  /* if */
         if (curr_expr_kind_is(ek_pp)) {
           /* Floating constants are not allowed in preprocessing
@@ -19835,6 +19839,22 @@ memory region).  Do various error checks.
 }  /* prep_nontype_template_argument_initializer */
 
 
+static void check_nontype_template_argument_type(an_operand *operand)
+/*
+operand is a nontype template argument expression that has just been scanned.
+Check to see if its type is generally valid.  (This routine exists to make
+sure that some cases allowed within template argument expressions don't
+escape at the end of the expression.)
+*/
+{
+  if (gpp_mode && is_floating_type(operand->type)) {
+    /* g++ allows floating-point constants and operations in template
+       arguments.  Make sure the final result is not floating. */
+    error_in_operand(ec_expr_not_integral_or_enum, operand);
+  }  /* if */
+}  /* check_nontype_template_argument_type */
+
+
 void scan_template_argument_constant_expression(a_type_ptr param_type,
                                                 a_constant *constant)
 /*
@@ -19857,6 +19877,7 @@ memory region).  If param_type is NULL, the parameter type is not known.
   switch_to_file_scope_region(&region_to_switch_back_to);
   /* Scan the constant expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+  check_nontype_template_argument_type(&result);
   /* Convert to the required type if necessary.  Do not use user-defined
      conversions. */
   if (param_type != NULL) {
@@ -19917,6 +19938,7 @@ at some later point call free_arg_operand_list to free the entry.
   /* Scan the constant expression. */
   arg_operand = alloc_arg_operand();
   scan_expr(&arg_operand->operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+  check_nontype_template_argument_type(&arg_operand->operand);
   /* Don't do final processing on the attached cross-reference entries.
      They are given to the caller. */
   curr_expr_ref_entries = NULL;

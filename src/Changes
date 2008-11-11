@@ -1,5 +1,15 @@
 Version 4.0
 
+11/11/08 [EDGcpfe/9340]
+GNU C++ compatibility: floating-point operations in template arguments
+
+GNU C++ mode now allows floating-point constants and operations in
+template argument expressions as long as the final result is integral.
+
+  template <int xi> struct foo {};
+  foo< ( 3.1 < 2.3) > d;
+
+
 11/10/08 [EDGcpfe/9189]
 GNU C++ compatibility: ELF visibility and function templates
 
