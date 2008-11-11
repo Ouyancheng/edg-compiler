@@ -948,6 +948,11 @@ extern an_expr_node_ptr remove_cast_operations(an_expr_node_ptr  node);
 extern void conv_rvalue_expr_to_object_pointer(an_expr_node_ptr *p_node,
                                                a_boolean        *converted);
 
+extern
+an_expr_node_ptr strip_rvalue_base_class_casts(an_expr_node_ptr expr,
+                                               an_expr_node_ptr *top_cast,
+                                               an_expr_node_ptr *bottom_cast);
+
 extern void conv_class_rvalue_operand_to_lvalue(an_operand *operand);
 
 extern void conv_class_operand_to_object_pointer(an_operand *operand);

@@ -9702,6 +9702,48 @@ and *p_node unchanged.
 }  /* conv_rvalue_expr_to_object_pointer */
 
 
+an_expr_node_ptr strip_rvalue_base_class_casts(an_expr_node_ptr expr,
+                                               an_expr_node_ptr *top_cast,
+                                               an_expr_node_ptr *bottom_cast)
+/*
+expr is a class rvalue expression.  If it has any base class casts on top,
+remove them and save them on the side via *top_cast and *bottom_cast, and
+return the expression under the casts as the result of the function.  If not,
+set *top_cast and *bottom_cast to NULL and return the original expression.
+*/
+{
+  an_expr_node_ptr node;
+
+  check_assertion(!expr->is_lvalue &&
+                  (is_class_struct_union_type(expr->type) ||
+                   is_template_param_type(expr->type) ||
+                   is_error_type(expr->type)));
+  *top_cast = *bottom_cast = NULL;
+  node = expr;
+  /* No need to check for eok_parens here because this is a compiler-
+     generated sequence. */
+  /* Skip one class rvalue type adjustment on top.  If there are base class
+     casts underneath, this adjustment will be included in the cast list. */
+  if (is_operation_node(node) &&
+      node_operator_is(node, eok_class_rvalue_adjust)) {
+    node = node->variant.operation.operands;
+  }  /* if */
+  while (is_operation_node(node) &&
+         node_operator_is(node, eok_base_class_cast) &&
+         node->variant.operation.compiler_generated) {
+    *top_cast = expr;
+    *bottom_cast = node;
+    node = node->variant.operation.operands;
+  }  /* while */
+  if (*top_cast != NULL) {
+    /* We did find a base class cast, so return the expression under the
+       whole sequence of casts to the caller. */
+    expr = node;
+  }  /* if */
+  return expr;
+}  /* strip_rvalue_base_class_casts */
+
+
 void conv_class_rvalue_operand_to_lvalue(an_operand *operand)
 /*
 Convert an rvalue class operand into an operand for an lvalue for the
@@ -9774,7 +9816,45 @@ initializing it from the rvalue.  This routine is used only in C++ mode.
     if (!optimized_case) {
       /* Create a temporary, copy the rvalue into the temporary, and return
          an lvalue for the temporary. */
+      /* Remove any class rvalue base class casts so that we make the
+         temporary for the derived class and don't slice.  The casts will
+         be reattached to the new expression below. */
+      an_expr_node_ptr top_cast = NULL, bottom_cast = NULL;
+      if (is_expression_operand(operand)) {
+        node = operand->variant.expression;
+        node = strip_rvalue_base_class_casts(node, &top_cast, &bottom_cast);
+        if (top_cast != NULL) {
+          /* Some casts were removed, so make the temporary from the derived
+             class expression. */
+          make_expression_operand(node, operand);
+          restore_operand_details(operand, &orig_operand);
+        }  /* if */
+      }  /* if */
       temp_init_from_operand(operand, /*result_is_lvalue=*/TRUE);
+      if (top_cast != NULL && !is_error_operand(operand)) {
+        /* Restore the base class casts on top of the initialization of the
+           temporary. */
+        check_assertion(is_expression_operand(operand));
+        bottom_cast->variant.operation.operands = operand->variant.expression;
+        /* Change the rvalue casts to lvalue casts. */
+        node = top_cast;
+        check_assertion(is_operation_node(node));
+        if (node_operator_is(node, eok_class_rvalue_adjust)) {
+          set_node_operator(node, (an_expr_operator_kind)eok_lvalue_adjust,
+                            node->type, /*is_lvalue=*/TRUE,
+                            node->variant.operation.operands);
+          node = node->variant.operation.operands;
+        }  /* if */
+        for (;;) {
+          check_assertion(is_operation_node(node) &&
+                          node_operator_is(node, eok_base_class_cast));
+          node->is_lvalue = TRUE;
+          if (node == bottom_cast) break;
+          node = node->variant.operation.operands;
+          check_assertion(node != NULL);
+        }  /* for */
+        make_lvalue_expression_operand(top_cast, operand);
+      }  /* if */
     }  /* if */
     /* Restore the original source position, etc. */
     restore_operand_details(operand, &orig_operand);
