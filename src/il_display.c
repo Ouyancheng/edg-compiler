@@ -3258,7 +3258,7 @@ Display the indicated expression node.
       disp_expr_operator_name(ptr->variant.operation.kind);
       (void)printf("\n");
       disp_name("operation.type_kind");
-      (void)printf("%s\n", type_kind_string(ptr->kind));
+      (void)printf("%s\n", type_kind_string(ptr->variant.operation.type_kind));
       if (ptr->variant.operation.returns_lvalue_instead_of_usual_rvalue) {
         disp_boolean("returns_lvalue_instead_of_usual_rvalue", TRUE);
       }  /* if */
