@@ -8780,8 +8780,8 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
           rp->ELF_visibility == (an_ELF_visibility_kind)evk_unspecified) {
         /* If no visibility attribute was specified on the function, propagate
            any visibility that was specified on the enclosing class */
-        a_type_ptr  parent_class = parent_class_of(rp);
-        rp->ELF_visibility = class_type_supp(parent_class)->ELF_visibility;
+        a_type_ptr  enclosing_class = parent_class_of(rp);
+        rp->ELF_visibility = class_type_supp(enclosing_class)->ELF_visibility;
       }  /* if */
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
     }  /* if */
