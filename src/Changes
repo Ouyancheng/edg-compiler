@@ -1,5 +1,14 @@
 Version 4.0
 
+11/12/08 [EDGcpfe/9111]
+Top-level casts to void are always be preserved in unlowered IL
+
+A change has been made to retain top-level casts to void in unlowered IL.
+If the PRESERVE_TOP_LEVEL_CASTS_TO_VOID_IN_IL configuration macro is set
+to FALSE (the default), these top-level casts are then removed during
+the lowering process.
+
+
 11/11/08 [EDGcpfe/9340]
 GNU C++ compatibility: floating-point operations in template arguments
 

@@ -1034,6 +1034,8 @@ extern void lower_logical_operator(an_expr_node_ptr expr);
 
 extern void lower_question_operator(an_expr_node_ptr expr);
 
+extern void lower_comma(an_expr_node_ptr expr);
+
 extern void lower_expr_full(an_expr_node_ptr expr,
                             a_boolean        assume_expr_is_non_null);
 

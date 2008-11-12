@@ -2472,15 +2472,10 @@ this is best left turned off.
 /*
 Switch that controls whether top-level casts to void, for example
   (void)f(x);
-are retained in the IL.  This may be desirable for certain source-analysis
-applications.
+are removed by IL lowering.  (They are always present in the unlowered IL.)
 */
 #ifndef PRESERVE_TOP_LEVEL_CASTS_TO_VOID_IN_IL
-#if BACK_END_IS_CP_GEN_BE
-#define PRESERVE_TOP_LEVEL_CASTS_TO_VOID_IN_IL TRUE
-#else /* !BACK_END_IS_CP_GEN_BE */
 #define PRESERVE_TOP_LEVEL_CASTS_TO_VOID_IN_IL FALSE
-#endif /* BACK_END_IS_CP_GEN_BE */
 #endif /* ifndef PRESERVE_TOP_LEVEL_CASTS_TO_VOID_IN_IL */
 
 /*

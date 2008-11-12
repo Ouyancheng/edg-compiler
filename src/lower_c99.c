@@ -3213,6 +3213,12 @@ _Bool type, and VLA types.
       }  /* if */
       break;
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
+#if !PRESERVE_TOP_LEVEL_CASTS_TO_VOID_IN_IL
+    case eok_comma:
+      /* Remove void casts from a comma operator. */
+      lower_comma(expr);
+      break;
+#endif /* !PRESERVE_TOP_LEVEL_CASTS_TO_VOID_IN_IL */
     default:
       /* Nothing needs to be done. */
       break;
@@ -3714,6 +3720,15 @@ Do C99 lowering on the indicated full expression.  A full expression is
 one not contained inside another expression.
 */
 {
+#if !PRESERVE_TOP_LEVEL_CASTS_TO_VOID_IN_IL
+  if (expr->result_is_not_used &&
+      is_operation_node(expr) &&
+      node_operator_is(expr, eok_cast) &&
+      is_void_type(expr->type)) {
+    /* Remove a top-level cast to void. */
+    overwrite_node(expr, expr->variant.operation.operands);
+  }  /* if */
+#endif /* !PRESERVE_TOP_LEVEL_CASTS_TO_VOID_IN_IL */
   lower_c99_expr(expr);
   end_of_c99_full_expr(expr);
 }  /* lower_c99_full_expr */

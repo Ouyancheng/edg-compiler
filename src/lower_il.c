@@ -12870,6 +12870,27 @@ careful to call the appropriate routines when lowering expressions.
   }  /* if */
 }  /* lower_question_operator */
 
+#if !PRESERVE_TOP_LEVEL_CASTS_TO_VOID_IN_IL
+
+void lower_comma(an_expr_node_ptr expr)
+/*
+Lower an eok_comma expression by removing a top-level void cast in the
+first operand (if one exists).  Operands of the expression have already been
+lowered.  This routine is called in both C and C++ lowering modes.
+*/
+{
+  an_expr_node_ptr  node = expr->variant.operation.operands;
+
+  if (is_operation_node(node) &&
+      node_operator_is(node, eok_cast) &&
+      is_void_type(node->type)) {
+    /* Remove a top-level void cast in the first operator. */
+    check_assertion(node->result_is_not_used);
+    overwrite_node(node, node->variant.operation.operands);
+  }  /* if */
+}  /* lower_comma */
+
+#endif /* !PRESERVE_TOP_LEVEL_CASTS_TO_VOID_IN_IL */
 
 static void lower_reference_to(an_expr_node_ptr expr)
 /*
@@ -13551,6 +13572,12 @@ cast.  See lower_expr for typical invocation.
             lower_gnu_min_max(expr);
             break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if !PRESERVE_TOP_LEVEL_CASTS_TO_VOID_IN_IL
+          case eok_comma:
+            /* Remove void casts from a comma operator. */
+            lower_comma(expr);
+            break;
+#endif /* !PRESERVE_TOP_LEVEL_CASTS_TO_VOID_IN_IL */
           default:
             /* No action on most operators. */
             break;
@@ -13776,6 +13803,15 @@ expression statement, statement points to the statement; otherwise, it is NULL.
     }  /* if */
 #endif /* DEBUG */
   }  /* if */
+#if !PRESERVE_TOP_LEVEL_CASTS_TO_VOID_IN_IL
+  if (expr_to_lower->result_is_not_used &&
+      is_operation_node(expr_to_lower) &&
+      node_operator_is(expr_to_lower, eok_cast) &&
+      is_void_type(expr_to_lower->type)) {
+    /* Remove a top-level cast to void. */
+    overwrite_node(expr_to_lower, expr_to_lower->variant.operation.operands);
+  }  /* if */
+#endif /* !PRESERVE_TOP_LEVEL_CASTS_TO_VOID_IN_IL */
   /* Lower the subexpression. */
 #if MINIMAL_INLINING
   if (inlining_enabled && statement != NULL && expr_to_lower == expr &&

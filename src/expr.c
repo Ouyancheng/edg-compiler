@@ -252,83 +252,6 @@ on the next_operand_ref field.
 }  /* merge_ref_lists */
 
 
-static void simplify_void_node(an_expr_node_ptr *node_ptr,
-                               a_boolean        *suppress_warning)
-/*
-The expression node pointed to by *node_ptr has been scanned as a void
-expression.  Examine it to see if it can be simplified by removing parts
-that do nothing.  Change *node_ptr to point to the simplified expression
-tree.  Return *suppress_warning == TRUE if the node has some side effect or
-if it is something that has no effect but for which a warning should not
-be issued.
-*/
-{
-  an_expr_node_ptr node = *node_ptr, check_node;
-  a_boolean        suppress = FALSE;
-#if !PRESERVE_TOP_LEVEL_CASTS_TO_VOID_IN_IL
-  a_boolean        any_commas = FALSE;
-#endif /* !PRESERVE_TOP_LEVEL_CASTS_TO_VOID_IN_IL */
-
-  /* This routine could do various kinds of pruning -- in fact, it used to;
-     however, in accord with the philosophy that the front end does no
-     optimization, it now only removes an unnecessary top-level cast to
-     void. */
-  check_node = node;
-  for (;;) {
-    /* Check for an explicit cast-to-void node, remove the node, and
-       suppress the warning about a node with no effect in that case.
-       This is because we assume that a programmer who casts something
-       to void is doing so for some good reason, and also because the
-       macro for "assert" expands to a (void)0 when NDEBUG is defined. */
-    check_node = skip_parens(check_node);
-    if (is_operation_node(check_node) &&
-         check_node->variant.operation.kind ==
-                                             (an_expr_operator_kind)eok_cast &&
-         is_void_type(check_node->type)) {
-      /* This is a cast to void; suppress the warning. */
-      suppress = TRUE;
-#if !PRESERVE_TOP_LEVEL_CASTS_TO_VOID_IN_IL
-      check_node = check_node->variant.operation.operands;
-      /* If this cast is at the top (not under a comma expression), remove
-         it. */
-      if (!any_commas) node = check_node;
-#endif /* !PRESERVE_TOP_LEVEL_CASTS_TO_VOID_IN_IL */
-      break;
-    } else if (is_operation_node(check_node) &&
-               check_node->variant.operation.kind ==
-                                            (an_expr_operator_kind)eok_comma) {
-      /* For a comma node, the check for side effects was already done
-         on the first operand when it was scanned (and a warning issued
-         if appropriate), so do not repeat that test.  Just check the
-         second operand.  This allows use of a (void) cast on any
-         operand of a comma expression to suppress the warning, e.g.,
-         ((void)0, (void)0). */
-      /* If the first operand has side effects, the whole operation has
-         side effects, so suppress the warning on the whole operation. */
-      if (node_has_side_effects(check_node->variant.operation.operands,
-                                &suppress)) {
-        suppress = TRUE;
-        break;
-      }  /* if */
-      check_node = check_node->variant.operation.operands->next;
-#if !PRESERVE_TOP_LEVEL_CASTS_TO_VOID_IN_IL
-      any_commas = TRUE;
-#endif /* !PRESERVE_TOP_LEVEL_CASTS_TO_VOID_IN_IL */
-    } else {
-      /* Not a cast to void or a comma operator, so exit the loop. */
-      break;
-    }  /* if */
-  }  /* for */
-  /* See if the node has some effect. */
-  if (!suppress) {
-    if (node_has_side_effects(check_node, &suppress)) suppress = TRUE;
-  }  /* if */
-  *suppress_warning = suppress;
-  /* Put the possibly updated pointer back into *node_ptr. */
-  *node_ptr = node;
-}  /* simplify_void_node */
-
-
 static void do_void_operand_transformations(an_operand *operand,
                                             a_boolean  force_lvalue_to_rvalue)
 /*
@@ -350,13 +273,12 @@ TRUE, the lvalue-to-rvalue (etc.) transformations are forced even in C++ mode.
 }  /* do_void_operand_transformations */
 
 
-static void simplify_void_operand(an_operand *operand)
+static void process_void_operand(an_operand *operand)
 /*
 Examine the operand given by *operand, which has been scanned as a void
-expression, and simplify it if possible by removing parts that do nothing.
-Issue a warning if the operand has no effect.  Lvalue-to-rvalue
-transformations are done if appropriate (yes in C, no in C++).  Other
-transformations are done in all cases.
+expression, and issue a warning if the operand has no effect.
+Lvalue-to-rvalue transformations are done if appropriate (yes in C, no in
+C++).  Other transformations are done in all cases.
 */
 {
   a_boolean suppress_warning = FALSE;
@@ -382,15 +304,48 @@ transformations are done in all cases.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
   } else {
-    /* For an expression, traverse the tree to see if it has side effects
-       and to simplify it. */
-    simplify_void_node(&operand->variant.expression, &suppress_warning);
+    /* For an expression, traverse the tree to see if it has side
+       effects. */
+    an_expr_node_ptr node = skip_parens(operand->variant.expression);
+    while (is_operation_node(node)) {
+      if (node_operator_is(node, eok_cast) && is_void_type(node->type)) {
+        /* This is an explicit cast to void: suppress the warning.  This is
+           because we assume that a programmer who casts something to void
+           is doing so for some good reason, and also because the macro for
+           "assert" expands to (void)0 when NDEBUG is defined. */
+        suppress_warning = TRUE;
+        break;
+      } else if (node_operator_is(node, eok_comma)) {
+        /* For a comma node, the check for side effects was already done on
+           the first operand when it was scanned (and a warning issued if
+           appropriate), so do not repeat that test.  Just check the second
+           operand.  This allows use of a cast to void on any operand of a
+           comma expression to suppress the warning, e.g.,
+           ((void)0, (void)0). */
+        /* If the first operand has side effects, the whole operation has
+           side effects, so suppress the warning on the whole operation. */
+        if (node_has_side_effects(node->variant.operation.operands,
+                                  &suppress_warning)) {
+          suppress_warning = TRUE;
+          break;
+        }  /* if */
+        /* Continue the loop on the second operand. */
+        node = node->variant.operation.operands->next;
+      } else {
+        /* Neither a cast to void nor a comma operator. */
+        break;
+      }  /* if */
+    }  /* while */
+    /* See if the node has some effect. */
+    if (!suppress_warning && node_has_side_effects(node, &suppress_warning)) {
+      suppress_warning = TRUE;
+    }  /* if */
   }  /* if */
   if (!suppress_warning) {
     /* Give a warning on an expression that has no effect. */
     pos_warning(ec_expr_has_no_effect, &operand->position);
   }  /* if */
-}  /* simplify_void_operand */
+}  /* process_void_operand */
 
 
 static a_boolean token_ends_expr(a_token_kind             token,
@@ -10361,17 +10316,10 @@ Lvalue-to-rvalue transformations are done on the operand if appropriate
                 TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION);
   }  /* if */
   do_operand_transformations(operand, options);
-  /* For casts to void, we build an expression node that is a cast
-     to void.  This special cast to void is only used for the
-     case handled here, i.e., for an explicit cast to void.
-     Later, in simplify_void_operand, the cast will probably be
-     removed.  cast_operand is not used because we do not wish to
-     try to change the types of constants to void.  We do not call
-     simplify_void_operand here because (a) we want to keep the
-     explicit cast to void as a signal to suppress the warning
-     about an expression with no effect, and (b) we want to keep
-     a non-NULL expression pointer all the way up to avoid
-     special-case checks. */
+  /* For casts to void, we build an expression node that is a cast to void.
+     This special cast to void is only used for the case handled here,
+     i.e., for an explicit cast to void.  cast_operand is not used because
+     we do not wish to try to change the types of constants to void. */
   node = make_node_from_void_expression_operand(operand);
   node = make_operator_node((an_expr_operator_kind)eok_cast,
                             type_cast_to,
@@ -16300,7 +16248,7 @@ EOPT_DISALLOW_COMMA_OPERATOR).
     }  /* if */
     if (!processed) {
       /* Non-operator-function cases. */
-      simplify_void_operand(operand_1);
+      process_void_operand(operand_1);
       /* In C++ mode, an lvalue in the second operand is preserved.
          In C mode, an lvalue is converted to an rvalue. */
       if (C_dialect == C_dialect_cplusplus) {
@@ -19109,7 +19057,7 @@ expression.
     result_used = TRUE;
   }  /* if */
   if (!result_used) {
-    simplify_void_operand(&result);
+    process_void_operand(&result);
   } else {
     do_void_operand_transformations(&result, /*force_lvalue_to_rvalue=*/TRUE);
   }  /* if */
@@ -19448,9 +19396,8 @@ required_type will be void if the expression should have void type
     if (is_void_type(required_type)) {
       /* A void expression is expected. */
       void_return_case = TRUE;
-      /* We don't use simplify_void_operand here on purpose.  We don't want
-         to remove an explicit cast to void, and we don't want to issue a
-         warning on an expression with no side effects. */
+      /* We don't use process_void_operand here on purpose.  We don't want
+         to issue a warning on an expression with no side effects. */
       do_void_operand_transformations(&result,
                                       /*force_lvalue_to_rvalue=*/FALSE);
       expression = make_node_from_void_expression_operand(&result);
