@@ -1143,8 +1143,6 @@ extern an_expr_node_ptr rvalue_pointer_for_class_rvalue(an_expr_node_ptr expr);
 
 extern a_boolean type_has_param_passed_via_cctor(a_type_ptr tp);
 
-extern void lower_class_selector_operand_if_any(an_expr_node_ptr expr);
-
 /*
 Macro that returns TRUE if the type specified by tp contains a function type
 with a parameter type that is passed via a copy constructor.  Such parameter

@@ -2639,7 +2639,7 @@ not to contain any top level base class casts.
                           node->variant.operation.operands);
         node = node->variant.operation.operands;
       }  /* if */
-      /* Change the class types to pointer to class types on casts. */
+      /* Change class types to pointer to class types on casts. */
       for (;;) {
         check_assertion(is_operation_node(node) &&
                         node_operator_is(node, eok_base_class_cast));
@@ -2713,7 +2713,7 @@ of the conversion that is performed in rvalue_pointer_for_class_expression.
 }  /* convert_rvalue_pointer_to_original_form */
 
 
-void lower_class_selector_operand_if_any(an_expr_node_ptr expr)
+static void lower_class_selector_operand_if_any(an_expr_node_ptr expr)
 /*
 This routine is called to examine the specified operation and determine if
 any of its operands are a class selector (class lvalue, class rvalue, or
@@ -11342,6 +11342,9 @@ the top node of the indicated statement (which is an expression statement).
   a_routine_ptr                 routine = NULL;
   an_expr_node_ptr              call_expr = expr;
 
+  /* If this call takes a class selector object as an operand, convert the
+     operand to a pointer to class. */
+  lower_class_selector_operand_if_any(expr);
   lower_os_type(expr->type);
   first_arg = arg_node = expr->variant.operation.operands;
   check_assertion(!first_arg->is_lvalue);
@@ -11364,10 +11367,7 @@ the top node of the indicated statement (which is an expression statement).
   arg_node = arg_node->next;
   /* If the routine has a "this" parameter, lower it separately. */
   if (rtsp->this_class != NULL) {
-    /* In unlowered IL, the "this" argument is a class selector (class lvalue,
-       class rvalue, or pointer to class); the argument has already been
-       converted into a pointer to class by
-       lower_class_selector_operand_if_any. */
+    /* The "this" argument has been converted into a pointer to class above. */
     check_assertion(is_pointer_type(arg_node->type) &&
                     is_class_struct_union_type(type_pointed_to(
                                                              arg_node->type)));
@@ -13303,10 +13303,6 @@ cast.  See lower_expr for typical invocation.
          lowering while the ck_strings are still identifiable (and not turned
          into variables as they are in some configurations). */
       lower_operation_on_const_string_if_necessary(expr);
-      /* If this operation takes a class selector object as an operand,
-         convert the operand to a pointer to class before the operands
-         are lowered. */
-      lower_class_selector_operand_if_any(expr);
       operand_node = expr->variant.operation.operands;
       op = expr->variant.operation.kind;
       /* Look for some special cases before the expression is lowered.
@@ -13396,6 +13392,10 @@ cast.  See lower_expr for typical invocation.
           adjust_bool_operation_types(operand_node, &adjusted,
                                       /*see_if_possible=*/FALSE);
         }  /* if */
+        /* If this operation takes a class selector object as an operand,
+           convert the operand to a pointer to class before the operands
+           are lowered. */
+        lower_class_selector_operand_if_any(expr);
         /* Lower the operands of the expression before lowering the
            expression node itself. */
         lower_expr_list(operand_node,
@@ -13900,9 +13900,6 @@ expression statement, statement points to the statement; otherwise, it is NULL.
       is_operation_node(expr_to_lower) &&
       (node_operator_is(expr_to_lower, eok_call) ||
        node_operator_is(expr_to_lower, eok_member_call))) {
-    /* If this call takes a class selector object as an operand,
-       convert the operand to a pointer to class. */
-    lower_class_selector_operand_if_any(expr_to_lower);
     /* Special-case a call as the top expression so inlining can be
        done with statement insertions.  Don't do this if an enk_object_lifetime
        appears (it could be done, but it's more complicated because of
