@@ -16,7 +16,7 @@ contexts.
 
 
 11/12/08 [EDGcpfe/9111]
-Top-level casts to void are always be preserved in unlowered IL
+Top-level casts to void are always preserved in unlowered IL
 
 A change has been made to retain top-level casts to void in unlowered IL.
 If the PRESERVE_TOP_LEVEL_CASTS_TO_VOID_IN_IL configuration macro is set
