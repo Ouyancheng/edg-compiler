@@ -2545,7 +2545,6 @@ default values.
   tblock->process_expressions_for_constants = FALSE;
   tblock->process_template_parameter_constants_and_expressions = FALSE;
   tblock->follow_addressing_path = FALSE;
-  tblock->expr_is_lvalue = FALSE;
   tblock->set_unordered_on_dynamic_inits = FALSE;
   tblock->relink_dynamic_inits = FALSE;
   tblock->last_relinked_dynamic_init = NULL;
@@ -2944,10 +2943,8 @@ as specified in the control block.
 */
 {
   if (tblock->process_expr != NULL) {
-    tblock->expr_is_lvalue = expr->is_lvalue;
     /* Call the user-provided routine. */
     tblock->process_expr(expr, tblock);
-    tblock->expr_is_lvalue = FALSE;
     /* Terminate the walk if told to do so. */
     if (tblock->terminate) goto end_of_routine;
     /* Skip the subtree walk if told to do so. */
@@ -3068,10 +3065,8 @@ as specified in the control block.
   }  /* switch */
 post_processing:
   if (tblock->process_post_expr != NULL && !tblock->terminate) {
-    tblock->expr_is_lvalue = expr->is_lvalue;
     /* Call the user-provided (post-subtree) routine. */
     tblock->process_post_expr(expr, tblock);
-    tblock->expr_is_lvalue = FALSE;
   }  /* if */
 end_of_routine:;
 }  /* traverse_expr */

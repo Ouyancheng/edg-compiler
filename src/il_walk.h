@@ -280,9 +280,6 @@ typedef struct an_expr_or_stmt_traversal_block {
 			   determine some attribute of the underlying object
 			   (e.g., is it automatic) given an lvalue or a
 			   pointer rvalue for it. */
-  a_boolean	expr_is_lvalue;
-			/* If TRUE, the expression currently being processed
-			   is an lvalue.  If FALSE, it's an rvalue. */
   /* Fields used by examine_expr_for_unordered_temp_inits: */
   a_boolean	set_unordered_on_dynamic_inits;
 			/* If TRUE, set the "unordered" flag in dynamic
