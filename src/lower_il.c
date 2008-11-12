@@ -2601,6 +2601,11 @@ an_expr_node_ptr rvalue_pointer_for_class_rvalue(an_expr_node_ptr expr)
 Return an rvalue pointer expression for the rvalue class expression, expr.
 Try to convert the rvalue expression into an rvalue pointer if possible;
 otherwise, copy the expression into a temporary and take its address.
+Generally speaking, expr should be an unlowered expression; this allows
+any base class casts (if they exist) to be properly identified and a
+temporary variable (if one is needed) to have the proper (derived) type.
+This routine can be used on lowered expressions if the expression is known
+not to contain any top level base class casts.
 */
 {
   a_boolean converted;
@@ -2608,10 +2613,43 @@ otherwise, copy the expression into a temporary and take its address.
   check_assertion(!expr->is_lvalue && is_class_struct_union_type(expr->type));
   conv_rvalue_expr_to_object_pointer(&expr, &converted);
   if (!converted) {
-    /* Couldn't extract a pointer from the rvalue.  Copy the
-       rvalue to a temporary and take the address of the temporary. */
-    a_variable_ptr temp = assign_expr_to_temp(expr);
+    /* Couldn't extract a pointer from the rvalue.  Copy the class rvalue to a
+       temporary and return an expression for a pointer to the temporary. */
+    an_expr_node_ptr node, top_cast = NULL, bottom_cast = NULL;
+    a_variable_ptr   temp;
+    /* Remove any class rvalue base class casts so that we make the
+       temporary for the derived class and don't slice.  The casts will
+       be reattached to the new expression below. */
+    /* This test (for base class casts) only works on unlowered IL. */
+    expr = strip_rvalue_base_class_casts(expr, &top_cast, &bottom_cast);
+    temp = assign_expr_to_temp(expr);
     expr = make_comma_node(expr, var_addr_expr(temp));
+    if (top_cast != NULL) {
+      /* Restore the base class casts on top of the initialization of the
+         temporary. */
+      check_assertion(bottom_cast != NULL && is_operation_node(bottom_cast));
+      bottom_cast->variant.operation.operands = expr;
+      node = top_cast;
+      check_assertion(is_operation_node(node));
+      if (node_operator_is(node, eok_class_rvalue_adjust)) {
+        /* Change an eok_class_rvalue_adjust to a simple cast (now that its
+           operand is a pointer to class rather than a class). */
+        set_node_operator(node, (an_expr_operator_kind)eok_cast,
+                          make_pointer_type(node->type), /*is_lvalue=*/FALSE,
+                          node->variant.operation.operands);
+        node = node->variant.operation.operands;
+      }  /* if */
+      /* Change the class types to pointer to class types on casts. */
+      for (;;) {
+        check_assertion(is_operation_node(node) &&
+                        node_operator_is(node, eok_base_class_cast));
+        node->type = make_pointer_type(node->type);
+        if (node == bottom_cast) break;
+        node = node->variant.operation.operands;
+        check_assertion(node != NULL);
+      }  /* for */
+      expr = top_cast;
+    }  /* if */
   }  /* if */
   return expr;
 }  /* rvalue_pointer_for_class_rvalue */
@@ -2624,7 +2662,11 @@ Return an rvalue pointer expression for the class expression expr.
 expr is either an rvalue class pointer (in which case no conversion
 is necessary), or a class rvalue, or a class lvalue.  In the latter two cases
 convert the expression into an rvalue pointer and return the converted
-expression.
+expression.  Generally speaking, expr should be an unlowered expression; this
+allows any base class casts (if they exist) to be properly identified and a
+temporary variable (if one is needed) to have the proper (derived) type.  This
+routine can be used on lowered expressions if the expression is known not to
+contain any top level base class casts.
 */
 {
   if (expr->is_lvalue) {
@@ -2669,6 +2711,35 @@ of the conversion that is performed in rvalue_pointer_for_class_expression.
                                              is_pointer_type(orig_expr->type));
   return expr;
 }  /* convert_rvalue_pointer_to_original_form */
+
+
+void lower_class_selector_operand_if_any(an_expr_node_ptr expr)
+/*
+This routine is called to examine the specified operation and determine if
+any of its operands are a class selector (class lvalue, class rvalue, or
+pointer to class); if so, the operand is rewritten as a pointer to class.
+On input, the expression must be unlowered (and remains so).
+*/
+{
+  an_expr_node_ptr      node = NULL;
+  an_expr_operator_kind op;
+
+  check_assertion(is_operation_node(expr));
+  op = expr->variant.operation.kind;
+  if (op == (an_expr_operator_kind)eok_pm_field) {
+    /* First operand is a class selector. */
+    node = expr->variant.operation.operands;
+  } else if (op == (an_expr_operator_kind)eok_virtual_function_ptr ||
+             op == (an_expr_operator_kind)eok_member_call ||
+             op == (an_expr_operator_kind)eok_virtual_call ||
+             op == (an_expr_operator_kind)eok_pm_call) {
+    /* Second operand is a class selector. */
+    node = expr->variant.operation.operands->next;
+  }  /* if */
+  if (node != NULL) {
+    overwrite_node(node, rvalue_pointer_for_class_expression(copy_node(node)));
+  }  /* if */
+}  /* lower_class_selector_operand_if_any */
 
 
 static an_expr_node_ptr select_lvalue_at_offset(an_expr_node_ptr  node,
@@ -9569,8 +9640,6 @@ more than once.
   } else {
     /* The node below this one is not another cast, so we have reached the
        bottom of the sequence of casts. */
-    /* Lower the source expression. */
-    lower_expr_full(source_node, assume_expr_is_non_null);
     /* We've reached the bottom of the expression; start building the
        returned result in local_result_node.  It's easier to do this with an
        rvalue pointer, so convert source_node (which can be an rvalue
@@ -9578,6 +9647,8 @@ more than once.
        At the end of processing the entire sequence of related casts (in
        lower_related_class_cast), convert this back to its original form. */
     local_result_node = rvalue_pointer_for_class_expression(source_node);
+    /* Lower the source expression. */
+    lower_expr_full(local_result_node, assume_expr_is_non_null);
     /* The offsets for derived class casts are summed on the way back up. */
     *derived_class_cast_offset = 0;
     if (virtual_step_class != NULL) {
@@ -10858,15 +10929,18 @@ have already been lowered.  The expression is an rvalue.
   /* The original tree has an eok_virtual_function_ptr node with operands
      as follows:
        (1) an enk_routine node for the virtual function.
-       (2) a node for the object pointer.  The node can be a class lvalue,
-           class rvalue, or pointer to class.
+       (2) a node for the object pointer.  In unlowered IL, this argument
+           is a class selector (class lvalue, class rvalue, or pointer to
+           class); the argument has already been converted into a class rvalue
+           pointer by lower_class_selector_operand_if_any.
   */
   check_assertion(!expr->is_lvalue);
   func_node = expr->variant.operation.operands;
   object_node = func_node->next;
+  check_assertion(is_pointer_type(object_node->type) &&
+                  is_class_struct_union_type(type_pointed_to(
+                                                          object_node->type)));
   func_node->next = NULL;
-  /* Change the object selector into pointer to a class. */
-  object_node = rvalue_pointer_for_class_expression(object_node);
 #if !IA64_ABI
   /* The rewritten form is as follows:
        (object->__vptr)+index)->f
@@ -11290,10 +11364,13 @@ the top node of the indicated statement (which is an expression statement).
   arg_node = arg_node->next;
   /* If the routine has a "this" parameter, lower it separately. */
   if (rtsp->this_class != NULL) {
-    /* The selector object can be a class lvalue, class rvalue, or pointer
-       to class.  Convert it to a pointer to class in all cases. */
-    overwrite_node(arg_node, rvalue_pointer_for_class_expression(
-                                                         copy_node(arg_node)));
+    /* In unlowered IL, the "this" argument is a class selector (class lvalue,
+       class rvalue, or pointer to class); the argument has already been
+       converted into a pointer to class by
+       lower_class_selector_operand_if_any. */
+    check_assertion(is_pointer_type(arg_node->type) &&
+                    is_class_struct_union_type(type_pointed_to(
+                                                             arg_node->type)));
     /* Don't bother adding NULL-preservation code for the "this" parameter.
        If "this" is NULL, dereferencing it is going to cause an error
        whether or not the NULL-preservation test is added, so generate
@@ -11728,15 +11805,16 @@ The expression can be an lvalue or an rvalue.
      integral type.  The "-1" reverses the increment done to reserve 0
      as a NULL pointer to data member. */
   /* In the IA-64 ABI, *((member-type *)((char *)p + pdm)). */
+  /* In unlowered IL, the first argument is a class selector (class lvalue,
+     class rvalue, or pointer to class); this argument has already been
+     converted into a pointer to class by
+     lower_class_selector_operand_if_any.  */
   object_node = expr->variant.operation.operands;
+  check_assertion(is_pointer_type(object_node->type) &&
+                  is_class_struct_union_type(type_pointed_to(
+                                                          object_node->type)));
   pdm_node = object_node->next;
   object_node->next = NULL;
-  if (node_operator_is(expr, eok_pm_field)) {
-    /* Convert the class object (rvalue or lvalue) into a pointer. */
-    object_node = rvalue_pointer_for_class_expression(object_node);
-  } else {
-    check_assertion(is_pointer_type(object_node->type));
-  }  /* if */
   /* Cast the object pointer node to "char *" to avoid scaling on the
      pointer addition. */
   cast_node = add_cast_to_char_star(object_node);
@@ -13225,6 +13303,10 @@ cast.  See lower_expr for typical invocation.
          lowering while the ck_strings are still identifiable (and not turned
          into variables as they are in some configurations). */
       lower_operation_on_const_string_if_necessary(expr);
+      /* If this operation takes a class selector object as an operand,
+         convert the operand to a pointer to class before the operands
+         are lowered. */
+      lower_class_selector_operand_if_any(expr);
       operand_node = expr->variant.operation.operands;
       op = expr->variant.operation.kind;
       /* Look for some special cases before the expression is lowered.
@@ -13818,6 +13900,9 @@ expression statement, statement points to the statement; otherwise, it is NULL.
       is_operation_node(expr_to_lower) &&
       (node_operator_is(expr_to_lower, eok_call) ||
        node_operator_is(expr_to_lower, eok_member_call))) {
+    /* If this call takes a class selector object as an operand,
+       convert the operand to a pointer to class. */
+    lower_class_selector_operand_if_any(expr_to_lower);
     /* Special-case a call as the top expression so inlining can be
        done with statement insertions.  Don't do this if an enk_object_lifetime
        appears (it could be done, but it's more complicated because of

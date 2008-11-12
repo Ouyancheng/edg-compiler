@@ -6737,6 +6737,9 @@ do_assignment:;
     case dik_call_returning_class_via_cctor:
       /* Initialize the entry by calling a routine that returns its result
          via a copy constructor. */
+      /* If this call takes a class selector object as an operand,
+         convert the operand to an rvalue pointer. */
+      lower_class_selector_operand_if_any(dip->variant.expression);
       /* The address of the temporary being initialized is added as an
          implicit argument of the call. */
       lower_call(dip->variant.expression, ipdp, (a_statement_ptr)NULL);
