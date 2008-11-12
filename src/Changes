@@ -800,8 +800,8 @@ For example:
       };
     };
   };
-  struct X x = { .s = 7 };  // Invalid IL create for the aggregate initializer
-                            // constant.
+  struct X x = { .s = 7 };  // Invalid IL created for the aggregate
+                            // initializer constant.
 
 This is now fixed.
 
