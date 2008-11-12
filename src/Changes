@@ -1,5 +1,20 @@
 Version 4.0
 
+11/12/08 [EDGcpfe/9347]
+
+In Microsoft bugs mode, a type template parameter can now be declared by
+repeating the introductory keyword "typename", and optionally following it by
+the keyword "class".  For example:
+
+  template<typename typename> class C;  // Accepted in Microsoft bugs mode.
+  template<typename class X> class C;   // Ditto.
+  template<typename typename class> class C; // Ditto.
+  template<class class X> class C;      // Still an error (in all modes).
+
+See also the Changes entry of 3/3/04, which documents a similar issue in other
+contexts.
+
+
 11/12/08 [EDGcpfe/9111]
 Top-level casts to void are always be preserved in unlowered IL
 

@@ -12767,13 +12767,21 @@ parameter declaration.
      "typename".  "class" and "typename" may also be used at the beginning
      of the declaration of a nontype parameter.  The parameter is considered
      to be a type parameter if it is "class" or "typename" followed by an
-     optional simple (i.e., nonqualified) identifier.  A template template
+     optional simple (i.e., nonqualified) identifier.  In Microsoft bugs mode,
+     the "typename" keyword can be repeated, and may be followed by a "class"
+     keyword (e.g., "typename typename class X").  A template template
      parameter begins with they keyword "template".  All other cases are
      considered to be nontype parameters. */
   first_token = curr_token;
   /* Bypass the initial token of the declaration. */
   if (curr_token != tok_end_of_source) (void)get_token();
 #if MICROSOFT_EXTENSIONS_ALLOWED
+  if (microsoft_bugs && first_token == tok_typename) {
+    /* Microsoft compilers allow "typename" to be repeated, and accept an
+       additional "class" keyword after that. */
+    while (curr_token == tok_typename) (void)get_token();
+    if (curr_token == tok_class) (void)get_token();
+  }  /* if */
   if (curr_token == tok_declspec) prescan_decl_modifiers();
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Bypass the identifier, if present. */
@@ -12900,6 +12908,14 @@ parameter entry for the parameter.
   /* Bypass "class" or "typename". */
   (void)get_token();
 #if MICROSOFT_EXTENSIONS_ALLOWED
+  /* Microsoft compilers allow "typename" to be repeated, and optionally
+     followed by "class" (see determine_template_param_kind, which checks for
+     this constraint; here we can just skip every "typename" and "class"). */
+  if (microsoft_bugs) {
+    while (curr_token == tok_typename || curr_token == tok_class) {
+      (void)get_token();
+    }  /* while */
+  }  /* if */
   /* The Microsoft compiler accepts and ignores a __declspec modifier
      on a template type parameter. */
   if (curr_token == tok_declspec) {
