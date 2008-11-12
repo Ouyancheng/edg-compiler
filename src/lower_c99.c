@@ -3701,7 +3701,7 @@ Do C99 lowering on the indicated expression.
 static void end_of_c99_full_expr(an_expr_node_ptr expr)
 /*
 Do end-of-full-expression processing for C99 lowering of expr.  expr may
-be NULL in cases where the expression was eliminiated (e.g., inlining).
+be NULL in cases where the expression was eliminated (e.g., inlining).
 */
 {
   if (expr != NULL) {
