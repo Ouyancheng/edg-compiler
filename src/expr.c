@@ -19847,7 +19847,7 @@ sure that some cases allowed within template argument expressions don't
 escape at the end of the expression.)
 */
 {
-  if (gpp_mode && is_floating_type(operand->type)) {
+  if (gpp_mode && is_floating_type(operand->type) && !is_an_lvalue(operand)) {
     /* g++ allows floating-point constants and operations in template
        arguments.  Make sure the final result is not floating. */
     error_in_operand(ec_expr_not_integral_or_enum, operand);
