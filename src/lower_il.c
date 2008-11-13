@@ -10609,6 +10609,12 @@ a temporary will be used, and the code will be something like
 #if DO_C99_IL_LOWERING
   if (C_mode()) {
     lower_c99_operator(op_node);
+#if LOWER_COMPLEX
+  } else if (node_operator_type_kind_is(expr, tk_complex)) {
+    /* For complex operators in C++, the C99 routines can safely be called. */
+    check_assertion(gpp_mode);
+    lower_c99_operator(op_node);
+#endif /* LOWER_COMPLEX */
   }  /* if */
 #endif /* DO_C99_IL_LOWERING */
   /* Cast the result of the operation to the result type. */

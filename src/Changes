@@ -1,5 +1,21 @@
 Version 4.0
 
+11/13/08 [EDGcpfe/9093]
+Invalid lowered complex compound assignments in GNU C++ mode
+
+In GNU C++ mode, builtin complex types are supported.  However, when such
+types are lowered (LOWER_COMPLEX is TRUE), the code generated for compound
+assignments of complex values was invalid in some cases.  For example:
+
+  typedef _Complex double CZ;
+  CZ& f();
+  void g() {
+    f() += f();  // The lowered code attempted to "add" struct values.
+  }
+
+This is now fixed.
+
+
 11/13/08 [EDGcpfe/9151]
 Imaginary types and compound assignments
 
