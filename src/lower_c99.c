@@ -3146,6 +3146,7 @@ _Bool type, and VLA types.
           break;
 #endif /* LOWER_FIXED_POINT */
 #if LOWER_COMPLEX
+        case tk_imaginary:
         case tk_complex:
           rewrite_compound_assignment(expr);
           break;

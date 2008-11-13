@@ -15765,8 +15765,15 @@ See section 3.3.16 of the standard.
           if (c99_mode &&
               determine_imaginary_operation_type(save_token,
                                                  operand_1, &operand_2,
-                                                 &result_type, &op)) {
-            operation_type = rvalue_type(result_type);
+                                                 &operation_type, &op)) {
+            /* An imaginary-type operation: The notion of an "operation type"
+               is tenuous in this case.  operation_type will have been set to
+               the result type for the underlying arithmetic operation (e.g.,
+               for _Imaginary /= _Imaginary, operation_type will be a real
+               floating-point type), but for the remaining transformations
+               (specifically, for Microsoft property fields), the type of the
+               first operand is what is needed here. */
+            operation_type = rvalue_type(operand_1->type);
             goto operation_type_determined;
           }  /* if */
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */

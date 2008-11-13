@@ -10563,6 +10563,16 @@ a temporary will be used, and the code will be something like
     /* For the C++ bool += pointer case, do not change the operand types,
        but do swap the operands so the pointer is first on the "+". */
     swap_operands = TRUE;
+#if LOWER_COMPLEX
+  } else if (is_imaginary_type(operation_type)) {
+    if ((op == (an_expr_operator_kind)eok_multiply_assign ||
+         op == (an_expr_operator_kind)eok_divide_assign) &&
+        is_imaginary_type(op1_for_operation->type)) {
+      /* Both operands are imaginary: The result will be real. */
+      operation_type = float_type(
+                           skip_typerefs(operation_type)->variant.float_kind);
+    }  /* if */
+#endif /* LOWER_COMPLEX */
 #if LOWER_FIXED_POINT
   } else if (is_fixed_point_type(operation_type)) {
     a_type_ptr op1_type = skip_typerefs(op1_for_operation->type);
