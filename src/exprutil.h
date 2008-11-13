@@ -939,7 +939,7 @@ extern a_boolean microsoft_template_arg_constant_lvalue_address(
 extern void take_address_of_lvalue(an_operand *operand,
                                    a_source_position *operator_position);
 
-extern void take_reference_to_lvalue(an_operand *operand);
+extern void take_reference_to_operand(an_operand *operand);
 
 extern void conv_object_pointer_to_lvalue(an_operand *operand);
 
@@ -1333,7 +1333,10 @@ extern void base_class_cast_operand(an_operand       *operand_1,
 extern void adjust_lvalue_type(an_operand *operand,
                                a_type_ptr dest_type);
 
-extern an_expr_node_ptr lvalue_before_type_adjustment(an_expr_node_ptr expr);
+extern void adjust_class_rvalue_type(an_operand *operand,
+                                     a_type_ptr dest_type);
+
+extern an_expr_node_ptr expr_before_type_adjustment(an_expr_node_ptr expr);
 
 extern a_boolean is_a_cplusplus_lvalue(an_operand *operand);
 
@@ -1482,6 +1485,9 @@ extern a_boolean still_an_lvalue(a_type_ptr type_before_cast,
 			         a_type_ptr type_cast_to);
 
 extern a_boolean is_lvalue_for_auto_object(an_expr_node_ptr expr,
+                                           a_boolean        *is_temp);
+
+extern a_boolean is_rvalue_for_auto_object(an_expr_node_ptr expr,
                                            a_boolean        *is_temp);
 
 extern a_boolean is_address_of_auto_object(an_expr_node_ptr  expr,

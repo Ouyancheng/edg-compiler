@@ -10770,8 +10770,13 @@ for non-class operands).  This routine is called only in C++ mode.
                                            /*initializing_variable=*/FALSE,
                                            /*static_lifetime=*/FALSE,
                                            /*bitwise_assignment_param=*/FALSE,
-                                           /*leave_as_lvalue=*/TRUE,
+                                           /*leave_as_object=*/TRUE,
                                            ec_bad_cast /* arbitrary */);
+            /* Class rvalues get placed in a temporary, which is then treated
+               as an lvalue, so we don't expect any rvalues here. */
+            check_assertion(is_an_lvalue(operand) ||
+                            is_a_function_designator(operand) ||
+                            is_error_operand(operand));
           }  /* if */
           *processed = TRUE;
         }  /* if */

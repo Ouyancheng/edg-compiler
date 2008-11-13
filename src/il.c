@@ -14611,9 +14611,15 @@ node is designated an rvalue.
 */
 {
   if (!is_error_node(node)) {
-    check_assertion(node->is_lvalue);
-    /* Set the address_taken flag for variables and routines. */
-    set_address_taken_for_variable_or_routine_expr(node);
+    if (node->is_lvalue) {
+      /* Set the address_taken flag for variables and routines. */
+      set_address_taken_for_variable_or_routine_expr(node);
+    } else {
+      /* For the rvalue case, the operand should be a class. */
+      check_assertion(is_class_struct_union_type(node->type) ||
+                      is_template_param_type(node->type) ||
+                      is_error_type(node->type));
+    }  /* if */
     node->next = NULL;
     node = make_operator_node((an_expr_operator_kind)eok_reference_to,
                               make_reference_type(node->type), node);
@@ -16056,7 +16062,6 @@ operand.
 
   switch (op) {
     case eok_address_of:
-    case eok_reference_to:
     case eok_lvalue_cast:
     case eok_lvalue_adjust:
     case eok_assign:
@@ -19476,7 +19481,7 @@ Definition of the bits in lvalue_rvalue_test.
 
 static a_byte lvalue_rvalue_test[(int)eok_last+1] = {
   /* eok_address_of: */			LVRV_OPND1_IS_LVALUE,
-  /* eok_reference_to: */		LVRV_OPND1_IS_LVALUE,
+  /* eok_reference_to: */		LVRV_NO_REQUIREMENTS,
   /* eok_indirect: */			LVRV_OPND1_IS_RVALUE,
   /* eok_ref_indirect: */		LVRV_OPND1_IS_RVALUE,
   /* eok_cast: */			LVRV_OPND1_IS_RVALUE,

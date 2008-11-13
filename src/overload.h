@@ -645,9 +645,9 @@ extern a_type_ptr select_and_prepare_to_call_overloaded_function(
                            an_operand              *function_operand,
                            an_expr_node_ptr        *arg_expr_list);
 
-void adjust_class_object_type(an_operand       *operand,
-                              a_type_ptr       dest_type,
-                              a_base_class_ptr bcp);
+extern void adjust_class_object_type(an_operand       *operand,
+                                     a_type_ptr       dest_type,
+                                     a_base_class_ptr bcp);
 
 a_boolean conversion_from_class_possible(
                             an_operand               *source_operand,
@@ -767,7 +767,7 @@ extern void prep_reference_initializer_operand(
                               a_boolean     initializing_variable,
                               a_boolean     static_lifetime,
                               a_boolean     bitwise_assignment_param,
-                              a_boolean     leave_as_lvalue,
+                              a_boolean     leave_as_object,
                               an_error_code incompatible_err);
 
 extern void prep_initializer_operand(an_operand    *source_operand,

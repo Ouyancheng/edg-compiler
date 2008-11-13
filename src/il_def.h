@@ -9106,7 +9106,9 @@ enum an_expr_operator_kind_tag {
   /* The following have 1 operand: */
   eok_address_of,	/* Address-of operator ("&"). */
   eok_reference_to,	/* Turns an lvalue into a reference, i.e., the
-			   reference equivalent of eok_address_of. */
+			   reference equivalent of eok_address_of.  Can also be
+			   applied to a class rvalue, where it produces a
+			   reference to the class object in memory. */
   eok_indirect,		/* Pointer de-reference operator ("*"). */
   eok_ref_indirect,	/* Implicit indirection through a reference to get an
 			   lvalue, i.e., the reference equivalent of

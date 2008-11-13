@@ -2545,6 +2545,7 @@ default values.
   tblock->process_expressions_for_constants = FALSE;
   tblock->process_template_parameter_constants_and_expressions = FALSE;
   tblock->follow_addressing_path = FALSE;
+  tblock->follow_class_rvalue_addressing_path = FALSE;
   tblock->set_unordered_on_dynamic_inits = FALSE;
   tblock->relink_dynamic_inits = FALSE;
   tblock->last_relinked_dynamic_init = NULL;
@@ -2762,13 +2763,17 @@ and end up at "a".
     an_expr_operator_kind op = expr->variant.operation.kind;
     an_expr_node_ptr      operand1 = expr->variant.operation.operands;
     an_expr_node_ptr      operand2 = operand1->next;
-    if (expr->is_lvalue) {
+    if (expr->is_lvalue ||
+        (tblock->follow_class_rvalue_addressing_path &&
+         is_class_struct_union_type(expr->type))) {
       /* The expression is an lvalue. */
       switch (op) {
         case eok_dot_field:
           /* x.y:  Follow x. */
           /* We don't have to test for the rvalue.field case here because its
-             result is an rvalue and therefore wouldn't get here. */
+             result is an rvalue and therefore wouldn't get here, unless
+             follow_class_rvalue_addressing_path is TRUE, in which case
+             we want to keep going anyway. */
           traverse_expr(operand1, tblock);
           break;
         case eok_points_to_field:
@@ -2778,7 +2783,9 @@ and end up at "a".
         case eok_pm_field:
           /* x.*pm:  Follow x. */
           /* We don't have to test for the rvalue.*pm case here because its
-             result is an rvalue and therefore wouldn't get here. */
+             result is an rvalue and therefore wouldn't get here, unless
+             follow_class_rvalue_addressing_path is TRUE, in which case
+             we want to keep going anyway. */
           traverse_expr(operand1, tblock);
           break;
         case eok_pm_points_to_field:
@@ -2813,12 +2820,20 @@ and end up at "a".
         case eok_base_class_cast:
           /* Cast of a class lvalue to a base class. */
           /* Pointer casts and casts of a class rvalue to a base class would
-             not get here because they produce an rvalue result. */
+             not get here because they produce an rvalue result.  When
+             follow_class_rvalue_addressing_path is TRUE we would get here
+             for a class rvalue and we would want to keep going anyway. */
           traverse_expr(operand1, tblock);
           break;
         case eok_lvalue_adjust:
           /* eok_lvalue_adjust operations are used to adjust the
              cv-qualification (and maybe type) of an lvalue. */
+          traverse_expr(operand1, tblock);
+          break;
+        case eok_class_rvalue_adjust:
+          /* eok_class_rvalue_adjust operations are used to adjust the
+             cv-qualification of an class rvalue.  We wouldn't get here
+             unless follow_class_rvalue_addressing_path is TRUE. */
           traverse_expr(operand1, tblock);
           break;
         default:

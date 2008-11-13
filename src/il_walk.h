@@ -280,6 +280,10 @@ typedef struct an_expr_or_stmt_traversal_block {
 			   determine some attribute of the underlying object
 			   (e.g., is it automatic) given an lvalue or a
 			   pointer rvalue for it. */
+  a_boolean	follow_class_rvalue_addressing_path;
+			/* If follow_addressing_path is TRUE, then if this
+			   is TRUE the subtree walk should follow class rvalue
+			   objects as part of the addressing walk. */
   /* Fields used by examine_expr_for_unordered_temp_inits: */
   a_boolean	set_unordered_on_dynamic_inits;
 			/* If TRUE, set the "unordered" flag in dynamic

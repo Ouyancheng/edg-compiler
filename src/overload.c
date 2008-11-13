@@ -10349,7 +10349,6 @@ which may differ from the current type in being a base class or having
 different cv-qualifiers.  bcp is non-NULL to indicate the base class
 case.  This adjustment does not make a new object; it merely adjusts
 the operand type to access the same class object with a new type.
-On return, the operand is an lvalue.
 */
 {
   if (bcp != NULL) {
@@ -10362,24 +10361,48 @@ On return, the operand is an lvalue.
   }  /* if */
   if (!identical_types(operand->type, dest_type)) {
     /* Do any cv-qualifier adjustment. */
+    if (is_an_lvalue(operand)) {
+      adjust_lvalue_type(operand, dest_type);
+    } else if (is_an_rvalue(operand)) {
+      adjust_class_rvalue_type(operand, dest_type);
+    } else {
+      check_assertion(is_error_operand(operand));
+    }  /* if */
+  }  /* if */
+}  /* adjust_class_object_type */
+
+
+static void full_adjust_class_object_type(an_operand *operand,
+                                          a_type_ptr dest_type)
+/*
+*operand is a class lvalue or rvalue.  Adjust its type to dest_type,
+which may differ from the current type in being a base class or having
+different cv-qualifiers.  This adjustment does not make a new object;
+it merely adjusts the operand type to access the same class object with
+a new type.  This routine differs from adjust_class_object_type in that
+it will handle a base class cast without being given the base class
+pointer.
+*/
+{
+  a_type_ptr source_type = operand->type;
+
+  if (!identical_types(source_type, dest_type)) {
     if (is_error_operand(operand)) {
       /* Leave an error operand alone. */
     } else if (is_error_type(dest_type)) {
       conv_to_error_operand(operand);
-    } else if (is_an_lvalue(operand)) {
-      adjust_lvalue_type(operand, dest_type);
     } else {
-      an_expr_node_ptr node;
-      an_operand       orig_operand;
-      orig_operand = *operand;
-      check_assertion (is_an_rvalue(operand));
-      node = make_node_from_operand(operand);
-      node = add_rvalue_class_adjust_node(node, dest_type);
-      make_expression_operand(node, operand);
-      restore_operand_details(operand, &orig_operand);
+      a_base_class_ptr bcp;
+      if (types_are_compatible_ignoring_qualifiers(source_type, dest_type)) {
+        bcp = NULL;
+      } else {
+        bcp = find_base_class_of(source_type, dest_type);
+        check_assertion(bcp != NULL);
+      }  /* if */
+      adjust_class_object_type(operand, dest_type, bcp);
     }  /* if */
   }  /* if */
-}  /* adjust_class_object_type */
+}  /* full_adjust_class_object_type */
 
 
 static void do_class_object_adjustment(an_operand       *operand,
@@ -12151,30 +12174,13 @@ also that this routine is called for the identity case where the class
 type is already correct and nothing should be done to it.
 */
 {
-  a_type_ptr       source_type = source_operand->type;
-  a_base_class_ptr bcp;
-
   if (C_mode()) {
     /* In C mode, the types will always be the same, ignoring cv-qualifiers.
        We don't want to adjust the cv-qualifiers of the operand to match
        the destination type, since rvalues don't have cv-qualifiers in C. */
-  } else if (identical_types(source_type, dest_type)) {
-    /* The source and destination types are the same type, so no conversion
-       is necessary. */
   } else {
-    /* Adjust the class object type. */
-    if (types_are_compatible_ignoring_qualifiers(source_type, dest_type)) {
-      bcp = NULL;
-    } else {
-      bcp = find_base_class_of(source_type, dest_type);
-#if CHECKING
-      if (bcp == NULL) {
-        internal_error(
-                      "prep_class_bitwise_copy_operand: base class not found");
-      }  /* if */
-#endif /* CHECKING */
-    }  /* if */
-    adjust_class_object_type(source_operand, dest_type, bcp);
+    /* Adjust the class object type if necessary. */
+    full_adjust_class_object_type(source_operand, dest_type);
   }  /* if */
   /* Make the source an rvalue. */
   do_operand_transformations(source_operand, TOPT_NO_OPTIONS);
@@ -13294,7 +13300,7 @@ static void adjust_top_temporary_for_binding_to_reference(
                                                     a_boolean  static_lifetime)
 /*
 operand is the initializer expression being bound to a reference.
-It has already been massaged into an lvalue of the right type, and a
+It has already been massaged into an object of the right type, and a
 temporary has been generated if necessary.  If the top of the expression
 is a temporary, ensure that the temporary will have an appropriate lifetime
 so it will last as long as the reference.  If static_lifetime is TRUE, the
@@ -13316,9 +13322,8 @@ like
   if (is_expression_operand(operand)) {
     node = operand->variant.expression;
     node = skip_parens(node);
-    check_assertion(node->is_lvalue || is_error_node(node));
-    /* Drop any adjustment of the lvalue type.  (See adjust_lvalue_type.) */
-    node = lvalue_before_type_adjustment(node);
+    /* Drop any adjustment of the type. */
+    node = expr_before_type_adjustment(node);
     /* Drop any field selections on top of the expression.  (The C++ standard
        says that if the object bound to is a subobject of a complete object
        that is a temporary, the complete object temporary has its lifetime
@@ -13623,9 +13628,11 @@ Issue a warning if it is a local entity.
   a_boolean is_temp;
 
   if (is_expression_operand(operand)) {
-    if (is_lvalue_for_auto_object(operand->variant.expression, &is_temp)) {
-      /* The expression is an lvalue for a local entity.  Use a different
-         message for temporaries and local variables. */
+    if (is_lvalue_for_auto_object(operand->variant.expression, &is_temp) ||
+        is_rvalue_for_auto_object(operand->variant.expression, &is_temp)) {
+      /* The expression is an lvalue or class rvalue (object) for a local
+         entity.  Use a different message for temporaries and local
+         variables. */
       pos_warning(is_temp ? ec_return_ref_init_requires_temp :
                             ec_returning_ref_to_local_variable,
                   &operand->position);
@@ -13672,7 +13679,7 @@ void prep_reference_initializer_operand(
                               a_boolean     initializing_variable,
                               a_boolean     static_lifetime,
                               a_boolean     bitwise_assignment_param,
-                              a_boolean     leave_as_lvalue,
+                              a_boolean     leave_as_object,
                               an_error_code incompatible_err)
 /*
 A reference of type dest_type is being initialized from the indicated
@@ -13681,9 +13688,9 @@ attributes), converting it if necessary.  On return, *source_operand
 will contain an rvalue reference to the object to which the reference
 should be bound (i.e., if it's an expression it will have an
 eok_reference_to on top, or it could be an address constant with
-reference type); if leave_as_lvalue is TRUE, an lvalue for the object
-is returned instead.  initializing_return_value is TRUE if the
-initialization is being done to return a value in a return statement.
+reference type); if leave_as_object is TRUE, an lvalue or class rvalue
+for the object is returned instead.  initializing_return_value is TRUE if
+the initialization is being done to return a value in a return statement.
 initializing_variable is TRUE if this initialization is for a
 variable.  In that case, static_lifetime is TRUE if the variable is
 static.  If bitwise_assignment_param is TRUE, this call is analyzing
@@ -13943,12 +13950,7 @@ been found to be acceptable, and *conversion describes it.
       add_copy_to_temp_for_microsoft_rvalue_question_mark(source_operand);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    if (!is_an_lvalue(source_operand)) {
-      /* Convert the operand to an lvalue for the class object. */
-      conv_class_rvalue_operand_to_lvalue(source_operand);
-    }  /* if */
-    /* Do any base-class or cv-qualifier adjustment. */
-    adjust_lvalue_type(source_operand, adj_base_dest_type);
+    full_adjust_class_object_type(source_operand, adj_base_dest_type);
     if (dropping_qualifiers) {
       /* Type qualifiers were dropped on this binding. */
       if (bitwise_assignment_param) {
@@ -14126,10 +14128,10 @@ been found to be acceptable, and *conversion describes it.
     /* Check for returning a reference to a local entity. */
     check_for_returning_reference_to_local_entity(source_operand);
   }  /* if */
-  if (!leave_as_lvalue) {
-    /* Final step: add the reference-to to turn the lvalue into an rvalue
-       for the reference. */
-    take_reference_to_lvalue(source_operand);
+  if (!leave_as_object) {
+    /* Final step: add the reference-to to turn the lvalue or class rvalue
+       into an rvalue for the reference. */
+    take_reference_to_operand(source_operand);
   }  /* if */
   /* Restore the original source position, etc. */
   restore_operand_details(source_operand, &orig_operand);
@@ -14189,7 +14191,7 @@ of is_transparent.  For processed_arg, see conversion_to_class_possible.
                                        initializing_variable,
                                        static_lifetime,
                                        /*bitwise_assignment_param=*/FALSE,
-                                       /*leave_as_lvalue=*/FALSE,
+                                       /*leave_as_object=*/FALSE,
                                        incompatible_err);
   } else {
     /* Normal case (not initializing a reference). */
@@ -14341,12 +14343,21 @@ conversion_to_class_possible.
                                          /*initializing_variable=*/FALSE,
                                          /*static_lifetime=*/FALSE,
                                          /*bitwise_assignment_param=*/FALSE,
-                                         /*leave_as_lvalue=*/TRUE,
+                                         /*leave_as_object=*/TRUE,
                                          err_code);
-      /* Adjust the lvalue type back to the non-const type and then
+      /* Adjust the object type back to the non-const type and then
          turn it into a reference. */
-      adjust_lvalue_type(source_operand, type_pointed_to(formal_param->type));
-      take_reference_to_lvalue(source_operand);
+      a_type_ptr adj_type = type_pointed_to(formal_param->type);
+      if (is_an_lvalue(source_operand)) {
+        adjust_lvalue_type(source_operand, adj_type);
+      } else if (is_an_rvalue(source_operand)) {
+        adjust_class_object_type(source_operand,
+                                 adj_type,
+                                 (a_base_class_ptr)NULL);
+      } else {
+        check_assertion(is_error_operand(source_operand));
+      }  /* if */
+      take_reference_to_operand(source_operand);
     }  /* if */
   }  /* if */
   if (favor_constant_result_for_nonstatic_init) {
@@ -14400,7 +14411,7 @@ cases where bitwise copying applies.
                                          /*initializing_variable=*/FALSE,
                                          /*static_lifetime=*/FALSE,
                                          /*bitwise_assignment_param=*/TRUE,
-                                         /*leave_as_lvalue=*/TRUE,
+                                         /*leave_as_object=*/TRUE,
                                          incompatible_err);
       conv_lvalue_to_rvalue(source_operand);    
     }  /* if */

@@ -3377,7 +3377,7 @@ reference) and not something explicit like a cast.
     } else if (is_error_type(dest_type)) {
       conv_to_error_operand(operand);
     } else {
-      /* If you change this, see lvalue_before_type_adjustment. */
+      /* If you change this, see expr_before_type_adjustment. */
       an_operand orig_operand;
       orig_operand = *operand;
       if (is_class_struct_union_type(operand_type) &&
@@ -3409,29 +3409,65 @@ reference) and not something explicit like a cast.
 }  /* adjust_lvalue_type */
 
 
-an_expr_node_ptr lvalue_before_type_adjustment(an_expr_node_ptr expr)
+void adjust_class_rvalue_type(an_operand *operand,
+                              a_type_ptr dest_type)
 /*
-expr is an lvalue that may have been passed through adjust_lvalue_type to
-adjust its type.  If it is, strip off the adjustment to get back to the
-original unadjusted lvalue expression, and return that.  If not, return
-the original expression.
+*operand is a class rvalue.  Adjust its type, if necessary, to dest_type,
+which may differ from the current type in having different cv-qualifiers.
+This adjustment does not make a new object; it merely adjusts the operand
+to access the same object with a new type.  On return, the operand is
+still an rvalue.  This adjustment is implicit (e.g., in binding a
+reference) and not something explicit like a cast.
+*/
+{
+  a_type_ptr operand_type = operand->type;
+
+  if (!identical_types(operand_type, dest_type)) {
+    if (is_error_operand(operand)) {
+      /* Leave an error operand alone. */
+    } else if (is_error_type(dest_type)) {
+      conv_to_error_operand(operand);
+    } else {
+      /* If you change this, see expr_before_type_adjustment. */
+      an_expr_node_ptr node;
+      an_operand       orig_operand;
+      orig_operand = *operand;
+      check_assertion(is_an_rvalue(operand) &&
+                      is_class_struct_union_type(operand_type) &&
+                      types_are_compatible_ignoring_qualifiers(operand_type,
+                                                               dest_type));
+      node = make_node_from_operand(operand);
+      node = add_rvalue_class_adjust_node(node, dest_type);
+      make_expression_operand(node, operand);
+      restore_operand_details(operand, &orig_operand);
+    }  /* if */
+  }  /* if */
+}  /* adjust_class_rvalue_type */
+
+
+an_expr_node_ptr expr_before_type_adjustment(an_expr_node_ptr expr)
+/*
+expr is an expression that may have been passed through adjust_lvalue_type
+or adjust_class_rvalue_type to adjust its type.  If it is, strip off the
+adjustment to get back to the original unadjusted lvalue expression, and
+return that.  If not, return the original expression.
 */
 {
   an_expr_node_ptr texpr = expr;
 
-  check_assertion(expr->is_lvalue || is_error_node(expr));
-  /* An lvalue adjustment is zero or more base class casts followed optionally
-     by an lvalue adjustment to adjust the cv-qualification.  That's based on
-     what adjust_lvalue_type does, and the code here would have to change if
-     adjust_lvalue_type changes. */
+  /* A type adjustment is zero or more base class casts followed optionally
+     by an lvalue or rvalue type adjustment to adjust the cv-qualification.
+     That's based on what adjust_lvalue_type and adjust_class_rvalue_type
+     do, and the code here would have to change if those routines change. */
   /* No skip_parens needed here because the sequence we are looking for
      is compiler-generated. */
   if (is_operation_node(texpr) &&
-      node_operator_is(texpr, eok_lvalue_adjust) &&
-      identical_types_ignoring_qualifiers(
-                                    texpr->type,
-                                    texpr->variant.operation.operands->type)) {
-    /* Drop a cv-qualification-adjusting lvalue cast. */
+      (node_operator_is(texpr, eok_class_rvalue_adjust) ||
+       (node_operator_is(texpr, eok_lvalue_adjust) &&
+        identical_types_ignoring_qualifiers(
+                                  texpr->type,
+                                  texpr->variant.operation.operands->type)))) {
+    /* Drop a cv-qualification-adjusting operator. */
     texpr = texpr->variant.operation.operands;
   }  /* if */
   while (is_operation_node(texpr) &&
@@ -3441,7 +3477,7 @@ the original expression.
     texpr = texpr->variant.operation.operands;
   }  /* while */
   return texpr;
-}  /* lvalue_before_type_adjustment */
+}  /* expr_before_type_adjustment */
 
 
 a_boolean is_a_cplusplus_lvalue(an_operand *operand)
@@ -9159,18 +9195,37 @@ in the source and *operator_position gives its position.
 }  /* take_address_of_lvalue */
 
 
-void take_reference_to_lvalue(an_operand *operand)
+void take_reference_to_operand(an_operand *operand)
 /*
-Change operand (an lvalue) to an rvalue that is a reference to the
-object.  This is the value that is stored in a reference bound to the
-lvalue.  Check that the operand isn't a register variable or a bit
+Change operand (an lvalue or class rvalue) to an rvalue that is a reference
+to the object.  This is the value that is stored in a reference bound to the
+object.  Check that the operand isn't a register variable or a bit
 field, and set the address_taken flag.  Also works on function
 designators.
 */
 {
-  take_address_of_or_reference_to_lvalue(operand, /*reference_case=*/TRUE,
-                                         (a_source_position *)NULL);
-}  /* take_reference_to_lvalue */
+  if (is_an_lvalue(operand) ||
+      is_a_function_designator(operand)) {
+    take_address_of_or_reference_to_lvalue(operand, /*reference_case=*/TRUE,
+                                           (a_source_position *)NULL);
+  } else if (is_error_operand(operand)) {
+    /* Leave an error operand alone. */
+  } else {
+    /* Binding a reference to a class rvalue. */
+    an_expr_node_ptr expr;
+    an_operand       orig_operand;
+    check_assertion(is_an_rvalue(operand) &&
+                    is_expression_operand(operand) &&
+                    (is_class_struct_union_type(operand->type) ||
+                     is_template_param_type(operand->type) ||
+                     is_error_type(operand->type)));
+    orig_operand = *operand;
+    expr = operand->variant.expression;
+    expr = add_reference_to_to_node(expr);
+    make_expression_operand(expr, operand);
+    restore_operand_details(operand, &orig_operand);
+  }  /* if */
+}  /* take_reference_to_operand */
 
 
 void modifying_lvalue(an_operand *operand,
@@ -11335,8 +11390,11 @@ expression passed in is an addressing expression, meaning either an lvalue
 that identifies an object or an rvalue that is a pointer to an object.
 */
 {
-  if (expr->is_lvalue) {
-    /* The expression passed in is an lvalue for an object. */
+  if (expr->is_lvalue ||
+      (tblock->follow_class_rvalue_addressing_path &&
+       is_class_struct_union_type(expr->type))) {
+    /* The expression passed in is an lvalue for an object (or a class rvalue
+       object). */
     if (is_variable_node(expr)) {
       a_variable_ptr var = expr->variant.variable;
       if (!has_static_storage_duration(var->storage_class)) {
@@ -11392,6 +11450,32 @@ underlying entity is a temporary, return *is_temp set to TRUE.
   }  /* if */
   return is_auto_object;
 }  /* is_lvalue_for_auto_object */
+
+
+a_boolean is_rvalue_for_auto_object(an_expr_node_ptr expr,
+                                    a_boolean        *is_temp)
+/*
+Return TRUE if expr is an rvalue whose underlying object is known to
+be an automatic (stack-based) entity.  This is possible only for class
+rvalues.  The safe answer is FALSE.  If the underlying entity is a
+temporary, return *is_temp set to TRUE.
+*/
+{
+  a_boolean is_auto_object = FALSE;
+
+  *is_temp = FALSE;
+  if (!expr->is_lvalue && is_class_struct_union_type(expr->type)) {
+    an_expr_or_stmt_traversal_block tblock;
+    clear_expr_or_stmt_traversal_block(&tblock);
+    tblock.process_expr = examine_expr_for_auto_object;
+    tblock.follow_addressing_path = TRUE;
+    tblock.follow_class_rvalue_addressing_path = TRUE;
+    traverse_expr(expr, &tblock);
+    is_auto_object = tblock.result;
+    *is_temp = tblock.is_temp;
+  }  /* if */
+  return is_auto_object;
+}  /* is_rvalue_for_auto_object */
 
 
 a_boolean is_address_of_auto_object(an_expr_node_ptr  expr,

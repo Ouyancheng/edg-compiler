@@ -12982,12 +12982,33 @@ rest of lowering only sees an eok_address_of operator.
   check_assertion(is_operation_node(expr) &&
                   node_operator_is(expr, eok_reference_to));
   operand = expr->variant.operation.operands;
-  /* Simply replace the eok_reference_to with an eok_address_of. */
-  set_node_operator(expr, (an_expr_operator_kind)eok_address_of,
-                    make_pointer_type(operand->type), expr->is_lvalue,
-                    operand);
-  /* Lower (and potentially optimize) the new expression. */
-  lower_expr(expr);
+  if (!operand->is_lvalue) {
+    /* eok_reference_to applied to an rvalue.  Get an address, if necessary by
+       storing into a temporary. */
+    an_expr_node_ptr addr_expr;
+    if (is_class_struct_union_type(operand->type)) {
+      /* Class case. */
+      addr_expr = rvalue_pointer_for_class_rvalue(operand);
+      lower_expr(addr_expr);
+    } else {
+      /* Non-class case. */
+      a_variable_ptr temp;
+      lower_expr(operand);
+      temp = assign_expr_to_temp(operand);
+      addr_expr = make_comma_node(expr, var_addr_expr(temp));
+    }  /* if */
+    /* Overwrite the eok_reference_to node with an expression that gives the
+       address of the temp or object. */
+    overwrite_node(expr, addr_expr);
+  } else {
+    /* eok_reference_to applied to an lvalue. */
+    /* Simply replace the eok_reference_to with an eok_address_of. */
+    set_node_operator(expr, (an_expr_operator_kind)eok_address_of,
+                      make_pointer_type(operand->type), expr->is_lvalue,
+                      operand);
+    /* Lower (and potentially optimize) the new expression. */
+    lower_expr(expr);
+  }  /* if */
 }  /* lower_reference_to */
 
 
