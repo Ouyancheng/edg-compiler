@@ -8309,24 +8309,22 @@ declarations.)
                                   (a_boolean)func_info->is_definition,
                                   (a_boolean)func_info->is_inline);
 #if GNU_EXTENSIONS_ALLOWED
-    if (gpp_mode) {
-      /* Apply any GNU attributes to the routine. */
-      if (decl_state->attributes != NULL) {
-        apply_attributes_to_routine(decl_info->decl_state.attributes, rtn);
-        /* Move the attributes list to the template symbol supplement so it can
-           be applied to real instantiations as well. */
-        tssp->attributes = decl_info->decl_state.attributes;
-        decl_info->decl_state.attributes = NULL;
-      }  /* if */
-#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-      if (rtn->ELF_visibility == (an_ELF_visibility_kind)evk_unspecified) {
-        /* If no ELF visibility attribute was specified on the member template
-           itself, adopt any visibility that might have been specified for the
-           enclosing class. */
-        rtn->ELF_visibility = class_type_supp(class_type)->ELF_visibility;
-      }  /* if */
-#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
+    /* Apply any GNU attributes to the routine. */
+    if (decl_state->attributes != NULL) {
+      apply_attributes_to_routine(decl_info->decl_state.attributes, rtn);
+      /* Move the attributes list to the template symbol supplement so it can
+         be applied to real instantiations as well. */
+      tssp->attributes = decl_info->decl_state.attributes;
+      decl_info->decl_state.attributes = NULL;
     }  /* if */
+#if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
+    if (rtn->ELF_visibility == (an_ELF_visibility_kind)evk_unspecified) {
+      /* If no ELF visibility attribute was specified on the member template
+         itself, adopt any visibility that might have been specified for the
+         enclosing class. */
+      rtn->ELF_visibility = class_type_supp(class_type)->ELF_visibility;
+    }  /* if */
+#endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
   decl_info->decl_state.sym = sym;
