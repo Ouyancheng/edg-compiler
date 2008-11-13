@@ -9408,11 +9408,27 @@ e.g., in a back end.
      case. */
   if (is_variable_node(node)) {
     /* The value of a variable.  Change it to an lvalue for the variable. */
+    a_variable_ptr var = node->variant.variable;
     possible = TRUE;
     /* Re-fetch the variable type, because cv-qualifiers might have been
        dropped in converting it to an rvalue. */
-    lvalue_type = node->variant.variable->type;
+    lvalue_type = var->type;
     check_assertion(!is_reference_type(lvalue_type));
+#if DO_IL_LOWERING
+    if (il_lowering_underway &&
+        var->is_parameter && var->assoc_param_type != NULL &&
+        var->assoc_param_type->passed_via_copy_constructor &&
+        is_pointer_type(lvalue_type) && !is_pointer_type(node->type)) {
+      /* IL lowering rewrites the types of variables that are parameters
+         passed by copy constructor, to add a "pointer-to" to the type.
+         If the variable type has been changed already, but the
+         node we're working on hasn't been lowered yet, use the
+         class type, not the pointer type, for the lvalue type. */
+      lvalue_type = type_pointed_to(lvalue_type);
+      check_assertion(identical_types_ignoring_qualifiers(lvalue_type,
+                                                          node->type));
+    }  /* if */
+#endif /* DO_IL_LOWERING */
   } else if (node->kind == (an_expr_node_kind)enk_temp_init) {
     /* A temporary initialization indicating the value of a temporary.
        Change it to an lvalue for the temporary. */
