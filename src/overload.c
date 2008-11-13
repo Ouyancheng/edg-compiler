@@ -14337,6 +14337,7 @@ conversion_to_class_possible.
                                err_code);
     } else {
       /* Handle the special adjustment for a ref to non-const (see above). */
+      a_type_ptr adj_type;
       prep_reference_initializer_operand(source_operand, param_type,
                                          conversion,
                                          /*initializing_return_value=*/FALSE,
@@ -14347,7 +14348,7 @@ conversion_to_class_possible.
                                          err_code);
       /* Adjust the object type back to the non-const type and then
          turn it into a reference. */
-      a_type_ptr adj_type = type_pointed_to(formal_param->type);
+      adj_type = type_pointed_to(formal_param->type);
       if (is_an_lvalue(source_operand)) {
         adjust_lvalue_type(source_operand, adj_type);
       } else if (is_an_rvalue(source_operand)) {
