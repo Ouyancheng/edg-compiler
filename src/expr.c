@@ -306,8 +306,9 @@ C++).  Other transformations are done in all cases.
   } else {
     /* For an expression, traverse the tree to see if it has side
        effects. */
-    an_expr_node_ptr node = skip_parens(operand->variant.expression);
+    an_expr_node_ptr node = operand->variant.expression;
     while (is_operation_node(node)) {
+      node = skip_parens(node);
       if (node_operator_is(node, eok_cast) && is_void_type(node->type)) {
         /* This is an explicit cast to void: suppress the warning.  This is
            because we assume that a programmer who casts something to void

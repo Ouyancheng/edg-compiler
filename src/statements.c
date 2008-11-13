@@ -188,6 +188,11 @@ modes) a call of a function that may not return, update the current
     node = node->variant.object_lifetime.expr;
   }  /* if */
   node = skip_parens(node);
+  while (is_operation_node(node) && node_operator_is(node, eok_cast) &&
+         is_void_type(node->type)) {
+    /* Explicit cast to void -- ignore it for this test. */
+    node = skip_parens(node->variant.operation.operands);
+  }  /* while */
   if (node->kind == (an_expr_node_kind)enk_throw) {
     /* A throw expression. */
     /* This could be much fancier and could check for things like
