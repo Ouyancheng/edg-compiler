@@ -3,15 +3,9 @@ Version 4.0
 11/13/08 [EDGcpfe/9151]
 Imaginary types and compound assignments
 
-The type of an expression node for a multiply-assign (*=) or divide-assign
-(/=) operation with two imaginary operands, was previously incorrectly set
-to a real floating-point type even in configurations that do not lower
-imaginary types (i.e., when LOWER_COMPLEX is FALSE).  (Imaginary types are
-a feature of C99 mode.)  This is now fixed.
-
-Furthermore, multiply-assign or divide-assign operations involving imaginary
-types were sometimes lowered (when LOWER_COMPLEX is TRUE) to incorrect forms.
-For example:
+Multiply-assign or divide-assign operations involving imaginary types (a
+feature of C99) were sometimes lowered (when LOWER_COMPLEX is TRUE) to
+incorrect forms.  For example:
 
   void f(_Imaginary float i) {
     i /= i;  // Should have the same effect as "i = 0.0;", but previously
