@@ -223,6 +223,9 @@ Flags to be set for any version that uses the C++ generating back end.
 #endif /* SELFCOMP_VERSION */
 #define DEFAULT_EMULATE_MSVC_VALUE_INITIALIZATION_BUGS 1
 #define DEFAULT_EMULATE_GNU_VALUE_INITIALIZATION_BUGS 1
+#if GNU_EXTENSIONS_ALLOWED
+#define GNU_VECTOR_TYPES_ALLOWED 1
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
 #ifdef SOLARIS
 #ifdef __SUNPRO_C
