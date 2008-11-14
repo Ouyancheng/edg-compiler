@@ -3418,7 +3418,7 @@ qualified_name_check:
         a_base_class_ptr bcp =
                         find_base_class_of(class_struct_union_type, dtor_type);
         check_assertion(bcp != NULL);
-        base_class_cast_operand(operand_1, bcp,
+        base_class_cast_operand(operand_1, bcp, (a_type_ptr)NULL,
                                 /*check_cast_access=*/TRUE,
                                 /*is_implicit_cast=*/TRUE,
                                 /*implicit_in_naming=*/FALSE,
@@ -3882,7 +3882,7 @@ object bound with the function in *bound_function_selector.  See ARM 5.5.
         /* Cast the left operand to a base class if necessary.  This does the
            ambiguity and accessibility checking. */
         if (bcp != NULL) {
-          base_class_cast_operand(operand_1, bcp,
+          base_class_cast_operand(operand_1, bcp, (a_type_ptr)NULL,
                                   /*check_cast_access=*/TRUE,
                                   /*is_implicit_cast=*/TRUE,
                                   /*implicit_in_naming=*/FALSE,
@@ -8570,7 +8570,7 @@ Syntax:
                                     &baseward_cast, &bcp) &&
              baseward_cast) {
     /* This is a known cast from derived to base. */
-    base_class_cast_operand(&operand, bcp,
+    base_class_cast_operand(&operand, bcp, type_pointed_to(operation_type),
                             /*check_cast_access=*/TRUE,
                             /*is_implicit_cast=*/FALSE,
                             /*implicit_in_naming=*/FALSE,

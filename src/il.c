@@ -13800,9 +13800,16 @@ adjust its type to "type", and return a pointer to the resulting expression.
 {
   check_assertion(!node->is_lvalue &&
                   is_class_struct_union_type(type));
-  node = make_operator_node((an_expr_operator_kind)eok_class_rvalue_adjust,
-                            type, node);
-  node->variant.operation.compiler_generated = TRUE;
+  if (is_operation_node(node) &&
+      node_operator_is(node, eok_base_class_cast) &&
+      node->variant.operation.compiler_generated) {
+    /* A base class adjustment can be folded into a base class cast. */
+    node->type = type;
+  } else {
+    node = make_operator_node((an_expr_operator_kind)eok_class_rvalue_adjust,
+                              type, node);
+    node->variant.operation.compiler_generated = TRUE;
+  }  /* if */
   return node;
 }  /* add_rvalue_class_adjust_node */
 

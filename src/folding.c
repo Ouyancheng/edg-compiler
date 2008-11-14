@@ -869,6 +869,7 @@ it points to the variable, routine, or constant entry.
 
 void fold_base_class_cast(a_constant        *constant_1,
                           a_base_class      *bcp,
+                          a_type_ptr        qualifiers_model,
                           a_constant        *result,
                           a_boolean         check_cast_access,
                           a_boolean         is_implicit_cast,
@@ -879,6 +880,9 @@ void fold_base_class_cast(a_constant        *constant_1,
 Fold a C++ cast of a class pointer to a base class pointer.  constant_1 is
 an address of a class object.  It is converted to a pointer to the base
 class indicated by bcp and the new constant is returned in *result.
+qualifiers_model is a class type whose cv-qualification indicates
+the cv-qualification desired on the result (i.e., the result type is
+the base class type of bcp and the cv-qualifiers of qualifiers_model).
 Do access control on the cast if check_cast_access is TRUE.  The
 cast is implicit if is_implicit_cast is TRUE.  The pointer is known
 to point to an object if is_object_pointer is TRUE.  If the operation
@@ -968,15 +972,15 @@ error, issue it at *err_pos.  result->type need not be set on entry.
       }  /* if */
     }  /* for */
     /* Set the constant type.  It includes all the type qualifiers from the
-       original pointer. */
-    new_type = make_identically_qualified_type(curr_type, orig_type);
+       qualifiers_model. */
+    new_type = make_identically_qualified_type(curr_type, qualifiers_model);
     implicit_or_explicit_cast(result, make_pointer_type(new_type),
                               is_implicit_cast);
     /* Record the backing expression if the folding was successful. */
     if (*did_not_fold) {
       expr = NULL;
     } else if (expr != NULL) {
-      add_base_class_casts(bcp, orig_type, /*check_cast_access=*/FALSE,
+      add_base_class_casts(bcp, qualifiers_model, /*check_cast_access=*/FALSE,
                            is_implicit_cast, /*implicit_in_naming=*/FALSE,
                            &expr, err_pos);
     }  /* if */
@@ -1134,7 +1138,8 @@ type.
     } else if (baseward_cast) {
       /* Derived --> base.  Valid unless the cast is ambiguous or
          the base class is inaccessible. */
-      fold_base_class_cast(old_constant, bcp, new_constant,
+      fold_base_class_cast(old_constant, bcp, type_pointed_to(new_type),
+                           new_constant,
                            check_cast_access, is_implicit_cast,
                            /*is_object_pointer=*/FALSE, did_not_fold, err_pos);
     } else {
@@ -5488,7 +5493,7 @@ handle_field_selection:
                               is_class_struct_union_type(expr->type));
               bcp = find_base_class_of(op1->type, expr->type);
               check_assertion(bcp != NULL);
-              fold_base_class_cast(&conaddr1, bcp, con,
+              fold_base_class_cast(&conaddr1, bcp, expr->type, con,
                                    /*check_cast_access=*/FALSE,
                                    (a_boolean)expr->variant.operation.
                                                             compiler_generated,

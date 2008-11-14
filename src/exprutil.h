@@ -1226,6 +1226,7 @@ extern a_routine_ptr routine_from_function_operand(an_operand *operand);
 #if OPTIMIZE_VIRTUAL_FUNCTION_CALLS
 extern an_expr_node_ptr retrace_base_casts(an_expr_node_ptr base_cast_node,
                                            a_type_ptr       target_class,
+                                           a_type_ptr       qualifiers_model,
                                            an_expr_node_ptr *new_top_of_tree);
 #endif /* OPTIMIZE_VIRTUAL_FUNCTION_CALLS */
 
@@ -1325,6 +1326,7 @@ extern void conv_selector_to_object_pointer(an_operand *operand,
 
 extern void base_class_cast_operand(an_operand       *operand_1,
                                     a_base_class_ptr bcp,
+                                    a_type_ptr       qualifiers_model,
                                     a_boolean        check_cast_access,
                                     a_boolean        is_implicit_cast,
                                     a_boolean        implicit_in_naming,

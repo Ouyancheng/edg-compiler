@@ -88,6 +88,7 @@ extern a_boolean is_or_might_be_null_pointer_constant(a_constant *constant);
 
 extern void fold_base_class_cast(a_constant        *constant_1,
                                  a_base_class      *bcp,
+                                 a_type_ptr        qualifiers_model,
                                  a_constant        *result,
                                  a_boolean         check_cast_access,
                                  a_boolean         is_implicit_cast,

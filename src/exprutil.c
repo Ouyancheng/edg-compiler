@@ -3278,6 +3278,7 @@ convert operand to an address and set *is_arrow_operator to TRUE.
 
 void base_class_cast_operand(an_operand       *operand,
                              a_base_class_ptr bcp,
+                             a_type_ptr       qualifiers_model,
                              a_boolean        check_cast_access,
                              a_boolean        is_implicit_cast,
                              a_boolean        implicit_in_naming,
@@ -3285,17 +3286,22 @@ void base_class_cast_operand(an_operand       *operand,
 /*
 Cast operand to its base class identified by bcp.  operand can be an
 rvalue pointer to class, a class lvalue, or a class rvalue.  The
-result will be of the same kind (pointer, lvalue, or rvalue).
-Do access control checking on the cast if check_cast_access is TRUE.
-The cast is implicit if is_implicit_cast is TRUE.  implicit_in_naming
-is TRUE for casts that are generated implicitly in referencing a
-member of a class (roughly, in getting from the name used in the
-source -- the projection symbol -- to the member actually used in the
-IL).  is_object_pointer is TRUE if the pointer is asserted to be an
-object pointer (meaning it points at an object and is not a null
-pointer, though in fact the reason for this flag has to do with using
-0 as a pointer in the usual version of the offsetof macro).  This
-routine is used only in C++ mode.
+result will be of the same kind (pointer, lvalue, or rvalue).  If
+qualifiers_model is non-NULL, it is a class type whose cv-qualifiers
+are the model for the cv-qualifiers of the result (i.e., the result's
+type is the base class from bcp with the cv-qualifiers from
+qualifiers_model).  If qualifiers_model is NULL, the result will have
+the same cv-qualifiers as the original operand.  Do access control
+checking on the cast if check_cast_access is TRUE.  The cast is
+implicit if is_implicit_cast is TRUE.  implicit_in_naming is TRUE for
+casts that are generated implicitly in referencing a member of a class
+(roughly, in getting from the name used in the source -- the
+projection symbol -- to the member actually used in the IL).
+is_object_pointer is TRUE if the pointer is asserted to be an object
+pointer (meaning it points at an object and is not a null pointer,
+though in fact the reason for this flag has to do with using 0 as a
+pointer in the usual version of the offsetof macro).  This routine is
+used only in C++ mode.
 */
 {
   a_boolean        did_not_fold;
@@ -3305,6 +3311,12 @@ routine is used only in C++ mode.
 
   /* Save the original operand position, etc. */
   orig_operand = *operand;
+  if (qualifiers_model == NULL) {
+    qualifiers_model = operand->type;
+    if (is_pointer_type(qualifiers_model)) {
+      qualifiers_model = type_pointed_to(qualifiers_model);
+    }  /* if */
+  }  /* if */
   if (is_error_operand(operand)) {
     /* Leave an error operand alone. */
   } else {
@@ -3316,7 +3328,7 @@ routine is used only in C++ mode.
          nonconstant expressions it's not done because it's clearer to
          have the cast in the IL (the constant form has only an offset,
          and loses the sequence of casts). */
-      fold_base_class_cast(&operand->variant.constant, bcp,
+      fold_base_class_cast(&operand->variant.constant, bcp, qualifiers_model,
                            &temp_con, check_cast_access, is_implicit_cast,
                            is_object_pointer, &did_not_fold,
                            &orig_operand.position);
@@ -3334,10 +3346,8 @@ routine is used only in C++ mode.
         error_in_operand(ec_expr_not_constant, operand);
       } else {
         /* Build an expression node or nodes for the cast. */
-        a_type_ptr orig_type = operand->type;
-        if (is_pointer_type(orig_type)) orig_type = type_pointed_to(orig_type);
         node = make_node_from_operand(operand);
-        add_base_class_casts(bcp, orig_type,
+        add_base_class_casts(bcp, qualifiers_model,
                              check_cast_access, is_implicit_cast,
                              implicit_in_naming,
                              &node, &orig_operand.position);
@@ -3378,27 +3388,30 @@ reference) and not something explicit like a cast.
       conv_to_error_operand(operand);
     } else {
       /* If you change this, see expr_before_type_adjustment. */
-      an_operand orig_operand;
+      a_base_class_ptr bcp = NULL;
+      an_operand       orig_operand;
       orig_operand = *operand;
+      check_assertion(is_an_lvalue(operand) ||
+                      is_a_function_designator(operand));
       if (is_class_struct_union_type(operand_type) &&
           is_class_struct_union_type(dest_type)) {
-        a_type_ptr       source_class_type = skip_typerefs(operand_type);
-        a_type_ptr       dest_class_type = skip_typerefs(dest_type);
-        a_base_class_ptr bcp;
-      
+        a_type_ptr source_class_type = skip_typerefs(operand_type);
+        a_type_ptr dest_class_type = skip_typerefs(dest_type);
         /* Look for a required base-class adjustment. */
-        if (!same_entities(source_class_type, dest_class_type) &&
-            (bcp = find_base_class_of(source_class_type,
-                                      dest_class_type)) != NULL) {
-          base_class_cast_operand(operand, bcp,
-                                  /*check_cast_access=*/TRUE,
-                                  /*is_implicit_cast=*/TRUE,
-                                  /*implicit_in_naming=*/FALSE,
-                                  /*is_object_pointer=*/FALSE);
+        if (!same_entities(source_class_type, dest_class_type)) {
+          bcp = find_base_class_of(source_class_type, dest_class_type);
         }  /* if */
       }  /* if */
-      if (!identical_types(operand->type, dest_type)) {
-        /* Adjust cv-qualifiers if necessary. */
+      if (bcp != NULL) {
+        /* Cast to a base class, and also adjust cv-qualifiers if
+           necessary. */
+        base_class_cast_operand(operand, bcp, dest_type,
+                                /*check_cast_access=*/TRUE,
+                                /*is_implicit_cast=*/TRUE,
+                                /*implicit_in_naming=*/FALSE,
+                                /*is_object_pointer=*/FALSE);
+      } else {
+        /* Adjust cv-qualifiers or the underlying type. */
         an_expr_node_ptr expr = make_node_from_operand(operand);
         expr = add_cast_to_lvalue(expr, dest_type);
         make_lvalue_expression_operand(expr, operand);
@@ -8123,6 +8136,7 @@ for the function, even though calls actually always use the rvalue form.
 
 an_expr_node_ptr retrace_base_casts(an_expr_node_ptr base_cast_node,
                                     a_type_ptr       target_class,
+                                    a_type_ptr       qualifiers_model,
                                     an_expr_node_ptr *new_top_of_tree)
 /*
 Recursively traverse a tree of base class cast expression nodes, creating and
@@ -8141,9 +8155,11 @@ base_cast_node is the current node in the traversal; it must be either an
 eok_base_class_cast node or one or more eok_cast nodes whose operand and
 target types are the same except for qualification, followed by an
 eok_base_class_cast node.  target_class is the type at which the scan is
-to terminate ("TN").  new_top_of_tree points to an expression node pointer
-that will be set to point to the new eok_derived_class_cast node that
-produces the ultimate type (the cast to "TN*").
+to terminate ("TN").  qualifiers_model is a class type whose cv-qualifiers
+should be used at each cast step (they are the cv-qualifiers we want to end
+up with on the final result).  new_top_of_tree points to an expression node
+pointer that will be set to point to the new eok_derived_class_cast node
+that produces the ultimate type (the cast to "TN*").
 
 If the tree of derived class cast nodes is successfully created, the
 return value is the newly-created derived class cast node for this level;
@@ -8169,8 +8185,7 @@ to the pointer-to-class case described above.
   an_expr_node_ptr new_derived_cast_node = NULL;
   a_type_ptr       this_node_class;
   a_type_ptr       operand_class;
-  a_type_ptr       orig_node_type = base_cast_node->type;
-  a_boolean        pointer_case = is_pointer_type(orig_node_type);
+  a_boolean        pointer_case = is_pointer_type(base_cast_node->type);
 
   base_cast_node = skip_parens(base_cast_node);
   if (pointer_case) {
@@ -8219,8 +8234,9 @@ to the pointer-to-class case described above.
     operand_class = base_cast_node->variant.operation.operands->type;
     if (pointer_case) operand_class = type_pointed_to(operand_class);
     operand_class = skip_typerefs(operand_class);
-    cast_dest_type = operand_class;
-    if (pointer_case) cast_dest_type = make_pointer_type(operand_class);
+    cast_dest_type = type_plus_qualifiers_from_second_type(operand_class,
+                                                           qualifiers_model);
+    if (pointer_case) cast_dest_type = make_pointer_type(cast_dest_type);
     check_assertion(is_immediate_class_type(this_node_class) &&
                     is_immediate_class_type(operand_class));
     base_class = find_base_class_of(operand_class, this_node_class);
@@ -8241,29 +8257,13 @@ to the pointer-to-class case described above.
         /* We've reached the end of the traversal successfully.  The node
            we just created is also the top of the tree. */
         *new_top_of_tree = new_derived_cast_node;
-        /* See if a final cv-qualifier adjustment is needed on top. */
-        if (pointer_case) orig_node_type = type_pointed_to(orig_node_type);
-        cast_dest_type = type_plus_qualifiers_from_second_type(operand_class,
-                                                               orig_node_type);
-        if (pointer_case) cast_dest_type = make_pointer_type(cast_dest_type);
-        if (!identical_types((*new_top_of_tree)->type, cast_dest_type)) {
-          if (pointer_case) {
-            *new_top_of_tree = add_cast(*new_top_of_tree, cast_dest_type);
-          } else if ((*new_top_of_tree)->is_lvalue) {
-            *new_top_of_tree = add_cast_to_lvalue(*new_top_of_tree,
-                                                  cast_dest_type);
-          } else {
-            /* Class rvalue case. */
-            *new_top_of_tree = add_rvalue_class_adjust_node(*new_top_of_tree,
-                                                            cast_dest_type);
-          }  /* if */
-        }  /* if */
       } else {
         /* We're not done with the traversal.  Call this routine recursively
            to complete it */
         an_expr_node_ptr new_parent =
                  retrace_base_casts(base_cast_node->variant.operation.operands,
-                                    target_class, new_top_of_tree);
+                                    target_class, qualifiers_model,
+                                    new_top_of_tree);
         if (new_parent != NULL) {
           /* The rest of the traversal succeeded, so link the node created
              above to the bottom of the tree of casts. */

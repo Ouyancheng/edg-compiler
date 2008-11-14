@@ -6194,9 +6194,13 @@ or rvalue or a pointer to a class.
              actual function being called. */
           an_expr_node_ptr new_top_of_tree;
           a_type_ptr       class_of_overrider = parent_class_of(overrider);
-          an_expr_node_ptr new_parent =
-                      retrace_base_casts(implicit_this_arg, class_of_overrider,
-                                         &new_top_of_tree);
+          a_type_ptr       qualifiers_model = implicit_this_arg->type;
+          an_expr_node_ptr new_parent;
+          if (is_pointer_type(qualifiers_model)) {
+            qualifiers_model = type_pointed_to(qualifiers_model);
+          }  /* if */
+          new_parent= retrace_base_casts(implicit_this_arg, class_of_overrider,
+                                         qualifiers_model, &new_top_of_tree);
           if (new_parent != NULL) {
             /* The cast to the derived class was successful (i.e., the
                chain of base class casts was in the correct form to be
@@ -6631,7 +6635,7 @@ source position of the member name reference.
           check_assertion(total_errors != 0);
         } else {
           /* Cast the left operand to the proper type. */
-          base_class_cast_operand(operand_1, bcp,
+          base_class_cast_operand(operand_1, bcp, (a_type_ptr)NULL,
                                   /*check_cast_access=*/
                                                 !access_control_error_reported,
                                   /*is_implicit_cast=*/TRUE,
@@ -6652,7 +6656,7 @@ source position of the member name reference.
         /* Normally, when a projection symbol is used it means the name was
            specified as a simple name.  This is not the case for a projection
            symbol created for a Microsoft __super lookup. */
-        base_class_cast_operand(operand_1, bcp,
+        base_class_cast_operand(operand_1, bcp, (a_type_ptr)NULL,
                                 /*check_cast_access=*/FALSE,
                                 /*is_implicit_cast=*/TRUE,
                                 /*implicit_in_naming=*/
@@ -6708,7 +6712,7 @@ source position of the member name reference.
           /* Normally, when a projection symbol is used it means the name was
              specified as a simple name.  This is not the case for a projection
              symbol created for a Microsoft __super lookup. */
-          base_class_cast_operand(operand_1, bcp,
+          base_class_cast_operand(operand_1, bcp, (a_type_ptr)NULL,
                                   /*check_cast_access=*/FALSE,
                                   /*is_implicit_cast=*/TRUE,
                                   /*implicit_in_naming=*/
@@ -10310,28 +10314,29 @@ this routine does not assume that the selector address will be taken.
 {
   if (is_class_struct_union_type(operand->type)) {
     a_type_ptr       this_param_type, this_class_type, operand_class_type;
+    a_type_ptr       qual_this_class_type;
     a_base_class_ptr bcp;
 
     this_param_type = implicit_this_param_type_of(routine_type);
-    this_class_type = routine_type->variant.routine.extra_info->this_class;
+    qual_this_class_type = type_pointed_to(this_param_type);
+    this_class_type = skip_typerefs(qual_this_class_type);
     operand_class_type = skip_typerefs(operand->type);
     if (!same_entities(operand_class_type, this_class_type) &&
         (bcp = find_base_class_of(operand_class_type, this_class_type))!=NULL){
       /* Do the cast to a base class.  Access checking is suppressed on this
          cast, because the cast is really necessary only because the function
-         is inherited from a base class.  This is not clear from the ARM,
-         but cfront and Borland do it this way. */
-      base_class_cast_operand(operand, bcp,
+         is inherited from a base class.  cv-qualifiers will also be adjusted
+         if necessary. */
+      base_class_cast_operand(operand, bcp, qual_this_class_type,
                               /*check_cast_access=*/FALSE,
                               /*is_implicit_cast=*/TRUE,
                               /*implicit_in_naming=*/FALSE,
                               /*is_object_pointer=*/TRUE);
+    } else {
+      /* Adjust cv-qualifiers if necessary. */
+      adjust_class_object_type(operand, qual_this_class_type,
+                               (a_base_class_ptr)NULL);
     }  /* if */
-    /* Adjust cv-qualifiers if necessary.  The base class adjustment is
-       not done here because we want to suppress access checking (see
-       above). */
-    adjust_class_object_type(operand, type_pointed_to(this_param_type),
-                             (a_base_class_ptr)NULL);
   } else {
     /* The selector does not have a class type. */
     check_assertion(is_error_type(operand->type) ||
@@ -10352,15 +10357,15 @@ the operand type to access the same class object with a new type.
 */
 {
   if (bcp != NULL) {
-    /* Cast the pointer to the proper base class. */
-    base_class_cast_operand(operand, bcp,
+    /* Cast the pointer to the proper base class, and also adjust cv-qualifiers
+       if necessary. */
+    base_class_cast_operand(operand, bcp, dest_type,
                             /*check_cast_access=*/TRUE,
                             /*is_implicit_cast=*/TRUE,
                             /*implicit_in_naming=*/FALSE,
                             /*is_object_pointer=*/TRUE);
-  }  /* if */
-  if (!identical_types(operand->type, dest_type)) {
-    /* Do any cv-qualifier adjustment. */
+  } else if (!identical_types(operand->type, dest_type)) {
+    /* Do a cv-qualifier adjustment. */
     if (is_an_lvalue(operand)) {
       adjust_lvalue_type(operand, dest_type);
     } else if (is_an_rvalue(operand)) {
