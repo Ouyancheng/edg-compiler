@@ -2836,25 +2836,22 @@ and end up at "a".
              unless follow_class_rvalue_addressing_path is TRUE. */
           traverse_expr(operand1, tblock);
           break;
+#if GNU_EXTENSIONS_ALLOWED
+        case eok_gnu_min:
+        case eok_gnu_max:
+          /* GNU x >? y or x <? y:  Follow both operands. */
+          traverse_expr(operand1, tblock);
+          if (tblock->terminate) goto end_of_routine;
+          traverse_expr(operand2, tblock);
+          break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
         default:
           if (expr->variant.operation.returns_lvalue_instead_of_usual_rvalue) {
             /* An lvalue-returning operation other than those handled
-               individually above. */
-#if GNU_EXTENSIONS_ALLOWED
-            if (is_gnu_min_max_operator(op)) {
-              /* GNU x >? y or x <? y:  Follow both operands. */
-              traverse_expr(operand1, tblock);
-              if (tblock->terminate) goto end_of_routine;
-              traverse_expr(operand2, tblock);
-            } else
-#endif /* GNU_EXTENSIONS_ALLOWED */
-            /* Do not insert code here. */
-            {
-              /* For others (e.g., pre-increment, assignment), follow the
-                 first operand. */
-              check_assertion(operator_takes_lvalue_operand(op));
-              traverse_expr(operand1, tblock);
-            }  /* if */
+               individually above (i.e., pre-increment, assignment).
+               Follow the first operand. */
+            check_assertion(operator_takes_lvalue_operand(op));
+            traverse_expr(operand1, tblock);
           }  /* if */
           break;
       }  /* switch */

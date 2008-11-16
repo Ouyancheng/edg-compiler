@@ -12270,19 +12270,8 @@ expr->next is preserved.
        speaking, taking the address of an lvalue expression will turn it
        into an rvalue, but there are some cases to be wary of. */
     an_expr_node_ptr  op1 = expr->variant.operation.operands;
-    if (node_operator_is(expr, eok_dot_field)) {
-      /* Can't take the address of a bit-field selection; drop the
-         field selection. */
-      if (op1->is_lvalue) {
-        rewrite_discarded_lvalue_as_rvalue(op1);
-      }  /* if */
-      overwrite_node(expr, op1);
-    } else if (node_operator_is(expr, eok_points_to_field)) {
-      /* Discard the field selection operator. */
-      overwrite_node(expr, op1);
-    } else if (expr->variant.operation.returns_lvalue_instead_of_usual_rvalue)
-                                                                              {
-      an_expr_node_ptr  op2 = op1->next;
+    an_expr_node_ptr  op2 = op1->next;
+    if (expr->variant.operation.returns_lvalue_instead_of_usual_rvalue) {
       if (node_operator_is(expr, eok_question)) {
         /* Rewrite the second and third operands as rvalues, and then mark
            this expression as an rvalue. */
@@ -12298,29 +12287,46 @@ expr->next is preserved.
         expr->is_lvalue = FALSE;
         expr->variant.operation.returns_lvalue_instead_of_usual_rvalue = FALSE;
         expr->type = op2->type;
-      } else if (node_operator_is(expr, eok_comma) ||
-                 node_operator_is(expr, eok_dot_static) ||
-                 node_operator_is(expr, eok_points_to_static)) {
+      } else if (node_operator_is(expr, eok_comma)) {
         /* Rewrite the second operand as an rvalue, and then mark this
            expression as an rvalue. */
         rewrite_discarded_lvalue_as_rvalue(op2);
         expr->is_lvalue = FALSE;
         expr->variant.operation.returns_lvalue_instead_of_usual_rvalue = FALSE;
         expr->type = op2->type;
-      } else if (node_operator_is(expr, eok_gnu_min) ||
-                 node_operator_is(expr, eok_gnu_max)) {
-        /* Convert the expression to an rvalue using rvalue_expr_for_lvalue
-           (because operands would be fetched anyway, so changing to rvalue
-           doesn't add any side effects on volatile). */
-        overwrite_node(expr, rvalue_expr_for_lvalue(expr));
       } else {
-        /* Other lvalue-returning operations (i.e., assignment, pre-incr,
-           post-incr).  Simply clear the flags to change the operation from
-           an lvalue to an rvalue (of the correct type). */
+        /* Other lvalue-returning operations (i.e., assignment, pre-incr).
+           Simply clear the flags to change the operation from an lvalue to
+           an rvalue (of the correct type). */
         expr->is_lvalue = FALSE;
         expr->variant.operation.returns_lvalue_instead_of_usual_rvalue = FALSE;
         expr->type = rvalue_type(expr->type);
       }  /* if */
+    } else if (node_operator_is(expr, eok_dot_field)) {
+      /* Can't take the address of a bit-field selection; drop the
+         field selection. */
+      if (op1->is_lvalue) {
+        rewrite_discarded_lvalue_as_rvalue(op1);
+      }  /* if */
+      overwrite_node(expr, op1);
+    } else if (node_operator_is(expr, eok_points_to_field)) {
+      /* Discard the field selection operator. */
+      overwrite_node(expr, op1);
+    } else if (node_operator_is(expr, eok_dot_static) ||
+               node_operator_is(expr, eok_points_to_static)) {
+      /* Rewrite the second operand as an rvalue, and then mark this
+         expression as an rvalue. */
+      rewrite_discarded_lvalue_as_rvalue(op2);
+      expr->is_lvalue = FALSE;
+      expr->type = op2->type;
+#if GNU_EXTENSIONS_ALLOWED
+    } else if (node_operator_is(expr, eok_gnu_min) ||
+               node_operator_is(expr, eok_gnu_max)) {
+      /* Convert the expression to an rvalue using rvalue_expr_for_lvalue
+         (because operands would be fetched anyway, so changing to rvalue
+         doesn't add any side effects on volatile). */
+      overwrite_node(expr, rvalue_expr_for_lvalue(expr));
+#endif /* GNU_EXTENSIONS_ALLOWED */
     } else {
       /* Change the lvalue to an rvalue by adding an "&" on top of the
          expression (bit-field selections and register variables that
@@ -12330,6 +12336,7 @@ expr->next is preserved.
       overwrite_node(expr, add_address_of_to_node(copy_node(expr)));
     }  /* if */
   } else {
+    check_assertion(expr->kind != (an_expr_node_kind)enk_object_lifetime);
     /* Change the lvalue to an rvalue by adding an "&" on top of the
        expression. */
     overwrite_node(expr, add_address_of_to_node(copy_node(expr)));
@@ -13911,7 +13918,7 @@ expression statement, statement points to the statement; otherwise, it is NULL.
 #endif /* DEBUG */
     /* A C++ lvalue expression whose value is discarded (because it is
        at the top level).  Rewrite as an rvalue. */
-    rewrite_discarded_lvalue_as_rvalue(expr);
+    rewrite_discarded_lvalue_as_rvalue(expr_to_lower);
 #if DEBUG
     if (db_flag_is_set("rewrite_expr")) {
       (void)fprintf(f_debug, 

@@ -6532,10 +6532,7 @@ TRUE if the operator is "->", FALSE if it is ".".
       }  /* if */
       /* Make a node for the selector and the operand. */
       expr = make_operator_node(op, orig_expr->type, selector_expr);
-      if (orig_expr->is_lvalue) {
-        expr->variant.operation.returns_lvalue_instead_of_usual_rvalue = TRUE;
-        expr->is_lvalue = TRUE;
-      } /* if */
+      if (orig_expr->is_lvalue) expr->is_lvalue = TRUE;
     }  /* if */
     /* Save the expression as either the overall result or as the backing
        expression for a constant result. */

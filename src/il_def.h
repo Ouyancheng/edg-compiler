@@ -9753,16 +9753,13 @@ typedef struct an_expr_node {
 			/* TRUE if the operation is an assignment (simple or
 			   compound), prefix ++/--, or "?" or "," operator
 			   that returns an lvalue in C++ where the C operation
-			   would return an rvalue.  Can also be set on GNU
-			   min/max, eok_dot_static, and eok_points_to_static,
-			   which are operators that pass through lvalueness.
-			   FALSE otherwise, including for other operations and
-			   for these operations when they do return rvalues.
-			   Generally TRUE only in C++, but can be TRUE in gcc
-			   mode when an rvalue is reverted to an lvalue (IL
-			   lowering eliminates that later by rewriting it
-			   in rvalue form).  When this field is TRUE,
-			   is_lvalue will also be TRUE. */
+			   would return an rvalue.  FALSE otherwise, including
+			   for other operations and for these operations when
+			   they do return rvalues.  Generally TRUE only in C++,
+			   but can be TRUE in gcc mode when an rvalue is
+			   reverted to an lvalue (IL lowering eliminates that
+			   later by rewriting it in rvalue form).  When this
+			   field is TRUE, is_lvalue will also be TRUE. */
       a_bit_field
 		compiler_generated:1;
 			/* TRUE if the operation is compiler-generated rather

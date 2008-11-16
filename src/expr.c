@@ -14093,8 +14093,6 @@ Scan the GNU C++ minimum and maximum operators ("<?" and ">?").
                                        result);
       if (!is_error_operand(result)) {
         check_assertion(is_expression_operand(result));
-        result->variant.expression
-            ->variant.operation.returns_lvalue_instead_of_usual_rvalue = TRUE;
         result->ref_entries_list = merge_ref_lists(operand_1->ref_entries_list,
                                                    operand_2.ref_entries_list);
       }  /* if */

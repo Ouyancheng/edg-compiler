@@ -14214,6 +14214,7 @@ return a pointer to the new expression.
 
   expr = alloc_expr_node((an_expr_node_kind)enk_object_lifetime);
   expr->variant.object_lifetime.expr = orig_expr;
+  expr->is_lvalue = orig_expr->is_lvalue;
   /* expr->variant.object_lifetime.ptr is set by the bind call. */
   expr->type = orig_expr->type;
   bind_object_lifetime(lifetime, iek_expr_node, (char *)expr);
