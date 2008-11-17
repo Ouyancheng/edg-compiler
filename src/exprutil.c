@@ -2150,6 +2150,7 @@ position field as the error position.
   operand->type = error_type();
   operand->state = (an_operand_state)os_none;
   operand->is_simple_string_literal = FALSE;
+  operand->is_id_expression = FALSE;
   /* bound_function is not cleared on purpose. */
 }  /* conv_to_error_operand */
 
@@ -7191,6 +7192,7 @@ still provided).
     }  /* if */
     result->is_simple_string_literal = FALSE;
     result->is_cfront_null_pointer_constant = FALSE;
+    result->is_id_expression = FALSE;
     if (is_constant_operand(result)) {
       break_source_corresp(&result->variant.constant.source_corresp);
       if ((other_operand != NULL &&
@@ -9167,12 +9169,13 @@ explicit "&" operator in the source and *operator_position gives its position.
         }  /* if */
       }  /* if */
       restore_operand_details_incl_ref(operand, &orig_operand);
-      operand->is_simple_string_literal = FALSE;
       /* Change the kind in the reference entries to address-taken. */
       /* This will check for taking the address of a register variable. */
       change_ref_kinds(operand->ref_entries_list, SRK_ADDRESS_TAKEN);
     }  /* if */
   }  /* if */
+  operand->is_simple_string_literal = FALSE;
+  operand->is_id_expression = FALSE;
 }  /* take_address_of_or_reference_to_lvalue */
 
 
@@ -10741,6 +10744,7 @@ current mode -- just do it.
   restore_operand_details_incl_ref(operand, &orig_operand);
   change_ref_kinds(operand->ref_entries_list, SRK_ADDRESS_TAKEN);
   operand->is_simple_string_literal = orig_operand.is_simple_string_literal;
+  operand->is_id_expression = FALSE;
   restore_operand_form_of_name_reference(operand, &orig_operand);
 }  /* do_array_to_pointer_conversion */
 
@@ -10995,6 +10999,7 @@ function, which means (among other things) that its address will not escape.
   restore_operand_details_incl_ref(operand, &orig_operand);
   /* Change the kind in the reference entries to address-taken. */
   change_ref_kinds(operand->ref_entries_list, SRK_ADDRESS_TAKEN);
+  operand->is_id_expression = FALSE;
 }  /* conv_function_designator_to_ptr_to_function */
 
 

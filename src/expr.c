@@ -4778,9 +4778,7 @@ the "&".
         }  /* if */
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
       }  /* if */
-      /* For something like "&x", the is_id_expression flag may have been
-         copied over as "TRUE".  Clear it now. */
-      result->is_id_expression = FALSE;
+      check_assertion(!result->is_id_expression);
     }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     end_position = operand.end_position;
@@ -5050,7 +5048,6 @@ See section 3.3.3.2 of the standard.
           /* Transfer references because the result is an lvalue. */
           result->ref_entries_list = operand.ref_entries_list;
         }  /* if */
-        result->is_id_expression = FALSE; 
       } else {
         /* There was some error in the operand. */
         make_error_operand(result);
@@ -15246,9 +15243,6 @@ Scan the "?" operator.  See section 3.3.15 of the standard.
     result->is_simple_string_literal = (operand_2.is_simple_string_literal ||
                                         operand_3.is_simple_string_literal);
   }  /* if */
-  /* For something like "1 ? x : 3", the is_id_expression may have been
-     copied over as "TRUE".  Clear it now. */
-  result->is_id_expression = FALSE;
 error_exit:
 
   set_operand_position(result, &operand_1->position, &operand_3.end_position,
