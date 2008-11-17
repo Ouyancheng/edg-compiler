@@ -4185,7 +4185,7 @@ that has the same value as the original constant.
 }  /* break_source_corresp */
 
 
-static void break_constant_source_corresp(a_constant_ptr cp)
+void break_constant_source_corresp(a_constant_ptr cp)
 /*
 Break the correspondence between the given constant and any particular
 source occurrence of the constant.  The altered constant is a distinct

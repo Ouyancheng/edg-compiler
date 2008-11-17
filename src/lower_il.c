@@ -16975,6 +16975,96 @@ and all subscopes.
   }  /* for */
 }  /* do_scope_class_member_promotion */
 
+
+static void remove_scoped_enum_refs(a_scope_ptr  scope)
+/*
+The given scope is a function scope.  Remove a_local_scope_ref entries
+for sck_enum (scoped enumerator) scopes (if any).
+*/
+{
+  a_local_scope_ref_ptr  *scope_ref = &scope->scope_refs;
+
+  while (*scope_ref != NULL) {
+    if ((*scope_ref)->referrer.kind == (a_byte_il_entry_kind)iek_scope) {
+      a_scope_ptr  sp = (a_scope_ptr)(*scope_ref)->referrer.ptr;
+      if (sp->kind == (a_scope_kind)sck_enum) {
+        *scope_ref = (*scope_ref)->next;
+        continue;
+      }  /* if */
+    }  /* if */
+    scope_ref = &(*scope_ref)->next;
+  }  /* for */
+}  /* remove_scoped_enum_refs */
+
+
+static void lower_scoped_enum_type(a_type_ptr type)
+/*
+Lower the scoped enum type; change it into a non-scoped enum type by moving
+the enumerator constants onto a constant list and removing the associated
+scope.  If the scoped enumerators associated with this type have not yet
+been mangled, they are mangled now (otherwise the mangling could produce
+symbols that are not unique).
+*/
+{
+  a_constant_ptr  enum_con;
+  a_scope_ptr     assoc_scope;
+
+  type = skip_typerefs(type);
+  check_assertion(type->variant.integer.is_scoped_enum);
+  assoc_scope = type->variant.integer.enum_info.assoc_scope;
+  for (enum_con = enum_constants(type);
+       enum_con != NULL;
+       enum_con = enum_con->next) {
+    /* Make sure scoped enumerators are mangled before they are lowered to
+       non-scoped enumerators. */
+    mangle_member_constant_name(enum_con);
+    /* Re-parent the enumerators. */
+    enum_con->source_corresp.parent_scope = type->source_corresp.parent_scope;
+  }  /* for */
+  /* Move the entire constant list from assoc_scope to constant_list. */
+  type->variant.integer.enum_info.constant_list = assoc_scope->constants;
+  assoc_scope->variant.assoc_type = NULL;
+  assoc_scope->constants = NULL;
+  /* Indicate that this is no longer a scoped enum. */
+  type->variant.integer.is_scoped_enum = FALSE;
+}  /* lower_scoped_enum_type */
+
+
+static void do_lowering_of_scoped_enums(a_scope_ptr scope)
+/*
+Lower scoped enum types to C enum types in the specified scope (as well as
+block and namespace sub-scopes).
+*/
+{
+  a_type_ptr      type;
+  a_scope_ptr     block_scope;
+  a_namespace_ptr nsp;
+
+  /* Lower any scoped enum types in this scope. */
+  for (type = scope->types; type != NULL; type = type->next) {
+    if (is_enum_type(type) &&
+        integer_type_is_scoped_enum(f_skip_typerefs(type))) {
+      lower_scoped_enum_type(type);
+    }  /* if */
+  }  /* for */
+  /* Visit all namespaces. */
+  for (nsp = scope->namespaces; nsp != NULL; nsp = nsp->next) {
+    if (!nsp->is_namespace_alias) {
+      do_lowering_of_scoped_enums(nsp->variant.assoc_scope);
+    }  /* if */
+  }  /* for */
+  /* Visit all block scopes. */
+  for (block_scope = scope->scopes;
+       block_scope != NULL;
+       block_scope = block_scope->next) {
+    do_lowering_of_scoped_enums(block_scope);
+  }  /* for */
+  if (scope->kind == (a_scope_kind)sck_function) {
+    /* Remove any a_local_scope_ref entries that point to sck_enum scopes. */
+    remove_scoped_enum_refs(scope);
+  }  /* if */
+}  /* do_lowering_of_scoped_enums */
+
 #if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
 
 static a_boolean local_entities_should_be_promoted(a_scope_ptr scope)
@@ -18819,6 +18909,8 @@ C++ to C, so that a C back end can handle it without change.
     }  /* if */
     /* Promote class members out of the classes. */
     do_scope_class_member_promotion(scope);
+    /* Re-write scoped enums to non-scoped enums. */
+    do_lowering_of_scoped_enums(scope);
     if (lowering_file_scope) {
       do_all_namespace_member_promotion();
       /* Generate code to handle file-scope dynamic initializations and

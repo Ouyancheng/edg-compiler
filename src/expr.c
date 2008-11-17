@@ -19787,6 +19787,7 @@ memory region).  Do various error checks.
     /* Make a constant from the operand. */
     extract_constant_from_operand_with_fs_fixup(operand, constant);
   }  /* if */
+  break_constant_source_corresp(constant);
 #if DEBUG
   if (debug_level >= 3) {
     db_constant(constant);

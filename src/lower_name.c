@@ -3993,6 +3993,9 @@ new_substitution:
 #endif /* IA64_ABI */
   } else if (scp_is_enum_member(scp)) {
     /* Scoped enumerator. */
+#if !IA64_ABI
+    a_length_reservation  length_reservation;
+#endif /* !IA64_ABI */
     char *name;
     name = unmangled_name_of(&type->source_corresp);
     if (name == NULL) {
@@ -4010,12 +4013,24 @@ new_substitution:
         r_mangled_parent_qualifier(parent_scp, nesting_level + 1, mctl);
       }  /* if */
     }  /* if */
-#endif /* IA64_ABI */
     /* Put out the enum name along with its length. */
     mangled_name_with_length(name, mctl);
-#if IA64_ABI
     /* Add a substitution for this type. */
     alloc_substitution((char *)type, iek_type, mctl);
+#else /* !IA64_ABI */
+    /* Put out the enum name (and optional unique indicator) along with its
+       length. */
+    reserve_space_for_length(&length_reservation, mctl);
+    add_str_to_mangled_name(name, mctl);
+    if (scp->is_local_to_function && !type->source_corresp.is_class_member) {
+      /* To make a local scoped enumerator unique, add the unique scope
+         number of the block that contains it. */
+      a_routine_ptr enclosing_routine = enclosing_routine_for_local_type(type);
+      a_scope_ptr parent_scope = get_parent_scope_of(type);
+      check_assertion(parent_scope != NULL);
+      add_local_name_suffix(parent_scope->number, enclosing_routine, mctl);
+    }  /* if */
+    fill_in_length(&length_reservation, mctl);
 #endif /* IA64_ABI */
   } else {
     /* Namespace name. */
@@ -4075,8 +4090,6 @@ entities that indicates the enclosing function.
     } else if (scp->is_class_member) {
       add_prefix_for_local_type(scp_parent_class(scp), mctl);
     } else if (scp_is_enum_member(scp)) {
-      /* Local scoped enumerators are mangled elsewhere, but scoped
-         enumerators that are members of a local class are mangled here. */
       add_prefix_for_local_type(scp_parent_scoped_enum_type(scp), mctl);
     }  /* if */
   }  /* if */
@@ -5793,7 +5806,7 @@ scoped enumerators, and class and namespace member constants.
   /* Output the name of the member. */
   mangled_name_with_length(unmangled_name_of(scp), mctl);
   close_ia64_nested_name(need_nested_name_close, mctl);
-#endif /* IA64_ABI */
+#endif /* !IA64_ABI */
 }  /* mangled_member_name */
 
 
@@ -6006,7 +6019,7 @@ final processing like compression and truncation.
 }  /* do_type_name_mangling */
 
 
-static void mangle_member_constant_name(a_constant_ptr con)
+void mangle_member_constant_name(a_constant_ptr con)
 /*
 Mangle the name of the indicated member constant, if necessary.  con
 is either an enumerator constant, a scoped enumerator constant, a namespace
@@ -6024,7 +6037,15 @@ member constant, or (as an extension) a declared class member constant.
        be demangled and matches the mangling for promoted entities of the
        same type. */
     add_mangled_name_prefix(&mctl);
-    mangled_member_name(&con->source_corresp,  iek_constant, &mctl);
+    mangled_member_name(&con->source_corresp, iek_constant, &mctl);
+#if IA64_ABI
+    if (scp_is_enum_member(&con->source_corresp) &&
+        con->source_corresp.is_local_to_function &&
+        !con->type->source_corresp.is_class_member) {
+      /* A discriminator is necessary if this is a local scoped enumerator. */
+      add_discriminator_if_necessary(&con->source_corresp, &mctl);
+    }  /* if */
+#endif /* IA64_ABI */
     (void)end_mangling(&con->source_corresp, /*final=*/TRUE, &mctl);
   }  /* if */
 }  /* mangle_member_constant_name */
@@ -6060,13 +6081,9 @@ including classes.
 #endif /* DO_IL_LOWERING */
     } else if (is_immediate_enum_type(type) &&
                (is_class_or_namespace_member(type) ||
-                (integer_type_is_scoped_enum(type) &&
-                 !type->source_corresp.is_local_to_function))) {
+                integer_type_is_scoped_enum(type))) {
       /* Mangle the names of member enum constants as well as scoped
-         enum constants.  Scoped enumerators are typically mangled here
-         unless they are local to a function (in which case they are
-         mangled later -- the memory region may not be available at this
-         point in time and is needed for local type mangling). */
+         enum constants. */
       a_constant_ptr enum_con;
       for (enum_con = enum_constants(type);
            enum_con != NULL;
