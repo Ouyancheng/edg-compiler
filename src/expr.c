@@ -15758,14 +15758,20 @@ See section 3.3.16 of the standard.
               determine_imaginary_operation_type(save_token,
                                                  operand_1, &operand_2,
                                                  &operation_type, &op)) {
-            /* An imaginary-type operation: The notion of an "operation type"
-               is tenuous in this case.  operation_type will have been set to
-               the result type for the underlying arithmetic operation (e.g.,
-               for _Imaginary /= _Imaginary, operation_type will be a real
-               floating-point type), but for the remaining transformations
-               (specifically, for Microsoft property fields), the type of the
-               first operand is what is needed here. */
-            operation_type = rvalue_type(operand_1->type);
+            /* A compound-assignment involving imaginary arithmetic: The notion
+               of an "operation type" is tenuous in this case.  For example,
+               for <real> *= <imaginary> operation, the "operation type" can
+               be argued to be imaginary, but that doesn't always work.
+               Consider "x.p *= y" where "f" is a Microsoft property field: It
+               is rewritten as "x.putp((operation_type)x.getp() * y)", but that
+               would be invalid for the <real> *= <imaginary> case.  This is
+               currently purely a theoretical issue, because property fields
+               are currently only accepted in modes that don't allow imaginary
+               types, and operation_type is only used for that particular
+               transformation after this point.  To avoid undetected problems
+               in the future, we therefore set operation_type to NULL in this
+               case. */
+            operation_type = NULL;
             goto operation_type_determined;
           }  /* if */
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
