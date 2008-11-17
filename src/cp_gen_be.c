@@ -8330,34 +8330,30 @@ gen_expr that might end up generating this expr as a temporary.
                    obj_expr_of_mfunc_operator);
           goto done_with_operation;
         case eok_indirect:
-          if (!expr->variant.operation.compiler_generated) {
-            write_tok_ch('*');
+          if (expr->variant.operation.compiler_generated &&
+              is_constant_node(operand_1) &&
+              handle_lvalue_constant_node(operand_1, /*need_parens=*/FALSE)) {
+            /* The compiler-generated "*" offsets an implicit "&" in the
+               constant operand, so the operand can just be generated as an
+               lvalue directly.  The output was performed by
+               handle_lvalue_constant_node, so nothing further needs to be
+               done. */
           } else {
-            a_boolean need_asterisk = FALSE;
-            if (is_constant_node(operand_1)) {
-              a_constant_ptr con = operand_1->variant.constant;
-              if (con->kind == (a_constant_repr_kind)ck_address &&
-                  (con->variant.address.kind ==
-                                            (an_address_base_kind)abk_uuidof ||
-                   con->variant.address.kind ==
-                                           (an_address_base_kind)abk_typeid)) {
-                /* The generated code for this address constant will
-                   contain an "&", even though the source did not, so the
-                   compiler-generated "*" must be put out as well. */
-                need_asterisk = TRUE;
-              }  /* if */
-            }  /* if */
-            if (need_asterisk) {
-              write_tok_ch('*');
-            } else {
-              /* This may be the implicit dereference on top of a
-                 compiler-generated lvalue adjustment (adding qualification
-                 and/or doing base-class adjustments).  If so, strip those
-                 off and just generate the underlying lvalue node. */
+            if (expr->variant.operation.compiler_generated) {
+              /* The "*" did not appear in the source but was added to
+                 restore the lvalueness of an operand whose address was
+                 taken in order to apply some compiler-generated casts.
+                 Strip off the compiler-generated sequence so the lvalue
+                 operand will be generated directly, and do not generate
+                 the implicit "*". */
               operand_1 = strip_lvalue_cast_sequence(operand_1);
+            } else {
+              /* The "*" did appear in the source, so generate it in the
+                 output as well. */
+              write_tok_ch('*');
             }  /* if */
+            gen_expr_with_parens(operand_1);
           }  /* if */
-          gen_expr_with_parens(operand_1);
           goto done_with_operation;
 #if GNU_EXTENSIONS_ALLOWED
         case eok_real_part:

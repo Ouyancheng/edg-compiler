@@ -3365,7 +3365,10 @@ precedence confusion.  Do the output in the way described by octl.
     /* Forming an address, not an lvalue. */
     /* Use array --> pointer or function --> pointer decay to get an address,
        if that's appropriate.  Otherwise a "&" must be put out. */
-    if (type_decay_used) {
+    if (is_reference_type(con_type) && !octl->gen_compilable_code) {
+      /* Explicitly identify a reference type instead of using "&". */
+      octl->output_str("reference to ");
+    } else if (type_decay_used) {
       /* Using type decay to get a pointer. */
     } else {
       output_optional_open_paren(&need_parens, &need_ampersand_paren, octl);
