@@ -1580,8 +1580,7 @@ pointer (because the field Vals is an array, which decays to a pointer).
   result = field_lvalue_selection_expr(expr, vals_field);
   /* Perform array to pointer decay. */
   ptr_to_elem_type = type_after_array_to_pointer_transformation(result->type);
-  result = make_operator_node((an_expr_operator_kind)eok_array_to_pointer,
-                              ptr_to_elem_type, result);
+  result = make_array_to_pointer_node(ptr_to_elem_type, result);
   return result;
 }  /* select_complex_vals */
 
