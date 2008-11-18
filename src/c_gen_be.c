@@ -4249,7 +4249,59 @@ pointer to the variable; otherwise, return NULL.
   return var_seen_during_lvalue_traversal;
 }  /* variable_referenced_by_lvalue */
 
-#if CHECKING && !STANDALONE_C_GEN_BE
+#if CHECKING 
+/*
+The variable or routine (if any) found while traversing the expression
+passed to check_address_taken_flag (see below).
+*/
+static a_variable_ptr var_for_address_taken_check;
+static a_routine_ptr  rout_for_address_taken_check;
+
+
+static void set_target_of_addressing_op(
+                                    an_expr_node_ptr                    expr,
+                                    an_expr_or_stmt_traversal_block_ptr tblock)
+/*
+Called from check_address_taken_flag via traverse_expr.  If expr is an
+enk_variable or enk_routine node, set var_for_address_taken_check or
+rout_for_address_taken_check, respectively, and terminate the traversal.
+*/
+{
+  if (is_variable_node(expr)) {
+    var_for_address_taken_check = expr->variant.variable;
+  } else if (is_routine_node(expr)) {
+    rout_for_address_taken_check = expr->variant.routine;
+  }  /* if */
+}  /* set_target_of_addressing_op */
+
+
+static void check_address_taken_flag(an_expr_node_ptr expr)
+/*
+Check to make sure that a variable or routine referenced referenced by
+expr, which is an addressing operation like eok_address_of or
+eok_array_to_ptr, has its address_taken flag set.
+*/
+{
+  an_expr_or_stmt_traversal_block tblock;
+
+  var_for_address_taken_check = NULL;
+  rout_for_address_taken_check = NULL;
+  clear_expr_or_stmt_traversal_block(&tblock);
+  tblock.process_expr = set_target_of_addressing_op;
+  tblock.follow_addressing_path = TRUE;
+  traverse_expr(expr, &tblock);
+  if ((var_for_address_taken_check != NULL &&
+       !var_for_address_taken_check->address_taken) ||
+      (rout_for_address_taken_check != NULL &&
+       !rout_for_address_taken_check->address_taken)) {
+#if DEBUG
+    db_expression(expr);
+#endif /* DEBUG */
+    internal_error("check_address_taken_flag: address_taken is FALSE");
+  }  /* if */
+}  /* check_address_taken_flag */
+
+#if !STANDALONE_C_GEN_BE
 
 static void check_type_of_variable_node(an_expr_node_ptr expr)
 /*
@@ -4311,7 +4363,8 @@ type of the variable to which it refers.
   }  /* if */
 }  /* check_type_of_variable_node */
 
-#endif /* CHECKING && !STANDALONE_C_GEN_BE */
+#endif /* !STANDALONE_C_GEN_BE */
+#endif /* CHECKING */
 
 static void dump_expr(an_expr_node_ptr expr,
                       a_boolean        need_parens)
@@ -4364,6 +4417,9 @@ there's some possibility of precedence confusion and need_parens is TRUE.
         case eok_address_of:
           { a_variable_ptr var = variable_referenced_by_lvalue(operand_1);
             a_type_ptr     underlying_type = type_pointed_to(expr->type);
+#if CHECKING
+            check_address_taken_flag(expr);
+#endif /* CHECKING */
             if (is_function_type(underlying_type)) {
               /* Function types decay to pointer-to-function types
                  automatically, so the ampersand is redundant (and would
@@ -4529,6 +4585,9 @@ there's some possibility of precedence confusion and need_parens is TRUE.
         case eok_array_to_pointer:
           /* Decay of an array lvalue/rvalue to a pointer to its first
              element.  Just dump the array expression. */
+#if CHECKING
+          check_address_taken_flag(expr);
+#endif /* CHECKING */
           dump_expr_with_parens(operand_1);
           goto done_with_unary_operation;
 #if MICROSOFT_EXTENSIONS_ALLOWED
