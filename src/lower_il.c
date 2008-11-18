@@ -1745,6 +1745,24 @@ already_il_name is TRUE.
 }  /* make_lowered_variable */
 
 
+an_expr_node_ptr make_array_to_pointer_node(a_type_ptr       type,
+                                            an_expr_node_ptr operands)
+/*
+Utility to create an eok_array_to_pointer node with the specified type and
+operands; also sets the address_taken field properly if the operand is
+a variable.  Used by lowering when adding an array decay.  The node is
+created as an rvalue.
+*/
+{
+  if (is_variable_node(operands)) {
+    /* Set the address_taken flag for variables. */
+    set_address_taken_for_variable_or_routine_expr(operands);
+  }  /* if */
+  return make_operator_node((an_expr_operator_kind)eok_array_to_pointer, type,
+                            operands);
+}  /* make_array_to_pointer_node */
+
+
 a_variable_ptr make_lowered_param_variable(a_type_ptr type)
 /*
 Make a variable for a parameter of type "type" and return a pointer to
@@ -2260,10 +2278,9 @@ array associated with the variable var, and return it.
   an_expr_node_ptr node;
 
   node = var_lvalue_expr(var);
-  node = make_operator_node((an_expr_operator_kind)eok_array_to_pointer,
-                            type_after_array_to_pointer_transformation(
-                                                                    var->type),
-                            node);
+  node = make_array_to_pointer_node(
+                         type_after_array_to_pointer_transformation(var->type),
+                                    node);
   return node;
 }  /* array_first_element_addr_expr */
 
@@ -11864,6 +11881,27 @@ The expression can be an lvalue or an rvalue.
 }  /* lower_pm_field */
 
 
+static void set_address_taken_if_necessary(an_expr_node_ptr node)
+/*
+As a result of re-writing expressions (e.g. &(0, x) becoming (0, &x)), the
+specified operation node has just been created from two previously distinct
+nodes; set the address_taken flag on the node's operand if that is now
+appropriate.
+*/
+{
+  an_expr_operator_kind op = node->variant.operation.kind;
+  an_expr_node_ptr      operand = node->variant.operation.operands;
+
+  check_assertion(is_operation_node(node) &&
+                  (op != (an_expr_operator_kind)eok_array_to_pointer &&
+                   op != (an_expr_operator_kind)eok_reference_to));
+  if (op == (an_expr_operator_kind)eok_address_of) {
+    /* Set the address taken flag if the operand is a variable or routine. */
+    set_address_taken_for_variable_or_routine_expr(operand);
+  }  /* if */
+}  /* set_address_taken_if_necessary */
+
+
 static void optimize_node_if_possible(an_expr_node_ptr expr)
 /*
 Perform some simple optimizations on expr if possible.  Note that operations
@@ -12074,10 +12112,13 @@ it is left alone.
          that wasn't present before, or that they represent an lvalue-returning
          operation that needs to be further rewritten, or a new operation on a
          const string.  Check for each of these cases. */
+      /* Additionally, make sure the address_taken flag is set properly. */
+      set_address_taken_if_necessary(newop1);
       optimize_node_if_possible(newop1);
       lower_operations_returning_lvalue_instead_of_usual_rvalue(newop1);
       lower_operation_on_const_string_if_necessary(newop1);
       if (newop2 != NULL) {
+        set_address_taken_if_necessary(newop2);
         optimize_node_if_possible(newop2);
         lower_operations_returning_lvalue_instead_of_usual_rvalue(newop2);
         lower_operation_on_const_string_if_necessary(newop2);

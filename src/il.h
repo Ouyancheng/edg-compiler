@@ -1360,6 +1360,9 @@ extern an_expr_node_ptr add_address_of_to_node(an_expr_node_ptr node);
 
 extern an_expr_node_ptr add_reference_to_to_node(an_expr_node_ptr node);
 
+extern void set_address_taken_for_variable_or_routine_expr(
+                                                        an_expr_node_ptr node);
+
 extern an_expr_node_ptr add_object_lifetime_to_expr(
                                              an_expr_node_ptr       expr,
                                              an_object_lifetime_ptr lifetime);

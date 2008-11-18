@@ -14561,8 +14561,7 @@ a pointer to the new expression.  The returned node is designated an lvalue.
 }  /* add_ref_indirection_to_node */
 
 
-static void set_address_taken_for_variable_or_routine_expr(
-                                                         an_expr_node_ptr node)
+void set_address_taken_for_variable_or_routine_expr(an_expr_node_ptr node)
 /*
 If node is an expression for a simple variable or routine, set the
 address_taken flag on the underlying entity.

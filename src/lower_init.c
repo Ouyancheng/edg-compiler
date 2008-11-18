@@ -1223,8 +1223,7 @@ is a variable-length array.
       } else {
         a_type_ptr elem_type = entity_node->type;
         /* Perform array to pointer decay. */
-        entity_node = make_operator_node(
-                         (an_expr_operator_kind)eok_array_to_pointer,
+        entity_node = make_array_to_pointer_node(
                          type_after_array_to_pointer_transformation(elem_type),
                          entity_node);
       }  /* if */
