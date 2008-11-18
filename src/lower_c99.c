@@ -2927,6 +2927,14 @@ _Bool type, and VLA types.
   check_assertion(expr->kind == (an_expr_node_kind)enk_operation);
   op_kind = expr->variant.operation.type_kind;
   switch (expr->variant.operation.kind) {
+    case eok_address_of:
+    case eok_array_to_pointer:
+      /* Make sure the address_taken flag is set (it may already have
+         been set by the front end, but in some cases the operand has
+         since been lowered to a variable and the flag needs setting. */
+      set_address_taken_for_variable_or_routine_expr(
+                                             expr->variant.operation.operands);
+      break;
     case eok_negate:
       switch (op_kind) {
 #if LOWER_FIXED_POINT

@@ -4330,8 +4330,6 @@ variable.
                                        /*already_il_name=*/TRUE,
                                        constant_type,
                                        (a_storage_class)sc_static);
-    /* FIXME: Assume the address of this variable is indeed taken. */
-    set_variable_address_taken(string_var);
     check_assertion(!in_file_scope(constant));
     /* Use a local static variable init entry to point to the constant
        in the function scope memory region. */
@@ -13490,7 +13488,20 @@ cast.  See lower_expr for typical invocation.
         /* Do any special lowering required for this operator after the
            operands have been lowered. */
         switch (op) {
+          case eok_array_to_pointer:
+            /* Make sure the address_taken flag is set (it may already have
+               been set by the front end, but in some cases the operand has
+               since been lowered to a variable and the flag needs setting. */
+            set_address_taken_for_variable_or_routine_expr(operand_node);
+            break;
           case eok_address_of:
+            /* Make sure the address_taken flag is set (it may already have
+               been set by the front end, but in some cases the operand has
+               since been lowered to a variable and the flag needs setting. */
+            set_address_taken_for_variable_or_routine_expr(operand_node);
+            /* See if an optimization applies. */
+            optimize_node_if_possible(expr);
+            break;
           case eok_indirect:
             /* See if an optimization applies. */
             optimize_node_if_possible(expr);

@@ -2331,8 +2331,6 @@ conversion in cases where their value is not used.
     /* No expression; the type is known statically. */
     /* Make the runtime typeinfo variable. */
     typeinfo_var = get_typeinfo_var(typeid_type);
-    /* FIXME: Mark the address as taken. */
-    set_variable_address_taken(typeinfo_var);
     /* Make an expression that refers to the user type_info member within
        the implementation typeinfo variable. */
     new_expr = var_lvalue_expr(typeinfo_var);
