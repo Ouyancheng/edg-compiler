@@ -4268,7 +4268,11 @@ rout_for_address_taken_check, respectively, and terminate the traversal.
 */
 {
   if (is_variable_node(expr)) {
-    var_for_address_taken_check = expr->variant.variable;
+    if (has_name(expr->variant.variable)) {
+      /* Don't check "this" and other unnamed variables. */
+      var_for_address_taken_check = expr->variant.variable;
+    }  /* if */
+    tblock->terminate = TRUE;
   } else if (is_routine_node(expr)) {
     rout_for_address_taken_check = expr->variant.routine;
   }  /* if */
