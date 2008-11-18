@@ -6188,7 +6188,19 @@ possibility.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     if (microsoft_mode && sym != NULL && sym->is_class_member &&
         sym->kind == (a_symbol_kind)sk_projection) {
+      /* Microsoft compilers allow naming inherited members; e.g.:
+           struct B { int f(); };
+           struct D: B {};
+           class X { friend int D::f(); };  // Okay in Microsoft mode.  */
       reduce_projection_symbol_to_fundamental_symbol(sym);
+      if (is_member_function_symbol(sym) &&
+          function_type->kind == (a_type_kind)tk_routine &&
+          routine_type_is_nonstatic_member_function(function_type)) {
+        /* A qualified function type will have this_class set.  Adjust
+           this_class to the class inherited from. */
+        function_type->variant.routine.extra_info->this_class =
+                                                       sym->parent.class_type;
+      }  /* if */
     }  /* if */
     if (sym != NULL && sym->is_class_member &&
         !is_member_function_symbol(sym)) {
