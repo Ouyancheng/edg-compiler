@@ -4263,13 +4263,14 @@ static void set_target_of_addressing_op(
                                     an_expr_or_stmt_traversal_block_ptr tblock)
 /*
 Called from check_address_taken_flag via traverse_expr.  If expr is an
-enk_variable or enk_routine node, set var_for_address_taken_check or
-rout_for_address_taken_check, respectively, and terminate the traversal.
+lvalue enk_variable node or an enk_routine node, set
+var_for_address_taken_check or rout_for_address_taken_check, respectively,
+and terminate the traversal.
 */
 {
   if (is_variable_node(expr)) {
-    if (has_name(expr->variant.variable)) {
-      /* Don't check "this" and other unnamed variables. */
+    if (expr->is_lvalue) {
+      /* We only want lvalues -- i.e., "x.i" and not "p->i". */
       var_for_address_taken_check = expr->variant.variable;
     }  /* if */
     tblock->terminate = TRUE;
