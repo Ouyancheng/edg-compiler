@@ -11893,9 +11893,9 @@ appropriate.
   an_expr_node_ptr      operand = node->variant.operation.operands;
 
   check_assertion(is_operation_node(node) &&
-                  (op != (an_expr_operator_kind)eok_array_to_pointer &&
-                   op != (an_expr_operator_kind)eok_reference_to));
-  if (op == (an_expr_operator_kind)eok_address_of) {
+                  op != (an_expr_operator_kind)eok_reference_to);
+  if (op == (an_expr_operator_kind)eok_address_of ||
+      op == (an_expr_operator_kind)eok_array_to_pointer) {
     /* Set the address taken flag if the operand is a variable or routine. */
     set_address_taken_for_variable_or_routine_expr(operand);
   }  /* if */
