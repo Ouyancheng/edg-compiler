@@ -1754,10 +1754,8 @@ a variable.  Used by lowering when adding an array decay.  The node is
 created as an rvalue.
 */
 {
-  if (is_variable_node(operands)) {
-    /* Set the address_taken flag for variables. */
-    set_address_taken_for_variable_or_routine_expr(operands);
-  }  /* if */
+  /* Set the address_taken flag if appropriate for this operand. */
+  set_address_taken_for_variable_or_routine_expr(operands);
   return make_operator_node((an_expr_operator_kind)eok_array_to_pointer, type,
                             operands);
 }  /* make_array_to_pointer_node */
@@ -4332,6 +4330,8 @@ variable.
                                        /*already_il_name=*/TRUE,
                                        constant_type,
                                        (a_storage_class)sc_static);
+    /* FIXME: Assume the address of this variable is indeed taken. */
+    set_variable_address_taken(string_var);
     check_assertion(!in_file_scope(constant));
     /* Use a local static variable init entry to point to the constant
        in the function scope memory region. */

@@ -14561,18 +14561,41 @@ a pointer to the new expression.  The returned node is designated an lvalue.
 }  /* add_ref_indirection_to_node */
 
 
+static void set_address_taken_on_target_of_addressing_op(
+                                    an_expr_node_ptr                    expr,
+                                    an_expr_or_stmt_traversal_block_ptr tblock)
+/*
+Called from set_address_taken_for_variable_or_routine_expr via traverse_expr.
+If expr is an lvalue enk_variable node or an enk_routine node, set the
+address_taken flag on the node and terminate the traversal.
+*/
+{
+  if (is_variable_node(expr)) {
+    if (expr->is_lvalue) {
+      /* We only want lvalues -- i.e., "x.i" and not "p->i". */
+      set_variable_address_taken(expr->variant.variable);
+    }  /* if */
+    tblock->terminate = TRUE;
+  } else if (is_routine_node(expr)) {
+    expr->variant.routine->address_taken = TRUE;
+    tblock->terminate = TRUE;
+  }  /* if */
+}  /* set_address_taken_on_target_of_addressing_op */
+
+
 void set_address_taken_for_variable_or_routine_expr(an_expr_node_ptr node)
 /*
 If node is an expression for a simple variable or routine, set the
-address_taken flag on the underlying entity.
+address_taken flag on the underlying entity.  Traverse the expression to
+find the ultimate node whose address is taken.
 */
 {
-  node = skip_parens(node);
-  if (is_variable_node(node)) {
-    set_variable_address_taken(node->variant.variable);
-  } else if (is_routine_node(node)) {
-    node->variant.routine->address_taken = TRUE;
-  }  /* if */
+  an_expr_or_stmt_traversal_block tblock;
+
+  clear_expr_or_stmt_traversal_block(&tblock);
+  tblock.process_expr = set_address_taken_on_target_of_addressing_op;
+  tblock.follow_addressing_path = TRUE;
+  traverse_expr(node, &tblock);
 }  /* set_address_taken_for_variable_or_routine_expr */
 
 
