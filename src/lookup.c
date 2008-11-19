@@ -5399,9 +5399,9 @@ associated namespaces and classes to "namespace_list" and "class_list".
          implementation treats unions and classes equivalently. */
       /* Add the class itself to the lookup list. */
       add_class_to_lookup_lists(type, namespace_list, class_list);
-      if (!gpp_mode && !microsoft_mode) {
+      if (!gpp_mode && (!microsoft_mode || microsoft_version >= 1500)) {
         /* If this is a template, make sure it is instantiated.  This is not
-           done by the Microsoft and g++ compilers. */
+           done by the Microsoft (before version 1500) and g++ compilers. */
         complete_class_type_is_needed(type);
       }  /* if */
       /* Add its base classes. */
