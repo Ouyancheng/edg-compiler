@@ -363,7 +363,7 @@ static void gen_pending_pragma_pack(void);
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 static void gen_template_header(a_template_decl_ptr tdp);
 static void gen_template(void);
-static an_expr_node_ptr strip_lvalue_cast_sequence(an_expr_node_ptr expr);
+static a_boolean strip_lvalue_cast_sequence(an_expr_node_ptr *expr);
 static void gen_initializer_constant(a_constant_ptr constant,
                                      a_type_ptr     type,
                                      a_boolean      suppress_braces);
@@ -6316,7 +6316,7 @@ the expression reflects an implicit member access ("this->y"), so the
   object_expr=remove_nonstandard_anonymous_union_field_selections(object_expr,
                                                                   &op);
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
-  object_expr = strip_lvalue_cast_sequence(object_expr);
+  (void)strip_lvalue_cast_sequence(&object_expr);
   if (op == (an_expr_operator_kind)eok_points_to_field &&
       !is_pointer_type(object_expr->type)) {
     /* We removed an implicit conversion from lvalue to pointer type; use
@@ -6403,10 +6403,8 @@ is a pointer to member.  The caller will put parentheses around this
 selection.
 */
 {
-  an_expr_node_ptr stripped_object_expr;
-
-  stripped_object_expr = skip_parens(object_expr);
-  object_expr = strip_lvalue_cast_sequence(stripped_object_expr);
+  object_expr = skip_parens(object_expr);
+  (void)strip_lvalue_cast_sequence(&object_expr);
   gen_expr_with_parens(object_expr);
   if (object_expr->is_lvalue) {
     /* ".*" case. */
@@ -6573,13 +6571,13 @@ indicated by opstr.
   a_type_ptr       operand_1_type;
   a_boolean        need_context_pop = FALSE;
   a_boolean        use_comma = FALSE;
-  an_expr_node_ptr orig_operand_1 = operand_1;
+  a_boolean        removed_nodes;
 
   /* Put out the first operand. */
   /* Also determine the class type underlying the first operand. */
-  operand_1 = strip_lvalue_cast_sequence(operand_1);
+  removed_nodes = strip_lvalue_cast_sequence(&operand_1);
   operand_1_type = operand_1->type;
-  if (*opstr == '-' && operand_1 != orig_operand_1) {
+  if (*opstr == '-' && removed_nodes) {
     /* The front end inserted nodes to convert an lvalue to a pointer,
        which we removed via strip_lvalue_cast_sequence; make sure we don't
        use "->" with a non-pointer value. */
@@ -6773,19 +6771,21 @@ Generate a va_arg operator.  Used when <stdarg.h> is treated as a builtin.
 }  /* gen_va_arg */
 
 
-static an_expr_node_ptr strip_lvalue_cast_sequence(an_expr_node_ptr expr)
+static a_boolean strip_lvalue_cast_sequence(an_expr_node_ptr *expr)
 /*
 When the front end needs to add a cast to an lvalue node (to add
 cv-qualification, for example), it inserts a compiler-generated sequence of
 nodes equivalent to "*(const T*)&" on top of the lvalue node.  A similar
 pattern is used to convert an object reference into a pointer for use as
 the "this" parameter of a member function.  This routine recognizes this
-pattern (in which case, expr points to a cast node -- the eok_indirect
-node, if any, was recognized and skipped by the caller) and returns the
-original lvalue.
+pattern (in which case, *expr points to a cast node -- the eok_indirect
+node, if any, was recognized and skipped by the caller) and updates *expr
+to point to the original lvalue.  It returns TRUE if the sequence was
+removed and FALSE otherwise.
 */
 {
-  an_expr_node_ptr node = expr;
+  an_expr_node_ptr node = *expr;
+  a_boolean        removed_nodes = FALSE;
 
   if (is_constant_node(node)) {
     a_constant_ptr constant = node->variant.constant;
@@ -6813,11 +6813,12 @@ original lvalue.
   if (is_operation_node(node) &&
       node->variant.operation.compiler_generated &&
       node_operator_is(node, eok_address_of)) {
-    /* We can ignore the *(<type>)&" sequence and just process the
+    /* We can ignore the (<type>)&" sequence and just process the
        operand directly. */
-    expr = node->variant.operation.operands;
+    *expr = node->variant.operation.operands;
+    removed_nodes = TRUE;
   }  /* if */
-  return expr;
+  return removed_nodes;
 }  /* strip_lvalue_cast_sequence */
 
 
@@ -7402,7 +7403,7 @@ If suppress_virtual is TRUE, suppress virtual-ness on the function reference.
       /* Use the expression that the constant represents. */
       object_expr = object_expr->variant.constant->expr;
     }  /* if */
-    object_expr = strip_lvalue_cast_sequence(object_expr);
+    (void)strip_lvalue_cast_sequence(&object_expr);
     if (is_pointer_type(object_expr->type)) {
       /* Use a pointer and "->". */
       if (is_variable_node(object_expr) &&
@@ -7451,8 +7452,8 @@ If suppress_virtual is TRUE, suppress virtual-ness on the function reference.
              whether to generate "->" or ".". */
           a_dynamic_init_ptr dip = object_expr->variant.reused_value_init;
           if (dip->kind == (a_dynamic_init_kind)dik_expression) {
-            an_expr_node_ptr orig_expr =
-                         strip_lvalue_cast_sequence(dip->variant.expression);
+            an_expr_node_ptr orig_expr = dip->variant.expression;
+            (void)strip_lvalue_cast_sequence(&orig_expr);
             if (!is_pointer_type(orig_expr->type)) {
               use_arrow = FALSE;
             }  /* if */
@@ -7964,7 +7965,7 @@ handled through recursion.
   arg1 = expr->variant.operation.operands;
   arg2 = arg1->next;
   /* Skip any (pointer) casts on the first operand. */
-  arg1 = strip_lvalue_cast_sequence(arg1);
+  (void)strip_lvalue_cast_sequence(&arg1);
   switch (expr->variant.operation.kind) {
     case eok_dot_field:
     case eok_points_to_field:
@@ -8339,7 +8340,10 @@ gen_expr that might end up generating this expr as a temporary.
                handle_lvalue_constant_node, so nothing further needs to be
                done. */
           } else {
-            if (expr->variant.operation.compiler_generated) {
+            if (expr->variant.operation.compiler_generated &&
+                (strip_lvalue_cast_sequence(&operand_1) ||
+                 (is_operation_node(operand_1) &&
+                  operand_1->variant.operation.is_reference_cast))) {
               /* The "*" did not appear in the source but was added to
                  restore the lvalueness of an operand whose address was
                  taken in order to apply some compiler-generated casts or
@@ -8347,15 +8351,10 @@ gen_expr that might end up generating this expr as a temporary.
                  cast to a pointer type.  Strip off the compiler-generated
                  sequence, if any, so the lvalue operand will be generated
                  directly, and do not generate the implicit "*". */
-              operand_1 = strip_lvalue_cast_sequence(operand_1);
-              check_assertion(
-                           operand_1->is_lvalue ||
-                           (is_operation_node(operand_1) &&
-                            !operand_1->variant.operation.compiler_generated &&
-                            operand_1->variant.operation.is_reference_cast));
             } else {
-              /* The "*" did appear in the source, so generate it in the
-                 output as well. */
+              /* The "*" did appear in the source or is part of a
+                 compiler-generated sequence that cannot be simplified, so
+                 generate it in the output. */
               write_tok_ch('*');
             }  /* if */
             gen_expr_with_parens(operand_1);
@@ -8466,6 +8465,27 @@ gen_expr that might end up generating this expr as a temporary.
                    obj_expr_of_mfunc_operator);
           goto done_with_operation;
         case eok_lvalue_adjust:
+          if (is_array_type(expr->type) && is_operation_node(operand_1) &&
+              node_operator_is(operand_1, eok_indirect) &&
+              operand_1->variant.operation.compiler_generated &&
+              is_operation_node(operand_1->variant.operation.operands) &&
+              node_operator_is(operand_1->variant.operation.operands,
+                                                       eok_array_to_pointer)) {
+            /* The front end inserts this sequence on top of an rvalue
+               array when passing it to a function parameter with a
+               reference type.  Skip the compiler-generated nodes and
+               just put out the rvalue array expression directly. */
+            gen_expr(operand_1->variant.operation.operands->
+                                                    variant.operation.operands,
+                     /*need_parens=*/FALSE,
+                     /*obj_expr_of_mfunc_operator=*/FALSE);
+          } else {
+            /* Compiler-generated, so there is no source representation. */
+            check_assertion(expr->variant.operation.compiler_generated);
+            gen_expr(operand_1, /*need_parens=*/FALSE,
+                     /*obj_expr_of_mfunc_operator=*/FALSE);
+          }  /* if */
+          goto done_with_operation;
         case eok_class_rvalue_adjust:
           /* Always compiler-generated, so it has no source representation. */
           check_assertion(expr->variant.operation.compiler_generated);
@@ -8674,7 +8694,8 @@ gen_expr that might end up generating this expr as a temporary.
                expression to the "this" pointer for the accessor function,
                and these must be stripped before generating the code for
                the expression. */
-            gen_expr_with_parens(strip_lvalue_cast_sequence(operand_1));
+            (void)strip_lvalue_cast_sequence(&operand_1);
+            gen_expr_with_parens(operand_1);
           } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           /* Do not insert code here. */
@@ -11027,9 +11048,10 @@ If is_static_cast is TRUE, the initialization reflects a static_cast in the
 source and the expression is generated in that form.
 */
 {
-  a_constant_ptr con;
-  a_boolean      using_old_style_cast = FALSE, is_value_init;
-  a_boolean      suppress_outermost_parentheses = FALSE;
+  a_constant_ptr   con;
+  an_expr_node_ptr expr;
+  a_boolean        using_old_style_cast = FALSE, is_value_init;
+  a_boolean        suppress_outermost_parentheses = FALSE;
 
   if (dip->is_explicit_cast && !parenthesized_init) {
     a_boolean has_one_argument = FALSE;
@@ -11215,8 +11237,9 @@ source and the expression is generated in that form.
          the top-level operator is a ",".  Remove any compiler-generated
          address-of operator. */
       if (parenthesized_init) write_tok_ch('(');
-      gen_initializer_expr(strip_lvalue_cast_sequence(dip->variant.expression),
-                           init_entity_type, /*need_parens=*/TRUE,
+      expr = dip->variant.expression;
+      (void)strip_lvalue_cast_sequence(&expr);
+      gen_initializer_expr(expr, init_entity_type, /*need_parens=*/TRUE,
                            /*mbr_fcn_default_arg_expr=*/FALSE);
       if (parenthesized_init) write_tok_ch(')');
       break;
