@@ -8347,6 +8347,7 @@ gen_expr that might end up generating this expr as a temporary.
                  operand will be generated directly, and do not generate
                  the implicit "*". */
               operand_1 = strip_lvalue_cast_sequence(operand_1);
+              check_assertion(operand_1->is_lvalue);
             } else {
               /* The "*" did appear in the source, so generate it in the
                  output as well. */
