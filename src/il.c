@@ -14567,7 +14567,7 @@ static void set_address_taken_on_target_of_addressing_op(
 /*
 Called from set_address_taken_for_variable_or_routine_expr via traverse_expr.
 If expr is an lvalue enk_variable node or an enk_routine node, set the
-address_taken flag on the node and terminate the traversal.
+address_taken flag on the variable or routine and terminate the traversal.
 */
 {
   if (is_variable_node(expr)) {
