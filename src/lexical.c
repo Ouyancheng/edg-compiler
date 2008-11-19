@@ -6566,7 +6566,7 @@ except the first, create an entry in the logical character info table.
     int icclfmc_idx;							\
     curr_char_loc++;							\
     for (icclfmc_idx = 1; icclfmc_idx < (len); icclfmc_idx++) {		\
-      add_logical_char_info_entry(++curr_char_loc);			\
+      add_logical_char_info_entry(curr_char_loc++);			\
     }  /* for */							\
   } else {								\
     curr_char_loc += (len);						\
