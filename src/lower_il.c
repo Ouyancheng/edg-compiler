@@ -4409,6 +4409,29 @@ in extern inline functions).
   addr_con->next = orig_con.next;
 }  /* rewrite_address_of_string_as_address_of_variable */
 
+
+an_expr_node_ptr rewrite_address_string_constant_with_non_zero_offset_as_expr(
+                                                            a_constant_ptr con)
+/*
+The indicated constant is an address constant of a string with a non-zero
+offset.  Such constants are rewritten during lowering as variables, but
+variables can't have offsets, so the constant is rewritten here as an
+expression of the same type which can be substituted by the caller for the
+constant in an appropriate way.  On input, the constant has not been lowered.
+The resulting expression has not been lowered (and must be).
+*/
+{
+  an_expr_node_ptr  node = alloc_node_for_allocated_constant(con);
+
+  check_assertion(is_address_string_constant_with_non_zero_offset(con));
+  node->next = node_for_integer_constant((long)con->variant.address.offset,
+                                         targ_ptrdiff_t_int_kind);
+  node = make_operator_node((an_expr_operator_kind)eok_padd,
+                            con->type, node);
+  con->variant.address.offset = 0;
+  return node;
+}  /* rewrite_address_string_constant_with_non_zero_offset_as_expr */
+
 #endif /* ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
 
 static void lower_typeid_constant(a_constant_ptr typeid_con)
@@ -13766,41 +13789,54 @@ cast.  See lower_expr for typical invocation.
       }  /* if */
       break;
     case enk_constant:
+      { a_constant_ptr con = expr->variant.constant;
 #if GNU_EXTENSIONS_ALLOWED && LOWER_COMPLEX
-      if (expr->variant.constant->kind == (a_constant_repr_kind)ck_complex)  {
-        /* The lowering of a complex constant results in an aggregate constant,
-           which needs special treatment (much like the pointer-to-member case
-           below). */
-        lower_c99_constant_expr(expr);
-      } else
+        if (con->kind == (a_constant_repr_kind)ck_complex) {
+          /* The lowering of a complex constant results in an aggregate
+             constant, which needs special treatment (much like the
+             pointer-to-member case below). */
+          lower_c99_constant_expr(expr);
+        } else
 #endif /* GNU_EXTENSIONS_ALLOWED && LOWER_COMPLEX */
+        /* Do not insert code here. */
 #if ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS
-      if (expr->variant.constant->kind == (a_constant_repr_kind)ck_string &&
-          expr->variant.constant->variant.string.sequence_number != 0) {
+        if (is_address_string_constant_with_non_zero_offset(con)) {
+          /* This constant has a non-zero offset component, and will be
+             replaced by a variable during further lowering; create an
+             expression to perform the offset explicitly. */
+          overwrite_node(expr,
+            rewrite_address_string_constant_with_non_zero_offset_as_expr(con));
+          /* Lower the resulting expression. */
+          lower_expr(expr);
+          /* Note: expr is no longer an enk_constant. */
+        } else if (con->kind == (a_constant_repr_kind)ck_string &&
+                   con->variant.string.sequence_number != 0) {
           /* This string must be the same across multiple translation
              units (e.g., a string in an extern inline function).
              Create a variable for it. */
           rewrite_string_constant_as_variable(expr);
-      } else
+          /* Note: expr is no longer an enk_constant. */
+        } else
 #endif /* ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
-      /* Do not insert code here. */
-      {
-        lower_os_constant(expr->variant.constant);
-        if (check_for_troublesome_ptr_to_member_constant(
-                    expr->variant.constant, /*const_okay=*/TRUE, &temp_var)) {
-          /* This expression node is loading the value of a pointer-to-
-             member-function, which has or will become a struct represented by
-             a ck_aggregate constant.  Since a ck_aggregate constant is
-             not allowed here, use the value of a temporary variable
-             initialized with the ck_aggregate constant. */
-          set_expr_node_kind(expr, (an_expr_node_kind)enk_variable);
-          expr->variant.variable = temp_var;
-          /* Note that the type will be lowered to the proper struct type.
-             The const on the variable type won't be there, but that's
-             correct; it should be dropped because the reference is an
-             rvalue. */
+        /* Do not insert code here. */
+        {
+          lower_os_constant(con);
+          if (check_for_troublesome_ptr_to_member_constant(
+                                        con, /*const_okay=*/TRUE, &temp_var)) {
+            /* This expression node is loading the value of a pointer-to-
+               member-function, which has or will become a struct represented
+               by a ck_aggregate constant.  Since a ck_aggregate constant is
+               not allowed here, use the value of a temporary variable
+               initialized with the ck_aggregate constant. */
+            set_expr_node_kind(expr, (an_expr_node_kind)enk_variable);
+            expr->variant.variable = temp_var;
+            /* Note that the type will be lowered to the proper struct type.
+               The const on the variable type won't be there, but that's
+               correct; it should be dropped because the reference is an
+               rvalue. */
+          }  /* if */
         }  /* if */
-      }  /* if */
+      }
       break;
     case enk_temp_init:
       lower_temp_init(expr);

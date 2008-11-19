@@ -1002,6 +1002,10 @@ extern void lower_ptr_to_member_constant(a_constant_ptr constant);
 #if ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS
 extern void rewrite_address_of_string_as_address_of_variable(
                                                       a_constant_ptr constant);
+
+extern an_expr_node_ptr
+            rewrite_address_string_constant_with_non_zero_offset_as_expr(
+                                                           a_constant_ptr con);
 #endif /* ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
 
 extern void lower_constant(a_constant_ptr constant);
@@ -1163,6 +1167,22 @@ Casts are not needed for pointer to member function types.
   (!C_mode() && !make_all_functions_unprototyped &&             \
    !is_or_was_ptr_to_member_function_type(tp) &&                \
    type_has_param_passed_via_cctor(tp))                         \
+
+#if ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS
+/*
+Macro that returns TRUE if the constant is an address constant for a string
+with a non-zero offset.  Such a constant will be re-written as a variable
+reference, requiring the offset to be explicitly added.
+*/
+#define is_address_string_constant_with_non_zero_offset(con)            \
+  ((con)->kind == (a_constant_repr_kind)ck_address &&                   \
+   (con)->variant.address.kind == (an_address_base_kind)abk_constant && \
+   (con)->variant.address.variant.constant->kind ==                     \
+                                     (a_constant_repr_kind)ck_string && \
+   (con)->variant.address.variant.constant->                            \
+                                 variant.string.sequence_number != 0 && \
+   (con)->variant.address.offset != 0)
+#endif /* ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
 
 #endif /* DO_IL_LOWERING */
 #endif /* NEED_NAME_MANGLING */

@@ -1,5 +1,24 @@
 Version 4.0
 
+11/19/08 [EDGcpfe/9121]
+Offsets silently dropped when ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS is TRUE
+
+In C++ configurations that use lowering and where
+ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS is TRUE (the default in IA-64 ABI
+configurations), an offset to an address string constant was being silently
+dropped when the string constant was converted to a static variable.  
+This is now fixed.  For example:
+
+  extern "C" int strcmp(const char *, const char *);
+  extern inline const char *f() {
+    const char *x = "abc"+1;    // the offset (1) was silently discarded
+    return x;
+  }
+  int main() {
+    return strcmp("bc", f());   // had returned non-zero, now zero
+  }
+
+
 11/18/08 [EDGcpfe/9355]
 Microsoft compatibility: Inherited const member functions named as friends
 
