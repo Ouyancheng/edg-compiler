@@ -79,7 +79,7 @@ incorrect forms.  For example:
     i /= i;  // Should have the same effect as "i = 0.0;", but previously
   }          // the effect after lowering was as "i = __I__;".
 
-This too is now fixed.
+This is now fixed.
 
 
 11/12/08 [EDGcpfe/9347]
