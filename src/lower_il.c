@@ -1745,19 +1745,18 @@ already_il_name is TRUE.
 }  /* make_lowered_variable */
 
 
-an_expr_node_ptr make_array_to_pointer_node(a_type_ptr       type,
-                                            an_expr_node_ptr operands)
+an_expr_node_ptr make_array_to_pointer_node(an_expr_node_ptr operand)
 /*
-Utility to create an eok_array_to_pointer node with the specified type and
-operands; also sets the address_taken field properly if the operand is
-a variable.  Used by lowering when adding an array decay.  The node is
-created as an rvalue.
+Utility to create an eok_array_to_pointer node with the specified operand;
+also sets the address_taken field properly if the operand is a variable.  
+Used by lowering when adding an array decay.  The node is created as an rvalue.
 */
 {
   /* Set the address_taken flag if appropriate for this operand. */
-  set_address_taken_for_variable_or_routine_expr(operands);
-  return make_operator_node((an_expr_operator_kind)eok_array_to_pointer, type,
-                            operands);
+  set_address_taken_for_variable_or_routine_expr(operand);
+  return make_operator_node((an_expr_operator_kind)eok_array_to_pointer, 
+                     type_after_array_to_pointer_transformation(operand->type),
+                     operand);
 }  /* make_array_to_pointer_node */
 
 
@@ -2276,9 +2275,7 @@ array associated with the variable var, and return it.
   an_expr_node_ptr node;
 
   node = var_lvalue_expr(var);
-  node = make_array_to_pointer_node(
-                         type_after_array_to_pointer_transformation(var->type),
-                                    node);
+  node = make_array_to_pointer_node(node);
   return node;
 }  /* array_first_element_addr_expr */
 
@@ -11904,7 +11901,7 @@ The expression can be an lvalue or an rvalue.
 
 static void set_address_taken_if_necessary(an_expr_node_ptr node)
 /*
-As a result of re-writing expressions (e.g. &(0, x) becoming (0, &x)), the
+As a result of re-writing expressions (e.g., &(0, x) becoming (0, &x)), the
 specified operation node has just been created from two previously distinct
 nodes; set the address_taken flag on the node's operand if that is now
 appropriate.

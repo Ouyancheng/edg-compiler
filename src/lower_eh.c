@@ -5147,8 +5147,7 @@ with zero is built, and a pointer to it is returned in *setjmp_compare_node.
                       ehse_try_setjmp_buffer_field);
   /* Perform an array decay on the argument. */
   try_frame_setjmp_buffer = make_array_to_pointer_node(
-               type_after_array_to_pointer_transformation(make_jmp_buf_type()),
-               try_frame_setjmp_buffer);
+                                                      try_frame_setjmp_buffer);
   /* Make the setjmp call. */
 #if 0
   /* We shouldn't assume setjmp is a routine. */

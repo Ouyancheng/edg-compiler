@@ -1564,7 +1564,7 @@ pointer (because the field Vals is an array, which decays to a pointer).
 {
   an_expr_node_ptr      result;
   a_field_ptr           vals_field;
-  a_type_ptr            ctype = skip_typerefs(expr->type), ptr_to_elem_type;
+  a_type_ptr            ctype = skip_typerefs(expr->type);
 
   check_assertion(is_complex_type(ctype));
   if (!expr->is_lvalue) {
@@ -1579,8 +1579,7 @@ pointer (because the field Vals is an array, which decays to a pointer).
   /* Construct "expr._Vals" or "expr->_Vals". */
   result = field_lvalue_selection_expr(expr, vals_field);
   /* Perform array to pointer decay. */
-  ptr_to_elem_type = type_after_array_to_pointer_transformation(result->type);
-  result = make_array_to_pointer_node(ptr_to_elem_type, result);
+  result = make_array_to_pointer_node(result);
   return result;
 }  /* select_complex_vals */
 

@@ -1221,11 +1221,8 @@ is a variable-length array.
            results from an array decay). */
         entity_node = add_address_of_to_node(entity_node);
       } else {
-        a_type_ptr elem_type = entity_node->type;
         /* Perform array to pointer decay. */
-        entity_node = make_array_to_pointer_node(
-                         type_after_array_to_pointer_transformation(elem_type),
-                         entity_node);
+        entity_node = make_array_to_pointer_node(entity_node);
       }  /* if */
       if (using_as_dest) {
         /* The entity will be used as the destination of an initialization, so

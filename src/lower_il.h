@@ -879,8 +879,7 @@ extern a_variable_ptr make_lowered_variable(char            *var_name,
 
 extern a_variable_ptr make_lowered_param_variable(a_type_ptr type);
 
-extern an_expr_node_ptr make_array_to_pointer_node(a_type_ptr       type,
-                                                   an_expr_node_ptr operands);
+extern an_expr_node_ptr make_array_to_pointer_node(an_expr_node_ptr operand);
 
 extern a_variable_ptr make_global_var_with_prefixed_name(
                                       char                    *prefix,
