@@ -4220,11 +4220,26 @@ variable and terminate the traversal.
 */
 {
   if (is_variable_node(expr)) {
-    a_variable_ptr var = expr->variant.variable;
-    if (is_array_type(var->type) ||
-        is_class_struct_union_type(var->type)) {
-      var_seen_during_lvalue_traversal = var;
-      tblock->terminate = TRUE;
+    if (expr->is_lvalue) {
+      /* The processing for tblock->follow_addressing_path will visit
+         a pointer variable in a member access expression ("p" in "p->x").
+         That case is not of interest here, but it can be avoided by
+         requiring that the enk_variable node be an lvalue. */
+      a_variable_ptr var = expr->variant.variable;
+      if (is_array_type(var->type) ||
+          is_class_struct_union_type(var->type)) {
+        /* This routine is called for the purpose of determining whether a
+           cast to const is needed because the declaration of a const
+           variable was changed to non-const to allow for initialization
+           (see the comments in case eok_address_of in dump_expr).  An
+           explicit cast is never required for a variable of scalar type
+           because such variables can be implicitly converted to a const
+           type in the generated C code; we therefore only record variables
+           of array and struct types, where an explicit cast might be
+           needed. */
+        var_seen_during_lvalue_traversal = var;
+        tblock->terminate = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
 }  /* set_var_in_lvalue_traversal */
