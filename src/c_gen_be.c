@@ -4291,15 +4291,16 @@ and terminate the traversal.
     tblock->terminate = TRUE;
   } else if (is_routine_node(expr)) {
     rout_for_address_taken_check = expr->variant.routine;
+    tblock->terminate = TRUE;
   }  /* if */
 }  /* set_target_of_addressing_op */
 
 
 static void check_address_taken_flag(an_expr_node_ptr expr)
 /*
-Check to make sure that a variable or routine referenced referenced by
-expr, which is an addressing operation like eok_address_of or
-eok_array_to_ptr, has its address_taken flag set.
+Check to make sure that a variable or routine referenced by expr, which is
+an addressing operation like eok_address_of or eok_array_to_pointer, has
+its address_taken flag set.
 */
 {
   an_expr_or_stmt_traversal_block tblock;
