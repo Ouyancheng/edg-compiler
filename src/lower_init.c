@@ -8736,19 +8736,6 @@ Generate code for a stmk_init (dynamic initialization) statement.
       turn_statement_into_noop(statement);
     }  /* if */
   } else {
-#if ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS
-    if (dip->kind == (a_dynamic_init_kind)dik_constant &&
-        is_address_string_constant_with_non_zero_offset(
-                                                      dip->variant.constant)) {
-      /* This constant has a non-zero offset component, and will be
-         replaced by a variable during further lowering; change the dynamic
-         initialization from a dik_constant to a dik_expression. */
-      a_constant_ptr    con = dip->variant.constant;
-      dip->variant.expression = 
-             rewrite_address_string_constant_with_non_zero_offset_as_expr(con);
-      dip->kind = dik_expression;
-    }  /* if */
-#endif /* ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
     /* Normal C case.  Lower the subtree if any. */
     switch (dip->kind) {
       case dik_constant:
