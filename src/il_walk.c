@@ -2869,8 +2869,7 @@ and end up at "a".
 #else /* !STANDALONE_UTILITY_PROGRAM */
       check_assertion((((il_lowering_underway ||
                          il_header.il_has_C_semantics) ?
-                          (is_ptr_or_ref_type(expr->type) ||
-                           is_array_type(expr->type)) :
+                          is_ptr_or_ref_type(expr->type) :
                           (is_pointer_type(expr->type) ||
                            is_template_param_type(expr->type))) ||
                        is_error_type(expr->type)) ||

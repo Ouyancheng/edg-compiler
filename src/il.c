@@ -14567,7 +14567,8 @@ static void set_address_taken_on_target_of_addressing_op(
 /*
 Called from set_address_taken_for_variable_or_routine_expr via traverse_expr.
 If expr is an lvalue enk_variable node or an enk_routine node, set the
-address_taken flag on the variable or routine and terminate the traversal.
+address_taken flag on the variable or routine.  Note that the traversal
+isn't terminated once a flag is set (allows for something like &(i ? j : k) ).
 */
 {
   if (is_variable_node(expr)) {
@@ -14575,27 +14576,29 @@ address_taken flag on the variable or routine and terminate the traversal.
       /* We only want lvalues -- i.e., "x.i" and not "p->i". */
       set_variable_address_taken(expr->variant.variable);
     }  /* if */
-    tblock->terminate = TRUE;
   } else if (is_routine_node(expr)) {
     expr->variant.routine->address_taken = TRUE;
-    tblock->terminate = TRUE;
   }  /* if */
 }  /* set_address_taken_on_target_of_addressing_op */
 
 
 void set_address_taken_for_variable_or_routine_expr(an_expr_node_ptr node)
 /*
-If node is an expression for a simple variable or routine, set the
-address_taken flag on the underlying entity.  Traverse the expression to
-find the ultimate node whose address is taken.
+Traverse the expression to find the ultimate variable or routine node(s) whose
+address is taken and set the address_taken flag on these nodes.
 */
 {
   an_expr_or_stmt_traversal_block tblock;
 
-  clear_expr_or_stmt_traversal_block(&tblock);
-  tblock.process_expr = set_address_taken_on_target_of_addressing_op;
-  tblock.follow_addressing_path = TRUE;
-  traverse_expr(node, &tblock);
+  if (node->is_lvalue) {
+    clear_expr_or_stmt_traversal_block(&tblock);
+    tblock.process_expr = set_address_taken_on_target_of_addressing_op;
+    tblock.follow_addressing_path = TRUE;
+    traverse_expr(node, &tblock);
+  } else {
+    /* Address isn't taken on cases that aren't lvalues (e.g., rvalue
+       arrays). */
+  }  /* if */
 }  /* set_address_taken_for_variable_or_routine_expr */
 
 

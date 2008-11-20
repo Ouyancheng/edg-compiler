@@ -2930,7 +2930,10 @@ _Bool type, and VLA types.
     case eok_array_to_pointer:
       /* Make sure the address_taken flag is set (it may already have
          been set by the front end, but in some cases the operand has
-         since been lowered to a variable and the flag needs setting. */
+         since been lowered to a variable and the flag needs setting). 
+         There are also some cases where potentially evaluated expressions
+         (e.g., operands of sizeof) may not have set the address_taken
+         flag. */
       set_address_taken_for_variable_or_routine_expr(
                                              expr->variant.operation.operands);
       break;

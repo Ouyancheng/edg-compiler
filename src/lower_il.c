@@ -1752,7 +1752,7 @@ also sets the address_taken field properly if the operand is a variable.
 Used by lowering when adding an array decay.  The node is created as an rvalue.
 */
 {
-  /* Set the address_taken flag if appropriate for this operand. */
+  check_assertion(is_array_type(operand->type));
   set_address_taken_for_variable_or_routine_expr(operand);
   return make_operator_node((an_expr_operator_kind)eok_array_to_pointer, 
                      type_after_array_to_pointer_transformation(operand->type),
@@ -13492,13 +13492,19 @@ cast.  See lower_expr for typical invocation.
           case eok_array_to_pointer:
             /* Make sure the address_taken flag is set (it may already have
                been set by the front end, but in some cases the operand has
-               since been lowered to a variable and the flag needs setting. */
+               since been lowered to a variable and the flag needs setting).
+               There are also some cases where potentially evaluated
+               expressions (e.g., operands of sizeof) may not have set the
+               address_taken flag. */
             set_address_taken_for_variable_or_routine_expr(operand_node);
             break;
           case eok_address_of:
             /* Make sure the address_taken flag is set (it may already have
                been set by the front end, but in some cases the operand has
-               since been lowered to a variable and the flag needs setting. */
+               since been lowered to a variable and the flag needs setting).
+               There are also some cases where potentially evaluated
+               expressions (e.g., operands of sizeof) may not have set the
+               address_taken flag. */
             set_address_taken_for_variable_or_routine_expr(operand_node);
             /* See if an optimization applies. */
             optimize_node_if_possible(expr);
