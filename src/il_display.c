@@ -1307,6 +1307,9 @@ Display the indicated template parameter type supplement.
 */
 {
   disp_ptr("class_type", (char *)ptr->class_type, iek_type);
+  if (ptr->orig_nested_type != NULL) {
+    disp_ptr("orig_nested_type", (char *)ptr->orig_nested_type, iek_type);
+  }  /* if */
   disp_template_param_coordinate(&ptr->coordinates);
 }  /* disp_template_param_type_supplement */
 
