@@ -4607,7 +4607,12 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           /* Decay of an array lvalue/rvalue to a pointer to its first
              element.  Just dump the array expression. */
 #if CHECKING
-          check_address_taken_flag(expr);
+          if (operand_1->is_lvalue) {
+            /* Do not check an rvalue array -- it's not needed (there's
+               no variable to check), and the traverse_expr call used to
+               find the base address does not accept an rvalue array. */
+            check_address_taken_flag(expr);
+          }  /* if */
 #endif /* CHECKING */
           dump_expr_with_parens(operand_1);
           goto done_with_unary_operation;
