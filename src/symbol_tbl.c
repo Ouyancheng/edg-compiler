@@ -3640,20 +3640,10 @@ symbol must be added to the inactive list.
 #endif /* CHECKING */
     insert_after = NULL;
     if (scope_depth == NO_SCOPE_DEPTH) {
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      if (sym_ptr->is_class_member) {
-        check_assertion(microsoft_mode &&
-                        sym_ptr->kind == (a_symbol_kind)sk_member_function);
-        add_sym_to_inactive_list = TRUE;
-      } else
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      /* Do not insert code here. */
-      {
-        /* The symbol is being entered outside of any scope; this happens for
-           keywords and command-line -D options, for example.  No error check
-           is done. */
-        add_sym_to_inactive_list = file_scope_symbols_are_on_inactive_list;
-      }  /* if */
+      /* The symbol is being entered outside of any scope; this happens
+         for keywords and command-line -D options, for example.  No error
+         check is done. */
+      add_sym_to_inactive_list = file_scope_symbols_are_on_inactive_list;
     } else {
       check_assertion_str2(scope_stack[scope_depth].kind !=
                                                    (a_scope_kind)sck_pragma,
@@ -4459,19 +4449,6 @@ defined in that scope and name space unless suppress_error is TRUE.
   db_exit();
 }  /* reenter_symbol */
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
-
-void enter_symbol_into_completed_class(a_symbol_ptr  sym)
-/*
-Enter the given symbol, which represents a member of a complete class, in the
-symbol table.  (That implies that it will be added to the "inactive list" for
-the corresponding symbol header.)
-*/
-{
-  link_symbol_into_symbol_table(sym, NO_SCOPE_DEPTH, /*suppress_error=*/FALSE);
-}  /* enter_symbol_into_completed_class */
-
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 a_symbol_ptr enter_copy_of_symbol(a_symbol_ptr     orig_sym,
                                   a_scope_depth    scope_depth,

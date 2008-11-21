@@ -2899,12 +2899,11 @@ static void update_override_registry(
                              a_base_class_ptr               bcp)
 /*
 A declaration in the current derived class has been seen, and it has the
-effect of overriding a virtual function from a base class.  The latter may be
-a member of an overload set: overridden_sym represents that overload set or
-a single overridden function if it is not part of an overload set.  Keep track
-of the number of overrides by updating the linked list pointed to by
-registry_ptr.  When all the virtual functions in the overload set have been
-overridden, the corresponding entry is removed from the registry.
+effect of overriding a virtual function from a base class.  But the latter is
+a member of an overload set (represented by overload_sym).  Keep track of the
+number of overrides by updating the linked list pointed to by registry_ptr.
+When all the virtual functions in the overload set have been overridden, the
+corresponding entry is removed from the registry.
 */
 {
   an_override_registry_entry_ptr  orep, prev_orep;
@@ -3172,73 +3171,6 @@ restrictive.  Issue an appropriate diagnostic at the given position.
   }  /* if */
 }  /* report_override_exception_spec_mismatch */
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
-
-static a_boolean function_explicitly_overrides(a_routine_ptr     overrider,
-                                               a_routine_ptr     candidate,
-                                               a_base_class_ptr  base_class)
-/*
-overrider is a function that explicitly overrides a base class function (i.e.,
-overrider->overridden_function is non-NULL).  Return TRUE if it overrides
-candidate in the given base class.  (Explicit overriding is a Microsoft C++
-extension.)
-*/
-{
-  a_boolean         result = FALSE;
-  a_routine_ptr     ofp = overrider->overridden_function;
-
-  check_assertion(ofp != NULL);
-  if (!skip_typerefs(base_class->type)
-                                 ->variant.class_struct_union.is_interface) {
-    /* For non-interface base classes, the overrider must directly indicate
-       the overridden function, and all the base subobjects are overridden.
-       For example:
-         struct B { virtual void f() = 0; };
-         struct C1: B {};
-         struct C2: B {};
-         struct D: C1, C2 {
-           void C1::f(); // Overides f in both base subobjects.
-           void C2::f(); // Error: Redeclaration.
-         }; */
-    result = (ofp == candidate);
-  } else {
-    /* For interface base classes, the overridden function is only the one
-       in the indicated base subobject.
-         __interface B {
-           virtual void f() = 0;
-         };
-         __interface C1: B {};
-         __interface C2: B {};
-         struct D: C1, C2 {
-           void C1::f() {}  // Overrides B::f (only) in the C1::B subobject.
-           void C2::f() {}  // Overrides B::f (only) in the C2::B subobject.
-         }; */
-    a_base_class_ptr  of_bcp = find_base_class_of(base_class->derived_class,
-                                                  parent_class_of(ofp));
-    /* Check that the given base is a subobject of the explicitly designated
-       base (of_bcp). */
-    check_assertion(!of_bcp->ambiguous);
-    if (is_on_any_derivation_of(base_class, of_bcp)) {
-      if (ofp == candidate) {
-        /* Direct overrider. */
-        result = TRUE;
-      } else {
-        /* Check for indirect overriding (via an interface slot). */
-        ofp = ofp->overridden_function;
-        while (ofp != NULL) {
-          if (ofp == candidate) {
-            result = TRUE;
-            break;
-          }  /* if */
-          ofp = ofp->overridden_function;
-        }  /* while */
-      }  /* if */
-    }  /* if */
-  }  /* if */
-  return result;
-}  /* function_explicitly_overrides */
-
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if !MICROSOFT_EXTENSIONS_ALLOWED
 /*ARGSUSED*/  /* func_info is not used in some configurations. */
@@ -3399,8 +3331,9 @@ Any diagnostics are issued at the given position.
               }  /* if */
             }  /* if */
             if (rout->overridden_function != NULL &&
-                !function_explicitly_overrides(rout, rp, bcp)) {
-              /* rout has an explicit overrider that doesn't override rp. */
+                rout->overridden_function != rp) {
+              /* rout was declared to only override a specific member of
+                 another base class (a Microsoft extension). */
               continue;
             }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -7433,92 +7366,19 @@ set to FALSE (and FALSE is always returned).
 }  /* check_virtual_interface_member */
 
 
-static a_symbol_ptr interface_slot_override(a_symbol_locator       *loc,
-                                            a_symbol_ptr           base_sym,
-                                            a_class_def_state_ptr  class_state)
-/*
-A member function was declared with the qualified declarator described by loc,
-and the qualifier refers to a Microsoft __interface class.  The interface
-inherits (i.e., does not itself declare) the corresponding member function
-described by base_sym.  class_state describes the current definition state of
-the derived class.
-Return (and, if needed, create) a special member function (an "interface slot")
-in the interface class that the function entry in the derived class can refer
-to (with its overridden_function field).
-*/
-{
-  a_symbol_ptr      result = NULL;
-  a_routine_ptr     rp;
-  a_routine_ptr     base_rp = base_sym->variant.routine.ptr;
-  a_type_ptr        parent_class = qualifier_class_type(*loc), rp_type;
-  a_scope_ptr       parent_scope = class_type_supp(parent_class)->assoc_scope;
-
-  check_assertion(parent_class->variant.class_struct_union.is_interface &&
-                  base_rp->pure_virtual);
-  /* First look through the routines list of parent_class to see if we
-     already created the required entry. */
-  for (rp = parent_scope->routines; rp != NULL; rp = rp->next) {
-    if (rp->virtual_function_number == base_rp->virtual_function_number) {
-      check_assertion(symbol_for(rp)->header == loc->symbol_header &&
-                      rp->pure_virtual);
-      check_assertion(rp->interface_slot);
-      result = symbol_for(rp);
-      break;
-    }  /* if */
-  }  /* for */
-  if (result == NULL) {
-    /* Create a new interface entry slot (routine entry and associated symbol).
-       Note that since parent_class is complete (i.e., its scope is not on the
-       scope stack), we cannot call some of the more common routines to
-       enter and initialize the symbol. */
-    result = alloc_symbol((a_symbol_kind)sk_member_function,
-                          loc->symbol_header, &loc->source_position);
-    result->decl_scope = parent_scope->number;
-    rp_type = copy_routine_type_with_param_types(base_rp->type,
-                                                 /*copy_default_args=*/FALSE);
-    rp_type->variant.routine.extra_info->this_class = parent_class;
-    rp = make_routine(rp_type, (a_storage_class)sc_extern, NO_SCOPE_DEPTH);
-    rp->next = parent_scope->routines;
-    parent_scope->routines = rp;
-    result->variant.routine.ptr = rp;
-    rp->source_corresp.assoc_info = (char*)result;
-    set_source_corresp_name(&rp->source_corresp, result->header);
-    set_class_membership(result, &rp->source_corresp, parent_class);
-    rp->source_corresp.is_local_to_function =
-                            parent_class->source_corresp.is_local_to_function;
-    rp->interface_slot = TRUE;
-    rp->is_virtual = TRUE;
-    /* Don't call make_virtual_function_pure, because "interface slots" should
-       not cause the parent class' any_pure_virtual_functions flag to become
-       TRUE. */
-    rp->pure_virtual = TRUE;
-    rp->virtual_function_number = base_rp->virtual_function_number;
-    rp->overridden_function = base_rp;
-    rp->compiler_generated = TRUE;
-    /* The symbol must be entered in the symbol table so it can be encountered
-       by check_for_virtual_function, but it shouldn't be found by name
-       lookup. */
-    result->is_invisible = TRUE;
-    enter_symbol_into_completed_class(result);
-  }  /* if */
-  return result;
-}  /* interface_slot_override */
-
-
 static a_routine_ptr find_explicitly_overridden_member(
-                                           a_symbol_locator       *locator,
-                                           a_class_def_state_ptr  class_state,
-                                           a_type_ptr             member_type)
+                                                a_symbol_locator  *locator,
+                                                a_type_ptr        class_type,
+                                                a_type_ptr        member_type)
 /*
 We're declaring a member function with type member_type using a qualified
-declarator described by locator.  class_state describes the class in which the
+declarator described by locator.  class_type is the class in which the
 member is being declared. This is a microsoft extension to select a virtual
 function from a particular base class type to be overridden.  Return that
 function or NULL if none can be found.
 */
 {
   a_routine_ptr  result = NULL;
-  a_type_ptr     class_type = class_state->class_type;
   a_type_ptr     parent_class = qualifier_class_type(*locator);
 
   if (!locator->is_class_member ||
@@ -7542,13 +7402,6 @@ function or NULL if none can be found.
                                                     sym, member_type,
                                                     (a_template_param_ptr)NULL,
                                                     /*templates_only=*/FALSE);
-        if (parent_class->variant.class_struct_union.is_interface &&
-            sym != NULL && sym_parent_class(sym) != parent_class) {
-          /* If the qualifier named an __interface class, the overridden
-             function must be a proper member of that interface (as opposed to
-             an inherited member). */
-          sym = interface_slot_override(locator, sym, class_state);
-        }  /* if */
       } else {
         sym = NULL;
       }  /* if */
@@ -7701,7 +7554,7 @@ implicitly declared member functions.
   if (microsoft_mode && locator->is_qualified_name &&
       !is_error_locator(*locator)) {
     overridden_function = find_explicitly_overridden_member(
-                                           locator, class_state, member_type);
+                                            locator, class_type, member_type);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Look for a prior declaration or function overloading. */

@@ -1,46 +1,5 @@
 Version 4.0
 
-11/21/08 [EDGcpfe/9218]
-Microsoft C++ compatibility: Explicit overriding of an interface member
-
-In Microsoft mode, the front end accepts declarations of pure virtual member
-functions with a class qualifier to indicate that only the virtual member in
-the indicated class is overridden by the qualified declaration (see Changes
-entry of 7/18/03).
-
-Previously, the qualifier was used to determine the member function being
-overridden, but did not affect the base subobjects in which it is overridden.
-That observation still applies to base subobjects of ordinary class or struct
-types.  For example:
-
-  struct B { virtual void f() = 0; };
-  struct C1: B {};
-  struct C2: B {};
-  struct D: C1, C2 {
-    void C1::f() {}  // Overrides f in both base subobjects of type B.
-    void C2::f() {}  // Error: Redeclaration of B::f overrider.
-  }; 
-
-However, when the class qualifier refers to an interface, only the member
-found in that specific interface is overridden.  For example: 
-
-  __interface B {
-    virtual void f() = 0;
-  };
-  __interface C1: B {};
-  __interface C2: B {};
-  struct D: C1, C2 {
-    void C1::f() {}  // Overrides B::f (only) in the C1::B subobject.
-    void C2::f() {}  // Overrides B::f (only) in the C2::B subobject.
-  };
-
-Note that for such cases, special routine entries (called "interface slots")
-are added to the interfaces (C1::f and C2::f in the example above).  These are
-pointed too by IL entries for the selectively overriding member functions (and
-used for name mangling, though they can otherwise be ignored for code-
-generation purposes).
-
-
 11/21/08 [EDGcpfe/9284]
 New DUMP_CONFIG_ENABLED configuration macro for --dump_configuration
 
