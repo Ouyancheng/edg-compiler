@@ -1171,11 +1171,11 @@ Initialize the option information table.
                          /*arg_required=*/FALSE, pchek_command_line);
   add_option_description(optk_list_macros, "list_macros", '\0',
                          /*value=*/TRUE, /*arg_required=*/FALSE, pchek_none);
-#if DEBUG
+#if DUMP_CONFIG_ENABLED
   add_option_description(optk_dump_configuration, "dump_configuration",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_none);
-#endif /* DEBUG */
+#endif /* DUMP_CONFIG_ENABLED */
   add_option_description(optk_signed_bit_fields, "signed_bit_fields",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
@@ -3494,7 +3494,7 @@ assigns those severities.
 }  /* set_default_message_severities */
 
 
-#if DEBUG
+#if DUMP_CONFIG_ENABLED
 static void dump_configuration_macros()
 /*
 Display the values of all the configuration macros with which this
@@ -4556,6 +4556,11 @@ file.
 #else /* !defined(DRIVER_COMPATIBILITY_VERSION) */
   comment_undefined_macro_name(DRIVER_COMPATIBILITY_VERSION);
 #endif /* defined(DRIVER_COMPATIBILITY_VERSION) */
+#if defined(DUMP_CONFIG_ENABLED)
+  define_numeric_valued_macro(DUMP_CONFIG_ENABLED);
+#else /* !defined(DUMP_CONFIG_ENABLED) */
+  comment_undefined_macro_name(DUMP_CONFIG_ENABLED);
+#endif /* defined(DUMP_CONFIG_ENABLED) */
 #if defined(DUMP_LOWERED_EH_CONSTRUCTS_IN_C_GEN_BE)
   define_numeric_valued_macro(DUMP_LOWERED_EH_CONSTRUCTS_IN_C_GEN_BE);
 #else /* !defined(DUMP_LOWERED_EH_CONSTRUCTS_IN_C_GEN_BE) */
@@ -6544,7 +6549,7 @@ file.
 #undef define_string_valued_macro
 #undef stringize
 }  /* dump_configuration_macros */
-#endif /* DEBUG */
+#endif /* DUMP_CONFIG_ENABLED */
 
 
 void proc_command_line(int argc, char *argv[])
@@ -7635,14 +7640,14 @@ enable_microsoft_mode:
         generate_pp_output = FALSE;
         list_macro_definitions = TRUE;
         break;
-#if DEBUG
+#if DUMP_CONFIG_ENABLED
       case optk_dump_configuration:
         /* Display the values of all configuration macros with which this
            executable was built. */
         dump_configuration_macros();
         source_file_name_optional = TRUE;
         break;
-#endif /* DEBUG */
+#endif /* DUMP_CONFIG_ENABLED */
       case optk_signed_bit_fields:
         targ_plain_int_bit_field_is_unsigned = FALSE;
         break;

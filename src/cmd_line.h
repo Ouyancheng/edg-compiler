@@ -255,9 +255,9 @@ typedef enum /*an_option_kind*/ {
   optk_type_traits_helpers,
   optk_cpp0x_mode,
   optk_list_macros,
-#if DEBUG
+#if DUMP_CONFIG_ENABLED
   optk_dump_configuration,
-#endif /* DEBUG */
+#endif /* DUMP_CONFIG_ENABLED */
   optk_signed_bit_fields,
   optk_unsigned_bit_fields,
   optk_check_concatenations,

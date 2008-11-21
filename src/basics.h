@@ -498,6 +498,22 @@ extern void debug_exit(void);
 #define CENTERLINE_CHECKING FALSE
 #endif /* ifndef CENTERLINE_CHECKING */
 
+#ifndef DUMP_CONFIG_ENABLED
+/* Include code for the --dump_configuration option.  
+   The --dump_configuration option displays on the error output the
+   value of each configuration option with which the executable was built.
+   The form of the display is a series of #define directives, making the
+   output suitable for capture and use directly as a defines.h file.  This
+   output can be helpful when reporting issues to EDG support and for
+   determining whether two separately-compiled executables were built with
+   compatible configuration options. */
+#if DEBUG
+#define DUMP_CONFIG_ENABLED TRUE /* Do not change this. */
+#else /* !DEBUG */
+#define DUMP_CONFIG_ENABLED TRUE /* Okay to change this. */
+#endif /* DEBUG */
+#endif /* ifndef DUMP_CONFIG_ENABLED */
+
 /*
 Macro used to add a 2-bit bit field after any sequence of bit fields.
 By clearing this bit field to zero we can avoid warnings about

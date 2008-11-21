@@ -1,5 +1,15 @@
 Version 4.0
 
+11/21/08 [EDGcpfe/9284]
+New DUMP_CONFIG_ENABLED configuration macro for --dump_configuration
+
+A new DUMP_CONFIG_ENABLED configuration macro has been added to control
+whether or not the --dump_configuration option (see Changes entry of 6/20/07)
+is available.  DUMP_CONFIG_ENABLED is set to TRUE when DEBUG is TRUE, and
+defaults to TRUE otherwise; therefore DUMP_CONFIG_ENABLED must be explicitly
+set to FALSE in defines.h if the --dump_configuration option is not desired.
+
+
 11/19/08 [EDGcpfe/8431]
 Microsoft compatibility: classes instantiated when needed for ADL
 
