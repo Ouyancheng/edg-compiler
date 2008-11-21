@@ -14561,6 +14561,7 @@ a pointer to the new expression.  The returned node is designated an lvalue.
 }  /* add_ref_indirection_to_node */
 
 
+/*ARGSUSED*/ /* <-- tblock is not used. */
 static void set_address_taken_on_target_of_addressing_op(
                                     an_expr_node_ptr                    expr,
                                     an_expr_or_stmt_traversal_block_ptr tblock)
