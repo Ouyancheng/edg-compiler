@@ -1565,6 +1565,11 @@ except for the Microsoft extension of an in-class specialization.)
          /* Some routines are generated as part of prelowering. */
          routine->source_corresp.name_has_been_mangled ||
 #endif /* NEED_NAME_MANGLING */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+         /* Interface slots are generated for derived classes, and can
+            therefore differ from one derivation to another. */
+         routine->interface_slot ||
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
          /* Ordinary members of template classes have a NULL template argument
             list. */ 
           (routine->is_template_function &&
@@ -3061,6 +3066,10 @@ type is in fact valid.
           match = FALSE;
           goto done;
         }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if (type->variant.class_struct_union.is_interface) {
+        }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }
       /* Traverse static data members: */
       {

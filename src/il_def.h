@@ -5914,7 +5914,9 @@ typedef struct a_type {
 			   the class, struct, or union is a pure virtual
                            function (C++ only).  Inherited pure virtual
 			   functions do not affect this flag, and so not every
-			   abstract class has this flag set TRUE. */
+			   abstract class has this flag set TRUE.  (Microsoft
+			   mode interface slots do not affect this flag
+			   either.) */
       a_bit_field
 		any_virtual_functions_including_in_base_classes:1;
 			/* TRUE if one or more member functions declared in
@@ -8327,6 +8329,18 @@ typedef struct a_routine {
   a_bit_field	sealed:1;
 			/* TRUE for a virtual member function that cannot be
 			   overridden in a derived class. */
+  a_bit_field	interface_slot:1;
+			/* TRUE for member functions generated to represent a
+			   compiler-generated "slot" in a Microsoft interface
+			   class.  For example:
+			      __interface B { virtual void f() = 0; };
+			      __interface C1: B {};
+			      __interface C2: B {};
+			      struct D: C1, C2 {
+				void C1::f();  // Creates a "slot" in C1.
+			        void C2::f();  // Creates a "slot" in C2.
+			      };
+			   */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_bit_field	covariant_return_virtual_override:1;
 			/* TRUE if is_virtual is TRUE and this routine is an
