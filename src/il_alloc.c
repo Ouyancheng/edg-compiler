@@ -2173,6 +2173,7 @@ to it.  The entry is allocated in the file scope memory region.
   rp->pure_virtual                = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   rp->sealed                      = FALSE;
+  rp->interface_slot              = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   rp->covariant_return_virtual_override
                                   = FALSE;

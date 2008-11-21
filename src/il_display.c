@@ -2629,6 +2629,9 @@ Display the indicated routine.
   if (ptr->sealed) {
     disp_boolean("sealed", TRUE);
   }  /* if */
+  if (ptr->interface_slot) {
+    disp_boolean("interface_slot", TRUE);
+  }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (ptr->covariant_return_virtual_override) {
     disp_boolean("covariant_return_virtual_override", TRUE);
