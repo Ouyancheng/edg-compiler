@@ -11925,6 +11925,13 @@ throughout the entire expression).
           set_node_operator(child, (an_expr_operator_kind)eok_padd,
                             expr->type, expr->is_lvalue, gchild);
           overwrite_node(expr, child);
+        } else if(node_operator_is(child, eok_lvalue_adjust) &&
+                  is_operation_node(gchild) &&
+                  node_operator_is(gchild, eok_indirect)) {
+          /* Optimize an "&eok_lvalue_adjust*x" operation to a cast of x to
+             the type of the expression. */
+          overwrite_node(expr, add_cast(gchild->variant.operation.operands,
+                                        expr->type));
         }  /* if */
       } else if (op == (an_expr_operator_kind)eok_indirect &&
                  node_operator_is(child, eok_address_of) &&
@@ -12747,6 +12754,9 @@ that are specific to inlining and therefore yield different results.
     an_expr_operator_kind op = expr->variant.operation.kind;
     if (op == (an_expr_operator_kind)eok_address_of ||
         op == (an_expr_operator_kind)eok_array_to_pointer ||
+        op == (an_expr_operator_kind)eok_lvalue_adjust ||
+        op == (an_expr_operator_kind)eok_lvalue_cast ||
+        op == (an_expr_operator_kind)eok_class_rvalue_adjust ||
         (op == (an_expr_operator_kind)eok_cast &&
          is_pointer_type(expr->type))) {
       /* These operations are constant valued provided their first
