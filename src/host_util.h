@@ -113,7 +113,7 @@ caller should copy the contents as needed.
 #define add_to_wchar_buffer(wchar)                                \
   if ((++utf16_len) * sizeof(wchar_t) > buffer_allocation_size) { \
     buffer_allocation_size *= 2;                                  \
-    buffer = (wchar_t *)realloc((a_realloc_arg)buffer,            \
+    buffer = (wchar_t *)realloc((a_stdio_arg)buffer,              \
                                 buffer_allocation_size);          \
     if (buffer == NULL) {                                         \
       fprintf(stderr, "Out of memory.\n");                        \

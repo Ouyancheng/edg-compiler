@@ -1,5 +1,12 @@
 Version 4.0
 
+11/22/08 [EDGcpfe/9259]
+Build error with STANDALONE_IL_DISPLAY
+In certain configurations a compilation error occurred when building the
+standalone IL display program, resulting from the use of an undefined
+typedef name.  This is now fixed.
+
+
 11/21/08 [EDGcpfe/9218]
 Microsoft C++ compatibility: Explicit overriding of an interface member
 
