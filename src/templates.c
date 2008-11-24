@@ -21612,15 +21612,6 @@ instantiation.
     done_with_func_info(func_info);
     remove_declarator_sse(&state, depth_scope_stack);
   }  /* if */
-     /* The Microsoft compiler silently ignores cases in which no matching
-        template is found for an explicit instantiation or an "extern
-        template" directive.  In Microsoft bugs mode we issue a warning
-        for an explicit instantiation and a remark for an "extern template". */
-  if (microsoft_bugs && !is_pragma) {
-    severity_if_not_found = kind == (a_pragma_kind)pk_do_not_instantiate
-                                               ? (an_error_severity)es_remark
-                                               : (an_error_severity)es_warning;
-  }  /* if */
   /* Look up the identifier scanned in the declarator.  If the
      declarator contains a qualified name it will already have
      been looked up. */
@@ -21649,6 +21640,34 @@ instantiation.
       pos_error(ec_inherited_member_not_allowed, &locator.source_position);
       reduce_projection_symbol_to_fundamental_symbol(sym);
     }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (microsoft_mode) {
+      if (sym->kind == (a_symbol_kind)sk_member_function &&
+          sym->variant.routine.ptr->template_arg_list == NULL &&
+          (state.decl_modifiers.flags & DM_DLLFLAGS) == 0) {
+        /* For ordinary member functions of class templates (i.e., not for
+           instances of member function templates), if no DLL interface was
+           specified explicitly, the DLL interface declared in the template
+           applies.  That includes the "do not instantiate" meaning of
+           "dllimport". */
+        a_decl_modifier  dllflags =
+                       sym->variant.routine.ptr->decl_modifiers & DM_DLLFLAGS;
+        state.decl_modifiers.flags |= dllflags;
+        if ((dllflags & DM_DLLIMPORT) != 0) {
+          kind = (a_pragma_kind)pk_do_not_instantiate;
+        }  /* if */
+      }  /* if */
+      /* The Microsoft compiler silently ignores cases in which no matching
+         template is found for an explicit instantiation or an "extern
+         template" directive.  In Microsoft bugs mode we issue a warning for
+         an explicit instantiation and a remark for an "extern template". */
+      if (microsoft_bugs && !is_pragma) {
+        severity_if_not_found = kind == (a_pragma_kind)pk_do_not_instantiate
+                                               ? (an_error_severity)es_remark
+                                               : (an_error_severity)es_warning;
+      }  /* if */
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (sym->kind == (a_symbol_kind)sk_static_data_member) {
       if (sym->variant.static_data_member.instance_ptr != NULL) {
         /* A static data member -- set the instantiation flags. */
