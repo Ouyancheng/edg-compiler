@@ -1,5 +1,30 @@
 Version 4.0
 
+11/24/08 [EDGcpfe/9285]
+Support for native character sets when Unicode source is supported
+
+When UNICODE_SOURCE_SUPPORTED is TRUE (see 4/13/08 Changes entry) it is
+now possible to accept both Unicode source files and source files
+that use a non-Unicode character encoding.  This is enabled by the
+NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE flag.  This feature requires the
+ability to translate other character sets to and from Unicode.  Such a
+facility is provided in newer versions of the Windows API (Microsoft version
+1400 and above) so this feature is enabled when the front end is built with
+EDG_WIN32 TRUE.  This feature can be used on other platform if customers
+provide the required conversion routines.  On non-Windows platforms, enabling
+NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE will result in #error directives
+being issued at the points in the front end that require customization.
+
+When Microsoft extensions are enabled and EDG_WIN32 is TRUE, this feature
+enables support for the Microsoft setlocale pragma, which specifies the
+character encoding to be used for the translation to and from Unicode.
+
+In identifiers and file names, native characters are translated to their
+UTF-8 equivalent.  In wide strings, native characters are translated to
+their Unicode equivalent.  In narrow strings, they are left in their
+original form. 
+
+
 11/24/08 [EDGcpfe/9369]
 Microsoft C++ compatibility: dllimport/dllexport and explicit instantiations
 
