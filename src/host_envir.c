@@ -1147,9 +1147,6 @@ necessary.  This routine may be called iteratively.
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
-/* Forward declaration. */
-static char *file_name_in_external_encoding(char *orig_name);
-
 
 static FILE *fopen_interface(char *filename,
                              char *mode)
@@ -2224,7 +2221,7 @@ is returned. If no conversion is required, the original string is returned.
 }  /* file_name_in_internal_encoding */
 
 
-static char *file_name_in_external_encoding(char *orig_name)
+char *file_name_in_external_encoding(char *orig_name)
 /*
 orig_name is the null-terminated name of a file or directory in the
 internal encoding.  Convert it if necessary to the form used by the

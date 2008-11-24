@@ -2771,6 +2771,8 @@ extern DOES_NOT_RETURN exit_compilation(an_error_severity severity);
 
 extern char *file_name_in_internal_encoding(char *orig_name);
 
+extern char *file_name_in_external_encoding(char *orig_name);
+
 /* Get the next file name from the current directory. */
 extern
 char *get_file_name_from_dir(a_boolean	first,

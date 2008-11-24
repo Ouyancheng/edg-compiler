@@ -183,6 +183,7 @@ time.  Return TRUE if the file exists and is a regular file, FALSE otherwise.
 {
   a_boolean	is_regular = FALSE;
 
+#if defined(MEM_MANAGE_H)  /* Will be FALSE when building the prelinker. */
 #if EDG_WIN32 && UNICODE_SOURCE_SUPPORTED
   wchar_t *wchar_file_name = translate_filename_to_wchar(file_name);
   if (wchar_file_name != NULL) {
@@ -198,16 +199,16 @@ time.  Return TRUE if the file exists and is a regular file, FALSE otherwise.
     }  /* if */
   } else
 #endif /* EDG_WIN32 && UNICODE_SOURCE_SUPPORTED */
+#endif /* defined(MEM_MANAGE_H) */
   /* Do not insert code here. */
   {
     /* Check the file type.  Use the stat call instead of fstat because some
        implementations do not have the _file field in the structure. */
     struct stat buf;
-#ifndef PL_SYMBOL_TABLE_SIZE
-    /* Don't do this for files passed from to the prelinker. */
+#if defined(MEM_MANAGE_H)  /* Will be FALSE when building the prelinker. */
     /* Translate the file name into the form used by the file system. */
     file_name = file_name_in_external_encoding(file_name);
-#endif /* PL_SYMBOL_TABLE_SIZE */
+#endif /* defined(MEM_MANAGE_H) */
     if (stat(file_name, &buf) == 0) {
       /* Use the POSIX S_ISREG if it is defined.  Otherwise use the
          non-POSIX test using S_IFREG. */
