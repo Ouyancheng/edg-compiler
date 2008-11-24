@@ -2231,6 +2231,10 @@ extern a_boolean accum_quoted_string(unsigned long     *num_chars,
                                      a_boolean         is_header_name,
                                      a_character_kind  character_kind,
                                      char              quoting_char);
+
+#if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
+extern void setlocale_pragma(a_pending_pragma_ptr	ppp);
+#endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
 #endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 
 /* Macro that tests whether f_is_generalized_identifier_start needs

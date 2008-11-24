@@ -1771,6 +1771,9 @@ ec_inheritance_kind_not_allowed_in_C;;"inheritance kind is not allowed in C"
 ec_inheritance_kind_ignored_on_enum;;"inheritance kind is ignored on an enum specifier"
 ec_extended_modifier_not_allowed_on_enum;;"modifier is not allowed on an enum specifier"
 ec_extended_modifier_ignored_on_enum;;"modifier is ignored on an enum specifier"
+ec_non_unicode_char_in_ident;;"identifier character cannot be represented in Unicode"
+ec_non_unicode_char_in_header;;"header name contains characters that cannot be represented in Unicode"
+ec_invalid_locale;;"%sq is not a valid locale name"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

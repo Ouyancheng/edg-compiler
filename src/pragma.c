@@ -436,6 +436,9 @@ possible.
     case pk_pop_macro:
     case pk_start_map_region:
     case pk_stop_map_region:
+#if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
+    case pk_setlocale:
+#endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     default:
@@ -2104,6 +2107,22 @@ Initialize the pragma description table.
 		 /*il_info_is_complete=*/FALSE,
 		 /*read_string_as_header_name=*/FALSE,
                  es_warning);
+#if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
+    (void)add_immediate_pragma_kind_description
+                ((a_pragma_kind)pk_setlocale,
+                 setlocale_pragma,
+                 /*is_pseudo_pragma=*/FALSE,
+                 /*global=*/FALSE,
+                 /*automatically_include_in_il=*/FALSE,
+                 /*record_pragma_text=*/FALSE,
+                 /*expand_macros=*/TRUE,
+                 /*processing_C_code=*/FALSE,
+                 /*fetch_pp_tokens=*/FALSE,
+		 /*ignore_in_back_end=*/TRUE,
+		 /*il_info_is_complete=*/TRUE,
+		 /*read_string_as_header_name=*/FALSE,
+                 es_warning);
+#endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL

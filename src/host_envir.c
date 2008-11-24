@@ -52,7 +52,6 @@ This version for UNIX, MS-DOS, VAX/VMS, and Windows NT.
 #define NOGDI
 #define NOKERNEL
 #define NOUSER
-#define NONLS
 #define NOMB
 #define NOMEMMGR
 #define NOMETAFILE
@@ -422,6 +421,24 @@ static a_text_buffer_ptr
 static a_text_buffer_ptr
 		write_file_name_buffer;
 			/* A text buffer used by write_file_name.*/
+
+#if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
+
+static a_text_buffer_ptr
+		utf8_buffer;
+			/* A text buffer used by
+			   convert_multibyte_chars_to_utf8 to hold the UTF-8
+			   result. */
+
+#if EDG_WIN32
+static _locale_t
+		ansi_code_page_locale;
+			/* The locale object for the Windows ANSI code page.
+			   This is the default locale used for converting
+			   multibyte characters to UTF-8. */
+
+#endif /* EDG_WIN32 */
+#endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
 
 static a_directory_name_entry_ptr
 		dir_name_list_general;
@@ -1130,6 +1147,10 @@ necessary.  This routine may be called iteratively.
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
+/* Forward declaration. */
+static char *file_name_in_external_encoding(char *orig_name);
+
+
 static FILE *fopen_interface(char *filename,
                              char *mode)
 /*
@@ -1158,6 +1179,8 @@ supported in the file name, handle that specially.
 #endif /* EDG_WIN32 && UNICODE_SOURCE_SUPPORTED */
   /* Do not insert code here. */
   {
+    /* Translate the file name into the form used by the file system. */
+    filename = file_name_in_external_encoding(filename);
     file = fopen(filename, mode);
   }
   return file;
@@ -1249,7 +1272,8 @@ is the name of the file, which is used for diagnostic purposes.
     /* Read the subsequent characters of the byte order mark.  Stop if
        we hit a character that is not part of the mark. */
     if (!is_eof) {
-      int ch2 = getc(f_file);
+      int ch2;
+      ch2 = getc(f_file);
       if (ch == 0xef && ch2 == 0xbb) {
         /* Possible UTF-8 BOM. */
         ch2 = getc(f_file);
@@ -2086,56 +2110,86 @@ Display the difference in CPU time and elapsed time between two timers.
 }  /* display_time_used */
 
 
-char *file_name_in_internal_encoding(char *orig_name)
+static char *convert_file_name_encoding(char		*orig_name,
+					a_boolean	to_internal)
 /*
-orig_name is the null-terminated name of a file or directory as provided
-by the environment, e.g., from the command line or from a system call.
-Convert it if necessary to the character encoding used internally
-for file names.  In particular, when the internal representation
-is UTF-8, translate Latin-1 characters to their UTF-8 representations.
-If some translation is required, a new string is allocated in general
-storage, it is filled with the converted form, and its address is returned.
-If no conversion is required, the original string is returned.
+orig_name is the null-terminated name of a file or directory.  Translate
+to or from the internal encoding of the file name (depending on the value
+of to_internal).  If some translation is required, a new string is allocated
+in general storage, it is filled with the converted form, and its address
+is returned. If no conversion is required, the original string is returned.
 */
 {
   char *file_name = orig_name;
 
 #if UNICODE_SOURCE_SUPPORTED
+#if EDG_WIN32
+  /* In case the native multibyte locale has been changed (e.g., by the
+     setlocale pragma) set it back to the ANSI code page locale for purposes
+     of file name translation. */
+  _locale_t	saved_locale = native_multibyte_locale;
+  native_multibyte_locale = ansi_code_page_locale;
+#endif /* EDG_WIN32 */
   if (DEFAULT_UNICODE_SOURCE_KIND == usk_none) {  /*lint !e506*/
-    /* The environment uses a non-Unicode encoding, which means it's
-       encoded as Latin-1.  If it contains characters > 0x7f, they must be
-       rewritten as UTF-8 because UTF-8 is the standard internal encoding
-       for file names. */
-    a_boolean     conversion_needed = FALSE;
-    sizeof_t      size_needed = 0;
-    unsigned char *p;
+    /* The environment uses a non-Unicode encoding.  Go through the file
+       name and check for any multibyte characters or characters > 0x7f.
+       If it contains any such characters, it must be rewritten as UTF-8
+       because UTF-8 is the standard internal encoding for file names. */
+    a_boolean		conversion_needed = FALSE;
+    sizeof_t		size_needed = 0;
+    char		*p;
+    unsigned long	wc;
+    int			in_len;
+    int			out_len;
+    char		arr[4];
     /* Look to see whether the string contains any characters that
        require conversion.  Also determine the size needed if we have to
        allocate space for the converted copy. */
-    for (p = (unsigned char *)orig_name; *p != '\0'; p++) {
-      size_needed++;
-      if (*p > 0x7f) {
-        /* The character is something like a European accented character and
-           must be converted. */
+    for (p = orig_name; *p != '\0'; p += in_len) {
+      in_len = mbc_to_wide_char(p, &wc, (a_boolean*)NULL,
+                                /*is_native=*/to_internal);
+      /* A conversion is needed if the input was a multibyte character or
+         if we are converting to internal form an the input character must
+         be converted to UTF-8. */
+      if (in_len == 1 && (!to_internal || wc > 0x7f)) {
+        out_len = 1;
+      } else {
         conversion_needed = TRUE;
-        size_needed++;
+        out_len = to_internal ? wide_char_to_utf8(wc, arr) : 1;
       }  /* if */
+      size_needed += out_len;
     }  /* for */
     if (conversion_needed) {
       /* The string contains at least one character that needs to be rewritten
          as UTF-8.  Allocate and fill a new string. */
       char *dest;
       dest = file_name = alloc_general(size_needed+1);
-      for (p = (unsigned char *)orig_name; *p != '\0'; p++) {
-        unsigned long ch = (unsigned long)*p;
-        if (ch > 0x7f) {
-          /* Convert one character in the file name to two UTF-8 characters. */
-          char arr[4];
-          (void)wide_char_to_utf8(ch, arr);
-          *dest++ = arr[0];
-          ch = arr[1];
+      for (p = orig_name; *p != '\0'; p += in_len) {
+        int		i;
+        a_boolean	err;
+        in_len = mbc_to_wide_char(p, &wc, &err, /*is_native=*/to_internal);
+        /* If the character could not be converted, substitute a "?". */
+        if (err) wc = (unsigned long)'?';
+        if (to_internal) {
+          /* Converting from the external encoding to UTF-8. */
+          if (wc <= 0x7f && in_len == 1) {
+            *dest++ = *p;
+          } else {
+            out_len = wide_char_to_utf8(wc, arr);
+            for (i = 0; i < out_len; i++) *dest++ = arr[i];
+          }  /* if */
+        } else {
+          /* Converting from UTF-8 to the external encoding.  This version
+             only supports single byte external encodings (e.g., Latin-1). */
+          if (wc <= UCHAR_MAX) {
+            *dest++ = (char)wc;
+          } else {
+            /* The character does not fit in a single byte.  Keep it in the
+               internal encoding.  This can occur if a UTF-8 file name is
+               converted to the internal encoding. */
+            for (i = 0; i < in_len; i++) *dest++ = p[i];
+          }  /* if */
         }  /* if */
-        *dest++ = (char)ch;
       }  /* for */
       *dest = '\0';
     }  /* if */
@@ -2144,7 +2198,44 @@ If no conversion is required, the original string is returned.
        from the environment. */
     check_assertion(DEFAULT_UNICODE_SOURCE_KIND == usk_utf8); /*lint !e506*/
   }  /* if */
+#if EDG_WIN32
+  /* Restore the original locale. */
+  native_multibyte_locale = saved_locale;
+#endif /* EDG_WIN32 */
 #endif /* UNICODE_SOURCE_SUPPORTED */
+  return file_name;
+}  /* convert_file_name_encoding */
+
+
+char *file_name_in_internal_encoding(char *orig_name)
+/*
+orig_name is the null-terminated name of a file or directory as provided
+by the environment, e.g., from the command line or from a system call.
+Convert it if necessary to the character encoding used internally
+for file names.  If some translation is required, a new string is allocated
+in general storage, it is filled with the converted form, and its address
+is returned. If no conversion is required, the original string is returned.
+*/
+{
+  char	*file_name;
+
+  file_name = convert_file_name_encoding(orig_name, /*to_internal=*/TRUE);
+  return file_name;
+}  /* file_name_in_internal_encoding */
+
+
+static char *file_name_in_external_encoding(char *orig_name)
+/*
+orig_name is the null-terminated name of a file or directory in the
+internal encoding.  Convert it if necessary to the form used by the
+environment.  If some translation is required, a new string is allocated
+in general storage, it is filled with the converted form, and its address
+is returned. If no conversion is required, the original string is returned.
+*/
+{
+  char	*file_name;
+
+  file_name = convert_file_name_encoding(orig_name, /*to_internal=*/FALSE);
   return file_name;
 }  /* file_name_in_internal_encoding */
 
@@ -3311,15 +3402,17 @@ in case it had been previously changed by set_cpu_time_limit.
 
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
 
-int f_mbc_length(char      *ptr,
-                 a_boolean *err)
+int f_mbc_length(char			*ptr,
+                 a_boolean		*err,
+                 a_boolean		is_native)
 /*
 Return the length of the multibyte character sequence beginning at ptr.
 If the sequence there is invalid, set *err to TRUE if err is non-NULL,
 and return a length appropriate for error recovery.  This function should
 usually be called via the macro mbc_length.  Note that, unlike the standard
 mblen, this routine does not return 0 when given a null (zero) character;
-it returns 1.
+it returns 1.  is_native indicates whether the current encoding is Unicode or
+some other encoding.
 */
 {
   int len;
@@ -3354,8 +3447,9 @@ it returns 1.
   len = *ptr == '$' && *(ptr+1) != '\0' ? 2 : 1;
 #else /* !EDG_MULTIBYTE_CHAR_TEST_MODE */
 #if UNICODE_SOURCE_SUPPORTED
-  /* UTF-8. */
-  { unsigned char ch = (unsigned char)*ptr;
+  if (!is_native) {
+    /* UTF-8. */
+    unsigned char ch = (unsigned char)*ptr;
     if (ch <= 0x7f) {
       /* Simple one-byte character. */
       len = 1;
@@ -3400,7 +3494,36 @@ it returns 1.
         while (((unsigned char)ptr[len] & 0xc0) == 0x80) len++;
       }  /* if */
     }  /* if */
-  }
+  } else {
+#if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
+#if EDG_WIN32
+    /* Note that this code is Windows-specific and must be customized for
+       other platforms. */
+    len = _mblen_l(ptr, MB_CUR_MAX, native_multibyte_locale);
+#else /* !EDG_WIN32 */
+#if EDG_NATIVE_MULTIBYTE_TEST_MODE
+    /* Use standard C library routines. */
+    len = mblen(ptr, MB_CUR_MAX);
+#else /* !EDG_NATIVE_MULTIBYTE_TEST_MODE */
+    #error f_mbc_length requires customization on non-Windows platforms when \
+           using NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE.
+#endif /* EDG_NATIVE_MULTIBYTE_TEST_MODE */
+#endif /* EDG_WIN32 */
+    if (len <= 0) {
+      if (len == 0 && *ptr == '\0') {
+        /* mblen returns 0 for a null character, but we want 1 for that. */
+        len = 1;
+      } else {
+        /* Invalid multibyte sequence.  Advance bytewise. */
+        if (err != NULL) *err = TRUE;
+        len = 1;
+      }  /* if */
+    }  /* if */
+#else /* !NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
+    /* A native character is assumed to be in Latin-1. */
+    len = 1;
+#endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
+  }  /* if */
 #else /* !UNICODE_SOURCE_SUPPORTED */
   /* Use standard C library routines. */
   len = mblen(ptr, MB_CUR_MAX);
@@ -3421,18 +3544,18 @@ it returns 1.
   return len;
 }  /* f_mbc_length */
 
-#endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
-#if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
 
 int mbc_to_wide_char(char          *mb,
                      unsigned long *wc,
-                     a_boolean     *err)
+                     a_boolean     *err,
+                     a_boolean	   is_native)
 /*
 Convert a multibyte character sequence pointed to by mb to a single wide
 character returned in *wc.  Return the number of characters in the
 multibyte character sequence.  If the multibyte character sequence is
-invalid, set *err to TRUE if err is non-NULL, and return a length
-appropriate for error recovery.
+invalid, set *err to TRUE if err is non-NULL, and return a length appropriate
+for error recovery.  is_native indicates whether the current encoding is
+Unicode or some other encoding.
 */
 {
   int       numch;
@@ -3457,8 +3580,9 @@ appropriate for error recovery.
 #else /* !(USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING ||
            EDG_MULTIBYTE_CHAR_TEST_MODE) */
 #if UNICODE_SOURCE_SUPPORTED
-  /* UTF-8. */
-  { unsigned char ch = (unsigned char)*mb;
+  if (!is_native) {
+    /* UTF-8. */
+    unsigned char ch = (unsigned char)*mb;
     if (ch <= 0x7f) {
       /* Simple one-byte character. */
       numch = 1;
@@ -3512,7 +3636,39 @@ appropriate for error recovery.
         while (((unsigned char)mb[numch] & 0xc0) == 0x80) numch++;
       }  /* if */
     }  /* if */
-  }
+  } else {
+#if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
+    wchar_t wchar;
+#if EDG_WIN32
+    /* Note that this code is Windows-specific and must be customized for
+       other platforms.  _mbtowc_l converts a multibyte character sequence
+       in the locale specified by native_multibyte_locale to a Unicode
+       value. */
+    numch = _mbtowc_l(&wchar, mb, MB_CUR_MAX, native_multibyte_locale);
+#else /* !EDG_WIN32 */
+#if EDG_NATIVE_MULTIBYTE_TEST_MODE
+    /* Use standard C library routines.  Note that this does not do
+       conversion to Unicode. */
+    numch = mbtowc(&wchar, mb, MB_CUR_MAX);
+#else /* !EDG_NATIVE_MULTIBYTE_TEST_MODE */
+    #error mbc_to_wide_char requires customization on non-Windows platforms \
+           when using NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE.
+#endif /* EDG_NATIVE_MULTIBYTE_TEST_MODE */
+#endif /* EDG_WIN32 */
+    if (numch < 0) {
+      /* Invalid multibyte character sequence. */
+      numch = 1;
+      *wc = 0;
+      local_err = TRUE;
+    } else {
+      *wc = wchar;
+    }  /* if */
+#else /* !NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
+    /* A native character is assumed to be in Latin-1. */
+    *wc = (unsigned char)*mb;
+    numch = 1;
+#endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
+  }  /* if */
 #else /* !UNICODE_SOURCE_SUPPORTED */
   /* Use a standard C library routine to do the multibyte character
      sequence to wide character conversion. */
@@ -3701,6 +3857,97 @@ representation in the array chars, and return the length (1-4).
 }  /* wide_char_to_utf8 */
     
 #endif /* UNICODE_SOURCE_SUPPORTED */
+
+#if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
+#if EDG_WIN32
+
+a_boolean set_windows_locale(char	*locale_name)
+/*
+Set the locale to be used for multibyte character to Unicode conversion.
+Return TRUE if the locale_name is invalid, FALSE otherwise.
+*/
+{
+  _locale_t	new_locale;
+
+  new_locale = _create_locale(LC_ALL, locale_name);
+  if (new_locale != NULL) {
+    native_multibyte_locale = new_locale;
+  }  /* if */
+  return new_locale == NULL;
+}  /* set_windows_locale */
+
+#else /* !EDG_WIN32 */
+
+a_boolean set_windows_locale(char	*locale_name)
+/*
+Stub version of this routine used on non-Windows platforms.
+*/
+{
+  /* Returning TRUE causes any locale name to be considered invalid. */
+  return TRUE;
+}  /* set_windows_locale */
+
+#endif /* EDG_WIN32 */
+
+char *convert_multibyte_chars_to_utf8(char	*str_ptr,
+				      sizeof_t	*str_length,
+				      a_boolean	*err)
+/*
+str_ptr points to a character string of str_length bytes containing multibyte
+characters.  Convert the string to UTF-8 and return a pointer to the converted
+string.  Update str_length to reflect the length in bytes of the new string.
+Returns a pointer into the utf8_buffer text buffer.  If the identifier
+contains a character that cannot be represented in Unicode, *err is set to
+TRUE (FALSE otherwise).
+*/
+{
+  char			*ptr;
+  char			*after_str_end = str_ptr + *str_length;
+
+  /* Clear the caller's error flag. */
+  *err = FALSE;
+  /* Allocate the buffer if it does not exist yet. */
+  if (utf8_buffer == NULL) {
+    /* min_buffer_size is just an estimate.  The buffer will be reallocated if
+       the initial value is too small. */
+    sizeof_t		min_buffer_size = *str_length * 2;
+    utf8_buffer = alloc_text_buffer(min_buffer_size > 1024 ? min_buffer_size
+                                                           : 1024);
+  } else {
+    reset_text_buffer(utf8_buffer);
+  }  /* if */
+  /* Make sure any shift states are reset. */
+  mbc_scan_init();
+  /* Go through the string and convert each multibyte sequence to a
+     wide character.  Then convert each wide character to UTF-8. */
+  for (ptr = str_ptr; ptr < after_str_end;) {
+    unsigned long	wc;
+    char		arr[4];
+    int			utflen;
+    int			mbclen;
+    int			i;
+    a_boolean		local_err;
+    mbclen = mbc_to_wide_char(ptr, &wc, &local_err, /*is_native=*/TRUE);
+    if (local_err) *err = TRUE;
+    ptr += mbclen;
+    if (wc < 0x7f) {
+      add_char_to_text_buffer(utf8_buffer, (char)wc);
+    } else {
+      /* Convert the Unicode value to UTF-8. */
+      utflen = wide_char_to_utf8(wc, arr);
+      for (i = 0; i < utflen; i++) {
+        add_char_to_text_buffer(utf8_buffer, arr[i]);
+      }  /* for */
+    }  /* if */
+  }  /* for */
+  /* Add a null terminator. */
+  add_char_to_text_buffer(utf8_buffer, '\0');
+  /* Return the length (subtracting the null terminator). */
+  *str_length = utf8_buffer->size - 1;
+  return utf8_buffer->buffer;
+}  /* convert_multibyte_chars_to_utf8 */
+
+#endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
 
 unsigned long extract_character_from_string(char          *str,
                                             unsigned int  char_size)
@@ -4124,6 +4371,12 @@ is done after command line processing.
 #if MODULE_ID_NEEDED
   register_trans_unit_variable_with_field(module_id, module_id_ptr);
 #endif /* MODULE_ID_NEEDED */
+#if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
+#if EDG_WIN32
+  /* Create a locale object to be used for multibyte character conversions. */
+  ansi_code_page_locale = _create_locale(LC_ALL, ".ACP");
+#endif /* EDG_WIN32 */
+#endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 }  /* host_envir_one_time_init */
 
@@ -4136,6 +4389,11 @@ Initialize variables that are specific to a given translation unit.
 #if MODULE_ID_NEEDED
   module_id = NULL;
 #endif /* MODULE_ID_NEEDED */
+#if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
+#if EDG_WIN32
+  native_multibyte_locale = ansi_code_page_locale;
+#endif /* EDG_WIN32 */
+#endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
 }  /* host_envir_trans_unit_init */
 
 
@@ -4189,6 +4447,9 @@ This is done before command line processing.
   file_read_buffer = NULL;
   dir_and_file_buffer = NULL;
   write_file_name_buffer = NULL;
+#if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
+  utf8_buffer = NULL;
+#endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
 #if EDG_WIN32 && UNICODE_SOURCE_SUPPORTED
   wchar_filename_buffer = NULL;
 #endif /* EDG_WIN32 && UNICODE_SOURCE_SUPPORTED */

@@ -65,6 +65,10 @@ static a_boolean
 			   header stop directive after which a precompiled
 			   header file should be generated. */
 
+static a_text_buffer_ptr
+		header_name_buffer;
+			/* Text buffer used by copy_header_name. */
+
 
 /* Advance declaration needed because of mutual recursion: */
 static void skip_to_endif(a_boolean stop_skip_on_else_or_elif);
@@ -927,44 +931,34 @@ Allocate and copy the file name from the current token (a header name).
 Escapes in the string are processed only if process_escapes is TRUE.
 */
 {
-  char          *name_start_pos, *in_pos, *out_pos;
-  sizeof_t      name_len, out_name_len, i;
-  int           remaining_mbc_char_count = 0;
-  unsigned long ch;
-  unsigned long centity_mask;
+  char			*name_start_pos, *in_pos;
+  sizeof_t		name_len, i;
+  int			remaining_mbc_char_count = 0;
+  unsigned long		ch;
+  unsigned long		centity_mask;
+  a_text_buffer_ptr	buf = header_name_buffer;
+  char			*result;
+  sizeof_t		result_length;
 
   /* Build a mask used to mask individual characters. */
   centity_mask = (unsigned long)1 << (targ_host_string_char_bit-1);
   centity_mask = centity_mask | (centity_mask-1);
   name_len = len_of_curr_token - 2;  /* Drop quoting characters. */
-  out_name_len = name_len + 1;  /* +1 for null. */
-#if UNICODE_SOURCE_SUPPORTED
-  if (curr_file_unicode_source_kind == usk_none) {
-    /* Allow extra room for characters in the file name that must be expanded
-       to two characters in the UTF-8. */
-    for (i = 1; i <= name_len; i++) {
-      if ((unsigned char)start_of_curr_token[i] > 0x7f) out_name_len += 1;
-    }  /* for */
-  }  /* if */
-#endif /* UNICODE_SOURCE_SUPPORTED */
-  name_start_pos = alloc_primary_file_scope_il(out_name_len);
   in_pos = start_of_curr_token+1;
   if (microsoft_mode && *start_of_curr_token == '<') {
     /* Microsoft compilers ignore leading and trailing whitespace inside
        #include <...> directives. */
     trim_leading_and_trailing_blanks_from_header_name(&in_pos, &name_len);
   }  /* if */
-  out_pos = name_start_pos;
-  /* Copy the string, processing escapes if appropriate.  Note that space
-     including unprocessed escapes was allocated in the output string, so
-     there may be a bit of wasted space. */
+  reset_text_buffer(buf);
+  /* Copy the string, processing escapes if appropriate. */
   /*lint --e{850} i modified in loop */
   for (i = 1; i <= name_len; i++) {
     char *prev_pos = in_pos;
     conv_single_char(&in_pos, &remaining_mbc_char_count, process_escapes,
                      &ch, centity_mask);
     i += (in_pos - prev_pos) - 1;
-#if UNICODE_SOURCE_SUPPORTED
+#if UNICODE_SOURCE_SUPPORTED && !NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
     if (curr_file_unicode_source_kind == usk_none &&
         ch > 0x7f) {
       /* A character in the range 128-255 in a non-Unicode file must be
@@ -972,13 +966,31 @@ Escapes in the string are processed only if process_escapes is TRUE.
          European accented characters.) */
       char arr[4];
       (void)wide_char_to_utf8(ch, arr);
-      *out_pos++ = arr[0];
+      add_char_to_text_buffer(buf, arr[0]);
       ch = arr[1];
     }  /* if */
-#endif /* UNICODE_SOURCE_SUPPORTED */
-    *out_pos++ = (char)ch;
+#endif /* UNICODE_SOURCE_SUPPORTED &&
+          !NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
+    add_char_to_text_buffer(buf, (char)ch);
   }  /* for */
-  *out_pos = '\0';
+  add_char_to_text_buffer(buf, '\0');
+  result = buf->buffer;
+  /* The length should not include the null terminator. */
+  result_length = buf->size - 1;
+#if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
+  if (curr_file_unicode_source_kind == usk_none) {
+    a_boolean	err;
+    result = convert_multibyte_chars_to_utf8(result, &result_length, &err);
+    if (err) {
+      pos_warning(ec_non_unicode_char_in_header, &pos_curr_token);
+    }  /* if */
+  }  /* if */
+#endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
+  /* Increment the length to include the null termininator. */
+  result_length++;
+  /* Copy the name from the text buffer. */
+  name_start_pos = alloc_primary_file_scope_il(result_length);
+  (void)memcpy(name_start_pos, result, result_length);
   return name_start_pos;
 }  /* copy_header_name */
 
@@ -3071,6 +3083,7 @@ init_predefined_macros.)
   num_upc_pragma_stack_entries_allocated = 0;
 #endif /* DEBUG */
 #endif /* UPC_EXTENSIONS_ALLOWED */
+  header_name_buffer = alloc_text_buffer(256);
 }  /* preproc_init */
 
 

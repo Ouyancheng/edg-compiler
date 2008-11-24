@@ -2975,29 +2975,45 @@ is TRUE.
             remaining_mbc_len--;
             token_start = FALSE;
           } else if (multibyte_chars_in_source_enabled &&
-                     (remaining_mbc_len =
-                                 lex_mbc_length_simple(loc_in_line) - 1) > 0) {
-            /* The character is the start of a multibyte character string.
-               We assume no separating blank is needed. */
+                     ((remaining_mbc_len =
+                                 lex_mbc_length_simple(loc_in_line) - 1) > 0 ||
+                      (unsigned char)ch > 0x7f)) {
+            /* The character is the start of a multibyte character string
+               or a single character > 7f.  We assume no separating blank
+               is needed. */
             token_start = FALSE;
 #if UNICODE_SOURCE_SUPPORTED
             if (encoding_change_needed) {
-              /* Change a UTF-8 character to a single character because we're
-                 outputting non-Unicode.  Give a warning if the character does
-                 not fit. */
+              /* The input is a wide character and the output is either UTF-8
+                 or non-Unicode. */
               unsigned long wc;
-              (void)mbc_to_wide_char(loc_in_line, &wc, (a_boolean *)NULL);
-              if (wc <= UCHAR_MAX) {
-                /* The code point can be represented in a single Latin-1
-                   character. */
-                ch = (char)(unsigned char)wc;
+              (void)mbc_to_wide_char(
+                                    loc_in_line, &wc, (a_boolean *)NULL,
+                                    curr_file_unicode_source_kind == usk_none);
+              if (curr_file_unicode_source_kind == usk_none) {
+                /* Convert the wide character to UTF-8. */
+                int	utf_len;
+                int	i;
+                char	arr[4];
+                utf_len = wide_char_to_utf8(wc, arr);
+                for (i = 0; i < utf_len; i++) putc(arr[i], f_pp_output);
               } else {
-                /* The code point doesn't fit in a single character. */
-                char buf[30];
-                (void)sprintf(buf, "%lx", wc);
-                conv_line_loc_to_source_pos(loc_in_line, &error_position);
-                str_warning(ec_bad_unicode_char_in_pp_output, buf);
-                ch = '?';
+                /* Change a UTF-8 character to a single character because we're
+                   outputting non-Unicode.  Give a warning if the character
+                   does not fit. */
+                if (wc <= UCHAR_MAX) {
+                  /* The code point can be represented in a single
+                     character (in Latin-1 or whatever character set is
+                     being used). */
+                  ch = (char)(unsigned char)wc;
+                } else {
+                  /* The code point doesn't fit in a single character. */
+                  char buf[30];
+                  (void)sprintf(buf, "%lx", wc);
+                  conv_line_loc_to_source_pos(loc_in_line, &error_position);
+                  str_warning(ec_bad_unicode_char_in_pp_output, buf);
+                  ch = '?';
+                }  /* if */
               }  /* if */
               loc_in_line += remaining_mbc_len;
               remaining_mbc_len = 0;
@@ -6363,7 +6379,7 @@ used only within the lexical input routines.
               (!is_identifier_start || !isdigit((unsigned char)*ptr));
     } else {
       /* This might be a multibyte character. */
-      llen = mbc_to_wide_char(ptr, &ch, &err);
+      llen = mbc_to_wide_char(ptr, &ch, &err, /*is_native=*/FALSE);
       if (err) {
         is_id = FALSE;
       } else {
@@ -6390,27 +6406,60 @@ used only within the lexical input routines.
        curr_file_unicode_source_kind is usk_none, this is a non-Unicode source
        file. */
     ch = (unsigned char)*ptr;
-    if (ch > 0x7f &&
-        curr_file_unicode_source_kind != usk_none) {
-      /* Convert the multibyte UTF-8 sequence to a single code point. */
-      llen = mbc_to_wide_char(ptr, &ch, &err);
-      if (err) {
-        ch = 0;  /* Forces FALSE result. */
+    if (ch > 0x7f) {
+      if (curr_file_unicode_source_kind != usk_none) {
+        /* Convert the multibyte UTF-8 sequence to a single code point. */
+        llen = mbc_to_wide_char(ptr, &ch, &err, /*is_native=*/FALSE);
+        if (err) ch = 0;  /* Forces FALSE result. */
+#if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
+      } else {
+        /* Convert the multibyte (UTF-8 or native) sequence to a single
+           Unicode code point. */
+        wint_t	wc;
+        llen = lex_mbc_to_wide_char(ptr, &ch, &err);
+        if (err) ch = 0;  /* Forces FALSE result. */
+#if EDG_WIN32
+        /* Note that this code is Windows-specific and must be customized for
+           other platforms. */
+        wc = (wint_t)ch;
+        is_id = _iswalpha_l(wc, native_multibyte_locale) ||
+                (!is_identifier_start &&
+                 _iswdigit_l(wc, native_multibyte_locale));
+#else /* !EDG_WIN32 */
+#if EDG_NATIVE_MULTIBYTE_TEST_MODE
+        /* Use C99 library routines from <wctype.h> to classify the
+           character. */
+        wc = (wint_t)ch;
+        is_id = iswalpha(wc) ||
+                (!is_identifier_start && iswdigit(wc));
+#else /* !EDG_NATIVE_MULTIBYTE_TEST_MODE */
+        #error is_identifier_char requires customization on non-Windows \
+               platforms when using \
+               NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE.
+#endif /* EDG_NATIVE_MULTIBYTE_TEST_MODE */
+#endif /* EDG_WIN32 */
+#endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
       }  /* if */
     }  /* if */
     /* See whether the Unicode code point ch is a valid identifier
        character. */
-    if (ch <= UCHAR_MAX) {
-      /* Small value -- use the lookup table. */
-      is_id = is_id_char_no_mbc[ch] &&
-              (!is_identifier_start || !isdigit((unsigned char)ch));
-    } else if (ch >= 0xd800 && ch <= 0xdfff) {
-      /* Surrogate code points are not allowed. */
-      is_id = FALSE;
-    } else {
-      /* Do the full lookup for larger values. */
-      is_id = (is_valid_UCN_identifier_char(ch, is_identifier_start) ==
-               ec_no_error);
+#if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
+    if (curr_file_unicode_source_kind != usk_none || ch <= 0x7f)
+#endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
+    /* Do not insert code here. */
+    {
+      if (ch <= UCHAR_MAX) {
+        /* Small value -- use the lookup table. */
+        is_id = is_id_char_no_mbc[ch] &&
+                (!is_identifier_start || !isdigit((unsigned char)ch));
+      } else if (ch >= 0xd800 && ch <= 0xdfff) {
+        /* Surrogate code points are not allowed. */
+        is_id = FALSE;
+      } else {
+        /* Do the full lookup for larger values. */
+        is_id = (is_valid_UCN_identifier_char(ch, is_identifier_start) ==
+                 ec_no_error);
+      }  /* if */
     }  /* if */
 #endif /* !UNICODE_SOURCE_SUPPORTED */
   }
@@ -7942,17 +7991,48 @@ lower case and any multibyte characters are converted to canonical form.
       /* This character may be a multibyte character. */
       unsigned long wc;
       a_boolean     err;
+      /* When native multibyte characters are allowed, lex_mbc_to_wide_char
+         will convert the character to Unicode if the source file is
+         non-Unicode. */
       int           numch = lex_mbc_to_wide_char(src, &wc, &err);
-      check_assertion(!err);
+#if UNICODE_SOURCE_SUPPORTED
+      if (err) {
+        /* Then scanning of a multibyte character resulted in a value that
+           has no Unicode representation. */
+        error_at_line_pos(ec_non_unicode_char_in_ident, src);
+      }  /* if */
+#endif /* UNICODE_SOURCE_SUPPORTED */
 #if IDENTIFIER_STRINGS_ALLOW_MULTIBYTE_CHARS
+#if UNICODE_SOURCE_SUPPORTED
+      /* Put the UTF-8 version of the character into the identifier. */
+      { char arr[4];
+        int  utflen = wide_char_to_utf8(wc, arr);
+        int  i;
+        for (i = 0; i < utflen; i++) {
+          add_char_to_text_buffer(ucn_buffer, arr[i]);
+        }  /* for */
+      }
+#else /* !UNICODE_SOURCE_SUPPORTED */
+      check_assertion(!err);
       /* Put the multibyte character into the identifier. */
       { int i;
         for (i = 0; i < numch; i++) {
           add_char_to_text_buffer(ucn_buffer, src[i]);
         }  /* for */
       }
+#endif /* UNICODE_SOURCE_SUPPORTED */
 #else /* !IDENTIFIER_STRINGS_ALLOW_MULTIBYTE_CHARS */
-      if (wc <= UCHAR_MAX) {
+      /* Normally, characters less than UCHAR_MAX are just added to the
+         buffer.  When native multibyte characters are supported, characters
+         above 0x7f may have been translated from the source form to a
+         a different value, so output those as escapes. */
+#if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
+      if (wc <= 0x7f)
+#else /* !NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
+      if (wc <= UCHAR_MAX)
+#endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
+      /* Do not insert code here. */
+      {
         add_char_to_text_buffer(ucn_buffer, (char)wc);
       } else {
         /* Put an encoding for the character into the buffer.  If the
@@ -9082,7 +9162,46 @@ is set to tok_error.
   }  /* if */
 }  /* scan_microsoft_identifier_operator */
 
+#if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
 
+void setlocale_pragma(a_pending_pragma_ptr	ppp)
+/*
+This routine is called when a Microsoft setlocale pragma is encountered.  The
+form of the pragma is:
+
+	#pragma setlocale("locale name")
+*/
+{
+  a_boolean		err = TRUE;
+  a_constant_ptr	locale_cp = NULL;
+  a_source_position	locale_pos;
+
+  begin_rescan_of_pragma_tokens(ppp);
+  if (required_token(tok_lparen, ec_exp_lparen)) {
+    if (required_token_no_advance(tok_string_literal, ec_exp_string_literal)) {
+      locale_cp = &const_for_curr_token;
+      locale_pos = pos_curr_token;
+      if (!is_normal_character_kind(locale_cp->character_kind)) {
+        error(ec_wide_string_not_allowed);
+        locale_cp = NULL;
+      }  /* if */
+      /* Advance past the string literal. */
+      (void)get_token();
+      if (required_token(tok_rparen, ec_exp_rparen)) err = FALSE;
+    }  /* if */
+  }  /* if */
+  wrapup_rescan_of_pragma_tokens(err);
+  /* If we did not encounter an error and the constant was acceptable, set
+     the locale to the specified value. */
+  if (!err && locale_cp != NULL) {
+    if (set_windows_locale(locale_cp->variant.string.value)) {
+      pos_st_error(ec_invalid_locale, &locale_pos,
+                   locale_cp->variant.string.value);
+    }  /* if */
+  }  /* if */
+}  /* setlocale_pragma */
+
+#endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 
@@ -10048,6 +10167,7 @@ id_scan:
         sizeof_t		id_length;
         char			*id_ptr;
         id_length = end_of_curr_token - start_of_curr_token + 1;
+        id_ptr = start_of_curr_token;
         check_use_of_VA_ARGS(
                     (sizeof_t)(end_of_curr_token - start_of_curr_token + 1),
                     start_of_curr_token);
@@ -10056,10 +10176,7 @@ id_scan:
           /* If the identifier contains a universal character name or
              a multibyte character, the string must be processed to make
              it canonical. */
-          id_ptr = make_canonical_identifier(start_of_curr_token,
-                                             &id_length);
-        } else {
-          id_ptr = start_of_curr_token;
+          id_ptr = make_canonical_identifier(id_ptr, &id_length);
         }  /* if */
         sym_hdr = find_symbol_header(id_ptr, id_length,
                                      &locator_for_curr_id);

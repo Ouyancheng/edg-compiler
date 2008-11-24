@@ -3194,6 +3194,9 @@ in the current IL memory region.
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case pk_push_macro:
     case pk_pop_macro:
+#if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
+    case pk_setlocale:
+#endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL
     case pk_unrecognized:

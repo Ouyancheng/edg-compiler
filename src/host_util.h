@@ -99,7 +99,7 @@ caller should copy the contents as needed.
   int             num_utf16_chars;
   sizeof_t        utf16_len;
   unsigned short  utf16_chars[2];
-  sizeof_t        i;
+  int             i;
   static wchar_t  *buffer;
   a_boolean       utf8_character_seen = FALSE;
   static sizeof_t buffer_allocation_size = 512 * sizeof(wchar_t);
@@ -155,7 +155,8 @@ caller should copy the contents as needed.
          how many bytes from filename were occupied by the UTF-8
          representation. */
       utf8_character_seen = TRUE;
-      num_utf8_bytes = mbc_to_wide_char(p, &unicode_char, &err);
+      num_utf8_bytes = mbc_to_wide_char(p, &unicode_char, &err,
+                                        /*is_native=*/FALSE);
       /* Convert that to either one UTF-16 value or a pair of surrogates. */
       num_utf16_chars = ucn_to_utf16(unicode_char, utf16_chars);
       check_assertion(num_utf16_chars <= 2);
@@ -202,6 +203,8 @@ time.  Return TRUE if the file exists and is a regular file, FALSE otherwise.
     /* Check the file type.  Use the stat call instead of fstat because some
        implementations do not have the _file field in the structure. */
     struct stat buf;
+    /* Translate the file name into the form used by the file system. */
+    file_name = file_name_in_external_encoding(file_name);
     if (stat(file_name, &buf) == 0) {
       /* Use the POSIX S_ISREG if it is defined.  Otherwise use the
          non-POSIX test using S_IFREG. */

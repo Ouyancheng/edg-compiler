@@ -1825,10 +1825,73 @@ strings).
 #endif /* UNICODE_SOURCE_SUPPORTED */
 
 /*
+Flag that is TRUE if, when Unicode source is supported, files with other
+multibyte characters are also supported.  In this mode, Unicode files are
+processed as usual, but non-Unicode files are scanned using a particular
+locale.  Characters in identifiers, file names, and wide string literals
+are translated into their Unicode equivalents.  Characters in narrow
+literals are left in their native representation.
+
+This facility requires the ability to translate a multibyte character sequence
+from the encoding of a given locale to Unicode.  The front end does not
+provide such a facility.  On Windows (i.e., when EDG_WIN32 is TRUE) the
+Windows facilities are used for this translation.  Because the front end
+cannot be used as delivered in a non-Windows environment, a #error directive
+is issued below in such cases.  The Windows routines that are used are
+available starting with version 1400 (Visual Studio 8) of the Microsoft
+compiler.
+*/
+#ifndef NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
+#if EDG_WIN32 && UNICODE_SOURCE_SUPPORTED
+#define NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE TRUE
+#else /* !(EDG_WIN32 && UNICODE_SOURCE_SUPPORTED) */
+#define NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE FALSE
+#endif /* EDG_WIN32 && UNICODE_SOURCE_SUPPORTED */
+#endif /* ifndef NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
+
+/*
+Flag that is TRUE to allow NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
+versions to be built on non-Windows platforms for debugging purposes.
+Note that such versions will not actually do the multibyte to Unicode
+conversion.
+*/
+#ifndef EDG_NATIVE_MULTIBYTE_TEST_MODE
+#define EDG_NATIVE_MULTIBYTE_TEST_MODE FALSE
+#endif /* ifndef EDG_NATIVE_MULTIBYTE_TEST_MODE */
+
+#if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
+#if !MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
+ #error -- NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE is only supported \
+           when MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED is TRUE.
+#endif /* !MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
+
+#if !UNICODE_SOURCE_SUPPORTED
+ #error -- NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE is only supported \
+           when UNICODE_SOURCE_SUPPORTED is TRUE.
+#endif /* !UNICODE_SOURCE_SUPPORTED */
+
+#if !EDG_WIN32 && !EDG_NATIVE_MULTIBYTE_TEST_MODE
+ #error -- NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE is only supported \
+           when EDG_WIN32 is TRUE.
+#endif /* !(EDG_WIN32 && !EDG_NATIVE_MULTIBYTE_TEST_MODE) */
+
+#if EDG_WIN32
+#if _MSC_VER < 1400
+ #error -- NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE is only supported \
+           when on Windows for _MSC_VER >= 1400.
+#endif /* _MSC_VER < 1400 */
+#endif /* EDG_WIN32 */
+
+#endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
+
+/*
 Indication of the kind of Unicode encoding being used for a source file.
 */
 typedef enum a_unicode_source_kind_tag {
-  usk_none,		/* Source is not Unicode. */
+  usk_none,		/* Source is not Unicode.  When
+			   NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
+			   is TRUE, the source file may still contain
+			   multibyte characters in some other encoding. */
   usk_utf8,		/* Source is UTF-8 encoded. */
   usk_utf16LE,		/* Source is UTF-16 encoded, little-endian. */
   usk_utf16BE		/* Source is UTF-16 encoded, big-endian. */
@@ -2017,23 +2080,25 @@ the macro need not be defined at all.
 #ifdef char_may_begin_multibyte_sequence
 #define mbc_length(ptr, err) \
   (char_may_begin_multibyte_sequence(*(ptr)) ? \
-     f_mbc_length((ptr), (err)) : \
+     f_mbc_length((ptr), (err), /*is_native=*/FALSE) : \
      ((*(err) = FALSE), 1))
 #define mbc_length_simple(ptr) \
   (char_may_begin_multibyte_sequence(*(ptr)) ? \
-     f_mbc_length((ptr), (a_boolean *)NULL) : \
+     f_mbc_length((ptr), (a_boolean *)NULL, /*is_native=*/FALSE) : \
      1)
 #else /* !defined(char_may_begin_multibyte_sequence) */
 /* The char_may_begin_multibyte_sequence macro is not defined, so just
    call f_mbc_length. */
-#define mbc_length(ptr, err) f_mbc_length((ptr), (err))
-#define mbc_length_simple(ptr) f_mbc_length((ptr), (a_boolean *)NULL)
+#define mbc_length(ptr, err) f_mbc_length((ptr), (err), /*is_native=*/FALSE)
+#define mbc_length_simple(ptr) \
+  f_mbc_length((ptr), (a_boolean *)NULL, /*is_native=*/FALSE)
 #endif /* ifdef char_may_begin_multibyte_sequence */
-extern int f_mbc_length(char *ptr, a_boolean *err);
+extern int f_mbc_length(char *ptr, a_boolean *err, a_boolean is_native);
 /* Convert multibyte character sequence to wide character. */
 extern int mbc_to_wide_char(char          *mb,
                             unsigned long *wc,
-                            a_boolean     *err);
+                            a_boolean     *err,
+                            a_boolean     is_native);
 
 #if USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING
 /* Use custom processing for SJIS instead of the C library routines. */
@@ -2071,10 +2136,6 @@ extern int mbc_to_wide_char(char          *mb,
 /* Treat UTF-8 as a multibyte character sequence.  (UTF-16 is handled on
    input and converted immediately to UTF-8.) */
 
-/* Initialize for using mbc_length within one string of source characters. */
-#define mbc_scan_init() ((void)0)
-#define mbc_scan_init_if_multibyte_chars_in_source_enabled() /* Nothing. */
-
 #ifndef LOCALE_TO_SET_WHEN_MULTIBYTE_CHARS_ENABLED
 /* If possible, pick a locale that looks like ISO-8859-1/Latin-1. */
 #if EDG_WIN32
@@ -2094,7 +2155,53 @@ extern int mbc_to_wide_char(char          *mb,
 #include <locale.h>
 #endif /* LOCALE_TO_SET_WHEN_MULTIBYTE_CHARS_ENABLED */
 
+#if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
+
+#include <locale.h>
+#include <wctype.h>
+#if EDG_WIN32
+
+static _locale_t
+		native_multibyte_locale;
+			/* The locale object to be used for converting
+			   multibyte characters to UTF-8. */
+
+#define mbc_scan_init() \
+  { if (curr_file_unicode_source_kind == usk_none) { \
+      ((void)_mblen_l(NULL, MB_CUR_MAX, native_multibyte_locale)); \
+    }  /* if */ \
+  }  /* if */
+#define mbc_scan_init_if_multibyte_chars_in_source_enabled() \
+  { if (multibyte_chars_in_source_enabled) mbc_scan_init(); }
+
+#else /* EDG_WIN32 */
+#if EDG_NATIVE_MULTIBYTE_TEST_MODE
+
+/* Use the C library routines. */
+#define mbc_scan_init() \
+  { if (curr_file_unicode_source_kind == usk_none) { \
+      ((void)mblen(NULL, MB_CUR_MAX)); \
+    }  /* if */ \
+  }  /* if */
+#define mbc_scan_init_if_multibyte_chars_in_source_enabled() \
+  { if (multibyte_chars_in_source_enabled) mbc_scan_init(); }
+
+#else /* !EDG_NATIVE_MULTIBYTE_TEST_MODE */
+    #error mbc_scan_init requires customization on non-Windows platforms when \
+           using NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE.
+#endif /* EDG_NATIVE_MULTIBYTE_TEST_MODE */
+#endif /* !EDG_WIN32 */
+
+#else /* !NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
+
+/* Initialize for using mbc_length within one string of source characters. */
+#define mbc_scan_init() ((void)0)
+#define mbc_scan_init_if_multibyte_chars_in_source_enabled() /* Nothing. */
+
+#endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
+
 #else /* !UNICODE_SOURCE_SUPPORTED */
+
 /* Use the standard C library routines. */
 
 /*
@@ -2165,21 +2272,30 @@ extern int getc_utf16(FILE                *file,
 /* Special versions of mbc_length and mbc_to_wide_char for use in the lexical
    routines.  These consult the current setting of
    curr_file_unicode_source_kind to see if the current input is UTF-8 or
-   plain characters (like Latin-1). */
+   non-Unicode.  Non-Unicode can be plain characters (like Latin-1), or
+   when NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE is TRUE, some other
+   multibyte character set. */
 #define lex_mbc_length(ptr, err) \
-  (char_may_begin_multibyte_sequence(*(ptr)) && \
-   curr_file_unicode_source_kind != usk_none ? \
-     f_mbc_length((ptr), (err)) : \
+  (char_may_begin_multibyte_sequence(*(ptr)) ?				\
+     f_mbc_length((ptr), (err), curr_file_unicode_source_kind == usk_none) : \
      ((*(err) = FALSE), 1))
 #define lex_mbc_length_simple(ptr) \
-  (char_may_begin_multibyte_sequence(*(ptr)) && \
-   curr_file_unicode_source_kind != usk_none ? \
-     f_mbc_length((ptr), (a_boolean *)NULL) : \
-     1)
+  (char_may_begin_multibyte_sequence(*(ptr))				    \
+    ? f_mbc_length((ptr), (a_boolean *)NULL,				    \
+                   curr_file_unicode_source_kind == usk_none)		    \
+    : 1)
 #define lex_mbc_to_wide_char(mb, wc, err) \
-  (curr_file_unicode_source_kind != usk_none ? \
-    mbc_to_wide_char((mb), (wc), (err)) : \
-    (*(wc) = *(mb), *(err) = FALSE, 1))
+  (mbc_to_wide_char((mb), (wc), (err),					\
+                    curr_file_unicode_source_kind == usk_none))
+
+#if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
+extern a_boolean set_windows_locale(char	*locale_name);
+
+extern char *convert_multibyte_chars_to_utf8(char	*id_ptr,
+					     sizeof_t	*id_length,
+					     a_boolean	*err);
+#endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
+
 #else /*!UNICODE_SOURCE_SUPPORTED */
 #define getc_source(file, state) (getc(file))
 
@@ -2188,7 +2304,8 @@ extern int getc_utf16(FILE                *file,
    UTF-8.  The "lex" routines just go to the normal routines. */
 #define lex_mbc_length(ptr, err) mbc_length((ptr), (err))
 #define lex_mbc_length_simple(ptr) mbc_length_simple((ptr))
-#define lex_mbc_to_wide_char(mb, wc, err) mbc_to_wide_char((mb), (wc), (err))
+#define lex_mbc_to_wide_char(mb, wc, err) \
+  mbc_to_wide_char((mb), (wc), (err), /*is_native=*/FALSE)
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
 #endif /* UNICODE_SOURCE_SUPPORTED */
 

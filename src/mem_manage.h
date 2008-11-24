@@ -354,7 +354,7 @@ Make sure that the specified buffer has at least "length" total bytes in it.
 If not, expand the buffer by reallocating it.
 */
 #define ensure_text_buffer_space(buf, length)			\
-{ if ((length) > (buf)->allocated_size) {				\
+{ if (((sizeof_t)(length)) > (buf)->allocated_size) {			\
     expand_text_buffer(buf, (sizeof_t)(length));			\
   }  /* if */							\
 }  /* ensure_text_buffer_space */

@@ -50,7 +50,7 @@ This is the version for Windows 95/98/NT/etc.
 #define TARG_JMP_BUF_ELEMENT_INT_KIND ((an_integer_kind)ik_int)
 
 /*
-Definitions for Windows NT/95/98:
+Definitions for Windows (WIN32)
 */
 #define __ANSIC__ 1
 #define USING_ISO_C 1
@@ -66,6 +66,9 @@ Definitions for Windows NT/95/98:
 #define GUARD_MACRO_FOR_VA_LIST "_VA_LIST_DEFINED"
 #define DEFAULT_VA_LIST_IN_STD_NAMESPACE 0
 #define DEFAULT_EXCEPTIONS_ENABLED 1
+#define UNICODE_SOURCE_SUPPORTED 1
+#define MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED 1
+#define NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE 1
 
 /*
 Use fixed address for mmap to work around issues with address space

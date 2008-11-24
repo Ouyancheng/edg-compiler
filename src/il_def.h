@@ -3612,6 +3612,9 @@ enum a_pragma_kind_tag {
   pk_pop_macro,
   pk_start_map_region,
   pk_stop_map_region,
+#if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
+  pk_setlocale,
+#endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL
   pk_unrecognized,	/* This pragma kind is used for pragmas that are
@@ -3708,6 +3711,9 @@ EXTERN char *pragma_ids[(int)pk_last + 1]
 /* pk_pop_macro */		"pop_macro",
 /* pk_start_map_region */	"start_map_region",
 /* pk_stop_map_region */	"stop_map_region",
+#if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
+/* pk_setlocale */		"setlocale",
+#endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL
 /* pk_unrecognized */		"unrecognized",
