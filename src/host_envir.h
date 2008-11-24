@@ -1853,7 +1853,11 @@ compiler.
 Flag that is TRUE to allow NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
 versions to be built on non-Windows platforms for debugging purposes.
 Note that such versions will not actually do the multibyte to Unicode
-conversion.
+conversion.  As a result, versions built with this flag will not function
+properly and will often result in internal errors on source containing
+multibyte characters (e.g., because the front end expects that such
+characters in identifiers will have been converted to UTF-8 and the
+multibyte character sequences may be invalid UTF-8 values).
 */
 #ifndef EDG_NATIVE_MULTIBYTE_TEST_MODE
 #define EDG_NATIVE_MULTIBYTE_TEST_MODE FALSE
