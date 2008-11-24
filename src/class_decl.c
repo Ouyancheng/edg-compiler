@@ -7434,14 +7434,12 @@ set to FALSE (and FALSE is always returned).
 
 
 static a_symbol_ptr interface_slot_override(a_symbol_locator       *loc,
-                                            a_symbol_ptr           base_sym,
-                                            a_class_def_state_ptr  class_state)
+                                            a_symbol_ptr           base_sym)
 /*
 A member function was declared with the qualified declarator described by loc,
 and the qualifier refers to a Microsoft __interface class.  The interface
 inherits (i.e., does not itself declare) the corresponding member function
-described by base_sym.  class_state describes the current definition state of
-the derived class.
+described by base_sym.
 Return (and, if needed, create) a special member function (an "interface slot")
 in the interface class that the function entry in the derived class can refer
 to (with its overridden_function field).
@@ -7547,7 +7545,7 @@ function or NULL if none can be found.
           /* If the qualifier named an __interface class, the overridden
              function must be a proper member of that interface (as opposed to
              an inherited member). */
-          sym = interface_slot_override(locator, sym, class_state);
+          sym = interface_slot_override(locator, sym);
         }  /* if */
       } else {
         sym = NULL;
