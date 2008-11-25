@@ -11925,9 +11925,9 @@ throughout the entire expression).
           set_node_operator(child, (an_expr_operator_kind)eok_padd,
                             expr->type, expr->is_lvalue, gchild);
           overwrite_node(expr, child);
-        } else if(node_operator_is(child, eok_lvalue_adjust) &&
-                  is_operation_node(gchild) &&
-                  node_operator_is(gchild, eok_indirect)) {
+        } else if (node_operator_is(child, eok_lvalue_adjust) &&
+                   is_operation_node(gchild) &&
+                   node_operator_is(gchild, eok_indirect)) {
           /* Optimize an "&eok_lvalue_adjust*x" operation to a cast of x to
              the type of the expression. */
           overwrite_node(expr, add_cast(gchild->variant.operation.operands,
