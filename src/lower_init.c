@@ -4219,8 +4219,9 @@ remain as part of the aggregate initializer.
 #if GNU_VECTOR_TYPES_ALLOWED
   } else if (keep_dynamic_init) {
     /* A dik_expression dynamic initialization has been kept in the
-       aggregate initializer (making this constant not quite so constant).
-       Signal to our caller that the dip needs to be kept around. */
+       aggregate initializer.  Signal to our caller that the dip needs to be
+       kept around (and that the type of dip needs to be left as
+       dik_nonconstant_aggregate). */
     check_assertion(initializing_vector_element(ipdp->modifiers));
     *keep_constant = TRUE;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
@@ -4318,8 +4319,10 @@ initialization is part of a constructor initializer, ctor_init points to
 the constructor-init entry.  others_follow_in_aggr is TRUE if this constant
 is followed by others in an aggregate initialization (i.e., it's not the
 last).  Insert statements to implement the initialization at *insert_location
-and update *insert_location.  If there are any (genuine) constants in the
-aggregate, set *keep_constant to TRUE.
+and update *insert_location.  Sets *contains_vector_dynamic_init to TRUE if
+aggr_con is a vector that contains a dynamic initialization for a vector
+element.  If there are any (genuine) constants in the aggregate, set
+*keep_constant to TRUE.
 */
 {
   an_init_pos_descr    ipd;
@@ -6396,7 +6399,10 @@ The caller should then make sure that this only happens in function scope
 On return, *keep_dynamic_init is TRUE if the dynamic init entry is to
 be kept, FALSE if it should be deleted.  If the caller passes in
 keep_dynamic_init == NULL, no value is returned; the value determined
-in this routine must be FALSE in that case.
+in this routine must be FALSE in that case.  *keep_dynamic_init will always
+be set to TRUE if the dynamic init is for an element of a vector type;
+these are kept in the aggregate because vector elements are not individually
+addressable.
 
 On return, *constant_to_keep is set to point to a constant part of the
 initialization that should be kept.  If this feature is not needed,
@@ -6798,7 +6804,7 @@ C99 mode for the same reason.
         /* We're initializing an element of a vector.  Normally, we'd
            create an assignment statement for this element, but since
            vector elements aren't individually addressable, leave the
-           (lowered) dynamic expression in the aggregate initializer. */
+           (now) lowered dynamic expression in the aggregate initializer. */
         dip->variant.expression = source_node;
         local_keep_dynamic_init = TRUE;
         break;
