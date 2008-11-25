@@ -831,6 +831,9 @@ default values.
   ipmp->curr_elem  = 0;
   ipmp->curr_field = NULL;
   ipmp->curr_base  = NULL;
+#if GNU_VECTOR_TYPES_ALLOWED
+  ipmp->is_vector_element  = FALSE;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
 }  /* clear_init_pos_modifier */
 
 
@@ -906,6 +909,26 @@ saved so that a destruction may be generated later.
   return copy_ipmp;
 }  /* copy_init_pos_modifier_list */
 
+#if GNU_VECTOR_TYPES_ALLOWED
+
+static a_boolean initializing_vector_element(an_init_pos_modifier_ptr ipmp)
+/*
+Return TRUE if one of the modifiers on the specified list indicates that
+this initialization is modifying an element of a vector.
+*/
+{
+  a_boolean result = FALSE;
+
+  for (; ipmp != NULL; ipmp = ipmp->next) {
+    if (ipmp->is_vector_element) {
+      result = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* initializing_vector_element */
+
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
 
 static void clear_init_pos_descr(an_init_pos_descr_ptr ipdp)
 /*
@@ -1191,6 +1214,9 @@ is a variable-length array.
   check_assertion(entity_node->is_lvalue);
   /* If there are no modifiers, return the original node. */
   if (modifiers != NULL) {
+#if GNU_VECTOR_TYPES_ALLOWED
+    check_assertion(!modifiers->is_vector_element);
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
     /* Process the modifiers preceding the final modifier, then add the final
        qualifier (recall that the modifiers are in order from the innermost
        to the outermost). */
@@ -1307,6 +1333,9 @@ is the destination of an initialization operation.
          efficiently. */
       check_assertion(ipdp->modifiers != NULL &&
                       ipdp->modifiers->curr_base != NULL);
+#if GNU_VECTOR_TYPES_ALLOWED
+      check_assertion(!ipdp->modifiers->is_vector_element);
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
       entity_node = make_base_class_lvalue(entity_node,
                                            ipdp->modifiers->curr_base,
                                            /*complete_object=*/TRUE);
@@ -4121,7 +4150,10 @@ is followed by others in an aggregate initialization (i.e., it's not the
 last).  If the initialization is of an aggregate and there some parts
 of the initialization that are constant, the ck_dynamic_init constant
 will be changed to an aggregate constant for the constant parts and
-*keep_constant will be set to TRUE.
+*keep_constant will be set to TRUE.  *keep_constant is also set to TRUE if
+the ck_dynamic_init is used to initialize an element of a vector.
+Individual vector elements cannot be individually assigned, so they must
+remain as part of the aggregate initializer.
 */
 {
   a_constant_ptr     next_con;
@@ -4129,6 +4161,9 @@ will be changed to an aggregate constant for the constant parts and
   a_constant_ptr     constant_to_keep = NULL;
   a_dynamic_init_ptr dip = con_ptr->variant.dynamic_init;
   a_boolean          need_copy_to_file_scope = FALSE;
+#if GNU_VECTOR_TYPES_ALLOWED
+  a_boolean          keep_dynamic_init = FALSE;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
 
   if (processing_file_scope_init_routine && in_file_scope(dip) &&
       dip->destruction_is_for_partially_constructed_aggregate) {
@@ -4154,7 +4189,12 @@ will be changed to an aggregate constant for the constant parts and
     /* Normal initialization. */
     lower_dynamic_init(dip, ipdp, ctor_init, (a_variable_ptr)NULL,
                        LDIO_FULL_EXPR, others_follow_in_aggr,
-                       insert_location, (a_boolean *)NULL,
+                       insert_location, 
+#if GNU_VECTOR_TYPES_ALLOWED
+                       &keep_dynamic_init,
+#else /* !GNU_VECTOR_TYPES_ALLOWED */
+                       (a_boolean *)NULL,
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
                        &constant_to_keep);
   }  /* if */
   if (constant_to_keep != NULL) {
@@ -4176,6 +4216,14 @@ will be changed to an aggregate constant for the constant parts and
     }  /* if */
     con_ptr->next = con_ptr_next;
     *keep_constant = TRUE;
+#if GNU_VECTOR_TYPES_ALLOWED
+  } else if (keep_dynamic_init) {
+    /* A dik_expression dynamic initialization has been kept in the
+       aggregate initializer (making this constant not quite so constant).
+       Signal to our caller that the dip needs to be kept around. */
+    check_assertion(initializing_vector_element(ipdp->modifiers));
+    *keep_constant = TRUE;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
   } else {
     /* Overwrite the constant with a harmless constant of the right kind.
        It's just a place-holder that gets overwritten by the dynamic
@@ -4214,6 +4262,9 @@ will be changed to an aggregate constant for the constant parts and
       }  /* if */
     }  /* if */
     if (is_aggregate_or_union_type(desired_type)
+#if GNU_VECTOR_TYPES_ALLOWED
+        || is_vector_type(desired_type)
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
 #if DO_C99_IL_LOWERING && LOWER_COMPLEX
         || is_complex_type(desired_type)
 #endif /* DO_C99_IL_LOWERING && LOWER_COMPLEX */
@@ -4247,13 +4298,16 @@ will be changed to an aggregate constant for the constant parts and
 
 
 static void lower_dynamic_init_aggregate_constant(
-                                 a_constant_ptr         aggr_const,
-                                 an_init_pos_descr_ptr  ipdp,
-                                 a_boolean              dtor_case,
-                                 a_constructor_init_ptr ctor_init,
-                                 a_boolean              others_follow_in_aggr,
-                                 an_insert_location_ptr insert_location,
-                                 a_boolean              *keep_constant)
+                          a_constant_ptr         aggr_const,
+                          an_init_pos_descr_ptr  ipdp,
+                          a_boolean              dtor_case,
+                          a_constructor_init_ptr ctor_init,
+                          a_boolean              others_follow_in_aggr,
+                          an_insert_location_ptr insert_location,
+#if GNU_VECTOR_TYPES_ALLOWED
+                          a_boolean              *contains_vector_dynamic_init,
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+                          a_boolean              *keep_constant)
 /*
 aggr_const points to a ck_aggregate constant that contains one or more
 ck_dynamic_init dynamic initializations.  The ck_aggregate constant is
@@ -4272,7 +4326,7 @@ aggregate, set *keep_constant to TRUE.
   an_init_pos_modifier ipm, *ipmp;
   a_type_ptr           aggr_type;
   a_constant_ptr       con_ptr, repeated_con, prev_con, next_con;
-  a_boolean            array_aggr;
+  a_boolean            array_aggr, array_or_vector = FALSE;
 
   /* Mark the constant as visited.  This is necessary if the aggregate
      constant ends up being kept because something constant remains after
@@ -4303,12 +4357,18 @@ aggregate, set *keep_constant to TRUE.
     /* Array -- get the element type. */
     ipmp->curr_elem = 0;
     ipmp->type = aggr_type->variant.array.element_type;
+    array_or_vector = TRUE;
+#if GNU_VECTOR_TYPES_ALLOWED
+  } else if (aggr_type->kind == (a_type_kind)tk_vector) {
+    /* Vector.  This is similar to the array case. */
+    ipmp->curr_elem = 0;
+    ipmp->type = aggr_type->variant.vector.element_type;
+    ipmp->is_vector_element = TRUE;
+    array_or_vector = TRUE;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
   } else {
-#if CHECKING
-    if (!is_immediate_class_type(aggr_type)) {
-      internal_error("lower_dynamic_init_aggregate_constant: bad aggr kind");
-    }  /* if */
-#endif /* CHECKING */
+    check_assertion_str(is_immediate_class_type(aggr_type),
+                       "lower_dynamic_init_aggregate_constant: bad aggr kind");
     /* Class, struct, or union -- get first field (nonstatic data member). */
     ipmp->curr_field = next_initializable_field(
                              aggr_type->variant.class_struct_union.field_list);
@@ -4323,7 +4383,7 @@ aggregate, set *keep_constant to TRUE.
       /* A designator appears (e.g., in a C99 nonconstant aggregate
          initialization).  Update the current position. */
       if (con_ptr->variant.designator.field != NULL) {
-        check_assertion(!array_aggr);
+        check_assertion(!array_or_vector);
         ipmp->curr_field = con_ptr->variant.designator.field;
       } else {
         check_assertion(array_aggr);
@@ -4335,7 +4395,7 @@ aggregate, set *keep_constant to TRUE.
     }  /* if */
     next_con = con_ptr->next;
     others_follow = (others_follow_in_aggr || next_con != NULL);
-    if (!array_aggr) {
+    if (!array_or_vector) {
       check_assertion_str(ipmp->curr_field != NULL,
              "lower_dynamic_init_aggregate_constant: have constant, no field");
       /* For class and struct initialization, get the type of the member
@@ -4348,14 +4408,20 @@ aggregate, set *keep_constant to TRUE.
       /* Dynamic initialization. */
       lower_ck_dynamic_init(con_ptr, &ipd, dtor_case, ctor_init,
                             others_follow, insert_location, keep_constant);
+#if GNU_VECTOR_TYPES_ALLOWED
+      if (aggr_type->kind == (a_type_kind)tk_vector) {
+        /* This is a dynamic initialization of an element of a vector type,
+           which is always kept in the constant.  Signal to our caller that
+           the dip that contains this should be a dik_nonconstant_aggregate
+           rather than a dik_constant. */
+        check_assertion(keep_constant);
+        *contains_vector_dynamic_init = TRUE;
+      }  /* if */
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
     } else if (con_ptr->kind == (a_constant_repr_kind)ck_init_repeat) {
       /* Repeated constant.  Must be initializing members of an array. */
-#if CHECKING
-      if (!array_aggr) {
-        internal_error(
+      check_assertion_str(array_aggr,
                  "lower_dynamic_init_aggregate_constant: repeat on non-array");
-      }  /* if */
-#endif /* CHECKING */
       repeated_con = con_ptr->variant.init_repeat.constant;
       /* Repeat the constant the right number of times.  It must be a
          ck_dynamic_init constant. */
@@ -4399,6 +4465,9 @@ aggregate, set *keep_constant to TRUE.
       lower_dynamic_init_aggregate_constant(con_ptr, &ipd,
                                             dtor_case, ctor_init,
                                             others_follow, insert_location,
+#if GNU_VECTOR_TYPES_ALLOWED
+                                            contains_vector_dynamic_init,
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
                                             keep_constant);
     } else {
       /* Normal constant. */
@@ -4435,8 +4504,8 @@ aggregate, set *keep_constant to TRUE.
       }  /* if */
     }  /* if */
     /* Find the next member in the aggregate. */
-    if (array_aggr) {
-      /* Array -- go on to next element. */
+    if (array_or_vector) {
+      /* Array or vector -- go on to next element. */
       if (con_ptr->kind != (a_constant_repr_kind)ck_init_repeat) {
         ipmp->curr_elem++;
       } else {
@@ -6365,6 +6434,9 @@ C99 mode for the same reason.
   a_dynamic_init_ptr latest_initialization_on_entry;
   a_boolean          have_complete_object = TRUE;
   a_routine_ptr      ctor_routine;
+#if GNU_VECTOR_TYPES_ALLOWED
+  a_boolean          contains_vector_dynamic_init = FALSE;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
 
   saved_code_pos = code_pos_for_lowering;
   saved_error_position = error_position;
@@ -6721,6 +6793,17 @@ C99 mode for the same reason.
           }  /* if */
         }
       }  /* if */
+#if GNU_VECTOR_TYPES_ALLOWED
+      if (initializing_vector_element(ipdp->modifiers)) {
+        /* We're initializing an element of a vector.  Normally, we'd
+           create an assignment statement for this element, but since
+           vector elements aren't individually addressable, leave the
+           (lowered) dynamic expression in the aggregate initializer. */
+        dip->variant.expression = source_node;
+        local_keep_dynamic_init = TRUE;
+        break;
+      }  /* if */
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
 do_assignment:;
       check_assertion_str(!ipdp->array_element_sequence,
                           "lower_dynamic_init: repeated const or expr init");
@@ -6824,6 +6907,9 @@ do_assignment:;
                                             /*dtor_case=*/FALSE, ctor_init,
                                             others_follow_in_aggr,
                                             eff_insert_location,
+#if GNU_VECTOR_TYPES_ALLOWED
+                                            &contains_vector_dynamic_init,
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
                                             &keep_constant);
       if (keep_constant) {
         /* There is a constant part of the initialization to be kept. */
@@ -6836,6 +6922,11 @@ do_assignment:;
           /* Keep a (now-)constant aggregate value as the static initial value
              of the variable.  The nonconstant parts have been put out as
              code and replaced with placeholder constants. */
+#if GNU_VECTOR_TYPES_ALLOWED
+          /* The constant may still have non-constant pieces (because vector
+             elements can't be individually assigned to).  This "constant"
+             will still be used as a static initial value. */
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
           simple_constant_init = TRUE;
           simple_constant = dip->variant.constant;
           if (local_static_that_requires_dynamic_init) {
@@ -7005,7 +7096,17 @@ do_assignment:;
         /* Initialization of an automatic variable to a constant.  Can be done
            by keeping the dynamic init entry. */
         local_keep_dynamic_init = TRUE;
-        set_dynamic_init_kind(dip, (a_dynamic_init_kind)dik_constant);
+#if GNU_VECTOR_TYPES_ALLOWED
+        if (contains_vector_dynamic_init) {
+          check_assertion(dip->kind ==
+                               (a_dynamic_init_kind)dik_nonconstant_aggregate);
+          /* Leave this dip as a dik_nonconstant_aggregate. */
+        } else
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+        /* Do not insert code here. */
+        {
+          set_dynamic_init_kind(dip, (a_dynamic_init_kind)dik_constant);
+        }  /* if */
         dip->variant.constant = simple_constant;
       }  /* if */
     } else if (dip->kind == (a_dynamic_init_kind)dik_zero) {
@@ -11391,6 +11492,9 @@ array if necessary.  The statements created are inserted at
     /* Odd case: destructor for an array.  The top level looks like an
        initialization; lower down we will find dynamic init entries for
        the destruction. */
+#if GNU_VECTOR_TYPES_ALLOWED
+    a_boolean contains_vector_dynamic_init = FALSE;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
 #if CHECKING
     if (ctor_init->kind != (a_constructor_init_kind)cik_field) {
       internal_error("lower_dtor_init: aggr value for non-field");
@@ -11402,10 +11506,17 @@ array if necessary.  The statements created are inserted at
                                           (a_constructor_init_ptr)NULL,
                                           /*others_follow_in_aggr=*/FALSE,
                                           insert_location,
+#if GNU_VECTOR_TYPES_ALLOWED
+                                          &contains_vector_dynamic_init,
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
                                           &keep_constant);
 #if CHECKING
-    if (keep_constant) {
-      internal_error("lower_dtor_init: keep_constant unexpected");
+    if (keep_constant
+#if GNU_VECTOR_TYPES_ALLOWED
+        || contains_vector_dynamic_init
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+                                     ) {
+      internal_error("lower_dtor_init: unexpected result");
     }  /* if */
 #endif /* CHECKING */
   } else {

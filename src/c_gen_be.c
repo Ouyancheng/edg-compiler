@@ -5602,6 +5602,9 @@ the list pointed to by "ipdp".
 {
   dump_variable_name(variable);
   for (; ipdp != NULL; ipdp = ipdp->next) {
+#if GNU_VECTOR_TYPES_ALLOWED
+    check_assertion(!is_vector_type(ipdp->type));
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
     if (is_array_type(ipdp->type)) {
       write_tok_ch('[');
       write_unsigned_num((a_host_large_unsigned)ipdp->curr_elem);
@@ -6019,6 +6022,7 @@ block with state information for the processing.
   a_constant_ptr       elem_con;
   a_type_ptr           elem_type;
   a_boolean            need_close_brace = FALSE;
+  a_boolean            is_aggregate;
 
   type = skip_typerefs(type);
 #if !C_GEN_BE_GENERATES_ANSI_C
@@ -6033,9 +6037,16 @@ block with state information for the processing.
   /* If we have a constant, be guided by the constant in choosing between
      aggregate and non-aggregate cases.  Otherwise (when initializing to
      zero), be guided by the type of the entity being initialized. */
-  if ((constant != NULL) ? 
-           constant->kind != (a_constant_repr_kind)ck_aggregate :
-           !is_aggregate_or_union_type(type)) {
+  is_aggregate = (constant != NULL) ? 
+                         constant->kind == (a_constant_repr_kind)ck_aggregate :
+                         is_aggregate_or_union_type(type);
+#if GNU_VECTOR_TYPES_ALLOWED
+  if (is_vector_type(type)) {
+    /* A vector must be handled atomically and not element-by-element. */
+    is_aggregate = FALSE;
+  }  /* if */
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+  if (!is_aggregate) {
     /* Non-aggregate case (includes string literals). */
     if (*gen_assignments) {
       /* Generate an assignment statement. */
@@ -6099,12 +6110,6 @@ block with state information for the processing.
         ipdp->curr_elem = 0;
         elem_type = type->variant.array.element_type;
         break;
-#if GNU_VECTOR_TYPES_ALLOWED
-      case tk_vector:
-        ipdp->curr_elem = 0;
-        elem_type = type->variant.vector.element_type;
-        break;
-#endif /* GNU_VECTOR_TYPES_ALLOWED */
       case tk_struct:
       case tk_union:
         /* Find the first field in the struct or union, skipping those that
@@ -6163,10 +6168,16 @@ block with state information for the processing.
           write_tok_ch('0');
         }  /* if */
       }  /* if */
-    } else if (elem_con == NULL && is_array_type(type) &&
-               type->variant.array.bound_is_zero) {
+    } else if (elem_con == NULL &&
+               ((is_array_type(type) && type->variant.array.bound_is_zero)
+#if GNU_VECTOR_TYPES_ALLOWED
+                || (elem_type != NULL && is_vector_type(elem_type) &&
+                    !*gen_assignments)
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+                )) {
       /* This situation is generated in GNU C mode: a zero-length array
-         is initialized with an empty aggregate initializer ("{}"). */
+         is initialized with an empty aggregate initializer ("{}").  It
+         also occurs when a vector is initialized in the source to {}. */
       start_initializer_constants(icbp);
     } else {
       /* Loop through the list of constants and process each one.
@@ -6306,8 +6317,7 @@ block with state information for the processing.
 
 
 static void dump_initializer(a_variable_ptr variable,
-                             a_constant_ptr constant,
-                             a_boolean      is_dynamic_init)
+                             a_constant_ptr constant)
 /*
 Dump out an initializer to initialize a whole variable.  The variable
 being initialized is "variable"; the initial value is given by "constant".
@@ -6317,20 +6327,16 @@ Ordinarily, this routine outputs "= constant" as an initializer, and
 therefore assumes it has been called immediately after the declaration
 of the variable (and before the closing semicolon).
 
-If is_dynamic_init is TRUE, this routine is being called for a dynamic
-initialization (i.e., an stmk_init statement).  In that case, executable
-statements must be generated.
-
-Executable statements will also be generated when is_dynamic_init is FALSE
-for cases where K&R/pcc C cannot express a constant initialization (i.e.,
-union initializations and initializations of non-static aggregates).
-The parts preceding the troublesome case will be written out as data
-declarations.  The inexpressible case and any initializations following
-it will be rendered as executable code.
+Executable statements will be generated instead of initializers for cases
+where K&R/pcc C cannot express a constant initialization (i.e., union
+initializations and initializations of non-static aggregates).  The parts
+preceding the troublesome case will be written out as data declarations.
+The inexpressible case and any initializations following it will be
+rendered as executable code.
 */
 {
   a_type_ptr type = skip_typerefs(variable->type);
-  a_boolean  gen_assignments = is_dynamic_init;
+  a_boolean  gen_assignments = FALSE;
   an_init_control_block
              icb;
 
@@ -6339,6 +6345,9 @@ it will be rendered as executable code.
     if (!has_static_storage_duration(variable->storage_class) &&
         (type->kind == (a_type_kind)tk_struct ||
          type->kind == (a_type_kind)tk_union ||
+#if GNU_VECTOR_TYPES_ALLOWED
+         type->kind == (a_type_kind)tk_vector ||
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
          type->kind == (a_type_kind)tk_array)) {
       /* Assignment statements (rather than initializer constants) must be used
          for automatic variables with union or aggregate type, since K&R/pcc
@@ -6702,7 +6711,7 @@ parameters.
            (!has_static_storage_duration(variable->storage_class) ||
             !is_array_type(variable->type) ||
             variable->is_template_static_data_member))) {
-        dump_initializer(variable, init_con, /*is_dynamic_init=*/FALSE);
+        dump_initializer(variable, init_con);
       }  /* if */
       write_tok_ch(';');
       if (!forced_referenced) {
@@ -7231,7 +7240,8 @@ a control block with state information about this initializer.
   a_boolean             is_vector_constant = FALSE;
 
 #if GNU_VECTOR_TYPES_ALLOWED
-  if (dip->kind == (a_dynamic_init_kind)dik_constant &&
+  if ((dip->kind == (a_dynamic_init_kind)dik_constant ||
+       dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) &&
       dip->variant.constant->kind == (a_constant_repr_kind)ck_aggregate &&
       is_vector_type(dip->variant.constant->type)) {
     is_vector_constant = TRUE;
@@ -7239,7 +7249,8 @@ a control block with state information about this initializer.
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
   /* Direct the assignment output to the proper file. */
   set_init_file(variable, &save_f_C_output);
-  if (dip->kind == (a_dynamic_init_kind)dik_constant &&
+  if ((dip->kind == (a_dynamic_init_kind)dik_constant ||
+       dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) &&
       !is_vector_constant &&
       (dip->variant.constant->kind == (a_constant_repr_kind)ck_aggregate ||
        dip->variant.constant->kind == (a_constant_repr_kind)ck_string)) {
@@ -7253,6 +7264,7 @@ a control block with state information about this initializer.
     set_output_position(&variable->source_corresp.decl_position);
     switch (dip->kind) {
       case dik_constant:
+      case dik_nonconstant_aggregate:
         /* Initialization to a simple constant.  Output
              variable = constant;
         */

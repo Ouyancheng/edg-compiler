@@ -127,6 +127,15 @@ typedef struct an_init_pos_modifier {
 		curr_base;
 			/* If the entity is a base class, this points to the
 			   base class entry.  NULL otherwise. */
+#if GNU_VECTOR_TYPES_ALLOWED
+  a_byte_boolean
+		is_vector_element;
+			/* TRUE if the entity is an element of a vector.  Such
+			   elements are mostly treated like array elements
+			   except that they cannot be individually addressed,
+			   so any initialization cannot be rewritten as
+			   an assignment. */
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
 } an_init_pos_modifier;
 
 EXTERN an_init_pos_modifier_ptr
