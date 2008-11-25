@@ -453,7 +453,7 @@ static void lower_label(a_label_ptr label);
 static void lower_asm_entry(an_asm_entry_ptr asm_entry);
 static void lower_scope(a_scope_ptr scope);
 static a_boolean any_cleanup_actions(an_object_lifetime_ptr outer_lifetime);
-static a_boolean check_for_troublesome_ptr_to_member_constant(
+static a_boolean check_for_troublesome_aggregate_constant(
                                                      a_constant_ptr constant,
                                                      a_boolean      const_okay,
                                                      a_variable_ptr *temp_var);
@@ -1870,9 +1870,9 @@ This is used when the constant is already an allocated IL constant.
      used directly in an expression.  For that case, create a temporary
      variable initialized with the ck_aggregate, and use the value of the
      variable. */
-  if (check_for_troublesome_ptr_to_member_constant(constant,
-                                                   /*const_okay=*/TRUE,
-                                                   &temp_var)) {
+  if (check_for_troublesome_aggregate_constant(constant,
+                                               /*const_okay=*/TRUE,
+                                               &temp_var)) {
     node = var_rvalue_expr(temp_var);
   } else {
     /* Normal case; make a constant node. */
@@ -3895,7 +3895,7 @@ Do IL lowering of a pointer-to-member constant.
 }  /* lower_ptr_to_member_constant */
 
 
-static a_boolean check_for_troublesome_ptr_to_member_constant(
+static a_boolean check_for_troublesome_aggregate_constant(
                                                      a_constant_ptr constant,
                                                      a_boolean      const_okay,
                                                      a_variable_ptr *temp_var)
@@ -3977,7 +3977,7 @@ constant is being assigned, e.g.,
   }  /* if */
   *temp_var = assoc_var;
   return troublesome;
-}  /* check_for_troublesome_ptr_to_member_constant */
+}  /* check_for_troublesome_aggregate_constant */
 
 
 static void lower_constant_list(a_constant_ptr constant_list)
@@ -4518,10 +4518,9 @@ Do IL lowering of the indicated constant and everything under it.
             } else
 #endif /* ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
             /* Do not insert code here. */
-            if (check_for_troublesome_ptr_to_member_constant(
-                                                          addressed_con,
-                                                          /*const_okay=*/FALSE,
-                                                          &temp_var)) {
+            if (check_for_troublesome_aggregate_constant(addressed_con,
+                                                         /*const_okay=*/FALSE,
+                                                         &temp_var)) {
               /* This constant node is using the address of a pointer-to-
                  member-function constant, which has or will become a
                  struct represented by a ck_aggregate constant.  Since a
@@ -13803,7 +13802,7 @@ cast.  See lower_expr for typical invocation.
       /* Do not insert code here. */
       {
         lower_os_constant(expr->variant.constant);
-        if (check_for_troublesome_ptr_to_member_constant(
+        if (check_for_troublesome_aggregate_constant(
                     expr->variant.constant, /*const_okay=*/TRUE, &temp_var)) {
           /* This expression node is loading the value of a pointer-to-
              member-function, which has or will become a struct represented by
