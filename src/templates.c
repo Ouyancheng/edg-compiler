@@ -15588,7 +15588,7 @@ Scan a C++ template declaration.  Syntax:
 When this routine is called, the template parameter clauses will already
 have been scanned and the current token will be the first token of the
 declaration that follows the template parameter list.  In addition, the
-declaration will be been prescanned to determine whether it is a friend
+declaration will have been prescanned to determine whether it is a friend
 declaration.  Template declaration scopes will have been pushed for
 any non-empty template parameter lists that were scanned.
 */
