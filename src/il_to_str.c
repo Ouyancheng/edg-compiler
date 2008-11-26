@@ -4223,8 +4223,10 @@ precedence confusion.  Do the output in the way described by octl.
 #endif /* DO_IL_LOWERING && ... */
     case ck_dynamic_init:
       if (octl->gen_compilable_code &&
-          constant->variant.dynamic_init->kind == dik_expression) {
-        form_expression(constant->variant.dynamic_init->variant.expression, octl);
+          constant->variant.dynamic_init->kind ==
+                                         (a_dynamic_init_kind)dik_expression) {
+        form_expression(constant->variant.dynamic_init->variant.expression,
+                        octl);
       } else {
         form_dynamic_init_constant(constant, octl);
       }  /* if */
