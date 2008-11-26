@@ -3747,7 +3747,7 @@ Dump a va_arg operator.  Used when <stdarg.h> is treated as a builtin.
 static void dump_lvalue_cast(an_expr_node_ptr node,
                              a_boolean        suppress_indirection)
 /*
-Dump an expression that is an lvalue cast (eok_lvalue_cast, eok_ref_cast, or
+Dump an expression that is an lvalue cast (eok_lvalue_cast or
 eok_lvalue_adjust).  If suppress_indirection is TRUE, suppress the "*"
 on top of the expansion.
 */
@@ -3784,7 +3784,6 @@ on top of the expansion.
       operand_1 = operand_1->variant.operation.operands;
     } else if (is_operation_node(operand_1) &&
                (node_operator_is(operand_1, eok_lvalue_cast) ||
-                node_operator_is(operand_1, eok_ref_cast) ||
                 node_operator_is(operand_1, eok_lvalue_adjust))) {
       /* Cancel "&" over the "*" at the top of an lvalue cast to avoid a
          gcc bug when the underlying type is incomplete. */
@@ -4454,7 +4453,6 @@ there's some possibility of precedence confusion and need_parens is TRUE.
             }  /* if */
             if (is_operation_node(operand_1) &&
                 (node_operator_is(operand_1, eok_lvalue_cast) ||
-                 node_operator_is(operand_1, eok_ref_cast) ||
                  node_operator_is(operand_1, eok_lvalue_adjust))) {
               /* To avoid a gcc bug, cancel the "&" here against the "*" at
                  the top of the expansion of an lvalue cast.  gcc has problems
@@ -4533,7 +4531,6 @@ there's some possibility of precedence confusion and need_parens is TRUE.
           }  /* if */
           goto done_with_unary_operation;
         case eok_lvalue_cast:
-        case eok_ref_cast:
         case eok_lvalue_adjust:
           dump_lvalue_cast(expr, /*suppress_indirection=*/FALSE);
           goto done_with_unary_operation;

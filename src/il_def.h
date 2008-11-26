@@ -9186,7 +9186,9 @@ enum an_expr_operator_kind_tag {
 			   this operation is rvalueable (it can include an
 			   implicit lvalue-to-rvalue conversion).  Also used
 			   for casts to reference types involving template-
-			   dependent types (in prototype instantiations). */
+			   dependent types (in prototype instantiations).
+			   eok_ref_cast is rewritten as eok_lvalue_adjust
+			   during lowering. */
   eok_lvalue_adjust,	/* Similar to eok_lvalue_cast, but used for implicit
 			   lvalue type adjustments related to standard language
 			   features, for example when adjusting cv-qualifiers
@@ -9199,7 +9201,10 @@ enum an_expr_operator_kind_tag {
 			   class type to another).  Cannot handle base or
 			   derived class adjustments.  Unlike eok_lvalue_cast,
 			   this operation is rvalueable (it can include an
-			   implicit lvalue-to-rvalue conversion). */
+			   implicit lvalue-to-rvalue conversion).  Used in
+			   lowering to rewrite eok_ref_cast (so an explicit
+			   reference cast will become an eok_lvalue_adjust
+			   in configurations that perform lowering). */
   eok_class_rvalue_adjust,
 			/* Used to adjust the cv-qualifiers on a class rvalue.
 			   The operand is an rvalue with class type.  The

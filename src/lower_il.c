@@ -13652,6 +13652,11 @@ cast.  See lower_expr for typical invocation.
             lower_dynamic_cast(expr);
             break;
 #endif /* ABI_CHANGES_FOR_RTTI */
+          case eok_ref_cast:
+            /* Rewrite an eok_ref_cast as an eok_lvalue_adjust. */
+            expr->variant.operation.kind =
+                                      (an_expr_operator_kind)eok_lvalue_adjust;
+            break;
           case eok_bool_cast:
             lower_bool_cast(expr);
             break;

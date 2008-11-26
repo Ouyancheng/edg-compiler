@@ -965,16 +965,7 @@ an expression with VLA type.  The operands of expr have not been lowered yet.
                   is_vla_type(operand->type) &&
                   !expr->is_lvalue &&
                   operand->is_lvalue);
-  if (is_operation_node(operand) &&
-      (node_operator_is(operand, eok_subscript) ||
-       node_operator_is(operand, eok_indirect) ||
-       node_operator_is(operand, eok_ref_indirect))) {
-    /* When these operands are later lowered, their types will have
-       been changed such that they return the underlying element type
-       rather than a pointer to that type.  Rectify this situation
-       by taking the address of the expression. */
-    operand = add_address_of_to_node(operand);
-  } else if (is_variable_node(operand)) {
+  if (is_variable_node(operand)) {
     /* Change the lvalue reference to an rvalue pointer.  VLA variables
        are lowered from 'array [] of T' to 'pointer to T'.  Expressions
        (like this one) that refer to VLA variables must also have the
@@ -988,7 +979,8 @@ an expression with VLA type.  The operands of expr have not been lowered yet.
     operand = rvalue_expr_for_lvalue(operand);
     operand->type = new_operand_type;
   } else {
-    unexpected_condition();
+    /* Lower the eok_array_to_pointer by changing it to a cast over an &. */
+    operand = add_address_of_to_node(operand);
   }  /* if */
   /* Change the operation to a cast of the same type.  This cast will
      later be changed to a cast to pointer to the underlying array
