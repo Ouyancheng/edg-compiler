@@ -7149,6 +7149,9 @@ behavior rather than documented behavior whenever the two differ.
 
 Descriptions of the various input_flag options follow the definition of the
 macro DSI_NO_INPUT_FLAGS.
+
+A change in this function that affects C++ syntax almost always requires a
+corresponding change in prescan_decl_specifiers (in disambig.c).
 */
 {
   a_symbol_ptr               curr_token_type_symbol;
