@@ -416,11 +416,6 @@ static void gen_variable_decl(a_boolean is_condition,
                               a_boolean *another_decl_in_comma_list);
 static void gen_statement_list(a_statement_ptr stmt_list);
 static void gen_cast(a_type_ptr type);
-static void gen_full_cast(a_type_ptr            dest_type,
-                          an_expr_node_ptr      expr,
-                          a_boolean             is_reference_cast,
-                          a_boolean             is_reinterpret_cast,
-                          a_boolean             is_static_cast);
 static void gen_expr(an_expr_node_ptr expr,
                      a_boolean        need_parens,
                      a_boolean        obj_expr_of_mfunc_operator);
@@ -469,6 +464,7 @@ static a_byte generated_precedence[(int)eok_last+1] = {
                            generated are filtered out by
                            parens_may_be_needed) */
   PREC_CAST,		/* eok_lvalue_cast */
+  PREC_CAST,		/* eok_ref_cast */
   PREC_LOWEST,		/* eok_lvalue_adjust */
   PREC_LOWEST,		/* eok_class_rvalue_adjust */
   PREC_CAST,		/* eok_base_class_cast */
@@ -476,6 +472,7 @@ static a_byte generated_precedence[(int)eok_last+1] = {
   PREC_CAST,		/* eok_pm_base_class_cast */
   PREC_CAST,		/* eok_pm_derived_class_cast */
   PREC_POSTFIX,		/* eok_dynamic_cast */
+  PREC_POSTFIX,		/* eok_ref_dynamic_cast */
   PREC_CAST,		/* eok_bool_cast */
   PREC_LOWEST,		/* eok_array_to_pointer */
   PREC_POSTFIX,		/* eok_dot_vacuous_destructor_call */
@@ -562,9 +559,6 @@ static a_byte generated_precedence[(int)eok_last+1] = {
   PREC_POSTFIX,		/* eok_va_copy */
   PREC_POSTFIX,		/* eok_va_start_single_operand */
   PREC_LOWEST,		/* eok_lvalue */
-  PREC_POSTFIX,		/* eok_static_cast */
-  PREC_POSTFIX,		/* eok_const_cast */
-  PREC_POSTFIX,		/* eok_reinterpret_cast */
   PREC_LOWEST,		/* eok_error */
   PREC_LOWEST		/* eok_last */
 };  /* generated_precedence */
@@ -6150,8 +6144,9 @@ to, a class object.  It is being used as the left operand in a member
 selection.  Examine the base-class casts on the object, if there are any,
 and determine which of those can be folded into the member name.  Return
 the expression to be used to address the object (the part not including the
-casts that can be elided), and set *naming_class to the class qualifier
-name to be used to name the member.  Only used in C++.
+casts that can be elided).  If naming_class is not NULL, set *naming_class
+to the class qualifier name to be used to name the member.  Only used in
+C++.
 */
 {
   an_expr_node_ptr node = object_expr, naming_node = NULL;
@@ -6179,29 +6174,46 @@ name to be used to name the member.  Only used in C++.
      but since it is not implicit in the naming, *naming_class is set
      to class B.  Node (3) is returned. */
   /* No skip_parens needed here. */
-  if (is_operation_node(node) && node_operator_is(node, eok_cast) &&
-      node->variant.operation.compiler_generated) {
-    /* In some modes, a compiler-generated cast is added on top of any
-       base class casts to deal with cv-qualification differences. */
-    node = node->variant.operation.operands;
-  }  /* if */
   while (is_operation_node(node) &&
-         node_operator_is(node, eok_base_class_cast) &&
-         node->variant.operation.compiler_generated) {
-    if (!node->variant.operation.implicit_in_member_naming &&
-        naming_node == NULL) {
-      /* Remember the first node after the casts implied by naming. */
-      naming_node = node;
+         node->variant.operation.compiler_generated &&
+         (node_operator_is(node, eok_base_class_cast) ||
+          node_operator_is(node, eok_cast) ||
+          node_operator_is(node, eok_lvalue_adjust) ||
+          node_operator_is(node, eok_class_rvalue_adjust))) {
+    if (node_operator_is(node, eok_base_class_cast)) {
+      if (!node->variant.operation.implicit_in_member_naming &&
+          naming_node == NULL) {
+        /* Remember the first node after the casts implied by naming. */
+        naming_node = node;
+      }  /* if */
+    } else {
+      /* In some cases casts may be added on top of the expression to
+         change cv-qualification (e.g., to add const).  We skip those, as
+         well. */
+#if CHECKING
+      a_type_ptr dest_type = node->type;
+      a_type_ptr src_type = node->variant.operation.operands->type;
+      if (is_pointer_type(dest_type) && is_pointer_type(src_type)) {
+        /* The qualifiers are under the pointer type. */
+        dest_type = type_pointed_to(dest_type);
+        src_type = type_pointed_to(src_type);
+      }  /* if */
+      if (skip_typerefs(dest_type) != skip_typerefs(src_type)) {
+        internal_error("optimized_expr_for_selection: unexpected cast.");
+      }  /* if */
+#endif /* CHECKING */
     }  /* if */
     node = node->variant.operation.operands;
   }  /* while */
   /* If there were no base class casts, or none not implied by naming,
      the final node is used to determine the selection class. */
-  if (naming_node == NULL) naming_node = node;
-  /* Fetch the class type to be used to name the member. */
-  *naming_class = skip_typerefs(naming_node->type);
-  if (is_pointer_type(*naming_class)) {
-    *naming_class = f_skip_typerefs(type_pointed_to(*naming_class));
+  if (naming_class != NULL) {
+    if (naming_node == NULL) naming_node = node;
+    /* Fetch the class type to be used to name the member. */
+    *naming_class = skip_typerefs(naming_node->type);
+    if (is_pointer_type(*naming_class)) {
+      *naming_class = f_skip_typerefs(type_pointed_to(*naming_class));
+    }  /* if */
   }  /* if */
   return node;
 }  /* optimized_expr_for_selection */
@@ -6684,59 +6696,6 @@ to indicate x.y or p->y where y is a static member.
 }  /* is_dot_static_operation */
 
 
-static void gen_new_style_cast(an_expr_node_ptr expr)
-/*
-Output a new-style cast.
-*/
-{
-  char       *opstr;
-  a_type_ptr type = expr->type;
-  a_type_ptr base_type = skip_typerefs(type);
-  a_type     type_copy;
-
-  if (is_pointer_type(base_type) &&
-      expr->variant.operation.is_reference_cast) {
-    /* This was a cast to a reference type originally; turn the pointer
-       type back into a reference. */
-    type_copy = *base_type;
-    type_copy.variant.pointer.is_reference = TRUE;
-    type = &type_copy;
-  }  /* if */
-  switch (expr->variant.operation.kind) {
-    case eok_static_cast:
-      opstr = "static_cast";
-      break;
-    case eok_reinterpret_cast:
-      opstr = "reinterpret_cast";
-      break;
-    case eok_const_cast:
-      opstr = "const_cast";
-      break;
-    case eok_dynamic_cast:
-      opstr = "dynamic_cast";
-      break;
-    default:
-      unexpected_condition_str("gen_new_style_cast: bad kind");
-  }  /* switch */
-  write_tok_str(opstr);
-  write_tok_str("< ");
-  gen_type(type);
-  write_tok_str(">(");
-  if (is_reference_type(expr->type)) {
-    /* If the result type is a reference, the operand is an lvalue (under
-       a compiler-generated address_of operation). */
-    an_expr_node_ptr operand = expr->variant.operation.operands;
-    check_assertion(is_operation_node(operand) &&
-                    operand->variant.operation.compiler_generated &&
-                    node_operator_is(operand, eok_address_of));
-    gen_expression(operand->variant.operation.operands);
-  } else {
-    gen_expression(expr->variant.operation.operands);
-  }  /* if */
-  write_tok_ch(')');
-}  /* gen_new_style_cast */
-
-
 static void gen_array_subscript(an_expr_node_ptr  expr)
 /*
 Render the given expression surrounded by brackets.
@@ -6822,48 +6781,6 @@ removed and FALSE otherwise.
 }  /* strip_lvalue_cast_sequence */
 
 
-static an_expr_node_ptr skip_implicit_type_qualifier_adjustment_cast(
-                                                         an_expr_node_ptr expr)
-/*
-Remove any implicit casts (eok_cast, eok_lvalue_adjust, or
-eok_class_rvalue_adjust) on the top of the expression that merely change
-the type qualifiers on a type (e.g., add const), and return the underlying
-expression.
-*/
-{
-try_again:
-  if (is_operation_node(expr)) {
-    if (node_operator_is(expr, eok_cast) &&
-        expr->variant.operation.compiler_generated) {
-      a_type_ptr dest_type = expr->type;
-      a_type_ptr source_type = expr->variant.operation.operands->type;
-      if (is_pointer_type(dest_type) && is_pointer_type(source_type)) {
-        dest_type = type_pointed_to(dest_type);
-        source_type = type_pointed_to(source_type);
-        if (skip_typerefs(dest_type) == skip_typerefs(source_type)) {
-          /* The underlying types are the same ignoring qualifiers.  Since
-             this is an implicit cast, the qualifiers must be the same or
-             must increase with the cast. */
-          /* This is a cast that just adjusts the type qualifiers. */
-          expr = expr->variant.operation.operands;
-          goto try_again;
-        }  /* if */
-      }  /* if */
-    } else if (node_operator_is(expr, eok_class_rvalue_adjust) ||
-               (node_operator_is(expr, eok_lvalue_adjust) &&
-                skip_typerefs(expr->type) ==
-                      skip_typerefs(expr->variant.operation.operands->type))) {
-      /* This is a cv-qualification adjustment (that is the only operation
-         performed by eok_class_rvalue_adjust, so no type check is
-         needed). */
-      expr = expr->variant.operation.operands;
-      goto try_again;
-    }  /* if */
-  }  /* if */
-  return expr;
-}  /* skip_implicit_type_qualifier_adjustment_cast */
-
-
 static void gen_object_expr_for_implicit_call(
                                    an_expr_node_ptr expr,
                                    a_boolean        obj_expr_of_mfunc_operator)
@@ -6882,18 +6799,7 @@ case, is passed along to gen_expr.
          constant_should_be_put_out_as_expr(expr->variant.constant)) {
     expr = expr->variant.constant->expr;
   }  /* while */
-  while (is_operation_node(expr) &&
-         expr->variant.operation.compiler_generated &&
-         (node_operator_is(expr, eok_base_class_cast) ||
-          node_operator_is(expr, eok_class_rvalue_adjust) ||
-          (node_operator_is(expr, eok_lvalue_adjust) &&
-           skip_typerefs(expr->type) ==
-                     skip_typerefs(expr->variant.operation.operands->type)))) {
-    /* This is a compiler-generated type adjustment for adding
-       cv-qualification or casting the "this" pointer to a base class.
-       Skip it. */
-    expr = expr->variant.operation.operands;
-  }  /* while */
+  expr = optimized_expr_for_selection(expr, (a_type_ptr *)NULL);
   if (!expr->is_lvalue && is_constant_node(expr) &&
       expr->variant.constant->kind == (a_constant_repr_kind)ck_address &&
       !constant_should_be_put_out_as_expr(expr->variant.constant)) {
@@ -6964,16 +6870,9 @@ obscure Microsoft bug).
   /* When initializing a reference, remove one level of indirection. */
   if (type != NULL && is_reference_type(type)) {
     a_boolean close_paren_needed = FALSE;
-    /* Remove any cast that just adjusts the type qualifiers (e.g., adds
-       const); it's implied by the context. */
-    expr = skip_implicit_type_qualifier_adjustment_cast(expr);
-    /* Remove any implicit base-class casts; they're implied by the context. */
-    while (is_operation_node(expr) &&
-           expr->variant.operation.kind ==
-                                  (an_expr_operator_kind)eok_base_class_cast &&
-           expr->variant.operation.compiler_generated) {
-      expr = expr->variant.operation.operands;
-    }  /* while */
+    /* Remove any type-qualifier and base-class casts; they're implied by
+       the context. */
+    expr = optimized_expr_for_selection(expr, (a_type_ptr *)NULL);
     if (mbr_fcn_default_arg_expr && !in_ctor_default_argument &&
         msvc_is_generated_code_target && msvc_target_version_number == 1200 &&
         (expr->kind == (an_expr_node_kind)enk_temp_init ||
@@ -7044,7 +6943,7 @@ obscure Microsoft bug).
 
 static void gen_cast(a_type_ptr type)
 /*
-Generate a cast to the indicated type.
+Generate an old-style cast to the indicated type.  No operand is put out.
 */
 {
   m_write_tok_ch('(');
@@ -7053,54 +6952,70 @@ Generate a cast to the indicated type.
 }  /* gen_cast */
 
 
-static void gen_full_cast(a_type_ptr            dest_type,
-                          an_expr_node_ptr      expr,
-                          a_boolean             is_reference_cast,
-                          a_boolean             is_reinterpret_cast,
-                          a_boolean             is_static_cast)
+static void gen_full_cast(an_expr_node_ptr expr)
 /*
-Generate a cast of expr to the type dest_type.  The original cast was a
-cast to a reference type if is_reference_cast is TRUE.  Usually, the output
-is an old-style cast, but a reinterpret_cast or a static_cast is put out
-when the corresponding flag is TRUE.
+Generate code for expr, which is a cast operation.  Usually, the output
+is an old-style cast, but a new-style cast will be put out if flags like
+is_reinterpret_cast indicate it.
 */
 {
-  a_type type_copy;
+  a_type_ptr            dest_type = expr->type;
+  an_expr_operator_kind op = expr->variant.operation.kind;
+  an_expr_node_ptr      operand_1 = expr->variant.operation.operands;
+  a_type                ref_type;
+  char                  *new_cast_keyword = NULL;
 
-  if (is_reference_cast) {
-    /* Substitute a reference type for the pointer type in the
+  if (expr->variant.operation.is_reference_cast ||
+      op == (an_expr_operator_kind)eok_ref_cast ||
+      op == (an_expr_operator_kind)eok_ref_dynamic_cast) {
+    if (!expr->is_lvalue && expr->is_static_cast &&
+        any_qualifier_missing(dest_type, operand_1->type)) {
+      /* This node is a static_cast to a reference type followed by an
+         lvalue-to-rvalue conversion that drops the cv-qualifiers.  We don't
+         have a way of recovering the original cv-qualifiers of the reference
+         cast, so just turn this into an old-style cast so the code will
+         not get an error for the dropped cv-qualifiers in the cast. */
+      expr->is_static_cast = FALSE;
+    }  /* if */
+    /* Substitute a reference type for the destination type in the
        reference cast case. */
-    dest_type = skip_typerefs(dest_type);
-    check_assertion(dest_type->kind == (a_type_kind)tk_pointer);
-    type_copy = *dest_type;
-    type_copy.variant.pointer.is_reference = TRUE;
-    dest_type = &type_copy;
-  } else if (is_cast_of_UDC_to_different_pointer_type(dest_type, expr)) {
+    clear_type(&ref_type, (a_type_kind)tk_pointer);
+    ref_type.variant.pointer.is_reference = TRUE;
+    ref_type.variant.pointer.type = dest_type;
+    dest_type = &ref_type;
+  } else if (is_cast_of_UDC_to_different_pointer_type(dest_type, operand_1)) {
     /* Ensure that a class object is not explicitly cast to a pointer type
        different from that of its conversion operator. */
-    expr->variant.operation.keep_cast_for_cp_gen_be = TRUE;
+    operand_1->variant.operation.keep_cast_for_cp_gen_be = TRUE;
   }  /* if */
-  if (is_reinterpret_cast) {
-    write_tok_str("reinterpret_cast< ");
+  /* Skip any implicit steps for a base or derived class cast. */
+  while (is_operation_node(operand_1) &&
+         operand_1->variant.operation.implicit_step_of_explicit_cast) {
+    operand_1 = operand_1->variant.operation.operands;
+  }  /* while */
+  /* See if the source form was a new-style cast. */
+  if (expr->is_static_cast) {
+    new_cast_keyword = "static_cast";
+  } else if (expr->variant.operation.is_reinterpret_cast) {
+    new_cast_keyword = "reinterpret_cast";
+  } else if (expr->variant.operation.is_const_cast) {
+    new_cast_keyword = "const_cast";
+  } else if (op == (an_expr_operator_kind)eok_dynamic_cast ||
+             op == (an_expr_operator_kind)eok_ref_dynamic_cast) {
+    new_cast_keyword = "dynamic_cast";
+  }  /* if */
+  if (new_cast_keyword != NULL) {
+    /* Use a new-style cast. */
+    write_tok_str(new_cast_keyword);
+    write_tok_str("< ");
     gen_type(dest_type);
     write_tok_str(">(");
-  } else if (is_static_cast) {
-    write_tok_str("static_cast< ");
-    gen_type(dest_type);
-    write_tok_str(">(");
-  } else {
-    gen_cast(dest_type);
-  }  /* if */
-  if (is_reference_cast && is_operation_node(expr) &&
-      expr->variant.operation.compiler_generated &&
-      node_operator_is(expr, eok_address_of)) {
-    /* The address-of is just an artifact of needing a pointer to apply
-       the cast to; it wasn't there in the source, so skip over it here. */
-    expr = expr->variant.operation.operands;
-  }  /* if */
-  gen_expr_with_parens(expr);
-  if (is_reinterpret_cast || is_static_cast) {
+    gen_expr_with_parens(operand_1);
     write_tok_ch(')');
+  } else {
+    /* Use an old-style cast. */
+    gen_cast(dest_type);
+    gen_expr_with_parens(operand_1);
   }  /* if */
 }  /* gen_full_cast */
 
@@ -7387,10 +7302,7 @@ If suppress_virtual is TRUE, suppress virtual-ness on the function reference.
  #error -- OPTIMIZE_VIRTUAL_FUNCTION_CALLS should be FALSE for the \
            C++-generating back end
 #endif /* OPTIMIZE_VIRTUAL_FUNCTION_CALLS */
-    /* Remove any cast that just adjusts the type qualifiers (e.g., adds
-       const); it's implied by the context. */
-    object_expr= skip_implicit_type_qualifier_adjustment_cast(object_expr);
-    /* Remove unnecessary base class casts. */
+    /* Remove unnecessary type-qualifier and base-class casts. */
     object_expr = optimized_expr_for_selection(object_expr, &naming_class);
     if (is_pointer_type(object_expr->type)) {
       selection_class = type_pointed_to(object_expr->type);
@@ -8385,6 +8297,7 @@ gen_expr that might end up generating this expr as a temporary.
           goto done_with_operation;
         case eok_bool_cast:
         case eok_cast:
+        case eok_ref_cast:
           /* Normal casts can be eliminated if they are implicit. */
           /* This is necessary in cases where a function is called with
              an argument of a type that can be implicitly converted to
@@ -8418,44 +8331,20 @@ gen_expr that might end up generating this expr as a temporary.
             octl.suppress_cast_on_short_integral_const =
                                  saved_suppress_cast_on_short_integral_const;
           } else {
-            gen_full_cast(expr->type, operand_1,
-                          expr->variant.operation.is_reference_cast,
-                          expr->variant.operation.is_reinterpret_cast,
-                          expr->is_static_cast);
+            gen_full_cast(expr);
           }  /* if */
           goto done_with_operation;
         case eok_base_class_cast:
         case eok_derived_class_cast:
         case eok_pm_base_class_cast:
         case eok_pm_derived_class_cast:
-          /* Special casts. */
+          /* Related-class casts. */
           if (expr->variant.operation.compiler_generated) {
-            /* For an implicit cast, just put the underlying operand. */
+            /* For an implicit cast, just put out the underlying operand. */
             gen_expr(operand_1, /*need_parens=*/FALSE,
                      obj_expr_of_mfunc_operator);
           } else {
-            /* Incorporate any cast steps that were implicit in an explicit
-               cast. */
-            while (is_operation_node(operand_1) &&
-                   operand_1->variant.operation.
-                                              implicit_step_of_explicit_cast) {
-              operand_1 = operand_1->variant.operation.operands;
-            }  /* while */
-            if (expr->variant.operation.is_reference_cast) {
-              gen_full_cast(expr->type, operand_1, /*is_reference_cast=*/TRUE,
-                            expr->variant.operation.is_reinterpret_cast,
-                            expr->is_static_cast);
-            } else {
-              gen_cast(expr->type);
-              if (is_cast_of_UDC_to_different_pointer_type(expr->type,
-                                                           operand_1)) {
-                /* Ensure a class object is not explicitly cast to a pointer
-                   type that is different from that of its conversion
-                   operator. */
-                operand_1->variant.operation.keep_cast_for_cp_gen_be = TRUE;
-              }  /* if */
-              gen_expr_with_parens(operand_1);
-            }  /* if */
+            gen_full_cast(expr);
           }  /* if */
           goto done_with_operation;
         case eok_lvalue_cast:
@@ -8510,11 +8399,9 @@ gen_expr that might end up generating this expr as a temporary.
              appropriate operand and operator. */
           gen_pm_simple_field_selection(operand_1, operand_2);
           goto done_with_operation;
-        case eok_static_cast:
-        case eok_reinterpret_cast:
-        case eok_const_cast:
         case eok_dynamic_cast:
-          gen_new_style_cast(expr);
+        case eok_ref_dynamic_cast:
+          gen_full_cast(expr);
           goto done_with_operation;
 #if GNU_EXTENSIONS_ALLOWED
         case eok_xconj:
@@ -8767,16 +8654,6 @@ gen_expr that might end up generating this expr as a temporary.
           { a_type_ptr type = operand_1->type;
             /* Explicit call of a destructor for a type that doesn't have one,
                e.g., "p->int::~int()". */
-            if (is_operation_node(operand_1) &&
-                node_operator_is(operand_1, eok_cast) &&
-                operand_1->variant.operation.compiler_generated) {
-              /* Skip over a compiler-generated cast.  It wasn't there in the
-                 original source, and it's not needed here, either, as the
-                 pseudo-destructor name will reflect the result type of the
-                 cast.  Generating the cast can result in incorrect syntax if
-                 the operand is an operator-notation call to operator->(). */
-              operand_1 = operand_1->variant.operation.operands;
-            }  /* if */
             gen_expr_with_parens(operand_1);
             if (op ==
                 (an_expr_operator_kind)eok_points_to_vacuous_destructor_call) {

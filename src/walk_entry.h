@@ -1313,6 +1313,17 @@ do_definition_needed_if_class:
                   }  /* if */
                   optype = f_skip_typerefs(type_pointed_to(op1_type));
                   goto do_set_proper_definition_needed_flag;
+                case eok_ref_dynamic_cast:
+                  /* Destination class type must be complete. */
+                  definition_needed_if_class(ptr->type);
+                  /* Source type must also be complete, but watch out for
+                     prototype instantiation cases where the first operand
+                     isn't a class. */
+                  if (!is_class_struct_union_type(op1_type)) {
+                    break;
+                  }  /* if */
+                  optype = f_skip_typerefs(op1_type);
+                  goto do_set_proper_definition_needed_flag;
                 case eok_base_class_cast:
                   /* First operand must be a complete class (lvalue, rvalue,
                      or pointer to class). */

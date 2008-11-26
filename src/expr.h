@@ -358,24 +358,6 @@ the pointer operand of these nodes.
          (node)->variant.operation.operands->next :                    \
          (node)->variant.operation.operands)
 
-/*
-Returns TRUE if the specified node is an operation node reflecting some
-kind of cast.
-*/
-#define is_cast_operation_node(expr)                        \
-  (is_operation_node(expr) &&                               \
-   (node_operator_is(expr, eok_cast) ||                     \
-    node_operator_is(expr, eok_base_class_cast) ||          \
-    node_operator_is(expr, eok_derived_class_cast) ||       \
-    node_operator_is(expr, eok_pm_base_class_cast) ||       \
-    node_operator_is(expr, eok_pm_derived_class_cast) ||    \
-    node_operator_is(expr, eok_lvalue_cast) ||              \
-    node_operator_is(expr, eok_dynamic_cast) ||             \
-    node_operator_is(expr, eok_bool_cast) ||                \
-    node_operator_is(expr, eok_static_cast) ||              \
-    node_operator_is(expr, eok_const_cast) ||               \
-    node_operator_is(expr, eok_reinterpret_cast)))
-
 
 #endif /* ifndef EXPR_H */
 

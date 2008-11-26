@@ -174,9 +174,7 @@ static void implicit_or_explicit_cast(a_constant_ptr cp,
 /*
 Set the implicit_cast flag to indicate a type change of the indicated
 constant to the indicated new type.  No representation change is implied.
-This is used for casting one pointer type to another and casting integer
-constants to pointer types.  The cast is implicit if is_implicit_cast is
-TRUE.
+The cast is implicit if is_implicit_cast is TRUE.
 */
 {
   if (cp->expr != NULL &&
@@ -5507,15 +5505,30 @@ handle_field_selection:
               }  /* if */
             }  /* if */
             break;
+          case eok_ref_cast:
           case eok_lvalue_adjust:
-            /* eok_lvalue_adjust operations are used to adjust the
-               cv-qualification (and maybe type) of an lvalue. */
+            /* These operations are used to adjust the type of an lvalue. */
             if (constant_lvalue_address(op1, &conaddr1, address_escapes,
                                         template_constant)) {
               /* The address of the operand is constant.  Adjust its type
                  and it is also the address of the result lvalue. */
-              copy_constant(&conaddr1, con);
-              implicit_cast(con, make_pointer_type(expr->type));
+              a_type_ptr new_type = make_pointer_type(expr->type);
+              if (is_template_dependent_type(expr->type)) {
+                /* The type cast to is dependent, so add a template param
+                   cast. */
+                make_template_param_cast_constant(&conaddr1, con, new_type,
+                                                  !expr->variant.operation.
+                                                           compiler_generated);
+                *template_constant = TRUE;
+              } else {
+                copy_constant(&conaddr1, con);
+                implicit_or_explicit_cast(
+                                   con, new_type,
+                                   expr->variant.operation.compiler_generated);
+              }  /* if */
+              if (expr->variant.operation.is_reinterpret_cast) {
+                con->is_reinterpret_cast = TRUE;
+              }  /* if */
               is_constant_addr = TRUE;
             }  /* if */
             break;

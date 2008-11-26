@@ -6298,13 +6298,12 @@ but that's what calls require).  When result_is_lvalue is FALSE and
 address_taken is TRUE, the operand created is an rvalue for the address of
 the function as would be created by the "&" operator; the address is
 assumed to escape (i.e., address_taken is set), and the operand for a
-nonstatic member function is a pointer to member.  (If you want that mode,
-address_taken_overloaded_function_catch_up is a more convenient way to get
-it.)  operand can be NULL if it is not necessary to generate the function
-designator operand; address_taken still has an effect in that it
-controls the type of reference recorded.  elided_reference is TRUE if the
-routine was referenced in the program but the reference is being elided in
-the intermediate language (operand should be NULL in that case).
+nonstatic member function is a pointer to member.  operand can be NULL
+if it is not necessary to generate the function designator operand;
+address_taken still has an effect in that it controls the type of
+reference recorded.  elided_reference is TRUE if the routine was
+referenced in the program but the reference is being elided in the
+intermediate language (operand should be NULL in that case).
 */
 {
   a_symbol_ptr     base_function_symbol =
@@ -6434,37 +6433,6 @@ the intermediate language (operand should be NULL in that case).
     }  /* if */
   }  /* if */
 }  /* overloaded_function_catch_up */
-
-
-void address_taken_overloaded_function_catch_up(
-                                  a_symbol_ptr      function_symbol,
-                                  a_symbol_ptr      overloaded_function_symbol,
-                                  an_operand        *orig_operand,
-                                  an_operand        *operand)
-/*
-Convenient interface for overloaded_function_catch_up for the case where
-the address of the function is taken.  In addition to the meanings for the
-parameters required by overloaded_function_catch_up, orig_operand must be
-the original operand (used for positions and other attributes).
-*/
-{
-  a_boolean access_error_reported;
-
-  check_assertion(operand != orig_operand);
-  overloaded_function_catch_up(function_symbol,
-                               overloaded_function_symbol,
-                               (a_boolean)orig_operand->is_qualified_name,
-                               (a_boolean)orig_operand->
-                                                      is_operand_of_address_of,
-                               &orig_operand->position,
-                               end_position_of_operand(orig_operand),
-                               &orig_operand->id_position,
-                               /*elided_reference=*/FALSE,
-                               /*result_is_lvalue=*/FALSE,
-                               /*address_taken=*/TRUE,
-                               operand,
-                               &access_error_reported);
-}  /* address_taken_overloaded_function_catch_up */
 
 
 void combine_unneeded_selector_with_operand(
@@ -12429,8 +12397,7 @@ the temporary.
     /* Conversion from or to a template-dependent type in a prototype
        instantiation.  Render as a cast. */
     if (dest_type == NULL) dest_type = type_of_unknown_templ_param_nontype;
-    generic_cast_operand(operand, dest_type,
-                         (an_expr_operator_kind)eok_cast,
+    generic_cast_operand(operand, dest_type, csf_none,
                          !is_explicit_cast, /*is_reference_cast=*/FALSE);
   } else if (conversion_routine == NULL) {
     /* A simple class object type adjustment without a call of a conversion

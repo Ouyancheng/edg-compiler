@@ -2512,23 +2512,37 @@ static void add_a_derived_class_cast(a_type_ptr            new_type_pointed_to,
 Helper routine for add_derived_class_casts: adds casts to *p_node to change
 its type to pointer to new_type_pointed_to.  dsp points to the derivation
 list from the desired type to the current type (i.e., it's backwards from
-what's needed).
+what's needed).  Also handles casting of class lvalues and rvalues.
 */
 {
+  a_type_ptr cast_type;
+
   /* Use recursion to get to the bottom of the list and work upwards.
      Add casts to get the type we have to the type just below the type
      we want. */
   if (dsp->next != NULL) {
-    add_a_derived_class_cast(dsp->base_class->type, dsp->next, p_node);
+    cast_type = dsp->base_class->type;
+    cast_type = make_identically_qualified_type(cast_type,
+                                                new_type_pointed_to);
+    add_a_derived_class_cast(cast_type, dsp->next, p_node);
     check_assertion(is_operation_node(*p_node) &&
                     (*p_node)->variant.operation.kind ==
                                 (an_expr_operator_kind)eok_derived_class_cast);
     (*p_node)->variant.operation.implicit_step_of_explicit_cast = TRUE;
   }  /* if */
+  cast_type = new_type_pointed_to;
+  if (is_pointer_type((*p_node)->type)) {
+    cast_type = make_pointer_type(cast_type);
+  }  /* if */
   /* Add the node to do the final cast. */
-  *p_node = make_operator_node((an_expr_operator_kind)eok_derived_class_cast,
-                               make_pointer_type(new_type_pointed_to),
-                               *p_node);
+  if ((*p_node)->is_lvalue) {
+    *p_node = make_lvalue_operator_node(
+                                 (an_expr_operator_kind)eok_derived_class_cast,
+                                 cast_type, *p_node);
+  } else {
+    *p_node = make_operator_node((an_expr_operator_kind)eok_derived_class_cast,
+                                 cast_type, *p_node);
+  }  /* if */
   /* No need to set compiler_generated; a derived class cast is always
      explicit. */
 }  /* add_a_derived_class_cast */
@@ -2542,9 +2556,9 @@ void add_derived_class_casts(a_type_ptr        new_type_pointed_to,
 Add casts to *p_node to change its type from pointer to a class type to
 pointer to new_type_pointed_to, a derived class of that class; bcp indicates
 the base class of the derived class that corresponds to the current type
-(i.e., its derivation list is backwards from what's needed).  *err_pos
-indicates a source position to be used for errors.  This routine is only
-used in C++ mode.
+(i.e., its derivation list is backwards from what's needed).  Also handles
+casting of class lvalues and rvalues.  *err_pos indicates a source position
+to be used for errors.  This routine is only used in C++ mode.
 */
 {
   /* The code here looks like fold_derived_class_cast. */
@@ -3025,6 +3039,95 @@ prototype instantiations when the function to be selected is not known.
 }  /* conv_indefinite_function_operand_to_unknown_dependent_function */
 
 
+void cast_overloaded_function(a_type_ptr type_cast_to,
+                              an_operand *operand,
+                              a_boolean  is_cast)
+/*
+Cast an operand for an overloaded function (*operand) to type_cast_to.
+If type_cast_to is a pointer, reference, or pointer-to-member type, the cast
+can serve to select one of the functions in the overload set.  See [over.over].
+If it doesn't, an error is issued.  If is_cast is TRUE, the disambiguation
+is being done via an explicit cast; otherwise, it's implicit by context.
+*/
+{
+  an_arg_match_level match_level;
+  a_symbol_ptr       function_symbol, overloaded_function_symbol;
+  a_std_conv_descr   std_conversion;
+  a_boolean          ambiguous, unknown_dependent_function;
+  a_boolean          reference_case = is_reference_type(type_cast_to);
+
+  overloaded_function_symbol = operand->variant.symbol;
+  function_symbol =
+      find_addr_of_overloaded_function_match(overloaded_function_symbol,
+                                             (a_boolean)operand->
+                                                      is_template_id,
+                                             operand->template_arg_list,
+                                             is_a_function_designator(operand),
+                                             type_cast_to,
+                                             is_cast,
+                                             &match_level,
+                                             &std_conversion,
+                                             &unknown_dependent_function,
+                                             &ambiguous);
+  if (function_symbol != NULL) {
+    /* The cast selects one of the overloaded functions and is valid. */
+    a_boolean  access_error_reported;
+    an_operand orig_operand;
+    orig_operand = *operand;
+    /* Do whatever would have been done with the function if we had
+       known all along which function was intended.  Make an operand
+       for the specific function's address, a pointer-to-member for the
+       pointer to member case. */
+    overloaded_function_catch_up(function_symbol,
+                                 overloaded_function_symbol,
+                                 (a_boolean)orig_operand.is_qualified_name,
+                                 (a_boolean)orig_operand.
+                                                      is_operand_of_address_of,
+                                 &orig_operand.position,
+                                 end_position_of_operand(&orig_operand),
+                                 &orig_operand.id_position,
+                                 /*elided_reference=*/FALSE,
+                                 /*result_is_lvalue=*/reference_case,
+                                 /*address_taken=*/!reference_case,
+                                 operand,
+                                 &access_error_reported);
+    restore_operand_details_incl_ref(operand, &orig_operand);
+  } else if (unknown_dependent_function) {
+    /* The cast occurs in a prototype instantiation and it is not possible
+       to determine which function to use. */
+    conv_indefinite_function_operand_to_unknown_dependent_function(operand);
+    if (reference_case) {
+      change_template_param_constant_operand_to_lvalue(operand);
+    }  /* if */
+  } else {
+    /* The cast doesn't select one of the overloaded functions, so it's
+       an error. */
+    pos_sy_error(ec_indeterminate_overloaded_function,
+                 &operand->position, operand->variant.symbol);
+    conv_to_error_operand(operand);
+  }  /* if */
+  /* If the pointer to member is to a related class, or the pointer
+     to function differs because of a conversion (e.g., a C++ vs.
+     C linkage on the function type), adjust the operand. */
+  if (!reference_case) {
+    /* This also takes care of recording the cast as part of the
+       expression representation of the constant. */
+    cast_operand(type_cast_to, operand,
+                 /*check_cast_access=*/FALSE,
+                 /*is_implicit_cast=*/!is_cast,
+                 /*is_reinterpret_cast=*/FALSE,
+                 /*reinterpret_semantics=*/FALSE);
+  } else {
+    /* Explicit cast to reference. */
+    check_assertion(is_cast);
+    cast_operand_for_reference_cast(operand,
+                                    type_pointed_to(type_cast_to),
+                                    /*check_cast_access=*/FALSE,
+                                    /*reinterpret_semantics=*/FALSE); 
+  }  /* if */
+}  /* cast_overloaded_function */
+
+
 void cast_operand(a_type_ptr new_type,
                   an_operand *operand,
                   a_boolean  check_cast_access,
@@ -3045,15 +3148,10 @@ ambiguous or inaccessible base classes.  This routine does not handle
 user-defined conversions.
 */
 {
-  a_boolean         did_not_fold, ambiguous;
+  a_boolean         did_not_fold;
   a_constant        local_constant;
   an_expr_node_ptr  node;
   an_operand        orig_operand;
-  a_symbol_ptr      overloaded_function_symbol, function_symbol;
-  an_arg_match_level
-                    match_level;
-  a_std_conv_descr  std_conversion;
-  a_boolean         unknown_dependent_function;
 
 #if CHECKING
   if (!is_an_rvalue(operand) && !is_error_operand(operand)) {
@@ -3199,49 +3297,7 @@ user-defined conversions.
         /* Cast of overloaded function to a pointer type.  Note that
            the legality of such casts is checked by conversion_possible.
            A cast cannot get here unless allowed by that routine. */
-        overloaded_function_symbol = operand->variant.symbol;
-        function_symbol = find_addr_of_overloaded_function_match(
-                                                   overloaded_function_symbol,
-                                                   (a_boolean)operand->
-                                                                is_template_id,
-                                                   operand->template_arg_list,
-                                                   /*source_is_lvalue=*/FALSE,
-                                                   new_type,
-                                                   /*is_cast=*/
-                                                             !is_implicit_cast,
-                                                   &match_level,
-                                                   &std_conversion,
-                                                   &unknown_dependent_function,
-                                                   &ambiguous);
-        if (unknown_dependent_function) {
-          /* The cast is in a prototype instantiation, and we don't know
-             which function is selected. */
-          conv_indefinite_function_operand_to_unknown_dependent_function(
-                                                                      operand);
-        } else {
-#if CHECKING
-          if (function_symbol == NULL) {
-            internal_error("cast_operand: bad func symbol");
-          }  /* if */
-#endif /* CHECKING */
-          /* Do whatever would have been done with the function if we had
-             known all along which function was intended.  Make an operand
-             for the specific function's address, a pointer-to-member for the
-             pointer to member case. */
-          address_taken_overloaded_function_catch_up(
-                                                    function_symbol,
-                                                    overloaded_function_symbol,
-                                                    &orig_operand,
-                                                    operand);
-        }  /* if */
-        /* If the pointer to member is to a related class, or the pointer
-           to function differs because of a conversion (e.g., a C++ vs.
-           C linkage on the function type), adjust the operand. */
-        /* This also takes care of recording the cast as part of the
-           expression representation of the constant. */
-        cast_operand(new_type, operand, check_cast_access,
-                     is_implicit_cast,
-                     is_reinterpret_cast, reinterpret_semantics);
+        cast_overloaded_function(new_type, operand, !is_implicit_cast);
         break;
 #if CHECKING
       default:
@@ -3419,6 +3475,78 @@ reference) and not something explicit like a cast.
     }  /* if */
   }  /* if */
 }  /* adjust_lvalue_type */
+
+
+void cast_operand_for_reference_cast(an_operand *operand,
+                                     a_type_ptr dest_type,
+                                     a_boolean  check_cast_access,
+                                     a_boolean  reinterpret_semantics)
+/*
+Cast *operand (an lvalue, not necessarily of class type) to a reference
+type whose underlying type is dest_type.  That produces an lvalue of
+type dest_type as the result.  This cast does not make a new object;
+it merely adjusts the operand to access the same object with a new type.
+Check access on related-class casts if check_cast_access is TRUE.
+Consider related-class adjustments only if reinterpret_semantics is
+FALSE (it is TRUE for reinterpret_cast).
+*/
+{
+  a_type_ptr operand_type = operand->type;
+
+  if (is_error_operand(operand)) {
+    /* Leave an error operand alone. */
+  } else if (is_error_type(dest_type)) {
+    conv_to_error_operand(operand);
+  } else {
+    a_base_class_ptr bcp = NULL;
+    a_boolean        derived_class_cast = FALSE;
+    an_operand       orig_operand;
+    orig_operand = *operand;
+    check_assertion(is_an_lvalue(operand) ||
+                    is_a_function_designator(operand));
+    if (!reinterpret_semantics &&
+        is_class_struct_union_type(operand_type) &&
+        is_class_struct_union_type(dest_type)) {
+      a_type_ptr source_class_type = skip_typerefs(operand_type);
+      a_type_ptr dest_class_type = skip_typerefs(dest_type);
+      /* Look for a required base-class adjustment. */
+      if (!same_entities(source_class_type, dest_class_type)) {
+        bcp = find_base_class_of(source_class_type, dest_class_type);
+        if (bcp == NULL) {
+          bcp = find_base_class_of(dest_class_type, source_class_type);
+          if (bcp != NULL) derived_class_cast = TRUE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+    if (bcp != NULL) {
+      if (!derived_class_cast) {
+        /* Cast to a base class, and also adjust cv-qualifiers if
+           necessary. */
+        base_class_cast_operand(operand, bcp, dest_type,
+                                check_cast_access,
+                                /*is_implicit_cast=*/FALSE,
+                                /*implicit_in_naming=*/FALSE,
+                                /*is_object_pointer=*/FALSE);
+      } else {
+        /* Cast to a derived class, and also adjust cv-qualifiers if
+           necessary.  Note that access checking is never done on
+           derived-class casts; the casts that can specify them
+           also suppress access checking. */
+        an_expr_node_ptr expr = make_node_from_operand(operand);
+        add_derived_class_casts(dest_type, bcp, &expr,
+                                &orig_operand.position);
+        make_lvalue_expression_operand(expr, operand);
+      }  /* if */
+    } else {
+      /* Do any non-base-class type adjustment. */
+      an_expr_node_ptr expr = make_node_from_operand(operand);
+      expr = make_lvalue_operator_node((an_expr_operator_kind)eok_ref_cast,
+                                       dest_type, expr);
+      make_lvalue_expression_operand(expr, operand);
+    }  /* if */
+    restore_operand_details_incl_ref(operand, &orig_operand);
+  }  /* if */
+}  /* cast_operand_for_reference_cast */
 
 
 void adjust_class_rvalue_type(an_operand *operand,
@@ -6633,34 +6761,37 @@ know whether the operand will be used as an lvalue or an rvalue.
 }  /* prep_generic_operand */
 
 
-void generic_cast_operand(an_operand            *operand,
-                          a_type_ptr            dest_type,
-                          an_expr_operator_kind op,
-                          a_boolean             is_implicit_cast,
-                          a_boolean             is_reference_cast)
+void generic_cast_operand(an_operand         *operand,
+                          a_type_ptr         dest_type,
+                          a_cast_source_form source_form,
+                          a_boolean          is_implicit_cast,
+                          a_boolean          is_reference_cast)
 /*
 Add a generic cast that casts the given operand to dest_type.  This is used
 in prototype instantiations to represent conversions to unknown types.
-op is the expression operator to be used (e.g., eok_cast, eok_static_cast).
+source_form identifies the kind of cast (e.g., static_cast, const_cast).
 is_implicit_cast is TRUE if the cast is implicit.  is_reference_cast is
-TRUE if the cast is a cast to a reference type in its original form
-(and a cast to a pointer type here).  Note that the cast can be bizarre
-in a number of ways, e.g., if the source operand is an lvalue.
+TRUE if the cast is a cast to a reference type in its original form.
+Note that the cast can be bizarre in a number of ways, e.g., if the
+source operand is an lvalue.
 */
 {
   an_operand orig_operand;
   a_boolean  can_fold = FALSE;
+  a_boolean  rvalue_expected = FALSE, lvalue_expected = FALSE;
 
   orig_operand = *operand;
   check_assertion(!is_reference_type(dest_type) &&
                   is_template_dependent_context());
-  /* See whether we know that the operand will be used as an rvalue. */
-  if (!curr_expr_kind_is_const() &&
-      (is_reference_cast ||
-       is_class_struct_union_type(dest_type) ||
-       is_template_param_type(dest_type) ||
-       is_class_struct_union_type(operand->type) ||
-       is_template_param_type(operand->type))) {
+  /* See whether we know that the operand will be used as an lvalue or
+     rvalue. */
+  if (is_reference_cast) {
+    lvalue_expected = TRUE;
+  } else if (!curr_expr_kind_is_const() &&
+             (is_class_struct_union_type(dest_type) ||
+              is_template_param_type(dest_type) ||
+              is_class_struct_union_type(operand->type) ||
+              is_template_param_type(operand->type))) {
     /* This might be a cast to or from a class type, and thus might
        involve a user-defined conversion.  Therefore we don't know whether
        the operand will be used as an lvalue or an rvalue.  Or, the
@@ -6668,15 +6799,17 @@ in a number of ways, e.g., if the source operand is an lvalue.
        reference type, which means the type will be or might be used
        as an lvalue. */
   } else {
-    /* The operand will definitely be used as an rvalue. Convert it if
-       necessary. */
-    do_rvalue_generic_operand_transformations(operand);
+    /* The operand will definitely be used as an rvalue. */
+    rvalue_expected = TRUE;
   }  /* if */
+  prep_generic_operand_full(operand, lvalue_expected, rvalue_expected);
   /* Determine whether we can fold the cast to a constant. */
   /* This is necessary in constant expressions, and also for initializers
      for entities of const integral or enum type (so their values can be used
      in constant expressions). */
-  if (curr_expr_kind_is_const()) {
+  if (is_reference_cast) {
+    can_fold = FALSE;
+  } else if (curr_expr_kind_is_const()) {
     can_fold = TRUE;
   } else if (is_constant_operand(operand) &&
              is_an_rvalue(operand) &&
@@ -6703,24 +6836,38 @@ in a number of ways, e.g., if the source operand is an lvalue.
     }  /* if */
   } else {
     /* Non-constant expression.  Generate a cast expression. */
-    prep_generic_operand(operand);
-    if (!il_identical_types(operand->type, dest_type)) {
+    if (!is_implicit_cast ||
+        !il_identical_types(operand->type, dest_type)) {
       an_expr_node_ptr expr, opexpr = make_node_from_operand(operand);
       if (!is_class_struct_union_type(dest_type) ||
-          op != (an_expr_operator_kind)eok_cast) {
-        /* Cast to a non-class type.  Render as eok_cast operator or the
-           like. */
+          is_reference_cast ||
+          source_form == csf_dynamic_cast) {
+        /* Render the cast as a cast operator. */
+        an_expr_operator_kind op;
+        if (source_form == csf_dynamic_cast) {
+          if (is_reference_cast) {
+            op = (an_expr_operator_kind)eok_ref_dynamic_cast;
+          } else {
+            op = (an_expr_operator_kind)eok_dynamic_cast;
+          }  /* if */
+        } else if (is_reference_cast) {
+          op = (an_expr_operator_kind)eok_ref_cast;
+        } else {
+          op = (an_expr_operator_kind)eok_cast;
+        }  /* if */
         expr = make_operator_node(op, dest_type, opexpr);
         if (is_implicit_cast) {
           expr->variant.operation.compiler_generated = TRUE;
         }  /* if */
         if (is_reference_cast) {
+          expr->is_lvalue = TRUE;
           expr->variant.operation.is_reference_cast = TRUE;
         }  /* if */
       } else {
         /* Cast to a class type.  Use an enk_temp_init/dik_constructor. */
         a_dynamic_init_ptr dip;
-        expr = create_expr_temporary(dest_type, /*is_lvalue=*/FALSE,
+        expr = create_expr_temporary(dest_type,
+                                     /*is_lvalue=*/is_reference_cast,
                                      /*is_explicit_cast=*/!is_implicit_cast,
                                      /*suppress_abstract_test=*/FALSE,
                                      (a_dynamic_init_kind)dik_constructor,
@@ -6731,14 +6878,35 @@ in a number of ways, e.g., if the source operand is an lvalue.
         dip->variant.constructor.ptr = NULL;
         dip->variant.constructor.args = opexpr;
       }  /* if */
-      make_expression_operand(expr, operand);
+      /* Remember the source form of the cast. */
+      switch (source_form) {
+        case csf_none:
+        case csf_old_style:
+        case csf_functional:
+          break;
+        case csf_static_cast:
+          expr->is_static_cast = TRUE;
+          break;
+        case csf_const_cast:
+          check_assertion(is_operation_node(expr));
+          expr->variant.operation.is_const_cast = TRUE;
+          break;
+        case csf_reinterpret_cast:
+          check_assertion(is_operation_node(expr));
+          expr->variant.operation.is_reinterpret_cast = TRUE;
+          break;
+        case csf_dynamic_cast:
+          /* This case is encoded in the operator above. */
+          break;
+        default:
+          unexpected_condition();
+      }  /* switch */
+      if (!is_reference_cast) {
+        make_expression_operand(expr, operand);
+      } else {
+        make_lvalue_expression_operand(expr, operand);
+      }  /* if */
     }  /* if */
-  }  /* if */
-  if (is_reference_cast && !is_implicit_cast) {
-    /* For an explicit cast to a reference type, there is an implicit
-       indirection.  In the implicit cast case, we are binding a reference
-       and we are going to use the result as an rvalue pointer. */
-    conv_object_pointer_to_lvalue(operand);
   }  /* if */
   restore_operand_details_incl_ref(operand, &orig_operand);
 }  /* generic_cast_operand */
@@ -9688,9 +9856,12 @@ e.g., in a back end.
           }  /* if */
         }  /* if */
         break;
+      case eok_ref_cast:
       case eok_lvalue_adjust:
-        /* Lvalue type adjustment with an lvalue-to-rvalue conversion built
-           into it.  We can undo that by simply changing the flag. */
+      case eok_ref_dynamic_cast:
+        /* Lvalue type adjustment or cast to reference type, with an
+           lvalue-to-rvalue conversion built into it.  We can undo that by
+           simply changing the flag. */
         possible = TRUE;
         break;
       case eok_class_rvalue_adjust:

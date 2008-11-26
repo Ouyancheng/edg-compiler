@@ -9120,9 +9120,33 @@ typedef a_byte a_lowered_eh_construct_kind;
 enum an_expr_operator_kind_tag {
   /* When the expression node kind is "enk_operation", these are the possible
      operators. */
-  /* If you add operators to this list, be sure to update db_operator_names
-     in this file, lvalue_rvalue_test in il.c, disp_expr_operator_name in
-     il_display.c, and generated_precedence in cp_gen_be.c. */
+  /* If you add operators to this list, be sure to update:
+       il_def.h (this file):
+           db_operator_names
+       il_display.c:
+           disp_expr_operator_name
+       cp_gen_be.c:
+           generated_precedence
+       il.c:
+           lvalue_rvalue_test
+           operation_type_kind
+           operation_has_side_effects (if the operator has side effects)
+     If the operator returns an lvalue (is_lvalue is TRUE), see also
+       il.c:
+           is_rvalueable_node
+           node_does_fetch
+           operator_takes_lvalue_operand
+       exprutil.c:
+           conv_rvalue_expr_to_lvalue
+           conv_lvalue_expr_to_rvalue (if the operator is not "rvalueable"
+             according to is_rvalueable_node)
+     If the operator is an addressing operator, see also
+       folding.c:
+           constant_lvalue_address
+           constant_rvalue_pointer
+       il_walk.c:
+           traverse_addressing_subtree
+  */
   /* The following have 1 operand: */
   eok_address_of,	/* Address-of operator ("&"). */
   eok_reference_to,	/* Turns an lvalue into a reference, i.e., the
@@ -9137,9 +9161,10 @@ enum an_expr_operator_kind_tag {
 			   the type to cast to.	 The type can be void.
 			   Also note that C++ reinterpret_casts to pointer-to-
 			   class types and pointer-to-member types are
-			   represented as eok_cast operations.	In C++, this
-			   is also the code used for classic-syntax casts
-			   involving parameterized types (in prototype
+			   represented as eok_cast operations, with the
+			   is_reinterpret_cast flag set.  In C++, this
+			   is also the operator used for casts involving
+			   template-dependent types (in prototype
 			   instantiations). */
   eok_lvalue_cast,	/* Used to represent a nonstandard feature present
 			   in some older C modes and in Microsoft and GNU C++
@@ -9151,11 +9176,22 @@ enum an_expr_operator_kind_tag {
 			   size but different signedness).  The cast creates
 			   an lvalue that refers to the same underlying object
 			   but with a slightly different type. */
+  eok_ref_cast,		/* Similar to eok_lvalue_cast, but used to represent
+			   some explicit casts to reference types.  The operand
+			   is an lvalue, and the result is an lvalue for the
+			   same object but with a different type (indicated
+			   by the type of the expression).  For a cast (T &)x
+			   the node type is T, not T&.  Cannot handle base or
+			   derived class adjustments.  Unlike eok_lvalue_cast,
+			   this operation is rvalueable (it can include an
+			   implicit lvalue-to-rvalue conversion).  Also used
+			   for casts to reference types involving template-
+			   dependent types (in prototype instantiations). */
   eok_lvalue_adjust,	/* Similar to eok_lvalue_cast, but used for implicit
 			   lvalue type adjustments related to standard language
 			   features, for example when adjusting cv-qualifiers
-			   to bind a reference.  The operand is an lvalue.
-			   The result is an lvalue for the same object but
+			   to bind a reference.  The operand is an lvalue,
+			   and the result is an lvalue for the same object but
 			   with a different type (indicated by the type of the
 			   expression).  Typically used to adjust
 			   cv-qualifiers, but can also change the underlying
@@ -9176,13 +9212,17 @@ enum an_expr_operator_kind_tag {
 			   type of the expression indicates the type to cast
 			   to.  The operand can be a class lvalue, a class
 			   rvalue, or an rvalue pointer to class.  The result
-			   is of the same kind (lvalue, rvalue, or pointer). */
+			   is of the same kind (lvalue, rvalue, or pointer).
+			   Also used for reference casts that convert to a
+			   base class. */
   eok_derived_class_cast,
 			/* C++ cast of a class to a direct derived class.  The
 			   type of the expression indicates the type to cast
 			   to.  The operand can be a class lvalue, a class
 			   rvalue, or an rvalue pointer to class.  The result
-			   is of the same kind (lvalue, rvalue, or pointer). */
+			   is of the same kind (lvalue, rvalue, or pointer).
+			   Also used for reference casts that convert to
+			   a derived class. */
   eok_pm_base_class_cast,
 			/* C++ cast of a pointer to a member of a class to
 			   a pointer to a member of a direct base class.
@@ -9193,7 +9233,11 @@ enum an_expr_operator_kind_tag {
 			   a pointer to a member of a direct derived class.
 			   The type of the expression indicates the type to
 			   cast to. */
-  eok_dynamic_cast,	/* C++ dynamic_cast operation. */
+  eok_dynamic_cast,	/* C++ dynamic_cast operation on pointers. */
+  eok_ref_dynamic_cast,	/* C++ dynamic_cast operation on references.  The
+			   operand and the result are lvalues.  For a
+			   dynamic_cast<T &>(x), the node type is T, not
+			   T&. */
   eok_bool_cast,	/* C++ and C99 cast to bool.  Operand can be
 			   arithmetic, enum, pointer, or pointer-to-member,
 			   and result is the equivalent of "operand != 0". */
@@ -9419,16 +9463,11 @@ enum an_expr_operator_kind_tag {
 			   operand.  This is typically used to implement the
 			   <varargs.h> variant of va_start (as opposed to the
 			   variant from <stdarg.h>). */
-  /* Operators appearing in prototype instantiations.  These typically describe
-     the syntactic appearance of constructs that would map to other operators
-     (above) if precise type information were known. */
+  /* Operators appearing only in prototype instantiations: */
   eok_lvalue,           /* Indicates that the operand (marked as an rvalue,
                            but really something with unknown lvalueness) is
                            to be used as if it were an lvalue.  The eok_lvalue
                            node itself is marked as an lvalue. */
-  eok_static_cast,      /* Generic static_cast from the source. */
-  eok_const_cast,       /* Generic const_cast from the source. */
-  eok_reinterpret_cast, /* Generic reinterpret_cast from the source. */
   /* Special operators: */
   eok_error,            /* This is a special operator used in the cases when
                            the operator cannot be determined.  This operator
@@ -9788,7 +9827,15 @@ typedef struct an_expr_node {
       a_bit_field
 		is_reinterpret_cast:1;
 			/* TRUE when the operation was a reinterpret_cast
-			   in the source.  (Only applies to C++.) */
+			   in the source. */
+      a_bit_field
+		is_const_cast:1;
+			/* TRUE when the operation was a const_cast in the
+			   source. */
+      a_bit_field
+		is_reference_cast:1;
+			/* TRUE when the operation was a cast to a reference
+			   type in the source. */
       a_bit_field
 		implicit_in_member_naming:1;
 			/* TRUE for a base class cast that is implicit in
@@ -9799,11 +9846,6 @@ typedef struct an_expr_node {
 			   was implicitly generated as part of realizing
 			   an explicit cast to a related class.  Used
 			   also for pointer-to-member casts. */
-      a_bit_field
-		is_reference_cast:1;
-			/* TRUE for a cast that was, in source form, a
-			   cast to a reference type (and is rendered as
-			   a cast to a pointer type). */
       a_bit_field
 		is_conversion_call:1;
 			/* TRUE for a call that does an explicit or implicit
@@ -12101,10 +12143,10 @@ EXTERN an_il_header il_header;
 EXTERN char     *db_operator_names[(int)eok_last+1]
 #if VAR_INITIALIZERS
 = {"&", "ref-&", "*", "ref-*",
-   "cast", "lvalue cast", "lvalue adjust", "class rvalue adjust",
+   "cast", "lvalue cast", "ref cast", "lvalue adjust", "class rvalue adjust",
    "base class cast", "derived class cast",
    "pm base class cast", "pm derived class cast",
-   "dynamic cast", "bool cast",
+   "dynamic cast", "ref dynamic cast", "bool cast",
    "array-decay",
    ". vacuous dtor", "-> vacuous dtor",
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -12138,7 +12180,6 @@ EXTERN char     *db_operator_names[(int)eok_last+1]
    "pmcall",
    "va_start", "va_arg", "va_end", "va_copy", "va_start (single op)",
    "lvalue",
-   "static cast", "const cast", "reinterpret cast",
    "error", "last"
 }
 #endif /* VAR_INITIALIZERS */

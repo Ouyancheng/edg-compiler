@@ -2757,6 +2757,19 @@ of that address.  So, for example, with
 
 the traversal will walk through the "*", "&", "[]", and "." operator nodes
 and end up at "a".
+
+Tips for proper use of the follow_addressing_path mode:
+  (a)  The traversal should be entered at the top only with either an
+       rvalue pointer or an lvalue.  It is sometimes necessary to guard the
+       traverse_expr call to exclude other cases.  Common problem cases are
+       class rvalues and array rvalues.
+  (b)  The "?" and GNU min/max operators can have two operands that are
+       part of the addressing path, and this routine follows both.  That means
+       you should be careful not to set "terminate" to TRUE unless you really
+       have found the answer you're looking for, because that may prevent
+       processing of the other operand.  In all other cases, the addressing
+       traversal follows a single path through the tree, and this is not
+       an issue.
 */
 {
   if (is_operation_node(expr)) {
@@ -2825,9 +2838,10 @@ and end up at "a".
              for a class rvalue and we would want to keep going anyway. */
           traverse_expr(operand1, tblock);
           break;
+        case eok_ref_cast:
         case eok_lvalue_adjust:
-          /* eok_lvalue_adjust operations are used to adjust the
-             cv-qualification (and maybe type) of an lvalue. */
+          /* eok_ref_cast and eok_lvalue_adjust operations are used to adjust
+             the type of an lvalue. */
           traverse_expr(operand1, tblock);
           break;
         case eok_class_rvalue_adjust:

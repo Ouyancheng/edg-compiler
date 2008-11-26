@@ -856,7 +856,7 @@ Note that type and model_type need not be the same (or even similar) types
 under the qualifiers.
 */
 #define make_identically_qualified_type(type, model_type)             \
-  (make_qualified_type(skip_typerefs(type), get_type_qualifiers(model_type)))
+  (make_qualified_type(f_skip_typerefs(type), get_type_qualifiers(model_type)))
 
 
 extern a_type_ptr type_plus_qualifiers_from_second_type(a_type_ptr type,

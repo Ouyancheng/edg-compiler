@@ -279,7 +279,8 @@ typedef struct an_expr_or_stmt_traversal_block {
 			   an addressing expression.  This can be used to
 			   determine some attribute of the underlying object
 			   (e.g., is it automatic) given an lvalue or a
-			   pointer rvalue for it. */
+			   pointer rvalue for it.  See comment on proper use
+			   in traverse_addressing_subtree. */
   a_boolean	follow_class_rvalue_addressing_path;
 			/* If follow_addressing_path is TRUE, then if this
 			   is TRUE the subtree walk should follow class rvalue

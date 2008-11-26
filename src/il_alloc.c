@@ -2517,9 +2517,10 @@ fields to default values.
       node->variant.operation.returns_lvalue_instead_of_usual_rvalue = FALSE;
       node->variant.operation.compiler_generated = FALSE;
       node->variant.operation.is_reinterpret_cast = FALSE;
+      node->variant.operation.is_const_cast = FALSE;
+      node->variant.operation.is_reference_cast = FALSE;
       node->variant.operation.implicit_in_member_naming = FALSE;
       node->variant.operation.implicit_step_of_explicit_cast = FALSE;
-      node->variant.operation.is_reference_cast = FALSE;
       node->variant.operation.is_conversion_call = FALSE;
       node->variant.operation.arg_dependent_lookup_suppressed_on_call = FALSE;
 #if BACK_END_IS_CP_GEN_BE

@@ -3714,6 +3714,7 @@ on every expression.
                      op == (an_expr_operator_kind)eok_derived_class_cast ||
                      op == (an_expr_operator_kind)eok_pm_base_class_cast ||
                      op == (an_expr_operator_kind)eok_pm_derived_class_cast ||
+                     op == (an_expr_operator_kind)eok_ref_cast ||
                      op == (an_expr_operator_kind)eok_lvalue_cast) {
             /* Casts. */
             octl->output_str("(");

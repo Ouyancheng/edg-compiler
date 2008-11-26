@@ -127,6 +127,20 @@ typedef a_byte a_ruled_out_expr_kind_set;
 #define ROEK_CONSTANT          ((a_ruled_out_expr_kind_set)0x2)
 			/* A constant expression is ruled out. */
 
+/*
+Kinds of source forms for casts.
+*/
+typedef enum a_cast_source_form {
+  csf_none,
+  csf_old_style,	/* Old-style cast, (T)x */
+  csf_functional,	/* Functional-notation cast, T(x) */
+  csf_static_cast,	/* static_cast<T>(x) */
+  csf_const_cast,	/* const_cast<T>(x) */
+  csf_reinterpret_cast,	/* reinterpret_cast<T>(x) */
+  csf_dynamic_cast	/* dynamic_cast<T>(x) */
+} a_cast_source_form;
+
+
 #if GNU_EXTENSIONS_ALLOWED
 
 /*
@@ -1314,6 +1328,10 @@ extern void make_unknown_dependent_function_operand(
 extern void conv_indefinite_function_operand_to_unknown_dependent_function(
                                                           an_operand *operand);
 
+extern void cast_overloaded_function(a_type_ptr type_cast_to,
+                                     an_operand *operand,
+                                     a_boolean  is_cast);
+
 extern void cast_operand(a_type_ptr new_type,
 		         an_operand *operand,
                          a_boolean  check_cast_access,
@@ -1334,6 +1352,11 @@ extern void base_class_cast_operand(an_operand       *operand_1,
 
 extern void adjust_lvalue_type(an_operand *operand,
                                a_type_ptr dest_type);
+
+extern void cast_operand_for_reference_cast(an_operand *operand,
+                                            a_type_ptr dest_type,
+                                            a_boolean  check_cast_access,
+                                            a_boolean  reinterpret_semantics);
 
 extern void adjust_class_rvalue_type(an_operand *operand,
                                      a_type_ptr dest_type);
@@ -1439,11 +1462,11 @@ extern void prep_generic_operand_full(an_operand *operand,
 
 extern void prep_generic_operand(an_operand *operand);
 
-extern void generic_cast_operand(an_operand            *operand,
-                                 a_type_ptr            dest_type,
-                                 an_expr_operator_kind op,
-                                 a_boolean             is_implicit_cast,
-                                 a_boolean             is_reference_cast);
+extern void generic_cast_operand(an_operand         *operand,
+                                 a_type_ptr         dest_type,
+                                 a_cast_source_form source_form,
+                                 a_boolean          is_implicit_cast,
+                                 a_boolean          is_reference_cast);
 
 extern an_expr_node_ptr prep_generic_argument_list(
                                              an_arg_operand *arg_operand_list);

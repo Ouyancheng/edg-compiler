@@ -2994,6 +2994,7 @@ Display the name of an expression operator.
     case eok_ref_indirect:      s = "eok_ref_indirect";           break;
     case eok_cast:              s = "eok_cast";                   break;
     case eok_lvalue_cast:       s = "eok_lvalue_cast";            break;
+    case eok_ref_cast:          s = "eok_ref_cast";               break;
     case eok_lvalue_adjust:     s = "eok_lvalue_adjust";          break;
     case eok_class_rvalue_adjust:
                                 s = "eok_class_rvalue_adjust";    break;
@@ -3005,6 +3006,7 @@ Display the name of an expression operator.
     case eok_pm_derived_class_cast:
                                 s = "eok_pm_derived_class_cast";  break;
     case eok_dynamic_cast:      s = "eok_dynamic_cast";           break;
+    case eok_ref_dynamic_cast:  s = "eok_ref_dynamic_cast";       break;
     case eok_bool_cast:         s = "eok_bool_cast";              break;
     case eok_array_to_pointer:  s = "eok_array_to_pointer";       break;
     case eok_dot_vacuous_destructor_call:
@@ -3098,9 +3100,6 @@ Display the name of an expression operator.
                                 s = "eok_va_start_single_operand";
                                                                   break;
     case eok_lvalue:            s = "eok_lvalue";                 break;
-    case eok_static_cast:       s = "eok_static_cast";            break;
-    case eok_const_cast:        s = "eok_const_cast";             break;
-    case eok_reinterpret_cast:  s = "eok_reinterpret_cast";       break;
     case eok_error:             s = "eok_error";                  break;
     default:                    s = "**BAD EXPR OPERATOR KIND**"; break;
   }  /* switch */
@@ -3274,14 +3273,17 @@ Display the indicated expression node.
       if (ptr->variant.operation.is_reinterpret_cast) {
         disp_boolean("is_reinterpret_cast", TRUE);
       }  /* if */
+      if (ptr->variant.operation.is_const_cast) {
+        disp_boolean("is_const_cast", TRUE);
+      }  /* if */
+      if (ptr->variant.operation.is_reference_cast) {
+        disp_boolean("is_reference_cast", TRUE);
+      }  /* if */
       if (ptr->variant.operation.implicit_in_member_naming) {
         disp_boolean("implicit_in_member_naming", TRUE);
       }  /* if */
       if (ptr->variant.operation.implicit_step_of_explicit_cast) {
         disp_boolean("implicit_step_of_explicit_cast", TRUE);
-      }  /* if */
-      if (ptr->variant.operation.is_reference_cast) {
-        disp_boolean("is_reference_cast", TRUE);
       }  /* if */
       if (ptr->variant.operation.is_conversion_call) {
         disp_boolean("is_conversion_call", TRUE);

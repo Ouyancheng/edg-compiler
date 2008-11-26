@@ -564,12 +564,6 @@ extern void overloaded_function_catch_up(
                                   an_operand        *operand,
                                   a_boolean         *access_error_reported);
 
-extern void address_taken_overloaded_function_catch_up(
-                                  a_symbol_ptr      function_symbol,
-                                  a_symbol_ptr      overloaded_function_symbol,
-                                  an_operand        *orig_operand,
-                                  an_operand        *operand);
-
 extern void combine_unneeded_selector_with_operand(
                                            an_operand *bound_function_selector,
                                            a_boolean  is_arrow_operator,

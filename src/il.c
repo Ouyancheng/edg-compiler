@@ -11309,6 +11309,7 @@ tk_unknown is returned.
       break;
     case eok_cast:
     case eok_lvalue_cast:
+    case eok_ref_cast:
     case eok_lvalue_adjust:
       /* Since eok_cast and the similar operators potentially involve unrelated
          type kinds, we do not attempt to characterize an "operation type" for
@@ -11332,6 +11333,9 @@ tk_unknown is returned.
       break;
     case eok_dynamic_cast:
       result = (a_type_kind)tk_pointer;
+      break;
+    case eok_ref_dynamic_cast:
+      result = expr_kind;
       break;
     case eok_bool_cast:
       result = operand_kind;
@@ -11472,11 +11476,6 @@ tk_unknown is returned.
       break;
     case eok_lvalue:
       result = expr_kind;
-      break;
-    case eok_static_cast:
-    case eok_const_cast:
-    case eok_reinterpret_cast:
-      result = (a_type_kind)tk_template_param;
       break;
     case eok_error:
       result = (a_type_kind)tk_error;
@@ -13761,8 +13760,8 @@ an_expr_node_ptr add_cast_to_lvalue(an_expr_node_ptr node,
 Cast the lvalue expression given by node to the type specified by type.
 This adjusts the type of the lvalue without creating a new object.
 The operation is marked as compiler-generated.  The result is an lvalue.
-Note that an lvalue cast cannot handle base class casts, only minor
-cv-qualification or type adjustment.
+Note that an lvalue cast cannot handle base class casts, only
+cv-qualification or other non-base-class type adjustment.
 */
 {
   check_assertion(node->is_lvalue || is_error_node(node));
@@ -15059,7 +15058,9 @@ already indicates the load.
           case eok_subscript:
           case eok_indirect:
           case eok_ref_indirect:
+          case eok_ref_cast:
           case eok_lvalue_adjust:
+          case eok_ref_dynamic_cast:
           case eok_va_arg:
 #if GNU_COMPLEX_EXTENSIONS_ALLOWED
           case eok_real_part:
@@ -15199,8 +15200,11 @@ process_ptr_to_member_selection:
               does_fetch = TRUE;
               fetched_type = type_pointed_to(op1->type);
               break;
+            case eok_ref_cast:
             case eok_lvalue_adjust:
-              /* Type adjustment of an lvalue. */
+            case eok_ref_dynamic_cast:
+              /* Type adjustment of an lvalue, or cast to a reference type,
+                 with an implicit lvalue-to-rvalue conversion afterwards. */
               does_fetch = TRUE;
               fetched_type = node->type;
               break;
@@ -15251,8 +15255,9 @@ to TRUE if a warning about the expression doing nothing should be suppressed.
 */
 {
   a_boolean             has_side_effects = FALSE;
-  a_type_ptr            operand_type, node_type;
+  a_type_ptr            operand_type;
   an_expr_operator_kind op = node->variant.operation.kind;
+  an_expr_node_ptr      op1 = node->variant.operation.operands;
 
   switch (op) {
     case eok_post_incr:
@@ -15293,16 +15298,18 @@ to TRUE if a warning about the expression doing nothing should be suppressed.
       tblock->suppress_warning = TRUE;
       break;
     case eok_dynamic_cast:
+      if (is_template_param_type(node->type)) {
+        /* A dynamic_cast to a template parameter type might be
+           a cast to a reference type, which can throw an exception. */
+        has_side_effects = TRUE;
+      }  /* if */
+      break;
+    case eok_ref_dynamic_cast:
       /* A dynamic_cast to a reference from an object with a polymorphic
          class type can throw an exception. */
-      node_type = node->type;
-      operand_type = node->variant.operation.operands->type;
-      if ((is_reference_type(node_type) &&
-           is_ptr_or_ref_type(operand_type) &&
-           (is_polymorphic_class_type(type_pointed_to(operand_type)) ||
-            is_template_param_type(type_pointed_to(operand_type)))) ||
-          /* A template parameter type could be a reference type. */
-          is_template_param_type(node_type)) {
+      operand_type = op1->type;
+      if (is_polymorphic_class_type(operand_type) ||
+          could_be_dependent_class_type(operand_type)) {
         has_side_effects = TRUE;
       }  /* if */
       break;
@@ -15317,12 +15324,23 @@ to TRUE if a warning about the expression doing nothing should be suppressed.
 #if C99_IL_EXTENSIONS_SUPPORTED
       if (c99_mode &&
           (is_floating_type(node->type) ||
-           is_floating_type(node->variant.operation.operands->type))) {
+           is_floating_type(op1->type))) {
         /* Floating-point conversions can cause side effects in C99. */
         goto c99_float_operations;
       }  /* if */
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
       if (vla_enabled && type_has_side_effects(node->type)) {
+        has_side_effects = TRUE;
+      } else if (could_be_dependent_class_type(node->type) ||
+                 could_be_dependent_class_type(op1->type)) {
+        /* A cast to or from a dependent class type could do anything. */
+        has_side_effects = TRUE;
+      }  /* if */
+      break;
+    case eok_ref_cast:
+      if (could_be_dependent_class_type(node->type) ||
+          could_be_dependent_class_type(op1->type)) {
+        /* A cast to or from a dependent class type could do anything. */
         has_side_effects = TRUE;
       }  /* if */
       break;
@@ -16097,7 +16115,9 @@ operand.
   switch (op) {
     case eok_address_of:
     case eok_lvalue_cast:
+    case eok_ref_cast:
     case eok_lvalue_adjust:
+    case eok_ref_dynamic_cast:
     case eok_assign:
     case eok_add_assign:
     case eok_subtract_assign:
@@ -19520,6 +19540,7 @@ static a_byte lvalue_rvalue_test[(int)eok_last+1] = {
   /* eok_ref_indirect: */		LVRV_OPND1_IS_RVALUE,
   /* eok_cast: */			LVRV_OPND1_IS_RVALUE,
   /* eok_lvalue_cast: */		LVRV_OPND1_IS_LVALUE,
+  /* eok_ref_cast: */			LVRV_OPND1_IS_LVALUE,
   /* eok_lvalue_adjust: */		LVRV_OPND1_IS_LVALUE,
   /* eok_class_rvalue_adjust: */	LVRV_OPND1_IS_RVALUE,
   /* eok_base_class_cast: */		LVRV_OPND1_IS_LVALUE_IF_EXPR_IS,
@@ -19527,6 +19548,7 @@ static a_byte lvalue_rvalue_test[(int)eok_last+1] = {
   /* eok_pm_base_class_cast: */		LVRV_OPND1_IS_RVALUE,
   /* eok_pm_derived_class_cast: */	LVRV_OPND1_IS_RVALUE,
   /* eok_dynamic_cast: */		LVRV_OPND1_IS_RVALUE,
+  /* eok_ref_dynamic_cast: */		LVRV_OPND1_IS_LVALUE,
   /* eok_bool_cast: */			LVRV_OPND1_IS_RVALUE,
   /* eok_array_to_pointer: */		LVRV_NO_REQUIREMENTS,
   /* eok_dot_vacuous_destructor_call: */
@@ -19665,9 +19687,6 @@ static a_byte lvalue_rvalue_test[(int)eok_last+1] = {
 					LVRV_OPND2_IS_LVALUE,
   /* eok_va_start_single_operand: */	LVRV_OPND1_IS_LVALUE,	
   /* eok_lvalue: */			LVRV_OPND1_IS_RVALUE,
-  /* eok_static_cast: */		LVRV_NO_REQUIREMENTS,
-  /* eok_const_cast: */			LVRV_NO_REQUIREMENTS,
-  /* eok_reinterpret_cast: */		LVRV_NO_REQUIREMENTS,
   /* eok_error: */			LVRV_NO_REQUIREMENTS,
   /* eok_last: */			LVRV_DISTINGUISHED_VALUE_FOR_LAST
 };  /* lvalue_rvalue_test */

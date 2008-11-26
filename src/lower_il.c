@@ -8470,8 +8470,7 @@ Do IL lowering of the indicated type and everything under it.
 #endif /* FIXED_POINT_ALLOWED */
       case tk_pointer:
         /* Note that references aren't turned into pointers, because back ends
-           shouldn't care.  lower_dynamic_cast counts on this; it tests for
-           a reference type after lowering. */
+           shouldn't care. */
         lower_type(type->variant.pointer.type);
         break;
       case tk_ptr_to_member:
@@ -10120,8 +10119,8 @@ static a_routine_ptr
 
 static void lower_dynamic_cast(an_expr_node_ptr expr)
 /*
-Lower an eok_dynamic_cast rvalue expression.  The subtree has already been
-lowered.
+Lower an eok_dynamic_cast or eok_ref_dynamic_cast expression.  The subtree
+has already been lowered.
 */
 {
   an_expr_node_ptr src = expr->variant.operation.operands, src_copy;
@@ -10132,9 +10131,10 @@ lowered.
 #endif /* IA64_ABI */
   an_expr_node_ptr null_constant_node, test_node;
   an_expr_node_ptr desired_type_node, static_type_node, call_node;
-  a_type_ptr       cast_type = expr->type, underlying_cast_type;
+  a_type_ptr       cast_type, src_type, ptr_type;
   a_constant       constant;
-  a_boolean        reference_case;
+  a_boolean        reference_case = node_operator_is(expr,
+                                                     eok_ref_dynamic_cast);
 
   /* Rewrite the dynamic cast as
 #if IA64_ABI
@@ -10159,13 +10159,27 @@ lowered.
      has no virtual function pointer); static_type is a pointer to the
      typeinfo for the class underlying the static type of the original
      type of the source pointer. */
-  check_assertion(!expr->is_lvalue);
-  /* Note that we can test for a reference type here only because lower_type
-     doesn't turn references into pointers. */
-  reference_case = is_reference_type(cast_type);
+  cast_type = expr->type;
+  src_type = src->type;
+  if (reference_case) {
+    check_assertion(expr->is_lvalue);
+    ptr_type = make_pointer_type(cast_type);
+  } else {
+    check_assertion(!expr->is_lvalue);
+    ptr_type = cast_type;
+    cast_type = type_pointed_to(cast_type);
+    src_type = type_pointed_to(src_type);
+  }  /* if */
+  cast_type = skip_typerefs(cast_type);
+  src_type = skip_typerefs(src_type);
   /* Make the src argument for the call. */
+  if (reference_case) {
+    /* Convert the lvalue operand to a pointer. */
+    src = add_address_of_to_node(src);
+  }  /* if */
   /* A copy is needed (because the expression is used twice) except
-     in the IA-64 reference case. */
+     in the IA-64 reference case.  (A third copy is made below
+     for the orig_src_copy argument.) */
 #if IA64_ABI
   if (reference_case) {
     src_copy = src;
@@ -10179,8 +10193,7 @@ lowered.
   /* For a dynamic_cast to `void *', we don't call __dynamic_cast.
      Instead, we simply extract the offset-to-top field from the
      vtable, and adjust the pointer. */
-  if (is_pointer_type(cast_type) && 
-      is_void_type(f_skip_typerefs(type_pointed_to(cast_type)))) {
+  if (is_void_type(cast_type)) {
     an_expr_node_ptr offset_to_top_node, vtbl_class;
     /* Extract the offset to top node. */
     vtbl_class = make_reusable_copy(src_copy, /*vars_can_change=*/FALSE);
@@ -10207,13 +10220,10 @@ lowered.
     /* src_copy is passed in so it can be cast to a base class if necessary. */
     vptr_expr = make_any_vptr_rvalue(vptr_expr, &src_copy);
 #endif /* !IA64_ABI */
-    /* Cast the src argument to a base class (after any casts to base class
-       have been applied). */
     src_copy = add_cast(src_copy, void_star_type());
     /* Make the desired_type argument. */
-    underlying_cast_type = f_skip_typerefs(type_pointed_to(cast_type));
 #if !IA64_ABI
-    if (!reference_case && is_void_type(underlying_cast_type)) {
+    if (!reference_case && is_void_type(cast_type)) {
       /* Cast to void* -- pass a null pointer for desired_type. */
       make_zero_of_proper_type(make_pointer_type(make_typeinfo_type(
                                                            tik_implementation,
@@ -10223,7 +10233,7 @@ lowered.
 #endif /* !IA64_ABI */
     {
       /* Get the typeinfo variable for the desired type. */
-      a_variable_ptr var = get_typeinfo_var(underlying_cast_type);
+      a_variable_ptr var = get_typeinfo_var(cast_type);
       /* Pass its address as the desired_type argument. */
       set_variable_address_constant(var, &constant,
                                     /*set_address_taken_flag=*/TRUE);
@@ -10231,12 +10241,13 @@ lowered.
     desired_type_node = alloc_node_for_constant(&constant);
 #if ABI_COMPATIBILITY_VERSION >= 241
 #if !IA64_ABI
-    /* Make the pointer to the original source. */
+    /* Make the pointer to the original source.  This may differ from the
+       src_copy argument in not being cast to a base class containing a
+       virtual function table. */
     orig_src_copy = make_reusable_copy(src, /*vars_can_change=*/FALSE);
 #endif /* !IA64_ABI */
     /* Make the static_type argument. */
-    set_variable_address_constant(get_typeinfo_var(
-                                  f_skip_typerefs(type_pointed_to(src->type))),
+    set_variable_address_constant(get_typeinfo_var(src_type),
                                   &constant,
                                   /*set_address_taken_flag=*/TRUE);
     static_type_node = alloc_node_for_constant(&constant);
@@ -10279,19 +10290,21 @@ lowered.
     }  /* if */
 #if IA64_ABI
     if (reference_case) {
+      /* IA-64 ABI reference cast case, which calls __cxa_bad_cast if the
+         pointer is NULL. */
       an_expr_node_ptr call_copy, bad_cast_node;
       /* Create a temporary to store the result of the call. */
       call_copy = make_reusable_copy(call_node, /*vars_can_change=*/FALSE);
-      call_copy = add_cast_if_necessary(call_copy, expr->type);
+      call_copy = add_cast_if_necessary(call_copy, ptr_type);
       /* Build "__cxa_bad_cast()" */
       bad_cast_node = make_runtime_rout_call("__cxa_bad_cast",
                                              &bad_cast_routine,
                                              void_type(),
                                              (an_expr_node_ptr)NULL);
-      make_zero_of_proper_type(expr->type, &constant);
+      make_zero_of_proper_type(ptr_type, &constant);
       bad_cast_node = make_comma_node(bad_cast_node,
                                       alloc_node_for_constant(&constant));
-      /* Build the conditional. */
+      /* Build the operands for the "?". */
       test_node = boolean_controlling_expr(call_node);
       test_node->next = call_copy;
       call_copy->next = bad_cast_node;
@@ -10305,19 +10318,23 @@ lowered.
   {
     /* Add a cast to the right type (from the void* return of the runtime
        routine). */
-    call_node = add_cast_if_necessary(call_node, expr->type);
+    call_node = add_cast_if_necessary(call_node, ptr_type);
     /* Make the NULL for the third operand of the "?". */
-    make_zero_of_proper_type(expr->type, &constant);
+    make_zero_of_proper_type(ptr_type, &constant);
     null_constant_node = alloc_node_for_constant(&constant);
-    /* Assemble "src ? __dynamic_cast(...) : NULL". */
+    /* Assemble the operands for the "?". */
     test_node = boolean_controlling_expr(src);
     test_node->next = call_node;
     call_node->next = null_constant_node;
   }  /* if */
-  /* Overwrite the original node with the "?" operator. */
-  set_expr_node_kind(expr, (an_expr_node_kind)enk_operation);
-  set_node_operator(expr, (an_expr_operator_kind)eok_question,
-                    expr->type, expr->is_lvalue, test_node);
+  /* Make "src ? __dynamic_cast(...) : NULL". */
+  test_node = make_operator_node((an_expr_operator_kind)eok_question,
+                                 ptr_type, test_node);
+  if (reference_case) {
+    test_node = add_indirection_to_node(test_node);
+  }  /* if */
+  /* Overwrite the original node with the rewritten version. */
+  overwrite_node(expr, test_node);
 }  /* lower_dynamic_cast */
 
 #endif /* ABI_CHANGES_FOR_RTTI */
@@ -12753,6 +12770,7 @@ that are specific to inlining and therefore yield different results.
     an_expr_operator_kind op = expr->variant.operation.kind;
     if (op == (an_expr_operator_kind)eok_address_of ||
         op == (an_expr_operator_kind)eok_array_to_pointer ||
+        op == (an_expr_operator_kind)eok_ref_cast ||
         op == (an_expr_operator_kind)eok_lvalue_adjust ||
         op == (an_expr_operator_kind)eok_lvalue_cast ||
         op == (an_expr_operator_kind)eok_class_rvalue_adjust ||
@@ -13101,8 +13119,7 @@ rest of lowering only sees an eok_indirect operator.
   /* Lower (and potentially optimize) the new expression. */
   lower_expr(expr);
   /* Change reference type to pointer type.  Do this after lowering the
-     expression so the reference type still exists.  lower_dynamic_cast
-     currently depends on this behavior. */
+     expression so the reference type still exists. */
   operand->type = make_pointer_type(type_pointed_to(operand->type));
 }  /* lower_ref_indirect */
 
@@ -13631,6 +13648,7 @@ cast.  See lower_expr for typical invocation.
             break;
 #if ABI_CHANGES_FOR_RTTI
           case eok_dynamic_cast:
+          case eok_ref_dynamic_cast:
             lower_dynamic_cast(expr);
             break;
 #endif /* ABI_CHANGES_FOR_RTTI */
