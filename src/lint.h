@@ -38,6 +38,8 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(765,type_from_src_seq_declaration)*/
 /*lint -esym(759,form_type_qualifier)*/
 /*lint -esym(765,form_type_qualifier)*/
+/*lint -esym(759,file_name_in_external_encoding)*/
+/*lint -esym(765,file_name_in_external_encoding)*/
 /*lint -esym(759,form_pm_constant)*/
 /*lint -esym(765,form_pm_constant)*/
 /*lint -esym(759,form_lvalue_address_constant)*/
