@@ -6191,15 +6191,19 @@ C++.
          change cv-qualification (e.g., to add const).  We skip those, as
          well. */
 #if CHECKING
-      a_type_ptr dest_type = node->type;
-      a_type_ptr src_type = node->variant.operation.operands->type;
-      if (is_pointer_type(dest_type) && is_pointer_type(src_type)) {
-        /* The qualifiers are under the pointer type. */
-        dest_type = type_pointed_to(dest_type);
-        src_type = type_pointed_to(src_type);
-      }  /* if */
-      if (skip_typerefs(dest_type) != skip_typerefs(src_type)) {
-        internal_error("optimized_expr_for_selection: unexpected cast.");
+      /* Some eok_cast nodes in prototype instantiations deal with more
+         than just a cv-qualification adjustment. */
+      if (!node_operator_is(node, eok_cast)) {
+        a_type_ptr dest_type = node->type;
+        a_type_ptr src_type = node->variant.operation.operands->type;
+        if (is_pointer_type(dest_type) && is_pointer_type(src_type)) {
+          /* The qualifiers are under the pointer type. */
+          dest_type = type_pointed_to(dest_type);
+          src_type = type_pointed_to(src_type);
+        }  /* if */
+        if (skip_typerefs(dest_type) != skip_typerefs(src_type)) {
+          internal_error("optimized_expr_for_selection: unexpected cast.");
+        }  /* if */
       }  /* if */
 #endif /* CHECKING */
     }  /* if */
