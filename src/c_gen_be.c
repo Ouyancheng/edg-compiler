@@ -3776,7 +3776,15 @@ on top of the expansion.
     dump_cast(node->type);
   } else {
     if (!suppress_indirection) write_tok_ch('*');
-    dump_cast_to_pointer_to(node->type);
+      /* If an eok_lvalue_adjust has an implicit lvalue-to-rvalue conversion
+         built in, and the underlying lvalue is a function, the decay to
+         rvalue adds a "pointer-to" to the type. */
+    if (!node->is_lvalue &&
+        is_function_type(operand_1->type)) {
+      dump_cast(node->type);
+    } else {
+      dump_cast_to_pointer_to(node->type);
+    }  /* if */
     if (is_operation_node(operand_1) &&
         node_operator_is(operand_1, eok_indirect)) {
       /* Cancel "&" over "*" to avoid a gcc bug when the underlying type

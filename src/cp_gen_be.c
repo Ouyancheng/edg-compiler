@@ -6972,17 +6972,27 @@ is_reinterpret_cast indicate it.
   if (expr->variant.operation.is_reference_cast ||
       op == (an_expr_operator_kind)eok_ref_cast ||
       op == (an_expr_operator_kind)eok_ref_dynamic_cast) {
-    if (!expr->is_lvalue && expr->is_static_cast &&
-        any_qualifier_missing(dest_type, operand_1->type)) {
-      /* This node is a static_cast to a reference type followed by an
-         lvalue-to-rvalue conversion that drops the cv-qualifiers.  We don't
-         have a way of recovering the original cv-qualifiers of the reference
-         cast, so just turn this into an old-style cast so the code will
-         not get an error for the dropped cv-qualifiers in the cast. */
-      expr->is_static_cast = FALSE;
+    /* A cast to a reference type. */
+    if (!expr->is_lvalue) {
+      /* The cast has an lvalue-to-rvalue conversion built in, so the node
+         type may be a little different from the underlying cast type. */
+      if (is_function_type(operand_1->type)) {
+        /* When the underlying lvalue is a function, the decay to rvalue
+           adds a "pointer-to" to the type, which must be stripped off to
+           get back to the underlying cast type. */
+        dest_type = type_pointed_to(dest_type);
+      }  /* if */
+      if (expr->is_static_cast &&
+          any_qualifier_missing(dest_type, operand_1->type)) {
+        /* This node is a static_cast to a reference type followed by an
+           lvalue-to-rvalue conversion that drops some cv-qualifiers.  We don't
+           have a way of recovering the original cv-qualifiers of the reference
+           cast, so just turn this into an old-style cast so the code will
+           not get an error for the dropped cv-qualifiers in the cast. */
+        expr->is_static_cast = FALSE;
+      }  /* if */
     }  /* if */
-    /* Substitute a reference type for the destination type in the
-       reference cast case. */
+    /* Substitute a reference type for the destination type. */
     clear_type(&ref_type, (a_type_kind)tk_pointer);
     ref_type.variant.pointer.is_reference = TRUE;
     ref_type.variant.pointer.type = dest_type;
