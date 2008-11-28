@@ -6835,13 +6835,19 @@ source operand is an lvalue.
       operand->type = dest_type;
     }  /* if */
   } else {
-    /* Non-constant expression.  Generate a cast expression. */
-    if (!is_implicit_cast ||
-        !il_identical_types(operand->type, dest_type)) {
+    /* Non-constant expression.  Generate a cast expression.  For an
+       implicit conversion, it's okay to add nothing at all. */
+    if (!is_implicit_cast || !identical_types(operand->type, dest_type)) {
       an_expr_node_ptr expr, opexpr = make_node_from_operand(operand);
-      if (!is_class_struct_union_type(dest_type) ||
-          is_reference_cast ||
-          source_form == csf_dynamic_cast) {
+      /* Certain kinds of casts are known not to create a new object.
+         For others that might create a class object, use an enk_temp_init
+         form. */
+      if (source_form == csf_const_cast ||
+          source_form == csf_reinterpret_cast ||
+          source_form == csf_dynamic_cast ||
+          !is_class_struct_union_type(dest_type) ||
+          (is_reference_cast &&
+           identical_types_ignoring_qualifiers(operand->type, dest_type))) {
         /* Render the cast as a cast operator. */
         an_expr_operator_kind op;
         if (source_form == csf_dynamic_cast) {

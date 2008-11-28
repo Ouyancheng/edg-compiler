@@ -15331,17 +15331,6 @@ to TRUE if a warning about the expression doing nothing should be suppressed.
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
       if (vla_enabled && type_has_side_effects(node->type)) {
         has_side_effects = TRUE;
-      } else if (could_be_dependent_class_type(node->type) ||
-                 could_be_dependent_class_type(op1->type)) {
-        /* A cast to or from a dependent class type could do anything. */
-        has_side_effects = TRUE;
-      }  /* if */
-      break;
-    case eok_ref_cast:
-      if (could_be_dependent_class_type(node->type) ||
-          could_be_dependent_class_type(op1->type)) {
-        /* A cast to or from a dependent class type could do anything. */
-        has_side_effects = TRUE;
       }  /* if */
       break;
 #if C99_IL_EXTENSIONS_SUPPORTED
@@ -15407,6 +15396,7 @@ doing nothing should be suppressed.
 */
 {
   a_boolean has_side_effects = FALSE;
+  a_boolean suppress_warning = FALSE;
 
   switch (node->kind) {
     case enk_error:
@@ -15428,11 +15418,14 @@ doing nothing should be suppressed.
       /* No side effects at this level.  See below for volatile fetch. */
       break;
     case enk_temp_init:
-      /* At the very least, this has the side effect of initializing
-         something.  It might also call a constructor, etc.  In C
-         mode, enk_temp_init is used for compound literals, which
-         can be considered not to be side effects. */
-      if (!C_mode()) has_side_effects = TRUE;
+      if (dynamic_init_has_side_effects(node->variant.init.dynamic_init,
+                                        &suppress_warning)) {
+        has_side_effects = TRUE;
+      } else if (!C_mode() && is_class_struct_union_type(node->type)) {
+        /* Construction of a class object in C++ might be part of
+           some conceptual action, so suppress a warning. */
+        suppress_warning = TRUE;
+      }  /* if */
       break;
     case enk_condition:
       /* At the very least, this has the side effect of initializing
@@ -15453,7 +15446,7 @@ doing nothing should be suppressed.
            polymorphic class type can throw an exception if the pointer is
            NULL. */
         if (is_polymorphic_class_type(node->variant.typeid_info.type) ||
-            is_template_param_type(node->variant.typeid_info.type)) {
+            could_be_dependent_class_type(node->variant.typeid_info.type)) {
           has_side_effects = TRUE;
         }  /* if */
       }  /* if */
@@ -15502,14 +15495,26 @@ doing nothing should be suppressed.
         is_volatile_qualified_type(fetched_type)) {
       /* An operation that loads a volatile object has a side effect. */
       has_side_effects = TRUE;
-    } else if (!C_mode() && in_front_end &&
-               is_template_dependent_context() &&
-               is_template_dependent_type(node->type)) {
+    } else if (could_be_dependent_class_type(node->type) &&
+               is_operation_node(node)) {
       /* A node with a template parameter type is considered to have
          side effects.  This is because it's possible that when the type
          is actually known an overloaded operator function would be chosen,
          which would mean a function call. */
       has_side_effects = TRUE;
+      if (node->is_lvalue) {
+        a_constant local_constant;
+        if (constant_lvalue_address(node, &local_constant,
+                                    /*address_escapes=*/FALSE,
+                                    (a_boolean *)NULL)) {
+          /* Don't consider an expression whose address is constant to have
+             side effects.  This is a detail, but helps ensure that we get
+             the same declared-but-not-referenced warnings regardless of how
+             aggressively we try to fold addressing expressions to
+             constants. */
+          has_side_effects = FALSE;
+        }  /* if */
+      }  /* if */
     }  /* if */
   }  /* if */
   if (has_side_effects) {
@@ -15517,6 +15522,7 @@ doing nothing should be suppressed.
     tblock->result = TRUE;
     tblock->terminate = TRUE;
   }  /* if */
+  if (suppress_warning) tblock->suppress_warning = TRUE;
 }  /* examine_expr_for_side_effect */
 
 
