@@ -15419,10 +15419,8 @@ doing nothing should be suppressed.
       break;
     case enk_temp_init:
       /* At the very least, this has the side effect of initializing
-         something.  It might also call a constructor, etc.  In C
-         mode, enk_temp_init is used for compound literals, which
-         can be considered not to be side effects. */
-      if (!C_mode()) has_side_effects = TRUE;
+         something.  It might also call a constructor, etc. */
+      has_side_effects = TRUE;
       break;
     case enk_condition:
       /* At the very least, this has the side effect of initializing
