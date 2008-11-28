@@ -6846,8 +6846,7 @@ source operand is an lvalue.
           source_form == csf_reinterpret_cast ||
           source_form == csf_dynamic_cast ||
           !is_class_struct_union_type(dest_type) ||
-          (is_reference_cast &&
-           identical_types_ignoring_qualifiers(operand->type, dest_type))) {
+          is_reference_cast) {
         /* Render the cast as a cast operator. */
         an_expr_operator_kind op;
         if (source_form == csf_dynamic_cast) {
