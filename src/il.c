@@ -15418,14 +15418,11 @@ doing nothing should be suppressed.
       /* No side effects at this level.  See below for volatile fetch. */
       break;
     case enk_temp_init:
-      if (dynamic_init_has_side_effects(node->variant.init.dynamic_init,
-                                        &suppress_warning)) {
-        has_side_effects = TRUE;
-      } else if (!C_mode() && is_class_struct_union_type(node->type)) {
-        /* Construction of a class object in C++ might be part of
-           some conceptual action, so suppress a warning. */
-        suppress_warning = TRUE;
-      }  /* if */
+      /* At the very least, this has the side effect of initializing
+         something.  It might also call a constructor, etc.  In C
+         mode, enk_temp_init is used for compound literals, which
+         can be considered not to be side effects. */
+      if (!C_mode()) has_side_effects = TRUE;
       break;
     case enk_condition:
       /* At the very least, this has the side effect of initializing
