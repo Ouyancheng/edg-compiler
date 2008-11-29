@@ -29,7 +29,7 @@ original form.
 Microsoft C++ compatibility: dllimport/dllexport and explicit instantiations
 
 In Microsoft C++ mode, explicitly instantiating an ordinary (i.e., nontemplate)
-member function of a class template, applies the dllimport/dllexport specifiers
+member function of a class template applies the dllimport/dllexport specifiers
 from the template to the instantiation directive if no such specifiers appeared
 on the directive itself.  This includes the "do not instantiate" meaning of the
 dllimport specifier.  For example:
