@@ -15422,6 +15422,11 @@ doing nothing should be suppressed.
         /* If the address of the temporary can escape, there is at least the
            side effect of initializing the temporary. */
         has_side_effects = TRUE;
+      } else if (node->variant.init.dynamic_init->is_reused_value) {
+        /* The value of the temporary is used again, so the initialization
+           of the temporary does count as a side effect even though its address
+           cannot escape. */
+        has_side_effects = TRUE;
       } else if (dynamic_init_has_side_effects(node->variant.init.dynamic_init,
                                                &suppress_warning)) {
         /* If the value of the temporary is used, its address does not escape,
