@@ -15418,9 +15418,17 @@ doing nothing should be suppressed.
       /* No side effects at this level.  See below for volatile fetch. */
       break;
     case enk_temp_init:
-      /* At the very least, this has the side effect of initializing
-         something.  It might also call a constructor, etc. */
-      has_side_effects = TRUE;
+      if (node->is_lvalue) {
+        /* If the address of the temporary can escape, there is at least the
+           side effect of initializing the temporary. */
+        has_side_effects = TRUE;
+      } else if (dynamic_init_has_side_effects(node->variant.init.dynamic_init,
+                                               &suppress_warning)) {
+        /* If the value of the temporary is used, its address does not escape,
+           so that initialization is not counted as a side effect.  But there
+           may still be a side effect inside the initialization. */
+        has_side_effects = TRUE;
+      }  /* if */
       break;
     case enk_condition:
       /* At the very least, this has the side effect of initializing
