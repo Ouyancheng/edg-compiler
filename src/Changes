@@ -84,9 +84,9 @@ found in that specific interface is overridden.  For example:
     void C2::f() {}  // Overrides B::f (only) in the C2::B subobject.
   };
 
-Note that for such cases, special routine entries (called "interface slots")
+Note that for such cases special routine entries (called "interface slots")
 are added to the interfaces (C1::f and C2::f in the example above).  These are
-pointed too by IL entries for the selectively overriding member functions (and
+pointed to by IL entries for the selectively overriding member functions (and
 used for name mangling, though they can otherwise be ignored for code-
 generation purposes).
 
