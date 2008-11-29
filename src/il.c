@@ -15425,9 +15425,13 @@ doing nothing should be suppressed.
       } else if (dynamic_init_has_side_effects(node->variant.init.dynamic_init,
                                                &suppress_warning)) {
         /* If the value of the temporary is used, its address does not escape,
-           so that initialization is not counted as a side effect.  But there
+           so the initialization is not counted as a side effect.  But there
            may still be a side effect inside the initialization. */
         has_side_effects = TRUE;
+      } else if (!C_mode() && is_class_struct_union_type(node->type)) {
+        /* Construction of a class object in C++ might be part of
+           some conceptual action, so suppress a warning. */
+        suppress_warning = TRUE;
       }  /* if */
       break;
     case enk_condition:
