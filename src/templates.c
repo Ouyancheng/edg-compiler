@@ -896,7 +896,9 @@ body lines.
   if (f_exported_template == NULL) {
     open_exported_template_file_for_output();
     /* Output the file name. */
-    write_to_exported_template_file(etlt_file_name, primary_source_file_name);
+    write_to_exported_template_file(
+                     etlt_file_name,
+                     file_name_in_external_encoding(primary_source_file_name));
   }  /* if */
   fprintf(f_exported_template, "%s:%s",
           exported_template_line_type_names[(int)line_type],
@@ -18747,6 +18749,7 @@ This routine reads all of the entries from a given exported template file.
     line_type = get_exported_line_type(line);
     if (line_type == etlt_file_name) {
       char	*name = &line[4];
+      name = file_name_in_internal_encoding(name);
       line_type = get_exported_line_type(line);
       /* Create an entry that describes this exported template file. */
       etfp = alloc_exported_template_file();
@@ -19714,7 +19717,8 @@ file.
   file_name = generate_instantiation_output_file_name(name);
   /* Write the generated file name to the template info file. */
   write_to_template_info_file(tilt_instantiation_file_name,
-                              file_name, (char*)NULL, (a_symbol_ptr)NULL);
+                              file_name_in_external_encoding(file_name),
+                              (char*)NULL, (a_symbol_ptr)NULL);
 }  /* write_instantiation_file_name_to_template_info_file */
 
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
@@ -19796,8 +19800,9 @@ file specified by "sfp", and any of its child files.
     if (sfp->full_name != NULL) {
       /* Write a dependency line that specifies the file name to the
          template information file. */
-      write_to_template_info_file(tilt_dependency, sfp->full_name,
-                                  (char*)NULL, (a_symbol_ptr)NULL);
+      write_to_template_info_file(
+               tilt_dependency, file_name_in_external_encoding(sfp->full_name),
+               (char*)NULL, (a_symbol_ptr)NULL);
       if (sfp->first_child_file != NULL) {
         write_dependency_information_for_file(sfp->first_child_file);
       }  /* if */
