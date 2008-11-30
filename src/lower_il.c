@@ -12770,8 +12770,9 @@ that are specific to inlining and therefore yield different results.
     an_expr_operator_kind op = expr->variant.operation.kind;
     if (op == (an_expr_operator_kind)eok_address_of ||
         op == (an_expr_operator_kind)eok_array_to_pointer ||
-        op == (an_expr_operator_kind)eok_ref_cast ||
-        op == (an_expr_operator_kind)eok_lvalue_adjust ||
+        ((op == (an_expr_operator_kind)eok_ref_cast ||
+          op == (an_expr_operator_kind)eok_lvalue_adjust) &&
+         expr->is_lvalue) ||
         op == (an_expr_operator_kind)eok_lvalue_cast ||
         op == (an_expr_operator_kind)eok_class_rvalue_adjust ||
         (op == (an_expr_operator_kind)eok_cast &&
