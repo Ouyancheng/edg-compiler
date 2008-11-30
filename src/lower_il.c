@@ -12766,70 +12766,80 @@ that are specific to inlining and therefore yield different results.
        addresses.  extern routines might have zero addresses because of
        linker magic like weak externals. */
     *is_non_null = routine_has_non_null_address(expr->variant.routine);
+  } else if (node_includes_lvalue_to_rvalue_conv(expr)) {
+    /* Node includes an lvalue-to-rvalue conversion ("load from memory"),
+       so it's not constant valued. */
   } else if (is_operation_node(expr)) {
     an_expr_operator_kind op = expr->variant.operation.kind;
-    if (op == (an_expr_operator_kind)eok_address_of ||
-        op == (an_expr_operator_kind)eok_array_to_pointer ||
-        ((op == (an_expr_operator_kind)eok_ref_cast ||
-          op == (an_expr_operator_kind)eok_lvalue_adjust) &&
-         expr->is_lvalue) ||
-        op == (an_expr_operator_kind)eok_lvalue_cast ||
-        op == (an_expr_operator_kind)eok_class_rvalue_adjust ||
-        (op == (an_expr_operator_kind)eok_cast &&
-         is_pointer_type(expr->type))) {
-      /* These operations are constant valued provided their first
-         operand is constant-valued. */
-      /* A cast of a constant address is constant-valued.  This is useful on a
-         cast of the address of a local variable to adjust its cv-qualification
-         when it is passed as the "this" parameter to a constructor or
-         destructor. */
-      is_constant_valued =
-                is_constant_valued_expression(expr->variant.operation.operands,
-                                              local_vars_change,
-                                              other_vars_change,
-                                              is_non_null);
-    } else if (op == (an_expr_operator_kind)eok_padd ||
-               op == (an_expr_operator_kind)eok_psubtract ||
-               (expr->is_lvalue &&
-                op == (an_expr_operator_kind)eok_subscript)) {
-      /* These operations are constant provided both operands are as well.
-         Note that pointer and integer operands can be in either order 
-         (for eok_padd and eok_subscript) but we don't care here. */
-      a_boolean op1_is_non_null, op2_is_non_null;
-      if (is_constant_valued_expression(expr->variant.operation.operands,
-                                        local_vars_change,
-                                        other_vars_change,
-                                        &op1_is_non_null)) {
-        is_constant_valued = is_constant_valued_expression(
-                                        expr->variant.operation.operands->next,
-                                        local_vars_change,
-                                        other_vars_change,
-                                        &op2_is_non_null);
-        if (op == (an_expr_operator_kind)eok_psubtract) {
-          /* Can't make any guarantees about is_non_null, so leave it FALSE. */
-        } else {
-          /* If either operand is non-null, the sum will be non-null
-             as well. */
-          *is_non_null = op1_is_non_null || op2_is_non_null;
+    an_expr_node_ptr      operand = expr->variant.operation.operands;
+    switch (op) {
+      case eok_address_of:
+      case eok_array_to_pointer:
+      case eok_ref_cast:
+      case eok_lvalue_adjust:
+      case eok_lvalue_cast:
+      case eok_class_rvalue_adjust:
+        /* These operations are constant valued provided their first
+           operand is constant-valued. */
+        is_constant_valued = is_constant_valued_expression(operand,
+                                                           local_vars_change,
+                                                           other_vars_change,
+                                                           is_non_null);
+        break;
+      case eok_cast:
+        /* A cast of a constant address is constant-valued.  This is useful on
+           a cast of the address of a local variable to adjust its
+           cv-qualification when it is passed as the "this" parameter to a
+           constructor or destructor. */
+        if (is_pointer_type(expr->type)) {
+          is_constant_valued = is_constant_valued_expression(operand,
+                                                             local_vars_change,
+                                                             other_vars_change,
+                                                             is_non_null);
         }  /* if */
-      }  /* if */
-    } else if (expr->is_lvalue &&
-               (op == (an_expr_operator_kind)eok_dot_field ||
-                op == (an_expr_operator_kind)eok_points_to_field)) {
-      /* Field selection lvalue.  Invariant if the first operand is
-         invariant. */
-      is_constant_valued =
-                is_constant_valued_expression(expr->variant.operation.operands,
-                                              local_vars_change,
-                                              other_vars_change,
-                                              is_non_null);
-      if (!*is_non_null &&
-          expr->variant.operation.operands->next->variant.field->offset != 0) {
-        /* If the field offset is non-zero, the entire expression will
-           be non-zero even if the class address is zero. */
-        *is_non_null = TRUE;
-      }  /* if */
-    }  /* if */
+        break;
+      case eok_padd:
+      case eok_psubtract:
+      case eok_subscript:
+        /* These operations are constant provided both operands are as well.
+           Note that pointer and integer operands can be in either order 
+           (for eok_padd and eok_subscript) but we don't care here. */
+        { a_boolean op1_is_non_null, op2_is_non_null;
+          if (is_constant_valued_expression(operand,
+                                            local_vars_change,
+                                            other_vars_change,
+                                            &op1_is_non_null)) {
+            is_constant_valued = is_constant_valued_expression(
+                                                             operand->next,
+                                                             local_vars_change,
+                                                             other_vars_change,
+                                                             &op2_is_non_null);
+            if (op == (an_expr_operator_kind)eok_padd ||
+                op == (an_expr_operator_kind)eok_subscript) {
+              /* If either operand is non-null, the sum will be non-null
+                 as well. */
+              *is_non_null = op1_is_non_null || op2_is_non_null;
+            }  /* if */
+          }  /* if */
+        }
+        break;
+      case eok_dot_field:
+      case eok_points_to_field:
+        /* Field selection lvalue.  Invariant if the first operand is
+           invariant. */
+        is_constant_valued = is_constant_valued_expression(operand,
+                                                           local_vars_change,
+                                                           other_vars_change,
+                                                           is_non_null);
+        if (!*is_non_null && operand->next->variant.field->offset != 0) {
+          /* If the field offset is non-zero, the entire expression will
+             be non-zero even if the class address is zero. */
+          *is_non_null = TRUE;
+        }  /* if */
+        break;
+      default:
+        break;
+    }  /* switch */
   }  /* if */
   return is_constant_valued;
 }  /* is_constant_valued_expression */
