@@ -15418,26 +15418,9 @@ doing nothing should be suppressed.
       /* No side effects at this level.  See below for volatile fetch. */
       break;
     case enk_temp_init:
-      if (node->is_lvalue) {
-        /* If the address of the temporary can escape, there is at least the
-           side effect of initializing the temporary. */
-        has_side_effects = TRUE;
-      } else if (node->variant.init.dynamic_init->is_reused_value) {
-        /* The value of the temporary is used again, so the initialization
-           of the temporary does count as a side effect even though its address
-           cannot escape. */
-        has_side_effects = TRUE;
-      } else if (dynamic_init_has_side_effects(node->variant.init.dynamic_init,
-                                               &suppress_warning)) {
-        /* If the value of the temporary is used, its address does not escape,
-           so the initialization is not counted as a side effect.  But there
-           may still be a side effect inside the initialization. */
-        has_side_effects = TRUE;
-      } else if (!C_mode() && is_class_struct_union_type(node->type)) {
-        /* Construction of a class object in C++ might be part of
-           some conceptual action, so suppress a warning. */
-        suppress_warning = TRUE;
-      }  /* if */
+      /* There is always at least the side effect of initializing the
+         temporary. */
+      has_side_effects = TRUE;
       break;
     case enk_condition:
       /* At the very least, this has the side effect of initializing
