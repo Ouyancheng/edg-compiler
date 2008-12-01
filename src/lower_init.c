@@ -4305,9 +4305,7 @@ static void lower_dynamic_init_aggregate_constant(
                           a_constructor_init_ptr ctor_init,
                           a_boolean              others_follow_in_aggr,
                           an_insert_location_ptr insert_location,
-#if GNU_VECTOR_TYPES_ALLOWED
                           a_boolean              *contains_vector_dynamic_init,
-#endif /* GNU_VECTOR_TYPES_ALLOWED */
                           a_boolean              *keep_constant)
 /*
 aggr_const points to a ck_aggregate constant that contains one or more
@@ -4319,10 +4317,11 @@ initialization is part of a constructor initializer, ctor_init points to
 the constructor-init entry.  others_follow_in_aggr is TRUE if this constant
 is followed by others in an aggregate initialization (i.e., it's not the
 last).  Insert statements to implement the initialization at *insert_location
-and update *insert_location.  Sets *contains_vector_dynamic_init to TRUE if
-aggr_con is a vector that contains a dynamic initialization for a vector
-element.  If there are any (genuine) constants in the aggregate, set
-*keep_constant to TRUE.
+and update *insert_location.  If contains_vector_dynamic_init is non-NULL,
+set *contains_vector_dynamic_init to TRUE if aggr_con is a vector that
+contains a dynamic initialization for a vector element, FALSE otherwise.
+If there are any (genuine) constants in the aggregate, set *keep_constant to
+TRUE.
 */
 {
   an_init_pos_descr    ipd;
@@ -4331,6 +4330,9 @@ element.  If there are any (genuine) constants in the aggregate, set
   a_constant_ptr       con_ptr, repeated_con, prev_con, next_con;
   a_boolean            array_aggr, array_or_vector = FALSE;
 
+  if (contains_vector_dynamic_init != NULL) {
+    *contains_vector_dynamic_init = FALSE;
+  }  /* if */
   /* Mark the constant as visited.  This is necessary if the aggregate
      constant ends up being kept because something constant remains after
      the non-constant parts have been rewritten. */
@@ -4417,7 +4419,8 @@ element.  If there are any (genuine) constants in the aggregate, set
            which is always kept in the constant.  Signal to our caller that
            the dip that contains this should be a dik_nonconstant_aggregate
            rather than a dik_constant. */
-        check_assertion(keep_constant);
+        check_assertion(*keep_constant &&
+                        contains_vector_dynamic_init != NULL);
         *contains_vector_dynamic_init = TRUE;
       }  /* if */
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
@@ -4468,9 +4471,7 @@ element.  If there are any (genuine) constants in the aggregate, set
       lower_dynamic_init_aggregate_constant(con_ptr, &ipd,
                                             dtor_case, ctor_init,
                                             others_follow, insert_location,
-#if GNU_VECTOR_TYPES_ALLOWED
                                             contains_vector_dynamic_init,
-#endif /* GNU_VECTOR_TYPES_ALLOWED */
                                             keep_constant);
     } else {
       /* Normal constant. */
@@ -6915,6 +6916,8 @@ do_assignment:;
                                             eff_insert_location,
 #if GNU_VECTOR_TYPES_ALLOWED
                                             &contains_vector_dynamic_init,
+#else /* !GNU_VECTOR_TYPES_ALLOWED */
+                                            (a_boolean *)NULL,
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
                                             &keep_constant);
       if (keep_constant) {
@@ -11498,9 +11501,6 @@ array if necessary.  The statements created are inserted at
     /* Odd case: destructor for an array.  The top level looks like an
        initialization; lower down we will find dynamic init entries for
        the destruction. */
-#if GNU_VECTOR_TYPES_ALLOWED
-    a_boolean contains_vector_dynamic_init = FALSE;
-#endif /* GNU_VECTOR_TYPES_ALLOWED */
 #if CHECKING
     if (ctor_init->kind != (a_constructor_init_kind)cik_field) {
       internal_error("lower_dtor_init: aggr value for non-field");
@@ -11512,16 +11512,10 @@ array if necessary.  The statements created are inserted at
                                           (a_constructor_init_ptr)NULL,
                                           /*others_follow_in_aggr=*/FALSE,
                                           insert_location,
-#if GNU_VECTOR_TYPES_ALLOWED
-                                          &contains_vector_dynamic_init,
-#endif /* GNU_VECTOR_TYPES_ALLOWED */
+                                          (a_boolean *)NULL,
                                           &keep_constant);
 #if CHECKING
-    if (keep_constant
-#if GNU_VECTOR_TYPES_ALLOWED
-        || contains_vector_dynamic_init
-#endif /* GNU_VECTOR_TYPES_ALLOWED */
-                                     ) {
+    if (keep_constant) {
       internal_error("lower_dtor_init: unexpected result");
     }  /* if */
 #endif /* CHECKING */
