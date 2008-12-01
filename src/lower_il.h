@@ -1138,6 +1138,10 @@ extern unsigned long show_lowering_space_used(void);
 extern unsigned long compute_checksum_for_expr(an_expr_node_ptr expr);
 
 extern unsigned long compute_checksum_for_statement(a_statement_ptr statement);
+
+extern void db_context(a_context_ptr context);
+
+extern void db_context_stack(void);
 #endif /* DEBUG */
 
 extern void function_lower_init(void);

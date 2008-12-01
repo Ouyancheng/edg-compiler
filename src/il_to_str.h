@@ -330,9 +330,9 @@ extern void remap_template_param(a_template_param_coordinate_ptr  coord,
 
 extern void unmap_template_param(a_template_param_coordinate_ptr  coord);
 
-extern an_expr_node_ptr decltype_arg(a_type_ptr  type);
-
 #endif /* BACK_END_IS_CP_GEN_BE */
+
+extern an_expr_node_ptr decltype_arg(a_type_ptr  type);
 
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
 extern a_source_correspondence_ptr source_corresp_for_template_param(

@@ -376,6 +376,8 @@ extern void db_text_buffer(char		*prefix,
 			   a_text_buffer_ptr	buf);
 
 extern void db_prefix(char  *entry);
+
+extern an_il_entry_prefix_ptr db_prefix_ptr(char  *entry);
 #endif /* DEBUG */
 
 #endif /* ifndef MEM_MANAGE_H */

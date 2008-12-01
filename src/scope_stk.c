@@ -4598,7 +4598,7 @@ NULL.
                                     ec_declared_but_not_referenced,
                                     es_warning);
               }  /* if */
-            }  /* if */
+            }  /* for */
           }  /* if */
         }  /* if */
 #if CHECKING

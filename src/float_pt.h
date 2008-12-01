@@ -64,6 +64,8 @@ extern void round_hex_fp_value(a_mantissa_ptr	mp,
 extern void db_mantissa(a_mantissa_ptr	mp);
 
 extern void db_internal_float_value(an_internal_float_value *ifv);
+
+extern void db_long_double(long double d);
 #endif /* DEBUG */
 
 extern void conv_hex_string_to_mantissa_and_exponent(
