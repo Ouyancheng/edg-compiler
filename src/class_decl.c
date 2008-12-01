@@ -3188,8 +3188,7 @@ extension.)
   a_routine_ptr     ofp = overrider->overridden_function;
 
   check_assertion(ofp != NULL);
-  if (!skip_typerefs(base_class->type)
-                                 ->variant.class_struct_union.is_interface) {
+  if (!base_class->type->variant.class_struct_union.is_interface) {
     /* For non-interface base classes, the overrider must directly indicate
        the overridden function, and all the base subobjects are overridden.
        For example:
