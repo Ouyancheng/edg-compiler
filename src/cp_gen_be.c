@@ -6964,7 +6964,7 @@ is_reinterpret_cast indicate it.
   a_type_ptr            dest_type = expr->type;
   an_expr_operator_kind op = expr->variant.operation.kind;
   an_expr_node_ptr      operand_1 = expr->variant.operation.operands;
-  a_type                ref_type;
+  a_type                ref_type, quals_type;
   char                  *new_cast_keyword = NULL;
 
   if (expr->variant.operation.is_reference_cast ||
@@ -6983,11 +6983,19 @@ is_reinterpret_cast indicate it.
       if (expr->is_static_cast &&
           any_qualifier_missing(dest_type, operand_1->type)) {
         /* This node is a static_cast to a reference type followed by an
-           lvalue-to-rvalue conversion that drops some cv-qualifiers.  We don't
+           lvalue-to-rvalue conversion that drops the cv-qualifiers.  We don't
            have a way of recovering the original cv-qualifiers of the reference
-           cast, so just turn this into an old-style cast so the code will
-           not get an error for the dropped cv-qualifiers in the cast. */
-        expr->is_static_cast = FALSE;
+           cast, so make a destination type that has all the cv-qualifiers
+           of the source lvalue, which will do the right thing and
+           compile correctly. */
+        a_type_qualifier_set dest_quals = get_type_qualifiers(dest_type);
+        a_type_qualifier_set src_quals  = get_type_qualifiers(operand_1->type);
+        a_type_qualifier_set quals_to_add;
+        quals_to_add = src_quals & ~dest_quals;
+        clear_type(&quals_type, (a_type_kind)tk_typeref);
+        quals_type.variant.typeref.type = dest_type;
+        quals_type.variant.typeref.qualifiers = quals_to_add;
+        dest_type = &quals_type;
       }  /* if */
     }  /* if */
     /* Substitute a reference type for the destination type. */
