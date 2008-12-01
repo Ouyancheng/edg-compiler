@@ -6413,21 +6413,23 @@ static void gen_pm_simple_field_selection(an_expr_node_ptr object_expr,
                                           an_expr_node_ptr pm_expr)
 /*
 Generate "object_expr .* pm_expr" or "object_expr ->* pm_expr", depending
-on object_expr.  object_expr is either an lvalue for an object (the ".*"
-case) or an rvalue for a pointer to an object (the "->*") case, and pm_expr
-is a pointer to member.  The caller will put parentheses around this
-selection.
+on object_expr.  object_expr is either an lvalue or rvalue for an object
+(the ".*" case) or an rvalue for a pointer to an object (the "->*") case,
+and pm_expr is a pointer to member.  The caller will put parentheses around
+this selection.
 */
 {
   object_expr = skip_parens(object_expr);
+  /* Restore the original expression, in case the front end has
+     transformed an lvalue into a pointer. */
   (void)strip_lvalue_cast_sequence(&object_expr);
   gen_expr_with_parens(object_expr);
-  if (object_expr->is_lvalue) {
-    /* ".*" case. */
-    write_tok_str(".*");
-  } else {
+  if (is_pointer_type(object_expr->type)) {
     /* "->*" form. */
     write_tok_str("->*");
+  } else {
+    /* ".*" case. */
+    write_tok_str(".*");
   }  /* if */
   gen_expr_with_parens(pm_expr);
 }  /* gen_pm_simple_field_selection */
@@ -6736,13 +6738,9 @@ Generate a va_arg operator.  Used when <stdarg.h> is treated as a builtin.
 
 static a_boolean strip_lvalue_cast_sequence(an_expr_node_ptr *expr)
 /*
-When the front end needs to add a cast to an lvalue node (to add
-cv-qualification, for example), it inserts a compiler-generated sequence of
-nodes equivalent to "*(const T*)&" on top of the lvalue node.  A similar
-pattern is used to convert an object reference into a pointer for use as
-the "this" parameter of a member function.  This routine recognizes this
-pattern (in which case, *expr points to a cast node -- the eok_indirect
-node, if any, was recognized and skipped by the caller) and updates *expr
+In some cases the front end converts an lvalue into a pointer rvalue,
+possibly adjusting its type using eok_cast and/or eok_base_class_cast
+operations as well.  This routine recognizes this pattern and updates *expr
 to point to the original lvalue.  It returns TRUE if the sequence was
 removed and FALSE otherwise.
 */
@@ -8400,17 +8398,7 @@ gen_expr that might end up generating this expr as a temporary.
           /* Handled above. */
           unexpected_condition();
         case eok_pm_field:
-          opstr = ".*";
-          break;
         case eok_pm_points_to_field:
-          /* Unlike eok_pm_field, which always represents ".*" in the
-             source and thus can be generated using the default processing,
-             eok_pm_points_to_field sometimes represents "->*" and
-             sometimes ".*" (in the latter case, a compiler-generated
-             eok_address_of is added by the front end to produce a
-             pointer).  gen_simple_pm_field_selection has the logic
-             necessary to distinguish these cases and generate the
-             appropriate operand and operator. */
           gen_pm_simple_field_selection(operand_1, operand_2);
           goto done_with_operation;
         case eok_dynamic_cast:
