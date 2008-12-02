@@ -1172,14 +1172,16 @@ supported in the file name, handle that specially.
     for (i = 0; i < wmodelen; i++) wmode[i] = (wchar_t)mode[i];
     /* Call the wide open routine. */
     file = _wfopen(wide_filename, wmode);
-  } else
-#endif /* EDG_WIN32 && UNICODE_SOURCE_SUPPORTED */
-  /* Do not insert code here. */
-  {
-    /* Translate the file name into the form used by the file system. */
-    filename = file_name_in_external_encoding(filename);
+  } else {
+    /* The file name contained no special characters.  Just do a normal
+       open. */
     file = fopen(filename, mode);
-  }
+  }  /* if */
+#else /* !(EDG_WIN32 && UNICODE_SOURCE_SUPPORTED) */
+  /* Translate the file name into the form used by the file system. */
+  filename = file_name_in_external_encoding(filename);
+  file = fopen(filename, mode);
+#endif /* EDG_WIN32 && UNICODE_SOURCE_SUPPORTED */
   return file;
 }  /* fopen_interface */
 
@@ -2130,9 +2132,9 @@ is returned. If no conversion is required, the original string is returned.
 #endif /* EDG_WIN32 */
   if (DEFAULT_UNICODE_SOURCE_KIND == usk_none) {  /*lint !e506*/
     /* The environment uses a non-Unicode encoding.  Go through the file
-       name and check for any multibyte characters or characters > 0x7f.
-       If it contains any such characters, it must be rewritten as UTF-8
-       because UTF-8 is the standard internal encoding for file names. */
+       name and check for any characters that must be converted to or
+       from Unicode (depending on to_internal).  If it contains any such
+       characters, a new copy of the string must be created. */
     a_boolean		conversion_needed = FALSE;
     sizeof_t		size_needed = 0;
     char		*p;
@@ -2147,9 +2149,9 @@ is returned. If no conversion is required, the original string is returned.
       in_len = mbc_to_wide_char(p, &wc, (a_boolean*)NULL,
                                 /*is_native=*/to_internal);
       /* A conversion is needed if the input was a multibyte character or
-         if we are converting to internal form an the input character must
+         if we are converting to internal form and the input character must
          be converted to UTF-8. */
-      if (in_len == 1 && (!to_internal || wc > 0x7f)) {
+      if (in_len == 1 && (!to_internal || wc <= 0x7f)) {
         out_len = 1;
       } else {
         conversion_needed = TRUE;
@@ -2158,8 +2160,8 @@ is returned. If no conversion is required, the original string is returned.
       size_needed += out_len;
     }  /* for */
     if (conversion_needed) {
-      /* The string contains at least one character that needs to be rewritten
-         as UTF-8.  Allocate and fill a new string. */
+      /* The string contains at least one character that needs to be rewritten.
+         Allocate and fill a new string. */
       char *dest;
       dest = file_name = alloc_general(size_needed+1);
       for (p = orig_name; *p != '\0'; p += in_len) {
@@ -2182,10 +2184,9 @@ is returned. If no conversion is required, the original string is returned.
           if (wc <= UCHAR_MAX) {
             *dest++ = (char)wc;
           } else {
-            /* The character does not fit in a single byte.  Keep it in the
-               internal encoding.  This can occur if a UTF-8 file name is
-               converted to the internal encoding. */
-            for (i = 0; i < in_len; i++) *dest++ = p[i];
+            /* The character does not fit in a single byte. Substituted
+               a "?". */
+            wc = (unsigned long)'?';
           }  /* if */
         }  /* if */
       }  /* for */

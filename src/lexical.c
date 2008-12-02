@@ -2973,6 +2973,7 @@ is TRUE.
             /* A character after the first in a multibyte character.  No
                separating blank is possible or desirable. */
             remaining_mbc_len--;
+            prev_ch = '\n';
             token_start = FALSE;
           } else if (multibyte_chars_in_source_enabled &&
                      ((remaining_mbc_len =
@@ -2990,6 +2991,7 @@ is TRUE.
             /* The character is the start of a multibyte character string
                or a in some modes a single non-Unicode character > 0x7f.  We
                assume no separating blank is needed. */
+            prev_ch = '\n';
             token_start = FALSE;
 #if UNICODE_SOURCE_SUPPORTED
             if (encoding_change_needed) {
@@ -3054,6 +3056,8 @@ is TRUE.
             (void)wide_char_to_utf8((unsigned long)(unsigned char)ch, arr);
             putc(arr[0], f_pp_output);
             ch = arr[1];
+            prev_ch = '\n';
+            token_start = FALSE;
 #endif /* UNICODE_SOURCE_SUPPORTED */
           } else
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */

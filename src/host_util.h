@@ -182,10 +182,12 @@ time.  Return TRUE if the file exists and is a regular file, FALSE otherwise.
 */
 {
   a_boolean	is_regular = FALSE;
+  a_boolean	encoding_change_needed = TRUE;
 
 #if defined(MEM_MANAGE_H)  /* Will be FALSE when building the prelinker. */
 #if EDG_WIN32 && UNICODE_SOURCE_SUPPORTED
   wchar_t *wchar_file_name = translate_filename_to_wchar(file_name);
+  encoding_change_needed = FALSE;
   if (wchar_file_name != NULL) {
     /* Use the Windows _wstat function instead of regular stat to handle
        non-ASCII characters in the file name. */
@@ -207,7 +209,11 @@ time.  Return TRUE if the file exists and is a regular file, FALSE otherwise.
     struct stat buf;
 #if defined(MEM_MANAGE_H)  /* Will be FALSE when building the prelinker. */
     /* Translate the file name into the form used by the file system. */
-    file_name = file_name_in_external_encoding(file_name);
+    if (encoding_change_needed) {
+      /* Skip the translation if we verified above that no non-ASCII
+         characters were present. */
+      file_name = file_name_in_external_encoding(file_name);
+    }  /* if */
 #endif /* defined(MEM_MANAGE_H) */
     if (stat(file_name, &buf) == 0) {
       /* Use the POSIX S_ISREG if it is defined.  Otherwise use the
