@@ -7669,6 +7669,8 @@ enable_microsoft_mode:
           default_unicode_source_kind = usk_utf16LE;
         } else if (strcmp(opt_arg, "UTF-16BE") == 0) {
           default_unicode_source_kind = usk_utf16BE;
+        } else if (strcmp(opt_arg, "none") == 0) {
+          default_unicode_source_kind = usk_none;
         } else {
           str_command_line_error(ec_cl_unrecognized_unicode_source_kind,
                                  opt_arg);

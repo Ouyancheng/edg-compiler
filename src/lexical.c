@@ -2976,16 +2976,26 @@ is TRUE.
             token_start = FALSE;
           } else if (multibyte_chars_in_source_enabled &&
                      ((remaining_mbc_len =
-                                 lex_mbc_length_simple(loc_in_line) - 1) > 0 ||
-                      (unsigned char)ch > 0x7f)) {
+                                 lex_mbc_length_simple(loc_in_line) - 1) > 0
+#if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
+                      /* Take this path if the input character is > 0x7f.
+                         This occurs when the input is not Unicode and
+                         the character must be converted to Unicode for the
+                         output.  This test is not needed, but is harmless,
+                         when the input is Unicode as any initial character
+                         over 0x7f will pass the multibyte test above. */
+                      || (unsigned char)ch > 0x7f
+#endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
+                                                 )) {
             /* The character is the start of a multibyte character string
-               or a single character > 7f.  We assume no separating blank
-               is needed. */
+               or a in some modes a single non-Unicode character > 0x7f.  We
+               assume no separating blank is needed. */
             token_start = FALSE;
 #if UNICODE_SOURCE_SUPPORTED
             if (encoding_change_needed) {
-              /* The input is a wide character and the output is either UTF-8
-                 or non-Unicode. */
+              /* The input is a multibyte character (or single character that
+                 requires translation) and the output is either UTF-8 or
+                 non-Unicode. */
               unsigned long wc;
               (void)mbc_to_wide_char(
                                     loc_in_line, &wc, (a_boolean *)NULL,
@@ -2997,22 +3007,39 @@ is TRUE.
                 char	arr[4];
                 utf_len = wide_char_to_utf8(wc, arr);
                 for (i = 0; i < utf_len; i++) putc(arr[i], f_pp_output);
+                ch = '\0';  /* Suppress output of ch below. */
               } else {
                 /* Change a UTF-8 character to a single character because we're
                    outputting non-Unicode.  Give a warning if the character
                    does not fit. */
+                 a_boolean	err = FALSE;
+#if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
+                int		mb_len;
+                int		i;
+                char		arr[MAX_MULTIBYTE_CHAR_LENGTH];
+                /* Convert the Unicode character to a native multibyte
+                   character sequence.  "?" will be returned on error. */
+                mb_len = unicode_to_multibyte_char(wc, arr, &err);
+                for (i = 0; i < mb_len; i++) putc(arr[i], f_pp_output);
+                ch = '\0';  /* Suppress output of ch below. */
+#else /* !NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
                 if (wc <= UCHAR_MAX) {
                   /* The code point can be represented in a single
                      character (in Latin-1 or whatever character set is
                      being used). */
                   ch = (char)(unsigned char)wc;
                 } else {
-                  /* The code point doesn't fit in a single character. */
+                  err = TRUE;
+                  ch = '?';
+                }  /* if */
+#endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
+                if (err) {
+                  /* The code point could not be converted to a suitable
+                     representation above. Issue a diagnostic. */
                   char buf[30];
                   (void)sprintf(buf, "%lx", wc);
                   conv_line_loc_to_source_pos(loc_in_line, &error_position);
                   str_warning(ec_bad_unicode_char_in_pp_output, buf);
-                  ch = '?';
                 }  /* if */
               }  /* if */
               loc_in_line += remaining_mbc_len;
@@ -3021,7 +3048,7 @@ is TRUE.
           } else if (encoding_change_needed &&
                      (unsigned char)ch > 0x7f &&
                      curr_file_unicode_source_kind == usk_none) {
-            /* Change a non-Unicode character with value > 7f to two bytes
+            /* Change a non-Unicode character with value > 0x7f to two bytes
                of UTF-8. */
             char arr[4];
             (void)wide_char_to_utf8((unsigned long)(unsigned char)ch, arr);
@@ -3037,8 +3064,9 @@ is TRUE.
             token_separator_blank_if_needed(ch, prev_ch, token_start,
                                             putc(' ', f_pp_output));
           }  /* if */
-          /* Output the character. */
-          putc(ch, f_pp_output);
+          /* Output the character.  It will be set to '\0' if the needed
+             characters were output above. */
+          if (ch != '\0') putc(ch, f_pp_output);
           prev_pp_output_line_was_complete = FALSE;
           loc_in_line++;
         }  /* if */
@@ -6409,7 +6437,7 @@ used only within the lexical input routines.
 #else /* UNICODE_SOURCE_SUPPORTED */
     /* The multibyte coding selected is UTF-8 (but if
        curr_file_unicode_source_kind is usk_none, this is a non-Unicode source
-       file. */
+       file). */
     ch = (unsigned char)*ptr;
     if (ch > 0x7f) {
       if (curr_file_unicode_source_kind != usk_none) {

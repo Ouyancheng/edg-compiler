@@ -3887,6 +3887,44 @@ Stub version of this routine used on non-Windows platforms.
 
 #endif /* EDG_WIN32 */
 
+int unicode_to_multibyte_char(unsigned long uc,
+	                      char          chars[MAX_MULTIBYTE_CHAR_LENGTH],
+			      a_boolean	    *err)
+/*
+Convert the Unicode code point uc to a multibyte character sequence.  Put
+the bytes of the multibyte representation in the array chars, and return the
+length.  If the conversion could not be done, a "?" and length of 1 are
+returned.  err is set to TRUE if the conversion failed, FALSE otherwise.
+*/
+{
+  int len;
+
+  *err = FALSE;
+#if EDG_WIN32
+  /* Convert the Unicode character to a multibyte character in the specified
+     locale. */
+  if (_wctomb_s_l(&len, chars, MAX_MULTIBYTE_CHAR_LENGTH, (wchar_t)uc,
+                  native_multibyte_locale)) {
+    /* The conversion failed.  Return "?". */
+    chars[0] = '?';
+    len = 1;
+    *err = TRUE;
+  }  /* if */
+#else /* !EDG_WIN32 */
+#if EDG_NATIVE_MULTIBYTE_TEST_MODE
+  /* Always return an error. */
+  chars[0] = '?';
+  len = 1;
+  *err = TRUE;
+#else /* !EDG_NATIVE_MULTIBYTE_TEST_MODE */
+  #error unicode_to_multibyte_char requires customization on non-Windows \
+         platforms when using NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE.
+#endif /* EDG_NATIVE_MULTIBYTE_TEST_MODE */
+#endif /* EDG_WIN32 */
+  return len;
+}  /* unicode_to_multibyte_char */
+    
+
 char *convert_multibyte_chars_to_utf8(char	*str_ptr,
 				      sizeof_t	*str_length,
 				      a_boolean	*err)

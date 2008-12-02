@@ -2163,6 +2163,24 @@ extern int mbc_to_wide_char(char          *mb,
 
 #include <locale.h>
 #include <wctype.h>
+
+/*
+The maximum number of characters in a native multibyte character sequence.
+Use the value from the host environment (MB_LEN_MAX) if available.
+*/
+#ifndef MAX_MULTIBYTE_CHAR_LENGTH
+#ifdef MB_LEN_MAX
+#define MAX_MULTIBYTE_CHAR_LENGTH MB_LEN_MAX
+#else /* ifndef MB_LEN_MAX */
+#define MAX_MULTIBYTE_CHAR_LENGTH 16
+#endif /* ifdef MB_LEN_MAX */
+#endif /* ifndef MAX_MULTIBYTE_CHAR_LENGTH */
+
+extern
+int unicode_to_multibyte_char(unsigned long uc,
+	                      char          chars[MAX_MULTIBYTE_CHAR_LENGTH],
+			      a_boolean	    *err);
+
 #if EDG_WIN32
 
 static _locale_t
