@@ -11726,6 +11726,7 @@ declaration of a partial specialization declared outside of its class.
           decl_state->is_template_friend = FALSE;
           decl_state->effective_decl_level = depth_scope_stack - 1;
           sym = NULL;
+          check_assertion(!is_partial_specialization);
           goto friend_template_checks_done;
         } else {
           pos_error(ec_template_friend_definition_not_allowed,
@@ -16329,6 +16330,9 @@ that follows.
       }
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     }  /* if */
+    /* No locator is set for the class case, so set it to an error locator
+       for cleanliness. */
+    set_to_error_locator(locator);
   } else {
     /* Assume the template specialization applies to the declarator, which
        should follow. */

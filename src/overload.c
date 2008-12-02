@@ -6133,7 +6133,7 @@ or rvalue or a pointer to a class.
     /* Virtual function call */
     a_routine_ptr    function;
     an_expr_node_ptr function_expr;
-    a_type_ptr       complete_object_type;
+    a_type_ptr       complete_object_type = NULL;
 
     if (is_pointer_type(bound_function_selector->type)) {
       complete_object_type =
@@ -8662,6 +8662,7 @@ This routine is only used in C++ mode.
     conversion_routine = NULL;
     result_is_an_lvalue = FALSE;
     this_match_ptr = NULL;
+    clear_std_conv_descr(&std_conversion);
     base_conversion_symbol = fundamental_symbol_of(conversion_symbol);
     function_template_case = (base_conversion_symbol->kind ==
                                           (a_symbol_kind)sk_function_template);
@@ -8738,7 +8739,6 @@ This routine is only used in C++ mode.
     }  /* if */
     /* Is the type returned by this routine a type we want? */
     compatible = FALSE;
-    clear_std_conv_descr(&std_conversion);
     conv_routine_type = skip_typerefs(conv_routine_type);
     return_type = return_type_of(conv_routine_type);
     result_is_an_lvalue = is_reference_type(conv_routine_type->
@@ -10624,7 +10624,7 @@ such cases (where operator overloading might apply, but we can't tell).
 {
   an_arg_operand_ptr       arg_operand_list, arg_operand_list2, arg_operand;
   an_expr_node_ptr         arg_expr_list, end_arg_expr_list;
-  a_symbol_ptr             nonmember_functions_symbol;
+  a_symbol_ptr             nonmember_functions_symbol = NULL;
   a_symbol_ptr             member_functions_symbol;
   a_symbol_ptr             function_symbol, proj_function_symbol;
   a_boolean                operand_1_is_class;

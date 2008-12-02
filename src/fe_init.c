@@ -140,7 +140,7 @@ been included by the inclusion of fe_common.h.
 /*
 Date/time of compilation, in ctime format ("Sun Sep 16 01:03:52 1973\n"):
 */
-static char	curr_date_time[26];
+static char	curr_date_time[128];
 
 
 static void host_init(void)
@@ -928,6 +928,7 @@ source file's compilation.
 */
 {
   time_t  timer;
+  char    *time_str;
 #if DEBUG
   int     save_debug_level;
 
@@ -941,7 +942,9 @@ source file's compilation.
   /* Get current date and time in proper form for __DATE__ and __TIME__. */
   /* curr_date_time will be like "Sun Sep 16 01:03:52 1973\n". */
   (void)time(&timer);
-  (void)strcpy(curr_date_time, ctime(&timer));
+  time_str = ctime(&timer);
+  check_assertion(strlen(time_str) < sizeof(curr_date_time));
+  (void)strcpy(curr_date_time, time_str);
 
   in_front_end = TRUE;
 
@@ -1283,9 +1286,9 @@ when it is a secondary file.
 #if RUNTIME_USES_NAMESPACES
     need_std = TRUE;
 #endif /* RUNTIME_USES_NAMESPACES */
+    /* coverity[dead_error_line] */
     if (need_std || ignore_std_namespace ||
         va_list_in_std_namespace) {  /*lint !e774*/
-      /* coverity[dead_error_line] */
       /* Predeclare namespace "std" and create a symbol for it.  Note that
          the symbol is not actually added to the symbol table until namespace
          "std" is explicitly declared (unless the --ignore_std option is

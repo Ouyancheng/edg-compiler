@@ -5359,6 +5359,7 @@ See also 3.6.6.4.
       /* The Microsoft/GNU C compatibility case: "return expr" in a void
          function.  The statement already put out is an expression statement.
          Follow it now by a return statement with a null expression. */
+      /* coverity[returned_pointer] -- sp unused in some configurations. */
       sp = add_statement_at_stmt_pos((a_statement_kind)stmk_return,
                                      &return_pos);
 #if GENERATE_SOURCE_SEQUENCE_LISTS

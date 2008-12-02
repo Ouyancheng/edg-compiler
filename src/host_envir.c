@@ -1653,6 +1653,7 @@ have_file:;
   }
 #else /* !__MICROSOFT_OS__ */
   /* Delete the file now, so it will disappear when closed. */
+  /* coverity[toctou] */
   (void)unlink(buffer);
 #endif /* __MICROSOFT_OS__ */
   return(temp_file);

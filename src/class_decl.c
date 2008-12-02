@@ -13938,6 +13938,9 @@ passed via template_decl.
         /* Cache the tokens comprising the function definition so that they
            can be rescanned once the entire class definition has been
            processed. */
+        /* Coverity thinks that the body_cache can be used before being
+           initialized, which is not possible. */
+        /* coverity[uninit_use_in_call] */ /* Coverity bug. */
         if (prescan_function_definition(&first_token_number,
                                         &last_token_number,
                                         &body_cache,
@@ -14876,6 +14879,7 @@ classes.
   a_boolean			   is_in_class_specialization;
 #if USER_CONTROL_OF_STRUCT_PACKING
   a_pack_alignment_state           saved_pack_alignment_state;
+  a_boolean			   need_restore_pack_alignment_statate = FALSE;
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
@@ -15029,6 +15033,7 @@ classes.
       reset_pack_alignment_state(class_type->variant.class_struct_union.
                                                       max_member_alignment,
                                  &saved_pack_alignment_state);
+      need_restore_pack_alignment_statate = TRUE;
     }  /* if */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
     if (use_microsoft_specialization_scope && !is_in_class_specialization &&
@@ -15378,8 +15383,7 @@ next_declaration:
                                 &class_state);
     }  /* if */
 #if USER_CONTROL_OF_STRUCT_PACKING
-    if (is_template_instantiation &&
-        !class_type->variant.class_struct_union.is_prototype_instantiation) {
+    if (need_restore_pack_alignment_statate) {
       /* Now that the class instantiation has been scanned, restore the
          original pack alignment state.  Note that this must occur after the
          pragmas associated with the closing brace have been processed. */

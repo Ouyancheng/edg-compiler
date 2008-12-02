@@ -1011,6 +1011,7 @@ and for the instantiation of template functions.
         declared_param_type = orig_ptp->type;
         orig_ptp = orig_ptp->next;
       } else {
+        /* coverity[var_deref_op] - orig_param_id can't be NULL. */
         declared_param_type = orig_param_id->declared_type;
         orig_param_id = orig_param_id->next;
       }  /* if */

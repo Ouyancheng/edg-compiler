@@ -6434,7 +6434,7 @@ C99 mode for the same reason.
   a_context_ptr      eff_context = curr_context;
   a_boolean          local_keep_dynamic_init = FALSE;
   a_boolean          constructor_array_init = FALSE;
-  a_variable_ptr     local_static_guard_var;
+  a_variable_ptr     local_static_guard_var = NULL;
   a_boolean          do_simple_constant_init_opt = FALSE;
   a_boolean          simple_constant_init_opt_ruled_out = FALSE;
   a_boolean          local_static_that_requires_dynamic_init = FALSE;

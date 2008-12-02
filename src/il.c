@@ -3173,7 +3173,7 @@ are not looking for a physical line).  This lookup uses the sequence number
 lookup table.
 */
 {
-  a_seq_number_lookup_entry	snle_to_find;
+  a_seq_number_lookup_entry	snle_to_find = {NULL};
   a_seq_number_lookup_entry_ptr	snlep_found;
   a_source_file_ptr		curr_file;
   long				line_offset;

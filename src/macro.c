@@ -2026,6 +2026,7 @@ so a hanging delete is in effect).
          a strange kind of entry: line_loc == NULL indicates that
          the insertion is to be done preceding the first character
          of curr_source_line. */
+      /* coverity[returned_pointer] -- slmp unused in some configurations. */
       slmp = add_source_line_modif((char *)NULL, 0, ins_loc,
                                    ins_loc+len_of_curr_token+LE_ESCAPE_LEN);
       start_of_curr_token = ins_loc;
@@ -5354,6 +5355,7 @@ that repl_text_length does not include the rt_null terminator.
 {
   a_boolean	result;
 
+  check_assertion(repl_text != NULL);
   result = mdp->repl_text != NULL &&
            smemcmp(mdp->repl_text, repl_text, repl_text_length) == 0 &&
            mdp->repl_text[repl_text_length] == (char)rt_null;
@@ -5478,7 +5480,7 @@ Scan and process a #define directive.
            sequence. */
         if (curr_char_loc[0] != LE_ESCAPE &&
             is_nonstandard_character(*curr_char_loc)) {
-          a_source_position err_pos;
+          a_source_position err_pos = null_source_position;
           conv_line_loc_to_source_pos(curr_char_loc, &err_pos);
           pos_error(ec_nonstd_character_at_start_of_macro_def, &err_pos);
         }  /* if */

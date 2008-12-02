@@ -5341,6 +5341,11 @@ macro_line_loc_to_source_pos should be used when speed is critical.
                           macro_context;
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
 
+#ifdef __COVERITY__
+  /* Coverity believes (incorrectly) that the column field can be unset in
+     some cases. */
+  *position_var = null_source_position;
+#endif /* ifdef __COVERITY__ */
   if (in_token_insertion_from_string) {
     /* We are processing a token insertion from a string.  Just use
        the position at which the insertion is being done. */
@@ -6997,6 +7002,9 @@ normal_comment:
             }  /* if */
 #endif /* DEBUG */
             determine_comment_pos_if_not_yet_done();
+            /* coverity[uninit_use_in_call] -- believes that comment_start_pos
+               may not be initialized, but that can't be true after the
+               use of determine_comment_pos_if_not_yet_done above. */
             (void)add_curr_token_pseudo_pragma
                      ((a_pragma_kind)pk_lint_notreached, &comment_start_pos);
             curr_char_loc += 10;
@@ -14761,6 +14769,7 @@ selection operator, in which case it points to the type of the left operand.
     if (locator_for_curr_id.is_destructor_name) {
       /* The position of the current identifier should be the tilde that
          begins the destructor name. */
+      /* coverity[uninit_use] -- believes that tilde_position is not set. */
       locator_for_curr_id.source_position = tilde_position;
     }  /* if */
     if (is_vacuous_dtor && is_qualified_name) {
@@ -15123,8 +15132,8 @@ The caller must guarantee that is_generalized_identifier_start is TRUE
         symbol = locator_for_curr_id.specific_symbol;
         if (symbol != NULL &&
             symbol->kind == (a_symbol_kind)sk_class_template) {
-          symbol = coalesce_template_class_reference(symbol,
-                                                     options, &templ_err);
+          (void)coalesce_template_class_reference(symbol,
+                                                  options, &templ_err);
            if (templ_err) {
              okay = FALSE;
              *err = TRUE;

@@ -7282,6 +7282,8 @@ a control block with state information about this initializer.
           /* Vector constants take the form of compound literals.  The
              call to dump_constant below will render the { ... } part of the
              literal, but a leading cast must first be emitted. */
+          /* is_vector_constant is always FALSE in some configurations. */
+          /* coverity[dead_error_line] */
           dump_cast(dip->variant.constant->type);
         }  /* if */
         dump_constant(dip->variant.constant);
@@ -7488,9 +7490,13 @@ statement expression, i.e., ({...}).
         init_expr = init_stmt->expr;
       }  /* if */
       set_output_position_for_stmt(&statement->position);
+#if UPC_EXTENSIONS_ALLOWED
       write_tok_str(kind == (a_statement_kind)stmk_for ?
                                                        (char *)"for (" :
                                                        (char *)"upc_forall (");
+#else /* !UPC_EXTENSIONS_ALLOWED */
+      write_tok_str("for (");
+#endif /* UPC_EXTENSIONS_ALLOWED */
       if (init_expr != NULL) {
 #if CHECKING
         check_result_not_used_flag(init_expr);

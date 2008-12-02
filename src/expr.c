@@ -870,6 +870,7 @@ the source position of the closing parenthesis of the call.
   arg_block.closing_paren_position = pos_curr_token;
   if (closing_paren_position != NULL) *closing_paren_position = pos_curr_token;
   if (overloaded_function_case) {
+    check_assertion(p_arg_operand_list != NULL);
     *p_arg_operand_list = arg_operand_list;
   } else {
     /* Check and transform the call arguments based on the parameter list. */
@@ -3328,6 +3329,7 @@ qualified_name_check:
                          C_dialect == C_dialect_cplusplus ?
                                               ec_exp_member_name :
                                               ec_exp_field_name);
+    member_position = null_source_position;
     err = TRUE;
   }  /* if */
 
@@ -10277,6 +10279,7 @@ be set to the source position of the type.
            matter, so give no warning.  Ditto g++ mode. */
       } else {
         warning(ec_cast_to_qualified_type);
+        /* coverity[returned_pointer] - type_cast_to not used later. */
         *p_type_cast_to = type_cast_to = make_unqualified_type(type_cast_to);
       }  /* if */
     }  /* if */
@@ -12567,6 +12570,7 @@ Also scans GNU statement expressions:
         if (allow_array && is_array_type(type_cast_to)) {
           /* Catch cast-to-error cases allowed by above. */
           if (!check_array_cast(type_cast_to, result, &type_position)) {
+            /* coverity[returned_pointer] - type_cast_to not used later. */
             type_cast_to = error_type();
             err = TRUE;
           }  /* if */
@@ -12917,6 +12921,7 @@ The result is returned in *result.  See _expr.type.conv_ in the WP.
       if (is_array_type(type_cast_to)) {
         /* Catch cast-to-error cases allowed by above. */
         if (!check_array_cast(type_cast_to, result, start_position)) {
+          /* coverity[returned_pointer] - type_cast_to not used later. */
           type_cast_to = error_type();
           err = TRUE;
         }  /* if */
@@ -15795,6 +15800,7 @@ operation_type_determined:
 #endif /* C99_IL_EXTENSIONS_SUPPORTED || GNU_VECTOR_TYPES_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
         if (property_ref_case) {
+          check_assertion(operation_type != NULL);
           cast_operand(operation_type, operand_1,
                        /*check_cast_access=*/TRUE,
                        /*is_implicit_cast=*/TRUE,

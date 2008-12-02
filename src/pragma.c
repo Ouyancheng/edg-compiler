@@ -908,6 +908,10 @@ there is additional processing to be done.
       pp->entity.kind = (a_byte_il_entry_kind)entity_kind;
       pp->entity.ptr = entity_ptr;
     }  /* if */
+    /* add_to_pragma_list results in get_scope_for_list being called.
+       Coverity wants to know that scp won't be NULL when scope_depth is
+       NO_SCOPE_DEPTH. */
+    check_assertion(scp != NULL || scope_depth != NO_SCOPE_DEPTH);
     add_to_pragma_list(pp, scope_depth, scp);
     if (scope_depth != NO_SCOPE_DEPTH) {
       switch_back_to_original_region(region_to_switch_back_to);

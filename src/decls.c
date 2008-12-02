@@ -6874,6 +6874,7 @@ for use in generating cross-reference output describing this declaration.
       /* A reference to a template instance in a friend declaration or an
          old-style specialization.  Such a declaration cannot be a definition
          unless we're in Microsoft mode. */
+      check_assertion(linked_symbol != NULL);
       sym = linked_symbol;
       routine_ptr = sym->variant.routine.ptr;
       if (is_function_def && !microsoft_mode) {
@@ -8612,6 +8613,7 @@ symbol entry, and return a pointer to it in state->sym.
   sym = curr_scope_id_lookup(locator, IDL_PROJ_SYMBOL_ALLOWED);
   loc_sym = locator->specific_symbol;
   if (loc_sym != NULL && loc_sym->kind == (a_symbol_kind)sk_projection) {
+    check_assertion(sym != NULL);
     if ((microsoft_mode || gpp_mode) &&
         ssep->kind == (a_scope_kind)sck_class_struct_union) {
       remove_any_inherited_type_synonym(locator, loc_sym);
@@ -13471,6 +13473,7 @@ if one is present.
       /* Set the storage class of a file-scope initialized variable to
          unspecified (meaning external) or static (meaning internal). */
       if (decl_scope_level == depth_innermost_namespace_scope) {
+        check_assertion(var_ptr != NULL);
         if (var_ptr->storage_class == (a_storage_class)sc_extern) {
           var_ptr->storage_class = (a_storage_class)sc_unspecified;
         }  /* if */

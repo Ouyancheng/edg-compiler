@@ -5717,6 +5717,7 @@ are created by a new expression (in which case sym is NULL).  In both cases
   }  /* if */
   if (is_reference_type(type)) {
     /* Note that a reference type object cannot be produced by new. */
+    /* coverity[var_deref_op] */
     if (vp->storage_class != (a_storage_class)sc_extern) {
       /* Non-extern reference variables must be initialized (ARM 8.4.3). */
       sym_error(ec_missing_initializer_on_reference, sym);

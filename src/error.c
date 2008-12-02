@@ -3797,7 +3797,10 @@ is not Unicode.
   file = open_source_file(file_name, open_result, unicode_source_kind);
 #if DEBUG
   /* Pretend the open failed if OFF_FORCE_ERROR is specified. */
-  if ((open_flags & OFF_FORCE_ERROR) != 0) file = NULL;
+  if ((open_flags & OFF_FORCE_ERROR) != 0) {
+    if (file != NULL) (void)fclose(file);
+    file = NULL;
+  }  /* if */
 #endif /* DEBUG */
   if (file == NULL &&
       open_error_should_be_issued(open_flags, open_result, &severity)) {
@@ -3848,7 +3851,10 @@ code for the description of the file to be used if an error is issued.
   file = fopen_with_result(file_name, mode, &open_result);
 #if DEBUG
   /* Pretend the open failed if OFF_FORCE_ERROR is specified. */
-  if ((open_flags & OFF_FORCE_ERROR) != 0) file = NULL;
+  if ((open_flags & OFF_FORCE_ERROR) != 0) {
+    if (file != NULL) (void)fclose(file);
+    file = NULL;
+  }  /* if */
 #endif /* DEBUG */
   if (file == NULL &&
       open_error_should_be_issued(open_flags, &open_result, &severity)) {
@@ -3883,7 +3889,10 @@ the description of the file to be used if an error is issued.
   file = open_output_file(file_name, binary_file, update_mode, &open_result);
 #if DEBUG
   /* Pretend the open failed if OFF_FORCE_ERROR is specified. */
-  if ((open_flags & OFF_FORCE_ERROR) != 0) file = NULL;
+  if ((open_flags & OFF_FORCE_ERROR) != 0) {
+    if (file != NULL) (void)fclose(file);
+    file = NULL;
+  }  /* if */
 #endif /* DEBUG */
   if (file == NULL &&
       open_error_should_be_issued(open_flags, &open_result, &severity)) {
@@ -3916,7 +3925,10 @@ error is issued.
   file = open_input_file(file_name, binary_file, &open_result);
 #if DEBUG
   /* Pretend the open failed if OFF_FORCE_ERROR is specified. */
-  if ((open_flags & OFF_FORCE_ERROR) != 0) file = NULL;
+  if ((open_flags & OFF_FORCE_ERROR) != 0) {
+    if (file != NULL) (void)fclose(file);
+    file = NULL;
+  }  /* if */
 #endif /* DEBUG */
   if (file == NULL &&
       open_error_should_be_issued(open_flags, &open_result, &severity)) {

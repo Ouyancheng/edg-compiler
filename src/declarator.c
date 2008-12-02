@@ -5077,6 +5077,7 @@ function_lparen:
       }  /* if */
       *output_flags |= DO_POSTFIX_ATTRIBUTES;
       /* Advance to the end of the list. */
+      /* coverity[returned_pointer] - last_attribute_pointer not used later. */
       last_attribute_ptr = last_attribute_link(last_attribute_ptr);
     }  /* if */
   }  /* if */

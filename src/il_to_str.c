@@ -4015,6 +4015,10 @@ precedence confusion.  Do the output in the way described by octl.
           form_cast(orig_type, octl);
         }  /* if */
         output_partial_token_str("'", octl);
+        /* Coverity complains because form_char passes the character value
+           to isprint, but it casts it to unsigned char the complaint is
+           spurious. */
+        /* coverity[negative_returns] */  /* Coverity bug. */
         (void)form_char((char)value_of_integer_constant(constant, &ovflo),
                         octl);
         output_partial_token_str("'", octl);

@@ -5652,6 +5652,8 @@ made into an external) if necessary.
   needs_to_be_externalized =
                 routine_should_be_externalized_for_exported_templates(routine);
 #endif /* DO_IL_LOWERING */
+  /* Coverity: Part of the test can't be reached when not doing IL lowering. */
+  /* coverity[dead_error_line] */ /* coverity[dead_error_condition] */
   if ((routine->source_corresp.name_has_been_mangled &&
        !routine->source_corresp.final_name_mangling_pending &&
        (!needs_to_be_externalized || routine->source_corresp.externalized)) ||
@@ -5850,6 +5852,8 @@ or a static data member (e.g., not a file scope variable).
   needs_to_be_externalized =
               variable_should_be_externalized_for_exported_templates(variable);
 #endif /* DO_IL_LOWERING */
+  /* Coverity: Part of the test can't be reached when not doing IL lowering. */
+  /* coverity[dead_error_line] */ /* coverity[dead_error_condition] */
   if (variable->source_corresp.name_has_been_mangled &&
       !variable->source_corresp.final_name_mangling_pending &&
       (!needs_to_be_externalized || variable->source_corresp.externalized)) {
