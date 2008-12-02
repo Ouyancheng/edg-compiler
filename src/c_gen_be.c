@@ -2709,6 +2709,9 @@ final semicolon if output_final_semi is TRUE.
 {
   a_field_ptr field, prev_field, last_field = NULL;
   a_boolean   union_alignment_needed = FALSE;
+#if USER_CONTROL_OF_STRUCT_PACKING
+  a_boolean   need_to_restore_default_alignment = FALSE;
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
 
   if (start_unreferenced_bracket(&type->source_corresp)) {
 #if USER_CONTROL_OF_STRUCT_PACKING
@@ -2733,6 +2736,7 @@ final semicolon if output_final_semi is TRUE.
       enable_line_wrapping();
       end_output_line();
       indent = saved_indent;
+      need_to_restore_default_alignment = TRUE;
     }  /* if */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
     /* Dump any pragmas associated with the type. */
@@ -3010,7 +3014,7 @@ final semicolon if output_final_semi is TRUE.
 #endif /* GNU_EXTENSIONS_ALLOWED */
     if (output_final_semi) write_tok_ch(';');
 #if USER_CONTROL_OF_STRUCT_PACKING
-    if (pack_alignment != 0 && !gcc_is_generated_code_target) {
+    if (need_to_restore_default_alignment) {
       /* Restore the packing alignment to a default state. */
       unsigned long saved_indent = indent;
       end_output_line_if_begun();
