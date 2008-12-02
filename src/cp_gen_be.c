@@ -6332,11 +6332,9 @@ the expression reflects an implicit member access ("this->y"), so the
   object_expr=remove_nonstandard_anonymous_union_field_selections(object_expr,
                                                                   &op);
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
-  (void)strip_lvalue_cast_sequence(&object_expr);
-  if (op == (an_expr_operator_kind)eok_points_to_field &&
-      !is_pointer_type(object_expr->type)) {
-    /* We removed an implicit conversion from lvalue to pointer type; use
-       the "." form of member selection instead. */
+  if (strip_lvalue_cast_sequence(&object_expr)) {
+    /* We removed an implicit conversion from an lvalue to a pointer;
+       change the operator correspondingly. */
     op = (an_expr_operator_kind)eok_dot_field;
   }  /* if */
   if (op == (an_expr_operator_kind)eok_points_to_field) {
