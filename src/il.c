@@ -15396,7 +15396,6 @@ doing nothing should be suppressed.
 */
 {
   a_boolean has_side_effects = FALSE;
-  a_boolean suppress_warning = FALSE;
 
   switch (node->kind) {
     case enk_error:
@@ -15517,7 +15516,6 @@ doing nothing should be suppressed.
     tblock->result = TRUE;
     tblock->terminate = TRUE;
   }  /* if */
-  if (suppress_warning) tblock->suppress_warning = TRUE;
 }  /* examine_expr_for_side_effect */
 
 
