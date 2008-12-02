@@ -2236,7 +2236,7 @@ is returned. If no conversion is required, the original string is returned.
 
   file_name = convert_file_name_encoding(orig_name, /*to_internal=*/FALSE);
   return file_name;
-}  /* file_name_in_internal_encoding */
+}  /* file_name_in_external_encoding */
 
 
 /*
