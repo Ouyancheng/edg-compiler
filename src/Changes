@@ -1,5 +1,19 @@
 Version 4.0
 
+12/2/08 [EDGcpfe/9386]
+C-generating back end: restoring default after #pragma pack
+
+When a struct definition is preceded by a #pragma pack directive changing
+the default packing alignment, it should be followed by a #pragma pack()
+directive to restore the default alignment value.  In configurations in
+which GCC_IS_GENERATED_CODE_TARGET is TRUE, the #pragma pack() directive
+was omitted.  Now fixed.  For example:
+
+  #pragma pack(1)
+  struct S { /* ... */ };
+  #pragma pack()    /* Previously omitted, now generated. */
+
+
 11/24/08 [EDGcpfe/9285]
 Support for native character sets when Unicode source is supported
 
