@@ -2209,8 +2209,8 @@ static _locale_t
   { if (multibyte_chars_in_source_enabled) mbc_scan_init(); }
 
 #else /* !EDG_NATIVE_MULTIBYTE_TEST_MODE */
-    #error mbc_scan_init requires customization on non-Windows platforms when \
-           using NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE.
+ #error mbc_scan_init requires customization on non-Windows platforms when \
+        using NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE.
 #endif /* EDG_NATIVE_MULTIBYTE_TEST_MODE */
 #endif /* !EDG_WIN32 */
 

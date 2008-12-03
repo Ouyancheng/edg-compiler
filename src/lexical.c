@@ -6450,8 +6450,8 @@ used only within the lexical input routines.
         if (err) ch = 0;  /* Forces FALSE result. */
 #if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
       } else {
-        /* Convert the multibyte (UTF-8 or native) sequence to a single
-           Unicode code point. */
+        /* Convert the native multibyte sequence to a single Unicode
+           code point. */
         wint_t	wc;
         llen = lex_mbc_to_wide_char(ptr, &ch, &err);
         if (err) ch = 0;  /* Forces FALSE result. */
@@ -6462,6 +6462,7 @@ used only within the lexical input routines.
         is_id = _iswalpha_l(wc, native_multibyte_locale) ||
                 (!is_identifier_start &&
                  _iswdigit_l(wc, native_multibyte_locale));
+        goto is_id_known;
 #else /* !EDG_WIN32 */
 #if EDG_NATIVE_MULTIBYTE_TEST_MODE
         /* Use C99 library routines from <wctype.h> to classify the
@@ -6469,6 +6470,7 @@ used only within the lexical input routines.
         wc = (wint_t)ch;
         is_id = iswalpha(wc) ||
                 (!is_identifier_start && iswdigit(wc));
+        goto is_id_known;
 #else /* !EDG_NATIVE_MULTIBYTE_TEST_MODE */
         #error is_identifier_char requires customization on non-Windows \
                platforms when using \
@@ -6480,24 +6482,21 @@ used only within the lexical input routines.
     }  /* if */
     /* See whether the Unicode code point ch is a valid identifier
        character. */
-#if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
-    if (curr_file_unicode_source_kind != usk_none || ch <= 0x7f)
-#endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
-    /* Do not insert code here. */
-    {
-      if (ch <= UCHAR_MAX) {
-        /* Small value -- use the lookup table. */
-        is_id = is_id_char_no_mbc[ch] &&
-                (!is_identifier_start || !isdigit((unsigned char)ch));
-      } else if (ch >= 0xd800 && ch <= 0xdfff) {
-        /* Surrogate code points are not allowed. */
-        is_id = FALSE;
-      } else {
-        /* Do the full lookup for larger values. */
-        is_id = (is_valid_UCN_identifier_char(ch, is_identifier_start) ==
-                 ec_no_error);
-      }  /* if */
+    if (ch <= UCHAR_MAX) {
+      /* Small value -- use the lookup table. */
+      is_id = is_id_char_no_mbc[ch] &&
+              (!is_identifier_start || !isdigit((unsigned char)ch));
+    } else if (ch >= 0xd800 && ch <= 0xdfff) {
+      /* Surrogate code points are not allowed. */
+      is_id = FALSE;
+    } else {
+      /* Do the full lookup for larger values. */
+      is_id = (is_valid_UCN_identifier_char(ch, is_identifier_start) ==
+               ec_no_error);
     }  /* if */
+#if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
+is_id_known:;
+#endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
 #endif /* !UNICODE_SOURCE_SUPPORTED */
   }
 #endif /* !MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
@@ -8037,7 +8036,7 @@ lower case and any multibyte characters are converted to canonical form.
       int           numch = lex_mbc_to_wide_char(src, &wc, &err);
 #if UNICODE_SOURCE_SUPPORTED
       if (err) {
-        /* Then scanning of a multibyte character resulted in a value that
+        /* The scanning of a multibyte character resulted in a value that
            has no Unicode representation. */
         error_at_line_pos(ec_non_unicode_char_in_ident, src);
       }  /* if */
@@ -9210,6 +9209,12 @@ This routine is called when a Microsoft setlocale pragma is encountered.  The
 form of the pragma is:
 
 	#pragma setlocale("locale name")
+
+The setlocale pragma specifies the encoding that is used for multibyte
+characters in non-Unicode source files.  Multibyte characters are translated
+from the specified locale into UTF-8 in identifiers and file names, and
+to Unicode in wide string literals.  Multibyte characters in narrow string
+literals are left unchanged.
 */
 {
   a_boolean		err = TRUE;
@@ -9221,7 +9226,11 @@ form of the pragma is:
     if (required_token_no_advance(tok_string_literal, ec_exp_string_literal)) {
       locale_cp = &const_for_curr_token;
       locale_pos = pos_curr_token;
-      if (!is_normal_character_kind(locale_cp->character_kind)) {
+      if (is_error_constant(locale_cp)) {
+        /* The string literal was ill-formed.  An error will already have
+           been issued. */
+        locale_cp = NULL;
+      } else if (!is_normal_character_kind(locale_cp->character_kind)) {
         error(ec_wide_string_not_allowed);
         locale_cp = NULL;
       }  /* if */

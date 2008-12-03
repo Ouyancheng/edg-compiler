@@ -2110,6 +2110,9 @@ Display the difference in CPU time and elapsed time between two timers.
 }  /* display_time_used */
 
 
+#if !UNICODE_SOURCE_SUPPORTED
+/*ARGSUSED*/ /* <-- "to_internal" is not used in that case. */
+#endif /* !UNICODE_SOURCE_SUPPORTED */
 static char *convert_file_name_encoding(char		*orig_name,
 					a_boolean	to_internal)
 /*
@@ -3401,6 +3404,9 @@ in case it had been previously changed by set_cpu_time_limit.
 
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
 
+#if !UNICODE_SOURCE_SUPPORTED
+/*ARGSUSED*/ /* <-- "is_native" is not used in that case. */
+#endif /* !UNICODE_SOURCE_SUPPORTED */
 int f_mbc_length(char			*ptr,
                  a_boolean		*err,
                  a_boolean		is_native)
@@ -3410,8 +3416,19 @@ If the sequence there is invalid, set *err to TRUE if err is non-NULL,
 and return a length appropriate for error recovery.  This function should
 usually be called via the macro mbc_length.  Note that, unlike the standard
 mblen, this routine does not return 0 when given a null (zero) character;
-it returns 1.  is_native indicates whether the current encoding is Unicode or
-some other encoding.
+it returns 1.
+
+When Unicode source is supported, is_native indicates whether the multibyte
+encoding is Unicode (non-native) or some other encoding (native).
+When NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE is TRUE, this routine
+must be able to determine the length of a multibyte character sequence in
+some other (non-Unicode) encoding.  The EDG-supplied version of this routine
+only supports this capability when EDG_WIN32 is TRUE (because it relies on
+Windows routines), in which case the locale to be used for the multibyte
+encoding is specified by native_multibyte_locale.
+
+When NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE is FALSE, native characters
+are assumed to be Latin-1.
 */
 {
   int len;
@@ -3544,6 +3561,9 @@ some other encoding.
 }  /* f_mbc_length */
 
 
+#if !UNICODE_SOURCE_SUPPORTED
+/*ARGSUSED*/ /* <-- "is_native" is not used in that case. */
+#endif /* !UNICODE_SOURCE_SUPPORTED */
 int mbc_to_wide_char(char          *mb,
                      unsigned long *wc,
                      a_boolean     *err,
@@ -3553,8 +3573,19 @@ Convert a multibyte character sequence pointed to by mb to a single wide
 character returned in *wc.  Return the number of characters in the
 multibyte character sequence.  If the multibyte character sequence is
 invalid, set *err to TRUE if err is non-NULL, and return a length appropriate
-for error recovery.  is_native indicates whether the current encoding is
-Unicode or some other encoding.
+for error recovery.
+
+When Unicode source is supported, is_native indicates whether the multibyte
+encoding is Unicode (non-native) or some other encoding (native).  The
+character returned in *wc is always Unicode.  This means that when
+NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE is TRUE, native characters must
+be translated into Unicode.  The EDG-supplied version of this routine
+only supports this translation when EDG_WIN32 is TRUE (because it relies
+on Windows routines to do the translation), in which case the locale to be
+used for the multibyte translation is specified by native_multibyte_locale.
+
+When NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE is FALSE, native characters
+are assumed to be Latin-1.
 */
 {
   int       numch;
@@ -3858,14 +3889,17 @@ representation in the array chars, and return the length (1-4).
 #endif /* UNICODE_SOURCE_SUPPORTED */
 
 #if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
-#if EDG_WIN32
 
+#if !EDG_WIN32
+/*ARGSUSED*/ /* <-- "locale_name" is not used in that case. */
+#endif /* !EDG_WIN32 */
 a_boolean set_windows_locale(char	*locale_name)
 /*
 Set the locale to be used for multibyte character to Unicode conversion.
 Return TRUE if the locale_name is invalid, FALSE otherwise.
 */
 {
+#if EDG_WIN32
   _locale_t	new_locale;
 
   new_locale = _create_locale(LC_ALL, locale_name);
@@ -3873,21 +3907,17 @@ Return TRUE if the locale_name is invalid, FALSE otherwise.
     native_multibyte_locale = new_locale;
   }  /* if */
   return new_locale == NULL;
-}  /* set_windows_locale */
-
 #else /* !EDG_WIN32 */
-
-a_boolean set_windows_locale(char	*locale_name)
-/*
-Stub version of this routine used on non-Windows platforms.
-*/
-{
-  /* Returning TRUE causes any locale name to be considered invalid. */
+  /* Stub version of this routine used on non-Windows platforms.
+     Returning TRUE causes any locale name to be considered invalid. */
   return TRUE;
+#endif /* EDG_WIN32 */
 }  /* set_windows_locale */
 
-#endif /* EDG_WIN32 */
 
+#if !EDG_WIN32
+/*ARGSUSED*/ /* <-- "uc" is not used in that case. */
+#endif /* !EDG_WIN32 */
 int unicode_to_multibyte_char(unsigned long uc,
 	                      char          chars[MAX_MULTIBYTE_CHAR_LENGTH],
 			      a_boolean	    *err)
@@ -3896,6 +3926,11 @@ Convert the Unicode code point uc to a multibyte character sequence.  Put
 the bytes of the multibyte representation in the array chars, and return the
 length.  If the conversion could not be done, a "?" and length of 1 are
 returned.  err is set to TRUE if the conversion failed, FALSE otherwise.
+
+The EDG-supplied version of this routine only supports this capability when
+EDG_WIN32 is TRUE (because it relies on Windows routines), in which case
+the locale to be used for the multibyte encoding is specified by
+native_multibyte_locale.
 */
 {
   int len;
@@ -3936,6 +3971,11 @@ string.  Update str_length to reflect the length in bytes of the new string.
 Returns a pointer into the utf8_buffer text buffer.  If the identifier
 contains a character that cannot be represented in Unicode, *err is set to
 TRUE (FALSE otherwise).
+
+The EDG-supplied version of this routine only supports this capability when
+EDG_WIN32 is TRUE (because it relies on Windows routines), in which case
+the locale to be used for the multibyte encoding is specified by
+native_multibyte_locale.
 */
 {
   char			*ptr;
@@ -3967,7 +4007,7 @@ TRUE (FALSE otherwise).
     mbclen = mbc_to_wide_char(ptr, &wc, &local_err, /*is_native=*/TRUE);
     if (local_err) *err = TRUE;
     ptr += mbclen;
-    if (wc < 0x7f) {
+    if (wc <= 0x7f) {
       add_char_to_text_buffer(utf8_buffer, (char)wc);
     } else {
       /* Convert the Unicode value to UTF-8. */
