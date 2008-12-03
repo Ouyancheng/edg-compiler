@@ -334,8 +334,10 @@ Return TRUE if "node" is a function call operation.
 #define is_call_node(node)                                              \
   (is_operation_node((node)) &&                                         \
    (node_operator_is((node), eok_call) ||                               \
-    node_operator_is((node), eok_member_call) ||                        \
-    node_operator_is((node), eok_pm_call)))
+    node_operator_is((node), eok_dot_member_call) ||                    \
+    node_operator_is((node), eok_points_to_member_call) ||              \
+    node_operator_is((node), eok_dot_pm_call) ||                        \
+    node_operator_is((node), eok_points_to_pm_call)))
 
 
 #if GNU_EXTENSIONS_ALLOWED

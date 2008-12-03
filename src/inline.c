@@ -1512,8 +1512,8 @@ is the top node of the indicated statement (which is an expression statement).
   a_statement_ptr  block_stmt;
 
   db_enter(4, "do_inlining_of_call");
-  /* Note that other kinds of calls (like eok_member_call) have been lowered
-     to eok_call already. */
+  /* Note that other kinds of calls (like eok_dot_member_call) have been
+     lowered to eok_call already. */
   check_assertion(is_operation_node(expr) &&
                   node_operator_is(expr, eok_call));
   arg = expr->variant.operation.operands;

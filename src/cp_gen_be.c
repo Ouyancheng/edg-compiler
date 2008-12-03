@@ -550,8 +550,10 @@ static a_byte generated_precedence[(int)eok_last+1] = {
   PREC_POSTFIX,		/* eok_virtual_function_ptr */
   PREC_QUEST_MARK,	/* eok_question */
   PREC_POSTFIX,		/* eok_call */
-  PREC_POSTFIX,		/* eok_member_call */
-  PREC_POSTFIX,		/* eok_pm_call */
+  PREC_POSTFIX,		/* eok_dot_member_call */
+  PREC_POSTFIX,		/* eok_points_to_member_call */
+  PREC_POSTFIX,		/* eok_dot_pm_call */
+  PREC_POSTFIX,		/* eok_points_to_pm_call */
   PREC_POSTFIX,		/* eok_va_start */
   PREC_POSTFIX,		/* eok_va_arg */
   PREC_POSTFIX,		/* eok_va_end */
@@ -7485,7 +7487,7 @@ the function reference.
 
 static a_boolean handle_conversion_function_call(an_expr_node_ptr expr)
 /*
-expr is a call expression (e.g., eok_call, eok_member_call).  If it is a
+expr is a call expression (e.g., eok_call, eok_dot_member_call).  If it is a
 conversion function call that can be optimized, put out the call and return
 TRUE.  Otherwise, return FALSE and the caller will put out the call in the
 normal way.
@@ -8242,7 +8244,8 @@ gen_expr that might end up generating this expr as a temporary.
         }  /* if */
         goto done_with_operation_after_parens;
       } else if (op == (an_expr_operator_kind)eok_call ||
-                 op == (an_expr_operator_kind)eok_member_call) {
+                 op == (an_expr_operator_kind)eok_dot_member_call ||
+                 op == (an_expr_operator_kind)eok_points_to_member_call) {
         /* Suppress parentheses around a function call.  They're not needed
            (the function call (...) binds at the highest possible precedence)
            and g++ 3.2 (at least) gets confused by a constructor "call"
@@ -8632,11 +8635,13 @@ gen_expr that might end up generating this expr as a temporary.
           gen_expr_with_parens(operand_2->next);
           goto done_with_operation;
         case eok_call:
-        case eok_member_call:
-          /* Call (possibly virtual). */
+        case eok_dot_member_call:
+        case eok_points_to_member_call:
+          /* Call (nonmember or member). */
           gen_call(expr);
           goto done_with_operation;
-        case eok_pm_call:
+        case eok_dot_pm_call:
+        case eok_points_to_pm_call:
           /* Call of a function identified by a ".*" or "->*" operation.
              First operand is the pointer-to-member; the second is the
              object. */
@@ -11806,7 +11811,8 @@ flags on the classes found on an earlier call.
         an_expr_node_ptr      op1 =
                                  skip_parens(expr->variant.operation.operands);
         if (op == (an_expr_operator_kind)eok_call ||
-            op == (an_expr_operator_kind)eok_member_call) {
+            op == (an_expr_operator_kind)eok_dot_member_call ||
+            op == (an_expr_operator_kind)eok_points_to_member_call) {
           if (op1->kind == (an_expr_node_kind)enk_routine) {
             scp = &op1->variant.routine->source_corresp;
           }  /* if */

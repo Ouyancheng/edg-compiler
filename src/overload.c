@@ -2181,6 +2181,11 @@ selector is enabled, allow that kind of mismatch here.
      terms of references, but pointers give the same result. */
   if (!selector_is_object_pointer) {
     arg_type = make_pointer_type(arg_type);
+  } else if (is_class_struct_union_type(arg_type) &&
+             could_be_dependent_class_type(arg_type)) {
+    /* A nonreal class could have an operator-> function, so try matching
+       against a pointer to unknown type. */
+    arg_type = make_pointer_type(type_of_unknown_templ_param_nontype);
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode) {
@@ -2235,23 +2240,22 @@ selector is enabled, allow that kind of mismatch here.
 
 void selector_match_with_this_param(
                                an_operand           *bound_function_selector,
-                               a_boolean            selector_is_object_pointer,
                                a_routine_ptr        rout,
                                a_type_ptr           this_param_type,
                                an_arg_match_summary *this_match_summary)
 /*
 Determine how well the selector object indicated by *bound_function_selector
 matches the "this" parameter (of type this_param_type) of a member function.
-If selector_is_object_pointer is TRUE, *bound_function_selector is a
-pointer to a class object; otherwise, it's a class object (lvalue or
-rvalue).  Return the match summary in *this_match_summary.  If the
-specific routine being called is known, rout points to the routine
-entry; otherwise, rout is NULL.  rout must be non-NULL when calling a
-constructor or destructor, so that those can be treated as a special
-case: constructors and destructors can be called for const- and
-volatile-qualified objects even though they themselves are not (and
-cannot be) const- or volatile-qualified.  bound_function_selector is
-not used in that case, and can be NULL.
+If bound_function_selector->selector_is_object_pointer is TRUE,
+*bound_function_selector is a pointer to a class object; otherwise,
+it's a class object (lvalue or rvalue).  Return the match summary in
+*this_match_summary.  If the specific routine being called is known,
+rout points to the routine entry; otherwise, rout is NULL.  rout must
+be non-NULL when calling a constructor or destructor, so that those
+can be treated as a special case: constructors and destructors can be
+called for const- and volatile-qualified objects even though they
+themselves are not (and cannot be) const- or volatile-qualified.
+bound_function_selector is not used in that case, and can be NULL.
 */
 {
   db_enter(4, "selector_match_with_this_param");
@@ -2272,7 +2276,8 @@ not used in that case, and can be NULL.
     /* See how well the selector type and the "this" parameter type
        match up. */
     determine_selector_match_level(bound_function_selector->type,
-                                   selector_is_object_pointer,
+                                   (a_boolean)bound_function_selector->
+                                                    selector_is_object_pointer,
                                    this_param_type,
                                    this_match_summary);
   }  /* if */
@@ -2865,7 +2870,6 @@ static void determine_function_viability(
                  an_arg_operand_ptr       arg_operand_list,
                  a_boolean                have_selector,
                  an_operand               *bound_function_selector,
-                 a_boolean                selector_is_object_pointer,
                  a_type_ptr               implicit_selector_type,
                  a_boolean                ctor_conversion_case,
                  a_boolean                initializing_return_value,
@@ -2895,12 +2899,12 @@ The argument list for the call is given by arg_operand_list, and the
 selector is given by bound_function_selector (if have_selector is
 TRUE).  have_selector can be TRUE and bound_function_selector NULL
 when calling constructors.  bound_function_selector is an object
-pointer if selector_is_object_pointer is TRUE, an object otherwise.
-implicit_selector_type indicates the type of an implicit "this->"
-selector, if applicable, or is NULL otherwise.  Any viable functions
-are added to the candidate_functions list along with information on
-the level of argument matches.  If a match would have been found
-except for the absence of a selector, set
+pointer if bound_function_selector->selector_is_object_pointer is
+TRUE, an object otherwise.  implicit_selector_type indicates the type
+of an implicit "this->" selector, if applicable, or is NULL otherwise.
+Any viable functions are added to the candidate_functions list along
+with information on the level of argument matches.  If a match would
+have been found except for the absence of a selector, set
 *matched_except_for_missing_selector TRUE, and if a match would have
 been found except for a mismatch on the selector, set
 *matched_except_for_selector TRUE; those allow different error
@@ -2920,13 +2924,14 @@ arg_dep_lookup_extra_info provides extra information about
 argument-dependent lookup.  dependent_call is TRUE if the call is a
 template-dependent call.  known_to_be_visible is TRUE if the function
 is known to be visible and the visibility check should be suppressed.
-is_overloaded_operator is TRUE if the call is written in operator form,
-e.g., a+b rather than operator+(a, b).  allow_post_declared_functions
-is TRUE if functions declared after the point of reference in a dependent
-call should be visible to the normal lookup (in violation of the requirements
-of the standard).  *discarded_because_post_decl goes along with that:
-it is returned TRUE if the function was not viable (at least) because
-it is declared after the point of call.
+is_overloaded_operator is TRUE if the call is written in operator
+form, e.g., a+b rather than operator+(a, b).
+allow_post_declared_functions is TRUE if functions declared after the
+point of reference in a dependent call should be visible to the normal
+lookup (in violation of the requirements of the standard).
+*discarded_because_post_decl goes along with that: it is returned TRUE
+if the function was not viable (at least) because it is declared after
+the point of call.
 */
 {
   a_symbol_ptr             function_symbol;
@@ -3225,9 +3230,7 @@ it is declared after the point of call.
           /* See how the selector expression matches the "this" parameter
              type. */
           selector_match_with_this_param(bound_function_selector,
-                                         selector_is_object_pointer,
-                                         routine,
-                                         this_param_type, this_match);
+                                         routine, this_param_type, this_match);
           /* Set the "next" pointer again, because it is cleared by
              selector_match_with_this_param. */
           this_match->next = this_match_next;
@@ -3324,7 +3327,6 @@ static void try_overloaded_function_match(
                  an_arg_operand_ptr       arg_operand_list,
                  a_boolean                have_selector,
                  an_operand               *bound_function_selector,
-                 a_boolean                selector_is_object_pointer,
                  a_boolean                ctor_conversion_case,
                  a_boolean                initializing_return_value,
                  a_boolean                effects_copy_initialization,
@@ -3348,32 +3350,33 @@ function, or a projection symbol for one of those.  is_template_id
 is TRUE if the symbol has an associated explicit template argument list;
 if so, template_arg_list gives the argument list.
 bound_function_selector is an object pointer if
-selector_is_object_pointer is TRUE, an object otherwise.  Any viable
-functions are added to the candidate_functions list along with
-information on the level of argument matches.  If a match would have
-been found except for the absence of a selector, set
+bound_function_selector->selector_is_object_pointer is TRUE, an object
+otherwise.  Any viable functions are added to the candidate_functions
+list along with information on the level of argument matches.  If a
+match would have been found except for the absence of a selector, set
 *matched_except_for_missing_selector TRUE, and if a match would have
 been found except for a mismatch on the selector, set
-*matched_except_for_selector TRUE; those allow different
-error messages.  If ctor_conversion_case is TRUE, this analysis is
-being done as part of resolving an implicit or explicit conversion
-to a class type: the functions are constructors, have_selector is FALSE
+*matched_except_for_selector TRUE; those allow different error
+messages.  If ctor_conversion_case is TRUE, this analysis is being
+done as part of resolving an implicit or explicit conversion to a
+class type: the functions are constructors, have_selector is FALSE
 (sic; the "this" parameter is not matched up); the "conversion" field
 is set in any candidate function entries created.
 initializing_return_value is TRUE if the initialization is being done
 to return a value in a return statement.  effects_copy_initialization
-is TRUE if this call is the user-defined conversion in a copy-initialization;
-constructors that are marked "explicit" are ignored.  allow_udc_on_arguments
-is TRUE if user-defined conversions should be allowed on the argument
-matches.  from_arg_dep_lookup is TRUE if the function was found by
-argument-dependent lookup.  arg_dep_lookup_extra_info provides extra
-information about argument-dependent lookup.  dependent_call is TRUE
-if the call is a template-dependent call.  forced_dependent is
-TRUE if dependent_call was forced to TRUE for reasons of g++ emulation.
-known_to_be_visible is TRUE if the function is known to be visible and
-the visibility check should be suppressed.  is_overloaded_operator is
-TRUE if the call is written in operator form, e.g., a+b rather than
-operator+(a, b).
+is TRUE if this call is the user-defined conversion in a
+copy-initialization; constructors that are marked "explicit" are
+ignored.  allow_udc_on_arguments is TRUE if user-defined conversions
+should be allowed on the argument matches.  from_arg_dep_lookup is
+TRUE if the function was found by argument-dependent lookup.
+arg_dep_lookup_extra_info provides extra information about
+argument-dependent lookup.  dependent_call is TRUE if the call is a
+template-dependent call.  forced_dependent is TRUE if dependent_call
+was forced to TRUE for reasons of g++ emulation.  known_to_be_visible
+is TRUE if the function is known to be visible and the visibility
+check should be suppressed.  is_overloaded_operator is TRUE if the
+call is written in operator form, e.g., a+b rather than operator+(a,
+b).
 */
 {
   a_boolean     overloaded_function_case;
@@ -3438,7 +3441,6 @@ operator+(a, b).
          can be generated from the "this" pointer of the current function. */
       if ((implicit_selector_type = make_implicit_selector_type()) != NULL) {
         have_selector = TRUE;
-        selector_is_object_pointer = TRUE;
       }  /* if */
     }  /* if */
   }  /* if */
@@ -3475,7 +3477,6 @@ retry:
                                  arg_operand_list,
                                  have_selector,
                                  bound_function_selector,
-                                 selector_is_object_pointer,
                                  implicit_selector_type,
                                  ctor_conversion_case,
                                  initializing_return_value,
@@ -3520,8 +3521,7 @@ a_boolean overloaded_function_match_possible(
                                 a_template_arg_ptr template_arg_list,
                                 an_arg_operand_ptr arg_operand_list,
                                 a_boolean          have_selector,
-                                an_operand         *bound_function_selector,
-                                a_boolean          selector_is_object_pointer)
+                                an_operand         *bound_function_selector)
 /*
 Similar to try_overloaded_function_match, but just returns TRUE if there
 are viable functions, FALSE if not.  Issues no errors.
@@ -3538,7 +3538,6 @@ are viable functions, FALSE if not.  Issues no errors.
                                 arg_operand_list,
                                 have_selector,
                                 bound_function_selector,
-                                selector_is_object_pointer,
                                 /*ctor_conversion_case=*/FALSE,
                                 /*initializing_return_value=*/FALSE,
                                 /*effects_copy_initialization=*/FALSE,
@@ -3636,7 +3635,6 @@ arguments of the call (given by arg_operand_list).
                                        arg_operand_list,
                                        /*have_selector=*/TRUE,
                                        class_object,
-                                       /*selector_is_object_pointer=*/FALSE,
                                        (a_type_ptr)NULL,
                                        /*ctor_conversion_case=*/FALSE,
                                        /*initializing_return_value=*/FALSE,
@@ -5537,7 +5535,6 @@ a_symbol_ptr select_overloaded_function(
                          a_template_arg_ptr       template_arg_list,
                          a_boolean                have_selector,
                          an_operand               *bound_function_selector,
-                         a_boolean                selector_is_object_pointer,
                          an_arg_operand_ptr       arg_operand_list,
                          a_boolean                do_arg_dep_lookup,
                          a_boolean                force_dependent,
@@ -5562,7 +5559,8 @@ constructor calls, bound_function_selector can be NULL when
 have_selector is TRUE; we have a selector, but it's not available.
 That's okay for constructors, because they cannot be const- or
 volatile-qualified, and the selector expression is only needed for
-that discrimination.  selector_is_object_pointer is TRUE if the
+that discrimination.
+bound_function_selector->selector_is_object_pointer is TRUE if the
 selector is an object pointer, FALSE if it is an object.
 do_arg_dep_lookup is TRUE if argument-dependent lookup should be done;
 if it is TRUE, overloaded_function_symbol may be an sk_undefined
@@ -5756,7 +5754,6 @@ in_instantiation:
                                     arg_operand_list,
                                     have_selector,
                                     bound_function_selector,
-                                    selector_is_object_pointer,
                                     /*ctor_conversion_case=*/FALSE,
                                     /*initializing_return_value=*/FALSE,
                                     /*effects_copy_initialization=*/FALSE,
@@ -5844,7 +5841,6 @@ in_instantiation:
                                       arg_operand_list,
                                       have_selector,
                                       bound_function_selector,
-                                      selector_is_object_pointer,
                                       /*ctor_conversion_case=*/FALSE,
                                       /*initializing_return_value=*/FALSE,
                                       /*effects_copy_initialization=*/FALSE,
@@ -5953,7 +5949,7 @@ in_instantiation:
         a_type_ptr object_class_type;
         check_assertion(bound_function_selector != NULL);
         object_class_type = bound_function_selector->type;
-        if (selector_is_object_pointer) {
+        if (bound_function_selector->selector_is_object_pointer) {
           object_class_type = type_pointed_to(object_class_type);
         }  /* if */
         pos_ty_start_error(ec_ambiguous_class_call, call_position,
@@ -6117,16 +6113,25 @@ base class casts and virtual function calls.
 /*ARGSUSED*/  /* <-- bound_function_selector is not used in that case. */
 #endif /* !OPTIMIZE_VIRTUAL_FUNCTION_CALLS */
 void bind_member_function_operand_to_selector(
-                                           an_operand *function_operand,
-                                           an_operand *bound_function_selector)
+                                         an_operand *bound_function_selector,
+                                         a_boolean  selector_is_object_pointer,
+                                         an_operand *function_operand)
 /*
 Bind the operand for a function to an associated selector object.  If the
 complete object type can be determined, convert a virtual function call
 into a direct call if possible.  The selector object can be a class lvalue
-or rvalue or a pointer to a class.
+or rvalue ("." or ".*" case, selector_is_object_pointer FALSE) or a pointer
+to a class ("->" or "->*" case, selector_is_object_pointer TRUE).
 */
 {
   function_operand->bound_function = TRUE;
+  check_assertion((selector_is_object_pointer ==
+                             is_pointer_type(bound_function_selector->type)) ||
+                  (is_template_dependent_context() &&
+                   is_template_dependent_type(bound_function_selector->type))||
+                  is_error_operand(bound_function_selector));
+  bound_function_selector->selector_is_object_pointer =
+                                                    selector_is_object_pointer;
 #if OPTIMIZE_VIRTUAL_FUNCTION_CALLS
   if (function_operand->virtual_function &&
       is_expression_operand(function_operand)) {
@@ -6135,7 +6140,7 @@ or rvalue or a pointer to a class.
     an_expr_node_ptr function_expr;
     a_type_ptr       complete_object_type = NULL;
 
-    if (is_pointer_type(bound_function_selector->type)) {
+    if (selector_is_object_pointer) {
       complete_object_type =
                   pointer_operand_complete_object_type(bound_function_selector,
                                                        /*call_case=*/TRUE);
@@ -6914,7 +6919,6 @@ static void make_resolved_overloaded_function_operand(
                                  a_symbol_ptr       overloaded_function_symbol,
                                  a_boolean          *have_selector,
                                  an_operand         *bound_function_selector,
-                                 a_boolean          selector_is_object_pointer,
                                  a_boolean          is_qualified_name,
                                  a_boolean          is_property,
                                  a_source_position  *function_position,
@@ -6935,17 +6939,18 @@ the object, and function_operand is bound to that object.  Even when
 *have_selector is FALSE going in, bound_function_selector must point
 at an operand that can be filled in if an implicit selector is
 generated (*have_selector is set to TRUE for that case).
-selector_is_object_pointer is TRUE if the selector is an object pointer,
-FALSE if it is an object.  function_position gives the source position
-of the function in the call; if end positions are being maintained,
-function_end_position gives the corresponding end position.
-id_position gives the source position of the function name identifier
-in the call.
+bound_function_selector->selector_is_object_pointer is TRUE if the
+selector is an object pointer, FALSE if it is an object.
+function_position gives the source position of the function in the
+call; if end positions are being maintained, function_end_position
+gives the corresponding end position.  id_position gives the source
+position of the function name identifier in the call.
 */
 {
   a_symbol_ptr base_function_symbol = fundamental_symbol_of(function_symbol);
   a_boolean    access_error_reported;
   a_type_ptr   routine_type;
+  a_boolean    selector_is_object_pointer = FALSE;
 
   /* Do whatever would have been done to the function had we known
      originally which specific function was intended. */
@@ -6961,6 +6966,10 @@ in the call.
                                /*address_taken=*/FALSE,
                                function_operand,
                                &access_error_reported);
+  if (*have_selector) {
+    selector_is_object_pointer =
+                           bound_function_selector->selector_is_object_pointer;
+  }  /* if */
   /* Check whether or not a selector is needed. */
   routine_type = routine_symbol_type(base_function_symbol);
   if (routine_type_is_nonstatic_member_function(routine_type)) {
@@ -6997,8 +7006,9 @@ in the call.
                                        &selector_position);
     }  /* if */
     /* Bind the function to the selector. */
-    bind_member_function_operand_to_selector(function_operand,
-                                             bound_function_selector);
+    bind_member_function_operand_to_selector(bound_function_selector,
+                                             selector_is_object_pointer,
+                                             function_operand);
   } else {
     /* The routine does not need a selector. */
     if (*have_selector) {
@@ -7669,7 +7679,8 @@ format string can be deduced, set appropriate fields in arg_block.
      "format_arg" attribute. */
   if (is_operation_node(node) &&
       (node_operator_is(node, eok_call) ||
-       node_operator_is(node, eok_member_call)) &&
+       node_operator_is(node, eok_dot_member_call) ||
+       node_operator_is(node, eok_points_to_member_call)) &&
       (rout = routine_from_function_expr(node->variant.operation.operands))
                                                                      != NULL) {
     a_routine_type_supplement_ptr rtsp;
@@ -8345,7 +8356,6 @@ a_type_ptr select_and_prepare_to_call_overloaded_function(
                            a_template_arg_ptr      template_arg_list,
                            a_boolean               have_selector,
                            an_operand              *bound_function_selector,
-                           a_boolean               selector_is_object_pointer,
                            an_arg_operand_ptr      arg_operand_list,
                            a_boolean               do_arg_dep_lookup,
                            a_boolean               try_surrogate_functions,
@@ -8378,21 +8388,22 @@ volatile-qualified, and the selector expression is only needed for
 that discrimination.  If have_selector is FALSE,
 bound_function_selector must still point at an operand that can be
 filled in if an implicit selector is generated.
-selector_is_object_pointer is TRUE if the selector is an object
-pointer, FALSE if it is an object.  do_arg_dep_lookup is TRUE if
-argument-dependent lookup should be done; if it is TRUE,
-overloaded_function_symbol may be an sk_undefined symbol, indicating
-that nothing was found on a normal id lookup of the function name.
-try_surrogate_functions is TRUE if surrogate functions should be
-tried; that means looking for conversion functions from the selector
-object to pointers to function type.  overloaded_function_symbol can
-be NULL in that case.  is_qualified_name is TRUE if a qualified name
-was used to name the function (that suppresses the virtual-ness of the
-function).  is_property is TRUE if this call results from the
-expansion of a Microsoft property reference.  arg_operand_list is
-freed by this routine.  call_position is the source position of the
-call.  paren_tok_seq_number is the token sequence number of the
-opening parenthesis of the argument list, but it's required only when
+bound_function_selector->selector_is_object_pointer is TRUE if the
+selector is an object pointer, FALSE if it is an object.
+do_arg_dep_lookup is TRUE if argument-dependent lookup should be done;
+if it is TRUE, overloaded_function_symbol may be an sk_undefined
+symbol, indicating that nothing was found on a normal id lookup of the
+function name.  try_surrogate_functions is TRUE if surrogate functions
+should be tried; that means looking for conversion functions from the
+selector object to pointers to function type.
+overloaded_function_symbol can be NULL in that case.
+is_qualified_name is TRUE if a qualified name was used to name the
+function (that suppresses the virtual-ness of the function).
+is_property is TRUE if this call results from the expansion of a
+Microsoft property reference.  arg_operand_list is freed by this
+routine.  call_position is the source position of the call.
+paren_tok_seq_number is the token sequence number of the opening
+parenthesis of the argument list, but it's required only when
 do_arg_dep_lookup is TRUE; it can be zero otherwise.  If an error of
 some sort is detected, issue an error at that position and return
 NULL.  err_none_applies is the error code to use when no function
@@ -8429,7 +8440,6 @@ routine is called only in C++ mode.
                                                template_arg_list,
                                                have_selector,
                                                bound_function_selector,
-                                               selector_is_object_pointer,
                                                arg_operand_list,
                                                do_arg_dep_lookup,
                                                /*force_dependent=*/FALSE,
@@ -8457,7 +8467,6 @@ routine is called only in C++ mode.
                                               overloaded_function_symbol,
                                               &have_selector,
                                               bound_function_selector,
-                                              selector_is_object_pointer,
                                               is_qualified_name,
                                               is_property,
                                               function_position,
@@ -8923,7 +8932,6 @@ This routine is only used in C++ mode.
                                                         conversion_symbol,
                                                         /*is_conv_func=*/TRUE);
     selector_match_with_this_param(source_operand,
-                                   /*selector_is_object_pointer=*/FALSE,
                                    conversion_routine,
                                    eff_this_param_type,
                                    &this_match);
@@ -10760,7 +10768,6 @@ such cases (where operator overloading might apply, but we can't tell).
                                          /*have_selector=*/is_member,
                                          is_member ? operand_1 :
                                                      (an_operand *)NULL,
-                                         /*selector_is_object_pointer=*/FALSE,
                                          /*ctor_conversion_case=*/FALSE,
                                          /*initializing_return_value=*/FALSE,
                                          /*effects_copy_initialization=*/FALSE,
@@ -10802,7 +10809,6 @@ such cases (where operator overloading might apply, but we can't tell).
                                          arg_operand_list2,
                                          /*have_selector=*/TRUE,
                                          operand_1,
-                                         /*selector_is_object_pointer=*/FALSE,
                                          /*ctor_conversion_case=*/FALSE,
                                          /*initializing_return_value=*/FALSE,
                                          /*effects_copy_initialization=*/FALSE,
@@ -10881,7 +10887,6 @@ such cases (where operator overloading might apply, but we can't tell).
                                          arg_operand_list,
                                          /*have_selector=*/FALSE,
                                          (an_operand *)NULL,
-                                         /*selector_is_object_pointer=*/FALSE,
                                          /*ctor_conversion_case=*/FALSE,
                                          /*initializing_return_value=*/FALSE,
                                          /*effects_copy_initialization=*/FALSE,
@@ -11163,7 +11168,6 @@ select_best_function:
                                                     nonmember_functions_symbol,
                                           &have_selector,
                                           bound_function_selector,
-                                          /*selector_is_object_pointer=*/FALSE,
                                           /*is_qualified_name=*/FALSE,
                                           /*is_property=*/FALSE,
                                           operator_position,
@@ -11355,7 +11359,6 @@ mode.
                                     arg_operand_list,
                                     /*have_selector=*/FALSE, /* sic */
                                     (an_operand *)NULL,
-                                    /*selector_is_object_pointer=*/FALSE,
                                     /*ctor_conversion_case=*/TRUE,
                                     initializing_return_value,
                                     /*effects_copy_initialization=*/
@@ -12424,6 +12427,7 @@ the temporary.
     make_function_call(rout_node, conversion_routine->type,
                        (a_boolean)conversion_routine->is_virtual,
                        /*virtual_suppressed=*/FALSE,
+                       /*selector_is_object_pointer=*/FALSE,
                        /*compiler_generated=*/!is_explicit_cast,
                        /*is_conversion=*/TRUE,
                        /*arg_dep_lookup_suppressed=*/FALSE,
@@ -15030,6 +15034,7 @@ to be copied.
        operator= and thus we want to convert it to an object pointer. */
     make_lvalue_expression_operand(dest_expr, &operand_1);
     take_address_of_lvalue(&operand_1, ((a_source_position *)NULL));
+    operand_1.selector_is_object_pointer = TRUE;
     make_lvalue_expression_operand(source_expr, &operand_2);
     /* Change the source operand into argument operand form. */
     arg_operand_list = alloc_arg_operand();
@@ -15049,7 +15054,6 @@ to be copied.
                                     arg_operand_list,
                                     /*have_selector=*/TRUE,
                                     &operand_1,
-                                    /*selector_is_object_pointer=*/TRUE,
                                     /*ctor_conversion_case=*/FALSE,
                                     /*initializing_return_value=*/FALSE,
                                     /*effects_copy_initialization=*/FALSE,

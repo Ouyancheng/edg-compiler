@@ -508,7 +508,6 @@ extern void choose_function_and_make_address_constant(
 
 extern void selector_match_with_this_param(
                                an_operand           *bound_function_selector,
-                               a_boolean            selector_is_object_pointer,
                                a_routine_ptr        rout,
                                a_type_ptr           this_param_type,
                                an_arg_match_summary *arg_summary);
@@ -522,7 +521,6 @@ extern a_symbol_ptr select_overloaded_function(
                          a_template_arg_ptr       template_arg_list,
                          a_boolean                have_selector,
                          an_operand               *bound_function_selector,
-                         a_boolean                selector_is_object_pointer,
                          an_arg_operand_ptr       arg_operand_list,
                          a_boolean                do_arg_dep_lookup,
                          a_boolean                force_dependent,
@@ -543,8 +541,7 @@ extern a_boolean overloaded_function_match_possible(
                                a_template_arg_ptr template_arg_list,
                                an_arg_operand_ptr arg_operand_list,
                                a_boolean          have_selector,
-                               an_operand         *bound_function_selector,
-                               a_boolean          selector_is_object_pointer);
+                               an_operand         *bound_function_selector);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern void temp_init_from_operand(an_operand *operand,
@@ -620,7 +617,6 @@ extern a_type_ptr select_and_prepare_to_call_overloaded_function(
                            a_template_arg_ptr      template_arg_list,
                            a_boolean               have_selector,
                            an_operand              *bound_function_selector,
-                           a_boolean               selector_is_object_pointer,
                            an_arg_operand_ptr      arg_operand_list,
                            a_boolean               do_arg_dep_lookup,
                            a_boolean               try_surrogate_functions,
@@ -688,8 +684,9 @@ extern a_boolean conversion_to_class_possible(
                           a_candidate_function_ptr *ambiguity_list);
 
 extern void bind_member_function_operand_to_selector(
-                                      an_operand *function_operand,
-                                      an_operand *bound_function_selector);
+                                         an_operand *bound_function_selector,
+                                         a_boolean  selector_is_object_pointer,
+                                         an_operand *function_operand);
 
 extern a_boolean user_defined_conversion_possible(
                                       an_operand   *source_operand,

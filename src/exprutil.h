@@ -287,6 +287,15 @@ typedef struct an_operand {
 			/* TRUE if the operand is a bound function, i.e.,
 			   another operand is required to give the object
 			   relative to which this function is selected. */
+  a_bit_field	selector_is_object_pointer:1;
+			/* On the operand bound to one with bound_function
+			   TRUE, this flag indicates that the source form
+			   that created the bound function was "->" or "->*"
+			   rather than "." or ".*".  In other words, it
+			   indicates that the selector is an object pointer
+			   rather than a class lvalue or rvalue.  Also used
+			   on operands that are intended to be used as
+			   selectors before they get bound to anything. */
   a_bit_field	virtual_function:1;
 			/* TRUE if the operand represents a virtual
 			   function. */
@@ -1252,6 +1261,7 @@ extern void make_function_call(an_expr_node_ptr  function_node,
                                a_type_ptr        function_type,
                                a_boolean         is_virtual,
                                a_boolean         virtual_suppressed,
+                               a_boolean         selector_is_object_pointer,
                                a_boolean         compiler_generated,
                                a_boolean         is_conversion,
                                a_boolean         arg_dep_lookup_suppressed,

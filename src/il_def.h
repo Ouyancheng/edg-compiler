@@ -9411,8 +9411,8 @@ enum an_expr_operator_kind_tag {
 			   member function.  This is (only) used to implement
 			   a C++ anachronism.  The first operand is the address
 			   of a virtual function (NOT a pointer-to-member);
-			   the second is the selector object (class lvalue,
-			   class rvalue, or pointer to class).  The result
+			   the second is the selector object (standardized,
+			   if necessary, to a pointer to class).  The result
 			   is a pointer to the selected function. */
   /* The following have 3 operands: */
   eok_question,         /* Conditional expression ("?" operator).  Operand
@@ -9423,27 +9423,42 @@ enum an_expr_operator_kind_tag {
   /* The following have n operands: */
   eok_call,             /* A call of a non-member function or static member
 			   function.  Also any call in C.  The first operand
-			   identifies the routine and the rest are its
-			   arguments.  Note that the operand specifying the
-			   routine can be an expression (e.g., for a call
-			   through a pointer), or eok_dot_static/
-			   eok_points_to_static for a static member function
-			   call. */
-  eok_member_call,	/* A call of a non-static member function that does
-			   not require virtual function semantics.  The first
-			   operand identifies the member function (as a
-			   routine address, not a pointer-to-member).  The
-			   second operand is the selector object (class lvalue
-			   or class rvalue for the "x.f()" form, or pointer to
-			   class for the "p->f()" form).  The remaining
+			   identifies the routine (as a routine address) and
+			   the rest are its arguments.  Note that the operand
+			   specifying the routine can be an expression
+			   (e.g., for a call through a pointer), or
+			   eok_dot_static/eok_points_to_static for a static
+			   member function call. */
+  eok_dot_member_call,	/* A call of a non-static member function with the
+			   source form x.f(args).  The first operand
+			   identifies the member function (as a routine
+			   address, not a pointer-to-member); the second
+			   operand is the selector object (class lvalue
+			   or class rvalue); the remaining operands are the
+			   arguments.  The is_virtual_call flag indicates
+			   whether the call is virtual. */
+  eok_points_to_member_call,
+			/* A call of a non-static member function with the
+			   source form p->f(args).  The first operand
+			   identifies the member function (as a routine
+			   address, not a pointer-to-member); the second
+			   operand is an rvalue pointer to class that
+			   identifies the selector object; the remaining
 			   operands are the arguments.  The is_virtual_call
 			   flag indicates whether the call is virtual. */
-  eok_pm_call,		/* A call of a function identified by a pointer
-			   to member.  The first operand is the pointer to
-			   member (function); the second is the selector
-			   object (class lvalue or class rvalue for the
-			   "(x.*pmf)()" form, or pointer to class for the
-			   "(p->*pmf)()" form); the arguments follow. */
+  eok_dot_pm_call,	/* A call of a function identified by a pointer
+			   to member, with the source form (x.*pmf)(args).
+			   The first operand is the pointer to member
+			   function; the second is the selector object
+			   (class lvalue or class rvalue); the remaining
+			   operands are the arguments. */
+  eok_points_to_pm_call,
+			/* A call of a function identified by a pointer
+			   to member, with the source form (p->*pmf)(args).
+			   The first operand is the pointer to member
+			   function; the second is an rvalue pointer to
+			   class that identifies the the selector object;
+			   the remaining operands are the arguments. */
   /* Operators used when the <stdarg.h> macros are treated as builtins: */
   eok_va_start,		/* va_start macro reference.  First operand is an
 			   lvalue variable of type va_list, second is
@@ -9875,7 +9890,7 @@ typedef struct an_expr_node {
 			   compiler-generated.  Not all such casts are
 			   so labeled; this is used for some special cases.
 			   This flag is also used internally in the
-			   C++-generating back end on an eok_call operation
+			   C++-generating back end on a call operation
 			   to a conversion function to indicate that the
 			   call should be generated as a cast rather than
 			   suppressed altogether. */
@@ -9904,12 +9919,12 @@ typedef struct an_expr_node {
 			   the pointer operand is the second one. */
       a_bit_field
 		is_virtual_call:1;
-			/* On the member call operator eok_member_call,
-			   indicates that the call uses virtual semantics.
-			   Note specifically that a call to a virtual function
-			   with this flag FALSE is not a virtual call (perhaps
-			   because the function was named with a qualified
-			   name). */
+			/* On the member call operators eok_dot_member_call
+			   and eok_points_to_member_call, indicates that the
+			   call uses virtual semantics.  Note specifically
+			   that a call to a virtual function with this flag
+			   FALSE is not a virtual call (perhaps because the
+			   function was named with a qualified name). */
       an_expr_node_ptr  
                 operands;
                         /* The list of operands. */
@@ -12183,8 +12198,10 @@ EXTERN char     *db_operator_names[(int)eok_last+1]
    "virt func ptr",
    "?",
    "call",
-   "member call",
-   "pm call",
+   ". member call",
+   "-> member call",
+   ".* pm call",
+   "->* pm call",
    "va_start", "va_arg", "va_end", "va_copy", "va_start (single op)",
    "lvalue",
    "error", "last"

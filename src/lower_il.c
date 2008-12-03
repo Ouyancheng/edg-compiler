@@ -2728,9 +2728,9 @@ of the conversion that is performed in rvalue_pointer_for_class_expression.
 static void lower_class_selector_operand_if_any(an_expr_node_ptr expr)
 /*
 This routine is called to examine the specified operation and determine if
-any of its operands are a class selector (class lvalue, class rvalue, or
-pointer to class); if so, the operand is rewritten as a pointer to class.
-On input, the expression must be unlowered (and remains so).
+any of its operands are a class selector that is a class lvalue or rvalue
+rather than a pointer to class; if so, the operand is rewritten as a pointer
+to class.  On input, the expression must be unlowered (and remains so).
 */
 {
   an_expr_node_ptr      node = NULL;
@@ -2741,9 +2741,8 @@ On input, the expression must be unlowered (and remains so).
   if (op == (an_expr_operator_kind)eok_pm_field) {
     /* First operand is a class selector. */
     node = expr->variant.operation.operands;
-  } else if (op == (an_expr_operator_kind)eok_virtual_function_ptr ||
-             op == (an_expr_operator_kind)eok_member_call ||
-             op == (an_expr_operator_kind)eok_pm_call) {
+  } else if (op == (an_expr_operator_kind)eok_dot_member_call ||
+             op == (an_expr_operator_kind)eok_dot_pm_call) {
     /* Second operand is a class selector. */
     node = expr->variant.operation.operands->next;
   }  /* if */
@@ -10036,7 +10035,8 @@ of a base or derived class of that class.
       comma_node->next = var_rvalue_expr(temp_var);
       /* Note the use of dest_type here to ensure that information on the
          original pointer-to-member-function type is available in case
-         there is an eok_pm_call operation above this one. */
+         there is an eok_dot_pm_call or eok_points_to_pm_call operation
+         above this one. */
       set_node_operator(node, (an_expr_operator_kind)eok_comma,
                         dest_type, node->is_lvalue, comma_node);
     } else {
@@ -10823,7 +10823,8 @@ have already been lowered.
 
   /* The original tree has a member call node with operands as follows:
        (1) an enk_routine node for the virtual function.
-       (2) a node for the object pointer.
+       (2) a node for the object pointer.  (For the eok_dot_member_call case,
+           this has already been converted to a pointer.)
        (3..n) optional additional arguments.
      Or, in C notation,
        member_call(func, object, additional_args ...)
@@ -11043,12 +11044,14 @@ the expression have already been lowered.
   a_type_ptr       ptr_to_vtbl_entry_type, routine_type, object_type;
   a_type_ptr       class_type, ptr_routine_type;
 
-  /* The original tree has an eok_pm_call node with operands as follows:
+  /* The original tree has an eok_dot_pm_call or eok_points_to_pm_call
+     node with operands as follows:
        (1) a node giving the rvalue of the pointer-to-member.
-       (2) a node for the object pointer.
+       (2) a node for the object pointer.  (For the eok_dot_pm_call case, this
+           has already been converted to a pointer.)
        (3..n) optional additional arguments.
      Or, in C notation,
-       eok_pm_call(pmf, object, additional_args ...)
+       pm_call(pmf, object, additional_args ...)
   */
   pmf_node = expr->variant.operation.operands;
   check_assertion(!pmf_node->is_lvalue);
@@ -11378,8 +11381,8 @@ void lower_call(an_expr_node_ptr      expr,
                 an_init_pos_descr_ptr ipdp,
                 a_statement_ptr       statement)
 /*
-Lower a call (normal, virtual, or pointer-to-member).  expr points to the
-call node.  ipdp, if non-NULL, indicates an entity into which the
+Lower a call (nonmember, member, virtual, or pointer-to-member).  expr points
+to the call node.  ipdp, if non-NULL, indicates an entity into which the
 call should return its value.  If statement is non-NULL, this call is
 the top node of the indicated statement (which is an expression statement).
 */
@@ -11398,7 +11401,8 @@ the top node of the indicated statement (which is an expression statement).
   first_arg = arg_node = expr->variant.operation.operands;
   check_assertion(!first_arg->is_lvalue);
   /* Extract the routine type. */
-  if (op == (an_expr_operator_kind)eok_pm_call) {
+  if (op == (an_expr_operator_kind)eok_dot_pm_call ||
+      op == (an_expr_operator_kind)eok_points_to_pm_call) {
     rout_type = pm_member_type_possibly_lowered(first_arg->type);
   } else {
     rout_type = type_pointed_to(first_arg->type);
@@ -11494,12 +11498,14 @@ the top node of the indicated statement (which is an expression statement).
   if (call_expr->variant.operation.is_virtual_call) {
     /* Virtual function call. */
     lower_virtual_function_call(call_expr);
-  } else if (op == (an_expr_operator_kind)eok_pm_call) {
+  } else if (op == (an_expr_operator_kind)eok_dot_pm_call ||
+             op == (an_expr_operator_kind)eok_points_to_pm_call) {
     /* Call of a function specified by a pointer-to-member. */
     lower_pm_call(call_expr);
   } else {
     check_assertion((op == (an_expr_operator_kind)eok_call ||
-                     op == (an_expr_operator_kind)eok_member_call) &&
+                     op == (an_expr_operator_kind)eok_dot_member_call ||
+                     op == (an_expr_operator_kind)eok_points_to_member_call) &&
                     is_operation_node(expr) &&
                     expr->variant.operation.kind == op);
     /* Normal member or non-member call. */
@@ -12499,11 +12505,14 @@ cases and won't be seen in this routine.
       break;
 #if CHECKING
     case eok_ref_indirect:
-    case eok_member_call:
-    case eok_pm_call:
+    case eok_call:
+    case eok_dot_member_call:
+    case eok_points_to_member_call:
+    case eok_dot_pm_call:
+    case eok_points_to_pm_call:
     case eok_question:
-      /* These are all handled as special lowering cases which aren't handled
-         by this general case. */
+      /* These are all handled as special lowering cases and shouldn't get
+         to this routine. */
       unexpected_condition();
 #endif /* CHECKING */
     default:
@@ -13442,9 +13451,7 @@ cast.  See lower_expr for typical invocation.
         /* Cast of pointer-to-member to base or derived class is rewritten.
            This call also lowers any subtree. */
         lower_pm_related_class_cast(expr);
-      } else if (op == (an_expr_operator_kind)eok_call ||
-                 op == (an_expr_operator_kind)eok_member_call ||
-                 op == (an_expr_operator_kind)eok_pm_call) {
+      } else if (is_call_node(expr)) {
         /* Calls of various kinds. */
         lower_call(expr, (an_init_pos_descr_ptr)NULL, (a_statement_ptr)NULL);
       } else if (node_operator_type_kind_is(expr, tk_ptr_to_member) &&
@@ -14039,9 +14046,7 @@ expression statement, statement points to the statement; otherwise, it is NULL.
   /* Lower the subexpression. */
 #if MINIMAL_INLINING
   if (inlining_enabled && statement != NULL && expr_to_lower == expr &&
-      is_operation_node(expr_to_lower) &&
-      (node_operator_is(expr_to_lower, eok_call) ||
-       node_operator_is(expr_to_lower, eok_member_call))) {
+      is_call_node(expr_to_lower)) {
     /* Special-case a call as the top expression so inlining can be
        done with statement insertions.  Don't do this if an enk_object_lifetime
        appears (it could be done, but it's more complicated because of

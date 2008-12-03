@@ -3089,8 +3089,11 @@ Display the name of an expression operator.
                                 s = "eok_virtual_function_ptr";   break;
     case eok_question:          s = "eok_question";               break;
     case eok_call:              s = "eok_call";                   break;
-    case eok_member_call:       s = "eok_member_call";            break;
-    case eok_pm_call:           s = "eok_pm_call";                break;
+    case eok_dot_member_call:   s = "eok_dot_member_call";        break;
+    case eok_points_to_member_call:
+                                s = "eok_points_to_member_call";  break;
+    case eok_dot_pm_call:       s = "eok_dot_pm_call";            break;
+    case eok_points_to_pm_call: s = "eok_points_to_pm_call";      break;
     case eok_va_start:          s = "eok_va_start";               break;
     case eok_va_arg:            s = "eok_va_arg";                 break;
     case eok_va_end:            s = "eok_va_end";                 break;

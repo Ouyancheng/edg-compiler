@@ -1126,7 +1126,6 @@ source position is after the closing parenthesis of the argument list.
                                           (a_template_arg_ptr)NULL,
                                           /*have_selector=*/TRUE,
                                           (an_operand *)NULL,
-                                          /*selector_is_object_pointer=*/FALSE,
                                           arg_operand_list,
                                           /*do_arg_dep_lookup=*/FALSE,
                                           /*force_dependent=*/FALSE,
@@ -2032,7 +2031,6 @@ C++ standard.  The current token is the "(" of the call.
   a_boolean         arg_dep_lookup_suppressed = FALSE;
   a_boolean         found_through_adl = FALSE;
   a_boolean         has_overloaded_call_operator = FALSE;
-  a_boolean         selector_is_object_pointer;
 
   db_enter(4, "scan_function_call");
 
@@ -2125,6 +2123,7 @@ C++ standard.  The current token is the "(" of the call.
     a_symbol_ptr member_function_symbol;
     a_type_ptr   class_type = operand->type;
     class_type = skip_typerefs(class_type);
+    check_assertion(!operand->bound_function);
     if (class_type->variant.class_struct_union.is_nonreal_class) {
       /* A call of an object of a nonreal class type in a prototype
          instantiation cannot be resolved. */
@@ -2156,8 +2155,10 @@ C++ standard.  The current token is the "(" of the call.
                                          /*curr_id=*/FALSE,
                                          operand);
         overloaded_function_symbol = member_function_symbol;
-        bind_member_function_operand_to_selector(operand,
-                                                 bound_function_selector);
+        bind_member_function_operand_to_selector(
+                                          bound_function_selector,
+                                          /*selector_is_object_pointer=*/FALSE,
+                                          operand);
         /* The function position is the position of the "(". */
         function_position = pos_curr_token;
       }  /* if */
@@ -2202,8 +2203,10 @@ C++ standard.  The current token is the "(" of the call.
         /* There was some problem in constructing the "this" operand. */
         conv_to_error_operand(operand);
       }  /* if */
-      bind_member_function_operand_to_selector(operand,
-                                               bound_function_selector);
+      bind_member_function_operand_to_selector(
+                                           bound_function_selector,
+                                           /*selector_is_object_pointer=*/TRUE,
+                                           operand);
     }  /* if */
     /* Do standard transformations on the operand. */
     { a_transformation_options_set options =
@@ -2335,9 +2338,6 @@ C++ standard.  The current token is the "(" of the call.
     change_some_ref_kinds(operand->ref_entries_list, SRK_ADDRESS_TAKEN,
                           SRK_REFERENCE);
   }  /* if */
-  selector_is_object_pointer = (operand->bound_function &&
-                               is_pointer_type(bound_function_selector->type));
-
 #if GNU_EXTENSIONS_ALLOWED && GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
   if (routine != NULL && is_gnu_builtin_function(routine)) {
       /* If this is a call to a predeclared GNU __sync_... function adjust the
@@ -2406,7 +2406,6 @@ C++ standard.  The current token is the "(" of the call.
                                             operand->bound_function ||
                                                        try_surrogate_functions,
                                             bound_function_selector,
-                                            selector_is_object_pointer,
                                             arg_operand_list,
                                             do_arg_dep_lookup,
                                             try_surrogate_functions,
@@ -2447,9 +2446,11 @@ C++ standard.  The current token is the "(" of the call.
                                          operand);
         if (have_selector) {
           /* This comes up with operator() cases. */
-          combine_unneeded_selector_with_operand(bound_function_selector,
-                                                 selector_is_object_pointer,
-                                                 operand);
+          combine_unneeded_selector_with_operand(
+                                           bound_function_selector,
+                                           (a_boolean)bound_function_selector->
+                                                    selector_is_object_pointer,
+                                           operand);
         }  /* if */
       }  /* if */
     } else if (routine_type == NULL) {
@@ -2481,7 +2482,6 @@ C++ standard.  The current token is the "(" of the call.
          done during the function binding, so the differences at this
          point (other than for error cases) are const/non-const differences. */
       selector_match_with_this_param(bound_function_selector,
-                                     selector_is_object_pointer,
                                      routine,
                                      implicit_this_param_type_of(routine_type),
                                      &this_match_summary);
@@ -3045,9 +3045,9 @@ have the EOPT_FIELD_FOR_OFFSETOF flag set in that case).
           an_expr_node_ptr op_1 = skip_parens(operand_1->variant.expression);
           if (is_operation_node(op_1)) {
             an_expr_operator_kind op = op_1->variant.operation.kind;
-            /* eok_member_call is deliberately excluded here because MSVC++
-               does this trick only with non-member calls.  (Checked in
-               MSVC++ 7.1.) */ 
+            /* eok_dot_member_call and eok_points_to_member_call are
+               deliberately excluded here because MSVC++ does this trick
+               only with non-member calls.  (Checked in MSVC++ 7.1.) */ 
             if (op == (an_expr_operator_kind)eok_call) {
               if (symbol_supplement_for_class(orig_class_struct_union_type)->
                                                                       is_POD) {
@@ -3550,8 +3550,9 @@ nonstatic_member_function:
                 set_operand_name_reference_from_locator_for_curr_id(result);
               }  /* if */
               copy_operand(operand_1, bound_function_selector);
-              bind_member_function_operand_to_selector(result,
-                                                      bound_function_selector);
+              bind_member_function_operand_to_selector(bound_function_selector,
+                                                       is_arrow_operator,
+                                                       result);
             }  /* if */
           } else {
             /* Static member function. */
@@ -3903,8 +3904,9 @@ object bound with the function in *bound_function_selector.  See ARM 5.5.
              the references from address-taken to reference on a call. */
           result->ref_entries_list = NULL;
           copy_operand(operand_1, bound_function_selector);
-          bind_member_function_operand_to_selector(result,
-                                                   bound_function_selector);
+          bind_member_function_operand_to_selector(bound_function_selector,
+                                                   is_arrow_operator,
+                                                   result);
         } else {
           /* Result is a data member. */
           /* Use an eok_pm_field node with the pointer to object and
@@ -6362,7 +6364,8 @@ if necessary).
   check_assertion(is_call_node(expr));
   result = skip_typerefs(expr->variant.operation.operands->type);
   if (!is_error_type(result)) {
-    if (node_operator_is(expr, eok_pm_call)) {
+    if (node_operator_is(expr, eok_dot_pm_call) ||
+        node_operator_is(expr, eok_points_to_pm_call)) {
       check_assertion(result->kind == (a_type_kind)tk_ptr_to_member);
       result = pm_member_type(result);
     } else if (result->kind == (a_type_kind)tk_pointer) {
@@ -9352,14 +9355,12 @@ specification allow a variable-sized array as the top type.
          new.*/
       if (!unknown_dependent_new &&
           (operator_new_symbol == NULL ||
-           !overloaded_function_match_possible(
-                                      operator_new_symbol,
-                                      /*is_template_id=*/FALSE,
-                                      (a_template_arg_ptr)NULL,
-                                      arg_operand_list,
-                                      /*have_selector=*/FALSE,
-                                      (an_operand *)NULL,
-                                      /*selector_is_object_pointer=*/FALSE))) {
+           !overloaded_function_match_possible(operator_new_symbol,
+                                               /*is_template_id=*/FALSE,
+                                               (a_template_arg_ptr)NULL,
+                                               arg_operand_list,
+                                               /*have_selector=*/FALSE,
+                                               (an_operand *)NULL))) {
         opname_kind = (an_opname_kind)onk_new;
         operator_new_symbol = opname_function_symbol(opname_kind);
       }  /* if */
@@ -9375,7 +9376,6 @@ specification allow a variable-sized array as the top type.
                                           (a_template_arg_ptr)NULL,
                                           /*have_selector=*/FALSE,
                                           (an_operand *)NULL,
-                                          /*selector_is_object_pointer=*/FALSE,
                                           arg_operand_list,
                                           /*do_arg_dep_lookup=*/FALSE,
                                           force_dependent,
@@ -11032,12 +11032,16 @@ merely transformed to something to which the cast may apply.
                    ec_bound_function_cast_anachronism, start_position);
     if (operand->virtual_function) {
       an_expr_node_ptr func_ptr_node, object_node;
+      a_boolean        is_arrow_operator =
+                           bound_function_selector->selector_is_object_pointer;
       /* The function is a virtual function, so use an
          eok_virtual_function_ptr operation to compute the address at
          runtime. */
       /* Make a node for the function pointer. */
       func_ptr_node = make_node_from_operand(operand);
       /* Make a node for the bound selector object. */
+      conv_selector_to_object_pointer(bound_function_selector,
+                                      &is_arrow_operator);
       object_node = make_node_from_operand(bound_function_selector);
       func_ptr_node->next = object_node;
       func_ptr_node = make_operator_node(

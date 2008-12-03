@@ -11464,8 +11464,10 @@ tk_unknown is returned.
     case eok_points_to_vacuous_destructor_call:
     case eok_question:
     case eok_call:
-    case eok_member_call:
-    case eok_pm_call:
+    case eok_dot_member_call:
+    case eok_points_to_member_call:
+    case eok_dot_pm_call:
+    case eok_points_to_pm_call:
     case eok_va_start:
     case eok_va_arg:
     case eok_va_end:
@@ -15278,8 +15280,10 @@ to TRUE if a warning about the expression doing nothing should be suppressed.
     case eok_padd_assign:
     case eok_psubtract_assign:
     case eok_call:
-    case eok_member_call:
-    case eok_pm_call:
+    case eok_dot_member_call:
+    case eok_points_to_member_call:
+    case eok_dot_pm_call:
+    case eok_points_to_pm_call:
     case eok_va_start:
     case eok_va_arg:
     case eok_va_end:
@@ -19672,9 +19676,11 @@ static a_byte lvalue_rvalue_test[(int)eok_last+1] = {
   /* eok_virtual_function_ptr: */	LVRV_OPND1_IS_RVALUE,
   /* eok_question: */			LVRV_OPND1_IS_RVALUE |
 					LVRV_OPND2_IS_LVALUE_IF_EXPR_IS,
-  /* eok_call: */			LVRV_NO_REQUIREMENTS,
-  /* eok_member_call: */		LVRV_NO_REQUIREMENTS,
-  /* eok_pm_call: */			LVRV_OPND1_IS_RVALUE,
+  /* eok_call: */			LVRV_OPND1_IS_RVALUE,
+  /* eok_dot_member_call: */		LVRV_OPND1_IS_RVALUE,
+  /* eok_points_to_member_call: */	LVRV_OPND1_IS_RVALUE,
+  /* eok_dot_pm_call: */		LVRV_OPND1_IS_RVALUE,
+  /* eok_points_to_pm_call: */		LVRV_OPND1_IS_RVALUE,
   /* eok_va_start: */			LVRV_OPND1_IS_LVALUE |
 					LVRV_OPND2_IS_LVALUE,
   /* eok_va_arg: */			LVRV_OPND1_IS_LVALUE,

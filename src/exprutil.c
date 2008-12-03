@@ -1401,6 +1401,7 @@ values.
 #endif /* OPTIMIZE_VIRTUAL_FUNCTION_CALLS */
   operand->state = (an_operand_state)os_none;
   operand->bound_function = FALSE;
+  operand->selector_is_object_pointer = FALSE;
   operand->virtual_function = FALSE;
   operand->is_id_expression = FALSE;
   operand->is_qualified_name = FALSE;
@@ -2067,6 +2068,8 @@ destroyed its source position, etc.  Restore such things from
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   operand->bound_function = orig_operand->bound_function;
+  operand->selector_is_object_pointer =
+                                      orig_operand->selector_is_object_pointer;
   operand->virtual_function = orig_operand->virtual_function;
   operand->is_qualified_name = orig_operand->is_qualified_name;
   operand->access_control_error_reported =
@@ -2152,6 +2155,7 @@ position field as the error position.
   operand->is_simple_string_literal = FALSE;
   operand->is_id_expression = FALSE;
   /* bound_function is not cleared on purpose. */
+  operand->selector_is_object_pointer = FALSE;
 }  /* conv_to_error_operand */
 
 
@@ -3327,6 +3331,7 @@ convert operand to an address and set *is_arrow_operator to TRUE.
     /* Convert the operand to an address. */
     conv_class_operand_to_object_pointer(operand);
     *is_arrow_operator = TRUE;
+    operand->selector_is_object_pointer = TRUE;
   }  /* if */
 }  /* conv_selector_to_object_pointer */
 
@@ -8648,17 +8653,18 @@ a function expression to which the argument list (including the implicit
                  back end. */
 #endif /* !BACK_END_IS_CP_GEN_BE */
 static an_expr_node_ptr func_call_expr(
-                                   an_expr_node_ptr  function_node,
-                                   a_type_ptr        function_type,
-                                   a_boolean         is_virtual,
-                                   a_boolean         virtual_suppressed,
-                                   a_boolean         compiler_generated,
-                                   a_boolean         is_conversion,
-                                   a_boolean         arg_dep_lookup_suppressed,
-                                   a_boolean         found_through_adl,
-                                   a_boolean         uses_operator_syntax,
-                                   a_source_position *err_pos,
-                                   an_expr_node_ptr  *function_call_node)
+                                  an_expr_node_ptr  function_node,
+                                  a_type_ptr        function_type,
+                                  a_boolean         is_virtual,
+                                  a_boolean         virtual_suppressed,
+                                  a_boolean         selector_is_object_pointer,
+                                  a_boolean         compiler_generated,
+                                  a_boolean         is_conversion,
+                                  a_boolean         arg_dep_lookup_suppressed,
+                                  a_boolean         found_through_adl,
+                                  a_boolean         uses_operator_syntax,
+                                  a_source_position *err_pos,
+                                  an_expr_node_ptr  *function_call_node)
 /*
 Make an expression for a call of the function indicated by function_node,
 whose type is function_type, and which is virtual if is_virtual is TRUE or
@@ -8671,19 +8677,23 @@ invalid (i.e., incomplete); an error node is returned for that case.
 If virtual_suppressed is TRUE, the function was named via a qualified name
 and that has suppressed calling it as virtual; that's also reflected in
 is_virtual, but knowing that the user did it explicitly controls whether
-a diagnostic is put out in some cases.  compiler_generated is TRUE if
-this call is compiler-generated (e.g., for an implicit conversion via
-a conversion function).  is_conversion is TRUE for a call generated for
-an explicit or implicit conversion (e.g., a conversion function call).
-arg_dep_lookup_suppressed is TRUE if argument-dependent lookup
-was suppressed on the call.  found_through_adl is TRUE if the call
-was resolved only through argument-dependent lookup (i.e., ordinary
-lookup did not yield the called function).  uses_operator_syntax is TRUE when
-a call to an overloaded operator is the result of operator notation ("a+b")
-rather than an explicit function call.  If non-NULL, function_call_node is
-the address of an expression node pointer that will be set to point to the
-actual call node itself (which might be below the node returned because of
-transformations on the return value).
+a diagnostic is put out in some cases.  selector_is_object_pointer is
+TRUE if the call is a nonstatic member function call and the source
+form was "->" (or "->*" for the pointer-to-member case) rather than
+"." (or ".*").  compiler_generated is TRUE if this call is
+compiler-generated (e.g., for an implicit conversion via a conversion
+function).  is_conversion is TRUE for a call generated for an explicit
+or implicit conversion (e.g., a conversion function call).
+arg_dep_lookup_suppressed is TRUE if argument-dependent lookup was
+suppressed on the call.  found_through_adl is TRUE if the call was
+resolved only through argument-dependent lookup (i.e., ordinary lookup
+did not yield the called function).  uses_operator_syntax is TRUE when
+a call to an overloaded operator is the result of operator notation
+("a+b") rather than an explicit function call.  If non-NULL,
+function_call_node is the address of an expression node pointer that
+will be set to point to the actual call node itself (which might be
+below the node returned because of transformations on the return
+value).
 */
 {
   an_expr_operator_kind         op;
@@ -8731,10 +8741,18 @@ transformations on the return value).
   /* Determine the operator to use for the call. */
   if (is_ptr_to_member_type(function_node->type)) {
     /* Call using a pointer-to-member-function. */
-    op = (an_expr_operator_kind)eok_pm_call;
+    if (selector_is_object_pointer) {
+      op = (an_expr_operator_kind)eok_points_to_pm_call;
+    } else {
+      op = (an_expr_operator_kind)eok_dot_pm_call;
+    }  /* if */
   } else if (routine_type_is_nonstatic_member_function(function_type)) {
-    /* Non-virtual call of nonstatic member function. */
-    op = (an_expr_operator_kind)eok_member_call;
+    /* Call of nonstatic member function. */
+    if (selector_is_object_pointer) {
+      op = (an_expr_operator_kind)eok_points_to_member_call;
+    } else {
+      op = (an_expr_operator_kind)eok_dot_member_call;
+    }  /* if */
   } else {
     /* C mode call, call of non-member function, or call of static member
        function. */
@@ -8780,6 +8798,7 @@ void make_function_call(an_expr_node_ptr  function_node,
                         a_type_ptr        function_type,
                         a_boolean         is_virtual,
                         a_boolean         virtual_suppressed,
+                        a_boolean         selector_is_object_pointer,
                         a_boolean         compiler_generated,
                         a_boolean         is_conversion,
                         a_boolean         arg_dep_lookup_suppressed,
@@ -8794,19 +8813,23 @@ type is function_type, and which is virtual if is_virtual is TRUE or
 a pointer-to-member-function call if the type of function_node is
 pointer-to-member-function.  The arguments of the call are already
 attached to function_node.  A skip_typerefs need not have been done
-on function_type.  compiler_generated is TRUE if this is a compiler-
-generated call (e.g., for an implicit conversion via a conversion
-function).  is_conversion is TRUE for a call generated for an explicit
-or implicit conversion (e.g., a conversion function call).
-arg_dep_lookup_suppressed is TRUE if argument-dependent lookup was
-suppressed on the call.  found_through_adl is TRUE if the call was
-resolved only through argument-dependent lookup (i.e., ordinary lookup did not
-yield the called function).  uses_operator_syntax is TRUE when a call to an
-overloaded operator is the result of operator notation ("a+b") rather than an
-explicit function call.  *call_pos gives the source position of the call.  If
-non-NULL, function_call_node is the address of an expression node pointer that
-will be set to point to the actual call node itself (which might be below the
-expression in the result because of transformations on the return value).
+on function_type.  selector_is_object_pointer is TRUE if the call is a
+nonstatic member function call and the source form was "->" (or "->*"
+for the pointer-to-member case) rather than "." (or ".*").
+compiler_generated is TRUE if this is a compiler-generated call (e.g.,
+for an implicit conversion via a conversion function).  is_conversion
+is TRUE for a call generated for an explicit or implicit conversion
+(e.g., a conversion function call).  arg_dep_lookup_suppressed is TRUE
+if argument-dependent lookup was suppressed on the call.
+found_through_adl is TRUE if the call was resolved only through
+argument-dependent lookup (i.e., ordinary lookup did not yield the
+called function).  uses_operator_syntax is TRUE when a call to an
+overloaded operator is the result of operator notation ("a+b") rather
+than an explicit function call.  *call_pos gives the source position
+of the call.  If non-NULL, function_call_node is the address of an
+expression node pointer that will be set to point to the actual call
+node itself (which might be below the expression in the result because
+of transformations on the return value).
 */
 {
   an_expr_node_ptr call_node;
@@ -8814,7 +8837,8 @@ expression in the result because of transformations on the return value).
   function_type = skip_typerefs(function_type);
   /* Make the function call expression node. */
   call_node = func_call_expr(function_node, function_type, is_virtual,
-                             virtual_suppressed, compiler_generated,
+                             virtual_suppressed, selector_is_object_pointer,
+                             compiler_generated,
                              is_conversion, arg_dep_lookup_suppressed,
                              found_through_adl, uses_operator_syntax,
                              call_pos, function_call_node);
@@ -8865,6 +8889,7 @@ overall call is constructed in *result.
   an_expr_node_ptr function_node;
   an_expr_node_ptr implicit_this_argument;
   a_type_ptr       function_type;
+  a_boolean        selector_is_object_pointer = FALSE;
 
   if (is_error_operand(function_operand)) {
     /* If the function operand is an error, the arguments cannot be linked to
@@ -8886,6 +8911,8 @@ overall call is constructed in *result.
     }  /* if */
     if (function_operand->bound_function) {
       /* Bound function.  bound_function_selector indicates the object. */
+      selector_is_object_pointer =
+                           bound_function_selector->selector_is_object_pointer;
       if (is_template_dependent_context() &&
           is_template_dependent_type(bound_function_selector->type)) {
         /* In a prototype instantiation, a selector might have a type that's
@@ -8898,7 +8925,7 @@ overall call is constructed in *result.
            did not do their job. */
         { a_type_ptr arg_class_type = bound_function_selector->type;
           a_type_ptr this_class_type = type_pointed_to(this_type);
-          if (is_pointer_type(arg_class_type)) {
+          if (selector_is_object_pointer) {
             arg_class_type = type_pointed_to(arg_class_type);
           }  /* if */
           this_class_type = skip_typerefs(this_class_type);
@@ -8910,7 +8937,7 @@ overall call is constructed in *result.
         }
 #endif /* CHECKING */
         /* Cast if necessary to handle any const etc. adjustment. */
-        if (is_pointer_type(bound_function_selector->type)) {
+        if (selector_is_object_pointer) {
           /* The selector is a pointer to class. */
           cast_operand(this_type, bound_function_selector,
                        /*check_cast_access=*/FALSE,  /* sic */
@@ -8935,6 +8962,7 @@ overall call is constructed in *result.
     make_function_call(function_node, function_type,
                        (a_boolean)function_operand->virtual_function, 
                        (a_boolean)function_operand->is_qualified_name,
+                       selector_is_object_pointer,
                        compiler_generated, is_conversion,
                        arg_dep_lookup_suppressed, found_through_adl,
                        uses_operator_syntax, call_position, result,
@@ -9001,6 +9029,7 @@ intended to be called from outside of the expression routines.
   node = func_call_expr(func_addr_node, rout->type,
                         rout->is_virtual && !suppress_virtual,
                         rout->is_virtual && suppress_virtual,
+                        /*selector_is_object_pointer=*/TRUE,
                         /*compiler_generated=*/TRUE,
                         /*is_conversion=*/FALSE,
                         /*arg_dep_lookup_suppressed=*/FALSE,
@@ -11270,6 +11299,7 @@ is a "get" if put_operand is NULL.
         /* Make an operand for the object pointer. */
         make_expression_operand(operand->variant.property_ref.object,
                                 &bound_function_selector);
+        bound_function_selector.selector_is_object_pointer = TRUE;
         /* The arg_operand list is the subscript expression list, if any. */
         arg_operand_list = operand->variant.property_ref.subscripts;
         /* The subscript arg_operands will be freed by the overload
@@ -11296,7 +11326,6 @@ is a "get" if put_operand is NULL.
                                            (a_template_arg_ptr)NULL,
                                            /*have_selector=*/TRUE,
                                            &bound_function_selector,
-                                           /*selector_is_object_pointer=*/TRUE,
                                            arg_operand_list,
                                            /*do_arg_dep_lookup=*/FALSE,
                                            /*try_surrogate_functions=*/FALSE,
