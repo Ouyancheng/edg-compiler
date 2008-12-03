@@ -3561,7 +3561,7 @@ second parameter.
          the special processing. */
       if (node_operator_is(expr, eok_question)) {
         /* Lower a question operator and everything under it. */
-        lower_question_operator(expr);
+        lower_question_operator(expr, /*assume_expr_is_non_null=*/FALSE);
       } else if (node_operator_is(expr, eok_land) ||
                  node_operator_is(expr, eok_lor)) {
         /* Lower a logical operator and everything under it. */

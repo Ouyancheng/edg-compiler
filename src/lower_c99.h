@@ -40,6 +40,18 @@ Macro to lower an expression as either a C or C++ expression as appropriate.
   }  /* if */
 
 /*
+Macro to lower an expression as either a C or C++ expression as appropriate.
+Used in cases where it is possible to know whether or not the given expression
+can result in a non-null value.
+*/
+#define lower_any_expr_full(expr, assume_expr_is_non_null)                  \
+  if (C_mode()) {                                                           \
+    lower_any_c99_expr(expr);                                               \
+  } else {                                                                  \
+    lower_expr_full(expr, assume_expr_is_non_null);                         \
+  }  /* if */
+
+/*
 Macro to lower a boolean controlling expression as either a C or C++ expression
 as appropriate.
 */

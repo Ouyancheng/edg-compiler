@@ -12462,7 +12462,8 @@ non-NULL, with the least-significant bit corresponding to the first operand,
 the bit after that corresponding to the second operand, etc.  Note that
 assuming the expression is non-NULL simply suppresses NULL checks in some cases
 (e.g., related class casting) and doesn't actually mean that the expression
-cannot have a NULL value.
+cannot have a NULL value.  Note that some operators are lowered as special
+cases and won't be seen in this routine.
 */
 {
   an_expr_operator_kind  op;
@@ -12472,7 +12473,6 @@ cannot have a NULL value.
   op = expr->variant.operation.kind;
   switch (op) {
     case eok_indirect:
-    case eok_ref_indirect:
     case eok_points_to_field:
     case eok_points_to_static:
     case eok_pm_points_to_field:
@@ -12487,26 +12487,6 @@ cannot have a NULL value.
         pointer_dereference_expr_mask = 0x1;
       }  /* if */
       break;
-    case eok_member_call:
-      if (expr->variant.operation.is_virtual_call) {
-        /* Virtual function call. */
-        /* The second operand is either an object lvalue or a pointer which has
-           already gone through the lookup of the function through the virtual
-           function table (which will abort if the pointer is NULL). */
-        pointer_dereference_expr_mask = 0x2;
-      }  /* if */
-      break;
-    case eok_pm_call:
-      /* Neither operand should be NULL. */
-      pointer_dereference_expr_mask = 0x3;
-      break;
-    case eok_question:
-      /* If expression is assumed to be non-NULL, it's okay to assume
-         that the two (non-conditional) operands are also non-NULL. */
-      if (assume_expr_is_non_null) {
-        pointer_dereference_expr_mask = 0x6;
-      }  /* if */
-      break;
     case eok_cast:
       /* If we're casting one pointer or reference to another, the
          operand is assumed to be non-NULL if the expression is
@@ -12517,6 +12497,15 @@ cannot have a NULL value.
         pointer_dereference_expr_mask = 0x1;
       }  /* if */
       break;
+#if CHECKING
+    case eok_ref_indirect:
+    case eok_member_call:
+    case eok_pm_call:
+    case eok_question:
+      /* These are all handled as special lowering cases which aren't handled
+         by this general case. */
+      unexpected_condition();
+#endif /* CHECKING */
     default:
       /* No pointer dereference. */
       break;
@@ -12975,9 +12964,13 @@ expressions.
 }  /* lower_logical_operator */
 
 
-void lower_question_operator(an_expr_node_ptr expr)
+void lower_question_operator(an_expr_node_ptr expr,
+                             a_boolean        assume_expr_is_non_null)
 /*
-This routine lowers the specified eok_question expression.  Lowering of
+This routine lowers the specified eok_question expression.  
+assume_expr_is_non_null indicates whether the expression can be assumed
+to be non-NULL (or its address is non-NULL for lvalue expressions) and is
+passed through when lowering the second and third operands.  Lowering of
 the expression consists of two tasks: eliminating dead code if possible and
 maintaining the proper types if one (and only one) of the last two operands is
 a throw.  In cases where the first operand is known at compilation time,
@@ -13034,17 +13027,17 @@ careful to call the appropriate routines when lowering expressions.
         wrap_throw(throw_op, expr);
         throw_op = NULL;
       }  /* if */
-      lower_any_expr(replacement_op);
+      lower_any_expr_full(replacement_op, assume_expr_is_non_null);
       overwrite_node(expr, replacement_op);
     } else {
       /* Make sure the entire expression is lowered. */
-      lower_any_expr(op2);
-      lower_any_expr(op3);
+      lower_any_expr_full(op2, assume_expr_is_non_null);
+      lower_any_expr_full(op3, assume_expr_is_non_null);
     }  /* if */
   } else {
     /* Make sure the entire expression is lowered. */
-    lower_any_expr(op2);
-    lower_any_expr(op3);
+    lower_any_expr_full(op2, assume_expr_is_non_null);
+    lower_any_expr_full(op3, assume_expr_is_non_null);
   }  /* if */
   if (throw_op != NULL) {
     /* Wrap a throw in a comma expression to give it the right type and
@@ -13499,7 +13492,7 @@ cast.  See lower_expr for typical invocation.
         lower_temp_init(expr);
       } else if (op == (an_expr_operator_kind)eok_question) {
         /* Lower a question operator and everything under it. */
-        lower_question_operator(expr);
+        lower_question_operator(expr, assume_expr_is_non_null);
       } else if (op == (an_expr_operator_kind)eok_land ||
                  op == (an_expr_operator_kind)eok_lor) {
         /* Lower a logical operator and everything under it. */
