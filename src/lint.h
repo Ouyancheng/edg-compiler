@@ -104,6 +104,7 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(759,enter_assert_predicate)*/
 /*lint -esym(765,enter_assert_predicate)*/
 /*lint -esym(755,PREC_PRIMARY)*/
+/*lint -esym(769,ec_bad_multibyte_char_locale)*/
 
 /* Used in the main programs for the standalone c_gen_be, cp_gen_be, and
    il_display: */
@@ -151,14 +152,9 @@ Included from basic_hdrs.h in every compilation.
 #if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
 /*lint -esym(769,ec_different_return_type_on_virtual_function_override)*/
 #endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
-#if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
-#if USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING
-/*lint -esym(769,ec_bad_multibyte_char_locale)*/
-#endif /* USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING */
-#else /* !MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
-/*lint -esym(769,ec_bad_multibyte_char_locale)*/
+#if !MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
 /*lint -esym(769,ec_bad_multibyte_char)*/
-#endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
+#endif /* !MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
 #if UNICODE_SOURCE_SUPPORTED
 /*lint -esym(755,mbc_length)*/
 /*lint -esym(755,mbc_scan_init)*/

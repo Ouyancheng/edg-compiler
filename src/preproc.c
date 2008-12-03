@@ -929,6 +929,9 @@ static char *copy_header_name(a_boolean process_escapes)
 /*
 Allocate and copy the file name from the current token (a header name).
 Escapes in the string are processed only if process_escapes is TRUE.
+
+When UNICODE_SOURCE_SUPPORTED is TRUE, this can also involve the
+translation of certain characters to UTF-8.
 */
 {
   char			*name_start_pos, *in_pos;
@@ -951,7 +954,11 @@ Escapes in the string are processed only if process_escapes is TRUE.
     trim_leading_and_trailing_blanks_from_header_name(&in_pos, &name_len);
   }  /* if */
   reset_text_buffer(buf);
-  /* Copy the string, processing escapes if appropriate. */
+  /* Copy the string, processing escapes if appropriate.  The copy is done
+     in two steps.  The first step processes one character (after processing
+     of escapes, etc.) at a time.  The second step executed later in
+     some configurations processes the resulting string and handles
+     the conversion of any multibyte character sequences into Unicode. */
   /*lint --e{850} i modified in loop */
   for (i = 1; i <= name_len; i++) {
     char *prev_pos = in_pos;
@@ -979,6 +986,8 @@ Escapes in the string are processed only if process_escapes is TRUE.
   result_length = buf->size - 1;
 #if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
   if (curr_file_unicode_source_kind == usk_none) {
+    /* Convert the string that resulted from the copy above from a
+       non-Unicode multibyte encoding into UTF-8. */
     a_boolean	err;
     result = convert_multibyte_chars_to_utf8(result, &result_length, &err);
     if (err) {

@@ -6494,9 +6494,7 @@ used only within the lexical input routines.
       is_id = (is_valid_UCN_identifier_char(ch, is_identifier_start) ==
                ec_no_error);
     }  /* if */
-#if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
 is_id_known:;
-#endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
 #endif /* !UNICODE_SOURCE_SUPPORTED */
   }
 #endif /* !MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
