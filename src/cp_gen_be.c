@@ -7288,8 +7288,13 @@ static void gen_bound_function(an_expr_node_ptr object_expr,
                                an_expr_node_ptr func_expr,
                                a_boolean        suppress_virtual)
 /*
-Generate "object->function", a bound function expression.
-If suppress_virtual is TRUE, suppress virtual-ness on the function reference.
+Generate a reference to the class member function identified by func_expr
+using object_expr as the object to be passed as "this".  If object_expr has
+a pointer type, the generated code will be of the form "p->mf" (except that
+implicit "this->" is suppressed); otherwise, object_expr is an lvalue or
+rvalue of class type and the "."  form will be used.  If suppress_virtual
+is TRUE, the function's name will be qualified to suppress virtual-ness on
+the function reference.
 */
 {
   a_routine_ptr rout = routine_from_function_expr(func_expr);
