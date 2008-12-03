@@ -335,7 +335,6 @@ Return TRUE if "node" is a function call operation.
   (is_operation_node((node)) &&                                         \
    (node_operator_is((node), eok_call) ||                               \
     node_operator_is((node), eok_member_call) ||                        \
-    node_operator_is((node), eok_virtual_call) ||                       \
     node_operator_is((node), eok_pm_call)))
 
 

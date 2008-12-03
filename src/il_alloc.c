@@ -2532,9 +2532,7 @@ fields to default values.
       node->variant.operation.is_gnu_two_operand_question_mark = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
       node->variant.operation.pointer_operand_is_second = FALSE;
-#if CENTERLINE_CHECKING
-      node->variant.operation.avoid_codecenter_warnings = 0;
-#endif /* CENTERLINE_CHECKING */
+      node->variant.operation.is_virtual_call = FALSE;
       node->variant.operation.operands = NULL;
       break;
     case enk_constant:

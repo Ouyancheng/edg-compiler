@@ -487,22 +487,24 @@ it would appear as the type on a call of the function in the lowered IL.
 }  /* lowered_return_type_of */
 
 
-an_expr_node_ptr make_call_node(a_routine_ptr      routine,
-                                an_expr_node_ptr   arg_list,
-                                a_boolean          honor_virtual,
-                                an_insert_location *insert_location)
+static an_expr_node_ptr make_call_node_full(
+                                           a_routine_ptr      routine,
+                                           an_expr_node_ptr   arg_list,
+                                           a_boolean          allow_inlining,
+                                           an_insert_location *insert_location)
 /*
 Make an expression that calls routine "routine" with arguments "arg_list",
 and return a pointer to it.  arg_list is assumed to be lowered already.
-A virtual call is generated if the routine is virtual and honor_virtual
-is TRUE.  The virtual call is *not* lowered; the caller must do that.
 If insert_location is not NULL, an expression statement containing the
-created call node is inserted at *insert_location.
+created call node is inserted at *insert_location.  If allow_inlining
+is TRUE and inlining is enabled, and the called routine is inline,
+inlining of the call will be attempted (one reason for passing
+allow_inlining FALSE is to build a call to a virtual function that
+will then be further lowered).
 */
 {
   an_expr_node_ptr      call_node, rout_node;
   a_type_ptr            rout_return_type;
-  an_expr_operator_kind op;
 #if MINIMAL_INLINING
   a_statement_ptr       call_stmt = NULL;
 #endif /* MINIMAL_INLINING */
@@ -531,19 +533,10 @@ created call node is inserted at *insert_location.
      at the point of definition, which means the type here will not be
      attached to any list and will not get lowered unless we do it here. */
   lower_os_type(routine->type);
-  /* Choose the right operation (virtual call or non-virtual call).
-     Note that eok_member_call is not an option.  We are either generating
-     a fully lowered call (eok_call) or a virtual call that must be lowered
-     by the caller (eok_virtual_call). */
-  if (routine->is_virtual && honor_virtual) {
-    op = (an_expr_operator_kind)eok_virtual_call;
-  } else {
-    op = (an_expr_operator_kind)eok_call;
-    routine->source_corresp.referenced = TRUE;
-  }  /* if */
   /* Make the call node. */
   rout_return_type = lowered_return_type_of(routine->type);
-  call_node = make_operator_node(op, rout_return_type, rout_node);
+  call_node = make_operator_node((an_expr_operator_kind)eok_call,
+                                 rout_return_type, rout_node);
   if (insert_location != NULL) {
 #if MINIMAL_INLINING
     call_stmt = insert_expr_statement_set_pos(call_node, insert_location);
@@ -552,10 +545,30 @@ created call node is inserted at *insert_location.
 #endif /* MINIMAL_INLINING */
   }  /* if */
 #if MINIMAL_INLINING
-  if (inlining_enabled && op == (an_expr_operator_kind)eok_call) {
+  if (inlining_enabled && allow_inlining) {
     do_inlining_of_call(call_node, call_stmt);
   }  /* if */
 #endif /* MINIMAL_INLINING */
+  return call_node;
+}  /* make_call_node_full */
+
+
+an_expr_node_ptr make_call_node(a_routine_ptr      routine,
+                                an_expr_node_ptr   arg_list,
+                                an_insert_location *insert_location)
+/*
+Make an expression that calls routine "routine" with arguments "arg_list",
+and return a pointer to it.  arg_list is assumed to be lowered already.
+If insert_location is not NULL, an expression statement containing the
+created call node is inserted at *insert_location.  If inlining is
+enabled and the called routine is inline, inlining of the call will be
+attempted.
+*/
+{
+  an_expr_node_ptr call_node;
+
+  call_node = make_call_node_full(routine, arg_list, /*allow_inlining=*/TRUE,
+                                  insert_location);
   return call_node;
 }  /* make_call_node */
 
@@ -568,8 +581,7 @@ Make a statement that calls routine "routine" with arguments "arg_list"
 and insert it at *insert_location.  arg_list is assumed to be lowered already.
 */
 {
-  (void)make_call_node(routine, arg_list, /*honor_virtual=*/FALSE,
-                       insert_location);
+  (void)make_call_node(routine, arg_list, insert_location);
 }  /* make_call_statement */
 
 
@@ -590,8 +602,7 @@ is assumed to be lowered already.
   /* Make the routine entry if it does not exist already. */
   (void)make_runtime_routine(name, routine, return_type);
   /* Make the call node. */
-  node = make_call_node(*routine, arg_expr_list, /*honor_virtual=*/FALSE,
-                        (an_insert_location *)NULL);
+  node = make_call_node(*routine, arg_expr_list, (an_insert_location *)NULL);
   return node;
 }  /* make_runtime_rout_call */
 
@@ -2794,7 +2805,6 @@ IA-64 ABI, the routines called are different.
     entity_node_copy->next = delete_args;
     /* Make a call of the placement delete routine. */
     delete_call = make_call_node(delete_routine, entity_node_copy,
-                                 /*honor_virtual=*/FALSE,
                                  (an_insert_location *)NULL);
     /* Wrap the expressions in an internal "try" block. */
     call_node = make_internal_try_expr(call_node, delete_call);
@@ -3395,8 +3405,7 @@ default_arg_list.
   /* Make a call node that calls the original routine with all
      the implicit arguments, i.e., that passes all the extra arguments
      to the original routine. */
-  call_node = make_call_node(routine, this_arg, /*honor_virtual=*/FALSE,
-                             (an_insert_location *)NULL);
+  call_node = make_call_node(routine, this_arg, (an_insert_location *)NULL);
   /* If the routine has a void type, insert a statement for the call
      followed by a return statement.  Otherwise, attach the call directly
      to the return. */
@@ -6035,7 +6044,6 @@ to a constructor to be called after the zeroing have been done.
        code. */
     an_expr_node_ptr ctor_call;
     ctor_call = make_call_node(ctor_routine, ctor_entity_expr,
-                               /*honor_virtual=*/FALSE,
                                (an_insert_location *)NULL);
     copy_expr = make_comma_node(copy_expr, ctor_call);
   }  /* if */
@@ -6177,8 +6185,7 @@ from entity_type itself.  Insert the code for the call at *insert_location.
                                                        have_complete_object,
                                                        array_case,
                                                        (a_routine_ptr)NULL),
-                         entity_node, /*honor_virtual=*/FALSE,
-                         insert_location);
+                         entity_node, insert_location);
 #endif /* IA64_ABI */
   } else {
     /* The entity (not an empty base class) must be set to all zeroes. */
@@ -7609,7 +7616,6 @@ arrays with class elements.
 #endif /* ABI_CHANGES_FOR_PLACEMENT_DELETE */
     /* Make the "new" call. */
     new_node = make_call_node(new_routine, size_node,
-                              /*honor_virtual=*/FALSE,
                               (an_insert_location *)NULL);
     /* Make "temp = (type *)new-call(...)". */
     temp_var = make_local_temporary(ptr_elem_type);
@@ -7865,8 +7871,7 @@ the point at which code should be inserted.
       entity_node->next = delete_args;
       /* Make a call of the placement delete routine. */
       delete_call = make_call_node(dyn_init_to_free_storage->destructor,
-                                   entity_node, /*honor_virtual=*/FALSE,
-                                   (an_insert_location *)NULL);
+                                   entity_node, (an_insert_location *)NULL);
       /* Extract the overall initialization expression from the insert
          location, and wrap a "try" expression around it, with the placement
          delete call as the "catch". */
@@ -7965,7 +7970,6 @@ The subtree of the node has not yet been lowered.
     }  /* if */
     /* Make the constructor call. */
     call_node = make_call_node(ctor_routine, null_node,
-                               /*honor_virtual=*/FALSE,
                                (an_insert_location *)NULL);
     /* The constructor call returns a pointer to the object initialized.
        Cast the pointer to the right type if necessary. */
@@ -7999,7 +8003,6 @@ The subtree of the node has not yet been lowered.
     }  /* if */
     /* Create a call of the "new" routine. */
     call_node = make_call_node(ndsp->routine, ndsp->arg,
-                               /*honor_virtual=*/FALSE,
                                (an_insert_location *)NULL);
     /* Note that the type of the "new" call might be unrelated to the type
        we are allocating, e.g., it might be "void *"; a cast is done later. */
@@ -8123,9 +8126,7 @@ statement containing the created call node is inserted at *insert_location.
     arg_node->next = second_arg_node;
   }  /* if */
   /* Make the call. */
-  call_node = make_call_node(delete_routine, arg_node,
-                             /*honor_virtual=*/FALSE,
-                             insert_location);
+  call_node = make_call_node(delete_routine, arg_node, insert_location);
   return call_node;
 }  /* make_delete_call */
 
@@ -8216,8 +8217,9 @@ tricks.
                                              (an_integer_kind)ik_int);
 #endif /* !IA64 */
   /* Make a call of the destructor. */
-  call_node = make_call_node(dtor_routine, ptr_node, /*honor_virtual=*/TRUE,
-                             (an_insert_location *)NULL);
+  call_node = make_call_node_full(dtor_routine, ptr_node,
+                                  !dtor_routine->is_virtual,
+                                  (an_insert_location *)NULL);
   if (dtor_routine->is_virtual) {
     /* The destructor is virtual, so rewrite the virtual call. */
     lower_virtual_function_call(call_node);
@@ -11345,7 +11347,6 @@ constructor scope, and also lower the user code.
                                         (a_host_large_integer)class_type->size,
                                         targ_size_t_int_kind);
       call_node = make_call_node(new_routine, size_node,
-                                 /*honor_virtual=*/FALSE,
                                  (an_insert_location *)NULL);
       /* Make "this = new_rout(size)". */
       unqual_this_param_type = f_skip_typerefs(this_param_var->type);

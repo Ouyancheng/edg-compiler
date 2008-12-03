@@ -2743,7 +2743,6 @@ On input, the expression must be unlowered (and remains so).
     node = expr->variant.operation.operands;
   } else if (op == (an_expr_operator_kind)eok_virtual_function_ptr ||
              op == (an_expr_operator_kind)eok_member_call ||
-             op == (an_expr_operator_kind)eok_virtual_call ||
              op == (an_expr_operator_kind)eok_pm_call) {
     /* Second operand is a class selector. */
     node = expr->variant.operation.operands->next;
@@ -10822,13 +10821,15 @@ have already been lowered.
 #endif /* !IA64_ABI */
   an_expr_node_ptr vtbl_entry_node, object_node_copy;
 
-  /* The original tree has an eok_virtual_call node with operands as follows:
+  /* The original tree has a member call node with operands as follows:
        (1) an enk_routine node for the virtual function.
        (2) a node for the object pointer.
        (3..n) optional additional arguments.
      Or, in C notation,
-       eok_virtual_call(func, object, additional_args ...)
+       member_call(func, object, additional_args ...)
   */
+  /* In at least one case, the call is generated internally by IL lowering,
+     and the operator is eok_call and the is_virtual_call flag is not TRUE. */
   func_node = expr->variant.operation.operands;
   func_type = f_skip_typerefs(type_pointed_to(func_node->type));
   check_assertion(!func_node->is_lvalue &&
@@ -10948,7 +10949,7 @@ have already been lowered.
   change_node_to_operation(func_node, (an_expr_operator_kind)eok_call,
                            expr->type, func_select_node, /*is_lvalue=*/FALSE);
   if (assign_node != NULL) {
-    /* Reuse the original eok_virtual_call node as a comma operator node and
+    /* Reuse the original call node as a comma operator node and
        attach the vtbl_temp assignment and the eok_call nodes under it as
        operands. */
     assign_node->next = func_node;
@@ -11490,7 +11491,7 @@ the top node of the indicated statement (which is an expression statement).
     add_implied_args_to_call(call_expr, routine);
 #endif /* IA64_ABI */
   }  /* if */
-  if (op == (an_expr_operator_kind)eok_virtual_call) {
+  if (call_expr->variant.operation.is_virtual_call) {
     /* Virtual function call. */
     lower_virtual_function_call(call_expr);
   } else if (op == (an_expr_operator_kind)eok_pm_call) {
@@ -12486,11 +12487,14 @@ cannot have a NULL value.
         pointer_dereference_expr_mask = 0x1;
       }  /* if */
       break;
-    case eok_virtual_call:
-      /* The second operand is either an object lvalue or a pointer which has
-         already gone through the lookup of the function through the virtual
-         function table (which will abort if the pointer is NULL). */
-      pointer_dereference_expr_mask = 0x2;
+    case eok_member_call:
+      if (expr->variant.operation.is_virtual_call) {
+        /* Virtual function call. */
+        /* The second operand is either an object lvalue or a pointer which has
+           already gone through the lookup of the function through the virtual
+           function table (which will abort if the pointer is NULL). */
+        pointer_dereference_expr_mask = 0x2;
+      }  /* if */
       break;
     case eok_pm_call:
       /* Neither operand should be NULL. */
@@ -13447,7 +13451,6 @@ cast.  See lower_expr for typical invocation.
         lower_pm_related_class_cast(expr);
       } else if (op == (an_expr_operator_kind)eok_call ||
                  op == (an_expr_operator_kind)eok_member_call ||
-                 op == (an_expr_operator_kind)eok_virtual_call ||
                  op == (an_expr_operator_kind)eok_pm_call) {
         /* Calls of various kinds. */
         lower_call(expr, (an_init_pos_descr_ptr)NULL, (a_statement_ptr)NULL);

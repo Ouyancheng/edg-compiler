@@ -9436,12 +9436,8 @@ enum an_expr_operator_kind_tag {
 			   second operand is the selector object (class lvalue
 			   or class rvalue for the "x.f()" form, or pointer to
 			   class for the "p->f()" form).  The remaining
-			   operands are the arguments. */
-  eok_virtual_call,	/* A call of a virtual function.  Same operands as
-			   eok_member_call, but virtual call semantics apply.
-			   The routine identified is the one statically named
-			   in the source, not necessarily the one that will be
-			   called. */
+			   operands are the arguments.  The is_virtual_call
+			   flag indicates whether the call is virtual. */
   eok_pm_call,		/* A call of a function identified by a pointer
 			   to member.  The first operand is the pointer to
 			   member (function); the second is the selector
@@ -9906,7 +9902,14 @@ typedef struct an_expr_node {
 		pointer_operand_is_second:1;
 			/* TRUE for eok_subscript or eok_padd in the case where
 			   the pointer operand is the second one. */
-      bitfield_to_avoid_codecenter_warnings()
+      a_bit_field
+		is_virtual_call:1;
+			/* On the member call operator eok_member_call,
+			   indicates that the call uses virtual semantics.
+			   Note specifically that a call to a virtual function
+			   with this flag FALSE is not a virtual call (perhaps
+			   because the function was named with a qualified
+			   name). */
       an_expr_node_ptr  
                 operands;
                         /* The list of operands. */
@@ -12181,8 +12184,7 @@ EXTERN char     *db_operator_names[(int)eok_last+1]
    "?",
    "call",
    "member call",
-   "virtual call",
-   "pmcall",
+   "pm call",
    "va_start", "va_arg", "va_end", "va_copy", "va_start (single op)",
    "lvalue",
    "error", "last"

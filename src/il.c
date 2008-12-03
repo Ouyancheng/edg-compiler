@@ -11465,7 +11465,6 @@ tk_unknown is returned.
     case eok_question:
     case eok_call:
     case eok_member_call:
-    case eok_virtual_call:
     case eok_pm_call:
     case eok_va_start:
     case eok_va_arg:
@@ -15280,7 +15279,6 @@ to TRUE if a warning about the expression doing nothing should be suppressed.
     case eok_psubtract_assign:
     case eok_call:
     case eok_member_call:
-    case eok_virtual_call:
     case eok_pm_call:
     case eok_va_start:
     case eok_va_arg:
@@ -19676,7 +19674,6 @@ static a_byte lvalue_rvalue_test[(int)eok_last+1] = {
 					LVRV_OPND2_IS_LVALUE_IF_EXPR_IS,
   /* eok_call: */			LVRV_NO_REQUIREMENTS,
   /* eok_member_call: */		LVRV_NO_REQUIREMENTS,
-  /* eok_virtual_call: */		LVRV_NO_REQUIREMENTS,
   /* eok_pm_call: */			LVRV_OPND1_IS_RVALUE,
   /* eok_va_start: */			LVRV_OPND1_IS_LVALUE |
 					LVRV_OPND2_IS_LVALUE,

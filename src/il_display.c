@@ -3090,7 +3090,6 @@ Display the name of an expression operator.
     case eok_question:          s = "eok_question";               break;
     case eok_call:              s = "eok_call";                   break;
     case eok_member_call:       s = "eok_member_call";            break;
-    case eok_virtual_call:      s = "eok_virtual_call";           break;
     case eok_pm_call:           s = "eok_pm_call";                break;
     case eok_va_start:          s = "eok_va_start";               break;
     case eok_va_arg:            s = "eok_va_arg";                 break;
@@ -3309,6 +3308,9 @@ Display the indicated expression node.
 #endif /* GNU_EXTENSIONS_ALLOWED */
       if (ptr->variant.operation.pointer_operand_is_second) {
         disp_boolean("pointer_operand_is_second", TRUE);
+      }  /* if */
+      if (ptr->variant.operation.is_virtual_call) {
+        disp_boolean("is_virtual_call", TRUE);
       }  /* if */
       disp_ptr("operands", (char *)ptr->variant.operation.operands,
                iek_expr_node);

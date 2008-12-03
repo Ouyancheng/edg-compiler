@@ -100,8 +100,7 @@ argument).
                                           param3_type);
   }  /* if */
   /* Make the call node. */
-  result = make_call_node(*routine, arg_expr_list, /*honor_virtual=*/FALSE,
-                          (an_insert_location *)NULL);
+  result = make_call_node(*routine, arg_expr_list, (an_insert_location *)NULL);
   return result;
 }  /* make_prototyped_runtime_call_full */
 

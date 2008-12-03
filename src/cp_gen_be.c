@@ -551,7 +551,6 @@ static a_byte generated_precedence[(int)eok_last+1] = {
   PREC_QUEST_MARK,	/* eok_question */
   PREC_POSTFIX,		/* eok_call */
   PREC_POSTFIX,		/* eok_member_call */
-  PREC_POSTFIX,		/* eok_virtual_call */
   PREC_POSTFIX,		/* eok_pm_call */
   PREC_POSTFIX,		/* eok_va_start */
   PREC_POSTFIX,		/* eok_va_arg */
@@ -7481,10 +7480,10 @@ If suppress_virtual is TRUE, suppress virtual-ness on the function reference.
 
 static a_boolean handle_conversion_function_call(an_expr_node_ptr expr)
 /*
-expr is a call expression (e.g., eok_call, eok_member_call, eok_virtual_call).
-If it is a conversion function call that can be optimized, put out the call
-and return TRUE.  Otherwise, return FALSE and the caller will put out the
-call in the normal way.
+expr is a call expression (e.g., eok_call, eok_member_call).  If it is a
+conversion function call that can be optimized, put out the call and return
+TRUE.  Otherwise, return FALSE and the caller will put out the call in the
+normal way.
 */
 {
   a_boolean        handled = FALSE;
@@ -7837,7 +7836,7 @@ call.
         /* Nonstatic member function call, so put out the selector object
            first. */
         gen_bound_function(args, func_expr,
-                           !node_operator_is(expr, eok_virtual_call));
+                           !expr->variant.operation.is_virtual_call);
         args = args->next;
       } else {
         /* Nonmember function or static member function. */
@@ -8238,8 +8237,7 @@ gen_expr that might end up generating this expr as a temporary.
         }  /* if */
         goto done_with_operation_after_parens;
       } else if (op == (an_expr_operator_kind)eok_call ||
-                 op == (an_expr_operator_kind)eok_member_call ||
-                 op == (an_expr_operator_kind)eok_virtual_call) {
+                 op == (an_expr_operator_kind)eok_member_call) {
         /* Suppress parentheses around a function call.  They're not needed
            (the function call (...) binds at the highest possible precedence)
            and g++ 3.2 (at least) gets confused by a constructor "call"
@@ -8630,7 +8628,6 @@ gen_expr that might end up generating this expr as a temporary.
           goto done_with_operation;
         case eok_call:
         case eok_member_call:
-        case eok_virtual_call:
           /* Call (possibly virtual). */
           gen_call(expr);
           goto done_with_operation;

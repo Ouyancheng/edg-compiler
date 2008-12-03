@@ -8732,9 +8732,6 @@ transformations on the return value).
   if (is_ptr_to_member_type(function_node->type)) {
     /* Call using a pointer-to-member-function. */
     op = (an_expr_operator_kind)eok_pm_call;
-  } else if (is_virtual) {
-    /* Virtual call of nonstatic member function. */
-    op = (an_expr_operator_kind)eok_virtual_call;
   } else if (routine_type_is_nonstatic_member_function(function_type)) {
     /* Non-virtual call of nonstatic member function. */
     op = (an_expr_operator_kind)eok_member_call;
@@ -8749,6 +8746,7 @@ transformations on the return value).
     *function_call_node = call_node;
   }  /* if */
   call_node->variant.operation.compiler_generated = compiler_generated;
+  call_node->variant.operation.is_virtual_call = is_virtual;
   call_node->variant.operation.is_conversion_call = is_conversion;
   call_node->variant.operation.arg_dependent_lookup_suppressed_on_call =
                                                      arg_dep_lookup_suppressed;
@@ -8953,9 +8951,10 @@ a_statement_ptr make_call_assignment_statement(
                                             an_expr_node_ptr  source,
                                             a_source_position *err_pos)
 /*
-Create an expression statement pointing to a call operator that
-calls "rout" to assign the lvalue "source" to the lvalue "dest".  rout
-is called non-virtually if suppress_virtual is TRUE.  Return a pointer
+Create an expression statement pointing to a call operator that calls
+the operator= function "rout" to assign the lvalue "source" to the object
+pointed to by "dest".  ("dest" is the "this" value for the call.)  rout is
+called non-virtually if suppress_virtual is TRUE.  Return a pointer
 to the statement.  *err_pos is a source position to be used for errors
 (e.g., the function has an invalid return type).  This routine is
 intended to be called from outside of the expression routines.

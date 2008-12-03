@@ -2400,7 +2400,6 @@ conversion in cases where their value is not used.
                                           (a_type_ptr)NULL);
     bad_typeid_expr = make_call_node(bad_typeid_routine,
                                      (an_expr_node_ptr)NULL,
-                                     /*honor_virtual=*/FALSE,
                                      (an_insert_location *)NULL);
     make_zero_of_proper_type(make_pointer_type(make_user_typeinfo_type()),
                              &null_constant);

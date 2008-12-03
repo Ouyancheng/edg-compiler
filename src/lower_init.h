@@ -53,7 +53,6 @@ extern a_routine_ptr make_subobject_destruction_routine(
 
 extern an_expr_node_ptr make_call_node(a_routine_ptr      routine,
                                        an_expr_node_ptr   arg_list,
-                                       a_boolean          honor_virtual,
                                        an_insert_location *insert_location);
 
 extern a_routine_ptr make_runtime_routine(char          *name,
