@@ -6409,13 +6409,14 @@ the expression reflects an implicit member access ("this->y"), so the
 
 
 static void gen_pm_simple_field_selection(an_expr_node_ptr object_expr,
-                                          an_expr_node_ptr pm_expr)
+                                          an_expr_node_ptr pm_expr,
+                                          a_boolean        use_arrow_star)
 /*
-Generate "object_expr .* pm_expr" or "object_expr ->* pm_expr", depending
-on object_expr.  object_expr is either an lvalue or rvalue for an object
-(the ".*" case) or an rvalue for a pointer to an object (the "->*") case,
-and pm_expr is a pointer to member.  The caller will put parentheses around
-this selection.
+Generate "object_expr .* pm_expr" or "object_expr ->* pm_expr", as
+specified by use_arrow_star.  object_expr is either an lvalue or rvalue for
+an object (the ".*" case) or an rvalue for a pointer to an object (the
+"->*") case, and pm_expr is a pointer to member.  The caller will put
+parentheses around this selection.
 */
 {
   object_expr = skip_parens(object_expr);
@@ -6423,7 +6424,7 @@ this selection.
      transformed an lvalue into a pointer. */
   (void)strip_lvalue_cast_sequence(&object_expr);
   gen_expr_with_parens(object_expr);
-  if (is_pointer_type(object_expr->type)) {
+  if (use_arrow_star) {
     /* "->*" form. */
     write_tok_str("->*");
   } else {
@@ -7288,15 +7289,16 @@ Generate code for a new or delete operation.
 
 static void gen_bound_function(an_expr_node_ptr object_expr,
                                an_expr_node_ptr func_expr,
+                               a_boolean        use_arrow,
                                a_boolean        suppress_virtual)
 /*
 Generate a reference to the class member function identified by func_expr
-using object_expr as the object to be passed as "this".  If object_expr has
-a pointer type, the generated code will be of the form "p->mf" (except that
-implicit "this->" is suppressed); otherwise, object_expr is an lvalue or
-rvalue of class type and the "."  form will be used.  If suppress_virtual
-is TRUE, the function's name will be qualified to suppress virtual-ness on
-the function reference.
+using object_expr as the object to be passed as "this".  If use_arrow is
+TRUE, the generated code will be of the form "p->mf" (except that implicit
+"this->" is suppressed); otherwise, object_expr is an lvalue or rvalue of
+class type and the "."  form will be used.  If suppress_virtual is TRUE,
+the function's name will be qualified to suppress virtual-ness on the
+function reference.
 */
 {
   a_routine_ptr rout = routine_from_function_expr(func_expr);
@@ -7306,7 +7308,7 @@ the function reference.
 
   check_assertion(rout != NULL);
   if (is_template_param_or_nonreal_class_type(object_expr->type) &&
-      is_pointer_type(object_expr->type)) {
+      use_arrow) {
     /* In a prototype instantiation, the left operand can be a class type
        that might have an operator-> function.  This can come up only
        when the function is a member function named with a qualified name,
@@ -7340,7 +7342,7 @@ the function reference.
       object_expr = object_expr->variant.constant->expr;
     }  /* if */
     (void)strip_lvalue_cast_sequence(&object_expr);
-    if (is_pointer_type(object_expr->type)) {
+    if (use_arrow) {
       /* Use a pointer and "->". */
       if (is_variable_node(object_expr) &&
           object_expr->variant.variable->is_this_parameter) {
@@ -7403,7 +7405,7 @@ the function reference.
         }  /* if */
       }  /* if */
     } else {
-      /* Use an lvalue and ".". */
+      /* Use an object and ".". */
       a_boolean  overparenthesize = FALSE;
       if (msvc_is_generated_code_target &&
           object_expr->kind == (an_expr_node_kind)enk_temp_init &&
@@ -7843,6 +7845,7 @@ call.
         /* Nonstatic member function call, so put out the selector object
            first. */
         gen_bound_function(args, func_expr,
+                           node_operator_is(expr, eok_points_to_member_call),
                            !expr->variant.operation.is_virtual_call);
         args = args->next;
       } else {
@@ -8410,8 +8413,12 @@ gen_expr that might end up generating this expr as a temporary.
           /* Handled above. */
           unexpected_condition();
         case eok_pm_field:
+          gen_pm_simple_field_selection(operand_1, operand_2,
+                                        /*use_arrow_star=*/FALSE);
+          goto done_with_operation;
         case eok_pm_points_to_field:
-          gen_pm_simple_field_selection(operand_1, operand_2);
+          gen_pm_simple_field_selection(operand_1, operand_2,
+                                        /*use_arrow_star=*/TRUE);
           goto done_with_operation;
         case eok_dynamic_cast:
         case eok_ref_dynamic_cast:
@@ -8646,7 +8653,9 @@ gen_expr that might end up generating this expr as a temporary.
              First operand is the pointer-to-member; the second is the
              object. */
           write_tok_ch('(');
-          gen_pm_simple_field_selection(operand_2, operand_1);
+          gen_pm_simple_field_selection(
+                                operand_2, operand_1,
+                                node_operator_is(expr, eok_points_to_pm_call));
           write_tok_ch(')');
           /* Get the routine type from the pointer-to-member type of the
              first operand. */
@@ -8662,7 +8671,8 @@ gen_expr that might end up generating this expr as a temporary.
           /* Used for anachronism of casting a bound function pointer to
              a normal function pointer.  First operand is the address of
              a virtual function, the second is a pointer to a class object. */
-          gen_bound_function(operand_2, operand_1, /*suppress_virtual=*/FALSE);
+          gen_bound_function(operand_2, operand_1, /*use_arrow=*/TRUE,
+                             /*suppress_virtual=*/FALSE);
           goto done_with_operation;
         case eok_dot_vacuous_destructor_call:
         case eok_points_to_vacuous_destructor_call:
