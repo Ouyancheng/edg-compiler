@@ -8925,7 +8925,8 @@ overall call is constructed in *result.
            did not do their job. */
         { a_type_ptr arg_class_type = bound_function_selector->type;
           a_type_ptr this_class_type = type_pointed_to(this_type);
-          if (selector_is_object_pointer) {
+          if (selector_is_object_pointer &&
+              !is_error_type(arg_class_type)) {
             arg_class_type = type_pointed_to(arg_class_type);
           }  /* if */
           this_class_type = skip_typerefs(this_class_type);
