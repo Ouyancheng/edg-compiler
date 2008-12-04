@@ -972,7 +972,7 @@ translation of certain characters to UTF-8.
          converted to 2 bytes of UTF-8.  (This happens, for example, for
          European accented characters.) */
       char arr[4];
-      (void)wide_char_to_utf8(ch, arr);
+      (void)unicode_to_utf8(ch, arr);
       add_char_to_text_buffer(buf, arr[0]);
       ch = arr[1];
     }  /* if */
@@ -989,7 +989,7 @@ translation of certain characters to UTF-8.
     /* Convert the string that resulted from the copy above from a
        non-Unicode multibyte encoding into UTF-8. */
     a_boolean	err;
-    result = convert_multibyte_chars_to_utf8(result, &result_length, &err);
+    result = multibyte_chars_to_utf8(result, &result_length, &err);
     if (err) {
       pos_warning(ec_non_unicode_char_in_header, &pos_curr_token);
     }  /* if */

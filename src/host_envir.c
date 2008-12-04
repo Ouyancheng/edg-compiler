@@ -2158,7 +2158,7 @@ is returned. If no conversion is required, the original string is returned.
         out_len = 1;
       } else {
         conversion_needed = TRUE;
-        out_len = to_internal ? wide_char_to_utf8(wc, arr) : 1;
+        out_len = to_internal ? unicode_to_utf8(wc, arr) : 1;
       }  /* if */
       size_needed += out_len;
     }  /* for */
@@ -2178,16 +2178,16 @@ is returned. If no conversion is required, the original string is returned.
           if (wc <= 0x7f && in_len == 1) {
             *dest++ = *p;
           } else {
-            out_len = wide_char_to_utf8(wc, arr);
+            out_len = unicode_to_utf8(wc, arr);
             for (i = 0; i < out_len; i++) *dest++ = arr[i];
           }  /* if */
         } else {
           /* Converting from UTF-8 to the external encoding.  This version
-             only supports single byte external encodings (e.g., Latin-1). */
+             only supports Latin-1. */
           if (wc <= UCHAR_MAX) {
             *dest++ = (char)wc;
           } else {
-            /* The character does not fit in a single byte. Substituted
+            /* The character does not fit in a single byte. Substitute
                a "?". */
             wc = (unsigned long)'?';
           }  /* if */
@@ -3851,8 +3851,8 @@ have_ch:
 }  /* getc_utf16 */
 
 
-int wide_char_to_utf8(unsigned long uc,
-                      char          chars[4])
+int unicode_to_utf8(unsigned long uc,
+                    char          chars[4])
 /*
 Convert the Unicode code point uc to UTF-8.  Put the bytes of the UTF-8
 representation in the array chars, and return the length (1-4).
@@ -3884,7 +3884,7 @@ representation in the array chars, and return the length (1-4).
     chars[3] = (char)((uc & 0x3f) | 0x80);
   }  /* if */
   return len;
-}  /* wide_char_to_utf8 */
+}  /* unicode_to_utf8 */
     
 #endif /* UNICODE_SOURCE_SUPPORTED */
 
@@ -3922,9 +3922,9 @@ int unicode_to_multibyte_char(unsigned long uc,
 	                      char          chars[MAX_MULTIBYTE_CHAR_LENGTH],
 			      a_boolean	    *err)
 /*
-Convert the Unicode code point uc to a multibyte character sequence.  Put
-the bytes of the multibyte representation in the array chars, and return the
-length.  If the conversion could not be done, a "?" and length of 1 are
+Convert the Unicode code point uc to a native multibyte character sequence.
+Put the bytes of the multibyte representation in the array chars, and return
+the length.  If the conversion could not be done, a "?" and length of 1 are
 returned.  err is set to TRUE if the conversion failed, FALSE otherwise.
 
 The EDG-supplied version of this routine only supports this capability when
@@ -3961,9 +3961,9 @@ native_multibyte_locale.
 }  /* unicode_to_multibyte_char */
     
 
-char *convert_multibyte_chars_to_utf8(char	*str_ptr,
-				      sizeof_t	*str_length,
-				      a_boolean	*err)
+char *multibyte_chars_to_utf8(char	*str_ptr,
+			      sizeof_t	*str_length,
+			      a_boolean	*err)
 /*
 str_ptr points to a character string of str_length bytes containing multibyte
 characters.  Convert the string to UTF-8 and return a pointer to the converted
@@ -4011,7 +4011,7 @@ native_multibyte_locale.
       add_char_to_text_buffer(utf8_buffer, (char)wc);
     } else {
       /* Convert the Unicode value to UTF-8. */
-      utflen = wide_char_to_utf8(wc, arr);
+      utflen = unicode_to_utf8(wc, arr);
       for (i = 0; i < utflen; i++) {
         add_char_to_text_buffer(utf8_buffer, arr[i]);
       }  /* for */
@@ -4022,7 +4022,7 @@ native_multibyte_locale.
   /* Return the length (subtracting the null terminator). */
   *str_length = utf8_buffer->size - 1;
   return utf8_buffer->buffer;
-}  /* convert_multibyte_chars_to_utf8 */
+}  /* multibyte_chars_to_utf8 */
 
 #endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
 

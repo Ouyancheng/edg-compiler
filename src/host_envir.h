@@ -2277,7 +2277,7 @@ typedef struct {
 			   input file. */
 } a_getc_source_state;
 
-extern int wide_char_to_utf8(unsigned long uc,
+extern int unicode_to_utf8(unsigned long uc,
                              char          chars[4]);
 extern void clear_getc_source_state(a_getc_source_state   *state,
                                     a_unicode_source_kind ukind);
@@ -2313,9 +2313,9 @@ extern int getc_utf16(FILE                *file,
 #if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
 extern a_boolean set_windows_locale(char	*locale_name);
 
-extern char *convert_multibyte_chars_to_utf8(char	*id_ptr,
-					     sizeof_t	*id_length,
-					     a_boolean	*err);
+extern char *multibyte_chars_to_utf8(char	*id_ptr,
+				     sizeof_t	*id_length,
+				     a_boolean	*err);
 #endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
 
 #else /*!UNICODE_SOURCE_SUPPORTED */

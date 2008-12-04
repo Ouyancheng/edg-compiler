@@ -2989,7 +2989,7 @@ is TRUE.
 #endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
                                                  )) {
             /* The character is the start of a multibyte character string
-               or a in some modes a single non-Unicode character > 0x7f.  We
+               or in some modes a single non-Unicode character > 0x7f.  We
                assume no separating blank is needed. */
             prev_ch = '\n';
             token_start = FALSE;
@@ -3007,7 +3007,7 @@ is TRUE.
                 int	utf_len;
                 int	i;
                 char	arr[4];
-                utf_len = wide_char_to_utf8(wc, arr);
+                utf_len = unicode_to_utf8(wc, arr);
                 for (i = 0; i < utf_len; i++) putc(arr[i], f_pp_output);
                 ch = '\0';  /* Suppress output of ch below. */
               } else {
@@ -3050,10 +3050,10 @@ is TRUE.
           } else if (encoding_change_needed &&
                      (unsigned char)ch > 0x7f &&
                      curr_file_unicode_source_kind == usk_none) {
-            /* Change a non-Unicode character with value > 0x7f to two bytes
+            /* Change a Latin-1 character with value > 0x7f to two bytes
                of UTF-8. */
             char arr[4];
-            (void)wide_char_to_utf8((unsigned long)(unsigned char)ch, arr);
+            (void)unicode_to_utf8((unsigned long)(unsigned char)ch, arr);
             putc(arr[0], f_pp_output);
             ch = arr[1];
             prev_ch = '\n';
@@ -6494,7 +6494,9 @@ used only within the lexical input routines.
       is_id = (is_valid_UCN_identifier_char(ch, is_identifier_start) ==
                ec_no_error);
     }  /* if */
+#if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
 is_id_known:;
+#endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
 #endif /* !UNICODE_SOURCE_SUPPORTED */
   }
 #endif /* !MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
@@ -8009,7 +8011,7 @@ lower case and any multibyte characters are converted to canonical form.
       /* We can put the UTF-8 for the character directly into the
          identifier string. */
       { char arr[4];
-        int  numch = wide_char_to_utf8(ucn_value, arr);
+        int  numch = unicode_to_utf8(ucn_value, arr);
         int  i;
         for (i = 0; i < numch; i++) {
           add_char_to_text_buffer(ucn_buffer, arr[i]);
@@ -8043,7 +8045,7 @@ lower case and any multibyte characters are converted to canonical form.
 #if UNICODE_SOURCE_SUPPORTED
       /* Put the UTF-8 version of the character into the identifier. */
       { char arr[4];
-        int  utflen = wide_char_to_utf8(wc, arr);
+        int  utflen = unicode_to_utf8(wc, arr);
         int  i;
         for (i = 0; i < utflen; i++) {
           add_char_to_text_buffer(ucn_buffer, arr[i]);
