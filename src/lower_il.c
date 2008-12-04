@@ -10830,7 +10830,7 @@ have already been lowered.
        member_call(func, object, additional_args ...)
   */
   /* In at least one case, the call is generated internally by IL lowering,
-     and the operator is eok_call and the is_virtual_call flag is not TRUE. */
+     and the operator is eok_call rather than a member call operator. */
   func_node = expr->variant.operation.operands;
   func_type = f_skip_typerefs(type_pointed_to(func_node->type));
   check_assertion(!func_node->is_lvalue &&
