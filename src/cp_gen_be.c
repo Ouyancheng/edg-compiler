@@ -7389,7 +7389,6 @@ function reference.
         suppress_this = FALSE;
       }  /* if */
       if (!suppress_this) {
-        a_boolean use_arrow = TRUE;
         if (object_expr->kind == (an_expr_node_kind)enk_reuse_value) {
           /* This can come up in accesses to Microsoft property fields.
              We need to look inside the reused value to see if there's
