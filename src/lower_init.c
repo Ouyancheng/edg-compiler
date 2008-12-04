@@ -490,17 +490,15 @@ it would appear as the type on a call of the function in the lowered IL.
 static an_expr_node_ptr make_call_node_full(
                                            a_routine_ptr      routine,
                                            an_expr_node_ptr   arg_list,
-                                           a_boolean          allow_inlining,
+                                           a_boolean          is_virtual_call,
                                            an_insert_location *insert_location)
 /*
 Make an expression that calls routine "routine" with arguments "arg_list",
 and return a pointer to it.  arg_list is assumed to be lowered already.
 If insert_location is not NULL, an expression statement containing the
-created call node is inserted at *insert_location.  If allow_inlining
-is TRUE and inlining is enabled, and the called routine is inline,
-inlining of the call will be attempted (one reason for passing
-allow_inlining FALSE is to build a call to a virtual function that
-will then be further lowered).
+created call node is inserted at *insert_location.  If is_virtual_call
+is TRUE, the call is virtual, and the caller will do further lowering on
+the returned expression.
 */
 {
   an_expr_node_ptr      call_node, rout_node;
@@ -544,11 +542,16 @@ will then be further lowered).
     (void)insert_expr_statement_set_pos(call_node, insert_location);
 #endif /* MINIMAL_INLINING */
   }  /* if */
+  if (is_virtual_call) {
+    call_node->variant.operation.is_virtual_call = TRUE;
+  } else {
+    routine->source_corresp.referenced = TRUE;
 #if MINIMAL_INLINING
-  if (inlining_enabled && allow_inlining) {
-    do_inlining_of_call(call_node, call_stmt);
-  }  /* if */
+    if (inlining_enabled) {
+      do_inlining_of_call(call_node, call_stmt);
+    }  /* if */
 #endif /* MINIMAL_INLINING */
+  }  /* if */
   return call_node;
 }  /* make_call_node_full */
 
@@ -567,7 +570,7 @@ attempted.
 {
   an_expr_node_ptr call_node;
 
-  call_node = make_call_node_full(routine, arg_list, /*allow_inlining=*/TRUE,
+  call_node = make_call_node_full(routine, arg_list, /*is_virtual_call=*/FALSE,
                                   insert_location);
   return call_node;
 }  /* make_call_node */
@@ -8218,7 +8221,7 @@ tricks.
 #endif /* !IA64 */
   /* Make a call of the destructor. */
   call_node = make_call_node_full(dtor_routine, ptr_node,
-                                  !dtor_routine->is_virtual,
+                                  /*is_virtual_call=*/dtor_routine->is_virtual,
                                   (an_insert_location *)NULL);
   if (dtor_routine->is_virtual) {
     /* The destructor is virtual, so rewrite the virtual call. */
