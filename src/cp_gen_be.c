@@ -6420,9 +6420,11 @@ parentheses around this selection.
 */
 {
   object_expr = skip_parens(object_expr);
-  /* Restore the original expression, in case the front end has
-     transformed an lvalue into a pointer. */
-  (void)strip_lvalue_cast_sequence(&object_expr);
+  if (strip_lvalue_cast_sequence(&object_expr)) {
+    /* We removed a compiler-generated sequence converting an lvalue to a
+       pointer, so restore the operator to the ".*" form also. */
+    use_arrow_star = FALSE;
+  }  /* if */
   gen_expr_with_parens(object_expr);
   if (use_arrow_star) {
     /* "->*" form. */
@@ -7341,7 +7343,12 @@ function reference.
       /* Use the expression that the constant represents. */
       object_expr = object_expr->variant.constant->expr;
     }  /* if */
-    (void)strip_lvalue_cast_sequence(&object_expr);
+    if (strip_lvalue_cast_sequence(&object_expr)) {
+      /* We removed a compiler-generated sequence converting the object
+         expression from an lvalue to a pointer; change the operator
+         accordingly. */
+      use_arrow = FALSE;
+    }  /* if */
     if (use_arrow) {
       /* Use a pointer and "->". */
       if (is_variable_node(object_expr) &&
@@ -7391,8 +7398,7 @@ function reference.
           a_dynamic_init_ptr dip = object_expr->variant.reused_value_init;
           if (dip->kind == (a_dynamic_init_kind)dik_expression) {
             an_expr_node_ptr orig_expr = dip->variant.expression;
-            (void)strip_lvalue_cast_sequence(&orig_expr);
-            if (!is_pointer_type(orig_expr->type)) {
+            if (strip_lvalue_cast_sequence(&orig_expr)) {
               use_arrow = FALSE;
             }  /* if */
           }  /* if */
