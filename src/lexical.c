@@ -3011,11 +3011,11 @@ is TRUE.
                 for (i = 0; i < utf_len; i++) putc(arr[i], f_pp_output);
                 ch = '\0';  /* Suppress output of ch below. */
               } else {
-                /* Change a UTF-8 character to a single character because we're
-                   outputting non-Unicode.  Give a warning if the character
-                   does not fit. */
-                 a_boolean	err = FALSE;
+                a_boolean	err = FALSE;
 #if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
+                /* Change a UTF-8 character to a (possibly multibyte) character
+                   because we're outputting non-Unicode.  Give a warning if
+                   the character cannot be converted. */
                 int		mb_len;
                 int		i;
                 char		arr[MAX_MULTIBYTE_CHAR_LENGTH];
@@ -3025,10 +3025,12 @@ is TRUE.
                 for (i = 0; i < mb_len; i++) putc(arr[i], f_pp_output);
                 ch = '\0';  /* Suppress output of ch below. */
 #else /* !NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
+                /* Change a UTF-8 character to a single character because we're
+                   outputting non-Unicode.  Give a warning if the character
+                   does not fit. */
                 if (wc <= UCHAR_MAX) {
                   /* The code point can be represented in a single
-                     character (in Latin-1 or whatever character set is
-                     being used). */
+                     character in Latin-1. */
                   ch = (char)(unsigned char)wc;
                 } else {
                   err = TRUE;
