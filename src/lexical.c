@@ -1293,12 +1293,12 @@ is actually the first token to not be included in the cache.
       last_ctp_to_copy = ctp->next;
     }  /* if */
   }  /* for */
+  check_assertion_str(ctp != NULL, "copy_tokens_from_cache: last_tsn missing");
   /* The final token sequence number will be greater than last_tsn if the
      token referred to by last_tsn is the second ">" of a ">>" that was
      split into two tokens.  The code below will copy the ">>" and the copied
      token will then be adjusted to a ">". */
   adjust_final_token = ctp->token_sequence_number > last_tsn;
-  check_assertion_str(ctp != NULL, "copy_tokens_from_cache: last_tsn missing");
   /* Copy the specified range of tokens to the destination cache. */
   for (ctp = first_ctp_to_copy; ctp != last_ctp_to_copy; ctp = ctp->next) {
     /* Make a copy of the token to be added. */
@@ -13409,6 +13409,9 @@ the normal lookup symbol.
      symbol should be used unless it is a class template, in which case
      the normal symbol can also be considered if it is also a class
      template. */
+  /* This assertion is to make the Coverity tool know that normal_fund_sym
+     will be non-NULL if normal_sym is. */
+  check_assertion((normal_sym == NULL) == (normal_fund_sym == NULL));
   if (normal_sym != NULL && class_sym != NULL && might_be_template) {
     if (is_template_symbol(class_fund_sym)) {
       /* When the identifier is followed by a "<", and the name is found

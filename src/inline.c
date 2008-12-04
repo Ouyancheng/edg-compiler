@@ -1079,6 +1079,7 @@ If not, *failed is set.
           /* An expression statement is copied as an expression statement. */
           new_statement = copy_inlined_statement(statement, insert_location);
           new_statement->expr = stmt_expr;
+          check_assertion(stmt_expr != NULL);  /* For Coverity. */
           set_expr_result_not_used(stmt_expr);
         }  /* if */
         break;

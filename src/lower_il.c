@@ -3364,6 +3364,7 @@ will be after the expression added.
 
   check_assertion_str(is_expr_insert_location_kind(kind),
                       "insert_expr: insert location is not expr insert");
+  check_assertion(inserted_expr != NULL);
   if (kind == ilk_expr_creation) {
     /* Special mode used to create an expression unattached to anything
        else.  The first insertion defines the start of the expression. */
@@ -14558,6 +14559,7 @@ need cleanup regions that will cover them while we destroy them.
         /* We need to clone just the nontemporaries. */
         dip = first_nontemp;
       }  /* if */
+      /* coverity[var_deref_model] */
       clone_region_table_entry_list(dip, first_nontemp_after_temps);
       if (need_regions_for_temps) {
         /* The entry for the first temporary need not be cloned, but its

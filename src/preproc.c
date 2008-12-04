@@ -2093,6 +2093,7 @@ pragmas, and by translation_unit for pragmas that appear in the file scope.
       }  /* if */
     }  /* if */
     if (value == (a_stdc_pragma_value)(a_stdc_pragma_value)stdc_pv_none) {
+      /* coverity[dead_error_line] */ /* coverity[dead_error_condition] */
       diagnostic(strict_ansi_error_severity,
                  accept_sat ? ec_bad_stdc_fx_overflow_pragma_arg
                             : ec_bad_stdc_pragma_arg);

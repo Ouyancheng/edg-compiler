@@ -3623,6 +3623,7 @@ arguments of the call (given by arg_operand_list).
                                        /*selector_is_object_pointer=*/FALSE,
                                        this_param_type,
                                        &match);
+        /* coverity[uninit_use] */ /* Coverity bug */
         if (match.match_level != aml_none) {
           /* See how the arguments match up against the surrogate function
              parameters. */

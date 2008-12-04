@@ -1935,10 +1935,8 @@ step on the derivation list serves to confirm the match.
 #if CHECKING
 #if DEBUG
   if (debug_level > 0) {
-    if (base_class != NULL) {
-      fputs("cannot find base class", f_debug);
-      db_base_class(base_class, /*show_offset=*/FALSE);
-    }  /* if */
+    fputs("cannot find base class", f_debug);
+    db_base_class(base_class, /*show_offset=*/FALSE);
     fputs("new_class = ", f_debug);
     db_type_name(new_class);
     fputs(" with base classes:\n", f_debug);

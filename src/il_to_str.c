@@ -2653,6 +2653,7 @@ matching the type.
   a_field_ptr field, selected_field = NULL;
   a_boolean   type_decay_used;
 
+  check_assertion(desired_type != NULL);
   /* Go through the fields, looking for one with the right type. */
   for (field = union_type->variant.class_struct_union.field_list;
        field != NULL;

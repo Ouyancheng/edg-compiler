@@ -1693,6 +1693,7 @@ all match.
   /* Loop through the command line events until one that does not match
      is found. */
   for (pep = pch_cmd_line_event_list_head; pep != NULL; pep = pep->next) {
+    /* coverity[tainted_data] */   /* coverity[tainted_data_argument] */
     if (!read_pch_event(&event) || !equivalent_pch_events(pep, &event)) {
       /* Either the event list of the file has ended, or the events are
          not equivalent. */
@@ -1735,11 +1736,13 @@ pch file.  Return a pointer to the last matching event.
   /* Read each of the events from the candidate file until a mismatch is
      found. */
   match = TRUE;
+  /* coverity[tainted_data_argument] */
   while (read_pch_event(&event)) {
     a_boolean	is_define = FALSE;
     a_boolean	event_matches = FALSE;
 #if DEBUG
     if (debug_level >= 4) {
+      /* coverity[tainted_data] */
       db_pch_event(&event);
       if (pos_in_event_list == NULL) {
         fprintf(f_debug, "Candidate event list longer than current file\n");

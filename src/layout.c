@@ -3288,6 +3288,7 @@ necessary.
         lob->byte_offset += targ_minimum_struct_alignment;
         /* The previously allocated empty base takes up its own space after
            all. */
+        /* coverity[var_deref_op] */ /* Coverity bug */
         last_optimized_base->is_optimized_empty_base = FALSE;
       }  /* if */
     }  /* if */

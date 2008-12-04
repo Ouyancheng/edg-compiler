@@ -11339,6 +11339,7 @@ entry in the template symbol supplement of sym.
     }  /* if */
     /* If this is the initial declaration, update the template symbol
        supplement to point to the IL entry. */
+    check_assertion(tssp != NULL);
     if (tssp->il_template_entry == NULL) {
       tssp->il_template_entry = decl_state->il_template_entry;
     }  /* if */

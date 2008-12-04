@@ -374,7 +374,7 @@ initialization; otherwise, these pointers are NULL.
 */
 {
   a_boolean          is_string_init = FALSE;
-  a_boolean          is_parenthesized = FALSE, paren_flag = FALSE;
+  a_boolean          is_parenthesized = FALSE;
   a_source_position  lparen_pos;
   a_boolean          using_pending_init_con = FALSE;
   a_constant_ptr     cp;
@@ -493,14 +493,6 @@ initialization; otherwise, these pointers are NULL.
     if (!using_pending_init_con) {
       /* Bypass the string and the right paren, if appropriate. */
       (void)get_token();
-    }  /* if */
-    if (paren_flag) {
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-      if (curr_token == tok_rparen) {
-        curr_construct_end_position = pos_curr_token;
-      }  /* if */
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-      (void)required_token(tok_rparen, ec_exp_rparen);
     }  /* if */
   }  /* if */
 done:

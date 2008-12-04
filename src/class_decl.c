@@ -14468,6 +14468,7 @@ in the class designated by tag_sym.
       if (new_sym != NULL) {
         if (del_sym == NULL && !ambiguous) {
           /* No default operator delete. */
+          /* coverity[dead_error_line] */ /* Coverity bug */
           pos_stsy_remark(ec_class_with_op_new_but_no_op_delete,
                           &error_position, (char *)(array_pass ? "[]" : ""),
                           tag_sym);
@@ -14476,6 +14477,7 @@ in the class designated by tag_sym.
         /* No operator new was declared.  If a default operator delete was
            declared, issue a diagnostic. */
         if (del_sym != NULL) {
+          /* coverity[dead_error_line] */ /* Coverity bug */
           pos_stsy_remark(ec_class_with_op_delete_but_no_op_new,
                           &error_position, (char *)(array_pass ? "[]" : ""),
                           tag_sym);

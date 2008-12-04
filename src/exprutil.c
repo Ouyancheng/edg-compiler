@@ -4450,6 +4450,7 @@ set *op to eok_last, and leave *result_type unchanged.
             *op = (an_expr_operator_kind)eok_subtract_assign;
             is_compound_assignment = TRUE;
             break;
+          /* coverity[dead_error_begin] */
           default:
             unexpected_condition();
         }  /* switch */

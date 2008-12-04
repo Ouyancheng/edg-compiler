@@ -3438,6 +3438,7 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
                                     &pending_ptr_mods.cc_descr.position);
         } else {
           /* Return left-most calling convention to the caller. */
+          check_assertion(left_calling_convention != NULL);
           *left_calling_convention = pending_ptr_mods.cc_descr;
           clear_call_conv_descr(&pending_ptr_mods.cc_descr);
         }  /* if */

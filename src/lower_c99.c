@@ -3958,10 +3958,12 @@ Do C99 lowering on the indicated statement.
       case stmk_expr:
         /* Expression statement.  Pass in the statement to allow better
            inlining. */
+        check_assertion(statement->expr != NULL); /* For Coverity. */
         lower_c99_expr_full(statement->expr, statement);
         end_of_c99_full_expr(statement->expr);
         break;
       case stmk_if:
+        check_assertion(statement->expr != NULL); /* For Coverity. */
         lower_c99_boolean_controlling_expr(statement->expr,
                                            /*is_full_expr=*/TRUE);
         lower_c99_statement(statement->variant.if_stmt.then_statement);
@@ -3971,6 +3973,7 @@ Do C99 lowering on the indicated statement.
         break;
       case stmk_while:
       case stmk_end_test_while:
+        check_assertion(statement->expr != NULL); /* For Coverity. */
         lower_c99_boolean_controlling_expr(statement->expr,
                                            /*is_full_expr=*/TRUE);
         lower_c99_statement(statement->variant.loop_statement);

@@ -4393,6 +4393,7 @@ end_arg_expansion:;
     if (!repl_text_len_precomputed) repl_text_len = strlen(repl_text);
   } else {
     /* Normal replacement text, with sections. */
+    /* coverity[uninit_use_in_call] - thinks arg_values may be unset. */
     repl_text_len = length_of_replacement_text(repl_text, n_params, mdp,
                                                arg_values);
   }  /* if */

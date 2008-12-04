@@ -6600,6 +6600,7 @@ C99 mode for the same reason.
       begin_object_lifetime(local_static_lifetime, insert_location);
       unbind_object_lifetime(local_static_lifetime);
       if (keep_object_lifetime_info_in_lowered_il) {
+        check_assertion(block_stmt != NULL);
         bind_object_lifetime(local_static_lifetime, iek_block,
                              (char *)block_stmt->variant.block.extra_info);
       }  /* if */
@@ -6608,6 +6609,7 @@ C99 mode for the same reason.
            is turned into a region table entry that indicates that the
            conditional flag must be cleared if an exception is thrown before
            the initialization is completed. */
+        check_assertion(local_static_guard_var != NULL);
         add_local_static_guard_var_cleanup(local_static_guard_var,
                                            local_static_lifetime,
                                            insert_location);
