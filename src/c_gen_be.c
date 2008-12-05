@@ -4327,9 +4327,9 @@ its address_taken flag set.
        !var_for_address_taken_check->address_taken) ||
       (rout_for_address_taken_check != NULL &&
        !rout_for_address_taken_check->address_taken)) {
-#if DEBUG
+#if DEBUG && !STANDALONE_C_GEN_BE
     db_expression(expr);
-#endif /* DEBUG */
+#endif /* DEBUG && !STANDALONE_C_GEN_BE */
     internal_error("check_address_taken_flag: address_taken is FALSE");
   }  /* if */
 }  /* check_address_taken_flag */

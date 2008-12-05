@@ -6854,7 +6854,7 @@ the given parameter types (which may be NULL).
   set_routine_calling_method_flag(rout_type, np);
   return rout_type;
 }  /* make_routine_type */
-
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 a_routine_ptr routine_from_function_expr(an_expr_node_ptr expr)
 /*
@@ -6896,7 +6896,7 @@ even though calls actually always use the rvalue form.
   return routine;
 }  /* routine_from_function_expr */
 
-
+#if !STANDALONE_UTILITY_PROGRAM
 a_type_ptr add_param_type(a_type_ptr  rout_type,
                           a_type_ptr  param_type)
 /*
@@ -13699,7 +13699,7 @@ a constant that is the previous value incremented by one.
   con->variant.template_param.variant.expr->
                                    variant.operation.compiler_generated = TRUE;
 }  /* increment_template_dependent_enum_constant */
-
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 a_boolean is_operator_returning_bool(an_expr_operator_kind op)
 /*
@@ -13723,7 +13723,7 @@ result.
   return returns_bool;
 }  /* is_operator_returning_bool */
 
-
+#if !STANDALONE_UTILITY_PROGRAM
 an_expr_node_ptr add_cast(an_expr_node_ptr node,
                           a_type_ptr       new_type)
 /*
@@ -15014,7 +15014,7 @@ be suppressed.
     tblock->terminate = TRUE;
   }  /* if */
 }  /* examine_dynamic_init_for_side_effect */
-
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 a_boolean is_rvalueable_node(an_expr_node_ptr node)
 /*
@@ -15100,7 +15100,7 @@ FALSE in a node where the default setting would be TRUE.
   return !node->is_lvalue && is_rvalueable_node(node);
 }  /* node_includes_lvalue_to_rvalue_conv */
 
-
+#if !STANDALONE_UTILITY_PROGRAM
 static a_boolean node_does_fetch(an_expr_node_ptr node,
                                  a_type_ptr       *p_fetched_type)
 /*
@@ -19515,6 +19515,7 @@ scan_alignof_operator for details).
   }  /* if */
   return result;
 }  /* alignment_of_variable */
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 #if CHECKING
 /*
@@ -19830,7 +19831,7 @@ their is_lvalue flag set incorrectly, TRUE otherwise.
   return !tblock.result;
 }  /* tree_has_correct_lvalueness */
 
-
+#if !STANDALONE_UTILITY_PROGRAM
 static a_boolean pointer_type_is_consistent(a_type_ptr ptr_type,
                                             a_type_ptr targ_type,
                                             a_boolean  targ_type_is_rvalue)
@@ -19872,7 +19873,7 @@ is ignored, except for C++ class rvalues.
   }  /* if */
   return result;
 }  /* pointer_type_is_consistent */
-
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 void check_operation_node_consistency(an_expr_node_ptr expr)
 /*
@@ -19986,6 +19987,7 @@ node, and report any failure as an internal error.
 }  /* check_operation_node_consistency */
 #endif /* CHECKING */
 
+#if !STANDALONE_UTILITY_PROGRAM
 #if DEBUG
 
 unsigned long db_show_il_c_fe_space_used(unsigned long grand_total)

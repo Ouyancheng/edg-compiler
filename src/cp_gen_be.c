@@ -6994,14 +6994,22 @@ is_reinterpret_cast indicate it.
         a_type_qualifier_set src_quals  = get_type_qualifiers(operand_1->type);
         a_type_qualifier_set quals_to_add;
         quals_to_add = src_quals & ~dest_quals;
-        clear_type(&quals_type, (a_type_kind)tk_typeref);
+        /* clear_type, which would ordinarily be used here, is not
+           available in a standalone program -- it's part of the memory
+           management routines -- so we copy another type over quals_type
+           and then change the relevant fields. */
+        quals_type = *dest_type;
+        quals_type.kind = (a_type_kind)tk_typeref;
         quals_type.variant.typeref.type = dest_type;
         quals_type.variant.typeref.qualifiers = quals_to_add;
         dest_type = &quals_type;
       }  /* if */
     }  /* if */
-    /* Substitute a reference type for the destination type. */
-    clear_type(&ref_type, (a_type_kind)tk_pointer);
+    /* Substitute a reference type for the destination type.  Again, we
+       can't use clear_type, so we copy the old type and then overwrite
+       some fields. */
+    ref_type = *dest_type;
+    ref_type.kind = (a_type_kind)tk_pointer;
     ref_type.variant.pointer.is_reference = TRUE;
     ref_type.variant.pointer.type = dest_type;
     dest_type = &ref_type;
