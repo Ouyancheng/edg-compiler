@@ -2937,11 +2937,12 @@ compilation.
         if (need_generic_introducer) {
           /* There was no stack trace, so we don't know the name of the
              macro involved -- use a more generic message. */
+          char  *gen_text = error_text(ec_in_macro_expansion_at);
           for (line_len = 0; line_len < MACRO_CONTEXT_INDENT; ++line_len) {
             putcwdb(' ');
           }  /* for */
           line_len += add_string_to_text_buffer(write_diagnostic_buffer,
-                                         error_text(ec_in_macro_expansion_at));
+                                                gen_text);
           write_position(file_name, line_number,
                          source_text_needed ? SP_COL_UNKNOWN :
                          error_pos->column, &line_len);
