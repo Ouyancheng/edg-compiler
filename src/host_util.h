@@ -81,7 +81,8 @@ called again.
 
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 
-#if EDG_WIN32 && UNICODE_SOURCE_SUPPORTED
+#if EDG_WIN32 && UNICODE_SOURCE_SUPPORTED 
+#if defined(MEM_MANAGE_H)  /* Will be FALSE when building the prelinker. */
 wchar_t *translate_filename_to_wchar(char *filename)
 /*
 Copy the supplied filename to a buffer as wchar_t characters, translating
@@ -171,6 +172,7 @@ caller should copy the contents as needed.
   return utf8_character_seen ? buffer : (wchar_t *)NULL;
 #undef add_to_wchar_buffer
 }  /* translate_filename_to_wchar */
+#endif /* defined(MEM_MANAGE_H) */
 #endif /* EDG_WIN32 && UNICODE_SOURCE_SUPPORTED */
 
 
