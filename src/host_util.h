@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2007 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2008 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -238,6 +238,6 @@ time.  Return TRUE if the file exists and is a regular file, FALSE otherwise.
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2007 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2008 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

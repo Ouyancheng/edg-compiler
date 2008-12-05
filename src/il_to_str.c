@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2007 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2008 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -5135,6 +5135,6 @@ One-time initialization for il_to_str static variables.
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2007 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2008 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

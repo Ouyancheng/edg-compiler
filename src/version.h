@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2007 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2008 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -59,6 +59,6 @@ EXTERN char	*build_time
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2007 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2008 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

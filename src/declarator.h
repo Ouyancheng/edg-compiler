@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2007 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2008 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -343,6 +343,6 @@ void report_bad_return_type_qualifier(a_type_ptr          type,
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2007 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2008 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 2001-2007 Edison Design Group Inc.                   [_]          *
+* Copyright 2001-2008 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -1084,6 +1084,6 @@ extended asm statements.
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 2001-2007 Edison Design Group Inc.                   [_]          *
+* Copyright 2001-2008 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
