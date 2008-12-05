@@ -829,7 +829,7 @@ there is additional processing to be done.
                Function prototypes do, in a way, have an associated IL scope,
                but pragmas are not expected to be bound to function prototype
                scopes.  Similarly, template declaration scopes have IL scopes
-               when prototype intantiations are included in the IL, but
+               when prototype instantiations are included in the IL, but
                cannot have pragmas bound to them. */
             case sck_func_prototype:
             case sck_condition:

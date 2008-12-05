@@ -10479,8 +10479,8 @@ typedef struct a_statement {
                              The expression to test for stmk_end_test_while.
                              The expression to test (or NULL) for stmk_for.
                            Note that the "expression to test" in each of the
-                           four caeses is always standardized to an integer/
-                           boolean  expression.
+                           four cases is always standardized to an integer/
+                           boolean expression.
                              The switch expression for stmk_switch.
                              The selector expression for stmk_assigned_goto,
 			     if GNU extensions are allowed. */
