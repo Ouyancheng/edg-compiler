@@ -3919,7 +3919,7 @@ associated with the argument should be reactivated in such cases.
   an_expr_node_ptr              expr = decltype_arg(tp);
   a_boolean                     is_decltype = tp->variant.typeref.is_decltype;
 
-  write_tok_str(is_decltype ? "decltype(" : "__typeof__(");
+  write_tok_str((char*)(is_decltype ? "decltype(" : "__typeof__("));
   if (tp->definition_delayed) {
     /* The decltype or typeof construct has associated source sequence entries.
        Save the current position in the source sequence stream and change it
