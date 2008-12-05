@@ -64,7 +64,11 @@ as appropriate.
   }  /* if */
 #else /* !DO_C99_IL_LOWERING */
 #define lower_any_boolean_controlling_expr(expr, is_full_expr)              \
-          lower_boolean_controlling_expr(expr, is_full_expr)
+  if (C_mode()) {                                                           \
+    /* Nothing. */                                                          \
+  } else {                                                                  \
+    lower_boolean_controlling_expr(expr, is_full_expr);                     \
+  }  /* if */
 #endif /* DO_C99_IL_LOWERING */
 
 extern void lower_runtime_sizeof(an_expr_node_ptr expr);
