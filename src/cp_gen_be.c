@@ -7011,7 +7011,7 @@ is_reinterpret_cast indicate it.
     /* Substitute a reference type for the destination type. */
 #if !STANDALONE_UTILITY_PROGRAM
     clear_type(&ref_type, (a_type_kind)tk_pointer);
-#else /* STANDALONE_UTILITY_PROGRAM
+#else /* STANDALONE_UTILITY_PROGRAM */
     /* Again, we can't use clear_type, so we zero the struct and then set
        the kind. */
     memzero((char *)&ref_type, sizeof(ref_type));
