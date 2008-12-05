@@ -1,4 +1,8 @@
-Version 4.0
+Version 4.0, December 5, 2008
+
+12/5/08
+IL version number changed to 4.0
+
 
 12/3/08  [EDGcpfe/9390, EDGcpfe/9393]
 Changes in IL representation of member function calls
