@@ -2628,6 +2628,8 @@ statement is the top block of a GNU statement expression ({ ... }).
   if (depth_stmt_stack > 0 && (sssep-1)->inside_statement_expr) {
     sssep->inside_statement_expr = TRUE;
   }  /* if */
+  sssep->switch_has_dependent_case
+                               = FALSE;
   sssep->statement             = sp;
   sssep->switch_max_case_value = NULL;
   sssep->last_switch_case_entry = NULL;
