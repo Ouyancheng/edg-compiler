@@ -2126,13 +2126,13 @@ is returned. If no conversion is required, the original string is returned.
   char *file_name = orig_name;
 
 #if UNICODE_SOURCE_SUPPORTED
-#if EDG_WIN32
+#if EDG_WIN32 && NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
   /* In case the native multibyte locale has been changed (e.g., by the
      setlocale pragma) set it back to the ANSI code page locale for purposes
      of file name translation. */
   _locale_t	saved_locale = native_multibyte_locale;
   native_multibyte_locale = ansi_code_page_locale;
-#endif /* EDG_WIN32 */
+#endif /* !(EDG_WIN32 && NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE) */
   if (DEFAULT_UNICODE_SOURCE_KIND == usk_none) {  /*lint !e506*/
     /* The environment uses a non-Unicode encoding.  Go through the file
        name and check for any characters that must be converted to or
@@ -2200,10 +2200,10 @@ is returned. If no conversion is required, the original string is returned.
        from the environment. */
     check_assertion(DEFAULT_UNICODE_SOURCE_KIND == usk_utf8); /*lint !e506*/
   }  /* if */
-#if EDG_WIN32
+#if EDG_WIN32 && NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
   /* Restore the original locale. */
   native_multibyte_locale = saved_locale;
-#endif /* EDG_WIN32 */
+#endif /* !(EDG_WIN32 && NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE) */
 #endif /* UNICODE_SOURCE_SUPPORTED */
   return file_name;
 }  /* convert_file_name_encoding */
