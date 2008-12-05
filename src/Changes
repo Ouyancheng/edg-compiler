@@ -1224,7 +1224,7 @@ by IL lowering.)
 
 
 8/21/08  [EDGcpfe/9126]
-GNU and Microsoft compatibility: Abtract class parameters in templates
+GNU and Microsoft compatibility: Abstract class parameters in templates
 
 Usually, any attempt to create a parameter type that is an abstract class type
 is diagnosed as an error by the front end.  Now, only a warning is issued in
@@ -2711,7 +2711,7 @@ messages that name an entity in the source.
 
 4/13/08  Caret position on diagnostic for source line with multibyte characters
 
-The caret to indicate the source positon in a diagnostic is now correct
+The caret to indicate the source position in a diagnostic is now correct
 in the presence of multibyte characters in the displayed source line.
 
 4/9/08   GNU compatibility: constructor/destructor attribute arguments
