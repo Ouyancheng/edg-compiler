@@ -55,12 +55,17 @@ can result in a non-null value.
 Macro to lower a boolean controlling expression as either a C or C++ expression
 as appropriate.
 */
+#if DO_C99_IL_LOWERING
 #define lower_any_boolean_controlling_expr(expr, is_full_expr)              \
   if (C_mode()) {                                                           \
     lower_c99_boolean_controlling_expr(expr, is_full_expr);                 \
   } else {                                                                  \
     lower_boolean_controlling_expr(expr, is_full_expr);                     \
   }  /* if */
+#else /* !DO_C99_IL_LOWERING */
+#define lower_any_boolean_controlling_expr(expr, is_full_expr)              \
+          lower_boolean_controlling_expr(expr, is_full_expr)
+#endif /* DO_C99_IL_LOWERING */
 
 extern void lower_runtime_sizeof(an_expr_node_ptr expr);
 

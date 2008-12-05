@@ -2250,8 +2250,10 @@ by lowering (as opposed to that resulting from direct lowering of source code).
 {
   an_expr_node_ptr  result = expr;
 
-  check_assertion(!is_complex_type(expr->type) &&
-                  !is_class_struct_union_type(expr->type));
+#if LOWER_COMPLEX
+  check_assertion(!is_complex_type(expr->type));
+#endif /* LOWER_COMPLEX */
+  check_assertion(!is_class_struct_union_type(expr->type));
   if ((lowering_normalizes_boolean_controlling_expressions &&
        (!is_operation_node(expr) ||
         !is_operator_returning_bool(expr->variant.operation.kind))) ||
