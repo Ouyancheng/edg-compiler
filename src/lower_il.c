@@ -5801,7 +5801,9 @@ mode; *optional will be set as usual.
       /* A class with no virtual functions and no virtual base classes should
          not have an associated virtual function table.  We should only get
          here with the generated typeinfo types. */
+#if ABI_CHANGES_FOR_RTTI
       check_assertion(is_generated_typeinfo_type(class_type));
+#endif /* ABI_CHANGES_FOR_RTTI */
       defined_here = FALSE;
     } else {
       /* The class is defined. */
