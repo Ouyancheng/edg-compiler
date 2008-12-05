@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2002 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2008 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -35,13 +35,12 @@ Driver program.
 #define LIBC_NAME			"libedg.lib"
 /*#define DEFAULT_DEFINES			"-D__cdecl=\"\" -D_M_IX86=500 -D_WIN32"*/
 #define DEFAULT_DEFINES			""
-#define LINKER_OPTIONS			"/Zi -link /debug"
+#define LINKER_OPTIONS			"/Zi -link /debug /debugtype:both"
 #define EDG_MUNCH			"edg_munch"
 #define MUNCH_C_FILE			"munchtmp.c"
 #define MUNCH_OBJ_FILE			"munchtmp.obj"
 #define EDG_PRELINK			"edg_prelink"
 #define DEFAULT_MICROSOFT_INCLUDE	"\\progra~1\\micros~1\\vc98\\include"
-#define DEFAULT_MSVC_TARGET_VERSION	1300
 #else /* !__WIN32__ */
 #define C_COMMAND			"cc"
 #define GEN_C_OBJECT_FILE_SUFFIX	".int.o"
@@ -111,15 +110,6 @@ a_command_line	instantiation_command_line;
 			/* The options to be recorded in the instantiation
 			   information file. */
 
-static a_boolean
-		use_munch = FALSE;
-			/* TRUE if edg_munch should be used for static
-			   initialization. */
-
-static long	msvc_target_version;
-			/* The version of the Microsoft compiler being
-			   used to compile the generated code. */
-
 /*
 Buffer into which commands are built.
 */
@@ -133,15 +123,11 @@ static int gflag = FALSE;
 			/* -g option specified. */
 static int fe_only = FALSE;
 			/* Run only the front end. */
-static int multi_trans_unit_mode = FALSE;
-			/* Use multiple translation unit mode. */
 static int preprocess_only = FALSE;
 			/* Running in preprocessing mode. */
 static char	*edg_base;
 			/* Where the EDG bin, lib, and include directories
                            reside. */
-static char	*cpfe_command;
-			/* Name of the front end executable. */
 static char	*edg_bin;
 			/* $EDG_BASE/bin. */
 static char	*edg_lib;
@@ -160,10 +146,7 @@ static char	*microsoft_include;
 static char	*edg_prelink;
 			/* EDG_BASE/lib/edg_prelink. */
 static char	*prelink_options = NULL;
-			/* Prelinker options. */
-static char	*prelink_default_options = NULL;
-			/* Prelinker options from EDG_PRELINK_DEFAULT_OPTIONS
-                           environment variable. */
+			/* Default prelinker options. */
 static char	*edg_libc;
 			/* $EDG_BASE/lib/LIBC_NAME. */
 static char *output_file_name = NULL;
@@ -790,7 +773,7 @@ Termination cleanup routine.
 {
 #if 0
   remove_file(temp_file);
-#endif /* 0 */
+#endif
 }  /* wrapup */
 
 
@@ -804,35 +787,6 @@ receipt of a signal.
   wrapup();
 }  /* term_on_signal */
 
-
-#if __WIN32__
-
-static long scan_opt_arg_number(char *optstr)
-/*
-Scan an argument option as a decimal number, and return its value.
-*/
-{
-  char *arg_ptr;
-  long result = 0;
-  int  digit;
-
-  for (arg_ptr = optstr; *arg_ptr != '\0'; arg_ptr++) {
-    if (!isdigit((unsigned char)*arg_ptr)) goto number_error;
-    digit = *arg_ptr - '0';
-    if (result > LONG_MAX / 10) goto number_error;
-    result *= 10;
-    if (result > LONG_MAX-digit) goto number_error;
-    result += digit;
-  }  /* for */
-  goto return_point;
-number_error:
-  fprintf(stderr, "edgcc: invalid numeric argument: %s\n", optstr);
-  error_exit();
-return_point:
-  return result;
-}  /* scan_opt_arg_number */
-
-#endif /* __WIN32__ */
 
 static void init(char *command_name)
 /*
@@ -851,9 +805,6 @@ Startup initialization.
      bin and lib directories. */
   edg_base = getenv("EDG_BASE");
   if (edg_base == NULL) edg_base = DEFAULT_EDG_BASE;
-  /* Get the name of the front end executable. */
-  cpfe_command = getenv("EDG_CPFE");
-  if (cpfe_command == NULL) cpfe_command = CPFE_COMMAND;
   /* Build $EDG_BASE/bin. */
   sprintf(string_buffer, "%s%sbin", edg_base, PATH_DELIMITER);
   edg_bin = copy_of_string(string_buffer);
@@ -863,20 +814,7 @@ Startup initialization.
   /* Build $EDG_BASE/lib/edg_munch. */
   sprintf(string_buffer, "%s%s%s", edg_lib, PATH_DELIMITER, EDG_MUNCH);
   edg_munch = copy_of_string(string_buffer);
-  /* Get any options that should be passed to the prelinker. */
-  prelink_default_options = getenv("EDG_PRELINK_DEFAULT_OPTIONS");
 #if __WIN32__
-  { /* Get the Microsoft C compiler version being used. */
-    char	*version;
-    version = getenv("EDG_MSVC_VERSION");
-    if (version == NULL) {
-      msvc_target_version = DEFAULT_MSVC_TARGET_VERSION;
-    } else {
-      msvc_target_version = scan_opt_arg_number(version);
-    }  /* if */
-    /* Munch is needed for versions of MSVC prior to 7.0. */
-    if (msvc_target_version < 1300) use_munch = TRUE;
-  }
   /* Build $EDG_BASE/lib/munch_nm. */
   sprintf(string_buffer, "%s%s%s", edg_lib, PATH_DELIMITER, "munch_nm");
   munch_nm = copy_of_string(string_buffer);
@@ -925,13 +863,6 @@ Startup initialization.
   }  /* if */
   /* Add default defines. */
   add_cl_argument(&compile_options, DEFAULT_DEFINES);
-#if __WIN32__
-  /* Add an argument to specify the MSVC target version being used. */
-  sprintf(string_buffer, "--msvc_target_version=%ld", msvc_target_version);
-  str = copy_of_string(string_buffer);
-  add_cl_argument(&compile_options, str);
-#endif /* __WIN32__ */
-  /* Add the Microsoft target compiler version number, if any. */
   /* Initialize the instantiation command line. */
   init_command_line(&instantiation_command_line);
   add_cl_argument(&instantiation_command_line, command_name);
@@ -1018,7 +949,7 @@ Compile a file and generate an object file.
 #endif /* __WIN32__ */
 
   init_command_line(&cl);
-  add_cl_argument(&cl, cpfe_command);
+  add_cl_argument(&cl, CPFE_COMMAND);
   /* Append any options extracted from the edgcc command line. */
   append_command_line(&cl, &compile_options);
 #if __WIN32__
@@ -1026,27 +957,8 @@ Compile a file and generate an object file.
   sprintf(string_buffer, "-I%s", microsoft_include);
   str = copy_of_string(string_buffer);
   add_cl_argument(&cl, str);
-  /* VC7 and beyond have some header files in a separate PlatformSDK
-     directory and atlmfc directory. */
-  sprintf(string_buffer, "-I%s/../PlatformSDK/include", microsoft_include);
-  str = copy_of_string(string_buffer);
-  add_cl_argument(&cl, str);
-  sprintf(string_buffer, "-I%s/../atlmfc/include", microsoft_include);
-  str = copy_of_string(string_buffer);
-  add_cl_argument(&cl, str);
 #endif /* __WIN32__ */
   add_cl_argument(&cl, file_name);
-  /* In multiple translation unit mode, add the other file names to the
-     command. */
-  if (multi_trans_unit_mode) {
-     a_cl_argument_ptr	file_name_arg;
-    /* Add the remaining file names to the command (skip the first file,
-       which we have already added). */
-    for (file_name_arg = file_list.args->next; file_name_arg != NULL;
-         file_name_arg = file_name_arg->next) {
-      add_cl_argument(&cl, file_name_arg->str);
-    }  /* for */
-  }  /* if */
   status = execute_command(&cl);
   if (status == 0 && !fe_only && !preprocess_only) {
     /* Write the compilation command line into the instantiation
@@ -1099,9 +1011,6 @@ to handle static initialization.
   init_command_line(&cl);
   add_cl_argument(&cl, edg_prelink);
   if (prelink_options != NULL) add_cl_argument(&cl, prelink_options);
-  if (prelink_default_options != NULL) {
-    add_cl_argument(&cl, prelink_default_options);
-  }  /* if */
   append_command_line(&cl, &object_file_list);
   (void)execute_command(&cl);
   /* Add the list of object files to the link command. */
@@ -1110,13 +1019,6 @@ to handle static initialization.
   add_cl_argument(&link_command, "-o");
   add_cl_argument(&link_command, output_file_name);
   add_cl_argument(&link_command, LINKER_OPTIONS);
-#if __WIN32__
-  if (msvc_target_version < 1300) {
-    /* A special linker option is needed to generate information for munch
-       when using older MSVC versions. */
-    add_cl_argument(&link_command, "/debugtype:both");
-  }  /* if */
-#endif /* __WIN32__ */
   append_command_line(&link_command, &link_options);
   /* Make a copy of the command line before adding libC. */
   init_command_line(&second_link_cl);
@@ -1124,7 +1026,7 @@ to handle static initialization.
   /* Add libC to the original link line and execute the link. */
   add_cl_argument(&link_command, edg_libc);
   status = execute_command(&link_command);
-  if (status == 0 && use_munch) {
+  if (status == 0) {
     init_command_line(&cl);
     /* Run munch on the output. */
 #if __WIN32__
@@ -1160,7 +1062,7 @@ to handle static initialization.
     /* Redirect the output to a temporary file. */
     add_cl_argument(&cl, " >");
     add_cl_argument(&cl, temp_file);
-#endif /* 0 */
+#endif 
     if (execute_command(&cl) != 0) {
       fprintf(stderr,
               "edgcc: compilation of file generated by munch failed.\n");
@@ -1173,8 +1075,10 @@ to handle static initialization.
       status = execute_command(&second_link_cl);
     }  /* if */
     /* Remove the files generated by munch. */
+#if 1
     remove_file(MUNCH_OBJ_FILE);
     remove_file(MUNCH_C_FILE);
+#endif
   }  /* if */
   return status;
 }  /* link_executable */
@@ -1278,14 +1182,6 @@ add_to_compile_options:
           make_arg_string();
           add_cl_argument(&link_command, str);
           break;
-        case 'q':
-          /* Multi-trans unit mode. */
-          multi_trans_unit_mode = TRUE;
-          break;
-        case 'S':
-          /* Run front end only, but produce a .int.c file. */
-          fe_only = TRUE;
-          break;
         case 'y':
           /* Add the specifier string as a C to object option. */
           add_cl_argument(&c_to_obj_options, argv[++optpos]);
@@ -1336,8 +1232,6 @@ int main(int argc, char *argv[])
       /* Anything else is assumed to be an object file name or library. */
       add_cl_argument(&object_file_list, file_name);
     }  /* if */
-    /* Stop after the first file in multi-trans-unit mode. */
-    if (multi_trans_unit_mode) break;
     clap = clap->next;
   }  /* while */
   if (!cflag && !any_errors && !fe_only && !preprocess_only) {
