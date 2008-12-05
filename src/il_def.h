@@ -9457,7 +9457,7 @@ enum an_expr_operator_kind_tag {
 			   to member, with the source form (p->*pmf)(args).
 			   The first operand is the pointer to member
 			   function; the second is an rvalue pointer to
-			   class that identifies the the selector object;
+			   class that identifies the selector object;
 			   the remaining operands are the arguments. */
   /* Operators used when the <stdarg.h> macros are treated as builtins: */
   eok_va_start,		/* va_start macro reference.  First operand is an
