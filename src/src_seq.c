@@ -1638,7 +1638,7 @@ innermost such class.
         if (sse_ptr == &scope_stack[depth_innermost_namespace_scope]) {
           insert_scope_depth = depth_innermost_namespace_scope;
         } else {
-          for (insert_scope_depth = DEPTH_OF_FILE_SCOPE + 1;;
+          for (insert_scope_depth = /*lint --e(835)*/DEPTH_OF_FILE_SCOPE + 1;;
                insert_scope_depth++) {
             if (sse_ptr == &scope_stack[insert_scope_depth]) break;
             check_assertion(insert_scope_depth != depth_scope_stack);
