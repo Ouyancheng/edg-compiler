@@ -1,6 +1,30 @@
 Version 4.0
 
-12/2/08 [EDGcpfe/9386]
+12/3/08  [EDGcpfe/9390, EDGcpfe/9393]
+Changes in IL representation of member function calls
+
+IL CHANGE: The IL representation for calls has been reworked so that
+for member calls the operator gives a better indication of the source
+form.  eok_member_call (see the Changes entry of 11/9/08) has been split into
+
+  eok_dot_member_call        for the x.f(args) form
+  eok_points_to_member_call  for the p->f(args) form
+
+Similarly, the pointer-to-member call operator eok_pm_call has been split into
+
+  eok_dot_pm_call            for the (x.*f)(args) form
+  eok_points_to_pm_call      for the (p->*f)(args) form
+
+In both cases, the selector object is a class lvalue or rvalue for
+the "dot" form, and a pointer to class for the "points_to" form (see
+the Changes entry of 11/6/08).
+
+The eok_virtual_call operator has been eliminated.  The fact that a call
+has virtual function semantics is now indicated by the is_virtual_call
+flag in the an_expr_node operation variant.
+
+
+12/2/08  [EDGcpfe/9386]
 C-generating back end: restoring default after #pragma pack
 
 When a struct definition is preceded by a #pragma pack directive changing
