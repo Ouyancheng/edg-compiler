@@ -995,7 +995,7 @@ translation of certain characters to UTF-8.
     }  /* if */
   }  /* if */
 #endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
-  /* Increment the length to include the null termininator. */
+  /* Increment the length to include the null terminator. */
   result_length++;
   /* Copy the name from the text buffer. */
   name_start_pos = alloc_primary_file_scope_il(result_length);
