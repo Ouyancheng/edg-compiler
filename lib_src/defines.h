@@ -14,11 +14,6 @@ defines.h -- Defines configuration parameters for a given version of the
 
 */
 
-/*
-Note: This is the EDG internal version.  The version shipped as part of
-the release should contain no defines.
-*/
-
 #define _XOPEN_VERSION 0
 #define _POSIX_C_SOURCE 0
 
