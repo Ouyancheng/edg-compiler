@@ -22,6 +22,7 @@ This version is for the Sun Solaris operating system.
 /* Demo versions should support multiple translation units. */
 #define COMPILE_MULTIPLE_TRANSLATION_UNITS 1
 #define DEBUG 0
+#define IA64_ABI 1
 #endif /* ifdef DEMO_VERSION */
 
 #ifdef SUNOS
