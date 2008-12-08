@@ -1105,19 +1105,24 @@ to handle static initialization.
   (void)execute_command(&cl);
   /* Add the list of object files to the link command. */
   append_command_line(&link_command, &object_file_list);
+#if __WIN32__
   /* Add the executable file name to the link command. */
   if (output_file_name == NULL) output_file_name = DEFAULT_OUTPUT_FILE_NAME;
   sprintf(string_buffer, "/Fe%s", output_file_name);
   add_cl_argument(&link_command, copy_of_string(string_buffer));
   add_cl_argument(&link_command, LINKER_OPTIONS);
-#if __WIN32__
   if (msvc_target_version < 1300) {
     /* A special linker option is needed to generate information for munch
        when using older MSVC versions. */
     add_cl_argument(&link_command, "/debugtype:both");
+  } else {
+    add_cl_argument(&link_command, "/NODEFAULTLIB:LIBC");
   }  /* if */
+#else /* !__WIN32__ */
+  /* Add the executable file name to the link command. */
+  add_cl_argument(&link_command, "-o");
+  add_cl_argument(&link_command, output_file_name);
 #endif /* __WIN32__ */
-  add_cl_argument(&link_command, "/NODEFAULTLIB:LIBC");
   append_command_line(&link_command, &link_options);
   /* Make a copy of the command line before adding libC. */
   init_command_line(&second_link_cl);

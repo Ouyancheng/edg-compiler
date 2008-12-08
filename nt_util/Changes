@@ -2,9 +2,9 @@ Version 4.0
 
 12/8/08  Avoid linker warnings on default libraries
 
-The /NODEFAULTLIB:LIBC option is now passed to the linker to suppress
-warnings when edgcc is used on a different version of Windows from the
-one on which it was built.
+When EDG_MSCV_VERSION is >= 1300 the /NODEFAULTLIB:LIBC option is now
+passed to the linker to suppress warnings that can occur when edgcc is used
+on a different version of Windows from the one on which it was built.
 
 12/8/08  Use /Fe option instead of -o to name executable
 
