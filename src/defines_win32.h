@@ -71,6 +71,7 @@ Definitions for Windows (WIN32)
 #ifndef NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
 #define NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE 1
 #endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
+#define DEFAULT_MULTIBYTE_CHARS_IN_SOURCE_ENABLED 1
 
 /*
 Use fixed address for mmap to work around issues with address space
