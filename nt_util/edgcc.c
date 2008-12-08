@@ -1117,6 +1117,7 @@ to handle static initialization.
     add_cl_argument(&link_command, "/debugtype:both");
   }  /* if */
 #endif /* __WIN32__ */
+  add_cl_argument(&link_command, "/NODEFAULTLIB:LIBC");
   append_command_line(&link_command, &link_options);
   /* Make a copy of the command line before adding libC. */
   init_command_line(&second_link_cl);
