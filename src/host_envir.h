@@ -1810,6 +1810,36 @@ which controls whether null (zero) characters are allowed in source lines.
 #endif /* DEFAULT_NULL_CHARS_ALLOWED_IN_SOURCE */
 
 /*
+Flag that is TRUE if multibyte characters are supported in source code,
+specifically in comments, string literals, character constants, and
+identifiers.  This applies to both C and C++ mode.  See also
+IDENTIFIER_STRINGS_ALLOW_MULTIBYTE_CHARS.
+*/
+#ifndef MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
+#if UNICODE_SOURCE_SUPPORTED
+#define MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED TRUE
+#else /* !UNICODE_SOURCE_SUPPORTED */
+#define MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED FALSE
+#endif /* UNICODE_SOURCE_SUPPORTED */
+#endif /* ifndef MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
+
+#if UNICODE_SOURCE_SUPPORTED && !MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
+ #error -- UNICODE_SOURCE_SUPPORTED requires \
+           MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
+#endif /* UNICODE_SOURCE_SUPPORTED && !MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
+
+/*
+Flag that is TRUE if multibyte character support in source code should
+be enabled by default.  This is the initial value of
+multibyte_chars_in_source_enabled, which is also controlled by
+--[no_]multibyte_chars.  Meaningful only if
+MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED is TRUE.
+*/
+#ifndef DEFAULT_MULTIBYTE_CHARS_IN_SOURCE_ENABLED
+#define DEFAULT_MULTIBYTE_CHARS_IN_SOURCE_ENABLED FALSE
+#endif /* ifndef DEFAULT_MULTIBYTE_CHARS_IN_SOURCE_ENABLED */
+
+/*
 Flag that is TRUE if UTF-8 and UTF-16 encodings of Unicode should be accepted
 in source code.  Note that if you set this the representation for identifiers
 and file names becomes UTF-8, which may require back end or host-interface
@@ -1951,36 +1981,6 @@ EXTERN a_text_buffer_ptr
 			/* Text buffer used by translate_filename_to_wchar. */
 #endif /* EDG_WIN32 */
 #endif /* UNICODE_SOURCE_SUPPORTED */
-
-/*
-Flag that is TRUE if multibyte characters are supported in source code,
-specifically in comments, string literals, character constants, and
-identifiers.  This applies to both C and C++ mode.  See also
-IDENTIFIER_STRINGS_ALLOW_MULTIBYTE_CHARS.
-*/
-#ifndef MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
-#if UNICODE_SOURCE_SUPPORTED
-#define MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED TRUE
-#else /* !UNICODE_SOURCE_SUPPORTED */
-#define MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED FALSE
-#endif /* UNICODE_SOURCE_SUPPORTED */
-#endif /* ifndef MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
-
-#if UNICODE_SOURCE_SUPPORTED && !MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
- #error -- UNICODE_SOURCE_SUPPORTED requires \
-           MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
-#endif /* UNICODE_SOURCE_SUPPORTED && !MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
-
-/*
-Flag that is TRUE if multibyte character support in source code should
-be enabled by default.  This is the initial value of
-multibyte_chars_in_source_enabled, which is also controlled by
---[no_]multibyte_chars.  Meaningful only if
-MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED is TRUE.
-*/
-#ifndef DEFAULT_MULTIBYTE_CHARS_IN_SOURCE_ENABLED
-#define DEFAULT_MULTIBYTE_CHARS_IN_SOURCE_ENABLED FALSE
-#endif /* ifndef DEFAULT_MULTIBYTE_CHARS_IN_SOURCE_ENABLED */
 
 /*
 Routines/macros to deal with multibyte character sequences in source code.

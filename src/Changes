@@ -1,3 +1,13 @@
+Version 4.1
+
+12/8/08  [EDGcpfe/9400]
+MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED used before set in host_envir.h
+
+The MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED macro is used before it is set
+in host_envir.h if it is not defined in the defines.h file.  This could
+result in spurious #error diagnostics.  Now fixed.
+
+------------------------------------------------------------------------------
 Version 4.0, December 5, 2008
 
 12/5/08
