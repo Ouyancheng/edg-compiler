@@ -33,7 +33,6 @@ Driver program.
 #define DEFAULT_EDG_BASE		"\\edg"
 #define PATH_DELIMITER			"\\"
 #define LIBC_NAME			"libedg.lib"
-/*#define DEFAULT_DEFINES			"-D__cdecl=\"\" -D_M_IX86=500 -D_WIN32"*/
 #define DEFAULT_DEFINES			""
 #define LINKER_OPTIONS			"/Zi -link /debug"
 #define EDG_MUNCH			"edg_munch"
@@ -1106,9 +1105,10 @@ to handle static initialization.
   (void)execute_command(&cl);
   /* Add the list of object files to the link command. */
   append_command_line(&link_command, &object_file_list);
+  /* Add the executable file name to the link command. */
   if (output_file_name == NULL) output_file_name = DEFAULT_OUTPUT_FILE_NAME;
-  add_cl_argument(&link_command, "-o");
-  add_cl_argument(&link_command, output_file_name);
+  sprintf(string_buffer, "/Fe%s", output_file_name);
+  add_cl_argument(&link_command, copy_of_string(string_buffer));
   add_cl_argument(&link_command, LINKER_OPTIONS);
 #if __WIN32__
   if (msvc_target_version < 1300) {

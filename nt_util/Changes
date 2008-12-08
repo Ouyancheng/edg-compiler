@@ -1,3 +1,11 @@
+Version 4.0
+
+12/8/08  Use /Fe option instead of -o to name executable
+
+The -o option has been deprecated by Microsoft, so edgcc now uses the /Fe
+option is used instead.
+
+------------------------------------------------------------------------------
 Version 3.1
 
 6/12/02  Add EDG_PRELINK_DEFAULT_OPTIONS
