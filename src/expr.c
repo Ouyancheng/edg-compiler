@@ -2797,7 +2797,7 @@ must be the (possibly coalesced) field name.
     } else {
       /* Preserve the reference entries for the base struct.  Don't do this
          if we are dereferencing a reference, because in that case the
-         reference if not modified if the lvalue is modified. */
+         reference is not modified if the lvalue is modified. */
       result->ref_entries_list = operand_1->ref_entries_list;
       if (rep != NULL) {
         /* Add the reference entry for the field to the list of entries for
