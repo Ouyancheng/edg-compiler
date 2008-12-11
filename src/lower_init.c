@@ -10765,9 +10765,6 @@ under dip or generate code.
 
 #endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
 
-#if !ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
-/*ARGSUSED*/ /* <-- construction_vtbls_var is not used in that case. */
-#endif /* !ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
 static void lower_ctor_init(a_constructor_init_ptr ctor_init,
                             a_variable_ptr         this_param_var,
                             a_boolean              base_of_complete_object,
