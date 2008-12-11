@@ -5427,6 +5427,33 @@ that can be deduced from a function template call.
 }  /* is_deducible_constant_param */
 
 
+static a_boolean convert_constant_for_deduction(a_constant_ptr	orig_cp,
+						a_constant_ptr	new_cp,
+						a_type_ptr	new_type)
+/*
+Convert org_cp to new_type.  Return TRUE if the conversion could
+be folded or NULL otherwise.  If the conversion could be folded, the
+new constant is constructed in new_cp.  Note that new_cp may be overwritten
+with an intermediate constant even if this routine returns FALSE.
+*/
+{
+  a_boolean	did_not_fold;
+
+  check_assertion(orig_cp->kind != (a_constant_repr_kind)ck_template_param);
+  clear_constant(new_cp, orig_cp->kind);
+  copy_constant(orig_cp, new_cp);
+  type_change_constant(new_cp, new_type,
+                       /*is_implicit_cast=*/FALSE,
+                       /*constant_context=*/TRUE,
+                       /*evaluated_context=*/TRUE,
+                       /*fold_constant_addr_exprs=*/FALSE,
+                       /*is_reinterpret_cast=*/FALSE,
+                       /*maintain_expression=*/FALSE,
+                       &did_not_fold, &error_position);
+  return !did_not_fold;
+}  /* convert_constant_for_deduction */
+
+
 static
 a_boolean matches_template_constant(a_constant_ptr       constant,
                                     a_constant_ptr       templ_constant,
@@ -5448,6 +5475,40 @@ list of a template function.  Returns TRUE if a match is found.
      to matches_template_type.  Nesting depths are only checked for
      declared template parameters (i.e., of kind tpck_param).  Other
      template parameters do not have nesting depths. */
+  if (microsoft_mode) {
+    if (templ_constant->kind == (a_constant_repr_kind)ck_template_param &&
+        templ_constant->variant.template_param.kind ==
+                                   (a_template_param_constant_kind)tpck_cast) {
+      /* In Microsoft mode, remove a tpck_cast that may have been applied and
+         attempt to convert the constant to the required type.  This comes up
+         in case like:
+           template <int c> class A {};
+           template <long c> void f(A<c>) {}
+           void g() { A<89> a;
+             f(a);
+           }
+         In this case "c" is cast to long.   Remove the cast so that we have
+         just the constant for "c" remaining so it can be deduced below, and
+         convert the constant to the required type (in this case, convert 89
+         to long).  This kind of conversion is only accepted for integral
+         types. */
+      a_constant	temp_constant;
+      a_constant_ptr	new_templ_constant;
+      a_constant_ptr	new_constant;
+      new_templ_constant = templ_constant->
+                                       variant.template_param.variant.constant;
+      if (is_integral_type(new_templ_constant->type) &&
+          convert_constant_for_deduction(constant, &temp_constant,
+                                         new_templ_constant->type)) {
+        /* The conversion was successful.  Use the new constant and the
+           constant under the cast as constant and templ_constant. */
+        new_constant = alloc_constant(temp_constant.kind);
+        copy_constant(&temp_constant, new_constant);
+        templ_constant = new_templ_constant;
+        constant = new_constant;
+      }  /* if */
+    }  /* if */
+  }  /* if */
   if (templ_constant->kind == (a_constant_repr_kind)ck_template_param &&
       (templ_constant->variant.template_param.kind != 
                              (a_template_param_constant_kind)tpck_param ||
