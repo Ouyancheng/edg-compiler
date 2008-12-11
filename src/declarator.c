@@ -1666,7 +1666,6 @@ if this is the function declarator in a friend function declaration.
             remove_stop_token(tok_comma);
             break;
           } else if (is_void_type(param_state.type) &&
-                     param_state.type->kind == (a_type_kind)tk_typeref &&
                      !is_qualified_type(param_state.type) &&
                      param_storage_class == (a_storage_class)sc_unspecified) {
             /* A type name is bound to void type -- this construct is treated
@@ -1674,19 +1673,33 @@ if this is the function declarator in a friend function declaration.
                list.  In C99 mode, this is a standard form and no diagnostic
                is needed.  Otherwise, issue an error (in strict mode) or a
                warning. */
-            if (is_template_dependent_context() ||
-                is_nonspecialized_instantiation_context()) {
-              /* We don't accept such constructs at all in template contexts,
+            a_boolean  template_void_param_case =
+                           (microsoft_mode &&
+                            is_nonspecialized_instantiation_context() &&
+                            scope_stack[depth_scope_stack-1].kind ==
+                                        (a_scope_kind)sck_class_struct_union);
+            if ((is_template_dependent_context() ||
+                 is_nonspecialized_instantiation_context()) &&
+                !template_void_param_case) {
+              /* We usually don't accept such constructs in template contexts,
                  because it could cause the number of parameters seen in the
                  template to differ from the number seen during instantiation.
-                 */
+                 The only exception occurs in Microsoft mode, where a member
+                 function of a class template with a single parameter type
+                 that instantiates to "void" is treated as a function taking
+                 no parameters. */
               pos_error(ec_void_param_not_allowed, &param_type_pos);
               param_state.type = error_type();
             } else {
               if (!c99_mode) {
+                an_error_code  ec = ec_nonstd_void_param_list;
+                if (param_state.type->kind != (a_type_kind)tk_typeref) {
+                  check_assertion(template_void_param_case);
+                  ec = ec_nonstd_template_void_param_list;
+                }  /* if */
                 pos_diagnostic(strict_ansi_mode ?
                                strict_ansi_discretionary_severity : es_warning,
-                               ec_nonstd_void_param_list, &param_type_pos);
+                               ec, &param_type_pos);
               }  /* if */
               remove_stop_token(tok_comma);
               break;
