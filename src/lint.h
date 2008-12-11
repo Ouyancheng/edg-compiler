@@ -15,6 +15,10 @@ Included from basic_hdrs.h in every compilation.
 
 */
 
+/* Avoid including these declarations more than once. */
+#ifndef LINT_H
+#define LINT_H 1
+
 /* Options for FlexeLint. */
 /*lint -esym(767,fread_with_check)*/
 /*lint -esym(756,a*_dummy_typedef)*/
@@ -593,6 +597,8 @@ extern int fileno(FILE *);
 /* Suppress spurious data access warnings. */
 /*lint -efunc(670,macro_invocation)*/
 /*lint -efunc(690,macro_invocation)*/
+
+#endif /* ifndef LINT_H */
 
 /******************************************************************************
 *                                                             \  ___  /       *

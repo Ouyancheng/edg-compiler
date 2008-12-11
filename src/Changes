@@ -1,5 +1,13 @@
 Version 4.1
 
+12/11/08 [EDGcpfe/6851]
+Include guard code added to files in which it was missing
+
+Include guard code has been added to those header files that lacked it,
+except for walk_entry.h which must be capable of being included more than
+once.
+
+
 12/11/08 [EDGcpfe/9367]
 Microsoft C++ compatibility: allow integral conversions in deduction
 

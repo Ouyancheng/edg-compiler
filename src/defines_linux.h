@@ -15,6 +15,10 @@ defines.h -- Defines configuration parameters for a given version of the
 This is the version for Linux.
 */
 
+/* Avoid including these declarations more than once. */
+#ifndef DEFINES_LINUX_H
+#define DEFINES_LINUX_H 1
+
 #ifdef DEMO_VERSION
 /* Demo versions should support multiple translation units. */
 #define COMPILE_MULTIPLE_TRANSLATION_UNITS 1
@@ -128,6 +132,7 @@ Linux.
 #define MIN_INTEGER_VALUE (-MAX_INTEGER_VALUE-1)
 #define MAX_UNSIGNED_INTEGER_VALUE 18446744073709551615ULL
 
+#endif /* ifndef DEFINES_LINUX_H */
 
 /******************************************************************************
 *                                                             \  ___  /       *

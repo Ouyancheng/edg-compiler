@@ -46,6 +46,10 @@ incorporated:
 
 */
 
+/* Avoid including these declarations more than once. */
+#ifndef FE_COMMON_H
+#define FE_COMMON_H 1
+
 /* Basic configuration declarations.  This header file pulls in basics.h,
    defines.h, lang_feat.h, host_envir.h, and targ_def.h. */
 #ifndef BASIC_HDRS_H
@@ -123,6 +127,8 @@ incorporated:
 /* Debug declarations. */
 #include "debug.h"
 #endif /* DEBUG */
+
+#endif /* ifndef FE_COMMON_H */
 
 /******************************************************************************
 *                                                             \  ___  /       *

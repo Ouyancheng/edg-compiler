@@ -14,6 +14,10 @@ host_util.h -- host environment utility routines that are shared by
 
 */
 
+/* Avoid including these declarations more than once. */
+#ifndef HOST_UTIL_H
+#define HOST_UTIL_H 1
+
 unsigned long crc_32(char		*str,
 		     unsigned long	prev_crc)
 /*
@@ -233,6 +237,8 @@ time.  Return TRUE if the file exists and is a regular file, FALSE otherwise.
   }
   return is_regular;
 }  /* get_file_modification_time */
+
+#endif /* ifndef HOST_UTIL_H */
 
 /******************************************************************************
 *                                                             \  ___  /       *

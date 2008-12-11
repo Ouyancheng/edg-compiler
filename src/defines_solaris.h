@@ -16,6 +16,10 @@ This version is for the Sun Solaris operating system.
 
 */
 
+/* Avoid including these declarations more than once. */
+#ifndef DEFINES_SOLARIS_H
+#define DEFINES_SOLARIS_H 1
+
 /* Configuration definitions determined by dettarg.c: */
 
 #ifdef DEMO_VERSION
@@ -125,6 +129,8 @@ in the C-generating back end.
 #define USE_INIT_SECTION_IN_GENERATED_C 1
 #endif /* !defined(__GNUC__) && !defined(__CENTERLINE__) && ... */
 #endif /* ifdef SUNOS */
+
+#endif /* ifndef DEFINES_SOLARIS_H */
 
 /******************************************************************************
 *                                                             \  ___  /       *

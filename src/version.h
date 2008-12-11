@@ -11,6 +11,7 @@
 version.h -- Front end version number.
 */
 
+/* Avoid including these declarations more than once. */
 #ifndef VERSION_H
 #define VERSION_H 1
 

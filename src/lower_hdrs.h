@@ -14,6 +14,10 @@ lower_hdrs.h -- Inclusion of header files used by files involved in IL
 
 */
 
+/* Avoid including these declarations more than once. */
+#ifndef LOWER_HDRS_H
+#define LOWER_HDRS_H 1
+
 #include "folding.h"
 #include "lower_eh.h"
 #include "lower_il.h"
@@ -25,6 +29,8 @@ lower_hdrs.h -- Inclusion of header files used by files involved in IL
 #include "lower_c99.h"
 #include "pch.h"
 				   
+#endif /* ifndef LOWER_HDRS_H */
+
 /******************************************************************************
 *                                                             \  ___  /       *
 *                                                               /   \         *

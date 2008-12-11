@@ -14,6 +14,10 @@ expr_hdrs.h -- Inclusion of header files used by files involved in expression
 
 */
 
+/* Avoid including these declarations more than once. */
+#ifndef EXPR_HDRS_H
+#define EXPR_HDRS_H 1
+
 #include "class_decl.h"
 #include "decls.h"
 #include "expr.h"
@@ -22,6 +26,8 @@ expr_hdrs.h -- Inclusion of header files used by files involved in expression
 #include "overload.h"
 #include "symbol_ref.h"
 #include "templates.h"
+
+#endif /* ifndef EXPR_HDRS_H */
 
 /******************************************************************************
 *                                                             \  ___  /       *

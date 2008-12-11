@@ -14,6 +14,10 @@ decl_hdrs.h -- Inclusion of header files used by files involved in declaration
 
 */
 
+/* Avoid including these declarations more than once. */
+#ifndef DECL_HDRS_H
+#define DECL_HDRS_H 1
+
 #include "class_decl.h"
 #include "decl_inits.h"
 #include "decl_spec.h"
@@ -26,6 +30,8 @@ decl_hdrs.h -- Inclusion of header files used by files involved in declaration
 #include "preproc.h"
 #include "symbol_ref.h"
 #include "templates.h"
+
+#endif /* ifndef DECL_HDRS_H */
 
 /******************************************************************************
 *                                                             \  ___  /       *

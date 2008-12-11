@@ -14,6 +14,10 @@ defines.h -- Defines configuration parameters for a given version of the
 
 */
 
+/* Avoid including these declarations more than once. */
+#ifndef DEFINES_H
+#define DEFINES_H 1
+
 /*
 Note: This is the EDG internal version.  The version shipped as part of
 the release should contain no defines.
@@ -976,6 +980,8 @@ SUN_TEST_VERSION but not the EDG_TEST_VERSION.
 #define LOWER_VARIABLE_LENGTH_ARRAYS 1
 #endif /* ifndef sun */
 #endif /* ifdef lint */
+
+#endif /* ifndef DEFINES_H */
 
 /******************************************************************************
 *                                                             \  ___  /       *

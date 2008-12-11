@@ -16,6 +16,9 @@ This version is for the Apple MacOS X operating system.
 
 */
 
+/* Avoid including these declarations more than once. */
+#ifndef DEFINES_MACOS_H
+#define DEFINES_MACOS_H 1
 
 #ifdef DEMO_VERSION
 /* Demo versions should support multiple translation units. */
@@ -85,6 +88,8 @@ This version is for the Apple MacOS X operating system.
 #else
 #error -- Unexpected MacOS X platform
 #endif
+
+#endif /* ifndef DEFINES_MACOS_H */
 
 /******************************************************************************
 *                                                             \  ___  /       *

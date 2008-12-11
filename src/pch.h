@@ -13,6 +13,7 @@ pch.h -- Precompiled header declarations
 
 */
 
+/* Avoid including these declarations more than once. */
 #ifndef PCH_H
 #define PCH_H 1
 

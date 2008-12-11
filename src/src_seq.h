@@ -13,6 +13,7 @@ src_seq.h -- Declarations for support for source sequence list management
 
 */
 
+/* Avoid including these declarations more than once. */
 #ifndef SRC_SEQ_H
 #define SRC_SEQ_H
 

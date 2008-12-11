@@ -13,6 +13,7 @@ basic_hdrs.h -- Inclusion of low-level universal header files.
 
 */
 
+/* Avoid including these declarations more than once. */
 #ifndef BASIC_HDRS_H
 #define BASIC_HDRS_H 1
 

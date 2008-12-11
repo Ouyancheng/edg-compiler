@@ -15,6 +15,10 @@ defines.h -- Defines configuration parameters for a given version of the
 This is the version for Windows 95/98/NT/etc.
 */
 
+/* Avoid including these declarations more than once. */
+#ifndef DEFINES_WIN32_H
+#define DEFINES_WIN32_H 1
+
 #ifdef DEMO_VERSION
 #ifndef CP_GEN_BE_VERSION
 /* Demo versions that do not use the C++-generating back end should
@@ -111,6 +115,8 @@ Flags to be set for any version that uses the C++ generating back end.
 /* Suppress Microsoft 8.0 warnings about deprecated C library functions. */
 #define _CRT_SECURE_NO_DEPRECATE
 #define _CRT_NONSTDC_NO_DEPRECATE
+
+#endif /* ifndef DEFINES_WIN32_H */
 
 /******************************************************************************
 *                                                             \  ___  /       *

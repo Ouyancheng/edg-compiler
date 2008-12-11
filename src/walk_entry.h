@@ -7,6 +7,12 @@
 * Copyright 1988-2008 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
+
+/*
+It must be possible to include this file more than once, so it intentionally
+does have an include guard.
+*/
+
 /*
 
 walk_entry.h -- Routines used by il_walk.c to walk IL entries.

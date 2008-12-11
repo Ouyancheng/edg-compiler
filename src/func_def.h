@@ -14,6 +14,7 @@ func_def.h -- Declarations related to func_def.c (having to do with
 
 */
 
+/* Avoid including these declarations more than once. */
 #ifndef FUNC_DEF_H
 #define FUNC_DEF_H 1
 

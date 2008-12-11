@@ -13,6 +13,10 @@ il_def.h -- Definition of the intermediate language.
 
 */
 
+/* Avoid including these declarations more than once. */
+#ifndef IL_DEF_H
+#define IL_DEF_H 1
+
 /*
 NOTE:  If you modify definitions here, be sure to modify walk_entry.h,
 il.c, lower_il.c, and il_display.c accordingly.  This is crucial in cases
@@ -12494,6 +12498,7 @@ EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
 #endif /* VAR_INITIALIZERS */
 ;
 
+#endif /* ifndef IL_DEF_H */
 
 /******************************************************************************
 *                                                             \  ___  /       *
