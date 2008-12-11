@@ -3,7 +3,7 @@ Version 4.1
 12/11/08 [EDGcpfe/9367]
 Microsoft C++ compatibility: allow integral conversions in deduction
 
-In Microsoft mode, a nontype template argument can be deduced from a
+In Microsoft mode, a nontype template parameter can be deduced from a
 context in which an implicit integral conversion has been done on the
 template parameter.  In the example below, A<c> is interpreted as
 A<(int)c>, so "c" should not be deducible there, but this is accepted by
