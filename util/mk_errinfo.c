@@ -200,6 +200,28 @@ Output the comments that appear at the top of the generated files.
 }  /* me_write_file_header */
 
 
+static me_write_include_guard_test(FILE  *file,
+                                   char  *guard_name)
+/*
+Write an include guard test to the specified file.  guard_name is the string
+to be used for the guard.
+*/
+{
+  fprintf(file, "#ifndef %s\n#define %s 1\n", guard_name, guard_name);
+}  /* me_write_include_guard_test */
+
+
+static me_write_include_guard_end(FILE  *file,
+                                  char  *guard_name)
+/*
+Write the "#endif" of an include guard test to the specified file.
+guard_name is the string to be used for the guard.
+*/
+{
+  fprintf(file, "#endif /* #ifndef %s */\n", guard_name);
+}  /* me_write_include_guard_end */
+
+
 /*
 Structure used to record information about an error message.
 */
@@ -876,6 +898,9 @@ int main(int argc, char *argv[])
     /* Generate the output file headers. */
     me_write_file_header(codes_output_file);
     me_write_file_header(data_output_file);
+    /* Generate the include guard tests. */
+    me_write_include_guard_test(codes_output_file, "ERR_CODES_H");
+    me_write_include_guard_test(data_output_file, "ERR_DATA_H");
   }  /* if */
   /* Read the input file. */
   me_read_input_file();
@@ -899,6 +924,9 @@ int main(int argc, char *argv[])
           (qsort_nmemb_type)sizeof(a_tag_info), compare_tag_info);
     /* Output the number of tags to the error code file. */
     me_write_tag_table();
+    /* Generate the include guard end code. */
+    me_write_include_guard_end(codes_output_file, "ERR_CODES_H");
+    me_write_include_guard_end(data_output_file, "ERR_DATA_H");
     fclose(codes_output_file);
     fclose(data_output_file);
   }  /* if */

@@ -1,3 +1,15 @@
+Version 4.1
+
+12/11/08 [EDGcpfe/6851]
+Generate include guard test in error message files
+
+mk_errinfo now generates include guard tests in the files it produces.
+These files are not actually included more than once by the front end,
+but this was done in case customer changes should give rise to such a
+condition.
+
+
+-------------------------------------------------------------------------------
 Version 4.0, December 5, 2008
 
 11/3/08  [EDGcpfe/8945]
