@@ -21659,30 +21659,6 @@ instantiation.
       pos_error(ec_inherited_member_not_allowed, &locator.source_position);
       reduce_projection_symbol_to_fundamental_symbol(sym);
     }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    if (microsoft_mode) {
-      if (sym->kind == (a_symbol_kind)sk_member_function &&
-          sym->variant.routine.ptr->template_arg_list == NULL &&
-          (state.decl_modifiers.flags & DM_DLLFLAGS) == 0) {
-        /* For ordinary member functions of class templates (i.e., not for
-           instances of member function templates), if no DLL interface was
-           specified explicitly, the DLL interface declared in the template
-           applies.  That includes the "do not instantiate" meaning of
-           "dllimport". */
-        a_decl_modifier  dllflags =
-                       sym->variant.routine.ptr->decl_modifiers & DM_DLLFLAGS;
-        state.decl_modifiers.flags |= dllflags;
-        if ((dllflags & DM_DLLIMPORT) != 0) {
-          kind = (a_pragma_kind)pk_do_not_instantiate;
-          if (microsoft_bugs && !is_pragma) {
-            /* For "do not instantiate" directives, a warning about missing
-               templates is reduced to a remark. */
-            severity_if_not_found = (an_error_severity)es_remark;
-          }  /* if */
-        }  /* if */
-      }  /* if */
-    }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (sym->kind == (a_symbol_kind)sk_static_data_member) {
       if (sym->variant.static_data_member.instance_ptr != NULL) {
         /* A static data member -- set the instantiation flags. */
@@ -21731,6 +21707,30 @@ instantiation.
                                    /*in_class_specialization=*/FALSE,
                                    severity_if_not_found);
       if (new_sym != NULL) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if (microsoft_mode) {
+          if (new_sym->kind == (a_symbol_kind)sk_member_function &&
+              new_sym->variant.routine.ptr->template_arg_list == NULL &&
+              (state.decl_modifiers.flags & DM_DLLFLAGS) == 0) {
+            /* For ordinary member functions of class templates (i.e., not for
+               instances of member function templates), if no DLL interface was
+               specified explicitly, the DLL interface declared in the template
+               applies.  That includes the "do not instantiate" meaning of
+               "dllimport". */
+            a_decl_modifier  dllflags =
+                    new_sym->variant.routine.ptr->decl_modifiers & DM_DLLFLAGS;
+            state.decl_modifiers.flags |= dllflags;
+            if ((dllflags & DM_DLLIMPORT) != 0) {
+              kind = (a_pragma_kind)pk_do_not_instantiate;
+              if (microsoft_bugs && !is_pragma) {
+                /* For "do not instantiate" directives, a warning about missing
+                   templates is reduced to a remark. */
+                severity_if_not_found = (an_error_severity)es_remark;
+              }  /* if */
+            }  /* if */
+          }  /* if */
+        }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         /* Update the flags for the symbol found. */
         update_instantiation_flags(new_sym, kind, start_pos,
                                    /*is_class_instantiation=*/FALSE,
