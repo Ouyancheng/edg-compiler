@@ -64,6 +64,9 @@ typedef struct a_routine_fixup
                              a_routine_fixup_dummy_typedef;
 typedef struct a_def_arg_expr_fixup
                              a_def_arg_expr_fixup_dummy_typedef;
+typedef struct a_lambda      *a_lambda_ptr;
+typedef struct a_lambda_capture
+                              *a_lambda_capture_ptr;
 #if MINIMAL_INLINING
 typedef struct a_variable_remapping_for_inlining
 			     a_variable_remapping_for_inlining_dummy_typedef;
@@ -11516,6 +11519,124 @@ typedef struct an_ms_attribute {
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+/*
+Entry used to represent a C++0x lambda.  A lambda has the form:
+
+  [capture] (parameters) mutable    exception-spec.    return-type  { ... }
+                                opt                opt            opt
+
+For example:
+
+  [&, a, =b] (int i, int j) -> int { return i * j; }
+
+The capture begins with an optional "&" or "=" (the capture default)
+followed by a capture list of local entities that can be used within
+the lambda.  Additional implicit entries may sometimes be added to the
+capture list.  The lambda entry is pointed to by a lambda expression
+node and is also on the scope list of the enclosing scope.
+*/
+typedef struct a_lambda {
+  a_lambda_ptr	next;
+                        /* Pointer to the next lambda in a given scope.
+                           NULL if this the last lambda in the scope. */
+  a_lambda_capture_ptr
+		capture_list;
+			/* The list of captured local variables (possibly
+			   including the enclosing "this" pointer).  This
+			   list initially contains any explicitly specified
+			   captured entities and may later have implicitly
+			   captured entities added.  May be NULL. */
+  a_type_ptr	closure_class;
+			/* This field points to the class type that is used
+			   to represent the result of the lambda.  The class
+			   has an operator() member function that contains
+			   the lambda body.  The class may also have nonstatic
+			   data members used to access the captured entities
+			   as well as certain special member functions. */
+  a_routine_ptr
+		lambda_routine;
+			/* Pointer to the routine entry for the operator()
+			   member function of closure_class.  This can be
+			   used to access information about the lambda,
+			   such as the parameter list, the function body,
+			   and their associated source positions. */
+  a_byte_boolean
+		is_mutable;
+			/* TRUE if the mutable keyword was specified. */
+  a_byte_boolean
+		has_capture_default;
+			/* TRUE if an explicit capture default was
+			   specified. */
+  a_byte_boolean
+		default_is_by_reference;
+			/* When has_capture_default is TRUE, this is TRUE
+			   if the default is by reference ("&") or FALSE if
+			   the default is by value ("="). */
+  a_source_position
+		start_position;
+			/* Position of the "[" that begins the lambda. */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position
+		capture_end_position;
+			/* Position of the "]" that ends the lambda capture. */
+  a_source_position
+		mutable_position;
+			/* If the is_mutable flag is TRUE, this is the
+			   position of the mutable keyword; otherwise,
+			   null_source_position.  Additional source position
+			   information can be accessed via the lamba_routine
+			   pointer. */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+} a_lambda;
+
+
+/*
+Entry used to represent a local variable, reference, or this parameter
+that is part of the capture list (either explicitly or implicitly) of a lambda.
+*/
+typedef struct a_lambda_capture {
+  a_lambda_capture_ptr
+		next;	/* Pointer to the next entry on the capture list, or
+			   NULL for the last entry. */
+  a_variable_ptr
+		variable;
+			/* Pointer to the variable entry for the local variable
+			   or "this" pointer to be captured. */
+  a_field_ptr	closure_field;
+			/* Pointer to the nonstatic data member of the closure
+			   class that is used to access the captured variable
+			   within the lambda.  This is NULL until the variable
+			   is actually used within the lambda. */
+  a_byte_boolean
+		capture_by_reference;
+			/* TRUE if this entity is being captured by reference,
+			   FALSE if by value.  This flag may be set based on
+			   the capture default or if the default is explicitly
+			   overridden for this capture. */
+  a_byte_boolean
+		is_implicit;
+			/* TRUE if this entity was implicitly added to the
+			   capture list, FALSE if it was explicitly named
+			   in the capture list. */
+  a_source_position
+		position;
+			/* The source position of the name of the captured
+			   variable or "this" keyword.  null_source_position
+			   if is_implicit is TRUE. */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position
+		end_position;
+			/* The source position of the end of the name of the
+			   captured variable or "this" keyword.
+			   null_source_position if is_implicit is TRUE. */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  a_dynamic_init_ptr
+		initialization;
+			/* Pointer to the dynamic-init entry that describes
+			   the initialization of closure_field with the
+			   the captured variable. */
+} a_lambda_capture;
+
 
 typedef struct a_local_scope_ref *a_local_scope_ref_ptr;
 typedef struct a_local_scope_ref {
@@ -11926,6 +12047,8 @@ typedef struct a_scope {
 		ms_if_exists;
 			/* Linked list of Microsoft __if_exists entries. */
 #endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
+  a_lambda_ptr	lambdas;
+			/* Linked list of lambda entries (C++ only). */
 } a_scope;
 
 
