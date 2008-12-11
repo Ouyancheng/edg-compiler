@@ -3308,7 +3308,7 @@ current source position and severity or restore the previously saved settings.
          warnings should be suppressed.  This test is only done if the message
          would be issued based on the current threshold. */
       if (seq_is_in_system_header((*error_pos)->seq)) {
-        error_threshold_to_use = es_discretionary_error;
+        error_threshold_to_use = es_error;
 #if !STANDALONE_UTILITY_PROGRAM
       } else if (curr_command_line_macro_def != NULL) {
         /* We are processing a command-line macro definition.  Warnings
