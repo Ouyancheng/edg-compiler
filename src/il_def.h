@@ -66,7 +66,7 @@ typedef struct a_def_arg_expr_fixup
                              a_def_arg_expr_fixup_dummy_typedef;
 typedef struct a_lambda      *a_lambda_ptr;
 typedef struct a_lambda_capture
-                              *a_lambda_capture_ptr;
+                             *a_lambda_capture_ptr;
 #if MINIMAL_INLINING
 typedef struct a_variable_remapping_for_inlining
 			     a_variable_remapping_for_inlining_dummy_typedef;
@@ -11537,8 +11537,8 @@ node and is also on the scope list of the enclosing scope.
 */
 typedef struct a_lambda {
   a_lambda_ptr	next;
-                        /* Pointer to the next lambda in a given scope.
-                           NULL if this the last lambda in the scope. */
+			/* Pointer to the next lambda in a given scope.
+			   NULL if this the last lambda in the scope. */
   a_lambda_capture_ptr
 		capture_list;
 			/* The list of captured local variables (possibly
