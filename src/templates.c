@@ -5502,7 +5502,7 @@ list of a template function.  Returns TRUE if a match is found.
                                          new_templ_constant->type)) {
         /* The conversion was successful.  Use the new constant and the
            constant under the cast as constant and templ_constant. */
-        new_constant = alloc_constant(temp_constant.kind);
+        new_constant = fs_constant(temp_constant.kind);
         copy_constant(&temp_constant, new_constant);
         templ_constant = new_templ_constant;
         constant = new_constant;
