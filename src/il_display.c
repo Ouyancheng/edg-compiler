@@ -4108,7 +4108,7 @@ Display the indicated lambda entry.
   disp_source_position("start_position", &ptr->start_position);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   disp_source_position("capture_end_position", &ptr->capture_end_position);
-  disp_source_range("mutable_position", &ptr->mutable_position);
+  disp_source_position("mutable_position", &ptr->mutable_position);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 }  /* disp_lambda */
 
