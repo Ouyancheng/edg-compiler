@@ -4085,6 +4085,55 @@ Display the indicated template.
 #endif /* BACK_END_IS_CP_GEN_BE && USER_CONTROL_OF_STRUCT_PACKING */
 }  /* disp_template */
 
+
+static void disp_lambda(a_lambda_ptr ptr)
+/*
+Display the indicated lambda entry.
+*/
+{
+  disp_ptr("next", (char*)ptr->next, iek_lambda);
+  disp_ptr("capture_list", (char*)ptr->capture_list, iek_lambda_capture);
+  disp_ptr("closure_class", (char*)ptr->closure_class, iek_type);
+  disp_ptr("lambda_routine", (char*)ptr->lambda_routine, iek_routine);
+  if (ptr->is_mutable) {
+    disp_boolean("is_mutable", (a_boolean)ptr->is_mutable);
+  }  /* if */
+  if (ptr->has_capture_default) {
+    disp_boolean("has_capture_default", (a_boolean)ptr->has_capture_default);
+  }  /* if */
+  if (ptr->default_is_by_reference) {
+    disp_boolean("default_is_by_reference",
+                 (a_boolean)ptr->default_is_by_reference);
+  }  /* if */
+  disp_source_position("start_position", &ptr->start_position);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  disp_source_position("capture_end_position", &ptr->capture_end_position);
+  disp_source_range("mutable_position", &ptr->mutable_position);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+}  /* disp_lambda */
+
+
+static void disp_lambda_capture(a_lambda_capture_ptr ptr)
+/*
+Display the indicated lambda capture.
+*/
+{
+  disp_ptr("next", (char*)ptr->next, iek_lambda_capture);
+  disp_ptr("variable", (char*)ptr->variable, iek_variable);
+  disp_ptr("closure_field", (char*)ptr->closure_field, iek_field);
+  if (ptr->capture_by_reference) {
+    disp_boolean("capture_by_reference", (a_boolean)ptr->capture_by_reference);
+  }  /* if */
+  if (ptr->is_implicit) {
+    disp_boolean("is_implicit", (a_boolean)ptr->is_implicit);
+  }  /* if */
+  disp_source_position("position", &ptr->position);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  disp_source_position("end_position", &ptr->end_position);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  disp_ptr("initialization", (char*)ptr->initialization, iek_dynamic_init);
+}  /* disp_lambda_capture */
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 static void disp_ms_attribute(an_ms_attribute_ptr ptr)
@@ -5493,6 +5542,12 @@ This routine is called during IL walking.
           break;
         case iek_local_scope_ref:
           disp_local_scope_ref((a_local_scope_ref_ptr)entry_ptr);
+          break;
+        case iek_lambda:
+          disp_lambda((a_lambda_ptr)entry_ptr);
+          break;
+        case iek_lambda_capture:
+          disp_lambda_capture((a_lambda_capture_ptr)entry_ptr);
           break;
         default:
           (void)printf("**BAD ENTRY KIND**\n");

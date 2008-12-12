@@ -1194,6 +1194,10 @@ Initialize the option information table.
                          '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_command_line);
 #endif /* UNICODE_SOURCE_SUPPORTED */
+  add_option_description(optk_lambdas, "lambdas", '\0', /*value=*/TRUE,
+                         /*arg_required=*/FALSE, pchek_command_line);
+  add_option_description(optk_lambdas, "no_lambdas", '\0', /*value=*/FALSE,
+                         /*arg_required=*/FALSE, pchek_command_line);
 }  /* initialize_option_descriptions */
 
 
@@ -2121,6 +2125,7 @@ process.
     command_line_error(ec_cl_type_traits_helpers_option_only_in_cplusplus);
   }  /* if */
   type_traits_helpers_enabled = FALSE;
+  lambdas_enabled = FALSE;
 }  /* set_c_mode_flags */
 
 
@@ -2250,6 +2255,9 @@ setting is used, and to set various unmentioned settings as needed.
     command_line_error(
                      ec_cl_pending_instantiations_option_only_in_cplusplus);
   }  /* if */
+  if (option_kind_used[(int)optk_lambdas]) {
+    command_line_error(ec_cl_lambdas_option_only_in_cplusplus);
+  }  /* if */
 #if SUN_EXTENSIONS_ALLOWED
   if (!(option_kind_used[(int)optk_sun_linker_scope]) &&
       !microsoft_mode && !strict_ansi_mode) {
@@ -2286,6 +2294,9 @@ the next standard).
   decltype_enabled = TRUE;
   explicit_enum_base_enabled = TRUE;
   enum_qualifiers_enabled = TRUE;
+  if (!option_kind_used[(int)optk_lambdas]) {
+    lambdas_enabled = TRUE;
+  }  /* if */
 }  /* check_and_set_cpp0x_mode_options */
 
 
@@ -7677,6 +7688,9 @@ enable_microsoft_mode:
         }  /* if */
         break;
 #endif /* UNICODE_SOURCE_SUPPORTED */
+      case optk_lambdas:
+        lambdas_enabled = opt_value;
+        break;
       default:
         /* It should not be possible to get here. */
         unexpected_condition();
@@ -8404,6 +8418,7 @@ variables declared in cmd_line.h.
   long_lifetime_temps = FALSE;
   explicit_enum_base_enabled = FALSE;
   enum_qualifiers_enabled = FALSE;
+  lambdas_enabled = DEFAULT_LAMBDAS_ENABLED;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   default_calling_convention = (a_calling_convention)cc_cdecl;
   microsoft_64bit_pointer_extensions_enabled =

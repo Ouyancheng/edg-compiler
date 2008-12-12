@@ -264,6 +264,7 @@ typedef enum /*an_option_kind*/ {
 #if UNICODE_SOURCE_SUPPORTED
   optk_unicode_source_kind,
 #endif /* UNICODE_SOURCE_SUPPORTED */
+  optk_lambdas,
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -908,6 +909,11 @@ EXTERN a_boolean
 			      enum E { e };  E x = E::e;
 			   This is a C++0x feature originally introduced in
 			   some Microsoft compilers. */
+
+EXTERN a_boolean
+		lambdas_enabled;
+			/* TRUE if C++0x lambdas should be accepted in C++. */
+
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 EXTERN a_calling_convention

@@ -536,6 +536,8 @@ typedef enum /*an_il_entry_kind*/ {
   iek_local_scope_ref,	/* a_local_scope_ref */
   iek_il_entity_list_entry,
 			/* an_il_entity_list_entry */
+  iek_lambda,		/* a_lambda */
+  iek_lambda_capture,	/* a_lambda_capture */
   iek_last		/* Marks the end of the list. */
 } an_il_entry_kind;
 
@@ -669,6 +671,8 @@ EXTERN char *il_entry_kind_names[(int)iek_last + 1]
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 /* iek_local_scope_ref */		"local-scope-ref",
 /* iek_il_entity_list_entry */		"il-entity-list-entry",
+/* iek_lambda */			"lambda",
+/* iek_lambda_capture */		"lambda_capture",
 /* iek_last */				"last"
 } /* il_entry_kind_names */
 #endif /* VAR_INITIALIZERS */
@@ -9074,6 +9078,7 @@ enum an_expr_node_kind_tag {
   enk_builtin_operation,
 			/* Used to represent a variety of builtin
 			   operations. */
+  enk_lambda,		/* Used to represent a C++0x lambda expression. */
   enk_last		/*lint -esym(769,an_expr_node_kind_tag::enk_last)*/
 };
 /* Define as "a_byte" to explicitly control storage size. */
@@ -10134,6 +10139,10 @@ typedef struct an_expr_node {
 		operands;
 			/* The list of operands. */
     } builtin_operation;
+    /* When kind == enk_lambda: */
+    a_lambda_ptr
+		lambda;
+			/* A description of the lambda expression. */
   } variant;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_range

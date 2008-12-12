@@ -2646,6 +2646,9 @@ fields to default values.
                                            (a_builtin_operation_kind)bok_last;
       node->variant.builtin_operation.operands = NULL;
       break;
+    case enk_lambda:
+      node->variant.lambda = NULL;
+      break;
     default:
       unexpected_condition_str("set_expr_node_kind: bad kind");
   }  /* switch */
@@ -4066,6 +4069,54 @@ values, and return a pointer to it.
 }  /* alloc_ms_attribute_arg */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+a_lambda_ptr alloc_lambda(void)
+/*
+Allocate an entry describing a C++0x lambda and return a pointer to it.  The
+entry is allocated in the current memory region.
+*/
+{
+  a_lambda_ptr  entry = (a_lambda_ptr)alloc_cil(sizeof(a_lambda));
+
+  entry->next = NULL;
+  entry->capture_list = NULL;
+  entry->closure_class = NULL;
+  entry->lambda_routine = NULL;
+  entry->is_mutable = FALSE;
+  entry->has_capture_default = FALSE;
+  entry->default_is_by_reference = FALSE;
+  entry->start_position = null_source_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  entry->capture_end_position = null_source_position;
+  entry->mutable_position = null_source_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  return entry;
+}  /* alloc_lambda */
+
+
+a_lambda_capture_ptr alloc_lambda_capture(void)
+/*
+Allocate an entry describing an entity (variable, reference, or this parameter)
+captured by a C++0x lambda and return a pointer to it.  The entry is allocated
+in the current memory region.
+*/
+{
+  a_lambda_capture_ptr  entry = (a_lambda_capture_ptr)
+                                           alloc_cil(sizeof(a_lambda_capture));
+
+  entry->next = NULL;
+  entry->variable = NULL;
+  entry->closure_field = NULL;
+  entry->capture_by_reference = FALSE;
+  entry->is_implicit = FALSE;
+  entry->position = null_source_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  entry->end_position = null_source_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  entry->initialization = NULL;
+  return entry;
+}  /* alloc_lambda_capture */
+
 
 an_il_entity_list_entry_ptr alloc_il_entity_list_entry(void)
 /*

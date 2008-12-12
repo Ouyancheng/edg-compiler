@@ -1775,6 +1775,7 @@ ec_non_unicode_char_in_ident;;"identifier character cannot be represented in Uni
 ec_non_unicode_char_in_header;;"header name contains characters that cannot be represented in Unicode"
 ec_invalid_locale;;"%sq is not a valid locale name"
 ec_nonstd_template_void_param_list;;"declaring a void parameter list with a template parameter is nonstandard"
+ec_cl_lambdas_option_only_in_cplusplus;;"option \"--lambdas\" can be used only when compiling C++"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

@@ -1531,6 +1531,9 @@ do_set_proper_definition_needed_flag:
             walk_list(ptr->variant.builtin_operation.operands,
                       an_expr_node_ptr, iek_expr_node);
             break;
+          case enk_lambda:
+            remap_ptr(ptr->variant.lambda, a_lambda_ptr, iek_lambda);
+            break;
           default:
             unexpected_condition_str(
                                  "walk_entry_and_subtree: bad expr node kind");
@@ -2939,6 +2942,22 @@ after_entry_from_class:
                        iek_il_entity_list_entry);
         remap_ptr_not_needed(ptr->entity.ptr, a_char_ptr,
                              (an_il_entry_kind)ptr->entity.kind);
+      }
+      break;
+    case iek_lambda:
+      { a_lambda_ptr  ptr = (a_lambda_ptr)entry_ptr;
+        remap_next_ptr(ptr->next, a_lambda_ptr, iek_lambda);
+        walk_list(ptr->capture_list, a_lambda_capture_ptr, iek_lambda_capture);
+        remap_ptr(ptr->closure_class, a_type_ptr, iek_type);
+        remap_ptr(ptr->lambda_routine, a_routine_ptr, iek_routine);
+      }
+      break;
+    case iek_lambda_capture:
+      { a_lambda_capture_ptr  ptr = (a_lambda_capture_ptr)entry_ptr;
+        remap_next_ptr(ptr->next, a_lambda_capture_ptr, iek_lambda_capture);
+        remap_ptr(ptr->variable, a_variable_ptr, iek_variable);
+        remap_ptr(ptr->closure_field, a_field_ptr, iek_field);
+        walk_ptr(ptr->initialization, a_dynamic_init_ptr, iek_dynamic_init);
       }
       break;
     case iek_id_name:
