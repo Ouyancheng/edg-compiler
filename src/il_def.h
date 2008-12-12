@@ -9020,6 +9020,7 @@ enum an_expr_node_kind_tag {
 			   expression.  C++ only.  Used in C for C99
 			   compound literals. */
   enk_new_delete,	/* C++ "new" or "delete". */
+  enk_lambda,		/* C++ lambda expression. */
   enk_throw,		/* C++ throw expression. */
   enk_condition,	/* C++ condition -- a variable declaration with
 			   initializer that appears as the condition of an
@@ -9078,7 +9079,6 @@ enum an_expr_node_kind_tag {
   enk_builtin_operation,
 			/* Used to represent a variety of builtin
 			   operations. */
-  enk_lambda,		/* Used to represent a C++0x lambda expression. */
   enk_last		/*lint -esym(769,an_expr_node_kind_tag::enk_last)*/
 };
 /* Define as "a_byte" to explicitly control storage size. */
@@ -9990,6 +9990,10 @@ typedef struct an_expr_node {
 		new_delete;
 			/* Pointer to an entry that describes the new or
 			   delete operation (C++ only). */
+    /* When kind == enk_lambda: */
+    a_lambda_ptr
+		lambda;
+			/* Pointer to an entry that describes the lambda. */
     /* When kind == enk_throw: */
     a_throw_supplement_ptr
 		throw_info;
@@ -10139,10 +10143,6 @@ typedef struct an_expr_node {
 		operands;
 			/* The list of operands. */
     } builtin_operation;
-    /* When kind == enk_lambda: */
-    a_lambda_ptr
-		lambda;
-			/* A description of the lambda expression. */
   } variant;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_range

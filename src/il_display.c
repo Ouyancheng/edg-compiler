@@ -3345,6 +3345,10 @@ Display the indicated expression node.
       (void)printf("enk_new_delete\n");
       disp_new_delete_supplement(ptr->variant.new_delete);
       break;
+    case enk_lambda:
+      (void)printf("enk_lambda\n");
+      disp_ptr("lambda", (char *)ptr->variant.lambda, iek_lambda);
+      break;
     case enk_throw:
       (void)printf("enk_throw\n");
       if (ptr->variant.throw_info != NULL) {

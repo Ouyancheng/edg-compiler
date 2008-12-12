@@ -2840,6 +2840,10 @@ object or an rvalue that is a pointer to an object.
           }  /* if */
         }
         break;
+      case enk_lambda:
+        /* The class value returned by the lambda node is a complete object. */
+        complete_object_type = node->type;
+        break;
       case enk_object_lifetime:
         /* Handled by the traversal routine. */
         break;

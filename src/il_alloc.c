@@ -2569,6 +2569,9 @@ fields to default values.
       ndsp->dynamic_init                    = NULL;
       ndsp->freeing_of_storage_on_exception = NULL;
       break;
+    case enk_lambda:
+      node->variant.lambda = NULL;
+      break;
     case enk_throw:
       /* Allocate the supplement for a throw. */
       tsp = (a_throw_supplement_ptr)alloc_cil(sizeof(a_throw_supplement));
@@ -2645,9 +2648,6 @@ fields to default values.
       node->variant.builtin_operation.kind =
                                            (a_builtin_operation_kind)bok_last;
       node->variant.builtin_operation.operands = NULL;
-      break;
-    case enk_lambda:
-      node->variant.lambda = NULL;
       break;
     default:
       unexpected_condition_str("set_expr_node_kind: bad kind");

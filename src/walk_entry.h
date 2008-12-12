@@ -1391,6 +1391,10 @@ do_set_proper_definition_needed_flag:
             walk_ptr(ptr->variant.new_delete, a_new_delete_supplement_ptr,
                      iek_new_delete_supplement);
             break;
+          case enk_lambda:
+            /* The lambda is visited from the scope list. */
+            remap_ptr(ptr->variant.lambda, a_lambda_ptr, iek_lambda);
+            break;
           case enk_throw:
             walk_ptr(ptr->variant.throw_info, a_throw_supplement_ptr,
                      iek_throw_supplement);
@@ -1530,9 +1534,6 @@ do_set_proper_definition_needed_flag:
           case enk_builtin_operation:
             walk_list(ptr->variant.builtin_operation.operands,
                       an_expr_node_ptr, iek_expr_node);
-            break;
-          case enk_lambda:
-            remap_ptr(ptr->variant.lambda, a_lambda_ptr, iek_lambda);
             break;
           default:
             unexpected_condition_str(

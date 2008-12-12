@@ -3018,6 +3018,8 @@ as specified in the control block.
         }  /* if */
       }
       break;
+    case enk_lambda:
+      break;
     case enk_throw:
       if (expr->variant.throw_info != NULL) {
         if (expr->variant.throw_info->dynamic_init != NULL) {

@@ -1625,6 +1625,9 @@ Dump the contents of the indicated expression node for debug purposes.
         db_dynamic_initializer(ndsp->dynamic_init, level + 2);
       }  /* if */
       break;
+    case enk_lambda:
+      fprintf(f_debug, "lambda\n");
+      break;
     case enk_throw:
       fputs("throw: ", f_debug);
       tsp = node->variant.throw_info;
@@ -2180,6 +2183,9 @@ dumping other structures to which the node belongs.
       case enk_new_delete:
         fprintf(f_debug, " (%s)",
                 node->variant.new_delete->is_new ? "new" : "delete");
+        break;
+      case enk_lambda:
+        fprintf(f_debug, " (lambda)");
         break;
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
       case enk_lowered_eh_construct:
@@ -5512,6 +5518,9 @@ are allowed under a sizeof (etc.) in a template argument expression.
                 compare_template_param_dynamic_inits(ndsp1->dynamic_init,
                                                      ndsp2->dynamic_init));
         }
+        break;
+      case enk_lambda:
+        eq = (node1->variant.lambda == node2->variant.lambda);
         break;
       case enk_throw:
         { a_throw_supplement_ptr tsp1 = node1->variant.throw_info;
@@ -14024,6 +14033,11 @@ be called to start a copy.
                                          options, cblock);
       }  /* if */
       break;
+    case enk_lambda:
+      /* The lambda entry is pointed to from the new node; no copy is made. */
+      check_assertion(in_file_scope(expr->variant.lambda) ||
+                      !in_file_scope(expr_copy));
+      break;
     case enk_throw:
       if (expr->variant.throw_info != NULL) {
         /* Copy the dynamic init for a throw. */
@@ -15430,6 +15444,10 @@ doing nothing should be suppressed.
       break;
     case enk_new_delete:
       /* A new or delete always has a side effect. */
+      has_side_effects = TRUE;
+      break;
+    case enk_lambda:
+      /* A lambda always has a side effect. */
       has_side_effects = TRUE;
       break;
     case enk_throw:
