@@ -132,6 +132,10 @@ an_ms_attribute_arg_ptr alloc_ms_attribute_arg(an_ms_attribute_arg_kind	kind);
 extern an_ms_if_exists_ptr alloc_ms_if_exists(void);
 #endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
 
+extern a_lambda_ptr alloc_lambda(void);
+
+extern a_lambda_capture_ptr alloc_lambda_capture(void);
+
 extern a_seq_number_lookup_entry_ptr alloc_seq_number_lookup_entry(void);
 
 #if GNU_EXTENSIONS_ALLOWED
