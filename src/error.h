@@ -572,13 +572,10 @@ extern char *error_text(an_error_code error_code);
 
 #if GNU_EXTENSIONS_ALLOWED
 
-extern void f_report_gnu_extension_if_needed(a_source_position  *pos,
-                                             an_error_code      error_code);
-
 /* Macro to report uses of GNU extensions if needed. */
 #define report_gnu_extension_if_needed(pos, error_code)                     \
   { if (report_gnu_extensions) {                                            \
-      f_report_gnu_extension_if_needed((pos), (error_code));                \
+      pos_warning((error_code), (pos));                                     \
     }  /* if */                                                             \
   }
 
