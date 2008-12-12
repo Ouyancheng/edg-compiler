@@ -12501,6 +12501,8 @@ EXTERN sizeof_t	sizeof_il_entry[(int)iek_last+1]
   sizeof(a_static_assertion),
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   sizeof(a_local_scope_ref),
+  sizeof(a_lambda),
+  sizeof(a_lambda_capture),
   sizeof(an_il_entity_list_entry),
   IEK_LAST_CHECK_SIZE /* iek_last */
 }
