@@ -5431,7 +5431,7 @@ static a_boolean convert_constant_for_deduction(a_constant_ptr	orig_cp,
 						a_constant_ptr	new_cp,
 						a_type_ptr	new_type)
 /*
-Convert org_cp to new_type.  Return TRUE if the conversion could
+Convert orig_cp to new_type.  Return TRUE if the conversion could
 be folded or NULL otherwise.  If the conversion could be folded, the
 new constant is constructed in new_cp.  Note that new_cp may be overwritten
 with an intermediate constant even if this routine returns FALSE.
