@@ -1,5 +1,23 @@
 Version 4.1
 
+12/15/08 [EDGcpfe/9412]
+Abort (IL write-read difference) on Microsoft out-of-class member redeclaration
+
+In Microsoft mode with microsoft_version < 1310, the front end accepts an out-
+of-class redeclaration of a member function even when that redeclaration is not
+a definition.  Furthermore, such redeclarations can appear in local scopes.
+However, if such a member function redeclaration appeared within the scope of
+its own definition, the front end sometimes produced invalid IL that lead to
+internal errors when attempting to read the resulting IL file.  For example:
+
+  struct S { void f(int i); };
+  void S::f(int i) {
+    void S::f(int i);  // Accepted in some Microsoft modes.  Triggered
+  };                   // internal errors in some configurations.
+
+This is now fixed.
+
+
 12/15/08 [EDGcpfe/8561]
 Abort on floating-point constant in case label in Microsoft mode
 

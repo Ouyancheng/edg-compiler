@@ -1487,9 +1487,19 @@ is recorded in *decl_pos_block.  *linkage_ptr is set to idl_external, and
     }  /* if */
 #endif /* CHECKING */
     rp = sym->variant.routine.ptr;
+    /* Ordinarily, the current declaration is the definition, and
+       reconcile_routine_types should therefore preserve the new type.
+       However, for Microsoft out-of-class redeclarations this isn't an actual
+       definition.  Furthermore, such out-of-class redeclarations may appear
+       in local scopes, including the scope of the function itself:
+            struct S { void f(int i); };
+            void S::f(int i) { void S::f(int i); }
+       Changing the type of the function while it is being defined would lead
+       to subtle errors later on.  So the original type is preserved in that
+       case. */
     reconcile_routine_types(rp, type_ptr,
-                            /*preserve_rout_type=*/FALSE,
-                            /*preserve_type_ptr=*/TRUE);
+                        /*preserve_rout_type=*/microsoft_out_of_class_redecl,
+                        /*preserve_type_ptr=*/!microsoft_out_of_class_redecl);
     if (rp->special_kind == (a_special_function_kind)sfk_constructor) {
       /* If the routine is a default constructor or a copy constructor, it may
          be that this has not yet been recorded in the symbol.  (This becomes
