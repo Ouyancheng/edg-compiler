@@ -1316,6 +1316,7 @@ Give an pointer to a class-type-supplement entry, initialize its fields.
   ctsp->construction_vtbls                = NULL;
 #endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
 #endif /* DO_IL_LOWERING */
+  ctsp->lambda                            = NULL;
   ctsp->min_template_arguments            = -1L;
 }  /* clear_class_type_supplement */
 
@@ -2276,6 +2277,7 @@ to it.  The entry is allocated in the file scope memory region.
   rp->ctor_dtor_kind              = (a_ctor_or_dtor_kind)cdk_none;
   rp->is_alias_entry              = FALSE;
 #endif /* DO_IL_LOWERING && IA64_ABI */
+  rp->is_lambda_body              = FALSE;
 #if CENTERLINE_CHECKING
   rp->avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */

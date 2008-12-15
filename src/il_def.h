@@ -5213,6 +5213,10 @@ typedef struct a_class_type_supplement {
 			   of this class type. */
 #endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
 #endif /* DO_IL_LOWERING */
+  a_lambda_ptr	lambda;
+			/* If the class is the closure class generated as
+			   the representation of a lambda, this points to
+			   the associated lambda entry.  NULL otherwise. */
   long		min_template_arguments;
 			/* The minimum number of template arguments used to
 			   refer to this instance in the source (using
@@ -8741,6 +8745,9 @@ typedef struct a_routine {
 			   call the primary routine passing the same
 			   parameters. */
 #endif /* DO_IL_LOWERING && IA64_ABI */
+  a_bit_field	is_lambda_body:1;
+			/* TRUE if this is the operator() member function
+			   generated for the body of a lambda. */
   bitfield_to_avoid_codecenter_warnings()
 #if DECL_MODIFIERS_IN_USE
   a_decl_modifier

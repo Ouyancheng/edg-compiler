@@ -2828,6 +2828,9 @@ Display the indicated routine.
     disp_boolean("is_alias_entry", TRUE);
   }  /* if */
 #endif /* DO_IL_LOWERING && IA64_ABI */
+  if (ptr->is_lambda_body) {
+    disp_boolean("is_lambda_body", TRUE);
+  }  /* if */
 #if MAINTAIN_NEEDED_FLAGS
   disp_boolean("definition_needed", (a_boolean)ptr->definition_needed);
   /* Note: the keep_definition_in_il flag is not displayed, since it is
@@ -5036,6 +5039,9 @@ Display the indicated class type supplement entry.
   /* Likewise construction_vtbls. */
 #endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
 #endif /* DO_IL_LOWERING */
+  if (ptr->lambda != NULL) {
+    disp_lambda(ptr->lambda);
+  }  /* if */
   disp_long("min_template_arguments", ptr->min_template_arguments);
 }  /* disp_class_type_supplement */
 
