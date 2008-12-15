@@ -5589,12 +5589,6 @@ called to scan the second constant in a GNU C case range.
   if (is_error_constant(&constant)) {
     /* Error; constant_ptr is left NULL. */
   } else {
-#if CHECKING
-    if (constant.kind != (a_constant_repr_kind)ck_integer &&
-        constant.kind != (a_constant_repr_kind)ck_template_param) {
-      internal_error("case_label: case value not int");
-    }  /* if */
-#endif /* CHECKING */
     /* Change the constant to the type of the selector expression.  This
        can cause an error if the selector type is "int" and the case
        label value is in the "long" range. */

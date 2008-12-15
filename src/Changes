@@ -1,5 +1,20 @@
 Version 4.1
 
+12/15/08 [EDGcpfe/8561]
+Abort on floating-point constant in case label in Microsoft mode
+
+The front end aborted ("case_label: case value not int") on encountering
+a floating-point constant in a case label in Microsoft mode.  Now, it
+issues an error as has been done in other modes.
+
+  int main() {
+    int i = 0;
+    switch (i) {
+      case 1.1:;  // Got internal error previously
+    }
+  }
+
+
 12/11/08 [EDGcpfe/9407]
 Discretionary errors suppressed in files from system include directories
 

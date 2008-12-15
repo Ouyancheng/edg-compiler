@@ -20758,7 +20758,12 @@ things like (void *)1 as case constants.
   if (!is_integral_or_enum_type(constant->type)) {
     /* MSVC++ allows some weird cases like (void *)1.  Warn on those. */
     if (!is_error_type(constant->type)) {
-      pos_warning(ec_expr_not_integral_constant, &result.position);
+      if (is_floating_type(constant->type)) {
+        /* MSVC++ doesn't allow floating constants. */
+        pos_error(ec_expr_not_integral_constant, &result.position);
+      } else {
+        pos_warning(ec_expr_not_integral_constant, &result.position);
+      }  /* if */
     }  /* if */
   }  /* if */
   db_exit();
