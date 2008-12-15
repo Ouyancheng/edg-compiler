@@ -117,7 +117,7 @@ address of a const and taking the address of a nonconst object).
 			   never fetched from the variable in memory. */
 #define SRK_ALL_REFERENCES \
   (SRK_USE | SRK_MODIFICATION | SRK_ADDRESS_TAKEN | SRK_ERROR | \
-   SRK_PROTO_INST_REF | SRK_CONST_VALUE_USE)
+   SRK_CONST_ADDRESS_TAKEN | SRK_PROTO_INST_REF | SRK_CONST_VALUE_USE)
 			/* All types of references.  Used to mask off those
 			   bits. */
 #define SRK_ALL_VARIABLE_USES \
