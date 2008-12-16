@@ -4511,11 +4511,22 @@ default arguments should be suppressed (needed for template specializations).
     }  /* if */
   }  /* if */
   write_tok_ch(')');
-  /* Output a cv-qualifier for a member function, if there is one. */
-  if (rtsp->qualifiers != TQ_NONE) {
-    write_space();
-    form_type_qualifier(rtsp->qualifiers, UPC_BLOCK_SIZE_NONE,
-                        /*need_trailing_space=*/FALSE, &octl);
+  if (rtsp->assoc_routine != NULL && rtsp->assoc_routine->is_lambda_body) {
+    /* This is the type for a lambda's call operator.  The qualifier is
+       either TQ_CONST (the default) or TQ_NONE (indicated by the
+       mutable keyword). */
+    if (rtsp->qualifiers == TQ_NONE) {
+      write_tok_str(" mutable");
+    } else {
+      check_assertion(rtsp->qualifiers == TQ_CONST);
+    }  /* if */
+  } else {
+    /* Output a cv-qualifier for a member function, if there is one. */
+    if (rtsp->qualifiers != TQ_NONE) {
+      write_space();
+      form_type_qualifier(rtsp->qualifiers, UPC_BLOCK_SIZE_NONE,
+                          /*need_trailing_space=*/FALSE, &octl);
+    }  /* if */
   }  /* if */
   /* Output a throw specification, if there is one. */
   if (rtsp->exception_specification != NULL) {
@@ -8028,6 +8039,77 @@ Most cases fit a simple pattern, but some require special handling.
 }  /* gen_builtin_operation */
 
 
+static void gen_lambda_captures(a_lambda_ptr  lambda)
+/*
+Render the list of lambda captures, including the delimiting brackets.
+*/
+{
+  a_boolean             comma_needed = FALSE;
+  a_lambda_capture_ptr  lcp = lambda->capture_list;
+
+  write_tok_str("[");
+  if (lambda->has_capture_default) {
+    write_tok_str(lambda->default_is_by_reference ? "&" : "=");
+    comma_needed = TRUE;
+  }  /* if */
+  for (; lcp != NULL; lcp = lcp->next) {
+    if (comma_needed) write_tok_str(", ");
+    if (!lcp->is_implicit) {
+      if (lcp->capture_by_reference) write_tok_str("&");
+      gen_bare_name(&lcp->variable->source_corresp,
+                    (an_il_entry_kind)iek_variable);
+      comma_needed = TRUE;
+    }  /* if */
+  }  /* for */
+  write_tok_str("]");
+}  /* gen_lambda_captures */
+
+
+static void gen_lambda(an_expr_node_ptr  expr)
+/*
+Render code for the given expression node, which represents a lambda.
+*/
+{
+  a_lambda_ptr            lambda = expr->variant.lambda;
+  a_routine_ptr           rp = lambda->lambda_routine;
+  a_memory_region_number  scope_region_number = rp->assoc_scope;
+  a_scope_ptr             scope;
+  a_function_state        state;
+  a_source_sequence_scan_state
+                          saved_state;
+
+  check_assertion(ss_entry_kind(curr_source_sequence_entry) == iek_lambda &&
+                  ss_entry_ptr(curr_source_sequence_entry, a_lambda_ptr) ==
+                                                                      lambda);
+  adv_curr_source_sequence_entry();
+  gen_lambda_captures(lambda);
+#if IL_SHOULD_BE_WRITTEN_TO_FILE
+  /* Read the information for the function from the IL file.  This must be
+     read before the interface is generated in order to get the parameter
+     names. */
+  read_memory_region(scope_region_number);
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
+  scope = il_header.region_scope_entry[scope_region_number];
+  gen_function_declarator_with_scope(rp->type, scope, /*top_level_decl=*/TRUE,
+                                     /*suppress_def_args=*/FALSE);
+  write_space();
+  save_source_sequence_scan_state(&saved_state);
+  curr_source_sequence_entry = scope->source_sequence_list;
+  adv_to_signif_source_sequence_entry();
+  save_function_state(&state);
+  innermost_function_scope = scope;
+  push_name_context(scope);
+  gen_statement(scope->assoc_block);
+  pop_name_context();
+#if IL_SHOULD_BE_WRITTEN_TO_FILE
+    /* Now that we're done with the function, free its IL information. */
+    free_memory_region(scope_region_number);
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
+  restore_function_state(&state);
+  restore_source_sequence_scan_state(&saved_state);
+}  /* gen_lambda */
+
+
 static a_boolean parens_may_be_needed(a_byte           operator_precedence,
                                       an_expr_node_ptr operand)
 /*
@@ -8994,6 +9076,9 @@ done_with_operation_after_parens:
       break;
     case enk_builtin_operation:
       gen_builtin_operation(expr);
+      break;
+    case enk_lambda:
+      gen_lambda(expr);
       break;
     default:
       unexpected_condition_str("gen_expr: bad expr node kind");

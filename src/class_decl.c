@@ -8393,14 +8393,17 @@ describes the synthesized "closure class" associated with the lambda.
 The heavy lifting for this routine is performed by decl_member_function.
 */
 {
-  a_symbol_locator    loc;
+  a_symbol_locator  loc;
+  a_routine_ptr     rp;
 
   make_opname_locator(onk_function_call, &loc,
                       &decl_info->decl_state.declarator_pos);
   decl_member_function(&loc, func_info, class_state, decl_info,
                        /*compiler_generated=*/FALSE);
-  lambda->lambda_routine = decl_info->decl_state.sym->variant.routine.ptr;
-  lambda->lambda_routine->is_lambda_body = TRUE;
+  rp = decl_info->decl_state.sym->variant.routine.ptr;
+  lambda->lambda_routine = rp;
+  rp->is_lambda_body = TRUE;
+  rp->type->variant.routine.extra_info->assoc_routine = rp;
 }  /* decl_call_operator_for_lambda */
 
 
@@ -15866,7 +15869,7 @@ a_lambda_ptr scan_lambda(void)
 /*
 Scan a C++ lambda construct and return a pointer to an a_lambda entry
 describing it.  If errors do not permit the construction of a consistent
-entry, return NULL.  // FIXME
+entry, return NULL.  // FIXME: Currently never returns NULL.
 */
 {
   a_lambda_ptr        lambda = alloc_lambda();
@@ -15880,7 +15883,14 @@ entry, return NULL.  // FIXME
   a_decl_pos_block    *decl_pos_block = &decl_info.decl_pos_block;
   a_func_info_block   func_info;
   a_decl_flag_set     sfb_flags = SFB_NEW_STRUCT_STMT_STACK_REQUIRED;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_boolean           prev_source_sequence_entries_disallowed;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  prev_source_sequence_entries_disallowed = source_sequence_entries_disallowed;
+  add_to_source_sequence_list((char*)lambda, (an_il_entry_kind)iek_lambda);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   /* Parse the lambda-introducer. */
   check_assertion(curr_token == tok_lbracket);
   start_pos = pos_curr_token;
@@ -15914,7 +15924,13 @@ entry, return NULL.  // FIXME
   clear_func_info(&func_info);
   func_info.lambda = lambda;
   scan_lambda_declarator(lambda, dps, &func_info, decl_pos_block);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  source_sequence_entries_disallowed = TRUE;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   decl_call_operator_for_lambda(lambda, &class_state, &decl_info, &func_info);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  source_sequence_entries_disallowed = prev_source_sequence_entries_disallowed;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   /* Record the capture list and complete the closure class. */
   complete_class_definition(closure_class, decl_scope_level-1, &class_state);
   pop_scope();

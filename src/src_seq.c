@@ -70,7 +70,6 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
       if (sp->kind == (a_statement_kind)stmk_expr) db_expr_summary(sp->expr);
     } else if (kind == (an_il_entry_kind)iek_pragma) {
       a_pragma_ptr  pp = (a_pragma_ptr)ssep->entity.ptr;
-
       fprintf(f_debug, " (at %lu): %s", pp->position.seq,
                        pragma_ids[(int)pp->kind]);
     } else if (kind == (an_il_entry_kind)iek_src_seq_end_of_construct) {
@@ -168,6 +167,9 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
       fprintf(f_debug, " (at %lu) ", msap->position.seq);
       fprintf(f_debug, "%s", msap->string);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    } else if (kind == (an_il_entry_kind)iek_lambda) {
+      a_lambda_ptr  lambda = ss_entry_ptr(ssep, a_lambda_ptr);
+      fprintf(f_debug, " (at %lu)", lambda->start_position.seq);
     } else {
       a_source_position             *pos;
       a_source_correspondence       *scp;

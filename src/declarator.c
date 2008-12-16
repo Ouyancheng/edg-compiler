@@ -1396,6 +1396,7 @@ see function_declarator (below) for which this is a helper function.
     /* Lambdas don't allow a cv-qualifier here, but they are "const" by
        default.  "mutable", however, is allowed here, and means the lambda is
        non-const. */
+    this_class = parent_type;
     if (curr_token == tok_mutable) {
       (void)get_token();
     } else {
