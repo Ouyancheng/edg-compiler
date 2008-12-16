@@ -1598,6 +1598,15 @@ of a line of debug output.
 
 #endif /* DEBUG */
 
+/*
+Return TRUE if the given constant is a possible template-dependent
+null pointer constant but not a known null pointer constant.
+*/
+#define is_possible_dependent_null_pointer_constant(con) \
+  ((con)->kind == (a_constant_repr_kind)ck_template_param && \
+   is_or_might_be_null_pointer_constant(con))
+
+
 void determine_arg_match_level(an_operand           *arg_operand,
                                a_type_ptr           arg_type,
                                a_type_ptr           param_type,
@@ -1935,7 +1944,16 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
         !(any_cfront_mode() && arg_operand_is_constant &&
           is_null_pointer_constant(arg_operand_constant) &&
           (is_pointer_type(param_type) || is_ptr_to_member_type(param_type)) &&
-          !arg_operand->is_cfront_null_pointer_constant)) {
+          !arg_operand->is_cfront_null_pointer_constant) &&
+        /* In prototype instantiation calls, assume that a value-dependent
+           integral value can't be treated as a null pointer constant even
+           if it might have the value zero in some instantiations.
+           g++ does this differently; we treat the call as dependent in g++
+           mode. */
+        !(arg_operand_is_constant &&
+          is_possible_dependent_null_pointer_constant(arg_operand_constant) &&
+          is_pointer_type(param_type) &&
+          !gpp_mode)) {
       /* Match with standard conversions. */
       arg_summary->match_level = aml_std_conversion;
       arg_summary->conversion.std = std_conversion;
@@ -5645,8 +5663,18 @@ and return NULL.  This routine is called only in C++ mode.
     for (arg_operand = arg_operand_list;
          arg_operand != NULL;
          arg_operand = arg_operand->next) {
-      if (is_template_dependent_type(arg_operand->operand.type) ||
-          is_template_dependent_indefinite_function(&arg_operand->operand)) {
+      an_operand *arg = &arg_operand->operand;
+      if (is_template_dependent_type(arg->type) ||
+          is_template_dependent_indefinite_function(arg)) {
+        dependent_call = TRUE;
+        break;
+      } else if (gpp_mode && is_constant_operand(arg) &&
+                 is_possible_dependent_null_pointer_constant(
+                                                     &arg->variant.constant)) {
+        /* g++ seems to make a call dependent if one of the arguments might
+           be a null pointer constant given the right choice of template
+           arguments.  In other modes, we disallow use of such constants
+           as null pointer constants in argument matching. */
         dependent_call = TRUE;
         break;
       }  /* if */

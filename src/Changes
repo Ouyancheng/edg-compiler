@@ -1,5 +1,32 @@
 Version 4.1
 
+12/15/08 [EDGcpfe/9380]
+Value-dependent potential null pointer constant in overload resolution
+
+In a template prototype instantiation, a value-dependent expression
+that could potentially have integral type and value zero, and therefore
+potentially be a null pointer constant, has heretofore been treated as
+such.  Now, in most modes such a constant is not considered convertible
+to a pointer type in an argument match.
+
+  struct S {
+   S(int);
+   S(int*);
+  };
+  template<class T> void foo() {
+    S s(sizeof(T)-1);  // Was ambiguous, now picks S(int)
+                       // S(int *) is no longer a possibility
+  }
+  template void foo<int>();
+
+In GNU C++ mode, however, the handling is slightly different: the
+occurrence of such a constant in an argument list is considered to
+make the call dependent, which causes overload resolution to be
+delayed to any real instantiations of the template.  (In the example
+above, that would mean an ambiguity would be produced if foo<char>
+were instantiated.)
+
+
 12/15/08 [EDGcpfe/9412]
 Abort (IL write-read difference) on Microsoft out-of-class member redeclaration
 
