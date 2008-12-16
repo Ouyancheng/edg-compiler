@@ -1191,7 +1191,7 @@ and for the instantiation of template functions.
     a_boolean  explicit_return_type =
                          ((flags & SFB_IMPLICITLY_DECLARED_RETURN_TYPE) == 0);
 
-    if (curr_token == tok_try) {
+    if (curr_token == tok_try && func_info->lambda == NULL) {
       /* This must be a function-try-block.  Do some initialization that has
          to be done before ctor-initializers are processed and bypass "try". */
       start_of_function_try_block();

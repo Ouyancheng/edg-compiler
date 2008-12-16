@@ -450,6 +450,38 @@ qualification acquired through a typedef are not diagnosed).
 }  /* report_bad_return_type_qualifier */
 
 
+static a_boolean check_return_type(a_type_ptr          type,
+                                   a_decl_parse_state  *dps)
+/*
+type is used as a function return type (in a declarative context described by
+*dps).  Issue diagnostics as appropriate, and return TRUE if no error is
+issued.
+*/
+{
+  a_boolean  err = FALSE;
+
+  if (is_function_type(type)) {
+    error(ec_function_returning_function);
+    err = TRUE;
+  } else if (is_array_type(type)) {
+    error(ec_function_returning_array);
+    err = TRUE;
+#if VLA_ALLOWED
+  } else if (!C_mode() && vla_enabled &&
+             is_variably_modified_type(type)) {
+    /* We do not accept variably-modified return types in C++. */
+    error(ec_vla_in_return_type);
+    err = TRUE;
+#endif /* VLA_ALLOWED */
+  }  /* if */
+  if (is_qualified_type(type)) {
+    /* A qualified return type. */
+    report_bad_return_type_qualifier(type, dps, &err);
+  }  /* if */
+  return !err;
+}  /* check_return_type */
+
+
 void add_to_derived_type_list(a_type_ptr          new_type_ptr,
                               a_type_ptr          *derived_type,
                               a_type_ptr          *bottom_derived_type,
@@ -746,28 +778,13 @@ type.
              forming a pointer-to-member type. */
           sym_error(ec_bad_use_of_member_function_typedef, mft_sym);
           err = TRUE;
-        } else if (is_function_type(new_type_ptr)) {
-          error(ec_function_returning_function);
+        } else if (!check_return_type(new_type_ptr, dps)) {
           err = TRUE;
-        } else if (is_array_type(new_type_ptr)) {
-          error(ec_function_returning_array);
-          err = TRUE;
-#if VLA_ALLOWED
-        } else if (!C_mode() && vla_enabled &&
-                   is_variably_modified_type(new_type_ptr)) {
-          /* We do not accept variably-modified return types in C++. */
-          error(ec_vla_in_return_type);
-          err = TRUE;
-#endif /* VLA_ALLOWED */
         } else if (C_dialect == C_dialect_pcc) {
           /* In pcc mode, promote float functions to double functions.
              Any type qualifiers or typedef information on the new type
              are discarded. */
           promote_float_to_double(new_type_ptr);
-        }  /* if */
-        if (is_qualified_type(new_type_ptr)) {
-          /* A qualified return type. */
-          report_bad_return_type_qualifier(new_type_ptr, dps, &err);
         }  /* if */
         if (err) new_type_ptr = error_type();
         check_assertion((*bottom_derived_type)->kind ==
@@ -1374,6 +1391,15 @@ see function_declarator (below) for which this is a helper function.
          template declaration. */
       check_assertion(err_code != ec_no_error);
       pos_error(err_code, &qualifier_pos);
+    }  /* if */
+  } else if (func_info->lambda != NULL) {
+    /* Lambdas don't allow a cv-qualifier here, but they are "const" by
+       default.  "mutable", however, is allowed here, and means the lambda is
+       non-const. */
+    if (curr_token == tok_mutable) {
+      (void)get_token();
+    } else {
+      qualifiers = TQ_CONST;
     }  /* if */
   }  /* if */
   if (is_nonstatic_member && qualifiers == TQ_NONE && !qualifier_err) {
@@ -2308,6 +2334,53 @@ if this is the function declarator in a friend function declaration.
   }  /* if */
   db_exit();
 }  /* function_declarator */
+
+
+void scan_lambda_declarator(a_lambda_ptr        lambda,
+                            a_decl_parse_state  *dps,
+                            a_func_info_block   *func_info,
+                            a_decl_pos_block    *decl_pos_block)
+/*
+Scan the "declarator" part of a C++ lambda construct. That includes the
+parameter list, optionally followed by "mutable", an exception specification,
+and/or a lambda return type.
+*/
+{
+  a_type_ptr         func_type = void_type();
+  a_symbol_locator   loc;
+
+  add_stop_token(tok_rparen);
+  if (required_token(tok_lparen, ec_exp_lparen)) {
+    function_declarator(dps, &func_type, func_info, &loc,
+                        lambda->closure_class,
+                        /*is_nonstatic_member=*/TRUE,
+                        /*is_constructor=*/FALSE, /*is_destructor=*/FALSE,
+                        /*disallow_default_args=*/TRUE,
+                        /*disallow_exception_spec=*/FALSE,
+                        /*is_typedef_decl=*/FALSE, /*is_friend_decl=*/FALSE,
+                        decl_pos_block);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    func_info->declared_type = func_type;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  }  /* if */
+  remove_stop_token(tok_rparen);
+  /* Check for an explicit return type. */
+  if (curr_token == tok_arrow) {
+    a_source_position  pos_return_type;
+    a_type_ptr         return_type;
+    (void)get_token();
+    pos_return_type = pos_curr_token;
+    type_name(&return_type);
+    error_position = pos_return_type;
+    if (!check_return_type(return_type, dps)) {
+      return_type = error_type();
+      error_position = pos_curr_token;
+    }  /* if */
+    func_type->variant.routine.return_type = return_type;
+    set_routine_calling_method_flag(func_type, &pos_return_type);
+  }  /* if */
+  dps->type = func_type;
+}  /* scan_lambda_declarator */
 
 
 static void check_for_routine_scope_variable(

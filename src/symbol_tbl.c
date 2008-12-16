@@ -10654,6 +10654,7 @@ Clear the fields of a function information block to default values.
   func_info->exception_spec_errors       = NULL;
   func_info->scope_number                = NO_SCOPE_NUMBER;
   func_info->vla_fixup_list              = NULL;
+  func_info->lambda                      = NULL;
   func_info->any_prototype_names_omitted = FALSE;
   func_info->is_inline                   = FALSE;
   func_info->is_definition               = FALSE;

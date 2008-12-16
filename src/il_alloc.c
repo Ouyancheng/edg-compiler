@@ -3443,6 +3443,7 @@ points to the associated routine if the kind is sck_function.
   sp->nonstatic_variables         = NULL;
   sp->labels                      = NULL;
   sp->routines                    = NULL;
+  sp->lambdas                     = NULL;
   sp->asm_entries                 = NULL;
   sp->scopes                      = NULL;
   sp->namespaces                  = NULL;

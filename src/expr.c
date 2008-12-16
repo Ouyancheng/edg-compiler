@@ -18024,6 +18024,28 @@ been annotated in the source with the GNU keyword __extension__.
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
+static void scan_lambda_expression(an_operand  *result)
+/*
+Scan a C++ lambda expression.
+*/
+{
+  a_lambda_ptr       lambda = scan_lambda();
+  a_source_position  start_pos;
+
+  start_pos = pos_curr_token;
+  if (lambda == NULL) {
+    make_error_operand(result);
+  } else {
+    an_expr_node_ptr  expr = alloc_expr_node((an_expr_node_kind)enk_lambda);
+    expr->type = lambda->closure_class;
+    expr->variant.lambda = lambda;
+    make_expression_operand(expr, result);
+  }  /* if */
+  set_operand_position(result, &start_pos, &curr_construct_end_position,
+                       &start_pos);
+}  /* scan_lambda_expression */
+
+
 static void scan_expr_full(an_operand               *result,
                            an_operand               *bound_function_selector,
                            int                      prec_level,
@@ -18638,6 +18660,11 @@ type_start:
       scan_throw_operator(&local_result);
       break;
      
+    case tok_lbracket:
+      if (!lambdas_enabled) goto bad_start_of_primary;
+      scan_lambda_expression(&local_result);
+      break;
+
     default:
 bad_start_of_primary:
       set_err_pos_to_curr_token();

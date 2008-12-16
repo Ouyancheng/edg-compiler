@@ -512,14 +512,13 @@ Create the class type that is used to represent a lambda closure.  Return
 a pointer to the class type.  decl_position is the declaration position
 to be used for the lambda.
 
-The class is created as an incomplete type.  As the capture list and
-function body is processed, the complete capture list is constructed.
-At the end of the function body the class is completed.
+The class is created as an incomplete type.  It will be completed when its
+various members have been added (call operator, constructors, destructor, and
+the fields implied by the lambda's capture list).
 */
 {
   a_type_ptr			type;
   a_symbol_ptr			sym;
-  a_class_symbol_supplement_ptr	cssp;
 
   /* Create an unnamed symbol for the lambda class. */
   sym = make_unnamed_tag_symbol((a_symbol_kind)sk_class_or_struct_tag,
@@ -528,10 +527,6 @@ At the end of the function body the class is completed.
   type = alloc_type((a_type_kind)tk_class);
   set_source_corresp(&(type->source_corresp), sym);
   sym->variant.class_struct_union.type = type;
-  /* Set the scope number for the members. */
-  add_scope_to_class_type(type);
-  cssp = symbol_supplement_for_class(type);
-  cssp->member_decl_scope = class_type_supp(type)->assoc_scope->number;
   add_to_types_list(type, decl_scope_level);
   return type;
 }  /* make_closure_class */
@@ -8287,6 +8282,28 @@ implicitly declared member functions.
 }  /* decl_member_function */
 
 
+static void decl_call_operator_for_lambda(a_lambda_ptr        lambda,
+                                          a_class_def_state   *class_state,
+                                          a_member_decl_info  *decl_info,
+                                          a_func_info_block   *func_info)
+/*
+Create operator()(...) for the given lambda.  *decl_info and *func_info
+describe various properties about the construct that was parsed.  *class_state
+describes the synthesized "closure class" associated with the lambda.
+The heavy lifting for this routine is performed by decl_member_function.
+*/
+{
+  a_symbol_locator    loc;
+
+  make_opname_locator(onk_function_call, &loc,
+                      &decl_info->decl_state.declarator_pos);
+  decl_member_function(&loc, func_info, class_state, decl_info,
+                       /*compiler_generated=*/FALSE);
+  lambda->lambda_routine = decl_info->decl_state.sym->variant.routine.ptr;
+  lambda->lambda_routine->is_lambda_body = TRUE;
+}  /* decl_call_operator_for_lambda */
+
+
 static void decl_member_function_template(
 				a_symbol_locator        *locator,
 				a_template_param_ptr	templ_param_list,
@@ -15626,6 +15643,174 @@ next_declaration:
   db_exit();
   return !err;
 }  /* scan_class_definition */
+
+
+static void scan_lambda_capture_list(a_lambda_ptr  lambda)
+/*
+Scan the capture list for a lambda construct associate with lambda.  The caller
+has already moved past the '[', and this routine leaves the trailing ']' to be
+consumed by the caller.  The grammar to be parsed is thus:
+    lambda-capture(opt)
+    lambda-capture:
+        capture-default | capture-list | capture-default ',' capture-list
+    capture-default:
+        '&' | '='
+    capture-list:
+        capture | capture-list ',' capture
+    capture:
+        identifier | '&' identifier | 'this'
+    
+*/
+{
+  a_token_kind  tok_after_ref = tok_error;
+
+  add_stop_token(tok_comma);
+  if (curr_token == tok_ampersand) tok_after_ref = next_token();
+  /* Look for a capture-default token. */
+  if (curr_token == tok_assign ||
+      (curr_token == tok_ampersand &&
+       (tok_after_ref == tok_comma || tok_after_ref == tok_rbracket))) {
+    lambda->has_capture_default = TRUE;
+    lambda->default_is_by_reference = (curr_token == tok_ampersand);
+    /* Skip the & or =, and if the next token is a comma, skip that too. */
+    (void)get_token();
+    if (curr_token == tok_comma) {
+      a_source_position  pos_first_comma;
+      pos_first_comma = pos_curr_token;
+      (void)get_token();
+      if (curr_token == tok_rbracket) {
+        /* Something like "[ = , ](){}".  Issue an error. */
+        pos_diagnostic(es_discretionary_error, ec_nonstd_extra_comma,
+                       &pos_first_comma);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  /* Now scan the explicit captures. */
+  if (curr_token != tok_rbracket) {
+    do {
+      a_source_position  pos_capture;
+      a_variable_ptr     var = NULL;
+      a_boolean          by_ref = FALSE;
+      pos_capture = pos_curr_token;
+      if (curr_token == tok_ampersand) {
+        by_ref = TRUE;
+        (void)get_token();
+      }  /* if */
+      if (curr_token == tok_this) {
+        /* Capture of "this" from an enclosing class.  (This is not the "this"
+           of a closure class member.) */
+        if (innermost_function_scope == NULL ||
+            innermost_function_scope
+                              ->variant.routine.this_param_variable == NULL) {
+          /* We should be in a nonstatic member function. */
+          error(ec_this_used_incorrectly);
+        } else if (by_ref) {
+          /* "&this" is not allowed in a capture list. */
+          pos_error(ec_cannot_capture_this_by_reference, &pos_capture);
+        } else {
+          var = innermost_function_scope->variant.routine.this_param_variable;
+        }  /* if */
+        (void)get_token();
+      } else if (curr_token == tok_identifier) {
+        /* Explicit capture of what should be a local automatic variable.
+           Look up the identifier. */
+        a_symbol_ptr  sym = normal_id_lookup(&locator_for_curr_id,
+                                             IDL_DO_NOT_CREATE_PROJ_SYM);
+        if (sym == NULL) {
+          str_error(ec_undefined_identifier,
+                    locator_for_curr_id.symbol_header->identifier);
+        } else if (sym->kind != sk_variable) {
+          sym_error(ec_not_a_variable, sym);
+        } else if (has_static_storage_duration(
+                                sym->variant.variable.ptr->storage_class)) {
+          error(ec_capture_of_static_duration_variable);
+        } else {
+          var = sym->variant.variable.ptr;
+        }  /* if */
+        (void)get_token();
+      } else {
+        syntax_error(ec_exp_identifier);
+      }  /* if */
+      if (lambda->has_capture_default &&
+          lambda->default_is_by_reference == by_ref &&
+          var != NULL && !var->is_this_parameter) {
+        /* An explicit capture cannot match the default capture mode (except
+           for the explicit capture of "this"). */
+        pos_diagnostic(es_discretionary_error,
+                       ec_capture_mode_matches_default, &pos_capture);
+      }  /* if */
+    } while (loop_token(tok_comma));
+  }  /* while */
+  remove_stop_token(tok_comma);
+}  /* scan_lambda_capture_list */
+
+
+a_lambda_ptr scan_lambda(void)
+/*
+Scan a C++ lambda construct and return a pointer to an a_lambda entry
+describing it.  If errors do not permit the construction of a consistent
+entry, return NULL.  // FIXME
+*/
+{
+  a_lambda_ptr        lambda = alloc_lambda();
+  a_type_ptr          closure_class;
+  a_class_type_supplement_ptr
+                      ctsp;
+  a_source_position   start_pos;
+  a_class_def_state   class_state;
+  a_member_decl_info  decl_info;
+  a_decl_parse_state  *dps = &decl_info.decl_state;
+  a_decl_pos_block    *decl_pos_block = &decl_info.decl_pos_block;
+  a_func_info_block   func_info;
+  a_decl_flag_set     sfb_flags = SFB_NEW_STRUCT_STMT_STACK_REQUIRED;
+
+  /* Parse the lambda-introducer. */
+  check_assertion(curr_token == tok_lbracket);
+  start_pos = pos_curr_token;
+  (void)get_token();
+  add_stop_token(tok_rbracket);
+  scan_lambda_capture_list(lambda);
+  (void)required_token(tok_rbracket, ec_exp_rbracket);
+  remove_stop_token(tok_rbracket);
+  /* Initialize the closure class and set up a context in which members
+     can be added. */
+  lambda->closure_class = closure_class = make_closure_class(&start_pos);
+  ctsp = class_type_supp(closure_class);
+  ctsp->lambda = lambda;
+  initialize_class_def_state(lambda->closure_class, &class_state);
+  if (innermost_function_scope != NULL || inside_local_class) {
+    class_state.is_local_class = TRUE;
+  }  /* if */
+  class_state.access = as_public;
+  ctsp->assoc_scope =
+             push_scope((a_scope_kind)sck_class_struct_union, NO_SCOPE_NUMBER,
+                        closure_class, (a_routine_ptr)NULL);
+  scope_stack_top().class_def_state = &class_state;
+  /* Parse the parameter list and, optionally, a mutable specifier, an
+     exception specification, and/or a return type specification. */
+  initialize_member_decl_info(&decl_info, &pos_curr_token);
+  decl_info.is_first_in_declarator_list = TRUE;
+  dps->type = dps->specifiers_type = void_type();
+  dps->start_pos = dps->specifiers_pos = pos_curr_token;
+  dps->declarator_start_pos = dps->declarator_pos = pos_curr_token;
+  dps->in_class_scope = TRUE;
+  clear_func_info(&func_info);
+  func_info.lambda = lambda;
+  scan_lambda_declarator(lambda, dps, &func_info, decl_pos_block);
+  decl_call_operator_for_lambda(lambda, &class_state, &decl_info, &func_info);
+  /* Record the capture list and complete the closure class. */
+  complete_class_definition(closure_class, decl_scope_level-1, &class_state);
+  pop_scope();
+  /* Parse the body of the lambda. */
+  scan_function_body(lambda->lambda_routine, &func_info, sfb_flags);
+  if (curr_token == tok_rbrace) {
+    /* Don't use required_token, because we aren't at a brace, an error has
+       already been issued, and we will be at the token to restart parsing
+       with. */
+    (void)get_token();
+  }  /* if */
+  return lambda;
+}  /* scan_lambda */
 
 
 /* Forward declaration for recursive call. */

@@ -17370,7 +17370,8 @@ with the outermost enclosing class, for later promotion out of the class
     }  /* if */
     for (; type != NULL; type = next_type) {
       if (!(is_immediate_class_type(type) &&
-            class_type_supp(type)->compiler_generated) &&
+            (class_type_supp(type)->compiler_generated ||
+             class_type_supp(type)->lambda != NULL)) &&
           !(type->kind == (a_type_kind)tk_typeref &&
             !typeref_is_typedef(type))) {
         /* Count the number of local types declared in the source (this

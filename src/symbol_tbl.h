@@ -1183,6 +1183,9 @@ typedef struct a_func_info_block {
 			   entry; it is moved when the scope stack is popped,
 			   and the fixups are done if the function prototype
 			   is associated with a function definition. */
+  a_lambda_ptr	lambda;
+			/* If this entry is for a lambda construct, this points
+			   to the IL description of the lambda. */
   a_bit_field	any_prototype_names_omitted:1;
 			/* TRUE if the parameter list is a prototype list,
 			   and it includes at least one parameter with

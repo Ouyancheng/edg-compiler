@@ -1776,6 +1776,10 @@ ec_non_unicode_char_in_header;;"header name contains characters that cannot be r
 ec_invalid_locale;;"%sq is not a valid locale name"
 ec_nonstd_template_void_param_list;;"declaring a void parameter list with a template parameter is nonstandard"
 ec_cl_lambdas_option_only_in_cplusplus;;"option \"--lambdas\" can be used only when compiling C++"
+ec_capture_mode_matches_default;;"explicit capture matches default"
+ec_not_a_variable;;"%n is not a variable"
+ec_capture_of_static_duration_variable;;"a variable with static storage duration cannot be captured in a lambda"
+ec_cannot_capture_this_by_reference;;"\"this\" cannot be captured by reference"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
