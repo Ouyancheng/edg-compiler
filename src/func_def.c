@@ -128,37 +128,6 @@ returned to the caller.
 
 #endif /* ASM_FUNCTION_ALLOWED */
 
-static a_type_ptr make_closure_class(a_source_position	*decl_position)
-/*
-Create the class type that is used to represent a lambda closure.  Return
-a pointer to the class type.  decl_position is the declaration position
-to be used for the lambda.
-
-The class is created as an incomplete type.  As the capture list and
-function body is processed, the complete capture list is constructed.
-At the end of the function body the class is completed.
-*/
-{
-  a_type_ptr			type;
-  a_symbol_ptr			sym;
-  a_class_symbol_supplement_ptr	cssp;
-
-  /* Create an unnamed symbol for the lambda class. */
-  sym = make_unnamed_tag_symbol((a_symbol_kind)sk_class_or_struct_tag,
-                                decl_position);
-  /* Create the type for the lambda class. */
-  type = alloc_type((a_type_kind)tk_class);
-  set_source_corresp(&(type->source_corresp), sym);
-  sym->variant.class_struct_union.type = type;
-  /* Set the scope number for the members. */
-  add_scope_to_class_type(type);
-  cssp = symbol_supplement_for_class(type);
-  cssp->member_decl_scope = class_type_supp(type)->assoc_scope->number;
-  add_to_types_list(type, NO_SCOPE_DEPTH);
-  return type;
-}  /* make_closure_class */
-
-
 static a_lambda_capture_ptr add_lambda_capture(a_lambda_ptr	lambda,
 					       a_variable_ptr	vp,
 					       a_boolean	is_implicit,
