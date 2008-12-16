@@ -63,8 +63,8 @@ issues an error as has been done in other modes.
 12/11/08 [EDGcpfe/9407]
 Discretionary errors suppressed in files from system include directories
 
-Formerly, warnings were automatically suppressed when on code that came from
-a system include directories.  Now discretionary errors are also suppressed
+Formerly, warnings were automatically suppressed on code that came from
+system include directories.  Now discretionary errors are also suppressed
 in such cases.  If the files below are compiled with the command:
   edgcpfe --sys_include=include test.c
 The compile now succeeds with no diagnostics (formerly a discretionary
