@@ -15849,8 +15849,6 @@ consumed by the caller.  The grammar to be parsed is thus:
       }  /* if */
       if (var != NULL) {
         /* Create the lambda capture entry for this variable. */
-        /* FIXME: by_ref must be set even for cases where it comes from
-           the default. */
         a_lambda_capture_ptr	lcp;
         lcp = add_lambda_capture(lambda, var, /*is_implicit=*/FALSE, by_ref);
         lcp->position = capture_pos;
