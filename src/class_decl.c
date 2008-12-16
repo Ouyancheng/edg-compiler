@@ -8396,7 +8396,7 @@ The heavy lifting for this routine is performed by decl_member_function.
   a_symbol_locator  loc;
   a_routine_ptr     rp;
 
-  make_opname_locator(onk_function_call, &loc,
+  make_opname_locator((an_opname_kind)onk_function_call, &loc,
                       &decl_info->decl_state.declarator_pos);
   decl_member_function(&loc, func_info, class_state, decl_info,
                        /*compiler_generated=*/FALSE);
@@ -15830,7 +15830,7 @@ consumed by the caller.  The grammar to be parsed is thus:
         if (sym == NULL) {
           str_error(ec_undefined_identifier,
                     locator_for_curr_id.symbol_header->identifier);
-        } else if (sym->kind != sk_variable) {
+        } else if (sym->kind != (a_symbol_kind)sk_variable) {
           sym_error(ec_not_a_variable, sym);
         } else if (has_static_storage_duration(
                                 sym->variant.variable.ptr->storage_class)) {
@@ -15908,7 +15908,7 @@ entry, return NULL.  // FIXME: Currently never returns NULL.
   if (innermost_function_scope != NULL || inside_local_class) {
     class_state.is_local_class = TRUE;
   }  /* if */
-  class_state.access = as_public;
+  class_state.access = (an_access_specifier)as_public;
   ctsp->assoc_scope =
              push_scope((a_scope_kind)sck_class_struct_union, NO_SCOPE_NUMBER,
                         closure_class, (a_routine_ptr)NULL);
