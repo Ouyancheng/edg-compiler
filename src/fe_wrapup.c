@@ -609,6 +609,14 @@ already been copied over.
       clear_parent_information();
     }  /* if */
 #endif /* DO_IL_LOWERING */
+#if CHECKING
+    /* Ensure that unexpected situations did not occur without at least one
+       error being issued (otherwise, abort compilation).  This is done
+       here because it's the last point where the file-scope memory region
+       is still available, which is needed to be able to translate the saved
+       sequence number back into a file name/line number. */
+    check_expected_errors();
+#endif /* CHECKING */
     check_for_done_with_memory_region(file_scope_region_number);
   }  /* if */
 }  /* file_scope_il_wrapup_part_3 */
@@ -830,14 +838,6 @@ and before the back end (if any) is executed.
 
   /* Lower the file scope, remove unneeded entities, etc. */
   wrap_up_file_scopes();
-
-#if CHECKING
-  /* Ensure that unexpected situations did not occur without at least one
-     error being issued (otherwise, abort compilation). */
-  check_expected_errors();
-#endif /* CHECKING */
-#if DEBUG
-#endif /* DEBUG */
 
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
   /* Finish writing the IL file, if there is one. */
