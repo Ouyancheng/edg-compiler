@@ -99,6 +99,8 @@ extern void check_member_decl_is_copy_constructor(
 				a_type_ptr		class_type,
 				a_boolean		compiler_generated);
 
+extern a_lambda_capture_ptr lambda_capture_for_variable(a_variable_ptr	vp);
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
