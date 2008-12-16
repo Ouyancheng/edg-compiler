@@ -19536,6 +19536,7 @@ scan_alignof_operator for details).
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 #if CHECKING
+#if !(STANDALONE_UTILITY_PROGRAM && PROTOTYPE_INSTANTIATIONS_IN_IL)
 /*
 The following table defines whether the operands of a given operation node
 are expected to be lvalues or rvalues.
@@ -19848,6 +19849,7 @@ their is_lvalue flag set incorrectly, TRUE otherwise.
   traverse_expr(root, &tblock);
   return !tblock.result;
 }  /* tree_has_correct_lvalueness */
+#endif /* !(STANDALONE_UTILITY_PROGRAM && PROTOTYPE_INSTANTIATIONS_IN_IL) */
 
 #if !STANDALONE_UTILITY_PROGRAM
 static a_boolean pointer_type_is_consistent(a_type_ptr ptr_type,
@@ -19905,6 +19907,11 @@ node, and report any failure as an internal error.
   check_assertion(is_operation_node(expr));
   op = expr->variant.operation.kind;
   operand_1 = expr->variant.operation.operands;
+#if !(STANDALONE_UTILITY_PROGRAM && PROTOTYPE_INSTANTIATIONS_IN_IL)
+  /* This check is not performed in standalone programs configured with
+     PROTOTYPE_INSTANTIATIONS_IN_IL: generic operations and operands are
+     not always lvalue-correct, but the code for detecting a dependent
+     type is not available in a standalone program. */
   if (!node_operands_have_correct_lvalueness(expr)) {
     /* At least one of the operands is an lvalue when an rvalue is
        expected or vice-versa. */
@@ -19913,6 +19920,7 @@ node, and report any failure as an internal error.
 #endif /* DEBUG && !STANDALONE_UTILITY_PROGRAM */
     internal_error("is_lvalue incorrectly set");
   }  /* if */
+#endif /* !(STANDALONE_UTILITY_PROGRAM && PROTOTYPE_INSTANTIATIONS_IN_IL) */
   /* Check that eok_cast is not used for array-decay operations.
      (That was the pattern in an earlier version of the IL, but such
      conversions should now be represented by eok_array_to_pointer.) */

@@ -1,5 +1,16 @@
 Version 4.1
 
+12/16/08 [EDGcpfe/9414]
+Build error in standalone programs with PROTOTYPE_INSTANTIATIONS_IN_IL
+
+In configurations with CHECKING, STANDALONE_UTILITY_PROGRAM, and
+PROTOTYPE_INSTANTIATIONS_IN_IL all set to TRUE, builds failed to link
+because of unresolved references to is_template_dependent_type.  This
+routine is used in checking expression operands for lvalue/rvalue
+correctness, so the error has been addressed by not performing this
+check in such configurations.
+
+
 12/15/08 [EDGcpfe/9380]
 Value-dependent potential null pointer constant in overload resolution
 
