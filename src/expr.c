@@ -1331,7 +1331,7 @@ source position is after the closing parenthesis of the argument list.
 
 #if GNU_EXTENSIONS_ALLOWED
 
-static a_boolean is_gnu_builtin_function(a_routine_ptr  rp)
+a_boolean is_gnu_builtin_function(a_routine_ptr  rp)
 /*
 Return TRUE if and only if the given routine represents a GNU built-in
 function.
@@ -1375,6 +1375,23 @@ pseudo_call can be NULL if that information is not needed.
       case bfk_inf:
       case bfk_infl:
 #endif /* TARG_HAS_IEEE_FLOATING_POINT */
+      case bfk_ffs:
+      case bfk_ffsl:
+      case bfk_clz:
+      case bfk_clzl:
+      case bfk_ctz:
+      case bfk_ctzl:
+      case bfk_popcount:
+      case bfk_popcountl:
+      case bfk_parity:
+      case bfk_parityl:
+#if LONG_LONG_ALLOWED
+      case bfk_ffsll:
+      case bfk_clzll:
+      case bfk_ctzll:
+      case bfk_popcountll:
+      case bfk_parityll:
+#endif /* LONG_LONG_ALLOWED */
         result = TRUE;
         break;
       default:
@@ -1610,6 +1627,28 @@ is folded.
           }  /* if */
           break;
 #endif /* TARG_HAS_IEEE_FLOATING_POINT */
+        case bfk_ffs:
+        case bfk_ffsl:
+        case bfk_clz:
+        case bfk_clzl:
+        case bfk_ctz:
+        case bfk_ctzl:
+        case bfk_popcount:
+        case bfk_popcountl:
+        case bfk_parity:
+        case bfk_parityl:
+#if LONG_LONG_ALLOWED
+        case bfk_ffsll:
+        case bfk_clzll:
+        case bfk_ctzll:
+        case bfk_popcountll:
+        case bfk_parityll:
+#endif /* LONG_LONG_ALLOWED */
+          /* Bit counting functions. */
+          if (args != NULL && args2 == NULL) {
+            folded = fold_bit_count_operation_if_possible(rp, args, &result);
+          }  /* if */
+          break;
         default:
           /* Nothing to be done. */
           break;

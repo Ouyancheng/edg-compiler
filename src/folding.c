@@ -6494,6 +6494,112 @@ constant is set as well.
   }  /* if */
 }  /* fold_builtin_operation_if_possible */
 
+#if GNU_EXTENSIONS_ALLOWED
+
+a_boolean fold_bit_count_operation_if_possible(a_routine_ptr     rp,
+                                               an_expr_node_ptr  arg,
+                                               a_constant        *result_con)
+/*
+rp represents a GNU builtin bit counting function which is being applied to
+the given argument.  If the argument is a constant integer, set *result_con
+to the result of that count and return TRUE.  Otherwise, return FALSE.
+
+The bit counting functions are (for "unsigned int" arguments):
+  ffs: index of the least-significant 1 (or zero if there is none)
+  clz: number of leading zeros
+  ctz: number of trailing zeros
+  popcount: number of ones
+  parity: number of ones modulo 2
+Variants for unsigned long (e.g., ffsl) and unsigned long long (e.g., ctzll)
+arguments are available in all cases.
+
+This routine will fail to fold the operation (and hence return FALSE) if the
+argument cannot be represented in a_host_large_unsigned.
+*/
+{
+  a_boolean   success = FALSE;
+  a_type_ptr  result_type;
+
+  check_assertion(is_gnu_builtin_function(rp));
+  result_type = return_type_of(rp->type);
+  result_type = skip_typerefs(result_type);
+  check_assertion(result_type->kind == (a_type_kind)tk_integer);
+  if (is_constant_node(arg) &&
+      arg->variant.constant->kind == (a_constant_repr_kind)ck_integer) {
+    a_constant_ptr         cp = arg->variant.constant;
+    a_boolean              err;
+    a_host_large_unsigned  val = unsigned_value_of_integer_constant(cp, &err);
+    if (!err) {
+      a_targ_size_t  n_bits = skip_typerefs(cp->type)->size*targ_char_bit;
+      a_targ_size_t  k, result = 0;
+      /* Traverse the bits of the argument.  n_bits may be larger than the
+         number of bits in a_host_large_unsigned but that is not a problem:
+         The overflow case was avoided with the test for !err above and so
+         the excess bits can be assumed to be zeros. */
+      for (k = 0; k < n_bits; ++k, val >>= 1) {
+        a_boolean  bit = ((val & 1) != 0);
+        switch (rp->variant.builtin_function_kind) {
+          case bfk_ffs:
+          case bfk_ffsl:
+#if LONG_LONG_ALLOWED
+          case bfk_ffsll:
+#endif /* LONG_LONG_ALLOWED */
+            /* Index of the least significant 1-bit. */
+            if (bit) {
+              result = k+1;
+              goto count_done;
+            }  /* if */
+            break;
+          case bfk_clz:
+          case bfk_clzl:
+#if LONG_LONG_ALLOWED
+          case bfk_clzll:
+#endif /* LONG_LONG_ALLOWED */
+            /* Count of leading zeros. */
+            result = bit ? 0 : result+1;
+            break;
+          case bfk_ctz:
+          case bfk_ctzl:
+#if LONG_LONG_ALLOWED
+          case bfk_ctzll:
+#endif /* LONG_LONG_ALLOWED */
+            /* Count of trailing zeros. */
+            if (bit) {
+              goto count_done;
+            } else {
+              ++result;
+            }  /* if */
+            break;
+          case bfk_popcount:
+          case bfk_popcountl:
+#if LONG_LONG_ALLOWED
+          case bfk_popcountll:
+#endif /* LONG_LONG_ALLOWED */
+            /* Count of ones. */
+            if (bit) result += 1;
+            break;
+          case bfk_parity:
+          case bfk_parityl:
+#if LONG_LONG_ALLOWED
+          case bfk_parityll:
+#endif /* LONG_LONG_ALLOWED */
+            /* Count of ones. */
+            if (bit) result = (result+1) & 1;
+            break;
+        }  /* switch */
+      }  /* for */
+count_done:
+      set_unsigned_integer_constant(result_con, (a_host_large_unsigned)result,
+                                    result_type->variant.integer.int_kind);
+      success = TRUE;
+    }  /* if */
+  }  /* if */
+  return success;
+}  /* fold_bit_count_operation */
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
+
+
 
 /******************************************************************************
 *                                                             \  ___  /       *

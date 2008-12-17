@@ -341,6 +341,9 @@ Return TRUE if "node" is a function call operation.
 
 
 #if GNU_EXTENSIONS_ALLOWED
+
+extern a_boolean is_gnu_builtin_function(a_routine_ptr  rp);
+
 /*
 Return TRUE if the given operator is a gnu min/max operator (>? or <?).
 */

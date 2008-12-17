@@ -130,6 +130,11 @@ extern void fold_builtin_operation_if_possible(
                                         a_boolean          maintain_expression,
                                         a_source_position  *pos);
 
+extern a_boolean fold_bit_count_operation_if_possible(
+                                               a_routine_ptr     rp,
+                                               an_expr_node_ptr  arg,
+                                               a_constant        *result_con);
+
 #endif /* ifndef FOLDING_H */
 
 /******************************************************************************
