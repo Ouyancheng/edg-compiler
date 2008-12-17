@@ -1,5 +1,19 @@
 Version 4.1
 
+12/17/08 [EDGcpfe/9420]
+Microsoft compatibility: error on template member with multiple default args.
+
+The Microsoft compiler accepts but ignores default arguments on out-of-class
+definitions of member functions of class templates.  We emulate this
+behavior in Microsoft mode but cases with more than one default argument
+incorrectly resulted in an error.  Now fixed.
+
+  template <typename T> struct S {
+    S(int x, int y);
+  };
+  template <class T> inline S<T>::S(int x=0, int y=0) { }
+
+
 12/17/08 [EDGcpfe/8418]
 C++-generating back end: Abort with STANDALONE_CP_GEN_BE
 

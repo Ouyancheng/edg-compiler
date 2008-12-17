@@ -1498,6 +1498,7 @@ if this is the function declarator in a friend function declaration.
   a_boolean               dangling_type_specifier = FALSE;
   a_boolean               defines_something;
   a_boolean               default_arg_allowed_on_curr_param = FALSE;
+  a_boolean               ignore_disallowed_default_arg = FALSE;
   a_boolean               may_be_copy_constructor = FALSE;
   a_boolean               bad_first_param_for_copy_constructor = FALSE;
   a_source_position       pos_of_first_param_type;
@@ -2014,8 +2015,13 @@ if this is the function declarator in a friend function declaration.
                   pos_diagnostic(microsoft_mode ? es_warning : es_error,
                                  ec_default_arg_expr_not_allowed,
                                  &pos_curr_token);
-                  default_arg_allowed_on_curr_param = FALSE;
                   ignore_default_arg_expr = TRUE;
+                  /* Set a flag that indicates that this default argument
+                     should not actually be applied to the function.  This is
+                     done instead of clearing default_arg_allowed_on_curr_param
+                     because that would cause errors if subsequent parameters
+                     have ignored defaults. */
+                  ignore_disallowed_default_arg = TRUE;
                 }  /* if */
               }  /* if */
             }  /* if */
@@ -2067,7 +2073,8 @@ if this is the function declarator in a friend function declaration.
                scan the expression and convert it to the required type. */
             scan_default_arg_expr(ptp_for_scan);
           }  /* if */
-          if (default_arg_allowed_on_curr_param) {
+          if (default_arg_allowed_on_curr_param &&
+              !ignore_disallowed_default_arg) {
             ptp->has_default_arg = TRUE;
             func_info->any_default_args = TRUE;
           }  /* if */
