@@ -1,5 +1,23 @@
 Version 4.1
 
+12/17/08 [EDGcpfe/9406]
+Microsoft compatibility: Old-style specializations of function templates
+
+In Microsoft C++ mode, old-style specializations of function templates using
+explicit template arguments were not accepted when microsoft_version >= 1310
+(see Changes entry of 3/21/03).  However, it appears that Microsoft compilers
+do accept such specializations if the associated template instance is used
+prior to the specializing declaration.  For example:
+
+  template<typename> void f() {}
+  template void f<int>();  // (1): f<int> instance is used here.
+  void f<int>() {}  // Old-style specialization now accepted in all Microsoft
+                    // Microsoft modes.  It would not be accepted if line (1)
+                    // were removed and microsoft_version >= 1310.
+
+We now emulate this Microsoft behavior.
+
+
 12/16/08 [EDGcpfe/9414]
 Build error in standalone programs with PROTOTYPE_INSTANTIATIONS_IN_IL
 

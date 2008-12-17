@@ -3907,7 +3907,7 @@ be a function.
       ((input_flags & DI_IS_FRIEND_DECL) &&
        !(options & GID_IS_TEMPLATE_DECLARATION))) {
     explicit_template_args_allowed = TRUE;
-  } else if (microsoft_mode && microsoft_version < 1310 &&
+  } else if (microsoft_mode &&
              depth_innermost_function_scope == NO_SCOPE_DEPTH &&
              !(options & GID_IS_TEMPLATE_DECLARATION)) {
     /* In Microsoft mode a function declarator can take explicit template
@@ -3917,6 +3917,8 @@ be a function.
          void f<int>(int) { ... }
        is allowed in Microsoft mode -- the second line is equivalent to
          template <> void f<int>(int) { ... }
+       (In more recent versions of the Microsoft compiler, this is actually
+       context-dependent.  That dependency is handled elsewhere.)
     */
     explicit_template_args_allowed = TRUE;
   }  /* if */

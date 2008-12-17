@@ -6921,6 +6921,18 @@ for use in generating cross-reference output describing this declaration.
                                 (a_name_linkage_kind)nlk_cplusplus_external;
         routine_ptr->is_specialized = TRUE;
         routine_ptr->specialized_with_old_syntax = TRUE;
+        check_assertion(!routine_ptr->defined);
+        if (microsoft_mode && microsoft_version >= 1310) {
+          /* More recent Microsoft compilers do not accept an old-style
+             specialization, except (curiously) if a point of instantiation
+             was encountered before. */
+          a_template_instance_ptr  tip = sym->variant.routine.instance_ptr;
+          if (tip != NULL && !tip->instance_sym->referenced) {
+            pos_diagnostic(es_discretionary_error,
+                           ec_explicit_template_args_not_allowed,
+                           &locator->source_position);
+          }  /* if */
+        }  /* if */
       }  /* if */
     } else if (symbol_for_overloading != NULL) {
       /* Overloaded function.  Create the new symbol, which will be on the
