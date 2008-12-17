@@ -13131,6 +13131,7 @@ from the primary source file name in the IL information.
   standalone_utility_init();
   /* Initialize. */
   init_cp_gen_be();
+  initialize_opname_names();
   /* The source file name is unknown until the IL is read correctly. */
   primary_source_file_name = NULL;
 

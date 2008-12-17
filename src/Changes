@@ -1,5 +1,14 @@
 Version 4.1
 
+12/17/08 [EDGcpfe/8418]
+C++-generating back end: Abort with STANDALONE_CP_GEN_BE
+
+The table of operator names used to generate operator-syntax function
+calls (e.g., a call to operator+ from an expression like "a+b") was not
+initialized when the C++-generating back end is built as a standalone
+program, causing an abort.  This is now fixed.
+
+
 12/17/08 [EDGcpfe/9406]
 Microsoft compatibility: Old-style specializations of function templates
 
