@@ -2133,8 +2133,10 @@ do_set_proper_definition_needed_flag:
           walk_needed_on_list(ptr->variables, a_variable_ptr, iek_variable,
                               kind);
           walk_needed_on_list(ptr->routines, a_routine_ptr, iek_routine, kind);
-          // FIXME: lambdas don't have a needed flag; use the closure type instead?
-          // walk_needed_on_list(ptr->lambdas, a_lambda_ptr, iek_lambda, kind);
+/*
+          FIXME: lambdas don't have a needed flag; use the closure type instead?
+          walk_needed_on_list(ptr->lambdas, a_lambda_ptr, iek_lambda, kind);
+*/
         }  /* if */
 #else /* !KEEP_IN_IL_WALK */
         /* Not needed flag walk or keep_in_il walk. */
