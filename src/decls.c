@@ -6252,6 +6252,8 @@ for use in generating cross-reference output describing this declaration.
                       "decl_routine: bad storage class");
   check_assertion_str(srk_flags & SRK_DECLARATION,
                       "decl_routine: missing SRK_DECLARATION");
+  check_assertion_str(is_function_type(dps->type),
+                      "decl_routine: not a routine type");
   if (func_info->is_definition) {
     is_function_def = TRUE;
     check_assertion_str(srk_flags & SRK_DEFINITION,
