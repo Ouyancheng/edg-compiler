@@ -9612,10 +9612,22 @@ discarding typedefs.
 }  /* skip_common_type_qualifiers */
 
 
-void copy_type(a_type_ptr from,
-               a_type_ptr to)
+static a_param_type_ptr copy_param_type_list(
+                                       a_param_type_ptr  ptp,
+                                       a_boolean         copy_default_args);
+
+
+static void copy_type_full(a_type_ptr from,
+                           a_type_ptr to,
+                           a_boolean  copy_default_args)
 /*
-Copy the type entry "from" to "to".
+Copy the type entry "from" to "to".  When the type being copied is
+a routine type, its routine type supplement and parameter type list
+are copied too (the destination type must be a routine type also, so
+that it already has an allocated routine type supplement); if
+copy_default_args is TRUE, any default argument expressions are copied
+into the new parameter types.  If it is FALSE, the default_arg_expr
+field in the new parameter types will be NULL.
 */
 {
   a_type_kind                   from_kind;
@@ -9650,6 +9662,11 @@ Copy the type entry "from" to "to".
       /* For a routine type, the type supplement must also be copied. */
       *extra_info = *from->variant.routine.extra_info;
       to->variant.routine.extra_info = extra_info;
+      /* Copy the parameter type list. */
+      extra_info->param_type_list =
+            copy_param_type_list(from->variant.routine.extra_info->
+                                                               param_type_list,
+                                 copy_default_args);
       tp = skip_typerefs(to->variant.routine.return_type);
       dtf_kind = (a_dependent_type_fixup_kind)dtfk_routine_calling_method;
     } else {
@@ -9686,6 +9703,16 @@ Copy the type entry "from" to "to".
                                        &null_source_position);
     }  /* if */
   }  /* if */
+}  /* copy_type_full */
+
+
+void copy_type(a_type_ptr from,
+               a_type_ptr to)
+/*
+Copy the type entry "from" to "to".
+*/
+{
+  copy_type_full(from, to, /*copy_default_args=*/TRUE);
 }  /* copy_type */
 
 
@@ -9696,7 +9723,7 @@ static a_param_type_ptr copy_param_type_list(
 Copy the param-type list pointed to by ptp and return a pointer to the new
 list.  If copy_default_args is TRUE, copy any default argument expressions
 into the new param types.  If it is FALSE, the default_arg_expr field
-in the new param type will be NULL.
+in the new param types will be NULL.
 */
 {
   a_param_type_ptr  new_list = NULL, new_ptp, prev_new_ptp = NULL;
@@ -9814,11 +9841,7 @@ param-type entry of the new type.
   qualifiers = get_type_qualifiers(from_type);
   from_type = skip_typerefs(from_type);
   to_type = alloc_type((a_type_kind)tk_routine);
-  copy_type(from_type, to_type);
-  to_type->variant.routine.extra_info->param_type_list =
-            copy_param_type_list(from_type->variant.routine.extra_info->
-                                                            param_type_list,
-                                 copy_default_args);
+  copy_type_full(from_type, to_type, copy_default_args);
   if (qualifiers != TQ_NONE) {
     /* If the original type had qualifiers above the routine type, add
        them to the newly created type now. */
@@ -9847,10 +9870,7 @@ unchanged.
       /* A copy of the original type is required, because the default arg
          expression has to be stripped off. */
       tp = alloc_type((a_type_kind)tk_routine);
-      copy_type(orig_type, tp);
-      tp->variant.routine.extra_info->param_type_list =
-                          copy_param_type_list(orig_param_type_list,
-                                               /*copy_default_args=*/FALSE);
+      copy_type_full(orig_type, tp, /*copy_default_args=*/FALSE);
       break;
     }  /* if */
   }  /* for */
@@ -9886,10 +9906,8 @@ entries.
     /* One or more parameter types have qualifiers.  Make a copy of the
        routine type and the parameter type list. */
     tp = alloc_type((a_type_kind)tk_routine);
-    copy_type(orig_type, tp);
-    ptp = tp->variant.routine.extra_info->param_type_list =
-                          copy_param_type_list(orig_param_type_list,
-                                               /*copy_default_args=*/FALSE);
+    copy_type_full(orig_type, tp, /*copy_default_args=*/FALSE);
+    ptp = tp->variant.routine.extra_info->param_type_list;
     /* Clear the qualifiers field of the parameter type entries. */
     for (; ptp != NULL; ptp = ptp->next) ptp->qualifiers = TQ_NONE;
   }  /* if */
@@ -9910,7 +9928,7 @@ the original type.
   if (orig_type->variant.routine.extra_info->this_class != NULL) {
     a_routine_type_supplement_ptr	rtsp;
     type = alloc_type((a_type_kind)tk_routine);
-    copy_type(orig_type, type);
+    copy_type_full(orig_type, type, /*copy_default_args=*/TRUE);
     rtsp = type->variant.routine.extra_info;
     rtsp->this_class = NULL;
     /* Note that the qualifiers from the original type are retained. */

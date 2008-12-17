@@ -1,5 +1,32 @@
 Version 4.1
 
+12/17/08 [EDGcpfe/8920]
+Invalid IL structure as a result of pointer-to-member deduction
+
+While processing template deduction on a pointer-to-member-function,
+the front end produced a situation where two routine types pointed at
+the same parameter type list, which is not permitted.  This would cause
+problems if the IL is subsequently walked, in particular to read back
+in an IL file when ALTERNATE_IL_FILE_FORMAT is FALSE (the abort in
+that case said "ptr_remap_function: address not in any mem block").
+
+  template <typename T>
+  struct is_member_function_pointer{ static const bool value = false; };
+  template <class R, class T, class A0, class A1>
+  struct is_member_function_pointer<R (T::*)(A0, A1)>{
+    static const bool value = true;
+  };
+  template <typename T> struct is_member_pointer
+  { static const bool value = is_member_function_pointer<T>::value; };
+  template <typename T, typename U> struct is_member_pointer<U T::*>
+  { static const bool value = true; };
+  struct UDT {
+    int f4(int, float);
+  };
+  typedef int (UDT::*mf4)(int, float);
+  bool y = is_member_pointer<mf4>::value;
+
+
 12/17/08 [EDGcpfe/9420]
 Microsoft compatibility: error on template member with multiple default args.
 
