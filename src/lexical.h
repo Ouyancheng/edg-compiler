@@ -2421,7 +2421,6 @@ void init_name_linkage_constants(void);
 
 /* Initialize the lexical routines. */
 extern void lexical_reset(void);
-extern void initialize_opname_names(void);
 extern void lexical_one_time_init(void);
 extern void lexical_trans_unit_init(void);
 extern void lexical_init(void);

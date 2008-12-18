@@ -25,7 +25,6 @@ and parsing of them into tokens.
 #pragma hdrstop
 #endif /* ifdef PCH_PRAGMA_GUARD */
 
-#if !STANDALONE_UTILITY_PROGRAM
 #include <errno.h>
 
 /* Additional header files. */
@@ -16433,45 +16432,8 @@ host-target conversions are performed.
     copy_constant(&const_for_curr_token, name_linkage_constants+(int)kind);
   }  /* for */
 }  /* init_name_linkage_constants */
-#endif /* !STANDALONE_UTILITY_PROGRAM */
 
-void initialize_opname_names(void)
-/* Initialize opname_names from opname_kind_for_token and token_names. */
-{
-  int  tok_kind, opname_kind;
-  char *str;
 
-  (void)memzero((char *)opname_names, sizeof(opname_names));
-  for (tok_kind = 0; tok_kind < (int)tok_last; tok_kind++) {
-    opname_kind = opname_kind_for_token[tok_kind];
-    if (opname_kind != (int)onk_none) {
-      str = token_names[tok_kind];
-      /* A few opname kinds are made up of two tokens and require some
-         special handling. */
-      if (opname_kind == (int)onk_function_call) {
-        str = "()";
-      } else if (opname_kind == (int)onk_subscript) {
-        str = "[]";
-      }  /* if */
-      opname_names[opname_kind] = str;
-    }  /* if */
-  }  /* for */
-  /* new[] and delete[] do not map to a single token. */
-  opname_names[(int)onk_array_new] = "new[]";
-  opname_names[(int)onk_array_delete] = "delete[]";
-#if CHECKING
-  /* Make sure all the slots were initialized. */
-  for (opname_kind = (int)onk_none+1;
-       opname_kind < (int)onk_last;
-       opname_kind++) {
-    if (opname_names[opname_kind] == NULL) {
-      internal_error("initialize_opname_kinds: bad init of opname_names");
-    }  /* if */
-  }  /* for */
-#endif /* CHECKING */
-}  /* initialize_opname_kinds */
-
-#if !STANDALONE_UTILITY_PROGRAM
 void lexical_one_time_init(void)
 /*
 Do one-time initialization of variables related to lexical processing.
@@ -16854,7 +16816,6 @@ the point at which the compilation was terminated.
 }  /* lexical_cleanup */
 
 #endif /* MAKE_FRONT_END_CALLABLE */
-#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 /******************************************************************************
 *                                                             \  ___  /       *

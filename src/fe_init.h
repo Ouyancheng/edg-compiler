@@ -29,6 +29,8 @@ extern void fe_init_part_2(void);
 extern void fe_translation_unit_init(void);
 #endif /* STANDALONE_UTILITY_PROGRAM */
 
+extern void initialize_opname_names(void);
+
 #endif /* ifndef FE_INIT_H */
 
 /******************************************************************************

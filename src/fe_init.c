@@ -1378,6 +1378,48 @@ when it is a secondary file.
 
 #endif /* STANDALONE_UTILITY_PROGRAM */
 
+void initialize_opname_names(void)
+/*
+Initialize opname_names from opname_kind_for_token and token_names.  (This
+is done here instead of in lexical.c, where it would otherwise logically
+belong, because the table is used by the C++-generating back end when built
+as a standalone program, but nothing else from lexical.c is needed in that
+configuration.)
+*/
+{
+  int  tok_kind, opname_kind;
+  char *str;
+
+  (void)memzero((char *)opname_names, sizeof(opname_names));
+  for (tok_kind = 0; tok_kind < (int)tok_last; tok_kind++) {
+    opname_kind = opname_kind_for_token[tok_kind];
+    if (opname_kind != (int)onk_none) {
+      str = token_names[tok_kind];
+      /* A few opname kinds are made up of two tokens and require some
+         special handling. */
+      if (opname_kind == (int)onk_function_call) {
+        str = "()";
+      } else if (opname_kind == (int)onk_subscript) {
+        str = "[]";
+      }  /* if */
+      opname_names[opname_kind] = str;
+    }  /* if */
+  }  /* for */
+  /* new[] and delete[] do not map to a single token. */
+  opname_names[(int)onk_array_new] = "new[]";
+  opname_names[(int)onk_array_delete] = "delete[]";
+#if CHECKING
+  /* Make sure all the slots were initialized. */
+  for (opname_kind = (int)onk_none+1;
+       opname_kind < (int)onk_last;
+       opname_kind++) {
+    if (opname_names[opname_kind] == NULL) {
+      internal_error("initialize_opname_kinds: bad init of opname_names");
+    }  /* if */
+  }  /* for */
+#endif /* CHECKING */
+}  /* initialize_opname_kinds */
+
 /******************************************************************************
 *                                                             \  ___  /       *
 *                                                               /   \         *
