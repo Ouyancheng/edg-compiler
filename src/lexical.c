@@ -31,6 +31,7 @@ and parsing of them into tokens.
 #include "class_decl.h"
 #include "decls.h"
 #include "disambig.h"
+#include "fe_init.h"
 #include "literals.h"
 #include "macro.h"
 #include "pch.h"
