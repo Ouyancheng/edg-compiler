@@ -57,7 +57,7 @@ that case said "ptr_remap_function: address not in any mem block").
 
 
 12/17/08 [EDGcpfe/9420]
-Microsoft compatibility: error on template member with multiple default args.
+Microsoft compatibility: error on template member with multiple default args
 
 The Microsoft compiler accepts but ignores default arguments on out-of-class
 definitions of member functions of class templates.  We emulate this
