@@ -2379,6 +2379,7 @@ and/or a lambda return type.
   if (curr_token == tok_arrow) {
     a_source_position  pos_return_type;
     a_type_ptr         return_type;
+    lambda->explicit_return_type = TRUE;
     (void)get_token();
     pos_return_type = pos_curr_token;
     type_name(&return_type);

@@ -4112,6 +4112,9 @@ Display the indicated lambda entry.
     disp_boolean("default_is_by_reference",
                  (a_boolean)ptr->default_is_by_reference);
   }  /* if */
+  if (ptr->explicit_return_type) {
+    disp_boolean("explicit_return_type", (a_boolean)ptr->explicit_return_type);
+  }  /* if */
   disp_source_position("start_position", &ptr->start_position);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   disp_source_position("capture_end_position", &ptr->capture_end_position);

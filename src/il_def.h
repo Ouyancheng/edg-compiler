@@ -11592,6 +11592,10 @@ typedef struct a_lambda {
 			/* When has_capture_default is TRUE, this is TRUE
 			   if the default is by reference ("&") or FALSE if
 			   the default is by value ("="). */
+  a_byte_boolean
+		explicit_return_type;
+			/* TRUE if the return type of the lambda was specified
+			   explicitly. */
   a_source_position
 		start_position;
 			/* Position of the "[" that begins the lambda. */

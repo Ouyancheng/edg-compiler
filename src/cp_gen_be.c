@@ -8092,6 +8092,10 @@ Render code for the given expression node, which represents a lambda.
   scope = il_header.region_scope_entry[scope_region_number];
   gen_function_declarator_with_scope(rp->type, scope, /*top_level_decl=*/TRUE,
                                      /*suppress_def_args=*/FALSE);
+  if (lambda->explicit_return_type) {
+    write_tok_str("->");
+    gen_type(skip_typerefs(rp->type)->variant.routine.return_type);
+  }  /* if */
   write_space();
   save_source_sequence_scan_state(&saved_state);
   curr_source_sequence_entry = scope->source_sequence_list;
