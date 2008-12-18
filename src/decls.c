@@ -3000,12 +3000,15 @@ created; the caller must set it.
   }  /* if */
   if (ext_sym != NULL) {
     a_source_correspondence  *scp;
+    /* In pcc mode, functions and extern variables are always effectively
+       declared at the file scope level.  So if we get here in pcc mode, we
+       must have encountered two incompatible declarations of the same name. */
+    check_assertion(C_dialect != C_dialect_pcc || total_errors != 0);
     if (ext_sym->kind == (a_symbol_kind)sk_extern_variable) {
       scp = &esdp->variant.variable->source_corresp;
     } else {
       scp = &esdp->variant.routine.ptr->source_corresp;
     }  /* if */
-    check_assertion(C_dialect != C_dialect_pcc);
     if (gcc_mode && scp->assoc_info != NULL) {
       /* In GNU C mode, block-external declarations declared in other function
          scopes need not be compatible with the current declaration. */

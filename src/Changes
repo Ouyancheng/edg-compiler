@@ -1,5 +1,19 @@
 Version 4.1
 
+12/18/08 [EDGcpfe/9409]
+Abort after compatibility error in K&R/pcc mode
+
+In K&R/pcc mode (command-line option -K or --old_c), the front end aborted
+with an internal error in create_external_symbol_for_linked_entity (decls.c)
+after encountering certain incompatible redeclarations.  For example:
+
+  int x;
+  short x; // Redeclaration error was followed by an internal error in
+           // K&R/pcc mode.
+
+This is now fixed.
+
+
 12/17/08 [EDGcpfe/9419]
 GNU compatibility: Built-in bit counting functions
 
