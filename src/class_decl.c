@@ -15876,7 +15876,6 @@ entry, return NULL.  // FIXME: Currently never returns NULL.
   a_type_ptr          closure_class;
   a_class_type_supplement_ptr
                       ctsp;
-  a_source_position   start_pos;
   a_class_def_state   class_state;
   a_member_decl_info  decl_info;
   a_decl_parse_state  *dps = &decl_info.decl_state;
@@ -15893,15 +15892,19 @@ entry, return NULL.  // FIXME: Currently never returns NULL.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   /* Parse the lambda-introducer. */
   check_assertion(curr_token == tok_lbracket);
-  start_pos = pos_curr_token;
+  lambda->start_position = pos_curr_token;
   (void)get_token();
   add_stop_token(tok_rbracket);
   scan_lambda_capture_list(lambda);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  lambda->capture_end_position = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   (void)required_token(tok_rbracket, ec_exp_rbracket);
   remove_stop_token(tok_rbracket);
   /* Initialize the closure class and set up a context in which members
      can be added. */
-  lambda->closure_class = closure_class = make_closure_class(&start_pos);
+  lambda->closure_class = closure_class =
+                                  make_closure_class(&lambda->start_position);
   ctsp = class_type_supp(closure_class);
   ctsp->lambda = lambda;
   initialize_class_def_state(lambda->closure_class, &class_state);

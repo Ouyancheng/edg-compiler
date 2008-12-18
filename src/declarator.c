@@ -1398,6 +1398,9 @@ see function_declarator (below) for which this is a helper function.
        non-const. */
     this_class = parent_type;
     if (curr_token == tok_mutable) {
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      func_info->lambda->mutable_position = pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       (void)get_token();
     } else {
       qualifiers = TQ_CONST;
