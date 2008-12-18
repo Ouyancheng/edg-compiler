@@ -1,5 +1,28 @@
 Version 4.1
 
+12/18/08 [EDGcpfe/9413]
+GNU C++ compatibility: Internal error on dependent nested template reference
+
+An internal error (in check_expected_errors) could occur in g++ mode when
+gnu_version is >= 30400 when a name of the form A<T>::B<T2> is used in a
+prototype instantiation, where A is the name of some other class template
+and B is intended to name a member class template of A.  This has been
+fixed.
+
+  template <class T> struct Q {
+    template <class T2> struct B { int j; };
+  };
+  template <class T> struct A {
+    Q<T>::B<T> bt;  // missing typename and template keywords
+    // should be: typename Q<T>::template B<T> bt;
+   int get(T) { return(bt.j); }
+  };
+  int main() {
+    A<char*> a;
+    a.get("xxx");
+  }
+
+
 12/18/08 [EDGcpfe/9409]
 Abort after compatibility error in K&R/pcc mode
 

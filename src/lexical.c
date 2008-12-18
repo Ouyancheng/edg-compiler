@@ -12356,12 +12356,14 @@ a routine to lookup the appropriate instance (or generate one if needed).
       pos_sy_error(ec_unexpected_template_arg_list, &start_position,
                    template_sym);
       template_sym = NULL;
-    } else if ((sun_mode || gpp_mode) && template_sym != NULL &&
+    } else if ((sun_mode || (gpp_mode && gnu_version < 30400)) &&
+               template_sym != NULL &&
                scope_stack[depth_scope_stack].in_prototype_instantiation &&
                !is_type_symbol(template_sym) &&
                !is_error_symbol && !is_expr_context && !lt_permitted_context) {
       /* A nontype symbol (probably from a nonreal base) during a prototype
-         instantiation in g++ or Sun mode.  Ignore this error. */
+         instantiation in g++ (versions < 30400) or Sun mode.  Ignore this
+         error. */
       template_sym = NULL;
     } else if (!is_error_symbol &&
                !lt_permitted_context && !is_expr_context) {
