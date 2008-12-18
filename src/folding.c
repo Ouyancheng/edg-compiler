@@ -6586,6 +6586,8 @@ argument cannot be represented in a_host_large_unsigned.
             /* Count of ones. */
             if (bit) result = (result+1) & 1;
             break;
+          default:
+            unexpected_condition();
         }  /* switch */
       }  /* for */
 count_done:
