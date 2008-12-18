@@ -1,19 +1,20 @@
 Version 4.1
 
 12/18/08 [EDGcpfe/9408]
-Nondependent block-extern functions in function templates
+GNU mode abort on nondependent block-extern functions in function templates
 
-Declaring and calling a function that is not template dependent inside a
-function template (or a member function of a class template) resulted in
-invalid IL when the template was instantiated.  The problem triggered an
-internal error when reading in the resulting IL file ("IL entry write-read
-difference").  For example:
+In GNU mode with gnu_version >= 30400, declaring and calling a function that
+is not template dependent inside a function template (or a member function of
+a class template) resulted in invalid IL when the template was instantiated.
+The problem triggered an internal error when reading in the resulting IL file
+("IL entry write-read difference").  For example:
 
   template <typename T> void g() {
     void f();  // Nondependent function declaration.
     f();
   }
-  void h() { g<int>(); }  // Instantiation of g<int> resulted in invalid IL.
+  void h() { g<int>(); }  // Instantiation of g<int> resulted in invalid IL
+                          // in some GNU modes.
 
 This is now fixed.
 
