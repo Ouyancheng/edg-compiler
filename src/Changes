@@ -1,5 +1,14 @@
 Version 4.1
 
+12/19/08 [EDGcpfe/9395]
+When simultaneously compiling multiple translation units, the front end
+sometimes aborted with an assertion failure "Noncanonical instantiation list"
+in update_canonical_entry (trans_corresp.c).  This situation only occurs under
+a complex combination of conditions (involving nested class templates) and we
+know of no small example to demonstrate it.  The underlying problem, however,
+has been fixed. 
+
+
 12/19/08 [EDGcpfe/9422]
 GNU C++ compatibility: template keyword with missing template argument list
 
