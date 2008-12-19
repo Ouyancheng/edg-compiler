@@ -13740,6 +13740,8 @@ is returned.
     next_two_tokens(separator, second_token))
 
 
+void stop_here(){}
+
 a_boolean f_is_generalized_identifier_start(
 			an_identifier_options_set	options,
 			a_type_ptr			field_sel_type)
@@ -14323,6 +14325,14 @@ selection operator, in which case it points to the type of the left operand.
         (void)get_token();
         if (curr_token == tok_template) {
           is_template = TRUE;
+          if (gpp_mode && gnu_version >= 30400) {
+            /* g++ allows usage like "p->A::template f()", where the name (at
+               least during the prototype instantiation) is not a template.
+               Ignore the template keyword in this case. */
+            a_token_kind	second_token;
+            (void)next_two_tokens(tok_identifier, &second_token);
+            if (second_token != tok_lt) is_template = FALSE;
+          }  /* if */
           if (!cpp0x_mode && strict_ansi_mode &&
               !is_template_context() && !in_if_exists) {
             /* In strict C++98 mode the template keyword, when used for

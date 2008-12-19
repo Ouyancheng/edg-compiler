@@ -1,5 +1,24 @@
 Version 4.1
 
+12/19/08 [EDGcpfe/9422]
+GNU C++ compatibility: template keyword with missing template argument list
+
+g++ accepts a qualified name in which the template keyword is followed by
+an identifier that does not have a template argument list.  Formerly, we
+rejected this in all modes in which nonclass templates were parsed.  We
+now accept this usage in g++ mode when gnu_version is >= 30400.
+
+  template <typename V> struct c {
+    template <typename V2> static int g(V2 v) { return 0; }
+  };
+  template<typename V> struct A {
+    static int f() { return c<V>::template g(0); }  // g should have templ args
+  };
+  int main() {
+    A<int>::f();
+  }
+
+
 12/18/08 [EDGcpfe/9408]
 GNU mode abort on nondependent block-extern functions in function templates
 
