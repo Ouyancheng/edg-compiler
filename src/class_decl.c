@@ -506,10 +506,58 @@ Add a class fixup entry for class_type to the class fixup list.
 }  /* add_to_class_fixup_list */
 
 
-static a_lambda_capture_ptr add_lambda_capture(a_lambda_ptr	lambda,
-					       a_variable_ptr	vp,
-					       a_boolean	is_implicit,
-					       a_boolean	by_reference)
+static a_field_ptr make_field_for_lambda_capture(
+					a_lambda_ptr		lambda,
+					a_variable_ptr		vp,
+					a_boolean		by_reference,
+					a_source_position_ptr	pos)
+/*
+Create the field of the closure class to store the capture of vp.  by_reference
+is TRUE if the variable is being captured by reference.  Return the field
+entry.  pos is the source position to be used as the decl_position of
+the field.
+*/
+{
+  a_field_ptr	fp;
+  a_type_ptr	field_type;
+  a_symbol_ptr	var_sym;
+  a_symbol_ptr	field_sym;
+
+  var_sym = symbol_for(vp);
+  check_assertion(var_sym != NULL);
+  fp = alloc_field();
+  field_type = vp->type;
+  /* If the variable is a reference, drop the reference. */
+  if (is_reference_type(field_type)) {
+    field_type = type_pointed_to(field_type);
+  }  /* if */
+  if (vp->is_this_parameter) {
+    /* The field type is the type of the "this" parameter (already set
+       above). */  
+  } else if (by_reference) {
+    /* The variable is being captured by reference.  Create a reference
+       type based on the variable's type. */
+    field_type = make_reference_type(field_type);
+  } else {
+    /* The variable is being captured by value.  The type is the
+       cv-unqualified type of the variable. */
+    field_type = make_unqualified_type(field_type);
+  }  /* if */
+  fp->type = field_type;
+  field_sym = alloc_symbol(sk_field, var_sym->header, &var_sym->decl_position);
+  field_sym->decl_position = *pos;
+  set_source_corresp(&fp->source_corresp, field_sym);
+  set_class_membership(field_sym, &fp->source_corresp, lambda->closure_class);
+  return fp;
+}  /* make_field_for_lambda_capture */
+
+
+static a_lambda_capture_ptr add_lambda_capture(
+					a_lambda_ptr		lambda,
+					a_variable_ptr		vp,
+					a_boolean		is_implicit,
+					a_boolean		by_reference,
+					a_source_position_ptr	pos)
 /*
 Create a lambda capture entry for the lambda specified by "lambda" for the
 variable vp.  is_implicit is TRUE if this is an implicit capture.
@@ -523,9 +571,8 @@ and return a pointer to the capture entry.
 
   lcp = alloc_lambda_capture();
   lcp->variable = vp;
-#if 0
-  lcp->closure_field = xxx;
-#endif /* 0 */
+  lcp->closure_field = make_field_for_lambda_capture(lambda, vp, by_reference,
+                                                     pos);
   lcp->capture_by_reference = by_reference;
   lcp->is_implicit = is_implicit;
   if (lambda->capture_list == NULL) {
@@ -543,8 +590,9 @@ and return a pointer to the capture entry.
 }  /* add_lambda_capture */
 
 
-static a_lambda_capture_ptr find_lambda_capture(a_lambda_ptr	lambda,
-						a_variable_ptr	vp)
+static a_lambda_capture_ptr find_lambda_capture(a_lambda_ptr		lambda,
+						a_variable_ptr		vp,
+						a_source_position_ptr	pos)
 /*
 vp is a variable entry for a local variable of a suitable kind for potential
 use as a lambda capture (e.g., it is from an acceptable scope and is of
@@ -552,8 +600,9 @@ automatic storage duration).  Look for a lambda capture entry for this
 variable in the specified lambda.  If the variable is found on
 the capture list, return the capture.  If it is not on the list, and the
 lambda allows implicit captures, add it to the capture list and return
-the capture.  If there is no associated capture (explicit or implicit),
-return NULL.
+the capture.  When an entry is added to the capture list, pos is the position
+to be used as the declaration position of the closure class member.  If there
+is no associated capture (explicit or implicit), return NULL.
 */
 {
   a_lambda_capture_ptr	lcp;
@@ -566,13 +615,14 @@ return NULL.
      a capture default. */
   if (lcp == NULL && lambda->has_capture_default) {
     lcp = add_lambda_capture(lambda, vp, /*is_implicit=*/TRUE,
-                             lambda->default_is_by_reference);
+                             lambda->default_is_by_reference, pos);
   }  /* if */
   return lcp;
 }  /* find_lambda_capture */
 
 
-a_lambda_capture_ptr lambda_capture_for_variable(a_variable_ptr	vp)
+a_lambda_capture_ptr lambda_capture_for_variable(a_variable_ptr		vp,
+						 a_source_position_ptr	pos)
 /*
 vp is a variable entry for a local variable of a suitable kind for potential
 use as a lambda capture (e.g., it is from an acceptable scope and is of
@@ -580,8 +630,9 @@ automatic storage duration).  Look for a lambda capture entry for this
 variable in the nearest enclosing lambda.  If the variable is found on
 the capture list, return the capture.  If it is not on the list, and the
 lambda allows implicit captures, add it to the capture list and return
-the capture.  If there is no associated capture (explicit or implicit),
-return NULL.
+the capture.  When an entry is added to the capture list, pos is the position
+to be used as the declaration position of the closure class member.  If there
+is no associated capture (explicit or implicit), return NULL.
 */
 {
   a_scope_stack_entry_ptr	ssep;
@@ -601,7 +652,7 @@ return NULL.
   lambda = class_type_supp(closure_class)->lambda;
   /* Find or create the lambda capture for this variable.  NULL will be
      returned if no capture is found and one cannot be created. */
-  lcp = find_lambda_capture(lambda, vp);
+  lcp = find_lambda_capture(lambda, vp, pos);
   return lcp;
 }  /* lambda_capture_for_variable */
 
@@ -15853,7 +15904,8 @@ consumed by the caller.  The grammar to be parsed is thus:
       if (var != NULL) {
         /* Create the lambda capture entry for this variable. */
         a_lambda_capture_ptr	lcp;
-        lcp = add_lambda_capture(lambda, var, /*is_implicit=*/FALSE, by_ref);
+        lcp = add_lambda_capture(lambda, var, /*is_implicit=*/FALSE, by_ref,
+                                 &capture_pos);
         lcp->position = capture_pos;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
         lcp->end_position = capture_end_pos;
