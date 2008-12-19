@@ -53,8 +53,8 @@ with an internal error in create_external_symbol_for_linked_entity (decls.c)
 after encountering certain incompatible redeclarations.  For example:
 
   int x;
-  short x; // Redeclaration error was followed by an internal error in
-           // K&R/pcc mode.
+  short x; /* Redeclaration error was followed by an internal error in
+              K&R/pcc mode. */
 
 This is now fixed.
 
