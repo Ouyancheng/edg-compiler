@@ -13740,8 +13740,6 @@ is returned.
     next_two_tokens(separator, second_token))
 
 
-void stop_here(){}
-
 a_boolean f_is_generalized_identifier_start(
 			an_identifier_options_set	options,
 			a_type_ptr			field_sel_type)
