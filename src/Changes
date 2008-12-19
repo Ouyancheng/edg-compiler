@@ -26,7 +26,10 @@ An internal error (in check_expected_errors) could occur in g++ mode when
 gnu_version is >= 30400 when a name of the form A<T>::B<T2> is used in a
 prototype instantiation, where A is the name of some other class template
 and B is intended to name a member class template of A.  This has been
-fixed.
+fixed.  Note that the offending line in the example below is invalid
+although it is accepted in some modes.  We now give an error in g++ mode
+when gnu_version is >= 30400, and accept the code when gnu_version is < 30400
+(which matches the behavior of the respective g++ versions).
 
   template <class T> struct Q {
     template <class T2> struct B { int j; };
