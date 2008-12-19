@@ -11830,7 +11830,8 @@ typedef struct a_scope {
 			/* When the scope is associated with an exception
 			   handler, a pointer to the handler entry; otherwise
 			   NULL. */
-    /* When kind == sck_func_prototype, sck_class_struct_union, or sck_enum: */
+    /* When kind == sck_func_prototype, sck_class_struct_union,
+       sck_class_reactivation, or sck_enum: */
     a_type_ptr	assoc_type;
 			/* The function type whose prototype scope this is,
 			   or the class/struct/union type. */

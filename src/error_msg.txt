@@ -1780,6 +1780,7 @@ ec_capture_mode_matches_default;;"explicit capture matches default"
 ec_not_a_variable;;"%n is not a variable"
 ec_capture_of_static_duration_variable;;"a variable with static storage duration cannot be captured in a lambda"
 ec_cannot_capture_this_by_reference;;"\"this\" cannot be captured by reference"
+ec_this_in_lambda;;"\"this\" cannot be used inside the body of a lambda"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

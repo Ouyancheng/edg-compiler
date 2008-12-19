@@ -16378,6 +16378,25 @@ is built in *operand.  It's an lvalue for the field.
 }  /* make_anonymous_union_field_operand */
 
 
+static a_boolean in_lambda_body(void)
+/*
+Return TRUE if we are currently inside the body statement of a lambda.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (lambdas_enabled) {
+    if (innermost_function_scope != NULL) {
+      if (innermost_function_scope->variant.routine.ptr->is_lambda_body) {
+        /* We're inside the body statement of a lambda. */
+        result = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* in_lambda_body */
+
+
 static a_boolean bad_nested_function_variable_ref(a_symbol_ptr    sym_ptr,
                                                   an_operand      *operand,
                                                   a_ref_entry_ptr *rep)
@@ -17269,6 +17288,44 @@ after_advance_past_id:
 
   db_exit();
 }  /* scan_identifier */
+
+
+static void scan_this(an_operand *result)
+/*
+Scan an occurrence of "this" in an expression.  Return an operand for it in
+*result.  In C++, "this" in a nonstatic member function is a non-lvalue that
+points to the object for which the member function was called.
+*/
+{
+  check_assertion(curr_token == tok_this);
+  if (depth_innermost_function_scope == NO_SCOPE_DEPTH) {
+    /* We're not inside a function. */
+    error_and_make_error_operand(ec_this_used_incorrectly, result);
+  } else if (curr_expr_kind_is_const() &&
+             /* Some modes allow this->k, where k is a constant, in a
+                constant expression. */
+             !(current_mode_allows_field_selection_folding() &&
+               next_token() == tok_arrow)) {
+    /* "this" cannot be used in a constant expression. */
+    error_and_make_error_operand(ec_expr_not_constant, result);
+  } else if (in_lambda_body()) {
+    /* "this" cannot be used in a lambda body. */
+    error_and_make_error_operand(ec_this_in_lambda, result);
+  } else {
+    a_variable_ptr this_var = 
+                         scope_stack[depth_innermost_function_scope].il_scope->
+                                           variant.routine.this_param_variable;
+    if (this_var == NULL) {
+      /* We're not inside a nonstatic member function. */
+      error_and_make_error_operand(ec_this_used_incorrectly, result);
+    } else {
+      /* Make an rvalue for the "this" variable. */
+      make_this_variable_operand(this_var, /*is_implicit=*/FALSE, result);
+      rule_out_expr_kinds(ROEK_CONSTANT, result);
+    }  /* if */
+  }  /* if */
+  (void)get_token();
+}  /* scan_this */
 
 
 static void check_for_pcc_compound_assignment_operators(void)
@@ -18192,34 +18249,8 @@ see expr.h).
                       (a_symbol_ptr *)NULL);
       break;
     case tok_this:
-      /* In C++, "this" in a nonstatic member function is a non-lvalue that
-         points to the object for which the member function was called. */
-      if (depth_innermost_function_scope == NO_SCOPE_DEPTH) {
-        /* We're not inside a function. */
-        error_and_make_error_operand(ec_this_used_incorrectly, &local_result);
-      } else if (curr_expr_kind_is_const() &&
-                 /* Some modes allow this->k, where k is a constant, in a
-                    constant expression. */
-                 !(current_mode_allows_field_selection_folding() &&
-                   next_token() == tok_arrow)) {
-        /* "this" cannot be used in a constant expression. */
-        error_and_make_error_operand(ec_expr_not_constant, &local_result);
-      } else {
-        a_variable_ptr this_var = 
-                         scope_stack[depth_innermost_function_scope].il_scope->
-                                           variant.routine.this_param_variable;
-        if (this_var == NULL) {
-          /* We're not inside a nonstatic member function. */
-          error_and_make_error_operand(ec_this_used_incorrectly,
-                                       &local_result);
-        } else {
-          /* Make an rvalue for the "this" variable. */
-          make_this_variable_operand(this_var, /*is_implicit=*/FALSE,
-                                     &local_result);
-          rule_out_expr_kinds(ROEK_CONSTANT, &local_result);
-        }  /* if */
-      }  /* if */
-      (void)get_token();
+      /* Scan "this" in a member function. */
+      scan_this(&local_result);
       break;
     case tok_func_name:
     case tok_function_name:
