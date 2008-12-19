@@ -587,9 +587,6 @@ extern int fileno(FILE *);
 /*lint -esym(714,node_operands_have_correct_lvalueness)*/
 /*lint -esym(759,tree_has_correct_lvalueness)*/
 /*lint -esym(765,tree_has_correct_lvalueness)*/
-/*lint -esym(714,initialize_opname_names)*/
-/*lint -esym(759,initialize_opname_names)*/
-/*lint -esym(765,initialize_opname_names)*/
 /*lint -esym(714,tree_has_correct_lvalueness)*/
 /*lint -esym(759,f_get_parent_scope_of)*/
 /*lint -esym(765,f_get_parent_scope_of)*/
