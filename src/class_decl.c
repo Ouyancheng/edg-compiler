@@ -544,7 +544,8 @@ the field.
     field_type = make_unqualified_type(field_type);
   }  /* if */
   fp->type = field_type;
-  field_sym = alloc_symbol(sk_field, var_sym->header, &var_sym->decl_position);
+  field_sym = alloc_symbol((a_symbol_kind)sk_field,
+                           var_sym->header, &var_sym->decl_position);
   field_sym->decl_position = *pos;
   set_source_corresp(&fp->source_corresp, field_sym);
   set_class_membership(field_sym, &fp->source_corresp, lambda->closure_class);
