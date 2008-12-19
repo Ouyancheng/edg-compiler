@@ -5479,6 +5479,25 @@ specified by tag_sym, and enter it into the symbol table.
 }  /* enter_injected_class_name_symbol */
 
 
+void enter_lambda_capture_symbol(a_symbol_ptr	sym,
+				 a_scope_depth	scope_depth)
+/*
+Enter the symbol for the field generated to represent a lambda capture
+into the symbol table.  scope_depth is the depth of the lambda closure
+class.
+*/
+{
+  a_boolean	suppress_error = FALSE;
+
+  add_symbol_to_scope_list(sym, scope_depth, &suppress_error);
+  check_assertion(!suppress_error);
+  link_symbol_into_symbol_table(sym, scope_depth, suppress_error);
+  /* Set the invisible flag to prevent the symbol from being found by
+     name lookup. */
+  sym->is_invisible = TRUE;
+}  /* enter_lambda_capture_symbol */
+
+
 a_symbol_ptr enter_typedef_symbol(a_type_ptr       type_ptr,
                                   a_symbol_locator *locator,
                                   a_scope_depth    scope_depth,

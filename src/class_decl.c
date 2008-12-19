@@ -546,9 +546,20 @@ the field.
   fp->type = field_type;
   field_sym = alloc_symbol((a_symbol_kind)sk_field,
                            var_sym->header, &var_sym->decl_position);
+  field_sym->variant.field.ptr = fp;
   field_sym->decl_position = *pos;
   set_source_corresp(&fp->source_corresp, field_sym);
   set_class_membership(field_sym, &fp->source_corresp, lambda->closure_class);
+  /* Enter the lambda symbol into the symbol table and onto the scope list.
+     The symbol is marked as invisible so that it won't be found by
+     name lookup. */
+  { a_boolean				err = FALSE;
+    a_class_type_supplement_ptr		ctsp;
+    ctsp = class_type_supp(lambda->closure_class);
+    enter_lambda_capture_symbol(field_sym,
+                                ctsp->assoc_scope->depth_in_scope_stack);
+    check_assertion(!err);
+  }
   return fp;
 }  /* make_field_for_lambda_capture */
 
@@ -15934,7 +15945,7 @@ entry, return NULL.  // FIXME: Currently never returns NULL.
   a_decl_parse_state  *dps = &decl_info.decl_state;
   a_decl_pos_block    *decl_pos_block = &decl_info.decl_pos_block;
   a_func_info_block   func_info;
-  a_decl_flag_set     sfb_flags = SFB_NEW_STRUCT_STMT_STACK_REQUIRED;
+  a_decl_flag_set     sfb_flags;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_boolean           prev_source_sequence_entries_disallowed;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -15946,14 +15957,6 @@ entry, return NULL.  // FIXME: Currently never returns NULL.
   /* Parse the lambda-introducer. */
   check_assertion(curr_token == tok_lbracket);
   lambda->start_position = pos_curr_token;
-  (void)get_token();
-  add_stop_token(tok_rbracket);
-  scan_lambda_capture_list(lambda);
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  lambda->capture_end_position = end_pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  (void)required_token(tok_rbracket, ec_exp_rbracket);
-  remove_stop_token(tok_rbracket);
   /* Initialize the closure class and set up a context in which members
      can be added. */
   lambda->closure_class = closure_class =
@@ -15969,6 +15972,15 @@ entry, return NULL.  // FIXME: Currently never returns NULL.
              push_scope((a_scope_kind)sck_class_struct_union, NO_SCOPE_NUMBER,
                         closure_class, (a_routine_ptr)NULL);
   scope_stack_top().class_def_state = &class_state;
+  /* Scan the lambda capture list. */
+  (void)get_token();
+  add_stop_token(tok_rbracket);
+  scan_lambda_capture_list(lambda);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  lambda->capture_end_position = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  (void)required_token(tok_rbracket, ec_exp_rbracket);
+  remove_stop_token(tok_rbracket);
   /* Parse the parameter list and, optionally, a mutable specifier, an
      exception specification, and/or a return type specification. */
   initialize_member_decl_info(&decl_info, &pos_curr_token);
@@ -15987,10 +15999,10 @@ entry, return NULL.  // FIXME: Currently never returns NULL.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   source_sequence_entries_disallowed = prev_source_sequence_entries_disallowed;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  /* Record the capture list and complete the closure class. */
-  complete_class_definition(closure_class, decl_scope_level-1, &class_state);
-  pop_scope();
-  /* Parse the body of the lambda. */
+  /* Parse the body of the lambda.  A class reactivation is not pushed for
+     the lambda closure class because it is still on the scope stack. */
+  sfb_flags = SFB_NEW_STRUCT_STMT_STACK_REQUIRED |
+              SFB_NO_CLASS_REACTIVATION;
   scan_function_body(lambda->lambda_routine, &func_info, sfb_flags);
   if (curr_token == tok_rbrace) {
     /* Don't use required_token, because we aren't at a brace, an error has
@@ -15998,6 +16010,9 @@ entry, return NULL.  // FIXME: Currently never returns NULL.
        with. */
     (void)get_token();
   }  /* if */
+  /* Record the capture list and complete the closure class. */
+  complete_class_definition(closure_class, decl_scope_level-1, &class_state);
+  pop_scope();
   return lambda;
 }  /* scan_lambda */
 
