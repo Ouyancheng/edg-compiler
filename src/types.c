@@ -8761,31 +8761,6 @@ it is or contains a tk_template_param type entry or a nonreal class.
 }  /* is_template_dependent_type */
 
 
-a_boolean routine_type_might_be_template_dependent(a_type_ptr  rtp)
-/*
-Return TRUE if the given routine type might have a template-dependent
-component.  This could mean it has a dependent type (which we determine
-reliably), or that its default arguments are template-dependent (where we
-just assume that the default arguments may be template-dependent; the caller
-can tighten the test by excluding non-template contexts).
-*/
-{
-  a_boolean   result = is_template_dependent_type(rtp);
-
-  check_assertion(is_function_type(rtp));
-  if (!result) {
-    a_param_type_ptr  ptp = skip_typerefs(rtp)->variant.routine.extra_info
-                                              ->param_type_list;
-    for (; ptp != NULL; ptp = ptp->next) {
-      if (ptp->has_default_arg) {
-        result = TRUE;
-        break;
-      }  /* if */
-    }  /* for */
-  }  /* if */
-  return result;
-}  /* routine_type_might_be_template_dependent */
-
 a_boolean is_or_contains_template_param(a_type_ptr  type_ptr)
 /*
 Return TRUE if the type pointed to by type_ptr is itself a tk_template_param

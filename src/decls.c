@@ -6061,17 +6061,6 @@ is_function_def is TRUE if the redeclaration is a definition.
 }  /* check_incompatible_routine_redecl */
 
 
-/*
-Macro that returns TRUE if a routine type cannot be recorded in the IL tree.
-Specifically, it returns FALSE if the type may have a template-dependent
-component (e.g., a default argument) and prototype instantiations aren't
-recorded in the IL.
-*/
-#define routine_type_can_be_recorded_in_il(tp)                               \
-  (!prototype_instantiations_in_il &&                                        \
-   scope_stack[depth_scope_stack].in_prototype_instantiation &&              \
-   routine_type_might_be_template_dependent(tp))
-
 static a_symbol_ptr create_external_symbol_for_routine(
                          a_symbol_locator       *locator,
                          a_type_ptr             type_ptr,
@@ -6106,7 +6095,8 @@ to point to a routine entry attached to an existing compatible external symbol
     /* We're dealing with a template instance (or an explicit specialization):
        Do not create an external symbol.  (External symbols cannot really deal
        with template signatures anyway.) */
-  } else if (routine_type_can_be_recorded_in_il(type_ptr)) {
+  } else if (scope_stack[depth_scope_stack].in_prototype_instantiation &&
+             !prototype_instantiations_in_il) {
     /* The declaration appeared during a prototype instantiation, but we
        will not record the prototype instantiation in the IL. */
   } else {
@@ -7066,7 +7056,8 @@ skip_overloading:;
        definitions to the list. */
     a_scope_depth  scope_depth = depth_innermost_namespace_scope;
 
-    if (routine_type_can_be_recorded_in_il(type_ptr) ||
+    if ((scope_stack[depth_scope_stack].in_prototype_instantiation &&
+         !prototype_instantiations_in_il) ||
         microsoft_specialization_redef) {
       scope_depth = NO_SCOPE_DEPTH;
     } else if ((linkage == idl_external || sun_mode) &&
