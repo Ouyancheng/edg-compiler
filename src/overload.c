@@ -5494,7 +5494,20 @@ dependent context.
   a_boolean defer = FALSE;
 
   check_assertion(is_template_dependent_context());
-  if (any_function_has_dependent_param_or_default_arg(sym)) {
+  if (is_block_extern_symbol(sym)) {
+    /* We never do overload resolution on block extern declarations.
+       In general, it's not a good idea to select and record a block extern as
+       the result of a nondependent call, because the routine and symbol
+       found in the prototype instantiation may not be the same as the ones
+       found in the real instantiation.  That's particularly clear when
+       the block extern has a dependent type, but there are other troublesome
+       cases, for example when the parameter or return types could make use
+       of (nondependent) typedefs that are local to the function.
+       In addition, declaration processing does not generally enter any
+       block externs in prototype instantiations into the IL, so emitting
+       a reference to such a routine is likely to be a dangling reference. */
+    defer = TRUE;
+  } else if (any_function_has_dependent_param_or_default_arg(sym)) {
     /* If any function in the set has a dependent parameter type we cannot
        do overload resolution.  If any function has a dependent default
        argument expression, we might be able to determine the function
