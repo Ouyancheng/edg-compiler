@@ -4362,6 +4362,14 @@ NULL.
           /* "asm" functions don't generate any code unless referenced,
              and may appear in header files, so no warning is generated. */
 #endif /* ASM_FUNCTION_ALLOWED */
+        } else if (scope_stack[depth_scope_stack].in_prototype_instantiation &&
+                   (scope_kind == (a_scope_kind)sck_function ||
+                    scope_kind == (a_scope_kind)sck_block)) {
+          /* A local function declaration in a prototype instantiation.  If it
+             is a nondependent declaration, it could potentially have internal
+             linkage, but the "referenced" flag in prototype instantiation
+             contexts is unreliable since overload resolution cannot be done
+             until a real instantiation.  So don't issue a diagnostic here. */
         } else {
           /* An unreferenced routine. */
           report_unreferenced(sym, ec_declared_but_not_referenced,
