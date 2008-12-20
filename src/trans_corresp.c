@@ -4922,7 +4922,7 @@ template.
     if (trans_unit_corresp_of_unknown_entry(templ) == NULL) {
       /* Ensure templ has an associated correspondence node (so it will be
          considered "canonical" rather than "unvisited"). */
-      //set_no_trans_unit_corresp(iek_template, templ);
+      set_no_trans_unit_corresp(iek_template, templ);
     }  /* if */
     if (is_class_struct_union_symbol(inst)) {
       a_type_ptr               prim = type_symbol_type(inst);
