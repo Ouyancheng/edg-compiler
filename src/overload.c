@@ -5494,20 +5494,7 @@ dependent context.
   a_boolean defer = FALSE;
 
   check_assertion(is_template_dependent_context());
-  if (is_block_extern_symbol(sym)) {
-    /* We never do overload resolution on block extern declarations.
-       In general, it's not a good idea to select and record a block extern as
-       the result of a nondependent call, because the routine and symbol
-       found in the prototype instantiation may not be the same as the ones
-       found in the real instantiation.  That's particularly clear when
-       the block extern has a dependent type, but there are other troublesome
-       cases, for example when the parameter or return types could make use
-       of (nondependent) typedefs that are local to the function.
-       In addition, declaration processing does not generally enter any
-       block externs in prototype instantiations into the IL, so emitting
-       a reference to such a routine is likely to be a dangling reference. */
-    defer = TRUE;
-  } else if (any_function_has_dependent_param_or_default_arg(sym)) {
+  if (any_function_has_dependent_param_or_default_arg(sym)) {
     /* If any function in the set has a dependent parameter type we cannot
        do overload resolution.  If any function has a dependent default
        argument expression, we might be able to determine the function
@@ -6045,11 +6032,17 @@ in_instantiation:
   free_candidate_function_list(candidate_functions);
 have_function:
   if (do_dependent_name_processing && is_prototype_instantiation_context() &&
-      !dependent_call && do_arg_dep_lookup) {
+      !dependent_call && do_arg_dep_lookup &&
+      !(function_symbol != NULL && is_block_extern_symbol(function_symbol))) {
     /* Record the outcome of overload resolution for a nondependent call
        in a prototype instantiation.  Dependent calls in such a context
        don't get here.  Calls where argument-dependent lookup is turned
-       off are not recorded; they're considered non-dependent. */
+       off are not recorded; they're considered non-dependent.  Also
+       block externs, which usually do not require special handling
+       because do_arg_dep_lookup is FALSE for them in standard mode,
+       but might come up in other modes, and should not be recorded
+       because they might have dependent return types or might depend
+       on (nondependent) typedefs in the prototype instantiation. */
     /* Note that function_symbol can be NULL here, e.g., for a call of
        a (possibly dependent) block extern declaration, which must be
        resolved in the real instantiation. */
