@@ -15898,6 +15898,9 @@ consumed by the caller.  The grammar to be parsed is thus:
         } else if (has_static_storage_duration(
                                 sym->variant.variable.ptr->storage_class)) {
           error(ec_capture_of_static_duration_variable);
+        } else if (!variable_can_potentially_be_captured(
+                                                 sym->variant.variable.ptr)) {
+          error(ec_captured_local_var_not_in_innermost_function);
         } else {
           var = sym->variant.variable.ptr;
         }  /* if */

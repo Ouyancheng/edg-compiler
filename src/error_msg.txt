@@ -1784,6 +1784,7 @@ ec_this_in_lambda;;"\"this\" cannot be used inside the body of a lambda"
 ec_anon_union_ref_in_lambda;;"a member of an outer-scope anonymous union cannot be referenced inside the body of a lambda"
 ec_not_captured_local_var_in_lambda;;"an outer-scope local variable cannot be referenced in a lambda body unless it is in the capture list"
 ec_bad_local_var_in_lambda;;"invalid reference to an outer-scope local variable in a lambda body"
+ec_captured_local_var_not_in_innermost_function;;"a local variable outside the current function scope cannot be captured"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
