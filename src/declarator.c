@@ -2378,18 +2378,18 @@ and/or a lambda return type.
   /* Check for an explicit return type. */
   if (curr_token == tok_arrow) {
     a_source_position  pos_return_type;
-    a_type_ptr         return_type;
+    a_type_ptr         return_type, bottom_derived_type;
     lambda->explicit_return_type = TRUE;
     (void)get_token();
     pos_return_type = pos_curr_token;
     type_name(&return_type);
-    error_position = pos_return_type;
-    if (!check_return_type(return_type, dps)) {
-      return_type = error_type();
-      error_position = pos_curr_token;
-    }  /* if */
-    func_type->variant.routine.return_type = return_type;
-    set_routine_calling_method_flag(func_type, &pos_return_type);
+    bottom_derived_type = func_type;
+    add_to_derived_type_list(return_type, &func_type, &bottom_derived_type,
+                             dps, /*parameter_type=*/FALSE,
+                             /*microsoft_property=*/FALSE);
+    check_assertion(is_function_type(func_type));
+  } else {
+    func_type->variant.routine.return_type = unknown_type();
   }  /* if */
   dps->type = func_type;
 }  /* scan_lambda_declarator */

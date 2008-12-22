@@ -16004,6 +16004,8 @@ entry, return NULL.  // FIXME: Currently never returns NULL.
   sfb_flags = SFB_NEW_STRUCT_STMT_STACK_REQUIRED |
               SFB_NO_CLASS_REACTIVATION;
   scan_function_body(lambda->lambda_routine, &func_info, sfb_flags);
+  check_assertion(
+              !is_unknown_type(return_type_of(lambda->lambda_routine->type)));
   if (curr_token == tok_rbrace) {
     /* Don't use required_token, because we aren't at a brace, an error has
        already been issued, and we will be at the token to restart parsing
