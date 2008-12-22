@@ -5852,6 +5852,11 @@ be delayed until the end of the compilation.
        The lowering will be done later -- see
        finish_processing_for_function_bodies. */
     delay_lowering = TRUE;
+  } else if (routine->is_lambda_body) {
+    /* Lambda bodies are scanned while the parent closure class is still
+       on the scope stack.  The lowering of the lambda body must be delayed
+       until the closure class has been completed. */
+    delay_lowering = TRUE;
   } else if (!C_mode() && export_template_allowed &&
              routine->storage_class == (a_storage_class)sc_static &&
              (scope->variables != NULL || scope->types != NULL ||
