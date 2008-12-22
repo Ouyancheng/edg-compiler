@@ -16415,44 +16415,39 @@ fields that contain the captures of local variables.
 }  /* this_variable_for_lambda_closure */
 
 
-a_boolean variable_can_potentially_be_captured(a_variable_ptr var)
+a_boolean var_declared_in_func_enclosing_curr_lambda(a_variable_ptr var)
 /*
-Return TRUE if the given variable can potentially be added to the
-capture list of the current lambda, i.e., if it is an auto local variable
-or parameter of the function immediately enclosing the lambda.
+Return TRUE if the given variable is a local variable or parameter of the
+function immediately enclosing the current lambda.  This is one of the
+conditions for being able to capture the variable.
 */
 {
-  a_boolean result = FALSE;
+  a_boolean     result = FALSE;
+  a_scope_depth sd;
 
-  if (lambdas_enabled) {
-    /* Only auto variables and parameters can be captured. */
-    if (!has_static_storage_duration(var->storage_class)) {
-      /* Find the scope stack entry for the lambda. */
-      a_scope_depth sd;
-      for (sd = depth_scope_stack; ; sd = scope_stack[sd].previous_scope) {
-        check_assertion(sd > DEPTH_OF_FILE_SCOPE);
-        if (scope_stack[sd].kind == (a_scope_kind)sck_class_struct_union) {
-          a_type_ptr class_type = scope_stack[sd].assoc_type;
-          /* Keep going if we're in a local class of the lambda. */
-          if (class_type_supp(class_type)->lambda != NULL) break;
-        }  /* if */
-      }  /* for */
-      /* Look at the block and function scopes immediately enclosing the
-         lambda class to see if the variable is declared there. */
-      for (sd--;
-           (scope_stack[sd].kind == (a_scope_kind)sck_block ||
-            scope_stack[sd].kind == (a_scope_kind)sck_function);
-           sd--) {
-        if (scope_stack[sd].il_scope == var->source_corresp.parent_scope) {
-          /* The variable is in an appropriate scope and can be captured. */
-          result = TRUE;
-          break;
-        }  /* if */
-      }  /* for */
+  /* Find the scope stack entry for the lambda. */
+  for (sd = depth_scope_stack; ; sd = scope_stack[sd].previous_scope) {
+    check_assertion(sd > DEPTH_OF_FILE_SCOPE);
+    if (scope_stack[sd].kind == (a_scope_kind)sck_class_struct_union) {
+      a_type_ptr class_type = scope_stack[sd].assoc_type;
+      /* Keep going if we're in a local class of the lambda. */
+      if (class_type_supp(class_type)->lambda != NULL) break;
     }  /* if */
-  }  /* if */
+  }  /* for */
+  /* Look at the block and function scopes immediately enclosing the
+     lambda class to see if the variable is declared there. */
+  for (sd--;
+       (scope_stack[sd].kind == (a_scope_kind)sck_block ||
+        scope_stack[sd].kind == (a_scope_kind)sck_function);
+       sd--) {
+    if (scope_stack[sd].il_scope == var->source_corresp.parent_scope) {
+      /* The variable is in an appropriate scope and can be captured. */
+      result = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
   return result;
-}  /* variable_can_potentially_be_captured */
+}  /* var_declared_in_func_enclosing_curr_lambda */
 
 
 static a_boolean bad_nested_function_variable_ref(
@@ -16533,7 +16528,7 @@ indicates that the symbol is an anonymous union and cannot be captured.
                 err_code = ec_anon_union_ref_in_lambda;
                 bad_ref = TRUE;
               } else {
-                if (variable_can_potentially_be_captured(var)) {
+                if (var_declared_in_func_enclosing_curr_lambda(var)) {
                   /* The local variable is from the immediately enclosing
                      function, so it can potentially be captured.  See if
                      it has been or can be captured now. */
