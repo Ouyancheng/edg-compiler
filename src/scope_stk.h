@@ -1188,8 +1188,9 @@ extern void push_instantiation_scope_for_templ_param_rescan(
 
 extern void pop_template_instantiation_scope(void);
 
-extern void finish_function_body_processing(a_scope_ptr scope,
-                                            a_boolean   discard_function_body);
+extern void finish_function_processing_for_memory_region(
+                                           a_memory_region_number n,
+                                           a_boolean              only_inline);
 
 /* End a name scope. */
 extern void pop_scope(void);

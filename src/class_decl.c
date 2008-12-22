@@ -16018,6 +16018,12 @@ entry, return NULL.  // FIXME: Currently never returns NULL.
   /* Record the capture list and complete the closure class. */
   complete_class_definition(closure_class, decl_scope_level-1, &class_state);
   pop_scope();
+  /* Lowering of the lambda body function is deferred because the
+     closure class was not complete when the function was scanned.  Now that
+     the closure class is complete, do the lowering of the lambda body
+     (if needed). */
+  finish_function_processing_for_memory_region(
+                   lambda->lambda_routine->assoc_scope, /*only_inline=*/FALSE);
   return lambda;
 }  /* scan_lambda */
 
