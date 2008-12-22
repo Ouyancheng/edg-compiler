@@ -16397,9 +16397,69 @@ Return TRUE if we are currently inside the body statement of a lambda.
 }  /* in_lambda_body */
 
 
-static a_boolean bad_nested_function_variable_ref(a_symbol_ptr    sym_ptr,
-                                                  an_operand      *operand,
-                                                  a_ref_entry_ptr *rep)
+static a_variable_ptr this_variable_for_lambda_closure(void)
+/*
+We're currently inside a lambda body.  Return a pointer to the "this" variable
+for the lambda closure class, which is used among other things to access the
+fields that contain the captures of local variables.
+*/
+{
+  a_variable_ptr this_var;
+
+  check_assertion(innermost_function_scope != NULL &&
+                  innermost_function_scope->variant.routine.ptr->
+                                                               is_lambda_body);
+  this_var = innermost_function_scope->variant.routine.this_param_variable;
+  check_assertion(this_var != NULL && this_var->is_this_parameter);
+  return this_var;
+}  /* this_variable_for_lambda_closure */
+
+
+a_boolean variable_can_potentially_be_captured(a_variable_ptr var)
+/*
+Return TRUE if the given variable can potentially be added to the
+capture list of the current lambda, i.e., if it is an auto local variable
+or parameter of the function immediately enclosing the lambda.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (lambdas_enabled) {
+    /* Only auto variables and parameters can be captured. */
+    if (!has_static_storage_duration(var->storage_class)) {
+      /* Find the scope stack entry for the lambda. */
+      a_scope_depth sd;
+      for (sd = depth_scope_stack; ; sd = scope_stack[sd].previous_scope) {
+        check_assertion(sd > DEPTH_OF_FILE_SCOPE);
+        if (scope_stack[sd].kind == (a_scope_kind)sck_class_struct_union) {
+          a_type_ptr class_type = scope_stack[sd].assoc_type;
+          /* Keep going if we're in a local class of the lambda. */
+          if (class_type_supp(class_type)->lambda != NULL) break;
+        }  /* if */
+      }  /* for */
+      /* Look at the block and function scopes immediately enclosing the
+         lambda class to see if the variable is declared there. */
+      for (sd--;
+           (scope_stack[sd].kind == (a_scope_kind)sck_block ||
+            scope_stack[sd].kind == (a_scope_kind)sck_function);
+           sd--) {
+        if (scope_stack[sd].il_scope == var->source_corresp.parent_scope) {
+          /* The variable is in an appropriate scope and can be captured. */
+          result = TRUE;
+          break;
+        }  /* if */
+      }  /* for */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* variable_can_potentially_be_captured */
+
+
+static a_boolean bad_nested_function_variable_ref(
+                                          a_symbol_ptr         sym_ptr,
+                                          an_operand           *operand,
+                                          a_ref_entry_ptr      *rep,
+                                          a_lambda_capture_ptr *lambda_capture)
 /*
 sym_ptr is a symbol for a variable being referenced in an expression.
 Issue an error and return TRUE if the reference is invalid because either
@@ -16417,12 +16477,21 @@ error_position is used for the position of any error or warning.
 operand is the operand for the variable reference, and *rep is the list
 of reference entries for the reference.  On an error, they are updated
 to reflect the error.
+
+If we are inside a lambda, check also that if the local variable is not
+local to the lambda it can be referenced via an explicit or implicit
+capture.  If so, return *lambda_capture set to the capture entry for
+the variable.  If not, issue an error set *lambda_capture to NULL,
+and return TRUE indicating an invalid reference.  lambda_capture NULL
+indicates that the symbol is an anonymous union and cannot be captured.
 */
 {
   a_boolean      bad_ref = FALSE;
   a_scope_depth  sd;
   a_variable_ptr var;
+  an_error_code  err_code = ec_no_error;
 
+  if (lambda_capture != NULL) *lambda_capture = NULL;
   /* This sort of bad reference is only possible when we are inside a local
      class (the class itself or one of its member functions) or a
      default argument expression. */
@@ -16455,6 +16524,32 @@ to reflect the error.
               /* Allow references to constant-valued variables in constant
                  expressions.  This is not supported by the standard
                  as of May 2008, but we're opening a core issue. */
+            } else if (in_lambda_body()) {
+              /* This reference is in the body of a lambda. */
+              if (lambda_capture == NULL) {
+                /* The variable is the parent for an anonymous union, so
+                   the reference is not allowed. */
+                check_assertion(var->is_anonymous_parent_object);
+                err_code = ec_anon_union_ref_in_lambda;
+                bad_ref = TRUE;
+              } else {
+                if (variable_can_potentially_be_captured(var)) {
+                  /* The local variable is from the immediately enclosing
+                     function, so it can potentially be captured.  See if
+                     it has been or can be captured now. */
+                  *lambda_capture =
+                             lambda_capture_for_variable(var, &error_position);
+                  if (*lambda_capture == NULL) {
+                    err_code = ec_not_captured_local_var_in_lambda;
+                    bad_ref = TRUE;
+                  }  /* if */
+                } else {
+                  /* Something like a local variable of a function that's not
+                     the immediately enclosing function. */
+                  err_code = ec_bad_local_var_in_lambda;
+                  bad_ref = TRUE;
+                }  /* if */
+              }  /* if */
             } else if (!strict_ansi_mode &&
                        !expr_stack->potentially_evaluated &&
                        (!expr_stack->is_decltype_or_typeof_arg_expression ||
@@ -16498,7 +16593,8 @@ to reflect the error.
   }  /* if */
   if (bad_ref) {
     /* Issue the error. */
-    error_and_make_error_operand(ec_ref_to_nested_function_var, operand);
+    if (err_code == ec_no_error) err_code = ec_ref_to_nested_function_var;
+    error_and_make_error_operand(err_code, operand);
     /* Avoid further diagnostics by making this an error reference. */
     change_refs_to_error(*rep);
     *rep = NULL;
@@ -16695,6 +16791,8 @@ If p_sym_ptr is not NULL, set *p_sym_ptr to point to the symbol scanned
   a_boolean          force_indefinite_function = FALSE;
   a_boolean          okay_for_integral_const_expr = FALSE;
   a_boolean          nonstd_field_folding_case;
+  a_lambda_capture_ptr
+                     lambda_capture;
   an_expression_kind saved_expr_kind;
 
   db_enter(4, "scan_identifier");
@@ -16866,13 +16964,29 @@ If p_sym_ptr is not NULL, set *p_sym_ptr to point to the symbol scanned
         case sk_variable:
           var_ptr = sym_ptr->variant.variable.ptr;
 variable:
+          okay_for_integral_const_expr = TRUE;
           /* If we're inside a local class, we are not allowed to reference
              non-static variables of the containing function.  If we're
              inside a default argument expression, we're not allowed to
              reference local variables of any containing function.
              Check for those. */
-          if (bad_nested_function_variable_ref(sym_ptr, result, &rep)) {
+          if (bad_nested_function_variable_ref(sym_ptr, result, &rep,
+                                               &lambda_capture)) {
             /* Error. */
+          } else if (lambda_capture != NULL) {
+            /* This is a local variable referenced via a lambda capture.
+               Use "closure_this->closure_field" in place of the variable. */
+            an_expr_node_ptr sel_expr;
+            a_variable_ptr   this_var = this_variable_for_lambda_closure();
+            an_expr_node_ptr lambda_this = var_rvalue_expr(this_var);
+            a_field_ptr      closure_field = lambda_capture->closure_field;
+            sel_expr = field_lvalue_selection_expr(lambda_this,
+                                                   closure_field);
+            make_lvalue_expression_operand(sel_expr, result);
+            if (is_reference_type(closure_field->type)) {
+              add_reference_indirection(result);
+            }  /* if */
+            okay_for_integral_const_expr = FALSE;
           } else if (!C_mode() && curr_expr_kind_is(ek_integral_constant) &&
                      is_const_variable(var_ptr) &&
                      var_constant_value(var_ptr) == NULL) {
@@ -16901,7 +17015,6 @@ variable:
           } else {
             set_operand_name_reference_from_locator_for_curr_id(result);
           }  /* if */
-          okay_for_integral_const_expr = TRUE;
           break;
         case sk_routine:
           if (force_indefinite_function) {
@@ -16975,8 +17088,10 @@ normal_function:
               error_and_make_error_operand(ec_expr_not_constant, result);
               change_refs_to_error(rep);
               rep = NULL;
-            } else if (bad_nested_function_variable_ref(anon_var_sym,
-                                                        result, &rep)) {
+            } else if (bad_nested_function_variable_ref(
+                                                  anon_var_sym,
+                                                  result, &rep,
+                                                  (a_lambda_capture **)NULL)) {
               /* If we're inside a local class, we are not allowed to reference
                  non-static variables of the containing function.  If we're
                  inside a default argument expression, we're not allowed to

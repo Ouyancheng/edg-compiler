@@ -278,6 +278,8 @@ extern an_expr_node_ptr make_assignment_expr(
                                       an_expr_operator_kind  op,
                                       an_expr_node_ptr       rvalue_expr);
 
+extern a_boolean variable_can_potentially_be_captured(a_variable_ptr var);
+
 extern a_boolean current_mode_allows_field_selection_folding(void);
 
 extern a_boolean compute_is_convertible(a_type_ptr  src_type,
