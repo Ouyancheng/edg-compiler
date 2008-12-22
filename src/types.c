@@ -8670,36 +8670,39 @@ a_boolean is_invalid_template_arg_type(a_type_ptr  type_ptr,
 /*
 Return TRUE if the type pointed to by type_ptr contains a class, struct,
 union or enum type that cannot be part of a template argument type.  In
-C++98/C++03 this excludes class/enum types with no name linkage.  In some
-Microsoft modes, however, local types are acceptable.  If the result is
-TRUE then *is_unnamed or *is_local are set when the type traversal
-encountered a component that is, respectively, unnamed or local (since the
-traversal stops early, another component with a different property may also
-keep the type from having linkage without it being reflected in the values
-returned).  GNU C++ mode allows variable-length array types, but they are not
-valid template argument types: If one is encountered, FALSE is returned and
-*is_vla is set to TRUE.
+C++98/C++03 (but not C++0x) this excludes class/enum types with no name
+linkage.  In some Microsoft modes, however, local types are acceptable.  If
+the result is TRUE then *is_unnamed or *is_local are set when the type
+traversal encountered a component that is, respectively, unnamed or local
+(since the traversal stops early, another component with a different property
+may also keep the type from having linkage without it being reflected in the
+values returned).  GNU C++ mode allows variable-length array types, but they
+are not valid template argument types: If one is encountered, FALSE is
+returned and *is_vla is set to TRUE.
 */
 {
-  a_boolean			  result;
-  a_type_tree_traversal_flag_set  ttt_flags = (TTT_RETURN_TYPE |
-                                               TTT_THIS_PARAM_TYPE |
-                                               TTT_PARAM_TYPES |
-                                               TTT_EXCEPTION_SPECS |
-                                               TTT_SKIP_TYPEREFS);
-
+  a_boolean			  result = FALSE;
   /* Clear the variables that are used to return status information from
      ttt_is_type_with_no_name_linkage or ttt_is_unnamed_class_or_enum. */
   is_local_type = FALSE;
   is_unnamed_type = FALSE;
-  if (microsoft_mode && microsoft_version >= 1400) {
-    /* Recent Microsoft compilers accept local types as template arguments
-       (though they do not apparently given those types external linkage). */
-    result = (traverse_type_tree(type_ptr, ttt_is_unnamed_class_or_enum,
-                                 ttt_flags));
-  } else {
-    result = (traverse_type_tree(type_ptr, ttt_is_type_with_no_name_linkage,
-                                 ttt_flags));
+  /* Local and unnamed types are allowed in C++0x. */
+  if (!cpp0x_mode) {
+    a_type_tree_traversal_flag_set  ttt_flags = (TTT_RETURN_TYPE |
+                                                 TTT_THIS_PARAM_TYPE |
+                                                 TTT_PARAM_TYPES |
+                                                 TTT_EXCEPTION_SPECS |
+                                                 TTT_SKIP_TYPEREFS);
+
+    if (microsoft_mode && microsoft_version >= 1400) {
+      /* Recent Microsoft compilers accept local types as template arguments
+         (though they do not apparently given those types external linkage). */
+      result = (traverse_type_tree(type_ptr, ttt_is_unnamed_class_or_enum,
+                                   ttt_flags));
+    } else {
+      result = (traverse_type_tree(type_ptr, ttt_is_type_with_no_name_linkage,
+                                   ttt_flags));
+    }  /* if */
   }  /* if */
   *is_unnamed = is_unnamed_type;
   *is_local = is_local_type;
