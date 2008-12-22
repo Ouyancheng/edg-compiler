@@ -5085,10 +5085,20 @@ in which such a return is undefined.
   } else {
     /* Get the routine return type. */
     tp = skip_typerefs(rout->type)->variant.routine.return_type;
-    /* A void return in a void function is okay.  In other kinds of functions,
-       a diagnostic may be appropriate. */
-    if (!is_void_type(tp) && !is_error_type(tp) &&
-        !is_template_param_type(tp)) {
+    if (is_void_type(tp) || is_template_param_type(tp) || is_error_type(tp)) {
+      /* A void return in a void function is okay.  Unknown template-dependent
+         return type must be assumed to be okay.  Similarly, when recovering
+         from errors we assume the intended type would have been acceptable. */
+    } else if (is_unknown_type(tp)) {
+      /* Lambdas can omit the return type.  In such cases, the return type is
+         left as "tk_unknown" until an explicit return type has been
+         encountered.  If none was encountered, the return type is "void". */
+      check_assertion(rout->is_lambda_body);
+      check_assertion(!class_type_supp(parent_class_of(rout))
+                                              ->lambda->explicit_return_type);
+      check_assertion(rout->type->kind == (a_type_kind)tk_routine);
+      rout->type->variant.routine.return_type = void_type();
+    } else {
       /* A return without an expression in a non-void function.  Unless a
          special case applies, this case deserves a diagnostic. */
       issue_no_value_returned_diag = TRUE;
