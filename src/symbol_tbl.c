@@ -10695,8 +10695,6 @@ Clear the fields of a function information block to default values.
 #endif /* FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS */
   func_info->declarator_ssep                = NULL;
   func_info->declared_type                  = NULL;
-  func_info->prototype_scope_ss_entry_start = NULL;
-  func_info->prototype_scope_ss_entry_end   = NULL;
   func_info->prototype_scope_ss_list        = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if USER_CONTROL_OF_STRUCT_PACKING

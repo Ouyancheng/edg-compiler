@@ -1244,21 +1244,10 @@ typedef struct a_func_info_block {
 			/* The routine type as it actually appears in the
 			   current declaration. */
   a_source_sequence_entry_ptr
-		prototype_scope_ss_entry_start;
-			/* Pointer to a file-scope source sequence entry that
-			   immediately precedes the first entry generated for
-			   declarations in the function prototype scope; NULL
-			   indicates that the first function prototype entry
-			   is also the first on the file-scope list.  (Also
-			   NULL if param_id_list is NULL.) */
-  a_source_sequence_entry_ptr
-		prototype_scope_ss_entry_end;
-			/* Pointer to a file-scope source sequence entry that
-			   is the last entry generated for declarations in the
-                           function prototype scope; NULL if there no entries
-                           and prototype_scope_ss_entry_end is also NULL. */
-  a_source_sequence_entry_ptr
 		prototype_scope_ss_list;
+			/* Pointer to the list of source sequence entries
+			   generated for the parameter declarations of a
+			   function declarator (if any). */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if USER_CONTROL_OF_STRUCT_PACKING
       a_targ_alignment
