@@ -8090,6 +8090,11 @@ Render code for the given expression node, which represents a lambda.
   read_memory_region(scope_region_number);
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
   scope = il_header.region_scope_entry[scope_region_number];
+  save_source_sequence_scan_state(&saved_state);
+  curr_source_sequence_entry = scope->source_sequence_list;
+  adv_to_signif_source_sequence_entry();
+  save_function_state(&state);
+  innermost_function_scope = scope;
   gen_function_declarator_with_scope(rp->type, scope, /*top_level_decl=*/TRUE,
                                      /*suppress_def_args=*/FALSE);
   if (lambda->explicit_return_type) {
@@ -8097,11 +8102,6 @@ Render code for the given expression node, which represents a lambda.
     gen_type(skip_typerefs(rp->type)->variant.routine.return_type);
   }  /* if */
   write_space();
-  save_source_sequence_scan_state(&saved_state);
-  curr_source_sequence_entry = scope->source_sequence_list;
-  adv_to_signif_source_sequence_entry();
-  save_function_state(&state);
-  innermost_function_scope = scope;
   push_name_context(scope);
   gen_statement(scope->assoc_block);
   pop_name_context();
