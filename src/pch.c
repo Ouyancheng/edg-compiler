@@ -1295,7 +1295,7 @@ file.  See write_a_memory_region for more information.
 static void write_memory_regions(void)
 /*
 Write the memory region information to the PCH output file.  This includes
-header information about the memory regions such as the memory_region_table.
+header information about the memory regions such as the mem_region_table.
 */
 {
   a_memory_region_number	mem_regions_used;
@@ -1342,7 +1342,7 @@ header information about the memory regions such as the memory_region_table.
 static void read_memory_regions(void)
 /*
 Read the memory region information from the PCH output file.  This includes
-header information about the memory regions such as the memory_region_table.
+header information about the memory regions such as the mem_region_table.
 */
 {
   a_memory_region_number	mem_regions_used;
