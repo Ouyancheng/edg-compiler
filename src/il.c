@@ -9470,7 +9470,7 @@ a lambda body, return the associated lambda entry.  Otherwise, return NULL.
     if (rp->is_lambda_body) {
       a_type_ptr  closure_class;
       check_assertion(rp->source_corresp.is_class_member);
-      closure_class = skip_typerefs(parent_class_of(rp));
+      closure_class = parent_class_of(rp);
       lambda = class_type_supp(closure_class)->lambda;
       check_assertion(lambda != NULL);
     }  /* if */
