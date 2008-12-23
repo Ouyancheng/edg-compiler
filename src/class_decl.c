@@ -15878,8 +15878,13 @@ consumed by the caller.  The grammar to be parsed is thus:
       if (curr_token == tok_this) {
         /* Capture of "this" from an enclosing class.  (This is not the "this"
            of a closure class member.) */
-        if (innermost_function_scope == NULL ||
-            innermost_function_scope
+        a_scope_depth  memfun_depth;
+        check_assertion(scope_stack_top().kind ==
+                                        (a_scope_kind)sck_class_struct_union);
+        memfun_depth =
+              scope_stack[depth_scope_stack-1].depth_innermost_function_scope;
+        if (memfun_depth == NO_SCOPE_DEPTH ||
+            scope_stack[memfun_depth].il_scope
                               ->variant.routine.this_param_variable == NULL) {
           /* We should be in a nonstatic member function. */
           error(ec_this_used_incorrectly);
@@ -15887,7 +15892,8 @@ consumed by the caller.  The grammar to be parsed is thus:
           /* "&this" is not allowed in a capture list. */
           pos_error(ec_cannot_capture_this_by_reference, &pos_capture);
         } else {
-          var = innermost_function_scope->variant.routine.this_param_variable;
+          var = scope_stack[memfun_depth].il_scope
+                                        ->variant.routine.this_param_variable;
         }  /* if */
         (void)get_token();
       } else if (curr_token == tok_identifier) {
