@@ -8056,8 +8056,12 @@ Render the list of lambda captures, including the delimiting brackets.
     if (comma_needed) write_tok_str(", ");
     if (!lcp->is_implicit) {
       if (lcp->capture_by_reference) write_tok_str("&");
-      gen_bare_name(&lcp->variable->source_corresp,
-                    (an_il_entry_kind)iek_variable);
+      if (lcp->variable->is_this_parameter) {
+        write_tok_str("this");
+      } else {
+        gen_bare_name(&lcp->variable->source_corresp,
+                      (an_il_entry_kind)iek_variable);
+      }  /* if */
       comma_needed = TRUE;
     }  /* if */
   }  /* for */
@@ -8083,6 +8087,10 @@ Render code for the given expression node, which represents a lambda.
                                                                       lambda);
   adv_curr_source_sequence_entry();
   gen_lambda_captures(lambda);
+  /* Push the closure class on the name context stack so that references to
+     fields (which stand for captured variables) show up without
+     qualification. */
+  push_name_context(class_type_supp(lambda->closure_class)->assoc_scope);
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
   /* Read the information for the function from the IL file.  This must be
      read before the interface is generated in order to get the parameter
@@ -8111,6 +8119,8 @@ Render code for the given expression node, which represents a lambda.
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
   restore_function_state(&state);
   restore_source_sequence_scan_state(&saved_state);
+  /* Pop the name context for the closure class. */
+  pop_name_context();
 }  /* gen_lambda */
 
 
