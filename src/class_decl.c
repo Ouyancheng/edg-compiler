@@ -647,21 +647,10 @@ to be used as the declaration position of the closure class member.  If there
 is no associated capture (explicit or implicit), return NULL.
 */
 {
-  a_scope_stack_entry_ptr	ssep;
-  a_routine_ptr			rp;
-  a_type_ptr			closure_class;
-  a_lambda_ptr			lambda;
+  a_lambda_ptr			lambda = get_current_lambda();
   a_lambda_capture_ptr		lcp;
 
-  /* Get the lambda pointer from the closure class that is the parent of
-     the operator() function for the lambda. */
-  check_assertion(depth_innermost_function_scope != NO_SCOPE_DEPTH);
-  ssep = &scope_stack[depth_innermost_function_scope];
-  rp = ssep->assoc_routine;
-  check_assertion(rp != NULL && rp->is_lambda_body &&
-                  rp->source_corresp.is_class_member);
-  closure_class = skip_typerefs(parent_class_of(rp));
-  lambda = class_type_supp(closure_class)->lambda;
+  check_assertion(lambda != NULL);
   /* Find or create the lambda capture for this variable.  NULL will be
      returned if no capture is found and one cannot be created. */
   lcp = find_lambda_capture(lambda, vp, pos);

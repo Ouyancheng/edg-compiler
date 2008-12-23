@@ -9456,6 +9456,28 @@ is best called through the macro get_parent_scope_of.
   return result;
 }  /* f_get_parent_scope_of */
 
+
+a_lambda_ptr get_current_lambda(void)
+/*
+If we're inside a function scope and the innermost function scope is that of
+a lambda body, return the associated lambda entry.  Otherwise, return NULL.
+*/
+{
+  a_lambda_ptr  lambda = NULL;
+
+  if (lambdas_enabled && innermost_function_scope != NULL) {
+    a_routine_ptr  rp = innermost_function_scope->variant.routine.ptr;
+    if (rp->is_lambda_body) {
+      a_type_ptr  closure_class;
+      check_assertion(rp->source_corresp.is_class_member);
+      closure_class = skip_typerefs(parent_class_of(rp));
+      lambda = class_type_supp(closure_class)->lambda;
+      check_assertion(lambda != NULL);
+    }  /* if */
+  }  /* if */
+  return lambda;
+}  /* get_current_lambda */
+
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
 
 an_expr_node_ptr generic_sizeof_arg_expr(a_constant_ptr  con)
