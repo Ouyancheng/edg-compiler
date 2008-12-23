@@ -15969,6 +15969,43 @@ consumed by the caller.  The grammar to be parsed is thus:
 }  /* scan_lambda_capture_list */
 
 
+static void scan_and_process_lambda_declarator(a_lambda_ptr       lambda,
+                                               a_func_info_block  *func_info)
+/*
+For the given lambda, parse the parameter list and, optionally, a mutable
+specifier, an exception specification, and/or a return type specification.
+Then, create a corresponding call operator in the closure class.  Return
+properties of this operator in *func_info (which is initialized here).
+*/
+{
+  a_member_decl_info  decl_info;
+  a_decl_parse_state  *dps = &decl_info.decl_state;
+  a_decl_pos_block    *decl_pos_block = &decl_info.decl_pos_block;
+  a_class_def_state   *class_state = scope_stack_top().class_def_state;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_boolean           prev_source_sequence_entries_disallowed
+                                         = source_sequence_entries_disallowed;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+
+  clear_func_info(func_info);
+  func_info->lambda = lambda;
+  initialize_member_decl_info(&decl_info, &pos_curr_token);
+  decl_info.is_first_in_declarator_list = TRUE;
+  dps->type = dps->specifiers_type = void_type();
+  dps->start_pos = dps->specifiers_pos = pos_curr_token;
+  dps->declarator_start_pos = dps->declarator_pos = pos_curr_token;
+  dps->in_class_scope = TRUE;
+  scan_lambda_declarator(lambda, dps, func_info, decl_pos_block);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  source_sequence_entries_disallowed = TRUE;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  decl_call_operator_for_lambda(lambda, class_state, &decl_info, func_info);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  source_sequence_entries_disallowed = prev_source_sequence_entries_disallowed;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+}  /* scan_and_process_lambda_declarator */
+
+
 a_lambda_ptr scan_lambda(void)
 /*
 Scan a C++ lambda construct and return a pointer to an a_lambda entry
@@ -15981,17 +16018,10 @@ entry, return NULL.  // FIXME: Currently never returns NULL.
   a_class_type_supplement_ptr
                       ctsp;
   a_class_def_state   class_state;
-  a_member_decl_info  decl_info;
-  a_decl_parse_state  *dps = &decl_info.decl_state;
-  a_decl_pos_block    *decl_pos_block = &decl_info.decl_pos_block;
   a_func_info_block   func_info;
   a_decl_flag_set     sfb_flags;
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-  a_boolean           prev_source_sequence_entries_disallowed;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  prev_source_sequence_entries_disallowed = source_sequence_entries_disallowed;
   add_to_source_sequence_list((char*)lambda, (an_il_entry_kind)iek_lambda);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   /* Parse the lambda-introducer. */
@@ -16021,24 +16051,9 @@ entry, return NULL.  // FIXME: Currently never returns NULL.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   (void)required_token(tok_rbracket, ec_exp_rbracket);
   remove_stop_token(tok_rbracket);
-  /* Parse the parameter list and, optionally, a mutable specifier, an
-     exception specification, and/or a return type specification. */
-  initialize_member_decl_info(&decl_info, &pos_curr_token);
-  decl_info.is_first_in_declarator_list = TRUE;
-  dps->type = dps->specifiers_type = void_type();
-  dps->start_pos = dps->specifiers_pos = pos_curr_token;
-  dps->declarator_start_pos = dps->declarator_pos = pos_curr_token;
-  dps->in_class_scope = TRUE;
-  clear_func_info(&func_info);
-  func_info.lambda = lambda;
-  scan_lambda_declarator(lambda, dps, &func_info, decl_pos_block);
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-  source_sequence_entries_disallowed = TRUE;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  decl_call_operator_for_lambda(lambda, &class_state, &decl_info, &func_info);
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-  source_sequence_entries_disallowed = prev_source_sequence_entries_disallowed;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  /* Parse the "declarator" part of the lambda (the parameter list, etc.) and
+     create the associated corresponding call operator in the closure class. */
+  scan_and_process_lambda_declarator(lambda, &func_info);
   /* Parse the body of the lambda.  A class reactivation is not pushed for
      the lambda closure class because it is still on the scope stack. */
   sfb_flags = SFB_NEW_STRUCT_STMT_STACK_REQUIRED |
