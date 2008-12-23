@@ -19546,6 +19546,30 @@ a warning if the value returned is the address of a local variable.
 }  /* check_for_return_of_address_of_local_variable */
 
 
+static void check_and_adjust_lambda_return_type_if_needed(
+                                                 an_operand_ptr  return_op,
+                                                 a_type_ptr      *return_type)
+/*
+return_op represents the expression in the return statement of a lambda, and
+*return_type is the type currently thought of as the lambda's return type.
+If *return_type is the unknown type (tk_unknown), then *return_type is set
+to the type of the expression.
+*/
+{
+  a_lambda_ptr   lambda = get_current_lambda();
+
+  if (lambda != NULL && !lambda->explicit_return_type) {
+    if (is_unknown_type(*return_type)) {
+      *return_type = return_op->type;
+      lambda->lambda_routine->type->variant.routine.return_type = *return_type;
+    } else {
+      check_assertion(is_void_type(*return_type) ||
+                      is_error_type(*return_type));
+    }  /* if */
+  }  /* if */
+}  /* check_and_adjust_lambda_return_type_if_needed */
+
+
 an_expr_node_ptr scan_return_expression(a_type_ptr         required_type,
                                         an_error_code      err_code,
                                         a_dynamic_init_ptr *dip)
@@ -19582,6 +19606,10 @@ required_type will be void if the expression should have void type
   }  /* if */
   /* Scan the expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_NO_OPTIONS);
+  if (lambdas_enabled && innermost_function_scope != NULL &&
+      innermost_function_scope->variant.routine.ptr->is_lambda_body) {
+    check_and_adjust_lambda_return_type_if_needed(&result, &required_type);
+  }  /* if */
   if (return_by_cctor_case) {
     /* The current routine returns its value via a copy constructor. */
     /* Check for the possibility of the return value optimization. */

@@ -5093,9 +5093,8 @@ in which such a return is undefined.
       /* Lambdas can omit the return type.  In such cases, the return type is
          left as "tk_unknown" until an explicit return type has been
          encountered.  If none was encountered, the return type is "void". */
-      check_assertion(rout->is_lambda_body);
-      check_assertion(!class_type_supp(parent_class_of(rout))
-                                              ->lambda->explicit_return_type);
+      a_lambda_ptr  lambda = get_current_lambda();
+      check_assertion(lambda != NULL && !lambda->explicit_return_type);
       check_assertion(rout->type->kind == (a_type_kind)tk_routine);
       rout->type->variant.routine.return_type = void_type();
     } else {
@@ -5210,6 +5209,7 @@ See also 3.6.6.4.
   a_source_sequence_entry_ptr
                      src_seq_entry = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  a_lambda_ptr       lambda = get_current_lambda();
 
   db_enter(3, "return_statement");
   check_for_unreachable_code();
@@ -5314,6 +5314,10 @@ See also 3.6.6.4.
     return_expr = scan_return_expression(return_type,
                                          ec_bad_return_value_type,
                                          &dip);
+    if (lambda != NULL && !lambda->explicit_return_type) {
+      /* scan_return_type may have updated the routine type. */
+      return_type = lambda->lambda_routine->type->variant.routine.return_type;
+    }  /* if */
   }  /* if */
 #if VLA_DEALLOCATIONS_IN_IL
   if (vla_dealloc_stmts != NULL) {
@@ -5390,6 +5394,19 @@ See also 3.6.6.4.
   /* Check for and ignore the final semicolon. */
   (void)required_token(tok_semicolon, ec_exp_semicolon);
   remove_stop_token(tok_semicolon);
+  if (lambda != NULL && !lambda->explicit_return_type && sp != NULL &&
+      !is_error_type(return_type) && !is_void_type(return_type)) {
+    /* Nothing should precede or follow the return statement if it determines
+       an implicit return type other than void. */
+    if (scope_stack_top().kind != (a_scope_kind)sck_function ||
+        struct_stmt_stack[depth_stmt_stack].kind != ssk_compound ||
+        struct_stmt_stack[depth_stmt_stack].statement
+                                           ->variant.block.statements != sp ||
+        curr_token != tok_rbrace) {
+      pos_error(ec_lambda_return_must_be_only_construct, &return_pos);
+      lambda->lambda_routine->type->variant.routine.return_type = error_type();
+    }  /* if */
+  }  /* if */
   db_exit();
 }  /* return_statement */
 
