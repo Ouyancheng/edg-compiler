@@ -1055,12 +1055,19 @@ typedef struct a_member_decl_info {
 			   than one declarator). */
   a_bit_field	is_member_template:1;
 			/* TRUE if the declaration is of a member template. */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-			/* Pointer to the source-sequence entry for the
-			   declarator. */
-#else /* !GENERATE_SOURCE_SEQUENCE_LISTS */
-			/* Always NULL. */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  a_bit_field	is_bit_field:1;
+			/* TRUE for a nonstatic data member that is a bit
+			   field. */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position
+		bit_field_size_pos;
+			/* Size of the start of the ":" of the bit field
+			   size. */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  a_constant	bit_field_size;
+			/* Constant that represents the bit field size.  This
+			   field must only be used when is_bit_field is
+			   TRUE. */
 } a_member_decl_info;
 
 
@@ -1086,6 +1093,11 @@ a class member declaration as it appears.
   mdip->is_nonstd_anonymous_union = FALSE;
   mdip->return_type_def_err = FALSE;
   mdip->is_member_template = FALSE;
+  mdip->is_bit_field = FALSE;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  mdip->bit_field_size_pos = null_source_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  /* bit_field_size is only set when is_bit_field is TRUE. */
 }  /* initialize_member_decl_info */
 
 
@@ -10755,11 +10767,11 @@ static void decl_nonstatic_data_member(a_symbol_locator        *locator,
                                        a_class_def_state_ptr   class_state,
                                        a_member_decl_info_ptr  decl_info)
 /*
-Scan a nonstatic data member of a class, struct, or union, create a field
-entry to represent it in the IL, and create an entry in the symbol table
-for it if it has a name.  *locator is the symbol locator for the declaration.
-*class_state and *decl_info track general information about the class
-definition and specific information about the member declaration, respectively.
+Create the IL for a nonstatic data member of a class, struct, or union.
+Create an entry in the symbol table for it if it has a name.  *locator is
+the symbol locator for the declaration.  *class_state and *decl_info track
+general information about the class definition and specific information
+about the member declaration, respectively.
 */
 {
   a_decl_parse_state             *decl_state = &decl_info->decl_state;
@@ -10772,31 +10784,11 @@ definition and specific information about the member declaration, respectively.
 #if GNU_EXTENSIONS_ALLOWED
   an_attribute_ptr               *last_attribute;
 #endif /* GNU_EXTENSIONS_ALLOWED */
-  a_constant                     bit_field_size;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  a_source_position              bit_field_size_pos;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
   db_enter(3, "decl_nonstatic_data_member");
   /* Create the field entry. */
   field = alloc_field();
-  /* A colon next indicates a bit-field. */
-  if (curr_token == tok_colon) {
-    field->is_bit_field = TRUE;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-    bit_field_size_pos = pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    /* Advance past the colon. */
-    (void)get_token();
-    /* Scan the integral size in bits of the bit-field. */
-    scan_fs_integral_constant_expression(&bit_field_size);
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-    /* Update the end position of the declarator to include the bit field
-       size construct. */
-    decl_info->decl_pos_block.declarator_range.end =
-                                            curr_construct_end_position;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  }  /* if */
+  field->is_bit_field = decl_info->is_bit_field;
 #if GNU_EXTENSIONS_ALLOWED
   if (gnu_mode) {
     /* Find the last attribute. */
@@ -10832,7 +10824,7 @@ definition and specific information about the member declaration, respectively.
   }  /* if */
   if (field->is_bit_field) {
     /* Scan the bit-field size and determine the bit-field type. */
-    apply_bit_field_size(field, &bit_field_size,
+    apply_bit_field_size(field, &decl_info->bit_field_size,
                          &unnamed_field, &member_type, locator);
   }  /* if */
   /* Copy the type (which may have been changed by apply_bit_field_size) into
@@ -10849,7 +10841,8 @@ definition and specific information about the member declaration, respectively.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     field->source_corresp.decl_pos_info = alloc_decl_position_supplement(
                                                       /*at_file_scope=*/TRUE);
-    decl_info->decl_pos_block.declarator_range.start = bit_field_size_pos;
+    decl_info->decl_pos_block.declarator_range.start =
+                                                 decl_info->bit_field_size_pos;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     /* Ordinarily we create source sequence entries only for named
@@ -11161,6 +11154,39 @@ definition and specific information about the member declaration, respectively.
 #endif /* DEBUG */
   db_exit();
 }  /* decl_nonstatic_data_member */
+
+
+static void scan_nonstatic_data_member(a_symbol_locator        *locator,
+                                       a_class_def_state_ptr   class_state,
+                                       a_member_decl_info_ptr  decl_info)
+/*
+Scan a nonstatic data member of a class, struct, or union.  Call
+decl_nonstatic_data_member to create the field entry to represent it, etc.
+*locator is the symbol locator for the declaration.  *class_state and
+*decl_info track general information about the class definition and specific
+information about the member declaration, respectively.
+*/
+{
+  /* A colon next indicates a bit-field. */
+  if (curr_token == tok_colon) {
+    decl_info->is_bit_field = TRUE;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    decl_info->bit_field_size_pos = pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    /* Advance past the colon. */
+    (void)get_token();
+    /* Scan the integral size in bits of the bit-field. */
+    scan_fs_integral_constant_expression(&decl_info->bit_field_size);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    /* Update the end position of the declarator to include the bit field
+       size construct. */
+    decl_info->decl_pos_block.declarator_range.end =
+                                            curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  }  /* if */
+  /* Create the IL for the field, enter the symbol (if needed), etc. */
+  decl_nonstatic_data_member(locator, class_state, decl_info);
+}  /* scan_nonstatic_data_member */
 
 
 static void generate_special_function(a_class_def_state_ptr   class_state,
@@ -14379,7 +14405,7 @@ passed via template_decl.
         decl_static_data_member(&locator, class_state, &decl_info);
       } else {
         /* Non-static data member (= field). */
-        decl_nonstatic_data_member(&locator, class_state, &decl_info);
+        scan_nonstatic_data_member(&locator, class_state, &decl_info);
 #if MICROSOFT_EXTENSIONS_ALLOWED
         is_nonstatic_data_member = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
