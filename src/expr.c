@@ -19563,6 +19563,9 @@ to the type of the expression.
       *return_type = return_op->type;
       lambda->lambda_routine->type->variant.routine.return_type = *return_type;
     } else {
+      /* More than one return in a lambda with an implicit return type.
+         The error is issued in the return statement processing.
+         Or, the type was set to void by a "return;" statement. */
       check_assertion(is_void_type(*return_type) ||
                       is_error_type(*return_type));
     }  /* if */
@@ -19606,8 +19609,7 @@ required_type will be void if the expression should have void type
   }  /* if */
   /* Scan the expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_NO_OPTIONS);
-  if (lambdas_enabled && innermost_function_scope != NULL &&
-      innermost_function_scope->variant.routine.ptr->is_lambda_body) {
+  if (in_lambda_body()) {
     check_and_adjust_lambda_return_type_if_needed(&result, &required_type);
   }  /* if */
   if (return_by_cctor_case) {
