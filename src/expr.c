@@ -16378,7 +16378,7 @@ is built in *operand.  It's an lvalue for the field.
 }  /* make_anonymous_union_field_operand */
 
 
-static a_boolean in_lambda_body(void)
+a_boolean in_lambda_body(void)
 /*
 Return TRUE if we are currently inside the body statement of a lambda.
 */
@@ -16395,24 +16395,6 @@ Return TRUE if we are currently inside the body statement of a lambda.
   }  /* if */
   return result;
 }  /* in_lambda_body */
-
-
-static a_variable_ptr this_variable_for_lambda_closure(void)
-/*
-We're currently inside a lambda body.  Return a pointer to the "this" variable
-for the lambda closure class, which is used among other things to access the
-fields that contain the captures of local variables.
-*/
-{
-  a_variable_ptr this_var;
-
-  check_assertion(innermost_function_scope != NULL &&
-                  innermost_function_scope->variant.routine.ptr->
-                                                               is_lambda_body);
-  this_var = innermost_function_scope->variant.routine.this_param_variable;
-  check_assertion(this_var != NULL && this_var->is_this_parameter);
-  return this_var;
-}  /* this_variable_for_lambda_closure */
 
 
 a_boolean var_declared_in_func_enclosing_curr_lambda(a_variable_ptr var)
@@ -16971,14 +16953,11 @@ variable:
           } else if (lambda_capture != NULL) {
             /* This is a local variable referenced via a lambda capture.
                Use "closure_this->closure_field" in place of the variable. */
-            an_expr_node_ptr sel_expr;
-            a_variable_ptr   this_var = this_variable_for_lambda_closure();
-            an_expr_node_ptr lambda_this = var_rvalue_expr(this_var);
-            a_field_ptr      closure_field = lambda_capture->closure_field;
-            sel_expr = field_lvalue_selection_expr(lambda_this,
-                                                   closure_field);
+            an_expr_node_ptr sel_expr =
+                      make_selection_for_captured_variable(lambda_capture,
+                                                           /*is_lvalue=*/TRUE);
             make_lvalue_expression_operand(sel_expr, result);
-            if (is_reference_type(closure_field->type)) {
+            if (is_reference_type(lambda_capture->closure_field->type)) {
               add_reference_indirection(result);
             }  /* if */
             okay_for_integral_const_expr = FALSE;
@@ -17119,7 +17098,7 @@ normal_function:
             } else {
               /* Normal case: "x" is interpreted as "this->x". */
               if (sun_mode && curr_expr_kind_is(ek_sizeof) &&
-                 !variable_this_exists(&var_ptr)) {
+                  !variable_this_exists(&var_ptr)) {
                 /* Sun mode allows a use of a nonstatic data member without
                    an available "this" inside a sizeof.  Use a zero pointer
                    instead of "this". */
@@ -17407,6 +17386,8 @@ Scan an occurrence of "this" in an expression.  Return an operand for it in
 points to the object for which the member function was called.
 */
 {
+  a_variable_ptr this_var;
+
   check_assertion(curr_token == tok_this);
   if (depth_innermost_function_scope == NO_SCOPE_DEPTH) {
     /* We're not inside a function. */
@@ -17418,22 +17399,25 @@ points to the object for which the member function was called.
                next_token() == tok_arrow)) {
     /* "this" cannot be used in a constant expression. */
     error_and_make_error_operand(ec_expr_not_constant, result);
-  } else if (in_lambda_body()) {
-    /* "this" cannot be used in a lambda body. */
-    error_and_make_error_operand(ec_this_in_lambda, result);
-  } else {
-    a_variable_ptr this_var = 
-                         scope_stack[depth_innermost_function_scope].il_scope->
-                                           variant.routine.this_param_variable;
-    if (this_var == NULL) {
-      /* We're not inside a nonstatic member function. */
-      error_and_make_error_operand(ec_this_used_incorrectly, result);
+  } else if (!variable_this_exists(&this_var)) {
+    /* No "this" is available, e.g., because we're not inside a nonstatic
+       member function. */
+    if (in_lambda_body()) {
+      /* Special message when in a lambda body. */
+      error_and_make_error_operand(ec_this_in_lambda, result);
     } else {
-      /* Make an rvalue for the "this" variable. */
-      make_this_variable_operand(this_var, /*is_implicit=*/FALSE, result);
-      rule_out_expr_kinds(ROEK_CONSTANT, result);
+      error_and_make_error_operand(ec_this_used_incorrectly, result);
     }  /* if */
+  } else {
+    /* Make an rvalue for the "this" variable.  Note that this rewrites
+       the "this" in a lambda to the captured "this" from the enclosing
+       function. */
+    make_this_variable_operand(this_var, /*is_implicit=*/FALSE,
+                               &pos_curr_token,
+                               end_position_or_null(&end_pos_curr_token),
+                               result);
   }  /* if */
+  rule_out_expr_kinds(ROEK_CONSTANT, result);
   (void)get_token();
 }  /* scan_this */
 

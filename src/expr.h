@@ -278,7 +278,10 @@ extern an_expr_node_ptr make_assignment_expr(
                                       an_expr_operator_kind  op,
                                       an_expr_node_ptr       rvalue_expr);
 
-a_boolean var_declared_in_func_enclosing_curr_lambda(a_variable_ptr var);
+extern a_boolean in_lambda_body(void);
+
+extern a_boolean var_declared_in_func_enclosing_curr_lambda(
+                                                           a_variable_ptr var);
 
 extern a_boolean current_mode_allows_field_selection_folding(void);
 

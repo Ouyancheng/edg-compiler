@@ -1780,11 +1780,12 @@ ec_capture_mode_matches_default;;"explicit capture matches default"
 ec_not_a_variable;;"%n is not a variable"
 ec_capture_of_static_duration_variable;;"a variable with static storage duration cannot be captured in a lambda"
 ec_cannot_capture_this_by_reference;;"\"this\" cannot be captured by reference"
-ec_this_in_lambda;;"\"this\" cannot be used inside the body of a lambda"
+ec_this_in_lambda;;"\"this\" cannot be used inside the body of this lambda"
 ec_anon_union_ref_in_lambda;;"a member of an outer-scope anonymous union cannot be referenced inside the body of a lambda"
-ec_not_captured_local_var_in_lambda;;"an outer-scope local variable cannot be referenced in a lambda body unless it is in the capture list"
+ec_not_captured_local_var_in_lambda;;"an enclosing-function local variable cannot be referenced in a lambda body unless it is in the capture list"
 ec_bad_local_var_in_lambda;;"invalid reference to an outer-scope local variable in a lambda body"
 ec_captured_local_var_not_in_innermost_function;;"a local variable outside the current function scope cannot be captured"
+ec_not_captured_this_in_lambda;;"the enclosing-function \"this\" cannot be referenced in a lambda body unless it is in the capture list"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

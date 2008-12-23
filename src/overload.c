@@ -6732,62 +6732,165 @@ source position of the member name reference.
 }  /* cast_pointer_for_field_selection */
 
 
+static a_boolean variable_this_exists_full(a_variable_ptr *this_var,
+                                           a_boolean      allow_lambda_this)
+/*
+Return TRUE if there is a currently-visible "this" variable.  If there is,
+also set *this_var to point to the variable entry for it.  The captured
+"this" in a lambda body (which is the "this" from the function enclosing the
+lambda, not the "this" that points to the closure class object) is considered
+visible only if allow_lambda_this is TRUE.  This routine is called only
+in C++ mode.  Note that there is no implication yet that the "this" is
+actually being used; we may simply be testing that an implicit "this" is
+available, e.g., during overload resolution.
+*/
+{
+  a_boolean this_exists = FALSE;
+
+  *this_var = NULL;
+  if (innermost_function_scope != NULL) {
+    a_routine_ptr curr_rout = innermost_function_scope->variant.routine.ptr;
+    if (curr_rout->is_lambda_body) {
+      /* We're inside the body of a lambda.  "this" exists only if it's
+         captured from the surrounding context.  The lambda body is the
+         operator() function of the lambda closure class, but the "this"
+         of the operator() function isn't available as an implicit "this" --
+         it's used only to access the fields of the closure class to fetch
+         captured values. */
+      a_type_ptr    closure_class = parent_class_of(curr_rout);
+      a_routine_ptr encl_rout= closure_class->source_corresp.enclosing_routine;
+      if (allow_lambda_this && encl_rout != NULL) {
+        /* There is a routine that encloses the lambda.  See if it is a
+           nonstatic member function. */
+        if (routine_type_is_nonstatic_member_function(encl_rout->type)) {
+          /* It is, so it has a "this".  We delay until later checking whether
+             the "this" is or can be captured. */
+          a_scope_ptr            scope;
+          a_memory_region_number region_number = encl_rout->assoc_scope;
+          check_assertion(region_number != NULL_region_number);
+          scope = il_header.region_scope_entry[region_number];
+          check_assertion(scope != NULL &&
+                          scope->kind == (a_scope_kind)sck_function);
+          *this_var = scope->variant.routine.this_param_variable;
+          check_assertion(*this_var != NULL);
+          this_exists = TRUE;
+        }  /* if */
+      }  /* if */
+    } else {
+      /* Normal case, not inside a lambda. */
+      *this_var= innermost_function_scope->variant.routine.this_param_variable;
+      this_exists = (*this_var != NULL);
+    }  /* if */
+  }  /* if */
+  return this_exists;
+}  /* variable_this_exists_full */
+
+
 a_boolean variable_this_exists(a_variable_ptr *this_var)
 /*
 Return TRUE if there is a currently-visible "this" variable.  If there is,
-also set *this_var to point to the variable entry for it.  This routine
-is called only in C++ mode.
+also set *this_var to point to the variable entry for it.  The captured
+"this" in a lambda body (which is the "this" from the function enclosing the
+lambda, not the "this" that points to the closure class object) is considered
+visible.  This routine is called only in C++ mode.
 */
 {
-  a_boolean   this_exists;
-  a_scope_ptr il_scope;
+  a_boolean this_exists;
 
-  *this_var = NULL;
-  if (depth_innermost_function_scope == NO_SCOPE_DEPTH) {
-    /* We're not inside a function. */
-    this_exists = FALSE;
-  } else {
-    il_scope = scope_stack[depth_innermost_function_scope].il_scope;
-#if CHECKING
-    if (il_scope == NULL) {
-      internal_error("variable_this_exists: NULL IL scope for function");
-    }  /* if */
-#endif /* CHECKING */
-    *this_var = il_scope->variant.routine.this_param_variable;
-    this_exists = (*this_var != NULL);
-  }  /* if */
+  this_exists = variable_this_exists_full(this_var,
+                                          /*allow_lambda_this=*/TRUE);
   return this_exists;
 }  /* variable_this_exists */
 
 
+static a_variable_ptr this_variable_for_lambda_closure(void)
+/*
+We're currently inside a lambda body.  Return a pointer to the "this" variable
+for the lambda closure class, which is used among other things to access the
+fields that contain the captures of local variables.
+*/
+{
+  a_variable_ptr this_var;
+
+  check_assertion(innermost_function_scope != NULL &&
+                  innermost_function_scope->variant.routine.ptr->
+                                                               is_lambda_body);
+  this_var = innermost_function_scope->variant.routine.this_param_variable;
+  check_assertion(this_var != NULL && this_var->is_this_parameter);
+  return this_var;
+}  /* this_variable_for_lambda_closure */
+
+
+an_expr_node_ptr make_selection_for_captured_variable(
+                                              a_lambda_capture *lambda_capture,
+                                              a_boolean        is_lvalue)
+/*
+Make a field selection expression for a captured variable in a lambda.
+lambda_capture describes the variable.  The selection is an lvalue selection
+if is_lvalue is TRUE.
+*/
+{
+  a_variable_ptr   this_var = this_variable_for_lambda_closure();
+  an_expr_node_ptr lambda_this = var_rvalue_expr(this_var);
+  a_field_ptr      closure_field = lambda_capture->closure_field;
+  an_expr_node_ptr sel_expr;
+
+  sel_expr = field_lvalue_selection_expr(lambda_this, closure_field);
+  if (!is_lvalue) sel_expr = rvalue_expr_for_lvalue(sel_expr);
+  return sel_expr;
+}  /* make_selection_for_captured_variable */
+
+
 #if !EXTRA_SOURCE_POSITIONS_IN_IL
-/*ARGSUSED*/ /* <-- is_implicit is not used in that case. */
+/*ARGSUSED*/ /* <-- is_implicit and end_position are not used in that case. */
 #endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
-void make_this_variable_operand(a_variable_ptr this_var,
-                                a_boolean      is_implicit,
-                                an_operand     *result)
+void make_this_variable_operand(a_variable_ptr    this_var,
+                                a_boolean         is_implicit,
+                                a_source_position *position,
+                                a_source_position *end_position,
+                                an_operand        *result)
 /*
 Make an operand for the value of the "this" variable this_var.  The reference
 is implicit if is_implicit is TRUE.  The source position of the operand is
-set to "pos_curr_token".  The position in the expression, which exists when
-EXTRA_SOURCE_POSITIONS_IN_IL is TRUE, is set only when is_implicit is
-FALSE.  The operand is an rvalue.
+set to *position and its end position (if present) to *end_position.
+The position in the expression, which exists when EXTRA_SOURCE_POSITIONS_IN_IL
+is TRUE, is set only when is_implicit is FALSE.  The operand is an rvalue.
 */
 {
   an_expr_node_ptr node;
 
-  /* Make a variable value node for the variable. */
-  node = var_rvalue_expr(this_var);
-  /* Make an operand for the node. */
-  make_expression_operand(node, result);
-  rule_out_expr_kinds(ROEK_CONSTANT, result);
+  if (in_lambda_body()) {
+    /* We're inside a lambda body, so the "this" must be the one from
+       the function enclosing the lambda.  It needs to be captured to be
+       used. */
+    a_lambda_capture *lambda_capture =
+                               lambda_capture_for_variable(this_var, position);
+    if (lambda_capture != NULL) {
+      node = make_selection_for_captured_variable(lambda_capture,
+                                                  /*is_lvalue=*/FALSE);
+      make_expression_operand(node, result);
+    } else {
+      /* "this" cannot be captured. */
+      pos_error(ec_not_captured_this_in_lambda, position);
+      make_error_operand(result);
+    }  /* if */
+  } else {
+    /* Normal case, not in a lambda body. */
+    /* Make a variable value node for the variable. */
+    node = var_rvalue_expr(this_var);
+    /* Make an operand for the node. */
+    make_expression_operand(node, result);
+  }  /* if */
+  result->position = *position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
+  result->end_position = *end_position;
   if (!is_implicit) {
     /* Set the position in the expression too when the reference is
        explicit. */
     set_operand_expr_position_if_expr(result, (a_source_position *)NULL);
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  rule_out_expr_kinds(ROEK_CONSTANT, result);
 }  /* make_this_variable_operand */
 
 
@@ -6815,7 +6918,9 @@ error operand.  member_pos is the position of the member, for use in
 errors and as the source position of the result operand.  Return TRUE
 if the "this" operand was built without error.  This routine is called
 only in C++ mode.  Note that this routine is called only for an implicit
-"this->", not for the explicit case.
+"this->", not for the explicit case.  Also note that this routine is
+called when the "this" is actually being used, not when we're just
+wondering if it's available.
 */
 {
   a_variable_ptr   this_var;
@@ -6869,12 +6974,8 @@ only in C++ mode.  Note that this routine is called only for an implicit
     } else {
       /* The "this" pointer can be used to access the member. */
       /* Make an operand for the value of the "this" pointer. */
-      make_this_variable_operand(this_var, /*is_implicit=*/TRUE, result);
-      /* Get position right in case of errors below. */
-      result->position = *member_pos;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-      result->end_position = *member_pos;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+      make_this_variable_operand(this_var, /*is_implicit=*/TRUE, member_pos,
+                                 member_pos, result);
       if (template_case) {
         /* For the template case, just do a direct cast. */
         a_symbol_ptr fund_sym = fundamental_symbol_of(member_sym);
@@ -6921,7 +7022,8 @@ a_boolean is_this_parameter_operand(an_operand     *operand,
 /*
 Return TRUE if the given operand is for the "this" parameter of the
 current function.  If so, and if p_this_var is non-NULL, also set
-*p_this_var to the "this" variable.
+*p_this_var to the "this" variable.  The captured "this" of a lambda
+is not considered to match.
 */
 {
   a_boolean        is_this = FALSE;
@@ -6934,7 +7036,7 @@ current function.  If so, and if p_this_var is non-NULL, also set
     if (is_variable_node(operand_expr)) {
       /* The operand is an rvalue that is the value of a simple variable. */
       operand_var = operand_expr->variant.variable;
-      if (variable_this_exists(&this_var)) {
+      if (variable_this_exists_full(&this_var, /*allow_lambda_this=*/FALSE)) {
         /* There is a current "this" parameter.  See if it matches the
            variable in the operand. */
         if (this_var == operand_var) {

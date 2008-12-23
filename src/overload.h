@@ -577,9 +577,15 @@ extern void cast_pointer_for_field_selection(
 
 extern a_boolean variable_this_exists(a_variable_ptr *this_var);
 
-extern void make_this_variable_operand(a_variable_ptr this_var,
-                                       a_boolean      is_implicit,
-                                       an_operand     *result);
+extern an_expr_node_ptr make_selection_for_captured_variable(
+                                              a_lambda_capture *lambda_capture,
+                                              a_boolean        is_lvalue);
+
+extern void make_this_variable_operand(a_variable_ptr    this_var,
+                                       a_boolean         is_implicit,
+                                       a_source_position *position,
+                                       a_source_position *end_position,
+                                       an_operand        *result);
 
 extern a_boolean make_this_pointer_operand(
                                a_symbol_ptr      member_sym,
