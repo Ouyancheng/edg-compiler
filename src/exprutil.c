@@ -7817,9 +7817,11 @@ constant initial value is treated as having a nonconstant initial value.
     }  /* if */
     if (con_val != NULL) {
       if (con_val->kind == (a_constant_repr_kind)ck_aggregate ||
-          (con_val->kind == (a_constant_repr_kind)ck_address && !gpp_mode)) {
-        /* An aggregate or the address of a variable cannot be considered a
-           constant value (except for address constants in GNU C++ mode). */
+          (con_val->kind == (a_constant_repr_kind)ck_address &&
+          !(gpp_mode && gnu_version <= 30300))) {
+        /* An aggregate or the address of a variable, routine, or
+           string literal cannot be considered a constant value (except
+           for address constants in GNU C++ mode up to version 3.2). */
         con_val = NULL;
       }  /* if */
     }  /* if */

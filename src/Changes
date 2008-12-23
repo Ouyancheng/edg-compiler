@@ -1,5 +1,19 @@
 Version 4.1
 
+12/23/08 [EDGcpfe/9421]
+GNU C++ mode const variables with constant pointer initial values
+
+A small tweak has been made in g++ mode processing of uses of
+const-typed pointer variables with constant initial values: when
+gnu_version is >= 30300, they are no longer considered constant,
+i.e., the use of the variable is not replaced by the constant itself.
+
+  extern void g(char const *, char const *);
+  void f() {
+    char const *const s = "abc";
+    g(s,s);  // Now passes "s" for both arguments, not "abc"
+  }
+
 12/19/08 [EDGcpfe/9395]
 Abort in trans_corresp.c on complex nested template cases
 
