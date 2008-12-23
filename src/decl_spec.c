@@ -6848,8 +6848,8 @@ used to establish the type entry's position information.
   a_type_ptr  type = alloc_type((a_type_kind)tk_template_param);
 
   type->source_corresp.assoc_info =
-             (char*)make_unnamed_template_param_symbol((a_symbol_kind)sk_type,
-                                                       &state->auto_pos);
+             (char*)make_unnamed_symbol((a_symbol_kind)sk_type,
+                                        &state->auto_pos);
   symbol_for(type)->variant.type.ptr = type;
   type->variant.template_param.extra_info
       ->coordinates.depth = AUTO_TYPE_NESTING_DEPTH;

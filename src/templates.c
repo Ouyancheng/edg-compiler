@@ -12900,7 +12900,7 @@ entered into the symbol table.
       sym->decl_scope = scope_stack[decl_scope_level].number;
     }  /* if */
   } else {
-    sym = make_unnamed_template_param_symbol(kind, &pos_curr_token);
+    sym = make_unnamed_symbol(kind, &pos_curr_token);
   }  /* if */
   sym->is_template_param = TRUE;
   return sym;

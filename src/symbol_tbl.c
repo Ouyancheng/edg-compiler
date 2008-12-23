@@ -5336,11 +5336,11 @@ Return a unique unnamed symbol header.
 }  /* make_unnamed_symbol_header */
 
 
-a_symbol_ptr make_unnamed_template_param_symbol(a_symbol_kind		kind,
-						a_source_position	*pos)
+a_symbol_ptr make_unnamed_symbol(a_symbol_kind		kind,
+				 a_source_position	*pos)
 /*
-Create a symbol for an unnamed template parameter.  Such symbols are not
-entered into the symbol table.  Each unnamed template parameter is given
+Create a symbol for an unnamed entity.  Such symbols are not entered
+into the symbol table.  Each unnamed template parameter is given
 a unique symbol header.
 */
 {
@@ -5349,7 +5349,7 @@ a unique symbol header.
   sym = alloc_symbol(kind, make_unnamed_symbol_header(), pos);
   sym->decl_scope = scope_stack[decl_scope_level].number;
   return sym;
-}  /* make_unnamed_template_param_symbol */
+}  /* make_unnamed_symbol */
 
 
 a_symbol_ptr make_anonymous_parent_object_symbol(a_symbol_kind      kind,

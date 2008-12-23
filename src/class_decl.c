@@ -520,11 +520,17 @@ the field.
 {
   a_field_ptr	fp;
   a_type_ptr	field_type;
-  a_symbol_ptr	var_sym;
+  a_symbol_ptr	var_sym = NULL;
   a_symbol_ptr	field_sym;
+  a_boolean	is_this = FALSE;
 
-  var_sym = symbol_for(vp);
-  check_assertion(var_sym != NULL);
+  /* "this" variables do not have associated symbols. */
+  if (vp->is_this_parameter) {
+    is_this = TRUE;
+  } else {
+    var_sym = symbol_for(vp);
+    check_assertion(var_sym != NULL);
+  }  /* if */
   fp = alloc_field();
   field_type = vp->type;
   /* If the variable is a reference, drop the reference. */
@@ -544,8 +550,13 @@ the field.
     field_type = make_unqualified_type(field_type);
   }  /* if */
   fp->type = field_type;
-  field_sym = alloc_symbol((a_symbol_kind)sk_field,
-                           var_sym->header, &var_sym->decl_position);
+  if (is_this) {
+    /* Create an unnamed symbol to represent the capture of the this
+       parameter. */
+    field_sym = make_unnamed_symbol((a_symbol_kind)sk_field, pos);
+  } else {
+    field_sym = alloc_symbol((a_symbol_kind)sk_field, var_sym->header, pos);
+  }  /* if */
   field_sym->variant.field.ptr = fp;
   field_sym->decl_position = *pos;
   set_source_corresp(&fp->source_corresp, field_sym);
@@ -671,6 +682,7 @@ the fields implied by the lambda's capture list).
 {
   a_type_ptr			type;
   a_symbol_ptr			sym;
+  a_class_symbol_supplement_ptr	cssp;
 
   /* Create an unnamed symbol for the lambda class. */
   sym = make_unnamed_tag_symbol((a_symbol_kind)sk_class_or_struct_tag,
@@ -680,6 +692,10 @@ the fields implied by the lambda's capture list).
   set_source_corresp(&(type->source_corresp), sym);
   sym->variant.class_struct_union.type = type;
   add_to_types_list(type, decl_scope_level);
+  cssp = sym->variant.class_struct_union.extra_info;
+  /* Assume for now that bitwise copy is allowed for this class.  This will
+     be cleared later if this is not the case. */
+  cssp->construction_by_bitwise_copy_allowed = TRUE;
   return type;
 }  /* make_closure_class */
 
