@@ -11167,6 +11167,7 @@ decl_nonstatic_data_member to create the field entry to represent it, etc.
 information about the member declaration, respectively.
 */
 {
+  decl_info->is_bit_field = FALSE;
   /* A colon next indicates a bit-field. */
   if (curr_token == tok_colon) {
     decl_info->is_bit_field = TRUE;
