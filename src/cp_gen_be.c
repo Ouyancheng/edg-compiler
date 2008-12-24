@@ -8053,8 +8053,8 @@ Render the list of lambda captures, including the delimiting brackets.
     comma_needed = TRUE;
   }  /* if */
   for (; lcp != NULL; lcp = lcp->next) {
-    if (comma_needed) write_tok_str(", ");
     if (!lcp->is_implicit) {
+      if (comma_needed) write_tok_str(", ");
       if (lcp->capture_by_reference) write_tok_str("&");
       if (lcp->variable->is_this_parameter) {
         write_tok_str("this");
