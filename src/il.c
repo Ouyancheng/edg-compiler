@@ -9465,7 +9465,7 @@ a lambda body, return the associated lambda entry.  Otherwise, return NULL.
 {
   a_lambda_ptr  lambda = NULL;
 
-  if (lambdas_enabled && innermost_function_scope != NULL) {
+  if (innermost_function_scope != NULL) {
     a_routine_ptr  rp = innermost_function_scope->variant.routine.ptr;
     if (rp->is_lambda_body) {
       a_type_ptr  closure_class;
