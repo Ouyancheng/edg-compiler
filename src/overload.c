@@ -6749,7 +6749,7 @@ available, e.g., during overload resolution.
 
   *this_var = NULL;
   if (innermost_function_scope != NULL) {
-    a_routine_ptr curr_rout = innermost_function_scope->variant.routine.ptr;
+    a_routine_ptr curr_rout = current_routine_entry();
     if (curr_rout->is_lambda_body) {
       /* We're inside the body of a lambda.  "this" exists only if it's
          captured from the surrounding context.  The lambda body is the

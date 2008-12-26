@@ -7735,13 +7735,19 @@ A variable surrounded by parentheses still counts as the simple variable.
 }  /* operand_is_lvalue_for_variable */
 
 
-void make_lvalue_variable_operand(a_variable_ptr  variable,
-                                  an_operand      *result,
-                                  a_ref_entry_ptr rep)
+#if !EXTRA_SOURCE_POSITIONS_IN_IL
+/*ARGSUSED*/  /* <-- end_position is not used in that case. */
+#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
+void make_lvalue_variable_operand(a_variable_ptr    variable,
+                                  a_source_position *position,
+                                  a_source_position *end_position,
+                                  an_operand        *result,
+                                  a_ref_entry_ptr   rep)
 /*
 Make an lvalue operand for a variable.  The source position of
-the operand is set to pos_curr_token.  rep points to an associated
-reference entry, or is NULL if none is needed.
+the operand is set to *position, and its end position, if any, is
+set to *end_position.  rep points to an associated reference entry,
+or is NULL if none is needed.
 */
 {
   an_expr_node_ptr node;
@@ -7768,8 +7774,9 @@ reference entry, or is NULL if none is needed.
       add_reference_indirection(result);
     }  /* if */
   }  /* if */
-  set_operand_position_to_pos_curr_token(result);
+  result->position = *position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
+  result->end_position = *end_position;
   /* If the operand has kind ok_expression, set the position in the
      expression too. */
   set_operand_expr_position_if_expr(result, (a_source_position *)NULL);
@@ -10773,6 +10780,7 @@ void make_lvalue_operand_from_compound_constant(a_constant_ptr  constant,
 /*
 The given constant has nonscalar type (presumably the result of a compound
 literal).  Make the given operand a variable initialized with that constant.
+The source positions in the operand are set to the current token position.
 */
 {
   /* Use a static temporary so it can be statically initialized. */
@@ -10790,7 +10798,10 @@ literal).  Make the given operand a variable initialized with that constant.
   }  /* if */
   temp_var->initializer.constant = constant;
   /* The operand is an lvalue for the temporary. */
-  make_lvalue_variable_operand(temp_var, operand, (a_ref_entry_ptr)NULL);
+  make_lvalue_variable_operand(temp_var,
+                               &pos_curr_token,
+                               end_position_or_null(&end_pos_curr_token),
+                               operand, (a_ref_entry_ptr)NULL);
 }  /* make_lvalue_operand_from_compound_constant */
 
 

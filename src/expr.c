@@ -3531,6 +3531,8 @@ qualified_name_check:
           /* Static data member reference. */
           make_lvalue_variable_operand(
                               member_sym->variant.static_data_member.variable,
+                              &pos_curr_token,
+                              end_position_or_null(&end_pos_curr_token),
                               result, rep);
           combine_unneeded_selector_with_operand(operand_1, is_arrow_operator,
                                                  result);
@@ -12397,7 +12399,8 @@ in which the source expression is a brace-enclosed initializer, e.g.,
 On entry, the current token is the "{", *p_literal_type indicates the type
 of the compound literal, and *type_position is the position of that type.
 On exit, the current token is the token after the "}", and *result is set
-to the compound literal.
+to the compound literal.  The source positions in the operand are not
+set appropriately; the caller should set them on return.
 */
 {
   a_boolean               err = FALSE;
@@ -15301,6 +15304,7 @@ This is used for checking/allowing assignment to "this" -- an anachronism.
 {
   a_boolean      is_this = FALSE;
   a_variable_ptr this_var;
+  an_operand     orig_operand;
 
   if (is_this_parameter_operand(operand, &this_var)) {
     /* This is an operand for "this".  Issue an anachronism diagnostic
@@ -15313,7 +15317,12 @@ This is used for checking/allowing assignment to "this" -- an anachronism.
     pos_diagnostic(exceptions_enabled ? es_error :
                                         anachronism_error_severity,
                    ec_assignment_to_this, &operand->position);
-    make_lvalue_variable_operand(this_var, operand, operand->ref_entries_list);
+    orig_operand = *operand;
+    make_lvalue_variable_operand(this_var,
+                                 &orig_operand.position,
+                                 end_position_of_operand(&orig_operand),
+                                 operand, operand->ref_entries_list);
+    restore_operand_details(operand, &orig_operand);
     current_routine_entry()->assignment_to_this_done = TRUE;
     this_var->param_value_has_been_changed = TRUE;
     if (exceptions_enabled &&
@@ -16367,7 +16376,9 @@ is built in *operand.  It's an lvalue for the field.
                   union_sym->kind == (a_symbol_kind)sk_variable);
   /* Start with an operand for the base anonymous union variable. */
   union_var = union_sym->variant.variable.ptr;
-  make_lvalue_variable_operand(union_var, &operand_1, (a_ref_entry_ptr)NULL);
+  make_lvalue_variable_operand(union_var,
+                               &null_source_position, &null_source_position,
+                               &operand_1, (a_ref_entry_ptr)NULL);
   /* Add a field selection to get to the field. */
   do_field_selection_operation(&operand_1, union_var->type,
                                /*is_arrow_operator=*/FALSE,
@@ -16981,7 +16992,11 @@ variable:
               check_reference_from_inline_function(sym_ptr);
             }  /* if */
             /* Make a variable operand that is an lvalue. */
-            make_lvalue_variable_operand(var_ptr, result, rep);
+            make_lvalue_variable_operand(
+                                     var_ptr,
+                                     &pos_curr_token,
+                                     end_position_or_null(&end_pos_curr_token),
+                                     result, rep);
           }  /* if */
           if (is_error_operand(result)) {
             change_refs_to_error(rep);
@@ -17301,7 +17316,11 @@ overloaded_function:
               sym_ptr->variant.param_id->dummy_vla_variable = var_ptr;
             }  /* if */
             /* Generate an expression node referring to the dummy variable. */
-            make_lvalue_variable_operand(var_ptr, result, rep);
+            make_lvalue_variable_operand(
+                                     var_ptr,
+                                     &pos_curr_token,
+                                     end_position_or_null(&end_pos_curr_token),
+                                     result, rep);
             check_assertion(is_expression_operand(result));
             /* Create a_vla_fixup for the parameter, initialize its
                members, and link it into the list of vla fixups for the
@@ -17981,7 +18000,10 @@ which of the various keywords was used.
     *name_var_ptr = name_var;
 have_variable:
     /* Create an operand that refers to the implicit static variable. */
-    make_lvalue_variable_operand(name_var, result, (a_ref_entry_ptr)NULL);
+    make_lvalue_variable_operand(name_var,
+                                 &pos_curr_token,
+                                 end_position_or_null(&end_pos_curr_token),
+                                 result, (a_ref_entry_ptr)NULL);
   }  /* if */
 end_of_routine:
   rule_out_expr_kinds(ROEK_INTEGRAL_CONSTANT, result);
@@ -18214,19 +18236,77 @@ been annotated in the source with the GNU keyword __extension__.
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
-static void scan_lambda_expression(an_operand  *result)
+
+static void make_initializers_for_lambda_capture_copies(a_lambda *lambda)
 /*
-Scan a C++ lambda expression.
+*lambda describes a lambda expression just scanned.  For any captured
+variables, add initializers that describe how to copy the variables.
 */
 {
-  a_lambda_ptr       lambda = scan_lambda();
+  a_lambda_capture_ptr lcp;
+
+  for (lcp = lambda->capture_list; lcp != NULL; lcp = lcp->next) {
+    a_variable_ptr     var = lcp->variable;
+    a_type_ptr         dest_type = lcp->closure_field->type;
+    an_operand         operand;
+    a_dynamic_init_ptr dip;
+    make_lvalue_variable_operand(var,
+                                 &lcp->position,
+                                 end_position_or_null(&lcp->end_position),
+                                 &operand,
+                                 (a_ref_entry_ptr)NULL);
+    if (is_class_struct_union_type(dest_type)) {
+      /* For a class-typed variable, find the proper copy constructor. */
+      /* FIXME; note that this has to use an implicit source of copy. */
+    } else if (is_array_type(dest_type)) {
+      /* For an array copy the whole array.  Do a bitwise copy if that is
+         possible, otherwise a repeated copy constructor copy. */
+      /* FIXME; note that this has to use an implicit source of copy. */
+    } else {
+      /* Other cases, including when dest_type is a reference (which happens
+         when the capture is by reference). */
+      prep_initializer_operand(&operand,
+                               dest_type,
+                               (a_boolean *)NULL,
+                               (a_conv_descr_ptr)NULL,
+                               /*initializing_return_value=*/FALSE,
+                               /*initializing_variable=*/FALSE,
+                               /*static_lifetime=*/FALSE,
+                               /*is_copy_initialization=*/TRUE,
+                               /*processed_arg=*/FALSE,
+                               /*nontype_template_arg=*/FALSE,
+                               ec_captured_var_not_copyable);
+      dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_expression);
+      dip->variant.expression = make_node_from_operand(&operand);
+    }  /* if */
+    lcp->initialization = dip;
+  }  /* for */
+}  /* make_initializers_for_lambda_capture_copies */
+
+
+static void scan_lambda_expression(an_operand  *result)
+/*
+Scan a C++ lambda expression, e.g., something like
+
+  [i] (int j) { return i + j; }
+
+*/
+{
+  a_lambda_ptr       lambda;
   a_source_position  start_pos;
 
   start_pos = pos_curr_token;
+  /* Scan the lambda. */
+  lambda = scan_lambda();
   if (lambda == NULL) {
+    /* Some serious error was previously detected. */
     make_error_operand(result);
   } else {
-    an_expr_node_ptr  expr = alloc_expr_node((an_expr_node_kind)enk_lambda);
+    an_expr_node_ptr expr;
+    /* Add initialization code to copy any captured variables. */
+    make_initializers_for_lambda_capture_copies(lambda);
+    /* The result is a class rvalue instance of the closure class. */
+    expr = alloc_expr_node((an_expr_node_kind)enk_lambda);
     expr->type = lambda->closure_class;
     expr->variant.lambda = lambda;
     make_expression_operand(expr, result);
@@ -19560,8 +19640,10 @@ to the type of the expression.
 
   if (lambda != NULL && !lambda->explicit_return_type) {
     if (is_unknown_type(*return_type)) {
+      a_routine_ptr rout = lambda->lambda_routine;
       *return_type = return_op->type;
-      lambda->lambda_routine->type->variant.routine.return_type = *return_type;
+      rout->type->variant.routine.return_type = *return_type;
+      set_routine_calling_method_flag(rout->type, &return_op->position);
     } else {
       /* More than one return in a lambda with an implicit return type.
          The error is issued in the return statement processing.
@@ -19611,6 +19693,13 @@ required_type will be void if the expression should have void type
   scan_expr(&result, PREC_LOWEST, EOPT_NO_OPTIONS);
   if (in_lambda_body()) {
     check_and_adjust_lambda_return_type_if_needed(&result, &required_type);
+    if (routine_type->variant.routine.extra_info->value_returned_by_cctor) {
+      /* The routine is (now?) known to return its value via copy
+         constructor. */
+      /* FIXME: this doesn't work right. */
+      return_by_cctor_case = TRUE;
+      expr_stack->in_cctor_elision_initializer = TRUE;
+    }  /* if */
   }  /* if */
   if (return_by_cctor_case) {
     /* The current routine returns its value via a copy constructor. */
@@ -21181,10 +21270,12 @@ to the expression created.  The variable var must have an associated symbol.
   check_assertion(var->source_corresp.assoc_info != NULL);
   ref = ref_entry((a_symbol_ptr)var->source_corresp.assoc_info,
                   &var->source_corresp.decl_position);
-  make_lvalue_variable_operand(var, &operand, ref);
-  set_operand_position(&operand, &var->source_corresp.decl_position,
-                      &var->source_corresp.decl_pos_info->identifier_range.end,
-                       (a_source_position *)NULL);
+  make_lvalue_variable_operand(var,
+                               &var->source_corresp.decl_position,
+                               end_position_or_null(
+                                          &var->source_corresp.decl_pos_info->
+                                                         identifier_range.end),
+                               &operand, ref);
   do_operand_transformations(&operand, TOPT_NO_OPTIONS);
   if (is_switch_expr) {
     /* A switch condition (must be integral). */
@@ -21502,7 +21593,10 @@ of this where the source should be considered an rvalue.
     /* Make a variable with the given type. */
     clear_variable(&src_var);
     src_var.type = src_type;
-    make_lvalue_variable_operand(&src_var, &src_op, (a_ref_entry_ptr)NULL);
+    make_lvalue_variable_operand(&src_var,
+                                 &null_source_position,
+                                 &null_source_position,
+                                 &src_op, (a_ref_entry_ptr)NULL);
     if (src_is_rvalue &&
         !is_array_type(src_type) &&
         !is_function_type(src_type)) { 

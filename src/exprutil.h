@@ -1092,9 +1092,11 @@ extern a_boolean variable_has_constant_address(a_variable_ptr variable);
 extern a_boolean operand_is_lvalue_for_variable(an_operand      *operand,
                                                 a_variable_ptr  *var);
 
-extern void make_lvalue_variable_operand(a_variable_ptr  variable,
-                                         an_operand      *result,
-                                         a_ref_entry_ptr rep);
+extern void make_lvalue_variable_operand(a_variable_ptr    variable,
+                                         a_source_position *position,
+                                         a_source_position *end_position,
+                                         an_operand        *result,
+                                         a_ref_entry_ptr   rep);
 
 extern void make_lvalue_operand_from_compound_constant(
                                                      a_constant_ptr  constant,
