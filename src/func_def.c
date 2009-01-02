@@ -996,10 +996,22 @@ and for the instantiation of template functions.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     /* Be sure param-id and param-type lists are in sync. */
     if ((param_id == NULL) != (ptp == NULL)) {
-      /* This can happen when the param_id list is discarded because severe
-         syntax errors made it look like the declarator did not appear at
-         the top level. */
-      check_assertion(total_errors != 0 && param_id == NULL);
+      /* Getting here is unusual.  In most modes, it is the result of the
+         param_id list being discarded because severe syntax errors made it
+         look like the declarator did not appear at the top level (param_id is
+         NULL in such cases).  In Microsoft mode, however, it can also occur
+         when a single template-dependent parameter became "void" after
+         instantiation (ptp is NULL in that case). */
+#if CHECKING
+      if (param_id == NULL) {
+        check_assertion(total_errors != 0);
+      } else {
+        check_assertion(microsoft_mode && param_id->next == NULL &&
+                        param_id->type != NULL &&
+                        is_template_dependent_type(param_id->type));
+      }  /* if */
+#endif /* CHECKING */
+      param_id = NULL;
       ptp = NULL;
     }  /* if */
     for (; param_id != NULL; param_id = param_id->next, ptp = ptp->next) {
