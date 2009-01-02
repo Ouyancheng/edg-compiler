@@ -5629,14 +5629,14 @@ specification mismatches (the two types are probably the types of the
 operands of an operation).
 */
 {
-  a_boolean correspond;
+  a_boolean                correspond;
+  a_type_compat_flags_set  rt_flags;
 
   rout_type_1 = skip_typerefs(rout_type_1);
   rout_type_2 = skip_typerefs(rout_type_2);
-  correspond = types_are_compatible(rout_type_1->variant.routine.return_type,
-                                   rout_type_2->variant.routine.return_type) &&
-               param_types_are_compatible(rout_type_1, rout_type_2,
-                                    TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING) &&
+  rt_flags = TCF_IGNORE_THIS_CLASS_TYPE |
+             TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING;
+  correspond = f_types_are_compatible(rout_type_1, rout_type_2, rt_flags) &&
                this_param_types_correspond(rout_type_1, rout_type_2,
                                            !allow_qualifier_or_eh_mismatch,
                                            allow_qualifier_or_eh_mismatch);
