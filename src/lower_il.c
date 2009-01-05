@@ -13944,6 +13944,10 @@ cast.  See lower_expr for typical invocation.
       /* Constant operations should only appear in the representation of
          templates and constant-expressions, and should therefore never
          need lowering. */
+    case enk_lambda:
+      /* Lower a lambda expression. */
+      lower_lambda(expr);
+      break;
     default:
       unexpected_condition_str("lower_expr: bad kind");
   }  /* switch */
@@ -17234,6 +17238,12 @@ by things that will be in the file scope.
         break;
       }  /* if */
     }  /* for */
+  }  /* if */
+  if (scope->kind == (a_scope_kind)sck_function && scope->lambdas != NULL) {
+    /* The presence of a lambda inside a function forces promotion of local
+       entities.  Otherwise a lambda might make reference to a local type that
+       isn't visible in C code. */
+    promotion_needed = TRUE;
   }  /* if */
   if (!promotion_needed) {
     /* If nothing in this scope forces promotion, look at any subscopes.

@@ -13354,6 +13354,57 @@ associated class or enum was declared.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+void lower_lambda(an_expr_node_ptr expr)
+/*
+Lower the specified lambda expression by creating a temporary variable with
+the same type as the closure class and initializing each of the fields
+with the value of their corresponding captured variables.
+*/
+{
+  a_variable_ptr        closure_var;
+  a_lambda_capture_ptr  capture;
+  an_init_pos_descr     ipd;
+  an_init_pos_modifier  ipm;
+  an_insert_location    insert_location;
+
+  check_assertion(expr->kind == (an_expr_node_kind)enk_lambda &&
+                  identical_types(expr->variant.lambda->closure_class,
+                                  expr->type) &&
+                  !expr->is_lvalue);
+  closure_var = make_local_temporary(expr->type);
+  capture = expr->variant.lambda->capture_list;
+  /* Change the enk_lambda node to an enk_variable node that refers to
+     the closure variable.  The type and lvalueness of the node are unchanged.
+     Lambda-specific field values of expr cannot be accessed after the
+     expression kind is changed.  This is done early because code might be
+     inserted during lowering of capture initializations. */
+  set_expr_node_kind(expr, (an_expr_node_kind)enk_variable);
+  expr->variant.variable = closure_var;
+  /* Initialization (if any) is inserted before the lambda expression. */
+  set_expr_insert_location(expr, &insert_location);
+  for (; capture != NULL; capture = capture->next) {
+    check_assertion(capture->initialization != NULL &&
+                    capture->initialization->variable == NULL);
+    /* Set up initialization to point to the proper field of the variable
+       for the closure object. */
+    capture->initialization->variable = closure_var;
+    set_var_init_pos_descr(closure_var, &ipd);
+    add_init_pos_modifier(&ipm, &ipd);
+    ipm.curr_field = capture->closure_field;
+    ipm.type = capture->closure_field->type;
+    /* Lower the dynamic initialization that copies the variable into
+       a field of the closure object. */
+    lower_dynamic_init(capture->initialization, &ipd,
+                       (a_constructor_init_ptr)NULL,
+                       (a_variable_ptr)NULL,
+                       LDIO_NONE,
+                       /*others_follow_in_aggr=*/FALSE,
+                       &insert_location, (a_boolean *)NULL,
+                       (a_constant **)NULL);
+  }  /* for */
+}  /* lower_lambda */
+
+
 void init_lower_one_time_init(void)
 /*
 Do one-time initialization of static variables declared in lower_init.c.

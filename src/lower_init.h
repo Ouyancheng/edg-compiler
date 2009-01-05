@@ -243,6 +243,8 @@ extern void add_body_for_covariant_return_type_entry_routine(
 extern void lower_uuidof(a_constant *con);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+extern void lower_lambda(an_expr_node_ptr expr);
+
 extern void init_lower_one_time_init(void);
 
 extern void init_lower_trans_unit_init(void);
