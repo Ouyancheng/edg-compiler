@@ -15997,13 +15997,17 @@ properties of this operator in *func_info (which is initialized here).
   dps->declarator_start_pos = dps->declarator_pos = pos_curr_token;
   dps->in_class_scope = TRUE;
   scan_lambda_declarator(lambda, dps, func_info, decl_pos_block);
+  if (!is_error_type(dps->type)) {
+    check_assertion(is_function_type(dps->type));
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  source_sequence_entries_disallowed = TRUE;
+    source_sequence_entries_disallowed = TRUE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  decl_call_operator_for_lambda(lambda, class_state, &decl_info, func_info);
+    decl_call_operator_for_lambda(lambda, class_state, &decl_info, func_info);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  source_sequence_entries_disallowed = prev_source_sequence_entries_disallowed;
+    source_sequence_entries_disallowed =
+                                      prev_source_sequence_entries_disallowed;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  }  /* if */
 }  /* scan_and_process_lambda_declarator */
 
 
@@ -16011,7 +16015,7 @@ a_lambda_ptr scan_lambda(void)
 /*
 Scan a C++ lambda construct and return a pointer to an a_lambda entry
 describing it.  If errors do not permit the construction of a consistent
-entry, return NULL.  // FIXME: Currently never returns NULL.
+entry, return NULL.
 */
 {
   a_lambda_ptr        lambda = alloc_lambda();
@@ -16055,28 +16059,37 @@ entry, return NULL.  // FIXME: Currently never returns NULL.
   /* Parse the "declarator" part of the lambda (the parameter list, etc.) and
      create the associated corresponding call operator in the closure class. */
   scan_and_process_lambda_declarator(lambda, &func_info);
-  /* Parse the body of the lambda.  A class reactivation is not pushed for
-     the lambda closure class because it is still on the scope stack. */
-  sfb_flags = SFB_NEW_STRUCT_STMT_STACK_REQUIRED |
-              SFB_NO_CLASS_REACTIVATION;
-  scan_function_body(lambda->lambda_routine, &func_info, sfb_flags);
-  check_assertion(
+  if (lambda->lambda_routine != NULL) {
+    /* Parse the body of the lambda.  A class reactivation is not pushed for
+       the lambda closure class because it is still on the scope stack. */
+    sfb_flags = SFB_NEW_STRUCT_STMT_STACK_REQUIRED |
+                SFB_NO_CLASS_REACTIVATION;
+    scan_function_body(lambda->lambda_routine, &func_info, sfb_flags);
+    check_assertion(
               !is_unknown_type(return_type_of(lambda->lambda_routine->type)));
-  if (curr_token == tok_rbrace) {
-    /* Don't use required_token, because we aren't at a brace, an error has
-       already been issued, and we will be at the token to restart parsing
-       with. */
-    (void)get_token();
+    if (curr_token == tok_rbrace) {
+      /* Don't use required_token, because we aren't at a brace, an error has
+         already been issued, and we will be at the token to restart parsing
+         with. */
+      (void)get_token();
+    }  /* if */
   }  /* if */
   /* Record the capture list and complete the closure class. */
   complete_class_definition(closure_class, decl_scope_level-1, &class_state);
   pop_scope();
-  /* Lowering of the lambda body function is deferred because the
-     closure class was not complete when the function was scanned.  Now that
-     the closure class is complete, do the lowering of the lambda body
-     (if needed). */
-  finish_function_processing_for_memory_region(
-                   lambda->lambda_routine->assoc_scope, /*only_inline=*/FALSE);
+  if (lambda->lambda_routine != NULL) {
+    /* Lowering of the lambda body function is deferred because the closure
+       class was not complete when the function was scanned.  Now that the
+       closure class is complete, do the lowering of the lambda body (if
+       needed). */
+    finish_function_processing_for_memory_region(
+                  lambda->lambda_routine->assoc_scope, /*only_inline=*/FALSE);
+  } else {
+    /* Severe errors prevented the creation of a call operator.  Don't return
+       a lambda. */
+    check_assertion(total_errors != 0);
+    lambda = NULL;
+  }  /* if */
   return lambda;
 }  /* scan_lambda */
 

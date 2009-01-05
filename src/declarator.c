@@ -2370,10 +2370,12 @@ and/or a lambda return type.
                         /*disallow_exception_spec=*/FALSE,
                         /*is_typedef_decl=*/FALSE, /*is_friend_decl=*/FALSE,
                         decl_pos_block);
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-    func_info->declared_type = func_type;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  } else {
+    func_type = error_type();
   }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  func_info->declared_type = func_type;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   remove_stop_token(tok_rparen);
   /* Check for an explicit return type. */
   if (curr_token == tok_arrow) {
@@ -2381,12 +2383,15 @@ and/or a lambda return type.
     lambda->explicit_return_type = TRUE;
     (void)get_token();
     type_name(&return_type);
-    bottom_derived_type = func_type;
-    add_to_derived_type_list(return_type, &func_type, &bottom_derived_type,
-                             dps, /*parameter_type=*/FALSE,
-                             /*microsoft_property=*/FALSE);
+    if (!is_error_type(func_type)) {
+      bottom_derived_type = func_type;
+      add_to_derived_type_list(return_type, &func_type, &bottom_derived_type,
+                               dps, /*parameter_type=*/FALSE,
+                               /*microsoft_property=*/FALSE);
+      check_assertion(is_function_type(func_type));
+    }  /* if */
+  } else if (!is_error_type(func_type)) {
     check_assertion(is_function_type(func_type));
-  } else {
     func_type->variant.routine.return_type = unknown_type();
   }  /* if */
   dps->type = func_type;
