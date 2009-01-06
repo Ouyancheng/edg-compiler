@@ -18258,14 +18258,12 @@ variables, add initializers that describe how to copy the variables.
     if (is_class_struct_union_type(dest_type)) {
       /* For a class-typed variable, find the proper copy constructor. */
       /* FIXME; note that this has to use an implicit source of copy. */
-      unexpected_condition_str(
-                        "capture of class-typed variable not implemented yet");
+      dip = NULL;
     } else if (is_array_type(dest_type)) {
       /* For an array copy the whole array.  Do a bitwise copy if that is
          possible, otherwise a repeated copy constructor copy. */
       /* FIXME; note that this has to use an implicit source of copy. */
-      unexpected_condition_str(
-                        "capture of array-typed variable not implemented yet");
+      dip = NULL;
     } else {
       /* Other cases, including when dest_type is a reference (which happens
          when the capture is by reference). */
