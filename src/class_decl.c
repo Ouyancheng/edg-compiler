@@ -506,200 +506,6 @@ Add a class fixup entry for class_type to the class fixup list.
 }  /* add_to_class_fixup_list */
 
 
-static a_field_ptr make_field_for_lambda_capture(
-					a_lambda_ptr		lambda,
-					a_variable_ptr		vp,
-					a_boolean		by_reference,
-					a_source_position_ptr	pos)
-/*
-Create the field of the closure class to store the capture of vp.  by_reference
-is TRUE if the variable is being captured by reference.  Return the field
-entry.  pos is the source position to be used as the decl_position of
-the field.
-*/
-{
-  a_field_ptr	fp;
-  a_type_ptr	field_type;
-  a_symbol_ptr	var_sym = NULL;
-  a_symbol_ptr	field_sym;
-  a_boolean	is_this = FALSE;
-
-  /* "this" variables do not have associated symbols. */
-  if (vp->is_this_parameter) {
-    is_this = TRUE;
-  } else {
-    var_sym = symbol_for(vp);
-    check_assertion(var_sym != NULL);
-  }  /* if */
-  fp = alloc_field();
-  field_type = vp->type;
-  /* If the variable is a reference, drop the reference. */
-  if (is_reference_type(field_type)) {
-    field_type = type_pointed_to(field_type);
-  }  /* if */
-  if (vp->is_this_parameter) {
-    /* The field type is the type of the "this" parameter (already set
-       above). */  
-  } else if (by_reference) {
-    /* The variable is being captured by reference.  Create a reference
-       type based on the variable's type. */
-    field_type = make_reference_type(field_type);
-  } else {
-    /* The variable is being captured by value.  The type is the
-       cv-unqualified type of the variable. */
-    field_type = make_unqualified_type(field_type);
-  }  /* if */
-  fp->type = field_type;
-  if (is_this) {
-    /* Create an unnamed symbol to represent the capture of the this
-       parameter. */
-    field_sym = make_unnamed_symbol((a_symbol_kind)sk_field, pos);
-  } else {
-    field_sym = alloc_symbol((a_symbol_kind)sk_field, var_sym->header, pos);
-  }  /* if */
-  field_sym->variant.field.ptr = fp;
-  field_sym->decl_position = *pos;
-  set_source_corresp(&fp->source_corresp, field_sym);
-  set_class_membership(field_sym, &fp->source_corresp, lambda->closure_class);
-  /* Enter the lambda symbol into the symbol table and onto the scope list.
-     The symbol is marked as invisible so that it won't be found by
-     name lookup. */
-  { a_boolean				err = FALSE;
-    a_class_type_supplement_ptr		ctsp;
-    ctsp = class_type_supp(lambda->closure_class);
-    enter_lambda_capture_symbol(field_sym,
-                                ctsp->assoc_scope->depth_in_scope_stack);
-    check_assertion(!err);
-  }
-  return fp;
-}  /* make_field_for_lambda_capture */
-
-
-static a_lambda_capture_ptr add_lambda_capture(
-					a_lambda_ptr		lambda,
-					a_variable_ptr		vp,
-					a_boolean		is_implicit,
-					a_boolean		by_reference,
-					a_source_position_ptr	pos)
-/*
-Create a lambda capture entry for the lambda specified by "lambda" for the
-variable vp.  is_implicit is TRUE if this is an implicit capture.
-by_reference indicates if this is a by-reference or by-value capture.
-Create the lambda capture entry and the associated field of the capture
-class.  Add the lambda capture entry to this list of captures for "lambda"
-and return a pointer to the capture entry.
-*/
-{
-  a_lambda_capture_ptr	lcp;
-
-  lcp = alloc_lambda_capture();
-  lcp->variable = vp;
-  lcp->closure_field = make_field_for_lambda_capture(lambda, vp, by_reference,
-                                                     pos);
-  lcp->capture_by_reference = by_reference;
-  lcp->is_implicit = is_implicit;
-  if (lambda->capture_list == NULL) {
-    /* This is the first entry. */
-    lambda->capture_list = lcp;
-  } else {
-    /* Find the last entry on the capture list so that we can add the new
-       entry to the end of the list. */
-    a_lambda_capture_ptr	last_lcp;
-    for (last_lcp = lambda->capture_list; last_lcp->next != NULL;
-         last_lcp = last_lcp->next) {}
-    last_lcp->next = lcp;
-  }  /* if */
-  return lcp;
-}  /* add_lambda_capture */
-
-
-static a_lambda_capture_ptr find_lambda_capture(a_lambda_ptr		lambda,
-						a_variable_ptr		vp,
-						a_source_position_ptr	pos)
-/*
-vp is a variable entry for a local variable of a suitable kind for potential
-use as a lambda capture (e.g., it is from an acceptable scope and is of
-automatic storage duration).  Look for a lambda capture entry for this
-variable in the specified lambda.  If the variable is found on
-the capture list, return the capture.  If it is not on the list, and the
-lambda allows implicit captures, add it to the capture list and return
-the capture.  When an entry is added to the capture list, pos is the position
-to be used as the declaration position of the closure class member.  If there
-is no associated capture (explicit or implicit), return NULL.
-*/
-{
-  a_lambda_capture_ptr	lcp;
-
-  /* Look for an existing capture entry for this variable. */
-  for (lcp = lambda->capture_list; lcp != NULL; lcp = lcp->next) {
-    if (lcp->variable == vp) break;
-  }  /* for */
-  /* If no matching capture was found, we can create one if the lambda has
-     a capture default. */
-  if (lcp == NULL && lambda->has_capture_default) {
-    lcp = add_lambda_capture(lambda, vp, /*is_implicit=*/TRUE,
-                             lambda->default_is_by_reference, pos);
-  }  /* if */
-  return lcp;
-}  /* find_lambda_capture */
-
-
-a_lambda_capture_ptr lambda_capture_for_variable(a_variable_ptr		vp,
-						 a_source_position_ptr	pos)
-/*
-vp is a variable entry for a local variable of a suitable kind for potential
-use as a lambda capture (e.g., it is from an acceptable scope and is of
-automatic storage duration).  Look for a lambda capture entry for this
-variable in the nearest enclosing lambda.  If the variable is found on
-the capture list, return the capture.  If it is not on the list, and the
-lambda allows implicit captures, add it to the capture list and return
-the capture.  When an entry is added to the capture list, pos is the position
-to be used as the declaration position of the closure class member.  If there
-is no associated capture (explicit or implicit), return NULL.
-*/
-{
-  a_lambda_ptr			lambda = get_current_lambda();
-  a_lambda_capture_ptr		lcp;
-
-  check_assertion(lambda != NULL);
-  /* Find or create the lambda capture for this variable.  NULL will be
-     returned if no capture is found and one cannot be created. */
-  lcp = find_lambda_capture(lambda, vp, pos);
-  return lcp;
-}  /* lambda_capture_for_variable */
-
-
-static a_type_ptr make_closure_class(a_source_position	*decl_position)
-/*
-Create the class type that is used to represent a lambda closure.  Return
-a pointer to the class type.  decl_position is the declaration position
-to be used for the lambda.
-
-The class is created as an incomplete type.  It will be completed when its
-various members have been added (call operator, constructors, destructor, and
-the fields implied by the lambda's capture list).
-*/
-{
-  a_type_ptr			type;
-  a_symbol_ptr			sym;
-  a_class_symbol_supplement_ptr	cssp;
-
-  /* Create an unnamed symbol for the lambda class. */
-  sym = make_unnamed_tag_symbol((a_symbol_kind)sk_class_or_struct_tag,
-                                decl_position);
-  /* Create the type for the lambda class. */
-  type = alloc_type((a_type_kind)tk_class);
-  set_source_corresp(&(type->source_corresp), sym);
-  sym->variant.class_struct_union.type = type;
-  add_to_types_list(type, decl_scope_level);
-  cssp = sym->variant.class_struct_union.extra_info;
-  /* Assume for now that bitwise copy is allowed for this class.  This will
-     be cleared later if this is not the case. */
-  cssp->construction_by_bitwise_copy_allowed = TRUE;
-  return type;
-}  /* make_closure_class */
-
-
 /*
 Data structure in which to track partial overriding of an overload set of
 virtual functions and to track override failures.
@@ -836,8 +642,9 @@ typedef struct a_class_def_state {
 			   Not set until after the opening brace of the
 			   definition is seen. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  a_bit_field	any_named_fields:1;
-			/* TRUE if any named fields are declared. */
+  a_bit_field	any_non_unnamed_bitfields:1;
+			/* TRUE if any fields other than unnamed bit-fields
+			   are declared. */
   a_bit_field	any_friend_decls:1;
 			/* TRUE if any friend declarations are encountered. */
   a_bit_field	any_const_or_ref_fields:1;
@@ -874,6 +681,9 @@ typedef struct a_class_def_state {
 			   anywhere in the declaration, or not at all.
 			   For example:
 			     struct S { (int a)[3]; };       */
+  a_bit_field	is_closure_class:1;
+			/* TRUE if the class is a closure class that represents
+			   a lambda. */
   an_access_specifier
 		access;
 			/* The current access. */
@@ -911,7 +721,7 @@ class being defined.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   cdsp->potentially_interface_like = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  cdsp->any_named_fields = FALSE;
+  cdsp->any_non_unnamed_bitfields = FALSE;
   cdsp->any_friend_decls = FALSE;
   cdsp->any_const_or_ref_fields = FALSE;
   cdsp->is_template_instantiation = FALSE;
@@ -922,6 +732,7 @@ class being defined.
   cdsp->member_destruction_required = FALSE;
   cdsp->base_destruction_required = FALSE;
   cdsp->ms_parenthesized_member = FALSE;
+  cdsp->is_closure_class = FALSE;
   cdsp->access = (an_access_specifier)as_public;
   cdsp->override_registry = NULL;
   cdsp->end_of_field_list = NULL;
@@ -1099,6 +910,204 @@ a class member declaration as it appears.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* bit_field_size is only set when is_bit_field is TRUE. */
 }  /* initialize_member_decl_info */
+
+
+/* Forward declaration. */
+static a_field_ptr decl_nonstatic_data_member(
+                                       a_symbol_locator        *locator,
+                                       a_class_def_state_ptr   class_state,
+                                       a_member_decl_info_ptr  decl_info);
+
+
+static a_field_ptr make_field_for_lambda_capture(
+					a_lambda_ptr		lambda,
+					a_variable_ptr		vp,
+					a_boolean		by_reference,
+					a_source_position_ptr	pos)
+/*
+Create the field of the closure class to store the capture of vp.  by_reference
+is TRUE if the variable is being captured by reference.  Return the field
+entry.  pos is the source position to be used as the decl_position of
+the field.
+*/
+{
+  a_field_ptr			fp;
+  a_type_ptr			field_type;
+  a_symbol_ptr			var_sym = NULL;
+  a_boolean			is_this = FALSE;
+  a_class_def_state_ptr		class_state;
+  a_scope_stack_entry_ptr	ssep;
+  a_symbol_locator		locator;
+  a_member_decl_info            decl_info;
+
+  /* Find the scope stack entry for the lambda closure class. */
+  for (ssep = scope_stack_entry_for(depth_scope_stack);
+       !(ssep->kind == (a_scope_kind)sck_class_struct_union &&
+         ssep->assoc_type == lambda->closure_class);
+       ssep = previous_scope_of(ssep)) {
+    check_assertion(ssep != NULL);
+  }  /* for */
+  class_state = ssep->class_def_state;
+  clear_locator(&locator, pos);
+  /* "this" variables do not have associated symbols. */
+  if (vp->is_this_parameter) {
+    is_this = TRUE;
+  } else {
+    var_sym = symbol_for(vp);
+    check_assertion(var_sym != NULL);
+    /* Create a symbol locator that can be used to declare the field. */
+    locator.symbol_header = var_sym->header;
+  }  /* if */
+  field_type = vp->type;
+  /* If the variable is a reference, drop the reference. */
+  if (is_reference_type(field_type)) {
+    field_type = type_pointed_to(field_type);
+  }  /* if */
+  if (vp->is_this_parameter) {
+    /* The field type is the type of the "this" parameter (already set
+       above). */  
+  } else if (by_reference) {
+    /* The variable is being captured by reference.  Create a reference
+       type based on the variable's type. */
+    field_type = make_reference_type(field_type);
+  } else {
+    /* The variable is being captured by value.  The type is the
+       cv-unqualified type of the variable. */
+    field_type = make_unqualified_type(field_type);
+  }  /* if */
+  /* Set up the context that is needed so that decl_nonstatic_data_member
+     can be used to create the field. */
+  initialize_member_decl_info(&decl_info, pos);
+  decl_info.is_unnamed_field = vp->is_this_parameter;
+  decl_info.decl_state.type = field_type;
+  fp = decl_nonstatic_data_member(&locator, class_state, &decl_info);
+  return fp;
+}  /* make_field_for_lambda_capture */
+
+
+static a_lambda_capture_ptr add_lambda_capture(
+					a_lambda_ptr		lambda,
+					a_variable_ptr		vp,
+					a_boolean		is_implicit,
+					a_boolean		by_reference,
+					a_source_position_ptr	pos)
+/*
+Create a lambda capture entry for the lambda specified by "lambda" for the
+variable vp.  is_implicit is TRUE if this is an implicit capture.
+by_reference indicates if this is a by-reference or by-value capture.
+Create the lambda capture entry and the associated field of the capture
+class.  Add the lambda capture entry to this list of captures for "lambda"
+and return a pointer to the capture entry.
+*/
+{
+  a_lambda_capture_ptr	lcp;
+
+  lcp = alloc_lambda_capture();
+  lcp->variable = vp;
+  lcp->closure_field = make_field_for_lambda_capture(lambda, vp, by_reference,
+                                                     pos);
+  lcp->capture_by_reference = by_reference;
+  lcp->is_implicit = is_implicit;
+  if (lambda->capture_list == NULL) {
+    /* This is the first entry. */
+    lambda->capture_list = lcp;
+  } else {
+    /* Find the last entry on the capture list so that we can add the new
+       entry to the end of the list. */
+    a_lambda_capture_ptr	last_lcp;
+    for (last_lcp = lambda->capture_list; last_lcp->next != NULL;
+         last_lcp = last_lcp->next) {}
+    last_lcp->next = lcp;
+  }  /* if */
+  return lcp;
+}  /* add_lambda_capture */
+
+
+static a_lambda_capture_ptr find_lambda_capture(a_lambda_ptr		lambda,
+						a_variable_ptr		vp,
+						a_source_position_ptr	pos)
+/*
+vp is a variable entry for a local variable of a suitable kind for potential
+use as a lambda capture (e.g., it is from an acceptable scope and is of
+automatic storage duration).  Look for a lambda capture entry for this
+variable in the specified lambda.  If the variable is found on
+the capture list, return the capture.  If it is not on the list, and the
+lambda allows implicit captures, add it to the capture list and return
+the capture.  When an entry is added to the capture list, pos is the position
+to be used as the declaration position of the closure class member.  If there
+is no associated capture (explicit or implicit), return NULL.
+*/
+{
+  a_lambda_capture_ptr	lcp;
+
+  /* Look for an existing capture entry for this variable. */
+  for (lcp = lambda->capture_list; lcp != NULL; lcp = lcp->next) {
+    if (lcp->variable == vp) break;
+  }  /* for */
+  /* If no matching capture was found, we can create one if the lambda has
+     a capture default. */
+  if (lcp == NULL && lambda->has_capture_default) {
+    lcp = add_lambda_capture(lambda, vp, /*is_implicit=*/TRUE,
+                             lambda->default_is_by_reference, pos);
+  }  /* if */
+  return lcp;
+}  /* find_lambda_capture */
+
+
+a_lambda_capture_ptr lambda_capture_for_variable(a_variable_ptr		vp,
+						 a_source_position_ptr	pos)
+/*
+vp is a variable entry for a local variable of a suitable kind for potential
+use as a lambda capture (e.g., it is from an acceptable scope and is of
+automatic storage duration).  Look for a lambda capture entry for this
+variable in the nearest enclosing lambda.  If the variable is found on
+the capture list, return the capture.  If it is not on the list, and the
+lambda allows implicit captures, add it to the capture list and return
+the capture.  When an entry is added to the capture list, pos is the position
+to be used as the declaration position of the closure class member.  If there
+is no associated capture (explicit or implicit), return NULL.
+*/
+{
+  a_lambda_ptr			lambda = get_current_lambda();
+  a_lambda_capture_ptr		lcp;
+
+  check_assertion(lambda != NULL);
+  /* Find or create the lambda capture for this variable.  NULL will be
+     returned if no capture is found and one cannot be created. */
+  lcp = find_lambda_capture(lambda, vp, pos);
+  return lcp;
+}  /* lambda_capture_for_variable */
+
+
+static a_type_ptr make_closure_class(a_source_position	*decl_position)
+/*
+Create the class type that is used to represent a lambda closure.  Return
+a pointer to the class type.  decl_position is the declaration position
+to be used for the lambda.
+
+The class is created as an incomplete type.  It will be completed when its
+various members have been added (call operator, constructors, destructor, and
+the fields implied by the lambda's capture list).
+*/
+{
+  a_type_ptr			type;
+  a_symbol_ptr			sym;
+  a_class_symbol_supplement_ptr	cssp;
+
+  /* Create an unnamed symbol for the lambda class. */
+  sym = make_unnamed_tag_symbol((a_symbol_kind)sk_class_or_struct_tag,
+                                decl_position);
+  /* Create the type for the lambda class. */
+  type = alloc_type((a_type_kind)tk_class);
+  set_source_corresp(&(type->source_corresp), sym);
+  sym->variant.class_struct_union.type = type;
+  add_to_types_list(type, decl_scope_level);
+  cssp = sym->variant.class_struct_union.extra_info;
+  /* Assume for now that bitwise copy is allowed for this class.  This will
+     be cleared later if this is not the case. */
+  cssp->construction_by_bitwise_copy_allowed = TRUE;
+  return type;
+}  /* make_closure_class */
 
 
 static
@@ -10549,7 +10558,7 @@ declarations.
              field, in C99 and GNU C modes.  As an extension, this is
              supported in other C modes (except in strict C89 mode). */
           if ((!class_state->is_first_field &&
-               class_state->any_named_fields) ||
+               class_state->any_non_unnamed_bitfields) ||
               microsoft_mode) {
             /* A further restriction is that the incomplete array has to be
                the last field in the struct or class.  This can't always be
@@ -10763,7 +10772,8 @@ the position indicated by the given locator.
 
 #endif /* DECL_MODIFIERS_IN_USE */
 
-static void decl_nonstatic_data_member(a_symbol_locator        *locator,
+static a_field_ptr decl_nonstatic_data_member(
+                                       a_symbol_locator        *locator,
                                        a_class_def_state_ptr   class_state,
                                        a_member_decl_info_ptr  decl_info)
 /*
@@ -10771,7 +10781,8 @@ Create the IL for a nonstatic data member of a class, struct, or union.
 Create an entry in the symbol table for it if it has a name.  *locator is
 the symbol locator for the declaration.  *class_state and *decl_info track
 general information about the class definition and specific information
-about the member declaration, respectively.
+about the member declaration, respectively.  Return the field entry that was
+created.
 */
 {
   a_decl_parse_state             *decl_state = &decl_info->decl_state;
@@ -10811,8 +10822,11 @@ about the member declaration, respectively.
     check_field_type(locator, class_state, decl_info, field->is_bit_field);
     member_type = decl_state->type;
   }  /* if */
-  /* Set the flag to record that at least one named field was encountered. */
-  if (!decl_info->is_unnamed_field) class_state->any_named_fields = TRUE;
+  /* Set the flag to record that at least one field that is not an unnamed
+     bit-field was encountered. */
+  if (!decl_info->is_unnamed_field || !decl_info->is_bit_field) {
+    class_state->any_non_unnamed_bitfields = TRUE;
+  }  /* if */
   if (!C_mode() && class_type->kind == (a_type_kind)tk_union &&
       !decl_info->is_anonymous_union) {
     /* An object of a class with a constructor, a destructor, or a user-
@@ -10831,8 +10845,8 @@ about the member declaration, respectively.
      the field entry. */
   field->type = member_type;
   /* For an unnamed field, do not create the field symbol. */
-  if (unnamed_field) {
-    /* All field entries for an unnamed fields share the same symbol.  It is
+  if (unnamed_field && decl_info->is_bit_field) {
+    /* All field entries for an unnamed bitfields share the same symbol.  It is
        used for easy identification. */
     field->source_corresp.assoc_info = (char *)unnamed_field_symbol();
     /* Update the source correspondence information manually -- there's no
@@ -10866,6 +10880,11 @@ about the member declaration, respectively.
       field->is_anonymous_parent_object = TRUE;
       field->source_corresp.assoc_info = (char*)member_sym;
       field->source_corresp.decl_position = decl_state->start_pos;
+    } else if (unnamed_field) {
+      /* An unnamed field (but not a bit-field).  Such fields are used
+         to represent the captured "this" parameter in lambdas. */
+      member_sym = make_unnamed_symbol((a_symbol_kind)sk_field,
+                                       &locator->source_position);
     } else {
       member_sym = enter_local_symbol((a_symbol_kind)sk_field, locator,
                                       depth_scope_stack,
@@ -10874,6 +10893,8 @@ about the member declaration, respectively.
     }  /* if */
     member_sym->variant.field.ptr = field;
     decl_info->decl_state.sym = member_sym;
+    /* Fields of closure classes are not found by normal name lookup. */
+    if (class_state->is_closure_class) member_sym->is_invisible = TRUE;
   }  /* if */
   /* Set the parent class in the field and (unless member_sym is NULL) in the
      symbol. */
@@ -11115,7 +11136,7 @@ about the member declaration, respectively.
   }  /* if */
   if (!class_state->class_aggregate_ruled_out) {
     if (class_state->access != (an_access_specifier)as_public) {
-      if (decl_info->is_unnamed_field) {
+      if (decl_info->is_unnamed_field && decl_info->is_bit_field) {
         /* Unnamed bit fields are not subject to initialization (and
            are not even members, according to WP 9.6) so a nonpublic
            one (whatever that means) has no effect on aggregate
@@ -11137,8 +11158,8 @@ about the member declaration, respectively.
                             variant.class_struct_union.any_const_member) {
         class_state->any_const_or_ref_fields = TRUE;
       }  /* if */
-    } else if (decl_info->is_unnamed_field) {
-      /* Ignore unnamed fields. */
+    } else if (decl_info->is_unnamed_field && decl_info->is_bit_field) {
+      /* Ignore unnamed bit-fields. */
     } else if (is_reference_type(member_type) ||
                is_const_qualified_type(member_type)) {
       class_state->any_const_or_ref_fields = TRUE;
@@ -11153,6 +11174,7 @@ about the member declaration, respectively.
   }  /* if */
 #endif /* DEBUG */
   db_exit();
+  return field;
 }  /* decl_nonstatic_data_member */
 
 
@@ -11186,7 +11208,7 @@ information about the member declaration, respectively.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   }  /* if */
   /* Create the IL for the field, enter the symbol (if needed), etc. */
-  decl_nonstatic_data_member(locator, class_state, decl_info);
+  (void)decl_nonstatic_data_member(locator, class_state, decl_info);
 }  /* scan_nonstatic_data_member */
 
 
@@ -13434,11 +13456,18 @@ member.  Determine whether a diagnostic is actually required and put it out.
   a_class_symbol_supplement_ptr  cssp;
   a_symbol_ptr                   sym;
   a_boolean                      any_diagnostics_issued;
+  a_class_type_supplement_ptr    ctsp;
+  a_type_ptr                     class_type;
 
+  class_type = tag_sym->variant.class_struct_union.type;
+  ctsp = class_type_supp(class_type);
   if (tag_sym->kind == (a_symbol_kind)sk_union_tag) {
     /* Note that we do not do this check for unions.  This is partly because
        a union may have a mixture of const and non-const declarations, and
        it's not clear that the const members really need to be initialized. */
+  } else if (ctsp->lambda != NULL) {
+    /* This is the class generated to represent a lambda.  Suppress the
+       constructor check on this class. */
   } else {
     any_diagnostics_issued = FALSE;
     cssp = tag_sym->variant.class_struct_union.extra_info;
@@ -15573,7 +15602,7 @@ next_declaration:
       } while (curr_token != tok_rbrace && curr_token != tok_end_of_source);
       /* Check that a non-empty struct/union in C mode has at least one
          named field. */
-      if (C_mode() && !class_state.any_named_fields) {
+      if (C_mode() && !class_state.any_non_unnamed_bitfields) {
         /* Something like "struct S { int:1; };", which has undefined behavior
            according to the C standard.  Issue a diagnostic. */
         diagnostic(strict_ansi_mode ? strict_ansi_discretionary_severity
@@ -16039,6 +16068,7 @@ entry, return NULL.
   ctsp = class_type_supp(closure_class);
   ctsp->lambda = lambda;
   initialize_class_def_state(lambda->closure_class, &class_state);
+  class_state.is_closure_class = TRUE;
   if (innermost_function_scope != NULL || inside_local_class) {
     class_state.is_local_class = TRUE;
   }  /* if */
