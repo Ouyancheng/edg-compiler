@@ -16002,9 +16002,10 @@ consumed by the caller.  The grammar to be parsed is thus:
 static void scan_and_process_lambda_declarator(a_lambda_ptr       lambda,
                                                a_func_info_block  *func_info)
 /*
-For the given lambda, parse the parameter list and, optionally, a mutable
-specifier, an exception specification, and/or a return type specification.
-Then, create a corresponding call operator in the closure class.  Return
+For the given lambda, parse the (optional) declarator-like construct, which
+consists of a parameter list and, optionally, a mutable specifier, an
+exception specification, and/or a return type specification.  Then, create a
+corresponding call operator in the closure class.  Return
 properties of this operator in *func_info (which is initialized here).
 */
 {
@@ -16023,9 +16024,27 @@ properties of this operator in *func_info (which is initialized here).
   decl_info.is_first_in_declarator_list = TRUE;
   dps->type = dps->specifiers_type = void_type();
   dps->start_pos = dps->specifiers_pos = pos_curr_token;
-  dps->declarator_start_pos = dps->declarator_pos = pos_curr_token;
   dps->in_class_scope = TRUE;
-  scan_lambda_declarator(lambda, dps, func_info, decl_pos_block);
+  if (curr_token == tok_lparen) {
+    /* A parameter list presumably follows. */
+    dps->declarator_start_pos = dps->declarator_pos = pos_curr_token;
+    scan_lambda_declarator(lambda, dps, func_info, decl_pos_block);
+  } else {
+    /* The parameter list was omitted: Treat this as if the declarator-like
+       construct was just an empty parameter list.  This also means that the
+       return type is unknown at this point. */
+    a_routine_type_supplement_ptr  rtsp;
+    dps->type = make_routine_type(unknown_type(), /*param1_type=*/NULL,
+                                  /*param2_type=*/NULL, /*param3_type=*/NULL,
+                                  /*param4_type=*/NULL);
+    rtsp = dps->type->variant.routine.extra_info;
+    rtsp->this_class = lambda->closure_class;
+    rtsp->qualifiers = TQ_CONST;
+    dps->declared_type = dps->type;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    func_info->declared_type = dps->type;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  }  /* if */
   if (!is_error_type(dps->type)) {
     check_assertion(is_function_type(dps->type));
 #if GENERATE_SOURCE_SEQUENCE_LISTS

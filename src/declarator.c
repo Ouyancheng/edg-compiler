@@ -2354,25 +2354,24 @@ void scan_lambda_declarator(a_lambda_ptr        lambda,
 /*
 Scan the "declarator" part of a C++ lambda construct. That includes the
 parameter list, optionally followed by "mutable", an exception specification,
-and/or a lambda return type.
+and/or a lambda return type.  The caller must ensure that the current token is
+the left parenthesis introducing the declarator-like construct.
 */
 {
   a_type_ptr         func_type = void_type();
   a_symbol_locator   loc;
 
+  check_assertion(curr_token == tok_lparen);
   add_stop_token(tok_rparen);
-  if (required_token(tok_lparen, ec_exp_lparen)) {
-    function_declarator(dps, &func_type, func_info, &loc,
-                        lambda->closure_class,
-                        /*is_nonstatic_member=*/TRUE,
-                        /*is_constructor=*/FALSE, /*is_destructor=*/FALSE,
-                        /*disallow_default_args=*/TRUE,
-                        /*disallow_exception_spec=*/FALSE,
-                        /*is_typedef_decl=*/FALSE, /*is_friend_decl=*/FALSE,
-                        decl_pos_block);
-  } else {
-    func_type = error_type();
-  }  /* if */
+  (void)get_token();
+  function_declarator(dps, &func_type, func_info, &loc,
+                      lambda->closure_class,
+                      /*is_nonstatic_member=*/TRUE,
+                      /*is_constructor=*/FALSE, /*is_destructor=*/FALSE,
+                      /*disallow_default_args=*/TRUE,
+                      /*disallow_exception_spec=*/FALSE,
+                      /*is_typedef_decl=*/FALSE, /*is_friend_decl=*/FALSE,
+                      decl_pos_block);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   func_info->declared_type = func_type;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
