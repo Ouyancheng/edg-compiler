@@ -18970,6 +18970,7 @@ C++ to C, so that a C back end can handle it without change.
   /* The lowering is only needed if the source language is C++, if the
      lowering phase is to be run, and if there have been no errors. */
   if (il_lowering_needed()) {
+    a_memory_region_number  saved_region_number = curr_il_region_number;
     il_lowering_underway = TRUE;
     curr_context = NULL;
     innermost_function_scope = NULL;
@@ -19066,6 +19067,7 @@ C++ to C, so that a C back end can handle it without change.
     if (region_number == file_scope_region_number) {
       il_header.il_has_C_semantics = TRUE;
     }  /* if */
+    switch_il_region(saved_region_number);
 #if DO_C99_IL_LOWERING
   } else if (c99_il_lowering_needed()) {
     lower_c99_il_memory_region(region_number);

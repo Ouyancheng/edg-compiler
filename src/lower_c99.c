@@ -4461,6 +4461,8 @@ Do C99 lowering for a memory region (for the file scope or a function scope).
   a_scope_ptr scope = il_header.region_scope_entry[region_number];
   a_context   context;
   a_scope_ptr saved_innermost_function_scope = innermost_function_scope;
+  a_memory_region_number
+              saved_region_number = curr_il_region_number;
 
   il_lowering_underway = TRUE;
   curr_context = NULL;
@@ -4488,6 +4490,7 @@ Do C99 lowering for a memory region (for the file scope or a function scope).
   }  /* if */
   innermost_function_scope = saved_innermost_function_scope;
   il_lowering_underway = FALSE;
+  switch_il_region(saved_region_number);
 }  /* lower_c99_il_memory_region */
 
 #endif /* DO_C99_IL_LOWERING */
