@@ -1,5 +1,24 @@
 Version 4.1
 
+1/7/09  [EDGcpfe/9405]
+Microsoft compatibility: friend class declaration can refer to typedef
+
+The Microsoft compiler allows a friend class declaration that names a
+typedef to be used to make the underlying class a friend.  We now emulate
+this behavior in Microsoft mode.
+
+  struct A { void f(); };
+  class B {
+  protected:
+    static int i;
+    typedef A my_A;
+    friend class my_A;  // formerly declared a new class named my_A
+  };
+  void B::my_A::f() {
+    B::i;  // formerly resulted in an access error here
+  }
+
+
 1/2/09  Microsoft compatibility: Calling conventions and
         pointer-to-member-function compatibility [EDGcpfe/8330]
 

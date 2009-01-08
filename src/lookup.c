@@ -3687,8 +3687,20 @@ in a friend declaration.
              typedef refers to an unnamed enumeration. */
           typedef_okay = TRUE;
         }  /* if */
+      } else if (microsoft_mode) {
+        /* The Microsoft compiler allows "friend class X", where X is a
+           typedef, but only when the elaborated type specifier is a friend
+           declaration. */
+        if (is_friend_decl) {
+          typedef_okay = TRUE;
+        } else {
+          /* If the use was not in a friend declaration, discard the symbol
+             that was found. */
+          assoc_symbol = NULL;
+          clear_specific_symbol(*locator);
+        }  /* if */
       }  /* if */
-      if (typedef_okay) {
+      if (typedef_okay || assoc_symbol == NULL) {
         /* The code above determined that a typedef is allowed in this case. */
       } else if (assoc_symbol->is_nonreal_nested_type) {
         /* A nested class of a prototype instantiation. */
