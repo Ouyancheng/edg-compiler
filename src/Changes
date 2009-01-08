@@ -39,8 +39,9 @@ this behavior in Microsoft mode.
   }
 
 
-1/2/09  Microsoft compatibility: Calling conventions and
-        pointer-to-member-function compatibility [EDGcpfe/8330]
+1/2/09  [EDGcpfe/8330]
+Microsoft compatibility: Calling conventions and pointer-to-member-function
+compatibility 
 
 In Microsoft mode, the front end previously ignored calling conventions when
 checking compatibility of pointer-to-member-function initializations and
