@@ -9737,17 +9737,24 @@ Also, add the instance to the definitions list for the template.
     /* Normal case -- do the lookup by name. */
     /* Get the scope in which the members of the class represented by
        corresp_prototype_tag_sym were declared. */
-    corresp_prototype_decl_scope =
-               tp->variant.class_struct_union.extra_info->assoc_scope->number;
-    for (sym = static_data_member_sym->header->inactive_symbols;
-         sym != NULL;
-         sym = sym->next) {
-      if (sym->decl_scope == corresp_prototype_decl_scope &&
-          sym->kind == (a_symbol_kind)sk_static_data_member &&
-          sym->variant.static_data_member.instance_ptr != NULL) {
-        break;
-      }  /* if */
-    }  /* for */
+    a_scope_ptr	prototype_scope;
+    prototype_scope = tp->variant.class_struct_union.extra_info->assoc_scope;
+    if (prototype_scope == NULL) {
+      /* In some error cases the prototype instantiation type does not have
+         a definition. */
+      expect_error();
+    } else {
+      corresp_prototype_decl_scope = prototype_scope->number;
+      for (sym = static_data_member_sym->header->inactive_symbols;
+           sym != NULL;
+           sym = sym->next) {
+        if (sym->decl_scope == corresp_prototype_decl_scope &&
+            sym->kind == (a_symbol_kind)sk_static_data_member &&
+            sym->variant.static_data_member.instance_ptr != NULL) {
+          break;
+        }  /* if */
+      }  /* for */
+    }  /* if */
   }  /* if */
   check_assertion_str2(sym != NULL || total_errors != 0,
                        "find_static_data_member_template:",

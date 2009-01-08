@@ -1,5 +1,25 @@
 Version 4.1
 
+1/7/09  [EDGcpfe/9061]
+Abort on static data member in invalid class template definition
+
+An abort could occur (in find_static_data_member_template) if a syntax error
+occurred during the parsing of the template definition but that error no longer
+existed at the point at which an instantiation of the class was attempted.
+Now fixed.
+
+  namespace N { }
+  // N::B does not exist at template definition time, but does when an
+  // instantiation is done later.
+  template <typename T> struct A : N::B<T> {
+    static int i;
+  };
+  namespace N {
+    template <typename T> struct B {};
+  }
+  A<int> ai;
+
+
 1/7/09  [EDGcpfe/9405]
 Microsoft compatibility: friend class declaration can refer to typedef
 
