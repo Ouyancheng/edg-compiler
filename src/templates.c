@@ -9743,6 +9743,7 @@ Also, add the instance to the definitions list for the template.
       /* In some error cases the prototype instantiation type does not have
          a definition. */
       expect_error();
+      sym = NULL;
     } else {
       corresp_prototype_decl_scope = prototype_scope->number;
       for (sym = static_data_member_sym->header->inactive_symbols;
