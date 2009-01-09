@@ -1,5 +1,12 @@
 Version 4.1
 
+1/9/09  [EDGcpfe/7713]
+IL file not cleaned up in some error cases
+
+When a named IL file is being used (i.e., the IL file is not a temporary
+file) if the front end exits with a catastrophic error or internal error
+after the IL file has been opened, the IL file was not removed.  Now fixed.
+
 1/7/09  [EDGcpfe/9061]
 Abort on static data member in invalid class template definition
 

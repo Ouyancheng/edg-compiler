@@ -2983,6 +2983,11 @@ compilation.
   }  /* if */
   if ((diag_kind == dck_standalone || diag_kind == dck_end_list ||
        diag_kind == dck_end_context) && !context_required ) {
+#if IL_SHOULD_BE_WRITTEN_TO_FILE && !STANDALONE_UTILITY_PROGRAM
+    /* If there are any errors, suppress generation of the intermediate
+       language file. */
+    if (total_errors + total_catastrophes > 0) cancel_il_file();
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE && !STANDALONE_UTILITY_PROGRAM */
     /* Terminate the compilation for the more serious severities. */
     if (severity == es_catastrophe || severity == es_command_line_error ||
         severity == es_internal_error) {
@@ -2992,11 +2997,6 @@ compilation.
 #endif /* !STANDALONE_UTILITY_PROGRAM */
       term_compilation(severity);
     }  /* if */
-#if IL_SHOULD_BE_WRITTEN_TO_FILE && !STANDALONE_UTILITY_PROGRAM
-    /* If there are any errors, suppress generation of the intermediate
-       language file. */
-    if (total_errors + total_catastrophes > 0) cancel_il_file();
-#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE && !STANDALONE_UTILITY_PROGRAM */
     /* Terminate the compilation if the error limit has been reached.  Note
        that remarks and warnings are never counted. */
     if (total_errors + total_catastrophes >= error_limit) {
