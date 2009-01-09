@@ -1987,6 +1987,7 @@ from the PCH file) to reflect the information loaded from the file.
   a_source_file_ptr	orig_sfp;
 
   db_enter(3, "pch_fixup_part_1");
+  il_reset();
   orig_sfp = il_header_from_pch.primary_source_file;
   /* Make the source file pointer for the file that created the
      precompiled header file the first child file of the new source
@@ -2029,9 +2030,9 @@ from the PCH file) to reflect the information loaded from the file.
      dir_name_list_general does not need to be reset because the entries
      and strings are in general memory. */
   dir_name_list_il = NULL;
-  /* Rebuild the sequence number lookup table used for sequence number
-     to file/line conversion. */
-  build_seq_number_lookup_table((unsigned long)0);
+  /* Reconstruct any data structures that must be rebuilt from the IL
+     that was just read. */
+  rebuild_structures_on_il_read();
   db_exit();
 }  /* pch_fixup_part_1 */
 

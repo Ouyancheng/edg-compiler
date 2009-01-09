@@ -125,6 +125,14 @@ static a_seq_number_lookup_entry_ptr
 			/* Pointer to the sequence number lookup entry for
 			   the source file segment currently being read. */
 
+static a_boolean
+		okay_to_use_seq_number_lookup_table;
+			/* TRUE if the sequence number lookup table is known
+			   to be in a valid state so that it can be used
+			   for sequence number to file/line conversions.
+			   The table cannot be used when the IL is being
+			   reread from an IL or PCH file. */
+
 #define SEQ_NUMBER_LOOKUP_TABLE_INITIAL_ALLOCATION 1024
 			/* The initial number of elements in the sequence
 			   number lookup table. */ 
@@ -3399,9 +3407,11 @@ physical line position for the sequence number.
     *line_number = seq_number + seq_cache.line_offset;
     curr_file = seq_cache.source_file;
   } else {
-    if (physical_line) {
+    if (physical_line || !okay_to_use_seq_number_lookup_table) {
       /* The less common case where #line directives are ignored.  Use the
-         more expensive search of the source file data structure. */
+         more expensive search of the source file data structure.  This
+         is also used if the sequence number lookup table is not known to
+         be in a valid state. */
       curr_file = find_seq_in_source_files(seq_number, line_number,
 					   at_end_of_source, physical_line); 
     } else {
@@ -20171,6 +20181,7 @@ in il_init.)
   /* Static variables in il.c: */
   seq_number_lookup_table_size = 0;
   seq_number_lookup_table = NULL;
+  okay_to_use_seq_number_lookup_table = TRUE;
 
   /* Initialize certain global variables declared in il.h. */
 #if DEBUG
@@ -20395,7 +20406,7 @@ need initialization for every (primary and secondary) translation unit.
   scope_pointers_of_scheduled_routine_moves = NULL;
   routine_move_placeholders = NULL;
   n_scheduled_routine_moves = 0;
-  il_reset();
+  reset_seq_cache();
   il_alloc_trans_unit_init();
 }  /* il_trans_unit_init */
 
@@ -20438,6 +20449,7 @@ IL.  This routine is called after the IL has been read from a file.
 */
 {
   build_seq_number_lookup_table(il_header.num_seq_number_lookup_entries);
+  okay_to_use_seq_number_lookup_table = TRUE;
   effective_primary_source_file = NULL;
 }  /* rebuild_structures_on_il_read */
 
@@ -20449,6 +20461,7 @@ when the IL has been read back into memory.
 */
 {
   reset_seq_cache();
+  okay_to_use_seq_number_lookup_table = FALSE;
 }  /* il_reset */
 
 

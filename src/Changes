@@ -1,5 +1,12 @@
 Version 4.1
 
+1/9/09  [EDGcpfe/8674]
+Internal error on error during IL read
+
+An internal error (in find_seq_in_lookup_table) could occur if a diagnostic
+was issued during the IL read process.  This has been fixed.
+
+
 1/9/09  [EDGcpfe/7713]
 IL file not cleaned up in some error cases
 
