@@ -6932,6 +6932,23 @@ The updated routine type is returned.
 }  /* add_param_type */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
+#if GNU_VECTOR_TYPES_ALLOWED
+
+a_type_ptr make_vector_type(a_type_ptr     element_type,
+                            a_targ_size_t  n_elements)
+/*
+Return a tk_vector type representing a vector of length n_elements with
+elements of type element_type.
+*/
+{
+  a_type_ptr  vtype = alloc_type((a_type_kind)tk_vector);
+
+  vtype->size = element_type->size*n_elements;
+  vtype->variant.vector.element_type = element_type;
+  return vtype;
+}  /* make_vector_type */
+
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
 
 a_base_class_derivation_ptr preferred_virtual_derivation_of(
                                                      a_base_class_ptr  bcp)

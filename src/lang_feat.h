@@ -648,6 +648,24 @@ support for __attribute__((vector_size(N))).)
 #endif /* !GNU_EXTENSIONS_ALLOWED && GNU_VECTOR_TYPES_ALLOWED */
 
 /*
+Flag that is TRUE if GNU built-in functions implementing IA-32 vector
+instructions should be predeclared.  (These map on machine instruction sets
+like Intel's MMX or AMD's 3DNow!.)
+*/
+#ifndef GNU_BUILTIN_IA32_VECTOR_FUNCTIONS_ALLOWED
+#if GNU_VECTOR_TYPES_ALLOWED && (defined(__i386) || defined(__x86_64))
+#define GNU_BUILTIN_IA32_VECTOR_FUNCTIONS_ALLOWED TRUE
+#else /* !(GNU_VECTOR_TYPES_ALLOWED && (...)) */
+#define GNU_BUILTIN_IA32_VECTOR_FUNCTIONS_ALLOWED FALSE
+#endif /* GNU_VECTOR_TYPES_ALLOWED && (defined(__i386) || defined(__x86_64)) */
+#endif /* GNU_BUILTIN_IA32_VECTOR_FUNCTIONS_ALLOWED */
+
+#if GNU_BUILTIN_IA32_VECTOR_FUNCTIONS_ALLOWED && !GNU_VECTOR_TYPES_ALLOWED
+ # error -- GNU_BUILTIN_IA32_VECTOR_FUNCTIONS_ALLOWED requires \
+            GNU_VECTOR_TYPES_ALLOWED
+#endif /* GNU_BUILTIN_IA32_VECTOR_FUNCTIONS_ALLOWED && !GNU_VECTOR_TYPES_... */
+
+/*
 Flag that is TRUE if a set of Microsoft C/C++ compatibility features
 should be allowed.  This flag in turn changes the default value of
 a set of configuration flags.

@@ -713,6 +713,11 @@ extern a_routine_ptr routine_from_function_expr(an_expr_node_ptr expr);
 extern a_type_ptr add_param_type(a_type_ptr  rout_type,
                                  a_type_ptr  param_type);
 
+#if GNU_VECTOR_TYPES_ALLOWED
+extern a_type_ptr make_vector_type(a_type_ptr     element_type,
+                                   a_targ_size_t  n_elements);
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+
 extern void add_placeholder_for_class_instantiation(a_type_ptr  type_ptr);
 
 #if NAMED_REGISTERS_ALLOWED

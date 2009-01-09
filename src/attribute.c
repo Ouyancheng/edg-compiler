@@ -1764,10 +1764,9 @@ and return the given type.
       /* get_type_with_mode will have issued an error if type->kind wasn't
          tk_integer or tk_float. */
     } else {
-      a_type_ptr  vtype = alloc_type((a_type_kind)tk_vector);
+      a_type_ptr  vtype = make_vector_type(unqual_type,
+                                           ap->variant.mode.length);
       vtype->source_corresp.decl_position = ap->position;
-      vtype->size = type->size*ap->variant.mode.length;
-      vtype->variant.vector.element_type = unqual_type;
       type = make_qualified_type(vtype, qualifiers);
     }  /* if */
   }  /* if */

@@ -1,5 +1,17 @@
 Version 4.1
 
+1/9/09  [EDGcpfe/9427]
+GNU compatibility: Built-in IA-32 vector functions
+
+When the new macro GNU_BUILTIN_IA32_VECTOR_FUNCTIONS_ALLOWED is set to TRUE,
+the front end now predeclared a large number of GNU builtin functions that
+map on vector instruction set extensions for IA-32 processors.  These
+instruction set extensions include MMX, 3DNow!, SSE, SSE2, SSE3, Supplemental
+SSE3, SSE4.1, SSE4.2, SSE4a, and SSE5.  (Although the new functions mostly
+implement operations on GNU vector types, some also deal with other things
+such as memory fences.)
+
+
 1/9/09  [EDGcpfe/8674]
 Internal error on error during IL read
 
