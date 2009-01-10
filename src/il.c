@@ -6931,7 +6931,6 @@ The updated routine type is returned.
   return rout_type;
 }  /* add_param_type */
 
-#endif /* !STANDALONE_UTILITY_PROGRAM */
 #if GNU_VECTOR_TYPES_ALLOWED
 
 a_type_ptr make_vector_type(a_type_ptr     element_type,
@@ -6949,6 +6948,7 @@ elements of type element_type.
 }  /* make_vector_type */
 
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 a_base_class_derivation_ptr preferred_virtual_derivation_of(
                                                      a_base_class_ptr  bcp)
