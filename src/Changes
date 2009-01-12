@@ -15,7 +15,7 @@ Now fixed.
   };
 
 
-1/9/09  [EDGcpfe/9427]
+1/9/09   [EDGcpfe/9427]
 GNU compatibility: Built-in IA-32 vector functions
 
 When the new macro GNU_BUILTIN_IA32_VECTOR_FUNCTIONS_ALLOWED is set to TRUE,
@@ -27,21 +27,21 @@ implement operations on GNU vector types, some also deal with other things
 such as memory fences.)
 
 
-1/9/09  [EDGcpfe/8674]
+1/9/09   [EDGcpfe/8674]
 Internal error on error during IL read
 
 An internal error (in find_seq_in_lookup_table) could occur if a diagnostic
 was issued during the IL read process.  This has been fixed.
 
 
-1/9/09  [EDGcpfe/7713]
+1/9/09   [EDGcpfe/7713]
 IL file not cleaned up in some error cases
 
 When a named IL file is being used (i.e., the IL file is not a temporary
 file) if the front end exits with a catastrophic error or internal error
 after the IL file has been opened, the IL file was not removed.  Now fixed.
 
-1/7/09  [EDGcpfe/9061]
+1/7/09   [EDGcpfe/9061]
 Abort on static data member in invalid class template definition
 
 An abort could occur (in find_static_data_member_template) if a syntax error
@@ -61,7 +61,7 @@ Now fixed.
   A<int> ai;
 
 
-1/7/09  [EDGcpfe/9405]
+1/7/09   [EDGcpfe/9405]
 Microsoft compatibility: friend class declaration can refer to typedef
 
 The Microsoft compiler allows a friend class declaration that names a
@@ -80,7 +80,7 @@ this behavior in Microsoft mode.
   }
 
 
-1/2/09  [EDGcpfe/8330]
+1/2/09   [EDGcpfe/8330]
 Microsoft compatibility: Calling conventions and pointer-to-member-function
 compatibility 
 
