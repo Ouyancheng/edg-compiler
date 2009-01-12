@@ -844,13 +844,20 @@ extensions.)
   enter_gnu_builtin_func2(_ia32_vec_ext_v2di, long_long, v2di, int);
 
   /* SSE4.2 functions. */
-  enter_gnu_builtin_func5(_ia32_pcmpestrm128, v16qi, v16qi, int, v16qi, int, int);
-  enter_gnu_builtin_func5(_ia32_pcmpestri128, int, v16qi, int, v16qi, int, int);
-  enter_gnu_builtin_func5(_ia32_pcmpestria128, int, v16qi, int, v16qi, int, int);
-  enter_gnu_builtin_func5(_ia32_pcmpestric128, int, v16qi, int, v16qi, int, int);
-  enter_gnu_builtin_func5(_ia32_pcmpestrio128, int, v16qi, int, v16qi, int, int);
-  enter_gnu_builtin_func5(_ia32_pcmpestris128, int, v16qi, int, v16qi, int, int);
-  enter_gnu_builtin_func5(_ia32_pcmpestriz128, int, v16qi, int, v16qi, int, int);
+  enter_gnu_builtin_func5(_ia32_pcmpestrm128, v16qi,
+                          v16qi, int, v16qi, int, int);
+  enter_gnu_builtin_func5(_ia32_pcmpestri128, int,
+                          v16qi, int, v16qi, int, int);
+  enter_gnu_builtin_func5(_ia32_pcmpestria128, int,
+                          v16qi, int, v16qi, int, int);
+  enter_gnu_builtin_func5(_ia32_pcmpestric128, int,
+                          v16qi, int, v16qi, int, int);
+  enter_gnu_builtin_func5(_ia32_pcmpestrio128, int,
+                          v16qi, int, v16qi, int, int);
+  enter_gnu_builtin_func5(_ia32_pcmpestris128, int,
+                          v16qi, int, v16qi, int, int);
+  enter_gnu_builtin_func5(_ia32_pcmpestriz128, int,
+                          v16qi, int, v16qi, int, int);
   enter_gnu_builtin_func3(_ia32_pcmpistrm128, v16qi, v16qi, v16qi, int);
   enter_gnu_builtin_func3(_ia32_pcmpistri128, int, v16qi, v16qi, int);
   enter_gnu_builtin_func3(_ia32_pcmpistria128, int, v16qi, v16qi, int);
@@ -859,18 +866,24 @@ extensions.)
   enter_gnu_builtin_func3(_ia32_pcmpistris128, int, v16qi, v16qi, int);
   enter_gnu_builtin_func3(_ia32_pcmpistriz128, int, v16qi, v16qi, int);
   enter_gnu_builtin_func2(_ia32_pcmpgtq, v2di, v2di, v2di);
-  enter_gnu_builtin_func2(_ia32_crc32qi, unsigned_int, unsigned_int, unsigned_char);
-  enter_gnu_builtin_func2(_ia32_crc32hi, unsigned_int, unsigned_int, unsigned_short);
-  enter_gnu_builtin_func2(_ia32_crc32si, unsigned_int, unsigned_int, unsigned_int);
-  enter_gnu_builtin_func2(_ia32_crc32di, unsigned_long_long, unsigned_long_long, unsigned_long_long);
+  enter_gnu_builtin_func2(_ia32_crc32qi, unsigned_int,
+                          unsigned_int, unsigned_char);
+  enter_gnu_builtin_func2(_ia32_crc32hi, unsigned_int,
+                          unsigned_int, unsigned_short);
+  enter_gnu_builtin_func2(_ia32_crc32si, unsigned_int,
+                          unsigned_int, unsigned_int);
+  enter_gnu_builtin_func2(_ia32_crc32di, unsigned_long_long,
+                          unsigned_long_long, unsigned_long_long);
 
   /* SSE4a functions. */
   enter_gnu_builtin_func2(_ia32_movntsd, no_return, df_star, v2df);
   enter_gnu_builtin_func2(_ia32_movntss, no_return, sf_star, v4sf);
   enter_gnu_builtin_func2(_ia32_extrq, v2di, v2di, v16qi)
-  enter_gnu_builtin_func3(_ia32_extrqi, v2di, v2di, unsigned_int, unsigned_int);
+  enter_gnu_builtin_func3(_ia32_extrqi, v2di,
+                          v2di, unsigned_int, unsigned_int);
   enter_gnu_builtin_func2(_ia32_insertq, v2di, v2di, v2di);
-  enter_gnu_builtin_func4(_ia32_insertqi, v2di, v2di, v2di, unsigned_int, unsigned_int);
+  enter_gnu_builtin_func4(_ia32_insertqi, v2di,
+                          v2di, v2di, unsigned_int, unsigned_int);
 
   /* SSE5 functions. */
   enter_gnu_builtin_func2(_ia32_comeqpd, v2df, v2df, v2df);
