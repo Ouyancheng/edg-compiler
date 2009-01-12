@@ -1,5 +1,20 @@
 Version 4.1
 
+1/12/09  [EDGcpfe/6817]
+GNU C++ compatibility: missing diagnostic on constructor using-declaration
+
+A change made in version 3.5 had the unintended effect of, in g++ mode,
+eliminating the diagnostic on a using-declaration that names a constructor.
+Now fixed.
+
+  struct A {
+    A();
+  };
+  class B : public A {
+    using A::A;  // formerly no error was issued in g++ mode
+  };
+
+
 1/9/09  [EDGcpfe/9427]
 GNU compatibility: Built-in IA-32 vector functions
 

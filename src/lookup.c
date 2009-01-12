@@ -3836,6 +3836,7 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
   a_boolean    must_be_class = (options & IDL_MUST_BE_CLASS);
   a_boolean    is_field_selection_operand =
                                     (options & IDL_IS_FIELD_SELECTION_OPERAND);
+  a_boolean    is_using_declaration = (options & IDL_USING_DECLARATION);
   a_class_symbol_supplement_ptr
                cssp;
   a_symbol_ptr insert_sym;
@@ -3862,6 +3863,7 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
   ((sym)->is_class_member &&					      \
    (!is_injected_class_symbol(sym) ||				      \
     (gpp_mode && !is_prototype_instantiation_lookup &&		      \
+     !is_using_declaration &&					      \
        (gnu_version < 30400 ||               			      \
         (options & IDL_TENTATIVE_TYPE_LOOKUP) != 0 ||	              \
         (options & IDL_TENTATIVE_TEMPLATE_LOOKUP) != 0)) ||	      \
