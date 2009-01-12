@@ -3453,10 +3453,6 @@ extern a_symbol_ptr enter_named_register(char  *name);
 extern void make_symbol_for_predeclared_type(a_type_ptr  predeclared_type,
                                              char        *name);
 
-extern
-void enter_lambda_capture_symbol(a_symbol_ptr	sym,
-				 a_scope_depth	scope_depth);
-
 extern void enter_injected_class_name_symbol(a_symbol_ptr  tag_sym);
 
 extern a_symbol_ptr enter_typedef_symbol(a_type_ptr       type_ptr,

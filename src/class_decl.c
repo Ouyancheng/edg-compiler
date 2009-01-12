@@ -963,7 +963,7 @@ the field.
   if (is_reference_type(field_type)) {
     field_type = type_pointed_to(field_type);
   }  /* if */
-  if (vp->is_this_parameter) {
+  if (is_this) {
     /* The field type is the type of the "this" parameter (already set
        above). */  
   } else if (by_reference) {
@@ -978,7 +978,7 @@ the field.
   /* Set up the context that is needed so that decl_nonstatic_data_member
      can be used to create the field. */
   initialize_member_decl_info(&decl_info, pos);
-  decl_info.is_unnamed_field = vp->is_this_parameter;
+  decl_info.is_unnamed_field = is_this;
   decl_info.decl_state.type = field_type;
   fp = decl_nonstatic_data_member(&locator, class_state, &decl_info);
   return fp;
