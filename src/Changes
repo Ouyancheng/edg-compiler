@@ -1,5 +1,18 @@
 Version 4.1
 
+1/12/09  [EDGcpfe/9438]
+Abort on GNU vector_size attribute applied to a typedef
+
+Applying the GNU attribute "vector_size" to a typedef type resulted in an
+abort (in apply_vector_size_attribute) on some host platforms.  For example:
+
+  typedef int __attribute((mode(QI))) qi;
+  typedef qi __attribute((vector_size(16))) v16qi;  // Triggered an abort
+                                                    // on many hosts.
+
+This is now fixed.
+
+
 1/12/09  [EDGcpfe/6817]
 GNU C++ compatibility: missing diagnostic on constructor using-declaration
 
