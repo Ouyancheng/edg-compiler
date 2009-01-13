@@ -1911,10 +1911,10 @@ Scan and process a #pragma directive.
   pkdp = look_up_pragma_id(&id_position);
   if (generate_pp_output && do_preprocessing_only) {
     a_boolean	pass_to_output = TRUE;
-    /* Generating preprocessing output for some other compiler.  Usually The
-       #pragma to the output.  The information in the pragma description is
-       used to determine how the tokens of the pragma should be processed
-       (e.g., should macros be expanded). */
+    /* Generating preprocessing output for some other compiler.  In most cases
+       the #pragma is passed to the output.  The information in the pragma
+       description is used to determine how the tokens of the pragma should
+       be processed (e.g., should macros be expanded). */
     /* Look for pragmas that must be handled during preprocessing. */
     if (pkdp != NULL) {
       if (pkdp->kind == (a_pragma_kind)pk_once) {
