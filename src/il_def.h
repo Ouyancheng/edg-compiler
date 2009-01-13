@@ -12866,22 +12866,27 @@ typedef struct a_lambda {
 			   used to access information about the lambda,
 			   such as the parameter list, the function body,
 			   and their associated source positions. */
-  a_byte_boolean
-		is_mutable;
+  a_bit_field
+		is_mutable:1;
 			/* TRUE if the mutable keyword was specified. */
-  a_byte_boolean
-		has_capture_default;
+  a_bit_field
+		has_capture_default:1;
 			/* TRUE if an explicit capture default was
 			   specified. */
-  a_byte_boolean
-		default_is_by_reference;
+  a_bit_field
+		default_is_by_reference:1;
 			/* When has_capture_default is TRUE, this is TRUE
 			   if the default is by reference ("&") or FALSE if
 			   the default is by value ("="). */
-  a_byte_boolean
-		explicit_return_type;
+  a_bit_field
+		explicit_return_type:1;
 			/* TRUE if the return type of the lambda was specified
 			   explicitly. */
+  a_bit_field	has_parameter_decl:1;
+			/* TRUE if a (possibly empty) parameter list for the
+			   lambda appeared explicitly in the input.  (If no
+			   parameter list appeared, the effect is equivalent
+			   to an empty parameter list.) */
   a_source_position
 		start_position;
 			/* Position of the "[" that begins the lambda. */

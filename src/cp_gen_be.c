@@ -8103,13 +8103,16 @@ Render code for the given expression node, which represents a lambda.
   adv_to_signif_source_sequence_entry();
   save_function_state(&state);
   innermost_function_scope = scope;
-  gen_function_declarator_with_scope(rp->type, scope, /*top_level_decl=*/TRUE,
-                                     /*suppress_def_args=*/FALSE);
-  if (lambda->explicit_return_type) {
-    write_tok_str("->");
-    gen_type(skip_typerefs(rp->type)->variant.routine.return_type);
+  if (lambda->has_parameter_decl) {
+    gen_function_declarator_with_scope(rp->type, scope,
+                                       /*top_level_decl=*/TRUE,
+                                       /*suppress_def_args=*/FALSE);
+    if (lambda->explicit_return_type) {
+      write_tok_str("->");
+      gen_type(skip_typerefs(rp->type)->variant.routine.return_type);
+    }  /* if */
+    write_space();
   }  /* if */
-  write_space();
   push_name_context(scope);
   gen_statement(scope->assoc_block);
   pop_name_context();
