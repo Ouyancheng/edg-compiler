@@ -578,15 +578,24 @@ exact criteria).
               /* The canonical entry is changing: the list of all
                  instantiations should be reattached to the new canonical
                  entry. */
-              check_assertion_str(corresp_tssp->all_instantiations == NULL,
-                                  "Noncanonical instantiation list");
 #if DEBUG
               if (db_trace("trans_corresp", templ, iek_template) ||
                   db_trace("trans_corresp", corresp_templ, iek_template)) {
                 fprintf(f_debug, "all_instantiations transferred because\n");
               }  /* if */
 #endif /* DEBUG */
-              corresp_tssp->all_instantiations = tssp->all_instantiations;
+              if (corresp_tssp->all_instantiations == NULL) {
+                corresp_tssp->all_instantiations = tssp->all_instantiations;
+              } else {
+                /* corresp_tssp already has entries on its all_instantiations
+                   list.  That can occur if an instance of the template was
+                   recorded prior to the associated template having a
+                   correspondence. */
+                a_symbol_list_entry_ptr  *sym_entry =
+                                            &corresp_tssp->all_instantiations;
+                while (*sym_entry != NULL) sym_entry = &(*sym_entry)->next;
+                *sym_entry = tssp->all_instantiations;
+              }  /* if */
               tssp->all_instantiations = NULL;
             }  /* if */
           }
@@ -4913,6 +4922,10 @@ template.
       goto done;
     }  /* if */
     templ = tssp->il_template_entry;
+    /* Note that templ may not have an associated correspondence yet, and we
+       may not be able to establish such a correspondence at this time (e.g.,
+       if templ represents a member template whose parent's correspondence
+       is in the process of being determined). */
     if (canonical_il_entry_of(templ) != (char*)templ->canonical_template) {
       /* The given tssp is not associated with the canonical template entry. */
       templ = (a_template_ptr)canonical_il_entry_of(templ);
