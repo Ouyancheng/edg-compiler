@@ -1,5 +1,24 @@
 Version 4.1
 
+1/13/09  [EDGcpfe/9437]
+Underlying type of enumerator constants
+
+In C++0x mode, the underlying type of an enumerator constant is fixed as soon
+as the constant is encountered if an underlying type was specified explicitly
+or if the enumeration type is "scoped" ("enum class" syntax).  The front end
+previously failed to apply that rule and instead applied the underlying type
+after all the enumerator constants had been seen.  For example (assuming a
+32-bit int type):
+
+  enum E: unsigned long long {
+    x = 0xFFFFFFFF,  // x previously started with type "unsigned int".
+    y = x+1          // Previously, y ended up with value 0.
+  };
+  static_assert(y == 0x100000000, "Error");  // Assertion now succeeds.
+
+This is now fixed.
+
+
 1/13/09  [EDGcpfe/9442, EDGcpfe/5847]
 "extern template" after explicit instantiation should have no effect
 

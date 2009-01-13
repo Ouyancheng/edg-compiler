@@ -1794,6 +1794,7 @@ ec_catastrophic_errors;INTERNAL;"catastrophic errors"
 ec_and;INTERNAL;"and"
 ec_det_in_compilation_of;INTERNAL;"detected in the compilation of \"%s\"."
 ec_det_in_compilation;INTERNAL;"detected in this compilation."
+ec_enum_value_out_of_underlying_range;;"enumeration value is outside the range of its underlying type (%t)"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
