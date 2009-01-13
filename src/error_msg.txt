@@ -1788,6 +1788,7 @@ ec_captured_local_var_not_in_innermost_function;;"a local variable outside the c
 ec_not_captured_this_in_lambda;;"the enclosing-function \"this\" cannot be referenced in a lambda body unless it is in the capture list"
 ec_lambda_return_must_be_only_construct;;"non-void return statement must be the only construct in a lambda with no explicit return type"
 ec_captured_var_not_copyable;;"%n cannot be copied for capture by lambda"
+ec_cl_invalid_template_directory;;"invalid template directory directory: "
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

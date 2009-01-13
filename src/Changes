@@ -1,5 +1,14 @@
 Version 4.1
 
+1/13/09  [EDGcpfe/8369]
+Error issued on invalid template directory name
+
+If an invalid directory is used as the argument of the --template_directory
+option an error is now issued.  Formerly, the front end would silently fail
+to find definitions for any exported templates that were used resulting in
+linker errors later.
+
+
 1/13/09  [EDGcpfe/9440]
 Abort on GNU vector type with cv-qualified element type
 

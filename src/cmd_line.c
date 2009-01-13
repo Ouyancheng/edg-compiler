@@ -6821,6 +6821,9 @@ Process the arguments on the command line that invoked the compiler.
         break;
       case optk_template_directory:
         /* A directory name to be added to the template search path.*/
+        if (!is_directory(opt_arg)) {
+          str_command_line_error(ec_cl_invalid_template_directory, opt_arg);
+        }  /* if */
         add_to_template_search_path(file_name_from_opt_arg(opt_arg));
         break;
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
