@@ -1,5 +1,41 @@
 Version 4.1
 
+1/13/09  [EDGcpfe/9442, EDGcpfe/5847]
+"extern template" after explicit instantiation should have no effect
+
+An "extern template" directive (accepted in Microsoft, GNU, and C++0x
+modes) can be used to suppress instantiations.  The C++0x rules (which
+are also used in the other modes) prohibit an "extern template" directive
+from following an explicit instantiation.  This is issued as a discretionary
+error or warning depending on the mode.  Because the compilation can
+complete after such a diagnostic, an "extern template" that follows an
+explicit instantiation should have no effect.  Formerly, the front end
+still suppressed the instantiations in such cases.  This has been fixed
+(i.e., an instantiation of A<char>::g will be emitted by the example
+below).
+
+  template <typename T> struct A {
+    void g();
+  };
+  template <typename T> void A<T>::g(){}
+  template class A<char>;
+  extern template class A<char>;  // cannot follow explicit instantiation
+
+
+1/13/09  [EDGcpfe/5847]
+GNU C++ compatibility: allow "extern template" after explicit instantiation
+
+An "extern template" directive is now allowed after an explicit instantiation
+in g++ mode.  A warning is issued.
+
+  template <typename T> struct A {
+    void g();
+  };
+  template <typename T> void A<T>::g(){}
+  template class A<char>;
+  extern template class A<char>;
+
+
 1/13/09  [EDGcpfe/8140]
 Improved support for internationalization of write_signoff
 

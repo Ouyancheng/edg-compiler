@@ -21155,6 +21155,8 @@ applying a Microsoft dllimport or dllexport attribute to a template instance.
 */
 {
   a_template_instance_ptr	tip = NULL;
+  a_boolean			ignore_directive = FALSE;
+
   db_enter(3, "update_instantiation_flags");
   if (translation_unit_needed_only_for_exported_templates) {
     /* Ignore instantiation directives in export template files. */
@@ -21179,8 +21181,9 @@ applying a Microsoft dllimport or dllexport attribute to a template instance.
       if (pragma_kind == (a_pragma_kind)pk_do_not_instantiate) {
         /* An "extern template" cannot follow an explicit instantiation of
            an entity. */
-        sym_diagnostic(es_discretionary_error,
+        sym_diagnostic(gpp_mode ? es_warning : es_discretionary_error,
                        ec_extern_template_follows_instantiation, sym);
+        ignore_directive = TRUE;
       } else {
         /* A template cannot be instantiated more than once using an explicit
            instantiation. */
@@ -21188,7 +21191,10 @@ applying a Microsoft dllimport or dllexport attribute to a template instance.
                        ec_multiple_explicit_instantiations, sym);
       }  /* if */
     }  /* if */
-    if (pragma_kind == (a_pragma_kind)pk_instantiate) {
+    if (ignore_directive) {
+      /* This directive should be ignored because of a diagnostic issued
+         above. */
+    } else if (pragma_kind == (a_pragma_kind)pk_instantiate) {
       instantiation_required_flag = TRUE;
       tip->explicit_instantiation = TRUE;
       tip->class_explicitly_instantiated = is_class_instantiation;
