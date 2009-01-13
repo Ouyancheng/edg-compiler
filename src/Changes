@@ -1,5 +1,18 @@
 Version 4.1
 
+1/13/09  [EDGcpfe/9440]
+Abort on GNU vector type with cv-qualified element type
+
+In GNU modes, the C- or C++-generating back end aborted ("typeref is not a
+typedef") in form_type_specifier (il_to_str.c) when rendering a GNU vector
+type with a cv-qualified element type.  For example:
+
+  int const __attribute((vector_size(16))) vec;  // Previously triggered an
+                                                 // an abort in il_to_str.c.
+
+This is now fixed.
+
+
 1/13/09  [EDGcpfe/6518]
 Microsoft and GNU C compatibility: __STDC_VERSION__ should not be defined
 

@@ -1324,7 +1324,7 @@ by octl.
         form_unsigned_num((a_host_large_unsigned)type->size, octl);
       }  /* if */
       octl->output_str("))) ");
-      form_type_specifier(type->variant.vector.element_type, octl);
+      form_type(type->variant.vector.element_type, octl);
       break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
     case tk_unknown:
