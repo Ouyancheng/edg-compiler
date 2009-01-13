@@ -1765,25 +1765,29 @@ Only write the signoff if there ARE errors, and if we are supposed to.
 #if WRITE_SIGNOFF_MESSAGE && !STANDALONE_UTILITY_PROGRAM
   if (total_errors + total_catastrophes > 0) {
     if (total_errors > 0) {
-      fprintf(f_error, "%lu error%s", total_errors,
-                      (total_errors != 1) ? "s" : "");
+      fprintf(f_error, "%lu %s", total_errors,
+              error_text(total_errors != 1 ? ec_errors
+                                           : ec_error));
       if (total_catastrophes > 0) {
-        fputs(" and ", f_error);
+        fprintf(f_error, " %s ", error_text(ec_and));
       }  /* if */
     }  /* if */
     if (total_catastrophes > 0) {
-      fprintf(f_error, "%lu catastrophic error%s", total_catastrophes,
-                      (total_catastrophes != 1) ? "s" : "");
+      fprintf(f_error, "%lu %s", total_catastrophes,
+              error_text(total_catastrophes != 1 ? ec_catastrophic_errors
+                                                 : ec_catastrophic_error));
     }  /* if */
+    fputs(" ", f_error);
     if (primary_source_file_name != NULL &&
         strlen(primary_source_file_name) != 0 &&
         strcmp(primary_source_file_name, FILE_NAME_FOR_STDIN) != 0) {
-      fprintf(f_error, " detected in the compilation of \"%s\".\n",
-                      primary_source_file_name);
+      fprintf(f_error, error_text(ec_det_in_compilation_of),
+              primary_source_file_name);
     } else {
       /* Source file name is not known. */
-      fputs(" detected in this compilation.\n", f_error);
+      fputs(error_text(ec_det_in_compilation), f_error);
     }  /* if */
+    fputs("\n", f_error);
   }  /* if */
 #endif /* WRITE_SIGNOFF_MESSAGE && !STANDALONE_UTILITY_PROGRAM */
 }  /* write_signoff */

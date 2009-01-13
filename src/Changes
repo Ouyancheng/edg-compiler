@@ -1,5 +1,13 @@
 Version 4.1
 
+1/13/09  [EDGcpfe/8140]
+Improved support for internationalization of write_signoff
+
+write_signoff has been updated to eliminate hard-coded message text (e.g.,
+"detected in the compilation of").  The strings used are now accessed
+using the error_msg.txt file.
+
+
 1/13/09  [EDGcpfe/8369]
 Error issued on invalid template directory name
 
