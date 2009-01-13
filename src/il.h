@@ -1491,8 +1491,6 @@ extern a_boolean pop_object_lifetime(void);
 extern an_object_lifetime_ptr innermost_block_object_lifetime(
                                              an_object_lifetime_ptr  olp);
 
-extern void build_seq_number_lookup_table(unsigned long	num_entries);
-
 extern void record_start_of_source_file(
 				 a_source_file_ptr parent_file,
 			         a_seq_number      seq_number,

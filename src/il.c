@@ -2612,7 +2612,7 @@ to be used.
 }  /* expand_seq_number_lookup_table */
 
 
-void build_seq_number_lookup_table(unsigned long	num_entries)
+static void build_seq_number_lookup_table(unsigned long	num_entries)
 /*
 This routine is used to reconstruct the sequence number lookup table.  It
 is called after the IL has been read from a file, or after memory has been
@@ -2640,6 +2640,7 @@ necessary.
   }  /* for */
   /* Record the table size in the IL header. */
   il_header.num_seq_number_lookup_entries = entry_number;
+  okay_to_use_seq_number_lookup_table = TRUE;
 }  /* build_seq_number_lookup_table */
 
 #if DEBUG
@@ -20466,7 +20467,6 @@ IL.  This routine is called after the IL has been read from a file.
 */
 {
   build_seq_number_lookup_table(il_header.num_seq_number_lookup_entries);
-  okay_to_use_seq_number_lookup_table = TRUE;
   effective_primary_source_file = NULL;
 }  /* rebuild_structures_on_il_read */
 
