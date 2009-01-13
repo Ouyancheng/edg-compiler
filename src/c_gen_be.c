@@ -9316,9 +9316,8 @@ subroutine called in the same program as the front end.
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
   /* Generate C code. */
   c_gen_be();
-#if IL_SHOULD_BE_WRITTEN_TO_FILE
-  free_memory_region(FILE_SCOPE_REGION_NUMBER);
-#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
+  /* Note that the file scope memory region is not freed here.  It will
+     be freed by the front end wrapup process. */
 }  /* back_end */
 #endif /* STANDALONE_C_GEN_BE */
 

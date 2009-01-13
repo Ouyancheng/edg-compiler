@@ -816,14 +816,14 @@ and after the back end (if any) is executed.
   /* Close the IL output file, be it a temporary or actual file. */
   close_il_output_file();
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
+  /* Write a signoff message (with count of errors) if necessary. */
+  write_signoff();
   /* Free the front end memory region, file-scope IL and all function scope
      IL.  This is necessary if an IL file is not written, or if some regions
      were kept because of inlining, but it's a good idea in all cases.
      Some of the regions may have already been freed.  That is okay because
      freeing a region a second time does nothing. */
   free_all_memory_regions();
-  /* Write a signoff message (with count of errors) if necessary. */
-  write_signoff();
 }  /* fe_wrapup_part_2 */
 
 #if MAKE_FRONT_END_CALLABLE

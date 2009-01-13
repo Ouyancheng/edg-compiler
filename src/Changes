@@ -1,5 +1,14 @@
 Version 4.1
 
+1/13/09  [EDGcpfe/8139]
+Possible use of freed memory in write_signoff
+
+Although this cannot occur in the front end as provided by EDG, customer
+changes (such as calling the back end even in the presence of errors) could
+cause write_signoff to access memory that has already been freed.  The file
+scope memory region is now freed after write_signoff has been called.
+
+
 1/12/09  [EDGcpfe/9438]
 Abort on GNU vector_size attribute applied to a typedef
 
