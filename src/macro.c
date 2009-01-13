@@ -7491,11 +7491,14 @@ command line -D options.
     }  /* if */
   }  /* if */
   if (C_dialect == C_dialect_ANSI) {
-    /* __STDC_VERSION__ is defined based on the version of C being used. */
-    char *stdc_version = c99_mode ? (char *)"199901L" : (char *)"199409L";
-    (void)enter_predef_macro(stdc_version, "__STDC_VERSION__",
-                             /*cannot_be_redefined=*/TRUE,
-                             /*ref_suppresses_pch_file=*/FALSE);
+    if (!microsoft_mode && !gcc_mode) {
+      /* __STDC_VERSION__ is defined based on the version of C being used.
+         The Microsoft and GNU compilers do not define this macro. */
+      char *stdc_version = c99_mode ? (char *)"199901L" : (char *)"199409L";
+      (void)enter_predef_macro(stdc_version, "__STDC_VERSION__",
+                               /*cannot_be_redefined=*/TRUE,
+                               /*ref_suppresses_pch_file=*/FALSE);
+    }  /* if */
     if (c99_mode) {
       init_c99_predefined_macros();
     }  /* if */

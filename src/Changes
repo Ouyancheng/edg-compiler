@@ -1,5 +1,11 @@
 Version 4.1
 
+1/13/09  [EDGcpfe/6518]
+Microsoft and GNU C compatibility: __STDC_VERSION__ should not be defined
+
+The Microsoft and GNU C compilers do not define __STDC_VERSION__.  We now
+emulate this behavior in Microsoft and GNU C modes.
+
 1/13/09  [EDGcpfe/8139]
 Possible use of freed memory in write_signoff
 
