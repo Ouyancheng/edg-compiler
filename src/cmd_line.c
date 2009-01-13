@@ -1836,11 +1836,11 @@ by a command line option.
       right_shift_can_be_angle_brackets = TRUE;
     }  /* if */
   }  /* if */
-  /* The Microsoft compiler sometimes finds typedefs when looking up names
-     in elaborated type specifiers.  This flag causes the lookup routines
-     to find such typedefs, which are then sometimes discarded in Microsoft
-     mode. */
-  elab_type_lookup_finds_typedefs = TRUE;
+  /* In C++ mode, the Microsoft compiler sometimes finds typedefs when
+     looking up names in elaborated type specifiers.  This flag causes
+     the lookup routines to find such typedefs, which are then sometimes
+     discarded in Microsoft mode. */
+  elab_type_lookup_finds_typedefs = !C_mode();
   /* Value-initialization is not implemented as of MSVC++ 7.1 */
   if (emulate_msvc_value_initialization_bugs) {
     value_initialization_enabled = FALSE;

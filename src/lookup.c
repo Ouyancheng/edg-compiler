@@ -3701,7 +3701,9 @@ in a friend declaration.
         }  /* if */
       }  /* if */
       if (typedef_okay || assoc_symbol == NULL) {
-        /* The code above determined that a typedef is allowed in this case. */
+        /* The code above determined that a typedef is allowed in this case,
+           or cleared assoc_symbol if the typedef that was found was
+           discarded. */
       } else if (assoc_symbol->is_nonreal_nested_type) {
         /* A nested class of a prototype instantiation. */
       } else {
