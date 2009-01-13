@@ -6943,7 +6943,7 @@ elements of type element_type.
 {
   a_type_ptr  vtype = alloc_type((a_type_kind)tk_vector);
 
-  vtype->size = element_type->size*n_elements;
+  vtype->size = skip_typerefs(element_type)->size*n_elements;
   vtype->variant.vector.element_type = element_type;
   return vtype;
 }  /* make_vector_type */
