@@ -14488,6 +14488,9 @@ template symbol supplement for this template should be returned to the caller.
       internal_error("template_declaration: bad instance for static mem");
     } /* if */
 #endif /* CHECKING */
+    /* Make sure the declaration did not use features only valid for
+       functions (e.g., "inline"). */
+    check_nonfunction_declaration_errors(&decl_state->decl_parse, locator);
     tssp = sym->variant.static_data_member.instance_ptr->template_info;
     /* Make sure the parameter list matches the class declaration. */
     if (!member_template_param_list_matches_class

@@ -1,5 +1,17 @@
 Version 4.1
 
+1/14/09  [EDGcpfe/2960]
+Missing diagnostic on "inline" used in template static data member declaration
+
+No diagnostic was issued if the "inline" keyword was used in the declaration
+of a template static data member.  Now fixed.
+
+  template <class T> struct A {
+    static int x[];
+  };
+  template <class T> inline int A<T>::x[] = {1, 2, 3};  // inline not allowed
+
+
 1/14/09  [EDGcpfe/8026]
 Build issue with float_pt.c on some versions of Solaris
 

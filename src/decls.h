@@ -339,10 +339,6 @@ typedef struct a_decl_parse_state {
 			/* TRUE if this declaration started with the GNU
 			   keyword __extension__. */
   a_bit_field
-		has_explicit_type_specifier:1;
-			/* TRUE if at least one type specifier was seen in
-			   the current declaration. */
-  a_bit_field
 		decl_specifiers_omitted:1;
 			/* TRUE if the current declaration omits both linkage
 			   specifiers and decl-specifiers. */
@@ -768,6 +764,9 @@ void update_variable_decl_modifiers(a_variable_ptr              variable,
 
 extern void check_default_args_for_param_type(a_param_type_ptr  ptp,
                                               a_source_position *pos);
+
+extern void check_nonfunction_declaration_errors(a_decl_parse_state  *state,
+                                                 a_symbol_locator    *locator);
 
 extern void decls_one_time_init(void);
 

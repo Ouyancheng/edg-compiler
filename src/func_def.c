@@ -1871,7 +1871,7 @@ member declaration (allowed in Microsoft mode only).
   } else {
     routine_ptr = dps->sym->variant.routine.ptr;
     flags = SFB_NO_FLAGS;
-    if (!dps->has_explicit_type_specifier) {
+    if ((dps->dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER) == 0) {
       flags |= SFB_IMPLICITLY_DECLARED_RETURN_TYPE;
     }  /* if */
     scan_function_body(routine_ptr, func_info, flags);

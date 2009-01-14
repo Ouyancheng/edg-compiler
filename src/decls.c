@@ -110,7 +110,6 @@ and efficient initialization.
   ps->is_top_level_declaration = FALSE;
   ps->is_linkage_spec_decl = FALSE;
   ps->marked_as_gnu_extension = FALSE;
-  ps->has_explicit_type_specifier = FALSE;
   ps->decl_specifiers_omitted = FALSE;
   ps->decl_specifiers_error = FALSE;
   ps->need_semicolon_remove_stop_token = FALSE;
@@ -12973,7 +12972,7 @@ proceed after the call.
         curr_token != tok_end_of_source &&
         !has_initializer) {
       a_boolean  is_function_try_block = curr_token == tok_try;
-      if (!state->has_explicit_type_specifier) {
+      if ((state->dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER) == 0) {
         /* Function with no explicitly specified return type.  Issue a
            remark (except in pcc mode and except for C++ constructors,
            destructors, and conversion operators). */
@@ -13062,7 +13061,7 @@ proceed after the call.
        definitions and declarations are treated differently. */
     report_exception_spec_errors(func_info);
   }  /* if */
-  if (!state->has_explicit_type_specifier) {
+  if ((state->dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER) == 0) {
     check_missing_type_specifiers_in_decl(state, func_info, locator);
   }  /* if */
   if (!func_info->function_type_from_typedef) {
@@ -13152,8 +13151,8 @@ done:
 }  /* function_declaration */
 
 
-static void check_nonfunction_declaration_errors(a_decl_parse_state  *state,
-                                                 a_symbol_locator    *locator)
+void check_nonfunction_declaration_errors(a_decl_parse_state  *state,
+                                          a_symbol_locator    *locator)
 /*
 Check for function declaration features incorrectly used in variable or
 typedef declarations.  state and locator describe the declaration.
@@ -13164,7 +13163,7 @@ typedef declarations.  state and locator describe the declaration.
     pos_diagnostic(gcc_mode ? es_warning : es_error, ec_inline_and_nonfunction,
                    &state->inline_pos);
   }  /* if */
-  if (!state->has_explicit_type_specifier) {
+  if ((state->dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER) == 0) {
     check_missing_type_specifiers_in_decl(state, (a_func_info_block*)NULL,
                                           locator);
   }  /* if */
@@ -13671,7 +13670,7 @@ decl_pos_block.
   record_entity_in_decl_stmt_if_needed(state->sym);
 #if GNU_EXTENSIONS_ALLOWED
   if (curr_token == tok_assign && gcc_mode && gnu_version < 30100 &&
-      !state->has_explicit_type_specifier) {
+      (state->dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER) == 0) {
     /* In early versions of GNU C (but not in GNU C++) a typedef can be
        defined with
            typedef <type_name> = <expr> ;
@@ -13910,8 +13909,6 @@ after the call.
   a_decl_flag_set         di_flags = DI_NO_INPUT_FLAGS;
   a_boolean               declarator_omitted = FALSE;
 
-  state->has_explicit_type_specifier =
-                         ((dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER) != 0);
   if (dso_flags & DSO_LINKAGE_SPEC_DECL) {
     /* A linkage-specifier will be found among the decl_specifiers only in
        Microsoft mode -- e.g., for a case like this:
@@ -14009,7 +14006,8 @@ after the call.
         }  /* if */
       }  /* if */
     }  /* if */
-    if (!state->has_explicit_type_specifier && state->qualifiers == TQ_NONE) {
+    if ((state->dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER) == 0 &&
+         state->qualifiers == TQ_NONE) {
       di_flags |= DI_NO_TYPE_SPECIFIERS;
     }  /* if */
   }  /* if */
