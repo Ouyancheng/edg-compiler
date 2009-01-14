@@ -1,5 +1,12 @@
 Version 4.1
 
+1/14/09  [EDGcpfe/8175]
+Spurious error on empty --preinclude_macros file
+
+If an empty --preinclude_macros file was used, a spurious "missing closing
+quote" error was issued.  Now fixed.
+
+
 1/13/09  [EDGcpfe/9437]
 Underlying type of enumerator constants
 
