@@ -1766,16 +1766,17 @@ Only write the signoff if there ARE errors, and if we are supposed to.
   if (total_errors + total_catastrophes > 0) {
     if (total_errors > 0) {
       fprintf(f_error, "%lu %s", total_errors,
-              error_text(total_errors != 1 ? ec_errors
-                                           : ec_error));
+              error_text(total_errors != 1 ? ec_wrapup_errors
+                                           : ec_wrapup_error));
       if (total_catastrophes > 0) {
         fprintf(f_error, " %s ", error_text(ec_and));
       }  /* if */
     }  /* if */
     if (total_catastrophes > 0) {
       fprintf(f_error, "%lu %s", total_catastrophes,
-              error_text(total_catastrophes != 1 ? ec_catastrophic_errors
-                                                 : ec_catastrophic_error));
+              error_text(total_catastrophes != 1
+                                              ? ec_wrapup_catastrophic_errors
+                                              : ec_wrapup_catastrophic_error));
     }  /* if */
     fputs(" ", f_error);
     if (primary_source_file_name != NULL &&
