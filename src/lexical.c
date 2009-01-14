@@ -16443,7 +16443,7 @@ host-target conversions are performed.
     check_assertion(err_code == ec_no_error);
     /* Copy the result for later use. */
     copy_constant(&const_for_curr_token, name_linkage_constants+(int)kind);
-    /* Advance curr_char_loc to the end-of-linen escape. */
+    /* Advance curr_char_loc to the end-of-line escape. */
     curr_char_loc = eol_pos;
   }  /* for */
 }  /* init_name_linkage_constants */
