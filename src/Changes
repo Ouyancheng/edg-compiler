@@ -213,7 +213,9 @@ map on vector instruction set extensions for IA-32 processors.  These
 instruction set extensions include MMX, 3DNow!, SSE, SSE2, SSE3, Supplemental
 SSE3, SSE4.1, SSE4.2, SSE4a, and SSE5.  (Although the new functions mostly
 implement operations on GNU vector types, some also deal with other things
-such as memory fences.)
+such as memory fences.)  Setting GNU_BUILTIN_IA32_VECTOR_FUNCTIONS_ALLOWED to
+TRUE also requires that LONG_LONG_ALLOWED is TRUE, and that the sizes of
+"short", "int", and "long long" are 2, 4, and 8, respectively.
 
 
 1/9/09   [EDGcpfe/8674]
