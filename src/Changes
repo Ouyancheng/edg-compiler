@@ -1,5 +1,26 @@
 Version 4.1
 
+1/14/09  [EDGcpfe/9063]
+Issue warning in non-GNU modes for trailing backslash followed by white space
+
+In GNU modes, emulating the GNU preprocessor, white space following a
+backslash character is ignored, causing the backslash to be treated as a
+line splice.  In non-GNU modes, such a sequence is not a line splice;
+however, because trailing white space is generally invisible, the front end
+now issues a warning for this case.  For example,
+
+  /* There is a space at the end of the next line: */
+  #define ADD \ 
+    b + c;        // Errors in non-GNU mode: invalid declaration, etc.
+  int f(int b, int c) {
+    return ADD    // Error in non-GNU mode: '\' is not a valid token
+  }
+
+The errors issued for this code could be confusing if there were no
+indication that the apparent line splice was not, in fact, processed as
+such.
+
+
 1/14/09  [EDGcpfe/2960]
 Missing diagnostic on "inline" used in template static data member declaration
 

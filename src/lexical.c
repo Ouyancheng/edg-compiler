@@ -5750,7 +5750,8 @@ for the GNU C multiline string extension.
                                after_end_of_curr_source_line - 2*LE_ESCAPE_LEN;
 		       /* For checking of buffer overflow -- to leave
                           room for the newline and line-end lexical escapes. */
-  unsigned long   ignored_trailing_white_space_chars = 0;
+  char		  *cp;
+  unsigned long   white_space_chars_after_backslash = 0;
 
   /* This routine handles translation phases 1 (trigraphs, newlines) and
      2 (line splices) from the description of translation phases in
@@ -5954,28 +5955,19 @@ for the GNU C multiline string extension.
           }  /* if */
         }  /* while */
 #endif /* IGNORE_CARRIAGE_RETURN_IN_SOURCE */
-        if (gnu_mode) {
-          /* The GNU preprocessor allows white-space characters between the
-             "\" and the newline in a line splice.  Count the number of
-             trailing white-space characters to be ignored if there is a
-             line splice. */
-          char *cp;
-          for (cp = loc_in_line - 1;
-               *cp == ' ' || *cp == '\t' || *cp == '\f' ||
+        for (cp = loc_in_line - 1;
+             *cp == ' ' || *cp == '\t' || *cp == '\f' ||
                                                  *cp == VERTICAL_TAB_CHARACTER;
-               cp--) {
-            if (cp == curr_source_line) {
-              /* We fell off the beginning of the line without seeing a "\".
-                 Just keep the white-space characters. */
-              goto add_newline_and_line_end_and_return;
-            }  /* if */
-          }  /* for */
-          ignored_trailing_white_space_chars = loc_in_line - cp - 1;
-        }  /* if */
-        /* End of a line containing at least one character.  Check to see
-           if the last unignored character is a backslash.  If so, the current
-           line should be spliced with the line following. */
-        if (*(loc_in_line-ignored_trailing_white_space_chars-1) == '\\') {
+             cp--) {
+          if (cp == curr_source_line) {
+            /* We fell off the beginning of the line without seeing a "\".
+               Just keep the white-space characters. */
+            goto add_newline_and_line_end_and_return;
+          }  /* if */
+        }  /* for */
+        if (*cp == '\\') {
+          /* Possible line splice. */
+          white_space_chars_after_backslash = loc_in_line - cp - 1;
           goto line_splice;
         }  /* if */
       }  /* if */
@@ -5986,6 +5978,13 @@ add_newline_and_line_end_and_return:
   /* Store the final LE_NEWLINE lexical escape sequence. */
   *loc_in_line++ = LE_ESCAPE;
   *loc_in_line++ = LE_NEWLINE;
+  if (white_space_chars_after_backslash != 0) {
+    /* White space followed a backslash.  Because trailing white space is
+       generally invisible, that looks like a line splice, so we warn about
+       it to clarify what might otherwise be obscure errors reported on the
+       following line. */
+    warning_at_line_pos(ec_not_a_line_splice, cp);
+  }  /* if */
 
 return_with_line:
   /* Store the final LE_END_OF_LINE lexical escape sequence. */
@@ -6300,27 +6299,19 @@ entry_for_expand_buffer:
         }  /* if */
       }  /* while */
 #endif /* IGNORE_CARRIAGE_RETURN_IN_SOURCE */
-      if (gnu_mode) {
-        /* The GNU preprocessor allows white-space characters between the
-           "\" and the newline in a line splice.  Count the number of
-           trailing white-space characters to be ignored if there is a
-           line splice. */
-        char *cp;
-        for (cp = loc_in_line - 1;
-             *cp == ' ' || *cp == '\t' || *cp == '\f' ||
+      for (cp = loc_in_line - 1;
+           *cp == ' ' || *cp == '\t' || *cp == '\f' ||
                                                  *cp == VERTICAL_TAB_CHARACTER;
-             cp--) {
-          if (loc_in_line - cp == curr_column) {
-            /* We fell off the beginning of the line without seeing a "\".
-               Just keep the white-space characters. */
-            goto add_newline_and_line_end_and_return;
-          }  /* if */
-        }  /* for */
-        ignored_trailing_white_space_chars = loc_in_line - cp - 1;
-      }  /* if */
-      /* Check for backslash indicating line-splice.  Go add trailing newline
-         and end-of-line, and then exit, if no backslash is present. */
-      if (*(loc_in_line-ignored_trailing_white_space_chars-1) == '\\') {
+           cp--) {
+        if (loc_in_line - cp == curr_column) {
+          /* We fell off the beginning of the line without seeing a "\".
+             Just keep the white-space characters. */
+          goto add_newline_and_line_end_and_return;
+        }  /* if */
+      }  /* for */
+      if (*cp == '\\') {
+        /* Possible line splice. */
+        white_space_chars_after_backslash = loc_in_line - cp - 1;
 entry_for_line_splice:
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
 #if BACKSLASH_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR
@@ -6337,14 +6328,21 @@ entry_for_line_splice:
         }  /* if */
 #endif /* BACKSLASH_CAN_OCCUR_AS_PART_OF_MULTIBYTE_CHAR */
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
-        if (ignored_trailing_white_space_chars != 0) {
+        if (white_space_chars_after_backslash != 0) {
+          if (!gnu_mode) {
+            /* In non-GNU modes, white space between a backslash and the
+               end of the line causes the backslash not to be interpreted
+               as a line splice. */
+            goto add_newline_and_line_end_and_return;
+          }  /* if */
           /* Some white-space characters occurred between "\" and the newline.
              Fix the line so it will display properly, adjust loc_in_line and
              curr_column appropriately, and issue a warning. */
           finish_off_source_line_so_it_can_be_displayed_in_error();
-          loc_in_line -= ignored_trailing_white_space_chars;
-          curr_column -= ignored_trailing_white_space_chars;
+          loc_in_line -= white_space_chars_after_backslash;
+          curr_column -= white_space_chars_after_backslash;
           warning_at_line_pos(ec_white_space_inside_splice, loc_in_line);
+          white_space_chars_after_backslash = 0;
         }  /* if */
         /* Remove the backslash in the buffer. */
         loc_in_line--;
