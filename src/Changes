@@ -1,5 +1,14 @@
 Version 4.1
 
+1/14/09  [EDGcpfe/8026]
+Build issue with float_pt.c on some versions of Solaris
+
+Some versions of Solaris define isnan as a macro.  This causes build
+errors in float_pt.c because it contains an extern declaration of isnan.
+The extern declaration of isnan is now only declared if isnan is not a
+macro name.
+
+
 1/14/09  [EDGcpfe/6404]
 Predefined macro entry that is defined in all modes
 

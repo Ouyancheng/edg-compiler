@@ -70,7 +70,13 @@ EXTERN_C double strtod(char *, char **);
 #else /* !EDG_WIN32 */
 #ifdef sun
 /* SunOS, Solaris, including Solaris on Intel X86. */
+#ifndef isnan
+/*
+isnan is a macro in some Solaris versions.  Don't provide an extern
+declaration in such cases.
+*/
 EXTERN_C int isnan(double x);
+#endif /* isnan */
 #define is_NaN(x) (isnan((double)(x)))
 #if !USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
 /* The "finite" function takes a double argument, so it doesn't work
