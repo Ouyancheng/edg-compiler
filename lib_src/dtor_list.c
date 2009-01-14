@@ -209,6 +209,7 @@ for seeing that __cxa_finalize is invoked at program termination.  When
 using our own version of this routine, we need to ensure that __cxa_finalize
 is invoked at program termination.  This is accomplished by calling
 __register_finalization_routine on the first invocation of this function.
+Return zero if the registration is successful, or non-zero otherwise.
 */
 {
   int                      success = TRUE;
@@ -225,7 +226,7 @@ __register_finalization_routine on the first invocation of this function.
     ndp->next = needed_destruction_head;
     needed_destruction_head = ndp;
   }  /* if */
-  return success;
+  return !success;
 }  /* __cxa_atexit */
 
 #endif /* !SYSTEM_RUNTIME_HAS_IA64_ATEXIT */
