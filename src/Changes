@@ -1,5 +1,13 @@
 Version 4.1
 
+1/14/09  [EDGcpfe/6404]
+Predefined macro entry that is defined in all modes
+
+It is now possible to specify that a macro in the predefined macro table
+is to be defined in all modes.  This is done by using a mode name of "all".
+See the 4/27/04 entry for more information about the predefined macro file.
+
+
 1/14/09  [EDGcpfe/9044]
 Point at which declaration position of full specializations is set
 

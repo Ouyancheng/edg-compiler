@@ -3071,6 +3071,7 @@ typedef enum a_predef_macro_mode {
   pmm_microsoft,	/* Microsoft mode. */
   pmm_strict,		/* Strict mode. */
   pmm_cpp,		/* Compiling C++. */
+  pmm_all,		/* Define in all modes. */
   pmm_last
 } a_predef_macro_mode;
 
@@ -3091,6 +3092,7 @@ EXTERN char	*predef_macro_mode_names[(int)pmm_last + 1]
 /* pmm_microsoft */	"microsoft",
 /* pmm_strict */	"strict",
 /* pmm_cpp */		"cpp",
+/* pmm_all */		"all",
 /* pmm_last */		"last"
 }
 #endif /* VAR_INITIALIZERS */
