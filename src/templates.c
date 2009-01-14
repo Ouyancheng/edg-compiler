@@ -16644,7 +16644,6 @@ that follows.
 #if DECL_MODIFIERS_IN_USE
       prev_sym_pos = sym->decl_position;
 #endif /* DECL_MODIFIERS_IN_USE */
-      sym->decl_position = scp->decl_position;
       dps->sym = sym;
       if (is_definition) {
         srk_flags |= SRK_DEFINITION;
@@ -16662,6 +16661,9 @@ that follows.
       /* Update cross reference info, etc. */
       record_symbol_declaration(srk_flags, sym, &locator.source_position,
                                 dps->source_sequence_entry);
+      /* If this is not a definition, set the decl_position.  For definitions,
+         it will be set by record_symbol_declaration. */
+      if (!is_definition) sym->decl_position = scp->decl_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       if (is_definition || first_decl) {
         update_decl_pos_info(scp, &decl_pos_block);

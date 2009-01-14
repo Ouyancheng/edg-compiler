@@ -1,5 +1,23 @@
 Version 4.1
 
+1/14/09  [EDGcpfe/9044]
+Point at which declaration position of full specializations is set
+
+The symbol declaration position for an entity that is explicitly
+specialized is updated to refer to the position of the explicit
+specialization.  Formerly, the position was set before the call of
+record_symbol_declaration.  It is now set after that call.  This will
+not result in any observable differences in the front end as provided
+by EDG, but may be useful for customers that have added processing
+to record_symbol_declaration.
+
+  template <class T> struct A {
+    static int i;
+  };
+  template <> int A<int>::i;
+  // decl_position set to ^--here after record_symbol_declaration
+
+
 1/14/09  [EDGcpfe/8175]
 Spurious error on empty --preinclude_macros file
 
