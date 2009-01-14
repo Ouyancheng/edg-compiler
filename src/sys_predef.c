@@ -540,7 +540,7 @@ extensions.)
   enter_gnu_builtin_func2(_ia32_cmpless, v4si, v4sf, v4sf);
   enter_gnu_builtin_func2(_ia32_cmpunordss, v4si, v4sf, v4sf);
   enter_gnu_builtin_func2(_ia32_cmpneqss, v4si, v4sf, v4sf);
-  enter_gnu_builtin_func2(_ia32_cmpnlts, v4si, v4sf, v4sf);
+  enter_gnu_builtin_func2(_ia32_cmpnltss, v4si, v4sf, v4sf);
   enter_gnu_builtin_func2(_ia32_cmpnless, v4si, v4sf, v4sf);
   enter_gnu_builtin_func2(_ia32_cmpordss, v4si, v4sf, v4sf);
   enter_gnu_builtin_func2(_ia32_maxps, v4sf, v4sf, v4sf);
@@ -575,7 +575,7 @@ extensions.)
   enter_gnu_builtin_func2(_ia32_storeaps, no_return, sf_star, v4sf);
   enter_gnu_builtin_func1(_ia32_loadups, v4sf, sf_star);
   enter_gnu_builtin_func2(_ia32_storeups, no_return, sf_star, v4sf);
-  enter_gnu_builtin_func1(_ia32_loadsss, v4sf, sf_star);
+  enter_gnu_builtin_func1(_ia32_loadss, v4sf, sf_star);
   enter_gnu_builtin_func2(_ia32_storess, no_return, sf_star, v4sf);
   enter_gnu_builtin_func2(_ia32_loadhps, v4sf, v4sf, v2si_star);
   enter_gnu_builtin_func2(_ia32_loadlps, v4sf, v4sf, v2si_star);

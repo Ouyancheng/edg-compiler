@@ -503,6 +503,11 @@ whether C99 IL extensions are supported, and that is only known here.
  #error -- USE_X86_64 requires that LONG_LONG_ALLOWED be TRUE
 #endif /* USE_X86_64 && !LONG_LONG_ALLOWED */
 
+#if GNU_BUILTIN_IA32_VECTOR_FUNCTIONS_ALLOWED && !LONG_LONG_ALLOWED
+ #error -- GNU_BUILTIN_IA32_VECTOR_FUNCTIONS_ALLOWED requires LONG_LONG_ALLOWED
+#endif /* GNU_BUILTIN_IA32_VECTOR_FUNCTIONS_ALLOWED && !LONG_LONG_ALLOWED */
+
+
 /*
 Flag that is TRUE if the front end should assign sequence numbers to
 string literals in routines that might exist in multiple copies in a

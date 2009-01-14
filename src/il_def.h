@@ -7739,7 +7739,7 @@ enum a_builtin_function_kind_tag {
   bfk_ia32_cmpless,             /* __builtin_ia32_cmpless */
   bfk_ia32_cmpunordss,          /* __builtin_ia32_cmpunordss */
   bfk_ia32_cmpneqss,            /* __builtin_ia32_cmpneqss */
-  bfk_ia32_cmpnlts,             /* __builtin_ia32_cmpnlts */
+  bfk_ia32_cmpnltss,            /* __builtin_ia32_cmpnltss */
   bfk_ia32_cmpnless,            /* __builtin_ia32_cmpnless */
   bfk_ia32_cmpordss,            /* __builtin_ia32_cmpordss */
   bfk_ia32_maxps,               /* __builtin_ia32_maxps */
@@ -7774,7 +7774,7 @@ enum a_builtin_function_kind_tag {
   bfk_ia32_storeaps,            /* __builtin_ia32_storeaps */
   bfk_ia32_loadups,             /* __builtin_ia32_loadups */
   bfk_ia32_storeups,            /* __builtin_ia32_storeups */
-  bfk_ia32_loadsss,             /* __builtin_ia32_loadsss */
+  bfk_ia32_loadss,              /* __builtin_ia32_loadss */
   bfk_ia32_storess,             /* __builtin_ia32_storess */
   bfk_ia32_loadhps,             /* __builtin_ia32_loadhps */
   bfk_ia32_loadlps,             /* __builtin_ia32_loadlps */
@@ -8950,7 +8950,7 @@ EXTERN char *builtin_function_kind_names[(int)bfk_last + 1]
   /* bfk_ia32_cmpless */             "__builtin_ia32_cmpless",
   /* bfk_ia32_cmpunordss */          "__builtin_ia32_cmpunordss",
   /* bfk_ia32_cmpneqss */            "__builtin_ia32_cmpneqss",
-  /* bfk_ia32_cmpnlts */             "__builtin_ia32_cmpnlts",
+  /* bfk_ia32_cmpnltss */            "__builtin_ia32_cmpnltss",
   /* bfk_ia32_cmpnless */            "__builtin_ia32_cmpnless",
   /* bfk_ia32_cmpordss */            "__builtin_ia32_cmpordss",
   /* bfk_ia32_maxps */               "__builtin_ia32_maxps",
@@ -8985,7 +8985,7 @@ EXTERN char *builtin_function_kind_names[(int)bfk_last + 1]
   /* bfk_ia32_storeaps */            "__builtin_ia32_storeaps",
   /* bfk_ia32_loadups */             "__builtin_ia32_loadups",
   /* bfk_ia32_storeups */            "__builtin_ia32_storeups",
-  /* bfk_ia32_loadsss */             "__builtin_ia32_loadsss",
+  /* bfk_ia32_loadss */              "__builtin_ia32_loadss",
   /* bfk_ia32_storess */             "__builtin_ia32_storess",
   /* bfk_ia32_loadhps */             "__builtin_ia32_loadhps",
   /* bfk_ia32_loadlps */             "__builtin_ia32_loadlps",
