@@ -406,8 +406,7 @@ extensions.)
   a_source_position
               *no_pos = NULL;
   a_type_ptr  no_return_type = void_type();
-  a_type_ptr  void_const_type = make_qualified_type(
-                                 void_type(), (a_type_qualifier_set)TQ_CONST);
+  a_type_ptr  void_const_type = make_qualified_type(void_type(), TQ_CONST);
   a_type_ptr  void_star_type = make_pointer_type(void_type());
   a_type_ptr  void_const_star_type = make_pointer_type(void_const_type);
   a_type_ptr  unsigned_char_type =
@@ -432,8 +431,7 @@ extensions.)
   a_type_ptr  v8hi_type = make_vector_type(hi_type, 8);
   a_type_ptr  v4si_type = make_vector_type(si_type, 4);
   a_type_ptr  v2di_type = make_vector_type(di_type, 2);
-  a_type_ptr  qi_const_type = make_qualified_type(
-                                     qi_type, (a_type_qualifier_set)TQ_CONST);
+  a_type_ptr  qi_const_type = make_qualified_type(qi_type, TQ_CONST);
   a_type_ptr  qi_star_type = make_pointer_type(qi_type);
   a_type_ptr  qi_const_star_type = make_pointer_type(qi_const_type);
   a_type_ptr  di_star_type = make_pointer_type(di_type);
@@ -445,8 +443,7 @@ extensions.)
   a_type_ptr  v4sf_type = make_vector_type(sf_type, 4);
   a_type_ptr  v2df_type = make_vector_type(df_type, 2);
   a_type_ptr  v4df_type = make_vector_type(df_type, 4);
-  a_type_ptr  df_const_type = make_qualified_type(
-                                     df_type, (a_type_qualifier_set)TQ_CONST);
+  a_type_ptr  df_const_type = make_qualified_type(df_type, TQ_CONST);
   a_type_ptr  sf_star_type = make_pointer_type(sf_type);
   a_type_ptr  df_star_type = make_pointer_type(df_type);
   a_type_ptr  df_const_star_type = make_pointer_type(df_const_type);
@@ -1179,8 +1176,7 @@ Enter the standard predeclared functions for GCC.
   no_return_type = void_type();
   void_star_type = make_pointer_type(void_type());
   const_void_star_type = 
-    make_pointer_type(make_qualified_type(void_type(),
-					  (a_type_qualifier_set)TQ_CONST));
+    make_pointer_type(make_qualified_type(void_type(), TQ_CONST));
   size_t_type = integer_type(targ_size_t_int_kind);
   char_type = integer_type((an_integer_kind)ik_char);
   int_type = integer_type((an_integer_kind)ik_int);
@@ -1200,8 +1196,7 @@ Enter the standard predeclared functions for GCC.
   boolean_type = (!C_mode() || c99_mode) ? bool_type() : unsigned_char_type;
   unsigned_short_type = integer_type((an_integer_kind)ik_unsigned_short);
   volatile_void_star_type = 
-    make_pointer_type(make_qualified_type(void_type(),
-					  (a_type_qualifier_set)TQ_VOLATILE));
+             make_pointer_type(make_qualified_type(void_type(), TQ_VOLATILE));
 #endif /* GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
 #if TARG_ALL_POINTERS_SAME_SIZE
   pmode_type = get_type_with_mode(int_type, targ_pointer_mode, 
@@ -1217,8 +1212,7 @@ Enter the standard predeclared functions for GCC.
 #endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
   char_star_type = make_pointer_type(char_type);
   const_char_star_type = 
-    make_pointer_type(make_qualified_type(char_type, 
-					  (a_type_qualifier_set)TQ_CONST));
+                  make_pointer_type(make_qualified_type(char_type, TQ_CONST));
   int_star_type = make_pointer_type(int_type);
   float_star_type = make_pointer_type(floating_type);
   double_star_type = make_pointer_type(double_type);
