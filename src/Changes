@@ -1,5 +1,17 @@
 Version 4.1
 
+1/14/09  [EDGcpfe/7873]
+IA-64 ABI: String literal sequence numbers and fetch_pp_tokens
+
+When the IA-64 ABI is being used the front end should not attempt to
+assign string literal sequence numbers when fetch_pp_tokens is TRUE.
+This cannot occur in the front end as provided by EDG, but customer-provided
+code (such as pragma processing routines) could give rise to such a
+condition, resulting in an internal error.  The front end now suppresses
+the assignment of string literal sequence numbers when fetch_pp_tokens is
+TRUE.
+
+
 1/14/09  [EDGcpfe/9063]
 Issue warning in non-GNU modes for trailing backslash followed by white space
 

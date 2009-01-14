@@ -645,6 +645,7 @@ assign one now.
   a_constant_ptr		cp = &const_for_curr_token;
   a_scope_stack_entry_ptr	ssep;
 
+  check_assertion(!fetch_pp_tokens);
   check_assertion(cp->kind == (a_constant_repr_kind)ck_string ||
                   cp->kind == (a_constant_repr_kind)ck_error);
   ssep = &scope_stack[depth_innermost_function_scope];

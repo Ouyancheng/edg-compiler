@@ -9500,11 +9500,14 @@ modification and thus might have been the result of concatenation.
 
 /*
 Macro that determines whether string literal sequence numbers might be
-needed, and if so, calls a routine to do the assignment.
+needed, and if so, calls a routine to do the assignment.  const_for_curr_token
+is used by f_assign_string_literal_sequence_number so that routine cannot
+be called when fetch_pp_tokens is TRUE.
 */
 #if DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS
 #define assign_string_literal_sequence_number()				\
   if (depth_innermost_function_scope != NO_SCOPE_DEPTH &&		\
+      !fetch_pp_tokens &&						\
       scope_stack[depth_innermost_function_scope].			\
                             assign_string_literal_sequence_numbers) {	\
      f_assign_string_literal_sequence_number();				\
