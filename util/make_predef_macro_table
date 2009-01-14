@@ -165,6 +165,7 @@ mode,!mode,mode   cannot_redefine   macro_name   macro_value
     gpp:	g++ mode
     cpp:	any C++ mode
     strict:	strict C or C++ mode
+    all:	all modes
 
 - cannot_redefine indicates whether the predefined macro may later be
   redefined.  The value must be "yes" or "no".
