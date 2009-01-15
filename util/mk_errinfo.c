@@ -447,7 +447,7 @@ entries that refer to the same enumeration entry.
     tag_info[number_of_tags].tag = me_copy_string(tag_start);
     number_of_tags++;
     if (number_of_tags >= MAX_TAGS) {
-      me_error("too many tags -- increase MAX_TAGS", "");
+      me_internal_error("too many tags -- increase MAX_TAGS");
     }  /* if */
   }  /* while */
   fclose(tag_input_file);
