@@ -1,6 +1,6 @@
 Version 4.1
 
-1/15/09  [EDGcpfe/7392, EDGcpfe/8999]
+1/15/09  [EDGcpfe/7932, EDGcpfe/8999]
 Detect array overflow in mk_errinfo
 
 mk_errinfo has fixed size arrays that are used to build the table of
