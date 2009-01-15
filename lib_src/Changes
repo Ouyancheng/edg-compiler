@@ -3,10 +3,10 @@ Version 4.1
 1/14/09  [EDGcpfe/8065]
 IA-64 ABI: Incorrect return status from __cxa_atexit
 
-The runtime provides a definition of __cxa_atexit for use on systems where
-the system's runtime does not provide one.  The function is supposed to
-return zero on success and non-zero on failure, but the opposite was being
-done.  Now fixed.
+Versions of runtime configured to use the IA-64 ABI provide a definition
+of __cxa_atexit for use on systems where the system's runtime does not
+provide one.  The function is supposed to return zero on success and
+non-zero on failure, but the opposite was being done.  Now fixed.
 
 -------------------------------------------------------------------------------
 Version 4.0, December 5, 2008
