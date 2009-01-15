@@ -407,12 +407,15 @@ extensions.)
               *no_pos = NULL;
   a_type_ptr  no_return_type = void_type();
   a_type_ptr  void_const_type = make_qualified_type(void_type(), TQ_CONST);
-  a_type_ptr  void_star_type = make_pointer_type(void_type());
   a_type_ptr  void_const_star_type = make_pointer_type(void_const_type);
+  a_type_ptr  char_type = integer_type((an_integer_kind)ik_char);
+  a_type_ptr  char_const_type = make_qualified_type(char_type, TQ_CONST);
   a_type_ptr  unsigned_char_type =
                               integer_type((an_integer_kind)ik_unsigned_char);
   a_type_ptr  unsigned_short_type =
                              integer_type((an_integer_kind)ik_unsigned_short);
+  a_type_ptr  char_star_type = make_pointer_type(char_type);
+  a_type_ptr  char_const_star_type = make_pointer_type(char_const_type);
   a_type_ptr  int_type = integer_type((an_integer_kind)ik_int);
   a_type_ptr  int_star_type = make_pointer_type(int_type);
   a_type_ptr  unsigned_int_type =
@@ -431,9 +434,6 @@ extensions.)
   a_type_ptr  v8hi_type = make_vector_type(hi_type, 8);
   a_type_ptr  v4si_type = make_vector_type(si_type, 4);
   a_type_ptr  v2di_type = make_vector_type(di_type, 2);
-  a_type_ptr  qi_const_type = make_qualified_type(qi_type, TQ_CONST);
-  a_type_ptr  qi_star_type = make_pointer_type(qi_type);
-  a_type_ptr  qi_const_star_type = make_pointer_type(qi_const_type);
   a_type_ptr  di_star_type = make_pointer_type(di_type);
   a_type_ptr  v2si_star_type = make_pointer_type(v2si_type);
   a_type_ptr  v2di_star_type = make_pointer_type(v2di_type);
@@ -443,11 +443,12 @@ extensions.)
   a_type_ptr  v4sf_type = make_vector_type(sf_type, 4);
   a_type_ptr  v2df_type = make_vector_type(df_type, 2);
   a_type_ptr  v4df_type = make_vector_type(df_type, 4);
+  a_type_ptr  sf_const_type = make_qualified_type(sf_type, TQ_CONST);
   a_type_ptr  df_const_type = make_qualified_type(df_type, TQ_CONST);
   a_type_ptr  sf_star_type = make_pointer_type(sf_type);
+  a_type_ptr  sf_const_star_type = make_pointer_type(sf_const_type);
   a_type_ptr  df_star_type = make_pointer_type(df_type);
   a_type_ptr  df_const_star_type = make_pointer_type(df_const_type);
-  a_type_ptr  v2df_star_type = make_pointer_type(v2df_type);
 
   /* MMX functions. */
   enter_gnu_builtin_func2(_ia32_paddb, v8qi, v8qi, v8qi);
@@ -490,7 +491,7 @@ extensions.)
   enter_gnu_builtin_func2(_ia32_pmulhuw, v4hi, v4hi, v4hi);
   enter_gnu_builtin_func2(_ia32_pavgb, v8qi, v8qi, v8qi);
   enter_gnu_builtin_func2(_ia32_pavgw, v4hi, v4hi, v4hi);
-  enter_gnu_builtin_func2(_ia32_psadbw, v4hi, v8qi, v8qi);
+  enter_gnu_builtin_func2(_ia32_psadbw, di, v8qi, v8qi);
   enter_gnu_builtin_func2(_ia32_pmaxub, v8qi, v8qi, v8qi);
   enter_gnu_builtin_func2(_ia32_pmaxsw, v4hi, v4hi, v4hi);
   enter_gnu_builtin_func2(_ia32_pminub, v8qi, v8qi, v8qi);
@@ -498,7 +499,7 @@ extensions.)
   enter_gnu_builtin_func2(_ia32_pextrw, int, v4hi, int);
   enter_gnu_builtin_func3(_ia32_pinsrw, v4hi, v4hi, int, int);
   enter_gnu_builtin_func1(_ia32_pmovmskb, int, v8qi);
-  enter_gnu_builtin_func3(_ia32_maskmovq, no_return, v8qi, v8qi, qi_star);
+  enter_gnu_builtin_func3(_ia32_maskmovq, no_return, v8qi, v8qi, char_star);
   enter_gnu_builtin_func2(_ia32_movntq, no_return, di_star, di);
   enter_gnu_builtin_func0(_ia32_sfence, no_return);
 
@@ -571,16 +572,16 @@ extensions.)
   enter_gnu_builtin_func3(_ia32_shufps, v4sf, v4sf, v4sf, int);
   enter_gnu_builtin_func2(_ia32_movntps, no_return, sf_star, v4sf);
   enter_gnu_builtin_func1(_ia32_movmskps, int, v4sf);
-  enter_gnu_builtin_func1(_ia32_loadaps, v4sf, sf_star);
+  enter_gnu_builtin_func1(_ia32_loadaps, v4sf, sf_const_star);
   enter_gnu_builtin_func2(_ia32_storeaps, no_return, sf_star, v4sf);
-  enter_gnu_builtin_func1(_ia32_loadups, v4sf, sf_star);
+  enter_gnu_builtin_func1(_ia32_loadups, v4sf, sf_const_star);
   enter_gnu_builtin_func2(_ia32_storeups, no_return, sf_star, v4sf);
-  enter_gnu_builtin_func1(_ia32_loadss, v4sf, sf_star);
+  enter_gnu_builtin_func1(_ia32_loadss, v4sf, sf_const_star);
   enter_gnu_builtin_func2(_ia32_storess, no_return, sf_star, v4sf);
   enter_gnu_builtin_func2(_ia32_loadhps, v4sf, v4sf, v2si_star);
   enter_gnu_builtin_func2(_ia32_loadlps, v4sf, v4sf, v2si_star);
-  enter_gnu_builtin_func2(_ia32_storehps, no_return, v4sf, v2si_star);
-  enter_gnu_builtin_func2(_ia32_storelps, no_return, v4sf, v2si_star);
+  enter_gnu_builtin_func2(_ia32_storehps, no_return, v2si_star, v4sf);
+  enter_gnu_builtin_func2(_ia32_storelps, no_return, v2si_star, v4sf);
 
   /* SSE2 functions. */
   enter_gnu_builtin_func2(_ia32_comisdeq, int, v2df, v2df);
@@ -595,28 +596,28 @@ extensions.)
   enter_gnu_builtin_func2(_ia32_ucomisdgt, int, v2df, v2df);
   enter_gnu_builtin_func2(_ia32_ucomisdge, int, v2df, v2df);
   enter_gnu_builtin_func2(_ia32_ucomisdneq, int, v2df, v2df);
-  enter_gnu_builtin_func2(_ia32_cmpeqpd, v2df, v2df, v2df);
-  enter_gnu_builtin_func2(_ia32_cmpltpd, v2df, v2df, v2df);
-  enter_gnu_builtin_func2(_ia32_cmplepd, v2df, v2df, v2df);
-  enter_gnu_builtin_func2(_ia32_cmpgtpd, v2df, v2df, v2df);
-  enter_gnu_builtin_func2(_ia32_cmpgepd, v2df, v2df, v2df);
-  enter_gnu_builtin_func2(_ia32_cmpunordpd, v2df, v2df, v2df);
-  enter_gnu_builtin_func2(_ia32_cmpneqpd, v2df, v2df, v2df);
-  enter_gnu_builtin_func2(_ia32_cmpnltpd, v2df, v2df, v2df);
-  enter_gnu_builtin_func2(_ia32_cmpnlepd, v2df, v2df, v2df);
-  enter_gnu_builtin_func2(_ia32_cmpngtpd, v2df, v2df, v2df);
-  enter_gnu_builtin_func2(_ia32_cmpngepd, v2df, v2df, v2df);
-  enter_gnu_builtin_func2(_ia32_cmpordpd, v2df, v2df, v2df);
-  enter_gnu_builtin_func2(_ia32_cmpeqsd, v2df, v2df, v2df);
-  enter_gnu_builtin_func2(_ia32_cmpltsd, v2df, v2df, v2df);
-  enter_gnu_builtin_func2(_ia32_cmplesd, v2df, v2df, v2df);
-  enter_gnu_builtin_func2(_ia32_cmpunordsd, v2df, v2df, v2df);
-  enter_gnu_builtin_func2(_ia32_cmpneqsd, v2df, v2df, v2df);
-  enter_gnu_builtin_func2(_ia32_cmpnltsd, v2df, v2df, v2df);
-  enter_gnu_builtin_func2(_ia32_cmpnlesd, v2df, v2df, v2df);
-  enter_gnu_builtin_func2(_ia32_cmpordsd, v2df, v2df, v2df);
-  enter_gnu_builtin_func2(_ia32_paddq, v2di, v2di, v2di);
-  enter_gnu_builtin_func2(_ia32_psubq, v2di, v2di, v2di);
+  enter_gnu_builtin_func2(_ia32_cmpeqpd, v2di, v2df, v2df);
+  enter_gnu_builtin_func2(_ia32_cmpltpd, v2di, v2df, v2df);
+  enter_gnu_builtin_func2(_ia32_cmplepd, v2di, v2df, v2df);
+  enter_gnu_builtin_func2(_ia32_cmpgtpd, v2di, v2df, v2df);
+  enter_gnu_builtin_func2(_ia32_cmpgepd, v2di, v2df, v2df);
+  enter_gnu_builtin_func2(_ia32_cmpunordpd, v2di, v2df, v2df);
+  enter_gnu_builtin_func2(_ia32_cmpneqpd, v2di, v2df, v2df);
+  enter_gnu_builtin_func2(_ia32_cmpnltpd, v2di, v2df, v2df);
+  enter_gnu_builtin_func2(_ia32_cmpnlepd, v2di, v2df, v2df);
+  enter_gnu_builtin_func2(_ia32_cmpngtpd, v2di, v2df, v2df);
+  enter_gnu_builtin_func2(_ia32_cmpngepd, v2di, v2df, v2df);
+  enter_gnu_builtin_func2(_ia32_cmpordpd, v2di, v2df, v2df);
+  enter_gnu_builtin_func2(_ia32_cmpeqsd, v2di, v2df, v2df);
+  enter_gnu_builtin_func2(_ia32_cmpltsd, v2di, v2df, v2df);
+  enter_gnu_builtin_func2(_ia32_cmplesd, v2di, v2df, v2df);
+  enter_gnu_builtin_func2(_ia32_cmpunordsd, v2di, v2df, v2df);
+  enter_gnu_builtin_func2(_ia32_cmpneqsd, v2di, v2df, v2df);
+  enter_gnu_builtin_func2(_ia32_cmpnltsd, v2di, v2df, v2df);
+  enter_gnu_builtin_func2(_ia32_cmpnlesd, v2di, v2df, v2df);
+  enter_gnu_builtin_func2(_ia32_cmpordsd, v2di, v2df, v2df);
+  enter_gnu_builtin_func2(_ia32_paddq, di, di, di);
+  enter_gnu_builtin_func2(_ia32_psubq, di, di, di);
   enter_gnu_builtin_func2(_ia32_addpd, v2df, v2df, v2df);
   enter_gnu_builtin_func2(_ia32_subpd, v2df, v2df, v2df);
   enter_gnu_builtin_func2(_ia32_mulpd, v2df, v2df, v2df);
@@ -670,20 +671,21 @@ extensions.)
   enter_gnu_builtin_func2(_ia32_punpcklwd128, v8hi, v8hi, v8hi);
   enter_gnu_builtin_func2(_ia32_punpckldq128, v4si, v4si, v4si);
   enter_gnu_builtin_func2(_ia32_punpcklqdq128, v2di, v2di, v2di);
-  enter_gnu_builtin_func2(_ia32_packsswb128, v16qi, v16qi, v16qi);
-  enter_gnu_builtin_func2(_ia32_packssdw128, v8hi, v8hi, v8hi);
-  enter_gnu_builtin_func2(_ia32_packuswb128, v16qi, v16qi, v16qi);
+  enter_gnu_builtin_func2(_ia32_packsswb128, v8hi, v8hi, v8hi);
+  enter_gnu_builtin_func2(_ia32_packssdw128, v4si, v4si, v4si);
+  enter_gnu_builtin_func2(_ia32_packuswb128, v8hi, v8hi, v8hi);
   enter_gnu_builtin_func2(_ia32_pmulhuw128, v8hi, v8hi, v8hi);
-  enter_gnu_builtin_func2(_ia32_maskmovdqu, no_return, v16qi, v16qi);
-  enter_gnu_builtin_func1(_ia32_loadupd, v2df, df_star);
+  enter_gnu_builtin_func3(_ia32_maskmovdqu, no_return,
+                          v16qi, v16qi, char_star);
+  enter_gnu_builtin_func1(_ia32_loadupd, v2df, df_const_star);
   enter_gnu_builtin_func2(_ia32_storeupd, no_return, df_star, v2df);
-  enter_gnu_builtin_func2(_ia32_loadhpd, v2df, v2df, df_star);
-  enter_gnu_builtin_func2(_ia32_loadlpd, v2df, v2df, df_star);
+  enter_gnu_builtin_func2(_ia32_loadhpd, v2df, v2df, v2si_star);
+  enter_gnu_builtin_func2(_ia32_loadlpd, v2df, v2df, v2si_star);
   enter_gnu_builtin_func1(_ia32_movmskpd, int, v2df);
   enter_gnu_builtin_func1(_ia32_pmovmskb128, int, v16qi);
   enter_gnu_builtin_func2(_ia32_movnti, no_return, int_star, int);
   enter_gnu_builtin_func2(_ia32_movntpd, no_return, df_star, v2df);
-  enter_gnu_builtin_func2(_ia32_movntdq, no_return, v2df_star, v2df);
+  enter_gnu_builtin_func2(_ia32_movntdq, no_return, v2di_star, v2di);
   enter_gnu_builtin_func2(_ia32_pshufd, v4si, v4si, int);
   enter_gnu_builtin_func2(_ia32_pshuflw, v8hi, v8hi, int);
   enter_gnu_builtin_func2(_ia32_pshufhw, v8hi, v8hi, int);
@@ -713,13 +715,13 @@ extensions.)
   enter_gnu_builtin_func1(_ia32_clflush, no_return, void_const_star);
   enter_gnu_builtin_func0(_ia32_lfence, no_return);
   enter_gnu_builtin_func0(_ia32_mfence, no_return);
-  enter_gnu_builtin_func1(_ia32_loaddqu, v16qi, qi_const_star);
-  enter_gnu_builtin_func2(_ia32_storedqu, no_return, qi_star, v16qi);
-  enter_gnu_builtin_func2(_ia32_pmuludq, unsigned_long_long, v2si, v2si);
-  enter_gnu_builtin_func2(_ia32_pmuludq128, v2di, v4si, v4si);
+  enter_gnu_builtin_func1(_ia32_loaddqu, v16qi, char_const_star);
+  enter_gnu_builtin_func2(_ia32_storedqu, no_return, char_star, v16qi);
+  enter_gnu_builtin_func2(_ia32_pmuludq, v2si, v2si, v2si);
+  enter_gnu_builtin_func2(_ia32_pmuludq128, v4si, v4si, v4si);
   enter_gnu_builtin_func2(_ia32_psllw128, v8hi, v8hi, v2di);
   enter_gnu_builtin_func2(_ia32_pslld128, v4si, v4si, v2di);
-  enter_gnu_builtin_func2(_ia32_psllq128, v2di, v4si, v2di);
+  enter_gnu_builtin_func2(_ia32_psllq128, v2di, v2di, v2di);
   enter_gnu_builtin_func2(_ia32_psrlw128, v8hi, v8hi, v2di);
   enter_gnu_builtin_func2(_ia32_psrld128, v4si, v4si, v2di);
   enter_gnu_builtin_func2(_ia32_psrlq128, v2di, v2di, v2di);
@@ -744,9 +746,9 @@ extensions.)
   enter_gnu_builtin_func2(_ia32_haddps, v4sf, v4sf, v4sf);
   enter_gnu_builtin_func2(_ia32_hsubpd, v2df, v2df, v2df);
   enter_gnu_builtin_func2(_ia32_hsubps, v4sf, v4sf, v4sf);
-  enter_gnu_builtin_func1(_ia32_lddqu, v16qi, qi_const_star);
+  enter_gnu_builtin_func1(_ia32_lddqu, v16qi, char_const_star);
   enter_gnu_builtin_func3(_ia32_monitor, no_return,
-                          void_star, unsigned_int, unsigned_int);
+                          void_const_star, unsigned_int, unsigned_int);
   enter_gnu_builtin_func1(_ia32_movddup, v2df, v2df);
   enter_gnu_builtin_func1(_ia32_movshdup, v4sf, v4sf);
   enter_gnu_builtin_func1(_ia32_movsldup, v4sf, v4sf);
