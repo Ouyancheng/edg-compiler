@@ -1,5 +1,20 @@
 Version 4.1
 
+1/15/09  [EDGcpfe/9443]
+GNU and Microsoft compatibility: Default arguments on explicit instantiations
+
+In GNU and Microsoft modes, the front end now accepts explicit instantiations
+with default arguments (with a warning).  Any default arguments are ignored.
+For example:
+
+  template<class T> void f(T) {}
+  template void f(int = 3);  // Accepted with a warning in GNU and Microsoft
+                             // modes.
+  int main() {
+    f();  // Still an error in all modes.
+  }
+
+
 1/14/09  [EDGcpfe/7873]
 IA-64 ABI: String literal sequence numbers and fetch_pp_tokens
 

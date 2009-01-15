@@ -4960,13 +4960,20 @@ function_lparen:
            template <class T> void f(T) { ... }
            template<> void f(int=0);
            template void f(char=0);
+         (However, Microsoft and GNU compilers allow the default arguments on
+         explicit instantiations.)
          In addition, default arguments are disallowed in template parameter
          declarations. */
       disallow_default_args = C_mode() ||
-                              (input_flags & DI_IS_TEMPLATE_PARAM_DECL) ||
-                              (local_func_info != NULL &&
-                               (input_flags & (DI_IS_SPECIALIZATION |
-                                               DI_IS_EXPLICIT_INSTANTIATION)));
+                              (input_flags & DI_IS_TEMPLATE_PARAM_DECL);
+      if (local_func_info != NULL) {
+        if ((input_flags & DI_IS_SPECIALIZATION) != 0) {
+          disallow_default_args = TRUE;
+        } else if ((input_flags & DI_IS_EXPLICIT_INSTANTIATION) != 0 &&
+                   !(gpp_mode || microsoft_mode)) {
+          disallow_default_args = TRUE;
+        }  /* if */
+      }  /* if */
       /* Pass in a flag to indicate whether exception specifications are
          allowed.  They are allowed on a declaration of a function, a pointer
          or reference to function, or a pointer to member function.  The
@@ -5009,6 +5016,11 @@ function_lparen:
                           (input_flags & DI_IS_TYPEDEF_DECLARATION) != 0,
                           (input_flags & DI_IS_FRIEND_DECL) != 0,
                           decl_pos_block);
+      if (local_func_info != NULL &&
+          (input_flags & DI_IS_EXPLICIT_INSTANTIATION) != 0 &&
+          local_func_info->any_default_args) {
+        pos_warning(ec_nonstd_default_arg, &locator->source_position);
+      }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       if (func_info != NULL) {
         /* Record the source sequence entry in func_info even if there was
