@@ -5955,6 +5955,8 @@ for the GNU C multiline string extension.
           }  /* if */
         }  /* while */
 #endif /* IGNORE_CARRIAGE_RETURN_IN_SOURCE */
+        /* Find the last non-white-space character on the line to see if
+           this might be (or have been intended to be) a spliced line. */
         for (cp = loc_in_line - 1;
              *cp == ' ' || *cp == '\t' || *cp == '\f' ||
                                                  *cp == VERTICAL_TAB_CHARACTER;
@@ -6302,6 +6304,8 @@ entry_for_expand_buffer:
         }  /* if */
       }  /* while */
 #endif /* IGNORE_CARRIAGE_RETURN_IN_SOURCE */
+      /* Find the last non-white-space character on the line to see if
+         this might be (or have been intended to be) a spliced line. */
       for (cp = loc_in_line - 1;
            *cp == ' ' || *cp == '\t' || *cp == '\f' ||
                                                  *cp == VERTICAL_TAB_CHARACTER;
