@@ -160,19 +160,6 @@ to find definitions for exported templates that were used, resulting in
 linker errors later.
 
 
-1/13/09  [EDGcpfe/9440]
-Abort on GNU vector type with cv-qualified element type
-
-In GNU modes, the C- or C++-generating back end aborted ("typeref is not a
-typedef") in form_type_specifier (il_to_str.c) when rendering a GNU vector
-type with a cv-qualified element type.  For example:
-
-  int const __attribute((vector_size(16))) vec;  // Previously triggered an
-                                                 // an abort in il_to_str.c.
-
-This is now fixed.
-
-
 1/13/09  [EDGcpfe/6518]
 Microsoft and GNU C compatibility: __STDC_VERSION__ should not be defined
 
@@ -189,10 +176,13 @@ scope memory region is now freed after write_signoff has been called.
 
 
 1/12/09  [EDGcpfe/9438]
-Abort on GNU vector_size attribute applied to a typedef
+Abort on GNU vector_size attribute applied to a typedef or cv-qualified type
 
-Applying the GNU attribute "vector_size" to a typedef type resulted in an
-abort (in apply_vector_size_attribute) on some host platforms.  For example:
+Applying the GNU attribute "vector_size" to a typedef type or to a qualified
+type resulted in an abort (in apply_vector_size_attribute) on many host
+platforms.  On some other platforms, some of these cases could abort in
+form_type_specifier (il_to_str.c) in an internal error ("typeref is not a
+typedef").  For example:
 
   typedef int __attribute((mode(QI))) qi;
   typedef qi __attribute((vector_size(16))) v16qi;  // Triggered an abort
