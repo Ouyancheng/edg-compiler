@@ -426,7 +426,7 @@ extensions.)
   a_type_ptr  qi_type = get_type_with_mode(int_type, tmk_QI, no_pos);
   a_type_ptr  hi_type = get_type_with_mode(int_type, tmk_HI, no_pos);
   a_type_ptr  si_type = get_type_with_mode(int_type, tmk_SI, no_pos);
-  a_type_ptr  di_type = get_type_with_mode(int_type, tmk_DI, no_pos);
+  a_type_ptr  di_type = unsigned_long_long_type;
   a_type_ptr  v8qi_type = make_vector_type(qi_type, 8);
   a_type_ptr  v4hi_type = make_vector_type(hi_type, 4);
   a_type_ptr  v2si_type = make_vector_type(si_type, 2);
