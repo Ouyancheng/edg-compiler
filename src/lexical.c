@@ -16427,7 +16427,6 @@ host-target conversions are performed.
        kind = (a_name_linkage_kind)(kind + 1)) {
     char      *name_linkage = name_linkage_kind_names[kind];
     sizeof_t  orig_len = strlen(name_linkage);
-    char      *eol_pos;
     /* First initialize the current source line to scan the string. */
     ensure_min_curr_source_line_length(orig_len+2+2*LE_ESCAPE_LEN);
     curr_source_line[0] = '"';
@@ -16435,9 +16434,10 @@ host-target conversions are performed.
     curr_source_line[orig_len+1] = '"';
     curr_source_line[orig_len+2] = LE_ESCAPE;
     curr_source_line[orig_len+3] = LE_NEWLINE;
+    /* If the following LE_ESCAPE is changed to be at a different offset,
+       the setting of curr_char_loc below must be updated too. */
     curr_source_line[orig_len+4] = LE_ESCAPE;
     curr_source_line[orig_len+5] = LE_END_OF_LINE;
-    eol_pos = &curr_source_line[orig_len+4];
     start_of_curr_token = curr_char_loc = curr_source_line;
     logical_char_info_entries_used = 0;
     /* Tokenize the string. */
@@ -16452,7 +16452,7 @@ host-target conversions are performed.
     /* Copy the result for later use. */
     copy_constant(&const_for_curr_token, name_linkage_constants+(int)kind);
     /* Advance curr_char_loc to the end-of-line escape. */
-    curr_char_loc = eol_pos;
+    curr_char_loc = &curr_source_line[orig_len+4];
   }  /* for */
 }  /* init_name_linkage_constants */
 
