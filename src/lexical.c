@@ -5966,7 +5966,10 @@ for the GNU C multiline string extension.
           }  /* if */
         }  /* for */
         if (*cp == '\\') {
-          /* Possible line splice. */
+          /* Possible line splice.  (In non-GNU modes, it is not a line
+             splice if the line ended with white space, but we check for
+             that case in the splice handling code so we can display a
+             warning message.) */
           white_space_chars_after_backslash = loc_in_line - cp - 1;
           goto line_splice;
         }  /* if */
@@ -6310,7 +6313,9 @@ entry_for_expand_buffer:
         }  /* if */
       }  /* for */
       if (*cp == '\\') {
-        /* Possible line splice. */
+        /* Possible line splice.  (In non-GNU modes, it is not a line
+           splice if the line ended with white space, but we check for
+           that case below so we can display a warning message.) */
         white_space_chars_after_backslash = loc_in_line - cp - 1;
 entry_for_line_splice:
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
