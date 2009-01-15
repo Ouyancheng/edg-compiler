@@ -1,5 +1,15 @@
 Version 4.1
 
+1/15/09  [EDGcpfe/7392, EDGcpfe/8999]
+Detect array overflow in mk_errinfo
+
+mk_errinfo has fixed size arrays that are used to build the table of
+error messages and error tags.  We make sure that these arrays are large
+enough for the error_msg.txt table that we provide, but customers could
+cause them to overflow if they add their own messages.  mk_errinfo will
+now issue an internal error if the tables need to be made larger.
+
+
 12/11/08 [EDGcpfe/6851]
 Generate include guard test in error message files
 

@@ -57,7 +57,7 @@ static a_me_input_line	me_input_line;
 /*
 Maximum number of errors that can be processed.
 */
-#define MAX_ERRORS 2000
+#define MAX_ERRORS 3000
 
 /*
 Maximum number of error tags that can be used.
@@ -283,8 +283,11 @@ END_EXTERN_C_BLOCK
 #endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
 
 
+/*
+The error_info array has an entry element for the ec_last entry.
+*/
 static an_error_info
-		error_info[MAX_ERRORS];
+		error_info[MAX_ERRORS + 1];
 static a_tag_info
 		tag_info[MAX_TAGS];
 
@@ -326,6 +329,9 @@ Read the message input file and build the error_info array.
     /* A line that begins with a "#" is a comment.  Blank lines are
        ignored. */
     if (*ptr == '#' || *ptr == '\0') continue; 
+    if (number_of_errors >= MAX_ERRORS) {
+      me_internal_error("too many error messages -- increase MAX_ERRORS");
+    }  /* if */
     enumerator_start = ptr;
     ptr = strchr(enumerator_start, ';');
     if (ptr == NULL) me_invalid_input();
@@ -381,6 +387,9 @@ Read the message input file and build the error_info array.
       /* Don't create a tag_info entry for this message. */
       error_info[number_of_errors].tag = (char *)NULL;
     } else {
+      if (number_of_tags >= MAX_TAGS) {
+        me_internal_error("too many tags -- increase MAX_TAGS");
+      }  /* if */
       copy_of_tag = me_copy_string(tag_start);
       error_info[number_of_errors].tag = copy_of_tag;
       tag_info[number_of_tags].enumerator = copy_of_enumerator;
@@ -437,6 +446,9 @@ entries that refer to the same enumeration entry.
     tag_info[number_of_tags].enumerator = me_copy_string(enumerator_start);
     tag_info[number_of_tags].tag = me_copy_string(tag_start);
     number_of_tags++;
+    if (number_of_tags >= MAX_TAGS) {
+      me_error("too many tags -- increase MAX_TAGS", "");
+    }  /* if */
   }  /* while */
   fclose(tag_input_file);
 }  /* me_read_tag_file */
