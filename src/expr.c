@@ -12189,16 +12189,17 @@ operators cannot be overloaded.
   if (is_error_operand(&operand)) {
     /* A diagnostic will already have been issued. */
     make_error_operand(result);
-  } else if (is_real_floating_type(operand.type)) {
+  } else if (is_real_floating_type(operand.type) ||
+             is_integral_or_enum_type(operand.type)) {
     /* The __real and __imag unary operators normally only apply to complex
        values.  However, the GNU compiler allows them to be applied to any
        arithmetic type: The __real operator has no effect and the __imag
-       operator produces a zero rvalue.  We apply the same rules for floating-
-       point types (with a warning), but since we do not support complex
-       integral types, we do not accept the operators applied to such types.
-       All versions of the GNU C++ compilers abort when applying these
-       operators to class types with user-defined conversions to arithmetic
-       types.  We therefore do not attempt to accept such cases. */
+       operator produces a zero rvalue.  We apply the same rules for operands
+       of real floating-point, integral, and enumeration types.  A warning is
+       issued in such cases.  All versions of the GNU C++ compilers abort when
+       applying these operators to class types with user-defined conversions
+       to arithmetic types.  We therefore do not attempt to accept such
+       cases. */
     if (real_part) {
       copy_operand(&operand, result);
     } else {
