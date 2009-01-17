@@ -1,5 +1,17 @@
 Version 4.1
 
+1/16/09  [EDGcpfe/9461]
+Invalid next pointer on constant, with template, IA-64 ABI, multiple
+  translation units
+
+In some convoluted cases involving the IA-64 ABI, multiple translation
+units, templates, and a set of string constants that happen to hash to the
+same bucket of the shareable constants table, the "next" pointer on
+certain shared constants was not cleared, and as a consequence IL
+traversal operations later might have gotten an internal error.  In
+particular, when an IL write and read using the alternate file format
+was done, it detected a write-read error.  Now fixed.
+
 1/15/09  [EDGcpfe/9441]
 GNU compatibility: __real/__imag and integral arguments
 
