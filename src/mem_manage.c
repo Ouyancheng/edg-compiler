@@ -1753,8 +1753,8 @@ Display the IL entry prefix of the given IL entry.
             il_entry_prefix_of(entry).entry_number);
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE && ALTERNATE_IL_FILE_FORMAT */
 #if MAINTAIN_ALLOCATION_SEQUENCE_NUMBER
-    fprintf(f_debug, "(alloc_seq_number = %ld) ",
-            il_entry_prefix_of(entry).alloc_seq_number);
+    fprintf(f_debug, "(alloc_seq_number = %lu) ",
+            (unsigned long)il_entry_prefix_of(entry).alloc_seq_number);
 #endif /* MAINTAIN_ALLOCATION_SEQUENCE_NUMBER */
   }  /* if */
 }  /* db_prefix */
