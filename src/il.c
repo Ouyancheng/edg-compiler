@@ -6439,6 +6439,7 @@ constants therein by clearing their "next" fields.
                  fsctp;
   int	         bucket;
 
+  check_assertion(depth_innermost_function_scope != NO_SCOPE_DEPTH);
   fsctp = scope_stack[depth_innermost_function_scope]
                                                     .shareable_constants_table;
   if (fsctp != NULL) {

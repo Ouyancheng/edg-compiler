@@ -5777,8 +5777,9 @@ calls itself recursively, and on those calls sp will be a block scope.
 
 /* Forward declaration. */
 static void finish_function_body_processing(
-				a_scope_ptr scope,
-				a_boolean   will_discard_function_body);
+                                a_scope_ptr scope,
+                                a_boolean   will_discard_function_body,
+                                a_boolean   delayed);
 
 
 void finish_function_processing_for_memory_region(
@@ -5803,15 +5804,17 @@ processing only if the function is inline.
            processed before the enclosing function. */
         finish_local_function_body_processing(sp);
       }  /* if */
-      finish_function_body_processing(sp, /*discard_function_body=*/FALSE);
+      finish_function_body_processing(sp, /*discard_function_body=*/FALSE,
+                                      /*delayed=*/TRUE);
     }  /* if */
   }  /* if */
 }  /* finish_function_processing_for_memory_region */
 
 
 static void finish_function_body_processing(
-					a_scope_ptr scope,
-					a_boolean   will_discard_function_body)
+                                        a_scope_ptr scope,
+                                        a_boolean   will_discard_function_body,
+                                        a_boolean   delayed)
 /*
 Do final processing on the body of the function with the indicated scope.
 This includes IL lowering if appropriate.  This routine is called
@@ -5819,7 +5822,9 @@ immediately after the body is scanned, and also after the body is copied
 over to the primary IL for functions in a secondary translation unit.
 That is, for functions in a secondary translation unit it is called twice.
 If will_discard_function_body is TRUE, the function body will be
-thrown away by the caller.
+thrown away by the caller.  If delayed is TRUE, this processing is
+being done later than at pop_scope time for the function, and therefore
+the scope stack is no longer available.
 */
 {
   a_routine_ptr routine = scope->variant.routine.ptr;
@@ -5846,7 +5851,8 @@ thrown away by the caller.
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 #if DO_IL_LOWERING
     if (!will_discard_function_body &&
-        !scope_stack[depth_scope_stack].in_prototype_instantiation) {
+        (delayed ||
+         !scope_stack[depth_scope_stack].in_prototype_instantiation)) {
       /* Do IL lowering (change the C++ IL into C IL). */
       lower_il_memory_region(routine->assoc_scope);
 #if MAINTAIN_NEEDED_FLAGS
@@ -5876,8 +5882,10 @@ thrown away by the caller.
     eliminate_pragmas_for_file_scope_entities(scope);
   }  /* if */
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
-  if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
-    /* Clear out the shareable constants table for the function scope. */
+  if (!delayed) {
+    /* Clear out the shareable constants table for the function scope.
+       In the delayed case, the clearing was done at pop_scope time and
+       no sharing of function-scope constants was allowed during lowering. */
     empty_func_shareable_constants_table();
   }  /* if */
   scope->function_body_processing_finished = TRUE;
@@ -6507,13 +6515,17 @@ End a name scope by popping an entry off the scope stack.
       /* Note that il_lowering_needed() is not tested on purpose, to get
          proper error recovery behavior.  Also, it doesn't cover lowering
          needed in C99 mode. */
+      /* Clear the function-scope shareable constants table, because
+         that has to be done before the scope stack entry disappears. */
+      empty_func_shareable_constants_table();
     } else
 #endif /* DO_IL_LOWERING */
     {
       /* Do final processing on the function body.  That includes
          IL lowering if appropriate. */
       check_assertion(il_scope != NULL); /* For Coverity. */
-      finish_function_body_processing(il_scope, discard_function_body);
+      finish_function_body_processing(il_scope, discard_function_body,
+                                      /*delayed=*/FALSE);
     }  /* if */
     if (!discard_function_body) {
       /* The definition of the function is complete, so set the defined flag.
