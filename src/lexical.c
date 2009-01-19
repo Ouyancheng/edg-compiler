@@ -5988,7 +5988,9 @@ add_newline_and_line_end_and_return:
        generally invisible, that looks like a line splice, so we warn about
        it to clarify what might otherwise be obscure errors reported on the
        following line. */
-    warning_at_line_pos(ec_not_a_line_splice, cp);
+    warning_at_line_pos(ec_not_a_line_splice,
+                        loc_in_line - white_space_chars_after_backslash -
+                                                            LE_ESCAPE_LEN - 1);
   }  /* if */
 
 return_with_line:
