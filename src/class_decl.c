@@ -9004,6 +9004,7 @@ specific information about the member declaration, respectively.
   if (curr_token == tok_assign && is_expr_start_token(next_token())) {
     a_constant         constant;
     a_source_position  init_pos;
+    a_boolean          restore_member_visibility = FALSE;
     init_pos = pos_curr_token;
     /* Advance past the "=". */
     (void)get_token();
@@ -9012,10 +9013,11 @@ specific information about the member declaration, respectively.
       prescan_initializer_for_auto_type_deduction(decl_state);
       member_type = decl_state->type;
     }  /* if */
-    if (microsoft_bugs && decl_state->sym != NULL) {
-      /* In Microsoft bugs mode, the static data member being initialized is
-         not visible while parsing the initializer. */
+    if ((microsoft_bugs || gpp_mode) && decl_state->sym != NULL) {
+      /* In Microsoft bugs and GNU mode, the static data member being
+         initialized is not visible while parsing the initializer. */
       decl_state->sym->is_invisible = TRUE;
+      restore_member_visibility = TRUE;
     }  /* if */
     if ((is_const_qualified_type(member_type) &&
          (is_integral_or_enum_type(member_type) ||
@@ -9058,7 +9060,7 @@ specific information about the member declaration, respectively.
       }  /* if */
       scan_and_discard_initializer_expression(decl_state);
     }  /* if */
-    if (microsoft_bugs && decl_state->sym != NULL) {
+    if (restore_member_visibility) {
       /* Restore the member's visibility. */
       decl_state->sym->is_invisible = FALSE;
     }  /* if */
