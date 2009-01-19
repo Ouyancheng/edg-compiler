@@ -816,6 +816,8 @@ part of a declarator is found, may_be_decl is set to FALSE.
       /* Microsoft __based modifier. */
       prescan_based_modifier(state, flags);
     } else if (curr_token == tok_microsoft_w64 ||
+               curr_token == tok_microsoft_sptr ||
+               curr_token == tok_microsoft_uptr ||
                curr_token == tok_microsoft_ptr32 ||
                curr_token == tok_microsoft_ptr64) {
       /* Syntactically, __w64, __ptr32, and __ptr64 are similar to type
