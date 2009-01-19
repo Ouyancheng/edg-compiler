@@ -2031,7 +2031,7 @@ position following what was demangled.  If under_lhs_declarator is TRUE,
 this type is directly under a type that uses a left-side declarator,
 e.g., a pointer type.  (That's used to control use of parentheses around
 parts of the declarator.)  If need_trailing_space is TRUE, put a space
-at the end of the specifiers part (needed if the declarator part is
+at the end of the type first part (needed if the declarator part is
 not empty, because it contains a name or a derived type).
 */
 {
@@ -2052,7 +2052,7 @@ not empty, because it contains a name or a derived type).
       write_id_ch('*', dctl);
     }  /* if */
     /* Output the type qualifiers on the pointer, if any. */
-    (void)demangle_type_qualifiers(qualp, /*trailing_space=*/TRUE, dctl);
+    (void)demangle_type_qualifiers(qualp, need_trailing_space, dctl);
   } else if (kind == 'M') {
     /* Pointer-to-member type, e.g., "M1Ai" is pointer to member of A of
        type int. */
@@ -2067,7 +2067,7 @@ not empty, because it contains a name or a derived type).
     (void)demangle_type_name(classp, dctl);
     write_id_str("::*", dctl);
     /* Output the type qualifiers on the pointer, if any. */
-    (void)demangle_type_qualifiers(qualp, /*trailing_space=*/TRUE, dctl);
+    (void)demangle_type_qualifiers(qualp, need_trailing_space, dctl);
   } else if (kind == 'F') {
     /* Function type, e.g., "Fii_f" is function(int, int) returning float.
        The return type is not present for top-level function types (except
