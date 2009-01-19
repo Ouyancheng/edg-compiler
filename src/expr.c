@@ -8457,6 +8457,9 @@ Syntax:
   a_boolean         cast_type_okay, operand_type_okay;
   a_boolean         reference_case = FALSE, err = FALSE;
   a_boolean         template_param_case = FALSE;
+#if IA64_ABI
+  a_boolean         void_star_case = FALSE;
+#endif /* IA64_ABI */
   a_base_class_ptr  bcp;
   an_expr_node_ptr  expr;
   an_expr_node_ptr  operand_expression = NULL;
@@ -8507,6 +8510,9 @@ Syntax:
       } else if (!reference_case && is_void_type(underlying_cast_type)) {
         /* Casting to void * is okay. */
         cast_type_okay = TRUE;
+#if IA64_ABI
+        void_star_case = TRUE;
+#endif /* IA64_ABI */
       } else if (is_template_param_type(underlying_cast_type)) {
         /* Casting to a pointer or reference to a template parameter type
            is okay in a prototype instantiation. */
@@ -8650,6 +8656,17 @@ Syntax:
         pos_error(ec_dynamic_cast_operand_must_be_polymorphic,
                   &operand.position);
       }  /* if */
+    } else if (!rtti_enabled
+#if IA64_ABI
+               && !void_star_case
+#endif /* IA64_ABI */
+                                 ) {
+      /* A dynamic cast at runtime cannot be done if RTTI information is
+         not enabled.  An exception is that in the IA-64 ABI the vtable
+         has a pointer to the complete object that can be used for the
+         case of a dynamic_cast to void *. */
+      pos_error(ec_dynamic_cast_without_rtti, &start_position);
+      err = TRUE;
     } else {
       expr = make_node_from_operand(&operand);
       set_used_in_exception_or_rtti_flag(expr->type);

@@ -1798,6 +1798,7 @@ ec_det_in_compilation_of;INTERNAL;"detected in the compilation of \"%s\"."
 ec_det_in_compilation;INTERNAL;"detected in this compilation."
 ec_enum_value_out_of_underlying_range;;"enumeration value is outside the range of its underlying type (%t)"
 ec_not_a_line_splice;;"'\\' followed by white space is not a line splice"
+ec_dynamic_cast_without_rtti;;"this dynamic_cast cannot be done without runtime type information, which is disabled"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

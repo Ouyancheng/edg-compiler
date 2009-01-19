@@ -1,5 +1,29 @@
 Version 4.1
 
+1/19/09  [EDGcpfe/9202, EDGcpfe/9450]
+Some dynamic_casts allowed even when RTTI is disabled
+
+Formerly, when RTTI (runtime type information) is disabled (e.g.,
+with --no_rtti), the dynamic_cast operator was not permitted at
+all -- in fact, the keyword was not even recognized.  Now,
+dynamic_cast operations that can be done without use of runtime
+type information are permitted even when RTTI is disabled.
+In addition, when the IA-64 ABI is used, a dynamic_cast to void *
+is also permitted, because the IA-64 ABI has a way of getting from
+an object to its complete object without using RTTI.  One reason
+we have made this change is that g++ accepts such cases.
+
+  struct A {
+    virtual ~A() { }
+  };
+  struct B : A {};
+  A* f();
+  void foo(A* pa) {
+   void* v = dynamic_cast<void*>(pa); // Now accepted with --no_rtti
+   B* b = dynamic_cast<B*>(f());      // Still not accepted with --no_rtti
+}
+
+
 1/19/09  [EDGcpfe/9457]
 GNU C++ compatibility: Visibility of a static const member in its initializer
 

@@ -664,12 +664,14 @@ Install the keywords in the symbol table.
     }  /* if */
     /* Enter keywords connected with RTTI only if RTTI support is enabled.
        Otherwise treat them as "unimplemented keywords". */
+    /* However, some kinds of dynamic_cast can be done without RTTI
+       information, so do the checking for those in the dynamic_cast
+       scanning. */
+    enter_keyword((a_token_kind)tok_dynamic_cast, "dynamic_cast");
     if (rtti_enabled) {
-      enter_keyword((a_token_kind)tok_dynamic_cast, "dynamic_cast");
-      enter_keyword((a_token_kind)tok_typeid,       "typeid");
+      enter_keyword((a_token_kind)tok_typeid, "typeid");
     } else {
-      enter_unimplemented_keyword("dynamic_cast", ec_unimplemented_keyword);
-      enter_unimplemented_keyword("typeid",       ec_unimplemented_keyword);
+      enter_unimplemented_keyword("typeid", ec_unimplemented_keyword);
     }  /* if */
     /* Enter keywords connected with namespaces only if namespace support
        is enabled.  Otherwise treat them as "unimplemented keywords". */
