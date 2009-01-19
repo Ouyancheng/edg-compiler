@@ -32,17 +32,18 @@ now invisible until the end of the initializer.  (This same behavior was
 already implemented in Microsoft bugs mode: See the Changes entry of 11/7/07.)
 For example:
 
-  struct x { enum { N = 3 }; };
-  struct y { static int const x = x::N; };  // Now accepted in GNU C++ mode.
+  enum { x = 3 };
+  struct y { static int const x = x; };  // Now accepted in GNU mode.
 
 Note that this matches the GNU behavior, but GCC often diagnoses such cases
 because it checks that certain identifiers used in a class definition retain
 their meaning when reconsidered in the context of the completed definition.
 (This check is permitted by the C++ standard but not currently performed by
-the EDG front end.)  E.g., the example above appears to be accepted by g++
-3.4 and later, but not by earlier versions of g++.  Other similar examples,
-appear to be accepted by all versions of g++, and yet other similar examples
-are rejected by all versions of g++.
+the EDG front end.)  E.g., the example above elicits an error from g++, but
+the following similar example does not:
+
+  template<int V> struct x { enum { N = V }; };
+  struct y { static int const x = x<3>::N; };  // Now accepted in GNU mode.
 
 
 1/16/09  [EDGcpfe/9461]
