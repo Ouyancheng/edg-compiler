@@ -2038,39 +2038,70 @@ bcp->derived_class is as_protected or as_private.
 
 #if !STANDALONE_UTILITY_PROGRAM
 
+a_boolean related_classes(a_type_ptr       type_1,
+                          a_type_ptr       type_2,
+                          a_boolean        *baseward_cast,
+                          a_base_class_ptr *bcp)
+/*
+Check to see if type_1 and type_2 are related class types, and return TRUE if
+so (identical types are not considered related by this routine).  If they are,
+set *bcp to point to the base class entry that shows the relationship;
+otherwise, set *bcp to FALSE.  Also, if type_1 --> type_2 is a baseward cast,
+set *baseward_cast to TRUE; otherwise set it to FALSE.
+*/
+{
+  a_boolean  result = FALSE;
+
+  *baseward_cast = FALSE;
+  *bcp = NULL;
+  if (is_class_struct_union_type(type_1) &&
+      is_class_struct_union_type(type_2)) {
+    /* The source and destination types are both pointers to classes.
+       See if the classes are related. */
+    if ((*bcp = find_base_class_of(type_1, type_2)) != NULL) {
+      result = TRUE;
+      *baseward_cast = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (microsoft_mode && (*bcp)->ambiguous && !(*bcp)->direct) {
+        /* When dealing with a cast to an ambiguous base class, Microsoft
+           compilers prefer a direct base class. */
+        a_base_class_ptr  dbp = (*bcp)->next;
+        for (; dbp != NULL; dbp = dbp->next) {
+          if (dbp->ambiguous && dbp->direct &&
+              same_entities(dbp->type, (*bcp)->type)) {
+            *bcp = dbp;
+            break;
+          }  /* if */
+        }  /* for */
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    } else if ((*bcp = find_base_class_of(type_2, type_1)) != NULL) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* related_classes */
+
+
 a_boolean f_related_class_pointers(a_type_ptr       type_1,
                                    a_type_ptr       type_2,
                                    a_boolean        *baseward_cast,
                                    a_base_class_ptr *bcp)
 /*
 type_1 and type_2 are pointer types.  Check to see if they are pointers to
-related class types, and return TRUE if so.  If they are, set *baseward_cast
-if type_1 --> type_2 is a baseward cast, and set *bcp to point to the base
-class entry that shows the relationship.  Called from the macro
-related_class_pointers.
+related class types, and return TRUE if so (identical types are not considered
+related by this routine).  If they are, set *bcp to point to the base class
+entry that shows the relationship; otherwise, set *bcp to FALSE.  Also, if
+type_1 --> type_2 is a baseward cast, set *baseward_cast to TRUE; otherwise,
+set it to FALSE.  Called from the macro related_class_pointers.
 */
 {
-  a_boolean  related_classes = FALSE;
   a_type_ptr type_1_pointed_to, type_2_pointed_to;
 
-  *baseward_cast = FALSE;
-  *bcp = NULL;
   type_1_pointed_to = type_pointed_to(type_1);
   type_2_pointed_to = type_pointed_to(type_2);
-  if (is_class_struct_union_type(type_1_pointed_to) &&
-      is_class_struct_union_type(type_2_pointed_to)) {
-    /* The source and destination types are both pointers to classes.
-       See if the classes are related. */
-    if ((*bcp = find_base_class_of(type_1_pointed_to,
-                                   type_2_pointed_to)) != NULL) {
-      related_classes = TRUE;
-      *baseward_cast = TRUE;
-    } else if ((*bcp = find_base_class_of(type_2_pointed_to,
-                                          type_1_pointed_to)) != NULL) {
-      related_classes = TRUE;
-    }  /* if */
-  }  /* if */
-  return related_classes;
+  return related_classes(type_1_pointed_to, type_2_pointed_to,
+                         baseward_cast, bcp);
 }  /* f_related_class_pointers */
 
 
