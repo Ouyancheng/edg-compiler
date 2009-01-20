@@ -4760,6 +4760,11 @@ file.
 #else /* !defined(GEN_EXTRA_LINE_ID_INFO) */
   comment_undefined_macro_name(GEN_EXTRA_LINE_ID_INFO);
 #endif /* defined(GEN_EXTRA_LINE_ID_INFO) */
+#if defined(GNU_BUILTIN_IA32_VECTOR_FUNCTIONS_ALLOWED)
+  define_numeric_valued_macro(GNU_BUILTIN_IA32_VECTOR_FUNCTIONS_ALLOWED);
+#else /* !defined(GNU_BUILTIN_IA32_VECTOR_FUNCTIONS_ALLOWED) */
+  comment_undefined_macro_name(GNU_BUILTIN_IA32_VECTOR_FUNCTIONS_ALLOWED);
+#endif /* defined(GNU_BUILTIN_IA32_VECTOR_FUNCTIONS_ALLOWED) */
 #if defined(GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED)
   define_numeric_valued_macro(GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED);
 #else /* !defined(GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED) */
