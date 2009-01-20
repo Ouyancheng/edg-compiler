@@ -31,9 +31,9 @@ we have made this change is that g++ accepts such cases.
   struct B : A {};
   A* f();
   void foo(A* pa) {
-   void* v = dynamic_cast<void*>(pa); // Now accepted with --no_rtti
-   B* b = dynamic_cast<B*>(f());      // Still not accepted with --no_rtti
-}
+    void* v = dynamic_cast<void*>(pa); // Now accepted with --no_rtti
+    B* b = dynamic_cast<B*>(f());      // Still not accepted with --no_rtti
+  }
 
 
 1/19/09  [EDGcpfe/9457]
