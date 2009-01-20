@@ -2602,6 +2602,9 @@ and return a pointer to it.
       tssp->variant.class_template.access = (an_access_specifier)as_public;
       tssp->variant.class_template.name_linkage =
                                             (a_name_linkage_kind)nlk_none;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      tssp->variant.class_template.is_interface = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       tssp->variant.class_template.not_standalone_nested_class = FALSE;
       tssp->variant.class_template.template_template_param = FALSE;
       tssp->variant.class_template.involves_template_param = FALSE;

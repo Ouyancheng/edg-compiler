@@ -2606,6 +2606,10 @@ might not be able to if the template itself has not yet been defined.
          the type kind of the partial specialization may be different than
          that of the primary template. */
       class_type->kind = tssp->variant.class_template.type_kind;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      class_type->variant.class_struct_union.is_interface =
+                                    tssp->variant.class_template.is_interface;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* Update the associated template.  This is set when the incomplete
          class type is created, but must be updated now in case the actual
          definition is from a partial specialization. */
@@ -3221,6 +3225,10 @@ A pointer to the head of the list is returned in tcsp.
      the type kind of the partial specialization may be different than
      that of the primary template. */
   prototype_type->kind = tssp->variant.class_template.type_kind;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  prototype_type->variant.class_struct_union.is_interface =
+                                    tssp->variant.class_template.is_interface;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   template_arg_list = templ_arg_list_for_class(prototype_type);
   cssp->instantiation_in_progress = TRUE;
   /* Record the namespace that is the "referencing context" namespace for
@@ -4848,6 +4856,10 @@ prototype instantiation is considered as a potential match.
     primary_tssp->variant.class_template.instantiations = sym;
     /* Now create a new type entry. */
     class_type = alloc_type(tssp->variant.class_template.type_kind);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    class_type->variant.class_struct_union.is_interface =
+                                    tssp->variant.class_template.is_interface;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     class_type->variant.class_struct_union.is_template_class = TRUE;
     sym->variant.class_struct_union.type = class_type;
     set_source_corresp(&(class_type->source_corresp), sym);
@@ -11611,6 +11623,7 @@ declaration of a partial specialization declared outside of its class.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   an_extended_decl_info_block       extended_decl_info;
   a_boolean                         is_abstract = FALSE, is_sealed = FALSE;
+  a_boolean                         is_interface = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
   an_attribute_ptr                  attributes = NULL;
@@ -11645,7 +11658,14 @@ declaration of a partial specialization declared outside of its class.
   skip_illegal_class_template_decl_specifiers(/*diagnose=*/TRUE);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (curr_token == tok_interface) {
-    error(ec_interface_cannot_be_template);
+    if (microsoft_version < 1400) {
+      error(ec_interface_cannot_be_template);
+    } else if (decl_state->is_member_decl) {
+      error(ec_interface_cannot_be_nested_class);
+    } else {
+      is_interface = TRUE;
+    }  /* if */
+    /* Proceed as if this were a struct. */
     curr_token = tok_struct;
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -11653,14 +11673,14 @@ declaration of a partial specialization declared outside of its class.
     case tok_class:  type_kind = (a_type_kind)tk_class;  break;
     case tok_struct: type_kind = (a_type_kind)tk_struct; break;
     case tok_union:  type_kind = (a_type_kind)tk_union;  break;
-    default:	     unexpected_condition();
+    default:         unexpected_condition();
   }  /* switch */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   /* Set the specifiers end position here; it will be overwritten later unless
      there is an error in scanning the identifier. */
   decl_state->decl_pos_block.specifiers_range.end = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  /* Bypass "class", "struct", or "union". */
+  /* Bypass "class", "struct", "union", or "__interface". */
   (void)get_token();
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode) {
@@ -12027,8 +12047,7 @@ friend_template_checks_done:
          template. */
       is_redecl = TRUE;
       if ((type_kind == (a_type_kind)tk_union) !=
-          (tssp->variant.class_template.type_kind ==
-                                                  (a_type_kind)tk_union)) {
+          (tssp->variant.class_template.type_kind == (a_type_kind)tk_union)) {
         /* Cannot mix union and nonunion declarations. */
         pos_sy_error(ec_not_compatible_with_previous_decl,
                      &locator.source_position, sym);
@@ -12166,6 +12185,9 @@ friend_template_checks_done:
     /* Save the type kind on the initial declaration.  This may be modified
        later on a definition. */
     tssp->variant.class_template.type_kind = type_kind;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    tssp->variant.class_template.is_interface = is_interface;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Set the name-linkage for this template -- it will be propagated
        into the instances. */
     /* Normally, a template has C++ linkage. */
@@ -12182,6 +12204,9 @@ friend_template_checks_done:
        in the class template symbol's supplement -- it will be needed when
        type entries for instantiations are created. */
     tssp->variant.class_template.type_kind = type_kind;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    tssp->variant.class_template.is_interface = is_interface;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }	/* if */
   if (decl_state->is_template_friend &&
       !decl_state->in_prototype_instantiation) {

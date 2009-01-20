@@ -2089,6 +2089,11 @@ typedef struct a_template_symbol_supplement {
 			   template -- typically C++ linkage, but internal
 			   linkage if the template is declared inside an
 			   unnamed namespace. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      a_bit_field
+		is_interface:1;
+			/* TRUE for Microsoft __interface templates. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       a_bit_field
 		not_standalone_nested_class:1;
 			/* TRUE for nested classes of class templates in

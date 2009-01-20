@@ -1,5 +1,19 @@
 Version 4.1
 
+1/20/09  [EDGcpfe/9462]
+Microsoft compatibility: Interface templates
+
+In Microsoft mode with microsoft_version >= 1400, interface templates are now
+accepted.  For example:
+
+  template<typename T> __interface IF {
+    void f(T);
+  };
+
+(See also the Changes entry of 6/2/03 that introduced non-template interface
+class types.)
+
+
 1/19/09  [EDGcpfe/9449]
 Spurious errors on some uses of __sptr/__uptr in Microsoft C++ mode
 
