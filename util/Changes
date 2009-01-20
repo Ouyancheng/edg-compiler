@@ -7,12 +7,12 @@ The output of the Cfront ABI demangler has been tweaked slightly to
 remove an extra space following a cv-qualifier on a pointer.  For
 example,
 
-  _foo__tm__4_CPi__FZ1Z_i
+  foo__tm__4_CPi__FZ1Z_i
 
 is now demangled as
 
-  int _foo<T1>(T1) [with T1=int *const]
-                                      ^extra space here eliminated
+  int foo<T1>(T1) [with T1=int *const]
+                                     ^extra space here eliminated
 
 
 1/15/09  [EDGcpfe/7932, EDGcpfe/8999]
