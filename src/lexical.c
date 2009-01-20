@@ -5750,7 +5750,6 @@ for the GNU C multiline string extension.
                                after_end_of_curr_source_line - 2*LE_ESCAPE_LEN;
 		       /* For checking of buffer overflow -- to leave
                           room for the newline and line-end lexical escapes. */
-  char		  *cp;
   unsigned long   white_space_chars_after_backslash = 0;
 
   /* This routine handles translation phases 1 (trigraphs, newlines) and
@@ -5941,6 +5940,7 @@ for the GNU C multiline string extension.
       }  /* if */
 #endif /* ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR */
       if (loc_in_line != curr_source_line) {
+        char *cp;
 #if IGNORE_CARRIAGE_RETURN_IN_SOURCE
         /* Ignore carriage return right before newline.  Ignore several if
            they are present (there are Microsoft header files that have
@@ -6293,6 +6293,7 @@ entry_for_expand_buffer:
     }  /* if */
 #endif /* ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR */
     if (loc_in_line != curr_source_line) {
+      char *cp;
 #if IGNORE_CARRIAGE_RETURN_IN_SOURCE
       /* Ignore carriage return right before newline.  Ignore several if
          they are present (there are Microsoft header files that have this). */
