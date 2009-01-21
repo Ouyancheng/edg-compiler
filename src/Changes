@@ -1,5 +1,12 @@
 Version 4.1
 
+1/21/09  [EDGcpfe/8628]
+Enable exceptions in Microsoft C++ mode
+
+Exceptions are now enabled by default in Microsoft C++ mode.  Exceptions
+can be explicitly disabled using the --no_exceptions command line argument.
+
+
 1/20/09  [EDGcpfe/9446]
 Microsoft compatibility: Casting to an ambiguous base class type
 

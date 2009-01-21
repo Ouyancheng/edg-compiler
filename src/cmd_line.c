@@ -1703,6 +1703,9 @@ by a command line option.
     allow_nonconstant_auto_aggr_init_in_c_mode = TRUE;
   } else {
     /* Microsoft C++ mode. */
+    if (!option_kind_used[(int)optk_exception_handling]) {
+      exceptions_enabled = TRUE;
+    }  /* if */
     if (!option_kind_used[(int)optk_bool_is_keyword]) {
       /* The bool keyword is supported by Microsoft Visual C++ 5.0. */
       bool_is_keyword = microsoft_version >= 1100;
