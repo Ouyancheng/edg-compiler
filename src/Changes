@@ -1,5 +1,20 @@
 Version 4.1
 
+1/21/09  [EDGcpfe/9410]
+Overflow in size calculation for text buffer allocation
+
+To perform macro expansion, the front end maintains several extensible text
+buffers; when they become full, a new buffer is allocated and the contents
+copied.  The interface of the functions controlling this reallocation
+typically involves a sizeof_t parameter specifying the amount of additional
+space required, and the new buffer size is calculated from that and the
+current allocation size.  This calculation could conceivably overflow the
+sizeof_t variable used for the result, which could cause allocation of a
+too-small buffer and consequently overwrite other memory.  The front end
+now checks for such overflows and aborts with a catastrophic error if one
+occurs.
+
+
 1/21/09  [EDGcpfe/8628]
 Enable exceptions in Microsoft C++ mode
 

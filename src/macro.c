@@ -456,6 +456,11 @@ map entries, extending the array of entries if necessary.
          "cushion" in the allocation. */
       new_max_entries = mtmp->num_entries + num_entries;
     }  /* if */
+    if (((sizeof_t)-1) / sizeof(a_macro_text_map_entry) <= new_max_entries) {
+      /* Calculation of the new requested size would overflow, resulting in
+         a too-short buffer and overwriting memory. */
+      catastrophe(ec_requested_size_too_large);
+    }  /* if */
     mtmp->entries = (a_macro_text_map_entry_ptr)realloc_buffer(
                                    (char *)mtmp->entries,
                                    (sizeof_t)(mtmp->max_entries*
@@ -1442,12 +1447,20 @@ ensure_aux_buffer_for_pcc_macros_space.  pos_in_aux_buffer points to
 the pointer to the next available position in that buffer.
 */
 {
-  sizeof_t old_size, new_size, increment;
+  sizeof_t total_needed, old_size, old_len, new_size, increment;
   char     *new_aux_buffer_for_pcc_macros;
 
   db_enter(4, "expand_aux_buffer_for_pcc_macros");
   old_size = after_end_of_aux_buffer_for_pcc_macros -
              aux_buffer_for_pcc_macros;
+  old_len = pos_in_aux_buffer - aux_buffer_for_pcc_macros;
+  if (needed >= ((sizeof_t)-1) - old_len) {
+    /* The following calculation of total_needed would overflow, which
+       could cause use of a too-short buffer and result in overwriting
+       memory. */
+    catastrophe(ec_requested_size_too_large);
+  }  /* if */
+  total_needed = old_len + needed;
   /* Not enough space; need to expand.  Make sure we ask for enough
      to satisfy the current request and a little bit more. */
   increment = needed + needed/10 -
@@ -1457,6 +1470,12 @@ the pointer to the next available position in that buffer.
     increment = old_size;
   }  /* if */
   new_size = old_size + increment;
+  if (new_size+1 < total_needed) {
+    /* There is an overflow somewhere in the calculation of the new request
+       size.  The resulting buffer would be too short and cause overwritten
+       memory. */
+    catastrophe(ec_requested_size_too_large);
+  }  /* if */
   /* Allocate one more byte than required, so that a pointer past the end
      will not have the same address as a pointer to the next object in
      memory. */
@@ -1507,6 +1526,12 @@ ensure_arg_raw_text_space.
 
   db_enter(4, "expand_arg_raw_text");
   old_size = map->raw_alloc_len;
+  if (needed >= ((sizeof_t)-1) - map->raw_len) {
+    /* The following calculation of total_needed would overflow, which
+       could cause use of a too-short buffer and result in overwriting
+       memory. */
+    catastrophe(ec_requested_size_too_large);
+  }  /* if */
   total_needed = map->raw_len + needed;
   /* Take a look to see if a freed entry has a large enough raw_text area,
      in which case the two raw_text allocations can be swapped. */
@@ -1534,6 +1559,12 @@ ensure_arg_raw_text_space.
     increment = old_size;
   }  /* if */
   new_size = old_size + increment;
+  if (new_size+1 < total_needed) {
+    /* There is an overflow somewhere in the calculation of the new request
+       size.  The resulting buffer would be too short and cause overwritten
+       memory. */
+    catastrophe(ec_requested_size_too_large);
+  }  /* if */
 #if DEBUG
   macro_arg_text_space += increment;
 #endif /* DEBUG */
@@ -1580,6 +1611,12 @@ ensure_arg_expanded_text_space.
 
   db_enter(4, "expand_arg_expanded_text");
   old_size = map->expanded_alloc_len;
+  if (needed >= ((sizeof_t)-1) - map->expanded_len) {
+    /* The following calculation of total_needed would overflow, which
+       could cause use of a too-short buffer and result in overwriting
+       memory. */
+    catastrophe(ec_requested_size_too_large);
+  }  /* if */
   total_needed = map->expanded_len + needed;
   /* Take a look to see if a freed entry has a large enough expanded_text area,
      in which case the two expanded_text allocations can be swapped. */
@@ -1608,6 +1645,12 @@ ensure_arg_expanded_text_space.
     increment = old_size;
   }  /* if */
   new_size = old_size + increment;
+  if (new_size+1 < total_needed) {
+    /* There is an overflow somewhere in the calculation of the new request
+       size.  The resulting buffer would be too short and cause overwritten
+       memory. */
+    catastrophe(ec_requested_size_too_large);
+  }  /* if */
 #if DEBUG
   macro_arg_text_space += increment;
 #endif /* DEBUG */
