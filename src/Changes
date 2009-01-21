@@ -1,5 +1,41 @@
 Version 4.1
 
+1/21/09  [EDGcpfe/9368]
+Microsoft compatibility: even more on ADL and friend injection
+
+We have made several changes over the years (see 5/24/06 entry for the
+most recent one) to emulate the friend visibility quirks of MSVC++ 7.1
+and newer versions.  We have determined that our previous emulations did not
+accurately reflect the underlying mechanism being used by the Microsoft
+compiler.  We have now implemented what we believe to be a more faithful
+emulation of their behavior.  The Microsoft compiler does not search
+namespaces during argument-dependent lookup if those namespaces were
+searched during the normal lookup.  In addition, operator functions that
+are defined in friend function declarations and are called using operator
+notation are not visible when found by a normal lookup.  This new mechanism
+replaces the earlier emulations that we provided.
+
+The rework was motivated by the example below.  In Microsoft mode we
+failed to find N::operator<= for the call.  This is now fixed.
+
+  namespace N {
+    struct A {};
+    template <class T, class U> struct B {
+      friend bool operator<=(const T& x, const U& y) { return false; }
+    };
+    template struct B<A, A>;
+  }
+
+  namespace M {
+    class C {
+      N::A temp1,temp2;
+      void foo(){
+        temp1 <= temp2;  // spurious 'no matching "<="'
+      }  
+    };
+  }
+
+
 1/21/09  [EDGcpfe/9410]
 Overflow in size calculation for text buffer allocation
 

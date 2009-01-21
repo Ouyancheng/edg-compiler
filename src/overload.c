@@ -2692,64 +2692,11 @@ done:;
 }  /* function_template_call_argument_deduction */
 
 
-/*
-Bit flags used for arg_dep_lookup_extra_info parameters.
-*/
-#define ADLEI_NONE 0
-#if MICROSOFT_EXTENSIONS_ALLOWED
-#define ADLEI_FROM_NAMESPACE 1
-			/* The name was found during the associated namespace
-			   portion of argument-dependent lookup (as opposed to
-			   the associated class portion).  Used for a Microsoft
-			   bug emulation. */
-#define ADLEI_ORIG_SYM_IN_NAMESPACE 2
-			/* The primary symbol originally found (not via
-			   argument-dependent lookup) is a member of a
-			   namespace.  Used for a Microsoft bug emulation. */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-
-static int adl_extra_arg(a_symbol_list_entry_ptr slep,
-                         a_symbol_ptr            normal_lookup_symbol)
-/*
-Determine the argument-dependent lookup extra information argument
-based on the current entry on the ADL symbol list (slep) and the
-symbol found by normal lookup (which might be NULL).  This is
-used to emulate some Microsoft ADL/friend injection weirdness.
-*/
-{
-  int adlei_arg = ADLEI_NONE;
-
-  if (slep->from_arg_dep_lookup_namespace) {
-    /* The current symbol was added during the associated namespace portion
-       of ADL. */
-    adlei_arg |= ADLEI_FROM_NAMESPACE;
-  }  /* if */
-  if (normal_lookup_symbol != NULL &&
-      sym_is_namespace_member(normal_lookup_symbol)) {
-    /* The symbol found by the normal id lookup is a member of a namespace,
-       which seems to suppress the Microsoft weirdness. */
-    adlei_arg = ADLEI_ORIG_SYM_IN_NAMESPACE;
-  }  /* if */
-  return adlei_arg;
-}  /* adl_extra_arg */
-
-#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
-
-#define adl_extra_arg(slep, normal_lookup_symbol) ADLEI_NONE
-
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-
-#if !MICROSOFT_EXTENSIONS_ALLOWED
-/*ARGSUSED*/ /* <-- is_overloaded_operator and arg_dep_lookup_extra_info
-                    are only used if Microsoft extensions are allowed. */
-#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 static a_boolean candidate_function_is_visible(
                                     a_symbol_ptr function_symbol,
                                     a_boolean    is_template_id,
                                     a_boolean    effects_copy_initialization,
                                     a_boolean    from_arg_dep_lookup,
-                                    int          arg_dep_lookup_extra_info,
                                     a_boolean    dependent_call,
                                     a_boolean    is_overloaded_operator,
                                     a_boolean    allow_post_declared_functions,
@@ -2765,18 +2712,17 @@ explicit template argument list.  effects_copy_initialization is
 TRUE if this call is the user-defined conversion in a copy-initialization
 (constructors marked "explicit" are considered invisible).
 from_arg_dep_lookup is TRUE if the function was found by argument-dependent
-lookup.  arg_dep_lookup_extra_info provides extra information about
-argument-dependent lookup.  dependent_call is TRUE if the call is a
-template-dependent call.  is_overloaded_operator is TRUE if the call
-is written in operator form, e.g., a+b rather than operator+(a, b).
+lookup.  dependent_call is TRUE if the call is a template-dependent
+call.  is_overloaded_operator is TRUE if the call is written in
+operator form, e.g., a+b rather than operator+(a, b).
 allow_post_declared_functions is TRUE if functions declared after the
-point of reference in a dependent call should be visible to the
-normal lookup (in violation of the requirements of the standard).
-If invisible_because_explicit is non-NULL, it is returned TRUE
-if the routine is invisible because it is an explicit constructor,
-FALSE otherwise.  If invisible_because_post_decl is non-NULL, it is
-returned TRUE if the function is not visible because it is declared
-after the point of call, FALSE otherwise.
+point of reference in a dependent call should be visible to the normal
+lookup (in violation of the requirements of the standard).  If
+invisible_because_explicit is non-NULL, it is returned TRUE if the
+routine is invisible because it is an explicit constructor, FALSE
+otherwise.  If invisible_because_post_decl is non-NULL, it is returned
+TRUE if the function is not visible because it is declared after the
+point of call, FALSE otherwise.
 */
 {
   a_boolean              visible = TRUE, function_template_case;
@@ -2799,12 +2745,13 @@ after the point of call, FALSE otherwise.
   if (microsoft_mode && microsoft_version >= 1310 &&
       is_overloaded_operator &&
       function_symbol->is_microsoft_invisible_operator &&
-      (arg_dep_lookup_extra_info & ADLEI_ORIG_SYM_IN_NAMESPACE) == 0 &&
-      (!from_arg_dep_lookup ||
-       (arg_dep_lookup_extra_info & ADLEI_FROM_NAMESPACE) != 0)) {
+      !from_arg_dep_lookup) {
     /* As of MSVC++ 7.1, certain operators defined as friends are
        not visible.  This is an approximation to eliminating friend
-       injection, in some limited cases. */
+       injection, in some limited cases.  This is used on conjunction
+       with special processing in argument_dependent_lookup that
+       suppresses argument-dependent lookup in namespaces already searched
+       by the normal lookup (a Microsoft quirk). */
     visible = FALSE;
     goto end_of_function;
   }  /* if */
@@ -2894,7 +2841,6 @@ static void determine_function_viability(
                  a_boolean                effects_copy_initialization,
                  a_boolean                allow_udc_on_arguments,
                  a_boolean                from_arg_dep_lookup,
-                 int                      arg_dep_lookup_extra_info,
                  a_boolean                dependent_call,
                  a_boolean                known_to_be_visible,
                  a_boolean                is_overloaded_operator,
@@ -2938,18 +2884,16 @@ copy-initialization; constructors that are marked "explicit" are
 ignored.  allow_udc_on_arguments is TRUE if user-defined conversions
 should be allowed on the argument matches.  from_arg_dep_lookup is
 TRUE if the function was found by argument-dependent lookup.
-arg_dep_lookup_extra_info provides extra information about
-argument-dependent lookup.  dependent_call is TRUE if the call is a
-template-dependent call.  known_to_be_visible is TRUE if the function
-is known to be visible and the visibility check should be suppressed.
-is_overloaded_operator is TRUE if the call is written in operator
-form, e.g., a+b rather than operator+(a, b).
-allow_post_declared_functions is TRUE if functions declared after the
-point of reference in a dependent call should be visible to the normal
-lookup (in violation of the requirements of the standard).
-*discarded_because_post_decl goes along with that: it is returned TRUE
-if the function was not viable (at least) because it is declared after
-the point of call.
+dependent_call is TRUE if the call is a template-dependent call.
+known_to_be_visible is TRUE if the function is known to be visible and
+the visibility check should be suppressed.  is_overloaded_operator is
+TRUE if the call is written in operator form, e.g., a+b rather than
+operator+(a, b).  allow_post_declared_functions is TRUE if functions
+declared after the point of reference in a dependent call should be
+visible to the normal lookup (in violation of the requirements of the
+standard).  *discarded_because_post_decl goes along with that: it is
+returned TRUE if the function was not viable (at least) because it is
+declared after the point of call.
 */
 {
   a_symbol_ptr             function_symbol;
@@ -2980,7 +2924,6 @@ the point of call.
                                        is_template_id,
                                        effects_copy_initialization,
                                        from_arg_dep_lookup,
-                                       arg_dep_lookup_extra_info,
                                        dependent_call,
                                        is_overloaded_operator,
                                        allow_post_declared_functions,
@@ -3350,7 +3293,6 @@ static void try_overloaded_function_match(
                  a_boolean                effects_copy_initialization,
                  a_boolean                allow_udc_on_arguments,
                  a_boolean                from_arg_dep_lookup,
-                 int                      arg_dep_lookup_extra_info,
                  a_boolean                dependent_call,
                  a_boolean                forced_dependent,
                  a_boolean                known_to_be_visible,
@@ -3387,14 +3329,12 @@ copy-initialization; constructors that are marked "explicit" are
 ignored.  allow_udc_on_arguments is TRUE if user-defined conversions
 should be allowed on the argument matches.  from_arg_dep_lookup is
 TRUE if the function was found by argument-dependent lookup.
-arg_dep_lookup_extra_info provides extra information about
-argument-dependent lookup.  dependent_call is TRUE if the call is a
-template-dependent call.  forced_dependent is TRUE if dependent_call
-was forced to TRUE for reasons of g++ emulation.  known_to_be_visible
-is TRUE if the function is known to be visible and the visibility
-check should be suppressed.  is_overloaded_operator is TRUE if the
-call is written in operator form, e.g., a+b rather than operator+(a,
-b).
+dependent_call is TRUE if the call is a template-dependent call.
+forced_dependent is TRUE if dependent_call was forced to TRUE for
+reasons of g++ emulation.  known_to_be_visible is TRUE if the function
+is known to be visible and the visibility check should be suppressed.
+is_overloaded_operator is TRUE if the call is written in operator
+form, e.g., a+b rather than operator+(a, b).
 */
 {
   a_boolean     overloaded_function_case;
@@ -3501,7 +3441,6 @@ retry:
                                  effects_copy_initialization,
                                  allow_udc_on_arguments,
                                  from_arg_dep_lookup,
-                                 arg_dep_lookup_extra_info,
                                  dependent_call,
                                  known_to_be_visible,
                                  is_overloaded_operator,
@@ -3561,7 +3500,6 @@ are viable functions, FALSE if not.  Issues no errors.
                                 /*effects_copy_initialization=*/FALSE,
                                 /*allow_udc_on_arguments=*/TRUE,
                                 /*from_arg_dep_lookup=*/FALSE,
-                                ADLEI_NONE,
                                 /*dependent_call=*/FALSE,
                                 /*forced_dependent=*/FALSE,
                                 /*known_to_be_visible=*/FALSE,
@@ -3660,7 +3598,6 @@ arguments of the call (given by arg_operand_list).
                                        /*effects_copy_initialization=*/FALSE,
                                        /*allow_udc_on_arguments=*/TRUE,
                                        /*from_arg_dep_lookup=*/FALSE,
-                                       ADLEI_NONE,
                                        /*dependent_call=*/FALSE,
                                        /*known_to_be_visible=*/FALSE,
                                        /*is_overloaded_operator=*/FALSE,
@@ -5765,7 +5702,6 @@ in_instantiation:
                                        is_template_id,
                                        /*effects_copy_initialization=*/FALSE,
                                        /*from_arg_dep_lookup=*/FALSE,
-                                       ADLEI_NONE,
                                        dependent_call,
                                        /*is_overloaded_operator=*/FALSE,
                                        /*allow_post_declared_functions=*/FALSE,
@@ -5788,7 +5724,6 @@ in_instantiation:
                                     /*effects_copy_initialization=*/FALSE,
                                     /*allow_udc_on_arguments=*/TRUE,
                                     /*from_arg_dep_lookup=*/FALSE,
-                                    ADLEI_NONE,
                                     dependent_call,
                                     force_dependent,
                                     known_to_be_visible,
@@ -5834,8 +5769,6 @@ in_instantiation:
                                           /*from_arg_dep_lookup=*/
                                                (symbol_list->symbol !=
                                                 normal_lookup_function_symbol),
-                                          adl_extra_arg(symbol_list,
-                                                normal_lookup_function_symbol),
                                           dependent_call,
                                           /*is_overloaded_operator=*/FALSE,
                                           /*allow_post_declared_functions=*/
@@ -5877,8 +5810,6 @@ in_instantiation:
                                       /*from_arg_dep_lookup=*/
                                                (slep != symbol_list ||
                                                 function_symbol !=
-                                                normal_lookup_function_symbol),
-                                      adl_extra_arg(slep,
                                                 normal_lookup_function_symbol),
                                       dependent_call,
                                       force_dependent,
@@ -10910,7 +10841,6 @@ such cases (where operator overloading might apply, but we can't tell).
                                          /*effects_copy_initialization=*/FALSE,
                                          /*allow_udc_on_arguments=*/TRUE,
                                          /*from_arg_dep_lookup=*/FALSE,
-                                         ADLEI_NONE,
                                          /*dependent_call=*/FALSE,
                                          /*forced_dependent=*/FALSE,
                                          /*known_to_be_visible=*/TRUE,
@@ -10951,7 +10881,6 @@ such cases (where operator overloading might apply, but we can't tell).
                                          /*effects_copy_initialization=*/FALSE,
                                          /*allow_udc_on_arguments=*/TRUE,
                                          /*from_arg_dep_lookup=*/FALSE,
-                                         ADLEI_NONE,
                                          dependent_call,
                                          /*forced_dependent=*/FALSE,
                                          /*known_to_be_visible=*/TRUE,
@@ -10963,7 +10892,7 @@ such cases (where operator overloading might apply, but we can't tell).
         }  /* if */
         /* Find any non-member function for the operator. */
         if (!must_be_member_function) {
-          a_symbol_ptr             normal_sym;
+          a_symbol_ptr             normal_sym, proj_normal_sym;
           a_symbol_locator         locator;
           a_type_list_entry_ptr    type_list = NULL;
           a_symbol_list_entry_ptr  symbol_list, slep;
@@ -10985,11 +10914,13 @@ such cases (where operator overloading might apply, but we can't tell).
             idl_options |= IDL_SUPPRESS_DECL_SEQ_CHECK;
           }  /* if */
           normal_sym = normal_id_lookup(&locator, idl_options);
+          proj_normal_sym = locator.specific_symbol;
           if (normal_sym != NULL &&
               !is_function_or_template_symbol(normal_sym)) {
             /* Ignore error symbols and like. */
             normal_sym = NULL;
           }  /* if */
+          if (normal_sym == NULL) proj_normal_sym = NULL;
           if (normal_sym != NULL &&
               is_symbol_for_which_arg_dependent_lookup_should_be_suppressed(
                                                                  normal_sym)) {
@@ -11005,7 +10936,7 @@ such cases (where operator overloading might apply, but we can't tell).
           }  /* if */
           /* Do argument-dependent lookup, producing a list of symbols to
              be considered as candidate functions. */
-          symbol_list = argument_dependent_lookup(normal_sym, &locator,
+          symbol_list = argument_dependent_lookup(proj_normal_sym, &locator,
                                                   &type_list);
           for (slep = symbol_list; slep != NULL; slep = slep->next) {
             nonmember_functions_symbol = slep->symbol;
@@ -11032,7 +10963,6 @@ such cases (where operator overloading might apply, but we can't tell).
                                                  (slep != symbol_list ||
                                                   nonmember_functions_symbol !=
                                                   normal_sym),
-                                         adl_extra_arg(slep, normal_sym),
                                          dependent_call,
                                          /*forced_dependent=*/FALSE,
                                          /*known_to_be_visible=*/FALSE,
@@ -11503,7 +11433,6 @@ mode.
                                     /*allow_udc_on_arguments=*/
                                               !adjusted_is_copy_initialization,
                                     /*from_arg_dep_lookup=*/FALSE,
-                                    ADLEI_NONE,
                                     /*dependent_call=*/FALSE,
                                     /*forced_dependent=*/FALSE,
                                     /*known_to_be_visible=*/FALSE,
@@ -15196,7 +15125,6 @@ to be copied.
                                     /*effects_copy_initialization=*/FALSE,
                                     /*allow_udc_on_arguments=*/FALSE,
                                     /*from_arg_dep_lookup=*/FALSE,
-                                    ADLEI_NONE,
                                     /*dependent_call=*/FALSE,
                                     /*forced_dependent=*/FALSE,
                                     /*known_to_be_visible=*/TRUE,

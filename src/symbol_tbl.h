@@ -684,12 +684,6 @@ typedef struct a_symbol_list_entry {
 			   for the last on the list. */
   a_symbol_ptr  symbol;
 			/* Pointer to a symbol entry. */
-  a_byte_boolean
-		from_arg_dep_lookup_namespace;
-			/* TRUE for entries created by argument dependent
-			   lookup if the entry was found during the associated
-			   namespace portion of the lookup (as opposed to the
-			   associated class portion). */
 } a_symbol_list_entry;
 
 

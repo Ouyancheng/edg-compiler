@@ -5538,7 +5538,6 @@ If a match is found, add the entry to to symbol_list.
       slep = alloc_symbol_list_entry();
       slep->symbol = sym;
       slep->next = *symbol_list;
-      slep->from_arg_dep_lookup_namespace = TRUE;
       *symbol_list = slep;
     }  /* if */
   }  /* if */
@@ -5664,6 +5663,93 @@ Add the symbols for the names found to the list specified by symbol_list.
 }  /* exported_template_argument_dependent_lookup */
 
 
+static void remove_namespace_from_list(
+			a_namespace_list_entry_ptr	*namespace_list,
+			a_namespace_ptr			nsp)
+/*
+If there is any entry for the namespace nsp in namespace_list, remove it.
+Note that nsp can be NULL if the entry for the file scope should be removed
+from the list.
+*/
+{
+  a_namespace_list_entry_ptr	nlep;
+  a_namespace_list_entry_ptr	prev_nlep = NULL;
+  a_namespace_list_entry_ptr	next_nlep;
+
+  for (nlep = *namespace_list; nlep != NULL; nlep = next_nlep) {
+    next_nlep = nlep->next;
+    if (nlep->ptr == nsp) {
+      /* Unlink the entry from the list. */
+      if (prev_nlep == NULL) {
+        *namespace_list = next_nlep;
+      } else {
+        prev_nlep->next = next_nlep;
+      }  /* if */
+      nlep->next = NULL;
+      free_list_of_namespace_list_entries(nlep);
+    } else {
+      prev_nlep = nlep;
+    }  /* if */
+  }  /* for */
+}  /* remove_namespace_from_list */
+
+
+static void remove_namespaces_used_in_normal_lookup(
+			a_namespace_list_entry_ptr	*namespace_list,
+			a_symbol_ptr			normal_sym)
+/*
+This routine is used in Microsoft mode to remove namespaces from namespace_list
+that were searched in the normal lookup.  Such namespaces are not searched by
+argument-dependent lookup in some Microsoft modes.  normal_sym_namespace
+is the parent namespace of the normal lookup symbol (or NULL for the global
+namespace).
+*/
+{
+  a_scope_stack_entry_ptr	ssep;
+  a_boolean			done = FALSE;
+  a_namespace_ptr		normal_sym_namespace;
+
+  normal_sym_namespace = sym_parent_namespace_or_null(normal_sym);
+  for (ssep = scope_stack_entry_for(depth_scope_stack);
+       !done && ssep != NULL; ssep = previous_scope_of(ssep)) {
+    a_namespace_ptr			nsp;
+    an_active_using_directive_ptr	audp;
+    if (ssep->kind == (a_scope_kind)sck_namespace ||
+        ssep->kind == (a_scope_kind)sck_namespace_extension) {
+      /* For namespace scopes, remove the associated namespace from the
+         namespace list. */
+      nsp = ssep->assoc_namespace;
+      remove_namespace_from_list(namespace_list, nsp);
+      if (nsp == normal_sym_namespace) {
+        done = TRUE;
+      }  /* if */
+    } else if (ssep->kind == (a_scope_kind)sck_file) {
+      /* For the file scope, pass in a NULL pointer to remove the namespace
+         list entry for the file scope. */
+      remove_namespace_from_list(namespace_list, (a_namespace_ptr)NULL);
+      if (nsp == normal_sym_namespace) {
+        done = TRUE;
+      }  /* if */
+    } else {
+      /* For other scopes, stop if the scope matches that of the normal
+         symbol (e.g., block extern or using-declarations). */
+      if (ssep->number == normal_sym->decl_scope) done = TRUE;
+    }  /* if */
+    /* Also remove any namespaces named in using-directives that apply
+       here.  Note this is done even if the code above terminates the
+       loop because a namespace was found. */
+    for (audp = ssep->using_directives_that_apply_here;
+         audp != NULL; audp = audp->next_that_applies_at_depth) {
+      nsp = audp->namespace_supplement->symbol->variant.namespace_info.ptr;
+      remove_namespace_from_list(namespace_list, nsp);
+      if (nsp == normal_sym_namespace) {
+        done = TRUE;
+      }  /* if */
+    }  /* for */
+  }  /* for */
+}  /* remove_namespaces_used_in_normal_lookup */
+
+
 a_symbol_list_entry_ptr argument_dependent_lookup(
 					a_symbol_ptr		normal_sym,
 					a_symbol_locator	*locator,
@@ -5702,6 +5788,11 @@ is set to NULL.
                                      tlep->type, &namespace_list,
                                      &class_list);
   }  /* for */
+  if (microsoft_mode && microsoft_version >= 1310 && normal_sym != NULL) {
+    /* The Microsoft compiler does not do an ADL lookup in namespaces that
+       were searched by the normal lookup. */
+    remove_namespaces_used_in_normal_lookup(&namespace_list, normal_sym);
+  }  /* if */
   if (in_exported_template_instantiation()) {
     /* We are doing the instantiation of an exported template.  Names
        from other translation units must be considered. */
