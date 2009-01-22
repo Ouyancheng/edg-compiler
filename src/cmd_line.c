@@ -4604,6 +4604,11 @@ file.
 #else /* !defined(EDG_MULTIBYTE_CHAR_TEST_MODE) */
   comment_undefined_macro_name(EDG_MULTIBYTE_CHAR_TEST_MODE);
 #endif /* defined(EDG_MULTIBYTE_CHAR_TEST_MODE) */
+#if defined(EDG_NATIVE_MULTIBYTE_TEST_MODE)
+  define_numeric_valued_macro(EDG_NATIVE_MULTIBYTE_TEST_MODE);
+#else /* !defined(EDG_NATIVE_MULTIBYTE_TEST_MODE) */
+  comment_undefined_macro_name(EDG_NATIVE_MULTIBYTE_TEST_MODE);
+#endif /* defined(EDG_NATIVE_MULTIBYTE_TEST_MODE) */
 #if defined(EMBEDDED_C_ALLOWED)
   define_numeric_valued_macro(EMBEDDED_C_ALLOWED);
 #else /* !defined(EMBEDDED_C_ALLOWED) */
@@ -5212,6 +5217,11 @@ file.
 #else /* !defined(MAX_INCLUDE_FILES_OPEN_AT_ONCE) */
   comment_undefined_macro_name(MAX_INCLUDE_FILES_OPEN_AT_ONCE);
 #endif /* defined(MAX_INCLUDE_FILES_OPEN_AT_ONCE) */
+#if defined(MAX_MULTIBYTE_CHAR_LENGTH)
+  define_numeric_valued_macro(MAX_MULTIBYTE_CHAR_LENGTH);
+#else /* !defined(MAX_MULTIBYTE_CHAR_LENGTH) */
+  comment_undefined_macro_name(MAX_MULTIBYTE_CHAR_LENGTH);
+#endif /* defined(MAX_MULTIBYTE_CHAR_LENGTH) */
 #if defined(MAX_TOTAL_PENDING_INSTANTIATIONS)
   define_numeric_valued_macro(MAX_TOTAL_PENDING_INSTANTIATIONS);
 #else /* !defined(MAX_TOTAL_PENDING_INSTANTIATIONS) */
@@ -5267,6 +5277,11 @@ file.
 #else /* !defined(NAMED_REGISTERS_ALLOWED) */
   comment_undefined_macro_name(NAMED_REGISTERS_ALLOWED);
 #endif /* defined(NAMED_REGISTERS_ALLOWED) */
+#if defined(NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE)
+  define_numeric_valued_macro(NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE);
+#else /* !defined(NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE) */
+  comment_undefined_macro_name(NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE);
+#endif /* defined(NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE) */
 #if defined(NEAR_AND_FAR_ALLOWED)
   define_numeric_valued_macro(NEAR_AND_FAR_ALLOWED);
 #else /* !defined(NEAR_AND_FAR_ALLOWED) */
