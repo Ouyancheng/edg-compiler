@@ -1233,7 +1233,7 @@ copying from the old buffer to the new one.  Called by
 ensure_macro_buffer_space.
 */
 {
-  sizeof_t                old_size, new_size, increment;
+  sizeof_t                total_needed, old_size, old_len, new_size, increment;
   char                    *new_macro_buffer;
   register char           *src;
   register char           *dst;
@@ -1247,6 +1247,14 @@ ensure_macro_buffer_space.
 
   db_enter(4, "expand_macro_buffer");
   old_size = after_end_of_macro_buffer - macro_buffer;
+  old_len = next_avail_in_macro_buffer - macro_buffer;
+  if (needed >= ((sizeof_t)-1) - old_len) {
+    /* The following calculation of total_needed would overflow, which
+       could cause use of a too-short buffer and result in overwriting
+       memory. */
+    catastrophe(ec_requested_size_too_large);
+  }  /* if */
+  total_needed = old_len + needed;
   /* Make sure we ask for enough to satisfy the current request and a
      little bit more. */
   increment = needed + needed/10 -
@@ -1261,6 +1269,12 @@ ensure_macro_buffer_space.
     increment = old_size;
   }  /* if */
   new_size = old_size + increment;
+  if (new_size+1 < total_needed && increment != 0) {
+    /* There is an overflow somewhere in the calculation of the new request
+       size.  The resulting buffer would be too short and cause overwritten
+       memory. */
+    catastrophe(ec_requested_size_too_large);
+  }  /* if */
   /* Allocate one more byte than required, so that a pointer past the end
      will not have the same address as a pointer to the next object in
      memory. */
