@@ -2609,6 +2609,8 @@ might not be able to if the template itself has not yet been defined.
 #if MICROSOFT_EXTENSIONS_ALLOWED
       class_type->variant.class_struct_union.is_interface =
                                     tssp->variant.class_template.is_interface;
+      class_type->variant.class_struct_union.abstract =
+                                    tssp->variant.class_template.is_interface;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* Update the associated template.  This is set when the incomplete
          class type is created, but must be updated now in case the actual
@@ -3227,6 +3229,8 @@ A pointer to the head of the list is returned in tcsp.
   prototype_type->kind = tssp->variant.class_template.type_kind;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   prototype_type->variant.class_struct_union.is_interface =
+                                    tssp->variant.class_template.is_interface;
+  prototype_type->variant.class_struct_union.abstract =
                                     tssp->variant.class_template.is_interface;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   template_arg_list = templ_arg_list_for_class(prototype_type);
@@ -4858,6 +4862,8 @@ prototype instantiation is considered as a potential match.
     class_type = alloc_type(tssp->variant.class_template.type_kind);
 #if MICROSOFT_EXTENSIONS_ALLOWED
     class_type->variant.class_struct_union.is_interface =
+                                    tssp->variant.class_template.is_interface;
+    class_type->variant.class_struct_union.abstract =
                                     tssp->variant.class_template.is_interface;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     class_type->variant.class_struct_union.is_template_class = TRUE;
@@ -10915,6 +10921,8 @@ initially used when processing the declaration of a partial specialization.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     prototype_type->variant.class_struct_union.is_interface =
+                                    tssp->variant.class_template.is_interface;
+    prototype_type->variant.class_struct_union.abstract =
                                     tssp->variant.class_template.is_interface;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     prototype_type->variant.class_struct_union.is_template_class = TRUE;
