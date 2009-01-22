@@ -12164,6 +12164,9 @@ friend_template_checks_done:
       sym = add_partial_specialization(decl_state, partial_spec_nonreal_sym,
                                        &locator, type_kind);
       tssp = sym->variant.template_info;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      tssp->variant.class_template.is_interface = is_interface;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
       sym = enter_symbol((a_symbol_kind)sk_class_template, &locator,
                          decl_state->effective_decl_level,
