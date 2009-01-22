@@ -2105,7 +2105,7 @@ typedef struct a_template_symbol_supplement {
 			/* TRUE if this is a class template symbol associated
 			   with a template template parameter. */
       a_bit_field
-		involves_template_param;
+		involves_template_param:1;
 			/* TRUE for template template parameters for which
 			   one or more template parameters depends on another
 			   template parameter. */
