@@ -10913,6 +10913,10 @@ initially used when processing the declaration of a partial specialization.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     prototype_type->autonomous_primary_tag_decl = TRUE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    prototype_type->variant.class_struct_union.is_interface =
+                                    tssp->variant.class_template.is_interface;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     prototype_type->variant.class_struct_union.is_template_class = TRUE;
     prototype_sym->variant.class_struct_union.type = prototype_type;
     set_source_corresp(&(prototype_type->source_corresp), prototype_sym);
@@ -11658,9 +11662,7 @@ declaration of a partial specialization declared outside of its class.
   skip_illegal_class_template_decl_specifiers(/*diagnose=*/TRUE);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (curr_token == tok_interface) {
-    if (microsoft_version < 1400) {
-      error(ec_interface_cannot_be_template);
-    } else if (decl_state->is_member_decl) {
+    if (decl_state->is_member_decl) {
       error(ec_interface_cannot_be_nested_class);
     } else {
       is_interface = TRUE;
