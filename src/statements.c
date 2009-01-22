@@ -3718,6 +3718,13 @@ current token should be "try", which is consumed.
                                         &pos_curr_token,
                                         ec_exceptions_in_embedded_cplusplus);
     statement_not_allowed_inside_statement_expression(&pos_curr_token);
+    if (microsoft_mode && warn_on_try_statement) {
+      /* Emulate the warning that MSVC++ provides when no /EH command line
+         option is specified. */
+      pos_warning(ec_exception_handler_used, &pos_curr_token);
+      (void)set_severity_for_error_number((int)ec_exception_handler_used,
+                                          es_once, /*make_default=*/FALSE);
+    }  /* if */
   }  /* if */
   /* Bypass "try". */
   (void)get_token();

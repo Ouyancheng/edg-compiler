@@ -861,6 +861,12 @@ EXTERN an_integer_kind
 			   in the cfront ABI. */
 #endif /* !IA64_ABI */
 
+EXTERN a_boolean
+		warn_on_try_statement;
+			/* When TRUE (and in Microsoft emulation mode),
+			   a (one time) warning is issued when a try statement
+			   is encountered. */
+
 
 #ifndef DO_NOT_UNDEF_TARGET_MACROS
 /* Aside from occasional references in targ_def.h, the following values

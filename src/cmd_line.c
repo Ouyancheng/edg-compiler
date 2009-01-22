@@ -1641,6 +1641,7 @@ static a_flag_name
 #endif /* DEBUG */
   { "use_nonstd_partial_ordering", &use_nonstd_partial_ordering },
   { "no_checking_pragmas", &no_checking_pragmas },
+  { "warn_on_try_statement", &warn_on_try_statement },
   { NULL, NULL }  /* must be last */
 };
 
@@ -8640,6 +8641,7 @@ variables declared in cmd_line.h.
   decltype_enabled = FALSE;
   check_concatenations = DEFAULT_CHECK_CONCATENATIONS;
   va_arg_returns_lvalue = FALSE;
+  warn_on_try_statement = FALSE;
 }  /* cmd_line_static_var_init */
 
 

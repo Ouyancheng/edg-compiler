@@ -54,8 +54,14 @@ occurs.
 1/21/09  [EDGcpfe/8628]
 Enable exceptions in Microsoft C++ mode
 
-Exceptions are now enabled by default in Microsoft C++ mode.  Exceptions
-can be explicitly disabled using the --no_exceptions command line argument.
+Exceptions are now enabled by default in Microsoft C++ mode.  Exceptions can
+be explicitly disabled using the --no_exceptions command line argument.
+Additionally, an optional, one-time warning (similar to the one emitted by
+MSVC++ when no /EH option is given) is issued (in Microsoft mode) when a try
+statement or function try block is encountered.  This new warning is
+controlled by a new global variable, warn_on_try_statement, whose initial
+value is FALSE.  Implementations wishing to emulate this Microsoft behavior
+should set warn_on_try_statement to TRUE.
 
 
 1/20/09  [EDGcpfe/9446]
