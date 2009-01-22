@@ -14700,7 +14700,7 @@ used only in C++ mode.
     if (is_class_struct_union_type(op1_type) &&
         is_class_struct_union_type(op2_type)) {
       /* Both operands have class type.  See if the class types are related. */
-      if (identical_types(op1_type, op2_type)) {
+      if (identical_types_ignoring_qualifiers(op1_type, op2_type)) {
         /* Same class type. */
         possible = TRUE;
         classes_are_related = TRUE;
