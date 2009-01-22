@@ -5700,9 +5700,8 @@ static void remove_namespaces_used_in_normal_lookup(
 /*
 This routine is used in Microsoft mode to remove namespaces from namespace_list
 that were searched in the normal lookup.  Such namespaces are not searched by
-argument-dependent lookup in some Microsoft modes.  normal_sym_namespace
-is the parent namespace of the normal lookup symbol (or NULL for the global
-namespace).
+argument-dependent lookup in some Microsoft modes.  normal_sym is the
+symbol found by the normal lookup.
 */
 {
   a_scope_stack_entry_ptr	ssep;
