@@ -2609,8 +2609,10 @@ might not be able to if the template itself has not yet been defined.
 #if MICROSOFT_EXTENSIONS_ALLOWED
       class_type->variant.class_struct_union.is_interface =
                                     tssp->variant.class_template.is_interface;
-      class_type->variant.class_struct_union.abstract =
+      if (!class_type->variant.class_struct_union.abstract) {
+        class_type->variant.class_struct_union.abstract =
                                     tssp->variant.class_template.is_interface;
+      }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* Update the associated template.  This is set when the incomplete
          class type is created, but must be updated now in case the actual
@@ -3230,8 +3232,10 @@ A pointer to the head of the list is returned in tcsp.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   prototype_type->variant.class_struct_union.is_interface =
                                     tssp->variant.class_template.is_interface;
-  prototype_type->variant.class_struct_union.abstract =
+  if (!prototype_type->variant.class_struct_union.abstract) {
+    prototype_type->variant.class_struct_union.abstract =
                                     tssp->variant.class_template.is_interface;
+  }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   template_arg_list = templ_arg_list_for_class(prototype_type);
   cssp->instantiation_in_progress = TRUE;
