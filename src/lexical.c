@@ -47,6 +47,14 @@ and parsing of them into tokens.
 #include "exprutil.h"
 #endif /* ifdef lint */
 
+/*
+Macro that returns TRUE if tok is tok_uuid.
+*/
+#if MICROSOFT_EXTENSIONS_ALLOWED
+#define is_microsoft_tok_uuid(tok) ((tok) == tok_uuid)
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+#define is_microsoft_tok_uuid(tok) (FALSE) /*lint --e(835)*/
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
 Return TRUE if tok is a token kind that is a literal constant.
@@ -54,7 +62,8 @@ Return TRUE if tok is a token kind that is a literal constant.
 #define is_literal_constant_token(tok)                                \
   (tok == tok_float_constant || tok == tok_int_constant ||            \
    tok == tok_char_constant  || tok == tok_string_literal ||	      \
-   tok == tok_false          || tok == tok_true)
+   tok == tok_false          || tok == tok_true ||                   \
+   is_microsoft_tok_uuid(tok))
 
 
 /*
@@ -9496,6 +9505,156 @@ operation in a macro expansion ("a ## b") did not result in a valid token.
 }  /* check_for_invalid_macro_concatenation */
 
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static char *check_GUID_hex_digits(char      *str,
+                                   int       ndigits,
+                                   a_boolean *err)
+/*
+As part of checking a GUID string, check for ndigits hexadecimal digits
+beginning at str.  Set *err to TRUE if the digits do not appear.  Return str,
+advanced past the digits that do appear.
+*/
+{
+  for (; ndigits > 0; ndigits--, str++) {
+    if (!isxdigit((unsigned char)*str)) {
+      *err = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  return str;
+}  /* check_GUID_hex_digits */
+
+
+static char *check_GUID_hyphen(char      *str,
+                               a_boolean *err)
+/*
+As part of checking a GUID string, check that *str is a hyphen character.
+If not, set *err to TRUE.  Return str, advanced past the hyphen if one is
+present.
+*/
+{
+  if (*str != '-') {
+    *err = TRUE;
+  } else {
+    str++;
+  }  /* if */
+  return str;
+}  /* check_GUID_hyphen */
+
+
+a_boolean is_valid_GUID_string(char          *str,
+                               a_targ_size_t length)
+/*
+Check the indicated string to see if it is a valid Microsoft GUID string.
+Such a string must have the form
+
+  hhhhhhhh-hhhh-hhhh-hhhh-hhhhhhhhhhhh
+
+where "h" is a hex digit.  length is the length of the string (it is not
+necessarily null-terminated).
+*/
+{
+  char      *orig_str = str;
+  a_boolean err = FALSE;
+
+  str = check_GUID_hex_digits(str, 8, &err);
+  if (!err) str = check_GUID_hyphen(str, &err);
+  if (!err) str = check_GUID_hex_digits(str, 4, &err);
+  if (!err) str = check_GUID_hyphen(str, &err);
+  if (!err) str = check_GUID_hex_digits(str, 4, &err);
+  if (!err) str = check_GUID_hyphen(str, &err);
+  if (!err) str = check_GUID_hex_digits(str, 4, &err);
+  if (!err) str = check_GUID_hyphen(str, &err);
+  if (!err) str = check_GUID_hex_digits(str, 12, &err);
+  /* Check that the string ends at the right place. */
+  if (!err && str != orig_str+length) err = TRUE;
+  return !err;
+}  /* is_valid_GUID_string */
+
+
+static a_boolean is_uuid_token(void)
+/*
+The Microsoft compiler allows an unquoted UUID string to be used in
+a Microsoft attribute.  curr_char_loc points to a character that could be
+the initial character of a UUID.  Return TRUE if the characters to make up a
+valid UUID.
+*/
+{
+  char		*ptr = curr_char_loc;
+  a_boolean	begins_with_brace;
+  a_boolean	valid;
+
+  /* Pass is_valid_GUID_string the string following an optional brace. */
+  begins_with_brace = *ptr == '{';
+  if (begins_with_brace) ptr++;  
+  valid = is_valid_GUID_string(ptr, 36);
+  /* If the string began with a brace, make sure it ends with one. */
+  if (valid && begins_with_brace) valid = ptr[36] == '}';
+  return valid;
+}  /* is_uuid_token */
+
+
+static a_token_kind scan_unquoted_uuid(void)
+/*
+The Microsoft compiler allows an unquoted UUID string to be used in
+attributes.  For example:
+
+  [uuid(366AD604-AE26-4F01-A24D-B2E557BB3165)] class A {};
+
+This routine is called after it has been determined that the next 36
+characters have been determined to be valid UUID string.
+
+A string literal constant is created in const_for_curr_token from the
+characters of the UUID, and a tok_uuid token is returned.
+
+If the UUID is followed by additional hexadecimal characters (i.e., characters
+that look like they should be part of the UUID, those characters are discarded
+*/
+{
+  char		*ptr;
+  char		*end_ptr;
+  a_boolean	valid = TRUE;
+  a_token_kind	result_token;
+  int		uuid_length = 36;
+
+  ptr = curr_char_loc;
+  /* Include the opening and closing braces in the length, if present. */
+  if (*ptr == '{') uuid_length += 2;
+  end_ptr = curr_char_loc = ptr + uuid_length;
+  if (*ptr != '{') {
+    /* For a string not surrounded by brackets, if there are hex digits
+       immediately following the UUID (i.e., that look like they were
+       intended to be part of the UUID) discard them and return a tok_error. */
+    while (isxdigit((unsigned char)*curr_char_loc)) curr_char_loc++;
+    if (end_ptr != curr_char_loc) valid = FALSE;
+  }  /* if */
+  end_of_curr_token = end_ptr - 1;
+  if (!valid) {
+    result_token = tok_error;
+  } else {
+    /* Construct a string literal for the UUID string. */
+    char	*str;
+    result_token = tok_uuid;
+    /* Allocate space for the UUID string (plus a null terminator) and
+       copy the string there. */
+    str = alloc_text_of_string_literal(uuid_length + 1);
+    (void)memcpy(str, ptr, uuid_length);
+    /* Add a null terminator. */
+    str[uuid_length] = '\0';
+    clear_constant(&const_for_curr_token, (a_constant_repr_kind)ck_string);
+    const_for_curr_token.type = string_literal_type((a_character_kind)chk_char,
+                                                    uuid_length + 1);
+    const_for_curr_token.variant.string.length = uuid_length + 1;
+    const_for_curr_token.variant.string.value  = str;
+    const_for_curr_token.character_kind = (a_character_kind)chk_char;
+  }  /* if */
+  return result_token;
+}  /* scan_unquoted_uuid */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+
 /*
 Macro wrapper for check_for_invalid_macro_concatenation that avoids the
 function call if no check is needed, i.e., calls only if concatenation
@@ -9839,6 +9998,14 @@ return_end_of_source_token:
       ctoken = tok_rparen;
       break;
     case '{':
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      /* If we are in a Microsoft attribute, check for an unquoted UUID.
+         The UUID string can begin with an optional brace. */
+      if (in_microsoft_attribute && is_uuid_token()) {
+        ctoken = scan_unquoted_uuid();
+        goto end_of_token_scan;
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       ctoken = tok_lbrace;
       break;
     case '}':
@@ -10094,6 +10261,13 @@ return_end_of_source_token:
       /* Integer or float constant. If exp_digit_sequence is TRUE, scan
           digit_sequence instead (used in #line directive). */
       if (!exp_digit_sequence) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        /* If we are in a Microsoft attribute, check for an unquoted UUID. */
+        if (in_microsoft_attribute && is_uuid_token()) {
+          ctoken = scan_unquoted_uuid();
+          goto end_of_token_scan;
+        }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         ctoken = scan_number();
         /* Adjust the length of an integer constant in a preprocessing #if
            expression. */
@@ -10166,6 +10340,16 @@ return_end_of_source_token:
     case '_':
 id_scan:
       /* Identifier (including keywords, macros, etc.). */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      /* If we are in a Microsoft attribute, check for an unquoted UUID. */
+      if (in_microsoft_attribute && isxdigit((unsigned char)*curr_char_loc) &&
+          is_uuid_token()) {
+        /* The Microsoft compiler allows unquoted uuid strings in
+           attributes. */
+        ctoken = scan_unquoted_uuid();
+        goto end_of_token_scan;
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* Find end of identifier.  Identifiers can contain alphabetic
          characters, underscores, and digits after the first character,
          plus some multibyte characters if those are enabled. */
@@ -15937,7 +16121,8 @@ of characters added.
   } else if (token == tok_int_constant ||
              token == tok_float_constant ||
              token == tok_string_literal ||
-             token == tok_char_constant) {
+             token == tok_char_constant ||
+             is_microsoft_tok_uuid(token)) {
     a_constant_ptr	constant = ctp->variant.constant;
     /* Write out a string that represents the constant. */
     if (constant->kind == (a_constant_repr_kind)ck_error) {
