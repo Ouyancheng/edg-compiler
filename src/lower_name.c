@@ -5300,11 +5300,14 @@ mangle_template:
 #if MICROSOFT_EXTENSIONS_ALLOWED
     /* If this function explicitly overrides a function, add the class of
        the overridden function. */
-    if (routine->overridden_function != NULL) {
-      /* The encoding is O <type>. */
-      add_to_mangled_name('O', mctl);
-      mangled_type_name(parent_class_of(routine->overridden_function), mctl);
-    }  /* if */
+    { a_routine_ptr  overridden_function =
+                                     selectively_overridden_function(routine);
+      if (overridden_function != NULL) {
+        /* The encoding is O <type>. */
+        add_to_mangled_name('O', mctl);
+        mangled_type_name(parent_class_of(overridden_function), mctl);
+      }  /* if */
+    }
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
 #endif /* !IA64_ABI */
@@ -5313,16 +5316,19 @@ mangle_template:
 #if MICROSOFT_EXTENSIONS_ALLOWED
   /* If this function explicitly overrides a function, add the name of
      the overridden function. */
-  if (routine->overridden_function != NULL) {
-    /* The encoding is O <nested-name>.  This is an extension to the IA-64
-       ABI spec. */
-    add_to_mangled_name('O', mctl);
-    mangled_function_name(routine->overridden_function,
-                          /*suppress_param_encoding=*/TRUE,
-                          /*suppress_parent_encoding=*/FALSE,
-                          /*force_primary_name=*/TRUE,
-                          /*base_name_offset=*/(sizeof_t *)NULL,
-                          mctl);
+  { a_routine_ptr  overridden_function =
+                                     selectively_overridden_function(routine);
+    if (overridden_function != NULL) {
+      /* The encoding is O <nested-name>.  This is an extension to the IA-64
+         ABI spec. */
+      add_to_mangled_name('O', mctl);
+      mangled_function_name(overridden_function,
+                            /*suppress_param_encoding=*/TRUE,
+                            /*suppress_parent_encoding=*/FALSE,
+                            /*force_primary_name=*/TRUE,
+                            /*base_name_offset=*/(sizeof_t *)NULL,
+                            mctl);
+    }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #endif /* !IA64_ABI */

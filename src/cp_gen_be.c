@@ -320,7 +320,9 @@ typedef int a_gen_name_options_set;
 			/* The name is a pure virtual function being declared
 			   outside its class.  This is used in Microsoft mode
 			   to support the extension in which pure virtual
-			   functions can be defined in derived classes. */
+			   functions can be defined in derived classes.
+			   (This flag is currently set, but not actually
+			    tested.) */
 #define GN_BASE_SPECIFIER 0x200
 			/* The name is used in a base specifier list. */
 #define GN_USING_DIRECTIVE 0x400
@@ -2692,8 +2694,7 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
       if (!force_qualified_name &&
           if_microsoft_extensions(!scp->member_of_unknown_super &&)
           (!scp->qualification_needed ||
-           ((options & GN_DECLARATION) &&
-            !(options & GN_PURE_VIRTUAL_FUNCTION)) ||
+           (options & GN_DECLARATION) ||
            (scp->partially_hidden_by_microsoft_injected_class_name &&
             msvc_target_version_number < 1300 &&
             !(options & GN_QUALIFIER))) &&
@@ -3248,7 +3249,7 @@ a definition.
         if (!class_is_in_name_context_stack(parent_class,
                                             /*include_base_classes=*/FALSE)) {
           /* Avoid qualification inside the virtual function's class. */
-          options |= GN_PURE_VIRTUAL_FUNCTION;
+          options |= GN_PURE_VIRTUAL_FUNCTION | GN_FORCE_QUALIFIED_NAME;
         }  /* if */
       }  /* if */
     }  /* if */
@@ -12109,13 +12110,28 @@ declarator (or NULL if it wasn't recorded).
          different than for ordinary declarations. */
       gen_friend_function_decl_name(scp, is_definition);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (rout->overridden_function != NULL && decl_within_class) {
+    } else if (rout->overridden_functions != NULL && decl_within_class) {
       /* This is a selectively overriding virtual function declaration in
          a class definition.  Such overriders are declared with the qualified 
          name of the function being overridden (its unqualified name is
          identical, of course). */
-      gen_decl_name(&rout->overridden_function->source_corresp,
-                    iek_routine, /*force_unqualified_name=*/FALSE);
+      a_tagged_pointer  ep = rout->overridden_functions->entity;
+      if ((an_il_entry_kind)ep.kind == iek_routine) {
+        a_routine_ptr rp = (a_routine_ptr)ep.ptr;
+        gen_decl_name(&rp->source_corresp, iek_routine,
+                      /*force_unqualified_name=*/FALSE);
+      } else if ((an_il_entry_kind)ep.kind == iek_constant) {
+        a_constant_ptr cp = (a_constant_ptr)ep.ptr;
+        check_assertion(cp->kind == (a_constant_repr_kind)ck_template_param &&
+                        cp->variant.template_param.kind ==
+                                 (a_template_param_constant_kind)tpck_member);
+        form_constant(cp, /*need_parens=*/FALSE, &octl);
+      } else {
+        unexpected_condition();
+      }  /* if */
+      /* Currently, only one function can be explicitly overridden by a
+         selectively overriding virtual functions. */
+      check_assertion(rout->overridden_functions->next == NULL);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
       gen_decl_name(scp, iek_routine, force_unqualified_name);

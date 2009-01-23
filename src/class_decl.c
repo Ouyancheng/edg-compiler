@@ -3300,7 +3300,10 @@ a mistake.  Both these warnings should perhaps be remarks.
         }  /* if */
       }  /* if */
     } else {
+      /* Note that the count may be off in prototype instantiations because
+         explicit overriders may have an unknown overridden base. */
       check_assertion(orep->override_count == orep->virtual_function_count ||
+                      is_prototype_instantiation_symbol(tag_sym) ||
                       total_errors > 0);
       /* Okay -- no diagnostic, even if there were additional nonoverriding
          declarations of the same name. */
@@ -3389,21 +3392,60 @@ restrictive.  Issue an appropriate diagnostic at the given position.
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-static a_boolean function_explicitly_overrides(a_routine_ptr     overrider,
-                                               a_routine_ptr     candidate,
-                                               a_base_class_ptr  base_class)
+static a_boolean is_selectively_overridden_by(a_symbol_ptr  overridden_sym,
+                                              a_symbol_ptr  overriding_sym)
+/*
+Return TRUE if overridden_sym represents a the member selectively overridden
+by the member function overriding_sym.
+*/
+{
+  a_boolean      result = FALSE;
+  a_routine_ptr  overrider = overriding_sym->variant.routine.ptr;
+
+  if (overrider->overridden_functions == NULL) {
+    result = (overridden_sym == NULL);
+  } else if (overridden_sym == NULL) {
+    result = (overrider->overridden_functions == NULL);
+  } else if (overridden_sym->kind == (a_symbol_kind)sk_member_function) {
+    /* overridden_sym represents a known base class member function. */
+    result = (selectively_overridden_function(overrider) ==
+                                         overridden_sym->variant.routine.ptr);
+  } else if (is_nontype_template_param_symbol(overridden_sym) &&
+             overridden_sym->variant.constant->variant.template_param.kind ==
+                                (a_template_param_constant_kind)tpck_member) {
+    /* overridden_sym represents a member of a dependent base class. */
+    a_tagged_pointer  ep = overriding_sym->variant.routine.ptr
+                                         ->overridden_functions->entity;
+    if ((an_il_entry_kind)ep.kind == iek_constant) {
+      result = eq_constants((a_constant_ptr)ep.ptr,
+                            overridden_sym->variant.constant);
+    }  /* if */
+  } else {
+    unexpected_condition();
+  }  /* if */
+  return result;
+}  /* is_selectively_overridden_by */
+
+
+static a_boolean may_selectively_override(a_routine_ptr     overrider,
+                                          a_routine_ptr     candidate,
+                                          a_base_class_ptr  base_class)
 /*
 overrider is a function that explicitly overrides a base class function (i.e.,
-overrider->overridden_function is non-NULL).  Return TRUE if it overrides
+overrider->overridden_functions is non-NULL).  Return TRUE if it may override
 candidate in the given base class.  (Explicit overriding is a Microsoft C++
 extension.)
 */
 {
   a_boolean         result = FALSE;
-  a_routine_ptr     ofp = overrider->overridden_function;
+  a_routine_ptr     ofp = selectively_overridden_function(overrider);
 
-  check_assertion(ofp != NULL);
-  if (!base_class->type->variant.class_struct_union.is_interface) {
+  check_assertion(overrider->overridden_functions != NULL);
+  if (ofp == NULL) {
+    /* overrider selectively overrides an unknown (i.e., template dependent)
+       function.  So it "may" selectively override the given candidate. */
+    result = TRUE;
+  } else if (!base_class->type->variant.class_struct_union.is_interface) {
     /* For non-interface base classes, the overrider must directly indicate
        the overridden function, and all the base subobjects are overridden.
        For example:
@@ -3438,19 +3480,19 @@ extension.)
         result = TRUE;
       } else {
         /* Check for indirect overriding (via an interface slot). */
-        ofp = ofp->overridden_function;
+        ofp = selectively_overridden_function(ofp);
         while (ofp != NULL) {
           if (ofp == candidate) {
             result = TRUE;
             break;
           }  /* if */
-          ofp = ofp->overridden_function;
+          ofp = selectively_overridden_function(ofp);
         }  /* while */
       }  /* if */
     }  /* if */
   }  /* if */
   return result;
-}  /* function_explicitly_overrides */
+}  /* may_selectively_override */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
@@ -3612,9 +3654,9 @@ Any diagnostics are issued at the given position.
                 continue;
               }  /* if */
             }  /* if */
-            if (rout->overridden_function != NULL &&
-                !function_explicitly_overrides(rout, rp, bcp)) {
-              /* rout has an explicit overrider that doesn't override rp. */
+            if (rout->overridden_functions != NULL &&
+                !may_selectively_override(rout, rp, bcp)) {
+              /* rout is an explicit overrider that doesn't override rp. */
               continue;
             }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -6766,7 +6808,7 @@ Return NULL if none is found.
 static a_symbol_ptr symbol_for_member_function(
                                    a_symbol_locator       *locator,
                                    a_type_ptr             class_type,
-                                   a_routine_ptr          overridden_function,
+                                   a_symbol_ptr           overridden_function,
                                    a_member_decl_info_ptr decl_info,
                                    a_symbol_ptr           *overload_sym)
 /*
@@ -6810,8 +6852,7 @@ was used).
 #if MICROSOFT_EXTENSIONS_ALLOWED
       } else if (microsoft_mode &&
                  new_sym->kind == (a_symbol_kind)sk_member_function &&
-                 new_sym->variant.routine.ptr->overridden_function !=
-                                                        overridden_function) {
+                 !is_selectively_overridden_by(overridden_function, new_sym)) {
         /* Although a declaration with a matching type was found, it overrides
            a different base member.  Treat the new declaration as a distinct
            member.  However, mark the symbols for both members as ambiguous. */
@@ -7656,7 +7697,7 @@ inherits (i.e., does not itself declare) the corresponding member function
 described by base_sym.
 Return (and, if needed, create) a special member function (an "interface slot")
 in the interface class that the function entry in the derived class can refer
-to (with its overridden_function field).
+to (with its overridden_functions field).
 */
 {
   a_symbol_ptr      result = NULL;
@@ -7665,7 +7706,8 @@ to (with its overridden_function field).
   a_type_ptr        parent_class = qualifier_class_type(*loc), rp_type;
   a_scope_ptr       parent_scope = class_type_supp(parent_class)->assoc_scope;
 
-  check_assertion(parent_class->variant.class_struct_union.is_interface &&
+  check_assertion(sym_parent_class(base_sym)
+                                  ->variant.class_struct_union.is_interface &&
                   base_rp->pure_virtual);
   /* First look through the routines list of parent_class to see if we
      already created the required entry. */
@@ -7705,7 +7747,9 @@ to (with its overridden_function field).
        TRUE. */
     rp->pure_virtual = TRUE;
     rp->virtual_function_number = base_rp->virtual_function_number;
-    rp->overridden_function = base_rp;
+    rp->overridden_functions = alloc_il_entity_list_entry();
+    rp->overridden_functions->entity.kind = iek_routine;
+    rp->overridden_functions->entity.ptr = (char*)base_rp;
     rp->compiler_generated = TRUE;
     /* The symbol must be entered in the symbol table so it can be encountered
        by check_for_virtual_function, but it shouldn't be found by name
@@ -7717,7 +7761,7 @@ to (with its overridden_function field).
 }  /* interface_slot_override */
 
 
-static a_routine_ptr find_explicitly_overridden_member(
+static a_symbol_ptr find_explicitly_overridden_member(
                                            a_symbol_locator       *locator,
                                            a_class_def_state_ptr  class_state,
                                            a_type_ptr             member_type)
@@ -7729,13 +7773,14 @@ function from a particular base class type to be overridden.  Return that
 function or NULL if none can be found.
 */
 {
-  a_routine_ptr  result = NULL;
+  a_symbol_ptr   result = NULL;
   a_type_ptr     class_type = class_state->class_type;
   a_type_ptr     parent_class = qualifier_class_type(*locator);
 
   if (!locator->is_class_member ||
-      !is_same_class_or_base_class_thereof(class_type, parent_class)) {
-    /* The qualifier was not a class: Issue an error. */
+      (!is_same_class_or_base_class_thereof(class_type, parent_class) &&
+       !is_template_dependent_type(parent_class))) {
+    /* The qualifier was not a base class: Issue an error. */
     pos_ty_error(ec_qualifier_must_be_base_class, &locator->source_position,
                  class_type);
   } else if (same_entities(parent_class, class_type)) {
@@ -7750,17 +7795,30 @@ function or NULL if none can be found.
                                                   IDL_DO_NOT_CREATE_PROJ_SYM);
     if (sym != NULL) {
       if (is_member_function_symbol(sym)) {
+        /* The qualified declarator identified a known member function. */
         sym = member_function_redecl_sym_with_template_flag(
                                                     sym, member_type,
                                                     (a_template_param_ptr)NULL,
                                                     /*templates_only=*/FALSE);
-        if (parent_class->variant.class_struct_union.is_interface &&
+        if (sym_parent_class(sym)->variant.class_struct_union.is_interface &&
             sym != NULL && sym_parent_class(sym) != parent_class) {
-          /* If the qualifier named an __interface class, the overridden
-             function must be a proper member of that interface (as opposed to
-             an inherited member). */
+          /* Lookup might have found an inherited member.  That is okay if the
+             member is inherited from an __interface class, but the recorded
+             base must be a proper member of the designated base class. */
           sym = interface_slot_override(locator, sym);
         }  /* if */
+        if (!sym->variant.routine.ptr->is_virtual ||
+            !sym->variant.routine.ptr->pure_virtual) {
+          pos_error(ec_invalid_selective_overrider_declaration,
+                    &locator->source_position);
+        } else {
+          result = sym;
+        }  /* if */
+      } else if (is_nontype_template_param_symbol(sym) &&
+                 sym->variant.constant->variant.template_param.kind ==
+                                (a_template_param_constant_kind)tpck_member) {
+        /* A reference to a dependent base member. */
+        result = sym;
       } else {
         sym = NULL;
       }  /* if */
@@ -7768,13 +7826,6 @@ function or NULL if none can be found.
     if (sym == NULL) {
       pos_error(ec_invalid_selective_overrider_declaration,
                 &locator->source_position);
-    } else {
-      result = sym->variant.routine.ptr;
-      if (!result->is_virtual || !result->pure_virtual) {
-        pos_error(ec_invalid_selective_overrider_declaration,
-                  &locator->source_position);
-        result = NULL;
-      }  /* if */
     }  /* if */
   }  /* if */
   return result;
@@ -7871,7 +7922,7 @@ implicitly declared member functions.
   a_source_sequence_entry_ptr   declarator_ssep = NULL;
   a_name_linkage_kind           def_name_linkage;
   a_routine_type_supplement_ptr rtsp;
-  a_routine_ptr                 overridden_function = NULL;
+  a_symbol_ptr                  overridden_function = NULL;
 
   db_enter(3, "decl_member_function");
   rtsp = skip_typerefs(member_type)->variant.routine.extra_info;
@@ -8038,7 +8089,21 @@ implicitly declared member functions.
          class, record that fact. */
       if (overridden_function != NULL) {
         rtn->is_virtual = TRUE;
-        rtn->overridden_function = overridden_function;
+        rtn->overridden_functions = alloc_il_entity_list_entry();
+        if (overridden_function->kind == (a_symbol_kind)sk_member_function) {
+          rtn->overridden_functions->entity.kind = iek_routine;
+          rtn->overridden_functions->entity.ptr =
+                              (char*)overridden_function->variant.routine.ptr;
+        } else {
+          check_assertion(
+             is_nontype_template_param_symbol(overridden_function) &&
+             overridden_function->variant.constant
+                                ->variant.template_param.kind ==
+                                 (a_template_param_constant_kind)tpck_member);
+          rtn->overridden_functions->entity.kind = iek_constant;
+          rtn->overridden_functions->entity.ptr =
+                                 (char*)overridden_function->variant.constant;
+        }  /* if */
       }  /* if */
       if (decl_state->ms_attributes != NULL) {
         apply_microsoft_attributes(&decl_state->ms_attributes, (char*)rtn,
@@ -8125,8 +8190,10 @@ implicitly declared member functions.
          no valid out-of-class syntax is available. */
       if (!class_type->source_corresp.is_local_to_function &&
 #if MICROSOFT_EXTENSIONS_ALLOWED
-          !(microsoft_mode &&
-            microsoft_routine_def_is_unmovable(overridden_function)) &&
+          !(microsoft_mode && overridden_function != NULL &&
+            overridden_function->kind == (a_symbol_kind)sk_member_function &&
+            microsoft_routine_def_is_unmovable(
+                                 overridden_function->variant.routine.ptr)) &&
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           class_type_can_be_named_in_namespace_scope(class_type)) {
         func_info->is_movable_member_or_friend_def = TRUE;

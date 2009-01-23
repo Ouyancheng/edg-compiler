@@ -1204,7 +1204,8 @@ the file scope, do not process it (but record an orphan in the latter case).
         remap_ptr(ptr->primary_ctor_or_dtor, a_routine_ptr, iek_routine);
 #endif /* IA64_ABI && DO_IL_LOWERING */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        remap_ptr(ptr->overridden_function, a_routine_ptr, iek_routine);
+        walk_list(ptr->overridden_functions, an_il_entity_list_entry_ptr,
+                  iek_il_entity_list_entry);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         /* No processing of befriending_classes for the "needed" sweep. */
 #if !NEEDED_FLAG_WALK
@@ -2948,8 +2949,8 @@ after_entry_from_class:
 #endif /* !NEEDED_FLAG_WALK */
         remap_next_ptr(ptr->next, an_il_entity_list_entry_ptr,
                        iek_il_entity_list_entry);
-        remap_ptr_not_needed(ptr->entity.ptr, a_char_ptr,
-                             (an_il_entry_kind)ptr->entity.kind);
+        walk_ptr_not_needed(ptr->entity.ptr, a_char_ptr,
+                            (an_il_entry_kind)ptr->entity.kind);
       }
       break;
     case iek_lambda:

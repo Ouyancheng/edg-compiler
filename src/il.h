@@ -1424,6 +1424,8 @@ extern a_boolean has_nonreal_parent_type(a_source_correspondence	*scp);
 #if MICROSOFT_EXTENSIONS_ALLOWED
 extern void add_to_ms_attributes_list(an_ms_attribute_ptr	msap,
                                       a_scope_depth		scope_depth);
+
+extern a_routine_ptr selectively_overridden_function(a_routine_ptr  rp);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES

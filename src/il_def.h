@@ -10050,11 +10050,18 @@ typedef struct a_routine {
 			   functions of a given class.  When is_virtual is
 			   FALSE, this field is undefined. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  a_routine_ptr
-		overridden_function;
-			/* For selectively overriding virtual functions, this
-			   points to the member function being overridden.
-			   Otherwise, NULL. */
+  an_il_entity_list_entry_ptr
+		overridden_functions;
+			/* For selectively overriding virtual functions (a
+			   Microsoft extension), this points to the base class
+			   member functions being overridden.  Otherwise, NULL.
+			   Currently, this list contains at most one entry, but
+			   it is expected that future extensions will allow
+			   multiple members functions to be selectively
+			   overridden.  Usually, this list points to a_routine
+			   entries, but, for prototype instantiations, the
+			   overridden function may be represented by a
+			   ck_template_param/tpck_member constant. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_class_list_entry_ptr
                 befriending_classes;

@@ -17659,6 +17659,28 @@ Add the Microsoft attribute entry pointed to by msap to the indicated scope.
   msap->next = NULL;
 }  /* add_to_ms_attributes_list */
 
+
+a_routine_ptr selectively_overridden_function(a_routine_ptr  rp)
+/*
+If rp is a member function that was declared to selectively override a known
+function, return that overridden function.  Otherwise, return NULL.  In
+particular, if rp is a member of a prototype instantiation declared to
+override a member from a template-dependent (i.e., unknown) base class, NULL
+will be returned.
+*/
+{
+  a_routine_ptr  result = NULL;
+
+  if (rp->overridden_functions != NULL) {
+    a_tagged_pointer  ep = rp->overridden_functions->entity;
+    if ((an_il_entry_kind)ep.kind == iek_routine) {
+      result = (a_routine_ptr)ep.ptr;
+    }  /* if */
+    check_assertion(rp->overridden_functions->next == NULL);
+  }  /* if */
+  return result;
+}  /* selectively_overridden_function */
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES

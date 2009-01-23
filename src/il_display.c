@@ -2524,7 +2524,6 @@ Display the indicated entity list and name.
 }  /* disp_entity_list */
 
 
-
 static void disp_template_arg_list(char                *name,
                                    a_template_arg_ptr  ptr)
 /*
@@ -2847,9 +2846,8 @@ Display the indicated routine.
                        (unsigned long)ptr->virtual_function_number);
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (ptr->overridden_function != NULL) {
-    disp_ptr("overridden_function", (char*)ptr->overridden_function,
-             iek_routine);
+  if (ptr->overridden_functions != NULL) {
+    disp_entity_list("overridden_functions", ptr->overridden_functions);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (ptr->befriending_classes != NULL) {
