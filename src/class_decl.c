@@ -3395,7 +3395,7 @@ restrictive.  Issue an appropriate diagnostic at the given position.
 static a_boolean is_selectively_overridden_by(a_symbol_ptr  overridden_sym,
                                               a_symbol_ptr  overriding_sym)
 /*
-Return TRUE if overridden_sym represents a the member selectively overridden
+Return TRUE if overridden_sym represents a member selectively overridden
 by the member function overriding_sym.
 */
 {
@@ -6579,7 +6579,7 @@ possibility.
 #if MICROSOFT_EXTENSIONS_ALLOWED
                    && !(microsoft_mode &&
                         microsoft_routine_def_is_unmovable(
-                                                   /*overridden_fn=*/NULL))
+                                              /*explicit_overrider=*/FALSE))
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                                                                             ) {
           /* The primary source sequence entry will be deferred until the
@@ -7835,7 +7835,7 @@ function or NULL if none can be found.
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
 #if FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS
 
-a_boolean microsoft_routine_def_is_unmovable(a_routine_ptr  overridden_fn)
+a_boolean microsoft_routine_def_is_unmovable(a_boolean  explicit_overrider)
 /*
 Microsoft C++ allows some extended forms of member function definitions that
 cannot be moved outside a class definition.  The first case are members
@@ -7854,13 +7854,13 @@ class definitions that appear in class scope.  For example:
 The definition of A::B::C::f() cannot be placed immediately after the
 definition of A::B::C, nor after the definition of A.
 Return TRUE if the current declaration is such a member or friend that cannot
-be moved.  overridden_fn is the virtual base class member function explicitly
-overridden by the current declaration (if any).
+be moved.  explicit_overrider is TRUE if the current declaration is an
+explicit overrider (which means this routine will return TRUE).
 */
 {
   a_boolean  result = FALSE;
 
-  if (overridden_fn != NULL) {
+  if (explicit_overrider) {
     /* An explicitly overridden function cannot be defined outside its parent
        class. */
     result = TRUE;
@@ -8192,10 +8192,8 @@ implicitly declared member functions.
          no valid out-of-class syntax is available. */
       if (!class_type->source_corresp.is_local_to_function &&
 #if MICROSOFT_EXTENSIONS_ALLOWED
-          !(microsoft_mode && overridden_function != NULL &&
-            overridden_function->kind == (a_symbol_kind)sk_member_function &&
-            microsoft_routine_def_is_unmovable(
-                                 overridden_function->variant.routine.ptr)) &&
+          !(microsoft_mode &&
+            microsoft_routine_def_is_unmovable(overridden_function != NULL)) &&
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           class_type_can_be_named_in_namespace_scope(class_type)) {
         func_info->is_movable_member_or_friend_def = TRUE;

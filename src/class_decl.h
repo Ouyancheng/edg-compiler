@@ -107,7 +107,8 @@ a_lambda_capture_ptr lambda_capture_for_variable(a_variable_ptr		vp,
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
 #if FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS
-extern a_boolean microsoft_routine_def_is_unmovable(a_routine_ptr  rtn);
+extern a_boolean microsoft_routine_def_is_unmovable(a_boolean
+                                                          explicit_overrider);
 #endif /* FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS */
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */

@@ -1678,7 +1678,7 @@ created for this entity; otherwise, it is NULL.
 #if MICROSOFT_EXTENSIONS_ALLOWED
           !(microsoft_mode &&
             microsoft_routine_def_is_unmovable(
-            selectively_overridden_function(sym_ptr->variant.routine.ptr))) &&
+               sym_ptr->variant.routine.ptr->overridden_functions != NULL)) &&
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           class_type_can_be_named_in_namespace_scope(
                                  scope_stack[depth_scope_stack].assoc_type)) {
