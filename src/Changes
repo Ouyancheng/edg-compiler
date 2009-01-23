@@ -1,5 +1,20 @@
 Version 4.1
 
+1/23/09  [EDGcpfe/9475]
+Invalid IL for compound assignments with GNU vectors
+
+In GNU modes, the front end generated a spurious cast on the second operand
+of certain compound assignments with GNU vector operands.  This also caused
+the C-generating back end to produce invalid output.  For example:
+
+  typedef int V __attribute((vector_size(16)));
+  void f(V v1, V v2) {
+    v1 -= v2;  // Previously, a spurious cast to int was generated on top of
+  }            // the v2 operand.
+
+This is now fixed.
+
+
 1/22/09  [EDGcpfe/9456]
 Microsoft-mode explicit overriders and dependent base classes (IL CHANGE)
 

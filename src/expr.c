@@ -15670,6 +15670,9 @@ See section 3.3.16 of the standard.
             /* Vector types are arithmetic types in some ways, but the rules
                determining the operation type do not parallel those of the
                standard arithmetic types. */
+            orig_result_type = operand_1->type;
+            operation_type = rvalue_type(result_type);
+            goto operation_type_determined;
           } else
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
           /* Do not insert code here. */
@@ -15696,6 +15699,12 @@ See section 3.3.16 of the standard.
           if (gnu_mode &&
               determine_vector_operation_type(
                       save_token, operand_1, &operand_2, &result_type, &op)) {
+            /* Vector types are arithmetic types in some ways, but the rules
+               determining the operation type do not parallel those of the
+               standard arithmetic types. */
+            orig_result_type = operand_1->type;
+            operation_type = rvalue_type(result_type);
+            goto operation_type_determined;
           } else
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
           /* Do not insert code here. */
