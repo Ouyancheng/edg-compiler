@@ -7748,7 +7748,7 @@ to (with its overridden_functions field).
     rp->pure_virtual = TRUE;
     rp->virtual_function_number = base_rp->virtual_function_number;
     rp->overridden_functions = alloc_il_entity_list_entry();
-    rp->overridden_functions->entity.kind = iek_routine;
+    rp->overridden_functions->entity.kind = (a_byte_il_entry_kind)iek_routine;
     rp->overridden_functions->entity.ptr = (char*)base_rp;
     rp->compiler_generated = TRUE;
     /* The symbol must be entered in the symbol table so it can be encountered
@@ -8091,7 +8091,8 @@ implicitly declared member functions.
         rtn->is_virtual = TRUE;
         rtn->overridden_functions = alloc_il_entity_list_entry();
         if (overridden_function->kind == (a_symbol_kind)sk_member_function) {
-          rtn->overridden_functions->entity.kind = iek_routine;
+          rtn->overridden_functions->entity.kind =
+                                            (a_byte_il_entry_kind)iek_routine;
           rtn->overridden_functions->entity.ptr =
                               (char*)overridden_function->variant.routine.ptr;
         } else {
@@ -8100,7 +8101,8 @@ implicitly declared member functions.
              overridden_function->variant.constant
                                 ->variant.template_param.kind ==
                                  (a_template_param_constant_kind)tpck_member);
-          rtn->overridden_functions->entity.kind = iek_constant;
+          rtn->overridden_functions->entity.kind =
+                                           (a_byte_il_entry_kind)iek_constant;
           rtn->overridden_functions->entity.ptr =
                                  (char*)overridden_function->variant.constant;
         }  /* if */
