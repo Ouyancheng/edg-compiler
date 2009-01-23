@@ -202,6 +202,7 @@ typedef enum /*a_token_kind*/ {
   tok_microsoft_w64,
   tok_microsoft_lprefix,
   tok_microsoft_identifier,
+  tok_uuid,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   tok_microsoft_asm,
   /* Special constants for various versions of the name of the current
@@ -363,7 +364,7 @@ EXTERN char	*token_names[(int)tok_last+1]
    "__super",
    "__noop", "__interface",
    "__ptr32", "__ptr64", "__sptr", "__uptr", "__w64",
-   "__LPREFIX", "__identifier",
+   "__LPREFIX", "__identifier", "uuid",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
    "__asm",
    "__func__",
@@ -778,6 +779,7 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_microsoft_w64 */
    (an_opname_kind)onk_none,          /* tok_microsoft_lprefix */
    (an_opname_kind)onk_none,          /* tok_microsoft_identifier */
+   (an_opname_kind)onk_none,          /* tok_uuid */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
    (an_opname_kind)onk_none,          /* tok_microsoft_asm */
    (an_opname_kind)onk_none,          /* tok_func_name */
@@ -2224,6 +2226,9 @@ extern unsigned long scan_universal_character(
 					a_boolean	issue_diagnostics);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
+extern a_boolean is_valid_GUID_string(char          *str,
+                                      a_targ_size_t length);
+
 extern a_boolean check_context_sensitive_keyword(a_token_kind  tok_kind,
                                                  char          *tok_str);
 

@@ -143,6 +143,13 @@ EXTERN a_boolean
 			   recognized if processing_C_code_in_pragma is
 			   TRUE. */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+EXTERN a_boolean
+		in_microsoft_attribute;
+			/* TRUE if we are scanning the tokens of a Microsoft
+			   attribute. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
 EXTERN a_boolean
                 recognize_keywords_in_pragma;
                         /* TRUE if we are saving the tokens of a pragma in

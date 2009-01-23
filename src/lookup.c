@@ -5724,11 +5724,9 @@ symbol found by the normal lookup.
       }  /* if */
     } else if (ssep->kind == (a_scope_kind)sck_file) {
       /* For the file scope, pass in a NULL pointer to remove the namespace
-         list entry for the file scope. */
+         list entry for the file scope.  We don't need to set "done" here
+         as the file scope will always be the last one checked. */
       remove_namespace_from_list(namespace_list, (a_namespace_ptr)NULL);
-      if (normal_sym_namespace == NULL) {
-        done = TRUE;
-      }  /* if */
     } else {
       /* For other scopes, stop if the scope matches that of the normal
          symbol (e.g., block extern or using-declarations). */
