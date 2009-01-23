@@ -17667,6 +17667,13 @@ function, return that overridden function.  Otherwise, return NULL.  In
 particular, if rp is a member of a prototype instantiation declared to
 override a member from a template-dependent (i.e., unknown) base class, NULL
 will be returned.
+Selective overriding is a Microsoft extension.  For example:
+  struct B1 { virtual int f() = 0; };
+  struct B2 { virtual int f() = 0; };
+  struct D: B1, B2 {
+    int B1::f() { return 1; }  // Selectively overrides B1::f (not B2::f).
+    int B2::f() { return 2; }  // Selectively overrides B2::f (not B1::f).
+  };
 */
 {
   a_routine_ptr  result = NULL;

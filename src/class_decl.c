@@ -3396,7 +3396,14 @@ static a_boolean is_selectively_overridden_by(a_symbol_ptr  overridden_sym,
                                               a_symbol_ptr  overriding_sym)
 /*
 Return TRUE if overridden_sym represents a member selectively overridden
-by the member function overriding_sym.
+by the member function overriding_sym.  Selective overriding is a Microsoft
+extension.  For example:
+  struct B1 { virtual int f() = 0; };
+  struct B2 { virtual int f() = 0; };
+  struct D: B1, B2 {
+    int B1::f() { return 1; }  // Selectively overrides B1::f (not B2::f).
+    int B2::f() { return 2; }  // Selectively overrides B2::f (not B1::f).
+  };
 */
 {
   a_boolean      result = FALSE;
@@ -3431,10 +3438,16 @@ static a_boolean may_selectively_override(a_routine_ptr     overrider,
                                           a_routine_ptr     candidate,
                                           a_base_class_ptr  base_class)
 /*
-overrider is a function that explicitly overrides a base class function (i.e.,
+overrider is a function that selectively overrides a base class function (i.e.,
 overrider->overridden_functions is non-NULL).  Return TRUE if it may override
-candidate in the given base class.  (Explicit overriding is a Microsoft C++
-extension.)
+candidate in the given base class.  Selective overriding is a Microsoft C++
+extension.  For example:
+  struct B1 { virtual int f() = 0; };
+  struct B2 { virtual int f() = 0; };
+  struct D: B1, B2 {
+    int B1::f() { return 1; }  // Selectively overrides B1::f (not B2::f).
+    int B2::f() { return 2; }  // Selectively overrides B2::f (not B1::f).
+  };
 */
 {
   a_boolean         result = FALSE;
