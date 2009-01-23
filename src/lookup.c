@@ -5726,7 +5726,7 @@ symbol found by the normal lookup.
       /* For the file scope, pass in a NULL pointer to remove the namespace
          list entry for the file scope. */
       remove_namespace_from_list(namespace_list, (a_namespace_ptr)NULL);
-      if (nsp == normal_sym_namespace) {
+      if (normal_sym_namespace == NULL) {
         done = TRUE;
       }  /* if */
     } else {
