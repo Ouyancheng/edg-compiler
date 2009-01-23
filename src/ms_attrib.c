@@ -1034,7 +1034,6 @@ cache containing all of the tokens of the attribute block.
   a_boolean		save_expand_macros;
   a_boolean		save_do_string_literal_concatenation;
   a_boolean		save_fetch_pp_tokens;
-  a_boolean		save_in_microsoft_attribute;
   a_boolean		save_suppress_keyword_recognition;
 
   /* Save the current value of the lexical scanning mode flags. */
@@ -1042,13 +1041,11 @@ cache containing all of the tokens of the attribute block.
   save_do_string_literal_concatenation = do_string_literal_concatenation;
   save_fetch_pp_tokens = fetch_pp_tokens;
   save_suppress_keyword_recognition = suppress_keyword_recognition;
-  save_in_microsoft_attribute = in_microsoft_attribute;
   /* Set the values required for attribute scanning. */
   expand_macros = FALSE;
   do_string_literal_concatenation = TRUE;
   fetch_pp_tokens = FALSE;
   suppress_keyword_recognition = TRUE;
-  in_microsoft_attribute = TRUE;
   clear_token_cache(&attribute_cache, /*reusable=*/TRUE);
   /* Cache the current token and advance past it. */
   cache_curr_token(&attribute_cache);
@@ -1070,7 +1067,6 @@ cache containing all of the tokens of the attribute block.
   do_string_literal_concatenation = save_do_string_literal_concatenation;
   fetch_pp_tokens = save_fetch_pp_tokens;
   suppress_keyword_recognition = save_suppress_keyword_recognition;
-  in_microsoft_attribute = save_in_microsoft_attribute;
 }  /* cache_attribute_block */
 
 
@@ -1417,9 +1413,8 @@ returned for invalid arguments.
   a_source_position	arg_pos;
 
   arg_pos = pos_curr_token;
-  if (curr_token == tok_string_literal || curr_token == tok_uuid) {
-    /* A string literal or an unquoted UUID string.  Scan it as a GUID
-       string. */
+  if (curr_token == tok_string_literal) {
+    /* A string literal.  Scan it as a GUID string. */
     result = scan_GUID_string();
   } else {
     /* Something else.  The only other valid argument is a __uuidof operator.
@@ -1700,8 +1695,6 @@ declaration.
            of an expected argument list. */
         str_error(ec_exp_ms_attr_arg_list, attr->name);
         flush_tokens();
-        /* The attribute is ill-formed, so discard it. */
-        attr = NULL;
       } else {
         /* No parameters were expected.  Complain of a missing "," or "]". */
         syntax_error(ec_exp_comma_or_rbracket);
@@ -1714,10 +1707,10 @@ declaration.
     add_token_cache_segment_to_string(&attribute_cache, first_token,
                                       last_token);
     /* Copy the string to IL memory. */
-    if (attr != NULL) attr->string = make_copy_of_token_string();
+    attr->string = make_copy_of_token_string();
 #if DEBUG
     if (db_flag_is_set("msattr")) {
-      if (attr != NULL) db_microsoft_attribute(attr);
+      db_microsoft_attribute(attr);
     }  /* if */
 #endif /* DEBUG */
   }  /* if */

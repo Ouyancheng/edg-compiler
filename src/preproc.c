@@ -3056,9 +3056,6 @@ every translation unit.
   in_preprocessing_directive = FALSE;
   suppress_keyword_recognition = FALSE;
   caching_pragma_tokens = FALSE;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  in_microsoft_attribute = FALSE;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   recognize_keywords_in_pragma = FALSE;
   do_string_literal_concatenation = TRUE;
   in_pp_if_expression = FALSE;

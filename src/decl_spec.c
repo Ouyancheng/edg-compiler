@@ -65,17 +65,83 @@ there is no error.
 #endif /* NEAR_AND_FAR_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
+static char *check_GUID_hex_digits(char      *str,
+                                   int       ndigits,
+                                   a_boolean *err)
+/*
+As part of checking a GUID string, check for ndigits hexadecimal digits
+beginning at str.  Set *err to TRUE if the digits do not appear.  Return str,
+advanced past the digits that do appear.
+*/
+{
+  for (; ndigits > 0; ndigits--, str++) {
+    if (!isxdigit((unsigned char)*str)) {
+      *err = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  return str;
+}  /* check_GUID_hex_digits */
+
+
+static char *check_GUID_hyphen(char      *str,
+                               a_boolean *err)
+/*
+As part of checking a GUID string, check that *str is a hyphen character.
+If not, set *err to TRUE.  Return str, advanced past the hyphen if one is
+present.
+*/
+{
+  if (*str != '-') {
+    *err = TRUE;
+  } else {
+    str++;
+  }  /* if */
+  return str;
+}  /* check_GUID_hyphen */
+
+
+static a_boolean is_valid_GUID_string(char          *str,
+                                      a_targ_size_t length)
+/*
+Check the indicated string to see if it is a valid Microsoft GUID string.
+Such a string must have the form
+
+  hhhhhhhh-hhhh-hhhh-hhhh-hhhhhhhhhhhh
+
+where "h" is a hex digit.  length is the length of the string (it is not
+necessarily null-terminated).
+*/
+{
+  char      *orig_str = str;
+  a_boolean err = FALSE;
+
+  str = check_GUID_hex_digits(str, 8, &err);
+  str = check_GUID_hyphen(str, &err);
+  str = check_GUID_hex_digits(str, 4, &err);
+  str = check_GUID_hyphen(str, &err);
+  str = check_GUID_hex_digits(str, 4, &err);
+  str = check_GUID_hyphen(str, &err);
+  str = check_GUID_hex_digits(str, 4, &err);
+  str = check_GUID_hyphen(str, &err);
+  str = check_GUID_hex_digits(str, 12, &err);
+  /* Check that the string ends at the right place. */
+  if (str != orig_str+length) err = TRUE;
+  return !err;
+}  /* is_valid_GUID_string */
+
+
 char *scan_GUID_string(void)
 /*
-Scan the string literal token or unqouted UUID token that contains a GUID
-string.  Extract and check the format of the string.  Return a pointer to
-a primary IL string containing the GUID characters.  If the string is not
-of the required form, a diagnostic is issued and a NULL pointer is returned.
-For an unquoted UUID token, const_for_curr_token contains a string constant
-that is equivalent to the one that would have been created if it were
-quoted.
+Scan the string literal token that contains a GUID string.  Extract and
+check the format of the string.  Return a pointer to a primary IL string
+containing the GUID characters.  If the string is not of the required form,
+a diagnostic is issued and a NULL pointer is returned.
 
-The string optionally begins and ends with braces and is of the form
+The syntax is
+  uuid ( string-literal )
+where the string-literal optionally begins and ends with braces and is
+of the form
   hhhhhhhh-hhhh-hhhh-hhhh-hhhhhhhhhhhh
 where "h" is any hex digit and the hyphens are required.
 
@@ -86,7 +152,7 @@ string that is returned.
   char		*result = NULL;
   a_boolean	err = FALSE;
 
-  if (curr_token != tok_string_literal && curr_token != tok_uuid) {
+  if (curr_token != tok_string_literal) {
     /* Error. */
     syntax_error(ec_bad_uuid_string);
   } else if (is_error_constant(&const_for_curr_token)) {

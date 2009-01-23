@@ -1,15 +1,5 @@
 Version 4.1
 
-1/23/08  [EDGcpfe/9448]
-Microsoft compatibility: accept UUID strings without quotes in attributes 
-
-The Microsoft compiler allows a UUID string to be specified in an attribute
-without surrounding quotes.  We now accept this in Microsoft mode when
-Microsoft attributes are enabled.
-
-  [uuid(066BD604-AE26-4F01-A44D-B2F557BB3165)] class A {};
-
-
 1/23/09  [EDGcpfe/9464]
 Microsoft compatibility: __restrict on constructors and destructors
 
