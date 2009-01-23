@@ -80,7 +80,7 @@ declaration, when friend injection is turned off.
   ((sym)->is_invisible && !(sym)->is_class_member)
 
 
-static void clear_conv_descr(a_conv_descr_ptr conv)
+void clear_conv_descr(a_conv_descr_ptr conv)
 /*
 Clear a conversion description.
 */

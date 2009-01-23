@@ -10729,9 +10729,12 @@ This is a static_cast or old-style cast; source_form indicates which.
 If the cast can be done by a user-defined conversion, do it and return
 *processed TRUE.  If the cast could only be done by a user-defined
 conversion and there was some error with that, set *err TRUE as well.
-If the cast (to a reference type) is expected to be conceptually
+Also handles cases that involve the cast of a non-class rvalue to
+a reference-to-const non-class type; a temporary is created and an
+lvalue for it is returned along with *processed TRUE.  If a cast
+(to a reference-to-class type) is expected to be conceptually
 rewritten as a pointer cast later and an rvalue should be allowed,
-*allow_rvalue_on_rewrite is returned TRUE (note that this is set even
+*allow_rvalue_on_rewrite is returned TRUE (note that this is never set
 for non-class operands).  This routine is called only in C++ mode.
 */
 {
@@ -10761,7 +10764,17 @@ for non-class operands).  This routine is called only in C++ mode.
         /* The operand can be cast directly to the reference type,
            so don't look for a way to do the cast using a conversion
            function.  Note that even non-class operands are handled here. */
-        *allow_rvalue_on_rewrite = binding_to_rvalue_allowed;
+        if (is_class_struct_union_type(operand->type)) {
+          *allow_rvalue_on_rewrite = binding_to_rvalue_allowed;
+        } else if (!template_case &&
+                   is_an_rvalue(operand) &&
+                   !is_error_type(operand->type)) {
+          /* For a non-class rvalue case, go create a temporary to contain the
+             rvalue. */
+          check_assertion(binding_to_rvalue_allowed);
+          clear_conv_descr(&conversion);
+          goto process_reference_binding;
+        }  /* if */
       } else {
         /* A cast from a class to a reference type can be handled by a
            conversion function.  Look for such a function, but if one is
@@ -10834,6 +10847,34 @@ for non-class operands).  This routine is called only in C++ mode.
                  to which the reference can be bound. */
               possible = TRUE;
             }  /* if */
+          } else {
+            /* Neither the source type nor the destination underlying type is
+               a class.  See whether the source operand can be converted
+               to the underlying type of the cast. */
+            a_constant_ptr arg_constant = NULL;
+            if (is_constant_operand(operand)) {
+              arg_constant = &operand->variant.constant;
+            }  /* if */
+            clear_conv_descr(&conversion);
+            if (impl_conversion_possible(operand->type,
+                                         /*source_is_constant=*/
+                                                          arg_constant != NULL,
+                                         /*source_is_string_literal=*/
+                                             operand->is_simple_string_literal,
+                                         arg_constant,
+                                         eff_type_cast_to,
+                                     /*allow_qualifier_or_eh_mismatch=*/FALSE,
+                                         /*suppress_extensions=*/FALSE,
+                                         ec_no_error,
+                                         &conversion.std)) {
+              /* A case like
+                   static_cast <const int &>(0.0)
+                 where the (non-class) operand can be converted to the
+                 underlying type of the reference.  Do the reference binding,
+                 which will create a temporary and return an lvalue for it
+                 as the result. */
+              possible = TRUE;
+            }  /* if */
           }  /* if */
         }  /* if */
         if (possible) {
@@ -10846,6 +10887,7 @@ for non-class operands).  This routine is called only in C++ mode.
                                  /*is_implicit_cast=*/FALSE,
                                  /*is_reference_cast=*/TRUE);
           } else {
+process_reference_binding:
             conversion.is_explicit_cast = TRUE;
             prep_reference_initializer_operand(
                                            operand,
@@ -10972,23 +11014,10 @@ by using a temporary.
       /* Allow a cast of a class rvalue to a reference type, when appropriate
          (e.g., for a static_cast to a reference-to-const type). */
       conv_class_rvalue_operand_to_lvalue(operand);
-    } else if (allow_rvalue) {
-      /* Allow a cast of a non-class rvalue when appropriate (e.g., for
-         a static_cast to a reference-to-const type).  This requires a
-         temporary. */
-      a_dynamic_init_ptr dip;
-      an_expr_node_ptr   temp_init_node;
-      temp_init_node = create_expr_temporary(
-                                           underlying_type_cast_to,
-                                           /*is_lvalue=*/TRUE,
-                                           /*is_explicit_cast=*/TRUE,
-                                           /*suppress_abstract_test=*/FALSE,
-                                           (a_dynamic_init_kind)dik_expression,
-                                           &operand->position,
-                                           &dip);
-      dip->variant.expression = make_node_from_operand(operand);
-      make_lvalue_expression_operand(temp_init_node, operand);
     } else {
+      /* allow_rvalue should be TRUE only when the operand has a class type.
+         See check_user_defined_conversions_for_cast. */
+      check_assertion(!allow_rvalue);
       if (!is_error_operand(operand)) {
         error_in_operand(ec_expr_not_an_lvalue, operand);
         *processed = TRUE;

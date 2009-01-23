@@ -1,5 +1,21 @@
 Version 4.1
 
+1/23/09  [EDGcpfe/9458, EDGcpfe/4641]
+Cast of non-class expression to reference-to-const non-class now allowed
+
+A cast of an expression with non-class type to a reference to const of
+a different type is now accepted, if the source expression can be
+converted to the underlying type of the reference.  For example:
+
+  int main() {
+    static_cast<const long &>(123);  // Now accepted
+  }
+
+The source expression is converted into a temporary of the underlying
+type of the cast, and an lvalue for the temporary is returned as the
+result.
+
+
 1/23/09  [EDGcpfe/9475]
 Invalid IL for compound assignments with GNU vectors
 
