@@ -1367,11 +1367,28 @@ see function_declarator (below) for which this is a helper function.
       } else {
         qualifier_err = TRUE;
       }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (microsoft_mode && is_destructor && qualifiers == TQ_RESTRICT) {
+      /* Microsoft compilers allow destructors to be qualified with
+         "__restrict".  This affects the signature (i.e., mangling) of the
+         destructor. */
+      if (current_scope_is_class(parent_type)) {
+        /* Issue a warning on the in-class declaration.  If an out-of-class
+           definition follows, the warning is not repeated. */
+        pos_warning(ec_nonstd_restrict_destructor, &qualifier_pos);
+      }  /* if */
+      this_class = parent_type;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else if (is_constructor || is_destructor) {
       /* A qualifier appearing on a constructor or destructor is not
          allowed (ARM 9.3.1). */
       err_code = ec_function_qualifier_on_ctor_or_dtor;
-      if (cfront_2_1_mode) {
+      if (microsoft_mode && is_constructor &&
+          !current_scope_is_class(parent_type)) {
+        /* Microsoft compilers ignore "__restrict" on out-of-class
+           constructors. */
+        pos_warning(ec_type_qualifier_ignored_on_constructor, &qualifier_pos);
+      } else if (cfront_2_1_mode) {
         /* Cfront 2.1 issues no diagnostic for a qualifier on a constructor
            or destructor. */
         pos_warning(err_code, &qualifier_pos);
