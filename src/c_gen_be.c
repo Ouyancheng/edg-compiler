@@ -2301,6 +2301,10 @@ static void dump_typedef_decl(a_type_ptr type)
 Print a typedef declaration.
 */
 {
+#if GNU_EXTENSIONS_ALLOWED
+  a_boolean need_leading_space = TRUE;
+#endif /* GNU_EXTENSIONS_ALLOWED */
+
   if (start_unreferenced_bracket(&type->source_corresp)) {
     if (type->is_builtin_va_list) {
       /* This is the declaration of the builtin va_list, from <stdarg.h>. */
@@ -2336,11 +2340,26 @@ Print a typedef declaration.
         dump_microsoft_align_declspec(type->alignment);
       }  /* if */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING && MICROSOFT_EXTENSIONS_ALLOWED */
+#if GNU_VECTOR_TYPES_ALLOWED
+      /* Versions 4.1 and later of the GNU compilers issue an error for
+         large vector sizes if the vector_size attribute appears before the
+         typedef name but the corresponding alignment attribute appears
+         after the typedef name. */
+      octl.defer_vector_attribute = TRUE;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
       dump_declaration_using_type(type->variant.typeref.type,
                                   &type->source_corresp);
 #if GNU_EXTENSIONS_ALLOWED
       /* Emit any attributes associated with the typedef. */
-      (void)form_type_attributes(type, /*need_leading_space=*/TRUE, &octl);
+#if GNU_VECTOR_TYPES_ALLOWED
+      octl.defer_vector_attribute = FALSE;
+      if (type->variant.typeref.type->kind == (a_type_kind)tk_vector) {
+        /* Put out the vector size attribute that was deferred. */
+        form_vector_type_attribute(type->variant.typeref.type,
+                                   &need_leading_space, &octl);
+      }  /* if */
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+      (void)form_type_attributes(type, need_leading_space, &octl);
 #endif /* GNU_EXTENSIONS_ALLOWED */
       write_tok_ch(';');
     }  /* if */

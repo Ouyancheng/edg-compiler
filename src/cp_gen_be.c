@@ -5556,6 +5556,9 @@ declaration following this one is such a continuation.
 {
   a_type_ptr under_type;
   a_boolean  anon_union_case = FALSE;
+#if GNU_EXTENSIONS_ALLOWED
+  a_boolean  need_leading_space = TRUE;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 
   if (sec_decl != NULL) {
     /* Use the type from the secondary declaration entry instead of the one
@@ -5624,6 +5627,13 @@ declaration following this one is such a continuation.
                                    &octl);
     } else {
       /* Normal typedef. */
+#if GNU_VECTOR_TYPES_ALLOWED
+      /* Versions 4.1 and later of the GNU compilers issue an error for
+         large vector sizes if the vector_size attribute appears before the
+         typedef name but the corresponding alignment attribute appears
+         after the typedef name. */
+      octl.defer_vector_attribute = TRUE;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
       gen_general_declaration_using_type(under_type,
                                          &type->source_corresp,
                                          iek_type, sec_decl, TQ_NONE,
@@ -5632,7 +5642,14 @@ declaration following this one is such a continuation.
                                          (a_name_reference_ptr)NULL);
 #if GNU_EXTENSIONS_ALLOWED
       /* Emit any attributes associated with the typedef. */
-      (void)form_type_attributes(type, /*need_leading_space=*/TRUE, &octl);
+#if GNU_VECTOR_TYPES_ALLOWED
+      octl.defer_vector_attribute = FALSE;
+      if (under_type->kind == (a_type_kind)tk_vector) {
+        /* Put out the vector size attribute that was deferred. */
+        form_vector_type_attribute(under_type, &need_leading_space, &octl);
+      }  /* if */
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+      (void)form_type_attributes(type, need_leading_space, &octl);
 #endif /* GNU_EXTENSIONS_ALLOWED */
     }  /* if */
     /* See if there are comma-separated declarations attached to this one. */

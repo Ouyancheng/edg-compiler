@@ -77,6 +77,9 @@ Clear an output control block to default values.
   octl->suppress_line_breaking    = FALSE;
   octl->suppress_cast_on_short_integral_const = FALSE;
   octl->suppress_name_in_template_cast_enum_const = FALSE;
+#if GNU_VECTOR_TYPES_ALLOWED
+  octl->defer_vector_attribute    = FALSE;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
 }  /* clear_il_to_str_output_control_block */
 
 
@@ -1316,15 +1319,13 @@ by octl.
       break;
 #if GNU_VECTOR_TYPES_ALLOWED
     case tk_vector:
-      octl->output_str("__attribute((vector_size(");
-      if (type->variant.vector.size_constant != NULL) {
-        form_constant(type->variant.vector.size_constant,
-                      /*need_parens=*/FALSE, octl);
-      } else {
-        form_unsigned_num((a_host_large_unsigned)type->size, octl);
-      }  /* if */
-      octl->output_str("))) ");
-      form_type(type->variant.vector.element_type, octl);
+      { a_boolean need_leading_space = FALSE;
+        if (!octl->defer_vector_attribute) {
+          form_vector_type_attribute(type, &need_leading_space, octl);
+          octl->output_str(" ");
+        }  /* if */
+        form_type(type->variant.vector.element_type, octl);
+      }
       break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
     case tk_unknown:
@@ -4689,6 +4690,36 @@ Do the output in the way described by octl.
     }  /* if */
   }  /* if */
 }  /* form_routine_type_attributes */
+
+
+#if GNU_VECTOR_TYPES_ALLOWED
+void form_vector_type_attribute(
+                     a_type_ptr                            type,
+                     a_boolean                             *need_leading_space,
+                     an_il_to_str_output_control_block_ptr octl)
+/*
+Output a GNU "vector_size" attribute as required by the specified type,
+which must be a tk_vector, in the way described by octl.  If
+*need_leading_space is TRUE, precede the attribute with a leading space.
+*need_leading_space is set to TRUE to indicate that a space will be needed
+after the attribute.
+*/
+{
+  check_assertion(type->kind == (a_type_kind)tk_vector);
+  if (*need_leading_space) {
+    octl->output_str(" ");
+  }  /* if */
+  octl->output_str("__attribute((vector_size(");
+  if (type->variant.vector.size_constant != NULL) {
+    form_constant(type->variant.vector.size_constant,
+                  /*need_parens=*/FALSE, octl);
+  } else {
+    form_unsigned_num((a_host_large_unsigned)type->size, octl);
+  }  /* if */
+  octl->output_str(")))");
+  *need_leading_space = TRUE;
+}  /* form_vector_type_attribute */
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
 
 
 a_boolean form_type_attributes(

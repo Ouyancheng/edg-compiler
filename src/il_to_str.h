@@ -189,6 +189,19 @@ typedef struct an_il_to_str_output_control_block {
 			/* Suppress the name of a tpck_cast constant that
 			   represents an enumerator and put out its value
 			   instead. */
+#if GNU_VECTOR_TYPES_ALLOWED
+  a_byte_boolean
+	defer_vector_attribute;
+			/* When forming a vector type, do not put out the
+			   "vector_size" attribute but just the element
+			   type.  This is needed because versions 4.1 and
+			   following of the GNU compilers report alignment
+			   errors for large vector sizes if the vector size
+			   is specified before the typedef name and the
+			   corresponding alignment attribute appears in the
+			   normal location for attributes following the
+			   typedef name. */
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
 } an_il_to_str_output_control_block;
 
 /*
@@ -345,6 +358,13 @@ extern a_boolean form_type_attributes(
                    a_type_ptr                             type,
                    a_boolean                              need_leading_space,
                    an_il_to_str_output_control_block_ptr  octl);
+
+#if GNU_VECTOR_TYPES_ALLOWED
+extern void form_vector_type_attribute(
+                     a_type_ptr                            type,
+                     a_boolean                             *need_leading_space,
+                     an_il_to_str_output_control_block_ptr octl);
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
 
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
 void form_ELF_visibility_attribute(
