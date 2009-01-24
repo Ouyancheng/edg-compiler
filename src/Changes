@@ -1,5 +1,21 @@
 Version 4.1
 
+1/23/09  [EDGcpfe/9469]
+GNU compatibility: Parameter types of builtin __sync_... functions
+
+In GNU modes, the front end accepts various built-in functions for atomic
+memory access when the configuration macro GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
+is TRUE (see Changes entry of 7/31/07).  Previously, the front end
+predeclared those functions assuming that the integer types unsigned short,
+unsigned int, and unsigned long had sizes 2, 4, and 8, respectively.  This is
+commonly true in 64-bit environments, but not in 32-bit environments.  Since
+32-bit versions of GCC also support these functions, the front end now selects
+integral types of sizes 2, 4, and 8, based on the target configuration, and
+uses those to predeclare the __sync_... function parameter types as
+appropriate (an internal error may be triggered if no integer type of the
+appropriate size is available for the target configuration).
+ 
+
 1/23/08  [EDGcpfe/9448]
 Microsoft compatibility: accept UUID strings without quotes in attributes 
 

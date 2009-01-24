@@ -392,6 +392,134 @@ The code is kept considerably more compact by using the following macros.
   enter_gnu_builtin_func1(edg_concat(name,l), int, unsigned_long);
 #endif /* LONG_LONG_ALLOWED */
 
+#if GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
+
+static void enter_gnu_sync_functions(void)
+/*
+Predeclare GNU built-in functions for atomic memory access.  This includes
+"generic" functions and "size-specific" functions.  Calls to "generic"
+functions (like __sync_fetch_and_add) will be rewritten as calls to
+corresponding "size-specific" functions (like __sync_fetch_and_add_4)
+depending on the type of the first argument (see adjust_gnu_sync_call).
+*/
+{
+  an_integer_kind  u2_kind, u4_kind, u8_kind;
+  a_type_ptr       u1_type, u2_type, u4_type, u8_type;
+  a_type_ptr       no_return_type, volatile_void_star_type, boolean_type;
+
+  /* Construct unsigned integer types of size 1, 2, 4, and 8, respectively. */
+  u2_kind = int_kind_for_bit_size(2, /*is_signed=*/FALSE);
+  u4_kind = int_kind_for_bit_size(4, /*is_signed=*/FALSE);
+  u8_kind = int_kind_for_bit_size(8, /*is_signed=*/FALSE);
+  check_assertion_str(u2_kind != (an_integer_kind)ik_none &&
+                      u4_kind != (an_integer_kind)ik_none &&
+                      u8_kind != (an_integer_kind)ik_none,
+                  "Invalid target configuration for GNU __sync... functions");
+  u1_type = integer_type((an_integer_kind)ik_unsigned_char);
+  u2_type = integer_type(u2_kind);
+  u4_type = integer_type(u4_kind);
+  u8_type = integer_type(u8_kind);
+  no_return_type = void_type();
+  volatile_void_star_type = 
+             make_pointer_type(make_qualified_type(void_type(), TQ_VOLATILE));
+  boolean_type = (!C_mode() || c99_mode) ? bool_type() : u1_type;
+  
+  enter_gnu_builtin_func0(_sync_synchronize, no_return);
+  enter_gnu_builtin_vararg_func0(_sync_fetch_and_add, no_return);
+  enter_gnu_builtin_vararg_func0(_sync_fetch_and_sub, no_return);
+  enter_gnu_builtin_vararg_func0(_sync_fetch_and_or, no_return);
+  enter_gnu_builtin_vararg_func0(_sync_fetch_and_and, no_return);
+  enter_gnu_builtin_vararg_func0(_sync_fetch_and_xor, no_return);
+  enter_gnu_builtin_vararg_func0(_sync_fetch_and_nand, no_return);
+  enter_gnu_builtin_vararg_func0(_sync_add_and_fetch, no_return);
+  enter_gnu_builtin_vararg_func0(_sync_sub_and_fetch, no_return);
+  enter_gnu_builtin_vararg_func0(_sync_or_and_fetch, no_return);
+  enter_gnu_builtin_vararg_func0(_sync_and_and_fetch, no_return);
+  enter_gnu_builtin_vararg_func0(_sync_xor_and_fetch, no_return);
+  enter_gnu_builtin_vararg_func0(_sync_nand_and_fetch, no_return);
+  enter_gnu_builtin_vararg_func0(_sync_bool_compare_and_swap, no_return);
+  enter_gnu_builtin_vararg_func0(_sync_val_compare_and_swap, no_return);
+  enter_gnu_builtin_vararg_func0(_sync_lock_test_and_set, no_return);
+  enter_gnu_builtin_vararg_func0(_sync_lock_release, no_return);
+  enter_gnu_builtin_func2(_sync_fetch_and_add_1, u1, volatile_void_star, u1);
+  enter_gnu_builtin_func2(_sync_fetch_and_sub_1, u1, volatile_void_star, u1);
+  enter_gnu_builtin_func2(_sync_fetch_and_or_1, u1, volatile_void_star, u1);
+  enter_gnu_builtin_func2(_sync_fetch_and_and_1, u1, volatile_void_star, u1);
+  enter_gnu_builtin_func2(_sync_fetch_and_xor_1, u1, volatile_void_star, u1);
+  enter_gnu_builtin_func2(_sync_fetch_and_nand_1, u1, volatile_void_star, u1);
+  enter_gnu_builtin_func2(_sync_add_and_fetch_1, u1, volatile_void_star, u1);
+  enter_gnu_builtin_func2(_sync_sub_and_fetch_1, u1, volatile_void_star, u1);
+  enter_gnu_builtin_func2(_sync_or_and_fetch_1, u1, volatile_void_star, u1);
+  enter_gnu_builtin_func2(_sync_and_and_fetch_1, u1, volatile_void_star, u1);
+  enter_gnu_builtin_func2(_sync_xor_and_fetch_1, u1, volatile_void_star, u1);
+  enter_gnu_builtin_func2(_sync_nand_and_fetch_1, u1, volatile_void_star, u1);
+  enter_gnu_builtin_func3(_sync_bool_compare_and_swap_1, boolean,
+                          volatile_void_star, u1, u1);
+  enter_gnu_builtin_func3(_sync_val_compare_and_swap_1, u1,
+                          volatile_void_star, u1, u1);
+  enter_gnu_builtin_func2(_sync_lock_test_and_set_1, u1,
+                          volatile_void_star, u1);
+  enter_gnu_builtin_func1(_sync_lock_release_1, u1, volatile_void_star);
+  enter_gnu_builtin_func2(_sync_fetch_and_add_2, u2, volatile_void_star, u2);
+  enter_gnu_builtin_func2(_sync_fetch_and_sub_2, u2, volatile_void_star, u2);
+  enter_gnu_builtin_func2(_sync_fetch_and_or_2, u2, volatile_void_star, u2);
+  enter_gnu_builtin_func2(_sync_fetch_and_and_2, u2, volatile_void_star, u2);
+  enter_gnu_builtin_func2(_sync_fetch_and_xor_2, u2, volatile_void_star, u2);
+  enter_gnu_builtin_func2(_sync_fetch_and_nand_2, u2, volatile_void_star, u2);
+  enter_gnu_builtin_func2(_sync_add_and_fetch_2, u2, volatile_void_star, u2);
+  enter_gnu_builtin_func2(_sync_sub_and_fetch_2, u2, volatile_void_star, u2);
+  enter_gnu_builtin_func2(_sync_or_and_fetch_2, u2, volatile_void_star, u2);
+  enter_gnu_builtin_func2(_sync_and_and_fetch_2, u2, volatile_void_star, u2);
+  enter_gnu_builtin_func2(_sync_xor_and_fetch_2, u2, volatile_void_star, u2);
+  enter_gnu_builtin_func2(_sync_nand_and_fetch_2, u2, volatile_void_star, u2);
+  enter_gnu_builtin_func3(_sync_bool_compare_and_swap_2, boolean,
+                          volatile_void_star, u2, u2);
+  enter_gnu_builtin_func3(_sync_val_compare_and_swap_2, u2,
+                          volatile_void_star, u2, u2);
+  enter_gnu_builtin_func2(_sync_lock_test_and_set_2, u2,
+                          volatile_void_star, u2);
+  enter_gnu_builtin_func1(_sync_lock_release_2, u2, volatile_void_star);
+  enter_gnu_builtin_func2(_sync_fetch_and_add_4, u4, volatile_void_star, u4);
+  enter_gnu_builtin_func2(_sync_fetch_and_sub_4, u4, volatile_void_star, u4);
+  enter_gnu_builtin_func2(_sync_fetch_and_or_4, u4, volatile_void_star, u4);
+  enter_gnu_builtin_func2(_sync_fetch_and_and_4, u4, volatile_void_star, u4);
+  enter_gnu_builtin_func2(_sync_fetch_and_xor_4, u4, volatile_void_star, u4);
+  enter_gnu_builtin_func2(_sync_fetch_and_nand_4, u4, volatile_void_star, u4);
+  enter_gnu_builtin_func2(_sync_add_and_fetch_4, u4, volatile_void_star, u4);
+  enter_gnu_builtin_func2(_sync_sub_and_fetch_4, u4, volatile_void_star, u4);
+  enter_gnu_builtin_func2(_sync_or_and_fetch_4, u4, volatile_void_star, u4);
+  enter_gnu_builtin_func2(_sync_and_and_fetch_4, u4, volatile_void_star, u4);
+  enter_gnu_builtin_func2(_sync_xor_and_fetch_4, u4, volatile_void_star, u4);
+  enter_gnu_builtin_func2(_sync_nand_and_fetch_4, u4, volatile_void_star, u4);
+  enter_gnu_builtin_func3(_sync_bool_compare_and_swap_4, boolean,
+                          volatile_void_star, u4, u4);
+  enter_gnu_builtin_func3(_sync_val_compare_and_swap_4, u4,
+                          volatile_void_star, u4, u4);
+  enter_gnu_builtin_func2(_sync_lock_test_and_set_4, u4,
+                          volatile_void_star, u4);
+  enter_gnu_builtin_func1(_sync_lock_release_4, u4, volatile_void_star);
+  enter_gnu_builtin_func2(_sync_fetch_and_add_8, u8, volatile_void_star, u8);
+  enter_gnu_builtin_func2(_sync_fetch_and_sub_8, u8, volatile_void_star, u8);
+  enter_gnu_builtin_func2(_sync_fetch_and_or_8, u8, volatile_void_star, u8);
+  enter_gnu_builtin_func2(_sync_fetch_and_and_8, u8, volatile_void_star, u8);
+  enter_gnu_builtin_func2(_sync_fetch_and_xor_8, u8, volatile_void_star, u8);
+  enter_gnu_builtin_func2(_sync_fetch_and_nand_8, u8, volatile_void_star, u8);
+  enter_gnu_builtin_func2(_sync_add_and_fetch_8, u8, volatile_void_star, u8);
+  enter_gnu_builtin_func2(_sync_sub_and_fetch_8, u8, volatile_void_star, u8);
+  enter_gnu_builtin_func2(_sync_or_and_fetch_8, u8, volatile_void_star, u8);
+  enter_gnu_builtin_func2(_sync_and_and_fetch_8, u8, volatile_void_star, u8);
+  enter_gnu_builtin_func2(_sync_xor_and_fetch_8, u8, volatile_void_star, u8);
+  enter_gnu_builtin_func2(_sync_nand_and_fetch_8, u8, volatile_void_star, u8);
+  enter_gnu_builtin_func3(_sync_bool_compare_and_swap_8, boolean,
+                          volatile_void_star, u8, u8);
+  enter_gnu_builtin_func3(_sync_val_compare_and_swap_8, u8,
+                          volatile_void_star, u8, u8);
+  enter_gnu_builtin_func2(_sync_lock_test_and_set_8, u8,
+                          volatile_void_star, u8);
+  enter_gnu_builtin_func1(_sync_lock_release_8, u8, volatile_void_star);
+}  /* enter_gnu_sync_functions */
+
+#endif /* GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
 #if GNU_BUILTIN_IA32_VECTOR_FUNCTIONS_ALLOWED
 
 static void enter_builtin_ia32_vector_functions(void)
@@ -1142,12 +1270,6 @@ Enter the standard predeclared functions for GCC.
   a_type_ptr  intmax_type;
   a_type_ptr  wint_t_type;
   a_type_ptr  ssize_t_type;
-#if GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
-  a_type_ptr  unsigned_char_type;
-  a_type_ptr  boolean_type;
-  a_type_ptr  unsigned_short_type;
-  a_type_ptr  volatile_void_star_type;
-#endif /* GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
 #if TARG_ALL_POINTERS_SAME_SIZE
   a_type_ptr  pmode_type;
 #endif /* TARG_ALL_POINTERS_SAME_SIZE */
@@ -1196,13 +1318,6 @@ Enter the standard predeclared functions for GCC.
   intmax_type = integer_type(targ_intmax_kind);
   wint_t_type = integer_type(targ_wint_t_int_kind);
   ssize_t_type = integer_type(targ_ssize_t_int_kind);
-#if GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
-  unsigned_char_type = integer_type((an_integer_kind)ik_unsigned_char);
-  boolean_type = (!C_mode() || c99_mode) ? bool_type() : unsigned_char_type;
-  unsigned_short_type = integer_type((an_integer_kind)ik_unsigned_short);
-  volatile_void_star_type = 
-             make_pointer_type(make_qualified_type(void_type(), TQ_VOLATILE));
-#endif /* GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
 #if TARG_ALL_POINTERS_SAME_SIZE
   pmode_type = get_type_with_mode(int_type, targ_pointer_mode, 
 				  &error_position);
@@ -1572,161 +1687,7 @@ Enter the standard predeclared functions for GCC.
   enter_gnu_builtin_func2(_ynl, long_double, int, long_double);
 
 #if GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
-  /* __sync functions: */
-  /* Check that "unsigned short", "unsigned int", and "unsigned long long"
-     have sizes 2, 4, and 8, respectively.  This is necessary because calls
-     to the generic _sync_... functions are dispatched to the versions
-     ending in _1, _2, _4, and _8, depending on the size of the type pointed
-     to by the first argument.  ("unsigned char" has size 1 by definition and
-     therefore need not be checked.) */
-  check_assertion_str(unsigned_short_type->size == 2 &&
-                      unsigned_type->size == 4 &&
-                      unsigned_long_long_type->size == 8,
-                      "invalid integer type configuration for x86-64 target");
-  enter_gnu_builtin_func0(_sync_synchronize, no_return);
-  enter_gnu_builtin_vararg_func0(_sync_fetch_and_add, no_return);
-  enter_gnu_builtin_vararg_func0(_sync_fetch_and_sub, no_return);
-  enter_gnu_builtin_vararg_func0(_sync_fetch_and_or, no_return);
-  enter_gnu_builtin_vararg_func0(_sync_fetch_and_and, no_return);
-  enter_gnu_builtin_vararg_func0(_sync_fetch_and_xor, no_return);
-  enter_gnu_builtin_vararg_func0(_sync_fetch_and_nand, no_return);
-  enter_gnu_builtin_vararg_func0(_sync_add_and_fetch, no_return);
-  enter_gnu_builtin_vararg_func0(_sync_sub_and_fetch, no_return);
-  enter_gnu_builtin_vararg_func0(_sync_or_and_fetch, no_return);
-  enter_gnu_builtin_vararg_func0(_sync_and_and_fetch, no_return);
-  enter_gnu_builtin_vararg_func0(_sync_xor_and_fetch, no_return);
-  enter_gnu_builtin_vararg_func0(_sync_nand_and_fetch, no_return);
-  enter_gnu_builtin_vararg_func0(_sync_bool_compare_and_swap, no_return);
-  enter_gnu_builtin_vararg_func0(_sync_val_compare_and_swap, no_return);
-  enter_gnu_builtin_vararg_func0(_sync_lock_test_and_set, no_return);
-  enter_gnu_builtin_vararg_func0(_sync_lock_release, no_return);
-  enter_gnu_builtin_func2(_sync_fetch_and_add_1, unsigned_char,
-                          volatile_void_star, unsigned_char);
-  enter_gnu_builtin_func2(_sync_fetch_and_sub_1, unsigned_char,
-                          volatile_void_star, unsigned_char);
-  enter_gnu_builtin_func2(_sync_fetch_and_or_1, unsigned_char,
-                          volatile_void_star, unsigned_char);
-  enter_gnu_builtin_func2(_sync_fetch_and_and_1, unsigned_char,
-                          volatile_void_star, unsigned_char);
-  enter_gnu_builtin_func2(_sync_fetch_and_xor_1, unsigned_char,
-                          volatile_void_star, unsigned_char);
-  enter_gnu_builtin_func2(_sync_fetch_and_nand_1, unsigned_char,
-                          volatile_void_star, unsigned_char);
-  enter_gnu_builtin_func2(_sync_add_and_fetch_1, unsigned_char,
-                          volatile_void_star, unsigned_char);
-  enter_gnu_builtin_func2(_sync_sub_and_fetch_1, unsigned_char,
-                          volatile_void_star, unsigned_char);
-  enter_gnu_builtin_func2(_sync_or_and_fetch_1, unsigned_char,
-                          volatile_void_star, unsigned_char);
-  enter_gnu_builtin_func2(_sync_and_and_fetch_1, unsigned_char,
-                          volatile_void_star, unsigned_char);
-  enter_gnu_builtin_func2(_sync_xor_and_fetch_1, unsigned_char,
-                          volatile_void_star, unsigned_char);
-  enter_gnu_builtin_func2(_sync_nand_and_fetch_1, unsigned_char,
-                          volatile_void_star, unsigned_char);
-  enter_gnu_builtin_func3(_sync_bool_compare_and_swap_1, boolean,
-                          volatile_void_star, unsigned_char, unsigned_char);
-  enter_gnu_builtin_func3(_sync_val_compare_and_swap_1, unsigned_char,
-                          volatile_void_star, unsigned_char, unsigned_char);
-  enter_gnu_builtin_func2(_sync_lock_test_and_set_1, unsigned_char,
-                          volatile_void_star, unsigned_char);
-  enter_gnu_builtin_func1(_sync_lock_release_1, unsigned_char,
-                          volatile_void_star);
-  enter_gnu_builtin_func2(_sync_fetch_and_add_2, unsigned_short,
-                          volatile_void_star, unsigned_short);
-  enter_gnu_builtin_func2(_sync_fetch_and_sub_2, unsigned_short,
-                          volatile_void_star, unsigned_short);
-  enter_gnu_builtin_func2(_sync_fetch_and_or_2, unsigned_short,
-                          volatile_void_star, unsigned_short);
-  enter_gnu_builtin_func2(_sync_fetch_and_and_2, unsigned_short,
-                          volatile_void_star, unsigned_short);
-  enter_gnu_builtin_func2(_sync_fetch_and_xor_2, unsigned_short,
-                          volatile_void_star, unsigned_short);
-  enter_gnu_builtin_func2(_sync_fetch_and_nand_2, unsigned_short,
-                          volatile_void_star, unsigned_short);
-  enter_gnu_builtin_func2(_sync_add_and_fetch_2, unsigned_short,
-                          volatile_void_star, unsigned_short);
-  enter_gnu_builtin_func2(_sync_sub_and_fetch_2, unsigned_short,
-                          volatile_void_star, unsigned_short);
-  enter_gnu_builtin_func2(_sync_or_and_fetch_2, unsigned_short,
-                          volatile_void_star, unsigned_short);
-  enter_gnu_builtin_func2(_sync_and_and_fetch_2, unsigned_short,
-                          volatile_void_star, unsigned_short);
-  enter_gnu_builtin_func2(_sync_xor_and_fetch_2, unsigned_short,
-                          volatile_void_star, unsigned_short);
-  enter_gnu_builtin_func2(_sync_nand_and_fetch_2, unsigned_short,
-                          volatile_void_star, unsigned_short);
-  enter_gnu_builtin_func3(_sync_bool_compare_and_swap_2, boolean,
-                          volatile_void_star, unsigned_short, unsigned_short);
-  enter_gnu_builtin_func3(_sync_val_compare_and_swap_2, unsigned_short,
-                          volatile_void_star, unsigned_short, unsigned_short);
-  enter_gnu_builtin_func2(_sync_lock_test_and_set_2, unsigned_short,
-                          volatile_void_star, unsigned_short);
-  enter_gnu_builtin_func1(_sync_lock_release_2, unsigned_short,
-                          volatile_void_star);
-  enter_gnu_builtin_func2(_sync_fetch_and_add_4, unsigned,
-                          volatile_void_star, unsigned);
-  enter_gnu_builtin_func2(_sync_fetch_and_sub_4, unsigned,
-                          volatile_void_star, unsigned);
-  enter_gnu_builtin_func2(_sync_fetch_and_or_4, unsigned,
-                          volatile_void_star, unsigned);
-  enter_gnu_builtin_func2(_sync_fetch_and_and_4, unsigned,
-                          volatile_void_star, unsigned);
-  enter_gnu_builtin_func2(_sync_fetch_and_xor_4, unsigned,
-                          volatile_void_star, unsigned);
-  enter_gnu_builtin_func2(_sync_fetch_and_nand_4, unsigned,
-                          volatile_void_star, unsigned);
-  enter_gnu_builtin_func2(_sync_add_and_fetch_4, unsigned,
-                          volatile_void_star, unsigned);
-  enter_gnu_builtin_func2(_sync_sub_and_fetch_4, unsigned,
-                          volatile_void_star, unsigned);
-  enter_gnu_builtin_func2(_sync_or_and_fetch_4, unsigned,
-                          volatile_void_star, unsigned);
-  enter_gnu_builtin_func2(_sync_and_and_fetch_4, unsigned,
-                          volatile_void_star, unsigned);
-  enter_gnu_builtin_func2(_sync_xor_and_fetch_4, unsigned,
-                          volatile_void_star, unsigned);
-  enter_gnu_builtin_func2(_sync_nand_and_fetch_4, unsigned,
-                          volatile_void_star, unsigned);
-  enter_gnu_builtin_func3(_sync_bool_compare_and_swap_4, boolean,
-                          volatile_void_star, unsigned, unsigned);
-  enter_gnu_builtin_func3(_sync_val_compare_and_swap_4, unsigned,
-                          volatile_void_star, unsigned, unsigned);
-  enter_gnu_builtin_func2(_sync_lock_test_and_set_4, unsigned,
-                          volatile_void_star, unsigned);
-  enter_gnu_builtin_func1(_sync_lock_release_4, unsigned, volatile_void_star);
-  enter_gnu_builtin_func2(_sync_fetch_and_add_8, unsigned_long,
-                          volatile_void_star, unsigned_long);
-  enter_gnu_builtin_func2(_sync_fetch_and_sub_8, unsigned_long,
-                          volatile_void_star, unsigned_long);
-  enter_gnu_builtin_func2(_sync_fetch_and_or_8, unsigned_long,
-                          volatile_void_star, unsigned_long);
-  enter_gnu_builtin_func2(_sync_fetch_and_and_8, unsigned_long,
-                          volatile_void_star, unsigned_long);
-  enter_gnu_builtin_func2(_sync_fetch_and_xor_8, unsigned_long,
-                          volatile_void_star, unsigned_long);
-  enter_gnu_builtin_func2(_sync_fetch_and_nand_8, unsigned_long,
-                          volatile_void_star, unsigned_long);
-  enter_gnu_builtin_func2(_sync_add_and_fetch_8, unsigned_long,
-                          volatile_void_star, unsigned_long);
-  enter_gnu_builtin_func2(_sync_sub_and_fetch_8, unsigned_long,
-                          volatile_void_star, unsigned_long);
-  enter_gnu_builtin_func2(_sync_or_and_fetch_8, unsigned_long,
-                          volatile_void_star, unsigned_long);
-  enter_gnu_builtin_func2(_sync_and_and_fetch_8, unsigned_long,
-                          volatile_void_star, unsigned_long);
-  enter_gnu_builtin_func2(_sync_xor_and_fetch_8, unsigned_long,
-                          volatile_void_star, unsigned_long);
-  enter_gnu_builtin_func2(_sync_nand_and_fetch_8, unsigned_long,
-                          volatile_void_star, unsigned_long);
-  enter_gnu_builtin_func3(_sync_bool_compare_and_swap_8, boolean,
-                          volatile_void_star, unsigned_long, unsigned_long);
-  enter_gnu_builtin_func3(_sync_val_compare_and_swap_8, unsigned_long,
-                          volatile_void_star, unsigned_long, unsigned_long);
-  enter_gnu_builtin_func2(_sync_lock_test_and_set_8, unsigned_long,
-                          volatile_void_star, unsigned_long);
-  enter_gnu_builtin_func1(_sync_lock_release_8, unsigned_long,
-                          volatile_void_star);
+  enter_gnu_sync_functions();
 #endif /* GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED */
 #if GNU_BUILTIN_IA32_VECTOR_FUNCTIONS_ALLOWED
   enter_builtin_ia32_vector_functions();
