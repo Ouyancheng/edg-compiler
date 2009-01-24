@@ -1,5 +1,31 @@
 Version 4.1
 
+1/23/09  [EDGcpfe/9468]
+GNU compatibility, C- and C++-generating back ends: position of vector_size
+attribute
+
+In configurations with GNU_VECTOR_TYPES_ALLOWED, the C-generating and
+C++-generating back ends generated typedefs for vector types by placing the
+vector_size attribute at the beginning of the declaration, preceding the
+element type, while an alignment attribute (if any) appeared following the
+typedef name.  Versions 4.1 and newer of the GNU compilers issue an error
+with this style of declaration if the vector size is such that the default
+alignment is too small.  The front end has been changed to address this
+problem by moving the vector_size attribute in a typedef declaration to
+follow the typedef name as well.  For example:
+
+  typedef int v16i __attribute__((vector_size(16), aligned(16)));
+  // Formerly generated as
+  //
+  //   typedef __attribute__((vector_size(16))) int v16i
+  //                                           __attribute__((aligned(16)))
+  //
+  // Now generated as
+  //
+  //   typedef int v16i __attribute__((vector_size(16)))
+  //                                           __attribute__((aligned(16)))
+
+
 1/23/09  [EDGcpfe/9469]
 GNU compatibility: Parameter types of builtin __sync_... functions
 
