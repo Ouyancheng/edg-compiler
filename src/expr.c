@@ -10856,7 +10856,8 @@ for non-class operands).  This routine is called only in C++ mode.
               arg_constant = &operand->variant.constant;
             }  /* if */
             clear_conv_descr(&conversion);
-            if (impl_conversion_possible(operand->type,
+            if (!dropping_qualifiers &&
+                impl_conversion_possible(operand->type,
                                          /*source_is_constant=*/
                                                           arg_constant != NULL,
                                          /*source_is_string_literal=*/
