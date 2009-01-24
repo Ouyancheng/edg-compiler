@@ -10747,6 +10747,8 @@ for non-class operands).  This routine is called only in C++ mode.
   /* Don't check for user-defined conversions in constant expressions. */
   if (!curr_expr_kind_is_const()) {
     if (cast_to_reference) {
+      a_boolean    possible = FALSE;
+      a_type_ptr   eff_type_cast_to = type_pointed_to(type_cast_to);
       a_boolean    ref_to_const, ref_to_const_volatile;
       a_boolean    binding_to_rvalue_allowed, dropping_qualifiers;
       a_boolean    template_case;
@@ -10784,9 +10786,7 @@ for non-class operands).  This routine is called only in C++ mode.
            operand and no user-defined conversion applies, we know we have
            an error.  That's the reason that user_defined_conversion_possible
            is not called. */
-        a_boolean  possible = FALSE;
-        a_boolean  ambiguous;
-        a_type_ptr eff_type_cast_to = type_pointed_to(type_cast_to);
+        a_boolean ambiguous;
         template_case = FALSE;
         if (could_be_dependent_class_type(operand->type)) {
           /* A template parameter type could be a class type, so assume that
