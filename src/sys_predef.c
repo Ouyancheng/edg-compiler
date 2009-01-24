@@ -408,9 +408,9 @@ depending on the type of the first argument (see adjust_gnu_sync_call).
   a_type_ptr       no_return_type, volatile_void_star_type, boolean_type;
 
   /* Construct unsigned integer types of size 1, 2, 4, and 8, respectively. */
-  u2_kind = int_kind_for_bit_size(2, /*is_signed=*/FALSE);
-  u4_kind = int_kind_for_bit_size(4, /*is_signed=*/FALSE);
-  u8_kind = int_kind_for_bit_size(8, /*is_signed=*/FALSE);
+  u2_kind = int_kind_for_bit_size(2*CHAR_BIT, /*is_signed=*/FALSE);
+  u4_kind = int_kind_for_bit_size(4*CHAR_BIT, /*is_signed=*/FALSE);
+  u8_kind = int_kind_for_bit_size(8*CHAR_BIT, /*is_signed=*/FALSE);
   check_assertion_str(u2_kind != (an_integer_kind)ik_none &&
                       u4_kind != (an_integer_kind)ik_none &&
                       u8_kind != (an_integer_kind)ik_none,
