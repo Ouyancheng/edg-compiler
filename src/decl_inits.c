@@ -595,6 +595,28 @@ the dynamic init entry.
 }  /* copy_ctor_default_args_to_dynamic_init */
 
 
+a_dynamic_init_ptr alloc_ctor_dynamic_init(a_routine_ptr ctor_rp,
+                                           a_boolean     implied_source)
+/*
+Allocate a dik_constructor dynamic init entry that will call the
+constructor given by ctor_rp.  If the constructor has default arguments,
+add the expressions for those.  If implied_source is TRUE, the source
+for the (copy) constructor call will be implicit.
+*/
+{
+  a_dynamic_init_ptr dip;
+
+  dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
+  dip->variant.constructor.ptr = ctor_rp;
+  dip->variant.constructor.is_copy_constructor_with_implied_source =
+                                                                implied_source;
+  /* A user defined default constructor may have default args that
+     should be incorporated into the constructor call. */
+  copy_ctor_default_args_to_dynamic_init(dip);
+  return dip;
+}  /* alloc_ctor_dynamic_init */
+
+
 static void add_dtor_for_partially_constructed_aggregate(
                                                  a_routine_ptr       dtor_rp,
                                                  a_dynamic_init_ptr  dip)
@@ -753,11 +775,7 @@ routine is called in C++ mode only.
         } else  {
           /* If there's a constructor routine create a dik_constructor
              dynamic init entry. */
-          dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
-          dip->variant.constructor.ptr = ctor_rp;
-          /* A user defined default constructor may have default args that
-             should be incorporated into the constructor call. */
-          copy_ctor_default_args_to_dynamic_init(dip);
+          dip = alloc_ctor_dynamic_init(ctor_rp, /*implied_source=*/FALSE);
           /* If the default constructor is generated and some component of the
              class requires zeroing, initialization is not really done because
              the value-initialization rules require that the zeroing occurs. */
@@ -869,11 +887,7 @@ This routine is called in C++ mode only.
         } else  {
           /* If there's a constructor routine create a dik_constructor
              dynamic init entry. */
-          dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
-          dip->variant.constructor.ptr = ctor_rp;
-          /* A user defined default constructor may have default args that
-             should be incorporated into the constructor call. */
-          copy_ctor_default_args_to_dynamic_init(dip);
+          dip = alloc_ctor_dynamic_init(ctor_rp, /*implied_source=*/FALSE);
           /* If the default constructor for the field was not user-written,
              a part of the field might need to be zeroed according to the
              rules for value-initialization. */
@@ -3941,11 +3955,7 @@ the default constructor (if one exists) is called.
       } else {
         if (ctor != NULL) {
           /* Normal case -- there's a constructor to do the initialization. */
-          init_dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
-          init_dip->variant.constructor.ptr = ctor;
-          /* A user defined default constructor may have default args that
-             should be incorporated into the constructor call. */
-          copy_ctor_default_args_to_dynamic_init(init_dip);
+          init_dip = alloc_ctor_dynamic_init(ctor, /*implied_source=*/FALSE);
           if (!same_entities(var_type, tp)) {
             /* The object has an array type.  We need to build an aggregate
                initialization on top of the other dynamic init entry. */
@@ -5200,20 +5210,7 @@ scan_paren:
         } else {
           /* A valid copy constructor does exist.  Generate the dynamic init
              entry. */
-          dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
-          dip->variant.constructor.ptr = rp;
-          /* No expression node is created to represent the subobject.  The
-             back end will compute the subobject's address based on the
-             base class or field just as it will compute the address of the
-             implicit "this" parameter, which is the address of the subobject
-             to be initialized by the copy. */
-          dip->variant.constructor.
-                            is_copy_constructor_with_implied_source = TRUE;
-          /* We need to copy the default arg expressions of the second and
-             subsequent parameters (if any) of the copy constructor.  The
-             first param is ignored even if it is declared to have a default
-             arg. */
-          copy_ctor_default_args_to_dynamic_init(dip);
+          dip = alloc_ctor_dynamic_init(rp, /*implied_source=*/TRUE);
         }  /* if */
       } else {
         /* No copy constructor is required.  If any constructor exists, the
@@ -5297,11 +5294,7 @@ scan_paren:
         } else {
           /* A default constructor does exist.  Generate the dynamic init
              entry. */
-          dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constructor);
-          dip->variant.constructor.ptr = rp;
-          /* A user defined default constructor may have default args that
-             should be incorporated into the constructor call. */
-          copy_ctor_default_args_to_dynamic_init(dip);
+          dip = alloc_ctor_dynamic_init(rp, /*implied_source=*/FALSE);
         }  /* if */
       }  /* if */
       /* Attach the new dynamic init entry to the constructor initializer. */

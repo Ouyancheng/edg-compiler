@@ -12956,7 +12956,8 @@ typedef struct a_lambda_capture {
 		initialization;
 			/* Pointer to the dynamic-init entry that describes
 			   the initialization of closure_field with the
-			   the captured variable. */
+			   the captured variable.  Left NULL if there was an
+			   error and the copy could not be done. */
 } a_lambda_capture;
 
 

@@ -8903,6 +8903,32 @@ when determining whether or not special handling is required.
 }  /* new_or_delete_type_requires_array_handling */
 
 
+static void accumulate_array_size(a_type_ptr    array_type,
+                                  a_targ_size_t *num_elements)
+/*
+As part of determining the size of an array, multiply num_elements by the
+number of array elements in the first level of the array type given by
+array_type.  For a variable or unknown-bound array, set *num_elements to zero.
+*/
+{
+  a_type_ptr unqual_array_type = skip_typerefs(array_type);
+
+  check_assertion(unqual_array_type->kind == (a_type_kind)tk_array);
+  if (unqual_array_type->variant.array.is_template_dependent_size_array) {
+    /* Arrays whose bounds are given by template-dependent constant
+       expressions (in prototype instantiations) have unknown size. */
+    *num_elements = 0;
+  } else if (vla_enabled && is_vla_type(unqual_array_type)) {
+    /* VLA type. */
+    *num_elements = 0;
+  } else {
+    check_assertion(!has_unknown_specified_bound(unqual_array_type));
+    *num_elements *=
+                   unqual_array_type->variant.array.variant.number_of_elements;
+  }  /* if */
+}  /* accumulate_array_size */
+
+
 static a_routine_ptr determine_deletion_for_new(
                                            a_type_ptr        base_new_type,
                                            a_symbol_ptr      new_sym,
@@ -9257,36 +9283,15 @@ specification allow a variable-sized array as the top type.
     if (new_array_dimension != NULL) {
       /* Variable-length array; count is deferred to runtime. */
       effective_num_of_elements = 0;
-    } else if (unqual_new_type->variant.array.
-                                            is_template_dependent_size_array) {
-      /* Template-dependent bound.  Count is constant but not known. */
-      effective_num_of_elements = 0;
-    } else if (vla_enabled && is_vla_type(unqual_new_type)) {
-      /* VLA type.  Error issued previously. */
-      check_assertion(err);
-      effective_num_of_elements = 0;
     } else {
-      effective_num_of_elements =
-                    unqual_new_type->variant.array.variant.number_of_elements;
+      effective_num_of_elements = 1;
+      accumulate_array_size(unqual_new_type, &effective_num_of_elements);
     }  /* if */
     while (is_array_type(base_new_type)) {
-      if (unqual_base_new_type->variant.array.
-                                            is_template_dependent_size_array) {
-        /* Arrays whose bounds are given by template-dependent constant
-           expressions (in prototype instantiations) have unknown size. */
-        effective_num_of_elements = 0;
-      } else if (vla_enabled && is_vla_type(unqual_base_new_type)) {
-        /* VLA type.  Error issued previously. */
-        check_assertion(err);
-        effective_num_of_elements = 0;
-      } else {
-        check_assertion(!has_unknown_specified_bound(unqual_base_new_type));
-        effective_num_of_elements *=
-                unqual_base_new_type->variant.array.variant.number_of_elements;
-      }  /* if */
-      base_new_type = array_element_type(unqual_base_new_type);
-      unqual_base_new_type = skip_typerefs(base_new_type);
+      accumulate_array_size(base_new_type, &effective_num_of_elements);
+      base_new_type = array_element_type(base_new_type);
     }  /* while */
+    unqual_base_new_type = skip_typerefs(base_new_type);
   }  /* if */
   function_symbol = proj_function_symbol = NULL;
   if (!err) {
@@ -18342,25 +18347,81 @@ variables, add initializers that describe how to copy the variables.
   for (lcp = lambda->capture_list; lcp != NULL; lcp = lcp->next) {
     a_variable_ptr     var = lcp->variable;
     a_type_ptr         dest_type = lcp->closure_field->type;
+    a_type_ptr         base_dest_type;
     an_operand         operand;
     a_dynamic_init_ptr dip;
+    a_routine_ptr      cctor_routine = NULL;
+    a_boolean          do_bitwise_copy = FALSE;
+    a_boolean          err = FALSE;
+    a_boolean          array_case = FALSE;
+    a_source_position  *capture_pos = lcp->is_implicit ?
+                                                  &lambda->start_position :
+                                                  &lcp->position;
     make_lvalue_variable_operand(var,
-                                 &lcp->position,
-                                 end_position_or_null(&lcp->end_position),
+                                 capture_pos,
+                                 &null_source_position,
                                  &operand,
                                  (a_ref_entry_ptr)NULL);
-    if (is_class_struct_union_type(dest_type)) {
-      /* For a class-typed variable, find the proper copy constructor. */
-      /* FIXME; note that this has to use an implicit source of copy. */
-      dip = NULL;
-    } else if (is_array_type(dest_type)) {
-      /* For an array copy the whole array.  Do a bitwise copy if that is
-         possible, otherwise a repeated copy constructor copy. */
-      /* FIXME; note that this has to use an implicit source of copy. */
-      dip = NULL;
+    /* See whether the copy is of a class type or array of class type. */
+    base_dest_type = dest_type;
+    if (is_array_type(dest_type)) {
+      base_dest_type = underlying_array_element_type(dest_type);
+      array_case = TRUE;
+    }  /* if */
+    if (is_class_struct_union_type(base_dest_type)) {
+      /* Find the proper copy constructor for copying a class object or an
+         element of an array of class objects. */
+      a_type_ptr dest_class_type = skip_typerefs(base_dest_type);
+      cctor_routine = select_copy_constructor(
+                                dest_class_type,
+                                get_type_qualifiers(operand.type),
+                                /*source_is_rvalue=*/FALSE,
+                                capture_pos,
+                                dest_class_type,
+                                &do_bitwise_copy,
+                                /*record_ref=*/TRUE,
+                                curr_expr_is_potentially_evaluated(),
+                                /*allow_suppressed_ctor=*/FALSE);
+      if (cctor_routine == NULL && !do_bitwise_copy) {
+        /* An error was detected and diagnosed. */
+        err = TRUE;
+      }  /* if */
+    } else if (array_case) {
+      /* For a non-class array, do a bitwise copy. */
+      do_bitwise_copy = TRUE;
+    }  /* if */
+    /* Build the dynamic initialization entry. */
+    if (err) {
+      /* Some previous error. */
+    } else if (do_bitwise_copy) {
+      /* The copy is a bitwise copy.  Use a dik_bitwise_copy dynamic init
+         entry.  The source is implied (always, for dik_bitwise_copy). */
+      dip = alloc_dynamic_init((a_dynamic_init_kind)dik_bitwise_copy);
+    } else if (cctor_routine != NULL) {
+      /* The copy uses a copy constructor.  Use a dik_constructor dynamic
+         init entry with an implied source. */
+      dip = alloc_ctor_dynamic_init(cctor_routine, /*implied_source=*/TRUE);
+      if (array_case) {
+        /* To repeat the copy constructor call for each element of an array,
+           add ck_init_repeat/ck_dynamic_init. */
+        a_type_ptr    elem_type = dest_type;
+        a_targ_size_t num_of_elements = 1;
+        /* Determine the number of elements in the (possibly multi-dimensional)
+           array, or 0 if the number of elements is unknown at compile time,
+           as for a template. */
+        while (is_array_type(elem_type)) {
+          accumulate_array_size(elem_type, &num_of_elements);
+          elem_type = array_element_type(elem_type);
+        }  /* while */
+        dip = add_array_nonconstant_aggregate_init(dip,
+                                                   dest_type,
+                                                   elem_type,
+                                                   num_of_elements);
+      }  /* if */
     } else {
       /* Other cases, including when dest_type is a reference (which happens
          when the capture is by reference). */
+      check_assertion(!array_case);
       prep_initializer_operand(&operand,
                                dest_type,
                                (a_boolean *)NULL,
