@@ -1737,8 +1737,10 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
       source_can_be_rvalue = ((param_type_qualifiers & TQ_CONST) != 0);
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    /* __unaligned can be dropped. */
-    if (microsoft_mode) arg_type_qualifiers &= ~TQ_UNALIGNED;
+    /* __unaligned and __restrict can be dropped. */
+    if (microsoft_mode) {
+      arg_type_qualifiers &= ~(TQ_UNALIGNED | TQ_RESTRICT);
+    }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Check the type qualifiers to see if they can be reconciled by
        trivial conversions. */
@@ -13598,9 +13600,11 @@ direct binding is "possible" and not whether it is "valid".
   if (type_is_correct_or_derived && !template_case) {
     a_type_qualifier_set source_quals = get_type_qualifiers(source_type);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    /* It's allowed to drop __unaligned in Microsoft mode.  MSVC++ issues
-       no diagnostic. */
-    if (microsoft_mode) source_quals &= ~TQ_UNALIGNED;
+    /* It's allowed to drop __unaligned or __restrict in Microsoft mode.
+       MSVC++ issues no diagnostic. */
+    if (microsoft_mode) {
+      source_quals &= ~(TQ_UNALIGNED | TQ_RESTRICT);
+    }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (source_quals != TQ_NONE) {
       a_type_qualifier_set dest_quals = get_type_qualifiers(base_dest_type);

@@ -1,5 +1,25 @@
 Version 4.1
 
+1/26/09  [EDGcpfe/9473]
+Microsoft compatibility: dropping __restrict on arguments
+
+In Microsoft mode, when __restrict is accepted (microsoft_version >= 1400),
+the __restrict qualifier is now allowed to be dropped on argument matches
+in overload resolution and in direct reference binding.  See the Changes
+entry of 8/15/08 for the previous change in this area.
+
+  template <class T> struct C {
+    void foo();
+    void foo(const T& src );
+  };
+  void f() {
+   int* __restrict pGroup;
+   int *const &r = pGroup;  // Now accepted
+   C<int*> c;
+   c.foo(pGroup);  // Now accepted (formerly, no function matched)
+  }
+
+
 1/23/09  [EDGcpfe/9468]
 GNU compatibility, C- and C++-generating back ends: position of vector_size
 attribute
