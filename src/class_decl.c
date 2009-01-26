@@ -16044,14 +16044,13 @@ consumed by the caller.  The grammar to be parsed is thus:
                     locator_for_curr_id.symbol_header->identifier);
         } else if (sym->kind != (a_symbol_kind)sk_variable) {
           sym_error(ec_not_a_variable, sym);
-        } else if (has_static_storage_duration(
-                                sym->variant.variable.ptr->storage_class)) {
-          error(ec_capture_of_static_duration_variable);
-        } else if (!var_declared_in_func_enclosing_curr_lambda(
-                                                 sym->variant.variable.ptr)) {
-          error(ec_captured_local_var_not_in_innermost_function);
         } else {
+          an_error_code  diag = ec_no_error;
           var = sym->variant.variable.ptr;
+          if (!check_var_for_lambda_capture(var, /*implicit=*/FALSE, &diag)) {
+            error(diag);
+            var = NULL;
+          }  /* if */
         }  /* if */
         (void)get_token();
       } else {

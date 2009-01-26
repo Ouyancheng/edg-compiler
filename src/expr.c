@@ -16472,7 +16472,7 @@ Return TRUE if we are currently inside the body statement of a lambda.
 }  /* in_lambda_body */
 
 
-a_boolean var_declared_in_func_enclosing_curr_lambda(a_variable_ptr var)
+static a_boolean var_declared_in_func_enclosing_curr_lambda(a_variable_ptr var)
 /*
 Return TRUE if the given variable is a local variable or parameter of the
 function immediately enclosing the current lambda.  This is one of the
@@ -16505,6 +16505,36 @@ conditions for being able to capture the variable.
   }  /* for */
   return result;
 }  /* var_declared_in_func_enclosing_curr_lambda */
+
+
+a_boolean check_var_for_lambda_capture(a_variable_ptr  var,
+                                       a_boolean       implicit,
+                                       an_error_code   *diag)
+/*
+The given variable is being captured for the current lambda; the capture is
+implicit if implicit is TRUE.  Check that this capture is valid, and return
+TRUE if it is.  If it is not, return FALSE, and set *diag to an appropriate
+error code.
+*/
+{
+  a_boolean  okay = FALSE;
+
+  if (has_static_storage_duration(var->storage_class)) {
+    *diag = ec_capture_of_static_duration_variable;
+    /* A reference to a static/extern variable doesn't amount to an implicit
+       capture.  So implicit captures should never get here. */
+    check_assertion(!implicit);
+  } else if (!var_declared_in_func_enclosing_curr_lambda(var)) {
+    *diag = implicit ? ec_bad_local_var_in_lambda
+                     : ec_captured_local_var_not_in_innermost_function;
+  } else if (is_variably_modified_type(var->type)) {
+    *diag = ec_lambda_capture_involves_variable_length_array;
+  } else {
+    okay = TRUE;
+    *diag = ec_no_error;
+  }  /* if */
+  return okay;
+}  /* check_var_for_lambda_capture */
 
 
 static a_boolean bad_nested_function_variable_ref(
@@ -16585,10 +16615,11 @@ indicates that the symbol is an anonymous union and cannot be captured.
                 err_code = ec_anon_union_ref_in_lambda;
                 bad_ref = TRUE;
               } else {
-                if (var_declared_in_func_enclosing_curr_lambda(var)) {
-                  /* The local variable is from the immediately enclosing
-                     function, so it can potentially be captured.  See if
-                     it has been or can be captured now. */
+                if (check_var_for_lambda_capture(var, /*implicit=*/TRUE,
+                                                 &err_code)) {
+                  /* The local variable can potentially be captured (e.g., it
+                     is from the immediately enclosing function).  See if it
+                     has been or can be captured now. */
                   *lambda_capture =
                              lambda_capture_for_variable(var, &error_position);
                   if (*lambda_capture == NULL) {
@@ -16596,9 +16627,8 @@ indicates that the symbol is an anonymous union and cannot be captured.
                     bad_ref = TRUE;
                   }  /* if */
                 } else {
-                  /* Something like a local variable of a function that's not
-                     the immediately enclosing function. */
-                  err_code = ec_bad_local_var_in_lambda;
+                  /* The variable isn't one that can be captured (err_code will
+                     have been set by check_var_for_lambda_capture). */
                   bad_ref = TRUE;
                 }  /* if */
               }  /* if */
