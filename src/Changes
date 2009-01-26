@@ -1,5 +1,16 @@
 Version 4.1
 
+1/26/09  [EDGcpfe/9467]
+Cast of rvalue to same type retained in gcc mode
+
+In GNU C mode, casts of an expression to the same type are
+deleted because we believe gcc does that, which is visible in the
+way that gcc allows such expressions to be used as lvalues.  However,
+when the operand is an rvalue there's no compatibility issue (the
+result of the cast is an rvalue either way), so we now retain the
+cast in such cases, which provides IL that is closer to the source form.
+
+
 1/26/09  [EDGcpfe/9473]
 Microsoft compatibility: dropping __restrict on arguments
 

@@ -11390,6 +11390,7 @@ indicates which.
                                               /*compiler_generated=*/FALSE);
 #if GNU_EXTENSIONS_ALLOWED
         } else if (gcc_mode &&
+                   is_an_lvalue(operand) &&
                    (gnu_version < 40000 ||
                     (gnu_version >= 40100 &&
                      is_class_struct_union_type(type_cast_to))) &&
