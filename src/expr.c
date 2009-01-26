@@ -10748,6 +10748,7 @@ for non-class operands).  This routine is called only in C++ mode.
   if (!curr_expr_kind_is_const()) {
     if (cast_to_reference) {
       a_boolean    possible = FALSE;
+      a_conv_descr *determined_conversion = NULL;
       a_type_ptr   eff_type_cast_to = type_pointed_to(type_cast_to);
       a_boolean    ref_to_const, ref_to_const_volatile;
       a_boolean    binding_to_rvalue_allowed, dropping_qualifiers;
@@ -10774,7 +10775,7 @@ for non-class operands).  This routine is called only in C++ mode.
           /* For a non-class rvalue case, go create a temporary to contain the
              rvalue. */
           check_assertion(binding_to_rvalue_allowed);
-          clear_conv_descr(&conversion);
+          determined_conversion = NULL;
           goto process_reference_binding;
         }  /* if */
       } else {
@@ -10805,6 +10806,7 @@ for non-class operands).  This routine is called only in C++ mode.
             /* A conversion can be done that will allow the reference to be
                bound directly to the result of the conversion function. */
             possible = TRUE;
+            determined_conversion = &conversion;
         } else if (binding_to_rvalue_allowed) {
           if (is_class_struct_union_type(eff_type_cast_to)) {
             if (is_an_lvalue(operand) &&
@@ -10830,6 +10832,7 @@ for non-class operands).  This routine is called only in C++ mode.
               /* A user-defined conversion can be done to create a temporary
                  to which the reference can be bound. */
               possible = TRUE;
+              determined_conversion = &conversion;
             }  /* if */
           } else if (is_class_struct_union_type(operand->type)) {
             if (conversion_from_class_possible(
@@ -10846,6 +10849,7 @@ for non-class operands).  This routine is called only in C++ mode.
               /* A user-defined conversion can be done to create a temporary
                  to which the reference can be bound. */
               possible = TRUE;
+              determined_conversion = &conversion;
             }  /* if */
           } else {
             /* Neither the source type nor the destination underlying type is
@@ -10875,6 +10879,7 @@ for non-class operands).  This routine is called only in C++ mode.
                  which will create a temporary and return an lvalue for it
                  as the result. */
               possible = TRUE;
+              determined_conversion = &conversion;
             }  /* if */
           }  /* if */
         }  /* if */
@@ -10889,11 +10894,13 @@ for non-class operands).  This routine is called only in C++ mode.
                                  /*is_reference_cast=*/TRUE);
           } else {
 process_reference_binding:
-            conversion.is_explicit_cast = TRUE;
+            if (determined_conversion != NULL) {
+              determined_conversion->is_explicit_cast = TRUE;
+            }  /* if */
             prep_reference_initializer_operand(
                                            operand,
                                            type_cast_to,
-                                           &conversion,
+                                           determined_conversion,
                                            /*initializing_return_value=*/FALSE,
                                            /*initializing_variable=*/FALSE,
                                            /*static_lifetime=*/FALSE,
