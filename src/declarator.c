@@ -1372,11 +1372,6 @@ see function_declarator (below) for which this is a helper function.
       /* Microsoft compilers allow destructors to be qualified with
          "__restrict".  This affects the signature (i.e., mangling) of the
          destructor. */
-      if (current_scope_is_class(parent_type)) {
-        /* Issue a warning on the in-class declaration.  If an out-of-class
-           definition follows, the warning is not repeated. */
-        pos_warning(ec_nonstd_restrict_destructor, &qualifier_pos);
-      }  /* if */
       this_class = parent_type;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else if (is_constructor || is_destructor) {

@@ -87,14 +87,14 @@ Microsoft attributes are enabled.
 Microsoft compatibility: __restrict on constructors and destructors
 
 In Microsoft mode with microsoft_version >= 1400, the front end now accepts
-(with a warning) the keyword __restrict on destructors.  The qualifier affects
-the signature of the destructor.  For example:
+the keyword __restrict on destructors.  The qualifier affects the signature
+of the destructor.  For example:
 
   struct D { ~D() __restrict; };  // Accepted in Microsoft mode.
   D::~D() {}                      // Error: missing __restrict.
 
 In addition, __restrict is also accepted on out-of-class constructor
-definitions, but in those cases, it is ignored (again, with a warning).
+definitions, but in those cases, it is ignored (with a warning).
 
   struct C { C(); };    // __restrict would not be accepted here.
   C::C() __restrict {}  // Accepted in Microsoft mode (__restrict ignored).
