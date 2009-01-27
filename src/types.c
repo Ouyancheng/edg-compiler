@@ -5999,12 +5999,23 @@ See conversion_possible.
     }  /* if */
 #if GNU_VECTOR_TYPES_ALLOWED
   } else if (gnu_mode && is_vector_type(source_type)) {
-    /* For constructs like assignment and initialization, GNU vector types
-       are only compatible with themselves.  (Strangely, when performing
-       arithmetic on vectors, GCC only requires identical sizes; not identical
-       types.  We do not emulate the latter behavior (but that is handled
-       elsewhere.) */
-    okay = identical_types(source_type, dest_type);
+    /* Different versions of GCC behave differently wrt. conversions between
+       vector types.  Some versions by default allow conversions between
+       vectors of the same size and "kind" (integer vs. float), regardless of
+       the specific element type.  We emulate that behavior when
+       permissive_gnu_vector_conversions_enabled is TRUE. */
+    if (identical_types(source_type, dest_type)) {
+      okay = TRUE;
+      std_conv->nontrivial_conversion = FALSE;
+    } else if (permissive_gnu_vector_conversions_enabled) {
+      if (is_vector_type(dest_type) &&
+          skip_typerefs(source_type->variant.vector.element_type)->kind ==
+                skip_typerefs(dest_type->variant.vector.element_type)->kind &&
+          source_type->size == dest_type->size) {
+        okay = TRUE;
+        std_conv->warning_suggested = ec_incompatible_vectors_conversion;
+      }  /* if */
+    }  /* if */
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
   } else if (is_arithmetic_or_enum(dest_type)) {
     /* Destination type is arithmetic or enum. */

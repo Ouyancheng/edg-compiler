@@ -1,5 +1,21 @@
 Version 4.1
 
+1/27/09  [EDGcpfe/9466, EDGcpfe/9481]
+GNU compatibility: Implicit conversions between vector types
+
+In GNU modes with gnu_version >= 40000 and gnu_version < 40300, the front end
+now accepts (with a warning) implicit conversions between vector types of the
+same size (in bytes) and the same kind (i.e., both vectors must be floating-
+point vectors, or both must be integer vectors), but with differing element
+types.  For example:
+
+  typedef int v4i __attribute((vector_size(16)));
+  typedef short v8s __attribute((vector_size(16)));
+  v8s f(v4i x) {
+    return x;  // Now accepted in some GNU modes.
+  }
+
+
 1/26/09  [EDGcpfe/9467]
 Cast of rvalue to same type retained in gcc mode
 

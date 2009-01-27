@@ -3071,6 +3071,10 @@ exclude the GNU modes already.  Hence those are not checked again here.)
        results in an invalid token. */
     check_concatenations = TRUE;
   }  /* if */
+#if GNU_VECTOR_TYPES_ALLOWED
+  permissive_gnu_vector_conversions_enabled = (gnu_version >= 40000 &&
+                                               gnu_version < 40300);
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
 }  /* check_and_set_gnu_mode_options */
 
 
@@ -8586,6 +8590,9 @@ variables declared in cmd_line.h.
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
   gnu_visibility_attribute_enabled = DEFAULT_GNU_VISIBILITY_ATTRIBUTE_ENABLED;
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
+#if GNU_VECTOR_TYPES_ALLOWED
+  permissive_gnu_vector_conversions_enabled = FALSE;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
   allow_default_arg_on_template_member_definition = FALSE;
   use_microsoft_specialization_scope = FALSE;
   elab_type_lookup_finds_typedefs = FALSE;

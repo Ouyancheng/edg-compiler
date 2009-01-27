@@ -1445,6 +1445,13 @@ EXTERN a_boolean
 			   accepted. */
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 
+#if GNU_VECTOR_TYPES_ALLOWED
+EXTERN a_boolean
+		permissive_gnu_vector_conversions_enabled;
+			/* TRUE if certain implicit conversions between
+			   incompatible vector types should be accepted. */
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+
 EXTERN a_boolean
 		allow_default_arg_on_template_member_definition;
 			/* TRUE if a default argument can be specified in the
