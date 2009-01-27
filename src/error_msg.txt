@@ -1805,6 +1805,7 @@ ec_exception_handler_used;;"C++ exception handler used, but exception handling s
 ec_type_qualifier_ignored_on_constructor;;"type qualifier ignored on constructor"
 ec_lambda_capture_involves_variable_length_array;;"a variable captured by a lambda cannot have a type involving a variable length array"
 ec_incompatible_vectors_conversion;;"conversion between incompatible vector types"
+ec_lambda_in_default_arg;;"a lambda cannot be used inside a default argument expression"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
