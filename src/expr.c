@@ -18350,6 +18350,7 @@ variables, add initializers that describe how to copy the variables.
     a_symbol_ptr       var_sym = symbol_for(var);
     a_type_ptr         dest_type = lcp->closure_field->type;
     a_type_ptr         base_dest_type;
+    a_ref_entry_ptr    rep = NULL;
     an_operand         operand;
     a_dynamic_init_ptr dip;
     a_routine_ptr      cctor_routine = NULL;
@@ -18359,12 +18360,13 @@ variables, add initializers that describe how to copy the variables.
     a_source_position  *capture_pos = lcp->is_implicit ?
                                                   &lambda->start_position :
                                                   &lcp->position;
-    check_assertion(var_sym != NULL);
+    /* Watch out for "this", which has no associated symbol. */
+    if (var_sym != NULL) rep = ref_entry(var_sym, capture_pos);
     make_lvalue_variable_operand(var,
                                  capture_pos,
                                  &null_source_position,
                                  &operand,
-                                 ref_entry(var_sym, capture_pos));
+                                 rep);
     /* See whether the copy is of a class type or array of class type. */
     base_dest_type = dest_type;
     if (is_array_type(dest_type)) {
