@@ -19788,27 +19788,29 @@ static void check_and_adjust_lambda_return_type_if_needed(
                                                  an_operand_ptr  return_op,
                                                  a_type_ptr      *return_type)
 /*
-return_op represents the expression in the return statement of a lambda, and
-*return_type is the type currently thought of as the lambda's return type.
-If *return_type is the unknown type (tk_unknown), then *return_type is set
-to the type of the expression.
+return_op represents the expression in the return statement of a lambda
+whose return type is to be set from such an expression, and *return_type
+is the type currently thought of as the lambda's return type (it's a
+copy of the return type from the routine).  Update it and the routine
+type to be the type of return_op.
 */
 {
-  a_lambda_ptr   lambda = get_current_lambda();
+  a_lambda_ptr lambda = get_current_lambda();
 
-  if (lambda != NULL && !lambda->explicit_return_type) {
-    if (is_unknown_type(*return_type)) {
-      a_routine_ptr rout = lambda->lambda_routine;
-      *return_type = return_op->type;
-      rout->type->variant.routine.return_type = *return_type;
-      set_routine_calling_method_flag(rout->type, &return_op->position);
-    } else {
-      /* More than one return in a lambda with an implicit return type.
-         The error is issued in the return statement processing.
-         Or, the type was set to void by a "return;" statement. */
-      check_assertion(is_void_type(*return_type) ||
-                      is_error_type(*return_type));
-    }  /* if */
+  check_assertion(lambda != NULL && !lambda->explicit_return_type);
+  if (is_unknown_type(*return_type)) {
+    a_routine_ptr rout = lambda->lambda_routine;
+    a_type_ptr    rout_type = skip_typerefs(rout->type);
+    check_assertion(rout_type->kind == (a_type_kind)tk_routine);
+    *return_type = return_op->type;
+    rout_type->variant.routine.return_type = *return_type;
+    set_routine_calling_method_flag(rout_type, &return_op->position);
+  } else {
+    /* More than one return in a lambda with an implicit return type.
+       The error is issued in the return statement processing.
+       Or, the type was previously set to void by a "return;" statement. */
+    check_assertion(is_void_type(*return_type) ||
+                    is_error_type(*return_type));
   }  /* if */
 }  /* check_and_adjust_lambda_return_type_if_needed */
 
@@ -19832,6 +19834,7 @@ required_type will be void if the expression should have void type
   an_operand          result;
   an_expr_stack_entry expr_stack_entry;
   a_boolean           return_by_cctor_case, void_return_case = FALSE;
+  a_boolean           lambda_implicit_return_case = FALSE;
 
   db_enter(3, "scan_return_expression");
 
@@ -19846,17 +19849,30 @@ required_type will be void if the expression should have void type
     /* The current routine returns its value via a copy constructor. */
     return_by_cctor_case = TRUE;
     expr_stack->in_cctor_elision_initializer = TRUE;
+  } else if (in_lambda_body()) {
+    a_lambda_ptr lambda = get_current_lambda();
+    if (!lambda->explicit_return_type) {
+      /* This is a return in a lambda where the return type will be set
+         from the returned expression's type.  Suppress addition of
+         a destructor on any dynamic initialization until we know
+         whether it's going to be optimized away. */
+      expr_stack->in_cctor_elision_initializer = TRUE;
+      lambda_implicit_return_case = TRUE;
+    }  /* if */
   }  /* if */
   /* Scan the expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_NO_OPTIONS);
-  if (in_lambda_body()) {
+  if (lambda_implicit_return_case) {
+    /* Set the lambda return type from the expression type. */
     check_and_adjust_lambda_return_type_if_needed(&result, &required_type);
     if (routine_type->variant.routine.extra_info->value_returned_by_cctor) {
-      /* The routine is (now?) known to return its value via copy
-         constructor. */
-      /* FIXME: this doesn't work right. */
+      /* The routine is now known to return its value via copy constructor. */
       return_by_cctor_case = TRUE;
-      expr_stack->in_cctor_elision_initializer = TRUE;
+    } else {
+      /* It turns out we didn't need to treat this as a cctor elision
+         context, so make sure we add destructors to any dynamic initialization
+         entries where they were partially suppressed. */
+      fix_up_dynamic_init_dtors();
     }  /* if */
   }  /* if */
   if (return_by_cctor_case) {
