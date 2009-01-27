@@ -5099,11 +5099,10 @@ in which such a return is undefined.
     } else if (is_unknown_type(tp)) {
       /* Lambdas can omit the return type.  In such cases, the return type is
          left as "tk_unknown" until an explicit return type has been
-         encountered.  If none was encountered, the return type is "void". */
-      a_lambda_ptr  lambda = get_current_lambda();
-      check_assertion(lambda != NULL && !lambda->explicit_return_type);
-      check_assertion(rout->type->kind == (a_type_kind)tk_routine);
-      rout->type->variant.routine.return_type = void_type();
+         encountered.  (If none was encountered, the return type is "void".
+         This is established elsewhere because the associated processing must
+         also be done if the end of the compound statement is unreachable.) */
+      check_assertion(get_current_lambda() != NULL);
     } else {
       /* A return without an expression in a non-void function.  Unless a
          special case applies, this case deserves a diagnostic. */

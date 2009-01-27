@@ -16193,11 +16193,18 @@ entry, return NULL.
   if (lambda->lambda_routine != NULL) {
     /* Parse the body of the lambda.  A class reactivation is not pushed for
        the lambda closure class because it is still on the scope stack. */
+    a_routine_ptr  rp = lambda->lambda_routine;
     sfb_flags = SFB_NEW_STRUCT_STMT_STACK_REQUIRED |
                 SFB_NO_CLASS_REACTIVATION;
-    scan_function_body(lambda->lambda_routine, &func_info, sfb_flags);
-    check_assertion(
-              !is_unknown_type(return_type_of(lambda->lambda_routine->type)));
+    scan_function_body(rp, &func_info, sfb_flags);
+    if (is_unknown_type(return_type_of(rp->type))) {
+      /* No return type was specified on the lambda construct, and no return
+         type was deduced from a return statement: The return type is
+         therefore "void". */
+      check_assertion(!lambda->explicit_return_type);
+      check_assertion(rp->type->kind == (a_type_kind)tk_routine);
+      rp->type->variant.routine.return_type = void_type();
+    }  /* if */
     if (curr_token == tok_rbrace) {
       /* Don't use required_token, because we aren't at a brace, an error has
          already been issued, and we will be at the token to restart parsing
