@@ -9552,23 +9552,25 @@ Such a string must have the form
   hhhhhhhh-hhhh-hhhh-hhhh-hhhhhhhhhhhh
 
 where "h" is a hex digit.  length is the length of the string (it is not
-necessarily null-terminated).
+necessarily null-terminated), or 0 if the length is not known.
 */
 {
-  char      *orig_str = str;
   a_boolean err = FALSE;
 
-  str = check_GUID_hex_digits(str, 8, &err);
-  if (!err) str = check_GUID_hyphen(str, &err);
-  if (!err) str = check_GUID_hex_digits(str, 4, &err);
-  if (!err) str = check_GUID_hyphen(str, &err);
-  if (!err) str = check_GUID_hex_digits(str, 4, &err);
-  if (!err) str = check_GUID_hyphen(str, &err);
-  if (!err) str = check_GUID_hex_digits(str, 4, &err);
-  if (!err) str = check_GUID_hyphen(str, &err);
-  if (!err) str = check_GUID_hex_digits(str, 12, &err);
-  /* Check that the string ends at the right place. */
-  if (!err && str != orig_str+length) err = TRUE;
+  if (length != 0 && length != 36) {
+    /* A valid GUID string must be 36 characters. */
+    err = TRUE;
+  } else {
+    str = check_GUID_hex_digits(str, 8, &err);
+    if (!err) str = check_GUID_hyphen(str, &err);
+    if (!err) str = check_GUID_hex_digits(str, 4, &err);
+    if (!err) str = check_GUID_hyphen(str, &err);
+    if (!err) str = check_GUID_hex_digits(str, 4, &err);
+    if (!err) str = check_GUID_hyphen(str, &err);
+    if (!err) str = check_GUID_hex_digits(str, 4, &err);
+    if (!err) str = check_GUID_hyphen(str, &err);
+    if (!err) str = check_GUID_hex_digits(str, 12, &err);
+  }  /* if */
   return !err;
 }  /* is_valid_GUID_string */
 
@@ -9577,7 +9579,7 @@ static a_boolean is_uuid_token(void)
 /*
 The Microsoft compiler allows an unquoted UUID string to be used in
 a Microsoft attribute.  curr_char_loc points to a character that could be
-the initial character of a UUID.  Return TRUE if the characters to make up a
+the initial character of a UUID.  Return TRUE if the characters make up a
 valid UUID.
 */
 {
@@ -9588,7 +9590,7 @@ valid UUID.
   /* Pass is_valid_GUID_string the string following an optional brace. */
   begins_with_brace = *ptr == '{';
   if (begins_with_brace) ptr++;  
-  valid = is_valid_GUID_string(ptr, 36);
+  valid = is_valid_GUID_string(ptr, 0);
   /* If the string began with a brace, make sure it ends with one. */
   if (valid && begins_with_brace) valid = ptr[36] == '}';
   return valid;
@@ -9602,8 +9604,9 @@ attributes.  For example:
 
   [uuid(366AD604-AE26-4F01-A24D-B2E557BB3165)] class A {};
 
-This routine is called after it has been determined that the next 36
-characters have been determined to be valid UUID string.
+This routine is called after it has been determined that the following
+characters have been determined to be valid UUID string (possibly enclosed
+in braces).
 
 A string literal constant is created in const_for_curr_token from the
 characters of the UUID, and a tok_uuid token is returned.
