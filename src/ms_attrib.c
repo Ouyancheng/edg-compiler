@@ -1044,7 +1044,7 @@ cache containing all of the tokens of the attribute block.
   save_suppress_keyword_recognition = suppress_keyword_recognition;
   save_in_microsoft_attribute = in_microsoft_attribute;
   /* Set the values required for attribute scanning. */
-  expand_macros = FALSE;
+  expand_macros = TRUE;
   do_string_literal_concatenation = TRUE;
   fetch_pp_tokens = FALSE;
   suppress_keyword_recognition = TRUE;

@@ -1,5 +1,15 @@
 Version 4.1
 
+1/27/09  [EDGcpfe/9479]
+Microsoft compatibility: macro expansion in attributes
+
+Macros are now expanded in Microsoft attributes (which are accepted in
+Microsoft mode).
+
+  #define MY_UUID "366BD604-AE26-4F01-A44D-A2F557BB3165"
+  [ uuid( MY_UUID ) ] class A {};  // now accepted
+
+
 1/27/09  [EDGcpfe/9466, EDGcpfe/9481]
 GNU compatibility: Implicit conversions between vector types
 
