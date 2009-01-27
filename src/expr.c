@@ -18347,6 +18347,7 @@ variables, add initializers that describe how to copy the variables.
 
   for (lcp = lambda->capture_list; lcp != NULL; lcp = lcp->next) {
     a_variable_ptr     var = lcp->variable;
+    a_symbol_ptr       var_sym = symbol_for(var);
     a_type_ptr         dest_type = lcp->closure_field->type;
     a_type_ptr         base_dest_type;
     an_operand         operand;
@@ -18358,11 +18359,12 @@ variables, add initializers that describe how to copy the variables.
     a_source_position  *capture_pos = lcp->is_implicit ?
                                                   &lambda->start_position :
                                                   &lcp->position;
+    check_assertion(var_sym != NULL);
     make_lvalue_variable_operand(var,
                                  capture_pos,
                                  &null_source_position,
                                  &operand,
-                                 (a_ref_entry_ptr)NULL);
+                                 ref_entry(var_sym, capture_pos));
     /* See whether the copy is of a class type or array of class type. */
     base_dest_type = dest_type;
     if (is_array_type(dest_type)) {
