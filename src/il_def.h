@@ -12943,8 +12943,10 @@ typedef struct a_lambda_capture {
   a_source_position
 		position;
 			/* The source position of the name of the captured
-			   variable or "this" keyword.  null_source_position
-			   if is_implicit is TRUE. */
+			   variable or "this" keyword.  For an explicit
+			   capture, this is the position in the capture
+			   list.  For an implicit capture, it is the position
+			   of the first use of the variable in the lambda. */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position
 		end_position;

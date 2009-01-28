@@ -997,7 +997,8 @@ variable vp.  is_implicit is TRUE if this is an implicit capture.
 by_reference indicates if this is a by-reference or by-value capture.
 Create the lambda capture entry and the associated field of the capture
 class.  Add the lambda capture entry to this list of captures for "lambda"
-and return a pointer to the capture entry.
+and return a pointer to the capture entry.  pos is the source position
+to be used for the capture.
 */
 {
   a_lambda_capture_ptr		lcp;
@@ -1023,6 +1024,7 @@ and return a pointer to the capture entry.
                                                      pos);
   lcp->capture_by_reference = by_reference;
   lcp->is_implicit = is_implicit;
+  lcp->position = *pos;
   if (lambda->capture_list == NULL) {
     /* This is the first entry. */
     lambda->capture_list = lcp;
@@ -16089,7 +16091,6 @@ consumed by the caller.  The grammar to be parsed is thus:
         a_lambda_capture_ptr	lcp;
         lcp = add_lambda_capture(lambda, var, /*is_implicit=*/FALSE, by_ref,
                                  &capture_pos);
-        lcp->position = capture_pos;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
         lcp->end_position = capture_end_pos;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
