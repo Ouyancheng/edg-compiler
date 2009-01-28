@@ -1000,8 +1000,23 @@ class.  Add the lambda capture entry to this list of captures for "lambda"
 and return a pointer to the capture entry.
 */
 {
-  a_lambda_capture_ptr	lcp;
+  a_lambda_capture_ptr		lcp;
+  a_memory_region_number	region_to_switch_back_to = NULL_region_number;
 
+  if (is_implicit) {
+    /* For implicit captures we are currently in the memory region of the
+       lambda body, but we need to switch the memory region of the lambda
+       reference. */
+    a_scope_stack_entry_ptr	ssep;
+    /* Find the scope stack entry for the scope containing the local
+       variable that is being captured. */
+    for (ssep = scope_stack_entry_for(depth_scope_stack);
+         ssep != NULL && ssep->il_scope != vp->source_corresp.parent_scope;
+         ssep = previous_scope_of(ssep)) {}
+    check_assertion(ssep != NULL);
+    region_to_switch_back_to = curr_il_region_number;
+    switch_il_region(ssep->il_memory_region);
+  }  /* if */
   lcp = alloc_lambda_capture();
   lcp->variable = vp;
   lcp->closure_field = make_field_for_lambda_capture(lambda, vp, by_reference,
@@ -1018,6 +1033,11 @@ and return a pointer to the capture entry.
     for (last_lcp = lambda->capture_list; last_lcp->next != NULL;
          last_lcp = last_lcp->next) {}
     last_lcp->next = lcp;
+  }  /* if */
+  if (is_implicit) {
+    /* If we changed memory regions above, switch back to the original
+       region now. */
+    switch_back_to_original_region(region_to_switch_back_to);
   }  /* if */
   return lcp;
 }  /* add_lambda_capture */
