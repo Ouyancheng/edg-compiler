@@ -4981,6 +4981,10 @@ Display the indicated class type supplement entry.
     disp_boolean("compiler_generated", (a_boolean)ptr->compiler_generated);
   }  /* if */
 #endif /* DO_IL_LOWERING */
+  if (ptr->is_lambda_closure_class) {
+    disp_boolean("is_lambda_closure_class",
+                 (a_boolean)ptr->is_lambda_closure_class);
+  }  /* if */
   if (ptr->anonymous_union_kind != (an_anonymous_union_kind)auk_none) {
     disp_name("anonymous_union_kind");
     switch (ptr->anonymous_union_kind) {
@@ -5043,9 +5047,6 @@ Display the indicated class type supplement entry.
   /* Likewise construction_vtbls. */
 #endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
 #endif /* DO_IL_LOWERING */
-  if (ptr->lambda != NULL) {
-    disp_lambda(ptr->lambda);
-  }  /* if */
   disp_long("min_template_arguments", ptr->min_template_arguments);
 }  /* disp_class_type_supplement */
 

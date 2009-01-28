@@ -828,6 +828,7 @@ and for the instantiation of template functions.
   /* Push the name scope for the routine body. */
   scope_ptr = push_scope((a_scope_kind)sck_function, scope_number,
                          (a_type_ptr)NULL, rout_ptr);
+  scope_stack_top().lambda = func_info->lambda;
   /* Associate the scope to the routine entry and the routine entry to its
      type entry. */
   rout_ptr->assoc_scope = curr_il_region_number;

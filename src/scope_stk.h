@@ -900,6 +900,10 @@ typedef struct a_scope_stack_entry {
 			   sck_namespace_extension, and sck_class_struct_union
 			   scopes). */
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
+  a_lambda_ptr	lambda;
+			/* If this entry is for a function scope associated
+			   with a lambda body, this points to the corresponding
+			   a_lambda entry.  Otherwise, NULL. */
 } a_scope_stack_entry;
 
 /*

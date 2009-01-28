@@ -16494,7 +16494,7 @@ conditions for being able to capture the variable.
     if (scope_stack[sd].kind == (a_scope_kind)sck_class_struct_union) {
       a_type_ptr class_type = scope_stack[sd].assoc_type;
       /* Keep going if we're in a local class of the lambda. */
-      if (class_type_supp(class_type)->lambda != NULL) break;
+      if (class_type_supp(class_type)->is_lambda_closure_class) break;
     }  /* if */
   }  /* for */
   /* Look at the block and function scopes immediately enclosing the

@@ -9485,6 +9485,7 @@ is best called through the macro get_parent_scope_of.
   return result;
 }  /* f_get_parent_scope_of */
 
+#if !STANDALONE_UTILITY_PROGRAM
 
 a_lambda_ptr get_current_lambda(void)
 /*
@@ -9494,19 +9495,18 @@ a lambda body, return the associated lambda entry.  Otherwise, return NULL.
 {
   a_lambda_ptr  lambda = NULL;
 
-  if (innermost_function_scope != NULL) {
-    a_routine_ptr  rp = innermost_function_scope->variant.routine.ptr;
-    if (rp->is_lambda_body) {
-      a_type_ptr  closure_class;
-      check_assertion(rp->source_corresp.is_class_member);
-      closure_class = parent_class_of(rp);
-      lambda = class_type_supp(closure_class)->lambda;
-      check_assertion(lambda != NULL);
-    }  /* if */
+  if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
+    lambda = scope_stack[depth_innermost_function_scope].lambda;
+#if CHECKING
+    { a_routine_ptr  rp = innermost_function_scope->variant.routine.ptr;
+      check_assertion(rp->is_lambda_body == (lambda != NULL));
+    }
+#endif /* CHECKING */
   }  /* if */
   return lambda;
 }  /* get_current_lambda */
 
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
 
 an_expr_node_ptr generic_sizeof_arg_expr(a_constant_ptr  con)

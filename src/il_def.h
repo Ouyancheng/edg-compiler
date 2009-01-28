@@ -5076,6 +5076,9 @@ typedef struct a_class_type_supplement {
 			   both in inheritance order and while processing the
 			   namespaces in which they are defined. */
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
+  a_bit_field	is_lambda_closure_class:1;
+			/* TRUE if the class is the closure class generated as
+			   the representation of a lambda. */
   an_anonymous_union_kind
 		anonymous_union_kind;
 			/* Indication of whether this class is an anonymous
@@ -5213,10 +5216,6 @@ typedef struct a_class_type_supplement {
 			   of this class type. */
 #endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
 #endif /* DO_IL_LOWERING */
-  a_lambda_ptr	lambda;
-			/* If the class is the closure class generated as
-			   the representation of a lambda, this points to
-			   the associated lambda entry.  NULL otherwise. */
   long		min_template_arguments;
 			/* The minimum number of template arguments used to
 			   refer to this instance in the source (using

@@ -2115,6 +2115,7 @@ the scope being pushed.
   /* Clear the substructure shared with namespace symbol supplements. */
   ssep->assoc_pointers_block     = NULL;
   clear_scope_pointers_block(&ssep->pointers_block);
+  ssep->lambda = NULL;
   if (sp != NULL) {
     if (new_il_scope) {
       /* Set the parent scope. */

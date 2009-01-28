@@ -1283,8 +1283,9 @@ Give an pointer to a class-type-supplement entry, initialize its fields.
   ctsp->qualifiers                        = TQ_NONE;
 #endif /* NEAR_AND_FAR_ALLOWED */
 #if RECORD_HIDDEN_NAMES_IN_IL
-  ctsp->hidden_names_processed = FALSE;
+  ctsp->hidden_names_processed            = FALSE;
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
+  ctsp->is_lambda_closure_class           = FALSE;
   ctsp->anonymous_union_kind              = (an_anonymous_union_kind)auk_none;
   ctsp->anonymous_union_field             = NULL;
   ctsp->befriending_classes               = NULL;
@@ -1316,7 +1317,6 @@ Give an pointer to a class-type-supplement entry, initialize its fields.
   ctsp->construction_vtbls                = NULL;
 #endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
 #endif /* DO_IL_LOWERING */
-  ctsp->lambda                            = NULL;
   ctsp->min_template_arguments            = -1L;
 }  /* clear_class_type_supplement */
 

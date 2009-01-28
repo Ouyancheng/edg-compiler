@@ -1124,6 +1124,7 @@ the fields implied by the lambda's capture list).
                                 decl_position);
   /* Create the type for the lambda class. */
   type = alloc_type((a_type_kind)tk_class);
+  class_type_supp(type)->is_lambda_closure_class = TRUE;
   set_source_corresp(&(type->source_corresp), sym);
   sym->variant.class_struct_union.type = type;
   add_to_types_list(type, decl_scope_level);
@@ -13576,7 +13577,7 @@ member.  Determine whether a diagnostic is actually required and put it out.
     /* Note that we do not do this check for unions.  This is partly because
        a union may have a mixture of const and non-const declarations, and
        it's not clear that the const members really need to be initialized. */
-  } else if (ctsp->lambda != NULL) {
+  } else if (ctsp->is_lambda_closure_class) {
     /* This is the class generated to represent a lambda.  Suppress the
        constructor check on this class. */
   } else {
@@ -16178,8 +16179,6 @@ entry, return NULL.
 {
   a_lambda_ptr        lambda = alloc_lambda();
   a_type_ptr          closure_class;
-  a_class_type_supplement_ptr
-                      ctsp;
   a_class_def_state   class_state;
   a_func_info_block   func_info;
   a_decl_flag_set     sfb_flags;
@@ -16194,15 +16193,13 @@ entry, return NULL.
      can be added. */
   lambda->closure_class = closure_class =
                                   make_closure_class(&lambda->start_position);
-  ctsp = class_type_supp(closure_class);
-  ctsp->lambda = lambda;
   initialize_class_def_state(lambda->closure_class, &class_state);
   class_state.is_closure_class = TRUE;
   if (innermost_function_scope != NULL || inside_local_class) {
     class_state.is_local_class = TRUE;
   }  /* if */
   class_state.access = (an_access_specifier)as_public;
-  ctsp->assoc_scope =
+  class_type_supp(closure_class)->assoc_scope =
              push_scope((a_scope_kind)sck_class_struct_union, NO_SCOPE_NUMBER,
                         closure_class, (a_routine_ptr)NULL);
   scope_stack_top().class_def_state = &class_state;
