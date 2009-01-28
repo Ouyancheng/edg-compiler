@@ -241,23 +241,6 @@ value is FALSE.  Implementations wishing to emulate this Microsoft behavior
 should set warn_on_try_statement to TRUE.
 
 
-1/20/09  [EDGcpfe/9446]
-Microsoft compatibility: Casting to an ambiguous base class type
-
-In Microsoft mode, a cast to ambiguous base class type is now accepted (with a
-warning) if the base class type identifies a direct base; in that case, the
-direct base is the entity referred to by the cast.  For example:
-
-  struct A {};
-  struct B: A {};
-  struct C: B, A {};
-  struct D: C {};
-  void f(C &c, D &d) {
-    A &r = c;  // Accepted in Microsoft mode.
-    A &e = d;  // Error: A is an ambiguous base class type, and there is
-  }            // no direct base of that type.
-    
-
 1/20/09  [EDGcpfe/9462]
 Microsoft compatibility: Interface templates
 

@@ -2447,18 +2447,11 @@ routine is only used in C++ mode.
   a_type_ptr            curr_type, qual_curr_type;
   a_derivation_step_ptr dsp;
   a_base_class_ptr      base_class;
-  a_boolean             pointer_case, microsoft_direct_ambiguous_base = FALSE;
+  a_boolean             pointer_case;
 
   /* The code here looks like fold_base_class_cast. */
   check_assertion(is_class_struct_union_type(qualifiers_model));
-  if (microsoft_mode && bcp->ambiguous && bcp->direct) {
-    /* Casting to an ambiguous base class type is normally an error, but
-       Microsoft compilers allow it if the base class type identifies a direct
-       base.  That direct base is then the target of the cast. */
-    pos_ty_warning(ec_ambiguous_cast_selects_direct_base, err_pos, bcp->type);
-    microsoft_direct_ambiguous_base = TRUE;
-  }  /* if */
-  if (bcp->ambiguous && !microsoft_direct_ambiguous_base) {
+  if (bcp->ambiguous) {
     /* The cast is ambiguous. */
     pos_ty_error(ec_ambiguous_base_class, err_pos, bcp->type);
     *p_node = error_node();
@@ -3456,14 +3449,20 @@ reference) and not something explicit like a cast.
     } else {
       /* If you change this, see expr_before_type_adjustment. */
       a_base_class_ptr bcp = NULL;
-      a_boolean        baseward_cast;
       an_operand       orig_operand;
       orig_operand = *operand;
       check_assertion(is_an_lvalue(operand) ||
                       is_a_function_designator(operand));
-      if (!identical_types(operand_type, dest_type) &&
-          related_classes(operand_type, dest_type, &baseward_cast, &bcp) &&
-          baseward_cast) {
+      if (is_class_struct_union_type(operand_type) &&
+          is_class_struct_union_type(dest_type)) {
+        a_type_ptr source_class_type = skip_typerefs(operand_type);
+        a_type_ptr dest_class_type = skip_typerefs(dest_type);
+        /* Look for a required base-class adjustment. */
+        if (!same_entities(source_class_type, dest_class_type)) {
+          bcp = find_base_class_of(source_class_type, dest_class_type);
+        }  /* if */
+      }  /* if */
+      if (bcp != NULL) {
         /* Cast to a base class, and also adjust cv-qualifiers if
            necessary. */
         base_class_cast_operand(operand, bcp, dest_type,
@@ -3505,14 +3504,27 @@ FALSE (it is TRUE for reinterpret_cast).
     conv_to_error_operand(operand);
   } else {
     a_base_class_ptr bcp = NULL;
-    a_boolean        baseward_cast = FALSE;
+    a_boolean        derived_class_cast = FALSE;
     an_operand       orig_operand;
     orig_operand = *operand;
     check_assertion(is_an_lvalue(operand) ||
                     is_a_function_designator(operand));
-    if (!reinterpret_semantics && !identical_types(operand_type, dest_type) &&
-        related_classes(operand_type, dest_type, &baseward_cast, &bcp)) {
-      if (baseward_cast) {
+    if (!reinterpret_semantics &&
+        is_class_struct_union_type(operand_type) &&
+        is_class_struct_union_type(dest_type)) {
+      a_type_ptr source_class_type = skip_typerefs(operand_type);
+      a_type_ptr dest_class_type = skip_typerefs(dest_type);
+      /* Look for a required base-class adjustment. */
+      if (!same_entities(source_class_type, dest_class_type)) {
+        bcp = find_base_class_of(source_class_type, dest_class_type);
+        if (bcp == NULL) {
+          bcp = find_base_class_of(dest_class_type, source_class_type);
+          if (bcp != NULL) derived_class_cast = TRUE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+    if (bcp != NULL) {
+      if (!derived_class_cast) {
         /* Cast to a base class, and also adjust cv-qualifiers if
            necessary. */
         base_class_cast_operand(operand, bcp, dest_type,

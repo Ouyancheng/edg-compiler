@@ -14644,7 +14644,7 @@ used only in C++ mode.
 */
 {
   a_boolean        possible = FALSE, local_ambiguous = FALSE;
-  a_boolean        classes_are_related = FALSE;
+  a_boolean        related_classes = FALSE;
   a_base_class_ptr bcp = NULL;
   a_type_ptr       op1_type = op1->type;
   a_type_ptr       op2_type = op2->type;
@@ -14704,20 +14704,27 @@ used only in C++ mode.
     if (is_class_struct_union_type(op1_type) &&
         is_class_struct_union_type(op2_type)) {
       /* Both operands have class type.  See if the class types are related. */
-      if (identical_types_ignoring_qualifiers(op1_type, op2_type)) {
+      a_type_ptr base_op1_type = skip_typerefs(op1_type);
+      a_type_ptr base_op2_type = skip_typerefs(op2_type);
+      if (identical_types(base_op1_type, base_op2_type)) {
         /* Same class type. */
         possible = TRUE;
-        classes_are_related = TRUE;
-      } else {
-        classes_are_related = related_classes(op1_type, op2_type, &possible,
-                                              &bcp);
+        related_classes = TRUE;
+      } else if ((bcp = find_base_class_of(base_op1_type,
+                                           base_op2_type)) != NULL) {
+        /* op2_type is a base class of op1_type. */
+        possible = TRUE;
+        related_classes = TRUE;
+      } else if (find_base_class_of(base_op2_type,
+                                    base_op1_type) != NULL) {
+        /* op1_type is a base class of op2_type.  The conversion isn't
+           possible this way, but the fact that the classes are related
+           prevents searching for other matches below. */
+        related_classes = TRUE;
       }  /* if */
     }  /* if */
-    if (classes_are_related) {
-      /* The types are related classes.  The conversion is possible only if
-         the classes are identical or if op2_type is a base of op1_type.
-         However, if op1_type is a base of op2_type, we don't need to look
-         for other matches below. */
+    if (related_classes) {
+      /* The types are related classes. */
       if (possible) {
         /* Make sure that cv-qualifiers aren't dropped in the conversion. */
         if (any_qualifier_missing(op2_type, op1_type)) {
@@ -14728,11 +14735,8 @@ used only in C++ mode.
             possible = TRUE;
           }  /* if */
         }  /* if */
-        /* Check for an ambiguous base class. (In Microsoft mode, converting
-           to a direct base is preferred over converting to an indirect base
-           of the same type.) */
-        if (bcp != NULL && bcp->ambiguous &&
-            !(microsoft_mode && bcp->direct)) {
+        /* Check for an ambiguous base class. */
+        if (bcp != NULL && bcp->ambiguous) {
           conv->unusable = TRUE;
           local_ambiguous = TRUE;
           if (ambiguous == NULL) {
