@@ -914,10 +914,10 @@ a class member declaration as it appears.
 
 /* Forward declaration. */
 static a_field_ptr decl_nonstatic_data_member(
-                                       a_symbol_locator        *locator,
-                                       a_class_def_state_ptr   class_state,
-                                       a_member_decl_info_ptr  decl_info);
-
+                                     a_symbol_locator        *locator,
+                                     a_class_def_state_ptr   class_state,
+                                     a_member_decl_info_ptr  decl_info,
+                                     a_scope_depth           decl_scope_depth);
 
 static a_field_ptr make_field_for_lambda_capture(
 					a_lambda_ptr		lambda,
@@ -939,6 +939,7 @@ the field.
   a_scope_stack_entry_ptr	ssep;
   a_symbol_locator		locator;
   a_member_decl_info            decl_info;
+  a_scope_depth			closure_scope_depth;
 
   /* Find the scope stack entry for the lambda closure class. */
   for (ssep = scope_stack_entry_for(depth_scope_stack);
@@ -948,6 +949,7 @@ the field.
     check_assertion(ssep != NULL);
   }  /* for */
   class_state = ssep->class_def_state;
+  closure_scope_depth = scope_depth_of(ssep);
   clear_locator(&locator, pos);
   /* "this" variables do not have associated symbols. */
   if (vp->is_this_parameter) {
@@ -980,7 +982,8 @@ the field.
   initialize_member_decl_info(&decl_info, pos);
   decl_info.is_unnamed_field = is_this;
   decl_info.decl_state.type = field_type;
-  fp = decl_nonstatic_data_member(&locator, class_state, &decl_info);
+  fp = decl_nonstatic_data_member(&locator, class_state, &decl_info,
+                                  closure_scope_depth);
   return fp;
 }  /* make_field_for_lambda_capture */
 
@@ -10877,16 +10880,18 @@ the position indicated by the given locator.
 #endif /* DECL_MODIFIERS_IN_USE */
 
 static a_field_ptr decl_nonstatic_data_member(
-                                       a_symbol_locator        *locator,
-                                       a_class_def_state_ptr   class_state,
-                                       a_member_decl_info_ptr  decl_info)
+                                      a_symbol_locator        *locator,
+                                      a_class_def_state_ptr   class_state,
+                                      a_member_decl_info_ptr  decl_info,
+                                      a_scope_depth           decl_scope_depth)
 /*
 Create the IL for a nonstatic data member of a class, struct, or union.
 Create an entry in the symbol table for it if it has a name.  *locator is
 the symbol locator for the declaration.  *class_state and *decl_info track
 general information about the class definition and specific information
 about the member declaration, respectively.  Return the field entry that was
-created.
+created.  decl_scope_depth is the depth at which the member symbol should
+be entered.
 */
 {
   a_decl_parse_state             *decl_state = &decl_info->decl_state;
@@ -10978,7 +10983,7 @@ created.
     if (decl_info->is_anonymous_union) {
       member_sym = make_anonymous_parent_object_symbol(
                               (a_symbol_kind)sk_field, &decl_state->start_pos,
-                              scope_stack[depth_scope_stack].number);
+                              scope_stack[decl_scope_depth].number);
       /* Don't call set_source_corresp since we don't want to record a name
          in the IL entry. */
       field->is_anonymous_parent_object = TRUE;
@@ -10987,11 +10992,12 @@ created.
     } else if (unnamed_field) {
       /* An unnamed field (but not a bit-field).  Such fields are used
          to represent the captured "this" parameter in lambdas. */
+      check_assertion(decl_scope_level == decl_scope_depth);
       member_sym = make_unnamed_symbol((a_symbol_kind)sk_field,
                                        &locator->source_position);
     } else {
       member_sym = enter_local_symbol((a_symbol_kind)sk_field, locator,
-                                      depth_scope_stack,
+                                      decl_scope_depth,
                                       /*suppress_redecl_error=*/FALSE);
       set_source_corresp(&(field->source_corresp), member_sym);
     }  /* if */
@@ -11312,7 +11318,8 @@ information about the member declaration, respectively.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   }  /* if */
   /* Create the IL for the field, enter the symbol (if needed), etc. */
-  (void)decl_nonstatic_data_member(locator, class_state, decl_info);
+  (void)decl_nonstatic_data_member(locator, class_state, decl_info,
+                                   depth_scope_stack);
 }  /* scan_nonstatic_data_member */
 
 
