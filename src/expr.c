@@ -18357,9 +18357,7 @@ variables, add initializers that describe how to copy the variables.
     a_boolean          do_bitwise_copy = FALSE;
     a_boolean          err = FALSE;
     a_boolean          array_case = FALSE;
-    a_source_position  *capture_pos = lcp->is_implicit ?
-                                                  &lambda->start_position :
-                                                  &lcp->position;
+    a_source_position  *capture_pos = &lcp->position;
     /* Watch out for "this", which has no associated symbol. */
     if (var_sym != NULL) rep = ref_entry(var_sym, capture_pos);
     make_lvalue_variable_operand(var,
