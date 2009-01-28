@@ -1547,34 +1547,59 @@ for the source parameter of the copy constructor.
 }  /* var_for_copy_constructor_source */
 
 
+void clear_implied_copy_source(an_implied_copy_source *source_desc)
+/*
+Clear the fields of the specified implied copy source.
+*/
+{
+  source_desc->ctor_init = NULL;
+  source_desc->variable = NULL;
+}  /* clear_implied_copy_source */
+
+
 static an_expr_node_ptr implied_source_of_copy(
-                                       a_constructor_init_ptr ctor_init,
+                                       an_implied_copy_source *source_desc,
                                        an_init_pos_descr_ptr  dest,
                                        a_boolean              result_is_lvalue)
 /*
 We're processing a dynamic initialization entry that represents a copy of
 something from an implied source location to the thing being initialized.
-If ctor_init is non-NULL, it points to a constructor-initializer entry
-that indicates a copy of a member of a class; if ctor_init is NULL, the
-copy is of the object thrown by an exception handling "throw" into the
-parameter of the catch clause.  In either case, create an expression to
+source_desc describes the source of the implied copy and represents a
+constructor-initializer entry, a variable (for lambda capture by value),
+or the object thrown by an exception handling "throw" into the
+parameter of the catch clause.  In any case, create an expression to
 describe the implied source and return a pointer to it.  dest describes the
 entity being initialized.  The returned expression will be an lvalue if
 result_is_lvalue is TRUE, otherwise an rvalue.
 */
 {
+  an_init_pos_descr    source_ipd;
+  an_init_pos_modifier source_ipm;
   an_expr_node_ptr     source_node;
-  an_init_pos_descr    cctor_source_ipd;
-  an_init_pos_modifier cctor_source_ipm;
 
-  if (ctor_init != NULL) {
+  check_assertion(source_desc != NULL);
+  if (source_desc->ctor_init != NULL) {
+    check_assertion(source_desc->variable == NULL);
     /* The implied source is the member being copied by the
        ctor-initializer. */
     set_var_indirect_init_pos_descr(var_for_copy_constructor_source(),
-                                    &cctor_source_ipd);
-    modify_ctor_init_pos_descr(ctor_init, &cctor_source_ipd,
-                               &cctor_source_ipm);
-    source_node = make_init_entity_node(&cctor_source_ipd, result_is_lvalue,
+                                    &source_ipd);
+    modify_ctor_init_pos_descr(source_desc->ctor_init, &source_ipd,
+                               &source_ipm);
+    source_node = make_init_entity_node(&source_ipd, result_is_lvalue,
+                                        /*using_as_dest=*/FALSE);
+  } else if (source_desc->variable != NULL) {
+    /* The implied source is a variable (presumably from a lambda capture). */
+    if (source_desc->variable->is_parameter &&
+        source_desc->variable->assoc_param_type != NULL &&
+        source_desc->variable->assoc_param_type->passed_via_copy_constructor) {
+      /* Variable is a parameter passed via copy constructor, add an
+         indirection. */
+      set_var_indirect_init_pos_descr(source_desc->variable, &source_ipd);
+    } else {
+      set_var_init_pos_descr(source_desc->variable, &source_ipd);
+    }  /* if */
+    source_node = make_init_entity_node(&source_ipd, result_is_lvalue,
                                         /*using_as_dest=*/FALSE);
   } else {
     /* The implied source is a thrown object. */
@@ -1616,14 +1641,14 @@ result_is_lvalue is TRUE, otherwise an rvalue.
 
 
 static void add_bitwise_copy(an_init_pos_descr_ptr  dest,
-                             a_constructor_init_ptr ctor_init,
+                             an_implied_copy_source *source_desc,
                              a_boolean              have_complete_object,
                              an_insert_location_ptr insert_location)
 /*
 Generate code to implement an initialization by bitwise copy.  dest
-describes the destination of the move.  ctor_init is the constructor
-initialization entry, or is NULL if this is the initialization of
-a catch clause parameter.  have_complete_object is TRUE if we are
+describes the destination of the move.  source_desc describes the source
+of the bitwise copy (constructor initialization entry, lambda capture variable,
+or a thrown exception).  have_complete_object is TRUE if we are
 copying a complete object, FALSE if we are copying a base class
 subobject.  Insert the statement at *insert_location and update
 *insert_location.
@@ -1634,7 +1659,7 @@ subobject.  Insert the statement at *insert_location and update
   an_expr_operator_kind op;
 
   /* Make an rvalue expression for the source entity. */
-  source_node = implied_source_of_copy(ctor_init, dest,
+  source_node = implied_source_of_copy(source_desc, dest,
                                        /*result_is_lvalue=*/FALSE);
   type = source_node->type;
   if (!have_complete_object &&
@@ -1659,7 +1684,7 @@ subobject.  Insert the statement at *insert_location and update
       op = (an_expr_operator_kind)eok_bassign;
       /* The eok_bassign operator takes an lvalue as its source, so
          overwrite the current rvalue source_node with an lvalue version. */
-      source_node = implied_source_of_copy(ctor_init, dest,
+      source_node = implied_source_of_copy(source_desc, dest,
                                            /*result_is_lvalue=*/TRUE);
     }  /* if */
     /* Make an expression for the destination entity. */
@@ -4144,7 +4169,7 @@ The code is inserted at *insert_location and *insert_location is updated.
 static void lower_ck_dynamic_init(a_constant_ptr         con_ptr,
                                   an_init_pos_descr_ptr  ipdp,
                                   a_boolean              dtor_case,
-                                  a_constructor_init_ptr ctor_init,
+                                  an_implied_copy_source *source_desc,
                                   a_boolean              others_follow_in_aggr,
                                   an_insert_location_ptr insert_location,
                                   a_boolean              *keep_constant)
@@ -4156,16 +4181,16 @@ The necessary statements are inserted at *insert_location and
 this call is handling a sequence of elements in an array.  If dtor_case
 is TRUE, we are generating a destructor wrapper; do the destruction
 indicated in the dynamic init but ignore any initialization.  If the dynamic
-initialization is part of a constructor initializer, ctor_init points
-to the constructor-init entry.  others_follow_in_aggr is TRUE if this constant
-is followed by others in an aggregate initialization (i.e., it's not the
-last).  If the initialization is of an aggregate and there some parts
-of the initialization that are constant, the ck_dynamic_init constant
-will be changed to an aggregate constant for the constant parts and
-*keep_constant will be set to TRUE.  *keep_constant is also set to TRUE if
-the ck_dynamic_init is used to initialize an element of a vector.
-Individual vector elements cannot be individually assigned, so they must
-remain as part of the aggregate initializer.
+initialization is part of an implied copy, source_desc describes the source of
+that copy.  others_follow_in_aggr is TRUE if this constant is followed by
+others in an aggregate initialization (i.e., it's not the last).  If the
+initialization is of an aggregate and there some parts of the initialization
+that are constant, the ck_dynamic_init constant will be changed to an aggregate
+constant for the constant parts and *keep_constant will be set to TRUE.
+ *keep_constant is also set to TRUE if the ck_dynamic_init is used to
+ initialize an element of a vector.  Individual vector elements cannot be
+ individually assigned, so they must remain as part of the aggregate
+ initializer.
 */
 {
   a_constant_ptr     next_con;
@@ -4199,7 +4224,7 @@ remain as part of the aggregate initializer.
                                   insert_location);
   } else {
     /* Normal initialization. */
-    lower_dynamic_init(dip, ipdp, ctor_init, (a_variable_ptr)NULL,
+    lower_dynamic_init(dip, ipdp, source_desc, (a_variable_ptr)NULL,
                        LDIO_FULL_EXPR, others_follow_in_aggr,
                        insert_location, 
 #if GNU_VECTOR_TYPES_ALLOWED
@@ -4314,7 +4339,7 @@ static void lower_dynamic_init_aggregate_constant(
                           a_constant_ptr         aggr_const,
                           an_init_pos_descr_ptr  ipdp,
                           a_boolean              dtor_case,
-                          a_constructor_init_ptr ctor_init,
+                          an_implied_copy_source *source_desc,
                           a_boolean              others_follow_in_aggr,
                           an_insert_location_ptr insert_location,
                           a_boolean              *contains_vector_dynamic_init,
@@ -4325,8 +4350,8 @@ ck_dynamic_init dynamic initializations.  The ck_aggregate constant is
 the initial value for the entity described by ipdp.  If dtor_case is TRUE,
 we are generating a destructor wrapper; do the destruction indicated in
 the aggregate init but ignore any initialization.  If the dynamic
-initialization is part of a constructor initializer, ctor_init points to
-the constructor-init entry.  others_follow_in_aggr is TRUE if this constant
+initialization is part of an implied copy, source_desc describes the source
+of that copy.  others_follow_in_aggr is TRUE if this constant
 is followed by others in an aggregate initialization (i.e., it's not the
 last).  Insert statements to implement the initialization at *insert_location
 and update *insert_location.  If contains_vector_dynamic_init is non-NULL,
@@ -4423,7 +4448,7 @@ TRUE.
        one constant (con_ptr). */
     if (con_ptr->kind == (a_constant_repr_kind)ck_dynamic_init) {
       /* Dynamic initialization. */
-      lower_ck_dynamic_init(con_ptr, &ipd, dtor_case, ctor_init,
+      lower_ck_dynamic_init(con_ptr, &ipd, dtor_case, source_desc,
                             others_follow, insert_location, keep_constant);
 #if GNU_VECTOR_TYPES_ALLOWED
       if (aggr_type->kind == (a_type_kind)tk_vector) {
@@ -4466,7 +4491,7 @@ TRUE.
         ipd.array_element_count =
                           (a_targ_ptrdiff_t)con_ptr->variant.init_repeat.count;
         ipd.array_element_type = repeated_con->type;
-        lower_ck_dynamic_init(repeated_con, &ipd, dtor_case, ctor_init,
+        lower_ck_dynamic_init(repeated_con, &ipd, dtor_case, source_desc,
                               others_follow, insert_location, keep_constant);
         /* Remove the ck_init_repeat constant, in case the overall aggregate
            is kept for the constant parts. */
@@ -4481,7 +4506,7 @@ TRUE.
     } else if (con_ptr->kind == (a_constant_repr_kind)ck_aggregate) {
       /* Aggregate constant initializing a member of an aggregate. */
       lower_dynamic_init_aggregate_constant(con_ptr, &ipd,
-                                            dtor_case, ctor_init,
+                                            dtor_case, source_desc,
                                             others_follow, insert_location,
                                             contains_vector_dynamic_init,
                                             keep_constant);
@@ -6366,7 +6391,7 @@ this function.
 
 void lower_dynamic_init(a_dynamic_init_ptr     dip,
                         an_init_pos_descr_ptr  ipdp,
-                        a_constructor_init_ptr ctor_init,
+                        an_implied_copy_source *source_desc,
                         a_variable_ptr         construction_vtbls_var,
                         a_lower_dynamic_init_options_set
                                                options,
@@ -6382,8 +6407,10 @@ when the entry is pointed to by an stmk_init statement or when it appears
 on a file-scope dynamic_inits list).  ipdp can, however, indicate a part of
 an aggregate.
 
-If the dynamic initialization is part of a constructor initializer,
-ctor_init points to the constructor-init entry.  In that case,
+If the dynamic initialization has an implied copy, source_desc describes
+the implied source of that copy (a constructor initializer, lambda capture
+variable, or a thrown exception).  source_desc is NULL otherwise.
+In the case where source_desc describes a constructor initializer,
 construction_vtbls_var provides the variable for a array of
 construction virtual function tables, if needed, or NULL otherwise.
 
@@ -6454,9 +6481,12 @@ C99 mode for the same reason.
 #if GNU_VECTOR_TYPES_ALLOWED
   a_boolean          contains_vector_dynamic_init = FALSE;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
+  a_constructor_init_ptr
+                     ctor_init = NULL;
 
   saved_code_pos = code_pos_for_lowering;
   saved_error_position = error_position;
+  if (source_desc != NULL) ctor_init = source_desc->ctor_init;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (ctor_init != NULL && ctor_init->ctor_init_range.start.seq != 0) {
     /* Track the source position. */
@@ -6860,7 +6890,7 @@ do_assignment:;
       if (dip->variant.constructor.is_copy_constructor_with_implied_source) {
         /* The constructor is a copy constructor, and the source of the
            copy is implied.  Determine the source location. */
-        source_node = implied_source_of_copy(ctor_init, ipdp,
+        source_node = implied_source_of_copy(source_desc, ipdp,
                                              /*result_is_lvalue=*/TRUE);
         source_node = add_address_of_to_node(source_node);
         /* Cast the expression to the right type to eliminate qualifier and
@@ -6923,7 +6953,7 @@ do_assignment:;
       }  /* if */
       keep_constant = FALSE;
       lower_dynamic_init_aggregate_constant(dip->variant.constant, ipdp,
-                                            /*dtor_case=*/FALSE, ctor_init,
+                                            /*dtor_case=*/FALSE, source_desc,
                                             others_follow_in_aggr,
                                             eff_insert_location,
 #if GNU_VECTOR_TYPES_ALLOWED
@@ -6987,7 +7017,7 @@ do_assignment:;
          This is used for copying members of classes in ctor-initializers
          of copy constructors, and for the parameter of catch clauses.
          ctor_init is non-NULL for the first of those cases. */
-      add_bitwise_copy(ipdp, ctor_init, have_complete_object,
+      add_bitwise_copy(ipdp, source_desc, have_complete_object,
                        eff_insert_location);
       break;
 #if CHECKING
@@ -8052,7 +8082,7 @@ The subtree of the node has not yet been lowered.
         set_up_freeing_of_storage_on_exception(ndsp, &ipd, &insert_location);
         /* Generate code for the initialization. */
         lower_dynamic_init(dip, &ipd,
-                           (a_constructor_init_ptr)NULL,
+                           (an_implied_copy_source *)NULL,
                            (a_variable_ptr)NULL,
                            LDIO_NONE,
                            /*others_follow_in_aggr=*/FALSE,
@@ -8475,7 +8505,7 @@ Do IL lowering of an enk_temp_init expression node.
     lower_dynamic_init_designated_initializers(dip);
 #endif /* LOWER_DESIGNATED_INITIALIZERS */
     lower_dynamic_init(dip, &ipd,
-                       (a_constructor_init_ptr)NULL,
+                       (an_implied_copy_source *)NULL,
                        (a_variable_ptr)NULL,
                        LDIO_NONE,
                        /*others_follow_in_aggr=*/FALSE,
@@ -8842,7 +8872,7 @@ Generate code for a stmk_init (dynamic initialization) statement.
       set_var_init_pos_descr(var, &ipd);
     }  /* if */
     lower_dynamic_init(dip, &ipd,
-                       (a_constructor_init_ptr)NULL,
+                       (an_implied_copy_source *)NULL,
                        (a_variable_ptr)NULL,
                        LDIO_FULL_EXPR,
                        /*others_follow_in_aggr=*/FALSE,
@@ -8985,7 +9015,7 @@ init_stmt is the stmk_init statement.
     set_var_init_pos_descr(vp, &ipd);
     set_insert_location(init_stmt, &insert_location);
     lower_dynamic_init(vp->initializer.dynamic, &ipd,
-                       (a_constructor_init_ptr)NULL,
+                       (an_implied_copy_source *)NULL,
                        (a_variable_ptr)NULL,
                        LDIO_FULL_EXPR,
                        /*others_follow_in_aggr=*/FALSE,
@@ -10782,9 +10812,10 @@ and NULL otherwise.  The statement(s) created are inserted at
 *insert_location, and *insert_location is updated.
 */
 {
-  a_dynamic_init_ptr   dip;
-  an_init_pos_descr    ipd;
-  an_init_pos_modifier ipm;
+  a_dynamic_init_ptr     dip;
+  an_init_pos_descr      ipd;
+  an_init_pos_modifier   ipm;
+  an_implied_copy_source source_desc;
 
   dip = ctor_init->initializer;
   /* Develop a position description for the entity to initialize. */
@@ -10792,9 +10823,12 @@ and NULL otherwise.  The statement(s) created are inserted at
   if (base_of_complete_object) ipd.base_of_complete_object = TRUE;
   /* Shouldn't be any pending compound literal initialization statements. */
   check_assertion(temp_init_statements == NULL);
+  /* Set the source of the implied copy. */
+  clear_implied_copy_source(&source_desc);
+  source_desc.ctor_init = ctor_init;
   /* Generate the code to do the initialization. */
   lower_dynamic_init(dip, &ipd,
-                     ctor_init, construction_vtbls_var,
+                     &source_desc, construction_vtbls_var,
                      LDIO_FULL_EXPR, /*others_follow_in_aggr=*/FALSE,
                      insert_location, (a_boolean *)NULL,
                      (a_constant **)NULL);
@@ -11512,7 +11546,7 @@ array if necessary.  The statements created are inserted at
 #endif /* CHECKING */
     lower_dynamic_init_aggregate_constant(dip->variant.constant, &ipd,
                                           /*dtor_case=*/TRUE,
-                                          (a_constructor_init_ptr)NULL,
+                                          (an_implied_copy_source *)NULL,
                                           /*others_follow_in_aggr=*/FALSE,
                                           insert_location,
                                           (a_boolean *)NULL,
@@ -12722,7 +12756,7 @@ instantiations have been generated.
          statements. */
       check_assertion(temp_init_statements == NULL);
       lower_dynamic_init(dip, &ipd,
-                         (a_constructor_init_ptr)NULL,
+                         (an_implied_copy_source *)NULL,
                          (a_variable_ptr)NULL,
                          LDIO_FULL_EXPR,
                          /*others_follow_in_aggr=*/FALSE,
@@ -13361,11 +13395,12 @@ the same type as the closure class and initializing each of the fields
 with the value of their corresponding captured variables.
 */
 {
-  a_variable_ptr        closure_var;
-  a_lambda_capture_ptr  capture;
-  an_init_pos_descr     ipd;
-  an_init_pos_modifier  ipm;
-  an_insert_location    insert_location;
+  a_variable_ptr         closure_var;
+  a_lambda_capture_ptr   capture;
+  an_init_pos_descr      ipd;
+  an_init_pos_modifier   ipm;
+  an_insert_location     insert_location;
+  an_implied_copy_source source_desc;
 
   check_assertion(expr->kind == (an_expr_node_kind)enk_lambda &&
                   identical_types(expr->variant.lambda->closure_class,
@@ -13387,15 +13422,18 @@ with the value of their corresponding captured variables.
                     capture->initialization->variable == NULL);
     /* Set up initialization to point to the proper field of the variable
        for the closure object. */
-    capture->initialization->variable = closure_var;
     set_var_init_pos_descr(closure_var, &ipd);
     add_init_pos_modifier(&ipm, &ipd);
     ipm.curr_field = capture->closure_field;
     ipm.type = capture->closure_field->type;
+    /* Set the source of an implied copy, if any.  Implied copies occur
+       in the class-by-value and array-by-value cases. */
+    clear_implied_copy_source(&source_desc);
+    source_desc.variable = capture->variable;
     /* Lower the dynamic initialization that copies the variable into
        a field of the closure object. */
     lower_dynamic_init(capture->initialization, &ipd,
-                       (a_constructor_init_ptr)NULL,
+                       &source_desc,
                        (a_variable_ptr)NULL,
                        LDIO_NONE,
                        /*others_follow_in_aggr=*/FALSE,

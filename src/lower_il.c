@@ -15698,7 +15698,7 @@ Lower an stmk_return statement.
       turn_branch_into_block(statement, &insert_location, &return_statement);
       make_block = FALSE;
       lower_dynamic_init(dip, &ipd,
-                         (a_constructor_init_ptr)NULL,
+                         (an_implied_copy_source *)NULL,
                          (a_variable_ptr)NULL,
                          LDIO_FULL_EXPR,
                          /*others_follow_in_aggr=*/FALSE,
@@ -15980,7 +15980,7 @@ handled).
        of the new block. */
     set_var_init_pos_descr(csp->dynamic_init->variable, &ipd);
     lower_dynamic_init(csp->dynamic_init, &ipd,
-                       (a_constructor_init_ptr)NULL,
+                       (an_implied_copy_source *)NULL,
                        (a_variable_ptr)NULL,
                        LDIO_FULL_EXPR,
                        /*others_follow_in_aggr=*/FALSE,

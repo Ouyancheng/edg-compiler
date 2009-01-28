@@ -3469,7 +3469,7 @@ in C99 mode to represent a compound literal.
   lower_dynamic_init_designated_initializers(dip);
 #endif /* LOWER_DESIGNATED_INITIALIZERS */
   lower_dynamic_init(dip, &ipd,
-                     (a_constructor_init_ptr)NULL,
+                     (an_implied_copy_source *)NULL,
                      (a_variable_ptr)NULL,
                      LDIO_NONE,
                      /*others_follow_in_aggr=*/FALSE,
@@ -3787,7 +3787,7 @@ Do C99 lowering on the indicated stmk_init statement.
         set_insert_location(statement, &insert_location);
         set_var_init_pos_descr(var, &ipd);
         lower_dynamic_init(dip, &ipd,
-                           (a_constructor_init_ptr)NULL,
+                           (an_implied_copy_source *)NULL,
                            (a_variable_ptr)NULL,
                            LDIO_FULL_EXPR,
                            /*others_follow_in_aggr=*/FALSE,

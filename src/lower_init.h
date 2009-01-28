@@ -29,6 +29,23 @@ lower_init.h -- Declarations related to lower_init.c (initializations and
 #endif /* ifndef LOWER_IL_H */
 
 
+typedef struct an_implied_copy_source {
+  /* The description of the source for an implied copy operation. */
+  /* When both fields (ctor_init and variable) are NULL, indicates that the
+     source of the implied copy is a thrown exception (to be copied at runtime
+     into the parameter of a catch clause). */
+  a_constructor_init_ptr
+                ctor_init;
+                        /* When non-NULL, the source of the implied copy
+                           is a copy constructor. */
+  a_variable_ptr
+                variable;
+                        /* When non-NULL, the source of the implied copy
+                           is a variable (used for lambda captures). */
+} an_implied_copy_source;
+
+extern void clear_implied_copy_source(an_implied_copy_source *source_desc);
+
 EXTERN a_boolean
 		processing_file_scope_init_routine;
 			/* TRUE while generating the file-scope initialization
@@ -142,7 +159,7 @@ typedef int a_lower_dynamic_init_options_set;
 
 extern void lower_dynamic_init(a_dynamic_init_ptr     dip,
                                an_init_pos_descr_ptr  ipdp,
-                               a_constructor_init_ptr ctor_init,
+                               an_implied_copy_source *source_desc,
                                a_variable_ptr         construction_vtbls_var,
                                a_lower_dynamic_init_options_set
                                                       options,

@@ -4902,8 +4902,9 @@ Generate code for the start of a catch clause.  The current context is
 for the scope of the handler.
 */
 {
-  an_init_pos_descr  ipd;
-  an_insert_location insert_location;
+  an_init_pos_descr       ipd;
+  an_insert_location      insert_location;
+  an_implied_copy_source  source_desc;
 
   set_block_start_insert_location(handler->statement, &insert_location);
 #if GENERATE_EH_TABLES
@@ -4919,8 +4920,12 @@ for the scope of the handler.
     /* Insert code to initialize the catch clause parameter from the
        runtime copy of the thrown object. */
     set_var_init_pos_descr(handler->parameter, &ipd);
+    /* Clear the implied copy source structure.  Leaving all fields NULL  
+       indicates that the source is a copy of the object thrown by an exception
+       handling "throw". */
+    clear_implied_copy_source(&source_desc);
     lower_dynamic_init(handler->dynamic_init, &ipd,
-                       (a_constructor_init_ptr)NULL,
+                       &source_desc,
                        (a_variable_ptr)NULL,
                        LDIO_FULL_EXPR,
                        /*others_follow_in_aggr=*/FALSE,
@@ -5830,7 +5835,7 @@ Lower an enk_throw expression node.
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
     /* Generate code to copy the thrown expression to the runtime. */
     lower_dynamic_init(dip, &ipd,
-                       (a_constructor_init_ptr)NULL,
+                       (an_implied_copy_source *)NULL,
                        (a_variable_ptr)NULL,
                        LDIO_THROW,
                        /*others_follow_in_aggr=*/FALSE,
