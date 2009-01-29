@@ -2126,7 +2126,6 @@ do_set_proper_definition_needed_flag:
           walk_list(ptr->types, a_type_ptr, iek_type);
           walk_list(ptr->variables, a_variable_ptr, iek_variable);
           walk_list(ptr->routines, a_routine_ptr, iek_routine);
-          walk_list(ptr->lambdas, a_lambda_ptr, iek_lambda);
         } else {
           /* For lists not within a function, mark only the needed entities
              to be kept. */
@@ -2134,10 +2133,6 @@ do_set_proper_definition_needed_flag:
           walk_needed_on_list(ptr->variables, a_variable_ptr, iek_variable,
                               kind);
           walk_needed_on_list(ptr->routines, a_routine_ptr, iek_routine, kind);
-/*
-          FIXME: lambdas don't have a needed flag; use the closure type instead?
-          walk_needed_on_list(ptr->lambdas, a_lambda_ptr, iek_lambda, kind);
-*/
         }  /* if */
 #else /* !KEEP_IN_IL_WALK */
         /* Not needed flag walk or keep_in_il walk. */
@@ -2156,7 +2151,6 @@ do_set_proper_definition_needed_flag:
           walk_list(ptr->variables, a_variable_ptr, iek_variable);
         }  /* if */
         walk_list(ptr->routines, a_routine_ptr, iek_routine);
-        walk_list(ptr->lambdas, a_lambda_ptr, iek_lambda);
 #endif /* KEEP_IN_IL_WALK */
 #endif /* NEEDED_FLAG_WALK */
 #else /* !DO_SUBTREE_WALK */
@@ -2164,7 +2158,6 @@ do_set_proper_definition_needed_flag:
         remap_list_ptr(ptr->types, a_type_ptr, iek_type);
         remap_list_ptr(ptr->variables, a_variable_ptr, iek_variable);
         remap_list_ptr(ptr->routines, a_routine_ptr, iek_routine);
-        remap_list_ptr(ptr->lambdas, a_lambda_ptr, iek_lambda);
 #endif /* DO_SUBTREE_WALK */
 #if NEEDED_FLAG_WALK && defined(nonstatic_variable_always_needed)
         if (kind == (a_scope_kind)sck_function ||
@@ -2201,6 +2194,7 @@ do_set_proper_definition_needed_flag:
         walk_list(ptr->scope_refs, a_local_scope_ref_ptr, iek_local_scope_ref);
         walk_list(ptr->pragmas, a_pragma_ptr, iek_pragma);
         walk_list(ptr->templates, a_template_ptr, iek_template);
+        walk_list_not_needed(ptr->lambdas, a_lambda_ptr, iek_lambda);
 #if MICROSOFT_EXTENSIONS_ALLOWED
         walk_list(ptr->ms_attributes, an_ms_attribute_ptr, iek_ms_attribute);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

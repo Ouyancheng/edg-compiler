@@ -169,6 +169,9 @@ typedef struct a_scope_pointers_block {
 			   the scope stack end_of_source_sequence_list field
 			   should be used at other times. */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  a_lambda_ptr	last_lambda;
+			/* End of the list of lambda entries entered on the
+			   the corresponding IL scope entry; NULL if none. */
   a_symbol_ptr	unnamed_namespace_sym;
 			/* For sck_file and sck_namespace scopes only, pointer
 			   to the symbol representing the unnamed namespace

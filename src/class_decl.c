@@ -989,11 +989,11 @@ the field.
 
 
 static a_lambda_capture_ptr add_lambda_capture(
-					a_lambda_ptr		lambda,
-					a_variable_ptr		vp,
-					a_boolean		is_implicit,
-					a_boolean		by_reference,
-					a_source_position_ptr	pos)
+                                          a_lambda_ptr           lambda,
+                                          a_variable_ptr         vp,
+                                          a_boolean              is_implicit,
+                                          a_boolean              by_reference,
+                                          a_source_position_ptr  pos)
 /*
 Create a lambda capture entry for the lambda specified by "lambda" for the
 variable vp.  is_implicit is TRUE if this is an implicit capture.
@@ -1004,23 +1004,25 @@ and return a pointer to the capture entry.  pos is the source position
 to be used for the capture.
 */
 {
-  a_lambda_capture_ptr		lcp;
-  a_memory_region_number	region_to_switch_back_to = NULL_region_number;
+  a_lambda_capture_ptr     lcp;
+  a_memory_region_number   region_to_switch_back_to = NULL_region_number;
+  a_scope_stack_entry_ptr  ssep;
 
+  /* Find the scope stack entry for the scope containing the local
+     variable that is being captured. */
+  /* For implicit captures we are currently in the memory region of the
+     lambda body, but we need to switch the memory region of the lambda
+     reference. */
   if (is_implicit) {
-    /* For implicit captures we are currently in the memory region of the
-       lambda body, but we need to switch the memory region of the lambda
-       reference. */
-    a_scope_stack_entry_ptr	ssep;
-    /* Find the scope stack entry for the scope containing the local
-       variable that is being captured. */
     for (ssep = scope_stack_entry_for(depth_scope_stack);
          ssep != NULL && ssep->il_scope != vp->source_corresp.parent_scope;
          ssep = previous_scope_of(ssep)) {}
     check_assertion(ssep != NULL);
-    region_to_switch_back_to = curr_il_region_number;
-    switch_il_region(ssep->il_memory_region);
+  } else {
+    ssep = scope_stack_entry_for(depth_scope_stack-1);
   }  /* if */
+  region_to_switch_back_to = curr_il_region_number;
+  switch_il_region(ssep->il_memory_region);
   lcp = alloc_lambda_capture();
   lcp->variable = vp;
   lcp->closure_field = make_field_for_lambda_capture(lambda, vp, by_reference,
@@ -1034,16 +1036,13 @@ to be used for the capture.
   } else {
     /* Find the last entry on the capture list so that we can add the new
        entry to the end of the list. */
-    a_lambda_capture_ptr	last_lcp;
+    a_lambda_capture_ptr  last_lcp;
     for (last_lcp = lambda->capture_list; last_lcp->next != NULL;
          last_lcp = last_lcp->next) {}
     last_lcp->next = lcp;
   }  /* if */
-  if (is_implicit) {
-    /* If we changed memory regions above, switch back to the original
-       region now. */
-    switch_back_to_original_region(region_to_switch_back_to);
-  }  /* if */
+  /* Restore the original memory region. */
+  switch_back_to_original_region(region_to_switch_back_to);
   return lcp;
 }  /* add_lambda_capture */
 
@@ -16254,6 +16253,10 @@ entry, return NULL.
        a lambda. */
     check_assertion(total_errors != 0);
     lambda = NULL;
+  }  /* if */
+  if (lambda != NULL) {
+    /* Record the lambda in the current scope. */
+    add_to_lambdas_list(lambda);
   }  /* if */
   return lambda;
 }  /* scan_lambda */
