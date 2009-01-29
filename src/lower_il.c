@@ -17488,7 +17488,16 @@ is instantiated in more than one translation unit.
   if (rout->source_corresp.is_local_to_function) {
     check_assertion(rout->source_corresp.is_class_member &&
                     !rout->is_template_function);
-    rout = enclosing_routine_for_local_type(parent_class_of(rout));
+    a_routine_ptr  enclosing_rout = enclosing_routine_for_local_type_or_null(
+                                                        parent_class_of(rout));
+    if (enclosing_rout != NULL) {
+      rout = enclosing_rout;
+    } else {
+      /* This should only happen with types defined in local function prototype
+         scopes, and such definitions elicit errors in C++.  (In error recovery
+         mode the result of this function does not really matter.) */
+      expect_error();
+    }  /* if */
   }  /* if */
   if (!C_mode() && is_or_will_be_extern_inline(rout)) {
     /* An extern inline routine might be expanded in more than one

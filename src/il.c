@@ -7042,10 +7042,10 @@ correspondence.  The entity must have an associated symbol.
 }  /* trans_unit_for_source_corresp */
 
 
-a_routine_ptr enclosing_routine_for_local_type(a_type_ptr type)
+a_routine_ptr enclosing_routine_for_local_type_or_null(a_type_ptr type)
 /*
-Given a function-local type, return a pointer to the innermost
-function that encloses it.
+Given a function-local type, return a pointer to the innermost function that
+encloses it, or null if the type belongs to a local function prototype scope.
 */
 {
   check_assertion(type->source_corresp.is_local_to_function);
@@ -7054,8 +7054,20 @@ function that encloses it.
   while (type->source_corresp.is_class_member) {
     type = parent_class_of(type);
   }  /* while */
-  check_assertion(type->source_corresp.enclosing_routine != NULL);
   return type->source_corresp.enclosing_routine;
+}  /* enclosing_routine_for_local_type_or_null */
+
+
+a_routine_ptr enclosing_routine_for_local_type(a_type_ptr type)
+/*
+Given a function-local type, return a pointer to the innermost function that
+encloses it.  The given type should not belong to a local function prototype
+scope.
+*/
+{
+  a_routine_ptr  result = enclosing_routine_for_local_type_or_null(type);
+  check_assertion(result != NULL);
+  return result;
 }  /* enclosing_routine_for_local_type */
 
 
