@@ -18557,6 +18557,13 @@ see expr.h).
   /* If a left parenthesis was trapped by the caller, go to the code that
      handles a left parenthesis. */
   if (local_options & EOPT_TRAPPED_LEFT_PAREN) goto handle_trapped_left_paren;
+  if (microsoft_mode && curr_token == tok_typename && 
+      is_real_instantiation_context()) {
+    /* Normally "typename X::Y ..." is taken to be a functional-notation cast,
+       but in Microsoft mode the thing after "typename" need not actually
+       be a typename, so the typename is just discarded. */
+    (void)get_token();
+  }  /* if */
   switch ((int)curr_token) {
     case tok_colon_colon:
       if (curr_expr_kind_is(ek_pp)) {

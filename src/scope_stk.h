@@ -1014,6 +1014,13 @@ scope.
    depth_template_declaration_scope != NO_SCOPE_DEPTH)
 
 /*
+TRUE if we are in an instantiation that is not a prototype instantiation.
+*/
+#define is_real_instantiation_context()					\
+  (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH &&		\
+   !scope_stack[depth_scope_stack].in_prototype_instantiation)
+
+/*
 TRUE if we are in the instantiation of a template in a translation unit
 loaded for the purpose of instantiating exported templates.  Note that
 this will be FALSE for an instantiation performed during the initial scan

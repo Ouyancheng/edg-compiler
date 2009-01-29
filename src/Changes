@@ -1,5 +1,24 @@
 Version 4.1
 
+1/29/09  [EDGcpfe/8401]
+Microsoft compatibility: typename in expressions in template instantiations
+
+The Microsoft compiler allows the typename keyword to be used in expressions
+in template contexts when it is not followed by a type.  We now emulate this
+behavior in Microsoft mode.
+
+  struct A {
+    static int f() { return 0; }
+  };
+  template <class T> inline void f(T) {
+    // now allowed in Microsoft mode (formerly '"A::f" is not a type name')
+    int x = typename A::f();
+  }
+  int main() {
+    f(1);
+  }
+
+
 1/27/09  [EDGcpfe/9479]
 Microsoft compatibility: macro expansion in attributes
 
