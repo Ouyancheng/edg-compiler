@@ -16182,6 +16182,7 @@ entry, return NULL.
   a_class_def_state   class_state;
   a_func_info_block   func_info;
   a_decl_flag_set     sfb_flags;
+  a_scope_depth       orig_decl_scope_level = decl_scope_level;
 
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   add_to_source_sequence_list((char*)lambda, (an_il_entry_kind)iek_lambda);
@@ -16238,7 +16239,8 @@ entry, return NULL.
     }  /* if */
   }  /* if */
   /* Record the capture list and complete the closure class. */
-  complete_class_definition(closure_class, decl_scope_level-1, &class_state);
+  complete_class_definition(closure_class, orig_decl_scope_level,
+                            &class_state);
   pop_scope();
   if (lambda->lambda_routine != NULL) {
     /* Lowering of the lambda body function is deferred because the closure
