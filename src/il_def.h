@@ -12908,6 +12908,14 @@ typedef struct a_lambda {
 			   information can be accessed via the lamba_routine
 			   pointer. */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  a_dynamic_init_ptr
+		initialization;
+			/* Aggregate initialization that copies the captured
+			   variables to the fields of the closure class.
+			   Also includes the destruction of the closure
+			   object if necessary.  Still present if no
+			   initialization is needed (indicates dik_none in
+			   that case). */
 } a_lambda;
 
 
@@ -12953,12 +12961,6 @@ typedef struct a_lambda_capture {
 			   captured variable or "this" keyword.
 			   null_source_position if is_implicit is TRUE. */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  a_dynamic_init_ptr
-		initialization;
-			/* Pointer to the dynamic-init entry that describes
-			   the initialization of closure_field with the
-			   the captured variable.  Left NULL if there was an
-			   error and the copy could not be done. */
 } a_lambda_capture;
 
 

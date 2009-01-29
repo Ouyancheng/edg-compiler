@@ -4121,6 +4121,7 @@ Display the indicated lambda entry.
   disp_source_position("capture_end_position", &ptr->capture_end_position);
   disp_source_position("mutable_position", &ptr->mutable_position);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  disp_ptr("initialization", (char*)ptr->initialization, iek_dynamic_init);
 }  /* disp_lambda */
 
 
@@ -4142,7 +4143,6 @@ Display the indicated lambda capture.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   disp_source_position("end_position", &ptr->end_position);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  disp_ptr("initialization", (char*)ptr->initialization, iek_dynamic_init);
 }  /* disp_lambda_capture */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED

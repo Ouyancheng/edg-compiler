@@ -4095,6 +4095,7 @@ entry is allocated in the current memory region.
   entry->capture_end_position = null_source_position;
   entry->mutable_position = null_source_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  entry->initialization = NULL;
   return entry;
 }  /* alloc_lambda */
 
@@ -4118,7 +4119,6 @@ in the current memory region.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   entry->end_position = null_source_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  entry->initialization = NULL;
   return entry;
 }  /* alloc_lambda_capture */
 

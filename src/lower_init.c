@@ -1553,8 +1553,24 @@ Clear the fields of the specified implied copy source.
 */
 {
   source_desc->ctor_init = NULL;
-  source_desc->variable = NULL;
+  source_desc->capture = NULL;
+  source_desc->runtime_throw = FALSE;
 }  /* clear_implied_copy_source */
+
+
+static void advance_to_next_lambda_capture_if_necessary(
+                                           an_implied_copy_source *source_desc)
+/*
+If the source description refers to a lambda capture, advance to the
+next local variable in the capture list.  source_desc can be NULL.
+*/
+{
+  if (source_desc != NULL && source_desc->capture != NULL) {
+    check_assertion(source_desc->ctor_init == NULL && 
+                    !source_desc->runtime_throw);
+    source_desc->capture = source_desc->capture->next;
+  }  /* if */
+}  /* advance_to_next_lambda_capture_if_necessary */
 
 
 static an_expr_node_ptr implied_source_of_copy(
@@ -1565,7 +1581,7 @@ static an_expr_node_ptr implied_source_of_copy(
 We're processing a dynamic initialization entry that represents a copy of
 something from an implied source location to the thing being initialized.
 source_desc describes the source of the implied copy and represents a
-constructor-initializer entry, a variable (for lambda capture by value),
+constructor-initializer entry, a local variable (for lambda capture by value),
 or the object thrown by an exception handling "throw" into the
 parameter of the catch clause.  In any case, create an expression to
 describe the implied source and return a pointer to it.  dest describes the
@@ -1579,7 +1595,8 @@ result_is_lvalue is TRUE, otherwise an rvalue.
 
   check_assertion(source_desc != NULL);
   if (source_desc->ctor_init != NULL) {
-    check_assertion(source_desc->variable == NULL);
+    check_assertion(source_desc->capture == NULL &&
+                    !source_desc->runtime_throw);
     /* The implied source is the member being copied by the
        ctor-initializer. */
     set_var_indirect_init_pos_descr(var_for_copy_constructor_source(),
@@ -1588,20 +1605,27 @@ result_is_lvalue is TRUE, otherwise an rvalue.
                                &source_ipm);
     source_node = make_init_entity_node(&source_ipd, result_is_lvalue,
                                         /*using_as_dest=*/FALSE);
-  } else if (source_desc->variable != NULL) {
-    /* The implied source is a variable (presumably from a lambda capture). */
-    if (source_desc->variable->is_parameter &&
-        source_desc->variable->assoc_param_type != NULL &&
-        source_desc->variable->assoc_param_type->passed_via_copy_constructor) {
+  } else if (source_desc->capture != NULL) {
+    a_variable_ptr  var = source_desc->capture->variable;
+    check_assertion(!source_desc->runtime_throw);
+    /* The implied source is a local variable from a lambda capture. */
+    if (var->is_parameter &&
+        var->assoc_param_type != NULL &&
+        var->assoc_param_type->passed_via_copy_constructor) {
       /* Variable is a parameter passed via copy constructor, add an
          indirection. */
-      set_var_indirect_init_pos_descr(source_desc->variable, &source_ipd);
+      set_var_indirect_init_pos_descr(var, &source_ipd);
     } else {
-      set_var_init_pos_descr(source_desc->variable, &source_ipd);
+      set_var_init_pos_descr(var, &source_ipd);
     }  /* if */
     source_node = make_init_entity_node(&source_ipd, result_is_lvalue,
                                         /*using_as_dest=*/FALSE);
-  } else {
+    /* Note that advance_to_next_lambda_capture_if_necessary should be
+       called to move from the current lambda capture variable to the next.
+       implied_source_of_copy may be called multiple times for the same
+       capture variable (e.g., by add_bitwise_copy), thus the need for
+       an explicit advancement. */
+  } else if (source_desc->runtime_throw) {
     /* The implied source is a thrown object. */
     a_variable_ptr catch_parameter;
     a_type_ptr     param_type, object_type;
@@ -1634,6 +1658,8 @@ result_is_lvalue is TRUE, otherwise an rvalue.
         source_node = rvalue_expr_for_lvalue(source_node);
       }  /* if */
     }  /* if */
+  } else {
+    unexpected_condition();
   }  /* if */
   check_assertion(source_node->is_lvalue == result_is_lvalue);
   return source_node;
@@ -4187,10 +4213,10 @@ others in an aggregate initialization (i.e., it's not the last).  If the
 initialization is of an aggregate and there some parts of the initialization
 that are constant, the ck_dynamic_init constant will be changed to an aggregate
 constant for the constant parts and *keep_constant will be set to TRUE.
- *keep_constant is also set to TRUE if the ck_dynamic_init is used to
- initialize an element of a vector.  Individual vector elements cannot be
- individually assigned, so they must remain as part of the aggregate
- initializer.
+*keep_constant is also set to TRUE if the ck_dynamic_init is used to
+initialize an element of a vector.  Individual vector elements cannot be
+individually assigned, so they must remain as part of the aggregate
+initializer.
 */
 {
   a_constant_ptr     next_con;
@@ -4557,6 +4583,12 @@ TRUE.
     } else {
       /* Class or struct -- go on to next field (nonstatic data member). */
       ipmp->curr_field = next_initializable_field(ipmp->curr_field->next);
+    }  /* if */
+    if (!array_or_vector) {
+      /* If we're initializing fields of a lambda closure object,
+         advance the source of an implied copy to the next variable in
+         the capture list. */
+      advance_to_next_lambda_capture_if_necessary(source_desc);
     }  /* if */
     /* Loop while there are more constants. */
   }  /* for */
@@ -6947,7 +6979,7 @@ do_assignment:;
     case dik_nonconstant_aggregate:
       /* Initialization with a nonconstant aggregate constant.  This is usually
          a whole-variable initialization, but can be used in a ctor-initializer
-         to iterate over an array initialization, etc. */
+         or lambda capture to iterate over an array initialization, etc. */
       if (!C_mode()) {
         latest_initialization_on_entry = eff_context->latest_initialization;
       }  /* if */
@@ -13398,9 +13430,9 @@ with the value of their corresponding captured variables.
   a_variable_ptr         closure_var;
   a_lambda_capture_ptr   capture;
   an_init_pos_descr      ipd;
-  an_init_pos_modifier   ipm;
   an_insert_location     insert_location;
   an_implied_copy_source source_desc;
+  a_dynamic_init_ptr     dip;
 
   check_assertion(expr->kind == (an_expr_node_kind)enk_lambda &&
                   identical_types(expr->variant.lambda->closure_class,
@@ -13408,6 +13440,7 @@ with the value of their corresponding captured variables.
                   !expr->is_lvalue);
   closure_var = make_local_temporary(expr->type);
   capture = expr->variant.lambda->capture_list;
+  dip = expr->variant.lambda->initialization;
   /* Change the enk_lambda node to an enk_variable node that refers to
      the closure variable.  The type and lvalueness of the node are unchanged.
      Lambda-specific field values of expr cannot be accessed after the
@@ -13417,29 +13450,28 @@ with the value of their corresponding captured variables.
   expr->variant.variable = closure_var;
   /* Initialization (if any) is inserted before the lambda expression. */
   set_expr_insert_location(expr, &insert_location);
-  for (; capture != NULL; capture = capture->next) {
-    check_assertion(capture->initialization != NULL &&
-                    capture->initialization->variable == NULL);
-    /* Set up initialization to point to the proper field of the variable
-       for the closure object. */
-    set_var_init_pos_descr(closure_var, &ipd);
-    add_init_pos_modifier(&ipm, &ipd);
-    ipm.curr_field = capture->closure_field;
-    ipm.type = capture->closure_field->type;
-    /* Set the source of an implied copy, if any.  Implied copies occur
-       in the class-by-value and array-by-value cases. */
-    clear_implied_copy_source(&source_desc);
-    source_desc.variable = capture->variable;
-    /* Lower the dynamic initialization that copies the variable into
-       a field of the closure object. */
-    lower_dynamic_init(capture->initialization, &ipd,
-                       &source_desc,
-                       (a_variable_ptr)NULL,
-                       LDIO_NONE,
-                       /*others_follow_in_aggr=*/FALSE,
-                       &insert_location, (a_boolean *)NULL,
-                       (a_constant **)NULL);
-  }  /* for */
+  /* Set the variable for the initialization to point to the temporary. */
+  set_var_init_pos_descr(closure_var, &ipd);
+  /* Set the source of the implied copy to the first captured local variable
+     in the capture list.  During the initialization,
+     advance_to_next_lambda_capture_if_necessary is called to advance the
+     source of the implied copy to the next local variable in the capture
+     list. */
+  clear_implied_copy_source(&source_desc);
+  source_desc.capture = capture;
+  /* The front end has created an aggregate dynamic init to initialize all
+     fields of the lambda closure object with values from the corresponding
+     local variables. */
+  lower_dynamic_init(dip, &ipd,
+                     &source_desc,
+                     (a_variable_ptr)NULL,
+                     LDIO_NONE,
+                     /*others_follow_in_aggr=*/FALSE,
+                     &insert_location, (a_boolean *)NULL,
+                     (a_constant **)NULL);
+  /* Verify that all captured variables were assigned during the
+     initialization. */
+  check_assertion(source_desc.capture == NULL);
 }  /* lower_lambda */
 
 

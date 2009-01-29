@@ -1228,6 +1228,8 @@ extern a_dynamic_init_ptr alloc_dtor_dynamic_init(
                                            a_type_ptr          type,
                                            a_source_position   *position);
 
+extern void set_temp_dynamic_init_lifetime(a_dynamic_init_ptr dip);
+
 extern void set_temp_init_dynamic_init_lifetime(
                                               an_expr_node_ptr temp_init_node);
 

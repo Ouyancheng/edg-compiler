@@ -8139,7 +8139,10 @@ Add destruction information, if needed, to the dynamic initialization entry
 dip.  dip is initializing an object of type class_type.  If that is being
 done as part of a larger complete object, object_class_type indicates that
 type; otherwise, it is the same as class_type, or it is NULL if not needed.
-position is a source position to be used for errors.
+position is a source position to be used for errors.  Note that this
+routine fills in the "destructor" field but does not add the dynamic
+initialization entry to an object lifetime list (for that, see
+set_temp_init_dynamic_init_lifetime, among others).
 */
 {
   check_assertion(is_class_struct_union_type(class_type));
@@ -8191,6 +8194,22 @@ initialization entry.  *position gives the associated source position.
 }  /* alloc_dtor_dynamic_init */
 
 
+void set_temp_dynamic_init_lifetime(a_dynamic_init_ptr dip)
+/*
+The indicated dynamic initialization entry initializes a temporary.
+If it indicates a destructor, add it to the current object lifetime.
+*/
+{
+  if (curr_expr_is_potentially_evaluated()) {
+    /* Put the destruction (if any) on the list for the current object
+       lifetime. */
+    record_end_of_lifetime_destruction(dip, /*static_lifetime=*/FALSE,
+                                       /*block_lifetime=*/FALSE);
+    dip->has_temporary_lifetime = TRUE;
+  }  /* if */
+}  /* set_temp_dynamic_init_lifetime */
+
+
 void set_temp_init_dynamic_init_lifetime(an_expr_node_ptr temp_init_node)
 /*
 If the dynamic initialization attached to the indicated enk_temp_init
@@ -8199,11 +8218,7 @@ requires a later destruction, put it into the current object lifetime.
 {
   if (curr_expr_is_potentially_evaluated()) {
     a_dynamic_init_ptr dip = temp_init_node->variant.init.dynamic_init;
-    /* Put the destruction (if any) on the list for the current object
-       lifetime. */
-    record_end_of_lifetime_destruction(dip, /*static_lifetime=*/FALSE,
-                                       /*block_lifetime=*/FALSE);
-    dip->has_temporary_lifetime = TRUE;
+    set_temp_dynamic_init_lifetime(dip);
     /* If the lifetime happens to turn out to be static (e.g., when
        long lifetime temps are enabled), mark the temp init as requiring
        a static temporary. */

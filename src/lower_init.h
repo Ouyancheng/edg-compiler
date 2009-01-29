@@ -31,17 +31,23 @@ lower_init.h -- Declarations related to lower_init.c (initializations and
 
 typedef struct an_implied_copy_source {
   /* The description of the source for an implied copy operation. */
-  /* When both fields (ctor_init and variable) are NULL, indicates that the
-     source of the implied copy is a thrown exception (to be copied at runtime
-     into the parameter of a catch clause). */
   a_constructor_init_ptr
                 ctor_init;
                         /* When non-NULL, the source of the implied copy
                            is a copy constructor. */
-  a_variable_ptr
-                variable;
+  a_lambda_capture_ptr
+                capture;
                         /* When non-NULL, the source of the implied copy
-                           is a variable (used for lambda captures). */
+                           is a local variable on a lambda capture list.
+                           capture points to the current lambda capture on the
+                           capture list and is advanced during lowering of
+                           the aggregate dynamic initializer that is used to
+                           initialize the lambda closure object. */
+  a_boolean
+                runtime_throw;
+                        /* When TRUE indicates that the source of the implied
+                           copy is a thrown exception (to be copied at runtime
+                           into the parameter of a catch clause). */
 } an_implied_copy_source;
 
 extern void clear_implied_copy_source(an_implied_copy_source *source_desc);

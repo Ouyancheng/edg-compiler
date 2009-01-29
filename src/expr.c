@@ -18339,12 +18339,20 @@ been annotated in the source with the GNU keyword __extension__.
 
 static void make_initializers_for_lambda_capture_copies(a_lambda *lambda)
 /*
-*lambda describes a lambda expression just scanned.  For any captured
-variables, add initializers that describe how to copy the variables.
+*lambda describes a lambda expression just scanned.  Add an initializer
+for the closure object, which copies any captured variables into the
+fields of the closure object.
 */
 {
   a_lambda_capture_ptr lcp;
+  a_dynamic_init_ptr   aggr_dip;
+  a_constant_ptr       aggr_con;
 
+  /* The overall initializer is a dynamic aggregate initializer usually,
+     but we don't allocate the ck_aggregate until we hit the first capture
+     that requires it. */
+  aggr_con = NULL;
+  /* Loop through each capture on the lambda's list. */
   for (lcp = lambda->capture_list; lcp != NULL; lcp = lcp->next) {
     a_variable_ptr     var = lcp->variable;
     a_symbol_ptr       var_sym = symbol_for(var);
@@ -18353,7 +18361,9 @@ variables, add initializers that describe how to copy the variables.
     a_ref_entry_ptr    rep = NULL;
     an_operand         operand;
     a_dynamic_init_ptr dip;
+    a_constant_ptr     init_con;
     a_routine_ptr      cctor_routine = NULL;
+    a_routine_ptr      dtor_routine = NULL;
     a_boolean          do_bitwise_copy = FALSE;
     a_boolean          err = FALSE;
     a_boolean          array_case = FALSE;
@@ -18388,6 +18398,15 @@ variables, add initializers that describe how to copy the variables.
       if (cctor_routine == NULL && !do_bitwise_copy) {
         /* An error was detected and diagnosed. */
         err = TRUE;
+      } else if (exceptions_enabled) {
+        /* Exceptions are enabled, so see if a destructor is needed
+           to destroy previous captured copies if a throw is done part-way
+           through the captures.  Note that this can apply even if the
+           initialization is done by a bitwise copy. */
+        dtor_routine = expr_select_destructor(dest_class_type,
+                                              dest_class_type,
+                                              capture_pos,
+                                              /*honor_virtual=*/FALSE);
       }  /* if */
     } else if (array_case) {
       /* For a non-class array, do a bitwise copy. */
@@ -18396,31 +18415,21 @@ variables, add initializers that describe how to copy the variables.
     /* Build the dynamic initialization entry. */
     if (err) {
       /* Some previous error. */
+      dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
+      array_case = FALSE;
     } else if (do_bitwise_copy) {
       /* The copy is a bitwise copy.  Use a dik_bitwise_copy dynamic init
          entry.  The source is implied (always, for dik_bitwise_copy). */
       dip = alloc_dynamic_init((a_dynamic_init_kind)dik_bitwise_copy);
+      /* For arrays, the bitwise copy can handle the whole array so no
+         ck_init_repeat is needed.  However, if a destructor must be
+         indicated for each element of the array, we still need the
+         array repeat. */
+      if (array_case && dtor_routine == NULL) array_case = FALSE;
     } else if (cctor_routine != NULL) {
       /* The copy uses a copy constructor.  Use a dik_constructor dynamic
          init entry with an implied source. */
       dip = alloc_ctor_dynamic_init(cctor_routine, /*implied_source=*/TRUE);
-      if (array_case) {
-        /* To repeat the copy constructor call for each element of an array,
-           add ck_init_repeat/ck_dynamic_init. */
-        a_type_ptr    elem_type = dest_type;
-        a_targ_size_t num_of_elements = 1;
-        /* Determine the number of elements in the (possibly multi-dimensional)
-           array, or 0 if the number of elements is unknown at compile time,
-           as for a template. */
-        while (is_array_type(elem_type)) {
-          accumulate_array_size(elem_type, &num_of_elements);
-          elem_type = array_element_type(elem_type);
-        }  /* while */
-        dip = add_array_nonconstant_aggregate_init(dip,
-                                                   dest_type,
-                                                   elem_type,
-                                                   num_of_elements);
-      }  /* if */
     } else {
       /* Other cases, including when dest_type is a reference (which happens
          when the capture is by reference). */
@@ -18439,8 +18448,64 @@ variables, add initializers that describe how to copy the variables.
       dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_expression);
       dip->variant.expression = make_node_from_operand(&operand);
     }  /* if */
-    lcp->initialization = dip;
+    if (dtor_routine != NULL) {
+      /* Indicate a destructor to be called for cleanup if an exception is
+         thrown part-way through the captures. */
+      dip->destructor = dtor_routine;
+      dip->destruction_is_for_partially_constructed_aggregate = TRUE;
+      record_end_of_lifetime_destruction(dip, /*static_lifetime=*/FALSE,
+                                         /*block_lifetime=*/FALSE);
+    }  /* if */
+    if (array_case) {
+      /* To repeat the initialization for each element of an array,
+         add ck_init_repeat/ck_dynamic_init. */
+      a_type_ptr    elem_type = dest_type;
+      a_targ_size_t num_of_elements = 1;
+      /* Determine the number of elements in the (possibly multi-dimensional)
+         array, or 0 if the number of elements is unknown at compile time,
+         as for a template. */
+      while (is_array_type(elem_type)) {
+        accumulate_array_size(elem_type, &num_of_elements);
+        elem_type = array_element_type(elem_type);
+      }  /* while */
+      dip = add_array_nonconstant_aggregate_init(dip,
+                                                 dest_type,
+                                                 elem_type,
+                                                 num_of_elements);
+    }  /* if */
+    /* Wrap the dynamic init in a ck_dynamic_init constant that will go into
+       the aggregate. */
+    init_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
+    init_con->type = dest_type;
+    init_con->variant.dynamic_init = dip;
+    /* Add the initialization to the aggregate being built up.  Allocate the
+       aggregate if this is the first capture. */
+    if (aggr_con == NULL) {
+      aggr_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
+      aggr_con->type = lambda->closure_class;
+      aggr_con->variant.aggregate.first_constant = init_con;
+    } else {
+      aggr_con->variant.aggregate.last_constant->next = init_con;
+    }  /* if */
+    aggr_con->variant.aggregate.last_constant = init_con;
   }  /* for */
+  /* Make a dynamic initializer for the aggregate.  If no initialization
+     is needed, make a dik_none dynamic init. */
+  if (aggr_con == NULL) {
+    aggr_dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
+  } else {
+    aggr_dip = alloc_dynamic_init(
+                               (a_dynamic_init_kind)dik_nonconstant_aggregate);
+    aggr_dip->variant.constant = aggr_con;
+  }  /* if */
+  /* Add a destruction for the closure object if appropriate (i.e., if any
+     of the captured variable fields require destruction). */
+  add_dtor_to_dynamic_init(aggr_dip,
+                           lambda->closure_class,
+                           lambda->closure_class,
+                           &lambda->start_position);
+  set_temp_dynamic_init_lifetime(aggr_dip);
+  lambda->initialization = aggr_dip;
 }  /* make_initializers_for_lambda_capture_copies */
 
 

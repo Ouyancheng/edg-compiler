@@ -11122,8 +11122,8 @@ processing.  If there is no next such field, return NULL.
 */
 {
   for (; field != NULL; field = field->next) {
-    /* Named fields are initializable. */
-    if (has_name(field)) break;
+    /* Unnamed bit fields are not initializable. */
+    if (has_name(field) || !field->is_bit_field) break;
     /* Anonymous unions are also initializable in C++.  An extension allows
        anonymous parent objects in C too. */
     if (field->is_anonymous_parent_object) break;

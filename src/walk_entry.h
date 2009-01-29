@@ -2953,6 +2953,7 @@ after_entry_from_class:
         walk_list(ptr->capture_list, a_lambda_capture_ptr, iek_lambda_capture);
         remap_ptr(ptr->closure_class, a_type_ptr, iek_type);
         remap_ptr(ptr->lambda_routine, a_routine_ptr, iek_routine);
+        walk_ptr(ptr->initialization, a_dynamic_init_ptr, iek_dynamic_init);
       }
       break;
     case iek_lambda_capture:
@@ -2960,7 +2961,6 @@ after_entry_from_class:
         remap_next_ptr(ptr->next, a_lambda_capture_ptr, iek_lambda_capture);
         remap_ptr(ptr->variable, a_variable_ptr, iek_variable);
         remap_ptr(ptr->closure_field, a_field_ptr, iek_field);
-        walk_ptr(ptr->initialization, a_dynamic_init_ptr, iek_dynamic_init);
       }
       break;
     case iek_id_name:

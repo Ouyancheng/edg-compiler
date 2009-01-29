@@ -4920,10 +4920,10 @@ for the scope of the handler.
     /* Insert code to initialize the catch clause parameter from the
        runtime copy of the thrown object. */
     set_var_init_pos_descr(handler->parameter, &ipd);
-    /* Clear the implied copy source structure.  Leaving all fields NULL  
-       indicates that the source is a copy of the object thrown by an exception
+    /* Indicate that the source is a copy of the object thrown by an exception
        handling "throw". */
     clear_implied_copy_source(&source_desc);
+    source_desc.runtime_throw = TRUE;
     lower_dynamic_init(handler->dynamic_init, &ipd,
                        &source_desc,
                        (a_variable_ptr)NULL,
