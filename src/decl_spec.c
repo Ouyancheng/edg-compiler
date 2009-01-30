@@ -7219,6 +7219,9 @@ corresponding change in prescan_decl_specifiers (in disambig.c).
   if (state->qualifiers_pos.seq == 0) state->qualifiers_pos = pos_curr_token;
   /* Loop for each declaration specifier. */
   for (;;) {
+    /* Some specifiers are discarded.  This flag indicates whether the
+       current specifier should count toward any specifiers being seen. */
+    a_boolean count_as_specifier_seen = TRUE;
     /* Most specifiers cannot be part of a vacuous class or enum declaration,
        so we start with that assumption.  The flag will be set to TRUE in the
        exceptional cases. */
@@ -8105,6 +8108,12 @@ process_class_specifier:
                  keyword is followed by something other than a qualified
                  name. */
               check_assertion(microsoft_mode);
+              if (is_real_instantiation_context()) {
+                /* The Microsoft compiler ignores certain typename specifiers
+                   in instantiations, so forget that we have seen a
+                   specifier. */
+                count_as_specifier_seen = FALSE;
+              }  /* if */
               goto no_get_token;
             }  /* if */
             basic_type = bt_typename;
@@ -8594,7 +8603,9 @@ something_unexpected:
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     (void)get_token();
 no_get_token:
-    any_decl_specifiers_seen = TRUE;
+    /* If this specifier should count as one that has been "seen" set the
+       any specifier seen flag. */
+    if (count_as_specifier_seen) any_decl_specifiers_seen = TRUE;
     /* Vacuous declarations (like "class C;") cannot be combined with most
        other specifiers, but there are a few exceptions (like __declspec). */
     if (!specifier_allows_vacuous_decl) {

@@ -1,5 +1,15 @@
 Version 4.1
 
+1/30/09  [EDGcpfe/9495]
+Microsoft compatibility: allow "typename void"
+
+The Microsoft compiler allows "typename void" to be used in template
+declarations as equivalent to just "void" to indicate a function with
+no parameters.  We now accept this in Microsoft mode.
+
+  template <class T> void f(typename void) {}
+
+
 1/30/09  [EDGcpfe/9494]
 C++-generating back end: abort with "auto" type specifier
 
