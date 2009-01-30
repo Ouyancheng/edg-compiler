@@ -16257,10 +16257,6 @@ entry, return NULL.
     check_assertion(total_errors != 0);
     lambda = NULL;
   }  /* if */
-  if (lambda != NULL) {
-    /* Record the lambda in the current scope. */
-    add_to_lambdas_list(lambda);
-  }  /* if */
   return lambda;
 }  /* scan_lambda */
 

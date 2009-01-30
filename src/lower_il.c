@@ -17239,12 +17239,6 @@ by things that will be in the file scope.
       }  /* if */
     }  /* for */
   }  /* if */
-  if (scope->kind == (a_scope_kind)sck_function && scope->lambdas != NULL) {
-    /* The presence of a lambda inside a function forces promotion of local
-       entities.  Otherwise a lambda might make reference to a local type that
-       isn't visible in C code. */
-    promotion_needed = TRUE;
-  }  /* if */
   if (!promotion_needed) {
     /* If nothing in this scope forces promotion, look at any subscopes.
        If something there requires promotion, the local entities of this
@@ -17253,6 +17247,13 @@ by things that will be in the file scope.
     /* Visit all types to find all class types and their scopes. */
     for (type = scope->types; type != NULL; type = type->next) {
       if (is_immediate_class_type(type)) {
+        if (class_type_supp(type)->is_lambda_closure_class) {
+          /* The presence of a lambda inside a function forces promotion of
+             local entities.  Otherwise a lambda might make reference to a
+             local type that isn't visible in generated C code. */
+          promotion_needed = TRUE;
+          break;
+        }  /* if */
         class_scope = type->variant.class_struct_union.extra_info->assoc_scope;
         if (class_scope != NULL) {
           if (local_entities_should_be_promoted(class_scope)) {

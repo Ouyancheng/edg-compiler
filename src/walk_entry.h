@@ -1394,7 +1394,7 @@ do_set_proper_definition_needed_flag:
             break;
           case enk_lambda:
             /* The lambda is visited from the scope list. */
-            remap_ptr(ptr->variant.lambda, a_lambda_ptr, iek_lambda);
+            walk_ptr(ptr->variant.lambda, a_lambda_ptr, iek_lambda);
             break;
           case enk_throw:
             walk_ptr(ptr->variant.throw_info, a_throw_supplement_ptr,
@@ -2194,7 +2194,6 @@ do_set_proper_definition_needed_flag:
         walk_list(ptr->scope_refs, a_local_scope_ref_ptr, iek_local_scope_ref);
         walk_list(ptr->pragmas, a_pragma_ptr, iek_pragma);
         walk_list(ptr->templates, a_template_ptr, iek_template);
-        walk_list_not_needed(ptr->lambdas, a_lambda_ptr, iek_lambda);
 #if MICROSOFT_EXTENSIONS_ALLOWED
         walk_list(ptr->ms_attributes, an_ms_attribute_ptr, iek_ms_attribute);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

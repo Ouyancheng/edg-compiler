@@ -9500,31 +9500,6 @@ is best called through the macro get_parent_scope_of.
 
 #if !STANDALONE_UTILITY_PROGRAM
 
-void add_to_lambdas_list(a_lambda_ptr  lambda)
-/*
-Add the given lambda to the list of lambdas associated with the scope
-currently on top of the scope stack.
-*/
-{
-  a_scope_ptr                 scope;
-  a_scope_pointers_block_ptr  pointers_block;
-
-  scope = ensure_il_scope_exists(&scope_stack_top());
-  check_assertion(in_file_scope(scope) == in_file_scope(lambda));
-  if (scope_stack_top().assoc_pointers_block != NULL) {
-    pointers_block = scope_stack_top().assoc_pointers_block;
-  } else {
-    pointers_block = &scope_stack_top().pointers_block;
-  }  /* if */
-  if (scope->lambdas == NULL) {
-    scope->lambdas = lambda;
-  } else {
-    pointers_block->last_lambda->next = lambda;
-  }  /* if */
-  pointers_block->last_lambda = lambda;
-}  /* add_to_lambdas_list */
-
-
 a_lambda_ptr get_current_lambda(void)
 /*
 If we're inside a function scope and the innermost function scope is that of

@@ -404,8 +404,6 @@ Macros that return the parent class of a class member.
 #define parent_class_of(ptr)                                                \
   (scp_parent_class(&(ptr)->source_corresp))
 
-extern void add_to_lambdas_list(a_lambda_ptr  lambda);
-
 extern a_lambda_ptr get_current_lambda(void);
 
 extern a_namespace_ptr namespace_enclosing_class(a_type_ptr  tp);

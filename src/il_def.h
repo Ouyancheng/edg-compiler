@@ -13374,8 +13374,6 @@ typedef struct a_scope {
 		ms_if_exists;
 			/* Linked list of Microsoft __if_exists entries. */
 #endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
-  a_lambda_ptr	lambdas;
-			/* Linked list of lambda entries (C++ only). */
 } a_scope;
 
 
