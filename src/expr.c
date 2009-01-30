@@ -16513,6 +16513,23 @@ conditions for being able to capture the variable.
 }  /* var_declared_in_func_enclosing_curr_lambda */
 
 
+static a_boolean variable_auto_decl_underway(a_variable_ptr var_ptr)
+/*
+Return TRUE if the indicated variable is one whose declaration is currently
+underway and involves "auto".  This is used to check for cases like
+
+  auto x = x;
+
+where the use of "x" within its own declaration is invalid.
+*/
+{
+  a_boolean auto_decl_underway =
+                              (var_ptr->declared_with_auto_type_specifier &&
+                               var_ptr->init_kind == (an_init_kind)initk_none);
+  return auto_decl_underway;
+}  /* variable_auto_decl_underway */
+
+
 a_boolean check_var_for_lambda_capture(a_variable_ptr  var,
                                        a_boolean       implicit,
                                        an_error_code   *diag)
@@ -16531,8 +16548,13 @@ error code.
        capture.  So implicit captures should never get here. */
     check_assertion(!implicit);
   } else if (!var_declared_in_func_enclosing_curr_lambda(var)) {
+    /* Can't use a variable that's not from the immediately enclosing
+       function. */
     *diag = implicit ? ec_bad_local_var_in_lambda
                      : ec_captured_local_var_not_in_innermost_function;
+  } else if (variable_auto_decl_underway(var)) {
+    /* Can't use a variable declared with auto in its own initializer. */
+    *diag = ec_auto_variable_in_own_initializer;
   } else if (is_variably_modified_type(var->type)) {
     *diag = ec_lambda_capture_involves_variable_length_array;
   } else {
@@ -17080,8 +17102,7 @@ variable:
                Put out a clearer error message than the generic "expression
                must have a constant value". */
             error_and_make_error_operand(ec_constant_value_not_known, result);
-          } else if (var_ptr->declared_with_auto_type_specifier &&
-                     var_ptr->init_kind == (an_init_kind)initk_none) {
+          } else if (variable_auto_decl_underway(var_ptr)) {
             /* Something like "auto x = x;" is invalid. */
             error_and_make_error_operand(ec_auto_variable_in_own_initializer,
                                          result);
