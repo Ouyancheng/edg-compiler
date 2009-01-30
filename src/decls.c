@@ -13196,7 +13196,7 @@ function parameter declaration: This routine does nothing in that case.
     a_variable_ptr  vp;
     if (dps->sym->kind == (a_symbol_kind)sk_variable) {
       vp = dps->sym->variant.variable.ptr;
-    } else if (dps->sym->kind == (a_symbol_kind)sk_variable) {
+    } else if (dps->sym->kind == (a_symbol_kind)sk_static_data_member) {
       vp = dps->sym->variant.static_data_member.variable;
     } else {
       unexpected_condition();
