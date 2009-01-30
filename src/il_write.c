@@ -317,6 +317,7 @@ corresponding encoded entry number, and return that number cast to "char *".
        time we get here. */
     if (epp->entry_number == 0) {
       /* The entry number has not been assigned yet. */
+      a_boolean assign_number = TRUE;
 #if CHECKING
       if (is_string_entry_kind(entry_kind)) {
         /* All string entries should have entry numbers already.  See
@@ -329,12 +330,26 @@ corresponding encoded entry number, and return that number cast to "char *".
       }  /* if */
 #endif /* CHECKING */
       if (entry_kind == iek_type &&
-          ((a_type_ptr)entry_ptr)->kind == (a_type_kind)tk_template_param &&
-          !prototype_instantiations_in_il) {
-        /* Template parameter types can leak out of the front end on based
-           types lists.  Just write a null pointer and don't assign an
-           entry number.  (Unless of course prototype instantiations are
-           recorded in IL; in that case template parameters are expected.) */
+          ((a_type_ptr)entry_ptr)->kind == (a_type_kind)tk_template_param) {
+        /* Except for certain special cases, template parameter types should
+           not leak out of the front end. */
+        a_type_ptr tp = (a_type_ptr)entry_ptr;
+        if (prototype_instantiations_in_il) {
+          /* If prototype instantiations are recorded in the IL, it's okay
+             for template parameters to be written. */
+        } else if (tp->variant.template_param.kind ==
+                                      (a_template_param_type_kind)tptk_param &&
+                   tp->variant.template_param.extra_info->coordinates.depth ==
+                                                     AUTO_TYPE_NESTING_DEPTH) {
+          /* The "auto" specifier is represented by a special template
+             parameter type; it's okay for that type to be written. */
+        } else {
+          /* Not one of the special cases. */
+          assign_number = FALSE;
+        }  /* if */
+      }  /* if */
+      if (!assign_number) {
+        /* Just write a null pointer and don't assign an entry number. */
         encoded_number = 0;
       } else {
         /* Assign an entry number. */
