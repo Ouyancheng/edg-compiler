@@ -1,5 +1,21 @@
 Version 4.1
 
+1/30/09  [EDGcpfe/9496]
+Abort on certain complex initializers for static data members
+
+When GENERATE_SOURCE_SEQUENCE_LISTS is TRUE, static data member initializers
+containing definitions of class types of functions triggered an abort in
+add_src_seq_end_of_variable_if_needed (decls.c).  For example:
+
+  struct S {
+    static void *x[1];
+  };
+  void *S::x[1] = { (void*)(struct X {}*)0 }; // Triggered an abort.
+
+This is now fixed.  (Such constructs are invalid in standard C++, but accepted
+in GNU C++ mode.)
+
+
 1/30/09  [EDGcpfe/9495]
 Microsoft compatibility: allow "typename void"
 
