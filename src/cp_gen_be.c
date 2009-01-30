@@ -322,7 +322,7 @@ typedef int a_gen_name_options_set;
 			   to support the extension in which pure virtual
 			   functions can be defined in derived classes.
 			   (This flag is currently set, but not actually
-			    tested.) */
+			   tested.) */
 #define GN_BASE_SPECIFIER 0x200
 			/* The name is used in a base specifier list. */
 #define GN_USING_DIRECTIVE 0x400
@@ -12147,7 +12147,7 @@ declarator (or NULL if it wasn't recorded).
         unexpected_condition();
       }  /* if */
       /* Currently, only one function can be explicitly overridden by a
-         selectively overriding virtual functions. */
+         selectively overriding virtual function. */
       check_assertion(rout->overridden_functions->next == NULL);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {

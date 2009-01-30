@@ -3432,8 +3432,10 @@ extension.  For example:
 */
 {
   a_boolean      result = FALSE;
-  a_routine_ptr  overrider = overriding_sym->variant.routine.ptr;
+  a_routine_ptr  overrider;
 
+  check_assertion(overriding_sym->kind == (a_symbol_kind)sk_member_function);
+  overrider = overriding_sym->variant.routine.ptr;
   if (overrider->overridden_functions == NULL) {
     result = (overridden_sym == NULL);
   } else if (overridden_sym == NULL) {
@@ -7785,6 +7787,7 @@ to (with its overridden_functions field).
        TRUE. */
     rp->pure_virtual = TRUE;
     rp->virtual_function_number = base_rp->virtual_function_number;
+    check_assertion(curr_il_region_number == file_scope_region_number);
     rp->overridden_functions = alloc_il_entity_list_entry();
     rp->overridden_functions->entity.kind = (a_byte_il_entry_kind)iek_routine;
     rp->overridden_functions->entity.ptr = (char*)base_rp;
@@ -8127,6 +8130,7 @@ implicitly declared member functions.
          class, record that fact. */
       if (overridden_function != NULL) {
         rtn->is_virtual = TRUE;
+        check_assertion(curr_il_region_number == file_scope_region_number);
         rtn->overridden_functions = alloc_il_entity_list_entry();
         if (overridden_function->kind == (a_symbol_kind)sk_member_function) {
           rtn->overridden_functions->entity.kind =
