@@ -3448,8 +3448,7 @@ extension.  For example:
              overridden_sym->variant.constant->variant.template_param.kind ==
                                 (a_template_param_constant_kind)tpck_member) {
     /* overridden_sym represents a member of a dependent base class. */
-    a_tagged_pointer  ep = overriding_sym->variant.routine.ptr
-                                         ->overridden_functions->entity;
+    a_tagged_pointer  ep = overrider->overridden_functions->entity;
     if ((an_il_entry_kind)ep.kind == iek_constant) {
       result = eq_constants((a_constant_ptr)ep.ptr,
                             overridden_sym->variant.constant);
