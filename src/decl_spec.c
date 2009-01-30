@@ -8108,7 +8108,7 @@ process_class_specifier:
                  keyword is followed by something other than a qualified
                  name. */
               check_assertion(microsoft_mode);
-              if (is_real_instantiation_context()) {
+              if (is_template_context()) {
                 /* The Microsoft compiler ignores certain typename specifiers
                    in instantiations, so forget that we have seen a
                    specifier. */
