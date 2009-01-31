@@ -3023,6 +3023,9 @@ as specified in the control block.
       }
       break;
     case enk_lambda:
+      { a_lambda_ptr lambda = expr->variant.lambda;
+        traverse_dynamic_init(lambda->initialization, tblock);
+      }
       break;
     case enk_throw:
       if (expr->variant.throw_info != NULL) {
