@@ -1393,7 +1393,6 @@ do_set_proper_definition_needed_flag:
                      iek_new_delete_supplement);
             break;
           case enk_lambda:
-            /* The lambda is visited from the scope list. */
             walk_ptr(ptr->variant.lambda, a_lambda_ptr, iek_lambda);
             break;
           case enk_throw:
