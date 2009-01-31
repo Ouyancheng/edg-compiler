@@ -1714,9 +1714,11 @@ been allocated for it.  Set the parent pointer for the IL scope entry.
              be set because of memory region constraints.  Create an implicit
              reference instead. */
           check_assertion(scope_stack[decl_scope_level].kind ==
-                                                  (a_scope_kind)sck_block ||
+                                                (a_scope_kind)sck_block ||
                           scope_stack[decl_scope_level].kind ==
-                                                  (a_scope_kind)sck_function);
+                                                (a_scope_kind)sck_condition ||
+                          scope_stack[decl_scope_level].kind ==
+                                                (a_scope_kind)sck_function);
           check_assertion(innermost_function_scope != NULL);
           make_local_scope_ref(
                       ensure_il_scope_exists(&scope_stack[decl_scope_level]),
