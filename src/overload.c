@@ -1969,6 +1969,16 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
            nonconst counts as an exact match (it's worse than other exact
            matches that do not use that deprecated conversion). */
         arg_summary->match_level = aml_exact;
+        if (std_conversion.pointer_normalization_needed) {
+          /* In Microsoft mode, a conversion from a const string literal to
+             void * is allowed as an anachronism.  Keep that case as an
+             anachronistic standard conversion rather than an anachronistic
+             exact match. */
+          arg_summary->match_level = aml_std_conversion;
+          arg_summary->tiebreaker_anachronism_used = TRUE;
+          arg_summary->conversion.std.
+                             conv_of_string_literal_to_ptr_to_nonconst = FALSE;
+        }  /* if */
       } else if (cfront_2_1_mode && param_is_reference &&
                  std_conversion.cast_base_class == NULL) {
         /* cfront 2.1 has a bug: when a reference parameter is initialized

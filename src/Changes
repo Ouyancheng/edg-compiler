@@ -1,5 +1,20 @@
 Version 4.1
 
+2/1/09   [EDGcpfe/9491]
+Microsoft C++ compatibility: conversion of const string literal to void *
+
+In Microsoft C++ mode, a const string literal is now considered to be
+convertible to void * for argument passing in overload resolution.
+Formerly, this deprecated conversion was allowed in other contexts but
+not in overload resolution.  (See the Changes entry of 4/21/05.)
+
+  void foo(int, void *);
+  void foo(const char *, void *);
+  int main() {
+    foo("","");  // No longer ambiguous with microsoft_version=1310
+  }
+
+
 1/30/09  [EDGcpfe/9496]
 Abort on certain complex initializers for static data members
 
