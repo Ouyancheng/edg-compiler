@@ -2949,8 +2949,10 @@ after_entry_from_class:
       { a_lambda_ptr  ptr = (a_lambda_ptr)entry_ptr;
         remap_next_ptr(ptr->next, a_lambda_ptr, iek_lambda);
         walk_list(ptr->capture_list, a_lambda_capture_ptr, iek_lambda_capture);
-        remap_ptr(ptr->closure_class, a_type_ptr, iek_type);
-        remap_ptr(ptr->lambda_routine, a_routine_ptr, iek_routine);
+        walk_ptr(ptr->closure_class, a_type_ptr, iek_type);
+        set_proper_definition_needed_flag(ptr->closure_class);
+        walk_ptr(ptr->lambda_routine, a_routine_ptr, iek_routine);
+        set_proper_routine_definition_needed_flag(ptr->lambda_routine);
         walk_ptr(ptr->initialization, a_dynamic_init_ptr, iek_dynamic_init);
       }
       break;
