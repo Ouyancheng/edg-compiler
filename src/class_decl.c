@@ -16238,17 +16238,25 @@ entry, return NULL.
   if (lambda->lambda_routine != NULL) {
     /* Parse the body of the lambda.  A class reactivation is not pushed for
        the lambda closure class because it is still on the scope stack. */
-    a_routine_ptr  rp = lambda->lambda_routine;
-    sfb_flags = SFB_NEW_STRUCT_STMT_STACK_REQUIRED |
-                SFB_NO_CLASS_REACTIVATION;
-    scan_function_body(rp, &func_info, sfb_flags);
-    if (is_unknown_type(return_type_of(rp->type))) {
-      /* No return type was specified on the lambda construct, and no return
-         type was deduced from a return statement: The return type is
-         therefore "void". */
-      check_assertion(!lambda->explicit_return_type);
-      check_assertion(rp->type->kind == (a_type_kind)tk_routine);
-      rp->type->variant.routine.return_type = void_type();
+    add_stop_token(tok_rbrace);
+    if (curr_token != tok_lbrace) {
+      /* If a lambda body is missing, set lambda to NULL since the parsed
+         construct may not have been meant as a lambda at all. */
+      syntax_error(ec_missing_lambda_body);
+      lambda = NULL;
+    } else {
+      a_routine_ptr  rp = lambda->lambda_routine;
+      sfb_flags = SFB_NEW_STRUCT_STMT_STACK_REQUIRED |
+                  SFB_NO_CLASS_REACTIVATION;
+      scan_function_body(rp, &func_info, sfb_flags);
+      if (is_unknown_type(return_type_of(rp->type))) {
+        /* No return type was specified on the lambda construct, and no return
+           type was deduced from a return statement: The return type is
+           therefore "void". */
+        check_assertion(!lambda->explicit_return_type);
+        check_assertion(rp->type->kind == (a_type_kind)tk_routine);
+        rp->type->variant.routine.return_type = void_type();
+      }  /* if */
     }  /* if */
     if (curr_token == tok_rbrace) {
       /* Don't use required_token, because we aren't at a brace, an error has
@@ -16256,12 +16264,13 @@ entry, return NULL.
          with. */
       (void)get_token();
     }  /* if */
+    remove_stop_token(tok_rbrace);
   }  /* if */
   /* Record the capture list and complete the closure class. */
   complete_class_definition(closure_class, orig_decl_scope_level,
                             &class_state);
   pop_scope();
-  if (lambda->lambda_routine != NULL) {
+  if (lambda != NULL && lambda->lambda_routine != NULL) {
     if (lambda->lambda_routine->assoc_scope != NULL_region_number) {
       /* Lowering of the lambda body function is deferred because the closure
          class was not complete when the function was scanned.  Now that the
