@@ -4145,7 +4145,7 @@ and not for constructor_init entries in destructors.
          of the region table at that point. */
       a_dynamic_init_ptr next_dip = dedp->next_in_region_table;
       if (next_dip != NULL && next_dip->unordered) {
-        reset_conditional_flag_var(dedp-> conditional_flag_var,
+        reset_conditional_flag_var(dedp->conditional_flag_var,
                                    effective_insert_loc);
       }  /* if */
     }  /* if */
