@@ -13384,9 +13384,14 @@ like
            node_operator_is(node, eok_dot_field)) {
       node = skip_parens(node->variant.operation.operands);
     }  /* while */
+    dip = NULL;
     if (node->kind == (an_expr_node_kind)enk_temp_init) {
       if (static_lifetime) node->variant.init.static_temp = TRUE;
       dip = node->variant.init.dynamic_init;
+    } else if (node->kind == (an_expr_node_kind)enk_lambda) {
+      dip = node->variant.lambda->initialization;
+    }  /* if */
+    if (dip != NULL) {
       dip->has_temporary_lifetime = FALSE;
       lifetime = dip->lifetime;
       /* The "lifetime != NULL" test here deals with initializations that
