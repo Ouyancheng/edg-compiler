@@ -931,16 +931,24 @@ entry.  pos is the source position to be used as the decl_position of
 the field.
 */
 {
-  a_field_ptr			fp;
-  a_type_ptr			field_type;
-  a_symbol_ptr			var_sym = NULL;
-  a_boolean			is_this = FALSE;
-  a_class_def_state_ptr		class_state;
-  a_scope_stack_entry_ptr	ssep;
-  a_symbol_locator		locator;
-  a_member_decl_info            decl_info;
-  a_scope_depth			closure_scope_depth;
+  a_field_ptr              fp;
+  a_type_ptr               field_type;
+  a_symbol_ptr             var_sym = NULL;
+  a_boolean                is_this = FALSE;
+  a_class_def_state_ptr    class_state;
+  a_scope_stack_entry_ptr  ssep;
+  a_symbol_locator         locator;
+  a_member_decl_info       decl_info;
+  a_scope_depth            closure_scope_depth;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_boolean                saved_source_sequence_entries_disallowed =
+                                           source_sequence_entries_disallowed;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  /* Don't issue source sequence entries for generated fields. */
+  source_sequence_entries_disallowed = TRUE;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   /* Find the scope stack entry for the lambda closure class. */
   for (ssep = scope_stack_entry_for(depth_scope_stack);
        !(ssep->kind == (a_scope_kind)sck_class_struct_union &&
@@ -984,6 +992,11 @@ the field.
   decl_info.decl_state.type = field_type;
   fp = decl_nonstatic_data_member(&locator, class_state, &decl_info,
                                   closure_scope_depth);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  /* Restore the previous state wrt. generating source sequence entries. */
+  source_sequence_entries_disallowed =
+                                     saved_source_sequence_entries_disallowed;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   return fp;
 }  /* make_field_for_lambda_capture */
 

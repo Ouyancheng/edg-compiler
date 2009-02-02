@@ -8104,12 +8104,6 @@ Render code for the given expression node, which represents a lambda.
                   ss_entry_ptr(curr_source_sequence_entry, a_lambda_ptr) ==
                                                                       lambda);
   adv_curr_source_sequence_entry();
-  /* The fields for the closure object are on a sublist following the
-     iek_lambda source sequence entry, but we don't need them here; skip
-     over them. */
-  while (ss_entry_kind(curr_source_sequence_entry) == iek_field) {
-    adv_curr_source_sequence_entry();
-  }  /* while */
   gen_lambda_captures(lambda);
   /* Push the closure class on the name context stack so that references to
      fields (which stand for captured variables) show up without
