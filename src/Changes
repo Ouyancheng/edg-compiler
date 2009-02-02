@@ -36,7 +36,7 @@ Microsoft compatibility: allow "typename void"
 
 The Microsoft compiler allows "typename void" to be used in template
 declarations as equivalent to just "void" to indicate a function with
-no parameters.  We now accept this in Microsoft mode.
+no parameters.  We now accept this in Microsoft bugs mode.
 
   template <class T> void f(typename void) {}
 
