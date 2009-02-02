@@ -842,6 +842,8 @@ extern a_type_ptr make_pointer_type_full(
 
 extern a_type_ptr make_reference_type(a_type_ptr type_pointed_to);
 
+extern a_type_ptr make_rvalue_reference_type(a_type_ptr  pointed_to_type);
+
 extern a_type_ptr make_reference_to_reference(
                                           a_type_ptr            base_ref_type,
                                           a_type_qualifier_set  qualifiers,

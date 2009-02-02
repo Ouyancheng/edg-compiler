@@ -3487,11 +3487,16 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
   for (;;) {
     /* See if there is a pointer declarator. */
     a_boolean          another_pointer_declarator = FALSE;
-    a_boolean          ptr_to_member_case = FALSE;
+    a_boolean          ptr_to_member_case = FALSE, rvalue_ref_case = FALSE;
     a_boolean          plain_ptr = (curr_token == tok_star);
-    if ((plain_ptr || (reference_allowed && curr_token == tok_ampersand))) {
-      /* A pointer "*" or reference "&". */
+    if ((plain_ptr ||
+         (reference_allowed && (curr_token == tok_ampersand ||
+                                (rvalue_references_enabled &&
+                                 curr_token == tok_and_and))))) {
+      /* A pointer "*", ordinary ("lvalue") reference "&", or rvalue
+         reference "&&". */
       another_pointer_declarator = TRUE;
+      rvalue_ref_case = curr_token == tok_and_and;
     } else if (C_dialect == C_dialect_cplusplus &&
                is_ptr_to_member_declarator_start()) {
       /* A pointer-to-member "Name::*". */
@@ -3618,7 +3623,7 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
                                                   : complete_type);
           }  /* if */
         } else {
-          /* "&" for reference. */
+          /* "&" or "&&" for reference. */
           /* Make sure this was not preceded by __based. */
           based_not_allowed_here(pending_ptr_mods.based_var,
                                  pending_ptr_mods.based_pos);
@@ -3647,7 +3652,9 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
             err = TRUE;
           } else {
             /* Make the reference type. */
-            complete_type = make_reference_type(complete_type);
+            complete_type =
+                   rvalue_ref_case ? make_rvalue_reference_type(complete_type)
+                                   : make_reference_type(complete_type);
           }  /* if */
           if (err) {
             complete_type = error_type();

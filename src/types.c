@@ -601,6 +601,16 @@ Return TRUE if the given type is a reference type.
 }  /* is_reference_type */
 
 
+a_boolean is_rvalue_reference_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is a C++0x rvalue reference type.
+*/
+{
+  tp = skip_typerefs(tp);
+  return is_reference_ptr(tp) && tp->variant.pointer.is_rvalue_reference;
+}  /* is_rvalue_reference_type */
+
+
 a_boolean is_ptr_or_ref_type(a_type_ptr tp)
 /*
 Return TRUE if the given type is an IL pointer type (i.e., a pointer or

@@ -1128,6 +1128,16 @@ used for the initialization of the global variable lambdas_enabled.
 #endif /* DEFAULT_LAMBDAS_ENABLED */
 
 /*
+Flag that is TRUE if C++0x rvalue references should be enabled in other C++
+modes by default (they are, of course, always enabled in C++0x mode).  This
+macro is used for the initialization of the global variable
+rvalue_references_enabled.
+*/
+#ifndef DEFAULT_RVALUE_REFERENCES_ENABLED
+#define DEFAULT_RVALUE_REFERENCES_ENABLED FALSE
+#endif /* DEFAULT_RVALUE_REFERENCES_ENABLED */
+
+/*
 Flag that is TRUE if, in C++ mode, wchar_t is a keyword by default.  This is
 the default value for the global flag wchar_t_is_keyword, the value of
 which may be modified using command line options.

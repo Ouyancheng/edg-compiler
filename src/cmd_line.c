@@ -1198,6 +1198,12 @@ Initialize the option information table.
                          /*arg_required=*/FALSE, pchek_command_line);
   add_option_description(optk_lambdas, "no_lambdas", '\0', /*value=*/FALSE,
                          /*arg_required=*/FALSE, pchek_command_line);
+  add_option_description(optk_rvalue_references, "rvalue_references",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_rvalue_references, "no_rvalue_references",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 }  /* initialize_option_descriptions */
 
 
@@ -2132,6 +2138,7 @@ process.
   }  /* if */
   type_traits_helpers_enabled = FALSE;
   lambdas_enabled = FALSE;
+  rvalue_references_enabled = FALSE;
 }  /* set_c_mode_flags */
 
 
@@ -2264,6 +2271,9 @@ setting is used, and to set various unmentioned settings as needed.
   if (option_kind_used[(int)optk_lambdas]) {
     command_line_error(ec_cl_lambdas_option_only_in_cplusplus);
   }  /* if */
+  if (option_kind_used[(int)optk_rvalue_references]) {
+    command_line_error(ec_cl_rvalue_references_option_only_in_cplusplus);
+  }  /* if */
 #if SUN_EXTENSIONS_ALLOWED
   if (!(option_kind_used[(int)optk_sun_linker_scope]) &&
       !microsoft_mode && !strict_ansi_mode) {
@@ -2302,6 +2312,9 @@ the next standard).
   enum_qualifiers_enabled = TRUE;
   if (!option_kind_used[(int)optk_lambdas]) {
     lambdas_enabled = TRUE;
+  }  /* if */
+  if (!option_kind_used[(int)optk_rvalue_references]) {
+    rvalue_references_enabled = TRUE;
   }  /* if */
 }  /* check_and_set_cpp0x_mode_options */
 
@@ -7724,6 +7737,9 @@ enable_microsoft_mode:
       case optk_lambdas:
         lambdas_enabled = opt_value;
         break;
+      case optk_rvalue_references:
+        rvalue_references_enabled = opt_value;
+        break;
       default:
         /* It should not be possible to get here. */
         unexpected_condition();
@@ -8453,6 +8469,7 @@ variables declared in cmd_line.h.
   explicit_enum_base_enabled = FALSE;
   enum_qualifiers_enabled = FALSE;
   lambdas_enabled = DEFAULT_LAMBDAS_ENABLED;
+  rvalue_references_enabled = DEFAULT_RVALUE_REFERENCES_ENABLED;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   default_calling_convention = (a_calling_convention)cc_cdecl;
   microsoft_64bit_pointer_extensions_enabled =

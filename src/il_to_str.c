@@ -1547,7 +1547,11 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
                          TQ_NONE, options, octl);
     /* Output "*" or "&" for pointer or reference. */
     if (type->variant.pointer.is_reference && !octl->c_generating_back_end) {
-      octl->output_str("&");
+      if (type->variant.pointer.is_rvalue_reference) {
+        octl->output_str("&&");
+      } else {
+        octl->output_str("&");
+      }  /* if */
     } else {
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (type->variant.pointer.base_variable != NULL) {
@@ -3369,7 +3373,11 @@ precedence confusion.  Do the output in the way described by octl.
        if that's appropriate.  Otherwise a "&" must be put out. */
     if (is_reference_type(con_type) && !octl->gen_compilable_code) {
       /* Explicitly identify a reference type instead of using "&". */
-      octl->output_str("reference to ");
+      if (is_rvalue_reference_type(con_type)) {
+        octl->output_str("rvalue reference to ");
+      } else {
+        octl->output_str("reference to ");
+      }  /* if */
     } else if (type_decay_used) {
       /* Using type decay to get a pointer. */
     } else {

@@ -8771,8 +8771,8 @@ may be NULL, e.g., when building a type from nested declarators outward.)
 
 a_type_ptr make_reference_type(a_type_ptr pointed_to_type)
 /*
-Allocate a reference type record and initialize it.  Attempt to find and reuse
-an existing entry if possible.
+Allocate an ordinary ("lvalue") reference type record and initialize it.
+Attempt to find and reuse an existing entry if possible.
 */
 {
   a_type_ptr ptr;
@@ -8795,10 +8795,44 @@ an existing entry if possible.
     add_based_type_list_member(pointed_to_type,
                                (a_based_type_kind)btk_reference, ptr);
   }  /* if */
-
   return ptr;
 }  /* make_reference_type */
 
+
+a_type_ptr make_rvalue_reference_type(a_type_ptr  pointed_to_type)
+/*
+Allocate an rvalue reference type record and initialize it.  Attempt to find
+and reuse an existing entry if possible.
+*/
+{
+  a_type_ptr ptr;
+
+  /* See if an rvalue reference type for the type pointed to has already been
+     allocated.  If one was allocated, a pointer to it is stored in the
+     based_types list for the base type, and the reference type can be
+     reused. */
+  ptr = get_based_type(pointed_to_type,
+                       (a_based_type_kind)btk_rvalue_reference,
+                       TQ_NONE, PM_NONE, /*expl_mem_attr_implicit=*/FALSE,
+                       /*class_type=*/(a_type_ptr)NULL, UPC_BLOCK_SIZE_NONE);
+  if (ptr == NULL) {
+    /* No allocated entry, need to allocate one. */
+    check_assertion(rvalue_references_enabled);
+    ptr = alloc_type((a_type_kind)tk_pointer);
+    ptr->variant.pointer.type = pointed_to_type;
+    ptr->variant.pointer.is_reference = TRUE;
+    ptr->variant.pointer.is_rvalue_reference = TRUE;
+    set_type_size(ptr);
+    /* Remember the existence of this reference type by putting a pointer
+       to it in the based_types list. */
+    add_based_type_list_member(pointed_to_type,
+                               (a_based_type_kind)btk_rvalue_reference, ptr);
+  }  /* if */
+  return ptr;
+}  /* make_rvalue_reference_type */
+
+
+/* FIXME: rvalue references. */
 
 #if !NEAR_AND_FAR_ALLOWED
 /* ARGSUSED */  /* <- is_error is not used in some configurations. */

@@ -5307,7 +5307,8 @@ enum a_based_type_kind_tag {
      type. */
   btk_qualified,	/* A (const, volatile, const-volatile, etc.) qualified
 			   version of the type. */
-  btk_reference,	/* Reference to the type. */
+  btk_rvalue_reference,	/* Rvalue reference to the type. */
+  btk_reference,	/* Ordinary ("lvalue") reference to the type. */
   btk_ptr_to_member,	/* Pointer to member type (C++ only). */
   btk_unqualified_array_type,
 			/* Means that the "based type" is an array type to
@@ -5744,7 +5745,13 @@ typedef struct a_type {
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       a_byte_boolean
 		is_reference;
-			/* If TRUE, this type is a C++ reference type. */
+			/* If TRUE, this type is a C++ reference type.  (This
+			   includes both ordinary ("lvalue") references, and
+			   C++0x rvalue references.) */
+      a_byte_boolean
+		is_rvalue_reference;
+			/* If TRUE, this type is a C++0x rvalue reference
+			   type. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
       a_pointer_modifier_set
 		modifiers;

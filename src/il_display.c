@@ -1568,6 +1568,10 @@ Display the indicated type entry.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       disp_boolean("is_reference",
                    (a_boolean)ptr->variant.pointer.is_reference);
+      if (ptr->variant.pointer.is_rvalue_reference) {
+        disp_boolean("is_rvalue_reference",
+                     (a_boolean)ptr->variant.pointer.is_rvalue_reference);
+      }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (ptr->variant.pointer.modifiers != PM_NONE) {
         disp_name("modifiers");

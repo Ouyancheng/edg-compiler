@@ -1385,6 +1385,7 @@ to default values.
       pte->variant.pointer.base_variable = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       pte->variant.pointer.is_reference = FALSE;
+      pte->variant.pointer.is_rvalue_reference = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       pte->variant.pointer.modifiers = PM_NONE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

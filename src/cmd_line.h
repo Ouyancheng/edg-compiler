@@ -265,6 +265,7 @@ typedef enum /*an_option_kind*/ {
   optk_unicode_source_kind,
 #endif /* UNICODE_SOURCE_SUPPORTED */
   optk_lambdas,
+  optk_rvalue_references,
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -913,6 +914,11 @@ EXTERN a_boolean
 EXTERN a_boolean
 		lambdas_enabled;
 			/* TRUE if C++0x lambdas should be accepted in C++. */
+
+EXTERN a_boolean
+		rvalue_references_enabled;
+			/* TRUE if C++0x rvalue references should be accepted
+			   in C++. */
 
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
