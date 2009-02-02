@@ -16882,13 +16882,18 @@ in fact turn out to be a constant.
 static void scan_identifier(an_operand               *result,
                             a_local_expr_options_set local_options,
                             int                      prec_level,
-                            a_symbol_ptr             *p_sym_ptr)
+                            a_symbol_ptr             *p_sym_ptr,
+                            a_boolean                *p_okay_after_typename)
 /*
 Scan an identifier, and return an operand for it in *operand.  In C++,
 also handle qualified names like A::x and operator names like "operator+".
 prec_level is the precedence level (see comment in scan_expr_full).
 If p_sym_ptr is not NULL, set *p_sym_ptr to point to the symbol scanned
 (which might be a projection symbol), or to NULL if there is an error.
+In Microsoft mode, if p_okay_after_typename is not NULL, return a flag
+through it indicating whether or not the identifier is one that would be
+valid in a typename specifier.  This is used by the caller to diagnose
+invalid uses of typename.
 */
 {
   a_symbol_ptr       sym_ptr, projection_sym_ptr = NULL, anon_var_sym;
@@ -16902,6 +16907,7 @@ If p_sym_ptr is not NULL, set *p_sym_ptr to point to the symbol scanned
   a_boolean          force_indefinite_function = FALSE;
   a_boolean          okay_for_integral_const_expr = FALSE;
   a_boolean          nonstd_field_folding_case;
+  a_boolean          okay_after_typename = FALSE;
   a_lambda_capture_ptr
                      lambda_capture;
   an_expression_kind saved_expr_kind;
@@ -17385,6 +17391,13 @@ overloaded_function:
           if (C_dialect == C_dialect_cplusplus && next_token() == tok_lparen) {
             /* In C++, a functional-notation type conversion. */
             a_type_ptr cast_type = type_symbol_type(sym_ptr);
+            if (microsoft_bugs && locator_for_curr_id.is_qualified_name &&
+                !locator_for_curr_id.is_file_scope_qualified_name) {
+              /* The Microsoft compiler allows typename to be used in many
+                 invalid locations.  Set a flag if this context would be
+                 valid after typename. */
+              okay_after_typename = TRUE;
+            }  /* if */
             (void)get_token();
             scan_functional_notation_type_conversion(cast_type,
                                                      &start_position,
@@ -17515,7 +17528,9 @@ after_advance_past_id:
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
   if (p_sym_ptr != NULL) *p_sym_ptr = projection_sym_ptr;
-
+  if (p_okay_after_typename != NULL) {
+    *p_okay_after_typename = okay_after_typename;
+  }  /* if */
   db_exit();
 }  /* scan_identifier */
 
@@ -18594,6 +18609,10 @@ see expr.h).
   an_expr_stack_entry
                     expr_stack_entry;
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  a_boolean         has_discarded_typename = FALSE;
+  a_source_position typename_position;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   db_enter(4, "scan_expr_full");
 #if DEBUG
@@ -18644,13 +18663,17 @@ see expr.h).
   /* If a left parenthesis was trapped by the caller, go to the code that
      handles a left parenthesis. */
   if (local_options & EOPT_TRAPPED_LEFT_PAREN) goto handle_trapped_left_paren;
-  if (microsoft_mode && curr_token == tok_typename && 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (microsoft_bugs && curr_token == tok_typename && 
       is_real_instantiation_context()) {
     /* Normally "typename X::Y ..." is taken to be a functional-notation cast,
        but in Microsoft mode the thing after "typename" need not actually
        be a typename, so the typename is just discarded. */
+    typename_position = pos_curr_token;
+    has_discarded_typename = TRUE;
     (void)get_token();
   }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   switch ((int)curr_token) {
     case tok_colon_colon:
       if (curr_expr_kind_is(ek_pp)) {
@@ -18673,12 +18696,20 @@ see expr.h).
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case tok_super:                  /* Microsoft __super qualifier. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      /* Watch out for something like "S::*". */
-      if (!is_expr_qualified_name_start()) {
-        goto bad_start_of_primary;
-      }  /* if */
-      scan_identifier(&local_result, local_options, prec_level,
-                      (a_symbol_ptr *)NULL);
+      { a_boolean okay_after_typename;
+        /* Watch out for something like "S::*". */
+        if (!is_expr_qualified_name_start()) {
+          goto bad_start_of_primary;
+        }  /* if */
+        scan_identifier(&local_result, local_options, prec_level,
+                        (a_symbol_ptr *)NULL, &okay_after_typename);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        /* If the okay_after_typename is TRUE, clear the flag that indicates
+           we discarded a typename to suppress the warning that would otherwise
+           be issued. */
+        if (okay_after_typename) has_discarded_typename = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      }
       break;
     case tok_this:
       /* Scan "this" in a member function. */
@@ -19356,6 +19387,11 @@ bad_start_of_primary:
     }  /* switch */
   }  /* for */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (has_discarded_typename) {
+    pos_warning(ec_invalid_typename_specifier, &typename_position);
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Set error_position to the start of the expression. */
   copy_source_position(start_position, error_position);
   /* Finished scanning the expression.  Do various error checks.
@@ -21600,7 +21636,7 @@ this routine is called only when microsoft_mode is TRUE.
   expr_stack_entry.potentially_evaluated = FALSE;
   /* Scan the identifier. */
   scan_identifier(&operand, (a_local_expr_options_set)EOPT_NO_OPTIONS,
-                  PREC_LOWEST, &projection_sym_ptr);
+                  PREC_LOWEST, &projection_sym_ptr, (a_boolean*)NULL);
   if (is_error_operand(&operand) || projection_sym_ptr == NULL) {
     /* Some previous error. */
   } else {

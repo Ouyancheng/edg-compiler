@@ -5232,7 +5232,7 @@ a declaration.
   /* The Microsoft compiler allows the typename specifier to be repeated. */
   while (microsoft_bugs && curr_token == tok_typename) (void)get_token();
   (void)is_generalized_identifier_start(GID_IS_TYPENAME);
-  if (microsoft_mode &&
+  if (microsoft_bugs &&
       (curr_token != tok_identifier ||
        !locator_for_curr_id.is_qualified_name ||
        locator_for_curr_id.is_file_scope_qualified_name)) {
@@ -8094,7 +8094,7 @@ process_class_specifier:
              allows typename to be used in some invalid locations.  In
              particular this allows typename before a declarator, which
              the Microsoft compiler allows. */
-          diagnostic(microsoft_mode ? es_warning : es_discretionary_error,
+          diagnostic(microsoft_bugs ? es_warning : es_discretionary_error,
                      ec_invalid_typename_specifier);
         } else {
           a_symbol_ptr	type_sym;
