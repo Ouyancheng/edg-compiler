@@ -316,16 +316,9 @@ typedef int a_gen_name_options_set;
 			/* Do not generate the template arguments. */
 #define GN_TEMPLATE 0x80
 			/* The name to generate is that of a template. */
-#define GN_PURE_VIRTUAL_FUNCTION 0x100
-			/* The name is a pure virtual function being declared
-			   outside its class.  This is used in Microsoft mode
-			   to support the extension in which pure virtual
-			   functions can be defined in derived classes.
-			   (This flag is currently set, but not actually
-			   tested.) */
-#define GN_BASE_SPECIFIER 0x200
+#define GN_BASE_SPECIFIER 0x100
 			/* The name is used in a base specifier list. */
-#define GN_USING_DIRECTIVE 0x400
+#define GN_USING_DIRECTIVE 0x200
 			/* The name is the namespace nominated by a
 			   using-directive. */
 
@@ -3249,7 +3242,7 @@ a definition.
         if (!class_is_in_name_context_stack(parent_class,
                                             /*include_base_classes=*/FALSE)) {
           /* Avoid qualification inside the virtual function's class. */
-          options |= GN_PURE_VIRTUAL_FUNCTION | GN_FORCE_QUALIFIED_NAME;
+          options |= GN_FORCE_QUALIFIED_NAME;
         }  /* if */
       }  /* if */
     }  /* if */
