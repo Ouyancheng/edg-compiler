@@ -1139,6 +1139,8 @@ the fields implied by the lambda's capture list).
   class_type_supp(type)->is_lambda_closure_class = TRUE;
   set_source_corresp(&(type->source_corresp), sym);
   sym->variant.class_struct_union.type = type;
+  type->variant.class_struct_union.is_prototype_instantiation =
+                     scope_stack[depth_scope_stack].in_prototype_instantiation;
   add_to_types_list(type, decl_scope_level);
   cssp = sym->variant.class_struct_union.extra_info;
   /* Assume for now that bitwise copy is allowed for this class.  This will
@@ -8614,6 +8616,8 @@ The heavy lifting for this routine is performed by decl_member_function.
   lambda->lambda_routine = rp;
   rp->is_lambda_body = TRUE;
   rp->type->variant.routine.extra_info->assoc_routine = rp;
+  rp->is_prototype_instantiation =
+                     scope_stack[depth_scope_stack].in_prototype_instantiation;
 }  /* decl_call_operator_for_lambda */
 
 
@@ -16258,12 +16262,15 @@ entry, return NULL.
                             &class_state);
   pop_scope();
   if (lambda->lambda_routine != NULL) {
-    /* Lowering of the lambda body function is deferred because the closure
-       class was not complete when the function was scanned.  Now that the
-       closure class is complete, do the lowering of the lambda body (if
-       needed). */
-    finish_function_processing_for_memory_region(
+    if (lambda->lambda_routine->assoc_scope != NULL_region_number) {
+      /* Lowering of the lambda body function is deferred because the closure
+         class was not complete when the function was scanned.  Now that the
+         closure class is complete, do the lowering of the lambda body (if
+         needed).  In some cases involving prototype instantiations the
+         lambda body may have already been discarded. */
+      finish_function_processing_for_memory_region(
                   lambda->lambda_routine->assoc_scope, /*only_inline=*/FALSE);
+    }  /* if */
   } else {
     /* Severe errors prevented the creation of a call operator.  Don't return
        a lambda. */
