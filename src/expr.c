@@ -28,6 +28,7 @@ expr.c -- Expression scanning routines.
 #include "decl_inits.h"
 #include "disambig.h"
 #include "decl_spec.h"
+#include "declarator.h"
 #if MICROSOFT_EXTENSIONS_ALLOWED
 /* The Microsoft-specific predefined identifier __FUNCDNAME__ refers to the
    mangled name of the current function.  Hence, we may need access to the
@@ -19901,7 +19902,11 @@ type to be the type of return_op.
     a_routine_ptr rout = lambda->lambda_routine;
     a_type_ptr    rout_type = skip_typerefs(rout->type);
     check_assertion(rout_type->kind == (a_type_kind)tk_routine);
-    *return_type = return_op->type;
+    if (check_return_type(return_op->type, (a_decl_parse_state*)NULL)) {
+      *return_type = return_op->type;
+    } else {
+      *return_type = error_type();
+    }  /* if */
     rout_type->variant.routine.return_type = *return_type;
     set_routine_calling_method_flag(rout_type, &return_op->position);
   } else {

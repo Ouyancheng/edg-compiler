@@ -331,14 +331,17 @@ extern void add_to_derived_type_list(a_type_ptr          new_type_ptr,
                                      a_boolean           parameter_type,
                                      a_boolean           microsoft_property);
 
-void report_bad_return_type_qualifier(a_type_ptr          type,
-                                      a_decl_parse_state  *dps,
-                                      a_boolean           *err);
+extern void report_bad_return_type_qualifier(a_type_ptr          type,
+                                             a_decl_parse_state  *dps,
+                                             a_boolean           *err);
 
-void scan_lambda_declarator(a_lambda_ptr        lambda,
-                            a_decl_parse_state  *dps,
-                            a_func_info_block   *func_info,
-                            a_decl_pos_block    *decl_pos_block);
+extern a_boolean check_return_type(a_type_ptr          type,
+                                   a_decl_parse_state  *dps);
+
+extern void scan_lambda_declarator(a_lambda_ptr        lambda,
+                                   a_decl_parse_state  *dps,
+                                   a_func_info_block   *func_info,
+                                   a_decl_pos_block    *decl_pos_block);
 
 #endif /* DECLARATOR_H */
 

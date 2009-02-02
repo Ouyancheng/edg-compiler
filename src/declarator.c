@@ -379,13 +379,13 @@ void report_bad_return_type_qualifier(a_type_ptr          type,
 The given type is a qualified type used as a function return type.  Issue an
 error if the qualification is invalid or a warning or remark if it is not
 meaningful (e.g., the "const" in "int const f()" has no effect).  If an error
-is issued, *err is set to TRUE.  *dps carries information about the way the
-type was formed (e.g., whether qualifiers appeared explicitly; meaningless
-qualification acquired through a typedef are not diagnosed).
+is issued, *err is set to TRUE.  For explicit return type declarations, *dps
+carries information about the way the type was formed (e.g., whether qualifiers
+appeared explicitly; meaningless qualification acquired through a typedef are
+not diagnosed); for the implicit function return type resulting from certain
+lambda constructs, dps is NULL.
 */
 {
-  an_error_severity  severity = es_none;
-
   if (!C_mode() &&
       (is_class_struct_union_type(type) || is_template_param_type(type))) {
     /* In C++ mode class rvalues can have type qualifiers, so allow a function
@@ -409,7 +409,8 @@ qualification acquired through a typedef are not diagnosed).
   } else if (is_reference_type(type)) {
     /* A diagnostic will already have been issued. */
     expect_error();
-  } else if (dps->qualifiers != TQ_NONE) {
+  } else if (dps != NULL && dps->qualifiers != TQ_NONE) {
+    an_error_severity  severity = es_none;
     /* Type qualifiers were explicitly specified on the return type, but they
        have no effect.  Issue a diagnostic in most cases.  Note, however, that
        the qualifiers are left as part of the type. */
@@ -442,19 +443,20 @@ qualification acquired through a typedef are not diagnosed).
     } else {
       severity = es_warning;
     }  /* if */
-  }  /* if */
-  if (severity != es_none) {
-    pos_diagnostic(severity, ec_useless_type_qualifier_on_return_type,
-                   &dps->qualifiers_pos);
+    if (severity != es_none) {
+      pos_diagnostic(severity, ec_useless_type_qualifier_on_return_type,
+                     &dps->qualifiers_pos);
+    }  /* if */
   }  /* if */
 }  /* report_bad_return_type_qualifier */
 
 
-static a_boolean check_return_type(a_type_ptr          type,
-                                   a_decl_parse_state  *dps)
+a_boolean check_return_type(a_type_ptr          type,
+                            a_decl_parse_state  *dps)
 /*
 type is used as a function return type (in a declarative context described by
-*dps).  Issue diagnostics as appropriate, and return TRUE if no error is
+*dps; dps is NULL when the return type is determined implicitly in some lambda
+constructs).  Issue diagnostics as appropriate, and return TRUE if no error is
 issued.
 */
 {
