@@ -2666,6 +2666,8 @@ might not be able to if the template itself has not yet been defined.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (microsoft_mode) {
+        /* Various properties of the instance can be copied from the
+           prototype instantiation. */
         a_type_ptr proto_type = type_symbol_type(cssp->corresp_prototype_sym);
 #if USER_CONTROL_OF_STRUCT_PACKING
         /* Check whether an explicit alignment was specified using
@@ -2677,18 +2679,16 @@ might not be able to if the template itself has not yet been defined.
                              &class_type->source_corresp.decl_position);
         }  /* if */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
-        if (microsoft_version >= 1400) {
-          class_type->variant.class_struct_union.abstract = 
+        class_type->variant.class_struct_union.abstract = 
                               proto_type->variant.class_struct_union.abstract;
 #if BACK_END_IS_CP_GEN_BE
-          class_type->variant.class_struct_union
+        class_type->variant.class_struct_union
                              .defined_with_abstract_class_modifier = 
                      proto_type->variant.class_struct_union
                                         .defined_with_abstract_class_modifier;
 #endif /* BACK_END_IS_CP_GEN_BE */
-          class_type->variant.class_struct_union.sealed =
+        class_type->variant.class_struct_union.sealed =
                                 proto_type->variant.class_struct_union.sealed;
-        }  /*if */
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       record_symbol_declaration(SRK_DEFINITION | SRK_TEMPLATE_INSTANTIATION,
