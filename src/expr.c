@@ -18358,7 +18358,7 @@ been annotated in the source with the GNU keyword __extension__.
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 
-static void make_initializers_for_lambda_capture_copies(a_lambda *lambda)
+static void make_initializer_for_lambda(a_lambda *lambda)
 /*
 *lambda describes a lambda expression just scanned.  Add an initializer
 for the closure object, which copies any captured variables into the
@@ -18527,7 +18527,7 @@ fields of the closure object.
                            &lambda->start_position);
   set_temp_dynamic_init_lifetime(aggr_dip);
   lambda->initialization = aggr_dip;
-}  /* make_initializers_for_lambda_capture_copies */
+}  /* make_initializer_for_lambda */
 
 
 static void scan_lambda_expression(an_operand  *result)
@@ -18554,7 +18554,7 @@ Scan a C++ lambda expression, e.g., something like
   } else {
     an_expr_node_ptr expr;
     /* Add initialization code to copy any captured variables. */
-    make_initializers_for_lambda_capture_copies(lambda);
+    make_initializer_for_lambda(lambda);
     /* The result is a class rvalue instance of the closure class. */
     expr = alloc_expr_node((an_expr_node_kind)enk_lambda);
     expr->type = lambda->closure_class;
