@@ -625,6 +625,7 @@ check_abbreviation()
 --instantiate
 --instantiation_dir
 --keep_gen_c
+--lambdas
 --late_tiebreaker
 --library_directory
 --list
@@ -688,6 +689,7 @@ check_abbreviation()
 --no_implicit_include
 --no_implicit_typename
 --no_inlining
+--no_lambdas
 --no_line_commands
 --no_long_preserving_rules
 --no_macro_positions_in_diagnostics
@@ -1311,6 +1313,8 @@ process_option()
          --no_macro_positions_in_diagnostics | \
          --uliterals | \
          --no_uliterals | \
+         --lambdas | \
+         --no_lambdas | \
          --dump_configuration | \
          --signed_bit_fields | \
          --unsigned_bit_fields | \
