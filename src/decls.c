@@ -7657,8 +7657,16 @@ definition of a member function of a class template.
     } else {
       /* Look for a member function symbol of this type in the symbol table.
          It is an error if it is  not already there. */
-      sym = member_function_redecl_sym(sym, type_ptr, idlb.templ_param_list);
+      a_symbol_ptr  other_match;
+      sym = member_function_redecl_sym(sym, type_ptr, idlb.templ_param_list,
+                                       &other_match);
       if (sym != NULL) {
+        if (other_match != NULL) {
+          /* There were multiple matches (this is possible with Microsoft-mode
+             selective overriders).  Issue an error. */
+          pos_sy_error(ec_ambiguous_name, &locator->source_position, sym);
+          set_to_error_locator(*locator);
+        }  /* if */
         if (sym->kind == (a_symbol_kind)sk_function_template) {
           /* This is the symbol for a member template function.  Use
              this symbol. */
@@ -12357,7 +12365,7 @@ describe the current declaration.
     a_boolean   is_template_instance;
     a_type_ptr  type = state->type;
     is_member_redecl = member_function_redecl_sym(
-                               sym, type, (a_template_param_ptr)NULL) != NULL;
+          sym, type, (a_template_param_ptr)NULL, (a_symbol_ptr*)NULL) != NULL;
     is_template_instance = has_matching_template_instance(
                                        sym, type, locator->template_arg_list);
     if (!is_member_redecl && is_template_instance) {

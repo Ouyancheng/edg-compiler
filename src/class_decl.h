@@ -159,9 +159,10 @@ extern void decl_friend_class(a_type_ptr          class_type,
 			      a_type_ptr          friend_class_type);
 
 extern a_symbol_ptr member_function_redecl_sym(
-				a_symbol_ptr 		sym,
-                                a_type_ptr    		type,
-				a_template_param_ptr	templ_param_list);
+                                       a_symbol_ptr          sym,
+                                       a_type_ptr            type,
+                                       a_template_param_ptr  templ_param_list,
+                                       a_symbol_ptr          *other_match);
 
 extern a_base_class_ptr find_disambiguator(a_base_class_ptr  bcp1,
                                            a_base_class_ptr  bcp2);

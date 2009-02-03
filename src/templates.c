@@ -16060,7 +16060,7 @@ is found.  Return the symbol for the instance, or NULL if no instance is
 found.
 */
 {
-  a_symbol_ptr  		orig_sym;
+  a_symbol_ptr  		orig_sym, other_match;
   a_boolean     		any_found = FALSE;
   a_symbol_ptr			new_sym = NULL;
   a_boolean			any_templates = FALSE;
@@ -16073,8 +16073,8 @@ found.
        of a template class.  Skip this step when an explicit template
        argument list has been specified, as this implies that the entity
        to be found must be a template. */
-    new_sym = member_function_redecl_sym(sym, type,
-                                         (a_template_param_ptr)NULL);
+    new_sym = member_function_redecl_sym(sym, type, (a_template_param_ptr)NULL,
+                                         &other_match);
     if (new_sym != NULL) any_found = TRUE;
   }  /* if */
   if (!any_found) {
@@ -16141,6 +16141,11 @@ found.
       err_code = ec_not_compatible_with_previous_decl;
     }  /* if */
     sym_diagnostic(severity_if_not_found, err_code, orig_sym);
+  } else if (other_match != NULL) {
+    /* Multiple matches were found.  This can happen if Microsoft mode
+       selective overriders are involved. */
+    sym_diagnostic(severity_if_not_found, ec_ambiguous_name, orig_sym);
+    check_assertion(microsoft_mode);
   }  /* if */
   return new_sym;
 }  /* find_matching_template_instance */

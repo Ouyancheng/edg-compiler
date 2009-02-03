@@ -1306,9 +1306,9 @@ is recorded in *decl_pos_block.  *linkage_ptr is set to idl_external, and
   } else {
     /* Look for a member function symbol of this type in the symbol table.
        It is an error if it is  not already there. */
-    a_symbol_ptr	orig_sym = sym;
-    sym = member_function_redecl_sym(sym, type_ptr,
-                                     (a_template_param_ptr)NULL);
+    a_symbol_ptr	orig_sym = sym, other_match;
+    sym = member_function_redecl_sym(sym, type_ptr, (a_template_param_ptr)NULL,
+                                     &other_match);
     if (sym == NULL && any_cfront_mode()) {
       /* In cfront it's okay to put a function qualifier on a member function
          definition.  If it's inappropriate, it's just ignored.  Do the same
@@ -1317,8 +1317,9 @@ is recorded in *decl_pos_block.  *linkage_ptr is set to idl_external, and
                                        type_ptr->variant.routine.extra_info;
       if (rtsp->this_class != NULL) {
         rtsp->this_class = NULL;
-        sym = member_function_redecl_sym(locator->specific_symbol, type_ptr,
-                                         (a_template_param_ptr)NULL);
+        sym = member_function_redecl_sym(
+                                    locator->specific_symbol, type_ptr,
+                                    (a_template_param_ptr)NULL, &other_match);
         /* The qualifiers are cleared only after looking for a redeclaration
            symbol.  This ensures that we find the same declaration Cfront
            would find. */
@@ -1365,10 +1366,14 @@ is recorded in *decl_pos_block.  *linkage_ptr is set to idl_external, and
         sym->variant.routine.ptr->compiler_generated = FALSE;
         set_inline_flag(sym->variant.routine.ptr, FALSE);
       }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (sym->ambiguous) {
+    } else if (other_match != NULL) {
+      /* Multiple matches were found.  E.g.,
+           __interface I1 { int f(); };  __interface I2 { int f(); };
+           struct D: I1, I2 { int I1::f(); int I2::f(); };
+           int D::f() { return 0; }  // Ambiguous.
+      */
       pos_sy_error(ec_ambiguous_name, &locator->source_position, sym);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      check_assertion(microsoft_mode);
     }  /* if */
   }  /* if */
   if (sym == NULL || (sym->defined && !microsoft_out_of_class_redecl)) {

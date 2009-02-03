@@ -6150,10 +6150,11 @@ the current class (class_type).
 
 
 static a_symbol_ptr member_function_redecl_sym_with_template_flag(
-				a_symbol_ptr		sym,
-				a_type_ptr		new_type,
-				a_template_param_ptr	templ_param_list,
-				a_boolean		templates_only)
+                                       a_symbol_ptr          sym,
+                                       a_type_ptr            new_type,
+                                       a_template_param_ptr  templ_param_list,
+                                       a_boolean             templates_only,
+                                       a_symbol_ptr          *other_match)
 /*
 sym is a member function symbol or overloaded function symbol from a
 previous declaration.  new_type is the type from the current
@@ -6161,7 +6162,9 @@ declaration.  If the new declaration is a function template,
 templ_param_list points to the template parameter list.  Check the
 type for compatibility with sym or, if sym represents an overloaded
 function, with any of the instances.  If a match is found, return a
-pointer to the symbol.  If not, return NULL.
+pointer to the symbol.  If not, return NULL.  If there are multiple
+matches due to Microsoft-mode selective overriders, return a second
+match in *extra_match.
 
 If the routine type from the current declaration or one from the original
 declaration indicates that the function as a whole was qualified (e.g.,
@@ -6186,12 +6189,13 @@ have a non-NULL this_class and the type match must be done without it.
 When templates_only is TRUE, only function templates members are considered.
 */
 {
-  a_boolean			 is_overloaded_function, match;
+  a_boolean                      is_overloaded_function, match;
   a_type_ptr                     orig_type, orig_this_class, new_this_class;
   a_routine_type_supplement_ptr  orig_rts, new_rts;
   a_boolean                      orig_function_is_qualified;
   a_boolean                      new_function_is_qualified;
 
+  if (other_match != NULL) *other_match = NULL;
   /* Get the symbol list if this is an overloaded function. */
   if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
     sym = sym->variant.overloaded_function.symbols;
@@ -6208,8 +6212,9 @@ When templates_only is TRUE, only function templates members are considered.
   /* Go through the symbol list and look for an instance in which the
      types are compatible with the current type. */
   for (; sym != NULL; sym = is_overloaded_function ? sym->next : NULL) {
-    a_template_param_ptr		other_templ_param_list;
-    a_template_symbol_supplement_ptr	tssp;
+    a_template_param_ptr              other_templ_param_list;
+    a_template_symbol_supplement_ptr  tssp;
+    a_routine_ptr                     routine;
     /* Ignore projection symbols. */
     if (sym->kind == (a_symbol_kind)sk_projection) continue;
     check_assertion(sym->kind == (a_symbol_kind)sk_function_template ||
@@ -6222,9 +6227,11 @@ When templates_only is TRUE, only function templates members are considered.
     /* Get the routine pointer associated with either the routine symbol
        or the function template symbol. */
     if (sym->kind == (a_symbol_kind)sk_function_template) {
-      orig_type = sym->variant.template_info->variant.function.routine->type;
+      routine = sym->variant.template_info->variant.function.routine;
+      orig_type = routine->type;
     } else {
-      orig_type = sym->variant.routine.ptr->type;
+      routine = sym->variant.routine.ptr;
+      orig_type = routine->type;
     }  /* if */
     orig_rts = (skip_typerefs(orig_type))->variant.routine.extra_info;
     orig_this_class = orig_rts->this_class;
@@ -6274,18 +6281,42 @@ When templates_only is TRUE, only function templates members are considered.
       new_rts->this_class = new_this_class;
       orig_rts->this_class = orig_this_class;
     }  /* if */
-    /* If a match was found by types_are_compatible, break out of the
-       loop. */
-    if (match) break;
+    if (match) {
+      /* If a match was found by types_are_compatible, break out of the loop.
+         An exception is made if the match we found is a selective overrider
+         and other_match is non-NULL. */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (other_match != NULL && routine->overridden_functions != NULL &&
+          *other_match == NULL) {
+        /* A selective overrider.  Record the current match but look for
+           another one. */
+        *other_match = sym;
+      } else    
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      /* Do not insert code here. */
+      {
+        break;
+      }  /* if */
+    }  /* if */
   }  /* for */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (sym == NULL && other_match != NULL && *other_match != NULL) {
+    /* A selective overrider was found and recorded in *other_match, but no
+       additional match was found.  Return the single match and clear
+       *other_match. */
+    sym = *other_match;
+    *other_match = NULL;
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   return sym;
 }  /* member_function_redecl_sym_with_template_flag */
 
 
 a_symbol_ptr member_function_redecl_sym(
-				a_symbol_ptr		sym,
-				a_type_ptr		new_type,
-				a_template_param_ptr	templ_param_list)
+                                a_symbol_ptr          sym,
+                                a_type_ptr            new_type,
+                                a_template_param_ptr  templ_param_list,
+                                a_symbol_ptr          *other_match)
 /*
 member_function_redecl_sym_with_template_flag does real processing for
 this routine.  See the header comment there.
@@ -6308,15 +6339,17 @@ To prevent this, member_function_redecl_sym_with_template_flag is called
 twice; once to search for templates and again to search for nontemplates.
 */
 {
-  a_symbol_ptr	result;
+  a_symbol_ptr  result;
 
   /* First look for a matching template. */
   result = member_function_redecl_sym_with_template_flag(
-                     sym, new_type, templ_param_list, /*templates_only=*/TRUE);
+                     sym, new_type, templ_param_list, /*templates_only=*/TRUE,
+                     other_match);
   if (result == NULL) {
     /* No template was found, look for a normal member function. */
     result = member_function_redecl_sym_with_template_flag(
-                    sym, new_type, templ_param_list, /*templates_only=*/FALSE);
+                    sym, new_type, templ_param_list, /*templates_only=*/FALSE,
+                    other_match);
   }  /* if */
   return result;
 }  /* member_function_redecl_sym */
@@ -6883,7 +6916,7 @@ was used).
   an_error_code  error_code;
   a_boolean      suppress_redecl_error = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  a_boolean      make_new_sym_ambiguous = FALSE;
+  a_boolean      multiple_selective_overriders = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   db_enter(4, "symbol_for_member_function");
@@ -6898,7 +6931,8 @@ was used).
          symbol table.  This could be a redeclaration, which is illegal for
          class members.  Check for that first by looking for a type match. */
       new_sym = member_function_redecl_sym(sym, decl_info->decl_state.type,
-                                           (a_template_param_ptr)NULL);
+                                           (a_template_param_ptr)NULL,
+                                           (a_symbol_ptr*)NULL);
       if (new_sym == NULL) {
         /* The previously declared function with the same name (or, if it is
            already overloaded, any instance of it) does not have a matching
@@ -6909,10 +6943,9 @@ was used).
                  !is_selectively_overridden_by(overridden_function, new_sym)) {
         /* Although a declaration with a matching type was found, it overrides
            a different base member.  Treat the new declaration as a distinct
-           member.  However, mark the symbols for both members as ambiguous. */
-        new_sym->ambiguous = TRUE;
+           member. */
         new_sym = NULL;
-        make_new_sym_ambiguous = TRUE;
+        multiple_selective_overriders = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       } else {
         /* This is a redeclaration.  Just return to old symbol entry, setting
@@ -6935,15 +6968,15 @@ was used).
            routine types are candidates for overloading; if it returns FALSE
            it also returns the error code for a diagnostic explaining why.
            Note that overload_distinguishable only handles the function types
-           without considering the Microsoft-specific case of a selective
-           overrider (characterized by make_new_sym_ambiguous == TRUE). */
+           without considering the Microsoft-specific case of multiple
+           selective overriders with the same parameter types. */
         /* The templ_param_list is NULL in the following call because
            although member functions of class templates have template types
            in their parameters, they are not called using the template
            overload resolution mechanism. */
         if (
 #if MICROSOFT_EXTENSIONS_ALLOWED
-            !make_new_sym_ambiguous &&
+            !multiple_selective_overriders &&
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             !overload_distinguishable(sym, decl_info->decl_state.type,
                                       (a_template_param_ptr)NULL,
@@ -6958,11 +6991,6 @@ was used).
           new_sym = enter_overloaded_symbol((a_symbol_kind)sk_member_function,
                                             locator, is_ctor, sym,
                                             overload_sym);
-#if MICROSOFT_EXTENSIONS_ALLOWED
-          if (make_new_sym_ambiguous) {
-            new_sym->ambiguous = TRUE;
-          }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         }  /* if */
       }  /* if */
     }  /* if */
@@ -7854,7 +7882,8 @@ function or NULL if none can be found.
         sym = member_function_redecl_sym_with_template_flag(
                                                     sym, member_type,
                                                     (a_template_param_ptr)NULL,
-                                                    /*templates_only=*/FALSE);
+                                                    /*templates_only=*/FALSE,
+                                                    (a_symbol_ptr*)NULL);
         if (sym_parent_class(sym)->variant.class_struct_union.is_interface &&
             sym != NULL && sym_parent_class(sym) != parent_class) {
           /* Lookup might have found an inherited member.  That is okay if the
