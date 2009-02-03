@@ -16060,7 +16060,7 @@ is found.  Return the symbol for the instance, or NULL if no instance is
 found.
 */
 {
-  a_symbol_ptr  		orig_sym, other_match;
+  a_symbol_ptr  		orig_sym, other_match = NULL;
   a_boolean     		any_found = FALSE;
   a_symbol_ptr			new_sym = NULL;
   a_boolean			any_templates = FALSE;
