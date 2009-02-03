@@ -1580,13 +1580,11 @@ static an_expr_node_ptr implied_source_of_copy(
 /*
 We're processing a dynamic initialization entry that represents a copy of
 something from an implied source location to the thing being initialized.
-source_desc describes the source of the implied copy and represents a
-constructor-initializer entry, a local variable (for lambda capture by value),
-or the object thrown by an exception handling "throw" into the
-parameter of the catch clause.  In any case, create an expression to
-describe the implied source and return a pointer to it.  dest describes the
-entity being initialized.  The returned expression will be an lvalue if
-result_is_lvalue is TRUE, otherwise an rvalue.
+source_desc describes the source of the implied copy (e.g., a
+constructor-initializer entry).  Create an expression to describe the implied
+source and return a pointer to it.  dest describes the entity being
+initialized.  The returned expression will be an lvalue if result_is_lvalue is
+TRUE, otherwise an rvalue.
 */
 {
   an_init_pos_descr    source_ipd;
@@ -1672,12 +1670,11 @@ static void add_bitwise_copy(an_init_pos_descr_ptr  dest,
                              an_insert_location_ptr insert_location)
 /*
 Generate code to implement an initialization by bitwise copy.  dest
-describes the destination of the move.  source_desc describes the source
-of the bitwise copy (constructor initialization entry, lambda capture variable,
-or a thrown exception).  have_complete_object is TRUE if we are
-copying a complete object, FALSE if we are copying a base class
-subobject.  Insert the statement at *insert_location and update
-*insert_location.
+describes the destination of the move.  source_desc describes the implied
+source of the bitwise copy (e.g., a constructor initialization entry).
+have_complete_object is TRUE if we are copying a complete object, FALSE if we
+are copying a base class subobject.  Insert the statement at *insert_location
+and update *insert_location.
 */
 {
   an_expr_node_ptr      source_node, dest_node, assign_node;
@@ -6440,11 +6437,10 @@ on a file-scope dynamic_inits list).  ipdp can, however, indicate a part of
 an aggregate.
 
 If the dynamic initialization has an implied copy, source_desc describes
-the implied source of that copy (a constructor initializer, lambda capture
-variable, or a thrown exception).  source_desc is NULL otherwise.
-In the case where source_desc describes a constructor initializer,
-construction_vtbls_var provides the variable for a array of
-construction virtual function tables, if needed, or NULL otherwise.
+the implied source of that copy (e.g., a constructor initializer).
+source_desc is NULL otherwise.  In the case where source_desc describes a
+constructor initializer, construction_vtbls_var provides the variable for a
+array of construction virtual function tables, if needed, or NULL otherwise.
 
 If the dynamic initialization is a full expression (e.g., in an
 stmk_init), (options & LDIO_FULL_EXPR) is set.
