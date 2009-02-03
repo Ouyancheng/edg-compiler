@@ -1450,7 +1450,6 @@ be TRUE if curr_token is tok_lt.
 }  /* cache_token_stream_until_matching_token */
 
 
-static
 void cache_token_stream_with_coalesce_flag(a_token_cache_ptr  cache,
                                            a_token_set_array  stop_tokens,
                                            a_boolean	      coalesce_ids,

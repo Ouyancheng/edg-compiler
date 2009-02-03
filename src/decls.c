@@ -341,7 +341,7 @@ of declarations that are permitted.
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (microsoft_mode && curr_token == tok_lbracket &&
-             (options & IDS_MS_ATTRIB_NOT_ALLOWED) == 0) {
+             (options & IDS_MS_ATTRIB_NOT_ALLOWED) == 0 && !is_lambda()) {
     /* A Microsoft attribute can start a declaration. */
     is_start = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

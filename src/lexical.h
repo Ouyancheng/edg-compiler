@@ -2016,6 +2016,12 @@ void cache_token_stream_coalesce_identifiers(a_token_cache_ptr  cache,
                                              a_token_cache_ptr	src_cache);
 
 extern
+void cache_token_stream_with_coalesce_flag(a_token_cache_ptr  cache,
+                                           a_token_set_array  stop_tokens,
+                                           a_boolean	      coalesce_ids,
+                                           a_token_cache_ptr  src_cache);
+
+extern
 void remove_token_from_cache(a_cached_token_ptr	ctp,
 			     a_cached_token_ptr	*prev_ptr,
 			     a_token_cache_ptr	cache);

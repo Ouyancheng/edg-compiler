@@ -147,10 +147,12 @@ so that it can be used by cache_token_stream_coalesce_identifiers.
 
 
 static void cache_tokens_until(a_disambig_state_ptr	state,
-			       a_token_kind		stop_token)
+			       a_token_kind		stop_token,
+			       a_boolean		coalesce)
 /*
 Wrapper for cache_token_stream that saves and restores the stop tokens
-array.  Cache tokens until the specified token is found.
+array.  Cache tokens until the specified token is found.  If coalesce is
+TRUE, coalesce any identifiers.
 */
 {
   a_token_set_array  stop_token_array;
@@ -159,8 +161,8 @@ array.  Cache tokens until the specified token is found.
   cache_rest_of_statement(state);
   clear_token_set_array(stop_token_array);
   incr_token_set_array_element(stop_token_array, stop_token);
-  cache_token_stream_coalesce_identifiers(&state->cache, stop_token_array,
-                                          &state->stmt_cache);
+  cache_token_stream_with_coalesce_flag(&state->cache, stop_token_array,
+                                        coalesce, &state->stmt_cache);
 }  /* cache_tokens_until */
 
 
@@ -418,9 +420,12 @@ cache to be used.
   check_assertion(curr_token == tok_lbracket);
   /* Advance past the left bracket. */
   cache_curr_token(&state->cache);
-  get_token_and_coalesce_if_identifier(flags);
+  (void)get_token();
   /* Now scan up to the matching right bracket. */
-  cache_tokens_until(state, tok_rbracket);
+  cache_tokens_until(state, tok_rbracket, /*coalesce=*/FALSE);
+  /* Advance past the right bracket. */
+  cache_curr_token(&state->cache);
+  get_token_and_coalesce_if_identifier(flags);
 }  /* prescan_microsoft_attributes */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -440,7 +445,7 @@ token cache to be used.
     cache_curr_token(&state->cache);
     get_token_and_coalesce_if_identifier(flags);
     /* Now scan up to the matching right parenthesis. */
-    cache_tokens_until(state, tok_rparen);
+    cache_tokens_until(state, tok_rparen, /*coalesce=*/TRUE);
   }  /* if */
 }  /* prescan_typeof_operator */
 
@@ -772,7 +777,7 @@ part of a function declarator is found, may_be_decl is set to FALSE.
     /* Advance past the left parenthesis. */
     cache_curr_token(&state->cache);
     get_token_and_coalesce_if_identifier(flags);
-    cache_tokens_until(state, tok_rparen);
+    cache_tokens_until(state, tok_rparen, /*coalesce=*/TRUE);
     if (curr_token == tok_rparen) {
       /* Cache the right parenthesis. */
       cache_curr_token(&state->cache);
@@ -1014,7 +1019,7 @@ part of a declarator is found, may_be_decl is set to FALSE.
           /* Function_declarator should not be called, scan the tokens that
              comprise the parenthesized initializer and exit the loop. */
           paren_initializer_seen = TRUE;
-          cache_tokens_until(state, tok_rparen);
+          cache_tokens_until(state, tok_rparen, /*coalesce=*/TRUE);
           if (curr_token == tok_rparen) {
             /* Cache the right parenthesis. */
             cache_curr_token(&state->cache);
@@ -1033,7 +1038,7 @@ function_lparen:
       /* Advance past the left bracket. */
       cache_curr_token(&state->cache);
       get_token_and_coalesce_if_identifier(flags);
-      cache_tokens_until(state, tok_rbracket);
+      cache_tokens_until(state, tok_rbracket, /*coalesce=*/TRUE);
       /* Bypass and cache the "]". */
       if (curr_token == tok_rbracket) {
         cache_curr_token(&state->cache);

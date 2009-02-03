@@ -16217,6 +16217,57 @@ properties of this operator in *func_info (which is initialized here).
   }  /* if */
 }  /* scan_and_process_lambda_declarator */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+a_boolean is_lambda(void)
+/*
+The current token is a "[" that could be the start of a lambda, or in Microsoft
+mode could be the start of a Microsoft attribute.  Look ahead to determine
+whether this is a lambda.  Return TRUE if it is.
+*/
+{
+  a_token_cache	cache;
+  a_boolean	result = TRUE;
+
+  check_assertion(curr_token == tok_lbracket);
+  clear_token_cache(&cache, /*reusable=*/FALSE);
+  cache_curr_token(&cache);
+  /* Get the token after the "[". */
+  (void)get_token();
+  if (curr_token == tok_assign || curr_token == tok_ampersand ||
+      curr_token == tok_rbracket) {
+    /* Something like "[=...", "[&..." or "[]". Treat this as a lambda. */
+  } else if (curr_token != tok_identifier) {
+    /* After the cases above have been excluded, both lambdas and Microsoft
+       attributes should have an identifier next.  If the next token is
+       not an identifier treat this as a lambda for error recovery purposes. */
+  } else {
+    /* The token is an identifier. */
+    a_token_kind	next_tok;
+    a_token_kind	second_tok;
+    /* Get the next token, and the one after that if the next token is a
+       right bracket. */
+    next_tok = next_two_tokens(tok_rbracket, &second_tok);
+    if (next_tok == tok_comma) {
+      /* Something like "[x,...", which cannot be an attribute. */
+    } else if (next_tok == tok_rbracket) {
+      /* "[x]...": If the token after the right bracket is a "{" or "(",
+         assume this is a lambda. */
+      if (second_tok != tok_lbrace && second_tok != tok_lparen) result = FALSE;
+    } else if (next_tok == tok_colon_colon) {
+      /* "[x::...", which cannot be a lambda but could be an attribute. */
+      result = FALSE;
+    } else {
+      /* Something else not handled above.  Assume this to be an attribute. */
+      result = FALSE;
+    }  /* if */
+  }  /* if */
+  /* Rescan the tokens cached above. */
+  rescan_cached_tokens(&cache);
+  return result;
+}  /* is_lambda */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 a_lambda_ptr scan_lambda(void)
 /*
