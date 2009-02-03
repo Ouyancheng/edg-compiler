@@ -18704,7 +18704,7 @@ see expr.h).
         scan_identifier(&local_result, local_options, prec_level,
                         (a_symbol_ptr *)NULL, &okay_after_typename);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        /* If the okay_after_typename is TRUE, clear the flag that indicates
+        /* If okay_after_typename is TRUE, clear the flag that indicates
            we discarded a typename to suppress the warning that would otherwise
            be issued. */
         if (okay_after_typename) has_discarded_typename = FALSE;

@@ -61,7 +61,7 @@ The Microsoft compiler allows the typename keyword to be used in expressions
 in template contexts when it is not followed by a type.  We now accept this
 usage in Microsoft bugs mode (with a warning).  In addition, similar
 support for incorrect uses of typename in declarations (10/20/08, 6/1/08,
-4/17/06, 5/6/03) are now controlled by microsoft_bugs instead of
+4/17/06, 5/6/03) is now controlled by microsoft_bugs instead of
 microsoft_mode.
 
   struct A {
