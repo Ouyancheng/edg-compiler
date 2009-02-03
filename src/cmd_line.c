@@ -1198,10 +1198,10 @@ Initialize the option information table.
                          /*arg_required=*/FALSE, pchek_command_line);
   add_option_description(optk_lambdas, "no_lambdas", '\0', /*value=*/FALSE,
                          /*arg_required=*/FALSE, pchek_command_line);
-  add_option_description(optk_rvalue_references, "rvalue_references",
+  add_option_description(optk_rvalue_references, "rvalue_refs",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
-  add_option_description(optk_rvalue_references, "no_rvalue_references",
+  add_option_description(optk_rvalue_references, "no_rvalue_refs",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
 }  /* initialize_option_descriptions */
@@ -2314,7 +2314,8 @@ the next standard).
     lambdas_enabled = TRUE;
   }  /* if */
   if (!option_kind_used[(int)optk_rvalue_references]) {
-    rvalue_references_enabled = TRUE;
+    /* FIXME: Restore when rvalue ref semantics are implemented
+    rvalue_references_enabled = TRUE; */
   }  /* if */
 }  /* check_and_set_cpp0x_mode_options */
 
