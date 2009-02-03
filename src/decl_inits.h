@@ -27,10 +27,6 @@ decl_inits.h -- Declarations related to decl_inits.c (having to do with
 extern a_boolean check_string_constant_initializer(a_type_ptr      *var_type,
                                                    a_constant_ptr  string_con);
 
-extern a_dynamic_init_ptr alloc_ctor_dynamic_init(
-                                                 a_routine_ptr ctor_rp,
-                                                 a_boolean     implied_source);
-
 extern void repeat_nonconstant_init(a_dynamic_init_ptr  ctor_dip,
                                     a_type_ptr          array_type,
                                     a_type_ptr          elem_type,

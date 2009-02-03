@@ -920,9 +920,10 @@ one following the closing parenthesis.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Set the dynamic init entry to represent "constructor" initialization,
      leaving the constructor pointer NULL. */
-  *dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_constructor);
-  (*dip)->variant.constructor.ptr = NULL;
-  (*dip)->variant.constructor.args = arg_list;
+  *dip = alloc_expr_ctor_dynamic_init((a_routine_ptr)NULL,
+                                      arg_list,
+                                      /*add_default_args=*/FALSE,
+                                      /*implied_source=*/FALSE);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   curr_construct_end_position = end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -1284,9 +1285,10 @@ source position is after the closing parenthesis of the argument list.
         dip->variant.expression = arg_expr_list;
       } else {
         /* Constructor call. */
-        dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_constructor);
-        dip->variant.constructor.ptr = routine; /* NULL for unknown dep. */
-        dip->variant.constructor.args = arg_expr_list;
+        dip = alloc_expr_ctor_dynamic_init(routine,
+                                           arg_expr_list,
+                                           /*add_default_args=*/FALSE,
+                                           /*implied_source=*/FALSE);
         dip->variant.constructor.value_initialization = value_initialization;
       }  /* if */
       if (fill_in_dtor) {
@@ -9604,20 +9606,15 @@ specification allow a variable-sized array as the top type.
                                                   base_new_type,
                                          curr_expr_is_potentially_evaluated());
         if (ctor_routine != NULL) {
-          an_expr_node_ptr init_arg_expr_list;
           needs_initialization = TRUE;
-          /* Provide default arguments if any. */
-          init_arg_expr_list = expr_copy_default_arg_expr_list(ctor_routine,
-                skip_typerefs(ctor_routine->type)->variant.routine.extra_info->
-                                                              param_type_list);
           do_const_test = TRUE;
           is_generated_ctor = ctor_routine->compiler_generated;
           warn_about_missing_delete_if(TRUE);
           /* Make the dynamic initialization entry. */
-          dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_constructor);
-          dip->variant.constructor.ptr = ctor_routine;
-          dip->variant.constructor.args = init_arg_expr_list;
-          dip->variant.constructor.value_initialization = FALSE;
+          dip = alloc_expr_ctor_dynamic_init(ctor_routine,
+                                             (an_expr_node_ptr)NULL,
+                                             /*add_default_args=*/TRUE,
+                                             /*implied_source=*/FALSE);
         }  /* if */
       } else if (reference_to_trivial_default_constructor(base_new_type,
                                                           &type_position)) {
@@ -18466,7 +18463,10 @@ fields of the closure object.
     } else if (cctor_routine != NULL) {
       /* The copy uses a copy constructor.  Use a dik_constructor dynamic
          init entry with an implied source. */
-      dip = alloc_ctor_dynamic_init(cctor_routine, /*implied_source=*/TRUE);
+      dip = alloc_expr_ctor_dynamic_init(cctor_routine,
+                                         (an_expr_node_ptr)NULL,
+                                         /*add_default_args=*/TRUE,
+                                         /*implied_source=*/TRUE);
     } else {
       /* Other cases, including when dest_type is a reference (which happens
          when the capture is by reference). */

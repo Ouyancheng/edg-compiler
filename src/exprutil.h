@@ -1212,6 +1212,12 @@ extern void make_field_operand(a_field_ptr field,
 
 extern a_dynamic_init_ptr alloc_expr_dynamic_init(a_dynamic_init_kind kind);
 
+extern a_dynamic_init_ptr alloc_expr_ctor_dynamic_init(
+                                             a_routine_ptr    ctor_routine,
+                                             an_expr_node_ptr args,
+                                             a_boolean        add_default_args,
+                                             a_boolean        implied_source);
+
 extern a_routine_ptr expr_select_destructor(
                                      a_type_ptr        class_type,
                                      a_type_ptr        object_class_type,

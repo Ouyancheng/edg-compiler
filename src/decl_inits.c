@@ -595,8 +595,8 @@ the dynamic init entry.
 }  /* copy_ctor_default_args_to_dynamic_init */
 
 
-a_dynamic_init_ptr alloc_ctor_dynamic_init(a_routine_ptr ctor_rp,
-                                           a_boolean     implied_source)
+static a_dynamic_init_ptr alloc_ctor_dynamic_init(a_routine_ptr ctor_rp,
+                                                  a_boolean     implied_source)
 /*
 Allocate a dik_constructor dynamic init entry that will call the
 constructor given by ctor_rp.  If the constructor has default arguments,

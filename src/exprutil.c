@@ -8110,6 +8110,52 @@ an expression.
 }  /* alloc_expr_dynamic_init */
 
 
+a_dynamic_init_ptr alloc_expr_ctor_dynamic_init(
+                                             a_routine_ptr    ctor_routine,
+                                             an_expr_node_ptr args,
+                                             a_boolean        add_default_args,
+                                             a_boolean        implied_source)
+/*
+Allocate a dynamic initialization entry for a constructor call
+(dik_constructor), and return a call to it.  ctor_routine gives the
+constructor (NULL for a dependent case); args gives the constructor
+argument list; add_default_args is TRUE if the expressions for any
+default arguments should be added to the end of the argument list;
+and implied_source is TRUE if the call is a copy constructor call
+and the source for the copy is implied.
+*/
+{
+  a_dynamic_init_ptr dip =
+                 alloc_expr_dynamic_init((a_dynamic_init_kind)dik_constructor);
+
+  dip->variant.constructor.ptr = ctor_routine;
+  dip->variant.constructor.is_copy_constructor_with_implied_source =
+                                                                implied_source;
+  /* Add default arguments if any. */
+  if (add_default_args) {
+    a_param_type_ptr ptp;
+    an_expr_node_ptr def_args;
+    check_assertion(ctor_routine != NULL);
+    ptp = skip_typerefs(ctor_routine->type)->variant.routine.extra_info->
+                                                               param_type_list;
+    if (implied_source) ptp = ptp->next;
+    def_args = expr_copy_default_arg_expr_list(ctor_routine, ptp);
+    if (def_args != NULL) {
+      /* Append the default argument list to the end of the arguments list. */
+      if (args == NULL) {
+        args = def_args;
+      } else {
+        an_expr_node_ptr last;
+        for (last = args; last->next != NULL; last = last->next) {}
+        last->next = def_args;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  dip->variant.constructor.args = args;
+  return dip;
+}  /* alloc_expr_ctor_dynamic_init */
+
+
 a_routine_ptr expr_select_destructor(a_type_ptr        class_type,
                                      a_type_ptr        object_class_type,
                                      a_source_position *position,

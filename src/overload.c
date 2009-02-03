@@ -13073,9 +13073,10 @@ happen only in C++ mode.
     prep_generic_operand(source_operand);
     /* Set the dynamic init entry to represent "constructor" initialization,
        leaving the constructor pointer NULL. */
-    dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_constructor);
-    dip->variant.constructor.ptr = NULL;
-    dip->variant.constructor.args = make_node_from_operand(source_operand);
+    dip = alloc_expr_ctor_dynamic_init((a_routine_ptr)NULL,
+                                       make_node_from_operand(source_operand),
+                                       /*add_default_args=*/FALSE,
+                                       /*implied_source=*/FALSE);
   } else if (conversion_routine != NULL) {
     /* conversion_routine is a constructor (copy or other). */
     set_up_for_constructor_call(source_operand, conversion_routine,
