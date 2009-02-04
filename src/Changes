@@ -5,7 +5,7 @@ Spurious error on member function call in presence of selective overriders
 
 In Microsoft mode, a call to a member function could result in a spurious
 error if that member was part of an overload set containing multiple selective
-overriders (a Microsoft member function).  For example:
+overriders (a Microsoft extension).  For example:
 
   __interface I1 { void f(); };
   __interface I2 { void f(); };

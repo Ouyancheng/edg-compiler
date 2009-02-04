@@ -1378,6 +1378,8 @@ is recorded in *decl_pos_block.  *linkage_ptr is set to idl_external, and
       */
       pos_sy_error(ec_ambiguous_name, &locator->source_position, sym);
       check_assertion(microsoft_mode);
+      /* Proceed as if no match had been found at all. */
+      sym = NULL;
     }  /* if */
   }  /* if */
   if (sym == NULL || (sym->defined && !microsoft_out_of_class_redecl)) {

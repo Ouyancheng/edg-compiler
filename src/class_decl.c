@@ -6162,9 +6162,10 @@ declaration.  If the new declaration is a function template,
 templ_param_list points to the template parameter list.  Check the
 type for compatibility with sym or, if sym represents an overloaded
 function, with any of the instances.  If a match is found, return a
-pointer to the symbol.  If not, return NULL.  If there are multiple
-matches due to Microsoft-mode selective overriders, return a second
-match in *extra_match.
+pointer to the symbol.  If not, return NULL.  If other_match is non-NULL,
+set *other_match to an additional matching function if there is one
+(this can happen only with Microsoft-mode selective overriders) or to
+NULL otherwise.
 
 If the routine type from the current declaration or one from the original
 declaration indicates that the function as a whole was qualified (e.g.,

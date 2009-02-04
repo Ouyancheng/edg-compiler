@@ -7665,7 +7665,8 @@ definition of a member function of a class template.
           /* There were multiple matches (this is possible with Microsoft-mode
              selective overriders).  Issue an error. */
           pos_sy_error(ec_ambiguous_name, &locator->source_position, sym);
-          set_to_error_locator(*locator);
+          /* Proceed as if no match was found. */
+          sym = NULL;
         }  /* if */
         if (sym->kind == (a_symbol_kind)sk_function_template) {
           /* This is the symbol for a member template function.  Use
@@ -7681,13 +7682,17 @@ definition of a member function of a class template.
         }  /* if */
       }  /* if */
       if (sym == NULL) {
-        /* No member function with a matching type was found.  Issue an
-           error. */
-        pos_sy_error(locator->specific_symbol->kind ==
+        if (other_match == NULL) {
+          /* No member function with a matching type was found.  Issue an
+             error. */
+          pos_sy_error(locator->specific_symbol->kind ==
                                      (a_symbol_kind)sk_overloaded_function ?
-                        ec_no_match_for_type_of_overloaded_function :
-                        ec_not_compatible_with_previous_decl,
-                   &locator->source_position, locator->specific_symbol);
+                         ec_no_match_for_type_of_overloaded_function :
+                         ec_not_compatible_with_previous_decl,
+                       &locator->source_position, locator->specific_symbol);
+        } else {
+          /* Multiple matches were found.  A diagnostic was already issued. */
+        }  /* if */
         set_to_error_locator(*locator);
       } else {
         /* Merge type information from the two declarations. */
