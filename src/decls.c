@@ -7667,8 +7667,7 @@ definition of a member function of a class template.
           pos_sy_error(ec_ambiguous_name, &locator->source_position, sym);
           /* Proceed as if no match was found. */
           sym = NULL;
-        }  /* if */
-        if (sym->kind == (a_symbol_kind)sk_function_template) {
+        } else if (sym->kind == (a_symbol_kind)sk_function_template) {
           /* This is the symbol for a member template function.  Use
              this symbol. */
         } else if (is_prototype_instantiation_symbol(parent_class_sym)) {
