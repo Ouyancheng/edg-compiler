@@ -757,6 +757,7 @@ and for the instantiation of template functions.
   db_enter(3, "scan_function_body");
   /* Begin a new stop token state. */
   push_stop_token_stack();
+  add_stop_token(tok_semicolon);
   if (rout_ptr->source_corresp.is_class_member) {
     class_type = parent_class_of(rout_ptr);
   } else {
@@ -1198,6 +1199,7 @@ and for the instantiation of template functions.
     add_to_inline_function_list(rout_ptr);
   }  /* if */
   /* Restore the stop token state. */
+  remove_stop_token(tok_semicolon);
   pop_stop_token_stack();
 #if DEBUG
   if (debug_level >= 4) {
