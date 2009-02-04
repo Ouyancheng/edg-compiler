@@ -2406,7 +2406,7 @@ this function points to a tree that includes a dynamic-init entry.
            the pending ck_init_repeat constant on top of member_con: */
         if (context.repeat != NULL) {
           if (local_any_dynamic_init) {
-            /* Extended designators of the for '[i ... j]' cannot be applied
+            /* Extended designators of the form '[i ... j]' cannot be applied
                to initializers with a dynamic component. */
             error(ec_no_range_designator_with_dynamic_init);
           } else {
