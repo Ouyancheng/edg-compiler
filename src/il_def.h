@@ -13111,7 +13111,10 @@ typedef struct a_scope {
 			   file-scope memory region and its parent is in a
 			   function-scope memory region.  In that case, an
 			   entry of type a_local_scope_ref is allocated to
-			   point to the parent. */
+			   point to the parent.  Function prototype scopes
+			   are an exception: parent is NULL for those (with
+			   no a_local_scope_ref alternative), except when
+			   nested in another function prototype scope. */
   a_scope_number
 		number;	/* Scope number (unique identifier) for this scope. */
   a_scope_kind	kind;

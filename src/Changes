@@ -1,5 +1,14 @@
 Version 4.1
 
+2/3/09   [EDGcpfe/9489]
+Parent scopes of function prototype scopes
+
+IL CHANGE: Previously, the parent pointer of a function prototype scope entry
+pointed to that entry itself.  Now, the parent pointer of a function prototype
+scope is NULL, unless that scope is nested in another function prototype scope
+(in which case the pointer points to the latter scope).
+
+
 2/3/09   [EDGcpfe/9490]
 Spurious error on member function call in presence of selective overriders
 

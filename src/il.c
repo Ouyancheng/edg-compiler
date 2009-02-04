@@ -6544,14 +6544,17 @@ caller is responsible for sorting that out.)
       sp = alloc_scope((a_scope_kind)sck_func_prototype, ssep->number,
                        (a_routine_ptr)NULL);
       ssep->il_scope = sp;
-      sp->parent = scope_stack[decl_scope_level].il_scope;
       /* Call add_to_scopes_list only if this is a function prototype nested
          within another function prototype.  A function prototype scope that
          is not nested is just pointed to from the routine type, not from the
          function scope entry (which will not exist if the function is not
-         defined). */
+         defined).  As a consequence, the parent scope of a function prototype
+         scope is NULL except if it is a nested prototype scope. */
       if ((ssep-1)->kind == (a_scope_kind)sck_func_prototype) {
         add_to_scopes_list(sp, ssep-1);
+        sp->parent = ensure_il_scope_exists(ssep-1);
+      } else {
+        sp->parent = NULL;
       }  /* if */
       /* Link the routine type and the prototype scope entry to each other. */
       routine_type = ssep->assoc_type;
