@@ -1338,6 +1338,12 @@ see function_declarator (below) for which this is a helper function.
       (void)get_token();
     } else {
       qualifiers = TQ_CONST;
+      if (is_type_qualifier()) {
+        /* Type qualifiers are not allowed on lambdas.  If there are, scan
+           them and issue a lambda-specific diagnostic. */
+        error(ec_type_qualifier_on_lambda);
+        (void)collect_type_qualifiers(decl_pos_block, (a_upc_block_size*)NULL);
+      }  /* if */
     }  /* if */
   } else if ((is_type_qualifier() or_is_near_or_far() ||
               (microsoft_mode && curr_token == tok_inline)) &&
