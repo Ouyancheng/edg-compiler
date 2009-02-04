@@ -1326,9 +1326,22 @@ see function_declarator (below) for which this is a helper function.
      for member function declarations outside a class definition when
      a function qualifier is present.  If there is a function qualifier,
      it is applied to the type pointed to by the this param type. */
-  if ((is_type_qualifier() or_is_near_or_far() ||
-       (microsoft_mode && curr_token == tok_inline)) &&
-      rtsp->prototyped) {
+  if (func_info->lambda != NULL) {
+    /* Lambdas don't allow a cv-qualifier here, but they are "const" by
+       default.  "mutable", however, is allowed here, and means the lambda is
+       non-const. */
+    this_class = parent_type;
+    if (curr_token == tok_mutable) {
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      func_info->lambda->mutable_position = pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+      (void)get_token();
+    } else {
+      qualifiers = TQ_CONST;
+    }  /* if */
+  } else if ((is_type_qualifier() or_is_near_or_far() ||
+              (microsoft_mode && curr_token == tok_inline)) &&
+             rtsp->prototyped) {
     /* In C++ the type of certain member functions may be qualified.  Scan
        for a const or volatile qualifier. */
     a_source_position  qualifier_pos;
@@ -1405,19 +1418,6 @@ see function_declarator (below) for which this is a helper function.
          template declaration. */
       check_assertion(err_code != ec_no_error);
       pos_error(err_code, &qualifier_pos);
-    }  /* if */
-  } else if (func_info->lambda != NULL) {
-    /* Lambdas don't allow a cv-qualifier here, but they are "const" by
-       default.  "mutable", however, is allowed here, and means the lambda is
-       non-const. */
-    this_class = parent_type;
-    if (curr_token == tok_mutable) {
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-      func_info->lambda->mutable_position = pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-      (void)get_token();
-    } else {
-      qualifiers = TQ_CONST;
     }  /* if */
   }  /* if */
   if (is_nonstatic_member && qualifiers == TQ_NONE && !qualifier_err) {

@@ -16318,6 +16318,7 @@ entry, return NULL.
   if (lambda->lambda_routine != NULL) {
     /* Parse the body of the lambda.  A class reactivation is not pushed for
        the lambda closure class because it is still on the scope stack. */
+    error_position = pos_curr_token;
     add_stop_token(tok_rbrace);
     if (curr_token != tok_lbrace) {
       /* If a lambda body is missing, set lambda to NULL since the parsed
