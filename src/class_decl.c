@@ -16244,18 +16244,29 @@ whether this is a lambda.  Return TRUE if it is.
        not an identifier treat this as a lambda for error recovery purposes. */
   } else {
     /* The token is an identifier. */
-    a_token_kind	next_tok;
-    a_token_kind	second_tok;
-    /* Get the next token, and the one after that if the next token is a
-       right bracket. */
-    next_tok = next_two_tokens(tok_rbracket, &second_tok);
-    if (next_tok == tok_comma) {
-      /* Something like "[x,...", which cannot be an attribute. */
-    } else if (next_tok == tok_rbracket) {
+    /* Cache the identifier. */
+    cache_curr_token(&cache);
+    (void)get_token();
+    /* Skip past a comma-separated list of identifies. */
+    while (curr_token == tok_comma) {
+      cache_curr_token(&cache);
+      (void)get_token();
+      if (curr_token != tok_identifier) break;
+      cache_curr_token(&cache);
+      (void)get_token();
+    }  /* while */
+    /* Note that next_token() is not called until we've looked at the current
+       token.  This is done to avoid caching an unquoted uuid. */
+    if ((curr_token == tok_assign || curr_token == tok_ampersand) &&
+        next_token() == tok_identifier) {
+      /* We encountered "=x" or "&x".  Treat this is a lambda. */
+    } else if (curr_token == tok_rbracket) {
       /* "[x]...": If the token after the right bracket is a "{" or "(",
          assume this is a lambda. */
-      if (second_tok != tok_lbrace && second_tok != tok_lparen) result = FALSE;
-    } else if (next_tok == tok_colon_colon) {
+      a_token_kind	next_tok;
+      next_tok = next_token();
+      if (next_tok != tok_lbrace && next_tok != tok_lparen) result = FALSE;
+    } else if (curr_token == tok_colon_colon) {
       /* "[x::...", which cannot be a lambda but could be an attribute. */
       result = FALSE;
     } else {
