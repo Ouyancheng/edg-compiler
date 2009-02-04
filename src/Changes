@@ -1,5 +1,11 @@
 Version 4.1
 
+2/4/09   [EDGcpfe/9500]
+Display of switch case entries
+
+The IL display utility displayed an incorrect value for the next_on_sorted_list
+field of a switch case entry.  Now fixed.
+
 2/3/09   [EDGcpfe/9489]
 Parent scopes of function prototype scopes
 
