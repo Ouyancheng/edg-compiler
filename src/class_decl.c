@@ -16295,6 +16295,8 @@ entry, return NULL.
   a_decl_flag_set     sfb_flags;
   a_scope_depth       orig_decl_scope_level = decl_scope_level;
 
+  /* Start a new stop token context. */
+  push_stop_token_stack();
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   add_to_source_sequence_list((char*)lambda, (an_il_entry_kind)iek_lambda);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -16352,8 +16354,8 @@ entry, return NULL.
       }  /* if */
     }  /* if */
     if (curr_token == tok_rbrace) {
-      /* Don't use required_token, because we aren't at a brace, an error has
-         already been issued, and we will be at the token to restart parsing
+      /* Don't use required_token, because if we aren't at a brace, an error
+         has already been issued, and we are at the token to restart parsing
          with. */
       (void)get_token();
     }  /* if */
@@ -16379,6 +16381,8 @@ entry, return NULL.
     check_assertion(total_errors != 0);
     lambda = NULL;
   }  /* if */
+  /* Restore the previous stop token context. */
+  pop_stop_token_stack();
   return lambda;
 }  /* scan_lambda */
 
