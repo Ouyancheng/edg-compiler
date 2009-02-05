@@ -1063,19 +1063,22 @@ to be used for the capture.
 }  /* add_lambda_capture */
 
 
-static a_lambda_capture_ptr find_lambda_capture(a_lambda_ptr		lambda,
-						a_variable_ptr		vp,
-						a_source_position_ptr	pos)
+static a_lambda_capture_ptr find_lambda_capture(
+					a_lambda_ptr		lambda,
+					a_variable_ptr		vp,
+					a_source_position_ptr	pos,
+					a_boolean		okay_to_add)
 /*
 vp is a variable entry for a local variable of a suitable kind for potential
 use as a lambda capture (e.g., it is from an acceptable scope and is of
 automatic storage duration).  Look for a lambda capture entry for this
 variable in the specified lambda.  If the variable is found on
-the capture list, return the capture.  If it is not on the list, and the
-lambda allows implicit captures, add it to the capture list and return
-the capture.  When an entry is added to the capture list, pos is the position
-to be used as the declaration position of the closure class member.  If there
-is no associated capture (explicit or implicit), return NULL.
+the capture list, return the capture.  If it is not on the list, okay_to_add
+is TRUE, and the lambda allows implicit captures, add it to the capture
+list and return the capture.  When an entry is added to the capture list,
+pos is the position to be used as the declaration position of the closure
+class member.  If there is no associated capture (explicit or implicit),
+return NULL.
 */
 {
   a_lambda_capture_ptr	lcp;
@@ -1086,7 +1089,7 @@ is no associated capture (explicit or implicit), return NULL.
   }  /* for */
   /* If no matching capture was found, we can create one if the lambda has
      a capture default. */
-  if (lcp == NULL && lambda->has_capture_default) {
+  if (lcp == NULL && okay_to_add && lambda->has_capture_default) {
     lcp = add_lambda_capture(lambda, vp, /*is_implicit=*/TRUE,
                              lambda->default_is_by_reference, pos);
   }  /* if */
@@ -1114,7 +1117,7 @@ is no associated capture (explicit or implicit), return NULL.
   check_assertion(lambda != NULL);
   /* Find or create the lambda capture for this variable.  NULL will be
      returned if no capture is found and one cannot be created. */
-  lcp = find_lambda_capture(lambda, vp, pos);
+  lcp = find_lambda_capture(lambda, vp, pos, /*okay_to_add=*/TRUE);
   return lcp;
 }  /* lambda_capture_for_variable */
 
@@ -16148,10 +16151,18 @@ consumed by the caller.  The grammar to be parsed is thus:
                        ec_capture_mode_matches_default, &pos_capture);
       }  /* if */
       if (var != NULL) {
-        /* Create the lambda capture entry for this variable. */
-        a_lambda_capture_ptr	lcp;
-        lcp = add_lambda_capture(lambda, var, /*is_implicit=*/FALSE, by_ref,
-                                 &capture_pos);
+        /* See if there is already a capture entry for this variable. */
+        if (find_lambda_capture(lambda, var, &capture_pos,
+                                /*okay_to_add=*/FALSE)) {
+          /* A name cannot appear more than once in the capture list. */
+          pos_diagnostic(es_discretionary_error,
+                         ec_more_than_one_capture, &capture_pos);
+        } else {
+          /* Create the lambda capture entry for this variable. */
+          a_lambda_capture_ptr	lcp;
+          lcp = add_lambda_capture(lambda, var, /*is_implicit=*/FALSE, by_ref,
+                                   &capture_pos);
+        }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
         lcp->end_position = capture_end_pos;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */

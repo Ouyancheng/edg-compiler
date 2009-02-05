@@ -1809,6 +1809,7 @@ ec_lambda_in_default_arg;;"a lambda cannot be used inside a default argument exp
 ec_missing_lambda_body;;"expected a \"{\" introducing a lambda body"
 ec_cl_rvalue_references_option_only_in_cplusplus;;"option \"--rvalue_references\" can be used only when compiling C++"
 ec_type_qualifier_on_lambda;;"a type qualifier is not allowed on a lambda"
+ec_more_than_one_capture;;"a name cannot appear more than once in a capture-list"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
