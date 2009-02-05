@@ -11042,9 +11042,10 @@ be entered.
     } else if (unnamed_field) {
       /* An unnamed field (but not a bit-field).  Such fields are used
          to represent the captured "this" parameter in lambdas. */
-      check_assertion(decl_scope_level == decl_scope_depth);
       member_sym = make_unnamed_symbol((a_symbol_kind)sk_field,
                                        &locator->source_position);
+      /* Adjust the decl_scope given by make_unnamed_symbol. */
+      member_sym->decl_scope = decl_scope_depth;
     } else {
       member_sym = enter_local_symbol((a_symbol_kind)sk_field, locator,
                                       decl_scope_depth,
