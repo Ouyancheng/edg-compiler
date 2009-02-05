@@ -16341,7 +16341,7 @@ entry, return NULL.
     if (curr_token != tok_lbrace) {
       /* If a lambda body is missing, set lambda to NULL since the parsed
          construct may not have been meant as a lambda at all. */
-      syntax_error(ec_missing_lambda_body);
+      error(ec_missing_lambda_body);
       lambda = NULL;
     } else {
       a_routine_ptr  rp = lambda->lambda_routine;
