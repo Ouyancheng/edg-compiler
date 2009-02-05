@@ -16499,6 +16499,7 @@ conditions for being able to capture the variable.
      lambda class to see if the variable is declared there. */
   for (sd--;
        (scope_stack[sd].kind == (a_scope_kind)sck_block ||
+        scope_stack[sd].kind == (a_scope_kind)sck_condition ||
         scope_stack[sd].kind == (a_scope_kind)sck_function);
        sd--) {
     if (scope_stack[sd].il_scope == var->source_corresp.parent_scope) {
