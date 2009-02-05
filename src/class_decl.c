@@ -16162,10 +16162,10 @@ consumed by the caller.  The grammar to be parsed is thus:
           a_lambda_capture_ptr	lcp;
           lcp = add_lambda_capture(lambda, var, /*is_implicit=*/FALSE, by_ref,
                                    &capture_pos);
-        }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-        lcp->end_position = capture_end_pos;
+          lcp->end_position = capture_end_pos;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+        }  /* if */
       }  /* if */
     } while (loop_token(tok_comma));
   }  /* while */
