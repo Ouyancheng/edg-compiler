@@ -19939,6 +19939,9 @@ type to be the type of return_op.
   a_lambda_ptr lambda = get_current_lambda();
 
   check_assertion(lambda != NULL && !lambda->explicit_return_type);
+  /* Make sure array-to-pointer and function-to-pointer decay are done before
+     we use the type as the return type. */
+  do_operand_transformations(return_op, TOPT_NO_OPTIONS);
   if (is_unknown_type(*return_type)) {
     a_routine_ptr rout = lambda->lambda_routine;
     a_type_ptr    rout_type = skip_typerefs(rout->type);
