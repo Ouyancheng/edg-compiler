@@ -16115,6 +16115,10 @@ Return TRUE if the indicated token is one that could start an expression.
     case tok_decorated_function_name:
       is_expr_start = TRUE;
       break;
+    case tok_lbracket:
+      /* Possible start of lambda. */
+      is_expr_start = lambdas_enabled;
+      break;
     default:
       if (!C_mode() && is_type_keyword(tok)) {
         /* A type keyword, like "int".  This could be the start of a
