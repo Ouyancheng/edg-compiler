@@ -210,8 +210,8 @@ typedef struct a_symbol_locator {
 			   (i.e., template-name < template-arg-list >). */
   a_bit_field	is_class_member:1;
 			/* TRUE if is_qualified_name is TRUE and the entity
-			   pointed to by the parent field is a class
-			   (not a namespace). */
+			   pointed to by the parent field is a class or enum
+			   type (not a namespace). */
   a_bit_field	is_unknown_template_reference:1;
 			/* TRUE if this is a reference to a nonreal template
 			   that was uncoalesced by ensure_correct_nonreal-
@@ -233,13 +233,16 @@ typedef struct a_symbol_locator {
 			   by normal_id_lookup). */
   a_parent_class_or_namespace
 		parent;
-			/* If is_qualified_name is TRUE, this points to
-			   either the class or the namespace specified
-			   by the qualifier (depending on the value of the
+			/* If is_qualified_name is TRUE, this points to either
+			   the type or the namespace specified by the
+			   qualifier (depending on the value of the
 			   is_class_member flag).  If is_vacuous_destructor
 			   is TRUE this points to the type of the qualifier,
 			   which may not actually be a class type (e.g.,
-			   for int::~int this will point to the type "int"). */
+			   for int::~int this will point to the type "int").
+			   Also, this may point to an enumeration type if the
+			   qualifier is a C++0x-mode or Microsoft-mode enum
+			   qualifier. */
   a_template_arg_ptr
 		template_arg_list;
 			/* When a function template symbol, or an overloaded

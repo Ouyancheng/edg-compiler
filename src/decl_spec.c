@@ -8470,10 +8470,14 @@ process_class_specifier:
           /* Set the type appropriately if this the name of a constructor
              member function. */
           if (locator_for_curr_id.is_class_member) {
-            a_symbol_ptr  sym  = class_qualified_id_lookup(
-                                    &locator_for_curr_id,
-                                    qualifier_class_type(locator_for_curr_id),
-                                    IDL_DIRECT_CLASS_MEMBERS_ONLY);
+            a_type_ptr    qual_tp = qualifier_class_type(locator_for_curr_id);
+            a_symbol_ptr  sym;
+            if (is_enum_type(qual_tp)) {
+              sym = enum_qualified_id_lookup(&locator_for_curr_id, qual_tp);
+            } else {
+              sym = class_qualified_id_lookup(&locator_for_curr_id, qual_tp,
+                                              IDL_DIRECT_CLASS_MEMBERS_ONLY);
+            }  /* if */
             if (sym != NULL) {
               if (is_constructor_symbol(sym)) {
                 *output_flags |= DSO_CONSTRUCTOR;

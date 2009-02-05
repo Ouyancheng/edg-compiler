@@ -12257,8 +12257,8 @@ all arguments were explicit.
                      (a_boolean*)NULL, (a_boolean*)NULL);
       /* In standard C++98/C++03, template type arguments must have linkage,
          and therefore cannot be based on local or unnamed classes/enums.  In
-         Microsoft mode, local class types are acceptable even though they
-         have no linkage. */ 
+         Microsoft and C++0x modes, local class types are acceptable even
+         though they have no linkage. */ 
       if (is_invalid_template_arg_type(
                             argument_type, &is_unnamed, &is_local, &is_vla)) {
         if (is_local) {
@@ -13851,14 +13851,6 @@ TRUE, the class member is preferred over the normal lookup symbol.
   } else {
     sym = normal_fund_sym;
   }  /* if */
-  if (microsoft_bugs && sym != NULL &&
-      is_enum_symbol(sym) && might_be_vacuous_dtor) {
-    /* The "must be class or namespace" lookup can return an enumeration
-       in Microsoft bugs mode.  If it does, and if we are processing what
-       might be a vacuous destructor, indicate that it is a vacuous
-       destructor. */
-    *is_vacuous_dtor = TRUE;
-  }  /* if */
   if (sym != NULL && might_be_vacuous_dtor) {
     /* If the lookup above returned something that is only valid as a vacuous
        destructor, set the is_vacuous destructor flag. */
@@ -13870,8 +13862,8 @@ TRUE, the class member is preferred over the normal lookup symbol.
     }  /* if */
     *is_vacuous_dtor = only_valid_as_vacuous_dtor;
   } else if (sym == NULL && (might_be_vacuous_dtor ||
-                      (microsoft_bugs && microsoft_version < 1300 &&
-                       !in_if_exists))) {
+                             (microsoft_bugs && microsoft_version < 1300 &&
+                              !in_if_exists))) {
     /* The lookup has failed so far.  If this might be a vacuous destructor,
        do a more general lookup to find a nonclass type that might be
        used as a qualifier for a vacuous destructor.  The more general lookup
@@ -14659,7 +14651,7 @@ selection operator, in which case it points to the type of the left operand.
             }  /* if */
             if (qualifier_is_type) {
               if (qualifier_is_enum) {
-              /* In Microsoft mode, an enumeration can be used as the
+              /* In some modes (e.g., C++0x), an enumeration can be used as the
                    qualifier in a qualified name.  Look up the name in the
                    enumeration. */
                 qualifier_sym = enum_qualified_id_lookup(&locator_for_curr_id,
@@ -15316,8 +15308,8 @@ The caller must guarantee that is_generalized_identifier_start is TRUE
               if (qualifier_is_enum_type &&
                   enum_qualified_id_lookup(&locator_for_curr_id,
                                            qualifier_type) != NULL) {
-                /* In Microsoft bugs mode, enumerations can be used as
-                   qualifiers.  The name was found as an enumerator. */
+                /* In some modes, enumerations can be used as qualifiers.
+                   The name was found as an enumerator. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
               } else if (qualifier_is_super &&
                          super_qualified_id_lookup(&locator_for_curr_id,
