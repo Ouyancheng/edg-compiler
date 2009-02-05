@@ -990,8 +990,11 @@ the field.
   initialize_member_decl_info(&decl_info, pos);
   decl_info.is_unnamed_field = is_this;
   decl_info.decl_state.type = field_type;
+  /* The field must be private. */
+  class_state->access = (an_access_specifier)as_private;
   fp = decl_nonstatic_data_member(&locator, class_state, &decl_info,
                                   closure_scope_depth);
+  class_state->access = (an_access_specifier)as_public;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   /* Restore the previous state wrt. generating source sequence entries. */
   source_sequence_entries_disallowed =
