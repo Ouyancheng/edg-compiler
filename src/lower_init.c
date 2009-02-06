@@ -1607,11 +1607,12 @@ TRUE, otherwise an rvalue.
     a_variable_ptr  var = source_desc->capture->variable;
     check_assertion(!source_desc->runtime_throw);
     /* The implied source is a local variable from a lambda capture. */
-    if (var->is_parameter &&
-        var->assoc_param_type != NULL &&
-        var->assoc_param_type->passed_via_copy_constructor) {
-      /* Variable is a parameter passed via copy constructor, add an
-         indirection. */
+    if (is_reference_type(var->type) ||
+        (var->is_parameter &&
+         var->assoc_param_type != NULL &&
+         var->assoc_param_type->passed_via_copy_constructor)) {
+      /* Variable is a reference or a parameter passed via copy constructor,
+         add an indirection. */
       set_var_indirect_init_pos_descr(var, &source_ipd);
     } else {
       set_var_init_pos_descr(var, &source_ipd);
