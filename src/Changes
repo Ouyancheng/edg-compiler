@@ -1,5 +1,21 @@
 Version 4.1
 
+2/6/09   [EDGcpfe/9512]
+Abort when a local type is introduced outside a declaration
+
+In C++ modes with DO_IL_LOWERING set to TRUE, the front end sometimes aborted
+in delete_types_from_decl_stmts (lower_il.c) if a local type was introduced
+outside a declaration (e.g., in a cast) in a function that also contained a
+local class with a member function.  For example:
+
+  void g() {
+    struct L { void f() {} };  // Local class with member function.
+    (enum E*)0;                // Local enum type introduced outside a
+  }                            // declaration.  This caused lowering to abort.
+
+This is now fixed.
+
+
 2/5/09   [EDGcpfe/9488]
 Abort on invalid enum-qualified name in C++0x mode
 

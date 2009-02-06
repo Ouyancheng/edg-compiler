@@ -17293,8 +17293,11 @@ static void delete_types_from_decl_stmts(a_scope_ptr    scope,
 /*
 Types declared in the indicated scope (sck_function or sck_block) have been
 promoted out of the enclosing function.  Remove any references to these types
-from declaration statements (stmk_decl).  n_types is the number of types that
-have been promoted.
+from declaration statements (stmk_decl).  n_types is the total number of types
+that have been promoted (excluding lambda closure classes).  Usually, n_types
+equals the number D of types to be removed from declaration statements, but
+n_types can be larger than D if some types have been introduced outside of
+declaration statements (e.g., in casts).
 */
 {
   a_statement_ptr  block = scope->assoc_block, *p_stmt;
@@ -17327,7 +17330,6 @@ have been promoted.
       p_stmt = &(*p_stmt)->next;
     }  /* if */
   }  /* while */
-  check_assertion(n_types == 0);
 done:;
 }  /* delete_types_from_decl_stmts */
 
