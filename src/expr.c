@@ -16673,7 +16673,11 @@ indicates that the symbol is an anonymous union and cannot be captured.
       check_assertion_str(sym_ptr->kind == (a_symbol_kind)sk_variable,
                           "bad_nested_function_variable_ref: bad sym kind");
       var = sym_ptr->variant.variable.ptr;
-      if (expr_stack->is_default_arg_expression) {
+      if (var->source_corresp.enclosing_routine == NULL) {
+        /* Block extern declarations create symbols that are local but
+           point to variables that are external.  The reference is okay
+           in such a case. */
+      } else if (expr_stack->is_default_arg_expression) {
         /* A default argument expression cannot refer to a local variable.
            The standard does not draw a distinction between automatic and
            static variables.  Parameter variables also fall out here. */
