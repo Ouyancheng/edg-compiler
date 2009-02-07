@@ -16312,9 +16312,6 @@ entry, return NULL.
 
   /* Start a new stop token context. */
   push_stop_token_stack();
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-  add_to_source_sequence_list((char*)lambda, (an_il_entry_kind)iek_lambda);
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   /* Parse the lambda-introducer. */
   check_assertion(curr_token == tok_lbracket);
   lambda->start_position = pos_curr_token;

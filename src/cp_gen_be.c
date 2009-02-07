@@ -8093,10 +8093,6 @@ Render code for the given expression node, which represents a lambda.
   a_source_sequence_scan_state
                           saved_state;
 
-  check_assertion(ss_entry_kind(curr_source_sequence_entry) == iek_lambda &&
-                  ss_entry_ptr(curr_source_sequence_entry, a_lambda_ptr) ==
-                                                                      lambda);
-  adv_curr_source_sequence_entry();
   gen_lambda_captures(lambda);
   /* Push the closure class on the name context stack so that references to
      fields (which stand for captured variables) show up without
