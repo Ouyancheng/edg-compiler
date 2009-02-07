@@ -16480,6 +16480,26 @@ Return TRUE if we are currently inside the body statement of a lambda.
 }  /* in_lambda_body */
 
 
+static a_boolean in_lambda_header(void)
+/*
+Return TRUE if we are currently inside the header of a lambda (e.g., in
+an expression in a type in the parameter list).
+*/
+{
+  a_boolean result = FALSE;
+
+  if (lambdas_enabled) {
+    a_scope_depth sd = depth_scope_stack;
+    if (scope_stack[sd].kind == (a_scope_kind)sck_func_prototype) sd--;
+    if (scope_stack[sd].kind == (a_scope_kind)sck_class_struct_union) {
+      a_type_ptr class_type = scope_stack[sd].assoc_type;
+      if (class_type_supp(class_type)->is_lambda_closure_class) result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* in_lambda_header */
+
+
 static a_boolean var_declared_in_func_enclosing_curr_lambda(a_variable_ptr var)
 /*
 Return TRUE if the given variable is a local variable or parameter of the
@@ -16499,9 +16519,17 @@ conditions for being able to capture the variable.
       if (class_type_supp(class_type)->is_lambda_closure_class) break;
     }  /* if */
   }  /* for */
+  /* If we're inside several nested lambda headers (e.g., in the parameter
+     lists of the lambdas), get out to the surrounding function.
+     Function prototype scopes will separate them. */
+  for (sd--;
+       (scope_stack[sd].kind == (a_scope_kind)sck_class_struct_union &&
+        class_type_supp(scope_stack[sd].assoc_type)->is_lambda_closure_class)||
+       scope_stack[sd].kind == (a_scope_kind)sck_func_prototype;
+       sd--) {}
   /* Look at the block and function scopes immediately enclosing the
      lambda class to see if the variable is declared there. */
-  for (sd--;
+  for (;
        (scope_stack[sd].kind == (a_scope_kind)sck_block ||
         scope_stack[sd].kind == (a_scope_kind)sck_condition ||
         scope_stack[sd].kind == (a_scope_kind)sck_function);
@@ -16514,6 +16542,32 @@ conditions for being able to capture the variable.
   }  /* for */
   return result;
 }  /* var_declared_in_func_enclosing_curr_lambda */
+
+
+static a_boolean var_declared_in_current_routine(a_variable_ptr var)
+/*
+Return TRUE if the indicated local variable is declared in the current
+routine.
+*/
+{
+  a_boolean decl_in_curr_rout = FALSE;
+
+  if (innermost_function_scope != NULL) {
+    /* Normal case: we're directly inside a function and we can compare the
+       function in which the variable is declared with the current function. */
+    a_routine_ptr var_rout = var->source_corresp.enclosing_routine;
+    check_assertion(var_rout != NULL);
+    if (var_rout == innermost_function_scope->variant.routine.ptr) {
+      decl_in_curr_rout = TRUE;
+    }  /* if */
+  } else if (in_lambda_header()) {
+    /* We're in the header of a lambda (e.g., the parameter list), so
+       the current function is considered to be the function enclosing the
+       lambda. */
+    decl_in_curr_rout = var_declared_in_func_enclosing_curr_lambda(var);
+  }  /* if */
+  return decl_in_curr_rout;
+}  /* var_declared_in_current_routine */
 
 
 static a_boolean variable_auto_decl_underway(a_variable_ptr var_ptr)
@@ -16600,7 +16654,6 @@ indicates that the symbol is an anonymous union and cannot be captured.
 */
 {
   a_boolean      bad_ref = FALSE;
-  a_scope_depth  sd;
   a_variable_ptr var;
   an_error_code  err_code = ec_no_error;
 
@@ -16616,92 +16669,71 @@ indicates that the symbol is an anonymous union and cannot be captured.
     } else if (sym_is_namespace_member(sym_ptr)) {
       /* A reference to a namespace member is okay. */
     } else {
-      /* Get the variable for the symbol. */
+      /* A reference to a local variable.  Get the variable for the symbol. */
       check_assertion_str(sym_ptr->kind == (a_symbol_kind)sk_variable,
                           "bad_nested_function_variable_ref: bad sym kind");
       var = sym_ptr->variant.variable.ptr;
-      /* Find the scope of the variable in the scope stack. */
-      for (sd = depth_scope_stack; ; sd--) {
-        a_scope_kind skind;
-        if (scope_stack[sd].number == sym_ptr->decl_scope) break;
-        skind = scope_stack[sd].kind;
-        if (inside_local_class &&
-            (skind == (a_scope_kind)sck_class_struct_union ||
-             skind == (a_scope_kind)sck_class_reactivation)) {
-          /* We've hit a class and we haven't hit the variable yet, so the
-             variable must be a local variable of some function that
-             contains the class. */
-          /* Only nonstatic variables are a problem. */
-          if (!has_static_storage_duration(var->storage_class)) {
-            if (curr_expr_kind_is_const() && var_constant_value(var) != NULL) {
-              /* Allow references to constant-valued variables in constant
-                 expressions.  This is not supported by the standard
-                 as of May 2008, but we're opening a core issue. */
-            } else if (in_lambda_body()) {
-              /* This reference is in the body of a lambda. */
-              if (lambda_capture == NULL) {
-                /* The variable is the parent for an anonymous union, so
-                   the reference is not allowed. */
-                check_assertion(var->is_anonymous_parent_object);
-                err_code = ec_anon_union_ref_in_lambda;
-                bad_ref = TRUE;
-              } else {
-                if (check_var_for_lambda_capture(var, /*implicit=*/TRUE,
-                                                 &err_code)) {
-                  /* The local variable can potentially be captured (e.g., it
-                     is from the immediately enclosing function).  See if it
-                     has been or can be captured now. */
-                  *lambda_capture =
-                             lambda_capture_for_variable(var, &error_position);
-                  if (*lambda_capture == NULL) {
-                    err_code = ec_not_captured_local_var_in_lambda;
-                    bad_ref = TRUE;
-                  }  /* if */
-                } else {
-                  /* The variable isn't one that can be captured (err_code will
-                     have been set by check_var_for_lambda_capture). */
-                  bad_ref = TRUE;
-                }  /* if */
-              }  /* if */
-            } else if (!strict_ansi_mode &&
-                       !expr_stack->potentially_evaluated &&
-                       (!expr_stack->is_decltype_or_typeof_arg_expression ||
-                        depth_innermost_function_scope == NO_SCOPE_DEPTH) &&
-                        !is_vla_type(var->type)) {
-              /* As an extension, allow references to nonstatic variables
-                 inside sizeof expressions.  (Except VLA variables, since
-                 sizeof applied to such variables involves a run-time
-                 computation.)  We also allow decltype/typeof constructs if
-                 they appear directly in the class definition itself and
-                 not in a member function definition of the class (the latter
-                 would require a reference between two different function
-                 scope memory regions). */
-              warning(ec_ref_to_nested_function_var);
-            } else {
+      if (expr_stack->is_default_arg_expression) {
+        /* A default argument expression cannot refer to a local variable.
+           The standard does not draw a distinction between automatic and
+           static variables.  Parameter variables also fall out here. */
+        bad_ref = TRUE;
+      } else if (var_declared_in_current_routine(var)) {
+        /* The variable is declared in the current routine, so the
+           reference is fine. */
+      } else if (has_static_storage_duration(var->storage_class)) {
+        /* Static variables of enclosing routines can be referenced, but
+           remember the nonlocal reference to help back-end aliasing
+           analysis. */
+        var->referenced_non_locally = TRUE;
+      } else if (in_lambda_body()) {
+        /* This reference is in the body of a lambda, so it may be okay
+           if the variable has been captured. */
+        if (lambda_capture == NULL) {
+          /* The variable is the parent for an anonymous union, so the
+             reference is not allowed. */
+          check_assertion(var->is_anonymous_parent_object);
+          err_code = ec_anon_union_ref_in_lambda;
+          bad_ref = TRUE;
+        } else {
+          if (check_var_for_lambda_capture(var, /*implicit=*/TRUE,
+                                           &err_code)) {
+            /* The local variable can potentially be captured (e.g., it
+               is from the immediately enclosing function).  See if it
+               has been or can be captured now. */
+            *lambda_capture= lambda_capture_for_variable(var, &error_position);
+            if (*lambda_capture == NULL) {
+              err_code = ec_not_captured_local_var_in_lambda;
               bad_ref = TRUE;
             }  /* if */
           } else {
-            /* Static variable.  The reference is okay, but remember that
-               it exists to help back-end aliasing analysis. */
-            var->referenced_non_locally = TRUE;
+            /* The variable isn't one that can be captured (err_code will
+               have been set by check_var_for_lambda_capture). */
+            bad_ref = TRUE;
           }  /* if */
-          break;
-        } else if (expr_stack->is_default_arg_expression &&
-                   skind == (a_scope_kind)sck_func_prototype) {
-          /* We've hit the function prototype scope, so the variable must
-             be a local variable of some function that contains the
-             function prototype.  Note that the ARM doesn't draw a
-             distinction between static and nonstatic variables in this
-             case. */
-          bad_ref = TRUE;
-          break;
         }  /* if */
-#if CHECKING
-        if (sd <= DEPTH_OF_FILE_SCOPE) {
-          internal_error("bad_nested_function_variable_ref: scope not found");
-        }  /* if */
-#endif /* CHECKING */
-      }  /* for */
+      } else if (curr_expr_kind_is_const() &&
+                 var_constant_value(var) != NULL) {
+        /* Allow references to constant-valued variables in constant
+           expressions.  This is not supported by the standard
+           as of May 2008, but we're opening a core issue. */
+      } else if (!strict_ansi_mode &&
+                 !expr_stack->potentially_evaluated &&
+                 (!expr_stack->is_decltype_or_typeof_arg_expression ||
+                  depth_innermost_function_scope == NO_SCOPE_DEPTH) &&
+                  !is_vla_type(var->type)) {
+        /* As an extension, allow references to nonstatic variables
+           inside sizeof expressions.  (Except VLA variables, since
+           sizeof applied to such variables involves a run-time
+           computation.)  We also allow decltype/typeof constructs if
+           they appear directly in the class definition itself and
+           not in a member function definition of the class (the latter
+           would require a reference between two different function
+           scope memory regions). */
+        warning(ec_ref_to_nested_function_var);
+      } else {
+        bad_ref = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
   if (bad_ref) {
