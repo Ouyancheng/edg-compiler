@@ -16648,7 +16648,7 @@ to reflect the error.
 If we are inside a lambda, check also that if the local variable is not
 local to the lambda it can be referenced via an explicit or implicit
 capture.  If so, return *lambda_capture set to the capture entry for
-the variable.  If not, issue an error set *lambda_capture to NULL,
+the variable.  If not, issue an error, set *lambda_capture to NULL,
 and return TRUE indicating an invalid reference.  lambda_capture NULL
 indicates that the symbol is an anonymous union and cannot be captured.
 */
