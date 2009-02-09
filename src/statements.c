@@ -5400,19 +5400,6 @@ See also 3.6.6.4.
   /* Check for and ignore the final semicolon. */
   (void)required_token(tok_semicolon, ec_exp_semicolon);
   remove_stop_token(tok_semicolon);
-  if (lambda != NULL && !lambda->explicit_return_type && sp != NULL &&
-      !is_error_type(return_type) && !is_void_type(return_type)) {
-    /* Nothing should precede or follow the return statement if it determines
-       an implicit return type other than void. */
-    if (scope_stack_top().kind != (a_scope_kind)sck_function ||
-        struct_stmt_stack[depth_stmt_stack].kind != ssk_compound ||
-        struct_stmt_stack[depth_stmt_stack].statement
-                                           ->variant.block.statements != sp ||
-        curr_token != tok_rbrace) {
-      pos_error(ec_lambda_return_must_be_only_construct, &return_pos);
-      lambda->lambda_routine->type->variant.routine.return_type = error_type();
-    }  /* if */
-  }  /* if */
   db_exit();
 }  /* return_statement */
 

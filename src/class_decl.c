@@ -16305,6 +16305,43 @@ whether this is a lambda.  Return TRUE if it is.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+void check_implicit_lambda_return_type(a_lambda_ptr       lambda,
+                                       a_source_position  *diag_pos)
+/*
+The given lambda did not include an explicitly specified return type.  If a
+value-returning statement was encountered, the return type was set accordingly;
+otherwise, this routine will set it to void.  If the return type is non-void,
+check that the body had the simple form
+	{ return <expr> ; }
+and issue a diagnostic if that was not the case.
+*/
+{
+  a_routine_ptr  rp = lambda->lambda_routine;
+  a_type_ptr     rtp;
+
+  check_assertion(rp->type->kind == (a_type_kind)tk_routine);
+  rtp = rp->type->variant.routine.return_type;
+  if (is_unknown_type(rtp)) {
+    /* No return type was specified on the lambda construct, and no return
+       type was deduced from a return statement: The return type is therefore
+       "void". */
+    rp->type->variant.routine.return_type = void_type();
+  } else if (!is_void_type(rtp) && !is_error_type(rtp)) {
+    /* A return type was deduced from a non-void return.  Check that that
+       return statement was the only statement in the function body. */
+    a_statement_ptr  sp = il_header.region_scope_entry[rp->assoc_scope]
+                                                                ->assoc_block;
+    check_assertion(sp->kind == (a_statement_kind)stmk_block &&
+                    sp->next == NULL);
+    sp = sp->variant.block.statements;
+    if (sp->kind != (a_statement_kind)stmk_return ||
+        sp->next != NULL) {
+      pos_error(ec_lambda_return_must_be_only_construct, diag_pos);
+    }  /* if */
+  }  /* if */
+}  /* check_implicit_lambda_return_type */
+
+
 a_lambda_ptr scan_lambda(void)
 /*
 Scan a C++ lambda construct and return a pointer to an a_lambda entry
@@ -16361,17 +16398,14 @@ entry, return NULL.
       error(ec_missing_lambda_body);
       lambda = NULL;
     } else {
-      a_routine_ptr  rp = lambda->lambda_routine;
+      a_source_position  body_pos;
+      a_routine_ptr      rp = lambda->lambda_routine;
+      body_pos = pos_curr_token;
       sfb_flags = SFB_NEW_STRUCT_STMT_STACK_REQUIRED |
                   SFB_NO_CLASS_REACTIVATION;
       scan_function_body(rp, &func_info, sfb_flags);
-      if (is_unknown_type(return_type_of(rp->type))) {
-        /* No return type was specified on the lambda construct, and no return
-           type was deduced from a return statement: The return type is
-           therefore "void". */
-        check_assertion(!lambda->explicit_return_type);
-        check_assertion(rp->type->kind == (a_type_kind)tk_routine);
-        rp->type->variant.routine.return_type = void_type();
+      if (!lambda->explicit_return_type) {
+        check_implicit_lambda_return_type(lambda, &body_pos);
       }  /* if */
     }  /* if */
     if (curr_token == tok_rbrace) {
