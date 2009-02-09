@@ -34,7 +34,7 @@ typedef struct an_implied_copy_source {
   a_constructor_init_ptr
                 ctor_init;
                         /* When non-NULL, the source of the implied copy
-                           is a copy constructor. */
+                           is a ctor-initializer. */
   a_lambda_capture_ptr
                 capture;
                         /* When non-NULL, the source of the implied copy
