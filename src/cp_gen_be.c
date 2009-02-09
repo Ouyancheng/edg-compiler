@@ -8124,8 +8124,8 @@ Render code for the given expression node, which represents a lambda.
   gen_statement(scope->assoc_block);
   pop_name_context();
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
-    /* Now that we're done with the function, free its IL information. */
-    free_memory_region(scope_region_number);
+  /* Now that we're done with the function, free its IL information. */
+  free_memory_region(scope_region_number);
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
   restore_function_state(&state);
   restore_source_sequence_scan_state(&saved_state);
