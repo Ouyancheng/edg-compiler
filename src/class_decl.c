@@ -1148,14 +1148,13 @@ the fields implied by the lambda's capture list).
   sym->variant.class_struct_union.type = type;
   type->variant.class_struct_union.is_prototype_instantiation =
                      scope_stack[depth_scope_stack].in_prototype_instantiation;
-  /* Add the class type to the current declaration scope.  In some severe
-     error cases, the current declaration scope may not be a scope with an
-     associated IL entry; in such cases we add the type to the closest
+  /* Add the class type to the current declaration scope.  If the current
+     declaration scope is a template declaration scope (i.e., we are in the
+     process of declaring template parameters), add the types to the closest
      enclosing scope to which a type can be added. */
   while (scope_stack[decl_level].kind ==
                                      (a_scope_kind)sck_template_declaration) {
     --decl_level;
-    expect_error();
   }  /* while */
   add_to_types_list(type, decl_level);
   cssp = sym->variant.class_struct_union.extra_info;
