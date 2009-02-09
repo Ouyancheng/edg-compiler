@@ -1832,7 +1832,7 @@ if this is the function declarator in a friend function declaration.
           check_pending_qualifiers_used(&param_state);
         }  /* if */
         if (func_info->lambda != NULL &&
-            !(param_state.dso_flags & DO_REAL_DECLARATOR_SCANNED)) {
+            !(param_state.do_flags & DO_REAL_DECLARATOR_SCANNED)) {
           pos_diagnostic(es_discretionary_error, ec_unnamed_lambda_parameter,
                          &param_state.declarator_pos);
         }  /* if */
