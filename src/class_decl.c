@@ -8654,8 +8654,6 @@ The heavy lifting for this routine is performed by decl_member_function.
   a_symbol_locator  loc;
   a_routine_ptr     rp;
 
-  func_info->is_inline = TRUE;
-  func_info->is_definition = TRUE;
   make_opname_locator((an_opname_kind)onk_function_call, &loc,
                       &decl_info->decl_state.declarator_pos);
   decl_member_function(&loc, func_info, class_state, decl_info,
