@@ -1111,8 +1111,8 @@ to be used as the declaration position of the closure class member.  If there
 is no associated capture (explicit or implicit), return NULL.
 */
 {
-  a_lambda_ptr			lambda = get_current_lambda();
-  a_lambda_capture_ptr		lcp;
+  a_lambda_ptr          lambda = get_current_lambda();
+  a_lambda_capture_ptr  lcp;
 
   check_assertion(lambda != NULL);
   /* Find or create the lambda capture for this variable.  NULL will be
@@ -1122,7 +1122,7 @@ is no associated capture (explicit or implicit), return NULL.
 }  /* lambda_capture_for_variable */
 
 
-static a_type_ptr make_closure_class(a_source_position	*decl_position)
+static a_type_ptr make_closure_class(a_source_position  *decl_position)
 /*
 Create the class type that is used to represent a lambda closure.  Return
 a pointer to the class type.  decl_position is the declaration position
@@ -1133,9 +1133,10 @@ various members have been added (call operator, constructors, destructor, and
 the fields implied by the lambda's capture list).
 */
 {
-  a_type_ptr			type;
-  a_symbol_ptr			sym;
-  a_class_symbol_supplement_ptr	cssp;
+  a_type_ptr                     type;
+  a_symbol_ptr                   sym;
+  a_class_symbol_supplement_ptr  cssp;
+  a_scope_depth                  decl_level = decl_scope_level;
 
   /* Create an unnamed symbol for the lambda class. */
   sym = make_unnamed_tag_symbol((a_symbol_kind)sk_class_or_struct_tag,
@@ -1147,7 +1148,16 @@ the fields implied by the lambda's capture list).
   sym->variant.class_struct_union.type = type;
   type->variant.class_struct_union.is_prototype_instantiation =
                      scope_stack[depth_scope_stack].in_prototype_instantiation;
-  add_to_types_list(type, decl_scope_level);
+  /* Add the class type to the current declaration scope.  In some severe
+     error cases, the current declaration scope may not be a scope with an
+     associated IL entry; in such cases we add the type to the closest
+     enclosing scope to which a type can be added. */
+  while (scope_stack[decl_level].kind ==
+                                     (a_scope_kind)sck_template_declaration) {
+    --decl_level;
+    expect_error();
+  }  /* while */
+  add_to_types_list(type, decl_level);
   cssp = sym->variant.class_struct_union.extra_info;
   /* Assume for now that bitwise copy is allowed for this class.  This will
      be cleared later if this is not the case. */
