@@ -4101,7 +4101,6 @@ static void disp_lambda(a_lambda_ptr ptr)
 Display the indicated lambda entry.
 */
 {
-  disp_ptr("next", (char*)ptr->next, iek_lambda);
   disp_ptr("capture_list", (char*)ptr->capture_list, iek_lambda_capture);
   disp_ptr("closure_class", (char*)ptr->closure_class, iek_type);
   disp_ptr("lambda_routine", (char*)ptr->lambda_routine, iek_routine);

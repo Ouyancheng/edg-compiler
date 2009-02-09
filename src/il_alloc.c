@@ -4081,7 +4081,6 @@ entry is allocated in the current memory region.
 {
   a_lambda_ptr  entry = (a_lambda_ptr)alloc_cil(sizeof(a_lambda));
 
-  entry->next = NULL;
   entry->capture_list = NULL;
   entry->closure_class = NULL;
   entry->lambda_routine = NULL;

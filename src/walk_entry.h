@@ -2947,7 +2947,6 @@ after_entry_from_class:
       break;
     case iek_lambda:
       { a_lambda_ptr  ptr = (a_lambda_ptr)entry_ptr;
-        remap_next_ptr(ptr->next, a_lambda_ptr, iek_lambda);
         walk_list(ptr->capture_list, a_lambda_capture_ptr, iek_lambda_capture);
         walk_ptr(ptr->closure_class, a_type_ptr, iek_type);
         set_proper_definition_needed_flag(ptr->closure_class);

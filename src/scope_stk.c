@@ -1636,7 +1636,6 @@ Initialize the fields in a scope-pointers-block substructure.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   spbp->last_source_sequence_entry   = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  spbp->last_lambda                   = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   spbp->last_ms_attribute             = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

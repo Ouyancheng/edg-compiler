@@ -12855,9 +12855,6 @@ capture list.  The lambda entry is pointed to by a lambda expression
 node and is also on the scope list of the enclosing scope.
 */
 typedef struct a_lambda {
-  a_lambda_ptr	next;
-			/* Pointer to the next lambda in a given scope.
-			   NULL if this the last lambda in the scope. */
   a_lambda_capture_ptr
 		capture_list;
 			/* The list of captured local variables (possibly
