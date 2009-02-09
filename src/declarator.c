@@ -1609,19 +1609,19 @@ if this is the function declarator in a friend function declaration.
       extra_info->has_ellipsis = TRUE;
       /* An ellipsis only occurs in prototyped param lists. */
       extra_info->prototyped = TRUE;
+      if (func_info->lambda != NULL) {
+        /* The grammar for lambdas doesn't allow ellipsis parameters. */
+        pos_diagnostic(es_discretionary_error, ec_ellipsis_in_lambda,
+                       &pos_curr_token);
 #if ASM_FUNCTION_ALLOWED
-      if (func_info->is_asm_function) {
+      } else if (func_info->is_asm_function) {
         pos_error(ec_bad_asm_func_ellipsis, &pos_curr_token);
-      } else {
 #endif /* ASM_FUNCTION_ALLOWED */
-        if (C_mode() && strict_ansi_mode) {
-          /* Issue a diagnostic on use of a nonstandard feature. */
-          pos_diagnostic(strict_ansi_error_severity,
-                         ec_nonstd_ellipsis_only_param, &pos_curr_token);
-        }  /* if */
-#if ASM_FUNCTION_ALLOWED
+      } else if (C_mode() && strict_ansi_mode) {
+        /* Issue a diagnostic on use of a nonstandard feature. */
+        pos_diagnostic(strict_ansi_error_severity,
+                       ec_nonstd_ellipsis_only_param, &pos_curr_token);
       }  /* if */
-#endif /* ASM_FUNCTION_ALLOWED */
     }  /* if */
     /* Advance past the ellipsis. */
     (void)get_token();
@@ -1715,6 +1715,10 @@ if this is the function declarator in a friend function declaration.
             /* The first and only parameter-declaration is just "void", which
                has a special meaning (no parameters).  (3.5.4.3)  */
             remove_stop_token(tok_comma);
+            if (func_info->lambda != NULL) {
+              pos_diagnostic(es_discretionary_error, ec_void_lambda_parameter,
+                             &param_type_pos);
+            }  /* if */
             break;
           } else if (is_void_type(param_state.type) &&
                      !is_qualified_type(param_state.type) &&
@@ -1743,14 +1747,22 @@ if this is the function declarator in a friend function declaration.
               param_state.type = error_type();
             } else {
               if (!c99_mode) {
-                an_error_code  ec = ec_nonstd_void_param_list;
+                an_error_severity  sev = es_warning;
+                an_error_code      ec = ec_nonstd_void_param_list;
+                if (func_info->lambda != NULL) {
+                  /* The grammar for lambdas accepts neither "(void)" nor
+                     unnamed parameters.  So we default to a discretionary
+                     error for this case also. */
+                  sev = es_discretionary_error;
+                  ec = ec_void_lambda_parameter;
+                } else if (strict_ansi_mode) {
+                  sev = strict_ansi_discretionary_severity;
+                }  /* if */
                 if (param_state.type->kind != (a_type_kind)tk_typeref) {
                   check_assertion(template_void_param_case);
                   ec = ec_nonstd_template_void_param_list;
                 }  /* if */
-                pos_diagnostic(strict_ansi_mode ?
-                               strict_ansi_discretionary_severity : es_warning,
-                               ec, &param_type_pos);
+                pos_diagnostic(sev, ec, &param_type_pos);
               }  /* if */
               remove_stop_token(tok_comma);
               break;
@@ -1815,8 +1827,14 @@ if this is the function declarator in a friend function declaration.
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
         } else {
           /* No declarator. */
+          param_state.declarator_pos = pos_curr_token;
           set_to_error_locator(param_locator);
           check_pending_qualifiers_used(&param_state);
+        }  /* if */
+        if (func_info->lambda != NULL &&
+            !(param_state.dso_flags & DO_REAL_DECLARATOR_SCANNED)) {
+          pos_diagnostic(es_discretionary_error, ec_unnamed_lambda_parameter,
+                         &param_state.declarator_pos);
         }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
         if (gnu_mode) {
@@ -2140,11 +2158,15 @@ if this is the function declarator in a friend function declaration.
           /* The parameter list ends with an ellipsis.  Set the ellipsis
              flag on the parameter type list, and exit the loop. */
           extra_info->has_ellipsis = TRUE;
+          if (func_info->lambda != NULL) {
+            /* The grammar for lambdas doesn't allow ellipsis parameters. */
+            pos_diagnostic(es_discretionary_error, ec_ellipsis_in_lambda,
+                           &pos_curr_token);
 #if ASM_FUNCTION_ALLOWED
-          if (func_info->is_asm_function) {
+          } else if (func_info->is_asm_function) {
             pos_error(ec_bad_asm_func_ellipsis, &pos_curr_token);
-          }  /* if */
 #endif /* ASM_FUNCTION_ALLOWED */
+          }  /* if */
           (void)get_token();
           done = TRUE;
         }  /* if */
