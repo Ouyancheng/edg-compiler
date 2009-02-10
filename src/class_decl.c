@@ -16313,8 +16313,8 @@ done:
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-void check_implicit_lambda_return_type(a_lambda_ptr       lambda,
-                                       a_source_position  *diag_pos)
+static void check_implicit_lambda_return_type(a_lambda_ptr       lambda,
+                                              a_source_position  *diag_pos)
 /*
 The given lambda did not include an explicitly specified return type.  If a
 value-returning statement was encountered, the return type was set accordingly;
@@ -16334,9 +16334,13 @@ and issue a diagnostic if that was not the case.
        type was deduced from a return statement: The return type is therefore
        "void". */
     rp->type->variant.routine.return_type = void_type();
-  } else if (!is_void_type(rtp) && !is_error_type(rtp)) {
+  } else if (!is_void_type(rtp) && !is_error_type(rtp) &&
+             !rp->is_prototype_instantiation) {
     /* A return type was deduced from a non-void return.  Check that that
-       return statement was the only statement in the function body. */
+       return statement was the only statement in the function body.  The
+       check is not done for prototype instantiations, because (a) they
+       might not be recorded in the IL, and (b) even if they were, it's
+       not always known whether the deduced return type is void or not. */
     a_statement_ptr  sp = il_header.region_scope_entry[rp->assoc_scope]
                                                                 ->assoc_block;
     check_assertion(sp->kind == (a_statement_kind)stmk_block &&
