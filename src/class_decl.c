@@ -1146,6 +1146,12 @@ the fields implied by the lambda's capture list).
   class_type_supp(type)->is_lambda_closure_class = TRUE;
   set_source_corresp(&(type->source_corresp), sym);
   sym->variant.class_struct_union.type = type;
+  if (scope_stack[depth_scope_stack].in_prototype_instantiation) {
+    /* If the lambda appears in a prototype instantiation context, mark it
+       as a nonreal class.  Local classes in such contexts are not marked
+       as prototype instantiations. */
+    type->variant.class_struct_union.is_nonreal_class = TRUE;
+  }  /* if */
   /* Add the class type to the current declaration scope.  If the current
      declaration scope is a template declaration scope (i.e., we are in the
      process of declaring template parameters), add the types to the closest
