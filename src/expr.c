@@ -16587,6 +16587,27 @@ where the use of "x" within its own declaration is invalid.
 }  /* variable_auto_decl_underway */
 
 
+static a_boolean expr_is_inside_default_arg_expression(void)
+/*
+Return TRUE if the current expression context is inside a default
+argument expression.  More specifically, this deals with the case where
+we are inside a lambda body inside a default arument expression, where
+expr_stack->is_default_arg_expression alone doesn't give the full
+answer.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (expr_stack->is_default_arg_expression) {
+    result = TRUE;
+  } else if (in_lambda_body()) {
+    a_lambda_ptr lambda = get_current_lambda();
+    result = lambda->inside_default_arg_expression;
+  }  /* if */
+  return result;
+}  /* expr_is_inside_default_arg_expression */
+
+
 a_boolean check_var_for_lambda_capture(a_variable_ptr  var,
                                        a_boolean       implicit,
                                        an_error_code   *diag)
@@ -16599,6 +16620,7 @@ error code.
 {
   a_boolean  okay = FALSE;
 
+  check_assertion(expr_stack != NULL);
   if (has_static_storage_duration(var->storage_class)) {
     *diag = ec_capture_of_static_duration_variable;
     /* A reference to a static/extern variable doesn't amount to an implicit
@@ -16614,6 +16636,10 @@ error code.
     *diag = ec_auto_variable_in_own_initializer;
   } else if (is_variably_modified_type(var->type)) {
     *diag = ec_lambda_capture_involves_variable_length_array;
+  } else if (expr_is_inside_default_arg_expression()) {
+    /* Lambdas inside default argument expressions can't refer to local
+       variables at all. */
+    *diag = ec_ref_to_nested_function_var;
   } else {
     okay = TRUE;
     *diag = ec_no_error;
@@ -16660,7 +16686,8 @@ indicates that the symbol is an anonymous union and cannot be captured.
   if (lambda_capture != NULL) *lambda_capture = NULL;
   /* This sort of bad reference is only possible when we are inside a local
      class (the class itself or one of its member functions) or a
-     default argument expression. */
+     default argument expression.  Note that inside_local_class is TRUE
+     also when we're inside a lambda body. */
   if (inside_local_class || expr_stack->is_default_arg_expression) {
     if (sym_ptr->decl_scope == file_scope_number) {
       /* A reference to the file scope is okay. */
@@ -18600,7 +18627,7 @@ Scan a C++ lambda expression, e.g., something like
 
   start_pos = pos_curr_token;
   /* Scan the lambda. */
-  lambda = scan_lambda();
+  lambda = scan_lambda(expr_is_inside_default_arg_expression());
   if (lambda == NULL) {
     /* Some serious error was previously detected. */
     make_error_operand(result);

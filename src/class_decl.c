@@ -16355,11 +16355,12 @@ and issue a diagnostic if that was not the case.
 }  /* check_implicit_lambda_return_type */
 
 
-a_lambda_ptr scan_lambda(void)
+a_lambda_ptr scan_lambda(a_boolean inside_default_arg_expression)
 /*
 Scan a C++ lambda construct and return a pointer to an a_lambda entry
 describing it.  If errors do not permit the construction of a consistent
-entry, return NULL.
+entry, return NULL.  inside_default_arg_expression is TRUE if this lambda
+occurs inside a default argument expression.
 */
 {
   a_lambda_ptr        lambda = alloc_lambda();
@@ -16374,6 +16375,7 @@ entry, return NULL.
   /* Parse the lambda-introducer. */
   check_assertion(curr_token == tok_lbracket);
   lambda->start_position = pos_curr_token;
+  lambda->inside_default_arg_expression = inside_default_arg_expression;
   /* Initialize the closure class and set up a context in which members
      can be added. */
   lambda->closure_class = closure_class =
