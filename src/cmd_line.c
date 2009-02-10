@@ -4205,6 +4205,11 @@ file.
 #else /* !defined(DEFAULT_INSTANTIATION_MODE) */
   comment_undefined_macro_name(DEFAULT_INSTANTIATION_MODE);
 #endif /* defined(DEFAULT_INSTANTIATION_MODE) */
+#if defined(DEFAULT_LAMBDAS_ENABLED)
+  define_numeric_valued_macro(DEFAULT_LAMBDAS_ENABLED);
+#else /* !defined(DEFAULT_LAMBDAS_ENABLED) */
+  comment_undefined_macro_name(DEFAULT_LAMBDAS_ENABLED);
+#endif /* defined(DEFAULT_LAMBDAS_ENABLED) */
 #if defined(DEFAULT_LONG_PRESERVING_RULES)
   define_numeric_valued_macro(DEFAULT_LONG_PRESERVING_RULES);
 #else /* !defined(DEFAULT_LONG_PRESERVING_RULES) */

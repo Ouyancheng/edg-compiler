@@ -4105,20 +4105,19 @@ Display the indicated lambda entry.
   disp_ptr("closure_class", (char*)ptr->closure_class, iek_type);
   disp_ptr("lambda_routine", (char*)ptr->lambda_routine, iek_routine);
   if (ptr->is_mutable) {
-    disp_boolean("is_mutable", (a_boolean)ptr->is_mutable);
+    disp_boolean("is_mutable", TRUE);
   }  /* if */
   if (ptr->has_capture_default) {
-    disp_boolean("has_capture_default", (a_boolean)ptr->has_capture_default);
+    disp_boolean("has_capture_default", TRUE);
   }  /* if */
   if (ptr->default_is_by_reference) {
-    disp_boolean("default_is_by_reference",
-                 (a_boolean)ptr->default_is_by_reference);
+    disp_boolean("default_is_by_reference", TRUE);
   }  /* if */
   if (ptr->explicit_return_type) {
-    disp_boolean("explicit_return_type", (a_boolean)ptr->explicit_return_type);
+    disp_boolean("explicit_return_type", TRUE);
   }  /* if */
   if (ptr->has_parameter_decl) {
-    disp_boolean("has_parameter_decl", (a_boolean)ptr->has_parameter_decl);
+    disp_boolean("has_parameter_decl", TRUE);
   }  /* if */
   disp_source_position("start_position", &ptr->start_position);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -4138,10 +4137,10 @@ Display the indicated lambda capture.
   disp_ptr("variable", (char*)ptr->variable, iek_variable);
   disp_ptr("closure_field", (char*)ptr->closure_field, iek_field);
   if (ptr->capture_by_reference) {
-    disp_boolean("capture_by_reference", (a_boolean)ptr->capture_by_reference);
+    disp_boolean("capture_by_reference", TRUE);
   }  /* if */
   if (ptr->is_implicit) {
-    disp_boolean("is_implicit", (a_boolean)ptr->is_implicit);
+    disp_boolean("is_implicit", TRUE);
   }  /* if */
   disp_source_position("position", &ptr->position);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -4986,8 +4985,7 @@ Display the indicated class type supplement entry.
   }  /* if */
 #endif /* DO_IL_LOWERING */
   if (ptr->is_lambda_closure_class) {
-    disp_boolean("is_lambda_closure_class",
-                 (a_boolean)ptr->is_lambda_closure_class);
+    disp_boolean("is_lambda_closure_class", TRUE);
   }  /* if */
   if (ptr->anonymous_union_kind != (an_anonymous_union_kind)auk_none) {
     disp_name("anonymous_union_kind");

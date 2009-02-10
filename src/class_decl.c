@@ -319,7 +319,7 @@ is used to suppress the fixup of routines declared in the class for classes
 found in unexpected locations.
 */
 {
-  a_boolean	result = FALSE;
+  a_boolean            result = FALSE;
   a_scope_stack_entry  *ssep = &scope_stack[depth_scope_stack];
 
   while (ssep->kind == (a_scope_kind)sck_template_declaration) {
@@ -920,10 +920,10 @@ static a_field_ptr decl_nonstatic_data_member(
                                      a_scope_depth           decl_scope_depth);
 
 static a_field_ptr make_field_for_lambda_capture(
-					a_lambda_ptr		lambda,
-					a_variable_ptr		vp,
-					a_boolean		by_reference,
-					a_source_position_ptr	pos)
+                                        a_lambda_ptr           lambda,
+                                        a_variable_ptr         vp,
+                                        a_boolean              by_reference,
+                                        a_source_position_ptr  pos)
 /*
 Create the field of the closure class to store the capture of vp.  by_reference
 is TRUE if the variable is being captured by reference.  Return the field
@@ -1064,10 +1064,10 @@ to be used for the capture.
 
 
 static a_lambda_capture_ptr find_lambda_capture(
-					a_lambda_ptr		lambda,
-					a_variable_ptr		vp,
-					a_source_position_ptr	pos,
-					a_boolean		okay_to_add)
+                                           a_lambda_ptr           lambda,
+                                           a_variable_ptr         vp,
+                                           a_source_position_ptr  pos,
+                                           a_boolean              okay_to_add)
 /*
 vp is a variable entry for a local variable of a suitable kind for potential
 use as a lambda capture (e.g., it is from an acceptable scope and is of
@@ -1081,7 +1081,7 @@ class member.  If there is no associated capture (explicit or implicit),
 return NULL.
 */
 {
-  a_lambda_capture_ptr	lcp;
+  a_lambda_capture_ptr  lcp;
 
   /* Look for an existing capture entry for this variable. */
   for (lcp = lambda->capture_list; lcp != NULL; lcp = lcp->next) {
@@ -1097,8 +1097,8 @@ return NULL.
 }  /* find_lambda_capture */
 
 
-a_lambda_capture_ptr lambda_capture_for_variable(a_variable_ptr		vp,
-						 a_source_position_ptr	pos)
+a_lambda_capture_ptr lambda_capture_for_variable(a_variable_ptr         vp,
+                                                 a_source_position_ptr  pos)
 /*
 vp is a variable entry for a local variable of a suitable kind for potential
 use as a lambda capture (e.g., it is from an acceptable scope and is of
@@ -16051,9 +16051,9 @@ next_declaration:
 
 static void scan_lambda_capture_list(a_lambda_ptr  lambda)
 /*
-Scan the capture list for a lambda construct associate with lambda.  The caller
-has already moved past the '[', and this routine leaves the trailing ']' to be
-consumed by the caller.  The grammar to be parsed is thus:
+Scan the capture list for a lambda construct associated with lambda.  The
+caller has already moved past the '[', and this routine leaves the trailing
+']' to be consumed by the caller.  The grammar to be parsed is thus:
     lambda-capture(opt)
     lambda-capture:
         capture-default | capture-list | capture-default ',' capture-list
@@ -16066,10 +16066,10 @@ consumed by the caller.  The grammar to be parsed is thus:
     
 */
 {
-  a_token_kind  tok_after_ref = tok_error;
-  a_source_position	capture_pos;
+  a_token_kind       tok_after_ref = tok_error;
+  a_source_position  capture_pos;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  a_source_position	capture_end_pos;
+  a_source_position  capture_end_pos;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
   add_stop_token(tok_comma);
@@ -16170,7 +16170,7 @@ consumed by the caller.  The grammar to be parsed is thus:
                          ec_more_than_one_capture, &capture_pos);
         } else {
           /* Create the lambda capture entry for this variable. */
-          a_lambda_capture_ptr	lcp;
+          a_lambda_capture_ptr  lcp;
           lcp = add_lambda_capture(lambda, var, /*is_implicit=*/FALSE, by_ref,
                                    &capture_pos);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -16253,8 +16253,8 @@ mode could be the start of a Microsoft attribute.  Look ahead to determine
 whether this is a lambda.  Return TRUE if it is.
 */
 {
-  a_token_cache	cache;
-  a_boolean	result = TRUE;
+  a_token_cache  cache;
+  a_boolean      result = TRUE;
 
   /* Skip the processing if lambdas are not enabled. */
   if (!lambdas_enabled) {
@@ -16294,7 +16294,7 @@ whether this is a lambda.  Return TRUE if it is.
     } else if (curr_token == tok_rbracket) {
       /* "[x]...": If the token after the right bracket is a "{" or "(",
          assume this is a lambda. */
-      a_token_kind	next_tok;
+      a_token_kind  next_tok;
       next_tok = next_token();
       if (next_tok != tok_lbrace && next_tok != tok_lparen) result = FALSE;
     } else if (curr_token == tok_colon_colon) {
@@ -16320,7 +16320,7 @@ The given lambda did not include an explicitly specified return type.  If a
 value-returning statement was encountered, the return type was set accordingly;
 otherwise, this routine will set it to void.  If the return type is non-void,
 check that the body had the simple form
-	{ return <expr> ; }
+      { return <expr> ; }
 and issue a diagnostic if that was not the case.
 */
 {
