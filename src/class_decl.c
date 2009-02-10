@@ -1014,8 +1014,8 @@ static a_lambda_capture_ptr add_lambda_capture(
 Create a lambda capture entry for the lambda specified by "lambda" for the
 variable vp.  is_implicit is TRUE if this is an implicit capture.
 by_reference indicates if this is a by-reference or by-value capture.
-Create the lambda capture entry and the associated field of the capture
-class.  Add the lambda capture entry to this list of captures for "lambda"
+Create the lambda capture entry and the associated field of the closure
+class.  Add the lambda capture entry to the list of captures for "lambda"
 and return a pointer to the capture entry.  pos is the source position
 to be used for the capture.
 */
