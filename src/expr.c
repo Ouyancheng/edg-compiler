@@ -18599,10 +18599,6 @@ Scan a C++ lambda expression, e.g., something like
   a_source_position  start_pos;
 
   start_pos = pos_curr_token;
-  if (expr_stack->is_default_arg_expression) {
-    /* A lambda is not allowed inside a default argument expression. */
-    pos_error(ec_lambda_in_default_arg, &start_pos);
-  }  /* if */
   /* Scan the lambda. */
   lambda = scan_lambda();
   if (lambda == NULL) {
