@@ -5342,8 +5342,7 @@ a_symbol_ptr make_unnamed_symbol(a_symbol_kind		kind,
 				 a_source_position	*pos)
 /*
 Create a symbol for an unnamed entity.  Such symbols are not entered
-into the symbol table.  Each unnamed template parameter is given
-a unique symbol header.
+into the symbol table.  Each unnamed symbol is given a unique symbol header.
 */
 {
   a_symbol_ptr		sym;

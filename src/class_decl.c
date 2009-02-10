@@ -642,7 +642,7 @@ typedef struct a_class_def_state {
 			   Not set until after the opening brace of the
 			   definition is seen. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  a_bit_field	any_non_unnamed_bitfields:1;
+  a_bit_field	any_fields_other_than_unnamed_bitfields:1;
 			/* TRUE if any fields other than unnamed bit-fields
 			   are declared. */
   a_bit_field	any_friend_decls:1;
@@ -721,7 +721,7 @@ class being defined.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   cdsp->potentially_interface_like = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  cdsp->any_non_unnamed_bitfields = FALSE;
+  cdsp->any_fields_other_than_unnamed_bitfields = FALSE;
   cdsp->any_friend_decls = FALSE;
   cdsp->any_const_or_ref_fields = FALSE;
   cdsp->is_template_instantiation = FALSE;
@@ -1027,7 +1027,7 @@ to be used for the capture.
   /* Find the scope stack entry for the scope containing the local
      variable that is being captured. */
   /* For implicit captures we are currently in the memory region of the
-     lambda body, but we need to switch the memory region of the lambda
+     lambda body, but we need to switch to the memory region of the lambda
      reference. */
   if (is_implicit) {
     for (ssep = scope_stack_entry_for(depth_scope_stack);
@@ -10730,7 +10730,7 @@ declarations.
              field, in C99 and GNU C modes.  As an extension, this is
              supported in other C modes (except in strict C89 mode). */
           if ((!class_state->is_first_field &&
-               class_state->any_non_unnamed_bitfields) ||
+               class_state->any_fields_other_than_unnamed_bitfields) ||
               microsoft_mode) {
             /* A further restriction is that the incomplete array has to be
                the last field in the struct or class.  This can't always be
@@ -10999,7 +10999,7 @@ be entered.
   /* Set the flag to record that at least one field that is not an unnamed
      bit-field was encountered. */
   if (!decl_info->is_unnamed_field || !decl_info->is_bit_field) {
-    class_state->any_non_unnamed_bitfields = TRUE;
+    class_state->any_fields_other_than_unnamed_bitfields = TRUE;
   }  /* if */
   if (!C_mode() && class_type->kind == (a_type_kind)tk_union &&
       !decl_info->is_anonymous_union) {
@@ -11018,9 +11018,9 @@ be entered.
   /* Copy the type (which may have been changed by apply_bit_field_size) into
      the field entry. */
   field->type = member_type;
-  /* For an unnamed field, do not create the field symbol. */
+  /* For an unnamed bit field, do not create the field symbol. */
   if (unnamed_field && decl_info->is_bit_field) {
-    /* All field entries for an unnamed bitfields share the same symbol.  It is
+    /* All field entries for an unnamed bit field share the same symbol.  It is
        used for easy identification. */
     field->source_corresp.assoc_info = (char *)unnamed_field_symbol();
     /* Update the source correspondence information manually -- there's no
@@ -15779,7 +15779,7 @@ next_declaration:
       } while (curr_token != tok_rbrace && curr_token != tok_end_of_source);
       /* Check that a non-empty struct/union in C mode has at least one
          named field. */
-      if (C_mode() && !class_state.any_non_unnamed_bitfields) {
+      if (C_mode() && !class_state.any_fields_other_than_unnamed_bitfields) {
         /* Something like "struct S { int:1; };", which has undefined behavior
            according to the C standard.  Issue a diagnostic. */
         diagnostic(strict_ansi_mode ? strict_ansi_discretionary_severity
@@ -16256,6 +16256,11 @@ whether this is a lambda.  Return TRUE if it is.
   a_token_cache	cache;
   a_boolean	result = TRUE;
 
+  /* Skip the processing if lambdas are not enabled. */
+  if (!lambdas_enabled) {
+    result = FALSE;
+    goto done;
+  }  /* if */
   check_assertion(curr_token == tok_lbracket);
   clear_token_cache(&cache, /*reusable=*/FALSE);
   cache_curr_token(&cache);
@@ -16273,7 +16278,7 @@ whether this is a lambda.  Return TRUE if it is.
     /* Cache the identifier. */
     cache_curr_token(&cache);
     (void)get_token();
-    /* Skip past a comma-separated list of identifies. */
+    /* Skip past a comma-separated list of identifiers. */
     while (curr_token == tok_comma) {
       cache_curr_token(&cache);
       (void)get_token();
@@ -16302,6 +16307,7 @@ whether this is a lambda.  Return TRUE if it is.
   }  /* if */
   /* Rescan the tokens cached above. */
   rescan_cached_tokens(&cache);
+done:
   return result;
 }  /* is_lambda */
 
