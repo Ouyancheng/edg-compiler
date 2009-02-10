@@ -374,6 +374,7 @@ decl-specifier (e.g., "array [1] of NULL").
 #endif /* !NAMED_ADDRESS_SPACES_ALLOWED && !UPC_EXTENSIONS_ALLOWED */
 void report_bad_return_type_qualifier(a_type_ptr          type,
                                       a_decl_parse_state  *dps,
+                                      a_source_position   *diag_pos,
                                       a_boolean           *err)
 /*
 The given type is a qualified type used as a function return type.  Issue an
@@ -383,7 +384,8 @@ is issued, *err is set to TRUE.  For explicit return type declarations, *dps
 carries information about the way the type was formed (e.g., whether qualifiers
 appeared explicitly; meaningless qualification acquired through a typedef are
 not diagnosed); for the implicit function return type resulting from certain
-lambda constructs, dps is NULL.
+lambda constructs, dps is NULL.  Diagnostics are issued at the position given
+by *diag_pos or at a position recorded in *dps (depending on the diagnostic).
 */
 {
   if (!C_mode() &&
@@ -397,13 +399,13 @@ lambda constructs, dps is NULL.
 #if NAMED_ADDRESS_SPACES_ALLOWED
   } else if (type_qualified_with_named_address_space(type)) {
     /* Functions cannot return a value in a named address space. */
-    error(ec_function_returning_named_address_space);
+    pos_error(ec_function_returning_named_address_space, diag_pos);
     *err = TRUE;
 #endif /* NAMED_ADDRESS_SPACES_ALLOWED */
 #if UPC_EXTENSIONS_ALLOWED
   } else if (is_shared_qualified_type(type)) {
     /* Functions cannot return a shared type. */
-    error(ec_function_returning_shared);
+    pos_error(ec_function_returning_shared, diag_pos);
     *err = TRUE;
 #endif /* UPC_EXTENSIONS_ALLOWED */
   } else if (is_reference_type(type)) {
@@ -452,33 +454,35 @@ lambda constructs, dps is NULL.
 
 
 a_boolean check_return_type(a_type_ptr          type,
-                            a_decl_parse_state  *dps)
+                            a_decl_parse_state  *dps,
+                            a_source_position   *diag_pos)
 /*
 type is used as a function return type (in a declarative context described by
 *dps; dps is NULL when the return type is determined implicitly in some lambda
 constructs).  Issue diagnostics as appropriate, and return TRUE if no error is
-issued.
+issued.  Diagnostics are issued at the position given by *diag_pos or at a
+position recorded in *dps (depending on the diagnostic).
 */
 {
   a_boolean  err = FALSE;
 
   if (is_function_type(type)) {
-    error(ec_function_returning_function);
+    pos_error(ec_function_returning_function, diag_pos);
     err = TRUE;
   } else if (is_array_type(type)) {
-    error(ec_function_returning_array);
+    pos_error(ec_function_returning_array, diag_pos);
     err = TRUE;
 #if VLA_ALLOWED
   } else if (!C_mode() && vla_enabled &&
              is_variably_modified_type(type)) {
     /* We do not accept variably-modified return types in C++. */
-    error(ec_vla_in_return_type);
+    pos_error(ec_vla_in_return_type, diag_pos);
     err = TRUE;
 #endif /* VLA_ALLOWED */
   }  /* if */
   if (is_qualified_type(type)) {
     /* A qualified return type. */
-    report_bad_return_type_qualifier(type, dps, &err);
+    report_bad_return_type_qualifier(type, dps, diag_pos, &err);
   }  /* if */
   return !err;
 }  /* check_return_type */
@@ -780,7 +784,7 @@ type.
              forming a pointer-to-member type. */
           sym_error(ec_bad_use_of_member_function_typedef, mft_sym);
           err = TRUE;
-        } else if (!check_return_type(new_type_ptr, dps)) {
+        } else if (!check_return_type(new_type_ptr, dps, &error_position)) {
           err = TRUE;
         } else if (C_dialect == C_dialect_pcc) {
           /* In pcc mode, promote float functions to double functions.

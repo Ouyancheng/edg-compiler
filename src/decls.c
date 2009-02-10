@@ -9966,7 +9966,8 @@ operator function reference.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     if (is_qualified_type(complete_type)) {
       a_boolean  err = FALSE;
-      report_bad_return_type_qualifier(complete_type, &state, &err);
+      report_bad_return_type_qualifier(complete_type, &state, &error_position,
+                                       &err);
       if (err) complete_type = error_type();
     }  /* if */
     check_pending_qualifiers_used(&state);

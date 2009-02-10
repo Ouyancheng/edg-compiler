@@ -19978,7 +19978,8 @@ type to be the type of return_op.
     a_routine_ptr rout = lambda->lambda_routine;
     a_type_ptr    rout_type = skip_typerefs(rout->type);
     check_assertion(rout_type->kind == (a_type_kind)tk_routine);
-    if (check_return_type(return_op->type, (a_decl_parse_state*)NULL)) {
+    if (check_return_type(return_op->type, (a_decl_parse_state*)NULL,
+                          &return_op->position)) {
       *return_type = return_op->type;
     } else {
       *return_type = error_type();
