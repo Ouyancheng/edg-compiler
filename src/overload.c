@@ -6705,7 +6705,8 @@ available, e.g., during overload resolution.
       if (allow_lambda_this && encl_rout != NULL) {
         /* There is a routine that encloses the lambda.  See if it is a
            nonstatic member function. */
-        if (routine_type_is_nonstatic_member_function(encl_rout->type)) {
+        if (routine_type_is_nonstatic_member_function(encl_rout->type) &&
+            !encl_rout->is_lambda_body) {
           /* It is, so it has a "this".  We delay until later checking whether
              the "this" is or can be captured. */
           a_scope_ptr            scope;

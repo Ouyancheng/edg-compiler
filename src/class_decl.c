@@ -16118,7 +16118,9 @@ consumed by the caller.  The grammar to be parsed is thus:
               scope_stack[depth_scope_stack-1].depth_innermost_function_scope;
         if (memfun_depth == NO_SCOPE_DEPTH ||
             scope_stack[memfun_depth].il_scope
-                              ->variant.routine.this_param_variable == NULL) {
+                              ->variant.routine.this_param_variable == NULL ||
+            scope_stack[memfun_depth].il_scope
+                              ->variant.routine.ptr->is_lambda_body) {
           /* We should be in a nonstatic member function. */
           error(ec_this_used_incorrectly);
         } else if (by_ref) {
