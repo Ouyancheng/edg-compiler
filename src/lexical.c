@@ -12130,8 +12130,9 @@ done using the disambiguation routines.
        template argument list. */
     arg_ptr->explicitly_specified = !is_nonreal;
     if (is_type_templ_arg(arg_ptr)) {
-      type_name_full(/*disallow_variably_modified_type=*/TRUE, &argument_type,
-                     (a_boolean*)NULL, (a_boolean*)NULL);
+      type_name_full(/*disallow_variably_modified_type=*/TRUE,
+                     /*trailing_return_type=*/FALSE,
+                     &argument_type, (a_boolean*)NULL, (a_boolean*)NULL);
       arg_ptr->variant.type = argument_type;
     } else if (is_nontype_templ_arg(arg_ptr)) {
       if (is_nonreal) {
@@ -12253,8 +12254,9 @@ all arguments were explicit.
     arg_ptr = alloc_template_arg(arg_kind);
     if (is_type_templ_arg(arg_ptr)) {
       a_boolean		is_unnamed, is_local, is_vla;
-      type_name_full(/*disallow_variably_modified_type=*/TRUE, &argument_type,
-                     (a_boolean*)NULL, (a_boolean*)NULL);
+      type_name_full(/*disallow_variably_modified_type=*/TRUE,
+                     /*trailing_return_type=*/FALSE,
+                     &argument_type, (a_boolean*)NULL, (a_boolean*)NULL);
       /* In standard C++98/C++03, template type arguments must have linkage,
          and therefore cannot be based on local or unnamed classes/enums.  In
          Microsoft and C++0x modes, local class types are acceptable even

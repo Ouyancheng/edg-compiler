@@ -8350,6 +8350,7 @@ the type defines something); FALSE is returned if there is an error.
      in the type-id. */
   *type_position = pos_curr_token;
   type_name_full(/*disallow_variably_modified_type=*/curr_expr_kind_is_const(),
+                 /*trailing_return_type=*/FALSE,
                  cast_type, &explicit_cv_qualifiers, (a_boolean*)NULL);
   /* In Microsoft mode, static_cast allows a cast to an array type if it
      does nothing. */
@@ -12635,6 +12636,7 @@ Also scans GNU statement expressions:
       type_position = pos_curr_token;
       type_name_full(
                  /*disallow_variably_modified_type=*/curr_expr_kind_is_const(),
+                 /*trailing_return_type=*/FALSE,
                  &type_cast_to, &explicit_cv_qualifiers, &type_defined);
       /* The next token should be the closing rparen. */
       (void)required_token(tok_rparen, ec_exp_rparen);

@@ -1308,6 +1308,42 @@ prescanning.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+static a_boolean tag_definition_next(a_token_kind   next_tok,
+                                     a_symbol_kind  tag_kind,
+                                     a_boolean      is_ref_within_new_expr,
+                                     a_boolean      trailing_return_type)
+/*
+We've seen the beginning of a class, struct, union, or enum declaration
+(tag_kind determines which).  Return TRUE if next_tok introduces a definition
+for that type.  is_ref_within_new_expr is TRUE if this occurs in a new-
+expression; in that case, a colon is assumed to be part of a "?:" operator
+and not the beginning of a base type specifier.  If this occurs in a C++0x
+trailing return type (e.g., a lambda return type) trailing_return_type will be
+TRUE and this routine always returns FALSE (e.g., in "[]()->struct X {}" the
+"{}" is assumed to be the body of the lambda; not the definition of X).
+*/
+{
+  a_boolean  result;
+
+  if (trailing_return_type) {
+    /* Note that FALSE is also returned if next_tok is a colon.  A colon is an
+       error either way, but most likely the programmer did not intend a class
+       definition in this context. */
+    result = FALSE;
+  } else if (next_tok == tok_lbrace) {
+    result = TRUE;
+  } else if (!C_mode() && next_tok == tok_colon && !is_ref_within_new_expr) {
+    /* Possibly the beginning of a C++ base class type specifier or an
+       explicit underlying type for C++0x/Microsoft enum type. */
+    result = (tag_kind != (a_symbol_kind)sk_enum_tag ||
+              explicit_enum_base_enabled);
+  } else {
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* tag_definition_next */
+
+
 #if !EXTRA_SOURCE_POSITIONS_IN_IL
 /*ARGSUSED*/ /* decl_pos_block is not used unless extra source-position
                 information is being recorded in the IL. */
@@ -1317,6 +1353,7 @@ static a_symbol_ptr scan_tag_name(a_symbol_kind     tag_kind,
                                   a_boolean         *is_friend_decl,
                                   a_boolean         *check_for_vacuous_decl,
                                   a_boolean         is_ref_within_new_expr,
+                                  a_boolean         trailing_return_type,
                                   a_scope_depth     *effective_decl_level,
                                   a_boolean         *tag_resolution,
                                   a_boolean         *is_predeclared_type_decl,
@@ -1336,15 +1373,16 @@ name of a template).
 however, the flag will be reset to FALSE and a normal lookup will be done.
 *check_for_vacuous_decl is TRUE when the context permits a declaration like
 "struct x;".  is_ref_within_new_expr is TRUE when the declaration appears
-inside a new expression.  *effective_decl_level will have been initialized
-to decl_scope_level by the caller; it may be changed in C++ for a forward
-reference to a tag within a function prototype or a class definition -- the
-tag is entered into the innermost non-class/non-prototype scope, which is
-returned as its effective declaration level.  *tag_resolution is returned
-TRUE if this is the definition of a previously declared incomplete class or
-enum.  *is_predeclared_type_decl is returned TRUE if this is the explicit
-declaration of a predeclared type like type_info in C++ or _GUID in Microsoft
-mode.
+inside a new expression.  trailing_return_type is TRUE if the declaration
+appears in a C++0x trailing return type.  *effective_decl_level will have
+been initialized to decl_scope_level by the caller; it may be changed in C++
+for a forward reference to a tag within a function prototype or a class
+definition -- the tag is entered into the innermost non-class/non-prototype
+scope, which is returned as its effective declaration level.  *tag_resolution
+is returned TRUE if this is the definition of a previously declared incomplete
+class or enum.  *is_predeclared_type_decl is returned TRUE if this is the
+explicit declaration of a predeclared type like type_info in C++ or _GUID in
+Microsoft mode.
 
 This routine may look more complicated than is necessary -- it isn't.
 This routine can either be matching up a definition with a previous
@@ -1382,21 +1420,9 @@ caution when modifying this routine.
       check_for_microsoft_class_modifiers(&next_tok, tok_lbrace);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    if (next_tok == tok_lbrace ||
-        (next_tok == tok_colon && C_dialect == C_dialect_cplusplus &&
-         (tag_kind != (a_symbol_kind)sk_enum_tag ||
-          explicit_enum_base_enabled) &&
-         !is_ref_within_new_expr)) {
-      /* The token following the tag marks the start of a class or enum
-         definition. Determine whether it is the resolution of a previous
-         incomplete declaration.  (In some modes -- including C++0x mode and
-         some Microsoft C++ modes -- a colon can indicate an enum definition
-         with an explicit underlying type.) */
-      /* Note that we had to check the is_ref_within_new_expr flag because a
-         colon has a different meaning in an expression context than in a
-         declaration context (namely, it may belong to a ?: operator). */
-      is_tag_definition = TRUE;
-    }  /* if */
+    is_tag_definition = tag_definition_next(next_tok, tag_kind,
+                                            is_ref_within_new_expr,
+                                            trailing_return_type);
     if (gpp_mode && gnu_version < 30400 &&
         tag_kind != (a_symbol_kind)sk_enum_tag &&
         !locator_for_curr_id.is_error &&
@@ -2635,12 +2661,10 @@ if the type should not be treated as an interface.
                 are not allowed. */
 #endif /* !EXTRA_SOURCE_POSITIONS_IN_IL || !GNU_EXTENSIONS_ALLOWED || ... */
 static a_boolean class_specifier(
+                        a_decl_flag_set             dsi_flags,
                         a_boolean                   vacuous_decl_allowed,
                         a_boolean                   is_friend_decl,
                         a_boolean                   is_typedef,
-                        a_boolean                   is_ref_within_new_expr,
-                        a_boolean                   is_explicit_instantiation,
-                        a_boolean                   is_template_specialization,
                         a_boolean                   marked_as_gnu_extension,
                         a_decl_modifiers_block_ptr  prefix_decl_modifiers,
                         an_ms_attribute_ptr         *p_ms_attributes,
@@ -2697,14 +2721,9 @@ union type.  The syntax is
 The type is returned in *type_ptr. *declares_something is set to indicate
 whether or not this specifier declares something, and *defines_something
 to indicate whether the class/struct/union is actually defined.
-is_explicit_instantiation is TRUE if the declaration being scanned
-is part of an explicit instantiation.  This causes a class specifier
-of the form "class A<int>" to not be considered a specific declaration of
-the template.  is_typedef is TRUE if the class specifier is being typedefed.
-is_ref_within_new_expr indicates that the specifier is parsed as part of a
-new expression and should therefore not be treated as a declaration.
-p_ms_attributes describes Microsoft attributes preceding the class specifier
-(if any).
+dsi_flags is the set of input flags passed to decl_specifiers.  is_typedef is
+TRUE if the class specifier is being typedefed.  p_ms_attributes describes
+Microsoft attributes preceding the class specifier (if any).
 */
 {
   a_symbol_kind           tag_kind;
@@ -2753,6 +2772,12 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_name_reference_ptr    name_ref = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  a_boolean               is_ref_within_new_expr = 
+                                      (dsi_flags & DSI_IS_NEW_TYPE_NAME) != 0;
+  a_boolean               is_explicit_instantiation =
+                             (dsi_flags & DSI_IS_EXPLICIT_INSTANTIATION) != 0;
+  a_boolean               is_template_specialization =
+                                     (dsi_flags & DSI_IS_SPECIALIZATION) != 0;
 
   db_enter(3, "class_specifier");
   *declares_something = FALSE;
@@ -2871,6 +2896,7 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */
     tag_sym = scan_tag_name(tag_kind, &locator, &is_friend_decl,
                             &vacuous_decl_allowed, is_ref_within_new_expr,
+                            (dsi_flags & DSI_TRAILING_RETURN_TYPE) != 0,
                             &effective_decl_level, &tag_resolution,
                             &is_predeclared_type_decl, &local_decl_pos_block);
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED
@@ -3037,15 +3063,11 @@ p_ms_attributes describes Microsoft attributes preceding the class specifier
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* If the next token is a "{" or, in C++, a ":" (introducing a list of
-     base classes) we should expect to scan a class definition.  The exception
-     to this is when an elaborated class name (e.g., "struct S" instead of
-     simply "S") appears within the context of a new expression.  The
-     issue is the colon: since a colon could be part of the expression
-     context (e.g., "struct S *ps = flag ? new struct S : 0;") it should
-     not be interpreted as introducing a base classes list. */
-  is_class_definition = curr_token == tok_lbrace ||
-                        (C_dialect == C_dialect_cplusplus &&
-                         curr_token == tok_colon && !is_ref_within_new_expr);
+     base classes) this is probably a class definition (but there are some
+     exceptions). */
+  is_class_definition = tag_definition_next(
+                                 curr_token, tag_kind, is_ref_within_new_expr,
+                                 (dsi_flags & DSI_TRAILING_RETURN_TYPE) != 0);
   if (is_class_definition && is_friend_decl) {
     /* This is an error.  Defer the diagnostic until we have a tag_sym
        to use for the fill-in.  If tag_sym is already non-NULL, we'll create
@@ -4248,7 +4270,8 @@ no error is issued and implicit_value is TRUE, *constant is incremented.
 /*ARGSUSED*/ /* decl_pos_block is not used unless extra source-position
                 information is being recorded in the IL. */
 #endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
-static void enum_specifier(a_boolean            vacuous_decl_allowed,
+static void enum_specifier(a_decl_flag_set      dsi_flags,
+                           a_boolean            vacuous_decl_allowed,
                            a_type_ptr           *type_ptr,
                            an_ms_attribute_ptr  *p_ms_attributes,
                            a_boolean            *declares_something,
@@ -4281,6 +4304,7 @@ The type is returned in *type_ptr.  *declares_something is set to indicate
 whether or not this specifier declares something, and *defines_something
 to indicate whether an enumeration is actually defined.  p_ms_attributes
 describes Microsoft attributes preceding the enum specifier (if any).
+dsi_flags is the set of input flags passed to decl_specifiers.
 */
 {
   a_symbol_locator             locator;
@@ -4385,17 +4409,14 @@ describes Microsoft attributes preceding the enum specifier (if any).
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     tag_sym = scan_tag_name((a_symbol_kind)sk_enum_tag, &locator,
                             &is_friend_decl, &vacuous_decl_allowed,
-                            /*is_ref_within_new_expr=*/FALSE,
+                            (dsi_flags & DSI_IS_NEW_TYPE_NAME) != 0,
+                            (dsi_flags & DSI_TRAILING_RETURN_TYPE) != 0,
                             &effective_decl_level, &tag_resolution,
                             &is_predeclared_type_decl, &local_decl_pos_block);
-    if (curr_token == tok_lbrace) {
-      is_definition = TRUE;
-    } else if (curr_token == tok_colon && explicit_enum_base_enabled) {
-      /* C++0x allows for a "base specifier" to indicate the underlying type
-         of an enum (e.g., "enum E: short { x }").  This is also accepted by
-         recent Microsoft compilers. */
-      is_definition = TRUE;
-    }  /* if */
+    is_definition = tag_definition_next(
+                                 curr_token, (a_symbol_kind)sk_enum_tag,
+                                 (dsi_flags & DSI_IS_NEW_TYPE_NAME) != 0,
+                                 (dsi_flags & DSI_TRAILING_RETURN_TYPE) != 0);
     if (tag_resolution) {                            
       /* Resolution of a previous incomplete declaration. */
       if (effective_decl_level != decl_scope_level) {
@@ -8005,12 +8026,10 @@ process_class_specifier:
               goto exit_loop;
             } else {
               if (!class_specifier(
+                          input_flags,
                           vacuous_decl_allowed,
                           (decl_specifiers_seen & DS_FRIEND) != 0,
                           *storage_class == (a_storage_class)sc_typedef,
-                          (input_flags & DSI_IS_NEW_TYPE_NAME) != 0,
-                          (input_flags & DSI_IS_EXPLICIT_INSTANTIATION) != 0,
-                          (input_flags & DSI_IS_SPECIALIZATION) != 0,
                           marked_as_gnu_extension, &state->decl_modifiers,
                           &state->ms_attributes, type_ptr, &declares_something,
                           &defines_something, decl_pos_block)) {
@@ -8027,12 +8046,10 @@ process_class_specifier:
             error(ec_bad_combination_of_type_specifiers);
             /* Scan the specifier anyway, but throw it away. */
             (void)class_specifier(
+                          input_flags,
                           /*vacuous_decl_allowed=*/FALSE,
                           /*is_friend_decl=*/FALSE,
                           /*is_typedef=*/FALSE,
-                          (input_flags & DSI_IS_NEW_TYPE_NAME) != 0,
-                          (input_flags & DSI_IS_EXPLICIT_INSTANTIATION) != 0,
-                          (input_flags & DSI_IS_SPECIALIZATION) != 0,
                           marked_as_gnu_extension, &state->decl_modifiers,
                           (an_ms_attribute_ptr*)NULL, &dummy_type, &dummy_flag,
                           &dummy_flag, decl_pos_block);
@@ -8048,7 +8065,7 @@ process_class_specifier:
           err = TRUE;
         } else {
           if (basic_type == bt_none) {
-            enum_specifier(vacuous_decl_allowed, type_ptr,
+            enum_specifier(input_flags, vacuous_decl_allowed, type_ptr,
                            &state->ms_attributes,
                            &declares_something, &defines_something,
                            decl_pos_block);
@@ -8068,9 +8085,9 @@ process_class_specifier:
             bad_combination_of_type_specifiers = TRUE;
             error(ec_bad_combination_of_type_specifiers);
             /* Scan the specifier anyway, but throw it away. */
-            enum_specifier(/*vacuous_decl_allowed=*/FALSE, &dummy_type,
-                           (an_ms_attribute_ptr*)NULL, &dummy_flag,
-                           &dummy_flag, decl_pos_block);
+            enum_specifier(input_flags, /*vacuous_decl_allowed=*/FALSE,
+                           &dummy_type, (an_ms_attribute_ptr*)NULL,
+                           &dummy_flag, &dummy_flag, decl_pos_block);
           }  /* if */
           decl_specifiers_seen |= DS_TYPE;
           goto no_get_token;

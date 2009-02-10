@@ -9503,6 +9503,7 @@ done:;
 
 
 void type_name_full(a_boolean   disallow_variably_modified_type,
+                    a_boolean   trailing_return_type,
                     a_type_ptr  *type_ptr,
                     a_boolean   *explicit_cv_qualifiers,
                     a_boolean   *type_defined)
@@ -9524,6 +9525,9 @@ Variably-modified types are normally allowed inside function definitions when
 vla_enabled is TRUE.  However, if disallow_variably_modified_type is TRUE, then
 such types are not accepted.
 
+If trailing_return_type is TRUE, this call is for a return type trailing the
+function declarator (a C++0x feature also used in the syntax for lambdas).
+
 If type_defined is non-NULL, *type_defined is returned TRUE if a class or
 enumeration type was defined as part of the type-name.  In most C++ modes,
 this is an error, but a diagnostic is only issued when type_defined is NULL
@@ -9539,6 +9543,12 @@ needed).
   init_decl_parse_state(&state);
   copy_source_position(pos_curr_token, state.start_pos);
   dsi_flags = DSI_TYPE_SPECIFIER_ALLOWED | DSI_NO_REAL_DECLARATOR;
+  if (trailing_return_type) {
+    /* When scanning a C++0x trailing return type, top-level class definitions
+       should not be considered.  E.g., in "[]()->struct S {}" the "{}" is
+       considered to be the lambda body; not the definition of S. */
+    dsi_flags |= DSI_TRAILING_RETURN_TYPE;
+  }  /* if */
   if (gnu_mode) {
     /* GNU attributes are allowed, but those that don't actually transform a
        type will be ignored. */

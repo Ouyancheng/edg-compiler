@@ -2427,7 +2427,9 @@ the left parenthesis introducing the declarator-like construct.
     a_type_ptr         return_type, bottom_derived_type;
     lambda->explicit_return_type = TRUE;
     (void)get_token();
-    type_name(&return_type);
+    type_name_full(/*disallow_variably_modified_type=*/FALSE,
+                   /*trailing_return_type=*/TRUE,
+                   &return_type, (a_boolean*)NULL, (a_boolean*)NULL);
     if (!is_error_type(func_type)) {
       bottom_derived_type = func_type;
       add_to_derived_type_list(return_type, &func_type, &bottom_derived_type,

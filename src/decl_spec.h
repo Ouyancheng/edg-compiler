@@ -212,7 +212,11 @@ extern void decl_spec_one_time_init(void);
 #define DSI_REGISTER_ID_ALLOWED ((a_decl_flag_set)0x800000)
 			/* If this bit is set, Embedded C register names are
 			   valid declaration specifiers. */
-#define DSI_LAST DSI_REGISTER_ID_ALLOWED
+#define DSI_TRAILING_RETURN_TYPE ((a_decl_flag_set)0x1000000)
+			/* If this bit is set, the specifiers are for a
+			   trailing return type (a C++0x syntax feature; e.g.
+			   in lambdas). */
+#define DSI_LAST DSI_TRAILING_RETURN_TYPE
 			/* Last bit in the bit vector that is in use. */
 			/*lint -esym(755,DSI_LAST)*/
 

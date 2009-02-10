@@ -547,6 +547,7 @@ when all decl-specifiers are missing.
 
 
 extern void type_name_full(a_boolean   disallow_variably_modified_type,
+                           a_boolean   trailing_return_type,
                            a_type_ptr  *type_ptr,
                            a_boolean   *explicit_cv_qualifiers,
                            a_boolean   *type_defined);
@@ -558,6 +559,7 @@ cv-qualifiers.
 */
 #define type_name(type_ptr)                                          \
   type_name_full(/*disallow_variably_modified_type=*/FALSE,          \
+                 /*trailing_return_type=*/FALSE,                     \
                  type_ptr, (a_boolean*)NULL, (a_boolean*)NULL)
 
 extern void new_type_name(a_decl_parse_state  *state,
