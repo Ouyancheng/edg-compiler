@@ -16055,15 +16055,18 @@ Scan the capture list for a lambda construct associated with lambda.  The
 caller has already moved past the '[', and this routine leaves the trailing
 ']' to be consumed by the caller.  The grammar to be parsed is thus:
     lambda-capture(opt)
+
     lambda-capture:
         capture-default | capture-list | capture-default ',' capture-list
+
     capture-default:
         '&' | '='
+
     capture-list:
         capture | capture-list ',' capture
+
     capture:
         identifier | '&' identifier | 'this'
-    
 */
 {
   a_token_kind       tok_after_ref = tok_error;
