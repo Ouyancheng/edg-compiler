@@ -19968,14 +19968,15 @@ copy of the return type from the routine).  Update it and the routine
 type to be the type of return_op.
 */
 {
-  a_lambda_ptr lambda = get_current_lambda();
+  a_lambda_ptr   lambda = get_current_lambda();
+  a_routine_ptr  rout;
 
   check_assertion(lambda != NULL && !lambda->explicit_return_type);
+  rout = lambda->lambda_routine;
   /* Make sure array-to-pointer and function-to-pointer decay are done before
      we use the type as the return type. */
   do_operand_transformations(return_op, TOPT_NO_OPTIONS);
   if (is_unknown_type(*return_type)) {
-    a_routine_ptr rout = lambda->lambda_routine;
     a_type_ptr    rout_type = skip_typerefs(rout->type);
     check_assertion(rout_type->kind == (a_type_kind)tk_routine);
     if (check_return_type(return_op->type, (a_decl_parse_state*)NULL,
@@ -19986,12 +19987,19 @@ type to be the type of return_op.
     }  /* if */
     rout_type->variant.routine.return_type = *return_type;
     set_routine_calling_method_flag(rout_type, &return_op->position);
+  } else if (is_void_type(*return_type)) {
+    /* The type was previously set to void by a "return;" statement, or a
+       "return <void-expr>;" statement.  That's valid (unless the current
+       return expression is non-void, but that is diagnosed elsewhere). */
+  } else if (rout->is_prototype_instantiation) {
+    /* In the general case, we don't know the actual return type for
+       template-dependent lambdas: Constraints will be checked on the real
+       instantiations. */
   } else {
-    /* More than one return in a lambda with an implicit return type.
-       The error is issued in the return statement processing.
-       Or, the type was previously set to void by a "return;" statement. */
-    check_assertion(is_void_type(*return_type) ||
-                    is_error_type(*return_type));
+    /* More than one return in a lambda with an implicit return type and the
+       current return statement is non-void.  An error will be issued when
+       the complete lambda body has been parsed. */
+    expect_error();
   }  /* if */
 }  /* check_and_adjust_lambda_return_type_if_needed */
 
