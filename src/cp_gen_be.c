@@ -8085,7 +8085,7 @@ static void gen_lambda(an_expr_node_ptr  expr)
 Render code for the given expression node, which represents a lambda.
 */
 {
-  a_lambda_ptr            lambda = expr->variant.lambda;
+  a_lambda_ptr            lambda = expr->variant.lambda.ptr;
   a_routine_ptr           rp = lambda->lambda_routine;
   a_memory_region_number  scope_region_number = rp->assoc_scope;
   a_scope_ptr             scope;
