@@ -1160,6 +1160,8 @@ the fields implied by the lambda's capture list).
                                      (a_scope_kind)sck_template_declaration) {
     --decl_level;
   }  /* while */
+  update_membership_of_class(sym, /*def_or_vacuous_decl=*/TRUE, decl_level,
+                             decl_position);
   add_to_types_list(type, decl_level);
   cssp = sym->variant.class_struct_union.extra_info;
   /* Assume for now that bitwise copy is allowed for this class.  This will

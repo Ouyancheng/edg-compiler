@@ -120,6 +120,11 @@ extern void scan_microsoft_secondary_decl_specifiers(
 
 extern void set_name_linkage_for_type(a_type_ptr  tp);
 
+extern void update_membership_of_class(a_symbol_ptr       tag_sym,
+                                       a_boolean          def_or_vacuous_decl,
+                                       a_scope_depth      decl_level,
+                                       a_source_position  *diag_pos);
+
 extern void decl_spec_one_time_init(void);
 
 /* Constants defining bits in the input bit vector used in calls to

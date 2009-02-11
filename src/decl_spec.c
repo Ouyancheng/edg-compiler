@@ -2648,6 +2648,101 @@ if the type should not be treated as an interface.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+void update_membership_of_class(a_symbol_ptr       tag_sym,
+                                a_boolean          def_or_vacuous_decl,
+                                a_scope_depth      decl_level,
+                                a_source_position  *diag_pos)
+/*
+The given class/struct/union symbol has just been created.  Record its class
+or namespace membership if appropriate.  In C++ mode, also set is name
+linkage if necessary.  A few other related peripheral fields are set by this
+routine.
+def_or_vacuous_decl is TRUE if this is a definition or a vacuous declaration.
+decl_level determines the scope in which the declaration appears.  Diagnostics
+may be emitted at the given position.
+*/
+{
+  a_boolean  is_local_class = FALSE;
+
+  if (depth_innermost_function_scope != NO_SCOPE_NUMBER ||
+      inside_local_class) {
+    /* This declaration appears within a function or block scope, or else it
+       is a nested class declaration within a local class.  In either case,
+       it is a local class. */
+    is_local_class = TRUE;
+    if (depth_innermost_function_scope != NO_SCOPE_NUMBER) {
+      innermost_function_scope->variant.routine.ptr
+                              ->contains_local_class_type = TRUE;
+    }  /* if */
+  }  /* if */
+  if (!C_mode()) {
+    a_type_ptr  class_type = tag_sym->variant.class_struct_union.type;
+    switch (scope_stack[decl_level].kind) {
+      case sck_class_struct_union:
+        /* A new class name is being declared within a class scope. */
+        if (def_or_vacuous_decl) {
+          /* Either a definition or a vacuous declaration -- either way, the
+             class name is introduced in the current scope. */
+          a_type_ptr  parent = scope_stack[decl_level].assoc_type;
+          set_class_membership(tag_sym, &class_type->source_corresp, parent);
+          class_type->source_corresp.access =
+                               scope_stack[depth_scope_stack].current_access;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          if (!class_type_supp(class_type)->is_lambda_closure_class) {
+            if (microsoft_mode &&
+                parent->variant.class_struct_union.is_interface) {
+              /* Interface types cannot contain nested class types. */
+              pos_error(ec_interface_cannot_have_nested_class, diag_pos);
+            }  /* if */
+            /* coverity[dead_error_condition] */
+            if (class_type->variant.class_struct_union.is_interface) {
+              pos_error(ec_interface_cannot_be_nested_class, diag_pos);
+            }  /* if */
+          }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        }  /* if */
+        break;
+      case sck_namespace:
+      case sck_namespace_extension:
+        /* A class is being declared within a namespace.  This includes
+           friend declarations injected into a namespace from a class
+           scope. */
+        set_namespace_membership(
+                   tag_sym, &class_type->source_corresp,
+                   scope_stack[decl_level].il_scope->variant.assoc_namespace);
+        break;
+      default:;
+    }  /* switch */
+    /* In C classes have no linkage, as do local classes in C++; otherwise
+       classes have "C++-external" name linkage.  (Note: in cfront mode
+       classes may also have internal linkage -- see ARM 3.3.)  Note that
+       even nameless classes may be marked as having linkage; this is
+       useful for dealing with member functions.) */
+    if (!is_local_class) {
+      /* Nonlocal class. */
+      set_name_linkage_for_type(class_type);
+    } else {
+      /* For a local class, save information about the enclosing function. */
+      a_class_symbol_supplement_ptr	cssp;
+      a_scope_stack_entry_ptr		ssep;
+      if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
+        ssep = &scope_stack[depth_innermost_function_scope];
+      } else {
+        /* Depth innermost function scope is not set when this local
+           class is declared within another nested class.  Find the
+           enclosing function scope. */
+        for (ssep = scope_stack_entry_for(depth_scope_stack);
+             ssep != NULL; ssep = previous_scope_of(ssep)) {
+          if (ssep->kind == (a_scope_kind)sck_function) break;
+        }  /* for */
+      }  /* if */
+      check_assertion(ssep != NULL && ssep->assoc_routine != NULL);
+      cssp = symbol_supplement_for_class(class_type);
+      cssp->local_class_number = ssep->number_of_local_classes++;
+    }  /* if */
+  }  /* if */
+}  /* update_membership_of_class */
+
 
 #if !EXTRA_SOURCE_POSITIONS_IN_IL || \
     (!GNU_EXTENSIONS_ALLOWED || !GENERATE_SOURCE_SEQUENCE_LISTS) || \
@@ -3418,76 +3513,19 @@ Microsoft attributes preceding the class specifier (if any).
       clear_source_corresp_name(&class_type->source_corresp);
       class_type->variant.class_struct_union.originally_unnamed = TRUE;
     }  /* if */
+    /* Set parent class or namespace pointers, if appropriate, and adjust
+       related fields (e.g., name linkage). */
+    { a_boolean  def_or_vacuous_decl =
+                      (is_class_definition ||
+                       (vacuous_decl_allowed && curr_token == tok_semicolon));
+      update_membership_of_class(tag_sym, def_or_vacuous_decl,
+                                 effective_decl_level, &decl_start_pos);
+    }
     if (C_dialect == C_dialect_cplusplus) {
       if (is_class_definition && is_friend_decl) {
         /* Issuing the diagnostic was deferred till now. */
         pos_sy_error(ec_bad_scope_for_definition, &tag_position, tag_sym);
         err = TRUE;
-      }  /* if */
-      /* Set parent class or namespace pointers, if appropriate. */
-      switch (scope_stack[effective_decl_level].kind) {
-        case sck_class_struct_union:
-          /* A new class name is being declared within a class scope. */
-          if (is_class_definition ||
-              (vacuous_decl_allowed && curr_token == tok_semicolon)) {
-            /* Either a definition or a vacuous declaration -- the latter
-               introduces a name into the current scope. */
-            a_type_ptr  parent = scope_stack[decl_scope_level].assoc_type;
-            check_assertion(!is_ref_within_new_expr);
-            set_class_membership(tag_sym, &class_type->source_corresp, parent);
-            class_type->source_corresp.access =
-                                 scope_stack[depth_scope_stack].current_access;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-            if (microsoft_mode &&
-                parent->variant.class_struct_union.is_interface) {
-              /* Interface types cannot contain nested class types. */
-              pos_error(ec_interface_cannot_have_nested_class,
-                        &decl_start_pos);
-            }  /* if */
-            /* coverity[dead_error_condition] */
-            if (is_interface) {
-              pos_error(ec_interface_cannot_be_nested_class, &decl_start_pos);
-            }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-          }  /* if */
-          break;
-        case sck_namespace:
-        case sck_namespace_extension:
-          /* A class is being declared within a namespace.  This includes
-             friend declarations injected into a namespace from a class
-             scope. */
-          set_namespace_membership(tag_sym, &class_type->source_corresp,
-                                   scope_stack[effective_decl_level].
-                                       il_scope->variant.assoc_namespace);
-          break;
-        default:;
-      }  /* switch */
-      /* In C classes have no linkage, as do local classes in C++; otherwise
-         classes have "C++-external" name linkage.  (Note: in cfront mode
-         classes may also have internal linkage -- see ARM 3.3.)  Note that
-         even nameless classes may be marked as having linkage; this is
-         useful for dealing with member functions.) */
-      if (!is_local_class) {
-        /* Nonlocal class. */
-        set_name_linkage_for_type(class_type);
-      } else {
-        /* For a local class, save information about the enclosing function. */
-        a_class_symbol_supplement_ptr	cssp;
-        a_scope_stack_entry_ptr		ssep;
-        if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
-          ssep = &scope_stack[depth_innermost_function_scope];
-        } else {
-          /* Depth innermost function scope is not set when this local
-             class is declared within another nested class.  Find the
-             enclosing function scope. */
-          for (ssep = scope_stack_entry_for(depth_scope_stack);
-               ssep != NULL; ssep = previous_scope_of(ssep)) {
-            if (ssep->kind == (a_scope_kind)sck_function) break;
-          }  /* for */
-        }  /* if */
-        check_assertion(ssep != NULL && ssep->assoc_routine != NULL);
-        cssp = symbol_supplement_for_class(class_type);
-        cssp->local_class_number = ssep->number_of_local_classes++;
       }  /* if */
       if (is_friend_decl && tag_id_present &&
           secondary_translation_unit_seen()) {
