@@ -12026,7 +12026,8 @@ the first pass).
                                                   orig_operand_type);
         overwrite_node(expr->variant.operation.operands, operand);
       } else if (node_operator_is(expr, eok_lvalue_cast) ||
-                 node_operator_is(expr, eok_lvalue_adjust)) {
+                 node_operator_is(expr, eok_lvalue_adjust) ||
+                 node_operator_is(expr, eok_ref_cast)) {
         /* Leave the cast type as is. */
       } else {
         unexpected_condition();

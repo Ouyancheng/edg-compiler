@@ -1,5 +1,23 @@
 Version 4.1
 
+2/11/09  [EDGcpfe/9527]
+Abort when a const string literal is explicitly cast to a reference
+
+As a result of the major change in the way lvalues are represented in 4.0
+(see Changes entry of 7/24/08), explicitly casting a const string literal
+to a reference could cause an assertion failure in 
+lower_operation_on_const_string_if_necessary.  The failure occurred only
+in modes where string literals are treated as const (e.g., GNU, Microsoft,
+Sun, strict).  This example previously aborted and now compiles properly.
+
+  template <class T> T f() {
+    return (T&) "zzz";      // had caused an assertion failure in lower_il.c
+  }
+  void g() {
+    f<char>();
+  }
+
+
 2/11/09  [EDGcpfe/9520]
 Microsoft compatibility: Explicit template arguments on function templates
 
