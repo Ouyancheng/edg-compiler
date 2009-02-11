@@ -12008,7 +12008,10 @@ The routine body is not generated until it is known to be needed.
   asgn_qualifiers = const_okay ? TQ_CONST : TQ_NONE;
   default_copy_constructor_check(class_type, &const_okay);
   ctor_qualifiers = const_okay ? TQ_CONST : TQ_NONE;
+  /* Lambdas should have a deleted assignment operator.  Until we implement
+     deleted functions, don't generate the assignment operator. */
   declare_copy_asgn_op = !user_declared_copy_assignment_op &&
+                         !ctsp->is_lambda_closure_class &&
                      (!any_cfront_mode() || cssp->assignment_operator == NULL);
   declare_copy_ctor = (ctsp->is_lambda_closure_class ||
                        (cssp->constructor != NULL &&

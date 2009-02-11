@@ -7182,7 +7182,8 @@ is returned TRUE if the parameter is not a reference parameter.
     /* A NULL assignment operator when bitwise copies are not allowed can
        occur in certain error cases and in Microsoft mode.  Return NULL. */
     check_assertion(cssp->assignment_by_bitwise_copy_allowed ||
-                    total_errors != 0 || microsoft_mode);
+                    total_errors != 0 || microsoft_mode ||
+                    class_type_supp(class_type)->is_lambda_closure_class);
   } else {
     sym = cssp->assignment_operator;
     /* If sym is an overloaded function symbol we need to go through the whole
