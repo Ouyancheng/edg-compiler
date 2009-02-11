@@ -11297,9 +11297,19 @@ typedef struct an_expr_node {
 			/* Pointer to an entry that describes the new or
 			   delete operation (C++ only). */
     /* When kind == enk_lambda: */
-    a_lambda_ptr
-		lambda;
+    struct {
+      a_lambda_ptr
+		ptr;
 			/* Pointer to an entry that describes the lambda. */
+      a_dynamic_init_ptr
+		initialization;
+			/* Aggregate initialization that copies the captured
+			   variables to the fields of the closure class.
+			   Also includes the destruction of the closure
+			   object if necessary.  Still present if no
+			   initialization is needed (indicates dik_none in
+			   that case). */
+    } lambda;
     /* When kind == enk_throw: */
     a_throw_supplement_ptr
 		throw_info;
@@ -12916,14 +12926,6 @@ typedef struct a_lambda {
 			   information can be accessed via the lamba_routine
 			   pointer. */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  a_dynamic_init_ptr
-		initialization;
-			/* Aggregate initialization that copies the captured
-			   variables to the fields of the closure class.
-			   Also includes the destruction of the closure
-			   object if necessary.  Still present if no
-			   initialization is needed (indicates dik_none in
-			   that case). */
 } a_lambda;
 
 

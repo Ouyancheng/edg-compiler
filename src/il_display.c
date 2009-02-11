@@ -3352,7 +3352,9 @@ Display the indicated expression node.
       break;
     case enk_lambda:
       (void)printf("enk_lambda\n");
-      disp_ptr("lambda", (char *)ptr->variant.lambda, iek_lambda);
+      disp_ptr("ptr", (char *)ptr->variant.lambda.ptr, iek_lambda);
+      disp_ptr("initialization", (char *)ptr->variant.lambda.initialization,
+               iek_dynamic_init);
       break;
     case enk_throw:
       (void)printf("enk_throw\n");

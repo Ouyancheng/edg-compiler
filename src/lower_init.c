@@ -13432,12 +13432,12 @@ with the value of their corresponding captured variables.
   a_dynamic_init_ptr     dip;
 
   check_assertion(expr->kind == (an_expr_node_kind)enk_lambda &&
-                  identical_types(expr->variant.lambda->closure_class,
+                  identical_types(expr->variant.lambda.ptr->closure_class,
                                   expr->type) &&
                   !expr->is_lvalue);
   closure_var = make_local_temporary(expr->type);
-  capture = expr->variant.lambda->capture_list;
-  dip = expr->variant.lambda->initialization;
+  capture = expr->variant.lambda.ptr->capture_list;
+  dip = expr->variant.lambda.initialization;
   /* Change the enk_lambda node to an enk_variable node that refers to
      the closure variable.  The type and lvalueness of the node are unchanged.
      Lambda-specific field values of expr cannot be accessed after the

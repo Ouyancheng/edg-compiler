@@ -18441,11 +18441,11 @@ been annotated in the source with the GNU keyword __extension__.
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 
-static void make_initializer_for_lambda(a_lambda *lambda)
+static a_dynamic_init_ptr make_initializer_for_lambda(a_lambda *lambda)
 /*
-*lambda describes a lambda expression just scanned.  Add an initializer
+*lambda describes a lambda expression just scanned.  Make an initializer
 for the closure object, which copies any captured variables into the
-fields of the closure object.
+fields of the closure object.  Return a pointer to the dynamic init entry.
 */
 {
   a_lambda_capture_ptr lcp;
@@ -18612,7 +18612,7 @@ fields of the closure object.
                            lambda->closure_class,
                            &lambda->start_position);
   set_temp_dynamic_init_lifetime(aggr_dip);
-  lambda->initialization = aggr_dip;
+  return aggr_dip;
 }  /* make_initializer_for_lambda */
 
 
@@ -18635,12 +18635,12 @@ Scan a C++ lambda expression, e.g., something like
     make_error_operand(result);
   } else {
     an_expr_node_ptr expr;
-    /* Add initialization code to copy any captured variables. */
-    make_initializer_for_lambda(lambda);
     /* The result is a class rvalue instance of the closure class. */
     expr = alloc_expr_node((an_expr_node_kind)enk_lambda);
     expr->type = lambda->closure_class;
-    expr->variant.lambda = lambda;
+    expr->variant.lambda.ptr = lambda;
+    /* Add initialization code to copy any captured variables. */
+    expr->variant.lambda.initialization = make_initializer_for_lambda(lambda);
     make_expression_operand(expr, result);
   }  /* if */
   set_operand_position(result, &start_pos, &curr_construct_end_position,

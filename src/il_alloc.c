@@ -2573,7 +2573,8 @@ fields to default values.
       ndsp->freeing_of_storage_on_exception = NULL;
       break;
     case enk_lambda:
-      node->variant.lambda = NULL;
+      node->variant.lambda.ptr            = NULL;
+      node->variant.lambda.initialization = NULL;
       break;
     case enk_throw:
       /* Allocate the supplement for a throw. */
@@ -4095,7 +4096,6 @@ entry is allocated in the current memory region.
   entry->capture_end_position = null_source_position;
   entry->mutable_position = null_source_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  entry->initialization = NULL;
   return entry;
 }  /* alloc_lambda */
 

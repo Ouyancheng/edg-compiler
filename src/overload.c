@@ -13391,7 +13391,7 @@ like
       if (static_lifetime) node->variant.init.static_temp = TRUE;
       dip = node->variant.init.dynamic_init;
     } else if (node->kind == (an_expr_node_kind)enk_lambda) {
-      dip = node->variant.lambda->initialization;
+      dip = node->variant.lambda.initialization;
     }  /* if */
     if (dip != NULL) {
       dip->has_temporary_lifetime = FALSE;

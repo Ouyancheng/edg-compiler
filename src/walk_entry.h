@@ -1393,7 +1393,9 @@ do_set_proper_definition_needed_flag:
                      iek_new_delete_supplement);
             break;
           case enk_lambda:
-            walk_ptr(ptr->variant.lambda, a_lambda_ptr, iek_lambda);
+            walk_ptr(ptr->variant.lambda.ptr, a_lambda_ptr, iek_lambda);
+            walk_ptr(ptr->variant.lambda.initialization, a_dynamic_init_ptr,
+                     iek_dynamic_init);
             break;
           case enk_throw:
             walk_ptr(ptr->variant.throw_info, a_throw_supplement_ptr,
@@ -2952,7 +2954,6 @@ after_entry_from_class:
         set_proper_definition_needed_flag(ptr->closure_class);
         walk_ptr(ptr->lambda_routine, a_routine_ptr, iek_routine);
         set_proper_routine_definition_needed_flag(ptr->lambda_routine);
-        walk_ptr(ptr->initialization, a_dynamic_init_ptr, iek_dynamic_init);
       }
       break;
     case iek_lambda_capture:

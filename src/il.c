@@ -5531,7 +5531,9 @@ are allowed under a sizeof (etc.) in a template argument expression.
         }
         break;
       case enk_lambda:
-        eq = (node1->variant.lambda == node2->variant.lambda);
+        eq = (node1->variant.lambda.ptr == node2->variant.lambda.ptr &&
+              node1->variant.lambda.initialization ==
+                                         node2->variant.lambda.initialization);
         break;
       case enk_throw:
         { a_throw_supplement_ptr tsp1 = node1->variant.throw_info;
@@ -14154,8 +14156,11 @@ be called to start a copy.
       break;
     case enk_lambda:
       /* The lambda entry is pointed to from the new node; no copy is made. */
-      check_assertion(in_file_scope(expr->variant.lambda) ||
+      check_assertion(in_file_scope(expr->variant.lambda.ptr) ||
                       !in_file_scope(expr_copy));
+      expr_copy->variant.lambda.initialization =
+                       i_copy_dynamic_init(expr->variant.lambda.initialization,
+                                           options, cblock);
       break;
     case enk_throw:
       if (expr->variant.throw_info != NULL) {
