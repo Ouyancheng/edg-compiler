@@ -2209,10 +2209,14 @@ the scope being pushed.
     }  /* if */
     /* Pragma, template declaration and template instantiation scopes
        require that the slow lookup algorithm be used because they require
-       that certain symbols on the active list not be considered. */
+       that certain symbols on the active list not be considered.  Lambda
+       class scopes require special treatment to ignore names in the lambda
+       scope. */
     if (kind == (a_scope_kind)sck_pragma ||
         kind == (a_scope_kind)sck_template_declaration ||
-        kind == (a_scope_kind)sck_template_instantiation) {
+        kind == (a_scope_kind)sck_template_instantiation ||
+        (kind == (a_scope_kind)sck_class_struct_union &&
+         class_type_supp(assoc_type)->is_lambda_closure_class)) {
       ssep->slow_lookup_required = TRUE;
     } else if (kind != (a_scope_kind)sck_file) {
       ssep->slow_lookup_required = (ssep-1)->slow_lookup_required;

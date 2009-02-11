@@ -681,9 +681,6 @@ typedef struct a_class_def_state {
 			   anywhere in the declaration, or not at all.
 			   For example:
 			     struct S { (int a)[3]; };       */
-  a_bit_field	is_closure_class:1;
-			/* TRUE if the class is a closure class that represents
-			   a lambda. */
   an_access_specifier
 		access;
 			/* The current access. */
@@ -732,7 +729,6 @@ class being defined.
   cdsp->member_destruction_required = FALSE;
   cdsp->base_destruction_required = FALSE;
   cdsp->ms_parenthesized_member = FALSE;
-  cdsp->is_closure_class = FALSE;
   cdsp->access = (an_access_specifier)as_public;
   cdsp->override_registry = NULL;
   cdsp->end_of_field_list = NULL;
@@ -11075,8 +11071,6 @@ be entered.
     }  /* if */
     member_sym->variant.field.ptr = field;
     decl_info->decl_state.sym = member_sym;
-    /* Fields of closure classes are not found by normal name lookup. */
-    if (class_state->is_closure_class) member_sym->is_invisible = TRUE;
   }  /* if */
   /* Set the parent class in the field and (unless member_sym is NULL) in the
      symbol. */
@@ -16389,7 +16383,6 @@ occurs inside a default argument expression.
   lambda->closure_class = closure_class =
                                   make_closure_class(&lambda->start_position);
   initialize_class_def_state(lambda->closure_class, &class_state);
-  class_state.is_closure_class = TRUE;
   if (innermost_function_scope != NULL || inside_local_class) {
     class_state.is_local_class = TRUE;
   }  /* if */

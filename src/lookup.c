@@ -2920,8 +2920,10 @@ that do normal id lookup processing.
     } else if (kind == (a_scope_kind)sck_pragma) {
       /* We have found a pragma scope -- ignore symbols in this scope. */
     } else if (kind == (a_scope_kind)sck_class_struct_union &&
-               lookup_state->skip_class_scopes) {
-      /* This is a class scope and we are skipping class scopes. */
+               (lookup_state->skip_class_scopes ||
+                class_type_supp(ssep->assoc_type)->is_lambda_closure_class)) {
+      /* This is a class scope and we are skipping class scopes, or it is
+         a class scope for lambda closure class, which should be ignored. */
     } else {
       /* Not a class reactivation or a template instantiation,
          i.e., normal scope.  Search through any symbols on the front
