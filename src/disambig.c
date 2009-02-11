@@ -441,6 +441,9 @@ token cache to be used.
   cache_curr_token(&state->cache);
   (void)get_token();
   if (curr_token == tok_lparen) {
+    /* We cache the rest of the statement here instead of relying on
+       cache_tokens_until in case the specifier includes a lambda. */
+    cache_rest_of_statement(state);
     /* Advance past the left paren. */
     cache_curr_token(&state->cache);
     get_token_and_coalesce_if_identifier(flags);
