@@ -3939,6 +3939,7 @@ be a function.
   a_boolean		    is_in_class_specialization = FALSE;
   a_boolean		    is_specialization_or_instantiation;
   a_boolean		    explicit_template_args_allowed = FALSE;
+  a_boolean		    ignore_explicit_template_args = FALSE;
 
   db_enter(3, "scan_real_declarator_id");
   declarator_pos = pos_curr_token;
@@ -3976,19 +3977,26 @@ be a function.
        !(options & GID_IS_TEMPLATE_DECLARATION))) {
     explicit_template_args_allowed = TRUE;
   } else if (microsoft_mode &&
-             depth_innermost_function_scope == NO_SCOPE_DEPTH &&
-             !(options & GID_IS_TEMPLATE_DECLARATION)) {
+             depth_innermost_function_scope == NO_SCOPE_DEPTH) {
     /* In Microsoft mode a function declarator can take explicit template
-       argument syntax -- the declaration is taken to be a specialization.
-       For example,
+       argument syntax.  If the declaration is not a template, it is taken to
+       be a specialization.  For example,
          template <class T> void f(T) { ... }
          void f<int>(int) { ... }
        is allowed in Microsoft mode -- the second line is equivalent to
          template <> void f<int>(int) { ... }
        (In more recent versions of the Microsoft compiler, this is actually
        context-dependent.  That dependency is handled elsewhere.)
+       If the declaration is a template, the template argument list is simply
+       ignored (with a warning):
+         template <class T> void f(T);
+         template <class T> void f<float>(T) { ... }  // <float> ignored
     */
-    explicit_template_args_allowed = TRUE;
+    if (!(options & GID_IS_TEMPLATE_DECLARATION)) {
+      explicit_template_args_allowed = TRUE;
+    } else {
+      ignore_explicit_template_args = TRUE;
+    }  /* if */
   }  /* if */
   if (*p_member_parent_type != NULL && (input_flags & DI_IS_SPECIALIZATION)) {
     /* When a member parent type is provided and the specialization flag is
@@ -4347,8 +4355,14 @@ be a function.
        such as a destructor declaration of the form ~A<T>(), will have
        already been transformed to a form where they are no longer considered
        to be template-ids. */
-    pos_error(ec_explicit_template_args_not_allowed, &declarator_pos);
-    set_to_error_locator(*locator);
+    if (!ignore_explicit_template_args) {
+      pos_error(ec_explicit_template_args_not_allowed, &declarator_pos);
+      set_to_error_locator(*locator);
+    } else {
+      pos_warning(ec_explicit_template_args_ignored, &declarator_pos);
+      locator->is_template_id = FALSE;
+      locator->template_arg_list = NULL;
+    }  /* if */
   }  /* if */
   if (locator->is_operator_name) {
     /* Enforce some restrictions on the declarations of overloaded
