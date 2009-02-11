@@ -1830,7 +1830,8 @@ a tk_vector type is returned.
       pos_error(ec_vector_size_must_be_power_of_two, &ap->position);
       err = TRUE;
     } else if (!err &&
-          ((a_host_large_unsigned)size % skip_typerefs(elem_type)->size) != 0) {
+               ((a_host_large_unsigned)size %
+                                       skip_typerefs(elem_type)->size) != 0) {
       pos_error(ec_vector_size_must_be_multiple_of_element_size,
                 &ap->position);
       err = TRUE;
