@@ -16355,28 +16355,19 @@ and issue a diagnostic if that was not the case.
 }  /* check_implicit_lambda_return_type */
 
 
-a_lambda_ptr scan_lambda(a_boolean inside_default_arg_expression)
+static a_scope_depth decl_level_for_lambda_closure_class(
+                                                 a_source_position  *diag_pos)
 /*
-Scan a C++ lambda construct and return a pointer to an a_lambda entry
-describing it.  If errors do not permit the construction of a consistent
-entry, return NULL.  inside_default_arg_expression is TRUE if this lambda
-occurs inside a default argument expression.
+A lambda appears in the current scope context.  Return the scope depth at
+which the associated closure class should be declared.  If appropriate, issue
+a diagnostic at the given position, but even in error cases the returned scope
+depth must be usable for error recovery purposes.
 */
 {
-  a_lambda_ptr        lambda = alloc_lambda();
-  a_type_ptr          closure_class;
-  a_class_def_state   class_state;
-  a_func_info_block   func_info;
-  a_decl_flag_set     sfb_flags;
-  a_scope_depth       decl_level = decl_scope_level;
-  a_boolean           scope_error_issued = FALSE;
+  a_scope_depth  decl_level = decl_scope_level;
+  a_boolean      scope_error_issued = FALSE;
 
-  /* Start a new stop token context. */
-  push_stop_token_stack();
-  check_assertion(curr_token == tok_lbracket);
-  lambda->start_position = pos_curr_token;
-  /* Determine the scope level at which to create the closure class. */
-  for (;; --decl_level) {
+  for (;; decl_level = scope_stack[decl_level].previous_scope) {
     a_boolean  scope_error = FALSE;
     switch (scope_stack[decl_level].kind) {
       case sck_file:
@@ -16386,14 +16377,7 @@ occurs inside a default argument expression.
       case sck_class_struct_union:
       case sck_condition:
       case sck_function:
-        goto decl_level_determined;
-      case sck_func_prototype:
-      case sck_template_declaration:
-      case sck_enum:
-        /* We currently don't accept lambdas in function prototype scopes, in
-           template parameter lists, and in scoped enum definitions. */
-        scope_error = TRUE;
-        break;
+        goto done;
       case sck_namespace_reactivation:
       case sck_class_reactivation:
       case sck_template_instantiation:
@@ -16402,17 +16386,49 @@ occurs inside a default argument expression.
            recovery. */
         check_assertion(scope_error_issued);
         break;
+      case sck_func_prototype:
+      case sck_template_declaration:
+      case sck_enum:
       default:
-        unexpected_condition();
+        /* We currently don't accept lambdas in function prototype scopes, in
+           template parameter lists, and in scoped enum definitions.  Other
+           scopes not covered above are unexpected, but it is safe to treat
+           them as errors. */
+        scope_error = TRUE;
+        break;
     }  /* switch */
     if (scope_error && !scope_error_issued) {
       pos_error(ec_bad_scope_for_lambda, &pos_curr_token);
       scope_error_issued = TRUE;
     }  /* if */
   }  /* for */
-decl_level_determined:
+done:
+  return decl_level;
+}  /* decl_level_for_lambda_closure_class */
+
+
+a_lambda_ptr scan_lambda(a_boolean inside_default_arg_expression)
+/*
+Scan a C++ lambda construct and return a pointer to an a_lambda entry
+describing it.  If errors do not permit the construction of a consistent
+entry, return NULL.  inside_default_arg_expression is TRUE if this lambda
+occurs inside a default argument expression.
+*/
+{
+  a_lambda_ptr       lambda = alloc_lambda();
+  a_type_ptr         closure_class;
+  a_scope_depth      decl_level;
+  a_class_def_state  class_state;
+  a_func_info_block  func_info;
+  a_decl_flag_set    sfb_flags;
+
+  /* Start a new stop token context. */
+  push_stop_token_stack();
+  check_assertion(curr_token == tok_lbracket);
+  lambda->start_position = pos_curr_token;
   /* Initialize the closure class and set up a context in which members
      can be added. */
+  decl_level = decl_level_for_lambda_closure_class(&pos_curr_token);
   lambda->closure_class = closure_class =
                  make_closure_class(decl_level, inside_default_arg_expression,
                                     &lambda->start_position);
