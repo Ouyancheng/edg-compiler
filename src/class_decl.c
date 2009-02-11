@@ -11956,6 +11956,7 @@ The routine body is not generated until it is known to be needed.
 {
   a_param_type_ptr              ptp;
   a_class_symbol_supplement_ptr cssp;
+  a_class_type_supplement_ptr   ctsp;
   a_boolean                     const_okay, dummy_flag;
   a_type_qualifier_set          ctor_qualifiers;
   a_type_qualifier_set          asgn_qualifiers;
@@ -11971,6 +11972,7 @@ The routine body is not generated until it is known to be needed.
 
   db_enter(3, "check_special_member_functions");
   cssp = symbol_supplement_for_class(class_type);
+  ctsp = class_type_supp(class_type);
   pos = &class_type->source_corresp.decl_position;
   /* Check for a user-declared copy assignment operator. */
   if (assignment_operator_for_copy_exists(cssp->assignment_operator,
@@ -11982,7 +11984,10 @@ The routine body is not generated until it is known to be needed.
     /* A POD cannot have a user-defined copy assignment operator. */
     class_state->POD_ruled_out = TRUE;
   }  /* if */
-  if (cssp->constructor == NULL) {
+  if (cssp->constructor == NULL && !ctsp->is_lambda_closure_class) {
+    /* See if a default constructor declaration is needed.  A default
+       constructor is not created for lambdas (they are also forced to be
+       non-POD). */
     if (!class_state->POD_ruled_out) {
       /* This is a POD class.  Its implicitly-declared default constructor
          need not actually be generated. */
@@ -12005,7 +12010,9 @@ The routine body is not generated until it is known to be needed.
   ctor_qualifiers = const_okay ? TQ_CONST : TQ_NONE;
   declare_copy_asgn_op = !user_declared_copy_assignment_op &&
                      (!any_cfront_mode() || cssp->assignment_operator == NULL);
-  declare_copy_ctor = cssp->constructor != NULL && !cssp->has_copy_constructor;
+  declare_copy_ctor = (ctsp->is_lambda_closure_class ||
+                       (cssp->constructor != NULL &&
+                        !cssp->has_copy_constructor));
   declare_dtor = (class_state->member_destruction_required ||
                   class_state->base_destruction_required) &&
                  cssp->destructor == NULL;
@@ -16437,6 +16444,12 @@ occurs inside a default argument expression.
     class_state.is_local_class = TRUE;
   }  /* if */
   class_state.access = (an_access_specifier)as_public;
+  /* Lambdas are forced to be non-POD so that any default initialization will
+     be done by attempting to call the default constructor (which will
+     fail). */
+  class_state.POD_ruled_out = TRUE;
+  /* Don't allow aggregate initialization of a closure object. */
+  class_state.class_aggregate_ruled_out = TRUE;
   class_type_supp(closure_class)->assoc_scope =
              push_scope((a_scope_kind)sck_class_struct_union, NO_SCOPE_NUMBER,
                         closure_class, (a_routine_ptr)NULL);
