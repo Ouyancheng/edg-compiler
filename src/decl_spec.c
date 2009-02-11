@@ -3513,6 +3513,11 @@ Microsoft attributes preceding the class specifier (if any).
       clear_source_corresp_name(&class_type->source_corresp);
       class_type->variant.class_struct_union.originally_unnamed = TRUE;
     }  /* if */
+    if (is_friend_decl && is_class_definition) {
+      /* Issuing the diagnostic was deferred till now. */
+      pos_sy_error(ec_bad_scope_for_definition, &tag_position, tag_sym);
+      err = TRUE;
+    }  /* if */
     /* Set parent class or namespace pointers, if appropriate, and adjust
        related fields (e.g., name linkage). */
     { a_boolean  def_or_vacuous_decl =
@@ -3521,19 +3526,12 @@ Microsoft attributes preceding the class specifier (if any).
       update_membership_of_class(tag_sym, def_or_vacuous_decl,
                                  effective_decl_level, &decl_start_pos);
     }
-    if (C_dialect == C_dialect_cplusplus) {
-      if (is_class_definition && is_friend_decl) {
-        /* Issuing the diagnostic was deferred till now. */
-        pos_sy_error(ec_bad_scope_for_definition, &tag_position, tag_sym);
-        err = TRUE;
-      }  /* if */
-      if (is_friend_decl && tag_id_present &&
-          secondary_translation_unit_seen()) {
-        /* This class type entry might have been generated during the
-           instantiation of another template.  The correspondence checking
-           process must therefore be notified of its existence. */
-        establish_friend_type_correspondence(class_type);
-      }  /* if */
+    if (is_friend_decl && tag_id_present &&
+        secondary_translation_unit_seen()) {
+      /* This class type entry might have been generated during the
+         instantiation of another template.  The correspondence checking
+         process must therefore be notified of its existence. */
+      establish_friend_type_correspondence(class_type);
     }  /* if */
     if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH &&
         tag_sym->is_class_member) {
