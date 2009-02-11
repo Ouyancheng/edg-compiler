@@ -4090,7 +4090,6 @@ entry is allocated in the current memory region.
   entry->default_is_by_reference = FALSE;
   entry->explicit_return_type = FALSE;
   entry->has_parameter_decl = FALSE;
-  entry->inside_default_arg_expression = FALSE;
   entry->start_position = null_source_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   entry->capture_end_position = null_source_position;

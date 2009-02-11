@@ -1118,11 +1118,14 @@ is no associated capture (explicit or implicit), return NULL.
 }  /* lambda_capture_for_variable */
 
 
-static a_type_ptr make_closure_class(a_source_position  *decl_position)
+static a_type_ptr make_closure_class(
+                              a_source_position  *decl_position,
+                              a_boolean          inside_default_arg_expression)
 /*
 Create the class type that is used to represent a lambda closure.  Return
 a pointer to the class type.  decl_position is the declaration position
-to be used for the lambda.
+to be used for the lambda.  inside_default_arg_expression is TRUE if the
+lambda appears inside a default argument expression.
 
 The class is created as an incomplete type.  It will be completed when its
 various members have been added (call operator, constructors, destructor, and
@@ -1163,6 +1166,7 @@ the fields implied by the lambda's capture list).
   /* Assume for now that bitwise copy is allowed for this class.  This will
      be cleared later if this is not the case. */
   cssp->construction_by_bitwise_copy_allowed = TRUE;
+  cssp->lambda_inside_default_arg_expression = inside_default_arg_expression;
   return type;
 }  /* make_closure_class */
 
@@ -16377,11 +16381,11 @@ occurs inside a default argument expression.
   /* Parse the lambda-introducer. */
   check_assertion(curr_token == tok_lbracket);
   lambda->start_position = pos_curr_token;
-  lambda->inside_default_arg_expression = inside_default_arg_expression;
   /* Initialize the closure class and set up a context in which members
      can be added. */
   lambda->closure_class = closure_class =
-                                  make_closure_class(&lambda->start_position);
+                             make_closure_class(&lambda->start_position,
+                                                inside_default_arg_expression);
   initialize_class_def_state(lambda->closure_class, &class_state);
   if (innermost_function_scope != NULL || inside_local_class) {
     class_state.is_local_class = TRUE;

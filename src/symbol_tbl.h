@@ -1025,6 +1025,11 @@ typedef struct a_class_symbol_supplement {
 			/* TRUE when the first declaration of this class in
 			   the translation unit is the definition. */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  a_bit_field	lambda_inside_default_arg_expression:1;
+			/* TRUE if this class is the closure class for a lambda
+			   that occurs inside a default argument expression.
+			   (That's an error currently, and this flag helps with
+			   error recovery.) */
   bitfield_to_avoid_codecenter_warnings()
 } a_class_symbol_supplement;
 

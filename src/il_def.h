@@ -12907,10 +12907,6 @@ typedef struct a_lambda {
 			   lambda appeared explicitly in the input.  (If no
 			   parameter list appeared, the effect is equivalent
 			   to an empty parameter list.) */
-  a_bit_field	inside_default_arg_expression:1;
-			/* TRUE if this lambda occurs inside a default argument
-			   expression.  One consequence of that is that it
-			   cannot capture local variables. */
   a_source_position
 		start_position;
 			/* Position of the "[" that begins the lambda. */

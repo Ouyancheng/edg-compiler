@@ -16604,7 +16604,8 @@ answer.
     result = TRUE;
   } else if (in_lambda_body()) {
     a_lambda_ptr lambda = get_current_lambda();
-    result = lambda->inside_default_arg_expression;
+    result = symbol_for(lambda->closure_class)->variant.class_struct_union.
+                              extra_info->lambda_inside_default_arg_expression;
   }  /* if */
   return result;
 }  /* expr_is_inside_default_arg_expression */
