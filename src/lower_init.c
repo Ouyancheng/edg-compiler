@@ -1412,7 +1412,8 @@ static void add_init_assignment(a_dynamic_init_ptr     dip,
                                 a_constant_ptr         con,
                                 an_expr_node_ptr       entity_node,
                                 a_boolean              have_complete_object,
-                                an_insert_location_ptr insert_location)
+                                an_insert_location_ptr insert_location,
+                                a_boolean              is_lambda_capture)
 /*
 Make an assignment statement to implement the dynamic initialization
 described by dip.  If dip is NULL, con indicates the constant value of
@@ -1420,8 +1421,9 @@ the initializer.  entity_node is an lvalue expression of the entity
 to be initialized.  have_complete_object is TRUE if the entity
 being initialized is a complete object; FALSE means a base
 class subobject.  Insert the statement at *insert_location and update
-*insert_location.  The constant or expression initial value pointed
-to by dip or con is already lowered.
+*insert_location.  The assignment is being performed as part of a lambda
+capture operation if is_lambda_capture is TRUE.  The constant or expression
+initial value pointed to by dip or con is already lowered.
 */
 {
   an_expr_node_ptr      init_val_node, assign_node;
@@ -1486,6 +1488,15 @@ to by dip or con is already lowered.
        function with a parameter that is passed via a copy constructor,
        we need to add a cast to the destination type to avoid a type
        mismatch. */
+    init_val_node = add_cast(init_val_node, entity_node->type);
+  } else if (is_lambda_capture &&
+             is_ptr_or_ref_type(init_val_node->type) &&
+             is_incomplete_type(type_pointed_to(init_val_node->type))) {
+    /* Handle a case like:
+         int x[] = {37, 47, [&x]{return x[0] + x[1];}()};
+       where a lambda capture's type is incomplete at the time of the capture.
+       Add an explicit cast to the incomplete type (since the source type,
+       while incomplete now, will be complete in the generated C code). */
     init_val_node = add_cast(init_val_node, entity_node->type);
   }  /* if */
   assign_node = make_assignment_expr_with_subobject_fix(entity_node,
@@ -4562,7 +4573,8 @@ TRUE.
         con_ptr->next = NULL;
         add_init_assignment((a_dynamic_init *)NULL, con_ptr, entity_node,
                             /*have_complete_object=*/FALSE,
-                            insert_location);
+                            insert_location,
+                            /*is_lambda_capture=*/FALSE);
       } else {
         /* Normal case.  Keep this as part of a constant aggregate. */
         *keep_constant = TRUE;
@@ -6889,7 +6901,9 @@ do_assignment:;
       entity_node = make_init_entity_node(ipdp, /*result_is_lvalue=*/TRUE,
                                           /*using_as_dest=*/TRUE);
       add_init_assignment(dip, (a_constant *)NULL, entity_node,
-                          have_complete_object, eff_insert_location);
+                          have_complete_object, eff_insert_location,
+                          (source_desc != NULL &&
+                           source_desc->capture != NULL));
       break;
     case dik_call_returning_class_via_cctor:
       /* Initialize the entry by calling a routine that returns its result
