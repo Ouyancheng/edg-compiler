@@ -1812,6 +1812,7 @@ ec_more_than_one_capture;;"a name cannot appear more than once in a capture-list
 ec_ellipsis_in_lambda;;"an ellipsis parameter is not allowed for a lambda"
 ec_unnamed_lambda_parameter;;"an unnamed lambda parameter is not allowed"
 ec_void_lambda_parameter;;"a void lambda parameter list is not allowed"
+ec_bad_scope_for_lambda;;"a lambda is not allowed in this scope"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

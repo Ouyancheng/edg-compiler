@@ -1118,14 +1118,15 @@ is no associated capture (explicit or implicit), return NULL.
 }  /* lambda_capture_for_variable */
 
 
-static a_type_ptr make_closure_class(
-                              a_source_position  *decl_position,
-                              a_boolean          inside_default_arg_expression)
+static a_type_ptr make_closure_class(a_scope_depth      decl_level,
+                                     a_boolean          inside_default_arg,
+                                     a_source_position  *decl_position)
 /*
 Create the class type that is used to represent a lambda closure.  Return
-a pointer to the class type.  decl_position is the declaration position
-to be used for the lambda.  inside_default_arg_expression is TRUE if the
-lambda appears inside a default argument expression.
+a pointer to the class type.  decl_level determines which scope the class
+belongs to.  inside_default_arg is TRUE if the lambda appears inside a
+default argument expression.  decl_position is the declaration position to
+be used for the lambda.
 
 The class is created as an incomplete type.  It will be completed when its
 various members have been added (call operator, constructors, destructor, and
@@ -1135,7 +1136,6 @@ the fields implied by the lambda's capture list).
   a_type_ptr                     type;
   a_symbol_ptr                   sym;
   a_class_symbol_supplement_ptr  cssp;
-  a_scope_depth                  decl_level = decl_scope_level;
 
   /* Create an unnamed symbol for the lambda class. */
   sym = make_unnamed_tag_symbol((a_symbol_kind)sk_class_or_struct_tag,
@@ -1151,14 +1151,6 @@ the fields implied by the lambda's capture list).
        as prototype instantiations. */
     type->variant.class_struct_union.is_nonreal_class = TRUE;
   }  /* if */
-  /* Add the class type to the current declaration scope.  If the current
-     declaration scope is a template declaration scope (i.e., we are in the
-     process of declaring template parameters), add the types to the closest
-     enclosing scope to which a type can be added. */
-  while (scope_stack[decl_level].kind ==
-                                     (a_scope_kind)sck_template_declaration) {
-    --decl_level;
-  }  /* while */
   update_membership_of_class(sym, /*def_or_vacuous_decl=*/TRUE, decl_level,
                              decl_position);
   add_to_types_list(type, decl_level);
@@ -1166,7 +1158,7 @@ the fields implied by the lambda's capture list).
   /* Assume for now that bitwise copy is allowed for this class.  This will
      be cleared later if this is not the case. */
   cssp->construction_by_bitwise_copy_allowed = TRUE;
-  cssp->lambda_inside_default_arg_expression = inside_default_arg_expression;
+  cssp->lambda_inside_default_arg_expression = inside_default_arg;
   return type;
 }  /* make_closure_class */
 
@@ -16374,18 +16366,54 @@ occurs inside a default argument expression.
   a_class_def_state   class_state;
   a_func_info_block   func_info;
   a_decl_flag_set     sfb_flags;
-  a_scope_depth       orig_decl_scope_level = decl_scope_level;
+  a_scope_depth       decl_level = decl_scope_level;
+  a_boolean           scope_error_issued = FALSE;
 
   /* Start a new stop token context. */
   push_stop_token_stack();
-  /* Parse the lambda-introducer. */
   check_assertion(curr_token == tok_lbracket);
   lambda->start_position = pos_curr_token;
+  /* Determine the scope level at which to create the closure class. */
+  for (;; --decl_level) {
+    a_boolean  scope_error = FALSE;
+    switch (scope_stack[decl_level].kind) {
+      case sck_file:
+      case sck_block:
+      case sck_namespace:
+      case sck_namespace_extension:
+      case sck_class_struct_union:
+      case sck_condition:
+      case sck_function:
+        goto decl_level_determined;
+      case sck_func_prototype:
+      case sck_template_declaration:
+      case sck_enum:
+        /* We currently don't accept lambdas in function prototype scopes, in
+           template parameter lists, and in scoped enum definitions. */
+        scope_error = TRUE;
+        break;
+      case sck_namespace_reactivation:
+      case sck_class_reactivation:
+      case sck_template_instantiation:
+      case sck_instantiation_context:
+        /* We might see these while looking for a suitable scope after error
+           recovery. */
+        check_assertion(scope_error_issued);
+        break;
+      default:
+        unexpected_condition();
+    }  /* switch */
+    if (scope_error && !scope_error_issued) {
+      pos_error(ec_bad_scope_for_lambda, &pos_curr_token);
+      scope_error_issued = TRUE;
+    }  /* if */
+  }  /* for */
+decl_level_determined:
   /* Initialize the closure class and set up a context in which members
      can be added. */
   lambda->closure_class = closure_class =
-                             make_closure_class(&lambda->start_position,
-                                                inside_default_arg_expression);
+                 make_closure_class(decl_level, inside_default_arg_expression,
+                                    &lambda->start_position);
   initialize_class_def_state(lambda->closure_class, &class_state);
   if (innermost_function_scope != NULL || inside_local_class) {
     class_state.is_local_class = TRUE;
@@ -16437,8 +16465,7 @@ occurs inside a default argument expression.
     remove_stop_token(tok_rbrace);
   }  /* if */
   /* Record the capture list and complete the closure class. */
-  complete_class_definition(closure_class, orig_decl_scope_level,
-                            &class_state);
+  complete_class_definition(closure_class, decl_level, &class_state);
   pop_scope();
   if (lambda != NULL && lambda->lambda_routine != NULL) {
     if (lambda->lambda_routine->assoc_scope != NULL_region_number) {
