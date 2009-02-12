@@ -283,8 +283,13 @@ IDL_PROJ_SYMBOL_ALLOWED is specified in options.
     sym = NULL;
   } else if (sym != NULL) {
 #if CHECKING
+    /* In some template cases a previous lookup could have set the
+       symbol to a template parameter symbol.  An error will be issued
+       by the caller. */
     a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
-    check_assertion(is_acceptable_symbol(sym, fund_sym));
+    check_assertion(is_acceptable_symbol(sym, fund_sym) ||
+                    is_type_template_param_symbol(fund_sym));
+    expect_error();
 #endif /* CHECKING */
     /* The locator is for a specific symbol, so return the symbol for it. */
   } else {
