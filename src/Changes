@@ -1,5 +1,18 @@
 Version 4.1
 
+2/12/09  [EDGcpfe/9536]
+Abort on new of dependent array of error type
+
+The front end aborted (in select_destructor) on processing a new of
+an array type whose bounds are template-dependent and whose element type
+is unknown because of an error.  Now fixed.
+
+  template <int I> void f() {
+    new X[I+1]();  // Previously aborted in --strict mode
+                   // X is undefined, so the element type is an error
+  }
+
+
 2/12/09  [EDGcpfe/9529]
 Abort on Microsoft-mode in-class specialization appearing in a class template
 

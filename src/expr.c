@@ -9773,7 +9773,9 @@ specification allow a variable-sized array as the top type.
           /* If exceptions are enabled, put in a destructor.  It's needed
              to destroy elements if a throw is done part-way through the
              initialization of the array. */
-          if (exceptions_enabled) {
+          if (exceptions_enabled &&
+              /* Avoid an error recovery problem: */
+              is_class_struct_union_type(base_new_type)) {
             dip->destructor = expr_select_destructor(base_new_type,
                                                      base_new_type,
                                                      &type_position,
