@@ -16417,7 +16417,7 @@ depth must be usable for error recovery purposes.
         break;
     }  /* switch */
     if (scope_error && !scope_error_issued) {
-      pos_error(ec_bad_scope_for_lambda, &pos_curr_token);
+      pos_error(ec_bad_scope_for_lambda, diag_pos);
       scope_error_issued = TRUE;
     }  /* if */
   }  /* for */
