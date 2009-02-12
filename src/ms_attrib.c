@@ -360,12 +360,21 @@ are accepted.
   /* [appobject] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
 			     "appobject", MSAT_CLASS | MSAT_STRUCT);
+  /* [as_expression] */
+  make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
+                             "as_expression", MSAT_ANY);
+  /* [as_string] */
+  make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
+                             "as_string", MSAT_ANY);
   /* [async_uuid] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
 			     "async_uuid", MSAT_INTERFACE);
   set_initialization_style_arg_allowed();
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_uuid,
                           "uuid", /*is_unnamed=*/TRUE, (char*)NULL);
+  /* [attribute] */
+  make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
+                             "attribute", MSAT_ANY);
   /* [bindable] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
 			     "bindable", MSAT_METHOD);
@@ -399,6 +408,9 @@ are accepted.
 			     "cpp_quote", MSAT_ANY);
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
                           "statement", /*is_unnamed=*/TRUE, (char*)NULL);
+  /* [custom] */
+  make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
+                             "custom", MSAT_ANY);
   /* [db_accessor] */
   make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
 			     "db_accessor", MSAT_ANY);
@@ -431,11 +443,17 @@ are accepted.
   /* [defaultcollelem] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
 			     "defaultcollelem", MSAT_METHOD);
+  /* [default_value] */
+  make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
+                             "default_value", MSAT_ANY);
   /* [defaultvalue] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
 			     "defaultvalue", MSAT_PARAMETER);
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
                           "value", /*is_unnamed=*/FALSE, (char*)NULL);
+  /* [defaultvtable] */
+  make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
+                             "defaultvtable", MSAT_ANY);
   /* [dispinterface] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
 			     "dispinterface", MSAT_INTERFACE);
@@ -506,6 +524,9 @@ are accepted.
                              MSAT_METHOD);
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_integer,
                           "filename", /*is_unnamed=*/TRUE, (char*)NULL);
+  /* [help_string] */
+  make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
+                             "help_string", MSAT_ANY);
   /* [helpstring] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
 			     "helpstring",
@@ -532,6 +553,9 @@ are accepted.
 			     "hidden",
                               MSAT_METHOD | MSAT_INTERFACE |
                               MSAT_CLASS | MSAT_STRUCT);
+  /* [hook] */
+  make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
+                             "hook", MSAT_ANY);
   /* [id] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
 			     "id", MSAT_METHOD);
@@ -686,6 +710,9 @@ are accepted.
   make_attribute_description((an_ms_attribute_kind)msak_misc,
 			     "ms_union",
                              MSAT_CLASS | MSAT_STRUCT | MSAT_INTERFACE);
+  /* [multi_value] */
+  make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
+                             "multi_value", MSAT_ANY);
   /* [no_injected_text] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
 			     "no_injected_text", MSAT_ANY);
@@ -700,6 +727,9 @@ are accepted.
   /* [nonextensible] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
 			     "nonextensible", MSAT_INTERFACE);
+  /* [notify_atlprov] */
+  make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
+                             "notify_atlprov", MSAT_ANY);
   /* [odl] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
 			     "odl", MSAT_INTERFACE);
@@ -709,6 +739,9 @@ are accepted.
   /* [oleautomation] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
 			     "oleautomation", MSAT_INTERFACE);
+  /* [optional] */
+  make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
+                             "optional", MSAT_ANY);
   /* [out] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
 			     "out", MSAT_PARAMETER);
@@ -770,6 +803,9 @@ are accepted.
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_other,
                           "pragma_statement", /*is_unnamed=*/TRUE,
                           (char*)NULL);
+  /* [process_early] */
+  make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
+                             "process_early", MSAT_ANY);
   /* [progid] */
   make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
 			     "progid", MSAT_CLASS | MSAT_STRUCT);
@@ -823,6 +859,9 @@ are accepted.
 			     "registration_script", MSAT_CLASS | MSAT_STRUCT);
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
                           "script", /*is_unnamed=*/FALSE, (char*)NULL);
+  /* [repeatable] */
+  make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
+                             "repeatable", MSAT_ANY);
   /* [requestedit] */
   make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
 			     "requestedit", MSAT_METHOD);
@@ -840,6 +879,9 @@ are accepted.
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
                           "requires_category", /*is_unnamed=*/FALSE,
                           (char*)NULL);
+  /* [requires_value] */
+  make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
+                             "requires_value", MSAT_ANY);
   /* [restricted] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
 			     "restricted",
@@ -890,6 +932,9 @@ are accepted.
 			     "soap_method", MSAT_METHOD);
   add_attribute_parameter((an_ms_attribute_arg_kind)msaak_string,
                           "name", /*is_unnamed=*/FALSE, (char*)NULL);
+  /* [soap_namespace] */
+  make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
+                             "soap_namespace", MSAT_ANY);
   /* [source] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
 			     "source",
@@ -946,11 +991,17 @@ are accepted.
   /* [uidefault] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
 			     "uidefault", MSAT_METHOD);
+  /* [unhook] */
+  make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
+                             "unhook", MSAT_ANY);
   /* [unique] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
 			     "unique",
                               MSAT_PARAMETER | MSAT_METHOD |
                               MSAT_ROUTINE | MSAT_TYPEDEF);
+  /* [usage] */
+  make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
+                             "usage", MSAT_ANY);
   /* [usesgetlasterror] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
 			     "usesgetlasterror", MSAT_ANY);
@@ -963,9 +1014,18 @@ are accepted.
     add_attribute_parameter((an_ms_attribute_arg_kind)msaak_uuid,
                             "uuid", /*is_unnamed=*/FALSE, (char*)NULL);
   }  /* if */
+  /* [v1_alttype] */
+  make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
+                             "v1_alttype", MSAT_ANY);
+  /* [v1_early] */
+  make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
+                             "v1_early", MSAT_ANY);
   /* [v1_enum] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
 			     "v1_enum", MSAT_ENUM);
+  /* [v1_name] */
+  make_attribute_description((an_ms_attribute_kind)msak_unrecognized,
+                             "v1_name", MSAT_ANY);
   /* [vararg] */
   make_attribute_description((an_ms_attribute_kind)msak_misc,
 			     "vararg", MSAT_METHOD);

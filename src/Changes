@@ -1,5 +1,18 @@
 Version 4.1
 
+2/12/09  [EDGcpfe/9447]
+Microsoft compatibility: support for additional attributes
+
+In Microsoft mode, the front end now supports the following additional
+attributes: as_expression, as_string, attribute, custom, default_value,
+defaultvtable, help_string, hook, multi_value, notify_atlprov, optional,
+process_early, repeatable, requires_value, soap_namespace, unhook, usage,
+v1_alttype, v1_early, and v1_name.  These attributes are only supported
+to the extent that their names are recognized as valid attributes.  No
+attempt is made to verify that they are used in appropriate locations or
+that their arguments are acceptable.
+
+
 2/11/09  [EDGcpfe/9527]
 Abort when a const string literal is explicitly cast to a reference
 
