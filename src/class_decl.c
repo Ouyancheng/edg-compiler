@@ -405,7 +405,17 @@ in class contexts.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
 #if FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS
-  rfp->func_info.is_movable_member_or_friend_def = TRUE;
+  /* If the specialization is in a class template, there is no syntax for an
+     out-of-class definition.  E.g.:
+       template<class T> struct S {
+         template<class U> T f(U) {}
+         template<> T f(int);  // Cannot be defined outside S.
+       };
+       template<class T> template<> T S::f(int) {}
+          // Error: "template<>" cannot appear after "template<class T>".
+  */
+  rfp->func_info.is_movable_member_or_friend_def =
+                     !class_type->variant.class_struct_union.is_nonreal_class;
 #endif /* FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS */
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
