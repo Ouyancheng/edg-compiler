@@ -16613,17 +16613,19 @@ answer.
 
 a_boolean check_var_for_lambda_capture(a_variable_ptr  var,
                                        a_boolean       implicit,
+                                       a_boolean       by_ref,
                                        an_error_code   *diag)
 /*
 The given variable is being captured for the current lambda; the capture is
-implicit if implicit is TRUE.  Check that this capture is valid, and return
-TRUE if it is.  If it is not, return FALSE, and set *diag to an appropriate
-error code.
+implicit if implicit is TRUE, and is by-reference is by_ref is TRUE.
+Check that this capture is valid, and return TRUE if it is.  If it is not,
+return FALSE, and set *diag to an appropriate error code.
 */
 {
   a_boolean  okay = FALSE;
 
   check_assertion(expr_stack != NULL);
+  *diag = ec_no_error;
   if (has_static_storage_duration(var->storage_class)) {
     *diag = ec_capture_of_static_duration_variable;
     /* A reference to a static/extern variable doesn't amount to an implicit
@@ -16637,6 +16639,12 @@ error code.
   } else if (variable_auto_decl_underway(var)) {
     /* Can't use a variable declared with auto in its own initializer. */
     *diag = ec_auto_variable_in_own_initializer;
+  } else if (!by_ref &&
+             is_reference_type(var->type) &&
+             is_function_type(type_pointed_to(var->type))) {
+    /* A variable with reference-to-function type cannot be captured by
+       value, because the closure class field would have function type. */
+    *diag = ec_lambda_capture_ref_function;
   } else if (is_variably_modified_type(var->type)) {
     *diag = ec_lambda_capture_involves_variable_length_array;
   } else if (expr_is_inside_default_arg_expression()) {
@@ -16645,7 +16653,6 @@ error code.
     *diag = ec_ref_to_nested_function_var;
   } else {
     okay = TRUE;
-    *diag = ec_no_error;
   }  /* if */
   return okay;
 }  /* check_var_for_lambda_capture */
@@ -16685,6 +16692,7 @@ indicates that the symbol is an anonymous union and cannot be captured.
   a_boolean      bad_ref = FALSE;
   a_variable_ptr var;
   an_error_code  err_code = ec_no_error;
+  a_boolean      error_issued_already = FALSE;
 
   if (lambda_capture != NULL) *lambda_capture = NULL;
   /* This sort of bad reference is only possible when we are inside a local
@@ -16730,20 +16738,11 @@ indicates that the symbol is an anonymous union and cannot be captured.
           err_code = ec_anon_union_ref_in_lambda;
           bad_ref = TRUE;
         } else {
-          if (check_var_for_lambda_capture(var, /*implicit=*/TRUE,
-                                           &err_code)) {
-            /* The local variable can potentially be captured (e.g., it
-               is from the immediately enclosing function).  See if it
-               has been or can be captured now. */
-            *lambda_capture= lambda_capture_for_variable(var, &error_position);
-            if (*lambda_capture == NULL) {
-              err_code = ec_not_captured_local_var_in_lambda;
-              bad_ref = TRUE;
-            }  /* if */
-          } else {
-            /* The variable isn't one that can be captured (err_code will
-               have been set by check_var_for_lambda_capture). */
+          /* See if the variable has been or can be captured now. */
+          *lambda_capture = lambda_capture_for_variable(var, &error_position);
+          if (*lambda_capture == NULL) {
             bad_ref = TRUE;
+            error_issued_already = TRUE;
           }  /* if */
         }  /* if */
       } else if (curr_expr_kind_is_const() &&
@@ -16771,9 +16770,12 @@ indicates that the symbol is an anonymous union and cannot be captured.
     }  /* if */
   }  /* if */
   if (bad_ref) {
-    /* Issue the error. */
-    if (err_code == ec_no_error) err_code = ec_ref_to_nested_function_var;
-    error_and_make_error_operand(err_code, operand);
+    if (!error_issued_already) {
+      /* Issue the error. */
+      if (err_code == ec_no_error) err_code = ec_ref_to_nested_function_var;
+      error(err_code);
+    }  /* if */
+    make_error_operand(operand);
     /* Avoid further diagnostics by making this an error reference. */
     change_refs_to_error(*rep);
     *rep = NULL;
@@ -18552,7 +18554,7 @@ fields of the closure object.  Return a pointer to the dynamic init entry.
                                /*is_copy_initialization=*/TRUE,
                                /*processed_arg=*/FALSE,
                                /*nontype_template_arg=*/FALSE,
-                               ec_captured_var_not_copyable);
+                               ec_captured_var_type_not_copyable);
       dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_expression);
       dip->variant.expression = make_node_from_operand(&operand);
     }  /* if */

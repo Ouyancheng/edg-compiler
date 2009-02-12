@@ -1059,36 +1059,18 @@ to be used for the capture.
 }  /* add_lambda_capture */
 
 
-static a_lambda_capture_ptr find_lambda_capture(
-                                           a_lambda_ptr           lambda,
-                                           a_variable_ptr         vp,
-                                           a_source_position_ptr  pos,
-                                           a_boolean              okay_to_add)
+static a_lambda_capture_ptr find_lambda_capture(a_lambda_ptr   lambda,
+                                                a_variable_ptr vp)
 /*
-vp is a variable entry for a local variable of a suitable kind for potential
-use as a lambda capture (e.g., it is from an acceptable scope and is of
-automatic storage duration).  Look for a lambda capture entry for this
-variable in the specified lambda.  If the variable is found on
-the capture list, return the capture.  If it is not on the list, okay_to_add
-is TRUE, and the lambda allows implicit captures, add it to the capture
-list and return the capture.  When an entry is added to the capture list,
-pos is the position to be used as the declaration position of the closure
-class member.  If there is no associated capture (explicit or implicit),
-return NULL.
+If the indicated lambda already has a capture entry for the indicated
+variable, return a pointer it.  Otherwise, return NULL.
 */
 {
   a_lambda_capture_ptr  lcp;
 
-  /* Look for an existing capture entry for this variable. */
   for (lcp = lambda->capture_list; lcp != NULL; lcp = lcp->next) {
     if (lcp->variable == vp) break;
   }  /* for */
-  /* If no matching capture was found, we can create one if the lambda has
-     a capture default. */
-  if (lcp == NULL && okay_to_add && lambda->has_capture_default) {
-    lcp = add_lambda_capture(lambda, vp, /*is_implicit=*/TRUE,
-                             lambda->default_is_by_reference, pos);
-  }  /* if */
   return lcp;
 }  /* find_lambda_capture */
 
@@ -1096,24 +1078,39 @@ return NULL.
 a_lambda_capture_ptr lambda_capture_for_variable(a_variable_ptr         vp,
                                                  a_source_position_ptr  pos)
 /*
-vp is a variable entry for a local variable of a suitable kind for potential
-use as a lambda capture (e.g., it is from an acceptable scope and is of
-automatic storage duration).  Look for a lambda capture entry for this
-variable in the nearest enclosing lambda.  If the variable is found on
-the capture list, return the capture.  If it is not on the list, and the
-lambda allows implicit captures, add it to the capture list and return
-the capture.  When an entry is added to the capture list, pos is the position
-to be used as the declaration position of the closure class member.  If there
-is no associated capture (explicit or implicit), return NULL.
+vp is a local variable that is being used in a lambda.  Find or create a lambda
+capture entry for it and return a pointer to it.  pos is the source position
+of the variable reference.  If there is no existing capture entry, an
+implicit capture will be created if the lambda allows it and if the variable
+is appropriate to be captured.  If no capture can be found or created,
+issue an error and return NULL.
 */
 {
   a_lambda_ptr          lambda = get_current_lambda();
   a_lambda_capture_ptr  lcp;
 
   check_assertion(lambda != NULL);
-  /* Find or create the lambda capture for this variable.  NULL will be
-     returned if no capture is found and one cannot be created. */
-  lcp = find_lambda_capture(lambda, vp, pos, /*okay_to_add=*/TRUE);
+  /* Find any existing lambda capture for this variable. */
+  lcp = find_lambda_capture(lambda, vp);
+  if (lcp == NULL) {
+    /* No existing capture.  See if one can be created. */
+    an_error_code err_code = ec_no_error;
+    a_boolean     by_ref = lambda->default_is_by_reference;
+    if (!check_var_for_lambda_capture(vp, /*implicit=*/TRUE, by_ref,
+                                      &err_code)) {
+      /* The variable is not valid.  err_code explains why. */
+    } else if (!lambda->has_capture_default) {
+      /* No capture default, so implicit captures are not allowed. */
+      err_code = ec_not_captured_local_var_in_lambda;
+    } else {
+      /* The variable is valid.  Add a new capture entry for it. */
+      lcp = add_lambda_capture(lambda, vp, /*is_implicit=*/TRUE,
+                               by_ref, pos);
+    }  /* if */
+    if (err_code != ec_no_error) {
+      pos_error(err_code, pos);
+    }  /* if */
+  }  /* if */
   return lcp;
 }  /* lambda_capture_for_variable */
 
@@ -16167,7 +16164,8 @@ caller has already moved past the '[', and this routine leaves the trailing
         } else {
           an_error_code  diag = ec_no_error;
           var = sym->variant.variable.ptr;
-          if (!check_var_for_lambda_capture(var, /*implicit=*/FALSE, &diag)) {
+          if (!check_var_for_lambda_capture(var, /*implicit=*/FALSE, by_ref,
+                                            &diag)) {
             error(diag);
             var = NULL;
           }  /* if */
@@ -16186,8 +16184,7 @@ caller has already moved past the '[', and this routine leaves the trailing
       }  /* if */
       if (var != NULL) {
         /* See if there is already a capture entry for this variable. */
-        if (find_lambda_capture(lambda, var, &capture_pos,
-                                /*okay_to_add=*/FALSE)) {
+        if (find_lambda_capture(lambda, var) != NULL) {
           /* A name cannot appear more than once in the capture list. */
           pos_diagnostic(es_discretionary_error,
                          ec_more_than_one_capture, &capture_pos);
