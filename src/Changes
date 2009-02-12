@@ -1,18 +1,5 @@
 Version 4.1
 
-2/1/09   [EDGcpfe/9528]
-Internal error on elaborated type specifier in dependent conversion operator
-
-An internal error could occur if a template contained an elaborated type
-specifier in a dependent conversion operator, the elaborated type
-specifier was followed by an opening brace, and nonclass prototype
-instantiations were requested.  Now fixed.
-
-  template <class T> void f(T x) {
-    x . operator class A {};
-  }
-
-
 2/11/09  [EDGcpfe/9527]
 Abort when a const string literal is explicitly cast to a reference
 

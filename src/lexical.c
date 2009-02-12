@@ -14250,8 +14250,6 @@ selection operator, in which case it points to the type of the left operand.
         lookup_kind = IDL_TENTATIVE_TEMPLATE_LOOKUP;
       } else if (qualifier_separator == tok_period) {
         lookup_kind = IDL_NO_OPTIONS;
-      } else if ((options & GID_IMPLICIT_TYPE_CONTEXT) != 0) {
-        lookup_kind = IDL_TYPENAME_LOOKUP;
       } else if (is_conversion_type && next_tok != tok_colon_colon) {
         /* Something like "operator B ...". */
         lookup_kind = IDL_NO_OPTIONS;
