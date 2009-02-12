@@ -3445,6 +3445,18 @@ restrictive.  Issue an appropriate diagnostic at the given position.
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
+static a_boolean is_interface_like(a_type_ptr  class_type)
+/*
+Return TRUE if the given class type is a Microsoft interface class or an
+interface-like class.
+*/
+{
+  check_assertion(is_immediate_class_type(class_type));
+  return class_type->variant.class_struct_union.is_interface ||
+         class_type->variant.class_struct_union.is_interface_like;
+}  /* is_interface_like */
+
+
 static a_boolean is_selectively_overridden_by(a_symbol_ptr  overridden_sym,
                                               a_symbol_ptr  overriding_sym)
 /*
@@ -3512,7 +3524,7 @@ extension.  For example:
     /* overrider selectively overrides an unknown (i.e., template dependent)
        function.  So it "may" selectively override the given candidate. */
     result = TRUE;
-  } else if (!base_class->type->variant.class_struct_union.is_interface) {
+  } else if (!is_interface_like(base_class->type)) {
     /* For non-interface base classes, the overrider must directly indicate
        the overridden function, and all the base subobjects are overridden.
        For example:
@@ -5660,9 +5672,7 @@ or struct definition.  The syntax is
         }  /* if */
       }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (interface_definition &&
-          !base_class_type->variant.class_struct_union.is_interface &&
-          !base_class_type->variant.class_struct_union.is_interface_like) {
+      if (interface_definition && !is_interface_like(base_class_type)) {
         error(ec_interface_must_derive_from_interface);
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -7802,8 +7812,7 @@ to (with its overridden_functions field).
   a_type_ptr        parent_class = qualifier_class_type(*loc), rp_type;
   a_scope_ptr       parent_scope = class_type_supp(parent_class)->assoc_scope;
 
-  check_assertion(sym_parent_class(base_sym)
-                                  ->variant.class_struct_union.is_interface &&
+  check_assertion(is_interface_like(sym_parent_class(base_sym)) &&
                   base_rp->pure_virtual);
   /* First look through the routines list of parent_class to see if we
      already created the required entry. */
@@ -7898,19 +7907,22 @@ function or NULL if none can be found.
                                                     (a_template_param_ptr)NULL,
                                                     /*templates_only=*/FALSE,
                                                     (a_symbol_ptr*)NULL);
-        if (sym_parent_class(sym)->variant.class_struct_union.is_interface &&
-            sym != NULL && sym_parent_class(sym) != parent_class) {
-          /* Lookup might have found an inherited member.  That is okay if the
-             member is inherited from an __interface class, but the recorded
-             base must be a proper member of the designated base class. */
-          sym = interface_slot_override(locator, sym);
-        }  /* if */
-        if (!sym->variant.routine.ptr->is_virtual ||
-            !sym->variant.routine.ptr->pure_virtual) {
-          pos_error(ec_invalid_selective_overrider_declaration,
-                    &locator->source_position);
-        } else {
-          result = sym;
+        if (sym != NULL) {
+          a_type_ptr  sym_parent = sym_parent_class(sym);
+          if (is_interface_like(sym_parent) && sym_parent != parent_class) {
+            /* Lookup might have found an inherited member.  That is okay if
+               the member is inherited from an interface class, but the
+               recorded base must be a proper member of the designated base
+               class. */
+            sym = interface_slot_override(locator, sym);
+          }  /* if */
+          if (!sym->variant.routine.ptr->is_virtual ||
+              !sym->variant.routine.ptr->pure_virtual) {
+            pos_error(ec_invalid_selective_overrider_declaration,
+                      &locator->source_position);
+          } else {
+            result = sym;
+          }  /* if */
         }  /* if */
       } else if (is_nontype_template_param_symbol(sym) &&
                  sym->variant.constant->variant.template_param.kind ==
