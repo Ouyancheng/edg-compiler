@@ -3987,14 +3987,15 @@ be a function.
          template <> void f<int>(int) { ... }
        (In more recent versions of the Microsoft compiler, this is actually
        context-dependent.  That dependency is handled elsewhere.)
-       If the declaration is a template, the template argument list is simply
-       ignored (with a warning):
+       If the declaration is a non-member template redeclaration, the template
+       argument list may simply be ignored (with a warning).  For example:
          template <class T> void f(T);
          template <class T> void f<float>(T) { ... }  // <float> ignored
+       Such cases are handled in higher-level declaration processing.
     */
     if (!(options & GID_IS_TEMPLATE_DECLARATION)) {
       explicit_template_args_allowed = TRUE;
-    } else {
+    } else if (!locator_for_curr_id.is_class_member) {
       ignore_explicit_template_args = TRUE;
     }  /* if */
   }  /* if */
@@ -4354,14 +4355,16 @@ be a function.
        Other declarations that appear to include an explicit argument list,
        such as a destructor declaration of the form ~A<T>(), will have
        already been transformed to a form where they are no longer considered
-       to be template-ids. */
+       to be template-ids.  An exception exists in Microsoft mode (see
+       above). */
     if (!ignore_explicit_template_args) {
       pos_error(ec_explicit_template_args_not_allowed, &declarator_pos);
       set_to_error_locator(*locator);
     } else {
-      pos_warning(ec_explicit_template_args_ignored, &declarator_pos);
+      /* We ignore the template arguments for now, but higher-level
+         declaration processing will issue a warning or error depending on
+         the context. */
       locator->is_template_id = FALSE;
-      locator->template_arg_list = NULL;
     }  /* if */
   }  /* if */
   if (locator->is_operator_name) {

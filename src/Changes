@@ -20,8 +20,8 @@ regression was introduced in 4.0 and is now fixed.  For example:
 Microsoft compatibility: Explicit template arguments on function templates
 
 In Microsoft mode, the front end now ignores (with a warning) explicit
-template arguments that appear on a function template redeclaration.
-For example:
+template arguments that appear on a non-member function template
+redeclaration.  For example:
 
   template<typename T> void f();
   template<typename T> void f<T>();      // <T> ignored with a warning.

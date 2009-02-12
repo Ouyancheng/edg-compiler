@@ -7582,9 +7582,7 @@ definition of a member function of a class template.
   a_boolean                         changed_to_inline = FALSE;
   a_boolean                         set_invisible = FALSE;
   a_boolean			    in_prototype_instantiation;
-#if DECL_MODIFIERS_IN_USE
   a_boolean			    redeclaration = FALSE;
-#endif /* DECL_MODIFIERS_IN_USE */
   an_id_linkage_block               idlb;
   a_boolean                         microsoft_out_of_class_redecl;
   a_boolean                         proxy_member_friend = FALSE;
@@ -7918,7 +7916,6 @@ definition of a member function of a class template.
       }  /* if */
     } else {
       a_param_type_ptr  ptp;
-
       check_assertion(sym->kind == (a_symbol_kind)sk_function_template);
       tssp = template_supplement_for_symbol(sym);
       /* Discard any previously created substituted type entries.  These
@@ -7981,10 +7978,9 @@ definition of a member function of a class template.
                           idlb.is_friend_decl && func_info->is_definition;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* A routine entry is created for the function template, but it is not
-     entered in the IL.  It is a convenient place to keep track of prototype
-     information: type, storage class, etc.  These values may be reused
-     when the template is instantiated.  This routine entry will not, of
-     course, have a body associated with it. */
+     always entered in the IL.  It is a convenient place to keep track of
+     prototype information: type, storage class, etc.  These values may be
+     reused when the template is instantiated. */
   if (rout_ptr == NULL) {
     a_symbol_ptr	prototype_sym;
     switch_to_file_scope_region(&region_to_switch_back_to);
@@ -8032,9 +8028,36 @@ definition of a member function of a class template.
         changed_to_inline = TRUE;
       }  /* if */
     }  /* if */
-#if DECL_MODIFIERS_IN_USE
     redeclaration = TRUE;
-#endif /* DECL_MODIFIERS_IN_USE */
+  }  /* if */
+  if (locator->template_arg_list != NULL && !locator->is_template_id) {
+    /* In Microsoft mode, scan_real_declarator_id allows explicit template
+       arguments on non-member template declarations, but they should only
+       be allowed function templates, and only if the template arguments
+       could substitute the template parameters (although the resulting
+       type need not be compatible in any way). */
+    a_boolean  template_args_okay = FALSE;
+    check_assertion(microsoft_mode);
+    if (redeclaration) {
+      a_template_arg_ptr  new_arg_list = NULL;
+      a_type_ptr          new_type;
+      new_type = substitute_template_arguments(
+                      sym, locator->template_arg_list, &new_arg_list,
+                      tssp->variant.function.decl_cache.decl_info->parameters);
+      template_args_okay = new_type != NULL;
+      free_template_arg_list(new_arg_list);
+    }  /* if */
+    locator->template_arg_list = NULL;
+    if (!is_error_locator(*locator)) {
+      if (template_args_okay) {
+        pos_warning(ec_explicit_template_args_ignored,
+                    &locator->source_position);
+      } else {
+        pos_error(ec_explicit_template_args_not_allowed,
+                  &locator->source_position);
+        set_to_error_locator(*locator);
+      }  /* if */
+    }  /* if */
   }  /* if */
   microsoft_out_of_class_redecl = microsoft_mode && sym->is_class_member &&
                                                     !func_info->is_definition;

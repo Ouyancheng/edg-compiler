@@ -8308,6 +8308,18 @@ information.
         }  /* if */
         report_exception_spec_errors(func_info);
       }  /* if */
+    } else if (locator->template_arg_list != NULL &&
+              !locator->is_template_id) {
+      /* In Microsoft mode, scan_real_declarator_id allows explicit template
+         arguments on non-member template declarations, but they shouldn't be
+         allowed on templates other than function templates. */
+      check_assertion(microsoft_mode);
+      locator->template_arg_list = NULL;
+      if (!is_error_locator(*locator)) {
+        pos_error(ec_explicit_template_args_not_allowed,
+                  &locator->source_position);
+        set_to_error_locator(*locator);
+      }  /* if */
     }  /* if */
   }  /* if */
   if (is_initial_decl) {
