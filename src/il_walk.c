@@ -3333,10 +3333,8 @@ as specified in the control block.
       traverse_expr(statement->expr, tblock);
       break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
-#if REPRESENT_EMPTY_STATEMENTS_IN_IL
     case stmk_empty:
       break;
-#endif /* REPRESENT_EMPTY_STATEMENTS_IN_IL */
     default:
       unexpected_condition_str("traverse_statement: bad statement kind");
   }  /* if */

@@ -12414,11 +12414,7 @@ both C and C++ modes.
       /* Remember the last statement. */
       last_stmt = stmt;
     }  /* for */
-    if (last_stmt != NULL &&
-        last_stmt->kind == (a_statement_kind)stmk_expr &&
-        /* Watch out for a final empty statement when
-           REPRESENT_EMPTY_STATEMENTS_IN_IL is FALSE. */
-        !last_stmt->expr->result_is_not_used) {
+    if (last_stmt != NULL && last_stmt->kind == (a_statement_kind)stmk_expr) {
       expr_type = last_stmt->expr->type;
     } else {
       expr_type = void_type();

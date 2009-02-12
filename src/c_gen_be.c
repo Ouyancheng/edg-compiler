@@ -7407,15 +7407,7 @@ statement expression, i.e., ({...}).
   an_expr_node_ptr init_expr;
   a_statement_kind kind;
 
-#if REPRESENT_EMPTY_STATEMENTS_IN_IL
   check_assertion(statement != NULL);
-#else /* !REPRESENT_EMPTY_STATEMENTS_IN_IL */
-  if (statement == NULL) {
-    /* Empty statement. */
-    write_tok_ch(';');
-    goto routine_end;
-  }  /* if */
-#endif /* REPRESENT_EMPTY_STATEMENTS_IN_IL */
   kind = statement->kind;
   /* Dump out any pragmas associated with the statement. */
   if (statement->has_associated_pragma) {
@@ -7435,11 +7427,9 @@ statement expression, i.e., ({...}).
     set_output_position_for_stmt(&statement->position);
   }  /* if */
   switch (kind) {
-#if REPRESENT_EMPTY_STATEMENTS_IN_IL
     case stmk_empty:
       write_tok_ch(';');
       break;
-#endif /* REPRESENT_EMPTY_STATEMENTS_IN_IL */
     case stmk_expr:
 #if CHECKING
       if (!last_in_statement_expr) {
@@ -7455,11 +7445,7 @@ statement expression, i.e., ({...}).
       /* Add braces around an "if" without an "else" to avoid the "dangling
          else" problem.  This is necessary only if customer code modifies
          the IL tree. */
-      if (else_stmt == NULL
-#if !REPRESENT_EMPTY_STATEMENTS_IN_IL
-                            && !statement->has_empty_else_clause
-#endif /* !REPRESENT_EMPTY_STATEMENTS_IN_IL */
-                                                                ) {
+      if (else_stmt == NULL) {
         write_tok_ch('{');
       }  /* if */
 #endif /* ADD_BRACES_TO_AVOID_DANGLING_ELSE_IN_GENERATED_C */
@@ -7476,11 +7462,6 @@ statement expression, i.e., ({...}).
 	indent += 2;
 	dump_statement(else_stmt);
 	indent -= 2;
-#if !REPRESENT_EMPTY_STATEMENTS_IN_IL
-      } else if (statement->has_empty_else_clause) {
-        /* Source contained "... else ;". */
-	write_tok_str(" else ;");
-#endif /* !REPRESENT_EMPTY_STATEMENTS_IN_IL */
 #if ADD_BRACES_TO_AVOID_DANGLING_ELSE_IN_GENERATED_C
       } else {
         /* Close the set of braces begun above. */
@@ -7775,9 +7756,6 @@ statement expression, i.e., ({...}).
     default:
       unexpected_condition_str("dump_statement_full: bad statement kind");
   }  /* switch */
-#if !REPRESENT_EMPTY_STATEMENTS_IN_IL
-routine_end:;
-#endif /* !REPRESENT_EMPTY_STATEMENTS_IN_IL */
 }  /* dump_statement_full */
 
 

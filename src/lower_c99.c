@@ -3941,9 +3941,7 @@ Do C99 lowering on the indicated statement.
       case stmk_asm_func_body:
 #endif /* ASM_FUNCTION_ALLOWED */
       case stmk_decl:
-#if REPRESENT_EMPTY_STATEMENTS_IN_IL
       case stmk_empty:
-#endif /* REPRESENT_EMPTY_STATEMENTS_IN_IL */
 #if UPC_EXTENSIONS_ALLOWED
       case stmk_upc_notify:
       case stmk_upc_wait:

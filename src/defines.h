@@ -802,9 +802,6 @@ Flags to be set for any version that uses the C++ generating back end.
 #ifndef ASM_FUNCTION_ALLOWED
 #define ASM_FUNCTION_ALLOWED 1
 #endif /* ifdef ASM_FUNCTION_ALLOWED */
-#ifndef REPRESENT_EMPTY_STATEMENTS_IN_IL
-#define REPRESENT_EMPTY_STATEMENTS_IN_IL 1
-#endif /* ifndef REPRESENT_EMPTY_STATEMENTS_IN_IL */
 #ifndef EXTRA_SOURCE_POSITIONS_IN_IL
 #define EXTRA_SOURCE_POSITIONS_IN_IL 1
 #endif /* ifndef EXTRA_SOURCE_POSITIONS_IN_IL */

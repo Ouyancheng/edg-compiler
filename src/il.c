@@ -2126,9 +2126,7 @@ Dump a statement kind, for debug purposes.
   char *s;
 
   switch (kind) {
-#if REPRESENT_EMPTY_STATEMENTS_IN_IL
     case stmk_empty:           s = "empty";             break;
-#endif /* REPRESENT_EMPTY_STATEMENTS_IN_IL */
     case stmk_expr:            s = "expr";              break;
     case stmk_if:              s = "if";                break;
     case stmk_while:           s = "while";             break;

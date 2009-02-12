@@ -1755,9 +1755,7 @@ the current statement sequence.
     set_unreachable(curr_reachability);
   }  /* if */
   if (kind == (a_statement_kind)stmk_init ||
-#if REPRESENT_EMPTY_STATEMENTS_IN_IL
       kind == (a_statement_kind)stmk_empty ||
-#endif /* REPRESENT_EMPTY_STATEMENTS_IN_IL */
       kind == (a_statement_kind)stmk_decl ||
       kind == (a_statement_kind)stmk_set_vla_size) {
     /* Not an executable statement. */
@@ -3427,19 +3425,9 @@ See also 3.6.4.1.
     sssep->in_else_of_if = TRUE;
     start_stmt_clause(sssep);
     dependent_statement();
-    /* Except for a case like "... else ;" (in C mode), there should always
-       be a non-NULL else-statement pointer. */
-#if REPRESENT_EMPTY_STATEMENTS_IN_IL
+    /* There should always be a non-NULL else-statement pointer. */
     check_assertion_str(sp->variant.if_stmt.else_statement != NULL,
                         "if_statement: else-stmt pointer is NULL");
-#else /* !REPRESENT_EMPTY_STATEMENTS_IN_IL */
-    if (sp->variant.if_stmt.else_statement == NULL &&
-        !sp->has_empty_else_clause) {
-      /* This can happen when there are errors, in C mode. */
-      check_assertion(C_mode() && total_errors != 0);
-      sp->has_empty_else_clause = TRUE;
-    }  /* if */
-#endif /* REPRESENT_EMPTY_STATEMENTS_IN_IL */
   }  /* if */
   /* End the condition block, if necessary. */
   if (is_condition_decl) finish_condition_block();
@@ -3896,9 +3884,7 @@ semicolon.  However, this routine is also called for some error cases as
 well.
 */
 {
-#if REPRESENT_EMPTY_STATEMENTS_IN_IL
   a_statement_ptr  esp = NULL;
-#endif /* REPRESENT_EMPTY_STATEMENTS_IN_IL */
 
   db_enter(3, "empty_statement");
   if (curr_token == tok_semicolon) {
@@ -3910,41 +3896,15 @@ well.
        current statement. */
     discard_curr_construct_pragmas();
   }  /* if */
-#if REPRESENT_EMPTY_STATEMENTS_IN_IL
   esp = add_statement((a_statement_kind)stmk_empty);
   stmt_update_source_sequence_list(esp);
-#else /* !REPRESENT_EMPTY_STATEMENTS_IN_IL */
-  if (C_mode() && struct_stmt_stack[depth_stmt_stack].in_else_of_if) {
-    a_statement_ptr  sp;
-
-    sp = struct_stmt_stack[depth_stmt_stack].statement;
-    check_assertion(sp != NULL && sp->kind == (a_statement_kind)stmk_if);
-    if (sp->variant.if_stmt.else_statement != NULL) {
-      /* May be a label statement. */
-    } else {
-      /* We are in the else-clause of a C-mode if-statement for which no
-         block statement was generated.  The empty statement cannot just be
-         skipped over (as usual), since that would be indistinguishable in
-         the IL from an omitted else clause, and
-             if (flag) if (flag2) ; else ; else <statement>;
-         is not the same as
-             if (flag) if (flag2) ; else <statement>;
-         (In C++ mode this is not an issue, since an implicit block statement
-         is generated for the else-clause even when there is no explicit
-         compound statement.)  Mark the statement. */
-      sp->has_empty_else_clause = TRUE;
-    }  /* if */
-  }  /* if */
-#endif /* REPRESENT_EMPTY_STATEMENTS_IN_IL */
   /* Advance past the semicolon. */
   if (curr_token == tok_semicolon) {
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     curr_construct_end_position = end_pos_curr_token;
-#if REPRESENT_EMPTY_STATEMENTS_IN_IL
     if (esp != NULL) {
       set_stmt_source_position(esp->end_position, curr_construct_end_position);
     }  /* if */
-#endif /* REPRESENT_EMPTY_STATEMENTS_IN_IL */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     (void)get_token();
   }  /* if */
