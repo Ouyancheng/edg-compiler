@@ -455,6 +455,8 @@ routine type, and return a pointer to it.
                                  TQ_CONST | (qualifiers & TQ_RESTRICT));
   vp = make_param_variable(this_type, (a_storage_class)sc_auto);
   vp->is_this_parameter = TRUE;
+  set_parent_scope(&vp->source_corresp, iek_variable,
+                   innermost_function_scope);
   return vp;
 }  /* make_implicit_this_param_variable */
 
