@@ -2074,7 +2074,9 @@ projection symbol.
                                  !scptr->is_local_to_function));
                 /* We are at the outermost scope of the function.  Check for
                    a label. */
-                if (!ssep->lambda) goto check_label_decl_seq;
+                if (!ssep->lambda || ssep->number == sym_ptr->decl_scope) {
+                  goto check_label_decl_seq;
+                }  /* if */
               } else if (ssep->number == sym_ptr->decl_scope) {
                 /* We are at the scope in which the variable was declared.
                    Jump out to the function scope and look for a label. */
