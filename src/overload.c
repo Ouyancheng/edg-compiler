@@ -11263,7 +11263,8 @@ select_best_function:
                                      /*arg_dep_lookup_suppressed=*/FALSE,
                                      found_through_adl,
                                      /*uses_operator_syntax=*/TRUE,
-                                     operator_position, result);
+                                     operator_position, result,
+                                     (an_expr_node_ptr *)NULL);
             }  /* if */
           }  /* if */
         }  /* if */

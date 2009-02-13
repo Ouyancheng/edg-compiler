@@ -1290,7 +1290,8 @@ extern void assemble_function_call(an_operand        *function_operand,
                                    a_boolean         found_through_adl,
                                    a_boolean         uses_operator_syntax,
                                    a_source_position *call_position,
-                                   an_operand        *result);
+                                   an_operand        *result,
+                                   an_expr_node_ptr  *function_call_node);
 
 extern a_statement_ptr make_call_assignment_statement(
                                             a_routine_ptr     rout,

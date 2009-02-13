@@ -1850,7 +1850,8 @@ when appropriate -- evaluates a pseudo-call to the built-in function.
                                    /*arg_dep_lookup_suppressed=*/FALSE,
                                    /*found_through_adl=*/FALSE,
                                    /*uses_operator_syntax=*/FALSE,
-                                   &operand->position, result_op);
+                                   &operand->position, result_op,
+                                   (an_expr_node_ptr *)NULL);
           }  /* if */
         }
         break;
@@ -2073,6 +2074,10 @@ C++ standard.  The current token is the "(" of the call.
   a_boolean         arg_dep_lookup_suppressed = FALSE;
   a_boolean         found_through_adl = FALSE;
   a_boolean         has_overloaded_call_operator = FALSE;
+  an_expr_node_ptr  function_call_node = NULL;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  an_expr_node_ptr  operand_node;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
   db_enter(4, "scan_function_call");
 
@@ -2618,7 +2623,7 @@ C++ standard.  The current token is the "(" of the call.
                            /*is_conversion=*/FALSE,
                            arg_dep_lookup_suppressed,
                            found_through_adl, uses_operator_syntax,
-                           &call_position, result);
+                           &call_position, result, &function_call_node);
 #if GNU_EXTENSIONS_ALLOWED
     if (call_may_be_folded && !is_error_operand(result)) {
       /* Some __builtin_xxx functions act as constant-expressions. */
@@ -2635,7 +2640,17 @@ C++ standard.  The current token is the "(" of the call.
 #endif /* GNU_EXTENSIONS_ALLOWED */
   set_operand_position(result, &start_position, &end_position,
                        &operator_position);
-  
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  operand_node = expr_node_from_operand(operand);
+  if (function_call_node != NULL && function_call_node != operand_node) {
+    /* Some additional operations (e.g., enk_temp_init, eok_ref_indirect)
+       were added on top of the call node.  Make sure the call node has
+       the correct positions as well. */
+    function_call_node->expr_range.start = start_position;
+    function_call_node->expr_range.end = end_position;
+    function_call_node->operator_position = operator_position;
+  }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #if GNU_EXTENSIONS_ALLOWED
   if (!call_folded_to_constant)
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -2648,7 +2663,7 @@ done:
 #endif /* GNU_EXTENSIONS_ALLOWED */
   db_exit();
 }  /* scan_function_call */
-                           
+
 
 static a_symbol_ptr other_field_with_same_name(void)
 /*

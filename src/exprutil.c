@@ -8939,7 +8939,8 @@ void assemble_function_call(an_operand        *function_operand,
                             a_boolean         found_through_adl,
                             a_boolean         uses_operator_syntax,
                             a_source_position *call_position,
-                            an_operand        *result)
+                            an_operand        *result,
+                            an_expr_node_ptr  *function_call_node)
 /*
 Assemble a function call from the various pieces.  *function_operand
 identifies the function to be called.  If a selector object is needed,
@@ -8954,7 +8955,10 @@ only found through argument-dependent lookup (not through ordinary lookup).
 uses_operator_syntax is TRUE when a call to an overloaded operator is the
 result of operator notation ("a+b") rather than an explicit function call.
 call_position gives the source position of the call.  An operand for the
-overall call is constructed in *result.
+overall call is constructed in *result.  If non-NULL, function_call_node is
+the address of an expression node pointer that will be set to point to the
+actual call node itself (which might be below the expression in the result
+because of transformations on the return value).
 */
 {
   an_expr_node_ptr function_node;
@@ -9038,7 +9042,7 @@ overall call is constructed in *result.
                        compiler_generated, is_conversion,
                        arg_dep_lookup_suppressed, found_through_adl,
                        uses_operator_syntax, call_position, result,
-                       /*function_call_node=*/(an_expr_node_ptr *)NULL);
+                       function_call_node);
   }  /* if */
   result->position = *call_position;
 }  /* assemble_function_call */
@@ -11430,7 +11434,8 @@ is a "get" if put_operand is NULL.
                                  /*arg_dep_lookup_suppressed=*/FALSE,
                                  /*found_through_adl=*/FALSE,
                                  /*uses_operator_syntax=*/FALSE,
-                                 &operand_position, operand);
+                                 &operand_position, operand,
+                                 (an_expr_node_ptr *)NULL);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
           /* The operand's end position now reflects the end of the current
              token, which is past the end of the field reference.  Restore

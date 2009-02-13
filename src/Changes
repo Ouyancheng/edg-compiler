@@ -1,5 +1,23 @@
 Version 4.1
 
+2/12/09  [EDGcpfe/9480]
+Source positions of function call expression nodes
+
+In configurations in which EXTRA_SOURCE_POSITIONS_IN_IL is TRUE, function
+call nodes (eok_call, etc.) that should have had expr_range and
+operator_position information were missing those source positions if they
+appeared under an enk_temp_init or an eok_ref_indirect expression node.
+This is now fixed.  For example:
+
+  struct S { S(const S&); };
+  S& f_ref();
+  S f_copy();
+  void f() {
+    f_ref();    // eok_call node now has source positions
+    f_copy();   // eok_call_node now has source positions
+  }
+
+
 2/12/09  [EDGcpfe/9521]
 Representation of empty statements
 
