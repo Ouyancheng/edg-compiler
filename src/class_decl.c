@@ -16446,7 +16446,7 @@ occurs inside a default argument expression.
 {
   a_lambda_ptr       lambda = alloc_lambda();
   a_type_ptr         closure_class;
-  a_scope_depth      decl_level;
+  a_scope_depth      decl_level, saved_decl_scope_level = decl_scope_level;
   a_class_def_state  class_state;
   a_func_info_block  func_info;
   a_decl_flag_set    sfb_flags;
@@ -16458,6 +16458,7 @@ occurs inside a default argument expression.
   /* Initialize the closure class and set up a context in which members
      can be added. */
   decl_level = decl_level_for_lambda_closure_class(&pos_curr_token);
+  decl_scope_level = decl_level;
   lambda->closure_class = closure_class =
                  make_closure_class(decl_level, inside_default_arg_expression,
                                     &lambda->start_position);
@@ -16536,6 +16537,8 @@ occurs inside a default argument expression.
     check_assertion(total_errors != 0);
     lambda = NULL;
   }  /* if */
+  /* Restore the previous default declaration scope. */
+  decl_scope_level = saved_decl_scope_level;
   /* Restore the previous stop token context. */
   pop_stop_token_stack();
   return lambda;
