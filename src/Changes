@@ -1,5 +1,13 @@
 Version 4.1
 
+2/13/09  [EDGcpfe/9538]
+Parent scope of "this" parameter
+
+Previously, the a_variable entry associated with an implicit "this" parameter
+had its parent scope set to NULL.  Now, the parent scope of the "this"
+parameter variable is the associated member function scope.
+
+
 2/13/09  [EDGcpfe/9508]
 Source positions of enk_routine node in call with implicit "this"
 
