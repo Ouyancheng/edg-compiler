@@ -8018,6 +8018,7 @@ reference entry, or is NULL if none is needed.
   result->position = *position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   result->end_position = *end_position;
+  set_operand_expr_position_if_expr(result, (a_source_position *)NULL);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Start a list of reference entries related to the operand. */
   result->ref_entries_list = rep;
