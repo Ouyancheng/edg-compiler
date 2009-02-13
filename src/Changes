@@ -1,5 +1,21 @@
 Version 4.1
 
+2/13/09  [EDGcpfe/9508]
+Source positions of enk_routine node in call with implicit "this"
+
+In configurations in which EXTRA_SOURCE_POSITIONS_IN_IL is TRUE,
+enk_routine nodes that are operands of an eok_points_to_member_call in
+which the object expression is implicitly "this" were missing their
+expr_range source positions.  Now fixed.  For example:
+
+  struct S {
+    void f();
+    void g() {
+      f();    // enk_routine now has expr_range positions
+    }
+  }
+
+
 2/12/09  [EDGcpfe/9507]
 Source positions of enk_variable nodes with reference type
 
