@@ -1,5 +1,17 @@
 Version 4.1
 
+2/12/09  [EDGcpfe/9507]
+Source positions of enk_variable nodes with reference type
+
+In configurations in which EXTRA_SOURCE_POSITIONS_IN_IL is TRUE,
+enk_variable nodes with reference type that should have had expr_range
+information were missing those source positions.  Now fixed.  For example:
+
+  void f(int& a) {
+    a = 5;    // enk_variable node now has expr_range positions
+  }
+
+
 2/12/09  [EDGcpfe/9480]
 Source positions of function call expression nodes
 

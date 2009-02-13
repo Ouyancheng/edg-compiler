@@ -1443,6 +1443,11 @@ if setting the positions in the underlying expression.
 {
   an_expr_node_ptr expr = expr_node_from_operand(operand);
 
+  if (expr != NULL && is_operation_node(expr) &&
+      node_operator_is(expr, eok_ref_indirect)) {
+    /* Set the positions on the operand of the ref_indirect. */
+    expr = expr->variant.operation.operands;
+  }  /* if */
   if (expr != NULL &&
       /* Don't set the position on a compiler-generated operation unless
          it is an operator-notation call node. */
