@@ -1,5 +1,21 @@
 Version 4.1
 
+2/14/09  [EDGcpfe/9166]
+Lambdas
+
+The front end now implements lambda functions, a C++0X feature described
+in N2550.  The feature is enabled in --c++0x mode, and can also be
+enabled or disabled separately via --lambdas, --no_lambdas, and
+the DEFAULT_LAMBDAS_ENABLED macro.
+
+The present version implements the mutable keyword of N2658, but not
+the requirement that in certain cases the closure class has
+std::reference_closure as a base class.  The closure class also
+does not have a deleted default constructor (we haven't implemented
+deleted functions yet) and does not have a move constructor (we
+haven't implemented rvalue references yet).
+
+
 2/13/09  [EDGcpfe/9538]
 Parent scope of "this" parameter
 
