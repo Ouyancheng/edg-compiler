@@ -20030,10 +20030,12 @@ type to be the type of return_op.
                              TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION);
   if (is_unknown_type(*return_type)) {
     a_type_ptr    rout_type = skip_typerefs(rout->type);
+    a_type_ptr    ret_type;
     check_assertion(rout_type->kind == (a_type_kind)tk_routine);
-    if (check_return_type(return_op->type, (a_decl_parse_state*)NULL,
+    ret_type = rvalue_type(return_op->type);
+    if (check_return_type(ret_type, (a_decl_parse_state*)NULL,
                           &return_op->position)) {
-      *return_type = return_op->type;
+      *return_type = ret_type;
     } else {
       *return_type = error_type();
     }  /* if */
