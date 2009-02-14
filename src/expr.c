@@ -20026,7 +20026,8 @@ type to be the type of return_op.
   rout = lambda->lambda_routine;
   /* Make sure array-to-pointer and function-to-pointer decay are done before
      we use the type as the return type. */
-  do_operand_transformations(return_op, TOPT_NO_OPTIONS);
+  do_operand_transformations(return_op,
+                             TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION);
   if (is_unknown_type(*return_type)) {
     a_type_ptr    rout_type = skip_typerefs(rout->type);
     check_assertion(rout_type->kind == (a_type_kind)tk_routine);
