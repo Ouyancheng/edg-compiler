@@ -6530,12 +6530,11 @@ id_case:
       }  /* if */
     } else if (is_constant_operand(operand) && is_an_rvalue(operand)) {
       /* An id-expression resolving to an rvalue constant is an
-         enumeration constant or something from a prototype instantiation.
-         The only lvalues represented in constant form are string literals,
-         and they don't require special handling. */
-      a_constant_ptr  cp = &operand->variant.constant;
-      check_assertion(has_name(cp) ||
-                      cp->kind == (a_constant_repr_kind)ck_template_param);
+         enumeration constant, a reference to a template parameter that
+         is mapped to a constant in a real instantiation, or something from
+         a prototype instantiation.  The only lvalues represented in constant
+         form are string literals, and they don't require special handling. */
+      a_constant_ptr cp = &operand->variant.constant;
       result = cp->type;
     } else {
       goto general_case;

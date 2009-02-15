@@ -1,5 +1,19 @@
 Version 4.1
 
+2/15/09  [EDGcpfe/9532]
+Abort on decltype of nontype template parameter
+
+The front end aborted in decltype_from_operand in expr.c on a use of
+decltype applied to a nontype template parameter identitier.  Now fixed.
+
+  template <class U, U I> inline void f() {
+    auto x2 = sizeof (decltype(I));  // Formerly caused an abort
+  }
+  int main() {
+    f<int, 1>();
+  }
+
+
 2/14/09  [EDGcpfe/9166]
 Lambdas
 
