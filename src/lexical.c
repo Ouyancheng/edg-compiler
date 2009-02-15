@@ -53,7 +53,7 @@ Macro that returns TRUE if tok is tok_uuid.
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #define is_microsoft_tok_uuid(tok) ((tok) == tok_uuid)
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
-#define is_microsoft_tok_uuid(tok) (FALSE) /*lint --e(835)*/
+#define is_microsoft_tok_uuid(tok) (FALSE) /*lint --e(506)*/
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
