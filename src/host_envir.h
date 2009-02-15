@@ -1797,6 +1797,21 @@ which controls whether null (zero) characters are allowed in source lines.
 #endif /* DEFAULT_NULL_CHARS_ALLOWED_IN_SOURCE */
 
 /*
+Flag that is TRUE if UTF-8 and UTF-16 encodings of Unicode should be accepted
+in source code.  Note that if you set this the representation for identifiers
+and file names becomes UTF-8, which may require back end or host-interface
+changes (see fopen_interface if the standard fopen does not take UTF-8
+strings).
+*/
+#ifndef UNICODE_SOURCE_SUPPORTED
+#if EDG_WIN32
+#define UNICODE_SOURCE_SUPPORTED TRUE
+#else /* !EDG_WIN32 */
+#define UNICODE_SOURCE_SUPPORTED FALSE
+#endif /* EDG_WIN32 */
+#endif /* UNICODE_SOURCE_SUPPORTED */
+
+/*
 Flag that is TRUE if multibyte characters are supported in source code,
 specifically in comments, string literals, character constants, and
 identifiers.  This applies to both C and C++ mode.  See also
@@ -1825,21 +1840,6 @@ MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED is TRUE.
 #ifndef DEFAULT_MULTIBYTE_CHARS_IN_SOURCE_ENABLED
 #define DEFAULT_MULTIBYTE_CHARS_IN_SOURCE_ENABLED FALSE
 #endif /* ifndef DEFAULT_MULTIBYTE_CHARS_IN_SOURCE_ENABLED */
-
-/*
-Flag that is TRUE if UTF-8 and UTF-16 encodings of Unicode should be accepted
-in source code.  Note that if you set this the representation for identifiers
-and file names becomes UTF-8, which may require back end or host-interface
-changes (see fopen_interface if the standard fopen does not take UTF-8
-strings).
-*/
-#ifndef UNICODE_SOURCE_SUPPORTED
-#if EDG_WIN32
-#define UNICODE_SOURCE_SUPPORTED TRUE
-#else /* !EDG_WIN32 */
-#define UNICODE_SOURCE_SUPPORTED FALSE
-#endif /* EDG_WIN32 */
-#endif /* UNICODE_SOURCE_SUPPORTED */
 
 /*
 Flag that is TRUE if, when Unicode source is supported, files with other
