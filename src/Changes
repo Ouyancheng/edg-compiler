@@ -133,12 +133,14 @@ This is now fixed.  For example:
 
 
 2/12/09  [EDGcpfe/9521]
-Representation of empty statements
+Representation of empty statements (IL CHANGE)
 
 The configuration macro REPRESENT_EMPTY_STATEMENTS_IN_IL has been removed.
 Empty statements are now always represented using statement entries of kind
 stmk_empty (this previously corresponded to REPRESENT_EMPTY_STATEMENTS_IN_IL
-set to TRUE).  See also the Changes entry of 12/15/99.
+set to TRUE).  This is an IL CHANGE for configurations that previously had
+REPRESENT_EMPTY_STATEMENTS_IN_IL set to FALSE (explicitly, or by default).
+See also the Changes entry of 12/15/99.
 
 
 2/12/09  [EDGcpfe/9536]
