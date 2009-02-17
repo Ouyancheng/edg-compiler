@@ -16523,13 +16523,25 @@ occurs inside a default argument expression.
   pop_scope();
   if (lambda != NULL && lambda->lambda_routine != NULL) {
     if (lambda->lambda_routine->assoc_scope != NULL_region_number) {
-      /* Lowering of the lambda body function is deferred because the closure
-         class was not complete when the function was scanned.  Now that the
-         closure class is complete, do the lowering of the lambda body (if
-         needed).  In some cases involving prototype instantiations the
-         lambda body may have already been discarded. */
-      finish_function_processing_for_memory_region(
-                  lambda->lambda_routine->assoc_scope, /*only_inline=*/FALSE);
+#if DO_IL_LOWERING
+      if (is_primary_translation_unit && 
+          should_delay_lowering_on_function(lambda->lambda_routine,
+                                            /*at_initial_scope_pop=*/FALSE)) {
+        /* Delay lowering of lambdas in some cases (e.g., a lambda could
+           be referenced by a template and therefore might have to be
+           externalized and it may be too early to create a module id). */
+      } else
+#endif /* DO_IL_LOWERING */
+      /* Do not insert code here. */
+      {
+        /* Lowering of the lambda body function is deferred because the closure
+           class was not complete when the function was scanned.  Now that the
+           closure class is complete, do the lowering of the lambda body (if
+           needed).  In some cases involving prototype instantiations the
+           lambda body may have already been discarded. */
+        finish_function_processing_for_memory_region(
+                   lambda->lambda_routine->assoc_scope, /*only_inline=*/FALSE);
+      }  /* if */
     }  /* if */
   } else {
     /* Severe errors prevented the creation of a call operator.  Don't return

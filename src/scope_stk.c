@@ -5931,9 +5931,11 @@ the scope stack is no longer available.
 
 #if DO_IL_LOWERING
 
-static a_boolean should_delay_lowering_on_function(a_routine_ptr routine)
+a_boolean should_delay_lowering_on_function(a_routine_ptr routine,
+                                            a_boolean     at_initial_scope_pop)
 /*
-The scope for the body of the indicated routine is currently being popped.
+The scope for the body of the indicated routine is either being popped
+(when at_initial_scope_pop is TRUE) or has already been popped (otherwise).
 Return TRUE if there is a reason why the lowering of the function should
 be delayed until the end of the compilation.
 */
@@ -5949,7 +5951,7 @@ be delayed until the end of the compilation.
        The lowering will be done later -- see
        finish_processing_for_function_bodies. */
     delay_lowering = TRUE;
-  } else if (routine->is_lambda_body) {
+  } else if (at_initial_scope_pop && routine->is_lambda_body) {
     /* Lambda bodies are scanned while the parent closure class is still
        on the scope stack.  The lowering of the lambda body must be delayed
        until the closure class has been completed. */
@@ -6519,7 +6521,8 @@ End a name scope by popping an entry off the scope stack.
                             scope_stack[depth_scope_stack].discard_when_popped;
 #if DO_IL_LOWERING
     if (is_primary_translation_unit && !discard_function_body &&
-        should_delay_lowering_on_function(curr_routine)) {
+        should_delay_lowering_on_function(curr_routine,
+                                          /*at_initial_scope_pop=*/TRUE)) {
       /* Delay lowering of functions in some cases. */
       /* Note that il_lowering_needed() is not tested on purpose, to get
          proper error recovery behavior.  Also, it doesn't cover lowering

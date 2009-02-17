@@ -1321,6 +1321,10 @@ extern void db_decl_pos_info(a_symbol_ptr sym);
 extern unsigned long db_show_scope_stack_space_used(unsigned long grand_total);
 #endif /* DEBUG */
 
+extern a_boolean should_delay_lowering_on_function(
+                                           a_routine_ptr routine,
+                                           a_boolean     at_initial_scope_pop);
+
 #endif /* ifndef SCOPE_STK_H */
 
 /******************************************************************************
