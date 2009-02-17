@@ -2648,6 +2648,9 @@ if the type should not be treated as an interface.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+/*ARGSUSED*/  /* diag_pos is not used in some configurations. */
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 void update_membership_of_class(a_symbol_ptr       tag_sym,
                                 a_boolean          def_or_vacuous_decl,
                                 a_scope_depth      decl_level,
