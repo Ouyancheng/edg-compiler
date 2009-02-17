@@ -1,5 +1,25 @@
 Version 4.1
 
+2/17/09  [EDGcpfe/8805, EDGcpfe/9547]
+Local classes and prototype instantiations
+
+Previously, the front end did not record local classes in function templates
+in the types list of their associated scope.  This could lead to incorrect
+code generation by the C++-generating back end when templates are rendered
+from prototype instantiations (when PROTOTYPE_INSTANTIATIONS_IN_IL is TRUE and
+templates are parsed in their generic form, e.g. because of a command-line
+option like "--parse_templates" or "--strict").  For example:
+
+  template<class T> void f() {
+    struct B { typedef int I; };
+    struct D: B {
+      typedef B::I I;  // In some circumstances the typedef was previously
+    };                 // rendered as "typedef I I;".
+  }
+
+This is now fixed.
+
+
 2/17/09  [EDGcpfe/9510]
 Abort on decltype applied to member function name
 

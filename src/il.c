@@ -7209,10 +7209,6 @@ it's to be moved to another position in the list.
              already on the list. */
           may_be_added = FALSE;
         }  /* if */
-      } else if (ssep->in_prototype_instantiation) {
-        /* Except for member types, the type entries created for a class
-           template are not added to the types list. */
-        may_be_added = FALSE;
       }  /* if */
     } else if (type_ptr->source_corresp.is_class_member) {
       /* Check for a nested class that is being defined after the definition
