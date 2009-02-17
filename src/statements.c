@@ -6323,8 +6323,12 @@ e.g., ({ ... }).
     local_label_declaration(is_statement_expr);
   }  /* if */
 
-  /* Scan the sequence of statements. */
-  while (curr_token != tok_rbrace && curr_token != tok_end_of_source) {
+  /* Scan the sequence of statements.  (Note that we may end up here during
+     preprocessing error recovery if a C++0x lambda or GNU statement
+     expression appears in a #if directive; hence, the test for
+     tok_newline.) */
+  while (curr_token != tok_rbrace && curr_token != tok_end_of_source &&
+         curr_token != tok_newline) {
     if (!C_mode()) {
       /* In C++ mode, where declarations can be interspersed with
          executable statements, statement() handles declarations, too. */
