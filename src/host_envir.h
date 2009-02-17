@@ -932,6 +932,19 @@ form specified in the source program.
 #endif /* RECORD_FORM_OF_NAME_REFERENCE && COMPILE_MULTIPLE_TRANSLATION_UNITS*/
 
 /*
+Previously, a flag REPRESENT_EMPTY_STATEMENTS_IN_IL determined how empty
+statements are represented.  It has been eliminated and the behavior now
+corresponds to having that flag set to TRUE in past versions.  Catch
+configurations that set it to FALSE to avoid surprises.
+*/
+#ifdef REPRESENT_EMPTY_STATEMENTS_IN_IL
+#if !REPRESENT_EMPTY_STATEMENTS_IN_IL
+ #error -- REPRESENT_EMPTY_STATEMENTS_IN_IL has been eliminated and the new \
+           behavior corresponds to having it set to TRUE in past versions
+#endif /* !REPRESENT_EMPTY_STATEMENTS_IN_IL */
+#endif /* ifdef REPRESENT_EMPTY_STATEMENTS_IN_IL */
+
+/*
 Flag that is TRUE to cause additional IL entries to contain source position
 information.  Note that this can take a lot of extra space, so you should
 enable this only if you really need it.
