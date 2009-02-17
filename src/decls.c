@@ -8033,8 +8033,8 @@ definition of a member function of a class template.
   if (locator->template_arg_list != NULL && !locator->is_template_id) {
     /* In Microsoft mode, scan_real_declarator_id allows explicit template
        arguments on non-member template declarations, but they should only
-       be allowed function templates, and only if the template arguments
-       could substitute the template parameters (although the resulting
+       be allowed on function templates, and only if the template arguments
+       could substitute for the template parameters (although the resulting
        type need not be compatible in any way). */
     a_boolean  template_args_okay = FALSE;
     check_assertion(microsoft_mode);
