@@ -329,6 +329,14 @@ found in unexpected locations.
   }  /* while */
   check_assertion(ssep->kind == (a_scope_kind)sck_class_struct_union);
   --ssep;
+  /* Skip any block scopes. */
+  while (ssep->kind == (a_scope_kind)sck_block) ssep--;
+  /* If this is a lambda body, skip the lambda function scope and the
+     lambda class scope. */
+  if (ssep->kind == (a_scope_kind)sck_function &&
+      ssep->assoc_routine->is_lambda_body) {
+    ssep -= 2;
+  }  /* if */
   switch (ssep->kind) {
     case sck_template_declaration:
     case sck_func_prototype:
