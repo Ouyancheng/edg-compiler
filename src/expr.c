@@ -6659,7 +6659,17 @@ NULL, the end position in its specifiers_range is updated.
   expr_stack->is_decltype_or_typeof_arg_expression = TRUE;
   add_matching_stop_token(tok_rparen);
   scan_expr(&operand, PREC_LOWEST, EOPT_NO_OPTIONS);
-  error_if_indefinite_function(&operand);
+  /* Give an error on an indefinite function. */
+  do_operand_transformations(&operand,
+                             TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION |
+                             TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION |
+                             TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION |
+                             TOPT_SUPPRESS_MEMBER_FUNC_TO_PM_CONVERSION);
+  if (is_sym_for_member_operand(&operand)) {
+    /* Can't take decltype of a member function.  Diagnose it as an
+       attempt to use a nonstandard pointer to member syntax. */
+    conv_sym_for_member_operand_to_ptr_to_member(&operand);
+  }  /* if */
   result = operand.type;
   if (is_error_type(result)) {
     /* We'll just return the error type. */

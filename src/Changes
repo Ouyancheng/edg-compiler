@@ -1,5 +1,18 @@
 Version 4.1
 
+2/17/09  [EDGcpfe/9510]
+Abort on decltype applied to member function name
+
+The front end aborted in make_node_from_operand ("converting unexpected
+operand kind") while processing a use of decltype applied to the
+name of a member function.  Now fixed (an error is issued).
+
+  struct A {
+    void f(double);
+    template < class T > decltype(f) g( T ) { }  // Formerly provoked abort
+  };
+
+
 2/15/09  [EDGcpfe/9532]
 Abort on decltype of nontype template parameter
 
