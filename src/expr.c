@@ -18585,8 +18585,10 @@ fields of the closure object.  Return a pointer to the dynamic init entry.
          thrown part-way through the captures. */
       dip->destructor = dtor_routine;
       dip->destruction_is_for_partially_constructed_aggregate = TRUE;
-      record_end_of_lifetime_destruction(dip, /*static_lifetime=*/FALSE,
-                                         /*block_lifetime=*/FALSE);
+      if (curr_expr_is_potentially_evaluated()) {
+        record_end_of_lifetime_destruction(dip, /*static_lifetime=*/FALSE,
+                                           /*block_lifetime=*/FALSE);
+      }  /* if */
     }  /* if */
     if (array_case) {
       /* To repeat the initialization for each element of an array,
