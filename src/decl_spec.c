@@ -4498,6 +4498,14 @@ dsi_flags is the set of input flags passed to decl_specifiers.
           tag_sym = NULL;
           set_to_error_locator(locator);
         }  /* if */
+      } else if (tag_sym->decl_scope == file_scope_number &&
+                 scope_stack[effective_decl_level].kind !=
+                                                     (a_scope_kind)sck_file) {
+        /* An attempt to define a file-scope enum in a scope other than the
+           file scope. */
+        pos_sy_error(ec_bad_scope_for_definition, &tag_position, tag_sym);
+        tag_sym = NULL;
+        set_to_error_locator(locator);
       }  /* if */
     } else if (is_error_locator(locator) && !is_definition) {
       /* There was an error is looking up the tag, and this is not a
