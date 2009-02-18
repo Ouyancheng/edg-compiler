@@ -1815,6 +1815,7 @@ ec_bad_scope_for_lambda;;"a lambda is not allowed in this scope"
 ec_explicit_template_args_ignored;;"explicit template arguments ignored"
 ec_bad_constant_lambda;;"a lambda is not allowed in a constant expression"
 ec_lambda_capture_ref_function;;"a reference-to-function variable cannot be captured by value in a lambda"
+ec_class_type_required;;"%t is not a class type"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

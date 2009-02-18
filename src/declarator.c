@@ -3720,6 +3720,12 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
            valid class type, so make it an error type instead. */
         complete_type = error_type();
         err = TRUE;
+      } else if (!is_class_struct_union_type(class_type)) {
+        /* A pointer-to-member declarator with a nonclass type.  This can
+           occur when enumeration types are allowed in qualified names. */
+        type_error(ec_class_type_required, class_type);
+        complete_type = error_type();
+        err = TRUE;
       } else {
         /* A valid pointer-to-member declarator. */
         if (complete_type != NULL && !check_pm_member_type(complete_type)) {
