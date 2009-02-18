@@ -12013,25 +12013,30 @@ the first pass).
       orig_expr_type = expr->type;
       orig_operand_type = operand->type;
       operand->type = make_unqualified_type(orig_operand_type);
-      if (node_operator_is(expr, eok_address_of) ||
-          node_operator_is(expr, eok_reference_to)) {
-        expr->type = make_pointer_type(operand->type);
-      } else if (node_operator_is(expr, eok_array_to_pointer)) {
-        expr->type = make_pointer_type(array_element_type(operand->type));
-      } else if (node_operator_is(expr, eok_comma)) {
-        /* This is a case like ("abc", x).  Add a cast so this do-nothing
-           operation will retain the correct type.  The type of the eok_comma
-           operation is unaffected by the type of its first operand. */
-        operand = add_cast_to_lvalue_if_necessary(copy_node(operand),
-                                                  orig_operand_type);
-        overwrite_node(expr->variant.operation.operands, operand);
-      } else if (node_operator_is(expr, eok_lvalue_cast) ||
-                 node_operator_is(expr, eok_lvalue_adjust) ||
-                 node_operator_is(expr, eok_ref_cast)) {
-        /* Leave the cast type as is. */
-      } else {
-        unexpected_condition();
-      }  /* if */
+      switch (expr->variant.operation.kind) {
+        case eok_address_of:
+        case eok_reference_to:
+          expr->type = make_pointer_type(operand->type);
+          break;
+        case eok_array_to_pointer:
+          expr->type = make_pointer_type(array_element_type(operand->type));
+          break;
+        case eok_comma:
+          /* This is a case like ("abc", x).  Add a cast so this do-nothing
+             operation will retain the correct type.  The type of the eok_comma
+             operation is unaffected by the type of its first operand. */
+          operand = add_cast_to_lvalue_if_necessary(copy_node(operand),
+                                                    orig_operand_type);
+          overwrite_node(expr->variant.operation.operands, operand);
+          break;
+        case eok_lvalue_cast:
+        case eok_lvalue_adjust:
+        case eok_cast:
+        case eok_ref_cast:
+        default:
+          /* Leave these as is. */
+          break;
+      }  /* switch */
       if (expr->type != orig_expr_type) {
         /* The type of the expression has changed; a cast is necessary. */
         overwrite_node(expr, add_cast(copy_node(expr), orig_expr_type));

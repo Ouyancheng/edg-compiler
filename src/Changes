@@ -188,19 +188,21 @@ attempt is made to verify that they are used in appropriate locations or
 that their arguments are acceptable.
 
 
-2/11/09  [EDGcpfe/9527]
-Abort when a const string literal is explicitly cast to a reference
+2/11/09  [EDGcpfe/9527,EDGcpfe/9551]
+Abort when a const string literal is explicitly cast
 
-An explicit cast of a const string literal to a reference caused an assertion
+An explicit cast of a const string literal caused an assertion
 failure in lower_operation_on_const_string_if_necessary in modes where string
-literals are treated as const (e.g., GNU, Microsoft, Sun, strict).  This
+literals are treated as const (e.g., GNU, Microsoft, Sun, strict).  Casts to
+references as well as some explicit casts could lead to this failure.  This
 regression was introduced in 4.0 and is now fixed.  For example:
 
   template <class T> T f() {
-    return (T&) "zzz";      // had caused an assertion failure in lower_il.c
+    return (T&) "zzz";      // cast to reference
   }
   void g() {
     f<char>();
+    1, void("xxx");    // explicit cast
   }
 
 
