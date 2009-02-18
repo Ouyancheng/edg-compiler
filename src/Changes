@@ -1,5 +1,19 @@
 Version 4.1
 
+2/18/09  [EDGcpfe/9539]
+Removal of dead code in logical operations caused internal error
+
+In configurations that use lowering, the removal of dead code in logical
+operations (i.e., || or &&) could sometimes erroneously change the type
+of the expression, causing the C generating back end to complain about
+a mismatched type (e.g., "internal error: dump_expr: bad type on eok_comma").
+This regression was introduced in 4.0 and is now fixed.  For example:
+
+  void f(int x) {
+    x, 1 || x;      // had caused an internal error in dump_expr
+  }
+
+
 2/18/09  [EDGcpfe/9542]
 Microsoft compatibility: internal error on invalid class template
 

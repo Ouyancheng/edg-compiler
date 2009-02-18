@@ -12961,7 +12961,7 @@ expressions.
                    node_operator_is(expr, eok_lor)));
   op1 = expr->variant.operation.operands;
   op2 = op1->next;
-  /* Lower the conditional first (increases the chance that the value will be
+  /* Lower the first operand (increases the chance that the value will be
      recognized as known at compile time). */
   lower_any_boolean_controlling_expr(op1, /*is_full_expr=*/FALSE);
   if (bool_value_is_known_at_compile_time(op1, &op1_value) &&
@@ -12974,7 +12974,16 @@ expressions.
         (op == (an_expr_operator_kind)eok_lor && op1_value)) {
       /* Replace the original expression with the first operand (already
          lowered above). */
-      overwrite_node(expr, op1);
+      if (il_identical_types(expr->type, op1->type)) {
+        overwrite_node(expr, op1);
+      } else {
+        /* The type might have been adjusted during lowering (e.g., by
+           adjust_bool_operation_types); make sure we retain the correct
+           type when replacing the original expression with the first
+           operand. */
+        change_to_cast(expr, op1, expr->type);
+        op1->next = NULL;
+      }  /* if */
     } else {
       lower_any_boolean_controlling_expr(op2, /*is_full_expr=*/FALSE);
     }  /* if */
@@ -13048,6 +13057,7 @@ careful to call the appropriate routines when lowering expressions.
         throw_op = NULL;
       }  /* if */
       lower_any_expr_full(replacement_op, assume_expr_is_non_null);
+      check_assertion(il_identical_types(expr->type, replacement_op->type));
       overwrite_node(expr, replacement_op);
     } else {
       /* Make sure the entire expression is lowered. */
