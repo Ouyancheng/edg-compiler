@@ -3196,6 +3196,24 @@ checking instead of equivalence checking).
 }  /* equiv_class_types */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+static a_boolean equiv_pointer_modifiers(a_pointer_modifier_set  pms1,
+                                         a_pointer_modifier_set  pms2)
+/*
+Return TRUE if the given pointer modifiers sets are "equivalent".  On 64-bit
+platforms, this means that the two set are identical, except perhaps for the
+__ptr64 modifier.  On non-64-bit platforms, "equivalent" means "identical".
+*/
+{
+  if (is_64bit_target) {
+    pms1 &= ~(a_pointer_modifier_set)PM_PTR64;
+    pms2 &= ~(a_pointer_modifier_set)PM_PTR64;
+  }  /* if */
+  return pms1 == pms2;
+}  /* equiv_pointer_modifiers */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 a_boolean routine_linkages_are_compatible(a_name_linkage_kind  nlk1,
                                           a_name_linkage_kind  nlk2,
@@ -3526,8 +3544,8 @@ for more information.
            references. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
         if (microsoft_mode &&
-            type_1->variant.pointer.modifiers !=
-                                        type_2->variant.pointer.modifiers) {
+            !equiv_pointer_modifiers(type_1->variant.pointer.modifiers,
+                                     type_2->variant.pointer.modifiers)) {
           /* If pointer modifiers were applied, they must be identical. */
         } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -4063,8 +4081,8 @@ for exact pointer equality.
              references and must point to compatible types. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
           if (microsoft_mode &&
-              type_1->variant.pointer.modifiers !=
-                                          type_2->variant.pointer.modifiers) {
+              !equiv_pointer_modifiers(type_1->variant.pointer.modifiers,
+                                       type_2->variant.pointer.modifiers)) {
             /* A difference in __ptr32 or ptr64 modifiers makes pointer types
                incompatible. */
           } else
@@ -7447,8 +7465,9 @@ calling disentangle_default_args).
           { a_pointer_modifier_set  modifiers = PM_NONE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
             modifiers = base_type_1->variant.pointer.modifiers;
-            check_assertion(
-                         modifiers == base_type_2->variant.pointer.modifiers);
+            check_assertion(equiv_pointer_modifiers(
+                               base_type_1->variant.ptr_to_member.modifiers,
+                               base_type_2->variant.ptr_to_member.modifiers));
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             /* Pointer and reference types.  The composite type is a pointer
 	       or reference to the composite of the types pointed to. */
@@ -7481,8 +7500,9 @@ calling disentangle_default_args).
           { a_pointer_modifier_set  modifiers = PM_NONE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
             modifiers = base_type_1->variant.ptr_to_member.modifiers;
-            check_assertion(
-                   modifiers == base_type_2->variant.ptr_to_member.modifiers);
+            check_assertion(equiv_pointer_modifiers(
+                               base_type_1->variant.ptr_to_member.modifiers,
+                               base_type_2->variant.ptr_to_member.modifiers));
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             /* The composite of two pointer-to-member types will point to the
                same class type and to a member type that is a composite of the

@@ -617,6 +617,12 @@ initialization and must be done after command-line processing.
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   init_microsoft_sized_int_types();
+  /* Determine whether the target is a 64-bit target. */
+  { a_targ_size_t     size;
+    a_targ_alignment  alignment;
+    get_integer_size_and_alignment(targ_size_t_int_kind, &size, &alignment);
+    is_64bit_target = (size * targ_char_bit == 64);
+  }
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   always_fold_calls_to_builtin_constant_p =
                               DEFAULT_ALWAYS_FOLD_CALLS_TO_BUILTIN_CONSTANT_P;

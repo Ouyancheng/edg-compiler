@@ -154,6 +154,11 @@ EXTERN a_targ_alignment
 #endif /* LONG_LONG_ALLOWED */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
+EXTERN a_boolean
+		is_64bit_target;
+			/* TRUE if the target platform is a 64-bit target;
+			   i.e., TRUE if size_t is 64 bits wide. */
+
 EXTERN an_integer_kind
 		targ_int8_int_kind;
 			/* Integer kind associated with __int8.  Initialized

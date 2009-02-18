@@ -1,5 +1,20 @@
 Version 4.1
 
+2/18/09  [EDGcpfe/9522]
+Microsoft compatibility: __ptr64 on 64-bit targets
+
+Microsoft compilers appear to ignore the __ptr64 modifier for 64-bit targets.
+Although the front end still records __ptr64 on 64-bit targets, it now ignores
+that modifier for type-equivalence purposes.  For example:
+
+  extern int *p;
+  int *__ptr64 p;  // Now accepted on 64-bit platforms.
+
+Note that the target is considered to be "64-bit" if the target settings for
+size_t correspond to a 64-bit type.  Also note that there is no similar
+behavior for __ptr32 on 32-bit platforms.
+
+
 2/18/09  [EDGcpfe/9519]
 Microsoft compatibility: For-init-scope and condition-scope hiding
 
@@ -17,21 +32,6 @@ if a for-statement previously appeared in the loop.  For example:
 Some such cases were already accepted when microsoft_version < 1400 because of
 nonstandard for-init scope rules in those modes (e.g., see Changes entry of
 3/16/07), but now they are also accepted when microsoft_version >= 1400.
-
-
-2/17/09  [EDGcpfe/9549]
-Abort on enum definition with global scope qualifier
-
-The front end aborted in move_to_end_of_types_list (in il.c) when processing
-an enum definition with a global scope qualifier outside the global scope.
-For example:
-
-  enum E *p;
-  namespace N {
-    enum ::E { e };  // Previously triggered an abort.
-  }
-
-This is now fixed (an error is issued on such cases).
 
 
 2/18/09  [EDGcpfe/9539]
