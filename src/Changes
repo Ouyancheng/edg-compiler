@@ -217,15 +217,15 @@ Abort when a const string literal is explicitly cast
 An explicit cast of a const string literal caused an assertion
 failure in lower_operation_on_const_string_if_necessary in modes where string
 literals are treated as const (e.g., GNU, Microsoft, Sun, strict).  Casts to
-references as well as some explicit casts could lead to this failure.  This
-regression was introduced in 4.0 and is now fixed.  For example:
+references as well as other types of casts could lead to this failure.
+This regression was introduced in 4.0 and is now fixed.  For example:
 
   template <class T> T f() {
-    return (T&) "zzz";      // cast to reference
+    return (T&) "zzz";  // cast to reference caused an assertion failure
   }
   void g() {
     f<char>();
-    1, void("xxx");    // explicit cast
+    1, void("xxx");    // explicit cast caused an assertion failure
   }
 
 
