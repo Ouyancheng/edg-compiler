@@ -10662,7 +10662,7 @@ enum an_expr_operator_kind_tag {
 			   sizeof(struct) bytes. */
   eok_add_assign,       /* Add assign operator ("+="). */
   eok_subtract_assign,  /* Subtract assign operator ("-="). */
-  eok_multiply_assign,  /* Multiply assign operator ("*=". */
+  eok_multiply_assign,  /* Multiply assign operator ("*="). */
   eok_divide_assign,    /* Divide assign operator ("/="). */
   eok_remainder_assign, /* Remainder assign operator ("%="). */
   eok_shiftl_assign,    /* Left shift assign operator ("<<=").  The first
@@ -10682,9 +10682,9 @@ enum an_expr_operator_kind_tag {
 			   source and destination are lvalues; does a memcpy
 			   equivalent.  The result is void. */
   eok_land,             /* Logical intersection, with the operand standardized
-                           to integer/boolean ("&&" operator) */
+                           to integer/boolean ("&&" operator). */
   eok_lor,              /* Logical union, with the operand standardized
-                           to integer/boolean ("||" operator) */
+                           to integer/boolean ("||" operator). */
   eok_comma,            /* The comma operator (","). */
   eok_subscript,	/* Subscripting operation.  The operands are the
 			   pointer to the first element of the array and the
