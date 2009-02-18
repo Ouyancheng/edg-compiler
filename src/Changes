@@ -1,5 +1,16 @@
 Version 4.1
 
+2/18/09  [EDGcpfe/9542]
+Microsoft compatibility: internal error on invalid class template
+
+In Microsoft mode, when microsoft_version is >= 1400, an internal error
+could occur in instantiate_class_template on a class template declaration
+with an extra identifier between the class name and the class definition.
+Now fixed.
+
+  template <class T> class A B {};
+
+
 2/18/09  [EDGcpfe/9546]
 C++0x: missing diagnostic on enumeration used in pointer-to-member
 

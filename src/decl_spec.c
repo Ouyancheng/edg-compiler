@@ -1271,39 +1271,61 @@ tok_lbrace in the normal case, and tok_end_of_source during template
 prescanning.
 */
 {
-  a_token_cache  token_cache;
+  a_token_cache  orig_token_cache;
+  a_token_cache  transformed_token_cache;
   a_token_kind   tok;
+  a_token_kind   orig_next_tok;
+  a_boolean      valid = FALSE;
+  a_boolean      transformed_cache_used = FALSE;
 
-  clear_token_cache(&token_cache, /*reusable=*/FALSE);
+  clear_token_cache(&orig_token_cache, /*reusable=*/TRUE);
   /* First cache the tag name. */
-  cache_curr_token(&token_cache);
-  *next_tok = get_token();
+  cache_curr_token(&orig_token_cache);
+  orig_next_tok = get_token();
   /* Cache additional identifiers (we know there is at least one). */
   do {
-    cache_curr_token(&token_cache);
+    cache_curr_token(&orig_token_cache);
     tok = get_token();
   } while (tok == tok_identifier);
-  rescan_cached_tokens(&token_cache);
+  terminate_token_cache(&orig_token_cache);
   if (tok == body_start || tok == tok_colon) {
     /* A class definition: The cached identifiers should have been
        context-sensitive keywords.  Make an additional pass over the
        cached tokens, turning the identifiers into keywords when
-       possible. */
+       possible.  Construct a new cache containing the new tokens. */
+    rescan_reusable_cache(&orig_token_cache);
     *next_tok = tok;
-    clear_token_cache(&token_cache, /*reusable=*/FALSE);
-    cache_curr_token(&token_cache);
+    clear_token_cache(&transformed_token_cache, /*reusable=*/FALSE);
+    cache_curr_token(&transformed_token_cache);
+    transformed_cache_used = TRUE;
     (void)get_token();
-    for (;;) {
+    for (; curr_token != tok_end_of_source; (void)get_token()) {
       if (check_context_sensitive_keyword(tok_abstract, "abstract") ||
           check_context_sensitive_keyword(tok_sealed, "sealed")) {
-        cache_curr_token(&token_cache);
-        (void)get_token();
-      } else {
-        break;
+        cache_curr_token(&transformed_token_cache);
+        /* If we found any context-sensitive keywords, we should used the
+           transformed cache. */
+        valid = TRUE;
       }  /* if */
     }  /* for */
-    rescan_cached_tokens(&token_cache);
+    (void)get_token();
   }  /* if */
+  /* If we encountered a valid sequence of class modifiers, return the token
+     after the modifier list as the next token, and rescan the transformed
+     list of  tokens.  Otherwise, return the original next token and continue
+     scanning the original token stream. */
+  if (valid) {
+    *next_tok = tok;
+    rescan_cached_tokens(&transformed_token_cache);
+  } else {
+    *next_tok = orig_next_tok;
+    rescan_copy_of_cache(&orig_token_cache);
+    if (transformed_cache_used) {
+      /* Free any cached tokens in the transformed cache. */
+      discard_token_cache(&transformed_token_cache);
+    }  /* if */
+  }  /* if */
+  discard_token_cache(&orig_token_cache);
 }  /* check_for_microsoft_class_modifiers */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
