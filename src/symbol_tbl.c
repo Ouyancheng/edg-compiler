@@ -3542,7 +3542,8 @@ the symbol header of a symbol declared in the for-init scope.
       */
       ssep = curr_ssep - 1;
     }  /* if */
-    if (ssep != NULL && ssep->is_for_init_block) {
+    if (ssep != NULL && ssep->is_for_init_block &&
+        !ssep->is_dissociated_from_loop_scope) {
       /* ssep is a for-init scope -- check for a name mismatch. */
       for (sym = (assoc_pointers_block_of(ssep))->symbols;
            sym != NULL;
@@ -3571,7 +3572,8 @@ there's only one) declared in the condition scope.
   a_symbol_ptr             sym;
 
   if (ssep->kind == (a_scope_kind)sck_block &&
-      (ssep-1)->kind == (a_scope_kind)sck_condition) {
+      (ssep-1)->kind == (a_scope_kind)sck_condition &&
+      !(ssep-1)->is_dissociated_from_loop_scope) {
     for (sym = (assoc_pointers_block_of(ssep-1))->symbols;
          sym != NULL;
          sym = sym->next_in_scope) {

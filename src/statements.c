@@ -4322,6 +4322,29 @@ The affinity can be an expression or the keyword "continue".
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Pop a scope in C99 mode. */
   pop_c99_statement_scope();
+  if (microsoft_mode) {
+    /* Microsoft compilers allow declarations in loop scopes to conflict
+       with associated condition-scope and for-init-scope declarations when
+       a for loop previously appeared in the loop scope.  For example:
+         for (int i = 0; int c = i<10; ++i) {
+           for (; false;);
+           int i, c;  // Accepted in Microsoft mode.
+         }
+       The for-init-scope and condition-scope scope stack entries must be
+       marked accordingly.
+    */
+    a_scope_stack_entry_ptr  ssep = &scope_stack_top();
+    if (ssep->is_loop_scope) {
+      ssep -= 1;
+      if (ssep->kind == (a_scope_kind)sck_condition) {
+        ssep->is_dissociated_from_loop_scope = TRUE;
+        ssep -= 1;
+      }  /* if */
+      if (ssep->is_for_init_block) {
+        ssep->is_dissociated_from_loop_scope = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
   db_exit();
 }  /* for_statement */
 

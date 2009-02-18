@@ -1982,6 +1982,7 @@ the scope being pushed.
   ssep->inside_local_class       = inside_local_class;
   ssep->template_param_decl_scope= FALSE;
   ssep->is_loop_scope            = FALSE;
+  ssep->is_dissociated_from_loop_scope = FALSE;
   ssep->slow_lookup_required     = FALSE;
   ssep->return_value_optimization_possible = FALSE;
   ssep->in_prototype_instantiation = FALSE;
