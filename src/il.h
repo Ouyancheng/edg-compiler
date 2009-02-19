@@ -404,6 +404,8 @@ Macros that return the parent class of a class member.
 #define parent_class_of(ptr)                                                \
   (scp_parent_class(&(ptr)->source_corresp))
 
+extern a_routine_ptr lambda_body_for_closure(a_type_ptr	type);
+
 extern a_lambda_ptr get_current_lambda(void);
 
 extern a_namespace_ptr namespace_enclosing_class(a_type_ptr  tp);
@@ -1569,6 +1571,20 @@ or is marked as being originally unnamed.
   ((tag_type)->source_corresp.name == NULL ||                            \
    (is_immediate_class_type(tag_type) &&                                 \
     (tag_type)->variant.class_struct_union.originally_unnamed))
+
+/*
+Return TRUE if type is a lambda closure class.
+*/
+#define type_is_lambda_closure(type)					\
+  ((type)->kind == (a_type_kind)tk_class &&				\
+   class_type_supp(type)->is_lambda_closure_class)
+
+/*
+Return TRUE if rout_type is a routine type for a lambda.
+*/
+#define is_lambda_body_routine_type(rout_type)				\
+  ((rout_type)->variant.routine.extra_info->assoc_routine != NULL &&	\
+   (rout_type)->variant.routine.extra_info->assoc_routine->is_lambda_body)
 
 /*
 Return the original unmangled name of an entity, given a pointer to

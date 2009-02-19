@@ -302,6 +302,59 @@ source.
 }  /* form_conversion_function_name */
 
 
+static a_boolean scp_is_lambda_closure_class(
+                              a_source_correspondence               *scp,
+                              an_il_entry_kind                      entry_kind)
+/*
+Return TRUE if the IL entry specified by scp and entry_kind is a class type
+for a lambda closure class.
+*/
+{
+  a_boolean	result = FALSE;
+
+  if (entry_kind == iek_type) {
+    a_type_ptr	type = (a_type_ptr)scp;
+    if (is_immediate_class_type(type) &&
+         class_type_supp(type)->is_lambda_closure_class) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* scp_is_lambda_closure_class */
+
+
+static
+a_boolean form_name_if_lambda(a_source_correspondence               *scp,
+                              an_il_entry_kind                      entry_kind,
+                              an_il_to_str_output_control_block_ptr octl)
+/*
+Determine whether the entity is the closure class for a lambda, and if so,
+generate a name for it and return TRUE (FALSE otherwise).
+*/
+{
+  a_boolean	result = FALSE;
+
+#if DEBUG
+  /* Suppress processing below when generating debug output. */
+  if (octl->debug_output) entry_kind = iek_none;
+#endif /* DEBUG */
+  if (entry_kind == iek_type) {
+    a_type_ptr	type = (a_type_ptr)scp;
+    if (is_immediate_class_type(type) &&
+         class_type_supp(type)->is_lambda_closure_class) {
+      a_routine_ptr	rp;
+      result = TRUE;
+      /* Get the routine entry for the lambda body. */
+      rp = lambda_body_for_closure(type);
+      octl->output_str("lambda []");
+      /* Add the routine type of the lambda routine to the output. */
+      form_type(rp->type, octl);
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* form_name_if_lambda */
+
+
 void form_unqualified_name(a_source_correspondence               *scp,
                            an_il_entry_kind                      entry_kind,
                            an_il_to_str_output_control_block_ptr octl)
@@ -314,16 +367,20 @@ The output includes template arguments on template classes.
   char *name = unmangled_name_of(scp);
 
   if (name == NULL) {
-    /* For entities without names, use <unnamed>. */
-    check_assertion(!octl->gen_compilable_code);
-    octl->output_str("<unnamed");
+    if (form_name_if_lambda(scp, entry_kind, octl)) {
+      /* For a lambda, the name will be emitted by form_name_if_lambda. */
+    } else {
+      /* For entities without names, use <unnamed>. */
+      check_assertion(!octl->gen_compilable_code);
+      octl->output_str("<unnamed");
 #if DEBUG
-    if (octl->debug_output) {
-      octl->output_str("@");
-      form_unsigned_hex((unsigned long)scp, octl);
-    }  /* if */
+      if (octl->debug_output) {
+        octl->output_str("@");
+        form_unsigned_hex((unsigned long)scp, octl);
+      }  /* if */
 #endif /* DEBUG */
-    octl->output_str(">");
+      octl->output_str(">");
+    }  /* if */
   } else if (entry_kind == iek_routine &&
              ((a_routine_ptr)scp)->special_kind ==
                                      (a_special_function_kind)sfk_conversion) {
@@ -490,7 +547,9 @@ output in the way described by octl.
                         "form_name: doesn't handle compilable output");
     /* If the name is a member of a class or namespace in C++, output the
        qualifier. */
-    if (il_header.source_language == sl_Cplusplus) {
+    if (il_header.source_language == sl_Cplusplus &&
+        !scp_is_lambda_closure_class(scp, kind)) {
+      /* Suppress the qualifier for lambda closure classes. */
       form_qualifier(scp->parent_scope, octl);
     }  /* if */
     /* Output the base name. */
@@ -538,9 +597,10 @@ Output a reference to a tag, doing output in the way described by octl.
     octl->output_name((char *)type, iek_type);
   } else {
     /* Default handling. */
-    if (il_header.source_language == sl_C || !has_name(type)) {
+    if (il_header.source_language == sl_C ||
+        (!has_name(type) && !type_is_lambda_closure(type))) {
       /* In C, put "struct", "union", or "enum" on tags.  In C++, do it
-         only for unnamed tags. */
+         only for unnamed tags (but not lambda closure classes). */
       form_tag_kind(type->kind, octl);
       octl->output_str(" ");
     }  /* if */
@@ -1617,10 +1677,13 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
        typedef. */
     check_assertion_str(qualifiers == TQ_NONE,
                         "form_type_first_part: qualifier on function type");
-    form_type_first_part(type->variant.routine.return_type,
-                         /*under_lhs_declarator=*/FALSE,
-                         /*need_trailing_space=*/TRUE,
-                         TQ_NONE, options, octl);
+    if (octl->gen_compilable_code || !is_lambda_body_routine_type(type)) {
+      /* Suppress the normal return type for lambda bodies. */
+      form_type_first_part(type->variant.routine.return_type,
+                           /*under_lhs_declarator=*/FALSE,
+                           /*need_trailing_space=*/TRUE,
+                           TQ_NONE, options, octl);
+    }  /* if */
     /* This is a right-side declarator, so if it's under a left-side
        declarator parentheses are needed. */
     if (under_lhs_declarator) octl->output_str("(");
@@ -1750,6 +1813,11 @@ in the way described by octl.
       }  /* if */
     }  /* if */
     octl->output_str(")");
+    if (!octl->gen_compilable_code && is_lambda_body_routine_type(type)) {
+      /* For a lambda body, output the return type. */
+      octl->output_str("->");
+      form_type(type->variant.routine.return_type, octl);
+    }  /* if */
     /* If the function type has a linkage that's not compatible with the
        default, add the linkage string after the closing parenthesis.  This
        is done only for non-compilable code. */
@@ -1767,10 +1835,17 @@ in the way described by octl.
     /* Output a cv-qualifier for a member function, if there is one. */
     if (rtsp->this_class != NULL) {
       a_type_qualifier_set qualifiers = rtsp->qualifiers;
-      if (qualifiers != TQ_NONE) {
-        octl->output_str(" ");
-        form_type_qualifier(qualifiers, UPC_BLOCK_SIZE_NONE,
-                            /*need_trailing_space=*/FALSE, octl);
+      if (!octl->gen_compilable_code && is_lambda_body_routine_type(type)) {
+        /* For a lambda body, output "mutable" if the routine is not const. */
+        if ((qualifiers & TQ_CONST) == 0) {
+          octl->output_str(" mutable");
+        }  /* if */
+      } else {
+        if (qualifiers != TQ_NONE) {
+          octl->output_str(" ");
+          form_type_qualifier(qualifiers, UPC_BLOCK_SIZE_NONE,
+                              /*need_trailing_space=*/FALSE, octl);
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
@@ -1965,10 +2040,13 @@ If options contains FTO_SUPPRESS_CONST, suppress generation of top-level
        declarator parentheses are needed. */
     if (under_lhs_declarator) octl->output_str(")");
     form_function_declarator(type, octl);
-    form_type_second_part(type->variant.routine.return_type,
-                          /*under_lhs_declarator=*/FALSE,
-                          options, octl);
-  } else if (kind == (a_type_kind)tk_array) {
+    if (octl->gen_compilable_code || !is_lambda_body_routine_type(type)) {
+      /* Suppress the normal return type for lambda bodies. */
+      form_type_second_part(type->variant.routine.return_type,
+                            /*under_lhs_declarator=*/FALSE,
+                            options, octl);
+    }  /* if */
+} else if (kind == (a_type_kind)tk_array) {
     /* Array type. */
     if (can_use_qualified_array_typedef(&type, &qualifiers, suppress_const,
                                         octl)) {

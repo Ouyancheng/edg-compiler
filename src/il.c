@@ -9531,6 +9531,23 @@ is best called through the macro get_parent_scope_of.
   return result;
 }  /* f_get_parent_scope_of */
 
+
+a_routine_ptr lambda_body_for_closure(a_type_ptr	type)
+/*
+Return a pointer to the lambda body routine for the closure class specified by
+type.
+*/
+{
+  a_routine_ptr	rp;
+
+  for (rp = class_type_supp(type)->assoc_scope->routines;
+       rp != NULL; rp = rp->next) {
+    if (rp->is_lambda_body) break;
+  }  /* for */
+  check_assertion(rp != NULL);
+  return rp;
+}  /* lambda_body_for_closure */
+
 #if !STANDALONE_UTILITY_PROGRAM
 
 a_lambda_ptr get_current_lambda(void)
