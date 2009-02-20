@@ -10536,37 +10536,6 @@ return a pointer to it.  options is a set of options for the copy.
 }  /* copy_dynamic_init */
 
 
-a_constructor_init_ptr copy_ctor_init(a_constructor_init_ptr   ctor_init,
-                                      an_expr_copy_options_set options)
-/*
-Return a copy of the specified constructor init; options is a set of options
-for the copy.
-*/
-{
-  a_constructor_init_ptr  copy;
-
-  copy = alloc_ctor_init(ctor_init->kind);
-  *copy = *ctor_init;
-  copy->next = NULL;
-  copy->initializer = copy_dynamic_init(ctor_init->initializer, options);
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  copy->ctor_init_range = null_source_range;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  switch (ctor_init->kind) {
-    case cik_field:
-    case cik_virtual_base_class:
-    case cik_direct_base_class:
-      /* These are allocated in the file scope. */
-      break;
-#if CHECKING
-    default:
-      unexpected_condition();
-#endif /* CHECKING */
-  }  /* switch */
-  return copy;
-}  /* copy_ctor_init */
-
-
 a_local_static_variable_init_ptr make_local_static_variable_init(
                                                   a_variable_ptr     var,
                                                   a_scope_ptr        var_scope,
