@@ -1308,7 +1308,8 @@ is actually the first token to not be included in the cache.
      token referred to by last_tsn is the second ">" of a ">>" that was
      split into two tokens.  The code below will copy the ">>" and the copied
      token will then be adjusted to a ">". */
-  adjust_final_token = ctp->token_sequence_number > last_tsn;
+  adjust_final_token = ctp->token_sequence_number > last_tsn &&
+                       last_tsn != NO_TOKEN_SEQUENCE_NUMBER;
   /* Copy the specified range of tokens to the destination cache. */
   for (ctp = first_ctp_to_copy; ctp != last_ctp_to_copy; ctp = ctp->next) {
     /* Make a copy of the token to be added. */
