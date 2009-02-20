@@ -2894,6 +2894,8 @@ Microsoft attributes preceding the class specifier (if any).
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   a_boolean               is_ref_within_new_expr = 
                                       (dsi_flags & DSI_IS_NEW_TYPE_NAME) != 0;
+  a_boolean               trailing_return_type = 
+                                  (dsi_flags & DSI_TRAILING_RETURN_TYPE) != 0;
   a_boolean               is_explicit_instantiation =
                              (dsi_flags & DSI_IS_EXPLICIT_INSTANTIATION) != 0;
   a_boolean               is_template_specialization =
@@ -3016,9 +3018,9 @@ Microsoft attributes preceding the class specifier (if any).
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */
     tag_sym = scan_tag_name(tag_kind, &locator, &is_friend_decl,
                             &vacuous_decl_allowed, is_ref_within_new_expr,
-                            (dsi_flags & DSI_TRAILING_RETURN_TYPE) != 0,
-                            &effective_decl_level, &tag_resolution,
-                            &is_predeclared_type_decl, &local_decl_pos_block);
+                            trailing_return_type, &effective_decl_level,
+                            &tag_resolution, &is_predeclared_type_decl,
+                            &local_decl_pos_block);
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED
     if (tag_name_access_checks_deferred) {
       end_deferral_of_access_checks();
@@ -3139,10 +3141,11 @@ Microsoft attributes preceding the class specifier (if any).
     /* Don't leave tag_position undefined. */
     tag_position = decl_start_pos;
     set_to_error_locator(locator);
-    if (is_ref_within_new_expr) {
-      /* We are within a new expression and no class name is given following
+    if (is_ref_within_new_expr || trailing_return_type) {
+      /* If we are within a new expression and no class name is given following
          the keyword -- e.g., "class A *pa = new class;" -- report the missing
-         identifier as a syntax error. */
+         identifier as a syntax error.  This applies to similar situations in
+         trailing return types. */
       syntax_error(ec_exp_identifier);
       err = TRUE;
     } else if (curr_token == tok_lbrace ||
@@ -3187,7 +3190,7 @@ Microsoft attributes preceding the class specifier (if any).
      exceptions). */
   is_class_definition = tag_definition_next(
                                  curr_token, tag_kind, is_ref_within_new_expr,
-                                 (dsi_flags & DSI_TRAILING_RETURN_TYPE) != 0);
+                                 trailing_return_type);
   if (is_class_definition && is_friend_decl) {
     /* This is an error.  Defer the diagnostic until we have a tag_sym
        to use for the fill-in.  If tag_sym is already non-NULL, we'll create

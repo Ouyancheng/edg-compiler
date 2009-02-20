@@ -16250,9 +16250,11 @@ properties of this operator in *func_info (which is initialized here).
   dps->in_class_scope = TRUE;
   if (curr_token == tok_lparen) {
     /* A parameter list presumably follows. */
+    add_stop_token(tok_lbrace);
     dps->declarator_start_pos = dps->declarator_pos = pos_curr_token;
     scan_lambda_declarator(lambda, dps, func_info, decl_pos_block);
     lambda->has_parameter_decl = TRUE;
+    remove_stop_token(tok_lbrace);
   } else {
     /* The parameter list was omitted: Treat this as if the declarator-like
        construct was just an empty parameter list.  This also means that the
