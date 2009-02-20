@@ -1712,19 +1712,17 @@ been allocated for it.  Set the parent pointer for the IL scope entry.
           /* A local type not nested in another local type.  The parent cannot
              be set because of memory region constraints.  Create an implicit
              reference instead. */
-          a_scope_depth  func_depth;
-          check_assertion(scope_stack[decl_scope_level].kind ==
-                                                (a_scope_kind)sck_block ||
-                          scope_stack[decl_scope_level].kind ==
-                                                (a_scope_kind)sck_condition ||
-                          scope_stack[decl_scope_level].kind ==
-                                                (a_scope_kind)sck_function);
-          func_depth =
-                 scope_stack[decl_scope_level].depth_innermost_function_scope;
+          a_scope_depth            func_depth;
+          a_scope_stack_entry_ptr  declssep = &scope_stack[decl_scope_level];
+          check_assertion_or_expect_error(
+                              declssep->kind == (a_scope_kind)sck_block ||
+                              declssep->kind == (a_scope_kind)sck_condition ||
+                              declssep->kind == (a_scope_kind)sck_function);
+          func_depth = declssep->depth_innermost_function_scope;
           check_assertion(func_depth != NO_SCOPE_DEPTH);
           make_local_scope_ref(
-                      ensure_il_scope_exists(&scope_stack[decl_scope_level]),
-                      (char*)sp, iek_scope, scope_stack[func_depth].il_scope);
+                       ensure_il_scope_exists(declssep), (char*)sp, iek_scope,
+                       scope_stack[func_depth].il_scope);
         }  /* if */
       }
       break;
