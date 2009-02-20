@@ -7791,6 +7791,16 @@ command line -D options.
                            "__EDG_VERSION__",
                            /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
+  /* Enter a predefined macro for the type of size_t on this target. */
+  (void)enter_predef_macro(int_kind_name(targ_size_t_int_kind),
+                           "__EDG_SIZE_TYPE__",
+                           /*cannot_be_redefined=*/TRUE,
+                           /*ref_suppresses_pch_file=*/FALSE);
+  /* Enter a predefined macro for the type of ptrdiff_t on this target. */
+  (void)enter_predef_macro(int_kind_name(targ_ptrdiff_t_int_kind),
+                           "__EDG_PTRDIFF_TYPE__",
+                           /*cannot_be_redefined=*/TRUE,
+                           /*ref_suppresses_pch_file=*/FALSE);
   /* In GNU C/C++ mode, enter the macros that GNU compilers define. */
   if (gnu_mode) init_gnu_predefined_macros();
   if (building_runtime) {

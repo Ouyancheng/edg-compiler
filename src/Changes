@@ -1,5 +1,22 @@
 Version 4.1
 
+2/20/09  [EDGcpfe/9373]
+New predefined macros for types of size_t and ptrdiff_t
+
+Two EDG-specific predefined macros have been added; the value of the new
+__EDG_SIZE_TYPE__ macro is the type of size_t, similarly the value of
+__EDG_PTRDIFF_TYPE__ is the type of ptrdiff_t.  Similar predefined macros
+__SIZE_TYPE__ and __PTRDIFF_TYPE__ are already available in Linux
+configurations.  Here is an example:
+
+  #include <typeinfo>
+  int main() {
+    // Returns zero in all configurations.
+    return typeid(__EDG_SIZE_TYPE__) != typeid(sizeof(int)) ||
+           typeid(__EDG_PTRDIFF_TYPE__) != typeid((char *)0 - (char *)0);
+  }
+
+
 2/20/09  [EDGcpfe/9084]
 IA-64 ABI constructor/destructor changes
 
