@@ -34,9 +34,7 @@ lower_init.c -- IL lowering: initializations and new/delete.
 #include "class_decl.h"
 #include "expr.h"
 #include "exprutil.h"
-#if MAINTAIN_NEEDED_FLAGS || MULTIPLE_INIT_ROUTINES
 #include "il_walk.h"
-#endif /* MAINTAIN_NEEDED_FLAGS || MULTIPLE_INIT_ROUTINES */
 
 
 /* Declarations needed because of forward references: */
