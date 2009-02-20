@@ -2046,7 +2046,7 @@ If options contains FTO_SUPPRESS_CONST, suppress generation of top-level
                             /*under_lhs_declarator=*/FALSE,
                             options, octl);
     }  /* if */
-} else if (kind == (a_type_kind)tk_array) {
+  } else if (kind == (a_type_kind)tk_array) {
     /* Array type. */
     if (can_use_qualified_array_typedef(&type, &qualifiers, suppress_const,
                                         octl)) {
