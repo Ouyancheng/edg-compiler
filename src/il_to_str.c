@@ -83,6 +83,16 @@ Clear an output control block to default values.
 }  /* clear_il_to_str_output_control_block */
 
 
+/*
+Macro that is TRUE if debug output is being generated.
+*/
+#if DEBUG
+#define generating_debug_output(octl) ((octl)->debug_output)
+#else /* !DEBUG */
+#define generating_debug_output(octl) (FALSE) /*lint --e(506)*/
+#endif /* DEBUG */
+
+
 static void output_partial_token_str(
                                     char                                  *str,
                                     an_il_to_str_output_control_block_ptr octl)
@@ -334,11 +344,7 @@ generate a name for it and return TRUE (FALSE otherwise).
 {
   a_boolean	result = FALSE;
 
-#if DEBUG
-  /* Suppress processing below when generating debug output. */
-  if (octl->debug_output) entry_kind = iek_none;
-#endif /* DEBUG */
-  if (entry_kind == iek_type) {
+  if (entry_kind == iek_type && !generating_debug_output(octl)) {
     a_type_ptr	type = (a_type_ptr)scp;
     if (is_immediate_class_type(type) &&
          class_type_supp(type)->is_lambda_closure_class) {
@@ -1835,7 +1841,8 @@ in the way described by octl.
     /* Output a cv-qualifier for a member function, if there is one. */
     if (rtsp->this_class != NULL) {
       a_type_qualifier_set qualifiers = rtsp->qualifiers;
-      if (!octl->gen_compilable_code && is_lambda_body_routine_type(type)) {
+      if (!octl->gen_compilable_code && !generating_debug_output(octl) &&
+          is_lambda_body_routine_type(type)) {
         /* For a lambda body, output "mutable" if the routine is not const. */
         if ((qualifiers & TQ_CONST) == 0) {
           octl->output_str(" mutable");
