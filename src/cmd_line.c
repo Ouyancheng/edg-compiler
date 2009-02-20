@@ -4857,6 +4857,16 @@ file.
 #else /* !defined(GUARD_MACRO_FOR_VA_LIST) */
   comment_undefined_macro_name(GUARD_MACRO_FOR_VA_LIST);
 #endif /* defined(GUARD_MACRO_FOR_VA_LIST) */
+#if defined(HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS)
+  define_numeric_valued_macro(HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS);
+#else /* !defined(HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS) */
+  comment_undefined_macro_name(HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS);
+#endif /* defined(HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS) */
+#if defined(HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS)
+  define_numeric_valued_macro(HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS);
+#else /* !defined(HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS) */
+  comment_undefined_macro_name(HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS);
+#endif /* defined(HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS) */
 #if defined(HOSTID)
   define_string_valued_macro(HOSTID);
 #else /* !defined(HOSTID) */

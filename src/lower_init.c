@@ -1320,13 +1320,12 @@ is the destination of an initialization operation.
 #endif /* !DO_FULL_PORTABLE_EH_LOWERING */
   /* Do not insert code here; this is the else of the above if. */
   {
+    check_assertion(var != NULL);
     if (ipdp->indirect_through_variable) {
       /* Indirect through the variable. */
-      check_assertion(var != NULL);
       entity_node = add_indirection_to_node(var_rvalue_expr(var));
     } else {
       /* Normal case, a simple variable. */
-      check_assertion(var != NULL);
       entity_node = var_lvalue_expr(var);
 #if LOWER_VARIABLE_LENGTH_ARRAYS
       /* When VLAs are lowered, the array variable becomes a pointer to the
@@ -3208,13 +3207,25 @@ grcontext is a local variable used to save state for later restoration.
   function_lower_init();
 }  /* push_generated_routine_context */
 
+/*
+Macro for invocation of pop_generated_routine_context_full in the usual
+case where final_pop is TRUE.
+*/
+#define pop_generated_routine_context(scope, region_number, grcontext)  \
+  pop_generated_routine_context_full(scope, region_number, grcontext,   \
+                                     /*final_pop=*/TRUE)
 
-static void pop_generated_routine_context(
+static void pop_generated_routine_context_full(
                                      a_scope_ptr                 scope,
                                      a_memory_region_number      region_number,
-                                     a_generated_routine_context *grcontext)
+                                     a_generated_routine_context *grcontext,
+                                     a_boolean                   final_pop)
 /*
 Pop function corresponding to push_generated_routine_context.
+final_pop is TRUE if the specified scope will not be the argument of a
+subsequent push_generated_routine_context/pop_generated_routine_context_full
+sequence; in this case some finalization of the scope is performed, otherwise
+this finalization is delayed until the final pop is performed.
 */
 {
   a_routine_ptr rout = scope->variant.routine.ptr;
@@ -3234,39 +3245,45 @@ Pop function corresponding to push_generated_routine_context.
      has a pointer to the original instance and is unaware that it has
      been moved. */
   (void)pop_object_lifetime();
-  clean_up_all_object_lifetimes(scope);
-  if (exceptions_enabled
+  if (final_pop) {
+    clean_up_all_object_lifetimes(scope);
+    if (exceptions_enabled
 #if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
-      /* Don't add EH code to thunks. */
-      && rout->overriding_function_for_covariant_return_type == NULL
+        /* Don't add EH code to thunks. */
+        && rout->overriding_function_for_covariant_return_type == NULL
 #endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
-#if IA64_ABI
-      /* Don't add EH code to alternate entry points. */
-      && rout->primary_ctor_or_dtor == NULL
-#endif /* IA64_ABI */
-                                           ) {
-    /* Add prologue/epilogue code for exceptions if needed.  This is done
-       after the object lifetime is popped so we can tell whether any
-       EH processing is really needed. */
-    add_eh_function_prologue(scope);
+#if IA64_ABI && !HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS
+        /* Don't add EH code to alternate entry points, unless the complete
+           ctor/dtor contains exception handling code. */
+        && rout->primary_ctor_or_dtor == NULL
+#endif /* IA64_ABI && !HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS */
+                                             ) {
+      /* Add prologue/epilogue code for exceptions if needed.  This is done
+         after the object lifetime is popped so we can tell whether any
+         EH processing is really needed. */
+      add_eh_function_prologue(scope);
+    }  /* if */
   }  /* if */
   pop_context();
+  if (final_pop) {
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
-  /* Make orphan lists for any local types or static variables in the
-     routine. */
-  add_scope_orphaned_il_lists(scope);
+    /* Make orphan lists for any local types or static variables in the
+       routine. */
+    add_scope_orphaned_il_lists(scope);
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
-  scope->function_body_processing_finished = TRUE;
+    scope->function_body_processing_finished = TRUE;
 #if MAINTAIN_NEEDED_FLAGS
-  /* Walk subtrees of local types and variables that have already been
-     marked as needed. */
-  walk_subtrees_of_local_entities(scope);
-  /* Mark the routine as needed if it's external. */
-  if (generated_routine_needed_even_if_unreferenced(rout)) {
-    mark_as_needed((char *)rout, iek_routine);
-  }  /* if */
+    /* Walk subtrees of local types and variables that have already been
+       marked as needed. */
+    walk_subtrees_of_local_entities(scope);
+    /* Mark the routine as needed if it's external. */
+    if (generated_routine_needed_even_if_unreferenced(rout)) {
+      mark_as_needed((char *)rout, iek_routine);
+    }  /* if */
 #endif /* MAINTAIN_NEEDED_FLAGS */
-  set_routine_defined(rout);
+    set_routine_defined(rout);
+    check_for_done_with_memory_region(region_number);
+  }  /* if */
   restore_eh_lowering_context(&grcontext->ehcontext);
   promoted_local_static_variable_inits =
                                grcontext->promoted_local_static_variable_inits;
@@ -3276,9 +3293,8 @@ Pop function corresponding to push_generated_routine_context.
                                  grcontext->processing_file_scope_init_routine;
   innermost_function_scope = grcontext->innermost_function_scope;
   depth_innermost_function_scope = grcontext->depth_innermost_function_scope;
-  check_for_done_with_memory_region(region_number);
   switch_il_region(grcontext->region_to_switch_back_to);
-}  /* pop_generated_routine_context */
+}  /* pop_generated_routine_context_full */
 
 
 static void add_null_test_around_routine(a_scope_ptr scope)
@@ -3296,6 +3312,277 @@ Add "if (this)" around the whole routine whose top scope is given by "scope".
   enclose_routine_in_if(scope, if_node, (a_variable_ptr)NULL);
 }  /* add_null_test_around_routine */
 
+#if HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS
+
+static void replace_parameter_in_node(an_expr_node_ptr                expr,
+                                      an_expr_or_stmt_traversal_block *tblock)
+/*
+Called (via traverse_expr_list) by replace_parameters_in_expr_list to replace
+a parameter in expr (if one exists) with a corresponding parameter.
+*/
+{
+  a_variable_ptr  orig_ptr, new_ptr;
+
+  if (is_variable_node(expr) && expr->variant.variable->is_parameter) {
+    for (orig_ptr = tblock->orig_params, new_ptr = tblock->new_params;
+         orig_ptr != NULL && new_ptr != NULL;
+         orig_ptr = orig_ptr->next, new_ptr = new_ptr->next) {
+      if (expr->variant.variable == orig_ptr) {
+        check_assertion(identical_types_ignoring_qualifiers(orig_ptr->type,
+                                                            new_ptr->type));
+        expr->variant.variable = new_ptr;
+        break;
+      }  /* if */
+      /* Skip the VTT parameter that follows the "this" parameter in
+         the list of original parameters. */
+      if (orig_ptr->is_this_parameter) orig_ptr = orig_ptr->next;
+    }  /* for */
+    check_assertion(orig_ptr != NULL && new_ptr != NULL);
+  }  /* if */
+}  /* replace_parameter_in_node */
+
+
+static void replace_parameters_in_expr_list(an_expr_node_ptr expr_list,
+                                            a_variable_ptr   orig_params,
+                                            a_variable_ptr   new_params)
+/*
+This function is used to replace all parameters that occur in expr_list
+(a list of arguments) with corresponding parameters from an alternate
+entry point.  expr_list is about to be copied from one scope to an alternate
+entry point scope; the argument list may contain references to parameters
+from the original scope (orig_params) and they need to refer to corresponding
+parameters in the new scope (new_params).  Note that the parameter list
+from the original scope has an additional VTT parameter (which is skipped
+when matching parameters).
+*/
+{
+  an_expr_or_stmt_traversal_block tblock;
+
+  clear_expr_or_stmt_traversal_block(&tblock);
+  tblock.process_expr = replace_parameter_in_node;
+  tblock.orig_params = orig_params;
+  tblock.new_params = new_params;
+  traverse_expr_list(expr_list, &tblock);
+}  /* replace_parameters_in_expr_list */
+
+
+static void move_or_copy_virtual_base_ctor_inits(a_scope_ptr subobj_scope)
+/*
+This routine either moves (when HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS
+is FALSE) or copies (when HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS is
+TRUE) virtual base constructors from the specified subobject ctor/dtor
+scope into the complete object ctor/dtor scope (created by this routine
+if necessary).
+*/
+{
+  a_routine_ptr            complete_routine = NULL, subobj_routine;
+  a_scope_ptr              complete_scope;
+  a_memory_region_number   new_routine_il_region;
+  a_constructor_init_ptr   ctor_init, copy, prev = NULL;
+  a_routine_list_entry_ptr rlep;
+  a_generated_routine_context
+                           grcontext;
+#if !HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS
+  a_constructor_init_ptr   *delete_at =
+                              &subobj_scope->variant.routine.constructor_inits;
+#endif /* !HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS */
+
+#if DEBUG
+  if (db_flag_is_set("virt_ctor_inits")) {
+    (void)fprintf(f_debug, "Before: subobject lifetime = ");
+    db_object_lifetime(subobj_scope->lifetime);
+    (void)fprintf(f_debug, "subobject ctor_inits:\n");
+    for (ctor_init = subobj_scope->variant.routine.constructor_inits;
+         ctor_init != NULL;
+         ctor_init = ctor_init->next) {
+      db_dynamic_initializer(ctor_init->initializer, 0);
+    }
+  }  /* if */
+#endif /* DEBUG */
+  check_assertion(subobj_scope->kind == (a_scope_kind)sck_function);
+  subobj_routine = subobj_scope->variant.routine.ptr;
+  check_assertion(parent_class_of(subobj_routine)->
+                         variant.class_struct_union.any_virtual_base_classes &&
+                  subobj_routine->ctor_dtor_kind ==
+                                          (a_ctor_or_dtor_kind)cdk_subobject &&
+                  (subobj_routine->special_kind ==
+                                    (a_special_function_kind)sfk_constructor ||
+                   subobj_routine->special_kind ==
+                                     (a_special_function_kind)sfk_destructor));
+  /* Create an entry point for the complete object ctor/dtor if necessary. */
+  create_alternate_entry_points(subobj_routine, /*define_now=*/FALSE);
+  /* Find the complete ctor/dtor routine. */
+  for (rlep = subobj_routine->variant.ctor_dtor.alternate_entry_points;
+       rlep != NULL; 
+       rlep = rlep->next) {
+    if (rlep->routine->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_complete) {
+      complete_routine = rlep->routine;
+      break;
+    }  /* if */
+  }  /* for */
+  check_assertion(complete_routine != NULL &&
+                  complete_routine->assoc_scope == NULL_region_number);
+  /* Allocate a scope for the routine if one doesn't exist yet. */
+  complete_scope = make_routine_definition(complete_routine,
+                                           /*make_return=*/FALSE,
+                                           &new_routine_il_region);
+  check_assertion(complete_scope->variant.routine.constructor_inits == NULL);
+  push_generated_routine_context(complete_scope, new_routine_il_region,
+                                 &grcontext);
+  for (ctor_init = subobj_scope->variant.routine.constructor_inits;
+       ctor_init != NULL;
+       ctor_init = ctor_init->next) {
+    if (ctor_init->kind == (a_constructor_init_kind)cik_virtual_base_class) {
+      a_dynamic_init_ptr  save_dip;
+      check_assertion(ctor_init->initializer != NULL);
+      if (subobj_routine->special_kind ==
+                                     (a_special_function_kind)sfk_destructor) {
+        /* During the copy below, a destruction will be queued on the lifetime
+           of the current scope.  For destructors, this lifetime will be
+           queued in the wrong order, so save the existing destructions
+           and queue the new one after these. */
+        save_dip = complete_scope->lifetime->destructions;
+        complete_scope->lifetime->destructions = NULL;
+      }  /* if */
+      /* Copy the constructor init into the current memory region and link
+         it onto the list for the complete object ctor/dtor. */
+      /* If the constructor init has an argument list, that argument list may
+         have variables (actually parameters) that refer to subobject
+         parameters; they need to be replaced with the corresponding
+         parameters in the complete object ctor.  This is done by calling
+         replace_parameters_in_expr_list, but can't be performed until
+         the complete object's parameter list has been finalized, so
+         defer it for now. */
+      copy = copy_ctor_init(ctor_init, CE_NO_OPTIONS);
+      if (subobj_routine->special_kind ==
+                                     (a_special_function_kind)sfk_destructor) {
+        /* For destructors, queue the new destruction at the end of the
+           list. */
+        if (save_dip != NULL) {
+          a_dynamic_init_ptr dip;
+          for (dip = save_dip;
+               dip->next_in_destruction_list != NULL;
+               dip = dip->next_in_destruction_list) {}
+          dip->next_in_destruction_list =
+                                        complete_scope->lifetime->destructions;
+          complete_scope->lifetime->destructions = save_dip;
+        }  /* if */
+      }  /* if */
+      if (prev == NULL) {
+        complete_scope->variant.routine.constructor_inits = copy;
+      } else {
+        prev->next = copy;
+      }  /* if */
+      prev = copy;
+#if !HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS
+      /* We're not going to handle virtual bases in the subobject ctor/dtor,
+         so remove any trace of them. */
+      (*delete_at) = ctor_init->next;
+      remove_from_destruction_list(ctor_init->initializer);
+    } else {
+      /* For destructors, virtual base classes are at the end of the list,
+         so keep track of the last non-virtual ctor_init. */
+      delete_at = &(ctor_init->next);
+#endif /* !HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS */
+    }  /* if */
+  }  /* for */
+#if !HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS
+  /* Remove subobject scope lifetime if it's no longer needed. */
+  if (subobj_scope->lifetime != NULL &&
+      is_useless_object_lifetime(subobj_scope->lifetime)) {
+    subobj_scope->lifetime = NULL;
+  }  /* if */
+#endif /* !HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS */
+#if DEBUG
+  if (db_flag_is_set("virt_ctor_inits")) {
+    (void)fprintf(f_debug, "After: subobject lifetime = ");
+    db_object_lifetime(subobj_scope->lifetime);
+    (void)fprintf(f_debug, "After: complete lifetime = ");
+    db_object_lifetime(complete_scope->lifetime);
+    (void)fprintf(f_debug, "subobject ctor_inits:\n");
+    for (ctor_init = subobj_scope->variant.routine.constructor_inits;
+         ctor_init != NULL;
+         ctor_init = ctor_init->next) {
+      db_dynamic_initializer(ctor_init->initializer, 0);
+    }
+    (void)fprintf(f_debug, "complete ctor_inits:\n");
+    for (ctor_init = complete_scope->variant.routine.constructor_inits;
+         ctor_init != NULL;
+         ctor_init = ctor_init->next) {
+      db_dynamic_initializer(ctor_init->initializer, 0);
+    }
+  }  /* if */
+#endif /* DEBUG */
+  pop_generated_routine_context_full(complete_scope, new_routine_il_region,
+                                     &grcontext, /*final_pop=*/FALSE);
+}  /* move_or_copy_virtual_base_ctor_inits */
+
+#endif /* HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS */
+
+/* Forward declarations. */
+#if HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS || !IA64_ABI
+static a_variable_ptr make_construction_vtbl_temporary(void);
+#endif /* HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS || !IA64_ABI */
+
+static void add_virtual_base_init_code(
+                                     a_scope_ptr        scope,
+                                     a_variable_ptr     complete_var,
+                                     a_handle_number    complete_var_handle,
+                                     a_variable_ptr     construction_vtbls_var,
+                                     an_insert_location *insert_location);
+
+static void insert_default_construction_vtbls_assignment(
+                                a_type_ptr              class_type,
+                                a_variable_ptr          construction_vtbls_var,
+                                an_insert_location      *insert_location);
+
+static void lower_dtor_init(a_constructor_init_ptr ctor_init,
+                            a_variable_ptr         this_param_var,
+                            a_boolean              have_complete_object,
+                            a_boolean              base_of_complete_object,
+                            a_variable_ptr         destruction_vtbls_var,
+                            an_insert_location_ptr insert_location);
+
+static void initialize_dtor_init_for_cleanup(
+                                        a_dynamic_init_ptr     dip,
+                                        a_constructor_init_ptr ctor_init_list);
+
+static void make_dtor_init_region_table_entries(
+                                          a_dynamic_init_ptr dip,
+                                          an_insert_location *insert_location);
+
+static void insert_epilogue_cleanup_state(
+                                 a_dynamic_init_ptr first_epilogue_destruction,
+                                 an_insert_location *insert_location)
+/*
+Called at the end of generating code for a destructor, this routine creates
+the region table entries (if needed), and inserts the initial cleanup state.
+first_epilogue_destruction is a pointer to the first destruction in the
+epilogue, and insert_location specifies where the resulting code should
+be inserted.
+*/
+{
+  if (exceptions_enabled && first_epilogue_destruction != NULL) {
+#if GENERATE_EH_TABLES
+    /* Make the region table entries for the epilogue destructions.
+       This is done late because we want to put out the entries in
+       reversed order, and we need to wait until they all have position
+       information recorded. */
+    make_dtor_init_region_table_entries(first_epilogue_destruction,
+                                        insert_location);
+#endif /* GENERATE_EH_TABLES */
+    /* Insert code to establish the appropriate cleanup state at the
+       beginning of the user-written code in the destructor.  This
+       cleanup state calls for destruction of members and bases of
+       the class. */
+    curr_context->curr_cleanup_state =
+        curr_context->latest_initialization = first_epilogue_destruction;
+    insert_code_to_indicate_cleanup_state(curr_context->curr_cleanup_state,
+                                          insert_location,
+                                          /*unreachable=*/FALSE);
+  }  /* if */
+}  /* insert_epilogue_cleanup_state */
+
 
 static void define_default_version_of_routine(
                                             a_routine_ptr    routine,
@@ -3306,6 +3593,13 @@ Define new_routine, which is an alternate entry point for routine, with fewer
 arguments.  Replacements for trailing arguments in routine are given by the
 default_arg_list.
 */
+#if HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS
+/*
+In cases where define_default_version_of_routine is called to create
+a complete constructor or destructor, add code to perform the virtual base
+initialization or destruction here.
+*/
+#endif /* HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS */
 {
   an_expr_node_ptr implied_arg_list = NULL, end_implied_arg_list = NULL;
   an_expr_node_ptr call_node;
@@ -3328,6 +3622,14 @@ default_arg_list.
   an_object_lifetime_ptr
                    init_expr_lifetime = NULL;
   a_context        def_arg_context;
+#if HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS
+  a_boolean        construct_virtual_bases = FALSE;
+  a_boolean        deconstruct_virtual_bases = FALSE;
+  a_variable_ptr   construction_vtbls_var;
+  a_type_ptr       class_type = parent_class_of(routine);
+  an_insert_location     
+                   prologue_insert_location;
+#endif /* HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS */
 
   rtsp = routine->type->variant.routine.extra_info;
   new_rtsp = new_routine->type->variant.routine.extra_info;
@@ -3337,10 +3639,15 @@ default_arg_list.
      to do so. */
   check_assertion(!rtsp->value_returned_by_cctor &&
                   !rtsp->value_returned_as_parameter);
-  /* Make a memory region, scope, and block for the routine definition. */
-  new_routine_scope = make_routine_definition(new_routine,
-                                              /*make_return=*/FALSE,
-                                              &new_routine_il_region);
+  if (new_routine->assoc_scope == NULL_region_number) {
+    /* Make a memory region, scope, and block for the routine definition. */
+    new_routine_scope = make_routine_definition(new_routine,
+                                                /*make_return=*/FALSE,
+                                                &new_routine_il_region);
+  } else {
+    new_routine_il_region = new_routine->assoc_scope;
+    new_routine_scope = il_header.region_scope_entry[new_routine_il_region];
+  }  /* if */
   set_block_start_insert_location(new_routine_scope->assoc_block,
                                   &insert_location);
   push_generated_routine_context(new_routine_scope, new_routine_il_region,
@@ -3354,6 +3661,41 @@ default_arg_list.
   last_param_var = this_param_var;
   /* Make expression lists for constructor or destructor implied
      arguments. */
+#if HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS
+  if (class_type->variant.class_struct_union.any_virtual_base_classes &&
+      new_routine->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_complete &&
+      (new_routine->special_kind == (a_special_function_kind)sfk_constructor ||
+       new_routine->special_kind == (a_special_function_kind)sfk_destructor)) {
+    /* This is a complete object ctor/dtor that contains virtual bases and
+       those virtual bases will be constructed/destructed in this ctor/dtor. */
+    check_assertion(class_type->variant.class_struct_union.extra_info->
+                                                   construction_vtbls != NULL);
+    /* Create a temporary that will point to an array of virtual function
+       table addresses. */
+    construction_vtbls_var = make_construction_vtbl_temporary();
+    /* Add the construction vtable as an implied argument to the subobject
+       ctor/dtor. */
+    implied_arg_list = var_rvalue_expr(construction_vtbls_var);
+    end_implied_arg_list = implied_arg_list;
+    if (new_routine->special_kind == (a_special_function_kind)sfk_destructor) {
+      /* Set the destruction_vtbls temporary to point to the default array
+         of virtual function table pointers to be used when destroying a
+         complete object. */
+      insert_default_construction_vtbls_assignment(class_type,
+                                                   construction_vtbls_var,
+                                                   &insert_location);
+      /* Save this insert location for the exception handling prologue. */
+      prologue_insert_location = insert_location;
+      deconstruct_virtual_bases = TRUE;
+    } else {
+      /* Set a flag to indicate that construction of virtual bases should
+         occur later in this ctor (after the parameter lists have been
+         established). */
+      construct_virtual_bases = TRUE;
+    }  /* if */
+  } else
+#endif /* HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS */
+  /* Do not add code here. */
   if (routine->special_kind == (a_special_function_kind)sfk_constructor) {
 #if IA64_ABI
     if (new_routine->special_kind == (a_special_function_kind)sfk_constructor&&
@@ -3427,9 +3769,8 @@ default_arg_list.
     push_context(&def_arg_context, (a_scope_ptr)NULL, init_expr_lifetime);
     /* Copy the default argument expressions into the function memory
        region. */
-    default_arg_list =
-                      copy_list_of_expr_trees(default_arg_list,
-                                              CE_UNLINK_SOURCE_DESTRUCTIONS);
+    default_arg_list = copy_list_of_expr_trees(default_arg_list,
+                                               CE_UNLINK_SOURCE_DESTRUCTIONS);
     if (is_useless_object_lifetime(init_expr_lifetime)) {
       /* There weren't any temporaries in the default argument expressions,
          so the lifetime is not needed. */
@@ -3463,6 +3804,41 @@ default_arg_list.
     end_implied_arg_list->next = default_arg_list;
     default_arg_list = implied_arg_list;
   }  /* if */
+#if HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS
+  if (construct_virtual_bases || deconstruct_virtual_bases) {
+    /* Start an object lifetime. */
+    begin_block_object_lifetime(new_routine_scope->lifetime,
+                                &insert_location);
+    if (construct_virtual_bases) {
+      /* Finish copying constructor inits from subobject to complete ctor. */
+      a_constructor_init_ptr ctor_init;
+      a_scope_ptr            subobj_scope;
+      subobj_scope = il_header.region_scope_entry[routine->assoc_scope];
+      for (ctor_init = new_routine_scope->variant.routine.constructor_inits;
+           ctor_init != NULL;
+           ctor_init = ctor_init->next) {
+        if (ctor_init->initializer->kind ==
+                                        (a_dynamic_init_kind)dik_constructor &&
+            ctor_init->initializer->variant.constructor.args != NULL) {
+          /* This is a constructor init that has an argument list.  The
+             argument list may have variables (actually parameters) that refer
+             to subobject parameters -- replace them in the expression with
+             their corresponding parameter in the complete object ctor/dtor. */
+          replace_parameters_in_expr_list(
+                              ctor_init->initializer->variant.constructor.args,
+                              subobj_scope->variant.routine.parameters,
+                              new_routine_scope->variant.routine.parameters);
+        }  /* if */
+      }  /* for */
+      /* Emit code to initialize the virtual bases.  Must be done after the
+         parameter list is complete (var_for_copy_constructor_source depends
+         on it). */
+      add_virtual_base_init_code(new_routine_scope, (a_variable_ptr)NULL,
+                                 (a_handle_number)0, construction_vtbls_var,
+                                 &insert_location);
+    }  /* if */
+  }  /* if */
+#endif /* HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS */
   /* Add the "this" parameter at the front of the argument list. */
   this_arg = var_rvalue_expr(this_param_var);
   this_arg->next = default_arg_list;
@@ -3474,10 +3850,29 @@ default_arg_list.
      followed by a return statement.  Otherwise, attach the call directly
      to the return. */
   void_return = is_void_type(lowered_return_type_of(new_routine->type));
-  insert_as_statement = void_return;
-  /* If we might have to insert destructor calls, insert the call as
-     a statement. */
-  if (init_expr_lifetime != NULL) insert_as_statement = TRUE;
+#if HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS
+  if (exceptions_enabled &&
+      (construct_virtual_bases ||
+       (deconstruct_virtual_bases &&
+        new_routine_scope->variant.routine.constructor_inits != NULL))) {
+    /* Force insertion as a statement because we have exception handling code
+       or destructions that must follow the call. */
+    insert_as_statement = TRUE;
+  } else
+#endif /* HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS */
+  /* Do not insert code. */
+  if (new_rtsp->has_ellipsis) {
+    /* Force ctor/dtors that have an ellipsis argument to use a call or
+       assignment expression statement (rather than a return statement).
+       This creates the necessary temporary and makes things simpler for the
+       C generating back end. */
+    insert_as_statement = TRUE;
+  } else { 
+    insert_as_statement = void_return;
+    /* If we might have to insert destructor calls, insert the call as
+       a statement. */
+    if (init_expr_lifetime != NULL) insert_as_statement = TRUE;
+  }  /* if */
   if (insert_as_statement) {
     /* The call will be inserted as a separate statement. */
     a_variable_ptr temp_var;
@@ -3496,6 +3891,38 @@ default_arg_list.
     } else {
       call_node = var_rvalue_expr(temp_var);
     }  /* if */
+#if HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS
+    if (deconstruct_virtual_bases &&
+        new_routine_scope->variant.routine.constructor_inits != NULL) {
+      a_constructor_init_ptr ctor_init, ctor_init_list;
+      a_dynamic_init_ptr     first_epilogue_destruction;
+
+      ctor_init_list = new_routine_scope->variant.routine.constructor_inits;
+      first_epilogue_destruction = ctor_init_list->initializer;
+      check_assertion(first_epilogue_destruction != NULL);
+      if (exceptions_enabled) {
+        /* Do cleanup initialization for the virtual base destructions (only)
+           on the ctor-initializer list of the destructor. */
+        initialize_dtor_init_for_cleanup(first_epilogue_destruction,
+                                         ctor_init_list);
+      }  /* if */
+      /* Destroy any virtual base classes on the ctor_init list. */
+      for (ctor_init = ctor_init_list;
+           ctor_init != NULL;
+           ctor_init = ctor_init->next) {
+        check_assertion(ctor_init->kind ==
+                              (a_constructor_init_kind)cik_virtual_base_class);
+        lower_dtor_init(ctor_init, this_param_var,
+                        /*have_complete_object=*/FALSE,
+                        /*base_of_complete_object=*/TRUE,
+                        construction_vtbls_var,
+                        &insert_location);
+      }  /* for */
+      /* Insert the region table and initial cleanup state. */
+      insert_epilogue_cleanup_state(first_epilogue_destruction,
+                                    &prologue_insert_location);
+    }  /* if */
+#endif /* HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS */
 #if IA64_ABI
     if (new_routine->special_kind == (a_special_function_kind)sfk_destructor &&
         new_routine->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_deleting) {
@@ -3528,6 +3955,10 @@ default_arg_list.
     add_null_test_around_routine(new_routine_scope);
   }  /* if */
 #endif /* IA64_ABI */
+#if HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS
+  /* Constructor inits were handled above and can now be discarded. */
+  new_routine_scope->variant.routine.constructor_inits = NULL;
+#endif /* HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS */
   pop_generated_routine_context(new_routine_scope, new_routine_il_region,
                                 &grcontext);
 #if MINIMAL_INLINING
@@ -3810,8 +4241,12 @@ routine will be the same as the one passed in.
                                           routine->virtual_function_number + 1;
         }  /* if */
       }  /* if */
-      /* The new routine has an ellipsis if the old one does.  */
+      /* The new routine has an ellipsis if the old one does. */
       new_rtsp->has_ellipsis = rtsp->has_ellipsis;
+#if HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS
+      /* The new routine has an exception specification if the old one does. */
+      new_rtsp->exception_specification = rtsp->exception_specification;
+#endif /* HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS */
       if (kind == (a_ctor_or_dtor_kind)cdk_subobject &&
           routine->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_complete) {
         /* When the primary routine is the complete object constructor or
@@ -6464,7 +6899,6 @@ If the dynamic initialization is the top-level one for a throw,
 
 others_follow_in_aggr is TRUE if this constant is followed by others in
 an aggregate initialization (i.e., it's not the last).
-
 
 This routine will always generate some executable code (well, almost always: 
 A dynamic initialization that contains a destructor but that could otherwise 
@@ -10239,7 +10673,8 @@ the implicit parameters follow it.
 
 #endif /* !IA64_ABI */
 #if ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
-#if !IA64_ABI
+
+#if HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS || !IA64_ABI
 
 static a_variable_ptr make_construction_vtbl_temporary(void)
 /*
@@ -10256,7 +10691,7 @@ the temporary variable.
   return var;
 }  /* make_construction_vtbl_temporary */
 
-#endif /* !IA64_ABI */
+#endif /* HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS || !IA64_ABI */
 
 /* Determine whether or not make define_construction_vtbls_array needs to be
    external. */
@@ -10934,6 +11369,135 @@ Insert the code at the location given by insert_location.
 }  /* insert_primary_vtbl_assignment */
 
 
+#if !DO_FULL_PORTABLE_EH_LOWERING
+/*ARGSUSED*/ /* <-- complete_var_handle is not used in that case. */
+#endif /* !DO_FULL_PORTABLE_EH_LOWERING */
+static void add_virtual_base_init_code(
+                                     a_scope_ptr        scope,
+                                     a_variable_ptr     complete_var,
+                                     a_handle_number    complete_var_handle,
+                                     a_variable_ptr     construction_vtbls_var,
+                                     an_insert_location *insert_location)
+/*
+This routine emits initialization code for virtual base classes; it is called
+during construction of the complete object constructor or the subobject
+constructor.  In the Cfront ABI, this is called only from the subobject
+constructor; it may be called from both constructors in the IA-64 ABI.
+scope specifies the (complete or subobject) constructor function scope.
+If the emitted code is to be conditionally executed at run-time (as is the case
+for the subobject constructor), complete_var is the temporary that controls the
+execution, and complete_var_handle is the index number associated with
+complete_var when exception handling is enabled.  complete_var can be NULL to
+indicate that the code is unconditionally executed.  construction_vtbls_var is
+a temporary variable that has been set by the caller to contain an appropriate
+construction VTT.  *insert_location specifies where to insert the
+initialization code.
+*/
+{
+  a_type_ptr                  class_type;
+  a_constructor_init_ptr      ctor_init;
+  a_variable_ptr              this_param_var;
+  a_class_type_supplement_ptr ctsp;
+#if !IA64_ABI
+  a_base_class_ptr            bcp;
+  a_variable_ptr              vbase_param_var;
+#endif /* !IA64_ABI */
+
+  this_param_var = scope->variant.routine.parameters;
+  ctor_init = scope->variant.routine.constructor_inits;
+  class_type = parent_class_of(scope->variant.routine.ptr);
+  ctsp = class_type->variant.class_struct_union.extra_info;
+  check_assertion(
+              class_type->variant.class_struct_union.any_virtual_base_classes);
+#if ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
+  if (construction_vtbls_var != NULL) {
+    /* Set the construction_vtbls temporary to point to the default array
+       of virtual function table pointers to be used when constructing a
+       complete object. */
+    insert_default_construction_vtbls_assignment(class_type,
+                                                 construction_vtbls_var,
+                                                 insert_location);
+  }  /* if */
+#endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
+#if !IA64_ABI
+  /* Set the added parameters to the addresses of the virtual base
+     classes. */
+  vbase_param_var = this_param_var->next;
+  for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
+    if (bcp->is_virtual) {
+      an_expr_node_ptr  vaddr_node, assign_node, vbptr_node;
+      /* Make an expression whose value is the address of the virtual
+         base class. */
+      vaddr_node = make_vbase_class_lvalue_from_var(this_param_var,
+                                                    bcp,
+                                                    /*complete_object=*/TRUE);
+      /* Add a cast if necessary to convert from a pointer to the base
+         class type to a pointer to the type-as-subobject for the base
+         class type. */
+      vaddr_node = add_address_of_to_node(vaddr_node);
+      vaddr_node = add_cast_if_necessary(vaddr_node, vbase_param_var->type);
+      /* Make an assignment to set the virtual base class parameter. */
+      assign_node = make_var_assignment_expr(vbase_param_var, vaddr_node);
+      /* Set the base class pointer if it is allocated in this class.
+         If it is shared with a base class, the base class constructor
+         will set it. */
+      if (bcp->pointer_base_class == NULL) {
+        /* Make an expression node for the address of the virtual base
+           class pointer. */
+        vbptr_node = make_vbptr_field_lvalue_from_var(this_param_var, bcp);
+        /* Add a cast if necessary to convert from a pointer to the
+           type-as-subobject for the base class type to a pointer to the
+           base class type. */
+        assign_node = add_cast_if_necessary(assign_node, vbptr_node->type);
+        /* Assign the base class address to the virtual base class
+           pointer. */
+        vbptr_node->next = assign_node;
+        assign_node = make_operator_node((an_expr_operator_kind)eok_assign,
+                                         assign_node->type, vbptr_node);
+      }  /* if */
+      /* Insert the assignment statement. */
+      (void)insert_expr_statement(assign_node, insert_location);
+      /* Move on to the next added parameter for the next iteration of
+         the loop. */
+      vbase_param_var = vbase_param_var->next;
+    }  /* if */
+  }  /* for */
+#else /* IA64_ABI */
+  /* Set the virtual function table now so that the virtual base classes
+     can be accessed from within the base class constructors if those
+     constructors don't set the virtual function table pointer themselves.
+     This also guarantees that arguments to nonvirtual base class
+     constructors can reference members of virtual base classes. */
+  insert_primary_vtbl_assignment(class_type, this_param_var,
+                                 construction_vtbls_var,
+                                 insert_location);
+#endif /* IA64_ABI */
+  /* Initialize any virtual base classes on the ctor_init list. */
+  for (; ctor_init != NULL &&
+            ctor_init->kind == (a_constructor_init_kind)cik_virtual_base_class;
+       ctor_init = ctor_init->next) {
+    if (ctor_init->initializer->destructor != NULL && complete_var != NULL) {
+      /* Add complete_var as a conditional flag.  The virtual base
+         class should be destroyed only if it was constructed in this
+         constructor. */
+      a_destructible_entity_descr_ptr dedp = 
+                             ctor_init->initializer->destructible_entity_descr;
+      check_assertion(dedp != NULL);
+      dedp->conditional_flag_var = complete_var;
+#if DO_FULL_PORTABLE_EH_LOWERING
+      if (exceptions_enabled) {
+        /* coverity[uninit_use] */
+        dedp->conditional_flag_handle = complete_var_handle;
+      }  /* if */
+#endif /* DO_FULL_PORTABLE_EH_LOWERING */
+    }  /* if */
+    lower_ctor_init(ctor_init, this_param_var,
+                    /*base_of_complete_object=*/TRUE,
+                    construction_vtbls_var, insert_location);
+  }  /* for */
+}  /* add_virtual_base_init_code */
+
+
 void add_constructor_wrapper_code(a_scope_ptr        scope,
                                   an_insert_location *insert_location)
 /*
@@ -10943,32 +11507,33 @@ constructor, but may instead be after an assignment to "this".
 */
 {
   a_base_class_ptr       bcp;
-  a_variable_ptr         this_param_var, vbase_param_var;
+  a_variable_ptr         this_param_var;
   a_type_ptr             class_type;
   a_class_type_supplement_ptr
                          ctsp;
   a_constructor_init_ptr ctor_init;
-  a_constant             null_constant;
-  an_insert_location     insert_location2;
-  an_expr_node_ptr       null_constant_node, vbase_param_node, compare_node;
 #if !IA64_ABI
-  an_expr_node_ptr       vaddr_node, vbptr_node, assign_node;
+  an_expr_node_ptr       vbptr_node;
   an_insert_location     else_insert_location;
 #endif /* !IA64_ABI */
-  an_expr_node_ptr       vtbl_addr_node, vptr_node, complete_var_node;
+#if HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS || !IA64_ABI
+  a_variable_ptr         vbase_param_var;
+#endif /* HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS || !IA64_ABI */
+  an_expr_node_ptr       vtbl_addr_node, vptr_node;
   a_variable_ptr         vtbl_var;
   a_source_position      saved_error_position, saved_code_pos;
   a_variable_ptr         construction_vtbls_var = NULL;
-  a_variable_ptr         complete_var;
-#if DO_FULL_PORTABLE_EH_LOWERING
-  a_handle_number        complete_var_handle;
-#endif /* DO_FULL_PORTABLE_EH_LOWERING */
 
   /* The following pseudo-code shows both the processing in this routine
      and the code added to the constructor routine.  Lines enclosed in [...]
      are tests and loops done in the processing in this routine; other
-     lines are the code added to the constructor routine.
+     lines are the code added to the constructor routine.  Note that the
+     processing for virtual base class initialization (as indicated below
+     when HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS is TRUE) can be
+     performed in either the subobject or complete object constructor (or
+     both), depending upon the configuration.
 
+#if HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS
      [If current class has any virtual base classes:]
        int complete = (first added parameter == NULL);
            (indicating a complete object is being initialized and virtual base
@@ -11008,6 +11573,7 @@ constructor, but may instead be after an assignment to "this".
 #endif // !IA64_ABI
        endif
      [endif]
+#endif // HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS
      [For each initialized direct nonvirtual base class (entries for these
          appear as the middle of the ctor-initializer list):]
        Call the constructor for the base class (arguments as indicated by
@@ -11056,11 +11622,20 @@ constructor, but may instead be after an assignment to "this".
   class_type->source_corresp.referenced = TRUE;
   ctsp = class_type->variant.class_struct_union.extra_info;
   if (class_type->variant.class_struct_union.any_virtual_base_classes) {
+#if HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS
+    an_insert_location     insert_location2;
+    an_expr_node_ptr       null_constant_node, vbase_param_node, compare_node;
+    an_expr_node_ptr       complete_var_node;
+    a_constant             null_constant;
+    a_variable_ptr         complete_var;
+    a_handle_number        complete_var_handle = 0;
+#endif /* HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS */
+
 #if ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
 #if IA64_ABI
     check_assertion(ctsp->construction_vtbls != NULL);
-     /* Use the VTT parameter. */
-     construction_vtbls_var = this_param_var->next;
+    /* Use the VTT parameter. */
+    construction_vtbls_var = this_param_var->next;
 #else /* !IA64_ABI */
     if (ctsp->construction_vtbls != NULL) {
       /* This class is one that has overridden virtual functions in virtual
@@ -11072,6 +11647,7 @@ constructor, but may instead be after an assignment to "this".
     }  /* if */
 #endif /* IA64_ABI */
 #endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
+#if HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS
     /* Put out code that tests whether or not the virtual base classes need
        to be initialized.  This is done by testing whether or not the
        first added parameter is NULL (in the IA-64 ABI, this is the VTT
@@ -11109,8 +11685,8 @@ constructor, but may instead be after an assignment to "this".
     }  /* if */
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */
     /* Make an "if" statement with a block statement under it:
-         if (complete) {}
-                        ^--- additional statements will be inserted.
+         if (complete) {} else {}
+                        ^-------^-- additional statements will be inserted.
     */
     complete_var_node = var_rvalue_expr(complete_var);
     insert_if_statement(boolean_controlling_expr(complete_var_node),
@@ -11123,92 +11699,11 @@ constructor, but may instead be after an assignment to "this".
                         &else_insert_location
 #endif /* IA64_ABI */
                                                   );
-    /* Inserting under insert_location2, in the "then" part of the "if"
-       (a complete object is being initialized): */
-#if ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
-    if (construction_vtbls_var != NULL) {
-      /* Set the construction_vtbls temporary to point to the default array
-         of virtual function table pointers to be used when constructing a
-         complete object. */
-      insert_default_construction_vtbls_assignment(class_type,
-                                                   construction_vtbls_var,
-                                                   &insert_location2);
-    }  /* if */
-#endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
-#if !IA64_ABI
-    /* Set the added parameters to the addresses of the virtual base
-       classes. */
-    for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
-      if (bcp->is_virtual) {
-        /* Make an expression whose value is the address of the virtual
-           base class. */
-        vaddr_node = make_vbase_class_lvalue_from_var(this_param_var,
-                                                      bcp,
-                                                     /*complete_object=*/TRUE);
-        /* Add a cast if necessary to convert from a pointer to the base
-           class type to a pointer to the type-as-subobject for the base
-           class type. */
-        vaddr_node = add_address_of_to_node(vaddr_node);
-        vaddr_node = add_cast_if_necessary(vaddr_node, vbase_param_var->type);
-        /* Make an assignment to set the virtual base class parameter. */
-        assign_node = make_var_assignment_expr(vbase_param_var, vaddr_node);
-        /* Set the base class pointer if it is allocated in this class.
-           If it is shared with a base class, the base class constructor
-           will set it. */
-        if (bcp->pointer_base_class == NULL) {
-          /* Make an expression node for the address of the virtual base
-             class pointer. */
-          vbptr_node = make_vbptr_field_lvalue_from_var(this_param_var, bcp);
-          /* Add a cast if necessary to convert from a pointer to the
-             type-as-subobject for the base class type to a pointer to the
-             base class type. */
-          assign_node = add_cast_if_necessary(assign_node, vbptr_node->type);
-          /* Assign the base class address to the virtual base class
-             pointer. */
-          vbptr_node->next = assign_node;
-          assign_node = make_operator_node((an_expr_operator_kind)eok_assign,
-                                           assign_node->type, vbptr_node);
-        }  /* if */
-        /* Insert the assignment statement. */
-        (void)insert_expr_statement(assign_node, &insert_location2);
-        /* Move on to the next added parameter for the next iteration of
-           the loop. */
-        vbase_param_var = vbase_param_var->next;
-      }  /* if */
-    }  /* for */
-#else /* IA64_ABI */
-    /* Set the virtual function table now so that the virtual base classes
-       can be accessed from within the base class constructors if those
-       constructors don't set the virtual function table pointer themselves.
-       This also guarantees that arguments to nonvirtual base class
-       constructors can reference members of virtual base classes. */
-    insert_primary_vtbl_assignment(class_type, this_param_var,
-                                   construction_vtbls_var,
-                                   &insert_location2);
-#endif /* IA64_ABI */
-    /* Initialize any virtual base classes on the ctor_init list. */
-    for (; ctor_init != NULL &&
-            ctor_init->kind == (a_constructor_init_kind)cik_virtual_base_class;
-         ctor_init = ctor_init->next) {
-      if (ctor_init->initializer->destructor != NULL) {
-        /* Add complete_var as a conditional flag.  The virtual base
-           class should be destroyed only if it was constructed in this
-           constructor. */
-        a_destructible_entity_descr_ptr dedp = 
-                             ctor_init->initializer->destructible_entity_descr;
-        check_assertion(dedp != NULL);
-        dedp->conditional_flag_var = complete_var;
-#if DO_FULL_PORTABLE_EH_LOWERING
-        if (exceptions_enabled) {
-          /* coverity[uninit_use] */
-          dedp->conditional_flag_handle = complete_var_handle;
-        }  /* if */
-#endif /* DO_FULL_PORTABLE_EH_LOWERING */
-      }  /* if */
-      lower_ctor_init(ctor_init, this_param_var,
-                      /*base_of_complete_object=*/TRUE,
-                      construction_vtbls_var, &insert_location2);
-    }  /* for */
+    /* Insert the code to do the actual virtual base class initialization
+       under the "then" part of the "if" (a complete object is being
+       initialized). */
+    add_virtual_base_init_code(scope, complete_var, complete_var_handle,
+                               construction_vtbls_var, &insert_location2);
 #if !IA64_ABI
     /* Inserting under else_insert_location, in the "else" of the "if"
        (a subobject is being initialized): */
@@ -11255,7 +11750,15 @@ constructor, but may instead be after an assignment to "this".
       }  /* if */
     }  /* for */
 #endif /* !IA64_ABI */
+#endif /* HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS */
   }  /* if */
+  /* The virtual base class initializations have either been handled in
+     add_virtual_base_init_code above or will be handled in the complete
+     object constructor; skip over them. */
+  while (ctor_init != NULL &&
+         ctor_init->kind == (a_constructor_init_kind)cik_virtual_base_class) {
+    ctor_init = ctor_init->next;
+  }  /* while */
   /* Generate initialization for each non-virtual base class that appears on
      the ctor_init list. */
   for (; ctor_init != NULL &&
@@ -11360,11 +11863,14 @@ constructor scope, and also lower the user code.
   a_statement_ptr    last_statement;
   an_insert_location insert_location;
   a_source_position  saved_error_position, saved_code_pos;
-#if NEW_CAN_BE_FOLDED_INTO_CTOR || ASSIGNMENT_TO_THIS_ALLOWED
+#if NEW_CAN_BE_FOLDED_INTO_CTOR || ASSIGNMENT_TO_THIS_ALLOWED || \
+    HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS
   a_routine_ptr      ctor_routine = scope->variant.routine.ptr;
-#endif /* NEW_CAN_BE_FOLDED_INTO_CTOR || ASSIGNMENT_TO_THIS_ALLOWED */
-#if NEW_CAN_BE_FOLDED_INTO_CTOR
+#endif /* NEW_CAN_BE_FOLDED_INTO_CTOR || ASSIGNMENT_TO_THIS_ALLOWED || ...*/
+#if NEW_CAN_BE_FOLDED_INTO_CTOR || HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS
   a_type_ptr         class_type = parent_class_of(ctor_routine);
+#endif /* NEW_CAN_BE_FOLDED_INTO_CTOR || HANDLE_VIRTUAL_BASES_IN_COMPLETE... */
+#if NEW_CAN_BE_FOLDED_INTO_CTOR
   a_class_type_supplement_ptr
                      ctsp = class_type_supp(class_type);
   a_routine_ptr      new_routine = ctsp->assoc_operator_new_routine;
@@ -11490,6 +11996,15 @@ constructor scope, and also lower the user code.
       /* The "if" statement is inserted later. */
     }  /* if */
 #endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
+#if HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS
+    if (class_type->variant.class_struct_union.any_virtual_base_classes &&
+        scope->variant.routine.ptr->ctor_dtor_kind ==
+                                          (a_ctor_or_dtor_kind)cdk_subobject) {
+      /* Move or copy the virtual base constructor inits to the complete
+         object ctor. */
+      move_or_copy_virtual_base_ctor_inits(scope);
+    }  /* if */
+#endif /* HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS */
     /* When the constructor has a function-try-block, the wrapper code
        is generated by lower_try_block. */
     if (!has_function_try_block) {
@@ -11535,10 +12050,30 @@ constructor scope, and also lower the user code.
     }  /* if */
   }
 #endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
+#if HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS
+  /* Clear the list of non-virtual base constructor inits (the virtual
+     base constructors are still needed). */
+  { a_constructor_init_ptr  ptr, prev = NULL;
+    for (ptr = scope->variant.routine.constructor_inits;
+         ptr != NULL;
+         ptr = ptr->next) {
+      if (ptr->kind != (a_constructor_init_kind)cik_virtual_base_class) {
+        if (prev == NULL) {
+          scope->variant.routine.constructor_inits = NULL;
+        } else {
+          prev->next = NULL;
+        }  /* if */
+        break;
+      }  /* if */
+      prev = ptr;
+    }  /* for */
+  }
+#else /* !HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS */
   /* Clear the list of constructor inits (it can't be cleared by
      add_constructor_wrapper_code because that routine can be called
      more than once when assignments to "this" are present). */
   scope->variant.routine.constructor_inits = NULL;
+#endif /* HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS */
   error_position = saved_error_position;
   code_pos_for_lowering = saved_code_pos;
 }  /* lower_constructor_code */
@@ -11732,6 +12267,7 @@ is inserted at *insert_location.
 }  /* make_dtor_init_region_table_entries */
 
 #endif /* GENERATE_EH_TABLES */
+#if HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS
 
 static an_expr_node_ptr expr_for_dtor_complete_object_test(
                                     a_destructor_wrapper_info_block *dtor_info)
@@ -11748,6 +12284,7 @@ points to an int variable that is non-zero if the object is complete.
   return boolean_controlling_expr(complete_obj_node);
 }  /* expr_for_dtor_complete_object_test */
 
+#endif /* HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS */
 
 #if !GENERATE_EH_TABLES
 /*ARGSUSED*/  /* <-- prologue_insert_location is not used in some versions. */
@@ -11772,11 +12309,10 @@ insert_dtor_member_and_base_destructions.
   a_routine_ptr          dtor_routine =
                                  innermost_function_scope->variant.routine.ptr;
   a_variable_ptr         this_param_var;
-  an_expr_node_ptr       compare_node;
   a_type_ptr             class_type;
   a_constructor_init_ptr ctor_init, ctor_init_list;
   a_dynamic_init_ptr     first_epilogue_destruction;
-  an_insert_location     insert_location, insert_location2;
+  an_insert_location     insert_location;
   a_source_position      opening_brace_pos, closing_brace_pos;
 
   /* The following pseudo-code shows both the processing in this routine
@@ -11793,12 +12329,14 @@ insert_dtor_member_and_base_destructions.
      [endfor]
      [If there are any items left on the ctor-initializer list (which
          must be for virtual base classes):]
+#if HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS
        If a complete object is being destroyed (and therefore virtual base
            classes must be destroyed):
          [For each virtual base class on the ctor-initializer list:]
            Call the destructor for a subobject.
          [endfor]
        endif
+#endif // HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS
      [endif]
   */
   /* Get a pointer to the "this" parameter variable. */
@@ -11810,7 +12348,9 @@ insert_dtor_member_and_base_destructions.
      order (1) data members, (2) normal base classes, (3) virtual base
      classes.  The order within each section is source declaration order. */
   ctor_init_list = innermost_function_scope->variant.routine.constructor_inits;
+#if !HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS
   innermost_function_scope->variant.routine.constructor_inits = NULL;
+#endif /* !HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS */
   /* Get the position of the closing brace of the destructor.  Note that
      if the top statement was a try-block it has been rewritten as a
      block, and the source position was preserved. */
@@ -11821,19 +12361,18 @@ insert_dtor_member_and_base_destructions.
   /* Set the current position to the closing brace of the destructor. */
   code_pos_for_lowering = error_position = closing_brace_pos;
   if (exceptions_enabled) {
-#if DO_FULL_PORTABLE_EH_LOWERING
-    a_handle_number complete_obj_handle;
-#endif /* DO_FULL_PORTABLE_EH_LOWERING */
+#if HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS
     /* Assign cleanup region numbers to the destructions.  This is done
        early so that we will know the right value to set __eh_curr_region
        to when beginning each destruction. */
     /* See whether there are any virtual base classes. */
     if (class_type->variant.class_struct_union.any_virtual_base_classes) {
+#if DO_FULL_PORTABLE_EH_LOWERING
       /* The variable indicating a complete object will be used
          as a conditional flag for the destructions of the virtual base
          classes (we don't destroy the virtual base classes unless we
          are working on a complete object). */
-#if DO_FULL_PORTABLE_EH_LOWERING
+      a_handle_number   complete_obj_handle;
       an_init_pos_descr ipd;
       /* Assign the object address table slot for the conditional
          variable. */
@@ -11864,21 +12403,34 @@ insert_dtor_member_and_base_destructions.
     }  /* if */
     /* Find the first destruction in the epilogue. */
     first_epilogue_destruction = ctor_init_list->initializer;
-    /* Watch out for the case of an array initialization; the top-level
-       dynamic initialization is not on the destructions list. */
-    if (first_epilogue_destruction->lifetime == NULL) {
-      for (first_epilogue_destruction =
-                              innermost_function_scope->lifetime->destructions;
-           !first_epilogue_destruction->is_constructor_init;
-           first_epilogue_destruction =
-                       first_epilogue_destruction->next_in_destruction_list) {}
+#else /* !HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS */
+    /* Virtual base class destructions are handled in the complete object
+       destructor, not here. */
+    if (ctor_init_list == NULL) {
+      first_epilogue_destruction = NULL;
+    } else {
+      first_epilogue_destruction = ctor_init_list->initializer;
+      check_assertion(ctor_init_list->kind !=
+                              (a_constructor_init_kind)cik_virtual_base_class);
     }  /* if */
-    /* Pass the pointer back to the caller. */
+#endif /* HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS */
+    if (first_epilogue_destruction != NULL) {
+      /* Watch out for the case of an array initialization; the top-level
+         dynamic initialization is not on the destructions list. */
+      if (first_epilogue_destruction->lifetime == NULL) {
+        for (first_epilogue_destruction =
+                              innermost_function_scope->lifetime->destructions;
+             !first_epilogue_destruction->is_constructor_init;
+             first_epilogue_destruction =
+                     first_epilogue_destruction->next_in_destruction_list) {}
+      }  /* if */
+      /* Do cleanup initialization for the destructions on the ctor-initializer
+         list of the destructor. */
+      initialize_dtor_init_for_cleanup(first_epilogue_destruction,
+                                       ctor_init_list);
+    }  /* if */
+    /* Pass the pointer (or NULL) back to the caller. */
     dtor_info->first_epilogue_destruction = first_epilogue_destruction;
-    /* Do cleanup initialization for the destructions on the ctor-initializer
-       list of the destructor. */
-    initialize_dtor_init_for_cleanup(first_epilogue_destruction,
-                                     ctor_init_list);
   }  /* if */
   /* Create a block unattached to the IL tree, and insert destructions
      inside it. */
@@ -11906,9 +12458,12 @@ insert_dtor_member_and_base_destructions.
                     dtor_info->destruction_vtbls_var,
                     &insert_location);
   }  /* for */
+#if HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS
   /* If any items remain on the ctor_init list, they must be for virtual
      base classes. */
   if (ctor_init != NULL) {
+    an_expr_node_ptr       compare_node;
+    an_insert_location     insert_location2;
     check_assertion_str2(ctor_init->kind ==
                                (a_constructor_init_kind)cik_virtual_base_class,
                          "gen_dtor_member_and_base_destructions:",
@@ -11934,36 +12489,25 @@ insert_dtor_member_and_base_destructions.
     }  /* for */
     /* Note that the "if" created above effectively ends here. */
   }  /* if */
+#else /* !HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS */
+  /* Should be no virtual base ctor_inits. */
+  check_assertion(ctor_init == NULL ||
+                  ctor_init->kind !=
+                              (a_constructor_init_kind)cik_virtual_base_class);
+#endif /* HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS */
   /* Set the current position to the opening brace of the destructor. */
   set_position_from_stmt_source_position(opening_brace_pos,
                                          innermost_function_scope->
                                                         assoc_block->position);
   error_position = code_pos_for_lowering = opening_brace_pos;
-  if (exceptions_enabled) {
-#if GENERATE_EH_TABLES
-    /* Make the region table entries for the epilogue destructions.
-       This is done late because we want to put out the entries in
-       reversed order, and we need to wait until they all have position
-       information recorded. */
-    make_dtor_init_region_table_entries(first_epilogue_destruction,
-                                        prologue_insert_location);
-#endif /* GENERATE_EH_TABLES */
-    /* Insert code to establish the appropriate cleanup state at the
-       beginning of the user-written code in the destructor.  This
-       cleanup state calls for destruction of members and bases of
-       the class. */
-    curr_context->curr_cleanup_state =
-        curr_context->latest_initialization = first_epilogue_destruction;
-    insert_code_to_indicate_cleanup_state(curr_context->curr_cleanup_state,
-                                          prologue_insert_location,
-                                          /*unreachable=*/FALSE);
-  } /* if */
+  /* Insert the region table and initial cleanup state. */
+  insert_epilogue_cleanup_state(first_epilogue_destruction,
+                                prologue_insert_location);
   if (dtor_info->epilogue_block->variant.block.statements == NULL) {
     /* No destructions were emitted. */
     dtor_info->epilogue_block = NULL;
-  } /* if */
+  }  /* if */
 }  /* gen_dtor_member_and_base_destructions */
-
 
 void add_function_try_wrapper_code(a_statement_ptr                 statement,
                                    a_destructor_wrapper_info_block *dtor_info)
@@ -12214,7 +12758,7 @@ destructor scope, and also lower the user code.
   a_type_ptr             class_type;
   a_class_type_supplement_ptr
                          ctsp;
-  an_insert_location     insert_location, insert_location2;
+  an_insert_location     insert_location;
   a_statement_ptr        top_stmt = scope->assoc_block;
   a_statement_ptr        user_code_stmts;
   a_boolean              has_function_try_block = FALSE;
@@ -12225,7 +12769,7 @@ destructor scope, and also lower the user code.
   a_source_position      saved_error_position, saved_code_pos;
   a_source_position      opening_brace_pos;
 #if !IA64_ABI
-  an_insert_location     else_insert_location;
+  an_insert_location     else_insert_location, insert_location3;
   a_source_position      closing_brace_pos;
   a_routine_ptr          delete_routine;
   a_boolean              epilogue_setup_done = FALSE;
@@ -12236,13 +12780,18 @@ destructor scope, and also lower the user code.
   /* The following pseudo-code shows both the processing in this routine
      and the code added to the destructor routine.  Lines enclosed in [...]
      are tests and loops done in the processing in this routine; other
-     lines are the code added to the destructor routine.
+     lines are the code added to the destructor routine.  Note that the
+     processing for virtual base class destruction (as indicated below when
+     HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS is TRUE) can be performed in
+     either the subobject or complete object destructor (or both), depending
+     upon the configuration.
 
 #if !IA64_ABI
      [If a delete can be folded into the destructor:]
        If this != NULL test around entire routine.
      [endif]
 #endif // !IA64_ABI
+#if HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS
      [If the current class requires a special array of virtual function table
          addresses (which is true when the class has virtual functions
          in virtual bases that are overridden):]
@@ -12258,6 +12807,7 @@ destructor scope, and also lower the user code.
 #endif // !IA64_ABI
        endif
      [endif]
+#endif // HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS
      [If the current class has any virtual functions:]
        Set the virtual function table pointer in the current class.
      [endif]
@@ -12318,6 +12868,14 @@ destructor scope, and also lower the user code.
                            closing_brace_pos,
                            top_stmt->variant.block.extra_info->final_position);
 #endif /* !IA64_ABI */
+#if HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS
+  if (class_type->variant.class_struct_union.any_virtual_base_classes &&
+      dtor_routine->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_subobject) {
+    /* The virtual base destructions need to be moved/copied to the
+       complete object destructor. */
+    move_or_copy_virtual_base_ctor_inits(scope);
+  }  /* if */
+#endif /* HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS */
   /* Start an object lifetime if appropriate. */
   begin_block_object_lifetime(scope->lifetime, &insert_location);
   dtor_info.epilogue_block = NULL;
@@ -12336,7 +12894,10 @@ destructor scope, and also lower the user code.
 #endif /* !IA64_ABI */
 #if ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
   if (ctsp->construction_vtbls != NULL) {
+#if HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS
     an_expr_node_ptr   compare_node;
+    an_insert_location insert_location2;
+#endif /* HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS */
     /* This class is one that has overridden virtual functions in virtual
        base classes, and needs special versions of the virtual function
        tables when used to destruct a subobject. */
@@ -12347,6 +12908,9 @@ destructor scope, and also lower the user code.
     dtor_info.destruction_vtbls_var = make_construction_vtbl_temporary();
 #else /* IA64_ABI */
     dtor_info.destruction_vtbls_var = this_param_var->next;
+#endif /* IA64_ABI */
+#if HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS
+#if IA64_ABI
     /* For the IA-64 ABI, the VTT parameter is NULL if we are destroying
        a complete object.  We need to generate a temporary that is non-zero
        when the VTT parameter is NULL, i.e., temp = (vtt-param == NULL). */
@@ -12370,8 +12934,8 @@ destructor scope, and also lower the user code.
     /* Put out code that tests whether we are destroying a complete object. */
     compare_node = expr_for_dtor_complete_object_test(&dtor_info);
     /* Make an "if" statement with a block statement under it:
-         if (complete-obj-test) {}
-                                 ^--- additional statements will be inserted.
+         if (complete-obj-test) {} else {}
+                                 ^-------^-- statements will be inserted.
     */
     insert_if_statement(compare_node, /*is_initialization_guard=*/FALSE,
                         &insert_location, (a_statement_ptr *)NULL,
@@ -12404,6 +12968,7 @@ destructor scope, and also lower the user code.
                                                         this_param_var,
                                                         &else_insert_location);
 #endif /* !IA64_ABI */
+#endif /* HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS */
   }  /* if */
 #endif /* ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
   /* If the current class has any virtual functions, generate code to
@@ -12575,11 +13140,11 @@ destructor scope, and also lower the user code.
     /* Make "if (param & 0x1)". */
     insert_if_statement(if_node, /*is_initialization_guard=*/FALSE,
                         &insert_location, (a_statement_ptr *)NULL,
-                        &insert_location2, (an_insert_location *)NULL);
+                        &insert_location3, (an_insert_location *)NULL);
     /* Make "delete-routine((void *)this);" under the "if". */
     this_param_node = var_rvalue_expr(this_param_var);
     (void)make_delete_call(delete_routine, class_type, this_param_node,
-                           &insert_location2);
+                           &insert_location3);
   }  /* if */
   /* Add "if (this != NULL)" around the whole routine. */
   add_null_test_around_routine(scope);

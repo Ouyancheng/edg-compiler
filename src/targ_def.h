@@ -3419,6 +3419,68 @@ the region table for the portable implementation of EH.
  #error -- The IA-64 ABI requires ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
 #endif /* IA64_ABI && !ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
 
+/*
+In IA-64 ABI versions through (and including) 4.0, construction/destruction
+of virtual base class objects was delegated from the complete object
+ctor/dtor to the subobject ctor/dtor; such delegation was indicated at
+run-time by passing a NULL for the construction vtable argument to the
+subobject ctor/dtor.  The IA-64 ABI (in section 3.3.1) doesn't allow for the
+possibility of a NULL VTT argument, causing a potential run-time issue if
+an EDG-generated complete ctor/dtor were to invoke a GNU generated ctor/dtor.
+In practice this is rare because the complete and subobject ctor/dtors are
+typically emitted in the same translation unit.  In versions after 4.0,
+the default behavior has changed to handle virtual bases in the complete
+object ctor/dtor (HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS is TRUE) and
+not in the subobject ctor/dtor (HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS
+is FALSE).  This behavior can be altered by setting these configuration
+macros individually (at least one must be TRUE).  In particular, if the
+possibility exists that a pre-4.0 complete object ctor/dtor can call a post-4.0
+subobject ctor/dtor, then HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS should
+be set to TRUE.  Setting both flags to TRUE will ensure IA-64 ABI compatibility
+as well as backward compatibility (at the cost of larger ctor/dtors).
+The Cfront ABI handling is unchanged.
+*/
+#if IA64_ABI
+#ifndef HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS
+#if ABI_COMPATIBILITY_VERSION <= 400
+#define HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS FALSE
+                                                    /* Versions up to 4.00. */
+#else /* ABI_COMPATIBILITY_VERSION > 400 */
+#define HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS TRUE
+                                                    /* Versions after 4.00. */
+#endif /* ABI_COMPATIBILITY_VERSION <= 400 */
+#endif /* ifndef HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS */
+#ifndef HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS
+#if ABI_COMPATIBILITY_VERSION <= 400
+#define HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS TRUE
+                                                    /* Versions up to 4.00. */
+#else /* ABI_COMPATIBILITY_VERSION > 400 */
+#define HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS FALSE
+                                                    /* Versions after 4.00. */
+#endif /* ABI_COMPATIBILITY_VERSION <= 400 */
+#endif /* ifndef HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS */
+#if !HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS && \
+    !HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS
+ #error -- At least one of HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS or \
+           HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS must be TRUE.
+#endif /* !HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS && ... */
+#else /* !IA64_ABI */
+#ifndef HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS
+#define HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS FALSE
+#endif /* ifndef HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS */
+#ifndef HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS
+#define HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS TRUE
+#endif /* ifndef HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS */
+#if HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS
+ #error -- HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS must be FALSE \
+           when IA64_ABI is FALSE.
+#endif /* HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS */
+#if !HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS
+ #error -- HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS must be TRUE \
+           when IA64_ABI is FALSE.
+#endif /* HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS */
+#endif /* IA64_ABI */
+
 #if !IA64_ABI
 /*
 Traditionally the number_of_elements arguments to the Cfront ABI is

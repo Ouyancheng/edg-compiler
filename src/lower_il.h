@@ -657,6 +657,7 @@ typedef struct a_destructor_wrapper_info_block {
   a_dynamic_init_ptr
 		first_epilogue_destruction;
 			/* First destruction to be done in the epilogue.
+			   NULL if there are no destructions in the epilogue.
 			   Set by gen_dtor_member_and_base_destructions. */
   a_variable_ptr
 		destruction_vtbls_var;

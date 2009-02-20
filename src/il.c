@@ -10407,6 +10407,7 @@ options for the copy.  cblock is a control block for the copy.
   switch (dip->kind) {
     case dik_none:
     case dik_zero:
+    case dik_bitwise_copy:
       break;
     case dik_expression:
     case dik_call_returning_class_via_cctor:
@@ -10439,8 +10440,6 @@ options for the copy.  cblock is a control block for the copy.
       }
       break;
 #if CHECKING
-    case dik_bitwise_copy:
-      /* These kinds are not expected under expression nodes. */
     default:
       internal_error("i_copy_dynamic_init: bad kind");
 #endif /* CHECKING */
@@ -10535,6 +10534,37 @@ return a pointer to it.  options is a set of options for the copy.
   done_with_tree_copy_control_block(&cblock);
   return dip_copy;
 }  /* copy_dynamic_init */
+
+
+a_constructor_init_ptr copy_ctor_init(a_constructor_init_ptr   ctor_init,
+                                      an_expr_copy_options_set options)
+/*
+Return a copy of the specified constructor init; options is a set of options
+for the copy.
+*/
+{
+  a_constructor_init_ptr  copy;
+
+  copy = alloc_ctor_init(ctor_init->kind);
+  *copy = *ctor_init;
+  copy->next = NULL;
+  copy->initializer = copy_dynamic_init(ctor_init->initializer, options);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  copy->ctor_init_range = null_source_range;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  switch (ctor_init->kind) {
+    case cik_field:
+    case cik_virtual_base_class:
+    case cik_direct_base_class:
+      /* These are allocated in the file scope. */
+      break;
+#if CHECKING
+    default:
+      unexpected_condition();
+#endif /* CHECKING */
+  }  /* switch */
+  return copy;
+}  /* copy_ctor_init */
 
 
 a_local_static_variable_init_ptr make_local_static_variable_init(

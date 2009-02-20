@@ -2558,6 +2558,10 @@ default values.
   tblock->complete_object_type = NULL;
   tblock->call_case = FALSE;
   tblock->is_temp = FALSE;
+#if HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS
+  tblock->orig_params = NULL;
+  tblock->new_params = NULL;
+#endif /* HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS */
 }  /* clear_expr_or_stmt_traversal_block */
 
 
