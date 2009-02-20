@@ -1714,12 +1714,19 @@ been allocated for it.  Set the parent pointer for the IL scope entry.
              reference instead. */
           a_scope_depth            func_depth;
           a_scope_stack_entry_ptr  declssep = &scope_stack[decl_scope_level];
-          check_assertion_or_expect_error(
-                              declssep->kind == (a_scope_kind)sck_block ||
-                              declssep->kind == (a_scope_kind)sck_condition ||
-                              declssep->kind == (a_scope_kind)sck_function);
           func_depth = declssep->depth_innermost_function_scope;
           check_assertion(func_depth != NO_SCOPE_DEPTH);
+          if (declssep->kind == (a_scope_kind)sck_block ||
+              declssep->kind == (a_scope_kind)sck_condition ||
+              declssep->kind == (a_scope_kind)sck_function) {
+            /* The normal cases. */
+          } else {
+            /* An unexpected parent scope for a local class/enum.  Use the
+               enclosing function scope for error recovery purposes. */
+            expect_error_str(
+                 "set_parent_scope_on_push: unexpected scope for class/enum");
+            declssep = &scope_stack[func_depth];
+          }  /* if */
           make_local_scope_ref(
                        ensure_il_scope_exists(declssep), (char*)sp, iek_scope,
                        scope_stack[func_depth].il_scope);
