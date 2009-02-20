@@ -5466,10 +5466,6 @@ with an intermediate constant even if this routine returns FALSE.
   copy_constant(orig_cp, new_cp);
   type_change_constant(new_cp, new_type,
                        /*is_implicit_cast=*/FALSE,
-                       /*constant_context=*/TRUE,
-                       /*evaluated_context=*/TRUE,
-                       /*fold_constant_addr_exprs=*/FALSE,
-                       /*is_reinterpret_cast=*/FALSE,
                        /*maintain_expression=*/FALSE,
                        &did_not_fold, &error_position);
   return !did_not_fold;
@@ -5637,10 +5633,6 @@ list of a template function.  Returns TRUE if a match is found.
             copy_constant(tcp, &new_templ_constant);
             type_change_constant(&new_templ_constant, constant->type,
                                  /*is_implicit_cast=*/FALSE,
-                                 /*constant_context=*/TRUE,
-                                 /*evaluated_context=*/TRUE,
-                                 /*fold_constant_addr_exprs=*/FALSE,
-                                 /*is_reinterpret_cast=*/FALSE,
                                  /*maintain_expression=*/FALSE,
                                  &did_not_fold, &error_position);
             match = !did_not_fold &&
@@ -6648,10 +6640,6 @@ Return TRUE if the conversion was successful.
       copy_constant(orig_constant, &constant);
       type_change_constant(&constant, type_required,
                            /*is_implicit_cast=*/TRUE,
-                           /*constant_context=*/TRUE,
-                           /*evaluated_context=*/TRUE,
-                           /*fold_constant_addr_exprs=*/TRUE,
-                           /*is_reinterpret_cast=*/FALSE,
                            /*maintain_expression=*/FALSE,
                            &did_not_fold, source_pos);
       if (!did_not_fold) {

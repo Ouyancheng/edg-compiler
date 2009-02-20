@@ -2429,6 +2429,7 @@ operand in *result.
 void add_base_class_casts(a_base_class_ptr  bcp,
                           a_type_ptr        qualifiers_model,
                           a_boolean         check_cast_access,
+                          a_boolean         check_ambiguity,
                           a_boolean         is_implicit_cast,
                           a_boolean         implicit_in_naming,
                           an_expr_node_ptr  *p_node,
@@ -2440,6 +2441,7 @@ and qualifiers_model indicates the qualifiers to be placed on that class
 type.  *p_node can be an rvalue pointer to class, a class lvalue, or a
 class rvalue.  qualifiers_model is a potentially cv-qualified class type.
 Access control is done on the cast if check_cast_access is TRUE.
+Checking for an ambiguous base class is done if check_ambiguity is TRUE.
 is_implicit_cast is TRUE if the cast is implicit.  implicit_in_naming
 is TRUE for casts that are generated implicitly in referencing a member
 of a class (roughly, in getting from the name used in the source --
@@ -2456,7 +2458,7 @@ routine is only used in C++ mode.
 
   /* The code here looks like fold_base_class_cast. */
   check_assertion(is_class_struct_union_type(qualifiers_model));
-  if (bcp->ambiguous) {
+  if (bcp->ambiguous && check_ambiguity) {
     /* The cast is ambiguous. */
     pos_ty_error(ec_ambiguous_base_class, err_pos, bcp->type);
     *p_node = error_node();
@@ -2559,6 +2561,7 @@ what's needed).  Also handles casting of class lvalues and rvalues.
 
 void add_derived_class_casts(a_type_ptr        new_type_pointed_to,
                              a_base_class_ptr  bcp,
+                             a_boolean         check_ambiguity,
                              an_expr_node_ptr  *p_node,
                              a_source_position *err_pos)
 /*
@@ -2566,12 +2569,13 @@ Add casts to *p_node to change its type from pointer to a class type to
 pointer to new_type_pointed_to, a derived class of that class; bcp indicates
 the base class of the derived class that corresponds to the current type
 (i.e., its derivation list is backwards from what's needed).  Also handles
-casting of class lvalues and rvalues.  *err_pos indicates a source position
+casting of class lvalues and rvalues.  check_ambiguity is TRUE if checking
+for an ambiguous class should be done.  *err_pos indicates a source position
 to be used for errors.  This routine is only used in C++ mode.
 */
 {
   /* The code here looks like fold_derived_class_cast. */
-  if (bcp->ambiguous) {
+  if (bcp->ambiguous && check_ambiguity) {
     /* The cast is ambiguous. */
     pos_ty2_error(ec_ambiguous_derived_class, err_pos,
                   new_type_pointed_to, bcp->type);
@@ -2591,12 +2595,14 @@ to be used for errors.  This routine is only used in C++ mode.
 
 
 static void add_pm_base_class_casts(a_base_class_ptr  bcp,
+                                    a_boolean         check_ambiguity,
                                     an_expr_node_ptr  *p_node,
                                     a_source_position *err_pos)
 /*
 Add casts to *p_node to change its type from a pointer to a member of
 a class type to a pointer to a member of a base class of that class; bcp
-indicates the base class.  *err_pos indicates a source position to be used
+indicates the base class.  Check for an ambiguous base class if
+check_ambiguity is TRUE.  *err_pos indicates a source position to be used
 for errors.  This routine is only used in C++ mode.  Note that casts of
 this type always come from explicit casts, so checking for accessibility
 of base classes is not necessary.
@@ -2607,7 +2613,7 @@ of base classes is not necessary.
   a_derivation_step_ptr dsp;
 
   /* The code here looks like fold_pm_base_class_cast. */
-  if (bcp->ambiguous) {
+  if (bcp->ambiguous && check_ambiguity) {
     /* The cast is ambiguous. */
     pos_ty_error(ec_ambiguous_base_class, err_pos, bcp->type);
     *p_node = error_node();
@@ -2678,6 +2684,7 @@ is implicit.
 static void add_pm_derived_class_casts(a_type_ptr        new_class_pointed_to,
                                        a_base_class_ptr  bcp,
                                        a_boolean         check_cast_access,
+                                       a_boolean         check_ambiguity,
                                        a_boolean         is_implicit_cast,
                                        an_expr_node_ptr  *p_node,
                                        a_source_position *err_pos)
@@ -2687,6 +2694,7 @@ to pointer to a member of new_class_pointed_to, a derived class of that
 class; bcp indicates the base class of the derived class that corresponds
 to the current type (i.e., its derivation list is backwards from what's
 needed).  Do access control on the cast if check_cast_access is TRUE.
+Check for an ambiguous class if check_ambiguity is TRUE.
 is_implicit_cast is TRUE if the cast is implicit.  *err_pos indicates a
 source position to be used for errors.  This routine is only used in C++ mode.
 */
@@ -2696,7 +2704,7 @@ source position to be used for errors.  This routine is only used in C++ mode.
   a_base_class_ptr      base_class;
 
   /* The code here looks like fold_pm_derived_class_cast. */
-  if (bcp->ambiguous) {
+  if (bcp->ambiguous && check_ambiguity) {
     /* The cast is ambiguous. */
     pos_ty2_error(ec_ambiguous_derived_class, err_pos,
                   new_class_pointed_to, bcp->type);
@@ -2737,6 +2745,7 @@ source position to be used for errors.  This routine is only used in C++ mode.
 static void add_cast_to_node(an_expr_node_ptr  *p_node,
                              a_type_ptr        new_type,
                              a_boolean         check_cast_access,
+                             a_boolean         check_ambiguity,
                              a_boolean         is_implicit_cast,
                              a_boolean         is_reinterpret_cast,
                              a_boolean         reinterpret_semantics,
@@ -2745,7 +2754,8 @@ static void add_cast_to_node(an_expr_node_ptr  *p_node,
 Add a cast node to the expression tree pointed to by *p_node, and update
 *p_node to point to the cast node.  The old node is cast to the type new_type.
 *err_pos gives the source position for errors.  Check access on the
-cast if check_cast_access is TRUE.  If is_implicit_cast is TRUE, this
+cast if check_cast_access is TRUE.  Check for an ambiguous base or
+derived class if check_ambiguity is TRUE.  If is_implicit_cast is TRUE, this
 is an implicit cast rather than an explicit one.  This routine generates
 the special IL operators used for base-->derived and derived-->base class
 pointer casts, when they are appropriate.  It also issues errors for
@@ -2772,13 +2782,15 @@ indicates that the cast comes from a reinterpret_cast construct in the source.
       /* Derived --> base.  Valid unless the cast is ambiguous or
          the base class is inaccessible. */
       add_base_class_casts(bcp, new_type_pointed_to,
-                           check_cast_access, is_implicit_cast,
+                           check_cast_access, check_ambiguity,
+                           is_implicit_cast,
                            /*implicit_in_naming=*/FALSE,
                            p_node, err_pos);
     } else {
       /* Base --> derived.  Valid unless the cast is ambiguous or the base
          class is a virtual base of the derived class. */
-      add_derived_class_casts(new_type_pointed_to, bcp, p_node, err_pos);
+      add_derived_class_casts(new_type_pointed_to, bcp, check_ambiguity,
+                              p_node, err_pos);
     }  /* if */
   } else if (!C_mode() && !reinterpret_semantics &&
              related_member_pointers(old_type, new_type, &baseward_cast,
@@ -2788,7 +2800,7 @@ indicates that the cast comes from a reinterpret_cast construct in the source.
     if (baseward_cast) {
       /* Derived --> base (allowed only as an explicit cast).  Valid unless
          the cast is ambiguous. */
-      add_pm_base_class_casts(bcp, p_node, err_pos);
+      add_pm_base_class_casts(bcp, check_ambiguity, p_node, err_pos);
     } else {
       /* Base --> derived (allowed as an implicit or explicit cast).  Valid
          unless the cast is ambiguous, the base class is inaccessible (if
@@ -2796,7 +2808,8 @@ indicates that the cast comes from a reinterpret_cast construct in the source.
          derived class. */
       new_type_pointed_to = pm_class_type(new_type);
       add_pm_derived_class_casts(new_type_pointed_to, bcp,
-                                 check_cast_access, is_implicit_cast,
+                                 check_cast_access, check_ambiguity,
+                                 is_implicit_cast,
                                  p_node, err_pos);
     }  /* if */
   } else if ((!C_mode() || c99_mode || gcc_mode) && is_bool_type(new_type)) {
@@ -2831,6 +2844,7 @@ Return TRUE if the given expression node is a bit-field extraction.
 void cast_node(an_expr_node_ptr  *p_node,
                a_type_ptr        new_type,
                a_boolean         check_cast_access,
+               a_boolean         check_ambiguity,
                a_boolean         is_implicit_cast,
                a_boolean         is_reinterpret_cast,
                a_boolean         reinterpret_semantics,
@@ -2839,9 +2853,10 @@ void cast_node(an_expr_node_ptr  *p_node,
 Change the type of a node.  If the node is a constant, a conversion is done on
 the constant value; otherwise a cast operator is added on top of the node
 (except for implicit casts that have no effect).  Check access on the cast if
-check_cast_access is TRUE.  If is_implicit_cast is TRUE, this is an implicit
-cast rather than an explicit one.  Warnings about truncation etc. are issued
-only if is_implicit_cast is TRUE.  is_reinterpret_cast is TRUE if this is
+check_cast_access is TRUE.  Check ambiguity on the cast if check_ambiguity
+is TRUE.  If is_implicit_cast is TRUE, this is an implicit cast rather
+than an explicit one.  Warnings about truncation etc. are issued only
+if is_implicit_cast is TRUE.  is_reinterpret_cast is TRUE if this is
 a reinterpret_cast in the source; reinterpret_semantics is TRUE if the
 behavior is the same as a reinterpret_cast (without necessarily having that
 construct appear in the source).  *err_pos gives the source position for
@@ -2902,20 +2917,22 @@ conversions.
          nonconstant context, reduce any error to a warning and leave
          the conversion to be done at runtime. */
       copy_constant(node->variant.constant, &local_constant);
-      type_change_constant(&local_constant, new_type, is_implicit_cast,
-                           /*constant_context=*/FALSE,
-                           /*evaluated_context=*/TRUE,
-                           /*fold_constant_addr_exprs=*/FALSE,
-                           reinterpret_semantics,
-                           /*maintain_expression=*/FALSE,
-                           &did_not_fold, err_pos);
+      type_change_constant_full(&local_constant, new_type, is_implicit_cast,
+                                /*constant_context=*/FALSE,
+                                /*evaluated_context=*/TRUE,
+                                /*fold_constant_addr_exprs=*/FALSE,
+                                check_ambiguity,
+                                reinterpret_semantics,
+                                /*maintain_expression=*/FALSE,
+                                &did_not_fold, err_pos);
     }  /* if */
     if (did_not_fold) {
       /* The operand is not constant.  Put in a cast. */
       /* Note that if the constant type-change was attempted, it was
          done on a copy of the constant.  The original constant and
          expression were not changed, and therefore can be used here. */
-      add_cast_to_node(p_node, new_type, check_cast_access, is_implicit_cast,
+      add_cast_to_node(p_node, new_type, check_cast_access, check_ambiguity,
+                       is_implicit_cast,
                        is_reinterpret_cast, reinterpret_semantics, err_pos);
     } else {
       /* The operation was successfully folded to a constant. */
@@ -3121,11 +3138,7 @@ is being done via an explicit cast; otherwise, it's implicit by context.
   if (!reference_case) {
     /* This also takes care of recording the cast as part of the
        expression representation of the constant. */
-    cast_operand(type_cast_to, operand,
-                 /*check_cast_access=*/FALSE,
-                 /*is_implicit_cast=*/!is_cast,
-                 /*is_reinterpret_cast=*/FALSE,
-                 /*reinterpret_semantics=*/FALSE);
+    cast_operand(type_cast_to, operand, /*is_implicit_cast=*/!is_cast);
   } else {
     /* Explicit cast to reference. */
     check_assertion(is_cast);
@@ -3137,17 +3150,19 @@ is being done via an explicit cast; otherwise, it's implicit by context.
 }  /* cast_overloaded_function */
 
 
-void cast_operand(a_type_ptr new_type,
-                  an_operand *operand,
-                  a_boolean  check_cast_access,
-                  a_boolean  is_implicit_cast,
-                  a_boolean  is_reinterpret_cast,
-                  a_boolean  reinterpret_semantics)
+void cast_operand_full(a_type_ptr new_type,
+                       an_operand *operand,
+                       a_boolean  check_cast_access,
+                       a_boolean  check_ambiguity,
+                       a_boolean  is_implicit_cast,
+                       a_boolean  is_reinterpret_cast,
+                       a_boolean  reinterpret_semantics)
 /*
 Cast the operand to the new type.  Check access on the cast if
-check_cast_access is TRUE.  If is_implicit_cast is TRUE, this is an
-implicit cast rather than an explicit one.  If there are any warnings
-detected on the type change, issue them only if is_implicit_cast is TRUE.
+check_cast_access is TRUE.  Check ambiguity on the cast if check_ambiguity
+is TRUE.  If is_implicit_cast is TRUE, this is an implicit cast rather
+than an explicit one.  If there are any warnings detected on the
+type change, issue them only if is_implicit_cast is TRUE.
 If is_reinterpret_cast is TRUE, this cast appeared as reinterpret_cast in
 the source.  If reinterpret_semantics is TRUE, the operation has the same
 meaning as a reinterpret_cast, but it may come from another construct.
@@ -3164,7 +3179,7 @@ user-defined conversions.
 
 #if CHECKING
   if (!is_an_rvalue(operand) && !is_error_operand(operand)) {
-    internal_error("cast_operand: operand is not an rvalue");
+    internal_error("cast_operand_full: operand is not an rvalue");
   }  /* if */
 #endif /* CHECKING */
 
@@ -3204,7 +3219,8 @@ user-defined conversions.
                                                               &con_expr),
                is_special_case)) {
             an_expr_node_ptr orig_con_expr = con_expr;
-            cast_node(&con_expr, new_type, check_cast_access, is_implicit_cast,
+            cast_node(&con_expr, new_type,
+                      check_cast_access, check_ambiguity, is_implicit_cast,
                       is_reinterpret_cast, reinterpret_semantics,
                       &operand->position);
             if (con_expr != orig_con_expr) {
@@ -3228,7 +3244,8 @@ user-defined conversions.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           /* Do not insert code here. */
           {
-            cast_node(&node, new_type, check_cast_access, is_implicit_cast,
+            cast_node(&node, new_type,
+                      check_cast_access, check_ambiguity, is_implicit_cast,
                       is_reinterpret_cast, reinterpret_semantics,
                       &operand->position);
           }  /* if */
@@ -3240,13 +3257,14 @@ user-defined conversions.
            context, reduce any error to a warning and leave the
            conversion to be done at runtime. */
         copy_constant(&operand->variant.constant, &local_constant);
-        type_change_constant(&local_constant, new_type, is_implicit_cast,
-                             curr_expr_kind_is_const(),
-                             curr_expr_is_evaluated(),
-                             (a_boolean)expr_stack->favor_constant_result,
-                             reinterpret_semantics,
-                             /*maintain_expression=*/FALSE, /* Done below */
-                             &did_not_fold, &operand->position);
+        type_change_constant_full(&local_constant, new_type, is_implicit_cast,
+                                  curr_expr_kind_is_const(),
+                                  curr_expr_is_evaluated(),
+                                  (a_boolean)expr_stack->favor_constant_result,
+                                  check_ambiguity,
+                                  reinterpret_semantics,
+                                  /*maintain_expression=*/FALSE,/*Done below*/
+                                  &did_not_fold, &operand->position);
         if (did_not_fold) {
           /* Cast of a constant did not fold. */
           if (curr_expr_kind_is_const() && curr_expr_is_evaluated()) {
@@ -3261,7 +3279,8 @@ user-defined conversions.
                copy of the constant.  The original constant was not
                changed, and therefore can be used here. */
             node = make_node_from_operand(operand);
-            add_cast_to_node(&node, new_type, check_cast_access,
+            add_cast_to_node(&node, new_type,
+                             check_cast_access, check_ambiguity,
                              is_implicit_cast, is_reinterpret_cast,
                              reinterpret_semantics, &operand->position);
             make_expression_operand(node, operand);
@@ -3292,7 +3311,9 @@ user-defined conversions.
                 local_constant.expr = make_node_from_operand(operand);
               }  /* if */
               add_cast_to_node(&local_constant.expr, new_type,
-                               check_cast_access, is_implicit_cast,
+                               /*check_cast_access=*/FALSE,
+                               /*check_ambiguity=*/FALSE,
+                               is_implicit_cast,
                                is_reinterpret_cast, reinterpret_semantics,
                                &operand->position);
               error_threshold = saved_error_threshold;
@@ -3310,7 +3331,7 @@ user-defined conversions.
         break;
 #if CHECKING
       default:
-        internal_error("cast_operand: bad operand kind");
+        internal_error("cast_operand_full: bad operand kind");
 #endif /* CHECKING */
     }  /* switch */
   }  /* if */
@@ -3319,7 +3340,57 @@ user-defined conversions.
      a base class, or a pointer to an array being cast to a pointer to
      the first element). */
   restore_operand_details_incl_ref(operand, &orig_operand);
+}  /* cast_operand_full */
+
+
+void cast_operand(a_type_ptr new_type,
+                  an_operand *operand,
+                  a_boolean  is_implicit_cast)
+/*
+Simplified interface to cast_operand_full.  See that routine for descriptions
+of the parameters.
+*/
+{
+  cast_operand_full(new_type, operand,
+                    /*check_cast_access=*/TRUE, /*check_ambiguity=*/TRUE,
+                    is_implicit_cast,
+                    /*is_reinterpret_cast=*/FALSE,
+                    /*reinterpret_semantics=*/FALSE);
 }  /* cast_operand */
+
+
+void cast_operand_special(a_type_ptr new_type,
+                          an_operand *operand,
+                          a_boolean  check_cast_access,
+                          a_boolean  is_implicit_cast,
+                          a_boolean  is_reinterpret_cast,
+                          a_boolean  reinterpret_semantics)
+/*
+Another interface to cast_operand_full.  The "special" in this case
+is a Microsoft-bugs-mode weirdness that it's okay to cast or convert a
+pointer to a class to a pointer to an ambiguous base, as long as one of
+the ambiguous bases is a direct base class.  The code here checks for that
+case and produces a warning instead of an error for it.  This routine
+is called only in those contexts that allow this special laxity.
+*/
+{
+  a_boolean check_ambiguity = TRUE;
+
+  if (microsoft_bugs && !C_mode() && !reinterpret_semantics) {
+    a_boolean        baseward_cast;
+    a_base_class_ptr bcp;
+    if (related_class_pointers(operand->type, new_type, &baseward_cast, &bcp)&&
+        baseward_cast && bcp->ambiguous && bcp->direct) {
+      pos_ty_warning(ec_ambiguous_base_class, &operand->position, bcp->type);
+      check_ambiguity = FALSE;
+    }  /* if */
+  }  /* if */
+  cast_operand_full(new_type, operand,
+                    check_cast_access, check_ambiguity,
+                    is_implicit_cast,
+                    is_reinterpret_cast,
+                    reinterpret_semantics);
+}  /* cast_operand_special */
 
 
 void conv_selector_to_object_pointer(an_operand *operand,
@@ -3394,7 +3465,9 @@ used only in C++ mode.
          have the cast in the IL (the constant form has only an offset,
          and loses the sequence of casts). */
       fold_base_class_cast(&operand->variant.constant, bcp, qualifiers_model,
-                           &temp_con, check_cast_access, is_implicit_cast,
+                           &temp_con, check_cast_access,
+                           /*check_ambiguity=*/TRUE,
+                           is_implicit_cast,
                            is_object_pointer, &did_not_fold,
                            &orig_operand.position);
     }  /* if */
@@ -3413,7 +3486,8 @@ used only in C++ mode.
         /* Build an expression node or nodes for the cast. */
         node = make_node_from_operand(operand);
         add_base_class_casts(bcp, qualifiers_model,
-                             check_cast_access, is_implicit_cast,
+                             check_cast_access, /*check_ambiguity=*/TRUE,
+                             is_implicit_cast,
                              implicit_in_naming,
                              &node, &orig_operand.position);
         if (node->is_lvalue) {
@@ -3543,8 +3617,8 @@ FALSE (it is TRUE for reinterpret_cast).
            derived-class casts; the casts that can specify them
            also suppress access checking. */
         an_expr_node_ptr expr = make_node_from_operand(operand);
-        add_derived_class_casts(dest_type, bcp, &expr,
-                                &orig_operand.position);
+        add_derived_class_casts(dest_type, bcp, /*check_ambiguity=*/TRUE,
+                                &expr, &orig_operand.position);
         make_lvalue_expression_operand(expr, operand);
       }  /* if */
     } else {
@@ -3783,8 +3857,7 @@ See 3.2.1.1 in the standard.  The operand must be an rvalue.
 */
 {
   cast_operand(operand_type_after_integral_promotion(operand), operand,
-               /*check_cast_access=*/TRUE, /*is_implicit_cast=*/TRUE,
-               /*is_reinterpret_cast=*/FALSE, /*reinterpret_semantics=*/FALSE);
+               /*is_implicit_cast=*/TRUE);
 }  /* promote_operand */
 
 
@@ -3875,9 +3948,8 @@ C mode.
     }  /* if */
   } else {
     cast_operand(default_argument_promotion(arg_type),
-                 argument_operand, /*check_cast_access=*/TRUE,
-                 /*is_implicit_cast=*/TRUE, /*is_reinterpret_cast=*/FALSE,
-                 /*reinterpret_semantics=*/FALSE);
+                 argument_operand,
+                 /*is_implicit_cast=*/TRUE);
   }  /* if */
 }  /* arg_default_promote_operand */
 
@@ -4392,9 +4464,7 @@ new_fkind.  Preserve the domain (real or imaginary) of the operand.
     } else {
       promoted_type = float_type(new_fkind);
     }  /* if */
-    cast_operand(promoted_type, operand, /*check_cast_access=*/FALSE,
-                 /*is_implicit_cast=*/TRUE, /*is_reinterpret_cast=*/FALSE,
-                 /*reinterpret_semantics=*/FALSE);
+    cast_operand(promoted_type, operand, /*is_implicit_cast=*/TRUE);
   }  /* if */
 }  /* promote_operand_for_imaginary_operation */
 
@@ -5013,16 +5083,10 @@ operator position (for errors).  Return FALSE if there is an error.
     if (bcp != NULL && !bcp->ambiguous &&
         any_virtual_steps_in_derivation(bcp)) {
       if (same_entities(*operation_type, operand_1_type)) {
-        cast_operand(operand_2_type, operand_1, /*check_cast_access=*/TRUE,
-                     /*is_implicit_cast=*/FALSE,
-                     /*is_reinterpret_cast=*/FALSE,
-                     /*reinterpret_semantics=*/FALSE);
+        cast_operand(operand_2_type, operand_1, /*is_implicit_cast=*/FALSE);
         *operation_type = operand_2_type;
       } else {
-        cast_operand(operand_1_type, operand_2, /*check_cast_access=*/TRUE,
-                     /*is_implicit_cast=*/FALSE,
-                     /*is_reinterpret_cast=*/FALSE,
-                     /*reinterpret_semantics=*/FALSE);
+        cast_operand(operand_1_type, operand_2, /*is_implicit_cast=*/FALSE);
         *operation_type = operand_1_type;
       }  /* if */
     }  /* if */
@@ -5132,9 +5196,7 @@ adding an integer to fixed-point type.)
                                           ->variant.fixed_point.is_fract_type,
                                 (a_boolean)type
                                           ->variant.fixed_point.saturating));
-        cast_operand(type, operand_to_adjust, /*check_cast_access=*/FALSE,
-                     /*is_implicit_cast=*/TRUE, /*is_reinterpret_cast=*/FALSE,
-                     /*reinterpret_semantics=*/FALSE);
+        cast_operand(type, operand_to_adjust, /*is_implicit_cast=*/TRUE);
       }  /* if */
     }  /* if */
   } else if (!is_error_type(tp1) && !is_error_type(tp2)) {
@@ -5197,18 +5259,14 @@ to a fixed-point operand).
 #if FIXED_POINT_ALLOWED
         warn_on_fixed_point_to_floating_point_conversion(operand_1, type);
 #endif /* FIXED_POINT_ALLOWED */
-        cast_operand(type, operand_1, /*check_cast_access=*/TRUE,
-                     /*is_implicit_cast=*/TRUE, /*is_reinterpret_cast=*/FALSE,
-                     /*reinterpret_semantics=*/FALSE);
+        cast_operand(type, operand_1, /*is_implicit_cast=*/TRUE);
       }  /* if */
       if (!same_entities(operand_2->type, type)) {
         /* Cast operand 2 to match the desired type. */
 #if FIXED_POINT_ALLOWED
         warn_on_fixed_point_to_floating_point_conversion(operand_2, type);
 #endif /* FIXED_POINT_ALLOWED */
-        cast_operand(type, operand_2, /*check_cast_access=*/TRUE,
-                     /*is_implicit_cast=*/TRUE, /*is_reinterpret_cast=*/FALSE,
-                     /*reinterpret_semantics=*/FALSE);
+        cast_operand(type, operand_2, /*is_implicit_cast=*/TRUE);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -9022,10 +9080,7 @@ because of transformations on the return value).
         if (selector_is_object_pointer) {
           /* The selector is a pointer to class. */
           cast_operand(this_type, bound_function_selector,
-                       /*check_cast_access=*/FALSE,  /* sic */
-                       /*is_implicit_cast=*/TRUE,
-                       /*is_reinterpret_cast=*/FALSE,
-                       /*reinterpret_semantics=*/FALSE);
+                       /*is_implicit_cast=*/TRUE);
         } else {
           /* The selector is a class lvalue or rvalue. */
           adjust_class_object_type(bound_function_selector,
@@ -10604,14 +10659,16 @@ it might produce an error).
                constant. */
             a_boolean did_not_fold;
             copy_constant(op1->variant.constant, &result_con);
-            type_change_constant(&result_con, rvalue_node_type,
-                                 /*is_implicit_cast=*/FALSE,
-                                 curr_expr_kind_is_const(),
-                                 curr_expr_is_evaluated(),
-                                 (a_boolean)expr_stack->favor_constant_result,
-                                 /*is_reinterpret_cast=*/FALSE,
-                                 /*maintain_expression=*/TRUE,
-                                 &did_not_fold, err_pos);
+            type_change_constant_full(
+                                  &result_con, rvalue_node_type,
+                                  /*is_implicit_cast=*/FALSE,
+                                  curr_expr_kind_is_const(),
+                                  curr_expr_is_evaluated(),
+                                  (a_boolean)expr_stack->favor_constant_result,
+                                  /*check_ambiguity=*/FALSE,
+                                  /*is_reinterpret_cast=*/FALSE,
+                                  /*maintain_expression=*/TRUE,
+                                  &did_not_fold, err_pos);
             check_assertion(!did_not_fold);
             con_expr_value = alloc_shareable_constant(&result_con);
           }  /* if */
@@ -11937,10 +11994,7 @@ types to get a boolean expression (see process_boolean_controlling_expression).
                                    &std_conv)) {
         okay = TRUE;
         /* Convert the expression to bool. */
-        cast_operand(bool_type(), operand, /*check_cast_access=*/TRUE,
-                     /*is_implicit_cast=*/TRUE,
-                     /*is_reinterpret_cast=*/FALSE,
-                     /*reinterpret_semantics=*/FALSE);
+        cast_operand(bool_type(), operand, /*is_implicit_cast=*/TRUE);
       } else {
         error_in_operand(ec_expr_not_bool, operand);
       }  /* if */

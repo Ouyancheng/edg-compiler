@@ -1720,6 +1720,20 @@ class will be instantiated if necessary so that its base classes are known.
            bcp = bcp->next) {
         if (same_entities(bcp->type, base_class)) break;
       }  /* for */
+      if (microsoft_bugs && bcp != NULL && bcp->ambiguous && !bcp->direct) {
+        /* The Microsoft compiler allows a cast or conversion to an ambiguous
+           base class in some cases.  If one of the instances of the
+           ambiguous base is a direct class, it is used.  Make sure that
+           in such a case we return the direct base class here so that it is
+           possible to choose to use it later. */
+        a_base_class_ptr bcp2;
+        for (bcp2 = bcp->next; bcp2 != NULL; bcp2 = bcp2->next) {
+          if (bcp2->direct && same_entities(bcp2->type, base_class)) {
+            bcp = bcp2;
+            break;
+          }  /* if */
+        }  /* for */
+      }  /* if */
     }  /* if */
   }  /* if */
   return bcp;

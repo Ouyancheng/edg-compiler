@@ -2048,13 +2048,15 @@ IL a_constant entity.
                       context->prev_context != NULL &&
                       context->prev_context->field != NULL &&
                       context->prev_context->field->is_bit_field);
-      type_change_constant(constant, context->type, /*is_implicit_cast=*/TRUE,
-                           /*constant_context=*/FALSE,
-                           /*evaluated_context=*/TRUE,
-                           /*fold_constant_addr_exprs=*/FALSE,
-                           /*is_reinterpret_cast=*/FALSE,
-                           /*maintain_expression=*/TRUE,
-                           &did_not_fold, &pos_curr_token);
+      type_change_constant_full(constant, context->type,
+                                /*is_implicit_cast=*/TRUE,
+                                /*constant_context=*/FALSE,
+                                /*evaluated_context=*/TRUE,
+                                /*fold_constant_addr_exprs=*/FALSE,
+                                /*check_ambiguity=*/FALSE,
+                                /*is_reinterpret_cast=*/FALSE,
+                                /*maintain_expression=*/TRUE,
+                                &did_not_fold, &pos_curr_token);
     }  /* if */
   }  /* if */
   if (dip != NULL) {

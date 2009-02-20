@@ -5609,10 +5609,6 @@ called to scan the second constant in a GNU C case range.
       }  /* if */
       type_change_constant(&constant, sssep->switch_selector_type,
                            /*is_implicit_cast=*/TRUE,
-                           /*constant_context=*/TRUE,
-                           /*evaluated_context=*/TRUE,
-                           /*fold_constant_addr_exprs=*/TRUE,
-                           /*is_reinterpret_cast=*/FALSE,
                            /*maintain_expression=*/TRUE,
                            &did_not_fold, &error_position);
       check_assertion(!did_not_fold);

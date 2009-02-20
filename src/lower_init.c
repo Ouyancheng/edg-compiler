@@ -423,7 +423,8 @@ function).
     an_expr_node_ptr expr_cast = expr, expr_next = expr->next;
     an_expr_node     node_copy;
 
-    cast_node(&expr_cast, promoted_type, /*check_cast_access=*/TRUE,
+    cast_node(&expr_cast, promoted_type,
+              /*check_cast_access=*/FALSE, /*check_ambiguity=*/FALSE,
               /*is_implicit_cast=*/TRUE, /*is_reinterpret_cast=*/FALSE,
               /*reinterpret_semantics=*/FALSE, &error_position);
     expr_cast->next = expr_next;
@@ -13075,6 +13076,7 @@ The overriding function must have a definition in the current compilation.
          that differ by cv-qualification. */
       add_base_class_casts(bcp, type_pointed_to(overridden_return_type),
                            /*check_cast_access=*/FALSE,
+                           /*check_ambiguity=*/FALSE,
                            /*is_implicit_cast=*/TRUE,
                            /*implicit_in_naming=*/FALSE,
                            &expr,

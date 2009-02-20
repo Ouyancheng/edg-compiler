@@ -6657,10 +6657,6 @@ for making NULL pointer constants.
                        (an_integer_kind)ik_int);
   type_change_constant(zero_constant, desired_type,
                        /*is_implicit_cast=*/TRUE,
-                       /*constant_context=*/TRUE,
-                       /*evaluated_context=*/TRUE,
-                       /*fold_constant_addr_exprs=*/TRUE,
-                       /*is_reinterpret_cast=*/FALSE,
                        /*maintain_expression=*/FALSE,
                        &did_not_fold, &error_position);
 }  /* make_zero_of_proper_type */
@@ -12420,10 +12416,6 @@ gives the source position for errors.
       /* Cast the constant to the new type. */
       type_change_constant(constant, new_type,
                            /*is_implicit_cast=*/TRUE,
-                           /*constant_context=*/TRUE,
-                           /*evaluated_context=*/TRUE,
-                           /*fold_constant_addr_exprs=*/TRUE,
-                           /*is_reinterpret_cast=*/FALSE,
                            /*maintain_expression=*/FALSE,
                            &did_not_fold,
                            source_pos);
@@ -13128,10 +13120,6 @@ options is a set of name lookup options.
               copy_constant(&constant_1, constant);
               type_change_constant(constant, operation_type,
                                    /*is_implicit_cast=*/FALSE,
-                                   /*constant_context=*/TRUE,
-                                   /*evaluated_context=*/TRUE,
-                                   /*fold_constant_addr_exprs=*/TRUE,
-                                   /*is_reinterpret_cast=*/FALSE,
                                    /*maintain_expression=*/FALSE,
                                    &did_not_fold,
                                    source_pos);
@@ -13513,10 +13501,6 @@ name lookup options.
              substitution. */
           type_change_constant(constant, new_type,
                                /*is_implicit_cast=*/FALSE,
-                               /*constant_context=*/TRUE,
-                               /*evaluated_context=*/TRUE,
-                               /*fold_constant_addr_exprs=*/TRUE,
-                               /*is_reinterpret_cast=*/FALSE,
                                /*maintain_expression=*/FALSE,
                                &did_not_fold,
                                source_pos);

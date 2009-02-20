@@ -870,6 +870,7 @@ void fold_base_class_cast(a_constant        *constant_1,
                           a_type_ptr        qualifiers_model,
                           a_constant        *result,
                           a_boolean         check_cast_access,
+                          a_boolean         check_ambiguity,
                           a_boolean         is_implicit_cast,
                           a_boolean         is_object_pointer,
                           a_boolean         *did_not_fold,
@@ -881,11 +882,12 @@ class indicated by bcp and the new constant is returned in *result.
 qualifiers_model is a class type whose cv-qualification indicates
 the cv-qualification desired on the result (i.e., the result type is
 the base class type of bcp and the cv-qualifiers of qualifiers_model).
-Do access control on the cast if check_cast_access is TRUE.  The
-cast is implicit if is_implicit_cast is TRUE.  The pointer is known
-to point to an object if is_object_pointer is TRUE.  If the operation
-cannot be folded, *did_not_fold is returned TRUE.  If there is an
-error, issue it at *err_pos.  result->type need not be set on entry.
+Do access control on the cast if check_cast_access is TRUE.  Check for
+ambiguity on the cast if check_ambiguity is TRUE.  The cast is implicit
+if is_implicit_cast is TRUE.  The pointer is known to point to an
+object if is_object_pointer is TRUE.  If the operation cannot be
+folded, *did_not_fold is returned TRUE.  If there is an error, issue it
+at *err_pos.  result->type need not be set on entry.
 */
 {
   a_boolean             access_okay, err;
@@ -897,7 +899,7 @@ error, issue it at *err_pos.  result->type need not be set on entry.
 
   *did_not_fold = FALSE;
   /* The code here looks like add_base_class_casts. */
-  if (bcp->ambiguous) {
+  if (bcp->ambiguous && check_ambiguity) {
     /* The base class is ambiguous. */
     pos_ty_error(ec_ambiguous_base_class, err_pos, bcp->type);
     set_error_constant(result);
@@ -979,6 +981,7 @@ error, issue it at *err_pos.  result->type need not be set on entry.
       expr = NULL;
     } else if (expr != NULL) {
       add_base_class_casts(bcp, qualifiers_model, /*check_cast_access=*/FALSE,
+                           /*check_ambiguity=*/FALSE,
                            is_implicit_cast, /*implicit_in_naming=*/FALSE,
                            &expr, err_pos);
     }  /* if */
@@ -1046,7 +1049,8 @@ desired derived type.  If there is an error, it is issued at *err_pos.
     implicit_or_explicit_cast(result, new_type, /*is_implicit_cast=*/FALSE);
     /* Update the backing expression if one was present. */
     if (expr != NULL) {
-      add_derived_class_casts(type_pointed_to(new_type), bcp, &expr, err_pos);
+      add_derived_class_casts(type_pointed_to(new_type), bcp,
+                              /*check_ambiguity=*/FALSE, &expr, err_pos);
     }  /* if */
     result->expr = expr;
   }  /* if */
@@ -1057,6 +1061,7 @@ static void conv_pointer_to_whatever(
                                     a_constant        *old_constant,
                                     a_constant        *new_constant,
                                     a_boolean         check_cast_access,
+                                    a_boolean         check_ambiguity,
                                     a_boolean         is_implicit_cast,
                                     a_boolean         fold_constant_addr_exprs,
                                     a_boolean         is_reinterpret_cast,
@@ -1066,8 +1071,9 @@ static void conv_pointer_to_whatever(
                                     an_error_severity *err_severity)
 /*
 Convert a pointer constant to a constant of type as specified by
-"new_constant".  If check_cast_access is TRUE, do access checking.  If
-is_implicit_cast is TRUE, the cast is implicit.  If
+"new_constant".  If check_cast_access is TRUE, do access checking.
+If check_ambiguity is TRUE, check for ambiguous base class casts.
+If is_implicit_cast is TRUE, the cast is implicit.  If
 fold_constant_addr_exprs is TRUE, fold related class casts in constant
 form; if it's FALSE, do not do such folding and return *did_not_fold
 TRUE.  If is_reinterpret_cast is TRUE, this is a reinterpret_cast;
@@ -1138,7 +1144,8 @@ type.
          the base class is inaccessible. */
       fold_base_class_cast(old_constant, bcp, type_pointed_to(new_type),
                            new_constant,
-                           check_cast_access, is_implicit_cast,
+                           check_cast_access, check_ambiguity,
+                           is_implicit_cast,
                            /*is_object_pointer=*/FALSE, did_not_fold, err_pos);
     } else {
       /* Base --> derived.  Valid unless the cast is ambiguous or the base
@@ -1614,16 +1621,17 @@ proper result (often, an error constant).
 }  /* issue_folding_diagnostic */
 
 
-void type_change_constant(a_constant        *constant,
-			  a_type_ptr        new_type,
-			  a_boolean         is_implicit_cast,
-                          a_boolean         constant_context,
-                          a_boolean         evaluated_context,
-                          a_boolean         fold_constant_addr_exprs,
-                          a_boolean         is_reinterpret_cast,
-                          a_boolean         maintain_expression,
-                          a_boolean         *did_not_fold,
-                          a_source_position *err_pos)
+void type_change_constant_full(a_constant        *constant,
+                               a_type_ptr        new_type,
+                               a_boolean         is_implicit_cast,
+                               a_boolean         constant_context,
+                               a_boolean         evaluated_context,
+                               a_boolean         fold_constant_addr_exprs,
+                               a_boolean         check_ambiguity,
+                               a_boolean         is_reinterpret_cast,
+                               a_boolean         maintain_expression,
+                               a_boolean         *did_not_fold,
+                               a_source_position *err_pos)
 /*
 Convert the indicated constant to "new_type".  Issue errors or warnings
 using the position *err_pos.  If is_implicit_cast is TRUE, this is an
@@ -1636,11 +1644,12 @@ so any error is thrown away and *did_not_fold is returned TRUE.
 *did_not_fold is also returned TRUE in other cases where the folding
 cannot be done.  fold_constant_addr_exprs is TRUE if constant address
 expressions should be folded (e.g., base class casts); if it is FALSE,
-*did_not_fold is set instead for those.  If is_reinterpret_cast is TRUE,
-this cast is a reinterpret_cast; related-class casts are treated like
-casts between unrelated classes.  If maintain_expression is TRUE,
-any expression attached to the constant is maintained, by adding a
-cast if necessary.
+*did_not_fold is set instead for those.  check_ambiguity is TRUE if
+ambiguity checking should be done on related-class casts.
+If is_reinterpret_cast is TRUE, this cast is a reinterpret_cast;
+related-class casts are treated like casts between unrelated classes.
+If maintain_expression is TRUE, any expression attached to the constant
+is maintained, by adding a cast if necessary.
 */
 {
   a_type_ptr        constant_type, new_type_with_typedefs;
@@ -1649,7 +1658,7 @@ cast if necessary.
   an_error_severity err_severity;
   a_boolean         depends_on_fp_mode = FALSE;
 
-  db_enter(5, "type_change_constant");
+  db_enter(5, "type_change_constant_full");
   *did_not_fold = FALSE;
   err_code = ec_no_error;
   err_severity = es_warning;
@@ -1734,7 +1743,7 @@ cast if necessary.
        would have constant_type->kind == tk_integer and new_type->kind
        == tk_integer, and so would not look like it involves pointers. */
     conv_pointer_to_whatever(constant, &new_constant, is_implicit_cast,
-                             is_implicit_cast,
+                             check_ambiguity, is_implicit_cast,
                              fold_constant_addr_exprs, is_reinterpret_cast,
                              did_not_fold, err_pos, &err_code, &err_severity);
     goto exit;
@@ -1779,7 +1788,7 @@ cast if necessary.
           break;
         default:
           unexpected_condition_str(
-                                  "type_change_constant: integer to bad type");
+                             "type_change_constant_full: integer to bad type");
       }  /* switch */
       break;
 
@@ -1812,7 +1821,8 @@ cast if necessary.
           break;
 #endif /* FIXED_POINT_ALLOWED */
         default:
-          unexpected_condition_str("type_change_constant: float to bad type");
+          unexpected_condition_str(
+                               "type_change_constant_full: float to bad type");
       }  /* switch */
       break;
 
@@ -1844,7 +1854,7 @@ cast if necessary.
 #endif /* FIXED_POINT_ALLOWED */
         default:
           unexpected_condition_str(
-                                "type_change_constant: imaginary to bad type");
+                           "type_change_constant_full: imaginary to bad type");
       }  /* switch */
       break;
 
@@ -1875,7 +1885,7 @@ cast if necessary.
 #endif /* FIXED_POINT_ALLOWED */
         default:
           unexpected_condition_str(
-                                  "type_change_constant: complex to bad type");
+                             "type_change_constant_full: complex to bad type");
       }  /* switch */
       break;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
@@ -1906,7 +1916,7 @@ cast if necessary.
           break;
         default:
           unexpected_condition_str(
-                              "type_change_constant: fixed-point to bad type");
+                         "type_change_constant_full: fixed-point to bad type");
       }  /* switch */
       break;
 #endif /* FIXED_POINT_ALLOWED */
@@ -1914,7 +1924,7 @@ cast if necessary.
     case tk_pointer:
       /* Converting from pointer. */
       conv_pointer_to_whatever(constant, &new_constant, is_implicit_cast,
-                               is_implicit_cast,
+                               check_ambiguity, is_implicit_cast,
                                fold_constant_addr_exprs, is_reinterpret_cast,
                                did_not_fold, err_pos,
                                &err_code, &err_severity);
@@ -1938,7 +1948,7 @@ cast if necessary.
       break;
 
     default:
-      unexpected_condition_str("type_change_constant: from bad type");
+      unexpected_condition_str("type_change_constant_full: from bad type");
   }  /* switch */
 
 exit:
@@ -2024,6 +2034,27 @@ exit:
   /* Return the new constant value. */
   copy_constant(&new_constant, constant);
   db_exit();
+}  /* type_change_constant_full */
+
+
+void type_change_constant(a_constant        *constant,
+                          a_type_ptr        new_type,
+                          a_boolean         is_implicit_cast,
+                          a_boolean         maintain_expression,
+                          a_boolean         *did_not_fold,
+                          a_source_position *err_pos)
+/*
+Simple interface to type_change_constant_full.  See that routine for the
+description of the parameters.
+*/
+{
+  type_change_constant_full(constant, new_type, is_implicit_cast,
+                            /*constant_context=*/TRUE,
+                            /*evaluated_context=*/TRUE,
+                            /*fold_constant_addr_exprs=*/TRUE,
+                            /*check_ambiguity=*/TRUE,
+                            /*is_reinterpret_cast=*/FALSE,
+                            maintain_expression, did_not_fold, err_pos);
 }  /* type_change_constant */
 
 
@@ -5493,6 +5524,7 @@ handle_field_selection:
               check_assertion(bcp != NULL);
               fold_base_class_cast(&conaddr1, bcp, expr->type, con,
                                    /*check_cast_access=*/FALSE,
+                                   /*check_ambiguity=*/FALSE,
                                    (a_boolean)expr->variant.operation.
                                                             compiler_generated,
                                    /*is_object_pointer=*/FALSE,
@@ -5709,6 +5741,7 @@ cast_case:
                  done when the expression was put together. */
               conv_pointer_to_whatever(&conaddr1, con,
                                        /*check_cast_access=*/FALSE,
+                                       /*check_ambiguity=*/FALSE,
                                        (a_boolean)expr->variant.operation.
                                                             compiler_generated,
                                        /*fold_constant_addr_exprs=*/TRUE,

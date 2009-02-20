@@ -1,5 +1,22 @@
 Version 4.1
 
+2/19/09  [EDGcpfe/9446]
+Microsoft compatibility: casts to ambiguous direct base classes
+
+The Microsoft compiler allows casts and implicit conversions from a
+pointer to a class to a pointer to an ambiguous base class in certain
+contexts, if one instance of the ambiguous base class is a direct base.
+We now emulate that behavior in Microsoft bugs mode.
+
+  __interface IUnknown {};
+  class D1: public IUnknown {};
+  class D2: public D1, public IUnknown {};
+  int main() {
+    D2 d;
+    IUnknown * p = static_cast<IUnknown*>(&d);  // Allowed, with a warning
+  }
+
+
 2/18/09  [EDGcpfe/9522]
 Microsoft compatibility: __ptr64 on 64-bit targets
 

@@ -4317,10 +4317,6 @@ no error is issued and implicit_value is TRUE, *constant is incremented.
       a_boolean  did_not_fold = FALSE;
       type_change_constant(constant, underlying_type,
                            /*is_implicit_cast=*/TRUE,
-                           /*constant_context=*/TRUE,
-                           /*evaluated_context=*/TRUE,
-                           /*fold_constant_addr_exprs=*/TRUE,
-                           /*is_reinterpret_cast=*/FALSE,
                            /*maintain_expression=*/TRUE,
                            &did_not_fold, &error_position);
     }  /* if */
@@ -4889,10 +4885,6 @@ dsi_flags is the set of input flags passed to decl_specifiers.
                 type_change_constant(&constant,
                                      integer_type((an_integer_kind)ik_int),
                                      /*is_implicit_cast=*/TRUE,
-                                     /*constant_context=*/TRUE,
-                                     /*evaluated_context=*/TRUE,
-                                     /*fold_constant_addr_exprs=*/TRUE,
-                                     /*is_reinterpret_cast=*/FALSE,
                                      /*maintain_expression=*/TRUE,
                                      &did_not_fold,
                                      &error_position);

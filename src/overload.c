@@ -6933,11 +6933,12 @@ wondering if it's available.
                                                    sym_parent_class(fund_sym),
                                                    underlying_this_type);
         member_ptr = make_pointer_type(member_ptr);
-        cast_operand(member_ptr, result,
-                     /*check_cast_access=*/FALSE,
-                     /*is_implicit_cast=*/TRUE,
-                     /*is_reinterpret_cast=*/FALSE,
-                     /*reinterpret_sementics=*/FALSE);
+        cast_operand_full(member_ptr, result,
+                          /*check_cast_access=*/FALSE,
+                          /*check_ambiguity=*/FALSE,
+                          /*is_implicit_cast=*/TRUE,
+                          /*is_reinterpret_cast=*/FALSE,
+                          /*reinterpret_sementics=*/FALSE);
       } else {
         /* Cast the "this" value to the class of the member. */
         /* Note that no ARM 11.5 protected member access check is needed,
@@ -12543,10 +12544,8 @@ the temporary.
       if (is_an_rvalue(operand)) {
         an_expr_node_ptr before_cast = (is_expression_operand(operand)) ?
                                             operand->variant.expression : NULL;
-        cast_operand(dest_type, operand, /*check_cast_access=*/TRUE,
-                     /*is_implicit_cast=*/!is_explicit_cast,
-                     /*is_reinterpret_cast=*/FALSE,
-                     /*reinterpret_semantics=*/FALSE);
+        cast_operand(dest_type, operand,
+                     /*is_implicit_cast=*/!is_explicit_cast);
         if (is_explicit_cast && conv_function_call_node != NULL &&
             is_expression_operand(operand) &&
             operand->variant.expression != before_cast) {
@@ -12603,9 +12602,11 @@ The conversion is assumed not to be due to an explicit cast.
                          /*force_copy_to_temp=*/FALSE);
   } else {
     /* Cast the operand to the result type. */
-    cast_operand(dest_type, source_operand, /*check_cast_access=*/TRUE,
-                 /*is_implicit_cast=*/TRUE, /*is_reinterpret_cast=*/FALSE,
-                 /*reinterpret_semantics=*/FALSE);
+    cast_operand_special(dest_type, source_operand,
+                         /*check_cast_access=*/TRUE,
+                         /*is_implicit_cast=*/TRUE,
+                         /*is_reinterpret_cast=*/FALSE,
+                         /*reinterpret_semantics=*/FALSE);
   }  /* if */
 }  /* convert_operand */
 
@@ -14563,11 +14564,7 @@ aggregate constant.
   /* Make sure we have an rvalue. */
   conv_lvalue_to_rvalue(source_operand);
   /* Convert the source expression to the destination type if necessary. */
-  cast_operand(field_type, source_operand,
-               /*check_cast_access=*/FALSE,
-               /*is_implicit_cast=*/TRUE,
-               /*is_reinterpret_cast=*/FALSE,
-               /*reinterpret_sementics=*/FALSE);
+  cast_operand(field_type, source_operand, /*is_implicit_cast=*/TRUE);
   orig_operand = *source_operand;
   /* Build a designator indicating which field should be initialized. */
   designator_con = alloc_constant((a_constant_repr_kind)ck_designator);

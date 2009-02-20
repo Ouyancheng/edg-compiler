@@ -1893,10 +1893,6 @@ Do integral promotion on the indicated integer constant.
   if (promoted_type != cp->type) {
     type_change_constant(cp, promoted_type,
                          /*is_implicit_cast=*/TRUE,
-                         /*constant_context=*/TRUE,
-                         /*evaluated_context=*/TRUE,
-                         /*fold_constant_addr_exprs=*/TRUE,
-                         /*is_reinterpret_cast=*/FALSE,
                          /*maintain_expression=*/FALSE,
                          &did_not_fold, &error_position);
   }  /* if */
@@ -3853,10 +3849,6 @@ Do IL lowering of a pointer-to-member constant.
        on converting a non-zero integer to a pointer. */
     type_change_constant(func_con, vptp_type,
                          /*is_implicit_cast=*/FALSE,
-                         /*constant_context=*/TRUE,
-                         /*evaluated_context=*/TRUE,
-                         /*fold_constant_addr_exprs=*/TRUE,
-                         /*is_reinterpret_cast=*/FALSE,
                          /*maintain_expression=*/FALSE,
                          &did_not_fold, &error_position);
     /* Change the original constant into a ck_aggregate constant. */
