@@ -3957,12 +3957,12 @@ initialization or destruction here.
     if (new_routine->special_kind == (a_special_function_kind)sfk_destructor &&
         new_routine->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_deleting) {
       /* Add the deletion code for the IA-64 ABI deleting destructor. */
-      a_type_ptr    class_type = parent_class_of(new_routine);
-      a_routine_ptr delete_routine = class_type_supp(class_type)->
+      a_type_ptr    new_class_type = parent_class_of(new_routine);
+      a_routine_ptr delete_routine = class_type_supp(new_class_type)->
                                                  assoc_operator_delete_routine;
       check_assertion(delete_routine != NULL);
       this_arg = var_rvalue_expr(this_param_var);
-      (void)make_delete_call(delete_routine, class_type, this_arg,
+      (void)make_delete_call(delete_routine, new_class_type, this_arg,
                              &insert_location);
     }  /* if */
 #endif /* IA64_ABI */
@@ -11427,8 +11427,8 @@ initialization code.
   a_type_ptr                  class_type;
   a_constructor_init_ptr      ctor_init;
   a_variable_ptr              this_param_var;
-  a_class_type_supplement_ptr ctsp;
 #if !IA64_ABI
+  a_class_type_supplement_ptr ctsp;
   a_base_class_ptr            bcp;
   a_variable_ptr              vbase_param_var;
 #endif /* !IA64_ABI */
@@ -11436,7 +11436,6 @@ initialization code.
   this_param_var = scope->variant.routine.parameters;
   ctor_init = scope->variant.routine.constructor_inits;
   class_type = parent_class_of(scope->variant.routine.ptr);
-  ctsp = class_type->variant.class_struct_union.extra_info;
   check_assertion(
               class_type->variant.class_struct_union.any_virtual_base_classes);
 #if ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
@@ -11453,6 +11452,7 @@ initialization code.
   /* Set the added parameters to the addresses of the virtual base
      classes. */
   vbase_param_var = this_param_var->next;
+  ctsp = class_type->variant.class_struct_union.extra_info;
   for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
     if (bcp->is_virtual) {
       an_expr_node_ptr  vaddr_node, assign_node, vbptr_node;
@@ -12336,10 +12336,7 @@ this function and lower_destructor_code and
 insert_dtor_member_and_base_destructions.
 */
 {
-  a_routine_ptr          dtor_routine =
-                                 innermost_function_scope->variant.routine.ptr;
   a_variable_ptr         this_param_var;
-  a_type_ptr             class_type;
   a_constructor_init_ptr ctor_init, ctor_init_list;
   a_dynamic_init_ptr     first_epilogue_destruction;
   an_insert_location     insert_location;
@@ -12371,7 +12368,6 @@ insert_dtor_member_and_base_destructions.
   */
   /* Get a pointer to the "this" parameter variable. */
   this_param_var = innermost_function_scope->variant.routine.parameters;
-  class_type = parent_class_of(dtor_routine);
   /* The constructor_inits list contains a list of destructions.  Each
      destruction is a default call supplied by the front end.  Every
      base class and member that requires a destructor appears, in the
@@ -12396,7 +12392,8 @@ insert_dtor_member_and_base_destructions.
        early so that we will know the right value to set __eh_curr_region
        to when beginning each destruction. */
     /* See whether there are any virtual base classes. */
-    if (class_type->variant.class_struct_union.any_virtual_base_classes) {
+    if (parent_class_of(innermost_function_scope->variant.routine.ptr)->
+                         variant.class_struct_union.any_virtual_base_classes) {
 #if DO_FULL_PORTABLE_EH_LOWERING
       /* The variable indicating a complete object will be used
          as a conditional flag for the destructions of the virtual base
