@@ -1047,7 +1047,7 @@ Now fixed.
   };
 
 
-1/9/09   [EDGcpfe/9427]
+1/9/09   [EDGcpfe/9427, EDGcpfe/9460]
 GNU compatibility: Built-in IA-32 vector functions
 
 When the new macro GNU_BUILTIN_IA32_VECTOR_FUNCTIONS_ALLOWED is set to TRUE,

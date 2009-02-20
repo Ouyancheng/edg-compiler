@@ -211,7 +211,7 @@ the routine type is updated accordingly).  Return the symbol for the function.
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
 
-static void enter_gnu_builtin_function(
+static a_routine_ptr make_gnu_builtin_function(
                                    a_builtin_function_kind  bfk,
 				   a_type_ptr               return_type,
 				   a_type_ptr               param1_type,
@@ -222,10 +222,11 @@ static void enter_gnu_builtin_function(
 				   a_type_ptr               param6_type,
 				   a_boolean                is_varargs)
 /*
-Enter the GNU builtin function indicated by bfk.  The return_type
-(which must be non-NULL) and the parameter types (which may be NULL)
-indicate how to form the function signature.  If is_varargs is TRUE,
-the function takes a variable number of arguments.
+Create the GNU builtin function (routine entry and symbol) indicated by bfk.
+The return_type (which must be non-NULL) and the parameter types (which may be
+NULL) indicate how to form the function signature.  If is_varargs is TRUE, the
+function takes a variable number of arguments.  A pointer to the routine entry
+is returned.
 */
 {
   a_symbol_ptr                   sym;
@@ -247,7 +248,17 @@ the function takes a variable number of arguments.
   sym = enter_builtin_function(builtin_function_kind_names[(int)bfk],
                                rout_type);
   sym->variant.routine.ptr->variant.builtin_function_kind = bfk;
-}  /* enter_gnu_builtin_function */
+  return sym->variant.routine.ptr;
+}  /* make_gnu_builtin_function */
+
+
+/*
+Most of the time, the return value of make_gnu_builtin_function is ignored.
+The following macro is used in those cases.
+*/
+#define enter_gnu_builtin_function(bfk, rt, p1t, p2t, p3t, p4t, p5t, p6, va) \
+  ((void)make_gnu_builtin_function(bfk, rt, p1t, p2t, p3t, p4t, p5t, p6, va))
+
 
 /*
 We are about to define functions that create hundreds of predeclared functions.
@@ -551,7 +562,10 @@ extensions.)
   a_type_ptr  long_long_type = integer_type((an_integer_kind)ik_long_long);
   a_type_ptr  unsigned_long_long_type =
                          integer_type((an_integer_kind)ik_unsigned_long_long);
-  a_type_ptr  qi_type = get_type_with_mode(int_type, tmk_QI, no_pos);
+  /* The QI mode in GCC is "signed char".  However, the types designated with
+     "qi" in the GCC vector function documentation appear to be plain
+     "char". */
+  a_type_ptr  qi_type = char_type;
   a_type_ptr  hi_type = get_type_with_mode(int_type, tmk_HI, no_pos);
   a_type_ptr  si_type = get_type_with_mode(int_type, tmk_SI, no_pos);
   /* The type denoted by "di" in the GNU documentation appears to actually be
@@ -598,10 +612,10 @@ extensions.)
   enter_gnu_builtin_func2(_ia32_psubusw, v4hi, v4hi, v4hi);
   enter_gnu_builtin_func2(_ia32_pmullw, v4hi, v4hi, v4hi);
   enter_gnu_builtin_func2(_ia32_pmulhw, v4hi, v4hi, v4hi);
-  enter_gnu_builtin_func2(_ia32_pand, di, di, di);
-  enter_gnu_builtin_func2(_ia32_pandn, di, di,di);
-  enter_gnu_builtin_func2(_ia32_por, di, di, di);
-  enter_gnu_builtin_func2(_ia32_pxor, di, di, di);
+  enter_gnu_builtin_func2(_ia32_pand, v2si, v2si, v2si);
+  enter_gnu_builtin_func2(_ia32_pandn, v2si, v2si, v2si);
+  enter_gnu_builtin_func2(_ia32_por, v2si, v2si, v2si);
+  enter_gnu_builtin_func2(_ia32_pxor, v2si, v2si, v2si);
   enter_gnu_builtin_func2(_ia32_pcmpeqb, v8qi, v8qi, v8qi);
   enter_gnu_builtin_func2(_ia32_pcmpeqw, v4hi, v4hi, v4hi);
   enter_gnu_builtin_func2(_ia32_pcmpeqd, v2si, v2si, v2si);
@@ -810,8 +824,8 @@ extensions.)
                           v16qi, v16qi, char_star);
   enter_gnu_builtin_func1(_ia32_loadupd, v2df, df_const_star);
   enter_gnu_builtin_func2(_ia32_storeupd, no_return, df_star, v2df);
-  enter_gnu_builtin_func2(_ia32_loadhpd, v2df, v2df, v2si_star);
-  enter_gnu_builtin_func2(_ia32_loadlpd, v2df, v2df, v2si_star);
+  enter_gnu_builtin_func2(_ia32_loadhpd, v2df, v2df, df_const_star);
+  enter_gnu_builtin_func2(_ia32_loadlpd, v2df, v2df, df_const_star);
   enter_gnu_builtin_func1(_ia32_movmskpd, int, v2df);
   enter_gnu_builtin_func1(_ia32_pmovmskb128, int, v16qi);
   enter_gnu_builtin_func2(_ia32_movnti, no_return, int_star, int);
@@ -850,14 +864,14 @@ extensions.)
   enter_gnu_builtin_func2(_ia32_storedqu, no_return, char_star, v16qi);
   enter_gnu_builtin_func2(_ia32_pmuludq, v2si, v2si, v2si);
   enter_gnu_builtin_func2(_ia32_pmuludq128, v4si, v4si, v4si);
-  enter_gnu_builtin_func2(_ia32_psllw128, v8hi, v8hi, v2di);
-  enter_gnu_builtin_func2(_ia32_pslld128, v4si, v4si, v2di);
+  enter_gnu_builtin_func2(_ia32_psllw128, v8hi, v8hi, v8hi);
+  enter_gnu_builtin_func2(_ia32_pslld128, v4si, v4si, v4si);
   enter_gnu_builtin_func2(_ia32_psllq128, v2di, v2di, v2di);
-  enter_gnu_builtin_func2(_ia32_psrlw128, v8hi, v8hi, v2di);
-  enter_gnu_builtin_func2(_ia32_psrld128, v4si, v4si, v2di);
+  enter_gnu_builtin_func2(_ia32_psrlw128, v8hi, v8hi, v8hi);
+  enter_gnu_builtin_func2(_ia32_psrld128, v4si, v4si, v4si);
   enter_gnu_builtin_func2(_ia32_psrlq128, v2di, v2di, v2di);
-  enter_gnu_builtin_func2(_ia32_psraw128, v8hi, v8hi, v2di);
-  enter_gnu_builtin_func2(_ia32_psrad128, v4si, v4si, v2di);
+  enter_gnu_builtin_func2(_ia32_psraw128, v8hi, v8hi, v8hi);
+  enter_gnu_builtin_func2(_ia32_psrad128, v4si, v4si, v4si);
   enter_gnu_builtin_func2(_ia32_pslldqi128, v2di, v2di, int);
   enter_gnu_builtin_func2(_ia32_psllwi128, v8hi, v8hi, int);
   enter_gnu_builtin_func2(_ia32_pslldi128, v4si, v4si, int);
@@ -1249,6 +1263,44 @@ extensions.)
   enter_gnu_builtin_func1(_ia32_pi2fw, v2sf, v2si);
   enter_gnu_builtin_func1(_ia32_pswapdsf, v2sf, v2sf);
   enter_gnu_builtin_func1(_ia32_pswapdsi, v2si, v2si);
+
+  /* Undocumented functions. */
+  enter_gnu_builtin_func0(_ia32_emms, no_return);
+  { /* There is no macro to create an 8-parameter builtin function.  We
+       therefore build one incrementally from a six-parameter function. */
+    a_routine  *rp = make_gnu_builtin_function(
+                        bfk_ia32_vec_init_v8qi, v8qi_type,
+                        qi_type, qi_type, qi_type, qi_type, qi_type, qi_type,
+                        /*is_varargs=*/FALSE);
+    rp->type = add_param_type(add_param_type(rp->type, qi_type), qi_type);
+  }
+  enter_gnu_builtin_func4(_ia32_vec_init_v4hi, v4hi, hi, hi, hi, hi);
+  enter_gnu_builtin_func2(_ia32_vec_init_v2si, v2si, si, si);
+  enter_gnu_builtin_func2(_ia32_vec_ext_v4hi, hi, v4hi, si);
+  enter_gnu_builtin_func2(_ia32_vec_ext_v2si, si, v2si, si);
+  enter_gnu_builtin_func2(_ia32_vec_ext_v2df, df, v2df, si);
+  enter_gnu_builtin_func2(_ia32_pmaddwd, v2si, v4hi, v4hi);
+  enter_gnu_builtin_func2(_ia32_paddsb128, v16qi, v16qi, v16qi);
+  enter_gnu_builtin_func2(_ia32_paddsw128, v8hi, v8hi, v8hi);
+  enter_gnu_builtin_func2(_ia32_psubsb128, v16qi, v16qi, v16qi);
+  enter_gnu_builtin_func2(_ia32_psubsw128, v8hi, v8hi, v8hi);
+  enter_gnu_builtin_func2(_ia32_paddusb128, v16qi, v16qi, v16qi);
+  enter_gnu_builtin_func2(_ia32_paddusw128, v8hi, v8hi, v8hi);
+  enter_gnu_builtin_func2(_ia32_psubusb128, v16qi, v16qi, v16qi);
+  enter_gnu_builtin_func2(_ia32_psubusw128, v8hi, v8hi, v8hi);
+  enter_gnu_builtin_func2(_ia32_psllw, v4hi, v4hi, di);
+  enter_gnu_builtin_func2(_ia32_pslld, v2si, v2si, di);
+  enter_gnu_builtin_func2(_ia32_psllq, di, di, di);
+  enter_gnu_builtin_func2(_ia32_psrlw, v4hi, v4hi, di);
+  enter_gnu_builtin_func2(_ia32_psrld, v2si, v2si, di);
+  enter_gnu_builtin_func2(_ia32_psrlq, di, di, di);
+  enter_gnu_builtin_func2(_ia32_psraw, v4hi, v4hi, di);
+  enter_gnu_builtin_func2(_ia32_psrad, v2si, v2si, di);
+  enter_gnu_builtin_func2(_ia32_cvtsi642ss, v4sf, v4sf, di);
+  enter_gnu_builtin_func1(_ia32_cvtss2si64, di, v4sf);
+  enter_gnu_builtin_func1(_ia32_cvttss2si64, di, v4sf);
+  enter_gnu_builtin_func0(_ia32_stmxcsr, unsigned_int);
+  enter_gnu_builtin_func1(_ia32_ldmxcsr, no_return, unsigned_int);
 }  /* enter_builtin_ia32_vector_functions */
 
 #endif /* GNU_BUILTIN_IA32_VECTOR_FUNCTIONS_ALLOWED */

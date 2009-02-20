@@ -8297,6 +8297,36 @@ enum a_builtin_function_kind_tag {
   bfk_ia32_pi2fw,               /* __builtin_ia32_pi2fw */
   bfk_ia32_pswapdsf,            /* __builtin_ia32_pswapdsf */
   bfk_ia32_pswapdsi,            /* __builtin_ia32_pswapdsi */
+  /* Undocumented functions. */
+  bfk_ia32_emms,                /* __builtin_ia32_emms */
+  bfk_ia32_vec_init_v8qi,       /* __builtin_ia32_vec_init_v8qi */
+  bfk_ia32_vec_init_v4hi,       /* __builtin_ia32_vec_init_v4hi */
+  bfk_ia32_vec_init_v2si,       /* __builtin_ia32_vec_init_v2si */
+  bfk_ia32_vec_ext_v4hi,        /* __builtin_ia32_vec_ext_v4hi */
+  bfk_ia32_vec_ext_v2si,        /* __builtin_ia32_vec_ext_v2si */
+  bfk_ia32_vec_ext_v2df,        /* __builtin_ia32_vec_ext_v2df */
+  bfk_ia32_pmaddwd,             /* __builtin_ia32_pmaddwd */
+  bfk_ia32_paddsb128,           /* __builtin_ia32_paddsb128 */
+  bfk_ia32_paddsw128,           /* __builtin_ia32_paddsw128 */
+  bfk_ia32_psubsb128,           /* __builtin_ia32_psubsb128 */
+  bfk_ia32_psubsw128,           /* __builtin_ia32_psubsw128 */
+  bfk_ia32_paddusb128,          /* __builtin_ia32_paddusb128 */
+  bfk_ia32_paddusw128,          /* __builtin_ia32_paddusw128 */
+  bfk_ia32_psubusb128,          /* __builtin_ia32_psubusb128 */
+  bfk_ia32_psubusw128,          /* __builtin_ia32_psubusw128 */
+  bfk_ia32_psllw,               /* __builtin_ia32_psllw */
+  bfk_ia32_pslld,               /* __builtin_ia32_pslld */
+  bfk_ia32_psllq,               /* __builtin_ia32_psllq */
+  bfk_ia32_psrlw,               /* __builtin_ia32_psrlw */
+  bfk_ia32_psrld,               /* __builtin_ia32_psrld */
+  bfk_ia32_psrlq,               /* __builtin_ia32_psrlq */
+  bfk_ia32_psraw,               /* __builtin_ia32_psraw */
+  bfk_ia32_psrad,               /* __builtin_ia32_psrad */
+  bfk_ia32_cvtsi642ss,          /* __builtin_ia32_cvtsi642ss */
+  bfk_ia32_cvtss2si64,          /* __builtin_ia32_cvtss2si64 */
+  bfk_ia32_cvttss2si64,         /* __builtin_ia32_cvttss2si64 */
+  bfk_ia32_stmxcsr,             /* __builtin_ia32_stmxcsr */
+  bfk_ia32_ldmxcsr,             /* __builtin_ia32_ldmxcsr */
 #endif /* GNU_BUILTIN_IA32_VECTOR_FUNCTIONS_ALLOWED */
   bfk_last
 };
@@ -9508,6 +9538,36 @@ EXTERN char *builtin_function_kind_names[(int)bfk_last + 1]
   /* bfk_ia32_pi2fw */               "__builtin_ia32_pi2fw",
   /* bfk_ia32_pswapdsf */            "__builtin_ia32_pswapdsf",
   /* bfk_ia32_pswapdsi */            "__builtin_ia32_pswapdsi",
+  /* Undocumented functions. */
+  /* bfk_ia32_emms */                "__builtin_ia32_emms",
+  /* bfk_ia32_vec_init_v8qi */       "__builtin_ia32_vec_init_v8qi",
+  /* bfk_ia32_vec_init_v4hi */       "__builtin_ia32_vec_init_v4hi",
+  /* bfk_ia32_vec_init_v2si */       "__builtin_ia32_vec_init_v2si",
+  /* bfk_ia32_vec_ext_v4hi */        "__builtin_ia32_vec_ext_v4hi",
+  /* bfk_ia32_vec_ext_v2si */        "__builtin_ia32_vec_ext_v2si",
+  /* bfk_ia32_vec_ext_v2df */        "__builtin_ia32_vec_ext_v2df",
+  /* bfk_ia32_pmaddwd */             "__builtin_ia32_pmaddwd",
+  /* bfk_ia32_paddsb128 */           "__builtin_ia32_paddsb128",
+  /* bfk_ia32_paddsw128 */           "__builtin_ia32_paddsw128",
+  /* bfk_ia32_psubsb128 */           "__builtin_ia32_psubsb128",
+  /* bfk_ia32_psubsw128 */           "__builtin_ia32_psubsw128",
+  /* bfk_ia32_paddusb128 */          "__builtin_ia32_paddusb128",
+  /* bfk_ia32_paddusw128 */          "__builtin_ia32_paddusw128",
+  /* bfk_ia32_psubusb128 */          "__builtin_ia32_psubusb128",
+  /* bfk_ia32_psubusw128 */          "__builtin_ia32_psubusw128",
+  /* bfk_ia32_psllw */               "__builtin_ia32_psllw",
+  /* bfk_ia32_pslld */               "__builtin_ia32_pslld",
+  /* bfk_ia32_psllq */               "__builtin_ia32_psllq",
+  /* bfk_ia32_psrlw */               "__builtin_ia32_psrlw",
+  /* bfk_ia32_psrld */               "__builtin_ia32_psrld",
+  /* bfk_ia32_psrlq */               "__builtin_ia32_psrlq",
+  /* bfk_ia32_psraw */               "__builtin_ia32_psraw",
+  /* bfk_ia32_psrad */               "__builtin_ia32_psrad",
+  /* bfk_ia32_cvtsi642ss */          "__builtin_ia32_cvtsi642ss",
+  /* bfk_ia32_cvtss2si64 */          "__builtin_ia32_cvtss2si64",
+  /* bfk_ia32_cvttss2si64 */         "__builtin_ia32_cvttss2si64",
+  /* bfk_ia32_stmxcsr */             "__builtin_ia32_stmxcsr",
+  /* bfk_ia32_ldmxcsr */             "__builtin_ia32_ldmxcsr",
 #endif /* GNU_BUILTIN_IA32_VECTOR_FUNCTIONS_ALLOWED */
   /* bfk_last */                     "last" /* used to check that 
                                                initialization is right. */
