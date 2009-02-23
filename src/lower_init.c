@@ -4274,8 +4274,18 @@ routine will be the same as the one passed in.
       /* The new routine has an ellipsis if the old one does. */
       new_rtsp->has_ellipsis = rtsp->has_ellipsis;
 #if HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS
-      /* The new routine has an exception specification if the old one does. */
-      new_rtsp->exception_specification = rtsp->exception_specification;
+      if (parent_class_of(routine)->
+                         variant.class_struct_union.any_virtual_base_classes &&
+          kind == (a_ctor_or_dtor_kind)cdk_complete &&
+          (new_routine->special_kind ==
+                                    (a_special_function_kind)sfk_constructor ||
+           new_routine->special_kind ==
+                                    (a_special_function_kind)sfk_destructor)) {
+      /* The new routine needs an exception specification if the old one has
+         one and there are virtual base initializations/destructions (which
+         necessitates exception handling). */
+        new_rtsp->exception_specification = rtsp->exception_specification;
+      }  /* if */
 #endif /* HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS */
       if (kind == (a_ctor_or_dtor_kind)cdk_subobject &&
           routine->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_complete) {
