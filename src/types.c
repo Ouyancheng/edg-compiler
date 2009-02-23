@@ -3615,8 +3615,9 @@ for more information.
           this1 = rtsp1->this_class;
           this2 = rtsp2->this_class;
           if (this1 == NULL && this2 == NULL) {
-            /* Both this parameter types are NULL -- they match. */
-            this_class_matches = TRUE;
+            /* Both this parameter types are NULL.  We still need to
+               check the qualifiers for cases like "typedef void F() const". */
+            this_class_matches = rtsp1->qualifiers == rtsp2->qualifiers;
           } else if (this1 == NULL || this2 == NULL) {
             /* One, but not both, of the this parameter types are NULL.
                This is considered a match if the flag is set that 

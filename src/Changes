@@ -1,5 +1,22 @@
 Version 4.1
 
+2/23/09  [EDGcpfe/9565]
+Type comparison should compare qualifiers even with no "this" class
+
+When comparing routine types, the front end failed to compare the qualifiers
+if neither type had a "this" class.  As a result, in the example below
+the declaration of a2 would find the type created by the declaration of a1
+instead of attempting to generate a new instance of A.
+
+  template <class T> struct A;
+  template <class T> struct A<T ()> { };
+  typedef int F() const;
+  A<int ()> a1;
+  A<F> a2;  // previously excepted if a1 was present, now
+            // "incomplete type not allowed" (because F does not match the
+            // partial specialization)
+
+
 2/23/09  [EDGcpfe/9559]
 GNU C++ compatibility: extra template parameter list on partial specialization
 
