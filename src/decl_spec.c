@@ -1303,7 +1303,7 @@ prescanning.
       if (check_context_sensitive_keyword(tok_abstract, "abstract") ||
           check_context_sensitive_keyword(tok_sealed, "sealed")) {
         cache_curr_token(&transformed_token_cache);
-        /* If we found any context-sensitive keywords, we should used the
+        /* If we found any context-sensitive keywords, we should use the
            transformed cache. */
         valid = TRUE;
       }  /* if */
