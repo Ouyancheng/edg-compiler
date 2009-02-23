@@ -58,6 +58,10 @@ typedef struct a_tmpl_decl_state {
 			/* TRUE if the declaration is a specialization.
 			   A specialization contains one or more template
 			   parameter clauses with empty parameter lists. */
+  a_boolean	is_partial_specialization;
+			/* TRUE if the declaration is a partial specialization
+			   of a class template.  Only set during the initial
+			   declaration of a partial specialization. */
   a_boolean	is_full_specialization;
 			/* TRUE if the declaration is a full specialization
 			   of a template entity.  A full specialization

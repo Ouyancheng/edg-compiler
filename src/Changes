@@ -1,5 +1,24 @@
 Version 4.1
 
+2/23/09  [EDGcpfe/9559]
+GNU C++ compatibility: extra template parameter list on partial specialization
+
+g++ allows an extra empty template parameter list to be specified in the
+declaration of a partial specialization.  We now provide limited support
+for this feature in g++ mode.  The support is limited to cases in which
+the partial specialization has no out-of-class definitions of its members.
+Because we only provide limited support of this feature, our default action
+in g++ mode is to reduce the severity of the diagnostic for this case from
+an error to a discretionary error.  Users can then reduce the severity
+further if needed.  The severity will actually also be reduced for the
+unsupported cases (i.e., those with out-of-class definitions), but an error
+will be issued on any such out-of-class definitions because the extra
+template parameter list is not in fact ignored.
+
+  template <class T> struct A {};
+  template <> template <class T> struct A<T*> { };
+
+
 2/20/09  [EDGcpfe/9373]
 New predefined macros for types of size_t and ptrdiff_t
 

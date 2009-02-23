@@ -444,6 +444,7 @@ Initialize a template declaration state block.
   tdsp->is_template_friend = FALSE;
   tdsp->is_member_decl = FALSE;
   tdsp->is_specialization = FALSE;
+  tdsp->is_partial_specialization = FALSE;
   tdsp->is_full_specialization = FALSE;
   tdsp->defines_something = FALSE;
   tdsp->in_prototype_instantiation = FALSE;
@@ -11589,6 +11590,37 @@ if any are found.
 }  /* check_friend_class_template_default_args */
 
 
+static a_boolean allow_extra_gpp_mode_param_clauses(
+		                         a_tmpl_decl_state_ptr decl_state)
+/*
+g++ allows a partial specialization to be declared with extra empty
+template parameter clauses, as in:
+
+  template <class T> struct A {};
+  template <> template <class T> struct A<T*> { };
+
+Return TRUE if this is one of the cases to be given special treatment in g++
+mode.  Note that if the partial specialization has an out-of-class definition
+of any of its members, an error will be issued on the out-of-class definition
+because the extra parameter clause is not in fact ignored.
+*/
+{
+  a_boolean	result = FALSE;
+
+  /* This is only allowed for partial specializations. */
+  if (decl_state->is_partial_specialization) {
+    /* Make sure all of the extra template parameter clauses have empty
+       parameter lists.  There will only be an enclosing_template_decl
+       if a preceding template parameter clause has a non-empty
+       parameter list. */
+    if (decl_state->decl_info->enclosing_template_decl == NULL) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* allow_extra_gpp_mode_param_clauses */
+
+
 static void class_template_declaration(
                          a_tmpl_decl_state_ptr decl_state,
 		         a_symbol_ptr          *p_sym_ptr,
@@ -11630,7 +11662,6 @@ declaration of a partial specialization declared outside of its class.
                                              decl_state->decl_info->parameters;
   a_token_cache_ptr		    definition_token_cache = NULL;
   a_token_kind			    next_tok;
-  a_boolean			    is_partial_specialization = FALSE;
   a_boolean			    partial_spec_outside_of_class = FALSE;
   a_symbol_ptr			    partial_spec_nonreal_sym = sym;
   a_token_sequence_number	    tsn_for_class_template =
@@ -11761,7 +11792,7 @@ declaration of a partial specialization declared outside of its class.
          declaration of a partial specialization. */
       if (sym != NULL && is_template_class_symbol(sym) &&
           locator_for_curr_id.is_template_id) {
-        is_partial_specialization = TRUE;
+        decl_state->is_partial_specialization = TRUE;
       }  /* if */
       /* If the symbol found is an injected template symbol, replace it with
          the template that it represents. */
@@ -11830,7 +11861,7 @@ declaration of a partial specialization declared outside of its class.
           decl_state->is_template_friend = FALSE;
           decl_state->effective_decl_level = depth_scope_stack - 1;
           sym = NULL;
-          check_assertion(!is_partial_specialization);
+          check_assertion(!decl_state->is_partial_specialization);
           goto friend_template_checks_done;
         } else {
           pos_error(ec_template_friend_definition_not_allowed,
@@ -11866,7 +11897,7 @@ declaration of a partial specialization declared outside of its class.
     check_local_class_template_friend(decl_state, &locator);
   }  /* if */
 friend_template_checks_done:
-  if (is_partial_specialization) {
+  if (decl_state->is_partial_specialization) {
     a_boolean	err = FALSE;
     /* If this is a partial specialization, the symbol that was returned
        by the lookup will be the prototype instantiation associated with
@@ -11960,7 +11991,7 @@ friend_template_checks_done:
       err = TRUE;
     }  /* if */
     if (err) {
-      is_partial_specialization = FALSE;
+      decl_state->is_partial_specialization = FALSE;
       decl_state->decl_scope_err = TRUE;
       sym = NULL;
     }  /* if */
@@ -11988,9 +12019,16 @@ friend_template_checks_done:
        except for member declarations done outside of the class.  We
        know this is not one of those, the identifier is not a qualified
        name. */
-    pos_error(ec_multiple_template_decls_not_allowed,
-              &locator.source_position);
-    decl_state->decl_scope_err = TRUE;
+    an_error_severity	severity = es_error;
+    if (gpp_mode && allow_extra_gpp_mode_param_clauses(decl_state)) {
+      /* g++ allows a partial specialization to have additional
+         empty template parameter clauses. */
+      severity = es_discretionary_error;
+    } else {
+      decl_state->decl_scope_err = TRUE;
+    }  /* if */
+    pos_diagnostic(severity, ec_multiple_template_decls_not_allowed,
+                   &locator.source_position);
   }  /* if */
   if (decl_state->decl_scope_err) {
     /* An error has already been issued on a template declaration that
@@ -12025,7 +12063,7 @@ friend_template_checks_done:
            to a name from the current scope. */
         suppress_redecl_error = check_unqualified_template_redecl_scope(
                                                    decl_state, sym, &locator);
-      } else if (is_partial_specialization &&
+      } else if (decl_state->is_partial_specialization &&
                  partial_spec_nonreal_sym != NULL) {
         suppress_redecl_error = check_unqualified_template_redecl_scope(
                                decl_state, partial_spec_nonreal_sym, &locator);
@@ -12035,7 +12073,7 @@ friend_template_checks_done:
         suppress_redecl_error = check_qualified_template_redecl_scope(
                                      decl_state, sym, &locator, is_definition,
                                      /*out_of_class_partial_spec=*/FALSE);
-      } else if (is_partial_specialization &&
+      } else if (decl_state->is_partial_specialization &&
                  partial_spec_nonreal_sym != NULL) {
         /* Note that for an out-of-class partial specialization, we pass
            in a TRUE value for the "is_definition" parameter so that an
@@ -12157,20 +12195,22 @@ friend_template_checks_done:
      are valid (i.e., that they are at the end of the parameter list).
      This is done now because we have to wait until the parameter lists
      have been merged to do the test. */
-  check_template_param_default_args(templ_params, is_partial_specialization);
+  check_template_param_default_args(templ_params,
+                                    decl_state->is_partial_specialization);
   if (sym == NULL) {
     /* Enter the symbol at the scope indicated by effective_decl_level. */
     a_scope_stack_entry_ptr	ssep =
                                 &scope_stack[decl_state->effective_decl_level];
-    if (is_partial_specialization && partial_spec_nonreal_sym == NULL) {
+    if (decl_state->is_partial_specialization &&
+        partial_spec_nonreal_sym == NULL) {
       /* A partial specialization cannot be entered if no partial spec.
          nonreal symbol is available.  This situation can occur in certain
          error cases.  Clear the is_partial_specialization flag and continue
          with this declaration as a normal template. */
       check_assertion(is_error_locator(locator));
-      is_partial_specialization = FALSE;
+      decl_state->is_partial_specialization = FALSE;
     }  /* if */
-    if (is_partial_specialization) {
+    if (decl_state->is_partial_specialization) {
       /* The symbol being created is for a partial specialization.  Create
          the symbol. */
       sym = add_partial_specialization(decl_state, partial_spec_nonreal_sym,
@@ -12278,7 +12318,7 @@ friend_template_checks_done:
        for subordinate templates even though an actual prototype instantiation
        is never done. */
     create_prototype_type(decl_state, sym, tssp, partial_spec_nonreal_sym,
-                          is_partial_specialization);
+                          decl_state->is_partial_specialization);
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode) {
@@ -12307,7 +12347,7 @@ friend_template_checks_done:
     }  /* if */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-  if (is_partial_specialization && !is_redecl) {
+  if (decl_state->is_partial_specialization && !is_redecl) {
     /* Make sure that the template parameters are used correctly in the
        partial specialization template argument list. */
     check_partial_spec_template_param_usage(decl_state, sym);
@@ -12456,7 +12496,7 @@ friend_template_checks_done:
      set_template_cache_info(&tssp->cache, definition_token_cache,
                              decl_state->decl_info);
     }  /* if */
-    if (is_partial_specialization && !is_redecl) {
+    if (decl_state->is_partial_specialization && !is_redecl) {
       /* Check any existing instances to see if the new partial specialization
          would have been a better match. */
       check_for_prior_use_of_partial_spec(sym, (a_symbol_ptr)NULL);
