@@ -3381,7 +3381,8 @@ is called only in those contexts that allow this special laxity.
     a_base_class_ptr bcp;
     if (related_class_pointers(operand->type, new_type, &baseward_cast, &bcp)&&
         baseward_cast && bcp->ambiguous && bcp->direct) {
-      pos_ty_warning(ec_ambiguous_base_class, &operand->position, bcp->type);
+      pos_ty_warning(ec_ambiguous_cast_selects_direct_base,
+                     &operand->position, bcp->type);
       check_ambiguity = FALSE;
     }  /* if */
   }  /* if */
