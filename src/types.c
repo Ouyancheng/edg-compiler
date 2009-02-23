@@ -3215,8 +3215,8 @@ checking instead of equivalence checking).
 static a_boolean equiv_pointer_modifiers(a_pointer_modifier_set  pms1,
                                          a_pointer_modifier_set  pms2)
 /*
-Return TRUE if the given pointer modifiers sets are "equivalent".  On 64-bit
-platforms, this means that the two set are identical, except perhaps for the
+Return TRUE if the given pointer modifier sets are "equivalent".  On 64-bit
+platforms, this means that the two sets are identical, except perhaps for the
 __ptr64 modifier.  On non-64-bit platforms, "equivalent" means "identical".
 */
 {
