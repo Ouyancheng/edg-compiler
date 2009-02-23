@@ -12,7 +12,7 @@ instead of attempting to generate a new instance of A.
   template <class T> struct A<T ()> { };
   typedef int F() const;
   A<int ()> a1;
-  A<F> a2;  // previously excepted if a1 was present, now
+  A<F> a2;  // previously accepted if a1 was present, now
             // "incomplete type not allowed" (because F does not match the
             // partial specialization)
 
