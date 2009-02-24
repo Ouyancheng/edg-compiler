@@ -4545,22 +4545,28 @@ dsi_flags is the set of input flags passed to decl_specifiers.
     tag_sym = NULL;
     set_to_error_locator(locator);
     tag_position = pos_curr_token;
-    if (curr_token == tok_lbrace) {
+    /* A brace or colon at this point usually means this is a definition, but
+       in trailing return types, a brace that follows is treated as the
+       beginning of the function (or lambda) body that follows (and that's an
+       error). */
+    if ((curr_token == tok_lbrace &&
+         (dsi_flags & DSI_TRAILING_RETURN_TYPE) == 0) ||
+        (curr_token == tok_colon && explicit_enum_base_enabled)) {
       is_definition = TRUE;
-    } else if (curr_token == tok_colon && explicit_enum_base_enabled) {
-      is_definition = TRUE;
-    }  /* if */
-    if (is_definition) {
-      /* This is a tagless enum definition. */
     } else {
-      /* Neither the tag id nor the {...} is present.  This is an error. */
+      /* Neither the tag id nor the enum definition is present.  This is an
+         error. */
       add_stop_token(tok_lbrace);
-      syntax_error(ec_exp_definition_of_tag);
+      syntax_error((dsi_flags & DSI_TRAILING_RETURN_TYPE) != 0 ?
+                                ec_exp_identifier : ec_exp_definition_of_tag);
       remove_stop_token(tok_lbrace);
       /* This statement might have declared something, but since we're
          scanning past the relevant tokens we'll never know.  Set the flag
          to TRUE anyway, to avoid other errors down the line. */
       *declares_something = TRUE;
+      /* Use an error type for error recovery. */
+      *type_ptr = error_type();
+      goto return_point;
     }  /* if */
   }  /* if */
   if (tag_sym == NULL) {
