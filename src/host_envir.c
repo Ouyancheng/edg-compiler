@@ -2779,7 +2779,7 @@ Set module_id to the string.
          units. */
       file_name = il_header.primary_source_file->file_name;
     }  /* if */
-    /* Try to an external variable or routine name that can be used to
+    /* Try to find an external variable or routine name that can be used to
        make the module ID unique. */
     external_name = find_external_name_in_scope(scope);
     if (external_name == NULL) {
