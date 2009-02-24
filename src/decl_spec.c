@@ -8618,6 +8618,9 @@ operator_or_conversion_name:
             }  /* if */
           }  /* if */
         }  /* if */
+        if (!err && !decl_specifiers_seen) {
+          *output_flags |= DSO_NO_DECL_SPECIFIERS;
+        }  /* if */
         goto exit_loop;
       case tok_template:
         /* "template" cannot appear in decl-specifiers. */
