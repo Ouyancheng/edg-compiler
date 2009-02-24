@@ -1086,6 +1086,25 @@ being NULL.
   return type;
 }  /* f_underlying_type_of_derived_type */
 
+
+a_boolean is_possibly_qualified_typedef(a_type_ptr  tp)
+/*
+Return TRUE if the given type is a typedef type, possibly with other typeref
+entries (e.g., qualifiers or decltype/typeof constructs) on top of it.
+*/
+{
+  a_boolean  result = FALSE;
+
+  while (tp->kind == (a_type_kind)tk_typeref) {
+    if (typeref_is_typedef(tp)) {
+      result = TRUE;
+      break;
+    }  /* if */
+    tp = tp->variant.typeref.type;
+  }  /* while */
+  return result;
+}  /* is_possibly_qualified_typedef */
+
 #if !STANDALONE_UTILITY_PROGRAM
 
 a_boolean check_for_vla_in_pointer_to_member(a_type_ptr         type,

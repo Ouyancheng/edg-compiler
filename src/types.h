@@ -239,6 +239,8 @@ Return TRUE if the given type represents a typedef.
 #define type_is_typedef(tp)                                           \
   ((tp)->kind == (a_type_kind)tk_typeref && typeref_is_typedef((tp)))
 
+extern a_boolean is_possibly_qualified_typedef(a_type_ptr  tp);
+
 /*
 Return the alignment of the given type.  Normally, a skip_typeref must be
 performed to make sure we get correct alignment, but if the alignment was

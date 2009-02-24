@@ -172,7 +172,7 @@ allowed, issue a diagnostic and return FALSE.
     } else if (gpp_mode &&
                ((is_nonspecialized_instantiation_context() &&
                  !scope_stack[decl_scope_level].in_prototype_instantiation) ||
-                type_is_typedef(skip_typerefs_not_typedefs(type)))) {
+                is_possibly_qualified_typedef(type))) {
       sev = es_remark;
       error_code = ec_restrict_qualifier_ignored;
     } else {
