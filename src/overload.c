@@ -8308,10 +8308,9 @@ selector appropriately.
      taken in a way that doesn't allow discrimination of const use.) */
   if (is_an_lvalue(bound_function_selector)) {
     a_symbol_reference_kind ref_kinds = SRK_ADDRESS_TAKEN;
-    a_type_qualifier_set    this_qualifiers;
-
-    this_qualifiers = routine_type->variant.routine.extra_info->qualifiers;
-    if (this_qualifiers & TQ_CONST) {
+    a_routine_type_supplement_ptr
+                            rtsp = routine_type->variant.routine.extra_info;
+    if (rtsp->qualifiers & TQ_CONST) {
       /* The function is a const function, so indicate that the selector's
          address is taken only in a way that does not allow modification. */
       ref_kinds |= SRK_CONST_ADDRESS_TAKEN;

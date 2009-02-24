@@ -444,15 +444,13 @@ routine type, and return a pointer to it.
   a_type_ptr                     this_type;
   a_routine_type_supplement_ptr  rtsp = skip_typerefs(rout_type)->
                                                    variant.routine.extra_info;
-  a_type_qualifier_set           qualifiers = rtsp->qualifiers;
 
   /* The implicit this parameter is a pointer type that is not const
      qualified as far as the interface is concerned.  The variable, however,
      does get a const qualifier. */
-  this_type = make_qualified_type(rtsp->this_class, qualifiers & ~TQ_RESTRICT);
+  this_type = make_qualified_type(rtsp->this_class, rtsp->qualifiers);
   this_type = make_pointer_type(this_type);
-  this_type = make_qualified_type(this_type,
-                                 TQ_CONST | (qualifiers & TQ_RESTRICT));
+  this_type = make_qualified_type(this_type, TQ_CONST | rtsp->this_qualifiers);
   vp = make_param_variable(this_type, (a_storage_class)sc_auto);
   vp->is_this_parameter = TRUE;
   set_parent_scope(&vp->source_corresp, iek_variable,
@@ -1384,7 +1382,6 @@ is recorded in *decl_pos_block.  *linkage_ptr is set to idl_external, and
     /* Error case. */
     a_routine_ptr        other_rp = NULL;
     a_symbol_header_ptr  hdr = locator->symbol_header;
-
     if (sym != NULL) {
       /* Type was okay, but this member function has a body. */
       pos_sy_error(ec_function_redefinition, &locator->source_position, sym);
@@ -1393,6 +1390,8 @@ is recorded in *decl_pos_block.  *linkage_ptr is set to idl_external, and
                        other_rp->type->variant.routine.extra_info->this_class;
       rout_type->variant.routine.extra_info->qualifiers =
                        other_rp->type->variant.routine.extra_info->qualifiers;
+      rout_type->variant.routine.extra_info->this_qualifiers =
+                  other_rp->type->variant.routine.extra_info->this_qualifiers;
     } else {
       /* In the error case assume the member function is nonstatic and give
          it an implicit this parameter type.  This will prevent an error from

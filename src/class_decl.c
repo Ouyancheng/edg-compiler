@@ -8058,7 +8058,7 @@ implicitly declared member functions.
          typedef void f() const; struct S { static F f(); }           */
     if (member_type->kind == (a_type_kind)tk_typeref &&
         typeref_is_typedef(member_type) &&
-        rtsp->qualifiers != TQ_NONE) {
+        (rtsp->qualifiers | rtsp->this_qualifiers) != TQ_NONE) {
       pos_error(ec_bad_qualified_function_type, &locator->source_position);
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -8397,31 +8397,9 @@ implicitly declared member functions.
         /* Normal declaration.  If necessary, update the declared type,
            which was saved during function declarator processing, to make
            it consistent with the routine type. */
-        a_routine_type_supplement_ptr  rtsp1, rtsp2;
+        func_info->declared_type = update_routine_declared_type(
+                                       member_type, func_info->declared_type);
         tp = func_info->declared_type;
-        rtsp1 = skip_typerefs(member_type)->variant.routine.extra_info;
-        rtsp2 = skip_typerefs(tp)->variant.routine.extra_info;
-        if (!same_entities(rtsp1->this_class, rtsp2->this_class) ||
-            rtsp1->qualifiers != rtsp2->qualifiers ||
-            rtsp1->routine_name_linkage != rtsp2->routine_name_linkage) {
-          /* The implicit-this-param-type and/or name-linkage may need to be
-             set in the declared type. */
-          if (tp->kind == (a_type_kind)tk_typeref) {
-            /* The typedef is potentially shared, so don't modify the
-               type it points to without copying it first. */
-            check_assertion(!is_qualified_type(tp));
-            tp = copy_routine_type_with_param_types(tp,
-                                                   /*copy_default_args=*/TRUE);
-            rtsp2 = tp->variant.routine.extra_info;
-            /* For default arg processing later on, save the type that will
-               be used as the declared type in the secondary declaration
-               entry. */
-            func_info->declared_type = tp;
-          }  /* if */
-          rtsp2->this_class = rtsp1->this_class;
-          rtsp2->qualifiers = rtsp1->qualifiers;
-          rtsp2->routine_name_linkage = rtsp1->routine_name_linkage;
-        }  /* if */
       }  /* if */          
       /* Update the secondary-declaration entry.  A member function
          declaration within a class definition is always the initial
@@ -8439,13 +8417,13 @@ implicitly declared member functions.
            to suppress copying the default arg expression to it later on. */
         func_info->declared_type = NULL;
       }  /* if */
-#if GENERATE_SOURCE_SEQUENCE_LISTS && GNU_EXTENSIONS_ALLOWED
+#if GNU_EXTENSIONS_ALLOWED
     } else {
       /* An in-class definition (that will not be moved out-of-class). */
       /* Record whether the declaration was preceded by __extension__. */
       rtn->source_corresp.marked_as_gnu_extension =
                                           decl_state->marked_as_gnu_extension;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS && GNU_EXTENSIONS_ALLOWED */
+#endif /* GNU_EXTENSIONS_ALLOWED */
     }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     if (func_info->is_definition) {

@@ -490,7 +490,8 @@ specified symbol.
        a_type_qualifier_set	qualifiers;
        tp = skip_typerefs(tp);
        db_function_param_list(tp);
-       qualifiers = tp->variant.routine.extra_info->qualifiers;
+       qualifiers = tp->variant.routine.extra_info->qualifiers |
+                    tp->variant.routine.extra_info->this_qualifiers;
        if (qualifiers != TQ_NONE) {
          fprintf(f_debug, " %s", db_qualifiers_str(qualifiers));
        }  /* if */

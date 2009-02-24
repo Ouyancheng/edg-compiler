@@ -1385,7 +1385,7 @@ Dump the contents of the indicated type entry, for debug purposes.
           fputs("...", f_debug);
         }  /* if */
         fputs(") ", f_debug);
-        db_qualifiers(rtsp->qualifiers);
+        db_qualifiers(rtsp->qualifiers | rtsp->this_qualifiers);
         fputs("returning ", f_debug);
         db_abbreviated_type(tp->variant.routine.return_type);
         break;

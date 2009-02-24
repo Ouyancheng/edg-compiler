@@ -2981,16 +2981,18 @@ qualification of a member function type.
                       skip_typerefs(routine_type)->variant.routine.extra_info;
   a_type_ptr                     result = rtsp->this_class;
 
-  /* Note that the "restrict" qualifier goes on top of the pointer type (to
-     denote the limited aliasing of the "this" pointer) whereas the other
-     qualifiers apply to the underlying class type (to denote properties of
-     the object pointed to). */
-  if ((rtsp->qualifiers & ~TQ_RESTRICT) != TQ_NONE) {
-    result = make_qualified_type(result, rtsp->qualifiers & ~TQ_RESTRICT);
+  /* The standard function cv-qualifiers (recorded in rtsp->qualifiers) apply
+     not to the "this" pointer, but to the type pointed to by the "this"
+     pointer.  The nonstandard "restrict" qualifier, on the other hand, goes
+     on top of the pointer type (to denote the limited aliasing of the "this"
+     pointer); it (and any similar custom qualifiers) is recorded in
+     rtsp->this_qualifiers. */
+  if (rtsp->qualifiers != TQ_NONE) {
+    result = make_qualified_type(result, rtsp->qualifiers);
   }  /* if */
   result = make_pointer_type(result);
-  if (rtsp->qualifiers & TQ_RESTRICT) {
-    result = make_qualified_type(result, TQ_RESTRICT);
+  if (rtsp->this_qualifiers != TQ_NONE) {
+    result = make_qualified_type(result, rtsp->this_qualifiers);
   }  /* if */
   return result;
 }  /* f_implicit_this_param_type_of */
@@ -7362,6 +7364,7 @@ make_new_comp_type:
       /* Set the implicit-this-parameter type. */
       rtsp->this_class = rtsp1->this_class;
       rtsp->qualifiers = rtsp1->qualifiers;
+      rtsp->this_qualifiers = rtsp1->this_qualifiers;
       /* If the two exception specifications are not identical, it is
          because of an error that will already have been reported. */
       if (rtsp1->exception_specification != NULL) {

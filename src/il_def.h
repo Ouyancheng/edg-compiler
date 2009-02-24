@@ -4196,6 +4196,14 @@ typedef struct a_routine_type_supplement {
 			   "const" in "void f(int) const").  Can contain
 			   qualifiers even when this_class (declared below) is
 			   NULL in the case of a function typedef. */
+  a_bit_field	this_qualifiers:NUM_BITS_FOR_TYPE_QUALIFIER_SET;
+			/* Used for nonstatic member functions: The type
+			   qualifiers that apply to the "this" pointer itself
+			   (unlike "qualifiers" which describe type qualifiers
+			   applicable to the object pointed to by "this").
+			   In the unmodified front end, only the TQ_RESTRICT
+			   qualifier is recorded here (for restrict-qualified
+			   member functions). */
 #if GNU_EXTENSIONS_ALLOWED
   a_bit_field	result_should_be_used:1;
 			/* TRUE if the type was declared with the attribute

@@ -147,8 +147,9 @@ parameter declarations only) array types.  If a restrict qualifier is not
 allowed, issue a diagnostic and return FALSE.
 */
 {
-  a_type_ptr     tp;
-  an_error_code  error_code = ec_no_error;
+  a_type_ptr         tp;
+  an_error_severity  sev = es_error;
+  an_error_code      error_code = ec_no_error;
   
   if (!is_error_type(type)) {
     if (is_ptr_or_ref_type(type)) {
@@ -165,12 +166,21 @@ allowed, issue a diagnostic and return FALSE.
       if (tp != NULL && is_function_type(tp)) {
         error_code = ec_restrict_pointer_to_function;
       }  /* if */
+    } else if (is_template_param_type(type)) {
+      /* A template parameter type can be instantiated for a pointer type
+         later on.  So we must assume it is valid. */
+    } else if (gpp_mode &&
+               ((is_nonspecialized_instantiation_context() &&
+                 !scope_stack[decl_scope_level].in_prototype_instantiation) ||
+                type_is_typedef(skip_typerefs_not_typedefs(type)))) {
+      sev = es_remark;
+      error_code = ec_restrict_qualifier_ignored;
     } else {
       /* Anything else is disallowed. */
       error_code = ec_restrict_not_allowed;
     }  /* if */
     if (error_code != ec_no_error) {
-      pos_error(error_code, error_pos);
+      pos_diagnostic(sev, error_code, error_pos);
     }  /* if */
   }  /* if */
   return (error_code == ec_no_error);
@@ -1448,7 +1458,16 @@ see function_declarator (below) for which this is a helper function.
         typedef void CF() const;
      this_class == NULL but qualifiers != TQ_NONE. */
   rtsp->this_class = this_class;
-  rtsp->qualifiers = qualifier_err ? TQ_NONE : qualifiers;
+  if (!qualifier_err) {
+    /* The traditional "const" and "volatile" function qualifiers really apply
+       to the object pointed to by the implied "this" parameter.  The
+       "restrict" qualifier, on the other hand, applies to the "this" pointer
+       itself, and should therefore not affect the type of the function (just
+       as would be the case with a top-level "const" or "volatile" qualifier
+       on a parameter). */
+    rtsp->qualifiers = (qualifiers & ~TQ_RESTRICT);
+    rtsp->this_qualifiers = (qualifiers & TQ_RESTRICT);
+  }  /* if */
   esp = scan_exception_specification(func_info, !disallow_exception_spec,
                                      top_level);
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -3631,7 +3650,8 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
                      is_function_type(temp_type)) {
             a_routine_type_supplement_ptr  rtsp =
                                         temp_type->variant.routine.extra_info;
-            if (rtsp->this_class == NULL && rtsp->qualifiers != TQ_NONE) {
+            if (rtsp->this_class == NULL && 
+                (rtsp->qualifiers | rtsp->this_qualifiers) != TQ_NONE) {
               /* Catch the following:
                     typedef void f() const;  typedef F *PF;
                  Qualified function types are only allowed to declare members,
@@ -5172,7 +5192,8 @@ function_lparen:
         derived_type != NULL && is_ptr_or_ref_type(derived_type)) {
       a_routine_type_supplement_ptr  rtsp =
                                      new_type_ptr->variant.routine.extra_info;
-      if (rtsp->this_class == NULL && rtsp->qualifiers != TQ_NONE) {
+      if (rtsp->this_class == NULL &&
+          (rtsp->qualifiers | rtsp->this_qualifiers) != TQ_NONE) {
         /* Catch the following:
               typedef void (*PF)() const;
            Qualified function types are only allowed to declare members,

@@ -1262,6 +1262,11 @@ Display a_routine_type_supplement.
     disp_type_qualifiers(ptr->qualifiers);
     (void)printf("\n");
   }  /* if */
+  if (ptr->this_qualifiers != TQ_NONE) {
+    disp_name("this_qualifiers");
+    disp_type_qualifiers(ptr->this_qualifiers);
+    (void)printf("\n");
+  }  /* if */
   if (ptr->prototype_scope != NULL) {
     disp_ptr("prototype_scope", (char *)ptr->prototype_scope, iek_scope);
   }  /* if */

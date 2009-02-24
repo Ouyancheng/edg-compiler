@@ -1529,6 +1529,7 @@ to default values.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */
       rtsp->this_class               = NULL;
       rtsp->qualifiers               = TQ_NONE;
+      rtsp->this_qualifiers          = TQ_NONE;
       rtsp->prototype_scope          = NULL;
       rtsp->exception_specification  = NULL;
       break;

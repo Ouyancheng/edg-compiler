@@ -596,18 +596,19 @@ list of GNU C attributes, if applicable.
     *type_ptr = error_type();
   } else {
     /* Verify that the parameter type is not a qualified function type. */
+    a_type_ptr  rtp = skip_typerefs(*type_ptr);
     if ((*type_ptr)->kind == (a_type_kind)tk_typeref &&
         typeref_is_typedef(*type_ptr) &&
-        is_function_type(*type_ptr) &&
-        skip_typerefs(*type_ptr)->variant.routine.extra_info->qualifiers
-                                                                 != TQ_NONE) {
+        rtp->kind == (a_type_kind)tk_routine &&
+        (rtp->variant.routine.extra_info->qualifiers != TQ_NONE ||
+         rtp->variant.routine.extra_info->this_qualifiers != TQ_NONE)) {
       pos_error(ec_bad_qualified_function_type_parameter, error_pos);
     }  /* if */
     /* Adjust the type if necessary (for example, "array of x" becomes
        "pointer to x"). */
     adjust_parameter_type(type_ptr, attributes);
     /* Disallow "void" as a parameter type. */
-    if (is_void_type(*type_ptr)) {
+    if (is_void_type(rtp)) {
       pos_error(ec_void_param_not_allowed, error_pos);
       *type_ptr = error_type();
 #if UPC_EXTENSIONS_ALLOWED
@@ -5779,8 +5780,39 @@ for use in generating cross-reference output describing this declaration.
   db_exit();
 }  /* decl_variable */
 
-
 #if GENERATE_SOURCE_SEQUENCE_LISTS
+
+a_type_ptr update_routine_declared_type(a_type_ptr  rout_type,
+                                        a_type_ptr  declared_type)
+/*
+declared_type is the type with which a routine was declared, and rout_type is
+the type the routine actually has: Make the former consistent with the latter
+if appropriate.  Return the resulting declared type.
+*/
+{
+  a_routine_type_supplement_ptr  rtsp1, rtsp2;
+
+  rtsp1 = skip_typerefs(rout_type)->variant.routine.extra_info;
+  rtsp2 = skip_typerefs(declared_type)->variant.routine.extra_info;
+  if (!same_entities(rtsp1->this_class, rtsp2->this_class) ||
+      rtsp1->qualifiers != rtsp2->qualifiers ||
+      rtsp1->this_qualifiers != rtsp2->this_qualifiers ||
+      rtsp1->routine_name_linkage != rtsp2->routine_name_linkage) {
+    if (declared_type->kind == (a_type_kind)tk_typeref) {
+      check_assertion(!is_qualified_type(declared_type));
+      declared_type =
+         copy_routine_type_with_param_types(declared_type,
+                                            /*copy_default_args=*/TRUE);
+      rtsp2 = declared_type->variant.routine.extra_info;
+    }  /* if */
+    rtsp2->this_class = rtsp1->this_class;
+    rtsp2->qualifiers = rtsp1->qualifiers;
+    rtsp2->this_qualifiers = rtsp1->this_qualifiers;
+    rtsp2->routine_name_linkage = rtsp1->routine_name_linkage;
+  }  /* if */
+  return declared_type;
+}  /* update_routine_declared_type */
+
 
 void set_routine_declared_type(a_routine_ptr  routine_ptr,
                                a_type_ptr     declared_type)
@@ -5804,22 +5836,9 @@ type entry if appropriate, otherwise using the indicated declared_type.
     routine_ptr->declared_type = NULL;
   }  /* if */
   /* Make the declared type consistent with the routine type. */
+  declared_type = update_routine_declared_type(rout_type, declared_type);
   rtsp1 = skip_typerefs(rout_type)->variant.routine.extra_info;
   rtsp2 = skip_typerefs(declared_type)->variant.routine.extra_info;
-  if (!same_entities(rtsp1->this_class, rtsp2->this_class) ||
-      rtsp1->qualifiers != rtsp2->qualifiers ||
-      rtsp1->routine_name_linkage != rtsp2->routine_name_linkage) {
-    if (declared_type->kind == (a_type_kind)tk_typeref) {
-      check_assertion(!is_qualified_type(declared_type));
-      declared_type =
-         copy_routine_type_with_param_types(declared_type,
-                                            /*copy_default_args=*/TRUE);
-      rtsp2 = declared_type->variant.routine.extra_info;
-    }  /* if */
-    rtsp2->this_class = rtsp1->this_class;
-    rtsp2->qualifiers = rtsp1->qualifiers;
-    rtsp2->routine_name_linkage = rtsp1->routine_name_linkage;
-  }  /* if */
   if (!identical_types(declared_type, rout_type)) {
     /* The types are not identical, so the routine's type cannot also be
        used as the declared type. */
@@ -6239,7 +6258,7 @@ for use in generating cross-reference output describing this declaration.
   a_boolean                routine_alias_decl = FALSE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   an_attribute_ptr         attributes = dps->attributes;
-  a_type_ptr               orig_type = type_ptr;
+  a_type_ptr               orig_type = type_ptr, rtp = skip_typerefs(type_ptr);
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if DECL_MODIFIERS_IN_USE || BACK_END_IS_CP_GEN_BE || \
     (GNU_EXTENSIONS_ALLOWED && GENERATE_SOURCE_SEQUENCE_LISTS)
@@ -6298,15 +6317,16 @@ for use in generating cross-reference output describing this declaration.
        a typedef (other cases are caught while parsing). */
     if (type_ptr->kind == (a_type_kind)tk_typeref &&
         typeref_is_typedef(type_ptr) &&
-        skip_typerefs(type_ptr)->variant.routine.extra_info->qualifiers
-                                                                 != TQ_NONE) {
-      /* Strip the qualifier from the routine type to avoid problems
-         later on. */
-      a_type_ptr  type_for_recovery = alloc_type((a_type_kind)tk_routine);
-      copy_type(skip_typerefs(type_ptr), type_for_recovery);
-      type_for_recovery->variant.routine.extra_info->qualifiers = TQ_NONE;
-      type_ptr = type_for_recovery;
+        (rtp->variant.routine.extra_info->qualifiers != TQ_NONE ||
+         rtp->variant.routine.extra_info->this_qualifiers != TQ_NONE)) {
       pos_error(ec_bad_qualified_function_type, &locator->source_position);
+      /* Strip any qualifiers from the routine type to avoid problems
+         later on. */
+      type_ptr = alloc_type((a_type_kind)tk_routine);
+      copy_type(rtp, type_ptr);
+      type_ptr->variant.routine.extra_info->qualifiers = TQ_NONE;
+      type_ptr->variant.routine.extra_info->this_qualifiers = TQ_NONE;
+      rtp = type_ptr;
     }  /* if */
     /* If this is an overloaded operator, check for errors in the
        argument list. */
@@ -6317,8 +6337,7 @@ for use in generating cross-reference output describing this declaration.
     /* C mode. */
     if (strict_ansi_mode) {
       /* CV-qualified void return types aren't permitted in C mode. */
-      a_type_ptr  return_type =
-                          skip_typerefs(type_ptr)->variant.routine.return_type;
+      a_type_ptr  return_type = rtp->variant.routine.return_type;
       if (return_type->kind == (a_type_kind)tk_typeref &&
           is_qualified_type(return_type) &&
           is_void_type(return_type)) {
@@ -6648,7 +6667,7 @@ for use in generating cross-reference output describing this declaration.
                routine takes at least one parameter. */
             routine_ptr->type->variant.routine.extra_info
                        ->exception_specification =
-                           skip_typerefs(type_ptr)->variant.routine.extra_info
+                                               rtp->variant.routine.extra_info
                                                   ->exception_specification;
             /* The new declaration's position is treated as the primary
                position (and may no longer be in a system header). */

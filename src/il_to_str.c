@@ -1840,12 +1840,15 @@ in the way described by octl.
     } /* if */
     /* Output a cv-qualifier for a member function, if there is one. */
     if (rtsp->this_class != NULL) {
-      a_type_qualifier_set qualifiers = rtsp->qualifiers;
+      a_type_qualifier_set qualifiers = rtsp->qualifiers |
+                                        rtsp->this_qualifiers;
       if (!octl->gen_compilable_code && !generating_debug_output(octl) &&
           is_lambda_body_routine_type(type)) {
         /* For a lambda body, output "mutable" if the routine is not const. */
         if ((qualifiers & TQ_CONST) == 0) {
           octl->output_str(" mutable");
+        } else {
+          check_assertion(qualifiers == TQ_NONE);
         }  /* if */
       } else {
         if (qualifiers != TQ_NONE) {

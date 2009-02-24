@@ -4514,11 +4514,13 @@ default arguments should be suppressed (needed for template specializations).
     } else {
       check_assertion(rtsp->qualifiers == TQ_CONST);
     }  /* if */
+    check_assertion(rtsp->this_qualifiers == TQ_NONE);
   } else {
     /* Output a cv-qualifier for a member function, if there is one. */
-    if (rtsp->qualifiers != TQ_NONE) {
+    a_type_qualifier_set  qs = rtsp->qualifiers | rtsp->this_qualifiers;
+    if (qs != TQ_NONE) {
       write_space();
-      form_type_qualifier(rtsp->qualifiers, UPC_BLOCK_SIZE_NONE,
+      form_type_qualifier(qs, UPC_BLOCK_SIZE_NONE,
                           /*need_trailing_space=*/FALSE, &octl);
     }  /* if */
   }  /* if */
