@@ -1848,7 +1848,7 @@ in the way described by octl.
         if ((qualifiers & TQ_CONST) == 0) {
           octl->output_str(" mutable");
         } else {
-          check_assertion(qualifiers == TQ_NONE);
+          check_assertion(qualifiers == TQ_CONST);
         }  /* if */
       } else {
         if (qualifiers != TQ_NONE) {
