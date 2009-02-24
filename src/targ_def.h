@@ -3420,25 +3420,27 @@ the region table for the portable implementation of EH.
 #endif /* IA64_ABI && !ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
 
 /*
-In IA-64 ABI versions through (and including) 4.0, construction/destruction
-of virtual base class objects was delegated from the complete object
-ctor/dtor to the subobject ctor/dtor; such delegation was indicated at
-run-time by passing a NULL for the construction vtable argument to the
-subobject ctor/dtor.  The IA-64 ABI (in section 3.3.1) doesn't allow for the
-possibility of a NULL VTT argument, causing a potential run-time issue if
-an EDG-generated complete ctor/dtor were to invoke a GNU generated ctor/dtor.
-In practice this is rare because the complete and subobject ctor/dtors are
-typically emitted in the same translation unit.  In versions after 4.0,
-the default behavior has changed to handle virtual bases in the complete
-object ctor/dtor (HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS is TRUE) and
-not in the subobject ctor/dtor (HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS
-is FALSE).  This behavior can be altered by setting these configuration
-macros individually (at least one must be TRUE).  In particular, if the
-possibility exists that a pre-4.0 complete object ctor/dtor can call a post-4.0
-subobject ctor/dtor, then HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS should
-be set to TRUE.  Setting both flags to TRUE will ensure IA-64 ABI compatibility
-as well as backward compatibility (at the cost of larger ctor/dtors).
-The Cfront ABI handling is unchanged.
+In IA-64 ABI versions through (and including) 4.0, construction/destruction of
+virtual base class objects was delegated from the complete object
+constructor/destructor to the subobject constructor/destructor; such delegation
+was indicated at run-time by passing a NULL for the construction vtable
+argument to the subobject constructor/destructor.  The IA-64 ABI (in section
+3.3.1) doesn't allow for the possibility of a NULL VTT argument, causing a
+potential run-time issue if an EDG-generated complete constructor/destructor
+were to invoke a GNU generated constructor/destructor.  In practice this is
+rare because the complete and subobject constructor/destructors are typically
+emitted in the same translation unit.  In versions after 4.0, the default
+behavior has changed to handle virtual bases in the complete object
+constructor/destructor (HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS is TRUE)
+and not in the subobject constructor/destructor
+(HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS is FALSE).  This behavior can be
+altered by setting these configuration macros individually (at least one must
+be TRUE).  In particular, if the possibility exists that a pre-4.0 complete
+object constructor/destructor can call a post-4.0 subobject
+constructor/destructor, then HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS
+should be set to TRUE.  Setting both flags to TRUE will ensure IA-64 ABI
+compatibility as well as backward compatibility (at the cost of larger
+constructor/destructors).  The Cfront ABI handling is unchanged.
 */
 #if IA64_ABI
 #ifndef HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS
