@@ -128,6 +128,10 @@ EXTERN char	*type_info_names[(int)tik_last+1]
 #endif /* VAR_INITIALIZERS */
 ;
 
+/* Pointer types for types defined in il_to_str.h. */
+typedef struct an_il_to_str_output_control_block
+                                        *an_il_to_str_output_control_block_ptr;
+
 EXTERN a_type_ptr
 		type_of_type_info;
 			/* Points to the definition of the type_info type
@@ -652,6 +656,10 @@ expand temp_text_buffer by reallocating it.
 }  /* ensure_temp_text_buffer_space */
 
 extern void put_str_to_temp_text_buffer(char *str);
+
+extern void put_str_to_temp_text_buffer_octl(
+                               char                                  *str,
+                               an_il_to_str_output_control_block_ptr octl);
 
 extern void put_ch_to_temp_text_buffer(char ch);
 
@@ -1724,6 +1732,10 @@ extern a_routine_ptr enclosing_routine_for_local_type_or_null(a_type_ptr type);
 extern a_routine_ptr enclosing_routine_for_local_type(a_type_ptr type);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
+extern
+void put_str_into_text_buffer(char                                  *str,
+                              an_il_to_str_output_control_block_ptr octl);
+
 #if DEBUG
 extern void db_template_arg_list(a_template_arg_ptr tap);
 
@@ -1821,6 +1833,9 @@ extern void db_source_file_for_seq_info(void);
 extern a_line_number db_line_for_seq(a_seq_number seq_number);
 
 extern void db_scheduled_routine_moves(void);
+
+extern void put_str_to_f_debug(char                                  *str,
+                               an_il_to_str_output_control_block_ptr octl);
 #endif /* DEBUG */
 
 #if ORPHAN_PROCESSING_NEEDED

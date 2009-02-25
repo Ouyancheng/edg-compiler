@@ -51,6 +51,7 @@ Clear an output control block to default values.
 {
   octl->output_str                = NULL;
   octl->output_partial_token_str  = NULL;
+  octl->text_buffer               = NULL;
   octl->output_name               = NULL;
   octl->output_template_name      = NULL;
   octl->output_class_qualifier    = NULL;
@@ -107,7 +108,7 @@ The string may be only part of a token.
      it.  If not, use the output_str routine. */
   rout = octl->output_partial_token_str;
   if (rout == NULL) rout = octl->output_str;
-  rout(str);
+  rout(str, octl);
 }  /* output_partial_token_str */
 
 #if BACK_END_IS_C_GEN_BE
@@ -138,7 +139,7 @@ Output a signed number as indicated by octl.
   char buffer[50];
 
   (void)sprintf(buffer, PRINTF_FORMAT_FOR_HOST_LARGE_INTEGER, num);
-  octl->output_str(buffer);
+  octl->output_str(buffer, octl);
 }  /* form_num */
 
 
@@ -151,7 +152,7 @@ Output an unsigned number as indicated by octl.
   char buffer[50];
 
   (void)sprintf(buffer, PRINTF_FORMAT_FOR_HOST_LARGE_UNSIGNED, num);
-  octl->output_str(buffer);
+  octl->output_str(buffer, octl);
 }  /* form_unsigned_num */
 
 #if DEBUG
@@ -165,7 +166,7 @@ Output an unsigned number in hexadecimal form, as indicated by octl.
   char buffer[50];
 
   (void)sprintf(buffer, "%lx", num);
-  octl->output_str(buffer);
+  octl->output_str(buffer, octl);
 }  /* form_unsigned_hex */
 
 #endif /* DEBUG */
@@ -222,7 +223,7 @@ Output the indicated template argument in the way described by octl.
         /* The template argument is a deduced array bound whose type is not
            yet known (we know its value, but we don't yet know its type). */
         check_assertion(!octl->gen_compilable_code);
-        octl->output_str("array-bound=");
+        octl->output_str("array-bound=", octl);
         form_unsigned_num((a_host_large_unsigned)tap->variant.integer_value,
                           octl);
       } else {
@@ -231,7 +232,7 @@ Output the indicated template argument in the way described by octl.
           /* The template argument is given by an expression operand (front
              end only). */
           check_assertion(!octl->gen_compilable_code);
-          octl->output_str("<expression>");
+          octl->output_str("<expression>", octl);
         } else {
           check_assertion(con != NULL);
           if (is_reference_type(con->type)) {
@@ -265,12 +266,12 @@ is put out.
 */
 {
   if (tap != NULL) {
-    octl->output_str("<");
+    octl->output_str("<", octl);
     if (octl->gen_compilable_code) {
       /* When generating compilable code, put out a space after the
          opening "<" to avoid an accidental digraph if the first
          argument begins with a "::" global qualifier. */
-      octl->output_str(" ");
+      octl->output_str(" ", octl);
     }  /* if */
     for (;;) {
       form_a_template_arg(tap, octl);
@@ -278,15 +279,15 @@ is put out.
       /* Stop after the last argument. */
       if (tap == NULL) break;
       /* Put a comma between arguments. */
-      octl->output_str(", ");
+      octl->output_str(", ", octl);
     }  /* for */
-    octl->output_str(">");
+    octl->output_str(">", octl);
     if (octl->gen_compilable_code) {
       /* When generating compilable code, put out a space after the
          final ">" avoid the possibility of getting ">>" with nested
          template references or with a nontype expression that ends
          with ">". */
-      octl->output_str(" ");
+      octl->output_str(" ", octl);
     }  /* if */
   }  /* if */
 }  /* form_template_args */
@@ -305,7 +306,7 @@ source.
 {
   a_type_ptr type = rout->type;
 
-  octl->output_str("operator ");
+  octl->output_str("operator ", octl);
   type = skip_typerefs(type);
   type = type->variant.routine.return_type;
   form_type(type, octl);
@@ -352,7 +353,7 @@ generate a name for it and return TRUE (FALSE otherwise).
       result = TRUE;
       /* Get the routine entry for the lambda body. */
       rp = lambda_body_for_closure(type);
-      octl->output_str("lambda []");
+      octl->output_str("lambda []", octl);
       /* Add the routine type of the lambda routine to the output. */
       form_type(rp->type, octl);
     }  /* if */
@@ -378,14 +379,14 @@ The output includes template arguments on template classes.
     } else {
       /* For entities without names, use <unnamed>. */
       check_assertion(!octl->gen_compilable_code);
-      octl->output_str("<unnamed");
+      octl->output_str("<unnamed", octl);
 #if DEBUG
       if (octl->debug_output) {
-        octl->output_str("@");
+        octl->output_str("@", octl);
         form_unsigned_hex((unsigned long)scp, octl);
       }  /* if */
 #endif /* DEBUG */
-      octl->output_str(">");
+      octl->output_str(">", octl);
     }  /* if */
   } else if (entry_kind == iek_routine &&
              ((a_routine_ptr)scp)->special_kind ==
@@ -395,7 +396,7 @@ The output includes template arguments on template classes.
     form_conversion_function_name((a_routine_ptr)scp, octl);
   } else {
     /* Output the base name. */
-    octl->output_str(name);
+    octl->output_str(name, octl);
   }  /* if */
   /* Check for template arguments on a class name. */
   if (il_header.source_language == sl_Cplusplus && entry_kind == iek_type) {
@@ -432,7 +433,7 @@ to output any part of the name.  Called only for C++.
   }  /* if */
   /* Do the last level. */
   form_unqualified_name(&nsp->source_corresp, iek_namespace, octl);
-  octl->output_str("::");
+  octl->output_str("::", octl);
 }  /* form_namespace_qualifier */
 
 
@@ -464,7 +465,7 @@ class type.  Do the output in the way described by octl.  Called only for C++.
          debug output will still come out okay. */
 #if DEBUG
       if (octl->debug_output) {
-        octl->output_str("<parent with missing IL supplement>");
+        octl->output_str("<parent with missing IL supplement>", octl);
       } else
 #endif /* DEBUG */
       {
@@ -478,7 +479,7 @@ class type.  Do the output in the way described by octl.  Called only for C++.
     }  /* if */
     if (output_base_name) {
       form_unqualified_name(scp, iek_type, octl);
-      octl->output_str("::");
+      octl->output_str("::", octl);
     }  /* if */
   }  /* if */
 }  /* form_class_qualifier */
@@ -587,7 +588,7 @@ Output a string that describes the tag kind for the indicated type, i.e.,
 #endif /* DEBUG */
       unexpected_condition_str("form_tag_kind: bad type kind");
   }  /* switch */
-  octl->output_str(str);
+  octl->output_str(str, octl);
 }  /* form_tag_kind */
 
 
@@ -608,7 +609,7 @@ Output a reference to a tag, doing output in the way described by octl.
       /* In C, put "struct", "union", or "enum" on tags.  In C++, do it
          only for unnamed tags (but not lambda closure classes). */
       form_tag_kind(type->kind, octl);
-      octl->output_str(" ");
+      octl->output_str(" ", octl);
     }  /* if */
     form_name(&type->source_corresp, iek_type, octl);
   }  /* if */
@@ -782,7 +783,7 @@ way described by octl.
     internal_error("form_int_type_name: bad integer kind");
   }  /* if */
 #endif /* CHECKING */
-  octl->output_str(str);
+  octl->output_str(str, octl);
 }  /* form_int_type_name */
 
 
@@ -849,7 +850,7 @@ way described by octl.
     internal_error("form_float_kind_name: bad float kind");
   }  /* if */
 #endif /* CHECKING */
-  octl->output_str(str);
+  octl->output_str(str, octl);
 }  /* form_float_kind_name */
 
 
@@ -879,9 +880,9 @@ Do the output in the way described by octl.
 #define output_qualifier(flag, string)					\
 {									\
   if ((qualifiers & flag) != 0) {					\
-    if (qualifier_put_out) octl->output_str(" ");			\
+    if (qualifier_put_out) octl->output_str(" ", octl);			\
     qualifier_put_out = TRUE;						\
-    octl->output_str(string);						\
+    octl->output_str(string, octl);					\
   }  /* if */								\
 }  /* output_qualifier */
 
@@ -937,24 +938,24 @@ Do the output in the way described by octl.
       if (upc_block_size == UPC_BLOCK_SIZE_NONE) {
         /* Nothing to be done. */
       } else if (upc_block_size == UPC_BLOCK_SIZE_BLOCK) {
-        octl->output_str("[*]");
+        octl->output_str("[*]", octl);
       } else {
-        octl->output_str("[");
+        octl->output_str("[", octl);
         form_unsigned_num((a_host_large_unsigned)upc_block_size, /*lint !e571*/
                           octl);
-        octl->output_str("]");
+        octl->output_str("]", octl);
       }  /* if */
     }  /* if */
 #endif /* UPC_EXTENSIONS_ALLOWED */
 #if NAMED_ADDRESS_SPACES_ALLOWED
     if (nas_id != 0) {
-      if (qualifier_put_out) octl->output_str(" ");
-      octl->output_str(named_address_spaces[nas_id].name);
+      if (qualifier_put_out) octl->output_str(" ", octl);
+      octl->output_str(named_address_spaces[nas_id].name, octl);
       qualifier_put_out = TRUE;
     }  /* if */
 #endif /* NAMED_ADDRESS_SPACES_ALLOWED */
     /* Put out a trailing space if required. */
-    if (need_trailing_space && qualifier_put_out) octl->output_str(" ");
+    if (need_trailing_space && qualifier_put_out) octl->output_str(" ", octl);
   }  /* if */
 #undef output_qualifier
 }  /* form_type_qualifier */
@@ -976,9 +977,9 @@ Do the output in the way described by octl.
 #define output_modifier(flag, string)                                        \
 {                                                                            \
   if ((modifiers & flag) != 0) {                                             \
-    if (modifier_put_out) octl->output_str(" ");                             \
+    if (modifier_put_out) octl->output_str(" ", octl);                       \
     modifier_put_out = TRUE;                                                 \
-    octl->output_str(string);                                                \
+    octl->output_str(string, octl);                                          \
   }  /* if */                                                                \
 }  /* output_qualifier */
     output_modifier(PM_PTR32, "__ptr32");
@@ -1012,9 +1013,9 @@ be FALSE).
   /* Do not insert code here. */
   if (calling_convention != (a_calling_convention)cc_default) {
     /* Put out nothing for the default calling convention. */
-    octl->output_str(calling_convention_names[(int)calling_convention]);
+    octl->output_str(calling_convention_names[(int)calling_convention], octl);
     /* Put out a trailing space. */
-    octl->output_str(" ");
+    octl->output_str(" ", octl);
   }  /* if */
 }  /* form_calling_convention */
 
@@ -1190,10 +1191,10 @@ by octl.
   switch (type->kind) {
     case tk_error:
       check_assertion(!octl->gen_compilable_code);
-      octl->output_str("<error-type>");
+      octl->output_str("<error-type>", octl);
       break;
     case tk_void:
-      octl->output_str("void");
+      octl->output_str("void", octl);
       break;
     case tk_integer:
       /* Enum types are often handled specially. */
@@ -1219,21 +1220,22 @@ by octl.
              can be used as a keyword even when wchar_t is not recognized.
              We don't know how the type was originally specified, so output it
              as __wchar_t or wchar_t based on microsoft_version. */
-          octl->output_str("__wchar_t");
+          octl->output_str("__wchar_t", octl);
         } else {
-          octl->output_str("wchar_t");
+          octl->output_str("wchar_t", octl);
         }  /* if */
       } else if (type->variant.integer.bool_type &&
                  (!octl->c_generating_back_end || octl->render_c99_bool)) {
         /* Output a bool type as "bool", except in the C generating
            back end, where it is output as its underlying type. */
-        octl->output_str((char *)(octl->render_c99_bool ? "_Bool" : "bool"));
+        octl->output_str((char *)(octl->render_c99_bool ? "_Bool" : "bool"),
+                         octl);
       } else {
         /* Normal integer type. */
         if (type->variant.integer.explicitly_signed &&
             /* "signed" is not allowed when generating pcc code. */
             !octl->gen_pcc_code) {
-          octl->output_str("signed ");
+          octl->output_str("signed ", octl);
         }  /* if */
         form_int_type_name(type, octl);
       }  /* if */
@@ -1243,22 +1245,22 @@ by octl.
       {
         a_fixed_point_precision  prec = type->variant.fixed_point.precision;
         if (type->variant.fixed_point.saturating) {
-          octl->output_str("_Sat ");
+          octl->output_str("_Sat ", octl);
         }  /* if */
         if (type->variant.fixed_point.is_unsigned) {
-          octl->output_str("unsigned ");
+          octl->output_str("unsigned ", octl);
         }  /* if */
         if (prec == (a_fixed_point_precision)fpp_short) {
-          octl->output_str("short ");
+          octl->output_str("short ", octl);
         } else if (prec == (a_fixed_point_precision)fpp_long) {
-          octl->output_str("long ");
+          octl->output_str("long ", octl);
         } else {
           check_assertion(prec == (a_fixed_point_precision)fpp_default);
         }  /* if */
         if (type->variant.fixed_point.is_fract_type) {
-          octl->output_str("_Fract");
+          octl->output_str("_Fract", octl);
         } else {
-          octl->output_str("_Accum");
+          octl->output_str("_Accum", octl);
         }  /* if */
       }
       break;
@@ -1268,7 +1270,7 @@ by octl.
     case tk_imaginary:
       form_float_kind_name(type->variant.float_kind, octl);
       octl->output_str((char *)(type->kind == (a_type_kind)tk_complex ?
-                       " _Complex" : " _Imaginary"));
+                       " _Complex" : " _Imaginary"), octl);
       break;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
     case tk_float:
@@ -1292,10 +1294,10 @@ by octl.
           octl->output_name((char*)type, iek_type);
         } else {
           an_expr_node_ptr  expr = decltype_arg(type);
-          octl->output_str("decltype(");
+          octl->output_str("decltype(", octl);
           if (expr != NULL) {
             if (!type->variant.typeref.decltype_expr_not_parenthesized) {
-              octl->output_str("(");
+              octl->output_str("(", octl);
             }  /* if */
             if (octl->output_expression != NULL) {
               /* Extra top-level parentheses should be suppressed since they
@@ -1305,16 +1307,16 @@ by octl.
               form_expression(expr, octl);
             }  /* if */
             if (!type->variant.typeref.decltype_expr_not_parenthesized) {
-              octl->output_str(")");
+              octl->output_str(")", octl);
             }  /* if */
           } else {
             /* No expression is available: Just emit a placeholder for the
                expression.  (This should only occur when not emitting
                compilable output.) */
             check_assertion(!octl->gen_compilable_code);
-            octl->output_str("<expr>");
+            octl->output_str("<expr>", octl);
           }  /* if */
-          octl->output_str(")");
+          octl->output_str(")", octl);
         }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
       } else if (type->variant.typeref.is_typeof) {
@@ -1327,7 +1329,7 @@ by octl.
           octl->output_name((char*)type, iek_type);
         } else {
           an_expr_node_ptr  expr = decltype_arg(type);
-          octl->output_str("__typeof__(");
+          octl->output_str("__typeof__(", octl);
           if (expr != NULL) {
             if (octl->output_expression != NULL) {
               /* Unlike decltype, typeof is not affected by extra top-level
@@ -1340,7 +1342,7 @@ by octl.
           } else {
             form_type(type->variant.typeref.type, octl);
           }  /* if */
-          octl->output_str(")");
+          octl->output_str(")", octl);
         } /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
       } else {
@@ -1356,7 +1358,7 @@ by octl.
             type->variant.template_param.extra_info->coordinates.depth ==
                                                     AUTO_TYPE_NESTING_DEPTH) {
           /* A type entry representing the "auto" type specifier. */
-          octl->output_str("auto");
+          octl->output_str("auto", octl);
         } else {
           a_source_correspondence_ptr scp = &type->source_corresp;
           an_il_entry_kind            scp_kind = iek_type;
@@ -1388,7 +1390,7 @@ by octl.
       { a_boolean need_leading_space = FALSE;
         if (!octl->defer_vector_attribute) {
           form_vector_type_attribute(type, &need_leading_space, octl);
-          octl->output_str(" ");
+          octl->output_str(" ", octl);
         }  /* if */
         form_type(type->variant.vector.element_type, octl);
       }
@@ -1396,12 +1398,12 @@ by octl.
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
     case tk_unknown:
       check_assertion(!octl->gen_compilable_code);
-      octl->output_str("<unknown-type>");
+      octl->output_str("<unknown-type>", octl);
       break;
     default:
 #if DEBUG
       if (octl->debug_output) {
-        octl->output_str("**BAD-TYPE-KIND**");
+        octl->output_str("**BAD-TYPE-KIND**", octl);
         break;
       }  /* if */
 #endif /* DEBUG */
@@ -1550,13 +1552,13 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
     /* NULL type pointer. */
 #if DEBUG
     if (octl->debug_output) {
-      octl->output_str("**NULL-TYPE-POINTER**");
+      octl->output_str("**NULL-TYPE-POINTER**", octl);
       goto end_of_routine;
     }  /* if */
 #endif /* DEBUG */
     check_assertion_str(!octl->gen_compilable_code,
                         "form_type_first_part: NULL type");
-    octl->output_str("<something>");
+    octl->output_str("<something>", octl);
     goto end_of_routine;
   }  /* if */
   options &= ~FTO_SUPPRESS_CONST;
@@ -1614,37 +1616,37 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
     /* Output "*" or "&" for pointer or reference. */
     if (type->variant.pointer.is_reference && !octl->c_generating_back_end) {
       if (type->variant.pointer.is_rvalue_reference) {
-        octl->output_str("&&");
+        octl->output_str("&&", octl);
       } else {
-        octl->output_str("&");
+        octl->output_str("&", octl);
       }  /* if */
     } else {
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (type->variant.pointer.base_variable != NULL) {
         /* This is a Microsoft based pointer -- add "__based(var-name) "
            before the asterisk. */
-        octl->output_str("__based(");
+        octl->output_str("__based(", octl);
         form_name(&type->variant.pointer.base_variable->source_corresp,
                   iek_variable, octl);
-        octl->output_str(") ");
+        octl->output_str(") ", octl);
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      octl->output_str("*");
+      octl->output_str("*", octl);
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (type->has_microsoft_w64_specifier &&
           !(octl->gen_compilable_code && octl->c_generating_back_end)) {
         /* Do not propagate the "__w64" specifier to the C-generating back
            end. */
-        octl->output_str("__w64");
+        octl->output_str("__w64", octl);
         if (need_trailing_space || qualifiers != TQ_NONE ||
             type->variant.pointer.modifiers != PM_NONE) {
-          octl->output_str(" ");
+          octl->output_str(" ", octl);
         }  /* if */
       }  /* if */
       if (type->variant.pointer.modifiers != PM_NONE) {
         form_pointer_modifiers(type->variant.pointer.modifiers, octl);
         if (need_trailing_space || qualifiers != TQ_NONE) {
-          octl->output_str(" ");
+          octl->output_str(" ", octl);
         }  /* if */
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -1665,11 +1667,13 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
                          octl);
     /* form_class_qualifier put out "::".  Add the final "*" here.  That's
        okay; it's a separate token. */
-    octl->output_str("*");
+    octl->output_str("*", octl);
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (type->variant.ptr_to_member.modifiers != PM_NONE) {
       form_pointer_modifiers(type->variant.ptr_to_member.modifiers, octl);
-      if (need_trailing_space || qualifiers != TQ_NONE) octl->output_str(" ");
+      if (need_trailing_space || qualifiers != TQ_NONE) {
+        octl->output_str(" ", octl);
+      }  /* if */
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Output the type qualifiers on the pointer, if any. */
@@ -1692,7 +1696,7 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
     }  /* if */
     /* This is a right-side declarator, so if it's under a left-side
        declarator parentheses are needed. */
-    if (under_lhs_declarator) octl->output_str("(");
+    if (under_lhs_declarator) octl->output_str("(", octl);
 #if MICROSOFT_EXTENSIONS_ALLOWED
     /* A calling convention specifier is put out as a left-hand-side
        declarator. */
@@ -1720,7 +1724,7 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
                          octl);
     /* This is a right-side declarator, so if it's under a left-side
        declarator parentheses are needed. */
-    if (under_lhs_declarator) octl->output_str("(");
+    if (under_lhs_declarator) octl->output_str("(", octl);
   } else {
 handle_specifiers_type:
     /* No declarator part to process.  Handle the specifier type. */
@@ -1735,11 +1739,11 @@ handle_specifiers_type:
           !(octl->gen_compilable_code && octl->c_generating_back_end)) {
         /* Do not propagate the "__w64" specifier to the C-generating back
            end. */
-        octl->output_str(" __w64");
+        octl->output_str(" __w64", octl);
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* Put out a trailing space if required. */
-      if (need_trailing_space) octl->output_str(" ");
+      if (need_trailing_space) octl->output_str(" ", octl);
     }  /* if */
   }  /* if */
 #if NEAR_AND_FAR_ALLOWED
@@ -1769,7 +1773,7 @@ in the way described by octl.
     octl->output_func_declarator(type);
   } else {
     /* Default processing. */
-    octl->output_str("(");
+    octl->output_str("(", octl);
     if ((!rtsp->prototyped || rtsp->old_style_params_scanned) &&
         (il_header.source_language != sl_Cplusplus ||
          octl->gen_compilable_code)) {
@@ -1784,7 +1788,7 @@ in the way described by octl.
           /* The first argument is NULL, so this is a "void" parameter list.
              Write it as void in C, as empty in C++. */
           if (il_header.source_language == sl_C) {
-            octl->output_str("void");
+            octl->output_str("void", octl);
           }  /* if */
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
 #if !ALLOW_ELLIPSIS_ONLY_PARAM_IN_GENERATED_C
@@ -1801,7 +1805,7 @@ in the way described by octl.
           /* This is a parameter list consisting of only an ellipsis, which
              is standard in C++ and may be accepted as an extension in C
              mode. */
-          octl->output_str("...");
+          octl->output_str("...", octl);
         }  /* if */
       } else {
         /* List the parameter types. */
@@ -1812,16 +1816,16 @@ in the way described by octl.
           if (param == NULL) break;
           /* There are more parameters, so output a separator and keep
              looping. */
-          octl->output_str(", ");
+          octl->output_str(", ", octl);
         }  /* for */
         /* Put out the ellipsis if there is one. */
-        if (rtsp->has_ellipsis) octl->output_str(", ...");
+        if (rtsp->has_ellipsis) octl->output_str(", ...", octl);
       }  /* if */
     }  /* if */
-    octl->output_str(")");
+    octl->output_str(")", octl);
     if (!octl->gen_compilable_code && is_lambda_body_routine_type(type)) {
       /* For a lambda body, output the return type. */
-      octl->output_str("->");
+      octl->output_str("->", octl);
       form_type(type->variant.routine.return_type, octl);
     }  /* if */
     /* If the function type has a linkage that's not compatible with the
@@ -1834,8 +1838,8 @@ in the way described by octl.
           !routine_linkages_are_compatible(linkage,
                                            default_routine_name_linkage,
                                            /*is_impl_conv=*/FALSE)) {
-        octl->output_str(" ");
-        octl->output_str(name_linkage_kind_names[linkage]);
+        octl->output_str(" ", octl);
+        octl->output_str(name_linkage_kind_names[linkage], octl);
       }  /* if */
     } /* if */
     /* Output a cv-qualifier for a member function, if there is one. */
@@ -1846,13 +1850,13 @@ in the way described by octl.
           is_lambda_body_routine_type(type)) {
         /* For a lambda body, output "mutable" if the routine is not const. */
         if ((qualifiers & TQ_CONST) == 0) {
-          octl->output_str(" mutable");
+          octl->output_str(" mutable", octl);
         } else {
           check_assertion(qualifiers == TQ_CONST);
         }  /* if */
       } else {
         if (qualifiers != TQ_NONE) {
-          octl->output_str(" ");
+          octl->output_str(" ", octl);
           form_type_qualifier(qualifiers, UPC_BLOCK_SIZE_NONE,
                               /*need_trailing_space=*/FALSE, octl);
         }  /* if */
@@ -1869,13 +1873,13 @@ Output an array declarator for the indicated array type.  Do the output in
 the way described by octl.
 */
 {
-  octl->output_str("[");
+  octl->output_str("[", octl);
   form_type_qualifier(type->variant.array.qualifiers, UPC_BLOCK_SIZE_NONE,
                       /*need_trailing_space=*/TRUE, octl);
 #if !SUPPRESS_ARRAY_STATIC_IN_GENERATED_CODE
   if (type->variant.array.is_static) {
     /* C99 static. */
-    octl->output_str("static ");
+    octl->output_str("static ", octl);
   }  /* if */
 #endif /* !SUPPRESS_ARRAY_STATIC_IN_GENERATED_CODE */
   if (type->variant.array.is_vla) {
@@ -1883,13 +1887,13 @@ the way described by octl.
     if (!type->variant.array.has_assoc_vla_dimension ||
         octl->gen_vla_array_as_asterisk_bound_array) {
       /* Array[*] case. */
-      octl->output_str("*");
+      octl->output_str("*", octl);
     } else if (innermost_function_scope == NULL) {
       /* find_vla_dimension requires that innermost function scope be set.
          Since this is not the case, we just emit a placeholder.  This should
          only happen when called from the stand-alone IL display code. */
       check_assertion(!octl->gen_compilable_code);
-      octl->output_str("<expr>");
+      octl->output_str("<expr>", octl);
     } else {
       /* Variable-length array with an associated expression. */
       a_vla_dimension_ptr vlap = find_vla_dimension(type);
@@ -1972,11 +1976,11 @@ the way described by octl.
                       octl);
 #if UPC_EXTENSIONS_ALLOWED
     if (type->variant.array.is_threads_dimension) {
-      octl->output_str("*THREADS");
+      octl->output_str("*THREADS", octl);
     }  /* if */
 #endif /* UPC_EXTENSIONS_ALLOWED */
   }  /* if */
-  octl->output_str("]");
+  octl->output_str("]", octl);
 }  /* form_array_declarator */
 
 
@@ -2048,7 +2052,7 @@ If options contains FTO_SUPPRESS_CONST, suppress generation of top-level
     /* Function type. */
     /* This is a right-side declarator, so if it's under a left-side
        declarator parentheses are needed. */
-    if (under_lhs_declarator) octl->output_str(")");
+    if (under_lhs_declarator) octl->output_str(")", octl);
     form_function_declarator(type, octl);
     if (octl->gen_compilable_code || !is_lambda_body_routine_type(type)) {
       /* Suppress the normal return type for lambda bodies. */
@@ -2066,7 +2070,7 @@ If options contains FTO_SUPPRESS_CONST, suppress generation of top-level
     } else {
       /* This is a right-side declarator, so if it's under a left-side
          declarator parentheses are needed. */
-      if (under_lhs_declarator) octl->output_str(")");
+      if (under_lhs_declarator) octl->output_str(")", octl);
       form_array_declarator(type, octl);
       if (suppress_const) options |= FTO_SUPPRESS_CONST;
       form_type_second_part(type->variant.array.element_type,
@@ -2086,7 +2090,7 @@ Output a string for a type.  Do the output in the way described by octl.
 {
   if (type == NULL) {
     check_assertion(!octl->gen_compilable_code);
-    octl->output_str("<null-type>");
+    octl->output_str("<null-type>", octl);
   } else {
     /* Write the specifiers and the first part of the declarator. */
     form_type_first_part_simple(type, /*under_lhs_declarator=*/FALSE,
@@ -2104,9 +2108,9 @@ Output a cast to the indicated type.  Do the output in the way described
 by octl.
 */
 {
-  octl->output_str("(");
+  octl->output_str("(", octl);
   form_type(type, octl);
-  octl->output_str(")");
+  octl->output_str(")", octl);
 }  /* form_cast */
 
 
@@ -2121,9 +2125,9 @@ be output later).  Do the output in the way described by octl.
 */
 {
   if (is_reinterpret_cast) {
-    octl->output_str("reinterpret_cast<");
+    octl->output_str("reinterpret_cast<", octl);
     form_type(type, octl);
-    octl->output_str(">(");
+    octl->output_str(">(", octl);
   } else {
     form_cast(type, octl);
   }  /* if */
@@ -2143,7 +2147,7 @@ prevent doing the optimization more than once.
 */
 {
   if (*need_parens) {
-    octl->output_str("(");
+    octl->output_str("(", octl);
     *need_close_paren = TRUE;
   } else {
     /* Suppress the parenthesis. */
@@ -2161,7 +2165,7 @@ parentheses begun by output_optional_open_paren.  The parenthesis is
 output only if need_close_paren is TRUE.
 */
 {
-  if (need_close_paren) octl->output_str(")");
+  if (need_close_paren) octl->output_str(")", octl);
 }  /* output_optional_close_paren */
 
 #if GNU_EXTENSIONS_ALLOWED
@@ -2177,13 +2181,13 @@ addresses (possible in GNU mode).  The output has the form "&&x - &&y"
 names.  Do the output in the way described by octl.
 */
 {
-  if (need_parens) octl->output_str("(");
+  if (need_parens) octl->output_str("(", octl);
   form_constant(constant->variant.label_difference.to_address,
                 /*need_parens=*/FALSE, octl);
-  octl->output_str(" - ");
+  octl->output_str(" - ", octl);
   form_constant(constant->variant.label_difference.from_address,
                 /*need_parens=*/FALSE, octl);
-  if (need_parens) octl->output_str(")");
+  if (need_parens) octl->output_str(")", octl);
 }  /* form_label_difference_constant */
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -2252,7 +2256,7 @@ precedence confusion.  Do the output in the way described by octl.
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if UPC_EXTENSIONS_ALLOWED
   if (constant->kind == (a_constant_repr_kind)ck_upc_threads) {
-    octl->output_str("(");
+    octl->output_str("(", octl);
   } else
 #endif /* UPC_EXTENSIONS_ALLOWED */
   /* Do not insert code here. */
@@ -2309,11 +2313,11 @@ precedence confusion.  Do the output in the way described by octl.
 #endif /* LONG_LONG_ALLOWED */
     }  /* if */
   }  /* if */
-  if (minus_1_trick) octl->output_str("-1");
+  if (minus_1_trick) octl->output_str("-1", octl);
   output_optional_close_paren(need_negative_close_paren, octl);
 #if UPC_EXTENSIONS_ALLOWED
   if (constant->kind == (a_constant_repr_kind)ck_upc_threads) {
-    octl->output_str("*THREADS)");
+    octl->output_str("*THREADS)", octl);
   }  /* if */
 #endif /* UPC_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
@@ -2527,7 +2531,7 @@ Do the output in the way described by octl.
   if (scp == NULL) {
     /* A null pointer-to-member.  implicit_cast will be TRUE, so a cast
        to the right type has been put out above. */
-    octl->output_str("0");
+    octl->output_str("0", octl);
   } else {
     /* A non-null pointer-to-member. */
     a_boolean need_pm_close_paren = FALSE;
@@ -2592,7 +2596,7 @@ Do the output in the way described by octl.
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
-    octl->output_str("&");
+    octl->output_str("&", octl);
     /* Output the name, either in the original form or as a qualified
        name. */
 #if RECORD_FORM_OF_NAME_REFERENCE
@@ -2827,16 +2831,16 @@ by octl.
     default:
       unexpected_condition();
   }  /* switch */
-  octl->output_str("__uuidof(");
+  octl->output_str("__uuidof(", octl);
   if (uuid_expr != NULL) {
     form_expression(uuid_expr, octl);
   } else if (uuid_type != NULL) {
     form_type(uuid_type, octl);
   } else {
     /* Zero GUID. */
-    octl->output_str("0");
+    octl->output_str("0", octl);
   }  /* if */
-  octl->output_str(")");
+  octl->output_str(")", octl);
 }  /* form_uuidof_reference */
 
 
@@ -2864,7 +2868,7 @@ ck_address constant).  Do the output in the way described by octl.
     default:
       unexpected_condition();
   }  /* switch */
-  octl->output_str("typeid(");
+  octl->output_str("typeid(", octl);
   if (typeid_expr != NULL) {
     form_expression(typeid_expr, octl);
   } else if (typeid_type != NULL) {
@@ -2872,7 +2876,7 @@ ck_address constant).  Do the output in the way described by octl.
   } else {
     unexpected_condition();
   }  /* if */
-  octl->output_str(")");
+  octl->output_str(")", octl);
 }  /* form_typeid_reference */
 
 
@@ -3090,9 +3094,9 @@ parentheses are not needed.
           if (*offset < 0 && (*offset % element_size) > 0) idx++;
           /* Put out the subscripting operation. */
           if (gen_output) {
-            octl->output_str("[");
+            octl->output_str("[", octl);
             form_num(idx, octl);
-            octl->output_str("]");
+            octl->output_str("]", octl);
           }  /* if */
           type = element_type;
           *offset -= idx * element_size;
@@ -3128,7 +3132,7 @@ parentheses are not needed.
           /* Normal field (not anonymous union field). */
           /* Put out the field selection. */
           if (gen_output) {
-            octl->output_str(".");
+            octl->output_str(".", octl);
             form_unqualified_name(&field->source_corresp, iek_field, octl);
           }  /* if */
         }  /* if */
@@ -3146,7 +3150,7 @@ parentheses are not needed.
         /* Found a field with the right type, so use it. */
         /* Put out the field selection. */
         if (gen_output) {
-          octl->output_str(".");
+          octl->output_str(".", octl);
           form_unqualified_name(&field->source_corresp, iek_field, octl);
         }  /* if */
         type = field->type;
@@ -3342,7 +3346,7 @@ precedence confusion.  Do the output in the way described by octl.
          type. */
       output_optional_open_paren(&need_parens,
                                  &need_final_cast_close_paren, octl);
-      octl->output_str("(void *)");
+      octl->output_str("(void *)", octl);
     } else {
       /* The proper type couldn't be achieved with address operators, so we
          need a final cast to adjust the type.  One important category of cases
@@ -3416,7 +3420,7 @@ precedence confusion.  Do the output in the way described by octl.
         } else {
           /* Anything else (e.g., cast to float).  Go by way of unsigned long
              first. */
-          octl->output_str("(unsigned long)");
+          octl->output_str("(unsigned long)", octl);
         }  /* if */
       }  /* if */
     } else {
@@ -3428,7 +3432,7 @@ precedence confusion.  Do the output in the way described by octl.
       if (offset != 0 || il_header.source_language != sl_Cplusplus) {
         /* However, that's not possible when the offset is nonzero, or in
            C.  For those cases, use "*(type *)&x". */
-        octl->output_str("*");
+        octl->output_str("*", octl);
         type_copy.variant.pointer.is_reference = FALSE;
         form_cast(&type_copy, octl);
         form_lvalue = FALSE;
@@ -3453,7 +3457,7 @@ precedence confusion.  Do the output in the way described by octl.
        otherwise. */
     output_optional_open_paren(&need_parens,
                                &need_char_star_cast_close_paren, octl);
-    octl->output_str("(char *)");
+    octl->output_str("(char *)", octl);
   }  /* if */
   if (!form_lvalue) {
     /* Forming an address, not an lvalue. */
@@ -3462,9 +3466,9 @@ precedence confusion.  Do the output in the way described by octl.
     if (is_reference_type(con_type) && !octl->gen_compilable_code) {
       /* Explicitly identify a reference type instead of using "&". */
       if (is_rvalue_reference_type(con_type)) {
-        octl->output_str("rvalue reference to ");
+        octl->output_str("rvalue reference to ", octl);
       } else {
-        octl->output_str("reference to ");
+        octl->output_str("reference to ", octl);
       }  /* if */
     } else if (type_decay_used) {
       /* Using type decay to get a pointer. */
@@ -3474,9 +3478,9 @@ precedence confusion.  Do the output in the way described by octl.
 	  constant->variant.address.kind == (an_address_base_kind)abk_label) {
 	/* The address of a label is taken with "&&", rather than the
 	   ordinary "&". */
-	octl->output_str("&&");
+	octl->output_str("&&", octl);
       } else {
-	octl->output_str("&");
+	octl->output_str("&", octl);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -3489,21 +3493,21 @@ precedence confusion.  Do the output in the way described by octl.
                                    &dummy_offset,
                                    &formed_useful_lvalue, octl);
   if (need_ampersand_paren) {
-    octl->output_str(")");
+    octl->output_str(")", octl);
   }  /* if */
   output_optional_close_paren(need_char_star_cast_close_paren, octl);
   if (offset != 0) {
     /* Add in the (signed) offset. */
     if (offset >= 0) {
-      octl->output_str(" + ");
+      octl->output_str(" + ", octl);
     } else {
       /* For negative numbers, the sign on the number will be the operator. */
-      octl->output_str(" ");
+      octl->output_str(" ", octl);
     }  /* if */
     form_num((a_host_large_integer)offset, octl);
     output_optional_close_paren(need_offset_addition_close_paren, octl);
   }  /* if */
-  if (need_reinterpret_cast_close_paren) octl->output_str(")");
+  if (need_reinterpret_cast_close_paren) octl->output_str(")", octl);
   output_optional_close_paren(need_final_cast_close_paren, octl);
 }  /* form_address_constant */
 
@@ -3579,7 +3583,7 @@ without a leading "&".  Do the output in the way described by octl.
        its name from the type. */
     check_assertion(con->source_corresp.is_class_member);
     form_class_qualifier(parent_class_of(con), octl);
-    octl->output_str("operator ");
+    octl->output_str("operator ", octl);
     form_type(con->variant.template_param.variant.
                                               unknown_function.conversion_type,
               octl);
@@ -3615,7 +3619,7 @@ Output the given fixed-point value with the proper suffix.
 {
   char  *str = fxp_to_string(fxp_descr, value);
 
-  octl->output_str(str);
+  octl->output_str(str, octl);
 }  /* form_fixed_point_constant */
 
 #endif /* FIXED_POINT_ALLOWED */
@@ -3673,7 +3677,7 @@ K&R/pcc mode) determined by fkind.
     /* Generating K&R C.  Suffixes are not allowed. */
     /* Cast to float if type is float (by default it would be double). */
     if (fkind == (a_float_kind)fk_float) {
-      octl->output_str("(float)");
+      octl->output_str("(float)", octl);
     }  /* if */
   }  /* if */
   str = fp_to_string(fkind, float_value,
@@ -3718,7 +3722,7 @@ K&R/pcc mode) determined by fkind.
     suffix = "";
   }  /* if */
   if (suffix[0] == '\0') {
-    octl->output_str(str);
+    octl->output_str(str, octl);
   } else {
     output_partial_token_str(str, octl);
     output_partial_token_str(suffix, octl);
@@ -3736,26 +3740,26 @@ for debug output).
 {
   switch (dip->kind) {
     case dik_none:
-      octl->output_str("<no-init>");
+      octl->output_str("<no-init>", octl);
       break;
     case dik_zero:
-      octl->output_str("<zero-init>");
+      octl->output_str("<zero-init>", octl);
       break;
     case dik_bitwise_copy:
-      octl->output_str("<bitwise-copy>");
+      octl->output_str("<bitwise-copy>", octl);
       break;
     case dik_constant:
     case dik_nonconstant_aggregate:
       form_constant(dip->variant.constant, /*need_parens=*/TRUE, octl);
       break;
     case dik_call_returning_class_via_cctor:
-      octl->output_str("call returning class: ");
+      octl->output_str("call returning class: ", octl);
       /*FALLTHROUGH*/
     case dik_expression:
       form_expression(dip->variant.expression, octl);
       break;
     case dik_constructor:
-      octl->output_str("<constructor-call>");
+      octl->output_str("<constructor-call>", octl);
       break;
     default:
       unexpected_condition_str("form_dynamic_init: bad kind");
@@ -3782,7 +3786,7 @@ on every expression.
     check_assertion(!octl->gen_compilable_code);
     switch (expr->kind) {
       case enk_error:
-        octl->output_str("<error>");
+        octl->output_str("<error>", octl);
         break;
       case enk_operation:
 #if DEBUG
@@ -3790,22 +3794,22 @@ on every expression.
           an_expr_node_ptr operand = expr->variant.operation.operands;
           char *op_str = db_operator_names[expr->variant.operation.kind];
           an_expr_operator_kind op = expr->variant.operation.kind;
-          octl->output_str("(");
+          octl->output_str("(", octl);
           if (is_call_node(expr)) {
             /* Calls. */
             form_expression(operand, octl);
-            octl->output_str("(");
+            octl->output_str("(", octl);
             while ((operand = operand->next) != NULL) {
               form_expression(operand, octl);
-              if (operand->next != NULL) octl->output_str(", ");
+              if (operand->next != NULL) octl->output_str(", ", octl);
             }  /* while */
-            octl->output_str(")");
+            octl->output_str(")", octl);
           } else if (op == (an_expr_operator_kind)eok_subscript) {
             /* Subscripting. */
             form_expression(operand, octl);
-            octl->output_str("[");
+            octl->output_str("[", octl);
             form_expression(operand->next, octl);
-            octl->output_str("]");
+            octl->output_str("]", octl);
           } else if (op == (an_expr_operator_kind)eok_cast ||
                      op == (an_expr_operator_kind)eok_bool_cast ||
                      op == (an_expr_operator_kind)eok_base_class_cast ||
@@ -3815,9 +3819,9 @@ on every expression.
                      op == (an_expr_operator_kind)eok_ref_cast ||
                      op == (an_expr_operator_kind)eok_lvalue_cast) {
             /* Casts. */
-            octl->output_str("(");
+            octl->output_str("(", octl);
             form_type(expr->type, octl);
-            octl->output_str(")");
+            octl->output_str(")", octl);
             form_expression(operand, octl);
           } else if (op == (an_expr_operator_kind)eok_parens) {
             /* Parentheses.  One set is already put out, so we don't need
@@ -3831,33 +3835,33 @@ on every expression.
             form_expression(operand, octl);
           } else if (operand->next == NULL) {
             /* Unary operators. */
-            octl->output_str(op_str);
-            octl->output_str(" ");
+            octl->output_str(op_str, octl);
+            octl->output_str(" ", octl);
             form_expression(operand, octl);
           } else if (operand->next->next == NULL) {
             /* Binary operators. */
             form_expression(operand, octl);
-            octl->output_str(" ");
-            octl->output_str(op_str);
-            octl->output_str(" ");
+            octl->output_str(" ", octl);
+            octl->output_str(op_str, octl);
+            octl->output_str(" ", octl);
             form_expression(operand->next, octl);
           } else {
             /* Other operators, e.g., "?".  Use generic form. */
-            octl->output_str(op_str);
-            octl->output_str("(");
+            octl->output_str(op_str, octl);
+            octl->output_str("(", octl);
             while (operand != NULL) {
               form_expression(operand, octl);
-              if (operand->next != NULL) octl->output_str(", ");
+              if (operand->next != NULL) octl->output_str(", ", octl);
               operand = operand->next;
             }  /* while */
-            octl->output_str(")");
+            octl->output_str(")", octl);
           }  /* if */
-          octl->output_str(")");
+          octl->output_str(")", octl);
         } else
 #endif /* DEBUG */
         /* Do not insert code here. */
         {
-          octl->output_str("<expression>");
+          octl->output_str("<expression>", octl);
         }  /* if */
         break;
       case enk_constant:
@@ -3878,14 +3882,14 @@ on every expression.
       case enk_temp_init:
 #if DEBUG
         if (octl->debug_output) {
-          octl->output_str("temp-init(");
+          octl->output_str("temp-init(", octl);
           form_dynamic_init(expr->variant.init.dynamic_init, octl);
-          octl->output_str(")");
+          octl->output_str(")", octl);
         } else
 #endif /* DEBUG */
         /* Do not insert code here */
         {
-          octl->output_str("<expression>");
+          octl->output_str("<expression>", octl);
         }  /* if */
         break;
       case enk_builtin_operation:
@@ -3894,23 +3898,23 @@ on every expression.
           an_expr_node_ptr  operand = expr->variant.builtin_operation.operands;
           char              *op_str = builtin_operation_names[
                                          expr->variant.builtin_operation.kind];
-          octl->output_str(op_str);
-          octl->output_str("(");
+          octl->output_str(op_str, octl);
+          octl->output_str("(", octl);
           while (operand != NULL) {
             form_expression(operand, octl);
-            if (operand->next != NULL) octl->output_str(", ");
+            if (operand->next != NULL) octl->output_str(", ", octl);
             operand = operand->next;
           }  /* while */
-          octl->output_str(")");
+          octl->output_str(")", octl);
         } else
 #endif /* DEBUG */
         /* Do not insert code here. */
         {
-          octl->output_str("<expression>");
+          octl->output_str("<expression>", octl);
         }  /* if */
         break;
       default:
-        octl->output_str("<expression>");
+        octl->output_str("<expression>", octl);
         break;
     }  /* switch */
   }  /* if */
@@ -3930,7 +3934,7 @@ for debug output).
 
   check_assertion(!octl->gen_compilable_code &&
                   constant->kind == (a_constant_repr_kind)ck_dynamic_init);
-  octl->output_str("dynamic-init: ");
+  octl->output_str("dynamic-init: ", octl);
   dip = constant->variant.dynamic_init;
   form_dynamic_init(dip, octl);
 }  /* form_dynamic_init_constant */
@@ -3962,7 +3966,7 @@ precedence confusion.  Do the output in the way described by octl.
 	kind != (a_constant_repr_kind)ck_designator) {
 #if DEBUG
       if (octl->debug_output) {
-        octl->output_str("**NULL-CONSTANT-TYPE**");
+        octl->output_str("**NULL-CONSTANT-TYPE**", octl);
       } else
 #endif /* DEBUG */
       /* Do not insert code here.  This is the else of an "if". */
@@ -4024,7 +4028,7 @@ precedence confusion.  Do the output in the way described by octl.
                                         (a_host_large_integer)0) != 0) {
               output_optional_open_paren(&need_parens, &need_cast_close_paren,
                                          octl);
-              octl->output_str("(void *)");
+              octl->output_str("(void *)", octl);
               suppress_cast_on_integer_constant = TRUE;
             }  /* if */
           }  /* if */
@@ -4057,11 +4061,11 @@ precedence confusion.  Do the output in the way described by octl.
     case ck_error:
       check_assertion_str(!octl->gen_compilable_code,
                           "form_constant: error constant");
-      octl->output_str("<error-constant>");
+      octl->output_str("<error-constant>", octl);
       break;
 #if UPC_EXTENSIONS_ALLOWED
     case ck_upc_mythread:
-      octl->output_str("MYTHREAD");
+      octl->output_str("MYTHREAD", octl);
       break;
     case ck_upc_threads:
 #endif /* UPC_EXTENSIONS_ALLOWED */
@@ -4085,7 +4089,7 @@ precedence confusion.  Do the output in the way described by octl.
 #if GNU_EXTENSIONS_ALLOWED
       } else if (!octl->c_generating_back_end && constant->null_keyword) {
         /* The GNU C++ __null keyword. */
-        octl->output_str("__null");
+        octl->output_str("__null", octl);
 #endif /* GNU_EXTENSIONS_ALLOWED */
         /* coverity[var_deref_model] */
       } else if (!octl->c_generating_back_end &&
@@ -4094,7 +4098,8 @@ precedence confusion.  Do the output in the way described by octl.
         /* A bool constant. */
         octl->output_str((char *)(
                cmplit_integer_constant(constant,
-                            (a_host_large_integer)0) != 0 ? "true" : "false"));
+                            (a_host_large_integer)0) != 0 ? "true" : "false"),
+                         octl);
         /* coverity[var_deref_model] */
       } else if (!octl->c_generating_back_end &&
                  il_header.source_language == sl_Cplusplus &&
@@ -4151,12 +4156,12 @@ precedence confusion.  Do the output in the way described by octl.
       /* Fixed-point constant. */
       /* Put parentheses around the constant in case it's negative. */
       check_assertion(is_fixed_point_type(constant->type));
-      octl->output_str("(");
+      octl->output_str("(", octl);
       /* coverity[var_deref_op] */
       form_fixed_point_constant(&constant->variant.fixed_point_value,
                                 &con_type->variant.fixed_point,
                                 octl);
-      octl->output_str(")");
+      octl->output_str(")", octl);
       break;
 #endif /* FIXED_POINT_ALLOWED */
     case ck_string:
@@ -4207,7 +4212,7 @@ precedence confusion.  Do the output in the way described by octl.
               /* Break long string constants by using concatenation.  This
                  allows the output routine to begin a new line. */
               output_partial_token_str("\"", octl);
-              octl->output_str(" ");
+              octl->output_str(" ", octl);
               output_partial_token_str(prefix, octl);
               out_len = 0;
             }  /* if */
@@ -4233,7 +4238,7 @@ precedence confusion.  Do the output in the way described by octl.
               /* Break long string constants by using concatenation.  This
                  allows the output routine to begin a new line. */
               output_partial_token_str("\"", octl);
-              octl->output_str(" ");
+              octl->output_str(" ", octl);
               output_partial_token_str("\"", octl);
               out_len = 0;
             }  /* if */
@@ -4253,7 +4258,7 @@ precedence confusion.  Do the output in the way described by octl.
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
       /* Floating-point constant. */
       /* Put parentheses around the constant in case it's negative. */
-      octl->output_str("(");
+      octl->output_str("(", octl);
       /* coverity[var_deref_op] */
       form_float_constant(&constant->variant.float_value,
                           con_type->variant.float_kind,
@@ -4261,22 +4266,22 @@ precedence confusion.  Do the output in the way described by octl.
 #if C99_IL_EXTENSIONS_SUPPORTED
       if (kind == (a_constant_repr_kind)ck_imaginary) {
         /* Imaginary constants are constructed with the EDG-specific __I__. */
-        octl->output_str("*__I__");
+        octl->output_str("*__I__", octl);
       }  /* if */
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
-      octl->output_str(")");
+      octl->output_str(")", octl);
       break;
 #if C99_IL_EXTENSIONS_SUPPORTED
     case ck_complex:
       /* Complex constant. */
       /* Put parentheses around the constant and use the form
          ( A + B*__I__ ). */
-      octl->output_str("(");
+      octl->output_str("(", octl);
       /* coverity[var_deref_op] */
       form_float_constant(&constant->variant.complex_value->real,
                           con_type->variant.float_kind,
                           octl);
-      octl->output_str(" + ");
+      octl->output_str(" + ", octl);
       /* coverity[var_deref_op] */
       form_float_constant(&constant->variant.complex_value->imag,
                           con_type->variant.float_kind,
@@ -4285,14 +4290,14 @@ precedence confusion.  Do the output in the way described by octl.
       if (!octl->gen_compilable_code || gcc_is_generated_code_target) {
         /* GNU compilers can parse complex constants like 1.0+2.0i.  That
            form is also used in context that aren't actual code. */
-        octl->output_str("i");
+        octl->output_str("i", octl);
       } else
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
       /* Do not insert code here. */
       {
-        octl->output_str("*__I__");
+        octl->output_str("*__I__", octl);
       }  /* if */
-      octl->output_str(")");
+      octl->output_str(")", octl);
       break;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
     case ck_address:
@@ -4312,16 +4317,16 @@ precedence confusion.  Do the output in the way described by octl.
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if DO_IL_LOWERING && GENERATE_EH_TABLES && !DO_FULL_PORTABLE_EH_LOWERING
     case ck_stack_offset:
-      octl->output_str("<stack-offset-of: ");
+      octl->output_str("<stack-offset-of: ", octl);
       form_name(&constant->variant.stack_offset.variable->source_corresp,
                 iek_variable, octl);
       if (constant->variant.stack_offset.offset != 0) {
-        octl->output_str("+");
+        octl->output_str("+", octl);
         form_unsigned_num(
                   (a_host_large_unsigned)constant->variant.stack_offset.offset,
                   octl);
       }  /* if */
-      octl->output_str(">");
+      octl->output_str(">", octl);
       break;
 #endif /* DO_IL_LOWERING && ... */
     case ck_dynamic_init:
@@ -4335,27 +4340,27 @@ precedence confusion.  Do the output in the way described by octl.
       }  /* if */
       break;
     case ck_aggregate:
-      octl->output_str("{");
+      octl->output_str("{", octl);
       { a_constant_ptr sub_con = constant->variant.aggregate.first_constant;
         for (; sub_con != NULL; sub_con = sub_con->next) {
           form_constant(sub_con, /*need_parens=*/FALSE, octl);
           if (sub_con->next != NULL &&
               sub_con->kind != (a_constant_repr_kind)ck_designator) {
-            octl->output_str(", ");
+            octl->output_str(", ", octl);
           }  /* if */
         }  /* for */
       }
-      octl->output_str("}");
+      octl->output_str("}", octl);
       break;
     case ck_init_repeat:
       check_assertion(!octl->gen_compilable_code);
-      octl->output_str("<");
+      octl->output_str("<", octl);
       form_unsigned_num(
              (a_host_large_unsigned)constant->variant.init_repeat.count, octl);
-      octl->output_str(" repetitions of ");
+      octl->output_str(" repetitions of ", octl);
       form_constant(constant->variant.init_repeat.constant,
                     /*need_parens=*/FALSE, octl);
-      octl->output_str(">");
+      octl->output_str(">", octl);
       break;
     case ck_template_param:
       check_assertion(!octl->gen_compilable_code ||
@@ -4365,10 +4370,10 @@ precedence confusion.  Do the output in the way described by octl.
         case tpck_template_ref:
           /* Address of an unknown function, or of an unknown function template
              with an explicit template argument list. */
-          if (need_parens) octl->output_str("(");
-          octl->output_str("&");
+          if (need_parens) octl->output_str("(", octl);
+          octl->output_str("&", octl);
           form_unknown_function_constant(constant, octl);
-          if (need_parens) octl->output_str(")");
+          if (need_parens) octl->output_str(")", octl);
           break;
         case tpck_param:
           {
@@ -4417,17 +4422,17 @@ precedence confusion.  Do the output in the way described by octl.
           }  /* if */
           break;
         case tpck_address:
-          if (need_parens) octl->output_str("(");
-          octl->output_str("&");
+          if (need_parens) octl->output_str("(", octl);
+          octl->output_str("&", octl);
           form_constant(constant->variant.template_param.variant.constant,
                         /*need_parens=*/FALSE, octl);
-          if (need_parens) octl->output_str(")");
+          if (need_parens) octl->output_str(")", octl);
           break;
         case tpck_sizeof:
-          octl->output_str("sizeof(");
+          octl->output_str("sizeof(", octl);
           goto do_sizeof_cases;
         case tpck_alignof:
-          octl->output_str("__ALIGNOF__(");
+          octl->output_str("__ALIGNOF__(", octl);
 do_sizeof_cases:
           { an_expr_node_ptr  expr = generic_sizeof_arg_expr(constant);
             if (expr != NULL) {
@@ -4437,52 +4442,52 @@ do_sizeof_cases:
                     constant->variant.template_param.variant.templ_sizeof.type,
                     octl);
             }  /* if */
-            octl->output_str(")");
+            octl->output_str(")", octl);
           }
           break;
         case tpck_uuidof:
           /* The constant represents the address of the __uuidof, so add
              a "&". */
-          if (need_parens) octl->output_str("(");
-          octl->output_str("&");
+          if (need_parens) octl->output_str("(", octl);
+          octl->output_str("&", octl);
           form_uuidof_reference(constant, octl);
-          if (need_parens) octl->output_str(")");
+          if (need_parens) octl->output_str(")", octl);
           break;
         case tpck_typeid:
           /* The constant represents the address of a typeid result, so add
              a "&". */
-          if (need_parens) octl->output_str("(");
-          octl->output_str("&");
+          if (need_parens) octl->output_str("(", octl);
+          octl->output_str("&", octl);
           form_typeid_reference(constant, octl);
-          if (need_parens) octl->output_str(")");
+          if (need_parens) octl->output_str(")", octl);
           break;
         default:
-          octl->output_str("**BAD-TEMPLATE-PARAM-CONSTANT-KIND**");
+          octl->output_str("**BAD-TEMPLATE-PARAM-CONSTANT-KIND**", octl);
       }  /* switch */
       break;
     case ck_designator:
       if (constant->variant.designator.field != NULL) {
         a_field_ptr field = constant->variant.designator.field;
-        octl->output_str(".");
+        octl->output_str(".", octl);
         form_unqualified_name(&field->source_corresp, iek_field, octl);
-        octl->output_str(" = ");
+        octl->output_str(" = ", octl);
       } else {
-        octl->output_str("[");
+        octl->output_str("[", octl);
         form_unsigned_num(constant->variant.designator.array_element, octl);
-        octl->output_str("] = ");
+        octl->output_str("] = ", octl);
       } /* if */
       break;
     default:
 #if DEBUG
       if (octl->debug_output) {
-        octl->output_str("**BAD-CONSTANT-KIND**");
+        octl->output_str("**BAD-CONSTANT-KIND**", octl);
         break;
       }  /* if */
 #endif /* DEBUG */
       unexpected_condition_str("form_constant: bad constant kind");
   }  /* switch */
-  if (need_reinterpret_cast) octl->output_str(")");
-  if (need_cast_close_paren) octl->output_str(")");
+  if (need_reinterpret_cast) octl->output_str(")", octl);
+  if (need_cast_close_paren) octl->output_str(")", octl);
 done:;
 }  /* form_constant */
 
@@ -4547,11 +4552,11 @@ to indicate that a space will be needed after the attribute.
 */
 {
   if (*need_leading_space) {
-    octl->output_str(" ");
+    octl->output_str(" ", octl);
   }  /* if */
-  octl->output_str("__attribute__((");
-  octl->output_str(attribute_name);
-  octl->output_str("))");
+  octl->output_str("__attribute__((", octl);
+  octl->output_str(attribute_name, octl);
+  octl->output_str("))", octl);
   *need_leading_space = TRUE;
 }  /* form_simple_attribute */
                                   
@@ -4574,17 +4579,17 @@ described by octl.
   char *c;
 
   if (*need_leading_space) {
-    octl->output_str(" ");
+    octl->output_str(" ", octl);
   }  /* if */
-  octl->output_str("__attribute__((");
-  octl->output_str(attribute_name);
-  octl->output_str("(");
+  octl->output_str("__attribute__((", octl);
+  octl->output_str(attribute_name, octl);
+  octl->output_str("(", octl);
   output_partial_token_str("\"", octl);
   for (c = argument; *c != '\0'; c++) {
     (void)form_char(*c, octl);
   }  /* for */
   output_partial_token_str("\"", octl);
-  octl->output_str(")))");
+  octl->output_str(")))", octl);
   *need_leading_space = TRUE;
 }  /* form_string_argument_attribute */
 
@@ -4604,13 +4609,13 @@ described by octl.
 */
 {
   if (*need_leading_space) {
-    octl->output_str(" ");
+    octl->output_str(" ", octl);
   }  /* if */
-  octl->output_str("__attribute__((");
-  octl->output_str(attribute_name);
-  octl->output_str("(");
+  octl->output_str("__attribute__((", octl);
+  octl->output_str(attribute_name, octl);
+  octl->output_str("(", octl);
   form_unsigned_num((a_host_large_unsigned)argument, octl);
-  octl->output_str(")))");
+  octl->output_str(")))", octl);
   *need_leading_space = TRUE;
 }  /* form_unsigned_argument_attribute */
 
@@ -4803,16 +4808,16 @@ after the attribute.
 {
   check_assertion(type->kind == (a_type_kind)tk_vector);
   if (*need_leading_space) {
-    octl->output_str(" ");
+    octl->output_str(" ", octl);
   }  /* if */
-  octl->output_str("__attribute((vector_size(");
+  octl->output_str("__attribute((vector_size(", octl);
   if (type->variant.vector.size_constant != NULL) {
     form_constant(type->variant.vector.size_constant,
                   /*need_parens=*/FALSE, octl);
   } else {
     form_unsigned_num((a_host_large_unsigned)type->size, octl);
   }  /* if */
-  octl->output_str(")))");
+  octl->output_str(")))", octl);
   *need_leading_space = TRUE;
 }  /* form_vector_type_attribute */
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
@@ -4916,12 +4921,12 @@ Do the output in the way described by octl.
     }  /* if */
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
     if (var->cleanup_routine != NULL) {
-      if (need_leading_space) octl->output_str(" ");
+      if (need_leading_space) octl->output_str(" ", octl);
       need_leading_space = TRUE;
-      octl->output_str("__attribute__((cleanup(");
+      octl->output_str("__attribute__((cleanup(", octl);
       form_unqualified_name(&var->cleanup_routine->source_corresp,
                             iek_routine, octl);
-      octl->output_str(")))");
+      octl->output_str(")))", octl);
     }  /* if */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
     form_ELF_visibility_attribute(var->ELF_visibility, &var->source_corresp,
@@ -5184,13 +5189,13 @@ asm_name is allowed to be NULL.
   char *c;
 
   if (gcc_is_generated_code_target && asm_name != NULL) {
-    octl->output_str(" __asm__(");
+    octl->output_str(" __asm__(", octl);
     output_partial_token_str("\"", octl);
     for (c = asm_name; *c != '\0'; c++) {
       (void)form_char(*c, octl);
     }  /* for */
     output_partial_token_str("\"", octl);
-    octl->output_str(")");
+    octl->output_str(")", octl);
   }  /* if */
 }  /* form_asm_name */
 
@@ -5202,11 +5207,11 @@ Output an asm register name for a variable in the way described by octl.
 */
 {
   if (gcc_is_generated_code_target) {
-    octl->output_str(" __asm__(");
+    octl->output_str(" __asm__(", octl);
     output_partial_token_str("\"", octl);
-    octl->output_str(named_register_names[(int)reg]);
+    octl->output_str(named_register_names[(int)reg], octl);
     output_partial_token_str("\"", octl);
-    octl->output_str(")");
+    octl->output_str(")", octl);
   }  /* if */
 }  /* form_var_reg_name */
 
@@ -5226,13 +5231,13 @@ described by octl).
 */
 {
   if (flags & DM_GLOBAL_LINK_SCOPE) {
-    octl->output_str("__global ");
+    octl->output_str("__global ", octl);
   }  /* if */
   if (flags & DM_SYMBOLIC_LINK_SCOPE) {
-    octl->output_str("__symbolic ");
+    octl->output_str("__symbolic ", octl);
   }  /* if */
   if (flags & DM_HIDDEN_LINK_SCOPE) {
-    octl->output_str("__hidden ");
+    octl->output_str("__hidden ", octl);
   }  /* if */
 }  /* form_sun_link_scope_specifiers */
 

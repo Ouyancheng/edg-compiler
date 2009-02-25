@@ -1846,6 +1846,17 @@ complete token.  This is the non-macro version.
 }  /* write_str */
 
 
+/*ARGSUSED*/ /* octl is not used. */
+static void write_str_octl(char                                  *str,
+                           an_il_to_str_output_control_block_ptr octl)
+/*
+Version of write_str intended to be called by the il-to-str routines.
+*/
+{
+  m_write_str(str);
+}  /* write_str_octl */
+
+
 static void continue_on_new_line(void)
 /*
 Continue the current line of output on the next line (probably because
@@ -1934,6 +1945,17 @@ This is the non-macro version.
 {
   m_write_tok_str(str);
 }  /* write_tok_str */
+
+
+/*ARGSUSED*/ /* octl is not used. */
+static void write_tok_str_octl(char                                  *str,
+                               an_il_to_str_output_control_block_ptr octl)
+/*
+Version of write_tok_str intended to be called by the il-to-str routines.
+*/
+{
+  m_write_tok_str(str);
+}  /* write_tok_str_octl */
 
 
 static void write_unsigned_num(unsigned long num)
@@ -13107,8 +13129,8 @@ Initialize for the C++/C-generating back end.
   /* Set out the output control block used for interface with the il_to_str
      routines. */
   clear_il_to_str_output_control_block(&octl);
-  octl.output_str = write_tok_str;
-  octl.output_partial_token_str = write_str;
+  octl.output_str = write_tok_str_octl;
+  octl.output_partial_token_str = write_str_octl;
   octl.output_name = gen_name_reference;
   octl.output_template_name = gen_template_name;
   octl.output_class_qualifier = gen_class_qualifier_wrapper;

@@ -17787,7 +17787,7 @@ for the __PRETTY_FUNCTION__ keyword.
   a_source_correspondence_ptr        scp = &rp->source_corresp;
 
   clear_il_to_str_output_control_block(&octl);
-  octl.output_str = put_str_to_temp_text_buffer;
+  octl.output_str = put_str_to_temp_text_buffer_octl;
   octl.suppress_typedefs = TRUE;
   pos_in_temp_text_buffer = 0;
   if (gpp_mode &&
@@ -18011,7 +18011,7 @@ If do_concat is TRUE, do concatenation of any subsequent string literals.
              __func__. */
           an_il_to_str_output_control_block octl;
           clear_il_to_str_output_control_block(&octl);
-          octl.output_str = put_str_to_temp_text_buffer;
+          octl.output_str = put_str_to_temp_text_buffer_octl;
           octl.suppress_typedefs = TRUE;
           pos_in_temp_text_buffer = 0;
           form_name(&rp->source_corresp, (an_il_entry_kind)iek_routine, &octl);

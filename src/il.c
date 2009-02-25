@@ -305,13 +305,14 @@ static a_text_buffer_ptr
 		db_qualifiers_str_buffer;
 
 
-static void put_str_into_db_name_str_buffer(char *str)
+void put_str_into_text_buffer(char                                  *str,
+                              an_il_to_str_output_control_block_ptr octl)
 /*
 Output a string into the db_name_str buffer.
 */
 {
-  (void)add_string_to_text_buffer(db_name_str_buffer, str);
-}  /* put_str_into_db_name_str_buffer */
+  (void)add_string_to_text_buffer(octl->text_buffer, str);
+}  /* put_str_into_text_buffer */
 
 
 char *db_name_str_full(a_source_correspondence *scp,
@@ -330,12 +331,13 @@ is TRUE, include type information for function parameters.
 
   /* Set up for use of form_name. */
   clear_il_to_str_output_control_block(&octl);
-  octl.output_str = put_str_into_db_name_str_buffer;
-  octl.debug_output = TRUE;
+  octl.output_str = put_str_into_text_buffer;
   if (db_name_str_buffer == NULL) {
     db_name_str_buffer = alloc_text_buffer(1000);
   }  /* if */
-  db_name_str_buffer->size = 0;
+  reset_text_buffer(db_name_str_buffer);
+  octl.text_buffer = db_name_str_buffer;
+  octl.debug_output = TRUE;
 #if !STANDALONE_UTILITY_PROGRAM
   if (in_front_end) {
     /* Generate a translation unit name if this entity's symbol is
@@ -1477,7 +1479,9 @@ Dump the contents of the indicated type entry, for debug purposes.
 }  /* db_type */
 
 
-static void put_str_to_f_debug(char *str)
+/*ARGSUSED*/ /* octl is not used. */
+void put_str_to_f_debug(char                                  *str,
+                        an_il_to_str_output_control_block_ptr octl)
 /*
 Output the indicated string to f_debug.  This is used as an output routine
 when using the il_to_str routines.
@@ -2550,6 +2554,18 @@ is copied but not counted in updating pos_in_temp_text_buffer.
   (void)strcpy(temp_text_buffer+pos_in_temp_text_buffer, str);
   pos_in_temp_text_buffer = new_size;
 }  /* put_str_to_temp_text_buffer */
+
+
+/*ARGSUSED*/ /* octl is not used. */
+void put_str_to_temp_text_buffer_octl(
+                               char                                  *str,
+                               an_il_to_str_output_control_block_ptr octl)
+/*
+Wraper for put_str_to_temp_text_buffer for use with the il-to-str routines.
+*/
+{
+  put_str_to_temp_text_buffer(str);
+}  /* put_str_to_temp_text_buffer_octl */
 
 
 void put_ch_to_temp_text_buffer(char ch)

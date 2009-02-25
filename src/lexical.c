@@ -16962,7 +16962,7 @@ of the front end.
   caching_tokens = FALSE;
   /* Initialize the output control block for the il-to-str routines. */
   clear_il_to_str_output_control_block(&octl);
-  octl.output_str = put_str_to_temp_text_buffer;
+  octl.output_str = put_str_to_temp_text_buffer_octl;
   octl.gen_compilable_code = TRUE;
   next_preinclude_file = NULL;
   processing_macro_preincludes = FALSE;

@@ -269,7 +269,7 @@ that might normally precede it.
       form_class_or_namespace_qualifier((a_boolean)sym->is_class_member,
                                         sym->parent, octl);
     }  /* if */
-    octl->output_str(sym->header->identifier);
+    octl->output_str(sym->header->identifier, octl);
   }  /* if */
 }  /* form_optionally_qualified_symbol_name */
 
@@ -323,7 +323,10 @@ is done according to the output control block octl.
 Current output buffer pointer for put_str_into_db_symbol_buffer. */
 static char *db_symbol_buffer_pointer;
 
-static void put_str_into_db_symbol_buffer(char *str)
+/*ARGSUSED*/ /* octl is not used. */
+static void put_str_into_db_symbol_buffer(
+                               char                                  *str,
+                               an_il_to_str_output_control_block_ptr octl)
 /*
 Output a string into the db_symbol buffer.  Used once
 set_up_for_output_to_buffer has been called to set the buffer address.

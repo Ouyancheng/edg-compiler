@@ -1142,7 +1142,7 @@ file scope IL memory region), and return a pointer to it.
 #if !IA64_ABI
   /* Set up for use of form_type. */
   clear_il_to_str_output_control_block(&octl);
-  octl.output_str = put_str_to_temp_text_buffer;
+  octl.output_str = put_str_to_temp_text_buffer_octl;
   octl.suppress_typedefs = TRUE;
   pos_in_temp_text_buffer = 0;
   /* Generate the string for the type in temp_text_buffer. */

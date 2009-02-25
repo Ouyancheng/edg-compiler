@@ -113,7 +113,9 @@ Display the NULL-terminated string at string_ptr.
 }  /* disp_null_term_string */
 
 
-static void put_str_to_stdout(char *str)
+/*ARGSUSED*/ /* octl is not used. */
+static void put_str_to_stdout(char                                  *str,
+                              an_il_to_str_output_control_block_ptr octl)
 /*
 Output the indicated string to stdout.  This is used as an output routine
 when using the il_to_str routines.

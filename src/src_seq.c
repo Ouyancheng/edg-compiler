@@ -27,16 +27,6 @@ src_seq.c -- Support for source sequence list management
 
 #if DEBUG
 
-static void put_str_to_f_debug(char *str)
-/*
-Output the indicated string to f_debug.  This is used as an output routine
-when using the il_to_str routines.
-*/
-{
-  fputs(str, f_debug);
-}  /* put_str_to_f_debug */
-
-
 void db_source_sequence_entry(a_source_sequence_entry_ptr  ssep)
 /*
 Display the source-sequence entry pointed to by ssep, for debugging purposes.

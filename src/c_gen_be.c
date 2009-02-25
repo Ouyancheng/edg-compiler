@@ -847,6 +847,17 @@ complete token.  This is the non-macro version.
 }  /* write_str */
 
 
+/*ARGSUSED*/ /* octl is not used. */
+static void write_str_octl(char                                  *str,
+                           an_il_to_str_output_control_block_ptr octl)
+/*
+Version of write_str intended to be called by the il-to-str routines.
+*/
+{
+  m_write_str(str);
+}  /* write_str_octl */
+
+
 /*
 Write the indicated character to the output file.  It's a complete token,
 which means a long line could be broken before or after it.  This is
@@ -906,6 +917,17 @@ This is the non-macro version.
 {
   m_write_tok_str(str);
 }  /* write_tok_str */
+
+
+/*ARGSUSED*/ /* octl is not used. */
+static void write_tok_str_octl(char                                  *str,
+                               an_il_to_str_output_control_block_ptr octl)
+/*
+Version of write_tok_str intended to be called by the il-to-str routines.
+*/
+{
+  m_write_tok_str(str);
+}  /* write_tok_str_octl */
 
 
 static void write_unsigned_num(a_host_large_unsigned num)
@@ -9234,8 +9256,8 @@ The IL is already available when this routine is called.
   /* Set out the output control block used for interface with the il_to_str
      routines. */
   clear_il_to_str_output_control_block(&octl);
-  octl.output_str = write_tok_str;
-  octl.output_partial_token_str = write_str;
+  octl.output_str = write_tok_str_octl;
+  octl.output_partial_token_str = write_str_octl;
   octl.output_name = gen_name_reference;
   octl.output_temp_name = dump_temp_name;
   octl.output_func_declarator = dump_function_declarator;

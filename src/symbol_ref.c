@@ -40,7 +40,10 @@ static a_boolean
 			/* Flag that indicates whether initialization has
 			   already been done on the output control block. */
 
-static void write_string_to_xref_file(char *str)
+/*ARGSUSED*/ /* octl is not used. */
+static void write_string_to_xref_file(
+                               char                                  *str,
+                               an_il_to_str_output_control_block_ptr octl)
 /*
 Write str to the xref file.  The address of this routine is passed to
 the il_to_str routines for generating formatted names.
