@@ -9597,6 +9597,7 @@ needed).
     dsi_flags |= DSI_GNU_ATTRIBUTES_ALLOWED;
   }  /* if */
   decl_specifiers(dsi_flags, &state, (a_decl_pos_block_ptr)NULL);
+  check_assertion(state.type != NULL);
 #if GNU_EXTENSIONS_ALLOWED
   if (state.attributes != NULL) {
     /* Attributes were scanned that didn't directly directly affect the
@@ -9618,13 +9619,18 @@ needed).
          literals (e.g., "(struct { int i; }){0}"). */
       pos_error(ec_type_definition_not_allowed, &state.start_pos);
     }  /* if */
+  } else if (is_unknown_type(state.type)) {
+    /* The unknown type is returned by decl_specifiers when a conversion
+       operator, a constructor or a destructor is encountered.  In this
+       context, it is an indication of a severe syntax error. */
+    syntax_error(ec_exp_type_specifier);
+    state.type = error_type();
+    goto done;
   } else if (!(state.dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER)) {
     /* Missing type specifier. */
     report_implicit_int(&state.start_pos, state.specifiers_type);
   }  /* if */
-  if (state.specifiers_type != NULL) {
-    (skip_typerefs(state.specifiers_type))->source_corresp.referenced = TRUE;
-  }  /* if */
+  (skip_typerefs(state.type))->source_corresp.referenced = TRUE;
   /* Note -- the check for dangling_type_specifier is not relevant here. */
   if (is_abstract_declarator_start()) {
     di_flags = DI_ABSTRACT_DECLARATOR_ALLOWED | DI_QUALIFIED_NAME_ALLOWED;
@@ -9665,6 +9671,7 @@ needed).
     state.type = error_type();
   }  /* if */
   check_pending_qualifiers_used(&state);
+done:
   copy_source_position(state.start_pos, error_position);
   *type_ptr = state.type;
   db_exit();
@@ -9972,7 +9979,9 @@ operator function reference.
     copy_source_position(pos_curr_token, type_pos);
     init_decl_parse_state(&state);
     clear_decl_pos_block(&decl_pos_block);
-    input_flags = DSI_TYPE_SPECIFIER_ALLOWED | DSI_NO_REAL_DECLARATOR;
+    input_flags = DSI_TYPE_SPECIFIER_ALLOWED |
+                  DSI_NO_REAL_DECLARATOR |
+                  DSI_TRAILING_RETURN_TYPE;
     decl_specifiers(input_flags, &state, &decl_pos_block);
     if (state.dso_flags & DSO_DEFINES_SOMETHING) {
       /* Definition of a class, struct, union, or enum type is not allowed. */
