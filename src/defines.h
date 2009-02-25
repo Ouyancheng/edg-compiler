@@ -239,6 +239,15 @@ Flags to be set for any version that uses the C++ generating back end.
 #endif /* 0 */
 #endif /* ifdef __SUNPRO_C */
 #define REDEFINE_EXTNAME_PRAGMA_ENABLED 1
+#if defined(IA64_ABI) && IA64_ABI
+/* Use the <=4.0 virtual base class handling technique. */
+#ifndef HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS
+#define HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS FALSE
+#endif /* ifndef HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS */
+#ifndef HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS
+#define HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS TRUE
+#endif /* HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS */
+#endif /* defined(IA64_ABI) && IA64_ABI */
 #else /* !defined(SOLARIS) */
 /* SunOS version. */
 #ifndef C_GEN_BE_GENERATES_ANSI_C
