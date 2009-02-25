@@ -1341,7 +1341,7 @@ for that type.  is_ref_within_new_expr is TRUE if this occurs in a new-
 expression; in that case, a colon is assumed to be part of a "?:" operator and
 not the beginning of a base type specifier.  If no_definition_allowed is TRUE,
 always return FALSE (e.g., in "[]()->struct X {}" the "{}" is assumed to be
-the body of the lambda; not the definition of X).
+the body of the lambda, not the definition of X).
 */
 {
   a_boolean  result;

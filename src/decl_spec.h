@@ -220,11 +220,11 @@ extern void decl_spec_one_time_init(void);
 #define DSI_NO_TAG_DEFINITION ((a_decl_flag_set)0x1000000)
 			/* If this bit is set, a tag definition is not allowed
 			   and not considered (e.g., in "enum E { ..." the "{"
-			   is not consumed as part of specifier sequence).
-			   This is used (e.g.) for trailing return types (a
-			   C++0x syntax feature; e.g. in lambdas) where a
-			   brace following a tag name is treated as the
-			   beginning of the function body. */
+			   is not taken as the start of the enum definition).
+			   This is used, for example, when parsing trailing
+			   return types (a C++0x syntax feature; e.g. in
+			   lambdas) where a brace following a tag name is
+			   treated as the beginning of the function body. */
 #define DSI_LAST DSI_TRAILING_RETURN_TYPE
 			/* Last bit in the bit vector that is in use. */
 			/*lint -esym(755,DSI_LAST)*/
