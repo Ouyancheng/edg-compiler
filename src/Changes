@@ -1,5 +1,21 @@
 Version 4.1
 
+2/25/09  [EDGcpfe/9558]
+GNU C compatibility: Field conflicts with anonymous unions
+
+In GNU C mode, more cases of fields from anonymous unions (a GNU extension in
+C mode) conflicting with a field of the same name in an enclosing class are
+now accepted.  (See also the Changes entries of 1/12/05 and 2/27/03).
+For example:
+  struct S {
+    int c;
+    union {
+      int u;
+      float c;  // Conflicts with field i of type int.  Now accepted in
+    };          // GNU C mode.
+  };
+
+
 2/24/09  [EDGcpfe/9561]
 Delete of pointer-to-array treated as delete[]
 
