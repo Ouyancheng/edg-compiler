@@ -3205,25 +3205,13 @@ grcontext is a local variable used to save state for later restoration.
   function_lower_init();
 }  /* push_generated_routine_context */
 
-/*
-Macro for invocation of pop_generated_routine_context_full in the usual
-case where final_pop is TRUE.
-*/
-#define pop_generated_routine_context(scope, region_number, grcontext)  \
-  pop_generated_routine_context_full(scope, region_number, grcontext,   \
-                                     /*final_pop=*/TRUE)
 
-static void pop_generated_routine_context_full(
+static void pop_generated_routine_context(
                                      a_scope_ptr                 scope,
                                      a_memory_region_number      region_number,
-                                     a_generated_routine_context *grcontext,
-                                     a_boolean                   final_pop)
+                                     a_generated_routine_context *grcontext)
 /*
 Pop function corresponding to push_generated_routine_context.
-final_pop is TRUE if the specified scope will not be the argument of a
-subsequent push_generated_routine_context/pop_generated_routine_context_full
-sequence; in this case some finalization of the scope is performed, otherwise
-this finalization is delayed until the final pop is performed.
 */
 {
   a_routine_ptr rout = scope->variant.routine.ptr;
@@ -3243,45 +3231,40 @@ this finalization is delayed until the final pop is performed.
      has a pointer to the original instance and is unaware that it has
      been moved. */
   (void)pop_object_lifetime();
-  if (final_pop) {
-    clean_up_all_object_lifetimes(scope);
-    if (exceptions_enabled
+  clean_up_all_object_lifetimes(scope);
+  if (exceptions_enabled
 #if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
-        /* Don't add EH code to thunks. */
-        && rout->overriding_function_for_covariant_return_type == NULL
+      /* Don't add EH code to thunks. */
+      && rout->overriding_function_for_covariant_return_type == NULL
 #endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
 #if IA64_ABI && !HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS
-        /* Don't add EH code to alternate entry points, unless the complete
-           ctor/dtor contains exception handling code. */
-        && rout->primary_ctor_or_dtor == NULL
+      /* Don't add EH code to alternate entry points, unless the complete
+         ctor/dtor contains exception handling code. */
+      && rout->primary_ctor_or_dtor == NULL
 #endif /* IA64_ABI && !HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS */
-                                             ) {
-      /* Add prologue/epilogue code for exceptions if needed.  This is done
-         after the object lifetime is popped so we can tell whether any
-         EH processing is really needed. */
-      add_eh_function_prologue(scope);
-    }  /* if */
+                                           ) {
+    /* Add prologue/epilogue code for exceptions if needed.  This is done
+       after the object lifetime is popped so we can tell whether any
+       EH processing is really needed. */
+    add_eh_function_prologue(scope);
   }  /* if */
   pop_context();
-  if (final_pop) {
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
-    /* Make orphan lists for any local types or static variables in the
-       routine. */
-    add_scope_orphaned_il_lists(scope);
+  /* Make orphan lists for any local types or static variables in the
+     routine. */
+  add_scope_orphaned_il_lists(scope);
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
-    scope->function_body_processing_finished = TRUE;
+  scope->function_body_processing_finished = TRUE;
 #if MAINTAIN_NEEDED_FLAGS
-    /* Walk subtrees of local types and variables that have already been
-       marked as needed. */
-    walk_subtrees_of_local_entities(scope);
-    /* Mark the routine as needed if it's external. */
-    if (generated_routine_needed_even_if_unreferenced(rout)) {
-      mark_as_needed((char *)rout, iek_routine);
-    }  /* if */
-#endif /* MAINTAIN_NEEDED_FLAGS */
-    set_routine_defined(rout);
-    check_for_done_with_memory_region(region_number);
+  /* Walk subtrees of local types and variables that have already been
+     marked as needed. */
+  walk_subtrees_of_local_entities(scope);
+  /* Mark the routine as needed if it's external. */
+  if (generated_routine_needed_even_if_unreferenced(rout)) {
+    mark_as_needed((char *)rout, iek_routine);
   }  /* if */
+#endif /* MAINTAIN_NEEDED_FLAGS */
+  set_routine_defined(rout);
   restore_eh_lowering_context(&grcontext->ehcontext);
   promoted_local_static_variable_inits =
                                grcontext->promoted_local_static_variable_inits;
@@ -3291,8 +3274,9 @@ this finalization is delayed until the final pop is performed.
                                  grcontext->processing_file_scope_init_routine;
   innermost_function_scope = grcontext->innermost_function_scope;
   depth_innermost_function_scope = grcontext->depth_innermost_function_scope;
+  check_for_done_with_memory_region(region_number);
   switch_il_region(grcontext->region_to_switch_back_to);
-}  /* pop_generated_routine_context_full */
+}  /* pop_generated_routine_context */
 
 
 static void add_null_test_around_routine(a_scope_ptr scope)
@@ -3365,11 +3349,13 @@ when matching parameters).
 
 
 static a_constructor_init_ptr copy_ctor_init(
-                                            a_constructor_init_ptr   ctor_init,
-                                            an_expr_copy_options_set options)
+                                           a_constructor_init_ptr   ctor_init,
+                                           a_scope_ptr              from_scope,
+                                           a_scope_ptr              to_scope,
+                                           an_expr_copy_options_set options)
 /*
-Return a copy of the specified constructor init; options is a set of options
-for the copy.
+Return a copy of the specified constructor init.  ctor_init is being copied
+from from_scope to to_scope.  options is a set of options for the copy.
 */
 {
   a_constructor_init_ptr  copy;
@@ -3392,6 +3378,18 @@ for the copy.
       unexpected_condition();
 #endif /* CHECKING */
   }  /* switch */
+  if (copy->initializer != NULL &&
+      copy->initializer->kind == (a_dynamic_init_kind)dik_constructor &&
+      copy->initializer->variant.constructor.args != NULL) {
+    /* If a constructor init has an argument list, that argument list may
+       have variables (actually parameters) that refer to parameters in
+       "from_scope"; they need to be replaced with the corresponding
+       parameters in "to_scope". */
+    replace_parameters_in_expr_list(
+                                   copy->initializer->variant.constructor.args,
+                                   from_scope->variant.routine.parameters,
+                                   to_scope->variant.routine.parameters);
+  }  /* if */
   return copy;
 }  /* copy_ctor_init */
 
@@ -3401,17 +3399,13 @@ static void move_or_copy_virtual_base_ctor_inits(a_scope_ptr subobj_scope)
 This routine either moves (when HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS
 is FALSE) or copies (when HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS is
 TRUE) virtual base constructors from the specified subobject ctor/dtor
-scope into the complete object ctor/dtor scope (created by this routine
-if necessary).
+scope into the complete object ctor/dtor scope.
 */
 {
   a_routine_ptr            complete_routine = NULL, subobj_routine;
   a_scope_ptr              complete_scope;
-  a_memory_region_number   new_routine_il_region;
   a_constructor_init_ptr   ctor_init, copy, prev = NULL;
   a_routine_list_entry_ptr rlep;
-  a_generated_routine_context
-                           grcontext;
 #if !HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS
   a_constructor_init_ptr   *delete_at =
                               &subobj_scope->variant.routine.constructor_inits;
@@ -3426,7 +3420,7 @@ if necessary).
          ctor_init != NULL;
          ctor_init = ctor_init->next) {
       db_dynamic_initializer(ctor_init->initializer, 0);
-    }
+    }  /* for */
   }  /* if */
 #endif /* DEBUG */
   check_assertion(subobj_scope->kind == (a_scope_kind)sck_function);
@@ -3439,9 +3433,7 @@ if necessary).
                                     (a_special_function_kind)sfk_constructor ||
                    subobj_routine->special_kind ==
                                      (a_special_function_kind)sfk_destructor));
-  /* Create an entry point for the complete object ctor/dtor if necessary. */
-  create_alternate_entry_points(subobj_routine, /*define_now=*/FALSE);
-  /* Find the complete ctor/dtor routine. */
+  /* Find the complete routine and scope. */
   for (rlep = subobj_routine->variant.ctor_dtor.alternate_entry_points;
        rlep != NULL; 
        rlep = rlep->next) {
@@ -3451,14 +3443,10 @@ if necessary).
     }  /* if */
   }  /* for */
   check_assertion(complete_routine != NULL &&
-                  complete_routine->assoc_scope == NULL_region_number);
-  /* Allocate a scope for the routine if one doesn't exist yet. */
-  complete_scope = make_routine_definition(complete_routine,
-                                           /*make_return=*/FALSE,
-                                           &new_routine_il_region);
-  check_assertion(complete_scope->variant.routine.constructor_inits == NULL);
-  push_generated_routine_context(complete_scope, new_routine_il_region,
-                                 &grcontext);
+                  complete_routine->assoc_scope != NULL_region_number);
+  complete_scope = il_header.region_scope_entry[complete_routine->assoc_scope];
+  check_assertion(complete_scope != NULL &&
+                  complete_scope->variant.routine.constructor_inits == NULL);
   for (ctor_init = subobj_scope->variant.routine.constructor_inits;
        ctor_init != NULL;
        ctor_init = ctor_init->next) {
@@ -3476,14 +3464,8 @@ if necessary).
       }  /* if */
       /* Copy the constructor init into the current memory region and link
          it onto the list for the complete object ctor/dtor. */
-      /* If the constructor init has an argument list, that argument list may
-         have variables (actually parameters) that refer to subobject
-         parameters; they need to be replaced with the corresponding
-         parameters in the complete object ctor.  This is done by calling
-         replace_parameters_in_expr_list, but can't be performed until
-         the complete object's parameter list has been finalized, so
-         defer it for now. */
-      copy = copy_ctor_init(ctor_init, CE_NO_OPTIONS);
+      copy = copy_ctor_init(ctor_init, subobj_scope, complete_scope,
+                            CE_NO_OPTIONS);
       if (subobj_routine->special_kind ==
                                      (a_special_function_kind)sfk_destructor) {
         /* For destructors, queue the new destruction at the end of the
@@ -3517,9 +3499,11 @@ if necessary).
     }  /* if */
   }  /* for */
 #if !HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS
-  /* Remove subobject scope lifetime if it's no longer needed. */
+  /* Remove the subobject scope lifetime if it's no longer needed. */
   if (subobj_scope->lifetime != NULL &&
       is_useless_object_lifetime(subobj_scope->lifetime)) {
+    /* No need to unlink it from its parent (function scope object lifetimes
+       aren't queued on the file scope object lifetime). */
     subobj_scope->lifetime = NULL;
   }  /* if */
 #endif /* !HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS */
@@ -3534,17 +3518,15 @@ if necessary).
          ctor_init != NULL;
          ctor_init = ctor_init->next) {
       db_dynamic_initializer(ctor_init->initializer, 0);
-    }
+    }  /* for */
     (void)fprintf(f_debug, "complete ctor_inits:\n");
     for (ctor_init = complete_scope->variant.routine.constructor_inits;
          ctor_init != NULL;
          ctor_init = ctor_init->next) {
       db_dynamic_initializer(ctor_init->initializer, 0);
-    }
+    }  /* for */
   }  /* if */
 #endif /* DEBUG */
-  pop_generated_routine_context_full(complete_scope, new_routine_il_region,
-                                     &grcontext, /*final_pop=*/FALSE);
 }  /* move_or_copy_virtual_base_ctor_inits */
 
 #endif /* HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS */
@@ -3621,15 +3603,13 @@ static void define_default_version_of_routine(
 /*
 Define new_routine, which is an alternate entry point for routine, with fewer
 arguments.  Replacements for trailing arguments in routine are given by the
-default_arg_list.
+default_arg_list.  In configurations where
+HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS is TRUE, this routine is called
+twice (for classes that have virtual bases), once early to define the complete
+constructor/destructor so that ctor_inits may be moved (or copied) into the
+scope, and a second time during regular processing.  In the second case no
+action is necessary (since the routine has already been defined).
 */
-#if HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS
-/*
-In cases where define_default_version_of_routine is called to create
-a complete constructor or destructor, add code to perform the virtual base
-initialization or destruction here.
-*/
-#endif /* HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS */
 {
   an_expr_node_ptr implied_arg_list = NULL, end_implied_arg_list = NULL;
   an_expr_node_ptr call_node;
@@ -3654,348 +3634,344 @@ initialization or destruction here.
   a_context        def_arg_context;
 #if HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS
   a_boolean        construct_virtual_bases = FALSE;
-  a_boolean        deconstruct_virtual_bases = FALSE;
+  a_boolean        destroy_virtual_bases = FALSE;
   a_variable_ptr   construction_vtbls_var;
   a_type_ptr       class_type = parent_class_of(routine);
   an_insert_location     
                    prologue_insert_location;
 #endif /* HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS */
 
-  rtsp = routine->type->variant.routine.extra_info;
-  new_rtsp = new_routine->type->variant.routine.extra_info;
-  this_param_type = new_rtsp->param_type_list->type;
-  /* This routine doesn't handle the extra argument for a return via
-     copy constructor or additional parameter.  It could be changed
-     to do so. */
-  check_assertion(!rtsp->value_returned_by_cctor &&
-                  !rtsp->value_returned_as_parameter);
+  /* Only define the new routine if we haven't already defined one. */
   if (new_routine->assoc_scope == NULL_region_number) {
+    rtsp = routine->type->variant.routine.extra_info;
+    new_rtsp = new_routine->type->variant.routine.extra_info;
+    this_param_type = new_rtsp->param_type_list->type;
+    /* This routine doesn't handle the extra argument for a return via
+       copy constructor or additional parameter.  It could be changed
+       to do so. */
+    check_assertion(!rtsp->value_returned_by_cctor &&
+                    !rtsp->value_returned_as_parameter);
     /* Make a memory region, scope, and block for the routine definition. */
     new_routine_scope = make_routine_definition(new_routine,
                                                 /*make_return=*/FALSE,
                                                 &new_routine_il_region);
-  } else {
-    new_routine_il_region = new_routine->assoc_scope;
-    new_routine_scope = il_header.region_scope_entry[new_routine_il_region];
-  }  /* if */
-  set_block_start_insert_location(new_routine_scope->assoc_block,
-                                  &insert_location);
-  push_generated_routine_context(new_routine_scope, new_routine_il_region,
-                                 &grcontext);
-  /* Make a parameter variable for the "this" parameter (in lowered
-     form as a normal parameter). */
-  new_routine_scope->variant.routine.parameters = this_param_var =
-                                make_lowered_param_variable(this_param_type);
-  this_param_var->assoc_param_type = new_rtsp->param_type_list;
-  this_param_var->is_this_parameter = TRUE;
-  last_param_var = this_param_var;
-  /* Make expression lists for constructor or destructor implied
-     arguments. */
+    set_block_start_insert_location(new_routine_scope->assoc_block,
+                                    &insert_location);
+    push_generated_routine_context(new_routine_scope, new_routine_il_region,
+                                   &grcontext);
+    /* Make a parameter variable for the "this" parameter (in lowered
+       form as a normal parameter). */
+    new_routine_scope->variant.routine.parameters = this_param_var =
+                                  make_lowered_param_variable(this_param_type);
+    this_param_var->assoc_param_type = new_rtsp->param_type_list;
+    this_param_var->is_this_parameter = TRUE;
+    last_param_var = this_param_var;
+    /* Make expression lists for constructor or destructor implied
+       arguments. */
 #if HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS
-  if (class_type->variant.class_struct_union.any_virtual_base_classes &&
-      new_routine->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_complete &&
-      (new_routine->special_kind == (a_special_function_kind)sfk_constructor ||
-       new_routine->special_kind == (a_special_function_kind)sfk_destructor)) {
-    /* This is a complete object ctor/dtor that contains virtual bases and
-       those virtual bases will be constructed/destructed in this ctor/dtor. */
-    check_assertion(class_type->variant.class_struct_union.extra_info->
+    if (class_type->variant.class_struct_union.any_virtual_base_classes &&
+        new_routine->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_complete &&
+        (new_routine->special_kind ==
+                                    (a_special_function_kind)sfk_constructor ||
+         new_routine->special_kind ==
+                                    (a_special_function_kind)sfk_destructor)) {
+      /* This is a complete object ctor/dtor that contains virtual bases and
+         those virtual bases will be constructed/destructed in this
+         ctor/dtor. */
+      check_assertion(class_type->variant.class_struct_union.extra_info->
                                                    construction_vtbls != NULL);
-    /* Create a temporary that will point to an array of virtual function
-       table addresses. */
-    construction_vtbls_var = make_construction_vtbl_temporary();
-    /* Add the construction vtable as an implied argument to the subobject
-       ctor/dtor. */
-    implied_arg_list = var_rvalue_expr(construction_vtbls_var);
-    end_implied_arg_list = implied_arg_list;
-    if (new_routine->special_kind == (a_special_function_kind)sfk_destructor) {
-      /* Set the destruction_vtbls temporary to point to the default array
-         of virtual function table pointers to be used when destroying a
-         complete object. */
-      insert_default_construction_vtbls_assignment(class_type,
-                                                   construction_vtbls_var,
-                                                   &insert_location);
-      /* Save this insert location for the exception handling prologue. */
-      prologue_insert_location = insert_location;
-      deconstruct_virtual_bases = TRUE;
-    } else {
-      /* Set a flag to indicate that construction of virtual bases should
-         occur later in this ctor (after the parameter lists have been
-         established). */
-      construct_virtual_bases = TRUE;
-    }  /* if */
-  } else
-#endif /* HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS */
-  /* Do not add code here. */
-  if (routine->special_kind == (a_special_function_kind)sfk_constructor) {
-#if IA64_ABI
-    if (new_routine->special_kind == (a_special_function_kind)sfk_constructor&&
-        ctor_needs_implied_arg_list(new_routine)) {
-      /* We're calling a constructor from a constructor entry point, and the
-         entry point routine has parameters for the implied arguments.  They
-         will be copied below so we don't need implied arguments. */
-    } else
-#endif /* IA64_ABI */
-    /* Do not add code here. */
-    {
-      /* We're calling a constructor from something that doesn't have
-         parameters for the implied arguments, so make them if necessary. */
-      make_ctor_implied_arg_list(routine, &implied_arg_list,
-                                 &end_implied_arg_list);
-    }  /* if */
-  } else if (routine->special_kind == (a_special_function_kind)sfk_destructor){
-#if IA64_ABI
-    if (new_routine->special_kind == (a_special_function_kind)sfk_destructor &&
-        dtor_needs_vtt_argument(new_routine)) {
-      /* We're calling a destructor from a destructor entry point, and the
-         entry point routine has parameters for the implied arguments.  They
-         will be copied below so we don't need implied arguments. */
-    } else
-#endif /* IA64_ABI */
-    /* Do not add code here. */
-    {
-      /* We're calling a destructor from something that doesn't have
-         parameters for the implied arguments, so make them if necessary. */
-      make_dtor_implied_arg_list(routine, /*have_complete_object=*/TRUE,
-                                 &implied_arg_list, &end_implied_arg_list);
-    }  /* if */
-  }  /* if */
-  /* Do not process parameters with default argument values, since they
-     are removed from the routine's interface. */
-  for (param_type = new_rtsp->param_type_list->next; 
-       param_type != NULL;
-       param_type = param_type->next) {
-    param_var = make_lowered_param_variable(param_type->type);
-    param_var->assoc_param_type = param_type;
-    last_param_var->next = param_var;
-    /* Add a reference to the parameter to the argument list to be used
-       to call the original function.  This passes the parameter through
-       unchanged.  Note that parameters of this type follow the
-       implicit arguments, if any. */
-    pass_through_arg = var_rvalue_expr(param_var);
-    if (implied_arg_list == NULL) {
-      implied_arg_list = pass_through_arg;
-    } else {
-      end_implied_arg_list->next = pass_through_arg;
-    }  /* if */
-    end_implied_arg_list = pass_through_arg;
-    last_param_var = param_var;
-  }  /* for */
-  if (default_arg_list != NULL) {
-    /* There are default arguments for the call, so they have to be
-       copied and lowered. */
-    /* Create an expression temporary lifetime surrounding the copy of
-       the expressions to catch any needed destructions. */
-    an_object_lifetime_ptr saved_curr_object_lifetime = curr_object_lifetime;
-    src_param_type = rtsp->param_type_list->next;
-    /* Find the original parameter type that corresponds to this parameter. */
-    while (src_param_type != NULL && !src_param_type->has_default_arg) {
-      src_param_type = src_param_type->next;
-    }  /* while */
-    push_object_lifetime(iek_none, (char *)NULL,
-                         (an_object_lifetime_kind)olk_expr_temporary);
-    init_expr_lifetime = curr_object_lifetime;
-    curr_object_lifetime = saved_curr_object_lifetime;
-    /* Push a context for the lifetime.  */
-    push_context(&def_arg_context, (a_scope_ptr)NULL, init_expr_lifetime);
-    /* Copy the default argument expressions into the function memory
-       region. */
-    default_arg_list = copy_list_of_expr_trees(default_arg_list,
-                                               CE_UNLINK_SOURCE_DESTRUCTIONS);
-    if (is_useless_object_lifetime(init_expr_lifetime)) {
-      /* There weren't any temporaries in the default argument expressions,
-         so the lifetime is not needed. */
-      init_expr_lifetime = NULL;
-      pop_context();
-    } else {
-      /* There were some destructible temporaries in the default
-         argument expressions, so the lifetime is needed. */
-      if (keep_object_lifetime_info_in_lowered_il) {
-        /* The object lifetime is to be kept in the IL, so add a block
-           statement and bind the lifetime to it. */
-        a_statement_ptr block_stmt =
-                               alloc_statement((a_statement_kind)stmk_block);
-        insert_statement(block_stmt, &insert_location);
-        set_block_start_insert_location(block_stmt, &insert_location);
-        bind_object_lifetime(init_expr_lifetime,
-                             (an_il_entry_kind)iek_block,
-                             (char *)block_stmt->variant.block.extra_info);
+      /* Create a temporary that will point to an array of virtual function
+         table addresses. */
+      construction_vtbls_var = make_construction_vtbl_temporary();
+      /* Add the construction vtable as an implied argument to the subobject
+         ctor/dtor. */
+      implied_arg_list = var_rvalue_expr(construction_vtbls_var);
+      end_implied_arg_list = implied_arg_list;
+      if (new_routine->special_kind ==
+                                     (a_special_function_kind)sfk_destructor) {
+        /* Set the destruction_vtbls temporary to point to the default array
+           of virtual function table pointers to be used when destroying a
+           complete object. */
+        insert_default_construction_vtbls_assignment(class_type,
+                                                     construction_vtbls_var,
+                                                     &insert_location);
+        /* Save this insert location for the exception handling prologue. */
+        prologue_insert_location = insert_location;
+        destroy_virtual_bases = TRUE;
+      } else {
+        /* Note that insert_default_construction_vtbls_assignment is called
+           later (from add_virtual_base_init_code). */
+        /* Set a flag to indicate that construction of virtual bases should
+           occur later in this ctor (after the parameter lists have been
+           established). */
+        construct_virtual_bases = TRUE;
       }  /* if */
-      begin_object_lifetime(init_expr_lifetime, &insert_location);
+    } else
+#endif /* HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS */
+    /* Do not add code here. */
+    if (routine->special_kind == (a_special_function_kind)sfk_constructor) {
+#if IA64_ABI
+      if (new_routine->special_kind ==
+                                    (a_special_function_kind)sfk_constructor &&
+          ctor_needs_implied_arg_list(new_routine)) {
+        /* We're calling a constructor from a constructor entry point, and the
+           entry point routine has parameters for the implied arguments.  They
+           will be copied below so we don't need implied arguments. */
+      } else
+#endif /* IA64_ABI */
+      /* Do not add code here. */
+      {
+        /* We're calling a constructor from something that doesn't have
+           parameters for the implied arguments, so make them if necessary. */
+        make_ctor_implied_arg_list(routine, &implied_arg_list,
+                                   &end_implied_arg_list);
+      }  /* if */
+    } else if (routine->special_kind ==
+                                     (a_special_function_kind)sfk_destructor) {
+#if IA64_ABI
+      if (new_routine->special_kind ==
+                                     (a_special_function_kind)sfk_destructor &&
+          dtor_needs_vtt_argument(new_routine)) {
+        /* We're calling a destructor from a destructor entry point, and the
+           entry point routine has parameters for the implied arguments.  They
+           will be copied below so we don't need implied arguments. */
+      } else
+#endif /* IA64_ABI */
+      /* Do not add code here. */
+      {
+        /* We're calling a destructor from something that doesn't have
+           parameters for the implied arguments, so make them if necessary. */
+        make_dtor_implied_arg_list(routine, /*have_complete_object=*/TRUE,
+                                   &implied_arg_list, &end_implied_arg_list);
+      }  /* if */
     }  /* if */
-    /* Lower the default argument expressions.  Note that this must be done
-       after the copy because you can't copy an expression once it has been
-       lowered -- temporaries might have been added. */
-    lower_arg_expr_list(default_arg_list, routine_type, routine,
-                        src_param_type);
-  }  /* if */
-  if (implied_arg_list != NULL) {
-    /* Add the implicit arguments to the front of the default argument
-       list. */
-    end_implied_arg_list->next = default_arg_list;
-    default_arg_list = implied_arg_list;
-  }  /* if */
-#if HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS
-  if (construct_virtual_bases || deconstruct_virtual_bases) {
-    /* Start an object lifetime. */
-    begin_block_object_lifetime(new_routine_scope->lifetime,
-                                &insert_location);
-    if (construct_virtual_bases) {
-      /* Finish copying constructor inits from subobject to complete ctor. */
-      a_constructor_init_ptr ctor_init;
-      a_scope_ptr            subobj_scope;
-      subobj_scope = il_header.region_scope_entry[routine->assoc_scope];
-      for (ctor_init = new_routine_scope->variant.routine.constructor_inits;
-           ctor_init != NULL;
-           ctor_init = ctor_init->next) {
-        if (ctor_init->initializer->kind ==
-                                        (a_dynamic_init_kind)dik_constructor &&
-            ctor_init->initializer->variant.constructor.args != NULL) {
-          /* This is a constructor init that has an argument list.  The
-             argument list may have variables (actually parameters) that refer
-             to subobject parameters -- replace them in the expression with
-             their corresponding parameter in the complete object ctor/dtor. */
-          replace_parameters_in_expr_list(
-                              ctor_init->initializer->variant.constructor.args,
-                              subobj_scope->variant.routine.parameters,
-                              new_routine_scope->variant.routine.parameters);
+    /* Do not process parameters with default argument values, since they
+       are removed from the routine's interface. */
+    for (param_type = new_rtsp->param_type_list->next; 
+         param_type != NULL;
+         param_type = param_type->next) {
+      param_var = make_lowered_param_variable(param_type->type);
+      param_var->assoc_param_type = param_type;
+      last_param_var->next = param_var;
+      /* Add a reference to the parameter to the argument list to be used
+         to call the original function.  This passes the parameter through
+         unchanged.  Note that parameters of this type follow the
+         implicit arguments, if any. */
+      pass_through_arg = var_rvalue_expr(param_var);
+      if (implied_arg_list == NULL) {
+        implied_arg_list = pass_through_arg;
+      } else {
+        end_implied_arg_list->next = pass_through_arg;
+      }  /* if */
+      end_implied_arg_list = pass_through_arg;
+      last_param_var = param_var;
+    }  /* for */
+    if (default_arg_list != NULL) {
+      /* There are default arguments for the call, so they have to be
+         copied and lowered. */
+      /* Create an expression temporary lifetime surrounding the copy of
+         the expressions to catch any needed destructions. */
+      an_object_lifetime_ptr saved_curr_object_lifetime = curr_object_lifetime;
+      src_param_type = rtsp->param_type_list->next;
+      /* Find the original parameter type that corresponds to this
+         parameter. */
+      while (src_param_type != NULL && !src_param_type->has_default_arg) {
+        src_param_type = src_param_type->next;
+      }  /* while */
+      push_object_lifetime(iek_none, (char *)NULL,
+                           (an_object_lifetime_kind)olk_expr_temporary);
+      init_expr_lifetime = curr_object_lifetime;
+      curr_object_lifetime = saved_curr_object_lifetime;
+      /* Push a context for the lifetime.  */
+      push_context(&def_arg_context, (a_scope_ptr)NULL, init_expr_lifetime);
+      /* Copy the default argument expressions into the function memory
+         region. */
+      default_arg_list = copy_list_of_expr_trees(default_arg_list,
+                                                CE_UNLINK_SOURCE_DESTRUCTIONS);
+      if (is_useless_object_lifetime(init_expr_lifetime)) {
+        /* There weren't any temporaries in the default argument expressions,
+           so the lifetime is not needed. */
+        init_expr_lifetime = NULL;
+        pop_context();
+      } else {
+        /* There were some destructible temporaries in the default
+           argument expressions, so the lifetime is needed. */
+        if (keep_object_lifetime_info_in_lowered_il) {
+          /* The object lifetime is to be kept in the IL, so add a block
+             statement and bind the lifetime to it. */
+          a_statement_ptr block_stmt =
+                                 alloc_statement((a_statement_kind)stmk_block);
+          insert_statement(block_stmt, &insert_location);
+          set_block_start_insert_location(block_stmt, &insert_location);
+          bind_object_lifetime(init_expr_lifetime,
+                               (an_il_entry_kind)iek_block,
+                               (char *)block_stmt->variant.block.extra_info);
         }  /* if */
-      }  /* for */
-      /* Emit code to initialize the virtual bases.  Must be done after the
-         parameter list is complete (var_for_copy_constructor_source depends
-         on it). */
-      add_virtual_base_init_code(new_routine_scope, (a_variable_ptr)NULL,
-                                 (a_handle_number)0, construction_vtbls_var,
-                                 &insert_location);
-    }  /* if */
-  }  /* if */
-#endif /* HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS */
-  /* Add the "this" parameter at the front of the argument list. */
-  this_arg = var_rvalue_expr(this_param_var);
-  this_arg->next = default_arg_list;
-  /* Make a call node that calls the original routine with all
-     the implicit arguments, i.e., that passes all the extra arguments
-     to the original routine. */
-  call_node = make_call_node(routine, this_arg, (an_insert_location *)NULL);
-  /* If the routine has a void type, insert a statement for the call
-     followed by a return statement.  Otherwise, attach the call directly
-     to the return. */
-  void_return = is_void_type(lowered_return_type_of(new_routine->type));
-#if HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS
-  if (exceptions_enabled &&
-      (construct_virtual_bases ||
-       (deconstruct_virtual_bases &&
-        new_routine_scope->variant.routine.constructor_inits != NULL))) {
-    /* Force insertion as a statement because we have exception handling code
-       or destructions that must follow the call. */
-    insert_as_statement = TRUE;
-  } else
-#endif /* HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS */
-  /* Do not insert code. */
-  if (new_rtsp->has_ellipsis) {
-    /* Force ctor/dtors that have an ellipsis argument to use a call or
-       assignment expression statement (rather than a return statement).
-       This creates the necessary temporary and makes things simpler for the
-       C generating back end. */
-    insert_as_statement = TRUE;
-  } else { 
-    insert_as_statement = void_return;
-    /* If we might have to insert destructor calls, insert the call as
-       a statement. */
-    if (init_expr_lifetime != NULL) insert_as_statement = TRUE;
-  }  /* if */
-  if (insert_as_statement) {
-    /* The call will be inserted as a separate statement. */
-    a_variable_ptr temp_var;
-    /* If the routine has a non-void return, put the value in a temporary
-       and then return the temporary later. */
-    if (!void_return) {
-      temp_var = make_lowered_temporary(call_node->type);
-      call_node = make_var_assignment_expr(temp_var, call_node);
-    }  /* if */
-    /* Insert the call as a statement. */
-    (void)insert_expr_statement(call_node, &insert_location);
-    /* Set up the expression to be used in the return statement (the value
-       of the temporary). */
-    if (void_return) {
-      call_node = NULL;
-    } else {
-      call_node = var_rvalue_expr(temp_var);
-    }  /* if */
-#if HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS
-    if (deconstruct_virtual_bases &&
-        new_routine_scope->variant.routine.constructor_inits != NULL) {
-      a_constructor_init_ptr ctor_init, ctor_init_list;
-      a_dynamic_init_ptr     first_epilogue_destruction;
-
-      ctor_init_list = new_routine_scope->variant.routine.constructor_inits;
-      first_epilogue_destruction = ctor_init_list->initializer;
-      check_assertion(first_epilogue_destruction != NULL);
-      if (exceptions_enabled) {
-        /* Do cleanup initialization for the virtual base destructions (only)
-           on the ctor-initializer list of the destructor. */
-        initialize_dtor_init_for_cleanup(first_epilogue_destruction,
-                                         ctor_init_list);
+        begin_object_lifetime(init_expr_lifetime, &insert_location);
       }  /* if */
-      /* Destroy any virtual base classes on the ctor_init list. */
-      for (ctor_init = ctor_init_list;
-           ctor_init != NULL;
-           ctor_init = ctor_init->next) {
-        check_assertion(ctor_init->kind ==
-                              (a_constructor_init_kind)cik_virtual_base_class);
-        lower_dtor_init(ctor_init, this_param_var,
-                        /*have_complete_object=*/FALSE,
-                        /*base_of_complete_object=*/TRUE,
-                        construction_vtbls_var,
-                        &insert_location);
-      }  /* for */
-      /* Insert the region table and initial cleanup state. */
-      insert_epilogue_cleanup_state(first_epilogue_destruction,
-                                    &prologue_insert_location);
+      /* Lower the default argument expressions.  Note that this must be done
+         after the copy because you can't copy an expression once it has been
+         lowered -- temporaries might have been added. */
+      lower_arg_expr_list(default_arg_list, routine_type, routine,
+                          src_param_type);
+    }  /* if */
+    if (implied_arg_list != NULL) {
+      /* Add the implicit arguments to the front of the default argument
+         list. */
+      end_implied_arg_list->next = default_arg_list;
+      default_arg_list = implied_arg_list;
+    }  /* if */
+#if HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS
+    if (construct_virtual_bases || destroy_virtual_bases) {
+      a_scope_ptr  subobj_scope =
+                            il_header.region_scope_entry[routine->assoc_scope];
+      /* Move (or copy) virtual base ctor_inits from the subobject ctor/dtor
+         into the complete object ctor/dtor so the construction/destruction
+         of the virtual bases will take place in the complete object
+         ctor/dtor. */
+      move_or_copy_virtual_base_ctor_inits(subobj_scope);
+      /* Start an object lifetime. */
+      begin_block_object_lifetime(new_routine_scope->lifetime,
+                                  &insert_location);
+      if (construct_virtual_bases) {
+        /* Emit code to initialize the virtual bases.  Must be done after the
+           parameter list is complete (var_for_copy_constructor_source depends
+           on it). */
+        add_virtual_base_init_code(new_routine_scope, (a_variable_ptr)NULL,
+                                   (a_handle_number)0, construction_vtbls_var,
+                                   &insert_location);
+      }  /* if */
     }  /* if */
 #endif /* HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS */
+    /* Add the "this" parameter at the front of the argument list. */
+    this_arg = var_rvalue_expr(this_param_var);
+    this_arg->next = default_arg_list;
+    /* Make a call node that calls the original routine with all
+       the implicit arguments, i.e., that passes all the extra arguments
+       to the original routine. */
+    call_node = make_call_node(routine, this_arg, (an_insert_location *)NULL);
+    /* If the routine has a void type, insert a statement for the call
+       followed by a return statement.  Otherwise, attach the call directly
+       to the return. */
+    void_return = is_void_type(lowered_return_type_of(new_routine->type));
+#if HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS
+    if (exceptions_enabled &&
+        (construct_virtual_bases || 
+         (destroy_virtual_bases &&
+          new_routine_scope->variant.routine.constructor_inits != NULL))) {
+      /* Force insertion as a statement because we have exception handling code
+         or destructions that must follow the call. */
+      insert_as_statement = TRUE;
+    } else
+#endif /* HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS */
+    /* Do not insert code. */
+    if (new_rtsp->has_ellipsis) {
+      /* Force ctor/dtors that have an ellipsis argument to use a call or
+         assignment expression statement (rather than a return statement).
+         This creates the necessary temporary and makes things simpler for the
+         C generating back end. */
+      insert_as_statement = TRUE;
+    } else { 
+      insert_as_statement = void_return;
+      /* If we might have to insert destructor calls, insert the call as
+         a statement. */
+      if (init_expr_lifetime != NULL) insert_as_statement = TRUE;
+    }  /* if */
+    if (insert_as_statement) {
+      /* The call will be inserted as a separate statement. */
+      a_variable_ptr temp_var;
+      /* If the routine has a non-void return, put the value in a temporary
+         and then return the temporary later. */
+      if (!void_return) {
+        temp_var = make_lowered_temporary(call_node->type);
+        call_node = make_var_assignment_expr(temp_var, call_node);
+      }  /* if */
+      /* Insert the call as a statement. */
+      (void)insert_expr_statement(call_node, &insert_location);
+      /* Set up the expression to be used in the return statement (the value
+         of the temporary). */
+      if (void_return) {
+        call_node = NULL;
+      } else {
+        call_node = var_rvalue_expr(temp_var);
+      }  /* if */
+#if HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS
+      if (destroy_virtual_bases &&
+          new_routine_scope->variant.routine.constructor_inits != NULL) {
+        a_constructor_init_ptr ctor_init, ctor_init_list;
+        a_dynamic_init_ptr     first_epilogue_destruction;
+
+        ctor_init_list = new_routine_scope->variant.routine.constructor_inits;
+        first_epilogue_destruction = ctor_init_list->initializer;
+        check_assertion(first_epilogue_destruction != NULL);
+        if (exceptions_enabled) {
+          /* Do cleanup initialization for the virtual base destructions (only)
+             on the ctor-initializer list of the destructor. */
+          initialize_dtor_init_for_cleanup(first_epilogue_destruction,
+                                           ctor_init_list);
+        }  /* if */
+        /* Destroy any virtual base classes on the ctor_init list. */
+        for (ctor_init = ctor_init_list;
+             ctor_init != NULL;
+             ctor_init = ctor_init->next) {
+          check_assertion(ctor_init->kind ==
+                              (a_constructor_init_kind)cik_virtual_base_class);
+          lower_dtor_init(ctor_init, this_param_var,
+                          /*have_complete_object=*/FALSE,
+                          /*base_of_complete_object=*/TRUE,
+                          construction_vtbls_var,
+                          &insert_location);
+        }  /* for */
+        /* Insert the region table and initial cleanup state. */
+        insert_epilogue_cleanup_state(first_epilogue_destruction,
+                                      &prologue_insert_location);
+      }  /* if */
+#endif /* HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS */
+#if IA64_ABI
+      if (new_routine->special_kind ==
+                                     (a_special_function_kind)sfk_destructor &&
+          new_routine->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_deleting) {
+        /* Add the deletion code for the IA-64 ABI deleting destructor. */
+        a_type_ptr    new_class_type = parent_class_of(new_routine);
+        a_routine_ptr delete_routine = class_type_supp(new_class_type)->
+                                                 assoc_operator_delete_routine;
+        check_assertion(delete_routine != NULL);
+        this_arg = var_rvalue_expr(this_param_var);
+        (void)make_delete_call(delete_routine, new_class_type, this_arg,
+                               &insert_location);
+      }  /* if */
+#endif /* IA64_ABI */
+    }  /* if */
+    if (init_expr_lifetime != NULL) {
+      /* Generate the destructions. */
+      gen_cleanup_actions(init_expr_lifetime, &insert_location);
+      pop_context();
+    }  /* if */
+    /* Add the return statement. */
+    return_stmt = alloc_statement((a_statement_kind)stmk_return);
+    return_stmt->expr = call_node;
+    insert_statement(return_stmt, &insert_location);
+    add_to_return_memo_list(return_stmt);
 #if IA64_ABI
     if (new_routine->special_kind == (a_special_function_kind)sfk_destructor &&
         new_routine->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_deleting) {
-      /* Add the deletion code for the IA-64 ABI deleting destructor. */
-      a_type_ptr    new_class_type = parent_class_of(new_routine);
-      a_routine_ptr delete_routine = class_type_supp(new_class_type)->
-                                                 assoc_operator_delete_routine;
-      check_assertion(delete_routine != NULL);
-      this_arg = var_rvalue_expr(this_param_var);
-      (void)make_delete_call(delete_routine, new_class_type, this_arg,
-                             &insert_location);
+      /* Add "if (this != NULL)" around the whole routine for a deleting
+         destructor (it can be called with a null "this" pointer). */
+      add_null_test_around_routine(new_routine_scope);
     }  /* if */
 #endif /* IA64_ABI */
-  }  /* if */
-  if (init_expr_lifetime != NULL) {
-    /* Generate the destructions. */
-    gen_cleanup_actions(init_expr_lifetime, &insert_location);
-    pop_context();
-  }  /* if */
-  /* Add the return statement. */
-  return_stmt = alloc_statement((a_statement_kind)stmk_return);
-  return_stmt->expr = call_node;
-  insert_statement(return_stmt, &insert_location);
-  add_to_return_memo_list(return_stmt);
-#if IA64_ABI
-  if (new_routine->special_kind == (a_special_function_kind)sfk_destructor &&
-      new_routine->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_deleting) {
-    /* Add "if (this != NULL)" around the whole routine for a deleting
-       destructor (it can be called with a null "this" pointer). */
-    add_null_test_around_routine(new_routine_scope);
-  }  /* if */
-#endif /* IA64_ABI */
 #if HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS
-  /* Constructor inits were handled above and can now be discarded. */
-  new_routine_scope->variant.routine.constructor_inits = NULL;
+    /* Constructor inits were handled above and can now be discarded. */
+    new_routine_scope->variant.routine.constructor_inits = NULL;
 #endif /* HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS */
-  pop_generated_routine_context(new_routine_scope, new_routine_il_region,
-                                &grcontext);
+    pop_generated_routine_context(new_routine_scope, new_routine_il_region,
+                                  &grcontext);
 #if MINIMAL_INLINING
-  if (new_routine->is_inline && inlining_enabled) {
-    set_up_routine_for_inlining(new_routine_scope);
-  }  /* if */
+    if (new_routine->is_inline && inlining_enabled) {
+      set_up_routine_for_inlining(new_routine_scope);
+    }  /* if */
 #endif /* MINIMAL_INLINING */
+  }  /* if */
 }  /* define_default_version_of_routine */
 
 
@@ -4277,13 +4253,16 @@ routine will be the same as the one passed in.
       if (parent_class_of(routine)->
                          variant.class_struct_union.any_virtual_base_classes &&
           kind == (a_ctor_or_dtor_kind)cdk_complete &&
+          (routine->assoc_scope != NULL_region_number &&
+           il_header.region_scope_entry[routine->assoc_scope]->
+                                  variant.routine.constructor_inits != NULL) &&
           (new_routine->special_kind ==
                                     (a_special_function_kind)sfk_constructor ||
            new_routine->special_kind ==
                                     (a_special_function_kind)sfk_destructor)) {
-      /* The new routine needs an exception specification if the old one has
-         one and there are virtual base initializations/destructions (which
-         necessitates exception handling). */
+        /* The new routine needs an exception specification if the old one
+           has one and there are virtual base initializations/destructions
+           (which necessitate exception handling). */
         new_rtsp->exception_specification = rtsp->exception_specification;
       }  /* if */
 #endif /* HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS */
@@ -12040,9 +12019,12 @@ constructor scope, and also lower the user code.
     if (class_type->variant.class_struct_union.any_virtual_base_classes &&
         scope->variant.routine.ptr->ctor_dtor_kind ==
                                           (a_ctor_or_dtor_kind)cdk_subobject) {
-      /* Move or copy the virtual base constructor inits to the complete
-         object ctor. */
-      move_or_copy_virtual_base_ctor_inits(scope);
+      /* Create the complete object constructor early so that we can move
+         (or copy) any virtual base constructor inits into the complete
+         object constructor scope. */
+      (void)alternate_entry_point(scope->variant.routine.ptr,
+                                  (a_ctor_or_dtor_kind)cdk_complete,
+                                  /*define_now=*/TRUE);
     }  /* if */
 #endif /* HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS */
     /* When the constructor has a function-try-block, the wrapper code
@@ -12908,9 +12890,12 @@ destructor scope, and also lower the user code.
 #if HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS
   if (class_type->variant.class_struct_union.any_virtual_base_classes &&
       dtor_routine->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_subobject) {
-    /* The virtual base destructions need to be moved/copied to the
-       complete object destructor. */
-    move_or_copy_virtual_base_ctor_inits(scope);
+    /* Create the complete object destructor early so that we can move
+       (or copy) any virtual base destructions into the complete
+       object destructor scope. */
+    (void)alternate_entry_point(scope->variant.routine.ptr,
+                                (a_ctor_or_dtor_kind)cdk_complete,
+                                /*define_now=*/TRUE);
   }  /* if */
 #endif /* HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS */
   /* Start an object lifetime if appropriate. */

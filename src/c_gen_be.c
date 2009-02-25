@@ -296,7 +296,7 @@ static a_scope_ptr
 static a_variable_ptr
 		master_routine_return_variable;
 			/* If non-NULL, we are expanding the body of a
-			   master routine that returns 'this' and all returns
+			   master routine that returns "this" and all returns
 			   within this expansion should be replaced with
 			   assignments of the returned value to 
 			   master_routine_return_variable (passing the returned
@@ -1309,6 +1309,37 @@ static void dump_variable_name(a_variable_ptr variable)
 Print the name of the indicated variable.
 */
 {
+  if (entry_routine_scope != NULL &&
+      variable->is_parameter && !variable->is_this_parameter) {
+    /* While putting out the parameters of a wrapper routine for a
+       virtual function with a covariant return type, use the parameter
+       names from the original routine instead of the unnamed parameters
+       of the wrapper, because when the body of the original function
+       is duplicated in the wrapper it will contain references to the
+       parameters by its original name. */
+    a_variable_ptr master_param_var, wrapper_param_var;
+    check_assertion(master_routine_scope != NULL);
+    master_param_var = master_routine_scope->variant.routine.parameters;
+    wrapper_param_var = entry_routine_scope->variant.routine.parameters;
+    for (; wrapper_param_var != variable && master_param_var != NULL;
+         master_param_var = master_param_var->next,
+           wrapper_param_var = wrapper_param_var->next) {
+      check_assertion(wrapper_param_var != NULL);
+      if (num_master_params_added > 0 && 
+          master_param_var->is_this_parameter) {
+        /* The master routine has extra parameters following the "this"
+           parameter.  Advance over them. */
+        int n;
+        for (n = 1; n <= num_master_params_added; n++) {
+          master_param_var = master_param_var->next;
+          check_assertion(master_param_var != NULL);
+        }  /* for */
+      }  /* if */
+    }  /* for */
+    /* Parameter can be one of the additional parameters, in which case no
+       substitution is necessary. */
+    if (master_param_var != NULL) variable = master_param_var;
+  }  /* if */
   if (variable->is_this_parameter) {
     /* "this" parameter in C++. */
     m_write_tok_str("this");
@@ -1645,45 +1676,6 @@ Routine to be called by the il_to_str routines to output a name.
 }  /* gen_name_reference */
 
 
-static void dump_param_variable_decl_name(a_variable_ptr var)
-/*
-Dump out the name of a parameter variable as it must appear in the declaration
-of the parameter.
-*/
-{
-  if (entry_routine_scope != NULL &&
-      var->is_parameter && !var->is_this_parameter) {
-    /* While putting out the parameters of a wrapper routine for a
-       virtual function with a covariant return type, use the parameter
-       names from the original routine instead of the unnamed parameters
-       of the wrapper, because when the body of the original function
-       is duplicated in the wrapper it will contain references to the
-       parameters by (original) name. */
-    a_variable_ptr master_param_var =
-                              master_routine_scope->variant.routine.parameters;
-    a_variable_ptr wrapper_param_var =
-                               entry_routine_scope->variant.routine.parameters;
-    for (; wrapper_param_var != var;
-         master_param_var = master_param_var->next,
-           wrapper_param_var = wrapper_param_var->next) {
-      check_assertion(master_param_var != NULL && wrapper_param_var != NULL);
-      if (num_master_params_added > 0 && 
-          master_param_var->is_this_parameter) {
-        /* The master routine has extra parameters following the "this"
-           parameter.  Advance over them. */
-        int n;
-        for (n = 1; n <= num_master_params_added; n++) {
-          master_param_var = master_param_var->next;
-          check_assertion(master_param_var != NULL);
-        }  /* for */
-      }  /* if */
-    }  /* for */
-    var = master_param_var;
-  }  /* if */
-  dump_variable_name(var);
-}  /* dump_param_variable_decl_name */
-
-
 static void dump_param_id_list(a_variable_ptr param_var)
 /*
 Dump an old-style parameter id list.  param_var is the first old-style
@@ -1692,7 +1684,7 @@ parameter variable.
 {
   if (param_var != NULL) {
     for (;;) {
-      dump_param_variable_decl_name(param_var);
+      dump_variable_name(param_var);
       /* Stop after the last parameter. */
       param_var = param_var->next;
       if (param_var == NULL) break;
@@ -1980,12 +1972,7 @@ generation of top-level "const" in ANSI C mode.
   } else if (scp != NULL) {
     /* Write the name. */
     if (var != NULL) {
-      /* There's special handling for variable names. */
-      if (var->is_parameter) {
-        dump_param_variable_decl_name(var);
-      } else {
-        dump_variable_name(var);
-      }  /* if */
+      dump_variable_name(var);
     } else {
       dump_name(scp);
     }  /* if */
@@ -7167,49 +7154,6 @@ Dump out the declarations (if any) for a block.
       set_output_position_for_stmt(&statement->position);
     }  /* if */
   }  /* if */
-#if IA64_ABI
-  if (entry_routine_scope != NULL &&
-      entry_routine_scope == curr_scope &&
-      master_routine_scope != NULL &&
-      innermost_function_scope->assoc_block == statement) {
-    /* The body of the master (subobject ctor/dtor) routine will be expanded
-       as a block within this alternate entry (complete ctor/dtor).  Code
-       within the master routine accesses the master parameters (not the
-       alternate entry routine's parameters).  Generate declarations for the
-       alternate entry routine's parameters as local variables, and initialize
-       them to their master parameter counterparts.  This allows the entry
-       routine code to use the alternate entry parameter names, and the master
-       routine code to use the master parameter names and both will get the
-       same values. */
-    a_variable_ptr  master_param, entry_param;
-    int             n;
-
-    /* Skip over the 'this' parameter. */
-    master_param = master_routine_scope->variant.routine.parameters->next;
-    entry_param = entry_routine_scope->variant.routine.parameters->next;
-    /* Skip over the additional parameter(s). */
-    for (n = 1;
-         n <= num_master_params_added;
-         n++, master_param = master_param->next) {}
-    /* Generate declarations for alternate entry 'parameters' and initialize
-       them with values from the master routine parameters. */
-    for (;
-         entry_param != NULL;
-         master_param = master_param->next, entry_param = entry_param->next) {
-      check_assertion(master_param != NULL);
-#if !STANDALONE_C_GEN_BE
-      check_assertion(il_identical_types(master_param->type,
-                                         entry_param->type));
-#endif /* !STANDALONE_C_GEN_BE */
-      set_output_position(&master_param->source_corresp.decl_position);
-      dump_declaration_using_type(entry_param->type,
-                                  &entry_param->source_corresp);
-      write_tok_str(" = ");
-      dump_variable_name(master_param);
-      write_tok_str("; ");
-    }  /* for */
-  }  /* if */
-#endif /* IA64_ABI */
 }  /* dump_block_declarations */
 
 
@@ -7651,7 +7595,8 @@ statement expression, i.e., ({...}).
         /* We're "inlining" a master routine within an alternate entry routine
            and the master routine returns a value.  Replace any returns within
            this master routine with an assignment to the return variable and a
-           return without a value. */
+           jump to the end of the master routine. */
+        static char *goto_label = "goto __L_end_of_master_routine;";
         check_assertion(statement->expr != NULL &&
                         innermost_function_scope == master_routine_scope &&
                         !is_implicit_return(statement));
@@ -7665,9 +7610,10 @@ statement expression, i.e., ({...}).
         write_tok_str(" = ");
         dump_expr_with_parens(statement->expr);
         write_tok_str("; ");
-        write_tok_str("return;");
+        ensure_enough_room_on_line(strlen(goto_label));
+        write_tok_str(goto_label);
       } else
-#endif /* !IA64_ABI */
+#endif /* IA64_ABI */
       /* Do not insert code. */
       {
         if (covariant_return_expr != NULL &&
@@ -8155,14 +8101,15 @@ argument.  Returns TRUE if the expression was replaced.
 {
   a_boolean     replaced = FALSE;
 
+  check_assertion(expr != NULL);
   if (entry_routine_scope != NULL &&
       entry_routine_scope == innermost_function_scope &&
-      master_routine_scope != NULL &&
-      expr != NULL &&
       is_operation_node(expr)) {
     an_expr_node_ptr  call_node = NULL;
+    a_variable_ptr    return_variable = NULL;
+    check_assertion(master_routine_scope != NULL);
     /* Scan for the call to the master routine.  This can take one of two
-       forms, depending on whether ctor/dtors can return 'this'. */
+       forms, depending on whether ctor/dtors can return "this". */
     if (expr->variant.operation.kind == (an_expr_operator_kind)eok_assign &&
         expr->variant.operation.operands->next != NULL &&
         is_variable_node(expr->variant.operation.operands) &&
@@ -8170,8 +8117,7 @@ argument.  Returns TRUE if the expression was replaced.
         expr->variant.operation.operands->next->variant.operation.kind ==
                                              (an_expr_operator_kind)eok_call) {
       call_node = expr->variant.operation.operands->next;
-      master_routine_return_variable =
-                            expr->variant.operation.operands->variant.variable;
+      return_variable = expr->variant.operation.operands->variant.variable;
     } else if (expr->variant.operation.kind ==
                                              (an_expr_operator_kind)eok_call) {
       call_node = expr;
@@ -8212,13 +8158,22 @@ argument.  Returns TRUE if the expression was replaced.
         dump_expr_with_parens(arg);
         write_tok_str("; ");
       }  /* for */
-      /* Expand the master routine in its scope. */
+      /* Expand the master routine in its scope (replacing returns if
+         necessary). */
+      master_routine_return_variable = return_variable;
       curr_scope = innermost_function_scope = master_routine_scope;
       dump_statement(master_routine_scope->assoc_block);
       curr_scope = saved_curr_scope;
       innermost_function_scope = entry_routine_scope;
-      /* No need to replace return statements any longer. */
-      master_routine_return_variable = NULL;
+      if (master_routine_return_variable != NULL) {
+        /* Put out a label that is the target of any returns in the master
+           routine.  There will only ever be one instance of this label in
+           a given entry routine. */
+        static char *label = "__L_end_of_master_routine:;";
+        ensure_enough_room_on_line(strlen(label));
+        write_tok_str(label);
+        master_routine_return_variable = NULL;
+      }  /* if */
       indent -= 2;
       write_tok_ch('}');
     }  /* if */
@@ -8338,12 +8293,6 @@ by dump_routine_decl.
       indent += 2;
       need_unindent = TRUE;
       dump_statement(this_adjustment_stmt);
-    }  /* if */
-    if (num_master_params_added == 0) {
-      /* From here on, expand the underlying routine. */
-      rout = master_routine;
-      scope = master_routine_scope;
-      innermost_function_scope = curr_scope = scope;
     }  /* if */
   }  /* if */
 #endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */

@@ -3480,7 +3480,7 @@ constructor/destructors).  The Cfront ABI handling is unchanged.
 #if !HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS
  #error -- HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS must be TRUE \
            when IA64_ABI is FALSE.
-#endif /* HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS */
+#endif /* !HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS */
 #endif /* IA64_ABI */
 
 #if !IA64_ABI
