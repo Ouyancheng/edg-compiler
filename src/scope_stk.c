@@ -5129,7 +5129,7 @@ unit.
           db_symbol(sym, "", 2);
         }  /* if */
       }  /* if */
-#endif /* CHECKING */
+#endif /* DEBUG */
       if (kind == (a_scope_kind)sck_func_prototype && !is_tag_symbol(sym)) {
         /* Don't check on symbols entered in the scope of a function prototype.
            They will be reentered in the scope of the function and should be
