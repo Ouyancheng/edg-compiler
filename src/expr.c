@@ -10053,16 +10053,14 @@ As an anachronism, allow an expression inside the [ ].
       } else if (!array_delete && is_array_type(delete_type)) {
         /* Deleting a pointer to array type is undefined behavior.  Treat it
            as an array delete, with a warning */
-        if (strict_ansi_mode) {
-          pos_warning(ec_delete_of_array_type_nonstandard, &operand.position);
-        } else {
-          array_delete = TRUE;
-          pos_warning(ec_delete_of_array_type, &operand.position);
-          cast_operand(type_after_array_to_pointer_transformation(delete_type),
-                       &operand, /*is_implicit_cast=*/TRUE);
-          ptr_delete_type = operand.type;
-          delete_type = type_pointed_to(ptr_delete_type);
-        }  /* if */
+        array_delete = TRUE;
+        pos_warning(strict_ansi_mode ? ec_delete_of_array_type_nonstandard :
+                                       ec_delete_of_array_type,
+                    &operand.position);
+        cast_operand(type_after_array_to_pointer_transformation(delete_type),
+                     &operand, /*is_implicit_cast=*/TRUE);
+        ptr_delete_type = operand.type;
+        delete_type = type_pointed_to(ptr_delete_type);
       }  /* if */
     }  /* if */
   }  /* if */
