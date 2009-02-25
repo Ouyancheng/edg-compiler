@@ -1333,21 +1333,20 @@ prescanning.
 static a_boolean tag_definition_next(a_token_kind   next_tok,
                                      a_symbol_kind  tag_kind,
                                      a_boolean      is_ref_within_new_expr,
-                                     a_boolean      trailing_return_type)
+                                     a_boolean      no_definition_allowed)
 /*
 We've seen the beginning of a class, struct, union, or enum declaration
 (tag_kind determines which).  Return TRUE if next_tok introduces a definition
 for that type.  is_ref_within_new_expr is TRUE if this occurs in a new-
-expression; in that case, a colon is assumed to be part of a "?:" operator
-and not the beginning of a base type specifier.  If this occurs in a C++0x
-trailing return type (e.g., a lambda return type) trailing_return_type will be
-TRUE and this routine always returns FALSE (e.g., in "[]()->struct X {}" the
-"{}" is assumed to be the body of the lambda; not the definition of X).
+expression; in that case, a colon is assumed to be part of a "?:" operator and
+not the beginning of a base type specifier.  If no_definition_allowed is TRUE,
+always return FALSE (e.g., in "[]()->struct X {}" the "{}" is assumed to be
+the body of the lambda; not the definition of X).
 */
 {
   a_boolean  result;
 
-  if (trailing_return_type) {
+  if (no_definition_allowed) {
     /* Note that FALSE is also returned if next_tok is a colon.  A colon is an
        error either way, but most likely the programmer did not intend a class
        definition in this context. */
@@ -1375,7 +1374,7 @@ static a_symbol_ptr scan_tag_name(a_symbol_kind     tag_kind,
                                   a_boolean         *is_friend_decl,
                                   a_boolean         *check_for_vacuous_decl,
                                   a_boolean         is_ref_within_new_expr,
-                                  a_boolean         trailing_return_type,
+                                  a_boolean         no_definition_allowed,
                                   a_scope_depth     *effective_decl_level,
                                   a_boolean         *tag_resolution,
                                   a_boolean         *is_predeclared_type_decl,
@@ -1395,16 +1394,16 @@ name of a template).
 however, the flag will be reset to FALSE and a normal lookup will be done.
 *check_for_vacuous_decl is TRUE when the context permits a declaration like
 "struct x;".  is_ref_within_new_expr is TRUE when the declaration appears
-inside a new expression.  trailing_return_type is TRUE if the declaration
-appears in a C++0x trailing return type.  *effective_decl_level will have
-been initialized to decl_scope_level by the caller; it may be changed in C++
-for a forward reference to a tag within a function prototype or a class
-definition -- the tag is entered into the innermost non-class/non-prototype
-scope, which is returned as its effective declaration level.  *tag_resolution
-is returned TRUE if this is the definition of a previously declared incomplete
-class or enum.  *is_predeclared_type_decl is returned TRUE if this is the
-explicit declaration of a predeclared type like type_info in C++ or _GUID in
-Microsoft mode.
+inside a new expression.  no_definition_allowed is TRUE if no definition
+is considered in this context (e.g., if the declaration appears in a C++0x
+trailing return type).  *effective_decl_level will have been initialized to
+decl_scope_level by the caller; it may be changed in C++ for a forward
+reference to a tag within a function prototype or a class definition -- the
+tag is entered into the innermost non-class/non-prototype scope, which is
+returned as its effective declaration level.  *tag_resolution is returned TRUE
+if this is the definition of a previously declared incomplete class or enum.
+*is_predeclared_type_decl is returned TRUE if this is the explicit declaration
+of a predeclared type like type_info in C++ or _GUID in Microsoft mode.
 
 This routine may look more complicated than is necessary -- it isn't.
 This routine can either be matching up a definition with a previous
@@ -1444,7 +1443,7 @@ caution when modifying this routine.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     is_tag_definition = tag_definition_next(next_tok, tag_kind,
                                             is_ref_within_new_expr,
-                                            trailing_return_type);
+                                            no_definition_allowed);
     if (gpp_mode && gnu_version < 30400 &&
         tag_kind != (a_symbol_kind)sk_enum_tag &&
         !locator_for_curr_id.is_error &&
@@ -2894,8 +2893,8 @@ Microsoft attributes preceding the class specifier (if any).
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   a_boolean               is_ref_within_new_expr = 
                                       (dsi_flags & DSI_IS_NEW_TYPE_NAME) != 0;
-  a_boolean               trailing_return_type = 
-                                  (dsi_flags & DSI_TRAILING_RETURN_TYPE) != 0;
+  a_boolean               no_definition_allowed = 
+                                     (dsi_flags & DSI_NO_TAG_DEFINITION) != 0;
   a_boolean               is_explicit_instantiation =
                              (dsi_flags & DSI_IS_EXPLICIT_INSTANTIATION) != 0;
   a_boolean               is_template_specialization =
@@ -3018,7 +3017,7 @@ Microsoft attributes preceding the class specifier (if any).
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */
     tag_sym = scan_tag_name(tag_kind, &locator, &is_friend_decl,
                             &vacuous_decl_allowed, is_ref_within_new_expr,
-                            trailing_return_type, &effective_decl_level,
+                            no_definition_allowed, &effective_decl_level,
                             &tag_resolution, &is_predeclared_type_decl,
                             &local_decl_pos_block);
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED
@@ -3141,7 +3140,7 @@ Microsoft attributes preceding the class specifier (if any).
     /* Don't leave tag_position undefined. */
     tag_position = decl_start_pos;
     set_to_error_locator(locator);
-    if (is_ref_within_new_expr || trailing_return_type) {
+    if (is_ref_within_new_expr || no_definition_allowed) {
       /* If we are within a new expression and no class name is given following
          the keyword -- e.g., "class A *pa = new class;" -- report the missing
          identifier as a syntax error.  This applies to similar situations in
@@ -3190,7 +3189,7 @@ Microsoft attributes preceding the class specifier (if any).
      exceptions). */
   is_class_definition = tag_definition_next(
                                  curr_token, tag_kind, is_ref_within_new_expr,
-                                 trailing_return_type);
+                                 no_definition_allowed);
   if (is_class_definition && is_friend_decl) {
     /* This is an error.  Defer the diagnostic until we have a tag_sym
        to use for the fill-in.  If tag_sym is already non-NULL, we'll create
@@ -4470,13 +4469,13 @@ dsi_flags is the set of input flags passed to decl_specifiers.
     tag_sym = scan_tag_name((a_symbol_kind)sk_enum_tag, &locator,
                             &is_friend_decl, &vacuous_decl_allowed,
                             (dsi_flags & DSI_IS_NEW_TYPE_NAME) != 0,
-                            (dsi_flags & DSI_TRAILING_RETURN_TYPE) != 0,
+                            (dsi_flags & DSI_NO_TAG_DEFINITION) != 0,
                             &effective_decl_level, &tag_resolution,
                             &is_predeclared_type_decl, &local_decl_pos_block);
     is_definition = tag_definition_next(
                                  curr_token, (a_symbol_kind)sk_enum_tag,
                                  (dsi_flags & DSI_IS_NEW_TYPE_NAME) != 0,
-                                 (dsi_flags & DSI_TRAILING_RETURN_TYPE) != 0);
+                                 (dsi_flags & DSI_NO_TAG_DEFINITION) != 0);
     if (tag_resolution) {                            
       /* Resolution of a previous incomplete declaration. */
       if (effective_decl_level != decl_scope_level) {
@@ -4550,14 +4549,14 @@ dsi_flags is the set of input flags passed to decl_specifiers.
        beginning of the function (or lambda) body that follows (and that's an
        error). */
     if ((curr_token == tok_lbrace &&
-         (dsi_flags & DSI_TRAILING_RETURN_TYPE) == 0) ||
+         (dsi_flags & DSI_NO_TAG_DEFINITION) == 0) ||
         (curr_token == tok_colon && explicit_enum_base_enabled)) {
       is_definition = TRUE;
     } else {
       /* Neither the tag id nor the enum definition is present.  This is an
          error. */
       add_stop_token(tok_lbrace);
-      syntax_error((dsi_flags & DSI_TRAILING_RETURN_TYPE) != 0 ?
+      syntax_error((dsi_flags & DSI_NO_TAG_DEFINITION) != 0 ?
                                 ec_exp_identifier : ec_exp_definition_of_tag);
       remove_stop_token(tok_lbrace);
       /* This statement might have declared something, but since we're
@@ -8591,6 +8590,13 @@ process_class_specifier:
         auto_type_allowed = FALSE;
         (void)is_generalized_identifier_start(GID_NO_OPTIONS);
 operator_or_conversion_name:
+        if ((input_flags & DSI_NO_REAL_DECLARATOR) != 0) {
+          /* This is not a context where a declarator was expected. */
+          syntax_error(ec_operator_name_not_allowed);
+          err = TRUE;
+          basic_type = bt_error;
+          goto exit_loop;
+        }  /* if */
         if (locator_for_curr_id.is_conversion_name) {
           if (basic_type == bt_none && sign == sign_none &&
               size == size_none) {

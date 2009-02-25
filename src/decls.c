@@ -9589,7 +9589,7 @@ needed).
     /* When scanning a C++0x trailing return type, top-level class definitions
        should not be considered.  E.g., in "[]()->struct S {}" the "{}" is
        considered to be the lambda body; not the definition of S. */
-    dsi_flags |= DSI_TRAILING_RETURN_TYPE;
+    dsi_flags |= DSI_NO_TAG_DEFINITION;
   }  /* if */
   if (gnu_mode) {
     /* GNU attributes are allowed, but those that don't actually transform a
@@ -9619,13 +9619,6 @@ needed).
          literals (e.g., "(struct { int i; }){0}"). */
       pos_error(ec_type_definition_not_allowed, &state.start_pos);
     }  /* if */
-  } else if (is_unknown_type(state.type)) {
-    /* The unknown type is returned by decl_specifiers when a conversion
-       operator, a constructor or a destructor is encountered.  In this
-       context, it is an indication of a severe syntax error. */
-    syntax_error(ec_exp_type_specifier);
-    state.type = error_type();
-    goto done;
   } else if (!(state.dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER)) {
     /* Missing type specifier. */
     report_implicit_int(&state.start_pos, state.specifiers_type);
@@ -9671,7 +9664,6 @@ needed).
     state.type = error_type();
   }  /* if */
   check_pending_qualifiers_used(&state);
-done:
   copy_source_position(state.start_pos, error_position);
   *type_ptr = state.type;
   db_exit();
@@ -9981,7 +9973,7 @@ operator function reference.
     clear_decl_pos_block(&decl_pos_block);
     input_flags = DSI_TYPE_SPECIFIER_ALLOWED |
                   DSI_NO_REAL_DECLARATOR |
-                  DSI_TRAILING_RETURN_TYPE;
+                  DSI_NO_TAG_DEFINITION;
     decl_specifiers(input_flags, &state, &decl_pos_block);
     if (state.dso_flags & DSO_DEFINES_SOMETHING) {
       /* Definition of a class, struct, union, or enum type is not allowed. */
