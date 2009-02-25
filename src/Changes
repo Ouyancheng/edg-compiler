@@ -1,5 +1,19 @@
 Version 4.1
 
+2/24/09  [EDGcpfe/9561]
+Delete of pointer-to-array treated as delete[]
+
+A delete of a pointer-to-array type, which has undefined behavior according
+to the C++ standard, is now treated as a delete[] of the underlying array.
+(g++ and MSVC++ both handle such a case in that way.)
+
+  int main() {
+    int *p = new int[100];
+    int (*q)[100] = (int (*)[100])p;
+    delete q;  // Now means the same as "delete[] (int *)q"
+  }
+
+
 2/23/09  [EDGcpfe/9560]
 Restrict-qualified member functions
 
