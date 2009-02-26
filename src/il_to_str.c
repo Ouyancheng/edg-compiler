@@ -1772,6 +1772,8 @@ in the way described by octl.
   if (octl->output_func_declarator != NULL) {
     octl->output_func_declarator(type);
   } else {
+    a_type_qualifier_set qualifiers = rtsp->qualifiers |
+                                      rtsp->this_qualifiers;
     /* Default processing. */
     octl->output_str("(", octl);
     if ((!rtsp->prototyped || rtsp->old_style_params_scanned) &&
@@ -1824,6 +1826,16 @@ in the way described by octl.
     }  /* if */
     octl->output_str(")", octl);
     if (!octl->gen_compilable_code && is_lambda_body_routine_type(type)) {
+      if (!generating_debug_output(octl)) {
+        /* For a lambda body, output "mutable" if the routine is not const. */
+        if ((qualifiers & TQ_CONST) == 0) {
+          octl->output_str(" mutable", octl);
+        } else {
+          check_assertion(qualifiers == TQ_CONST);
+        }  /* if */
+        /* Suppress the output of the qualifiers below. */
+        qualifiers = TQ_NONE;
+      }  /* if */
       /* For a lambda body, output the return type. */
       octl->output_str("->", octl);
       form_type(type->variant.routine.return_type, octl);
@@ -1843,24 +1855,10 @@ in the way described by octl.
       }  /* if */
     } /* if */
     /* Output a cv-qualifier for a member function, if there is one. */
-    if (rtsp->this_class != NULL) {
-      a_type_qualifier_set qualifiers = rtsp->qualifiers |
-                                        rtsp->this_qualifiers;
-      if (!octl->gen_compilable_code && !generating_debug_output(octl) &&
-          is_lambda_body_routine_type(type)) {
-        /* For a lambda body, output "mutable" if the routine is not const. */
-        if ((qualifiers & TQ_CONST) == 0) {
-          octl->output_str(" mutable", octl);
-        } else {
-          check_assertion(qualifiers == TQ_CONST);
-        }  /* if */
-      } else {
-        if (qualifiers != TQ_NONE) {
-          octl->output_str(" ", octl);
-          form_type_qualifier(qualifiers, UPC_BLOCK_SIZE_NONE,
-                              /*need_trailing_space=*/FALSE, octl);
-        }  /* if */
-      }  /* if */
+    if (qualifiers != TQ_NONE) {
+      octl->output_str(" ", octl);
+      form_type_qualifier(qualifiers, UPC_BLOCK_SIZE_NONE,
+                         /*need_trailing_space=*/FALSE, octl);
     }  /* if */
   }  /* if */
 }  /* form_function_declarator */
