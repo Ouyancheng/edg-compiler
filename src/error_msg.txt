@@ -1818,6 +1818,7 @@ ec_lambda_capture_ref_function;;"a reference-to-function variable cannot be capt
 ec_class_type_required;;"%t is not a class type"
 ec_delete_of_array_type;;"\"delete\" applied to a pointer-to-array type treated as delete[]"
 ec_delete_of_array_type_nonstandard;;"\"delete\" applied to a pointer-to-array type is nonstandard; treated as delete[]"
+ec_function_does_not_match_arguments;;"%n cannot be called with the given argument list"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
