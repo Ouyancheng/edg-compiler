@@ -1846,9 +1846,9 @@ complete token.  This is the non-macro version.
 }  /* write_str */
 
 
-/*ARGSUSED*/ /* octl is not used. */
+/*ARGSUSED*/ /* local_octl is not used. */
 static void write_str_octl(char                                  *str,
-                           an_il_to_str_output_control_block_ptr octl)
+                           an_il_to_str_output_control_block_ptr local_octl)
 /*
 Version of write_str intended to be called by the il-to-str routines.
 */

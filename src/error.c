@@ -543,10 +543,10 @@ is NULL, allocate a message seqment.
 }  /* establish_first_segment */
 
 
-/*ARGSUSED*/ /* octl is not used. */
+/*ARGSUSED*/ /* local_octl is not used. */
 static void put_str_to_curr_output_msg_segment(
-				char					*str,
-				an_il_to_str_output_control_block_ptr	octl)
+			char					*str,
+			an_il_to_str_output_control_block_ptr	local_octl)
 /*
 Output the indicated string to the current output message segment.  This is
 used as an output routine when using the il_to_str routines.
