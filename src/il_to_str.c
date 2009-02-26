@@ -1772,8 +1772,9 @@ in the way described by octl.
   if (octl->output_func_declarator != NULL) {
     octl->output_func_declarator(type);
   } else {
-    a_type_qualifier_set qualifiers = rtsp->qualifiers |
-                                      rtsp->this_qualifiers;
+    a_type_qualifier_set qualifiers =
+            rtsp->this_class != NULL ? rtsp->qualifiers | rtsp->this_qualifiers
+                                     : TQ_NONE;
     /* Default processing. */
     octl->output_str("(", octl);
     if ((!rtsp->prototyped || rtsp->old_style_params_scanned) &&
