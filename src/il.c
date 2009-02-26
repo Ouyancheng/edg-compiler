@@ -4284,6 +4284,12 @@ fix them.
           cp->variant.template_param.variant.templ_sizeof.expr = NULL;
         }  /* if */
       }  /* if */
+#if DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS
+    } else if (cp->kind == (a_constant_repr_kind)ck_string) {
+      /* If a string literal with an assigned sequence number is copied to the
+         file scope, the sequence number no longer applies. */
+      cp->variant.string.sequence_number = 0;
+#endif /* DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
     }  /* if */
   }  /* if */
 }  /* fix_memory_region_problems_in_copied_constant */
