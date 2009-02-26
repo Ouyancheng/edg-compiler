@@ -14036,8 +14036,7 @@ with the value of their corresponding captured variables.
 
   check_assertion(expr->kind == (an_expr_node_kind)enk_lambda &&
                   identical_types(expr->variant.lambda.ptr->closure_class,
-                                  expr->type) &&
-                  !expr->is_lvalue);
+                                  expr->type));
   capture = expr->variant.lambda.ptr->capture_list;
   dip = expr->variant.lambda.initialization;
   if (dip->has_temporary_lifetime) {
