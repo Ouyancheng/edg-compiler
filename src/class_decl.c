@@ -9700,8 +9700,8 @@ promotion in such cases.
       other_sym = curr_scope_id_lookup(&locator, IDL_NO_OPTIONS);
     }  /* if */
     if (other_sym != NULL && !is_tag_symbol(other_sym)) {
-      pos_st_warning(ec_id_already_declared, &(sym->decl_position),
-                     sym->header->identifier);
+      pos_sy_warning(ec_hidden_anonymous_union_field, &(sym->decl_position),
+                     other_sym);
       result = TRUE;
     }  /* if */
   }  /* if */
