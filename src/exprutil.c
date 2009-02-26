@@ -9772,6 +9772,10 @@ e.g., in a back end.
     /* A temporary initialization indicating the value of a temporary.
        Change it to an lvalue for the temporary. */
     possible = TRUE;
+  } else if (node->kind == (an_expr_node_kind)enk_lambda) {
+    /* A lambda.  Change it to an lvalue by just changing the is_lvalue
+       flag. */
+    possible = TRUE;
   } else if (node->kind == (an_expr_node_kind)enk_typeid) {
     /* An rvalue for a typeid can be turned back into an lvalue. */
     possible = TRUE;

@@ -15186,6 +15186,13 @@ already indicates the load.
     case enk_typeid:
       rvalueable = TRUE;
       break;
+    case enk_lambda:
+      /* A lambda expression can have is_lvalue TRUE in some rare cases, but
+         it's not really rvalueable.  The normal state is is_lvalue FALSE,
+         which doesn't require that there be a load of the lambda value --
+         it's just created as an rvalue. */
+      rvalueable = FALSE;
+      break;
     case enk_operation:
       if (node->variant.operation.returns_lvalue_instead_of_usual_rvalue) {
         /* Nodes with this flag set are not rvalueable.  You can clear the
@@ -15249,6 +15256,7 @@ FALSE in a node where the default setting would be TRUE.
 }  /* node_includes_lvalue_to_rvalue_conv */
 
 #if !STANDALONE_UTILITY_PROGRAM
+
 static a_boolean node_does_fetch(an_expr_node_ptr node,
                                  a_type_ptr       *p_fetched_type)
 /*
@@ -15277,6 +15285,11 @@ top-level node is considered -- fetches in child nodes are not.
         /* An rvalue temp init fetches the value of the temporary. */
         does_fetch = TRUE;
         fetched_type = node->type;
+        break;
+      case enk_lambda:
+        /* An rvalue lambda (the normal case) doesn't fetch anything.  The
+           lambda value can be just created as an rvalue without storing it
+           anywhere first. */
         break;
       case enk_typeid:
         /* An rvalue typeid fetches the typeinfo object. */
@@ -19117,6 +19130,9 @@ immediately enclosing object lifetime.
       break;
     case enk_temp_init:
       remove_dynamic_initialization(expr->variant.init.dynamic_init);
+      break;
+    case enk_lambda:
+      remove_dynamic_initialization(expr->variant.lambda.initialization);
       break;
     case enk_operation:
       /* This covers casts, and possibly "?" and "," operators if those are
