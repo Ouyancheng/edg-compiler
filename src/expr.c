@@ -12092,6 +12092,12 @@ Syntax:
          conversions.  They must be done now because they affect the type
          of the operand.  Also give errors on overloaded functions. */
       do_operand_transformations(result, TOPT_NO_OPTIONS);
+    } else {
+      /* Issue an error on an overloaded function. */
+      do_operand_transformations(result,
+                                 TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION |
+                                 TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION |
+                                 TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION);
     }  /* if */
     /* Check for casts that aren't valid in this kind of expression.
        Note that this check is done after the operand transformations

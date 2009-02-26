@@ -1,5 +1,19 @@
 Version 4.1
 
+2/26/09  [EDGcpfe/9572]
+Abort on reinterpret_cast of overloaded function to reference type
+
+The front end sometimes aborted on processing a reinterpret_cast from
+an overloaded function to a reference type.  An error is now issued
+instead.
+
+  void f();
+  void f(int);
+  int main() {
+    reinterpret_cast<void (&)()>(f);
+  }
+
+
 2/25/09  [EDGcpfe/9558]
 GNU C compatibility: Field conflicts with anonymous unions
 
