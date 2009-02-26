@@ -19955,7 +19955,7 @@ accepted in Microsoft C mode.
 
 1/12/05  GNU C++ compatibility: Conflicts with inherited enumerator constants
 
-In GNU C++ mode, an enumerator constant that is a derivated class member can
+In GNU C++ mode, an enumerator constant that is a derived class member can
 now use the same name as an inherited member even when it was already used
 in the derived class with the derived class as a qualifier.  For example:
 
