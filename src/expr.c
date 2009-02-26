@@ -11584,6 +11584,7 @@ indicates which.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   operand->end_position = *end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  operand->is_id_expression = FALSE;
   rule_out_expr_kinds(ruled_out_expr_kinds, operand);
 }  /* do_cast */
 

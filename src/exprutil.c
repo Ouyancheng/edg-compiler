@@ -6984,6 +6984,7 @@ source operand is an lvalue.
     }  /* if */
   }  /* if */
   restore_operand_details_incl_ref(operand, &orig_operand);
+  operand->is_id_expression = FALSE;
 }  /* generic_cast_operand */
 
 
