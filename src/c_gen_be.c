@@ -302,6 +302,11 @@ static a_variable_ptr
 			   master_routine_return_variable (passing the returned
 			   value back to the alternate entry point that
 			   is calling the master routine). */
+static char
+		*end_of_master_routine_label = "__L_end_of_master_routine";
+			/* Label used to indicate the end of a master routine.
+			   Used as a target for "inlined" returns from the
+			   master routine. */
 #endif /* IA64_ABI */
 static int	num_master_params_added;
 			/* The number of additional parameters that the
@@ -1310,6 +1315,7 @@ Print the name of the indicated variable.
 */
 {
   if (entry_routine_scope != NULL &&
+      innermost_function_scope == entry_routine_scope &&
       variable->is_parameter && !variable->is_this_parameter) {
     /* While putting out the parameters of a wrapper routine for a
        virtual function with a covariant return type, use the parameter
@@ -1321,10 +1327,10 @@ Print the name of the indicated variable.
     check_assertion(master_routine_scope != NULL);
     master_param_var = master_routine_scope->variant.routine.parameters;
     wrapper_param_var = entry_routine_scope->variant.routine.parameters;
-    for (; wrapper_param_var != variable && master_param_var != NULL;
+    for (; wrapper_param_var != variable;
          master_param_var = master_param_var->next,
            wrapper_param_var = wrapper_param_var->next) {
-      check_assertion(wrapper_param_var != NULL);
+      check_assertion(wrapper_param_var != NULL && master_param_var != NULL);
       if (num_master_params_added > 0 && 
           master_param_var->is_this_parameter) {
         /* The master routine has extra parameters following the "this"
@@ -1336,9 +1342,8 @@ Print the name of the indicated variable.
         }  /* for */
       }  /* if */
     }  /* for */
-    /* Parameter can be one of the additional parameters, in which case no
-       substitution is necessary. */
-    if (master_param_var != NULL) variable = master_param_var;
+    check_assertion(master_param_var != NULL);
+    variable = master_param_var;
   }  /* if */
   if (variable->is_this_parameter) {
     /* "this" parameter in C++. */
@@ -7596,7 +7601,6 @@ statement expression, i.e., ({...}).
            and the master routine returns a value.  Replace any returns within
            this master routine with an assignment to the return variable and a
            jump to the end of the master routine. */
-        static char *goto_label = "goto __L_end_of_master_routine;";
         check_assertion(statement->expr != NULL &&
                         innermost_function_scope == master_routine_scope &&
                         !is_implicit_return(statement));
@@ -7609,9 +7613,9 @@ statement expression, i.e., ({...}).
         dump_variable_name(master_routine_return_variable);
         write_tok_str(" = ");
         dump_expr_with_parens(statement->expr);
-        write_tok_str("; ");
-        ensure_enough_room_on_line(strlen(goto_label));
-        write_tok_str(goto_label);
+        write_tok_str("; goto ");
+        write_tok_str(end_of_master_routine_label);
+        write_tok_ch(';');
       } else
 #endif /* IA64_ABI */
       /* Do not insert code. */
@@ -8141,7 +8145,6 @@ argument.  Returns TRUE if the expression was replaced.
       master_param = master_routine_scope->variant.routine.parameters->next;
       /* Skip past the function address and the "this" argument. */
       arg = call_node->variant.operation.operands->next->next;
-      check_assertion(arg != NULL);
       write_tok_ch('{');
       indent += 2;
       /* Generate declarations for the added master routine parameter(s)
@@ -8169,9 +8172,8 @@ argument.  Returns TRUE if the expression was replaced.
         /* Put out a label that is the target of any returns in the master
            routine.  There will only ever be one instance of this label in
            a given entry routine. */
-        static char *label = "__L_end_of_master_routine:;";
-        ensure_enough_room_on_line(strlen(label));
-        write_tok_str(label);
+        write_tok_str(end_of_master_routine_label);
+        write_tok_str(":;");
         master_routine_return_variable = NULL;
       }  /* if */
       indent -= 2;
