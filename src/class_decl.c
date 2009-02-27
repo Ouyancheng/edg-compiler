@@ -328,7 +328,10 @@ found in unexpected locations.
     --ssep;
   }  /* while */
   check_assertion(ssep->kind == (a_scope_kind)sck_class_struct_union);
-  --ssep;
+  while (ssep->kind == (a_scope_kind)sck_class_struct_union) {
+    /* Skip all class scopes. */
+    --ssep;
+  }  /* while */
   /* Skip any block scopes. */
   while (ssep->kind == (a_scope_kind)sck_block) ssep--;
   /* If this is a lambda body, skip the lambda function scope and the
