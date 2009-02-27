@@ -9665,49 +9665,6 @@ be the last in the anonymous-union-parent chain.
 
 #endif /* ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
 
-static a_boolean acceptable_anonymous_union_conflict(a_symbol_ptr  sym,
-                                                     a_type_ptr    class_type)
-/*
-sym is an anonymous union member being promoted to the given class_type (or to
-a namespace scope if class_type is NULL).  Return TRUE (and issue a warning)
-if the promotion would cause a conflict and that conflict is acceptable (which
-is the case in some GNU and Microsoft modes).  The caller should skip the
-promotion in such cases.
-*/
-{
-  a_boolean  result = FALSE;
-
-  if ((gcc_mode || (microsoft_bugs && !C_mode())) && class_type != NULL) {
-    /* The Microsoft C++ compiler does not diagnose promoting an anonymous
-       union member into a scope in which its name has already been declared.
-       GNU C (but not GNU C++) also exhibits that behavior. */
-    a_symbol_ptr  other_sym;
-    if (C_mode()) {
-      /* In C mode, neither class_qualified_id_lookup nor curr_scope_id_lookup
-         can find a field declaration in a class type that is still being
-         defined.  However, if a field conflicting with sym is present at all,
-         sym->header->symbol should be pointing at it. */
-      if (sym->header->symbol != NULL &&
-          sym->header->symbol->decl_scope == depth_scope_stack) {
-        other_sym = sym->header->symbol;
-      } else {
-        other_sym = NULL;
-      }  /* if */
-    } else {
-      a_symbol_locator  locator;
-      clear_locator(&locator, &sym->decl_position);
-      locator.symbol_header = sym->header;
-      other_sym = curr_scope_id_lookup(&locator, IDL_NO_OPTIONS);
-    }  /* if */
-    if (other_sym != NULL && !is_tag_symbol(other_sym)) {
-      pos_sy_warning(ec_hidden_anonymous_union_field, &(sym->decl_position),
-                     other_sym);
-      result = TRUE;
-    }  /* if */
-  }  /* if */
-  return result;
-}  /* acceptable_anonymous_union_conflict */
-
 #if !ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
 /*ARGSUSED*/ /* new_apo_syms is not used in some configurations. */
 #endif /* !ALLOW_NONSTANDARD_ANONYMOUS_UNIONS */
@@ -9746,13 +9703,14 @@ promotion is for a nonstandard anonymous union.
        nonstandard anonymous union. */
   }  /* if */
   if (reuse_symbol) {
+    /* Allow conflicts with existing fields in GNU C and Microsoft C++ bugs
+       modes. */
+    a_boolean  suppress_error = gcc_mode || (microsoft_bugs && !C_mode());
     /* Unlink the symbol from the inactive list and link it back into
        the symbol table in the current scope. */
     remove_anonymous_union_member_from_inactive_symbols_list(sym);
-    if (!acceptable_anonymous_union_conflict(sym, class_type)) {
       /* Enter the symbol back into the current scope. */
-      reenter_symbol(sym, depth_scope_stack, /*suppress_error=*/FALSE);
-    }  /* if */
+    reenter_symbol(sym, depth_scope_stack, suppress_error);
 #if ALLOW_NONSTANDARD_ANONYMOUS_UNIONS
   } else {
     /* The symbol has to be kept bound to the type, since the latter

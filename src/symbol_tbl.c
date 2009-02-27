@@ -3226,28 +3226,29 @@ this is not allowed, an error will be issued by the caller.
 		     new_sym->header->identifier);
     }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
-  } else if (gcc_mode && old_sym->kind == (a_symbol_kind)sk_field &&
-                         new_sym->kind == (a_symbol_kind)sk_field) {
-    /* GNU C ignores conflicts between fields if one of those fields comes
-       from an anonymous union.  In such a case, the first declaration
-       prevails.  However, we cannot use the insert_sym mechanism for this
-       because these symbols are normally found on the inactive list (where
-       ordering is ignored).  Therefore, we set the is_invisible flag on the
-       new symbol. */
-    if (old_sym->variant.field.anonymous_parent_object != NULL ||
-        suppress_error) {
-      /* If the new symbol is an anonymous union field, the parent object will
-         not have been recorded yet, but suppress_error will be TRUE. */
-      if (!new_sym->is_invisible) {
-        pos_sy_warning(ec_hidden_anonymous_union_field,
-                       &new_sym->decl_position,
-                       old_sym);
+  } else if (old_sym->kind == (a_symbol_kind)sk_field &&
+             new_sym->kind == (a_symbol_kind)sk_field) {
+    /* Some modes ignore conflicts between fields if one of those fields comes
+       from an anonymous union.  The first declaration prevails in such cases.
+       We cannot use the insert_sym mechanism for this because these symbols
+       are normally found on the inactive list (where ordering is ignored).
+       Therefore, we set the is_invisible flag on the new symbol. */
+    if (gcc_mode || (microsoft_bugs && !C_mode())) {
+      if (old_sym->variant.field.anonymous_parent_object != NULL ||
+          suppress_error) {
+        /* If the new symbol is an anonymous union field, the parent object
+           will not have been recorded yet, but suppress_error will be TRUE. */
+        if (!new_sym->is_invisible) {
+          pos_sy_warning(ec_hidden_anonymous_union_field,
+                         &new_sym->decl_position,
+                         old_sym);
+        }  /* if */
+        err = FALSE;
+        new_sym->is_invisible = TRUE;
+        /* Keeping the first field at the head of the list results in nicer
+           diagnostics if there are multiple conflicts. */
+        if (insert_sym != NULL) *insert_sym = old_sym;
       }  /* if */
-      err = FALSE;
-      new_sym->is_invisible = TRUE;
-      /* Keeping the first field at the head of the list results in nicer
-         diagnostics if there are multiple conflicts. */
-      if (insert_sym != NULL) *insert_sym = old_sym;
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   } else if (!C_mode()) {
