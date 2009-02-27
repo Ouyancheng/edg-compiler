@@ -955,11 +955,19 @@ Scan and record the mode attribute argument.  If it starts with "V1", "V2",
   ename = name;
   ename_len = name_len;
 #if GNU_VECTOR_TYPES_ALLOWED
-  if (name[0] == 'V' &&
-      (name[1] == '1' || name[1] == '2' || name[1] == '4' || name[1] == '8')) {
-    ap->variant.mode.length = name[1]-'0';
-    ename += 2;
-    ename_len -= 2;
+  if (name[0] == 'V') {
+    /* The mode attribute allows the following vector prefixes: V1, V2, V4,
+       V8, and V16. */
+    if (name[1] == '1' && name[2] == '6') {
+      ap->variant.mode.length = 16;
+      ename += 3;
+      ename_len -= 3;
+    } else if (name[1] == '1' || name[1] == '2' || name[1] == '4' ||
+               name[1] == '8') {
+      ap->variant.mode.length = name[1]-'0';
+      ename += 2;
+      ename_len -= 2;
+    }  /* if */
   }  /* if */
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
   /* Consume the name. */
