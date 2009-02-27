@@ -5466,6 +5466,10 @@ returning a class by value).
            mode. */
         revertible = TRUE;
       }  /* if */
+    } else if (expr->kind == (an_expr_node_kind)enk_lambda &&
+               microsoft_mode) {
+      /* A lambda value can be turned into an lvalue. */
+      revertible = TRUE;
     }  /* if */
     if (revertible) {
       /* Change the rvalue back into an lvalue. */
