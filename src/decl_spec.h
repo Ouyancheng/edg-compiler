@@ -219,12 +219,12 @@ extern void decl_spec_one_time_init(void);
 			   valid declaration specifiers. */
 #define DSI_NO_TAG_DEFINITION ((a_decl_flag_set)0x1000000)
 			/* If this bit is set, a tag definition is not allowed
-			   and not considered (e.g., in "enum E { ..." the "{"
-			   is not taken as the start of the enum definition).
-			   This is used, for example, when parsing trailing
-			   return types (a C++0x syntax feature; e.g. in
-			   lambdas) where a brace following a tag name is
-			   treated as the beginning of the function body. */
+			   and not considered.  For example, when parsing the
+			   return type in the C++0x lambda "[]()->enum E {}"
+			   decl_specifiers is called with the upcoming token
+			   sequence "enum E {" and the "{" should not taken to
+			   introduce an enum definition (instead, it is the
+			   beginning of the lambda body). */
 #define DSI_LAST DSI_TRAILING_RETURN_TYPE
 			/* Last bit in the bit vector that is in use. */
 			/*lint -esym(755,DSI_LAST)*/
