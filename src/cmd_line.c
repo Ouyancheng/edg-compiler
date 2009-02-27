@@ -1844,6 +1844,7 @@ by a command line option.
       /* MSVC++ 8 follows the C++0x rules for treating the single ">>" token as
          two ">" tokens in angle bracket contexts. */
       right_shift_can_be_angle_brackets = TRUE;
+      local_types_as_template_args_enabled = TRUE;
     }  /* if */
   }  /* if */
   /* In C++ mode, the Microsoft compiler sometimes finds typedefs when
@@ -2139,6 +2140,7 @@ process.
   type_traits_helpers_enabled = FALSE;
   lambdas_enabled = FALSE;
   rvalue_references_enabled = FALSE;
+  local_types_as_template_args_enabled = FALSE;
 }  /* set_c_mode_flags */
 
 
@@ -2318,6 +2320,7 @@ the next standard).
     /* FIXME: Restore when rvalue ref semantics are implemented
     rvalue_references_enabled = TRUE; */
   }  /* if */
+  local_types_as_template_args_enabled = TRUE;
 }  /* check_and_set_cpp0x_mode_options */
 
 
@@ -7888,6 +7891,10 @@ enable_microsoft_mode:
     /* Do argument dependent lookup when doing dependent name processing. */
     arg_dependent_lookup_enabled = TRUE;
   }  /* if */
+  if (lambdas_enabled) {
+    /* If lambdas are allowed, enable local types as template arguments too. */
+    local_types_as_template_args_enabled = TRUE;
+  }  /* if */
   if (sun_mode) {
     check_and_set_sun_mode_options();
   } else {
@@ -8482,6 +8489,7 @@ variables declared in cmd_line.h.
   enum_qualifiers_enabled = FALSE;
   lambdas_enabled = DEFAULT_LAMBDAS_ENABLED;
   rvalue_references_enabled = DEFAULT_RVALUE_REFERENCES_ENABLED;
+  local_types_as_template_args_enabled = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   default_calling_convention = (a_calling_convention)cc_cdecl;
   microsoft_64bit_pointer_extensions_enabled =

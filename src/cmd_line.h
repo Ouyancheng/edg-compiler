@@ -920,6 +920,11 @@ EXTERN a_boolean
 			/* TRUE if C++0x rvalue references should be accepted
 			   in C++. */
 
+EXTERN a_boolean
+		local_types_as_template_args_enabled;
+			/* TRUE if local and unnamed types are allowed as
+			   template arguments. */
+
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 EXTERN a_calling_convention
