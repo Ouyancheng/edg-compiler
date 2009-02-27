@@ -2065,6 +2065,7 @@ the scope being pushed.
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
   ssep->create_ms_if_exists_entries = FALSE;
 #endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
+  ssep->decl_scope_level         = decl_scope_level;
   ssep->depth_template_declaration_scope = depth_template_declaration_scope;
   ssep->depth_innermost_instantiation_scope =
                                        depth_innermost_instantiation_scope;
@@ -3286,6 +3287,11 @@ the set of option flags passed into the push scope routines.
     common_nsp = NULL;
     definition_depth = DEPTH_OF_FILE_SCOPE;
   }  /* if */
+  /* Set the decl_scope_level to namespace of the template.  In most cases
+     this will be further modified by the entity being instantiated, but
+     in some cases (e.g., static data member instantiations) there
+     is no other scope pushed. */
+  decl_scope_level = definition_depth;
   /* If we pushed some context scopes, reset the previous scope of the first
      context scope so that its previous scope is the file scope.
      Strictly speaking, this shouldn't be necessary, but is done for safety.
@@ -6036,6 +6042,7 @@ new top-of-stack entry with information from the entry that has been popped.
                    (depth_innermost_function_scope != NO_SCOPE_DEPTH) ?
                          scope_stack[depth_innermost_function_scope].il_scope :
                          NULL;
+    decl_scope_level = ssep->decl_scope_level;
     depth_template_declaration_scope =
                                    new_ssep->depth_template_declaration_scope;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -6692,18 +6699,6 @@ End a name scope by popping an entry off the scope stack.
     curr_deferred_access_scope = ssep->saved_curr_deferred_access_scope;
     expr_stack = ssep->saved_expr_stack;
   }  /* if */
-  /* Maintain the current declarative level.  In C mode, it is the same as 
-     depth_scope_stack except when struct/union field scopes are active;
-     when they are, it indicates the first non-struct-or-union scope.  Be
-     careful, you can have a prototype scope inside a struct declaration or
-     vice-versa.  In C++, struct/union/class scopes are real scopes, but
-     class reactivation scopes are not "real" scopes. */
-  for (decl_scope_level = depth_scope_stack;
-       decl_scope_level >= DEPTH_OF_FILE_SCOPE;
-       decl_scope_level--) {
-    a_scope_kind skind = scope_stack[decl_scope_level].kind;
-    if (is_scope_kind_that_affects_declarative_level(skind)) break;
-  }  /* for */
   if (ssep->is_for_init_block) {
     /* A for-init block is being popped.  Its declarations are going out of
        scope.  But in older versions of C++ they would have remained in scope

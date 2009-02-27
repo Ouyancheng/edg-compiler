@@ -633,6 +633,9 @@ typedef struct a_scope_stack_entry {
 			   kind is sck_function and sck_file, in which case
 			   the list is moved onto the associated IL scope. */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  a_scope_depth decl_scope_level;
+			/* Saved value of decl_scope_level when this scope
+			   was pushed. */
   a_scope_depth depth_template_declaration_scope;
 			/* Depth of the sck_template_declaration scope entry,
 			   if any, that the current scope is enclosed by;
