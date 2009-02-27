@@ -1634,11 +1634,13 @@ during wrapup processing by compare_function_templates.
           /* In GNU C++ mode, attempts to bind a template parameter to a class
              type or enumeration type with no name for linkage purposes is
              treated as a deduction failure rather than an outright error.
-             Earlier versions of g++ do not behave that way. */
+             Earlier versions of g++ do not behave that way.  Lambdas are
+             exclude from this special treatment. */
           a_type_ptr  unqual_type = tap->variant.type;
-          if ((is_immediate_class_type(unqual_type) ||
+          if (((is_immediate_class_type(unqual_type) &&
+                !class_type_supp(unqual_type)->is_lambda_closure_class) ||
                is_immediate_enum_type(unqual_type)) &&
-              !has_name(unqual_type)) {
+               !has_name(unqual_type)) {
             match = FALSE;
           }  /* if */
         }  /* if */
