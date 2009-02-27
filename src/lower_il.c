@@ -13517,6 +13517,9 @@ cast.  See lower_expr for typical invocation.
                  op == (an_expr_operator_kind)eok_lor) {
         /* Lower a logical operator and everything under it. */
         lower_logical_operator(expr);
+        /* Change the type of operators that return "bool" in C++ to
+           the "int" required in C. */
+        change_result_type_of_operator_returning_bool(expr);
       } else {
         a_type_ptr  type;
         if (bool_is_keyword && op == (an_expr_operator_kind)eok_cast &&
