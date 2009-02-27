@@ -1944,6 +1944,13 @@ EXTERN a_boolean
 			   initializer; this is a C++0x feature). */
 
 EXTERN a_boolean
+		auto_storage_class_specifier_enabled;
+			/* When TRUE, the "auto" token can appear as a storage
+			   class specifier (this is the traditional meaning of
+			   "auto"; the variable is TRUE by default in all
+			   non-C++0x modes). */
+
+EXTERN a_boolean
 		decltype_enabled;
 			/* When TRUE, the C++0x construct decltype is
 			   supported. */

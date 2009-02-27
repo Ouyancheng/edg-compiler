@@ -6919,27 +6919,6 @@ of a declarator or a syntax error) return TRUE; otherwise return FALSE.
 }  /* process_nontype_identifier */
 
 
-static void make_auto_type(a_decl_parse_state  *state)
-/*
-Create a type entry representing the "auto" type specifier (a special kind of
-tk_template_param) and make state->auto_type point to it.  state->auto_pos is
-used to establish the type entry's position information.
-*/
-{
-  a_type_ptr  type = alloc_type((a_type_kind)tk_template_param);
-
-  type->source_corresp.assoc_info =
-             (char*)make_unnamed_symbol((a_symbol_kind)sk_type,
-                                        &state->auto_pos);
-  symbol_for(type)->variant.type.ptr = type;
-  type->variant.template_param.extra_info
-      ->coordinates.depth = AUTO_TYPE_NESTING_DEPTH;
-  type->variant.template_param.extra_info->coordinates.position = 1;
-  set_type_size(type);
-  state->auto_type = type;
-}  /* make_auto_type */
-
-
 static void process_storage_class_specifier(
                                   a_token_kind           first_token,
                                   a_decl_flag_set        input_flags,
@@ -7211,6 +7190,89 @@ done:;
 }  /* process_storage_class_specifier */
 
 
+static void make_auto_type(a_decl_parse_state  *state)
+/*
+Create a type entry representing the "auto" type specifier (a special kind of
+tk_template_param) and make state->auto_type point to it.  state->auto_pos is
+used to establish the type entry's position information.
+*/
+{
+  a_type_ptr  type = alloc_type((a_type_kind)tk_template_param);
+
+  type->source_corresp.assoc_info =
+             (char*)make_unnamed_symbol((a_symbol_kind)sk_type,
+                                        &state->auto_pos);
+  symbol_for(type)->variant.type.ptr = type;
+  type->variant.template_param.extra_info
+      ->coordinates.depth = AUTO_TYPE_NESTING_DEPTH;
+  type->variant.template_param.extra_info->coordinates.position = 1;
+  set_type_size(type);
+  state->auto_type = type;
+}  /* make_auto_type */
+
+
+static void process_auto_specifier(
+                                 a_boolean              auto_type_allowed,
+                                 a_boolean              auto_is_first,
+                                 a_decl_flag_set        input_flags,
+                                 a_decl_parse_state     *state,
+                                 a_decl_pos_block_ptr   decl_pos_block,
+                                 a_decl_specifiers_set  *decl_specifiers_seen,
+                                 a_basic_type           *basic_type,
+                                 a_type_ptr             *type_ptr,
+                                 a_boolean              *err)
+/*
+Process the "auto" specifier.  Depending on the mode, it can be a storage
+class specifier, a type specifier, or both.  If it can be both, we cannot
+determine which it is until all specifiers have been seen, and this routine is
+called late (i.e., after all specifiers have been seen).  If it cannot be
+both, this routine is called early because in
+    typedef int T; T x;
+    void f() { auto T(x); }
+we must know that a type specifier ("auto") was seen to avoid treating T as a type specifier (here, it is a declarator-id).
+auto_type_allowed is TRUE if the current context allows "auto" as a type
+specifier.  auto_is_first is TRUE if "auto" was the first specifier other than
+"inline" or "friend".  input_flags are the flags passed to decl_specifier (for
+which this is a helper routine).  *state and *decl_pos_block tracks various
+properties of the current declaration parsing state; they may be updated by
+this routine.  *decl_specifiers_seen records the kind of specifiers seen (and
+may be updated).  *basic_type and *type_ptr describe the type specified by
+the specifiers and are updated if "auto" is treated as a type specifier.  *err
+is set to TRUE if an error is issued.
+*/
+{
+  if (auto_type_specifier_enabled &&
+      (!auto_storage_class_specifier_enabled ||
+       (!(*decl_specifiers_seen & DS_TYPE) &&
+        (input_flags & DSI_TYPE_SPECIFIER_ALLOWED)))) {
+    /* "auto" can be a type specifier in this mode.  It cannot be a storage
+       class specifier either because this mode doesn't allow it or because
+       no other type specifier was seen. */
+    *decl_specifiers_seen |= DS_TYPE;
+    if (!auto_type_allowed) {
+      /* The current mode supports "auto" as a type specifier, but the current
+         context does not.  Issue an error that is specific for "auto" but
+         does not imply whether it is a type specifier or a storage class. */
+      pos_error(ec_auto_not_allowed_here, &state->auto_pos);
+      *basic_type = bt_error;
+      *type_ptr = error_type();
+      *err = TRUE;
+      state->auto_type_specifier_seen = FALSE;
+    } else {
+      *basic_type = bt_auto;
+      make_auto_type(state);
+      *type_ptr = state->auto_type;
+    }  /* if */
+  } else {
+    /* "auto" must be a storage class specifier. */
+    state->auto_type_specifier_seen = FALSE;
+    process_storage_class_specifier(
+                               tok_auto, input_flags, state, decl_pos_block,
+                               auto_is_first, decl_specifiers_seen, err);
+  }  /* if */
+}  /* process_auto_specifier */
+
+
 void decl_specifiers(a_decl_flag_set       input_flags,
                      a_decl_parse_state    *state,
                      a_decl_pos_block_ptr  decl_pos_block)
@@ -7322,14 +7384,27 @@ corresponding change in prescan_decl_specifiers (in disambig.c).
           error(auto_type_allowed ? ec_bad_combination_of_type_specifiers :
                                     ec_mult_storage_classes);
         } else {
-          /* In C++0x "auto" can be a storage class specifier or a type
-             specifier, but that cannot be decided in general until all the
-             decl-specifiers have been seen. */
           state->auto_pos = pos_curr_token;
           state->auto_type_specifier_seen = TRUE;
           /* Remember whether "auto" was the first specifier (ignoring inline
              and friend). */
           auto_is_first = !(decl_specifiers_seen & ~(DS_INLINE | DS_FRIEND));
+          if (auto_storage_class_specifier_enabled &&
+              auto_type_specifier_enabled) {
+            /* Whether "auto" is a type specifier or a storage class specifier
+               cannot be decided until all decl-specifiers have been seen. */
+          } else {
+            /* Process the auto specifier now.  If "auto" can only be a type
+               specifier, this cannot be delayed until later, because in
+                 typedef int T; T x;
+                 void f() { auto T(x); }
+               we must know that a type specifier ("auto") was seen to avoid
+               treating T as a type specifier (here, it is a declarator-id). */
+            process_auto_specifier(
+                    auto_type_allowed, auto_is_first, input_flags, state,
+                    decl_pos_block, &decl_specifiers_seen, &basic_type,
+                    type_ptr, &err);
+          }  /* if */
         }  /* if */
         break;
       case tok_typedef:
@@ -8748,37 +8823,13 @@ no_get_token:
   }  /* for */
 #undef record_qualifiers_pos
 exit_loop:
-  if (state->auto_type_specifier_seen) {
-    /* The "auto" token was seen among the specifiers: It is either a storage
-       class specifier or a type specifier, but that can only be decided now
-       that we have seen all the specifiers. */
-    if (auto_type_specifier_enabled && (decl_specifiers_seen & DS_TYPE) == 0 &&
-        type_specifier_allowed) {
-      /* No type specifier other than "auto" was seen: So "auto" should be
-         treated as a type specifier. */
-      decl_specifiers_seen |= DS_TYPE;
-      if (auto_type_allowed) {
-        make_auto_type(state);
-        *type_ptr = state->auto_type;
-        basic_type = bt_auto;
-      } else {
-        /* The current a mode supports "auto" as a type specifier, but the
-           current context does not.  Issue an error that is specific for
-           "auto" but does imply that it is a type specifier or a storage
-           class (although error recovery will be as if an error type was
-           specified since no other type specifier is present). */
-        pos_error(ec_auto_not_allowed_here, &state->auto_pos);
-        basic_type = bt_error;
-        err = TRUE;
-        state->auto_type_specifier_seen = FALSE;
-      }  /* if */
-    } else {
-      /* "auto" must be a storage class specifier. */
-      state->auto_type_specifier_seen = FALSE;
-      process_storage_class_specifier(
-                                 tok_auto, input_flags, state, decl_pos_block,
-                                 auto_is_first, &decl_specifiers_seen, &err);
-    }  /* if */
+  if (state->auto_type_specifier_seen &&
+      auto_storage_class_specifier_enabled && auto_type_specifier_enabled) {
+    /* The "auto" token was seen among the specifiers, but we could not decide
+       if it is a storage class specifier or a type specifier until now. */
+    process_auto_specifier(auto_type_allowed, auto_is_first, input_flags,
+                           state, decl_pos_block, &decl_specifiers_seen,
+                           &basic_type, type_ptr, &err);
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
   /* coverity[dead_error_condition] */
@@ -9054,6 +9105,9 @@ decl-specifiers.
     };
     register_pch_saved_variables(saved_vars);
   }  /* if */
+  /* Verify that tok_auto has at least one meaning. */
+  check_assertion(auto_storage_class_specifier_enabled ||
+                  auto_type_specifier_enabled);
 }  /* decl_spec_one_time_init */
 
 /******************************************************************************

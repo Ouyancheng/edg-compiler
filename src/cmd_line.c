@@ -2305,6 +2305,7 @@ the next standard).
   variadic_macros_allowed = TRUE;
   static_assert_enabled = TRUE;
   auto_type_specifier_enabled = TRUE;
+  auto_storage_class_specifier_enabled = FALSE;
   extern_template_allowed = TRUE;
   standard_form_of_extern_template = TRUE;
   decltype_enabled = TRUE;
@@ -8671,6 +8672,7 @@ variables declared in cmd_line.h.
   mixed_string_concat_enabled = FALSE;
   static_assert_enabled = FALSE;
   auto_type_specifier_enabled = FALSE;
+  auto_storage_class_specifier_enabled = TRUE;
   extern_template_allowed = FALSE;
   standard_form_of_extern_template = FALSE;
   decltype_enabled = FALSE;

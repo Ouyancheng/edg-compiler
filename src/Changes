@@ -1,5 +1,26 @@
 Version 4.1
 
+2/27/09  [EDGcpfe/9161]
+C++0x: "auto" is always a type specifier
+
+In C++0x mode, the traditional meaning of "auto" as a storage class specifier
+is no longer enabled.  "auto" is thus always a type specifier in C++0x.
+For example:
+
+  typedef int T;
+  int x;
+  void f() {
+    auto T(x);   // This is now the declaration of a variable T initialized
+                 // with x (and hence of the same type as x).  Previously, it
+                 // was the declaration of a variable x of type T.
+    auto int y;  // Now an error: Multiple type specifiers.
+  }
+
+This change was voted into the C++ committee's working paper for the next
+standard in February 2008 (meeting in Bellevue, through proposal numbered
+N2546).
+
+
 2/26/09  [EDGcpfe/9577]
 Abort on decltype applied to template-dependent cast
 
