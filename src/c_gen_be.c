@@ -7596,24 +7596,30 @@ statement expression, i.e., ({...}).
       check_assertion_str(statement->variant.return_dynamic_init == NULL,
                           "dump_statement_full: return with dyn init");
 #if IA64_ABI
-      if (master_routine_return_variable != NULL) {
+      if (master_routine_scope != NULL &&
+          innermost_function_scope == master_routine_scope) {
         /* We're "inlining" a master routine within an alternate entry routine
-           and the master routine returns a value.  Replace any returns within
-           this master routine with an assignment to the return variable and a
-           jump to the end of the master routine. */
-        check_assertion(statement->expr != NULL &&
-                        innermost_function_scope == master_routine_scope &&
-                        !is_implicit_return(statement));
+           Replace any returns within this master routine with a jump to the
+           end of the master routine. */
+        if (master_routine_return_variable != NULL) {
+          /* If the return specifies a value, assign the value to the return
+             variable before the jump to the end of the master routine. */
+          check_assertion(statement->expr != NULL &&
+                          !is_implicit_return(statement));
 #if !STANDALONE_C_GEN_BE
-        check_assertion(il_identical_types(statement->expr->type,
+          check_assertion(il_identical_types(statement->expr->type,
                                         master_routine_return_variable->type));
 #endif /* !STANDALONE_C_GEN_BE */
-        /* Generate an assignment statement to assign the returned expression
-           to the return variable. */
-        dump_variable_name(master_routine_return_variable);
-        write_tok_str(" = ");
-        dump_expr_with_parens(statement->expr);
-        write_tok_str("; goto ");
+          /* Generate an assignment statement to assign the returned expression
+             to the return variable. */
+          dump_variable_name(master_routine_return_variable);
+          write_tok_str(" = ");
+          dump_expr_with_parens(statement->expr);
+          write_tok_ch(';');
+        } else {
+          check_assertion(statement->expr == NULL);
+        }  /* if */
+        write_tok_str("goto ");
         write_tok_str(end_of_master_routine_label);
         write_tok_ch(';');
       } else
@@ -8168,14 +8174,12 @@ argument.  Returns TRUE if the expression was replaced.
       dump_statement(master_routine_scope->assoc_block);
       curr_scope = saved_curr_scope;
       innermost_function_scope = entry_routine_scope;
-      if (master_routine_return_variable != NULL) {
-        /* Put out a label that is the target of any returns in the master
-           routine.  There will only ever be one instance of this label in
-           a given entry routine. */
-        write_tok_str(end_of_master_routine_label);
-        write_tok_str(":;");
-        master_routine_return_variable = NULL;
-      }  /* if */
+      /* Put out a label that is the target of any returns in the master
+         routine.  There will only ever be one instance of this label in
+         a given entry routine. */
+      write_tok_str(end_of_master_routine_label);
+      write_tok_str(":;");
+      master_routine_return_variable = NULL;
       indent -= 2;
       write_tok_ch('}');
     }  /* if */
