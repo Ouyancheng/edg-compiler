@@ -924,9 +924,10 @@ This is the non-macro version.
 }  /* write_tok_str */
 
 
-/*ARGSUSED*/ /* octl is not used. */
-static void write_tok_str_octl(char                                  *str,
-                               an_il_to_str_output_control_block_ptr octl)
+/*ARGSUSED*/ /* local_octl is not used. */
+static void write_tok_str_octl(
+                              char                                  *str,
+                              an_il_to_str_output_control_block_ptr local_octl)
 /*
 Version of write_tok_str intended to be called by the il-to-str routines.
 */
