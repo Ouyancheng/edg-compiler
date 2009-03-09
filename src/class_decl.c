@@ -1154,6 +1154,7 @@ the fields implied by the lambda's capture list).
   a_type_ptr                     type;
   a_symbol_ptr                   sym;
   a_class_symbol_supplement_ptr  cssp;
+  a_boolean                      is_prototype_instantiation = FALSE;
 
   /* Create an unnamed symbol for the lambda class. */
   sym = make_unnamed_tag_symbol((a_symbol_kind)sk_class_or_struct_tag,
@@ -1168,10 +1169,15 @@ the fields implied by the lambda's capture list).
        as a nonreal class.  Local classes in such contexts are not marked
        as prototype instantiations. */
     type->variant.class_struct_union.is_nonreal_class = TRUE;
+    is_prototype_instantiation = TRUE;
   }  /* if */
   update_membership_of_class(sym, /*def_or_vacuous_decl=*/TRUE, decl_level,
                              decl_position);
-  add_to_types_list(type, decl_level);
+  if (!is_prototype_instantiation || prototype_instantiations_in_il) {
+    add_to_types_list(type, decl_level);
+  } else {
+    set_parent_scope_for_type(type, decl_level);
+  }  /* if */
   cssp = sym->variant.class_struct_union.extra_info;
   /* Assume for now that bitwise copy is allowed for this class.  This will
      be cleared later if this is not the case. */
@@ -16446,6 +16452,8 @@ occurs inside a default argument expression.
   class_state.POD_ruled_out = TRUE;
   /* Don't allow aggregate initialization of a closure object. */
   class_state.class_aggregate_ruled_out = TRUE;
+  class_state.is_nonreal_instantiation =
+                    closure_class->variant.class_struct_union.is_nonreal_class;
   class_type_supp(closure_class)->assoc_scope =
              push_scope((a_scope_kind)sck_class_struct_union, NO_SCOPE_NUMBER,
                         closure_class, (a_routine_ptr)NULL);

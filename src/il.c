@@ -7412,6 +7412,25 @@ variable can be diagnosed.
 
 #endif /* NAMED_REGISTERS_ALLOWED */
 
+void set_parent_scope_for_type(a_type_ptr     type_ptr,
+                               a_scope_depth  scope_level)
+/*
+Set the parent scope for type_ptr.  Normally this is done when the type
+is added to the types list.  This routine is used if the type is not added
+to the type list.  scope_level is the declaration scope used to determine
+the parent scope.  When scope_level is NO_SCOPE_DEPTH, the scope is computed
+rather than determined directly.
+*/
+{
+  a_scope_ptr                 sp;
+  a_scope_pointers_block_ptr  pointers_block;
+
+  sp = get_scope_for_list(scope_level, &type_ptr->source_corresp,
+                          &pointers_block);
+  set_parent_scope(&type_ptr->source_corresp, iek_type, sp);
+}  /* set_parent_scope_for_type */
+
+
 void add_to_types_list_full(a_type_ptr     type_ptr,
                             a_scope_depth  scope_level,
                             a_boolean      do_placeholder)
