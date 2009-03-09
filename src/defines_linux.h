@@ -35,6 +35,16 @@ This is the version for Linux.
 #endif /* ifndef COMPILE_MULTIPLE_SOURCE_FILES */
 
 /*
+When compiling with our front end in strict mode, set _BSD_SOURCE to get
+the declarations needed for the mmap routines.
+*/
+#ifdef __EDG__
+#if __STDC__ != 0
+#define _BSD_SOURCE
+#endif /* __STDC__ != 0 */
+#endif /* ifdef __EDG__ */
+
+/*
 USE_X86_64 should be set when targeting the x86-64 variant of the i386
 platform.
 */
