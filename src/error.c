@@ -2239,9 +2239,9 @@ be forgotten.
         }  /* for */
         *line_len +=
                     add_to_text_buffer(buffer, msg,
-                                       strlen(msg) > (sizeof_t)chars_to_take ? 
+                                       len > (sizeof_t)chars_to_take ? 
                                                      (sizeof_t)chars_to_take :
-                                                     strlen(msg));
+                                                     len);
         msg += chars_to_take;
         len -= chars_to_take;
       }  /* if */
