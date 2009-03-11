@@ -6251,14 +6251,14 @@ for use in generating cross-reference output describing this declaration.
   a_boolean                suppress_inline_body = FALSE;
   a_boolean                notify_correspondence_processing = FALSE;
   a_boolean                microsoft_specialization_redef = FALSE;
-  a_type_ptr               type_ptr = dps->type;
+  a_type_ptr               type_ptr = dps->type, rtp = skip_typerefs(type_ptr);
   a_storage_class          storage_class = dps->storage_class;
 #if GNU_EXTENSIONS_ALLOWED
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_boolean                routine_alias_decl = FALSE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   an_attribute_ptr         attributes = dps->attributes;
-  a_type_ptr               orig_type = type_ptr, rtp = skip_typerefs(type_ptr);
+  a_type_ptr               orig_type = type_ptr;
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if DECL_MODIFIERS_IN_USE || BACK_END_IS_CP_GEN_BE || \
     (GNU_EXTENSIONS_ALLOWED && GENERATE_SOURCE_SEQUENCE_LISTS)
