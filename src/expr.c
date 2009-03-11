@@ -10837,10 +10837,10 @@ for non-class operands).  This routine is called only in C++ mode.
                                            &ambiguous,
                                            (a_candidate_function_ptr *)NULL) ||
                     ambiguous)) {
-            /* A conversion can be done that will allow the reference to be
-               bound directly to the result of the conversion function. */
-            possible = TRUE;
-            determined_conversion = &conversion;
+          /* A conversion can be done that will allow the reference to be
+             bound directly to the result of the conversion function. */
+          possible = TRUE;
+          determined_conversion = &conversion;
         } else if (binding_to_rvalue_allowed) {
           if (is_class_struct_union_type(eff_type_cast_to)) {
             if (is_an_lvalue(operand) &&
