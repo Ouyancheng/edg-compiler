@@ -3423,20 +3423,10 @@ a_type_ptr pointer_declarator(
                       a_decl_pos_block_ptr  decl_pos_block,
                       an_attribute_ptr      *attributes)
 /*
-Scan the pointer component of a declarator.  Syntax for C++ (ARM 8.0):
-
-8.0	ptr-operator:
-		* cv-qualifier-list
-			           opt
-		& cv-qualifier-list
-				   opt
-		complete-class-name :: * cv-qualifier-list
-							  opt
-
-where a cv-qualifier-list consists of "const" or "volatile" or both.  Only
-the first form is accepted in C.  Note also that even in C++ the second form
-is not allowed in a new-declarator (ARM 5.3.3), so the reference_allowed
-parameter controls the restrictions imposed by the context.
+Scan the pointer component of a declarator.  This is "*", "&", "&&", or "C::*"
+(where C is a class type) optionally followed by "const" and/or "volatile".
+"&" (lvalue reference) and "C::*" (pointer-to-member) are C++ features; "&&"
+is a C++0x extension to declare "rvalue references".
 
 This routine actually scans a sequence of pointer declarators.
 The pointer type modifiers are placed on top of the type passed in as
@@ -3448,6 +3438,8 @@ ptr_to_member_scanned is set to TRUE if a pointer-to-member declarator
 was scanned, and to FALSE otherwise.
 
 *state describes some state information about the current declaration.
+reference_allowed is FALSE if reference declarators ("&" and "&&") should be
+disallowed (e.g., in a new-expression).
 
 In Microsoft mode, the Microsoft __cdecl, __stdcall, __fastcall, and
 __thiscall are recognized as calling conventions.  The handling of calling
