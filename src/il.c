@@ -9572,7 +9572,7 @@ is best called through the macro get_parent_scope_of.
 a_routine_ptr lambda_body_for_closure(a_type_ptr	type)
 /*
 Return a pointer to the lambda body routine for the closure class specified by
-type.
+type, or NULL if the lambda body routine does not exist yet.
 */
 {
   a_routine_ptr	rp;
@@ -9581,7 +9581,6 @@ type.
        rp != NULL; rp = rp->next) {
     if (rp->is_lambda_body) break;
   }  /* for */
-  check_assertion(rp != NULL);
   return rp;
 }  /* lambda_body_for_closure */
 

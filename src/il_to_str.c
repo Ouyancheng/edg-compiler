@@ -354,8 +354,13 @@ generate a name for it and return TRUE (FALSE otherwise).
       /* Get the routine entry for the lambda body. */
       rp = lambda_body_for_closure(type);
       octl->output_str("lambda []", octl);
-      /* Add the routine type of the lambda routine to the output. */
-      form_type(rp->type, octl);
+      /* Add the routine type of the lambda routine to the output.  The
+         routine pointer for the lambda body can be NULL if this routine is
+         called after the closure class has been created but before the
+         complete lambda parameter list and return type have been scanned. */
+      if (rp != NULL) {
+        form_type(rp->type, octl);
+      }  /* if */
     }  /* if */
   }  /* if */
   return result;
