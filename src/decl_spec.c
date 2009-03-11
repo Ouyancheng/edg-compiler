@@ -7229,7 +7229,8 @@ called late (i.e., after all specifiers have been seen).  If it cannot be
 both, this routine is called early because in
     typedef int T; T x;
     void f() { auto T(x); }
-we must know that a type specifier ("auto") was seen to avoid treating T as a type specifier (here, it is a declarator-id).
+we must know that a type specifier ("auto") was seen to avoid treating T as a
+type specifier (here, it is a declarator-id).
 auto_type_allowed is TRUE if the current context allows "auto" as a type
 specifier.  auto_is_first is TRUE if "auto" was the first specifier other than
 "inline" or "friend".  input_flags are the flags passed to decl_specifier (for
