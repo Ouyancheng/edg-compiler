@@ -2237,11 +2237,8 @@ be forgotten.
           putcb(' ', buffer);
           (*line_len)++;
         }  /* for */
-        *line_len +=
-                    add_to_text_buffer(buffer, msg,
-                                       len > (sizeof_t)chars_to_take ? 
-                                                     (sizeof_t)chars_to_take :
-                                                     len);
+        if (chars_to_take > len) chars_to_take = len;
+        *line_len += add_to_text_buffer(buffer, msg, (sizeof_t)chars_to_take);
         msg += chars_to_take;
         len -= chars_to_take;
       }  /* if */
