@@ -14165,14 +14165,15 @@ repeating the diagnostic if additional declarators follow.
       !(dps->type != NULL && is_error_type(dps->type))) {
     /* The "auto" type specifier was seen, but we never saw an initializer
        and no other error was recorded in the declaration's type. */
-    if (dps->sym != NULL && !dps->sym->is_error) {
+    if (dps->sym != NULL && !dps->sym->is_error && !is_type_symbol(dps->sym)) {
       /* A named entity was declared: Issue the error on the declarator (there
          could be more than one sharing the same auto specifier). */
       pos_error(ec_auto_type_requires_initializer, &dps->declarator_pos);
     } else {
-      /* An unnamed entity (e.g., bit field) or a severe syntax error.
-         Issuing the error on the auto specifier is usually more helpful. */
-      pos_error(ec_auto_type_requires_initializer, &dps->auto_pos);
+      /* An unnamed entity (e.g., bit field), a typedef, or a severe syntax
+         error.  Issuing the error on the auto specifier is usually more
+         helpful. */
+      pos_error(ec_auto_not_allowed_here, &dps->auto_pos);
     }  /* if */
     dps->auto_type_specifier_seen = FALSE;
     dps->auto_type = NULL;
@@ -14203,6 +14204,9 @@ repeating the diagnostic if additional declarators follow.
         case sk_routine:
         case sk_member_function:
           p_type = &dps->sym->variant.routine.ptr->type;
+          break;
+        case sk_type:
+          p_type = &dps->sym->variant.type.ptr;
           break;
         default:
           unexpected_condition_str("f_check_use_of_auto_type: bad symbol");
