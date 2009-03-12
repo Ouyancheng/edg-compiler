@@ -711,6 +711,7 @@ check_abbreviation()
 --no_remove_unneeded_entities
 --no_restrict
 --no_rtti
+--no_rvalue_refs
 --no_special_subscript_cost
 --no_standard_includes
 --no_stdarg_builtin
@@ -771,6 +772,7 @@ check_abbreviation()
 --report_gnu_extensions
 --restrict
 --rtti
+--rvalue_refs
 --set_flag
 --short_enums
 --short_lifetime_temps
@@ -1320,6 +1322,8 @@ process_option()
          --unsigned_bit_fields | \
          --check_concatenations | \
          --no_check_concatenations | \
+         --rvalue_refs | \
+         --no_rvalue_refs | \
          --force_vtbl)
       feoptions=$feoptions" $curr_arg"
 #     Options that require additional processing
