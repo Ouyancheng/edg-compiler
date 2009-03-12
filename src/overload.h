@@ -752,6 +752,7 @@ extern a_boolean direct_reference_binding_possible(
                                        an_operand   *source_operand,
                                        a_type_ptr   source_type,
                                        a_type_ptr   dest_type,
+                                       a_boolean    is_cast,
                                        a_boolean    *ref_to_const,
                                        a_boolean    *ref_to_const_volatile,
                                        a_boolean    *binding_to_rvalue_allowed,

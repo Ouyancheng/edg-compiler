@@ -1819,6 +1819,7 @@ ec_class_type_required;;"%t is not a class type"
 ec_delete_of_array_type;;"\"delete\" applied to a pointer-to-array type treated as delete[]"
 ec_delete_of_array_type_nonstandard;;"\"delete\" applied to a pointer-to-array type is nonstandard; treated as delete[]"
 ec_function_does_not_match_arguments;;"%n cannot be called with the given argument list"
+ec_rvalue_reference_bound_to_lvalue;;"an rvalue reference cannot be bound to an lvalue"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

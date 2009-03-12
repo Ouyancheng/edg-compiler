@@ -10792,6 +10792,7 @@ for non-class operands).  This routine is called only in C++ mode.
       if (direct_reference_binding_possible(operand,
                                             operand->type,
                                             type_cast_to,
+                                            /*is_cast=*/TRUE,
                                             &ref_to_const,
                                             &ref_to_const_volatile,
                                             &binding_to_rvalue_allowed,

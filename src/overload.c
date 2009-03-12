@@ -1439,6 +1439,7 @@ array).
   if (direct_reference_binding_possible(arg_operand,
                                         *arg_type,
                                         param_type,
+                                        /*is_cast=*/FALSE,
                                         &ref_to_const,
                                         &ref_to_const_volatile,
                                         &binding_to_rvalue_allowed,
@@ -1473,6 +1474,7 @@ pointer transformation should be done.
   if (direct_reference_binding_possible((an_operand *)NULL,
                                         arg_type,
                                         param_type,
+                                        /*is_cast=*/FALSE,
                                         &ref_to_const,
                                         &ref_to_const_volatile,
                                         &binding_to_rvalue_allowed,
@@ -1502,10 +1504,18 @@ must free that list.
 */
 {
   a_boolean  okay;
-  a_type_ptr base_dest_type = type_pointed_to(dest_type);
+  a_type_ptr base_dest_type;
 
-  if (microsoft_bugs && microsoft_version < 1310 &&
-      (!is_an_lvalue(source_operand) || operand_is_temp_init(source_operand))){
+  *ambiguous = FALSE;
+  check_assertion(is_reference_type(dest_type));
+  base_dest_type = type_pointed_to(dest_type);
+  if (is_rvalue_reference_type(dest_type)) {
+    /* This conversion is not applicable to rvalue references (if you convert
+       to an lvalue you won't be able to bind the rvalue reference to it). */
+    okay = FALSE;
+  } else if (microsoft_bugs && microsoft_version < 1310 &&
+             (!is_an_lvalue(source_operand) ||
+              operand_is_temp_init(source_operand))) {
     /* The Microsoft compiler (VC++ 6.0, 7.0, fixed in 7.1) implements
        an older rule in the Working Paper that does not allow a conversion
        function to be used for a direct reference binding unless the original
@@ -1514,7 +1524,6 @@ must free that list.
        returns a class into an lvalue, we have to test for temp init
        expressions specially. */
     okay = FALSE;
-    *ambiguous = FALSE;
   } else {
     okay = conversion_from_class_possible(source_operand,
                                           base_dest_type,
@@ -13476,6 +13485,7 @@ a_boolean direct_reference_binding_possible(
                                        an_operand   *source_operand,
                                        a_type_ptr   source_type,
                                        a_type_ptr   dest_type,
+                                       a_boolean    is_cast,
                                        a_boolean    *ref_to_const,
                                        a_boolean    *ref_to_const_volatile,
                                        a_boolean    *binding_to_rvalue_allowed,
@@ -13485,11 +13495,12 @@ a_boolean direct_reference_binding_possible(
 /*
 See if it is possible to directly bind a reference of type dest_type
 to source_operand.  If so, return TRUE.  source_operand can be NULL, in
-which case source_type gives the operand type.  *ref_to_const is returned
-TRUE if the reference is to const.  *ref_to_const_volatile is returned
-TRUE if the reference is to const volatile.
-*binding_to_rvalue_allowed is returned TRUE if the reference can be
-bound to an rvalue.  *dropping_qualifiers is returned TRUE if the
+which case source_type gives the operand type.  is_cast is TRUE if the
+context is a cast (source_operand is being cast to dest_type).
+*ref_to_const is returned TRUE if the reference is to const.
+*ref_to_const_volatile is returned TRUE if the reference is to const
+volatile.  *binding_to_rvalue_allowed is returned TRUE if the reference
+can be bound to an rvalue.  *dropping_qualifiers is returned TRUE if the
 reference binding would drop type qualifiers (i.e., the types are such
 that the binding could be done except for the qualifiers).
 *p_template_case is returned TRUE if the match was assumed to be
@@ -13510,11 +13521,13 @@ direct binding is "possible" and not whether it is "valid".
 */
 {
   a_boolean  direct_binding_possible, type_is_correct_or_derived;
-  a_boolean  template_case = FALSE;
+  a_boolean  template_case = FALSE, is_rvalue_ref;
   a_type_ptr base_dest_type, unqual_dest_type, unqual_source_type;
                                            
-  if (function_symbol != NULL) *function_symbol = NULL;                   
+  if (function_symbol != NULL) *function_symbol = NULL;
+  check_assertion(is_reference_type(dest_type));
   base_dest_type = type_pointed_to(dest_type);
+  is_rvalue_ref = is_rvalue_reference_type(dest_type);
   if (source_operand != NULL) {
     /* Instantiate a static data member array to make sure we know
        its size. */
@@ -13603,8 +13616,15 @@ direct binding is "possible" and not whether it is "valid".
   *ref_to_const = is_const_qualified_type(base_dest_type);
   *binding_to_rvalue_allowed = *ref_to_const;
   *ref_to_const_volatile = FALSE;
-  if (!(any_cfront_mode() || microsoft_bugs) && *ref_to_const &&
-      is_volatile_qualified_type(base_dest_type)) {
+  if (is_rvalue_ref) {
+    /* An rvalue reference can bind (only) to an rvalue.  In a cast,
+       however, the source can be an lvalue. */
+    *binding_to_rvalue_allowed = TRUE;
+    if (!is_cast && source_operand != NULL && !is_an_rvalue(source_operand)) {
+      direct_binding_possible = FALSE;
+    }  /* if */
+  } else if (!(any_cfront_mode() || microsoft_bugs) && *ref_to_const &&
+             is_volatile_qualified_type(base_dest_type)) {
     /* A reference to const volatile may not be bound to an rvalue.
        This was added after the ARM. */
     *binding_to_rvalue_allowed = FALSE;
@@ -13647,7 +13667,7 @@ direct binding is "possible" and not whether it is "valid".
        so the initialization would involve dropping qualifiers. */
     direct_binding_possible = FALSE;
   }  /* if */
-  if (type_is_correct_or_derived && *binding_to_rvalue_allowed &&
+  if (direct_binding_possible && *binding_to_rvalue_allowed &&
       source_operand != NULL && is_bit_field_operand(source_operand) &&
       !template_case) {
     /* For a bit-field case like
@@ -13811,6 +13831,7 @@ been found to be acceptable, and *conversion describes it.
                   direct_reference_binding_possible(source_operand,
                                                     (a_type_ptr)NULL,
                                                     dest_type,
+                                                    /*is_cast=*/FALSE,
                                                     &ref_to_const,
                                                     &ref_to_const_volatile,
                                                     &binding_to_rvalue_allowed,
@@ -14074,6 +14095,11 @@ been found to be acceptable, and *conversion describes it.
     do_array_to_pointer_conversion(source_operand);
     conv_object_pointer_to_lvalue(source_operand);
     adjust_lvalue_type(source_operand, adj_base_dest_type);
+  } else if (is_rvalue_reference_type(dest_type) &&
+             is_a_cplusplus_lvalue(source_operand)) {
+    /* An rvalue reference cannot be bound to an lvalue. */
+    pos_error(ec_rvalue_reference_bound_to_lvalue, &source_operand->position);
+    conv_to_error_operand(source_operand);
   } else {
     /* The initialization cannot be done directly; a temporary must be
        used and/or an implicit conversion must be done. */
@@ -14700,6 +14726,7 @@ used only in C++ mode.
         direct_reference_binding_possible(op1,
                                           (a_type_ptr)NULL,
                                           conv_dest_type,
+                                          /*is_cast=*/FALSE,
                                           &ref_to_const,
                                           &ref_to_const_volatile,
                                           &binding_to_rvalue_allowed,
