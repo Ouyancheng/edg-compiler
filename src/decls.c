@@ -1098,7 +1098,7 @@ consistent with that of the previous declaration.
        different kinds of entities).  Skip this processing. */
     goto done;
   }  /* if */
-  if (exceptions_enabled && prev_type->kind != (a_type_kind)tk_typeref) {
+  if (exceptions_enabled) {
     an_error_severity  severity = es_error;
     if (microsoft_mode && microsoft_version >= 1300) {
       /* Recent Microsoft compilers do not require exception specifications
