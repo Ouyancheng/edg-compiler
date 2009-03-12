@@ -998,9 +998,8 @@ the field.
        type based on the variable's type. */
     field_type = make_reference_type(field_type);
   } else {
-    /* The variable is being captured by value.  The type is the
-       cv-unqualified type of the variable. */
-    field_type = make_unqualified_type(field_type);
+    /* The variable is being captured by value.  The type is the type
+       of the captured variable. */
   }  /* if */
   /* Set up the context that is needed so that decl_nonstatic_data_member
      can be used to create the field. */
