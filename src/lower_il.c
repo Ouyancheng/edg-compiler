@@ -17350,11 +17350,16 @@ Promote the types in the indicated scope (a function or block scope that
 is part of the indicated routine) to the file scope.  When promoting out
 of a member function, the local types are placed on a list associated
 with the outermost enclosing class, for later promotion out of the class
-(and into the file scope) along with the class members.
+(and into the file scope) along with the class members.  VLA typedefs (when
+VLAs aren't lowered) cannot be promoted (they may reference local variables)
+so they are left in the scope.
 */
 {
   unsigned long  n_promoted_source_types = 0;
   a_type_ptr     type, next_type;
+#if !LOWER_VARIABLE_LENGTH_ARRAYS
+  a_type_ptr     last_vla_typedef, vla_typedefs = NULL;
+#endif /* !LOWER_VARIABLE_LENGTH_ARRAYS */
 
   /* See if there are types to promote. */
   type = scope->types;
@@ -17405,9 +17410,21 @@ with the outermost enclosing class, for later promotion out of the class
       next_type = type->next;
       if (type_is_typedef(type) &&
           type->variant.typeref.has_variably_modified_type) {
+#if LOWER_VARIABLE_LENGTH_ARRAYS
         /* Variably modified types cannot be moved outside their scope.
            This type will just disappear. */
         clear_local_scope_ref_if_present(&type->source_corresp);
+#else /* !LOWER_VARIABLE_LENGTH_ARRAYS */
+        /* VLA typedefs may reference local variables and therefore cannot be
+           promoted. */
+        if (vla_typedefs == NULL) {
+          vla_typedefs = type;
+        } else {
+          last_vla_typedef->next = type;
+        }  /* if */
+        last_vla_typedef = type;
+        last_vla_typedef->next = NULL;
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
         continue;
       }  /* if */
 #if DEBUG
@@ -17459,8 +17476,14 @@ with the outermost enclosing class, for later promotion out of the class
         }  /* for */
       }  /* if */
     }  /* for */
+#if LOWER_VARIABLE_LENGTH_ARRAYS
     /* Clear the types list now that all types have been promoted. */
     scope->types = NULL;
+#else /* !LOWER_VARIABLE_LENGTH_ARRAYS */
+    /* Clear the types list of all non-VLA typedefs now that types have
+       been promoted. */
+    scope->types = vla_typedefs;
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
     set_last_type_pointer_for_scope(scope, (a_type_ptr)NULL);
     /* Remove the types from any stmk_decl statements they are referred
        from. */

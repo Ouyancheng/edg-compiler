@@ -1,5 +1,19 @@
 Version 4.1
 
+3/12/09  [EDGcpfe/9274, EDGcpfe/9567]
+Abort when VLA typedef is promoted from local scope during lowering
+
+In C++ configurations where VLAs are allowed and not lowered (i.e.,
+LOWER_VARIABLE_LENGTH_ARRAYS is FALSE), a VLA typedef occurring in a local
+scope would cause a write-read error to occur.  This has now been fixed.
+For example:
+
+  void f(int n) {
+    struct A { void f() {} };   // causes lowering to promote all local types
+    typedef int T[n];           // VLA typedef had caused an abort
+  }
+
+
 2/27/09  [EDGcpfe/9313, EDGcpfe/9575]
 GNU compatibility: V16 vector mode name prefix
 
