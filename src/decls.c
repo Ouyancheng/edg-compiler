@@ -385,7 +385,8 @@ of declarations that are permitted.
              'most any context. */
           is_start = TRUE;
         } else if (!expr_context &&
-                   (next_tok == tok_star || next_tok == tok_ampersand)) {
+                   (next_tok == tok_star || next_tok == tok_ampersand ||
+                    (rvalue_references_enabled && next_tok == tok_and_and))) {
           /* Pattern "x *..." or x &..." -- looks like a declaration as long as
              the context rules out expressions. */
           is_start = TRUE;

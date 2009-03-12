@@ -812,10 +812,12 @@ part of a declarator is found, may_be_decl is set to FALSE.
          complete-class-name :: * cv-qualifier-list
          microsoft-qualifier-list
      Note that neither pointer declarators nor qualifiers are allowed
-     in expressions, so their presence means this is a declaration. */
+     in expressions, so their presence means this is a declaration.
+     When rvalue references are enabled, "&&" is also allowed. */
   for (;;) {
-    if (curr_token == tok_star || curr_token == tok_ampersand) {
-      /* Cache and bypass the "*" or "&". */
+    if (curr_token == tok_star || curr_token == tok_ampersand ||
+        (rvalue_references_enabled && curr_token == tok_and_and)) {
+      /* Cache and bypass the "*" or "&" or "&&". */
       cache_curr_token(&state->cache);
       get_token_and_coalesce_if_identifier(flags);
       pointer_operator_seen = TRUE;

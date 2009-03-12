@@ -80,7 +80,9 @@ Macro that is TRUE if the current token is the start of a declarator
      (curr_token == tok_star || curr_token == tok_lparen             \
       or_is_microsoft_declarator_keyword() or_is_near_or_far() ||    \
       (C_dialect == C_dialect_cplusplus &&                           \
-       (curr_token == tok_ampersand || curr_token == tok_operator))))
+       (curr_token == tok_ampersand ||                               \
+        (rvalue_references_enabled && curr_token == tok_and_and ) || \
+        curr_token == tok_operator))))
 
 
 /*
@@ -102,7 +104,8 @@ declarator (3.5.5).
    or_is_microsoft_declarator_keyword() or_is_near_or_far() ||        \
    (C_dialect == C_dialect_cplusplus &&                               \
     (is_ptr_to_member_declarator_start() ||                           \
-     curr_token == tok_ampersand)))
+     curr_token == tok_ampersand ||                                   \
+     (rvalue_references_enabled && curr_token == tok_and_and))))
 
 /*
 Macro that is TRUE if the current token is the start of either an
