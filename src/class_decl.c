@@ -950,6 +950,7 @@ the field.
 {
   a_field_ptr              fp;
   a_type_ptr               field_type;
+  a_type_ptr               orig_field_type;
   a_symbol_ptr             var_sym = NULL;
   a_boolean                is_this = FALSE;
   a_class_def_state_ptr    class_state;
@@ -985,7 +986,7 @@ the field.
     /* Create a symbol locator that can be used to declare the field. */
     locator.symbol_header = var_sym->header;
   }  /* if */
-  field_type = vp->type;
+  orig_field_type = field_type = vp->type;
   /* If the variable is a reference, drop the reference. */
   if (is_reference_type(field_type)) {
     field_type = type_pointed_to(field_type);
@@ -997,6 +998,11 @@ the field.
     /* The variable is being captured by reference.  Create a reference
        type based on the variable's type. */
     field_type = make_reference_type(field_type);
+  } else if (is_reference_type(orig_field_type) &&
+             is_function_type(field_type)) {
+    /* A variable with reference-to-function type is captured with its
+       original type. */
+    field_type = orig_field_type;
   } else {
     /* The variable is being captured by value.  The type is the type
        of the captured variable. */

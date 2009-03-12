@@ -16648,12 +16648,6 @@ return FALSE, and set *diag to an appropriate error code.
   } else if (variable_auto_decl_underway(var)) {
     /* Can't use a variable declared with auto in its own initializer. */
     *diag = ec_auto_variable_in_own_initializer;
-  } else if (!by_ref &&
-             is_reference_type(var->type) &&
-             is_function_type(type_pointed_to(var->type))) {
-    /* A variable with reference-to-function type cannot be captured by
-       value, because the closure class field would have function type. */
-    *diag = ec_lambda_capture_ref_function;
   } else if (is_variably_modified_type(var->type)) {
     *diag = ec_lambda_capture_involves_variable_length_array;
   } else if (expr_is_inside_default_arg_expression()) {
