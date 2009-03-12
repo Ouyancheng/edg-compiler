@@ -16622,13 +16622,12 @@ answer.
 
 a_boolean check_var_for_lambda_capture(a_variable_ptr  var,
                                        a_boolean       implicit,
-                                       a_boolean       by_ref,
                                        an_error_code   *diag)
 /*
 The given variable is being captured for the current lambda; the capture is
-implicit if implicit is TRUE, and is by-reference is by_ref is TRUE.
-Check that this capture is valid, and return TRUE if it is.  If it is not,
-return FALSE, and set *diag to an appropriate error code.
+implicit if implicit is TRUE.  Check that this capture is valid, and
+return TRUE if it is.  If it is not, return FALSE, and set *diag to
+an appropriate error code.
 */
 {
   a_boolean  okay = FALSE;

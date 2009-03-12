@@ -1122,8 +1122,7 @@ issue an error and return NULL.
     /* No existing capture.  See if one can be created. */
     an_error_code err_code = ec_no_error;
     a_boolean     by_ref = lambda->default_is_by_reference;
-    if (!check_var_for_lambda_capture(vp, /*implicit=*/TRUE, by_ref,
-                                      &err_code)) {
+    if (!check_var_for_lambda_capture(vp, /*implicit=*/TRUE, &err_code)) {
       /* The variable is not valid.  err_code explains why. */
     } else if (!lambda->has_capture_default) {
       /* No capture default, so implicit captures are not allowed. */
@@ -16156,8 +16155,7 @@ caller has already moved past the '[', and this routine leaves the trailing
         } else {
           an_error_code  diag = ec_no_error;
           var = sym->variant.variable.ptr;
-          if (!check_var_for_lambda_capture(var, /*implicit=*/FALSE, by_ref,
-                                            &diag)) {
+          if (!check_var_for_lambda_capture(var, /*implicit=*/FALSE, &diag)) {
             error(diag);
             var = NULL;
           }  /* if */
