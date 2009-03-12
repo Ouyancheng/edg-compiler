@@ -134,11 +134,11 @@ predicates.
   (is_integer_or_unscoped_enum(tp) || is_floating(tp)                 \
    or_is_fixed_point_type(tp))
 
-/* The pointer type is simply the pointer type. */
 #define is_pointer(tp) ((tp)->kind == (a_type_kind)tk_pointer &&      \
                         !(tp)->variant.pointer.is_reference)
 
-/* The reference type is simply the reference type. */
+/* The reference type is a tk_pointer with the is_reference flag set.
+   That includes both lvalue and rvalue references. */
 /* This is called is_reference_ptr because there is a field called
    is_reference in il_def.h and old preprocessors have problems with
    that. */
@@ -3586,8 +3586,10 @@ for more information.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         /* Do not insert code here. */
         if (il_identical ||
-            type_1->variant.pointer.is_reference ==
-                                      type_2->variant.pointer.is_reference) {
+            (type_1->variant.pointer.is_reference ==
+                                type_2->variant.pointer.is_reference &&
+             type_1->variant.pointer.is_rvalue_reference ==
+                                type_2->variant.pointer.is_rvalue_reference)) {
           identical = f_identical_types(type_1->variant.pointer.type,
                                         type_2->variant.pointer.type,
                                         flags)
@@ -4125,7 +4127,9 @@ for exact pointer equality.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           /* Do not insert code here. */
           if (type_1->variant.pointer.is_reference ==
-                                        type_2->variant.pointer.is_reference) {
+                                 type_2->variant.pointer.is_reference &&
+              type_1->variant.pointer.is_rvalue_reference ==
+                                 type_2->variant.pointer.is_rvalue_reference) {
             compat = f_types_are_compatible(type_1->variant.pointer.type,
                                             type_2->variant.pointer.type,
                                             flags)
@@ -7519,7 +7523,11 @@ calling disentangle_default_args).
               comp_type = base_type_2;
             } else {
 	      if (base_type_1->variant.pointer.is_reference) {
-                comp_type = make_reference_type(comp_elem);
+                if (base_type_1->variant.pointer.is_rvalue_reference) {
+                  comp_type = make_rvalue_reference_type(comp_elem);
+                } else {
+                  comp_type = make_reference_type(comp_elem);
+                }  /* if */
 	      } else {
                 comp_type = make_pointer_type_full(comp_elem, modifiers);
               }  /* if */
@@ -9519,7 +9527,11 @@ a new tree is built.
            reference type must be created. */
         if (func(type->variant.pointer.type, flags, &tp)) {
           if (type->variant.pointer.is_reference) {
-            new_type = make_reference_type(tp);
+            if (type->variant.pointer.is_rvalue_reference) {
+              new_type = make_rvalue_reference_type(tp);
+            } else {
+              new_type = make_reference_type(tp);
+            }  /* if */
           } else {
             new_type = make_pointer_type_full(tp, modifiers);
           }  /* if */
