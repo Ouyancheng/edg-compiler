@@ -59,12 +59,13 @@ specifier.  Includes an "||" at the beginning.
 
 /*
 Macro that is TRUE if the current token is the start of a storage class
-specifier (3.5.1).
+specifier.
 */
 #define is_storage_class()                                            \
   (curr_token == tok_typedef  || curr_token == tok_extern   ||        \
-   curr_token == tok_static   || curr_token == tok_auto     ||        \
-   curr_token == tok_register || curr_token == tok_mutable            \
+   curr_token == tok_static   || curr_token == tok_mutable  ||        \
+   curr_token == tok_register ||                                      \
+   (auto_storage_class_specifier_enabled && curr_token == tok_auto)   \
    or_is_thread_local_storage_specifier()                             \
    or_is_microsoft_storage_class())
 
