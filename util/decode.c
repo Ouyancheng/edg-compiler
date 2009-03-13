@@ -2041,13 +2041,16 @@ not empty, because it contains a name or a derived type).
   /* Remove type qualifiers. */
   while (is_immediate_type_qualifier(p, dctl)) p++;
   kind = get_char(p, dctl);
-  if (kind == 'P' || kind == 'R') {
-    /* Pointer or reference type, e.g., "Pc" is pointer to char. */
+  if (kind == 'P' || kind == 'R' || kind == 'E') {
+    /* Pointer, reference, or rvalue reference type, e.g., "Pc" is
+       pointer to char. */
     p = demangle_type_first_part(p+1, /*under_lhs_declarator=*/TRUE,
                                  /*need_trailing_space=*/TRUE, dctl);
-    /* Output "*" or "&" for pointer or reference. */
+    /* Output "*" (pointer), "&" (reference), or "&&" (rvalue reference). */
     if (kind == 'R') {
       write_id_ch('&', dctl);
+    } else if (kind == 'E') {
+      write_id_str("&&", dctl);
     } else {
       write_id_ch('*', dctl);
     }  /* if */
@@ -2137,8 +2140,9 @@ use of parentheses around parts of the declarator.)
   /* Remove type qualifiers. */
   while (is_immediate_type_qualifier(p, dctl)) p++;
   kind = get_char(p, dctl);
-  if (kind == 'P' || kind == 'R') {
-    /* Pointer or reference type, e.g., "Pc" is pointer to char. */
+  if (kind == 'P' || kind == 'R' || kind == 'E') {
+    /* Pointer, reference, or rvalue reference type, e.g., "Pc" is
+       pointer to char. */
     demangle_type_second_part(p+1, /*under_lhs_declarator=*/TRUE, dctl);
   } else if (kind == 'M') {
     /* Pointer-to-member type, e.g., "M1Ai" is pointer to member of A of
@@ -3526,13 +3530,16 @@ to be on top of the type.
       p = demangle_template_args(p, dctl);
       record_substitution = TRUE;
     }  /* if */
-  } else if (kind == 'P' || kind == 'R') {
-    /* Pointer or reference type, P <type> or R <type>. */
+  } else if (kind == 'P' || kind == 'R' || kind == 'O') {
+    /* Pointer, reference, or rvalue reference type, P <type>, R <type>, or
+       O <type>. */
     p = demangle_type_first_part(p+1, CVQ_NONE, /*under_lhs_declarator=*/TRUE,
                                  /*need_trailing_space=*/TRUE, dctl);
-    /* Output "*" or "&" for pointer or reference. */
+    /* Output "*", "&", or "&&" for pointer, reference, or rvalue reference. */
     if (kind == 'R') {
       write_id_ch('&', dctl);
+    } else if (kind == 'O') {
+      write_id_str("&&", dctl);
     } else {
       write_id_ch('*', dctl);
     }  /* if */
@@ -3661,8 +3668,9 @@ to be on top of the type.
                               dctl);
     /* No need to scan the <template-args> list if there is one -- 
        that was done by demangle_type_first_part. */
-  } else if (kind == 'P' || kind == 'R') {
-    /* Pointer or reference type, P <type> or R <type>. */
+  } else if (kind == 'P' || kind == 'R' || kind == 'O') {
+    /* Pointer, reference, or rvalue reference type, P <type>, R <type>, or
+       O <type>. */
     demangle_type_second_part(p+1, CVQ_NONE, /*under_lhs_declarator=*/TRUE,
                               dctl);
   } else if (kind == 'M') {

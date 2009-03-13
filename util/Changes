@@ -1,5 +1,11 @@
 Version 4.1
 
+3/13/09  [EDGcpfe/8056]
+Demangling of rvalue references
+
+The demangling of rvalue references (a C++0x feature) has been implemented.
+ 
+
 3/13/09  [EDGcpfe/9611]
 Change IA-64 mangled encoding of Microsoft explicitly overridden functions
 
