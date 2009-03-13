@@ -5191,7 +5191,9 @@ to refine the hash value developed in hash_constant.
       hash_value = type->variant.float_kind + 87;
       break;
     case tk_pointer:
-      hash_value = hash_type(type->variant.pointer.type) + 107;
+      hash_value = hash_type(type->variant.pointer.type) + 107
+                     + type->variant.pointer.is_reference
+                     + type->variant.pointer.is_rvalue_reference;
       break;
     case tk_array:
       hash_value = hash_type(type->variant.array.element_type) + 307;
@@ -9291,22 +9293,25 @@ and function-to-pointer decay are not considered.
 a_type_ptr return_type_of(a_type_ptr routine_type)
 /*
 Return the type that is the return type of the given function type.  If
-the function returns a reference, the type is the type of the lvalue returned.
-Otherwise, it is the type of the rvalue returned.
+the function returns an lvalue reference, the type is the type of the lvalue
+returned.  Otherwise, it is the type of the rvalue returned.
 */
 {
   a_type_ptr return_type;
 
   routine_type = skip_typerefs(routine_type);
   return_type = routine_type->variant.routine.return_type;
-  if (is_reference_type(return_type)) {
-    /* The function returns a reference type.  Drop the reference to
-       get to the underlying lvalue type. */
+  if (!is_reference_type(return_type)) {
+    /* The function returns a non-reference type, i.e., an rvalue.  Drop
+       cv-qualifiers as appropriate. */
+    return_type = rvalue_type(return_type);
+  } else if (is_lvalue_reference_type(return_type)) {
+    /* An lvalue result of the type underlying the reference. */
     return_type = type_pointed_to(return_type);
   } else {
-    /* The conversion function returns a non-reference type, i.e.,
-       an rvalue.  Drop cv-qualifiers as appropriate. */
-    return_type = rvalue_type(return_type);
+    /* An rvalue reference type: The returned type should be that for an
+       rvalue result. */
+    return_type = rvalue_type(type_pointed_to(return_type));
   }  /* if */
   return return_type;
 }  /* return_type_of */
@@ -10232,7 +10237,7 @@ no value is returned for that.
      call need not explicitly mention the second argument. */
   /* An ellipsis is also allowed by virtue of the fact that it is not checked
      for. */
-  if (ptp != NULL && is_reference_type(ptp->type) &&
+  if (ptp != NULL && is_lvalue_reference_type(ptp->type) &&
       (ptp->next == NULL || ptp->next->has_default_arg)) {
     a_type_ptr  tp = type_pointed_to(ptp->type);
     a_type_ptr  unqualified_tp = skip_typerefs(tp);
@@ -13608,6 +13613,9 @@ name lookup options.
                                                    copy_error);
             if (is_reference_type(new_type)) {
               new_type = type_pointed_to(new_type);
+              if (is_rvalue_reference_type(new_type)) {
+                new_type = rvalue_type(new_type);
+              }  /* if */
             }  /* if */
           }  /* if */
           if (same_entities(
@@ -13768,6 +13776,7 @@ lookup options.
     if (is_reference_type(template_param_type)) {
       /* The template parameter type is a reference.  Copy the expression
          as an lvalue and then see if it has a constant address. */
+      check_assertion(is_lvalue_reference_type(template_param_type));
       expr_copy = copy_template_param_expr_as_lvalue(expr,
                                                      template_arg_list,
                                                      template_param_list,
@@ -14695,7 +14704,7 @@ of "*" in the source code.  The returned node is designated an lvalue.
 #if DO_IL_LOWERING
           || (is_reference_type(node->type) && il_lowering_underway)
 #endif /* DO_IL_LOWERING */
-                                                                   ) {
+                                                                    ) {
         new_type = type_pointed_to(node->type);
       } else if (!C_mode() && is_template_param_type(node->type)) {
         new_type = type_of_unknown_templ_param_nontype;
@@ -14718,7 +14727,7 @@ an_expr_node_ptr add_ref_indirection_to_node(an_expr_node_ptr node)
 Add an implicit reference indirection on top of the given node, and return
 a pointer to the new expression.  The returned node is designated an lvalue.
 */
-{
+{ /*FIXME:jsa*/
   if (!is_error_node(node)) {
     a_type_ptr new_type;
     check_assertion(!node->is_lvalue);
@@ -14819,7 +14828,7 @@ pointer to the new expression.  This is for reference binding, and does
 not correspond directly to any operator in the source code.  The returned
 node is designated an rvalue.
 */
-{
+{ /*FIXME:jsa*/
   if (!is_error_node(node)) {
     if (node->is_lvalue) {
       /* Set the address_taken flag for variables and routines. */
@@ -19761,6 +19770,7 @@ Definition of the bits in lvalue_rvalue_test.
 #define LVRV_OPND2_IS_LVALUE_IF_EXPR_IS		0x20
 #define LVRV_DISTINGUISHED_VALUE_FOR_LAST	0xfd
 
+ /*FIXME:jsa*/
 static a_byte lvalue_rvalue_test[(int)eok_last+1] = {
   /* eok_address_of: */			LVRV_OPND1_IS_LVALUE,
   /* eok_reference_to: */		LVRV_NO_REQUIREMENTS,
@@ -19969,8 +19979,8 @@ have the is_lvalue flag set incorrectly; return TRUE otherwise.
         /* Probably an error, but check for one special case. */
         if (gpp_mode && op == (an_expr_operator_kind)eok_va_start &&
             is_variable_node(operand_2) &&
-            operand_2->type->kind == (a_type_kind)tk_pointer &&
-            operand_2->type->variant.pointer.is_reference) {
+            is_reference_type(operand_2->type)) {
+          /*FIXME:jsa See also use of strip_ref_indirect in expr.c */
           /* g++ allows use of va_start with a parameter of reference
              type.  This situation is represented in the IL as an rvalue
              variable designating the parameter and is not an error. */
