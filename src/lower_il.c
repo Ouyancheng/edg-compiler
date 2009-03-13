@@ -17014,6 +17014,12 @@ and all subscopes.
       next_type = type->next;
       /* If the type is a class, promote its members out of the class. */
       if (is_immediate_class_type(type)) {
+        /* Do class member promotion on nested classes inside the class,
+           if any. */
+        if (type->variant.class_struct_union.extra_info->assoc_scope != NULL) {
+          do_scope_class_member_promotion(
+                     type->variant.class_struct_union.extra_info->assoc_scope);
+        }  /* if */
         promote_class_members(type, scope, &insert_pointer);
         insert_pointer = type;
 #if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
@@ -17045,9 +17051,11 @@ and all subscopes.
                           &local_types, &end_local_types);
         if (scope->kind == (a_scope_kind)sck_file ||
             scope->kind == (a_scope_kind)sck_function ||
+            scope->kind == (a_scope_kind)sck_class_struct_union ||
             scope->kind == (a_scope_kind)sck_block) {
           /* For a placeholder in the file scope types list, take the
-             placeholder off the list.  Ditto for a function or block scope. */
+             placeholder off the list.  Ditto for a function, class, or
+             block scope. */
           check_assertion(insert_pointer != NULL &&
                           insert_pointer->next == type);
           insert_pointer->next = type->next;
