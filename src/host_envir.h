@@ -1810,6 +1810,18 @@ which controls whether null (zero) characters are allowed in source lines.
 #endif /* DEFAULT_NULL_CHARS_ALLOWED_IN_SOURCE */
 
 /*
+The front end is not intended to be built in UNICODE mode on Windows.
+Doing so results in warnings and can result in incorrect behavior if
+those warnings are not addressed.
+*/
+#if EDG_WIN32
+#ifdef UNICODE
+ #error -- Building with UNICODE defined is not supported.
+#endif /* ifdef UNICODE */
+#endif /* EDG_WIN32 */
+
+
+/*
 Flag that is TRUE if UTF-8 and UTF-16 encodings of Unicode should be accepted
 in source code.  Note that if you set this the representation for identifiers
 and file names becomes UTF-8, which may require back end or host-interface

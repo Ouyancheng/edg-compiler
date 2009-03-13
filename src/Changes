@@ -1,5 +1,15 @@
 Version 4.1
 
+3/13/00  [EDGcpfe/9607]
+Preventing UNICODE mode from being used to build on Windows
+
+The front end is not intended to be built in UNICODE mode on Windows.
+Doing so results in warnings and can result in incorrect behavior if
+those warnings are not addressed.  A #error test has been added to
+ensure that UNICODE mode is not inadvertently used to build the front
+end.
+
+
 3/12/09  [EDGcpfe/9595]
 Exception-specification mismatch on function declared with a typedef
 
