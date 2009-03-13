@@ -5608,8 +5608,11 @@ or struct definition.  The syntax is
               /* No diagnostic on template parameters, which will only show
                  up during prototype instantiations.  Set the flag that
                  indicates that this prototype instantiation has a nonreal
-                 base class. */
-              cssp->any_nonreal_base_classes = TRUE;
+                 base class.  ctsp will be NULL if an error was issued for
+                 an attempt to put a base class on a union.  Don't set
+                 any_nonreal_base_classes as the base class will not be
+                 on the base class list. */
+              cssp->any_nonreal_base_classes = ctsp != NULL;
               base_class_type = proxy_class_for_template_param(tp);
               orig_base_class_type = base_class_type;
               bcp_cssp = symbol_supplement_for_class(base_class_type);

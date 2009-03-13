@@ -1,5 +1,20 @@
 Version 4.1
 
+3/13/09  [EDGcpfe/9609]
+Internal error on use of union with nonreal base class
+
+A union cannot have base classes.  If an attempt was made to declare
+a union with a nonreal base class, an internal error (in
+create_nonreal_progenitor_symbol) could occur later on a reference
+to a member not found in the union.  Now fixed.
+
+  template <class T> int f(T x) {
+    union A : T { };
+    A a;
+    return a.T::f();  // internal error here
+  }
+
+
 3/13/09  [EDGcpfe/9607]
 Preventing UNICODE mode from being used to build on Windows
 
