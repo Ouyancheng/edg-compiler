@@ -1798,12 +1798,15 @@ multiple designators are handled by the recursion in get_initializer.
         /* The name was not found. */
         pos_stsy_error(ec_not_a_field, &error_position,
                        locator_for_curr_id.symbol_header->identifier,
-                       (a_symbol_ptr)skip_typerefs(context->type)
-                                                  ->source_corresp.assoc_info);
+                       symbol_for(skip_typerefs(context->type)));
         okay = FALSE;
+      } else if (member_sym->kind != (a_symbol_kind)sk_field) {
+        /* The name was found, but it's not a field. */
+        pos_st_error(ec_not_a_field_name, &error_position,
+                     locator_for_curr_id.symbol_header->identifier);
+        okay = FALSE;
+        check_assertion(!C_mode());
       } else {
-        check_assertion_str(member_sym->kind == (a_symbol_kind)sk_field,
-                            "get_field_designator: non-field member");
         designated_field = member_sym->variant.field.ptr;
         if (member_sym->variant.field.anonymous_parent_object != NULL) {
           /* This field is a member of an anonymous union or (nonstandard)
