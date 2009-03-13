@@ -1819,6 +1819,7 @@ ec_delete_of_array_type;;"\"delete\" applied to a pointer-to-array type treated 
 ec_delete_of_array_type_nonstandard;;"\"delete\" applied to a pointer-to-array type is nonstandard; treated as delete[]"
 ec_function_does_not_match_arguments;;"%n cannot be called with the given argument list"
 ec_rvalue_reference_bound_to_lvalue;;"an rvalue reference cannot be bound to an lvalue"
+ec_rvalue_ref_template_parameter;;"a nontype template parameter cannot have rvalue reference type"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

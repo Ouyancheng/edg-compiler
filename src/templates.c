@@ -6759,6 +6759,8 @@ associated parameter.
         if (const_type != new_const_type &&
             (is_void_type(new_const_type) ||
              is_class_struct_union_type(new_const_type) ||
+             (rvalue_references_enabled &&
+              is_rvalue_reference_type(new_const_type)) ||
 #if FIXED_POINT_ALLOWED
              const_type->kind == (a_type_kind)tk_fixed_point ||
 #endif /* FIXED_POINT_ALLOWED */
@@ -12877,6 +12879,11 @@ depends on a template parameter type, return TRUE in *template_dependent
     /* Change the parameter type to an error type.  This is done to prevent
        template parameters from having unexpected types.  In particular,
        nontype parameters with incomplete class types are problematic. */
+    state.type = error_type();
+  } else if (rvalue_references_enabled && is_rvalue_reference_type(tp)) {
+    /* A template parameter cannot have an rvalue reference type as there is
+       no way it could be used. */
+    pos_error(ec_rvalue_ref_template_parameter, &state.start_pos);
     state.type = error_type();
   } else if (tp->kind == (a_type_kind)tk_float) {
     if (!floating_point_template_parameters_allowed) {
