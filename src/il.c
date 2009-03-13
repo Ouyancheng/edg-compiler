@@ -1137,7 +1137,11 @@ Dump the contents of the indicated type entry, for debug purposes.
         break;
       case tk_pointer:
         if (tp->variant.pointer.is_reference) {
-          fputs("ref to ", f_debug);
+          if (tp->variant.pointer.is_rvalue_reference) {
+            fputs("rvalue ref to ", f_debug);
+          } else {
+            fputs("ref to ", f_debug);
+          }  /* if */
         } else {
 #if MICROSOFT_EXTENSIONS_ALLOWED
           if (tp->variant.pointer.base_variable != NULL) {
