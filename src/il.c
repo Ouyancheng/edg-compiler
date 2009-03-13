@@ -8874,7 +8874,7 @@ and reuse an existing entry if possible.
 }  /* make_rvalue_reference_type */
 
 
-/* FIXME: rvalue references. */
+/* FIXME:daveed  rvalue references. */
 
 #if !NEAR_AND_FAR_ALLOWED
 /* ARGSUSED */  /* <- is_error is not used in some configurations. */

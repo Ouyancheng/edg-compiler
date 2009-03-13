@@ -14472,7 +14472,7 @@ conversion_to_class_possible.
   } else {
     /* Normal argument. */
     if (microsoft_mode && conversion != NULL &&
-        is_reference_type(param_type) && is_an_rvalue(source_operand)) {
+        is_lvalue_reference_type(param_type) && is_an_rvalue(source_operand)) {
       /* In Microsoft mode, a reference to non-const is sometimes
          allowed to bind to an rvalue.  If that's been done (which we
          know because conversion != NULL means that we've made it through
