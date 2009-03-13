@@ -295,6 +295,15 @@ typedef struct a_struct_stmt_stack_entry {
 			/* Set only in entries with kind == ssk_switch.
 			   Indicates that at least one case contains a
 			   template-dependent constant. */
+  a_bit_field	contains_user_label:1;
+			/* TRUE if the structured statement contains a user-
+			   declared label (used to avoid spurious reachability
+			   warnings). */
+  a_bit_field	contains_active_switch_case:1;
+			/* TRUE if the structured statement contains a switch
+			   case label for a switch statement that is still on
+			   the statement stack (used to avoid spurious
+			   reachability warnings). */
   a_statement_ptr
 		statement;
 			/* The associated IL statement.  Indirectly,

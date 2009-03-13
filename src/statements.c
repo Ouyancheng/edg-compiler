@@ -2330,16 +2330,6 @@ unreachable.
   warn_if_code_is_unreachable(ec_code_is_unreachable, &error_position)
 
 
-/*
-Generate a warning if the current location in the code (the top of a loop)
-is unreachable.  This generates a different message than the normal
-check_for_unreachable_code, because the bodies of loops can be reached
-via branch from the bottom.
-*/
-#define check_loop_unreachable_code()                                  \
-  warn_if_code_is_unreachable(ec_loop_not_reachable, &error_position)
-
-
 static a_label_ptr alloc_temp_label(void)
 /*
 Allocate and return a pointer to a temporary label entry.
@@ -2627,6 +2617,9 @@ statement is the top block of a GNU statement expression ({ ... }).
     sssep->inside_statement_expr = TRUE;
   }  /* if */
   sssep->switch_has_dependent_case
+                               = FALSE;
+  sssep->contains_user_label   = FALSE;
+  sssep->contains_active_switch_case
                                = FALSE;
   sssep->statement             = sp;
   sssep->switch_max_case_value = NULL;
@@ -2963,11 +2956,18 @@ a structured statement has ended.
        can be reached. */
     curr_reachability = sssep->end_reachable;
   }  /* if */
-  /* If the statement just exited is a non-block, propagate the
-     any_exec_statement_seen flag upwards. */
   if (depth_stmt_stack > 0) {
+    /* If the statement just exited is a non-block, propagate the
+       any_exec_statement_seen flag upwards. */
     if (kind != ssk_compound || block_stmt_is_cfront_dependent_stmt(sp)) {
       sssep[-1].any_exec_statement_seen = sssep->any_exec_statement_seen;
+    }  /* if */
+    /* Propagate the contains_user_label and contains_active_switch_case flags
+       upwards if appropriate. */
+    sssep[-1].contains_user_label = sssep->contains_user_label;
+    if (kind != ssk_switch) {
+      sssep[-1].contains_active_switch_case =
+                                           sssep->contains_active_switch_case;
     }  /* if */
   }  /* if */
   if (kind == ssk_compound) {
@@ -3545,6 +3545,23 @@ See also 3.6.4.2.
 }  /* switch_statement */
 
 
+static void warn_if_loop_has_no_labels(a_source_position  *stmt_pos)
+/*
+This routine is called at the end of a loop construct if the caller has
+determined that the beginning of the loop is not sequentially reachable from
+the prior statement.  This routine issues a "not reachable" warning at the
+given position if the loop doesn't contains a (user declared) label definition
+or active switch case (which means the loop cannot be reached at all).
+*/
+{
+  if (!struct_stmt_stack[depth_stmt_stack].contains_user_label &&
+      !struct_stmt_stack[depth_stmt_stack].contains_active_switch_case) {
+    pos_warning(ec_loop_not_reachable, stmt_pos);
+    curr_reachability.suppress_unreachable_warning = TRUE;
+  }  /* if */
+}  /* warn_if_loop_has_no_labels */
+
+
 static void while_statement(void)
 /*
 Scan a "while" statement and add it to the current statement sequence.
@@ -3556,12 +3573,15 @@ The syntax is:
 See also 3.6.5.1.
 */
 {
-  a_statement_ptr sp;
-  a_boolean       is_condition_decl = FALSE;
+  a_statement_ptr    sp;
+  a_boolean          is_condition_decl = FALSE, assume_loop_reachable;
+  a_source_position  stmt_pos;
 
   db_enter(3, "while_statement");
 
-  check_loop_unreachable_code();
+  stmt_pos = pos_curr_token;
+  assume_loop_reachable = curr_reachability.reachable ||
+                          curr_reachability.suppress_unreachable_warning;
   /* Push a scope in C99 mode. */
   push_c99_statement_scope();
   /* Allocate the statement. */
@@ -3589,6 +3609,7 @@ See also 3.6.5.1.
   remove_stop_token(tok_rparen);
   /* Scan the dependent statement. */
   dependent_statement();
+  if (!assume_loop_reachable) warn_if_loop_has_no_labels(&stmt_pos);
   /* Define the "continue" label, if it is needed. */
   define_continue_label();
   /* End the condition block, if necessary. */
@@ -3619,11 +3640,15 @@ The syntax is:
 See also 3.6.5.2.
 */
 {
-  a_statement_ptr sp;
+  a_statement_ptr    sp;
+  a_boolean          assume_loop_reachable;
+  a_source_position  stmt_pos;
 
   db_enter(3, "do_statement");
 
-  check_loop_unreachable_code();
+  stmt_pos = pos_curr_token;
+  assume_loop_reachable = curr_reachability.reachable ||
+                          curr_reachability.suppress_unreachable_warning;
   /* Push a scope in C99 mode. */
   push_c99_statement_scope();
   /* Allocate the statement. */
@@ -3642,6 +3667,7 @@ See also 3.6.5.2.
   /* Scan the dependent statement. */
   add_stop_token(tok_while);
   dependent_statement();
+  if (!assume_loop_reachable) warn_if_loop_has_no_labels(&stmt_pos);
   /* Define the "continue" label, if it is needed. */
   define_continue_label();
   /* Check for and skip the keyword "while". */
@@ -4177,17 +4203,21 @@ like the standard "for" statement, except for the fourth expression.
 The affinity can be an expression or the keyword "continue".
 */
 {
-  a_statement_ptr   sp;
-  a_boolean         saved_flag;
-  a_boolean         is_condition_decl = FALSE;
-  a_boolean         processing_upc_forall = FALSE;
+  a_statement_ptr    sp;
+  a_boolean          saved_flag, assume_loop_reachable;
+  a_boolean          is_condition_decl = FALSE;
+  a_boolean          processing_upc_forall = FALSE;
 #if UPC_EXTENSIONS_ALLOWED
-  an_expr_node_ptr  affinity_expr = NULL;
-  a_statement_ptr   saved_innermost_forall_loop;
+  an_expr_node_ptr   affinity_expr = NULL;
+  a_statement_ptr    saved_innermost_forall_loop;
 #endif /* UPC_EXTENSIONS_ALLOWED */
+  a_source_position  stmt_pos;
 
   db_enter(3, "for_statement");
-  check_loop_unreachable_code();
+
+  stmt_pos = pos_curr_token;
+  assume_loop_reachable = curr_reachability.reachable ||
+                          curr_reachability.suppress_unreachable_warning;
   /* Push a scope in C99 mode. */
   push_c99_statement_scope();
   /* Allocate the for statement. */
@@ -4292,6 +4322,7 @@ The affinity can be an expression or the keyword "continue".
 #endif /* UPC_EXTENSIONS_ALLOWED */
   /* Scan the dependent statement. */
   dependent_statement();
+  if (!assume_loop_reachable) warn_if_loop_has_no_labels(&stmt_pos);
 #if UPC_EXTENSIONS_ALLOWED
   /* Restore the innermost forall loop tracking. */
   if (processing_upc_forall) {
@@ -5643,6 +5674,7 @@ GNU also allows the "case range" form:
 
   db_enter(4, "case_label");
 
+  struct_stmt_stack[depth_stmt_stack].contains_active_switch_case = TRUE;
   add_stop_token(tok_colon);
   /* See if we are within a switch body by looking at the entries in
      the structured statement stack. */
@@ -5768,8 +5800,10 @@ Scan and process a label definition.  (The current token is a label name and
 it is followed by a colon.)
 */
 {
-  a_label_ptr      label;
+  a_label_ptr                    label;
+  a_struct_stmt_stack_entry_ptr  sssep = &struct_stmt_stack[depth_stmt_stack];
 
+  sssep->contains_user_label = TRUE;
   /* Scan the label identifier, and enter it into the symbol table if
      needed. */
   label = scan_label(/*is_definition=*/TRUE, /*is_declaration=*/FALSE);
@@ -5801,10 +5835,8 @@ it is followed by a colon.)
     scope_stack[depth_innermost_function_scope].last_label_decl_seq =
                                                   symbol_for(label)->decl_seq;
     if (!C_mode()) {
-      a_struct_stmt_stack_entry_ptr  sssep;
       /* Flag all enclosing blocks to "invalidate" their currently active
          object lifetimes. */
-      sssep = &struct_stmt_stack[depth_stmt_stack];
       for (; sssep >= struct_stmt_stack; --sssep) {
         if (sssep->kind == (a_struct_stmt_kind)ssk_compound) {
           sssep->label_invalidates_curr_block_object_lifetime = TRUE;

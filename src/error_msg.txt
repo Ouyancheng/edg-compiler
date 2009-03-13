@@ -174,7 +174,7 @@ ec_default_label_appears_more_than_once;;"default label has already appeared in 
 ec_exp_lparen;;"expected a \"(\""
 ec_expr_not_an_lvalue;;"expression must be an lvalue"
 ec_exp_statement;;"expected a statement"
-ec_loop_not_reachable;;"loop is not reachable from preceding code"
+ec_loop_not_reachable;;"loop is not reachable"
 ec_block_scope_function_must_be_extern;;"a block-scope function may only have extern storage class"
 ec_exp_lbrace;;"expected a \"{\""
 ec_expr_not_ptr_to_class;;"expression must have pointer-to-class type"
