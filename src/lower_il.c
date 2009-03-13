@@ -13263,7 +13263,9 @@ The given node is an eok_assign node.  Lower the node if needed.
 static void lower_class_rvalue_adjust(an_expr_node_ptr expr)
 /*
 Lower the eok_class_rvalue_adjust expression (which is used to adjust
-cv-qualifiers on a class rvalue).
+cv-qualifiers on a class rvalue).  The underlying expression has not been
+lowered yet (a requirement for calling rvalue_pointer_for_class_rvalue)
+and is lowered by this routine.
 */
 {
   an_expr_node_ptr  node;
@@ -13272,6 +13274,7 @@ cv-qualifiers on a class rvalue).
   node = add_cast(node, make_pointer_type(expr->type));
   node = add_indirection_to_node(node);
   overwrite_node(expr, rvalue_expr_for_lvalue(node));
+  lower_expr(expr);
 }  /* lower_class_rvalue_adjust */
 
 #endif /* LOWER_CLASS_RVALUE_ADJUST */
@@ -13520,6 +13523,12 @@ cast.  See lower_expr for typical invocation.
         /* Change the type of operators that return "bool" in C++ to
            the "int" required in C. */
         change_result_type_of_operator_returning_bool(expr);
+#if LOWER_CLASS_RVALUE_ADJUST
+      } else if (op == (an_expr_operator_kind)eok_class_rvalue_adjust) {
+        /* Lowering of eok_class_rvalue_adjust requires operating on an
+           unlowered operand. */
+        lower_class_rvalue_adjust(expr);
+#endif /* LOWER_CLASS_RVALUE_ADJUST */
       } else {
         a_type_ptr  type;
         if (bool_is_keyword && op == (an_expr_operator_kind)eok_cast &&
@@ -13690,11 +13699,6 @@ cast.  See lower_expr for typical invocation.
           case eok_bool_cast:
             lower_bool_cast(expr);
             break;
-#if LOWER_CLASS_RVALUE_ADJUST
-          case eok_class_rvalue_adjust:
-            lower_class_rvalue_adjust(expr);
-            break;
-#endif /* LOWER_CLASS_RVALUE_ADJUST */
           case eok_post_incr:
           case eok_pre_incr:
             if (bool_is_keyword) {
