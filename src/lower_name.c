@@ -66,6 +66,7 @@ lower_name.c -- Do name mangling for IL lowering.
 #define MANGLING_STRING_FOR_COMPLEX_LONG_DOUBLE "Ce"
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #define MANGLING_STRING_FOR_REFERENCE "R"
+#define MANGLING_STRING_FOR_RVALUE_REFERENCE "O"
 #define MANGLING_STRING_FOR_POINTER "P"
 #define MANGLING_STRING_FOR_POINTER_TO_MEMBER "M"
 #define MANGLING_STRING_FOR_ARRAY "A"
@@ -158,6 +159,7 @@ lower_name.c -- Do name mangling for IL lowering.
 #define MANGLING_STRING_FOR_COMPLEX_LONG_DOUBLE "xr"
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #define MANGLING_STRING_FOR_REFERENCE "R"
+#define MANGLING_STRING_FOR_RVALUE_REFERENCE "E"
 #define MANGLING_STRING_FOR_POINTER "P"
 #define MANGLING_STRING_FOR_POINTER_TO_MEMBER "M"
 #define MANGLING_STRING_FOR_ARRAY "A"
@@ -4502,7 +4504,11 @@ Add to the mangled name the encoding for the type "type".
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
       case tk_pointer:
         if (type->variant.pointer.is_reference) {
-          s = MANGLING_STRING_FOR_REFERENCE;
+          if (type->variant.pointer.is_rvalue_reference) {
+            s = MANGLING_STRING_FOR_RVALUE_REFERENCE;
+          } else {
+            s = MANGLING_STRING_FOR_REFERENCE;
+          }  /* if */
         } else {
           s = MANGLING_STRING_FOR_POINTER;
         }  /* if */
