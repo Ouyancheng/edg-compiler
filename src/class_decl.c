@@ -12736,9 +12736,11 @@ or implicit) controlling the declaration.
     } else {
       a_type_ptr  parent_class = qualifier_class_type(locator_for_curr_id);
       if (could_be_dependent_class_type(parent_class) &&
+          !parent_class->source_corresp.is_local_to_function &&
           !same_entities(class_type, parent_class)) {
         /* The qualifier is a dependent class.  Suppress the base class check
-           and create a dummy base class. */
+           and create a dummy base class.  (A local class of a function
+           template should not be considered dependent in this context.) */
         bcp = alloc_base_class();
         bcp->type = sym_parent_class(declared_sym);
         bcp->derived_class = class_type;

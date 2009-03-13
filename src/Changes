@@ -1,5 +1,21 @@
 Version 4.1
 
+3/13/09 [EDGcpfe/9608]
+Internal error on using-declaration in local class of a function template
+
+A using-declaration in a local class of a function template could trigger an
+internal error in "member_using_declaration" (class_decl.c).  For example:
+
+  template <class T> void f() {
+    struct B : T { };
+    struct D : B {
+      using B::m;  // Previously aborted with an internal error.
+    };
+  }
+
+This is now fixed.
+
+
 3/13/09 [EDGcpfe/9597]
 Warning on unreachable loops
 
