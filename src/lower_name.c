@@ -5319,9 +5319,9 @@ mangle_template:
   { a_routine_ptr  overridden_function =
                                      selectively_overridden_function(routine);
     if (overridden_function != NULL) {
-      /* The encoding is O <nested-name>.  This is an extension to the IA-64
+      /* The encoding is Q <nested-name>.  This is an extension to the IA-64
          ABI spec. */
-      add_to_mangled_name('O', mctl);
+      add_to_mangled_name('Q', mctl);
       mangled_function_name(overridden_function,
                             /*suppress_param_encoding=*/TRUE,
                             /*suppress_parent_encoding=*/FALSE,
