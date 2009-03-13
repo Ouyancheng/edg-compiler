@@ -1637,7 +1637,7 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
 */
 {
   an_operand        *orig_arg_operand;
-  a_boolean         param_is_reference;
+  a_boolean         param_is_reference, param_is_rvalue_reference;
   a_boolean         source_can_be_rvalue = TRUE;
   a_boolean         param_is_class_type, arg_is_class_type;
   a_boolean         ref_type_qualifiers_dropped, ref_type_qualifiers_added;
@@ -1688,6 +1688,7 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
                                          arg_operand->is_simple_string_literal;
   }  /* if */
   param_is_reference = is_reference_type(param_type);
+  param_is_rvalue_reference = is_rvalue_reference_type(param_type);
   /* See if the array --> pointer and function --> pointer transformations
      should be done. */
   if (is_array_type(arg_type) &&
@@ -1730,14 +1731,16 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
     param_type = type_pointed_to(param_type);
     param_type_qualifiers = get_type_qualifiers(param_type);
     arg_type_qualifiers   = get_type_qualifiers(arg_type);
-    /* The reference can bind to an rvalue if it is a reference to const. */
-    if (any_cfront_mode() ||
-        allow_anachronisms) {
+    /* See whether the reference can bind to an rvalue. */
+    if (param_is_rvalue_reference) {
+      /* An rvalue reference can bind (only) to an rvalue. */
+      source_can_be_rvalue = TRUE;
+    } else if (any_cfront_mode() || allow_anachronisms) {
       /* A reference to non-const can bind to an rvalue in cfront mode
          or anachronisms mode. */
       source_can_be_rvalue = TRUE;
     } else {
-      /* Normal case.  A reference can bind to an rvalue only if it's
+      /* Normal case.  An lvalue reference can bind to an rvalue only if it's
          a reference to const. */
       /* Note that the C++ Standard does not require the test for
          const volatile here.  (A core working group discussed it in
@@ -1897,13 +1900,15 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
       }  /* if */
     }  /* if */
     if (arg_operand != NULL && is_indefinite_function_operand(arg_operand) &&
-        (source_can_be_rvalue || is_a_function_designator(arg_operand))) {
+        (source_can_be_rvalue || is_a_function_designator(arg_operand)) &&
+        (!param_is_rvalue_reference || is_an_rvalue(arg_operand))) {
       /* The source is an indefinite function, i.e., the address of an
          overloaded function.  It can be converted to an appropriate
          pointer, reference, or pointer-to-member type.  For the
          pointer and pointer-to-member cases, the operand can be a function
          designator or pointer to function; for the (non-const) reference
-         case it must be a function designator. */
+         case it must be a function designator.  For an rvalue reference
+         parameter, only an rvalue pointer to function will do. */
       a_symbol_ptr chosen_function;
       a_boolean    unknown_dependent_function;
       if ((chosen_function =
@@ -2033,8 +2038,11 @@ is TRUE; it must be FALSE if arg_type is non-NULL.
        these tests, because the user-defined conversion routines may or
        may not want the transformations we've done. */
     check_assertion(orig_arg_operand != NULL);
-    if (param_is_reference && arg_is_class_type &&
-        (conversion_for_direct_reference_binding_possible(orig_arg_operand,
+    if (param_is_rvalue_reference && !is_an_rvalue(orig_arg_operand)) {
+      /* An rvalue reference can only bind to an rvalue. */
+    } else if (param_is_reference && arg_is_class_type &&
+               (conversion_for_direct_reference_binding_possible(
+                                                          orig_arg_operand,
                                                           orig_param_type,
                                                           &conversion,
                                                           &ambiguous,
@@ -2134,12 +2142,21 @@ have_level:;
          an anachronism and can serve as a tie-breaker. */
       arg_summary->tiebreaker_anachronism_used = TRUE;
     }  /* if */
-    if (!source_can_be_rvalue &&
-        (arg_converted_to_rvalue ||
-         (arg_operand != NULL && is_an_rvalue(arg_operand)))) {
-      /* You can't bind a reference to non-const to an rvalue.  This was a
-         post-ARM change (in the ARM, the binding would be okay in overload
-         resolution and would get an error later if chosen). */
+    /* In some cases, reference parameters can't be bound to certain kinds of
+       arguments, based on their lvalueness. */
+    if (param_is_rvalue_reference) {
+      /* An rvalue reference can only be bound to an rvalue. */
+      if (!arg_converted_to_rvalue &&
+          arg_operand != NULL &&
+          !is_an_rvalue(arg_operand)) {
+        arg_summary->match_level = aml_none;
+      }  /* if */
+    } else if (!source_can_be_rvalue &&
+               (arg_converted_to_rvalue ||
+                (arg_operand != NULL && is_an_rvalue(arg_operand)))) {
+      /* You can't bind an lvalue reference to non-const to an rvalue.
+         This was a post-ARM change (in the ARM, the binding would be okay
+         in overload resolution and would get an error later if chosen). */
       if (allow_nonconst_ref_anachronism && param_is_class_type) {
         /* The anachronism of binding a reference to nonconst to a class
            rvalue is enabled.  Leave this alone.  A warning will be issued
@@ -2167,6 +2184,11 @@ have_level:;
       } else {
         arg_summary->match_level = aml_none;
       }  /* if */
+    }  /* if */
+    if (arg_summary->match_level == aml_none) {
+      /* We decided the binding can't be done, so clear any conversion
+         information we might have set previously. */
+      clear_conv_descr(&arg_summary->conversion);
     }  /* if */
     if (arg_operand != NULL &&
         is_constant_operand(arg_operand) &&
@@ -4076,6 +4098,47 @@ apply that would make one better than the other, and return
 }  /* compare_argument_tiebreakers */
 
 
+static int compare_reference_matches(an_arg_match_summary *arg_match1,
+                                     an_arg_match_summary *arg_match2)
+/*
+Compare two argument match summary entries and see if one is an rvalue
+reference match and the other is an lvalue reference match, and return
+
+  +1 if arg_match1 is a better match than arg_match2,
+   0 if the two matches are equal (or this comparison is not applicable), or
+  -1 if arg_match1 is a worse match than arg_match2.
+
+Binding an rvalue reference to an argument is better than binding an
+lvalue reference to that argument.
+*/
+{
+  int        cmp = 0;
+  a_type_ptr arg_type1 = arg_match1->param_type;
+  a_type_ptr arg_type2 = arg_match2->param_type;
+
+  if (arg_type1 != NULL && arg_type2 != NULL &&
+      is_reference_type(arg_type1) &&
+      is_reference_type(arg_type2) &&
+      /* This comparison does not apply if either binding is for the
+         "this" parameter. */
+      !arg_match1->is_match_for_this_param &&
+      !arg_match2->is_match_for_this_param &&
+      (is_rvalue_reference_type(arg_type1) !=
+                                        is_rvalue_reference_type(arg_type2))) {
+    if (is_rvalue_reference_type(arg_type1)) {
+      /* arg_match1 is an rvalue reference binding and arg_match2 is an lvalue
+         reference binding, so arg_match1 is better. */
+      cmp = 1;
+    } else {
+      /* arg_match1 is an lvalue reference binding and arg_match2 is an rvalue
+         reference binding, so arg_match2 is better. */
+      cmp = -1;
+    }  /* if */
+  }  /* if */
+  return cmp;
+}  /* compare_reference_matches */
+
+
 static int compare_arg_match_levels(an_arg_match_summary *arg_match1,
                                     an_arg_match_summary *arg_match2,
                                     a_boolean            suppress_tiebreakers)
@@ -4121,6 +4184,10 @@ for a Microsoft bug).
              (cmp=compare_argument_tiebreakers(arg_match1, arg_match2)) != 0) {
     /* The argument tiebreakers (applied early, which is the standard-
        conforming way) prefer one match over the other. */
+  } else if (rvalue_references_enabled &&
+             (cmp = compare_reference_matches(arg_match1, arg_match2)) != 0) {
+    /* Binding an rvalue reference to an argument is better than binding an
+       lvalue reference to that argument. */
   } else {
     /* The matches are equal in terms of match level.  One can still be
        better than the other in some cases. */
@@ -13796,7 +13863,7 @@ been found to be acceptable, and *conversion describes it.
   a_type_ptr   orig_source_type = source_operand->type;
   an_operand   orig_operand;
   a_type_ptr   base_dest_type, adj_base_dest_type;
-  a_boolean    err = FALSE, dropping_qualifiers, ambiguous;
+  a_boolean    err = FALSE, dropping_qualifiers, ambiguous, is_rvalue_ref;
   a_boolean    direct_binding_possible = FALSE;
   a_boolean    binding_to_rvalue_allowed = FALSE;
   a_boolean    direct_binding_conversion_possible = FALSE;
@@ -13809,6 +13876,8 @@ been found to be acceptable, and *conversion describes it.
                ambiguity_list = NULL;
   a_symbol_ptr function_symbol = NULL;
 
+  check_assertion(is_reference_type(dest_type));
+  is_rvalue_ref = is_rvalue_reference_type(dest_type);
   orig_operand = *source_operand;
   if (conversion != NULL &&
       conversion->conversion_for_direct_reference_binding &&
@@ -13885,7 +13954,12 @@ been found to be acceptable, and *conversion describes it.
       /* In a constant expression (i.e., nontype template argument),
          we can check that the source operand is an lvalue.  Elsewhere,
          the lvalue-ness of some operands is not knowable. */
-      if (is_an_lvalue(source_operand)) {
+      if (is_rvalue_ref) {
+        /* An rvalue reference can only bind to an rvalue.  We don't expect to
+           be able to generate an rvalue in a constant expression, but let it
+           pass for now and avoid the checking and possible error for the
+           lvalue reference cases below. */
+      } else if (is_an_lvalue(source_operand)) {
         /* Okay, an lvalue. */
       } else if (is_a_function_designator(source_operand) &&
                  /* Avoid member functions; you can't bind references to
@@ -13913,6 +13987,10 @@ been found to be acceptable, and *conversion describes it.
                                 /*lvalue_expected=*/TRUE,
                                 /*rvalue_expected=*/FALSE);
     }  /* if */
+  } else if (is_rvalue_ref && !is_an_rvalue(source_operand)) {
+    /* An rvalue reference cannot be bound to an lvalue. */
+    pos_error(ec_rvalue_reference_bound_to_lvalue, &source_operand->position);
+    conv_to_error_operand(source_operand);
   } else if (direct_binding_conversion_possible) {
     /* The initial value can be converted to an lvalue of the right type
        through use of a conversion function returning a reference. */
@@ -14095,11 +14173,6 @@ been found to be acceptable, and *conversion describes it.
     do_array_to_pointer_conversion(source_operand);
     conv_object_pointer_to_lvalue(source_operand);
     adjust_lvalue_type(source_operand, adj_base_dest_type);
-  } else if (is_rvalue_reference_type(dest_type) &&
-             is_a_cplusplus_lvalue(source_operand)) {
-    /* An rvalue reference cannot be bound to an lvalue. */
-    pos_error(ec_rvalue_reference_bound_to_lvalue, &source_operand->position);
-    conv_to_error_operand(source_operand);
   } else {
     /* The initialization cannot be done directly; a temporary must be
        used and/or an implicit conversion must be done. */
