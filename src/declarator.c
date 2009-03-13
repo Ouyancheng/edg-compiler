@@ -3696,6 +3696,7 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
         new_type_ptr->variant.pointer.type = complete_type;
         if (!plain_ptr) {
           new_type_ptr->variant.pointer.is_reference = TRUE;
+          new_type_ptr->variant.pointer.is_rvalue_reference = rvalue_ref_case;
         }  /* if */
         complete_type = new_type_ptr;
       }  /* if */
