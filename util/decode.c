@@ -5033,9 +5033,9 @@ Do not output function parameters if include_func_params is FALSE.
     ptr = demangle_name(ptr, &func_block, dctl);
     /* If there's more, it's the <bare-function-type>. */
     if (*ptr != '\0' && *ptr != 'E') {
-      /* O <nested-name> indicates a function that is explicitly
+      /* Q <nested-name> indicates a function that is explicitly
          overridden.  This is an extension over the IA-64 ABI spec. */
-      if (*ptr == 'O') {
+      if (*ptr == 'Q') {
         a_func_block dummy_func_block;
         write_id_str(" [overriding ", dctl);
         ptr = demangle_name(ptr+1, &dummy_func_block, dctl);
