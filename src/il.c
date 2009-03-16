@@ -8874,42 +8874,37 @@ and reuse an existing entry if possible.
 }  /* make_rvalue_reference_type */
 
 
-/* FIXME:daveed  rvalue references. */
-
 #if !NEAR_AND_FAR_ALLOWED
 /* ARGSUSED */  /* <- is_error is not used in some configurations. */
 #endif /* !NEAR_AND_FAR_ALLOWED */
 a_type_ptr make_reference_to_reference(a_type_ptr            base_ref_type,
+                                       a_boolean             rvalue_ref,
                                        a_type_qualifier_set  qualifiers,
                                        a_source_position     *qual_pos,
                                        a_boolean             *is_error)
 /*
-Make a type "T cv1 &" where T is a reference type given by base_ref_type and
-the type qualifiers cv are given by qualifiers.  If T is a type "X cv2 &"
-the result type must be "X cv &" where cv is the union of the qualifiers sets
-cv1 and cv2.  If cv1 does not add qualifiers to cv2, base_ref_type itself is
-returned.
-If the given reference type is restrict-qualified (e.g. "int & restrict"),
-the restrict qualifier is silently dropped.
-If some of the cv1 qualifiers are ignored (e.g., because they'd apply to a
-function type) and qual_pos is non-NULL, a warning is issued at the position
-indicated by qual_pos.
-When is_error is NULL, a diagnostic is issued in error cases (e.g., when the
-result would produce a result that is both "near" and "far").  Otherwise,
-*is_error is set to TRUE and no diagnostic is issued (useful during type
-deduction for templates).  In all error cases, an error type is returned.
+Make a type "T cv1 &" (if rvalue_ref is FALSE) or "T cv1 &&" (if rvalue_ref is
+TRUE) where T is a reference type given by base_ref_type (after qualifiers --
+like "restrict" -- on top of that type have been dropped) and cv1 are the given
+type qualifiers.  The resulting type is:
+	- T if T is an lvalue reference or rvalue_ref is TRUE,
+	- "X cv2&" where T is "X cv2&&", otherwise.
+If the cv1 and cv2 qualifiers represent conflicting "__near" and "__far"
+qualifications, an error type is returned *is_error is set to TRUE if is_error
+is non-NULL, and an error is issued if qual_pos is non-NULL.
+Otherwise, if qualifiers (i.e., cv1) is not TQ_NONE and qual_pos is non-NULL,
+a warning is issued (because cv1 is dropped from the result).
+All diagnostics are issued at the given source position.
 */
 {
   a_type_ptr            result;
   a_type_ptr            under_ref = type_pointed_to(base_ref_type);
-  a_type_qualifier_set  top_qualifiers = get_type_qualifiers(base_ref_type);
   a_type_qualifier_set  base_qualifiers = get_type_qualifiers(under_ref);
 
 #if NEAR_AND_FAR_ALLOWED
   if (((qualifiers | base_qualifiers) & (TQ_NEAR | TQ_FAR)) ==
                                                          (TQ_NEAR | TQ_FAR)) {
-    /* Merging qualifiers would result in a reference to a type that is
-       both near and far -- an error. */
+    /* Conflicting "near" and "far" qualification; this is an error. */
     if (is_error == NULL) {
       error(ec_mem_attrib_incompatible);
     } else {
@@ -8920,39 +8915,27 @@ deduction for templates).  In all error cases, an error type is returned.
 #endif /* NEAR_AND_FAR_ALLOWED */
   /* Do not insert code here. */
   {
-    if ((qualifiers & ~base_qualifiers) != TQ_NONE ||
-        (top_qualifiers & TQ_RESTRICT) != TQ_NONE) {
-      /* Additional qualifiers must be merged in or a restrict qualifier must
-         be dropped. */
-      top_qualifiers &= ~TQ_RESTRICT;
-      if (qualifiers != TQ_NONE) {
-        if (is_function_type(under_ref)) {
-          /* Ignore qualifiers applied to a function type. */
-          if (qual_pos != NULL) {
-            pos_warning(ec_cv_qualified_function_type, qual_pos);
-          }  /* if */
-          qualifiers = TQ_NONE;
-        } else if (qualifiers & TQ_RESTRICT) {
-          if (qual_pos != NULL) {
-            pos_warning(ec_restrict_qualifier_ignored, qual_pos);
-          }  /* if */
-          qualifiers &= ~TQ_RESTRICT;
-        }  /* if */
+    if (qual_pos != NULL) {
+      if (qualifiers == TQ_RESTRICT) {
+        pos_warning(ec_restrict_qualifier_ignored, qual_pos);
+      } else {
+        pos_warning(ec_type_qualifiers_ignored_on_reference, qual_pos);
       }  /* if */
-      result = under_ref;
-      if (qualifiers != TQ_NONE) {
-        result = make_qualified_type(result, qualifiers);
-      }  /* if */
-      result = make_reference_type(result);
-      if (top_qualifiers != TQ_NONE) {
-        result = make_qualified_type(result, top_qualifiers);
+    }  /* if */
+    if (rvalue_ref || is_lvalue_reference_type(base_ref_type)) {
+      /* The result should be base_ref_type, but without any top-level
+         qualifiers (i.e., nonstandard qualifiers like "restrict").  Try to
+         preserve a top-level typedef for nicer output in the C++-generating
+         back end. */
+      result = skip_typerefs_not_typedefs(base_ref_type);
+      if (get_type_qualifiers(result) != TQ_NONE) {
+        base_ref_type = skip_typerefs(base_ref_type);
       }  /* if */
     } else {
-      /* Return the original type.  (Merging qualifiers even when there are
-         no new ones would be harmless, but doing it this way preserves
-         typedefs, which makes for nicer output if the C++-generating back
-         end is used. */
-      result = base_ref_type;
+      /* base_ref_type is an rvalue reference, but an lvalue reference must
+         be returned. */
+      check_assertion(is_rvalue_reference_type(base_ref_type));
+      result = make_reference_type(under_ref);
     }  /* if */
 #if DEBUG
     if (db_flag_is_set("ref_to_ref")) {

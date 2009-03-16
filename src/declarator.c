@@ -3658,8 +3658,8 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
                    (state->qualifiers == TQ_RESTRICT) ? &state->restrict_pos
                                                       : &state->qualifiers_pos;
               complete_type = make_reference_to_reference(
-                                complete_type, state->qualifiers, qual_pos,
-                                (a_boolean*)NULL);
+                                complete_type, rvalue_ref_case,
+                                state->qualifiers, qual_pos, (a_boolean*)NULL);
               state->unused_qualifiers = FALSE;
             } else {
               /* Type "reference to reference" is illegal. */
@@ -5333,13 +5333,15 @@ function_lparen:
          of specifiers_type being a reference (i.e., the specifiers contained
          a typedef or template parameter referring to a reference).  Otherwise,
          an error should be issued. */
-      a_source_position_ptr  qual_pos =
-                   (state->qualifiers == TQ_RESTRICT) ? &state->restrict_pos
-                                                      : &state->qualifiers_pos;
+      a_boolean  is_rvalue_ref =
+                      bottom_derived_type->variant.pointer.is_rvalue_reference;
+      a_source_position_ptr
+                 qual_pos = (state->qualifiers == TQ_RESTRICT) ?
+                                 &state->restrict_pos : &state->qualifiers_pos;
       if (specifiers_type == NULL || !is_reference_type(specifiers_type)) {
         error(ec_reference_to_reference);
       }  /* if */
-      derived_type = make_reference_to_reference(complete_type,
+      derived_type = make_reference_to_reference(complete_type, is_rvalue_ref,
                                                  state->qualifiers, qual_pos,
                                                  (a_boolean*)NULL);
       state->unused_qualifiers = FALSE;

@@ -7279,9 +7279,9 @@ a pointer over a reference type or creating an array of references.
             *copy_error = TRUE;
           } else if (is_reference_type(tp)) {
             /* A reference to reference.  We may have to merge qualifiers. */
-            /*FIXME:daveed revise ref-to-ref for rvalue refs */
             new_type = make_reference_to_reference(
-                         tp, get_type_qualifiers(type->variant.pointer.type),
+                         tp, type->variant.pointer.is_rvalue_reference,
+                         get_type_qualifiers(type->variant.pointer.type),
                          /*qual_pos=*/(a_source_position*)NULL, copy_error);
           } else if (!type->variant.pointer.is_rvalue_reference) {
             new_type = make_reference_type(tp);

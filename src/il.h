@@ -859,6 +859,7 @@ extern a_type_ptr make_rvalue_reference_type(a_type_ptr  pointed_to_type);
 
 extern a_type_ptr make_reference_to_reference(
                                           a_type_ptr            base_ref_type,
+                                          a_boolean             rvalue_ref,
                                           a_type_qualifier_set  qualifiers,
                                           a_source_position     *qual_pos,
                                           a_boolean             *is_error);
