@@ -11540,8 +11540,7 @@ will be called immediately (as opposed to, say, having its address taken).
   if (is_indefinite_function_operand(operand) &&
       operand->is_template_id &&
       !(is_template_dependent_context() &&
-        template_arg_list_involves_template_param(
-                                                operand->template_arg_list))) {
+        template_arg_list_is_dependent(operand->template_arg_list))) {
     a_template_arg_ptr new_arg_list;
     a_symbol_ptr       orig_sym = operand->variant.symbol, base_sym;
     a_symbol_ptr       matching_sym = NULL;

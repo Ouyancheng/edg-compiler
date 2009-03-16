@@ -4638,16 +4638,15 @@ the same constant.
 }  /* equiv_template_arg_lists */
 
 
-static a_boolean template_arg_involves_template_param(a_template_arg_ptr tap)
+static a_boolean template_arg_is_dependent(a_template_arg_ptr tap)
 /*
-Return TRUE if the template argument entry pointed to by tap contains
-a template parameter.
+Return TRUE if the template argument entry pointed to by tap is dependent.
 */
 {
   a_boolean  template_param_found;
 
   if (is_type_templ_arg(tap)) {
-    template_param_found = is_or_contains_template_param(tap->variant.type);
+    template_param_found = is_template_dependent_type(tap->variant.type);
   } else if (is_nontype_templ_arg(tap)) {
     if (tap->arg_operand != NULL) {
       /* The constant is still in arg_operand form. */
@@ -4684,23 +4683,22 @@ a template parameter.
     }  /* if */
   }  /* if */
   return template_param_found;
-}  /* template_arg_involves_template_param */
+}  /* template_arg_is_dependent */
 
 
-a_boolean template_arg_list_involves_template_param(a_template_arg_ptr	tap)
+a_boolean template_arg_list_is_dependent(a_template_arg_ptr	tap)
 /*
-Return TRUE if the template argument list pointed to by tap is or
-contains a template parameter.
+Return TRUE if the template argument list pointed to by tap is dependent.
 */
 {
   a_boolean	result = FALSE;
 
   for (; tap != NULL; tap = tap->next) {
-    result = template_arg_involves_template_param(tap);
+    result = template_arg_is_dependent(tap);
     if (result) break;
   }  /* for */
   return result;
-}  /* template_arg_list_involves_template_param */
+}  /* template_arg_list_is_dependent */
 
 
 a_symbol_ptr find_template_class(
@@ -4893,13 +4891,13 @@ prototype instantiation is considered as a potential match.
       }  /* if */
     }  /* if */
     /* If this is a "real instantiation" leave the type incomplete; it will
-       become complete when it is instantiated.  However, if it is based on
-       template parameters and is therefore a "nonreal" instantiation, give
-       it a size and alignment to permit it to pass through subsequent
-         processing without causing spurious errors. */
+       become complete when it is instantiated.  However, if it depends in
+       some way on a template parameter and is therefore a "nonreal"
+       instantiation, give it a size and alignment to permit it to pass
+       through subsequent processing without causing spurious errors. */
     for (tap = *new_list; tap != NULL; tap = tap->next) {
       if (!class_type->variant.class_struct_union.is_nonreal_class) {
-        if (template_arg_involves_template_param(tap)) {
+        if (template_arg_is_dependent(tap)) {
           class_type->variant.class_struct_union.is_nonreal_class = TRUE;
         }  /* if */
       }  /* if */
@@ -13640,7 +13638,7 @@ the resulting constant is stored in the pointer pointed to by "constant".
   saved_curr_construct_end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   dependent_arg_list = is_template_dependent_context() ||
-                       template_arg_list_involves_template_param(arg_list);
+                       template_arg_list_is_dependent(arg_list);
   /* If the argument list is dependent, flag this as a nonreal
      instantiation. */
   if (dependent_arg_list) ps_options |= PS_NONREAL_INSTANTIATION;
@@ -13786,7 +13784,7 @@ template parameters that depend on other template parameters.
   saved_curr_construct_end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   dependent_arg_list = is_template_dependent_context() ||
-                       template_arg_list_involves_template_param(arg_list);
+                       template_arg_list_is_dependent(arg_list);
   /* If the argument list is dependent, flag this as a nonreal
      instantiation. */
   if (dependent_arg_list) ps_options |= PS_NONREAL_INSTANTIATION;
@@ -13874,7 +13872,7 @@ existing type is simply used.
   /* Determine whether the template argument list depends on a template
      parameter type. */
   dependent_arg_list = is_template_dependent_context() ||
-                       template_arg_list_involves_template_param(arg_list);
+                       template_arg_list_is_dependent(arg_list);
   if (param_ptr->def_arg_involves_template_param) {
     if (pending_type_param_instantiations == max_pending_instantiations) {
       error(ec_recursive_inst_of_templ_default_arg);
@@ -13948,7 +13946,7 @@ existing type is simply used.
   /* Determine whether the template argument list depends on a template
      parameter type. */
   dependent_arg_list = is_template_dependent_context() ||
-                       template_arg_list_involves_template_param(arg_list);
+                       template_arg_list_is_dependent(arg_list);
   if (param_ptr->def_arg_involves_template_param) {
     /* Push the template instantiation scope.  Note that the instance symbol
        passed to push_scope is NULL because we don't yet know which instance
@@ -17556,7 +17554,7 @@ specified by "tip" depend on a template parameter.
     check_assertion(type != NULL);
     arg_list = class_type_supp(type)->template_arg_list;
   }  /* if */
-  check_assertion_str2(!template_arg_list_involves_template_param(arg_list),
+  check_assertion_str2(!template_arg_list_is_dependent(arg_list),
                        "check_for_nonreal_instance:",
                        "nonreal instance on instantiation required list");
 }  /* check_for_nonreal_instance */

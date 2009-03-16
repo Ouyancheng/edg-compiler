@@ -154,7 +154,7 @@ cast.
   if (is_template_dependent_context() &&
       (is_template_dependent_type(dest_type) ||
        (is_template_id &&
-        template_arg_list_involves_template_param(template_arg_list)))) {
+        template_arg_list_is_dependent(template_arg_list)))) {
     /* The destination type is not fully known, or the template argument
        list contains template-dependent types (in a prototype
        instantiation). */
@@ -5499,7 +5499,7 @@ function.
 
   if (is_indefinite_function_operand(operand) &&
       operand->is_template_id &&
-      template_arg_list_involves_template_param(operand->template_arg_list)) {
+      template_arg_list_is_dependent(operand->template_arg_list)) {
     /* An indefinite function with a template-dependent explicit template
        argument list is template-dependent. */
     dep = TRUE;
@@ -5705,7 +5705,7 @@ and return NULL.  This routine is called only in C++ mode.
       }  /* if */
     }  /* for */
     if (!dependent_call && is_template_id &&
-        template_arg_list_involves_template_param(template_arg_list)) {
+        template_arg_list_is_dependent(template_arg_list)) {
       /* A call like f<T>(1), where the explicit template argument
          list includes dependent arguments. */
       dependent_call = TRUE;

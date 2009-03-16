@@ -331,7 +331,7 @@ extern a_symbol_ptr primary_template_of(a_symbol_ptr sym);
 extern a_boolean rout_is_inline_template_function(a_routine_ptr rout,
                                                   a_boolean     in_class);
 
-extern a_boolean template_arg_list_involves_template_param(
+extern a_boolean template_arg_list_is_dependent(
 					a_template_arg_ptr	tap);
 
 extern a_symbol_ptr find_template_class(

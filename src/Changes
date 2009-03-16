@@ -1,5 +1,27 @@
 Version 4.1
 
+3/16/09 [EDGcpfe/9619]
+Instantiation based on nonreal type not always considered nonreal
+
+An instantiation of a class template based on a nonreal class that does
+not directly depend on a template parameter incorrectly resulted in a
+real instantiation instead of a nonreal one.  This could result in
+various kinds of incorrect behavior and/or internal errors.  This has
+been fixed.  The example below resulted in an internal error in
+prep_generic_operand_full.
+
+  template <class T> struct A {
+    template <class U> static T f() { }
+    static int g(int i = f<T>()());
+  };
+
+  template <class T> void h() {
+    class Q {};
+    A<Q> a;
+    a.g();
+  }
+
+
 3/16/09 [EDGcpfe/9550]
 Local type used as template type argument leads to incorrect generated C
 
