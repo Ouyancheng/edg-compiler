@@ -91,7 +91,7 @@ Previously, the front end issued a warning if a loop construct was not
 reachable sequentially from the preceding statement.  This warning was
 frequently misunderstood when the loop was reachable via a goto or switch into
 the loop body.  A warning is now only issued when a loop does not contain a
-label definition of an active switch case.  For example:
+label definition or an active switch case.  For example:
 
   void f() {
     goto middle;

@@ -2964,9 +2964,9 @@ a structured statement has ended.
     }  /* if */
     /* Propagate the contains_user_label and contains_active_switch_case flags
        upwards if appropriate. */
-    sssep[-1].contains_user_label = sssep->contains_user_label;
+    sssep[-1].contains_user_label |= sssep->contains_user_label;
     if (kind != ssk_switch) {
-      sssep[-1].contains_active_switch_case =
+      sssep[-1].contains_active_switch_case |=
                                            sssep->contains_active_switch_case;
     }  /* if */
   }  /* if */
