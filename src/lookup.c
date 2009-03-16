@@ -1704,9 +1704,9 @@ be in the set.
   {
     a_symbol_ptr	fund_curr_sym;
     fund_curr_sym = fundamental_symbol_of(curr_sym);
-    check_assertion_str2(fund_curr_sym != NULL,
-                         "add_symbol_to_lookup_set:", "NULL fund_sym");
-    if (fund_curr_sym->kind == (a_symbol_kind)sk_overloaded_function) {
+    /* fund_curr_sym can be NULL in some error cases. */
+    if (fund_curr_sym != NULL &&
+        fund_curr_sym->kind == (a_symbol_kind)sk_overloaded_function) {
       a_symbol_ptr	overload_sym;
       overload_sym = fund_curr_sym->variant.overloaded_function.symbols;
       for (; overload_sym != NULL; overload_sym = overload_sym->next) {

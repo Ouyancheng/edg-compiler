@@ -1,5 +1,22 @@
 Version 4.1
 
+3/16/09 [EDGcpfe/9622]
+Internal error on ambiguous using-directive lookup with EXPENSIVE_CHECKING
+
+An internal error could occur (in add_symbol_to_lookup_set) in versions
+with EXPENSIVE_CHECKING enabled when an symbol for an ambiguous using-directive
+lookup is reused.  Now fixed.
+
+  namespace N {
+    typedef int g ; 
+  }
+  using namespace N;
+  void g() {
+    g();
+    g();
+  }
+
+
 3/16/09 [EDGcpfe/9619]
 Instantiation based on nonreal type not always considered nonreal
 
