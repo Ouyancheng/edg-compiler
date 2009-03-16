@@ -15,7 +15,7 @@ optimize_node_if_possible.  Similar cases can also cause an abort in c_gen_be
   }
 
 
-3/13/09 [EDGcpfe/9615]
+3/13/09 [EDGcpfe/6929,EDGcpfe/9615]
 Abort on invalid designated initializer in C++ mode
 
 In C++ modes with designated initializers enabled (e.g., GNU C++ mode), the
