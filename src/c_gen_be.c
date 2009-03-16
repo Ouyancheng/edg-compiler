@@ -4966,7 +4966,8 @@ process_assignment:
             if ((is_variable_node(operand_2) &&
                  is_qualified_type(operand_2->variant.variable->type)) ||
                 (is_operation_node(operand_2) &&
-                 node_operator_is(operand_2, eok_indirect) &&
+                 (node_operator_is(operand_2, eok_indirect) ||
+                  node_operator_is(operand_2, eok_points_to_field)) &&
                  is_qualified_type(type_pointed_to(
                               operand_2->variant.operation.operands->type)))) {
               write_tok_ch('*');
@@ -4990,7 +4991,8 @@ process_assignment:
             if ((is_variable_node(operand_3) &&
                  is_qualified_type(operand_3->variant.variable->type)) ||
                 (is_operation_node(operand_3) &&
-                 node_operator_is(operand_3, eok_indirect) &&
+                 (node_operator_is(operand_3, eok_indirect) ||
+                  node_operator_is(operand_3, eok_points_to_field)) &&
                  is_qualified_type(type_pointed_to(
                               operand_3->variant.operation.operands->type)))) {
               write_tok_ch('*');
