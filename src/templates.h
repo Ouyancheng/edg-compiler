@@ -682,6 +682,17 @@ EXTERN a_symbol_list_entry_ptr
 			   includes only functions and static data members
 			   (i.e., not classes). */
 
+#if ENSURE_LOWERED_TYPE_LIST_ORDERING
+
+EXTERN a_boolean
+		local_type_used_as_template_type_argument;
+			/* TRUE if a local type has been used as a template
+			   argument in any translation unit of the
+			   compilation. */
+
+#endif /* ENSURE_LOWERED_TYPE_LIST_ORDERING */
+
+
 /* tp is a class type.  If it is incomplete, see if it is a template class in
    need of instantiation and, if so, instantiate it. */
 #define instantiate_template_class(tp)                                  \

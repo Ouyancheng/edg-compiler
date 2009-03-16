@@ -17221,26 +17221,40 @@ by things that will be in the file scope.
       scope->kind == (a_scope_kind)sck_block ||
       scope->kind == (a_scope_kind)sck_condition) {
     /* Function or block scope. */
-    /* Look for a local static variable with a destructor.  That might force
-       the variable to be at the file scope, because if the destruction is
-       complicated, a routine is generated to contain the destruction
-       code. */
-    for (var = scope->variables; var != NULL; var = var->next) {
-      an_init_kind       init_kind;
-      an_initializer_ptr initializer;
-      get_variable_initializer(var, scope, &init_kind, &initializer);
-      if (init_kind == (an_init_kind)initk_dynamic) {
-        dip = initializer->dynamic;
-        if (dip->destructor != NULL ||
-            dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) {
-          /* The initialization has a destructor, or it's an aggregate that
-             might have a ck_dynamic_init with a destructor somewhere in
-             it (it's not worth the effort to look). */
-          promotion_needed = TRUE;
-          break;
+#if ENSURE_LOWERED_TYPE_LIST_ORDERING
+    if (local_types_as_template_args_enabled) {
+      /* A local type being used as a template argument creates an ordering
+         issue for types; in many instances the local type must be defined
+         prior to being used in the template.  To ensure the proper order,
+         promote all local types to the file scope list, then call
+         fix_type_list_ordering_problems during wrapup processing to ensure
+         that the type list is properly ordered.  */
+      promotion_needed = TRUE;
+    } else
+#endif /* ENSURE_LOWERED_TYPE_LIST_ORDERING */
+    /* Do not insert code here. */
+    {
+      /* Look for a local static variable with a destructor.  That might force
+         the variable to be at the file scope, because if the destruction is
+         complicated, a routine is generated to contain the destruction
+         code. */
+      for (var = scope->variables; var != NULL; var = var->next) {
+        an_init_kind       init_kind;
+        an_initializer_ptr initializer;
+        get_variable_initializer(var, scope, &init_kind, &initializer);
+        if (init_kind == (an_init_kind)initk_dynamic) {
+          dip = initializer->dynamic;
+          if (dip->destructor != NULL ||
+              dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) {
+            /* The initialization has a destructor, or it's an aggregate that
+               might have a ck_dynamic_init with a destructor somewhere in
+               it (it's not worth the effort to look). */
+            promotion_needed = TRUE;
+            break;
+          }  /* if */
         }  /* if */
-      }  /* if */
-    }  /* for */
+      }  /* for */
+    }  /* if */
   } else {
 #if CHECKING
     if (scope->kind != (a_scope_kind)sck_class_struct_union) {

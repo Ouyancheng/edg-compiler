@@ -1,5 +1,24 @@
 Version 4.1
 
+3/13/09 [EDGcpfe/9550]
+Local type used as template type argument leads to incorrect generated C
+
+In modes where local types can be used as template type arguments (i.e.,
+--c++0x and --microsoft_version >= 1400), the definition of the local type
+in the generated C code may follow its use in the template, causing an
+error when compiling the generated C code.  Back ends that require that
+a type definition preceeds its use (such as the C generating back end) should
+set ENSURE_LOWERED_TYPE_LIST_ORDERING to TRUE.  For example:
+
+  template <class T> struct S {
+    T m;          // had generared "error: field `m' has incomplete type"
+  };              // when generated C was compiled
+  void f() {
+    struct A {};
+    S<A> s;
+  }
+
+
 3/13/09 [EDGcpfe/9605]
 Abort in lowering on some operations involving rvalue class adjustments
 

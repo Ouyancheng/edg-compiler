@@ -3732,7 +3732,7 @@ This switch controls whether a post-pass is done after IL lowering
 to ensure that the types list is in order, in the sense that the
 C-generating back end can generate compilable code from it.  The
 fixup is needed sometimes when secondary translation units are
-involved.
+involved or local types are used as template type arguments.
 */
 #ifndef ENSURE_LOWERED_TYPE_LIST_ORDERING
 #define ENSURE_LOWERED_TYPE_LIST_ORDERING BACK_END_IS_C_GEN_BE
@@ -3785,6 +3785,10 @@ variables will be (selectively) promoted to the actual file scope.
 #ifndef PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
 #define PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE BACK_END_IS_C_GEN_BE
 #endif /* ifndef PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
+#if ENSURE_LOWERED_TYPE_LIST_ORDERING && !PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
+ #error -- ENSURE_LOWERED_TYPE_LIST_ORDERING requires \
+           PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
+#endif /* ENSURE_LOWERED_TYPE_LIST_ORDERING && !PROMOTE_LOCAL_ENTITIES_... */
 
 /*
 This switch controls whether or not all functions and function calls will

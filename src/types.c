@@ -8758,27 +8758,51 @@ stops early, another component with a different property may also keep
 the type from having linkage without it being reflected in the values
 returned).  GNU C++ mode allows variable-length array types, but they
 are not valid template argument types: If one is encountered, FALSE is
-returned and *is_vla is set to TRUE.
+returned and *is_vla is set to TRUE.  This routine also sets the value
+of local_type_used_as_template_type_argument when needed.
 */
 {
-  a_boolean			  result = FALSE;
+  a_boolean	result = FALSE;
+  a_boolean	no_linkage = FALSE;
+  a_boolean	local_type_check_needed;
+
+  local_type_check_needed = !local_types_as_template_args_enabled;
+#if ENSURE_LOWERED_TYPE_LIST_ORDERING
+  if (!local_type_check_needed) {
+    /* When ENSURE_LOWERED_TYPE_LIST_ORDERING is TRUE, we need to record
+       whether a local type was ever used as a nontype template argument.
+       Once the first one is found, we don't need to check further when
+       local types are allowed as template arguments. */
+    local_type_check_needed = !local_type_used_as_template_type_argument;
+  }  /* if */
+#endif /* ENSURE_LOWERED_TYPE_LIST_ORDERING */
   /* Clear the variables that are used to return status information from
      ttt_is_type_with_no_name_linkage. */
-  is_local_type = FALSE;
-  is_unnamed_type = FALSE;
-  /* Local and unnamed types are allowed in C++0x. */
-  if (!local_types_as_template_args_enabled) {
+  *is_local = is_local_type = FALSE;
+  *is_unnamed = is_unnamed_type = FALSE;
+  if (local_type_check_needed) {
     a_type_tree_traversal_flag_set  ttt_flags = (TTT_RETURN_TYPE |
                                                  TTT_THIS_PARAM_TYPE |
                                                  TTT_PARAM_TYPES |
                                                  TTT_EXCEPTION_SPECS |
                                                  TTT_SKIP_TYPEREFS);
 
-    result = (traverse_type_tree(type_ptr, ttt_is_type_with_no_name_linkage,
-                                 ttt_flags));
+    no_linkage = traverse_type_tree(type_ptr, ttt_is_type_with_no_name_linkage,
+                                    ttt_flags);
+#if ENSURE_LOWERED_TYPE_LIST_ORDERING
+    if (is_local_type) {
+      local_type_used_as_template_type_argument = TRUE;
+    }  /* if */
+#endif /* ENSURE_LOWERED_TYPE_LIST_ORDERING */
   }  /* if */
-  *is_unnamed = is_unnamed_type;
-  *is_local = is_local_type;
+  if (!local_types_as_template_args_enabled) {
+    /* If local and unnamed types are not allowed as template arguments, return
+       the flags set above to the caller. */
+    result = no_linkage;
+    *is_unnamed = is_unnamed_type;
+    *is_local = is_local_type;
+  }  /* if */
+  /* If the type is otherwise valid, check for a VLA type. */
   if (!result && il_header.vla_used) {
     result = *is_vla = is_variably_modified_type(type_ptr);
   } else {

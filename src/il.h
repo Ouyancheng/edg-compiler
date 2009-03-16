@@ -1952,6 +1952,10 @@ extern a_boolean tree_has_correct_lvalueness(an_expr_node_ptr root);
 extern void check_operation_node_consistency(an_expr_node_ptr expr);
 #endif /* CHECKING */
 
+#if ENSURE_LOWERED_TYPE_LIST_ORDERING
+extern void fix_type_list_ordering_problems(void);
+#endif /* ENSURE_LOWERED_TYPE_LIST_ORDERING */
+
 extern void il_reset(void);
 
 extern void il_one_time_init(void);

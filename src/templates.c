@@ -22382,6 +22382,9 @@ One-time initialization for templates.c static variables.
       pch_saved_var_array_elem(inline_function_list),
       pch_saved_var_array_elem(avail_partial_order_candidates),
       pch_saved_var_array_elem(type_of_unknown_templ_param_nontype),
+#if ENSURE_LOWERED_TYPE_LIST_ORDERING
+      pch_saved_var_array_elem(local_type_used_as_template_type_argument),
+#endif /* ENSURE_LOWERED_TYPE_LIST_ORDERING */
 #if DEBUG
       pch_saved_var_array_elem(num_partial_order_candidates_allocated),
       pch_saved_var_array_elem(num_tmpl_decl_states_allocated),
@@ -22455,6 +22458,9 @@ Initializations for template.
   pending_templ_templ_param_instantiations = 0;
   pending_type_param_instantiations = 0;
   additional_instantiation_wrapup_required = FALSE;
+#if ENSURE_LOWERED_TYPE_LIST_ORDERING
+  local_type_used_as_template_type_argument = FALSE;
+#endif /* ENSURE_LOWERED_TYPE_LIST_ORDERING */
 #if DEBUG
   num_partial_order_candidates_allocated = 0;
   num_tmpl_decl_states_allocated = 0;
