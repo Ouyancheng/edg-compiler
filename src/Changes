@@ -4,10 +4,10 @@ Version 4.1
 Abort in lowering on some operations involving rvalue class adjustments
 
 Certain expressions involving rvalue class adjustments (e.g., on a question
-mark expression with a throw operand) could cause an assertion failure in
-optimize_node_if_possible.  Similar cases can also cause an abort in c_gen_be
-(internal error: wrong result type for &).  This regression was introduced in
-4.0.  This example had aborted and is now fixed:
+mark expression with a throw operand) could cause an assertion failure during
+lowering (in optimize_node_if_possible).  Similar cases can also cause an abort
+in c_gen_be (internal error: wrong result type for &).  This regression was
+introduced in 4.0.  This example had aborted and is now fixed:
 
   struct A {};
   A f(int i, const A& x) {
