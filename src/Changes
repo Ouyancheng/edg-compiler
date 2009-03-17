@@ -4,7 +4,7 @@ Version 4.1
 Internal error on ambiguous using-directive lookup with EXPENSIVE_CHECKING
 
 An internal error could occur (in add_symbol_to_lookup_set) in versions
-with EXPENSIVE_CHECKING enabled when an symbol for an ambiguous using-directive
+with EXPENSIVE_CHECKING enabled when a symbol for an ambiguous using-directive
 lookup is reused.  Now fixed.
 
   namespace N {
