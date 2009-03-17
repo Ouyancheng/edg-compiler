@@ -1821,6 +1821,8 @@ ec_function_does_not_match_arguments;;"%n cannot be called with the given argume
 ec_rvalue_reference_bound_to_lvalue;;"an rvalue reference cannot be bound to an lvalue"
 ec_rvalue_ref_template_parameter;;"a nontype template parameter cannot have rvalue reference type"
 ec_type_qualifiers_ignored_on_reference;;"type qualifiers are ignored (underlying type is a reference)"
+ec_decl_with_local_type_but_not_defined;;"%n, declared using a local type, must be defined in this translation unit"
+ec_decl_with_no_linkage_type_but_not_defined;;"%n, declared using a type with no linkage, must be defined in this translation unit"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

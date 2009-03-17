@@ -1845,6 +1845,7 @@ by a command line option.
          two ">" tokens in angle bracket contexts. */
       right_shift_can_be_angle_brackets = TRUE;
       local_types_as_template_args_enabled = TRUE;
+      decls_using_types_without_linkage_allowed = TRUE;
     }  /* if */
   }  /* if */
   /* In C++ mode, the Microsoft compiler sometimes finds typedefs when
@@ -2141,6 +2142,7 @@ process.
   lambdas_enabled = FALSE;
   rvalue_references_enabled = FALSE;
   local_types_as_template_args_enabled = FALSE;
+  decls_using_types_without_linkage_allowed = FALSE;
 }  /* set_c_mode_flags */
 
 
@@ -2321,6 +2323,7 @@ the next standard).
     rvalue_references_enabled = TRUE; */
   }  /* if */
   local_types_as_template_args_enabled = TRUE;
+  decls_using_types_without_linkage_allowed = TRUE;
 }  /* check_and_set_cpp0x_mode_options */
 
 
@@ -7894,6 +7897,7 @@ enable_microsoft_mode:
   if (lambdas_enabled) {
     /* If lambdas are allowed, enable local types as template arguments too. */
     local_types_as_template_args_enabled = TRUE;
+    decls_using_types_without_linkage_allowed = TRUE;
   }  /* if */
   if (sun_mode) {
     check_and_set_sun_mode_options();
@@ -8490,6 +8494,7 @@ variables declared in cmd_line.h.
   lambdas_enabled = DEFAULT_LAMBDAS_ENABLED;
   rvalue_references_enabled = DEFAULT_RVALUE_REFERENCES_ENABLED;
   local_types_as_template_args_enabled = FALSE;
+  decls_using_types_without_linkage_allowed = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   default_calling_convention = (a_calling_convention)cc_cdecl;
   microsoft_64bit_pointer_extensions_enabled =

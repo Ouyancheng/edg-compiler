@@ -925,6 +925,15 @@ EXTERN a_boolean
 			/* TRUE if local and unnamed types are allowed as
 			   template arguments. */
 
+EXTERN a_boolean
+		decls_using_types_without_linkage_allowed;
+			/* TRUE if an entity with linkage can be declared
+			   using a type without linkage provided the
+			   entity is defined in the translation unit if
+			   used.  This is the rule used in C++0x and is must
+			   be used to when local and unnamed types can be
+			   used as template arguments. */
+
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 EXTERN a_calling_convention

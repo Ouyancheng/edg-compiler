@@ -8180,7 +8180,7 @@ implicitly declared member functions.
     /* The storage class will be changed to sc_unspecified if a definition is
        seen. */
     rtn->storage_class = (a_storage_class)sc_extern;
-    if (!class_type->variant.class_struct_union.is_prototype_instantiation) {
+    if (!decls_using_types_without_linkage_allowed) {
       /* If the class is external, ensure that no types without linkage are
          used. */
       check_constituent_types_have_linkage(sym, &locator->source_position);
@@ -9185,7 +9185,7 @@ specific information about the member declaration, respectively.
        the storage is sc_static (already set), which is changed to sc_extern
        or sc_unspecified during a final fixup pass. */
     var->storage_class = (a_storage_class)sc_extern;
-    if (!class_type->variant.class_struct_union.is_prototype_instantiation) {
+    if (!decls_using_types_without_linkage_allowed) {
       /* If the class is external, ensure that no types without linkage are
          used. */
       check_constituent_types_have_linkage(sym, &locator->source_position);

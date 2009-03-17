@@ -4064,15 +4064,165 @@ type.  This rules out arrays of incomplete struct/union types (an extension).
   (is_array_type(tp) && !is_incomplete_type(array_element_type(tp)))
 
 
+static void end_of_scope_member_function_check(a_symbol_ptr  rout_sym,
+					       a_routine_ptr rp,
+					       a_type_ptr    class_type,
+					       a_boolean     unnamed_ns_member)
+/*
+Do end-of-scope checking for the member function specified by rout_sym
+and rp, which is a member of class_type.  unnamed_ns_member is TRUE if
+the outermost class was defined in an unnamed namespace.
+*/
+{
+  if (unnamed_ns_member) {
+    /* A member of an unnamed namespace must be defined if used.  We also
+       give a diagnostic if a member is declared but not used. */
+    if ((rp->source_corresp.referenced
+#if IA64_ABI && DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
+         && rp->overridden_function_for_covariant_return_type == NULL
+#endif /* IA64_ABI && DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL... */
+                                                                     ) ||
+        (rp->is_virtual && !rp->pure_virtual && !rp->compiler_generated)) {
+      /* A referenced function or a virtual function.  Virtual
+         functions are in some way always "referenced" by the virtual
+         function table, but pure virtual functions and compiler
+         generated virtual functions (destructors) do not always need
+         to have a definition.  Similarly, no diagnostic should be
+         issued for IA-64 virtual call thunks. */
+      if (!routine_defined(rp)) {
+        an_error_severity  sev = es_discretionary_error;
+        if (!strict_ansi_mode && !class_type->source_corresp.referenced) {
+          /* If the enclosing class is unreferenced, the lack of a
+             definition for a virtual function is rarely a serious
+             problem. */
+          sev = es_remark;
+        }  /* if */
+        pos_sy_diagnostic(sev,
+                          rp->is_virtual ? ec_virtual_function_never_defined
+                                         : ec_never_defined,
+                          &rp->source_corresp.decl_position, rout_sym);
+      }  /* if */
+    } else if (!rp->source_corresp.referenced &&
+               !rp->compiler_generated &&
+               !rp->is_virtual &&
+               /* Don't warn about members that might be declared
+                  to avoid compiler generated declarations. */
+               !((rp->special_kind ==
+                                    (a_special_function_kind)sfk_constructor ||
+                  rp->special_kind ==
+                                     (a_special_function_kind)sfk_destructor ||
+                  (rp->special_kind == (a_special_function_kind)sfk_operator &&
+                   rp->variant.opname_kind == (an_opname_kind)onk_assign)) &&
+                 !routine_defined(rp))) {
+      report_unreferenced(rout_sym, ec_declared_but_not_referenced,
+                          es_warning);
+    }  /* if */
+  }  /* if */
+  /* Check if this routine was declared using a type with no linkage.  The
+     check is done for routines that are referenced but not defined.
+     The will_be_instantiated check is used so that a template that could
+     be instantiated is considered defined. */
+  if (decls_using_types_without_linkage_allowed &&
+      rout_sym->referenced &&
+      (rp->storage_class == (a_storage_class)sc_extern &&
+       (!rp->is_template_function || !will_be_instantiated(rout_sym)))) {
+    check_constituent_types_have_linkage(rout_sym,
+                                         &rout_sym->decl_position);
+  }  /* if */
+}  /* end_of_scope_member_function_check */
+
+
+static void end_of_scope_static_data_member_check(
+					a_symbol_ptr   var_sym,
+					a_variable_ptr vp,
+					a_boolean      unnamed_ns_member)
+/*
+Do end-of-scope checking for the static data member specified by var_sym
+and vp.  unnamed_ns_member is TRUE if the outermost class was defined in
+an unnamed namespace.
+*/
+{
+  if (unnamed_ns_member) {
+    /* A member of an unnamed namespace must be defined if used.  We also
+       give a diagnostic if a member is declared but not used. */
+    if (vp->source_corresp.referenced &&
+        vp->storage_class == (a_storage_class)sc_extern &&
+        !vp->is_member_constant) {
+      pos_sy_error(ec_never_defined, &vp->source_corresp.decl_position,
+                   var_sym);
+    } else if (!vp->source_corresp.referenced) {
+      report_unreferenced(var_sym, ec_declared_but_not_referenced, es_warning);
+    }  /* if */
+  }  /* if */
+  /* Check if this variable was declared using a type with no linkage.  The
+     check is done for routines that are referenced but not defined.
+     The will_be_instantiated check is used so that a template that could
+     be instantiated is considered defined. */
+  if (decls_using_types_without_linkage_allowed &&
+      var_sym->referenced &&
+      (vp->storage_class == (a_storage_class)sc_extern &&
+       (!vp->is_template_static_data_member ||
+        !will_be_instantiated(var_sym)))) {
+    check_constituent_types_have_linkage(var_sym,
+                                         &var_sym->decl_position);
+  }  /* if */
+}  /* end_of_scope_static_data_member_check */
+
+
+static void end_of_scope_symbol_check_for_class(a_symbol_ptr  sym,
+						a_scope_kind  scope_kind)
+/*
+This routine is called by end_of_scope_symbol_check to process classes
+defined at namespace scope.  It does special end-of-scope processing for
+class members, and calls itself recursively for nested classes.  sym is
+the class symbol.  scope_kind identifies the kind of scope enclosing the
+outermost class.
+*/
+{
+  a_type_ptr			type = type_symbol_type(sym);
+  a_boolean			unnamed_ns_member;
+  a_class_type_supplement_ptr	ctsp;
+
+  ctsp = type->variant.class_struct_union.extra_info;
+  unnamed_ns_member = is_member_of_unnamed_namespace(&type->source_corresp);
+  if (ctsp->assoc_scope != NULL) {
+    /* A class definition was provided. */
+    a_routine_ptr   rp = ctsp->assoc_scope->routines;
+    a_variable_ptr  vp = ctsp->assoc_scope->variables;
+    a_type_ptr      tp = ctsp->assoc_scope->types;
+    /* Check each of the member function of the class. */
+    for (; rp != NULL; rp = rp->next) {
+      a_symbol_ptr rout_sym = symbol_for(rp);
+      end_of_scope_member_function_check(rout_sym, rp, type,
+                                         unnamed_ns_member);
+    }  /* for */
+    /* Check each of the static data members of the class. */
+    for (; vp != NULL; vp = vp->next) {
+      a_symbol_ptr var_sym = symbol_for(vp);
+      end_of_scope_static_data_member_check(var_sym, vp, unnamed_ns_member);
+    }  /* for */
+    /* Check each of the nested classes. */
+    for (; tp != NULL; tp = tp->next) {
+      a_symbol_ptr tp_sym = symbol_for(tp);
+      /* Only process class types.  Some compiler-generated types are
+         created without associated symbols. */
+      if (tp_sym != NULL && is_immediate_class_type(tp)) {
+        end_of_scope_symbol_check_for_class(tp_sym, scope_kind);
+      }  /* if */
+    }  /* for */
+  }  /* if */
+}  /* end_of_scope_symbol_check_for_class */
+
+
 static void end_of_scope_symbol_check(a_symbol_ptr  sym,
 				      a_scope_kind  scope_kind,
                                       a_routine_ptr curr_routine)
 /*
 The symbol sym is about to be removed from the symbol table at the end of
 a scope.  Do any checking or processing required (e.g., issue a warning
-message if the symbol is unreferenced).  If the scope that is ending is
-for a function, curr_routine points to the routine entry; otherwise, it is
-NULL.
+message if the symbol is unreferenced).  scope_kind identifies the kind of
+scope containing the symbol.  If the scope that is ending is for a function,
+curr_routine points to the routine entry; otherwise, it is NULL.
 */
 {
   a_storage_class storage_class;
@@ -4227,6 +4377,12 @@ NULL.
           }  /* if */
           report_unreferenced(sym, error_code, severity);
         }  /* if */
+      }  /* if */
+      /* Check if this variable was declared using a type with no
+         linkage. */
+      if (decls_using_types_without_linkage_allowed &&
+          sym->referenced && storage_class == (a_storage_class)sc_extern) {
+        check_constituent_types_have_linkage(sym, &sym->decl_position);
       }  /* if */
       if (symbol_for(var_ptr) != sym) {
         /* If the symbol was referenced, ensure that the "primary symbol" for
@@ -4398,6 +4554,18 @@ NULL.
 			      es_warning);
         }  /* if */
       }  /* if */
+      /* Check if this routine was declared using a type with no linkage.  The
+         check is done for routines that are referenced but not defined.
+         The will_be_instantiated check is used so that a template that could
+         be instantiated is considered defined. */
+      if (decls_using_types_without_linkage_allowed &&
+          sym->referenced &&
+          (storage_class == (a_storage_class)sc_extern &&
+           (!rout_ptr->is_template_function || !will_be_instantiated(sym)))) {
+        /* Check if this routine was declared using a type with no
+           linkage. */
+        check_constituent_types_have_linkage(sym, &sym->decl_position);
+      }  /* if */
 #if CHECKING
       scp = &rout_ptr->source_corresp;
 #endif /* CHECKING */
@@ -4558,89 +4726,15 @@ NULL.
 #endif /* CHECKING */
     case sk_class_or_struct_tag:
     case sk_union_tag:
-      { a_type_ptr  type = type_symbol_type(sym);
-        if (is_member_of_unnamed_namespace(&type->source_corresp)) {
-          /* Member functions and static data members of classes declared in
-             unnamed namespaces can be checked: they should be defined if used,
-             and they're useless if not used. */
-          a_class_type_supplement_ptr
-                           ctsp = type->variant.class_struct_union.extra_info;
-
-          if (ctsp->assoc_scope != NULL) {
-            /* A class definition was provided. */
-            a_routine_ptr   rp = ctsp->assoc_scope->routines;
-            a_variable_ptr  vp = ctsp->assoc_scope->variables;
-            /* Diagnose undefined and unused member functions: */
-            for (; rp != NULL; rp = rp->next) {
-              a_symbol_ptr rout_sym = symbol_for(rp);
-              if ((rp->source_corresp.referenced
-#if IA64_ABI && DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
-                   && rp->overridden_function_for_covariant_return_type == NULL
-#endif /* IA64_ABI && DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL... */
-                                                                          ) ||
-                  (rp->is_virtual && !rp->pure_virtual &&
-                   !rp->compiler_generated)) {
-                /* A referenced function or a virtual function.
-                   Virtual functions are in some way always
-                   "referenced" by the virtual function table, but
-                   pure virtual functions and compiler generated
-                   virtual functions (destructors) do not always need
-                   to have a definition.  Similarly, no diagnostic
-                   should be issued for IA-64 virtual call thunks. */
-                if (!routine_defined(rp)) {
-                  an_error_severity  sev = es_discretionary_error;
-                  if (!strict_ansi_mode && !type->source_corresp.referenced) {
-                    /* If the enclosing class is unreferenced, the lack of a
-                       definition for a virtual function is rarely a serious
-                       problem. */
-                    sev = es_remark;
-                  }  /* if */
-                  pos_sy_diagnostic(sev,
-                                    rp->is_virtual
-                                           ? ec_virtual_function_never_defined
-                                           : ec_never_defined,
-                                    &rp->source_corresp.decl_position,
-                                    rout_sym);
-                }  /* if */
-              } else if (!rp->source_corresp.referenced &&
-                         !rp->compiler_generated &&
-                         !rp->is_virtual &&
-                         /* Don't warn about members that might be declared
-                            to avoid compiler generated declarations. */
-                         !((rp->special_kind ==
-                                    (a_special_function_kind)sfk_constructor ||
-                            rp->special_kind ==
-                                    (a_special_function_kind)sfk_destructor ||
-                            (rp->special_kind ==
-                                    (a_special_function_kind)sfk_operator && 
-                             rp->variant.opname_kind == 
-                                    (an_opname_kind)onk_assign)) &&
-                           !routine_defined(rp))) {
-                report_unreferenced(symbol_for(rp),
-                                    ec_declared_but_not_referenced,
-                                    es_warning);
-              }  /* if */
-            }  /* for */
-            /* Diagnose undefined and unused static data members: */
-            for (; vp != NULL; vp = vp->next) {
-              if (vp->source_corresp.referenced &&
-                  vp->storage_class == (a_storage_class)sc_extern &&
-                  !vp->is_member_constant) {
-                pos_sy_error(ec_never_defined,
-                             &vp->source_corresp.decl_position,
-                             symbol_for(vp));
-              } else if (!vp->source_corresp.referenced) {
-                report_unreferenced(symbol_for(vp),
-                                    ec_declared_but_not_referenced,
-                                    es_warning);
-              }  /* if */
-            }  /* for */
-          }  /* if */
-        }  /* if */
+      /* Class members require special end-of-scope processing.  This is
+         only done for classes at namespace scope. */
+     if (scope_kind == (a_scope_kind)sck_namespace ||
+         scope_kind == (a_scope_kind)sck_file) {
+        end_of_scope_symbol_check_for_class(sym, scope_kind);
+     }  /* if */
 #if CHECKING
-        scp = &type->source_corresp;
+      scp = &type_symbol_type(sym)->source_corresp;
 #endif /* CHECKING */
-      }
       break;
     case sk_class_template:
       {

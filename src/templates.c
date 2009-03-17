@@ -17992,6 +17992,25 @@ previously computed value is returned.
 		: f_entity_can_be_instantiated(tip, implicit_inclusion_okay))
 
 
+a_boolean will_be_instantiated(a_symbol_ptr	sym)
+/*
+Interface to entity_can_be_instantiated for use outside of templates.c.
+Return TRUE if sym is an entity that can be instantiated (and will somewhere
+in the complete program eventually).
+*/
+{
+  a_template_instance_ptr	tip;
+  a_boolean			result = FALSE;
+
+  tip = template_instance_for_symbol(sym);
+  if (tip != NULL) {
+    check_assertion(in_instantiation_wrapup);
+    result = entity_can_be_instantiated(tip, /*implicit_inclusion_okay=*/TRUE);
+  }  /* if */
+  return result;
+}  /* will_be_instantiated */
+
+
 static void load_exported_template_file(an_exported_template_file_ptr	etfp)
 /*
 Compile the translation unit described by etfp for the purpose of defining

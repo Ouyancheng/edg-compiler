@@ -4306,61 +4306,100 @@ the routine-name-linkages of the two declarations are compatible.
 void check_constituent_types_have_linkage(a_symbol_ptr      sym,
                                           a_source_position *error_pos)
 /*
-If a variable or routine is to have linkage, its type (and any types that
-that type is made up of) should have linkage as well. This excludes local
-types and certain typedef types.  sym is a pointer to a routine or variable
-symbol whose type is to be verified.  error_pos determines where any error
-should be reported.
+Check whether an entity with linkage was declared using types without linkage.
+Before C++0x such declarations were not allowed by the language (but were
+accepted in some cases).  In C++0x the rules were relaxed to allow such
+declarations provided the entity is either unused or was defined in the
+translation unit.
+
+The global variable decls_using_types_without_linkage_allowed is used to
+specify which behavior is to be checked.  When it is TRUE (C++0x behavior),
+the caller is responsible for calling this routine only for referenced entities
+that have not been defined.
+
+sym is a pointer to a routine or variable symbol whose type is to be verified.
+error_pos determines where any error should be reported.
 */
 {
-  a_boolean   is_function = sym->kind == (a_symbol_kind)sk_routine ||
-                            sym->kind == (a_symbol_kind)sk_member_function;
-  a_type_ptr  type;
-  an_error_severity
-              severity;
+  a_boolean                    is_function;
+  a_type_ptr                   type;
+  an_error_severity            severity;
+  an_error_code                err_code;
+  a_source_correspondence_ptr  scp;
 
+  is_function = sym->kind == (a_symbol_kind)sk_routine ||
+                sym->kind == (a_symbol_kind)sk_member_function;
   if (is_function) {
-    type = sym->variant.routine.ptr->type;
-  } else if (sym->kind == (a_symbol_kind)sk_variable) {
-    type = sym->variant.variable.ptr->type;
+    a_routine_ptr rp = sym->variant.routine.ptr;
+    type = rp->type;
+    scp = &rp->source_corresp;
   } else {
-    check_assertion(sym->kind == (a_symbol_kind)sk_static_data_member);
-    type = sym->variant.static_data_member.variable->type;
+    a_variable_ptr vp;
+    if (sym->kind == (a_symbol_kind)sk_variable) {
+      vp = sym->variant.variable.ptr;
+    } else {
+      check_assertion(sym->kind == (a_symbol_kind)sk_static_data_member);
+      vp = sym->variant.static_data_member.variable;
+    }  /* if */
+    type = sym->variant.variable.ptr->type;
+    scp = &vp->source_corresp;
   }  /* if */
   if (is_function && sym->variant.routine.ptr->compiler_generated) {
     /* Compiler-generated member functions can involve types with no name
        linkage in some error recovery modes (and in Microsoft mode).  A
        diagnostic is not helpful for such functions. */
+  } else if (scp->name_linkage == (a_name_linkage_kind)nlk_internal ||
+             scp->name_linkage == (a_name_linkage_kind)nlk_external) {
+    /* Static entities and entities with "C" linkage are allowed to use
+       types without linkage. */
+  } else if (is_prototype_instantiation_context()) {
+    /* Suppress this check in prototype instantiations. */
   } else if (is_or_contains_local_type(type)) {
-    /* A block extern declaration that involves a local type.  Issue an
-       error (except in cfront or Microsoft compatibility mode). */
-    if (any_cfront_mode() ||
-        (microsoft_mode && (is_function || microsoft_version < 1200))) {
-      severity = es_warning;
+    /* A declaration that involves a local type. */
+    if (decls_using_types_without_linkage_allowed) {
+      /* C++0x behavior: An error is issued because programs that get this
+         diagnostic would fail at link time. */
+      pos_sy_diagnostic(es_discretionary_error,
+                        ec_decl_with_local_type_but_not_defined,
+                        error_pos, sym);
     } else {
-      severity = es_error;
+      /* Pre-C++0x behavior: Issue an error (except in cfront or Microsoft
+         compatibility mode). */
+      if (any_cfront_mode() ||
+          (microsoft_mode && (is_function || microsoft_version < 1200))) {
+        severity = es_warning;
+      } else {
+        severity = es_error;
+      }  /* if */
+      err_code = is_function ? ec_local_type_in_function
+                             : ec_local_type_in_nonlocal_var;
+      pos_diagnostic(severity, err_code, error_pos);
     }  /* if */
-    pos_diagnostic(severity, is_function ? ec_local_type_in_function :
-                                           ec_local_type_in_nonlocal_var,
-                   error_pos);
   } else if (is_or_contains_type_with_no_name_linkage(type)) {
-    /* Catch the use of types that do not have linkage.
-       E.g., typedef enum { e1 } *pE; void f(pE);
-       In strict mode, we issue a discretionary error.  In other modes, we
-       issue a warning for functions and a remark for variables (the variable
-       case is not all that uncommon and few other compilers diagnose it at
-       all). */
-    if (strict_ansi_mode) {
-      severity = strict_ansi_discretionary_severity;
-    } else if (is_function) {
-      severity = es_warning;
+    /* Use of a type that does not have linkage.
+       E.g., typedef enum { e1 } *pE; void f(pE); */
+    if (decls_using_types_without_linkage_allowed) {
+      /* C++0x behavior: An error is issued because programs that get this
+         diagnostic would fail at link time. */
+      pos_sy_diagnostic(es_discretionary_error,
+                        ec_decl_with_no_linkage_type_but_not_defined,
+                        error_pos, sym);
     } else {
-      severity = es_remark;
+      /* Pre-C++0x behavior: In strict mode, we issue a discretionary error.
+         In other modes, we issue a warning for functions and a remark for
+         variables (the variable case is not all that uncommon and few other
+         compilers diagnose it at all). */
+      if (strict_ansi_mode) {
+        severity = strict_ansi_discretionary_severity;
+      } else if (is_function) {
+        severity = es_warning;
+      } else {
+        severity = es_remark;
+      }  /* if */
+      err_code = is_function ? ec_type_with_no_linkage_in_function :
+                               ec_type_with_no_linkage_in_var_with_linkage,
+      pos_diagnostic(severity, err_code, error_pos);
     }  /* if */
-    pos_diagnostic(severity,
-                   is_function ? ec_type_with_no_linkage_in_function :
-                                 ec_type_with_no_linkage_in_var_with_linkage,
-                   error_pos);
   }  /* if */
 }  /* check_constituent_types_have_linkage */
 
@@ -4446,6 +4485,7 @@ associated sk_external_variable or sk_external_routine symbol, if any.
       }  /* if */
     }  /* if */
     if (!C_mode() &&
+        !decls_using_types_without_linkage_allowed &&
         scp->name_linkage != (a_name_linkage_kind)nlk_internal &&
         scp->name_linkage != (a_name_linkage_kind)nlk_external &&
         !scope_stack[depth_scope_stack].in_prototype_instantiation) {

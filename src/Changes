@@ -1,5 +1,53 @@
 Version 4.1
 
+3/17/09  [EDGcpfe/9628]
+"referenced but not defined" diagnostic missing for nested class members
+
+A member of a class in an unnamed namespace must be defined if it is used
+or if it is a virtual function.  Diagnostics were issued for top-level
+classes but not for nested classes.  Now fixed.
+
+  namespace {
+    struct A {
+      struct B {
+        static void f();   // should get error
+        virtual void g();  // should get error
+      };
+    };
+    void g() { A::B::f(); }
+  }
+
+
+3/17/09  [EDGcpfe/9627]
+C++0x: Types without linkage in declarations of entities with linkage
+
+In C++98/C++03, an entity with linkage cannot be declared using a type
+without linkage.  C++0x allows local and unnamed types to be used as
+template arguments requiring this rule to be revised.  The new rules
+allow such declarations provided that if the entity is used it must also
+be defined in the same translation unit.  We now use the new rules in
+modes in which local and unnamed types can be used as template arguments
+(C++0x mode and Microsoft mode when microsoft_version is >= 1400).
+
+  template <class T> struct A {
+    // can now be instantiated with local class X
+    void f(T){}
+    friend void g(A){}
+  };
+
+  template <class T> inline void f(T t) {
+    A<T> a;
+    a.f(t);
+    g(a);
+  }
+
+  int main() {
+    class X {};
+    X x;
+    f(x);
+  }
+
+
 3/17/09 [EDGcpfe/9524]
 Unmangled member function in local class type
 
