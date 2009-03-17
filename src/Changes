@@ -81,7 +81,8 @@ Abort on invalid designated initializer in C++ mode
 
 In C++ modes with designated initializers enabled (e.g., GNU C++ mode), the
 front end triggered an internal error "get_field_designator: non-field member"
-(decl_inits.c).  For example:
+(decl_inits.c) when a designator referred to a member that was was not a
+nonstatic data member.  For example:
 
   struct S { static int x; };
   S s = { .i = 0 };  // Previously triggered an internal error.
