@@ -12908,20 +12908,8 @@ typedef struct an_ms_attribute {
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
-Entry used to represent a C++0x lambda.  A lambda has the form:
-
-  [capture] (parameters) mutable    exception-spec.    return-type  { ... }
-                                opt                opt            opt
-
-For example:
-
-  [&, a, =b] (int i, int j) -> int { return i * j; }
-
-The capture begins with an optional "&" or "=" (the capture default)
-followed by a capture list of local entities that can be used within
-the lambda.  Additional implicit entries may sometimes be added to the
-capture list.  The lambda entry is pointed to by a lambda expression
-node and is also on the scope list of the enclosing scope.
+Entry used to represent a C++0x lambda.  Such an entry is pointed to by an
+enk_lambda node (and allocated in the same memory region as that node).
 */
 typedef struct a_lambda {
   a_lambda_capture_ptr

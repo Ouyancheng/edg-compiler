@@ -16067,6 +16067,7 @@ static void scan_lambda_capture_list(a_lambda_ptr  lambda)
 Scan the capture list for a lambda construct associated with lambda.  The
 caller has already moved past the '[', and this routine leaves the trailing
 ']' to be consumed by the caller.  The grammar to be parsed is thus:
+
     lambda-capture(opt)
 
     lambda-capture:
@@ -16425,10 +16426,27 @@ done:
 
 a_lambda_ptr scan_lambda(a_boolean inside_default_arg_expression)
 /*
-Scan a C++ lambda construct and return a pointer to an a_lambda entry
+Scan a C++0x lambda construct and return a pointer to an a_lambda entry
 describing it.  If errors do not permit the construction of a consistent
 entry, return NULL.  inside_default_arg_expression is TRUE if this lambda
 occurs inside a default argument expression.
+
+The grammar for a lambda expression is as follows:
+  
+    '[' lambda-capture(opt) ']' lambda-declarator(opt) compound-statement
+
+    lambda-declarator:
+        '(' parameter-declaration-clause ')' 'mutable'(opt)
+          exception-specification(opt) tailing-return-type(opt)
+
+    trailing-return-type:
+        '->' type-id
+
+(parameter-declaration-clause and exception-specification have their counter-
+parts in function declarators.  See scan_lambda_capture_list for the grammar
+for lambda-capture.)
+For example:
+    [=, &array](int i)->float { return array[i+k]; }
 */
 {
   a_lambda_ptr       lambda = alloc_lambda();
