@@ -8915,8 +8915,20 @@ All diagnostics are issued at the given source position.
 #endif /* NEAR_AND_FAR_ALLOWED */
   /* Do not insert code here. */
   {
-    if (qual_pos != NULL) {
-      if (qualifiers == TQ_RESTRICT) {
+    if (qualifiers != TQ_NONE) {
+      /* Some qualifiers are going to be ignored.  Issue a warning if
+         appropriate. */
+      if (depth_scope_stack == NO_SCOPE_DEPTH ||
+          (is_nonspecialized_instantiation_context() &&
+           !scope_stack[depth_scope_stack].in_prototype_instantiation)) {
+        /* A real template instantiation: Such situations are often
+           unavoidable in generic code, and therefore should be warned
+           about. */
+      } else if (qual_pos == NULL) {
+        /* There is no position for the qualifiers.  This happens during
+           deduction, which is also a context where a warning would not be
+           appropriate. */
+      } else if (qualifiers == TQ_RESTRICT) {
         pos_warning(ec_restrict_qualifier_ignored, qual_pos);
       } else {
         pos_warning(ec_type_qualifiers_ignored_on_reference, qual_pos);
