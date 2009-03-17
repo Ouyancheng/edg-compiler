@@ -45,12 +45,15 @@ Local type used as template type argument leads to incorrect generated C
 In modes where local types can be used as template type arguments (i.e.,
 --c++0x and --microsoft_version >= 1400), the definition of the local type
 in the generated C code may follow its use in the template, causing an
-error when compiling the generated C code.  Back ends that require that
-a type definition preceeds its use (such as the C generating back end) should
-set ENSURE_LOWERED_TYPE_LIST_ORDERING to TRUE.  For example:
+error when compiling the generated C code.  A change has been made to sort
+the file types list (when ENSURE_LOWERED_TYPE_LIST_ORDERING is TRUE) whenever
+the front end detects that a local type has been used as a template type
+argument.  Back ends that require a type definition to precede its use (such
+as the C generating back end) should set ENSURE_LOWERED_TYPE_LIST_ORDERING to
+TRUE.  For example:
 
   template <class T> struct S {
-    T m;          // had generared "error: field `m' has incomplete type"
+    T m;          // had generated "error: field `m' has incomplete type"
   };              // when generated C was compiled
   void f() {
     struct A {};
