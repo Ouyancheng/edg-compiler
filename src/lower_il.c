@@ -17500,6 +17500,12 @@ so they are left in the scope.
                                       /*final=*/TRUE, routine, scope);
           enum_con->source_corresp.is_local_to_function = FALSE;
         }  /* for */
+      } else if (is_immediate_class_type(type)) {
+        a_class_type_supplement_ptr ctsp = class_type_supp(type);
+        if (ctsp->assoc_scope != NULL) {
+          /* Mangle other entities in this promoted class. */
+          do_scope_other_name_mangling(ctsp->assoc_scope);
+        }  /* if */
       }  /* if */
     }  /* for */
 #if LOWER_VARIABLE_LENGTH_ARRAYS

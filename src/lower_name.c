@@ -5897,10 +5897,6 @@ or a static data member (e.g., not a file scope variable).
 
 #endif /* TEMPLATE_LOOKUP_NEEDED || MODULE_ID_NEEDED */
 
-/* Declaration required because of forward reference: */
-static void do_scope_other_name_mangling(a_scope_ptr scope);
-
-
 static void do_local_name_mangling(
                       a_type_list_processing_routine_ptr list_mangling_routine)
 /*
@@ -6201,7 +6197,7 @@ variable.
 }  /* mangle_member_variable_name */
 
 
-static void do_scope_other_name_mangling(a_scope_ptr scope)
+void do_scope_other_name_mangling(a_scope_ptr scope)
 /*
 Do name mangling for things other than classes (e.g., functions, static
 data members) in the indicated scope and its subscopes.  The scope is

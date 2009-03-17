@@ -113,6 +113,8 @@ extern void mangle_alternate_entry_point_name(a_routine_ptr routine,
 
 extern void mangle_member_constant_name(a_constant_ptr con);
 
+extern void do_scope_other_name_mangling(a_scope_ptr scope);
+
 extern void do_type_name_mangling(void);
 
 extern void do_all_name_mangling(void);
