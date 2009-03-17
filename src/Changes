@@ -1,5 +1,20 @@
 Version 4.1
 
+3/17/09 [EDGcpfe/9625]
+Incorrect message for undefined member of unnamed namespace
+
+A change in version 3.6 inadvertently changed the diagnostic issued when
+a referenced member function in an unnamed namespace was not defined (the
+incorrect message said that a virtual function was not defined).  Now fixed.
+
+  namespace {
+    struct A {
+      static void f();
+    };
+    void g() { A::f(); }
+  }
+
+
 3/16/09 [EDGcpfe/9622]
 Internal error on ambiguous using-directive lookup with EXPENSIVE_CHECKING
 

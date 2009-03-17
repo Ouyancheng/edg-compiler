@@ -4572,6 +4572,7 @@ NULL.
             a_variable_ptr  vp = ctsp->assoc_scope->variables;
             /* Diagnose undefined and unused member functions: */
             for (; rp != NULL; rp = rp->next) {
+              a_symbol_ptr rout_sym = symbol_for(rp);
               if ((rp->source_corresp.referenced
 #if IA64_ABI && DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
                    && rp->overridden_function_for_covariant_return_type == NULL
@@ -4579,10 +4580,12 @@ NULL.
                                                                           ) ||
                   (rp->is_virtual && !rp->pure_virtual &&
                    !rp->compiler_generated)) {
-                /* Virtual functions are in some way always "referenced" by the
-                   virtual function table, but pure virtual functions and
-                   compiler generated virtual functions (destructors) do not
-                   always need to have a definition.  Similarly, no diagnostic
+                /* A referenced function or a virtual function.
+                   Virtual functions are in some way always
+                   "referenced" by the virtual function table, but
+                   pure virtual functions and compiler generated
+                   virtual functions (destructors) do not always need
+                   to have a definition.  Similarly, no diagnostic
                    should be issued for IA-64 virtual call thunks. */
                 if (!routine_defined(rp)) {
                   an_error_severity  sev = es_discretionary_error;
@@ -4592,9 +4595,12 @@ NULL.
                        problem. */
                     sev = es_remark;
                   }  /* if */
-                  pos_sy_diagnostic(sev, ec_virtual_function_never_defined,
+                  pos_sy_diagnostic(sev,
+                                    rp->is_virtual
+                                           ? ec_virtual_function_never_defined
+                                           : ec_never_defined,
                                     &rp->source_corresp.decl_position,
-                                    symbol_for(rp));
+                                    rout_sym);
                 }  /* if */
               } else if (!rp->source_corresp.referenced &&
                          !rp->compiler_generated &&
