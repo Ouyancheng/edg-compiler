@@ -115,7 +115,7 @@ compiled.  This is now fixed.  For example:
 Internal error on using-declaration in local class of a function template
 
 A using-declaration in a local class of a function template could trigger an
-internal error in "member_using_declaration" (class_decl.c).  For example:
+internal error in member_using_declaration (class_decl.c).  For example:
 
   template <class T> void f() {
     struct B : T { };
