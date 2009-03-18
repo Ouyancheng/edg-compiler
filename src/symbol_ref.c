@@ -2071,11 +2071,10 @@ projection symbol.
                 /* A reference to a local variable from within quasi-nested
                    function definition should have been reported as an error
                    and recorded as an srk_error reference.  Such a reference
-                   is allowed for a static variable used in a lambda. */
+                   is allowed for certain uses of static variables. */
                 check_assertion(ssep->number == sym_ptr->decl_scope ||
-                                (ssep->lambda != NULL &&
-                                 vp->storage_class ==
-                                                 (a_storage_class)sc_static) ||
+                                vp->storage_class ==
+                                                 (a_storage_class)sc_static ||
                                 (scptr != NULL &&
                                  !scptr->is_local_to_function));
                 /* We are at the outermost scope of the function.  Check for
