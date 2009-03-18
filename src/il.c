@@ -7431,9 +7431,11 @@ rather than determined directly.
   a_scope_ptr                 sp;
   a_scope_pointers_block_ptr  pointers_block;
 
-  sp = get_scope_for_list(scope_level, &type_ptr->source_corresp,
-                          &pointers_block);
-  set_parent_scope(&type_ptr->source_corresp, iek_type, sp);
+  if (parent_scope_of(type_ptr) == NULL) {
+    sp = get_scope_for_list(scope_level, &type_ptr->source_corresp,
+                            &pointers_block);
+    set_parent_scope(&type_ptr->source_corresp, iek_type, sp);
+  }  /* if */
 }  /* set_parent_scope_for_type */
 
 
