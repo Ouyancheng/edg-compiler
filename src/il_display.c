@@ -2193,6 +2193,9 @@ Display the indicated variable.
     disp_boolean("embedded_source_sequence_entries", TRUE);
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  if (ptr->declared_using_type_without_linkage) {
+    disp_boolean("declared_using_type_without_linkage", TRUE);
+  }  /* if */
   disp_initializer(ptr->init_kind, &ptr->initializer);
   if (ptr->assoc_template != NULL) {
     disp_ptr("assoc_template", (char*)ptr->assoc_template, iek_template);
@@ -2840,6 +2843,9 @@ Display the indicated routine.
 #endif /* DO_IL_LOWERING && IA64_ABI */
   if (ptr->is_lambda_body) {
     disp_boolean("is_lambda_body", TRUE);
+  }  /* if */
+  if (ptr->declared_using_type_without_linkage) {
+    disp_boolean("declared_using_type_without_linkage", TRUE);
   }  /* if */
 #if MAINTAIN_NEEDED_FLAGS
   disp_boolean("definition_needed", (a_boolean)ptr->definition_needed);
