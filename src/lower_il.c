@@ -16839,6 +16839,11 @@ of the placeholder.
   a_type_ptr      type, next_type, insert_pointer;
   a_namespace_ptr nsp;
   a_scope_ptr     block_scope;
+#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
+  a_type_ptr      promoted_type;
+  a_class_type_supplement_ptr
+                  promoted_ctsp;
+#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
 
   /* See if there are any types to process. */
   type = scope->types;
@@ -16854,6 +16859,22 @@ of the placeholder.
         if (ctsp->assoc_scope != NULL) {
           unlink_classes_with_placeholders_in_scope(ctsp->assoc_scope);
         }  /* if */
+#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
+        /* Look for any placeholders that are on the promoted_local_types
+           list. */
+        for (promoted_type = ctsp->promoted_local_types;
+             promoted_type != NULL;
+             promoted_type = promoted_type->next) {
+          if (is_immediate_class_type(promoted_type)) {
+            promoted_ctsp = promoted_type->
+                                         variant.class_struct_union.extra_info;
+            if (promoted_ctsp->assoc_scope != NULL) {
+              unlink_classes_with_placeholders_in_scope(
+                                                   promoted_ctsp->assoc_scope);
+            }  /* if */
+          }  /* if */
+        }  /* for */
+#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
         if (type->variant.class_struct_union.
                        referenced_by_class_instantiation_placeholder_typeref) {
           /* This type is on the file scope types list or a namespace scope
