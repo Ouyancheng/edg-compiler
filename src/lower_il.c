@@ -16584,6 +16584,67 @@ static void promote_type_list(a_type_ptr  type,
                               a_scope_ptr promotion_scope,
                               a_type_ptr  *insert_pointer,
                               a_type_ptr  *local_types,
+                              a_type_ptr  *end_local_types);
+
+static void move_nested_class_to_point_of_definition(
+                                               a_type_ptr  type,
+                                               a_scope_ptr promotion_scope,
+                                               a_type_ptr  *insert_pointer,
+                                               a_type_ptr  *local_types,
+                                               a_type_ptr  *end_local_types,
+                                               a_boolean   *remove_placeholder)
+/*
+type is a typeref on a file scope, namespace scope, function scope, or block
+scope types list, and indicates the point of definition of a nested class that
+is defined outside of its class.  Move the class onto the current types list
+(it was removed from its class types list earlier).  If the class has a
+type-as-subobject, it is attached as the next type.  promotion_scope is the
+(file, function, or block) scope into which the nested class should be
+promoted.  *insert_pointer indicates the insertion position, and is updated
+after insertion.  Types on the promoted_local_types list of any classes are
+moved onto the end of the list bounded by local_types/ end_local_types for
+later processing.  *remove_placeholder is set to TRUE if the caller should
+remove the placeholder typeref from the types queue (otherwise it should be
+kept on the list because it will be used later).
+*/
+{
+  a_type_ptr nested_type;
+
+  check_assertion(type->kind == (a_type_kind)tk_typeref &&
+                  type->variant.typeref.is_placeholder_for_nested_class_def);
+  nested_type = type->variant.typeref.type;
+#if DEBUG
+  if (debug_level >= 4) {
+    (void)fprintf(f_debug, "Nested class ");
+    db_type_name(nested_type);
+    (void)fprintf(f_debug, " being moved to point of definition\n");
+  }  /* if */
+#endif /* DEBUG */
+  /* Promote the class, and its type-as-subobject if that is present. */
+  promote_type_list(nested_type, promotion_scope, insert_pointer,
+                    local_types, end_local_types);
+  if (promotion_scope->kind == (a_scope_kind)sck_file ||
+      promotion_scope->kind == (a_scope_kind)sck_function ||
+      promotion_scope->kind == (a_scope_kind)sck_block) {
+    /* For a placeholder in the file scope types list, take the
+       placeholder off the list.  Ditto for a function or block scope. */
+    *remove_placeholder = TRUE;
+  } else {
+    check_assertion(promotion_scope->kind == (a_scope_kind)sck_namespace);
+    /* For a placeholder in a namespace types list, leave the placeholder
+       on the list so it can be removed when the promotion to the file
+       scope is done (the file-scope placeholder points to the
+       placeholder here, so this placeholder has to stay on the list
+       for now so it can be found). */
+    *remove_placeholder = FALSE;
+  }  /* if */
+}  /* move_nested_class_to_point_of_definition */
+
+
+static void promote_type_list(a_type_ptr  type,
+                              a_scope_ptr promotion_scope,
+                              a_type_ptr  *insert_pointer,
+                              a_type_ptr  *local_types,
                               a_type_ptr  *end_local_types)
 /*
 Promote the types on the indicated types list into the scope promotion_scope
@@ -16598,6 +16659,7 @@ end_local_types for later processing.
 
   /*lint --e{850} type modified in loop (LINTBUG) */
   for (; type != NULL; type = next_type) {
+    a_boolean remove_type_from_list = FALSE;
     next_type = type->next;
     if (type->kind == (a_type_kind)tk_typeref &&
         type->variant.typeref.is_placeholder_for_class_instantiation) {
@@ -16656,6 +16718,16 @@ end_local_types for later processing.
       }  /* if */
       /* Go on to promote the class's members and put the instantiation type
          on the promotion_scope type list. */
+    } else if (type->kind == (a_type_kind)tk_typeref &&
+               type->variant.typeref.is_placeholder_for_nested_class_def) {
+      /* This type is a typeref on a class scope types list, and indicates the
+         point of definition of a nested class that is defined outside of its
+         class.  Move the class onto the current types list (it was removed
+         from its class types list earlier). */
+      move_nested_class_to_point_of_definition(type, promotion_scope,
+                                               insert_pointer, local_types,
+                                               end_local_types,
+                                               &remove_type_from_list);
     }  /* if */
     /* If the type is a class, promote its members. */
     if (is_immediate_class_type(type)) {
@@ -16676,14 +16748,16 @@ end_local_types for later processing.
       (void)fprintf(f_debug, "\n");
     }  /* if */
 #endif /* DEBUG */
-    if (*insert_pointer == NULL) {
-      type->next = promotion_scope->types;
-      promotion_scope->types = type;
-    } else {
-      type->next = (*insert_pointer)->next;
-      (*insert_pointer)->next = type;
+    if (!remove_type_from_list) {
+      if (*insert_pointer == NULL) {
+        type->next = promotion_scope->types;
+        promotion_scope->types = type;
+      } else {
+        type->next = (*insert_pointer)->next;
+        (*insert_pointer)->next = type;
+      }  /* if */
+      *insert_pointer = type;
     }  /* if */
-    *insert_pointer = type;
     if (type->referenced_by_namespace_placeholder_typeref) {
       /* This type has an associated namespace placeholder typeref.  However,
          we have a position for the type because it gets promoted along with
@@ -17039,12 +17113,6 @@ and all subscopes.
       next_type = type->next;
       /* If the type is a class, promote its members out of the class. */
       if (is_immediate_class_type(type)) {
-        /* Do class member promotion on nested classes inside the class,
-           if any. */
-        if (type->variant.class_struct_union.extra_info->assoc_scope != NULL) {
-          do_scope_class_member_promotion(
-                     type->variant.class_struct_union.extra_info->assoc_scope);
-        }  /* if */
         promote_class_members(type, scope, &insert_pointer);
         insert_pointer = type;
 #if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
@@ -17057,27 +17125,18 @@ and all subscopes.
 #endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
       } else if (type->kind == (a_type_kind)tk_typeref &&
                  type->variant.typeref.is_placeholder_for_nested_class_def) {
+        a_boolean   remove_placeholder;
         /* This type is a typeref on a file scope, namespace scope, function
            scope, or block scope types list, and indicates the point of
            definition of a nested class that is defined outside of its class.
            Move the class onto the current types list (it was removed from
            its class types list earlier).  If the class has a
            type-as-subobject, it is attached as the next type. */
-        a_type_ptr nested_type = type->variant.typeref.type;
-#if DEBUG
-        if (debug_level >= 4) {
-          (void)fprintf(f_debug, "Nested class ");
-          db_type_name(nested_type);
-          (void)fprintf(f_debug, " being moved to point of definition\n");
-        }  /* if */
-#endif /* DEBUG */
-        /* Promote the class, and its type-as-subobject if that is present. */
-        promote_type_list(nested_type, scope, &insert_pointer,
-                          &local_types, &end_local_types);
-        if (scope->kind == (a_scope_kind)sck_file ||
-            scope->kind == (a_scope_kind)sck_function ||
-            scope->kind == (a_scope_kind)sck_class_struct_union ||
-            scope->kind == (a_scope_kind)sck_block) {
+        move_nested_class_to_point_of_definition(type, scope, &insert_pointer,
+                                                 &local_types,
+                                                 &end_local_types,
+                                                 &remove_placeholder);
+        if (remove_placeholder) {
           /* For a placeholder in the file scope types list, take the
              placeholder off the list.  Ditto for a function, class, or
              block scope. */
@@ -17085,7 +17144,6 @@ and all subscopes.
                           insert_pointer->next == type);
           insert_pointer->next = type->next;
         } else {
-          check_assertion(scope->kind == (a_scope_kind)sck_namespace);
           /* For a placeholder in a namespace types list, leave the placeholder
              on the list so it can be removed when the promotion to the file
              scope is done (the file-scope placeholder points to the
