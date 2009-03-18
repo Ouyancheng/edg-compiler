@@ -17730,6 +17730,22 @@ data member is a member of an unnamed namespace.
         result = TRUE;
       }  /* if */
     }  /* if */
+    if (!result) {
+      /* See if the template instance is based on a type without linkage.
+         Such entities cannot be referenced from elsewhere, so we can
+         instantiate them immediately here. */
+      a_boolean	uses_type_without_linkage;
+      if (tip->instance_sym->kind == (a_symbol_kind)sk_static_data_member) {
+        a_variable_ptr	vp;
+        vp = tip->instance_sym->variant.static_data_member.variable;
+        uses_type_without_linkage = vp->declared_using_type_without_linkage;
+      } else {
+        a_routine_ptr		      rp;
+        rp = tip->instance_sym->variant.routine.ptr;
+        uses_type_without_linkage = rp->declared_using_type_without_linkage;
+      }  /* if */
+      result = uses_type_without_linkage;
+    }  /* if */
   }  /* if */
   /* Save the result.  If this flag is set, its value is used instead of
      calling this routine again. */

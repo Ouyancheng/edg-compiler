@@ -8180,11 +8180,9 @@ implicitly declared member functions.
     /* The storage class will be changed to sc_unspecified if a definition is
        seen. */
     rtn->storage_class = (a_storage_class)sc_extern;
-    if (!decls_using_types_without_linkage_allowed) {
-      /* If the class is external, ensure that no types without linkage are
-         used. */
-      check_constituent_types_have_linkage(sym, &locator->source_position);
-    }  /* if */
+    /* Check whether any types without linkage are used in the declaration. */
+    check_constituent_types_have_linkage(sym, &locator->source_position,
+                                         /*is_declaration=*/TRUE);
   }  /* if */
 #if BACK_END_IS_CP_GEN_BE
   if (func_info->is_definition &&
@@ -9185,11 +9183,9 @@ specific information about the member declaration, respectively.
        the storage is sc_static (already set), which is changed to sc_extern
        or sc_unspecified during a final fixup pass. */
     var->storage_class = (a_storage_class)sc_extern;
-    if (!decls_using_types_without_linkage_allowed) {
-      /* If the class is external, ensure that no types without linkage are
-         used. */
-      check_constituent_types_have_linkage(sym, &locator->source_position);
-    }  /* if */
+    /* Check whether any types without linkage are used in the declaration. */
+    check_constituent_types_have_linkage(sym, &locator->source_position,
+                                         /*is_declaration=*/TRUE);
   }  /* if */
   var->source_corresp.access = class_state->access;
   if (curr_token == tok_assign && is_expr_start_token(next_token())) {

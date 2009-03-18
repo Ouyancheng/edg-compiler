@@ -4304,7 +4304,8 @@ the routine-name-linkages of the two declarations are compatible.
 
 
 void check_constituent_types_have_linkage(a_symbol_ptr      sym,
-                                          a_source_position *error_pos)
+                                          a_source_position *error_pos,
+					  a_boolean         is_declaration)
 /*
 Check whether an entity with linkage was declared using types without linkage.
 Before C++0x such declarations were not allowed by the language (but were
@@ -4319,6 +4320,12 @@ that have not been defined.
 
 sym is a pointer to a routine or variable symbol whose type is to be verified.
 error_pos determines where any error should be reported.
+
+This routine is always called when an entity is declared (is_declaration is
+TRUE) and when decls_using_types_without_linkage_allowed is TRUE may be
+called again at the end of the translation unit (is_declaration is FALSE).
+When appropriate, this routine sets the declared_using_type_without_linkage
+flag when is_declaration is TRUE.
 */
 {
   a_boolean                    is_function;
@@ -4326,15 +4333,20 @@ error_pos determines where any error should be reported.
   an_error_severity            severity;
   an_error_code                err_code;
   a_source_correspondence_ptr  scp;
+  a_boolean                    uses_local_type = FALSE;
+  a_boolean                    uses_unnamed_type = FALSE;
+  a_routine_ptr	               rp;
+  a_variable_ptr	       vp;
+  a_boolean                    type_without_linkage_flag_set;
 
   is_function = sym->kind == (a_symbol_kind)sk_routine ||
                 sym->kind == (a_symbol_kind)sk_member_function;
   if (is_function) {
-    a_routine_ptr rp = sym->variant.routine.ptr;
+    rp = sym->variant.routine.ptr;
     type = rp->type;
     scp = &rp->source_corresp;
+    type_without_linkage_flag_set = rp->declared_using_type_without_linkage;
   } else {
-    a_variable_ptr vp;
     if (sym->kind == (a_symbol_kind)sk_variable) {
       vp = sym->variant.variable.ptr;
     } else {
@@ -4343,6 +4355,7 @@ error_pos determines where any error should be reported.
     }  /* if */
     type = sym->variant.variable.ptr->type;
     scp = &vp->source_corresp;
+    type_without_linkage_flag_set = vp->declared_using_type_without_linkage;
   }  /* if */
   if (is_function && sym->variant.routine.ptr->compiler_generated) {
     /* Compiler-generated member functions can involve types with no name
@@ -4354,7 +4367,27 @@ error_pos determines where any error should be reported.
        types without linkage. */
   } else if (is_prototype_instantiation_context()) {
     /* Suppress this check in prototype instantiations. */
-  } else if (is_or_contains_local_type(type)) {
+  } else if (is_declaration || type_without_linkage_flag_set) {
+    /* We are either in a declaration or this is the second call for an
+       entity for which a diagnostic is required.  In the first case,
+       set the flag in the entity indicating whether it was declared using
+       an entity without linkage.  In the second case, call the local/unnamed
+       type routines to determine which diagnostic to issue below. */
+    uses_local_type = is_or_contains_local_type(type);
+    uses_unnamed_type = is_or_contains_type_with_no_name_linkage(type);
+    if (is_declaration) {
+      if (uses_local_type || uses_unnamed_type) {
+        if (is_function) {
+          rp->declared_using_type_without_linkage = TRUE;
+        } else { 
+          vp->declared_using_type_without_linkage = TRUE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  if (is_declaration && decls_using_types_without_linkage_allowed) {
+    /* No further processing is done at declaration time in this mode. */
+  } else if (uses_local_type) {
     /* A declaration that involves a local type. */
     if (decls_using_types_without_linkage_allowed) {
       /* C++0x behavior: An error is issued because programs that get this
@@ -4375,7 +4408,7 @@ error_pos determines where any error should be reported.
                              : ec_local_type_in_nonlocal_var;
       pos_diagnostic(severity, err_code, error_pos);
     }  /* if */
-  } else if (is_or_contains_type_with_no_name_linkage(type)) {
+  } else if (uses_unnamed_type) {
     /* Use of a type that does not have linkage.
        E.g., typedef enum { e1 } *pE; void f(pE); */
     if (decls_using_types_without_linkage_allowed) {
@@ -4485,14 +4518,14 @@ associated sk_external_variable or sk_external_routine symbol, if any.
       }  /* if */
     }  /* if */
     if (!C_mode() &&
-        !decls_using_types_without_linkage_allowed &&
         scp->name_linkage != (a_name_linkage_kind)nlk_internal &&
         scp->name_linkage != (a_name_linkage_kind)nlk_external &&
         !scope_stack[depth_scope_stack].in_prototype_instantiation) {
       /* A variable or routine with external linkage should not be declared in
          terms of types with no linkage.  Entities with extern "C" linkage are
          exempt from this constraint. */
-      check_constituent_types_have_linkage(sym, error_pos);
+      check_constituent_types_have_linkage(sym, error_pos,
+                                           /*is_declaration=*/TRUE);
     }  /* if */
   }  /* if */
 }  /* set_name_linkage */

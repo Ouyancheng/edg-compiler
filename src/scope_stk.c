@@ -4127,7 +4127,8 @@ the outermost class was defined in an unnamed namespace.
       (rp->storage_class == (a_storage_class)sc_extern &&
        (!rp->is_template_function || !will_be_instantiated(rout_sym)))) {
     check_constituent_types_have_linkage(rout_sym,
-                                         &rout_sym->decl_position);
+                                         &rout_sym->decl_position,
+                                         /*is_declaration=*/FALSE);
   }  /* if */
 }  /* end_of_scope_member_function_check */
 
@@ -4164,7 +4165,8 @@ an unnamed namespace.
        (!vp->is_template_static_data_member ||
         !will_be_instantiated(var_sym)))) {
     check_constituent_types_have_linkage(var_sym,
-                                         &var_sym->decl_position);
+                                         &var_sym->decl_position,
+                                         /*is_declaration=*/FALSE);
   }  /* if */
 }  /* end_of_scope_static_data_member_check */
 
@@ -4382,7 +4384,8 @@ curr_routine points to the routine entry; otherwise, it is NULL.
          linkage. */
       if (decls_using_types_without_linkage_allowed &&
           sym->referenced && storage_class == (a_storage_class)sc_extern) {
-        check_constituent_types_have_linkage(sym, &sym->decl_position);
+        check_constituent_types_have_linkage(sym, &sym->decl_position,
+                                             /*is_declaration=*/FALSE);
       }  /* if */
       if (symbol_for(var_ptr) != sym) {
         /* If the symbol was referenced, ensure that the "primary symbol" for
@@ -4564,7 +4567,8 @@ curr_routine points to the routine entry; otherwise, it is NULL.
            (!rout_ptr->is_template_function || !will_be_instantiated(sym)))) {
         /* Check if this routine was declared using a type with no
            linkage. */
-        check_constituent_types_have_linkage(sym, &sym->decl_position);
+        check_constituent_types_have_linkage(sym, &sym->decl_position,
+                                             /*is_declaration=*/FALSE);
       }  /* if */
 #if CHECKING
       scp = &rout_ptr->source_corresp;

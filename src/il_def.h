@@ -6827,6 +6827,10 @@ typedef struct a_variable {
 			   followed by an a_src_seq_end_of_construct for this
 			   variable. */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  a_bit_field	declared_using_type_without_linkage:1;
+			/* In C++, TRUE for variables with linkage (but not
+			   extern "C" linkage) that were declared using
+			   types without linkage. */
   an_init_kind	init_kind;
 			/* Kind of initialization, if any.
 			   When init_kind == initk_function_local (local
@@ -10108,6 +10112,10 @@ typedef struct a_routine {
   a_bit_field	is_lambda_body:1;
 			/* TRUE if this is the operator() member function
 			   generated for the body of a lambda. */
+  a_bit_field	declared_using_type_without_linkage:1;
+			/* In C++, TRUE for routines with linkage (but not
+			   extern "C" linkage) that were declared using
+			   types without linkage. */
   bitfield_to_avoid_codecenter_warnings()
 #if DECL_MODIFIERS_IN_USE
   a_decl_modifier

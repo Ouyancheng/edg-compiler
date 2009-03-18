@@ -1911,6 +1911,8 @@ Clear the fields of the given variable to default values.
 #endif /* NAMED_REGISTERS_ALLOWED */
   vp->address_taken               = FALSE;
   vp->is_parameter                = FALSE;
+  vp->declared_using_type_without_linkage
+                                  = FALSE;
   vp->init_kind                   = (an_init_kind)initk_none;
   /* One of the variant fields, chosen arbitrarily, is initialized. */
   vp->initializer.constant        = NULL;
@@ -2280,6 +2282,8 @@ to it.  The entry is allocated in the file scope memory region.
   rp->is_alias_entry              = FALSE;
 #endif /* DO_IL_LOWERING && IA64_ABI */
   rp->is_lambda_body              = FALSE;
+  rp->declared_using_type_without_linkage
+                                  = FALSE;
 #if CENTERLINE_CHECKING
   rp->avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */

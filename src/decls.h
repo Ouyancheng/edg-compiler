@@ -676,8 +676,10 @@ extern void reconcile_routine_types(a_routine_ptr  routine_ptr,
                                     a_boolean      preserve_rout_type,
                                     a_boolean      preserve_type_ptr);
 
-extern void check_constituent_types_have_linkage(a_symbol_ptr      sym,
-                                                 a_source_position *error_pos);
+extern
+void check_constituent_types_have_linkage(a_symbol_ptr      sym,
+                                          a_source_position *error_pos,
+                                          a_boolean         is_declaration);
 
 extern void check_exception_specification(a_type_ptr         new_rout_type,
                                           a_symbol_ptr       prev_decl,
