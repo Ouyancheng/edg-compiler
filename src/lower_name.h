@@ -70,6 +70,10 @@ extern char *get_mangled_function_name(a_routine_ptr routine);
 extern char *get_mangled_member_variable_name(a_variable_ptr variable);
 #endif /* TEMPLATE_LOOKUP_NEEDED || MODULE_ID_NEEDED */
 
+#if !INSTANTIATE_EXTERN_INLINE
+extern void mangle_function_name(a_routine_ptr rout);
+#endif /* !INSTANTIATE_EXTERN_INLINE */
+
 extern char *externalized_mangled_name(a_source_correspondence  *scp,
                                        a_boolean                is_variable);
 
@@ -112,8 +116,6 @@ extern void mangle_alternate_entry_point_name(a_routine_ptr routine,
 #endif /* IA64_ABI */
 
 extern void mangle_member_constant_name(a_constant_ptr con);
-
-extern void do_scope_other_name_mangling(a_scope_ptr scope);
 
 extern void do_type_name_mangling(void);
 

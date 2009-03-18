@@ -17500,12 +17500,23 @@ so they are left in the scope.
                                       /*final=*/TRUE, routine, scope);
           enum_con->source_corresp.is_local_to_function = FALSE;
         }  /* for */
+#if !INSTANTIATE_EXTERN_INLINE
       } else if (is_immediate_class_type(type)) {
+        /* Mangle member functions of promoted local classes.  In cases where
+           an inline functions is not inlinable, a static definition may
+           be needed and its name must be mangled.  (Mangling occurs during
+           inline function wrapup processing when extern inline functions
+           are instantiated.) */
         a_class_type_supplement_ptr ctsp = class_type_supp(type);
+        a_routine_ptr               rout;
         if (ctsp->assoc_scope != NULL) {
-          /* Mangle other entities in this promoted class. */
-          do_scope_other_name_mangling(ctsp->assoc_scope);
+          for (rout = ctsp->assoc_scope->routines;
+               rout != NULL;
+               rout = rout->next) {
+            mangle_function_name(rout);
+          }  /* for */
         }  /* if */
+#endif /* !INSTANTIATE_EXTERN_INLINE */
       }  /* if */
     }  /* for */
 #if LOWER_VARIABLE_LENGTH_ARRAYS
