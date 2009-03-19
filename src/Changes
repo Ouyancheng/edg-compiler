@@ -74,12 +74,10 @@ modes in which local and unnamed types can be used as template arguments
 3/17/09 [EDGcpfe/9524]
 Unmangled member function in local class type
 
-In configurations that use lowering (and INSTANTIATE_EXTERN_INLINE is FALSE),
-the member function of a local class may not have been mangled, causing
-compilation errors in generated C code.  (Such cases involve a promoted
-function whose lowering is delayed and a local class member that can't be
-inlined.)  This example had generated incorrect C code (in strict mode) and now
-compiles cleanly:
+In certain cases (involving a function whose lowering is delayed and a local
+class member that can't be inlined), the names in a local class were not
+mangled, causing compilation errors in generated C code.  This example had
+generated incorrect C code (in strict mode) and now compiles cleanly:
 
   struct A {
     void f() {

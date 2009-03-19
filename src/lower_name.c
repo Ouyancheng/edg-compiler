@@ -6111,9 +6111,6 @@ including classes.
 }  /* do_type_list_other_name_mangling */
 
 
-#if INSTANTIATE_EXTERN_INLINE
-static
-#endif /* INSTANTIATE_EXTERN_INLINE */
 void mangle_function_name(a_routine_ptr routine)
 /*
 Mangle the name of the indicated function, if necessary.

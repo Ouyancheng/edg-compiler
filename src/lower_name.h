@@ -70,9 +70,7 @@ extern char *get_mangled_function_name(a_routine_ptr routine);
 extern char *get_mangled_member_variable_name(a_variable_ptr variable);
 #endif /* TEMPLATE_LOOKUP_NEEDED || MODULE_ID_NEEDED */
 
-#if !INSTANTIATE_EXTERN_INLINE
 extern void mangle_function_name(a_routine_ptr rout);
-#endif /* !INSTANTIATE_EXTERN_INLINE */
 
 extern char *externalized_mangled_name(a_source_correspondence  *scp,
                                        a_boolean                is_variable);
