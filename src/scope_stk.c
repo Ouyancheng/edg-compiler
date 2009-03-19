@@ -4739,7 +4739,7 @@ curr_routine points to the routine entry; otherwise, it is NULL.
         end_of_scope_symbol_check_for_class(sym, scope_kind);
      }  /* if */
 #if CHECKING
-      scp = &type_symbol_type(sym)->source_corresp;
+     scp = &type_symbol_type(sym)->source_corresp;
 #endif /* CHECKING */
       break;
     case sk_class_template:
