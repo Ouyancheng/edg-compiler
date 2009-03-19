@@ -12567,8 +12567,7 @@ the temporary.
     /* Conversion from or to a template-dependent type in a prototype
        instantiation.  Render as a cast. */
     if (dest_type == NULL) dest_type = type_of_unknown_templ_param_nontype;
-    generic_cast_operand(operand, dest_type, csf_none,
-                         !is_explicit_cast, /*is_reference_cast=*/FALSE);
+    generic_cast_operand(operand, dest_type, csf_none, !is_explicit_cast);
   } else if (conversion_routine == NULL) {
     /* A simple class object type adjustment without a call of a conversion
        routine. */

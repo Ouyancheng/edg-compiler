@@ -8637,10 +8637,9 @@ Syntax:
     /* The source operand type or the destination type is unknown, so
        generate a generic operation. */
     generic_cast_operand(&operand,
-                         reference_case ? underlying_cast_type : cast_type, 
+                         cast_type, 
                          csf_dynamic_cast,
-                         /*is_implicit_cast=*/FALSE,
-                         reference_case);
+                         /*is_implicit_cast=*/FALSE);
     copy_operand(&operand, result);
   } else if (same_type_with_added_qualifiers(underlying_operand_type,
                                              underlying_cast_type,
@@ -8651,7 +8650,7 @@ Syntax:
        is just the source cast to the destination type. */
     /* Likewise for a null pointer value cast to a pointer type. */
     if (reference_case) {
-      cast_operand_for_reference_cast(&operand, underlying_cast_type,
+      cast_operand_for_reference_cast(&operand, cast_type,
                                       /*check_cast_access=*/FALSE,
                                       /*reinterpret_semantics=*/FALSE);
     } else {
@@ -10924,9 +10923,8 @@ for non-class operands).  This routine is called only in C++ mode.
              valid above. */
           if (template_case) {
              /* The source has a dependent type. */
-            generic_cast_operand(operand, eff_type_cast_to, source_form,
-                                 /*is_implicit_cast=*/FALSE,
-                                 /*is_reference_cast=*/TRUE);
+            generic_cast_operand(operand, type_cast_to, source_form,
+                                 /*is_implicit_cast=*/FALSE);
           } else {
 process_reference_binding:
             if (determined_conversion != NULL) {
@@ -11043,9 +11041,8 @@ by using a temporary.
       (is_template_dependent_type(type_cast_to) ||
        is_template_dependent_type(operand->type))) {
     /* A template-dependent operation in a prototype instantiation. */
-    generic_cast_operand(operand, underlying_type_cast_to, source_form,
-                         /*is_implicit_cast=*/FALSE,
-                         /*is_reference_cast=*/TRUE);
+    generic_cast_operand(operand, type_cast_to, source_form,
+                         /*is_implicit_cast=*/FALSE);
     *processed = TRUE;
   } else {
     if (is_an_lvalue(operand) ||
@@ -11497,7 +11494,7 @@ indicates which.
                                    reinterpret_semantics);
             } else {
               cast_operand_for_reference_cast(operand,
-                                              type_pointed_to(type_cast_to),
+                                              type_cast_to,
                                               /*check_cast_access=*/FALSE,
                                               reinterpret_semantics);
             }  /* if */
@@ -11754,9 +11751,8 @@ Syntax:
     if (template_param_case) {
       /* Put out a generic operator for a case involving template parameter
          types. */
-      generic_cast_operand(&operand, operation_type, csf_const_cast,
-                           /*is_implicit_cast=*/FALSE,
-                           reference_case);
+      generic_cast_operand(&operand, cast_type, csf_const_cast,
+                           /*is_implicit_cast=*/FALSE);
     } else if (microsoft_lvalue_cast_case) {
       /* The Microsoft case of an lvalue cast of an enum value to the same
          enum type with possibly adjusted cv-qualifiers does nothing but
@@ -11767,11 +11763,11 @@ Syntax:
       /* The types are already the same except for qualifiers.  The result
          is just the source cast to the destination type. */
       if (reference_case) {
-        cast_operand_for_reference_cast(&operand, operation_type,
+        cast_operand_for_reference_cast(&operand, cast_type,
                                         /*check_cast_access=*/FALSE,
                                         /*reinterpret_semantics=*/FALSE);
       } else {
-        cast_operand(operation_type, &operand, /*is_implicit_cast=*/FALSE);
+        cast_operand(cast_type, &operand, /*is_implicit_cast=*/FALSE);
       }  /* if */
     }  /* if */
     copy_operand(&operand, result);
@@ -11934,12 +11930,8 @@ Syntax:
                is_template_dependent_type(type_cast_to))) {
             /* Put out a generic operator for a case involving template
                parameter types. */
-            /* cast_to_reference cases get handled inside
-               set_up_cast_to_reference and don't get here. */
-            check_assertion(!cast_to_reference);
             generic_cast_operand(result, type_cast_to, csf_static_cast,
-                                 /*is_implicit_cast=*/FALSE,
-                                 /*is_reference_cast=*/FALSE);
+                                 /*is_implicit_cast=*/FALSE);
           } else {
             if (related_member_pointers(adj_source_type, adj_type_cast_to,
                                         &baseward_cast, &bcp) &&
@@ -11982,7 +11974,7 @@ Syntax:
                                    /*reinterpret_semantics=*/FALSE);
             } else {
               cast_operand_for_reference_cast(result,
-                                              type_pointed_to(type_cast_to),
+                                              type_cast_to,
                                               /*check_cast_access=*/TRUE,
                                               /*reinterpret_semantics=*/FALSE);
             }  /* if */
@@ -12157,12 +12149,8 @@ Syntax:
              is_template_dependent_type(type_cast_to))) {
           /* Put out a generic operator for a case involving template parameter
              types. */
-          /* cast_to_reference cases get handled inside
-             set_up_cast_to_reference and don't get here. */
-          check_assertion(!cast_to_reference);
           generic_cast_operand(result, type_cast_to, csf_reinterpret_cast,
-                               /*is_implicit_cast=*/FALSE,
-                               /*is_reference_cast=*/FALSE);
+                               /*is_implicit_cast=*/FALSE);
         } else if (microsoft_ignored_case) {
           /* This cast is ignored. */
         } else {
@@ -12176,7 +12164,7 @@ Syntax:
                               /*reinterpret_semantics=*/TRUE);
           } else {
             cast_operand_for_reference_cast(result,
-                                            type_pointed_to(type_cast_to),
+                                            type_cast_to,
                                             /*check_cast_access=*/TRUE,
                                             /*reinterpret_semantics=*/TRUE);
           }  /* if */

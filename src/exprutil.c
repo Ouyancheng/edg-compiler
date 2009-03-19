@@ -3143,7 +3143,7 @@ is being done via an explicit cast; otherwise, it's implicit by context.
     /* Explicit cast to reference. */
     check_assertion(is_cast);
     cast_operand_for_reference_cast(operand,
-                                    type_pointed_to(type_cast_to),
+                                    type_cast_to,
                                     /*check_cast_access=*/FALSE,
                                     /*reinterpret_semantics=*/FALSE); 
   }  /* if */
@@ -3568,19 +3568,22 @@ void cast_operand_for_reference_cast(an_operand *operand,
                                      a_boolean  reinterpret_semantics)
 /*
 Cast *operand (an lvalue, not necessarily of class type) to a reference
-type whose underlying type is dest_type.  That produces an lvalue of
-type dest_type as the result.  This cast does not make a new object;
-it merely adjusts the operand to access the same object with a new type.
-Check access on related-class casts if check_cast_access is TRUE.
-Consider related-class adjustments only if reinterpret_semantics is
-FALSE (it is TRUE for reinterpret_cast).
+type given by dest_type.  That produces an lvalue of the type underlying
+dest_type as the result (an rvalue if dest_type is an rvalue reference).
+This cast does not make a new object; it merely adjusts the operand to
+access the same object with a new type.  Check access on related-class
+casts if check_cast_access is TRUE.  Consider related-class adjustments
+only if reinterpret_semantics is FALSE (it is TRUE for reinterpret_cast).
 */
 {
   a_type_ptr operand_type = operand->type;
+  a_type_ptr underlying_type;
 
+  check_assertion(is_reference_type(dest_type));
+  underlying_type = type_pointed_to(dest_type);
   if (is_error_operand(operand)) {
     /* Leave an error operand alone. */
-  } else if (is_error_type(dest_type)) {
+  } else if (is_error_type(underlying_type)) {
     conv_to_error_operand(operand);
   } else {
     a_base_class_ptr bcp = NULL;
@@ -3591,9 +3594,9 @@ FALSE (it is TRUE for reinterpret_cast).
                     is_a_function_designator(operand));
     if (!reinterpret_semantics &&
         is_class_struct_union_type(operand_type) &&
-        is_class_struct_union_type(dest_type)) {
+        is_class_struct_union_type(underlying_type)) {
       a_type_ptr source_class_type = skip_typerefs(operand_type);
-      a_type_ptr dest_class_type = skip_typerefs(dest_type);
+      a_type_ptr dest_class_type = skip_typerefs(underlying_type);
       /* Look for a required base-class adjustment. */
       if (!same_entities(source_class_type, dest_class_type)) {
         bcp = find_base_class_of(source_class_type, dest_class_type);
@@ -3607,7 +3610,7 @@ FALSE (it is TRUE for reinterpret_cast).
       if (!derived_class_cast) {
         /* Cast to a base class, and also adjust cv-qualifiers if
            necessary. */
-        base_class_cast_operand(operand, bcp, dest_type,
+        base_class_cast_operand(operand, bcp, underlying_type,
                                 check_cast_access,
                                 /*is_implicit_cast=*/FALSE,
                                 /*implicit_in_naming=*/FALSE,
@@ -3618,7 +3621,7 @@ FALSE (it is TRUE for reinterpret_cast).
            derived-class casts; the casts that can specify them
            also suppress access checking. */
         an_expr_node_ptr expr = make_node_from_operand(operand);
-        add_derived_class_casts(dest_type, bcp, /*check_ambiguity=*/TRUE,
+        add_derived_class_casts(underlying_type, bcp, /*check_ambiguity=*/TRUE,
                                 &expr, &orig_operand.position);
         make_lvalue_expression_operand(expr, operand);
       }  /* if */
@@ -3626,7 +3629,7 @@ FALSE (it is TRUE for reinterpret_cast).
       /* Do any non-base-class type adjustment. */
       an_expr_node_ptr expr = make_node_from_operand(operand);
       expr = make_lvalue_operator_node((an_expr_operator_kind)eok_ref_cast,
-                                       dest_type, expr);
+                                       underlying_type, expr);
       make_lvalue_expression_operand(expr, operand);
     }  /* if */
     restore_operand_details_incl_ref(operand, &orig_operand);
@@ -6838,29 +6841,28 @@ know whether the operand will be used as an lvalue or an rvalue.
 void generic_cast_operand(an_operand         *operand,
                           a_type_ptr         dest_type,
                           a_cast_source_form source_form,
-                          a_boolean          is_implicit_cast,
-                          a_boolean          is_reference_cast)
+                          a_boolean          is_implicit_cast)
 /*
 Add a generic cast that casts the given operand to dest_type.  This is used
 in prototype instantiations to represent conversions to unknown types.
 source_form identifies the kind of cast (e.g., static_cast, const_cast).
-is_implicit_cast is TRUE if the cast is implicit.  is_reference_cast is
-TRUE if the cast is a cast to a reference type in its original form.
-Note that the cast can be bizarre in a number of ways, e.g., if the
-source operand is an lvalue.
+is_implicit_cast is TRUE if the cast is implicit.  dest_type is allowed
+to be a reference type.  Note that the cast can be bizarre in a number
+of ways, e.g., if the source operand is an lvalue.
 */
 {
   an_operand orig_operand;
   a_boolean  can_fold = FALSE;
   a_boolean  rvalue_expected = FALSE, lvalue_expected = FALSE;
+  a_boolean  is_reference_cast = is_reference_type(dest_type);
 
   orig_operand = *operand;
-  check_assertion(!is_reference_type(dest_type) &&
-                  is_template_dependent_context());
+  check_assertion(is_template_dependent_context());
   /* See whether we know that the operand will be used as an lvalue or
      rvalue. */
   if (is_reference_cast) {
     lvalue_expected = TRUE;
+    dest_type = type_pointed_to(dest_type);
   } else if (!curr_expr_kind_is_const() &&
              (is_class_struct_union_type(dest_type) ||
               is_template_param_type(dest_type) ||
