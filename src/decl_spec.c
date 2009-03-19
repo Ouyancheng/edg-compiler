@@ -4548,11 +4548,11 @@ dsi_flags is the set of input flags passed to decl_specifiers.
        in trailing return types, a brace that follows is treated as the
        beginning of the function (or lambda) body that follows (and that's an
        error). */
-    if ((curr_token == tok_lbrace &&
-         (dsi_flags & DSI_NO_TAG_DEFINITION) == 0) ||
-        (curr_token == tok_colon && explicit_enum_base_enabled)) {
-      is_definition = TRUE;
-    } else {
+    is_definition = tag_definition_next(
+                                 curr_token, (a_symbol_kind)sk_enum_tag,
+                                 (dsi_flags & DSI_IS_NEW_TYPE_NAME) != 0,
+                                 (dsi_flags & DSI_NO_TAG_DEFINITION) != 0);
+    if (!is_definition) {
       /* Neither the tag id nor the enum definition is present.  This is an
          error. */
       add_stop_token(tok_lbrace);
