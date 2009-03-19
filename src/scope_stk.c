@@ -4195,8 +4195,10 @@ outermost class.
     /* Check each of the member function of the class. */
     for (; rp != NULL; rp = rp->next) {
       a_symbol_ptr rout_sym = symbol_for(rp);
-      end_of_scope_member_function_check(rout_sym, rp, type,
-                                         unnamed_ns_member);
+      if (!rp->compiler_generated) {
+        end_of_scope_member_function_check(rout_sym, rp, type,
+                                           unnamed_ns_member);
+      }  /* if */
     }  /* for */
     /* Check each of the static data members of the class. */
     for (; vp != NULL; vp = vp->next) {
