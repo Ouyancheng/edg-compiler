@@ -5639,7 +5639,8 @@ externalized, use the encoding for the externalized form.
 
 char *get_mangled_function_name_full(a_routine_ptr routine,
                                      a_boolean     force_primary_name,
-                                     a_boolean     externalize_if_necessary)
+                                     a_boolean     externalize_if_necessary,
+                                     sizeof_t      *base_name_offset)
 /*
 Get the mangled name for the indicated routine, and return a pointer
 to it.  If the routine name has not been mangled yet, create a copy
@@ -5648,13 +5649,14 @@ name in the routine entry.  In the IA-64 ABI, if force_primary_name
 is TRUE the routine is a constructor or destructor and the primary
 entry point name should be returned.  If externalize_if_necessary is
 TRUE, externalize the name (give it the name a static gets when
-made into an external) if necessary.
+made into an external) if necessary.  If base_name_offset is not NULL,
+*base_name_offset is set to the offset from the start of the mangling
+to the point where the base name appears.
 */
 {
   a_mangling_control_block mctl;
   a_boolean                suppress_param_encoding;
   char                     *mangled_name;
-  sizeof_t                 *base_name_offset = NULL;
   a_boolean                needs_to_be_externalized = FALSE;
 
 #if DO_IL_LOWERING
@@ -5697,16 +5699,6 @@ made into an external) if necessary.
     start_mangling(&mctl);
     add_mangled_name_prefix(&mctl);
     /* Create the name. */
-#if IA64_ABI && DO_IL_LOWERING
-    /* It's OK to set the base_name_offset here; it will be set to the same
-       value every time.  By setting the value here, we make it available to
-       callers of get_mangled_function_name, even if mangled_function_name has
-       not yet been called. */
-    if (routine->special_kind == (a_special_function_kind)sfk_constructor ||
-        routine->special_kind == (a_special_function_kind)sfk_destructor) {
-      base_name_offset = &routine->variant.ctor_dtor.base_name_offset;
-    }  /* if */
-#endif /* IA64_ABI && DO_IL_LOWERING */
     if (externalize_if_necessary) {
       mangled_function_name_externalized_if_necessary(
                                             routine,
@@ -5755,7 +5747,8 @@ a constructor or destructor, return the primary entry point name.
   } /* if */
 #endif /* IA64_ABI */
   mangled_name = get_mangled_function_name_full(routine, force_primary_name,
-                                            /*externalize_if_necessary=*/TRUE);
+                                          /*externalize_if_necessary=*/TRUE,
+                                          /*base_name_offset=*/(size_t *)NULL);
   return mangled_name;
 }  /* get_mangled_function_name */
 
@@ -7181,9 +7174,10 @@ in the routine must be set already.
        in the middle of the compilation and the module id may not be
        set yet. */
     mangled_name = get_mangled_function_name_full(
-                                           prim_routine,
-                                           /*force_primary_name=*/FALSE,
-                                           /*externalize_if_necessary=*/FALSE);
+                            prim_routine,
+                            /*force_primary_name=*/FALSE,
+                            /*externalize_if_necessary=*/FALSE,
+                            &prim_routine->variant.ctor_dtor.base_name_offset);
     name = alloc_lowered_name_string(strlen(mangled_name) + 1);
     (void)strcpy(name, mangled_name);
     switch (routine->ctor_dtor_kind) {

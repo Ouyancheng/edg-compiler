@@ -20871,7 +20871,8 @@ associated with the given routine.
        trout = trout->next) {
     name = get_mangled_function_name_full(trout,
                                           /*force_primary_name=*/FALSE,
-                                          /*externalize_if_necessary=*/TRUE);
+                                          /*externalize_if_necessary=*/TRUE,
+                                          /*base_name_offset=*/(size_t *)NULL);
     write_to_template_info_file(tilt_entry_point, name,
                                 (char*)NULL, (a_symbol_ptr)NULL);
   }  /* for */
@@ -20898,7 +20899,8 @@ previous instantiation flag entry.
        an entry point. */
     name = get_mangled_function_name_full(rout_ptr,
                                           /*force_primary_name=*/FALSE,
-                                          /*externalize_if_necessary=*/TRUE);
+                                          /*externalize_if_necessary=*/TRUE,
+                                          /*base_name_offset=*/(size_t *)NULL);
     write_to_template_info_file(tilt_entry_point, name,
                                 (char*)NULL, (a_symbol_ptr)NULL);
   }  /* if */
@@ -20911,8 +20913,9 @@ previous instantiation flag entry.
        complete object constructor. */
     if (rlep->routine->ctor_dtor_kind != (a_ctor_or_dtor_kind)cdk_complete) {
       name = get_mangled_function_name_full(rlep->routine,
-                                            /*force_primary_name=*/FALSE,
-                                            /*externalize_if_necessary=*/TRUE);
+                                          /*force_primary_name=*/FALSE,
+                                          /*externalize_if_necessary=*/TRUE,
+                                          /*base_name_offset=*/(size_t *)NULL);
       write_to_template_info_file(tilt_entry_point, name,
                                  (char*)NULL, (a_symbol_ptr)NULL);
     }  /* if */

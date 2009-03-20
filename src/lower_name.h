@@ -61,7 +61,8 @@ EXTERN unsigned long
 extern char *get_mangled_function_name_full(
                                      a_routine_ptr routine,
                                      a_boolean     force_primary_name,
-                                     a_boolean     externalize_if_necessary);
+                                     a_boolean     externalize_if_necessary,
+                                     sizeof_t      *base_name_offset);
 extern char *get_mangled_function_name(a_routine_ptr routine);
 #endif /* TEMPLATE_LOOKUP_NEEDED || MICROSOFT_EXTENSIONS_ALLOWED ||
           MODULE_ID_NEEDED */
