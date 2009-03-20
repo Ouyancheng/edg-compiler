@@ -6744,6 +6744,16 @@ associated parameter.
            retrieved from the parameter symbol */
         if (orig_is_nonreal_template) {
           const_type = tpp->param_symbol->variant.constant->type;
+          if (tpp->variant.constant.type_involves_template_param) {
+            /* The type of the template parameter involves a template
+               parameter.   Substitute the current set of template arguments
+               (the ones being created by this routine) into the type.
+               The outer template arguments will also be substituted below. */
+            const_type =
+               copy_type_with_substitution(const_type,
+                                         arg_list_to_copy, param_list_for_copy,
+					 source_pos, options, copy_error);
+          }  /* if */
         } else {
           const_type = tap->variant.constant->type;
         }  /* if */

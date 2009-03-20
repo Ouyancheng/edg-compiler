@@ -1,5 +1,31 @@
 Version 4.1
 
+3/20/09  [EDGcpfe/9451]
+Deduction failure substituting template arguments into dependent template
+
+Template argument deduction would fail if the function template contained
+a dependent template (i.e., one whose template parameter list cannot be
+known until the template parameters on which it depends have values),
+and the actual template to which the dependent template resolves had
+nontype template parameters that depend on the types of other template
+parameters.  In the example below, T::template V is the dependent template.
+It resolves to S::V, and S::V has a nontype template parameter that depends
+on another template parameter (t has type T).  Now fixed.
+
+  struct S {
+    template<class T, T t> struct V {
+      static const int C = t;
+    };
+  };
+
+  template<class T, int I> int f(int(&)[T::template V<int,I>::C]) { return 1; }
+
+  int main() {
+    int y[3];
+    return !(f<S,3>(y) == 1);
+  }
+
+
 3/18/09  [EDGcpfe/9626]
 Infinite loop with delayed nested class in a local class member function
 
