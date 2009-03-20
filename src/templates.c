@@ -18011,8 +18011,8 @@ previously computed value is returned.
 a_boolean will_be_instantiated(a_symbol_ptr	sym)
 /*
 Interface to entity_can_be_instantiated for use outside of templates.c.
-Return TRUE if sym is an entity that can be instantiated (and will somewhere
-in the complete program eventually).
+Return TRUE if sym is an entity that can be instantiated (and will be
+somewhere in the complete program eventually).
 */
 {
   a_template_instance_ptr	tip;

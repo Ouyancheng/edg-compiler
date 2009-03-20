@@ -4310,7 +4310,7 @@ void check_constituent_types_have_linkage(a_symbol_ptr      sym,
 Check whether an entity with linkage was declared using types without linkage.
 Before C++0x such declarations were not allowed by the language (but were
 accepted in some cases).  In C++0x the rules were relaxed to allow such
-declarations provided the entity is either unused or was defined in the
+declarations provided the entity is either unused or is defined in the
 translation unit.
 
 The global variable decls_using_types_without_linkage_allowed is used to
@@ -4334,7 +4334,7 @@ flag when is_declaration is TRUE.
   an_error_code                err_code;
   a_source_correspondence_ptr  scp;
   a_boolean                    uses_local_type = FALSE;
-  a_boolean                    uses_unnamed_type = FALSE;
+  a_boolean                    uses_type_without_linkage = FALSE;
   a_routine_ptr	               rp;
   a_variable_ptr	       vp;
   a_boolean                    type_without_linkage_flag_set;
@@ -4374,9 +4374,9 @@ flag when is_declaration is TRUE.
        an entity without linkage.  In the second case, call the local/unnamed
        type routines to determine which diagnostic to issue below. */
     uses_local_type = is_or_contains_local_type(type);
-    uses_unnamed_type = is_or_contains_type_with_no_name_linkage(type);
+    uses_type_without_linkage = is_or_contains_type_with_no_name_linkage(type);
     if (is_declaration) {
-      if (uses_local_type || uses_unnamed_type) {
+      if (uses_local_type || uses_type_without_linkage) {
         if (is_function) {
           rp->declared_using_type_without_linkage = TRUE;
         } else { 
@@ -4408,7 +4408,7 @@ flag when is_declaration is TRUE.
                              : ec_local_type_in_nonlocal_var;
       pos_diagnostic(severity, err_code, error_pos);
     }  /* if */
-  } else if (uses_unnamed_type) {
+  } else if (uses_type_without_linkage) {
     /* Use of a type that does not have linkage.
        E.g., typedef enum { e1 } *pE; void f(pE); */
     if (decls_using_types_without_linkage_allowed) {

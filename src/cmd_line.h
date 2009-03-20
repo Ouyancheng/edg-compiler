@@ -930,8 +930,8 @@ EXTERN a_boolean
 			/* TRUE if an entity with linkage can be declared
 			   using a type without linkage provided the
 			   entity is defined in the translation unit if
-			   used.  This is the rule used in C++0x and is must
-			   be used to when local and unnamed types can be
+			   used.  This is the rule used in C++0x and it must
+			   be used when local and unnamed types can be
 			   used as template arguments. */
 
 
