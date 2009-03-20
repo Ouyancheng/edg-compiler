@@ -16400,13 +16400,16 @@ depth must be usable for error recovery purposes.
         check_assertion(scope_error_issued);
         break;
       case sck_func_prototype:
+        /* If a lambda appears in a function prototype scopes, its closure
+           type is treated as if it were defined in the nearest enclosing
+           non-function-prototype scope. */
+        break;
       case sck_template_declaration:
       case sck_enum:
       default:
-        /* We currently don't accept lambdas in function prototype scopes, in
-           template parameter lists, and in scoped enum definitions.  Other
-           scopes not covered above are unexpected, but it is safe to treat
-           them as errors. */
+        /* We currently don't accept lambdas in template parameter lists nor
+           in scoped enum definitions.  Other scopes not covered above are
+           unexpected, but it is safe to treat them as errors. */
         scope_error = TRUE;
         break;
     }  /* switch */
