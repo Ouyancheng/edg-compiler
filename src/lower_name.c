@@ -5495,22 +5495,23 @@ the indicated source correspondence.
 }  /* end_externalized_name */
 
 
-char *externalized_mangled_name(a_source_correspondence  *scp,
-                                a_boolean                is_variable)
+void externalize_mangled_name(a_source_correspondence  *scp,
+                              a_boolean                is_variable)
 /*
-Generate and return the externalized name for the entity with the
-indicated source correspondence.  An externalized name is a name given
+Replace the (already mangled) name for the entity referred to by scp
+with an externalized name.  An externalized name is a name given
 to a static entity when it is made external so that its name will remain
 unique across the program.  The entity is a variable if is_variable
-is TRUE, a routine otherwise.  The name returned is in a temporary
-buffer, and must be copied elsewhere promptly.
+is TRUE, a routine otherwise.
 */
 {
   a_mangling_control_block mctl;
-  char                     *name = scp->name;
+  char                     *externalized_name, *name = scp->name;
   char                     buffer[50];
   a_source_correspondence  *module_scp = scp;
+  sizeof_t                 name_len;
 
+  check_assertion(!scp->externalized);
   /* This routine is called after name mangling has been done, and
      sometimes very late in the compilation (e.g., because of
      the needed-flag sweep in one-instantiation-per-object mode),
@@ -5528,7 +5529,7 @@ buffer, and must be copied elsewhere promptly.
       /* Compression and truncation shouldn't have been done already,
          however. */
       check_assertion_str(!scp->mangled_name_cannot_be_included_in_other_name,
-                      "externalized_mangled_name: mangled name already final");
+                       "externalize_mangled_name: mangled name already final");
     } else if (is_variable ?
                            variable_name_mangling_needed((a_variable_ptr)scp) :
                            function_name_mangling_needed((a_routine_ptr)scp,
@@ -5536,7 +5537,7 @@ buffer, and must be copied elsewhere promptly.
 #if DEBUG
       db_entity_info((char *)scp, is_variable ? iek_variable : iek_routine);
 #endif /* DEBUG */
-      internal_error("externalized_mangled_name: name not mangled");
+      internal_error("externalize_mangled_name: name not mangled");
     }  /* if */
   }
 #endif /* CHECKING */
@@ -5578,8 +5579,37 @@ buffer, and must be copied elsewhere promptly.
 #endif /* IA64_ABI */
   end_externalized_name(module_scp, &mctl);
   add_to_mangled_name('\0', &mctl);
-  return mangling_text_buffer->buffer;
-}  /* externalized_mangled_name */
+  /* Copy the externalized name into the entity's source correspondence. */
+  name_len = strlen(mangling_text_buffer->buffer);
+  externalized_name = alloc_lowered_name_string(name_len + 1);
+  (void)strcpy(externalized_name, mangling_text_buffer->buffer);
+#if IA64_ABI
+  if (!is_variable) {
+    a_routine_ptr rout = (a_routine_ptr)scp;
+    if (rout->special_kind == (a_special_function_kind)sfk_constructor ||
+        rout->special_kind == (a_special_function_kind)sfk_destructor) {
+      /* Keep the base_name_offset up to date.  Assume that the change
+         made to externalize the name is an insertion at the beginning
+         of the name. */
+      sizeof_t old_name_len = strlen(name);
+#if CHECKING
+      char     cdchar = (rout->special_kind ==
+                         (a_special_function_kind)sfk_constructor ? 'C' : 'D');
+      check_assertion(name[rout->variant.ctor_dtor.base_name_offset] ==
+                                                                       cdchar);
+#endif /* CHECKING */
+      rout->variant.ctor_dtor.base_name_offset += name_len - old_name_len;
+#if CHECKING
+      check_assertion(externalized_name[
+                          rout->variant.ctor_dtor.base_name_offset] == cdchar);
+#endif /* CHECKING */
+    }  /* if */
+  }  /* if */
+#endif /* IA64_ABI */
+  scp->name = externalized_name;
+  scp->externalized = TRUE;
+  return;
+}  /* externalize_mangled_name */
 
 #endif /* DO_IL_LOWERING */
 

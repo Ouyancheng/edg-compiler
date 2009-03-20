@@ -73,8 +73,8 @@ extern char *get_mangled_member_variable_name(a_variable_ptr variable);
 
 extern void mangle_function_name(a_routine_ptr rout);
 
-extern char *externalized_mangled_name(a_source_correspondence  *scp,
-                                       a_boolean                is_variable);
+extern void externalize_mangled_name(a_source_correspondence  *scp,
+                                     a_boolean                is_variable);
 
 extern char *mangled_vtbl_name(a_type_ptr       class_type,
                                a_base_class_ptr bcp,

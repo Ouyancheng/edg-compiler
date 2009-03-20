@@ -19001,45 +19001,14 @@ files.  The static entity must be made external so the instantiation
 files can reference it.
 */
 {
-  char     *name, *new_name;
-  sizeof_t name_len;
-
-  check_assertion(!scp->externalized);
   /* The entity name should have been mangled already if it needs to
-     be mangled (externalized_mangled_name checks that).  Note that
+     be mangled (externalize_mangled_name checks that).  Note that
      that does not mean the entity has been lowered yet. */
   /* Generate a mangled name to keep this entity's name unique. */
-  name = externalized_mangled_name(scp, is_variable);
-  name_len = strlen(name);
-  new_name = alloc_lowered_name_string(name_len + 1);
-  (void)strcpy(new_name, name);
-#if IA64_ABI
-  if (!is_variable) {
-    a_routine_ptr rout = (a_routine_ptr)scp;
-    if (rout->special_kind == (a_special_function_kind)sfk_constructor ||
-        rout->special_kind == (a_special_function_kind)sfk_destructor) {
-      /* Keep the base_name_offset up to date.  Assume that the change
-         made by externalized_mangled_name is an insertion at the beginning
-         of the name. */
-      sizeof_t old_name_len = strlen(scp->name);
-#if CHECKING
-      char     cdchar = (rout->special_kind ==
-                         (a_special_function_kind)sfk_constructor ? 'C' : 'D');
-      check_assertion(scp->name[rout->variant.ctor_dtor.base_name_offset] ==
-                                                                       cdchar);
-#endif /* CHECKING */
-      rout->variant.ctor_dtor.base_name_offset += name_len - old_name_len;
-#if CHECKING
-      check_assertion(name[rout->variant.ctor_dtor.base_name_offset]==cdchar);
-#endif /* CHECKING */
-    }  /* if */
-  }  /* if */
-#endif /* IA64_ABI */
-  scp->name = new_name;
+  externalize_mangled_name(scp, is_variable);
   scp->name_linkage = visited_yet(scp) ?
                                    (a_name_linkage_kind)nlk_external :
                                    (a_name_linkage_kind)nlk_cplusplus_external;
-  scp->externalized = TRUE;
   /* Clear the same_name_as_external_entity_in_secondary_trans_unit flag
      because it should be set only for entities without external linkage. */
   scp->same_name_as_external_entity_in_secondary_trans_unit = FALSE;
