@@ -1,5 +1,24 @@
 Version 4.1
 
+3/21/09  [EDGcpfe/9641]
+Use of uninitialized variable in constant address folding
+
+Code in constant_lvalue_address in folding.c could make use of an
+uninitialized variable and consequently build an invalid constant,
+which could cause aborts later (e.g., in alloc_shareable_constant
+in il.c).  This problem was introduced in version 4.0.  Now fixed.
+This test case provoked the problem in --c++0x --strict mode:
+
+  auto x = []{return 59;};
+  typedef decltype(x) T;
+  template <const T& cr> struct C {
+    static int y[4];
+  };
+  template <const T& cr> int C<cr>::y[] = {
+  [] () -> const int & { return y [ (sizeof []{}) ] ; } ()
+  };
+
+
 3/20/09  [EDGcpfe/9451]
 Deduction failure substituting template arguments into dependent template
 
