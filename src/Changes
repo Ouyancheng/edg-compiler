@@ -22,9 +22,9 @@ In GNU C++ mode, the front end now accepts (with a warning) a member
 declaration that doesn't declare anything if that declaration refers to a
 class or enumeration type using an elaboration type name.  For example:
 
-  enum E {};
+  struct X;
   struct S {
-    enum ::E;  // Now accepted in g++ mode.
+    struct ::X;  // Now accepted in g++ mode.
   };
 
 
