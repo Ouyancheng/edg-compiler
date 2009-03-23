@@ -11366,8 +11366,6 @@ indicates which.
   a_boolean     allow_rvalue_on_rewrite = FALSE;
   a_ruled_out_expr_kind_set
                 ruled_out_expr_kinds = ROEK_NONE;
-  an_expr_node_ptr
-                operand_expression = NULL;
 
   /* The bound function test is done first to make sure bound functions
      cannot wander into the rest of the cases. */
@@ -11385,7 +11383,6 @@ indicates which.
     if (!C_mode()) {
       /* See if we're casting to a reference type. */
       cast_to_reference = is_reference_type(type_cast_to);
-      operand_expression = expr_node_from_operand(operand);
       check_user_defined_conversions_for_cast(type_cast_to, operand,
                                               source_form,
                                               &allow_rvalue_on_rewrite,
@@ -11861,7 +11858,6 @@ Syntax:
   an_error_code     warning_suggested;
   a_ruled_out_expr_kind_set
                     ruled_out_expr_kinds = ROEK_NONE;
-  an_expr_node_ptr  operand_expression = NULL;
 
   db_enter(4, "scan_static_cast_operator");
   /* Save the position of the static_cast keyword. */
@@ -11887,7 +11883,6 @@ Syntax:
     a_boolean cast_to_void      = is_void_type(type_cast_to);
 
     cast_to_reference = is_reference_type(type_cast_to);
-    operand_expression = expr_node_from_operand(result);
     /* Check for user-defined conversions and casts to reference type. */
     check_user_defined_conversions_for_cast(type_cast_to, result,
                                             csf_static_cast,
