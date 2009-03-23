@@ -7065,6 +7065,9 @@ is_reinterpret_cast indicate it.
     ref_type.kind = (a_type_kind)tk_pointer;
 #endif /* !STANDALONE_UTILITY_PROGRAM */
     ref_type.variant.pointer.is_reference = TRUE;
+    if (expr->variant.operation.is_rvalue_reference_cast) {
+      ref_type.variant.pointer.is_rvalue_reference = TRUE;
+    }  /* if */
     ref_type.variant.pointer.type = dest_type;
     dest_type = &ref_type;
   } else if (is_cast_of_UDC_to_different_pointer_type(dest_type, operand_1)) {

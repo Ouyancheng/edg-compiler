@@ -11244,8 +11244,19 @@ typedef struct an_expr_node {
 			   source. */
       a_bit_field
 		is_reference_cast:1;
-			/* TRUE when the operation was a cast to a reference
-			   type in the source. */
+			/* TRUE when the operation is a cast to a reference
+			   type in the source.  This applies to several
+			   different cast operations that can be used as
+			   part of a reference cast (e.g.,
+			   eok_base_class_cast).  When a single source cast
+			   is represented as several IL cast operators, this
+			   flag is set in the topmost. */
+      a_bit_field
+		is_rvalue_reference_cast:1;
+			/* TRUE when the operation is a cast to an rvalue
+			   reference type in the source.  Will be TRUE only
+			   when is_reference_cast is also TRUE, and therefore
+			   can be set in the same kinds of nodes. */
       a_bit_field
 		implicit_in_member_naming:1;
 			/* TRUE for a base class cast that is implicit in

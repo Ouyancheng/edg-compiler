@@ -1823,6 +1823,7 @@ ec_rvalue_ref_template_parameter;;"a nontype template parameter cannot have rval
 ec_type_qualifiers_ignored_on_reference;;"type qualifiers are ignored (underlying type is a reference)"
 ec_decl_with_local_type_but_not_defined;;"%n, declared using a local type, must be defined in this translation unit"
 ec_decl_with_no_linkage_type_but_not_defined;;"%n, declared using a type with no linkage, must be defined in this translation unit"
+ec_bad_rvalue_ref_dynamic_cast_operand;;"the operand of an rvalue reference dynamic_cast must have a complete class type"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

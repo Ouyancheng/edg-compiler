@@ -14724,7 +14724,7 @@ an_expr_node_ptr add_ref_indirection_to_node(an_expr_node_ptr node)
 Add an implicit reference indirection on top of the given node, and return
 a pointer to the new expression.  The returned node is designated an lvalue.
 */
-{ /*FIXME:jsa*/
+{
   if (!is_error_node(node)) {
     a_type_ptr new_type;
     check_assertion(!node->is_lvalue);
@@ -14825,7 +14825,7 @@ pointer to the new expression.  This is for reference binding, and does
 not correspond directly to any operator in the source code.  The returned
 node is designated an rvalue.
 */
-{ /*FIXME:jsa*/
+{
   if (!is_error_node(node)) {
     if (node->is_lvalue) {
       /* Set the address_taken flag for variables and routines. */
@@ -19767,7 +19767,6 @@ Definition of the bits in lvalue_rvalue_test.
 #define LVRV_OPND2_IS_LVALUE_IF_EXPR_IS		0x20
 #define LVRV_DISTINGUISHED_VALUE_FOR_LAST	0xfd
 
- /*FIXME:jsa*/
 static a_byte lvalue_rvalue_test[(int)eok_last+1] = {
   /* eok_address_of: */			LVRV_OPND1_IS_LVALUE,
   /* eok_reference_to: */		LVRV_NO_REQUIREMENTS,
@@ -19977,7 +19976,6 @@ have the is_lvalue flag set incorrectly; return TRUE otherwise.
         if (gpp_mode && op == (an_expr_operator_kind)eok_va_start &&
             is_variable_node(operand_2) &&
             is_reference_type(operand_2->type)) {
-          /*FIXME:jsa See also use of strip_ref_indirect in expr.c */
           /* g++ allows use of va_start with a parameter of reference
              type.  This situation is represented in the IL as an rvalue
              variable designating the parameter and is not an error. */

@@ -3574,12 +3574,17 @@ This cast does not make a new object; it merely adjusts the operand to
 access the same object with a new type.  Check access on related-class
 casts if check_cast_access is TRUE.  Consider related-class adjustments
 only if reinterpret_semantics is FALSE (it is TRUE for reinterpret_cast).
+Note that the input operand is always an lvalue; even in cases where a
+cast allows an rvalue as the source (e.g., a cast to reference-to-const
+class type), the operand has been converted to an rvalue by this point.
 */
 {
   a_type_ptr operand_type = operand->type;
   a_type_ptr underlying_type;
+  a_boolean  is_rvalue_ref = FALSE;
 
   check_assertion(is_reference_type(dest_type));
+  is_rvalue_ref = is_rvalue_reference_type(dest_type);
   underlying_type = type_pointed_to(dest_type);
   if (is_error_operand(operand)) {
     /* Leave an error operand alone. */
@@ -3588,6 +3593,7 @@ only if reinterpret_semantics is FALSE (it is TRUE for reinterpret_cast).
   } else {
     a_base_class_ptr bcp = NULL;
     a_boolean        derived_class_cast = FALSE;
+    a_boolean        need_eok_ref_cast = FALSE;
     an_operand       orig_operand;
     orig_operand = *operand;
     check_assertion(is_an_lvalue(operand) ||
@@ -3606,7 +3612,9 @@ only if reinterpret_semantics is FALSE (it is TRUE for reinterpret_cast).
         }  /* if */
       }  /* if */
     }  /* if */
-    if (bcp != NULL) {
+    if (bcp == NULL) {
+      need_eok_ref_cast = TRUE;
+    } else {
       if (!derived_class_cast) {
         /* Cast to a base class, and also adjust cv-qualifiers if
            necessary. */
@@ -3625,12 +3633,33 @@ only if reinterpret_semantics is FALSE (it is TRUE for reinterpret_cast).
                                 &expr, &orig_operand.position);
         make_lvalue_expression_operand(expr, operand);
       }  /* if */
-    } else {
+      if (is_rvalue_ref) {
+        /* The result of a cast to an rvalue reference type is an rvalue.
+           We need an eok_ref_cast after the related-class conversion to
+           effectuate the conversion to rvalue. */
+        need_eok_ref_cast = TRUE;
+      } else if (is_expression_operand(operand)) {
+        /* We don't need the final eok_ref_cast, so mark the top node of
+           the related-class cast as part of a reference cast. */
+        an_expr_node_ptr expr = operand->variant.expression;
+        check_assertion(is_operation_node(expr));
+        expr->variant.operation.is_reference_cast = TRUE;
+      }  /* if */
+    }  /* if */
+    if (need_eok_ref_cast) {
       /* Do any non-base-class type adjustment. */
       an_expr_node_ptr expr = make_node_from_operand(operand);
       expr = make_lvalue_operator_node((an_expr_operator_kind)eok_ref_cast,
                                        underlying_type, expr);
-      make_lvalue_expression_operand(expr, operand);
+      expr->variant.operation.is_reference_cast = TRUE;
+      if (is_rvalue_ref) {
+        /* The result of a cast to an rvalue reference type is an rvalue. */
+        expr->is_lvalue = FALSE;
+        make_expression_operand(expr, operand);
+        expr->variant.operation.is_rvalue_reference_cast = TRUE;
+      } else {
+        make_lvalue_expression_operand(expr, operand);
+      }  /* if */
     }  /* if */
     restore_operand_details_incl_ref(operand, &orig_operand);
   }  /* if */
@@ -6855,13 +6884,19 @@ of ways, e.g., if the source operand is an lvalue.
   a_boolean  can_fold = FALSE;
   a_boolean  rvalue_expected = FALSE, lvalue_expected = FALSE;
   a_boolean  is_reference_cast = is_reference_type(dest_type);
+  a_boolean  is_rvalue_reference_cast = FALSE;
 
   orig_operand = *operand;
   check_assertion(is_template_dependent_context());
   /* See whether we know that the operand will be used as an lvalue or
      rvalue. */
   if (is_reference_cast) {
-    lvalue_expected = TRUE;
+    if (is_rvalue_reference_type(dest_type)) {
+      is_rvalue_reference_cast = TRUE;
+      rvalue_expected = TRUE;
+    } else {
+      lvalue_expected = TRUE;
+    }  /* if */
     dest_type = type_pointed_to(dest_type);
   } else if (!curr_expr_kind_is_const() &&
              (is_class_struct_union_type(dest_type) ||
@@ -6871,9 +6906,8 @@ of ways, e.g., if the source operand is an lvalue.
     /* This might be a cast to or from a class type, and thus might
        involve a user-defined conversion.  Therefore we don't know whether
        the operand will be used as an lvalue or an rvalue.  Or, the
-       destination type is a type that is or might turn out to be a
-       reference type, which means the type will be or might be used
-       as an lvalue. */
+       destination type is a type that might turn out to be a reference
+       type, which means the operand might be used as an lvalue. */
   } else {
     /* The operand will definitely be used as an rvalue. */
     rvalue_expected = TRUE;
@@ -6941,8 +6975,12 @@ of ways, e.g., if the source operand is an lvalue.
           expr->variant.operation.compiler_generated = TRUE;
         }  /* if */
         if (is_reference_cast) {
-          expr->is_lvalue = TRUE;
           expr->variant.operation.is_reference_cast = TRUE;
+          if (is_rvalue_reference_cast) {
+            expr->variant.operation.is_rvalue_reference_cast = TRUE;
+          } else {
+            expr->is_lvalue = TRUE;
+          }  /* if */
         }  /* if */
       } else {
         /* Cast to a class type.  Use an enk_temp_init/dik_constructor. */
@@ -6982,7 +7020,7 @@ of ways, e.g., if the source operand is an lvalue.
         default:
           unexpected_condition();
       }  /* switch */
-      if (!is_reference_cast) {
+      if (!expr->is_lvalue) {
         make_expression_operand(expr, operand);
       } else {
         make_lvalue_expression_operand(expr, operand);
@@ -9731,9 +9769,9 @@ that's the usual use case).  This routine undoes lvalue-to-rvalue
 conversions (which is always possible) and also tracks class rvalues
 back to the call that generated them, and rewrites the call to produce
 an lvalue (which is usually but not always possible).  This routine is
-generally needed only for extensions, such as the GNU and Microsoft
-bugs that allow certain rvalues to be used as if they were lvalues;
-the standard C and C++ languages do not require such a conversion.
+used for reference casts that allow a source expression that is an
+rvalue, and for certain extensions, such as the GNU and Microsoft bugs
+that allow some rvalues to be used as if they were lvalues.
 It is also used in IL lowering, via conv_rvalue_expr_to_object_pointer.
 As will be clear from that, this routine can be called from outside
 of the expression routines; it does not reference things like the

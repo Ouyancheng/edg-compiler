@@ -8464,6 +8464,27 @@ that node.  Otherwise, return NULL.
   return node_to_return;
 }  /* cast_expr_was_added */
 
+#if CHECKING
+
+static void check_reference_cast_flag_is_set(an_operand *operand,
+                                             a_type_ptr cast_type)
+/*
+operand is the result of a cast to a reference type given by cast_type.
+Verify that the flag indicating a reference cast is properly set in
+the result expression, if any.
+*/
+{
+  an_expr_node_ptr expr = expr_node_from_operand(operand);
+
+  if (expr != NULL && is_operation_node(expr)) {
+    check_assertion(expr->variant.operation.is_reference_cast);
+    if (is_rvalue_reference_type(cast_type)) {
+      check_assertion(expr->variant.operation.is_rvalue_reference_cast);
+    }  /* if */
+  }  /* if */
+}  /* check_reference_cast_flag_is_set */
+
+#endif /* CHECKING */
 
 static void scan_dynamic_cast_operator(an_operand *result)
 /*
@@ -8480,13 +8501,12 @@ Syntax:
   a_type_ptr        underlying_operand_type;
   a_boolean         cast_type_okay, operand_type_okay;
   a_boolean         reference_case = FALSE, err = FALSE;
+  a_boolean         rvalue_reference_case = FALSE;
   a_boolean         template_param_case = FALSE;
 #if IA64_ABI
   a_boolean         void_star_case = FALSE;
 #endif /* IA64_ABI */
-  a_base_class_ptr  bcp;
   an_expr_node_ptr  expr;
-  an_expr_node_ptr  operand_expression = NULL;
 
   db_enter(4, "scan_dynamic_cast_operator");
   /* Save the position of the dynamic_cast keyword. */
@@ -8513,8 +8533,6 @@ Syntax:
                            &cast_type, &type_position, &end_position,
                            &operand)) {
     err = TRUE;
-  } else {
-    operand_expression = expr_node_from_operand(&operand);
   }  /* if */
   if (!err) {
     /* The type cast to must be a pointer or reference to a complete class
@@ -8523,6 +8541,9 @@ Syntax:
     if (is_ptr_or_ref_type(cast_type)) {
       underlying_cast_type = type_pointed_to(cast_type);
       reference_case = is_reference_type(cast_type);
+      if (reference_case && is_rvalue_reference_type(cast_type)) {
+        rvalue_reference_case = TRUE;
+      }  /* if */
       if (is_class_struct_union_type(underlying_cast_type)) {
         /* Casting to a pointer or reference to a complete class type is okay.
            Note that nonreal class types look complete here, so no special test
@@ -8603,19 +8624,29 @@ Syntax:
     } else {
       /* Reference case. */
       underlying_operand_type = operand_type;
-      /* The source operand must be an lvalue of a complete class type. */
-      if (is_an_lvalue(&operand) &&
-          is_class_struct_union_type(operand_type)) {
+      /* The source operand must be an lvalue of a complete class type
+         (or an rvalue if the destination type is an rvalue reference). */
+      if (is_class_struct_union_type(operand_type)) {
         complete_class_type_is_needed(operand_type);
         if (!is_incomplete_type(operand_type)) {
-          operand_type_okay = TRUE;
+          if (is_an_lvalue(&operand)) {
+            operand_type_okay = TRUE;
+          } else if (rvalue_reference_case && is_an_rvalue(&operand)) {
+            operand_type_okay = TRUE;
+            /* Internally, we handle this case by making the operand an
+               lvalue. */
+            conv_class_rvalue_operand_to_lvalue(&operand);
+          }  /* if */
         }  /* if */
       }  /* if */
       if (!operand_type_okay) {
         /* Bad operand type for a reference dynamic_cast. */
         err = TRUE;
         if (!is_error_type(operand_type)) {
-          pos_error(ec_bad_ref_dynamic_cast_operand, &operand.position);
+          pos_error(rvalue_reference_case ?
+                      ec_bad_rvalue_ref_dynamic_cast_operand :
+                      ec_bad_ref_dynamic_cast_operand,
+                    &operand.position);
         }  /* if */
       }  /* if */
     }  /* if */
@@ -8633,6 +8664,7 @@ Syntax:
   }  /* if */
   if (err) {
     /* Some error, previously issued. */
+    /* Error operand will be made below. */
   } else if (template_param_case) {
     /* The source operand type or the destination type is unknown, so
        generate a generic operation. */
@@ -8645,28 +8677,24 @@ Syntax:
                                              underlying_cast_type,
                                              /*ignore_qualifiers=*/TRUE,
                                              (a_boolean *)NULL) ||
-             (!reference_case && op_is_null_pointer_value(&operand))) {
-    /* The types are already the same except for qualifiers.  The result
-       is just the source cast to the destination type. */
-    /* Likewise for a null pointer value cast to a pointer type. */
+             (!reference_case && op_is_null_pointer_value(&operand)) ||
+             (is_class_struct_union_type(underlying_cast_type) &&
+              is_class_struct_union_type(underlying_operand_type) &&
+              find_base_class_of(underlying_operand_type,
+                                 underlying_cast_type) != NULL)) {
+    /* Cases where the cast is known at compile time and does not require
+       a dynamic cast at runtime:
+       -  The types are already the same except for qualifiers.
+       -  A null pointer value cast to a pointer type.
+       -  A known cast from derived to base.
+    */
     if (reference_case) {
       cast_operand_for_reference_cast(&operand, cast_type,
-                                      /*check_cast_access=*/FALSE,
+                                      /*check_cast_access=*/TRUE,
                                       /*reinterpret_semantics=*/FALSE);
     } else {
       cast_operand(cast_type, &operand, /*is_implicit_cast=*/FALSE);
     }  /* if */
-    copy_operand(&operand, result);
-  } else if (is_class_struct_union_type(underlying_cast_type) &&
-             is_class_struct_union_type(underlying_operand_type) &&
-             (bcp = find_base_class_of(underlying_operand_type,
-                                       underlying_cast_type)) != NULL) {
-    /* This is a known cast from derived to base. */
-    base_class_cast_operand(&operand, bcp, underlying_cast_type,
-                            /*check_cast_access=*/TRUE,
-                            /*is_implicit_cast=*/FALSE,
-                            /*implicit_in_naming=*/FALSE,
-                            /*is_object_pointer=*/FALSE);
     copy_operand(&operand, result);
   } else {
     /* For all other cases, the dynamic cast is done at runtime.  The operand
@@ -8697,7 +8725,14 @@ Syntax:
                                   (an_expr_operator_kind)eok_ref_dynamic_cast,
                                   underlying_cast_type,
                                   expr);
-        make_lvalue_expression_operand(expr, result);
+        expr->variant.operation.is_reference_cast = TRUE;
+        if (rvalue_reference_case) {
+          expr->is_lvalue = FALSE;
+          expr->variant.operation.is_rvalue_reference_cast = TRUE;
+          make_expression_operand(expr, result);
+        } else {
+          make_lvalue_expression_operand(expr, result);
+        }  /* if */
       } else {
         /* Generate an eok_dynamic_cast operation. */
         expr = make_operator_node((an_expr_operator_kind)eok_dynamic_cast,
@@ -8711,17 +8746,12 @@ Syntax:
   if (err) {
     /* Some error, previously issued. */
     make_error_operand(result);
-  } else {
-    if (reference_case) {
-      an_expr_node_ptr result_expression =
-                               cast_expr_was_added(operand_expression, result);
-      if (result_expression != NULL && is_operation_node(result_expression)) {
-        /* A node was created that can carry the information that this was a
-           cast to a reference type; mark it accordingly. */
-        result_expression->variant.operation.is_reference_cast = TRUE;
-      }  /* if */
-    }  /* if */
   }  /* if */
+#if CHECKING
+  if (reference_case) {
+    check_reference_cast_flag_is_set(result, cast_type);
+  }  /* if */
+#endif /* CHECKING */
   set_operand_position(result, &start_position, &end_position,
                        &start_position);
   rule_out_expr_kinds(ROEK_CONSTANT, result);
@@ -10771,12 +10801,13 @@ rewritten as a pointer cast later and an rvalue should be allowed,
 for non-class operands).  This routine is called only in C++ mode.
 */
 {
-  a_boolean    cast_to_reference, failed;
+  a_boolean    cast_to_reference, cast_to_rvalue_reference, failed;
   a_conv_descr conversion, ctor_arg_conversion;
 
   *processed = FALSE;
   *allow_rvalue_on_rewrite = FALSE;
   cast_to_reference = is_reference_type(type_cast_to);
+  cast_to_rvalue_reference = is_rvalue_reference_type(type_cast_to);
   /* Don't check for user-defined conversions in constant expressions. */
   if (!curr_expr_kind_is_const()) {
     if (cast_to_reference) {
@@ -10788,6 +10819,9 @@ for non-class operands).  This routine is called only in C++ mode.
       a_boolean    template_case;
       a_symbol_ptr function_symbol;
       revert_microsoft_rvalue_to_lvalue_if_possible(operand);
+      /* The is_cast=TRUE argument allows an lvalue expression to be cast
+         to an rvalue reference.  For a reference binding that wouldn't
+         be allowed. */
       if (direct_reference_binding_possible(operand,
                                             operand->type,
                                             type_cast_to,
@@ -10812,6 +10846,9 @@ for non-class operands).  This routine is called only in C++ mode.
           determined_conversion = NULL;
           goto process_reference_binding;
         }  /* if */
+      } else if (cast_to_rvalue_reference) {
+        /* A conversion can't be used to bind an rvalue reference, so don't
+           look for the conversion cases. */
       } else {
         /* A cast from a class to a reference type can be handled by a
            conversion function.  Look for such a function, but if one is
@@ -11052,7 +11089,8 @@ by using a temporary.
                 allow_nonconst_ref_anachronism) &&
                is_class_struct_union_type(operand->type)) {
       /* Allow a cast of a class rvalue to a reference type, when appropriate
-         (e.g., for a static_cast to a reference-to-const type). */
+         (e.g., for a static_cast to a reference-to-const type, or for
+         a cast to an rvalue reference type). */
       conv_class_rvalue_operand_to_lvalue(operand);
     } else {
       /* allow_rvalue should be TRUE only when the operand has a class type.
@@ -11324,6 +11362,7 @@ indicates which.
   a_type_ptr    source_type, adj_source_type, adj_type_cast_to;
   an_error_code warning_suggested;
   a_boolean     cast_to_void, cast_to_reference = FALSE, processed = FALSE;
+  a_boolean     processed_as_udc = FALSE;
   a_boolean     allow_rvalue_on_rewrite = FALSE;
   a_ruled_out_expr_kind_set
                 ruled_out_expr_kinds = ROEK_NONE;
@@ -11350,9 +11389,9 @@ indicates which.
       check_user_defined_conversions_for_cast(type_cast_to, operand,
                                               source_form,
                                               &allow_rvalue_on_rewrite,
-                                              &processed, &err);
+                                              &processed_as_udc, &err);
     }  /* if */
-    if (!processed) {
+    if (!processed_as_udc) {
       /* No user-defined conversion applies. */
       if (!cast_to_reference && !cast_to_void) {
         /* Normal case (not a cast to reference or cast to void). */
@@ -11450,7 +11489,7 @@ indicates which.
           a_constant_ptr operand_con = NULL;
           /* Convert lvalue --> rvalue unless casting to a reference type. */
           if (!cast_to_reference) {
-            /* Normal cast.  All standard C cases. */
+            /* Normal cast, including all standard C cases. */
             a_ref_entry_ptr ref_entries_list = operand->ref_entries_list;
             conv_lvalue_to_rvalue(operand);
             if (gcc_mode && gnu_version < 40000) {
@@ -11569,14 +11608,10 @@ indicates which.
   }  /* if */
   if (err) {
     conv_to_error_operand(operand);
-  } else if (cast_to_reference) {
-    an_expr_node_ptr result_expression =
-                              cast_expr_was_added(operand_expression, operand);
-    if (result_expression != NULL && is_operation_node(result_expression)) {
-      /* A node was created that can carry the information that this was a
-         cast to a reference type; mark it accordingly. */
-      result_expression->variant.operation.is_reference_cast = TRUE;
-    }  /* if */
+#if CHECKING
+  } else if (cast_to_reference && !processed_as_udc) {
+    check_reference_cast_flag_is_set(operand, type_cast_to);
+#endif /* CHECKING */
   }  /* if */
   operand->position = *start_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -11602,6 +11637,7 @@ Syntax:
   a_type_ptr        operation_type;
   a_boolean         cast_type_okay, template_param_case = FALSE;
   a_boolean         reference_case = FALSE, err = FALSE;
+  a_boolean         rvalue_reference_case = FALSE;
   a_boolean         microsoft_enum_cast_case = FALSE;
   a_boolean         microsoft_lvalue_cast_case = FALSE;
   a_ruled_out_expr_kind_set
@@ -11631,7 +11667,11 @@ Syntax:
   } else {
     operand_expression = expr_node_from_operand(&operand);
   }  /* if */
-  if (microsoft_bugs &&
+  reference_case = is_reference_type(cast_type);
+  if (reference_case && is_rvalue_reference_type(cast_type)) {
+    rvalue_reference_case = TRUE;
+  }  /* if */
+  if (microsoft_bugs && !rvalue_reference_case &&
       identical_types_ignoring_qualifiers(operand.type,
                                           cast_type)) {
     a_boolean do_lvalue_check = FALSE;
@@ -11655,7 +11695,6 @@ Syntax:
   }  /* if */
   /* Except when casting to a reference type, do operand transformations
      on the source operand. */
-  reference_case = is_reference_type(cast_type);
   if (!reference_case && !microsoft_lvalue_cast_case) {
     do_operand_transformations(&operand, TOPT_NO_OPTIONS);
   }  /* if */
@@ -11725,9 +11764,19 @@ Syntax:
         /* Cast to reference type. */
         /* The source operand must be an lvalue. */
         if (!is_an_lvalue(&operand)) {
-          err = TRUE;
-          if (!is_error_operand(&operand)) {
-            pos_error(ec_expr_not_an_lvalue, &operand.position);
+          /* ... but an rvalue is also okay for a cast to an rvalue reference
+             type. */
+          if (rvalue_reference_case && is_an_rvalue(&operand)) {
+            /* Internally, we handle this case by making the operand an
+               lvalue. */
+            conv_class_rvalue_operand_to_lvalue(&operand);
+          } else {
+            err = TRUE;
+            if (!is_error_operand(&operand)) {
+              /* It's very hard to get here for an rvalue reference case,
+                 so we don't bother with a separate message for that case. */
+              pos_error(ec_expr_not_an_lvalue, &operand.position);
+            }  /* if */
           }  /* if */
         }  /* if */
       }  /* if */
@@ -11757,6 +11806,7 @@ Syntax:
       /* The Microsoft case of an lvalue cast of an enum value to the same
          enum type with possibly adjusted cv-qualifiers does nothing but
          adjust the cv-qualifiers. */
+      check_assertion(!rvalue_reference_case);
       microsoft_lvalue_cv_qual_adjustment(&operand, cast_type,
                                           /*compiler_generated=*/FALSE);
     } else {
@@ -11777,12 +11827,14 @@ Syntax:
         /* A node was created that can carry the information that this was a
            const_cast; mark it accordingly. */
         result_expression->variant.operation.is_const_cast = TRUE;
-        if (reference_case) {
-          result_expression->variant.operation.is_reference_cast = TRUE;
-        }  /* if */
       }  /* if */
     }
   }  /* if */
+#if CHECKING
+  if (reference_case) {
+    check_reference_cast_flag_is_set(result, cast_type);
+  }  /* if */
+#endif /* CHECKING */
   set_operand_position(result, &start_position, &end_position,
                        &start_position);
   rule_out_expr_kinds(ruled_out_expr_kinds, result);
@@ -11803,6 +11855,7 @@ Syntax:
   a_type_ptr        type_cast_to, adj_type_cast_to;
   a_type_ptr        source_type, adj_source_type;
   a_boolean         err = FALSE, processed = FALSE, ignored = FALSE;
+  a_boolean         processed_as_udc = FALSE;
   a_boolean         allow_rvalue_on_rewrite = FALSE;
   a_boolean         cast_to_reference = FALSE;
   an_error_code     warning_suggested;
@@ -11839,8 +11892,10 @@ Syntax:
     check_user_defined_conversions_for_cast(type_cast_to, result,
                                             csf_static_cast,
                                             &allow_rvalue_on_rewrite,
-                                            &processed, &err);
-    if (!processed) {
+                                            &processed_as_udc, &err);
+    if (processed_as_udc) {
+      processed = TRUE;
+    } else {
       /* In some modes, a do-nothing cast is thrown away (and the operand
          stays an lvalue if it is one). */
       if ((microsoft_bugs || sun_mode) &&
@@ -12006,17 +12061,10 @@ Syntax:
   }  /* if */
   if (err) {
     conv_to_error_operand(result);
-  } else if (!ignored) {
-    an_expr_node_ptr result_expression =
-                               cast_expr_was_added(operand_expression, result);
-    if (result_expression != NULL) {
-      /* An expression node was created that represents this static_cast:
-         mark it as resulting from a static_cast operation. */
-      result_expression->is_static_cast = TRUE;
-      if (cast_to_reference && is_operation_node(result_expression)) {
-        result_expression->variant.operation.is_reference_cast = TRUE;
-      }  /* if */
-    }  /* if */
+#if CHECKING
+  } else if (cast_to_reference && !ignored && !processed_as_udc) {
+    check_reference_cast_flag_is_set(result, type_cast_to);
+#endif /* CHECKING */
   }  /* if */
   set_operand_position(result, &start_position, &end_position,
                        &start_position);
@@ -12038,6 +12086,7 @@ Syntax:
   a_type_ptr        type_cast_to, adj_type_cast_to;
   a_type_ptr        source_type, adj_source_type;
   a_boolean         cast_to_reference = FALSE, err = FALSE;
+  a_boolean         cast_to_rvalue_reference = FALSE;
   an_error_code     warning_suggested;
   a_boolean         processed = FALSE;
   a_boolean         microsoft_ignored_case = FALSE;
@@ -12081,6 +12130,9 @@ Syntax:
     }  /* if */
     /* Check for casts to reference type. */
     cast_to_reference = is_reference_type(type_cast_to);
+    if (cast_to_reference && is_rvalue_reference_type(type_cast_to)) {
+      cast_to_rvalue_reference = TRUE;
+    }  /* if */
     if (!cast_to_reference && !microsoft_ignored_case) {
       /* Do lvalue --> rvalue, array --> pointer, and function --> pointer
          conversions.  They must be done now because they affect the type
@@ -12110,7 +12162,8 @@ Syntax:
       /* Determine the types to be used for checking a reference cast
          if we pretend it has been rewritten as a pointer cast. */
       set_up_cast_to_reference(type_cast_to, result,
-                               /*allow_rvalue_on_rewrite=*/FALSE,
+                               /*allow_rvalue_on_rewrite=*/
+                                                      cast_to_rvalue_reference,
                                csf_reinterpret_cast,
                                &adj_type_cast_to,
                                &adj_source_type,
@@ -12197,9 +12250,13 @@ Syntax:
       /* A node was created that can carry the information that this was a
          reinterpret_cast; mark it accordingly. */
       result_expression->variant.operation.is_reinterpret_cast = TRUE;
+#if CHECKING
+      /* This check is done here instead of at the top level in order not to
+         be confused by the microsoft_ignored_case case. */
       if (cast_to_reference) {
-        result_expression->variant.operation.is_reference_cast = TRUE;
+        check_reference_cast_flag_is_set(result, type_cast_to);
       }  /* if */
+#endif /* CHECKING */
     }  /* if */
   }  /* if */
   set_operand_position(result, &start_position, &end_position,
