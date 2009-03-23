@@ -1,5 +1,18 @@
 Version 4.1
 
+3/23/09  [EDGcpfe/9631]
+GNU C++ compatibility: Member declarations that don't declare anything
+
+In GNU C++ mode, the front end now accepts (with a warning) a member
+declaration that doesn't declare anything if that declaration refers to a
+class or enumeration type using an elaboration type name.  For example:
+
+  enum E {};
+  struct S {
+    enum ::E;  // Now accepted in g++ mode.
+  };
+
+
 3/21/09  [EDGcpfe/9641]
 Use of uninitialized variable in constant address folding
 

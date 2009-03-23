@@ -13390,14 +13390,9 @@ routine.
     } else if (dso_flags & DSO_DEFINES_SOMETHING) {
       /* A declaration with no declarator that defines a type but doesn't
          declare a name (since DSO_DECLARES_SOMETHING flag is FALSE) -- e.g.,
-         "struct { int i; };" or "enum {};". */
-      /* Does the Working Paper rule out such useless constructs?  The first
-         sentence of Chapter 7 says, "A declaration introduces one or more
-         names into a program", and if DSO_DECLARES_SOMETHING is not set no
-         name was introduced.  On the other hand, 9.2 para 6 allows the
-         omission of declarators with enum and class specifiers.  However,
-         we take this to include only enum and class specifiers that at
-         least declare *something*. */
+         "struct { int i; };" or "enum {};".
+         The standard does not allow such constructs, but we accept them
+         with a warning in default mode. */
       pos_diagnostic(strict_ansi_mode ? strict_ansi_error_severity :
                                         es_warning,
                      ec_useless_decl, err_pos);
@@ -13407,8 +13402,14 @@ routine.
                        ec_useless_type_qualifiers, err_pos);
       }  /* if */
     } else {
-      /* A case like "int;" is explicitly disallowed by language in ARM 9.2. */
-      pos_error(ec_useless_decl, err_pos);
+      /* A case like "int;" or "enum ::E;": Issue an error. */
+      an_error_severity  sev = es_error;
+      if (gpp_mode && (dso_flags & DSO_ELABORATED_TYPE_SPECIFIER) != 0) {
+        /* g++ accepts the useless member declaration in
+               enum E {}; struct X { enum ::E; }; */
+        sev = es_warning;
+      }  /* if */
+      pos_diagnostic(sev, ec_useless_decl, err_pos);
     }  /* if */
   } else {
     /* C mode. */
