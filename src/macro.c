@@ -165,8 +165,8 @@ static a_macro_text_map
 static a_symbol_ptr
 		Pragma_macro_symbol;
 			/* Pointer to the symbol entry for the special
-			   macro "_Pragma", which is used in C99 mode and
-			   GNU modes. */
+			   macro "_Pragma", which is used in modes where
+			   the C99-style pragma operator is allowed. */
 
 static a_symbol_ptr
 		microsoft_pragma_macro_symbol;
@@ -1947,8 +1947,8 @@ so that "defined" will not be found as a defined macro.
   assoc_symbol = find_macro_symbol(sym_hdr);
   /* If the macro found is the pseudo-macro "defined" (which is used as
      an operator in #if statements), or "_Pragma" (which is used for the
-     C99 _Pragma operator), or "__pragma" (which is used for the Microsoft
-     __pragma operator) pretend it was not found. */
+     C99-style _Pragma operator), or "__pragma" (which is used for the
+     Microsoft __pragma operator) pretend it was not found. */
   if (assoc_symbol == defined_macro_symbol ||
       assoc_symbol == Pragma_macro_symbol ||
       assoc_symbol == microsoft_pragma_macro_symbol) {
@@ -2347,8 +2347,8 @@ is the source position of the _Pragma token.
 
 static void scan_pragma_operator(a_boolean *got_proper_closing_token)
 /*
-Process a C99 _Pragma operator.  The current token is the _Pragma identifier
-token.  The form of a _Pragma invocation is:
+Process a C99-style _Pragma operator.  The current token is the _Pragma
+identifier token.  The form of a _Pragma invocation is:
 
 	_Pragma("string")
 
@@ -3776,7 +3776,7 @@ end_scan_for_macro_modifs:;
            otherwise. */
         (void)strcpy(repl_text, curr_ise->from_system_include_dir ? "0" : "1");
       } else if (macro_symbol == Pragma_macro_symbol) {
-        /* The C99 _Pragma operator.  This is invoked as
+        /* The C99-style _Pragma operator.  This is invoked as
                _Pragma("pragma-name pragma-operands(opt)")
            Call a routine to translate the string into a pending pragma
            entry. */
@@ -7826,7 +7826,7 @@ command line -D options.
   base_file_macro_symbol = enter_predef_macro((char *)NULL, "__BASE_FILE__",
                                             /*cannot_be_redefined=*/TRUE,
                                             /*ref_suppresses_pch_file=*/FALSE);
-  if (c99_mode || gnu_mode) {
+  if (pragma_operator_allowed) {
     /* Like the special macros defined above, _Pragma is entered as a
        predefined macro but is handled specially during replacement. */
     Pragma_macro_symbol = enter_predef_macro((char *)NULL, "_Pragma",
@@ -7834,7 +7834,7 @@ command line -D options.
                                             /*ref_suppresses_pch_file=*/FALSE);
   }  /* if */
   if (microsoft_mode) {
-    /* __pragma is like the C99 _Pragma operator except the argument is a
+    /* __pragma is like the C99-style _Pragma operator except the argument is a
        series of tokens, not a string literal.  Like _Pragma, it receives
        special treatment during replacement. */
     microsoft_pragma_macro_symbol = enter_predef_macro(

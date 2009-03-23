@@ -617,6 +617,11 @@ EXTERN a_boolean
 			   accepted. */
 
 EXTERN a_boolean
+		pragma_operator_allowed;
+			/* TRUE if the _Pragma operator (originally from C99)
+			   should be accepted. */
+
+EXTERN a_boolean
 		extended_variadic_macros_allowed;
 			/* TRUE if '#define EVM(args ...) args' should be
 			   accepted; also enables the deletion of the

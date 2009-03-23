@@ -1615,8 +1615,8 @@ Microsoft __pragma operator.*/
     incr_token_set_array_element(stop_tokens, tok_rparen);
     cache_token_stream(&ppp->token_cache, stop_tokens);
   } else {
-    /* A normal #pragma or C99 _Pragma.  Cache the tokens until an end-of-line
-      is found. */
+    /* A normal #pragma or C99-style _Pragma.  Cache the tokens until an
+       end-of-line is found. */
     for (;;) {
       if (curr_token == tok_newline || curr_token == tok_end_of_source) break;
       cache_curr_token(&ppp->token_cache);

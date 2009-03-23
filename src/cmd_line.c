@@ -2047,6 +2047,8 @@ Set the various flags appropriate to C99 mode.
     /* Support for alternative tokens is turned on by default in C99 mode. */
     alternative_tokens_allowed = TRUE;
   }  /* if */
+  /* The _Pragma operator is allowed. */
+  pragma_operator_allowed = TRUE;
   /* In C99 mode, strict or otherwise, // comments are allowed. */
   end_of_line_comments_allowed = TRUE;
   /* The final field of a struct may be an incomplete array. */
@@ -2307,6 +2309,7 @@ the next standard).
   long_long_is_standard = TRUE;
   long_long_promotion_allowed = TRUE;
   variadic_macros_allowed = TRUE;
+  pragma_operator_allowed = TRUE;
   static_assert_enabled = TRUE;
   auto_type_specifier_enabled = TRUE;
   auto_storage_class_specifier_enabled = FALSE;
@@ -2343,6 +2346,7 @@ may get enabled in the other non-C++0x modes.
     mixed_string_concat_enabled = TRUE;
     extended_friends_enabled = TRUE;
     variadic_macros_allowed = TRUE;
+    pragma_operator_allowed = TRUE;
     extern_template_allowed = TRUE;
     standard_form_of_extern_template = TRUE;
   }  /* if */
@@ -3032,6 +3036,7 @@ exclude the GNU modes already.  Hence those are not checked again here.)
     variadic_macros_allowed = TRUE;
     extended_variadic_macros_allowed = TRUE;
   }  /* if */
+  pragma_operator_allowed = TRUE;
   if (!(option_kind_used[(int)optk_allow_dollar_in_id_chars])) {
     /* If identifiers with dollar signs were not enabled or disabled on the
        command line, enable them now. */
@@ -8430,6 +8435,7 @@ variables declared in cmd_line.h.
 #endif /* DESIGNATED_INITIALIZER_ENABLING_POSSIBLE */
   variadic_macros_allowed = DEFAULT_VARIADIC_MACROS_ALLOWED;
   extended_variadic_macros_allowed = DEFAULT_EXTENDED_VARIADIC_MACROS_ALLOWED;
+  pragma_operator_allowed = FALSE;
   compound_literals_allowed = DEFAULT_COMPOUND_LITERALS_ALLOWED;
   fixed_point_enabled =
 #if FIXED_POINT_ALLOWED
