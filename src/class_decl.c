@@ -8563,7 +8563,7 @@ implicitly declared member functions.
       }  /* if */
     }  /* if */
     if (exceptions_enabled && compiler_generated &&
-        !class_type->variant.class_struct_union.is_prototype_instantiation) {
+        !class_type->variant.class_struct_union.is_nonreal_class) {
       /* A compiler generated constructor, destructor, or assignment
          operator is assumed to throw any exception that can be thrown by
          any base-class function it will call. */

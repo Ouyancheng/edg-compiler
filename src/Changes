@@ -1,5 +1,19 @@
 Version 4.1
 
+3/23/09  [EDGcpfe/9644]
+Internal error on local class that derives from nonreal class
+
+When nonclass prototype instantiations are being used, an internal error
+could occur (in find_copy_assignment_operator) on the declaration of
+a local class that has a nonreal base class.  Now fixed.
+
+  template <class T> struct A {};
+  template <class U> void f(U x) {
+    struct B { };
+    struct D : A<B> { };
+  }
+
+
 3/23/09  [EDGcpfe/9631]
 GNU C++ compatibility: Member declarations that don't declare anything
 
