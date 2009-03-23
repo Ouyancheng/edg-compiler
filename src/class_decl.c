@@ -3018,8 +3018,10 @@ the overridden symbol.
                             is_class_struct_union_type(tp2);
       if (pointers_to_classes || gpp_mode) {
         /* In most modes, the types referenced/pointed to must both be
-           (related) classes.  GNU C++ also accepts other types, provided
-           they differ only in qualification. */
+           (related) classes.  GNU C++ accepts types that differ only in
+           qualification.  GNU C++ also accepts overriding a function with a
+           void* return type with a function that returns a different pointer
+           type. */
         a_type_qualifier_set  tp1_quals = get_type_qualifiers(tp1);
         a_type_qualifier_set  tp2_quals = get_type_qualifiers(tp2);
         if (!any_qualifier_in_set_missing(tp2_quals, tp1_quals)) {
@@ -3030,12 +3032,14 @@ the overridden symbol.
           tp2 = skip_typerefs(tp2);
           /* Next see if the class associated with the overridden function
              is the same as or a base class of the class associated with the
-             overriding function.  (In GNU mode, they might also be identical
-             nonclass types.) */
-          if (identical_types(tp1, tp2)) {
-            /* The underlying types types are the same. */
+             overriding function.  (In GNU mode, they might also be nonclass
+             types.) */
+          if (identical_types(tp1, tp2) || is_void_type(tp2)) {
+            /* The underlying types are the same or the overridden function
+               returns void* (ignoring cv-qualifiers). */
             compatible = TRUE;
             if (!pointers_to_classes) {
+              check_assertion(gpp_mode);
               pos_syty_warning(
                         ec_different_return_type_on_virtual_function_override,
                         diag_pos, diag_sym,
