@@ -5,7 +5,8 @@ Internal error on local class that derives from nonreal class
 
 When nonclass prototype instantiations are being used, an internal error
 could occur (in find_copy_assignment_operator) on the declaration of
-a local class that has a nonreal base class.  Now fixed.
+a local class that has a nonreal base class.  Now fixed.  This particular
+example requires strict mode.
 
   template <class T> struct A {};
   template <class U> void f(U x) {
