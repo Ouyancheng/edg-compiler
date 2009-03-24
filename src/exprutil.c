@@ -5683,17 +5683,8 @@ when gnu_version would ordinarily indicate they should not be.
           is_operation_node(expr) &&
           expr->variant.operation.kind ==
                                       (an_expr_operator_kind)eok_lvalue_cast) {
-        /* g++ version of lvalue cast.  Drop it if casts are to be ignored,
-           warn otherwise. */
-        if (ignore_casts) {
-          orig_operand = *operand;
-          expr = expr->variant.operation.operands;
-          make_lvalue_expression_operand(expr, operand);
-          restore_operand_details(operand, &orig_operand);
-          pos_warning(ec_gcc_lvalue_cast_ignored, &operand->position);
-        } else {
-          pos_warning(ec_gcc_use_of_cast_as_lvalue, &operand->position);
-        }  /* if */
+        /* g++ version of lvalue cast.  Warn on the nonstandard use. */
+        pos_warning(ec_gcc_use_of_cast_as_lvalue, &operand->position);
       }  /* if */
     }  /* if */
   }  /* if */

@@ -11316,11 +11316,13 @@ an lvalue cast in g++ mode.
 
   if (gpp_mode && gnu_version < 30400 && is_an_lvalue(operand) &&
       !curr_expr_kind_is_const()) {
-    /* A cast that is essentially a do-nothing cast on an integral operand
+    /* A cast between like-sized integral types or pointer types
        is treated as an lvalue cast. */
     a_type_ptr source_type = operand->type;
-    if (is_integral_or_enum_type(source_type) &&
-        is_integral_or_enum_type(type_cast_to) &&
+    if (((is_integral_or_enum_type(source_type) &&
+          is_integral_or_enum_type(type_cast_to)) ||
+         (is_pointer_type(source_type) &&
+          is_pointer_type(type_cast_to))) &&
         f_skip_typerefs(source_type)->size ==
                                          f_skip_typerefs(type_cast_to)->size &&
         !f_identical_types(source_type,

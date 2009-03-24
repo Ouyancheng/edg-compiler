@@ -1,5 +1,21 @@
 Version 4.1
 
+3/24/09  [EDGcpfe/9633,EDGcpfe/5781,EDGcpfe/6502,EDGcpfe/8146,EDGcpfe/8465,
+          EDGcpfe/9138]
+g++ mode lvalue casts, again
+
+In g++ mode with gnu_version < 30400, casts from integral to same-sized
+integral types (see Changes entry of 9/15/05), and from pointer type
+to same-sized pointer type (new with this change) can leave the result
+as an lvalue.  These casts are no longer ignored in assignment and
+increment/decrement contexts.
+
+  int main() {
+    int *pi;
+    void *pv;
+    (void*)pi = pv;  // g++ 3.3 accepts this, and now we do also
+  }
+
 3/23/09  [EDGcpfe/7682]
 _Pragma operator now supported in C++ mode
 
