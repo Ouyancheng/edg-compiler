@@ -2921,6 +2921,7 @@ conversions.
                                 /*constant_context=*/FALSE,
                                 /*evaluated_context=*/TRUE,
                                 /*fold_constant_addr_exprs=*/FALSE,
+                                check_cast_access,
                                 check_ambiguity,
                                 reinterpret_semantics,
                                 /*maintain_expression=*/FALSE,
@@ -3261,6 +3262,7 @@ user-defined conversions.
                                   curr_expr_kind_is_const(),
                                   curr_expr_is_evaluated(),
                                   (a_boolean)expr_stack->favor_constant_result,
+                                  check_cast_access,
                                   check_ambiguity,
                                   reinterpret_semantics,
                                   /*maintain_expression=*/FALSE,/*Done below*/
@@ -10715,6 +10717,7 @@ it might produce an error).
                                   curr_expr_kind_is_const(),
                                   curr_expr_is_evaluated(),
                                   (a_boolean)expr_stack->favor_constant_result,
+                                  /*check_cast_access=*/FALSE,
                                   /*check_ambiguity=*/FALSE,
                                   /*is_reinterpret_cast=*/FALSE,
                                   /*maintain_expression=*/TRUE,

@@ -1342,24 +1342,25 @@ static void fold_pm_derived_class_cast(a_constant        *constant_1,
                                        a_base_class      *bcp,
                                        a_constant        *result,
                                        a_boolean         is_implicit_cast,
+                                       a_boolean         check_cast_access,
                                        a_boolean         *did_not_fold,
                                        a_source_position *err_pos)
 /*
 Fold a C++ cast of a pointer to a member of a class to pointer to member
 of a derived class.  constant_1 is a pointer-to-member constant.  It is
 converted to a pointer-to-member for the derived class (given by
-result->type) and the new constant is returned in *result.  The cast
-is implicit (and access checking must be done) if is_implicit_cast is
-TRUE.  bcp points to the base class entry for the current type relative
-to the desired derived type.  If there is an error, it is issued at *err_pos.
-If the cast cannot be folded, *did_not_fold is returned TRUE.
+result->type) and the new constant is returned in *result.  bcp points
+to the base class entry for the current type relative to the desired
+derived type.  The cast is implicit if is_implicit_cast is TRUE.
+Access should be checked if check_cast_access is TRUE.  If there is an
+error, it is issued at *err_pos.  If the cast cannot be folded,
+*did_not_fold is returned TRUE.
 */
 {
   a_type_ptr            new_type = result->type, curr_type;
   a_type_ptr            derived_class_type;
   a_derivation_step_ptr dsp;
   a_base_class_ptr      base_class;
-  a_boolean             check_cast_access = is_implicit_cast;
 
   /* The code here looks like add_pm_derived_class_casts. */
   *did_not_fold = FALSE;
@@ -1430,6 +1431,7 @@ static void conv_ptr_to_member_to_ptr_to_member(
                                          a_constant        *old_constant,
                                          a_constant        *new_constant,
                                          a_boolean         is_implicit_cast,
+                                         a_boolean         check_cast_access,
                                          a_boolean         is_reinterpret_cast,
                                          a_boolean         *did_not_fold,
                                          a_source_position *err_pos,
@@ -1440,8 +1442,9 @@ Convert a pointer-to-member constant to a pointer-to-member constant of
 a different type.  old_constant is the original constant.  new_constant->type
 indicates the desired new type.  The converted constant is put into
 *new_constant.  This is an implicit cast if is_implicit_cast is TRUE.
-This is a reinterpret_cast if is_reinterpret_cast is TRUE.
-If the cast cannot be folded, *did_not_fold is returned TRUE.
+Check access if check_cast_access is TRUE.  This is a reinterpret_cast
+if is_reinterpret_cast is TRUE.  If the cast cannot be folded,
+*did_not_fold is returned TRUE.
 */
 {
   a_type_ptr       new_type = new_constant->type, new_class;
@@ -1500,7 +1503,8 @@ If the cast cannot be folded, *did_not_fold is returned TRUE.
        the cast is implicit), or the base class is a virtual base of the
        derived class. */
     fold_pm_derived_class_cast(old_constant, bcp, new_constant,
-                               is_implicit_cast, did_not_fold, err_pos);
+                               is_implicit_cast, check_cast_access,
+                               did_not_fold, err_pos);
   } else {
     unexpected_condition_str(
                     "conv_ptr_to_member_to_ptr_to_member: unrelated classes");
@@ -1627,6 +1631,7 @@ void type_change_constant_full(a_constant        *constant,
                                a_boolean         constant_context,
                                a_boolean         evaluated_context,
                                a_boolean         fold_constant_addr_exprs,
+                               a_boolean         check_cast_access,
                                a_boolean         check_ambiguity,
                                a_boolean         is_reinterpret_cast,
                                a_boolean         maintain_expression,
@@ -1644,8 +1649,9 @@ so any error is thrown away and *did_not_fold is returned TRUE.
 *did_not_fold is also returned TRUE in other cases where the folding
 cannot be done.  fold_constant_addr_exprs is TRUE if constant address
 expressions should be folded (e.g., base class casts); if it is FALSE,
-*did_not_fold is set instead for those.  check_ambiguity is TRUE if
-ambiguity checking should be done on related-class casts.
+*did_not_fold is set instead for those.  check_cast_access is TRUE if
+access checking should be done on related-class casts.  check_ambiguity
+is TRUE if ambiguity checking should be done on related-class casts.
 If is_reinterpret_cast is TRUE, this cast is a reinterpret_cast;
 related-class casts are treated like casts between unrelated classes.
 If maintain_expression is TRUE, any expression attached to the constant
@@ -1742,7 +1748,7 @@ is maintained, by adding a cast if necessary.
        early -- like this -- to catch ((unsigned)((int)&x)).  That case
        would have constant_type->kind == tk_integer and new_type->kind
        == tk_integer, and so would not look like it involves pointers. */
-    conv_pointer_to_whatever(constant, &new_constant, is_implicit_cast,
+    conv_pointer_to_whatever(constant, &new_constant, check_cast_access,
                              check_ambiguity, is_implicit_cast,
                              fold_constant_addr_exprs, is_reinterpret_cast,
                              did_not_fold, err_pos, &err_code, &err_severity);
@@ -1923,7 +1929,7 @@ is maintained, by adding a cast if necessary.
 
     case tk_pointer:
       /* Converting from pointer. */
-      conv_pointer_to_whatever(constant, &new_constant, is_implicit_cast,
+      conv_pointer_to_whatever(constant, &new_constant, check_cast_access,
                                check_ambiguity, is_implicit_cast,
                                fold_constant_addr_exprs, is_reinterpret_cast,
                                did_not_fold, err_pos,
@@ -1934,6 +1940,7 @@ is maintained, by adding a cast if necessary.
       /* Converting from pointer-to-member to pointer-to-member. */
       conv_ptr_to_member_to_ptr_to_member(constant, &new_constant,
                                           is_implicit_cast,
+                                          check_cast_access,
                                           is_reinterpret_cast,
                                           did_not_fold,
                                           err_pos,
@@ -2052,6 +2059,7 @@ description of the parameters.
                             /*constant_context=*/TRUE,
                             /*evaluated_context=*/TRUE,
                             /*fold_constant_addr_exprs=*/TRUE,
+                            /*check_cast_access=*/is_implicit_cast,
                             /*check_ambiguity=*/TRUE,
                             /*is_reinterpret_cast=*/FALSE,
                             maintain_expression, did_not_fold, err_pos);

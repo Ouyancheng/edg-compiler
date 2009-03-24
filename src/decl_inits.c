@@ -2056,6 +2056,7 @@ IL a_constant entity.
                                 /*constant_context=*/FALSE,
                                 /*evaluated_context=*/TRUE,
                                 /*fold_constant_addr_exprs=*/FALSE,
+                                /*check_cast_access=*/FALSE,
                                 /*check_ambiguity=*/FALSE,
                                 /*is_reinterpret_cast=*/FALSE,
                                 /*maintain_expression=*/TRUE,
