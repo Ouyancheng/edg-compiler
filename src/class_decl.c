@@ -1257,7 +1257,7 @@ specifies the position of the parameter in the parameter list.
        has not been cached yet, cache it now.  This cache will be discarded
        at the end of processing this function declarator. */
     cache_rest_of_declaration(decl_cache, /*stop_on_colon=*/FALSE,
-                              /*stop_on_lbrace=*/TRUE);
+                              /*stop_on_lbrace=*/FALSE);
   }  /* if */
   prescan_default_function_arg_expr(ptp, list, decl_cache,
                                     /*is_function_template=*/FALSE,

@@ -151,11 +151,13 @@ be FALSE when either is_function_template or is_template_param are FALSE.
   incr_token_set_array_element(stop_tokens, tok_ellipsis);
   incr_token_set_array_element(stop_tokens, tok_rparen);
   incr_token_set_array_element(stop_tokens, tok_semicolon);
-  incr_token_set_array_element(stop_tokens, tok_lbrace);
-  incr_token_set_array_element(stop_tokens, tok_rbrace);
-  /* When scanning a template default argument add ">" to the stop tokens. */
+  /* When scanning a template default argument add ">" to the stop tokens.
+     Also add "{" and "}" as lambdas cannot appear in template default
+     arguments. */
   if (is_template_param) {
     incr_token_set_array_element(stop_tokens, tok_gt);
+    incr_token_set_array_element(stop_tokens, tok_lbrace);
+    incr_token_set_array_element(stop_tokens, tok_rbrace);
   }  /* if */
   clear_token_cache(token_cache, /*reusable=*/TRUE);
   cache_token_stream_coalesce_identifiers(token_cache, stop_tokens,
