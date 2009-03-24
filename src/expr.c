@@ -11858,6 +11858,7 @@ Syntax:
   an_error_code     warning_suggested;
   a_ruled_out_expr_kind_set
                     ruled_out_expr_kinds = ROEK_NONE;
+  an_expr_node_ptr  operand_expression = NULL;
 
   db_enter(4, "scan_static_cast_operator");
   /* Save the position of the static_cast keyword. */
@@ -11880,9 +11881,10 @@ Syntax:
                            result)) {
     err = TRUE;
   } else {
-    a_boolean cast_to_void      = is_void_type(type_cast_to);
+    a_boolean cast_to_void = is_void_type(type_cast_to);
 
     cast_to_reference = is_reference_type(type_cast_to);
+    operand_expression = expr_node_from_operand(result);
     /* Check for user-defined conversions and casts to reference type. */
     check_user_defined_conversions_for_cast(type_cast_to, result,
                                             csf_static_cast,
@@ -12056,9 +12058,18 @@ Syntax:
   }  /* if */
   if (err) {
     conv_to_error_operand(result);
+  } else if (!ignored) {
+    an_expr_node_ptr result_expression =
+                               cast_expr_was_added(operand_expression, result);
+    if (result_expression != NULL) {
+      /* An expression node was created that represents this static_cast:
+         mark it as resulting from a static_cast operation. */
+      result_expression->is_static_cast = TRUE;
+    }  /* if */
 #if CHECKING
-  } else if (cast_to_reference && !ignored && !processed_as_udc) {
-    check_reference_cast_flag_is_set(result, type_cast_to);
+    if (cast_to_reference && !processed_as_udc) {
+      check_reference_cast_flag_is_set(result, type_cast_to);
+    }  /* if */
 #endif /* CHECKING */
   }  /* if */
   set_operand_position(result, &start_position, &end_position,
