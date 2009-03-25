@@ -5580,7 +5580,7 @@ is TRUE, a routine otherwise.
   end_externalized_name(module_scp, &mctl);
   add_to_mangled_name('\0', &mctl);
   /* Copy the externalized name into the entity's source correspondence. */
-  name_len = strlen(mangling_text_buffer->buffer);
+  name_len = mangling_text_buffer->size - 1;
   externalized_name = alloc_lowered_name_string(name_len + 1);
   (void)strcpy(externalized_name, mangling_text_buffer->buffer);
 #if IA64_ABI

@@ -211,8 +211,7 @@ Unmangled member function in local class type
 In certain cases (involving a function whose lowering is delayed and a local
 class member that can't be inlined), the names in a local class were not
 mangled, causing compilation errors in generated C code.  This example had
-generated incorrect C code (with --no_inlining --strict) and now compiles
-cleanly:
+generated incorrect C code (in strict mode) and now compiles cleanly:
 
   struct A {
     void f() {
@@ -221,15 +220,15 @@ cleanly:
           struct C {
             void operator()() { for(;;); }  // unmangled in generated C
           } c;
-          c();
-        }
+          (c(), 0);
+        } 
       } b;
       b.g();
     }
   } a;
   void h() {
     a.f();
-  }
+  } 
 
 
 3/17/09 [EDGcpfe/9625]
