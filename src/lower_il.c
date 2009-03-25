@@ -17584,13 +17584,8 @@ so they are left in the scope.
            an inline function is not inlinable, a static definition may
            be needed and its name must be mangled. */
         a_class_type_supplement_ptr ctsp = class_type_supp(type);
-        a_routine_ptr               rout;
         if (ctsp->assoc_scope != NULL) {
-          for (rout = ctsp->assoc_scope->routines;
-               rout != NULL;
-               rout = rout->next) {
-            mangle_function_name(rout);
-          }  /* for */
+          do_scope_other_name_mangling(ctsp->assoc_scope);
         }  /* if */
       }  /* if */
     }  /* for */
