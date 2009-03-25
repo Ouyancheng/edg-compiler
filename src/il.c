@@ -7233,6 +7233,12 @@ it's to be moved to another position in the list.
              already on the list. */
           may_be_added = FALSE;
         }  /* if */
+      } else if (ssep->kind == (a_scope_kind)sck_class_reactivation) {
+        /* A closure class that was created in a class reactivation scope.
+           This was added to the type list specially and should not be
+           handled here. */
+        check_assertion(class_type_supp(type_ptr)->is_lambda_closure_class);
+        may_be_added = FALSE;
       }  /* if */
     } else if (type_ptr->source_corresp.is_class_member) {
       /* Check for a nested class that is being defined after the definition
@@ -7437,6 +7443,42 @@ rather than determined directly.
     set_parent_scope(&type_ptr->source_corresp, iek_type, sp);
   }  /* if */
 }  /* set_parent_scope_for_type */
+
+
+void add_lambda_closure_to_types_list(a_type_ptr     type_ptr,
+                                      a_scope_depth  scope_level)
+/*
+Add the given lambda closure type to the types list for the scope
+specified by scope_level.  If scope_level specifies a class reactivation
+scope, instead of the normal add_to_types_list call, special processing is
+done to add the type to the end of the types list for the enclosing class.
+*/
+{
+  a_scope_stack_entry_ptr  ssep;
+
+  check_assertion(scope_level != NO_SCOPE_DEPTH);
+  ssep = scope_stack_entry_for(scope_level);
+  if (ssep->kind == (a_scope_kind)sck_class_reactivation) {
+    /* When a lambda appears in a class reactivation scope it must be added
+       to the types list of the class that was reactivated. */
+    a_scope_ptr sp;
+    a_type_ptr	tp;
+    set_parent_scope_for_type(type_ptr, scope_level);
+    sp = parent_scope_of(type_ptr);
+    tp = sp->types;
+    if (tp != NULL) {
+      /* Find the last entry on the types list. */
+      for (tp = sp->types; tp->next != NULL; tp = tp->next) {}
+      /* Add the closure type to the end of the list. */
+      tp->next = type_ptr;
+    } else {
+      sp->types = type_ptr;
+    }  /* if */
+  } else {
+    /* Normal case -- just use the normal add_to_types_list process. */
+    add_to_types_list_full(type_ptr, scope_level, /*do_placeholder=*/TRUE);
+  }  /* if */
+}  /* add_lambda_closure_to_types_list */
 
 
 void add_to_types_list_full(a_type_ptr     type_ptr,

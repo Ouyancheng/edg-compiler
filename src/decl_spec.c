@@ -2726,6 +2726,17 @@ may be emitted at the given position.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         }  /* if */
         break;
+      case sck_class_reactivation:
+        /* A class declared in a class reactivation scope.  This should only
+           occur for lambda closure classes.  Make the closure class a
+           member of the reactivated class. */
+        { a_type_ptr  parent = scope_stack[decl_level].assoc_type;
+          check_assertion(class_type_supp(class_type)->
+                                                      is_lambda_closure_class);
+          set_class_membership(tag_sym, &class_type->source_corresp, parent);
+          class_type->source_corresp.access = (an_access_specifier)as_public;
+        }
+        break;
       case sck_namespace:
       case sck_namespace_extension:
         /* A class is being declared within a namespace.  This includes

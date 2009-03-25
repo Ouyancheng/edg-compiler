@@ -1178,7 +1178,7 @@ the fields implied by the lambda's capture list).
   update_membership_of_class(sym, /*def_or_vacuous_decl=*/TRUE, decl_level,
                              decl_position);
   if (!is_prototype_instantiation || prototype_instantiations_in_il) {
-    add_to_types_list(type, decl_level);
+    add_lambda_closure_to_types_list(type, decl_level);
   } else {
     set_parent_scope_for_type(type, decl_level);
   }  /* if */
@@ -16524,12 +16524,15 @@ a diagnostic at the given position, but even in error cases the returned scope
 depth must be usable for error recovery purposes.
 */
 {
-  a_scope_depth  decl_level = decl_scope_level;
-  a_boolean      scope_error_issued = FALSE;
+  a_boolean               scope_error_issued = FALSE;
+  a_scope_depth           previous_scope;
+  a_scope_stack_entry_ptr ssep;
 
-  for (;; decl_level = scope_stack[decl_level].previous_scope) {
+  for (ssep = scope_stack_entry_for(decl_scope_level);;
+       ssep = scope_stack_entry_for(previous_scope)) {
     a_boolean  scope_error = FALSE;
-    switch (scope_stack[decl_level].kind) {
+    previous_scope = ssep->previous_scope;
+    switch (ssep->kind) {
       case sck_file:
       case sck_block:
       case sck_namespace:
@@ -16537,14 +16540,21 @@ depth must be usable for error recovery purposes.
       case sck_class_struct_union:
       case sck_condition:
       case sck_function:
+      case sck_class_reactivation:
         goto done;
       case sck_namespace_reactivation:
-      case sck_class_reactivation:
-      case sck_template_instantiation:
       case sck_instantiation_context:
         /* We might see these while looking for a suitable scope after error
            recovery. */
         check_assertion(scope_error_issued);
+        break;
+      case sck_template_instantiation:
+        /* For a template instantiation scope, keep following the
+           previous_scope links in the scope stack.   This will result in
+           the closure going in the namespace of the template definition.  This
+           case only comes up for lambdas in the initializer of template
+           static data members and default arguments of namespace scope
+           function templates. */
         break;
       case sck_func_prototype:
         /* If a lambda appears in a function prototype scopes, its closure
@@ -16566,7 +16576,7 @@ depth must be usable for error recovery purposes.
     }  /* if */
   }  /* for */
 done:
-  return decl_level;
+  return scope_depth_of(ssep);
 }  /* decl_level_for_lambda_closure_class */
 
 
