@@ -13901,7 +13901,7 @@ function definition and cache its tokens if appropriate.
     (void)get_token();
     check_assertion(curr_token == tok_delete || curr_token == tok_default);
     (void)get_token();
-    required_token(tok_semicolon, ec_exp_semicolon);
+    (void)required_token(tok_semicolon, ec_exp_semicolon);
   } else {
     /* Cache the tokens comprising the function definition so that they can be
        rescanned once the entire class definition has been processed. */
