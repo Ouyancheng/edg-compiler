@@ -14385,7 +14385,13 @@ passed via template_decl.
     remove_stop_token(tok_try);
     if (!C_mode() && is_function) {
       /* Member or friend function. */
+      a_boolean  function_def_present;
       check_if_function_defined_in_class(&func_info, &decl_info);
+      /* At this point func_info.is_definition reflects the presence of a
+         definition, but that may be set to FALSE later on if the definition
+         should be ignored (this happens with certain friend declaration in
+         some Microsoft modes). */
+      function_def_present = func_info.is_definition;
       if (mutable_specified) {
         /* "mutable" is only allowed on nonstatic data member decls. */
         pos_error(ec_mutable_not_allowed, &decl_start_pos);
@@ -14606,7 +14612,7 @@ passed via template_decl.
         make_virtual_function_pure(rout_sym->variant.routine.ptr, class_type);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }  /* if */
-      if (func_info.is_definition) {
+      if (function_def_present) {
         remove_stop_token(tok_comma);
         cache_in_class_function_definition(&func_info, &decl_info,
                                            class_state);
