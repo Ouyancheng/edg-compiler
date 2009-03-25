@@ -5475,7 +5475,7 @@ with an intermediate constant even if this routine returns FALSE.
   clear_constant(new_cp, orig_cp->kind);
   copy_constant(orig_cp, new_cp);
   type_change_constant(new_cp, new_type,
-                       /*is_implicit_cast=*/FALSE,
+                       /*is_implicit_cast=*/TRUE,
                        /*maintain_expression=*/FALSE,
                        &did_not_fold, &error_position);
   return !did_not_fold;
@@ -5630,7 +5630,8 @@ list of a template function.  Returns TRUE if a match is found.
          constant. */
       if (templ_constant->variant.template_param.kind ==
                              (a_template_param_constant_kind)tpck_cast) {
-        if (matches_template_type(constant->type, templ_constant->type,
+        if (is_integral_type(constant->type) &&
+            matches_template_type(constant->type, templ_constant->type,
                                   templ_arg_list, templ_param_list,
                                   MTT_NO_FLAGS)) {
           a_constant_ptr	tcp; 
@@ -5642,7 +5643,7 @@ list of a template function.  Returns TRUE if a match is found.
             a_boolean	did_not_fold;
             copy_constant(tcp, &new_templ_constant);
             type_change_constant(&new_templ_constant, constant->type,
-                                 /*is_implicit_cast=*/FALSE,
+                                 /*is_implicit_cast=*/TRUE,
                                  /*maintain_expression=*/FALSE,
                                  &did_not_fold, &error_position);
             match = !did_not_fold &&
