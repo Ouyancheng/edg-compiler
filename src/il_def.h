@@ -10121,6 +10121,17 @@ typedef struct a_routine {
 			/* In C++, TRUE for routines with linkage (but not
 			   extern "C" linkage) that were declared using
 			   types without linkage. */
+  a_bit_field	is_defaulted:1;
+			/* In C++, TRUE if this is a special member function
+			   declared with the "= default" syntax.  If
+			   defined_outside_of_parent is FALSE, the "= default"
+			   appeared on the in-class declaration; otherwise, it
+			   appeared on the out-of-class definition. */
+  a_bit_field	is_deleted:1;
+			/* In C++, TRUE if this is a function declared with
+			   the "= delete" syntax.  Also TRUE for compiler-
+			   generated functions that should behave as if they
+			   had been declared with that syntax. */
   bitfield_to_avoid_codecenter_warnings()
 #if DECL_MODIFIERS_IN_USE
   a_decl_modifier

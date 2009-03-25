@@ -926,6 +926,16 @@ EXTERN a_boolean
 			   in C++. */
 
 EXTERN a_boolean
+		defaulted_special_members_enabled;
+			/* TRUE if special member functions can be defined
+			   with the C++0x "= default" syntax. */
+
+EXTERN a_boolean
+		deleted_functions_enabled;
+			/* TRUE if functions can be declared with the C++0x
+			   "= delete" syntax. */
+
+EXTERN a_boolean
 		local_types_as_template_args_enabled;
 			/* TRUE if local and unnamed types are allowed as
 			   template arguments. */

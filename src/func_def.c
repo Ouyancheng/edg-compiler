@@ -1871,14 +1871,20 @@ member declaration (allowed in Microsoft mode only).
   /* Now scan the function body, except if we're dealing with the special
      Microsoft and GNU extension case that allows a nondefining out-of-class
      member declaration. */
+  routine_ptr = dps->sym->variant.routine.ptr;
   if (curr_token == tok_semicolon &&
       (microsoft_mode || (gpp_mode && gnu_version < 30400)) &&
       locator->is_class_member) {
     /* There is no definition. */
-    check_assertion(!gpp_mode ||
-                    dps->sym->variant.routine.ptr->is_specialized);
+    check_assertion(!gpp_mode || routine_ptr->is_specialized);
+  } else if (func_info->is_deleted || func_info->is_defaulted) {
+    check_assertion(curr_token == tok_assign);
+    (void)get_token();
+    check_defaulted_or_deleted_function(dps, func_info, &pos_curr_token);
+    check_assertion(curr_token == tok_delete || curr_token == tok_default);
+    (void)get_token();
+    force_definition_of_compiler_generated_routine(routine_ptr);
   } else {
-    routine_ptr = dps->sym->variant.routine.ptr;
     flags = SFB_NO_FLAGS;
     if ((dps->dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER) == 0) {
       flags |= SFB_IMPLICITLY_DECLARED_RETURN_TYPE;
@@ -2483,7 +2489,7 @@ whose definition has not yet been generated, force the definition now.
 {
   a_special_function_kind  skind = rp->special_kind;
 
-  if (rp->compiler_generated) {
+  if (rp->compiler_generated || rp->is_defaulted) {
     if (!routine_has_been_defined(rp)) {
       /* Only force a definition for constructors, destructors, and
          operator= functions.  In particular, do not try to define operator

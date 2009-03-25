@@ -2287,6 +2287,8 @@ to it.  The entry is allocated in the file scope memory region.
   rp->is_lambda_body              = FALSE;
   rp->declared_using_type_without_linkage
                                   = FALSE;
+  rp->is_defaulted                = FALSE;
+  rp->is_deleted                  = FALSE;
 #if CENTERLINE_CHECKING
   rp->avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */

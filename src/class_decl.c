@@ -8041,6 +8041,148 @@ explicit overrider (which means this routine will return TRUE).
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+static a_boolean assignment_operator_for_copy_exists(a_symbol_ptr  sym,
+                                                     a_boolean     *const_okay)
+/*
+Return TRUE if sym is not NULL and qualifies as an assignment operator that
+can copy a class object.  If sym is an overloaded function, return TRUE if at
+least one of the functions qualifies.  Set *const_okay TRUE if a const object
+can be copied.
+*/
+{
+  a_boolean             sym_is_overloaded;
+  a_boolean             is_ref_arg;
+  a_type_qualifier_set  qualifiers_accepted;
+  a_boolean             found_assignment_operator_for_copy = FALSE;
+  a_boolean             is_base_class_match;
+
+  db_enter(4, "assignment_operator_for_copy_exists");
+  /* Set *const_okay to TRUE unless this subobject's type has a default
+     assignment operator that cannot accept a const object. */
+  *const_okay = TRUE;
+  if (sym != NULL) {
+    sym_is_overloaded = (sym->kind == (a_symbol_kind)sk_overloaded_function);
+    if (sym_is_overloaded) sym = sym->variant.overloaded_function.symbols;
+    /* Loop through the one or more symbols looking for one with the right
+       argument type. */
+    for (; sym != NULL; sym = sym_is_overloaded ? sym->next : NULL) {
+      a_symbol_ptr  viable_sym = NULL;
+      qualifiers_accepted = TQ_NONE;
+      if (sym->kind == (a_symbol_kind)sk_member_function &&
+          is_assignment_operator_for_copy(sym, &is_ref_arg,
+                                          &qualifiers_accepted,
+                                          &is_base_class_match)) {
+        viable_sym = sym;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      } else if (microsoft_bugs &&
+                 sym->kind == (a_symbol_kind)sk_function_template) {
+        viable_sym = copy_assignment_specialization(sym, &is_ref_arg,
+                                                    &qualifiers_accepted,
+                                                    &is_base_class_match);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      }  /* if */
+      if (viable_sym != NULL) {
+        /* Found an assignment operator that can serve to make a copy of
+           the current class. */
+        found_assignment_operator_for_copy = TRUE;
+        /* If it takes the object to be copied by value, a const object
+           may be copied; if it takes it by reference, a const qualifier
+           must be present on the parameter declaration. */
+        if (!is_ref_arg || (qualifiers_accepted & TQ_CONST) != 0) {
+          /* An copy assignment operator has been located, and it accepts
+             a const object. */
+          *const_okay = TRUE;
+          break;
+        } else {
+          /* This one does not accept a const object, so set *const_okay
+             to FALSE.  However, another in the overload list might accept
+             const, so keep looping. */
+          *const_okay = FALSE;
+        }  /* if */
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  db_exit();
+  return found_assignment_operator_for_copy;
+}  /* assignment_operator_for_copy_exists */
+
+
+static void define_defaulted_special_member_functions(a_type_ptr  class_type)
+/*
+Generate the definitions of any special members defined with "= default" in
+the definition of the given class type.
+*/
+{
+  a_routine_ptr  rp = class_type_supp(class_type)->assoc_scope->routines;
+
+  for (; rp != NULL; rp = rp->next) {
+    if (rp->is_defaulted) {
+      force_definition_of_compiler_generated_routine(rp);
+    }  /* if */
+  }  /* for */
+}  /* define_defaulted_special_member_functions */
+
+
+void check_defaulted_or_deleted_function(a_decl_parse_state  *dps,
+                                         a_func_info_block   *func_info,
+                                         a_source_position   *diag_pos)
+/*
+*dps and *func_info describe a function declaration.  If func_info indicates
+that the function is being defined with "= default" or "= delete", check that
+it is appropriate (and issue an error at the given position if it is not), and
+update the routine's IL entry accordingly.
+*/
+{
+  an_error_code  err_code = ec_no_error;
+  a_symbol_ptr   sym = dps->sym;
+  a_routine_ptr  rp;
+
+  if (is_simple_function_symbol(sym)) {
+    rp = sym->variant.routine.ptr;
+  } else {
+    check_assertion(sym->kind == (a_symbol_kind)sk_function_template);
+    rp = sym->variant.template_info->variant.function.routine;
+  }  /* if */
+  if (func_info->is_deleted) {
+    if (!dps->first_decl) {
+      err_code = ec_deleted_function_definition_must_be_first_declaration;
+    } else {
+      rp->is_deleted = TRUE;
+    }  /* if */
+  } else if (func_info->is_defaulted) {
+    /* Verify that sym represents a special member function for which a
+       definition can be generated. */
+    if (rp->special_kind == (a_special_function_kind)sfk_constructor) {
+      a_type_qualifier_set  tqs;
+      if (is_default_constructor(rp, /*is_declarative_context=*/TRUE) ||
+          is_copy_constructor(rp, (a_type*)NULL, &tqs,
+                              /*is_declarative_context=*/TRUE)) {
+        /* "= default" on a default constructor or a copy constructor: Okay. */
+        rp->is_defaulted = TRUE;
+      } else {
+        err_code = ec_invalid_function_to_be_defaulted;
+      }  /* if */
+    } else if (rp->special_kind == (a_special_function_kind)sfk_destructor) {
+      rp->is_defaulted = TRUE;
+    } else if (rp->special_kind == (a_special_function_kind)sfk_operator &&
+               rp->variant.opname_kind == (an_opname_kind)onk_assign) {
+      a_boolean  const_okay;
+      if (assignment_operator_for_copy_exists(sym, &const_okay)) {
+        rp->is_defaulted = TRUE;
+      } else {
+        err_code = ec_invalid_function_to_be_defaulted;
+      }  /* if */
+    } else {
+      /* Not a constructor, destructor, or assignment operator. */
+      err_code = ec_invalid_function_to_be_defaulted;
+    }  /* if */
+  }  /* if */
+  if (err_code != ec_no_error) {
+    pos_error(err_code, diag_pos);
+  }  /* if */
+}  /* check_defaulted_or_deleted_function */
+
+
 static void decl_member_function(a_symbol_locator        *locator,
                                  a_func_info_block_ptr   func_info,
                                  a_class_def_state_ptr   class_state,
@@ -8099,7 +8241,6 @@ implicitly declared member functions.
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
-
   /* If this is a user-defined conversion or an overloaded operator,
      check for errors in the argument list.  Note that this is done before
      creating the symbol, since an invalid conversion or operator should not
@@ -8117,8 +8258,7 @@ implicitly declared member functions.
                                    decl_info, &overload_sym);
   if (sym->variant.routine.ptr != NULL) {
     /* symbol_for_member_function has returned a symbol that has already been
-       declared.  Issue an error to redeclare a member function. */
-    /* Issue an error on trying to redeclare the function. */
+       declared.  Issue an error on trying to redeclare a member function. */
     pos_sy_error(ec_member_function_redeclaration, &locator->source_position,
                  sym);
     set_to_named_error_locator(*locator);
@@ -8126,6 +8266,7 @@ implicitly declared member functions.
                              decl_scope_level, /*suppress_redecl_error=*/TRUE);
   }  /* if */
   decl_info->decl_state.sym = sym;
+  decl_info->decl_state.first_decl = TRUE;
   /* Create the routine entry for the member function. */
   /* The routine is allocated in the current memory region, as indicated
      by curr_il_region_number -- i.e., in the memory region of the scope in
@@ -8141,6 +8282,23 @@ implicitly declared member functions.
   set_source_corresp(&rtn->source_corresp, sym);
   set_class_membership(sym, &rtn->source_corresp, class_type);
   rtn->source_corresp.access = class_state->access;
+  if (locator->is_operator_name) {
+    /* Overloaded operator function. */
+    set_routine_special_kind(rtn, (a_special_function_kind)sfk_operator);
+    rtn->variant.opname_kind = locator->variant.opname;
+    if (locator->variant.opname == (an_opname_kind)onk_ampersand) {
+      class_type->variant.class_struct_union.has_operator_ampersand = TRUE;
+    }  /* if */
+  } else if (locator->is_conversion_name) {
+    /* User-defined conversion function. */
+    set_routine_special_kind(rtn, (a_special_function_kind)sfk_conversion);
+  } else if (decl_info->is_constructor) {
+    set_routine_special_kind(rtn, (a_special_function_kind)sfk_constructor);
+  } else if (decl_info->is_destructor) {
+    set_routine_special_kind(rtn, (a_special_function_kind)sfk_destructor);
+  }  /* if */
+  check_defaulted_or_deleted_function(&decl_info->decl_state, func_info,
+                                      &locator->source_position);
   if (func_info->is_inline) {
     /* Inline member function (either because "inline" was specified or
        a function definition is present). */
@@ -8197,21 +8355,6 @@ implicitly declared member functions.
     rtn->definition_C_name_linkage_specified = TRUE;
   }  /* if */
 #endif /* BACK_END_IS_CP_GEN_BE */
-  if (locator->is_operator_name) {
-    /* Overloaded operator function. */
-    set_routine_special_kind(rtn, (a_special_function_kind)sfk_operator);
-    rtn->variant.opname_kind = locator->variant.opname;
-    if (locator->variant.opname == (an_opname_kind)onk_ampersand) {
-      class_type->variant.class_struct_union.has_operator_ampersand = TRUE;
-    }  /* if */
-  } else if (locator->is_conversion_name) {
-    /* User-defined conversion function. */
-    set_routine_special_kind(rtn, (a_special_function_kind)sfk_conversion);
-  } else if (decl_info->is_constructor) {
-    set_routine_special_kind(rtn, (a_special_function_kind)sfk_constructor);
-  } else if (decl_info->is_destructor) {
-    set_routine_special_kind(rtn, (a_special_function_kind)sfk_destructor);
-  }  /* if */
   if (!is_error_locator(*locator)) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
     /* If decl-modifiers were declared for the class and/or for the
@@ -8613,6 +8756,7 @@ implicitly declared member functions.
       /* Set the pointer to the constructor symbol in the class symbol
          supplement. */
       if (decl_info->is_trivial_default_constructor) {
+/* FIXME:take =default; into consideration? */
         /* A trivial default constructor is never actually called, so it is
            not added to the constructor set (which should be empty). */
         check_assertion(cssp->constructor == NULL);
@@ -9490,72 +9634,6 @@ is_assignment_operator_for_copy.
 }  /* copy_assignment_specialization */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-
-static a_boolean assignment_operator_for_copy_exists(a_symbol_ptr  sym,
-                                                     a_boolean     *const_okay)
-/*
-Return TRUE if sym is not NULL and qualifies as an assignment operator that
-can copy a class object (ARM 12.8).  If sym is an overloaded function,
-return TRUE if at least one of the functions qualifies.  Set *const_okay
-TRUE if a const object can be copied.
-*/
-{
-  a_boolean             sym_is_overloaded;
-  a_boolean             is_ref_arg;
-  a_type_qualifier_set  qualifiers_accepted;
-  a_boolean             found_assignment_operator_for_copy = FALSE;
-  a_boolean             is_base_class_match;
-
-  db_enter(4, "assignment_operator_for_copy_exists");
-  /* Set *const_okay to TRUE unless this subobject's type has a default
-     assignment operator that cannot accept a const object. */
-  *const_okay = TRUE;
-  if (sym != NULL) {
-    sym_is_overloaded = (sym->kind == (a_symbol_kind)sk_overloaded_function);
-    if (sym_is_overloaded) sym = sym->variant.overloaded_function.symbols;
-    /* Loop through the one or more symbols looking for one with the right
-       argument type. */
-    for (; sym != NULL; sym = sym_is_overloaded ? sym->next : NULL) {
-      a_symbol_ptr  viable_sym = NULL;
-      qualifiers_accepted = TQ_NONE;
-      if (sym->kind == (a_symbol_kind)sk_member_function &&
-          is_assignment_operator_for_copy(sym, &is_ref_arg,
-                                          &qualifiers_accepted,
-                                          &is_base_class_match)) {
-        viable_sym = sym;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      } else if (microsoft_bugs &&
-                 sym->kind == (a_symbol_kind)sk_function_template) {
-        viable_sym = copy_assignment_specialization(sym, &is_ref_arg,
-                                                    &qualifiers_accepted,
-                                                    &is_base_class_match);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      }  /* if */
-      if (viable_sym != NULL) {
-        /* Found an assignment operator that can serve to make a copy of
-           the current class. */
-        found_assignment_operator_for_copy = TRUE;
-        /* If it takes the object to be copied by value, a const object
-           may be copied; if it takes it by reference, a const qualifier
-           must be present on the parameter declaration. */
-        if (!is_ref_arg || (qualifiers_accepted & TQ_CONST) != 0) {
-          /* An copy assignment operator has been located, and it accepts
-             a const object. */
-          *const_okay = TRUE;
-          break;
-        } else {
-          /* This one does not accept a const object, so set *const_okay
-             to FALSE.  However, another in the overload list might accept
-             const, so keep looping. */
-          *const_okay = FALSE;
-        }  /* if */
-      }  /* if */
-    }  /* for */
-  }  /* if */
-  db_exit();
-  return found_assignment_operator_for_copy;
-}  /* assignment_operator_for_copy_exists */
-
 
 static a_boolean is_valid_union_field(a_type_ptr        field_type,
                                       a_boolean         is_nonstd,
@@ -11946,6 +12024,37 @@ behavior of the MSVC++ version indicated by microsoft_version.
 }  /* check_microsoft_suppressed_special_functions */
 
 
+static void check_default_ctor_declaration(a_class_def_state_ptr  class_state)
+/*
+*/
+{
+  a_type_ptr                 class_type = class_state->class_type;
+  a_class_symbol_supplement  *cssp = symbol_supplement_for_class(class_type);
+
+  if (class_type_supp(class_type)->is_lambda_closure_class) {
+    /* A default constructor for a lambda is not created. */
+  } else if (cssp->constructor == NULL) {
+    /* See if a default constructor declaration is needed. */
+    if (!class_state->POD_ruled_out) {
+      /* This is a POD class.  Its implicitly-declared default constructor
+         need not actually be generated. */
+    } else {
+      /* A default constructor needs to be generated. */
+      a_member_decl_info  decl_info;
+      initialize_member_decl_info(&decl_info,
+                                  &class_type->source_corresp.decl_position);
+      decl_info.is_constructor = TRUE;
+      if (!class_state->constructor_required) {
+        /* We are generating a declaration of a trivial default constructor.
+           Since it will never actually be called it gets special handling. */
+        decl_info.is_trivial_default_constructor = TRUE;
+      }  /* if */
+      generate_special_function(class_state, &decl_info, (a_param_type*)NULL);
+    }  /* if */
+  }  /* if */
+}  /* check_default_ctor_declaration */
+
+
 static void check_special_member_functions(a_type_ptr            class_type,
                                            a_class_def_state_ptr class_state)
 
@@ -11973,6 +12082,7 @@ The routine body is not generated until it is known to be needed.
   a_boolean                     declare_copy_ctor;
   a_boolean                     declare_dtor;
 
+/* FIXME:take =default; into consideration? */
   db_enter(3, "check_special_member_functions");
   cssp = symbol_supplement_for_class(class_type);
   ctsp = class_type_supp(class_type);
@@ -11987,26 +12097,7 @@ The routine body is not generated until it is known to be needed.
     /* A POD cannot have a user-defined copy assignment operator. */
     class_state->POD_ruled_out = TRUE;
   }  /* if */
-  if (cssp->constructor == NULL && !ctsp->is_lambda_closure_class) {
-    /* See if a default constructor declaration is needed.  A default
-       constructor is not created for lambdas (they are also forced to be
-       non-POD). */
-    if (!class_state->POD_ruled_out) {
-      /* This is a POD class.  Its implicitly-declared default constructor
-         need not actually be generated. */
-    } else {
-      /* A default constructor needs to be generated. */
-      initialize_member_decl_info(&decl_info, pos);
-      decl_info.is_constructor = TRUE;
-      if (!class_state->constructor_required) {
-        /* We are generating a declaration of a trivial default constructor.
-           Since it will never actually be called it gets special handling. */
-        decl_info.is_trivial_default_constructor = TRUE;
-      }  /* if */
-      generate_special_function(class_state, &decl_info,
-                                (a_param_type_ptr)NULL);
-    }  /* if */
-  }  /* if */
+  check_default_ctor_declaration(class_state);
   const_okay = default_assignment_of_const_object_okay(class_type);
   asgn_qualifiers = const_okay ? TQ_CONST : TQ_NONE;
   default_copy_constructor_check(class_type, &const_okay);
@@ -12511,7 +12602,7 @@ the new declaration.
       rp = fund_sym->variant.template_info->variant.function.routine;
     }  /* if */
     if (rp != NULL) {
-      if (rp ->special_kind == (a_special_function_kind)sfk_conversion) {
+      if (rp->special_kind == (a_special_function_kind)sfk_conversion) {
         /* Allocate the new conversion list entry and link it in the
            list for the current class. */
         add_to_conversion_list(new_sym, 
@@ -13715,6 +13806,173 @@ member.  Determine whether a diagnostic is actually required and put it out.
 }  /* report_missing_constructor */
 
 
+static void check_if_function_defined_in_class(a_func_info_block   *func_info,
+                                               a_member_decl_info  *decl_info)
+/*
+We've just parsed a member function declarator in a class definition (the
+declaration is described by *func_info and *decl_info).  Record in *func_info
+if this is part of a function definition.  If that is the case, record some
+additional properties related to the definition and issue an error if the
+current declarator was preceded by another one sharing the same specifiers
+(e.g., "int f(), g() {};" is an error).
+*/
+{
+  if (curr_token == tok_semicolon) {
+    /* Probably the most common case: Not a definition. */
+  } else if (curr_token == tok_lbrace || curr_token == tok_try) {
+    func_info->is_definition = TRUE;
+  } else if (decl_info->is_constructor && curr_token == tok_colon) {
+    func_info->is_definition = TRUE;
+  } else if (curr_token == tok_assign) {
+    /* This could be "= default" or "= delete" (which are treated as
+       definitions), or a pure-virtual specifier (which can only be a
+       definition in Microsoft mode. */
+    a_token_cache  cache;
+    clear_token_cache(&cache, /*reusable=*/FALSE);
+    /* Put the current token (tok_assign) in the cache. */
+    cache_curr_token(&cache);
+    (void)get_token();
+    if (deleted_functions_enabled && curr_token == tok_delete) {
+      func_info->is_deleted = TRUE;
+      func_info->is_definition = TRUE;
+    } else if (defaulted_special_members_enabled &&
+               curr_token == tok_default) {
+      func_info->is_defaulted = TRUE;
+      func_info->is_definition = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (microsoft_mode && curr_token == tok_int_constant) {
+      cache_curr_token(&cache);
+      /* Advance past it and see if the next token is a left brace. */
+      if (get_token() == tok_lbrace) func_info->is_definition = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    }  /* if */
+    /* Restore the lexical state. */
+    rescan_cached_tokens(&cache);
+  }  /* if */
+  func_info->is_inline = func_info->is_definition ||
+                         (decl_info->decl_state.dso_flags & DSO_INLINE);
+  if (func_info->is_definition) {
+    if (!decl_info->is_first_in_declarator_list) {
+      pos_error(ec_exp_semicolon, &pos_curr_token);
+    }  /* if */
+#if USER_CONTROL_OF_STRUCT_PACKING
+    /* Record the current setting of the maximum alignment for local class
+       members (an adjustment may be required for packing). */
+    func_info->max_member_alignment =
+                                    current_max_alignment_for_class_members();
+#endif /* USER_CONTROL_OF_STRUCT_PACKING */
+  }  /* if */
+}  /* check_if_function_defined_in_class */
+
+
+static void cache_in_class_function_definition(
+                                             a_func_info_block   *func_info,
+                                             a_member_decl_info  *decl_info,
+                                             a_class_def_state   *class_state)
+/*
+A function definition appears in a class definition described by class_state.
+*func_info and *decl_info describe the function declaration.  Skip past the
+function definition and cache its tokens if appropriate.
+*/
+{
+  a_symbol_ptr  rout_sym = decl_info->decl_state.sym;
+  a_boolean     is_friend = (decl_info->decl_state.dso_flags & DSO_FRIEND);
+
+#if CHECKING
+  if (is_friend) {
+    /* The inline flag is set for friend functions in decl_friend_function,
+       which also handles cases in which it should be left unset despite the
+       presence of a function body. */
+#if GNU_EXTENSIONS_ALLOWED
+  } else if (rout_sym->variant.routine.ptr->never_inline) {
+    /* An in-class definition may have been declared with the "noinline"
+       attribute. */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+  } else if (rout_sym->variant.routine.ptr->is_inline) {
+    /* The usual case: In-class member function definitions are
+       inline. */
+  } else {
+    unexpected_condition();
+  }  /* if */
+#endif /* CHECKING */
+  if (func_info->is_deleted || func_info->is_defaulted) {
+    /* Consume three tokens: "= delete ;" or "= default ;". */
+    check_assertion(curr_token == tok_assign);
+    (void)get_token();
+    check_assertion(curr_token == tok_delete || curr_token == tok_default);
+    (void)get_token();
+    required_token(tok_semicolon, ec_exp_semicolon);
+  } else {
+    /* Cache the tokens comprising the function definition so that they can be
+       rescanned once the entire class definition has been processed. */
+    a_token_sequence_number  first_token_number, last_token_number;
+    a_token_cache            body_cache;
+    a_type_ptr               class_type = class_state->class_type;
+    if (prescan_function_definition(&first_token_number, &last_token_number,
+                                    &body_cache,
+                                    (a_boolean)decl_info->is_constructor)) {
+      /* Advance past the terminating right brace. */
+      (void)get_token();
+    }  /* if */
+    if (curr_token == tok_semicolon) {
+      /* Advance past the optional semicolon. */
+      (void)get_token();
+    }  /* if */
+    if (class_state->is_nonreal_instantiation &&
+        !class_type->variant.class_struct_union.is_specialized &&
+        !class_type->source_corresp.is_local_to_function) {
+      /* The test of is_specialized is done to exclude Microsoft mode
+         specializations in a class template scope.  Similarly, a member
+         function of a local class of a prototype instantiation is nonreal
+         but not a template of itself. */
+      if (is_friend) {
+#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+        /* A template cache segment entry is created for a friend function
+           that is defined in a class template.  This information is used
+           when creating template strings to eliminate the friend function
+           body from the template string. */
+        a_template_cache_segment_ptr	tcsp;
+        tcsp = alloc_template_cache_segment(
+                         rout_sym, (a_template_symbol_supplement_ptr)NULL);
+        tcsp->first_token_number = first_token_number;
+        tcsp->last_token_number = last_token_number;
+        tcsp->is_friend = TRUE;
+#endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+      } else if (rout_sym->variant.routine.instance_ptr == NULL) {
+        /* Normally, rout_sym->variant.routine.instance_ptr should be non-
+           NULL since we're apparently dealing with a member function of a
+           nonreal class.  However, severely ill-formed cases may get here
+           nonetheless. */
+        expect_error();
+      } else {
+        /* A member function of a nonreal class serves as a template, and
+           since this is the definition the template_info associated with
+           this member function must be updated, based on the template_info
+           of the prototype instantiation.  Note that the current class may
+           be nested within the prototype instantiation. */
+        a_template_symbol_supplement_ptr  tssp, class_tssp;
+        /* A member function of a template class whose body is supplied in
+           the class shares the template declaration information with the
+           enclosing class. */
+        tssp = rout_sym->variant.routine.instance_ptr->template_info;
+        class_tssp = symbol_supplement_for_class(class_type)->template_info;
+        /* The body cache is saved here, but will be updated later during
+           routine fixup.  This is needed for the generation of template
+           strings to be done properly. */
+        set_template_cache_info(&tssp->cache, &body_cache,
+                                class_tssp->cache.decl_info);
+        tssp->cache_segment = alloc_template_cache_segment(rout_sym, tssp);
+        tssp->cache_segment->first_token_number = first_token_number;
+        tssp->cache_segment->last_token_number = last_token_number;
+        /* Save a checksum of this template to be used for cross
+           translation unit comparisons. */
+        record_cache_checksum(tssp, &body_cache);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* cache_in_class_function_definition */
+
+
 #if !GENERATE_SOURCE_SEQUENCE_LISTS
 /*ARGSUSED*/ /* instance and template_decl is not used unless source
                 sequence lists are generated. */
@@ -13752,7 +14010,7 @@ passed via template_decl.
   a_boolean            is_typedef;
   a_boolean            no_decl_specifiers;
   a_boolean            friend_specified;
-  a_boolean            type_explicitly_specified, inline_specified;
+  a_boolean            type_explicitly_specified;
   a_boolean            mutable_specified;
   a_symbol_ptr         rout_sym;
   a_member_decl_info   decl_info;
@@ -13819,7 +14077,6 @@ passed via template_decl.
     class_state->potentially_interface_like = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
-  inline_specified = (dso_flags & DSO_INLINE) != 0;
   decl_info.is_constructor = (dso_flags & DSO_CONSTRUCTOR) != 0;
   decl_info.is_destructor = (dso_flags & DSO_DESTRUCTOR) != 0;
   mutable_specified = (dso_flags & DSO_MUTABLE) != 0;
@@ -14128,47 +14385,11 @@ passed via template_decl.
     remove_stop_token(tok_try);
     if (!C_mode() && is_function) {
       /* Member or friend function. */
-      a_boolean  function_def_present = FALSE;
-
+      check_if_function_defined_in_class(&func_info, &decl_info);
       if (mutable_specified) {
         /* "mutable" is only allowed on nonstatic data member decls. */
         pos_error(ec_mutable_not_allowed, &decl_start_pos);
       }  /* if */
-      if (curr_token == tok_lbrace || curr_token == tok_try ||
-          (decl_info.is_constructor && (curr_token == tok_colon))) {
-        function_def_present = TRUE;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      } else if (microsoft_mode && curr_token == tok_assign) {
-        /* In Microsoft compatibility mode the pure specifier is permitted
-           on a definition; it's usually a syntax error. */
-        a_token_cache  cache;
-
-        clear_token_cache(&cache, /*reusable=*/FALSE);
-        /* Put the current token in the cache. */
-        cache_curr_token(&cache);
-        /* Advance to what may be "0". */
-        if (get_token() == tok_int_constant) {
-          cache_curr_token(&cache);
-          /* Advance past it and see if the next token is a left brace. */
-          if (get_token() == tok_lbrace) function_def_present = TRUE;
-        }  /* if */
-        /* Restore the lexical state. */
-        rescan_cached_tokens(&cache);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      }  /* if */
-      if (function_def_present && !decl_info.is_first_in_declarator_list) {
-        pos_error(ec_exp_semicolon, &pos_curr_token);
-      }  /* if */
-      func_info.is_definition = function_def_present;
-      func_info.is_inline = inline_specified || function_def_present;
-#if USER_CONTROL_OF_STRUCT_PACKING
-      if (function_def_present) {
-        /* Record the current setting of the maximum alignment for local
-           class members (an adjustment may be required for packing). */
-        func_info.max_member_alignment =
-                             current_max_alignment_for_class_members();
-      }  /* if */
-#endif /* USER_CONTROL_OF_STRUCT_PACKING */
       if (!type_explicitly_specified) {
         /* No type specifier. */
         if (decl_info.is_constructor || decl_info.is_destructor ||
@@ -14181,7 +14402,7 @@ passed via template_decl.
           report_missing_type_specifier(&declarator_start_pos,
                                         decl_state->type,
                                         /*is_function=*/TRUE,
-                                        function_def_present,
+                                        func_info.is_definition,
                                         /*is_main_function=*/FALSE,
                                         !no_decl_specifiers);
         }  /* if */
@@ -14204,7 +14425,7 @@ passed via template_decl.
            the type of a defined function. */
         check_typedef_function_type(&decl_state->type,
                                     &locator.source_position,
-                                    function_def_present, class_type,
+                                    func_info.is_definition, class_type,
                                     (!friend_specified &&
                                      decl_state->storage_class !=
                                           (a_storage_class)sc_static));
@@ -14220,13 +14441,15 @@ passed via template_decl.
           pos_error(ec_static_not_allowed, &decl_start_pos);
           decl_state->storage_class = (a_storage_class)sc_unspecified;
         }  /* if */
-        if (decl_info.is_constructor || dso_flags & DSO_VIRTUAL) {
-          /* A class with a user-defined constructor or a virtual function
-             cannot be an "aggregate" (8.5.1). */
+        if ((decl_info.is_constructor && !func_info.is_defaulted) ||
+            (dso_flags & DSO_VIRTUAL)) {
+          /* A class with a user-provided constructor or a virtual function
+             cannot be an "aggregate" (8.5.1).  (A defaulted constructor is
+             not considered "user-provided".) */
           class_state->class_aggregate_ruled_out = TRUE;
           class_state->POD_ruled_out = TRUE;
-        } else if (decl_info.is_destructor) {
-        /* A POD may not have a user-defined destructor, either. */
+        } else if (decl_info.is_destructor && !func_info.is_defaulted) {
+        /* A POD may not have a user-provided destructor, either. */
           class_state->POD_ruled_out = TRUE;
         }  /* if */
       }  /* if */
@@ -14341,7 +14564,7 @@ passed via template_decl.
           rout_sym->variant.routine.ptr->is_explicit_constructor = TRUE;
         }  /* if */
       }  /* if */
-      if (!function_def_present ||
+      if (!func_info.is_definition ||
           (prototype_instantiations_in_il &&
            !nonclass_prototype_instantiations &&
            class_type
@@ -14369,8 +14592,12 @@ passed via template_decl.
       }  /* if */
       if (curr_token == tok_assign) {
         /* Look for a pure specifier ("= 0"), which may appear on virtual
-           functions. */
-        scan_pure_specifier(rout_sym, class_type, &decl_info);
+           functions, but don't attempt to scan past a C++0x "= default" or
+           "= delete" construct. */
+        a_token_kind  next_tok = next_token();
+        if (next_tok != tok_delete && next_tok != tok_default) {
+          scan_pure_specifier(rout_sym, class_type, &decl_info);
+        }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
       } else if (func_info.abstract) {
         /* The function modifier "abstract" means the same thing as "= 0" (but
@@ -14379,97 +14606,10 @@ passed via template_decl.
         make_virtual_function_pure(rout_sym->variant.routine.ptr, class_type);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }  /* if */
-      if (function_def_present) {
-        a_token_sequence_number  first_token_number;
-        a_token_sequence_number  last_token_number;
-        a_token_cache		 body_cache;
-#if CHECKING
-        if (friend_specified) {
-          /* The inline flag is set for friend functions in
-             decl_friend_function, which also handles cases in which it should
-             be left unset despite the presence of a function body. */
-#if GNU_EXTENSIONS_ALLOWED
-        } else if (rout_sym->variant.routine.ptr->never_inline) {
-          /* An in-class definition may have been declared with the "noinline"
-             attribute. */
-#endif /* GNU_EXTENSIONS_ALLOWED */
-        } else if (rout_sym->variant.routine.ptr->is_inline) {
-          /* The usual case: In-class member function definitions are
-             inline. */
-        } else {
-          unexpected_condition();
-        }  /* if */
-#endif /* CHECKING */
+      if (func_info.is_definition) {
         remove_stop_token(tok_comma);
-        /* Cache the tokens comprising the function definition so that they
-           can be rescanned once the entire class definition has been
-           processed. */
-        /* Coverity thinks that the body_cache can be used before being
-           initialized, which is not possible. */
-        /* coverity[uninit_use_in_call] */ /* Coverity bug. */
-        if (prescan_function_definition(&first_token_number,
-                                        &last_token_number,
-                                        &body_cache,
-                                        (a_boolean)decl_info.is_constructor)) {
-          /* Advance past the terminating right brace. */
-          (void)get_token();
-        }  /* if */
-        if (curr_token == tok_semicolon) {
-          /* Advance past the optional semicolon. */
-          (void)get_token();
-        }  /* if */
-        if (class_state->is_nonreal_instantiation &&
-            !class_type->variant.class_struct_union.is_specialized &&
-            !class_type->source_corresp.is_local_to_function) {
-          /* The test of is_specialized is done to exclude Microsoft mode
-             specializations in a class template scope.  Similarly, a member
-             function of a local class of a prototype instantiation is nonreal
-             but not a template of itself. */
-          if (friend_specified) {
-#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-            /* A template cache segment entry is created for a friend function
-               that is defined in a class template.  This information is used
-               when creating template strings to eliminate the friend function
-               body from the template string. */
-            a_template_cache_segment_ptr	tcsp;
-            tcsp = alloc_template_cache_segment(
-                             rout_sym, (a_template_symbol_supplement_ptr)NULL);
-            tcsp->first_token_number = first_token_number;
-            tcsp->last_token_number = last_token_number;
-            tcsp->is_friend = TRUE;
-#endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
-          } else if (rout_sym->variant.routine.instance_ptr == NULL) {
-            /* Normally, rout_sym->variant.routine.instance_ptr should be non-
-               NULL since we're apparently dealing with a member function of a
-               nonreal class.  However, severely ill-formed cases may get here
-               nonetheless. */
-            expect_error();
-          } else {
-            /* A member function of a nonreal class serves as a template, and
-               since this is the definition the template_info associated with
-               this member function must be updated, based on the template_info
-               of the prototype instantiation.  Note that the current class may
-               be nested within the prototype instantiation. */
-            a_template_symbol_supplement_ptr  class_tssp;
-            /* A member function of a template class whose body is supplied in
-               the class shares the template declaration information with the
-               enclosing class. */
-            tssp = rout_sym->variant.routine.instance_ptr->template_info;
-            class_tssp = symbol_supplement_for_class(class_type)->
-                                                                 template_info;
-            /* The body cache is saved here, but will be updated later during
-               routine fixup.  This is needed for the generation of template
-	       strings to be done properly. */
-            set_template_cache_info(&tssp->cache, &body_cache,
-                                    class_tssp->cache.decl_info);
-            tssp->cache_segment = alloc_template_cache_segment(rout_sym, tssp);
-            tssp->cache_segment->first_token_number = first_token_number;
-            tssp->cache_segment->last_token_number = last_token_number;
-            /* Save a checksum of this template to be used for cross
-	       translation unit comparisons. */
-            record_cache_checksum(tssp, &body_cache);
-          }  /* if */
-        }  /* if */
+        cache_in_class_function_definition(&func_info, &decl_info,
+                                           class_state);
         /* A comma-list of function definitions is not allowed. */
         *skip_semicolon_check = TRUE;
         goto next_declaration;
@@ -15996,6 +16136,8 @@ next_declaration:
        operate on this class type. */
     if (!C_mode()) determine_operator_lookup_namespaces(class_type);
     if (C_dialect == C_dialect_cplusplus) {
+      /* Generate the definition of any "= default" members. */
+      define_defaulted_special_member_functions(class_type);
       /* Rescan tokens that were cached (inline function definitions, default
          arguments). */
       if (!tag_sym->is_class_member || delayed_nested_class_def ||

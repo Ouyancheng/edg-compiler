@@ -12156,7 +12156,7 @@ declarator (or NULL if it wasn't recorded).
       push_name_context_if_member(scp);
       *context_pop_needed = TRUE;
     }  /* if */
-    if (is_definition) {
+    if (is_definition && !rout->is_defaulted && !rout->is_deleted) {
       /* Follow the source sequence list for the function. */
       save_source_sequence_scan_state(saved_state);
       curr_source_sequence_entry = scope->source_sequence_list;
@@ -12381,7 +12381,7 @@ handle_as_definition:
       is_specialization = !old_specializations_for_generated_instances;
       in_generated_instance = TRUE;
     }  /* if */
-    if (rout->assoc_scope == NULL_region_number) {
+    if (rout->assoc_scope == NULL_region_number && !rout->is_deleted) {
       /* A member function of a template class might not be instantiated. */
 #if !STANDALONE_UTILITY_PROGRAM
       check_assertion_str(rout->is_template_function ||
@@ -12421,7 +12421,7 @@ handle_as_definition:
     if (assoc_template->canonical_template->is_exported) gen_export();
     gen_template_header(template_decl);
   }  /* if */
-  if (is_definition) {
+  if (is_definition && !rout->is_defaulted && !rout->is_deleted) {
     /* This is a definition of the routine.  Determine the scope for the
        routine. */
     scope_region_number = rout->assoc_scope;
@@ -12762,6 +12762,12 @@ handle_as_definition:
     *another_decl_in_comma_list = another_declaration_in_comma_list_follows(
                                          rout->surrounding_name_linkage_state);
     write_end_of_declaration_punctuation(*another_decl_in_comma_list);
+  } else if (rout->is_deleted) {
+    /* A deleted function definition. */
+    write_tok_str(" = delete;");
+  } else if (rout->is_defaulted) {
+    /* A defaulted function definition. */
+    write_tok_str(" = default;");
   } else {
     /* The definition of the routine. */
     /* Push a name context for the function. */
@@ -12807,7 +12813,7 @@ handle_as_definition:
        specialization. */
     adjust_current_namespace(orig_scope, common_scope);
   }  /* if */
-  if (is_definition) {
+  if (is_definition && !rout->is_defaulted && !rout->is_deleted) {
     restore_function_state(&state);
   }  /* if */
 end_of_routine:

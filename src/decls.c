@@ -5542,6 +5542,8 @@ for use in generating cross-reference output describing this declaration.
                              "can't set superseded_external");
         variable_ptr->superseded_external = TRUE;
       }  /* if */
+    } else {
+      dps->first_decl = TRUE;
     }  /* if */
   } else {
     /* There is an existing IL entry that we are reusing. */
@@ -6314,9 +6316,6 @@ for use in generating cross-reference output describing this declaration.
   a_boolean                changed_to_inline = FALSE;
   a_boolean                is_friend_decl;
   a_boolean                set_invisible = FALSE;
-#if GENERATE_SOURCE_SEQUENCE_LISTS || EXTRA_SOURCE_POSITIONS_IN_IL
-  a_boolean                first_decl = FALSE;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS || EXTRA_SOURCE_POSITIONS_IN_IL */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_name_reference_ptr     name_ref = NULL;
   a_boolean                saved_sses_disallowed =
@@ -6965,9 +6964,7 @@ for use in generating cross-reference output describing this declaration.
                                 /*preserve_rout_type=*/TRUE,
                                 /*preserve_type_ptr=*/FALSE);
       }  /* if */
-#if GENERATE_SOURCE_SEQUENCE_LISTS || EXTRA_SOURCE_POSITIONS_IN_IL
-      first_decl = TRUE;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS || EXTRA_SOURCE_POSITIONS_IN_IL */
+      dps->first_decl = TRUE;
     } else if (explicit_template_reference) {
       /* A reference to a template instance in a friend declaration or an
          old-style specialization.  Such a declaration cannot be a definition
@@ -7121,12 +7118,10 @@ skip_overloading:;
          the new one. */
       (*ext_sym)->variant.extern_symbol_descr->variant.routine.ptr = NULL;
     }  /* if */
-#if GENERATE_SOURCE_SEQUENCE_LISTS || EXTRA_SOURCE_POSITIONS_IN_IL
     if (idlb.is_new_template_instance) {
       /* This declaration triggered the creation of a new template instance. */
-      first_decl = TRUE;
+      dps->first_decl = TRUE;
     }  /* if */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS || EXTRA_SOURCE_POSITIONS_IN_IL */
     sym->variant.routine.instance_ptr =
                                 linked_symbol->variant.routine.instance_ptr;
     routine_ptr = linked_symbol->variant.routine.ptr;
@@ -7177,10 +7172,9 @@ skip_overloading:;
          where the second declaration of ff has an incompatible type, yet
          no error is issued. */
       routine_ptr->superseded_external = TRUE;
+    } else {
+      dps->first_decl = TRUE;
     }  /* if */
-#if GENERATE_SOURCE_SEQUENCE_LISTS || EXTRA_SOURCE_POSITIONS_IN_IL
-    first_decl = TRUE;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS || EXTRA_SOURCE_POSITIONS_IN_IL */
     if (microsoft_specialization_redef) {
       /* If this is a dummy entry generated to process a duplicate
          specialization definition, we mark is as "defined" so it can
@@ -7203,11 +7197,9 @@ skip_overloading:;
                            "decl_routine: compiler-generated function was",
                            "already assigned a position");
       routine_ptr->compiler_generated = FALSE;
-#if GENERATE_SOURCE_SEQUENCE_LISTS || EXTRA_SOURCE_POSITIONS_IN_IL
       /* Since the flag is cleared here, we're guaranteed that this is the
          first time we see the declaration in this translation unit. */
-      first_decl = TRUE;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS || EXTRA_SOURCE_POSITIONS_IN_IL */
+      dps->first_decl = TRUE;
       /* Don't diagnose linkage mismatches either. */
       suppress_diagnostic = TRUE;
       /* Record the new source position, both in the symbol and in the
@@ -7463,7 +7455,7 @@ skip_overloading:;
                             dps->source_sequence_entry);
   reload_source_sequence_entry(dps);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  if (is_function_def || first_decl) {
+  if (is_function_def || dps->first_decl) {
     update_decl_pos_info(&routine_ptr->source_corresp, decl_pos_block);
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -7583,7 +7575,7 @@ skip_overloading:;
     }  /* if */
     if (is_friend_decl) flags |= SSSD_FRIEND_DECL;
     if (func_info->is_implicit_declaration) flags |= SSSD_IMPLICIT_DECL;
-    if (first_decl) flags |= SSSD_FIRST_DECLARATION;
+    if (dps->first_decl) flags |= SSSD_FIRST_DECLARATION;
 #if GNU_EXTENSIONS_ALLOWED
     if (decl_modifiers->marked_as_gnu_extension) {
       flags |= SSSD_MARKED_AS_GNU_EXTENSION;
@@ -7823,10 +7815,8 @@ definition of a member function of a class template.
       set_to_error_locator(*locator);
     }  /* if */
   }  /* if */
-  if (curr_token == tok_lbrace || curr_token == tok_try ||
-      (curr_token == tok_colon && sym != NULL && is_constructor_symbol(sym))) {
+  if (func_info->is_definition) {
     /* This is a defining declaration of the function template. */
-    func_info->is_definition = TRUE;
     idlb.is_definition = TRUE;
     if (func_info->function_type_from_typedef) {
       /* Just as it is an error when a normal function is defined for the
@@ -8063,6 +8053,7 @@ definition of a member function of a class template.
       }  /* if */
     }  /* if */
   }  /* if */
+  dps->sym = sym;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   /* In Microsoft mode, an operator function that is defined in a friend
      declaration (and not declared elsewhere) is not visible when
@@ -8077,6 +8068,7 @@ definition of a member function of a class template.
      reused when the template is instantiated. */
   if (rout_ptr == NULL) {
     a_symbol_ptr	prototype_sym;
+    dps->first_decl = TRUE;
     switch_to_file_scope_region(&region_to_switch_back_to);
     tssp->variant.function.routine = rout_ptr = alloc_routine();
     switch_back_to_original_region(region_to_switch_back_to);
@@ -8124,6 +8116,8 @@ definition of a member function of a class template.
     }  /* if */
     redeclaration = TRUE;
   }  /* if */
+  check_defaulted_or_deleted_function(dps, func_info,
+                                      &locator->source_position);
   if (locator->template_arg_list != NULL && !locator->is_template_id) {
     /* In Microsoft mode, scan_real_declarator_id allows explicit template
        arguments on non-member template declarations, but they should only
@@ -12999,10 +12993,21 @@ proceed after the call.
   a_boolean     out_of_class_redecl = FALSE;
   an_id_linkage_kind
                 linkage = idl_none;
-  a_boolean     has_initializer =
-                      (curr_token == tok_assign ||
-                       (state->do_flags & DO_PARENTHESIZED_INITIALIZER) != 0);
+  a_boolean     has_initializer = FALSE;
 
+  /* Check for "= default" or "= delete". */
+  if (curr_token == tok_assign) {
+    a_token_kind  next_tok = next_token();
+    if (deleted_functions_enabled && next_tok == tok_delete) {
+      func_info->is_deleted = TRUE;
+    } else if (defaulted_special_members_enabled && next_tok == tok_default) {
+      func_info->is_defaulted = TRUE;
+    } else {
+      has_initializer = TRUE;
+    }  /* if */
+  } else {
+    has_initializer = (state->do_flags & DO_PARENTHESIZED_INITIALIZER) != 0;
+  }  /* if */
   if (C_mode() && is_function_type(type)) {
     /* Issue a warning on something like "typedef int F(); F const g;" in C
        mode.  (This is undefined behavior according to the C standard.) */
@@ -13111,7 +13116,7 @@ proceed after the call.
   }  /* if */
   if (state->function_definition_allowed || out_of_class_redecl) {
     if ((curr_token != tok_semicolon || out_of_class_redecl) &&
-        curr_token != tok_comma && curr_token != tok_assign &&
+        curr_token != tok_comma &&
 #if GNU_EXTENSIONS_ALLOWED
         /* Attributes and asm names are only allowed on function
            declarations, not on function definitions. */
@@ -13175,13 +13180,19 @@ proceed after the call.
         end_of_decl_action = eoda_done;
         goto done;
       }  /* if */
-      check_assertion(curr_token == tok_rbrace ||
-                      curr_token == tok_end_of_source ||
-                      out_of_class_redecl ||
-                      total_errors != 0);
-      /* Right brace is expected, except for the Microsoft extension that
-         allows a nondefining out-of-class member declaration. */
-      *final_token = out_of_class_redecl ? tok_semicolon : tok_rbrace;
+      /* Usually, aright brace is expected, but some cases end with a
+         semicolon: C++0x deleted and defaulted functions, as well as the
+         Microsoft/GNU extension that allows a nondefining out-of-class member
+         declaration. */
+      if (func_info->is_deleted || func_info->is_defaulted ||
+          out_of_class_redecl) {
+        *final_token = tok_semicolon;
+      } else {
+        *final_token = tok_rbrace;
+        check_assertion(curr_token == tok_rbrace ||
+                        curr_token == tok_end_of_source ||
+                        total_errors != 0);
+      }  /* if */
       end_of_decl_action = eoda_skip_final_token;
       goto done;
 #if ASM_FUNCTION_ALLOWED

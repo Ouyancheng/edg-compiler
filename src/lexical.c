@@ -15825,6 +15825,21 @@ not be returned.
        assure that we don't scan past the end of the cache in the actual
        scan. */
     terminate_token_cache(p_token_cache);
+  } else if (curr_token == tok_assign) {
+    a_token_kind  next_tok = next_token();
+    if (next_tok == tok_delete || next_tok == tok_default) {
+      /* Cache "= delete" or "= default" (leave the semicolon for the
+         caller). */
+      cache_curr_token(p_token_cache);
+      (void)get_token();
+      cache_curr_token(p_token_cache);
+      (void)get_token();
+      if (curr_token == tok_semicolon) {
+        result = TRUE;
+      } else {
+        *missing_end = TRUE;
+      }  /* if */
+    }  /* if */
   }  /* if */
   /* Clear the flag that indicates that the tokens being scanned are to be
      cached. */

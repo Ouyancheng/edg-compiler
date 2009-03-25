@@ -3929,6 +3929,9 @@ Instantiate the body of the template function associated with tip.
   db_enter(3, "instantiate_template_function");
   rout_sym = tip->instance_sym;
   rout_ptr = rout_sym->variant.routine.ptr;
+  template_sym = tip->template_sym;
+  tssp = template_supplement_for_symbol(template_sym);
+  func_info_ptr = func_info_for_template(tssp);
   /* The already instantiated flag is set even if certain error conditions
      exist (such as runaway instantiation), to prevent the compiler from
      attempting to instantiate this function again. */
@@ -3936,10 +3939,16 @@ Instantiate the body of the template function associated with tip.
   if (routine_has_been_defined(rout_ptr)) {
     /* Already instantiated. */
     goto done;
+  } else if (func_info_ptr->is_deleted) {
+    /* No instantiation needed. */
+    goto done;
+  } else if (func_info_ptr->is_defaulted) {
+    /* Instantiating a "= default" function (which must be a special member
+       function) means generating its implicit definition. */
+    rout_ptr->is_defaulted = TRUE;
+    force_definition_of_compiler_generated_routine(rout_ptr);
+    goto done;
   }  /* if */
-  template_sym = tip->template_sym;
-  tssp = template_supplement_for_symbol(template_sym);
-  func_info_ptr = func_info_for_template(tssp);
   if (nonclass_prototype_instantiations &&
       defer_function_prototype_instantiations) {
     a_symbol_ptr			proto_sym;
@@ -8102,9 +8111,9 @@ the diagnostic is suppressed.
      and tok_try to be present because the ctor-initializers or the start
      of a function try block may be part of the declaration cache. */
   if ((curr_token != tok_end_of_source &&
-       curr_token != tok_colon && curr_token != tok_try) ||
-      *type == NULL ||
-      !is_function_type(*type)) {
+       curr_token != tok_colon && curr_token != tok_try &&
+       curr_token != tok_assign) ||
+      *type == NULL || !is_function_type(*type)) {
     if (!suppress_diagnostic) {
       pos_error(ec_invalid_declaration, &pos_curr_token);
     }  /* if */
@@ -8844,6 +8853,8 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
                                                    : templ_rout->storage_class;
     set_routine_special_kind(rp, templ_rout->special_kind);
     rp->variant = templ_rout->variant;
+    rp->is_deleted = templ_rout->is_deleted;
+    rp->is_defaulted = templ_rout->is_defaulted;
     set_inline_flag(rp, (a_boolean)templ_rout->is_inline);
 #if DO_IL_LOWERING && IA64_ABI
     rp->inline_in_class_definition = templ_rout->inline_in_class_definition;
@@ -15307,8 +15318,14 @@ caller.
   } /* if */
   if (decl_state->defines_something) {
     /* A function template definition -- leave it to the caller to advance
-       past the closing right brace. */
-    *(decl_state->final_token_ptr) = tok_rbrace;
+       past the closing right brace (or the final semicolon if this is a
+       "= delete;" or "= default" function). */
+    if (func_info != NULL &&
+        (func_info->is_deleted || func_info->is_defaulted)) {
+      *(decl_state->final_token_ptr) = tok_semicolon;
+    } else {
+      *(decl_state->final_token_ptr) = tok_rbrace;
+    }  /* if */
 #if USER_CONTROL_OF_STRUCT_PACKING
     if (!err) {
       /* Record the current setting of the maximum alignment for local class
@@ -15351,11 +15368,27 @@ function declaration.
   a_symbol_ptr        sym = NULL;
 
   db_enter(4, "function_template_declaration");  
+  /* Set some flags in func_info as appropriate. */
+  if (curr_token == tok_lbrace || curr_token == tok_try ||
+      (curr_token == tok_colon &&
+       (decl_state->decl_parse.do_flags & DO_IS_CONSTRUCTOR) != 0)) {
+    func_info->is_definition = TRUE;
+  } else if (curr_token == tok_assign) {
+    a_token_kind  next_tok = next_token();
+    if (deleted_functions_enabled && next_tok == tok_delete) {
+      func_info->is_deleted = TRUE;
+      func_info->is_definition = TRUE;
+      func_info->is_inline = TRUE;
+    } else if (defaulted_special_members_enabled && next_tok == tok_default) {
+      func_info->is_defaulted = TRUE;
+      func_info->is_definition = TRUE;
+    }  /* if */
+  }  /* if */
   /* Set a flag in each param type entry whose associated type is or
      contains a template parameter. */
   set_type_involves_deduced_template_param(dps->type);
   if (decl_state->is_template_friend) {
-    if (curr_token != tok_lbrace) {
+    if (!func_info->is_definition) {
       /* A friend declaration that is not a definition cannot specify default
          arguments. */
       if (strict_ansi_mode && func_info->any_default_args &&

@@ -2327,6 +2327,8 @@ the next standard).
   }  /* if */
   local_types_as_template_args_enabled = TRUE;
   decls_using_types_without_linkage_allowed = TRUE;
+  defaulted_special_members_enabled = TRUE;
+  deleted_functions_enabled = TRUE;
 }  /* check_and_set_cpp0x_mode_options */
 
 
@@ -8501,6 +8503,8 @@ variables declared in cmd_line.h.
   rvalue_references_enabled = DEFAULT_RVALUE_REFERENCES_ENABLED;
   local_types_as_template_args_enabled = FALSE;
   decls_using_types_without_linkage_allowed = FALSE;
+  defaulted_special_members_enabled = FALSE;
+  deleted_functions_enabled = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   default_calling_convention = (a_calling_convention)cc_cdecl;
   microsoft_64bit_pointer_extensions_enabled =

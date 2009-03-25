@@ -10668,6 +10668,8 @@ Clear the fields of a function information block to default values.
   func_info->any_prototype_names_omitted = FALSE;
   func_info->is_inline                   = FALSE;
   func_info->is_definition               = FALSE;
+  func_info->is_defaulted                = FALSE;
+  func_info->is_deleted                  = FALSE;
   func_info->is_main_function            = FALSE;
   func_info->is_implicit_declaration     = FALSE;
   func_info->function_type_from_typedef  = FALSE;

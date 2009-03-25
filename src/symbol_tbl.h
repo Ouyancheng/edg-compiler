@@ -1145,7 +1145,7 @@ typedef struct a_param_id {
 
 typedef struct a_func_info_block *a_func_info_block_ptr;
 typedef struct a_func_info_block {
-  /* Information about the parameter list in a function declarator. */
+  /* Information about a function declarator. */
   a_symbol_ptr	prototype_scope_symbols;
 			/* List of symbols in the prototype scope, linked
 			   on the next_in_scope field.  NULL if none.
@@ -1196,6 +1196,13 @@ typedef struct a_func_info_block {
 			/* TRUE if inline was specified (C++ only). */
   a_bit_field	is_definition:1;
 			/* TRUE if the current declaration is a definition. */
+  a_bit_field	is_defaulted:1;
+			/* TRUE if the current declaration is followed by
+			   "= default" (is_definition is also TRUE in such
+			   cases). */
+  a_bit_field	is_deleted:1;
+			/* TRUE if the current declaration is followed by
+			   "= delete". */
   a_bit_field	is_main_function:1;
 			/* TRUE if the function "main". */
   a_bit_field	is_implicit_declaration:1;
@@ -4240,6 +4247,11 @@ Return TRUE if a symbol is a class template or an injected template symbol.
   ((sym)->kind == (a_symbol_kind)sk_routine ||                        \
    (sym)->kind == (a_symbol_kind)sk_member_function ||                \
    (sym)->kind == (a_symbol_kind)sk_overloaded_function)
+
+/* Return TRUE if a symbol represents a single function or member function. */
+#define is_simple_function_symbol(sym)                                \
+  ((sym)->kind == (a_symbol_kind)sk_routine ||                        \
+   (sym)->kind == (a_symbol_kind)sk_member_function)
 
 /* Return TRUE if a symbol is a function or function template symbol. */
 #define is_function_or_template_symbol(sym)				\
