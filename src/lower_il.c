@@ -13694,27 +13694,17 @@ cast.  See lower_expr for typical invocation.
               lower_c99_complex_cast(expr);
             }  /* if */
 #endif /* LOWER_COMPLEX */
-            if (vla_enabled &&
-#if LOWER_VARIABLE_LENGTH_ARRAYS
-                !type->visited_for_vla_lowering &&
-#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
-                is_directly_variably_modified_type(type)) {
-              /* If the cast introduces a VLA type, we need to lower its
-                 dimension expression and (in some configurations) compute its
-                 dimension variables. Note that compiler-generated casts may
-                 cast to variably modified types that have already been
-                 visited. */
-#if LOWER_VARIABLE_LENGTH_ARRAYS
-              lower_vla_cast(expr);
-#else /* !LOWER_VARIABLE_LENGTH_ARRAYS */
-              lower_vla_dimensions_in_type(type);
-#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
-            }  /* if */
+            /* If the cast introduces a VLA type, handle that. */
+            lower_type_of_vla_cast_if_necessary(expr);
             if (is_void_type(type) && operand_node->is_lvalue) {
               /* We have an lvalue that is cast to a void type.  Rewrite
                  this discarded lvalue as an rvalue. */
               rewrite_discarded_lvalue_as_rvalue(operand_node);
             }  /* if */
+            break;
+          case eok_lvalue_cast:
+            /* If the lvalue cast introduces a VLA type, handle that. */
+            lower_type_of_vla_cast_if_necessary(expr);
             break;
 #if ABI_CHANGES_FOR_RTTI
           case eok_dynamic_cast:

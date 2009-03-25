@@ -75,6 +75,8 @@ extern void lower_runtime_sizeof(an_expr_node_ptr expr);
 
 extern void lower_vla_dimension_expression(a_vla_dimension_ptr  vdp);
 
+extern void lower_type_of_vla_cast_if_necessary(an_expr_node_ptr expr);
+
 #if LOWER_VARIABLE_LENGTH_ARRAYS
 
 extern void record_vla_component_types_for_lowering(a_type_ptr  tp);

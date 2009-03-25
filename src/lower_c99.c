@@ -2436,6 +2436,32 @@ not.
   }  /* switch */
 }  /* lower_c99_ne_0_if_needed */
 
+
+void lower_type_of_vla_cast_if_necessary(an_expr_node_ptr expr)
+/*
+The expression is a type of cast operation that may or may not operate
+on a vla type.  If the cast introduces a VLA type, we need to lower its
+dimension expression and (in some configurations) compute its dimension
+variables.  Note that compiler-generated casts may cast to variably modified
+types that have already been visited.
+*/
+{
+  a_type_ptr    type = expr->type;
+
+  if (vla_enabled &&
+#if LOWER_VARIABLE_LENGTH_ARRAYS
+      !type->visited_for_vla_lowering &&
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
+      is_directly_variably_modified_type(type)) {
+#if LOWER_VARIABLE_LENGTH_ARRAYS
+    lower_vla_cast(expr);
+#else /* !LOWER_VARIABLE_LENGTH_ARRAYS */
+    lower_vla_dimensions_in_type(type);
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
+  }  /* if */
+}  /* lower_type_of_vla_cast_if_necessary */
+
+
 #if DO_C99_IL_LOWERING
 
 void lower_c99_cast(an_expr_node_ptr  expr)
@@ -2453,21 +2479,8 @@ Transform the given cast expression into a function call (compatible with C89).
 #endif /* LOWER_FIXED_POINT || LOWER_COMPLEX */
     check_assertion(expr->variant.operation.kind ==
                                              (an_expr_operator_kind)eok_cast);
-    if (vla_enabled &&
-#if LOWER_VARIABLE_LENGTH_ARRAYS
-        !tp->visited_for_vla_lowering &&
-#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
-        is_directly_variably_modified_type(tp)) {
-      /* If the cast introduces a VLA type, we need to lower its dimension
-         expression and (in some configurations) compute its dimension
-         variables. Note that compiler-generated casts may cast to variably
-         modified types that have already been visited. */
-#if LOWER_VARIABLE_LENGTH_ARRAYS
-      lower_vla_cast(expr);
-#else /* !LOWER_VARIABLE_LENGTH_ARRAYS */
-      lower_vla_dimensions_in_type(tp);
-#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
-    }  /* if */
+    /* If the cast introduces a VLA type, handle that. */
+    lower_type_of_vla_cast_if_necessary(expr);
 #if LOWER_FIXED_POINT
     if (fixed_point_enabled &&
         (is_fixed_point_type(tp) ||
