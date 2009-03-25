@@ -15517,6 +15517,10 @@ to TRUE if a warning about the expression doing nothing should be suppressed.
       tblock->suppress_warning = TRUE;
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case eok_lvalue_cast:
+    case eok_ref_cast:
+    case eok_lvalue_adjust:
+      goto check_cast_destination_type;
     case eok_cast:
 #if C99_IL_EXTENSIONS_SUPPORTED
       if (c99_mode &&
@@ -15526,6 +15530,7 @@ to TRUE if a warning about the expression doing nothing should be suppressed.
         goto c99_float_operations;
       }  /* if */
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
+check_cast_destination_type:
       if (vla_enabled && type_has_side_effects(node->type)) {
         has_side_effects = TRUE;
       }  /* if */
