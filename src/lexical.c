@@ -15836,7 +15836,7 @@ not be returned.
       (void)get_token();
       if (curr_token == tok_semicolon) {
         result = TRUE;
-      } else {
+      } else if (missing_end != NULL) {
         *missing_end = TRUE;
       }  /* if */
     }  /* if */
