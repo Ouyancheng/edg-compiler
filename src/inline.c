@@ -564,7 +564,8 @@ following the original expression.
            on the scope list and on the reusable temporaries list. */
       } else {
         /* Add the variable to the current scope. */
-        add_temporary_to_scope(temp_var, (a_scope_ptr)NULL);
+        add_temporary_to_scope(temp_var, (a_scope_ptr)NULL,
+                               /*promote_if_necessary=*/FALSE);
         if (vrip->local_temporary_okay) {
           /* This variable is used like a local temporary.  Put it on the list
              of such temporaries so that it can be reused after the end of

@@ -1,5 +1,22 @@
 Version 4.1
 
+3/25/09  [EDGcpfe/9642]
+Lowered static reference initialization can generate bad C code
+
+In configurations that use the C generating back end, certain static reference
+initializations (those involving initialization to the address of a temporary
+in routines whose static variables are promoted during the lowering process)
+could have resulted in generated C code that doesn't compile.  This is now
+fixed.  This example had failed to compile:
+
+  struct A { int i; };
+  void f() {
+    static const A &r = A();
+    int i = r.i;
+    struct B { ~B() {} } b;
+  }
+
+
 3/24/09  [EDGcpfe/9633,EDGcpfe/5781,EDGcpfe/6502,EDGcpfe/8146,EDGcpfe/8465,
           EDGcpfe/9138]
 g++ mode lvalue casts, again

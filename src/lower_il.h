@@ -905,14 +905,17 @@ extern void make_instantiation_info_var(
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
 
 extern void add_temporary_to_scope(a_variable_ptr temp,
-                                   a_scope_ptr    scope);
+                                   a_scope_ptr    scope,
+                                   a_boolean      promote_if_necessary);
 
 extern a_variable_ptr make_temporary(a_type_ptr  temp_type,
                                      a_boolean   force_static);
 
-extern a_variable_ptr make_temporary_in_scope(a_type_ptr  temp_type,
-                                              a_scope_ptr scope,
-                                              a_boolean   force_static);
+extern a_variable_ptr make_temporary_in_scope(
+                                             a_type_ptr  temp_type,
+                                             a_scope_ptr scope,
+                                             a_boolean   force_static,
+                                             a_boolean   promote_if_necessary);
 
 extern a_variable_ptr make_lowered_temporary(a_type_ptr temp_type);
 

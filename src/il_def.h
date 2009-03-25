@@ -10109,6 +10109,11 @@ typedef struct a_routine {
 			   call the primary routine passing the same
 			   parameters. */
 #endif /* DO_IL_LOWERING && IA64_ABI */
+#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
+  a_bit_field	statics_have_been_promoted:1;
+			/* TRUE if, in C++, statics have already been promoted
+			   from the scope associated with this routine. */
+#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
   a_bit_field	is_lambda_body:1;
 			/* TRUE if this is the operator() member function
 			   generated for the body of a lambda. */

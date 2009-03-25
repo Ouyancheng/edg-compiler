@@ -3382,7 +3382,8 @@ constructs.
       /* No static variable was created for this constant yet. */
       tmp = make_temporary_in_scope(expr->type,
                                     scope_stack[DEPTH_OF_FILE_SCOPE].il_scope,
-                                    /*force_static=*/FALSE);
+                                    /*force_static=*/FALSE,
+                                    /*promote_if_necessary=*/FALSE);
       tmp->init_kind = (an_init_kind)initk_static;
       if (!in_file_scope(constant)) {
         /* The constant is local to a function (this happens, for example,

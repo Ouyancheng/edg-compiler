@@ -1460,11 +1460,18 @@ version of a pointer to member function constant.
 }  /* is_ptr_to_member_function_constant_expr */
 
 
+#if !PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
+/*ARGSUSED*/  /* <--- promote_if_necessary is not used in that case. */
+#endif /* !PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
 void add_temporary_to_scope(a_variable_ptr temp,
-                            a_scope_ptr    scope)
+                            a_scope_ptr    scope,
+                            a_boolean      promote_if_necessary)
 /*
 Add the indicated temporary variable to the variables list of the indicated
-scope.  If scope is NULL, use the nearest enclosing scope.
+scope.  If scope is NULL, use the nearest enclosing scope.  If
+promote_if_necessary is TRUE, the temporary is immediately promoted to file
+scope (if the temporary is static and statics have already been promoted out of
+the enclosing routine).
 */
 {
   if (scope == NULL) {
@@ -1515,10 +1522,28 @@ scope.  If scope is NULL, use the nearest enclosing scope.
     /* Mark local variables of functions. */
     temp->source_corresp.is_local_to_function = TRUE;
   }  /* if */
-  /* Add the temporary to the scope list (at the front).  We cannot use
-     add_to_variables_list because we might be working on a scope that is
-     not on the stack. */
-  add_temporary_to_front_of_variables_list(temp, scope);
+#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
+  if (promote_if_necessary &&
+      innermost_function_scope != NULL &&
+      innermost_function_scope->variant.routine.ptr->
+                                                  statics_have_been_promoted &&
+      has_static_storage_duration(temp->storage_class)) {
+    /* If statics have already been promoted out of this function, promote
+       this temporary to the file scope (in case it is referenced in the
+       initialization of a static that has already been promoted to the
+       file scope).  Do this now (before the temporary has been placed on
+       the scope's variables list). */
+    promote_static_variable_out_of_function(temp, scope,
+                                innermost_function_scope->variant.routine.ptr);
+  } else
+#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
+  /* Do not add code here. */
+  {
+    /* Add the temporary to the scope list (at the front).  We cannot use
+       add_to_variables_list because we might be working on a scope that is
+       not on the stack. */
+    add_temporary_to_front_of_variables_list(temp, scope);
+  }  /* if */
 }  /* add_temporary_to_scope */
 
 
@@ -1546,12 +1571,15 @@ class is static if force_static is TRUE.  Return a pointer to it.
 
 a_variable_ptr make_temporary_in_scope(a_type_ptr  temp_type,
                                        a_scope_ptr scope,
-                                       a_boolean   force_static)
+                                       a_boolean   force_static,
+                                       a_boolean   promote_if_necessary)
 /*
 Make a temporary variable in scope "scope" whose type is "temp_type" and
 whose storage class is static if force_static is TRUE or if the scope
 is not a function-local scope.  Return a pointer to it.  If scope is
-NULL, use the nearest enclosing scope.
+NULL, use the nearest enclosing scope.  If promote_if_necessary is TRUE, the
+newly created temporary is immediately promoted to file scope (if the temporary
+is static and statics have already been promoted out of the enclosing routine).
 */
 {
   a_variable_ptr  temp;
@@ -1565,7 +1593,7 @@ NULL, use the nearest enclosing scope.
   if (!local_to_function) force_static = TRUE;
   temp = make_temporary(temp_type, force_static);
   /* Add the temporary variable to the list of variables for the scope. */
-  add_temporary_to_scope(temp, scope);
+  add_temporary_to_scope(temp, scope, promote_if_necessary);
   return temp;
 }  /* make_temporary_in_scope */
 
@@ -1579,7 +1607,8 @@ pointer to the variable.
 */
 {
   return make_temporary_in_scope(temp_type, (a_scope_ptr)NULL,
-                                 /*force_static=*/FALSE);
+                                 /*force_static=*/FALSE,
+                                 /*promote_if_necessary=*/FALSE);
 }  /* make_lowered_temporary */
 
 
@@ -1594,7 +1623,8 @@ Return a pointer to the variable.
   /* Note that the allocation will be in the file scope memory region
      regardless of the current IL region. */
   temp_var = make_temporary_in_scope(temp_type, il_header.primary_scope,
-                                     /*force_static=*/TRUE);
+                                     /*force_static=*/TRUE,
+                                     /*promote_if_necessary=*/FALSE);
   return temp_var;
 }  /* make_file_scope_temporary */
 
@@ -1697,7 +1727,8 @@ instead of the current context (which might be a block scope).
   return make_temporary_in_scope(type,
                                  in_function_scope ? innermost_function_scope :
                                                      (a_scope_ptr)NULL,
-                                 /*force_static=*/TRUE);
+                                 /*force_static=*/TRUE,
+                                 /*promote_if_necessary=*/FALSE);
 }  /* make_unnamed_local_static_variable */
 
 
@@ -17916,6 +17947,7 @@ scope that is part of the indicated routine) to the file scope.
        from. */
     delete_static_variables_from_decl_stmts(scope, n_promoted_source_vars);
   }  /* if */
+  routine->statics_have_been_promoted = TRUE;
 }  /* promote_static_variables_out_of_function */
 
 

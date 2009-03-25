@@ -2841,6 +2841,11 @@ Display the indicated routine.
     disp_boolean("is_alias_entry", TRUE);
   }  /* if */
 #endif /* DO_IL_LOWERING && IA64_ABI */
+#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
+  if (ptr->statics_have_been_promoted) {
+    disp_boolean("statics_have_been_promoted", TRUE);
+  }  /* if */
+#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
   if (ptr->is_lambda_body) {
     disp_boolean("is_lambda_body", TRUE);
   }  /* if */

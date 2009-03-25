@@ -2781,7 +2781,8 @@ current function scope even if the current context is a block inside that.
 */
 {
   return make_temporary_in_scope(array_of(elem_type), innermost_function_scope,
-                                 /*force_static=*/FALSE);
+                                 /*force_static=*/FALSE,
+                                 /*promote_if_necessary=*/FALSE);
 }  /* make_unnamed_local_array_var */
 
 

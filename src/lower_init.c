@@ -6528,7 +6528,8 @@ to a constructor to be called after the zeroing have been done.
   set_block_start_insert_location(scope->assoc_block, &insert_location);
   /* Build a model for the zero-initialized entity. */
   model_var = make_temporary_in_scope(make_qualified_type(type, TQ_CONST),
-                                      scope, /*force_static=*/FALSE);
+                                      scope, /*force_static=*/FALSE,
+                                      /*promote_if_necessary=*/FALSE);
   model_var->init_kind = (an_init_kind)initk_zero;
   lower_initializer(model_var, &model_var->init_kind, &model_var->initializer,
                     &insert_location);
@@ -8956,7 +8957,8 @@ Do IL lowering of an enk_temp_init expression node.
         temp_var = make_temporary_in_scope(temp_type,
                                            (a_scope_ptr)NULL,
                                            (a_boolean)
-                                               expr->variant.init.static_temp);
+                                               expr->variant.init.static_temp,
+                                           /*promote_if_necessary=*/TRUE);
         /* With a unique temporary, there is the possibility of keeping
            some part of the initialization on the variable. */
         eff_keep_dynamic_init = &keep_dynamic_init;
@@ -14052,7 +14054,8 @@ with the value of their corresponding captured variables.
     /* Create a static temporary for the closure object. */
     closure_var = make_temporary_in_scope(expr->type,
                                           (a_scope_ptr)NULL,
-                                          /*force_static=*/TRUE);
+                                          /*force_static=*/TRUE,
+                                          /*promote_if_necessary=*/TRUE);
   }  /* if */
   /* Change the enk_lambda node to an enk_variable node that refers to
      the closure variable.  The type and lvalueness of the node are unchanged.
