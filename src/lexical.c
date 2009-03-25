@@ -1749,7 +1749,11 @@ tok_end_of_source later.
 */
 {
   a_token_cache	      temp_token_cache;
+  a_boolean	      save_caching_tokens = caching_tokens;
 
+  /* Set a flag that indicates that the tokens being scanned are to be
+     cached. */
+  caching_tokens = TRUE;
   clear_token_cache(&temp_token_cache, /*reusable=*/FALSE);
   rescan_reusable_cache(cache);
   while (curr_token != tok_end_of_source) {
@@ -1760,6 +1764,9 @@ tok_end_of_source later.
   (void)get_token();
   /* Rescan the tokens from the temporary cache. */
   rescan_cached_tokens(&temp_token_cache);
+  /* Clear the flag that indicates that the tokens being scanned are to be
+     cached. */
+  caching_tokens = save_caching_tokens;
 }  /* rescan_copy_of_cache */
 
 
