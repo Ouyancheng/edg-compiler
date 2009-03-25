@@ -7023,7 +7023,9 @@ is_reinterpret_cast indicate it.
     if (!expr->is_lvalue) {
       /* The cast has an lvalue-to-rvalue conversion built in, so the node
          type may be a little different from the underlying cast type. */
-      if (is_function_type(operand_1->type)) {
+      if (is_function_type(operand_1->type) &&
+          is_pointer_type(dest_type) &&
+          is_function_type(type_pointed_to(dest_type))) {
         /* When the underlying lvalue is a function, the decay to rvalue
            adds a "pointer-to" to the type, which must be stripped off to
            get back to the underlying cast type. */

@@ -1,5 +1,22 @@
 Version 4.1
 
+3/25/09  [EDGcpfe/9647]
+Incorrect generated code for cast of function to reference-to-object
+
+Now that a reinterpret_cast of a pointer to function to a pointer to object
+is allowed (see Changes entry of 6/7/07), the similar case using references
+is also allowed.  However, the changes to the IL representation of
+expressions made for 4.0 broke the handling of such cases in the
+C-generating back and the C++-generating back end.  For the former,
+the generated C code was incorrect, and for the latter the front end
+aborted.  Now fixed in both cases.
+
+  void f() {}
+  int main() {
+    int i = (int &)f;
+  }
+
+
 3/25/09  [EDGcpfe/9642]
 Lowered static reference initialization can generate bad C code
 

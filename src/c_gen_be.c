@@ -3833,7 +3833,9 @@ on top of the expansion.
          built in, and the underlying lvalue is a function, the decay to
          rvalue adds a "pointer-to" to the type. */
     if (!node->is_lvalue &&
-        is_function_type(operand_1->type)) {
+        is_function_type(operand_1->type) &&
+        is_pointer_type(node->type) &&
+        is_function_type(type_pointed_to(node->type))) {
       dump_cast(node->type);
     } else {
       dump_cast_to_pointer_to(node->type);
