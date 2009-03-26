@@ -783,7 +783,7 @@ well).
 }  /* lower_vla_dealloc */
 
 
-void lower_vla_cast(an_expr_node_ptr  expr)
+static void lower_vla_cast(an_expr_node_ptr  expr)
 /*
 The given expression node is a cast to a variably modified type (i.e.,
 involving a VLA type).  Compute any needed dimension variables and record

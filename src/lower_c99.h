@@ -99,8 +99,6 @@ extern void lower_vla_pointer_integer_arithmetic(an_expr_node_ptr  expr);
 
 extern void lower_vla_pointer_difference(an_expr_node_ptr  expr);
 
-extern void lower_vla_cast(an_expr_node_ptr  expr);
-
 extern void lower_vla_variable_lvalue(an_expr_node_ptr  expr);
 
 extern void lower_vla_dealloc(an_expr_node_ptr  expr);
