@@ -2440,7 +2440,7 @@ not.
 void lower_type_of_vla_cast_if_necessary(an_expr_node_ptr expr)
 /*
 The expression is a type of cast operation that may or may not operate
-on a vla type.  If the cast introduces a VLA type, we need to lower its
+on a VLA type.  If the cast introduces a VLA type, we need to lower its
 dimension expression and (in some configurations) compute its dimension
 variables.  Note that compiler-generated casts may cast to variably modified
 types that have already been visited.
