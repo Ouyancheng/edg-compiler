@@ -1470,8 +1470,11 @@ void add_temporary_to_scope(a_variable_ptr temp,
 Add the indicated temporary variable to the variables list of the indicated
 scope.  If scope is NULL, use the nearest enclosing scope.  If
 promote_if_necessary is TRUE, the temporary is immediately promoted to file
-scope (if the temporary is static and statics have already been promoted out of
-the enclosing routine).
+scope if the temporary is static and statics have already been promoted out of
+the enclosing routine.  Generally speaking, promote_if_necessary should be
+set to FALSE if the temporary represents something added by the compiler
+(e.g., exception handling tables), and TRUE if it represents something
+in the user's program.
 */
 {
   if (scope == NULL) {
@@ -1578,8 +1581,11 @@ Make a temporary variable in scope "scope" whose type is "temp_type" and
 whose storage class is static if force_static is TRUE or if the scope
 is not a function-local scope.  Return a pointer to it.  If scope is
 NULL, use the nearest enclosing scope.  If promote_if_necessary is TRUE, the
-newly created temporary is immediately promoted to file scope (if the temporary
-is static and statics have already been promoted out of the enclosing routine).
+newly created temporary is immediately promoted to file scope if the temporary
+is static and statics have already been promoted out of the enclosing routine.
+Generally speaking, promote_if_necessary should be set to FALSE if the
+temporary represents something added by the compiler (e.g., exception handling
+tables), and TRUE if it represents something in the user's program.
 */
 {
   a_variable_ptr  temp;

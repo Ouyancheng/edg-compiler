@@ -6008,13 +6008,11 @@ compression and truncation.
       if (class_scope != NULL) {
         do_type_list_type_name_mangling(class_scope->types);
       }  /* if */
-#if DO_IL_LOWERING
 #if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
       /* If some local types of member functions were promoted into the
          class on their way to the file scope, mangle them now too. */
       do_type_list_type_name_mangling(ctsp->promoted_local_types);
 #endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
-#endif /* DO_IL_LOWERING */
     }  /* if */
   }  /* for */
 }  /* do_type_list_type_name_mangling */
@@ -6107,13 +6105,11 @@ including classes.
       if (class_scope != NULL) {
         do_scope_other_name_mangling(class_scope);
       }  /* if */
-#if DO_IL_LOWERING
 #if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
       /* If some local types of member functions were promoted into the
          class on their way to the file scope, mangle them now too. */
       do_type_list_other_name_mangling(ctsp->promoted_local_types);
 #endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
-#endif /* DO_IL_LOWERING */
     } else if (is_immediate_enum_type(type) &&
                (is_class_or_namespace_member(type) ||
                 integer_type_is_scoped_enum(type))) {
@@ -6359,13 +6355,11 @@ also processed.
       if (class_scope != NULL) {
         do_scope_final_name_mangling(class_scope);
       }  /* if */
-#if DO_IL_LOWERING
 #if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
       /* If some local types of member functions were promoted into the
          class on their way to the file scope, mangle them now too. */
       do_type_list_final_name_mangling(ctsp->promoted_local_types);
 #endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
-#endif /* DO_IL_LOWERING */
     }  /* if */
     /* Do name mangling on the type. */
     final_entity_name_mangling(&type->source_corresp);

@@ -3738,6 +3738,33 @@ involved or local types are used as template type arguments.
 #define ENSURE_LOWERED_TYPE_LIST_ORDERING BACK_END_IS_C_GEN_BE
 #endif /* ifndef ENSURE_LOWERED_TYPE_LIST_ORDERING */
 
+/*
+This switch controls whether or not types and static variables that
+are local to function and block scopes are moved onto the file scope
+lists.  When the switch is FALSE, no promotions are done.  Local
+types and variables are allocated in the file scope memory region,
+and they are linked on the local scope types or variables list.  That
+accurately reflects the source form, which is desirable for
+generating symbolic debug information.  That form probably works fine
+when the IL is being fed into a true back end, but will not work when
+the IL is being turned into C output (as with the C-generating back
+end), because the local types and variables will not be visible from
+member functions of local classes and in a file-scope termination
+routine when it deals with calling a destructor for a local static
+variable.  When the switch here is TRUE, the local types and
+variables will be (selectively) promoted to the actual file scope.
+*/
+#ifndef PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
+#define PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE BACK_END_IS_C_GEN_BE
+#endif /* ifndef PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
+#if ENSURE_LOWERED_TYPE_LIST_ORDERING && !PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
+ #error -- ENSURE_LOWERED_TYPE_LIST_ORDERING requires \
+           PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
+#endif /* ENSURE_LOWERED_TYPE_LIST_ORDERING && !PROMOTE_LOCAL_ENTITIES_... */
+#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE && !DO_IL_LOWERING
+ #error -- PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE requires DO_IL_LOWERING
+#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE && !DO_IL_LOWERING */
+
 #if DO_IL_LOWERING
 
 /* Switches that control aspects of IL lowering: */
@@ -3765,30 +3792,6 @@ but it may be wasteful for embedded system cross-compilers.
 #ifndef FORCE_VARIABLE_DEFINITION_VIA_ZEROING
 #define FORCE_VARIABLE_DEFINITION_VIA_ZEROING TRUE
 #endif /* ifndef FORCE_VARIABLE_DEFINITION_VIA_ZEROING */
-
-/*
-This switch controls whether or not types and static variables that
-are local to function and block scopes are moved onto the file scope
-lists.  When the switch is FALSE, no promotions are done.  Local
-types and variables are allocated in the file scope memory region,
-and they are linked on the local scope types or variables list.  That
-accurately reflects the source form, which is desirable for
-generating symbolic debug information.  That form probably works fine
-when the IL is being fed into a true back end, but will not work when
-the IL is being turned into C output (as with the C-generating back
-end), because the local types and variables will not be visible from
-member functions of local classes and in a file-scope termination
-routine when it deals with calling a destructor for a local static
-variable.  When the switch here is TRUE, the local types and
-variables will be (selectively) promoted to the actual file scope.
-*/
-#ifndef PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
-#define PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE BACK_END_IS_C_GEN_BE
-#endif /* ifndef PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
-#if ENSURE_LOWERED_TYPE_LIST_ORDERING && !PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
- #error -- ENSURE_LOWERED_TYPE_LIST_ORDERING requires \
-           PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
-#endif /* ENSURE_LOWERED_TYPE_LIST_ORDERING && !PROMOTE_LOCAL_ENTITIES_... */
 
 /*
 This switch controls whether or not all functions and function calls will
