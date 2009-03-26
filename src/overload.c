@@ -3184,8 +3184,9 @@ declared after the point of call.
           this_match->conversion.routine_symbol = surrogate_function_conv_sym;
           conv_rout_type = conv_rout->type;
           conv_rout_type = skip_typerefs(conv_rout_type);
-          if (is_reference_type(conv_rout_type->variant.routine.return_type)) {
-            /* A conversion function returning a reference type creates
+          if (is_lvalue_reference_type(
+                                conv_rout_type->variant.routine.return_type)) {
+            /* A conversion function returning an lvalue reference type creates
                an lvalue. */
             this_match->conversion.result_is_an_lvalue = TRUE;
           }  /* if */
@@ -8773,12 +8774,13 @@ This routine is only used in C++ mode.
   a_routine_ptr             conversion_routine;
   a_symbol_list_entry_ptr   slep;
   a_type_ptr                source_type, conv_routine_type, return_type;
-  a_type_ptr                eff_this_param_type;
+  a_type_ptr                raw_return_type, eff_this_param_type;
   an_arg_match_summary      this_match;
   an_arg_match_summary_ptr  this_match_ptr;
   a_std_conv_descr          std_conversion;
   a_boolean                 compatible;
   a_boolean                 result_is_an_lvalue;
+  a_boolean                 result_is_a_reference;
   a_candidate_function_ptr  candidate;
   a_base_class_ptr          bcp;
   a_boolean                 class_object_adjustment_required = FALSE;
@@ -8918,8 +8920,10 @@ This routine is only used in C++ mode.
     compatible = FALSE;
     conv_routine_type = skip_typerefs(conv_routine_type);
     return_type = return_type_of(conv_routine_type);
-    result_is_an_lvalue = is_reference_type(conv_routine_type->
-                                                  variant.routine.return_type);
+    raw_return_type = conv_routine_type->variant.routine.return_type;
+    result_is_a_reference = is_reference_type(raw_return_type);
+    result_is_an_lvalue = result_is_a_reference &&
+                          is_lvalue_reference_type(raw_return_type);
     if (need_lvalue_result && !result_is_an_lvalue) {
       /* We need an lvalue result but the conversion function does
          not return one.  This is tested again later; the test here is for
@@ -8975,21 +8979,23 @@ This routine is only used in C++ mode.
         }  /* if */
       } else {
         /* The conversion function returns a nonclass type. */
-        if (result_is_an_lvalue &&
+        if (result_is_a_reference &&
             (!is_reference_binding || !types_match_ignoring_qualifiers)) {
           /* If the conversion function returns a reference to an array or
              function type, account for the type decay that follows. */
           if (is_array_type(return_type)) {
             return_type =
                        type_after_array_to_pointer_transformation(return_type);
+            result_is_a_reference = FALSE;
             result_is_an_lvalue = FALSE;
           } else if (is_function_type(return_type)) {
             return_type =
              type_after_function_to_pointer_transformation(return_type,
                                                            (an_operand *)NULL);
+            result_is_a_reference = FALSE;
             result_is_an_lvalue = FALSE;
           }  /* if */
-          if (!result_is_an_lvalue) {
+          if (!result_is_a_reference) {
             types_match_ignoring_qualifiers =
               types_are_compatible_ignoring_qualifiers(dest_type, return_type);
           }  /* if */

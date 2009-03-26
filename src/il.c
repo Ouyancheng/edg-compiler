@@ -9344,13 +9344,17 @@ returned.  Otherwise, it is the type of the rvalue returned.
     /* The function returns a non-reference type, i.e., an rvalue.  Drop
        cv-qualifiers as appropriate. */
     return_type = rvalue_type(return_type);
-  } else if (is_lvalue_reference_type(return_type)) {
-    /* An lvalue result of the type underlying the reference. */
-    return_type = type_pointed_to(return_type);
   } else {
-    /* An rvalue reference type: The returned type should be that for an
-       rvalue result. */
-    return_type = rvalue_type(type_pointed_to(return_type));
+    /* The function returns a reference, so the return type is the type
+       underlying the reference. */
+    return_type = type_pointed_to(return_type);
+    if (is_rvalue_reference_type(return_type) &&
+        !is_array_type(return_type)) {
+      /* An rvalue reference type: The returned type should be that for an
+         rvalue result.  However, don't drop type qualifiers on an array
+         type. */
+      return_type = rvalue_type(return_type);
+    }  /* if */
   }  /* if */
   return return_type;
 }  /* return_type_of */

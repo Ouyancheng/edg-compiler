@@ -9021,7 +9021,12 @@ of transformations on the return value).
   result->position = *call_pos;
   /* A function call returning a reference is an lvalue. */
   if (is_reference_type(result->type)) {
+    a_boolean is_rvalue_ref = is_rvalue_reference_type(result->type);
     add_reference_indirection(result);
+    if (is_rvalue_ref) {
+      /* A call of a function that returns an rvalue reference is an rvalue. */
+      do_operand_transformations(result, TOPT_NO_OPTIONS);
+    }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (microsoft_bugs && microsoft_version < 1100 && !C_mode() &&
 	       is_class_struct_union_type(result->type)) {
