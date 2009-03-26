@@ -13301,6 +13301,8 @@ and is lowered by this routine.
 {
   an_expr_node_ptr  node;
 
+  /* If the adjustment introduces a VLA type, handle that. */
+  lower_type_of_vla_cast_if_necessary(expr);
   node = rvalue_pointer_for_class_rvalue(expr->variant.operation.operands);
   node = add_cast(node, make_pointer_type(expr->type));
   node = add_indirection_to_node(node);
@@ -13703,6 +13705,7 @@ cast.  See lower_expr for typical invocation.
             }  /* if */
             break;
           case eok_lvalue_cast:
+          case eok_lvalue_adjust:
             /* If the lvalue cast introduces a VLA type, handle that. */
             lower_type_of_vla_cast_if_necessary(expr);
             break;
@@ -13713,6 +13716,8 @@ cast.  See lower_expr for typical invocation.
             break;
 #endif /* ABI_CHANGES_FOR_RTTI */
           case eok_ref_cast:
+            /* If the ref cast introduces a VLA type, handle that. */
+            lower_type_of_vla_cast_if_necessary(expr);
             /* Rewrite an eok_ref_cast as an eok_lvalue_adjust. */
             expr->variant.operation.kind =
                                       (an_expr_operator_kind)eok_lvalue_adjust;
