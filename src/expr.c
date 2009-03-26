@@ -16783,6 +16783,18 @@ indicates that the symbol is an anonymous union and cannot be captured.
            remember the nonlocal reference to help back-end aliasing
            analysis. */
         var->referenced_non_locally = TRUE;
+      } else if (curr_expr_kind_is_const() &&
+                 var_constant_value(var) != NULL) {
+        /* Allow references to constant-valued variables in constant
+           expressions.  This is not supported by the standard
+           as of May 2008, but we're opening a core issue.
+           The core issue suggests that references to such variables
+           be allowed even in non-constant expressions, as long as the
+           variable is immediately converted to an rvalue, but we don't
+           know that here, except for the special case of constant
+           expressions.  The CWG has already indicated that such references
+           in a lambda should not require a capture, so it's right that this
+           code precedes the lambda processing below. */
       } else if (in_lambda_body()) {
         /* This reference is in the body of a lambda, so it may be okay
            if the variable has been captured. */
@@ -16800,11 +16812,6 @@ indicates that the symbol is an anonymous union and cannot be captured.
             error_issued_already = TRUE;
           }  /* if */
         }  /* if */
-      } else if (curr_expr_kind_is_const() &&
-                 var_constant_value(var) != NULL) {
-        /* Allow references to constant-valued variables in constant
-           expressions.  This is not supported by the standard
-           as of May 2008, but we're opening a core issue. */
       } else if (!strict_ansi_mode &&
                  !expr_stack->potentially_evaluated &&
                  (!expr_stack->is_decltype_or_typeof_arg_expression ||
