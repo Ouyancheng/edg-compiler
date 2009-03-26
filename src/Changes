@@ -98,7 +98,7 @@ GNU C++ compatibility: Member declarations that don't declare anything
 
 In GNU C++ mode, the front end now accepts (with a warning) a member
 declaration that doesn't declare anything if that declaration refers to a
-class or enumeration type using an elaboration type name.  For example:
+class or enumeration type using an elaborated type name.  For example:
 
   struct X;
   struct S {
