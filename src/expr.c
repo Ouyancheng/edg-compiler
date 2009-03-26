@@ -18696,17 +18696,21 @@ Scan a C++ lambda expression, e.g., something like
 {
   a_lambda_ptr       lambda;
   a_source_position  start_pos;
-  a_boolean          const_expr_error = FALSE;
+  a_boolean          err = FALSE;
 
   start_pos = pos_curr_token;
   if (curr_expr_kind_is_const()) {
     /* A lambda is not allowed in a constant expression. */
     pos_error(ec_bad_constant_lambda, &start_pos);
-    const_expr_error = TRUE;
+    err = TRUE;
+  } else if (!curr_expr_is_evaluated()) {
+    /* A lambda is not allowed in an unevaluated expression. */
+    pos_error(ec_bad_unevaluated_lambda, &start_pos);
+    err = TRUE;
   }  /* if */
   /* Scan the lambda. */
   lambda = scan_lambda(expr_is_inside_default_arg_expression());
-  if (lambda == NULL || const_expr_error) {
+  if (lambda == NULL || err) {
     /* Some serious error was previously detected. */
     make_error_operand(result);
   } else {
