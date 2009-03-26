@@ -13307,8 +13307,6 @@ and is lowered by this routine.
 {
   an_expr_node_ptr  node;
 
-  /* If the adjustment introduces a VLA type, handle that. */
-  lower_type_of_vla_cast_if_necessary(expr);
   node = rvalue_pointer_for_class_rvalue(expr->variant.operation.operands);
   node = add_cast(node, make_pointer_type(expr->type));
   node = add_indirection_to_node(node);
