@@ -12997,7 +12997,12 @@ proceed after the call.
 
   /* Check for "= default" or "= delete". */
   if (curr_token == tok_assign) {
-    a_token_kind  next_tok = next_token();
+    a_source_position  saved_error_position;
+    a_token_kind       next_tok;
+    /* Work around a change in error_position due to the look-ahead. */
+    saved_error_position = error_position;
+    next_tok = next_token();
+    error_position = saved_error_position;
     if (deleted_functions_enabled && next_tok == tok_delete) {
       func_info->is_deleted = TRUE;
     } else if (defaulted_special_members_enabled && next_tok == tok_default) {
