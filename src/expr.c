@@ -8474,12 +8474,14 @@ Verify that the flag indicating a reference cast is properly set in
 the result expression, if any.
 */
 {
-  an_expr_node_ptr expr = expr_node_from_operand(operand);
+  if (!is_error_operand(operand)) {
+    an_expr_node_ptr expr = expr_node_from_operand(operand);
 
-  if (expr != NULL && is_operation_node(expr)) {
-    check_assertion(expr->variant.operation.is_reference_cast);
-    if (is_rvalue_reference_type(cast_type)) {
-      check_assertion(expr->variant.operation.is_rvalue_reference_cast);
+    if (expr != NULL && is_operation_node(expr)) {
+      check_assertion(expr->variant.operation.is_reference_cast);
+      if (is_rvalue_reference_type(cast_type)) {
+        check_assertion(expr->variant.operation.is_rvalue_reference_cast);
+      }  /* if */
     }  /* if */
   }  /* if */
 }  /* check_reference_cast_flag_is_set */

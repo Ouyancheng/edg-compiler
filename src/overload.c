@@ -2507,10 +2507,25 @@ it is always NULL.
   }  /* if */
   if (is_reference_type(param_type)) {
     /* The parameter has a reference type. */
+    a_boolean is_rvalue_ref = is_rvalue_reference_type(param_type);
     /* Drop the reference type. */
     param_type = type_pointed_to(param_type);
-    /* Check and adjust the top-level type qualifiers. */
-    check_template_arg_type_qualifiers(&arg_type, &param_type);
+    if (is_rvalue_ref &&
+        is_template_param_type(param_type) &&
+        !is_qualified_type(param_type) &&
+        arg_operand != NULL &&
+        is_an_lvalue(arg_operand)) {
+      /* A special case ([temp.deduct.call] paragraph 3): If the parameter
+         type is an rvalue reference to a template parameter (with no
+         cv-qualifiers), and the argument is an lvalue, use
+         reference-to-arg-type for the argument type, which will eventually
+         produce a parameter type that is an lvalue reference. */
+      arg_operand = NULL;
+      arg_type = make_reference_type(arg_type);
+    } else {
+      /* Check and adjust the top-level type qualifiers. */
+      check_template_arg_type_qualifiers(&arg_type, &param_type);
+    }  /* if */
   } else {
     /* Not a reference. */
     /* See if any implicit transformations (e.g., array --> pointer) should
