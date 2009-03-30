@@ -2773,6 +2773,7 @@ state.
         cssp->definition_is_first_decl = FALSE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
         cssp->lambda_inside_default_arg_expression = FALSE;
+        cssp->lambda_in_invalid_scope = FALSE;
 #if CENTERLINE_CHECKING
         cssp->avoid_codecenter_warnings = FALSE;
 #endif /* CENTERLINE_CHECKING */

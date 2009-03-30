@@ -1030,6 +1030,13 @@ typedef struct a_class_symbol_supplement {
 			   that occurs inside a default argument expression.
 			   (That's an error currently, and this flag helps with
 			   error recovery.) */
+  a_bit_field	lambda_in_invalid_scope:1;
+			/* TRUE for the closure class of a lambda expression
+			   that appeared in an invalid scope (e.g., a
+			   template declaration scope).  An error will have
+			   been issued that the lambda cannot appear in a
+			   constant expression, but this flag is used to
+			   improve the error recovery for such cases. */
   bitfield_to_avoid_codecenter_warnings()
 } a_class_symbol_supplement;
 

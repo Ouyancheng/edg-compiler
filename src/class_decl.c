@@ -334,22 +334,30 @@ found in unexpected locations.
   }  /* while */
   /* Skip any block scopes. */
   while (ssep->kind == (a_scope_kind)sck_block) ssep--;
-  /* If this is a lambda body, skip the lambda function scope and the
-     lambda class scope. */
+  /* If this is a lambda body, check whether the lambda was declared in
+     an invalid scope.  If so, treat this as an invalid scope for a class. */
   if (ssep->kind == (a_scope_kind)sck_function &&
       ssep->assoc_routine->is_lambda_body) {
-    ssep -= 2;
+    a_class_symbol_supplement_ptr	cssp;
+    a_type_ptr				lambda_type = (ssep-1)->assoc_type;
+    cssp = symbol_supplement_for_class(lambda_type);
+    result = cssp->lambda_in_invalid_scope;
   }  /* if */
-  switch (ssep->kind) {
-    case sck_template_declaration:
-    case sck_func_prototype:
-    case sck_enum:
-      /* An invalid scope for a class definition. */
-      result = TRUE;
-      break;
-    default:
-      break;
-  }  /* switch */
+  if (result) {
+    /* We determined the scope is invalid above. */
+  } else {
+    /* So far it is valid.  Check the scope we found. */
+    switch (ssep->kind) {
+      case sck_template_declaration:
+      case sck_func_prototype:
+      case sck_enum:
+        /* An invalid scope for a class definition. */
+        result = TRUE;
+        break;
+      default:
+       break;
+    }  /* switch */
+  }  /* if */
   return result;
 }  /* is_invalid_scope_for_class */
 
@@ -1146,13 +1154,15 @@ issue an error and return NULL.
 
 static a_type_ptr make_closure_class(a_scope_depth      decl_level,
                                      a_boolean          inside_default_arg,
-                                     a_source_position  *decl_position)
+                                     a_source_position  *decl_position,
+				     a_boolean		bad_scope)
 /*
 Create the class type that is used to represent a lambda closure.  Return
 a pointer to the class type.  decl_level determines which scope the class
 belongs to.  inside_default_arg is TRUE if the lambda appears inside a
 default argument expression.  decl_position is the declaration position to
-be used for the lambda.
+be used for the lambda.  bad_scope is TRUE if the lambda appeared in
+an invalid scope.
 
 The class is created as an incomplete type.  It will be completed when its
 various members have been added (call operator, constructors, destructor, and
@@ -1191,6 +1201,7 @@ the fields implied by the lambda's capture list).
      be cleared later if this is not the case. */
   cssp->construction_by_bitwise_copy_allowed = TRUE;
   cssp->lambda_inside_default_arg_expression = inside_default_arg;
+  cssp->lambda_in_invalid_scope = bad_scope;
   return type;
 }  /* make_closure_class */
 
@@ -16562,21 +16573,20 @@ and issue a diagnostic if that was not the case.
 
 
 static a_scope_depth decl_level_for_lambda_closure_class(
-                                                 a_source_position  *diag_pos)
+                                                 a_boolean	*bad_scope)
 /*
 A lambda appears in the current scope context.  Return the scope depth at
-which the associated closure class should be declared.  If appropriate, issue
-a diagnostic at the given position, but even in error cases the returned scope
-depth must be usable for error recovery purposes.
+which the associated closure class should be declared.  Return in *bad_scope
+a flag that indicates whether or not the current scope is valid for a
+lambda.
 */
 {
-  a_boolean               scope_error_issued = FALSE;
   a_scope_depth           previous_scope;
   a_scope_stack_entry_ptr ssep;
+  a_boolean               scope_error = FALSE;
 
   for (ssep = scope_stack_entry_for(decl_scope_level);;
        ssep = scope_stack_entry_for(previous_scope)) {
-    a_boolean  scope_error = FALSE;
     previous_scope = ssep->previous_scope;
     switch (ssep->kind) {
       case sck_file:
@@ -16592,7 +16602,7 @@ depth must be usable for error recovery purposes.
       case sck_instantiation_context:
         /* We might see these while looking for a suitable scope after error
            recovery. */
-        check_assertion(scope_error_issued);
+        check_assertion(scope_error);
         break;
       case sck_template_instantiation:
         /* For a template instantiation scope, keep following the
@@ -16616,12 +16626,15 @@ depth must be usable for error recovery purposes.
         scope_error = TRUE;
         break;
     }  /* switch */
-    if (scope_error && !scope_error_issued) {
-      pos_error(ec_bad_scope_for_lambda, diag_pos);
-      scope_error_issued = TRUE;
-    }  /* if */
   }  /* for */
 done:
+  if (scope_error) {
+    /* An error should have already been issued that a lambda is not allowed
+       in a constant expression (which must be the case for the invalid
+       scopes. */
+    expect_error();
+  }  /* if */
+  *bad_scope = scope_error;
   return scope_depth_of(ssep);
 }  /* decl_level_for_lambda_closure_class */
 
@@ -16658,6 +16671,7 @@ For example:
   a_func_info_block    func_info;
   a_decl_flag_set      sfb_flags;
   a_lambda_capture_ptr lcp;
+  a_boolean            bad_scope;
 
   /* Start a new stop token context. */
   push_stop_token_stack();
@@ -16665,11 +16679,11 @@ For example:
   lambda->start_position = pos_curr_token;
   /* Initialize the closure class and set up a context in which members
      can be added. */
-  decl_level = decl_level_for_lambda_closure_class(&pos_curr_token);
+  decl_level = decl_level_for_lambda_closure_class(&bad_scope);
   decl_scope_level = decl_level;
   lambda->closure_class = closure_class =
                  make_closure_class(decl_level, inside_default_arg_expression,
-                                    &lambda->start_position);
+                                    &lambda->start_position, bad_scope);
   /* Scan the lambda capture list. */
   (void)get_token();
   add_stop_token(tok_rbracket);
