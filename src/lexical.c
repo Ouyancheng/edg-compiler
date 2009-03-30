@@ -1370,6 +1370,7 @@ be TRUE if curr_token is tok_lt.
   int           paren_count = 0, bracket_count = 0, brace_count = 0;
   a_boolean	done = FALSE;
   a_boolean	err = FALSE;
+  a_boolean	cache_tokens = coalesce_ids;
 
   db_enter(4, "cache_token_stream_until_matching_token");
   if (curr_token == tok_lt) {
@@ -1378,6 +1379,8 @@ be TRUE if curr_token is tok_lt.
        angle brackets as we do with parentheses, brackets, and braces. */
     check_assertion(coalesce_ids);
   }  /* if */
+  /* We don't need to coalesce ids if we are not handling a <...> sequence. */
+  if (curr_token != tok_lt) coalesce_ids = FALSE;
   /* Determine the closing token that corresponds to curr_token. */
   switch (curr_token) {
     case tok_lt:        closing_token = tok_gt;       break;
@@ -1390,7 +1393,7 @@ be TRUE if curr_token is tok_lt.
 #endif /* CHECKING */
   }  /* switch */
   /* Cache the current token, and advance to its successor. */
-  if (!coalesce_ids) cache_curr_token(cache);
+  if (!cache_tokens) cache_curr_token(cache);
   get_token_and_coalesce_if_needed(coalesce_ids, last_tsn_in_cache)
   /* Keep looping through successive tokens until the corresponding closing
      token is found at level zero (i.e., not within a nesting of parens,
@@ -1435,7 +1438,7 @@ be TRUE if curr_token is tok_lt.
     /* Always stop the flush on end of source. */
     if (curr_token == tok_end_of_source) break;
     /* None of the conditions was satisfied, so keep going. */
-    if (!coalesce_ids) cache_curr_token(cache);
+    if (!cache_tokens) cache_curr_token(cache);
     get_token_and_coalesce_if_needed(coalesce_ids, last_tsn_in_cache);
     if (curr_token == tok_shift_right && closing_token == tok_gt &&
         right_shift_can_be_angle_brackets) {
