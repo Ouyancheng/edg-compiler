@@ -1828,6 +1828,7 @@ ec_invalid_function_to_be_defaulted;;"\"= default\" can only appear on default c
 ec_deleted_function_definition_must_be_first_declaration;;"\"= delete\" can only appear on the first declaration of a function"
 ec_deleted_function;;"%no is a deleted function"
 ec_bad_unevaluated_lambda;;"a lambda is not allowed in an unevaluated expression"
+ec_bad_function_for_gnu_va_arg_pack;;"__builtin_va_arg_pack/__builtin_va_arg_pack_len should only appear in an inline function with an ellipsis parameter"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

@@ -1737,6 +1737,8 @@ Enter the standard predeclared functions for GCC.
   enter_gnu_builtin_func2(_yn, double, int, double);
   enter_gnu_builtin_func2(_ynf, floating, int, floating);
   enter_gnu_builtin_func2(_ynl, long_double, int, long_double);
+  enter_gnu_builtin_func0(_va_arg_pack, int);
+  enter_gnu_builtin_func0(_va_arg_pack_len, int);
 
 #if GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
   enter_gnu_sync_functions();

@@ -1406,26 +1406,40 @@ pseudo_call can be NULL if that information is not needed.
 }  /* is_foldable_gnu_builtin_function */
 
 
-static a_boolean is_foldable_gnu_builtin_function_operand(
-                                                      an_operand  *op,
-                                                      a_boolean   *pseudo_call)
+static void check_gnu_builtin_function_for_call(an_operand  *op,
+                                                a_boolean   *foldable,
+                                                a_boolean   *pseudo_call)
 /*
-Return TRUE if and only if the given operand corresponds to a GNU built-in
-function and calls to that function might be valid constant-expressions.
+If the given operand corresponds to a GNU built-in function, return through
+*foldable whether a call to that function might be a valid constant-expression.
 *pseudo_call is set to TRUE if the arguments to the built-in function call
 are not treated like standard call arguments (e.g., if they behave like
 sizeof arguments); otherwise, *pseudo_call is set to FALSE.
+This routine may also diagnose certain invalid uses of special GNU functions
+(e.g., uses of __builtin_va_arg_pack in a non-variadic function).
 */
 {
   a_routine_ptr rp = routine_from_function_operand(op);
-  a_boolean     result = FALSE;
 
-  *pseudo_call = FALSE;
-  if (rp != NULL && is_foldable_gnu_builtin_function(rp, pseudo_call)) {
-    result = TRUE;
+  *foldable = *pseudo_call = FALSE;
+  if (rp != NULL && is_gnu_builtin_function(rp)) {
+    *foldable = is_foldable_gnu_builtin_function(rp, pseudo_call);
+    switch (rp->variant.builtin_function_kind) {
+      case bfk_va_arg_pack:
+      case bfk_va_arg_pack_len:
+        if (innermost_function_scope == NULL ||
+            !innermost_function_scope->variant.routine.ptr->is_inline ||
+            !skip_typerefs(innermost_function_scope->variant.routine.ptr->type)
+                         ->variant.routine.extra_info->has_ellipsis) {
+          error_in_operand(ec_bad_function_for_gnu_va_arg_pack, op);
+        }  /* if */
+        break;
+      default:
+        /* No special checks needed. */
+        break;
+    }  /* switch */
   }  /* if */
-  return result;
-}  /* is_foldable_gnu_builtin_function_operand */
+}  /* check_gnu_builtin_function_for_call */
 
 
 static a_type_class_kind gnu_type_class_for_type(a_type_ptr  type)
@@ -2134,8 +2148,8 @@ C++ standard.  The current token is the "(" of the call.
        different from that done for function calls.  Such pseudo-calls are
        fully handled by the call to scan_gnu_builtin_pseudo_call. */
     a_boolean  pseudo_call;
-    call_may_be_folded = is_foldable_gnu_builtin_function_operand(
-                                                        operand, &pseudo_call);
+    check_gnu_builtin_function_for_call(operand, &call_may_be_folded,
+                                        &pseudo_call);
     if (pseudo_call) {
       check_assertion(call_may_be_folded);
       scan_gnu_builtin_pseudo_call(operand, result);
