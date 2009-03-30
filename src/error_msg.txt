@@ -1829,6 +1829,7 @@ ec_deleted_function_definition_must_be_first_declaration;;"\"= delete\" can only
 ec_deleted_function;;"%no is a deleted function"
 ec_bad_unevaluated_lambda;;"a lambda is not allowed in an unevaluated expression"
 ec_bad_function_for_gnu_va_arg_pack;;"__builtin_va_arg_pack/__builtin_va_arg_pack_len should only appear in an inline function with an ellipsis parameter"
+ec_function_defaulted_in_friend_decl;;"\"= default\" cannot be specified on a friend declaration"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

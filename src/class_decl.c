@@ -6654,7 +6654,9 @@ possibility.
            of calling decl_routine. */
         sym = decl_dependent_friend_function(locator, function_type, func_info,
                                              &decl_info->decl_pos_block);
-        goto done;
+        state->sym = sym;
+        state->first_decl = TRUE;
+        goto decl_processed;
       }  /* if */
     }  /* if */
   }  /* if */
@@ -6909,12 +6911,14 @@ possibility.
       }  /* if */
     }  /* if */
   }  /* if */
-done:
+decl_processed:
   if (func_info->is_definition) {
     /* Since this is a definition, record the current lint argsused and
        varargs-count state in the routine type. That will suppress any
        warnings about unused parameters or variable arguments. */
     record_lint_argsused_and_varargs_state(sym);
+    /* Check uses of "= default" (always an error) and "= delete". */
+    check_defaulted_or_deleted_function(state, func_info, &pos_curr_token);
   }  /* if */
   /* Do processing required for any pragmas that are bound to the current
      declaration. */
@@ -8167,7 +8171,10 @@ update the routine's IL entry accordingly.
   } else if (func_info->is_defaulted) {
     /* Verify that sym represents a special member function for which a
        definition can be generated. */
-    if (rp->special_kind == (a_special_function_kind)sfk_constructor) {
+    if ((dps->dso_flags & DSO_FRIEND) != 0) {
+      /* A special member cannot be defined in a friend declaration. */
+      err_code = ec_function_defaulted_in_friend_decl;
+    } else if (rp->special_kind == (a_special_function_kind)sfk_constructor) {
       a_type_qualifier_set  tqs;
       if (is_default_constructor(rp, /*is_declarative_context=*/TRUE) ||
           is_copy_constructor(rp, (a_type*)NULL, &tqs,
