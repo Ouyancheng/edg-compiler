@@ -8182,6 +8182,7 @@ update the routine's IL entry accordingly.
     }  /* if */
   }  /* if */
   if (err_code != ec_no_error) {
+    func_info->is_definition = FALSE;
     pos_error(err_code, diag_pos);
   }  /* if */
 }  /* check_defaulted_or_deleted_function */
@@ -8943,6 +8944,8 @@ declarations.)
     sym = enter_overloaded_symbol((a_symbol_kind)sk_function_template,
                                   locator, is_ctor, sym, &overload_sym);
   }  /* if */
+  decl_state->sym = sym;
+  decl_state->first_decl = TRUE;
   rtn = make_routine(member_type, (a_storage_class)sc_unspecified,
                      prototype_instantiations_in_il && !sym->is_error
                                      ? effective_decl_level : NO_SCOPE_DEPTH);
@@ -8992,6 +8995,7 @@ declarations.)
     /* User-defined conversion function. */
     set_routine_special_kind(rtn, (a_special_function_kind)sfk_conversion);
   }  /* if */
+  check_defaulted_or_deleted_function(decl_state, func_info, &pos_curr_token);
   if (overload_sym != NULL) {
     set_mixed_static_nonstatic_flag(overload_sym);
   }  /* if */

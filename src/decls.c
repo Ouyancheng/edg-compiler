@@ -8159,8 +8159,15 @@ definition of a member function of a class template.
           sym->is_class_member && !idlb.is_friend_decl && !is_specialization) {
         /* A non-defining declaration of a member function is only allowed
            in Microsoft mode. */
-        pos_sy_error(ec_member_function_redecl_outside_class,
-                     &locator->source_position, sym);
+        if (func_info->is_deleted || func_info->is_defaulted) {
+          /* The member was defined with "= default;" or "= delete;", but
+             some error caused it not to be treated as a valid definition.
+             Don't issue another error. */
+          check_assertion(total_errors != 0);
+        } else {
+          pos_sy_error(ec_member_function_redecl_outside_class,
+                       &locator->source_position, sym);
+        }  /* if */
       } /* if */
     } /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS

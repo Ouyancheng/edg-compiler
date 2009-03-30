@@ -15138,6 +15138,7 @@ caller.
   a_template_param_ptr             template_param_list =
                                            decl_state->decl_info->parameters;
   a_routine_ptr			   rout_ptr = NULL;
+  a_boolean                        is_defaulted_or_deleted = FALSE;
 
   if (!err && !is_function_or_template_symbol(sym)) {
     /* The symbol is something other than a function symbol.  Issue
@@ -15154,6 +15155,8 @@ caller.
     tssp = template_supplement_for_symbol(sym);
     check_assertion(tssp != NULL);
     rout_ptr = tssp->variant.function.routine;
+    is_defaulted_or_deleted = tssp->variant.function.func_info.is_defaulted ||
+                              tssp->variant.function.func_info.is_deleted;
   }  /* if */
   if (sym != NULL && sym->kind == (a_symbol_kind)sk_function_template) {
     if (sym->is_class_member && !decl_state->is_template_friend) {
@@ -15321,8 +15324,7 @@ caller.
     /* A function template definition -- leave it to the caller to advance
        past the closing right brace (or the final semicolon if this is a
        "= delete;" or "= default" function). */
-    if (func_info != NULL &&
-        (func_info->is_deleted || func_info->is_defaulted)) {
+    if (is_defaulted_or_deleted) {
       *(decl_state->final_token_ptr) = tok_semicolon;
     } else {
       *(decl_state->final_token_ptr) = tok_rbrace;
