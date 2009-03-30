@@ -16586,13 +16586,14 @@ the explicit capture list.
         if (class_type_supp(class_type)->is_lambda_closure_class) break;
       }  /* if */
     }  /* for */
-    /* If we're inside several nested lambda headers (e.g., in the parameter
-       lists of the lambdas), get out to the surrounding function.
-       Function prototype scopes will separate them. */
-    for (sd--;
-         scope_stack[sd].kind == (a_scope_kind)sck_func_prototype;
-         sd--) {}
+    sd--;
   }  /* if */
+  /* If we're inside several nested lambda headers (e.g., in the parameter
+     lists of the lambdas), get out to the surrounding function.
+     Function prototype scopes will separate them. */
+  for (;
+       scope_stack[sd].kind == (a_scope_kind)sck_func_prototype;
+       sd--) {}
   /* Look at the block and function scopes immediately enclosing the
      lambda class to see if the variable is declared there. */
   for (;
@@ -17551,7 +17552,7 @@ overloaded_function:
           /* No need to call change_refs_to_error; rep is NULL. */
           break;
         case sk_parameter:
-          if (expr_stack->is_default_arg_expression ||
+          if (expr_is_inside_default_arg_expression() ||
               (!curr_expr_kind_is(ek_sizeof) &&
                !expr_stack->is_vla_dimension_expression)) {
             /* This is a parameter referenced within a C++ default argument
@@ -18701,7 +18702,11 @@ Scan a C++ lambda expression, e.g., something like
     err = TRUE;
   }  /* if */
   /* Scan the lambda. */
-  lambda = scan_lambda(expr_is_inside_default_arg_expression());
+  /* Note that this does not use expr_is_inside_default_arg_expression
+     on purpose.  We only want to know if the lambda is immediately inside
+     a default argument expression, not if it is inside a lambda that
+     is inside a default argument expression. */
+  lambda = scan_lambda(expr_stack->is_default_arg_expression);
   if (lambda == NULL || err) {
     /* Some serious error was previously detected. */
     make_error_operand(result);
