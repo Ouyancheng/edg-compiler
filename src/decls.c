@@ -1819,10 +1819,12 @@ internal linkage).
         if (is_type_symbol(prior_decl) ||
             prior_decl->kind == (a_symbol_kind)sk_field ||
             prior_decl->kind == (a_symbol_kind)sk_constant ||
+            prior_decl->kind == (a_symbol_kind)sk_parameter ||
             prior_decl->kind == (a_symbol_kind)sk_undefined) {
           /* The prior declaration may have been a typedef in an enclosing
              scope; there is no relationship wrt. name linkage.  In error
-             situations, we may also pick up fields, constants or undefined
+             situations, we may also pick up fields, constants, parameters
+             (when lambdas appear in function prototypes), or undefined
              identifiers: ignore them. */
           prior_decl = NULL;
         }  /* if */
