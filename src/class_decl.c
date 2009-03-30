@@ -6917,8 +6917,10 @@ decl_processed:
        varargs-count state in the routine type. That will suppress any
        warnings about unused parameters or variable arguments. */
     record_lint_argsused_and_varargs_state(sym);
-    /* Check uses of "= default" (always an error) and "= delete". */
-    check_defaulted_or_deleted_function(state, func_info, &pos_curr_token);
+    if (state->sym != NULL) {
+      /* Check uses of "= default" (always an error) and "= delete". */
+      check_defaulted_or_deleted_function(state, func_info, &pos_curr_token);
+    }  /* if */
   }  /* if */
   /* Do processing required for any pragmas that are bound to the current
      declaration. */
