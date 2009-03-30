@@ -1545,6 +1545,8 @@ if this is the function declarator in a friend function declaration.
   a_boolean               defines_something;
   a_boolean               default_arg_allowed_on_curr_param = FALSE;
   a_boolean               ignore_disallowed_default_arg = FALSE;
+  a_boolean               any_default_args = FALSE;
+  a_source_position       last_default_arg_pos;
   a_boolean               may_be_copy_constructor = FALSE;
   a_boolean               bad_first_param_for_copy_constructor = FALSE;
   a_source_position       pos_of_first_param_type;
@@ -1966,7 +1968,21 @@ if this is the function declarator in a friend function declaration.
           last_param_type->next = ptp;
         }  /* if */
         last_param_type = ptp;
-        if (curr_token == tok_assign && C_dialect == C_dialect_cplusplus) {
+        if (C_mode()) {
+          /* Default argument processing not needed in C mode. */
+        } else if (curr_token != tok_assign) {
+          /* For in-class member template declarations, make sure that the
+             all parameters after the first one with a default argument
+             also have default arguments.  Similar checks for other functions
+             are done elsewhere. */
+          if (any_default_args && parent_type != NULL &&
+              depth_template_declaration_scope == depth_scope_stack - 1) {
+            pos_error(ec_default_arg_not_at_end, &last_default_arg_pos);
+            /* Reset the flag that indicates that default arguments have
+               been seen to suppress subsequent errors. */
+            any_default_args = FALSE;
+          }  /* if */
+        } else {
           /* Argument expressions are not allowed in overloaded operator
              declarations.  Issue an error, but go ahead and scan the
              expression. */
@@ -1982,7 +1998,6 @@ if this is the function declarator in a friend function declaration.
 
           if (!default_arg_allowed_on_curr_param) {
             pos_error(ec_default_arg_expr_not_allowed, &pos_curr_token);
-
           } else if (!is_top_level_declarator) {
             /* Default arguments are normally only allowed on top-level
                function declarations (i.e., not on typedef declarations,
@@ -1997,8 +2012,10 @@ if this is the function declarator in a friend function declaration.
             }  /* if */
             pos_diagnostic(sev, ec_nonstd_default_arg, &pos_curr_token);
           }  /* if */
+          any_default_args = TRUE;
           /* Advance past the equal sign. */
           (void)get_token();
+          last_default_arg_pos = pos_curr_token;
           /* Check the scope immediately containing the current scope, which
              is a function prototype scope.  We may have to cache the
              default argument tokens and rescan them later. */
