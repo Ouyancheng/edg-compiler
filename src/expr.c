@@ -18106,7 +18106,6 @@ simple_name:
   }  /* if */
 }  /* set_curr_token_to_function_name_string */
 
-#if MICROSOFT_EXTENSIONS_ALLOWED || BACK_END_IS_CP_GEN_BE
 
 char *spelling_for_function_name_token(a_token_kind token)
 /*
@@ -18135,7 +18134,6 @@ returned is not in the IL and must be copied if needed there.
   return name;
 }  /* spelling_for_function_name_token */
 
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED || BACK_END_IS_CP_GEN_BE */
 
 static void make_function_name_operand(an_operand *result)
 /*
@@ -18150,6 +18148,8 @@ which of the various keywords was used.
   a_generated_entity_block *gen_entity_block;
   a_constant_ptr           name_string;
   a_token_kind             func_name_token = curr_token;
+  char                     *token_spelling =
+                             spelling_for_function_name_token(func_name_token);
 
   /* Decide whether this keyword is equivalent to a string literal
      or a static variable. */
@@ -18158,8 +18158,7 @@ which of the various keywords was used.
     /* We are outside of a function.  This is allowed in GNU mode.
        The name is empty. */
     if (!gnu_mode) {
-      str_error(ec_id_can_only_appear_in_function,
-                locator_for_curr_id.symbol_header->identifier);
+      str_error(ec_id_can_only_appear_in_function, token_spelling);
       make_error_operand(result);
       goto end_of_routine;
     }  /* if */
@@ -18234,17 +18233,13 @@ which of the various keywords was used.
     name_var = make_variable(var_type, (a_storage_class)sc_static,
                              depth_innermost_function_scope);
 #if BACK_END_IS_CP_GEN_BE
-    {
-      /* The name of the variable is the token name, e.g., __FUNCTION__.
-         Therefore references to the variable will look like the
-         original source code.  Note that the declaration of the
-         variable will not be put out because no source sequence
-         entry is created. */
-      char *var_name = spelling_for_function_name_token(func_name_token);
-      name_var->source_corresp.name = strcpy(
-                   alloc_primary_file_scope_il((sizeof_t)strlen(var_name) + 1),
-                   var_name);
-    }
+    /* The name of the variable is the token name, e.g., __FUNCTION__.
+       Therefore references to the variable will look like the original
+       source code.  Note that the declaration of the variable will not be
+       put out because no source sequence entry is created. */
+    name_var->source_corresp.name = strcpy(
+             alloc_primary_file_scope_il((sizeof_t)strlen(token_spelling) + 1),
+             token_spelling);
 #endif /* BACK_END_IS_CP_GEN_BE */
     name_var->source_corresp.is_local_to_function = TRUE;
     name_var->init_kind = (an_init_kind)initk_static;

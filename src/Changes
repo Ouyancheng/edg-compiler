@@ -1,5 +1,22 @@
 Version 4.1
 
+3/30/09  [EDGcpfe/9557]
+Incorrect diagnostic for function name token during instantiation
+
+When one of the various function name tokens appears in a class template
+outside of a function definition, the error message issued when the
+template is instantiated referred to the wrong token instead of the
+function name token.  For example, the following
+
+  template <typename T> struct S {
+    static const int i = sizeof(__FUNCTION__);
+  };
+  X<int> x;
+
+produced a message referring to "the reserved identifier 'i'" instead of
+"the reserved identifier '__FUNCTION__'".  Now fixed.
+
+
 3/27/09  [EDGcpfe/9661]
 Missing diagnostic on missing default argument on member function template
 
