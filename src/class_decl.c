@@ -1057,14 +1057,18 @@ to be used for the capture.
          ssep = previous_scope_of(ssep)) {}
     check_assertion(ssep != NULL);
   } else {
-    ssep = scope_stack_entry_for(depth_scope_stack-1);
+    ssep = scope_stack_entry_for(depth_scope_stack);
   }  /* if */
   region_to_switch_back_to = curr_il_region_number;
   switch_il_region(ssep->il_memory_region);
   lcp = alloc_lambda_capture();
   lcp->variable = vp;
-  lcp->closure_field = make_field_for_lambda_capture(lambda, vp, by_reference,
-                                                     pos);
+  if (is_implicit) {
+    /* For implicit captures, create the capture field now.  For explicit
+       captures this must wait until the closure class has been pushed. */
+    lcp->closure_field = make_field_for_lambda_capture(lambda, vp,
+                                                       by_reference, pos);
+  }  /* if */
   lcp->capture_by_reference = by_reference;
   lcp->is_implicit = is_implicit;
   lcp->position = *pos;
@@ -16278,10 +16282,8 @@ caller has already moved past the '[', and this routine leaves the trailing
         /* Capture of "this" from an enclosing class.  (This is not the "this"
            of a closure class member.) */
         a_scope_depth  memfun_depth;
-        check_assertion(scope_stack_top().kind ==
-                                        (a_scope_kind)sck_class_struct_union);
         memfun_depth =
-              scope_stack[depth_scope_stack-1].depth_innermost_function_scope;
+              scope_stack[depth_scope_stack].depth_innermost_function_scope;
         if (memfun_depth == NO_SCOPE_DEPTH ||
             scope_stack[memfun_depth].il_scope
                               ->variant.routine.this_param_variable == NULL ||
@@ -16349,20 +16351,51 @@ caller has already moved past the '[', and this routine leaves the trailing
 }  /* scan_lambda_capture_list */
 
 
+static void push_closure_class(a_lambda_ptr		lambda,
+			       a_class_def_state_ptr	class_state)
+/*
+Push the scope stack entry for the closure class for lambda and
+initialize class_def_state.
+*/
+{
+  a_type_ptr	closure_class = lambda->closure_class;
+
+  initialize_class_def_state(closure_class, class_state);
+  if (innermost_function_scope != NULL || inside_local_class) {
+    class_state->is_local_class = TRUE;
+  }  /* if */
+  class_state->access = (an_access_specifier)as_public;
+  /* Lambdas are forced to be non-POD so that any default initialization will
+     be done by attempting to call the default constructor (which will
+     fail). */
+  class_state->POD_ruled_out = TRUE;
+  /* Don't allow aggregate initialization of a closure object. */
+  class_state->class_aggregate_ruled_out = TRUE;
+  class_state->is_nonreal_instantiation =
+                    closure_class->variant.class_struct_union.is_nonreal_class;
+  class_type_supp(closure_class)->assoc_scope =
+             push_scope((a_scope_kind)sck_class_struct_union, NO_SCOPE_NUMBER,
+                        closure_class, (a_routine_ptr)NULL);
+  scope_stack_top().class_def_state = class_state;
+}  /* push_closure_class */
+
+
 static void scan_and_process_lambda_declarator(a_lambda_ptr       lambda,
-                                               a_func_info_block  *func_info)
+                                               a_func_info_block  *func_info,
+                                               a_class_def_state  *class_state)
 /*
 For the given lambda, parse the (optional) declarator-like construct, which
 consists of a parameter list and, optionally, a mutable specifier, an
 exception specification, and/or a return type specification.  Then, create a
 corresponding call operator in the closure class.  Return
 properties of this operator in *func_info (which is initialized here).
+class_def_state is the class definition state created when the closure
+class is pushed by this routine.
 */
 {
   a_member_decl_info  decl_info;
   a_decl_parse_state  *dps = &decl_info.decl_state;
   a_decl_pos_block    *decl_pos_block = &decl_info.decl_pos_block;
-  a_class_def_state   *class_state = scope_stack_top().class_def_state;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_boolean           prev_source_sequence_entries_disallowed
                                          = source_sequence_entries_disallowed;
@@ -16398,6 +16431,9 @@ properties of this operator in *func_info (which is initialized here).
     func_info->declared_type = dps->type;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
+  /* Now that the lambda declarator has been scanned, push the scope stack
+     entry for the closure class. */
+  push_closure_class(lambda, class_state);
   if (!is_error_type(dps->type)) {
     check_assertion(is_function_type(dps->type));
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -16611,12 +16647,13 @@ For example:
     [=, &array](int i)->float { return array[i+k]; }
 */
 {
-  a_lambda_ptr       lambda = alloc_lambda();
-  a_type_ptr         closure_class;
-  a_scope_depth      decl_level, saved_decl_scope_level = decl_scope_level;
-  a_class_def_state  class_state;
-  a_func_info_block  func_info;
-  a_decl_flag_set    sfb_flags;
+  a_lambda_ptr         lambda = alloc_lambda();
+  a_type_ptr           closure_class;
+  a_scope_depth        decl_level, saved_decl_scope_level = decl_scope_level;
+  a_class_def_state    class_state;
+  a_func_info_block    func_info;
+  a_decl_flag_set      sfb_flags;
+  a_lambda_capture_ptr lcp;
 
   /* Start a new stop token context. */
   push_stop_token_stack();
@@ -16629,23 +16666,6 @@ For example:
   lambda->closure_class = closure_class =
                  make_closure_class(decl_level, inside_default_arg_expression,
                                     &lambda->start_position);
-  initialize_class_def_state(lambda->closure_class, &class_state);
-  if (innermost_function_scope != NULL || inside_local_class) {
-    class_state.is_local_class = TRUE;
-  }  /* if */
-  class_state.access = (an_access_specifier)as_public;
-  /* Lambdas are forced to be non-POD so that any default initialization will
-     be done by attempting to call the default constructor (which will
-     fail). */
-  class_state.POD_ruled_out = TRUE;
-  /* Don't allow aggregate initialization of a closure object. */
-  class_state.class_aggregate_ruled_out = TRUE;
-  class_state.is_nonreal_instantiation =
-                    closure_class->variant.class_struct_union.is_nonreal_class;
-  class_type_supp(closure_class)->assoc_scope =
-             push_scope((a_scope_kind)sck_class_struct_union, NO_SCOPE_NUMBER,
-                        closure_class, (a_routine_ptr)NULL);
-  scope_stack_top().class_def_state = &class_state;
   /* Scan the lambda capture list. */
   (void)get_token();
   add_stop_token(tok_rbracket);
@@ -16657,7 +16677,13 @@ For example:
   remove_stop_token(tok_rbracket);
   /* Parse the "declarator" part of the lambda (the parameter list, etc.) and
      create the associated corresponding call operator in the closure class. */
-  scan_and_process_lambda_declarator(lambda, &func_info);
+  scan_and_process_lambda_declarator(lambda, &func_info, &class_state);
+  /* Fill in the capture fields information for the explicit captures. */
+  for (lcp = lambda->capture_list; lcp != NULL; lcp = lcp->next) {
+    lcp->closure_field = make_field_for_lambda_capture(
+                                    lambda, lcp->variable,
+                                    lcp->capture_by_reference, &lcp->position);
+  }  /* for */
   if (lambda->lambda_routine != NULL) {
     /* Parse the body of the lambda.  A class reactivation is not pushed for
        the lambda closure class because it is still on the scope stack. */

@@ -16546,53 +16546,39 @@ Return TRUE if we are currently inside the body statement of a lambda.
 }  /* in_lambda_body */
 
 
-static a_boolean in_lambda_header(void)
-/*
-Return TRUE if we are currently inside the header of a lambda (e.g., in
-an expression in a type in the parameter list).
-*/
-{
-  a_boolean result = FALSE;
-
-  if (lambdas_enabled) {
-    a_scope_depth sd = depth_scope_stack;
-    if (scope_stack[sd].kind == (a_scope_kind)sck_func_prototype) sd--;
-    if (scope_stack[sd].kind == (a_scope_kind)sck_class_struct_union) {
-      a_type_ptr class_type = scope_stack[sd].assoc_type;
-      if (class_type_supp(class_type)->is_lambda_closure_class) result = TRUE;
-    }  /* if */
-  }  /* if */
-  return result;
-}  /* in_lambda_header */
-
-
-static a_boolean var_declared_in_func_enclosing_curr_lambda(a_variable_ptr var)
+static a_boolean var_declared_in_func_enclosing_curr_lambda(
+                                           a_variable_ptr var,
+                                           a_boolean      for_explicit_capture)
 /*
 Return TRUE if the given variable is a local variable or parameter of the
 function immediately enclosing the current lambda.  This is one of the
-conditions for being able to capture the variable.
+conditions for being able to capture the variable.  for_explicit_capture
+is TRUE if this routine is being called to verify a variable named in
+the explicit capture list.
 */
 {
   a_boolean     result = FALSE;
-  a_scope_depth sd;
+  a_scope_depth sd = depth_scope_stack;
 
-  /* Find the scope stack entry for the lambda. */
-  for (sd = depth_scope_stack; ; sd = scope_stack[sd].previous_scope) {
-    check_assertion(sd > DEPTH_OF_FILE_SCOPE);
-    if (scope_stack[sd].kind == (a_scope_kind)sck_class_struct_union) {
-      a_type_ptr class_type = scope_stack[sd].assoc_type;
-      /* Keep going if we're in a local class of the lambda. */
-      if (class_type_supp(class_type)->is_lambda_closure_class) break;
-    }  /* if */
-  }  /* for */
-  /* If we're inside several nested lambda headers (e.g., in the parameter
-     lists of the lambdas), get out to the surrounding function.
-     Function prototype scopes will separate them. */
-  for (sd--;
-       (scope_stack[sd].kind == (a_scope_kind)sck_class_struct_union &&
-        class_type_supp(scope_stack[sd].assoc_type)->is_lambda_closure_class)||
-       scope_stack[sd].kind == (a_scope_kind)sck_func_prototype;
-       sd--) {}
+  if (!for_explicit_capture) {
+    /* Find the scope stack entry for the lambda.  This is only done for
+       implicit captures.  For explicit captures the closure class will not
+       have been pushed yet. */
+    for (; ; sd = scope_stack[sd].previous_scope) {
+      check_assertion(sd > DEPTH_OF_FILE_SCOPE);
+      if (scope_stack[sd].kind == (a_scope_kind)sck_class_struct_union) {
+        a_type_ptr class_type = scope_stack[sd].assoc_type;
+        /* Keep going if we're in a local class of the lambda. */
+        if (class_type_supp(class_type)->is_lambda_closure_class) break;
+      }  /* if */
+    }  /* for */
+    /* If we're inside several nested lambda headers (e.g., in the parameter
+       lists of the lambdas), get out to the surrounding function.
+       Function prototype scopes will separate them. */
+    for (sd--;
+         scope_stack[sd].kind == (a_scope_kind)sck_func_prototype;
+         sd--) {}
+  }  /* if */
   /* Look at the block and function scopes immediately enclosing the
      lambda class to see if the variable is declared there. */
   for (;
@@ -16626,11 +16612,6 @@ routine.
     if (var_rout == innermost_function_scope->variant.routine.ptr) {
       decl_in_curr_rout = TRUE;
     }  /* if */
-  } else if (in_lambda_header()) {
-    /* We're in the header of a lambda (e.g., the parameter list), so
-       the current function is considered to be the function enclosing the
-       lambda. */
-    decl_in_curr_rout = var_declared_in_func_enclosing_curr_lambda(var);
   }  /* if */
   return decl_in_curr_rout;
 }  /* var_declared_in_current_routine */
@@ -16694,7 +16675,7 @@ an appropriate error code.
     /* A reference to a static/extern variable doesn't amount to an implicit
        capture.  So implicit captures should never get here. */
     check_assertion(!implicit);
-  } else if (!var_declared_in_func_enclosing_curr_lambda(var)) {
+  } else if (!var_declared_in_func_enclosing_curr_lambda(var, !implicit)) {
     /* Can't use a variable that's not from the immediately enclosing
        function. */
     *diag = implicit ? ec_bad_local_var_in_lambda
