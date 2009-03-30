@@ -618,6 +618,13 @@ typedef struct an_expr_stack_entry {
 		inside_conditional_expression;
 			/* TRUE if inside a conditional operand of an
 			   operator like "?". */
+  a_byte_boolean
+		unevaluated_expr_will_be_kept_in_il;
+			/* TRUE if the expression will be kept in the IL even
+			   though it is a not-evaluated expression
+			   (specifically, one with potentially_evaluated
+			   set to FALSE).  Normally, such expressions are
+			   discarded. */
   a_dynamic_init_dtor_fixup_ptr
 		dynamic_init_dtor_fixup_list;
 			/* List of dynamic init entries for which destructor
@@ -631,6 +638,14 @@ typedef struct an_expr_stack_entry {
 			/* If non-NULL, points to an object lifetime that
 			   exactly covers this expression, i.e., the lifetime
 			   for temporaries created in the expression. */
+  a_scope_number
+		scope_number;
+			/* The scope number associated with the top of the
+			   scope_stack when this entry was pushed, used to
+			   decide whether a nested expression is in the same
+			   context or a new one when processing goes from
+			   the expression routines out to declaration
+			   processing and back in again. */
   a_dynamic_init_ptr
 		destructions_preceding_expr;
 			/* Points to the dynamic initialization that was the
@@ -657,13 +672,6 @@ typedef struct an_expr_stack_entry {
 			   expression (e.g., in a GNU statement expression)
 			   if the overall expression is discarded. */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  a_byte_boolean
-		unevaluated_expr_will_be_kept_in_il;
-			/* TRUE if the expression will be kept in the IL even
-			   though it is a not-evaluated expression
-			   (specifically, one with potentially_evaluated
-			   set to FALSE). Normally, such expressions are
-			   discarded. */
 } an_expr_stack_entry;
 
 EXTERN an_expr_stack_entry_ptr

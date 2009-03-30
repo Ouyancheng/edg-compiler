@@ -6407,6 +6407,28 @@ expression that is not part of the surrounding context.
 }  /* save_expr_stack */
 
 
+static void save_expr_stack_and_maybe_reset(
+                                     an_expr_stack_entry_ptr *saved_expr_stack)
+/*
+Return the current expression stack pointer to the caller in *saved_expr_stack,
+for later restoration by calling restore_expr_stack.  If there is something
+on the expression stack already, and the current context seems like a different
+expression, also clear the expression stack.  If it seems like the same
+expression, leave the expression stack alone, so the next push will be on
+top of the existing stack.
+*/
+{
+  *saved_expr_stack = expr_stack;
+  if (expr_stack != NULL && depth_scope_stack != NO_SCOPE_DEPTH &&
+      expr_stack->scope_number != NO_SCOPE_NUMBER &&
+      expr_stack->scope_number == scope_stack[depth_scope_stack].number) {
+    /* Same context; don't clear the stack. */
+  } else {
+    expr_stack = NULL;
+  }  /* if */
+}  /* save_expr_stack_and_maybe_reset */
+
+
 static void restore_expr_stack(an_expr_stack_entry_ptr saved_expr_stack)
 /*
 Restore the expression stack to the state it had when save_expr_stack
@@ -6660,7 +6682,7 @@ NULL, the end position in its specifiers_range is updated.
   expr_scope_depth = scope_depth_to_allocate_decltype_expr();
   switch_to_scope_region(expr_scope_depth, &region_to_switch_back_to);
   /* Scan the argument expression. */
-  save_expr_stack(&saved_expr_stack);
+  save_expr_stack_and_maybe_reset(&saved_expr_stack);
   push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/(curr_object_lifetime != NULL));
@@ -6811,7 +6833,7 @@ NULL, the end position in its specifiers_range is updated.
        must be in the function-scope memory region. */
     expr_scope_depth = scope_depth_to_allocate_decltype_expr();
     switch_to_scope_region(expr_scope_depth, &region_to_switch_back_to);
-    save_expr_stack(&saved_expr_stack);
+    save_expr_stack_and_maybe_reset(&saved_expr_stack);
     push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
                     /*force_object_lifetime=*/FALSE,
                     /*suppress_object_lifetime=*/

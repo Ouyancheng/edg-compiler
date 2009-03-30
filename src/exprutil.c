@@ -761,15 +761,18 @@ is pushed regardless of any of the other factors.
   new_entry->in_cctor_elision_initializer = FALSE;
   new_entry->favor_constant_result = FALSE;
   new_entry->inside_conditional_expression = FALSE;
+  new_entry->unevaluated_expr_will_be_kept_in_il = FALSE;
   new_entry->dynamic_init_dtor_fixup_list = NULL;
   new_entry->nested_construct_depth = 0;
   new_entry->lifetime = NULL;
+  new_entry->scope_number = (depth_scope_stack != NO_SCOPE_DEPTH) ?
+                                        scope_stack[depth_scope_stack].number :
+                                        NO_SCOPE_NUMBER;
   new_entry->destructions_preceding_expr = NULL;
   new_entry->last_subscope_preceding_expr = NULL;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   new_entry->last_source_seq_entry_preceding_expr = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  new_entry->unevaluated_expr_will_be_kept_in_il = FALSE;
   if (expr_stack != NULL) {
     /* There is a previous stack entry; set any of the flags that are affected
        by the enclosing stack entry. */
