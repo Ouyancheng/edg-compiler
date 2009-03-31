@@ -1209,7 +1209,7 @@ ec_auto_ignored;;"the auto specifier is ignored here (invalid in standard C/C++)
 ec_alignment_reduction_ignored;;"a reduction in alignment without the \"packed\" attribute is ignored"
 ec_corresp_member_template_is_different_kind;;"a member template corresponding to %no is declared as a template of a different kind in another translation unit"
 ec_excess_initializers_ignored;;"excess initializers are ignored"
-ec_va_start_requires_ellipsis_function;;"va_start should only appear in a function with an ellipsis parameter"
+ec_va_start_requires_ellipsis_function;;"va_start can appear only in a function with an ellipsis parameter"
 ec_cl_short_enums_requires_gcc_mode;;"the \"short_enums\" option is only valid in GNU C and GNU C++ modes"
 ec_bad_export_info_file;;"invalid export information file %sq1 at line number %s2"
 ec_statement_expression_in_function_only;;"statement expressions are only allowed in block scope"
@@ -1824,7 +1824,7 @@ ec_invalid_function_to_be_defaulted;;"\"= default\" can only appear on default c
 ec_deleted_function_definition_must_be_first_declaration;;"\"= delete\" can only appear on the first declaration of a function"
 ec_deleted_function;;"%no is a deleted function"
 ec_bad_unevaluated_lambda;;"a lambda is not allowed in an unevaluated expression"
-ec_bad_function_for_gnu_va_arg_pack;;"__builtin_va_arg_pack/__builtin_va_arg_pack_len should only appear in an inline function with an ellipsis parameter"
+ec_bad_function_for_gnu_va_arg_pack;;"__builtin_va_arg_pack/__builtin_va_arg_pack_len can appear only in an inline function with an ellipsis parameter"
 ec_function_defaulted_in_friend_decl;;"\"= default\" cannot be specified on a friend declaration"
 ###############################################################################
 #                                                             \  ___  /       #

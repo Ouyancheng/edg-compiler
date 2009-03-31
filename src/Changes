@@ -40,15 +40,16 @@ For example:
 GNU compatibility: __builtin_va_arg_pack and __builtin_va_arg_pack_len
 
 In GNU modes, the front end now predeclares the special built-in functions
-__builtin_va_arg_pack and __builtin_va_arg_pack_len.  The front end will issue
-an error for uses that are not in an inline function with an ellipsis
-parameter.  Code-generating back ends should replace invocations of
-__builtin_va_arg_pack with the variadic arguments passed to the enclosing
-(inline) function, and replace invocations of __builtin_va_arg_pack_len with
-the number of variadic arguments passed to the enclosing function.  (The GCC
-back end issues an error when an invocation a function containing
-__builtin_va_arg_pack or __builtin_va_arg_pack_len cannot be expanded inline.)
-For example:
+__builtin_va_arg_pack and __builtin_va_arg_pack_len.  These functions are used
+by GCC's C library to safely forward variadic arguments passed to inline
+functions.  The front end will issue an error for uses that are not in an
+inline function with an ellipsis parameter.  Code-generating back ends should
+replace invocations of __builtin_va_arg_pack with the variadic arguments
+passed to the enclosing (inline) function, and replace invocations of
+__builtin_va_arg_pack_len with the number of variadic arguments passed to the
+enclosing function.  (The GCC back end issues an error when an invocation a
+function containing __builtin_va_arg_pack or __builtin_va_arg_pack_len cannot
+be expanded inline.)  For example:
 
   void g(int, ...);
   __inline void f1(int n ...) {
