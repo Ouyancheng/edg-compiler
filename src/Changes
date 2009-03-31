@@ -1,5 +1,21 @@
 Version 4.1
 
+3/31/09  [EDGcpfe/9662]
+Uses of decltype applied to parameters within the parameter list
+
+The checking for errors on uses of decltype on parameters has been
+improved to catch uses of parameters within default argument expressions
+in the same parameter list, as in
+
+  void f (int i = (decltype(i))0) {}  // Error now detected
+
+Also, the type determined by decltype in such cases is now correctly
+the declared parameter type instead of reference-to that type.
+For example:
+
+  void h (int i, int j[sizeof((decltype(i))0)]) {}  // Now accepted
+
+
 3/30/09  [EDGcpfe/9638]
 GNU compatibility: __builtin_va_arg_pack and __builtin_va_arg_pack_len
 
