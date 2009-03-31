@@ -1440,7 +1440,7 @@ see function_declarator (below) for which this is a helper function.
       pos_error(err_code, &qualifier_pos);
     }  /* if */
   }  /* if */
-  if (!is_nonstatic_member && locator->is_error) {
+  if (!is_nonstatic_member && locator != NULL && locator->is_error) {
     /* Severe errors like
            struct A {};
            A::() const { ... };
