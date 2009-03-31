@@ -3348,6 +3348,29 @@ when matching parameters).
 }  /* replace_parameters_in_expr_list */
 
 
+static void replace_parameters_in_expr(an_expr_node_ptr expr,
+                                       a_variable_ptr   orig_params,
+                                       a_variable_ptr   new_params)
+/*
+This function is used to replace all parameters that occur in expr with
+corresponding parameters from an alternate entry point.  expr is about to be
+copied from one scope to an alternate entry point scope; the expression may
+contain references to parameters from the original scope (orig_params) and they
+need to refer to corresponding parameters in the new scope (new_params).  Note
+that the parameter list from the original scope has an additional VTT parameter
+(which is skipped when matching parameters).
+*/
+{
+  an_expr_or_stmt_traversal_block tblock;
+
+  clear_expr_or_stmt_traversal_block(&tblock);
+  tblock.process_expr = replace_parameter_in_node;
+  tblock.orig_params = orig_params;
+  tblock.new_params = new_params;
+  traverse_expr(expr, &tblock);
+}  /* replace_parameters_in_expr */
+
+
 static a_constructor_init_ptr copy_ctor_init(
                                            a_constructor_init_ptr   ctor_init,
                                            a_scope_ptr              from_scope,
@@ -3378,17 +3401,26 @@ from from_scope to to_scope.  options is a set of options for the copy.
       unexpected_condition();
 #endif /* CHECKING */
   }  /* switch */
-  if (copy->initializer != NULL &&
-      copy->initializer->kind == (a_dynamic_init_kind)dik_constructor &&
-      copy->initializer->variant.constructor.args != NULL) {
-    /* If a constructor init has an argument list, that argument list may
-       have variables (actually parameters) that refer to parameters in
-       "from_scope"; they need to be replaced with the corresponding
-       parameters in "to_scope". */
-    replace_parameters_in_expr_list(
+  if (copy->initializer != NULL) {
+    if (copy->initializer->kind == (a_dynamic_init_kind)dik_constructor &&
+        copy->initializer->variant.constructor.args != NULL) {
+      /* If a constructor init has an argument list, that argument list may
+         have variables (actually parameters) that refer to parameters in
+         "from_scope"; they need to be replaced with the corresponding
+         parameters in "to_scope". */
+      replace_parameters_in_expr_list(
                                    copy->initializer->variant.constructor.args,
                                    from_scope->variant.routine.parameters,
                                    to_scope->variant.routine.parameters);
+    } else if (copy->initializer->kind ==
+                                         (a_dynamic_init_kind)dik_expression) {
+      /* Expressions may also contain references to parameters that need
+         to be replaced with their corresponding parameters in the new
+         scope. */
+      replace_parameters_in_expr(copy->initializer->variant.expression,
+                                 from_scope->variant.routine.parameters,
+                                 to_scope->variant.routine.parameters);
+    }  /* if */
   }  /* if */
   return copy;
 }  /* copy_ctor_init */
