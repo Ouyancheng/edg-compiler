@@ -1971,7 +1971,7 @@ if this is the function declarator in a friend function declaration.
         if (C_mode()) {
           /* Default argument processing not needed in C mode. */
         } else if (curr_token != tok_assign) {
-          /* For in-class member template declarations, make sure that the
+          /* For in-class member template declarations, make sure that
              all parameters after the first one with a default argument
              also have default arguments.  Similar checks for other functions
              are done elsewhere. */
