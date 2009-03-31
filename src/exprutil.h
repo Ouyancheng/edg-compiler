@@ -932,6 +932,11 @@ extern void expr_reference_to_implicitly_invoked_function
 extern an_expr_node_ptr expr_copy_default_arg_expr_list(a_routine_ptr    rout,
                                                         a_param_type_ptr ptp);
 
+extern void transfer_context_from_enclosing_expr_stack_entry(
+                                               a_boolean           direct,
+                                               an_expr_stack_entry *old_entry,
+                                               an_expr_stack_entry *new_entry);
+
 extern void push_expr_stack(an_expression_kind      expression_kind,
                             an_expr_stack_entry_ptr new_entry,
                             a_boolean               force_object_lifetime,

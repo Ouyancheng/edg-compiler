@@ -727,6 +727,39 @@ from values on the expression stack.
 }  /* expr_copy_default_arg_expr_list */
 
 
+void transfer_context_from_enclosing_expr_stack_entry(
+                                                a_boolean           direct,
+                                                an_expr_stack_entry *old_entry,
+                                                an_expr_stack_entry *new_entry)
+/*
+The entry new_entry is being pushed onto the expression stack, and old_entry
+is the enclosing stack entry.  Transfer any context flags from the old to the
+new entry.  For example, if the old entry is marked as inside a default
+argument expression, the new entry is so marked as well.  If direct is TRUE,
+this is being done for a normal push of one entry an top of another.
+If it is FALSE, the connection is less direct; e.g., we went from expression
+processing to declaration processing and back to expression processing again,
+as in a decltype.
+*/
+{
+  check_assertion(old_entry != NULL);
+  /* is_template_arg_expression is not copied down, because it indicates the
+     top level in a template argument expression.  Likewise for
+     is_vla_dimension_expression.
+     in_cctor_elision_initializer is also not copied down; nested expressions
+     in an elision initializer are not subject to the optimization. */
+  new_entry->is_default_arg_expression = old_entry->is_default_arg_expression;
+  if (direct) {
+    new_entry->evaluated = old_entry->evaluated;
+    new_entry->potentially_evaluated = old_entry->potentially_evaluated;
+    new_entry->is_decltype_or_typeof_arg_expression =
+                               old_entry->is_decltype_or_typeof_arg_expression;
+    new_entry->inside_conditional_expression =
+                                      old_entry->inside_conditional_expression;
+  }  /* if */
+}  /* transfer_context_from_enclosing_expr_stack_entry */
+
+
 void push_expr_stack(an_expression_kind      expression_kind,
                      an_expr_stack_entry_ptr new_entry,
                      a_boolean               force_object_lifetime,
@@ -776,19 +809,8 @@ is pushed regardless of any of the other factors.
   if (expr_stack != NULL) {
     /* There is a previous stack entry; set any of the flags that are affected
        by the enclosing stack entry. */
-    /* is_template_arg_expression is not copied down, because it indicates the
-       top level in a template argument expression.  Likewise for
-       is_vla_dimension_expression.
-       in_cctor_elision_initializer is also not copied down; nested expressions
-       in an elision initializer are not subject to the optimization. */
-    new_entry->evaluated = expr_stack->evaluated;
-    new_entry->potentially_evaluated = expr_stack->potentially_evaluated;
-    new_entry->is_decltype_or_typeof_arg_expression =
-                              expr_stack->is_decltype_or_typeof_arg_expression;
-    new_entry->is_default_arg_expression =
-                                         expr_stack->is_default_arg_expression;
-    new_entry->inside_conditional_expression =
-                                     expr_stack->inside_conditional_expression;
+    transfer_context_from_enclosing_expr_stack_entry(/*direct=*/TRUE,
+                                                     expr_stack, new_entry);
   }  /* if */
   expr_stack = new_entry;
   /* Do special handling for constant expressions.  This is done late so that

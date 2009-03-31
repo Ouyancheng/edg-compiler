@@ -6407,28 +6407,6 @@ expression that is not part of the surrounding context.
 }  /* save_expr_stack */
 
 
-static void save_expr_stack_and_maybe_reset(
-                                     an_expr_stack_entry_ptr *saved_expr_stack)
-/*
-Return the current expression stack pointer to the caller in *saved_expr_stack,
-for later restoration by calling restore_expr_stack.  If there is something
-on the expression stack already, and the current context seems like a different
-expression, also clear the expression stack.  If it seems like the same
-expression, leave the expression stack alone, so the next push will be on
-top of the existing stack.
-*/
-{
-  *saved_expr_stack = expr_stack;
-  if (expr_stack != NULL && depth_scope_stack != NO_SCOPE_DEPTH &&
-      expr_stack->scope_number != NO_SCOPE_NUMBER &&
-      expr_stack->scope_number == scope_stack[depth_scope_stack].number) {
-    /* Same context; don't clear the stack. */
-  } else {
-    expr_stack = NULL;
-  }  /* if */
-}  /* save_expr_stack_and_maybe_reset */
-
-
 static void restore_expr_stack(an_expr_stack_entry_ptr saved_expr_stack)
 /*
 Restore the expression stack to the state it had when save_expr_stack
@@ -6437,6 +6415,26 @@ was called.
 {
   expr_stack = saved_expr_stack;
 }  /* restore_expr_stack */
+
+
+static void transfer_expr_context_if_applicable(
+                                              an_expr_stack_entry *saved_stack)
+/*
+The expression stack has been saved and cleared by save_expr_stack;
+*saved_stack is the saved top of the expression stack.  Now, a new stack
+entry has been pushed.  If it appears that the new expression is part of
+the same context as the previous stack entry, transfer context flags
+to the new entry.  For example, if the old entry indicates we're inside
+of a default argument expression, mark the new entry the same way.
+*/
+{
+  if (saved_stack != NULL && expr_stack != NULL &&
+      saved_stack->scope_number != NO_SCOPE_NUMBER &&
+      saved_stack->scope_number == expr_stack->scope_number) {
+    transfer_context_from_enclosing_expr_stack_entry(/*direct=*/FALSE,
+                                                     saved_stack, expr_stack);
+  }  /* if */
+}  /* transfer_expr_context_if_applicable */
 
 
 static a_type_ptr type_of_call(an_expr_node_ptr  expr)
@@ -6682,10 +6680,11 @@ NULL, the end position in its specifiers_range is updated.
   expr_scope_depth = scope_depth_to_allocate_decltype_expr();
   switch_to_scope_region(expr_scope_depth, &region_to_switch_back_to);
   /* Scan the argument expression. */
-  save_expr_stack_and_maybe_reset(&saved_expr_stack);
+  save_expr_stack(&saved_expr_stack);
   push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/(curr_object_lifetime != NULL));
+  transfer_expr_context_if_applicable(saved_expr_stack);
   expr_stack->unevaluated_expr_will_be_kept_in_il = TRUE;
   expr_stack->is_decltype_or_typeof_arg_expression = TRUE;
   add_matching_stop_token(tok_rparen);
@@ -6833,11 +6832,12 @@ NULL, the end position in its specifiers_range is updated.
        must be in the function-scope memory region. */
     expr_scope_depth = scope_depth_to_allocate_decltype_expr();
     switch_to_scope_region(expr_scope_depth, &region_to_switch_back_to);
-    save_expr_stack_and_maybe_reset(&saved_expr_stack);
+    save_expr_stack(&saved_expr_stack);
     push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
                     /*force_object_lifetime=*/FALSE,
                     /*suppress_object_lifetime=*/
                                               (curr_object_lifetime != NULL));
+    transfer_expr_context_if_applicable(saved_expr_stack);
     expr_stack->unevaluated_expr_will_be_kept_in_il = TRUE;
     expr_stack->is_decltype_or_typeof_arg_expression = TRUE;
     add_matching_stop_token(tok_rparen);
@@ -8827,6 +8827,7 @@ an acceptable result.
 
 static void scan_extended_integral_constant_expression(a_boolean  allow_comma,
                                                        a_boolean  will_cast,
+                                                       a_boolean  top_level,
                                                        int        prec_level,
                                                        an_operand *operand)
 /*
@@ -8840,7 +8841,9 @@ If not, an error is issued and the constant is changed to an error
 constant.  The constant is returned in *operand.  If allow_comma is TRUE,
 a top-level comma is allowed in the expression.  If will_cast is TRUE,
 the result will be cast to an integral type (and therefore it can, for
-example, be a floating-point constant).  prec_level is the precedence
+example, be a floating-point constant).  If top_level is TRUE, this
+is a call from outside the expression routines and the expression stack
+should be saved/cleared/restored.  prec_level is the precedence
 level to be used in scanning the expression.  The constant returned
 might be an error constant or a template parameter constant.  This
 routine exists mainly to allow the sorts of constant expressions used
@@ -8850,11 +8853,14 @@ some dialects (GNU, Microsoft, Sun) allow extended forms of integer constants.
 {
   an_expr_stack_entry expr_stack_entry;
   a_constant          con;
+  an_expr_stack_entry *saved_expr_stack;
 
   db_enter(4, "scan_extended_integral_constant_expression");
+  if (top_level) save_expr_stack(&saved_expr_stack);
   push_expr_stack((an_expression_kind)ek_init_constant, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
+  if (top_level) transfer_expr_context_if_applicable(saved_expr_stack);
   /* Scan the expression. */
   scan_expr(operand, prec_level, allow_comma ? EOPT_NO_OPTIONS :
                                                EOPT_DISALLOW_COMMA_OPERATOR);
@@ -8869,6 +8875,7 @@ some dialects (GNU, Microsoft, Sun) allow extended forms of integer constants.
     }  /* if */
   }  /* if */
   pop_expr_stack();
+  if (top_level) restore_expr_stack(saved_expr_stack);
   db_exit();
 }  /* scan_extended_integral_constant_expression */
 
@@ -8902,6 +8909,7 @@ because the feature is used to implement offsetof, a standard feature.
   /* Scan the address expression. */
   scan_extended_integral_constant_expression(/*allow_comma=*/TRUE,
                                              /*will_cast=*/TRUE,
+                                             /*top_level=*/FALSE,
                                              PREC_LOWEST, result);
   /* Cast the constant to type size_t. */
   cast_operand(integer_type(targ_size_t_int_kind), result,
@@ -12336,6 +12344,7 @@ in *bound_function_selector.
       is_integral_type(type_cast_to)) {
     scan_extended_integral_constant_expression(allow_comma,
                                                /*will_cast=*/TRUE,
+                                               /*top_level=*/FALSE,
                                                prec_level,
                                                operand);
   } else {
@@ -20314,7 +20323,6 @@ and [expr.const] in the ISO C++98 standard.
   an_operand result;
 
   db_enter(3, "scan_integral_constant_expression");
-
   if (gcc_mode ||
       (gpp_mode && gnu_version < 40000) ||
       sun_mode ||
@@ -20322,16 +20330,20 @@ and [expr.const] in the ISO C++98 standard.
     /* Sun, GNU and Microsoft C and C++ allow more than the standard allows. */
     scan_extended_integral_constant_expression(/*allow_comma=*/FALSE,
                                                /*will_cast=*/FALSE,
+                                               /*top_level=*/TRUE,
                                                PREC_LOWEST,
                                                &result);
     extract_constant_from_operand(&result, constant);
   } else {
     /* Standard integral constant expression. */
     an_expr_stack_entry expr_stack_entry;
+    an_expr_stack_entry *saved_expr_stack;
+    save_expr_stack(&saved_expr_stack);
     push_expr_stack((an_expression_kind)ek_integral_constant,
                     &expr_stack_entry,
                     /*force_object_lifetime=*/FALSE,
                     /*suppress_object_lifetime=*/FALSE);
+    transfer_expr_context_if_applicable(saved_expr_stack);
     /* Scan the constant expression. */
     scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
     do_operand_transformations(&result, TOPT_NO_OPTIONS);
@@ -20348,8 +20360,8 @@ and [expr.const] in the ISO C++98 standard.
       }  /* if */
     }  /* if */
     pop_expr_stack();
+    restore_expr_stack(saved_expr_stack);
   }  /* if */
-
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   curr_construct_end_position = result.end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -21554,6 +21566,7 @@ things like (void *)1 as case constants.
   db_enter(3, "scan_microsoft_case_label_constant_expression");
   scan_extended_integral_constant_expression(/*allow_comma=*/FALSE,
                                              /*will_cast=*/TRUE,
+                                             /*top_level=*/TRUE,
                                              PREC_LOWEST,
                                              &result);
   extract_constant_from_operand(&result, constant);
