@@ -1811,7 +1811,7 @@ ec_more_than_one_capture;;"a name cannot appear more than once in a capture-list
 REMOVED;ec_ellipsis_in_lambda;;"an ellipsis parameter is not allowed for a lambda"
 REMOVED;ec_unnamed_lambda_parameter;;"an unnamed lambda parameter is not allowed"
 REMOVED;ec_void_lambda_parameter;;"a void lambda parameter list is not allowed"
-ec_bad_scope_for_lambda;;"a lambda is not allowed in this scope"
+REMOVED;ec_bad_scope_for_lambda;;"a lambda is not allowed in this scope"
 ec_explicit_template_args_ignored;;"explicit template arguments ignored"
 ec_bad_constant_lambda;;"a lambda is not allowed in a constant expression"
 ec_class_type_required;;"%t is not a class type"
