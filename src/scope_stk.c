@@ -6030,7 +6030,8 @@ the scope stack is no longer available.
     }  /* if */
     /* If the function is globally visible and presumably needed by code
        in another translation unit, set the "needed" flag on the function. */
-    is_needed = (routine->source_corresp.needed ||
+    is_needed = !scope_stack[depth_scope_stack].in_prototype_instantiation &&
+                (routine->source_corresp.needed ||
                  routine_needed_even_if_unreferenced(routine));
     if (is_needed) {
       mark_as_needed((char *)routine, (an_il_entry_kind)iek_routine);
