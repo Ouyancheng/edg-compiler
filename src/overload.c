@@ -2750,10 +2750,14 @@ done:;
 }  /* function_template_call_argument_deduction */
 
 
+#if !MICROSOFT_EXTENSIONS_ALLOWED
+/*ARGSUSED*/  /* <-- arg_dep_lookup_done is not used in that case. */
+#endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
 static a_boolean candidate_function_is_visible(
                                     a_symbol_ptr function_symbol,
                                     a_boolean    is_template_id,
                                     a_boolean    effects_copy_initialization,
+                                    a_boolean    arg_dep_lookup_done,
                                     a_boolean    from_arg_dep_lookup,
                                     a_boolean    dependent_call,
                                     a_boolean    is_overloaded_operator,
@@ -2769,10 +2773,11 @@ is_template_id is TRUE if the function symbol has an associated
 explicit template argument list.  effects_copy_initialization is
 TRUE if this call is the user-defined conversion in a copy-initialization
 (constructors marked "explicit" are considered invisible).
-from_arg_dep_lookup is TRUE if the function was found by argument-dependent
-lookup.  dependent_call is TRUE if the call is a template-dependent
-call.  is_overloaded_operator is TRUE if the call is written in
-operator form, e.g., a+b rather than operator+(a, b).
+arg_dep_lookup_done is TRUE if argument-dependent lookup is enabled for
+this call.  from_arg_dep_lookup is TRUE if the function was found by
+argument-dependent lookup.  dependent_call is TRUE if the call is a
+template-dependent call.  is_overloaded_operator is TRUE if the call
+is written in operator form, e.g., a+b rather than operator+(a, b).
 allow_post_declared_functions is TRUE if functions declared after the
 point of reference in a dependent call should be visible to the normal
 lookup (in violation of the requirements of the standard).  If
@@ -2801,7 +2806,7 @@ point of call, FALSE otherwise.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   /* Note that here we must test the fundamental symbol. */
   if (microsoft_mode && microsoft_version >= 1310 &&
-      is_overloaded_operator &&
+      (is_overloaded_operator || !arg_dep_lookup_done) &&
       function_symbol->is_microsoft_invisible_operator &&
       !from_arg_dep_lookup) {
     /* As of MSVC++ 7.1, certain operators defined as friends are
@@ -2898,6 +2903,7 @@ static void determine_function_viability(
                  a_boolean                initializing_return_value,
                  a_boolean                effects_copy_initialization,
                  a_boolean                allow_udc_on_arguments,
+                 a_boolean                arg_dep_lookup_done,
                  a_boolean                from_arg_dep_lookup,
                  a_boolean                dependent_call,
                  a_boolean                known_to_be_visible,
@@ -2940,18 +2946,20 @@ to return a value in a return statement.  effects_copy_initialization
 is TRUE if this call is the user-defined conversion in a
 copy-initialization; constructors that are marked "explicit" are
 ignored.  allow_udc_on_arguments is TRUE if user-defined conversions
-should be allowed on the argument matches.  from_arg_dep_lookup is
-TRUE if the function was found by argument-dependent lookup.
-dependent_call is TRUE if the call is a template-dependent call.
-known_to_be_visible is TRUE if the function is known to be visible and
-the visibility check should be suppressed.  is_overloaded_operator is
-TRUE if the call is written in operator form, e.g., a+b rather than
-operator+(a, b).  allow_post_declared_functions is TRUE if functions
-declared after the point of reference in a dependent call should be
-visible to the normal lookup (in violation of the requirements of the
-standard).  *discarded_because_post_decl goes along with that: it is
-returned TRUE if the function was not viable (at least) because it is
-declared after the point of call.
+should be allowed on the argument matches.  arg_dep_lookup_done is
+TRUE if argument-dependent lookup is enabled for this call.
+from_arg_dep_lookup is TRUE if the function was found by
+argument-dependent lookup.  dependent_call is TRUE if the call is a
+template-dependent call.  known_to_be_visible is TRUE if the function
+is known to be visible and the visibility check should be suppressed.
+is_overloaded_operator is TRUE if the call is written in operator
+form, e.g., a+b rather than operator+(a, b).
+allow_post_declared_functions is TRUE if functions declared after the
+point of reference in a dependent call should be visible to the normal
+lookup (in violation of the requirements of the standard).
+*discarded_because_post_decl goes along with that: it is returned TRUE
+if the function was not viable (at least) because it is declared after
+the point of call.
 */
 {
   a_symbol_ptr             function_symbol;
@@ -2981,6 +2989,7 @@ declared after the point of call.
         !candidate_function_is_visible(proj_function_symbol,
                                        is_template_id,
                                        effects_copy_initialization,
+                                       arg_dep_lookup_done,
                                        from_arg_dep_lookup,
                                        dependent_call,
                                        is_overloaded_operator,
@@ -3351,6 +3360,7 @@ static void try_overloaded_function_match(
                  a_boolean                initializing_return_value,
                  a_boolean                effects_copy_initialization,
                  a_boolean                allow_udc_on_arguments,
+                 a_boolean                arg_dep_lookup_done,
                  a_boolean                from_arg_dep_lookup,
                  a_boolean                dependent_call,
                  a_boolean                forced_dependent,
@@ -3386,14 +3396,16 @@ to return a value in a return statement.  effects_copy_initialization
 is TRUE if this call is the user-defined conversion in a
 copy-initialization; constructors that are marked "explicit" are
 ignored.  allow_udc_on_arguments is TRUE if user-defined conversions
-should be allowed on the argument matches.  from_arg_dep_lookup is
-TRUE if the function was found by argument-dependent lookup.
-dependent_call is TRUE if the call is a template-dependent call.
-forced_dependent is TRUE if dependent_call was forced to TRUE for
-reasons of g++ emulation.  known_to_be_visible is TRUE if the function
-is known to be visible and the visibility check should be suppressed.
-is_overloaded_operator is TRUE if the call is written in operator
-form, e.g., a+b rather than operator+(a, b).
+should be allowed on the argument matches.  arg_dep_lookup_done is
+TRUE if argument-dependent lookup is enabled for this call.
+from_arg_dep_lookup is TRUE if the function was found by
+argument-dependent lookup.  dependent_call is TRUE if the call is a
+template-dependent call.  forced_dependent is TRUE if dependent_call
+was forced to TRUE for reasons of g++ emulation.  known_to_be_visible
+is TRUE if the function is known to be visible and the visibility
+check should be suppressed.  is_overloaded_operator is TRUE if the
+call is written in operator form, e.g., a+b rather than operator+(a,
+b).
 */
 {
   a_boolean     overloaded_function_case;
@@ -3499,6 +3511,7 @@ retry:
                                  initializing_return_value,
                                  effects_copy_initialization,
                                  allow_udc_on_arguments,
+                                 arg_dep_lookup_done,
                                  from_arg_dep_lookup,
                                  dependent_call,
                                  known_to_be_visible,
@@ -3558,6 +3571,7 @@ are viable functions, FALSE if not.  Issues no errors.
                                 /*initializing_return_value=*/FALSE,
                                 /*effects_copy_initialization=*/FALSE,
                                 /*allow_udc_on_arguments=*/TRUE,
+                                /*arg_dep_lookup_done=*/FALSE,
                                 /*from_arg_dep_lookup=*/FALSE,
                                 /*dependent_call=*/FALSE,
                                 /*forced_dependent=*/FALSE,
@@ -3656,6 +3670,7 @@ arguments of the call (given by arg_operand_list).
                                        /*initializing_return_value=*/FALSE,
                                        /*effects_copy_initialization=*/FALSE,
                                        /*allow_udc_on_arguments=*/TRUE,
+                                       /*arg_dep_lookup_done=*/FALSE,
                                        /*from_arg_dep_lookup=*/FALSE,
                                        /*dependent_call=*/FALSE,
                                        /*known_to_be_visible=*/FALSE,
@@ -5805,6 +5820,7 @@ in_instantiation:
                                        overloaded_function_symbol,
                                        is_template_id,
                                        /*effects_copy_initialization=*/FALSE,
+                                       /*arg_dep_lookup_done=*/FALSE,
                                        /*from_arg_dep_lookup=*/FALSE,
                                        dependent_call,
                                        /*is_overloaded_operator=*/FALSE,
@@ -5827,6 +5843,7 @@ in_instantiation:
                                     /*initializing_return_value=*/FALSE,
                                     /*effects_copy_initialization=*/FALSE,
                                     /*allow_udc_on_arguments=*/TRUE,
+                                    /*arg_dep_lookup_done=*/FALSE,
                                     /*from_arg_dep_lookup=*/FALSE,
                                     dependent_call,
                                     force_dependent,
@@ -5870,6 +5887,7 @@ in_instantiation:
             candidate_function_is_visible(symbol_list->symbol,
                                           is_template_id,
                                          /*effects_copy_initialization=*/FALSE,
+                                          do_arg_dep_lookup,
                                           /*from_arg_dep_lookup=*/
                                                (symbol_list->symbol !=
                                                 normal_lookup_function_symbol),
@@ -5911,6 +5929,7 @@ in_instantiation:
                                       /*initializing_return_value=*/FALSE,
                                       /*effects_copy_initialization=*/FALSE,
                                       /*allow_udc_on_arguments=*/TRUE,
+                                      do_arg_dep_lookup,
                                       /*from_arg_dep_lookup=*/
                                                (slep != symbol_list ||
                                                 function_symbol !=
@@ -10961,6 +10980,7 @@ such cases (where operator overloading might apply, but we can't tell).
                                          /*initializing_return_value=*/FALSE,
                                          /*effects_copy_initialization=*/FALSE,
                                          /*allow_udc_on_arguments=*/TRUE,
+                                         /*arg_dep_lookup_done=*/FALSE,
                                          /*from_arg_dep_lookup=*/FALSE,
                                          /*dependent_call=*/FALSE,
                                          /*forced_dependent=*/FALSE,
@@ -11001,6 +11021,7 @@ such cases (where operator overloading might apply, but we can't tell).
                                          /*initializing_return_value=*/FALSE,
                                          /*effects_copy_initialization=*/FALSE,
                                          /*allow_udc_on_arguments=*/TRUE,
+                                         /*arg_dep_lookup_done=*/FALSE,
                                          /*from_arg_dep_lookup=*/FALSE,
                                          dependent_call,
                                          /*forced_dependent=*/FALSE,
@@ -11018,6 +11039,7 @@ such cases (where operator overloading might apply, but we can't tell).
           a_type_list_entry_ptr    type_list = NULL;
           a_symbol_list_entry_ptr  symbol_list, slep;
           an_id_lookup_options_set idl_options;
+          a_boolean                arg_dep_lookup_done = FALSE;
           /* If the second operand has a template class type, try to
              instantiate it to expose any friend functions it declares. */
           if (!unary_operator && is_class_struct_union_type(operand_2->type)) {
@@ -11050,6 +11072,7 @@ such cases (where operator overloading might apply, but we can't tell).
           } else {
             /* Build a list of the argument types, to be used to do
                argument-dependent lookup below. */
+            arg_dep_lookup_done = TRUE;
             add_operand_to_arg_dependent_lookup_list(operand_1, &type_list);
             if (!unary_operator) {
               add_operand_to_arg_dependent_lookup_list(operand_2, &type_list);
@@ -11080,6 +11103,7 @@ such cases (where operator overloading might apply, but we can't tell).
                                          /*initializing_return_value=*/FALSE,
                                          /*effects_copy_initialization=*/FALSE,
                                          /*allow_udc_on_arguments=*/TRUE,
+                                         arg_dep_lookup_done,
                                          /*from_arg_dep_lookup=*/
                                                  (slep != symbol_list ||
                                                   nonmember_functions_symbol !=
@@ -11554,6 +11578,7 @@ mode.
                                                    orig_is_copy_initialization,
                                     /*allow_udc_on_arguments=*/
                                               !adjusted_is_copy_initialization,
+                                    /*arg_dep_lookup_done=*/FALSE,
                                     /*from_arg_dep_lookup=*/FALSE,
                                     /*dependent_call=*/FALSE,
                                     /*forced_dependent=*/FALSE,
@@ -15273,6 +15298,7 @@ to be copied.
                                     /*initializing_return_value=*/FALSE,
                                     /*effects_copy_initialization=*/FALSE,
                                     /*allow_udc_on_arguments=*/FALSE,
+                                    /*arg_dep_lookup_done=*/FALSE,
                                     /*from_arg_dep_lookup=*/FALSE,
                                     /*dependent_call=*/FALSE,
                                     /*forced_dependent=*/FALSE,
