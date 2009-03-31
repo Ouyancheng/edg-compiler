@@ -1440,7 +1440,16 @@ see function_declarator (below) for which this is a helper function.
       pos_error(err_code, &qualifier_pos);
     }  /* if */
   }  /* if */
-  if (is_nonstatic_member && qualifiers == TQ_NONE && !qualifier_err) {
+  if (!is_nonstatic_member && locator->is_error) {
+    /* Severe errors like
+           struct A {};
+           A::() const { ... };
+       can get us here.  Don't record a "this" type since the resulting
+       function isn't really a member of the indicated class type. */
+    expect_error();
+    this_class = NULL;
+    qualifiers = TQ_NONE;
+  } else if (is_nonstatic_member && qualifiers == TQ_NONE && !qualifier_err) {
     /* This is a nonstatic member function declared within the definition
        of the class indicated, but without significant qualifiers. */
     this_class = parent_type;
