@@ -1028,8 +1028,11 @@ typedef struct a_class_symbol_supplement {
   a_bit_field	lambda_inside_default_arg_expression:1;
 			/* TRUE if this class is the closure class for a lambda
 			   that occurs inside a default argument expression.
-			   (That's an error currently, and this flag helps with
-			   error recovery.) */
+			   Note that this indicates that the lambda is
+			   immediately inside a default argument expression;
+			   it's not set, for example, for a lambda that's
+			   inside another lambda that's inside a default
+			   argument expression. */
   a_bit_field	lambda_in_invalid_scope:1;
 			/* TRUE for the closure class of a lambda expression
 			   that appeared in an invalid scope (e.g., a
