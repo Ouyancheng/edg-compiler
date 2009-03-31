@@ -10777,6 +10777,11 @@ return_from_token_scan:
       db_constant(&const_for_curr_token);
     }  /* if */
     (void)fputc('\n', f_debug);
+  } else if (db_flag_is_set("tokens")) {
+    if (start_of_curr_token != NULL) {
+      /* Print token string if valid. */
+      fprintf(f_debug, "%.*s\n", (int)len_of_curr_token, start_of_curr_token);
+    }  /* if */
   }  /* if */
 #endif /* DEBUG */
   if (!in_preprocessing_directive) {
