@@ -1705,8 +1705,8 @@ match1 is set TRUE if param_type1 is more specialized than param_type2;
 Likewise for match2.
 */
 {
-  a_boolean	type_1_is_reference;
-  a_boolean	type_2_is_reference;
+  a_boolean	type_1_is_reference, type1_is_rvalue_reference = FALSE;
+  a_boolean	type_2_is_reference, type2_is_rvalue_reference = FALSE;
   a_boolean	qualifiers_dropped1 = FALSE;
   a_boolean	qualifiers_dropped2 = FALSE;
 
@@ -1716,17 +1716,20 @@ Likewise for match2.
   /* Remove any top level references. */
   type_1_is_reference = is_reference_type(param_type1);
   if (type_1_is_reference) {
+    type1_is_rvalue_reference = is_rvalue_reference_type(param_type1);
     param_type1 = type_pointed_to(param_type1);
   }  /* if */
   type_2_is_reference = is_reference_type(param_type2);
   if (type_2_is_reference) {
+    type2_is_rvalue_reference = is_rvalue_reference_type(param_type2);
     param_type2 = type_pointed_to(param_type2);
   }  /* if */
-  if ((type_1_is_reference && type_2_is_reference) ||
+  if ((type_1_is_reference && type_2_is_reference &&
+       type1_is_rvalue_reference == type2_is_rvalue_reference) ||
       ((type_1_is_reference || type_2_is_reference) &&
        use_nonstd_partial_ordering)) {
     /* If both types are references, remove any common qualifiers so
-       that we can determine if one of the type is more qualified than
+       that we can determine if one of the types is more qualified than
        the other.  Also do this if either is a reference and the
        use_nonstd_partial_ordering flag is TRUE to allow emulation of the
        incorrect behavior that was present through version 3.10. */
