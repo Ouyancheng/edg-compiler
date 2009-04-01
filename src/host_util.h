@@ -160,7 +160,7 @@ caller should copy the contents as needed.
          how many bytes from filename were occupied by the UTF-8
          representation. */
       utf8_character_seen = TRUE;
-      num_utf8_bytes = mbc_to_wide_char(p, &unicode_char, &err,
+      num_utf8_bytes = mbc_to_wide_char((char *)p, &unicode_char, &err,
                                         /*is_native=*/FALSE);
       /* Convert that to either one UTF-16 value or a pair of surrogates. */
       num_utf16_chars = ucn_to_utf16(unicode_char, utf16_chars);
