@@ -407,6 +407,11 @@ static unsigned long
 			/* The number of function instantiations that are
 			   in progress at any point in time. */
 
+static unsigned long
+		num_pending_default_arg_instantiations;
+			/* The number of default argument instantiations
+			   that are in progress at any point in time. */
+
 #if DEBUG
 /*
 Counters used to track memory usage.
@@ -7892,6 +7897,12 @@ instantiated.
        Don't attempt another instantiation. */
     error(ec_recursive_def_arg_instantiation);
     goto done;
+  } else if (num_pending_default_arg_instantiations ==
+                                                  max_pending_instantiations) {
+    /* There are too many total recursive default argument instantiations.
+       Don't attempt another instantiation. */
+    error(ec_recursive_def_arg_instantiation);
+    goto done;
   }  /* if */
   /* Indicate that an instantiation of this default argument is pending. */
   param->default_being_instantiated = TRUE;
@@ -7954,8 +7965,10 @@ instantiated.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     saved_curr_construct_end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    num_pending_default_arg_instantiations++;
     delayed_scan_of_default_arg_expr(daefp->param_type,
                                      /*check_for_errors=*/FALSE);
+    num_pending_default_arg_instantiations--;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     curr_construct_end_position = saved_curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -22534,6 +22547,7 @@ Initializations for template.
   avail_partial_order_candidates = NULL;
   deferred_instantiations_in_process = FALSE;
   num_total_pending_instantiations = 0;
+  num_pending_default_arg_instantiations = 0;
   master_instantiations_list = NULL;
   master_instantiations_tail = NULL;
   pending_nontype_param_instantiations = 0;
