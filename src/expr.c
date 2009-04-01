@@ -7618,6 +7618,8 @@ Syntax:
     }  /* if */
     /* *p and p[expr] yielding polymorphic class objects are special cases
        that use runtime typeid determination. */
+    /* As of now (April 2009), the working draft doesn't give special
+       handling to rvalue reference objects here. */
     if (is_an_lvalue(&operand) && is_polymorphic_class_type(typeid_type)) {
       if (is_expression_operand(&operand)) {
         if (operand_complete_object_type(&operand,
@@ -8527,7 +8529,9 @@ the result expression, if any.
     if (expr != NULL && is_operation_node(expr)) {
       check_assertion(expr->variant.operation.is_reference_cast);
       if (is_rvalue_reference_type(cast_type)) {
-        check_assertion(expr->variant.operation.is_rvalue_reference_cast);
+        check_assertion(expr->variant.operation.is_rvalue_reference_cast &&
+                        (node_operator_is(expr, eok_ref_cast) ||
+                         node_operator_is(expr, eok_ref_dynamic_cast)));
       }  /* if */
     }  /* if */
   }  /* if */

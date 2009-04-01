@@ -6148,28 +6148,35 @@ Issue any suggested warning recorded in an argument match summary.
 a_type_ptr operand_complete_object_type(an_operand *operand,
                                         a_boolean  call_case)
 /*
-Return the type of the complete object that contains the location indicated
-by operand (an lvalue), or NULL if no complete object type can be determined.
-call_case is TRUE if the answer will be used to optimize a virtual function
-call.  NULL is always a safe answer; non-NULL values may permit optimizations.
-Note that "complete object" means an object that is not a base class of
-another object, not necessarily a top-level object.  This is used only in
-C++ mode; it is useful to know what the complete object type is to optimize
-base class casts and virtual function calls.
+Return the type of the complete object that contains the object indicated
+by operand (an lvalue or rvalue), or NULL if no complete object type can be
+determined.  call_case is TRUE if the answer will be used to optimize a
+virtual function call.  NULL is always a safe answer; non-NULL values may
+permit optimizations.  Note that "complete object" means an object that is
+not a base class of another object, not necessarily a top-level object.
+This is used only in C++ mode; it is useful to know what the complete object
+type is to optimize base class casts and virtual function calls.
 */
 {
   a_type_ptr complete_object_type = NULL;
 
-  check_assertion(is_an_lvalue(operand) || is_error_operand(operand));
-  if (is_constant_operand(operand)) {
-    /* The only lvalue case that is a constant is a string literal. */
-    if (operand_is_string_literal(operand)) {
-      complete_object_type = operand->type;
-    }  /* if */
-  } else if (is_expression_operand(operand)) {
+  if (is_expression_operand(operand)) {
     complete_object_type = 
                          expr_complete_object_type(operand->variant.expression,
                                                    call_case);
+  } else if (is_an_lvalue(operand)) {
+    if (is_constant_operand(operand)) {
+      /* The only lvalue case that is a constant is a string literal. */
+      if (operand_is_string_literal(operand)) {
+        complete_object_type = operand->type;
+      }  /* if */
+    }  /* if */
+  } else if (is_error_operand(operand)) {
+    complete_object_type = NULL;
+  } else if (is_an_rvalue(operand)) {
+    /* For other rvalues (not in expression form), the complete object type
+       is the operand type. */
+    complete_object_type = operand->type;
   }  /* if */
   return complete_object_type;
 }  /* operand_complete_object_type */
@@ -6244,12 +6251,10 @@ to a class ("->" or "->*" case, selector_is_object_pointer TRUE).
       complete_object_type =
                   pointer_operand_complete_object_type(bound_function_selector,
                                                        /*call_case=*/TRUE);
-    } else if (is_an_lvalue(bound_function_selector)) {
+    } else {
       complete_object_type =
                           operand_complete_object_type(bound_function_selector,
                                                        /*call_case=*/TRUE);
-    } else if (is_an_rvalue(bound_function_selector)) {
-      complete_object_type = bound_function_selector->type;
     }  /* if */
     if (complete_object_type != NULL) {
       /* We know the type of the complete object: we may be able to

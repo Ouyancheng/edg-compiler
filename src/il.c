@@ -15178,6 +15178,36 @@ pointer.
 }  /* base_class_selection_expr */
 
 
+a_boolean is_rvalue_reference_object_expr(an_expr_node_ptr expr)
+/*
+Return TRUE if the given expression is an rvalue produced by an rvalue
+reference operation, i.e., a call of a function returning an rvalue reference
+or a cast to an rvalue reference.  Such rvalues are objects that have
+some of the properties of lvalues, specifically a dynamic type that
+can differ from the expression type.
+*/
+{
+  a_boolean is_rvalue_object = FALSE;
+
+  if (!expr->is_lvalue) {
+    if (is_operation_node(expr)) {
+      if (expr->variant.operation.is_rvalue_reference_cast) {
+        /* A cast to an rvalue reference type. */
+        is_rvalue_object = TRUE;
+      } else if (node_operator_is(expr, eok_ref_indirect)) {
+        an_expr_node_ptr op1 = expr->variant.operation.operands;
+        if (is_rvalue_reference_type(op1->type) &&
+            is_call_node(op1)) {
+          /* A function call that returns an rvalue reference. */
+          is_rvalue_object = TRUE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return is_rvalue_object;
+}  /* is_rvalue_reference_object_expr */
+
+
 static void examine_constant_for_side_effect(
                                     a_constant_ptr                      con,
                                     an_expr_or_stmt_traversal_block_ptr tblock)

@@ -8829,11 +8829,11 @@ a function expression to which the argument list (including the implicit
     if (is_pointer_type(implicit_this_arg->type)) {
       object_type = pointer_expr_complete_object_type(implicit_this_arg,
                                                       /*call_case=*/TRUE);
-    } else if (implicit_this_arg->is_lvalue) {
+    } else {
       object_type = expr_complete_object_type(implicit_this_arg,
                                               /*call_case=*/TRUE);
     }  /* if */
-    if (object_type != NULL) {
+    if (object_type != NULL && is_class_struct_union_type(object_type)) {
       /* We know the complete object type, so we can find the actual target
          of this call. */
       a_routine_ptr called_func = final_overrider(member_func,

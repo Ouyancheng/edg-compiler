@@ -2949,8 +2949,8 @@ object or an rvalue that is a pointer to an object.
 a_type_ptr expr_complete_object_type(an_expr_node_ptr expr,
                                      a_boolean        call_case)
 /*
-Return the type of the complete object that contains the location indicated
-by expr (an lvalue), or NULL if no complete object can be determined.
+Return the type of the complete object that contains the object indicated
+by expr (an lvalue or rvalue), or NULL if no complete object can be determined.
 call_case is TRUE if the answer will be used to optimize a virtual function
 call.  NULL is always a safe answer; non-NULL values may permit optimizations.
 Note that "complete object" means an object that is not a base class of
@@ -2959,15 +2959,27 @@ C++ mode; it is useful to know what the complete object type is to optimize
 base class casts and virtual function calls.
 */
 {
-  an_expr_or_stmt_traversal_block tblock;
+  a_type_ptr complete_object_type = NULL;
 
-  check_assertion(expr->is_lvalue || is_error_node(expr));
-  clear_expr_or_stmt_traversal_block(&tblock);
-  tblock.process_expr = examine_expr_for_complete_object_type;
-  tblock.follow_addressing_path = TRUE;
-  tblock.call_case = call_case;
-  traverse_expr(expr, &tblock);
-  return tblock.complete_object_type;
+  if (expr->is_lvalue) {
+    /* For an lvalue, look down the tree to find the underlying object. */
+    an_expr_or_stmt_traversal_block tblock;
+
+    clear_expr_or_stmt_traversal_block(&tblock);
+    tblock.process_expr = examine_expr_for_complete_object_type;
+    tblock.follow_addressing_path = TRUE;
+    tblock.call_case = call_case;
+    traverse_expr(expr, &tblock);
+    complete_object_type = tblock.complete_object_type;
+  } else {
+    /* For an rvalue, the complete object type is usually the expression type,
+       but for rvalue reference objects it's unknown (the dynamic type
+       can be different than the static type for those). */
+    if (!is_rvalue_reference_object_expr(expr)) {
+      complete_object_type = expr->type;
+    }  /* if */
+  }  /* if */
+  return complete_object_type;
 }  /* expr_complete_object_type */
 
 
