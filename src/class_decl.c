@@ -3016,7 +3016,8 @@ the overridden symbol.
     compatible = TRUE;
   } else {
     /* They're not "simply" compatible.  Do the other checking. */
-    if ((is_reference_type(tp1) && is_reference_type(tp2)) ||
+    if ((is_reference_type(tp1) && is_reference_type(tp2) &&
+         is_rvalue_reference_type(tp1) == is_rvalue_reference_type(tp2)) ||
         (is_pointer_type(tp1) && is_pointer_type(tp2) &&
          type_qualifiers_match(tp1, tp2))
 #ifdef pointer_types_have_same_repr
