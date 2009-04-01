@@ -1365,6 +1365,50 @@ the body of the lambda, not the definition of X).
 }  /* tag_definition_next */
 
 
+static void check_consistent_tag_kind(a_symbol_kind     tag_kind,
+                                      a_symbol_ptr      *p_tag_sym,
+                                      a_symbol_locator  *locator,
+                                      a_scope_depth     *effective_decl_level,
+                                      a_scope_depth     computed_decl_level,
+                                      a_boolean         *err)
+/*
+A tag is being declared with the given tag kind, but a previous declaration of
+that tag name exists (an recorded in *p_tag_sym).  Check that the new kind is
+consistent with the previous tag and issue a diagnostic at the position
+recorded in *locator otherwise.  If this is an error case, set *err to TRUE,
+*p_tag_sym to NULL, and (in C++ and Microsoft modes) *effective_decl_level to
+computed_decl_level.
+This is a helper routine for scan_tag_name.
+*/
+{
+  a_symbol_ptr  tag_sym = *p_tag_sym;
+
+  if (tag_sym->kind != tag_kind) {
+    an_error_severity  severity;
+    if (any_cfront_mode() && tag_kind != (a_symbol_kind)sk_enum_tag &&
+        tag_sym->kind != (a_symbol_kind)sk_enum_tag) {
+      /* Allow mixing of struct/class and union in cfront mode. */
+      severity = (an_error_severity)es_warning;
+    } else {
+      severity = (an_error_severity)es_error;
+      *err = TRUE;
+    }  /* if */
+    pos_stsy_diagnostic(severity, ec_tag_kind_incompatible_with_declaration,
+                        &locator->source_position,
+                        name_of_symbol_kind(tag_kind), tag_sym);
+    if (*err) {
+      /* Ignore the existing symbol. */
+      if (!C_mode() || microsoft_mode) {
+        /* Ensure that the caller will create the new type in an appropriate
+           scope. */
+        *effective_decl_level = computed_decl_level;
+      }  /* if */
+      *p_tag_sym = NULL;
+    }  /* if */
+  }  /* if */
+}  /* check_consistent_tag_kind */
+
+
 #if !EXTRA_SOURCE_POSITIONS_IN_IL
 /*ARGSUSED*/ /* decl_pos_block is not used unless extra source-position
                 information is being recorded in the IL. */
@@ -2043,22 +2087,9 @@ caution when modifying this routine.
       }  
     }  /* if */
     if (!tag_err && tag_sym != NULL) {
-      if (tag_sym->kind != tag_kind) {
-        an_error_severity  severity;
-        if (any_cfront_mode() && tag_kind != (a_symbol_kind)sk_enum_tag &&
-            tag_sym->kind != (a_symbol_kind)sk_enum_tag) {
-          /* Allow mixing of struct/class and union in cfront mode. */
-          severity = (an_error_severity)es_warning;
-        } else {
-          severity = (an_error_severity)es_error;
-          tag_err = TRUE;
-        }  /* if */
-        pos_stsy_diagnostic(severity,
-                            ec_tag_kind_incompatible_with_declaration,
-                            &locator->source_position,
-                            name_of_symbol_kind(tag_kind), tag_sym);
-        if (tag_err) tag_sym = NULL;
-      }  /* if */
+      check_consistent_tag_kind(tag_kind, &tag_sym, locator,
+                                effective_decl_level, computed_decl_level,
+                                &tag_err);
     }  /* if */
   }  /* if */
 done:
