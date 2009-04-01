@@ -1,5 +1,34 @@
 Version 4.1
 
+4/1/09  [EDGcpfe/8529]
+Defaulted and deleted functions
+
+In C++0x mode, the front end now implements deleted functions ("= delete;")
+and defaulted special member functions ("= default;").  A deleted function is
+a function declaration that cannot be referenced.  For example:
+
+  int f(int) = delete;
+  short f(short);
+  int x = f(3);         // Error: selected function is deleted.
+  int y = f((short)3);  // Okay.
+
+Special member functions that can be implicitly defined can instead be
+explicitly declared but with a "default definition".  As the following example
+shows, the default definition can be specified inside or outside the enclosing
+class definition, but only if it appears inside the class can that class be a
+POD type (if all other constraints for POD types are fulfilled).
+
+
+  struct S { S(S const&) = default; };
+  struct T { T(T const&); };
+  T::T(T const&) = default;
+  static_assert(__is_pod(S), "S is a POD");
+  static_assert(!__is_pod(T), "T is not a POD");
+
+This change was voted into the C++ committee's working paper for the next
+standard in July 2007 (meeting in Toronto, through proposal numbered N2346).
+
+
 4/1/09  [EDGcpfe/9671]
 Internal error in check_type_of_variable_node for const string literal
 
