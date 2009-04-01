@@ -12070,6 +12070,27 @@ the first pass).
         /* The type of the expression has changed; a cast is necessary. */
         overwrite_node(expr, add_cast(copy_node(expr), orig_expr_type));
       }  /* if */
+    } else if (node_operator_is(expr, eok_question) ||
+               node_operator_is(expr, eok_comma)) {
+      /* Check operands of eok_comma and eok_question operators. */
+      an_expr_node_ptr  op2 = operand->next;
+      if (is_constant_node(op2) &&
+          op2->is_lvalue &&
+          op2->variant.constant->kind == (a_constant_repr_kind)ck_string) {
+        op2->type = make_unqualified_type(op2->type);
+        overwrite_node(op2, add_cast_to_lvalue_if_necessary(copy_node(op2),
+                                                            expr->type));
+      }  /* if */
+      if (node_operator_is(expr, eok_question)) {
+        an_expr_node_ptr  op3 = op2->next;
+        if (is_constant_node(op3) &&
+            op3->is_lvalue &&
+            op3->variant.constant->kind == (a_constant_repr_kind)ck_string) {
+          op3->type = make_unqualified_type(op3->type);
+          overwrite_node(op3, add_cast_to_lvalue_if_necessary(copy_node(op3),
+                                                              expr->type));
+        }  /* if */
+      }  /* if */
     }  /* if */
   }  /* if */
 }  /* lower_operation_on_const_string_if_necessary */
