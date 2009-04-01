@@ -18419,7 +18419,8 @@ do the instantiation now.
   /* If the entity can be instantiated, do so now.  This routine can be
      called in the middle of a translation unit, so implicit inclusion cannot
      be done. */
-  if (entity_can_be_instantiated(tip, /*implicit_inclusion_okay=*/FALSE)) {
+  if (!master_instance_of(tip)->already_instantiated &&
+      entity_can_be_instantiated(tip, /*implicit_inclusion_okay=*/FALSE)) {
     instantiate_entity(tip);
   }  /* if */
 }  /* complete_template_static_data_member_type_is_needed */
