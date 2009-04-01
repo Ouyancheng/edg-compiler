@@ -9181,6 +9181,30 @@ to mark the end of the __if_exists.
 
 #endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
 
+
+static a_constant_ptr get_constant_for_ms_string_operand(void)
+/*
+The current token is a tok_string_literal.  If it is a valid narrow string
+literal constant, return the constant.  Otherwise, return NULL.  Issue
+an error for a wide string literal.  This is used for certain Microsoft
+features such as __identifier.
+*/
+{
+  a_constant_ptr	cp;
+
+  cp = &const_for_curr_token;
+  if (is_error_constant(cp)) {
+    /* The string literal was ill-formed.  An error will already have
+       been issued. */
+    cp = NULL;
+  } else if (!is_normal_character_kind(cp->character_kind)) {
+    error(ec_wide_string_not_allowed);
+    cp = NULL;
+  }  /* if */
+  return cp;
+}  /* get_constant_for_ms_string_operand */
+
+
 static void scan_microsoft_identifier_operator(void)
 /*
 Scan a Microsoft __identifier operator.  The syntax of such an operator is
@@ -9215,8 +9239,27 @@ is set to tok_error.
     locator = locator_for_curr_id;
     /* Bypass the identifier. */
     (void)get_token();
+  } else if (curr_token == tok_string_literal) {
+    /* The Microsoft compiler gives an error on a string literal, but allows
+       the diagnostic to be suppressed (using a pragma) and the contents of
+       the string literal are used as the identifier.  We issue a discretionary
+       error (which will automatically be suppressed in files from system
+       include directories). */
+    a_constant_ptr	cp;
+    diagnostic(es_discretionary_error, ec_exp_cpp_keyword);
+    clear_locator(&locator, &pos_curr_token);
+    cp = get_constant_for_ms_string_operand();
+    if (cp != NULL) {
+      (void)find_symbol_header(cp->variant.string.value,
+                               (sizeof_t)cp->variant.string.length - 1,
+                                &locator);
+    } else {
+      err = TRUE;
+    }  /* if */
+    /* Bypass the string literal. */
+    (void)get_token();
   } else {
-    error(ec_exp_identifier);
+    error(ec_exp_cpp_keyword);
     err = TRUE;
   }  /* if */
   /* Scan the ")". */
@@ -9257,16 +9300,8 @@ literals are left unchanged.
   begin_rescan_of_pragma_tokens(ppp);
   if (required_token(tok_lparen, ec_exp_lparen)) {
     if (required_token_no_advance(tok_string_literal, ec_exp_string_literal)) {
-      locale_cp = &const_for_curr_token;
       locale_pos = pos_curr_token;
-      if (is_error_constant(locale_cp)) {
-        /* The string literal was ill-formed.  An error will already have
-           been issued. */
-        locale_cp = NULL;
-      } else if (!is_normal_character_kind(locale_cp->character_kind)) {
-        error(ec_wide_string_not_allowed);
-        locale_cp = NULL;
-      }  /* if */
+      locale_cp = get_constant_for_ms_string_operand();
       /* Advance past the string literal. */
       (void)get_token();
       if (required_token(tok_rparen, ec_exp_rparen)) err = FALSE;

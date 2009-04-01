@@ -1,5 +1,19 @@
 Version 4.1
 
+4/1/09   [EDGcpfe/9678]
+Microsoft compatibility: support for __identifier("string")
+
+Microsoft documents the __identifier facility as taking a keyword
+token as its argument.  If a string literal is used as an argument, the
+Microsoft compiler gives an error by default, but this error can be
+downgraded by use of a pragma.  This usage is exploited in the Microsoft
+header files.  We now give a discretionary error for a string literal in
+an __identifier operator.  Because it is a discretionary error, it will
+automatically be suppressed in files from system include directories.
+
+  namespace __identifier("<CrtlImplementationDetails>") { }
+
+
 4/1/09   [EDGcpfe/9677]
 Internal error on static data member array with size used in initializer
 
