@@ -5141,7 +5141,9 @@ cast away const, and this routine returns FALSE) but is suspect, return
              is_ptr_to_member_type(source_type)) {
     dest_type = pm_member_type(dest_type);
     source_type = pm_member_type(source_type);
-  } else if (is_reference_type(dest_type) && is_reference_type(source_type)) {
+  } else if (is_reference_type(dest_type) && is_reference_type(source_type) &&
+             is_rvalue_reference_type(dest_type) ==
+                                       is_rvalue_reference_type(source_type)) {
     dest_type = type_pointed_to(dest_type);
     source_type = type_pointed_to(source_type);
   } else {
