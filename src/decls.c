@@ -11194,7 +11194,8 @@ is "false".  If leave_semicolon is TRUE, do not consume the final token.
   } else {
     /* We've seen enough of the construct to evaluate it (if it is
        nondependent), and (in some configurations) record it. */
-    if (is_error_constant(&assert_con)) {
+    if (is_error_constant(&assert_con) ||
+        is_error_constant(&const_for_curr_token)) {
       /* An error should already have been issued. */
       expect_error();
     } else if (assert_con.kind != (a_constant_repr_kind)ck_template_param &&
