@@ -9590,7 +9590,9 @@ cfront compatibility case.
   ptp = rtsp->param_type_list;
   check_assertion(ptp != NULL);
   tp = skip_typerefs(ptp->type);
-  if (is_reference_type(tp)) {
+  /* Note that an operator= with an rvalue reference parameter is not
+     considered a copy assignment operator. */
+  if (is_lvalue_reference_type(tp)) {
     /* Reference argument. */
     tp = type_pointed_to(tp);
     /* Don't do a skip_typerefs on what's returned from type_pointed_to,
