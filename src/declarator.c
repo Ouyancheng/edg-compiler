@@ -2235,7 +2235,7 @@ if this is the function declarator in a friend function declaration.
             } else if (!done) {
               /* We're looking at the first parameter.  See if this may be a
                  copy constructor.  This will help find cases 3 and 4. */
-              if (is_reference_type(param_state.type)) {
+              if (is_lvalue_reference_type(param_state.type)) {
                 tp = type_pointed_to(param_state.type);
                 tp = skip_typerefs(tp);
                 if (identical_types(parent_type, tp)) {
