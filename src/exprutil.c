@@ -1440,6 +1440,7 @@ values.
   operand->is_microsoft_noop = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   operand->is_routine_name_followed_by_left_paren = FALSE;
+  operand->is_dummy_lvalue = FALSE;
 #if RECORD_FORM_OF_NAME_REFERENCE
   operand->name_reference_set = FALSE;
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */

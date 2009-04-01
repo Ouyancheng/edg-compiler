@@ -345,6 +345,9 @@ typedef struct an_operand {
 			/* TRUE if this is a simple routine name followed by
 			   a left parenthesis (which enables argument-
 			   dependent lookup). */
+  a_bit_field	is_dummy_lvalue:1;
+			/* TRUE if this operand was created by
+			   make_dummy_lvalue_operand. */
 #if RECORD_FORM_OF_NAME_REFERENCE
   a_bit_field	name_reference_set:1;
 			/* TRUE if name_reference has been set. */

@@ -6026,29 +6026,19 @@ implement <stdarg.h>, a standard feature.
 
 
 static void make_dummy_lvalue_operand(a_type_ptr type,
-                                      a_boolean  use_variable,
                                       an_operand *operand)
 /*
-Make a placeholder lvalue operand whose type is "type".  If use_variable
-is TRUE, the operand is based on a variable so it will produce the right
-result in decltype.
+Make a placeholder lvalue operand whose type is "type".
 */
 {
-  if (use_variable) {
-    a_variable_ptr temp_var = alloc_temporary_variable(type,
-                                                       /*force_static=*/TRUE);
-    make_lvalue_variable_operand(temp_var,
-                                 &pos_curr_token,
-                                 end_position_or_null(&end_pos_curr_token),
-                                 operand, (a_ref_entry_ptr)NULL);
-  } else {
-    an_expr_node_ptr expr;
-    a_constant       zero_con;
-    make_zero_of_proper_type(make_pointer_type(type), &zero_con);
-    expr = alloc_node_for_constant(&zero_con);
-    expr = add_indirection_to_node(expr);
-    make_lvalue_expression_operand(expr, operand);
-  }  /* if */
+  an_expr_node_ptr expr;
+  a_constant       zero_con;
+
+  make_zero_of_proper_type(make_pointer_type(type), &zero_con);
+  expr = alloc_node_for_constant(&zero_con);
+  expr = add_indirection_to_node(expr);
+  make_lvalue_expression_operand(expr, operand);
+  operand->is_dummy_lvalue = TRUE;
 }  /* make_dummy_lvalue_operand */
 
 
@@ -6110,7 +6100,7 @@ work is done by scan_field_selection_operator and scan_subscript_operator.
                     /*suppress_object_lifetime=*/TRUE);
     expr_stack->unevaluated_expr_will_be_kept_in_il = TRUE;
     /* Make an lvalue of the right type to start the tree. */
-    make_dummy_lvalue_operand(type, /*use_variable=*/FALSE, &local_result);
+    make_dummy_lvalue_operand(type, &local_result);
     curr_token = tok_period;
     do {
       copy_operand(&local_result, &operand);
@@ -6565,6 +6555,10 @@ id_case:
         result = expr->variant.variable->type;
       } else if (is_routine_node(expr)) {
         result = expr->variant.routine->type;
+      } else if (operand->is_dummy_lvalue) {
+        /* A dummy operand created by make_dummy_lvalue_operand.  Assume it
+           is variable-like and use its type directly. */
+        result = expr->type;
       } else {
         goto general_case;
       }  /* if */
@@ -17648,8 +17642,8 @@ overloaded_function:
                variable yet (the parameter is represented by an sk_parameter
                symbol). */
             a_type_ptr param_type = sym_ptr->variant.param_id->type;
-            make_dummy_lvalue_operand(param_type, /*use_variable=*/TRUE,
-                                      result);
+            make_dummy_lvalue_operand(param_type, result);
+            result->is_id_expression = TRUE;
           }  /* if */
           break;
 #if CHECKING
