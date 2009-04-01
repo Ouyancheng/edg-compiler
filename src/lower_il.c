@@ -10195,7 +10195,6 @@ has already been lowered.
   cast_type = expr->type;
   src_type = src->type;
   if (reference_case) {
-    check_assertion(expr->is_lvalue);
     ptr_type = make_pointer_type(cast_type);
   } else {
     check_assertion(!expr->is_lvalue);
@@ -10365,6 +10364,10 @@ has already been lowered.
                                  ptr_type, test_node);
   if (reference_case) {
     test_node = add_indirection_to_node(test_node);
+    if (!expr->is_lvalue) {
+      /* Convert to an rvalue if the original expression is an rvalue. */
+      test_node = rvalue_expr_for_lvalue(test_node);
+    }  /* if */
   }  /* if */
   /* Overwrite the original node with the rewritten version. */
   overwrite_node(expr, test_node);
