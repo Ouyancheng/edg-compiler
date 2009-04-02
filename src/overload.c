@@ -8685,8 +8685,19 @@ routine is called only in C++ mode.
     /* A surrogate function was selected.  Convert the class object to
        a pointer to function using the conversion function, then call
        the function pointed to. */
-    a_type_ptr conversion_type =
-                      return_type_of(arg_match_list->conversion.routine->type);
+    a_type_ptr conv_rout_type = arg_match_list->conversion.routine->type;
+    a_type_ptr conversion_type = return_type_of(conv_rout_type);
+    if (rvalue_references_enabled) {
+      a_type_ptr raw_return_type = il_return_type_of(conv_rout_type);
+      if (is_rvalue_reference_type(raw_return_type)) {
+        /* Put in the decay from function type to pointer to function type
+           when the conversion function returns an rvalue reference to
+           function. */
+        conversion_type = type_after_function_to_pointer_transformation(
+                                                           conversion_type,
+                                                           (an_operand *)NULL);
+      }  /* if */
+    }  /* if */
     copy_operand(bound_function_selector, function_operand);
     user_convert_operand(function_operand,
                          conversion_type,
