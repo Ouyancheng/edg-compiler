@@ -16384,8 +16384,12 @@ Scan the C++ throw operator.  See 15.2 in the ARM.  The syntax is
       if (is_class_struct_union_type(throw_type)) {
         /* For a class type operand, generate a dynamic initialization that
            copies the value to an undesignated location. */
+        /* The move optimization is inhibited for now -- we would also
+           need to check that the variable thrown is in a scope that will be
+           exited by the throw. */
         prep_elision_initializer_operand(&operand, throw_type,
                                          /*initializing_return_value=*/FALSE,
+                                         /*move_optimization_allowed=*/FALSE,
                                          /*fill_in_dtor=*/FALSE,
                                          ec_bad_initializer_type, &dip);
         if (dip == NULL) err = TRUE;
@@ -19992,6 +19996,37 @@ are marked as actually referenced.
 }  /* fix_up_dynamic_init_dtors */
 
 
+a_boolean variable_eligible_for_copy_optimization(a_variable_ptr var,
+                                                  a_type_ptr     func_type)
+/*
+Determine whether the variable var is eligible for an optimization that
+elides a copy as described in [class.copy] paragraph 15.  When func_type is
+non-NULL, it gives the type of the current function and this routine
+returns TRUE if "return var;" is allowed to optimize away the return
+copy by constructing var directly in the space provided by the caller.
+When func_type is NULL, this routine returns TRUE if "throw var;" is
+allowed to optimize away the throw copy by constructing var directly
+in the exception object (in practice, that's an optimization that's
+hard or impossible to do, but the same condition comes up in working
+out move optimizations, so this test is useful for that reason).
+*/
+{
+  a_boolean eligible = FALSE;
+
+  if (!var->is_parameter &&
+      !has_static_storage_duration(var->storage_class) &&
+      is_class_struct_union_type(var->type) &&
+      !is_volatile_qualified_type(var->type) &&
+      (func_type == NULL ||
+       types_are_compatible_ignoring_qualifiers(
+                                    var->type,
+                                    func_type->variant.routine.return_type))) {
+    eligible = TRUE;
+  }  /* if */
+  return eligible;
+}  /* variable_eligible_for_copy_optimization */
+
+
 static void check_return_value_optimization(an_operand *operand)
 /*
 A return statement is returning the indicated operand in a function that
@@ -20036,12 +20071,7 @@ lowering or a back end to do the rewriting.
            says that it must be non-volatile. */
         a_type_ptr func_type = func_scope->variant.routine.ptr->type;
         func_type = skip_typerefs(func_type);
-        if (!return_var->is_parameter &&
-            !has_static_storage_duration(return_var->storage_class) &&
-            !is_volatile_qualified_type(return_var->type) &&
-            types_are_compatible_ignoring_qualifiers(
-                                 return_var->type,
-                                 func_type->variant.routine.return_type)
+        if (variable_eligible_for_copy_optimization(return_var, func_type)
 #if DO_IL_LOWERING
             /* Rule out a case IL lowering can't handle: returning an
                optimized class rvalue "?" via the return value optimization. */
@@ -20219,6 +20249,7 @@ required_type will be void if the expression should have void type
     /* Build a dynamic initialization entry for the return statement. */
     prep_elision_initializer_operand(&result, required_type,
                                      /*initializing_return_value=*/TRUE,
+                                     /*move_optimization_allowed=*/TRUE,
                                      /*fill_in_dtor=*/FALSE,
                                      err_code, dip);
     wrap_up_dynamic_init_full_expression(*dip);
@@ -21207,6 +21238,7 @@ As indicated, this is initialization with the "=" semantics
      build a dynamic initialization entry to describe the initialization. */
   prep_elision_initializer_operand(&result, dps->type,
                                    /*initializing_return_value=*/FALSE,
+                                   /*move_optimization_allowed=*/FALSE,
                                    /*fill_in_dtor=*/TRUE,
                                    ec_bad_initializer_type, dip);
   wrap_up_dynamic_init_full_expression(*dip);
@@ -21400,6 +21432,7 @@ required_type_determined:
          is not filled in. */
       prep_elision_initializer_operand(&result, required_type,
                                        /*initializing_return_value=*/FALSE,
+                                       /*move_optimization_allowed=*/FALSE,
                                        /*fill_in_dtor=*/FALSE,
                                        ec_bad_initializer_type, dip);
       wrap_up_dynamic_init_full_expression(*dip);

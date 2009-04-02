@@ -731,6 +731,7 @@ extern void prep_elision_initializer_operand(
                                   an_operand         *source_operand,
                                   a_type_ptr         dest_type,
                                   a_boolean          initializing_return_value,
+                                  a_boolean          move_optimization_allowed,
                                   a_boolean          fill_in_dtor,
                                   an_error_code      err_code,
                                   a_dynamic_init_ptr *dip);

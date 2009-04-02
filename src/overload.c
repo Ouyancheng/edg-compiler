@@ -13269,10 +13269,42 @@ happen only in C++ mode.
 }  /* determine_dynamic_init_for_class_init */
 
 
+static a_boolean selected_function_is_move_constructor(
+                                                      a_conv_descr *conversion,
+                                                      a_type_ptr   class_type)
+/*
+Return TRUE if the function selected and indicated in *conversion is a
+move constructor for the class given by class_type.
+*/
+{
+  a_boolean     is_move_constructor = FALSE;
+  a_routine_ptr rout = conversion->routine;
+
+  class_type = skip_typerefs(class_type);
+  if (rout != NULL &&
+      rout->special_kind == (a_special_function_kind)sfk_constructor) {
+    a_type_ptr       rout_type = skip_typerefs(rout->type);
+    a_param_type_ptr ptp =
+                        rout_type->variant.routine.extra_info->param_type_list;
+    check_assertion(identical_types(parent_class_of(rout), class_type));
+    if (ptp != NULL &&
+        is_rvalue_reference_type(ptp->type)) {
+      a_type_ptr param_type = type_pointed_to(ptp->type);
+      param_type = skip_typerefs(param_type);
+      if (identical_types_ignoring_qualifiers(param_type, class_type)) {
+        is_move_constructor = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return is_move_constructor;
+}  /* selected_function_is_move_constructor */
+
+
 void prep_elision_initializer_operand(
                                   an_operand         *source_operand,
                                   a_type_ptr         dest_type,
                                   a_boolean          initializing_return_value,
+                                  a_boolean          move_optimization_allowed,
                                   a_boolean          fill_in_dtor,
                                   an_error_code      err_code,
                                   a_dynamic_init_ptr *dip)
@@ -13281,7 +13313,9 @@ An entity of (class) type dest_type is being initialized from source_operand.
 Convert it if necessary (issuing an error if the conversion cannot be done),
 and build a dynamic initialization entry to describe the initialization.
 initializing_return_value is TRUE if the initialization is being done
-to return a value in a return statement.  The dynamic initialization
+to return a value in a return statement.  move_optimization_allowed is
+TRUE if this is a context where it's allowed to use a move constructor
+to do the copy instead of a copy constructor.  The dynamic initialization
 entry will also indicate a destructor if appropriate and if
 fill_in_dtor is TRUE.  Return a pointer to the dynamic initialization
 entry in *dip (or NULL for an error).  err_code is the error code to be
@@ -13291,10 +13325,12 @@ constructor elision in C++ mode.  This is an initialization with the
 "=" semantics (copy-initialization).
 */
 {
-  a_conv_descr conversion, ctor_arg_conversion;
-  an_operand   orig_operand;
-  a_boolean    is_copy_initialization = TRUE;
-  a_boolean    orig_is_copy_initialization = is_copy_initialization;
+  a_conv_descr   conversion, ctor_arg_conversion;
+  an_operand     orig_operand;
+  a_boolean      is_copy_initialization = TRUE;
+  a_boolean      orig_is_copy_initialization = is_copy_initialization;
+  a_boolean      move_optimization_case = FALSE;
+  a_variable_ptr var;
 
   orig_operand = *source_operand;
   *dip = NULL;
@@ -13302,6 +13338,35 @@ constructor elision in C++ mode.  This is an initialization with the
      in some cases.  All the cases that come through here are treated
      that way. */
   if (microsoft_bugs) is_copy_initialization = FALSE;
+  if (move_optimization_allowed &&
+      rvalue_references_enabled &&
+      operand_is_lvalue_for_variable(source_operand, &var)) {
+    /* The move constructor optimization might apply here.  Check further. */
+    a_type_ptr func_type = NULL;
+    if (initializing_return_value) {
+      check_assertion(innermost_function_scope != NULL);
+      func_type = innermost_function_scope->variant.routine.ptr->type;
+    }  /* if */
+    if (variable_eligible_for_copy_optimization(var, func_type)) {
+      /* The move optimization might apply here.  Build a version of the
+         operand that has been converted to an rvalue and try the conversion
+         from that first.  Convert the variable to an rvalue by casting to
+         an rvalue reference type, so for example
+           A x;
+           return x;
+         becomes
+           A x;
+           return static_cast<A &&>(x);
+      */
+      move_optimization_case = TRUE;
+      cast_operand_for_reference_cast(source_operand,
+                                      make_rvalue_reference_type(
+                                                         source_operand->type),
+                                      /*check_cast_access=*/FALSE,
+                                      /*reinterpret_semantics=*/FALSE); 
+    }  /* if */
+  }  /* if */
+try_again:
   /* Look for a constructor to convert the expression to the required
      class type. */
   if (conversion_possible(source_operand, dest_type, 
@@ -13314,13 +13379,31 @@ constructor elision in C++ mode.  This is an initialization with the
                           /*processed_arg=*/FALSE,
                           err_code,
                           &source_operand->position,
-                          &conversion, &ctor_arg_conversion)) {
+                          &conversion, &ctor_arg_conversion) &&
+      /* In the move optimization case, the selected function has to be
+         a move constructor. */
+      (!move_optimization_case ||
+       selected_function_is_move_constructor(&conversion, dest_type))) {
     /* The conversion is possible.  Determine the routine and argument
        list to return to the caller. */
     determine_dynamic_init_for_class_init(source_operand, dest_type,
                                           &conversion, &ctor_arg_conversion,
                                           fill_in_dtor,
                                           dip, (an_expr_node_ptr *)NULL);
+  } else if (move_optimization_case) {
+    /* We failed on matching the rvalue case for the move optimization.
+       Fall back to the original operand (an lvalue) and try again. */
+    move_optimization_case = FALSE;
+    *source_operand = orig_operand;
+#if CHECKING
+    /* We're counting on the fact that the cast to a reference type above
+       doesn't change the original expression. */
+    { a_variable_ptr var2;
+      check_assertion(operand_is_lvalue_for_variable(source_operand, &var2) &&
+                      var == var2);
+    }
+#endif /* CHECKING */
+    goto try_again;
   }  /* if */
   /* Restore the original source position, etc. */
   restore_operand_details(source_operand, &orig_operand);
