@@ -2519,11 +2519,11 @@ white space will also be deleted).  The global variable
 arg_get_token_start_of_curr_token is set to the character position
 after the white-space skip, which differs from start_of_curr_token
 when the token is preceded by an inert-macro escape.  The global variable
-comma_from_argument will be non-NULL after the call if and only if the call
+comma_is_from_argument will be TRUE after the call if and only if the call
 to skip_white_space encountered an LE_COMMA_FROM_ARGUMENT marker.
 */
 {
-  comma_from_argument = NULL;
+  comma_is_from_argument = FALSE;
   macro_skip_white_space(*any_white_space_skipped);
   arg_get_token_start_of_curr_token = curr_char_loc;
   return (get_token());
@@ -4001,7 +4001,7 @@ do_argument_again:
                    (paren_count == 0 &&
                     (curr_token == tok_rparen ||
                      (curr_token == tok_comma &&
-                      comma_from_argument == NULL &&
+                      !comma_is_from_argument &&
                       !(pp != NULL && pp->next == NULL && mdp->variadic)))))) {
             /* Track nesting of parentheses. */
             if (curr_token == tok_lparen) {
@@ -4042,7 +4042,7 @@ do_argument_again:
               remark(err_code_for_error_token);
             }  /* if */
             (void)arg_get_token(&any_white_space_skipped);
-            if (comma_from_argument != NULL && paren_count > 0) {
+            if (comma_is_from_argument && paren_count > 0) {
               /* The Microsoft preprocessor ignores whether a comma
                  originated in a macro argument in invocations appearing
                  within the argument of another macro.  (We take the fact
@@ -4054,8 +4054,20 @@ do_argument_again:
                  LE_COMMA_FROM_ARGUMENT escape with LE_END_OF_TOKEN (an
                  innocuous substitution, since all commas start new
                  tokens). */
-              check_assertion(*comma_from_argument == LE_COMMA_FROM_ARGUMENT);
-              *comma_from_argument = LE_END_OF_TOKEN;
+              char *cp = start_of_curr_token;
+              /* The LE_COMMA_FROM_ARGUMENT escape might be followed by an
+                 LE_END_OF_TOKEN escape and/or a single space character,
+                 in that order, as per add_curr_token_text_to_buffer. */
+              if (cp[-1] == ' ') {
+                --cp;
+              }  /* if */
+              if (cp[-LE_ESCAPE_LEN  ] == LE_ESCAPE &&
+                  cp[-LE_ESCAPE_LEN+1] == LE_END_OF_TOKEN) {
+                cp -= LE_ESCAPE_LEN;
+              }  /* if */
+              check_assertion(cp[-LE_ESCAPE_LEN  ] == LE_ESCAPE &&
+                              cp[-LE_ESCAPE_LEN+1] == LE_COMMA_FROM_ARGUMENT);
+              cp[-LE_ESCAPE_LEN+1] = LE_END_OF_TOKEN;
             }  /* if */
             if (scanning_text_not_in_primary_source_line &&
                 within_curr_source_line(start_of_curr_token)) {
@@ -4106,7 +4118,7 @@ do_argument_again:
                This has been verified with MSVC++ 4.2, 5.0. and 7.0.
                Fixed in 7.1 */
             if (microsoft_bugs && microsoft_version < 1310 &&
-                curr_token == tok_comma && comma_from_argument == NULL) {
+                curr_token == tok_comma && !comma_is_from_argument) {
               (void)arg_get_token(&any_white_space_skipped);
               goto do_argument_again;
             }  /* if */

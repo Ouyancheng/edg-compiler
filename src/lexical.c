@@ -6854,11 +6854,8 @@ white_space_loop:
         kind_skipped |= WHITE_SPACE_OTHER;
         curr_char_loc += LE_ESCAPE_LEN;
       } else if (ch == LE_COMMA_FROM_ARGUMENT) {
-        /* Flag the following comma token as being from a macro argument
-           by setting the global variable comma_from_argument to point to
-           the LE_COMMA_FROM_ARGUMENT escape (a non-NULL value indicates
-           that the escape was seen). */
-        comma_from_argument = curr_char_loc + 1;
+        /* Flag the following comma token as being from a macro argument. */
+        comma_is_from_argument = TRUE;
         curr_char_loc += LE_ESCAPE_LEN;
       } else {
         unexpected_condition_str("skip_white_space: bad lexical escape");
