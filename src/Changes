@@ -59,11 +59,12 @@ automatically be suppressed in files from system include directories.
 
 
 4/1/09   [EDGcpfe/9677]
-Internal error on static data member array with size used in initializer
+Internal error on static data member array with its size used in initializer
 
-An internal error could occur if a template static data member array had
-its array size specified in an out-of-class definition and the array
-bound made use of the size of the array.  Now fixed.
+An internal error (in define_template_static_data_member) could occur if
+a template static data member array had its array size specified in an
+out-of-class definition and the array bound made use of the size of the
+array.  Now fixed.
 
   template <class T> struct A {
     static int x[];
