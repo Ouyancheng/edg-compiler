@@ -2322,8 +2322,7 @@ the next standard).
     lambdas_enabled = TRUE;
   }  /* if */
   if (!option_kind_used[(int)optk_rvalue_references]) {
-    /* FIXME: Restore when rvalue ref semantics are implemented
-    rvalue_references_enabled = TRUE; */
+    rvalue_references_enabled = TRUE;
   }  /* if */
   local_types_as_template_args_enabled = TRUE;
   decls_using_types_without_linkage_allowed = TRUE;
