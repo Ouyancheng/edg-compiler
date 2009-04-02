@@ -1,5 +1,32 @@
 Version 4.1
 
+4/1/09   [EDGcpfe/9668]
+Microsoft compatibility: rescanning of commas in macro expansions
+
+As described in the 4/15/06 entry, the Microsoft preprocessor generally
+considers commas occurring inside macro arguments not to delimit macro
+arguments when the expanded text is rescanned for further macro
+invocations.  If, however, the expanded text appears in the argument list
+of a macro invocation occuring in an argument to another macro, such commas
+do delimit arguments in that nested macro invocation.  For example:
+
+  #define E(x) x
+  #define A(x) E(M(x))
+  #define M(x, y) A=x, B=y
+  #define s A,B
+  A(s)
+
+Here the text "A,B" is considered to be two arguments in the invocation of
+macro M because that invocation occurs in the argument of macro E; if the
+definition of macro A were
+
+  #define A(x) M(x)
+
+the string "A,B" would have been considered to be one argument.  The front
+end's Microsoft emulation failed to allow for this exception to the general
+rule for handling commas appearing in macro arguments; this is now fixed.
+
+
 4/1/09   [EDGcpfe/9636]
 Spurious errors when using elaborated names in class template definition in
 Microsoft mode

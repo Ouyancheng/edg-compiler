@@ -2519,11 +2519,11 @@ white space will also be deleted).  The global variable
 arg_get_token_start_of_curr_token is set to the character position
 after the white-space skip, which differs from start_of_curr_token
 when the token is preceded by an inert-macro escape.  The global variable
-comma_is_from_argument will be TRUE after the call if and only if the call
+comma_from_argument will be non-NULL after the call if and only if the call
 to skip_white_space encountered an LE_COMMA_FROM_ARGUMENT marker.
 */
 {
-  comma_is_from_argument = FALSE;
+  comma_from_argument = NULL;
   macro_skip_white_space(*any_white_space_skipped);
   arg_get_token_start_of_curr_token = curr_char_loc;
   return (get_token());
@@ -4001,7 +4001,7 @@ do_argument_again:
                    (paren_count == 0 &&
                     (curr_token == tok_rparen ||
                      (curr_token == tok_comma &&
-                      !comma_is_from_argument &&
+                      comma_from_argument == NULL &&
                       !(pp != NULL && pp->next == NULL && mdp->variadic)))))) {
             /* Track nesting of parentheses. */
             if (curr_token == tok_lparen) {
@@ -4042,6 +4042,20 @@ do_argument_again:
               remark(err_code_for_error_token);
             }  /* if */
             (void)arg_get_token(&any_white_space_skipped);
+            if (comma_from_argument != NULL && paren_count > 0) {
+              /* The Microsoft preprocessor ignores whether a comma
+                 originated in a macro argument in invocations appearing
+                 within the argument of another macro.  (We take the fact
+                 that this comma is nested within parentheses as an
+                 indication that it is in a macro argument.  If it's just
+                 parenthesized text and not a macro invocation, it doesn't
+                 matter because commas nested within parentheses don't
+                 delimit macro arguments in any case.)  Overwrite the
+                 LE_COMMA_FROM_ARGUMENT escape with LE_END_OF_TOKEN (an
+                 innocuous substitution, since all commas start new
+                 tokens). */
+              *comma_from_argument = LE_END_OF_TOKEN;
+            }  /* if */
             if (scanning_text_not_in_primary_source_line &&
                 within_curr_source_line(start_of_curr_token)) {
               /* This argument started out in a macro expansion and now
@@ -4091,7 +4105,7 @@ do_argument_again:
                This has been verified with MSVC++ 4.2, 5.0. and 7.0.
                Fixed in 7.1 */
             if (microsoft_bugs && microsoft_version < 1310 &&
-                curr_token == tok_comma && !comma_is_from_argument) {
+                curr_token == tok_comma && comma_from_argument == NULL) {
               (void)arg_get_token(&any_white_space_skipped);
               goto do_argument_again;
             }  /* if */

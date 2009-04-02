@@ -1685,12 +1685,16 @@ EXTERN int	kind_of_white_space_skipped;
 #define WHITE_SPACE_COMMENTS 0x01
 #define WHITE_SPACE_OTHER    0x02
 
-EXTERN a_boolean
-		comma_is_from_argument;
-			/* Set to TRUE when an LE_COMMA_FROM_ARGUMENT is
-			   seen by skip_white_space.  It is the responsibility
-			   of the caller of skip_white_space to set it to
-			   FALSE beforehand. */
+EXTERN char	*comma_from_argument;
+			/* Set to point to an LE_COMMA_FROM_ARGUMENT escape
+			   seen by skip_white_space.  It is the
+			   responsibility of the caller of skip_white_space
+			   to set it to NULL beforehand.  Note that this
+			   pointer is not updated by a reallocation of
+			   macro_buffer, so its value must be used
+			   immediately after a call to skip_white_space or
+			   get_token, before any changes to macro_buffer
+			   can occur. */
 EXTERN a_source_line_modif_ptr
 		last_source_line_modif_exited_while_skipping_white_space;
 			/* Set by skip_white_space whenever a source line
