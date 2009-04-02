@@ -4511,7 +4511,7 @@ locator->specific_symbol to point to the correct symbol entry.
         !(input_flags & DI_NO_TYPE_SPECIFIERS)) {
       pos_error(ec_return_type_on_conversion_function, &state->specifiers_pos);
     }  /* if */
-    if (sym != NULL && sym->ambiguous && 0 &&
+    if (sym != NULL && sym->ambiguous &&
         sym->kind == (a_symbol_kind)sk_member_function &&
         sym->variant.routine.instance_ptr != NULL &&
         sym->variant.routine.instance_ptr->template_sym->kind
