@@ -2393,7 +2393,8 @@ the scope being pushed.
         kind == (a_scope_kind)sck_pragma ||
         (kind == (a_scope_kind)sck_template_instantiation &&
          (options & PS_MICROSOFT_SPECIALIZATION) == 0) ||
-        kind == (a_scope_kind)sck_class_struct_union) {
+        (kind == (a_scope_kind)sck_class_struct_union &&
+         !class_type_supp(assoc_type)->is_lambda_closure_class)) {
       /* A scope that introduces a new level at which deferred access
          checks may be recorded. */
       curr_deferred_access_scope = depth_scope_stack;
@@ -2403,7 +2404,11 @@ the scope being pushed.
                kind == (a_scope_kind)sck_namespace_reactivation ||
                (kind == (a_scope_kind)sck_template_instantiation &&
                 (options & PS_MICROSOFT_SPECIALIZATION) != 0) ||
-               kind == (a_scope_kind)sck_class_reactivation) {
+               kind == (a_scope_kind)sck_class_reactivation ||
+               (kind == (a_scope_kind)sck_function &&
+                assoc_routine->is_lambda_body) ||
+               (kind == (a_scope_kind)sck_class_struct_union &&
+                class_type_supp(assoc_type)->is_lambda_closure_class)) {
       /* The current deferred access scope is left unchanged. */
     } else {
       /* For all other scopes, access checks cannot be deferred. */
