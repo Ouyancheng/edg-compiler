@@ -1,5 +1,19 @@
 Version 4.1
 
+4/1/09   [EDGcpfe/9658]
+Abort on unterminated string in failing static_assert
+
+A static_assert declaration whose first argument is "false" (i.e., the
+assertion fails) and whose second argument is a string literal with a missing
+terminating quotation mark (") triggered an internal error in
+make_static_assert_string_for_output (decls.c).  For example:
+
+  static_assert(false, ");  // Previously triggered an internal error.
+
+This is now fixed.  (static_assert is a C++0x feature; see Changes entry of
+8/25/06.)
+
+
 4/1/09   [EDGcpfe/9668]
 Microsoft compatibility: rescanning of commas in macro expansions
 
