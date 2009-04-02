@@ -4054,6 +4054,7 @@ do_argument_again:
                  LE_COMMA_FROM_ARGUMENT escape with LE_END_OF_TOKEN (an
                  innocuous substitution, since all commas start new
                  tokens). */
+              check_assertion(*comma_from_argument == LE_COMMA_FROM_ARGUMENT);
               *comma_from_argument = LE_END_OF_TOKEN;
             }  /* if */
             if (scanning_text_not_in_primary_source_line &&
