@@ -3689,7 +3689,7 @@ in a friend declaration.
              typedef refers to an unnamed enumeration. */
           typedef_okay = TRUE;
         }  /* if */
-      } else if (microsoft_mode) {
+      } else if (microsoft_mode && !assoc_symbol->is_nonreal_nested_type) {
         /* The Microsoft compiler allows "friend class X", where X is a
            typedef, but only when the elaborated type specifier is a friend
            declaration. */
