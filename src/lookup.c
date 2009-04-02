@@ -2558,16 +2558,20 @@ that do normal id lookup processing.
 }  /* look_for_projected_symbol */
 
 
-static a_symbol_ptr find_conversion_template_instance(
+a_symbol_ptr find_conversion_template_instance(
 			a_symbol_locator		*locator,
-			a_symbol_list_entry_ptr		conversion_templates)
+			a_symbol_list_entry_ptr		conversion_templates,
+                        a_boolean                       match_fn_qualifiers,
+                        a_type_qualifier_set            fn_qualifiers)
 /*
 locator is a symbol locator for a conversion function.
 conversion_templates is a list of conversion templates for the class
 in which the lookup is being done.  Go through the conversion template
 list and find any templates that can supply an appropriate conversion
-function.  Return the symbol for the matching function.  If more than
-one match is found, create an ambiguous symbol and return a pointer.
+function.  If match_fn_qualifiers is TRUE, the conversion template must
+have the indicated qualifiers.
+Return the symbol for the matching function.  If more than one match is
+found, create an ambiguous symbol and return a pointer.
 If no match is found, return NULL.
 */
 {
@@ -2593,6 +2597,10 @@ If no match is found, return NULL.
     tssp = template_supplement_for_symbol(fund_sym);
     rout_ptr = fund_sym->variant.template_info->variant.function.routine;
     rout_type = skip_typerefs(rout_ptr->type);
+    if (match_fn_qualifiers &&
+        rout_type->variant.routine.extra_info->qualifiers != fn_qualifiers) {
+      continue;
+    }  /* if */
     return_type = rout_type->variant.routine.return_type;
     param_list = tssp->variant.function.decl_cache.decl_info->parameters;
 #if DEBUG
@@ -2710,7 +2718,8 @@ the ck_template_param constant.
     /* A normal (nondependent) context.  Try to find a matching
        template conversion instance. */
     result_sym = find_conversion_template_instance(
-                          locator, cssp->conversion_template_list);
+                          locator, cssp->conversion_template_list,
+                          /*match_fn_qualifiers=*/FALSE, TQ_NONE);
   }  /* if */
   return result_sym;
 }  /* look_up_conversion_template_instance */

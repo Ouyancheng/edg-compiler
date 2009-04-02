@@ -4486,6 +4486,61 @@ passed to r_declarator.)
 
 #endif /* UPC_EXTENSIONS_ALLOWED */
 
+static void process_conversion_function_declarator(
+                                             a_symbol_locator    *locator,
+                                             a_decl_parse_state  *state, 
+                                             a_decl_flag_set     input_flags,
+                                             a_type_ptr          derived_type,
+                                             a_type_ptr          *return_type)
+/*
+This is a helper function for r_declarator: locator, state, and input_flags
+are the corresponding parameters of that function.  locator represents a
+conversion-function-id in a declarator and the type of that declarator (as
+known so far) is derived_type.  Record the return type of the function in
+*return_type, and issue an error if type specifiers appeared prior to the
+conversion-function-id.  If locator->specific_symbol is an ambiguous symbol
+but the completed declarator can remove the ambiguity, update
+locator->specific_symbol to point to the correct symbol entry.
+*/
+{
+  if (is_error_locator(*locator)) {
+    *return_type = error_type();
+  } else {
+    a_symbol_ptr  sym = locator->specific_symbol;
+    if (!is_unknown_type(state->specifiers_type) &&
+        !(input_flags & DI_NO_TYPE_SPECIFIERS)) {
+      pos_error(ec_return_type_on_conversion_function, &state->specifiers_pos);
+    }  /* if */
+    if (sym != NULL && sym->ambiguous && 0 &&
+        sym->kind == (a_symbol_kind)sk_member_function &&
+        sym->variant.routine.instance_ptr != NULL &&
+        sym->variant.routine.instance_ptr->template_sym->kind
+                                     == (a_symbol_kind)sk_function_template &&
+        derived_type != NULL && is_function_type(derived_type)) {
+      /* When the conversion operator name was coalesced, there may have been
+         multiple matching conversion operator templates but with different
+         cv-qualifiers.  E.g.:
+           struct S {
+             template<class T> operator T();
+             template<class T> operator T() const;
+           };
+           template<> S::operator int() const;
+         Now that the qualifiers are known, we may be able to disambiguate
+         such cases. */
+      a_type_ptr  class_type = sym_parent_class(locator->specific_symbol);
+      a_class_symbol_supplement_ptr
+                  cssp = symbol_supplement_for_class(class_type);
+      a_type_ptr  func_type = skip_typerefs(derived_type);
+      a_symbol_ptr  conv_op;
+      conv_op = find_conversion_template_instance(
+                       locator, cssp->conversion_template_list,
+                       /*match_fn_qualifiers=*/TRUE,
+                       func_type->variant.routine.extra_info->qualifiers);
+      locator->specific_symbol = conv_op;
+    }  /* if */
+    *return_type = locator->variant.conversion_result_type;
+  }  /* if */
+}  /* process_conversion_function_declarator */
 
 #if !MICROSOFT_EXTENSIONS_ALLOWED || !NEAR_AND_FAR_ALLOWED
 /*ARGSUSED*/  /* <-- because p_left_call_conv et al. are used only in
@@ -5306,16 +5361,8 @@ function_lparen:
       complete_type = error_type();
     } else if (locator != NULL && locator->is_conversion_name) {
       /* Do error checking on the conversion function declaration. */
-      if (is_error_locator(*locator)) {
-        complete_type = error_type();
-      } else {
-        if (!is_unknown_type(specifiers_type) &&
-            !(input_flags & DI_NO_TYPE_SPECIFIERS)) {
-          pos_error(ec_return_type_on_conversion_function,
-                    &state->specifiers_pos);
-        }  /* if */
-        complete_type = locator->variant.conversion_result_type;
-      }  /* if */
+      process_conversion_function_declarator(locator, state, input_flags,
+                                             derived_type, &complete_type);
     } else if (*is_constructor) {
       /* Return type should be "unknown" at this point, unless the declarator
          was parenthesized in which case decl_specifiers will have thought we

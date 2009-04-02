@@ -303,6 +303,13 @@ extern a_symbol_ptr find_unknown_function_symbol(
 extern void create_nonreal_version_of_nested_type(a_symbol_ptr	orig_sym);
 
 extern
+a_symbol_ptr find_conversion_template_instance(
+			a_symbol_locator		*locator,
+			a_symbol_list_entry_ptr		conversion_templates,
+                        a_boolean                       match_fn_qualifiers,
+                        a_type_qualifier_set            fn_qualifiers);
+
+extern
 a_symbol_ptr look_up_conversion_function(a_type_ptr		parent_class,
 					 a_type_ptr		conv_type,
 					 a_source_position	*source_pos);
