@@ -27,23 +27,6 @@ end's Microsoft emulation failed to allow for this exception to the general
 rule for handling commas appearing in macro arguments; this is now fixed.
 
 
-4/1/09   [EDGcpfe/9636]
-Spurious errors when using elaborated names in class template definition in
-Microsoft mode
-
-In Microsoft mode, the front end failed to find nested class declarations
-when looking elaborated names in class template definitions.  This could
-result in spurious "invalid redeclaration" errors.  For example:
-
-  template<typename> struct S {
-    struct N {};
-    struct N *p1;
-    struct N *p2;  // Previously triggered a spurious "invalid redeclaration"
-  };               // error in Microsoft mode.
-
-This is now fixed.
-
-
 4/1/09   [EDGcpfe/9678]
 Microsoft compatibility: support for __identifier("string")
 
