@@ -1,5 +1,28 @@
 Version 4.1
 
+4/2/09   [EDGcpfe/9680]
+Spurious access errors for certain access checks in deferred contexts
+
+In some contexts access checking must be deferred until the front end knows
+which entity is being declared (e.g., in the example below, the entity might
+be given access as a friend).  The checks for some implicitly invoked
+functions and elided copy constructors were not deferred, which could
+result in spurious access errors.  Now fixed.
+
+  class A {
+  public:
+    friend int f(A*);
+    friend int f(A);
+    A(int) {}
+  private:
+    int x;
+    A() : x(37) {}
+    A(const A&) {}
+  };
+  int f(A* = new A){return 0;}  // A::A() in accessible
+  int f(A = A(1)){return 0;}    // A::A(const A&) in accessible (strict mode)
+
+
 4/1/09   [EDGcpfe/9658]
 Abort on unterminated string in failing static_assert
 

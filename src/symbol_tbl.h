@@ -3246,6 +3246,15 @@ typedef struct an_access_error_descr {
 		token_sequence_number;
 			/* Token sequence number of the current token when the
 			   access error was first detected. */
+  an_error_severity
+		severity;
+			/* The severity at which the error should be issued
+			   or es_none to use a default value.  The severity
+			   is only used if error_code is not ec_no_error. */
+  an_error_code
+		error_code;
+			/* The error code for the error to be issued
+			   or ec_no_error to use a default value. */
 } an_access_error_descr;
 
 
@@ -3778,6 +3787,14 @@ Throw away any deferred access entries.
     f_discard_deferred_access_checks();				\
   }  /* if */								\
 }
+
+extern void record_access_error(a_symbol_ptr            sym,
+                                a_symbol_ptr            overload_sym,
+                                a_type_ptr              protected_access_class,
+                                a_source_position       *source_position,
+                                a_symbol_locator        *locator,
+				an_error_severity	severity,
+				an_error_code		error_code);
 
 extern a_boolean check_protected_member_access(a_symbol_ptr      sym,
                                                a_symbol_ptr      proj_sym,

@@ -8427,24 +8427,34 @@ in the source program.
 
 static void issue_access_error(a_symbol_ptr       sym,
                                a_type_ptr         protected_access_class,
-                               a_source_position  *err_pos)
+                               a_source_position  *err_pos,
+			       an_error_severity  severity,
+			       an_error_code      error_code)
 /*
 Issue the appropriate error on the inaccessibility of sym at *err_pos.
 If protected_access_class is non-NULL, the checking is the special
 protected member checking of 11.5 of the C++ standard, and
 protected_access_class indicates the type of the object used
 to access the member.
+
+Normally this routine determines the error code and severity to be
+used, but in can also be specified by the caller using severity and
+error_code.  If the default values are to be used, severity should be
+es_none, and error_code should be ec_no_error.  The severity is only
+used if error_code is not ec_no_error.
 */
 {
   sym = fundamental_symbol_of(sym);
-  if (protected_access_class != NULL) {
+  if (error_code != ec_no_error) {
+    /* The error code and severity were provided by the caller. */
+    pos_sy_diagnostic(severity, error_code, err_pos, sym);
+  } else if (protected_access_class != NULL) {
     pos_syty_diagnostic(es_discretionary_error, ec_protected_access_problem,
                         err_pos, sym, protected_access_class);
   } else {
-    an_error_code     error_code = ec_no_access_to_name;
-    an_error_severity error_severity = es_discretionary_error;
     a_routine_ptr     rp;
-
+    error_code = ec_no_access_to_name;
+    severity = es_discretionary_error;
     if (is_function_symbol(sym)) {
       if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
         rp = sym->variant.overloaded_function.symbols->variant.routine.ptr;
@@ -8462,11 +8472,11 @@ to access the member.
       if (any_cfront_mode()) {
         /* In cfront mode access errors on types are only warnings.  cfront
            doesn't check access to types at all. */
-        error_severity = es_warning;
+        severity = es_warning;
         error_code = ec_no_access_to_type_cfront_mode;
       }  /* if */
     }  /* if */
-    pos_sy_diagnostic(error_severity, error_code, err_pos, sym);
+    pos_sy_diagnostic(severity, error_code, err_pos, sym);
   }  /* if */
 }  /* issue_access_error */
 
@@ -8494,6 +8504,8 @@ Allocate an access error description entry.  Reuse a freed entry if possible.
   aedp->overload_sym = NULL;
   aedp->position = pos_curr_token;
   aedp->token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;
+  aedp->severity = es_none;
+  aedp->error_code = ec_no_error;
   return aedp;
 }  /* alloc_access_error_descr */
 	
@@ -8509,11 +8521,13 @@ Put the freed entry on the available list to be reused.
 }  /* free_access_error_descr */
 
 
-static void record_access_error(a_symbol_ptr            sym,
-                                a_symbol_ptr            overload_sym,
-                                a_type_ptr              protected_access_class,
-                                a_source_position       *source_position,
-                                a_symbol_locator        *locator)
+void record_access_error(a_symbol_ptr            sym,
+                         a_symbol_ptr            overload_sym,
+                         a_type_ptr              protected_access_class,
+                         a_source_position       *source_position,
+                         a_symbol_locator        *locator,
+                         an_error_severity	 severity,
+                         an_error_code		 error_code)
 /*
 An access error on "sym" has been detected.  If "sym" is a member of
 an overload set, "overload_sym" is the symbol for the set.
@@ -8527,6 +8541,12 @@ error messages, by setting the access_control_error_reported field).
 If access checking is not being deferred, issue the error now.
 Otherwise, create an access error entry so that the access error can
 be rechecked or discarded later.
+
+Normally issue_access_error determines the error code and severity to be
+used, but in can also be specified by the caller using severity and
+error_code.  If the default values are to be used, severity should be
+es_none, and error_code should be ec_no_error.  The severity is only
+used if error_code is not ec_no_error.
 */
 {
   a_boolean			defer_access_checks = FALSE;
@@ -8540,7 +8560,7 @@ be rechecked or discarded later.
     if (locator == NULL || !locator->access_control_error_reported) {
       issue_access_error(sym,
                          protected_access_class,
-                         source_position);
+                         source_position, severity, error_code);
       if (locator != NULL) locator->access_control_error_reported = TRUE;
     }  /* if */
   } else {
@@ -8553,6 +8573,8 @@ be rechecked or discarded later.
     aedp->position = *source_position;
     aedp->protected_access_class = protected_access_class;
     aedp->token_sequence_number = curr_token_sequence_number;
+    aedp->severity = severity;
+    aedp->error_code = error_code;
     if (ssep->deferred_access_checks == NULL) {
       ssep->deferred_access_checks = aedp;
     }  /* if */
@@ -8650,7 +8672,8 @@ is TRUE if the name is followed by the "::" in a qualified name.
     /* The symbol is not accessible.  Issue the error or record it
        for later checking if access checking is deferred. */
     record_access_error(sym, (a_symbol_ptr)NULL, (a_type_ptr)NULL,
-                        &locator->source_position, locator);
+                        &locator->source_position, locator,
+                        es_none, ec_no_error);
   }  /* if */
 }  /* f_check_ambiguity_and_verify_access */
 
@@ -8718,7 +8741,8 @@ access.
           } else {
             issue_access_error(aedp->sym,
                                aedp->protected_access_class,
-                               &aedp->position);
+                               &aedp->position,
+                               aedp->severity, aedp->error_code);
             /* Record the symbol and position of the previous access error. */
             prev_error_symbol = aedp->sym;
             prev_error_position = aedp->position;
@@ -8871,7 +8895,8 @@ kinds of symbols.
       /* The symbol is not accessible.  Issue the error or record it
          for later checking if access checking is deferred. */
       record_access_error(symbol, overloaded_symbol, (a_type_ptr)NULL,
-                          &locator->source_position, locator);
+                          &locator->source_position, locator,
+                          es_none, ec_no_error);
     }  /* if */
   }  /* if */
 }  /* overload_check_ambiguity_and_verify_access */
@@ -9031,7 +9056,8 @@ established that the member is protected in the naming class.
   }  /* if */
   if (!have_access && err_pos != NULL) {
     record_access_error(sym, proj_sym, access_class,
-                        err_pos, (a_symbol_locator *)NULL);
+                        err_pos, (a_symbol_locator *)NULL,
+                        es_none, ec_no_error);
   }  /* if */
   return have_access;
 }  /* check_protected_member_access */

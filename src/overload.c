@@ -12910,8 +12910,10 @@ mode) at *err_pos if not.
                         ec_no_suitable_copy_constructor, err_pos, class_type);
     } else if (!have_access_to_symbol(cctor_sym)) {
       /* The copy constructor is inaccessible. */
-      pos_sy_diagnostic(strict_ansi_discretionary_severity,
-                        ec_inaccessible_elided_cctor, err_pos, cctor_sym);
+      record_access_error(cctor_sym, (a_symbol_ptr)NULL, (a_type_ptr)NULL,
+                          err_pos, (a_symbol_locator*)NULL,
+                          strict_ansi_discretionary_severity,
+                          ec_inaccessible_elided_cctor);
     } else {
       /* No error.  The C++98 standard requires that the definition of the
          copy constructor be generated even though it is not called, so

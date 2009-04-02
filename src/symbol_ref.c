@@ -2399,8 +2399,9 @@ the function is a template function, it should be instantiated.
                                                      class_of_object)) {
         severity = es_warning;
       }  /* if */
-      pos_sy_diagnostic(severity, ec_inaccessible_special_function,
-                        pos, sym);
+      record_access_error(sym, (a_symbol_ptr)NULL, (a_type_ptr)NULL, pos,
+                          (a_symbol_locator*)NULL, severity,
+                          ec_inaccessible_special_function);
     } else if (class_of_object != NULL) {
       /* Protected members of a base class can only be accessed through an
          object of a derived class. */
