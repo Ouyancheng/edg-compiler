@@ -10375,6 +10375,32 @@ the class object may escape.  This routine is used only in C++ mode.
 }  /* conv_class_operand_to_object_pointer */
 
 
+void conv_rvalue_reference_object_to_lvalue(an_operand *operand)
+/*
+operand is an rvalue reference object, which is an rvalue produced from
+an rvalue reference operation that has some of the properties of an lvalue.
+Convert it to an lvalue.
+*/
+{
+  an_operand       orig_operand;
+  an_expr_node_ptr expr;
+  a_boolean        converted;
+
+  orig_operand = *operand;
+  check_assertion(is_expression_operand(operand));
+  expr = operand->variant.expression;
+  check_assertion(is_rvalue_reference_object_expr(expr));
+  expr = conv_rvalue_expr_to_lvalue(expr, &converted,
+                                    /*see_if_possible=*/FALSE,
+                                    /*gcc_lvalue=*/FALSE,
+                                    /*ignore_casts=*/FALSE,
+                                    (a_type_ptr *)NULL);
+  check_assertion(converted);
+  make_lvalue_expression_operand(expr, operand);
+  restore_operand_details(operand, &orig_operand);
+}  /* conv_rvalue_reference_object_to_lvalue */
+
+
 static a_constant_ptr value_of_constant_var_lvalue_expr(
                                                        an_expr_node_ptr node,
                                                        a_variable_ptr   *p_var)

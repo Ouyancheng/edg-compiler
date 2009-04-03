@@ -13978,6 +13978,23 @@ temporary is added.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+
+static a_boolean is_rvalue_reference_object_operand(an_operand *operand)
+/*
+Return TRUE if the given operand is an rvalue reference object.
+See is_rvalue_reference_object_expr for a definition of that term.
+*/
+{
+  a_boolean is_rvalue_object = FALSE;
+
+  if (is_expression_operand(operand) &&
+      is_rvalue_reference_object_expr(operand->variant.expression)) {
+    is_rvalue_object = TRUE;
+  }  /* if */
+  return is_rvalue_object;
+}  /* is_rvalue_reference_object_operand */
+
+
 void prep_reference_initializer_operand(
                               an_operand    *source_operand,
                               a_type_ptr    dest_type,
@@ -14321,6 +14338,11 @@ been found to be acceptable, and *conversion describes it.
     do_array_to_pointer_conversion(source_operand);
     conv_object_pointer_to_lvalue(source_operand);
     adjust_lvalue_type(source_operand, adj_base_dest_type);
+  } else if (direct_binding_possible &&
+             is_rvalue_reference_object_operand(source_operand)) {
+    /* A reference can be bound directly to an rvalue reference
+       object.  Only non-class cases get here. */
+    conv_rvalue_reference_object_to_lvalue(source_operand);
   } else {
     /* The initialization cannot be done directly; a temporary must be
        used and/or an implicit conversion must be done. */
