@@ -71,8 +71,8 @@ As described in the 4/15/06 entry, the Microsoft preprocessor generally
 considers commas occurring inside macro arguments not to delimit macro
 arguments when the expanded text is rescanned for further macro
 invocations.  If, however, the expanded text appears in the argument list
-of a macro invocation occuring in an argument to another macro, such commas
-do delimit arguments in that nested macro invocation.  For example:
+of a macro invocation occurring in an argument to another macro, such
+commas do delimit arguments in that nested macro invocation.  For example:
 
   #define E(x) x
   #define A(x) E(M(x))
