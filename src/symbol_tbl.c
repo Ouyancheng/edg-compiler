@@ -8438,7 +8438,7 @@ protected_access_class indicates the type of the object used
 to access the member.
 
 Normally this routine determines the error code and severity to be
-used, but in can also be specified by the caller using severity and
+used, but they can also be specified by the caller using severity and
 error_code.  If the default values are to be used, severity should be
 es_none, and error_code should be ec_no_error.  The severity is only
 used if error_code is not ec_no_error.
@@ -8543,7 +8543,7 @@ Otherwise, create an access error entry so that the access error can
 be rechecked or discarded later.
 
 Normally issue_access_error determines the error code and severity to be
-used, but in can also be specified by the caller using severity and
+used, but they can also be specified by the caller using severity and
 error_code.  If the default values are to be used, severity should be
 es_none, and error_code should be ec_no_error.  The severity is only
 used if error_code is not ec_no_error.
