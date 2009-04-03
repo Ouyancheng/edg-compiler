@@ -12018,17 +12018,15 @@ throughout the entire expression).
 }  /* optimize_node_if_possible */
 
 
-static void lower_operation_on_const_string_if_necessary(an_expr_node_ptr expr)
+static void lower_operation_on_const_string_if_possible(an_expr_node_ptr expr)
 /*
-Check to see if the expression expr is an enk_operation that operates on a
-const qualified lvalue string literal.  If it does, this routine adds a cast
-(by overwriting the expression with an eok_cast to a copy of the expression) to
-preserve the constness of the expression.  In C, string literals are not const
-qualified, and the ck_string constant will be lowered to a non-const qualified
-type (in lower_constant).  This routine can be called during lowering or as
-part of a lowering post-pass where expressions are re-checked (lowering may
-have created new combinations of operations that didn't require processing on
-the first pass).
+Check to see if the expression is an enk_operation that operates on a
+const qualified lvalue string literal.  If it is, then this routine looks for
+some special cases where it can overwrite the operation with an eok_cast.
+In C, string literals are not const qualified, and the ck_string constant will
+be lowered to a non-const qualified type (in lower_constant).  This routine is
+an optimization -- the generic lowering process will ensure that the general
+case is handled properly.
 */
 {
   an_expr_node_ptr  operand;
@@ -12053,14 +12051,6 @@ the first pass).
         case eok_array_to_pointer:
           expr->type = make_pointer_type(array_element_type(operand->type));
           break;
-        case eok_comma:
-          /* This is a case like ("abc", x).  Add a cast so this do-nothing
-             operation will retain the correct type.  The type of the eok_comma
-             operation is unaffected by the type of its first operand. */
-          operand = add_cast_to_lvalue_if_necessary(copy_node(operand),
-                                                    orig_operand_type);
-          overwrite_node(expr->variant.operation.operands, operand);
-          break;
         case eok_lvalue_cast:
         case eok_lvalue_adjust:
         case eok_cast:
@@ -12073,30 +12063,9 @@ the first pass).
         /* The type of the expression has changed; a cast is necessary. */
         overwrite_node(expr, add_cast(copy_node(expr), orig_expr_type));
       }  /* if */
-    } else if (node_operator_is(expr, eok_question) ||
-               node_operator_is(expr, eok_comma)) {
-      /* Check operands of eok_comma and eok_question operators. */
-      an_expr_node_ptr  op2 = operand->next;
-      if (is_constant_node(op2) &&
-          op2->is_lvalue &&
-          op2->variant.constant->kind == (a_constant_repr_kind)ck_string) {
-        op2->type = make_unqualified_type(op2->type);
-        overwrite_node(op2, add_cast_to_lvalue_if_necessary(copy_node(op2),
-                                                            expr->type));
-      }  /* if */
-      if (node_operator_is(expr, eok_question)) {
-        an_expr_node_ptr  op3 = op2->next;
-        if (is_constant_node(op3) &&
-            op3->is_lvalue &&
-            op3->variant.constant->kind == (a_constant_repr_kind)ck_string) {
-          op3->type = make_unqualified_type(op3->type);
-          overwrite_node(op3, add_cast_to_lvalue_if_necessary(copy_node(op3),
-                                                              expr->type));
-        }  /* if */
-      }  /* if */
     }  /* if */
   }  /* if */
-}  /* lower_operation_on_const_string_if_necessary */
+}  /* lower_operation_on_const_string_if_possible */
 
 #if LOWER_LVALUE_RETURNING_OPERATIONS
 
@@ -12203,18 +12172,16 @@ it is left alone.
          previous lowering of these operators.  It is possible that these
          sequences of operators now represent an opportunity for optimization
          that wasn't present before, or that they represent an lvalue-returning
-         operation that needs to be further rewritten, or a new operation on a
-         const string.  Check for each of these cases. */
+         operation that needs to be further rewritten.  Check for each of these
+         cases. */
       /* Additionally, make sure the address_taken flag is set properly. */
       set_address_taken_if_necessary(newop1);
       optimize_node_if_possible(newop1);
       lower_operations_returning_lvalue_instead_of_usual_rvalue(newop1);
-      lower_operation_on_const_string_if_necessary(newop1);
       if (newop2 != NULL) {
         set_address_taken_if_necessary(newop2);
         optimize_node_if_possible(newop2);
         lower_operations_returning_lvalue_instead_of_usual_rvalue(newop2);
-        lower_operation_on_const_string_if_necessary(newop2);
       }  /* if */
       /* Restore the original expression type.  This matters when the
          operation above the "?" or "," is a cast. */
@@ -12304,10 +12271,6 @@ optimizations or cleanups that are applicable to this expression node.
 {
   /* Perform some optimizations if they are applicable. */
   optimize_node_if_possible(expr);
-  /* If this operation operates on a ck_string whose constness has been
-     (or will be) removed during lowering of the constant, re-write the
-     operation as necessary to preserve the constness. */
-  lower_operation_on_const_string_if_necessary(expr);
 }  /* perform_post_pass_on_lowered_node */
 
 
@@ -13501,12 +13464,10 @@ cast.  See lower_expr for typical invocation.
         lower_vla_operations_before_operands_are_lowered(expr);
       }  /* if */
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
-      /* See if this operation operates on a ck_string whose constness will be
-         removed during lowering of the constant.  If so, re-write the
-         operation as necessary to preserve the constness.  Do so before
-         lowering while the ck_strings are still identifiable (and not turned
-         into variables as they are in some configurations). */
-      lower_operation_on_const_string_if_necessary(expr);
+      /* See if we can optimize an operation that operates on a ck_string.
+         Do so before lowering while the ck_strings are still identifiable
+         (and not turned into variables as they are in some configurations). */
+      lower_operation_on_const_string_if_possible(expr);
       operand_node = expr->variant.operation.operands;
       op = expr->variant.operation.kind;
       /* Look for some special cases before the expression is lowered.
@@ -13901,31 +13862,51 @@ cast.  See lower_expr for typical invocation.
         lower_c99_constant_expr(expr);
       } else
 #endif /* GNU_EXTENSIONS_ALLOWED && LOWER_COMPLEX */
-#if ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS
-      if (expr->variant.constant->kind == (a_constant_repr_kind)ck_string &&
-          expr->variant.constant->variant.string.sequence_number != 0) {
-          /* This string must be the same across multiple translation
-             units (e.g., a string in an extern inline function).
-             Create a variable for it. */
-          rewrite_string_constant_as_variable(expr);
-      } else
-#endif /* ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
       /* Do not insert code here. */
       {
-        lower_os_constant(expr->variant.constant);
-        if (check_for_troublesome_aggregate_constant(
-                    expr->variant.constant, /*const_okay=*/TRUE, &temp_var)) {
-          /* This expression node is loading the value of a pointer-to-
-             member-function, which has or will become a struct represented by
-             a ck_aggregate constant.  Since a ck_aggregate constant is
-             not allowed here, use the value of a temporary variable
-             initialized with the ck_aggregate constant. */
-          set_expr_node_kind(expr, (an_expr_node_kind)enk_variable);
-          expr->variant.variable = temp_var;
-          /* Note that the type will be lowered to the proper struct type.
-             The const on the variable type won't be there, but that's
-             correct; it should be dropped because the reference is an
-             rvalue. */
+        a_constant_ptr con = expr->variant.constant;
+        if (con->kind == (a_constant_repr_kind)ck_string && expr->is_lvalue) {
+#if ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS
+          if (con->variant.string.sequence_number != 0) {
+            /* This string must be the same across multiple translation
+               units (e.g., a string in an extern inline function).
+               Create a variable for it. */
+            rewrite_string_constant_as_variable(expr);
+            con = NULL;
+          }  /* if */
+#endif /* ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
+          if (string_literals_are_const &&
+              is_const_qualified_type(expr->type)) {
+            /* During the lowering of the constant below, its constness
+               will be removed, so add an lvalue cast to preserve the correct
+               type.  Note that certain operations on strings have already been
+               optimized by lower_operation_on_const_string_if_possible
+               (in which case the expression is no longer const qualified
+               and we won't execute this code). */
+            a_type_ptr  orig_type = expr->type;
+            expr->type = make_unqualified_type(orig_type);
+            overwrite_node(expr, add_cast_to_lvalue(copy_node(expr),
+                                                    orig_type));
+          }  /* if */
+        }  /* if */
+        if (con != NULL) {
+          /* If the constant hasn't been rewritten as a variable, lower it. */
+          lower_os_constant(con);
+          if (check_for_troublesome_aggregate_constant(con,
+                                                       /*const_okay=*/TRUE,
+                                                       &temp_var)) {
+            /* This expression node is loading the value of a pointer-to-
+               member-function, which has or will become a struct represented
+               by a ck_aggregate constant.  Since a ck_aggregate constant is
+               not allowed here, use the value of a temporary variable
+               initialized with the ck_aggregate constant. */
+            set_expr_node_kind(expr, (an_expr_node_kind)enk_variable);
+            expr->variant.variable = temp_var;
+            /* Note that the type will be lowered to the proper struct type.
+               The const on the variable type won't be there, but that's
+               correct; it should be dropped because the reference is an
+               rvalue. */
+          }  /* if */
         }  /* if */
       }  /* if */
       break;
