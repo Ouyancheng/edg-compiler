@@ -13986,6 +13986,10 @@ cast.  See lower_expr for typical invocation.
     case enk_reuse_value:
       lower_reuse_value_expr(expr);
       break;
+    case enk_lambda:
+      /* Lower a lambda expression. */
+      lower_lambda(expr);
+      break;
 #if VLA_DEALLOCATIONS_IN_IL
     case enk_vla_dealloc:
 #endif /* VLA_DEALLOCATIONS_IN_IL */
@@ -13994,10 +13998,6 @@ cast.  See lower_expr for typical invocation.
       /* Constant operations should only appear in the representation of
          templates and constant-expressions, and should therefore never
          need lowering. */
-    case enk_lambda:
-      /* Lower a lambda expression. */
-      lower_lambda(expr);
-      break;
     default:
       unexpected_condition_str("lower_expr: bad kind");
   }  /* switch */
