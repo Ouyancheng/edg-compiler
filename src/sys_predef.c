@@ -1817,12 +1817,23 @@ Enter the predeclared functions for Microsoft mode.
 */
 {
   if (microsoft_version >= 1300) {
-    (void)enter_builtin_function("__debugbreak",
-                                 make_routine_type(void_type(),
-                                                   (a_type_ptr)NULL,
-                                                   (a_type_ptr)NULL,
-                                                   (a_type_ptr)NULL,
-                                                   (a_type_ptr)NULL));
+    a_type_ptr  no_return_value = void_type();
+    a_type_ptr  annotation_fn_type, debugbreak_fn_type;
+    annotation_fn_type =
+      make_routine_type(no_return_value,
+                        make_pointer_type(eff_wchar_t_type()),
+                                          (a_type_ptr)NULL, (a_type_ptr)NULL,
+                                          (a_type_ptr)NULL);
+    annotation_fn_type->variant.routine.extra_info->has_ellipsis = TRUE;
+    annotation_fn_type->variant.routine.extra_info->calling_convention =
+                                               (a_calling_convention)cc_cdecl;
+    (void)enter_builtin_function("__annotation", annotation_fn_type);
+    debugbreak_fn_type = make_routine_type(no_return_value, (a_type_ptr)NULL,
+                                           (a_type_ptr)NULL, (a_type_ptr)NULL,
+                                           (a_type_ptr)NULL);
+    debugbreak_fn_type->variant.routine.extra_info->calling_convention =
+                                               (a_calling_convention)cc_cdecl;
+    (void)enter_builtin_function("__debugbreak", debugbreak_fn_type);
   }  /* if */
 }  /* enter_microsoft_predeclared_functions */
 

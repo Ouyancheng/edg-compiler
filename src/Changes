@@ -1,5 +1,14 @@
 Version 4.1
 
+4/3/09   [EDGcpfe/9454]
+Microsoft compatibility: __annotation
+
+In Microsoft modes with microsoft_version >= 1300, the front end now
+predeclares a function "__annotation" with the following signature:
+  extern "C" void __cdecl __annotation(wchar_t*, ...);
+(or its equivalent in C mode).
+
+
 4/2/09   [EDGcpfe/9453]
 Spurious ambiguity when declaring a conversion operator template instance
 
