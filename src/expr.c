@@ -8738,6 +8738,7 @@ Syntax:
     if (reference_case) {
       cast_operand_for_reference_cast(&operand, cast_type,
                                       /*check_cast_access=*/TRUE,
+                                      /*is_implicit_cast=*/FALSE,
                                       /*reinterpret_semantics=*/FALSE);
     } else {
       cast_operand(cast_type, &operand, /*is_implicit_cast=*/FALSE);
@@ -11589,6 +11590,7 @@ indicates which.
               cast_operand_for_reference_cast(operand,
                                               type_cast_to,
                                               /*check_cast_access=*/FALSE,
+                                              /*is_implicit_cast=*/FALSE,
                                               reinterpret_semantics);
             }  /* if */
           } else if (any_cfront_mode() && operand_is_constant &&
@@ -11869,6 +11871,7 @@ Syntax:
       if (reference_case) {
         cast_operand_for_reference_cast(&operand, cast_type,
                                         /*check_cast_access=*/FALSE,
+                                        /*is_implicit_cast=*/FALSE,
                                         /*reinterpret_semantics=*/FALSE);
       } else {
         cast_operand(cast_type, &operand, /*is_implicit_cast=*/FALSE);
@@ -12085,6 +12088,7 @@ Syntax:
               cast_operand_for_reference_cast(result,
                                               type_cast_to,
                                               /*check_cast_access=*/TRUE,
+                                              /*is_implicit_cast=*/FALSE,
                                               /*reinterpret_semantics=*/FALSE);
             }  /* if */
           }  /* if */
@@ -12282,6 +12286,7 @@ Syntax:
             cast_operand_for_reference_cast(result,
                                             type_cast_to,
                                             /*check_cast_access=*/TRUE,
+                                            /*is_implicit_cast=*/FALSE,
                                             /*reinterpret_semantics=*/TRUE);
           }  /* if */
         }  /* if */

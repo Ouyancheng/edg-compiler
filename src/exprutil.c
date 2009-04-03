@@ -3172,6 +3172,7 @@ is being done via an explicit cast; otherwise, it's implicit by context.
     cast_operand_for_reference_cast(operand,
                                     type_cast_to,
                                     /*check_cast_access=*/FALSE,
+                                    /*is_implicit_cast=*/FALSE,
                                     /*reinterpret_semantics=*/FALSE); 
   }  /* if */
 }  /* cast_overloaded_function */
@@ -3593,6 +3594,7 @@ reference) and not something explicit like a cast.
 void cast_operand_for_reference_cast(an_operand *operand,
                                      a_type_ptr dest_type,
                                      a_boolean  check_cast_access,
+                                     a_boolean  is_implicit_cast,
                                      a_boolean  reinterpret_semantics)
 /*
 Cast *operand (an lvalue, not necessarily of class type) to a reference
@@ -3600,7 +3602,8 @@ type given by dest_type.  That produces an lvalue of the type underlying
 dest_type as the result (an rvalue if dest_type is an rvalue reference).
 This cast does not make a new object; it merely adjusts the operand to
 access the same object with a new type.  Check access on related-class
-casts if check_cast_access is TRUE.  Consider related-class adjustments
+casts if check_cast_access is TRUE.  The cast is implicit if
+is_implicit_cast is TRUE.  Consider related-class adjustments
 only if reinterpret_semantics is FALSE (it is TRUE for reinterpret_cast).
 Note that the input operand is always an lvalue; even in cases where a
 cast allows an rvalue as the source (e.g., a cast to reference-to-const
@@ -3648,7 +3651,7 @@ class type), the operand has been converted to an rvalue by this point.
            necessary. */
         base_class_cast_operand(operand, bcp, underlying_type,
                                 check_cast_access,
-                                /*is_implicit_cast=*/FALSE,
+                                is_implicit_cast,
                                 /*implicit_in_naming=*/FALSE,
                                 /*is_object_pointer=*/FALSE);
       } else {
@@ -3657,6 +3660,7 @@ class type), the operand has been converted to an rvalue by this point.
            derived-class casts; the casts that can specify them
            also suppress access checking. */
         an_expr_node_ptr expr = make_node_from_operand(operand);
+        check_assertion(!is_implicit_cast);
         add_derived_class_casts(underlying_type, bcp, /*check_ambiguity=*/TRUE,
                                 &expr, &orig_operand.position);
         make_lvalue_expression_operand(expr, operand);
@@ -3680,6 +3684,7 @@ class type), the operand has been converted to an rvalue by this point.
       expr = make_lvalue_operator_node((an_expr_operator_kind)eok_ref_cast,
                                        underlying_type, expr);
       expr->variant.operation.is_reference_cast = TRUE;
+      if (is_implicit_cast) expr->variant.operation.compiler_generated = TRUE;
       if (is_rvalue_ref) {
         /* The result of a cast to an rvalue reference type is an rvalue. */
         expr->is_lvalue = FALSE;
@@ -3689,7 +3694,11 @@ class type), the operand has been converted to an rvalue by this point.
         make_lvalue_expression_operand(expr, operand);
       }  /* if */
     }  /* if */
-    restore_operand_details_incl_ref(operand, &orig_operand);
+    if (is_an_lvalue(operand)) {
+      restore_operand_details_incl_ref(operand, &orig_operand);
+    } else {
+      restore_operand_details(operand, &orig_operand);
+    }  /* if */
   }  /* if */
 }  /* cast_operand_for_reference_cast */
 

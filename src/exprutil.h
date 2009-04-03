@@ -1405,6 +1405,7 @@ extern void adjust_lvalue_type(an_operand *operand,
 extern void cast_operand_for_reference_cast(an_operand *operand,
                                             a_type_ptr dest_type,
                                             a_boolean  check_cast_access,
+                                            a_boolean  is_implicit_cast,
                                             a_boolean  reinterpret_semantics);
 
 extern void adjust_class_rvalue_type(an_operand *operand,
