@@ -13323,7 +13323,6 @@ constructor elision in C++ mode.  This is an initialization with the
   an_operand     orig_operand;
   a_boolean      is_copy_initialization = TRUE;
   a_boolean      orig_is_copy_initialization = is_copy_initialization;
-  a_boolean      move_optimization_case = FALSE;
   a_variable_ptr var;
 
   orig_operand = *source_operand;
@@ -13352,16 +13351,52 @@ constructor elision in C++ mode.  This is an initialization with the
            A x;
            return static_cast<A &&>(x);
       */
-      move_optimization_case = TRUE;
-      cast_operand_for_reference_cast(source_operand,
+      a_boolean  ambiguous;
+      an_operand rvalue_operand;
+      rvalue_operand = *source_operand;
+      cast_operand_for_reference_cast(&rvalue_operand,
                                       make_rvalue_reference_type(
-                                                         source_operand->type),
+                                                          rvalue_operand.type),
                                       /*check_cast_access=*/FALSE,
                                       /*is_implicit_cast=*/TRUE,
                                       /*reinterpret_semantics=*/FALSE); 
+      if (conversion_to_class_possible(&rvalue_operand, dest_type,
+                                       /*try_bitwise_copy=*/TRUE,
+                                       initializing_return_value,
+                                       is_copy_initialization,
+                                       orig_is_copy_initialization,
+                                       /*is_reference_binding=*/FALSE,
+                                       /*processed_arg=*/FALSE,
+                                       &conversion, &ctor_arg_conversion,
+                                       &ambiguous,
+                                       (a_candidate_function_ptr *)NULL)) {
+        /* The conversion is possible.  Additionally, the selected function
+           has to be a move constructor. */
+        if (selected_function_is_move_constructor(&conversion, dest_type)) {
+          /* The move optimization applies. */
+          *source_operand = rvalue_operand;
+          goto conversion_determined;
+        }  /* if */
+      } else if (ambiguous) {
+        /* If there's an ambiguity, keep the rvalue operand and go do the
+           overload resolution again to get the error. */
+        *source_operand = rvalue_operand;
+        goto after_check;
+      }  /* if */
+      /* We failed on matching the rvalue case for the move optimization.
+         Keep the original operand (an lvalue) and try again. */
+#if CHECKING
+      /* We're counting on the fact that the cast to a reference type above
+         doesn't change the original expression. */
+      { a_variable_ptr var2;
+        check_assertion(operand_is_lvalue_for_variable(source_operand,
+                                                       &var2) &&
+                        var == var2);
+      }
+#endif /* CHECKING */
+after_check:;
     }  /* if */
   }  /* if */
-try_again:
   /* Look for a constructor to convert the expression to the required
      class type. */
   if (conversion_possible(source_operand, dest_type, 
@@ -13374,31 +13409,14 @@ try_again:
                           /*processed_arg=*/FALSE,
                           err_code,
                           &source_operand->position,
-                          &conversion, &ctor_arg_conversion) &&
-      /* In the move optimization case, the selected function has to be
-         a move constructor. */
-      (!move_optimization_case ||
-       selected_function_is_move_constructor(&conversion, dest_type))) {
+                          &conversion, &ctor_arg_conversion)) {
+conversion_determined:
     /* The conversion is possible.  Determine the routine and argument
        list to return to the caller. */
     determine_dynamic_init_for_class_init(source_operand, dest_type,
                                           &conversion, &ctor_arg_conversion,
                                           fill_in_dtor,
                                           dip, (an_expr_node_ptr *)NULL);
-  } else if (move_optimization_case) {
-    /* We failed on matching the rvalue case for the move optimization.
-       Fall back to the original operand (an lvalue) and try again. */
-    move_optimization_case = FALSE;
-    *source_operand = orig_operand;
-#if CHECKING
-    /* We're counting on the fact that the cast to a reference type above
-       doesn't change the original expression. */
-    { a_variable_ptr var2;
-      check_assertion(operand_is_lvalue_for_variable(source_operand, &var2) &&
-                      var == var2);
-    }
-#endif /* CHECKING */
-    goto try_again;
   }  /* if */
   /* Restore the original source position, etc. */
   restore_operand_details(source_operand, &orig_operand);
