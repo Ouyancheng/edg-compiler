@@ -12597,6 +12597,39 @@ it only once.
   overwrite_node(expr, var_rvalue_expr(dip->variable));
 }  /* lower_reuse_value_expr */
 
+#if GNU_EXTENSIONS_ALLOWED
+
+static void lower_builtin_offsetof(an_expr_node_ptr  expr)
+/*
+Lower the given __builtin_offsetof node.
+*/
+{
+  an_expr_node_ptr  args = expr->variant.builtin_operation.operands;
+
+  check_assertion(gnu_mode);
+  lower_any_expr(args->next);
+}  /* lower_builtin_offsetof */
+
+#endif /* GNU_EXTENSIONS_ALLOWED */
+
+void lower_builtin_operation(an_expr_node_ptr expr)
+/*
+Lower an enk_builtin_operation node.  Most builtin operations currently result
+in constants, and therefore do not require lowering.  One exception is
+bok_offsetof, which can include nonconstant subscripts.
+*/
+{
+  switch (expr->variant.builtin_operation.kind) {
+#if GNU_EXTENSIONS_ALLOWED
+    case bok_offsetof:
+      lower_builtin_offsetof(expr);
+      break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
+    default:
+      unexpected_condition();
+  }  /* switch */
+}  /* lower_builtin_operation */
+
 #if DEBUG
 
 static void checksum_bytes(char                                *ptr,
@@ -13986,6 +14019,9 @@ cast.  See lower_expr for typical invocation.
     case enk_reuse_value:
       lower_reuse_value_expr(expr);
       break;
+    case enk_builtin_operation:
+      lower_builtin_operation(expr);
+      break;
     case enk_lambda:
       /* Lower a lambda expression. */
       lower_lambda(expr);
@@ -13994,10 +14030,6 @@ cast.  See lower_expr for typical invocation.
     case enk_vla_dealloc:
 #endif /* VLA_DEALLOCATIONS_IN_IL */
     case enk_type_operand:
-    case enk_builtin_operation:
-      /* Constant operations should only appear in the representation of
-         templates and constant-expressions, and should therefore never
-         need lowering. */
     default:
       unexpected_condition_str("lower_expr: bad kind");
   }  /* switch */

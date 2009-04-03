@@ -594,8 +594,7 @@ expression node to indicate that.
 
 
 static void scan_subscript_operator(an_operand *operand_1,
-                                    an_operand *result,
-                                    a_boolean  for_builtin_offsetof)
+                                    an_operand *result)
 /*
 Scan array subscripting.  See section 6.5.2.1 of the C99 standard,
 [expr.sub] of the C++ standard.
@@ -604,8 +603,7 @@ Syntax:
 	pointer-expression [ integral-expression ]
 	integral-expression [ pointer-expression ]
 
-This routine is also used when scanning __builtin_offsetof constructs, in
-which case for_builtin_offsetof is set to TRUE.
+This routine is also used when scanning __builtin_offsetof constructs.
 */
 {
   an_operand         operand_2;
@@ -732,11 +730,6 @@ which case for_builtin_offsetof is set to TRUE.
 
       /* The other operand must be integral or enum. */
       (void)check_integral_or_enum_operand(integer_operand);
-      if (for_builtin_offsetof && !is_constant_operand(integer_operand) &&
-          !is_error_operand(integer_operand)) {
-        pos_error(ec_subscript_must_be_constant, &integer_operand->position);
-        make_error_operand(integer_operand);
-      }  /* if */
       /* Build the expression. */
       /* Note that the integral promotions are NOT done on the subscript;
          this is as the standard wants it. */
@@ -6093,6 +6086,7 @@ work is done by scan_field_selection_operator and scan_subscript_operator.
        so we iterate over field selection and/or array subscript operations
        as needed. */
     an_expr_stack_entry  expr_stack_entry;
+    a_boolean            nonconstant_offset = FALSE;
     /* The selection operations should be scanned in a "sizeof" context since
        they are not evaluated. */
     push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
@@ -6108,8 +6102,17 @@ work is done by scan_field_selection_operator and scan_subscript_operator.
         scan_field_selection_operator(&operand, EOPT_FIELD_FOR_OFFSETOF,
                                       &local_result, (an_operand*)NULL);
       } else {
-        scan_subscript_operator(&operand, &local_result,
-                                /*for_builtin_offsetof=*/TRUE);
+        scan_subscript_operator(&operand, &local_result);
+        /* Record if a nonconstant offset was scanned. */
+        if (is_expression_operand(&local_result) &&
+            node_operator_is(local_result.variant.expression, eok_subscript)) {
+          an_expr_node_ptr  arg2 = local_result.variant.expression
+                                               ->variant.operation.operands
+                                               ->next;
+          if (!is_constant_node(arg2)) {
+            nonconstant_offset = TRUE;
+          }  /* if */
+        }  /* if */
       }  /* if */
     } while (curr_token == tok_period || curr_token == tok_lbracket);
     if (valid_type && !is_error_operand(&local_result)) {
@@ -6120,18 +6123,24 @@ work is done by scan_field_selection_operator and scan_subscript_operator.
       /* The second operand is the selection expression. */
       args->next = make_node_from_operand(&local_result);
       /* Finally, create the node representing the offsetof operation, and
-         fold it into a constant. */
+         fold it into a constant if possible. */
       node = alloc_expr_node((an_expr_node_kind)enk_builtin_operation);
       node->type = integer_type(targ_size_t_int_kind);
       node->variant.builtin_operation.kind =
                                        (a_builtin_operation_kind)bok_offsetof;
       node->variant.builtin_operation.operands = args;
-      clear_operand((an_operand_kind)ok_constant, result);
-      fold_builtin_operation_if_possible(
+      if (nonconstant_offset) {
+        /* The operation cannot be folded. */
+        make_expression_operand(node, result);
+      } else {
+        /* Determine the constant offset by folding the operation. */
+        clear_operand((an_operand_kind)ok_constant, result);
+        fold_builtin_operation_if_possible(
                      node, &result->variant.constant,
                      curr_expr_kind_is_one_in_which_const_exprs_are_recorded(),
                      &start_pos);
-      result->type = result->variant.constant.type;
+        result->type = result->variant.constant.type;
+      }  /* if */
       result->state = (an_operand_state)os_rvalue;
     } else {
       make_error_operand(result);
@@ -19494,8 +19503,7 @@ bad_start_of_primary:
 	break;
       case tok_lbracket:
 	/* Subscript. */
-        scan_subscript_operator(&operand, &local_result,
-                                /*for_builtin_offsetof=*/FALSE);
+        scan_subscript_operator(&operand, &local_result);
 	break;
       case tok_lparen:
 	/* Routine call. */

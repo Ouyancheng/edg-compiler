@@ -3663,6 +3663,9 @@ second parameter.
     case enk_reuse_value:
       lower_reuse_value_expr(expr);
       break;
+    case enk_builtin_operation:
+      lower_builtin_operation(expr);
+      break;
 #if VLA_DEALLOCATIONS_IN_IL
     case enk_vla_dealloc:
 #if LOWER_VARIABLE_LENGTH_ARRAYS

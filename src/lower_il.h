@@ -1033,6 +1033,8 @@ extern unsigned int expr_boolean_controlling_expr_mask(an_expr_node_ptr expr);
 
 extern void lower_reuse_value_expr(an_expr_node_ptr expr);
 
+extern void lower_builtin_operation(an_expr_node_ptr expr);
+
 extern a_boolean is_ptr_to_member_function_constant_expr(
                                                         an_expr_node_ptr expr);
 

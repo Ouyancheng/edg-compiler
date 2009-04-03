@@ -1,5 +1,22 @@
 Version 4.1
 
+4/3/09   [EDGcpfe/8221,EDGcpfe/8337,EDGcpfe/8898,EDGcpfe/9045,EDGcpfe/9346]
+GNU compatibility: __builtin_offsetof and nonconstant subscripts
+
+Previously, the built-in operation __builtin_offsetof (only accepted in some
+GNU modes) allowed in its second argument only field selections and constant
+array subscripts (see Changes entry of 6/6/06).  Now nonconstant subscripts
+are also allowed.  For example:
+
+  struct S { float f[10]; };
+  unsigned long g(int n) {
+    return __builtin_offsetof(struct S, f[n]);  // Now accepted in some GNU
+  }                                             // modes.
+
+This is the first case of an enk_builtin_operation node that is not always
+folded to a constant (and therefore an IL CHANGE).
+
+
 4/3/09   [EDGcpfe/9454]
 Microsoft compatibility: __annotation
 

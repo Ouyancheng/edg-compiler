@@ -1792,7 +1792,7 @@ Dump the contents of the indicated expression node for debug purposes.
       fputs("\n", f_debug);
       break;
     case enk_builtin_operation:
-      fprintf(f_debug, "constant operation: %s",
+      fprintf(f_debug, "builtin operation: %s",
               builtin_operation_names[node->variant.builtin_operation.kind]);
       fputs(", result type: ", f_debug);
       db_abbreviated_type(node->type);
