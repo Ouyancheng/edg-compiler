@@ -9347,13 +9347,24 @@ returned.  Otherwise, it is the type of the rvalue returned.
   } else {
     /* The function returns a reference, so the return type is the type
        underlying the reference. */
+    a_boolean is_rvalue_ref = is_rvalue_reference_type(return_type);
     return_type = type_pointed_to(return_type);
-    if (is_rvalue_reference_type(return_type) &&
-        !is_array_type(return_type)) {
-      /* An rvalue reference type: The returned type should be that for an
-         rvalue result.  However, don't drop type qualifiers on an array
-         type. */
-      return_type = rvalue_type(return_type);
+    if (is_rvalue_ref) {
+      /* An rvalue reference type means an rvalue result, so we may have to
+         alter the type accordingly. */
+      if (is_function_type(return_type)) {
+        /* A function type decays to a pointer to function (an rvalue function
+           is weird).   This is not what the working draft calls for, but
+           something needs to change in this area. */
+        return_type = make_pointer_type(return_type);
+      } else if (is_array_type(return_type)) {
+        /* An array type can stay an array type (rvalue arrays are okay).
+           Type qualifiers aren't dropped. */
+      } else {
+        /* For other types, the returned type should be that for an rvalue
+           result. */
+        return_type = rvalue_type(return_type);
+      }  /* if */
     }  /* if */
   }  /* if */
   return return_type;

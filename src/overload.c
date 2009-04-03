@@ -2530,14 +2530,7 @@ it is always NULL.
     /* Not a reference. */
     /* See if any implicit transformations (e.g., array --> pointer) should
        be done. */
-    if (is_array_type(arg_type)) {
-      /* Simulate the array --> pointer transformation.  */
-      arg_type = type_after_array_to_pointer_transformation(arg_type);
-    } else if (is_function_type(arg_type)) {
-      /* Simulate the function --> pointer transformation. */
-      arg_type = type_after_function_to_pointer_transformation(arg_type,
-                                                               arg_operand);
-    }  /* if */
+    arg_type = do_implicit_type_transformations(arg_type, arg_operand);
     /* The argument will be passed by copying it, so its cv-qualifiers
        are not significant. */
     arg_type = skip_typerefs(arg_type);
@@ -8687,17 +8680,6 @@ routine is called only in C++ mode.
        the function pointed to. */
     a_type_ptr conv_rout_type = arg_match_list->conversion.routine->type;
     a_type_ptr conversion_type = return_type_of(conv_rout_type);
-    if (rvalue_references_enabled) {
-      a_type_ptr raw_return_type = il_return_type_of(conv_rout_type);
-      if (is_rvalue_reference_type(raw_return_type)) {
-        /* Put in the decay from function type to pointer to function type
-           when the conversion function returns an rvalue reference to
-           function. */
-        conversion_type = type_after_function_to_pointer_transformation(
-                                                           conversion_type,
-                                                           (an_operand *)NULL);
-      }  /* if */
-    }  /* if */
     copy_operand(bound_function_selector, function_operand);
     user_convert_operand(function_operand,
                          conversion_type,
@@ -9208,8 +9190,9 @@ routine type, assuming that the value will be converted to an rvalue.
 */
 {
   a_type_ptr return_type = return_type_of(conv_func_type);
-  /* Drop cv-qualifiers from non-class values. */
-  return_type = rvalue_type(return_type);
+  /* Convert the type to an rvalue type. */
+  return_type = do_implicit_type_transformations(return_type,
+                                                 (an_operand *)NULL);
   return return_type;
 }  /* rvalue_return_type_of */
 
