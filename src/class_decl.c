@@ -8782,7 +8782,6 @@ implicitly declared member functions.
       /* Set the pointer to the constructor symbol in the class symbol
          supplement. */
       if (decl_info->is_trivial_default_constructor) {
-/* FIXME:take =default; into consideration? */
         /* A trivial default constructor is never actually called, so it is
            not added to the constructor set (which should be empty). */
         check_assertion(cssp->constructor == NULL);
@@ -12113,7 +12112,6 @@ The routine body is not generated until it is known to be needed.
   a_boolean                     declare_copy_ctor;
   a_boolean                     declare_dtor;
 
-/* FIXME:take =default; into consideration? */
   db_enter(3, "check_special_member_functions");
   cssp = symbol_supplement_for_class(class_type);
   ctsp = class_type_supp(class_type);
