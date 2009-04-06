@@ -170,14 +170,13 @@ standard in July 2007 (meeting in Toronto, through proposal numbered N2346).
 4/1/09  [EDGcpfe/9671]
 Internal error in check_type_of_variable_node for const string literal
 
-In C generating back end configurations where
-ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS is TRUE, lowering did not properly
-modify the type of the variable substituted for string constants when
-they occurred as operands of a comma or question operator, resulting
-in an internal error in check_type_of_variable_node.  The error occurred only
-in modes where string literals are treated as const (e.g., GNU, Microsoft, Sun,
-strict).  This example had failed (--c++0x -A -tused) and now compiles
-correctly:
+In configurations where ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS is TRUE,
+lowering did not properly modify the type of the variable substituted for
+string constants when they occurred as operands of a comma or question
+operator, resulting in an internal error in check_type_of_variable_node
+(in C generating back end configurations).  The error occurred only in modes
+where string literals are treated as const (e.g., GNU, Microsoft, Sun, strict).
+This example had failed (--c++0x -A -tused) and now compiles correctly:
 
   template <class T> void f(bool b) {
     decltype("abc") x = (b ? "abc" : "abc");
