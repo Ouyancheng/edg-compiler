@@ -3597,17 +3597,16 @@ void cast_operand_for_reference_cast(an_operand *operand,
                                      a_boolean  is_implicit_cast,
                                      a_boolean  reinterpret_semantics)
 /*
-Cast *operand (an lvalue, not necessarily of class type) to a reference
-type given by dest_type.  That produces an lvalue of the type underlying
-dest_type as the result (an rvalue if dest_type is an rvalue reference).
-This cast does not make a new object; it merely adjusts the operand to
-access the same object with a new type.  Check access on related-class
-casts if check_cast_access is TRUE.  The cast is implicit if
-is_implicit_cast is TRUE.  Consider related-class adjustments
-only if reinterpret_semantics is FALSE (it is TRUE for reinterpret_cast).
-Note that the input operand is always an lvalue; even in cases where a
-cast allows an rvalue as the source (e.g., a cast to reference-to-const
-class type), the operand has been converted to an rvalue by this point.
+Cast *operand to a reference type given by dest_type.  That produces an
+lvalue of the type underlying dest_type as the result, or an rvalue if
+dest_type is an rvalue reference.  This cast does not make a new object;
+it merely adjusts the operand to access the same object with a new type.
+Check access on related-class casts if check_cast_access is TRUE.
+The cast is implicit if is_implicit_cast is TRUE.  Consider related-class
+adjustments only if reinterpret_semantics is FALSE (it is TRUE for
+reinterpret_cast).  The input operand is generally an lvalue, but it
+can be an rvalue when dest_type is an rvalue reference or when dest_type
+is an lvalue reference to const.
 */
 {
   a_type_ptr operand_type = operand->type;
@@ -3617,6 +3616,16 @@ class type), the operand has been converted to an rvalue by this point.
   check_assertion(is_reference_type(dest_type));
   is_rvalue_ref = is_rvalue_reference_type(dest_type);
   underlying_type = type_pointed_to(dest_type);
+  if (is_an_rvalue(operand)) {
+    /* If the caller passes in an rvalue, convert it to an lvalue. */
+    if (is_class_struct_union_type(operand->type)) {
+      conv_class_rvalue_operand_to_lvalue(operand);
+    } else if (is_rvalue_reference_object_operand(operand)) {
+      conv_rvalue_reference_object_to_lvalue(operand);
+    } else {
+      temp_init_from_operand(operand, /*result_is_lvalue=*/TRUE);
+    }  /* if */
+  }  /* if */
   if (is_error_operand(operand)) {
     /* Leave an error operand alone. */
   } else if (is_error_type(underlying_type)) {
@@ -10399,6 +10408,22 @@ Convert it to an lvalue.
   make_lvalue_expression_operand(expr, operand);
   restore_operand_details(operand, &orig_operand);
 }  /* conv_rvalue_reference_object_to_lvalue */
+
+
+a_boolean is_rvalue_reference_object_operand(an_operand *operand)
+/*
+Return TRUE if the given operand is an rvalue reference object.
+See is_rvalue_reference_object_expr for a definition of that term.
+*/
+{
+  a_boolean is_rvalue_object = FALSE;
+
+  if (is_expression_operand(operand) &&
+      is_rvalue_reference_object_expr(operand->variant.expression)) {
+    is_rvalue_object = TRUE;
+  }  /* if */
+  return is_rvalue_object;
+}  /* is_rvalue_reference_object_operand */
 
 
 static a_constant_ptr value_of_constant_var_lvalue_expr(

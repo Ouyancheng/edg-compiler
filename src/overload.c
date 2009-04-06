@@ -13978,23 +13978,6 @@ temporary is added.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-
-static a_boolean is_rvalue_reference_object_operand(an_operand *operand)
-/*
-Return TRUE if the given operand is an rvalue reference object.
-See is_rvalue_reference_object_expr for a definition of that term.
-*/
-{
-  a_boolean is_rvalue_object = FALSE;
-
-  if (is_expression_operand(operand) &&
-      is_rvalue_reference_object_expr(operand->variant.expression)) {
-    is_rvalue_object = TRUE;
-  }  /* if */
-  return is_rvalue_object;
-}  /* is_rvalue_reference_object_operand */
-
-
 void prep_reference_initializer_operand(
                               an_operand    *source_operand,
                               a_type_ptr    dest_type,

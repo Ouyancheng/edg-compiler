@@ -998,6 +998,8 @@ extern void conv_class_operand_to_object_pointer(an_operand *operand);
 
 extern void conv_rvalue_reference_object_to_lvalue(an_operand *operand);
 
+extern a_boolean is_rvalue_reference_object_operand(an_operand *operand);
+
 extern a_constant_ptr value_of_constant_var_lvalue_operand(
                                                           an_operand *operand);
 

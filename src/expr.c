@@ -8689,9 +8689,6 @@ Syntax:
             operand_type_okay = TRUE;
           } else if (rvalue_reference_case && is_an_rvalue(&operand)) {
             operand_type_okay = TRUE;
-            /* Internally, we handle this case by making the operand an
-               lvalue. */
-            conv_class_rvalue_operand_to_lvalue(&operand);
           }  /* if */
         }  /* if */
       }  /* if */
@@ -10857,12 +10854,9 @@ This is a static_cast or old-style cast; source_form indicates which.
 If the cast can be done by a user-defined conversion, do it and return
 *processed TRUE.  If the cast could only be done by a user-defined
 conversion and there was some error with that, set *err TRUE as well.
-Also handles cases that involve the cast of a non-class rvalue to
-a reference-to-const non-class type; a temporary is created and an
-lvalue for it is returned along with *processed TRUE.  If a cast
-(to a reference-to-class type) is expected to be conceptually
-rewritten as a pointer cast later and an rvalue should be allowed,
-*allow_rvalue_on_rewrite is returned TRUE (note that this is never set
+If a cast to a reference type is expected to be conceptually rewritten
+as a pointer cast later and an rvalue should be allowed,
+*allow_rvalue_on_rewrite is returned TRUE (note that this can be set
 for non-class operands).  This routine is called only in C++ mode.
 */
 {
@@ -10899,18 +10893,8 @@ for non-class operands).  This routine is called only in C++ mode.
                                             &function_symbol)) {
         /* The operand can be cast directly to the reference type,
            so don't look for a way to do the cast using a conversion
-           function.  Note that even non-class operands are handled here. */
-        if (is_class_struct_union_type(operand->type)) {
-          *allow_rvalue_on_rewrite = binding_to_rvalue_allowed;
-        } else if (!template_case &&
-                   is_an_rvalue(operand) &&
-                   !is_error_type(operand->type)) {
-          /* For a non-class rvalue case, go create a temporary to contain the
-             rvalue. */
-          check_assertion(binding_to_rvalue_allowed);
-          determined_conversion = NULL;
-          goto process_reference_binding;
-        }  /* if */
+           function. */
+        *allow_rvalue_on_rewrite = binding_to_rvalue_allowed;
       } else if (cast_to_rvalue_reference) {
         /* A conversion can't be used to bind an rvalue reference, so don't
            look for the conversion cases. */
@@ -11028,7 +11012,6 @@ for non-class operands).  This routine is called only in C++ mode.
             generic_cast_operand(operand, type_cast_to, source_form,
                                  /*is_implicit_cast=*/FALSE);
           } else {
-process_reference_binding:
             if (determined_conversion != NULL) {
               determined_conversion->is_explicit_cast = TRUE;
             }  /* if */
@@ -11121,23 +11104,25 @@ As part of processing a cast (in various source forms), do early
 processing on a cast to a reference type.  type_cast_to is the reference
 type; *operand is the operand of the cast; allow_rvalue is TRUE
 if an rvalue operand should be allowed (e.g., for a static_cast to a
-reference-to-const type); and source_form indicates the source form of
-the cast (e.g., static_cast).  For template-dependent casts,
-this routine processes the cast by updating *operand and returns
-*processed set to TRUE.  Otherwise, *processed is returned FALSE and
-it's expected that the caller will validate the cast as the
-corresponding pointer cast (for example, (T &)x is equivalent to
-*(T*)&x); *adj_type_cast_to and *adj_operand_type are set to the
-appropriate types for the pointer version.  Verify that *operand
-is an lvalue, and issue an error if not.  For the allow_rvalue case,
-*operand is forced to an lvalue if it isn't already one, possibly
-by using a temporary.
+reference-to-const type; note that it need not be set for a cast to
+an rvalue reference type, where it is always assumed to be TRUE);
+and source_form indicates the source form of the cast (e.g.,
+static_cast).  For template-dependent casts, this routine processes
+the cast by updating *operand and returns *processed set to TRUE.
+Otherwise, *processed is returned FALSE and it's expected that the
+caller will validate the cast as the corresponding pointer cast (for
+example, (T &)x is equivalent to *(T*)&x); *adj_type_cast_to and
+*adj_operand_type are set to the appropriate types for the pointer
+version.  Verify that *operand is an lvalue if it's required to be,
+and issue an error if not (or, in some anachronism cases, convert
+it to an lvalue).
 */
 {
   a_type_ptr underlying_type_cast_to;
 
   *processed = FALSE;
   check_assertion(is_reference_type(type_cast_to));
+  if (is_rvalue_reference_type(type_cast_to)) allow_rvalue = TRUE;
   underlying_type_cast_to = type_pointed_to(type_cast_to);
   if (is_template_dependent_context() &&
       (is_template_dependent_type(type_cast_to) ||
@@ -11150,17 +11135,16 @@ by using a temporary.
     if (is_an_lvalue(operand) ||
         is_a_function_designator(operand)) {
       /* Okay, the operand is already an lvalue. */
-    } else if ((allow_rvalue || any_cfront_mode() || 
+    } else if (allow_rvalue) {
+      /* An rvalue is allowed for certain casts (to rvalue reference types,
+         and to const lvalue reference types). */
+    } else if ((any_cfront_mode() || 
                 allow_nonconst_ref_anachronism) &&
                is_class_struct_union_type(operand->type)) {
-      /* Allow a cast of a class rvalue to a reference type, when appropriate
-         (e.g., for a static_cast to a reference-to-const type, or for
-         a cast to an rvalue reference type). */
+      /* Allow an rvalue for certain anachronisms.  Convert the operand
+         to an lvalue. */
       conv_class_rvalue_operand_to_lvalue(operand);
     } else {
-      /* allow_rvalue should be TRUE only when the operand has a class type.
-         See check_user_defined_conversions_for_cast. */
-      check_assertion(!allow_rvalue);
       if (!is_error_operand(operand)) {
         error_in_operand(ec_expr_not_an_lvalue, operand);
         *processed = TRUE;
@@ -11832,9 +11816,7 @@ Syntax:
           /* ... but an rvalue is also okay for a cast to an rvalue reference
              type. */
           if (rvalue_reference_case && is_an_rvalue(&operand)) {
-            /* Internally, we handle this case by making the operand an
-               lvalue. */
-            conv_class_rvalue_operand_to_lvalue(&operand);
+            /* Okay. */
           } else {
             err = TRUE;
             if (!is_error_operand(&operand)) {
@@ -12162,7 +12144,6 @@ Syntax:
   a_type_ptr        type_cast_to, adj_type_cast_to;
   a_type_ptr        source_type, adj_source_type;
   a_boolean         cast_to_reference = FALSE, err = FALSE;
-  a_boolean         cast_to_rvalue_reference = FALSE;
   an_error_code     warning_suggested;
   a_boolean         processed = FALSE;
   a_boolean         microsoft_ignored_case = FALSE;
@@ -12206,9 +12187,6 @@ Syntax:
     }  /* if */
     /* Check for casts to reference type. */
     cast_to_reference = is_reference_type(type_cast_to);
-    if (cast_to_reference && is_rvalue_reference_type(type_cast_to)) {
-      cast_to_rvalue_reference = TRUE;
-    }  /* if */
     if (!cast_to_reference && !microsoft_ignored_case) {
       /* Do lvalue --> rvalue, array --> pointer, and function --> pointer
          conversions.  They must be done now because they affect the type
@@ -12238,8 +12216,7 @@ Syntax:
       /* Determine the types to be used for checking a reference cast
          if we pretend it has been rewritten as a pointer cast. */
       set_up_cast_to_reference(type_cast_to, result,
-                               /*allow_rvalue_on_rewrite=*/
-                                                      cast_to_rvalue_reference,
+                               /*allow_rvalue_on_rewrite=*/FALSE,
                                csf_reinterpret_cast,
                                &adj_type_cast_to,
                                &adj_source_type,
