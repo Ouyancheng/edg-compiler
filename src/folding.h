@@ -139,7 +139,8 @@ extern void fold_builtin_operation_if_possible(
                                         an_expr_node_ptr   expr,
                                         a_constant_ptr     constant,
                                         a_boolean          maintain_expression,
-                                        a_source_position  *pos);
+                                        a_source_position  *pos,
+                                        a_boolean          *not_a_constant);
 
 extern a_boolean fold_bit_count_operation_if_possible(
                                                a_routine_ptr     rp,

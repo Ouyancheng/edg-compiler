@@ -13012,13 +13012,18 @@ expression.  See copy_template_param_expr for the parameter descriptions.
     new_arg = &((*new_arg)->next);
   }  /* while */
   if (!*copy_error) {
+    a_boolean  not_a_constant = FALSE;
     /* Copy the expression node and attach the copied argument list to it. */
     expr_copy = copy_node(expr);
     expr_copy->variant.builtin_operation.operands = new_args;
     /* Attempt to fold the operation. */
     fold_builtin_operation_if_possible(expr_copy, constant,
                                        /*maintain_expression=*/FALSE,
-                                       (a_source_position*)NULL);
+                                       (a_source_position*)NULL,
+                                       &not_a_constant);
+    /* Currently, an operation that doesn't always produce a constant causes
+       copy_template_param_expr to set *copy_error to TRUE. */
+    check_assertion(!not_a_constant);
     if (is_error_constant(constant)) {
       *copy_error = TRUE;
       expr_copy = NULL;

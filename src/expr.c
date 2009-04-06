@@ -6086,7 +6086,6 @@ work is done by scan_field_selection_operator and scan_subscript_operator.
        so we iterate over field selection and/or array subscript operations
        as needed. */
     an_expr_stack_entry  expr_stack_entry;
-    a_boolean            nonconstant_offset = FALSE;
     /* The selection operations should be scanned in a "sizeof" context since
        they are not evaluated. */
     push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
@@ -6103,19 +6102,11 @@ work is done by scan_field_selection_operator and scan_subscript_operator.
                                       &local_result, (an_operand*)NULL);
       } else {
         scan_subscript_operator(&operand, &local_result);
-        /* Record if a nonconstant offset was scanned. */
-        if (is_expression_operand(&local_result) &&
-            node_operator_is(local_result.variant.expression, eok_subscript)) {
-          an_expr_node_ptr  arg2 = local_result.variant.expression
-                                               ->variant.operation.operands
-                                               ->next;
-          if (!is_constant_node(arg2)) {
-            nonconstant_offset = TRUE;
-          }  /* if */
-        }  /* if */
       }  /* if */
     } while (curr_token == tok_period || curr_token == tok_lbracket);
     if (valid_type && !is_error_operand(&local_result)) {
+      a_constant  offset_constant;
+      a_boolean   nonconstant_offset = FALSE;
       /* Build the first operand as a type node. */
       args = alloc_expr_node((an_expr_node_kind)enk_type_operand);
       args->type = void_type();
@@ -6129,16 +6120,16 @@ work is done by scan_field_selection_operator and scan_subscript_operator.
       node->variant.builtin_operation.kind =
                                        (a_builtin_operation_kind)bok_offsetof;
       node->variant.builtin_operation.operands = args;
+      fold_builtin_operation_if_possible(
+                     node, &offset_constant,
+                     curr_expr_kind_is_one_in_which_const_exprs_are_recorded(),
+                     &start_pos, &nonconstant_offset);
       if (nonconstant_offset) {
-        /* The operation cannot be folded. */
+        /* The offset is not a constant. */
         make_expression_operand(node, result);
       } else {
-        /* Determine the constant offset by folding the operation. */
-        clear_operand((an_operand_kind)ok_constant, result);
-        fold_builtin_operation_if_possible(
-                     node, &result->variant.constant,
-                     curr_expr_kind_is_one_in_which_const_exprs_are_recorded(),
-                     &start_pos);
+        /* The offset is a (possibly template-dependent) constant. */
+        make_constant_operand(&offset_constant, result);
         result->type = result->variant.constant.type;
       }  /* if */
       result->state = (an_operand_state)os_rvalue;
@@ -6246,6 +6237,7 @@ the constant cases.)
     /* Create the constant result operand by attempting to fold an
        enk_builtin_operation node that represents the operation. */
     an_expr_node_ptr  expr;
+    a_boolean         not_a_constant = FALSE;
     expr = alloc_expr_node((an_expr_node_kind)enk_builtin_operation);
     expr->type = type;
     expr->variant.builtin_operation.kind = (a_builtin_operation_kind)kind;
@@ -6254,7 +6246,8 @@ the constant cases.)
     fold_builtin_operation_if_possible(
                      expr, &result->variant.constant,
                      curr_expr_kind_is_one_in_which_const_exprs_are_recorded(),
-                     &start_pos);
+                     &start_pos, &not_a_constant);
+    check_assertion(!not_a_constant);
     result->type = result->variant.constant.type;
     result->state = (an_operand_state)os_rvalue;
   } else {

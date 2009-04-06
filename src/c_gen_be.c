@@ -4471,9 +4471,7 @@ recursion.
       /* The source form of a __builtin_offsetof construct always uses a
          "." operator.  The "points_to" cases here are for code in which
          the front end converts the first operand to a pointer (typically
-         to allow the addition of cv-qualification or base casts); the
-         operation and operand are re-normalized to "." by
-         strip_lvalue_cast_sequence. */
+         to allow the addition of cv-qualification). */
       if (node_operator_is(arg1, eok_indirect) &&
           arg1->variant.operation.compiler_generated) {
         /* Skip over a compiler-generated indirection node. */

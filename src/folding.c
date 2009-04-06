@@ -5990,19 +5990,49 @@ done:
 }  /* add_offset_of_accessed_member */
 
 
+static a_boolean is_template_dependent_offsetof_member(
+                                            an_expr_node_ptr  expr,
+                                            a_boolean         *not_a_constant)
+/*
+The given expression is the second operand of a bok_offsetof operation.  Return
+TRUE is that expression contains a template-dependent subscript operation.
+If it contains a non-constant subscript operation, set *not_a_constant to TRUE.
+*/
+{
+  a_boolean  template_dependent = FALSE;
+
+  while (!is_constant_node(expr)) {
+    an_expr_node_ptr  args = expr->variant.operation.operands;
+    if (is_operation_node(expr) && node_operator_is(expr, eok_subscript)) {
+      if (!is_constant_node(args->next)) {
+        *not_a_constant = TRUE;
+      } else if (args->next->variant.constant->kind ==
+                                    (a_constant_repr_kind)ck_template_param) {
+        template_dependent = TRUE;
+      }  /* if */
+    }  /* if */
+    expr = args;
+  }  /* while */
+  return template_dependent;
+}  /* is_template_dependent_offsetof_member */
+
+
 static void fold_offsetof(an_expr_node_ptr   expr,
                           a_constant_ptr     constant,
                           a_boolean          maintain_expression,
-                          a_source_position  *pos)
+                          a_source_position  *pos,
+                          a_boolean          *not_a_constant)
 /*
 expr is an enk_builtin_operation node for a __builtin_offsetof operation
-(currently only accepted in some GNU modes).  If the operand types are
-nondependent, store the integer value of the offset being represented in
-*constant.  Otherwise, store a ck_template_param constant in *constant (the
+(currently only accepted in some GNU modes).  If any of the operands is
+template-dependent, store a ck_template_param constant in *constant (the
 constant will be of the tpck_expression variant and will point to the given
-expression).  If maintain_expression is TRUE, the backing expression for
-the returned constant will be set as well.  If pos is non-NULL, diagnostics
-are issued at the position it indicates.
+expression).  Otherwise, if the second operand contains a nonconstant
+subscript, set *not_a_constant to TRUE and leave *constant unchanged.  In all
+other cases, store the integer value of the offset being represented in
+*constant (if maintain_expression is TRUE, the backing expression for the
+returned constant will be set as well).  If pos is non-NULL, diagnostics are
+issued at the position it indicates.
 */
 {
   an_expr_node_ptr  arg1 = expr->variant.builtin_operation.operands,
@@ -6011,13 +6041,16 @@ are issued at the position it indicates.
   /* eok_parens shouldn't appear here, since the construct is generated. */
   check_assertion(arg1 != NULL && arg2 != NULL && arg2->next == NULL &&
                   arg1->kind == (an_expr_node_kind)enk_type_operand);
-  if (is_template_dependent_type(arg1->variant.type_operand.type)) {
+  if (is_template_dependent_type(arg1->variant.type_operand.type) ||
+      is_template_dependent_offsetof_member(arg2, not_a_constant)) {
     /* The template-dependent case. */
     clear_constant(constant, (a_constant_repr_kind)ck_template_param);
     set_template_param_constant_kind(
                    constant, (a_template_param_constant_kind)tpck_expression);
     constant->variant.template_param.variant.expr = expr;
-  } else {
+    constant->type = expr->type;
+  } else if (!*not_a_constant) {
+    /* The foldable case. */
     set_unsigned_integer_constant(constant, (a_host_large_unsigned)0,
                                   targ_size_t_int_kind);
     if (add_offset_of_accessed_member(arg2, constant, pos)) {
@@ -6026,8 +6059,8 @@ are issued at the position it indicates.
       clear_constant(constant, (a_constant_repr_kind)ck_error);
     }  /* if */
     if (maintain_expression) constant->expr = expr;
+    constant->type = expr->type;
   }  /* if */
-  constant->type = expr->type;
 }  /* fold_offsetof */
 
 
@@ -6459,13 +6492,17 @@ constant will be set as well.
 void fold_builtin_operation_if_possible(an_expr_node_ptr   expr,
                                         a_constant_ptr     constant,
                                         a_boolean          maintain_expression,
-                                        a_source_position  *pos)
+                                        a_source_position  *pos,
+                                        a_boolean          *not_a_constant)
 /*
-The given expression is a node of kind enk_builtin_operation.  If any of
-its operands are template-dependent, the result is not foldable and a
+The given expression is a node of kind enk_builtin_operation.  If any of its
+operands are template-dependent, the result is not foldable and a
 ck_template_param constant (of the tpck_expression variant) is stored in
-*constant.  Otherwise, an attempt is made to fold the operation.  If the
-folding is successful, the result is returned through *constant.  if the
+*constant (*not_a_constant is set to FALSE in such cases).  Similarly, the
+result is not foldable if the operands are such that the result is not a
+constant (*not_a_constant is set to TRUE in those cases).  Otherwise, an
+attempt is made to fold the operation and *not_a_constant is set to FALSE.  If
+the folding is successful, the result is returned through *constant.  If the
 folding fails, an error constant is returned through *constant and if pos is
 non-NULL diagnostics are issued at the indicated position.
 If maintain_expression is TRUE, the backing expression for the returned
@@ -6475,6 +6512,9 @@ constant is set as well.
   a_boolean         has_error = FALSE;
   an_expr_node_ptr  arg = expr->variant.builtin_operation.operands;
 
+  /* Most built-in operations result in constants.  So we start with that
+     assumption. */
+  *not_a_constant = FALSE;
   check_assertion(expr->kind == (an_expr_node_kind)enk_builtin_operation);
   /* Check if an error was already encountered.  In that case, we silently
      produce an error constant. */
@@ -6489,7 +6529,8 @@ constant is set as well.
   } else {
     switch (expr->variant.builtin_operation.kind) {
       case bok_offsetof:
-        fold_offsetof(expr, constant, maintain_expression, pos);
+        fold_offsetof(expr, constant, maintain_expression, pos,
+                      not_a_constant);
         break;
 #if GNU_EXTENSIONS_ALLOWED
       case bok_types_compatible:
