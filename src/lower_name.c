@@ -3155,10 +3155,9 @@ If the indicated enum type is unnamed, give it a name and return the name.
 static void give_unnamed_template_param_member_a_name(a_type_ptr type)
 /*
 Give an unnamed template param member type that refers to an unnamed
-enum or class member the same name as the original type (which
-has previously or will now become named via a call to
-give_unnamed_*_a_name).  Set its name_has_been_mangled flag to
-match that of the original type.
+enum or class member the same name as the original type (which has previously
+or will now become named via a call to give_unnamed_*_a_name).  Set its name
+mangling fields to match that of the original type.
 */
 {
   a_type_ptr nested_type;
@@ -3171,10 +3170,14 @@ match that of the original type.
   if (nested_type != NULL) {
     if (is_immediate_class_type(nested_type)) {
       type->source_corresp.name = give_unnamed_class_a_name(nested_type);
+      type->source_corresp.unmangled_name =
+                             nested_type->source_corresp.unmangled_name;
       type->source_corresp.name_has_been_mangled =
                              nested_type->source_corresp.name_has_been_mangled;
     } else if (is_immediate_enum_type(nested_type)) {
       type->source_corresp.name = give_unnamed_enum_a_name(nested_type);
+      type->source_corresp.unmangled_name =
+                             nested_type->source_corresp.unmangled_name;
       type->source_corresp.name_has_been_mangled =
                              nested_type->source_corresp.name_has_been_mangled;
     }  /* if */

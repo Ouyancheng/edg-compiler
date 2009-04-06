@@ -1,5 +1,21 @@
 Version 4.1
 
+4/6/09   [EDGcpfe/9540]
+Mangling unnamed enum template parameter member causes assertion failure
+
+In configurations where PROTOTYPE_INSTANTIATIONS_IN_IL and MANGLE_ALL_NAMES
+are both TRUE, the mangling of a typedef for an unnamed enum used as a
+template parameter member caused an assertion failure in
+mangled_type_name_full.  The failure had occurred in both ABIs and is now
+fixed.  For example:
+
+  template <class T> struct A {
+    typedef enum {} unnamed;
+    void f(unnamed);
+  };
+  template <class T> void A<T>::f(unnamed t) {}
+
+
 4/3/09   [EDGcpfe/8221,EDGcpfe/8337,EDGcpfe/8898,EDGcpfe/9045,EDGcpfe/9346]
 GNU compatibility: __builtin_offsetof and nonconstant subscripts
 
