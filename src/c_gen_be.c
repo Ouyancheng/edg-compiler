@@ -4450,89 +4450,6 @@ type of the variable to which it refers.
 #endif /* !STANDALONE_C_GEN_BE */
 #endif /* CHECKING */
 
-static void dump_member_selector_for_builtin_offsetof(an_expr_node_ptr  expr)
-/*
-Render the second argument of a __builtin_offsetof construct.  expr represents
-that argument as a data member selection applied to a dummy address
-placeholder (a null pointer constant).  The selection can involve normal field
-selections using the dot (.) operator and array element selections.
-Multilevel cases (e.g., "__builtin_offsetof(T, x.y[3])") are handled through
-recursion.
-*/
-{
-  an_expr_node_ptr  arg1;
-
-  check_assertion(is_operation_node(expr));
-  arg1 = expr->variant.operation.operands;
-  /* Skip any (pointer) casts on the first operand. */
-  switch (expr->variant.operation.kind) {
-    case eok_dot_field:
-    case eok_points_to_field:
-      if (!is_constant_node(arg1)) {
-        /* This is not the bottom-most operation (which is applied to a null
-           pointer constant that is just a placeholder).  Render the
-           underlying accesses first. */
-        dump_member_selector_for_builtin_offsetof(arg1);
-        write_tok_ch('.');
-      }  /* if */
-      dump_field_from_second_operand(expr);
-      break;
-    case eok_subscript:
-      dump_member_selector_for_builtin_offsetof(arg1);
-      write_tok_ch('[');
-      dump_expr_with_parens(arg1->next);
-      write_tok_ch(']');
-      break;
-    case eok_cast:
-    case eok_array_to_pointer:
-      /* The casts are implicit and should not be rendered. */
-      dump_member_selector_for_builtin_offsetof(arg1);
-      break;
-    default:
-      unexpected_condition();
-  }  /* switch */
-}  /* dump_member_selector_for_builtin_offsetof */
-
-
-static void dump_builtin_operation(an_expr_node_ptr  expr)
-/*
-Render code for the given expression node, which represent a builtin operation.
-Most cases fit a simple pattern, but some require special handling.
-*/
-{
-  an_expr_node_ptr  arg = expr->variant.builtin_operation.operands;
-
-  if (expr->variant.builtin_operation.kind ==
-                                     (a_builtin_operation_kind)bok_offsetof) {
-    /* The builtin offsetof operator is a little tricky because its second
-       operand must be rendered in the context of its first operand. */
-    write_tok_str("__builtin_offsetof(");
-    check_assertion(arg->kind == (an_expr_node_kind)enk_type_operand);
-    dump_expr(arg, /*need_parens=*/FALSE);
-    write_tok_str(", ");
-    dump_member_selector_for_builtin_offsetof(arg->next);
-    write_tok_ch(')');
-  } else {
-    /* The normal case:
-          <operation-name> ( <operand1>, <operand2>, ... )
-    */
-    write_tok_str(
-               builtin_operation_names[expr->variant.builtin_operation.kind]);
-    write_tok_ch('(');
-    while (arg != NULL) {
-      /* Output the arguments (if any) for the constant operation.
-         Do not emit parentheses around types. */
-      dump_expr(arg, arg->kind != (an_expr_node_kind)enk_type_operand);
-      arg = arg->next;
-      if (arg != NULL) {
-        write_tok_str(", ");
-      }  /* if */
-    }  /* while */
-    write_tok_ch(')');
-  }  /* if */
-}  /* dump_builtin_operation */
-
-
 static void dump_expr(an_expr_node_ptr expr,
                       a_boolean        need_parens)
 /*
@@ -5441,7 +5358,21 @@ done_with_operation:
       dump_type(expr->variant.type_operand.type, /*add_pointer_to=*/FALSE);
       break;
     case enk_builtin_operation:
-      dump_builtin_operation(expr);
+      { an_expr_node_ptr  arg = expr->variant.builtin_operation.operands;
+        write_tok_str(
+               builtin_operation_names[expr->variant.builtin_operation.kind]);
+        write_tok_ch('(');
+        while (arg != NULL) {
+          /* Output the arguments (if any) for the constant operation.
+             Do not emit parentheses around types. */
+          dump_expr(arg, arg->kind != (an_expr_node_kind)enk_type_operand);
+          arg = arg->next;
+          if (arg != NULL) {
+            write_tok_str(", ");
+          }  /* if */
+        }  /* while */
+        write_tok_ch(')');
+      }
       break;
     case enk_field:
       /* enk_field entries are supposed to be handled before this. */

@@ -12604,10 +12604,14 @@ static void lower_builtin_offsetof(an_expr_node_ptr  expr)
 Lower the given __builtin_offsetof node.
 */
 {
-  an_expr_node_ptr  args = expr->variant.builtin_operation.operands;
+  an_expr_node_ptr  offset = expr->variant.builtin_operation.operands->next;
 
-  check_assertion(gnu_mode);
-  lower_any_expr(args->next);
+  check_assertion(gnu_mode && offset->is_lvalue);
+  /* Replace the node with an expression that represents the offset. */
+  lower_any_expr(offset);
+  offset = add_address_of_to_node(offset);
+  offset = add_cast(offset, expr->type);
+  overwrite_node(expr, offset);
 }  /* lower_builtin_offsetof */
 
 #endif /* GNU_EXTENSIONS_ALLOWED */

@@ -16,7 +16,8 @@ fixed.  For example:
   template <class T> void A<T>::f(unnamed t) {}
 
 
-4/3/09   [EDGcpfe/8221,EDGcpfe/8337,EDGcpfe/8898,EDGcpfe/9045,EDGcpfe/9346]
+4/3/09   [EDGcpfe/8221,EDGcpfe/8337,EDGcpfe/8898,EDGcpfe/9045,EDGcpfe/9346,
+          EDGcpfe/9689]
 GNU compatibility: __builtin_offsetof and nonconstant subscripts
 
 Previously, the built-in operation __builtin_offsetof (only accepted in some
@@ -30,7 +31,9 @@ are also allowed.  For example:
   }                                             // modes.
 
 This is the first case of an enk_builtin_operation node that is not always
-folded to a constant (and therefore an IL CHANGE).
+folded to a constant (and therefore an IL CHANGE).  In configurations that
+use lowering, the enk_builtin_operation/bok_offset expression is lowered
+to an expression whose value is the offset.
 
 
 4/3/09   [EDGcpfe/9454]
