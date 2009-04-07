@@ -13357,6 +13357,7 @@ constructor elision in C++ mode.  This is an initialization with the
       cast_operand_for_reference_cast(&rvalue_operand,
                                       make_rvalue_reference_type(
                                                           rvalue_operand.type),
+                                      &rvalue_operand.position,
                                       /*check_cast_access=*/FALSE,
                                       /*is_implicit_cast=*/TRUE,
                                       /*reinterpret_semantics=*/FALSE); 

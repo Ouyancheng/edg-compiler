@@ -3171,6 +3171,7 @@ is being done via an explicit cast; otherwise, it's implicit by context.
     check_assertion(is_cast);
     cast_operand_for_reference_cast(operand,
                                     type_cast_to,
+                                    &operand->position,
                                     /*check_cast_access=*/FALSE,
                                     /*is_implicit_cast=*/FALSE,
                                     /*reinterpret_semantics=*/FALSE); 
@@ -3591,16 +3592,18 @@ reference) and not something explicit like a cast.
 }  /* adjust_lvalue_type */
 
 
-void cast_operand_for_reference_cast(an_operand *operand,
-                                     a_type_ptr dest_type,
-                                     a_boolean  check_cast_access,
-                                     a_boolean  is_implicit_cast,
-                                     a_boolean  reinterpret_semantics)
+void cast_operand_for_reference_cast(an_operand        *operand,
+                                     a_type_ptr        dest_type,
+                                     a_source_position *type_position,
+                                     a_boolean         check_cast_access,
+                                     a_boolean         is_implicit_cast,
+                                     a_boolean         reinterpret_semantics)
 /*
 Cast *operand to a reference type given by dest_type.  That produces an
 lvalue of the type underlying dest_type as the result, or an rvalue if
 dest_type is an rvalue reference.  This cast does not make a new object;
 it merely adjusts the operand to access the same object with a new type.
+type_position gives the source position of the type in the cast.
 Check access on related-class casts if check_cast_access is TRUE.
 The cast is implicit if is_implicit_cast is TRUE.  Consider related-class
 adjustments only if reinterpret_semantics is FALSE (it is TRUE for
@@ -3609,13 +3612,23 @@ can be an rvalue when dest_type is an rvalue reference or when dest_type
 is an lvalue reference to const.
 */
 {
-  a_type_ptr operand_type = operand->type;
+  a_type_ptr operand_type;
   a_type_ptr underlying_type;
   a_boolean  is_rvalue_ref = FALSE;
 
   check_assertion(is_reference_type(dest_type));
   is_rvalue_ref = is_rvalue_reference_type(dest_type);
   underlying_type = type_pointed_to(dest_type);
+  if (is_rvalue_ref && is_incomplete_type(underlying_type)) {
+    /* A cast to "rvalue reference to T" is invalid if T is incomplete,
+       because it would produce an rvalue with an incomplete type. */
+    complete_type_is_needed(underlying_type);
+    if (is_incomplete_type(underlying_type)) {
+      pos_ty_error(ec_cast_to_rvalue_ref_to_incomplete, type_position,
+                   skip_typerefs(underlying_type));
+      underlying_type = error_type();
+    }  /* if */
+  }  /* if */
   if (is_an_rvalue(operand)) {
     /* If the caller passes in an rvalue, convert it to an lvalue. */
     if (is_class_struct_union_type(operand->type)) {
@@ -3626,6 +3639,7 @@ is an lvalue reference to const.
       temp_init_from_operand(operand, /*result_is_lvalue=*/TRUE);
     }  /* if */
   }  /* if */
+  operand_type = operand->type;
   if (is_error_operand(operand)) {
     /* Leave an error operand alone. */
   } else if (is_error_type(underlying_type)) {

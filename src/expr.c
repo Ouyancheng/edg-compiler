@@ -8735,7 +8735,7 @@ Syntax:
        -  A known cast from derived to base.
     */
     if (reference_case) {
-      cast_operand_for_reference_cast(&operand, cast_type,
+      cast_operand_for_reference_cast(&operand, cast_type, &type_position,
                                       /*check_cast_access=*/TRUE,
                                       /*is_implicit_cast=*/FALSE,
                                       /*reinterpret_semantics=*/FALSE);
@@ -11575,6 +11575,7 @@ indicates which.
             } else {
               cast_operand_for_reference_cast(operand,
                                               type_cast_to,
+                                              type_position,
                                               /*check_cast_access=*/FALSE,
                                               /*is_implicit_cast=*/FALSE,
                                               reinterpret_semantics);
@@ -11853,7 +11854,7 @@ Syntax:
       /* The types are already the same except for qualifiers.  The result
          is just the source cast to the destination type. */
       if (reference_case) {
-        cast_operand_for_reference_cast(&operand, cast_type,
+        cast_operand_for_reference_cast(&operand, cast_type, &type_position,
                                         /*check_cast_access=*/FALSE,
                                         /*is_implicit_cast=*/FALSE,
                                         /*reinterpret_semantics=*/FALSE);
@@ -12071,6 +12072,7 @@ Syntax:
             } else {
               cast_operand_for_reference_cast(result,
                                               type_cast_to,
+                                              &type_position,
                                               /*check_cast_access=*/TRUE,
                                               /*is_implicit_cast=*/FALSE,
                                               /*reinterpret_semantics=*/FALSE);
@@ -12264,6 +12266,7 @@ Syntax:
           } else {
             cast_operand_for_reference_cast(result,
                                             type_cast_to,
+                                            &type_position,
                                             /*check_cast_access=*/TRUE,
                                             /*is_implicit_cast=*/FALSE,
                                             /*reinterpret_semantics=*/TRUE);
