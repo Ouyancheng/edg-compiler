@@ -4468,15 +4468,6 @@ recursion.
   switch (expr->variant.operation.kind) {
     case eok_dot_field:
     case eok_points_to_field:
-      /* The source form of a __builtin_offsetof construct always uses a
-         "." operator.  The "points_to" cases here are for code in which
-         the front end converts the first operand to a pointer (typically
-         to allow the addition of cv-qualification). */
-      if (node_operator_is(arg1, eok_indirect) &&
-          arg1->variant.operation.compiler_generated) {
-        /* Skip over a compiler-generated indirection node. */
-        arg1 = arg1->variant.operation.operands;
-      }  /* if */
       if (!is_constant_node(arg1)) {
         /* This is not the bottom-most operation (which is applied to a null
            pointer constant that is just a placeholder).  Render the

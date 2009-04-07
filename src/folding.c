@@ -5995,15 +5995,17 @@ static a_boolean is_template_dependent_offsetof_member(
                                             a_boolean         *not_a_constant)
 /*
 The given expression is the second operand of a bok_offsetof operation.  Return
-TRUE is that expression contains a template-dependent subscript operation.
+TRUE if that expression contains a template-dependent subscript operation.
 If it contains a non-constant subscript operation, set *not_a_constant to TRUE.
 */
 {
   a_boolean  template_dependent = FALSE;
 
   while (!is_constant_node(expr)) {
-    an_expr_node_ptr  args = expr->variant.operation.operands;
-    if (is_operation_node(expr) && node_operator_is(expr, eok_subscript)) {
+    an_expr_node_ptr  args;
+    check_assertion(is_operation_node(expr));
+    args = expr->variant.operation.operands;
+    if (node_operator_is(expr, eok_subscript)) {
       if (!is_constant_node(args->next)) {
         *not_a_constant = TRUE;
       } else if (args->next->variant.constant->kind ==
@@ -6031,13 +6033,16 @@ expression).  Otherwise, if the second operand contains a nonconstant
 subscript, set *not_a_constant to TRUE and leave *constant unchanged.  In all
 other cases, store the integer value of the offset being represented in
 *constant (if maintain_expression is TRUE, the backing expression for the
-returned constant will be set as well).  If pos is non-NULL, diagnostics are
-issued at the position it indicates.
+returned constant will be set as well).  If a constant is returned through
+*constant, *not_a_constant is set to FALSE.  If pos is non-NULL, diagnostics
+are issued at the position it indicates.
 */
 {
   an_expr_node_ptr  arg1 = expr->variant.builtin_operation.operands,
                     arg2 = arg1->next;
 
+  /* Start with the assumption that a constant will be produced. */
+  *not_a_constant = FALSE;
   /* eok_parens shouldn't appear here, since the construct is generated. */
   check_assertion(arg1 != NULL && arg2 != NULL && arg2->next == NULL &&
                   arg1->kind == (an_expr_node_kind)enk_type_operand);
