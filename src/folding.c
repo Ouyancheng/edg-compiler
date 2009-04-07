@@ -6065,6 +6065,12 @@ are issued at the position it indicates.
     }  /* if */
     if (maintain_expression) constant->expr = expr;
     constant->type = expr->type;
+  } else if (gpp_mode) {
+    /* GNU C++ (as opposed to GNU C) does not allow nonconstant
+       __builtin_offsetof operations. */
+    if (pos != NULL) {
+      pos_diagnostic(es_discretionary_error, ec_nonconstant_offsetof, pos);
+    }  /* if */
   }  /* if */
 }  /* fold_offsetof */
 
