@@ -7481,6 +7481,7 @@ corresponding change in prescan_decl_specifiers (in disambig.c).
               push_name_linkage(kind);
               *output_flags |= DSO_LINKAGE_SPEC_DECL;
             }  /* if */
+            decl_specifiers_seen |= DS_LINKAGE_SPEC;
           } else {
             error(ec_linkage_specifier_not_allowed);
             err = TRUE;
@@ -7488,7 +7489,6 @@ corresponding change in prescan_decl_specifiers (in disambig.c).
                since an error has already been issued. */
             (void)get_token();
           }  /* if */
-          decl_specifiers_seen |= DS_LINKAGE_SPEC;
           break;
         }  /* if */
         /* Otherwise drop through for normal storage class processing. */
