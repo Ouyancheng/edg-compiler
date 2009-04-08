@@ -749,6 +749,7 @@ as in a decltype.
      in_cctor_elision_initializer is also not copied down; nested expressions
      in an elision initializer are not subject to the optimization. */
   new_entry->is_default_arg_expression = old_entry->is_default_arg_expression;
+  new_entry->current_lambda_in_header = old_entry->current_lambda_in_header;
   if (direct) {
     new_entry->evaluated = old_entry->evaluated;
     new_entry->potentially_evaluated = old_entry->potentially_evaluated;
@@ -809,6 +810,7 @@ is pushed regardless of any of the other factors.
   new_entry->last_source_seq_entry_preceding_expr = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   new_entry->objectless_nonstatic_data_ref_pos = null_source_position;
+  new_entry->current_lambda_in_header = NULL;
   if (expr_stack != NULL) {
     /* There is a previous stack entry; set any of the flags that are affected
        by the enclosing stack entry. */

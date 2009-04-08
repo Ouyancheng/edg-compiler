@@ -76,7 +76,7 @@ extern a_boolean scan_class_definition(
 extern a_boolean is_lambda(void);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-extern a_lambda_ptr scan_lambda(a_boolean inside_default_arg_expression);
+extern a_lambda_ptr scan_lambda(void);
 
 extern void default_argument_fixup_for_class(a_type_ptr  class_type,
                                              a_boolean   is_template_based);

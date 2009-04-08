@@ -16640,6 +16640,8 @@ is built in *operand.  It's an lvalue for the field.
 a_boolean in_lambda_body(void)
 /*
 Return TRUE if we are currently inside the body statement of a lambda.
+Note that this is TRUE inside the header of a lambda nested within
+another lambda; if you don't want that, test !in_lambda_header() also.
 */
 {
   a_boolean result = FALSE;
@@ -16656,24 +16658,34 @@ Return TRUE if we are currently inside the body statement of a lambda.
 }  /* in_lambda_body */
 
 
-static a_boolean var_declared_in_func_enclosing_curr_lambda(
-                                           a_variable_ptr var,
-                                           a_boolean      for_explicit_capture)
+static a_boolean in_lambda_header(void)
+/*
+Return TRUE if we are currently in the header (not the body) of a lambda.
+*/
+{
+  a_boolean in_header = FALSE;
+
+  if (expr_stack != NULL &&
+      expr_stack->current_lambda_in_header != NULL) {
+    in_header = TRUE;
+  }  /* if */
+  return in_header;
+}  /* in_lambda_header */
+
+
+static a_boolean var_declared_in_func_enclosing_curr_lambda(a_variable_ptr var)
 /*
 Return TRUE if the given variable is a local variable or parameter of the
 function immediately enclosing the current lambda.  This is one of the
-conditions for being able to capture the variable.  for_explicit_capture
-is TRUE if this routine is being called to verify a variable named in
-the explicit capture list.
+conditions for being able to capture the variable.
 */
 {
   a_boolean     result = FALSE;
   a_scope_depth sd = depth_scope_stack;
 
-  if (!for_explicit_capture) {
-    /* Find the scope stack entry for the lambda.  This is only done for
-       implicit captures.  For explicit captures the closure class will not
-       have been pushed yet. */
+  if (!in_lambda_header()) {
+    /* Find the scope stack entry for the lambda.  If we're in the header of
+       a lambda, the closure class will not have been pushed yet. */
     for (; ; sd = scope_stack[sd].previous_scope) {
       check_assertion(sd > DEPTH_OF_FILE_SCOPE);
       if (scope_stack[sd].kind == (a_scope_kind)sck_class_struct_union) {
@@ -16716,8 +16728,8 @@ routine.
   a_boolean decl_in_curr_rout = FALSE;
 
   if (innermost_function_scope != NULL) {
-    /* Normal case: we're directly inside a function and we can compare the
-       function in which the variable is declared with the current function. */
+    /* We're directly inside a function and we can compare the function in
+       which the variable is declared with the current function. */
     a_routine_ptr var_rout = var->source_corresp.enclosing_routine;
     check_assertion(var_rout != NULL);
     if (var_rout == innermost_function_scope->variant.routine.ptr) {
@@ -16749,9 +16761,10 @@ static a_boolean expr_is_inside_default_arg_expression(void)
 /*
 Return TRUE if the current expression context is inside a default
 argument expression.  More specifically, this deals with the case where
-we are inside a lambda body inside a default arument expression, where
+we are inside a lambda body inside a default argument expression, where
 expr_stack->is_default_arg_expression alone doesn't give the full
-answer.
+answer.  The result is TRUE if we're inside a default argument expression,
+however deeply nested in lambdas within that we might be.
 */
 {
   a_boolean result = FALSE;
@@ -16765,6 +16778,27 @@ answer.
   }  /* if */
   return result;
 }  /* expr_is_inside_default_arg_expression */
+
+
+static a_boolean curr_lambda_is_immediately_inside_default_arg_expression(void)
+/*
+We're inside the header or body of a lambda.  Return TRUE if the lambda is
+immediately inside a default argument expression.  So, for example,
+return FALSE if we're inside a lambda that's inside another lambda that
+is immediately inside a default argument expression.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (in_lambda_header()) {
+    result = expr_stack->is_default_arg_expression;
+  } else {
+    a_lambda_ptr lambda = get_current_lambda();
+    result = symbol_for(lambda->closure_class)->variant.class_struct_union.
+                  extra_info->lambda_immediately_inside_default_arg_expression;
+  }  /* if */
+  return result;
+}  /* curr_lambda_is_immediately_inside_default_arg_expression */
 
 
 a_boolean check_var_for_lambda_capture(a_variable_ptr  var,
@@ -16786,7 +16820,7 @@ an appropriate error code.
     /* A reference to a static/extern variable doesn't amount to an implicit
        capture.  So implicit captures should never get here. */
     check_assertion(!implicit);
-  } else if (!var_declared_in_func_enclosing_curr_lambda(var, !implicit)) {
+  } else if (!var_declared_in_func_enclosing_curr_lambda(var)) {
     /* Can't use a variable that's not from the immediately enclosing
        function. */
     *diag = implicit ? ec_bad_local_var_in_lambda
@@ -16796,9 +16830,11 @@ an appropriate error code.
     *diag = ec_auto_variable_in_own_initializer;
   } else if (is_variably_modified_type(var->type)) {
     *diag = ec_lambda_capture_involves_variable_length_array;
-  } else if (expr_is_inside_default_arg_expression()) {
+  } else if (curr_lambda_is_immediately_inside_default_arg_expression()) {
     /* Lambdas inside default argument expressions can't refer to local
-       variables at all. */
+       variables at all.  The test here is testing whether the header level of
+       the current lambda is inside a default argument expression, since that's
+       the level at which the capture occurs. */
     *diag = ec_ref_to_nested_function_var;
   } else {
     okay = TRUE;
@@ -18808,11 +18844,7 @@ Scan a C++ lambda expression, e.g., something like
     err = TRUE;
   }  /* if */
   /* Scan the lambda. */
-  /* Note that this does not use expr_is_inside_default_arg_expression
-     on purpose.  We only want to know if the lambda is immediately inside
-     a default argument expression, not if it is inside a lambda that
-     is inside a default argument expression. */
-  lambda = scan_lambda(expr_stack->is_default_arg_expression);
+  lambda = scan_lambda();
   if (lambda == NULL || err) {
     /* Some serious error was previously detected. */
     make_error_operand(result);
@@ -18829,6 +18861,47 @@ Scan a C++ lambda expression, e.g., something like
   set_operand_position(result, &start_pos, &curr_construct_end_position,
                        &start_pos);
 }  /* scan_lambda_expression */
+
+
+void record_start_of_lambda_header(a_lambda_ptr lambda)
+/*
+Callback routine from declaration processing into expression processing,
+called to record the start of the header of the indicated lambda.
+*/
+{
+  a_type_ptr closure_class;
+
+  check_assertion(expr_stack != NULL &&
+                  expr_stack->current_lambda_in_header == NULL);
+  expr_stack->current_lambda_in_header = lambda;
+  closure_class = lambda->closure_class;
+  check_assertion(closure_class != NULL);
+  if (expr_is_inside_default_arg_expression()) {
+    /* Record that the closure class is inside a default argument
+       expression. */
+    a_class_symbol_supplement_ptr cssp =
+                                    symbol_supplement_for_class(closure_class);
+    cssp->lambda_inside_default_arg_expression = TRUE;
+    if (expr_stack->is_default_arg_expression) {
+      cssp->lambda_immediately_inside_default_arg_expression = TRUE;
+    }  /* if */
+  }  /* if */
+}  /* record_start_of_lambda_header */
+
+
+#if !CHECKING
+/*ARGSUSED*/  /* <-- lambda is not used in that case. */
+#endif /* !CHECKING */
+void record_end_of_lambda_header(a_lambda_ptr lambda)
+/*
+Callback routine from declaration processing into expression processing,
+called to record the end of the header of the indicated lambda.
+*/
+{
+  check_assertion(expr_stack != NULL &&
+                  expr_stack->current_lambda_in_header == lambda);
+  expr_stack->current_lambda_in_header = NULL;
+}  /* record_end_of_lambda_header */
 
 
 static void scan_expr_full(an_operand               *result,

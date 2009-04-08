@@ -699,6 +699,10 @@ typedef struct an_expr_stack_entry {
 			   reference to a nonstatic data member, for use in
 			   diagnostic messages if the reference is later
 			   deemed invalid. */
+  a_lambda_ptr
+		current_lambda_in_header;
+			/* If non-NULL, we're inside the header (not the body)
+			   of the indicated lambda. */
 } an_expr_stack_entry;
 
 EXTERN an_expr_stack_entry_ptr

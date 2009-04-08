@@ -1153,16 +1153,13 @@ issue an error and return NULL.
 
 
 static a_type_ptr make_closure_class(a_scope_depth      decl_level,
-                                     a_boolean          inside_default_arg,
                                      a_source_position  *decl_position,
 				     a_boolean		bad_scope)
 /*
 Create the class type that is used to represent a lambda closure.  Return
 a pointer to the class type.  decl_level determines which scope the class
-belongs to.  inside_default_arg is TRUE if the lambda appears inside a
-default argument expression.  decl_position is the declaration position to
-be used for the lambda.  bad_scope is TRUE if the lambda appeared in
-an invalid scope.
+belongs to.  decl_position is the declaration position to be used for the
+lambda.  bad_scope is TRUE if the lambda appeared in an invalid scope.
 
 The class is created as an incomplete type.  It will be completed when its
 various members have been added (call operator, constructors, destructor, and
@@ -1201,7 +1198,6 @@ the fields implied by the lambda's capture list).
   /* Assume for now that bitwise copy is allowed for this class.  This will
      be cleared later if this is not the case. */
   cssp->construction_by_bitwise_copy_allowed = TRUE;
-  cssp->lambda_inside_default_arg_expression = inside_default_arg;
   cssp->lambda_in_invalid_scope = bad_scope;
   return type;
 }  /* make_closure_class */
@@ -16457,6 +16453,7 @@ class is pushed by this routine.
     func_info->declared_type = dps->type;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
+  record_end_of_lambda_header(lambda);
   /* Now that the lambda declarator has been scanned, push the scope stack
      entry for the closure class. */
   push_closure_class(lambda, class_state);
@@ -16650,12 +16647,11 @@ done:
 }  /* decl_level_for_lambda_closure_class */
 
 
-a_lambda_ptr scan_lambda(a_boolean inside_default_arg_expression)
+a_lambda_ptr scan_lambda(void)
 /*
 Scan a C++0x lambda construct and return a pointer to an a_lambda entry
 describing it.  If errors do not permit the construction of a consistent
-entry, return NULL.  inside_default_arg_expression is TRUE if this lambda
-occurs inside a default argument expression.
+entry, return NULL.
 
 The grammar for a lambda expression is as follows:
   
@@ -16693,8 +16689,9 @@ For example:
   decl_level = decl_level_for_lambda_closure_class(&bad_scope);
   decl_scope_level = decl_level;
   lambda->closure_class = closure_class =
-                 make_closure_class(decl_level, inside_default_arg_expression,
-                                    &lambda->start_position, bad_scope);
+                 make_closure_class(decl_level, &lambda->start_position,
+                                    bad_scope);
+  record_start_of_lambda_header(lambda);
   /* Scan the lambda capture list. */
   (void)get_token();
   add_stop_token(tok_rbracket);

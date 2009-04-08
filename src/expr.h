@@ -111,6 +111,10 @@ extern char *spelling_for_function_name_token(a_token_kind token);
 
 extern a_boolean operand_is_string_literal(an_operand_ptr operand);
 
+extern void record_start_of_lambda_header(a_lambda_ptr lambda);
+
+extern void record_end_of_lambda_header(a_lambda_ptr lambda);
+
 extern an_expr_node_ptr scan_integer_expression(a_boolean is_switch_expr);
 
 extern an_expr_node_ptr scan_void_expression(a_boolean repeated_in_loop,
