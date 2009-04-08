@@ -787,6 +787,8 @@ is pushed regardless of any of the other factors.
   curr_expr_ref_entries = NULL;
   new_entry->evaluated = TRUE;
   new_entry->potentially_evaluated = TRUE;
+  new_entry->potentially_unevaluated = FALSE;
+  new_entry->objectless_nonstatic_data_ref_seen = FALSE;
   new_entry->is_decltype_or_typeof_arg_expression = FALSE;
   new_entry->is_default_arg_expression = FALSE;
   new_entry->is_template_arg_expression = FALSE;
@@ -806,6 +808,7 @@ is pushed regardless of any of the other factors.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   new_entry->last_source_seq_entry_preceding_expr = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  new_entry->objectless_nonstatic_data_ref_pos = null_source_position;
   if (expr_stack != NULL) {
     /* There is a previous stack entry; set any of the flags that are affected
        by the enclosing stack entry. */
@@ -829,6 +832,7 @@ is pushed regardless of any of the other factors.
        for a number of other non-evaluated cases.) */
     expr_stack->evaluated = FALSE;
     expr_stack->potentially_evaluated = FALSE;
+    expr_stack->potentially_unevaluated = TRUE;
     /* Save information needed to discard any side effects of the expression
        when it is discarded later.  The caller can set
        unevaluated_expr_will_be_kept_in_il to TRUE after push_expr_stack to
@@ -1441,6 +1445,7 @@ values.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   operand->is_routine_name_followed_by_left_paren = FALSE;
   operand->is_dummy_lvalue = FALSE;
+  operand->is_objectless_nonstatic_data_mem_ref = FALSE;
 #if RECORD_FORM_OF_NAME_REFERENCE
   operand->name_reference_set = FALSE;
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */

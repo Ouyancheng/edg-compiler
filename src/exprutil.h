@@ -348,6 +348,10 @@ typedef struct an_operand {
   a_bit_field	is_dummy_lvalue:1;
 			/* TRUE if this operand was created by
 			   make_dummy_lvalue_operand. */
+  a_bit_field	is_objectless_nonstatic_data_mem_ref:1;
+			/* TRUE if this operand represents a reference to a
+			   nonstatic data member without an object, as is
+			   permitted in unevaluated operands. */
 #if RECORD_FORM_OF_NAME_REFERENCE
   a_bit_field	name_reference_set:1;
 			/* TRUE if name_reference has been set. */
@@ -574,6 +578,20 @@ typedef struct an_expr_stack_entry {
 			   a constant expression, even one inside a not-
 			   evaluated expression. */
   a_byte_boolean
+		potentially_unevaluated;
+			/* Expression may be an unevaluated operand, i.e.,
+			   TRUE for operands of sizeof and similar
+			   operators and for the operand of typeid, which
+			   is evaluated for polymorphic lvalues and
+			   unevaluated for all other operands.  Determines
+			   whether an objectless reference to a nonstatic
+			   data member is allowed. */
+  a_byte_boolean
+		objectless_nonstatic_data_ref_seen;
+			/* Initially FALSE, set to TRUE if an objectless
+			   reference to a nonstatic data member occurs in a
+			   context that permits such constructs. */
+  a_byte_boolean
 		is_decltype_or_typeof_arg_expression;
 			/* TRUE if the expression is the argument for a C++0x
 			   decltype construct or a GNU typeof construct. */
@@ -675,6 +693,12 @@ typedef struct an_expr_stack_entry {
 			   expression (e.g., in a GNU statement expression)
 			   if the overall expression is discarded. */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  a_source_position
+		objectless_nonstatic_data_ref_pos;
+			/* The source position of the most recent objectless
+			   reference to a nonstatic data member, for use in
+			   diagnostic messages if the reference is later
+			   deemed invalid. */
 } an_expr_stack_entry;
 
 EXTERN an_expr_stack_entry_ptr
@@ -775,6 +799,13 @@ i.e., it's not inside a sizeof or alignof.
 */
 #define curr_expr_is_potentially_evaluated()                          \
   ((a_boolean)expr_stack->potentially_evaluated)
+
+/*
+Macro that returns TRUE if the current expression is potentially unevaluated,
+i.e., it's an unevaluated operand or the operand of typeid.
+*/
+#define curr_expr_is_potentially_unevaluated() \
+  ((a_boolean)expr_stack->potentially_unevaluated)
 
 
 /* Copy an operand.  Note that this does not copy the subtree of the

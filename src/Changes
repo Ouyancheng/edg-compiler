@@ -1,5 +1,20 @@
 Version 4.1
 
+4/7/09   [EDGcpfe/8402]
+Objectless references to non-static data members
+
+In the 2003 C++ Standard, the name of a non-static class data member could
+appear only in a member function of that class or one derived from it, in a
+member access expression (x.m or p->m), or to form a pointer to member
+(&X::m).  C++0x relaxes that restriction to allow such names as an
+unevaluated operand, such as sizeof(X::m), typeid(X::m), and
+decltype(X::m).  The front end now supports this usage in C++0x mode by
+transforming such references to a compiler-generated member access
+expression using 0 cast to the appropriate type as the object pointer.  As
+an extension, non-strict C++0x mode also allows these references to appear
+as subexpressions in unevaluated operands, such as sizeof(X::array[0]).
+
+
 4/6/09   [EDGcpfe/9540]
 Mangling unnamed enum template parameter member causes assertion failure
 
