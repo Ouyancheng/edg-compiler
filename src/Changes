@@ -1,5 +1,18 @@
 Version 4.1
 
+4/8/09   [EDGcpfe/9692]
+Microsoft compatibility: stringized omitted arguments
+
+The Microsoft preprocessor has special handling when stringizing omitted
+(as opposed to empty) arguments: such arguments expand to nothing rather
+than to "".  The front end now emulates this behavior in Microsoft mode.
+For example:
+
+  #define M(x, ...) #__VA_ARGS__
+  M(a)    // Previously expanded to "", now to nothing
+  M(a,)   // Continues to expand to "", as with Microsoft preprocessor
+
+
 4/7/09   [EDGcpfe/8402]
 Objectless references to non-static data members
 

@@ -291,6 +291,17 @@ typedef struct a_macro_arg {
 			   it's best to start small and extend only those maps
 			   where the extra entries are actually needed. */
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
+  a_byte_boolean
+		is_empty_arg;
+			/* The Microsoft preprocessor distinguishes between
+			   omitted and empty arguments.  Both have a
+			   raw_len of 0, but an empty argument is preceded
+			   or followed by a comma -- e.g., for a
+			   two-argument macro, M(a) has an omitted second
+			   argument, while M(,) has two empty arguments.
+			   This affects how stringizing works: a stringized
+			   empty argument produces "", while a stringized
+			   omitted argument produces nothing. */
 } a_macro_arg;
 
 static a_macro_arg_ptr
@@ -1817,6 +1828,7 @@ and return a pointer to it.
   map->final_modif_for_initial_text = NULL;
   map->offset_in_raw_text_of_primary_source_line_text = 0;
   map->expanded_len = 0;
+  map->is_empty_arg = FALSE;
   db_exit();
   return map;
 }  /* alloc_macro_arg */
@@ -3321,8 +3333,18 @@ hence its name should not be changed.
         case rt_charized_raw_argument:
           /* Determine the length of the stringized version of the argument
              (or the charized version in some Microsoft macros). */
-          sect_len = stringized_arg(map, (char **)NULL,
-                                    rts_kind == rt_charized_raw_argument);
+          if (map->raw_len > 0 || !microsoft_mode || map->is_empty_arg) {
+            sect_len = stringized_arg(map, (char **)NULL,
+                                      rts_kind == rt_charized_raw_argument);
+          } else {
+            /* The Microsoft preprocessor suppresses all output for
+               omitted (as opposed to empty) arguments.  That is, given
+
+                 #define M(a,b) #b
+
+               M(1) expands to nothing, while M(1,) expands to "". */
+            sect_len = 0;
+          }  /* if */
           break;
         case rt_argument:
           sect_len = map->expanded_len;
@@ -4122,6 +4144,7 @@ do_argument_again:
               (void)arg_get_token(&any_white_space_skipped);
               goto do_argument_again;
             }  /* if */
+            map->is_empty_arg = (pp != param_list || curr_token == tok_comma);
           }  /* if */
           if (curr_token == tok_end_of_source || curr_token == tok_newline) {
             /* The macro was not correctly terminated -- we won't need the
@@ -4677,39 +4700,50 @@ end_arg_expansion:;
           case rt_stringized_raw_argument:
           case rt_charized_raw_argument:
             /* The stringized or charized value of the argument. */
+            if (map->raw_len > 0 || !microsoft_mode || map->is_empty_arg) {
+              /* The Microsoft preprocessor suppresses all output for
+                 omitted (as opposed to empty) arguments.  That is, given
+
+                   #define M(a,b) #b
+
+                 M(1) expands to nothing, while M(1,) expands to "". */
 #if FULLY_RESOLVED_MACRO_POSITIONS
-            /* The result will be a single token, so we only need the
-               starting position from the raw_text_map; the other map
-               entries would point inside the literal and thus could never
-               be used. */
-            clone_macro_text_map_entries(&map->raw_text_map,
-                                         /*starting_src_offset=*/0,
-                                         /*ending_src_offset=*/0,
-                                         &macro_text_map,
-                                         (sizeof_t)(src_loc - rescan_loc),
-                                         this_macro_invocation_record);
+              /* The result will be a single token, so we only need the
+                 starting position from the raw_text_map; the other map
+                 entries would point inside the literal and thus could never
+                 be used. */
+              clone_macro_text_map_entries(&map->raw_text_map,
+                                           /*starting_src_offset=*/0,
+                                           /*ending_src_offset=*/0,
+                                           &macro_text_map,
+                                           (sizeof_t)(src_loc - rescan_loc),
+                                           this_macro_invocation_record);
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
-            (void)stringized_arg(map, &src_loc,
-                                 rts_kind == rt_charized_raw_argument);
+              (void)stringized_arg(map, &src_loc,
+                                   rts_kind == rt_charized_raw_argument);
 #if FULLY_RESOLVED_MACRO_POSITIONS
-            /* Add an extra entry to macro_text_map so that the ending
-               position of the stringized token will map to the last character
-               of the argument text.  The starting offset for the entry will
-               be the closing quote, i.e., one before the next available space
-               in the buffer, and the source position will be the same as the
-               last region in the argument's raw text map, offset to the end
-               of the argument text (i.e., one before the ending offset less
-               the final LE_END_OF_INSERTION escape). */
-            tmep = &map->raw_text_map.entries[map->raw_text_map.num_entries-2];
-            src_offset = tmep[1].start_of_region - tmep[0].start_of_region -
+              /* Add an extra entry to macro_text_map so that the ending
+                 position of the stringized token will map to the last
+                 character of the argument text.  The starting offset for
+                 the entry will be the closing quote, i.e., one before the
+                 next available space in the buffer, and the source
+                 position will be the same as the last region in the
+                 argument's raw text map, offset to the end of the argument
+                 text (i.e., one before the ending offset less the final
+                 LE_END_OF_INSERTION escape). */
+              tmep =
+                   &map->raw_text_map.entries[map->raw_text_map.num_entries-2];
+              src_offset = tmep[1].start_of_region - tmep[0].start_of_region -
                                                              LE_ESCAPE_LEN - 1;
-            add_entry_to_macro_text_map(&macro_text_map,
+              add_entry_to_macro_text_map(
+                                        &macro_text_map,
                                         (sizeof_t)(src_loc - rescan_loc - 1),
                                         tmep->corresponding_source_pos.seq,
                                         tmep->corresponding_source_pos.column +
                                                                     src_offset,
                                         this_macro_invocation_record);
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
+            }  /* if */
             goto copy_done;
           case rt_argument:
             /* The macro-expanded value of the argument. */
