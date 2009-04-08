@@ -8831,27 +8831,43 @@ static void decl_call_operator_for_lambda(a_lambda_ptr        lambda,
                                           a_member_decl_info  *decl_info,
                                           a_func_info_block   *func_info)
 /*
-Create operator()(...) for the given lambda.  *decl_info and *func_info
-describe various properties about the construct that was parsed.  *class_state
-describes the synthesized "closure class" associated with the lambda.
+Create operator()(...) for the given lambda (except in some error cases).
+*decl_info and *func_info describe various properties about the construct that
+was parsed.  *class_state describes the synthesized "closure class" associated
+with the lambda.
 The heavy lifting for this routine is performed by decl_member_function.
 */
 {
-  a_symbol_locator  loc;
-  a_routine_ptr     rp;
+  a_decl_parse_state  *dps = &decl_info->decl_state;
 
-  func_info->is_inline = TRUE;
-  func_info->is_definition = TRUE;
-  make_opname_locator((an_opname_kind)onk_function_call, &loc,
-                      &decl_info->decl_state.declarator_pos);
-  decl_member_function(&loc, func_info, class_state, decl_info,
-                       /*compiler_generated=*/FALSE);
-  rp = decl_info->decl_state.sym->variant.routine.ptr;
-  lambda->lambda_routine = rp;
-  rp->is_lambda_body = TRUE;
-  rp->type->variant.routine.extra_info->assoc_routine = rp;
-  rp->is_prototype_instantiation =
+  if (!is_error_type(dps->type)) {
+    a_symbol_locator    loc;
+    a_routine_ptr       rp;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    a_boolean           prev_source_sequence_entries_disallowed
+                                         = source_sequence_entries_disallowed;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    check_assertion(is_function_type(dps->type));
+    func_info->is_inline = TRUE;
+    func_info->is_definition = TRUE;
+    make_opname_locator((an_opname_kind)onk_function_call, &loc,
+                        &decl_info->decl_state.declarator_pos);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    source_sequence_entries_disallowed = TRUE;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    decl_member_function(&loc, func_info, class_state, decl_info,
+                         /*compiler_generated=*/FALSE);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    source_sequence_entries_disallowed =
+                                      prev_source_sequence_entries_disallowed;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    rp = decl_info->decl_state.sym->variant.routine.ptr;
+    lambda->lambda_routine = rp;
+    rp->is_lambda_body = TRUE;
+    rp->type->variant.routine.extra_info->assoc_routine = rp;
+    rp->is_prototype_instantiation =
                      scope_stack[depth_scope_stack].in_prototype_instantiation;
+  }  /* if */
 }  /* decl_call_operator_for_lambda */
 
 
@@ -16373,14 +16389,30 @@ caller has already moved past the '[', and this routine leaves the trailing
 }  /* scan_lambda_capture_list */
 
 
-static void push_closure_class(a_lambda_ptr		lambda,
-			       a_class_def_state_ptr	class_state)
+static void decl_lambda_capture_fields(a_lambda_ptr  lambda)
+/*
+Declare the fields corresponding to the "captures" of the given lambda in its
+associated closure type.
+*/
+{
+  a_lambda_capture_ptr  lcp;
+
+  for (lcp = lambda->capture_list; lcp != NULL; lcp = lcp->next) {
+    lcp->closure_field = make_field_for_lambda_capture(
+                                    lambda, lcp->variable,
+                                    lcp->capture_by_reference, &lcp->position);
+  }  /* for */
+}  /* decl_lambda_capture_fields */
+
+
+static void push_closure_class(a_lambda_ptr           lambda,
+                               a_class_def_state_ptr  class_state)
 /*
 Push the scope stack entry for the closure class for lambda and
 initialize class_def_state.
 */
 {
-  a_type_ptr	closure_class = lambda->closure_class;
+  a_type_ptr  closure_class = lambda->closure_class;
 
   initialize_class_def_state(closure_class, class_state);
   if (innermost_function_scope != NULL || inside_local_class) {
@@ -16402,31 +16434,23 @@ initialize class_def_state.
 }  /* push_closure_class */
 
 
-static void scan_and_process_lambda_declarator(a_lambda_ptr       lambda,
-                                               a_func_info_block  *func_info,
-                                               a_class_def_state  *class_state)
+static void scan_optional_lambda_declarator(a_lambda_ptr        lambda,
+                                            a_func_info_block   *func_info,
+                                            a_member_decl_info  *decl_info)
 /*
 For the given lambda, parse the (optional) declarator-like construct, which
-consists of a parameter list and, optionally, a mutable specifier, an
-exception specification, and/or a return type specification.  Then, create a
-corresponding call operator in the closure class.  Return
-properties of this operator in *func_info (which is initialized here).
-class_def_state is the class definition state created when the closure
-class is pushed by this routine.
+consists of a parameter list and, optionally, a mutable specifier, an exception
+specification, and/or a return type specification.  Return properties of the
+implied call operator in *func_info and *decl_info (both are initialized here).
 */
 {
-  a_member_decl_info  decl_info;
-  a_decl_parse_state  *dps = &decl_info.decl_state;
-  a_decl_pos_block    *decl_pos_block = &decl_info.decl_pos_block;
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-  a_boolean           prev_source_sequence_entries_disallowed
-                                         = source_sequence_entries_disallowed;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  a_decl_parse_state  *dps = &decl_info->decl_state;
+  a_decl_pos_block    *decl_pos_block = &decl_info->decl_pos_block;
 
   clear_func_info(func_info);
   func_info->lambda = lambda;
-  initialize_member_decl_info(&decl_info, &pos_curr_token);
-  decl_info.is_first_in_declarator_list = TRUE;
+  initialize_member_decl_info(decl_info, &pos_curr_token);
+  decl_info->is_first_in_declarator_list = TRUE;
   dps->type = dps->specifiers_type = void_type();
   dps->start_pos = dps->specifiers_pos = pos_curr_token;
   dps->in_class_scope = TRUE;
@@ -16453,22 +16477,7 @@ class is pushed by this routine.
     func_info->declared_type = dps->type;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
-  record_end_of_lambda_header(lambda);
-  /* Now that the lambda declarator has been scanned, push the scope stack
-     entry for the closure class. */
-  push_closure_class(lambda, class_state);
-  if (!is_error_type(dps->type)) {
-    check_assertion(is_function_type(dps->type));
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-    source_sequence_entries_disallowed = TRUE;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-    decl_call_operator_for_lambda(lambda, class_state, &decl_info, func_info);
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-    source_sequence_entries_disallowed =
-                                      prev_source_sequence_entries_disallowed;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  }  /* if */
-}  /* scan_and_process_lambda_declarator */
+}  /* scan_optional_lambda_declarator */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
@@ -16580,8 +16589,7 @@ and issue a diagnostic if that was not the case.
 }  /* check_implicit_lambda_return_type */
 
 
-static a_scope_depth decl_level_for_lambda_closure_class(
-                                                 a_boolean	*bad_scope)
+static a_scope_depth decl_level_for_lambda_closure_class(a_boolean  *bad_scope)
 /*
 A lambda appears in the current scope context.  Return the scope depth at
 which the associated closure class should be declared.  Return in *bad_scope
@@ -16647,6 +16655,89 @@ done:
 }  /* decl_level_for_lambda_closure_class */
 
 
+static void finish_lambda_routine_processing(a_lambda_ptr  *p_lambda)
+/*
+The given lambda has been completely parsed, and its closure type has been
+completed.  Perform any final processing for the closure type's operator()
+(notably, IL lowering).
+In severe error cases, *p_lambda or *p_lambda->lambda_routine can be NULL:
+Set *p_lambda to NULL in such cases.
+*/
+{
+  a_lambda_ptr  lambda = *p_lambda;
+
+  if (lambda != NULL && lambda->lambda_routine != NULL) {
+    if (lambda->lambda_routine->assoc_scope != NULL_region_number) {
+#if DO_IL_LOWERING
+      if (is_primary_translation_unit && 
+          should_delay_lowering_on_function(lambda->lambda_routine,
+                                            /*at_initial_scope_pop=*/FALSE)) {
+        /* Delay lowering of lambdas in some cases (e.g., a lambda could
+           be referenced by a template and therefore might have to be
+           externalized and it may be too early to create a module id). */
+      } else
+#endif /* DO_IL_LOWERING */
+      /* Do not insert code here. */
+      {
+        /* Lowering of the lambda body function is deferred because the closure
+           class was not complete when the function was scanned.  Now that the
+           closure class is complete, do the lowering of the lambda body (if
+           needed).  In some cases involving prototype instantiations the
+           lambda body may have already been discarded. */
+        finish_function_processing_for_memory_region(
+                   lambda->lambda_routine->assoc_scope, /*only_inline=*/FALSE);
+      }  /* if */
+    }  /* if */
+  } else {
+    /* Severe errors prevented the creation of a call operator.  Don't return
+       a lambda. */
+    check_assertion(total_errors != 0);
+    *p_lambda = NULL;
+  }  /* if */
+}  /* finish_lambda_processing */
+
+
+static void scan_lambda_body(a_lambda_ptr       lambda,
+                             a_func_info_block  *func_info)
+/*
+Scan the body of the given lambda (except in some error cases).  If no body is
+found, set lambda->lambda_routine to NULL.  *func_info describes some
+properties of the call operator with which the lambda body is associated.
+The heavy lifting for this routine is performed by scan_function_body.
+*/
+{
+  if (lambda->lambda_routine != NULL) {
+    /* Parse the body of the lambda.  A class reactivation is not pushed for
+       the lambda closure class because it is still on the scope stack. */
+    error_position = pos_curr_token;
+    add_stop_token(tok_rbrace);
+    if (curr_token != tok_lbrace) {
+      /* If a lambda body is missing, set lambda to NULL since the parsed
+         construct may not have been meant as a lambda at all. */
+      error(ec_missing_lambda_body);
+      lambda->lambda_routine = NULL;
+    } else {
+      a_source_position  body_pos;
+      a_routine_ptr      rp = lambda->lambda_routine;
+      a_decl_flag_set    sfb_flags = SFB_NEW_STRUCT_STMT_STACK_REQUIRED |
+                                     SFB_NO_CLASS_REACTIVATION;
+      body_pos = pos_curr_token;
+      scan_function_body(rp, func_info, sfb_flags);
+      if (!lambda->explicit_return_type) {
+        check_implicit_lambda_return_type(lambda, &body_pos);
+      }  /* if */
+    }  /* if */
+    if (curr_token == tok_rbrace) {
+      /* Don't use required_token, because if we aren't at a brace, an error
+         has already been issued, and we are at the token to restart parsing
+         with. */
+      (void)get_token();
+    }  /* if */
+    remove_stop_token(tok_rbrace);
+  }  /* if */
+}  /* scan_lambda_body */
+
+
 a_lambda_ptr scan_lambda(void)
 /*
 Scan a C++0x lambda construct and return a pointer to an a_lambda entry
@@ -16676,8 +16767,7 @@ For example:
   a_scope_depth        decl_level, saved_decl_scope_level = decl_scope_level;
   a_class_def_state    class_state;
   a_func_info_block    func_info;
-  a_decl_flag_set      sfb_flags;
-  a_lambda_capture_ptr lcp;
+  a_member_decl_info   decl_info;
   a_boolean            bad_scope;
 
   /* Start a new stop token context. */
@@ -16701,75 +16791,21 @@ For example:
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   (void)required_token(tok_rbracket, ec_exp_rbracket);
   remove_stop_token(tok_rbracket);
-  /* Parse the "declarator" part of the lambda (the parameter list, etc.) and
-     create the associated corresponding call operator in the closure class. */
-  scan_and_process_lambda_declarator(lambda, &func_info, &class_state);
+  /* Parse the "declarator" part of the lambda (the parameter list, etc.). */
+  scan_optional_lambda_declarator(lambda, &func_info, &decl_info);
+  record_end_of_lambda_header(lambda);
+  /* Now that the lambda declarator has been scanned, push the scope stack
+     entry for the closure class. */
+  push_closure_class(lambda, &class_state);
+  /* Declare the call operator for the closure class. */
+  decl_call_operator_for_lambda(lambda, &class_state, &decl_info, &func_info);
   /* Fill in the capture fields information for the explicit captures. */
-  for (lcp = lambda->capture_list; lcp != NULL; lcp = lcp->next) {
-    lcp->closure_field = make_field_for_lambda_capture(
-                                    lambda, lcp->variable,
-                                    lcp->capture_by_reference, &lcp->position);
-  }  /* for */
-  if (lambda->lambda_routine != NULL) {
-    /* Parse the body of the lambda.  A class reactivation is not pushed for
-       the lambda closure class because it is still on the scope stack. */
-    error_position = pos_curr_token;
-    add_stop_token(tok_rbrace);
-    if (curr_token != tok_lbrace) {
-      /* If a lambda body is missing, set lambda to NULL since the parsed
-         construct may not have been meant as a lambda at all. */
-      error(ec_missing_lambda_body);
-      lambda = NULL;
-    } else {
-      a_source_position  body_pos;
-      a_routine_ptr      rp = lambda->lambda_routine;
-      body_pos = pos_curr_token;
-      sfb_flags = SFB_NEW_STRUCT_STMT_STACK_REQUIRED |
-                  SFB_NO_CLASS_REACTIVATION;
-      scan_function_body(rp, &func_info, sfb_flags);
-      if (!lambda->explicit_return_type) {
-        check_implicit_lambda_return_type(lambda, &body_pos);
-      }  /* if */
-    }  /* if */
-    if (curr_token == tok_rbrace) {
-      /* Don't use required_token, because if we aren't at a brace, an error
-         has already been issued, and we are at the token to restart parsing
-         with. */
-      (void)get_token();
-    }  /* if */
-    remove_stop_token(tok_rbrace);
-  }  /* if */
+  decl_lambda_capture_fields(lambda);
+  scan_lambda_body(lambda, &func_info);
   /* Record the capture list and complete the closure class. */
   complete_class_definition(closure_class, decl_level, &class_state);
   pop_scope();
-  if (lambda != NULL && lambda->lambda_routine != NULL) {
-    if (lambda->lambda_routine->assoc_scope != NULL_region_number) {
-#if DO_IL_LOWERING
-      if (is_primary_translation_unit && 
-          should_delay_lowering_on_function(lambda->lambda_routine,
-                                            /*at_initial_scope_pop=*/FALSE)) {
-        /* Delay lowering of lambdas in some cases (e.g., a lambda could
-           be referenced by a template and therefore might have to be
-           externalized and it may be too early to create a module id). */
-      } else
-#endif /* DO_IL_LOWERING */
-      /* Do not insert code here. */
-      {
-        /* Lowering of the lambda body function is deferred because the closure
-           class was not complete when the function was scanned.  Now that the
-           closure class is complete, do the lowering of the lambda body (if
-           needed).  In some cases involving prototype instantiations the
-           lambda body may have already been discarded. */
-        finish_function_processing_for_memory_region(
-                   lambda->lambda_routine->assoc_scope, /*only_inline=*/FALSE);
-      }  /* if */
-    }  /* if */
-  } else {
-    /* Severe errors prevented the creation of a call operator.  Don't return
-       a lambda. */
-    check_assertion(total_errors != 0);
-    lambda = NULL;
-  }  /* if */
+  finish_lambda_routine_processing(&lambda);
   /* Restore the previous default declaration scope. */
   decl_scope_level = saved_decl_scope_level;
   /* Restore the previous stop token context. */
