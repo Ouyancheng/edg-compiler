@@ -1,5 +1,19 @@
 Version 4.1
 
+4/8/09   [EDGcpfe/9675]
+Abort on excess initializers for zero-length array in GNU modes
+
+In GNU modes, extraneous elements in an aggregate initializer are often
+accepted with a warning.  However, in some cases involving zero-length arrays
+(another GNU extension) the front end aborted with an internal error in
+get_initializer (decl_inits.c) when dealing with such excess initializers.
+For example:
+
+  int a[][0] = { 3 };  // Previously triggered an abort in GNU modes.
+
+This is now fixed.
+
+
 4/8/09   [EDGcpfe/9692]
 Microsoft compatibility: stringized omitted arguments
 

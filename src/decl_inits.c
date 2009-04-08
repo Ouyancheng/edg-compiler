@@ -1359,6 +1359,13 @@ TRUE.
       }  /* if */
     }  /* if */
     *member_type = type->variant.array.element_type;
+    if (is_array_type(*member_type) && num_array_elements(*member_type) == 0) {
+      /* Some modes allow zero-length arrays.  If the member type contains
+         such an array, do not attempt to initializer it.  E.g.:
+            int a[][0] = { 0 };  // Excess initializer.
+      */
+      *any_more_members = FALSE;
+    }  /* if */
     /* Note that arrays of incomplete struct/union types (an extension)
        do not make it to here (they're caught as an error at the top
        level in the routine "initializer" and replaced by an error type),
