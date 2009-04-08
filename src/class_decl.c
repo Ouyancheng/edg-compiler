@@ -1179,6 +1179,7 @@ the fields implied by the lambda's capture list).
                                 decl_position);
   /* Create the type for the lambda class. */
   type = alloc_type((a_type_kind)tk_class);
+  type->variant.class_struct_union.originally_unnamed = TRUE;
   class_type_supp(type)->is_lambda_closure_class = TRUE;
   set_source_corresp(&(type->source_corresp), sym);
   sym->variant.class_struct_union.type = type;
