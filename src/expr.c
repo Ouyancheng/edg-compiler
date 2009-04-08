@@ -18829,9 +18829,10 @@ Scan a C++ lambda expression, e.g., something like
 
 */
 {
-  a_lambda_ptr       lambda;
-  a_source_position  start_pos;
-  a_boolean          err = FALSE;
+  a_lambda_ptr        lambda;
+  a_source_position   start_pos;
+  a_boolean           err = FALSE;
+  an_expr_stack_entry expr_stack_entry;
 
   start_pos = pos_curr_token;
   if (curr_expr_kind_is_const()) {
@@ -18843,6 +18844,14 @@ Scan a C++ lambda expression, e.g., something like
     pos_error(ec_bad_unevaluated_lambda, &start_pos);
     err = TRUE;
   }  /* if */
+  /* Push an entry on the expression stack so that we have our own
+     current_lambda_in_header pointer at this level. */
+  push_expr_stack(expr_stack->expression_kind, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/TRUE);
+  /* Clear the lambda header indication so we can set it at this level for
+     this lambda. */
+  expr_stack_entry.current_lambda_in_header = NULL;
   /* Scan the lambda. */
   lambda = scan_lambda();
   if (lambda == NULL || err) {
@@ -18858,6 +18867,7 @@ Scan a C++ lambda expression, e.g., something like
     expr->variant.lambda.initialization = make_initializer_for_lambda(lambda);
     make_expression_operand(expr, result);
   }  /* if */
+  pop_expr_stack();
   set_operand_position(result, &start_pos, &curr_construct_end_position,
                        &start_pos);
 }  /* scan_lambda_expression */
