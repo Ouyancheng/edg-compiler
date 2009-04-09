@@ -1942,6 +1942,9 @@ Clear the fields of the given variable to default values.
   vp->instance_required           = FALSE;
 #endif /* AUTOMATIC_TEMPLATE_INSTANTIATION */
   vp->param_value_has_been_changed= FALSE;
+#if MINIMAL_INLINING
+  vp->param_used_as_lvalue        = FALSE;
+#endif /* MINIMAL_INLINING */
   vp->param_used_more_than_once   = FALSE;
   vp->is_handler_param            = FALSE;
   vp->is_this_parameter           = FALSE;

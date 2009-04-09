@@ -407,8 +407,10 @@ set the temporary variables; see finish_variable_remapping_for_inlining.
       /* See if the parameter is modified. */
       a_boolean param_is_unmodified = FALSE;
       a_boolean param_is_constructor_this = FALSE;
-      if (!param_var->param_value_has_been_changed) {
-        /* The parameter doesn't get changed or have its address taken. */
+      if (!param_var->param_value_has_been_changed &&
+          !param_var->param_used_as_lvalue) {
+        /* The parameter doesn't get changed (because its address isn't taken
+           and it is never used as an lvalue). */
         param_is_unmodified = TRUE;
       } else if (param_var->is_this_parameter &&
                  routine->special_kind ==

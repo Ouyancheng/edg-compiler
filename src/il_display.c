@@ -2263,6 +2263,10 @@ Display the indicated variable.
   if (ptr->is_parameter || ptr->is_handler_param) {
     disp_boolean("param_value_has_been_changed",
                  (a_boolean)ptr->param_value_has_been_changed);
+#if MINIMAL_INLINING
+    disp_boolean("param_used_as_lvalue",
+                 (a_boolean)ptr->param_used_as_lvalue);
+#endif /* MINIMAL_INLINING */
     disp_boolean("param_used_more_than_once",
                  (a_boolean)ptr->param_used_more_than_once);
   }  /* if */

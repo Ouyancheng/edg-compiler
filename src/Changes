@@ -1,5 +1,20 @@
 Version 4.1
 
+4/9/09   [EDGcpfe/9669]
+Inlining a reference cast of a parameter could cause assertion failure
+
+Inlining a routine that contains a reference cast of an lvalue parameter
+resulted in an assertion failure ("remap_var_for_inlining: wrong kind of
+remap").  This regression was introduced in 4.0 and is now fixed.  For example:
+
+  inline void f(int i) {
+    int j = (int&)i;
+  }
+  void g(int i) {
+    f(i);
+  }
+
+
 4/9/09   [EDGcpfe/9659]
 Microsoft compatibility: C++0x features
 

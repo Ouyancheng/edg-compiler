@@ -13409,6 +13409,14 @@ cast.  See lower_expr for typical invocation.
       /* No processing required. */
       break;
     case enk_variable:
+#if MINIMAL_INLINING
+      if (expr->is_lvalue &&
+          (expr->variant.variable->is_parameter ||
+           expr->variant.variable->is_handler_param)) {
+        /* Set flag indicating that this parameter is used as an lvalue. */
+        expr->variant.variable->param_used_as_lvalue = TRUE;
+      }  /* if */
+#endif /* MINIMAL_INLINING */
 #if LOWER_VARIABLE_LENGTH_ARRAYS
       if (expr->variant.variable->is_vla && expr->is_lvalue) {
         /* VLAs are lowered to pointers (to automatically managed storage).

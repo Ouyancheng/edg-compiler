@@ -3611,6 +3611,12 @@ second parameter.
         lower_vla_variable_lvalue(expr);
       }  /* if */
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
+#if MINIMAL_INLINING
+      if (expr->is_lvalue && expr->variant.variable->is_parameter) {
+        /* Set flag indicating that this parameter is used as an lvalue. */
+        expr->variant.variable->param_used_as_lvalue = TRUE;
+      }  /* if */
+#endif /* MINIMAL_INLINING */
       break;
     case enk_routine:
       /* Although enk_routine nodes are not lowered here, they may be
