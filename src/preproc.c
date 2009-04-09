@@ -2619,7 +2619,7 @@ executable file.
         error(ec_exp_string_literal);
         err = TRUE;
       }  /* if */
-    } else {
+    } else if (curr_token != tok_rparen) {
       error(ec_exp_comma);
       err = TRUE;
     }  /* if */
