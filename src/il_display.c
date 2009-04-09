@@ -3952,10 +3952,7 @@ Display the indicated pragma entry.
     (void)printf("%s\n",
                  microsoft_pragma_comment_ids[(int)ptr->variant.comment.kind]);
     if (ptr->variant.comment.str != NULL) {
-      disp_string_ptr("comment.str",
-                      ptr->variant.comment.str->variant.string.value,
-                      iek_string_text,
-                      ptr->variant.comment.str->variant.string.length - 1);
+      disp_ptr("comment.str", (char *)ptr->variant.comment.str, iek_constant);
     }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
