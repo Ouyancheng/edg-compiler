@@ -14217,19 +14217,14 @@ been found to be acceptable, and *conversion describes it.
                                    &access_error_reported);
     } else {
       /* Normal case (not an indefinite function). */
-      if (exceptions_enabled) {
-        /* Check compatibility of exception specifications.  Unlike the
-           pointer-to-function case, the reference-to-function case must
-           match exactly.  (GNU compilers don't diagnose this: We issue
-           a warning when emulating those compilers.) */
-        if (exception_spec_is_less_restrictive(source_operand->type,
-                                               base_dest_type) ||
-            exception_spec_is_less_restrictive(base_dest_type,
-                                               source_operand->type)) {
-          pos_diagnostic(gpp_mode ? es_warning : es_discretionary_error,
-                         ec_incompatible_exception_specs,
-                         &source_operand->position);
-        }  /* if */
+      /* Check compatibility of exception specifications.  The source type
+         cannot be less restrictive than the destination type.  (GCC doesn't
+         diagnose this.) */
+      if (!exception_spec_conversion_possible(source_operand->type,
+                                              base_dest_type)) {
+        pos_diagnostic(gpp_mode ? es_warning : es_discretionary_error,
+                       ec_incompatible_exception_specs,
+                       &source_operand->position);
       }  /* if */
     }  /* if */
   } else if ((direct_binding_possible || dropping_qualifiers) &&

@@ -1,5 +1,26 @@
 Version 4.1
 
+4/9/09   [EDGcpfe/9656]
+Exception specifications when initializing a reference to a function
+
+The original C++ standard (aka. C++98) required that in the initialization of
+a reference to a function the exception specifications of the source entity
+and the referenced function type match exactly.  Technical Corrigendum 1 for
+that standard (TC1, aka. C++03) revised that rule to match the pointer case:
+The referenced function type is required to allow any exceptions allowed by
+the source entity, but it can also allow other exceptions.  (This was the
+resolution of the C++ committee's Core issue 25.)  The front end previously
+failed to implement the new rule when the source expression was a simple
+function name.  That is now fixed.  For example (assuming exceptions are
+enabled):
+
+  void f() throw(int);
+  void (*pf)() = f;           // Always allowed by the front end.
+  void (&rf1)() = *pf;        // Previously allowed by the front end.
+  void (&rf2)() = f;          // Previously a spurious error.  Now allowed.
+  void (&rf3)() throw() = f;  // Still an error.
+
+
 4/9/09   [EDGcpfe/9660]
 Options to control "auto"
 
