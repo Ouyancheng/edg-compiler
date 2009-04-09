@@ -1,5 +1,16 @@
 Version 4.1
 
+4/9/09   [EDGcpfe/9517,EDGcpfe/9586,EDGcpfe/9673]
+GNU compatibility: Builtin I/O functions with va_list parameter
+
+In GNU mode, the front end previously declared some builtin I/O functions with
+a parameter of type char* where type va_list should have been used instead
+(va_list is often, but not always, a synonym for char*).  This is now fixed.
+The affected functions are __builtin___vsnprintf_chk, __builtin___vsprintf_chk,
+__builtin_vfprintf, __builtin_vfscanf, __builtin_vprintf, __builtin_vscanf,
+__builtin_vsnprintf, __builtin_vsprintf, and __builtin_vsscanf.
+
+
 4/9/09   [EDGcpfe/9656]
 Exception specifications when initializing a reference to a function
 

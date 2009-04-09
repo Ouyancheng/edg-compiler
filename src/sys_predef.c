@@ -1340,6 +1340,7 @@ Enter the standard predeclared functions for GCC.
   a_type_ptr  double_star_type;
   a_type_ptr  long_double_star_type;
   a_type_ptr  generic_function_type;
+  a_type_ptr  va_list_type;
 
 #if CHECKING
   /* Check that the table of builtin function names is correctly
@@ -1393,6 +1394,14 @@ Enter the standard predeclared functions for GCC.
   generic_function_type->variant.routine.return_type = void_star_type;
   generic_function_type->variant.routine.extra_info->param_type_list =
     alloc_param_type(void_star_type);
+  if (builtin_va_list_type != NULL) {
+    /* If there is a predeclared va_list type use it.  (This is the case when
+       GCC_BUILTIN_VARARGS is true.) */
+    va_list_type = builtin_va_list_type;
+  } else {
+    check_assertion(!(GCC_BUILTIN_VARARGS));
+    va_list_type = void_star_type;
+  }  /* if */
 
   /* Create the functions.  We arrange for the "name" argument to avoid
      spurious warning for names that are standard macros (e.g., "isalpha";
@@ -1424,9 +1433,9 @@ Enter the standard predeclared functions for GCC.
                           char_star, const_char_star, size_t, size_t);
   enter_gnu_builtin_func6(___vsnprintf_chk, int,
                           char_star, size_t, int, size_t, const_char_star,
-                          char_star);
+                          va_list);
   enter_gnu_builtin_func5(___vsprintf_chk, int,
-                          char_star, int, size_t, const_char_star, char_star);
+                          char_star, int, size_t, const_char_star, va_list);
   enter_gnu_builtin_func0(_abort, no_return);
   enter_gnu_builtin_func1(_abs, int, int);
   enter_gnu_builtin_real_math_funcs1(_acos);
@@ -1721,17 +1730,17 @@ Enter the standard predeclared functions for GCC.
   enter_gnu_builtin_real_math_funcs1(_trunc);
   enter_gnu_builtin_func0(_unwind_init, no_return);
   enter_gnu_builtin_func3(_vfprintf, int,
-                          void_star, const_char_star, char_star);
+                          void_star, const_char_star, va_list);
   enter_gnu_builtin_func3(_vfscanf, int,
-                          void_star, const_char_star, char_star);
-  enter_gnu_builtin_func2(_vprintf, int, const_char_star, char_star);
-  enter_gnu_builtin_func2(_vscanf, int, const_char_star, char_star);
+                          void_star, const_char_star, va_list);
+  enter_gnu_builtin_func2(_vprintf, int, const_char_star, va_list);
+  enter_gnu_builtin_func2(_vscanf, int, const_char_star, va_list);
   enter_gnu_builtin_func4(_vsnprintf, int,
-                          char_star, size_t, const_char_star, char_star);
+                          char_star, size_t, const_char_star, va_list);
   enter_gnu_builtin_func3(_vsprintf, int,
-                          char_star, const_char_star, char_star);
+                          char_star, const_char_star, va_list);
   enter_gnu_builtin_func3(_vsscanf, int,
-                          const_char_star, const_char_star, char_star);
+                          const_char_star, const_char_star, va_list);
   enter_gnu_builtin_real_math_funcs1(_y0);
   enter_gnu_builtin_real_math_funcs1(_y1);
   enter_gnu_builtin_func2(_yn, double, int, double);
@@ -1981,7 +1990,6 @@ Enter predeclared symbols as required by the implementation.
 #endif /* 0 */
 #if GNU_EXTENSIONS_ALLOWED
   if (gnu_mode) {
-    enter_gnu_predeclared_functions();
     /* On many GNU C configurations (e.g., linux) __builtin_va_list is a type
        compatible with void*.  On other configurations, the following may need
        to be adapted to the actual structure of __builtin_va_list.  On some
@@ -1993,6 +2001,10 @@ Enter predeclared symbols as required by the implementation.
                                               make_pointer_type(void_type()));
     builtin_va_list_type->is_builtin_va_list = TRUE;
 #endif /* GCC_BUILTIN_VARARGS */
+    /* Enter the many functions predeclared by GNU compilers.  Note that this
+       must happen after builtin_va_list_type is set above since some
+       declarations may make use of that type. */
+    enter_gnu_predeclared_functions();
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
