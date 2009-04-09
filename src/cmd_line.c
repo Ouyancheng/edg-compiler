@@ -1847,6 +1847,18 @@ by a command line option.
       local_types_as_template_args_enabled = TRUE;
       decls_using_types_without_linkage_allowed = TRUE;
     }  /* if */
+    if (microsoft_version >= 1600) {
+      static_assert_enabled = TRUE;
+      auto_type_specifier_enabled = TRUE;
+      auto_storage_class_specifier_enabled = FALSE;
+      decltype_enabled = TRUE;
+      if (!option_kind_used[(int)optk_lambdas]) {
+        lambdas_enabled = TRUE;
+      }  /* if */
+      if (!option_kind_used[(int)optk_rvalue_references]) {
+        rvalue_references_enabled = TRUE;
+      }  /* if */
+    }  /* if */
   }  /* if */
   /* In C++ mode, the Microsoft compiler sometimes finds typedefs when
      looking up names in elaborated type specifiers.  This flag causes

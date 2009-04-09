@@ -1,5 +1,17 @@
 Version 4.1
 
+4/9/09   [EDGcpfe/9659]
+Microsoft compatibility: C++0x features
+
+In Microsoft mode with microsoft_version >= 1600 the front end now enables the
+following C++0x features:
+  - "auto" as a type specifier (and "auto" as a storage class is disabled)
+  - decltype
+  - lambdas
+  - rvalue references
+  - static_assert
+
+
 4/9/09   [EDGcpfe/9584]
 Microsoft compatibility: #pragma comment
 
