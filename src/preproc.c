@@ -2619,14 +2619,19 @@ executable file.
         error(ec_exp_string_literal);
         err = TRUE;
       }  /* if */
+    } else {
+      error(ec_exp_comma);
+      err = TRUE;
     }  /* if */
   }  /* if */
-  if (!err && curr_token == tok_rparen) {
-    /* Skip over the ")". */
-    (void)get_token();
-  } else {
-    error(ec_exp_rparen);
-    err = TRUE;
+  if (!err) {
+    if (curr_token == tok_rparen) {
+      /* Skip over the ")". */
+      (void)get_token();
+    } else {
+      error(ec_exp_rparen);
+      err = TRUE;
+    }  /* if */
   }  /* if */
   wrapup_rescan_of_pragma_tokens(err);
   if (!err) {
