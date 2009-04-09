@@ -13012,7 +13012,7 @@ expression.  See copy_template_param_expr for the parameter descriptions.
     new_arg = &((*new_arg)->next);
   }  /* while */
   if (!*copy_error) {
-    a_boolean  not_a_constant = FALSE;
+    a_boolean  not_a_constant;
     /* Copy the expression node and attach the copied argument list to it. */
     expr_copy = copy_node(expr);
     expr_copy->variant.builtin_operation.operands = new_args;

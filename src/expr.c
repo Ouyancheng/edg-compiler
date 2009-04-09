@@ -6115,7 +6115,7 @@ work is done by scan_field_selection_operator and scan_subscript_operator.
     } while (curr_token == tok_period || curr_token == tok_lbracket);
     if (valid_type && !is_error_operand(&local_result)) {
       a_constant  offset_constant;
-      a_boolean   nonconstant_offset = FALSE;
+      a_boolean   nonconstant_offset;
       /* Build the first operand as a type node. */
       args = alloc_expr_node((an_expr_node_kind)enk_type_operand);
       args->type = void_type();
@@ -6246,7 +6246,7 @@ the constant cases.)
     /* Create the constant result operand by attempting to fold an
        enk_builtin_operation node that represents the operation. */
     an_expr_node_ptr  expr;
-    a_boolean         not_a_constant = FALSE;
+    a_boolean         not_a_constant;
     expr = alloc_expr_node((an_expr_node_kind)enk_builtin_operation);
     expr->type = type;
     expr->variant.builtin_operation.kind = (a_builtin_operation_kind)kind;
