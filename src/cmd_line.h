@@ -266,6 +266,8 @@ typedef enum /*an_option_kind*/ {
 #endif /* UNICODE_SOURCE_SUPPORTED */
   optk_lambdas,
   optk_rvalue_references,
+  optk_auto_type,
+  optk_auto_storage,
   optk_last		/* Must be last. */
 } an_option_kind;
 

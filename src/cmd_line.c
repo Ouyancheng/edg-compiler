@@ -1204,6 +1204,16 @@ Initialize the option information table.
   add_option_description(optk_rvalue_references, "no_rvalue_refs",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_auto_type, "auto_type", '\0', /*value=*/TRUE,
+                         /*arg_required=*/FALSE, pchek_command_line);
+  add_option_description(optk_auto_type, "no_auto_type", '\0', /*value=*/FALSE,
+                         /*arg_required=*/FALSE, pchek_command_line);
+  add_option_description(optk_auto_storage, "auto_storage",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_auto_storage, "no_auto_storage",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 }  /* initialize_option_descriptions */
 
 
@@ -1849,8 +1859,12 @@ by a command line option.
     }  /* if */
     if (microsoft_version >= 1600) {
       static_assert_enabled = TRUE;
-      auto_type_specifier_enabled = TRUE;
-      auto_storage_class_specifier_enabled = FALSE;
+      if (!option_kind_used[(int)optk_auto_type]) {
+        auto_type_specifier_enabled = TRUE;
+      }  /* if */
+      if (!option_kind_used[(int)optk_auto_storage]) {
+        auto_storage_class_specifier_enabled = FALSE;
+      }  /* if */
       decltype_enabled = TRUE;
       if (!option_kind_used[(int)optk_lambdas]) {
         lambdas_enabled = TRUE;
@@ -2157,6 +2171,8 @@ process.
   rvalue_references_enabled = FALSE;
   local_types_as_template_args_enabled = FALSE;
   decls_using_types_without_linkage_allowed = FALSE;
+  auto_type_specifier_enabled = FALSE;
+  auto_storage_class_specifier_enabled = FALSE;
 }  /* set_c_mode_flags */
 
 
@@ -2292,6 +2308,15 @@ setting is used, and to set various unmentioned settings as needed.
   if (option_kind_used[(int)optk_rvalue_references]) {
     command_line_error(ec_cl_rvalue_references_option_only_in_cplusplus);
   }  /* if */
+  if (option_kind_used[(int)optk_rvalue_references]) {
+    command_line_error(ec_cl_rvalue_references_option_only_in_cplusplus);
+  }  /* if */
+  if (option_kind_used[(int)optk_auto_type]) {
+    command_line_error(ec_cl_auto_type_option_only_in_cplusplus);
+  }  /* if */
+  if (option_kind_used[(int)optk_auto_storage]) {
+    command_line_error(ec_cl_auto_storage_option_only_in_cplusplus);
+  }  /* if */
 #if SUN_EXTENSIONS_ALLOWED
   if (!(option_kind_used[(int)optk_sun_linker_scope]) &&
       !microsoft_mode && !strict_ansi_mode) {
@@ -2323,8 +2348,12 @@ the next standard).
   variadic_macros_allowed = TRUE;
   pragma_operator_allowed = TRUE;
   static_assert_enabled = TRUE;
-  auto_type_specifier_enabled = TRUE;
-  auto_storage_class_specifier_enabled = FALSE;
+  if (!option_kind_used[(int)optk_auto_type]) {
+    auto_type_specifier_enabled = TRUE;
+  }  /* if */
+  if (!option_kind_used[(int)optk_auto_storage]) {
+    auto_storage_class_specifier_enabled = FALSE;
+  }  /* if */
   extern_template_allowed = TRUE;
   standard_form_of_extern_template = TRUE;
   decltype_enabled = TRUE;
@@ -7776,6 +7805,12 @@ enable_microsoft_mode:
       case optk_rvalue_references:
         rvalue_references_enabled = opt_value;
         break;
+      case optk_auto_type:
+        auto_type_specifier_enabled = opt_value;
+        break;
+      case optk_auto_storage:
+        auto_storage_class_specifier_enabled = opt_value;
+        break;
       default:
         /* It should not be possible to get here. */
         unexpected_condition();
@@ -7916,6 +7951,28 @@ enable_microsoft_mode:
     /* If lambdas are allowed, enable local types as template arguments too. */
     local_types_as_template_args_enabled = TRUE;
     decls_using_types_without_linkage_allowed = TRUE;
+  }  /* if */
+  if (auto_type_specifier_enabled && option_kind_used[(int)optk_auto_type] &&
+      !option_kind_used[(int)optk_auto_storage]) {
+    /* If "auto" is explicitly enabled as a type specifier and not explicitly
+       enabled as a storage class specifier, disable it as a storage class
+       specifier: That corresponds to the standard C++0x meaning. */
+    auto_storage_class_specifier_enabled = FALSE;
+  } else if (!auto_type_specifier_enabled &&
+             !auto_storage_class_specifier_enabled) {
+    /* "auto" cannot be entirely disabled. */
+    if (option_kind_used[(int)optk_auto_type] &&
+        option_kind_used[(int)optk_auto_storage]) {
+      /* Both were explicitly disabled: Issue an error. */
+      command_line_error(ec_cl_auto_cannot_be_disabled);
+    } else if (option_kind_used[(int)optk_auto_type]) {
+      /* --no_auto_type appeared explicitly: Enable auto as a storage class. */
+      auto_storage_class_specifier_enabled = TRUE;
+    } else {
+      /* --no_auto_type appeared explicitly: Enable auto as a storage class. */
+      check_assertion(option_kind_used[(int)optk_auto_storage]);
+      auto_type_specifier_enabled = TRUE;
+    }  /* if */
   }  /* if */
   if (sun_mode) {
     check_and_set_sun_mode_options();
@@ -8705,8 +8762,9 @@ variables declared in cmd_line.h.
   extended_friends_enabled = FALSE;
   mixed_string_concat_enabled = FALSE;
   static_assert_enabled = FALSE;
-  auto_type_specifier_enabled = FALSE;
-  auto_storage_class_specifier_enabled = TRUE;
+  auto_type_specifier_enabled = DEFAULT_AUTO_TYPE_SPECIFIER_ENABLED;
+  auto_storage_class_specifier_enabled =
+                                 DEFAULT_AUTO_STORAGE_CLASS_SPECIFIER_ENABLED;
   extern_template_allowed = FALSE;
   standard_form_of_extern_template = FALSE;
   decltype_enabled = FALSE;

@@ -1,5 +1,31 @@
 Version 4.1
 
+4/9/09   [EDGcpfe/9660]
+Options to control "auto"
+
+New command-line options now control whether "auto" is a type specifier, a
+storage class specifier, or both.  The defaults are determined by the new
+configuration macros DEFAULT_AUTO_STORAGE_CLASS_SPECIFIER_ENABLED and
+DEFAULT_AUTO_TYPE_SPECIFIER_ENABLED (they cannot both be FALSE).  The command-
+line option --auto_type/--no_auto_type enables or disables "auto" as a type
+specifier.  Similarly, --auto_storage/--no_auto_storage enables or disables
+"auto" as a storage class specifier.
+"auto" can be enabled both as a storage class and as a type specifier.  Some
+ambiguous uses are treated as storage class specifiers in that case.
+For example:
+
+  typedef int T;
+  int x;
+  void f() {
+    auto T(x);  // Variable T initialized with x in normal C++0x mode.
+  }             // Variable x with type T if "auto" can be both a type
+                // specifier and a storage class specifier.
+
+--auto_type also disables "auto" as a storage class specifier (which matches
+normal C++0x behavior) if the option --auto_storage is used explicitly.  The
+options --no_auto_storage and --no_auto_type cannot be use simultaneously.
+
+
 4/9/09   [EDGcpfe/9669]
 Inlining a reference cast of a parameter could cause assertion failure
 

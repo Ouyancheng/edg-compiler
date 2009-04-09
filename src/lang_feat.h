@@ -1119,6 +1119,30 @@ conflicts if the GNU or Sun compilers add a similar facility.)
 #endif /* DEFAULT_TYPE_TRAITS_HELPERS_ENABLED */
 
 /*
+Flag that is TRUE if in C++ mode "auto" can be a type specifier whose actual
+type is to be deduced from an initializer that follows.  This macro is used
+to initialize the global variable auto_type_specifier_enabled.
+*/
+#ifndef DEFAULT_AUTO_TYPE_SPECIFIER_ENABLED
+#define DEFAULT_AUTO_TYPE_SPECIFIER_ENABLED FALSE
+#endif /* ifndef DEFAULT_AUTO_TYPE_SPECIFIER_ENABLED */
+
+/*
+Flag that is TRUE if in C++ mode "auto" can be a storage class specifier whose
+actual type is to be deduced from an initializer that follows.  This macro is
+used to initialize the global variable auto_storage_class_specifier_enabled.
+*/
+#ifndef DEFAULT_AUTO_STORAGE_CLASS_SPECIFIER_ENABLED
+#define DEFAULT_AUTO_STORAGE_CLASS_SPECIFIER_ENABLED TRUE
+#endif /* ifndef DEFAULT_AUTO_STORAGE_CLASS_SPECIFIER_ENABLED */
+
+#if !DEFAULT_AUTO_STORAGE_CLASS_SPECIFIER_ENABLED && \
+    !DEFAULT_AUTO_TYPE_SPECIFIER_ENABLED
+ #error -- DEFAULT_AUTO_STORAGE_CLASS_SPECIFIER_ENABLED or \
+           DEFAULT_AUTO_TYPE_SPECIFIER_ENABLED must be TRUE
+#endif /* !DEFAULT_AUTO_TYPE_SPECIFIER_ENABLED && ... */
+
+/*
 Flag that is TRUE if C++0x lambdas should be enabled in other C++ modes by
 default (they are, of course, always enabled in C++0x mode).  This macro is
 used for the initialization of the global variable lambdas_enabled.
