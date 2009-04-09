@@ -2172,7 +2172,7 @@ process.
   local_types_as_template_args_enabled = FALSE;
   decls_using_types_without_linkage_allowed = FALSE;
   auto_type_specifier_enabled = FALSE;
-  auto_storage_class_specifier_enabled = FALSE;
+  auto_storage_class_specifier_enabled = TRUE;
 }  /* set_c_mode_flags */
 
 
