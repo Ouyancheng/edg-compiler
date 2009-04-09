@@ -549,6 +549,8 @@ check_abbreviation()
 --arg_dep_lookup
 --array_new_and_delete
 --auto_instantiation
+--auto_storage
+--auto_type
 --base_assign_op_is_default
 --bool
 --brief_diagnostics
@@ -655,6 +657,8 @@ check_abbreviation()
 --no_arg_dep_lookup
 --no_array_new_and_delete
 --no_auto_instantiation
+--no_auto_storage
+--no_auto_type
 --no_base_assign_op_is_default
 --no_bool
 --no_brief_diagnostics
@@ -1324,6 +1328,10 @@ process_option()
          --no_check_concatenations | \
          --rvalue_refs | \
          --no_rvalue_refs | \
+         --auto_type | \
+         --no_auto_type | \
+         --auto_storage | \
+         --no_auto_storage | \
          --force_vtbl)
       feoptions=$feoptions" $curr_arg"
 #     Options that require additional processing
