@@ -407,6 +407,12 @@ extern int fileno(FILE *);
 #if MICROSOFT_EXTENSIONS_ALLOWED
 /*lint -esym(769,an_ms_attribute_kind_tag::msak_last)*/
 /*lint -esym(755,MSAT_ANY_TYPE)*/
+/*lint -esym(769,a_microsoft_pragma_comment_type_tag::mpct_compiler)*/
+/*lint -esym(769,a_microsoft_pragma_comment_type_tag::mpct_exestr)*/
+/*lint -esym(769,a_microsoft_pragma_comment_type_tag::mpct_lib)*/
+/*lint -esym(769,a_microsoft_pragma_comment_type_tag::mpct_linker)*/
+/*lint -esym(769,a_microsoft_pragma_comment_type_tag::mpct_user)*/
+/*lint -esym(769,a_microsoft_pragma_comment_type_tag::mpct_last)*/
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if !FIXED_POINT_ALLOWED
 /*lint -esym(759,fixed_point_enabled)*/
