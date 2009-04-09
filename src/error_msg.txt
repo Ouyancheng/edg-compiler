@@ -1829,6 +1829,7 @@ ec_function_defaulted_in_friend_decl;;"\"= default\" cannot be specified on a fr
 ec_exp_cpp_keyword;;"expected a C++ keyword"
 ec_cast_to_rvalue_ref_to_incomplete;;"this cast to an rvalue reference type is invalid because the underlying type %t is incomplete"
 ec_nonconstant_offsetof;;"offset is not constant"
+ec_unrecognized_microsoft_comment_pragma_type;;"unrecognized #pragma comment type %s"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

@@ -3946,6 +3946,19 @@ Display the indicated pragma entry.
     disp_unsigned_long("alignment", (unsigned long)ptr->variant.alignment);
   }  /* if */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING && BACK_END_IS_CP_GEN_BE */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (ptr->kind == (a_pragma_kind)pk_comment) {
+    disp_name("comment.kind");
+    (void)printf("%s\n",
+                 microsoft_pragma_comment_ids[(int)ptr->variant.comment.kind]);
+    if (ptr->variant.comment.str != NULL) {
+      disp_string_ptr("comment.str",
+                      ptr->variant.comment.str->variant.string.value,
+                      iek_string_text,
+                      ptr->variant.comment.str->variant.string.length - 1);
+    }  /* if */
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* disp_pragma */
 
 #if RECORD_HIDDEN_NAMES_IN_IL

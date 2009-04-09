@@ -3246,6 +3246,12 @@ in the current IL memory region.
                                    (a_upc_access_method)upc_access_unspecified;
       break;
 #endif /* UPC_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case pk_comment:
+      pp->variant.comment.kind = mpct_compiler;
+      pp->variant.comment.str = NULL;
+      break;
+#endif /* MICROSOFT_EXSTENSIONS_ALLOWED */
 #if CHECKING
     default:
       internal_error("alloc_pragma: bad pragma kind");

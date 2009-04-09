@@ -20685,6 +20685,18 @@ in il_init.)
     internal_error(
                    "il_one_time_init: incorrect initialization of pragma_ids");
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  /* Variable in il_def.h: */
+  /* Check that the table of Microsoft #pragma comment ids is correctly
+     initialized.  This guards against someone changing the enumeration
+     a_microsoft_pragma_comment_type and forgetting to update
+     microsoft_pragma_comment_ids. */
+  if (microsoft_pragma_comment_ids[(int)mpct_last] == NULL ||
+      strcmp(microsoft_pragma_comment_ids[(int)mpct_last], "last") != 0) {
+    internal_error(
+           "il_one_time_init: incorrect init of microsoft_pragma_comment_ids");
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Variable in il_def.h: */
   /* Check that unsigned_int_kind_of is correctly initialized.  This
      guards against someone changing the enumeration and forgetting to update

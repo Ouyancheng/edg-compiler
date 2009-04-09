@@ -9558,6 +9558,18 @@ is the one associated with the pragma.
         end_pp_directive();
 #endif /* USE_PRAGMA_IDENT_IN_GENERATED_CODE */
 #endif /* IDENT_DIRECTIVE_AND_PRAGMA */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      } else if (pp->kind == (a_pragma_kind)pk_comment) {
+        gen_pragma_start(pp);
+        write_str("comment(");
+        write_str(microsoft_pragma_comment_ids[(int)pp->variant.comment.kind]);
+        if (pp->variant.comment.str != NULL) {
+          write_str(", ");
+          gen_constant(pp->variant.comment.str, /*need_parens=*/FALSE);
+        }  /* if */
+        write_str(")");
+        gen_pragma_end(pp);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       } else {
         check_assertion_str(pp->pragma_text != NULL,
                             "gen_pragma: NULL pragma_text");

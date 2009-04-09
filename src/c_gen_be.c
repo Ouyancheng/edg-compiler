@@ -2175,6 +2175,17 @@ Dump a single #pragma from the IL entry.
          determine that position here.  Instead, we avoid name collisions
          with Sun link specifiers by modifying names when needed. */
 #endif /* SUN_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    } else if (pp->kind == (a_pragma_kind)pk_comment) {
+      /* Dump a Microsoft #pragma comment. */
+      write_str("#pragma comment(");
+      write_str(microsoft_pragma_comment_ids[(int)pp->variant.comment.kind]);
+      if (pp->variant.comment.str != NULL) {
+        write_str(", ");
+        dump_constant(pp->variant.comment.str);
+      }  /* if */
+      write_str(")");
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
       check_assertion_str(pp->pragma_text != NULL,
                           "dump_pragma: NULL pragma_text");

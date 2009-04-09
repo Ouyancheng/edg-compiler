@@ -2561,6 +2561,83 @@ This is a Microsoft extension that terminates the effect of the preceding
   wrapup_rescan_of_pragma_tokens(/*error_in_pragma=*/TRUE);
 }  /* microsoft_stop_map_region_pragma */
 
+
+void microsoft_comment_pragma(a_pending_pragma_ptr  ppp)
+/*
+Scan a pragma of the form
+        #pragma comment(xxx [, "str"])
+This is a Microsoft extension that adds a comment record to an object or
+executable file.
+*/
+{
+  a_boolean                       err = FALSE;
+  a_microsoft_pragma_comment_type kind;
+  a_constant_ptr                  cp = NULL;
+
+  begin_rescan_of_pragma_tokens(ppp);
+  if (curr_token != tok_lparen) {
+    error(ec_exp_lparen);
+    err = TRUE;
+  } else {
+    /* Skip over the "(". */
+    (void)get_token();
+    if (curr_token != tok_identifier) {
+      error(ec_exp_identifier);
+      err = TRUE;
+    } else {
+      char *str = locator_for_curr_id.symbol_header->identifier;
+      int  i;
+      for (i = 0; i < (int)mpct_last; ++i) {
+        if (strcmp(str, microsoft_pragma_comment_ids[i]) == 0) {
+          /* Found the comment type. */
+          kind = (a_microsoft_pragma_comment_type)i;
+          break;
+        }  /* if */
+      }  /* for */
+      if (i == (int)mpct_last) {
+        /* Unrecognized comment type. */
+        str_error(ec_unrecognized_microsoft_comment_pragma_type, str);
+        err = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  if (!err) {
+    /* Skip over the comment type identifier. */
+    (void)get_token();
+    if (curr_token == tok_comma) {
+      /* Pick up the optional string argument.  Skip over the comma. */
+      (void)get_token();
+      if (curr_token == tok_string_literal) {
+        /* Create a constant for the IL entry. */
+        a_memory_region_number region_to_switch_back_to;
+        switch_to_file_scope_region(&region_to_switch_back_to);
+        cp = alloc_unshared_constant(&const_for_curr_token);
+        switch_back_to_original_region(region_to_switch_back_to);
+        /* Skip over the string literal. */
+        (void)get_token();
+      } else {
+        error(ec_exp_string_literal);
+        err = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  if (!err && curr_token == tok_rparen) {
+    /* Skip over the ")". */
+    (void)get_token();
+  } else {
+    error(ec_exp_rparen);
+    err = TRUE;
+  }  /* if */
+  wrapup_rescan_of_pragma_tokens(err);
+  if (!err) {
+    create_il_entry_for_pragma(ppp, (a_symbol_ptr)NULL, (a_statement_ptr)NULL);
+    if (ppp->il_pragma_entry != NULL) {
+      ppp->il_pragma_entry->variant.comment.kind = kind;
+      ppp->il_pragma_entry->variant.comment.str = cp;
+    }  /* if */
+  }  /* if */
+}  /* microsoft_comment_pragma */
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if ALIAS_DIRECTIVE

@@ -439,6 +439,7 @@ possible.
 #if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
     case pk_setlocale:
 #endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
+    case pk_comment:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     default:
@@ -2124,6 +2125,23 @@ Initialize the pragma description table.
 		 /*read_string_as_header_name=*/FALSE,
                  es_warning);
 #endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
+    /* In the following call, processing_C_code is set to TRUE so that
+       concatenation of string literals will occur in the optional second
+       argument. */
+    (void)add_immediate_pragma_kind_description
+                ((a_pragma_kind)pk_comment,
+                 microsoft_comment_pragma,
+                 /*is_pseudo_pragma=*/FALSE,
+                 /*global=*/FALSE,
+                 /*automatically_include_in_il=*/FALSE,
+                 /*record_pragma_text=*/FALSE,
+                 /*expand_macros=*/TRUE,
+                 /*processing_C_code=*/TRUE,
+                 /*fetch_pp_tokens=*/FALSE,
+                 /*ignore_in_back_end=*/FALSE,
+                 /*il_info_is_complete=*/TRUE,
+                 /*read_string_as_header_name=*/FALSE,
+                 es_warning);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL

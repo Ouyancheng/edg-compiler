@@ -3626,6 +3626,7 @@ enum a_pragma_kind_tag {
 #if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
   pk_setlocale,
 #endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
+  pk_comment,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL
   pk_unrecognized,	/* This pragma kind is used for pragmas that are
@@ -3725,6 +3726,7 @@ EXTERN char *pragma_ids[(int)pk_last + 1]
 #if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
 /* pk_setlocale */		"setlocale",
 #endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
+/* pk_comment */		"comment",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL
 /* pk_unrecognized */		"unrecognized",
@@ -3733,6 +3735,36 @@ EXTERN char *pragma_ids[(int)pk_last + 1]
 } /* pragma_ids */
 #endif /* VAR_INITIALIZERS */
 ;
+
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+enum a_microsoft_pragma_comment_type_tag {
+  /* Code for comment types in a Microsoft #pragma comment. */
+  mpct_compiler,
+  mpct_exestr,
+  mpct_lib,
+  mpct_linker,
+  mpct_user,
+  /* Must be last: */
+  mpct_last
+} a_microsoft_pragma_commment_type;
+/* Define as "a_byte" to explicitly control storage size. */
+typedef a_byte a_microsoft_pragma_comment_type;
+
+
+EXTERN char *microsoft_pragma_comment_ids[(int)mpct_last + 1]
+#if VAR_INITIALIZERS
+= {
+/* mpct_compiler */	"compiler",
+/* mpct_exestr */	"exestr",
+/* mpct_lib */		"lib",
+/* mpct_linker */	"linker",
+/* mpct_user */		"user",
+/* mpct_last */		"last"
+} /* microsoft_pragma_comment_ids */
+#endif /* VAR_INITIALIZERS */
+;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 
 /* A pragma entry represents a pragma declaration that either has general
@@ -3831,6 +3863,15 @@ typedef struct a_pragma {
 		alignment;
 			/* The alignment specified by the pack pragma. */
 #endif /* USER_CONTROL_OF_STRUCT_PACKING && BACK_END_IS_CP_GEN_BE */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    /* When kind == pk_comment: */
+    struct {
+      a_microsoft_pragma_comment_type
+		kind;	/* The comment type. */
+      a_constant_ptr
+		str;	/* The comment string, NULL if none was supplied. */
+    } comment;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } variant;
 } a_pragma;
 

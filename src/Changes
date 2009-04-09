@@ -1,5 +1,20 @@
 Version 4.1
 
+4/9/09   [EDGcpfe/9584]
+Microsoft compatibility: #pragma comment
+
+The front end has been changed to recognize and process (as a pbk_immediate
+pragma) the Microsoft comment #pragma, the syntax of which is
+
+  #pragma comment(kind [, "str"] )
+
+where "kind" is one of the identifiers compiler, exestr, lib, linker, or
+user.  Macro expansion and string literal concatenation are performed on
+the pragma's arguments and the syntax is checked; if correct, the pragma
+is entered into the IL.  Variant fields have been added to a_pragma to
+represent the kind and, if present, string arguments.
+
+
 4/8/09   [EDGcpfe/9675]
 Abort on excess initializers for zero-length array in GNU modes
 

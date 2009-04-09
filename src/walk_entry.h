@@ -1783,6 +1783,11 @@ do_set_proper_definition_needed_flag:
           walk_ptr(ptr->variant.ident_string, a_constant_ptr, iek_constant);
         }  /* if */
 #endif /* IDENT_DIRECTIVE_AND_PRAGMA */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if (ptr->kind == (a_pragma_kind)pk_comment) {
+          walk_ptr(ptr->variant.comment.str, a_constant_ptr, iek_constant);
+        }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }
       break;
 #if RECORD_HIDDEN_NAMES_IN_IL
