@@ -1034,13 +1034,11 @@ and for the instantiation of template functions.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       if (is_nonspecialized_instantiation_context() &&
           param_id->next != NULL && ptp->next == NULL) {
-        /* Something may have gone wrong while parsing the template.  This
-           might have caused us to miscount the number of parameters (in that
-           case the last parameter type was set to an error type).  Discard
-           the extra parameter names (which were identified during the first
-           template scan without knowledge of actual template arguments). */
-        check_assertion(is_or_contains_error_type(ptp->type) ||
-                        is_or_contains_error_type(param_id->next->type));
+        /* Something went wrong while parsing the template, which caused us to
+           miscount the number of parameters.  Discard the extra parameter
+           names (which were identified during the first template scan without
+           knowledge of actual template arguments). */
+        check_assertion(total_errors != 0);
         param_id->next = NULL;
       }  /* if */
       /* Be sure param-id and param-type lists are in sync. */
