@@ -3747,7 +3747,7 @@ enum a_microsoft_pragma_comment_type_tag {
   mpct_user,
   /* Must be last: */
   mpct_last
-} a_microsoft_pragma_commment_type;
+};
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte a_microsoft_pragma_comment_type;
 

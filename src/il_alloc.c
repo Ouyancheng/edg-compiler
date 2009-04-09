@@ -3248,7 +3248,8 @@ in the current IL memory region.
 #endif /* UPC_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case pk_comment:
-      pp->variant.comment.kind = mpct_compiler;
+      pp->variant.comment.kind =
+                                (a_microsoft_pragma_comment_type)mpct_compiler;
       pp->variant.comment.str = NULL;
       break;
 #endif /* MICROSOFT_EXSTENSIONS_ALLOWED */
