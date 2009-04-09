@@ -163,7 +163,7 @@ are also allowed.  For example:
 
 This is the first case of an enk_builtin_operation node that is not always
 folded to a constant (and therefore an IL CHANGE).  In configurations that
-use lowering, the enk_builtin_operation/bok_offset expression is lowered
+use lowering, the enk_builtin_operation/bok_offsetof expression is lowered
 to an expression whose value is the offset.
 
 
