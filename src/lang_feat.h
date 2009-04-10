@@ -1128,9 +1128,9 @@ to initialize the global variable auto_type_specifier_enabled.
 #endif /* ifndef DEFAULT_AUTO_TYPE_SPECIFIER_ENABLED */
 
 /*
-Flag that is TRUE if in C++ mode "auto" can be a storage class specifier whose
-actual type is to be deduced from an initializer that follows.  This macro is
-used to initialize the global variable auto_storage_class_specifier_enabled.
+Flag that is TRUE if in C++ mode "auto" can be a storage class specifier (the
+traditional meaning of "auto").  This macro is used to initialize the global
+variable auto_storage_class_specifier_enabled.
 */
 #ifndef DEFAULT_AUTO_STORAGE_CLASS_SPECIFIER_ENABLED
 #define DEFAULT_AUTO_STORAGE_CLASS_SPECIFIER_ENABLED TRUE

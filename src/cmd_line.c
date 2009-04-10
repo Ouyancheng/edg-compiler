@@ -2308,9 +2308,6 @@ setting is used, and to set various unmentioned settings as needed.
   if (option_kind_used[(int)optk_rvalue_references]) {
     command_line_error(ec_cl_rvalue_references_option_only_in_cplusplus);
   }  /* if */
-  if (option_kind_used[(int)optk_rvalue_references]) {
-    command_line_error(ec_cl_rvalue_references_option_only_in_cplusplus);
-  }  /* if */
   if (option_kind_used[(int)optk_auto_type]) {
     command_line_error(ec_cl_auto_type_option_only_in_cplusplus);
   }  /* if */
@@ -4001,6 +3998,16 @@ file.
 #else /* !defined(DEFAULT_AUTOMATIC_INSTANTIATION_MODE) */
   comment_undefined_macro_name(DEFAULT_AUTOMATIC_INSTANTIATION_MODE);
 #endif /* defined(DEFAULT_AUTOMATIC_INSTANTIATION_MODE) */
+#if defined(DEFAULT_AUTO_STORAGE_CLASS_SPECIFIER_ENABLED)
+  define_numeric_valued_macro(DEFAULT_AUTO_STORAGE_CLASS_SPECIFIER_ENABLED);
+#else /* !defined(DEFAULT_AUTO_STORAGE_CLASS_SPECIFIER_ENABLED) */
+  comment_undefined_macro_name(DEFAULT_AUTO_STORAGE_CLASS_SPECIFIER_ENABLED);
+#endif /* defined(DEFAULT_AUTO_STORAGE_CLASS_SPECIFIER_ENABLED) */
+#if defined(DEFAULT_AUTO_TYPE_SPECIFIER_ENABLED)
+  define_numeric_valued_macro(DEFAULT_AUTO_TYPE_SPECIFIER_ENABLED);
+#else /* !defined(DEFAULT_AUTO_TYPE_SPECIFIER_ENABLED) */
+  comment_undefined_macro_name(DEFAULT_AUTO_TYPE_SPECIFIER_ENABLED);
+#endif /* defined(DEFAULT_AUTO_TYPE_SPECIFIER_ENABLED) */
 #if defined(DEFAULT_BOOL_IS_KEYWORD)
   define_numeric_valued_macro(DEFAULT_BOOL_IS_KEYWORD);
 #else /* !defined(DEFAULT_BOOL_IS_KEYWORD) */
@@ -7974,7 +7981,8 @@ enable_microsoft_mode:
       /* --no_auto_type appeared explicitly: Enable auto as a storage class. */
       auto_storage_class_specifier_enabled = TRUE;
     } else {
-      /* --no_auto_type appeared explicitly: Enable auto as a storage class. */
+      /* --no_auto_storage appeared explicitly: Enable auto as a type
+         specifier. */
       check_assertion(option_kind_used[(int)optk_auto_storage]);
       auto_type_specifier_enabled = TRUE;
     }  /* if */

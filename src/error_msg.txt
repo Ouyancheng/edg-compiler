@@ -1830,9 +1830,9 @@ ec_exp_cpp_keyword;;"expected a C++ keyword"
 ec_cast_to_rvalue_ref_to_incomplete;;"this cast to an rvalue reference type is invalid because the underlying type %t is incomplete"
 ec_nonconstant_offsetof;;"offset is not constant"
 ec_unrecognized_microsoft_comment_pragma_type;;"unrecognized #pragma comment type %sq"
-ec_cl_auto_type_option_only_in_cplusplus;;"option \"--auto_type\" can be used only when compiling C++"
-ec_cl_auto_storage_option_only_in_cplusplus;;"option \"--auto_storage\" can be used only when compiling C++"
-ec_cl_auto_cannot_be_disabled;;"the options \"--no_auto_type\" and \"--no_auto_storage\" cannot be used simultaneously"
+ec_cl_auto_type_option_only_in_cplusplus;;"option to control whether \"auto\" is a type specifier can be used only when compiling C++"
+ec_cl_auto_storage_option_only_in_cplusplus;;"option to control whether \"auto\" is a storage class can be used only when compiling C++"
+ec_cl_auto_cannot_be_disabled;;"the type specifier and storage class specifier meanings of \"auto\" cannot both be disabled"
 ec_bad_pragma_comment_string;;"invalid string in #pragma comment"
 ###############################################################################
 #                                                             \  ___  /       #
