@@ -11183,6 +11183,10 @@ it to an lvalue).
     generic_cast_operand(operand, type_cast_to, source_form,
                          /*is_implicit_cast=*/FALSE);
     *processed = TRUE;
+  } else if (is_void_type(operand->type)) {
+    /* Something like "(int &&)throw x" should not be allowed. */
+    error_in_operand(ec_bad_cast, operand);
+    *processed = TRUE;
   } else {
     if (is_an_lvalue(operand) ||
         is_a_function_designator(operand)) {
