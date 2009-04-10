@@ -14108,6 +14108,9 @@ been found to be acceptable, and *conversion describes it.
            be able to generate an rvalue in a constant expression, but let it
            pass for now and avoid the checking and possible error for the
            lvalue reference cases below. */
+        prep_generic_operand_full(source_operand,
+                                  /*lvalue_expected=*/FALSE,
+                                  /*rvalue_expected=*/TRUE);
       } else if (is_an_lvalue(source_operand)) {
         /* Okay, an lvalue. */
       } else if (is_a_function_designator(source_operand) &&
@@ -14133,8 +14136,8 @@ been found to be acceptable, and *conversion describes it.
     } else {
       /* Not a constant expression. */
       prep_generic_operand_full(source_operand,
-                                /*lvalue_expected=*/TRUE,
-                                /*rvalue_expected=*/FALSE);
+                                /*lvalue_expected=*/!is_rvalue_ref,
+                                /*rvalue_expected=*/is_rvalue_ref);
     }  /* if */
   } else if (is_rvalue_ref && !is_an_rvalue(source_operand)) {
     /* An rvalue reference cannot be bound to an lvalue. */
@@ -14451,7 +14454,12 @@ been found to be acceptable, and *conversion describes it.
   if (!leave_as_object) {
     /* Final step: add the reference-to to turn the lvalue or class rvalue
        into an rvalue for the reference. */
-    take_reference_to_operand(source_operand);
+    if (is_rvalue_ref && template_case) {
+      /* For some template-dependent rvalue reference cases we may still have
+         an rvalue here. */
+    } else {
+      take_reference_to_operand(source_operand);
+    }  /* if */
   }  /* if */
   /* Restore the original source position, etc. */
   restore_operand_details(source_operand, &orig_operand);
