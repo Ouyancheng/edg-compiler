@@ -3333,10 +3333,7 @@ hence its name should not be changed.
         case rt_charized_raw_argument:
           /* Determine the length of the stringized version of the argument
              (or the charized version in some Microsoft macros). */
-          if (map->raw_len > 0 || !microsoft_mode || map->is_empty_arg) {
-            sect_len = stringized_arg(map, (char **)NULL,
-                                      rts_kind == rt_charized_raw_argument);
-          } else {
+          if (map->raw_len == 0 && microsoft_mode && !map->is_empty_arg) {
             /* The Microsoft preprocessor suppresses all output for
                omitted (as opposed to empty) arguments.  That is, given
 
@@ -3344,6 +3341,9 @@ hence its name should not be changed.
 
                M(1) expands to nothing, while M(1,) expands to "". */
             sect_len = 0;
+          } else {
+            sect_len = stringized_arg(map, (char **)NULL,
+                                      rts_kind == rt_charized_raw_argument);
           }  /* if */
           break;
         case rt_argument:
@@ -4144,6 +4144,12 @@ do_argument_again:
               (void)arg_get_token(&any_white_space_skipped);
               goto do_argument_again;
             }  /* if */
+            /* A zero-length argument is empty (as opposed to omitted) if
+               it's the first argument (i.e., pp == param_list) and is
+               followed by a comma, or if it is not the first argument
+               (and thus, by definition, was preceded by a comma).  That
+               is, M1() has an omitted first argument, while M2(,) has
+               empty first and second arguments. */
             map->is_empty_arg = (pp != param_list || curr_token == tok_comma);
           }  /* if */
           if (curr_token == tok_end_of_source || curr_token == tok_newline) {
@@ -4379,7 +4385,8 @@ end_arg_expansion:;
                                         ? es_warning : es_discretionary_error,
                      ec_too_few_macro_args);
         }  /* if */
-        /* Set the rest of the parameters to null strings. */
+        /* Set the rest of the arguments to null (omitted, not empty)
+           strings. */
         do {
           map = alloc_macro_arg();
           add_to_arg_values(map);
@@ -4389,6 +4396,7 @@ end_arg_expansion:;
           map->expanded_len = 0;
           map->expanded_text[0] = LE_ESCAPE;
           map->expanded_text[1] = LE_END_OF_INSERTION;
+          map->is_empty_arg = FALSE;
 #if FULLY_RESOLVED_MACRO_POSITIONS
           /* Add empty text map entries. */
           add_entry_to_macro_text_map(&map->raw_text_map,
@@ -4700,13 +4708,14 @@ end_arg_expansion:;
           case rt_stringized_raw_argument:
           case rt_charized_raw_argument:
             /* The stringized or charized value of the argument. */
-            if (map->raw_len > 0 || !microsoft_mode || map->is_empty_arg) {
+            if (map->raw_len == 0 && microsoft_mode && !map->is_empty_arg) {
               /* The Microsoft preprocessor suppresses all output for
                  omitted (as opposed to empty) arguments.  That is, given
 
                    #define M(a,b) #b
 
                  M(1) expands to nothing, while M(1,) expands to "". */
+            } else {
 #if FULLY_RESOLVED_MACRO_POSITIONS
               /* The result will be a single token, so we only need the
                  starting position from the raw_text_map; the other map
