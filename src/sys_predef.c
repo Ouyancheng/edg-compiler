@@ -1401,8 +1401,9 @@ Enter the standard predeclared functions for GCC.
   } else {
 #if GCC_BUILTIN_VARARGS
     unexpected_condition();
-#endif /* GCC_BUILTIN_VARARGS */
+#else /* !GCC_BUILTIN_VARARGS */
     va_list_type = void_star_type;
+#endif /* GCC_BUILTIN_VARARGS */
   }  /* if */
 
   /* Create the functions.  We arrange for the "name" argument to avoid
