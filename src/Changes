@@ -1,5 +1,12 @@
 Version 4.1
 
+4/10/09  [EDGcpfe/9556]
+GNU compatibility: __builtin_bswap32 and __builtin_bswap64
+
+In GNU modes, the front end now predeclares the byte swapping functions
+__builtin_bswap32 and __builtin_bswap64.
+
+
 4/10/09  [EDGcpfe/8530]
 C++-generating back end, Microsoft and Sun compatibility: __alignof
 
