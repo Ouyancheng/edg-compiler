@@ -14050,6 +14050,33 @@ adjust its type to "type", and return a pointer to the resulting expression.
 }  /* add_rvalue_class_adjust_node */
 
 
+static a_lambda_ptr copy_lambda(a_lambda_ptr lambda)
+/*
+Allocate a copy of a lambda and return a pointer to it.
+*/
+{
+  a_lambda_ptr          lambda_copy;
+  a_lambda_capture_ptr  capture, capture_copy, prev = NULL;
+
+  lambda_copy = alloc_lambda();
+  *lambda_copy = *lambda;
+  for (capture = lambda->capture_list;
+       capture != NULL;
+       capture = capture->next) {
+    capture_copy = alloc_lambda_capture();
+    *capture_copy = *capture;
+    capture_copy->next = NULL;
+    if (prev == NULL) {
+      lambda_copy->capture_list = capture_copy;
+    } else {
+      prev->next = capture_copy;
+    }  /* if */
+    prev = capture_copy;
+  }  /* for */
+  return lambda_copy;
+}  /* copy_lambda */
+
+
 an_expr_node_ptr copy_node(an_expr_node_ptr expr)
 /*
 Allocate a copy of an expression node and return a pointer to it.
@@ -14261,9 +14288,10 @@ be called to start a copy.
       }  /* if */
       break;
     case enk_lambda:
-      /* The lambda entry is pointed to from the new node; no copy is made. */
+      /* Make a copy of the lambda and its initialization. */
       check_assertion(in_file_scope(expr->variant.lambda.ptr) ||
                       !in_file_scope(expr_copy));
+      expr_copy->variant.lambda.ptr = copy_lambda(expr->variant.lambda.ptr);
       expr_copy->variant.lambda.initialization =
                        i_copy_dynamic_init(expr->variant.lambda.initialization,
                                            options, cblock);

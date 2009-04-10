@@ -3320,6 +3320,26 @@ a parameter in expr (if one exists) with a corresponding parameter.
       if (orig_ptr->is_this_parameter) orig_ptr = orig_ptr->next;
     }  /* for */
     check_assertion(orig_ptr != NULL && new_ptr != NULL);
+  } else if (expr->kind == (an_expr_node_kind)enk_lambda) {
+    /* Look for parameters that may be in a lambda capture list and
+       replace them. */
+    a_lambda_capture_ptr ptr = expr->variant.lambda.ptr->capture_list;
+    for (; ptr != NULL; ptr = ptr->next) {
+      for (orig_ptr = tblock->orig_params, new_ptr = tblock->new_params;
+           orig_ptr != NULL && new_ptr != NULL;
+           orig_ptr = orig_ptr->next, new_ptr = new_ptr->next) {
+        if (ptr->variable == orig_ptr) {
+          check_assertion(identical_types_ignoring_qualifiers(
+                                                           ptr->variable->type,
+                                                           new_ptr->type));
+          ptr->variable = new_ptr;
+          break;
+        }  /* if */
+        /* Skip the VTT parameter that follows the "this" parameter in
+           the list of original parameters. */
+        if (orig_ptr->is_this_parameter) orig_ptr = orig_ptr->next;
+      }  /* for */
+    }  /* for */
   }  /* if */
 }  /* replace_parameter_in_node */
 
