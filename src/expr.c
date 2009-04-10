@@ -11514,6 +11514,14 @@ indicates which.
                                   TOPT_SUPPRESS_CHECK_FOR_INDEFINITE_FUNCTION);
         convert_function_template_to_single_function_if_possible(operand,
                                                           /*will_call=*/FALSE);
+      } else {
+        /* Handle symbol-for-member operands. */
+        do_operand_transformations(operand,
+                                   TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION |
+                                   TOPT_SUPPRESS_ARRAY_TO_POINTER_CONVERSION |
+                                 TOPT_SUPPRESS_FUNCTION_TO_POINTER_CONVERSION |
+                                  TOPT_SUPPRESS_CHECK_FOR_INDEFINITE_FUNCTION);
+
       }  /* if */
       /* Check for casts that aren't valid in this kind of expression.
          Note that this check is done after the operand transformations

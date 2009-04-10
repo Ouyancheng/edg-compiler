@@ -15496,6 +15496,7 @@ process_field_selection:
 process_ptr_to_member_selection:
               /* .* and ->*.  The second operand is a pointer-to-member that
                  indicates the type of the entity fetched. */
+              if (!is_ptr_to_member_type(op2->type)) break;
               does_fetch = TRUE;
               fetched_type = make_pm_selection_type(operand_type, op2->type);
               break;
