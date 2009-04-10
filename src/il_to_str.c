@@ -36,6 +36,18 @@ il_to_str.c -- Produce an external string-form representation for various
 /*lint -esym(750,use_microsoft_form)*/
 
 
+/* Macro that returns TRUE if the GNU form of output should
+   be used for certain features. */
+#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
+#define use_gnu_form() (octl->gen_compilable_code ? \
+                                gcc_is_generated_code_target : \
+                                gnu_mode)
+#else /* !(BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE) */
+#define use_gnu_form() gnu_mode
+#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
+/*lint -esym(750,use_gnu_form)*/
+
+
 /* Macro that returns TRUE if the Sun form of output should
    be used for certain features. */
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
@@ -4450,6 +4462,8 @@ precedence confusion.  Do the output in the way described by octl.
         case tpck_alignof:
           if (use_microsoft_form() || use_sun_form()) {
             octl->output_str("__alignof(", octl);
+          } else if (use_gnu_form()) {
+            octl->output_str("__alignof__(", octl);
           } else {
             octl->output_str("__ALIGNOF__(", octl);
           }  /* if */
