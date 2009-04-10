@@ -1399,7 +1399,9 @@ Enter the standard predeclared functions for GCC.
        GCC_BUILTIN_VARARGS is true.) */
     va_list_type = builtin_va_list_type;
   } else {
-    check_assertion(!(GCC_BUILTIN_VARARGS));
+#if GCC_BUILTIN_VARARGS
+    unexpected_condition();
+#endif /* GCC_BUILTIN_VARARGS */
     va_list_type = void_star_type;
   }  /* if */
 
