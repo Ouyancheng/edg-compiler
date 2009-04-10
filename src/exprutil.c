@@ -9909,7 +9909,7 @@ e.g., in a back end.
         /* The top operator is an indirection, so we can just change the node
            to an lvalue. */
         possible = TRUE;
-        if (is_pointer_type(op1->type)) {
+        if (is_ptr_or_ref_type(op1->type)) {
           lvalue_type = type_pointed_to(op1->type);
         }  /* if */
         break;
