@@ -6141,7 +6141,6 @@ work is done by scan_field_selection_operator and scan_subscript_operator.
         make_constant_operand(&offset_constant, result);
         result->type = result->variant.constant.type;
       }  /* if */
-      result->state = (an_operand_state)os_rvalue;
     } else {
       make_error_operand(result);
       operand_will_not_be_used_because_of_error(&local_result);
