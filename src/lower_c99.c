@@ -3604,19 +3604,20 @@ second parameter.
       lower_c99_temp_init(expr);
       break;
     case enk_variable:
-#if LOWER_VARIABLE_LENGTH_ARRAYS
-      if (expr->variant.variable->is_vla && expr->is_lvalue) {
-        /* VLAs are lowered to pointers (to automatically managed storage).
-           The pointer value should be used. */
-        lower_vla_variable_lvalue(expr);
-      }  /* if */
-#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
 #if MINIMAL_INLINING
       if (expr->is_lvalue && expr->variant.variable->is_parameter) {
         /* Set flag indicating that this parameter is used as an lvalue. */
         expr->variant.variable->param_used_as_lvalue = TRUE;
       }  /* if */
 #endif /* MINIMAL_INLINING */
+#if LOWER_VARIABLE_LENGTH_ARRAYS
+      if (expr->variant.variable->is_vla && expr->is_lvalue) {
+        /* VLAs are lowered to pointers (to automatically managed storage).
+           The pointer value should be used. */
+        lower_vla_variable_lvalue(expr);
+        /* Note that expr is no longer an enk_variable node. */
+      }  /* if */
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
       break;
     case enk_routine:
       /* Although enk_routine nodes are not lowered here, they may be
