@@ -4433,6 +4433,11 @@ file.
 #else /* !defined(DEFAULT_RTTI_ENABLED) */
   comment_undefined_macro_name(DEFAULT_RTTI_ENABLED);
 #endif /* defined(DEFAULT_RTTI_ENABLED) */
+#if defined(DEFAULT_RVALUE_REFERENCES_ENABLED)
+  define_numeric_valued_macro(DEFAULT_RVALUE_REFERENCES_ENABLED);
+#else /* !defined(DEFAULT_RVALUE_REFERENCES_ENABLED) */
+  comment_undefined_macro_name(DEFAULT_RVALUE_REFERENCES_ENABLED);
+#endif /* defined(DEFAULT_RVALUE_REFERENCES_ENABLED) */
 #if defined(DEFAULT_SINGLE_REF_QUAL_OVL_RES_TIEBREAKER)
   define_numeric_valued_macro(DEFAULT_SINGLE_REF_QUAL_OVL_RES_TIEBREAKER);
 #else /* !defined(DEFAULT_SINGLE_REF_QUAL_OVL_RES_TIEBREAKER) */
