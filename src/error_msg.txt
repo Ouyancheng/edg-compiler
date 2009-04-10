@@ -1833,6 +1833,7 @@ ec_unrecognized_microsoft_comment_pragma_type;;"unrecognized #pragma comment typ
 ec_cl_auto_type_option_only_in_cplusplus;;"option \"--auto_type\" can be used only when compiling C++"
 ec_cl_auto_storage_option_only_in_cplusplus;;"option \"--auto_storage\" can be used only when compiling C++"
 ec_cl_auto_cannot_be_disabled;;"the options \"--no_auto_type\" and \"--no_auto_storage\" cannot be used simultaneously"
+ec_bad_pragma_comment_string;;"invalid string in #pragma comment"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

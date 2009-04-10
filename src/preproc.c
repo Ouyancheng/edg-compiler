@@ -2608,13 +2608,20 @@ executable file.
       /* Pick up the optional string argument.  Skip over the comma. */
       (void)get_token();
       if (curr_token == tok_string_literal) {
-        /* Create a constant for the IL entry. */
-        a_memory_region_number region_to_switch_back_to;
-        switch_to_file_scope_region(&region_to_switch_back_to);
-        cp = alloc_unshared_constant(&const_for_curr_token);
-        switch_back_to_original_region(region_to_switch_back_to);
-        /* Skip over the string literal. */
-        (void)get_token();
+        if (is_error_constant(&const_for_curr_token) ||
+            char_int_kind_from_string_type(const_for_curr_token.type) !=
+                                                         plain_char_int_kind) {
+          error(ec_bad_pragma_comment_string);
+          err = TRUE;
+        } else {
+          /* Create a constant for the IL entry. */
+          a_memory_region_number region_to_switch_back_to;
+          switch_to_file_scope_region(&region_to_switch_back_to);
+          cp = alloc_unshared_constant(&const_for_curr_token);
+          switch_back_to_original_region(region_to_switch_back_to);
+          /* Skip over the string literal. */
+          (void)get_token();
+        }  /* if */
       } else {
         error(ec_exp_string_literal);
         err = TRUE;
