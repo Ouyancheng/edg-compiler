@@ -1355,6 +1355,7 @@ TRUE.
       } else {
         /* A zero-length array (a GNU extension).  This is different from a
            flexible array, in that no initializers are allowed for it. */
+        check_assertion(type->variant.array.bound_is_zero);
         *any_more_members = FALSE;
       }  /* if */
     }  /* if */
