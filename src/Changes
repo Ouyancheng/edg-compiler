@@ -97,6 +97,28 @@ following C++0x features:
   - rvalue references
   - static_assert
 
+4/9/09   [EDGcpfe/8056]
+Rvalue references
+
+Rvalue references, a C++0X feature described by N2118 (with a significant
+change in N2844) and voted in at the October 2006 (Portland) meeting of
+the C++ standards committee, has now been implemented.  The feature is
+enabled implicitly in C++0X mode, and can also be controlled separately
+by --[no_]rvalue_refs and DEFAULT_RVALUE_REFERENCES_ENABLED.  The
+existence of rvalue references allows the declaration of "move
+constructors", which can be used to efficiently copy class objects
+by transferring the resources from a source object that is soon to
+be defunct to a destination object.
+
+IL CHANGE: The tk_pointer variant of a_type now has an is_rvalue_reference
+field, which further refines the existing is_reference flag.  There's
+also a new is_rvalue_reference_cast flag in expression operation nodes.
+
+ABI CHANGE: New mangling forms for rvalue references have been added
+for rvalue references.  The IA-64 ABI form matches the Itanium ABI
+specification.  The demangler has been updated the handle these new
+encodings.
+
 
 4/9/09   [EDGcpfe/9584]
 Microsoft compatibility: #pragma comment
