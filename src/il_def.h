@@ -6734,7 +6734,7 @@ typedef struct a_variable {
   a_bit_field	param_used_as_lvalue:1;
 			/* TRUE if is_parameter or is_handler_param is TRUE
 			   and the variable is used as an lvalue at least once
-			   within the body of the routine or handler. */
+			   in the lowered code for the routine or handler. */
 #endif /* MINIMAL_INLINING */
   a_bit_field	param_used_more_than_once:1;
 			/* TRUE if is_parameter or is_handler_param is TRUE
