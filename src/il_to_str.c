@@ -36,6 +36,18 @@ il_to_str.c -- Produce an external string-form representation for various
 /*lint -esym(750,use_microsoft_form)*/
 
 
+/* Macro that returns TRUE if the Sun form of output should
+   be used for certain features. */
+#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
+#define use_sun_form() (octl->gen_compilable_code ? \
+                                sun_is_generated_code_target : \
+                                sun_mode)
+#else /* !(BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE) */
+#define use_sun_form() sun_mode
+#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
+/*lint -esym(750,use_sun_form)*/
+
+
 /* Forward declarations. */
 static void form_qualifier(a_scope_ptr                            scope,
                            an_il_to_str_output_control_block_ptr  octl);
@@ -4436,7 +4448,11 @@ precedence confusion.  Do the output in the way described by octl.
           octl->output_str("sizeof(", octl);
           goto do_sizeof_cases;
         case tpck_alignof:
-          octl->output_str("__ALIGNOF__(", octl);
+          if (use_microsoft_form() || use_sun_form()) {
+            octl->output_str("__alignof(", octl);
+          } else {
+            octl->output_str("__ALIGNOF__(", octl);
+          }  /* if */
 do_sizeof_cases:
           { an_expr_node_ptr  expr = generic_sizeof_arg_expr(constant);
             if (expr != NULL) {

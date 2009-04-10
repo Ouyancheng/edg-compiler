@@ -16262,6 +16262,10 @@ of characters added.
   } else if (gcc_is_generated_code_target && token == tok_alignof) {
     /* g++ expects the lower-case variant of the keyword spelling. */
     put_str_to_temp_text_buffer("__alignof__");
+  } else if ((microsoft_dialect_is_generated_code_target ||
+              sun_is_generated_code_target) &&
+             token == tok_alignof) {
+    put_str_to_temp_text_buffer("__alignof");
 #endif /* BACK_END_IS_CP_GEN_BE */
   } else {
     /* A keyword or other token whose literal name can be put out. */

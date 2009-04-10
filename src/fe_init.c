@@ -711,6 +711,9 @@ Install the keywords in the symbol table.
     enter_keyword((a_token_kind)tok_symbolic_link_scope, "__symbolic");
     enter_keyword((a_token_kind)tok_hidden_link_scope, "__hidden");
   }  /* if */
+  if (sun_mode) {
+    enter_keyword((a_token_kind)tok_alignof, "__alignof");
+  }  /* if */
 #endif /* SUN_EXTENSIONS_ALLOWED */
   if (thread_local_storage_specifier_enabled) {
     enter_keyword((a_token_kind)tok_thread, "__thread");

@@ -1,5 +1,18 @@
 Version 4.1
 
+4/10/09  [EDGcpfe/8530]
+C++-generating back end, Microsoft and Sun compatibility: __alignof
+
+When msvc_is_generated_code_target is TRUE, the C++-generating back end
+generated uses of the __alignof operator in templates as __ALIGNOF__, which
+is not accepted by MSVC++.  This is now fixed.  In addition, the __alignof
+operator is now accepted in --sun mode.  For example:
+
+  template <typename T> unsigned f() {
+    return __alignof(T);    // Previously generated as __ALIGNOF__(T)
+  }
+
+
 4/9/09   [EDGcpfe/9517,EDGcpfe/9586,EDGcpfe/9673]
 GNU compatibility: Builtin I/O functions with va_list parameter
 
