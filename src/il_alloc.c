@@ -3255,7 +3255,7 @@ in the current IL memory region.
                                 (a_microsoft_pragma_comment_type)mpct_compiler;
       pp->variant.comment.str = NULL;
       break;
-#endif /* MICROSOFT_EXSTENSIONS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if CHECKING
     default:
       internal_error("alloc_pragma: bad pragma kind");
