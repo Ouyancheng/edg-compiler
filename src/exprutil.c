@@ -7006,7 +7006,16 @@ of ways, e.g., if the source operand is an lvalue.
     /* Non-constant expression.  Generate a cast expression.  For an
        implicit conversion, it's okay to add nothing at all. */
     if (!is_implicit_cast || !identical_types(operand->type, dest_type)) {
-      an_expr_node_ptr expr, opexpr = make_node_from_operand(operand);
+      an_expr_node_ptr expr, opexpr;
+      if (is_rvalue_reference_cast) {
+        /* The language says that the operand of an rvalue reference cast
+           is an rvalue, which is ensured above.  However, the IL operators
+           take an lvalue as their operand, so adjust for that. */
+        prep_generic_operand_full(operand,
+                                  /*lvalue_expected=*/TRUE,
+                                  /*rvalue_expected=*/FALSE);
+      }  /* if */
+      opexpr = make_node_from_operand(operand);
       /* Certain kinds of casts are known not to create a new object.
          For others that might create a class object, use an enk_temp_init
          form. */
@@ -7044,7 +7053,7 @@ of ways, e.g., if the source operand is an lvalue.
         /* Cast to a class type.  Use an enk_temp_init/dik_constructor. */
         a_dynamic_init_ptr dip;
         expr = create_expr_temporary(dest_type,
-                                     /*is_lvalue=*/is_reference_cast,
+                                     /*is_lvalue=*/FALSE,
                                      /*is_explicit_cast=*/!is_implicit_cast,
                                      /*suppress_abstract_test=*/FALSE,
                                      (a_dynamic_init_kind)dik_constructor,
