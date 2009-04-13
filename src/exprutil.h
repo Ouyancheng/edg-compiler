@@ -348,10 +348,6 @@ typedef struct an_operand {
   a_bit_field	is_dummy_lvalue:1;
 			/* TRUE if this operand was created by
 			   make_dummy_lvalue_operand. */
-  a_bit_field	is_objectless_nonstatic_data_mem_ref:1;
-			/* TRUE if this operand represents a reference to a
-			   nonstatic data member without an object, as is
-			   permitted in unevaluated operands. */
 #if RECORD_FORM_OF_NAME_REFERENCE
   a_bit_field	name_reference_set:1;
 			/* TRUE if name_reference has been set. */

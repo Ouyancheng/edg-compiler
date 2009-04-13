@@ -11261,6 +11261,10 @@ typedef struct an_expr_node {
 			   source.  Set only on enk_temp_init nodes and on
 			   eok_cast and eok_XXX_cast enk_operation nodes;
 			   will be FALSE everywhere else. */
+  a_bit_field	is_objectless_nonstatic_data_mem_ref:1;
+			/* TRUE if this node represents a reference to a
+			   nonstatic data member without an object, as is
+			   permitted in unevaluated operands. */
   bitfield_to_avoid_codecenter_warnings()
   union {
     /* When kind == enk_error or enk_address_of_ellipsis, no variant fields. */

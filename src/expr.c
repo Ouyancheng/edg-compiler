@@ -5500,15 +5500,6 @@ Syntax:
     if (is_parenthesized) local_options |= EOPT_TRAPPED_LEFT_PAREN;
     scan_expr(&operand, PREC_PREFIX, local_options);
     operand_was_scanned = TRUE;
-    if (strict_ansi_mode && expr_stack->objectless_nonstatic_data_ref_seen &&
-        !operand.is_objectless_nonstatic_data_mem_ref) {
-      /* An objectless reference to a nonstatic data member was seen, but
-         it was not the "sole constituent" of the unevaluated operand, as
-         required by the C++ Standard. */
-      pos_diagnostic(strict_ansi_discretionary_severity,
-                     ec_member_ref_requires_object,
-                     &expr_stack->objectless_nonstatic_data_ref_pos);
-    }  /* if */
     /* Do not convert a type of "routine returning type" to "pointer to
        routine returning type".  See section 3.2.2.1 in the C standard.
        Likewise do not convert arrays to pointers, or lvalues to rvalues. */
@@ -6704,15 +6695,6 @@ NULL, the end position in its specifiers_range is updated.
   expr_stack->is_decltype_or_typeof_arg_expression = TRUE;
   add_matching_stop_token(tok_rparen);
   scan_expr(&operand, PREC_LOWEST, EOPT_NO_OPTIONS);
-  if (strict_ansi_mode && expr_stack->objectless_nonstatic_data_ref_seen &&
-      !operand.is_objectless_nonstatic_data_mem_ref) {
-    /* An objectless reference to a nonstatic data member was seen, but it
-       was not the "sole constituent" of the unevaluated operand, as
-       required by the C++ Standard. */
-    pos_diagnostic(strict_ansi_discretionary_severity,
-                   ec_member_ref_requires_object,
-                   &expr_stack->objectless_nonstatic_data_ref_pos);
-  }  /* if */
   /* Give an error on an indefinite function. */
   do_operand_transformations(&operand,
                              TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION |
@@ -7555,7 +7537,6 @@ Syntax:
   a_type_ptr        typeid_type;
   a_boolean         err = FALSE;
   a_boolean         microsoft_template_arg_case = FALSE;
-  a_boolean         missing_object_diagnostic_issued = FALSE;
 
   db_enter(4, "scan_typeid_operator");
   /* Save the position of the typeid keyword. */
@@ -7650,18 +7631,21 @@ Syntax:
     /* As of now (April 2009), the working draft doesn't give special
        handling to rvalue reference objects here. */
     if (is_an_lvalue(&operand) && is_polymorphic_class_type(typeid_type)) {
+      an_expr_node_ptr node = expr_node_from_operand(&operand);
+      a_boolean        operand_is_objectless_nonstatic_data_mem_ref;
+      operand_is_objectless_nonstatic_data_mem_ref =
+                  (node != NULL && node->is_objectless_nonstatic_data_mem_ref);
       if (objectless_nonstatic_data_ref_seen &&
-          !operand.is_objectless_nonstatic_data_mem_ref) {
+          !operand_is_objectless_nonstatic_data_mem_ref) {
         /* Objectless references to nonstatic data members are permitted
            only in unevaluated operands, but an lvalue of a polymorphic
            class type is not an unevaluated operand.  (The case where
-           operand.is_objectless_nonstatic_data_mem_ref is TRUE is excluded
+           operand_is_objectless_nonstatic_data_mem_ref is TRUE is excluded
            because the lvalueness is artificial, resulting only from the
            compiler-generated transformation from X::m to
            ((T*)0)->X::m.) */
         pos_error(ec_member_ref_requires_object,
                   &objectless_nonstatic_data_ref_pos);
-        missing_object_diagnostic_issued = TRUE;
       }  /* if */
       if (is_expression_operand(&operand)) {
         if (operand_complete_object_type(&operand,
@@ -7669,7 +7653,7 @@ Syntax:
             /* Special case for (*(T *)0), which should throw an exception
                (but watch out for an objectless reference to a nonstatic
                data member, which is rewritten to have that same form). */
-            (operand.is_objectless_nonstatic_data_mem_ref ||
+            (operand_is_objectless_nonstatic_data_mem_ref ||
              !op_is_null_address_lvalue(&operand))) {
           /* The complete object type can be determined, so runtime processing
              is not needed. */
@@ -7679,16 +7663,6 @@ Syntax:
           expr = operand.variant.expression;
         }  /* if */
       }  /* if */
-    }  /* if */
-    if (strict_ansi_mode && objectless_nonstatic_data_ref_seen &&
-        !operand.is_objectless_nonstatic_data_mem_ref &&
-        !missing_object_diagnostic_issued) {
-      /* An objectless reference to a nonstatic data member was seen, but
-         it was not the "sole constituent" of the unevaluated operand, as
-         required by the C++ Standard. */
-      pos_diagnostic(strict_ansi_discretionary_severity,
-                     ec_member_ref_requires_object,
-                     &objectless_nonstatic_data_ref_pos);
     }  /* if */
     if (microsoft_template_arg_case) {
       if (expr != NULL) {
@@ -17520,13 +17494,14 @@ normal_function:
                                           rep, result);
             } else {
               /* Normal case: "x" is interpreted as "this->x". */
-              if ((sun_mode || cpp0x_mode) &&
-                  curr_expr_is_potentially_unevaluated() &&
+              an_expr_node_ptr node;
+              if (curr_expr_is_potentially_unevaluated() &&
                   !variable_this_exists(&var_ptr)) {
-                /* C++0x and Sun modes allow a use of a nonstatic data
-                   member without an available "this" inside a sizeof and
-                   other unevaluated contexts.  Use a zero pointer instead
-                   of "this". */
+                /* Some modes allow a use of a nonstatic data member
+                   without an available "this" inside a sizeof and other
+                   unevaluated contexts.  Use a zero pointer instead of
+                   "this" and issue a discretionary error in modes where
+                   this is not permitted. */
                 a_type_ptr class_ptr_type =
                                  make_pointer_type(sym_parent_class(sym_ptr));
                 make_integer_constant_operand(&this_pointer_operand,
@@ -17537,6 +17512,18 @@ normal_function:
                 expr_stack->objectless_nonstatic_data_ref_pos =
                                            locator_for_curr_id.source_position;
                 is_objectless_nonstatic_data_mem_ref = TRUE;
+                if (sun_mode || cpp0x_mode) {
+                  /* Objectless references to non-static data members are
+                     permitted in C++0x and accepted by the Sun compiler. */
+                } else if (strict_ansi_mode) {
+                  pos_diagnostic(strict_ansi_discretionary_severity,
+                                 ec_member_ref_requires_object,
+                                 &locator_for_curr_id.source_position);
+                } else if (gnu_mode || microsoft_mode) {
+                  pos_diagnostic(es_discretionary_error,
+                                 ec_member_ref_requires_object,
+                                 &locator_for_curr_id.source_position);
+                }  /* if */
                 goto do_selection;
               }  /* if */
               /* Make an operand for the "this" pointer. */
@@ -17558,7 +17545,9 @@ do_selection:
                                              /*compiler_generated=*/TRUE,
                                              sym_ptr,
                                              rep, result);
-                result->is_objectless_nonstatic_data_mem_ref =
+                node = expr_node_from_operand(result);
+                check_assertion(node != NULL);
+                node->is_objectless_nonstatic_data_mem_ref =
                                           is_objectless_nonstatic_data_mem_ref;
               } else {
                 /* There was some problem in constructing the "this"

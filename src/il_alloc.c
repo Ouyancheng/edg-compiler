@@ -2690,6 +2690,7 @@ its kind to the indicated kind.
   node->marked_as_gnu_extension = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
   node->is_static_cast = FALSE;
+  node->is_objectless_nonstatic_data_mem_ref = FALSE;
 #if CENTERLINE_CHECKING
   node->avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */
