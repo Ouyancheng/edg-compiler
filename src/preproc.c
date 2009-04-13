@@ -2608,9 +2608,11 @@ executable file.
       /* Pick up the optional string argument.  Skip over the comma. */
       (void)get_token();
       if (curr_token == tok_string_literal) {
-        if (is_error_constant(&const_for_curr_token) ||
-            char_int_kind_from_string_type(const_for_curr_token.type) !=
-                                                         plain_char_int_kind) {
+        if (is_error_constant(&const_for_curr_token)) {
+          /* A diagnosic was already issued. */
+          err = TRUE;
+        } else if (!is_normal_character_kind(
+                                        const_for_curr_token.character_kind)) {
           error(ec_bad_pragma_comment_string);
           err = TRUE;
         } else {
