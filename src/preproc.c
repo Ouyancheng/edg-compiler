@@ -1983,10 +1983,12 @@ where <string> is a quoted character string (not wide chars).
   a_memory_region_number  region_to_switch_back_to;
 
   begin_rescan_of_pragma_tokens(ppp);
-  if (curr_token != tok_string_literal ||
-      is_error_constant(&const_for_curr_token) ||
-      char_int_kind_from_string_type(const_for_curr_token.type) !=
-                                                 plain_char_int_kind) {
+  if (curr_token == tok_string_literal &&
+      is_error_constant(&const_for_curr_token)) {
+    /* A diagnostic was already issued. */
+    err = TRUE;
+  } else if (curr_token != tok_string_literal ||
+             !is_normal_character_kind(const_for_curr_token.character_kind)) {
     error(ec_bad_ident_string);
     err = TRUE;
   } else {
