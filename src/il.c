@@ -9329,6 +9329,28 @@ and function-to-pointer decay are not considered.
 }  /* rvalue_type */
 
 
+static a_type_ptr extended_rvalue_type(a_type_ptr type)
+/*
+A "full" version of rvalue_type, which also handles function -> pointer and
+array -> pointer decay.  These come up with functions returning rvalue
+reference types.
+*/
+{
+  if (is_function_type(type)) {
+    /* A function type decays to a pointer to function. */
+    type = make_pointer_type(type);
+  } else if (is_array_type(type)) {
+    /* An array type decays to a pointer to the first element. */
+    type = type_after_array_to_pointer_transformation(type);
+  } else {
+    /* For other types, the returned type should be that for an rvalue
+       result. */
+    type = rvalue_type(type);
+  }  /* if */
+  return type;
+}  /* extended_rvalue_type */
+  
+
 a_type_ptr return_type_of(a_type_ptr routine_type)
 /*
 Return the type that is the return type of the given function type.  If
@@ -9352,19 +9374,7 @@ returned.  Otherwise, it is the type of the rvalue returned.
     if (is_rvalue_ref) {
       /* An rvalue reference type means an rvalue result, so we may have to
          alter the type accordingly. */
-      if (is_function_type(return_type)) {
-        /* A function type decays to a pointer to function (an rvalue function
-           is weird).   This is not what the working draft calls for, but
-           something needs to change in this area. */
-        return_type = make_pointer_type(return_type);
-      } else if (is_array_type(return_type)) {
-        /* An array type can stay an array type (rvalue arrays are okay).
-           Type qualifiers aren't dropped. */
-      } else {
-        /* For other types, the returned type should be that for an rvalue
-           result. */
-        return_type = rvalue_type(return_type);
-      }  /* if */
+      return_type = extended_rvalue_type(return_type);
     }  /* if */
   }  /* if */
   return return_type;
@@ -13671,9 +13681,10 @@ name lookup options.
                                                    options,
                                                    copy_error);
             if (is_reference_type(new_type)) {
+              a_boolean is_rvalue_ref = is_rvalue_reference_type(new_type);
               new_type = type_pointed_to(new_type);
-              if (is_rvalue_reference_type(new_type)) {
-                new_type = rvalue_type(new_type);
+              if (is_rvalue_ref) {
+                new_type = extended_rvalue_type(new_type);
               }  /* if */
             }  /* if */
           }  /* if */
@@ -20101,7 +20112,7 @@ have the is_lvalue flag set incorrectly; return TRUE otherwise.
         /* Probably an error, but check for one special case. */
         if (gpp_mode && op == (an_expr_operator_kind)eok_va_start &&
             is_variable_node(operand_2) &&
-            is_reference_type(operand_2->type)) {
+            is_lvalue_reference_type(operand_2->type)) {
           /* g++ allows use of va_start with a parameter of reference
              type.  This situation is represented in the IL as an rvalue
              variable designating the parameter and is not an error. */

@@ -4310,7 +4310,8 @@ and return TRUE if the tiebreakers should be suppressed for this case.
             trout_type = skip_typerefs(trout->type);
             rtsp = trout_type->variant.routine.extra_info;
             ref_param = (rtsp->param_type_list != NULL &&
-                         is_reference_type(rtsp->param_type_list->type));
+                         is_lvalue_reference_type(
+                                                 rtsp->param_type_list->type));
             suppress = (rout->compiler_generated == ref_param);
           }  /* if */
         }  /* if */
@@ -4437,9 +4438,7 @@ if the return type is not available (e.g., for a template).
     /* Don't process templates. */
     if (sym->kind != (a_symbol_kind)sk_function_template) {
       type = routine_symbol_type(sym);
-      type = type->variant.routine.return_type;
-      type = skip_typerefs(type);
-      if (is_reference_type(type)) type = type_pointed_to(type);
+      type = return_type_of(type);
     }  /* if */
   } /* if */
   return type;
