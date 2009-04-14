@@ -9500,6 +9500,7 @@ address in addition to the cases usually covered.
 static void take_address_of_or_reference_to_lvalue(
                                           an_operand        *operand,
                                           a_boolean         reference_case,
+                                          a_type_ptr        reference_type,
                                           a_source_position *operator_position)
 /*
 Change operand (an lvalue or a function designator) to an rvalue that is:
@@ -9507,7 +9508,9 @@ Change operand (an lvalue or a function designator) to an rvalue that is:
 (a)  If reference_case is FALSE, a pointer to the lvalue.  This is the
 function of the "&" operator.
 (b)  If reference_case is TRUE, a reference to the lvalue.  This is the
-value stored in a reference when it is bound to the lvalue.
+value stored in a reference when it is bound to the lvalue.  reference_type
+indicates the reference type we want, useful if the type wanted is an
+rvalue reference type.
 
 In both cases, check that the operand's address can be taken, and set the
 address_taken flag.  When operator_position is non-NULL, there is an
@@ -9574,13 +9577,16 @@ explicit "&" operator in the source and *operator_position gives its position.
                                              (a_boolean *)NULL)) {
             did_not_fold = FALSE;
             if (reference_case) {
+              /* For the reference case, change the address constant
+                 type to a reference (possibly an rvalue reference type). */
+#if CHECKING
               if (is_pointer_type(conaddr.type)) {
-                /* For the reference case, change the address constant
-                   type to a reference. */
-                a_type_ptr ref_type = make_reference_type(
-                                                type_pointed_to(conaddr.type));
-                conaddr.type = ref_type;
+                a_type_ptr under_type1 = type_pointed_to(conaddr.type);
+                a_type_ptr under_type2 = type_pointed_to(reference_type);
+                check_assertion(identical_types(under_type1, under_type2));
               }  /* if */
+#endif /* CHECKING */
+              conaddr.type = reference_type;
             }  /* if */
             make_constant_operand(&conaddr, operand);
           }  /* if */
@@ -9646,22 +9652,26 @@ in the source and *operator_position gives its position.
 */
 {
   take_address_of_or_reference_to_lvalue(operand, /*reference_case=*/FALSE,
+                                         (a_type_ptr)NULL,
                                          operator_position);
 }  /* take_address_of_lvalue */
 
 
-void take_reference_to_operand(an_operand *operand)
+void take_reference_to_operand(an_operand *operand,
+                               a_type_ptr reference_type)
 /*
 Change operand (an lvalue or class rvalue) to an rvalue that is a reference
 to the object.  This is the value that is stored in a reference bound to the
 object.  Check that the operand isn't a register variable or a bit
 field, and set the address_taken flag.  Also works on function
-designators.
+designators.  reference_type is the reference type we want to end up with,
+useful particularly when it indicates an rvalue reference type.
 */
 {
   if (is_an_lvalue(operand) ||
       is_a_function_designator(operand)) {
     take_address_of_or_reference_to_lvalue(operand, /*reference_case=*/TRUE,
+                                           reference_type,
                                            (a_source_position *)NULL);
   } else if (is_error_operand(operand)) {
     /* Leave an error operand alone. */

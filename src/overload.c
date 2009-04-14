@@ -14011,7 +14011,6 @@ issued.  If conversion is non-NULL, the initializer has previously
 been found to be acceptable, and *conversion describes it.
 */
 {
-  a_type_ptr   orig_dest_type = dest_type;
   a_type_ptr   orig_source_type = source_operand->type;
   an_operand   orig_operand;
   a_type_ptr   base_dest_type, adj_base_dest_type;
@@ -14283,7 +14282,7 @@ been found to be acceptable, and *conversion describes it.
       } else {
         pos_ty2_error(ec_qualifier_dropped_in_ref_init,
                       &source_operand->position,
-                      orig_dest_type, orig_source_type);
+                      dest_type, orig_source_type);
       }  /* if */
     } else if (!binding_to_rvalue_allowed && operand_was_rvalue) {
       /* Can't bind this reference to an rvalue. */
@@ -14341,7 +14340,7 @@ been found to be acceptable, and *conversion describes it.
          handled above). */
       pos_ty2_error(ec_qualifier_dropped_in_ref_init,
                     &source_operand->position,
-                    orig_dest_type, orig_source_type);
+                    dest_type, orig_source_type);
       conv_to_error_operand(source_operand);
     } else if (!binding_to_rvalue_allowed &&
                !(allow_anachronisms ||
@@ -14362,7 +14361,7 @@ been found to be acceptable, and *conversion describes it.
                                        ec_bad_const_volatile_ref_init :
                                        ec_bad_nonconst_ref_init,
                       &source_operand->position,
-                      orig_dest_type, orig_source_type);
+                      dest_type, orig_source_type);
         conv_to_error_operand(source_operand);
       }  /* if */
     } else if (curr_expr_kind_is_const()) {
@@ -14413,7 +14412,7 @@ been found to be acceptable, and *conversion describes it.
                                        ec_bad_const_volatile_ref_init :
                                        ec_bad_nonconst_ref_init,
                             &source_operand->position,
-                            orig_dest_type, orig_source_type);
+                            dest_type, orig_source_type);
               conv_to_error_operand(source_operand);
             }  /* if */
             err = TRUE;
@@ -14461,7 +14460,7 @@ been found to be acceptable, and *conversion describes it.
       /* For some template-dependent rvalue reference cases we may still have
          an rvalue here. */
     } else {
-      take_reference_to_operand(source_operand);
+      take_reference_to_operand(source_operand, dest_type);
     }  /* if */
   }  /* if */
   /* Restore the original source position, etc. */
@@ -14689,7 +14688,7 @@ conversion_to_class_possible.
       } else {
         check_assertion(is_error_operand(source_operand));
       }  /* if */
-      take_reference_to_operand(source_operand);
+      take_reference_to_operand(source_operand, formal_param->type);
     }  /* if */
   }  /* if */
   if (favor_constant_result_for_nonstatic_init) {
