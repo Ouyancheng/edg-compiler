@@ -7783,31 +7783,6 @@ removed from the list.
 }  /* move_to_end_of_types_list */
 
 
-an_integer_kind char_int_kind_from_string_type(a_type_ptr str_type)
-/*
-Return the character element integer kind from the indicated string type.
-*/
-{
-  a_type_ptr elem_type;
-  an_integer_kind int_kind;
-
-#if CHECKING
-  if (!is_array_type(str_type)) {
-    internal_error("char_int_kind_from_string_type: bad type");
-  }  /* if */
-#endif /* CHECKING */
-  elem_type = array_element_type(str_type);
-#if CHECKING
-  if (!is_integral_type(elem_type)) {
-    internal_error("char_int_kind_from_string_type: bad elem type");
-  }  /* if */
-#endif /* CHECKING */
-  elem_type = skip_typerefs(elem_type);
-  int_kind = elem_type->variant.integer.int_kind;
-  return int_kind;
-}  /* char_int_kind_from_string_type */
-
-
 void record_fundamental_types_copied_from_secondary_IL(void)
 /*
 This routine should be called after all the secondary translation units have
