@@ -1834,6 +1834,8 @@ ec_cl_auto_type_option_only_in_cplusplus;;"option to control whether \"auto\" is
 ec_cl_auto_storage_option_only_in_cplusplus;;"option to control whether \"auto\" is a storage class can be used only when compiling C++"
 ec_cl_auto_cannot_be_disabled;;"the type specifier and storage class specifier meanings of \"auto\" cannot both be disabled"
 ec_bad_pragma_comment_string;;"invalid string in #pragma comment"
+ec_deleted_function_overrides_nondeleted_function;;"deleted function overrides nondeleted %n"
+ec_nondeleted_function_overrides_deleted_function;;"nondeleted function overrides deleted %n"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

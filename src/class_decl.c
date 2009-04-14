@@ -3488,6 +3488,28 @@ restrictive.  Issue an appropriate diagnostic at the given position.
   }  /* if */
 }  /* report_override_exception_spec_mismatch */
 
+
+static void check_deleted_function_overrides(
+                                               a_symbol_ptr       overrider,
+                                               a_symbol_ptr       overridden,
+                                               a_source_position  *source_pos)
+/*
+The member function represented by overrider overrides the virtual member
+represented by overridden. Check that if one function is a deleted member, the
+other is also; issue an error at the given position otherwise.
+*/
+{
+  if (overrider->variant.routine.ptr->is_deleted) {
+    if (!overridden->variant.routine.ptr->is_deleted) {
+      pos_sy_error(ec_deleted_function_overrides_nondeleted_function,
+                   source_pos, overridden);
+    }  /* if */
+  } else if (overridden->variant.routine.ptr->is_deleted) {
+    pos_sy_error(ec_nondeleted_function_overrides_deleted_function,
+                 source_pos, overridden);
+  }  /* if */
+}  /* check_deleted_function_overrides */
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 static a_boolean is_interface_like(a_type_ptr  class_type)
@@ -3830,6 +3852,7 @@ Any diagnostics are issued at the given position.
               report_override_exception_spec_mismatch(rout_sym, sym,
                                                       source_pos);
             }  /* if */
+            check_deleted_function_overrides(rout_sym, sym, source_pos);
 #if MICROSOFT_EXTENSIONS_ALLOWED
             override_modifier_okay = TRUE;
             if (rp->sealed) {
