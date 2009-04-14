@@ -1851,6 +1851,24 @@ specifier.
 
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 
+void check_use_of_deleted_function(a_symbol_ptr      rout_sym,
+                                   a_source_position *pos)
+/*
+A reference is being made to the indicated function at the indicated source
+position.  It is not necessarily a call: it might be in unevaluated code,
+it might be taking the address of the function, it might be to an elided
+copy constructor, etc.  If the function is declared as deleted ("= delete"),
+issue an error.
+*/
+{
+  check_assertion(is_simple_function_symbol(rout_sym));
+  if (rout_sym->variant.routine.ptr->is_deleted) {
+    pos_sy_diagnostic(es_discretionary_error, ec_deleted_function,
+                      pos, rout_sym);
+  }  /* if */
+}  /* check_use_of_deleted_function */
+
+
 static void record_first_use_if_template(
 				a_symbol_ptr		sym_ptr,
 				a_source_position	*source_position)
@@ -2197,6 +2215,9 @@ check_label_decl_seq:
     check_use_of_deprecated_entity(scptr, source_position);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+  if (is_simple_function_symbol(sym_ptr)) {
+    check_use_of_deleted_function(sym_ptr, source_position);
+  }  /* if */
 }  /* record_symbol_reference */
 
 

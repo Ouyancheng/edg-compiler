@@ -137,6 +137,9 @@ extern void record_symbol_declaration(
                             a_source_position            *source_position,
                             a_source_sequence_entry_ptr  ssep);
 
+extern void check_use_of_deleted_function(a_symbol_ptr      rout_sym,
+                                          a_source_position *pos);
+
 extern void record_symbol_reference(a_symbol_reference_kind  kind,
                                     a_symbol_ptr             sym_ptr,
                                     a_source_position        *source_position,

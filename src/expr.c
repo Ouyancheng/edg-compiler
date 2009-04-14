@@ -17389,12 +17389,6 @@ variable:
             goto overloaded_function;
           }  /* if */
 normal_function:
-/* FIXME:jsa */
-          if (sym_ptr->variant.routine.ptr->is_deleted) {
-            /* A deleted function cannot be accessed. */
-            pos_sy_error(ec_deleted_function,
-                         &locator_for_curr_id.source_position, sym_ptr);
-          }  /* if */
           if (curr_expr_kind_is(ek_integral_constant)
 #if GNU_EXTENSIONS_ALLOWED
               && (!gnu_mode ||
