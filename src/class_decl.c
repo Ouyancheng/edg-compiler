@@ -12137,7 +12137,7 @@ definition described by class_state.
          cssp->constructor if it was trivial). */
     } else {
       /* A default constructor needs to be generated. */
-      (void)generate_default_constructor(class_state, /*is_deleted=*/FALSE);
+      generate_default_constructor(class_state, /*is_deleted=*/FALSE);
     }  /* if */
   }  /* if */
 }  /* check_default_ctor_declaration */
