@@ -17545,10 +17545,13 @@ do_selection:
                                              /*compiler_generated=*/TRUE,
                                              sym_ptr,
                                              rep, result);
-                node = expr_node_from_operand(result);
-                check_assertion(node != NULL);
-                node->is_objectless_nonstatic_data_mem_ref =
-                                          is_objectless_nonstatic_data_mem_ref;
+                if (is_objectless_nonstatic_data_mem_ref) {
+                  /* Record the fact that this member access was originally
+                     an objectless reference. */
+                  node = expr_node_from_operand(result);
+                  check_assertion(node != NULL);
+                  node->is_objectless_nonstatic_data_mem_ref = TRUE;
+                }  /* if */
               } else {
                 /* There was some problem in constructing the "this"
                    operand. */
