@@ -12090,35 +12090,115 @@ behavior of the MSVC++ version indicated by microsoft_version.
 }  /* check_microsoft_suppressed_special_functions */
 
 
+static void generate_default_constructor(a_class_def_state_ptr  class_state,
+                                         a_boolean              is_deleted)
+/*
+Add a declaration for a default constructor to the class definition described
+by class_state.  If is_deleted is TRUE, make that constructor "deleted".
+*/
+{
+  a_type_ptr          class_type = class_state->class_type;
+  a_member_decl_info  decl_info;
+
+  initialize_member_decl_info(&decl_info,
+                              &class_type->source_corresp.decl_position);
+  decl_info.is_constructor = TRUE;
+  if (!class_state->constructor_required) {
+    /* We are generating a declaration of a trivial default constructor.
+       Since it will never actually be called it gets special handling. */
+    decl_info.is_trivial_default_constructor = TRUE;
+  }  /* if */
+  generate_special_function(class_state, &decl_info, (a_param_type*)NULL);
+  if (is_deleted) {
+    a_symbol_ptr  sym = decl_info.decl_state.sym;
+    sym->defined = TRUE;
+    sym->variant.routine.ptr->is_deleted = TRUE;
+    sym->variant.routine.ptr->defined = TRUE;
+  }  /* if */
+}  /* generate_default_constructor */
+
+
 static void check_default_ctor_declaration(a_class_def_state_ptr  class_state)
 /*
+If appropriate, add an implicitly default constructor declaration to the class
+definition described by class_state.
 */
 {
   a_type_ptr                 class_type = class_state->class_type;
   a_class_symbol_supplement  *cssp = symbol_supplement_for_class(class_type);
 
-  if (class_type_supp(class_type)->is_lambda_closure_class) {
-    /* A default constructor for a lambda is not created. */
-  } else if (cssp->constructor == NULL) {
+  if (cssp->constructor == NULL) {
     /* See if a default constructor declaration is needed. */
     if (!class_state->POD_ruled_out) {
       /* This is a POD class.  Its implicitly-declared default constructor
          need not actually be generated. */
+    } else if (class_type_supp(class_type)->is_lambda_closure_class) {
+      /* A deleted constructor was already declared (but not recorded in
+         cssp->constructor if it was trivial). */
     } else {
       /* A default constructor needs to be generated. */
-      a_member_decl_info  decl_info;
-      initialize_member_decl_info(&decl_info,
-                                  &class_type->source_corresp.decl_position);
-      decl_info.is_constructor = TRUE;
-      if (!class_state->constructor_required) {
-        /* We are generating a declaration of a trivial default constructor.
-           Since it will never actually be called it gets special handling. */
-        decl_info.is_trivial_default_constructor = TRUE;
-      }  /* if */
-      generate_special_function(class_state, &decl_info, (a_param_type*)NULL);
+      (void)generate_default_constructor(class_state, /*is_deleted=*/FALSE);
     }  /* if */
   }  /* if */
 }  /* check_default_ctor_declaration */
+
+
+static void generate_assignment_operator(a_class_def_state_ptr  class_state,
+                                         a_boolean              is_deleted,
+                                         a_type_qualifier_set   qualifiers)
+/*
+Add a declaration for a copy assignment operator to the class definition
+described by class_state.  If is_deleted is TRUE, make that operator "deleted".
+The parameter of the assignment operator is of type X& and qualifiers describes
+the qualifiers in X.  (In some modes, a second operator is declared to handle
+"far" objects.)
+*/
+{
+  a_type_ptr          class_type = class_state->class_type;
+  a_source_position   *pos = &class_type->source_corresp.decl_position;
+  a_member_decl_info  decl_info;
+  a_param_type_ptr    ptp;
+  a_type_ptr          ptype;
+
+  initialize_member_decl_info(&decl_info, pos);
+  ptype = make_qualified_type(class_type, qualifiers);
+  ptp = alloc_param_type(make_reference_type(ptype));
+  /* Set a flag in the param type entry if its associated type is or
+     contains a template parameter. */
+  ptp->type_involves_deduced_template_param =
+                                    is_or_contains_template_param(class_type);
+  generate_special_function(class_state, &decl_info, ptp);
+  if (is_deleted) {
+    a_symbol_ptr  sym = decl_info.decl_state.sym;
+    sym->defined = TRUE;
+    sym->variant.routine.ptr->is_deleted = TRUE;
+    sym->variant.routine.ptr->defined = TRUE;
+  }  /* if */
+#if NEAR_AND_FAR_ALLOWED
+  if (near_and_far_enabled()) {
+    /* Generate also an operator= that can copy a "far" object. */
+    a_type_ptr       far_ptype = make_qualified_type(class_type,
+                                                     TQ_CONST|TQ_FAR);
+    /* Don't create the "far" operator= if the default one is "far" (e.g.,
+       because the class is declared "far"). */
+    if (!identical_types(far_ptype, ptype)) {
+      ptp = alloc_param_type(make_reference_type(far_ptype));
+      /* Set a flag in the param type entry if its associated type is or
+         contains a template parameter. */
+      ptp->type_involves_deduced_template_param =
+                                    is_or_contains_template_param(class_type);
+      initialize_member_decl_info(&decl_info, pos);
+      generate_special_function(class_state, &decl_info, ptp);
+    }  /* if */
+    if (is_deleted) {
+      a_symbol_ptr  sym = decl_info.decl_state.sym;
+      sym->defined = TRUE;
+      sym->variant.routine.ptr->is_deleted = TRUE;
+      sym->variant.routine.ptr->defined = TRUE;
+    }  /* if */
+  }  /* if */
+#endif /* NEAR_AND_FAR_ALLOWED */
+}  /* generate_assignment_operator */
 
 
 static void check_special_member_functions(a_type_ptr            class_type,
@@ -12231,7 +12311,6 @@ The routine body is not generated until it is known to be needed.
   if (declare_copy_asgn_op) {
     /* An implicit assignment operator is generated if the class does not
        contain a user-declared copy assignment operator. */
-    a_type_ptr this_type;
     if (suppress_copy_asgn_op) {
       /* Mark this class as having a suppressed copy assignment operator and
          do not add its declaration. */
@@ -12239,33 +12318,8 @@ The routine body is not generated until it is known to be needed.
                                                                         = TRUE;
     } else {
       /* Add the implicit declaration of the copy assignment operator. */
-      this_type = make_qualified_type(class_type, asgn_qualifiers);
-      ptp = alloc_param_type(make_reference_type(this_type));
-      /* Set a flag in the param type entry if its associated type is or
-         contains a template parameter. */
-      ptp->type_involves_deduced_template_param =
-                                  is_or_contains_template_param(class_type);
-      initialize_member_decl_info(&decl_info, pos);
-      generate_special_function(class_state, &decl_info, ptp);
-  #if NEAR_AND_FAR_ALLOWED
-      if (near_and_far_enabled()) {
-        /* Generate also an operator= that can copy a "far" object. */
-        a_param_type_ptr ptp_far;
-        a_type_ptr       this_type_far;
-        this_type_far = make_qualified_type(class_type, TQ_CONST|TQ_FAR);
-        /* Don't create the "far" operator= if the default one is "far"
-           (e.g., because the class is declared "far"). */
-        if (!identical_types(this_type_far, this_type)) {
-          ptp_far = alloc_param_type(make_reference_type(this_type_far));
-          /* Set a flag in the param type entry if its associated type is or
-             contains a template parameter. */
-          ptp_far->type_involves_deduced_template_param =
-                                     ptp->type_involves_deduced_template_param;
-          initialize_member_decl_info(&decl_info, pos);
-          generate_special_function(class_state, &decl_info, ptp_far);
-        }  /* if */
-      }  /* if */
-  #endif /* NEAR_AND_FAR_ALLOWED */
+      generate_assignment_operator(class_state, /*is_deleted=*/FALSE,
+                                   asgn_qualifiers);
     }  /* if */
   }  /* if */
   db_exit();
@@ -16825,6 +16879,8 @@ For example:
   /* Fill in the capture fields information for the explicit captures. */
   decl_lambda_capture_fields(lambda);
   scan_lambda_body(lambda, &func_info);
+  generate_default_constructor(&class_state, /*is_deleted=*/TRUE);
+  generate_assignment_operator(&class_state, /*is_deleted=*/TRUE, TQ_CONST);
   /* Record the capture list and complete the closure class. */
   complete_class_definition(closure_class, decl_level, &class_state);
   pop_scope();
