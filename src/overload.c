@@ -11286,6 +11286,7 @@ select_best_function:
 #endif /* DEBUG */
               bitwise_assignment = TRUE;
               check_use_of_deleted_function(function_symbol,
+                                            /*elided_ref=*/FALSE,
                                             operator_position);
             }  /* if */
             arg_operand = arg_operand_list;
@@ -12915,7 +12916,7 @@ mode) at *err_pos if not.
          force that now. */
       force_definition_of_compiler_generated_routine(
                                                cctor_sym->variant.routine.ptr);
-      check_use_of_deleted_function(cctor_sym, err_pos);
+      check_use_of_deleted_function(cctor_sym, /*elided_ref=*/TRUE, err_pos);
     }  /* if */
   }  /* if */
 }  /* check_access_to_elided_copy_constructor */

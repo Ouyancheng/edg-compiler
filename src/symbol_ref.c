@@ -1852,19 +1852,22 @@ specifier.
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 
 void check_use_of_deleted_function(a_symbol_ptr      rout_sym,
+                                   a_boolean         elided_ref,
                                    a_source_position *pos)
 /*
 A reference is being made to the indicated function at the indicated source
 position.  It is not necessarily a call: it might be in unevaluated code,
 it might be taking the address of the function, it might be to an elided
 copy constructor, etc.  If the function is declared as deleted ("= delete"),
-issue an error.
+issue an error.  elided_ref is TRUE if the reference is to an elided
+copy constructor.
 */
 {
   check_assertion(is_simple_function_symbol(rout_sym));
   if (rout_sym->variant.routine.ptr->is_deleted) {
-    pos_sy_diagnostic(es_discretionary_error, ec_deleted_function,
-                      pos, rout_sym);
+    an_error_severity sev = es_error;
+    if (elided_ref) sev = strict_ansi_discretionary_severity;
+    pos_sy_diagnostic(sev, ec_deleted_function, pos, rout_sym);
   }  /* if */
 }  /* check_use_of_deleted_function */
 
@@ -2216,7 +2219,8 @@ check_label_decl_seq:
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
   if (is_simple_function_symbol(sym_ptr)) {
-    check_use_of_deleted_function(sym_ptr, source_position);
+    check_use_of_deleted_function(sym_ptr, /*elided_ref=*/FALSE,
+                                  source_position);
   }  /* if */
 }  /* record_symbol_reference */
 
