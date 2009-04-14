@@ -174,11 +174,13 @@ appear only in a member function of that class or one derived from it, in a
 member access expression (x.m or p->m), or to form a pointer to member
 (&X::m).  C++0x relaxes that restriction to allow such names as an
 unevaluated operand, such as sizeof(X::m), typeid(X::m), and
-decltype(X::m).  The front end now supports this usage in C++0x mode by
-transforming such references to a compiler-generated member access
-expression using 0 cast to the appropriate type as the object pointer.  As
-an extension, non-strict C++0x mode also allows these references to appear
-as subexpressions in unevaluated operands, such as sizeof(X::array[0]).
+decltype(X::m).  The front end now accepts this usage in C++0x mode and
+non-strict C++98/03 mode; such references are transformed into a
+compiler-generated member access expression using 0 cast to the appropriate
+type as the object pointer.  As an extension, the front end also accepts
+these references as subexpressions of unevaluated operands, such as
+sizeof(X::arr[0]), even in strict C++0x mode, in anticipation of an
+expected relaxation of that restriction in the Standard.
 
 
 4/6/09   [EDGcpfe/9540]
