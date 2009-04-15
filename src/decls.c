@@ -10478,6 +10478,9 @@ pos is used to mark the location that carries any diagnostic.
   } else if (is_incomplete_type(type)) {
     pos_error(ec_incomplete_type_not_allowed, pos);
     result = TRUE;
+  } else if (is_rvalue_reference_type(type)) {
+    pos_error(ec_rvalue_reference_catch_type, pos);
+    result = TRUE;
   } else if (is_ptr_or_ref_type(type)) {
     type = type_pointed_to(type);
     /* Force instantiation of template class. */

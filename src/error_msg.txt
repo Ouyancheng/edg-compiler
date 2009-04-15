@@ -1837,6 +1837,7 @@ ec_bad_pragma_comment_string;;"invalid string in #pragma comment"
 ec_deleted_function_overrides_nondeleted_function;;"deleted function overrides nondeleted %n"
 ec_nondeleted_function_overrides_deleted_function;;"nondeleted function overrides deleted %n"
 ec_deleted_default_constructor;;"the default constructor of %t cannot be referenced -- it is a deleted function"
+ec_rvalue_reference_catch_type;;"an rvalue reference is not allowed as a catch type"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
