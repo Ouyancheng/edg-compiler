@@ -1863,11 +1863,22 @@ issue an error.  elided_ref is TRUE if the reference is to an elided
 copy constructor.
 */
 {
+  a_routine_ptr rout;
+
   check_assertion(is_simple_function_symbol(rout_sym));
-  if (rout_sym->variant.routine.ptr->is_deleted) {
+  rout = rout_sym->variant.routine.ptr;
+  if (rout->is_deleted) {
     an_error_severity sev = es_error;
     if (elided_ref) sev = strict_ansi_discretionary_severity;
-    pos_sy_diagnostic(sev, ec_deleted_function, pos, rout_sym);
+    if (rout->special_kind == (a_special_function_kind)sfk_constructor &&
+        is_default_constructor(rout, /*is_declarative_context=*/FALSE)) {
+      /* Use a specific message for a default constructor.  This is clearer
+         when the class is unnamed, as for a lambda. */
+      a_type_ptr class_type = parent_class_of(rout);
+      pos_ty_diagnostic(sev, ec_deleted_default_constructor, pos, class_type);
+    } else {
+      pos_sy_diagnostic(sev, ec_deleted_function, pos, rout_sym);
+    }  /* if */
   }  /* if */
 }  /* check_use_of_deleted_function */
 
