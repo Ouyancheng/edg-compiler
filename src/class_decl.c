@@ -10636,6 +10636,7 @@ be updated on return.
         /* Force the declared size to something reasonable. */
         error(ec_bad_bit_field_size);
         declared_bit_field_size = max_size_allowed;
+        err = TRUE;
       } else if (bit_field_size > max_size_allowed) {
         /* A warning in C++ and GNU C modes (prior to GNU version 3.4). */
         char  buffer[8];
