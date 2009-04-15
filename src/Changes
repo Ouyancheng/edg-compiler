@@ -1,5 +1,24 @@
 Version 4.1
 
+4/15/09  [EDGcpfe/9711]
+Function template argument should cause parameter to be nondeduced
+
+If the set of functions passed to a parameter of a function template contains
+a function template (but not a template-id) the associated parameter should
+be treated as a nondeduced context (this was clarified by core issue 325).
+Formerly, the front end did not consider all such contexts as nondeduced,
+which could result in spurious errors in some cases.  Now fixed.
+
+  template<class T> void g(T,void (*pf) (T)) { }
+  template <class T> void f(T) {}
+  template <class T> void h(T) {}
+  void h(char){}
+  int main() {
+    g(0,f);  // spurious "no instance ... matches the argument list"
+    g(0,h);  // spurious "no instance ... matches the argument list"
+  }
+
+
 4/10/09  [EDGcpfe/9556]
 GNU compatibility: __builtin_bswap32 and __builtin_bswap64
 

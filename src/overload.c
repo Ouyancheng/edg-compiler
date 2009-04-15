@@ -546,8 +546,7 @@ a_boolean indefinite_function_can_be_template_arg(
                                    a_type_ptr           param_type,
                                    a_type_ptr           *arg_type,
                                    a_template_param_ptr templ_params,
-                                   a_template_arg_ptr   template_arg_list,
-                                   a_boolean            *multiple_matches)
+                                   a_template_arg_ptr   template_arg_list)
 /*
 operand is an indefinite function operand.  See if it can be matched against
 a parameter of type param_type from a function template.  If so, return TRUE
@@ -555,17 +554,14 @@ and set *arg_type to the argument type to use.  *arg_type is not changed if
 this function returns FALSE.  templ_params describes the template parameter
 list of the function template associated with param_type, or it has a single
 entry representing the "auto" type when handling an "auto" type specifier.
-*multiple_matches is returned TRUE if the match failed because there are
-multiple matches.  template_arg_list is used in some nonstandard modes to
-introduce knowledge from previous arguments; in the standard case,
-it is always NULL.
+template_arg_list is used in some nonstandard modes to introduce knowledge
+from previous arguments; in the standard case, it is always NULL.
 */
 {
   a_boolean    can_be_arg = FALSE;
   a_symbol_ptr sym = operand->variant.symbol, proj_sym;
   a_type_ptr   matching_arg_type = NULL;
 
-  *multiple_matches = FALSE;
   reduce_projection_symbol_to_fundamental_symbol(sym);
   if (sym->kind == (a_symbol_kind)sk_function_template) {
     /* A template with explicit arguments can be made to match if there's
@@ -606,6 +602,12 @@ it is always NULL.
                                                            routine_type,
                                                            (an_operand *)NULL);
           }  /* if */
+        } else {
+          /* If an overload set contains any function templates (and the
+             operand is not a template-id), the parameter is considered a
+             nondeduced context. */
+          can_be_arg = FALSE;
+          break;
         }  /* if */
       } else {
         /* Not a function template. */
@@ -643,7 +645,6 @@ it is always NULL.
            a previous one matched, the overall match fails. */ 
         if (can_be_arg) {
           can_be_arg = FALSE;
-          *multiple_matches = TRUE;
           break;
         } else {
           can_be_arg = TRUE;
@@ -2471,18 +2472,16 @@ it is always NULL.
   if (arg_operand != NULL && is_indefinite_function_operand(arg_operand)) {
     /* For an overloaded function, each possibility must be tried.
        Only one is allowed to match. */
-    a_boolean multiple_matches;
     if (!indefinite_function_can_be_template_arg(arg_operand,
                                                  param_type,
                                                  &arg_type,
                                                  templ_params,
-                                                 template_arg_list,
-                                                 &multiple_matches)) {
-      if (multiple_matches) {
-        /* There are multiple matches, so the caller should be instructed
-           to consider this a nondeduced context. */
-        if (consider_nondeduced != NULL) *consider_nondeduced = TRUE;
-      }  /* if */
+                                                 template_arg_list)) {
+      /* The operand cannot be used to deduce template arguments.  This could
+         be because there are multiple matches, or because the argument names
+         a function template.  As a result the caller should be instructed
+         to consider this a nondeduced context. */
+      if (consider_nondeduced != NULL) *consider_nondeduced = TRUE;
       goto done;
     }  /* if */
     arg_operand = NULL;
