@@ -8083,35 +8083,31 @@ explicit overrider (which means this routine will return TRUE).
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-static a_boolean assignment_operator_for_copy_exists(
-                                                 a_symbol_ptr  sym,
-                                                 a_boolean     *p_const_okay,
-                                                 a_boolean     *p_all_deleted)
+static a_boolean assignment_operator_for_copy_exists(a_symbol_ptr  sym,
+                                                     a_boolean     *const_okay)
 /*
 Return TRUE if sym is not NULL and qualifies as an assignment operator that
 can copy a class object.  If sym is an overloaded function, return TRUE if at
-least one of the functions qualifies.  If p_const_okay is non-NULL, set
-*p_const_okay TRUE if a const object can be copied and to FALSE otherwise.
-Similarly, if p_all_deleted is non-NULL, set *p_all_deleted to TRUE if TRUE
-is returned and all qualifying functions are deleted functions and to FALSE
-otherwise.
+least one of the functions qualifies.  Set *const_okay TRUE if a const object
+can be copied.
 */
 {
-  a_boolean  found_assignment_operator_for_copy = FALSE;
-  a_boolean  const_okay = FALSE, all_deleted = TRUE;
+  a_boolean             sym_is_overloaded;
+  a_boolean             is_ref_arg;
+  a_type_qualifier_set  qualifiers_accepted;
+  a_boolean             found_assignment_operator_for_copy = FALSE;
+  a_boolean             is_base_class_match;
 
   db_enter(4, "assignment_operator_for_copy_exists");
   /* Set *const_okay to TRUE unless this subobject's type has a default
      assignment operator that cannot accept a const object. */
+  *const_okay = TRUE;
   if (sym != NULL) {
-    a_type_qualifier_set  qualifiers_accepted;
-    a_boolean             sym_is_overloaded;
     sym_is_overloaded = (sym->kind == (a_symbol_kind)sk_overloaded_function);
     if (sym_is_overloaded) sym = sym->variant.overloaded_function.symbols;
     /* Loop through the one or more symbols looking for one with the right
        argument type. */
     for (; sym != NULL; sym = sym_is_overloaded ? sym->next : NULL) {
-      a_boolean     is_ref_arg, is_base_class_match;
       a_symbol_ptr  viable_sym = NULL;
       qualifiers_accepted = TQ_NONE;
       if (sym->kind == (a_symbol_kind)sk_member_function &&
@@ -8137,24 +8133,16 @@ otherwise.
         if (!is_ref_arg || (qualifiers_accepted & TQ_CONST) != 0) {
           /* An copy assignment operator has been located, and it accepts
              a const object. */
-          const_okay = TRUE;
+          *const_okay = TRUE;
+          break;
+        } else {
+          /* This one does not accept a const object, so set *const_okay
+             to FALSE.  However, another in the overload list might accept
+             const, so keep looping. */
+          *const_okay = FALSE;
         }  /* if */
-        if (!viable_sym->variant.routine.ptr->is_deleted) {
-          all_deleted = FALSE;
-        }  /* if */
-        /* Continue the loop, unless the final values of const_okay and
-           all_deleted are decided. */
-        if (const_okay && !all_deleted) break;
       }  /* if */
     }  /* for */
-  }  /* if */
-  if (p_const_okay != NULL) {
-    /* Note that if no assignment operator was found, const objects can be
-       copied too. */ 
-    *p_const_okay = !found_assignment_operator_for_copy || const_okay;
-  }  /* if */
-  if (p_all_deleted != NULL) {
-    *p_all_deleted = found_assignment_operator_for_copy && all_deleted;
   }  /* if */
   db_exit();
   return found_assignment_operator_for_copy;
@@ -8223,8 +8211,8 @@ update the routine's IL entry accordingly.
       rp->is_defaulted = TRUE;
     } else if (rp->special_kind == (a_special_function_kind)sfk_operator &&
                rp->variant.opname_kind == (an_opname_kind)onk_assign) {
-      if (assignment_operator_for_copy_exists(sym, (a_boolean*)NULL,
-                                              (a_boolean*)NULL)) {
+      a_boolean  const_okay;
+      if (assignment_operator_for_copy_exists(sym, &const_okay)) {
         rp->is_defaulted = TRUE;
       } else {
         err_code = ec_invalid_function_to_be_defaulted;
@@ -11771,8 +11759,8 @@ defined for base classes and fields of the current class (class_type).
   for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
     if (bcp->direct || bcp->is_virtual) {
       cssp = symbol_supplement_for_class(bcp->type);
-      if (assignment_operator_for_copy_exists(
-                   cssp->assignment_operator, &const_okay, (a_boolean*)NULL) &&
+      if (assignment_operator_for_copy_exists(cssp->assignment_operator,
+                                              &const_okay) &&
           !const_okay) {
         /* There is a default assignment operator for this base class type,
            but it does not accept a const object.  No need to look any
@@ -11792,8 +11780,8 @@ defined for base classes and fields of the current class (class_type).
       if (is_array_type(tp)) tp = underlying_array_element_type(tp);
       if (is_class_struct_union_type(tp)) {
         cssp = symbol_supplement_for_class(tp);
-        if (assignment_operator_for_copy_exists(
-                   cssp->assignment_operator, &const_okay, (a_boolean*)NULL) &&
+        if (assignment_operator_for_copy_exists(cssp->assignment_operator,
+                                                &const_okay) &&
             !const_okay) {
           /* There is a default assignment operator for this static data
              member's class type, but it does not accept a const object.
@@ -12228,12 +12216,12 @@ The routine body is not generated until it is known to be needed.
   a_param_type_ptr              ptp;
   a_class_symbol_supplement_ptr cssp;
   a_class_type_supplement_ptr   ctsp;
-  a_boolean                     const_okay, all_deleted;
+  a_boolean                     const_okay, dummy_flag;
   a_type_qualifier_set          ctor_qualifiers;
   a_type_qualifier_set          asgn_qualifiers;
   a_member_decl_info            decl_info;
   a_source_position             *pos;
-  a_boolean                     copy_assignment_exists = FALSE;
+  a_boolean                     user_declared_copy_assignment_op = FALSE;
   a_boolean                     suppress_copy_asgn_op = FALSE;
   a_boolean                     suppress_copy_ctor = FALSE;
   a_boolean                     suppress_dtor = FALSE;
@@ -12247,15 +12235,13 @@ The routine body is not generated until it is known to be needed.
   pos = &class_type->source_corresp.decl_position;
   /* Check for a user-declared copy assignment operator. */
   if (assignment_operator_for_copy_exists(cssp->assignment_operator,
-                                          (a_boolean*)NULL, &all_deleted)) {
-    /* If a copy assignment operator has already been defined, do not generate
-       another one and do not allow bitwise copy assignment.  If any of the
-       existing copy assignment operators is non-deleted, the class is not a
-       POD. */
+                                          &dummy_flag)) {
+    /* If the user has already defined an assignment operator, neither
+       is bitwise copying allowed nor must the compiler generate one. */
     cssp->assignment_by_bitwise_copy_allowed = FALSE;
-    copy_assignment_exists = TRUE;
+    user_declared_copy_assignment_op = TRUE;
     /* A POD cannot have a user-defined copy assignment operator. */
-    class_state->POD_ruled_out = !all_deleted;
+    class_state->POD_ruled_out = TRUE;
   }  /* if */
   check_default_ctor_declaration(class_state);
   const_okay = default_assignment_of_const_object_okay(class_type);
@@ -12264,7 +12250,8 @@ The routine body is not generated until it is known to be needed.
   ctor_qualifiers = const_okay ? TQ_CONST : TQ_NONE;
   /* Lambdas should have a deleted assignment operator.  Until we implement
      deleted functions, don't generate the assignment operator. */
-  declare_copy_asgn_op = !copy_assignment_exists &&
+  declare_copy_asgn_op = !user_declared_copy_assignment_op &&
+                         !ctsp->is_lambda_closure_class &&
                      (!any_cfront_mode() || cssp->assignment_operator == NULL);
   declare_copy_ctor = (ctsp->is_lambda_closure_class ||
                        (cssp->constructor != NULL &&
@@ -14580,16 +14567,14 @@ passed via template_decl.
           pos_error(ec_static_not_allowed, &decl_start_pos);
           decl_state->storage_class = (a_storage_class)sc_unspecified;
         }  /* if */
-        if ((decl_info.is_constructor && !func_info.is_defaulted &&
-             !func_info.is_deleted) ||
+        if ((decl_info.is_constructor && !func_info.is_defaulted) ||
             (dso_flags & DSO_VIRTUAL)) {
           /* A class with a user-provided constructor or a virtual function
              cannot be an "aggregate" (8.5.1).  (A defaulted constructor is
              not considered "user-provided".) */
           class_state->class_aggregate_ruled_out = TRUE;
           class_state->POD_ruled_out = TRUE;
-        } else if (decl_info.is_destructor && !func_info.is_defaulted &&
-                   !func_info.is_deleted) {
+        } else if (decl_info.is_destructor && !func_info.is_defaulted) {
         /* A POD may not have a user-provided destructor, either. */
           class_state->POD_ruled_out = TRUE;
         }  /* if */
@@ -16512,6 +16497,10 @@ initialize class_def_state.
     class_state->is_local_class = TRUE;
   }  /* if */
   class_state->access = (an_access_specifier)as_public;
+  /* Lambdas are forced to be non-POD so that any default initialization will
+     be done by attempting to call the default constructor (which will
+     fail). */
+  class_state->POD_ruled_out = TRUE;
   /* Don't allow aggregate initialization of a closure object. */
   class_state->class_aggregate_ruled_out = TRUE;
   class_state->is_nonreal_instantiation =
