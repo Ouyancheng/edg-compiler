@@ -1010,7 +1010,7 @@ extern void take_address_of_lvalue(an_operand *operand,
                                    a_source_position *operator_position);
 
 extern void take_reference_to_operand(an_operand *operand,
-                                      a_type_ptr reference_type);
+                                      a_boolean  rvalue_reference_case);
 
 extern void conv_object_pointer_to_lvalue(an_operand *operand);
 

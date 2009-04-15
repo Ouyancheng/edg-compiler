@@ -14459,7 +14459,7 @@ been found to be acceptable, and *conversion describes it.
       /* For some template-dependent rvalue reference cases we may still have
          an rvalue here. */
     } else {
-      take_reference_to_operand(source_operand, dest_type);
+      take_reference_to_operand(source_operand, is_rvalue_ref);
     }  /* if */
   }  /* if */
   /* Restore the original source position, etc. */
@@ -14687,7 +14687,8 @@ conversion_to_class_possible.
       } else {
         check_assertion(is_error_operand(source_operand));
       }  /* if */
-      take_reference_to_operand(source_operand, formal_param->type);
+      take_reference_to_operand(source_operand,
+                                /*rvalue_reference_case=*/FALSE);
     }  /* if */
   }  /* if */
   if (favor_constant_result_for_nonstatic_init) {
