@@ -8154,7 +8154,7 @@ otherwise.
     *p_const_okay = !found_assignment_operator_for_copy || const_okay;
   }  /* if */
   if (p_all_deleted != NULL) {
-    *p_all_deleted = !found_assignment_operator_for_copy || all_deleted;
+    *p_all_deleted = found_assignment_operator_for_copy && all_deleted;
   }  /* if */
   db_exit();
   return found_assignment_operator_for_copy;
