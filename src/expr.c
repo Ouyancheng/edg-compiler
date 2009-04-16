@@ -8750,7 +8750,8 @@ Syntax:
     generic_cast_operand(&operand,
                          cast_type, 
                          csf_dynamic_cast,
-                         /*is_implicit_cast=*/FALSE);
+                         /*is_implicit_cast=*/FALSE,
+                         &type_position);
     copy_operand(&operand, result);
   } else if (same_type_with_added_qualifiers(underlying_operand_type,
                                              underlying_cast_type,
@@ -10871,12 +10872,14 @@ static void check_user_defined_conversions_for_cast(
                                    a_type_ptr         type_cast_to,
                                    an_operand         *operand,
                                    a_cast_source_form source_form,
+                                   a_source_position  *type_position,
                                    a_boolean          *allow_rvalue_on_rewrite,
                                    a_boolean          *processed,
                                    a_boolean          *err)
 /*
 The expression indicated by *operand is being cast to the type type_cast_to.
 This is a static_cast or old-style cast; source_form indicates which.
+*type_position indicates the source position of the type in the cast.
 If the cast can be done by a user-defined conversion, do it and return
 *processed TRUE.  If the cast could only be done by a user-defined
 conversion and there was some error with that, set *err TRUE as well.
@@ -11036,7 +11039,8 @@ for non-class operands).  This routine is called only in C++ mode.
           if (template_case) {
              /* The source has a dependent type. */
             generic_cast_operand(operand, type_cast_to, source_form,
-                                 /*is_implicit_cast=*/FALSE);
+                                 /*is_implicit_cast=*/FALSE,
+                                 type_position);
           } else {
             if (determined_conversion != NULL) {
               determined_conversion->is_explicit_cast = TRUE;
@@ -11122,6 +11126,7 @@ static void set_up_cast_to_reference(a_type_ptr         type_cast_to,
                                      an_operand         *operand,
                                      a_boolean          allow_rvalue,
                                      a_cast_source_form source_form,
+                                     a_source_position  *type_position,
                                      a_type_ptr         *adj_type_cast_to,
                                      a_type_ptr         *adj_operand_type,
                                      a_boolean          *processed)
@@ -11133,7 +11138,8 @@ if an rvalue operand should be allowed (e.g., for a static_cast to a
 reference-to-const type; note that it need not be set for a cast to
 an rvalue reference type, where it is always assumed to be TRUE);
 and source_form indicates the source form of the cast (e.g.,
-static_cast).  For template-dependent casts, this routine processes
+static_cast).  *type_position indicates the source position of the
+type in the cast.  For template-dependent casts, this routine processes
 the cast by updating *operand and returns *processed set to TRUE.
 Otherwise, *processed is returned FALSE and it's expected that the
 caller will validate the cast as the corresponding pointer cast (for
@@ -11155,7 +11161,8 @@ it to an lvalue).
        is_template_dependent_type(operand->type))) {
     /* A template-dependent operation in a prototype instantiation. */
     generic_cast_operand(operand, type_cast_to, source_form,
-                         /*is_implicit_cast=*/FALSE);
+                         /*is_implicit_cast=*/FALSE,
+                         type_position);
     *processed = TRUE;
   } else if (is_void_type(operand->type)) {
     /* Something like "(int &&)throw x" should not be allowed. */
@@ -11470,7 +11477,7 @@ indicates which.
       /* See if we're casting to a reference type. */
       cast_to_reference = is_reference_type(type_cast_to);
       check_user_defined_conversions_for_cast(type_cast_to, operand,
-                                              source_form,
+                                              source_form, type_position,
                                               &allow_rvalue_on_rewrite,
                                               &processed_as_udc, &err);
     }  /* if */
@@ -11519,6 +11526,7 @@ indicates which.
         set_up_cast_to_reference(type_cast_to, operand,
                                  allow_rvalue_on_rewrite,
                                  source_form,
+                                 type_position,
                                  &adj_type_cast_to,
                                  &adj_source_type,
                                  &processed);
@@ -11892,7 +11900,8 @@ Syntax:
       /* Put out a generic operator for a case involving template parameter
          types. */
       generic_cast_operand(&operand, cast_type, csf_const_cast,
-                           /*is_implicit_cast=*/FALSE);
+                           /*is_implicit_cast=*/FALSE,
+                           &type_position);
     } else if (microsoft_lvalue_cast_case) {
       /* The Microsoft case of an lvalue cast of an enum value to the same
          enum type with possibly adjusted cv-qualifiers does nothing but
@@ -11982,7 +11991,7 @@ Syntax:
     operand_expression = expr_node_from_operand(result);
     /* Check for user-defined conversions and casts to reference type. */
     check_user_defined_conversions_for_cast(type_cast_to, result,
-                                            csf_static_cast,
+                                            csf_static_cast, &type_position,
                                             &allow_rvalue_on_rewrite,
                                             &processed_as_udc, &err);
     if (processed_as_udc) {
@@ -12037,6 +12046,7 @@ Syntax:
         set_up_cast_to_reference(type_cast_to, result,
                                  allow_rvalue_on_rewrite,
                                  csf_static_cast,
+                                 &type_position,
                                  &adj_type_cast_to,
                                  &adj_source_type,
                                  &processed);
@@ -12078,7 +12088,8 @@ Syntax:
             /* Put out a generic operator for a case involving template
                parameter types. */
             generic_cast_operand(result, type_cast_to, csf_static_cast,
-                                 /*is_implicit_cast=*/FALSE);
+                                 /*is_implicit_cast=*/FALSE,
+                                 &type_position);
           } else {
             if (related_member_pointers(adj_source_type, adj_type_cast_to,
                                         &baseward_cast, &bcp) &&
@@ -12263,6 +12274,7 @@ Syntax:
       set_up_cast_to_reference(type_cast_to, result,
                                /*allow_rvalue_on_rewrite=*/FALSE,
                                csf_reinterpret_cast,
+                               &type_position,
                                &adj_type_cast_to,
                                &adj_source_type,
                                &processed);
@@ -12301,7 +12313,8 @@ Syntax:
           /* Put out a generic operator for a case involving template parameter
              types. */
           generic_cast_operand(result, type_cast_to, csf_reinterpret_cast,
-                               /*is_implicit_cast=*/FALSE);
+                               /*is_implicit_cast=*/FALSE,
+                               &type_position);
         } else if (microsoft_ignored_case) {
           /* This cast is ignored. */
         } else {

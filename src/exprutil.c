@@ -3598,6 +3598,28 @@ reference) and not something explicit like a cast.
 }  /* adjust_lvalue_type */
 
 
+static a_boolean rvalue_reference_cast_underlying_type_is_complete(
+                                             a_type_ptr        underlying_type,
+                                             a_source_position *err_pos)
+/*
+A cast to the type "rvalue reference to underlying_type" is being done.
+The underlying type must be complete, because the cast will produce an rvalue
+with that type.  If it's not complete, issue an error at err_pos.  Force
+the type to be complete if possible.
+*/
+{
+  a_boolean is_complete;
+
+  complete_type_is_needed(underlying_type);
+  is_complete = !is_incomplete_type(underlying_type);
+  if (!is_complete) {
+    pos_ty_error(ec_cast_to_rvalue_ref_to_incomplete, err_pos,
+                 skip_typerefs(underlying_type));
+  }  /* if */
+  return is_complete;
+}  /* rvalue_reference_cast_underlying_type_is_complete */
+
+
 void cast_operand_for_reference_cast(an_operand        *operand,
                                      a_type_ptr        dest_type,
                                      a_source_position *type_position,
@@ -3625,13 +3647,11 @@ is an lvalue reference to const.
   check_assertion(is_reference_type(dest_type));
   is_rvalue_ref = is_rvalue_reference_type(dest_type);
   underlying_type = type_pointed_to(dest_type);
-  if (is_rvalue_ref && is_incomplete_type(underlying_type)) {
+  if (is_rvalue_ref) {
     /* A cast to "rvalue reference to T" is invalid if T is incomplete,
        because it would produce an rvalue with an incomplete type. */
-    complete_type_is_needed(underlying_type);
-    if (is_incomplete_type(underlying_type)) {
-      pos_ty_error(ec_cast_to_rvalue_ref_to_incomplete, type_position,
-                   skip_typerefs(underlying_type));
+    if (!rvalue_reference_cast_underlying_type_is_complete(underlying_type,
+                                                           type_position)) {
       underlying_type = error_type();
     }  /* if */
   }  /* if */
@@ -6927,14 +6947,16 @@ know whether the operand will be used as an lvalue or an rvalue.
 void generic_cast_operand(an_operand         *operand,
                           a_type_ptr         dest_type,
                           a_cast_source_form source_form,
-                          a_boolean          is_implicit_cast)
+                          a_boolean          is_implicit_cast,
+                          a_source_position  *type_position)
 /*
 Add a generic cast that casts the given operand to dest_type.  This is used
 in prototype instantiations to represent conversions to unknown types.
 source_form identifies the kind of cast (e.g., static_cast, const_cast).
-is_implicit_cast is TRUE if the cast is implicit.  dest_type is allowed
-to be a reference type.  Note that the cast can be bizarre in a number
-of ways, e.g., if the source operand is an lvalue.
+is_implicit_cast is TRUE if the cast is implicit.  type_position is
+the position of the type in the cast.  dest_type is allowed to be a
+reference type.  Note that the cast can be bizarre in a number of ways,
+e.g., if the source operand is an lvalue.
 */
 {
   an_operand orig_operand;
@@ -6970,6 +6992,16 @@ of ways, e.g., if the source operand is an lvalue.
     rvalue_expected = TRUE;
   }  /* if */
   prep_generic_operand_full(operand, lvalue_expected, rvalue_expected);
+  if (is_rvalue_reference_cast &&
+      is_incomplete_type(dest_type) &&
+      !is_template_dependent_type(dest_type)) {
+    /* Check that the underlying type for an rvalue reference cast is complete,
+       or complete it if necessary. */
+    if (!rvalue_reference_cast_underlying_type_is_complete(dest_type,
+                                                           type_position)) {
+      dest_type = error_type();
+    }  /* if */
+  }  /* if */
   /* Determine whether we can fold the cast to a constant. */
   /* This is necessary in constant expressions, and also for initializers
      for entities of const integral or enum type (so their values can be used
