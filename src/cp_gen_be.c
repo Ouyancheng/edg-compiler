@@ -12843,13 +12843,23 @@ one associated with the asm.
 {
   an_asm_entry_ptr asm_entry = ss_entry_ptr(curr_source_sequence_entry,
                                             an_asm_entry_ptr);
+  char             *asm_keyword;
 
   /* Advance past the source sequence entry for the variable. */
   adv_curr_source_sequence_entry();
   /* Position the output file to the declaration position. */
   set_decl_position(&asm_entry->source_corresp,
                     (a_src_seq_secondary_decl_ptr)NULL);
-  write_tok_str((char *)(microsoft_mode ? "__asm(" : "asm("));
+  /* Deal with different dialects' spelling of the asm keyword. */
+  if (msvc_is_generated_code_target) {
+    asm_keyword = "__asm";
+  } else if (gcc_is_generated_code_target) {
+    asm_keyword = "__asm__";
+  } else {
+    asm_keyword = "asm";
+  }  /* if */
+  write_tok_str(asm_keyword);
+  write_tok_ch('(');
   gen_constant(asm_entry->asm_string, /*need_parens=*/FALSE);
   write_tok_ch(')');
   write_tok_ch(';');

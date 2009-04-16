@@ -16240,6 +16240,10 @@ of characters added.
     /* In Microsoft mode always put out "__asm", since "asm" is not
        necessarily accepted by the Microsoft compiler. */
     put_str_to_temp_text_buffer("__asm");
+  } else if (gnu_mode && token == tok_asm) {
+    /* In GNU mode always put out "__asm__", since "asm" is not accepted
+       by gcc in some modes. */
+    put_str_to_temp_text_buffer("__asm__");
 #if GCC_BUILTIN_VARARGS
   } else if (gnu_mode && token == tok_va_start) {
     /* In GNU mode when using GCC_BUILTIN_VARARGS, several spellings of

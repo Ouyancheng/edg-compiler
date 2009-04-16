@@ -1,5 +1,17 @@
 Version 4.1
 
+4/16/09  [EDGcpfe/8743]
+GNU compatibility, C++-generating back end: __asm__ keyword
+
+In an asm-declaration or (in a function template definition generated from
+the string form of the template) an asm-statement, the C++-generating back
+end used "asm" as the keyword when gcc_is_generated_code_target is TRUE.
+This form of the keyword is not accepted by gcc in -ansi mode, so "__asm__"
+is now used when generating code for a gcc target.  For example:
+
+  __asm__("foo: ret");  /* asm-declaration, now preserves __asm__ spelling */
+
+
 4/16/09  [EDGcpfe/9717]
 Abort in matching_template_function on name found by using-directive lookup
 
