@@ -8918,7 +8918,9 @@ All diagnostics are issued at the given source position.
 {
   a_type_ptr            result;
   a_type_ptr            under_ref = type_pointed_to(base_ref_type);
+#if NEAR_AND_FAR_ALLOWED
   a_type_qualifier_set  base_qualifiers = get_type_qualifiers(under_ref);
+#endif /* NEAR_AND_FAR_ALLOWED */
 
 #if NEAR_AND_FAR_ALLOWED
   if (((qualifiers | base_qualifiers) & (TQ_NEAR | TQ_FAR)) ==
