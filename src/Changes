@@ -1,5 +1,21 @@
 Version 4.1
 
+4/16/09  [EDGcpfe/9717]
+Abort in matching_template_function on name found by using-directive lookup
+
+An abort could occur in matching_template_function on a reference to
+a function template in a context treated as taking the address of an
+overloaded function if the template came from an overload set produced by
+a using-directive lookup.  Now fixed.
+
+  template <class T> int f(const T &) { return 0; }
+  namespace N {
+    int f () ;
+  }
+  using namespace N;
+  int g() { f(&f<short>); }
+
+
 4/15/09  [EDGcpfe/9711]
 Function template argument should cause parameter to be nondeduced
 

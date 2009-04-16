@@ -9282,6 +9282,7 @@ returned TRUE if a new template instance is created with this call.
   }  /* if */
 #endif /* CHECKING */
   curr_type = skip_typerefs(curr_type);
+  templ_sym = fundamental_symbol_of(templ_sym);
   tssp = template_supplement_for_symbol(templ_sym);
   templ_param_list = tssp->variant.function.decl_cache.decl_info->parameters;
   *is_new_template_instance = FALSE;
@@ -9337,6 +9338,7 @@ specified template argument list was provided.
   }  /* if */
 #endif /* CHECKING */
   curr_type = skip_typerefs(curr_type);
+  templ_sym = fundamental_symbol_of(templ_sym);
   tssp = template_supplement_for_symbol(templ_sym);
   templ_param_list = tssp->variant.function.decl_cache.decl_info->parameters;
   result = is_match_for_function_template(templ_sym, curr_type,
