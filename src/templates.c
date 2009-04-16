@@ -6433,6 +6433,18 @@ points to the template parameter list.
               }  /* if */
               tp = ptp->type;
               ttp = tptp->type;
+              if (rvalue_references_enabled &&
+                  (flags & MTT_ALLOW_SPECIAL_RVALUE_REF_DEDUCTION) != 0) {
+                if (is_rvalue_reference_type(ttp) &&
+                    is_lvalue_reference_type(tp)) {
+                  /* If the template type is something like "T&&" and the
+                     actual type is "X&", drop the "&&" from the template type
+                     so that the deduced type for T will be "X&".  This will
+                     cause the substituted "T&&" to end up as an lvalue
+                     reference type. */
+                  ttp = type_pointed_to(ttp);
+                }  /* if */
+              }  /* if */
               if (!matches_template_type(tp, ttp, templ_arg_list,
                                          templ_param_list,
                                          new_flags)) {
@@ -9115,6 +9127,7 @@ matching process.
   a_param_type_ptr                  ptp, other_ptp;
   a_routine_type_supplement_ptr	    curr_rtsp;
   a_routine_type_supplement_ptr	    templ_rtsp;
+  an_mtt_flag_set                   mtt_flags;
 
   db_enter(3, "is_match_for_function_template");
   curr_type = skip_typerefs(curr_type);
@@ -9175,11 +9188,10 @@ matching process.
      question, but that it is not disqualified on other grounds.  Try to match
      the type signature to the template's type signature.  If successful, a
      template arg list is returned; otherwise, NULL is returned. */
+  mtt_flags = MTT_ALLOW_SPECIAL_RVALUE_REF_DEDUCTION;
+  if (is_decl_context) mtt_flags |= MTT_UNKNOWN_THIS_CLASS_TYPE;
   if (matches_template_type(curr_type, templ_rout_type, 
-                            templ_arg_list, templ_param_list,
-                            (an_mtt_flag_set)
-                            (is_decl_context ? MTT_UNKNOWN_THIS_CLASS_TYPE
-                                            : MTT_NO_FLAGS))) {
+                            templ_arg_list, templ_param_list, mtt_flags)) {
     match = TRUE;
   }  /* if */
   /* Make sure that the types of nontype template parameters that depend

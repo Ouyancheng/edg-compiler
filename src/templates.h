@@ -395,6 +395,11 @@ typedef unsigned int an_mtt_flag_set;
 #define MTT_ALLOW_ADDED_QUALIFIERS 0x08
 			/* TRUE the template type can be more cv-qualified
 			   than the other type. */
+#define MTT_ALLOW_SPECIAL_RVALUE_REF_DEDUCTION 0x10
+			/* TRUE if a T&& template type can match up with an
+			   X& actual type resulting in an X& deduced type.
+			   This is used when deducing arguments from a complete
+			   function type. */
 
 extern a_boolean matches_template_type_with_qualification_conversion(
 				a_type_ptr           type,
