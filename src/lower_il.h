@@ -1023,6 +1023,10 @@ extern a_type_ptr type_of_cctor_param_after_adding_indirection(
 
 extern void add_indirection_to_cctor_param_type(a_param_type_ptr ptp);
 
+extern a_boolean should_drop_const_on_this_param_variable(
+                                                   a_routine_ptr routine,
+                                                   a_type_ptr    routine_type);
+
 extern void lower_os_type(a_type_ptr type);
 
 extern void lower_expr_list(an_expr_node_ptr expr_list,

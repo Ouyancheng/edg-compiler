@@ -1,5 +1,22 @@
 Version 4.1
 
+4/17/09  [EDGcpfe/9723]
+cv-qualification of parameters in IA-64 ABI alternate entry points
+
+In IA-64 ABI configurations that use lowering, the cv-qualification of
+parameters (including the "this" parameter) was inadvertently dropped in
+definitions of alternate entry points for constructors/destructors.  In this
+example:
+
+  struct A {
+    A(const volatile int i) {}
+  };
+
+the lowered subobject constructor had been defined as "void _ZN1AC2Ei(
+struct A *, int)" and is now "void _ZN1AC2Ei(struct A *const, const volatile
+int)" (which matches the definition of the complete object constructor).
+
+
 4/17/09  [EDGcpfe/9710]
 Aborts resulting from invalid source position values
 

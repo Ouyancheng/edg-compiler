@@ -8351,9 +8351,8 @@ constructor.  Change it to add an indirection to the type.
 #if !NEW_CAN_BE_FOLDED_INTO_CTOR && !ASSIGNMENT_TO_THIS_ALLOWED
 /*ARGSUSED*/  /* <-- routine or routine_type are not used in those cases. */
 #endif /* !NEW_CAN_BE_FOLDED_INTO_CTOR && !ASSIGNMENT_TO_THIS_ALLOWED */
-static a_boolean should_drop_const_on_this_param_variable(
-                                                    a_routine_ptr routine,
-                                                    a_type_ptr    routine_type)
+a_boolean should_drop_const_on_this_param_variable(a_routine_ptr routine,
+                                                   a_type_ptr    routine_type)
 /*
 Return TRUE if the top-level "const" on the "this" parameter variable of the
 indicated routine should be dropped.  routine_type is the routine type.

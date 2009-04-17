@@ -3310,8 +3310,7 @@ a parameter in expr (if one exists) with a corresponding parameter.
          orig_ptr != NULL && new_ptr != NULL;
          orig_ptr = orig_ptr->next, new_ptr = new_ptr->next) {
       if (expr->variant.variable == orig_ptr) {
-        check_assertion(identical_types_ignoring_qualifiers(orig_ptr->type,
-                                                            new_ptr->type));
+        check_assertion(identical_types(orig_ptr->type, new_ptr->type));
         expr->variant.variable = new_ptr;
         break;
       }  /* if */
@@ -3329,9 +3328,7 @@ a parameter in expr (if one exists) with a corresponding parameter.
            orig_ptr != NULL && new_ptr != NULL;
            orig_ptr = orig_ptr->next, new_ptr = new_ptr->next) {
         if (ptr->variable == orig_ptr) {
-          check_assertion(identical_types_ignoring_qualifiers(
-                                                           ptr->variable->type,
-                                                           new_ptr->type));
+          check_assertion(identical_types(ptr->variable->type, new_ptr->type));
           ptr->variable = new_ptr;
           break;
         }  /* if */
@@ -4010,6 +4007,9 @@ modified; if not, only the new parameters are modified.
        src_param_type != NULL && 
          (do_default_args || !src_param_type->has_default_arg);
        src_param_type = src_param_type->next) {
+    /* Create the qualified type for the parameter. */
+    pass_through_param_type = make_qualified_type(src_param_type->type,
+                                                  src_param_type->qualifiers);
     /* If the parameter is passed via a copy constructor and it has
        not been lowered, replace it by a pointer to the object.
        Note that a second copy constructor call (i.e., one within
@@ -4018,13 +4018,10 @@ modified; if not, only the new parameters are modified.
         !visited_yet(src_param_type)) {
       if (do_lowering) {
         add_indirection_to_cctor_param_type(src_param_type);
-        pass_through_param_type = src_param_type->type;
       } else {
         pass_through_param_type = 
                  type_of_cctor_param_after_adding_indirection(src_param_type);
       }  /* if */
-    } else {
-      pass_through_param_type = src_param_type->type;
     }  /* if */
     param_type = alloc_param_type(pass_through_param_type);
     param_type->has_default_arg = src_param_type->has_default_arg;
@@ -4203,6 +4200,11 @@ routine will be the same as the one passed in.
       /* The "this" parameter is generated in its lowered form (i.e., as a
          normal parameter). */
       this_param_type = implicit_this_param_type_of(routine_type);
+      if (!should_drop_const_on_this_param_variable(rtsp->assoc_routine,
+                                                    routine_type)) {
+        /* Add const qualification to "this" parameter type if appropriate. */
+        this_param_type = make_qualified_type(this_param_type, TQ_CONST);
+      }  /* if */
       return_type = lowered_return_type_of(routine_type);
 #if IA64_ABI_VARIANT_CTORS_AND_DTORS_RETURN_THIS
       /* Deleting destructors return void even in the variant. */
