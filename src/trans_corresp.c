@@ -1624,7 +1624,7 @@ a_routine_list_entry nodes.
 #define is_compiler_generated_class_type(tp)                           \
   (class_type_supp(tp)->compiler_generated)
 #else /* !DO_IL_LOWERING */
-#define is_compiler_generated_tclass_ype(tp) FALSE
+#define is_compiler_generated_class_type(tp) FALSE
 #endif /* DO_IL_LOWERING */
 
 /*
