@@ -1,5 +1,22 @@
 Version 4.1
 
+4/16/09  [EDGcpfe/7870]
+GNU compatibility, C++-generating back end: __offsetof built-in operator
+
+In a function template definition generated from the string form of the
+template, the C++-generating back end represented the GNU __offsetof
+operator as __INTADDR__, an EDG-specific operator.  This is now fixed.  For
+example,
+
+  template <typename T> struct S {
+    int x;
+    int f() {
+      return __offsetof((unsigned)&(static_cast<S*>(0)->x));
+          // ^^^^^^^^^^ Previously generated as __INTADDR__
+    }
+  };
+
+
 4/16/09  [EDGcpfe/8743]
 GNU compatibility, C++-generating back end: __asm__ keyword
 

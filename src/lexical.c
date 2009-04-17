@@ -16266,6 +16266,10 @@ of characters added.
   } else if (gcc_is_generated_code_target && token == tok_alignof) {
     /* g++ expects the lower-case variant of the keyword spelling. */
     put_str_to_temp_text_buffer("__alignof__");
+  } else if (gcc_is_generated_code_target && token == tok_intaddr) {
+    /* The g++ builtin function __offsetof is identical to the EDG-specific
+       __INTADDR__. */
+    put_str_to_temp_text_buffer("__offsetof");
   } else if ((microsoft_dialect_is_generated_code_target ||
               sun_is_generated_code_target) &&
              token == tok_alignof) {
