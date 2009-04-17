@@ -1775,7 +1775,11 @@ if this is the function declarator in a friend function declaration.
               pos_error(ec_void_param_not_allowed, &param_type_pos);
               param_state.type = error_type();
             } else {
-              if (!c99_mode) {
+              if (param_state.decl_specifiers_error) {
+                /* An error already occurred during the call to
+                   decl_specifiers.  Don't issue another one. */
+                check_assertion(total_errors != 0);
+              } else if (!c99_mode) {
                 an_error_severity  sev = es_warning;
                 an_error_code      ec = ec_nonstd_void_param_list;
                 if (strict_ansi_mode) {
