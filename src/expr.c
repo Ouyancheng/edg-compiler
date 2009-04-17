@@ -11412,7 +11412,8 @@ an lvalue cast in g++ mode.
        is treated as an lvalue cast. */
     a_type_ptr source_type = operand->type;
     if (((is_integral_or_enum_type(source_type) &&
-          is_integral_or_enum_type(type_cast_to)) ||
+          is_integral_or_enum_type(type_cast_to) &&
+          !is_bool_type(type_cast_to)) ||
          (is_pointer_type(source_type) &&
           is_pointer_type(type_cast_to))) &&
         f_skip_typerefs(source_type)->size ==

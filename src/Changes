@@ -1,5 +1,18 @@
 Version 4.1
 
+4/17/09  [EDGcpfe/9706]
+Cast to bool incorrectly seen as lvalue cast in g++ < 3.4 mode
+
+A cast from a char type to bool was incorrectly treated as an ignored
+lvalue cast in g++ emulation mode with gnu_version < 30400.  Now fixed.
+
+   unsigned char var = 2;
+   int main() {
+       printf("%d\n", (bool)var);  // Should print 1, printed 2 previously
+       return 0;
+   }
+
+
 4/17/09  [EDGcpfe/9724]
 Incorrect scope orphaned list header list in multi-trans-unit case
 
