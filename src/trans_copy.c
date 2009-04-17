@@ -2691,6 +2691,7 @@ The current translation unit is the primary translation unit.
         curr_translation_unit->last_scope_orphaned_list_header->next =
                                                                  corresp_solhp;
       }  /* if */
+      corresp_solhp->next = NULL;
       curr_translation_unit->last_scope_orphaned_list_header = corresp_solhp;
     }  /* if */
   }  /* for */

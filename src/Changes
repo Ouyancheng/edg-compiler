@@ -1,5 +1,40 @@
 Version 4.1
 
+4/17/09  [EDGcpfe/9724]
+Incorrect scope orphaned list header list in multi-trans-unit case
+
+In some cases when multiple translation units are compiled in one
+compilation, the il_header.scope_orphaned_list_headers list included
+some entries that shouldn't be there.  The effect of the extra entries
+was that certain local types were both on the file scope list (after
+lowering) and on an orphaned list, with the consequence that the
+generated code from the C-generating back end got duplicate-definition
+errors on those types.  (Other back ends would presumably see similar
+problems.)  The exact conditions needed to provoke the problem are
+complex, but they involve functions that need not be copied to the
+primary IL because there is already a copy of them there, and have
+local types, followed by other functions with additional local types,
+in a secondary translation unit.  Now fixed.
+
+file 1:
+  struct A {
+    virtual int f(int x) {
+      return [x]{return x;}();
+    }
+  };
+
+file 2:
+  struct A {
+    virtual int f(int x) {
+      return [x]{return x;}();
+    }
+  };
+  int main() {
+    A a;
+    [](A* ap){return ap->f(1);}(&a);
+  }
+
+
 4/17/09  [EDGcpfe/9723]
 cv-qualification of parameters in IA-64 ABI alternate entry points
 
