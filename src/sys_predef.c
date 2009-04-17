@@ -1513,6 +1513,7 @@ Enter the standard predeclared functions for GCC.
   enter_gnu_builtin_real_math_funcs2(_drem);
   enter_gnu_builtin_func0(_dwarf_cfa, void_star);
   enter_gnu_builtin_func0(_dwarf_fp_regnum, unsigned);
+  enter_gnu_builtin_func0(_dwarf_sp_column, unsigned);
 #if TARG_ALL_POINTERS_SAME_SIZE
   enter_gnu_builtin_func2(_eh_return, no_return, pmode, void_star);
 #endif /* TARG_ALL_POINTERS_SAME_SIZE */

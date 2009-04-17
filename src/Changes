@@ -1,5 +1,11 @@
 Version 4.1
 
+4/17/09  [EDGcpfe/9714]
+GNU compatibility: __builtin_dwarf_sp_column
+
+In GNU modes, the front end now predeclares __builtin_dwarf_sp_column.
+
+
 4/17/09  [EDGcpfe/9706]
 Cast to bool incorrectly seen as lvalue cast in g++ < 3.4 mode
 

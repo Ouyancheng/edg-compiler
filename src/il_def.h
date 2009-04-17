@@ -7310,6 +7310,7 @@ enum a_builtin_function_kind_tag {
   bfk_dreml,                    /* "__builtin_dreml" */
   bfk_dwarf_cfa,                /* "__builtin_dwarf_cfa" */
   bfk_dwarf_fp_regnum,          /* "__builtin_dwarf_fp_regnum" */
+  bfk_dwarf_sp_column,          /* "__builtin_dwarf_sp_column" */
   bfk_eh_return,                /* "__builtin_eh_return" */
   bfk_eh_return_data_regno,     /* "__builtin_eh_return_data_regno" */
   bfk_erf,                      /* "__builtin_erf" */
@@ -8556,6 +8557,7 @@ EXTERN char *builtin_function_kind_names[(int)bfk_last + 1]
   /* bfk_dreml */                    "__builtin_dreml",
   /* bfk_dwarf_cfa */                "__builtin_dwarf_cfa",
   /* bfk_dwarf_fp_regnum */          "__builtin_dwarf_fp_regnum",
+  /* bfk_dwarf_sp_column */          "__builtin_dwarf_sp_column",
   /* bfk_eh_return */                "__builtin_eh_return",
   /* bfk_eh_return_data_regno */     "__builtin_eh_return_data_regno",
   /* bfk_erf */                      "__builtin_erf",
