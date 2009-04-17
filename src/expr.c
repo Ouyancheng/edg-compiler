@@ -10737,8 +10737,9 @@ expressions allow only certain limited casts).
       err_severity = es_error;
       err_code = ec_expr_not_ptr_to_member;
     }  /* if */
-  } else if (is_reference_type(dest_type)) {
-    /* A cast to a reference type is allowed. */
+  } else if (is_lvalue_reference_type(dest_type)) {
+    /* A cast to a reference type is allowed (but not to an rvalue reference
+       type, since that would produce an rvalue). */
     valid_in_const_expr = TRUE;
   } else if (gcc_mode &&
              is_class_struct_union_type(dest_type) &&
