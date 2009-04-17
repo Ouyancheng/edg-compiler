@@ -1296,10 +1296,17 @@ by octl.
 #endif /* FIXED_POINT_ALLOWED */
 #if C99_IL_EXTENSIONS_SUPPORTED
     case tk_complex:
+      form_float_kind_name(type->variant.float_kind, octl);
+      if (use_gnu_form()) {
+        octl->output_str(" __complex__", octl);
+      } else {
+        /* Put out the C99 form. */
+        octl->output_str(" _Complex", octl);
+      }  /* if */
+      break;
     case tk_imaginary:
       form_float_kind_name(type->variant.float_kind, octl);
-      octl->output_str((char *)(type->kind == (a_type_kind)tk_complex ?
-                       " _Complex" : " _Imaginary"), octl);
+      octl->output_str(" _Imaginary", octl);
       break;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
     case tk_float:

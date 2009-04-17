@@ -1,5 +1,14 @@
 Version 4.1
 
+4/17/09  [EDGcpfe/7890]
+GNU compatibility, C++-generating back end: __complex__ keyword
+
+The C++-generating back end generated uses of the GNU __complex__ keyword
+as the corresponding C99 _Complex keyword.  Now fixed.  For example:
+
+  typedef __complex__ float FC;  // Previously generated as _Complex float
+
+
 4/17/09  [EDGcpfe/9074]
 Microsoft compatibility, C++-generating back end: override, abstract, sealed
 
