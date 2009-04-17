@@ -3003,7 +3003,7 @@ set_corresp_for_default_arg_entities).  Issue diagnostics as appropriate.
                         ep2->entity.kind == (a_byte_il_entry_kind)iek_type);
         tp1 = (a_type_ptr)ep1->entity.ptr;
         check_assertion(type_is_lambda_closure(tp1));
-        verify_type_correspondence(tp1);
+        (void)verify_type_correspondence(tp1);
       }  /* for */
       if (ep1 != NULL || ep2 != NULL) {
         /* The number of closure types recorded for the parameter don't match:
