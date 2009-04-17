@@ -6705,8 +6705,7 @@ Process the arguments on the command line that invoked the compiler.
   char				*listing_file_name = NULL;
 
   /* Set a current position indicating we are looking at the command line. */
-  pos_curr_token.seq = 0;
-  pos_curr_token.column = SP_COL_CMD_LINE;
+  set_position_to(pos_curr_token, 0, SP_COL_CMD_LINE);
   set_err_pos_to_curr_token();
 
   /* Initialize the table of option descriptions used by the options

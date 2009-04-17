@@ -6870,8 +6870,7 @@ a symbol locator in *locator.
   *assoc_symbol = NULL;
 
   /* Identifier "position" is in the command line. */
-  position.seq = 0;
-  position.column = SP_COL_CMD_LINE;
+  set_position_to(position, 0, SP_COL_CMD_LINE);
   clear_locator(locator, &position);
   if (id_len < 1) {
     /* Zero-length identifier is invalid. */
@@ -7087,8 +7086,7 @@ TRUE) and "-U" (when process_undefs is TRUE) options on the command line.
   a_boolean	          save_fetch_pp_tokens = fetch_pp_tokens;
 
   /* Set a current position indicating we are looking at the command line. */
-  pos_curr_token.seq = 0;
-  pos_curr_token.column = SP_COL_CMD_LINE;
+  set_position_to(pos_curr_token, 0, SP_COL_CMD_LINE);
   set_err_pos_to_curr_token();
   /* Don't expand macros while preprocessing: */
   expand_macros = FALSE;
@@ -7182,8 +7180,7 @@ TRUE) and "-U" (when process_undefs is TRUE) options on the command line.
   fetch_pp_tokens = save_fetch_pp_tokens;
   expand_macros = save_expand_macros;
   /* Set a current position indicating we are in initialization. */
-  pos_curr_token.seq = 0;
-  pos_curr_token.column = SP_COL_UNKNOWN;
+  set_position_to(pos_curr_token, 0, SP_COL_UNKNOWN);
   set_err_pos_to_curr_token();
 }  /* process_command_line_macro_definitions */
 

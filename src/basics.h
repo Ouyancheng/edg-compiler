@@ -717,6 +717,14 @@ following, indicating something special:
   (to).column = (to).orig_column = (from).column;       \
   set_macro_context_to_no_parent((to));                 \
 }
+#define set_position_to(pos, seqno, col)      \
+{ (pos).seq = (pos).orig_seq = (seqno);       \
+  (pos).column = (pos).orig_column = (col);   \
+  set_macro_context_to_no_parent((pos));      \
+}
+#else /* !FULLY_RESOLVED_MACRO_POSITIONS */
+#define set_position_to(pos, seqno, col)    \
+{ (pos).seq = (seqno); (pos).column = (col); }
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
 
 /*

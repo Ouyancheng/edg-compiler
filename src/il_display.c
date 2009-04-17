@@ -5801,8 +5801,7 @@ where file.cil specifies the IL file.  Output is to stdout.
      utility programs. */
   standalone_utility_init();
   /* Set the position for errors to "unknown". */
-  error_position.seq = 0;
-  error_position.column = SP_COL_UNKNOWN;
+  set_position_to(error_position, 0, SP_COL_UNKNOWN);
   /* The source file name is unknown until the IL is read correctly. */
   primary_source_file_name = NULL;
 

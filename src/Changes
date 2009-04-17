@@ -1,5 +1,14 @@
 Version 4.1
 
+4/17/09  [EDGcpfe/9710]
+Aborts resulting from invalid source position values
+
+In configurations in which FULLY_RESOLVED_MACRO_POSITIONS is TRUE, the front
+end sometimes failed to set the orig_seq and orig_column fields of
+a_source_position objects, which could lead to aborts resulting from invalid
+values in these fields.  This is now fixed.
+
+
 4/17/09  [EDGcpfe/7890]
 GNU compatibility, C++-generating back end: __complex__ keyword
 

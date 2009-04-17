@@ -632,8 +632,7 @@ treated as separate translation units of a single compilation.
   }  /* if */
   /* Set a current position indicating we are in initialization.  This
      actually does something for a secondary translation unit. */
-  pos_curr_token.seq = 0;
-  pos_curr_token.column = SP_COL_UNKNOWN;
+  set_position_to(pos_curr_token, 0, SP_COL_UNKNOWN);
   set_err_pos_to_curr_token();
   /* Initialize the front end. */
   is_primary_translation_unit = is_primary;

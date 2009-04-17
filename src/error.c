@@ -3163,8 +3163,7 @@ Write a command-line error message concatenated with concat_string, and
 terminate the compilation.
 */
 {
-  error_position.seq = 0;
-  error_position.column = SP_COL_CMD_LINE;
+  set_position_to(error_position, 0, SP_COL_CMD_LINE);
   init_error_params();
   error_msg_strings[1] = error_text(error_code);
   error_msg_strings[2] = concat_string;
@@ -3667,8 +3666,7 @@ returned by the file open routine.
   /* If the error is to be issued as a command-line error, provide an
      appropriate source position. */
   if (severity == (an_error_severity)es_command_line_error) {
-    local_error_pos.seq = 0;
-    local_error_pos.column = SP_COL_CMD_LINE;
+    set_position_to(local_error_pos, 0, SP_COL_CMD_LINE);
   }  /* if */
 
   diag_message(error_code, &local_error_pos, severity, dck_standalone);
@@ -3711,8 +3709,7 @@ error is issued instead.
   /* If the error is to be issued as a command-line error, provide an
      appropriate source position. */
   if (severity == (an_error_severity)es_command_line_error) {
-    error_position.seq = 0;
-    error_position.column = SP_COL_CMD_LINE;
+    set_position_to(error_position, 0, SP_COL_CMD_LINE);
   }  /* if */
   file_open_error(severity, file_kind, file_name, &open_result);
 #ifdef __GNUC__
@@ -5548,8 +5545,7 @@ Begin a multiple message command line error.
 */
 {
   init_error_params();
-  error_position.seq = 0;
-  error_position.column = SP_COL_CMD_LINE;
+  set_position_to(error_position, 0, SP_COL_CMD_LINE);
   error_msg_strings[1] = error_string;
   diag_message(error_code, &error_position, es_command_line_error,
                dck_primary);

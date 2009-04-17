@@ -13143,8 +13143,7 @@ Initialize for the C++/C-generating back end.
   disable_line_wrapping_until_column = 0;
   f_C_output = NULL;
   /* Set the position for errors to "unknown". */
-  error_position.seq = 0;
-  error_position.column = SP_COL_UNKNOWN;
+  set_position_to(error_position, 0, SP_COL_UNKNOWN);
   /* Output position is unknown. */
   curr_output_file = NULL;
   curr_output_line = 0;

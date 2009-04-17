@@ -799,8 +799,7 @@ the next time a specific output position is requested.
   curr_output_line = 0;
   curr_output_file = NULL;
   /* Set the position for errors to "unknown". */
-  error_position.seq = 0;
-  error_position.column = SP_COL_UNKNOWN;
+  set_position_to(error_position, 0, SP_COL_UNKNOWN);
 }  /* set_unknown_output_position */
 
 
@@ -9000,8 +8999,7 @@ must be redone for each generated C file.
   line_wrapping_disabled = 0;
   f_C_output = NULL;
   /* Set the position for errors to "unknown". */
-  error_position.seq = 0;
-  error_position.column = SP_COL_UNKNOWN;
+  set_position_to(error_position, 0, SP_COL_UNKNOWN);
   /* Output position is unknown. */
   curr_output_file = NULL;
   curr_output_line = 0;

@@ -852,8 +852,7 @@ after the command-line processing has been done.
 */
 {
   /* Set a current position indicating we are still in initialization. */
-  pos_curr_token.seq = 0;
-  pos_curr_token.column = SP_COL_UNKNOWN;
+  set_position_to(pos_curr_token, 0, SP_COL_UNKNOWN);
   set_err_pos_to_curr_token();
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
 #if !USE_OWN_SJIS_MULTIBYTE_CHAR_PROCESSING && \
@@ -1217,8 +1216,7 @@ when it is a secondary file.
 */
 {
   /* Set a current position indicating we are still in initialization. */
-  pos_curr_token.seq = 0;
-  pos_curr_token.column = SP_COL_UNKNOWN;
+  set_position_to(pos_curr_token, 0, SP_COL_UNKNOWN);
   set_err_pos_to_curr_token();
 
 #if GNU_EXTENSIONS_ALLOWED
