@@ -699,6 +699,13 @@ typedef struct an_expr_stack_entry {
 		current_lambda_in_header;
 			/* If non-NULL, we're inside the header (not the body)
 			   of the indicated lambda. */
+  a_param_type_ptr
+		assoc_param;
+			/* If non-NULL, is_default_arg_expression is TRUE, and
+			   this points to the associated parameter description.
+			   (This can be NULL even if is_default_arg_expression
+			   is TRUE; e.g., when the default argument is being
+			   parsed, but not recorded.) */
 } an_expr_stack_entry;
 
 EXTERN an_expr_stack_entry_ptr

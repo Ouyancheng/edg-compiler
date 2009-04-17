@@ -397,6 +397,30 @@ be written.
 }  /* disp_string_ptr */
 
 
+static void disp_entity_list(char                        *name,
+                             an_il_entity_list_entry_ptr ptr)
+/*
+Display the indicated entity list and name.
+*/
+{
+  if (ptr == NULL) {
+    disp_ptr(name, (char *)ptr, iek_il_entity_list_entry);
+  } else {
+    for (; ptr != NULL; ptr = ptr->next) {
+      if (name != NULL) {
+        disp_name(name);
+      } else {
+        (void)printf("%*c", Label_indent, ' ');
+      }  /* if */
+      disp_ptr_value(ptr->entity.ptr, ptr->entity.kind);
+      (void)printf("\n");
+      /* Only display the list name for the first entry. */
+      name = NULL;
+    }  /* for */
+  }  /* if */
+}  /* disp_entity_list */
+
+
 static void disp_access(char                *name,
                         an_access_specifier access)
 /*
@@ -1133,6 +1157,10 @@ Display a_param_type entry.
   }  /* if */
   if (ptr->default_arg_expr != NULL) {
     disp_ptr("default_arg_expr", (char *)ptr->default_arg_expr, iek_expr_node);
+  }  /* if */
+  if (ptr->entities_defined_in_default_arg != NULL) {
+    disp_entity_list("entities_defined_in_default_arg",
+                     ptr->entities_defined_in_default_arg);
   }  /* if */
   if (ptr->qualifiers != TQ_NONE) {
     disp_name("qualifiers");
@@ -2516,30 +2544,6 @@ Display the indicated routine list and name.
     }  /* for */
   }  /* if */
 }  /* disp_routine_list */
-
-
-static void disp_entity_list(char                        *name,
-                             an_il_entity_list_entry_ptr ptr)
-/*
-Display the indicated entity list and name.
-*/
-{
-  if (ptr == NULL) {
-    disp_ptr(name, (char *)ptr, iek_il_entity_list_entry);
-  } else {
-    for (; ptr != NULL; ptr = ptr->next) {
-      if (name != NULL) {
-        disp_name(name);
-      } else {
-        (void)printf("%*c", Label_indent, ' ');
-      }  /* if */
-      disp_ptr_value(ptr->entity.ptr, ptr->entity.kind);
-      (void)printf("\n");
-      /* Only display the list name for the first entry. */
-      name = NULL;
-    }  /* for */
-  }  /* if */
-}  /* disp_entity_list */
 
 
 static void disp_template_arg_list(char                *name,

@@ -890,6 +890,7 @@ at file scope.
 #endif /* CENTERLINE_CHECKING */
   ptp->default_arg_expr = NULL;
   ptp->default_arg_expr_fixup = NULL;
+  ptp->entities_defined_in_default_arg = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   ptp->ms_attributes = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

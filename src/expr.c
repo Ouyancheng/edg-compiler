@@ -20047,6 +20047,22 @@ Return a pointer to the expression.
 }  /* scan_typed_expression */
 
 
+a_param_type_ptr get_param_for_current_default_arg(void)
+/*
+If we are currently in a default argument, return a pointer to the a_param_type
+entry associated with that argument (or NULL, if the default argument
+expression is to be ignored).  Otherwise, return NULL.
+*/
+{
+  a_param_type_ptr  result = NULL;
+
+  if (expr_stack != NULL) {
+    result = expr_stack->assoc_param;
+  }  /* if */
+  return result;
+}  /* get_param_for_current_default_arg */
+
+
 void scan_default_arg_expr(a_param_type_ptr ptp)
 /*
 Scan a default argument expression on a formal parameter declaration, change
@@ -20072,6 +20088,7 @@ in a template instantiation) just do the scan.
                   /*force_object_lifetime=*/TRUE,
                   /*suppress_object_lifetime=*/FALSE);
   expr_stack_entry.is_default_arg_expression = TRUE;
+  expr_stack_entry.assoc_param = ptp;
   /* Scan the expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
   if (ptp != NULL) {

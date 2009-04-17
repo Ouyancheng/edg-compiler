@@ -3460,6 +3460,11 @@ typedef struct a_param_type {
 			   points to the fixup entry that provides information
 			   on how to evaluate the default argument
 			   expression.  Front end only. */
+  an_il_entity_list_entry_ptr
+		entities_defined_in_default_arg;
+			/* A list of entities defined in the default argument
+			   associated with this parameter.  Currently, this
+			   list only has C++0x closure types. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   an_ms_attribute_ptr
 		ms_attributes;

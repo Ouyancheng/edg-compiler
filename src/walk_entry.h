@@ -839,6 +839,8 @@ the file scope, do not process it (but record an orphan in the latter case).
           walk_ptr(ptr->default_arg_expr, an_expr_node_ptr, iek_expr_node);
         }  /* if */
         conditionally_clear_fe_pointer(ptr->default_arg_expr_fixup);
+        walk_list(ptr->entities_defined_in_default_arg,
+                  an_il_entity_list_entry_ptr, iek_il_entity_list_entry);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
         walk_ptr(ptr->decl_pos_info, a_decl_position_supplement_ptr,
                  iek_decl_position_supplement);

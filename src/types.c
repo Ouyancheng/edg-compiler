@@ -7374,6 +7374,8 @@ make_new_comp_type:
             new_ptp->default_arg_expr_fixup = ptp1->default_arg_expr_fixup;
             if (ptp1->default_arg_expr != NULL) {
               new_ptp->default_arg_expr = ptp1->default_arg_expr;
+              new_ptp->entities_defined_in_default_arg =
+                                         ptp1->entities_defined_in_default_arg;
             }  /* if */
           } else if (ptp2->has_default_arg) {
             new_ptp->has_default_arg = TRUE;
@@ -7382,6 +7384,8 @@ make_new_comp_type:
             new_ptp->default_arg_expr_fixup = ptp2->default_arg_expr_fixup;
             if (ptp2->default_arg_expr != NULL) {
               new_ptp->default_arg_expr = ptp2->default_arg_expr;
+              new_ptp->entities_defined_in_default_arg =
+                                         ptp2->entities_defined_in_default_arg;
             }  /* if */
           }  /* if */
           if (ptp1->type_involves_deduced_template_param) {

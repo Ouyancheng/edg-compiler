@@ -1170,6 +1170,7 @@ the fields implied by the lambda's capture list).
   a_symbol_ptr                   sym;
   a_class_symbol_supplement_ptr  cssp;
   a_boolean                      is_prototype_instantiation = FALSE;
+  a_param_type_ptr               assoc_param;
 
   /* Create an unnamed symbol for the lambda class. */
   sym = make_unnamed_tag_symbol((a_symbol_kind)sk_class_or_struct_tag,
@@ -1189,6 +1190,17 @@ the fields implied by the lambda's capture list).
   }  /* if */
   update_membership_of_class(sym, /*def_or_vacuous_decl=*/TRUE, decl_level,
                              decl_position);
+  /* If the lambda appears directly in a default argument, record the closure
+     type among the entities defined by the default argument. */
+  assoc_param = get_param_for_current_default_arg();
+  if (assoc_param != NULL) {
+    an_il_entity_list_entry_ptr
+                          *ep = &assoc_param->entities_defined_in_default_arg;
+    while (*ep != NULL) ep = &(*ep)->next;
+    *ep = alloc_il_entity_list_entry();
+    (*ep)->entity.kind = (a_byte_il_entry_kind)iek_type;
+    (*ep)->entity.ptr = (char*)type;
+  }  /* if */
   if (!is_prototype_instantiation || prototype_instantiations_in_il) {
     add_lambda_closure_to_types_list(type, decl_level);
   } else {
