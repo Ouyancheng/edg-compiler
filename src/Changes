@@ -34,6 +34,10 @@ as the corresponding C99 _Complex keyword.  Now fixed.  For example:
 
   typedef __complex__ float FC;  // Previously generated as _Complex float
 
+(Note that this change also affects diagnostic output involving these
+types: messages in GNU emulation modes will refer to "__complex__" instead
+of "_Complex".)
+
 
 4/17/09  [EDGcpfe/9074]
 Microsoft compatibility, C++-generating back end: override, abstract, sealed
