@@ -10160,14 +10160,14 @@ is generated.
 */
 {
   if (rout->abstract) {
-    write_tok_str("abstract ");
+    write_tok_str(" abstract");
     *abstract_generated = TRUE;
   }  /* if */
   if (rout->override) {
-    write_tok_str("override ");
+    write_tok_str(" override");
   }  /* if */
   if (rout->sealed) {
-    write_tok_str("sealed ");
+    write_tok_str(" sealed");
   }  /* if */
 }  /* gen_microsoft_function_modifiers */
 
