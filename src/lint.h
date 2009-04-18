@@ -384,6 +384,8 @@ extern int fileno(FILE *);
 /*lint -esym(759,build_construction_vtbls_pointer)*/
 /*lint -esym(765,build_construction_vtbls_pointer)*/
 /*lint -esym(769,ec_no_default_delete_in_virtual_dtor)*/
+/*lint -esym(759,should_drop_const_on_this_param_variable)*/
+/*lint -esym(765,should_drop_const_on_this_param_variable)*/
 #endif /* IA64_ABI */
 #if !INSTANTIATE_EXTERN_INLINE || !IA64_ABI
 /*lint -esym(759,get_mangled_function_name_full)*/
