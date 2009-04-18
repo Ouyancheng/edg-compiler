@@ -4794,6 +4794,7 @@ is the one associated with the definition of the enum.
   a_constant_ptr enum_con;
   a_constant     next_enum_value;
   a_boolean      explicit_enum_expr;
+  a_boolean      next_value_calc_overflowed = FALSE;
 
   check_assertion_str(type->kind == (a_type_kind)tk_enum &&
                       type->variant.integer.enum_type,
@@ -4835,6 +4836,8 @@ is the one associated with the definition of the enum.
   if (enum_con != NULL) {
     /* Output the enumeration constants. */
     a_boolean is_initial_implicit_zero = FALSE;
+    an_integer_value one;
+    set_integer_value(&one, (a_host_large_integer)1);
     /* Start with an expected value of 0 next. */
     next_enum_value = *enum_con;
     if (enum_con->kind == (a_constant_repr_kind)ck_integer) {
@@ -4868,8 +4871,10 @@ is the one associated with the definition of the enum.
         if (next_enum_value.kind == (a_constant_repr_kind)ck_integer) {
           /* The previous constant was also integral, so we only need an
              explicit expression if this constant does not have the
-             expected value, i.e., one more than the previous one. */
-          explicit_enum_expr =
+             expected value, i.e., one more than the previous one.  An
+             explicit expression is also needed if the next_enum_value
+             calculation overflowed. */
+          explicit_enum_expr = next_value_calc_overflowed ||
                       (cmp_integer_constants(enum_con, &next_enum_value) != 0);
         } else {
           /* The previous constant involved a template parameter, so an
@@ -4930,7 +4935,8 @@ is the one associated with the definition of the enum.
       /* Not the end of the list, so output a separator and keep looping. */
       write_tok_str(", ");
       if (next_enum_value.kind == (a_constant_repr_kind)ck_integer) {
-        incr_integer_value(&next_enum_value.variant.integer_value);
+        add_integer_values(&next_enum_value.variant.integer_value, &one,
+                           /*is_signed=*/FALSE, &next_value_calc_overflowed);
       }  /* if */
     }  /* for */
   }  /* if */
