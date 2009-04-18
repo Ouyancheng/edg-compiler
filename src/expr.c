@@ -19801,10 +19801,11 @@ bad_start_of_primary:
     /* This is a not-evaluated subexpression in a constant expression
        in GNU mode.  It was scanned as a normal expression.
        Check that the expression is constant, or make it a constant. */
+    /* Make sure functions and arrays decay into constant pointers. */
+    do_operand_transformations(result,
+                               TOPT_SUPPRESS_LVALUE_TO_RVALUE_CONVERSION);
     if (is_constant_operand(result) && is_an_rvalue(result)) {
       /* Already a constant. */
-    } else if (operand_is_string_literal(result)) {
-      /* A string literal lvalue is another acceptable constant. */
     } else if (is_error_operand(result)) {
       /* An error, leave alone. */
     } else {

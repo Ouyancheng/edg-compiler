@@ -1,5 +1,19 @@
 Version 4.1
 
+4/18/09  [EDGcpfe/9721]
+Function and array values in unevaluated GNU-mode constant expressions
+
+The GNU-mode feature that allows non-constant expressions to appear in
+unevaluated parts of constant expressions (e.g., a dead second or
+third operand of a "?" operator) has been tweaked to not give errors
+on function- and array-typed operands.  In particular, such operands
+that decay to constant values, which are valid even without an
+extension, formerly got spurious errors and no longer do.
+
+  void f();
+  void (*p)() = 0 ? f : (void (*)())0;  // Now accepted in --gcc mode
+
+
 4/17/09  [EDGcpfe/9714]
 GNU compatibility: __builtin_dwarf_sp_column
 
