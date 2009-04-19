@@ -1,5 +1,12 @@
 Version 4.1
 
+4/19/09  [EDGcpfe/9725]
+C++0x: disabling variadic macros
+
+The front end ignored the --no_variadic_macros command-line option in C++0x
+mode.  This is now fixed.
+
+
 4/19/09  [EDGcpfe/8659]
 Sun compatibility: variadic macros
 

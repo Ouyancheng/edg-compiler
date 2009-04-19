@@ -2342,7 +2342,9 @@ the next standard).
   mixed_string_concat_enabled = TRUE;
   long_long_is_standard = TRUE;
   long_long_promotion_allowed = TRUE;
-  variadic_macros_allowed = TRUE;
+  if (!option_kind_used[(int)optk_variadic_macros]) {
+    variadic_macros_allowed = TRUE;
+  }  /* if */
   pragma_operator_allowed = TRUE;
   static_assert_enabled = TRUE;
   if (!option_kind_used[(int)optk_auto_type]) {
