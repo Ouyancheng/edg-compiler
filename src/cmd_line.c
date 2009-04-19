@@ -3037,6 +3037,11 @@ checked again here.)
     allow_nonconst_ref_anachronism = TRUE;
   }  /* if */
   va_arg_returns_lvalue = TRUE;
+  if (!(option_kind_used[(int)optk_variadic_macros])) {
+    /* The Sun compiler accepts variadic (but not extended variadic)
+       macros. */
+    variadic_macros_allowed = TRUE;
+  }  /* if */
 }  /* check_and_set_sun_mode_options */
 
 

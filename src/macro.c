@@ -4376,14 +4376,19 @@ end_arg_expansion:;
       /* Check that all of the formal parameters were taken. */
       if (pp != NULL) {
         /* An argument is missing.  This is an error, except in pcc
-           preprocessing mode, SVR4 C mode, and Microsoft mode, where we
-           issue a warning. It is also fine (no warning) to omit an
-           extended or Microsoft variadic macro argument. */
+           preprocessing mode, SVR4 C mode, Sun mode, and Microsoft mode,
+           where we issue a warning. It is also fine (no warning) to omit
+           an extended or Microsoft variadic macro argument. */
         if (!((extended_variadic_macros_allowed || microsoft_mode) &&
               pp->next == NULL && mdp->variadic)) {
-          diagnostic(pcc_preprocessing_mode || SVR4_C_mode || microsoft_mode
-                                        ? es_warning : es_discretionary_error,
-                     ec_too_few_macro_args);
+          an_error_severity sev;
+          if (pcc_preprocessing_mode || SVR4_C_mode || microsoft_mode ||
+              sun_mode) {
+            sev = es_warning;
+          } else {
+            sev = es_discretionary_error;
+          }  /* if */
+          diagnostic(sev, ec_too_few_macro_args);
         }  /* if */
         /* Set the rest of the arguments to null (omitted, not empty)
            strings. */
