@@ -4202,7 +4202,8 @@ routine will be the same as the one passed in.
       this_param_type = implicit_this_param_type_of(routine_type);
       if (!should_drop_const_on_this_param_variable(rtsp->assoc_routine,
                                                     routine_type)) {
-        /* Add a const qualification to "this" parameter type if appropriate. */
+        /* Add const qualification to the "this" parameter type if
+           appropriate. */
         this_param_type = make_qualified_type(this_param_type, TQ_CONST);
       }  /* if */
       return_type = lowered_return_type_of(routine_type);
