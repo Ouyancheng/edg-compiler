@@ -11808,7 +11808,20 @@ declaration following this one is such a continuation.
     /* Do not insert code here. */
     {
       /* Emit attributes associated with this variable. */
+#if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
+      a_gnu_init_priority saved_init_priority = var->init_priority;
+      if (!is_definition) {
+        /* The init_priority attribute is allowed only on definitions.
+           Suppress it from this non-definition declaration. */
+        var->init_priority = 0;
+      }  /* if */
+#endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
       (void)form_variable_attributes(var, /*need_leading_space=*/TRUE, &octl);
+#if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
+      /* Restore the init_priority attribute for use in the defining
+         declaration. */
+      var->init_priority = saved_init_priority;
+#endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
     }  /* if */
     var->aliased_variable = aliased_variable;
   }

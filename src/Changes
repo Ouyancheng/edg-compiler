@@ -1,5 +1,21 @@
 Version 4.1
 
+4/19/09  [EDGcpfe/8537]
+GNU compatibility, C++-generating back end: init_priority attribute
+
+The GNU init_priority attribute is accepted by g++ only on variable
+definitions, but the C++-generating back end put it out on both the
+definition and all non-defining declarations of a variable with that
+attribute.  This is now fixed.  For example,
+
+  struct S { };
+  struct T {
+    static S s;   // Previously incorrectly generated as
+                  // static S s __attribute((__init_priority__(101)));
+  };
+  S T::s __attribute__((init_priority(101)));
+
+
 4/19/09  [EDGcpfe/9725]
 C++0x: disabling variadic macros
 
