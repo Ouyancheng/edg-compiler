@@ -2475,6 +2475,7 @@ might not be able to if the template itself has not yet been defined.
   a_class_symbol_supplement_ptr     cssp;
   a_template_arg_ptr                template_arg_list;
   a_boolean			    is_class_member;
+  a_push_scope_options_set          ps_options = PS_NO_OPTIONS;
 
   db_enter(3, "f_instantiate_template_class");
 #if CHECKING
@@ -2492,9 +2493,11 @@ might not be able to if the template itself has not yet been defined.
   template_sym = template_symbol_for_class_symbol(instance_sym);
   if (template_sym == NULL) {
     /* Not a class based on a class template. */
-  } else if (class_type->variant.class_struct_union.is_nonreal_class) {
+  } else if (class_type->variant.class_struct_union.is_nonreal_class &&
+             !class_type->variant.class_struct_union.
+                                            is_ms_instantiated_nonreal_class) {
     /* Don't try to instantiate a template class without real template
-       arguments. */
+       arguments (unless it is a Microsoft instantiated nonreal class). */
   } else if (class_type->variant.class_struct_union.is_specialized) {
     /* This is an attempt to instantiate an incomplete type that is
        a specific definition.  This can occur in error cases while scanning
@@ -2514,6 +2517,12 @@ might not be able to if the template itself has not yet been defined.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     saved_curr_construct_end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    if (class_type->variant.class_struct_union.
+                                            is_ms_instantiated_nonreal_class) {
+      /* For a Microsoft instantiated nonreal class, indicate that this is
+         a nonreal instantiation context. */
+      ps_options |= PS_NONREAL_INSTANTIATION;
+    }  /* if */
     /* Switch to the translation unit containing the template, if needed. */
     trans_unit_pushed = push_translation_unit_if_needed(template_sym);
     tssp = template_supplement_for_symbol(template_sym);
@@ -2651,7 +2660,7 @@ might not be able to if the template itself has not yet been defined.
 					      instance_sym, template_sym,
 					      template_arg_list,
                                               /*push_stop_tokens=*/TRUE,
-                                              PS_NO_OPTIONS);
+                                              ps_options);
       /* Reactivate any pragmas that should be bound to the generated
          instance. */
       reactivate_curr_construct_pragmas(tssp->pragmas_bound_to_template);
@@ -4722,7 +4731,8 @@ a_symbol_ptr find_template_class(
 			     a_symbol_ptr        class_template_sym,
                              a_template_arg_ptr  *new_list,
 			     a_boolean	         any_prototype_allowed,
-			     a_symbol_ptr        specific_prototype_allowed)
+			     a_symbol_ptr        specific_prototype_allowed,
+			     a_boolean		 instantiate_nonreal)
 /*
 Given a symbol for a class template and a template argument list (that is,
 a list of actual arguments), look for an existing class that is the
@@ -4869,6 +4879,7 @@ prototype instantiation is considered as a potential match.
     a_symbol_ptr			primary_template_sym;
     a_template_symbol_supplement_ptr	primary_tssp;
     a_boolean				trans_unit_pushed;
+    a_boolean				instantiate_nonreal_class = FALSE;
     /* Switch to the translation unit containing the template, if needed. */
     trans_unit_pushed = push_translation_unit_if_needed(class_template_sym);
     sym = make_template_class_symbol(class_template_sym);
@@ -4916,6 +4927,15 @@ prototype instantiation is considered as a potential match.
       if (!class_type->variant.class_struct_union.is_nonreal_class) {
         if (template_arg_is_dependent(tap)) {
           class_type->variant.class_struct_union.is_nonreal_class = TRUE;
+          if (microsoft_mode && instantiate_nonreal &&
+              primary_tssp->variant.class_template.
+					prototype_instantiation_complete) {
+            /* In Microsoft mode, certain nonreal classes are instantiated
+               like normal classes. */
+            instantiate_nonreal_class = TRUE;
+            class_type->variant.class_struct_union.
+                                       is_ms_instantiated_nonreal_class = TRUE;
+          }  /* if */
         }  /* if */
       }  /* if */
       if (depth_scope_stack != DEPTH_OF_FILE_SCOPE) {
@@ -5000,13 +5020,16 @@ prototype instantiation is considered as a potential match.
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED */
     class_type->incomplete =
-                     !class_type->variant.class_struct_union.is_nonreal_class;
+                    !class_type->variant.class_struct_union.is_nonreal_class ||
+                    instantiate_nonreal_class;
     if (!class_type->variant.class_struct_union.is_nonreal_class) {
       record_symbol_declaration(SRK_TEMPLATE_INSTANTIATION,
                                 sym, &sym->decl_position,
                                 (a_source_sequence_entry_ptr)NULL);
     }  /* if */
-    if (class_type->variant.class_struct_union.is_nonreal_class) {
+    if (instantiate_nonreal_class) {
+      /* A Microsoft mode instantiated nonreal class. */
+    } else if (class_type->variant.class_struct_union.is_nonreal_class) {
       a_class_symbol_supplement_ptr	cssp;
       cssp = sym->variant.class_struct_union.extra_info;
       cssp->member_decl_scope = take_next_scope_number();
@@ -6941,7 +6964,8 @@ are looked up, if needed.  The symbol of the new instance is returned.
     prototype_allowed = orig_is_prototype ||
                         (options & CTWS_PROTOTYPE_ALLOWED) != 0;
     new_sym = find_template_class(template_sym, &new_list, prototype_allowed,
-                                  (a_symbol_ptr)NULL);
+                                  (a_symbol_ptr)NULL,
+                                  /*instantiate_nonreal=*/FALSE);
   }  /* if */
   return new_sym;
 }  /* copy_template_class_reference_with_substitution */
@@ -14259,7 +14283,8 @@ static void record_string_version_of_template(
 Make the string version of the template.
 */
 {
-  if (sym != NULL && !sym->is_error) {
+  if (sym != NULL && !sym->is_error &&
+      !scope_stack[depth_scope_stack].in_nonreal_instantiation) {
     /* Do some initial processing on the body cache to get it into the form
        required by the template string routines. */
     if (p_template_body_cache != NULL) {

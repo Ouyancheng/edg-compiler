@@ -515,23 +515,28 @@ Add a class fixup entry for class_type to the class fixup list.
 {
   a_class_fixup_ptr	cfp;
 
-  cfp = alloc_class_fixup();
-  cfp->class_type = class_type;
-  cfp->is_template_instantiation = is_template_instantiation;
-  if (def_arg_class_fixup_list == NULL) def_arg_class_fixup_list = cfp;
-  /* Add to the end of the default argument fixup list. */
-  if (def_arg_class_fixup_list_tail != NULL) {
-    def_arg_class_fixup_list_tail->next = cfp;
+  /* Don't attempt to fix-up nonreal classes instantiated in Microsoft mode. */
+  if (!class_type->
+                 variant.class_struct_union.is_ms_instantiated_nonreal_class) {
+    cfp = alloc_class_fixup();
+    cfp->class_type = class_type;
+    cfp->is_template_instantiation = is_template_instantiation;
+    if (def_arg_class_fixup_list == NULL) def_arg_class_fixup_list = cfp;
+    /* Add to the end of the default argument fixup list. */
+    if (def_arg_class_fixup_list_tail != NULL) {
+      def_arg_class_fixup_list_tail->next = cfp;
+    }  /* if */
+    def_arg_class_fixup_list_tail = cfp;
+    /* Add to the end of the inline function fixup list. */
+    if (inline_function_class_fixup_list == NULL) {
+      inline_function_class_fixup_list = cfp;
+    }  /* if */
+    if (inline_function_class_fixup_list_tail != NULL) {
+      inline_function_class_fixup_list_tail->next_in_inline_function_list =
+                                                                           cfp;
+    }  /* if */
+    inline_function_class_fixup_list_tail = cfp;
   }  /* if */
-  def_arg_class_fixup_list_tail = cfp;
-  /* Add to the end of the inline function fixup list. */
-  if (inline_function_class_fixup_list == NULL) {
-    inline_function_class_fixup_list = cfp;
-  }  /* if */
-  if (inline_function_class_fixup_list_tail != NULL) {
-    inline_function_class_fixup_list_tail->next_in_inline_function_list = cfp;
-  }  /* if */
-  inline_function_class_fixup_list_tail = cfp;
 }  /* add_to_class_fixup_list */
 
 
@@ -5630,7 +5635,7 @@ or struct definition.  The syntax is
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     /* Test for identifier or "::" next. */
-    if (!is_decl_qualified_name_start()) {
+    if (!is_generalized_identifier_start(GID_IS_BASE_CLASS)) {
       syntax_error(ec_exp_identifier);
     } else {
       /* Scan the base class name. */
@@ -5648,7 +5653,8 @@ or struct definition.  The syntax is
          that could be classes (including typedefs to classes and template
          parameters) are considered in the lookup. */
       sym = coalesce_and_lookup_generalized_identifier(
-                                   GID_IMPLICIT_TYPE_CONTEXT, ilm_class, &err);
+                                 GID_IMPLICIT_TYPE_CONTEXT | GID_IS_BASE_CLASS,
+                                 ilm_class, &err);
       /* Be sure a type symbol was found and that it identifies a class. */
       if (sym == NULL || !is_class_symbol(sym)) {
         /* Not a class symbol.  In most cases, issue an error and skip it.
@@ -5656,7 +5662,7 @@ or struct definition.  The syntax is
         if (sym != NULL && sym->kind == (a_symbol_kind)sk_type) {
           a_type_ptr  tp = skip_typedefs(type_symbol_type(sym));
           if (tp->kind == (a_type_kind)tk_template_param) {
-            if (scope_stack[depth_scope_stack].in_prototype_instantiation) {
+            if (is_template_dependent_context()) {
               /* No diagnostic on template parameters, which will only show
                  up during prototype instantiations.  Set the flag that
                  indicates that this prototype instantiation has a nonreal
@@ -13095,8 +13101,7 @@ or implicit) controlling the declaration.
     }  /* if */
     /* This is a loop in case the using-declaration specifies an overload
        set -- each member of the overload set is projected independently. */
-    if (!(scope_stack[depth_scope_stack].in_prototype_instantiation ||
-          is_tag_symbol(sym))) {
+    if (!(is_template_dependent_context() || is_tag_symbol(sym))) {
       /* Check if we missed a tag symbol; it should be imported too.
          A dummy overload_sym is used, because tag names are not overloaded. */
       a_symbol_ptr      tag_sym, overload_sym = NULL;
