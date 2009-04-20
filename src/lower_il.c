@@ -12630,7 +12630,7 @@ bok_offsetof, which can include nonconstant subscripts.
 #endif /* GNU_EXTENSIONS_ALLOWED */
     default:
       unexpected_condition();
-  }  /* switch */
+  }  /* switch */ /*lint !e764 */
 }  /* lower_builtin_operation */
 
 #if DEBUG
