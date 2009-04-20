@@ -250,7 +250,7 @@ typedef a_seq_number a_stmt_source_position;
 #define seq_number_from_stmt_source_position(stmt_pos) (stmt_pos)
 #define set_stmt_source_position(stmt_pos, pos) ((stmt_pos) = (pos).seq)
 #define set_position_from_stmt_source_position(pos, stmt_pos) \
-  set_position_to((pos), (stmt_pos), SP_COL_UNKNOWN)
+{ set_position_to((pos), (stmt_pos), SP_COL_UNKNOWN); }
 #define clear_stmt_source_position(stmt_pos) ((stmt_pos) = 0)
 #endif /* FULL_SOURCE_POS_IN_IL_STATEMENT */
 
