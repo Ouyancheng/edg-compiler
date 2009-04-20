@@ -8913,7 +8913,8 @@ qualifications, an error type is returned *is_error is set to TRUE if is_error
 is non-NULL, and an error is issued if qual_pos is non-NULL.
 Otherwise, if qualifiers (i.e., cv1) is not TQ_NONE and qual_pos is non-NULL,
 a warning is issued (because cv1 is dropped from the result).
-All diagnostics are issued at the given source position.
+All diagnostics are issued at the given source position.  If is_error is NULL,
+qual_pos must be non-NULL.
 */
 {
   a_type_ptr            result;
@@ -8922,12 +8923,13 @@ All diagnostics are issued at the given source position.
   a_type_qualifier_set  base_qualifiers = get_type_qualifiers(under_ref);
 #endif /* NEAR_AND_FAR_ALLOWED */
 
+  check_assertion(qual_pos != NULL || is_error != NULL);
 #if NEAR_AND_FAR_ALLOWED
   if (((qualifiers | base_qualifiers) & (TQ_NEAR | TQ_FAR)) ==
                                                          (TQ_NEAR | TQ_FAR)) {
     /* Conflicting "near" and "far" qualification; this is an error. */
     if (is_error == NULL) {
-      error(ec_mem_attrib_incompatible);
+      pos_error(ec_mem_attrib_incompatible, qual_pos);
     } else {
       *is_error = TRUE;
     }  /* if */
@@ -8943,7 +8945,7 @@ All diagnostics are issued at the given source position.
           (is_nonspecialized_instantiation_context() &&
            !scope_stack[depth_scope_stack].in_prototype_instantiation)) {
         /* A real template instantiation: Such situations are often
-           unavoidable in generic code, and therefore should be warned
+           unavoidable in generic code, and therefore should not be warned
            about. */
       } else if (qual_pos == NULL) {
         /* There is no position for the qualifiers.  This happens during
