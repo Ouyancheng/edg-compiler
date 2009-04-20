@@ -612,7 +612,6 @@ shows, the default definition can be specified inside or outside the enclosing
 class definition, but only if it appears inside the class can that class be a
 POD type (if all other constraints for POD types are fulfilled).
 
-
   struct S { S(S const&) = default; };
   struct T { T(T const&); };
   T::T(T const&) = default;
