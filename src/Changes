@@ -1,5 +1,22 @@
 Version 4.1
 
+4/19/09  [EDGcpfe/7275]
+Microsoft compatibility: multiple #else directives
+
+Early versions of the Microsoft preprocessor accepted extra #else
+directives without complaint, but more recent versions correctly diagnose
+the error.  The front end previously emulated the earlier behavior without
+regard for microsoft_version, but it has now been changed to issue a
+discretionary error for microsoft_version >= 1200.  (The error has been
+made discretionary in non-Microsoft modes, as well.)  For example:
+
+  #if 0
+  #else
+  #else    // Previously a warning in Microsoft mode, now an error for
+           // microsoft_version >= 1200
+  #endif
+
+
 4/19/09  [EDGcpfe/8537]
 GNU compatibility, C++-generating back end: init_priority attribute
 
