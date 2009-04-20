@@ -6380,6 +6380,12 @@ points to the template parameter list.
           if (type->variant.pointer.is_reference !=
                          templ_type->variant.pointer.is_reference) {
             /* Not a match. */
+          } else if (rvalue_references_enabled &&
+                     type->variant.pointer.is_reference &&
+                     is_lvalue_reference_type(type) !=
+                                        is_lvalue_reference_type(templ_type)) {
+            /* One is an rvalue-reference and the other is an lvalue-reference.
+               Not a match. */
           } else {
             tp = type->variant.pointer.type;
             ttp = templ_type->variant.pointer.type;
@@ -6434,14 +6440,21 @@ points to the template parameter list.
               tp = ptp->type;
               ttp = tptp->type;
               if (rvalue_references_enabled &&
-                  (flags & MTT_ALLOW_SPECIAL_RVALUE_REF_DEDUCTION) != 0) {
-                if (is_rvalue_reference_type(ttp) &&
+                  (flags & MTT_ALLOW_SPECIAL_RVALUE_REF_DEDUCTION) != 0 &&
+                   is_rvalue_reference_type(ttp)) {
+                a_type_ptr	underlying_tp;
+                underlying_tp = type_pointed_to(ttp);
+                if (underlying_tp->kind == (a_type_kind)tk_template_param &&
+                    is_template_param_from_list(
+                          &underlying_tp->variant.template_param.extra_info->
+                                              coordinates, templ_param_list) &&
                     is_lvalue_reference_type(tp)) {
                   /* If the template type is something like "T&&" and the
                      actual type is "X&", drop the "&&" from the template type
                      so that the deduced type for T will be "X&".  This will
                      cause the substituted "T&&" to end up as an lvalue
-                     reference type. */
+                     reference type.  Note that the template type must be
+                     exactly "T&&", not something like "T*&&". */
                   ttp = type_pointed_to(ttp);
                 }  /* if */
               }  /* if */
