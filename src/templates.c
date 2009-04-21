@@ -3840,12 +3840,18 @@ supplement already associated with ft_symbol.
       /* Copy the information that determines whether this function is inline
          from the prototype template.  This cannot be determined accurately
          for the subordinate template because the body will have already been
-         removed. */
+         removed.  Similarly, copy some other attributes (storage class, etc.)
+         from the prototype template. */
       tssp->variant.function.func_info.is_inline =
                                orig_tssp->variant.function.func_info.is_inline;
       set_inline_flag(rp, (a_boolean)orig_rp->is_inline);
       rp->storage_class = orig_rp->storage_class;
       rp->source_corresp.name_linkage = orig_rp->source_corresp.name_linkage;
+      tssp->variant.function.func_info.is_deleted =
+                              orig_tssp->variant.function.func_info.is_deleted;
+      rp->is_deleted = orig_rp->is_deleted;
+      /* A member template cannot be "defaulted". */
+      check_assertion(!orig_rp->is_defaulted);
     }
   }  /* if */
 error_exit:
