@@ -1840,6 +1840,7 @@ ec_deleted_default_constructor;;"the default constructor of %t cannot be referen
 ec_rvalue_reference_catch_type;;"an rvalue reference is not allowed as a catch type"
 ec_default_args_incompatible;;"default arguments of %n is incompatible with a declaration in another translation unit"
 ec_default_arg_differs_in_other_trans_unit;;"default arguments of %n were different during compilation of %sq"
+ec_deleted_function_cannot_be_specialized;;"%nd cannot be specialized because it is deleted"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

@@ -16684,6 +16684,11 @@ that follows.
           pos_sy_error(ec_entity_cannot_be_specialized,
                        &locator.source_position, sym);
           sym = NULL;
+        } else if (sym->variant.routine.ptr->is_deleted) {
+          /* A deleted function cannot be specialized. */
+          pos_sy_error(ec_deleted_function_cannot_be_specialized,
+                       &locator.source_position, sym);
+          sym = NULL;
         } else {
           /* Okay. */
         }  /* if */
