@@ -6452,8 +6452,7 @@ corresponding instance, or NULL if no corresponding instance is found.
       templ_arg_list = copy_template_arg_list(ctsp->template_arg_list);
       result_sym = find_template_class(template_sym, &templ_arg_list,
                                        /*any_prototype_allowed=*/FALSE,
-                                       (a_symbol_ptr)NULL,
-                                       /*instantiate_nonreal=*/FALSE);
+                                       (a_symbol_ptr)NULL);
     }  /* if */
   }  /* if */
   return result_sym;

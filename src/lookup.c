@@ -3930,13 +3930,8 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
            prototype instantiation (e.g., a local class defined in the
            prototype instantiation of a function template). */
         is_prototype_instantiation_lookup = TRUE;
-      } else if (!class_type->variant.class_struct_union.
-                                            is_ms_instantiated_nonreal_class ||
-                 (options & IDL_MEMBER_OF_UNKNOWN_BASE) != 0) {
-        /* Another kind of nonreal class.  The proxy/nonreal lookup is not
-           done for Microsoft instantiated nonreal classes, but an additional
-           lookup may be done for these classes below if the initial lookup
-           fails. */
+      } else {
+        /* Another kind of nonreal class. */
         is_proxy_or_nonreal_class_lookup = TRUE;
       }  /* if */
     }  /* if */
@@ -4178,15 +4173,6 @@ bypass_inactive_search:
       }  /* if */
     }  /* if */
 end_lookup:
-    if (sym == NULL && microsoft_mode &&
-        (options & IDL_USING_DECLARATION) != 0 &&
-        class_type->variant.class_struct_union.
-                                            is_ms_instantiated_nonreal_class) {
-      /* The initial lookup failed and this is a Microsoft instantiated nonreal
-         class.  Attempt the lookup again as a normal nonreal class. */
-      sym = class_qualified_id_lookup(locator, class_type,
-                                      options | IDL_MEMBER_OF_UNKNOWN_BASE);
-    }  /* if */
     if (sym != NULL) {
       /* Unless the prototype symbol was explicitly requested, check for an
          associated nonreal type symbol. */

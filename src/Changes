@@ -1,22 +1,5 @@
 Version 4.1
 
-4/20/09  [EDGcpfe/9701]
-Microsoft compatibility: lookup in dependent base classes
-
-The Microsoft compiler, in some cases, instantiates dependent base classes
-and does name lookup in them.  In cases like the one below, this allows them
-to find "A" in the base class instead of finding the class template in
-the global scope.  We now emulate this behavior in Microsoft mode.
-
-  template <class T> struct A {};
-  template <class T, class U> struct B {
-    struct A {};
-  };
-  template <class T, class U> struct C : public B<T, U> {
-    A f();  // formerly, found ::A, now finds B<T, U>::A
-  };
-
-
 4/19/09  [EDGcpfe/7275]
 Microsoft compatibility: multiple #else directives
 

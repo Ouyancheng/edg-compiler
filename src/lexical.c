@@ -12847,12 +12847,8 @@ a routine to lookup the appropriate instance (or generate one if needed).
     }
     prototype_allowed = ((options & GID_USE_PROTOTYPE_NOT_NONREAL) != 0) ||
                         is_templ_member_class_sym;
-    /* Find or create the template class for these arguments.  In Microsoft
-       mode certain nonreal base classes are actually instantiated.  This
-       is done if GID_IS_BASE_CLASS is set. */
     new_sym = find_template_class(template_sym, &arg_list, prototype_allowed,
-                                  current_instantiation_sym,
-                                  (options & GID_IS_BASE_CLASS) != 0);
+                                  current_instantiation_sym);
     if (gpp_mode && prototype_allowed &&
         (!is_templ_member_class_sym || !is_outermost_tmc) &&
         ((options & (GID_IS_TEMPLATE_PRESCAN |
@@ -15582,8 +15578,7 @@ scanned is, in fact, an identifier).
         arg_list = locator_for_curr_id.template_arg_list;
         symbol = find_template_class(symbol, &arg_list,
                                      /*prototype_allowed=*/FALSE,
-                                     (a_symbol_ptr)NULL,
-                                     /*instantiate_nonreal=*/FALSE);
+                                     (a_symbol_ptr)NULL);
         locator_for_curr_id.is_unknown_template_reference = FALSE;
       }  /* if */
     } else {

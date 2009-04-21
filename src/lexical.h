@@ -554,8 +554,6 @@ typedef int an_identifier_options_set;
 #define GID_IS_FRIEND_DECL 0x100000
 			/* TRUE when scanning the declarator of a friend
 			   function declaration. */
-#define GID_IS_BASE_CLASS 0x200000
-			/* TRUE when scanning a base class specifier. */
 #define GID_ERROR_FLAGS (GID_DISALLOW_QUALIFIED_NAME |		\
 			 GID_DISALLOW_GLOBAL_QUALIFIER |	\
 			 GID_DISALLOW_OPERATOR_NAME)
