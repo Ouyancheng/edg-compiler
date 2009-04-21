@@ -1621,14 +1621,14 @@ a_routine_list_entry nodes.
      (type)->variant.typeref.is_placeholder_for_nested_class_def))
 
 #if DO_IL_LOWERING
-#define is_compiler_generated_class_type(tp)                           \
+#define class_type_is_compiler_generated(tp)                           \
   (class_type_supp(tp)->compiler_generated)
 #else /* !DO_IL_LOWERING */
-#define is_compiler_generated_class_type(tp) FALSE
+#define class_type_is_compiler_generated(tp) FALSE
 #endif /* DO_IL_LOWERING */
 
 /*
-Return TRUE is this class is an instance of a template (the template_arg_list
+Return TRUE if this class is an instance of a template (the template_arg_list
 check excludes nontemplate members of template instances) that is not a
 prototype instantiation.
 */
@@ -1643,12 +1643,14 @@ unit to another.
 */
 #define is_generated_class_type(tp)                                    \
   (is_immediate_class_type(tp) &&                                      \
-   (is_compiler_generated_class_type(tp) ||                            \
+   (class_type_is_compiler_generated(tp) ||                            \
     class_type_supp(tp)->is_lambda_closure_class ||                    \
     class_type_is_nonprototype_template_instance(tp))) 
 
-/* Return TRUE for "generated" types: These can differ from one translation
-unit to another. */
+/*
+Return TRUE for "generated" types: These can differ from one translation
+unit to another.
+*/
 #define is_generated_type(tp)                                          \
   (is_placeholder_type(tp) || is_generated_class_type(tp))
 
@@ -2976,7 +2978,6 @@ declaration modifiers.
 }  /* incompatible_class_decl_modifiers */
 
 #endif /* DECL_MODIFIERS_IN_USE */
-
 
 static void verify_corresp_for_default_arg_entities(a_routine_ptr  rp1,
                                                     a_routine_ptr  rp2)
@@ -4482,9 +4483,9 @@ Otherwise, return FALSE.
        correspond. */
   } else if (type_is_lambda_closure(type_1) ||
              type_is_lambda_closure(type_2)) {
-    /* Nonmember closure types  never correspond to other closure types.
+    /* Nonmember closure types never correspond to other closure types.
        (Member closure types are already handled above along with other
-       member types. */
+       member types.) */
   } else if (total_errors != 0) {
     /* If correspondence errors already occurred, an attempt to compare
        the structure of type_1 and type_2 may end up being meaningless. */
