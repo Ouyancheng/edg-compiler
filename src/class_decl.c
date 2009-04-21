@@ -12140,7 +12140,7 @@ by class_state.  If is_deleted is TRUE, make that constructor "deleted".
 }  /* generate_default_constructor */
 
 
-static void check_default_ctor_declaration(a_class_def_state_ptr  class_state)
+static void add_default_ctor_if_needed(a_class_def_state_ptr  class_state)
 /*
 If appropriate, add an implicitly declared default constructor to the class
 definition described by class_state.
@@ -12162,7 +12162,7 @@ definition described by class_state.
       generate_default_constructor(class_state, /*is_deleted=*/FALSE);
     }  /* if */
   }  /* if */
-}  /* check_default_ctor_declaration */
+}  /* add_default_ctor_if_needed */
 
 
 static void generate_assignment_operator(a_class_def_state_ptr  class_state,
@@ -12264,7 +12264,7 @@ The routine body is not generated until it is known to be needed.
     /* A POD cannot have a user-defined copy assignment operator. */
     class_state->POD_ruled_out = TRUE;
   }  /* if */
-  check_default_ctor_declaration(class_state);
+  add_default_ctor_if_needed(class_state);
   const_okay = default_assignment_of_const_object_okay(class_type);
   asgn_qualifiers = const_okay ? TQ_CONST : TQ_NONE;
   default_copy_constructor_check(class_type, &const_okay);
