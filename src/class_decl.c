@@ -12142,7 +12142,7 @@ by class_state.  If is_deleted is TRUE, make that constructor "deleted".
 
 static void check_default_ctor_declaration(a_class_def_state_ptr  class_state)
 /*
-If appropriate, add an implicitly default constructor declaration to the class
+If appropriate, add an implicitly declared default constructor to the class
 definition described by class_state.
 */
 {
@@ -12171,9 +12171,9 @@ static void generate_assignment_operator(a_class_def_state_ptr  class_state,
 /*
 Add a declaration for a copy assignment operator to the class definition
 described by class_state.  If is_deleted is TRUE, make that operator "deleted".
-The parameter of the assignment operator is of type X& and qualifiers describes
-the qualifiers in X.  (In some modes, a second operator is declared to handle
-"far" objects.)
+The parameter of the assignment operator is of type X& (where X is the possibly
+qualified parent class type) and qualifiers describes the qualifiers in X.
+(In some modes, a second operator is declared to handle "far" objects.)
 */
 {
   a_type_ptr          class_type = class_state->class_type;
@@ -12269,10 +12269,7 @@ The routine body is not generated until it is known to be needed.
   asgn_qualifiers = const_okay ? TQ_CONST : TQ_NONE;
   default_copy_constructor_check(class_type, &const_okay);
   ctor_qualifiers = const_okay ? TQ_CONST : TQ_NONE;
-  /* Lambdas should have a deleted assignment operator.  Until we implement
-     deleted functions, don't generate the assignment operator. */
   declare_copy_asgn_op = !user_declared_copy_assignment_op &&
-                         !ctsp->is_lambda_closure_class &&
                      (!any_cfront_mode() || cssp->assignment_operator == NULL);
   declare_copy_ctor = (ctsp->is_lambda_closure_class ||
                        (cssp->constructor != NULL &&
@@ -13966,7 +13963,7 @@ current declarator was preceded by another one sharing the same specifiers
   } else if (curr_token == tok_assign) {
     /* This could be "= default" or "= delete" (which are treated as
        definitions), or a pure-virtual specifier (which can only be a
-       definition in Microsoft mode. */
+       definition in Microsoft mode). */
     a_token_cache  cache;
     clear_token_cache(&cache, /*reusable=*/FALSE);
     /* Put the current token (tok_assign) in the cache. */
@@ -13981,6 +13978,8 @@ current declarator was preceded by another one sharing the same specifiers
       func_info->is_definition = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (microsoft_mode && curr_token == tok_int_constant) {
+      /* In Microsoft compatibility mode the pure specifier is permitted
+         on a definition; it's usually a syntax error. */
       cache_curr_token(&cache);
       /* Advance past it and see if the next token is a left brace. */
       if (get_token() == tok_lbrace) func_info->is_definition = TRUE;

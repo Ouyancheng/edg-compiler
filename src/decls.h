@@ -372,7 +372,7 @@ typedef struct a_decl_parse_state {
 			   declaration that includes an initializer. */
   a_bit_field	first_decl:1;
 			/* TRUE if this is the first declaration of a variable
-			   of function. */
+			   or function. */
   a_decl_modifiers_block
 		decl_modifiers;
 			/* Extended declaration information (most of it

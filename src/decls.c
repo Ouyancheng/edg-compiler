@@ -13010,12 +13010,7 @@ proceed after the call.
 
   /* Check for "= default" or "= delete". */
   if (curr_token == tok_assign) {
-    a_source_position  saved_error_position;
-    a_token_kind       next_tok;
-    /* Work around a change in error_position due to the look-ahead. */
-    saved_error_position = error_position;
-    next_tok = next_token();
-    error_position = saved_error_position;
+    a_token_kind       next_tok = next_token();
     if (deleted_functions_enabled && next_tok == tok_delete) {
       func_info->is_deleted = TRUE;
     } else if (defaulted_special_members_enabled && next_tok == tok_default) {
@@ -13198,7 +13193,7 @@ proceed after the call.
         end_of_decl_action = eoda_done;
         goto done;
       }  /* if */
-      /* Usually, aright brace is expected, but some cases end with a
+      /* Usually, a right brace is expected, but some cases end with a
          semicolon: C++0x deleted and defaulted functions, as well as the
          Microsoft/GNU extension that allows a nondefining out-of-class member
          declaration. */

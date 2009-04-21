@@ -11338,6 +11338,12 @@ in the location pointed to by seq.
     /* If seq is not NULL, return the sequence number of the next token. */
     if (seq != NULL) *seq = ctp->token_sequence_number;
   } else {
+    /* The call to get_token below can change the error_position.  Since this
+       routine is meant to just "peek ahead" (without disturbing the current
+       state of the token stream) save the current error position and restore
+       it after the next token has been fetched. */
+    a_source_position  saved_error_position;
+    saved_error_position = error_position;
     /* Put the current token into a token cache so it can be rescanned. */
     clear_token_cache(&cache, /*reusable=*/FALSE);
     cache_curr_token(&cache);
@@ -11349,6 +11355,7 @@ in the location pointed to by seq.
        and refetch the original token.  Note that the "next" token remains on
        the rescan list. */
     rescan_cached_tokens(&cache);
+    error_position = saved_error_position;
   }  /* if */
 done:
   db_exit();
