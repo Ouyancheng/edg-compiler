@@ -1203,11 +1203,11 @@ the fields implied by the lambda's capture list).
     an_il_entity_list_entry_ptr  *ep;
     switch_to_file_scope_region(&region_to_switch_back_to);
     ep = &assoc_param->entities_defined_in_default_arg;
-    switch_back_to_original_region(region_to_switch_back_to);
     while (*ep != NULL) ep = &(*ep)->next;
     *ep = alloc_il_entity_list_entry();
     (*ep)->entity.kind = (a_byte_il_entry_kind)iek_type;
     (*ep)->entity.ptr = (char*)type;
+    switch_back_to_original_region(region_to_switch_back_to);
   }  /* if */
   if (!is_prototype_instantiation || prototype_instantiations_in_il) {
     add_lambda_closure_to_types_list(type, decl_level);
