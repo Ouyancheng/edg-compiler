@@ -1199,8 +1199,11 @@ the fields implied by the lambda's capture list).
      type among the entities defined by the default argument. */
   assoc_param = get_param_for_current_default_arg();
   if (assoc_param != NULL) {
-    an_il_entity_list_entry_ptr
-                          *ep = &assoc_param->entities_defined_in_default_arg;
+    a_memory_region_number        region_to_switch_back_to;
+    an_il_entity_list_entry_ptr  *ep;
+    switch_to_file_scope_region(&region_to_switch_back_to);
+    ep = &assoc_param->entities_defined_in_default_arg;
+    switch_back_to_original_region(region_to_switch_back_to);
     while (*ep != NULL) ep = &(*ep)->next;
     *ep = alloc_il_entity_list_entry();
     (*ep)->entity.kind = (a_byte_il_entry_kind)iek_type;
