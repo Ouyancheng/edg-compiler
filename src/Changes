@@ -1,5 +1,24 @@
 Version 4.1
 
+4/22/09  [EDGcpfe/9729]
+Spurious ambiguity on increment, decrement, or compound assignment with
+  operand of enumeration type
+
+Overload resolution gave a spurious ambiguity error when considering
+an overloaded operator for an increment, decrement, or compound assignment
+(e.g., +=) when the first/only operand has an enumerated type and an
+operator function is available that matches the use less than perfectly.
+The problem was that a builtin operator was considered to compete with the
+user-written operator function.  In fact, there are no builtin
+operators of those kinds that operate on enums.  Now fixed.
+
+  enum E { e1 } e;
+  int operator+=(const E&, unsigned int);
+  int main() {
+    e += 1;
+  }
+
+
 4/19/09  [EDGcpfe/7275]
 Microsoft compatibility: multiple #else directives
 

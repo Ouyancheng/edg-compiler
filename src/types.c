@@ -581,6 +581,23 @@ type.  (An enum type *is* an arithmetic type in C but not in C++.)
 }  /* is_arithmetic_or_enum_type */
 
 
+a_boolean is_arithmetic_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is an arithmetic type.
+*/
+{
+  a_boolean is_arith = FALSE;
+
+  tp = skip_typerefs(tp);
+  if (is_arithmetic_or_enum(tp)) {
+    is_arith =  TRUE;
+    /* An enum type is arithmetic in C, but not in C++. */
+    if (!C_mode() && is_enum(tp)) is_arith = FALSE;
+  }  /* if */
+  return is_arith;
+}  /* is_arithmetic_type */
+
+
 a_boolean is_pointer_type(a_type_ptr tp)
 /*
 Return TRUE if the given type is a pointer type (3.1.2.5).

@@ -90,6 +90,7 @@ extern a_boolean vector_type_is_template_dependent(a_type_ptr  tp);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
 extern a_boolean is_arithmetic_or_enum_type(a_type_ptr tp);
+extern a_boolean is_arithmetic_type(a_type_ptr tp);
 extern a_boolean is_pointer_type(a_type_ptr tp);
 extern a_boolean is_reference_type(a_type_ptr tp);
 extern a_boolean is_lvalue_reference_type(a_type_ptr tp);

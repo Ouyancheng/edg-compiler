@@ -1214,6 +1214,11 @@ for overload resolution.
 			/* Pointer to member. */
 #define BOOL_TYPE_CODE 'B'
 			/* bool. */
+#define BOOL_EQUIVALENT_TYPE_CODE 'b'
+			/* Used instead of BOOL_TYPE_CODE when bool_is_keyword
+			   is FALSE.  Specifies types that can be used in a
+			   boolean controlling expression, i.e., arithmetic,
+			   enum, pointer, pointer to member. */
 #define CLASS_TYPE_CODE 'C'
 			/* Class, struct, or union.  Note that this is used
 			   for the "?" operator, and the operands are dealt
@@ -1255,6 +1260,9 @@ Return a printable string describing a type code.
       break;
     case BOOL_TYPE_CODE:
       str = "bool";
+      break;
+    case BOOL_EQUIVALENT_TYPE_CODE:
+      str = "bool-equivalent";
       break;
     case CLASS_TYPE_CODE:
       str = "class";
@@ -9279,8 +9287,9 @@ as its first operand.
           /* "!" takes a bool operand. */
           operand_type_pattern = "B";
         } else {
-          /* "!" takes an arithmetic, pointer, or pointer-to-member operand. */
-          operand_type_pattern = "a;P;M";
+          /* "!" takes an operand that can be tested in a boolean controlling
+             expression. */
+          operand_type_pattern = "b";
         }  /* if */
         break;
       case onk_compl:
@@ -9383,9 +9392,9 @@ as its first operand.
           /* "&&" and "||" take bool operands. */
           operand_type_pattern = "BB";
         } else {
-          /* "&&" and "||" take arithmetic, pointer, or pointer-to-member
-             operands, but they can be mixed. */
-          operand_type_pattern = "aa;aP;aM;Pa;PP;PM;Ma;MP;MM";
+          /* "&&" and "||" take operands that can be tested in a boolean
+             controlling expression. */
+          operand_type_pattern = "bb";
         }  /* if */
         break;
       case onk_times_assign:
@@ -9467,6 +9476,8 @@ it fits that type description or can be converted to it.
       matches = is_enum_type(type);
       break;
     case ARITH_TYPE_CODE:
+      matches = is_arithmetic_type(type);
+      break;
     case PROMOTED_ARITH_TYPE_CODE:
       matches = is_arithmetic_or_enum_type(type);
       break;
@@ -9484,7 +9495,9 @@ it fits that type description or can be converted to it.
       matches = is_ptr_to_member_type(type);
       break;
     case BOOL_TYPE_CODE:
-      /* Arithmetic includes bool. */
+    case BOOL_EQUIVALENT_TYPE_CODE:
+      /* Note that arithmetic includes bool, so is_bool_type doesn't need to
+         be tested here. */
       matches = is_arithmetic_or_enum_type(type) ||
                 is_pointer_type(type) ||
                 is_ptr_to_member_type(type);
@@ -9536,6 +9549,10 @@ type_code.
       break;
     case BOOL_TYPE_CODE:
       builtin_types_allowed = BTK_BOOL;
+      break;
+    case BOOL_EQUIVALENT_TYPE_CODE:
+      builtin_types_allowed = BTK_INTEGRAL | BTK_FLOATING | BTK_ENUM |
+                              BTK_POINTER | BTK_PTR_TO_MEMBER;
       break;
     case CLASS_TYPE_CODE:
       /* Class types are not built-in types. */

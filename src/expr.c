@@ -4248,6 +4248,7 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
     if (C_dialect == C_dialect_cplusplus && !property_ref_case &&
         is_overloadable_type_operand(operand)) {
       a_boolean allow_one_arg = (allow_anachronisms || microsoft_mode);
+      a_boolean has_predef_meaning = is_enum_type(operand->type);
       /* Look for C++ operator overloading cases. */
       /* Note that postfix ++/-- use a two-argument function to distinguish
          them from the prefix ++/--, which use a one-argument function.
@@ -4259,7 +4260,9 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
                                      /*unary_operator=*/FALSE,  /* sic! */
                                      /*must_be_member_function=*/FALSE,
                                      /*try_conversions=*/!allow_one_arg,
-                                     /*has_predef_meaning=*/allow_one_arg,
+                                     /*has_predef_meaning=*/
+                                                          has_predef_meaning ||
+                                                          allow_one_arg,
                                      operand, &zero_operand,
                                      &operator_position,
                                      operator_tok_seq_number,
@@ -4295,7 +4298,7 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
                                          /*unary_operator=*/FALSE, /* sic! */
                                          /*must_be_member_function=*/FALSE,
                                          /*try_conversions=*/TRUE,
-                                         /*has_predef_meaning=*/FALSE,
+                                         has_predef_meaning,
                                          operand, &zero_operand,
                                          &operator_position,
                                          operator_tok_seq_number,
@@ -4520,7 +4523,8 @@ Scan the prefix increment ("++") and decrement ("--") operators.  See section
                                      /*unary_operator=*/TRUE,
                                      /*must_be_member_function=*/FALSE,
                                      /*try_conversions=*/TRUE,
-                                     /*has_predef_meaning=*/FALSE,
+                                     /*has_predef_meaning=*/
+                                                    is_enum_type(operand.type),
                                      &operand, (an_operand *)NULL,
                                      &start_position,
                                      operator_tok_seq_number,
@@ -15854,7 +15858,8 @@ See section 3.3.16 of the standard.
                                      /*unary_operator=*/FALSE,
                                      /*must_be_member_function=*/FALSE,
                                      /*try_conversions=*/TRUE,
-                                     /*has_predef_meaning=*/FALSE,
+                                     /*has_predef_meaning=*/
+                                                 is_enum_type(operand_1->type),
                                      operand_1, &operand_2,
                                      &operator_position,
                                      operator_tok_seq_number,
