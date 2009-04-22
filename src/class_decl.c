@@ -26,6 +26,7 @@ class_decl.c -- Scanning of class declarations.
 
 /* Additional header files. */
 #include "expr.h"
+#include "exprutil.h"
 #include "layout.h"
 #if MAINTAIN_NEEDED_FLAGS
 #include "il_walk.h"
@@ -1170,7 +1171,6 @@ the fields implied by the lambda's capture list).
   a_symbol_ptr                   sym;
   a_class_symbol_supplement_ptr  cssp;
   a_boolean                      is_prototype_instantiation = FALSE;
-  a_param_type_ptr               assoc_param;
 
   /* Create an unnamed symbol for the lambda class. */
   sym = make_unnamed_tag_symbol((a_symbol_kind)sk_class_or_struct_tag,
@@ -1190,20 +1190,11 @@ the fields implied by the lambda's capture list).
   }  /* if */
   update_membership_of_class(sym, /*def_or_vacuous_decl=*/TRUE, decl_level,
                              decl_position);
-  /* If the lambda appears directly in a default argument, record the closure
-     type among the entities defined by the default argument. */
-  assoc_param = get_param_for_current_default_arg();
-  if (assoc_param != NULL) {
-    a_memory_region_number        region_to_switch_back_to;
-    an_il_entity_list_entry_ptr  *ep;
-    switch_to_file_scope_region(&region_to_switch_back_to);
-    ep = &assoc_param->entities_defined_in_default_arg;
-    while (*ep != NULL) ep = &(*ep)->next;
-    *ep = alloc_il_entity_list_entry();
-    (*ep)->entity.kind = (a_byte_il_entry_kind)iek_type;
-    (*ep)->entity.ptr = (char*)type;
-    switch_back_to_original_region(region_to_switch_back_to);
-  }  /* if */
+  /* In some contexts the closure type is recorded with the entity associated
+     with the expression containing the lambda (e.g., a closure type from a
+     default argument is recorded in the associated a_param_type entry). */
+  record_entity_defined_in_expression((char*)type, iek_type,
+                                      /*in_file_scope=*/TRUE);
   if (!is_prototype_instantiation || prototype_instantiations_in_il) {
     add_lambda_closure_to_types_list(type, decl_level);
   } else {
@@ -16546,10 +16537,10 @@ implied call operator in *func_info and *decl_info (both are initialized here).
   dps->type = dps->specifiers_type = void_type();
   dps->start_pos = dps->specifiers_pos = pos_curr_token;
   dps->in_class_scope = TRUE;
+  dps->declarator_start_pos = dps->declarator_pos = pos_curr_token;
   if (curr_token == tok_lparen) {
     /* A parameter list presumably follows. */
     add_stop_token(tok_lbrace);
-    dps->declarator_start_pos = dps->declarator_pos = pos_curr_token;
     scan_lambda_declarator(lambda, dps, func_info, decl_pos_block);
     lambda->has_parameter_decl = TRUE;
     remove_stop_token(tok_lbrace);

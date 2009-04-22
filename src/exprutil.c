@@ -753,7 +753,8 @@ as in a decltype.
      in an elision initializer are not subject to the optimization. */
   new_entry->is_default_arg_expression = old_entry->is_default_arg_expression;
   new_entry->current_lambda_in_header = old_entry->current_lambda_in_header;
-  new_entry->assoc_param = old_entry->assoc_param;
+  new_entry->p_end_of_entities_defined_in_expression =
+                           old_entry->p_end_of_entities_defined_in_expression;
   if (direct) {
     new_entry->evaluated = old_entry->evaluated;
     new_entry->potentially_evaluated = old_entry->potentially_evaluated;
@@ -815,7 +816,7 @@ is pushed regardless of any of the other factors.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   new_entry->objectless_nonstatic_data_ref_pos = null_source_position;
   new_entry->current_lambda_in_header = NULL;
-  new_entry->assoc_param = NULL;
+  new_entry->p_end_of_entities_defined_in_expression = NULL;
   if (expr_stack != NULL) {
     /* There is a previous stack entry; set any of the flags that are affected
        by the enclosing stack entry. */
@@ -925,9 +926,43 @@ major expression.
       !expr_stack->unevaluated_expr_will_be_kept_in_il) {
     undo_side_effects_for_discarded_unevaluated_expression();
   }  /* if */
+  if (expr_stack->prev != NULL) {
+    /* If entities were defined in the subexpression associated with the entry
+       to be popped, make sure that is reflected in the entry for the
+       enclosing expression. */
+    expr_stack->prev->p_end_of_entities_defined_in_expression =
+                          expr_stack->p_end_of_entities_defined_in_expression;
+  }  /* if */
   /* Pop the stack. */
   expr_stack = expr_stack->prev;
 }  /* pop_expr_stack */
+
+
+void record_entity_defined_in_expression(char              *entity,
+                                         an_il_entry_kind  kind,
+                                         a_boolean         in_file_scope)
+/*
+If there is an active expression stack and it currently is set up to record
+entities defined in expressions, record the given entity in the list managed
+through the expression stack.  If in_file_scope is TRUE, the list entry is
+allocated in file scope memory; otherwise, the current memory region is used.
+*/
+{
+  if (expr_stack != NULL &&
+      expr_stack->p_end_of_entities_defined_in_expression != NULL) {
+    a_memory_region_number        region_to_switch_back_to;
+    an_il_entity_list_entry_ptr  ep;
+    if (in_file_scope) switch_to_file_scope_region(&region_to_switch_back_to);
+    ep = alloc_il_entity_list_entry();
+    ep->entity.kind = (a_byte_il_entry_kind)kind;
+    ep->entity.ptr = (char*)entity;
+    *expr_stack->p_end_of_entities_defined_in_expression = ep;
+    expr_stack->p_end_of_entities_defined_in_expression = &ep->next;
+    if (in_file_scope) {
+      switch_back_to_original_region(region_to_switch_back_to);
+    }  /* if */
+  }  /* if */
+}  /* record_entity_defined_in_expression */
 
 
 void rule_out_expr_kinds(a_ruled_out_expr_kind_set ruled_out_set,

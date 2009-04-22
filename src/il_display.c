@@ -2225,6 +2225,10 @@ Display the indicated variable.
     disp_boolean("declared_using_type_without_linkage", TRUE);
   }  /* if */
   disp_initializer(ptr->init_kind, &ptr->initializer);
+  if (ptr->entities_defined_in_initializer != NULL) {
+    disp_entity_list("entities_defined_in_initializer",
+                     ptr->entities_defined_in_initializer);
+  }  /* if */
   if (ptr->assoc_template != NULL) {
     disp_ptr("assoc_template", (char*)ptr->assoc_template, iek_template);
   }  /* if */

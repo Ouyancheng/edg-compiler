@@ -231,6 +231,9 @@ extern void set_correspondence_of_unvisited_entries(a_scope_ptr  scope);
 extern void record_instantiation(a_symbol_ptr                      inst,
                                  a_template_symbol_supplement_ptr  tssp);
 
+extern void record_default_arg_instantiation(a_routine_ptr     rp1,
+                                             a_param_type_ptr  ptp1);
+
 extern void establish_class_instantiation_corresp(a_type_ptr  type);
 
 extern void establish_function_instantiation_corresp(a_routine_ptr  routine);

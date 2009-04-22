@@ -1053,6 +1053,8 @@ the file scope, do not process it (but record an orphan in the latter case).
         remap_ptr_not_needed(ptr->assoc_param_type, a_param_type_ptr,
                              iek_param_type);
         walk_initializer(ptr->init_kind, ptr->initializer);
+        walk_list(ptr->entities_defined_in_initializer,
+                  an_il_entity_list_entry_ptr, iek_il_entity_list_entry);
         remap_ptr(ptr->assoc_template, a_template_ptr, iek_template);
 #if GNU_EXTENSIONS_ALLOWED
         if (ptr->cleanup_routine != NULL) {

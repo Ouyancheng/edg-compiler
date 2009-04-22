@@ -3508,6 +3508,7 @@ user later during real instantiations.
     rescan_reusable_cache(&daefp->cache.tokens);
     delayed_scan_of_default_arg_expr(daefp->param_type,
                                      /*check_for_errors=*/FALSE);
+    record_default_arg_instantiation(rout_ptr, daefp->param_type);
     /* Pop the reactivated function prototype scope off the stack. */
     pop_scope();
     /* Pop the template instantiation scope. */
@@ -8003,6 +8004,7 @@ instantiated.
     delayed_scan_of_default_arg_expr(daefp->param_type,
                                      /*check_for_errors=*/FALSE);
     num_pending_default_arg_instantiations--;
+    record_default_arg_instantiation(rout_ptr, ptp);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     curr_construct_end_position = saved_curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */

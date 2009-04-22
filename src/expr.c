@@ -20055,22 +20055,6 @@ Return a pointer to the expression.
 }  /* scan_typed_expression */
 
 
-a_param_type_ptr get_param_for_current_default_arg(void)
-/*
-If we are currently in a default argument, return a pointer to the a_param_type
-entry associated with that argument (or NULL, if the default argument
-expression is to be ignored).  Otherwise, return NULL.
-*/
-{
-  a_param_type_ptr  result = NULL;
-
-  if (expr_stack != NULL) {
-    result = expr_stack->assoc_param;
-  }  /* if */
-  return result;
-}  /* get_param_for_current_default_arg */
-
-
 void scan_default_arg_expr(a_param_type_ptr ptp)
 /*
 Scan a default argument expression on a formal parameter declaration, change
@@ -20096,7 +20080,11 @@ in a template instantiation) just do the scan.
                   /*force_object_lifetime=*/TRUE,
                   /*suppress_object_lifetime=*/FALSE);
   expr_stack_entry.is_default_arg_expression = TRUE;
-  expr_stack_entry.assoc_param = ptp;
+  if (ptp != NULL) {
+    /* Record entities defined in the default argument expression. */
+    expr_stack_entry.p_end_of_entities_defined_in_expression =
+                                        &ptp->entities_defined_in_default_arg;
+  }  /* if */
   /* Scan the expression. */
   scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
   if (ptp != NULL) {
@@ -20116,7 +20104,12 @@ in a template instantiation) just do the scan.
     discard_curr_expr_object_lifetime();
   }  /* if */
   node = wrap_up_full_expression(node);
-  if (ptp != NULL) ptp->default_arg_expr = node;
+  if (ptp != NULL) {
+    ptp->default_arg_expr = node;
+    /* Stop the recording of entities defined in the expression (not strictly
+       necessary, but just to be neat). */
+    expr_stack->p_end_of_entities_defined_in_expression = NULL;
+  }  /* if */
   pop_expr_stack();
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   curr_construct_end_position = result.end_position;
@@ -21248,6 +21241,7 @@ scan_aggregate_initializer_expression.
 {
   an_operand          result;
   an_expr_stack_entry expr_stack_entry;
+  a_variable_ptr      var = NULL;
 
   db_enter(3, "scan_initializer_expression");
 
@@ -21260,6 +21254,21 @@ scan_aggregate_initializer_expression.
        C-mode static initialization, and it can result in better code for
        auto initialization, as well. */
     expr_stack->favor_constant_result = TRUE;
+  }  /* if */
+  if (dps != NULL) {
+    check_assertion(dps->sym != NULL);
+    if (dps->sym->kind == (a_symbol_kind)sk_variable) {
+      var = dps->sym->variant.variable.ptr;
+    } else if (dps->sym->kind == (a_symbol_kind)sk_static_data_member) {
+      var = dps->sym->variant.static_data_member.variable;
+    } else {
+      check_assertion(dps->sym->is_error);
+    }  /* if */
+    if (var != NULL) {
+      /* Record entities defined in the initializer expression. */
+      expr_stack_entry.p_end_of_entities_defined_in_expression =
+                                        &var->entities_defined_in_initializer;
+    }  /* if */
   }  /* if */
   /* Scan the expression. */
   if (dps != NULL && dps->prescanned_auto_initializer != NULL) {
@@ -21320,6 +21329,11 @@ scan_aggregate_initializer_expression.
       internal_error("scan_initializer_expression: bad operand kind");
 #endif /* CHECKING */
   }  /* switch */
+  if (var != NULL) {
+    /* Stop the recording of entities defined in the expression (not strictly
+       necessary, but just to be neat). */
+    expr_stack->p_end_of_entities_defined_in_expression = NULL;
+  }  /* if */
   pop_expr_stack();
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   curr_construct_end_position = result.end_position;

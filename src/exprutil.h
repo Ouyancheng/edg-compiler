@@ -699,13 +699,16 @@ typedef struct an_expr_stack_entry {
 		current_lambda_in_header;
 			/* If non-NULL, we're inside the header (not the body)
 			   of the indicated lambda. */
-  a_param_type_ptr
-		assoc_param;
-			/* If non-NULL, is_default_arg_expression is TRUE, and
-			   this points to the associated parameter description.
-			   (This can be NULL even if is_default_arg_expression
-			   is TRUE; e.g., when the default argument is being
-			   parsed, but not recorded.) */
+  
+  an_il_entity_list_entry_ptr
+		*p_end_of_entities_defined_in_expression;
+			/* If non-NULL, entries are recorded to keep track of
+			   entities defined in the expression.  This field
+			   then points to the pointer to update with the next
+			   such entry.  (Currently, only closure types appear
+			   on this list.)  The field is copied to newly pushed
+			   entries, and then copied back when the entry is
+			   popped. */
 } an_expr_stack_entry;
 
 EXTERN an_expr_stack_entry_ptr
@@ -986,6 +989,11 @@ extern void push_expr_stack(an_expression_kind      expression_kind,
 extern void undo_side_effects_for_discarded_unevaluated_expression(void);
 
 extern void pop_expr_stack(void);
+
+extern void record_entity_defined_in_expression(
+                                             char              *entity,
+                                             an_il_entry_kind  kind,
+                                             a_boolean         in_file_scope);
 
 extern void rule_out_expr_kinds(a_ruled_out_expr_kind_set ruled_out_set,
                                 an_operand                *operand);

@@ -1920,6 +1920,7 @@ Clear the fields of the given variable to default values.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   vp->initializer_range           = null_source_range;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  vp->entities_defined_in_initializer = NULL;
   vp->assoc_template              = NULL;
 #if GNU_EXTENSIONS_ALLOWED
   vp->section                     = NULL;

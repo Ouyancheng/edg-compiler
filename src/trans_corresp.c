@@ -2498,6 +2498,84 @@ declaration modifiers.
 
 #endif /* DECL_MODIFIERS_IN_USE */
 
+static void verify_corresp_for_entities_list(
+                              an_il_entity_list_entry_ptr  ep1,
+                              an_il_entity_list_entry_ptr  ep2,
+                              char                         *entity1,
+                              a_source_position_ptr        pos2,
+                              an_error_code                same_src_error,
+                              an_error_code                distinct_src_error)
+/*
+The entities from the first list (ep1) should correspond to those of the
+second list: Verify that it is so, and issue a correspondence error otherwise.
+If the error is in the length of the lists, the diagnostic is issued by
+calling report_corresp_error with the arguments entity1, pos2, same_src_error,
+and distinct_src_error.  (Currently, the lists only contain closure types.)
+*/
+{
+  for (; ep1 != NULL && ep2 != NULL; ep1 = ep1->next, ep2 = ep2->next) {
+    /* Currently we expect only closure types here. */
+    a_type_ptr  tp1;
+    check_assertion(ep1->entity.kind == (a_byte_il_entry_kind)iek_type &&
+                    ep2->entity.kind == (a_byte_il_entry_kind)iek_type);
+    tp1 = (a_type_ptr)ep1->entity.ptr;
+    check_assertion(type_is_lambda_closure(tp1));
+    (void)verify_type_correspondence(tp1);
+  }  /* for */
+  if (ep1 != NULL || ep2 != NULL) {
+    /* The number of closure types recorded for the parameter don't match:
+       Issue an error. */
+    report_corresp_error(entity1, pos2, same_src_error, distinct_src_error);
+  }  /* if */
+}  /* verify_corresp_for_entities_list */
+
+
+static void verify_corresp_for_default_arg_entities(a_routine_ptr  rp1,
+                                                    a_routine_ptr  rp2)
+/*
+Verify that any entities defined in default arguments of the given routines
+do indeed correspond (normally they were made to correspond via a call to
+set_corresp_for_routines).  Issue diagnostics as appropriate.
+*/
+{
+  a_type_ptr  rtp1 = rp1->type, rtp2 = rp2->type;
+
+  if ((!rp1->is_inline || !rp2->is_inline) &&
+      (!rp1->is_template_function || !rp2->is_template_function) &&
+      !rp1->source_corresp.is_class_member) {
+    /* Not a case where default arguments must match. */
+    check_assertion(!rp2->source_corresp.is_class_member);
+  } else if (rtp1->kind == (a_type_kind)tk_routine &&
+             rtp2->kind == (a_type_kind)tk_routine) {
+    a_param_type_ptr  ptp1 = rtp1->variant.routine.extra_info->param_type_list;
+    a_param_type_ptr  ptp2 = rtp2->variant.routine.extra_info->param_type_list;
+    for (; ptp1 != NULL && ptp2 != NULL;
+           ptp1 = ptp1->next, ptp2 = ptp2->next) {
+      if (ptp1->entities_defined_in_default_arg == NULL ||
+          ptp2->entities_defined_in_default_arg == NULL) {
+        /* It is currently not always possible to determine whether a parameter
+           having entities defined in one translation unit but not in the other
+           results in a valid program.  For example:
+             TU#1: struct S { void f(int = []{return 1;}()); }; 
+             TU#2: struct S { void f(int); }; 
+           is invalid (differing class definitions), but
+             TU#1: struct S { void f(int); }; 
+                   void S::f(int = []{return 1;}()) {}
+             TU#2: struct S { void f(int); }; 
+           is valid.  However, it is harmless to permit such invalid cases. */
+      } else {
+        verify_corresp_for_entities_list(
+                               ptp1->entities_defined_in_default_arg,
+                               ptp2->entities_defined_in_default_arg,
+                               (char*)rp1, &rp2->source_corresp.decl_position,
+                               ec_default_arg_differs_in_other_trans_unit,
+                               ec_default_args_incompatible);
+      }  /* if */
+    }  /* for */
+  }  /* if */
+}  /* verify_corresp_for_default_arg_entities */
+
+
 static a_boolean verify_routine_correspondence(a_routine_ptr  routine)
 /*
 Check that the recorded translation unit correspondence for the given routine
@@ -2599,6 +2677,8 @@ is in fact valid.
         routine->defined && corresp_routine->defined) {
       /* Multiple definition. */
       report_multiple_definitions(routine);
+    } else if (match) {
+      verify_corresp_for_default_arg_entities(routine, corresp_routine);
     }  /* if */
   }  /* if */
 done:
@@ -2979,43 +3059,27 @@ declaration modifiers.
 
 #endif /* DECL_MODIFIERS_IN_USE */
 
-static void verify_corresp_for_default_arg_entities(a_routine_ptr  rp1,
-                                                    a_routine_ptr  rp2)
+static void verify_corresp_for_template_static_data_member_entities(
+                                                           a_symbol_ptr  sym1,
+                                                           a_symbol_ptr  sym2)
 /*
-Verify that any entities defined in default arguments of the given routines
-do indeed correspond (normally they were made to correspond via a call to
-set_corresp_for_default_arg_entities).  Issue diagnostics as appropriate.
+Some entities may be defined in initializers of template static data members
+(currently, this is limited to closure types).  For corresponding data members
+represented by sym1 and sym2, verify the correspondence of those entities and
+issue errors if needed.
 */
 {
-  a_type_ptr  rtp1 = rp1->type, rtp2 = rp2->type;
-
-  if (rtp1->kind == (a_type_kind)tk_routine &&
-      rtp2->kind == (a_type_kind)tk_routine) {
-    a_param_type_ptr  ptp1 = rtp1->variant.routine.extra_info->param_type_list;
-    a_param_type_ptr  ptp2 = rtp2->variant.routine.extra_info->param_type_list;
-    for (; ptp1 != NULL && ptp2 != NULL;
-           ptp1 = ptp1->next, ptp2 = ptp2->next) {
-      an_il_entity_list_entry_ptr  ep1 = ptp1->entities_defined_in_default_arg;
-      an_il_entity_list_entry_ptr  ep2 = ptp2->entities_defined_in_default_arg;
-      for (; ep1 != NULL && ep2 != NULL; ep1 = ep1->next, ep2 = ep2->next) {
-        /* Currently we expect only closure types here. */
-        a_type_ptr  tp1;
-        check_assertion(ep1->entity.kind == (a_byte_il_entry_kind)iek_type &&
-                        ep2->entity.kind == (a_byte_il_entry_kind)iek_type);
-        tp1 = (a_type_ptr)ep1->entity.ptr;
-        check_assertion(type_is_lambda_closure(tp1));
-        (void)verify_type_correspondence(tp1);
-      }  /* for */
-      if (ep1 != NULL || ep2 != NULL) {
-        /* The number of closure types recorded for the parameter don't match:
-           Issue an error. */
-        report_corresp_error((char*)rp1, &rp2->source_corresp.decl_position,
-                             ec_default_arg_differs_in_other_trans_unit,
-                             ec_default_args_incompatible);
-      }  /* if */
-    }  /* for */
+  if (sym1->defined && sym2->defined) {
+    a_variable_ptr  var1 = sym1->variant.static_data_member.variable;
+    a_variable_ptr  var2 = sym2->variant.static_data_member.variable;
+    verify_corresp_for_entities_list(
+                             var1->entities_defined_in_initializer,
+                             var2->entities_defined_in_initializer,
+                             (char*)var1, &var2->source_corresp.decl_position,
+                             ec_initializer_differs_in_other_trans_unit,
+                             ec_initializers_incompatible);
   }  /* if */
-}  /* verify_corresp_for_default_arg_entities */
+}  /* verify_corresp_for_template_static_data_member_entities */
 
 
 static a_boolean verify_class_type_correspondence(a_type_ptr  type)
@@ -3125,8 +3189,6 @@ type is in fact valid.
           if (!verify_routine_correspondence(routine)) {
             match = FALSE;
             goto done;
-          } else {
-            verify_corresp_for_default_arg_entities(routine, corresp_routine);
           }  /* if */
         }  /* for */
         if ((routine != NULL && corresp_routine == NULL) ||
@@ -3146,6 +3208,10 @@ type is in fact valid.
           if (!verify_variable_correspondence(variable)) {
             match = FALSE;
             goto done;
+          } else if (
+                type->variant.class_struct_union.is_prototype_instantiation) {
+            verify_corresp_for_template_static_data_member_entities(
+                          symbol_for(variable), symbol_for(corresp_variable));
           }  /* if */
         }  /* for */
         if ((variable != NULL && corresp_variable == NULL) ||
@@ -3794,39 +3860,148 @@ those template entries.
 }  /* set_corresp_for_associated_templates */
 
 
-static void set_corresp_for_default_arg_entities(a_routine_ptr  rp1,
-                                                 a_routine_ptr  rp2)
+static void set_no_corresp_for_entities_list(an_il_entity_list_entry_ptr  ep)
 /*
-Some entities may be defined in default arguments (currently, this is limited
-to closure types).  If they are defined in default arguments appearing in a
-class definition, those entities should be made to correspond using this
-routine.  rp1 and rp2 are the corresponding functions.
+Mark all entities on the given list as having no correspondences.  (Currently,
+the lists only contain closure types.)
+*/
+{
+  for (; ep != NULL; ep = ep->next) {
+    /* Currently we expect only closure types here. */
+    a_type_ptr  tp;
+    check_assertion(ep->entity.kind == (a_byte_il_entry_kind)iek_type);
+    tp = (a_type_ptr)ep->entity.ptr;
+    check_assertion(type_is_lambda_closure(tp));
+    clear_type_correspondence(tp, /*visited=*/TRUE);
+  }  /* for */
+}  /* set_no_corresp_for_entities_list */
+
+
+static void set_corresp_for_entities_list(an_il_entity_list_entry_ptr  ep1,
+                                          an_il_entity_list_entry_ptr  ep2)
+/*
+Make the entities from the first list (ep1) correspond to those of the
+second list.  (Currently, the lists only contain closure types.)
+*/
+{
+  for (; ep1 != NULL && ep2 != NULL; ep1 = ep1->next, ep2 = ep2->next) {
+    /* Currently we expect only closure types here. */
+    a_type_ptr  tp1, tp2;
+    check_assertion(ep1->entity.kind == (a_byte_il_entry_kind)iek_type &&
+                    ep2->entity.kind == (a_byte_il_entry_kind)iek_type);
+    tp1 = (a_type_ptr)ep1->entity.ptr;
+    tp2 = (a_type_ptr)ep2->entity.ptr;
+    check_assertion(type_is_lambda_closure(tp1) &&
+                    type_is_lambda_closure(tp2));
+    set_type_corresp(tp1, tp2);
+  }  /* for */
+  /* If any items remain on the list, they have no correspondence. */
+  set_no_corresp_for_entities_list(ep1);
+  set_no_corresp_for_entities_list(ep2);
+}  /* set_corresp_for_entities_list */
+
+
+static void set_corresp_for_routines(a_routine_ptr  rp1,
+                                     a_routine_ptr  rp2)
+/*
+Set the correspondence for routine rp1 to routine rp2.  Some entities may be
+defined in default arguments (currently, this is limited to closure types).
+If such entities are defined in default arguments appearing in a class
+definition, a template, or an inline function, they are also made to
+correspond.
 */
 {
   a_type_ptr  rtp1 = rp1->type, rtp2 = rp2->type;
 
-  if (rtp1->kind == (a_type_kind)tk_routine &&
-      rtp2->kind == (a_type_kind)tk_routine) {
+  set_trans_unit_corresp(iek_routine, rp1, rp2);
+  if ((!rp1->is_inline || !rp2->is_inline) &&
+      (!rp1->is_template_function || !rp2->is_template_function) &&
+      !rp1->source_corresp.is_class_member) {
+    /* Not a case where default arguments must match. */
+    check_assertion(!rp2->source_corresp.is_class_member);
+  } else if (rtp1->kind == (a_type_kind)tk_routine &&
+             rtp2->kind == (a_type_kind)tk_routine) {
     a_param_type_ptr  ptp1 = rtp1->variant.routine.extra_info->param_type_list;
     a_param_type_ptr  ptp2 = rtp2->variant.routine.extra_info->param_type_list;
     for (; ptp1 != NULL && ptp2 != NULL;
            ptp1 = ptp1->next, ptp2 = ptp2->next) {
       an_il_entity_list_entry_ptr  ep1 = ptp1->entities_defined_in_default_arg;
       an_il_entity_list_entry_ptr  ep2 = ptp2->entities_defined_in_default_arg;
-      for (; ep1 != NULL && ep2 != NULL; ep1 = ep1->next, ep2 = ep2->next) {
-        /* Currently we expect only closure types here. */
-        a_type_ptr  tp1, tp2;
-        check_assertion(ep1->entity.kind == (a_byte_il_entry_kind)iek_type &&
-                        ep2->entity.kind == (a_byte_il_entry_kind)iek_type);
-        tp1 = (a_type_ptr)ep1->entity.ptr;
-        tp2 = (a_type_ptr)ep2->entity.ptr;
-        check_assertion(type_is_lambda_closure(tp1) &&
-                        type_is_lambda_closure(tp2));
-        set_type_corresp(tp1, tp2);
-      }  /* for */
+      if (ep1 == NULL || ep2 == NULL) {
+        /* It is currently not always possible to determine whether a parameter
+           having entities defined in one translation unit but not in the other
+           results in a valid program.  For example:
+             TU#1: struct S { void f(int = []{return 1;}()); }; 
+             TU#2: struct S { void f(int); }; 
+           is invalid (differing class definitions), but
+             TU#1: struct S { void f(int); }; 
+                   void S::f(int = []{return 1;}()) {}
+             TU#2: struct S { void f(int); }; 
+           is valid.  However, it is harmless to permit such invalid cases. */
+        set_no_corresp_for_entities_list(ep1);
+        set_no_corresp_for_entities_list(ep2);
+      } else {
+        set_corresp_for_entities_list(ep1, ep2);
+      }  /* if */
     }  /* for */
   }  /* if */
-}  /* set_corresp_for_default_arg_entities */
+}  /* set_corresp_for_routines */
+
+
+void record_default_arg_instantiation(a_routine_ptr     rp1,
+                                      a_param_type_ptr  ptp1)
+/*
+The default argument corresponding to ptp1 for the template function rp1 was
+instantiated.  If necessary set the correspondences for any entities defined
+by that default argument.
+*/
+{
+  a_routine_ptr     rp2 = canonical_routine_entry_of(rp1);
+  a_type_ptr        rtp1 = rp1->type, rtp2 = rp2->type;
+
+  check_assertion(rtp1->kind == (a_type_kind)tk_routine &&
+                  rtp1->kind == (a_type_kind)tk_routine);
+  if (rp1 == rp2) {
+    /* rp1 is canonical: Entities defined by the default argument are
+       canonical too. */
+    set_no_corresp_for_entities_list(ptp1->entities_defined_in_default_arg);
+  } else {
+    a_param_type_ptr  ptp2 = rtp2->variant.routine.extra_info->param_type_list;
+    a_param_type_ptr  ptp = rtp1->variant.routine.extra_info->param_type_list;
+    /* Find the parameter corresponding to ptp1 in rp2. */
+    while (ptp != ptp1 && ptp2 != NULL) {
+      ptp = ptp->next;
+      ptp2 = ptp2->next;
+      check_assertion(ptp != NULL);
+    }  /* while */
+    if (ptp2 == NULL) {
+      /* The routine types don't correspond. */
+      expect_error();
+      set_no_corresp_for_entities_list(ptp1->entities_defined_in_default_arg);
+    } else {
+      set_corresp_for_entities_list(ptp1->entities_defined_in_default_arg,
+                                    ptp2->entities_defined_in_default_arg);
+    }  /* if */
+  }  /* if */
+}  /* record_default_arg_instantiation */
+
+
+static void set_corresp_for_template_static_data_member_entities(
+                                                           a_symbol_ptr  sym1,
+                                                           a_symbol_ptr  sym2)
+/*
+Some entities may be defined in initializers of template static data members
+(currently, this is limited to closure types).  For corresponding data members
+represented by sym1 and sym2, make those entities correspond.
+*/
+{
+  if (sym1->defined && sym2->defined) {
+    a_variable_ptr  var1 = sym1->variant.static_data_member.variable;
+    a_variable_ptr  var2 = sym2->variant.static_data_member.variable;
+    set_corresp_for_entities_list(var1->entities_defined_in_initializer,
+                                  var2->entities_defined_in_initializer);
+  }  /* if */
+}  /* set_corresp_for_template_static_data_member_entities */
 
 
 static void establish_trans_unit_correspondences_for_class(a_type_ptr  type)
@@ -3957,8 +4132,7 @@ are not checked.
                                          corresp_routine->compiler_generated &&
               routine->is_template_function ==
                                        corresp_routine->is_template_function) {
-            set_trans_unit_corresp(iek_routine, routine, corresp_routine);
-            set_corresp_for_default_arg_entities(routine, corresp_routine);
+            set_corresp_for_routines(routine, corresp_routine);
           } else {
             /* Do not set up a correspondence in this case because it could
                confuse master instance processing (the compiler generated
@@ -3994,9 +4168,8 @@ are not checked.
         a_variable_ptr  corresp_var = corresp_scope->variables;
         for (; var != NULL && corresp_var != NULL;
              var = var->next, corresp_var = corresp_var->next) {
-          a_symbol_ptr  sym = (a_symbol_ptr)var->source_corresp.assoc_info;
-          a_symbol_ptr  corresp_sym = (a_symbol_ptr)corresp_var
-                                                  ->source_corresp.assoc_info;
+          a_symbol_ptr  sym = symbol_for(var);
+          a_symbol_ptr  corresp_sym = symbol_for(corresp_var);
           if (sym != NULL && corresp_sym != NULL &&
               (sym->variant.static_data_member.instance_ptr == 0) !=
                  (corresp_sym->variant.static_data_member.instance_ptr == 0)) {
@@ -4014,6 +4187,10 @@ are not checked.
             /* Establish a correspondence between the template entries
                associated with these static data members (if applicable). */
             set_corresp_for_associated_templates(sym, corresp_sym);
+            /* Also establish correspondences between any lambdas defined in
+               the initializers for this static data member (if any). */
+            set_corresp_for_template_static_data_member_entities(sym,
+                                                                 corresp_sym);
           }  /* if */
         }  /* for */
       }
@@ -4047,10 +4224,8 @@ are not checked.
           /* This may be the only opportunity to set a correspondence. */
           a_routine_ptr  routine = rle->routine,
                          corresp_routine = corresp_rle->routine;
-          a_symbol_ptr  friend_sym = (a_symbol_ptr)routine
-                                                   ->source_corresp.assoc_info,
-                        corresp_friend_sym = (a_symbol_ptr)corresp_routine
-                                                   ->source_corresp.assoc_info;
+          a_symbol_ptr  friend_sym = symbol_for(routine),
+                        corresp_friend_sym = symbol_for(corresp_routine);
           if (same_name(routine, corresp_routine) &&
               (trans_unit_corresp_of(routine) == NULL ||
                trans_unit_corresp_of(corresp_routine) == NULL) &&
@@ -4073,8 +4248,7 @@ are not checked.
                /* The function ::main doesn't overload. */
                (is_main_function(routine) &&
                 is_main_function(corresp_routine)))) {
-            set_trans_unit_corresp(iek_routine,
-                                   rle->routine, corresp_rle->routine);
+            set_corresp_for_routines(routine, corresp_routine);
           }  /* if */
         }  /* for */
       }
@@ -4958,7 +5132,7 @@ associated template symbol supplement.
     a_routine_ptr  old_ce = (a_routine_ptr)canonical_il_entry_of(
                                       sym_entry->symbol->variant.routine.ptr);
     if (routine != old_ce) {
-      set_trans_unit_corresp(iek_routine, routine, old_ce);
+      set_corresp_for_routines(routine, old_ce);
     }  /* if */
   }  /* if */
 }  /* record_function_template_instantiation */
@@ -5055,14 +5229,14 @@ template.
       if (slep == NULL) {
         mark_canonical_instantiation(tssp, inst);
       } else {
-        /* This template class was presumably first instantiated in a
+        /* This template function was presumably first instantiated in a
            secondary translation unit, but now it is instantiated in the
            primary translation unit.  The new instantiation should become
            the canonical correspondence. */
         a_routine_ptr  prim = inst->variant.routine.ptr,
                        sec = slep->symbol->variant.routine.ptr;
         check_assertion(in_secondary_trans_unit(sec));
-        set_trans_unit_corresp(iek_routine, sec, prim);
+        set_corresp_for_routines(sec, prim);
         /* The master instance is found using the canonical entry.  We are
            creating a new canonical entry, so we must make sure its master
            instance pointer is set. */
@@ -5217,10 +5391,7 @@ be templ itself and therefore unusable).
     if (corresp_templ->canonical_template != templ->canonical_template) {
       set_trans_unit_corresp(iek_routine,
                              tssp->variant.function.routine,
-                             ((a_symbol_ptr)corresp_templ
-                                                   ->source_corresp.assoc_info)
-                                  ->variant.template_info
-                                  ->variant.function.routine);
+                             corresp_tssp->variant.function.routine);
     } else {
       /* The prototype instantiation in the translation unit of the canonical
          template entry. */
@@ -5588,7 +5759,7 @@ translation unit correspondence pointer if one is found.
   if (corresp_sym != NULL) {
     /* Record the correspondence. */
     a_routine_ptr  corresp_routine = corresp_sym->variant.routine.ptr;
-    set_trans_unit_corresp(iek_routine, routine, corresp_routine);
+    set_corresp_for_routines(routine, corresp_routine);
     if (C_mode()) {
       /* In C mode, type correspondences are only set as the result of
          correspondences between variables and routines.  This occurs as
