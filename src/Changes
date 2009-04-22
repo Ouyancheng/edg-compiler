@@ -1,5 +1,22 @@
 Version 4.1
 
+4/22/09  [EDGcpfe/9727]
+Missing error on casting a bit field to a reference type
+
+The expression changes in version 4.0 introduced a regression,
+specifically a failure to check for the error of casting a bit-field
+expression to a reference type.  That's invalid because it effectively
+takes the address of the bit field.  Now fixed.
+
+  struct A {
+    int i : 2;
+  };
+  int main() {
+    A a;
+    (int &)a.i;  // Once again diagnosed as an error
+  }
+
+
 4/22/09  [EDGcpfe/9729]
 Spurious ambiguity on increment, decrement, or compound assignment with
   operand of enumeration type

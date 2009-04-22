@@ -35,6 +35,9 @@ exprutil.c -- Expression scanning utility routines.
 
 /* Declarations needed because of forward references: */
 static a_boolean is_bit_field_expr(an_expr_node_ptr node);
+static a_boolean check_for_taking_the_address_of_a_bit_field(
+                                                  an_operand        *operand,
+                                                  a_source_position *err_pos);
 static
 an_expr_node_ptr conv_rvalue_expr_to_lvalue(an_expr_node_ptr node,
                                             a_boolean        *converted,
@@ -3666,6 +3669,9 @@ is an lvalue reference to const.
     } else {
       temp_init_from_operand(operand, /*result_is_lvalue=*/TRUE);
     }  /* if */
+  } else {
+    (void)check_for_taking_the_address_of_a_bit_field(operand,
+                                                      &operand->position);
   }  /* if */
   operand_type = operand->type;
   if (is_error_operand(operand)) {
@@ -9501,6 +9507,31 @@ and if so, return TRUE.
 }  /* is_bit_field_operand_whose_address_can_be_taken */
 
 
+static a_boolean check_for_taking_the_address_of_a_bit_field(
+                                                    an_operand        *operand,
+                                                    a_source_position *err_pos)
+/*
+The address of operand is being taken, either explicitly or in a reference
+binding or reference cast.  Check to see whether the operand is a bit field,
+and if so issue an error at *err_pos and convert the operand to an error
+operand.  Return TRUE if an error was issued.
+*/
+{
+  a_boolean err = FALSE;
+
+  if (is_bit_field_operand(operand) &&
+      /* As an extension, the address of a bit field can be taken if it has
+         the same size and alignment as one of the integral types. */
+      !(addr_of_bit_field_allowed &&
+        is_bit_field_operand_whose_address_can_be_taken(operand))) {
+    pos_error(ec_address_of_bit_field, err_pos);
+    conv_to_error_operand(operand);
+    err = TRUE;
+  }  /* if */
+  return err;
+}  /* check_for_taking_the_address_of_a_bit_field */
+
+
 a_boolean microsoft_template_arg_constant_lvalue_address(
                                                      an_expr_node_ptr expr,
                                                      a_constant       *conaddr)
@@ -9570,13 +9601,8 @@ explicit "&" operator in the source and *operator_position gives its position.
     }  /* if */
 #endif /* CHECKING */
     /* Check for taking the address of a bit field. */
-    if (is_bit_field_operand(operand) &&
-        /* As an extension, the address of a bit field can be taken if it has
-           the same size and alignment as one of the integral types. */
-        !(addr_of_bit_field_allowed &&
-          is_bit_field_operand_whose_address_can_be_taken(operand))) {
-      pos_error(ec_address_of_bit_field, err_pos);
-      conv_to_error_operand(operand);
+    if (check_for_taking_the_address_of_a_bit_field(operand, err_pos)) {
+      /* Error issued by the subroutine. */
     } else {
       a_boolean  did_not_fold = TRUE;
       an_operand orig_operand;
