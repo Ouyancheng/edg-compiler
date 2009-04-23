@@ -1,5 +1,13 @@
 Version 4.1
 
+4/23/09  [EDGcpfe/9708]
+Build failure in IL display program when PARENS_IN_IL is TRUE
+
+The IL display program did not build correctly (it got linker errors
+due to a missing external "f_skip_parens") when PARENS_IN_IL is TRUE.
+Now fixed.
+
+
 4/23/09  [EDGcpfe/8099,EDGcpfe/8572,EDGcpfe/9667]
 Change in processing of immediate pragmas
 

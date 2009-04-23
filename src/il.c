@@ -12404,23 +12404,6 @@ and return a pointer to it.
   return node;
 }  /* node_for_host_large_integer */
 
-#if PARENS_IN_IL
-
-an_expr_node_ptr f_skip_parens(an_expr_node_ptr expr)
-/*
-Strip parentheses (eok_parens nodes) off an expression, and return the
-underlying expression.  If the argument passed in is NULL, return NULL.
-*/
-{
-  if (expr != NULL) {
-    while (is_operation_node(expr) && node_operator_is(expr, eok_parens)) {
-      expr = expr->variant.operation.operands;
-    }  /* while */
-  }  /* if */
-  return expr;
-}  /* f_skip_parens */
-
-#endif /* PARENS_IN_IL */
 
 a_boolean is_bad_type_for_template_arg_operand(a_type_ptr type)
 /*
@@ -13948,6 +13931,24 @@ result.
   }  /* switch */
   return returns_bool;
 }  /* is_operator_returning_bool */
+
+#if PARENS_IN_IL
+
+an_expr_node_ptr f_skip_parens(an_expr_node_ptr expr)
+/*
+Strip parentheses (eok_parens nodes) off an expression, and return the
+underlying expression.  If the argument passed in is NULL, return NULL.
+*/
+{
+  if (expr != NULL) {
+    while (is_operation_node(expr) && node_operator_is(expr, eok_parens)) {
+      expr = expr->variant.operation.operands;
+    }  /* while */
+  }  /* if */
+  return expr;
+}  /* f_skip_parens */
+
+#endif /* PARENS_IN_IL */
 
 #if !STANDALONE_UTILITY_PROGRAM
 an_expr_node_ptr add_cast(an_expr_node_ptr node,
