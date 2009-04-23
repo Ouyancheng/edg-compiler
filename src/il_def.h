@@ -6906,8 +6906,9 @@ typedef struct a_variable {
   an_il_entity_list_entry_ptr
 		entities_defined_in_initializer;
 			/* A list of entities defined in the initializer
-			   associated with this variable.  Currently, this
-			   list only has C++0x closure types. */
+			   associated with this variable, if this is a static
+			   data member.  Currently, this list only has C++0x
+			   closure types. */
   a_template_ptr
 		assoc_template;
 			/* For instantiated entities, this points to the

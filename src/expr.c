@@ -21239,10 +21239,9 @@ elision is possible; see scan_class_initializer_expression and
 scan_aggregate_initializer_expression.
 */
 {
-  an_operand                    result;
-  an_expr_stack_entry           expr_stack_entry;
-  a_variable_ptr                var = NULL;
-  an_il_entity_list_entry_ptr  *p_new_entities;
+  an_operand           result;
+  an_expr_stack_entry  expr_stack_entry;
+  a_variable_ptr       sdm_var = NULL;
 
   db_enter(3, "scan_initializer_expression");
 
@@ -21258,23 +21257,21 @@ scan_aggregate_initializer_expression.
   }  /* if */
   if (dps != NULL) {
     check_assertion(dps->sym != NULL);
-    if (dps->sym->kind == (a_symbol_kind)sk_variable) {
-      var = dps->sym->variant.variable.ptr;
-    } else if (dps->sym->kind == (a_symbol_kind)sk_static_data_member) {
-      var = dps->sym->variant.static_data_member.variable;
-    } else {
-      check_assertion(dps->sym->is_error ||
-                      dps->sym->kind == (a_symbol_kind)sk_parameter);
-    }  /* if */
-    if (var != NULL) {
-      /* Record entities defined in the initializer expression.  In the case
-         of aggregate initializers, this routine may be called multiple times
-         for the same initializer: Ensure that additional entries are appended
-         to any existing entries. */
-      an_il_entity_list_entry_ptr  *ep = &var->entities_defined_in_initializer;
+    if (dps->sym->kind == (a_symbol_kind)sk_static_data_member) {
+      /* Record entities defined in the initializer expression (needed for
+         correspondence checking and name mangling when the static data member
+         is a template instance).  In the case of aggregate initializers, this
+         routine may be called multiple times for the same initializer: Ensure
+         that additional entries are appended to any existing entries. */
+      an_il_entity_list_entry_ptr  *ep;
+      sdm_var = dps->sym->variant.static_data_member.variable;
+      ep = &sdm_var->entities_defined_in_initializer;
       while (*ep != NULL) ep = &(*ep)->next;
-      p_new_entities = ep;
       expr_stack_entry.p_end_of_entities_defined_in_expression = ep;
+    } else {
+      check_assertion(dps->sym->kind == (a_symbol_kind)sk_variable ||
+                      dps->sym->is_error ||
+                      dps->sym->kind == (a_symbol_kind)sk_parameter);
     }  /* if */
   }  /* if */
   /* Scan the expression. */
@@ -21336,24 +21333,10 @@ scan_aggregate_initializer_expression.
       internal_error("scan_initializer_expression: bad operand kind");
 #endif /* CHECKING */
   }  /* switch */
-  if (var != NULL) {
+  if (sdm_var != NULL) {
     /* Stop the recording of entities defined in the expression (not strictly
        necessary, but just to be neat). */
     expr_stack->p_end_of_entities_defined_in_expression = NULL;
-    if (!in_file_scope(var) && *p_new_entities != NULL) {
-      /* The initializer defined some entities (like closure types) pointed to
-         by list entries allocated in file scope memory.  Since the variable
-         is in function scope memory, copy these entries to function scope
-         memory, and release the original entries. */
-      an_il_entity_list_entry_ptr  orig_list = *p_new_entities, ep = orig_list;
-      do {
-        *p_new_entities = alloc_il_entity_list_entry();
-        **p_new_entities = *ep;
-        p_new_entities = &(*p_new_entities)->next;
-        ep = ep->next;
-      }  while (ep != NULL);
-      free_il_entity_list(orig_list);
-    }  /* if */
   }  /* if */
   pop_expr_stack();
 #if EXTRA_SOURCE_POSITIONS_IN_IL

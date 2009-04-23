@@ -4141,12 +4141,6 @@ in the current memory region.
 }  /* alloc_lambda_capture */
 
 
-static an_il_entity_list_entry_ptr
-		avail_il_entity_list_entries;
-			/* List of freed IL entity list entries in file scope
-			   memory that are available for reuse. */
-
-
 an_il_entity_list_entry_ptr alloc_il_entity_list_entry(void)
 /*
 Allocate an entry for a list of arbitrary IL entries, and return a pointer to
@@ -4155,38 +4149,15 @@ it.  The entry is allocated in the current memory region.
 {
   an_il_entity_list_entry_ptr  entry;
 
-  if (avail_il_entity_list_entries != NULL &&
-      curr_il_region_number == file_scope_region_number) {
-    entry = avail_il_entity_list_entries;
-    avail_il_entity_list_entries = avail_il_entity_list_entries->next;
-  } else {
-    entry = (an_il_entity_list_entry_ptr)
+  entry = (an_il_entity_list_entry_ptr)
                                   alloc_cil(sizeof(an_il_entity_list_entry));
-#if DEBUG
-    ++num_il_entity_list_entries_allocated;
-#endif /* DEBUG */
-  }  /* if */
   entry->next = NULL;
   clear_tagged_ptr(entry->entity);
+#if DEBUG
+  ++num_il_entity_list_entries_allocated;
+#endif /* DEBUG */
   return entry;
 }  /* alloc_il_entity_list_entry */
-
-
-void free_il_entity_list(an_il_entity_list_entry_ptr  list)
-/*
-The given list is being discarded.  If it is in file scope memory, make its
-entries available for reuse.
-*/
-{
-  if (list != NULL && in_file_scope(list)) {
-    do {
-      an_il_entity_list_entry_ptr  next_entry = list->next;
-      list->next = avail_il_entity_list_entries;
-      avail_il_entity_list_entries = list;
-      list = next_entry;
-    } while (list != NULL);
-  }  /* if */
-}  /* free_il_entity_list */
 
 
 #if DEBUG
@@ -4207,9 +4178,8 @@ Display and return the amount of space used for various IL tables.
   db_space_used("constant", num_constants_allocated, a_constant);
   db_space_used("String literal text", string_literal_text_space_allocated,
                 char);
-  db_space_used_lost("IL entity list entries", avail_il_entity_list_entries,
-                     num_il_entity_list_entries_allocated,
-                     an_il_entity_list_entry);
+  db_space_used("IL entity list entries", num_il_entity_list_entries_allocated,
+                an_il_entity_list_entry);
   db_space_used("param type", num_param_types_allocated, a_param_type);
   db_space_used("routine type supplement",
                 num_routine_type_supplements_allocated,
@@ -4540,7 +4510,6 @@ in il_alloc_init.)
   if (precompiled_header_processing_required) {
     static a_pch_saved_variable saved_vars[] = {
       pch_saved_var_array_elem(avail_template_args),
-      pch_saved_var_array_elem(avail_il_entity_list_entries),
 #if DEBUG
 #if !ABI_CHANGES_FOR_RTTI
       pch_saved_var_array_elem(num_accessible_base_classes_allocated),
@@ -4650,7 +4619,6 @@ in il_alloc_init.)
   }  /* if */
   register_trans_unit_variable(file_scope_entry_prefix_size);
   register_trans_unit_variable(avail_template_args);
-  register_trans_unit_variable(avail_il_entity_list_entries);
   register_trans_unit_variable(file_scope_entry_prefix_alignment_offset);
 }  /* il_alloc_one_time_init */
 
@@ -4701,7 +4669,6 @@ that need initialization for every (primary and secondary) translation unit.
 */
 {
   avail_template_args = NULL;
-  avail_il_entity_list_entries = NULL;
 }  /* il_alloc_trans_unit_init */
 
 
