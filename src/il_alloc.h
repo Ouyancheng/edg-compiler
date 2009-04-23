@@ -270,6 +270,8 @@ extern char *alloc_text_of_string_literal(sizeof_t size);
 
 extern an_il_entity_list_entry_ptr alloc_il_entity_list_entry(void);
 
+extern void free_il_entity_list(an_il_entity_list_entry_ptr  list);
+
 #if DEBUG
 unsigned long show_il_alloc_space_used(unsigned long grand_total);
 #endif /* DEBUG */
