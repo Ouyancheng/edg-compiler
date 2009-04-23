@@ -124,8 +124,6 @@ extern an_expr_node_ptr scan_void_expression(a_boolean repeated_in_loop,
 extern an_expr_node_ptr scan_typed_expression(a_type_ptr    required_type,
 					      an_error_code err_code);
 
-extern a_param_type_ptr get_param_for_current_default_arg(void);
-
 extern void scan_default_arg_expr(a_param_type_ptr ptp);
 
 extern
