@@ -2653,9 +2653,8 @@ C++ standard.  The current token is the "(" of the call.
     /* Some additional operations (e.g., enk_temp_init, eok_ref_indirect)
        were added on top of the call node.  Make sure the call node has
        the correct positions as well. */
-    function_call_node->expr_range.start = start_position;
-    function_call_node->expr_range.end = end_position;
-    function_call_node->operator_position = operator_position;
+    set_expr_position(function_call_node, &start_position, &end_position,
+                      &operator_position);
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #if GNU_EXTENSIONS_ALLOWED
@@ -12967,14 +12966,15 @@ Also scans GNU statement expressions:
         restore_operand_details_incl_ref(result, &orig_operand);
         set_operand_position(result, &start_position, &end_position,
                              &start_position);
+      } else if (need_expr_for_constant) {
+        /* Record the backing expression for a constant.  The expression
+           has the added eok_parens. */
+        check_assertion(is_constant_operand(result));
+        result->variant.constant.expr = expr;
+        set_operand_position(result, &start_position, &end_position,
+                             &start_position);
       } else {
-        /* The overall result is not changed by the addition of parentheses. */
-        if (need_expr_for_constant) {
-          /* Record the backing expression for a constant.  The expression
-             has the added eok_parens. */
-          check_assertion(is_constant_operand(result));
-          result->variant.constant.expr = expr;
-        }  /* if */
+        /* No expression node was created to represent the parentheses. */
         /* Do not use set_operand_position because we want to leave the
            position in any underlying expression unchanged (we didn't add
            anything to the expression to represent the parentheses, so the

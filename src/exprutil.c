@@ -1504,6 +1504,23 @@ values.
 
 #if EXTRA_SOURCE_POSITIONS_IN_IL
 
+void set_expr_position(an_expr_node_ptr  expr,
+                       a_source_position *start_position,
+                       a_source_position *end_position,
+                       a_source_position *operator_position)
+/*
+Set the start, end, and operator positions in an expression node.
+operator_position can be NULL if there is no operator position.
+*/
+{
+    expr->expr_range.start = *start_position;
+    expr->expr_range.end   = *end_position;
+    if (operator_position != NULL && is_operation_node(expr)) {
+      expr->operator_position = *operator_position;
+    }  /* if */
+}  /* set_expr_position */
+
+
 void set_operand_expr_position_if_expr(an_operand        *operand,
                                        a_source_position *operator_pos)
 /*
@@ -1527,11 +1544,8 @@ if setting the positions in the underlying expression.
        !expr->variant.operation.compiler_generated ||
        expr->variant.operation.call_uses_operator_syntax)) {
     /* Set the position on the expression. */
-    expr->expr_range.start = operand->position;
-    expr->expr_range.end   = operand->end_position;
-    if (operator_pos != NULL && is_operation_node(expr)) {
-      expr->operator_position = *operator_pos;
-    }  /* if */
+    set_expr_position(expr, &operand->position, &operand->end_position,
+                      operator_pos);
   }  /* if */
 }  /* set_operand_expr_position_if_expr */
 

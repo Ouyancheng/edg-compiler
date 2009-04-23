@@ -1218,6 +1218,11 @@ extern void clear_operand(an_operand_kind kind,
 		          an_operand      *operand);
 
 #if EXTRA_SOURCE_POSITIONS_IN_IL
+extern void set_expr_position(an_expr_node_ptr  expr,
+                              a_source_position *start_position,
+                              a_source_position *end_position,
+                              a_source_position *operator_position);
+
 extern void set_operand_expr_position_if_expr(an_operand        *operand,
                                               a_source_position *operator_pos);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */

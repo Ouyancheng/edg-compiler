@@ -1,5 +1,13 @@
 Version 4.1
 
+4/23/09  [EDGcpfe/9709]
+Missing source position in eok_parens node in backing expression for constant
+
+When PARENS_IN_IL is TRUE and a constant expression in parentheses was
+scanned, the backing expression for the constant did not have the
+source positions of the "(" and ")" recorded in it.  Now fixed.
+
+
 4/23/09  [EDGcpfe/9708]
 Build failure in IL display program when PARENS_IN_IL is TRUE
 
