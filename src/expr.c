@@ -21350,7 +21350,8 @@ scan_aggregate_initializer_expression.
         *p_new_entities = alloc_il_entity_list_entry();
         **p_new_entities = *ep;
         p_new_entities = &ep->next;
-      }  while (ep->next != NULL);
+        ep = ep->next;
+      }  while (ep != NULL);
       free_il_entity_list(orig_list);
     }  /* if */
   }  /* if */
