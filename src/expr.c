@@ -21349,7 +21349,7 @@ scan_aggregate_initializer_expression.
       do {
         *p_new_entities = alloc_il_entity_list_entry();
         **p_new_entities = *ep;
-        p_new_entities = &ep->next;
+        p_new_entities = &(*p_new_entities)->next;
         ep = ep->next;
       }  while (ep != NULL);
       free_il_entity_list(orig_list);
