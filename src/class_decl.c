@@ -16777,7 +16777,7 @@ Set *p_lambda to NULL in such cases.
     check_assertion(total_errors != 0);
     *p_lambda = NULL;
   }  /* if */
-}  /* finish_lambda_processing */
+}  /* finish_lambda_routine_processing */
 
 
 static void scan_lambda_body(a_lambda_ptr       lambda,
@@ -16798,6 +16798,11 @@ The heavy lifting for this routine is performed by scan_function_body.
       /* If a lambda body is missing, set lambda to NULL since the parsed
          construct may not have been meant as a lambda at all. */
       error(ec_missing_lambda_body);
+      /* The return type of the routine might be the unknown type.  Set it to
+         an error type to avoid surprises (e.g., because the unknown type is
+         not allocated in IL memory, and therefore lacks an IL entry prefix;
+         that would cause problems during IL traversals). */
+      lambda->lambda_routine->type->variant.routine.return_type = error_type();
       lambda->lambda_routine = NULL;
     } else {
       a_source_position  body_pos;
