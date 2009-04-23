@@ -16799,9 +16799,8 @@ The heavy lifting for this routine is performed by scan_function_body.
          construct may not have been meant as a lambda at all. */
       error(ec_missing_lambda_body);
       /* The return type of the routine might be the unknown type.  Set it to
-         an error type to avoid surprises (e.g., because the unknown type is
-         not allocated in IL memory, and therefore lacks an IL entry prefix;
-         that would cause problems during IL traversals). */
+         an error type to avoid surprises (e.g., some IL traversal routines
+         expect that no unknown types remain in the IL). */
       lambda->lambda_routine->type->variant.routine.return_type = error_type();
       lambda->lambda_routine = NULL;
     } else {
