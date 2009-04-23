@@ -3560,15 +3560,6 @@ Microsoft attributes preceding the class specifier (if any).
           tag_sym->is_invisible = TRUE;
         }  /* if */
       }  /* if */
-#if IA64_ABI && NEED_NAME_MANGLING
-      if (depth_innermost_function_scope != NO_SCOPE_NUMBER) {
-        /* This is a nonnested local class.  The IA-64 ABI sometimes requires
-           that a discriminator be appended to its mangled name if two or more
-           such classes share the same name within the same function.  It is
-           convenient to compute this discriminator at this time. */
-        compute_name_collision_discriminator(tag_sym);
-      }  /* if */
-#endif /* IA64_ABI && NEED_NAME_MANGLING */
     } else {
       /* Tagless class, struct, or union.  Create a symbol to represent it;
          though not entered in the symbol table, it is needed to carry
@@ -3582,6 +3573,15 @@ Microsoft attributes preceding the class specifier (if any).
       clear_source_corresp_name(&class_type->source_corresp);
       class_type->variant.class_struct_union.originally_unnamed = TRUE;
     }  /* if */
+#if IA64_ABI && NEED_NAME_MANGLING
+    if (depth_innermost_function_scope != NO_SCOPE_NUMBER) {
+      /* This is a nonnested local class.  The IA-64 ABI sometimes requires
+         that a discriminator be appended to its mangled name if two or more
+         such classes share the same name within the same function.  It is
+         convenient to compute this discriminator at this time. */
+      compute_name_collision_discriminator(tag_sym);
+    }  /* if */
+#endif /* IA64_ABI && NEED_NAME_MANGLING */
     if (is_friend_decl && is_class_definition) {
       /* Issuing the diagnostic was deferred till now. */
       pos_sy_error(ec_bad_scope_for_definition, &tag_position, tag_sym);

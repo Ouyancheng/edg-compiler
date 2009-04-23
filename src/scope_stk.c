@@ -439,6 +439,20 @@ the given scope stack entry.
 }  /* free_local_name_collision_table */
 
 
+static a_boolean distinct_lambda_signatures(a_type_ptr  ctp1,
+                                            a_type_ptr  ctp2)
+/*
+The two given types must be closure types.  Return TRUE if their respective
+function call operators have the same parameter types; FALSE otherwise.
+*/
+{
+  a_type_ptr  rtp1 = lambda_body_for_closure(ctp1)->type;
+  a_type_ptr  rtp2 = lambda_body_for_closure(ctp2)->type;
+
+  return !param_types_are_compatible(rtp1, rtp2, TCF_NO_FLAGS);
+}  /* distinct_lambda_signatures */
+
+
 void compute_name_collision_discriminator(a_symbol_ptr  sym)
 /*
 Look in the name collision table associated with current function scope for a
@@ -446,8 +460,10 @@ symbol that has the same name (i.e., header) as the given symbol sym.  If
 there is one, the current symbol is assigned a discriminator value one higher
 than that of the symbol found, and it replaces that symbol in the table.
 Otherwise the discriminator value of sym remain zero, and the symbol is added
-to the table.  This information is used to generate distinct mangled names of
-function-local entities in the IA-64 ABI.
+to the table.  (Closure types are handled specially: They are considered to be
+"colliding" only if the associated lambda routines have the same type.) This
+information is used to generate distinct mangled names of function-local
+entities in the IA-64 ABI.
 */
 {
   unsigned                 hash_index;
@@ -485,9 +501,25 @@ function-local entities in the IA-64 ABI.
             sym->variant.class_struct_union.extra_info->discriminator =
                  sep->symbol->variant.enumeration.extra_info->discriminator+1;
           } else {
-            sym->variant.class_struct_union.extra_info->discriminator =
+            a_type_ptr  type, new_type;
+            new_type = sym->variant.class_struct_union.type;
+            type = sep->symbol->variant.class_struct_union.type;
+            if (class_type_supp(type)->is_lambda_closure_class !=
+                          class_type_supp(new_type)->is_lambda_closure_class) {
+              /* Closure types and ordinary unnamed class types share the same
+                 symbol header, but they're considered distinct for the purpose
+                 of determining "collisions" in this context. */
+              continue;
+            } else if (class_type_supp(type)->is_lambda_closure_class &&
+                       distinct_lambda_signatures(type, new_type)) {
+              /* Two closure types whose call operators have distinct types
+                 are considered to be non-colliding. */
+              continue;
+            } else {
+              sym->variant.class_struct_union.extra_info->discriminator =
                             sep->symbol->variant.class_struct_union.extra_info
                                        ->discriminator+1;
+            }  /* if */
           }  /* if */
           break;
         case sk_enum_tag:
