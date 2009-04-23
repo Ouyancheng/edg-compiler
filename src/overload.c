@@ -4040,7 +4040,9 @@ apply that would make one better than the other, and return
              applied only when both parameters are references, according to the
              standard.  However, in a compatibility mode it is applied when
              at least one parameter is a reference. */
-          if ((param1_is_ref && param2_is_ref) ||
+          if ((param1_is_ref && param2_is_ref &&
+               (is_rvalue_reference_type(param_type1) ==
+                is_rvalue_reference_type(param_type2))) ||
               (single_ref_qual_ovl_res_tiebreaker &&
                (param1_is_ref || param2_is_ref) &&
                /* In Microsoft bugs mode, the tie-breaker applies only when
