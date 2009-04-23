@@ -8345,8 +8345,7 @@ end.
 */
 {
   if (il_unknown_type == NULL) {
-    il_unknown_type = (a_type_ptr)alloc_fe(sizeof(a_type));
-    clear_type(il_unknown_type, (a_type_kind)tk_unknown);
+    il_unknown_type = alloc_type(tk_unknown);
     set_type_size(il_unknown_type);
     /* Deliberately not recorded as an orphan. */
   }  /* if */

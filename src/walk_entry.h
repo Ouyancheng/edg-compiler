@@ -905,8 +905,10 @@ the file scope, do not process it (but record an orphan in the latter case).
         remap_ptr_not_needed(ptr->typeinfo_var, a_variable_ptr, iek_variable);
 #endif /* DO_IL_LOWERING */
         switch (ptr->kind) {
-          case tk_error:
           case tk_unknown:
+            unexpected_condition_str("unknown type in IL walk");
+            break;
+          case tk_error:
           case tk_void:
 #if FIXED_POINT_ALLOWED
           case tk_fixed_point:
