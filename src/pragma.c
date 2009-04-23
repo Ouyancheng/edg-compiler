@@ -151,6 +151,10 @@ but cannot be referenced by name in a pragma directive.
       pkdp->variant.next_construct_processing_function 
                   = (a_next_construct_pragma_function_ptr)processing_function;
       break;
+    case pbk_next_token:
+      pkdp->variant.next_token_processing_function
+                      = (a_next_token_pragma_function_ptr)processing_function;
+      break;
     case pbk_immediate:
       pkdp->variant.immediate_processing_function
                       = (an_immediate_pragma_function_ptr)processing_function;
@@ -233,11 +237,41 @@ used for creating pbk_next_construct pragmas.
 }  /* add_next_construct_pragma_kind_description */
 
 
+static a_pragma_kind_description_ptr add_next_token_pragma_kind_description
+                      (a_pragma_kind 	     kind,
+		       a_next_token_pragma_function_ptr
+					     processing_function,
+		       a_boolean	     is_pseudo_pragma,
+		       a_boolean	     global,
+		       a_boolean	     automatically_include_in_il,
+		       a_boolean	     record_pragma_text,
+		       a_boolean	     p_expand_macros,
+		       a_boolean	     processing_C_code,
+		       a_boolean	     p_fetch_pp_tokens,
+		       a_boolean	     ignore_in_back_end,
+		       a_boolean	     il_info_is_complete,
+		       a_boolean	     read_string_as_header_name,
+		       an_error_severity     error_severity)
+/*
+This is an interface to the general add_pragma_kind_description that is
+used for creating pbk_next_token pragmas.
+*/
+{
+  return add_pragma_kind_description
+           (kind, pbk_next_token,
+            (a_generic_pragma_function_ptr)processing_function,
+	    is_pseudo_pragma, /*may_bind_to_decl=*/FALSE,
+            /*may_bind_to_expr=*/FALSE, global, automatically_include_in_il,
+            record_pragma_text, p_expand_macros, processing_C_code,
+            p_fetch_pp_tokens, ignore_in_back_end, il_info_is_complete,
+            read_string_as_header_name, error_severity);
+}  /* add_next_token_pragma_kind_description */
+
+
 static a_pragma_kind_description_ptr add_immediate_pragma_kind_description
                       (a_pragma_kind 	     kind,
 		       an_immediate_pragma_function_ptr
 					     processing_function,
-		       a_boolean	     is_pseudo_pragma,
 		       a_boolean	     global,
 		       a_boolean	     automatically_include_in_il,
 		       a_boolean	     record_pragma_text,
@@ -256,7 +290,7 @@ used for creating pbk_immediate pragmas.
   return add_pragma_kind_description
            (kind, pbk_immediate,
             (a_generic_pragma_function_ptr)processing_function,
-	    is_pseudo_pragma, /*may_bind_to_decl=*/FALSE,
+	    /*is_pseudo_pragma=*/FALSE, /*may_bind_to_decl=*/FALSE,
             /*may_bind_to_expr=*/FALSE, global, automatically_include_in_il,
             record_pragma_text, p_expand_macros, processing_C_code,
             p_fetch_pp_tokens, ignore_in_back_end, il_info_is_complete,
@@ -352,6 +386,7 @@ possible.
   ppp->descr_ptr = pkdp;
   ppp->discard_cache_when_done = TRUE;
   ppp->is_microsoft_pragma_operator = FALSE;
+  ppp->has_been_processed = FALSE;
   ppp->pragma_text = NULL;
   ppp->il_pragma_entry = NULL;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -502,6 +537,9 @@ copies associated with the token being processed.
   while (src_ppp != NULL) {
     dest_ppp = alloc_copy_of_pending_pragma(src_ppp);
     dest_ppp->discard_cache_when_done = FALSE;
+    /* Clear the flag that indicates the pragma has been processed so that
+       it will be processed again for the cached token. */
+    dest_ppp->has_been_processed = FALSE;
     if (new_list == NULL) new_list = dest_ppp;
     if (new_list_end != NULL) new_list_end->next = dest_ppp;
     new_list_end = dest_ppp;
@@ -630,11 +668,13 @@ and return a pointer to the newly created entry.
 }  /* add_empty_src_seq_entry_for_pragma */
 
 
-static void add_source_sequence_entry_to_curr_token_pragmas(void)
+static void add_source_sequence_entry_to_curr_token_pragmas(
+                                            a_pragma_binding_kind binding_kind)
 /*
 Loop through the current token pragma list and create an empty source
 sequence entry for any pending pragma entry that does not already have
-one.  This routine is called by routines which may end up removing
+one and whose binding kind matches binding_kind (or all entries if binding_kind
+is pbk_none).  This routine is called by routines which may end up removing
 entries from the current token pragma list.  The source sequence
 entries must be created before any entries are removed to preserve
 the original source ordering information.
@@ -649,7 +689,9 @@ if it turns out that no IL pragma entry is created).
   if (!is_nonspecialized_instantiation_context() &&
       depth_template_declaration_scope == NO_SCOPE_DEPTH) {
     while (ppp != NULL) {
-      if (ppp->source_sequence_entry == NULL) {
+      if (ppp->source_sequence_entry == NULL &&
+          (binding_kind == pbk_none ||
+           binding_kind == ppp->descr_ptr->binding_kind)) {
         ppp->source_sequence_entry = add_empty_src_seq_entry_for_pragma(ppp);
       }  /* if */
       ppp = ppp->next;
@@ -685,7 +727,7 @@ otherwise return FALSE.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   /* Create source sequence entries for any pragmas that don't yet have
      them. */
-  add_source_sequence_entry_to_curr_token_pragmas();
+  add_source_sequence_entry_to_curr_token_pragmas(pbk_next_construct);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   list_start = *curr_list_of_curr_construct_pragmas();
   if (add_to_list) {
@@ -992,7 +1034,7 @@ pbk_immediate pragmas are processed here.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   /* Create source sequence entries for any pragmas that don't yet have
      them. */
-  add_source_sequence_entry_to_curr_token_pragmas();
+  add_source_sequence_entry_to_curr_token_pragmas(pbk_none);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   ppp = curr_token_pragmas;
   curr_token_pragmas = NULL;
@@ -1019,8 +1061,8 @@ pbk_immediate pragmas are processed here.
         }  /* if */
         free_pending_pragma(ppp);
         break;
-      case pbk_immediate:
-        /* Immediate pragmas are processed when the token they precede is
+      case pbk_next_token:
+        /* Next token pragmas are processed when the token they precede is
            discarded. */
         if (pkdp->automatically_include_in_il) {
           /* Create an IL entry for pragmas that should automatically be
@@ -1028,8 +1070,26 @@ pbk_immediate pragmas are processed here.
           create_il_entry_for_pragma(ppp, (a_symbol_ptr)NULL,
                                      (a_statement_ptr)NULL);
         }  /* if */
-        if (pkdp->variant.immediate_processing_function != NULL) {
-          (*pkdp->variant.immediate_processing_function)(ppp);
+        if (pkdp->variant.next_token_processing_function != NULL) {
+          (*pkdp->variant.next_token_processing_function)(ppp);
+        }  /* if */
+        free_pending_pragma(ppp);
+        break;
+      case pbk_immediate:
+        if (!ppp->has_been_processed) {
+          /* Normally, immediate pragmas are processed just after they are
+             scanned.  But when the pragma is put into a token cache it is
+             instead processed when the token they precede is discarded in
+             the same way as pbk_next_token pragmas. */
+          if (pkdp->automatically_include_in_il) {
+            /* Create an IL entry for pragmas that should automatically be
+               included in the IL. */
+            create_il_entry_for_pragma(ppp, (a_symbol_ptr)NULL,
+                                       (a_statement_ptr)NULL);
+          }  /* if */
+          if (pkdp->variant.immediate_processing_function != NULL) {
+            (*pkdp->variant.immediate_processing_function)(ppp);
+          }  /* if */
         }  /* if */
         free_pending_pragma(ppp);
         break;
@@ -1065,6 +1125,42 @@ pbk_immediate pragmas are processed here.
   }  /* while */
   db_exit();
 }  /* process_curr_token_pragmas */
+
+
+void process_immediate_pragmas(void)
+/*
+Go through the current token pragma list, process any immediate pragmas
+on the list.  The pragmas remain on the list, but are marked has having
+been processed.  They are kept on the list in case they are associated
+with a token that is to be cached.
+*/
+{
+  a_pending_pragma_ptr		ppp;
+  a_pragma_kind_description_ptr	pkdp;
+
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  /* Create source sequence entries for any pragmas that don't yet have
+     them. */
+  add_source_sequence_entry_to_curr_token_pragmas(pbk_immediate);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  for (ppp = curr_token_pragmas; ppp != NULL; ppp = ppp->next) {
+    pkdp = ppp->descr_ptr;
+    if (pkdp->binding_kind == (a_pragma_binding_kind)pbk_immediate) {
+      /* Mark this pragma as having been processed so that it won't be
+         applied again by process_curr_token_pragmas. */
+      ppp->has_been_processed = TRUE;
+      if (pkdp->automatically_include_in_il) {
+        /* Create an IL entry for pragmas that should automatically be
+           included in the IL. */
+        create_il_entry_for_pragma(ppp, (a_symbol_ptr)NULL,
+                                   (a_statement_ptr)NULL);
+      }  /* if */
+      if (pkdp->variant.immediate_processing_function != NULL) {
+        (*pkdp->variant.immediate_processing_function)(ppp);
+      }  /* if */
+    }  /* if */
+  }  /* for */
+}  /* process_immediate_pragmas */
 
 
 void end_of_scope_pragma_processing(a_pending_pragma_ptr pending_pragmas)
@@ -1594,7 +1690,7 @@ Initialize the pragma description table.
 		 /*read_string_as_header_name=*/FALSE,
                  es_none);
   if (!C_mode()) {
-    (void)add_immediate_pragma_kind_description
+    (void)add_next_token_pragma_kind_description
  		((a_pragma_kind)pk_instantiate,
 	         instantiation_pragma,
 		 /*is_pseudo_pragma=*/FALSE,
@@ -1608,7 +1704,7 @@ Initialize the pragma description table.
 		 /*il_info_is_complete=*/FALSE,
 		 /*read_string_as_header_name=*/FALSE,
                  es_error);
-    (void)add_immediate_pragma_kind_description
+    (void)add_next_token_pragma_kind_description
 		((a_pragma_kind)pk_do_not_instantiate,
 		 instantiation_pragma,
 		 /*is_pseudo_pragma=*/FALSE,
@@ -1622,7 +1718,7 @@ Initialize the pragma description table.
 		 /*il_info_is_complete=*/FALSE,
 		 /*read_string_as_header_name=*/FALSE,
                  es_error);
-    (void)add_immediate_pragma_kind_description
+    (void)add_next_token_pragma_kind_description
 		((a_pragma_kind)pk_can_instantiate,
 		 instantiation_pragma,
 		 /*is_pseudo_pragma=*/FALSE,
@@ -1638,7 +1734,7 @@ Initialize the pragma description table.
 		 es_error);
   }  /* if */
 #if USER_CONTROL_OF_STRUCT_PACKING
-  (void)add_immediate_pragma_kind_description
+  (void)add_next_token_pragma_kind_description
 		((a_pragma_kind)pk_pack,
                  pack_pragma,
 		 /*is_pseudo_pragma=*/FALSE,
@@ -1654,7 +1750,7 @@ Initialize the pragma description table.
                  es_error);
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #if IDENT_DIRECTIVE_AND_PRAGMA
-  (void)add_immediate_pragma_kind_description
+  (void)add_next_token_pragma_kind_description
 		((a_pragma_kind)pk_ident,
                  ident_pragma,
 		 /*is_pseudo_pragma=*/FALSE,
@@ -1670,7 +1766,7 @@ Initialize the pragma description table.
                  es_error);
 #endif /* IDENT_DIRECTIVE_AND_PRAGMA */
 #if PRAGMA_WEAK_ALLOWED
-  (void)add_immediate_pragma_kind_description
+  (void)add_next_token_pragma_kind_description
 		((a_pragma_kind)pk_weak,
 		 (an_immediate_pragma_function_ptr)NULL,
 		 /*is_pseudo_pragma=*/FALSE,
@@ -1724,7 +1820,7 @@ Initialize the pragma description table.
                  es_error);
   }  /* if */
   if (c99_mode || fixed_point_enabled) {
-    (void)add_immediate_pragma_kind_description
+    (void)add_next_token_pragma_kind_description
 		((a_pragma_kind)pk_stdc,
                  stdc_pragma,
 		 /*is_pseudo_pragma=*/FALSE,
@@ -1741,7 +1837,7 @@ Initialize the pragma description table.
   }  /* if */
 #if UPC_EXTENSIONS_ALLOWED
   if (upc_mode) {
-    (void)add_immediate_pragma_kind_description(
+    (void)add_next_token_pragma_kind_description(
                                          (a_pragma_kind)pk_upc,
                                          upc_pragma,
                                          /*is_pseudo_pragma=*/FALSE,
@@ -1758,7 +1854,7 @@ Initialize the pragma description table.
   }  /* if */
 #endif /* UPC_EXTENSIONS_ALLOWED */
 #if REDEFINE_EXTNAME_PRAGMA_ENABLED
-  (void)add_immediate_pragma_kind_description(
+  (void)add_next_token_pragma_kind_description(
                                          (a_pragma_kind)pk_redefine_extname,
                                          redefine_extname_pragma,
                                          /*is_pseudo_pragma=*/FALSE,
@@ -1795,7 +1891,7 @@ Initialize the pragma description table.
 #endif /* SUN_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
   if (gnu_mode && gnu_version >= 40200) {
-    (void)add_immediate_pragma_kind_description
+    (void)add_next_token_pragma_kind_description
 		((a_pragma_kind)pk_gcc,
                  gcc_pragma,
 		 /*is_pseudo_pragma=*/FALSE,
@@ -1814,7 +1910,6 @@ Initialize the pragma description table.
   (void)add_immediate_pragma_kind_description
 		((a_pragma_kind)pk_diag_suppress,
                  (an_immediate_pragma_function_ptr)diag_pragma,
-		 /*is_pseudo_pragma=*/FALSE,
                  /*global=*/FALSE,
                  /*automatically_include_in_il=*/FALSE,
                  /*record_pragma_text=*/FALSE,
@@ -1828,7 +1923,6 @@ Initialize the pragma description table.
   (void)add_immediate_pragma_kind_description
 		((a_pragma_kind)pk_diag_remark,
                  (an_immediate_pragma_function_ptr)diag_pragma,
-		 /*is_pseudo_pragma=*/FALSE,
                  /*global=*/FALSE,
                  /*automatically_include_in_il=*/FALSE,
                  /*record_pragma_text=*/FALSE,
@@ -1842,7 +1936,6 @@ Initialize the pragma description table.
   (void)add_immediate_pragma_kind_description
 		((a_pragma_kind)pk_diag_warning,
                  (an_immediate_pragma_function_ptr)diag_pragma,
-		 /*is_pseudo_pragma=*/FALSE,
                  /*global=*/FALSE,
                  /*automatically_include_in_il=*/FALSE,
                  /*record_pragma_text=*/FALSE,
@@ -1856,7 +1949,6 @@ Initialize the pragma description table.
   (void)add_immediate_pragma_kind_description
 		((a_pragma_kind)pk_diag_error,
                  (an_immediate_pragma_function_ptr)diag_pragma,
-		 /*is_pseudo_pragma=*/FALSE,
                  /*global=*/FALSE,
                  /*automatically_include_in_il=*/FALSE,
                  /*record_pragma_text=*/FALSE,
@@ -1870,7 +1962,6 @@ Initialize the pragma description table.
   (void)add_immediate_pragma_kind_description
 		((a_pragma_kind)pk_diag_once,
                  (an_immediate_pragma_function_ptr)diag_pragma,
-		 /*is_pseudo_pragma=*/FALSE,
                  /*global=*/FALSE,
                  /*automatically_include_in_il=*/FALSE,
                  /*record_pragma_text=*/FALSE,
@@ -1884,7 +1975,6 @@ Initialize the pragma description table.
   (void)add_immediate_pragma_kind_description
 		((a_pragma_kind)pk_diag_default,
                  (an_immediate_pragma_function_ptr)diag_pragma,
-		 /*is_pseudo_pragma=*/FALSE,
                  /*global=*/FALSE,
                  /*automatically_include_in_il=*/FALSE,
                  /*record_pragma_text=*/FALSE,
@@ -1929,7 +2019,6 @@ Initialize the pragma description table.
   (void)add_immediate_pragma_kind_description
 		((a_pragma_kind)pk_test_immediate,
                  test_immediate_pragma,
-		 /*is_pseudo_pragma=*/FALSE,
                  /*global=*/FALSE,
                  /*automatically_include_in_il=*/FALSE,
                  /*record_pragma_text=*/FALSE,
@@ -1943,7 +2032,6 @@ Initialize the pragma description table.
   (void)add_immediate_pragma_kind_description
 		((a_pragma_kind)pk_test_immediate_text,
                  (an_immediate_pragma_function_ptr)NULL,
-		 /*is_pseudo_pragma=*/FALSE,
                  /*global=*/FALSE,
                  /*automatically_include_in_il=*/FALSE,
                  /*record_pragma_text=*/TRUE,
@@ -1957,7 +2045,6 @@ Initialize the pragma description table.
   (void)add_immediate_pragma_kind_description
 		((a_pragma_kind)pk_test_immediate_pp_text,
                  (an_immediate_pragma_function_ptr)NULL,
-		 /*is_pseudo_pragma=*/FALSE,
                  /*global=*/FALSE,
                  /*automatically_include_in_il=*/TRUE,
                  /*record_pragma_text=*/TRUE,
@@ -2019,7 +2106,6 @@ Initialize the pragma description table.
   (void)add_immediate_pragma_kind_description
 		((a_pragma_kind)pk_db_opt,
                  (an_immediate_pragma_function_ptr)db_opt_pragma,
-		 /*is_pseudo_pragma=*/FALSE,
                  /*global=*/FALSE,
                  /*automatically_include_in_il=*/FALSE,
                  /*record_pragma_text=*/TRUE,
@@ -2033,7 +2119,6 @@ Initialize the pragma description table.
   (void)add_immediate_pragma_kind_description
 		((a_pragma_kind)pk_db_name,
                  (an_immediate_pragma_function_ptr)db_name_pragma,
-		 /*is_pseudo_pragma=*/FALSE,
                  /*global=*/FALSE,
                  /*automatically_include_in_il=*/FALSE,
                  /*record_pragma_text=*/TRUE,
@@ -2047,9 +2132,9 @@ Initialize the pragma description table.
 #endif /* DEBUG */
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
   if (microsoft_mode) {
-    (void)add_immediate_pragma_kind_description
+    (void)add_next_token_pragma_kind_description
 		((a_pragma_kind)pk_if_exists,
-                 (an_immediate_pragma_function_ptr)if_exists_pragma,
+                 (a_next_token_pragma_function_ptr)if_exists_pragma,
 		 /*is_pseudo_pragma=*/TRUE,
                  /*global=*/FALSE,
                  /*automatically_include_in_il=*/FALSE,
@@ -2081,7 +2166,7 @@ Initialize the pragma description table.
                  /*automatically_include_in_il=*/TRUE,
 		 /*ignore_in_back_end=*/TRUE,
 		 /*read_string_as_header_name=*/FALSE);
-    (void)add_immediate_pragma_kind_description
+    (void)add_next_token_pragma_kind_description
                 ((a_pragma_kind)pk_start_map_region,
                  microsoft_start_map_region_pragma,
                  /*is_pseudo_pragma=*/FALSE,
@@ -2095,7 +2180,7 @@ Initialize the pragma description table.
 		 /*il_info_is_complete=*/FALSE,
 		 /*read_string_as_header_name=*/TRUE,
                  es_warning);
-    (void)add_immediate_pragma_kind_description
+    (void)add_next_token_pragma_kind_description
                 ((a_pragma_kind)pk_stop_map_region,
                  microsoft_stop_map_region_pragma,
                  /*is_pseudo_pragma=*/FALSE,
@@ -2110,7 +2195,7 @@ Initialize the pragma description table.
 		 /*read_string_as_header_name=*/FALSE,
                  es_warning);
 #if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
-    (void)add_immediate_pragma_kind_description
+    (void)add_next_token_pragma_kind_description
                 ((a_pragma_kind)pk_setlocale,
                  setlocale_pragma,
                  /*is_pseudo_pragma=*/FALSE,
@@ -2128,7 +2213,7 @@ Initialize the pragma description table.
     /* In the following call, processing_C_code is set to TRUE so that
        concatenation of string literals will occur in the optional second
        argument. */
-    (void)add_immediate_pragma_kind_description
+    (void)add_next_token_pragma_kind_description
                 ((a_pragma_kind)pk_comment,
                  microsoft_comment_pragma,
                  /*is_pseudo_pragma=*/FALSE,
@@ -2160,9 +2245,9 @@ Initialize the pragma description table.
      preferable to next-construct pragmas for representing unrecognized
      pragmas because next-construct pragmas are only valid in certain
      contexts. */
-  (void)add_immediate_pragma_kind_description
+  (void)add_next_token_pragma_kind_description
 		((a_pragma_kind)pk_unrecognized,
-                 (an_immediate_pragma_function_ptr)NULL,
+                 (a_next_token_pragma_function_ptr)NULL,
 		 /*is_pseudo_pragma=*/FALSE,
 		 /*global=*/FALSE,
                  /*automatically_include_in_il=*/TRUE,  /* Do not change. */

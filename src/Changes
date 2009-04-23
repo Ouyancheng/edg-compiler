@@ -1,5 +1,32 @@
 Version 4.1
 
+4/23/09  [EDGcpfe/8099,EDGcpfe/8572,EDGcpfe/9667]
+Change in processing of immediate pragmas
+
+The behavior of pragmas with a binding kind of "immediate" has been changed.
+Formerly, such pragmas were processed when the next regular token was
+processed.  In the example below, the pragma was not processed until the
+"int" token was fetched.  This created surprising behavior when a pragma was
+intended to affect a preprocessing directive.  Now, pbk_immediate pragmas
+are processed immediately after they have been scanned.  If they are associated
+with a token that has been cached, they are also scanned again when the token
+from the cache is rescanned.
+
+  // warning instead of remark on undefined preprocessing identifier X
+  #pragma diag_warning 193
+  #if X   // a warning is now issued here
+  int x;
+  #endif
+
+In general, most customer-provided immediate pragmas should be changed to
+next_token pragmas.  The interface to add_immediate_pragma_kind_description
+has been changed to insure that any existing calls to this routine must
+be changed in some way so that a silent change in behavior for such pragmas
+is not possible (i.e., a compilation error will occur for unchanged calls).
+If the pragma should be changed to the new definition of an immediate
+pragma, the is_pseudo_pragma argument should be removed from the call.
+
+
 4/22/09  [EDGcpfe/9727]
 Missing error on casting a bit field to a reference type
 

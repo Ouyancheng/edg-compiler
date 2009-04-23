@@ -2424,6 +2424,8 @@ end, got_proper_closing_token is set to FALSE, otherwise it is unchanged.
        symbol header could be unset). */
     if (curr_token != tok_end_of_source) curr_token = tok_error;
   }  /* if */
+  /* If the pragma was an immediate pragma, process it now. */
+  process_immediate_pragmas();
 }  /* scan_pragma_operator */
 
 
@@ -2503,6 +2505,8 @@ end, got_proper_closing_token is set to FALSE, otherwise it is unchanged.
        symbol header could be unset). */
     if (curr_token != tok_end_of_source) curr_token = tok_error;
   }  /* if */
+  /* If the pragma was an immediate pragma, process it now. */
+  process_immediate_pragmas();
 }  /* scan_microsoft_pragma_operator */
 
 

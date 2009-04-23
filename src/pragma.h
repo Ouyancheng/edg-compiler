@@ -28,18 +28,50 @@ pragma.h -- Declarations related to the #pragma directives
 
 /*
 The pragma binding kinds indicate the ways in which a pragma may relate
-to the surrounding constructs.
+to the surrounding constructs.  The binding kinds differ in how they
+are handled in cached vs. non-cached contexts.  This table summarizes
+the processing of the various pragma binding kinds:
+
+			Processed		Processed
+Kind			when encountered	when rescanned
+----------		----------------	--------------
+immediate		yes			yes
+next_token		no			yes
+preproc_immediate	yes			no
+next_construct		no			yes
+other			not applicable		not applicable
+
+"Processed when encountered" means that the pragma is processed even if
+it is encountered in a context that is being cached to be scanned later.
+"Processed when rescanned" means that the pragma is processed when the
+token with which it is associated is rescanned from a cache.
 */
 typedef enum a_pragma_binding_kind {
+  pbk_none,
+		/* Used by some routines to indicate that no binding kind
+		   was specified. */
   pbk_next_construct,
 		/* Binds to the next top level construct (declaration or
-		   statement). */
+		   statement).  When the pragma appears in a cached context,
+		   it is not processed at that point but is processed each time
+		   the cache is scanned. */
+  pbk_next_token,
+		/* Processed when cleared from the curr_token pragma list.
+		   When the pragma appears in a cached context, it is not
+		   processed at that point but is processed each time
+		   the cache is scanned. */
   pbk_immediate,
-		/* Processed when cleared from the curr_token pragma list. */
+		/* Processed after the pragma directive is scanned.  When
+		   the pragma appears in a cached context, it is processed
+		   when it is encountered and again each time the cache is
+		   scanned. */
   pbk_other,
 		/* Processed by special code added to handle a given pragma. */
   pbk_preproc_immediate,
-                /* Processed when encountered as a preprocessing directive. */
+                /* Processed when encountered as a preprocessing directive.
+		   When the pragma appears in a cached context, it is processed
+		   when it is encountered and not at all when the cache is
+		   scanned. */
   pbk_last
 		/* Must be last. */
 		/*lint -esym(769,a_pragma_binding_kind::pbk_last)*/
@@ -58,6 +90,9 @@ typedef void a_next_construct_pragma_function
 					 struct a_symbol      *sym_ptr,
 					 a_statement_ptr      stmt_ptr);
 typedef a_next_construct_pragma_function *a_next_construct_pragma_function_ptr;
+
+typedef void a_next_token_pragma_function(a_pending_pragma_ptr ppp);
+typedef a_next_token_pragma_function *a_next_token_pragma_function_ptr;
 
 typedef void an_immediate_pragma_function(a_pending_pragma_ptr ppp);
 typedef an_immediate_pragma_function *an_immediate_pragma_function_ptr;
@@ -100,6 +135,10 @@ typedef struct a_pragma_kind_description {
 			/* Pointer to the function to be called to
 			   do any special processing required for this
 			   pragma.  May be NULL. */
+    /* When binding_kind == pbk_next_token */
+    a_next_token_pragma_function_ptr
+		next_token_processing_function;
+                        /* Processing function for immediate pragmas. */
     /* When binding_kind == pbk_immediate */
     an_immediate_pragma_function_ptr
 		immediate_processing_function;
@@ -134,10 +173,10 @@ typedef struct a_pragma_kind_description {
 			   processing function (if any) is called.
 			   For pbk_next_construct pragmas, the pragma is
 			   entered in the same IL scope as the entity to
-			   which it is bound.  For pbk_immediate and
-			   pbk_other pragmas the pragma is entered in the
-			   file scope (when global is TRUE) or in the
-			   current IL scope (when global is FALSE).
+			   which it is bound.  For pbk_immediate,
+			   pbk_next_token and pbk_other pragmas the pragma is
+			   entered in the file scope (when global is TRUE) or
+			   in the current IL scope (when global is FALSE).
 			   If this flag is not set, the pragma will
 			   not be automatically included in the IL by
 			   the front end but can still be made part of
@@ -259,6 +298,11 @@ typedef struct a_pending_pragma {
   a_bit_field	is_microsoft_pragma_operator:1;
 			/* TRUE if the pragma was specified using a Microsoft
 			   __pragma operator. */
+  a_bit_field	has_been_processed:1;
+			/* TRUE if this pragma has already been processed.
+			   This is used for immediate pragmas that are
+			   processed but must be kept on the current token
+			   pragmas list in case the token is cached. */
   char		*pragma_text;
 			/* For pragmas that are passed through to the
 			   back end as an uninterpreted character string,
@@ -358,6 +402,8 @@ a_pending_pragma_ptr add_curr_token_pseudo_pragma(a_pragma_kind      kind,
 extern void create_il_entry_for_pragma(a_pending_pragma_ptr ppp,
                                        a_symbol_ptr         sym,
                                        a_statement_ptr      sp);
+
+extern void process_immediate_pragmas(void);
 
 extern void process_curr_token_pragmas(void);
 

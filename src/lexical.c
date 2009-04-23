@@ -582,10 +582,6 @@ static a_stop_token_stack_entry_ptr
 			   freed and are available for reuse. */
 
 static a_boolean
-		caching_tokens;
-			/* TRUE when caching a token stream to be scanned
-			   later. */
-static a_boolean
 		trigraph_diagnostic_issued;
 			/* TRUE if a diagnostic indicating that trigraphs are
 			   disabled has already been issued.  Actually, it

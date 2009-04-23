@@ -2966,6 +2966,7 @@ execute the preprocessor directive.
   }  /* if */
   /* Restore the positions saved at entry. */
   copy_source_position(save_error_position, error_position);
+  process_immediate_pragmas();
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   copy_source_position(save_construct_end_position,
                        curr_construct_end_position);

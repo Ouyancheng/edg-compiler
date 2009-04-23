@@ -2091,6 +2091,11 @@ EXTERN a_boolean
 			   between declarations -- or else just before the
 			   first declaration or just after the last. */
 
+EXTERN a_boolean
+		caching_tokens;
+			/* TRUE when caching a token stream to be scanned
+			   later. */
+
 /*
 Data structure used in deciding where to put extra blanks to separate
 adjacent tokens in textual preprocessing output.
