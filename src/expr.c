@@ -4339,7 +4339,7 @@ Scan the postfix increment ("++") and decrement ("--") operators.  See section
             pos_diagnostic(anachronism_error_severity,
                            ec_mixed_enum_type_anachronism, &operand->position);
           } else {
-            error_in_operand(ec_enum_type_not_allowed, operand);
+            pos_error(ec_enum_type_not_allowed, &operator_position);
             err = TRUE;
           }  /* if */
         } else if (!C_mode() && is_bool_type(operand->type)) {
@@ -4563,7 +4563,7 @@ Scan the prefix increment ("++") and decrement ("--") operators.  See section
             pos_diagnostic(anachronism_error_severity,
                            ec_mixed_enum_type_anachronism, &operand.position);
           } else {
-            error_in_operand(ec_enum_type_not_allowed, &operand);
+            pos_error(ec_enum_type_not_allowed, &start_position);
             err = TRUE;
           }  /* if */
         } else if (!C_mode() && is_bool_type(operand.type)) {
@@ -15879,7 +15879,8 @@ See section 3.3.16 of the standard.
                            ec_mixed_enum_type_anachronism,
                            &operand_1->position);
           } else {
-            error_in_operand(ec_enum_type_not_allowed, operand_1);
+            pos_error(ec_enum_type_not_allowed, &operator_position);
+            conv_to_error_operand(operand_1);
           }  /* if */
         }  /* if */
         if (check_modifiable_lvalue_operand(operand_1)) {
