@@ -13014,7 +13014,15 @@ proceed after the call.
     if (deleted_functions_enabled && next_tok == tok_delete) {
       func_info->is_deleted = TRUE;
     } else if (defaulted_special_members_enabled && next_tok == tok_default) {
-      func_info->is_defaulted = TRUE;
+      if (locator->is_class_member) {
+        func_info->is_defaulted = TRUE;
+      } else {
+        /* "= default" on a nonmember function: Issue an error and ignore the
+           tokens. */
+        error(ec_invalid_function_to_be_defaulted);
+        (void)get_token();
+        (void)get_token();
+      }  /* if */
     } else {
       has_initializer = TRUE;
     }  /* if */

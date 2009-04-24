@@ -8196,6 +8196,7 @@ update the routine's IL entry accordingly.
       err_code = ec_deleted_function_definition_must_be_first_declaration;
     } else {
       rp->is_deleted = TRUE;
+      rp->defined = TRUE;
     }  /* if */
   } else if (func_info->is_defaulted) {
     /* Verify that sym represents a special member function for which a
