@@ -8164,7 +8164,7 @@ the definition of the given class type.
   a_routine_ptr  rp = class_type_supp(class_type)->assoc_scope->routines;
 
   for (; rp != NULL; rp = rp->next) {
-    if (rp->is_defaulted) {
+    if (rp->is_defaulted && !rp->is_trivial_default_constructor) {
       force_definition_of_compiler_generated_routine(rp);
     }  /* if */
   }  /* for */
@@ -8206,10 +8206,18 @@ update the routine's IL entry accordingly.
       err_code = ec_function_defaulted_in_friend_decl;
     } else if (rp->special_kind == (a_special_function_kind)sfk_constructor) {
       a_type_qualifier_set  tqs;
-      if (is_default_constructor(rp, /*is_declarative_context=*/TRUE) ||
-          is_copy_constructor(rp, (a_type*)NULL, &tqs,
-                              /*is_declarative_context=*/TRUE)) {
-        /* "= default" on a default constructor or a copy constructor: Okay. */
+      if (is_default_constructor(rp, /*is_declarative_context=*/TRUE)) {
+        /* "= default" on a default constructor: Okay. */
+        rp->is_defaulted = TRUE;
+        if (dps->in_class_scope) {
+          /* The "= default" declaration appeared on the in-class declaration.
+             Assume the default constructor is trivial for now and revisit the
+             flag later. */
+          rp->is_trivial_default_constructor = TRUE;
+        }  /* if */
+      } else if (is_copy_constructor(rp, (a_type*)NULL, &tqs,
+                                     /*is_declarative_context=*/TRUE)) {
+        /* "= default" on a copy constructor: Okay. */
         rp->is_defaulted = TRUE;
       } else {
         err_code = ec_invalid_function_to_be_defaulted;
@@ -8814,6 +8822,11 @@ implicitly declared member functions.
         check_assertion(cssp->constructor == NULL);
         cssp->trivial_default_constructor = sym;
         rtn->is_trivial_default_constructor = TRUE;
+      } else if (rtn->is_trivial_default_constructor) {
+        /* A defaulted default constructor.  It is assumed trivial until the
+           class is completed, at which point we can make a final
+           determination as to whether it is really trivial. */
+        cssp->trivial_default_constructor = sym;
       } else {
         if (cssp->constructor == NULL) {
           cssp->constructor = sym;
@@ -12111,7 +12124,7 @@ by class_state.  If is_deleted is TRUE, make that constructor "deleted".
   initialize_member_decl_info(&decl_info,
                               &class_type->source_corresp.decl_position);
   decl_info.is_constructor = TRUE;
-  if (!class_state->constructor_required) {
+  if (!class_state->constructor_required && !is_deleted) {
     /* We are generating a declaration of a trivial default constructor.
        Since it will never actually be called it gets special handling. */
     decl_info.is_trivial_default_constructor = TRUE;
@@ -12135,6 +12148,21 @@ definition described by class_state.
   a_type_ptr                 class_type = class_state->class_type;
   a_class_symbol_supplement  *cssp = symbol_supplement_for_class(class_type);
 
+  if (cssp->trivial_default_constructor != NULL) {
+    /* A defaulted default constructor, which was initially assumed to be
+       trivial.  Check if it is indeed trivial now that the whole class has
+       been processed.  If not, make the necessary adjustments. */
+    a_symbol_ptr  default_ctor = cssp->trivial_default_constructor;
+    check_assertion(default_ctor->variant.routine.ptr->is_defaulted);
+    if (class_state->POD_ruled_out) {
+      cssp->trivial_default_constructor = NULL;
+      /* Insert the symbol in the normal constructors list. */
+      default_ctor->next = cssp->constructor;
+      cssp->constructor = default_ctor;
+      default_ctor->variant.routine.ptr
+                  ->is_trivial_default_constructor = FALSE;
+    }  /* if */
+  }  /* if */
   if (cssp->constructor == NULL) {
     /* See if a default constructor declaration is needed. */
     if (!class_state->POD_ruled_out) {

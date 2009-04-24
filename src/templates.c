@@ -9596,6 +9596,7 @@ and create a function instantiation entry to bind the two symbols together.
   a_type_ptr                        tp;
   a_scope_number                    corresp_prototype_decl_scope;
   a_symbol_ptr			    sym_from_prototype = NULL;
+  a_class_symbol_supplement_ptr     cssp;
 
   db_enter(3, "find_member_function_template");
   /* In certain error cases, two declarations that are distinct in the
@@ -9606,13 +9607,18 @@ and create a function instantiation entry to bind the two symbols together.
      will result in a duplicate declaration of f(int) when T is int.  An
      error will be diagnosed when this is encountered in the class body.
      If the instance pointer already exists, simply skip this processing. */
+  cssp = corresp_prototype_tag_sym->variant.class_struct_union.extra_info;
   if (rout_sym->variant.routine.instance_ptr != NULL) goto error_exit;
   /* Find a function symbol on the inactive list that is in the scope of the
      prototype instantiation.  It should either be a function template or
      overloaded function symbol. */
   if (is_constructor_symbol(rout_sym)) {
-    sym = corresp_prototype_tag_sym->
-                         variant.class_struct_union.extra_info->constructor;
+    if (rout_sym->variant.routine.ptr->is_trivial_default_constructor) {
+      check_assertion(rout_sym->variant.routine.ptr->is_defaulted);
+      sym = cssp->trivial_default_constructor;
+    } else {
+      sym = cssp->constructor;
+    }  /* if */
   } else if (rout_sym->variant.routine.ptr->special_kind ==
                                     (a_special_function_kind)sfk_conversion) {
     /* Look through the conversion routines of the prototype instantiation.
