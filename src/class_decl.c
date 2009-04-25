@@ -8195,7 +8195,9 @@ update the routine's IL entry accordingly.
     if (!dps->first_decl) {
       err_code = ec_deleted_function_definition_must_be_first_declaration;
     } else {
+      /* A deleted definition is implicitly "inline". */
       rp->is_deleted = TRUE;
+      rp->is_inline = TRUE;
       rp->defined = TRUE;
     }  /* if */
   } else if (func_info->is_defaulted) {
