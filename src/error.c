@@ -404,7 +404,9 @@ static an_error_file_index_ptr
 
 /*
 Structure used to maintain a record of diagnostic messages that have been
-issued during prototype instantiations.
+issued during prototype instantiations.  This is used to suppress
+diagnostics during actual instantiations if the diagnostic was issued
+during the prototype instantiation.
 */
 typedef struct a_recorded_diagnostic *a_recorded_diagnostic_ptr;
 typedef struct a_recorded_diagnostic {
@@ -420,6 +422,15 @@ typedef struct a_recorded_diagnostic {
   a_source_position
 		error_pos;
 			/* The position associated with the message. */
+#if CHECKING
+  a_scope_number
+		scope_of_prev_check;
+			/* The scope number at the point of the last
+			   suppressed diagnostic. */
+  int		number_of_times_suppressed;
+			/* Number of times the message was suppressed in
+			   scope_of_prev_check. */
+#endif /* CHECKING */
 } a_recorded_diagnostic;
 
 
@@ -3518,6 +3529,10 @@ suppress duplicate diagnostics.
   rdp->severity = severity;
   rdp->error_pos = *error_pos;
   rdp->next = recorded_diagnostic_table[bucket];
+#if CHECKING
+  rdp->scope_of_prev_check = NO_SCOPE_NUMBER;
+  rdp->number_of_times_suppressed = 0;
+#endif /* CHECKING */
   recorded_diagnostic_table[bucket] = rdp;
 }  /* record_prototype_diagnostic */
 
@@ -3544,6 +3559,23 @@ Return TRUE if one is found.
         rdp->error_pos.seq == error_pos->seq &&
         rdp->error_pos.column == error_pos->column) {
       found = TRUE;
+#if CHECKING
+      /* Check whether a given diagnostic is suppressed a large number of
+         times from the same scope.  This is used to prevent an infinite
+         loop if there is an error recovery problem. */
+      { a_scope_number curr_scope = scope_stack_top().number;
+        if (rdp->scope_of_prev_check == curr_scope) {
+          check_assertion_str2(++(rdp->number_of_times_suppressed)
+                                                                 < error_limit,
+                               "find_prototype_diagnostic:",
+                               "error loop");
+        } else {
+          /* A different scope.  Reset the count. */
+          rdp->scope_of_prev_check = curr_scope;
+          rdp->number_of_times_suppressed = 0;
+        }  /* if */
+      }
+#endif /* CHECKING */
       break;
     }  /* if */
   }  /* for */
