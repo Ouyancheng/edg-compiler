@@ -2507,10 +2507,12 @@ static void verify_corresp_for_entities_list(
                               an_error_code                distinct_src_error)
 /*
 The entities from the first list (ep1) should correspond to those of the
-second list: Verify that it is so, and issue a correspondence error otherwise.
-If the error is in the length of the lists, the diagnostic is issued by
-calling report_corresp_error with the arguments entity1, pos2, same_src_error,
-and distinct_src_error.  (Currently, the lists only contain closure types.)
+second list (ep2): Verify that it is so, and issue a correspondence error
+otherwise.  (The correspondences should normally have been set by a call to
+set_corresp_for_entities_list.)  If the error is in the length of the lists,
+the diagnostic is issued by calling report_corresp_error with the arguments
+entity1, pos2, same_src_error, and distinct_src_error.  (Currently, the lists
+only contain closure types.)
 */
 {
   for (; ep1 != NULL && ep2 != NULL; ep1 = ep1->next, ep2 = ep2->next) {
@@ -2523,8 +2525,7 @@ and distinct_src_error.  (Currently, the lists only contain closure types.)
     (void)verify_type_correspondence(tp1);
   }  /* for */
   if (ep1 != NULL || ep2 != NULL) {
-    /* The number of closure types recorded for the parameter don't match:
-       Issue an error. */
+    /* The number of closure types recorded don't match: Issue an error. */
     report_corresp_error(entity1, pos2, same_src_error, distinct_src_error);
   }  /* if */
 }  /* verify_corresp_for_entities_list */
@@ -3881,7 +3882,7 @@ static void set_corresp_for_entities_list(an_il_entity_list_entry_ptr  ep1,
                                           an_il_entity_list_entry_ptr  ep2)
 /*
 Make the entities from the first list (ep1) correspond to those of the
-second list.  (Currently, the lists only contain closure types.)
+second list (ep2).  (Currently, the lists only contain closure types.)
 */
 {
   for (; ep1 != NULL && ep2 != NULL; ep1 = ep1->next, ep2 = ep2->next) {
@@ -5389,9 +5390,8 @@ be templ itself and therefore unusable).
     }  /* for */
     /* Also process prototype instantiations. */
     if (corresp_templ->canonical_template != templ->canonical_template) {
-      set_trans_unit_corresp(iek_routine,
-                             tssp->variant.function.routine,
-                             corresp_tssp->variant.function.routine);
+      set_corresp_for_routines(tssp->variant.function.routine,
+                               corresp_tssp->variant.function.routine);
     } else {
       /* The prototype instantiation in the translation unit of the canonical
          template entry. */

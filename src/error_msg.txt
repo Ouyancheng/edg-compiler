@@ -1841,8 +1841,8 @@ ec_rvalue_reference_catch_type;;"an rvalue reference is not allowed as a catch t
 ec_default_args_incompatible;;"default arguments of %n is incompatible with a declaration in another translation unit"
 ec_default_arg_differs_in_other_trans_unit;;"default arguments of %n were different during compilation of %sq"
 ec_deleted_function_cannot_be_specialized;;"%nd cannot be specialized because it is deleted"
-ec_initializers_incompatible;;"default arguments of %n is incompatible with a declaration in another translation unit"
-ec_initializer_differs_in_other_trans_unit;;"default arguments of %n were different during compilation of %sq"
+ec_initializers_incompatible;;"initializer for %n is different in another translation unit"
+ec_initializer_differs_in_other_trans_unit;;"initializer for %n was different during compilation of %sq"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

@@ -950,7 +950,7 @@ allocated in file scope memory; otherwise, the current memory region is used.
 {
   if (expr_stack != NULL &&
       expr_stack->p_end_of_entities_defined_in_expression != NULL) {
-    a_memory_region_number        region_to_switch_back_to;
+    a_memory_region_number       region_to_switch_back_to;
     an_il_entity_list_entry_ptr  ep;
     if (in_file_scope) switch_to_file_scope_region(&region_to_switch_back_to);
     ep = alloc_il_entity_list_entry();

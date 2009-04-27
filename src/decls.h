@@ -259,7 +259,9 @@ typedef struct a_decl_parse_state {
 		declarator_start_pos;
 			/* The position of the current token when "declarator"
 			   is called, or the null position if there is no
-			   declarator. */
+			   declarator.  (For lambdas, if there is no
+                           "declarator", this is the position of the start of
+			   the lambda body.) */
   a_source_position
 		declarator_pos;
 			/* The position of the declarator-id if there is one.
