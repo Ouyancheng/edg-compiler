@@ -5086,7 +5086,14 @@ used only in strict ANSI mode.  Return FALSE if there is an error.
     a_type_ptr type_pointed_to_1 = type_pointed_to(operand_1_type);
     a_type_ptr type_pointed_to_2 = type_pointed_to(operand_2_type);
     a_type_ptr operation_type_pointed_to;
-    if (same_entities(local_operation_type, operand_1_type)) {
+    if (is_error_type(type_pointed_to_1) ||
+        is_error_type(type_pointed_to_2)) {
+      /* One or the other of the operands is a pointer to void, so don't
+         do any further checking. */
+      okay = TRUE;
+      *operation_type = make_pointer_type(error_type());
+      goto done;
+    } else if (same_entities(local_operation_type, operand_1_type)) {
       operation_type_pointed_to =
                       type_plus_qualifiers_from_second_type(type_pointed_to_1,
                                                             type_pointed_to_2);
