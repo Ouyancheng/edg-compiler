@@ -26,7 +26,10 @@ processed.  In the example below, the pragma was not processed until the
 intended to affect a preprocessing directive.  Now, pbk_immediate pragmas
 are processed immediately after they have been scanned.  If they are associated
 with a token that has been cached, they are also scanned again when the token
-from the cache is rescanned.
+from the cache is rescanned.  Tokens are cached and rescanned in a number
+of contexts the most common ones are templates (where the cache is used
+to generate the instantiations), and class member functions and default
+arguments (which must be evaluated in the context of the complete class).
 
   // warning instead of remark on undefined preprocessing identifier X
   #pragma diag_warning 193

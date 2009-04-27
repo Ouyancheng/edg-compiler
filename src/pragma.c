@@ -1079,7 +1079,7 @@ pbk_immediate pragmas are processed here.
         if (!ppp->has_been_processed) {
           /* Normally, immediate pragmas are processed just after they are
              scanned.  But when the pragma is put into a token cache it is
-             instead processed when the token they precede is discarded in
+             instead processed when the token it precedes is discarded, in
              the same way as pbk_next_token pragmas. */
           if (pkdp->automatically_include_in_il) {
             /* Create an IL entry for pragmas that should automatically be
@@ -1146,17 +1146,20 @@ with a token that is to be cached.
   for (ppp = curr_token_pragmas; ppp != NULL; ppp = ppp->next) {
     pkdp = ppp->descr_ptr;
     if (pkdp->binding_kind == (a_pragma_binding_kind)pbk_immediate) {
-      /* Mark this pragma as having been processed so that it won't be
-         applied again by process_curr_token_pragmas. */
-      ppp->has_been_processed = TRUE;
-      if (pkdp->automatically_include_in_il) {
-        /* Create an IL entry for pragmas that should automatically be
-           included in the IL. */
-        create_il_entry_for_pragma(ppp, (a_symbol_ptr)NULL,
-                                   (a_statement_ptr)NULL);
-      }  /* if */
-      if (pkdp->variant.immediate_processing_function != NULL) {
-        (*pkdp->variant.immediate_processing_function)(ppp);
+      if (!ppp->has_been_processed) {
+        /* Unless this token is going into a token cache, mark this pragma
+           as having been processed so that it won't be applied again by
+           process_curr_token_pragmas. */
+        ppp->has_been_processed = TRUE;
+        if (pkdp->automatically_include_in_il) {
+          /* Create an IL entry for pragmas that should automatically be
+             included in the IL. */
+          create_il_entry_for_pragma(ppp, (a_symbol_ptr)NULL,
+                                     (a_statement_ptr)NULL);
+        }  /* if */
+        if (pkdp->variant.immediate_processing_function != NULL) {
+          (*pkdp->variant.immediate_processing_function)(ppp);
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* for */
@@ -1768,7 +1771,7 @@ Initialize the pragma description table.
 #if PRAGMA_WEAK_ALLOWED
   (void)add_next_token_pragma_kind_description
 		((a_pragma_kind)pk_weak,
-		 (an_immediate_pragma_function_ptr)NULL,
+		 (a_next_token_pragma_function_ptr)NULL,
 		 /*is_pseudo_pragma=*/FALSE,
                  /*global=*/FALSE,
                  /*automatically_include_in_il=*/TRUE,
@@ -2134,7 +2137,7 @@ Initialize the pragma description table.
   if (microsoft_mode) {
     (void)add_next_token_pragma_kind_description
 		((a_pragma_kind)pk_if_exists,
-                 (a_next_token_pragma_function_ptr)if_exists_pragma,
+                 if_exists_pragma,
 		 /*is_pseudo_pragma=*/TRUE,
                  /*global=*/FALSE,
                  /*automatically_include_in_il=*/FALSE,

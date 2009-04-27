@@ -892,6 +892,15 @@ associated with the current token.
   ctp->extra_info_kind = (a_token_extra_info_kind)teik_pragma;
   ctp->variant.pragmas = curr_token_pragmas;
   ctp->source_position = curr_token_pragmas->pragma_position;
+  if (cache->is_reusable) {
+    /* If the cache is reusable, clear the has_been_processed flag so that
+       any immediate pragmas will be processed again when the cache is
+       rescanned (the flag is not used for other kinds of pragmas). */
+    a_pending_pragma_ptr ppp;
+    for (ppp = curr_token_pragmas; ppp != NULL; ppp = ppp->next) {
+      ppp->has_been_processed = FALSE;
+    }  /* for */
+  }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   /* An ending position is not maintained for pragmas so the start position
      is used. */
