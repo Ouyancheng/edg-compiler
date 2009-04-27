@@ -5361,7 +5361,7 @@ static void make_constant_routine_address(a_routine_ptr  rout,
 Helper routine for constant_lvalue_address and constant_rvalue_pointer to
 make a constant for the address of a routine.  address_escapes and
 template_constant are as for constant_lvalue_address (except that
-template-constant is always non-NULL).
+template_constant is always non-NULL).
 */
 {
   set_routine_address_constant(rout, con,
@@ -5372,6 +5372,8 @@ template-constant is always non-NULL).
                                  variant.class_struct_union.is_nonreal_class) {
     /* In a prototype instantiation, a static member function of the
        current class is template-dependent. */
+    *template_constant = TRUE;
+  } else if (is_template_dependent_type(rout->type)) {
     *template_constant = TRUE;
   }  /* if */
 }  /* make_constant_routine_address */
