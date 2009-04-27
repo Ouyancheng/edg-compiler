@@ -18857,7 +18857,7 @@ Scan a C++ lambda expression, e.g., something like
     /* A lambda is not allowed in a constant expression. */
     pos_error(ec_bad_constant_lambda, &start_pos);
     err = TRUE;
-  } else if (!curr_expr_is_evaluated()) {
+  } else if (!curr_expr_is_potentially_evaluated()) {
     /* A lambda is not allowed in an unevaluated expression. */
     pos_error(ec_bad_unevaluated_lambda, &start_pos);
     err = TRUE;
