@@ -10287,6 +10287,9 @@ e.g., in a back end.
            simply changing the flag. */
         possible = TRUE;
         break;
+      case eok_assign:
+        /* Assignment -- we can just turn on the is_lvalue flag. */
+        goto assignment_case;
       case eok_class_rvalue_adjust:
         /* cv-qualifier adjustment on a class rvalue.  Try to turn the operand
            into an lvalue. */
@@ -10316,6 +10319,13 @@ e.g., in a back end.
         break;
 #endif /* GNU_COMPLEX_EXTENSIONS_ALLOWED */
       default:
+        if (is_compound_assignment_operator(op)) {
+          /* A compound assignment operator like "+=".  We can just turn on
+             the is_lvalue flag to turn the expression into an lvalue. */
+assignment_case:
+          possible = TRUE;
+          lvalue_type = op1->type;
+        }  /* if */
         break;
     }  /* switch */
   } else if (is_error_node(node)) {
