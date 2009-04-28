@@ -27,9 +27,9 @@ Brace-enclosed initializers and template-dependent variables
 When parsing brace-enclosed initializers (also known as aggregate initializers)
 for template-dependent variables, the front end previously often failed to
 create correct IL for the initializer.  This is not a problem when template
-template prototype instantiations are not recorded in the IL, but it could
-result in aborts in the C++-generating back end otherwise (i.e., when the
-macro PROTOTYPE_INSTANTIATIONS_IN_IL is TRUE, and the compilation mode parses
+prototype instantiations are not recorded in the IL, but it could result in
+aborts in the C++-generating back end otherwise (i.e., when the macro
+PROTOTYPE_INSTANTIATIONS_IN_IL is TRUE, and the compilation mode parses
 templates in their generic forms).  The following example:
 
   template<typename> struct S { int x; };
@@ -38,7 +38,8 @@ templates in their generic forms).  The following example:
   };               // initializer.
 
 previously aborted in gen_initializer_constant (cp_gen_be.c) with an internal
-error ("ran out of fields").  This is now fixed.
+error ("ran out of fields") if prototype instantiations were recorded in the
+IL.  This is now fixed.
 
 As a consequence of this fix, designated initializers are no longer permitted
 in prototype instantiations of brace-enclosed initializers for template
@@ -47,6 +48,8 @@ dependent variables.  For example:
   template<typename T> void f() {
     T x = { .i = 1 };  // Error: Designator into a template-dependent type
   }
+  struct X { int i; };
+  template void f<X>();
 
 (GCC appears to impose a similar constraint.)
 
