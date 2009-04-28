@@ -109,6 +109,8 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(765,enter_assert_predicate)*/
 /*lint -esym(755,PREC_PRIMARY)*/
 /*lint -esym(769,ec_bad_multibyte_char_locale)*/
+/*lint -esym(759,clear_type)*/
+/*lint -esym(765,clear_type)*/
 
 /* Used in the main programs for the standalone c_gen_be, cp_gen_be, and
    il_display: */
@@ -187,8 +189,6 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(552,virtual_function_table_definition)*/
 /*lint -esym(759,clear_expr_node)*/
 /*lint -esym(765,clear_expr_node)*/
-/*lint -esym(759,clear_type)*/
-/*lint -esym(765,clear_type)*/
 /*lint -esym(759,implicit_cast)*/
 /*lint -esym(765,implicit_cast)*/
 /*lint -esym(759,find_disambiguator)*/
