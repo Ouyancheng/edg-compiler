@@ -4820,9 +4820,14 @@ initialized.  These are addressed in the course of the processing.
               /* There are some cases where we cannot match up a base:
                  - A dependent reference to a base, but not a template
                    parameter itself (presumably, a dependent qualified name).
-                 - A reference to a class type that might be a virtual base of
-                   a dependent base.
-                 For these case, we make up a nonvirtual base class node. */
+                 - A reference to a class type that might be a dependent base
+                   or a virtual base class thereof in some instantiation.
+                 For these cases, we make up a nonvirtual base class node.
+                 We also call complete_class_type_is_needed for that
+                 presumed base class so that it will be instantiated if
+                 necessary: base classes must be complete, and we will also
+                 need to know if it has a constructor. */
+              complete_class_type_is_needed(init_type);
               new_cip = alloc_ctor_init(
                               (a_constructor_init_kind)cik_direct_base_class);
               new_cip->variant.base_class = alloc_base_class();

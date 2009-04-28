@@ -1,5 +1,26 @@
 Version 4.1
 
+4/28/09  [EDGcpfe/8040]
+Spurious abstract class error during prototype instantiation
+
+When doing prototype instantiation of the constructor of a class template,
+if a ctor-initializer names a dependent base class using a non-dependent
+name, and the base class is a not-yet-instantiated instance of a class
+template that will be an abstract class, the front end incorrectly reported
+an error for the use of the abstract class type.  Now fixed.  For example:
+
+  template <typename T> struct B {
+    B(T);
+    virtual void f() = 0;
+  };
+  template <typename T> struct I: T {
+    I(): B<int>(0) { }   // Formerly reported an error on use of B<int>
+  };
+
+(Note that I<T> can be instantiated only with T=B<int> and only as a base
+class of a class that has an overrider for the pure virtual function.)
+
+
 4/28/09  [EDGcpfe/9741]
 Brace-enclosed initializers and template-dependent variables
 
