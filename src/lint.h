@@ -187,6 +187,8 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(552,virtual_function_table_definition)*/
 /*lint -esym(759,clear_expr_node)*/
 /*lint -esym(765,clear_expr_node)*/
+/*lint -esym(759,clear_type)*/
+/*lint -esym(765,clear_type)*/
 /*lint -esym(759,implicit_cast)*/
 /*lint -esym(765,implicit_cast)*/
 /*lint -esym(759,find_disambiguator)*/
