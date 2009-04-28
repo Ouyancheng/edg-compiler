@@ -14956,8 +14956,7 @@ return a pointer to it.  "node" is either a class lvalue, in which case the
 operator is ".", or a pointer to class, in which case the operator is "->".
 This is intended for generated code and not for the source "." or "->"
 operators.  Note that this does NOT add extra intermediate selections for
-anonymous unions (either standard or nonstandard).  Within the front end
-proper, use fe_field_lvalue_selection_expr instead.
+anonymous unions (either standard or nonstandard).
 */
 {
   an_expr_operator_kind op;
