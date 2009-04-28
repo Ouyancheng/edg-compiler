@@ -1342,10 +1342,13 @@ TRUE.
 
   *any_more_members = TRUE;  /* Assume. */
   *is_flexible_array = FALSE;
-  if (kind == (a_type_kind)tk_error ||
-      kind == (a_type_kind)tk_template_param) {
-    /* Unknown member type (due to error or template parameterization). */
+  if (kind == (a_type_kind)tk_error) {
+    /* Unknown member type (due to error). */
     *member_type = error_type();
+  } else if (kind == (a_type_kind)tk_template_param ||
+             kind == (a_type_kind)tk_unknown) {
+    /* Unknown member type (due to template parameterization). */
+    *member_type = unknown_type();
   } else if (kind == (a_type_kind)tk_array) {
     /* Array.  Start with first element. */
     if (type->size == 0) {
@@ -1576,6 +1579,29 @@ Add the IL entry constant to end of the list of constants tracked by context.
 }  /* append_initializer_constant */
 
 
+static void handle_invalid_designator_context(
+                                          an_aggregate_init_context  *context)
+/*
+The upcoming tokens are a designator and the caller has established that it is
+invalid in the given initialization context.  For example, we may have
+encountered a field designator in an array context.  Issue an error if
+appropriate, and set the context type to an error type.
+*/
+{
+  if (!is_error_type(context->type)) {
+    if (is_unknown_type(context->type) ||
+        is_template_param_type(context->type)) {
+      /* A designator into a template dependent (i.e., unknown) type.
+         We do not currently accept such cases. */
+      error(ec_designator_for_template_dependent_type);
+    } else {
+      error(ec_invalid_designator_kind);
+    }  /* if */
+    context->type = error_type();
+  }  /* if */
+}  /* handle_invalid_designator_context */
+
+
 static void get_array_designator(
                               an_aggregate_init_info_ptr init_info,
                               an_aggregate_init_context  *context,
@@ -1603,10 +1629,7 @@ the recursion in get_initializer.
   start_pos = pos_curr_token;
   if (!is_array_type(context->type)) {
     /* An attempt to use an array designator in a non-array context. */
-    if (!is_error_type(context->type)) {
-      error(ec_invalid_designator_kind);
-      context->type = error_type();
-    }  /* if */
+    handle_invalid_designator_context(context);
     okay = FALSE;
   }  /* if */
   check_assertion(curr_token == tok_lbracket);
@@ -1749,10 +1772,7 @@ multiple designators are handled by the recursion in get_initializer.
   *field = NULL;
   if (!is_class_struct_union_type(context->type)) {
     /* An attempt to use a field designator in a non-struct/union context. */
-    if (!is_error_type(context->type)) {
-      error(ec_invalid_designator_kind);
-      context->type = error_type();
-    }  /* if */
+    handle_invalid_designator_context(context);
     okay = FALSE;
   }  /* if */
   if (curr_token == tok_period) {
@@ -2151,8 +2171,9 @@ this function points to a tree that includes a dynamic-init entry.
              (gnu_mode && is_vector_type(context.type) &&
               curr_token == tok_lbrace) ||
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
-             ((is_error_type(context.type) ||
-               is_template_param_type(context.type)) &&
+             ((is_template_param_type(context.type) ||
+               is_unknown_type(context.type) ||
+               is_error_type(context.type)) &&
               ((curr_token == tok_lbrace &&
                 context.pending_init_con == NULL) ||
                (init_info->designation_state != ds_complete_designation &&
@@ -2167,18 +2188,18 @@ this function points to a tree that includes a dynamic-init entry.
       /* Make sure it's truly an aggregate and not some non-aggregate class: */
       if (is_class_struct_union_type(context.type) &&
           !symbol_supplement_for_class(context.type)->is_class_aggregate) {
-        if (!skip_typerefs(context.type)
-                              ->variant.class_struct_union.is_nonreal_class &&
-            !(gpp_mode && is_prototype_instantiation_context())) {
-          /* For a nonreal class, we cannot relate the initializers to the
-             inner type structure of that class.  The g++ compiler does not
-             do this check at template definition time.  An error type ensures
-             that we just collect the expressions, but no diagnostic should be
-             issued. */
+        if (skip_typerefs(context.type)
+                              ->variant.class_struct_union.is_nonreal_class ||
+            (gpp_mode && is_prototype_instantiation_context())) {
+            /* For a nonreal class, we cannot relate the initializers to the
+               inner type structure of that class.  The g++ compiler treats
+               all types in prototype instantiations as "unknown". */
+          context.type = unknown_type();
+        } else {
           pos_ty_error(ec_brace_initialization_not_allowed, &pos_curr_token,
                        context.type);
+          context.type = error_type();
         }  /* if */
-        context.type = error_type();
       }  /* if */
       check_for_opening_brace(&brace_flag);
       /* Since we saw a left brace, we start afresh with designations: */
@@ -2286,11 +2307,11 @@ this function points to a tree that includes a dynamic-init entry.
              where we are or what we're initializing. */
           member_type = error_type();
           kind = (a_type_kind)tk_error;
-        } else if (is_template_param_type(context.type)) {
-          /* The destination type is a template parameter and therefore
-             essentially unknown.  Treat it as if it had members of its
-             own type. */
-          member_type = context.type;
+        } else if (is_template_param_type(context.type) ||
+                   is_unknown_type(context.type)) {
+          /* The destination type is unknown (e.g., a template parameter).
+             The member type is therefore also unknown. */
+          member_type = unknown_type();
         } else if (kind == (a_type_kind)tk_array || is_gnu_vector) {
           /* member_type was set outside the loop. */
 #if DEBUG
@@ -2477,7 +2498,8 @@ this function points to a tree that includes a dynamic-init entry.
         /* Advance to the next member of the aggregate.  Set
            any_more_members FALSE if there are no more members. */
         if (kind == (a_type_kind)tk_error ||
-            kind == (a_type_kind)tk_template_param) {
+            kind == (a_type_kind)tk_template_param ||
+            kind == (a_type_kind)tk_unknown) {
           /* Unknown destination type: there is nothing to "advance". */
         } else if (kind == (a_type_kind)tk_array) {
           /* Array; see if there are any elements remaining. */

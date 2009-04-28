@@ -21226,10 +21226,11 @@ Scan an initializer expression.  See sections 3.4 and 3.5.7 in the standard.
 dps describes the declaration associated with the initializer, or is NULL when
 this routine is called to scan an expression not directly associated with a
 variable declaration (e.g., a ctor-initializer expression).  The expression is
-converted to required_type; an error is issued if it is incompatible with that
-type.  The entity being initialized has static lifetime if static_lifetime is
-TRUE.  Force an object lifetime around the expression if force_object_lifetime
-is TRUE; inhibit the generation of the object lifetime if
+converted to required_type (except if that type is unknown, which can happen
+in templates); an error is issued if it is incompatible with that type.  The
+entity being initialized has static lifetime if static_lifetime is TRUE.
+Force an object lifetime around the expression if force_object_lifetime is
+TRUE; inhibit the generation of the object lifetime if
 suppress_object_lifetime is TRUE.  This initialization is copy-initialization
 ("="-form) if is_copy_initialization is TRUE; otherwise, it is
 direct_initialization ("()"-form).  The expression can be constant or
@@ -21288,16 +21289,18 @@ scan_aggregate_initializer_expression.
   /* Check for a bug related to null pointer constants in Microsoft C mode. */
   process_microsoft_null_pointer_constant_bug(&result, required_type);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  /* Convert to the required type. */
-  prep_initializer_operand(&result, required_type, (a_boolean *)NULL,
-                           (a_conv_descr_ptr)NULL,
-                           /*initializing_return_value=*/FALSE,
-                           /*initializing_variable=*/TRUE,
-                           static_lifetime,
-                           is_copy_initialization,
-                           /*processed_arg=*/FALSE,
-                           /*nontype_template_arg=*/FALSE,
-                           ec_bad_initializer_type);
+  if (!is_unknown_type(required_type)) {
+    /* Convert to the required type. */
+    prep_initializer_operand(&result, required_type, (a_boolean *)NULL,
+                             (a_conv_descr_ptr)NULL,
+                             /*initializing_return_value=*/FALSE,
+                             /*initializing_variable=*/TRUE,
+                             static_lifetime,
+                             is_copy_initialization,
+                             /*processed_arg=*/FALSE,
+                             /*nontype_template_arg=*/FALSE,
+                             ec_bad_initializer_type);
+  }  /* if */
   /* Return a constant or expression depending on what was scanned. */
   *is_constant = TRUE;
   switch (result.kind) {

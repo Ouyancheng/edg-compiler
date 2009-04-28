@@ -3489,15 +3489,29 @@ constant is an aggregate the braces around it are suppressed.
   a_field_ptr    field;
 
   if (constant->kind == (a_constant_repr_kind)ck_aggregate) {
-    a_boolean      array_case, template_param_case;
+    a_boolean      array_case = FALSE, template_dependent_case = FALSE;
     /* Aggregate constant (e.g., "{1, 2, 3}"). */
     if (!suppress_braces) write_tok_ch('{');
     /* Figure out the kind of aggregate so we can track the type as we
        work through constants. */
     type = skip_typerefs(type);
-    array_case = (type->kind == (a_type_kind)tk_array);
-    template_param_case = (type->kind == (a_type_kind)tk_template_param);
-    if (template_param_case) {
+    switch (type->kind) {
+      case tk_array:
+        array_case = TRUE;
+        break;
+      case tk_class:
+      case tk_struct:
+      case tk_union:
+        template_dependent_case =
+                            type->variant.class_struct_union.is_nonreal_class;
+        break;
+      case tk_template_param:
+        template_dependent_case = TRUE;
+        break;
+      default:
+        unexpected_condition();
+    }  /* switch */
+    if (template_dependent_case) {
       /* The subobject type is unknown. */
       sub_type = NULL;
     } else if (array_case) {
@@ -3530,7 +3544,7 @@ constant is an aggregate the braces around it are suppressed.
         }  /* if */
         /* Determine the type of the entity initialized by the next
            constant. */
-        if (template_param_case) {
+        if (template_dependent_case) {
           /* No constraints on the type: use the type of the constant. */
           sub_type = eff_sub_con->type;
         } else if (!array_case) {

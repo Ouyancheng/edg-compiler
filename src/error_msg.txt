@@ -1843,6 +1843,7 @@ ec_default_arg_differs_in_other_trans_unit;;"default arguments of %n were differ
 ec_deleted_function_cannot_be_specialized;;"%nd cannot be specialized because it is deleted"
 ec_initializers_incompatible;;"initializer for %n is different in another translation unit"
 ec_initializer_differs_in_other_trans_unit;;"initializer for %n was different during compilation of %sq"
+ec_designator_for_template_dependent_type;;"a designator into a template-dependent type is not allowed"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
