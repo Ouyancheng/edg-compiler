@@ -1,5 +1,28 @@
 Version 4.1
 
+4/28/09  [EDGcpfe/9743]
+Microsoft compatibility: partial ordering of pointer-to-member functions
+
+The Microsoft compiler, when deducing template arguments from a function type,
+only compared the qualifiers of member functions if the type in the call
+(including the type effectively considered to be the type of in the call
+for partial ordering purposes) had a non-empty set of qualifiers.  In the
+example below, this caused declaration #1 to be preferred to #2 for partial
+ordering purposes.  We mow emulate this behavior in Microsoft mode.
+
+  template< class T, class R > inline void f(R (T::*f)() ) { }  // #1
+  template< class T, class R > inline void f(R (T::*f)() const ) { } // #2
+  struct B {
+    int * g() { return 0;}
+    const int* g() const { return 0;}
+    void h() { f(&B::g); }  // calls #1
+ };
+ int main() {
+   B p;
+   p.h();
+ }
+
+
 4/28/09  [EDGcpfe/8040]
 Spurious abstract class error during prototype instantiation
 

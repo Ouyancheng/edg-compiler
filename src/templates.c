@@ -1882,6 +1882,17 @@ which the entire function type should be considered.
   } else {
     result = 0;
   }  /* if */
+#if DEBUG
+  if (db_flag_is_set("cft")) {
+    fprintf(f_debug, "compare_function_template:\n");
+    db_symbol(templ_sym1, "  template1: ", 2);
+    db_symbol(templ_sym2, "  template2: ", 2);
+    fprintf(f_debug, "compare_function_template: template1 %s template2\n",
+            result == 0 ? "unordered"
+                        : (result == 1 ? "more specialized"
+                                       : "less specialized"));
+  }  /* if */
+#endif /* DEBUG */
   return result;
 }  /* compare_function_template */
 
@@ -6508,8 +6519,14 @@ points to the template parameter list.
                 /* They both have this class types, make sure the
                    types match.  Construct an implicit this type so that
                    the qualifiers will be processed too. */
-                tp =  implicit_this_param_type_of(type);
-                ttp =  implicit_this_param_type_of(templ_type);
+                if (microsoft_mode &&
+                     type->variant.routine.extra_info->qualifiers==TQ_NONE) {
+                  /* The Microsoft compiler does not compare the qualifiers
+                     if the type has no qualifiers. */
+                } else {
+                  tp =  implicit_this_param_type_of(type);
+                  ttp =  implicit_this_param_type_of(templ_type);
+                }  /* if */
                 match = matches_template_type(tp, ttp, templ_arg_list,
                                               templ_param_list,
                                               new_flags);
