@@ -426,7 +426,7 @@ typedef struct a_recorded_diagnostic {
 		scope_of_prev_check;
 			/* The scope number at the point of the last
 			   suppressed diagnostic. */
-  int		number_of_times_suppressed;
+  unsigned int	number_of_times_suppressed;
 			/* Number of times the message was suppressed in
 			   scope_of_prev_check. */
 } a_recorded_diagnostic;
