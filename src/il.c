@@ -14956,7 +14956,8 @@ return a pointer to it.  "node" is either a class lvalue, in which case the
 operator is ".", or a pointer to class, in which case the operator is "->".
 This is intended for generated code and not for the source "." or "->"
 operators.  Note that this does NOT add extra intermediate selections for
-anonymous unions (either standard or nonstandard).
+anonymous unions (either standard or nonstandard).  Within the front end
+proper, use fe_field_lvalue_selection_expr instead.
 */
 {
   an_expr_operator_kind op;
@@ -15012,8 +15013,7 @@ Make an expression for an rvalue reference to field "field" of "node" and
 return a pointer to it.  "node" is a class rvalue, and the operator used is
 ".".  This is intended for generated code, and not for the source "."
 operator.  Note that this does NOT add extra intermediate selections for
-anonymous unions (either standard or nonstandard).  Within the front end
-proper, use fe_field_rvalue_selection_expr instead.
+anonymous unions (either standard or nonstandard).
 */
 {
   /* Make the expression node for an lvalue reference. */
