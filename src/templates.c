@@ -6520,7 +6520,7 @@ points to the template parameter list.
                    types match.  Construct an implicit this type so that
                    the qualifiers will be processed too. */
                 if (microsoft_mode &&
-                     type->variant.routine.extra_info->qualifiers==TQ_NONE) {
+                    type->variant.routine.extra_info->qualifiers == TQ_NONE) {
                   /* The Microsoft compiler does not compare the qualifiers
                      if the type has no qualifiers. */
                 } else {

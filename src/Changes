@@ -16,11 +16,11 @@ ordering purposes.  We mow emulate this behavior in Microsoft mode.
     int * g() { return 0;}
     const int* g() const { return 0;}
     void h() { f(&B::g); }  // calls #1
- };
- int main() {
-   B p;
+  };
+  int main() {
+    B p;
    p.h();
- }
+  }
 
 
 4/28/09  [EDGcpfe/8040]
