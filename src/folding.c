@@ -5373,7 +5373,8 @@ template_constant is always non-NULL).
     /* In a prototype instantiation, a static member function of the
        current class is template-dependent. */
     *template_constant = TRUE;
-  } else if (is_template_dependent_type(rout->type)) {
+  } else if ((!in_front_end || is_template_dependent_context()) &&
+             is_template_dependent_type(rout->type)) {
     *template_constant = TRUE;
   }  /* if */
 }  /* make_constant_routine_address */
