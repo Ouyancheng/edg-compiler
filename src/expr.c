@@ -7533,7 +7533,7 @@ the transformed node.
   a_boolean        result = FALSE;
   an_expr_node_ptr node = expr_node_from_operand(operand);
 
-  if (node != 0) {
+  if (node != NULL) {
     node = strip_ref_indirect(node, /*parens_also=*/TRUE);
     result = node->is_objectless_nonstatic_data_mem_ref;
   }  /* if */
@@ -17582,6 +17582,8 @@ do_selection:
                   node = expr_node_from_operand(result);
                   check_assertion(node != NULL);
                   node = strip_ref_indirect(node, /*parens_also=*/TRUE);
+                  check_assertion(is_operation_node(node) &&
+                                  node_operator_is(node, eok_points_to_field));
                   node->is_objectless_nonstatic_data_mem_ref = TRUE;
                 }  /* if */
               } else {
