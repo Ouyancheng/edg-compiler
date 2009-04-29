@@ -10324,6 +10324,7 @@ e.g., in a back end.
              the is_lvalue flag to turn the expression into an lvalue. */
 assignment_case:
           possible = TRUE;
+          node->variant.operation.returns_lvalue_instead_of_usual_rvalue=TRUE;
           lvalue_type = op1->type;
         }  /* if */
         break;
