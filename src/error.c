@@ -3564,7 +3564,7 @@ Return TRUE if one is found.
          is issued many times, discontinue the suppression so that the error
          limit will be reached. */
       if (rdp->scope_of_prev_check == curr_scope) {
-        if (++(rdp->number_of_times_suppressed) < error_limit) found = FALSE;
+        if (++(rdp->number_of_times_suppressed) > error_limit) found = FALSE;
       } else {
         /* A different scope.  Reset the count. */
         rdp->scope_of_prev_check = curr_scope;
