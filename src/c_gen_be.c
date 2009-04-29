@@ -4503,6 +4503,10 @@ there's some possibility of precedence confusion and need_parens is TRUE.
       check_assertion_str(!expr->variant.operation.
                                         returns_lvalue_instead_of_usual_rvalue,
                           "dump_expr: lvalue-returning operation");
+      check_assertion_str(!expr->is_lvalue ||
+                          (!node_operator_is(expr, eok_assign) &&
+                           !is_compound_assignment_operator(op)),
+                          "dump_expr: lvalue assignment operator");
 #if CHECKING
       check_operation_node_consistency(expr);
 #endif /* CHECKING */
