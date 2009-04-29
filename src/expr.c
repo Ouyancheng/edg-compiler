@@ -7521,6 +7521,26 @@ enk_typeid entry should be created.
 }  /* make_typeid_operand */
 
 
+static a_boolean operand_is_objectless_nonstatic_data_mem_ref(
+                                                           an_operand *operand)
+/*
+Return TRUE if operand is the result of the compiler-generated
+transformation of a reference like S::m to the form ((S*)0)->m, ignoring
+eok_parens and eok_ref_indirect nodes that may have been added on top of
+the transformed node.
+*/
+{
+  a_boolean        result = FALSE;
+  an_expr_node_ptr node = expr_node_from_operand(operand);
+
+  if (node != 0) {
+    node = strip_ref_indirect(node, /*parens_also=*/TRUE);
+    result = node->is_objectless_nonstatic_data_mem_ref;
+  }  /* if */
+  return result;
+}  /* operand_is_objectless_nonstatic_data_mem_ref */
+
+
 static void scan_typeid_operator(an_operand *result)
 /*
 Scan the C++ typeid operator.  See [expr.typeid].
@@ -7633,31 +7653,23 @@ Syntax:
        that use runtime typeid determination. */
     /* As of now (April 2009), the working draft doesn't give special
        handling to rvalue reference objects here. */
-    if (is_an_lvalue(&operand) && is_polymorphic_class_type(typeid_type)) {
-      an_expr_node_ptr node = expr_node_from_operand(&operand);
-      a_boolean        operand_is_objectless_nonstatic_data_mem_ref;
-      operand_is_objectless_nonstatic_data_mem_ref =
-                  (node != NULL && node->is_objectless_nonstatic_data_mem_ref);
-      if (objectless_nonstatic_data_ref_seen &&
-          !operand_is_objectless_nonstatic_data_mem_ref) {
+    if (is_an_lvalue(&operand) && is_polymorphic_class_type(typeid_type) &&
+        /* An objectless nonstatic data member reference is not
+           polymorphic, regardless of the type of the member. */
+        !operand_is_objectless_nonstatic_data_mem_ref(&operand)) {
+      if (objectless_nonstatic_data_ref_seen) {
         /* Objectless references to nonstatic data members are permitted
            only in unevaluated operands, but an lvalue of a polymorphic
-           class type is not an unevaluated operand.  (The case where
-           operand_is_objectless_nonstatic_data_mem_ref is TRUE is excluded
-           because the lvalueness is artificial, resulting only from the
-           compiler-generated transformation from X::m to
-           ((T*)0)->X::m.) */
+           class type is not an unevaluated operand.  (This test detects
+           subexpressions of the operand, e.g., typeid(f(S::m)).) */
         pos_error(ec_member_ref_requires_object,
                   &objectless_nonstatic_data_ref_pos);
       }  /* if */
       if (is_expression_operand(&operand)) {
         if (operand_complete_object_type(&operand,
                                          /*call_case=*/FALSE) != NULL &&
-            /* Special case for (*(T *)0), which should throw an exception
-               (but watch out for an objectless reference to a nonstatic
-               data member, which is rewritten to have that same form). */
-            (operand_is_objectless_nonstatic_data_mem_ref ||
-             !op_is_null_address_lvalue(&operand))) {
+            /* Special case for (*(T *)0), which should throw an exception. */
+            !op_is_null_address_lvalue(&operand)) {
           /* The complete object type can be determined, so runtime processing
              is not needed. */
           expr = NULL;
@@ -17516,7 +17528,11 @@ normal_function:
                    without an available "this" inside a sizeof and other
                    unevaluated contexts.  Use a zero pointer instead of
                    "this" and issue a discretionary error in modes where
-                   this is not permitted. */
+                   this is not permitted.  (Note: such references are not
+                   allowed in the operand of typeid when the operand is an
+                   lvalue of polymorphic class type, because the operand
+                   will be evaluated at runtime.  This case is diagnosed in
+                   scan_typeid_operator.) */
                 a_type_ptr class_ptr_type =
                                  make_pointer_type(sym_parent_class(sym_ptr));
                 make_integer_constant_operand(&this_pointer_operand,
@@ -17565,6 +17581,7 @@ do_selection:
                      an objectless reference. */
                   node = expr_node_from_operand(result);
                   check_assertion(node != NULL);
+                  node = strip_ref_indirect(node, /*parens_also=*/TRUE);
                   node->is_objectless_nonstatic_data_mem_ref = TRUE;
                 }  /* if */
               } else {
