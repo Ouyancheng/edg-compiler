@@ -12582,9 +12582,12 @@ diagnostics.
                    ec_bad_return_type_on_main, pos);
   }  /* if */
   if (c99_mode || !C_mode()) {
-    /* Perform some error checking that is specific to C++ and C99. */
-    /* "inline" isn't allowed in C++ and C99 modes. */
-    if (*is_inline) {
+    /* Perform some error checking that is specific to C++ and/or C99: main()
+       cannot be deleted and cannot be inline. */
+    if (func_info->is_deleted) {
+      pos_error(ec_deleted_main, pos);
+      *is_inline = FALSE;
+    } else if (*is_inline) {
       pos_error(ec_inline_main, pos);
       *is_inline = FALSE;
     }  /* if */
