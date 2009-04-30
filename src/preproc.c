@@ -2807,8 +2807,8 @@ Malformed constructs result in warnings, not errors.
     show = TRUE;
     (void)get_token();
     goto check_terminating_rparen;
-  } else if ((push = curr_token_is_identifier_string("push")) ||
-             (pop = curr_token_is_identifier_string("pop"))) {
+  } else if ((push = curr_token_is_identifier_string("push")) == TRUE ||
+             (pop = curr_token_is_identifier_string("pop")) == TRUE) {
     (void)get_token();
     if (curr_token == tok_rparen) goto check_terminating_rparen;
     check_and_skip_token(tok_comma, ec_exp_comma);
@@ -2846,7 +2846,8 @@ end_of_parse:
     /* Create the IL entry. */
     create_il_entry_for_pragma(ppp, (a_symbol_ptr)NULL, (a_statement_ptr)NULL);
     if (ppp->il_pragma_entry != NULL) {
-      ppp->il_pragma_entry->variant.conform.kind = mpck_forScope;
+      ppp->il_pragma_entry->variant.conform.kind =
+                                (a_microsoft_pragma_conform_kind)mpck_forScope;
       ppp->il_pragma_entry->variant.conform.on = on;
       ppp->il_pragma_entry->variant.conform.off = off;
       ppp->il_pragma_entry->variant.conform.show = show;
