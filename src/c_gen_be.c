@@ -3049,6 +3049,8 @@ final semicolon if output_final_semi is TRUE.
              union. */
           if (offset_after_fields < type->size) {
             padding = type->size;
+          } else {
+            padding = 0;
           }  /* if */
         } else {
           padding = type->size - offset_after_fields;
