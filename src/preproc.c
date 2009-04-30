@@ -2822,8 +2822,9 @@ Malformed constructs result in warnings, not errors.
     if (curr_token == tok_rparen) goto check_terminating_rparen;
     check_and_skip_token(tok_comma, ec_exp_comma);
     if (curr_token == tok_identifier) {
+      a_forScope_stack_entry_ptr  fssep;
       id = locator_for_curr_id.symbol_header->identifier;
-      a_forScope_stack_entry_ptr  fssep = find_forScope_stack_entry(id);
+      fssep = find_forScope_stack_entry(id);
       if (fssep != NULL) {
         /* Reuse the IL copy of the identifier. */
         id = fssep->name;
