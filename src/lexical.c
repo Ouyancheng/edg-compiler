@@ -15603,6 +15603,26 @@ scanned is, in fact, an identifier).
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
+a_boolean curr_token_is_identifier_string(char  *tok_str)
+/*
+Return TRUE if the current token is an identifier spelled like *tok_str.
+*/
+{
+  a_boolean  result;
+
+  if (curr_token == tok_identifier) {
+    a_symbol_header_ptr  sym_hdr = locator_for_curr_id.symbol_header;
+    if (sym_hdr->identifier[0] == tok_str[0] &&
+        strncmp(sym_hdr->identifier, tok_str,
+                size_t_arg(sym_hdr->identifier_length)) == 0 &&
+        strlen(tok_str) == sym_hdr->identifier_length) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* curr_token_is_identifier_string */
+
+
 a_boolean check_context_sensitive_keyword(a_token_kind  tok_kind,
                                           char          *tok_str)
 /*
@@ -15612,14 +15632,8 @@ current token is tok_kind.  This is useful to handle context-sensitive
 keywords (which are fairly common in Microsoft mode).
 */
 {
-  if (curr_token == tok_identifier) {
-    a_symbol_header_ptr  sym_hdr = locator_for_curr_id.symbol_header;
-    if (sym_hdr->identifier[0] == tok_str[0] &&
-        strncmp(sym_hdr->identifier, tok_str,
-                size_t_arg(sym_hdr->identifier_length)) == 0 &&
-        strlen(tok_str) == sym_hdr->identifier_length) {
-      curr_token = tok_kind;
-    }  /* if */
+  if (curr_token_is_identifier_string(tok_str)) {
+    curr_token = tok_kind;
   }  /* if */
   return curr_token == tok_kind;
 }  /* check_context_sensitive_keyword */

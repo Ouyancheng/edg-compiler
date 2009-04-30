@@ -2240,6 +2240,8 @@ extern unsigned long scan_universal_character(
 extern a_boolean is_valid_GUID_string(char          *str,
                                       a_targ_size_t length);
 
+extern a_boolean curr_token_is_identifier_string(char  *tok_str);
+
 extern a_boolean check_context_sensitive_keyword(a_token_kind  tok_kind,
                                                  char          *tok_str);
 

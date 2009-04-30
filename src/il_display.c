@@ -3969,6 +3969,30 @@ Display the indicated pragma entry.
     if (ptr->variant.comment.str != NULL) {
       disp_ptr("comment.str", (char *)ptr->variant.comment.str, iek_constant);
     }  /* if */
+  } else if (ptr->kind == (a_pragma_kind)pk_conform) {
+    disp_name("conform.kind");
+    check_assertion(ptr->variant.conform.kind ==
+                              (a_microsoft_pragma_conform_kind)mpck_forScope);
+    (void)printf("mpck_forScope\n");
+    if (ptr->variant.conform.on) {
+      disp_boolean("conform.on", TRUE);
+    }  /* if */
+    if (ptr->variant.conform.off) {
+      disp_boolean("conform.off", TRUE);
+    }  /* if */
+    if (ptr->variant.conform.show) {
+      disp_boolean("conform.show", TRUE);
+    }  /* if */
+    if (ptr->variant.conform.push) {
+      disp_boolean("conform.push", TRUE);
+    }  /* if */
+    if (ptr->variant.conform.pop) {
+      disp_boolean("conform.pop", TRUE);
+    }  /* if */
+    if (ptr->variant.conform.identifier != NULL) {
+      disp_string_ptr("conform.identifier", ptr->variant.conform.identifier,
+                      iek_other_text, (sizeof_t)0);
+    }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* disp_pragma */

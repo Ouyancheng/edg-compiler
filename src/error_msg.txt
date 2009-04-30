@@ -1844,6 +1844,11 @@ ec_deleted_function_cannot_be_specialized;;"%nd cannot be specialized because it
 ec_initializers_incompatible;;"initializer for %n is different in another translation unit"
 ec_initializer_differs_in_other_trans_unit;;"initializer for %n was different during compilation of %sq"
 ec_designator_for_template_dependent_type;;"a designator into a template-dependent type is not allowed"
+ec_invalid_pragma_conform_kind;;"unrecognized conformance kind"
+ec_exp_on_or_off;;"expected \"on\" or \"off\""
+ec_value_of_pragma_conform_forScope_show;;"current value of pragma conform(forScope, show) is %s"
+ec_forScope_stack_empty;;"#pragma conform(forScope) stack is empty"
+ec_no_matching_forScope_stack_entry;;"no previous #pragma conform(forScope) entry matches %sq"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

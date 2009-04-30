@@ -1792,6 +1792,8 @@ do_set_proper_definition_needed_flag:
 #if MICROSOFT_EXTENSIONS_ALLOWED
         if (ptr->kind == (a_pragma_kind)pk_comment) {
           walk_ptr(ptr->variant.comment.str, a_constant_ptr, iek_constant);
+        } else if (ptr->kind == (a_pragma_kind)pk_conform) {
+          walk_string_ptr(ptr->variant.conform.identifier, iek_other_text, 0);
         }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }

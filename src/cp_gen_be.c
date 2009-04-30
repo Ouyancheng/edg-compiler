@@ -9589,6 +9589,32 @@ is the one associated with the pragma.
         }  /* if */
         write_str(")");
         gen_pragma_end(pp);
+      } else if (pp->kind == (a_pragma_kind)pk_conform) {
+        /* Render "#pragma conform(forScope, ...)" except the "show" variant
+           since that variant only triggers a warning that was already issued
+           by the front end. */
+        if (!pp->variant.conform.show) {
+          gen_pragma_start(pp);
+          check_assertion(pp->variant.conform.kind ==
+                               (a_microsoft_pragma_conform_kind)mpck_forScope);
+          write_str("conform(forScope");
+          if (pp->variant.conform.push) {
+            write_str(", push");
+          } else if (pp->variant.conform.pop) {
+            write_str(", pop");
+          }  /* if */
+          if (pp->variant.conform.identifier != NULL) {
+            write_str(", ");
+            write_str(pp->variant.conform.identifier);
+          }  /* if */
+          if (pp->variant.conform.on) {
+            write_str(", on");
+          } else if (pp->variant.conform.off) {
+            write_str(", off");
+          }  /* if */
+          write_str(")");
+          gen_pragma_end(pp);
+        }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       } else {
         check_assertion_str(pp->pragma_text != NULL,

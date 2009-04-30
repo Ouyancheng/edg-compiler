@@ -3632,6 +3632,7 @@ enum a_pragma_kind_tag {
   pk_setlocale,
 #endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
   pk_comment,
+  pk_conform,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL
   pk_unrecognized,	/* This pragma kind is used for pragmas that are
@@ -3732,6 +3733,7 @@ EXTERN char *pragma_ids[(int)pk_last + 1]
 /* pk_setlocale */		"setlocale",
 #endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
 /* pk_comment */		"comment",
+/* pk_conform */		"conform",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL
 /* pk_unrecognized */		"unrecognized",
@@ -3755,6 +3757,15 @@ enum a_microsoft_pragma_comment_type_tag {
 };
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte a_microsoft_pragma_comment_type;
+
+
+enum a_microsoft_pragma_conform_kind_tag {
+  /* Code for conformance switch in a Microsoft "#pragma conform(...)".
+     Currently only "forScope" is a valid switch. */
+  mpck_forScope
+};
+/* Define as "a_byte" to explicitly control storage size. */
+typedef a_byte a_microsoft_pragma_conform_kind;
 
 
 EXTERN char *microsoft_pragma_comment_ids[(int)mpct_last + 1]
@@ -3876,6 +3887,28 @@ typedef struct a_pragma {
       a_constant_ptr
 		str;	/* The comment string, NULL if none was supplied. */
     } comment;
+    /* When kind == pk_conform: */
+    struct {
+      a_microsoft_pragma_conform_kind
+		kind;	/* The conformance switch specified (currently, only
+			   "forScope" is available). */
+      a_bit_field
+		on:1;	/* TRUE if the pragma explicitly enables standard
+			   for-init behavior. */
+      a_bit_field
+		off:1;	/* TRUE if the pragma explicitly disables standard
+			   for-init behavior. */
+      a_bit_field
+		show:1;	/* TRUE if this is a conform "show" pragma. */
+      a_bit_field
+		push:1;	/* TRUE if this is a conform "push" pragma. */
+      a_bit_field
+		pop:1;	/* TRUE if this is a conform "pop" pragma. */
+      char	*identifier;
+			/* If an identifier was specified in the conform
+			   pragma this points to a null-terminated string
+			   representing that identifier.  NULL otherwise. */
+    } conform;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } variant;
 } a_pragma;

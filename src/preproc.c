@@ -2652,6 +2652,256 @@ executable file.
   }  /* if */
 }  /* microsoft_comment_pragma */
 
+
+
+/* An entry on the "#pragma conform(forScope) stack. */
+typedef struct a_forScope_stack_entry
+			*a_forScope_stack_entry_ptr;
+typedef struct a_forScope_stack_entry {
+  a_forScope_stack_entry_ptr
+		next;
+			/* Next entry on the stack.  NULL for the entry at
+			   the bottom of the stack. */
+  char		*name;
+			/* The identifying name of this stack entry -- used
+			   for "targeted" popping.  May be NULL. */
+  a_boolean
+		use_nonstandard_for_init_scope;
+			/* Recorded value of the global variable of the same
+			   name. */
+  a_boolean
+		microsoft_type_dependent_for_init_scope;
+			/* Recorded value of the global variable of the same
+			   name. */
+} a_forScope_stack_entry;
+
+
+static a_forScope_stack_entry_ptr
+		forScope_stack;
+			/* Pointer to the top of the stack of forScope
+			   conformance states. */
+
+static a_forScope_stack_entry_ptr
+		avail_forScope_stack_entries;
+			/* List of forScope state stack entries that were
+			   freed and are now available for reuse. */
+
+
+static void push_forScope_stack_entry(char  *name)
+/*
+Push an entry onto the top of the stack of forScope conformance states.
+Record the given name and the current conformance state in that entry.
+*/
+{
+  a_forScope_stack_entry_ptr  fssep;
+
+  if (avail_forScope_stack_entries != NULL) {
+    fssep = avail_forScope_stack_entries;
+    avail_forScope_stack_entries = fssep->next;
+  } else {
+    fssep = (a_forScope_stack_entry_ptr)alloc_fe(
+                               sizeof(a_forScope_stack_entry));
+  }  /* if */
+  fssep->next = forScope_stack;
+  fssep->name = name;
+  fssep->use_nonstandard_for_init_scope = use_nonstandard_for_init_scope;
+  fssep->microsoft_type_dependent_for_init_scope =
+                                      microsoft_type_dependent_for_init_scope;
+  forScope_stack = fssep;
+}  /* push_forScope_stack_entry */
+
+
+static void pop_forScope_stack_entry(void)
+/*
+Pop the top entry from the forScope stack.
+*/
+{
+  a_forScope_stack_entry_ptr  fssep;
+
+  fssep = forScope_stack;
+  forScope_stack = fssep->next;
+  fssep->next = avail_forScope_stack_entries;
+  avail_forScope_stack_entries = fssep;
+}  /* pop_forScope_stack_entry */
+
+
+static a_forScope_stack_entry_ptr find_forScope_stack_entry(char  *id)
+/*
+Look through the forScope stack for an entry that has the given identifier
+associated with it.  If id is NULL, return the last pushed entry.  If the
+stack is empty or if no matching entry is found, return NULL.
+*/
+{
+  a_forScope_stack_entry_ptr  result = forScope_stack;
+
+  if (id != NULL) {
+    for (; result != NULL; result = result->next) {
+      if (result->name != NULL && strcmp(result->name, id) == 0) {
+        /* Found a match. */
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return result;
+}  /* find_forScope_stack_entry */
+
+
+void microsoft_conform_pragma(a_pending_pragma_ptr  ppp)
+/*
+Scan a pragma with one of the following forms:
+    #pragma conform(forScope, on|off)
+    #pragma conform(forScope, show)
+    #pragma conform(forScope, push|pop [ , <identifier> [ , on|off ] ] )
+The first form determines whether the standard for-init scope rules are in
+effect ("on") or not ("off").  The second form triggers a warning reporting
+the current state of forScope conformance.  
+The third form with "push" pushes the state of the current behavior on a stack
+and, optionally, associates a given identifier with that state.  The "pop"
+variant without an identifier restores the last recorded state and pops it
+from the stack.  The variant with an identifier restores the last state that
+was pushed with the same identifier and pops it and all later recorded states
+from the stack.  The "push" and "pop" variants that included an identifier
+naming a state can also be followed by "on" or "off", which behaves as if the
+first form had followed the "push" or "pop".
+Malformed constructs result in warnings, not errors.
+*/
+{
+  a_boolean  err = FALSE;
+  a_boolean  on = FALSE, off = FALSE, show = FALSE, push = FALSE, pop = FALSE;
+  char       *id = NULL;
+
+#define check_and_skip_token(tok, ec)                                        \
+  if (curr_token != tok) {                                                   \
+    warning(ec);                                                             \
+    err = TRUE;                                                              \
+    goto end_of_parse;                                                       \
+  } else {                                                                   \
+    (void)get_token();                                                       \
+  }  /* if */
+
+#define scan_on_or_off()                                                     \
+  if (curr_token_is_identifier_string("on")) {                               \
+    on = TRUE;                                                               \
+    (void)get_token();                                                       \
+  } else if (curr_token_is_identifier_string("off")) {                       \
+    off = TRUE;                                                              \
+    (void)get_token();                                                       \
+  } else {                                                                   \
+    warning(ec_exp_on_or_off);                                               \
+    err = TRUE;                                                              \
+    goto end_of_parse;                                                       \
+  }  /* if */
+
+  /* First parse the pragma, to determine the value of various flags. */
+  begin_rescan_of_pragma_tokens(ppp);
+  check_and_skip_token(tok_lparen, ec_exp_lparen);
+  if (!curr_token_is_identifier_string("forScope")) {
+    warning(ec_invalid_pragma_conform_kind);
+    err = TRUE;
+    goto end_of_parse;
+  }  /* if */
+  /* Skip over "forScope" */
+  (void)get_token();
+  check_and_skip_token(tok_comma, ec_exp_comma);
+  if (curr_token_is_identifier_string("show")) {
+    show = TRUE;
+    (void)get_token();
+    goto check_terminating_rparen;
+  } else if ((push = curr_token_is_identifier_string("push")) ||
+             (pop = curr_token_is_identifier_string("pop"))) {
+    (void)get_token();
+    if (curr_token == tok_rparen) goto check_terminating_rparen;
+    check_and_skip_token(tok_comma, ec_exp_comma);
+    if (curr_token == tok_identifier) {
+      id = locator_for_curr_id.symbol_header->identifier;
+      a_forScope_stack_entry_ptr  fssep = find_forScope_stack_entry(id);
+      if (fssep != NULL) {
+        /* Reuse the IL copy of the identifier. */
+        id = fssep->name;
+      } else {
+        /* Copy the identifier to IL memory. */
+        id = copy_string_to_region(file_scope_region_number, id);
+      }  /* if */
+      (void)get_token();
+      if (curr_token == tok_comma) {
+        (void)get_token();
+        scan_on_or_off();
+      }  /* if */
+    } else {
+      warning(ec_exp_identifier);
+      goto end_of_parse;
+    }  /* if */
+    goto check_terminating_rparen;
+  } else {
+    scan_on_or_off();
+  }  /* if */
+check_terminating_rparen:
+  check_and_skip_token(tok_rparen, ec_exp_rparen);
+end_of_parse:
+  wrapup_rescan_of_pragma_tokens(err);
+#undef scan_on_or_off
+#undef check_and_skip_token
+  if (show || push || pop || on || off) {
+    check_assertion(!on || !off);
+    /* Create the IL entry. */
+    create_il_entry_for_pragma(ppp, (a_symbol_ptr)NULL, (a_statement_ptr)NULL);
+    if (ppp->il_pragma_entry != NULL) {
+      ppp->il_pragma_entry->variant.conform.kind = mpck_forScope;
+      ppp->il_pragma_entry->variant.conform.on = on;
+      ppp->il_pragma_entry->variant.conform.off = off;
+      ppp->il_pragma_entry->variant.conform.show = show;
+      ppp->il_pragma_entry->variant.conform.push = push;
+      ppp->il_pragma_entry->variant.conform.pop = pop;
+      ppp->il_pragma_entry->variant.conform.identifier = id;
+    }  /* if */
+    /* Apply the pragma. */
+    if (C_mode()) {
+      /* The Microsoft C compiler accepts "#pragma conform", but it has no
+         effect. */
+    } else if (show) {
+      a_boolean  curr_value = !use_nonstandard_for_init_scope &&
+                              !microsoft_type_dependent_for_init_scope;
+      check_assertion(!on && !off && !push && !pop);
+      pos_st_warning(ec_value_of_pragma_conform_forScope_show,
+                     &ppp->id_position, curr_value ? "true" : "false");
+    } else {
+      if (push) {
+        push_forScope_stack_entry(id);
+      } else if (pop) {
+        if (forScope_stack == NULL) {
+          pos_warning(ec_forScope_stack_empty, &ppp->id_position);
+        } else {
+          /* Determine the scope stack to pop. */
+          a_forScope_stack_entry_ptr  fssep = find_forScope_stack_entry(id);
+          if (fssep == NULL) {
+            pos_st_warning(ec_no_matching_forScope_stack_entry,
+                           &ppp->id_position, id);
+          } else {
+            /* Restore the previously saved state. */
+            fssep->use_nonstandard_for_init_scope =
+                                               use_nonstandard_for_init_scope;
+            fssep->microsoft_type_dependent_for_init_scope =
+                                      microsoft_type_dependent_for_init_scope;
+            while (fssep->next != forScope_stack) pop_forScope_stack_entry();
+          }  /* if */
+        }  /* if */
+      }  /* if */
+      if (on) {
+        /* Turn on standard for-init-scope behavior. */
+        use_nonstandard_for_init_scope = FALSE;
+        microsoft_type_dependent_for_init_scope = FALSE;
+      } else if (off) {
+        /* Turn off standard for-init-scope behavior. */
+        if (microsoft_version < 1310) {
+          use_nonstandard_for_init_scope = TRUE;
+        } else {
+          microsoft_type_dependent_for_init_scope = TRUE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* microsoft_conform_pragma */
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if ALIAS_DIRECTIVE
@@ -3118,6 +3368,8 @@ One-time initialization for preproc.c and preproc.h variables.
 #endif /* UPC_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
       pch_saved_var_array_elem(in_microsoft_implementation_key_mapping_region),
+      pch_saved_var_array_elem(forScope_stack),
+      pch_saved_var_array_elem(avail_forScope_stack_entries),
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       pch_saved_var_array_terminating_elem()
     };
@@ -3150,6 +3402,7 @@ every translation unit.
   caching_pragma_tokens = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   in_microsoft_attribute = FALSE;
+  forScope_stack = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   recognize_keywords_in_pragma = FALSE;
   do_string_literal_concatenation = TRUE;
@@ -3189,6 +3442,9 @@ init_predefined_macros.)
 #endif /* DEBUG */
 #endif /* UPC_EXTENSIONS_ALLOWED */
   header_name_buffer = alloc_text_buffer(256);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  avail_forScope_stack_entries = NULL;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* preproc_init */
 
 

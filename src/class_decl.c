@@ -15313,6 +15313,42 @@ from such interface-like types.)
 }  /* check_if_potentially_interface_like */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if IA64_ABI && NEED_NAME_MANGLING
+
+static void assign_discriminators_to_unnamed_nested_types(a_type_ptr  parent)
+/*
+Assign a "discriminator value" to the unnamed member types of the given class
+type.  The first unnamed type gets value 0, the second gets 1, etc., but
+closure types, anonymous union types, and unnamed types with a typedef name
+for linkage purposes are excluded.
+*/
+{
+  a_type_ptr       mtp = class_type_supp(parent)->assoc_scope->types;
+  a_discriminator  n = 0;
+
+  for (; mtp != NULL; mtp = mtp->next) {
+    a_symbol_ptr  sym = symbol_for(mtp);
+    if (is_unnamed_tag_symbol(sym) && !has_name(mtp)) {
+      /* An unnamed class or enumeration type.  The !has_name test excludes
+         unnamed types that have a typedef name for linkage purposes. */
+      if (is_immediate_class_type(mtp)) {
+        a_class_type_supplement_ptr  ctsp = class_type_supp(mtp);
+        if (ctsp->is_lambda_closure_class ||
+            ctsp->anonymous_union_kind != (an_anonymous_union_kind)auk_none) {
+          /* Closure types and anonymous union types are not included in the
+             count. */
+          continue;
+        }  /* if */
+        symbol_supplement_for_class(mtp)->discriminator = n++;
+      } else {
+        check_assertion(sym->kind == (a_symbol_kind)sk_enum_tag);
+        sym->variant.enumeration.extra_info->discriminator = n++;
+      }  /* if */
+    }  /* if */
+  }  /* for */
+}  /* assign_discriminators_to_unnamed_nested_types */
+
+#endif /* IA64_ABI && NEED_NAME_MANGLING */
 
 static void complete_class_definition(a_type_ptr         class_type,
                                       a_scope_depth      effective_decl_level,
@@ -15469,6 +15505,9 @@ bits of information that were acquired while parsing.
     class_type->variant.class_struct_union.is_interface_like =
                                       class_state->potentially_interface_like;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if IA64_ABI && NEED_NAME_MANGLING
+    assign_discriminators_to_unnamed_nested_types(class_type);
+#endif /* IA64_ABI && NEED_NAME_MANGLING */
   }  /* if */
   error_position = saved_error_position;
 }  /* complete_class_definition */

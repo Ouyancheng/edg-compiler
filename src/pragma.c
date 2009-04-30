@@ -475,6 +475,7 @@ possible.
     case pk_setlocale:
 #endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
     case pk_comment:
+    case pk_conform:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     default:
@@ -2230,6 +2231,19 @@ Initialize the pragma description table.
                  /*il_info_is_complete=*/TRUE,
                  /*read_string_as_header_name=*/FALSE,
                  es_warning);
+    (void)add_immediate_pragma_kind_description
+                ((a_pragma_kind)pk_conform,
+                 microsoft_conform_pragma,
+                 /*global=*/FALSE,
+                 /*automatically_include_in_il=*/FALSE,
+                 /*record_pragma_text=*/FALSE,
+                 /*expand_macros=*/FALSE,
+                 /*processing_C_code=*/FALSE,
+                 /*fetch_pp_tokens=*/FALSE,
+                 /*ignore_in_back_end=*/FALSE,
+                 /*il_info_is_complete=*/TRUE,
+                 /*read_string_as_header_name=*/FALSE,
+                 es_none);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL

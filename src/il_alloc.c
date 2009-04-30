@@ -3258,6 +3258,16 @@ in the current IL memory region.
                                 (a_microsoft_pragma_comment_type)mpct_compiler;
       pp->variant.comment.str = NULL;
       break;
+    case pk_conform:
+      pp->variant.conform.kind =
+                                (a_microsoft_pragma_conform_kind)mpck_forScope;
+      pp->variant.conform.on = FALSE;
+      pp->variant.conform.off = FALSE;
+      pp->variant.conform.show = FALSE;
+      pp->variant.conform.push = FALSE;
+      pp->variant.conform.pop = FALSE;
+      pp->variant.conform.identifier = NULL;
+      break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if CHECKING
     default:
