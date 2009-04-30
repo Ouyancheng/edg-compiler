@@ -1,5 +1,29 @@
 Version 4.1
 
+4/29/09  [EDGcpfe/6861]
+C-generating back end: alignment padding for unions
+
+The size of the padding member inserted by the C-generating back end into a
+union definition for alignment purposes was computed as if the padding
+member were allocated at the position following the largest member of the
+union, rather than at the beginning of the union, as all union members are.
+This is now fixed.  For example:
+
+  union U {
+    char arr[10];
+    int  i;
+  };
+
+Assuming a 4-byte alignment requirement for int, the C-generating back end
+previously inserted the member declaration
+
+  char __dummy[2];
+
+but now inserts
+
+  char __dummy[12];
+
+
 4/29/09  [EDGcpfe/8476]
 GNU compatibility: \E escape sequence
 

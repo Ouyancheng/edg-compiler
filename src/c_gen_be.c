@@ -3044,7 +3044,15 @@ final semicolon if output_final_semi is TRUE.
       } else {
         a_targ_size_t  offset_after_fields = offset_after_field(last_field);
         check_assertion(offset_after_fields <= type->size);
-        padding = type->size - offset_after_fields;
+        if (type->kind == (a_type_kind)tk_union) {
+          /* If needed at all, the "padding" is the size of the entire
+             union. */
+          if (offset_after_fields < type->size) {
+            padding = type->size;
+          }  /* if */
+        } else {
+          padding = type->size - offset_after_fields;
+        }  /* if */
       }  /* if */
       if (padding > 1) {
         write_tok_str("char __dummy[");
