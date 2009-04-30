@@ -1,5 +1,15 @@
 Version 4.1
 
+4/29/09  [EDGcpfe/8476]
+GNU compatibility: \E escape sequence
+
+The GNU compiler accepts \e and \E as escape sequences designating the
+ASCII "ESC" character.  In GNU emulation modes, the front end recognized
+the first but not the second.  This is now fixed.  For example:
+
+  char *home = "\E[H";   // Now equivalent in --gcc mode to "\0x1b[H"
+
+
 4/29/09  [EDGcpfe/8841]
 GNU compatibility: text following #ident string
 

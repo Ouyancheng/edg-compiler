@@ -776,8 +776,9 @@ get_another:
         break;
 #if GNU_EXTENSIONS_ALLOWED
       case 'e':
+      case 'E':
         if (gnu_mode) {
-          /* GNU C mode \e stands for the ASCII "ESC" character. */
+          /* GNU mode \e or \E stands for the ASCII "ESC" character. */
           targ_ch = (unsigned char)TARG_ESC_CHAR;
         } else {
           /* Most modes do not recognize this escape sequence. */
