@@ -2184,6 +2184,8 @@ Dump a single #pragma from the IL entry.
         dump_constant(pp->variant.comment.str);
       }  /* if */
       write_str(")");
+    } else if (pp->kind == (a_pragma_kind)pk_conform) {
+      /* This pragma has no effect on C code, so we don't render it here. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
       check_assertion_str(pp->pragma_text != NULL,
