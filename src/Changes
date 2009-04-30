@@ -1,5 +1,17 @@
 Version 4.1
 
+4/29/09  [EDGcpfe/8841]
+GNU compatibility: text following #ident string
+
+The GNU compiler ignores, with a warning, extra text following the string
+in a #ident directive.  In configurations in which IDENT_DIRECTIVE_AND_PRAGMA
+is TRUE, the front end issued an error for such directives.  This diagnostic
+has now been relaxed to a warning, and the resulting pragma will be entered
+into the IL.  For example:
+
+  #ident "ABC"$    // Previously diagnosed as an error, now a warning
+
+
 4/29/09  [EDGcpfe/9459]
 Microsoft compatibility: #pragma conform(forScope, ...)
 

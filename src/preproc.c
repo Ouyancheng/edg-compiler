@@ -1995,7 +1995,16 @@ where <string> is a quoted character string (not wide chars).
     switch_back_to_original_region(region_to_switch_back_to);
     (void)get_token();
   }  /* if */
-  wrapup_rescan_of_pragma_tokens(err);
+  if (!err && curr_token != tok_end_of_source) {
+    /* The GNU compiler accepts extra text following the ident string with
+       just a warning.  Display a warning and then flush to the end of the
+       token cache, but don't set err, so that the pragma will be entered
+       into the IL. */
+    warning(ec_extra_text_in_pp_directive);
+    wrapup_rescan_of_pragma_tokens(/*error_in_pragma=*/TRUE);
+  } else {
+    wrapup_rescan_of_pragma_tokens(err);
+  }  /* if */
   if (!err) {
     create_il_entry_for_pragma(ppp, (a_symbol_ptr)NULL, (a_statement_ptr)NULL);
     if (ppp->il_pragma_entry != NULL) {
