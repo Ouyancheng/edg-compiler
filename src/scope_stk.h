@@ -921,13 +921,6 @@ Convenience macro to access the top of the scope stack.
 
 
 /*
-Return TRUE if the given scope depth corresponds to a scope of the given kind.
-*/
-#define scope_level_is(depth, kind)                                          \
-  (scope_stack[depth].kind == (a_scope_kind)kind)
-
-
-/*
 Given a scope depth, return a pointer to the scope stack entry or
 a NULL pointer if the scope depth is NO_SCOPE_DEPTH.
 */
