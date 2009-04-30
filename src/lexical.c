@@ -15608,7 +15608,7 @@ a_boolean curr_token_is_identifier_string(char  *tok_str)
 Return TRUE if the current token is an identifier spelled like *tok_str.
 */
 {
-  a_boolean  result;
+  a_boolean  result = FALSE;
 
   if (curr_token == tok_identifier) {
     a_symbol_header_ptr  sym_hdr = locator_for_curr_id.symbol_header;
