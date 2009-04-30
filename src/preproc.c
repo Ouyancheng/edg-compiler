@@ -2815,23 +2815,13 @@ Malformed constructs result in warnings, not errors.
   if (curr_token_is_identifier_string("show")) {
     show = TRUE;
     (void)get_token();
-    goto check_terminating_rparen;
   } else if ((push = curr_token_is_identifier_string("push")) == TRUE ||
              (pop = curr_token_is_identifier_string("pop")) == TRUE) {
     (void)get_token();
     if (curr_token == tok_rparen) goto check_terminating_rparen;
     check_and_skip_token(tok_comma, ec_exp_comma);
     if (curr_token == tok_identifier) {
-      a_forScope_stack_entry_ptr  fssep;
       id = locator_for_curr_id.symbol_header->identifier;
-      fssep = find_forScope_stack_entry(id);
-      if (fssep != NULL) {
-        /* Reuse the IL copy of the identifier. */
-        id = fssep->name;
-      } else {
-        /* Copy the identifier to IL memory. */
-        id = copy_string_to_region(file_scope_region_number, id);
-      }  /* if */
       (void)get_token();
       if (curr_token == tok_comma) {
         (void)get_token();
@@ -2839,18 +2829,23 @@ Malformed constructs result in warnings, not errors.
       }  /* if */
     } else {
       warning(ec_exp_identifier);
+      err = TRUE;
       goto end_of_parse;
     }  /* if */
-    goto check_terminating_rparen;
   } else {
     scan_on_or_off();
   }  /* if */
 check_terminating_rparen:
   check_and_skip_token(tok_rparen, ec_exp_rparen);
 end_of_parse:
+  /* wrapup_rescan_of_pragma_tokens will warn about addition trailing tokens
+     unless err is TRUE. */
   wrapup_rescan_of_pragma_tokens(err);
 #undef scan_on_or_off
 #undef check_and_skip_token
+  /* err == TRUE only indicates that we issued a syntax-related warning (the
+     Microsoft compiler is frequently silent in those cases), but if we got
+     far enough with parsing the pragma can still have an effect. */
   if (show || push || pop || on || off) {
     check_assertion(!on || !off);
     /* Create the IL entry. */
@@ -2889,10 +2884,10 @@ end_of_parse:
                            &ppp->id_position, id);
           } else {
             /* Restore the previously saved state. */
-            fssep->use_nonstandard_for_init_scope =
-                                               use_nonstandard_for_init_scope;
-            fssep->microsoft_type_dependent_for_init_scope =
-                                      microsoft_type_dependent_for_init_scope;
+            use_nonstandard_for_init_scope =
+                                        fssep->use_nonstandard_for_init_scope;
+            microsoft_type_dependent_for_init_scope =
+                               fssep->microsoft_type_dependent_for_init_scope;
             while (fssep->next != forScope_stack) pop_forScope_stack_entry();
           }  /* if */
         }  /* if */
@@ -3395,6 +3390,9 @@ One-time initialization for preproc.c and preproc.h variables.
 #if UPC_EXTENSIONS_ALLOWED
   register_trans_unit_variable(upc_coherence_stack);
 #endif /* UPC_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  register_trans_unit_variable(forScope_stack);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* preproc_one_time_init */
 
 

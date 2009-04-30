@@ -80,7 +80,7 @@ In C mode, the pragma is recognized and parsed, but it has no effect.
 For example:
 
   #pragma conform(forScope, push, xxx, on)
-    // Standard for-scope rules are no in effect.  A state describing the
+    // Standard for-scope rules are now in effect.  A state describing the
     // default rules is on the stack.
   void f1() {
     for (int i; false;);
@@ -88,7 +88,7 @@ For example:
   }
   #pragma conform(forScope, off)
     // Old-style rules are in effect (the default state is still on the
-    // stack.
+    // stack).
   int f2() {
     for (int i = 2; false;);
     return i;  // Okay.
