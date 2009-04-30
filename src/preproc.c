@@ -2865,11 +2865,15 @@ end_of_parse:
       /* The Microsoft C compiler accepts "#pragma conform", but it has no
          effect. */
     } else if (show) {
-      a_boolean  curr_value = !use_nonstandard_for_init_scope &&
-                              !microsoft_type_dependent_for_init_scope;
       check_assertion(!on && !off && !push && !pop);
-      pos_st_warning(ec_value_of_pragma_conform_forScope_show,
-                     &ppp->id_position, curr_value ? "true" : "false");
+      if (use_nonstandard_for_init_scope ||
+          microsoft_type_dependent_for_init_scope) {
+        pos_warning(ec_show_pragma_conform_forScope_is_nonstandard,
+                     &ppp->id_position);
+      } else {
+        pos_warning(ec_show_pragma_conform_forScope_is_standard,
+                     &ppp->id_position);
+      }  /* if */
     } else {
       if (push) {
         push_forScope_stack_entry(id);

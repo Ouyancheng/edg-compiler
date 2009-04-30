@@ -1846,9 +1846,10 @@ ec_initializer_differs_in_other_trans_unit;;"initializer for %n was different du
 ec_designator_for_template_dependent_type;;"a designator into a template-dependent type is not allowed"
 ec_invalid_pragma_conform_kind;;"unrecognized conformance kind"
 ec_exp_on_or_off;;"expected \"on\" or \"off\""
-ec_value_of_pragma_conform_forScope_show;;"current value of pragma conform(forScope, show) is %s"
 ec_forScope_stack_empty;;"#pragma conform(forScope) stack is empty"
 ec_no_matching_forScope_stack_entry;;"no previous #pragma conform(forScope) entry matches %sq"
+ec_show_pragma_conform_forScope_is_nonstandard;;"forScope behavior is nonstandard"
+ec_show_pragma_conform_forScope_is_standard;;"forScope behavior is standard"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
