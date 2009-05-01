@@ -9470,7 +9470,7 @@ statement kind may change (into an stmk_block).
   if (temp_init_statements != NULL) {
     /* Insert statements before the given statement. */
     an_insert_location insert_location;
-    if (statement->kind != stmk_block) {
+    if (statement->kind != (a_statement_kind)stmk_block) {
       a_statement_ptr    orig_stmt;
       change_statement_into_block(statement, &orig_stmt);
     }  /* if */
