@@ -1624,7 +1624,7 @@ a_routine_list_entry nodes.
 #define class_type_is_compiler_generated(tp)                           \
   (class_type_supp(tp)->compiler_generated)
 #else /* !DO_IL_LOWERING */
-#define class_type_is_compiler_generated(tp) FALSE
+#define class_type_is_compiler_generated(tp) FALSE /*lint --e(506)*/
 #endif /* DO_IL_LOWERING */
 
 /*
@@ -5814,6 +5814,7 @@ unit) on the list of symbols headed by syms.
                                                ->variant.variable
                                                ->source_corresp.assoc_info;
           }  /* if */
+          break;
         case sk_variable:
           {
             if (corresp_var_sym == NULL && var != sym->variant.variable.ptr) {
