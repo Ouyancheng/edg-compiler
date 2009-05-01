@@ -5522,7 +5522,9 @@ associated symbol, use the current translation unit.
 
   tup = (scp->assoc_info != NULL) ? trans_unit_for_source_corresp(scp) :
                                     curr_translation_unit;
-  module_id = module_id_for_translation_unit(tup);
+  module_id = *tup->module_id_ptr;
+  /* The module id must have been created previously. */
+  check_assertion(module_id != NULL);
   return module_id;
 }  /* module_id_for_source_corresp */
 
