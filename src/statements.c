@@ -1057,6 +1057,7 @@ to point to the lifetime promote_to.
           /* Skip over the nested block. */
           cfdp = cfdp->variant.block.end_of_block;
         }  /* if */
+        /*FALLTHROUGH*/
       default:
         continue;
     }  /* switch */
