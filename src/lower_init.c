@@ -9446,7 +9446,7 @@ void insert_temp_init_statements_at_location(
                                            an_insert_location *insert_location)
 /*
 If there are any pending statements (as the result of lowering an enk_temp_init
-node) at the specified location.
+node) insert them at the specified location.
 */
 {
   while (temp_init_statements != NULL) {
