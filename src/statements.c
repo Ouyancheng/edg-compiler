@@ -1012,7 +1012,7 @@ is found, a diagnostic is issued (an error in C++, a warning otherwise), and
             add_diag_info_with_pos_insert(ec_vla_at_decl_pos, &pos);
           }  /* if */
         }  /* if */
-        /* Fall through. */
+        /*FALLTHROUGH*/
       default:
         /* Advance to the next entry in the list. */
         next_cfdp = cfdp->next;

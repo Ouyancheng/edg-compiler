@@ -413,6 +413,7 @@ current expression (used to decide how a comma should be treated).
       }  /* if */
       /* Not the end of a template argument list, so fall into the normal
          case. */
+      /*FALLTHROUGH*/
     case tok_lt:
     case tok_le:
     case tok_ge:
@@ -19060,6 +19061,7 @@ see expr.h).
       /* Check for ":: delete". */
       if (ntoken == tok_delete) goto scan_delete;
       /* Fall through to next case ("::" is the start of a qualified name). */
+      /*FALLTHROUGH*/
     case tok_identifier:
     case tok_operator:               /* Start of "operator+" and the like. */
 #if MICROSOFT_EXTENSIONS_ALLOWED

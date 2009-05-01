@@ -5742,6 +5742,7 @@ such a typedef, return the associated basic type specifier and set *sign and
         case ik_unsigned_char:
           if (plain_char_int_kind != ikind && *sign != sign_none) break;
           /* Fall into signed char case. */
+          /*FALLTHROUGH*/
         case ik_signed_char:
           if (*size != size_none
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -5762,6 +5763,7 @@ such a typedef, return the associated basic type specifier and set *sign and
           if (*sign != sign_none) break;
           *sign = sign_unsigned;
           /* Fall into signed int case. */
+          /*FALLTHROUGH*/
         case ik_int:
           basic_type = bt_int;
           break;
@@ -7492,6 +7494,7 @@ corresponding change in prescan_decl_specifiers (in disambig.c).
           break;
         }  /* if */
         /* Otherwise drop through for normal storage class processing. */
+        /*FALLTHROUGH*/
       case tok_static:
       case tok_register:
       case tok_mutable:
@@ -7969,7 +7972,7 @@ storage_class_specifier:
             goto exit_loop;
           }  /* if */
         }  /* if */
-        /* Fall-through to next case. */
+        /*FALLTHROUGH*/
       case tok_char:
       case tok_wchar_t:
       case tok_c99_bool:

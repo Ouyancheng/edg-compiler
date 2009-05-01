@@ -10382,6 +10382,7 @@ return_end_of_source_token:
         goto concatenate_adjacent_string_literals;
       }  /* if */
       /* Neither of those cases, fall through into identifier processing. */
+      /*FALLTHROUGH*/
     case 'a': case 'b': case 'c': case 'd': case 'e': case 'f': case 'g':
     case 'h': case 'i': case 'j': case 'k': case 'l': case 'm': case 'n':
     case 'o': case 'p': case 'q': case 'r': case 's': case 't': /*above*/

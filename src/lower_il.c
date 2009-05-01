@@ -13664,6 +13664,7 @@ cast.  See lower_expr for typical invocation.
             if (node_operator_type_kind_is(expr, tk_complex)) {
               lower_c99_xmultiply(expr);
             }  /*if */
+            break;
           case eok_divide:
             if (node_operator_type_kind_is(expr, tk_complex)) {
               lower_c99_xdivide(expr);

@@ -2710,6 +2710,7 @@ constant.
             err = TRUE;
             break;
           }  /* if */
+          /*FALLTHROUGH*/
 #endif /* UPC_EXTENSIONS_ALLOWED */
         case ck_integer:
           /* Array size must be greater than zero. */
