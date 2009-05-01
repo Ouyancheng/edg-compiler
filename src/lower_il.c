@@ -16070,6 +16070,8 @@ handled).
     if (scope->lifetime != NULL) {
       begin_object_lifetime(scope->lifetime, &insert_location);
     }  /* if */
+    /* Shouldn't be any pending temporary initialization statements. */
+    check_assertion(temp_init_statements == NULL);
     /* Generate code for the initialization, and insert it at the beginning
        of the new block. */
     set_var_init_pos_descr(csp->dynamic_init->variable, &ipd);
@@ -16080,6 +16082,18 @@ handled).
                        /*others_follow_in_aggr=*/FALSE,
                        &insert_location, (a_boolean *)NULL,
                        (a_constant **)NULL);
+    if (temp_init_statements != NULL) {
+      /* Lowering of the dynamic init may have created some statements to
+         initialize temporaries (in the case where the value is a simple
+         constant, e.g., "if (char* const& s = "zzz");"). These statements
+         need to be inserted within block_stmt (where the temporary is
+         defined), but before they are used (by code that was inserted by
+         lower_dynamic_init above). */
+      an_insert_location  block_start_insert_location;
+      set_block_start_insert_location(block_stmt,
+                                      &block_start_insert_location);
+      insert_temp_init_statements_at_location(&block_start_insert_location);
+    }  /* if */
     /* Lower the value expression. */
     value_expr = csp->expr;
     if (is_switch_stmt) {

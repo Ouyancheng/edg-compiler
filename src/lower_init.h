@@ -61,7 +61,8 @@ EXTERN a_statement_ptr
 		temp_init_statements;
 			/* A list of statements that initialize temporaries for
 			   lowered compound literals.  These statements are
-			   inserted by calling insert_temp_init_statements. */
+			   inserted by calling insert_temp_init_statements
+			   or insert_temp_init_statements_at_location. */
 
 extern void do_ptr_to_data_member_arg_promotion_on_node(an_expr_node_ptr expr);
 
@@ -234,6 +235,9 @@ extern void lower_destructor_code(a_scope_ptr scope);
 extern void lower_stmk_init(a_statement_ptr statement);
 
 extern void insert_temp_init_statements(a_statement_ptr  statement);
+
+extern void insert_temp_init_statements_at_location(
+                                          an_insert_location *insert_location);
 
 extern void add_to_end_of_temp_init_statements_list(a_statement_ptr  stmt);
 

@@ -9442,25 +9442,40 @@ Generate code for a stmk_init (dynamic initialization) statement.
 }  /* lower_stmk_init */
 
 
+void insert_temp_init_statements_at_location(
+                                           an_insert_location *insert_location)
+/*
+If there are any pending statements (as the result of lowering an enk_temp_init
+node) at the specified location.
+*/
+{
+  while (temp_init_statements != NULL) {
+    a_statement_ptr stmt = temp_init_statements;
+    temp_init_statements = stmt->next;
+    stmt->next = NULL;
+    insert_statement(stmt, insert_location);
+  }  /* while */
+}  /* insert_temp_init_statements_at_location */
+
+
 void insert_temp_init_statements(a_statement_ptr  statement)
 /*
 If there are any pending statements (as the result of lowering an enk_temp_init
 node), insert them before the given statement.  (This happens when lowering
-compound literals.)
+compound literals.)  If there are pending statements, the statement is turned
+into a block (if it is not one already).  Caller must be aware that the
+statement kind may change (into an stmk_block).
 */
 {
   if (temp_init_statements != NULL) {
     /* Insert statements before the given statement. */
     an_insert_location insert_location;
-    a_statement_ptr    orig_stmt;
-    change_statement_into_block(statement, &orig_stmt);
+    if (statement->kind != stmk_block) {
+      a_statement_ptr    orig_stmt;
+      change_statement_into_block(statement, &orig_stmt);
+    }  /* if */
     set_block_start_insert_location(statement, &insert_location);
-    while (temp_init_statements != NULL) {
-      a_statement_ptr stmt = temp_init_statements;
-      temp_init_statements = stmt->next;
-      stmt->next = NULL;
-      insert_statement(stmt, &insert_location);
-    }  /* while */
+    insert_temp_init_statements_at_location(&insert_location);
   }  /* if */
 }  /* insert_temp_init_statements */
 
