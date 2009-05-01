@@ -305,18 +305,38 @@ typedef struct a_mangling_control_block {
 
 
 /*
-Text buffer used for mangling.
+A doubly linked list of text buffers used for mangling.  In some cases,
+mangling routines can be called recursively, necessitating multiple
+mangling text buffers.
 */
+typedef struct a_mangling_buffer *a_mangling_buffer_ptr;
+typedef struct a_mangling_buffer {
+  a_mangling_buffer_ptr
+                next;   /* Points to the next entry on the list. */
+  a_mangling_buffer_ptr
+                prev;   /* Points to the previous entry on the list. */
+  a_text_buffer_ptr
+                text_buffer;
+                        /* A text buffer used for name mangling. */
+} a_mangling_buffer;
+
+static a_mangling_buffer_ptr
+                mangling_buffer_head;
+                        /* The head of the list of a_mangling_buffer
+                           entries. */
+
+static a_mangling_buffer_ptr
+                mangling_buffer_ptr;
+                        /* A pointer to the list entry whose text_buffer
+                           is currently being used as mangling_text_buffer.
+                           Any buffers on the list prior to the entry
+                           pointed to by mangling_buffer_ptr are in use
+                           and buffers after (if any) are free. */
+
 static a_text_buffer_ptr
 		mangling_text_buffer;
-
-/*
-Second text buffer, needed when a recursive call to the mangling routines
-is made, e.g., when generating a module id.
-*/
-static a_text_buffer_ptr
-		second_mangling_text_buffer;
-
+                        /* The text buffer currently being used for
+                           mangling. */
 
 static void mangled_encoding_for_type(a_type_ptr               type,
                                       a_mangling_control_block *mctl);
@@ -492,13 +512,81 @@ mctl->first_substitution/mctl->last_substitution.
 
 #endif /* IA64_ABI */
 
+static a_mangling_buffer_ptr alloc_mangling_buffer()
+/*
+Allocate and initialize a mangling buffer.
+*/
+{
+  a_mangling_buffer_ptr mbp;
+
+  mbp = (a_mangling_buffer_ptr)alloc_fe(sizeof(a_mangling_buffer));
+  mbp->next = NULL;
+  mbp->prev = NULL;
+  mbp->text_buffer = alloc_text_buffer(2048);
+  return mbp;
+}  /* alloc_mangling_buffer */
+
+
+static void push_mangling_text_buffer()
+/*
+Set mangling_text_buffer to a new buffer in preparation for generating
+a new mangled name -- allocate one if necessary or use a buffer previously
+allocated if available.  If mangling_text_buffer is currently being used,
+push it so it'll be restored by a corresponding call to
+pop_mangling_text_buffer.
+*/
+{
+  a_mangling_buffer_ptr mbp;
+
+  if (mangling_buffer_ptr == NULL) {
+    /* No buffers are currently in use, use the first one (allocate if
+       necessary). */
+    if (mangling_buffer_head == NULL) {
+      mangling_buffer_head = alloc_mangling_buffer();
+    }  /* if */
+    mangling_buffer_ptr = mangling_buffer_head;
+  } else if (mangling_buffer_ptr->next != NULL) {
+    /* The buffer pointed to by mangling_buffer_ptr is in use, go to
+       the next buffer (previously allocated). */
+    mangling_buffer_ptr = mangling_buffer_ptr->next;
+  } else {
+    /* The buffer pointed to by mangling_buffer_ptr is in use and no additional
+       buffers are available.  Allocate a new buffer and use that. */
+    mbp = alloc_mangling_buffer();
+    mbp->prev = mangling_buffer_ptr;
+    mangling_buffer_ptr->next = mbp;
+    mangling_buffer_ptr = mbp;
+  }  /* if */
+  mangling_text_buffer = mangling_buffer_ptr->text_buffer;
+}  /* push_mangling_text_buffer */
+
+
+static void pop_mangling_text_buffer()
+/*
+Signal that mangling_text_buffer is no longer needed for mangling.
+Restore the previous mangling_text_buffer if we're nested.
+*/
+{
+  check_assertion(mangling_buffer_ptr != NULL);
+  mangling_buffer_ptr = mangling_buffer_ptr->prev;
+  if (mangling_buffer_ptr == NULL) {
+    mangling_text_buffer = NULL;
+  } else {
+    mangling_text_buffer = mangling_buffer_ptr->text_buffer;
+  }  /* if */
+}  /* pop_mangling_text_buffer */
+
+
 static void start_mangling(a_mangling_control_block_ptr mctl)
 /*
-Do initialization for mangling one name.  This includes clearing
-mangling_text_buffer and mctl.
+Do initialization for mangling one name.  This includes setting
+mangling_text_buffer to a new mangling buffer, then clearing it and mctl.
+Must be paired with a corresponding call to end_mangling
+(or pop_mangling_text_buffer if end_mangling is not needed).
 */
 {
   clear_mangling_control_block(mctl);
+  push_mangling_text_buffer();
   reset_text_buffer(mangling_text_buffer);
 }  /* start_mangling */
 
@@ -553,8 +641,9 @@ static char *end_mangling(a_source_correspondence      *scp,
 /*
 Do processing at the end of mangling a name, which is in the mangling
 buffer.  At the least, this includes adding the final null character.
-Return the address of the mangled name in the buffer.  If scp is
-non-NULL, allocate a copy of the name in the IL memory region, and
+Return the address of the mangled name in the buffer (this address must
+be used before any additional mangling calls overwrite its contents).  If scp
+is non-NULL, allocate a copy of the name in the IL memory region, and
 update scp to point to it.  If final is TRUE, it's okay to do final
 mangling, which may produce a name that can no longer be embedded in
 other mangled names.
@@ -615,6 +704,8 @@ other mangled names.
     avail_substitutions = mctl->first_substitution;
   }  /* if */
 #endif /* IA64_ABI */
+  /* We're done with this mangling text buffer. */
+  pop_mangling_text_buffer();
   return buffer;
 }  /* end_mangling */
 
@@ -3033,6 +3124,28 @@ If the indicated class type is unnamed, give it a name and return the name.
 }  /* give_unnamed_class_a_name */
 
 
+static char *module_id_for_translation_unit(a_translation_unit_ptr tup)
+/*
+Return the module id for the specified translation unit.  If the translation
+unit doesn't have a module id yet, generate one if it's for the current
+translation unit, otherwise abort.
+*/
+{
+  char *module_id;
+
+  if (curr_translation_unit == tup) {
+    /* Normal case -- the current translation unit. */
+    module_id = make_module_id();
+  } else {
+    /* A translation unit other than the current one. */
+    module_id = *(tup->module_id_ptr);
+    /* The module id must have been generated already. */
+    check_assertion(module_id != NULL);
+  }  /* if */
+  return module_id;
+}  /* module_id_for_translation_unit */
+
+
 static void give_unnamed_namespace_a_name(a_namespace_ptr nsp)
 /*
 If the indicated namespace is unnamed, give it a name.
@@ -3060,27 +3173,7 @@ If the indicated namespace is unnamed, give it a name.
       a_translation_unit_ptr tup;
       check_assertion(!nsp->is_namespace_alias);
       tup = trans_unit_for_scope[nsp->variant.assoc_scope->number];
-      if (curr_translation_unit == tup) {
-        /* Normal case -- the namespace is from the current translation
-           unit. */
-        /* Because generation of the module id can make a recursive call
-           to the name mangling routines, save and restore the mangling
-           buffer. */
-        a_text_buffer_ptr saved_text_buffer = mangling_text_buffer;
-        check_assertion(mangling_text_buffer != second_mangling_text_buffer);
-        if (second_mangling_text_buffer == NULL) {
-          second_mangling_text_buffer = alloc_text_buffer(2048);
-        }  /* if */
-        mangling_text_buffer = second_mangling_text_buffer;
-        module_id = make_module_id();
-        mangling_text_buffer = saved_text_buffer;
-      } else {
-        /* The namespace is from a translation unit other than the current
-           one. */
-        module_id = *(tup->module_id_ptr);
-        /* The module id must have been generated already. */
-        check_assertion(module_id != NULL);
-      }  /* if */
+      module_id = module_id_for_translation_unit(tup);
     }  /* if */
 #if IA64_ABI
     /* g++ uses "_GLOBAL__N_" and recognizes that in its demangler. */
@@ -5429,9 +5522,7 @@ associated symbol, use the current translation unit.
 
   tup = (scp->assoc_info != NULL) ? trans_unit_for_source_corresp(scp) :
                                     curr_translation_unit;
-  module_id = *tup->module_id_ptr;
-  /* The module id must have been created previously. */
-  check_assertion(module_id != NULL);
+  module_id = module_id_for_translation_unit(tup);
   return module_id;
 }  /* module_id_for_source_corresp */
 
@@ -5611,6 +5702,8 @@ is TRUE, a routine otherwise.
 #endif /* IA64_ABI */
   scp->name = externalized_name;
   scp->externalized = TRUE;
+  /* We're done with this mangling text buffer. */
+  pop_mangling_text_buffer();
   return;
 }  /* externalize_mangled_name */
 
@@ -6329,6 +6422,8 @@ compression and truncation.
     name = compress_mangled_name(name, scp, &mctl);
 #endif /* !IA64_ABI */
     name = truncate_mangled_name(name, scp, &mctl);
+    /* Signal that we're done using mangling_text_buffer. */
+    pop_mangling_text_buffer();
     scp->name = name;
     scp->final_name_mangling_pending = FALSE;
   }  /* if */
@@ -6414,6 +6509,7 @@ the simple form of the name must remain available for use in mangled names
   do_scope_final_name_mangling(il_header.primary_scope);
   /* Process local types. */
   do_local_name_mangling(do_type_list_final_name_mangling);
+  check_assertion(mangling_buffer_ptr == NULL);
 }  /* do_final_name_mangling */
 
 #if ABI_COMPATIBILITY_VERSION >= 230 && CFRONT_OBJECT_CODE_COMPATIBILITY
@@ -7037,16 +7133,17 @@ be embedded in other mangled names.
        start the mangled name with the externalizing prefix. */
     if (routine->source_corresp.externalized ||
         routine_should_be_externalized_for_exported_templates(routine)) {
-      start_externalized_name(&routine->source_corresp,
-                              /*is_variable=*/FALSE, &mctl);
+      start_externalized_name(&routine->source_corresp, iek_routine, &mctl);
+      /* Note that no matching call to end_externalized_name is performed
+         because it's a no-op in the IA-64 ABI. */
     }  /* if */
     add_prefix_for_local_entity(routine, &mctl);
     if (!is_string) {
       if (scoped_enum_type_name == NULL) {
         mangled_name_with_length(scp->name, &mctl);
       } else {
-        /* Created a nested name with the scoped enumeration type and the
-           scoped enumerator name.  This isn't specified in the IA64 ABI
+        /* Create a nested name with the scoped enumeration type and the
+           scoped enumerator name.  This isn't specified in the IA-64 ABI
            and is mostly to avoid conflicts in generated C code
            (enumerators don't have external linkage).  No need to worry about
            enclosing classes or namespaces since the enum type is local
@@ -7508,9 +7605,9 @@ void name_lower_one_time_init(void)
 Do one-time initialization of variables related to name mangling.
 */
 {
-  /* Allocate the text buffer used for mangling. */
-  mangling_text_buffer = alloc_text_buffer(2048);
-  second_mangling_text_buffer = NULL;
+  mangling_text_buffer = NULL;
+  mangling_buffer_ptr = NULL;
+  mangling_buffer_head = NULL;
   /* Save variables from lower_name.c that are needed for precompiled
      headers */
   if (precompiled_header_processing_required) {
