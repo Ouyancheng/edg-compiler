@@ -5814,12 +5814,14 @@ to the point where the base name appears.
                                     (a_special_function_kind)sfk_constructor ||
                       routine->special_kind ==
                                       (a_special_function_kind)sfk_destructor);
-      /* Copy the name to the mangling buffer so we can change it. */
+      /* Copy the name to a mangling buffer so we can change it. */
+      push_mangling_text_buffer();
       reset_text_buffer(mangling_text_buffer);
       (void)add_to_text_buffer(mangling_text_buffer, mangled_name,
                                strlen(mangled_name)+1);
       mangled_name = mangling_text_buffer->buffer;
       mangled_name[routine->variant.ctor_dtor.base_name_offset+1] = '1';
+      pop_mangling_text_buffer();
     }  /* if */
 #endif /* IA64_ABI && DO_IL_LOWERING */
   } else {
