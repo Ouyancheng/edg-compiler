@@ -16089,10 +16089,7 @@ handled).
          need to be inserted within block_stmt (where the temporary is
          defined), but before they are used (by code that was inserted by
          lower_dynamic_init above). */
-      an_insert_location  block_start_insert_location;
-      set_block_start_insert_location(block_stmt,
-                                      &block_start_insert_location);
-      insert_temp_init_statements_at_location(&block_start_insert_location);
+      insert_temp_init_statements(block_stmt);
     }  /* if */
     /* Lower the value expression. */
     value_expr = csp->expr;
