@@ -1345,10 +1345,9 @@ TRUE.
   if (kind == (a_type_kind)tk_error) {
     /* Unknown member type (due to error). */
     *member_type = error_type();
-  } else if (kind == (a_type_kind)tk_template_param ||
-             kind == (a_type_kind)tk_unknown) {
+  } else if (kind == (a_type_kind)tk_template_param) {
     /* Unknown member type (due to template parameterization). */
-    *member_type = unknown_type();
+    *member_type = type_of_unknown_templ_param_nontype;
   } else if (kind == (a_type_kind)tk_array) {
     /* Array.  Start with first element. */
     if (type->size == 0) {
@@ -1589,8 +1588,7 @@ appropriate, and set the context type to an error type.
 */
 {
   if (!is_error_type(context->type)) {
-    if (is_unknown_type(context->type) ||
-        is_template_param_type(context->type)) {
+    if (is_template_param_type(context->type)) {
       /* A designator into a template dependent (i.e., unknown) type.
          We do not currently accept such cases. */
       error(ec_designator_for_template_dependent_type);
@@ -2172,7 +2170,6 @@ this function points to a tree that includes a dynamic-init entry.
               curr_token == tok_lbrace) ||
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
              ((is_template_param_type(context.type) ||
-               is_unknown_type(context.type) ||
                is_error_type(context.type)) &&
               ((curr_token == tok_lbrace &&
                 context.pending_init_con == NULL) ||
@@ -2194,7 +2191,7 @@ this function points to a tree that includes a dynamic-init entry.
             /* For a nonreal class, we cannot relate the initializers to the
                inner type structure of that class.  The g++ compiler treats
                all types in prototype instantiations as "unknown". */
-          context.type = unknown_type();
+          context.type = type_of_unknown_templ_param_nontype;
         } else {
           pos_ty_error(ec_brace_initialization_not_allowed, &pos_curr_token,
                        context.type);
@@ -2307,11 +2304,10 @@ this function points to a tree that includes a dynamic-init entry.
              where we are or what we're initializing. */
           member_type = error_type();
           kind = (a_type_kind)tk_error;
-        } else if (is_template_param_type(context.type) ||
-                   is_unknown_type(context.type)) {
-          /* The destination type is unknown (e.g., a template parameter).
+        } else if (is_template_param_type(context.type)) {
+          /* The destination type is unknown (i.e., template dependent).
              The member type is therefore also unknown. */
-          member_type = unknown_type();
+          member_type = type_of_unknown_templ_param_nontype;
         } else if (kind == (a_type_kind)tk_array || is_gnu_vector) {
           /* member_type was set outside the loop. */
 #if DEBUG
