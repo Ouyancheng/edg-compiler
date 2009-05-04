@@ -305,33 +305,27 @@ typedef struct a_mangling_control_block {
 
 
 /*
-A doubly linked list of text buffers used for mangling.  In some cases,
-mangling routines can be called recursively, necessitating multiple
-mangling text buffers.
+Text buffers used for mangling.  In some cases, mangling routines can be called
+recursively, necessitating multiple mangling text buffers.
 */
 typedef struct a_mangling_buffer *a_mangling_buffer_ptr;
 typedef struct a_mangling_buffer {
   a_mangling_buffer_ptr
                 next;   /* Points to the next entry on the list. */
-  a_mangling_buffer_ptr
-                prev;   /* Points to the previous entry on the list. */
   a_text_buffer_ptr
                 text_buffer;
                         /* A text buffer used for name mangling. */
 } a_mangling_buffer;
 
 static a_mangling_buffer_ptr
-                mangling_buffer_head;
-                        /* The head of the list of a_mangling_buffer
-                           entries. */
+                mangling_buffers_in_use;
+                        /* A list of a_mangling_buffer entries that are in-use
+                           (points to the buffer currently in-use, previous
+                           in-use buffers are linked by next). */
 
 static a_mangling_buffer_ptr
-                mangling_buffer_ptr;
-                        /* A pointer to the list entry whose text_buffer
-                           is currently being used as mangling_text_buffer.
-                           Any buffers on the list prior to the entry
-                           pointed to by mangling_buffer_ptr are in use
-                           and buffers after (if any) are free. */
+                mangling_buffer_free_list;
+                        /* A list of free mangling buffers. */
 
 static a_text_buffer_ptr
 		mangling_text_buffer;
@@ -519,9 +513,8 @@ Allocate and initialize a mangling buffer.
 {
   a_mangling_buffer_ptr mbp;
 
-  mbp = (a_mangling_buffer_ptr)alloc_fe(sizeof(a_mangling_buffer));
+  mbp = (a_mangling_buffer_ptr)alloc_general(sizeof(a_mangling_buffer));
   mbp->next = NULL;
-  mbp->prev = NULL;
   mbp->text_buffer = alloc_text_buffer(2048);
   return mbp;
 }  /* alloc_mangling_buffer */
@@ -538,26 +531,15 @@ pop_mangling_text_buffer.
 {
   a_mangling_buffer_ptr mbp;
 
-  if (mangling_buffer_ptr == NULL) {
-    /* No buffers are currently in use, use the first one (allocate if
-       necessary). */
-    if (mangling_buffer_head == NULL) {
-      mangling_buffer_head = alloc_mangling_buffer();
-    }  /* if */
-    mangling_buffer_ptr = mangling_buffer_head;
-  } else if (mangling_buffer_ptr->next != NULL) {
-    /* The buffer pointed to by mangling_buffer_ptr is in use, go to
-       the next buffer (previously allocated). */
-    mangling_buffer_ptr = mangling_buffer_ptr->next;
-  } else {
-    /* The buffer pointed to by mangling_buffer_ptr is in use and no additional
-       buffers are available.  Allocate a new buffer and use that. */
-    mbp = alloc_mangling_buffer();
-    mbp->prev = mangling_buffer_ptr;
-    mangling_buffer_ptr->next = mbp;
-    mangling_buffer_ptr = mbp;
+  if (mangling_buffer_free_list == NULL) {
+    /* No free buffers, allocate one. */
+    mangling_buffer_free_list = alloc_mangling_buffer();
   }  /* if */
-  mangling_text_buffer = mangling_buffer_ptr->text_buffer;
+  mbp = mangling_buffer_free_list;
+  mangling_buffer_free_list = mangling_buffer_free_list->next;
+  mbp->next = mangling_buffers_in_use;
+  mangling_buffers_in_use = mbp;
+  mangling_text_buffer = mbp->text_buffer;
 }  /* push_mangling_text_buffer */
 
 
@@ -567,12 +549,16 @@ Signal that mangling_text_buffer is no longer needed for mangling.
 Restore the previous mangling_text_buffer if we're nested.
 */
 {
-  check_assertion(mangling_buffer_ptr != NULL);
-  mangling_buffer_ptr = mangling_buffer_ptr->prev;
-  if (mangling_buffer_ptr == NULL) {
+  a_mangling_buffer_ptr mbp = mangling_buffers_in_use;
+
+  check_assertion(mbp != NULL);
+  mangling_buffers_in_use = mbp->next;
+  mbp->next = mangling_buffer_free_list;
+  mangling_buffer_free_list = mbp;
+  if (mangling_buffers_in_use == NULL) {
     mangling_text_buffer = NULL;
   } else {
-    mangling_text_buffer = mangling_buffer_ptr->text_buffer;
+    mangling_text_buffer = mangling_buffers_in_use->text_buffer;
   }  /* if */
 }  /* pop_mangling_text_buffer */
 
@@ -6513,7 +6499,7 @@ the simple form of the name must remain available for use in mangled names
   do_scope_final_name_mangling(il_header.primary_scope);
   /* Process local types. */
   do_local_name_mangling(do_type_list_final_name_mangling);
-  check_assertion(mangling_buffer_ptr == NULL);
+  check_assertion(mangling_buffers_in_use == NULL);
 }  /* do_final_name_mangling */
 
 #if ABI_COMPATIBILITY_VERSION >= 230 && CFRONT_OBJECT_CODE_COMPATIBILITY
@@ -7610,8 +7596,8 @@ Do one-time initialization of variables related to name mangling.
 */
 {
   mangling_text_buffer = NULL;
-  mangling_buffer_ptr = NULL;
-  mangling_buffer_head = NULL;
+  mangling_buffer_free_list = NULL;
+  mangling_buffers_in_use = NULL;
   /* Save variables from lower_name.c that are needed for precompiled
      headers */
   if (precompiled_header_processing_required) {
