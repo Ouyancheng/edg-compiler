@@ -2684,6 +2684,10 @@ typedef struct a_forScope_stack_entry {
 			   name. */
 } a_forScope_stack_entry;
 
+#if DEBUG
+static unsigned long
+		num_forScope_stack_entries_allocated;
+#endif /* DEBUG */
 
 static a_forScope_stack_entry_ptr
 		forScope_stack;
@@ -2710,6 +2714,9 @@ Record the given name and the current conformance state in that entry.
   } else {
     fssep = (a_forScope_stack_entry_ptr)alloc_fe(
                                sizeof(a_forScope_stack_entry));
+#if DEBUG
+    ++num_forScope_stack_entries_allocated;
+#endif /* DEBUG */
   }  /* if */
   fssep->next = forScope_stack;
   fssep->name = name;
@@ -2892,7 +2899,8 @@ end_of_parse:
                                         fssep->use_nonstandard_for_init_scope;
             microsoft_type_dependent_for_init_scope =
                                fssep->microsoft_type_dependent_for_init_scope;
-            while (fssep->next != forScope_stack) pop_forScope_stack_entry();
+            while (fssep != forScope_stack) pop_forScope_stack_entry();
+            pop_forScope_stack_entry();
           }  /* if */
         }  /* if */
       }  /* if */
@@ -3342,9 +3350,9 @@ Display and return the amount of space used for preprocessing structures.
 */
 {
   unsigned long grand_total = 0;
-#if UPC_EXTENSIONS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED || UPC_EXTENSIONS_ALLOWED
   unsigned long num, size, total;
-#endif /* UPC_EXTENSIONS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || UPC_EXTENSIONS_ALLOWED */
 
   db_space_used_header("Preprocessing table use:");
 
@@ -3354,6 +3362,12 @@ Display and return the amount of space used for preprocessing structures.
                      num_upc_pragma_stack_entries_allocated,
                      a_upc_pragma_stack_entry);
 #endif /* UPC_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  db_space_used_lost("conform(forScope) pragma stack entries",
+                     avail_forScope_stack_entries,
+                     num_forScope_stack_entries_allocated,
+                     a_forScope_stack_entry);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
   db_space_used_total();
 
@@ -3380,6 +3394,9 @@ One-time initialization for preproc.c and preproc.h variables.
       pch_saved_var_array_elem(in_microsoft_implementation_key_mapping_region),
       pch_saved_var_array_elem(forScope_stack),
       pch_saved_var_array_elem(avail_forScope_stack_entries),
+#if DEBUG
+      pch_saved_var_array_elem(num_forScope_stack_entries_allocated),
+#endif /* if DEBUG */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       pch_saved_var_array_terminating_elem()
     };
@@ -3457,6 +3474,9 @@ init_predefined_macros.)
   header_name_buffer = alloc_text_buffer(256);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   avail_forScope_stack_entries = NULL;
+#if DEBUG
+  num_forScope_stack_entries_allocated = 0;
+#endif /* DEBUG */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* preproc_init */
 
