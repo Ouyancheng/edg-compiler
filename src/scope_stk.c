@@ -2053,6 +2053,9 @@ the scope being pushed.
   ssep->string_literal_table = NULL;
   ssep->string_literal_sequence_number = 0;
 #endif /* DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
+#if DO_IL_LOWERING
+  ssep->lowering_delayed_on_nested_function = FALSE;
+#endif  /* DO_IL_LOWERING */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
   ssep->ELF_visibility = (an_ELF_visibility_kind)evk_unspecified;
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
@@ -6131,8 +6134,27 @@ be delayed until the end of the compilation.
        definition to be closed out before it might get deleted. */
     delay_lowering = TRUE;
 #endif /* GNU_EXTENSIONS_ALLOWED && COMPILE_MULTIPLE_TRANSLATION_UNITS */
+  } else if (scope_stack[depth_scope_stack].
+                                         lowering_delayed_on_nested_function) {
+    /* In cases where the lowering of constructors/destructors of a local class
+       has been delayed, the determination of whether or not vtables should be
+       emitted cannot be accurately determined.  By delaying the lowering of
+       functions that contain lowering-delayed functions, we ensure the
+       functions will be lowered in the proper order (from innermost to
+       outermost) and that vtables will be handled properly.  */
+    delay_lowering = TRUE;
   }  /* if */
   if (delay_lowering) {
+    /* Set a flag to delay lowering on all enclosing function scopes
+       (if any). */
+    a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
+    for (; ssep != NULL; ssep = previous_scope_of(ssep)) {
+      if (ssep->kind == (a_scope_kind)sck_function) {
+        ssep->lowering_delayed_on_nested_function = TRUE;
+      }  /* if */
+    }  /* for */
+    /* Record that lowering has been delayed on at least one function in the
+       primary IL. */
     function_body_processing_delayed_on_some_func_in_primary_il = TRUE;
   }  /* if */
   return delay_lowering;

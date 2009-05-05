@@ -1,5 +1,45 @@
 Version 4.1
 
+5/5/09  [EDGcpfe/9657]
+Delayed lowering of function scopes
+
+Typically, lowering of a function scope takes place immediately after the front
+end has generated IL for the function, but there are instances when lowering of
+a function scope is delayed (see should_delay_lowering_on_function).  Delaying
+lowering of a function can change the relative order in which functions are
+lowered and lead to some undesired results.  For example, these two samples
+compile without error in default mode, but yield an internal error and an
+inadvertent suppression of vtables in strict mode (in IA-64 configurations):
+
+  struct A {};
+  void f() {
+    struct B : virtual A {  // internal error in lower_il.c:
+      B() { struct X {}; }  //   define_one_virtual_function_table
+    };
+  }
+
+Also:
+
+  struct A {
+    void f() {
+      struct B : virtual A { // no virtual function table emitted for A::f()::B
+        B() { struct X {}; }
+        ~B() { struct X {}; }
+      };
+      B b;
+    }
+  };
+  int main() {
+    A a;
+    a.f();
+    return 0;
+  }
+
+A change has been made to delay the lowering of all enclosing functions
+that encompass a function whose lowering has been delayed.  This keeps the
+relative ordering of lowering the same for nested functions.
+
+
 5/5/09   [EDGcpfe/9768]
 Lowering of question operator can result in invalid generated C
 
