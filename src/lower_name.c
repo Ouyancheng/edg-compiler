@@ -329,8 +329,12 @@ static a_mangling_buffer_ptr
 
 static a_text_buffer_ptr
 		mangling_text_buffer;
-                        /* The text buffer currently being used for
-                           mangling. */
+                        /* The text buffer currently being used for mangling.
+                           Points to the text buffer at the head of the
+                           mangling_buffers_in_use list (i.e., 
+                           mangling_buffers_in_use->text_buffer when
+                           mangling_buffers_in_use is non-NULL, and NULL
+                           otherwise. */
 
 static void mangled_encoding_for_type(a_type_ptr               type,
                                       a_mangling_control_block *mctl);
