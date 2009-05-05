@@ -2453,15 +2453,15 @@ the left parenthesis introducing the declarator-like construct.
   remove_stop_token(tok_rparen);
   /* Check for an explicit return type. */
   if (curr_token == tok_arrow) {
-    a_type_ptr         return_type, bottom_derived_type;
+    a_decl_parse_state  trt_dps;
     lambda->explicit_return_type = TRUE;
     (void)get_token();
-    type_name_full(/*disallow_variably_modified_type=*/FALSE,
-                   /*trailing_return_type=*/TRUE,
-                   &return_type, (a_boolean*)NULL, (a_boolean*)NULL);
+    init_decl_parse_state(&trt_dps);
+    trt_dps.is_trailing_return_type = TRUE;
+    type_name_full(&trt_dps);
     if (!is_error_type(func_type)) {
-      bottom_derived_type = func_type;
-      add_to_derived_type_list(return_type, &func_type, &bottom_derived_type,
+      a_type_ptr  bottom_derived_type = func_type;
+      add_to_derived_type_list(trt_dps.type, &func_type, &bottom_derived_type,
                                dps, /*parameter_type=*/FALSE,
                                /*microsoft_property=*/FALSE);
       check_assertion(is_function_type(func_type));
@@ -2547,7 +2547,8 @@ created, the original expression pointer is set to NULL.
 /*ARGSUSED*/  /* threads_dimension_allowed is only used in configurations
                  supporting UPC extensions. */
 #endif /* !UPC_EXTENSIONS_ALLOWED */
-void array_declarator(a_type_ptr            *new_type_ptr,
+void array_declarator(a_decl_parse_state    *dps,
+                      a_type_ptr            *new_type_ptr,
                       a_boolean             nonconstant_dimension_allowed,
                       a_boolean             vla_allowed,
                       a_boolean             vla_asterisk_allowed,
@@ -2556,6 +2557,7 @@ void array_declarator(a_type_ptr            *new_type_ptr,
                       a_boolean             top_level_param_decl,
                       a_decl_pos_block_ptr  decl_pos_block)
 /*
+FIXME: Describe dps.
 Scan an array declarator (ISO C 6.5.4.2), or an array declarator in an
 abstract declarator (ISO C 6.5.5).  Allocate and return in *new_type_ptr an
 appropriate array type.  The initial opening bracket is the current token.
@@ -2669,8 +2671,11 @@ constant.
   } else {
     /* Scan the array size. */
     if (nonconstant_dimension_allowed || vla_allowed) {
-      scan_nonconstant_dimension_expression(vla_allowed, &is_constant_bound,
-                                            &dim_expr, &constant);
+      a_boolean  top_level_vla = vla_allowed && !dps->nested_ptr_or_ref_seen;
+      a_boolean  for_new_expr = !vla_allowed;
+      scan_nonconstant_dimension_expression(
+              for_new_expr, top_level_vla, dps->is_unevaluated_expr_context,
+              &is_constant_bound, &dim_expr, &constant);
       check_assertion(is_constant_bound == (dim_expr == NULL));
 #if GNU_EXTENSIONS_ALLOWED
       if (gcc_mode && dim_expr != NULL && top_level_field_decl &&
@@ -4827,6 +4832,7 @@ The syntax is:
          reference component.  If we were to scan an array bound next, the
          end result would not be a VLA type (instead it would e.g. be a
          "pointer to a VLA type" or perhaps something more complicated). */
+      state->nested_ptr_or_ref_seen = TRUE;
       if (input_flags & DI_VARIABLY_MODIFIED_DECL_ALLOWED) {
         vla_allowed = TRUE;
       }  /* if */
@@ -5190,7 +5196,6 @@ function_lparen:
     } else {
       /* Left bracket, indicating array declarator. */
       a_boolean  top_level_field_decl, top_level_param_decl;
-
       /* This is a top-level declarator if derived_type is NULL; it's a field
          declaration only if the nonstatic member flag is set.  (Note: it
          will be set for fields in C mode as well as in C++ mode.) */
@@ -5200,7 +5205,7 @@ function_lparen:
          declaration. */
       top_level_param_decl = (input_flags & DI_IS_PARAMETER_DECL) &&
                              derived_type == NULL;
-      array_declarator(&new_type_ptr, nonconstant_dimension_allowed,
+      array_declarator(state, &new_type_ptr, nonconstant_dimension_allowed,
                        vla_allowed, vla_asterisk_allowed,
                        threads_dimension_allowed, top_level_field_decl,
                        top_level_param_decl, decl_pos_block);

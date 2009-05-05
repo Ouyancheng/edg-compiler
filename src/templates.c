@@ -13236,9 +13236,7 @@ parameter entry for the parameter.
       def_arg_involves_template_param = TRUE;
     } else {
       rescan_copy_of_cache(&def_arg_cache);
-      type_name_full(/*disallow_variably_modified_type=*/TRUE,
-                     /*trailing_return_type=*/FALSE,
-                     &default_arg_type, (a_boolean*)NULL, (a_boolean*)NULL);
+      default_arg_type = scan_template_type_argument();
       if (is_or_contains_template_param(default_arg_type)) {
         def_arg_involves_template_param = TRUE;
       }  /* if */

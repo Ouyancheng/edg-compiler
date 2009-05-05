@@ -142,10 +142,12 @@ extern void scan_integral_constant_expression(a_constant *constant);
 extern void scan_fs_integral_constant_expression(a_constant *constant);
 
 extern void scan_nonconstant_dimension_expression(
-                                           a_boolean        is_vla_decl,
-                                           a_boolean        *is_constant,
-                                           an_expr_node_ptr *expression,
-                                           a_constant       *constant);
+                                    a_boolean        is_new_or_delete_bound,
+                                    a_boolean        is_top_level_vla_bound,
+                                    a_boolean        unevaluated_expr_context,
+                                    a_boolean        *is_constant,
+                                    an_expr_node_ptr *expression,
+                                    a_constant       *constant);
 
 extern void extract_constant_from_operand_with_fs_fixup(
                                                      an_operand_ptr operand,

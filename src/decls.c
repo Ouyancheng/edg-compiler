@@ -25,6 +25,7 @@ decls.c -- Scanning of declarations.
 #endif /* ifdef PCH_PRAGMA_GUARD */
 
 /* Additional header files. */
+#include "exprutil.h"
 #include "folding.h"
 #include "statements.h"
 #if USER_CONTROL_OF_STRUCT_PACKING
@@ -99,9 +100,12 @@ and efficient initialization.
   ps->inline_pos = null_source_position;
   ps->virtual_pos = null_source_position;
   ps->auto_pos = null_source_position;
-  ps->unused_qualifiers = FALSE;
   ps->in_class_scope = FALSE;
   ps->is_new_expr_type = FALSE;
+  ps->is_unevaluated_expr_context = FALSE;
+  ps->disallow_variably_modified_type = FALSE;
+  ps->nested_ptr_or_ref_seen = FALSE;
+  ps->unused_qualifiers = FALSE;
   ps->auto_type_allowed = FALSE;
   ps->auto_type_specifier_seen = FALSE;
   ps->auto_type_is_template_dependent = FALSE;
@@ -119,6 +123,7 @@ and efficient initialization.
   ps->need_lbrace_remove_stop_token = FALSE;
   ps->restore_name_linkage = FALSE;
   ps->has_initializer = FALSE;
+  ps->first_decl = FALSE;
   clear_decl_modifiers_block(&ps->decl_modifiers);
   ps->ms_attributes = NULL;
   ps->asm_name = NULL;
@@ -153,7 +158,9 @@ qualifiers as now having had an effect.
 {
   if (state->unused_qualifiers) {
     state->unused_qualifiers = FALSE;
-    pos_warning(ec_useless_type_qualifiers, &state->qualifiers_pos);
+    state->qualifiers = TQ_NONE;
+    pos_warning(ec_useless_type_qualifiers_in_type_name,
+                &state->qualifiers_pos);
   }  /* if */
 }  /* f_check_pending_qualifiers_used */
 
@@ -2337,7 +2344,7 @@ specified id-linkage block.
   a_symbol_ptr     prior_decl;
   a_storage_class  local_storage_class = idlbp->storage_class;
   a_boolean        is_template_instance = FALSE;
-  a_boolean        is_const_variable = FALSE;
+  a_boolean        const_variable = FALSE;
 
   db_enter(3, "id_linkage");
   check_assertion(local_storage_class != (a_storage_class)sc_typedef);
@@ -2383,7 +2390,7 @@ specified id-linkage block.
          no explicit storage class are internally linked (unless previously
          declared to be extern -- see below). */
       idlbp->linkage = idl_internal;
-      is_const_variable = TRUE;
+      const_variable = TRUE;
     } else {
       idlbp->linkage = idl_external;
     }  /* if */
@@ -2471,7 +2478,7 @@ specified id-linkage block.
         } else {
           idlbp->linkage = idl_external;
         }  /* if */
-      } else if (is_const_variable &&
+      } else if (const_variable &&
                  prior_decl->variant.variable.ptr->storage_class !=
                                               (a_storage_class)sc_static) {
         /* Prior declaration of this variable had external linkage, so that
@@ -9629,48 +9636,23 @@ done:;
 }  /* report_missing_type_specifier */
 
 
-void type_name_full(a_boolean   disallow_variably_modified_type,
-                    a_boolean   trailing_return_type,
-                    a_type_ptr  *type_ptr,
-                    a_boolean   *explicit_cv_qualifiers,
-                    a_boolean   *type_defined)
+void type_name_full(a_decl_parse_state  *dps)
 /*
-Scan a type-name (see 3.5.5) and set *type_ptr to the type.
-If explicit_cv_qualifiers is non-NULL, set *explicit_cv_qualifiers to TRUE if
-explicit cv-qualifiers were scanned (and not discarded as having no effect;
-e.g., when applied to a reference type).
-The syntax is:
-
-3.5.5  type-name:
-		specifier-qualifier-list abstract-declarator
-							    opt
-
-In C++ mode an error is issued if a type definition appears in a type-name
-(for class/struct/union and enum types).
-
-Variably-modified types are normally allowed inside function definitions when
-vla_enabled is TRUE.  However, if disallow_variably_modified_type is TRUE, then
-such types are not accepted.
-
-If trailing_return_type is TRUE, this call is for a return type trailing the
-function declarator (a C++0x feature also used in the syntax for lambdas).
-
-If type_defined is non-NULL, *type_defined is returned TRUE if a class or
-enumeration type was defined as part of the type-name.  In most C++ modes,
-this is an error, but a diagnostic is only issued when type_defined is NULL
-(otherwise, the caller is responsible for issuing such a diagnostic, if
-needed).
+Scan a type-name (a sequence of specifiers optionally followed by an abstract
+declarator) and record information about it in *dps.  In particular, dps->type
+returns the representation of the type.  Callers can constrain the type by
+setting certain fields in *dps (e.g., to disallow variably modified types).
+See type_name for a convenient way to scan type names (via this function) in
+common cases.
 */
 {
   a_decl_flag_set              dsi_flags, di_flags;
-  a_decl_parse_state           state;
 
   db_enter(3, "type_name_full");
   set_err_pos_to_curr_token();
-  init_decl_parse_state(&state);
-  copy_source_position(pos_curr_token, state.start_pos);
+  copy_source_position(pos_curr_token, dps->start_pos);
   dsi_flags = DSI_TYPE_SPECIFIER_ALLOWED | DSI_NO_REAL_DECLARATOR;
-  if (trailing_return_type) {
+  if (dps->is_trailing_return_type) {
     /* When scanning a C++0x trailing return type, top-level class definitions
        should not be considered.  E.g., in "[]()->struct S {}" the "{}" is
        considered to be the lambda body; not the definition of S. */
@@ -9681,78 +9663,153 @@ needed).
        type will be ignored. */
     dsi_flags |= DSI_GNU_ATTRIBUTES_ALLOWED;
   }  /* if */
-  decl_specifiers(dsi_flags, &state, (a_decl_pos_block_ptr)NULL);
-  check_assertion(state.type != NULL);
+  decl_specifiers(dsi_flags, dps, (a_decl_pos_block_ptr)NULL);
+  check_assertion(dps->type != NULL);
 #if GNU_EXTENSIONS_ALLOWED
-  if (state.attributes != NULL) {
+  if (dps->attributes != NULL) {
     /* Attributes were scanned that didn't directly directly affect the
        specifiers type: Ignore them with a warning. */
-    pos_warning(ec_gnu_attributes_ignored, &state.attributes->position);
-    free_attribute_list(state.attributes);
-    state.attributes = NULL;
+    pos_warning(ec_gnu_attributes_ignored, &dps->attributes->position);
+    free_attribute_list(dps->attributes);
+    dps->attributes = NULL;
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-  if (type_defined != NULL) {
-    *type_defined = (state.dso_flags & DSO_DEFINES_SOMETHING) != 0;
-  }  /* if */
-  if (state.dso_flags & DSO_DEFINES_SOMETHING) {
-    if (type_defined == NULL && !C_mode() &&
-        (!gpp_mode || gnu_version >= 30400)) {
-      /* Definition of a class, struct, union, or enum type is not allowed
-         in non-GNU C++ mode.  Older GNU C++ compilers did allow such
-         definitions.  Newer GNU C++ modes only allow it in compound
-         literals (e.g., "(struct { int i; }){0}"). */
-      pos_error(ec_type_definition_not_allowed, &state.start_pos);
-    }  /* if */
-  } else if (!(state.dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER)) {
+  if (!(dps->dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER)) {
     /* Missing type specifier. */
-    report_implicit_int(&state.start_pos, state.specifiers_type);
+    report_implicit_int(&dps->start_pos, dps->specifiers_type);
   }  /* if */
-  (skip_typerefs(state.type))->source_corresp.referenced = TRUE;
+  (skip_typerefs(dps->type))->source_corresp.referenced = TRUE;
   /* Note -- the check for dangling_type_specifier is not relevant here. */
   if (is_abstract_declarator_start()) {
+    /* A declarator follows the type specifiers. */
     di_flags = DI_ABSTRACT_DECLARATOR_ALLOWED | DI_QUALIFIED_NAME_ALLOWED;
     if (vla_enabled && depth_innermost_function_scope != NO_SCOPE_DEPTH &&
-        !disallow_variably_modified_type) {
+        !dps->disallow_variably_modified_type) {
       /* Note that int[*] is not allowed, but int(*)[*] is okay.  Therefore
          we turn on DI_VLA_ASTERISK_ALLOWED and check for the error case
          once the scan has been completed. */
       di_flags |= DI_VLA_ALLOWED | DI_VLA_ASTERISK_ALLOWED;
     }  /* if */
-    declarator(di_flags, &state, /*member_parent_type=*/(a_type_ptr)NULL,
+    declarator(di_flags, dps, /*member_parent_type=*/(a_type_ptr)NULL,
                (a_symbol_locator *)NULL, (a_func_info_block_ptr)NULL,
                (a_decl_pos_block_ptr)NULL, (an_attribute_ptr *)NULL);
-    if (explicit_cv_qualifiers != NULL) {
-      /* Explicit qualifiers might have been introduced in the declarator: */
-      *explicit_cv_qualifiers = is_top_level_qualified_type(state.type);
-    }  /* if */
     if (di_flags & DI_VLA_ALLOWED) {
       /* VLA checking was done. */
-      if (is_array_type(state.type) &&
-          is_or_contains_vla_type_with_unspecified_bound(state.type)) {
+      if (is_array_type(dps->type) &&
+          is_or_contains_vla_type_with_unspecified_bound(dps->type)) {
         /* This is an array in which the variable bound is unspecified in
            one of its dimensions. */
-        pos_error(ec_vla_with_unspecified_bound_not_allowed, &state.start_pos);
+        pos_error(ec_vla_with_unspecified_bound_not_allowed, &dps->start_pos);
       }  /* if */
     }  /* if */
-  } else if (explicit_cv_qualifiers != NULL) {
-    *explicit_cv_qualifiers = (state.qualifiers != TQ_NONE &&
-                               !state.unused_qualifiers);
   }  /* if */
   if ((any_cfront_mode() &&
-       check_member_function_typedef(state.type, &state.start_pos)) ||
-      is_unknown_type(state.type)) {
+       check_member_function_typedef(dps->type, &dps->start_pos)) ||
+      is_unknown_type(dps->type)) {
     /* If the type is of the unknown kind, presumably an error occurred and
        hence an error type should be returned.  If the type is a cfront-style
        member function typedef -- it is an error to use it anywhere but in a
        pointer-to-member declaration. */
-    state.type = error_type();
+    dps->type = error_type();
   }  /* if */
-  check_pending_qualifiers_used(&state);
-  copy_source_position(state.start_pos, error_position);
-  *type_ptr = state.type;
+  check_pending_qualifiers_used(dps);
+  copy_source_position(dps->start_pos, error_position);
   db_exit();
 }  /* type_name_full */
+
+
+static void check_type_definition_in_type_name(a_decl_parse_state  *dps)
+/*
+dps describes a type-name scanned by type_name_full.  In C++ mode, issue an
+error if the specifiers in the type-name defined a class or enum type.  (An
+exception are early GNU C++ modes, which do allow such definitions.)
+*/
+{
+  if ((dps->dso_flags & DSO_DEFINES_SOMETHING) != 0 &&
+      !C_mode() && (!gpp_mode || gnu_version >= 30400)) {
+    pos_error(ec_type_definition_not_allowed, &dps->start_pos);
+  }  /* if */
+}  /* check_type_definition_in_type_name */
+
+
+void type_name(a_type_ptr  *p_type)
+/*
+Scan a type-name and set *p_type to the scanned type.  In C++, issue an error
+is the type-name includes a class or enum definition.
+*/
+{
+  a_decl_parse_state  dps;
+
+  init_decl_parse_state(&dps);
+  type_name_full(&dps);
+  check_type_definition_in_type_name(&dps);
+  *p_type = dps.type;
+}  /* type_name */
+
+
+a_type_ptr scan_type_for_cast(a_boolean  *explicit_cv_qualifiers,
+                              a_boolean  *type_definition)
+/*
+Scan a type for a cast or the cast-like construct of a compound literal and
+return a pointer to its representation.  If explicit_cv_qualifiers is non-NULL,
+return in *explicit_cv_qualifiers whether the type included explicit top-level
+cv-qualifiers.  If type_definition is non-NULL, return in *type_definition
+whether the scanned type specifiers included a class or enum definition.
+*/
+{
+  a_decl_parse_state  dps;
+
+  init_decl_parse_state(&dps);
+  dps.disallow_variably_modified_type = curr_expr_kind_is_const();
+  type_name_full(&dps);
+  if (type_definition != NULL) {
+    /* Return whether a type was defined in the type specifiers. */
+    *type_definition = (dps.dso_flags & DSO_DEFINES_SOMETHING) != 0;
+  }  /* if */
+  if (explicit_cv_qualifiers != NULL) {
+    /* Return whether the type included explicit top-level cv-qualifiers. */
+    if (dps.declarator_start_pos.seq != 0) {
+      /* A declarator was scanned. */
+      *explicit_cv_qualifiers = is_top_level_qualified_type(dps.type);
+    } else {
+      *explicit_cv_qualifiers = (dps.qualifiers != TQ_NONE &&
+                                 !dps.unused_qualifiers);
+    }  /* if */
+  }  /* if */
+  return dps.type;
+}  /* scan_type_for_cast */
+
+
+a_type_ptr scan_type_for_unevaluated_expr_context(void)
+/*
+Scan a type-name that is the argument to an operator like sizeof or alignof
+and return the corresponding IL entry.
+*/
+{
+  a_decl_parse_state  dps;
+
+  init_decl_parse_state(&dps);
+  dps.is_unevaluated_expr_context = TRUE;
+  type_name_full(&dps);
+  check_type_definition_in_type_name(&dps);
+  return dps.type;
+}  /* scan_type_for_unevaluated_expr_context */
+
+
+a_type_ptr scan_template_type_argument(void)
+/*
+Scan a template type argument.  The heavy lifting for this routine is done by
+type_name_full.
+*/
+{
+  a_decl_parse_state  dps;
+
+  init_decl_parse_state(&dps);
+  dps.disallow_variably_modified_type = TRUE;
+  type_name_full(&dps);
+  check_type_definition_in_type_name(&dps);
+  return dps.type;
+}  /* scan_template_type_argument */
 
 
 void new_type_name(a_decl_parse_state  *state,
@@ -9875,7 +9932,7 @@ within this routine if is_parenthesized comes in FALSE.
     if (curr_token == tok_lbracket) {
       /* Scan array declarators.  The first one allows an expression
          as the size; the others require a constant size. */
-      array_declarator(&new_type_ptr, /*nonconstant_allowed=*/TRUE,
+      array_declarator(state, &new_type_ptr, /*nonconstant_allowed=*/TRUE,
                        /*vla_is_allowed=*/FALSE,
                        /*vla_asterisk_allowed=*/FALSE,
                        /*threads_dimension_allowed=*/FALSE,
@@ -9891,7 +9948,7 @@ within this routine if is_parenthesized comes in FALSE.
            parenthesis. */
       } else {
         while (curr_token == tok_lbracket) {
-          array_declarator(&new_type_ptr, /*nonconstant_allowed=*/FALSE,
+          array_declarator(state, &new_type_ptr, /*nonconstant_allowed=*/FALSE,
                            /*vla_is_allowed=*/FALSE,
                            /*vla_asterisk_allowed=*/FALSE,
                            /*threads_dimension_allowed=*/FALSE,
@@ -14209,6 +14266,7 @@ related-fields of *ps prior to scanning the next declarator.
   ps->do_flags = DO_NO_OUTPUT_FLAGS;
   ps->declarator_start_pos = null_source_position;
   ps->declarator_pos = null_source_position;
+  ps->nested_ptr_or_ref_seen = FALSE;
   ps->has_initializer = FALSE;
   ps->asm_name = NULL;
   ps->asm_name_pos = null_source_position;

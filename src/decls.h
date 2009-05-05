@@ -292,9 +292,32 @@ typedef struct a_decl_parse_state {
 			/* TRUE if the current declaration appears in class
 			   scope. */
   a_bit_field
+		is_trailing_return_type:1;
+			/* TRUE if this information block describes the parsing
+			   of a trailing return type. */
+  a_bit_field
 		is_new_expr_type:1;
 			/* TRUE if this information block describes the parsing
 			   of a type for a "new-expression". */
+  a_bit_field
+		is_unevaluated_expr_context:1;
+			/* TRUE if this information block describes the parsing
+			   of a type that is the argument to an operator like
+			   sizeof, alignof, etc. */
+  a_bit_field
+		disallow_variably_modified_type:1;
+			/* TRUE if this information block describes the parsing
+			   of a type in which variably modified types are not
+			   allowed. */
+  a_bit_field
+		nested_ptr_or_ref_seen:1;
+			/* TRUE during declarator processing if we've seen a
+			   nested "*", "&", or "&&" declarator operator.  This
+			   means in particular that a subsequent array
+			   declarator will not be the top-level array
+			   component of a variable-length array (although it
+			   could contribute to creating a "variably modified
+			   type"). */
   a_bit_field
 		unused_qualifiers:1;
 			/* TRUE if there are pending qualifiers that have
@@ -552,21 +575,16 @@ when all decl-specifiers are missing.
                                 /*any_decl_specifiers=*/TRUE)
 
 
-extern void type_name_full(a_boolean   disallow_variably_modified_type,
-                           a_boolean   trailing_return_type,
-                           a_type_ptr  *type_ptr,
-                           a_boolean   *explicit_cv_qualifiers,
-                           a_boolean   *type_defined);
+extern void type_name_full(a_decl_parse_state  *dps);
 
-/*
-Scan a type-name (see 3.5.5) and set *type_ptr to the scanned type.  This is
-a short-hand for the common case where we don't care about explicit
-cv-qualifiers.
-*/
-#define type_name(type_ptr)                                          \
-  type_name_full(/*disallow_variably_modified_type=*/FALSE,          \
-                 /*trailing_return_type=*/FALSE,                     \
-                 type_ptr, (a_boolean*)NULL, (a_boolean*)NULL)
+extern void type_name(a_type_ptr  *type);
+
+extern a_type_ptr scan_type_for_cast(a_boolean  *explicit_cv_qualifiers,
+                                     a_boolean  *type_definition);
+
+extern a_type_ptr scan_type_for_unevaluated_expr_context(void);
+
+extern a_type_ptr scan_template_type_argument(void);
 
 extern void new_type_name(a_decl_parse_state  *state,
                           a_boolean           is_parenthesized);

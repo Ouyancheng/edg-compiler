@@ -5468,7 +5468,7 @@ Syntax:
     if (is_parenthesized) {
       /* Scan the type-name for a parenthesized type. */
       add_matching_stop_token(tok_rparen);
-      type_name(&sizeof_type);
+      sizeof_type = scan_type_for_unevaluated_expr_context();
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -8463,9 +8463,7 @@ the type defines something); FALSE is returned if there is an error.
   /* Scan the type.  Note that type_name does not allow definition of types
      in the type-id. */
   *type_position = pos_curr_token;
-  type_name_full(/*disallow_variably_modified_type=*/curr_expr_kind_is_const(),
-                 /*trailing_return_type=*/FALSE,
-                 cast_type, &explicit_cv_qualifiers, (a_boolean*)NULL);
+  *cast_type = scan_type_for_cast(&explicit_cv_qualifiers, (a_boolean*)NULL);
   /* In Microsoft mode, static_cast allows a cast to an array type if it
      does nothing. */
   if (microsoft_bugs && !C_mode() && source_form == csf_static_cast) {
@@ -10141,7 +10139,9 @@ As an anachronism, allow an expression inside the [ ].
       if (microsoft_mode) sev = (an_error_severity)es_warning;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       diagnostic(sev, ec_delete_count_anachronism);
-      scan_nonconstant_dimension_expression(/*is_vla_decl=*/FALSE,
+      scan_nonconstant_dimension_expression(/*is_new_or_delete_bound=*/TRUE,
+                                            /*is_top_level_vla_bound=*/FALSE,
+                                            /*unevaluated_expr_context=*/FALSE,
                                             &is_constant, &expr, &constant);
       /* The expression is ignored. */
     }  /* if */
@@ -12849,10 +12849,8 @@ Also scans GNU statement expressions:
       a_boolean explicit_cv_qualifiers, type_defined;
       /* Get the type to cast to. */
       type_position = pos_curr_token;
-      type_name_full(
-                 /*disallow_variably_modified_type=*/curr_expr_kind_is_const(),
-                 /*trailing_return_type=*/FALSE,
-                 &type_cast_to, &explicit_cv_qualifiers, &type_defined);
+      type_cast_to =
+                   scan_type_for_cast(&explicit_cv_qualifiers, &type_defined);
       /* The next token should be the closing rparen. */
       (void)required_token(tok_rparen, ec_exp_rparen);
       remove_matching_stop_token(tok_rparen);
@@ -20628,18 +20626,28 @@ to be in the file scope memory region so that the constant can point to it).
 }  /* scan_fs_integral_constant_expression */
 
 
-void scan_nonconstant_dimension_expression(a_boolean        is_vla_decl,
-                                           a_boolean        *is_constant,
-                                           an_expr_node_ptr *expression,
-                                           a_constant       *constant)
+void scan_nonconstant_dimension_expression(
+                                    a_boolean        is_new_or_delete_bound,
+                                    a_boolean        is_top_level_vla_bound,
+                                    a_boolean        unevaluated_expr_context,
+                                    a_boolean        *is_constant,
+                                    an_expr_node_ptr *expression,
+                                    a_constant       *constant)
 /*
 Scan an array dimension that might be non-constant.  The array dimension
 must be an integral expression.  (It's also required to be non-negative, but
-the caller must check that.)  If is_vla_decl is FALSE, this function is being
-called in C++ mode for new-type-name (see 5.3.3 in the ARM); if is_vla_decl
-is TRUE it is being called for array dimensions which may be VLAs.  Return
-either *is_constant TRUE and a constant value in *constant, or *is_constant
-FALSE and a pointer to the expression tree in *expression.
+the caller must check that.)  If is_new_or_delete_bound is TRUE, this function
+is being called for C++ mode for a new-type-name (or, less commonly, for the
+anachronism that allows "delete[<expr>] ptr" to explicitly specify the number
+of elements to delete).  If is_new_or_delete_bound is FALSE, the bound is for
+a possibly variable-length array (a C99 feature also available in other
+dialects).  If is_top_level_vla_bound is TRUE, the bound is for a true
+variable-length array (e.g., "int [n]" or "int* ([3])[n]") as opposed to a
+variably-modified type (such as "int (*)[n]" or "int (*[3])[n]").  If
+unevaluated_expr_context is TRUE, the bound is for a type that appears in an
+unevaluated argument (e.g., of a sizeof operator).  Return either *is_constant
+TRUE and a constant value in *constant, or *is_constant FALSE and a pointer to
+the expression tree in *expression.
 */
 {
   an_operand          result;
@@ -20650,6 +20658,7 @@ FALSE and a pointer to the expression tree in *expression.
 
   db_enter(3, "scan_nonconstant_dimension_expression");
 
+  check_assertion(!(is_new_or_delete_bound && is_top_level_vla_bound));
   ekind = (an_expression_kind)ek_normal;
   /* When a dimension bound expression is scanned inside a constant expression,
      it must be an integral constant. */
@@ -20659,11 +20668,14 @@ FALSE and a pointer to the expression tree in *expression.
   push_expr_stack(ekind, &expr_stack_entry, /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
   expr_stack_entry.favor_constant_result = TRUE;
-  if (is_vla_decl) {
+  if (is_top_level_vla_bound ||
+      (!is_new_or_delete_bound && !unevaluated_expr_context)) {
     /* Make sure an expression in a VLA is marked as evaluated.  Not doing
        so creates problems in expressions such as 'sizeof(int[f()])' where
        operands in the VLA expression are not marked as referenced and
-       destructible temporaries are not properly destroyed. */
+       destructible temporaries are not properly destroyed.  Beware however
+       of cases like 'sizeof(int(*)[f()])' where the variable-length bound is
+       not evaluated after all. */
     expr_stack_entry.evaluated = TRUE;
     expr_stack_entry.potentially_evaluated = TRUE;
     expr_stack_entry.is_vla_dimension_expression = TRUE;
@@ -20700,7 +20712,7 @@ FALSE and a pointer to the expression tree in *expression.
       /* Some sort of error; message was already issued. */
       set_error_constant(constant);
       discard_curr_expr_object_lifetime();
-      if (is_vla_decl && is_nonconstant) {
+      if (!is_new_or_delete_bound && is_nonconstant) {
         /* Return an error expression if the expression was nonconstant
            and a VLA is allowed. */
         *expression = error_node();
@@ -20729,7 +20741,7 @@ FALSE and a pointer to the expression tree in *expression.
         }  /* if */
       } else {
         constant_sign = sign_of_integer_constant(constant);
-        if (is_vla_decl) {
+        if (!is_new_or_delete_bound) {
           if (constant_sign < 0) {
             /* VLA bounds must be positive (or possibly zero in GNU C mode;
                the zero-length case is checked by the caller). */

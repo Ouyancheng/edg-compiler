@@ -300,7 +300,8 @@ a_type_ptr pointer_declarator(
 		      an_attribute_ptr      *attributes);
 
 extern
-void array_declarator(a_type_ptr            *new_type_ptr,
+void array_declarator(a_decl_parse_state    *dps,
+                      a_type_ptr            *new_type_ptr,
                       a_boolean             nonconstant_dimension_allowed,
                       a_boolean             vla_allowed,
                       a_boolean             vla_asterisk_allowed,
