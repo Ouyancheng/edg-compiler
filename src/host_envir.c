@@ -2641,6 +2641,9 @@ definition whose name can be used as part of the module ID.
       /* Don't use template static data members.  Some implementations
          may generate these in multiple files. */
       if (variable->is_template_static_data_member) continue;
+      /* Don't include variables that were originally static and have
+         been promoted. */
+      if (variable->promoted_local_static) continue;
 #if GNU_EXTENSIONS_ALLOWED
       if (variable->is_weak) {
         /* Weak variable definitions may appear in multiple translation units.
