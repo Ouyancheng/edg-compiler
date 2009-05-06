@@ -5468,7 +5468,7 @@ Syntax:
     if (is_parenthesized) {
       /* Scan the type-name for a parenthesized type. */
       add_matching_stop_token(tok_rparen);
-      sizeof_type = scan_type_for_unevaluated_expr_context();
+      sizeof_type = scan_type_for_sizeof();
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -20629,7 +20629,7 @@ to be in the file scope memory region so that the constant can point to it).
 void scan_nonconstant_dimension_expression(
                                     a_boolean        is_new_or_delete_bound,
                                     a_boolean        is_top_level_vla_bound,
-                                    a_boolean        unevaluated_expr_context,
+                                    a_boolean        is_sizeof_arg,
                                     a_boolean        *is_constant,
                                     an_expr_node_ptr *expression,
                                     a_constant       *constant)
@@ -20644,10 +20644,9 @@ a possibly variable-length array (a C99 feature also available in other
 dialects).  If is_top_level_vla_bound is TRUE, the bound is for a true
 variable-length array (e.g., "int [n]" or "int* ([3])[n]") as opposed to a
 variably-modified type (such as "int (*)[n]" or "int (*[3])[n]").  If
-unevaluated_expr_context is TRUE, the bound is for a type that appears in an
-unevaluated argument (e.g., of a sizeof operator).  Return either *is_constant
-TRUE and a constant value in *constant, or *is_constant FALSE and a pointer to
-the expression tree in *expression.
+is_sizeof_arg is TRUE, the bound is for a type that appears as an argument for
+sizeof.  Return either *is_constant TRUE and a constant value in *constant, or
+*is_constant FALSE and a pointer to the expression tree in *expression.
 */
 {
   an_operand          result;
@@ -20668,17 +20667,19 @@ the expression tree in *expression.
   push_expr_stack(ekind, &expr_stack_entry, /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
   expr_stack_entry.favor_constant_result = TRUE;
-  if (is_top_level_vla_bound ||
-      (!is_new_or_delete_bound && !unevaluated_expr_context)) {
-    /* Make sure an expression in a VLA is marked as evaluated.  Not doing
-       so creates problems in expressions such as 'sizeof(int[f()])' where
-       operands in the VLA expression are not marked as referenced and
-       destructible temporaries are not properly destroyed.  Beware however
-       of cases like 'sizeof(int(*)[f()])' where the variable-length bound is
-       not evaluated after all. */
-    expr_stack_entry.evaluated = TRUE;
-    expr_stack_entry.potentially_evaluated = TRUE;
+  if (!is_new_or_delete_bound) {
     expr_stack_entry.is_vla_dimension_expression = TRUE;
+    if (is_top_level_vla_bound && is_sizeof_arg) {
+      /* Make sure an expression in a VLA is marked as evaluated.  Not doing
+         so creates problems in expressions such as 'sizeof(int[f()])' where
+         operands in the VLA expression are not marked as referenced and
+         destructible temporaries are not properly destroyed.  Note that this
+         doesn't cover cases like 'sizeof(int(*)[f()])' where the variable-
+         length bound is not evaluated after all.  Also, the bounds are not
+         evaluated for the "alignof" operator. */
+      expr_stack_entry.evaluated = TRUE;
+      expr_stack_entry.potentially_evaluated = TRUE;
+    }  /* if */
   }  /* if */
   /* Scan the expression. */
   if (c99_mode) {

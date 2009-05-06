@@ -2674,7 +2674,7 @@ constant.
       a_boolean  top_level_vla = vla_allowed && !dps->nested_ptr_or_ref_seen;
       a_boolean  for_new_expr = !vla_allowed;
       scan_nonconstant_dimension_expression(
-              for_new_expr, top_level_vla, dps->is_unevaluated_expr_context,
+              for_new_expr, top_level_vla, dps->is_sizeof_type_arg,
               &is_constant_bound, &dim_expr, &constant);
       check_assertion(is_constant_bound == (dim_expr == NULL));
 #if GNU_EXTENSIONS_ALLOWED

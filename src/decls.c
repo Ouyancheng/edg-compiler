@@ -102,7 +102,7 @@ and efficient initialization.
   ps->auto_pos = null_source_position;
   ps->in_class_scope = FALSE;
   ps->is_new_expr_type = FALSE;
-  ps->is_unevaluated_expr_context = FALSE;
+  ps->is_sizeof_type_arg = FALSE;
   ps->disallow_variably_modified_type = FALSE;
   ps->nested_ptr_or_ref_seen = FALSE;
   ps->unused_qualifiers = FALSE;
@@ -9754,7 +9754,8 @@ Scan a type for a cast or the cast-like construct of a compound literal and
 return a pointer to its representation.  If explicit_cv_qualifiers is non-NULL,
 return in *explicit_cv_qualifiers whether the type included explicit top-level
 cv-qualifiers.  If type_definition is non-NULL, return in *type_definition
-whether the scanned type specifiers included a class or enum definition.
+whether the scanned type specifiers included a class or enum definition;
+otherwise, issue a diagnostic on such a definition if appropriate.
 */
 {
   a_decl_parse_state  dps;
@@ -9765,6 +9766,8 @@ whether the scanned type specifiers included a class or enum definition.
   if (type_definition != NULL) {
     /* Return whether a type was defined in the type specifiers. */
     *type_definition = (dps.dso_flags & DSO_DEFINES_SOMETHING) != 0;
+  } else {
+    check_type_definition_in_type_name(&dps);
   }  /* if */
   if (explicit_cv_qualifiers != NULL) {
     /* Return whether the type included explicit top-level cv-qualifiers. */
@@ -9780,20 +9783,20 @@ whether the scanned type specifiers included a class or enum definition.
 }  /* scan_type_for_cast */
 
 
-a_type_ptr scan_type_for_unevaluated_expr_context(void)
+a_type_ptr scan_type_for_sizeof(void)
 /*
-Scan a type-name that is the argument to an operator like sizeof or alignof
-and return the corresponding IL entry.
+Scan a type-name that is the argument to a sizeof operator and return the
+corresponding IL entry.
 */
 {
   a_decl_parse_state  dps;
 
   init_decl_parse_state(&dps);
-  dps.is_unevaluated_expr_context = TRUE;
+  dps.is_sizeof_type_arg = TRUE;
   type_name_full(&dps);
   check_type_definition_in_type_name(&dps);
   return dps.type;
-}  /* scan_type_for_unevaluated_expr_context */
+}  /* scan_type_for_sizeof */
 
 
 a_type_ptr scan_template_type_argument(void)
