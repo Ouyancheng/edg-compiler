@@ -1321,74 +1321,91 @@ type.
 
 static void start_aggregate_init_scan_loop(
                           an_aggregate_init_context  *context,
+                          a_type_kind                *kind,
                           a_type_ptr                 *member_type,
                           a_boolean                  *any_more_members,
                           a_boolean                  *is_flexible_array)
 /*
-Initialize the state for the loop that will scan an aggregate initializer
-list.  The type of the aggregate or subaggregate whose initializer is about
-to be scanned is dest_type.  State information about this initializer scanning
-is maintained in *context and its "field" member will be made to point to
-the first initializable field (if any) if dest_type is a class type.
+Initialize the state for the loop that will scan an aggregate initializer list.
+State information about this initializer scanning is maintained in *context.
+The type of the aggregate or subaggregate whose initializer is about to be
+scanned is context->type.  context->field member will be made to point to the
+first initializable field (if any) if context->type is a class type.  *kind is
+set to the kind of entity being initialized, which is the type kind for
+context->type, except that nonreal class types produce tk_template_param.
 *member_type will be set to the type of the next member to be initialized (or
-an error type if dest_type is an error_type).  If there are any members to
+an error type if context->type is an error_type).  If there are any members to
 initialize, *any_more_members will be set to TRUE.  If context->type is an
 array type of zero size ("[]" or "[0]"), *is_flexible_array will be set to
 TRUE.
 */
 {
   a_type_ptr  type = skip_typerefs(context->type);
-  a_type_kind kind = type->kind;
 
+  if (is_template_param_or_nonreal_class_type(context->type)) {
+    /* Treat both template parameters and nonreal types as "types whose
+       inner structure is unknown". */
+    *kind = (a_type_kind)tk_template_param;
+  } else {
+    *kind = skip_typerefs(context->type)->kind;
+  }  /* if */
   *any_more_members = TRUE;  /* Assume. */
   *is_flexible_array = FALSE;
-  if (kind == (a_type_kind)tk_error) {
-    /* Unknown member type (due to error). */
-    *member_type = error_type();
-  } else if (kind == (a_type_kind)tk_template_param) {
-    /* Unknown member type (due to template parameterization). */
-    *member_type = type_of_unknown_templ_param_nontype;
-  } else if (kind == (a_type_kind)tk_array) {
-    /* Array.  Start with first element. */
-    if (type->size == 0) {
-      if (type->incomplete) {
-        /* A flexible array member (declared with a[]). */
-        *is_flexible_array = TRUE;
-      } else {
-        /* A zero-length array (a GNU extension).  This is different from a
-           flexible array, in that no initializers are allowed for it. */
-        check_assertion(type->variant.array.bound_is_zero);
+  switch (*kind) {
+    case tk_error:
+      /* Unknown member type (due to error). */
+      *member_type = error_type();
+      break;
+    case tk_template_param:
+      /* Unknown member type (due to template parameterization). */
+      *member_type = type_of_unknown_templ_param_nontype;
+      break;
+    case tk_array:
+      /* Array.  Start with first element. */
+      if (type->size == 0) {
+        if (type->incomplete) {
+          /* A flexible array member (declared with a[]). */
+          *is_flexible_array = TRUE;
+        } else {
+          /* A zero-length array (a GNU extension).  This is different from a
+             flexible array, in that no initializers are allowed for it. */
+          check_assertion(type->variant.array.bound_is_zero);
+          *any_more_members = FALSE;
+        }  /* if */
+      }  /* if */
+      *member_type = type->variant.array.element_type;
+      if (is_array_type(*member_type) &&
+          skip_typerefs(*member_type)->variant.array.bound_is_zero) {
+        /* Some modes allow zero-length arrays.  If the member type contains
+           such an array, do not attempt to initialize it.  E.g.:
+              int a[][0] = { 0 };  // Excess initializer.
+        */
         *any_more_members = FALSE;
       }  /* if */
-    }  /* if */
-    *member_type = type->variant.array.element_type;
-    if (is_array_type(*member_type) &&
-        skip_typerefs(*member_type)->variant.array.bound_is_zero) {
-      /* Some modes allow zero-length arrays.  If the member type contains
-         such an array, do not attempt to initialize it.  E.g.:
-            int a[][0] = { 0 };  // Excess initializer.
-      */
-      *any_more_members = FALSE;
-    }  /* if */
-    /* Note that arrays of incomplete struct/union types (an extension)
-       do not make it to here (they're caught as an error at the top
-       level in the routine "initializer" and replaced by an error type),
-       so we don't have to check for them here. */
+      /* Note that arrays of incomplete struct/union types (an extension)
+         do not make it to here (they're caught as an error at the top
+         level in the routine "initializer" and replaced by an error type),
+         so we don't have to check for them here. */
+      break;
+    case tk_struct:
+    case tk_class:
+    case tk_union:
+      /* Class/struct/union.  Start with first field. */
+      context->field = type->variant.class_struct_union.field_list;
+      /* Skip past an unnamed field. */
+      context->field = next_initializable_field(context->field);
+      *any_more_members = (context->field != NULL);
+      break;
 #if GNU_VECTOR_TYPES_ALLOWED
-  } else if (gnu_mode && kind == (a_type_kind)tk_vector) {
-    /* GNU vector: Similar to an array.  Start with first element. */
-    *member_type = type->variant.vector.element_type;
+    case tk_vector:
+      /* GNU vector: Similar to an array.  Start with first element. */
+      check_assertion(gnu_mode);
+      *member_type = type->variant.vector.element_type;
+      break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
-  } else {
-    a_field_ptr field;
-    /* Class/struct/union.  Start with first field. */
-    check_assertion(is_immediate_class_type(type));
-    field = type->variant.class_struct_union.field_list;
-    /* Skip past an unnamed field. */
-    field = next_initializable_field(field);
-    *any_more_members = (field != NULL);
-    context->field = field;
-  }  /* if */
+    default:
+      unexpected_condition();
+  }  /* switch */
 }  /* start_aggregate_init_scan_loop */
 
 
@@ -1588,7 +1605,7 @@ appropriate, and set the context type to an error type.
 */
 {
   if (!is_error_type(context->type)) {
-    if (is_template_param_type(context->type)) {
+    if (is_template_param_or_nonreal_class_type(context->type)) {
       /* A designator into a template dependent (i.e., unknown) type.
          We do not currently accept such cases. */
       error(ec_designator_for_template_dependent_type);
@@ -1768,7 +1785,9 @@ multiple designators are handled by the recursion in get_initializer.
 
   start_pos = pos_curr_token;
   *field = NULL;
-  if (!is_class_struct_union_type(context->type)) {
+  if (!is_class_struct_union_type(context->type) ||
+      skip_typerefs(context->type)
+                              ->variant.class_struct_union.is_nonreal_class) {
     /* An attempt to use a field designator in a non-struct/union context. */
     handle_invalid_designator_context(context);
     okay = FALSE;
@@ -1912,6 +1931,7 @@ init_info tracks the whole initializer.
         elem_type = skip_typerefs(elem_type);
       }  /* if */
       if (is_immediate_class_type(elem_type) &&
+          !elem_type->variant.class_struct_union.is_nonreal_class &&
           !symbol_supplement_for_class(elem_type)->is_POD) {
         pos_error(ec_designator_for_non_POD, &pos_curr_token);
       }  /* if */
@@ -2169,7 +2189,7 @@ this function points to a tree that includes a dynamic-init entry.
              (gnu_mode && is_vector_type(context.type) &&
               curr_token == tok_lbrace) ||
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
-             ((is_template_param_type(context.type) ||
+             ((is_template_param_or_nonreal_class_type(context.type) ||
                is_error_type(context.type)) &&
               ((curr_token == tok_lbrace &&
                 context.pending_init_con == NULL) ||
@@ -2186,11 +2206,13 @@ this function points to a tree that includes a dynamic-init entry.
       if (is_class_struct_union_type(context.type) &&
           !symbol_supplement_for_class(context.type)->is_class_aggregate) {
         if (skip_typerefs(context.type)
-                              ->variant.class_struct_union.is_nonreal_class ||
-            (gpp_mode && is_prototype_instantiation_context())) {
-            /* For a nonreal class, we cannot relate the initializers to the
-               inner type structure of that class.  The g++ compiler treats
-               all types in prototype instantiations as "unknown". */
+                              ->variant.class_struct_union.is_nonreal_class) {
+          /* For a nonreal class, we cannot relate the initializers to the
+             inner type structure of that class, but that is handled correctly
+             in what follows. */
+        } else if (gpp_mode && is_prototype_instantiation_context()) {
+          /* The g++ compiler treats all types in prototype instantiations as
+             "unknown". */
           context.type = type_of_unknown_templ_param_nontype;
         } else {
           pos_ty_error(ec_brace_initialization_not_allowed, &pos_curr_token,
@@ -2237,12 +2259,11 @@ this function points to a tree that includes a dynamic-init entry.
       }  /* if */
       /* Get information on the first member of the aggregate to be
          initialized (if any). */
-      kind = skip_typerefs(context.type)->kind;
+      start_aggregate_init_scan_loop(&context, &kind, &member_type,
+                                     &any_more_members, &is_flexible_array);
 #if GNU_VECTOR_TYPES_ALLOWED
       is_gnu_vector = (kind == (a_type_kind)tk_vector);
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
-      start_aggregate_init_scan_loop(&context, &member_type,
-                                     &any_more_members, &is_flexible_array);
       curr_field = context.field;
       any_more_initializers = any_initializers(&context,
                                                brace_flag,
@@ -2304,7 +2325,7 @@ this function points to a tree that includes a dynamic-init entry.
              where we are or what we're initializing. */
           member_type = error_type();
           kind = (a_type_kind)tk_error;
-        } else if (is_template_param_type(context.type)) {
+        } else if (kind == (a_type_kind)tk_template_param) {
           /* The destination type is unknown (i.e., template dependent).
              The member type is therefore also unknown. */
           member_type = type_of_unknown_templ_param_nontype;
@@ -2494,8 +2515,7 @@ this function points to a tree that includes a dynamic-init entry.
         /* Advance to the next member of the aggregate.  Set
            any_more_members FALSE if there are no more members. */
         if (kind == (a_type_kind)tk_error ||
-            kind == (a_type_kind)tk_template_param ||
-            kind == (a_type_kind)tk_unknown) {
+            kind == (a_type_kind)tk_template_param) {
           /* Unknown destination type: there is nothing to "advance". */
         } else if (kind == (a_type_kind)tk_array) {
           /* Array; see if there are any elements remaining. */
