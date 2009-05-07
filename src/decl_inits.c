@@ -1330,8 +1330,8 @@ Initialize the state for the loop that will scan an aggregate initializer list.
 State information about this initializer scanning is maintained in *context.
 The type of the aggregate or subaggregate whose initializer is about to be
 scanned is context->type.  context->field member will be made to point to the
-first initializable field (if any) if context->type is a class type.  *kind is
-set to the kind of entity being initialized, which is the type kind for
+first initializable field (if any) if context->type is a class type.  *kind
+will be set to the kind of entity being initialized, which is the type kind for
 context->type, except that nonreal class types produce tk_template_param.
 *member_type will be set to the type of the next member to be initialized (or
 an error type if context->type is an error_type).  If there are any members to
