@@ -231,7 +231,7 @@ templates in their generic forms).  The following example:
   template<typename> struct S { int x; };
   template<typename T> void f() {
     S<T> t = {0};  // Template-dependent variable with brace-enclosed
-  };               // initializer.
+  }                // initializer.
 
 previously aborted in gen_initializer_constant (cp_gen_be.c) with an internal
 error ("ran out of fields") if prototype instantiations were recorded in the
@@ -247,7 +247,7 @@ dependent variables.  For example:
   struct X { int i; };
   template void f<X>();
 
-(GCC appears to impose a similar constraint.)
+(GCC appears to impose a similar constraint on GNU-style designators.)
 
 
 4/23/09  [EDGcpfe/9709]
