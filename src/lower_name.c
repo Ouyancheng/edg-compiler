@@ -334,7 +334,7 @@ static a_text_buffer_ptr
                            mangling_buffers_in_use list (i.e., 
                            mangling_buffers_in_use->text_buffer when
                            mangling_buffers_in_use is non-NULL, and NULL
-                           otherwise. */
+                           otherwise). */
 
 static void mangled_encoding_for_type(a_type_ptr               type,
                                       a_mangling_control_block *mctl);
