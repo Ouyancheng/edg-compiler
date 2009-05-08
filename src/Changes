@@ -1,5 +1,17 @@
 Version 4.1
 
+5/8/09  [EDGcpfe/9758]
+Abort on invalid asm function
+
+An abort could occur (in copy_from_source_to_asm_func_buffer) on certain
+invalid asm function definitions.  Now fixed.
+
+  asm void func(x) // asm functions must be prototyped
+  int x;
+  {
+  }
+
+
 5/5/09  [EDGcpfe/9657]
 Delayed lowering of function scopes
 
