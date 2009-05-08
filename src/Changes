@@ -1,5 +1,18 @@
 Version 4.1
 
+5/8/09  [EDGcpfe/9784]
+Error recovery abort while flushing tokens
+
+An abort could occur (in is_template_reference) when flushing tokens for
+certain unusual invalid test cases.  Now fixed.
+
+  namespace {
+    void A() { }
+  }
+  int A;
+  template <class T> A::X(A<T>);
+
+
 5/8/09  [EDGcpfe/9758]
 Abort on invalid asm function
 

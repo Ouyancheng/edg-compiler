@@ -1191,13 +1191,14 @@ references.
   a_symbol_ptr		sym;
   a_symbol_locator	locator;
 
-  if (!fetch_pp_tokens) {
+  if (!fetch_pp_tokens && sym_hdr != NULL) {
     /* This test can only be done when not fetching preprocessing
        tokens.  It is not possible to do the ID lookup in fetch_pp_tokens
-       mode.  Create a locator that describes the identifier to be looked
-       up.  The caching process only deals with identifiers that have
-       not been coalesced yet, so we don't need to handle qualified name
-       cases. */
+       mode.  In some error cases sym_hdr can be NULL; don't attempt to do
+       a lookup in such cases.  Create a locator that describes the
+       identifier to be looked up.  The caching process only deals with
+       identifiers that have not been coalesced yet, so we don't need to
+       handle qualified name cases. */
     locator = cleared_locator;
     locator.symbol_header = sym_hdr;
     sym = normal_id_lookup(&locator, IDL_DO_NOT_ADD_TO_NONREAL_CLASS);
