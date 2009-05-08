@@ -8185,11 +8185,18 @@ update the routine's IL entry accordingly.
   a_symbol_ptr   sym = dps->sym;
   a_routine_ptr  rp;
 
+  /* Retrieve the appropriate IL routine entry. */
   if (is_simple_function_symbol(sym)) {
     rp = sym->variant.routine.ptr;
   } else {
+    a_template_symbol_supplement_ptr  tssp;
     check_assertion(sym->kind == (a_symbol_kind)sk_function_template);
-    rp = sym->variant.template_info->variant.function.routine;
+    tssp = sym->variant.template_info;
+    /* Make sure the func_info flags are also recorded in the template
+       symbol supplement. */
+    tssp->variant.function.func_info.is_deleted = func_info->is_deleted;
+    tssp->variant.function.func_info.is_defaulted = func_info->is_defaulted;
+    rp = tssp->variant.function.routine;
   }  /* if */
   if (func_info->is_deleted) {
     if (!dps->first_decl) {
