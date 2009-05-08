@@ -12372,14 +12372,18 @@ expr->next is preserved.
         /* Rewrite the second and third operands as rvalues, and then mark
            this expression as an rvalue. */
         an_expr_node_ptr  op3 = op2->next;
-        /* Re-writing the second and third operands as discarded lvalues
-           might change one (but not both) of their types to a type that is
-           difficult to reconcile with the type of the other re-written operand
-           (they must be identical).  Simply convert them to rvalues
-           instead. */
-        overwrite_node(op2, rvalue_expr_for_lvalue(op2));
-        overwrite_node(op3, rvalue_expr_for_lvalue(op3));
-        check_assertion(il_identical_types(op2->type, op3->type));
+        rewrite_discarded_lvalue_as_rvalue(op2);
+        rewrite_discarded_lvalue_as_rvalue(op3);
+        if (!il_identical_types(op2->type, op3->type)) {
+          /* Re-writing the second and third operands as discarded lvalues
+             might change one (but not both) of their types to a type that is
+             difficult to reconcile with the type of the other re-written
+             operand (they must be identical).  Add a void cast to both. */
+          overwrite_node(op2, add_cast(copy_node(op2), void_type()));
+          overwrite_node(op3, add_cast(copy_node(op3), void_type()));
+          op2->result_is_not_used = TRUE;
+          op3->result_is_not_used = TRUE;
+        }  /* if */
         expr->is_lvalue = FALSE;
         expr->variant.operation.returns_lvalue_instead_of_usual_rvalue = FALSE;
         expr->type = op2->type;
