@@ -11171,7 +11171,10 @@ it to an lvalue).
 
   *processed = FALSE;
   check_assertion(is_reference_type(type_cast_to));
-  if (is_rvalue_reference_type(type_cast_to)) allow_rvalue = TRUE;
+  if (is_rvalue_reference_type(type_cast_to) &&
+      source_form != csf_reinterpret_cast) {
+    allow_rvalue = TRUE;
+  }  /* if */
   underlying_type_cast_to = type_pointed_to(type_cast_to);
   if (is_template_dependent_context() &&
       (is_template_dependent_type(type_cast_to) ||
