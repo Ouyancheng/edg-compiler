@@ -1195,7 +1195,7 @@ to this routine).
         check_assertion(cssp != NULL);
         context->any_dynamic_initialization = TRUE;
         if (exceptions_enabled) {
-          if (!cssp->has_trivial_destructor) {
+          if (cssp->destructor != NULL && !cssp->has_trivial_destructor) {
             /* If appropriate, add a destructor pointer to the dynamic
                init entry. This is for the case in which an exception is
                thrown by the constructor before the entire array has been
