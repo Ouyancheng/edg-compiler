@@ -963,7 +963,7 @@ is found, a diagnostic is issued (an error in C++, a warning otherwise), and
               if (is_array_type(tp)) tp = underlying_array_element_type(tp);
               tp = skip_typerefs(tp);
               if (is_class_struct_union_type(tp) &&
-                  symbol_supplement_for_class(tp)->destructor != NULL) {
+                  !symbol_supplement_for_class(tp)->has_trivial_destructor) {
                 severity = es_error;
               } else if (strict_ansi_mode) {
                 severity = strict_ansi_error_severity;

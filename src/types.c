@@ -1706,6 +1706,7 @@ one of the macros provided in types.h (type_has_default_constructor, etc.).
   tp = skip_typerefs(tp);
   if (is_immediate_class_type(tp)) {
     /* It's a class type or an array of class type. */
+    complete_class_type_is_needed(tp);
     cssp = symbol_supplement_for_class(tp);
     if (cssp->has_user_declared_default_constructor) {
       /* Class has a user-declared default constructor. */

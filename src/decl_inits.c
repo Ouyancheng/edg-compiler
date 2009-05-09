@@ -678,7 +678,7 @@ init_info is a pointer to a block of information tracking this initialization.
           init_info->any_uninitialized_const_or_ref_member = TRUE;
           break;
         } else if (cssp->constructor != NULL ||
-                   (exceptions_enabled && cssp->destructor != NULL)) {
+                   (exceptions_enabled && !cssp->has_trivial_destructor)) {
           ctor_found = TRUE;
           break;
         }  /* if */
@@ -747,7 +747,7 @@ routine is called in C++ mode only.
     if (!any_constructible_fields_remaining(init_context, init_info) &&
         (cssp == NULL ||
          (cssp->constructor == NULL &&
-          (!exceptions_enabled || cssp->destructor == NULL)))) {
+          (!exceptions_enabled || cssp->has_trivial_destructor)))) {
       if (cssp != NULL && cssp->constructor == NULL) {
         /* An array element of class type with no constructor but with a ref
            member will end up uninitialized; set the flag in C mode for a
@@ -785,7 +785,7 @@ routine is called in C++ mode only.
         }  /* if */
       }  /* if */
       if (cssp != NULL) {
-        if (exceptions_enabled && cssp->destructor != NULL) {
+        if (exceptions_enabled && !cssp->has_trivial_destructor) {
           /* If appropriate, add a destructor pointer to the dynamic init
              entry.  This is for the case in which an exception is thrown by
              the constructor before the entire array has been initialized. */
@@ -898,7 +898,7 @@ This routine is called in C++ mode only.
         }  /* if */
       }  /* if */
       if (cssp != NULL) {
-        if (exceptions_enabled && cssp->destructor != NULL) {
+        if (exceptions_enabled && !cssp->has_trivial_destructor) {
           /* If appropriate, add a destructor pointer to the dynamic init
              entry.  This is for the case in which an exception is thrown by
              the constructor before the entire array has been initialized. */
@@ -1195,7 +1195,7 @@ to this routine).
         check_assertion(cssp != NULL);
         context->any_dynamic_initialization = TRUE;
         if (exceptions_enabled) {
-          if (cssp->destructor != NULL) {
+          if (!cssp->has_trivial_destructor) {
             /* If appropriate, add a destructor pointer to the dynamic
                init entry. This is for the case in which an exception is
                thrown by the constructor before the entire array has been
@@ -2369,7 +2369,7 @@ this function points to a tree that includes a dynamic-init entry.
                 if (!C_mode() && is_class_struct_union_type(element_type)) {
                   element_type = skip_typerefs(element_type);
                   cssp = symbol_supplement_for_class(element_type);
-                  if (cssp->destructor != NULL) {
+                  if (!cssp->has_trivial_destructor) {
                     /* Microsoft C++ allows the aggregate initialization of
                        flexible array members only if they do not have
                        nontrivial destructors. */
@@ -2430,7 +2430,7 @@ this function points to a tree that includes a dynamic-init entry.
             member_con->kind != (a_constant_repr_kind)ck_dynamic_init &&
             is_class_struct_union_type(member_type)) {
           cssp = symbol_supplement_for_class(member_type);
-          if (cssp->destructor != NULL) {
+          if (!cssp->has_trivial_destructor) {
             a_routine_ptr  dtor_rp = cssp->destructor->variant.routine.ptr;
             if (local_any_dynamic_init) {
               /* Not a ck_dynamic_init, yet there was dynamic initialization:
@@ -2883,7 +2883,7 @@ detection of uninitialized fields).
     if (is_array_type(*type)) tp = underlying_array_element_type(tp);
     tp = skip_typerefs(tp);
     if (is_immediate_class_type(tp) &&
-        symbol_supplement_for_class(tp)->destructor != NULL) {
+        !symbol_supplement_for_class(tp)->has_trivial_destructor) {
       dtor_rp = select_destructor(tp, tp, err_pos, /*honor_virtual=*/FALSE,
                                   /*evaluated=*/TRUE, /*instantiate=*/TRUE);
       if (dtor_rp != NULL) any_dynamic_init = TRUE;
@@ -3567,7 +3567,7 @@ returned set to TRUE.
       check_closing_paren_after_expr_list();
       /* Although the entity has no constructor, it may have a destructor that
          needs to be recorded in the dynamic init entry (if any). */
-      if (cssp != NULL && cssp->destructor != NULL && init_dip != NULL) {
+      if (cssp != NULL && !cssp->has_trivial_destructor && init_dip != NULL) {
         init_dip->destructor = select_destructor(vp_type, vp_type, source_pos,
                                                  /*honor_virtual=*/FALSE,
                                                  /*evaluated=*/TRUE,
@@ -4440,7 +4440,7 @@ initialized.  These are addressed in the course of the processing.
               /* If the mem-initializer is omitted for this field, the
                  definition of the trivial default constructor will be
                  generated, though only in case there are diagnostics. */
-            } else if (exceptions_enabled && cssp->destructor != NULL) {
+            } else if (exceptions_enabled && !cssp->has_trivial_destructor) {
               /* When exception handling is enabled and there's a destructor,
                  we put out a constructor initializer entry anyway, just to
                  record the destructor. */
@@ -5328,7 +5328,7 @@ scan_paren:
         }  /* if */
         if (cssp == NULL ||
             (cssp->constructor == NULL &&
-             (!exceptions_enabled || cssp->destructor == NULL))) {
+             (!exceptions_enabled || cssp->has_trivial_destructor))) {
           /* This constructor initializer entry is not really needed.  It may
              be the result of an empty initializer on a field or it may be
              associated with a base class without a constructor.  Unlink it
@@ -5362,7 +5362,7 @@ scan_paren:
     /* Do processing for both implicitly and explicitly initialized members
        when exception handling is enabled. */
     if (exceptions_enabled) {
-      if (cssp != NULL && cssp->destructor != NULL) {
+      if (cssp != NULL && !cssp->has_trivial_destructor) {
         /* Since an exception could be thrown after this subobject is
            constructed but before construction of the entire object is
            complete, record the destructor in the dynamic-init entry. */

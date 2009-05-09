@@ -46,7 +46,7 @@ typedef struct a_reachability_summary {
 
 typedef struct a_control_flow_descr *a_control_flow_descr_ptr;
 /*
-a_control_flow_desr is an entry used in tracking gotos, labels, and
+a_control_flow_descr is an entry used in tracking gotos, labels, and
 initializing declarations in order to diagnose errors in transferring
 control past an initialization.
 */

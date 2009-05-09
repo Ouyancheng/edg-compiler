@@ -6403,7 +6403,7 @@ constant will be set as well.
         break;
       case bok_has_trivial_destructor:
         check_assertion(cssp != NULL);  /* For Coverity. */
-        result = cssp->destructor == NULL;
+        result = cssp->has_trivial_destructor;
         break;
       case bok_has_user_destructor:
         check_assertion(microsoft_mode);

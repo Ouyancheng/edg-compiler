@@ -947,6 +947,11 @@ typedef struct a_class_symbol_supplement {
   a_bit_field	has_copy_constructor_for_const_object:1;
 			/* TRUE if there is a copy constructor for the class
 			   and it can be used to copy a const object. */
+  a_bit_field	has_trivial_destructor:1;
+			/* TRUE if the destructor is trivial.  This could be
+			   an implicitly-declared destructor (destructor will
+			   be NULL), or a defaulted destructor (pointed to by
+			   destructor). */
   a_bit_field	assignment_by_bitwise_copy_allowed:1;
 			/* TRUE if assignment can be performed by a bitwise
 			   copy rather than by calling an assignment operator

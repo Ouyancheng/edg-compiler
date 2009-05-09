@@ -6531,7 +6531,8 @@ End a name scope by popping an entry off the scope stack.
       (void)pop_object_lifetime();
       if (kind == (a_scope_kind)sck_function) {
         check_assertion(il_scope != NULL); /* For Coverity. */
-        if (!il_scope->variant.routine.ptr->compiler_generated) {
+        if (!il_scope->variant.routine.ptr->compiler_generated  &
+            !il_scope->variant.routine.ptr->is_defaulted) {
           /* Flow control wrapup for statement processing is done here because
              part of what needs to be done is dependent on popping the object
              lifetime of the function scope. */

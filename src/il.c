@@ -6801,7 +6801,7 @@ diagnostic if the parameter type is an abstract class.
         a_class_symbol_supplement_ptr cssp =
                                        symbol_supplement_for_class(param_type);
         if (!cssp->construction_by_bitwise_copy_allowed ||
-            (!any_cfront_mode() && cssp->destructor != NULL)) {
+            (!any_cfront_mode() && !cssp->has_trivial_destructor)) {
           /* The class has a "real" copy constructor, or it has a
              destructor, so a copy of an object of this class type must be
              made when it is passed as an argument. */

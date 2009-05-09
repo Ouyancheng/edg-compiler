@@ -2747,6 +2747,7 @@ state.
         cssp->has_user_declared_default_constructor = FALSE;
         cssp->has_copy_constructor = FALSE;
         cssp->has_copy_constructor_for_const_object = FALSE;
+        cssp->has_trivial_destructor = FALSE;
         cssp->assignment_by_bitwise_copy_allowed = FALSE;
         cssp->construction_by_bitwise_copy_allowed = FALSE;
         cssp->target_of_conversion_function = FALSE;
@@ -7077,6 +7078,12 @@ if necessary.  *position is the source position of the reference.
                                                  honor_virtual, evaluated,
                                                  instantiate);
         dtor_routine = dtor_sym->variant.routine.ptr;
+      }  /* if */
+      if (cssp->has_trivial_destructor) {
+        /* A defaulted trivial destructor.  Treat it as an implicitly-declared
+           destructor (i.e., return NULL). */
+        check_assertion(dtor_routine->is_defaulted);
+        dtor_routine = NULL;
       }  /* if */
     } else if (skip_typerefs(class_type)->
                              variant.class_struct_union.dtor_decl_suppressed &&

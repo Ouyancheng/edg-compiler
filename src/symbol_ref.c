@@ -1906,7 +1906,7 @@ the position of the first reference is recorded.
     }  /* if */
   }  /* if */
   /* tip will be set if this is a template function or template
-     static data member for which a position should be recoreded. */
+     static data member for which a position should be recorded. */
   if (tip != NULL) {
     tip->pos_of_first_reference = *source_position;
   }  /* if */

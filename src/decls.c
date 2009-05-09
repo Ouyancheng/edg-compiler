@@ -13646,7 +13646,7 @@ if one is present.
            -- i.e., if it is a class object (or array of class) and the
            class has a nontrivial default constructor (which must be a
            user-declared default constructor if the variable's type is
-           const qualified -- WP 7.1.5.1 [dcl.type.cv]). */
+           const qualified). */
         if (is_const_qualified_type(state->type) ?
               type_has_user_declared_default_constructor(state->type) :
               type_has_nontrivial_default_constructor(state->type)) {

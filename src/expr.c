@@ -9040,7 +9040,7 @@ when determining whether or not special handling is required.
     /* Classes with a constructor or destructor require special handling. */
     a_class_symbol_supplement_ptr cssp = symbol_supplement_for_class(type);
     if ((check_constructor && cssp->constructor != NULL) ||
-        cssp->destructor != NULL) {
+        !cssp->has_trivial_destructor) {
       special = TRUE;
     } else {
       /* Classes with a two-argument array operator delete require special
