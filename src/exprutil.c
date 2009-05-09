@@ -3674,6 +3674,25 @@ the type to be complete if possible.
 }  /* rvalue_reference_cast_underlying_type_is_complete */
 
 
+void conv_reference_cast_operand_to_lvalue_if_necessary(an_operand *operand)
+/*
+The indicated operand is the source of a cast to a reference type.  If it
+is an rvalue, convert it to an lvalue.  This is necessary because the IL
+operators for reference casts take an lvalue as their operand.
+*/
+{
+  if (is_an_rvalue(operand)) {
+    if (is_class_struct_union_type(operand->type)) {
+      conv_class_rvalue_operand_to_lvalue(operand);
+    } else if (is_rvalue_reference_object_operand(operand)) {
+      conv_rvalue_reference_object_to_lvalue(operand);
+    } else {
+      temp_init_from_operand(operand, /*result_is_lvalue=*/TRUE);
+    }  /* if */
+  }  /* if */
+}  /* conv_reference_cast_operand_to_lvalue_if_necessary */
+
+
 void cast_operand_for_reference_cast(an_operand        *operand,
                                      a_type_ptr        dest_type,
                                      a_source_position *type_position,
@@ -3711,13 +3730,7 @@ is an lvalue reference to const.
   }  /* if */
   if (is_an_rvalue(operand)) {
     /* If the caller passes in an rvalue, convert it to an lvalue. */
-    if (is_class_struct_union_type(operand->type)) {
-      conv_class_rvalue_operand_to_lvalue(operand);
-    } else if (is_rvalue_reference_object_operand(operand)) {
-      conv_rvalue_reference_object_to_lvalue(operand);
-    } else {
-      temp_init_from_operand(operand, /*result_is_lvalue=*/TRUE);
-    }  /* if */
+    conv_reference_cast_operand_to_lvalue_if_necessary(operand);
   } else {
     (void)check_for_taking_the_address_of_a_bit_field(operand,
                                                       &operand->position);

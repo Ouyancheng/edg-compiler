@@ -1459,6 +1459,9 @@ extern void adjust_lvalue_type(an_operand *operand,
                                a_type_ptr dest_type);
 
 extern
+void conv_reference_cast_operand_to_lvalue_if_necessary(an_operand *operand);
+
+extern
 void cast_operand_for_reference_cast(an_operand        *operand,
                                      a_type_ptr        dest_type,
                                      a_source_position *type_position,

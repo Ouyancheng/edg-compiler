@@ -8812,6 +8812,11 @@ Syntax:
       pos_error(ec_dynamic_cast_without_rtti, &start_position);
       err = TRUE;
     } else {
+      if (rvalue_reference_case) {
+        /* The IL operator takes an lvalue operand.  Convert an rvalue case
+           to an lvalue case. */
+        conv_reference_cast_operand_to_lvalue_if_necessary(&operand);
+      }  /* if */
       expr = make_node_from_operand(&operand);
       set_used_in_exception_or_rtti_flag(expr->type);
       if (reference_case) {
