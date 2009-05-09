@@ -10900,10 +10900,12 @@ This is a static_cast or old-style cast; source_form indicates which.
 If the cast can be done by a user-defined conversion, do it and return
 *processed TRUE.  If the cast could only be done by a user-defined
 conversion and there was some error with that, set *err TRUE as well.
-If a cast to a reference type is expected to be conceptually rewritten
-as a pointer cast later and an rvalue should be allowed,
-*allow_rvalue_on_rewrite is returned TRUE (note that this can be set
-for non-class operands).  This routine is called only in C++ mode.
+Also handles casts to reference type involving non-class types when a
+conversion into a temporary is needed.  If a cast to a reference type
+is expected to be conceptually rewritten as a pointer cast later and
+an rvalue should be allowed, *allow_rvalue_on_rewrite is returned TRUE
+(note that this can be set for non-class operands).  This routine is
+called only in C++ mode.
 */
 {
   a_boolean    cast_to_reference, cast_to_rvalue_reference, failed;
@@ -10941,9 +10943,11 @@ for non-class operands).  This routine is called only in C++ mode.
            so don't look for a way to do the cast using a conversion
            function. */
         *allow_rvalue_on_rewrite = binding_to_rvalue_allowed;
-      } else if (cast_to_rvalue_reference) {
-        /* A conversion can't be used to bind an rvalue reference, so don't
-           look for the conversion cases. */
+        /* This cast will go through set_up_cast_to_reference, which will
+           reformulate it as a pointer cast and validate it that way (it
+           is sure to be okay because we checked it here), and then
+           cast_operand_for_reference_cast will be called generate the
+           actual IL for the reference cast. */
       } else {
         /* A cast from a class to a reference type can be handled by a
            conversion function.  Look for such a function, but if one is
@@ -10952,7 +10956,12 @@ for non-class operands).  This routine is called only in C++ mode.
            other user-defined conversion cases, where if there is a class
            operand and no user-defined conversion applies, we know we have
            an error.  That's the reason that user_defined_conversion_possible
-           is not called. */
+           is not called.  We also check below for some cases of builtin
+           type conversions into temporaries. */
+        /* Basically, the code here is modeling the parts of static_cast that
+           are based on reference binding, with the exception of the
+           direct-binding cases that were detected above and don't need to be
+           processed in this routine. */
         a_boolean ambiguous;
         template_case = FALSE;
         if (could_be_dependent_class_type(operand->type)) {
@@ -10961,6 +10970,11 @@ for non-class operands).  This routine is called only in C++ mode.
              a conversion we don't know about. */
           possible = TRUE;
           template_case = TRUE;
+        } else if (cast_to_rvalue_reference &&
+                   !is_an_rvalue(operand)) {
+          /* An rvalue reference cannot be bound to an lvalue.  Note that
+             some cases rejected here may end up being accepted under the
+             pointer-rewrite rule for reinterpret_cast, which is correct. */
         } else if (is_class_struct_union_type(operand->type) &&
                    (conversion_for_direct_reference_binding_possible(
                                            operand,
@@ -11043,14 +11057,14 @@ for non-class operands).  This routine is called only in C++ mode.
                  where the (non-class) operand can be converted to the
                  underlying type of the reference.  Do the reference binding,
                  which will create a temporary and return an lvalue for it
-                 as the result. */
+                 as the result (an rvalue for the rvalue reference case). */
               possible = TRUE;
               determined_conversion = &conversion;
             }  /* if */
           }  /* if */
         }  /* if */
         if (possible) {
-          /* Do the user-defined conversion.  This might produce an ambiguity
+          /* Do the conversion.  This might produce an ambiguity
              error, but otherwise the conversion has been checked to be
              valid above. */
           if (template_case) {
@@ -11077,6 +11091,9 @@ for non-class operands).  This routine is called only in C++ mode.
             check_assertion(is_an_lvalue(operand) ||
                             is_a_function_designator(operand) ||
                             is_error_operand(operand));
+            if (cast_to_rvalue_reference) {
+              do_operand_transformations(operand, TOPT_NO_OPTIONS);
+            }  /* if */
           }  /* if */
           *processed = TRUE;
         }  /* if */
