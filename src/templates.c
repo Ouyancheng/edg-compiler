@@ -10702,11 +10702,13 @@ any classes that declared the nested class as a template friend.
       a_template_symbol_supplement_ptr	tssp;
       a_type_ptr			parent_class;
       a_template_ptr			templ = alloc_template();
-      parent_class = parent_class_of(class_type);
-      templ->kind = (a_template_kind)templk_member_class;
-      set_source_corresp(&templ->source_corresp, sym);
-      set_class_membership((a_symbol_ptr)NULL, &templ->source_corresp,
-                           parent_class);
+      if (class_type->source_corresp.is_class_member) {
+        parent_class = parent_class_of(class_type);
+        templ->kind = (a_template_kind)templk_member_class;
+        set_source_corresp(&templ->source_corresp, sym);
+        set_class_membership((a_symbol_ptr)NULL, &templ->source_corresp,
+                             parent_class);
+      }  /* if */
       templ->source_corresp.access = class_type->source_corresp.access;
       templ->source_corresp.name_linkage =
                                    (a_name_linkage_kind)nlk_cplusplus_external;

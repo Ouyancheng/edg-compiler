@@ -1,5 +1,21 @@
 Version 4.1
 
+5/10/09 [EDGcpfe/9793]
+Internal error on specialization in invalid scope
+
+An internal error could occur (in set_nested_template_class_symbol_info)
+on a specialization of a class template in an invalid scope (the example
+below requires a mode in which nonclass templates are parsed, such as strict
+mode).  Now fixed.
+
+  struct A {
+    template <class T> struct B {};
+    template < class U > void f ( U ) { 
+      struct A::B<int> {};
+    }
+  };
+
+
 5/8/09  [EDGcpfe/9784]
 Error recovery abort while flushing tokens
 
