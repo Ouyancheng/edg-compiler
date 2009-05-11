@@ -12379,10 +12379,10 @@ expr->next is preserved.
              might change one (but not both) of their types to a type that is
              difficult to reconcile with the type of the other re-written
              operand (they must be identical).  Add a void cast to both. */
+          set_expr_result_not_used(op2);
+          set_expr_result_not_used(op3);
           overwrite_node(op2, add_cast(copy_node(op2), void_type()));
           overwrite_node(op3, add_cast(copy_node(op3), void_type()));
-          op2->result_is_not_used = TRUE;
-          op3->result_is_not_used = TRUE;
         }  /* if */
         expr->is_lvalue = FALSE;
         expr->variant.operation.returns_lvalue_instead_of_usual_rvalue = FALSE;
