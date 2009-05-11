@@ -2174,6 +2174,17 @@ type of the node is already "char *" return the original node.
 }  /* add_cast_to_char_star */
 
 
+static an_expr_node_ptr add_cast_to_void(an_expr_node_ptr node)
+/*
+Add a cast to "void" to the node and return the cast node.
+*/
+{
+  set_expr_result_not_used(node);
+  node = add_cast(node, void_type());
+  return node;
+}  /* add_cast_to_void */
+
+
 static an_expr_node_ptr integral_promote_node(an_expr_node_ptr expr)
 /*
 Add a cast to do integral promotion to expr, if necessary.
@@ -12379,14 +12390,15 @@ expr->next is preserved.
              might change one (but not both) of their types to a type that is
              difficult to reconcile with the type of the other re-written
              operand (they must be identical).  Add a void cast to both. */
-          set_expr_result_not_used(op2);
-          set_expr_result_not_used(op3);
-          overwrite_node(op2, add_cast(copy_node(op2), void_type()));
-          overwrite_node(op3, add_cast(copy_node(op3), void_type()));
+          overwrite_node(op2, add_cast_to_void(copy_node(op2)));
+          overwrite_node(op3, add_cast_to_void(copy_node(op3)));
+          expr->type = void_type();
+          set_expr_result_not_used(expr);
+        } else {
+          expr->type = op2->type;
         }  /* if */
         expr->is_lvalue = FALSE;
         expr->variant.operation.returns_lvalue_instead_of_usual_rvalue = FALSE;
-        expr->type = op2->type;
       } else if (node_operator_is(expr, eok_comma)) {
         /* Rewrite the second operand as an rvalue, and then mark this
            expression as an rvalue. */

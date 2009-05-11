@@ -81,7 +81,7 @@ that encompass a function whose lowering has been delayed.  This keeps the
 relative ordering of lowering the same for nested functions.
 
 
-5/5/09   [EDGcpfe/9768,EDGcpfe/9756]
+5/5/09   [EDGcpfe/9768,EDGcpfe/9756,EDGcpfe/9799]
 Lowering of question operator can result in invalid generated C
 
 In configurations that use lowering, an lvalue question operator whose value
