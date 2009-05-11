@@ -1133,7 +1133,8 @@ flag.
                                                  ) {
     a_routine_ptr rout = (a_routine_ptr)entry_ptr;
 
-    check_assertion_str(!rout->is_trivial_default_constructor,
+    check_assertion_str(!rout->is_trivial_default_constructor ||
+                        rout->is_defaulted,
                         "mark_as_needed: trivial default ctor");
     /* For an externally-linked non-inline function, mark the body as needed
        too, on the presumption that it will be referenced from other
