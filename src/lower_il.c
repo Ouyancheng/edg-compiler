@@ -1567,6 +1567,7 @@ class is static if force_static is TRUE.  Return a pointer to it.
     storage_class = (a_storage_class)sc_static;
   }  /* if */
   temp = make_variable(temp_type, storage_class, NO_SCOPE_DEPTH);
+  temp->lowering_generated = TRUE;
   temp->source_corresp.name_linkage = (a_name_linkage_kind)nlk_none;
   return temp;
 }  /* make_temporary */
@@ -1761,6 +1762,7 @@ already_il_name is TRUE.
     alloc_length = strlen(var_name)+1;
     var_name = strcpy(alloc_lowered_name_string(alloc_length), var_name);
   }  /* if */
+  var->lowering_generated = TRUE;
   var->source_corresp.name = var_name;
   var->source_corresp.name_linkage =
         (var_storage_class == (a_storage_class)sc_unspecified ||
@@ -1808,6 +1810,7 @@ it.  The variable has no name.
   param_var = make_variable(type, (a_storage_class)sc_auto, NO_SCOPE_DEPTH);
   param_var->is_parameter = TRUE;
   param_var->source_corresp.name_linkage = (a_name_linkage_kind)nlk_none;
+  param_var->lowering_generated = TRUE;
   return param_var;
 }  /* make_lowered_param_variable */
 

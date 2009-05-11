@@ -2643,8 +2643,11 @@ definition whose name can be used as part of the module ID.
       if (variable->is_template_static_data_member) continue;
 #if DO_IL_LOWERING
       /* Don't include variables that were originally static and have
-         been promoted. */
-      if (variable->promoted_local_static) continue;
+         been promoted or variables that were generated during the lowering
+         process. */
+      if (variable->promoted_local_static || variable->lowering_generated) {
+        continue;
+      }  /* if */
 #endif /* DO_IL_LOWERING */
 #if GNU_EXTENSIONS_ALLOWED
       if (variable->is_weak) {
