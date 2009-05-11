@@ -13363,6 +13363,71 @@ move constructor for the class given by class_type.
 }  /* selected_function_is_move_constructor */
 
 
+static a_boolean variable_scope_okay_for_throw_move_optimization(
+                                                            a_variable_ptr var)
+/*
+The variable var is being thrown in a throw operation, and it's eligible
+for a copy optimization (it's local and non-static, etc.).  See whether it's
+eligible for a move optimization because it would be destroyed on the
+throw cleanup anyway.  That involves checking its scope relative to any
+enclosing try statements.
+*/
+{
+  a_boolean     okay = FALSE;
+  a_scope_depth depth;
+
+  /* Consider:
+       struct A {
+         A();
+         A(const A&);
+         A(A&&);
+         ~A();
+       };
+       void f() {
+         A a;
+         throw a;  // Optimizable
+       }
+       void f2() {
+         try {
+           A a;
+           throw a;  // Optimizable
+         } catch (...) {
+         }
+       }
+       void f3() {
+         A a;
+         try {
+           throw a;  // Not optimizable
+         } catch (...) {
+         }
+       }
+  */
+  if (!scope_stack[depth_scope_stack].within_try_block) {
+    /* The current position is not inside a try block, so the local variable
+       will be destroyed for sure on the throw. */
+    okay = TRUE;
+  } else {
+    /* The current position is inside a try block, so the local variable will
+       be destroyed on the throw only if it is declared within the innermost
+       try block. */
+    for (depth = depth_scope_stack;; depth--) {
+      check_assertion(depth_innermost_function_scope > 0 &&
+                      depth > depth_innermost_function_scope);
+      if (var->source_corresp.parent_scope == scope_stack[depth].il_scope) {
+        /* We found the local variable before we ran into a try block, so it
+           will be destroyed on the throw. */
+        okay = TRUE;
+        break;
+      }  /* if */
+      /* Stop looking when we get to the innermost try block, after checking
+         whether the variable is in its associated block scope. */
+      if (scope_stack[depth].is_try_block) break;
+    }  /* for */
+  }  /* if */
+  return okay;
+}  /* variable_scope_okay_for_throw_move_optimization */
+
+
 void prep_elision_initializer_operand(
                                   an_operand         *source_operand,
                                   a_type_ptr         dest_type,
@@ -13404,12 +13469,10 @@ constructor elision in C++ mode.  This is an initialization with the
       rvalue_references_enabled &&
       operand_is_lvalue_for_variable(source_operand, &var)) {
     /* The move constructor optimization might apply here.  Check further. */
-    a_type_ptr func_type = NULL;
-    if (initializing_return_value) {
-      check_assertion(innermost_function_scope != NULL);
-      func_type = innermost_function_scope->variant.routine.ptr->type;
-    }  /* if */
-    if (variable_eligible_for_copy_optimization(var, func_type)) {
+    if (variable_eligible_for_copy_optimization(var,
+                                                initializing_return_value) &&
+        (initializing_return_value ||
+         variable_scope_okay_for_throw_move_optimization(var))) {
       /* The move optimization might apply here.  Build a version of the
          operand that has been converted to an rvalue and try the conversion
          from that first.  Convert the variable to an rvalue by casting to

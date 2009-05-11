@@ -16478,12 +16478,9 @@ Scan the C++ throw operator.  See 15.2 in the ARM.  The syntax is
       if (is_class_struct_union_type(throw_type)) {
         /* For a class type operand, generate a dynamic initialization that
            copies the value to an undesignated location. */
-        /* The move optimization is inhibited for now -- we would also
-           need to check that the variable thrown is in a scope that will be
-           exited by the throw. */
         prep_elision_initializer_operand(&operand, throw_type,
                                          /*initializing_return_value=*/FALSE,
-                                         /*move_optimization_allowed=*/FALSE,
+                                         /*move_optimization_allowed=*/TRUE,
                                          /*fill_in_dtor=*/FALSE,
                                          ec_bad_initializer_type, &dip);
         if (dip == NULL) err = TRUE;
@@ -20213,18 +20210,18 @@ are marked as actually referenced.
 
 
 a_boolean variable_eligible_for_copy_optimization(a_variable_ptr var,
-                                                  a_type_ptr     func_type)
+                                                  a_boolean      return_case)
 /*
 Determine whether the variable var is eligible for an optimization that
-elides a copy as described in [class.copy] paragraph 15.  When func_type is
-non-NULL, it gives the type of the current function and this routine
-returns TRUE if "return var;" is allowed to optimize away the return
-copy by constructing var directly in the space provided by the caller.
-When func_type is NULL, this routine returns TRUE if "throw var;" is
-allowed to optimize away the throw copy by constructing var directly
-in the exception object (in practice, that's an optimization that's
-hard or impossible to do, but the same condition comes up in working
-out move optimizations, so this test is useful for that reason).
+elides a copy as described in [class.copy] paragraph 15.  When return_case
+is TRUE, this routine returns TRUE if "return var;" is allowed to
+optimize away the return copy by constructing var directly in the
+space provided by the caller.  When return_case is FALSE, this routine
+returns TRUE if "throw var;" is allowed to optimize away the throw
+copy by constructing var directly in the exception object (in
+practice, that's an optimization that's hard or impossible to do, but
+the same condition comes up in working out move optimizations, so this
+test is useful for that reason).
 */
 {
   a_boolean eligible = FALSE;
@@ -20232,12 +20229,22 @@ out move optimizations, so this test is useful for that reason).
   if (!var->is_parameter &&
       !has_static_storage_duration(var->storage_class) &&
       is_class_struct_union_type(var->type) &&
-      !is_volatile_qualified_type(var->type) &&
-      (func_type == NULL ||
-       types_are_compatible_ignoring_qualifiers(
-                                    var->type,
-                                    func_type->variant.routine.return_type))) {
-    eligible = TRUE;
+      !is_volatile_qualified_type(var->type)) {
+    if (return_case) {
+      /* Return case. */
+      a_type_ptr func_type;
+      check_assertion(innermost_function_scope != NULL);
+      func_type = innermost_function_scope->variant.routine.ptr->type;
+      func_type = skip_typerefs(func_type);
+      if (types_are_compatible_ignoring_qualifiers(
+                                     var->type,
+                                     func_type->variant.routine.return_type)) {
+        eligible = TRUE;
+      }  /* if */
+    } else {
+      /* Throw case. */
+      eligible = TRUE;
+    }  /* if */
   }  /* if */
   return eligible;
 }  /* variable_eligible_for_copy_optimization */
@@ -20285,9 +20292,8 @@ lowering or a back end to do the rewriting.
            what cfront does, and it helps to avoid some nasty interactions
            with exception handling).  Also, 12.8p15 of the C++ standard
            says that it must be non-volatile. */
-        a_type_ptr func_type = func_scope->variant.routine.ptr->type;
-        func_type = skip_typerefs(func_type);
-        if (variable_eligible_for_copy_optimization(return_var, func_type)
+        if (variable_eligible_for_copy_optimization(return_var,
+                                                    /*return_case=*/TRUE)
 #if DO_IL_LOWERING
             /* Rule out a case IL lowering can't handle: returning an
                optimized class rvalue "?" via the return value optimization. */
@@ -20298,6 +20304,7 @@ lowering or a back end to do the rewriting.
                                                                             ) {
           a_symbol_ptr sym =
                            (a_symbol_ptr)return_var->source_corresp.assoc_info;
+          /* Check that the variable is in the top scope of the function. */
           if (sym->decl_scope == ssep->number) {
             /* This variable is okay.  Record it as the variable for the
                return value optimization. */
