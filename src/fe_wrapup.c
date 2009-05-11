@@ -566,11 +566,14 @@ already been copied over.
     file_scope_il_wrapup_remove_unneeded_il();
 #if ENSURE_LOWERED_TYPE_LIST_ORDERING
     if (total_errors == 0 &&
-        (local_type_used_as_template_type_argument ||
+        (perform_type_list_ordering ||
+         local_type_used_as_template_type_argument ||
          (!trans_unit_test_mode &&
           translation_units->next != NULL))) {
-      /* Fix ordering problems for C generation when local types are used
-         as template arguments or secondary translation units are involved. */
+      /* Fix ordering problems for C generation when explicitly requested by
+         lowering (e.g., when a local type is used as the return type for
+         a function) or when local types are used as template arguments or
+         secondary translation units are involved. */
       fix_type_list_ordering_problems();
     }  /* if */
 #endif /* ENSURE_LOWERED_TYPE_LIST_ORDERING */

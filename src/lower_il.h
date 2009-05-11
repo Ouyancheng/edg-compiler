@@ -64,6 +64,13 @@ EXTERN a_boolean
 			   variable definition if the vtable variable is
 			   "optional". */
 
+#if ENSURE_LOWERED_TYPE_LIST_ORDERING
+EXTERN a_boolean
+		perform_type_list_ordering;
+			/* TRUE if types may appear out-of-order in lowered
+			   C code and need to be sorted to produce code that
+			   will compile properly. */
+#endif /* ENSURE_LOWERED_TYPE_LIST_ORDERING */
 
 /*
 Access the il_lowering_flag in an IL entry.

@@ -17407,13 +17407,28 @@ by things that will be in the file scope.
       scope->kind == (a_scope_kind)sck_condition) {
     /* Function or block scope. */
 #if ENSURE_LOWERED_TYPE_LIST_ORDERING
-    if (local_types_as_template_args_enabled) {
+    if (scope->kind == (a_scope_kind)sck_function) {
+      a_routine_ptr routine = scope->variant.routine.ptr;
+      a_type_ptr    return_type = skip_typerefs(
+                                   routine->type->variant.routine.return_type);
+      if (return_type->source_corresp.is_local_to_function &&
+          enclosing_routine_for_local_type_or_null(return_type) == routine) {
+        /* A function is returning a type that is local to the function (which
+           can happen in nested lambdas).  Once the local type is promoted, the
+           type list will need sorting to ensure that the local type is placed
+           in the proper order. */
+        promotion_needed = TRUE;
+        perform_type_list_ordering = TRUE;
+      }  /* if */
+    }  /* if */
+    if (!promotion_needed && local_types_as_template_args_enabled) {
       /* A local type being used as a template argument creates an ordering
          issue for types; in many instances the local type must be defined
          prior to being used in the template.  To ensure the proper order,
          promote all local types to the file scope list, then call
          fix_type_list_ordering_problems during wrapup processing to ensure
-         that the type list is properly ordered.  */
+         that the type list is properly ordered (if in fact a local type has
+         actually been used as a template argument). */
       promotion_needed = TRUE;
     } else
 #endif /* ENSURE_LOWERED_TYPE_LIST_ORDERING */
@@ -19644,6 +19659,9 @@ for each compilation.
   allocated_name_string_length  = 0;
   num_return_memos_allocated    = 0;
 #endif /* DEBUG */
+#if ENSURE_LOWERED_TYPE_LIST_ORDERING
+  perform_type_list_ordering = FALSE;
+#endif /* ENSURE_LOWERED_TYPE_LIST_ORDERING */
   /* Determine targ_ptr_to_data_member_int_kind from
      targ_sizeof_ptr_to_data_member.  That is, find the integer kind to be
      used for pointers to data members.  An unsigned type is always used.
