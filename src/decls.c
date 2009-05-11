@@ -8510,7 +8510,7 @@ the symbol through dps->sym and its linkage (which is always "none") through
          is const qualified -- WP 7.1.5.1 [dcl.type.cv]). */
       if (has_initializer ||
           is_const_qualified_type(var->type) ?
-            type_has_user_declared_default_constructor(var->type) :
+            type_has_user_provided_default_constructor(var->type) :
             type_has_nontrivial_default_constructor(var->type)) {
         srk_flags |= SRK_INITIALIZATION;
       }  /* if */
@@ -13648,7 +13648,7 @@ if one is present.
            user-declared default constructor if the variable's type is
            const qualified). */
         if (is_const_qualified_type(state->type) ?
-              type_has_user_declared_default_constructor(state->type) :
+              type_has_user_provided_default_constructor(state->type) :
               type_has_nontrivial_default_constructor(state->type)) {
           srk_flags |= SRK_INITIALIZATION;
         }  /* if */

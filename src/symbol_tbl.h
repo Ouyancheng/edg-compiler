@@ -941,6 +941,10 @@ typedef struct a_class_symbol_supplement {
   a_bit_field	has_user_declared_default_constructor:1;
 			/* TRUE if a default constructor has been explicitly
 			   declared for this class. */
+  a_bit_field	has_user_provided_default_constructor:1;
+			/* TRUE if a default constructor has been explicitly
+			   declared for this class, and the first declaration
+			   was not defaulted. */
   a_bit_field	has_copy_constructor:1;
 			/* TRUE if a copy constructor has either been declared
 			   or generated for the class. */

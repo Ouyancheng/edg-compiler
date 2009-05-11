@@ -1684,22 +1684,24 @@ flag is set to TRUE.
 
 
 a_boolean f_type_has_default_constructor(a_type_ptr  tp,
-                                         a_boolean   user_declared_only,
+                                         a_boolean   user_provided_only,
                                          a_boolean   nontrivial_only)
 /*
 Return TRUE if the type pointed to by tp is a non-POD class type with a
-default constructor (or an array thereof).  When user_declared_only is TRUE,
-the function returns TRUE if class has a user-declared default constructor.
+default constructor (or an array thereof).  When user_provided_only is TRUE,
+the function returns TRUE if class has a user-provided default constructor.
 When nontrivial_only is TRUE, it returns TRUE if the class has a nontrivial
-default constructor (user-declared or implicitly-generated).  If both flags
-are FALSE, it also considers trivial_default_constructor pointer in the class
-symbol supplement. This function is called in C++ mode only, and only through
-one of the macros provided in types.h (type_has_default_constructor, etc.).
+default constructor (user-provided or not).  If both flags are FALSE, it also
+considers trivial_default_constructor pointer in the class symbol supplement.
+(Both flags should not be TRUE at the same time.)
+This function is called in C++ mode only, and only through one of the macros
+provided in types.h.
 */
 {
   a_boolean                      has_default_ctor = FALSE;
   a_class_symbol_supplement_ptr  cssp;
 
+  check_assertion(!user_provided_only || !nontrivial_only);
   if (is_array_type(tp)) {
     tp = underlying_array_element_type(tp);
   }  /* if */
@@ -1708,15 +1710,14 @@ one of the macros provided in types.h (type_has_default_constructor, etc.).
     /* It's a class type or an array of class type. */
     complete_class_type_is_needed(tp);
     cssp = symbol_supplement_for_class(tp);
-    if (cssp->has_user_declared_default_constructor) {
-      /* Class has a user-declared default constructor. */
-      has_default_ctor = TRUE;
+    if (user_provided_only) {
+      has_default_ctor = cssp->has_user_provided_default_constructor;
     } else if (cssp->has_nontrivial_default_constructor) {
-      /* Class has an implicitly declared nontrivial default constructor. */
-      if (!user_declared_only) has_default_ctor = TRUE;
+      /* Class has a nontrivial default constructor. */
+      has_default_ctor = TRUE;
     } else if (cssp->trivial_default_constructor != NULL) {
       /* Class has an implicitly declared trivial default constructor. */
-      if (!user_declared_only && !nontrivial_only) has_default_ctor = TRUE;
+      if (!nontrivial_only) has_default_ctor = TRUE;
     }  /* if */
   }  /* if */
   return has_default_ctor;

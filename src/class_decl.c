@@ -8826,16 +8826,12 @@ implicitly declared member functions.
       /* Set the pointer to the constructor symbol in the class symbol
          supplement. */
       if (decl_info->is_trivial_default_constructor) {
-        /* A trivial default constructor is never actually called, so it is
-           not added to the constructor set (which should be empty). */
+        /* An implicitly-declared trivial default constructor is never
+           actually called or declared, so it is not added to the constructor
+           set (which should be empty). */
         check_assertion(cssp->constructor == NULL);
         cssp->trivial_default_constructor = sym;
         rtn->is_trivial_default_constructor = TRUE;
-      } else if (rtn->is_trivial_default_constructor) {
-        /* A defaulted default constructor.  It is assumed trivial until the
-           class is completed, at which point we can make a final
-           determination as to whether it is really trivial. */
-        cssp->trivial_default_constructor = sym;
       } else {
         if (cssp->constructor == NULL) {
           cssp->constructor = sym;
@@ -8849,9 +8845,19 @@ implicitly declared member functions.
         }  /* if */
         /* Determine if this is a default constructor. */
         if (is_default_constructor(rtn, /*is_declarative_context=*/TRUE)) {
-          cssp->has_nontrivial_default_constructor = TRUE;
+          if (rtn->is_trivial_default_constructor) {
+            /* A defaulted default constructor.  It is assumed trivial until
+               the class is completed, at which point we can make a final
+               determination as to whether it is really trivial. */
+            cssp->trivial_default_constructor = sym;
+          } else {
+            cssp->has_nontrivial_default_constructor = TRUE;
+          }  /* if */
           if (!compiler_generated) {
             cssp->has_user_declared_default_constructor = TRUE;
+            if (!rtn->is_defaulted) {
+              cssp->has_user_provided_default_constructor = TRUE;
+            }  /* if */
           }  /* if */
         }  /* if */
         /* Determine if this is a copy constructor.  If so, set the class
@@ -10091,6 +10097,7 @@ nonstandard anonymous unions is_nonstd is TRUE.
        is transformed. */
     cssp->has_nontrivial_default_constructor = FALSE;
     cssp->has_user_declared_default_constructor = FALSE;
+    cssp->has_user_provided_default_constructor = FALSE;
     cssp->has_copy_constructor = FALSE;
     cssp->has_copy_constructor_for_const_object = FALSE;
     cssp->assignment_by_bitwise_copy_allowed = TRUE;
@@ -12167,9 +12174,7 @@ definition described by class_state.
     check_assertion(default_ctor->variant.routine.ptr->is_defaulted);
     if (class_state->POD_ruled_out) {
       cssp->trivial_default_constructor = NULL;
-      /* Insert the symbol in the normal constructors list. */
-      default_ctor->next = cssp->constructor;
-      cssp->constructor = default_ctor;
+      cssp->has_nontrivial_default_constructor = TRUE;
       default_ctor->variant.routine.ptr
                   ->is_trivial_default_constructor = FALSE;
     }  /* if */
@@ -13949,9 +13954,8 @@ member.  Determine whether a diagnostic is actually required and put it out.
           /* Member of reference type must be explicitly initialized. */
           error_code = ec_reference_member;
         } else if (is_const_qualified_type(tp)) {
-          /* Usually, a member of const type must be explicitly
-             initialized. */
-          if (type_has_user_declared_default_constructor(tp)) {
+          /* Usually, a member of const type must be explicitly initialized. */
+          if (type_has_user_provided_default_constructor(tp)) {
             /* A const data member that has its own default constructor will
                be initialized when the default constructor for the current
                class is generated.  So skip this one and keep looking. */

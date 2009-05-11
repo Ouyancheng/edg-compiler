@@ -5844,7 +5844,7 @@ are created by a new expression (in which case sym is NULL).  In both cases
                   constructor, a user-declared default constructor must be
                   present (WP 7.1.5.1 [dcl.cv]). */
               check_assertion(
-                      !type_has_user_declared_default_constructor(type));
+                      !type_has_user_provided_default_constructor(type));
               pos_syty_diagnostic(severity,
                                   ec_missing_default_constructor_on_const,
                                   &error_position, sym, skip_typerefs(type));
@@ -5876,7 +5876,7 @@ are created by a new expression (in which case sym is NULL).  In both cases
           /* Even if the class has an implicitly declared default constructor,
              a user-declared default constructor must be present (WP 5.3.4
              [expr.new]). */
-          check_assertion(!type_has_user_declared_default_constructor(type));
+          check_assertion(!type_has_user_provided_default_constructor(type));
           pos_ty_diagnostic(es_discretionary_error,
                             ec_missing_default_constructor_on_unnamed_const,
                             &error_position, skip_typerefs(type));

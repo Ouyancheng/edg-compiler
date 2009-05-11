@@ -2745,6 +2745,7 @@ state.
 #endif /* IA64_ABI && NEED_NAME_MANGLING */
         cssp->has_nontrivial_default_constructor = FALSE;
         cssp->has_user_declared_default_constructor = FALSE;
+        cssp->has_user_provided_default_constructor = FALSE;
         cssp->has_copy_constructor = FALSE;
         cssp->has_copy_constructor_for_const_object = FALSE;
         cssp->has_trivial_destructor = FALSE;

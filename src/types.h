@@ -388,15 +388,15 @@ extern a_type_qualifier_set get_original_type_qualifiers(a_type_ptr type);
 
 
 extern a_boolean f_type_has_default_constructor(a_type_ptr  tp,
-                                                a_boolean   user_declared_only,
+                                                a_boolean   user_provided_only,
                                                 a_boolean   nontrivial_only);
 
 /*
-Return TRUE if tp is a class type (or array thereof) with a user-declared
+Return TRUE if tp is a class type (or array thereof) with a user-provided
 default constructor.
 */
-#define type_has_user_declared_default_constructor(tp)               \
-  f_type_has_default_constructor(tp, /*user_declared_only=*/TRUE,    \
+#define type_has_user_provided_default_constructor(tp)               \
+  f_type_has_default_constructor(tp, /*user_provided_only=*/TRUE,    \
                                  /*nontrivial_only=*/FALSE)
 /*
 Return TRUE if tp is a class type (or array thereof) with a user-declared
