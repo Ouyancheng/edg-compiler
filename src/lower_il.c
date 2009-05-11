@@ -4511,8 +4511,8 @@ Do IL lowering of the indicated constant and everything under it.
         /* No handling required. */
         break;
       case ck_string:
-        if (string_literals_are_const) {
-          check_assertion(is_const_qualified_type(constant->type));
+        if (string_literals_are_const &&
+            is_const_qualified_type(constant->type)) {
           /* If string literals are const qualified by the C++ front end,
              the const qualification is removed here.  Adjustments to
              the types of eok_address_of or eok_array_to_pointer nodes
