@@ -8496,12 +8496,11 @@ set_temp_init_dynamic_init_lifetime, among others).
        that happens only in constructor mem-initializers right now. */
     check_assertion(object_class_type == NULL ||
                     same_entities(class_type, object_class_type));
-    if (cssp != NULL && !cssp->has_trivial_destructor) {
+    if (cssp != NULL && cssp->destructor != NULL &&
+        !cssp->has_trivial_destructor) {
       a_symbol_ptr dtor_sym = cssp->destructor;
-      if (dtor_sym != NULL) {
-        dip->destructor = dtor_sym->variant.routine.ptr;
-        (void)alloc_dynamic_init_dtor_fixup(dip, position);
-      }  /* if */
+      dip->destructor = dtor_sym->variant.routine.ptr;
+      (void)alloc_dynamic_init_dtor_fixup(dip, position);
     }  /* if */
   }  /* if */
 }  /* add_dtor_to_dynamic_init */
