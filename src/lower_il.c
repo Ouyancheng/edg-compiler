@@ -2182,9 +2182,7 @@ static an_expr_node_ptr add_cast_to_void(an_expr_node_ptr node)
 Add a cast to "void" to the node and return the cast node.
 */
 {
-  set_expr_result_not_used(node);
-  node = add_cast(node, void_type());
-  return node;
+  return add_cast(node, void_type());
 }  /* add_cast_to_void */
 
 

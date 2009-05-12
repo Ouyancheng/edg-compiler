@@ -12184,6 +12184,10 @@ the value of the expression is discarded.
          are not used if the entire operation is not used. */
       set_expr_result_not_used(operand_1->next);
       set_expr_result_not_used(operand_1->next->next);
+    } else if (op == (an_expr_operator_kind)eok_cast) {
+      /* The operand of a void cast is not used if the entire operation
+         is not used. */
+      set_expr_result_not_used(operand_1);
     } else if (op == (an_expr_operator_kind)eok_parens) {
       /* Given parentheses, the operand is not used if the entire operation
          is not used. */
