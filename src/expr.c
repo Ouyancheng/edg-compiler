@@ -20674,7 +20674,7 @@ void scan_nonconstant_dimension_expression(
 Scan an array dimension that might be non-constant.  The array dimension
 must be an integral expression.  (It's also required to be non-negative, but
 the caller must check that.)  If is_new_or_delete_bound is TRUE, this function
-is being called for C++ mode for a new-type-name (or, less commonly, for the
+is being called in C++ mode for a new-type-name (or, less commonly, for the
 anachronism that allows "delete[<expr>] ptr" to explicitly specify the number
 of elements to delete).  If is_new_or_delete_bound is FALSE, the bound is for
 a possibly variable-length array (a C99 feature also available in other
@@ -20682,7 +20682,7 @@ dialects).  If is_top_level_vla_bound is TRUE, the bound is for a true
 variable-length array (e.g., "int [n]" or "int* ([3])[n]") as opposed to a
 variably-modified type (such as "int (*)[n]" or "int (*[3])[n]").  If
 is_evaluated_sizeof_arg is TRUE, the bound is for a type that appears as an
-argument for a sizeof operator that appears in a potentially evaluated
+argument of a sizeof operator that appears in a potentially evaluated
 expression context.  Return either *is_constant TRUE and a constant value in
 *constant, or *is_constant FALSE and a pointer to the expression tree in
 *expression.
