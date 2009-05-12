@@ -87,7 +87,7 @@ end has generated IL for the function, but there are instances when lowering of
 a function scope is delayed (see should_delay_lowering_on_function).  Delaying
 lowering of a function can change the relative order in which functions are
 lowered and lead to some undesired results.  For example, these two samples
-compile without error in default mode, but yield an internal error and an
+compile without error in default mode, but yielded an internal error and an
 inadvertent suppression of vtables in strict mode (in IA-64 configurations):
 
   struct A {};
