@@ -9638,12 +9638,7 @@ and create a function instantiation entry to bind the two symbols together.
      prototype instantiation.  It should either be a function template or
      overloaded function symbol. */
   if (is_constructor_symbol(rout_sym)) {
-    if (rout_sym->variant.routine.ptr->is_trivial_default_constructor) {
-      check_assertion(rout_sym->variant.routine.ptr->is_defaulted);
-      sym = cssp->trivial_default_constructor;
-    } else {
-      sym = cssp->constructor;
-    }  /* if */
+    sym = cssp->constructor;
   } else if (rout_sym->variant.routine.ptr->special_kind ==
                                     (a_special_function_kind)sfk_conversion) {
     /* Look through the conversion routines of the prototype instantiation.
