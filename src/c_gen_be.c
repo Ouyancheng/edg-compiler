@@ -4128,7 +4128,10 @@ closing parentheses needed if any code was generated there.
 static void check_result_not_used_flag(an_expr_node_ptr node)
 /*
 node is an expression whose value is being discarded, e.g., it's a void
-expression.  Check that its result_is_not_used flag is set correctly.
+expression.  Check that the result_is_not_used flag is set for this node
+and, for certain operations, its operands.  (The complementary processing,
+ensuring that the result_is_not_used_flag is NOT set when it should not be,
+is found in check_operation_node_consistency.)
 */
 {
   if (!node->result_is_not_used) {
@@ -4150,6 +4153,14 @@ expression.  Check that its result_is_not_used flag is set correctly.
          are not used if the entire operation is not used. */
       check_result_not_used_flag(operand_1->next);
       check_result_not_used_flag(operand_1->next->next);
+    } else if (op == (an_expr_operator_kind)eok_cast) {
+      /* Given a cast to void, the operand is not used if the entire
+         operation is not used. */
+      check_result_not_used_flag(operand_1);
+    } else if (op == (an_expr_operator_kind)eok_parens) {
+      /* Given parentheses, the operand is not used if the entire operation
+         is not used. */
+      check_result_not_used_flag(operand_1);
     }  /* if */
   }  /* if */
 }  /* check_result_not_used_flag */

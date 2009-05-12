@@ -12168,7 +12168,8 @@ the value of the expression is discarded.
      the subnode type without changing the parent node type (or the sibling
      node type, in the "?" case).  The transformation done in lower_temp_init
      is the difficult case. */
-  /* If you change this, see also check_operation_node_consistency. */
+  /* If you change this, see also check_operation_node_consistency and
+     check_result_not_used_flag. */
   if (node->kind == (an_expr_node_kind)enk_operation &&
       is_void_type(node->type)) {
     an_expr_operator_kind op = node->variant.operation.kind;
@@ -20261,8 +20262,10 @@ node, and report any failure as an internal error.
 #endif /* DEBUG && !STANDALONE_UTILITY_PROGRAM */
     internal_error("eok_cast used for array-to-ptr decay");
   }  /* if */
-  /* Check the correctness of the result_is_not_used flags on the
-     operands. */
+  /* Check that the result_is_not_used flags on the operands are not set
+     when they should not be.  (See also check_result_not_used_flag for the
+     complementary processing, i.e., ensuring that the flags of the
+     operands are set when they should be.) */
   { an_expr_node_ptr op_node;
     for (op_node = operand_1; op_node != NULL; op_node = op_node->next) {
       if (op_node->result_is_not_used) {
