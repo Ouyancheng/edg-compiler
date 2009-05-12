@@ -8652,7 +8652,6 @@ non-NULL, also append the characters in the comment, through but not including
     if (curr_char == NULL) {
       /* Rare case -- there is no start_of_curr_token pointer. */
       curr_char = stop_char;
-      prev_asm_stop_char = NULL;
     }  /* if */
   }  /* if */
   while (curr_char != stop_char) {
