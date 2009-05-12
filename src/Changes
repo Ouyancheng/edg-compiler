@@ -57,8 +57,8 @@ mode).  Now fixed.
 5/8/09  [EDGcpfe/9784]
 Error recovery abort while flushing tokens
 
-An abort could occur (in is_template_reference) when flushing tokens for
-certain unusual invalid test cases.  Now fixed.
+An abort could occur (in normal_id_lookup called from is_template_reference)
+when flushing tokens for certain unusual invalid test cases.  Now fixed.
 
   namespace {
     void A() { }
