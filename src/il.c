@@ -5536,8 +5536,8 @@ are allowed under a sizeof (etc.) in a template argument expression.
         eq = same_entities(node1->variant.field, node2->variant.field);
         break;
       case enk_temp_init:
-        eq = (node1->variant.init.static_temp ==
-              node2->variant.init.static_temp &&
+        eq = (node1->variant.init.dynamic_init->static_temp ==
+              node2->variant.init.dynamic_init->static_temp &&
               compare_template_param_dynamic_inits(
                                             node1->variant.init.dynamic_init,
                                             node2->variant.init.dynamic_init));
@@ -14254,7 +14254,7 @@ be called to start a copy.
                                 expr_copy->variant.init.dynamic_init->lifetime;
         if (lifetime != NULL) {
           if (is_static_object_lifetime_kind(lifetime->kind)) {
-            expr_copy->variant.init.static_temp = TRUE;
+            expr_copy->variant.init.dynamic_init->static_temp = TRUE;
           }  /* if */
         }  /* if */
       }  /* if */

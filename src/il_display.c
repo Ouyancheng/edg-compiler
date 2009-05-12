@@ -3383,8 +3383,6 @@ Display the indicated expression node.
       break;
     case enk_temp_init:
       (void)printf("enk_temp_init\n");
-      disp_boolean("static_temp",
-                   (a_boolean)ptr->variant.init.static_temp);
       disp_ptr("dynamic_init", (char *)ptr->variant.init.dynamic_init,
                iek_dynamic_init);
       break;
@@ -4694,6 +4692,9 @@ Display the indicated dynamic_init structure.
   if (ptr->init_expr_lifetime != NULL) {
     disp_ptr("init_expr_lifetime", (char *)ptr->init_expr_lifetime,
              iek_object_lifetime);
+  }  /* if */
+  if (ptr->static_temp) {
+    disp_boolean("static_temp", TRUE);
   }  /* if */
   if (ptr->follows_an_exec_statement) {
     disp_boolean("follows_an_exec_statement", TRUE);

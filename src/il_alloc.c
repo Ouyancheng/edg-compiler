@@ -1754,6 +1754,7 @@ Initialize a dynamic_init entry of the kind specified.
   dip->lifetime                      = NULL;
   dip->next_in_destruction_list      = NULL;
   dip->init_expr_lifetime            = NULL;
+  dip->static_temp                   = FALSE;
   dip->follows_an_exec_statement     = FALSE;
   dip->inside_conditional_expression = FALSE;
   dip->unordered                     = FALSE;
@@ -2568,7 +2569,6 @@ fields to default values.
       node->variant.field = NULL;
       break;
     case enk_temp_init:
-      node->variant.init.static_temp  = FALSE;
       node->variant.init.dynamic_init = NULL;
       break;
     case enk_new_delete:

@@ -8966,7 +8966,7 @@ Do IL lowering of an enk_temp_init expression node.
                       dip->master_entry->init_destination != NULL);
     } else {
       /* Create a temporary variable.  Make it static if necessary. */
-      if (!expr->variant.init.static_temp && !long_lifetime_temps &&
+      if (!dip->static_temp && !long_lifetime_temps &&
           dip->has_temporary_lifetime) {
         /* Simple case; a temporary that lasts until the end of the full
            expression will do. */
@@ -8974,8 +8974,7 @@ Do IL lowering of an enk_temp_init expression node.
       } else {
         temp_var = make_temporary_in_scope(temp_type,
                                            (a_scope_ptr)NULL,
-                                           (a_boolean)
-                                               expr->variant.init.static_temp,
+                                           (a_boolean)dip->static_temp,
                                            /*promote_if_necessary=*/TRUE);
         /* With a unique temporary, there is the possibility of keeping
            some part of the initialization on the variable. */
@@ -14063,7 +14062,7 @@ with the value of their corresponding captured variables.
                                   expr->type));
   capture = expr->variant.lambda.ptr->capture_list;
   dip = expr->variant.lambda.initialization;
-  if (dip->has_temporary_lifetime) {
+  if (dip->has_temporary_lifetime && !dip->static_temp) {
     if (long_lifetime_temps) {
       /* Make a temporary that lasts longer than the full expression. */
       closure_var = make_lowered_temporary(expr->type);
@@ -14076,7 +14075,7 @@ with the value of their corresponding captured variables.
     /* Create a static temporary for the closure object. */
     closure_var = make_temporary_in_scope(expr->type,
                                           (a_scope_ptr)NULL,
-                                          /*force_static=*/TRUE,
+                                          (a_boolean)dip->static_temp,
                                           /*promote_if_necessary=*/TRUE);
   }  /* if */
   /* Change the enk_lambda node to an enk_variable node that refers to

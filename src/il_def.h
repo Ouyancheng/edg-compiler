@@ -1948,6 +1948,19 @@ typedef struct a_dynamic_init {
   a_dynamic_init_kind
 		kind;	/* Kind of dynamic initialization (constant,
 			   expression, constructor, aggregate). */
+  a_bit_field   static_temp:1;
+			/* If TRUE, the temporary (enk_temp_init) or closure
+			   variable (enk_lambda) must be static.  This means
+			   the storage duration is required to be static.
+			   A value of FALSE, however, does not mean the storage
+			   duration is forced to be automatic.  For example,
+			   temp inits in the file scope that don't need to be
+			   static will have this flag FALSE even though static
+			   may be the only possible storage duration if the
+			   temporary is realized in the file scope.  Also,
+			   storage duration is different than object lifetime;
+			   see the lifetime information in the dynamic init
+			   entry pointed to. */
   a_bit_field	follows_an_exec_statement:1;
 			/* TRUE if this initialization is pointed to from
 			   an stmk_init and the stmk_init appears after
@@ -11483,20 +11496,6 @@ typedef struct an_expr_node {
     /* The result of this operator is a temporary.  It's an lvalue if
        is_lvalue is TRUE, an rvalue otherwise. */
     struct {
-      a_byte_boolean
-		static_temp;
-			/* If TRUE, the temporary must be static.  This means
-			   the storage duration of the temporary is required
-			   to be static.  A value of FALSE, however, does not
-			   mean the storage duration is forced to be
-			   automatic.  For example, temp inits in the file
-			   scope that don't need to be static will have this
-			   flag FALSE even though static may be the only
-			   possible storage duration if the temporary is
-			   realized in the file scope.  Also, storage duration
-			   is different than object lifetime; see the
-			   lifetime information in the dynamic init entry
-			   pointed to. */
       a_dynamic_init_ptr
 		dynamic_init;
 			/* Dynamic initialization entry that does the

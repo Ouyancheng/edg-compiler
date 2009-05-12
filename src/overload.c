@@ -13043,7 +13043,7 @@ for a return, because the caller will do the destruction).
          because it will be given to the caller, who will put it on a
          list at that level. */
       remove_from_destruction_list(dip);
-      temp_init_node->variant.init.static_temp = FALSE;
+      dip->static_temp = FALSE;
       dip->has_temporary_lifetime = FALSE;
       if (suppress_dtor && dip->destructor != NULL) {
         /* We don't want destruction indicated here (because someone else
@@ -13757,10 +13757,11 @@ like
     }  /* while */
     dip = NULL;
     if (node->kind == (an_expr_node_kind)enk_temp_init) {
-      if (static_lifetime) node->variant.init.static_temp = TRUE;
       dip = node->variant.init.dynamic_init;
+      if (static_lifetime) dip->static_temp = TRUE;
     } else if (node->kind == (an_expr_node_kind)enk_lambda) {
       dip = node->variant.lambda.initialization;
+      if (static_lifetime) dip->static_temp = TRUE;
     }  /* if */
     if (dip != NULL) {
       dip->has_temporary_lifetime = FALSE;

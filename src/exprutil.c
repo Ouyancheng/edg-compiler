@@ -8557,7 +8557,7 @@ requires a later destruction, put it into the current object lifetime.
        a static temporary. */
     if (dip->lifetime != NULL &&
         dip->lifetime->kind == (an_object_lifetime_kind)olk_global_static) {
-      temp_init_node->variant.init.static_temp = TRUE;
+      dip->static_temp = TRUE;
     }  /* if */
   }  /* if */
 }  /* set_temp_init_dynamic_init_lifetime */
@@ -12114,7 +12114,7 @@ that identifies an object or an rvalue that is a pointer to an object.
         tblock->terminate = TRUE;
       }  /* if */
     } else if (expr->kind == (an_expr_node_kind)enk_temp_init) {
-      if (!expr->variant.init.static_temp) {
+      if (!expr->variant.init.dynamic_init->static_temp) {
         /* An lvalue for a nonstatic temporary. */
         tblock->result = TRUE;
         tblock->is_temp = TRUE;
