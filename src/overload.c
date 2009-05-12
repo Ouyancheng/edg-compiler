@@ -13758,12 +13758,11 @@ like
     dip = NULL;
     if (node->kind == (an_expr_node_kind)enk_temp_init) {
       dip = node->variant.init.dynamic_init;
-      if (static_lifetime) dip->static_temp = TRUE;
     } else if (node->kind == (an_expr_node_kind)enk_lambda) {
       dip = node->variant.lambda.initialization;
-      if (static_lifetime) dip->static_temp = TRUE;
     }  /* if */
     if (dip != NULL) {
+      if (static_lifetime) dip->static_temp = TRUE;
       dip->has_temporary_lifetime = FALSE;
       lifetime = dip->lifetime;
       /* The "lifetime != NULL" test here deals with initializations that
