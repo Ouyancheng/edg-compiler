@@ -25,7 +25,6 @@ decls.c -- Scanning of declarations.
 #endif /* ifdef PCH_PRAGMA_GUARD */
 
 /* Additional header files. */
-#include "exprutil.h"
 #include "folding.h"
 #include "statements.h"
 #if USER_CONTROL_OF_STRUCT_PACKING
@@ -101,8 +100,9 @@ and efficient initialization.
   ps->virtual_pos = null_source_position;
   ps->auto_pos = null_source_position;
   ps->in_class_scope = FALSE;
+  ps->is_trailing_return_type = FALSE;
   ps->is_new_expr_type = FALSE;
-  ps->is_sizeof_type_arg = FALSE;
+  ps->is_evaluated_sizeof_type_arg = FALSE;
   ps->disallow_variably_modified_type = FALSE;
   ps->nested_ptr_or_ref_seen = FALSE;
   ps->unused_qualifiers = FALSE;
@@ -9721,8 +9721,8 @@ common cases.
 static void check_type_definition_in_type_name(a_decl_parse_state  *dps)
 /*
 dps describes a type-name scanned by type_name_full.  In C++ mode, issue an
-error if the specifiers in the type-name defined a class or enum type.  (An
-exception are early GNU C++ modes, which do allow such definitions.)
+error if the specifiers in the type-name defined a class or enum type.  (Early
+GNU C++ modes are an exception: They do allow such definitions.)
 */
 {
   if ((dps->dso_flags & DSO_DEFINES_SOMETHING) != 0 &&
@@ -9735,7 +9735,7 @@ exception are early GNU C++ modes, which do allow such definitions.)
 void type_name(a_type_ptr  *p_type)
 /*
 Scan a type-name and set *p_type to the scanned type.  In C++, issue an error
-is the type-name includes a class or enum definition.
+if the type-name includes a class or enum definition.
 */
 {
   a_decl_parse_state  dps;
@@ -9747,7 +9747,8 @@ is the type-name includes a class or enum definition.
 }  /* type_name */
 
 
-a_type_ptr scan_type_for_cast(a_boolean  *explicit_cv_qualifiers,
+a_type_ptr scan_type_for_cast(a_boolean  const_expr_context,
+                              a_boolean  *explicit_cv_qualifiers,
                               a_boolean  *type_definition)
 /*
 Scan a type for a cast or the cast-like construct of a compound literal and
@@ -9756,12 +9757,14 @@ return in *explicit_cv_qualifiers whether the type included explicit top-level
 cv-qualifiers.  If type_definition is non-NULL, return in *type_definition
 whether the scanned type specifiers included a class or enum definition;
 otherwise, issue a diagnostic on such a definition if appropriate.
+const_expr_context is TRUE if the cast appears in a context that requires a
+constant-expression.
 */
 {
   a_decl_parse_state  dps;
 
   init_decl_parse_state(&dps);
-  dps.disallow_variably_modified_type = curr_expr_kind_is_const();
+  dps.disallow_variably_modified_type = const_expr_context;
   type_name_full(&dps);
   if (type_definition != NULL) {
     /* Return whether a type was defined in the type specifiers. */
@@ -9783,16 +9786,17 @@ otherwise, issue a diagnostic on such a definition if appropriate.
 }  /* scan_type_for_cast */
 
 
-a_type_ptr scan_type_for_sizeof(void)
+a_type_ptr scan_type_for_sizeof(a_boolean  evaluated_context)
 /*
 Scan a type-name that is the argument to a sizeof operator and return the
-corresponding IL entry.
+corresponding IL entry.  evaluated_context is TRUE if the sizeof operator
+will itself be evaluated.
 */
 {
   a_decl_parse_state  dps;
 
   init_decl_parse_state(&dps);
-  dps.is_sizeof_type_arg = TRUE;
+  dps.is_evaluated_sizeof_type_arg = evaluated_context;
   type_name_full(&dps);
   check_type_definition_in_type_name(&dps);
   return dps.type;

@@ -300,9 +300,13 @@ typedef struct a_decl_parse_state {
 			/* TRUE if this information block describes the parsing
 			   of a type for a "new-expression". */
   a_bit_field
-		is_sizeof_type_arg:1;
+		is_evaluated_sizeof_type_arg:1;
 			/* TRUE if this information block describes the parsing
-			   of a type that is the argument to sizeof. */
+			   of a type that is the argument to a sizeof operator
+			   in an evaluated expression context (e.g., in
+			   "__alignof(sizeof(int[n]))" the flag is FALSE while
+			   parsing "int[n]" because the sizeof operator is not
+			   itself evaluated). */
   a_bit_field
 		disallow_variably_modified_type:1;
 			/* TRUE if this information block describes the parsing
@@ -578,10 +582,11 @@ extern void type_name_full(a_decl_parse_state  *dps);
 
 extern void type_name(a_type_ptr  *type);
 
-extern a_type_ptr scan_type_for_cast(a_boolean  *explicit_cv_qualifiers,
+extern a_type_ptr scan_type_for_cast(a_boolean  const_expr_context,
+                                     a_boolean  *explicit_cv_qualifiers,
                                      a_boolean  *type_definition);
 
-extern a_type_ptr scan_type_for_sizeof(void);
+extern a_type_ptr scan_type_for_sizeof(a_boolean  evaluated_context);
 
 extern a_type_ptr scan_template_type_argument(void);
 

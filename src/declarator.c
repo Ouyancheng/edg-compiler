@@ -2557,9 +2557,9 @@ void array_declarator(a_decl_parse_state    *dps,
                       a_boolean             top_level_param_decl,
                       a_decl_pos_block_ptr  decl_pos_block)
 /*
-FIXME: Describe dps.
-Scan an array declarator (ISO C 6.5.4.2), or an array declarator in an
-abstract declarator (ISO C 6.5.5).  Allocate and return in *new_type_ptr an
+Scan an array declarator, or an array declarator in an abstract declarator.
+*dps describes the context of the call (e.g., if this declarator appears in an
+evaluated sizeof expression).  Allocate and return in *new_type_ptr an
 appropriate array type.  The initial opening bracket is the current token.
 In C++ the dimension may sometimes be a nonconstant expression (e.g., with a
 new type name); that case is indicated by nonconstant_dimension_allowed.
@@ -2674,7 +2674,7 @@ constant.
       a_boolean  top_level_vla = vla_allowed && !dps->nested_ptr_or_ref_seen;
       a_boolean  for_new_expr = !vla_allowed;
       scan_nonconstant_dimension_expression(
-              for_new_expr, top_level_vla, dps->is_sizeof_type_arg,
+              for_new_expr, top_level_vla, dps->is_evaluated_sizeof_type_arg,
               &is_constant_bound, &dim_expr, &constant);
       check_assertion(is_constant_bound == (dim_expr == NULL));
 #if GNU_EXTENSIONS_ALLOWED

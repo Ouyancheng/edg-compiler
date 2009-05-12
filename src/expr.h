@@ -144,7 +144,7 @@ extern void scan_fs_integral_constant_expression(a_constant *constant);
 extern void scan_nonconstant_dimension_expression(
                                     a_boolean        is_new_or_delete_bound,
                                     a_boolean        is_top_level_vla_bound,
-                                    a_boolean        unevaluated_expr_context,
+                                    a_boolean        is_evaluated_sizeof_arg,
                                     a_boolean        *is_constant,
                                     an_expr_node_ptr *expression,
                                     a_constant       *constant);
