@@ -23,7 +23,7 @@ algorithm:
 
 
 5/11/09 [EDGcpfe/9780]
-g++: Abort in lower_constant on string literal initializer
+g++: Abort in lower_il.c (lower_constant) on string literal initializer
 
 In g++ compatibility mode, a string literal initializer for a non-const char
 array in an aggregate struct initialization could cause an assertion failure in
@@ -34,7 +34,7 @@ example:
     char x[5];
   };
   void f() {
-    A a[1] = {""};
+    A a[1] = {""}; // caused: internal error: assertion failed at: "lower_il.c"
   }
 
 
