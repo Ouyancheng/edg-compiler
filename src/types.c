@@ -1692,8 +1692,8 @@ default constructor (or an array thereof).  When user_provided_only is TRUE,
 the function returns TRUE if class has a user-provided default constructor.
 When nontrivial_only is TRUE, it returns TRUE if the class has a nontrivial
 default constructor (user-provided or not).  If both flags are FALSE, it also
-considers trivial_default_constructor pointer in the class symbol supplement.
-(Both flags should not be TRUE at the same time.)
+considers the trivial_default_constructor pointer in the class symbol
+supplement.  (Both flags should not be TRUE at the same time.)
 This function is called in C++ mode only, and only through one of the macros
 provided in types.h.
 */
