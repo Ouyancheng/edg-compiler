@@ -6138,10 +6138,10 @@ be delayed until the end of the compilation.
                                          lowering_delayed_on_nested_function) {
     /* In cases where the lowering of constructors/destructors of a local class
        has been delayed, the determination of whether or not vtables should be
-       emitted cannot be accurately determined.  By delaying the lowering of
-       functions that contain lowering-delayed functions, we ensure the
-       functions will be lowered in the proper order (from innermost to
-       outermost) and that vtables will be handled properly.  */
+       emitted cannot be done.  By delaying the lowering of functions that
+       contain lowering-delayed functions, we ensure the functions will be
+       lowered in the proper order (from innermost to outermost) and that
+       vtables will be handled properly. */
     delay_lowering = TRUE;
   }  /* if */
   if (delay_lowering) {
