@@ -959,12 +959,16 @@ is found, a diagnostic is issued (an error in C++, a warning otherwise), and
           if (!has_static_storage_duration(vp->storage_class)) {
             severity = es_warning;
             if (!C_mode() && !cfront_2_1_mode) {
+              a_boolean  has_nontrivial_dtor = FALSE;
               tp = vp->type;
               if (is_array_type(tp)) tp = underlying_array_element_type(tp);
               tp = skip_typerefs(tp);
-              if (is_immediate_class_type(tp) &&
-                  symbol_supplement_for_class(tp)->destructor != NULL &&
-                  !symbol_supplement_for_class(tp)->has_trivial_destructor) {
+              if (is_immediate_class_type(tp)) {
+                a_class_symbol_supplement_ptr  cssp =
+                                              symbol_supplement_for_class(tp);
+                has_nontrivial_dtor = has_nontrivial_destructor(cssp);
+              }  /* if */
+              if (has_nontrivial_dtor) {
                 severity = es_error;
               } else if (strict_ansi_mode) {
                 severity = strict_ansi_error_severity;

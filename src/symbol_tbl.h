@@ -957,7 +957,9 @@ typedef struct a_class_symbol_supplement {
 			   be NULL), or a defaulted destructor (pointed to by
 			   destructor).  FALSE otherwise.  (Note that for
 			   nonreal classes, this field can be FALSE even if
-			   destructor is NULL). */
+			   destructor is NULL).  For testing the presence of
+			   a nontrivial destructor, the macro
+			   has_nontrivial_destructor is often preferable. */
   a_bit_field	assignment_by_bitwise_copy_allowed:1;
 			/* TRUE if assignment can be performed by a bitwise
 			   copy rather than by calling an assignment operator
@@ -4326,6 +4328,11 @@ extern a_type_ptr underlying_function_type(a_symbol_ptr  sym);
 #define is_destructor_symbol(sym)                                     \
   is_special_function_symbol(sym,                                     \
                              (a_special_function_kind)sfk_destructor)
+
+/* Return TRUE if a class symbol supplement is for a class with a nontrivial
+   destructor. */
+#define has_nontrivial_destructor(cssp)                               \
+  ((cssp)->destructor != NULL && !(cssp)->has_trivial_destructor)
 
 /* Return TRUE if a symbol is a conversion operator symbol. */
 #define is_conversion_function_symbol(sym)                            \
