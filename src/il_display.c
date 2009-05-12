@@ -2318,6 +2318,11 @@ Display the indicated variable.
     disp_boolean("has_variably_modified_type", TRUE);
     disp_boolean("is_vla", ptr->is_vla);
   }  /* if */
+#if DO_IL_LOWERING
+  if (ptr->lowering_generated) {
+    disp_boolean("lowering_generated", TRUE);
+  }  /* if */
+#endif /* DO_IL_LOWERING */
   if (ptr->is_compound_literal) {
     disp_boolean("is_compound_literal", TRUE);
   }  /* if */
