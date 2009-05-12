@@ -8715,8 +8715,7 @@ non-NULL, also append the characters in the comment, through but not including
       add_to_asm_func_buffer("\n", len);
     }  /* if */
   }  /* while */
-  if (curr_char > prev_asm_stop_char &&
-      prev_asm_stop_char != NULL) {
+  if (prev_asm_stop_char != NULL && curr_char > prev_asm_stop_char) {
     /* Copy the characters from prev_asm_stop_char through (but not including)
        curr_char into the buffer. */
     len = curr_char - prev_asm_stop_char;
