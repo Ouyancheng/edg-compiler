@@ -5604,10 +5604,13 @@ Any code needed is inserted at *insert_location.
          and the present entity are on the cleanup list. */
       check_assertion_str(curr_context != context,
                           "add_dyn_init_cleanup: curr_context == context");
-      check_assertion_str(curr_context->latest_initialization != NULL,
-                          "add_dyn_init_cleanup: no temps");
-      adjust_cleanup_state_for_inner_lifetime_temporaries(
+      if (curr_context->latest_initialization != NULL) {
+        /* In cases where an aggregate has exactly one entity, the destruction
+           may have been optimized away, in which case there is no need
+           to adjust the cleanup state. */
+        adjust_cleanup_state_for_inner_lifetime_temporaries(
                                      curr_context->latest_initialization, dip);
+      }  /* if */
 #if !GENERATE_EH_TABLES
       /* Insert an leck_initialization_completed node that indicates the
          point at which the initialization has been done. */
@@ -7581,11 +7584,11 @@ do_assignment:;
       }  /* if */
       if (dip->destruction_is_for_partially_constructed_aggregate &&
           !others_follow_in_aggr) {
-        /* A cleanup entry is not needed for a partial initialization
-           in an aggregate if it is not followed by anything else, because
-           there is no code executed after the partial initialization and
-           before the initialization is completed where an exception could be
-           thrown. */
+        /* As an optimization, don't emit a cleanup entry for a partial
+           initialization in an aggregate if it is not followed by anything
+           else, because there is no code executed after the partial
+           initialization and before the initialization is completed where an
+           exception could be thrown. */
       } else {
         /* Update the cleanup information so that this entity will be
            destroyed at the appropriate time. */
