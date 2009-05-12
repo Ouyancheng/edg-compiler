@@ -1083,6 +1083,9 @@ and for the instantiation of template functions.
        supported */
     new_struct_stmt_stack(&saved_sss_state);
   }  /* if */
+  /* Start a new stop tokens set because the inside of a function is rather
+     different than the outside. */
+  push_stop_token_stack();
 #if ASM_FUNCTION_ALLOWED
   if (rout_ptr->storage_class == (a_storage_class)sc_asm) {
     scope_ptr->assoc_block = scan_asm_function_body();
@@ -1188,6 +1191,7 @@ and for the instantiation of template functions.
       pos_error(ec_exp_rbrace, &pos_curr_token);
     }  /* if */
   }  /* if */
+  pop_stop_token_stack();
   if (instantiate_extern_inline && rout_ptr->is_inline) {
     /* When inline functions are instantiated like templates, add the function
        to the list of inline functions if it is inline. */

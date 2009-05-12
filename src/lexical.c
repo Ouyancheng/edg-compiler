@@ -10929,7 +10929,7 @@ Display the current stop token array.
 #if CHECKING
 void check_all_stop_token_entries_are_reset(a_token_set_array stop_tokens)
 /*
-Check that the stop_token_array elements all made it back to zero.
+Check that the stop token array elements all made it back to zero.
 (Every add_stop_token is supposed to have a corresponding remove_stop_token.)
 */
 {
@@ -10948,7 +10948,7 @@ Check that the stop_token_array elements all made it back to zero.
     }  /* if */
   }  /* for */
   check_assertion_str2(!any_error, "check_all_stop_token_entries_are_reset:",
-                       "stop_token_array not all zero");
+                       "stop token array not all zero");
 }  /* check_all_stop_token_entries_are_reset */
 #endif /* CHECKING */
 
@@ -11168,7 +11168,7 @@ void flush_tokens(void)
 Get and throw away tokens until a token is read that is in the set
 of stop tokens.  This routine is called to recover from syntax errors.
 This routine calls flush_tokens_with_stop_tokens, passing in the global
-stop_token_array.
+stop token array.
 */
 {
   flush_tokens_with_stop_tokens(curr_stop_token_stack_entry->stop_tokens);

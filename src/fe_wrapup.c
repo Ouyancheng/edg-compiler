@@ -97,7 +97,7 @@ are instantiated.
   db_enter(1, "translation_unit_wrapup");
 
 #if CHECKING
-  /* Check that the stop_token_array elements all made it back to zero.
+  /* Check that the stop token array elements all made it back to zero.
      (Every add_stop_token is supposed to have a corresponding
      remove_stop_token.)  Note that there is also a check in db_exit,
      which can be used to pin down problems that are initially

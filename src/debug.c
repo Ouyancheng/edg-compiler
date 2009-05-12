@@ -105,8 +105,8 @@ typedef struct a_debug_stack_entry {
 	                /* Was a message printed on entry to this function? */
 #if STOP_TOKEN_CHECKSUM_TEST_NEEDED
   unsigned	stop_token_checksum;
-			/* Checksum of stop_token_array, stored on entry and
-			   checked on exit, to catch cases where the stop
+			/* Checksum of the stop token array, stored on entry
+			   and checked on exit, to catch cases where the stop
 			   tokens are not being correctly maintained. */
 #endif /* STOP_TOKEN_CHECKSUM_TEST_NEEDED */
 } a_debug_stack_entry;
@@ -677,8 +677,8 @@ what was done in the stack entry.
   /* Remember the current debug level in case it changes. */
   stack_ptr->old_debug_level = debug_level;
 #if STOP_TOKEN_CHECKSUM_TEST_NEEDED
-  /* Store the checksum of stop_token_array, for checking at exit.
-     The values in stop_token_array are supposed to be the same on
+  /* Store the checksum of the stop token array, for checking at exit.
+     The values in the stop token array are supposed to be the same on
      exit from a routine as they were on entry. */
   stack_ptr->stop_token_checksum = 0;
   if (debug_level > 0 && curr_stop_token_stack_entry != NULL) {
@@ -765,7 +765,7 @@ was printed on entry.  Remove the entry from the stack.
   /* Restore debug level in case it was changed. */
   debug_level = stack_ptr->old_debug_level;
 #if STOP_TOKEN_CHECKSUM_TEST_NEEDED
-  /* Check the stop_token_array checksum if one was computed on entry. */
+  /* Check the stop token array checksum if one was computed on entry. */
   if (debug_level > 0 && curr_stop_token_stack_entry != NULL) {
     register int      i;
     register unsigned test_checksum = 0;

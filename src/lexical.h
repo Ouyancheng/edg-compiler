@@ -1782,11 +1782,11 @@ EXTERN a_source_position
 /*
 The stop token array: If a syntactic error occurs, flush_tokens
 will be called.  It will throw away tokens until it finds one for which
-stop_token_array[curr_token] != 0 (i.e., a non-zero entry means the
-corresponding token is in the set of stop tokens).  The entries are
-actually counts; each time something is added to the stop set, an
-entry is incremented, and each time something is removed, the entry is
-decremented.  The entries are unsigned so that overflow need not be
+curr_stop_token_stack_entry->stop_tokens[curr_token] != 0 (i.e., a non-zero
+entry means the corresponding token is in the set of stop tokens).
+The entries are actually counts; each time something is added to the stop
+set, an entry is incremented, and each time something is removed, the entry
+is decremented.  The entries are unsigned so that overflow need not be
 checked for; in boundary cases, like an error in an expression with
 256 levels of parentheses, one might flush a little further than usual,
 but this is not a meaningful problem.
@@ -1795,9 +1795,9 @@ typedef unsigned char
 		a_token_set_array_element;
 typedef a_token_set_array_element
 		a_token_set_array[(int)tok_last+1];
-			/* Generic array-of-unsigned-char both for global
-			   variable stop_token_array and for local arrays
-			   used in token caching. */
+			/* Generic array-of-unsigned-char both for the global
+			   stop token array and for local arrays used in
+			   token caching. */
 
 /*
 A stack of stop token arrays is maintained.  The top of the stack is
@@ -1817,7 +1817,7 @@ typedef struct a_stop_token_stack_entry {
 		stop_tokens;
 			/* The set of tokens that will terminate a flush on
 			   syntactic error.  A given token is in the set if
-			   stop_token_array[token] != 0; */
+			   stop_tokens[token] != 0; */
 } a_stop_token_stack_entry;
 
 EXTERN a_stop_token_stack_entry_ptr
