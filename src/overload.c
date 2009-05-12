@@ -136,7 +136,7 @@ cast.
 */
 {
   a_boolean        is_ptr = FALSE, is_ref = FALSE, is_ptr_to_member = FALSE;
-  a_boolean        is_ref_to_const = FALSE;
+  a_boolean        is_ref_to_const = FALSE, is_rvalue_ref = FALSE;
   a_boolean        sym_is_list, need_templates_pass;
   a_boolean        dest_type_has_type_qualifiers = FALSE;
   a_type_ptr       routine_type, dest_class, ptr_routine_type;
@@ -166,6 +166,7 @@ cast.
   } else if (is_reference_type(dest_type)) {
     dest_class = NULL;
     is_ref = TRUE;
+    is_rvalue_ref = is_rvalue_reference_type(dest_type);
     dest_underlying_type = type_pointed_to(dest_type);
     is_ref_to_const = is_const_qualified_type(dest_underlying_type);
   } else if (is_ptr_to_member_type(dest_type)) {
@@ -211,12 +212,14 @@ cast.
        ambiguous.  That's probably possible only when function templates
        are involved. */
     need_templates_pass = FALSE;
-    if (is_ref && !source_is_lvalue) {
+    if (is_ref && !is_rvalue_ref && !source_is_lvalue) {
       /* The source has already been converted to a pointer (e.g., &f) or
-         pointer to member (e.g., &A::f), so a reference can't bind directly
-         to it.  need_templates_pass is left FALSE to suppress the template
-         loop as well.  Some match may still be possible via a conversion,
-         for a reference to const.  That's checked below. */
+         pointer to member (e.g., &A::f), so an lvalue reference can't bind
+         directly to it.  need_templates_pass is left FALSE to suppress the
+         template loop as well.  Some match may still be possible via a
+         conversion, for a reference to const.  That's checked below. */
+    } else if (is_rvalue_ref && source_is_lvalue) {
+      /* Similar case for rvalue references -- they can't bind to an lvalue. */
     } else if (is_template_id) {
       /* There is an explicit template argument list, so do not look
          for exact matches on non-templates. */
@@ -305,14 +308,16 @@ cast.
       }  /* if */
     }  /* if */
     if (number_of_matches == 0 && std_conv != NULL &&
-        (!is_ref || is_ref_to_const)) {
+        (!is_ref || (is_rvalue_ref ? !source_is_lvalue : is_ref_to_const))) {
       /* Try matches involving an implicit conversion.  This is here
          primarily for the pointer-to-member case, but it makes sense to
          handle the normal pointer case too in case the implicit conversion
          rules change (also, it makes the error message clearer in the
          case where dest_type is "void *").  In addition, for reference-to-
          const cases the function-to-pointer or function-to-pointer-to-
-         member decay can be done to get a match. */
+         member decay can be done to get a match.  For rvalue reference
+         cases, the source must already be an rvalue, i.e., be in "&f"
+         form. */
       a_type_ptr         match_routine_type = NULL;
       a_template_arg_ptr match_template_arg_list = NULL;
       a_type_ptr         eff_dest_type = dest_type;
