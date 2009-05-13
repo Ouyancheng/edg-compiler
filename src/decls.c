@@ -152,15 +152,22 @@ and efficient initialization.
 void f_check_pending_qualifiers_used(a_decl_parse_state  *state)
 /*
 If the given a_decl_parse_state object indicates that pending type qualifiers
-have not had an effect on the declaration, issue a warning and mark the
-qualifiers as now having had an effect.
+have not had an effect on the type, issue a warning and mark the qualifiers as
+now having had an effect.  For example:
+  void f(int i) {
+    typedef int &RI;
+    (RI const)i;  // "const" has no effect
+  }
 */
 {
   if (state->unused_qualifiers) {
-    state->unused_qualifiers = FALSE;
-    state->qualifiers = TQ_NONE;
     pos_warning(ec_useless_type_qualifiers_in_type_name,
                 &state->qualifiers_pos);
+    /* Discard the qualifiers to avoid duplicating diagnostics or confusing
+       later operations that expect a cv-qualified type when state->qualifiers
+       is not TQ_NONE. */
+    state->qualifiers = TQ_NONE;
+    state->unused_qualifiers = FALSE;
   }  /* if */
 }  /* f_check_pending_qualifiers_used */
 
