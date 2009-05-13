@@ -59,9 +59,9 @@ static a_boolean
 			   only a string representation is recorded.  The
 			   individual arguments are not scanned or checked.
 			   No checking is done when the attributes are
-			   applied.  This affects msak_misc attributes, which
-			   means the only attribute that will still be
-			   processed is the uuid attribute. */
+			   applied.  This affects msak_misc attributes (so
+			   some attributes, such as uuid, will still be
+			   processed normally). */
 
 static an_ms_attribute_kind_descr_ptr
 		unrecognized_attribute;
