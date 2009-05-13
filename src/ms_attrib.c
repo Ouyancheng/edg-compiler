@@ -1608,8 +1608,11 @@ static an_ms_attribute_arg_ptr scan_ms_attribute_arg_list(
 				an_ms_attribute_kind_descr_ptr	attr_descr)
 /*
 Scan the arguments of a Microsoft attribute reference.  The current token is
-the "=" that precedes a single argument or the "(" the precedes an argument
-list.  Return a pointer to the list of arguments.
+usually either the "=" that precedes a single argument or the "(" the
+precedes an argument list, but this routine is also called for attributes
+that expect a parameter list even if such a list is missing (so that a
+diagnostic can be issued here).  Return a pointer to the list of arguments,
+or NULL if the argument list is invalid.
 */
 {
   an_ms_attribute_param_ptr	param;
@@ -1630,8 +1633,9 @@ list.  Return a pointer to the list of arguments.
       /* Bypass the "=" */
       (void)get_token();
       arg_list = scan_ms_attribute_arg(param);
+      param = param->next;
     }  /* if */
-  } else {
+  } else if (curr_token == tok_lparen) {
     a_boolean	any_errors = FALSE;
     /* Bypass the left parenthesis. */
     check_assertion(curr_token == tok_lparen);
@@ -1677,6 +1681,14 @@ list.  Return a pointer to the list of arguments.
     remove_stop_token(tok_rparen);
     /* Look for the closing right parenthesis. */
     (void)required_token(tok_rparen, ec_exp_rparen);
+  }  /* if */
+  if (param != NULL && !param->is_unnamed) {
+    /* If there is a parameter list but no arguments were specified, issue
+       an error.  We don't currently know which arguments are required,
+       so we don't issue an error for two few arguments. */
+    if (arg_list == NULL) {
+      str_error(ec_exp_ms_attr_arg_list, attr_descr->name);
+    }  /* if */
   }  /* if */
   return arg_list;
 }  /* scan_ms_attribute_arg_list */
@@ -1725,6 +1737,8 @@ declaration.
      as a missing attribute name, a NULL attribute description is returned. */
   attr_descr = look_up_attribute();
   if (attr_descr != NULL) {
+    a_boolean	arg_list_present = curr_token == tok_assign ||
+                                   curr_token == tok_lparen;
     /* Allocate an entry to represent this attribute. */
     attr = alloc_ms_attribute();
     attr->kind = attr_descr->kind;
@@ -1740,15 +1754,22 @@ declaration.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     /* Look for an argument list.  We do this even for attributes without
        parameters, for error recovery purposes. */
-    if (curr_token == tok_assign || curr_token == tok_lparen) {
+    if (arg_list_present || attr_descr->parameters != NULL) {
       if (attr->kind == (an_ms_attribute_kind)msak_unrecognized) {
-        /* We are scanning an unrecognized attribute, so we don't know the
-           form of the expected parameters. */
-        scan_unrecognized_ms_attribute_arg_list();
+        if (arg_list_present) {
+          /* We are scanning an unrecognized attribute, so we don't know the
+             form of the expected parameters. */
+          scan_unrecognized_ms_attribute_arg_list();
+        }  /* if */
       } else {
         /* The attribute is of a known kind.  The argument list can be
            scanned with knowledge of the associated parameters. */
         attr->arg_list = scan_ms_attribute_arg_list(attr_descr);
+        if (attr->arg_list == NULL) {
+          /* A NULL arg_list is returned if an error occurred while scanning
+             the argument list.  Set attr to NULL to discard the attribute. */
+          attr = NULL;
+        }  /* if */
       }  /* if */
     } else if (curr_token != tok_comma && curr_token != tok_rbracket) {
       /* The attribute name was not followed by anything that looks like
