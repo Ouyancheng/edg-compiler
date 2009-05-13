@@ -8247,8 +8247,15 @@ update the routine's IL entry accordingly.
     }  /* if */
   }  /* if */
   if (err_code != ec_no_error) {
-    func_info->is_definition = FALSE;
     pos_error(err_code, diag_pos);
+    /* Discard the definition (and make the routine non-inline). */
+    func_info->is_definition = FALSE;
+    func_info->is_inline = FALSE;
+    sym->defined = FALSE;
+    rp->defined = FALSE;
+    rp->defined_in_friend_decl = FALSE;
+    rp->is_inline = FALSE;
+    rp->storage_class = (a_storage_class)sc_extern;
   }  /* if */
 }  /* check_defaulted_or_deleted_function */
 
@@ -14069,6 +14076,11 @@ function definition and cache its tokens if appropriate.
   } else if (rout_sym->variant.routine.ptr->is_inline) {
     /* The usual case: In-class member function definitions are
        inline. */
+  } else if (func_info->is_deleted || func_info->is_defaulted) {
+    /* "= delete;" or "= default;" was encountered, but the routine entry is
+       not marked as inline.  This can happen in error cases (the "= delete;"
+       or "= default;" is essentially discarded). */
+    expect_error();
   } else {
     unexpected_condition();
   }  /* if */
