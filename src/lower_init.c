@@ -7583,12 +7583,15 @@ do_assignment:;
                                                 &some_cloned);
       }  /* if */
       if (dip->destruction_is_for_partially_constructed_aggregate &&
+          init_expr_lifetime == NULL &&
           !others_follow_in_aggr) {
         /* As an optimization, don't emit a cleanup entry for a partial
            initialization in an aggregate if it is not followed by anything
            else, because there is no code executed after the partial
            initialization and before the initialization is completed where an
-           exception could be thrown. */
+           exception could be thrown.  Exclude cases where init_expr_lifetime
+           is non-NULL because it's possible that user code (in the form
+           of a destructor) could be invoked. */
       } else {
         /* Update the cleanup information so that this entity will be
            destroyed at the appropriate time. */

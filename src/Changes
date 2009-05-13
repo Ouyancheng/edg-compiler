@@ -1,5 +1,33 @@
 Version 4.1
 
+5/13/09 [EDGcpfe/9802]
+Destructions of partially constructed aggregates
+
+In configurations where exception handling is enabled, the region table entry
+had been suppressed for a destructible entity if it was the last entity in an
+aggregate (because no user code was thought to have been able to execute
+between construction of the last element of the partially constructed aggregate
+and the time the aggregate was considered fully constructed).  It turns out
+that in some cases (like the case below where a default argument is supplied to
+a copy constructor), a destructor (that could potentially invoke user code) can
+be executed in this interval, necessitating the extra region table entry.  The
+optimization (to suppress the region table entry) is now disabled in these
+cases.  Here is an example that demonstrates the issue:
+
+  struct A {
+    A() {};
+    ~A() {};
+    A(const A& p, const A& = A()) {}
+  };
+  struct B {
+    A a;
+  };
+  void test() {
+    A a;
+    B b = { a };
+  }
+
+
 5/12/09 [EDGcpfe/9334]
 VLA dimension expressions in sizeof arguments
 
