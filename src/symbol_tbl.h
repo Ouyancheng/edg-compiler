@@ -766,9 +766,9 @@ typedef struct a_class_symbol_supplement {
 			   implicitly-declared (trivial or nontrivial) copy
 			   constructor, or an implicitly-declared nontrivial
 			   default constructor.  The set is empty if the
-			   class has only a trivial default constructor (12.1
-			   [class.ctor]) and trivial copy constructor (12.8
-			   [class.copy]). */
+			   class has only an implicitly-declared trivial
+			   default constructor and an implicitly-declared
+			   trivial copy constructor. */
   a_symbol_ptr	trivial_default_constructor;
 			/* When constructor is NULL and is_POD is FALSE,
 			   pointer to an sk_member_function symbol for the
@@ -4323,6 +4323,15 @@ extern a_type_ptr underlying_function_type(a_symbol_ptr  sym);
 #define is_constructor_symbol(sym)                                    \
   is_special_function_symbol(sym,                                     \
                              (a_special_function_kind)sfk_constructor)
+
+extern a_boolean f_has_nontrivial_constructor(
+                                          a_class_symbol_supplement_ptr cssp);
+
+/* Return TRUE if a class symbol supplement is for a class that has a
+   user-provided constructor (that excludes, e.g., a defaulted trivial
+   default constructor). */
+#define has_nontrivial_constructor(cssp)                              \
+  ((cssp)->constructor != NULL && f_has_nontrivial_constructor(cssp))
 
 /* Return TRUE if a symbol is a destructor symbol. */
 #define is_destructor_symbol(sym)                                     \

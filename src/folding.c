@@ -6318,7 +6318,8 @@ constant will be set as well.
         check_assertion(cssp != NULL);  /* For Coverity. */
         sym = cssp->constructor;
         result = (kind != (a_builtin_operation_kind)bok_has_copy);
-        if (sym == NULL || cssp->construction_by_bitwise_copy_allowed) {
+        if (!has_nontrivial_constructor(cssp) ||
+            cssp->construction_by_bitwise_copy_allowed) {
           /* There is no copy constructor. */
           goto result_known;
         } else if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
@@ -6357,7 +6358,7 @@ constant will be set as well.
       case bok_has_nothrow_constructor:
         check_assertion(cssp != NULL);  /* For Coverity. */
         sym = cssp->constructor;
-        if (sym == NULL) {
+        if (!has_nontrivial_constructor(cssp)) {
           /* __has_nothrow_constructor returns true if there is no default
              constructor. */
           result = TRUE;

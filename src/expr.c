@@ -9048,7 +9048,7 @@ when determining whether or not special handling is required.
       skip_typerefs(type)->source_corresp.assoc_info != NULL) {
     /* Classes with a constructor or destructor require special handling. */
     a_class_symbol_supplement_ptr cssp = symbol_supplement_for_class(type);
-    if ((check_constructor && cssp->constructor != NULL) ||
+    if ((check_constructor && has_nontrivial_constructor(cssp)) ||
         has_nontrivial_destructor(cssp)) {
       special = TRUE;
     } else {
@@ -9285,6 +9285,7 @@ specification allow a variable-sized array as the top type.
                     dip;
   a_boolean         unknown_dependent_new = FALSE;
   a_boolean         force_dependent = FALSE;
+  a_boolean         nontrivial_ctor_case = FALSE;
   a_decl_parse_state
                     dps;
 
@@ -9627,7 +9628,10 @@ specification allow a variable-sized array as the top type.
      or an array with elements of such a class. */
   ctor_sym = NULL;
   if (is_class_struct_union_type(base_new_type)) {
-    ctor_sym = symbol_supplement_for_class(base_new_type)->constructor;
+    a_class_symbol_supplement_ptr
+                            cssp = symbol_supplement_for_class(base_new_type);
+    ctor_sym = cssp->constructor;
+    nontrivial_ctor_case = has_nontrivial_constructor(cssp);
   }  /* if */
   if (!err && function_symbol != NULL) {
     a_boolean access_error_reported;
@@ -9674,7 +9678,7 @@ specification allow a variable-sized array as the top type.
          "new" routine for the class and see whether it is the one that
          was selected.  If so, the "new" call can be folded into the
          constructor call. */
-      if (ctor_sym != NULL) {
+      if (nontrivial_ctor_case) {
         /* If the entity gets value-initialization, suppress this
            optimization, because there's no way to tell the constructor
            to do the necessary zeroing after the allocation. */
@@ -9750,7 +9754,7 @@ specification allow a variable-sized array as the top type.
       /* A non-POD class (or array thereof), with no new-initializer. */
       a_boolean is_generated_ctor = FALSE, do_const_test = FALSE;
       /* Look for a default constructor. */
-      if (ctor_sym != NULL) {
+      if (nontrivial_ctor_case) {
         a_routine_ptr ctor_routine;
         /* The class has one or more nontrivial constructors.  Look for
            a default constructor.  The call issues an error and returns NULL
@@ -9814,7 +9818,7 @@ specification allow a variable-sized array as the top type.
       error(ec_initializer_not_allowed_on_array_new);
       err = TRUE;
     }  /* if */
-    if (ctor_sym != NULL) {
+    if (nontrivial_ctor_case) {
       /* Class with a (nontrivial) constructor. */
       /* Develop the dynamic init entry, if any, used to free storage
          if an exception is thrown before the initialization is finished.
@@ -13114,10 +13118,10 @@ The result is returned in *result.  See _expr.type.conv_ in the WP.
   /* See if we have a case that is clearly a constructor call. */
   if (is_class_struct_union_type(type_cast_to)) {
     cssp = symbol_supplement_for_class(type_cast_to);
-    ctor_sym = cssp->constructor;
-    if (ctor_sym != NULL) {
+    if (has_nontrivial_constructor(cssp)) {
       /* The class has a constructor. */
       ctor_case = TRUE;
+      ctor_sym = cssp->constructor;
       if (any_cfront_mode() && 
           cssp->target_of_conversion_function &&
           conversion_has_one_argument()) {

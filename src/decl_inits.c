@@ -678,7 +678,7 @@ initialization.
           /* In C mode, the field's type is a struct with a const field. */
           init_info->any_uninitialized_const_or_ref_member = TRUE;
           break;
-        } else if (cssp->constructor != NULL ||
+        } else if (has_nontrivial_constructor(cssp) ||
                    (exceptions_enabled && has_nontrivial_destructor(cssp))) {
           ctor_found = TRUE;
           break;
@@ -731,6 +731,7 @@ routine is called in C++ mode only.
           array_type->variant.array.variant.number_of_elements - curr_element;
   }  /* if */
   if (number_of_uninitialized_elements > 0) {
+    a_boolean  trivial_ctor = TRUE;
     /* There are one or more uninitialized elements. */
     element_type = f_skip_typerefs(array_element_type(array_type));
     if (is_array_type(element_type)) {
@@ -742,14 +743,15 @@ routine is called in C++ mode only.
     if (is_class_struct_union_type(element_type)) {
       /* It is an array of class objects. */
       cssp = symbol_supplement_for_class(element_type);
+      trivial_ctor = !has_nontrivial_constructor(cssp);
     } else {
       cssp = NULL;
     }  /* if */
     if (!any_constructible_fields_remaining(init_context, init_info) &&
         (cssp == NULL ||
-         (cssp->constructor == NULL &&
+         (trivial_ctor &&
           (!exceptions_enabled || cssp->has_trivial_destructor)))) {
-      if (cssp != NULL && cssp->constructor == NULL) {
+      if (cssp != NULL && trivial_ctor) {
         /* An array element of class type with no constructor but with a ref
            member will end up uninitialized; set the flag in C mode for a
            const member -- a warning will be issued. */
@@ -761,7 +763,7 @@ routine is called in C++ mode only.
       }  /* if */
     } else {
       /* Initialization is required. */
-      if (cssp == NULL || cssp->constructor == NULL) {
+      if (trivial_ctor) {
         dip = alloc_dynamic_init((a_dynamic_init_kind)dik_zero);
         init_done = TRUE;
       } else {
@@ -869,7 +871,7 @@ This routine is called in C++ mode only.
       } else {
         cssp = NULL;
       }  /* if */
-      if (cssp == NULL || cssp->constructor == NULL) {
+      if (cssp == NULL || !has_nontrivial_constructor(cssp)) {
         /* Zero-initialize the field and then continue looping.  There is
            a field later in the list for which the default constructor has to
            be called, but we can't leave this field uninitialized. */
@@ -3506,7 +3508,8 @@ returned set to TRUE.
        This form of initialization is allowed in C++ mode only.  Note that
        the opening parenthesis has already been scanned in the caller. */
     a_boolean  dependent_class_type = could_be_dependent_class_type(vp_type);
-    if ((cssp != NULL && cssp->constructor != NULL) || dependent_class_type) {
+    if ((cssp != NULL && has_nontrivial_constructor(cssp)) ||
+        dependent_class_type) {
       /* It's a class type and there's a constructor or we're dealing with a
          dependent type that could be such a class. */
       /* Depending on the arguments present, a constructor, possibly the copy
@@ -3945,7 +3948,7 @@ the default constructor (if one exists) is called.
         }  /* if */
       }  /* if */
       /* Find a default constructor. */
-      if (cssp->constructor != NULL) {
+      if (has_nontrivial_constructor(cssp)) {
         /* There are user-declared constructor(s) and/or implicitly-declared
            nontrivial constructors.  Look for a default constructor. */
         ctor = select_default_constructor(tp, err_pos, tp,
@@ -4433,7 +4436,7 @@ initialized.  These are addressed in the course of the processing.
           }  /* if */
           if (is_class_struct_union_type(tp)) {
             cssp = symbol_supplement_for_class(tp);
-            if (cssp->constructor != NULL) {
+            if (has_nontrivial_constructor(cssp)) {
               /* If the mem-initializer is omitted for this field, a
                  default constructor will have to be called. */
             } else if (cssp->trivial_default_constructor != NULL) {
@@ -4909,7 +4912,7 @@ scan_paren:
           } else {
             cssp = NULL;
           }  /* if */
-          if ((cssp != NULL && cssp->constructor != NULL) ||
+          if ((cssp != NULL && has_nontrivial_constructor(cssp)) ||
               (dependent_class_init && !m_is_error_type(init_type))) {
             /* This is either a base class or a field of class type.  In
                either case, it will be initialized by a constructor call if
@@ -5281,7 +5284,7 @@ scan_paren:
                partly because it's not well defined what should happen when
                const and non-const members are mixed, */
           } else if (is_const_qualified && cssp != NULL &&
-                     cssp->constructor != NULL) {
+                     has_nontrivial_constructor(cssp)) {
             /* A const qualified field may be initialized without an explicit
                initializer it is of class type and there is a default
                constructor for the class. */
@@ -5327,7 +5330,7 @@ scan_paren:
           }  /* if */
         }  /* if */
         if (cssp == NULL ||
-            (cssp->constructor == NULL &&
+            (!has_nontrivial_constructor(cssp) &&
              (!exceptions_enabled || cssp->has_trivial_destructor))) {
           /* This constructor initializer entry is not really needed.  It may
              be the result of an empty initializer on a field or it may be
@@ -5340,7 +5343,7 @@ scan_paren:
           }  /* if */
           continue;
         }  /* if */
-        if (cssp->constructor == NULL) {
+        if (!has_nontrivial_constructor(cssp)) {
           rp = NULL;
         } else {
           rp = select_default_constructor(tp, &err_pos, object_class_type,
