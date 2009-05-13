@@ -6964,9 +6964,9 @@ that is not a trivial default constructor and not a trivial copy constructor.
       check_assertion(sym->kind == (a_symbol_kind)sk_function_template);
       rp = sym->variant.template_info->variant.function.routine;
     }  /* if */
-    if (rp->is_defaulted) {
-      /* A defaulted constructor.  Check whether it is a trivial default
-         constructor or a trivial copy constructor. */
+    if (rp->is_defaulted || rp->compiler_generated) {
+      /* A defaulted or implicit constructor.  Check whether it is a trivial
+         default constructor or a trivial copy constructor. */
       if (rp->is_trivial_default_constructor) {
         /* Continue searching. */
       } else if (cssp->construction_by_bitwise_copy_allowed &&
@@ -6979,7 +6979,7 @@ that is not a trivial default constructor and not a trivial copy constructor.
         result = TRUE;
       }  /* if */
     } else {
-      /* A nondefaulted constructor cannot be trivial. */
+      /* A nondefaulted user-declared constructor cannot be trivial. */
       result = TRUE;
       break;
     }  /* if */
