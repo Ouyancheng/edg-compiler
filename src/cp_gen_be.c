@@ -374,9 +374,11 @@ static void gen_dynamic_init(a_dynamic_init_ptr dip,
                              a_boolean          is_static_cast);
 static void gen_ctor_initializers(a_constructor_init_ptr ctor_init);
 static void gen_statement_full(a_statement_ptr statement,
-                               a_boolean       is_stmt_expression);
-#define gen_statement(statement) \
-  gen_statement_full((statement), /*is_stmt_expression=*/FALSE);
+                               a_boolean       is_stmt_expression,
+                               a_boolean       last_in_stmt_expression);
+#define gen_statement(statement)                                \
+  gen_statement_full((statement), /*is_stmt_expression=*/FALSE, \
+                     /*last_in_stmt_expression=*/FALSE);
 static void gen_routine_decl(a_boolean suppress_specifiers,
                              a_boolean *another_decl_in_comma_list);
 static void gen_declaration(a_boolean for_init);
@@ -8274,7 +8276,8 @@ Render the given GNU statement expression.
   }  /* if */
   write_tok_str("(");
   gen_statement_full(expr->variant.statement,
-                     /*is_stmt_expression=*/TRUE);
+                     /*is_stmt_expression=*/TRUE,
+                     /*last_in_stmt_expression=*/FALSE);
   write_tok_str(")");
   if (sse_list_reactivated) {
     restore_source_sequence_scan_state(&saved_state);
@@ -9296,12 +9299,6 @@ Generate code for the indicated "for" statement.
     }  /* if */
     if (init_stmt->kind != (a_statement_kind)stmk_decl) {
       /* Anything other than a declaration, e.g., all C cases. */
-#if CHECKING
-      if (init_stmt->kind == (a_statement_kind)stmk_expr) {
-        /* The result of the expression should be unused. */
-        check_result_not_used_flag(init_stmt->expr);
-      }  /* if */
-#endif /* CHECKING */
       gen_statement(init_stmt);
     } else {
       check_for_and_take_source_seq_entry(init_stmt->source_sequence_entry);
@@ -10420,16 +10417,9 @@ Generate code for the indicated list of statements.
     /* Generate any preprocessing directives (even if no statements follow). */
     (void)process_preprocessing_directives();
     if (statement == NULL) break;
-#if CHECKING
-    if (is_stmt_expression && statement->kind == (a_statement_kind)stmk_expr &&
-        statement->next != NULL) {
-      /* All top-level expressions in a statement expression except the
-         last should be unused. */
-      check_result_not_used_flag(statement->expr);
-    }  /* if */
-#endif /* CHECKING */
     /* Generate the statement. */
-    gen_statement(statement);
+    gen_statement_full(statement, /*is_stmt_expression=*/FALSE,
+                       is_stmt_expression && statement->next == NULL);
   }  /* for */
 }  /* gen_statement_list */
 
@@ -10759,10 +10749,14 @@ Generate the declaration associated with the given stmk_decl statement.
 
 
 static void gen_statement_full(a_statement_ptr statement,
-                               a_boolean       is_stmt_expression)
+                               a_boolean       is_stmt_expression,
+                               a_boolean       last_in_stmt_expression)
 /*
 Generate code for the indicated statement.  Put out a space after the
-statement unless is_stmt_expression is TRUE.
+statement unless is_stmt_expression is TRUE.  If is_stmt_expression is
+TRUE, this is the block in a statement expression.  If
+last_in_stmt_expression is TRUE, this statement is the last statement (the
+one that yields the value) of a statement expression.
 */
 {
   a_statement_kind    kind;
@@ -10816,6 +10810,14 @@ statement unless is_stmt_expression is TRUE.
       break;
     case stmk_expr:
       /* Expression statement: generate "expr;". */
+#if CHECKING
+      if (!last_in_stmt_expression) {
+        /* The expression in standalone expression statements, as well as
+           in all the expression statements except the last in a statement
+           expression, should be unused. */
+        check_result_not_used_flag(statement->expr);
+      }  /* if */
+#endif /* CHECKING */
       gen_full_expression(statement->expr);
       write_tok_ch(';');
       break;
