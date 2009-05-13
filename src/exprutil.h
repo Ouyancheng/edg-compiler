@@ -908,32 +908,8 @@ Macro that is TRUE if the operand is a function designator.
 #define is_a_function_designator(operand)				\
 	((operand)->state == (an_operand_state)os_function_designator)
 
-/*
-Helper macro for is_const_variable (defined below) to handle the case of
-const scalar variables which are allowed in GNU C++ constant-expressions
-(specifically, floating-point and pointer constants).
-*/
-#if GNU_EXTENSIONS_ALLOWED
-#define or_is_gpp_const_scalar_variable(var) ||                       \
-  (gpp_mode && is_scalar_type((var)->type) &&                         \
-   is_const_qualified_type((var)->type))
-#else /* !GNU_EXTENSIONS_ALLOWED */
-#define or_is_gpp_const_scalar_variable(var)  /*nothing*/
-#endif /* GNU_EXTENSIONS_ALLOWED */
 
-/*
-Return TRUE if a variable is a constant identifier usable in
-constant expressions.  Such a variable has const integral or enum type.
-In a prototype instantiation, it could instead have a template parameter type.
-The other half of this check, that the variable has an initializer,
-is done in var_constant_value.
-*/
-#define is_const_variable(var)                                          \
-  ((is_integral_or_enum_type((var)->type) &&                            \
-    is_const_qualified_type((var)->type)) ||                            \
-   is_template_param_type((var)->type)                                  \
-   or_is_gpp_const_scalar_variable(var))
-
+extern a_boolean is_const_variable(a_variable_ptr var);
 
 extern a_ref_entry_ptr copy_ref_entry_list(a_ref_entry_ptr ref_list);
 

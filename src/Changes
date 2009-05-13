@@ -1,5 +1,21 @@
 Version 4.1
 
+5/13/09  [EDGcpfe/9806]
+const static data members initialized outside the class are not constants
+
+A static data member with a const integral type that is initialized inside
+the class can be used later in the program as a constant.  If the data
+member is defined and initialized outside the class, however, the standard
+says it should not be considered a constant, but until now the front end
+has considered it constant anyway.  Now fixed.
+
+  struct A {
+    static const int i;
+  };
+  const int A::i = 1;
+  int x[A::i];  // Now an error -- A::i is not a constant
+
+
 5/13/09  [EDGcpfe/9422]
 Microsoft compatibility: internal error on missing uuid attribute arguments
 

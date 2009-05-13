@@ -8071,6 +8071,34 @@ or is NULL if none is needed.
 }  /* make_lvalue_variable_operand */
 
 
+a_boolean is_const_variable(a_variable_ptr var)
+/*
+Return TRUE if var is a constant variable usable in constant expressions.
+Such a variable has const integral or enum type.  In a prototype
+instantiation, it could instead have a template parameter type.
+The other half of this check, that the variable has an initializer,
+is done in var_constant_value.
+*/
+{
+  a_boolean  is_const = FALSE;
+  a_type_ptr var_type = var->type;
+
+  if ((is_integral_or_enum_type(var_type) &&
+       is_const_qualified_type(var_type)) ||
+      is_template_param_type(var_type)) {
+    is_const = TRUE;
+#if GNU_EXTENSIONS_ALLOWED
+  } else if (gpp_mode && is_scalar_type(var_type) &&
+             is_const_qualified_type(var_type)) {
+    /* g++ allows const scalar expressions (specifically, floating-point and
+       pointer constants). */
+    is_const = TRUE;
+#endif /* GNU_EXTENSIONS_ALLOWED */
+  }  /* if */
+  return is_const;
+}  /* is_const_variable */
+
+
 a_constant_ptr var_constant_value(a_variable_ptr var)
 /*
 If the variable var has a constant initial value, return a pointer to it;
@@ -8091,6 +8119,12 @@ constant initial value is treated as having a nonconstant initial value.
     get_variable_initializer(var, (a_scope_ptr)NULL, &init_kind, &initializer);
     check_assertion(init_kind == (an_init_kind)initk_static);
     con_val = initializer->constant;
+  } else if (var->source_corresp.is_class_member &&
+             has_static_storage_duration(var->storage_class) &&
+             !var->is_member_constant) {
+    /* The variable is a static data member but it's not initialized within
+       the class (it might be initialized outside the class), so it's not
+       a constant. */
   } else if (C_dialect == C_dialect_cplusplus &&
              is_const_variable(var) &&
              !is_volatile_qualified_type(var->type)) {
