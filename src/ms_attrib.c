@@ -53,13 +53,15 @@ static a_boolean
 			   issued. */
 
 static a_boolean
-		scan_all_attributes_as_unrecognized;
-			/* TRUE if all recognized attributes should be scanned
+		scan_misc_attributes_as_unrecognized;
+			/* TRUE if most recognized attributes should be scanned
 			   as "unrecognized" attributes.  This means that the
 			   only a string representation is recorded.  The
 			   individual arguments are not scanned or checked.
 			   No checking is done when the attributes are
-			   applied. */
+			   applied.  This affects msak_misc attributes, which
+			   means the only attribute that will still be
+			   processed is the uuid attribute. */
 
 static an_ms_attribute_kind_descr_ptr
 		unrecognized_attribute;
@@ -216,9 +218,9 @@ when specifying the parameters associated with an attribute.
   an_ms_attribute_kind_descr_ptr	msakdp;
 
   msakdp = alloc_ms_attribute_kind_descr();
-  if (scan_all_attributes_as_unrecognized) {
-    /* When scanning all attributes as unrecognized, override the specified
-       kind and use the unrecognized kind instead. */
+  if (scan_misc_attributes_as_unrecognized && kind == msak_misc) {
+    /* When scanning miscellaneous attributes as unrecognized, override
+       the specified kind and use the unrecognized kind instead. */
     msakdp->kind = (an_ms_attribute_kind)msak_unrecognized;
     msakdp->target = MSAT_ANY;
   } else {
@@ -2256,7 +2258,7 @@ Microsoft attribute processing.
 {
   accept_unrecognized_attributes =
                                 !RECOGNIZE_MICROSOFT_ATTRIBUTES; /*lint !e506*/
-  scan_all_attributes_as_unrecognized =
+  scan_misc_attributes_as_unrecognized =
                                        SUPPRESS_MICROSOFT_ATTRIBUTE_PROCESSING;
   unrecognized_attribute = NULL;
 #if DEBUG

@@ -1,5 +1,33 @@
 Version 4.1
 
+5/13/09  [EDGcpfe/9773]
+Microsoft compatibility: spurious errors on Microsoft attributes
+
+Our implementation of Microsoft attributes does some basic error checking
+of the attributes but does not otherwise do semantic processing of them.
+Currently, the only exception is the uuid attribute, which has the effect
+of setting the uuid of the class to which the attribute applies.  The
+SUPPRESS_MICROSOFT_ATTRIBUTE_PROCESSING flag causes the attributes to be
+parsed but suppresses any validation the arguments.  However, it also has
+had the effect of suppressing the processing of the uuid attribute.
+
+It has come to our attention that our attribute definitions do not always
+match what is actually accepted by the Microsoft compiler (in many cases
+what is accepted by the Microsoft compiler differs from the Microsoft
+documentation).  Because we do not do semantic processing of attributes
+(except for uuid), what is most important to many of our customers is the
+ability to process a source file containing attributes without issuing
+spurious errors.
+
+We do plan to update our attribute support to more closely match the
+Microsoft compiler, but in the mean time we have modified the definition
+of SUPPRESS_MICROSOFT_ATTRIBUTE_PROCESSING to apply to all attributes
+except uuid (internally this means that it applies to "unrecognized" and
+"misc" attributes).  This allows the widest range of code to be accepted
+by avoiding spurious errors while still correctly processing the uuid
+attribute.
+
+
 5/13/09  [EDGcpfe/9806]
 const static data members initialized outside the class are not constants
 

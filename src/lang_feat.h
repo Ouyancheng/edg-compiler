@@ -857,10 +857,13 @@ recognized attributes.
 
 /*
 When Microsoft attributes are recognized (see RECOGNIZE_MICROSOFT_ATTRIBUTES),
-this flag controls whether or not any semantic checking of the attributes
-is done.  When this flag is TRUE, only a string version of the attribute
-is created.  No analysis of the attribute arguments is performed, and no
-verification that the attributes are used in appropriate locations is done.
+this flag controls whether or not semantic checking of the attributes
+is done.  This flag applies to all of the attributes except for the uuid
+attribute (the only attribute which has any semantic effect in the front
+end).  When this flag is TRUE, only a string version of the attribute
+is created.  Except for the uuid attribute, no analysis of the attribute
+arguments is performed, and no verification that the attributes are used
+in appropriate locations is done.
 */
 #ifndef SUPPRESS_MICROSOFT_ATTRIBUTE_PROCESSING
 #define SUPPRESS_MICROSOFT_ATTRIBUTE_PROCESSING TRUE
