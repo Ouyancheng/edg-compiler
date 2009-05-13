@@ -374,9 +374,9 @@ static void gen_dynamic_init(a_dynamic_init_ptr dip,
                              a_boolean          is_static_cast);
 static void gen_ctor_initializers(a_constructor_init_ptr ctor_init);
 static void gen_statement_full(a_statement_ptr statement,
-                               a_boolean       suppress_trailing_space);
+                               a_boolean       is_stmt_expression);
 #define gen_statement(statement) \
-  gen_statement_full((statement), /*suppress_trailing_space=*/FALSE);
+  gen_statement_full((statement), /*is_stmt_expression=*/FALSE);
 static void gen_routine_decl(a_boolean suppress_specifiers,
                              a_boolean *another_decl_in_comma_list);
 static void gen_declaration(a_boolean for_init);
@@ -409,7 +409,8 @@ static void gen_variable_decl(a_boolean is_condition,
                               a_boolean for_init,
                               a_boolean suppress_specifiers,
                               a_boolean *another_decl_in_comma_list);
-static void gen_statement_list(a_statement_ptr stmt_list);
+static void gen_statement_list(a_statement_ptr stmt_list,
+                               a_boolean       is_stmt_expression);
 static void gen_cast(a_type_ptr type);
 static void gen_expr(an_expr_node_ptr expr,
                      a_boolean        need_parens,
@@ -8273,7 +8274,7 @@ Render the given GNU statement expression.
   }  /* if */
   write_tok_str("(");
   gen_statement_full(expr->variant.statement,
-                     /*suppress_trailing_space=*/TRUE);
+                     /*is_stmt_expression=*/TRUE);
   write_tok_str(")");
   if (sse_list_reactivated) {
     restore_source_sequence_scan_state(&saved_state);
@@ -8770,6 +8771,9 @@ gen_expr that might end up generating this expr as a temporary.
           opstr = "^";
           break;
         case eok_comma:
+#if CHECKING
+          check_result_not_used_flag(operand_1);
+#endif /* CHECKING */
 #if MICROSOFT_EXTENSIONS_ALLOWED
           if (operand_1->kind == (an_expr_node_kind)enk_temp_init &&
               operand_1->variant.init.dynamic_init->is_reused_value) {
@@ -9292,6 +9296,12 @@ Generate code for the indicated "for" statement.
     }  /* if */
     if (init_stmt->kind != (a_statement_kind)stmk_decl) {
       /* Anything other than a declaration, e.g., all C cases. */
+#if CHECKING
+      if (init_stmt->kind == (a_statement_kind)stmk_expr) {
+        /* The result of the expression should be unused. */
+        check_result_not_used_flag(init_stmt->expr);
+      }  /* if */
+#endif /* CHECKING */
       gen_statement(init_stmt);
     } else {
       check_for_and_take_source_seq_entry(init_stmt->source_sequence_entry);
@@ -9323,6 +9333,10 @@ Generate code for the indicated "for" statement.
   /* Generate the increment expression if there is one. */
   if (statement->variant.for_loop.extra_info->increment != NULL) {
     an_expr_node_ptr incr = statement->variant.for_loop.extra_info->increment;
+#if CHECKING
+    /* The result of the increment expression should be unused. */
+    check_result_not_used_flag(incr);
+#endif /* CHECKING */
     write_space();
     gen_full_expression(incr);
   }  /* if */
@@ -10389,7 +10403,8 @@ the __if_exist appears between top-level declarations of the class.
 
 #endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
 
-static void gen_statement_list(a_statement_ptr stmt_list)
+static void gen_statement_list(a_statement_ptr stmt_list,
+                               a_boolean       is_stmt_expression)
 /*
 Generate code for the indicated list of statements.
 */
@@ -10405,6 +10420,14 @@ Generate code for the indicated list of statements.
     /* Generate any preprocessing directives (even if no statements follow). */
     (void)process_preprocessing_directives();
     if (statement == NULL) break;
+#if CHECKING
+    if (is_stmt_expression && statement->kind == (a_statement_kind)stmk_expr &&
+        statement->next != NULL) {
+      /* All top-level expressions in a statement expression except the
+         last should be unused. */
+      check_result_not_used_flag(statement->expr);
+    }  /* if */
+#endif /* CHECKING */
     /* Generate the statement. */
     gen_statement(statement);
   }  /* for */
@@ -10445,7 +10468,8 @@ Generate the local label declarations (a GNU C extension) of the current scope
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
-static void gen_block_statement(a_statement_ptr statement)
+static void gen_block_statement(a_statement_ptr statement,
+                                a_boolean       is_stmt_expression)
 /*
 Generate code for a block statement ("{ ... }").
 */
@@ -10466,7 +10490,7 @@ Generate code for a block statement ("{ ... }").
   gen_local_label_declarations();
 #endif /* GNU_EXTENSIONS_ALLOWED */
   /* Generate the statements inside the block. */
-  gen_statement_list(statement->variant.block.statements);
+  gen_statement_list(statement->variant.block.statements, is_stmt_expression);
   /* End of the scope defined by the block. */
   if (need_context_pop) pop_name_context();
   /* See if there's an end-of-construct entry for the block (compiler-generated
@@ -10735,14 +10759,15 @@ Generate the declaration associated with the given stmk_decl statement.
 
 
 static void gen_statement_full(a_statement_ptr statement,
-                               a_boolean       suppress_trailing_space)
+                               a_boolean       is_stmt_expression)
 /*
 Generate code for the indicated statement.  Put out a space after the
-statement unless suppress_trailing_space is TRUE.
+statement unless is_stmt_expression is TRUE.
 */
 {
   a_statement_kind    kind;
   a_statement_ptr     else_stmt;
+  a_boolean           suppress_trailing_space = is_stmt_expression;
 
   check_assertion(statement != NULL);
   kind = statement->kind;
@@ -10933,7 +10958,7 @@ statement unless suppress_trailing_space is TRUE.
       break;
     case stmk_block:
       /* Block: generate "{ ... }". */
-      gen_block_statement(statement);
+      gen_block_statement(statement, is_stmt_expression);
       break;
     case stmk_switch_case:
       gen_switch_case(statement);

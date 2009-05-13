@@ -20344,6 +20344,48 @@ node, and report any failure as an internal error.
   }  /* if */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 }  /* check_operation_node_consistency */
+
+
+void check_result_not_used_flag(an_expr_node_ptr node)
+/*
+node is an expression whose value is being discarded, e.g., it's a void
+expression.  Check that the result_is_not_used flag is set for this node
+and, for certain operations, its operands.  (The complementary processing,
+ensuring that the result_is_not_used_flag is NOT set when it should not be,
+is found in check_operation_node_consistency.)
+*/
+{
+  if (!node->result_is_not_used) {
+    internal_error("check_result_not_used_flag: flag is not set");
+  }  /* if */
+  /* For some operations, subnodes get marked too. */
+  /* See comment in set_expr_result_not_used. */
+  if (node->kind == (an_expr_node_kind)enk_operation &&
+      is_void_type(node->type)) {
+    an_expr_operator_kind op = node->variant.operation.kind;
+    an_expr_node_ptr      operand_1 = node->variant.operation.operands;
+
+    if (op == (an_expr_operator_kind)eok_comma) {
+      /* Given a comma operation, the second operand is not used if the
+         entire operation is not used. */
+      check_result_not_used_flag(operand_1->next);
+    } else if (op == (an_expr_operator_kind)eok_question) {
+      /* Given a question mark operation, the second and third operands
+         are not used if the entire operation is not used. */
+      check_result_not_used_flag(operand_1->next);
+      check_result_not_used_flag(operand_1->next->next);
+    } else if (op == (an_expr_operator_kind)eok_cast) {
+      /* Given a cast to void, the operand is not used if the entire
+         operation is not used. */
+      check_result_not_used_flag(operand_1);
+    } else if (op == (an_expr_operator_kind)eok_parens) {
+      /* Given parentheses, the operand is not used if the entire operation
+         is not used. */
+      check_result_not_used_flag(operand_1);
+    }  /* if */
+  }  /* if */
+}  /* check_result_not_used_flag */
+
 #endif /* CHECKING */
 
 #if !STANDALONE_UTILITY_PROGRAM

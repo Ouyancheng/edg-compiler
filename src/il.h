@@ -1954,6 +1954,7 @@ extern a_boolean tree_has_correct_lvalueness(an_expr_node_ptr root);
 #endif /* !(STANDALONE_UTILITY_PROGRAM && PROTOTYPE_INSTANTIATIONS_IN_IL) */
 
 extern void check_operation_node_consistency(an_expr_node_ptr expr);
+extern void check_result_not_used_flag(an_expr_node_ptr node);
 #endif /* CHECKING */
 
 #if ENSURE_LOWERED_TYPE_LIST_ORDERING
