@@ -218,8 +218,9 @@ cast.
          directly to it.  need_templates_pass is left FALSE to suppress the
          template loop as well.  Some match may still be possible via a
          conversion, for a reference to const.  That's checked below. */
-    } else if (is_rvalue_ref && source_is_lvalue) {
-      /* Similar case for rvalue references -- they can't bind to an lvalue. */
+    } else if (is_rvalue_ref && source_is_lvalue && !is_cast) {
+      /* Similar case for rvalue references -- they can't bind to an lvalue
+         (but a static_cast to an rvalue reference type can). */
     } else if (is_template_id) {
       /* There is an explicit template argument list, so do not look
          for exact matches on non-templates. */
@@ -308,7 +309,8 @@ cast.
       }  /* if */
     }  /* if */
     if (number_of_matches == 0 && std_conv != NULL &&
-        (!is_ref || (is_rvalue_ref ? !source_is_lvalue : is_ref_to_const))) {
+        (!is_ref ||
+         (is_rvalue_ref ? (!source_is_lvalue || is_cast) : is_ref_to_const))) {
       /* Try matches involving an implicit conversion.  This is here
          primarily for the pointer-to-member case, but it makes sense to
          handle the normal pointer case too in case the implicit conversion
