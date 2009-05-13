@@ -1,5 +1,21 @@
 Version 4.1
 
+5/12/09 [EDGcpfe/9334]
+VLA dimension expressions in sizeof arguments
+
+In modes accepting variable-length arrays (VLAs), references to entities
+occurring in VLA dimension expressions within sizeof arguments no longer
+contribute to those entities being "needed" if the dimension is not
+actually evaluated.  For example:
+
+  static int f();  // Undefined static function: Error if needed.
+  int main() {
+    sizeof(int(*)[f()]);  // The dimension [f()] is not evaluated.  f is thus
+    return 0;             // not "needed" and the program is valid.
+  }                       // Previously, an error was issued because f
+                          // was considered "needed".
+
+
 5/12/09 [EDGcpfe/9548]
 Assertion failure: "add_dyn_init_cleanup: no temps"
 
