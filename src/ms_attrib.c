@@ -218,7 +218,8 @@ when specifying the parameters associated with an attribute.
   an_ms_attribute_kind_descr_ptr	msakdp;
 
   msakdp = alloc_ms_attribute_kind_descr();
-  if (scan_misc_attributes_as_unrecognized && kind == msak_misc) {
+  if (scan_misc_attributes_as_unrecognized &&
+      kind == (an_ms_attribute_kind)msak_misc) {
     /* When scanning miscellaneous attributes as unrecognized, override
        the specified kind and use the unrecognized kind instead. */
     msakdp->kind = (an_ms_attribute_kind)msak_unrecognized;
@@ -1687,7 +1688,7 @@ or NULL if the argument list is invalid.
   if (param != NULL && !param->is_unnamed) {
     /* If there is a parameter list but no arguments were specified, issue
        an error.  We don't currently know which arguments are required,
-       so we don't issue an error for two few arguments. */
+       so we don't issue an error for too few arguments. */
     if (arg_list == NULL) {
       str_error(ec_exp_ms_attr_arg_list, attr_descr->name);
     }  /* if */
