@@ -11197,10 +11197,6 @@ it to an lvalue).
 
   *processed = FALSE;
   check_assertion(is_reference_type(type_cast_to));
-  if (is_rvalue_reference_type(type_cast_to) &&
-      source_form != csf_reinterpret_cast) {
-    allow_rvalue = TRUE;
-  }  /* if */
   underlying_type_cast_to = type_pointed_to(type_cast_to);
   if (is_template_dependent_context() &&
       (is_template_dependent_type(type_cast_to) ||
@@ -11234,7 +11230,8 @@ it to an lvalue).
       }  /* if */
     }  /* if */
     /* Make the adjusted types that would be involved in the pointer version
-       of this cast. */
+       of this cast.  This models the rules for reinterpret_cast, but also
+       covers the static_cast cases where direct binding is possible. */
     *adj_type_cast_to = make_pointer_type(underlying_type_cast_to);
     if (is_error_operand(operand)) {
       *adj_operand_type = error_type();
