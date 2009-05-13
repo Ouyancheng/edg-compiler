@@ -20,7 +20,7 @@ ability to process a source file containing attributes without issuing
 spurious errors.
 
 We do plan to update our attribute support to more closely match the
-Microsoft compiler, but in the mean time we have modified the definition
+Microsoft compiler, but in the meantime we have modified the definition
 of SUPPRESS_MICROSOFT_ATTRIBUTE_PROCESSING to apply to all attributes
 except uuid (internally this means that it applies to "unrecognized" and
 "misc" attributes).  This allows the widest range of code to be accepted
