@@ -10403,7 +10403,8 @@ the __if_exist appears between top-level declarations of the class.
 static void gen_statement_list(a_statement_ptr stmt_list,
                                a_boolean       is_stmt_expression)
 /*
-Generate code for the indicated list of statements.
+Generate code for the indicated list of statements.  If is_stmt_expression
+is TRUE, the list is the body of a GNU statement expression.
 */
 {
   a_statement_ptr     statement;
@@ -10461,7 +10462,8 @@ Generate the local label declarations (a GNU C extension) of the current scope
 static void gen_block_statement(a_statement_ptr statement,
                                 a_boolean       is_stmt_expression)
 /*
-Generate code for a block statement ("{ ... }").
+Generate code for a block statement ("{ ... }").  If is_stmt_expression is
+TRUE, the block is the body of a GNU statement expression.
 */
 {
   a_block_ptr block = statement->variant.block.extra_info;
@@ -10754,7 +10756,7 @@ static void gen_statement_full(a_statement_ptr statement,
 /*
 Generate code for the indicated statement.  Put out a space after the
 statement unless is_stmt_expression is TRUE.  If is_stmt_expression is
-TRUE, this is the block in a statement expression.  If
+TRUE, this is the block in a GNU statement expression.  If
 last_in_stmt_expression is TRUE, this statement is the last statement (the
 one that yields the value) of a statement expression.
 */
