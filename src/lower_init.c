@@ -4457,12 +4457,6 @@ must NOT already be lowered (see comment in default_version_of_routine).
   /* Make a statement containing the call and insert it at the right
      location. */
   (void)insert_expr_statement_set_pos(call_node, insert_location);
-  if (dip->destructor != NULL) {
-    /* Since the destruction is managed by the runtime routine, remove
-       it from the cleanup list. */
-    check_assertion(dip->destruction_is_for_partially_constructed_aggregate);
-    remove_from_destruction_list(dip);
-  }  /* if */
 }  /* add_array_constructor_call */
 
 
@@ -7547,11 +7541,9 @@ do_assignment:;
   /* If the dynamic init entry indicates a destructor call, it requires
      processing to get the destruction done at the right time. */
   if (dip->destructor != NULL) {
-    if (dip->lifetime == NULL) {
-      /* The destruction will be handled by a runtime routine, e.g.,
-         for a partial aggregate destruction on an array initialization. */
-    } else if (static_var_init &&
-               !dip->destruction_is_for_partially_constructed_aggregate) {
+    check_assertion(dip->lifetime != NULL);
+    if (static_var_init &&
+        !dip->destruction_is_for_partially_constructed_aggregate) {
       if (dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate &&
           processing_file_scope_init_routine && !C_mode()) {
         /* Now that the static aggregate has been fully constructed, remove
@@ -7602,15 +7594,6 @@ do_assignment:;
                              /*set_cond_flag_if_any=*/(ctor_init == NULL),
                              eff_context, eff_insert_location);
       }  /* if */
-    }  /* if */
-    if (dip->lifetime == NULL && dip->destructible_entity_descr != NULL) {
-      /* If the dynamic initialization has been removed from its lifetime
-         (because the cleanup has been handled some other way), free the
-         destructible entity description entry now.  The normal freeing
-         process finds the entries by walking the object lifetime tree,
-         but this dynamic initialization isn't in the tree anymore. */
-      free_destructible_entity_descr(dip->destructible_entity_descr);
-      dip->destructible_entity_descr = NULL;
     }  /* if */
   }  /* if */
   /* If the dynamic init defines a lifetime that surrounds the initialization,

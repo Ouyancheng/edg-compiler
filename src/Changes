@@ -1,5 +1,35 @@
 Version 4.1
 
+5/14/09  [EDGcpfe/9497]
+Exception handling of arrays in partially constructed aggregates
+
+In configurations where exception handling tables are generated, these
+tables incorrectly omitted cleanup entries for destruction of
+arrays in partially constructed aggregates.  This occurred only when the
+array element has both a constructor and destructor and the array is
+initialized as a whole via a call to a runtime routine.
+
+In configurations where exceptions are enabled but exception handling
+tables are not generated, back ends should make sure to treat the dynamic
+init for an array as pertaining to the entire array when array_element_sequence
+of the an_init_pos_descr entry associated with the dynamic init is TRUE.
+
+Here's a sample where b.aa would not be destroyed if the construction of
+b.a had thrown an exception:
+
+  struct A {
+    A();
+    ~A();
+  };
+  struct B {
+    A aa[10];
+    A a;
+  };
+  void f() {
+    B b = {};
+  }
+
+
 5/14/09  [EDGcpfe/9801]
 static_temp moved from an_expr_node to a_dynamic_init (IL CHANGE)
 
