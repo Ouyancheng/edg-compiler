@@ -256,12 +256,12 @@ relative ordering of lowering the same for nested functions.
 
 
 5/5/09   [EDGcpfe/9768,EDGcpfe/9756,EDGcpfe/9799]
-Lowering of question operator can result in invalid generated C
+Lowering of question operator can result in invalid IL
 
 In configurations that use lowering, an lvalue question operator whose value
-is discarded could be lowered incorrectly resulting in invalid generated C
-(in configurations that use the C generating back end).  This regression was
-introduced in 4.0 and is now fixed.  For example:
+is discarded could be lowered incorrectly resulting in invalid IL (and hence
+invalid generated C in configurations that use the C generating back end).
+This regression was introduced in 4.0 and is now fixed.  For example:
 
   void f(bool b) {
     struct A {} a;
