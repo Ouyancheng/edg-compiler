@@ -8121,10 +8121,13 @@ constant initial value is treated as having a nonconstant initial value.
     con_val = initializer->constant;
   } else if (var->source_corresp.is_class_member &&
              has_static_storage_duration(var->storage_class) &&
-             !var->is_member_constant) {
+             !var->is_member_constant &&
+             (var->is_template_static_data_member || strict_ansi_mode)) {
     /* The variable is a static data member but it's not initialized within
        the class (it might be initialized outside the class), so it's not
-       a constant. */
+       a constant.  The standard puts this requirement on all static data
+       members, but many compilers relax that for non-template static data
+       members. */
   } else if (C_dialect == C_dialect_cplusplus &&
              is_const_variable(var) &&
              !is_volatile_qualified_type(var->type)) {
