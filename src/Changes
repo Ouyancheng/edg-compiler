@@ -1,5 +1,21 @@
 Version 4.1
 
+5/13/09  [EDGcpfe/9804]
+GNU compatibility: __attribute((mode(word))) on 64-bit platforms
+
+In GNU modes, applying __attribute((mode(word))) to an integer type previously
+produced an integer type of size equal to sizeof(int) by default.  Now it
+produces a type of size equal to sizeof(long) by default: This has no effect
+on typical 32-bit platforms, but on many 64-bit platforms the resulting type
+is now usually the 64-bit type "long" instead of the 32-bit type "int".
+For example:
+
+  typedef int Word __attribute((mode(word)));
+    // Word is now usually a synonym for "long" on 64-bit platforms.
+
+(This reflects the default setting of the configuration macro TARG_WORD_MODE.)
+
+
 5/13/09  [EDGcpfe/9773]
 Microsoft compatibility: spurious errors on Microsoft attributes
 

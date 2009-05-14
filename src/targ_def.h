@@ -2027,29 +2027,31 @@ but implementations are free to do otherwise.
 
 #if GNU_EXTENSIONS_ALLOWED
 
-/* The default value used to initialize targ_word_mode. */
+/* The default value used to initialize targ_word_mode.  (On Unix-like systems,
+   at least, this appears to correspond to an integral type of size equal to
+   the size of "long int".) */
 #ifndef TARG_WORD_MODE
-#if TARG_SIZEOF_INT == 1
+#if TARG_SIZEOF_LONG == 1
 #define TARG_WORD_MODE tmk_QI
-#else /* TARG_SIZEOF_INT != 1 */
-#if TARG_SIZEOF_INT == 2
+#else /* TARG_SIZEOF_LONG != 1 */
+#if TARG_SIZEOF_LONG == 2
 #define TARG_WORD_MODE tmk_HI
-#else /* TARG_SIZEOF_INT != 2 */
-#if TARG_SIZEOF_INT == 4
+#else /* TARG_SIZEOF_LONG != 2 */
+#if TARG_SIZEOF_LONG == 4
 #define TARG_WORD_MODE tmk_SI
-#else /* TARG_SIZEOF_INT != 4 */
-#if TARG_SIZEOF_INT == 8
+#else /* TARG_SIZEOF_LONG != 4 */
+#if TARG_SIZEOF_LONG == 8
 #define TARG_WORD_MODE tmk_DI
-#else /* TARG_SIZEOF_INT != 8 */
-#if TARG_SIZEOF_INT == 16
+#else /* TARG_SIZEOF_LONG != 8 */
+#if TARG_SIZEOF_LONG == 16
 #define TARG_WORD_MODE tmk_TI
-#else /* TARG_SIZEOF_INT != 16 */
+#else /* TARG_SIZEOF_LONG != 16 */
  #error -- do not know how to set TARG_WORD_MODE
-#endif /* TARG_SIZEOF_INT != 16 */
-#endif /* TARG_SIZEOF_INT != 8 */
-#endif /* TARG_SIZEOF_INT != 4 */
-#endif /* TARG_SIZEOF_INT != 2 */
-#endif /* TARG_SIZEOF_INT != 1 */
+#endif /* TARG_SIZEOF_LONG != 16 */
+#endif /* TARG_SIZEOF_LONG != 8 */
+#endif /* TARG_SIZEOF_LONG != 4 */
+#endif /* TARG_SIZEOF_LONG != 2 */
+#endif /* TARG_SIZEOF_LONG != 1 */
 #endif /* defined(TARG_WORD_MODE) */
 
 /* The default value used to initialize targ_pointer_mode. */
