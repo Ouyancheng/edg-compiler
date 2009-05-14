@@ -5446,6 +5446,7 @@ Return TRUE if dip1 and dip2 are equivalent dynamic initializations.
     /* Not equal. */
   } else if (dip1->kind == dip2->kind &&
              dip1->static_temp == dip2->static_temp &&
+             dip1->has_temporary_lifetime == dip2->has_temporary_lifetime &&
              same_entities(dip1->variable, dip2->variable) &&
              same_entities(dip1->destructor, dip2->destructor)) {
     switch (dip1->kind) {
@@ -5537,9 +5538,9 @@ are allowed under a sizeof (etc.) in a template argument expression.
         eq = same_entities(node1->variant.field, node2->variant.field);
         break;
       case enk_temp_init:
-        eq = (compare_template_param_dynamic_inits(
-                                            node1->variant.init.dynamic_init,
-                                            node2->variant.init.dynamic_init));
+        eq = compare_template_param_dynamic_inits(
+                                             node1->variant.init.dynamic_init,
+                                             node2->variant.init.dynamic_init);
         break;
       case enk_new_delete:
         { a_new_delete_supplement_ptr ndsp1 = node1->variant.new_delete;
