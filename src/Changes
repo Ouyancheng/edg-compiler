@@ -3,7 +3,7 @@ Version 4.1
 5/14/09  [EDGcpfe/9801]
 static_temp moved from an_expr_node to a_dynamic_init (IL CHANGE)
 
-The static_temp field has been moved from the an_expr_node to a_dynamic_init.
+The static_temp field has been moved from an_expr_node to a_dynamic_init.
 Its value remains the same for enk_temp_inits and is now also used to indicate
 whether a closure variable for an enk_lambda should be static.
 
