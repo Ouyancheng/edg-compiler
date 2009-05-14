@@ -117,7 +117,7 @@ actually evaluated.  For example:
 
 
 5/12/09 [EDGcpfe/9548]
-Assertion failure: "add_dyn_init_cleanup: no temps"
+Assertion failure on initialization of aggregate with one destructible entity
 
 In configurations where exception handling is enabled, the initialization
 of an aggregate with exactly one entity where that entity requires a
