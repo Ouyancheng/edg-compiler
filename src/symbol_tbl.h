@@ -4339,7 +4339,8 @@ extern a_boolean f_has_nontrivial_constructor(
                              (a_special_function_kind)sfk_destructor)
 
 /* Return TRUE if a class symbol supplement is for a class with a nontrivial
-   destructor. */
+   destructor.  (The cssp->destructor != NULL test ensures that the macro
+   returns FALSE for nonreal class templates.) */
 #define has_nontrivial_destructor(cssp)                               \
   ((cssp)->destructor != NULL && !(cssp)->has_trivial_destructor)
 

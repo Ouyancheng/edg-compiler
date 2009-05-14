@@ -567,8 +567,7 @@ definition of the routine is needed, and not just the declaration.
     set_canonical_routine_definition_needed(rout);
   } else if (!routine_definition_needed_flag_is_set(rout)) {
   /* Set the flag if it is not set already. */
-    check_assertion_str(!rout->is_trivial_default_constructor/* ||
-                        rout->is_defaulted*/,
+    check_assertion_str(!rout->is_trivial_default_constructor,
                         "set_routine_definition_needed: trivial default ctor");
     set_routine_definition_needed_flag(rout);
 #if DEBUG

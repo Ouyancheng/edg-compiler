@@ -1198,7 +1198,7 @@ to this routine).
         check_assertion(cssp != NULL);
         context->any_dynamic_initialization = TRUE;
         if (exceptions_enabled) {
-          if (cssp->destructor != NULL && has_nontrivial_destructor(cssp)) {
+          if (has_nontrivial_destructor(cssp)) {
             /* If appropriate, add a destructor pointer to the dynamic
                init entry. This is for the case in which an exception is
                thrown by the constructor before the entire array has been
@@ -5381,9 +5381,10 @@ scan_paren:
                                               /*instantiate=*/TRUE);
         }  /* if */
         /* Record the need for a destruction in the context of the current
-           lifetime.   Note: when the field is an array, it is the dynamic
-           init entry for the array element that is being handled at this
-           time; the array as a whole is dealt with below. */
+           lifetime if dip->destructor != NULL.   Note: when the field is an
+           array, it is the dynamic init entry for the array element that is
+           being handled at this time; the array as a whole is dealt with
+           below. */
         record_end_of_lifetime_destruction(dip, /*static_lifetime=*/FALSE,
                                            /*block_lifetime=*/TRUE);
       }  /* if */
