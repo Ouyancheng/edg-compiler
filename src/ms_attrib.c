@@ -1622,6 +1622,7 @@ or NULL if the argument list is invalid.
   an_ms_attribute_arg_ptr	arg_list = NULL;
   an_ms_attribute_arg_ptr	arg_tail = NULL;
   a_boolean			any_named_args = FALSE;
+  a_boolean			any_errors = FALSE;
 
   param = attr_descr->parameters;
   if (curr_token == tok_assign) {
@@ -1631,6 +1632,7 @@ or NULL if the argument list is invalid.
       /* This style of argument is not permitted for this attribute. */
       str_error(ec_cannot_assign_to_ms_attr, attr_descr->name);
       flush_tokens();
+      any_errors = TRUE;
     } else {
       /* Scan the argument associated with the initial parameter. */
       /* Bypass the "=" */
@@ -1639,7 +1641,6 @@ or NULL if the argument list is invalid.
       param = param->next;
     }  /* if */
   } else if (curr_token == tok_lparen) {
-    a_boolean	any_errors = FALSE;
     /* Bypass the left parenthesis. */
     check_assertion(curr_token == tok_lparen);
     (void)get_token();
@@ -1685,7 +1686,9 @@ or NULL if the argument list is invalid.
     /* Look for the closing right parenthesis. */
     (void)required_token(tok_rparen, ec_exp_rparen);
   }  /* if */
-  if (param != NULL && !param->is_unnamed) {
+  if (arg_list == NULL && !any_errors &&
+      attr_descr->kind  > (an_ms_attribute_kind)msak_misc &&
+      param != NULL && !param->is_unnamed) {
     /* If there is a parameter list but no arguments were specified, issue
        an error.  We don't currently know which arguments are required,
        so we don't issue an error for too few arguments. */
@@ -1778,18 +1781,17 @@ declaration.
       /* The attribute name was not followed by anything that looks like
          an argument, nor was it followed by anything that looks like an
          attribute separator or end of an attribute list. */
-      if (attr_descr->parameters != NULL ||
-          attr->kind == (an_ms_attribute_kind)msak_unrecognized) {
-        /* An attribute for which we expected a parameter list.  Complain
-           of an expected argument list. */
+      if (attr->kind == (an_ms_attribute_kind)msak_unrecognized) {
+        /* For an unrecognized attribute, complain of an expected
+           argument list. */
         str_error(ec_exp_ms_attr_arg_list, attr->name);
         flush_tokens();
-        /* The attribute is ill-formed, so discard it. */
-        attr = NULL;
       } else {
         /* No parameters were expected.  Complain of a missing "," or "]". */
         syntax_error(ec_exp_comma_or_rbracket);
       }  /* if */
+      /* The attribute is ill-formed, so discard it. */
+      attr = NULL;
     }  /* if */
     /* Save the position of the token following the attribute. */
     last_token = curr_token_sequence_number;
