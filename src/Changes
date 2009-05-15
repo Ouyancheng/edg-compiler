@@ -1,5 +1,23 @@
 Version 4.1
 
+5/15/09  [EDGcpfe/9809]
+Embedded C: spurious "out-of-scope" diagnostics
+
+In embedded C mode, spurious "using out-of-scope declaration" warnings
+(and possibly other errors) were sometimes issued if entity declared as a
+block extern in one function was also declared as a local object of a
+later function.  Now fixed.
+
+  void f1() {
+    extern int k;
+  }
+  int f2() {
+    int k;
+    k = 2;
+    return k;
+  }
+
+
 5/14/09  [EDGcpfe/9497]
 Exception handling of arrays in partially constructed aggregates
 

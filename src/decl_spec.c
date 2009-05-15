@@ -6941,8 +6941,10 @@ of a declarator or a syntax error) return TRUE; otherwise return FALSE.
   *named_address_space = 0;
   if (!result && named_address_spaces_enabled) {
     /* Check if the identifier corresponds to a named address space
-       qualifier. */
-    a_symbol_ptr  sym = normal_id_lookup(&locator_for_curr_id, IDL_NO_OPTIONS);
+       qualifier.  A tentative type lookup is done to suppress things like
+       the out-of-scope declaration check done by normal_id_lookup. */
+    a_symbol_ptr  sym = normal_id_lookup(&locator_for_curr_id,
+                                         IDL_TENTATIVE_TYPE_LOOKUP);
     if (sym != NULL && sym->kind == (a_symbol_kind)sk_named_address_space) {
       *named_address_space = sym->variant.named_address_space.id;
       identifier_names_address_space = TRUE;
