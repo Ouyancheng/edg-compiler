@@ -1904,9 +1904,10 @@ attributes.  */
 #endif /* GNU_X86_ATTRIBUTES_ALLOWED */
       case ak_nonnull:
       case ak_warn_unused_result:
+      case ak_format:
         /* GCC allows "nonnull", "noreturn", "volatile", "const", "cdecl",
-           "stdcall", and "warn_unused_result" to apply to variables with
-	   pointer-to-function type.  GCC does not accept "pure" in this
+           "stdcall", "warn_unused_result", and "format" to apply to variables
+           with pointer-to-function type.  GCC does not accept "pure" in this
 	   context, even though it is conceptually similar. */
         if (!is_pointer_type(type) ||
             !is_function_type(type_pointed_to(type))) {
@@ -2378,13 +2379,18 @@ routines).  This makes a private copy of the underlying type if that is
 the case.
 */
 {
-  if ((*tp)->kind == (a_type_kind)tk_typeref && typeref_is_typedef(*tp)) {
-    /* We cannot apply the attribute to the type underlying the
-       typedef.  So make a copy of that type and apply the attribute
-       to that. */
+  if ((*tp)->kind == (a_type_kind)tk_routine ||
+      (*tp)->kind == (a_type_kind)tk_error) {
+    /* Nothing to be done. */
+  } else if ((*tp)->kind == (a_type_kind)tk_typeref &&
+             typeref_is_typedef(*tp)) {
+    /* We cannot apply the attribute to the type underlying the typedef.
+       So make a copy of that type. */
     *tp = copy_type_and_apply_attributes((an_attribute_ptr)NULL,
-                                         (*tp)->variant.typeref.type,
+                                         skip_typerefs(*tp),
                                          /*is_typedef=*/FALSE);
+  } else {
+    unexpected_condition();
   }  /* if */
 }  /* ensure_routine_type_is_modifiable */
 
@@ -2433,6 +2439,93 @@ parameter has a nonpointer type).
     }  /* if */
   }  /* if */
 }  /* record_nonnull_parameter */
+
+
+static void apply_format_attribute(an_attribute_ptr  ap,
+                                   a_type_ptr        rtp)
+/*
+Apply the given ak_format attribute to the given routine type.  Issue
+diagnostics as appropriate.
+*/
+{
+  a_routine_type_supplement_ptr rtsp;
+  a_param_type_ptr              ptp;
+  a_boolean                     error_occurred = FALSE;
+
+  check_assertion(rtp->kind == (a_type_kind)tk_routine);
+  rtsp = rtp->variant.routine.extra_info;
+  if (!rtsp->prototyped) {
+    /* For an unprototyped function, no checks are required.  However,
+       we currently do not record the substitution argument for later
+       checking.  So we silently ignore the attribute in that case
+       (which is achieved by setting the substituted argument field
+       to zero). */
+    ap->variant.format.first_subst_arg = 0;
+  } else if (!rtsp->has_ellipsis) {
+    if (ap->variant.format.first_subst_arg != 0) {
+      /* A function type without an ellipsis cannot have the "format"
+         attribute (unless the substitution argument was specified as zero). */
+      pos_error(ec_format_rout_not_varargs, &ap->position);
+      error_occurred = TRUE;
+    }  /* if */
+  } else {
+    int  count = 0;
+    /* Check to see that the format argument has string type
+       and that the substitution argument is the first
+       variable argument. */
+    if (rtsp->this_class != NULL) {
+      /* For nonstatic member function, the implicit "*this" parameter
+         is number one, and the first declared parameter is numbered
+         two. */
+      ++count;
+    }  /* if */
+    for (ptp = rtsp->param_type_list; ptp != NULL; ptp = ptp->next) {
+      ++count;
+      if (count == ap->variant.format.fmt_arg) {
+        if(!(is_pointer_type(ptp->type) &&
+             is_character_type(type_pointed_to(ptp->type)))) {
+          pos_error(ec_fmt_arg_is_not_string, &ap->position);
+          error_occurred = TRUE;
+        }  /* if */
+      }  /* if */
+    }  /* for */
+    /* If the format argument index is out of range, issue an
+       error message. */
+    if (count < ap->variant.format.fmt_arg) {
+      pos_error(ec_fmt_arg_does_not_exist, &ap->position);
+      error_occurred = TRUE;
+    }  /* if */
+    if (ap->variant.format.first_subst_arg > 0 &&
+        ap->variant.format.first_subst_arg != count + 1) {
+      pos_error(ec_subst_arg_is_not_variable, &ap->position);
+      error_occurred = TRUE;
+    }  /* if */
+  }  /* if */
+  /* If the "first argument to check" is specified as zero, GNU
+     only checks the format string for consistency without matching
+     it up to argument types.  Since the EDG front end is not set
+     up for just checking format string consistency, we silently
+     ignore the attribute in that case. */
+  if (!error_occurred && ap->variant.format.first_subst_arg > 0) {
+    switch (ap->variant.format.kind) {
+    case fak_printf:
+      rtsp->arg_pragma = (a_pragma_kind)pk_printf_args;
+      rtsp->fmt_arg = ap->variant.format.fmt_arg;
+      break;
+    case fak_scanf:
+      rtsp->arg_pragma = (a_pragma_kind)pk_scanf_args;
+      rtsp->fmt_arg = ap->variant.format.fmt_arg;
+      break;
+    case fak_strftime:
+      /* The EDG front end does not support strftime format
+         checking, so this form of the attribute is silently
+         ignored. */
+      break;
+    default:
+      unexpected_condition();
+    }  /* switch */
+  }  /* if */
+}  /* apply_format_attribute */
 
 
 void apply_attributes_to_routine(an_attribute_ptr  attributes,
@@ -2572,85 +2665,8 @@ messages about any invalid attributes.
         rp->allocates_memory = TRUE;
         break;
       case ak_format:
-        { a_routine_type_supplement_ptr rtsp;
-          a_param_type_ptr              ptp;
-          a_boolean                     error_occurred = FALSE;
-          ensure_routine_type_is_modifiable(&rp->type);
-          rtsp = skip_typerefs(rp->type)->variant.routine.extra_info;
-          if (!rtsp->prototyped) {
-            /* For an unprototyped function, no checks are required.  However,
-               we currently do not record the substitution argument for later
-               checking.  So we silently ignore the attribute in that case
-               (which is achieved by setting the substituted argument field
-               to zero). */
-            ap->variant.format.first_subst_arg = 0;
-          } else if (!rtsp->has_ellipsis) {
-            if (ap->variant.format.first_subst_arg != 0) {
-              /* A function without an ellipsis cannot have the "format"
-                 attribute (unless the substitution argument was specified
-                 as zero). */
-              pos_sy_error(ec_format_rout_not_varargs, &ap->position,
-                           (a_symbol_ptr)rp->source_corresp.assoc_info);
-              error_occurred = TRUE;
-            }  /* if */
-          } else {
-            int  count = 0;
-            /* Check to see that the format argument has string type
-               and that the substitution argument is the first
-               variable argument. */
-            if (rtsp->this_class != NULL) {
-              /* For nonstatic member function, the implicit "*this" parameter
-                 is number one, and the first declared parameter is numbered
-                 two. */
-              ++count;
-            }  /* if */
-            for (ptp = rtsp->param_type_list; ptp != NULL; ptp = ptp->next) {
-              ++count;
-              if (count == ap->variant.format.fmt_arg) {
-                if(!(is_pointer_type(ptp->type) &&
-                     is_character_type(type_pointed_to(ptp->type)))) {
-                  pos_error(ec_fmt_arg_is_not_string, &ap->position);
-                  error_occurred = TRUE;
-                }  /* if */
-              }  /* if */
-            }  /* for */
-            /* If the format argument index is out of range, issue an
-               error message. */
-            if (count < ap->variant.format.fmt_arg) {
-              pos_error(ec_fmt_arg_does_not_exist, &ap->position);
-              error_occurred = TRUE;
-            }  /* if */
-            if (ap->variant.format.first_subst_arg > 0 &&
-                ap->variant.format.first_subst_arg != count + 1) {
-              pos_error(ec_subst_arg_is_not_variable, &ap->position);
-              error_occurred = TRUE;
-            }  /* if */
-          }  /* if */
-          /* If the "first argument to check" is specified as zero, GNU
-             only checks the format string for consistency without matching
-             it up to argument types.  Since the EDG front end is not set
-             up for just checking format string consistency, we silently
-             ignore the attribute in that case. */
-          if (!error_occurred && ap->variant.format.first_subst_arg > 0) {
-            switch (ap->variant.format.kind) {
-            case fak_printf:
-              rtsp->arg_pragma = (a_pragma_kind)pk_printf_args;
-              rtsp->fmt_arg = ap->variant.format.fmt_arg;
-              break;
-            case fak_scanf:
-              rtsp->arg_pragma = (a_pragma_kind)pk_scanf_args;
-              rtsp->fmt_arg = ap->variant.format.fmt_arg;
-              break;
-            case fak_strftime:
-              /* The EDG front end does not support strftime format
-                 checking, so this form of the attribute is silently
-                 ignored. */
-              break;
-            default:
-              unexpected_condition();
-            }  /* switch */
-          }  /* if */
-        }
+        ensure_routine_type_is_modifiable(&rp->type);
+        apply_format_attribute(ap, rp->type);
         break;
       case ak_format_arg:
         { a_routine_type_supplement_ptr rtsp;
@@ -2798,6 +2814,66 @@ messages about any invalid attributes.
 }  /* apply_attributes_to_routine */
 
 
+static void apply_attribute_to_routine_type(an_attribute_ptr  ap,
+                                            a_type_ptr        tp,
+                                            a_boolean         is_typedef)
+/*
+Apply the given attribute to the given type.  The attributes handled here are
+noreturn"/"volatile", "const", "warn_unused_result", and "format".  tp can be
+a function type, a pointer-to-function type, or a typedef for such a type
+(although some of these attributes cannot be applied to some typedefs).  Issue
+diagnostics as appropriate.  is_typedef is TRUE if tp is the underlying type
+of a typedef (and ap was applied through that typedef).
+Note that the "pure" attribute really belongs here too, but GCC treats it
+differently and we emulate that different behavior (elsewhere).
+*/
+{
+  a_type_ptr  ptr_type = NULL;
+
+  if (is_pointer_type(tp)) {
+    ptr_type = tp;
+    tp = type_pointed_to(tp);
+  }  /* if */
+  if (!is_function_type(tp)) {
+    pos_stty_warning(ec_attr_requires_func_type, &ap->position,
+                     attribute_kind_names[(int)ap->kind], tp);
+  } else if (ptr_type == NULL &&
+             ap->kind != (an_attribute_kind)ak_warn_unused_result &&
+             ap->kind != (an_attribute_kind)ak_format) {
+    pos_st_warning(ec_attr_requires_ptr_to_func_type, &ap->position,
+                   attribute_kind_names[(int)ap->kind]);
+  } else {
+    if (ptr_type != NULL) {
+      tp = copy_type_and_apply_attributes(
+                                (an_attribute_ptr)NULL, tp, is_typedef);
+      ptr_type->variant.pointer.type = tp;
+    }  /* if */
+    tp = skip_typerefs(tp);
+    switch (ap->kind) {
+      case ak_noreturn:
+      case ak_volatile:
+        /* Note that "volatile" is a synonym for "noreturn". */
+        tp->variant.routine.extra_info->does_not_return = TRUE;
+        break;
+      case ak_const:
+        tp->variant.routine.extra_info->is_const = TRUE;
+        break;
+      case ak_warn_unused_result:
+        if (is_void_type(tp->variant.routine.return_type)) {
+          pos_warning(ec_warn_unused_result_with_void_return,
+                      &ap->position);
+        } else {
+          tp->variant.routine.extra_info->result_should_be_used = TRUE;
+        }  /* if */
+        break;
+      case ak_format:
+        apply_format_attribute(ap, tp);
+        break;
+    }  /* switch */
+  }  /* if */
+}  /* apply_attribute_to_routine_type */
+
+
 static void apply_one_attribute_to_type(an_attribute_ptr  ap,
                                         a_type_ptr        type,
                                         a_boolean         is_typedef)
@@ -2870,44 +2946,8 @@ a typedef, is_typedef is TRUE.
     case ak_volatile:
     case ak_const:
     case ak_warn_unused_result:
-      /* GCC allows "noreturn"/"volatile", "const", and "warn_unused_result"
-         to apply to pointer-to-function types. Attribute "warn_unused_result"
-         also applies to typedefs of function types.  GCC does not accept
-         "pure" in this context, even though it is conceptually similar. */
-      { a_type_ptr  ptr_type = NULL;
-        if (is_pointer_type(tp)) {
-          ptr_type = tp;
-          tp = type_pointed_to(tp);
-        }  /* if */
-        if (!is_function_type(tp)) {
-          pos_stty_warning(ec_attr_requires_func_type, &ap->position,
-                           attribute_kind_names[(int)ap->kind], tp);
-        } else if (ptr_type == NULL &&
-                   ap->kind != (an_attribute_kind)ak_warn_unused_result) {
-          pos_st_warning(ec_attr_requires_ptr_to_func_type, &ap->position,
-                         attribute_kind_names[(int)ap->kind]);
-        } else {
-          if (ptr_type != NULL) {
-            tp = copy_type_and_apply_attributes(
-                                      (an_attribute_ptr)NULL, tp, is_typedef);
-            ptr_type->variant.pointer.type = tp;
-          }  /* if */
-          tp = skip_typerefs(tp);
-          if (ap->kind == (an_attribute_kind)ak_const) {
-            tp->variant.routine.extra_info->is_const = TRUE;
-          } else if (ap->kind == (an_attribute_kind)ak_warn_unused_result) {
-            if (is_void_type(tp->variant.routine.return_type)) {
-              pos_warning(ec_warn_unused_result_with_void_return,
-                          &ap->position);
-            } else {
-              tp->variant.routine.extra_info->result_should_be_used = TRUE;
-            }  /* if */
-          } else {
-            /* Note that "volatile" is a synonym for "noreturn". */
-            tp->variant.routine.extra_info->does_not_return = TRUE;
-          }  /* if */
-        }  /* if */
-      }
+    case ak_format:
+      apply_attribute_to_routine_type(ap, tp, is_typedef);
       break;
     case ak_transparent_union:
       {

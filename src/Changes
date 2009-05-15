@@ -1,5 +1,19 @@
 Version 4.1
 
+5/15/09  [EDGcpfe/9771]
+GNU compatibility: __attribute((format(...))) and non-function declarations
+
+Previously, the GNU "format" attribute was accepted only on function
+declarations.  Now, it is also allowed on declarations of pointer-to-function
+variables and on typedefs for function and pointer-to-function types.
+For example:
+
+  typedef void (*PPF)(char const*, ...)  __attribute((format(printf, 1, 2)));
+  void g(PPF print) {
+    print("%s\n", 10);  // Triggers a warning because 10 doesn't match "%s".
+  }
+
+
 5/15/09  [EDGcpfe/9809]
 Embedded C: spurious "out-of-scope" diagnostics
 
