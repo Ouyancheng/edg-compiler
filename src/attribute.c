@@ -2870,6 +2870,8 @@ differently and we emulate that different behavior (elsewhere).
       case ak_format:
         apply_format_attribute(ap, tp);
         break;
+      default:
+        unexpected_condition();
     }  /* switch */
   }  /* if */
 }  /* apply_attribute_to_routine_type */
