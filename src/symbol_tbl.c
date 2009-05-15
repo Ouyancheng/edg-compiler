@@ -2712,6 +2712,8 @@ state.
         num_class_symbol_supplements_allocated++;
 #endif /* DEBUG */
         sym_ptr->variant.class_struct_union.extra_info = cssp;
+        /* Note: Some of the fields cleared below must also be cleared in
+           check_anonymous_union_symbols (class_decl.c). */
         cssp->symbols = NULL;
         cssp->constructor = NULL;
         cssp->trivial_default_constructor = NULL;
