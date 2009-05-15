@@ -6979,6 +6979,7 @@ that is not a trivial default constructor and not a trivial copy constructor.
         /* A trivial copy constructor: Continue searching. */
       } else {
         result = TRUE;
+        break;
       }  /* if */
     } else {
       /* A nondefaulted user-declared constructor cannot be trivial. */
