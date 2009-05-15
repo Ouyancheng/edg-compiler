@@ -2196,6 +2196,7 @@ attributes were specified on a definition.
 #endif /* GNU_X86_ATTRIBUTES_ALLOWED */
       case ak_nonnull:
       case ak_warn_unused_result:
+      case ak_format:
 #if GNU_VECTOR_TYPES_ALLOWED
       case ak_vector_size:
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
