@@ -18,7 +18,7 @@ For example:
 Embedded C: spurious "out-of-scope" diagnostics
 
 In embedded C mode, spurious "using out-of-scope declaration" warnings
-(and possibly other errors) were sometimes issued if entity declared as a
+(and possibly other errors) were sometimes issued if an entity declared as a
 block extern in one function was also declared as a local object of a
 later function.  Now fixed.
 
