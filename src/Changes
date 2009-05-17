@@ -146,7 +146,12 @@ has considered it constant anyway.  Now fixed.
     static const int i;
   };
   const int A::i = 1;
-  int x[A::i];  // Now an error -- A::i is not a constant
+  int x[A::i];  // Now an error -- A::i is not a constant (in strict mode)
+
+Because of existing practice, non-template static data members initialized
+outside the class continue to be treated as constants except in strict mode.
+Template static data members initialized outside the class are now always
+considered non-constant.
 
 
 5/13/09  [EDGcpfe/9422]
