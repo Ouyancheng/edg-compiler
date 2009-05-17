@@ -1478,6 +1478,7 @@ values.
   operand->is_qualified_name = FALSE;
   operand->access_control_error_reported = FALSE;
   operand->is_operand_of_address_of = FALSE;
+  operand->has_required_ptr_to_member_form = FALSE;
   operand->is_template_id = FALSE;
   operand->is_simple_string_literal = FALSE;
   operand->is_cfront_null_pointer_constant = FALSE;
@@ -1499,6 +1500,7 @@ values.
   operand->saved_ref_entries_list = NULL;
   operand->template_arg_list = NULL;
   operand->id_position = null_source_position;
+  operand->ampersand_position = null_source_position;
   set_operand_kind(operand, kind);
 }  /* clear_operand */
 
@@ -2166,8 +2168,13 @@ destroyed its source position, etc.  Restore such things from
   operand->access_control_error_reported =
                                    orig_operand->access_control_error_reported;
   operand->is_operand_of_address_of = orig_operand->is_operand_of_address_of;
+  operand->has_required_ptr_to_member_form =
+                                 orig_operand->has_required_ptr_to_member_form;
   operand->is_using_decl_name = orig_operand->is_using_decl_name;
   operand->ruled_out_expr_kinds |= orig_operand->ruled_out_expr_kinds;
+  if (operand->is_operand_of_address_of) {
+    operand->ampersand_position = orig_operand->ampersand_position;
+  }  /* if */
 }  /* restore_operand_details */
 
 
@@ -3193,12 +3200,8 @@ is being done via an explicit cast; otherwise, it's implicit by context.
        pointer to member case. */
     overloaded_function_catch_up(function_symbol,
                                  overloaded_function_symbol,
-                                 (a_boolean)orig_operand.is_qualified_name,
-                                 (a_boolean)orig_operand.
-                                                      is_operand_of_address_of,
-                                 &orig_operand.position,
-                                 end_position_of_operand(&orig_operand),
-                                 &orig_operand.id_position,
+                                 &orig_operand,
+                                 (a_source_position *)NULL,
                                  /*elided_reference=*/FALSE,
                                  /*result_is_lvalue=*/reference_case,
                                  /*address_taken=*/!reference_case,
@@ -6928,7 +6931,8 @@ it will be used as an rvalue or an lvalue.
     conv_indefinite_function_operand_to_unknown_dependent_function(operand);
   } else if (is_sym_for_member_operand(operand)) {
     /* Replace a symbol-for-member operand by a pointer-to-member. */
-    conv_sym_for_member_operand_to_ptr_to_member(operand);
+    conv_sym_for_member_operand_to_ptr_to_member(operand,
+                                                 (a_source_position *)NULL);
   }  /* if */
 }  /* do_generic_operand_transformations */
 
@@ -7445,6 +7449,7 @@ it happens in prototype instantiations.  op is the operator to be used.
     } else if (is_a_function_designator(operand)) {
       copy_operand(operand, result);
       conv_function_designator_to_ptr_to_function(result,
+                                                  start_position,
                                                   /*allow_ctor=*/FALSE,
                                                   /*will_call=*/FALSE);
     } else {
@@ -8171,7 +8176,7 @@ void make_ptr_to_member_constant_operand(
                                     a_source_position *end_position,
                                     a_boolean         check_protected_access,
                                     a_boolean         is_qualified_name,
-                                    a_boolean         is_operand_of_address_of,
+                                    a_boolean         has_required_ampersand,
                                     an_operand        *result)
 /*
 Make an operand for a constant representing a C++ pointer to member.
@@ -8183,9 +8188,10 @@ operand.  *end_position gives the end position if end positions are
 being maintained.  If check_protected_access is TRUE and the symbol is a
 protected member, do the ARM 11.5 protected member access check.
 The name that generated this pointer-to-member constant is a qualified
-name if is_qualified_name is TRUE; it is the operand of a "&" operator if
-is_operand_of_address_of is TRUE.  If the member is a bit field,
-issue an error.  
+name if is_qualified_name is TRUE; it is the immediate operand of a "&"
+operator (with not even parentheses allowed to intervene) if
+has_required_ampersand is TRUE.  If the member is a bit field, issue
+an error.  
 */
 {
   a_symbol_ptr base_member_sym = fundamental_symbol_of(member_sym);
@@ -8193,7 +8199,7 @@ issue an error.
 
   /* The standard only allows this when a qualified name is preceded
      by a "&".  In some modes we allow other forms as an extension. */
-  if (!is_operand_of_address_of || !is_qualified_name) {
+  if (!has_required_ampersand || !is_qualified_name) {
     an_error_severity severity = (an_error_severity)es_discretionary_error;
     if (strict_ansi_mode) {
       /* The standard doesn't allow the nonstandard forms. */
@@ -11513,26 +11519,36 @@ If arg_operand is non-NULL, it points to an operand for the argument.
 }  /* type_after_function_to_pointer_transformation */
 
 
-void conv_sym_for_member_operand_to_ptr_to_member(an_operand *operand)
+void conv_sym_for_member_operand_to_ptr_to_member(
+                                         an_operand        *operand,
+                                         a_source_position *ampersand_position)
 /*
 Convert an operand for a member symbol into the corresponding pointer
-to member constant.
+to member constant.  If ampersand_position is non-NULL, the name was preceded
+by an "&" in the source, and *ampersand_position gives its position.
 */
 {
   an_operand   orig_operand;
   a_symbol_ptr member_sym;
+  a_boolean    has_required_ampersand = (ampersand_position != NULL &&
+                                         /* Watch out for &(A::f). */
+                                         operand->is_id_expression);
 
   orig_operand = *operand;
   check_assertion(is_sym_for_member_operand(operand));
   member_sym = operand->variant.symbol;
+  if (ampersand_position != NULL) {
+    /* Change the start position to be used/restored to include the "&"
+       operator. */
+    orig_operand.position = *ampersand_position;
+  }  /* if */
   /* Make an operand for a pointer-to-member constant. */
   make_ptr_to_member_constant_operand(member_sym, member_sym,
                                       &orig_operand.position,
                                       end_position_of_operand(&orig_operand),
                                       !operand->access_control_error_reported,
                                       (a_boolean)operand->is_qualified_name,
-                                      (a_boolean)operand->
-                                                      is_operand_of_address_of,
+                                      has_required_ampersand,
                                       operand);
   /* Restore the original source position, etc. */
   restore_operand_details_incl_ref(operand, &orig_operand);
@@ -11541,8 +11557,10 @@ to member constant.
 }  /* conv_sym_for_member_operand_to_ptr_to_member */
 
 
-void conv_expr_function_designator_to_ptr_to_function(an_operand *operand,
-                                                      a_boolean  will_call)
+void conv_expr_function_designator_to_ptr_to_function(
+                                         an_operand        *operand,
+                                         a_boolean         will_call,
+                                         a_source_position *ampersand_position)
 /*
 Convert an expression-form function designator in *operand into an
 rvalue for the address of the function.  Note that for nonstatic member
@@ -11550,6 +11568,8 @@ functions this produces a pointer, not a pointer to member, which
 is what's wanted for the function-identifying operand of a call.
 will_call is TRUE if the resulting expression will be used to call the
 function, which means (among other things) that its address will not escape.
+If ampersand_position is non-NULL, the function reference is preceded
+by an "&" operator and *ampersand_position gives its position.
 */
 {
   an_expr_node_ptr expr;
@@ -11595,11 +11615,27 @@ function, which means (among other things) that its address will not escape.
   }  /* if */
   if (need_expr) {
     /* Make an rvalue expression from the lvalue function expression. */
-    expr = conv_lvalue_expr_to_rvalue(expr, (a_boolean *)NULL,
-                                      (a_constant **)NULL,
-                                      &operand->position);
-    /* Save it as either the overall result or as the backing expression
-       for a constant result. */
+    if (ampersand_position != NULL) {
+      /* Use a "&" operator to get the address because there was one in
+         the source. */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      a_source_position end_position = expr->expr_range.end;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+      expr = make_operator_node((an_expr_operator_kind)eok_address_of,
+                                make_pointer_type(expr->type),
+                                expr);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      set_expr_position(expr, ampersand_position, &end_position,
+                        ampersand_position);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    } else {
+      /* Use implicit decay to get the address. */
+      expr = conv_lvalue_expr_to_rvalue(expr, (a_boolean *)NULL,
+                                        (a_constant **)NULL,
+                                        &operand->position);
+    }  /* if */
+    /* Save the expression as either the overall result or as the backing
+       expression for a constant result. */
     if (need_expr_for_constant) {
       /* A constant expression doesn't give you any more information than
          the constant itself has, so drop it. */
@@ -11610,27 +11646,38 @@ function, which means (among other things) that its address will not escape.
       make_expression_operand(expr, operand);
     }  /* if */
   }  /* if */
+  if (ampersand_position != NULL) {
+    /* Get the operand start position right (include the "&" operator)
+       when we restore it from orig_operand. */
+    orig_operand.position = *ampersand_position;
+  }  /* if */
   restore_operand_details_incl_ref(operand, &orig_operand);
 }  /* conv_expr_function_designator_to_ptr_to_function */
 
 
-void conv_function_designator_to_ptr_to_function(an_operand *operand,
-                                                 a_boolean  allow_ctor,
-                                                 a_boolean  will_call)
+void conv_function_designator_to_ptr_to_function(
+                                         an_operand        *operand,
+                                         a_source_position *ampersand_position,
+                                         a_boolean         allow_ctor,
+                                         a_boolean         will_call)
 /*
 Convert a function designator operand to a pointer to function
-expression operand.  allow_ctor is TRUE if this is allowed if the
-operand is a constructor (ordinarily, taking the address of a
-constructor is not allowed).  Also handles the nonstandard decay
-of nonstatic member functions to pointers to members, but note that
-a bound function lvalue for a nonstatic member function gets turned
-into a pointer, not a pointer to member; that's weird, but it's used
-in generating the function-identifying operand in a call.
-will_call is TRUE if the resulting operand will be used to call the
-function, which means (among other things) that its address will not escape.
+operand.  If ampersand_position is non-NULL, this is being done
+because of an "&" operator in the source, and *ampersand_position
+gives the position of that operator; otherwise, this is an implicit
+decay.  Also handles pointers to members, including the nonstandard
+case of that where no explicit "&" appears.  allow_ctor is TRUE if
+this operation is allowed if the operand is a constructor (ordinarily,
+taking the address of a constructor is not allowed).  will_call is
+TRUE if the resulting operand will be used to call the function, which
+means (among other things) that its address will not escape.  Note
+that a bound function lvalue for a nonstatic member function gets
+turned into a pointer, not a pointer to member; that's weird, but it's
+used in generating the function-identifying operand in a call.
 */
 {
   an_operand orig_operand;
+  a_boolean  set_operand_of_ampersand = FALSE;
 
   /* If you change this routine, see also the code in
      type_after_function_to_pointer_transformation that does a similar
@@ -11653,7 +11700,10 @@ function, which means (among other things) that its address will not escape.
       if ((!allow_ctor &&
            rout->special_kind == (a_special_function_kind)sfk_constructor) ||
           rout->special_kind == (a_special_function_kind)sfk_destructor) {
-        error_in_operand(ec_addr_of_constructor_or_destructor, operand);
+        pos_error(ec_addr_of_constructor_or_destructor,
+                  (ampersand_position != NULL) ? ampersand_position :
+                                                 &operand->position);
+        conv_to_error_operand(operand);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -11668,11 +11718,13 @@ function, which means (among other things) that its address will not escape.
        function without using &" here; it will be checked once we know
        which of the functions is actually wanted. */
     operand->state = (an_operand_state)os_rvalue;
+    set_operand_of_ampersand = TRUE;
   } else if (operand->bound_function) {
     /* A bound function designator converts to a pointer, not a pointer to
        member. */
     check_assertion(is_expression_operand(operand));
-    conv_expr_function_designator_to_ptr_to_function(operand, will_call);
+    conv_expr_function_designator_to_ptr_to_function(operand, will_call,
+                                                     ampersand_position);
   } else if (is_expression_operand(operand)) {
     /* Convert an lvalue expression for a function to a pointer to the
        function. */
@@ -11691,10 +11743,11 @@ function, which means (among other things) that its address will not escape.
       }  /* if */
     }
 #endif /* CHECKING */
-    conv_expr_function_designator_to_ptr_to_function(operand, will_call);
+    conv_expr_function_designator_to_ptr_to_function(operand, will_call,
+                                                     ampersand_position);
   } else if (is_sym_for_member_operand(operand)) {
-    /* Convert a member name to a pointer-to-member (nonstandard). */
-    conv_sym_for_member_operand_to_ptr_to_member(operand);
+    /* Convert a member name to a pointer-to-member. */
+    conv_sym_for_member_operand_to_ptr_to_member(operand, ampersand_position);
   } else {
     unexpected_condition();
   }  /* if */
@@ -11702,6 +11755,28 @@ function, which means (among other things) that its address will not escape.
      entries because if the function is called we would like to be able
      to change the reference to referenced instead of address-taken. */
   restore_operand_details_incl_ref(operand, &orig_operand);
+  if (ampersand_position != NULL) {
+    if (set_operand_of_ampersand) {
+      /* Remember that a "&" was applied to this operand so we can
+         create it once we make an expression.  This is done late because
+         restore_operand_details restores the is_operand_of_address_of flag.
+         The position in the operand remains indicating the underlying
+         operand, not including the "&". */
+      check_assertion(is_indefinite_function_operand(operand));
+      operand->is_operand_of_address_of = TRUE;
+      operand->ampersand_position = *ampersand_position;
+      if (operand->is_id_expression) {
+        /* Remember that the operand has the right form for a pointer to
+           member (no parentheses around the identifier). */
+        operand->has_required_ptr_to_member_form = TRUE;
+      }  /* if */
+    } else {
+      /* Change the start position of the operand to include the "&" operator
+         that was added. */
+      operand->position = *ampersand_position;
+      set_operand_expr_position_if_expr(operand, ampersand_position);
+    }  /* if */
+  }  /* if */
   /* Change the kind in the reference entries to address-taken. */
   change_ref_kinds(operand->ref_entries_list, SRK_ADDRESS_TAKEN);
   operand->is_id_expression = FALSE;
@@ -11830,15 +11905,12 @@ is a "get" if put_operand is NULL.
                                            arg_operand_list,
                                            /*do_arg_dep_lookup=*/FALSE,
                                            /*try_surrogate_functions=*/FALSE,
-                                           /*is_qualified_name=*/FALSE,
                                            /*is_property=*/TRUE,
                                            ec_no_matching_function,
                                            ec_ambiguous_overloaded_function,
+                                           (an_operand *)NULL,
                                            &locator.source_position,
                                            (a_token_sequence_number)0,
-                                           &locator.source_position,
-                                           &locator.source_position,
-                                           &locator.source_position,
                                            (a_source_position *)NULL,
                                            (a_boolean *)NULL,
                                            (a_boolean *)NULL,
@@ -11933,10 +12005,14 @@ will be called immediately (as opposed to, say, having its address taken).
     if (matching_sym != NULL) {
       /* The template reference -- something like f<1> -- corresponds to
          a single function. */
-      an_operand   orig_operand;
-      a_symbol_ptr sym;
+      an_operand        orig_operand;
+      a_symbol_ptr      sym;
+      a_source_position *ampersand_pos = NULL;
 
       orig_operand = *operand;
+      if (orig_operand.is_operand_of_address_of) {
+        ampersand_pos = &orig_operand.ampersand_position;
+      }  /* if */
       sym = find_template_function(matching_sym,
                                    &matching_arg_list,
                                    /*explicit_arg_list_present=*/TRUE,
@@ -11953,8 +12029,11 @@ will be called immediately (as opposed to, say, having its address taken).
                                     orig_operand.ref_entries_list,
                                     operand);
         restore_operand_details(operand, &orig_operand);
+        if (orig_operand.has_required_ptr_to_member_form) {
+          operand->is_id_expression = TRUE;
+        }  /* if */
         if (is_an_rvalue(&orig_operand)) {
-          conv_sym_for_member_operand_to_ptr_to_member(operand);
+          conv_sym_for_member_operand_to_ptr_to_member(operand, ampersand_pos);
         }  /* if */
       } else {
         /* A nonmember function or static member function. */
@@ -11969,6 +12048,7 @@ will be called immediately (as opposed to, say, having its address taken).
         restore_operand_details(operand, &orig_operand);
         if (is_an_rvalue(&orig_operand)) {
           conv_function_designator_to_ptr_to_function(operand,
+                                                      ampersand_pos,
                                                       /*allow_ctor=*/FALSE,
                                                       will_call);
         }  /* if */
@@ -12058,6 +12138,7 @@ transformations.
          "p->X::X()". */
       a_boolean allow_ctor = (will_call && microsoft_mode);
       conv_function_designator_to_ptr_to_function(operand,
+                                                  (a_source_position *)NULL,
                                                   allow_ctor,
                                                   will_call);
     }  /* if */

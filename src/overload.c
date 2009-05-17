@@ -6406,16 +6406,10 @@ to a class ("->" or "->*" case, selector_is_object_pointer TRUE).
 }  /* bind_member_function_operand_to_selector */
 
 
-#if !EXTRA_SOURCE_POSITIONS_IN_IL
-/*ARGSUSED*/ /* <--- function_end_position is not used in that case. */
-#endif /* !EXTRA_SOURCE_POSITIONS_IN_IL */
 void overloaded_function_catch_up(a_symbol_ptr      function_symbol,
                                   a_symbol_ptr      overloaded_function_symbol,
-                                  a_boolean         is_qualified_name,
-                                  a_boolean         is_operand_of_address_of,
-                                  a_source_position *function_position,
-                                  a_source_position *function_end_position,
-                                  a_source_position *id_position,
+                                  an_operand        *orig_function_operand,
+                                  a_source_position *call_position,
                                   a_boolean         elided_reference,
                                   a_boolean         result_is_lvalue,
                                   a_boolean         address_taken,
@@ -6437,16 +6431,14 @@ Therefore, while overloaded_function_symbol is typically an
 sk_overloaded_function containing function_symbol, it may be the same as
 function_symbol, or it may be a projection symbol for one of those, or it
 may be an sk_function_template symbol.  Generate an operand for the
-specific function in *operand (more on this below).  function_position is
-used as the source position for the operand; if end positions are being
-maintained, function_end_position is the end position.  id_position is the
-position of the function name identifier in the call (e.g., if the name is
-"X::f", id_position gives the position of the "f").  is_qualified_name is
-TRUE if a qualified name was used to name the function (that suppresses
-the virtual-ness of the function).  is_operand_of_address_of is TRUE if
-the function name was preceded by "&" (this is really needed only when the
-function is a nonstatic member function in a non-call context).  Access
-control and ambiguity checking are always done, even if the
+specific function in *operand (more on this below).  orig_function_operand,
+if non-NULL, gives the operand that has been used to hold the overloaded
+function name reference so far, which is used to provide some additional
+information (e.g., source positions, whether the name is qualified).
+orig_function_operand must not be the same operand as the result operand.
+If orig_function_operand is NULL (e.g., for operator overloading),
+call_position provides a position for the call.  Access control and
+ambiguity checking are always done, even if the
 overloaded_function_symbol is a non-overloaded function.  On return,
 *access_error_reported is TRUE if an access control checking error was
 detected and reported.
@@ -6471,13 +6463,19 @@ referenced in the program but the reference is being elided in the
 intermediate language (operand should be NULL in that case).
 */
 {
-  a_symbol_ptr     base_function_symbol =
+  a_symbol_ptr      base_function_symbol =
                                         fundamental_symbol_of(function_symbol);
-  a_symbol_ptr     base_overloaded_function_symbol =
+  a_symbol_ptr      base_overloaded_function_symbol =
                              fundamental_symbol_of(overloaded_function_symbol);
-  a_symbol_locator function_symbol_locator;
-  a_ref_entry_ptr  rep;
-  a_boolean        eff_address_taken = address_taken;
+  a_symbol_locator  function_symbol_locator;
+  a_ref_entry_ptr   rep;
+  a_boolean         eff_address_taken = address_taken;
+  a_boolean         is_qualified_name = FALSE;
+  a_boolean         has_required_ptr_to_member_form = FALSE;
+  a_source_position *ampersand_position = NULL;
+  a_source_position *function_position;
+  a_source_position *function_end_position;
+  a_source_position *id_position;
 
 #if CHECKING
   if (base_function_symbol->kind != (a_symbol_kind)sk_routine &&
@@ -6486,6 +6484,27 @@ intermediate language (operand should be NULL in that case).
   }  /* if */
 #endif /* CHECKING */
   check_assertion(!(result_is_lvalue && address_taken));
+  if (orig_function_operand != NULL) {
+    check_assertion(orig_function_operand != operand);
+    is_qualified_name = orig_function_operand->is_qualified_name;
+    if (orig_function_operand->is_operand_of_address_of) {
+      ampersand_position = &orig_function_operand->ampersand_position;
+      has_required_ptr_to_member_form =
+                        orig_function_operand->has_required_ptr_to_member_form;
+    }  /* if */
+    function_position = &orig_function_operand->position;
+    function_end_position =
+                    end_position_or_null(&orig_function_operand->end_position);
+    if (is_indefinite_function_operand(orig_function_operand) ||
+        is_undefined_symbol_operand(orig_function_operand)) {
+      id_position = &orig_function_operand->id_position;
+    } else {
+      id_position = function_position;
+    }  /* if */
+  } else {
+    check_assertion(call_position != NULL);
+    function_position = function_end_position = id_position = call_position;
+  }  /* if */
   /* The address of the function is not really taken if the current expression
      is not evaluated. */
   if (!curr_expr_is_potentially_evaluated()) eff_address_taken = FALSE;
@@ -6569,7 +6588,7 @@ intermediate language (operand should be NULL in that case).
                                               function_end_position,
                                               !*access_error_reported,
                                               is_qualified_name,
-                                              is_operand_of_address_of,
+                                              has_required_ptr_to_member_form,
                                               operand);
           operand->ref_entries_list = rep;
           change_ref_kinds(operand->ref_entries_list, SRK_ADDRESS_TAKEN);
@@ -6586,8 +6605,10 @@ intermediate language (operand should be NULL in that case).
                function designator to a pointer rather than a pointer to
                member.  Also, it doesn't change the reference kind to
                SRK_ADDRESS_TAKEN. */
-            conv_expr_function_designator_to_ptr_to_function(operand,
-                                                             !address_taken);
+            conv_expr_function_designator_to_ptr_to_function(
+                                                           operand,
+                                                           !address_taken,
+                                                           ampersand_position);
             if (eff_address_taken) {
               change_some_ref_kinds(operand->ref_entries_list,
                                     SRK_REFERENCE, SRK_ADDRESS_TAKEN);
@@ -7181,34 +7202,36 @@ is not considered to match.
 static void make_resolved_overloaded_function_operand(
                                  a_symbol_ptr       function_symbol,
                                  a_symbol_ptr       overloaded_function_symbol,
+                                 an_operand         *orig_function_operand,
+                                 a_source_position  *call_position,
                                  a_boolean          *have_selector,
                                  an_operand         *bound_function_selector,
-                                 a_boolean          is_qualified_name,
                                  a_boolean          is_property,
-                                 a_source_position  *function_position,
-                                 a_source_position  *function_end_position,
-                                 a_source_position  *id_position,
                                  an_operand         *function_operand)
 /*
-Overload resolution has been done, and it has been decided that, of the
-functions in overloaded_function_symbol (which may be a projection symbol
-and/or just a simple function), function_symbol is the specific function to
-be called (also possibly a projection symbol).  Create a function designator
-operand for the function in *function_operand.  The function was named with
-a qualified name if is_qualified_name is TRUE.  The call is the result
-of the expansion of a Microsoft property reference if is_property is
-TRUE.  The reference has an associated selector object if
-*have_selector is TRUE; in that case, bound_function_selector gives
-the object, and function_operand is bound to that object.  Even when
-*have_selector is FALSE going in, bound_function_selector must point
-at an operand that can be filled in if an implicit selector is
-generated (*have_selector is set to TRUE for that case).
-bound_function_selector->selector_is_object_pointer is TRUE if the
-selector is an object pointer, FALSE if it is an object.
-function_position gives the source position of the function in the
-call; if end positions are being maintained, function_end_position
-gives the corresponding end position.  id_position gives the source
-position of the function name identifier in the call.
+Overload resolution has been done, and it has been decided that, of
+the functions in overloaded_function_symbol (which may be a projection
+symbol and/or just a simple function), function_symbol is the specific
+function to be called (also possibly a projection symbol).  Create a
+function designator operand for the function in *function_operand.
+orig_function_operand, if non-NULL, gives the operand that has been
+used to hold the overloaded function name reference so far, which is
+used to provide some additional information (e.g., source positions,
+whether the name is qualified).  orig_function_operand must not be the
+same operand as function_operand.  If orig_function_operand is NULL
+(e.g., for operator overloading), call_position provides a position
+for the call.  If both orig_function_operand and call_position are
+supplied, call_position is assumed to be a better position for the
+call.  The call is the result of the expansion of a Microsoft
+property reference if is_property is TRUE.  The reference has an
+associated selector object if *have_selector is TRUE; in that case,
+bound_function_selector gives the object, and function_operand is
+bound to that object.  Even when *have_selector is FALSE going in,
+bound_function_selector must point at an operand that can be filled in
+if an implicit selector is generated (*have_selector is set to TRUE
+for that case).  bound_function_selector->selector_is_object_pointer
+is TRUE if the selector is an object pointer, FALSE if it is an
+object.
 */
 {
   a_symbol_ptr base_function_symbol = fundamental_symbol_of(function_symbol);
@@ -7216,20 +7239,25 @@ position of the function name identifier in the call.
   a_type_ptr   routine_type;
   a_boolean    selector_is_object_pointer = FALSE;
 
+  check_assertion((orig_function_operand != NULL) ?
+                                  (orig_function_operand != function_operand) :
+                                  (call_position != NULL));
   /* Do whatever would have been done to the function had we known
      originally which specific function was intended. */
   overloaded_function_catch_up(function_symbol,
                                overloaded_function_symbol,
-                               is_qualified_name,
-                               /*is_operand_of_address_of=*/FALSE,
-                               function_position,
-                               function_end_position,
-                               id_position,
+                               orig_function_operand,
+                               call_position,
                                /*elided_reference=*/FALSE,
                                /*result_is_lvalue=*/FALSE,
                                /*address_taken=*/FALSE,
                                function_operand,
                                &access_error_reported);
+  if (call_position == NULL) {
+    /* Make sure call_position always has a usable position from this point
+       forward in this routine. */
+    call_position = &orig_function_operand->position;
+  }  /* if */
   if (*have_selector) {
     selector_is_object_pointer =
                            bound_function_selector->selector_is_object_pointer;
@@ -7242,7 +7270,7 @@ position of the function name identifier in the call.
       /* We don't have a selector.  Try to generate one. */
       if (make_this_pointer_operand(function_symbol,
                                     overloaded_function_symbol,
-                                    function_position,
+                                    call_position,
                                     (a_boolean)function_operand->
                                          access_control_error_reported,
                                     bound_function_selector)) {
@@ -8622,15 +8650,12 @@ a_type_ptr select_and_prepare_to_call_overloaded_function(
                            an_arg_operand_ptr      arg_operand_list,
                            a_boolean               do_arg_dep_lookup,
                            a_boolean               try_surrogate_functions,
-                           a_boolean               is_qualified_name,
                            a_boolean               is_property,
                            an_error_code           err_none_applies,
                            an_error_code           err_ambiguous,
+                           an_operand              *orig_function_operand,
                            a_source_position       *call_position,
                            a_token_sequence_number paren_tok_seq_number,
-                           a_source_position       *function_position,
-                           a_source_position       *function_end_position,
-                           a_source_position       *id_position,
                            a_source_position       *closing_paren_position,
                            a_boolean               *unknown_dependent_function,
                            a_boolean               *found_through_adl,
@@ -8653,40 +8678,41 @@ bound_function_selector must still point at an operand that can be
 filled in if an implicit selector is generated.
 bound_function_selector->selector_is_object_pointer is TRUE if the
 selector is an object pointer, FALSE if it is an object.
-do_arg_dep_lookup is TRUE if argument-dependent lookup should be done;
-if it is TRUE, overloaded_function_symbol may be an sk_undefined
-symbol, indicating that nothing was found on a normal id lookup of the
-function name.  try_surrogate_functions is TRUE if surrogate functions
-should be tried; that means looking for conversion functions from the
-selector object to pointers to function type.
-overloaded_function_symbol can be NULL in that case.
-is_qualified_name is TRUE if a qualified name was used to name the
-function (that suppresses the virtual-ness of the function).
-is_property is TRUE if this call results from the expansion of a
-Microsoft property reference.  arg_operand_list is freed by this
-routine.  call_position is the source position of the call.
-paren_tok_seq_number is the token sequence number of the opening
-parenthesis of the argument list, but it's required only when
-do_arg_dep_lookup is TRUE; it can be zero otherwise.  If an error of
-some sort is detected, issue an error at that position and return
-NULL.  err_none_applies is the error code to use when no function
-applies, and err_ambiguous is the error code to use when more than one
-function applies.  If there is no error, an operand for the function
-is built in *function_operand, an expression-form argument list is
-built and returned in *arg_expr_list (with the arguments cast to the
-proper types), and the type of the routine selected is returned.
-function_position is the position of the function name or equivalent
-in the call, usually the same as call_position; if end positions are
-being maintained, function_end_position is the corresponding end
-position.  id_position is the source position of the function name
-identifier in the call.  closing_paren_position is the position of the
-closing parenthesis in the call; it is used only when
+orig_function_operand, if non-NULL, gives the operand that has been
+used to hold the overloaded function name reference so far, which is
+used to provide some additional information (e.g., source positions,
+whether the name is qualified).  orig_function_operand must not be the
+same operand as function_operand.  If orig_function_operand is NULL
+(e.g., for a property reference), call_position provides a position
+for the call.  If both orig_function_operand and call_position are
+supplied, call_position is assumed to be a better position for the
+call.  If an error of some sort is detected, issue an error at
+the indicated position and return NULL.  err_none_applies is the error
+code to use when no function applies, and err_ambiguous is the error
+code to use when more than one function applies.  If there is no
+error, an operand for the function is built in *function_operand, an
+expression-form argument list is built and returned in *arg_expr_list
+(with the arguments cast to the proper types), and the type of the
+routine selected is returned.  do_arg_dep_lookup is TRUE if
+argument-dependent lookup should be done; if it is TRUE,
+overloaded_function_symbol may be an sk_undefined symbol, indicating
+that nothing was found on a normal id lookup of the function name.
+try_surrogate_functions is TRUE if surrogate functions should be
+tried; that means looking for conversion functions from the selector
+object to pointers to function type.  overloaded_function_symbol can
+be NULL in that case.  is_property is TRUE if this call results from
+the expansion of a Microsoft property reference.  paren_tok_seq_number
+is the token sequence number of the opening parenthesis of the
+argument list, but it's required only when do_arg_dep_lookup is TRUE;
+it can be zero otherwise.  closing_paren_position is the position of
+the closing parenthesis in the call; it is used only when
 do_arg_dep_lookup is TRUE.  If the call is dependent, and the function
 to be called cannot be determined, return *unknown_dependent_function
 set to TRUE (unknown_dependent_function can be NULL if the call cannot
 be dependent).  If found_through_adl is non-NULL and the callee was
 found only through ADL, *found_through_adl is returned TRUE.  This
-routine is called only in C++ mode.
+routine is called only in C++ mode.  arg_operand_list is freed by this
+routine.
 */
 {
   an_arg_match_summary_ptr arg_match_list;
@@ -8697,6 +8723,12 @@ routine is called only in C++ mode.
   a_symbol_ptr             surrogate_function_conv_sym = NULL;
 
   db_enter(4, "select_and_prepare_to_call_overloaded_function");
+  check_assertion((orig_function_operand != NULL) ?
+                                  (orig_function_operand != function_operand) :
+                                  (call_position != NULL));
+  if (call_position == NULL) {
+    call_position = &orig_function_operand->position;
+  }  /* if */
   /* Select the best function out of the overload set. */
   function_symbol = select_overloaded_function(overloaded_function_symbol,
                                                is_template_id,
@@ -8728,13 +8760,11 @@ routine is called only in C++ mode.
        for the function. */
     make_resolved_overloaded_function_operand(function_symbol,
                                               overloaded_function_symbol,
+                                              orig_function_operand,
+                                              call_position,
                                               &have_selector,
                                               bound_function_selector,
-                                              is_qualified_name,
                                               is_property,
-                                              function_position,
-                                              function_end_position,
-                                              id_position,
                                               function_operand);
   } else if (surrogate_function_conv_sym != NULL) {
     /* A surrogate function was selected.  Convert the class object to
@@ -8759,6 +8789,7 @@ routine is called only in C++ mode.
       } else {
         /* A conversion function returning a reference to function. */
         conv_function_designator_to_ptr_to_function(function_operand,
+                                                    (a_source_position *)NULL,
                                                     /*allow_ctor=*/FALSE,
                                                     /*will_call=*/TRUE);
       }  /* if */
@@ -11451,13 +11482,11 @@ select_best_function:
                                           member_is_best_match ?
                                                     member_functions_symbol :
                                                     nonmember_functions_symbol,
+                                          (an_operand *)NULL,
+                                          operator_position,
                                           &have_selector,
                                           bound_function_selector,
-                                          /*is_qualified_name=*/FALSE,
                                           /*is_property=*/FALSE,
-                                          operator_position,
-                                          operator_position,
-                                          operator_position,
                                           &function_operand);
               /* Make the call node and an operand for it. */
               assemble_function_call(&function_operand,
@@ -14345,12 +14374,8 @@ been found to be acceptable, and *conversion describes it.
       check_assertion(is_indefinite_function_operand(source_operand));
       overloaded_function_catch_up(function_symbol,
                                    source_operand->variant.symbol,
-                                   (a_boolean)orig_operand.is_qualified_name,
-                                   (a_boolean)orig_operand.
-                                                      is_operand_of_address_of,
-                                   &orig_operand.position,
-                                   end_position_of_operand(&orig_operand),
-                                   &orig_operand.id_position,
+                                   &orig_operand,
+                                   (a_source_position *)NULL,
                                    /*elided_reference=*/FALSE,
                                    /*result_is_lvalue=*/TRUE,
                                    /*address_taken=*/FALSE,

@@ -315,9 +315,23 @@ typedef struct an_operand {
   a_bit_field	is_operand_of_address_of:1;
 			/* TRUE if this operand is the immediate operand
 			   of an "&" address-of operator.  This is
-			   significant in that it discriminates between
-			   the standard and nonstandard ways of taking
-			   a pointer-to-member address of a member function. */
+			   used on ok_indefinite_function operands to remember
+			   that a "&" appeared that can't yet be represented
+			   in the IL, because we don't know yet what the
+			   underlying entity will be.  When this is TRUE, the
+			   ampersand_position field gives the position of the
+			   "&" (the normal position field gives the position
+			   of the underlying identifier).  Note that
+			   "immediate operand" does not preclude parentheses
+			   in the source form, as in &(A::f); see also
+			   has_required_ptr_to_member_form. */
+  a_bit_field	has_required_ptr_to_member_form:1;
+			/* Similar to is_operand_of_address_of, but indicates
+			   that the operand has the correct form for a
+			   pointer-to-member constant, e.g., no parentheses.
+			   TRUE only when is_operand_of_address_of is TRUE.
+			   Doesn't include whether the operand is a qualified
+			   name; see is_qualified_name. */
   a_bit_field	is_template_id:1;
 			/* TRUE if an explicit template argument list
 			   applies to variant.symbol.  template_arg_list
@@ -402,6 +416,10 @@ typedef struct an_operand {
 			   If the name is "X::f", this gives the position of
 			   "f", where the field position above gives the
 			   position of the "X". */
+  a_source_position
+		ampersand_position;
+			/* When is_operand_of_address_of is TRUE, this gives
+			   the position of the "&" operator. */
   union {
     /* When kind == ok_error, no variant fields. */
     /* When kind == ok_expression: */
@@ -1152,7 +1170,7 @@ extern void make_ptr_to_member_constant_operand(
                                     a_source_position *end_position,
                                     a_boolean         check_protected_access,
                                     a_boolean         is_qualified_name,
-                                    a_boolean         is_operand_of_address_of,
+                                    a_boolean         has_required_ampersand,
                                     an_operand        *result);
 
 extern a_boolean check_object_pointer_operand(an_operand    *operand,
@@ -1511,15 +1529,21 @@ extern a_type_ptr type_after_function_to_pointer_transformation(
                                                       a_type_ptr arg_type,
                                                       an_operand *arg_operand);
 
-extern void conv_sym_for_member_operand_to_ptr_to_member(an_operand *operand);
+extern void conv_sym_for_member_operand_to_ptr_to_member(
+                                        an_operand        *operand,
+                                        a_source_position *ampersand_position);
 
 extern
-void conv_expr_function_designator_to_ptr_to_function(an_operand *operand,
-                                                      a_boolean  will_call);
+void conv_expr_function_designator_to_ptr_to_function(
+                                        an_operand        *operand,
+                                        a_boolean         will_call,
+                                        a_source_position *ampersand_position);
 
-extern void conv_function_designator_to_ptr_to_function(an_operand *operand,
-                                                        a_boolean  allow_ctor,
-                                                        a_boolean  will_call);
+extern void conv_function_designator_to_ptr_to_function(
+                                         an_operand        *operand,
+                                         a_source_position *ampersand_position,
+                                         a_boolean         allow_ctor,
+                                         a_boolean         will_call);
 
 extern a_type_ptr do_implicit_type_transformations(a_type_ptr type,
                                                    an_operand *operand);

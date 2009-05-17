@@ -2021,6 +2021,7 @@ closing right parenthesis).
                                        end_position_of_operand(&orig_operand),
                                        target->ref_entries_list, target);
       conv_function_designator_to_ptr_to_function(target,
+                                                  (a_source_position *)NULL,
                                                   /*allow_ctor=*/FALSE,
                                                   /*will_call=*/TRUE);
       rout = sym->variant.routine.ptr;
@@ -2052,7 +2053,7 @@ C++ standard.  The current token is the "(" of the call.
   a_symbol_ptr      overloaded_function_symbol = NULL;
   a_boolean         overloaded_function_case = FALSE;
   a_boolean         vacuous_destructor_case = FALSE;
-  a_source_position call_position, function_position, first_arg_position;
+  a_source_position call_position, first_arg_position;
   a_source_position start_position, closing_paren_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position operator_position, end_position;
@@ -2094,7 +2095,7 @@ C++ standard.  The current token is the "(" of the call.
   operator_position = pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   opening_paren_tok_seq_number = curr_token_sequence_number;
-  function_position = call_position = operand->position;
+  call_position = operand->position;
   /* If the operand is a bound function, the start position of the call
      is the start of the selector.  Watch out for pointer to
      member calls like (x->*y)(z), where the position of the selector
@@ -2214,8 +2215,6 @@ C++ standard.  The current token is the "(" of the call.
                                           bound_function_selector,
                                           /*selector_is_object_pointer=*/FALSE,
                                           operand);
-        /* The function position is the position of the "(". */
-        function_position = pos_curr_token;
       }  /* if */
     }  /* if */
   } else {
@@ -2310,6 +2309,7 @@ C++ standard.  The current token is the "(" of the call.
                                          operand->ref_entries_list,
                                          operand);
         conv_function_designator_to_ptr_to_function(operand,
+                                                    (a_source_position *)NULL,
                                                     /*allow_ctor=*/FALSE,
                                                     /*will_call=*/TRUE);
         routine = func_sym->variant.routine.ptr;
@@ -2427,17 +2427,12 @@ C++ standard.  The current token is the "(" of the call.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
   if (overloaded_function_case) {
-    a_source_position id_position;
-    a_source_position function_end_position;
+    an_operand        orig_operand;
 #if RECORD_FORM_OF_NAME_REFERENCE
     a_boolean         name_reference_was_saved = FALSE;
     a_name_reference  saved_name_reference;
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-    function_end_position = operand->end_position;
-#else /* !EXTRA_SOURCE_POSITIONS_IN_IL */
-    function_end_position = null_source_position;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    orig_operand = *operand;
 #if RECORD_FORM_OF_NAME_REFERENCE
     if (operand->name_reference_set) {
       /* We have recorded the form of reference of the function name.  Save
@@ -2446,12 +2441,6 @@ C++ standard.  The current token is the "(" of the call.
       name_reference_was_saved = TRUE;
     }  /* if */
 #endif /* RECORD_FORM_OF_NAME_REFERENCE */
-    if (is_indefinite_function_operand(operand) ||
-        is_undefined_symbol_operand(operand)) {
-      id_position = operand->id_position;
-    } else {
-      id_position = function_position;
-    }  /* if */
     /* Choose the proper function out of a set of overloaded functions based
        on the argument types. */
     routine_type = select_and_prepare_to_call_overloaded_function(
@@ -2464,18 +2453,12 @@ C++ standard.  The current token is the "(" of the call.
                                             arg_operand_list,
                                             do_arg_dep_lookup,
                                             try_surrogate_functions,
-                                         (a_boolean)operand->is_qualified_name,
                                             /*is_property=*/FALSE,
                                             ec_no_matching_function,
                                             ec_ambiguous_overloaded_function,
-                                            /* NOT &operand->position; it
-                                               causes aliasing problems in the
-                                               subroutines. */
+                                            &orig_operand,
                                             &call_position,
                                             opening_paren_tok_seq_number,
-                                            &function_position,
-                                            &function_end_position,
-                                            &id_position,
                                             &closing_paren_position,
                                             &unknown_dependent_function,
                                             &found_through_adl,
@@ -4807,25 +4790,18 @@ the "&".
           copy_operand(&operand, result);
         } else if (is_a_function_designator(&operand)) {
           /* "&" of a function designator.  Change it to a pointer to the
-             function.  This includes overloaded functions and 
-             member functions specified by qualified name. */
-          if (is_expression_operand(&operand)) {
-            take_address_of_lvalue(&operand, &operator_position);
-          } else {
-            /* Handle cases like pointers to members. */
-            /* Change the error position to the "&". */
-            operand.position = start_position;
-            conv_function_designator_to_ptr_to_function(&operand,
-                                                        /*allow_ctor=*/FALSE,
-                                                        /*will_call=*/FALSE);
-          }  /* if */
+             function.  This includes overloaded functions. */
+          conv_function_designator_to_ptr_to_function(&operand,
+                                                      &operator_position,
+                                                      /*allow_ctor=*/FALSE,
+                                                      /*will_call=*/FALSE);
           /* Note that the copy preserves ref_entries_list. */
           copy_operand(&operand, result);
         } else if (is_sym_for_member_operand(&operand)) {
           /* The operand is the name of a nonstatic data member, so
              the "&" operator returns a pointer-to-member. */
-          operand.position = start_position;
-          conv_sym_for_member_operand_to_ptr_to_member(&operand);
+          conv_sym_for_member_operand_to_ptr_to_member(&operand,
+                                                       &operator_position);
           copy_operand(&operand, result);
         } else {
           /* "&" applied to something that is not an lvalue or a function
@@ -6711,7 +6687,8 @@ NULL, the end position in its specifiers_range is updated.
   if (is_sym_for_member_operand(&operand)) {
     /* Can't take decltype of a member function.  Diagnose it as an
        attempt to use a nonstandard pointer to member syntax. */
-    conv_sym_for_member_operand_to_ptr_to_member(&operand);
+    conv_sym_for_member_operand_to_ptr_to_member(&operand,
+                                                 (a_source_position *)NULL);
   }  /* if */
   result = operand.type;
   if (is_error_type(result)) {
@@ -7651,7 +7628,8 @@ Syntax:
     if (is_sym_for_member_operand(&operand)) {
       /* Can't take typeid of a member function.  Diagnose it as an
          attempt to use a nonstandard pointer to member syntax. */
-      conv_sym_for_member_operand_to_ptr_to_member(&operand);
+      conv_sym_for_member_operand_to_ptr_to_member(&operand,
+                                                   (a_source_position *)NULL);
     }  /* if */
     /* *p and p[expr] yielding polymorphic class objects are special cases
        that use runtime typeid determination. */
@@ -9708,10 +9686,7 @@ specification allow a variable-sized array as the top type.
     /* Mark the "new" routine as referenced, check access to it. */
     overloaded_function_catch_up(proj_function_symbol,
                                  operator_new_symbol,
-                                 /*is_qualified_name=*/FALSE,
-                                 /*is_operand_of_address_of=*/FALSE,
-                                 &new_position,
-                                 &new_position,  /* Not used. */
+                                 (an_operand *)NULL,
                                  &new_position,
                                  /*elided_reference=*/(new_routine==NULL),
                                  /*result_is_lvalue=*/FALSE,
@@ -11284,7 +11259,7 @@ FALSE if the bound function case is not one that undergoes the conversion.
                                                                 &orig_operand),
                                           /*check_protected_access=*/FALSE,
                                           /*is_qualified_name=*/FALSE,
-                                          /*is_operand_of_address_of=*/FALSE,
+                                          /*has_required_ampersand=*/FALSE,
                                           operand);
       restore_operand_details(operand, &orig_operand);
       operand->bound_function = FALSE;
@@ -11713,8 +11688,9 @@ indicates which.
                                              (a_ref_entry_ptr)NULL,
                                              operand);
             conv_expr_function_designator_to_ptr_to_function(
-                                                          operand,
-                                                          /*will_call=*/FALSE);
+                                                    operand,
+                                                    /*will_call=*/FALSE,
+                                                    (a_source_position *)NULL);
             cast_operand_full(type_cast_to, operand,
                               /*check_cast_access=*/FALSE,
                               /*check_ambiguity=*/FALSE,
@@ -17210,7 +17186,7 @@ invalid uses of typename.
   a_ref_entry_ptr    rep;
   an_operand         this_pointer_operand;
   a_type_ptr         qual_class_type;
-  a_boolean          err = FALSE, is_operand_of_address_of;
+  a_boolean          err = FALSE, is_ptr_to_member_context;
   a_boolean          force_indefinite_function = FALSE;
   a_boolean          okay_for_integral_const_expr = FALSE;
   a_boolean          nonstd_field_folding_case;
@@ -17230,8 +17206,9 @@ invalid uses of typename.
 #endif /* CHECKING */
   /* Save the current source position. */
   copy_source_position(pos_curr_token, start_position);
-  /* Find out if this identifier is the immediate operand of a "&". */
-  is_operand_of_address_of = (local_options & EOPT_PTR_TO_MEMBER_CONTEXT) != 0;
+  /* Note if this identifier is in a context where it could be a
+     pointer-to-member constant. */
+  is_ptr_to_member_context = (local_options & EOPT_PTR_TO_MEMBER_CONTEXT) != 0;
 
   /* If the identifier is the start of a C++ qualified name, get the whole
      name.  If not, look the name up as a normal identifier.  This routine
@@ -17536,7 +17513,7 @@ normal_function:
             /* The token_ends_expr test guards against cases like
                  &A::x++
                where the "++" binds more tightly than the "&". */
-            if (is_operand_of_address_of &&
+            if (is_ptr_to_member_context &&
                 locator_for_curr_id.is_qualified_name &&
                 token_ends_expr(next_token(), prec_level, local_options)) {
               /* The field was referenced by a qualified name and is the
@@ -17830,9 +17807,6 @@ overloaded_function:
      to the ARM 11.5 protected member access check. */
   result->access_control_error_reported =
                              locator_for_curr_id.access_control_error_reported;
-  /* Remember whether or not this operand is the immediate operand of
-     a "&" operator. */
-  result->is_operand_of_address_of = is_operand_of_address_of;
   if (!okay_for_integral_const_expr ||
       !(is_integral_type(result->type) ||
         is_template_param_type(result->type) ||
@@ -20955,7 +20929,8 @@ memory region).  If param_type is NULL, the parameter type is not known.
       error_if_indefinite_function(&result);
       if (is_sym_for_member_operand(&result)) {
         /* Replace a symbol-for-member operand by a pointer-to-member. */
-        conv_sym_for_member_operand_to_ptr_to_member(&result);
+        conv_sym_for_member_operand_to_ptr_to_member(&result,
+                                                    (a_source_position *)NULL);
       }  /* if */
     }  /* if */
     extract_constant_from_operand_with_fs_fixup(&result, constant);
