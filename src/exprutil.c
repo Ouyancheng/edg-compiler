@@ -11774,7 +11774,9 @@ used in generating the function-identifying operand in a call.
       /* Change the start position of the operand to include the "&" operator
          that was added. */
       operand->position = *ampersand_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
       set_operand_expr_position_if_expr(operand, ampersand_position);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     }  /* if */
   }  /* if */
   /* Change the kind in the reference entries to address-taken. */
