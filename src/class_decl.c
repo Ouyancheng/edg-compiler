@@ -15465,8 +15465,6 @@ bits of information that were acquired while parsing.
      class. */
   do_class_layout(class_type);
   if (C_dialect == C_dialect_cplusplus) {
-    /* Generate the definition of any "= default" members. */
-    define_defaulted_special_member_functions(class_type);
     /* Go through all the functions declared for this class and set the
        virtual function numbers of virtual functions (some may already have
        a number assigned). */
@@ -16181,10 +16179,12 @@ next_declaration:
     /* Issue a warning if the current token is in a file different from the
        last token of the class definition. */
     check_for_file_with_unterminated_type_definition(&end_pos);
-    if (depth_template_declaration_scope == NO_SCOPE_DEPTH) {
+    if (depth_template_declaration_scope != NO_SCOPE_DEPTH) {
       /* Something went wrong if we are in a template declaration scope;
          we ought to be in class_template_declaration instead.  An error
          has been or will be issued elsewhere. */
+      expect_error();
+    } else {
       complete_class_definition(class_type, effective_decl_level,
                                 &class_state);
     }  /* if */
@@ -16334,6 +16334,13 @@ next_declaration:
        operate on this class type. */
     if (!C_mode()) determine_operator_lookup_namespaces(class_type);
     if (C_dialect == C_dialect_cplusplus) {
+      if (depth_template_declaration_scope != NO_SCOPE_DEPTH) {
+        /* Something went wrong.  (See also call of complete_class_definition
+           above.) */
+      } else {
+        /* Generate the definition of any "= default" members. */
+        define_defaulted_special_member_functions(class_type);
+      }  /* if */
       /* Rescan tokens that were cached (inline function definitions, default
          arguments). */
       if ((!tag_sym->is_class_member || delayed_nested_class_def ||
