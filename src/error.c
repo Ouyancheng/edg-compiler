@@ -3091,10 +3091,14 @@ An assertion has failed.  Abort the compilation.
   if (overflow > 0) {
     filename += overflow;
   }  /* if */
-  
+  if (suppress_assertion_line_number) {
+    (void)strcpy(line_number_buffer, "<suppressed>");
+  } else {
+    sprintf(line_number_buffer, "%d", line_number);
+  }  /* if */
   if (string1 == NULL) {
-    sprintf(buffer, "assertion failed at: \"%s\", line %d\n",
-            filename, line_number);
+    sprintf(buffer, "assertion failed at: \"%s\", line %s\n",
+            filename, line_number_buffer);
   } else {
     /* Print the two strings.  Only separate them by a blank if the second
        string is not null. */
@@ -3104,11 +3108,6 @@ An assertion has failed.  Abort the compilation.
       if (string2 == NULL) string2 = "";
     } else {
       separator = " ";
-    }  /* if */
-    if (suppress_assertion_line_number) {
-      (void)strcpy(line_number_buffer, "<suppressed>");
-    } else {
-      sprintf(line_number_buffer, "%d", line_number);
     }  /* if */
     sprintf(buffer, "assertion failed: %s%s%s (%s, line %s)\n", string1,
             separator, string2, filename, line_number_buffer);
