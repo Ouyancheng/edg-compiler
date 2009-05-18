@@ -3928,7 +3928,8 @@ Microsoft attributes preceding the class specifier (if any).
          Hence, in that mode the following call will be made after the call
          to decl_typedef.
       */
-      process_deferred_class_fixups_and_instantiations();
+      process_deferred_class_fixups_and_instantiations(
+                                                  /*for_instantiation=*/FALSE);
     }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS

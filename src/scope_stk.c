@@ -2162,6 +2162,12 @@ the scope being pushed.
   ssep->assoc_pointers_block     = NULL;
   clear_scope_pointers_block(&ssep->pointers_block);
   ssep->lambda = NULL;
+  ssep->class_fixup_header.defer_inline_function_fixups = 0;
+  ssep->class_fixup_header.pending_class_definitions = 0;
+  ssep->class_fixup_header.def_arg_list = NULL;
+  ssep->class_fixup_header.def_arg_list_tail = NULL;
+  ssep->class_fixup_header.inline_function_list = NULL;
+  ssep->class_fixup_header.inline_function_list_tail = NULL;
   if (sp != NULL) {
     if (new_il_scope) {
       /* Set the parent scope. */
@@ -6435,6 +6441,8 @@ End a name scope by popping an entry off the scope stack.
      stack has been reallocated (e.g., by check_name_hiding_for_scope). */
   ssep = &scope_stack[depth_scope_stack];
   pointers_block = assoc_pointers_block_of(ssep);
+  check_assertion(ssep->class_fixup_header.def_arg_list == NULL);
+  check_assertion(ssep->class_fixup_header.inline_function_list == NULL);
   if (!(ssep->kind == (a_scope_kind)sck_file && ssep->is_reactivation)) {
     /* Remove symbols from the symbol table, and reenter them on the
        inactive list if necessary.  For the file scope, this is only done

@@ -113,7 +113,6 @@ Structure for keeping track of classes for which fixup processing
 must still be done.  The fixups are deferred until the outermost
 class definition is complete.
 */
-typedef struct a_class_fixup *a_class_fixup_ptr;
 typedef struct a_class_fixup {
   a_class_fixup_ptr
 		next;
@@ -134,26 +133,6 @@ typedef struct a_class_fixup {
 			/* TRUE if the class is a generated class template
                            instance. */
 } a_class_fixup;
-
-static a_class_fixup_ptr
-		def_arg_class_fixup_list;
-			/* Pointer to a list of class fixup entries for
-			   class definitions for which default argument
-			   fixup must be done. */
-
-static a_class_fixup_ptr
-		def_arg_class_fixup_list_tail;
-			/* End of the def_arg_class_fixup_list. */
-
-static a_class_fixup_ptr
-		inline_function_class_fixup_list;
-			/* Pointer to a list of class fixup entries for
-			   class definitions for which default argument
-			   fixup must be done. */
-
-static a_class_fixup_ptr
-		inline_function_class_fixup_list_tail;
-			/* End of the inline_function_class_fixup_list. */
 
 static a_boolean
 		use_deferred_friend_fixup_list;
@@ -514,25 +493,27 @@ void add_to_class_fixup_list(a_type_ptr		class_type,
 Add a class fixup entry for class_type to the class fixup list.
 */
 {
-  a_class_fixup_ptr	cfp;
+  a_class_fixup_ptr		cfp;
+  a_class_fixup_header_ptr	cfhp;
 
+  cfhp = curr_class_fixup_header(/*for_instantiation=*/FALSE);
   cfp = alloc_class_fixup();
   cfp->class_type = class_type;
   cfp->is_template_instantiation = is_template_instantiation;
-  if (def_arg_class_fixup_list == NULL) def_arg_class_fixup_list = cfp;
+  if (cfhp->def_arg_list == NULL) cfhp->def_arg_list = cfp;
   /* Add to the end of the default argument fixup list. */
-  if (def_arg_class_fixup_list_tail != NULL) {
-    def_arg_class_fixup_list_tail->next = cfp;
+  if (cfhp->def_arg_list_tail != NULL) {
+    cfhp->def_arg_list_tail->next = cfp;
   }  /* if */
-  def_arg_class_fixup_list_tail = cfp;
+  cfhp->def_arg_list_tail = cfp;
   /* Add to the end of the inline function fixup list. */
-  if (inline_function_class_fixup_list == NULL) {
-    inline_function_class_fixup_list = cfp;
+  if (cfhp->inline_function_list == NULL) {
+    cfhp->inline_function_list = cfp;
   }  /* if */
-  if (inline_function_class_fixup_list_tail != NULL) {
-    inline_function_class_fixup_list_tail->next_in_inline_function_list = cfp;
+  if (cfhp->inline_function_list_tail != NULL) {
+    cfhp->inline_function_list_tail->next_in_inline_function_list = cfp;
   }  /* if */
-  inline_function_class_fixup_list_tail = cfp;
+  cfhp->inline_function_list_tail = cfp;
 }  /* add_to_class_fixup_list */
 
 
@@ -2245,7 +2226,7 @@ translation unit.
 }  /* check_trans_unit_for_fixup */
 
 
-static void process_deferred_class_fixups(void)
+static void process_deferred_class_fixups(a_boolean	for_instantiation)
 /*
 Do the delayed scanning of default arguments and inline function bodies.
 Note that this routine can be called recursively if, during the fixup
@@ -2256,34 +2237,44 @@ processing is only done by the outermost call.  This is done to permit an
 inline function body of an instantiation or local class to make use of
 a default argument of a class being fixed up at an outer level, for which
 the fixups have not yet been done.
+
+for_instantiation is TRUE if this routine is being called to do the fixup
+after a class instantiation.
 */
 {
-  a_class_fixup_ptr	cfp;
-  a_class_fixup_ptr	next_cfp;
-  a_boolean		trans_unit_pushed = FALSE;
+  a_class_fixup_ptr		cfp;
+  a_class_fixup_ptr		next_cfp;
+  a_boolean			trans_unit_pushed = FALSE;
+  a_class_fixup_header_ptr	cfhp;
 
   db_enter(3, "process_deferred_class_fixups");
-  if (def_arg_class_fixup_list != NULL ||
-      inline_function_class_fixup_list != NULL) {
+  cfhp = curr_class_fixup_header(for_instantiation);
+  if (cfhp->def_arg_list != NULL ||
+      cfhp->inline_function_list != NULL) {
     /* Clear the pointers to the start of the fixup lists so that classes
        created by the fixup process can be fixed up by a recursive call to
        this routine.  This could happen if a function body contains a
        nested class, for example. */
-    cfp = def_arg_class_fixup_list;
-    def_arg_class_fixup_list = NULL;
-    def_arg_class_fixup_list_tail = NULL;
-    defer_inline_function_fixup_and_instantiations++;
+    cfp = cfhp->def_arg_list;
+    cfhp->def_arg_list = NULL;
+    cfhp->def_arg_list_tail = NULL;
+    cfhp->defer_inline_function_fixups++;
+    defer_instantiations++;
     for (; cfp != NULL; cfp = cfp->next) {
       /* Make sure we are in the right translation unit. */
       check_trans_unit_for_fixup(cfp, &trans_unit_pushed);
       default_argument_fixup_for_class(cfp->class_type,
                                        cfp->is_template_instantiation);
     }  /* for */
-    defer_inline_function_fixup_and_instantiations--;
-    if (defer_inline_function_fixup_and_instantiations == 0) {
-      cfp = inline_function_class_fixup_list;
-      inline_function_class_fixup_list = NULL;
-      inline_function_class_fixup_list_tail = NULL;
+    /* cfhp points into the scope_stack, so refresh the pointer after
+       the above processing. */
+    cfhp = curr_class_fixup_header(for_instantiation);
+    cfhp->defer_inline_function_fixups--;
+    defer_instantiations--;
+    if (cfhp->defer_inline_function_fixups == 0) {
+      cfp = cfhp->inline_function_list;
+      cfhp->inline_function_list = NULL;
+      cfhp->inline_function_list_tail = NULL;
       for (; cfp != NULL; cfp = next_cfp) {
         /* Make sure we are in the right translation unit. */
         check_trans_unit_for_fixup(cfp, &trans_unit_pushed);
@@ -2300,18 +2291,23 @@ the fixups have not yet been done.
 }  /* process_deferred_class_fixups */
 
 
-void process_deferred_class_fixups_and_instantiations(void)
+void process_deferred_class_fixups_and_instantiations(
+					a_boolean	for_instantiation)
 /*
 While one or more class definitions are pending, the fixup of member function
 bodies and default arguments is deferred until all class definitions have
 been complete.  Nonclass template definitions are also deferred.  When the
 count of pending class definitions is zero, all class definitions have been
 completed and any deferred class fixups and instantiations may now be done.
+
+for_instantiation is TRUE if this routine is being called to do the fixup
+after a class instantiation.
 */
 {
-  if (pending_class_definitions == 0) {
-    process_deferred_class_fixups();
-    if (defer_inline_function_fixup_and_instantiations == 0) {
+  if (curr_class_fixup_header(for_instantiation)->pending_class_definitions
+                                                                        == 0) {
+    process_deferred_class_fixups(for_instantiation);
+    if (defer_instantiations == 0) {
       process_deferred_instantiation_requests();
     }  /* if */
   }  /* if */
@@ -14917,7 +14913,8 @@ passed via template_decl.
                   void f() { S::e; }
                 } S;
           */
-          process_deferred_class_fixups_and_instantiations();
+          process_deferred_class_fixups_and_instantiations(
+                                                  /*for_instantiation=*/FALSE);
         }  /* if */
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -15686,6 +15683,7 @@ classes.
 #if USER_CONTROL_OF_STRUCT_PACKING
   a_pack_alignment_state           saved_pack_alignment_state;
   a_boolean			   need_restore_pack_alignment_statate = FALSE;
+  a_boolean                        class_is_in_valid_scope;
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
@@ -15704,7 +15702,8 @@ classes.
   initialize_class_def_state(class_type, &class_state);
   class_state.is_local_class = is_local_class;
   /* Increment the counter of class definitions currently in progress. */
-  pending_class_definitions++;
+  curr_class_fixup_header(/*for_instantiation=*/FALSE)->
+                                                   pending_class_definitions++;
   tag_sym = (a_symbol_ptr)class_type->source_corresp.assoc_info;
   cssp = tag_sym->variant.class_struct_union.extra_info;
   class_tssp = cssp->template_info;
@@ -15910,6 +15909,7 @@ classes.
     scope_ptr = push_scope((a_scope_kind)sck_class_struct_union,
                            NO_SCOPE_NUMBER, class_type, (a_routine_ptr)NULL);
     scope_stack_top().class_def_state = &class_state;
+    class_is_in_valid_scope = !is_invalid_scope_for_class();
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
     if (!C_mode()) {
       scope_stack_top().ELF_visibility = ctsp->ELF_visibility;
@@ -16336,13 +16336,14 @@ next_declaration:
     if (C_dialect == C_dialect_cplusplus) {
       /* Rescan tokens that were cached (inline function definitions, default
          arguments). */
-      if (!tag_sym->is_class_member || delayed_nested_class_def ||
-          is_in_class_specialization) {
+      if ((!tag_sym->is_class_member || delayed_nested_class_def ||
+           is_in_class_specialization) && class_is_in_valid_scope) {
         /* For non-nested classes add the class to the list of classes for
            which delayed processing for default argument declarations and
            inline member function definitions must be done.  The actual
            processing will be done when all pending class definitions have
-           been completed. */
+           been completed.  Don't add the fixup entries if this class appeared
+           in an invalid location. */
         add_to_class_fixup_list(class_type, is_template_instantiation);
       }  /* if */
       curr_routine_fixup = saved_routine_fixup;
@@ -16388,7 +16389,8 @@ next_declaration:
 #endif /* DO_IL_LOWERING && IA64_ABI */
   }  /* if */
   /* Decrement the counter of class definitions currently in progress. */
-  pending_class_definitions--;
+  curr_class_fixup_header(/*for_instantiation=*/FALSE)->
+                                                   pending_class_definitions--;
   if (instantiation_scope_pushed) {
     /* If an instantiation scope was pushed earlier to support the Microsoft
        bug that permits a specialization to reference a template parameter,
@@ -17562,8 +17564,6 @@ One-time initialization for class_decl.c static variables.
     };
     register_pch_saved_variables(saved_vars);
   }  /* if */
-  /* Global variables in class_decl.h. */
-  register_trans_unit_variable(pending_class_definitions);
   /* Static variables in class_decl.c. */
   register_trans_unit_variable(avail_derivation_steps);
   register_trans_unit_variable(deferred_friend_fixup_list);
@@ -17578,15 +17578,9 @@ Initializations for class declaration processing that must be done for each
 translation unit.
 */
 {
-  /* Global variables in class_decl.h. */
-  pending_class_definitions = 0;
   /* Static variables in class_decl.c. */
   curr_routine_fixup = NULL;
   avail_derivation_steps = NULL;
-  def_arg_class_fixup_list = NULL;
-  def_arg_class_fixup_list_tail = NULL;
-  inline_function_class_fixup_list = NULL;
-  inline_function_class_fixup_list_tail = NULL;
   /* g++ (prior to 3.4) and the Microsoft compiler do not evaluate friend
      functions of template classes until the end of the translation unit, and
      then only if they are referenced. */

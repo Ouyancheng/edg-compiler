@@ -24,6 +24,7 @@ Forward declarations needed:
 typedef struct an_active_using_directive *an_active_using_directive_ptr;
 typedef struct an_expr_stack_entry an_expr_stack_entry_dummy_typedef;
 typedef struct a_class_def_state a_class_def_state_dummy_typedef;
+typedef struct a_class_fixup *a_class_fixup_ptr;
 
 /*
 Option flags passed to the push_scope routines.
@@ -73,6 +74,45 @@ typedef struct a_function_shareable_constants_table {
 		table[SIZE_FUNCTION_SHAREABLE_CONSTANTS_TABLE];
 			/* The hash table for a given function. */
 } a_function_shareable_constants_table;
+
+
+typedef unsigned long a_pending_class_definition_count;
+
+/*
+Entry used to keep track of the inline functions and default arguments that
+must be fixed up.  A list is kept for each function scope, and a global scope
+list for non-local classes.
+*/
+typedef struct a_class_fixup_header *a_class_fixup_header_ptr;
+typedef struct a_class_fixup_header {
+  unsigned int	defer_inline_function_fixups;
+			/* Nonzero if the fixup of inline function bodies and
+                           should be deferred. */
+  a_pending_class_definition_count
+		pending_class_definitions;
+			/* The number of class definitions currently in
+			   process.  This includes normal class definitions
+			   and template class instantiations. */
+  a_class_fixup_ptr
+		def_arg_list;
+			/* Pointer to a list of class fixup entries for
+			   class definitions for which default argument
+			   fixup must be done. */
+
+  a_class_fixup_ptr
+		def_arg_list_tail;
+			/* End of the def_arg_class_fixup_list. */
+
+  a_class_fixup_ptr
+		inline_function_list;
+			/* Pointer to a list of class fixup entries for
+			   class definitions for which default argument
+			   fixup must be done. */
+
+  a_class_fixup_ptr
+		inline_function_list_tail;
+			/* End of the inline_function_class_fixup_list. */
+} a_class_fixup_header;
 
 
 /*
@@ -918,6 +958,10 @@ typedef struct a_scope_stack_entry {
 			/* If this entry is for a function scope associated
 			   with a lambda body, this points to the corresponding
 			   a_lambda entry.  Otherwise, NULL. */
+  a_class_fixup_header
+		class_fixup_header;
+			/* Class fixup information for the scope.  Only used
+			   for the global scope and function scope. */
 } a_scope_stack_entry;
 
 /*
@@ -1044,6 +1088,18 @@ this returns FALSE for deferred prototype instantiations.
    depth_innermost_instantiation_scope != NO_SCOPE_DEPTH &&		\
    scope_stack[DEPTH_OF_FILE_SCOPE].is_reactivation &&			\
    !is_prototype_instantiation_context())
+
+/*
+Return a pointer to the class fixup header entry to be used for the
+current context.  This is either the one for the current function scope
+or the global list.  The global list is also used if the fixup is being done
+after an instantiation.
+*/
+#define curr_class_fixup_header(for_instantiation)			\
+  (&scope_stack[((for_instantiation) ||					\
+                 depth_innermost_function_scope == NO_SCOPE_DEPTH)	\
+                         ? DEPTH_OF_FILE_SCOPE				\
+                         : depth_innermost_function_scope].class_fixup_header)
 
 
 EXTERN a_scope_stack_entry_ptr

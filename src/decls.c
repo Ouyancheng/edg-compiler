@@ -14730,7 +14730,8 @@ deferred_fixups:
             void f() { S::e; PS p; }
           } S, *PS;
     */
-    process_deferred_class_fixups_and_instantiations();
+    process_deferred_class_fixups_and_instantiations(
+                                                  /*for_instantiation=*/FALSE);
   }  /* if */
 check_for_semicolon:
   /* Check for a final semicolon. */

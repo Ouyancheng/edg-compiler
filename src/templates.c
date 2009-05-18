@@ -2729,7 +2729,8 @@ might not be able to if the template itself has not yet been defined.
          The pending class definition counter is incremented while processing
          the instantiation.  This ensures that the fixup of the instantiation
          will not be done until the instantiation scope has been popped. */
-      pending_class_definitions++;
+      curr_class_fixup_header(/*for_instantiation=*/TRUE)->
+                                                   pending_class_definitions++;
       /* Scan the base specifiers list, if any, and the body of the class. */
       (void)scan_class_definition
                    (class_type, depth_innermost_namespace_scope,
@@ -2739,7 +2740,8 @@ might not be able to if the template itself has not yet been defined.
                     /*is_template_specialization=*/FALSE,
                     (a_template_ptr)NULL,
                     (a_decl_pos_block_ptr)NULL);
-      pending_class_definitions--;
+      curr_class_fixup_header(/*for_instantiation=*/TRUE)->
+                                                   pending_class_definitions--;
       /* Process any pragmas that are to be bound to this instance. */
       process_curr_construct_pragmas(instance_sym, (a_statement_ptr)NULL);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -2782,7 +2784,8 @@ might not be able to if the template itself has not yet been defined.
         decl_seq_counter = saved_decl_seq_counter;
       }  /* if */
       /* Do the class fixups for this instantiation. */
-      process_deferred_class_fixups_and_instantiations();
+      process_deferred_class_fixups_and_instantiations(
+                                                   /*for_instantiation=*/TRUE);
       /* If the translation unit stack was pushed above, pop it now. */
       if (trans_unit_pushed) pop_translation_unit_stack();
     }  /* if */
@@ -3295,7 +3298,8 @@ A pointer to the head of the list is returned in tcsp.
      The pending class definition counter is incremented while processing
      the instantiation.  This ensures that the fixup of the instantiation
      will not be done until the instantiation scope has been popped. */
-  pending_class_definitions++;
+  curr_class_fixup_header(/*for_instantiation=*/TRUE)->
+                                                   pending_class_definitions++;
   (void)scan_class_definition(prototype_type, depth_innermost_namespace_scope,
                               depth_innermost_namespace_scope,
                               /*is_local_class=*/FALSE,
@@ -3319,7 +3323,8 @@ A pointer to the head of the list is returned in tcsp.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   prototype_type->autonomous_primary_tag_decl = TRUE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  pending_class_definitions--;
+  curr_class_fixup_header(/*for_instantiation=*/TRUE)->
+                                                   pending_class_definitions--;
   /* Process any pragmas that are to be bound to this instance. */
   process_curr_construct_pragmas(instance_sym, (a_statement_ptr)NULL);
   /* Return the pointer to the list of template cache segments associated
@@ -8776,7 +8781,7 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
   /* Defer other instantiations while creating the routine for this
      instance.  This is done to make sure a second reference to this routine
      is not attempted before the routine is completed. */
-  defer_inline_function_fixup_and_instantiations++;
+  defer_instantiations++;
   parent_class = templ_sym->is_class_member ? sym_parent_class(templ_sym)
                                               : (a_type_ptr)NULL;
   rp = alloc_routine();
@@ -9097,10 +9102,10 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
   if (trans_unit_pushed) pop_translation_unit_stack();
   /* Now that the instance has been added to the list, other instantiations
      can be resumed. */
-  defer_inline_function_fixup_and_instantiations--;
+  defer_instantiations--;
   /* Do any instantiations that were deferred while this routine was being
      created. */
-  process_deferred_class_fixups_and_instantiations();
+  process_deferred_class_fixups_and_instantiations(/*for_instantiation=*/TRUE);
   db_exit();
   return sym;
 }  /* make_template_function */
@@ -16183,12 +16188,13 @@ any non-empty template parameter lists that were scanned.
                                 function_templ_cache_segments,
                                 /*keep_default_args=*/FALSE);
   }  /* if */
-  if (is_class_template) {
-    /* Do the class fixups for this instantiation.  This is done here so
-       that it takes place after the default arguments have been removed from
-       the class template cache. */
-    process_deferred_class_fixups_and_instantiations();
-  }  /* if */
+  /* Do the class fixups for this instantiation.  This is done here so
+     that it takes place after the default arguments have been removed from
+     the class template cache.  for_instantion is FALSE because the fixups
+     are for a prototype instantiation related to the declaration that
+     just appeared, not for an instantiation in a different context. */
+  process_deferred_class_fixups_and_instantiations(
+                                                  /*for_instantiation=*/FALSE);
   if (invalid_decl) {
     /* The declaration was invalid -- flush to the end of the declaration
        if necessary. */
@@ -17612,7 +17618,7 @@ file we simply return.
                implicitly included file until after the file has been
 	       processed.  An "on-the-fly" instantiation could kick off
                another implicit include. */
-            defer_inline_function_fixup_and_instantiations++;
+            defer_instantiations++;
             push_input_stack(f_source, (char *)NULL, display_name,
                              full_file_name, /*is_include_file=*/FALSE,
                              is_system_include, /*is_preinclude=*/FALSE,
@@ -17622,8 +17628,9 @@ file we simply return.
                              dir_entry, ifhp);
             scan_implicitly_included_template_definition_file();
             /* Process any deferred instantiations. */
-            defer_inline_function_fixup_and_instantiations--;
-            process_deferred_class_fixups_and_instantiations();
+            defer_instantiations--;
+            process_deferred_class_fixups_and_instantiations(
+                                                  /*for_instantiation=*/FALSE);
             if (in_instantiation_wrapup) {
               /* Set a flag if this implicit inclusion was done during
                  instantiation wrapup.  The presence of additional code
@@ -19697,13 +19704,13 @@ unless the SIR_CLEAR_VALUE flag is set in "options".
       }  /* if */
       tip->instantiation_required = FALSE;
     }  /* if */
-  } else if (pending_class_definitions != 0 ||
-             defer_inline_function_fixup_and_instantiations != 0) {
-    /* A class definition is in progress, or if only
-       defer_inline_function_fixup_and_instantiations is set, the default
-       argument fixup after a class definition.  Any nonclass instantiations
-       must be deferred until all class definitions are complete.
-       Add this instantiation request to the list of deferred
+  } else if (curr_class_fixup_header(/*for_instantiation=*/TRUE)->
+                                                   pending_class_definitions ||
+             defer_instantiations != 0) {
+    /* A class definition is in progress, or if only defer_instantiations is
+       set, the default argument fixup after a class definition.  Any nonclass
+       instantiations must be deferred until all class definitions are
+       complete.  Add this instantiation request to the list of deferred
        instantiations. */
     a_symbol_list_entry_ptr	slep;
     slep = alloc_symbol_list_entry();
@@ -22611,7 +22618,7 @@ Initializations for template.
 */
 {
   curr_default_args = NULL;
-  defer_inline_function_fixup_and_instantiations = 0;
+  defer_instantiations = 0;
   deferred_instantiations = NULL;
   deferred_instantiations_tail = NULL;
   avail_partial_order_candidates = NULL;

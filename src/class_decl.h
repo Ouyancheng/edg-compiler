@@ -81,7 +81,8 @@ extern a_lambda_ptr scan_lambda(void);
 extern void default_argument_fixup_for_class(a_type_ptr  class_type,
                                              a_boolean   is_template_based);
 
-extern void process_deferred_class_fixups_and_instantiations(void);
+extern void process_deferred_class_fixups_and_instantiations(
+						a_boolean for_instantiation);
 
 extern void set_mixed_static_nonstatic_flag(a_symbol_ptr  overload_sym);
 
@@ -206,14 +207,6 @@ extern void add_to_deferred_friend_function_fixup_list(
 						a_routine_fixup_ptr	rfp);
 
 extern void process_deferred_friend_fixup_list(void);
-
-typedef unsigned long a_pending_class_definition_count;
-
-EXTERN a_pending_class_definition_count
-		pending_class_definitions;
-			/* The number of class definitions currently in
-			   process.  This includes normal class definitions
-			   and template class instantiations. */
 
 /*
 Macro to consume and ignore certain right parentheses in declarations.  This
