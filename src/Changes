@@ -74,28 +74,36 @@ Exception handling of arrays in partially constructed aggregates
 
 In configurations where exception handling tables are generated, these
 tables incorrectly omitted cleanup entries for destruction of
-arrays in partially constructed aggregates.  This occurred only when the
-array element has both a constructor and destructor and the array is
-initialized as a whole via a call to a runtime routine.
+arrays in partially constructed aggregates.  This occurred only when the array
+element is not the last member of the aggregate, has both a constructor and
+destructor, and the array is initialized as a whole via a call to a runtime
+routine.
 
 In configurations where exceptions are enabled but exception handling
 tables are not generated, back ends should make sure to treat the dynamic
 init for an array as pertaining to the entire array when array_element_sequence
 of the an_init_pos_descr entry associated with the dynamic init is TRUE.
 
-Here's a sample where b.aa would not be destroyed if the construction of
-b.a had thrown an exception:
+Here's an example where ~A() hadn't been called and is now called
+(and prints "A destroyed"):
 
+  extern "C" int printf(const char *,...);
   struct A {
-    A();
-    ~A();
+    A() {}
+    ~A() { printf("A destroyed\n"); }
   };
   struct B {
-    A aa[10];
-    A a;
+    B() { throw 1; }
   };
-  void f() {
-    B b = {};
+  struct C {
+    A a[1];
+    B b;
+  };
+  int main() {
+    try {
+      C c = {};
+    } catch (...) {}
+    return 0;
   }
 
 
