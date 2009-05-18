@@ -101,7 +101,7 @@ typedef struct a_class_fixup_header {
 
   a_class_fixup_ptr
 		def_arg_list_tail;
-			/* End of the def_arg_class_fixup_list. */
+			/* End of the def_arg_list. */
 
   a_class_fixup_ptr
 		inline_function_list;
@@ -111,7 +111,7 @@ typedef struct a_class_fixup_header {
 
   a_class_fixup_ptr
 		inline_function_list_tail;
-			/* End of the inline_function_class_fixup_list. */
+			/* End of the inline_function_list. */
 } a_class_fixup_header;
 
 
@@ -1096,7 +1096,7 @@ or the global list.  The global list is also used if the fixup is being done
 after an instantiation.
 */
 #define curr_class_fixup_header(for_instantiation)			\
-  (&scope_stack[((for_instantiation) ||					\
+  (&scope_stack[((for_instantiation) /*lint --e(506)*/ ||		\
                  depth_innermost_function_scope == NO_SCOPE_DEPTH)	\
                          ? DEPTH_OF_FILE_SCOPE				\
                          : depth_innermost_function_scope].class_fixup_header)
