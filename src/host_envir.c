@@ -4526,6 +4526,20 @@ This is done before command line processing.
      a command-line option.  If the environment variable is not set, use
      a built-time default value. */
   edg_base_directory = getenv("EDG_BASE");
+#if CHECKING
+  /* Look for an environment variable named EDG_SUPPRESS_ASSERTION_LINE_NUMBER.
+     If it is set to value other than zero, set a flag indicating that the
+     line number portion of an "assertion failed" message should be
+     suppressed. */
+  {
+    char	*str;
+    suppress_assertion_line_number = FALSE;
+    str = getenv("EDG_SUPPRESS_ASSERTION_LINE_NUMBER");
+    if (str != NULL && strcmp(str, "0") != 0) {
+      suppress_assertion_line_number = TRUE;
+    }  /* if */
+  }
+#endif /* CHECKING */
   if (edg_base_directory == NULL) edg_base_directory = DEFAULT_EDG_BASE;
   /* Determine whether the host system is big or little endian. */
   /* Suppress the CodeCenter warning that would be issued because we

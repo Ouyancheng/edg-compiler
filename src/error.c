@@ -3078,6 +3078,7 @@ An assertion has failed.  Abort the compilation.
 #define BUFFER_SIZE 512
   char	buffer[BUFFER_SIZE];
   int   max_filename_length = BUFFER_SIZE - 100;
+  char  line_number_buffer[32];
   int	overflow;
 
   /* Make sure that formatting the internal error string won't overflow
@@ -3104,8 +3105,13 @@ An assertion has failed.  Abort the compilation.
     } else {
       separator = " ";
     }  /* if */
-    sprintf(buffer, "assertion failed: %s%s%s (%s, line %d)\n", string1,
-            separator, string2, filename, line_number);
+    if (suppress_assertion_line_number) {
+      (void)strcpy(line_number_buffer, "<suppressed>");
+    } else {
+      sprintf(line_number_buffer, "%d", line_number);
+    }  /* if */
+    sprintf(buffer, "assertion failed: %s%s%s (%s, line %s)\n", string1,
+            separator, string2, filename, line_number_buffer);
   }  /* if */
   internal_error(buffer);
 }  /* assertion_failed */

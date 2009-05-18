@@ -136,6 +136,13 @@ EXTERN a_boolean
 Error routines.
 */
 #if CHECKING
+
+EXTERN a_boolean
+		suppress_assertion_line_number;
+			/* TRUE if the line number portion of an "assertion
+			   failed" message should be suppressed. */
+
+
 /*lint -sem(internal_error, r_no)*/
 extern DOES_NOT_RETURN internal_error(char *error_message);
 /*lint -sem(assertion_failed, r_no)*/
