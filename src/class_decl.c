@@ -7797,7 +7797,7 @@ Update the flags in the class symbol supplement accordingly.
     if (qualifiers & TQ_CONST) {
       cssp->has_copy_constructor_for_const_object = TRUE;
     }  /* if */
-    if (!compiler_generated) {
+    if (!compiler_generated && !rout_ptr->is_defaulted) {
       /* If a user-defined copy constructor is declared for the class,
          construction by bitwise copying is not allowed.  (On the other
          hand, this flag *may* be TRUE even when the compiler generates
