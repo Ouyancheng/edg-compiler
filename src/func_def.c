@@ -2029,16 +2029,16 @@ assignment function.  Create and return an lvalue that refers to the source
 object, including for the case where the parameter has a reference type.
 */
 {
-  an_expr_node_ptr source_expr = var_rvalue_expr(source_var);
+  an_expr_node_ptr  source_expr;
 
-  /* Note that current language rules dictate that a generated operator=
-     function always has a reference-typed source parameter, so the
-     non-reference branch here is not reachable.  However, it seems wise to
-     include it for possible future use. */
+  /* A compiler-generated operator= function always has a reference-typed
+     source parameter, but that is not necessarily the case for a defaulted
+     operator=. */
   if (is_reference_type(source_var->type)) {
+    source_expr = var_rvalue_expr(source_var);
     source_expr = add_ref_indirection_to_node(source_expr);
   } else {
-    source_expr = add_indirection_to_node(source_expr);
+    source_expr = var_lvalue_expr(source_var);
   }  /* if */
   return source_expr;
 }  /* lvalue_for_source_param */
