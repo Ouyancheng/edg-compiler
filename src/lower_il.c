@@ -7616,6 +7616,14 @@ functions, including virtual functions, needed in this process).
   a_scope_ptr     class_scope, block_scope;
   a_namespace_ptr nsp;
 
+  if (scope->kind == (a_scope_kind)sck_function) {
+    /* Temporarily set innermost_function_scope to this function scope; it
+       may be needed during the generation of virtual function tables (e.g.,
+       when prelowering a local virtual type in a function whose lowering
+       has been delayed). */
+    check_assertion(innermost_function_scope == NULL);
+    innermost_function_scope = scope;
+  }  /* if */
   /* Visit all types to find all class types. */
   for (type = scope->types; type != NULL; type = type->next) {
     if (is_immediate_class_type(type)) {
@@ -7638,6 +7646,9 @@ functions, including virtual functions, needed in this process).
        block_scope = block_scope->next) {
     define_scope_virtual_function_tables(block_scope);
   }  /* for */
+  if (scope->kind == (a_scope_kind)sck_function) {
+    innermost_function_scope = NULL;
+  }  /* if */
 }  /* define_scope_virtual_function_tables */
 
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
