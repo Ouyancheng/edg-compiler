@@ -8808,12 +8808,10 @@ Syntax:
                                   underlying_cast_type,
                                   expr);
         expr->variant.operation.is_reference_cast = TRUE;
+        make_lvalue_expression_operand(expr, result);
         if (rvalue_reference_case) {
-          expr->is_lvalue = FALSE;
           expr->variant.operation.is_rvalue_reference_cast = TRUE;
-          make_expression_operand(expr, result);
-        } else {
-          make_lvalue_expression_operand(expr, result);
+          conv_rvalue_reference_result_to_rvalue(result);
         }  /* if */
       } else {
         /* Generate an eok_dynamic_cast operation. */
@@ -11080,7 +11078,7 @@ called only in C++ mode.
                             is_a_function_designator(operand) ||
                             is_error_operand(operand));
             if (cast_to_rvalue_reference) {
-              do_operand_transformations(operand, TOPT_NO_OPTIONS);
+              conv_rvalue_reference_result_to_rvalue(operand);
             }  /* if */
           }  /* if */
           *processed = TRUE;

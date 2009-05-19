@@ -3677,6 +3677,21 @@ the type to be complete if possible.
 }  /* rvalue_reference_cast_underlying_type_is_complete */
 
 
+void conv_rvalue_reference_result_to_rvalue(an_operand *operand)
+/*
+The indicated operand is the result of a cast to an rvalue reference type
+or a call of a function returning an rvalue reference type.  It's been
+created as an lvalue, because that's the default for reference operations.
+Convert it to an rvalue instead.  This is the point of creation for
+"rvalue reference objects", which are part lvalue and part rvalue.
+*/
+{
+  /* This handles converting lvalues to rvalues, functions to pointers,
+     and arrays to pointers. */
+  do_operand_transformations(operand, TOPT_NO_OPTIONS);
+}  /* conv_rvalue_reference_result_to_rvalue */
+
+
 void conv_reference_cast_operand_to_lvalue_if_necessary(an_operand *operand)
 /*
 The indicated operand is the source of a cast to a reference type.  If it
@@ -3807,13 +3822,11 @@ is an lvalue reference to const.
                                        underlying_type, expr);
       expr->variant.operation.is_reference_cast = TRUE;
       if (is_implicit_cast) expr->variant.operation.compiler_generated = TRUE;
+      make_lvalue_expression_operand(expr, operand);
       if (is_rvalue_ref) {
-        /* The result of a cast to an rvalue reference type is an rvalue. */
-        expr->is_lvalue = FALSE;
-        make_expression_operand(expr, operand);
         expr->variant.operation.is_rvalue_reference_cast = TRUE;
-      } else {
-        make_lvalue_expression_operand(expr, operand);
+        /* The result of a cast to an rvalue reference type is an rvalue. */
+        conv_rvalue_reference_result_to_rvalue(operand);
       }  /* if */
     }  /* if */
     if (is_an_lvalue(operand)) {
@@ -9251,7 +9264,7 @@ of transformations on the return value).
     add_reference_indirection(result);
     if (is_rvalue_ref) {
       /* A call of a function that returns an rvalue reference is an rvalue. */
-      do_operand_transformations(result, TOPT_NO_OPTIONS);
+      conv_rvalue_reference_result_to_rvalue(result);
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (microsoft_bugs && microsoft_version < 1100 && !C_mode() &&
