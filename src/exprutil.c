@@ -3686,9 +3686,31 @@ Convert it to an rvalue instead.  This is the point of creation for
 "rvalue reference objects", which are part lvalue and part rvalue.
 */
 {
-  /* This handles converting lvalues to rvalues, functions to pointers,
-     and arrays to pointers. */
-  do_operand_transformations(operand, TOPT_NO_OPTIONS);
+  if (is_an_lvalue(operand)) {
+    /* Convert an lvalue to an rvalue. */
+    if (is_array_type(operand->type)) {
+      /* Convert an array lvalue to an array rvalue, rather than doing the
+         decay to a pointer to the first element. */
+      an_expr_node_ptr expr;
+      an_operand       orig_operand;
+      check_assertion(is_expression_operand(operand));
+      orig_operand = *operand;
+      expr = make_node_from_operand(operand);
+      expr = rvalue_expr_for_lvalue(expr);
+      make_expression_operand(expr, operand);
+      restore_operand_details(operand, &orig_operand);
+    } else {
+      /* Normal non-array case. */
+      conv_lvalue_to_rvalue(operand);
+    }  /* if */
+  } else if (is_a_function_designator(operand)) {
+    /* Convert function to pointer to function (there are no function
+       rvalues). */
+    conv_function_designator_to_ptr_to_function(operand,
+                                                (a_source_position *)NULL,
+                                                /*allow_ctor=*/FALSE,
+                                                /*will_call=*/FALSE);
+  }  /* if */
 }  /* conv_rvalue_reference_result_to_rvalue */
 
 

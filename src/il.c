@@ -9309,17 +9309,16 @@ and function-to-pointer decay are not considered.
 
 static a_type_ptr extended_rvalue_type(a_type_ptr type)
 /*
-A "full" version of rvalue_type, which also handles function -> pointer and
-array -> pointer decay.  These come up with functions returning rvalue
-reference types.
+A "full" version of rvalue_type, which also handles function -> pointer decay
+and arrays (sort of).  This is intended for use with operations that
+return rvalue reference types.
 */
 {
   if (is_function_type(type)) {
     /* A function type decays to a pointer to function. */
     type = make_pointer_type(type);
   } else if (is_array_type(type)) {
-    /* An array type decays to a pointer to the first element. */
-    type = type_after_array_to_pointer_transformation(type);
+    /* An array type doesn't change.  The result is an rvalue array. */
   } else {
     /* For other types, the returned type should be that for an rvalue
        result. */
@@ -13647,11 +13646,7 @@ name lookup options.
                                                    options,
                                                    copy_error);
             if (is_reference_type(new_type)) {
-              a_boolean is_rvalue_ref = is_rvalue_reference_type(new_type);
               new_type = type_pointed_to(new_type);
-              if (is_rvalue_ref) {
-                new_type = extended_rvalue_type(new_type);
-              }  /* if */
             }  /* if */
           }  /* if */
           if (same_entities(
