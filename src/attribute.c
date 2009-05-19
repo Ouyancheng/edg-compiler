@@ -2820,7 +2820,7 @@ static void apply_attribute_to_routine_type(an_attribute_ptr  ap,
                                             a_boolean         is_typedef)
 /*
 Apply the given attribute to the given type.  The attributes handled here are
-noreturn"/"volatile", "const", "warn_unused_result", and "format".  tp can be
+"noreturn"/"volatile", "const", "warn_unused_result", and "format".  tp can be
 a function type, a pointer-to-function type, or a typedef for such a type
 (although some of these attributes cannot be applied to some typedefs).  Issue
 diagnostics as appropriate.  is_typedef is TRUE if tp is the underlying type
