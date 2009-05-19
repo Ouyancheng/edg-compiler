@@ -9830,32 +9830,27 @@ void new_type_name(a_decl_parse_state  *state,
                    a_boolean           is_parenthesized)
 /*
 Scan a C++ new-type-name or a parenthesized type-name that may appear in a
-"new" expression (ARM 5.3.3), and return a pointer to the type through
-state->type.  *state also records various aspects of the type name parsing
-process (in particular, information about any use of the "auto" specifier).
+"new" expression, and return a pointer to the type through state->type.
+*state also records various aspects of the type name parsing process (in
+particular, information about any use of the "auto" specifier).
 The syntax is:
 
-   new-type-name:
-              type-specifier-list new-declarator
-                                                opt
+   new-type-id:
+              type-specifier-seq new-declarator(opt)
+
    new-declarator:
-              * cv-qualifier-list    new-declarator
-                                 opt               opt
-              class-name :: * cv-qualifier-list    new-declarator
-                                               opt               opt
-              new-declarator    [ expression ]
-                            opt
+              ptr-operator new-declarator(opt)
+              noptr-new-declarator
 
-This syntax allows only a restricted form of types, but you can specify
-an arbitrary type by enclosing a type-name in parentheses:
+   noptr-new-declarator:
+              [ expression ]
+              noptr-new-declarator [ constant-expression ]
 
-   type-name:
-              type-specifier-list abstract-declarator
-                                                     opt
-
-If is_parenthesized is TRUE, the caller has already trapped the left
-parenthesis for such a construct.  The parenthesis is also checked for
-within this routine if is_parenthesized comes in FALSE.
+This syntax allows only a restricted form of types, but other types can be
+specified by enclosing a type-name in parentheses.  If is_parenthesized is
+TRUE, the caller has already trapped the left parenthesis for such a
+construct.  The parenthesis is also checked from within this routine if
+is_parenthesized comes in FALSE.
 */
 {
   a_type_ptr                  complete_type, new_type_ptr;
@@ -9933,7 +9928,7 @@ within this routine if is_parenthesized comes in FALSE.
     a_boolean  ptr_to_member_scanned;
     /* Scan pointer declarators. */
     complete_type = pointer_declarator(state->type, state,
-                                       /*reference_allowed=*/FALSE,
+                                       /*reference_allowed=*/TRUE,
 				       (a_call_conv_descr_ptr)NULL,
 				       (a_call_conv_descr_ptr)NULL,
                                        (a_type_qualifier_set *)NULL,

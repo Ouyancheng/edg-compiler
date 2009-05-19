@@ -1,5 +1,22 @@
 Version 4.1
 
+5/18/09  [EDGcpfe/9779]
+Reference types in new-expressions
+
+Previously, an ampersand (&) or double-ampersand (&&) following a type name
+in a new-expression was not treated as specifying a reference type if the type
+name was not parenthesized.  Instead, such tokens were treated as operators
+(bitwise or logical "and").  Now, such tokens are treated as part of the
+type description, which results in an error (since reference types aren't
+object types).  For example:
+
+  struct X {};
+  void operator&(X*, X);
+  void f(X x) {
+    new X& x;  // Previously accepted as "(new X) & x;".  Now treated like
+  }            // "new (X&) x;", which is an error.
+
+
 5/18/09  [EDGcpfe/9822]
 Local type with a virtual base class can result in an assertion failure
 
