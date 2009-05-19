@@ -16190,7 +16190,7 @@ any non-empty template parameter lists that were scanned.
   }  /* if */
   /* Do the class fixups for this instantiation.  This is done here so
      that it takes place after the default arguments have been removed from
-     the class template cache.  for_instantion is FALSE because the fixups
+     the class template cache.  for_instantiation is FALSE because the fixups
      are for a prototype instantiation related to the declaration that
      just appeared, not for an instantiation in a different context. */
   process_deferred_class_fixups_and_instantiations(
@@ -19705,7 +19705,7 @@ unless the SIR_CLEAR_VALUE flag is set in "options".
       tip->instantiation_required = FALSE;
     }  /* if */
   } else if (curr_class_fixup_header(/*for_instantiation=*/TRUE)->
-                                                   pending_class_definitions ||
+                                              pending_class_definitions != 0 ||
              defer_instantiations != 0) {
     /* A class definition is in progress, or if only defer_instantiations is
        set, the default argument fixup after a class definition.  Any nonclass
