@@ -15681,8 +15681,8 @@ classes.
 #if USER_CONTROL_OF_STRUCT_PACKING
   a_pack_alignment_state           saved_pack_alignment_state;
   a_boolean			   need_restore_pack_alignment_statate = FALSE;
-  a_boolean                        class_is_in_valid_scope;
 #endif /* USER_CONTROL_OF_STRUCT_PACKING */
+  a_boolean                        class_is_in_valid_scope;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
   a_scope_depth                   class_scope_depth;
