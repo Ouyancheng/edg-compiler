@@ -11183,6 +11183,11 @@ it to an lvalue).
                          /*is_implicit_cast=*/FALSE,
                          type_position);
     *processed = TRUE;
+  } else if (is_indefinite_function_operand(operand)) {
+    /* Leave overloaded function cases to be processed and validated by
+       cast_overloaded_function. */
+    *adj_type_cast_to = type_cast_to;
+    *adj_operand_type = operand->type;
   } else if (is_void_type(operand->type)) {
     /* Something like "(int &&)throw x" should not be allowed. */
     error_in_operand(ec_bad_cast, operand);
@@ -11212,11 +11217,6 @@ it to an lvalue).
     *adj_type_cast_to = make_pointer_type(underlying_type_cast_to);
     if (is_error_operand(operand)) {
       *adj_operand_type = error_type();
-    } else if (is_indefinite_function_operand(operand)) {
-      /* The type of an indefinite function is unknown, so we can't make up
-         the right types. */
-      *adj_type_cast_to = type_cast_to;
-      *adj_operand_type = operand->type;
     } else {
       *adj_operand_type = make_pointer_type(operand->type);
     }  /* if */

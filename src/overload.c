@@ -14445,6 +14445,7 @@ been found to be acceptable, and *conversion describes it.
                       &source_operand->position,
                       dest_type, orig_source_type);
       }  /* if */
+      conv_to_error_operand(source_operand);
     } else if (!binding_to_rvalue_allowed && operand_was_rvalue) {
       /* Can't bind this reference to an rvalue. */
       an_error_severity err_severity = es_error;
@@ -14473,6 +14474,9 @@ been found to be acceptable, and *conversion describes it.
                                        ec_const_volatile_ref_init_from_rvalue :
                                        ec_nonconst_ref_init_from_rvalue,
                      &source_operand->position);
+      if ((int)err_severity > (int)warning) {
+        conv_to_error_operand(source_operand);
+      }  /* if */
     }  /* if */
   } else if (direct_binding_possible && is_an_rvalue(source_operand) &&
              is_array_type(base_dest_type)) {
