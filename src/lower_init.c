@@ -5492,9 +5492,10 @@ exceptions, rather than temporaries in the strict sense.
 #if GENERATE_EH_TABLES
 /*
 This may involve cloning some of the region table entries for the
-temporaries, since currently the last temporary points past the
-outer-lifetime entity to the next thing to be destroyed after that.
-The region table entry for dip has already been created.
+temporaries (but not any for partially constructed aggregates), since
+currently the last temporary points past the outer-lifetime entity to
+the next thing to be destroyed after that.  The region table entry for
+dip has already been created.
 */
 #endif /* GENERATE_EH_TABLES */
 {
