@@ -1,5 +1,29 @@
 Version 4.1
 
+5/20/09  [EDGcpfe/8656, EDGcpfe/9811]
+Creating an abstract parameter type should be a deduction failure
+
+The example below resulted in a spurious "parameter of abstract type
+is not allowed" error when attempting to instantiate "F(T) with T=Abstract".
+It was instantiated while determining whether C(F, int*) was a viable
+function, even though C(Abstract&,F) ends up being selected for the
+construction of c.  The instantiation should not have been performed
+because the attempt to create a function type with a parameter (or
+return type) of abstract class type should have caused deduction to fail.
+Now fixed.
+
+  struct Abstract { virtual void f() const = 0; };
+  struct F { template <class T> F(T); };
+  struct C {
+    C(F, int*);      // #1
+    C(Abstract&,F);  // #2
+  };
+  void f() {
+    Abstract* a = 0;
+    C c(*a, 1);  // calls #2
+  };
+
+
 5/20/09  [EDGcpfe/9808]
 Destructions for partially constructed aggregates
 

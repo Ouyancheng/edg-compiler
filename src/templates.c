@@ -7454,10 +7454,12 @@ a pointer over a reference type or creating an array of references.
                                         templ_arg_list, templ_param_list,
                                         source_pos, options, copy_error);
         if (new_return_type != type->variant.routine.return_type) {
-          /* Check for a function returning a function, or function
-             returning an array type. */
+          /* Check for a function returning a function, a function
+             returning an array type, or a function returning an abstract
+             class type. */
           if (is_array_type(new_return_type) ||
-              is_function_type(new_return_type)) {
+              is_function_type(new_return_type) ||
+              is_abstract_class_type(new_return_type)) {
             *copy_error = TRUE;
           }  /* if */
         }  /* if */
@@ -7556,9 +7558,9 @@ make_new_type:
                  add_to_param_id_list was called. */
                tp = make_unqualified_type(tp);
             }  /* if */
-            if (is_void_type(tp)) {
-              /* The result of the substitution is a void type.  This is
-                 not allowed. */
+            if (is_void_type(tp) || is_abstract_class_type(tp)) {
+              /* The result of the substitution is a void type or abstract
+                 class type.  This is not allowed. */
               *copy_error = TRUE;
             }  /* if */
           }  /* if */
