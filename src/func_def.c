@@ -813,8 +813,19 @@ and for the instantiation of template functions.
                     decl_ssep->kind !=
                                      (a_scope_kind)sck_namespace_extension) ||
                    nsp != decl_ssep->il_scope->variant.assoc_namespace) {
-          /* Push a namespace extension scope. */
-          push_namespace_extension_scope(nsp);
+          /* Push a namespace extension scope.  In GNU C++ mode, push a
+             reactivation scope instead.  This matters for a case like the
+             following:
+               namespace N { void f(); }
+               void N::f() {
+                 void g();  // Declares N::g, except in g++ mode where it
+               }            // declares ::g.
+             */
+          if (gpp_mode) {
+            push_namespace_reactivation_scope(nsp);
+          } else {
+            push_namespace_extension_scope(nsp);
+          }  /* if */
         } else {
           /* Set the pointer to NULL to indicate there's no stack entry to
              pop. */
@@ -1179,7 +1190,11 @@ and for the instantiation of template functions.
         pop_class_reactivation_scope();
       }  /* if */
     } else if (nsp != NULL) {
-      pop_namespace_extension_scope();
+      if (gpp_mode) {
+        pop_namespace_reactivation_scope();
+      } else {
+        pop_namespace_extension_scope();
+      }
     }  /* if */  
   }  /* if */
   if (!is_function_try_block) {

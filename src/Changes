@@ -1,5 +1,28 @@
 Version 4.1
 
+5/20/09  [EDGcpfe/9830]
+GNU compatibility: Meaning of block-extern declarations in namespaces
+
+Consider:
+
+  namespace N {
+    void f();
+    void g();
+  }
+  void N::f() {
+    void g();  // ::g in GNU C++ mode; N::g in all other C++ modes.
+    g();
+  }
+  void g() {}
+
+In standard C++, the meaning of the block-extern declaration of g in N::f is
+"as if" the function definition had appeared in namespace N: It is a
+declaration of N::g.  Previously, we adhered to that behavior in all modes.
+Now, in GNU C++ mode, the block-extern declaration of g is instead treated as
+a declaration of ::g.  This change also applies to block-extern declarations
+of variables.
+
+
 5/18/09  [EDGcpfe/9779]
 Reference types in new-expressions
 
