@@ -5503,11 +5503,21 @@ The region table entry for dip has already been created.
   a_dynamic_init_ptr              next_dip = dedp->next_in_region_table;
 
   if (next_dip == NULL) {
+    check_assertion(
+                !temp_dip->destruction_is_for_partially_constructed_aggregate);
     /* End of the list, beginning of the object lifetime of the temporaries. */
     curr_context->latest_initialization = NULL;
     curr_context->curr_cleanup_state = dip;
   } else {
-    /* Use a recursive call to process the rest of the list. */
+    /* Remove any destructions for partial aggregate components in the
+       next_in_region_table list, and recursively process the remaining
+       destructions on the list. */
+    for (; next_dip != NULL &&
+           next_dip->destruction_is_for_partially_constructed_aggregate;
+           next_dip =
+                   next_dip->destructible_entity_descr->next_in_region_table) {
+    }  /* for */
+    dedp->next_in_region_table = next_dip;
     adjust_cleanup_state_for_inner_lifetime_temporaries(next_dip, dip);
   }  /* if */
   /* Adjust the pointer to the previous entity, to one after this one on

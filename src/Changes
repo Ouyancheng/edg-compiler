@@ -1,5 +1,46 @@
 Version 4.1
 
+5/20/09  [EDGcpfe/9808]
+Destructions for partially constructed aggregates
+
+In configurations where exceptions are enabled and lowering generates
+exception handling tables, an exception thrown during the construction of
+an aggregate could have resulted in some objects being destroyed multiple
+times.  When region table entries were cloned (because of overlapping
+object lifetimes), the destructions for partially constructed aggregates
+were mistakenly cloned as well, resulting in duplicate destructions for
+these objects if an exception were to be thrown at certain points before
+the object was fully constructed.  This example had returned -1 and now
+returns 0 (with --g++):
+
+  int alive = 0;
+  struct X {
+    X() {}
+    ~X() {
+      static bool thrown = 0;
+      if (!thrown) {
+        thrown = true;
+        throw 1;
+      }
+    }
+  };
+  struct A {
+    A() { alive++; }
+    A(const A&, const X& = X()) { alive++; }
+    ~A() { alive--; }
+  };
+  struct B {
+    A a1, a2;
+  };
+  int main() {
+    try {
+      A a;
+      B b = (B){ a, a };    // b.a1 was mistakenly destroyed twice
+    } catch (...) {}
+    return alive;
+  }
+
+
 5/20/09  [EDGcpfe/9830]
 GNU compatibility: Meaning of block-extern declarations in namespaces
 
