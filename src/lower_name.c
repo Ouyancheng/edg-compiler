@@ -3061,29 +3061,30 @@ have_number:
 
 
 /*
-Seed number for unnamed class names.
+Seed number for unnamed class and enum names.
 */
 static unsigned long
-		unnamed_class_name_seed;
+		unnamed_class_or_enum_seed;
 
 
-static char *give_unnamed_class_a_name(a_type_ptr type)
+static char *give_unnamed_class_or_enum_a_name(a_type_ptr type)
 /*
-If the indicated class type is unnamed, give it a name and return the name.
+If the indicated class or enum type is unnamed, give it a name and return
+that name.
 */
 {
   char     *name;
-  sizeof_t name_len;
   char     buffer[50];
 
+  check_assertion(is_immediate_class_type(type) ||
+                  is_immediate_enum_type(type));
   /* Note that we may be changing a type that is not being lowered yet, but
      that's okay -- the name in the IL entry is not used by the front end. */
   name = type->source_corresp.name;
   if (name == NULL) {
-    /* The class is unnamed, so make up a name. */
-    /* The name is __Cnn, where nn is a unique number for the
-       class.  This is not from the ARM.  cfront uses the __Cn form, but
-       the number is different. */
+    /* The type is unnamed, so make up a name. */
+    /* The name is either __Cnn or __Enn, where nn is a unique number for the
+       class/enum. */
     unsigned long num = 0;
     if (type->source_corresp.is_class_member) {
       /* For a nested type, try to find a field of the parent class that
@@ -3097,21 +3098,21 @@ If the indicated class type is unnamed, give it a name and return the name.
     }  /* if */
     if (num == 0) {
       /* By default, just use the next number in sequence. */
-      num = ++unnamed_class_name_seed;
+      num = ++unnamed_class_or_enum_seed;
       /* In this case (only), we set name_has_been_mangled to indicate
          that the generated name is the complete name.  No parent
          information, for example, will be added.  The generated name
          by itself is unique across the whole compilation. */
       type->source_corresp.name_has_been_mangled = TRUE;
     }  /* if */
-    (void)sprintf(buffer, "__C%lu", (unsigned long)num);
-    name_len = strlen(buffer) + 1;
-    name = alloc_lowered_name_string(name_len);
+    (void)sprintf(buffer, is_immediate_class_type(type) ? "__C%lu" : "__E%lu",
+                  (unsigned long)num);
+    name = alloc_lowered_name_string(strlen(buffer) + 1);
     (void)strcpy(name, buffer);
     type->source_corresp.name = name;
   }  /* if */
   return name;
-}  /* give_unnamed_class_a_name */
+}  /* give_unnamed_class_or_enum_a_name */
 
 
 static char *module_id_for_translation_unit(a_translation_unit_ptr tup)
@@ -3181,60 +3182,6 @@ If the indicated namespace is unnamed, give it a name.
 }  /* give_unnamed_namespace_a_name */
 
 
-/*
-Seed number for unnamed enum names.
-*/
-static unsigned long
-		unnamed_enum_name_seed;
-
-
-static char *give_unnamed_enum_a_name(a_type_ptr type)
-/*
-If the indicated enum type is unnamed, give it a name and return the name.
-*/
-{
-  char     *name;
-  sizeof_t name_len;
-  char     buffer[50];
-
-  /* Note that we may be changing a type that is not being lowered yet, but
-     that's okay -- the name in the IL entry is not used by the front end. */
-  name = type->source_corresp.name;
-  if (name == NULL) {
-    /* The enum is unnamed, so make up a name. */
-    /* The name is __Enn, where nn is a unique number for the
-       enum.  This is not from the ARM.  cfront uses the __En form, but
-       the number is different. */
-    unsigned long num = 0;
-    if (type->source_corresp.is_class_member) {
-      /* For a nested type, try to find a field of the parent class that
-         has this type.  If there is one, use the field number of the
-         field in generating the unnamed enum name.  Note that the
-         nested types will have been promoted out of the parent
-         class by this point if the parent class is a local class,
-         so we can't look at the parent class types list. */
-      a_type_ptr parent_type = parent_class_of(type);
-      num = number_of_field_using_unnamed_type(parent_type, type);
-    }  /* if */
-    if (num == 0) {
-      /* By default, use the next number in sequence. */
-      num = ++unnamed_enum_name_seed;
-      /* In this case (only), we set name_has_been_mangled to indicate
-         that the generated name is the complete name.  No parent
-         information, for example, will be added.  The generated name
-         by itself is unique across the whole compilation. */
-      type->source_corresp.name_has_been_mangled = TRUE;
-    }  /* if */
-    (void)sprintf(buffer, "__E%lu", (unsigned long)num);
-    name_len = strlen(buffer) + 1;
-    name = alloc_lowered_name_string(name_len);
-    (void)strcpy(name, buffer);
-    type->source_corresp.name = name;
-  }  /* if */
-  return name;
-}  /* give_unnamed_enum_a_name */
-
-
 static void give_unnamed_template_param_member_a_name(a_type_ptr type)
 /*
 Give an unnamed template param member type that refers to an unnamed
@@ -3251,16 +3198,12 @@ mangling fields to match that of the original type.
                                   (a_template_param_constant_kind)tptk_member);
   nested_type = type->variant.template_param.extra_info->orig_nested_type;
   if (nested_type != NULL) {
-    if (is_immediate_class_type(nested_type)) {
-      type->source_corresp.name = give_unnamed_class_a_name(nested_type);
+    if (is_immediate_class_type(nested_type) ||
+        is_immediate_enum_type(nested_type)) {
+      type->source_corresp.name =
+                                give_unnamed_class_or_enum_a_name(nested_type);
       type->source_corresp.unmangled_name =
-                             nested_type->source_corresp.unmangled_name;
-      type->source_corresp.name_has_been_mangled =
-                             nested_type->source_corresp.name_has_been_mangled;
-    } else if (is_immediate_enum_type(nested_type)) {
-      type->source_corresp.name = give_unnamed_enum_a_name(nested_type);
-      type->source_corresp.unmangled_name =
-                             nested_type->source_corresp.unmangled_name;
+                                    nested_type->source_corresp.unmangled_name;
       type->source_corresp.name_has_been_mangled =
                              nested_type->source_corresp.name_has_been_mangled;
     }  /* if */
@@ -3604,7 +3547,7 @@ should be put out.
   if (name == NULL) {
     /* For an unnamed class, generate a name (or use the name previously
        generated). */
-    name = give_unnamed_class_a_name(type);
+    name = give_unnamed_class_or_enum_a_name(type);
   }  /* if */
 #if IA64_ABI
   if (show_length) {
@@ -4089,7 +4032,7 @@ new_substitution:
     if (name == NULL) {
       /* For an unnamed enum, generate a name (or use the name previously
          generated). */
-      name = give_unnamed_enum_a_name(type);
+      name = give_unnamed_class_or_enum_a_name(type);
     }  /* if */
 #if IA64_ABI
     if (add_substitution_if_available((char *)type, iek_type, mctl)) {
@@ -4332,7 +4275,7 @@ and for unnamed classes and enums.  Nested types are encoded as such.
       /* For an unnamed enum, generate a name (or use the name previously
          generated). */
       check_assertion(is_enum_type(type));
-      name = give_unnamed_enum_a_name(type);
+      name = give_unnamed_class_or_enum_a_name(type);
     }  /* if */
     mangled_name_with_length(name, mctl);
 #if IA64_ABI
@@ -6040,10 +5983,8 @@ is what mangled_type_name generates, plus a prefix.
     /* Give an unnamed class or enum a name.  This must be done early because
        in some cases it suppresses the need for a parent qualifier
        (name_has_been_mangled is set to TRUE). */
-    if (is_immediate_class_type(type)) {
-      (void)give_unnamed_class_a_name(type);
-    } else if (is_immediate_enum_type(type)) {
-      (void)give_unnamed_enum_a_name(type);
+    if (is_immediate_class_type(type) || is_immediate_enum_type(type)) {
+      (void)give_unnamed_class_or_enum_a_name(type);
     } else if (type->kind == (a_type_kind)tk_template_param &&
                type->variant.template_param.kind == 
                                  (a_template_param_constant_kind)tptk_member) {
@@ -7071,7 +7012,8 @@ be embedded in other mangled names.
       scoped_enum_type_name = unmangled_name_of(
                                             &scoped_enum_type->source_corresp);
       if (scoped_enum_type_name == NULL) {
-        scoped_enum_type_name = give_unnamed_enum_a_name(scoped_enum_type);
+        scoped_enum_type_name =
+                           give_unnamed_class_or_enum_a_name(scoped_enum_type);
       }  /* if */
       check_assertion(scoped_enum_type_name != NULL);
     }  /* if */
@@ -7606,8 +7548,7 @@ Do one-time initialization of variables related to name mangling.
      headers */
   if (precompiled_header_processing_required) {
     static a_pch_saved_variable saved_vars[] = {
-      pch_saved_var_array_elem(unnamed_class_name_seed),
-      pch_saved_var_array_elem(unnamed_enum_name_seed),
+      pch_saved_var_array_elem(unnamed_class_or_enum_seed),
       pch_saved_var_array_elem(unnamed_member_variable_name_seed),
 #if IA64_ABI
       pch_saved_var_array_elem(avail_substitutions),
@@ -7618,8 +7559,7 @@ Do one-time initialization of variables related to name mangling.
   }  /* if */
   /* Register variables that must be saved and restored when switching
      between translation units. */
-  register_trans_unit_variable(unnamed_class_name_seed);
-  register_trans_unit_variable(unnamed_enum_name_seed);
+  register_trans_unit_variable(unnamed_class_or_enum_seed);
   register_trans_unit_variable(unnamed_member_variable_name_seed);
 }  /* name_lower_one_time_init */
 
@@ -7630,8 +7570,7 @@ Initialize static variables related to name mangling that must be
 initialized for each compilation.
 */
 {
-  unnamed_class_name_seed = 0;
-  unnamed_enum_name_seed = 0;
+  unnamed_class_or_enum_seed = 0;
   unnamed_member_variable_name_seed = 0;
 #if !IA64_ABI
   avail_compressible_string_pos = NULL;
