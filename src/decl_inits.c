@@ -5680,12 +5680,19 @@ though neither constructors nor initialization is involved here.)
         /* There is no visible default operator delete. */
         pos_error(ec_no_default_delete_in_virtual_dtor,
                   &source_pos);
-      } else if (del_sym->is_class_member) {
-        /* Check access to a member operator delete (it might be in a base
-           class).  Note that the access is also checked on every delete. */
-        a_symbol_locator locator;
-        make_locator_for_symbol(del_sym, &locator);
-        check_ambiguity_and_verify_access(&locator);
+      } else {
+        /* There is an unambiguous operator delete.  Make sure it is accesible
+           and not "deleted". */
+        check_assertion(is_simple_function_symbol(del_sym));
+        if (del_sym->variant.routine.ptr->is_deleted) {
+          pos_sy_error(ec_deleted_function, &source_pos, del_sym);
+        } else if (del_sym->is_class_member) {
+          /* Check access to a member operator delete (it might be in a base
+             class).  Note that the access is also checked on every delete. */
+          a_symbol_locator locator;
+          make_locator_for_symbol(del_sym, &locator);
+          check_ambiguity_and_verify_access(&locator);
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
