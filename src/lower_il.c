@@ -18049,7 +18049,9 @@ scope that is part of the indicated routine) to the file scope.
        from. */
     delete_static_variables_from_decl_stmts(scope, n_promoted_source_vars);
   }  /* if */
+#if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
   routine->statics_have_been_promoted = TRUE;
+#endif /* PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE */
 }  /* promote_static_variables_out_of_function */
 
 

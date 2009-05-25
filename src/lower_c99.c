@@ -104,6 +104,7 @@ argument).
   return result;
 }  /* make_prototyped_runtime_call_full */
 
+#if LOWER_VARIABLE_LENGTH_ARRAYS || LOWER_COMPLEX || LOWER_FIXED_POINT
 
 static
 an_expr_node_ptr make_prototyped_runtime_call(char             *name,
@@ -125,6 +126,7 @@ types.
   return result;
 }  /* make_prototyped_runtime_call */
  
+#endif /* LOWER_VARIABLE_LENGTH_ARRAYS || LOWER_COMPLEX || LOWER_FIXED_POINT */
 
 void lower_vla_dimension_expression(a_vla_dimension_ptr  vdp)
 /*
@@ -2473,8 +2475,8 @@ Transform the given cast expression into a function call (compatible with C89).
     /* Change a cast to bool to a "!= 0" test. */
     lower_bool_cast(expr);
   } else {
-    a_type_ptr  tp = expr->type;
 #if LOWER_FIXED_POINT || LOWER_COMPLEX
+    a_type_ptr  tp = expr->type;
     a_type_ptr  src_tp = expr->variant.operation.operands->type;
 #endif /* LOWER_FIXED_POINT || LOWER_COMPLEX */
     check_assertion(expr->variant.operation.kind ==
