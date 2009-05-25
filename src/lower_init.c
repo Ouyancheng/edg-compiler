@@ -3551,7 +3551,9 @@ static a_variable_ptr make_construction_vtbl_temporary(void);
 static void add_virtual_base_init_code(
                                      a_scope_ptr        scope,
                                      a_variable_ptr     complete_var,
+#if DO_FULL_PORTABLE_EH_LOWERING
                                      a_handle_number    complete_var_handle,
+#endif /* DO_FULL_PORTABLE_EH_LOWERING */
                                      a_variable_ptr     construction_vtbls_var,
                                      an_insert_location *insert_location);
 
@@ -3571,9 +3573,13 @@ static void initialize_dtor_init_for_cleanup(
                                         a_dynamic_init_ptr     dip,
                                         a_constructor_init_ptr ctor_init_list);
 
+#if GENERATE_EH_TABLES
+
 static void make_dtor_init_region_table_entries(
                                           a_dynamic_init_ptr dip,
                                           an_insert_location *insert_location);
+
+#endif /* GENERATE_EH_TABLES */
 
 static void insert_epilogue_cleanup_state(
                                  a_dynamic_init_ptr first_epilogue_destruction,
@@ -3850,8 +3856,10 @@ action is necessary (since the routine has already been defined).
            parameter list is complete (var_for_copy_constructor_source depends
            on it). */
         add_virtual_base_init_code(new_routine_scope, (a_variable_ptr)NULL,
-                                   (a_handle_number)0, construction_vtbls_var,
-                                   &insert_location);
+#if DO_FULL_PORTABLE_EH_LOWERING
+                                   (a_handle_number)0,
+#endif /* DO_FULL_PORTABLE_EH_LOWERING */
+                                   construction_vtbls_var, &insert_location);
       }  /* if */
     }  /* if */
 #endif /* HANDLE_VIRTUAL_BASES_IN_COMPLETE_CTOR_DTORS */
@@ -11411,13 +11419,12 @@ Insert the code at the location given by insert_location.
 }  /* insert_primary_vtbl_assignment */
 
 
-#if !DO_FULL_PORTABLE_EH_LOWERING
-/*ARGSUSED*/ /* <-- complete_var_handle is not used in that case. */
-#endif /* !DO_FULL_PORTABLE_EH_LOWERING */
 static void add_virtual_base_init_code(
                                      a_scope_ptr        scope,
                                      a_variable_ptr     complete_var,
+#if DO_FULL_PORTABLE_EH_LOWERING
                                      a_handle_number    complete_var_handle,
+#endif /* DO_FULL_PORTABLE_EH_LOWERING */
                                      a_variable_ptr     construction_vtbls_var,
                                      an_insert_location *insert_location)
 /*
@@ -11670,7 +11677,9 @@ constructor, but may instead be after an assignment to "this".
     an_expr_node_ptr       complete_var_node;
     a_constant             null_constant;
     a_variable_ptr         complete_var;
+#if DO_FULL_PORTABLE_EH_LOWERING
     a_handle_number        complete_var_handle = 0;
+#endif /* DO_FULL_PORTABLE_EH_LOWERING */
 #endif /* HANDLE_VIRTUAL_BASES_IN_SUBOBJECT_CTOR_DTORS */
 
 #if ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
@@ -11744,7 +11753,10 @@ constructor, but may instead be after an assignment to "this".
     /* Insert the code to do the actual virtual base class initialization
        under the "then" part of the "if" (a complete object is being
        initialized). */
-    add_virtual_base_init_code(scope, complete_var, complete_var_handle,
+    add_virtual_base_init_code(scope, complete_var,
+#if DO_FULL_PORTABLE_EH_LOWERING
+                               complete_var_handle,
+#endif /* DO_FULL_PORTABLE_EH_LOWERING */
                                construction_vtbls_var, &insert_location2);
 #if !IA64_ABI
     /* Inserting under else_insert_location, in the "else" of the "if"
