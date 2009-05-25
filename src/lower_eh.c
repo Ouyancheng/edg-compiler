@@ -162,6 +162,7 @@ scope (which might be a block scope).
 }  /* make_init_unnamed_local_static_array_var */
 
 #endif /* GENERATE_EH_TABLES */
+#if GENERATE_EH_TABLES || !IA64_ABI
 
 static a_targ_size_t incr_nelems_of_array_var(a_variable_ptr var)
 /*
@@ -173,7 +174,6 @@ Return the pre-incremented value (which is right as a subscript).
   return var->type->variant.array.variant.number_of_elements++;
 }  /* incr_nelems_of_array_var */
 
-#if GENERATE_EH_TABLES || !IA64_ABI
 
 static a_targ_size_t add_elem_to_array_var(a_constant_ptr con,
                                            a_variable_ptr var,

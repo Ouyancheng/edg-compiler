@@ -74,6 +74,7 @@ static void lower_c99_fixed_point_operation(an_expr_node_ptr expr);
 #endif /* LOWER_FIXED_POINT */
 #endif /* DO_C99_IL_LOWERING */
 
+#if LOWER_VARIABLE_LENGTH_ARRAYS || LOWER_COMPLEX || LOWER_FIXED_POINT
 
 static an_expr_node_ptr make_prototyped_runtime_call_full(
                                                char             *name,
@@ -104,7 +105,6 @@ argument).
   return result;
 }  /* make_prototyped_runtime_call_full */
 
-#if LOWER_VARIABLE_LENGTH_ARRAYS || LOWER_COMPLEX || LOWER_FIXED_POINT
 
 static
 an_expr_node_ptr make_prototyped_runtime_call(char             *name,
