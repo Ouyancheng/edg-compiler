@@ -106,7 +106,7 @@ object types).  For example:
 
 
 5/18/09  [EDGcpfe/9822]
-Local type with a virtual base class can result in an assertion failure
+Local type with a base class can result in an assertion failure
 
 In configurations that use lowering, the combination of a local type with
 a virtual base class resulted in an assertion failure (in set_parent_scope)
@@ -120,6 +120,19 @@ For example (with --strict):
         struct C : virtual A {};
       }
     };
+  }
+
+Also, this example failed in the same way in some IA-64 ABI configurations:
+
+  struct B {
+    double bm;
+  };
+  void f() {
+    {
+      struct D : B {
+        char dm;
+      };
+    }
   }
 
 
