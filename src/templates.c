@@ -1657,6 +1657,32 @@ during wrapup processing by compare_function_templates.
 }  /* wrapup_template_argument_deduction */
 
 
+static a_boolean routine_has_abstract_param_or_return_type(a_type_ptr type)
+/*
+type is a routine type.  Return TRUE if it has a parameter type or return type
+that is an abstract class type.
+*/
+{
+  a_boolean	result = FALSE;
+
+  check_assertion(type->kind == (a_type_kind)tk_routine);
+  if (is_abstract_class_type(type->variant.routine.return_type)) {
+    result = TRUE;
+  } else {
+    a_param_type_ptr	ptp;
+    /* The return type is okay.  Check the parameters. */
+    for (ptp = type->variant.routine.extra_info->param_type_list;
+         ptp != NULL; ptp = ptp->next) {
+      if (is_abstract_class_type(ptp->type)) {
+        result = TRUE;
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return result;
+}  /* routine_has_abstract_param_or_return_type */
+
+
 a_type_ptr wrapup_function_template_argument_deduction(
 				a_template_arg_ptr   templ_arg_list,
                                 a_symbol_ptr         rout_templ_sym,
@@ -1680,6 +1706,16 @@ compare_function_templates.
     new_type = substitute_template_arguments(rout_templ_sym, templ_arg_list,
                                              (a_template_arg_ptr*)NULL,
                                              templ_param_list);
+    if (new_type != NULL && (microsoft_mode || gpp_mode)) {
+      /* Normally, a function type will have been considered invalid if
+         a parameter or return type was an abstract class type, but in
+         Microsoft and GNU mode, this only applies to top-level routines.
+         So in Microsoft and GNU mode, this check is not done within
+         copy_type_with_substitution, so it is instead done here. */
+      if (routine_has_abstract_param_or_return_type(new_type)) {
+        new_type = NULL;
+      }  /* if */
+    }  /* if */
   }  /* if */
   return new_type;
 }  /* wrapup_function_template_argument_deduction */
@@ -7459,7 +7495,8 @@ a pointer over a reference type or creating an array of references.
              class type. */
           if (is_array_type(new_return_type) ||
               is_function_type(new_return_type) ||
-              is_abstract_class_type(new_return_type)) {
+              (!microsoft_mode && !gpp_mode &&
+               is_abstract_class_type(new_return_type))) {
             *copy_error = TRUE;
           }  /* if */
         }  /* if */
@@ -7558,7 +7595,9 @@ make_new_type:
                  add_to_param_id_list was called. */
                tp = make_unqualified_type(tp);
             }  /* if */
-            if (is_void_type(tp) || is_abstract_class_type(tp)) {
+            if (is_void_type(tp) ||
+                (!microsoft_mode && !gpp_mode &&
+                 is_abstract_class_type(tp))) {
               /* The result of the substitution is a void type or abstract
                  class type.  This is not allowed. */
               *copy_error = TRUE;

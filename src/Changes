@@ -23,6 +23,24 @@ Now fixed.
     C c(*a, 1);  // calls #2
   };
 
+The Microsoft and g++ compilers do not allow instances of function templates
+to have abstract parameter or return types (as in the example above), but
+they do allow them to have parameters of function type that have such types.
+So they accept examples like the one below where f is instantiated with a
+parameter type of "void (*)(A)", even though A is an abstract class type.
+We continue to accept such cases in Microsoft and g++ mode.
+
+  template<class T> inline int f(void(*)(T) = 0) {
+    return 1;
+  }
+  template<class T> inline int g(T*) {
+    return f<T>();
+  }
+  struct A {
+    void h() { g(this); }
+    virtual void vf() = 0;
+  };
+
 
 5/20/09  [EDGcpfe/9808]
 Destructions for partially constructed aggregates
