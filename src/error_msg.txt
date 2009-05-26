@@ -1852,6 +1852,7 @@ ec_show_pragma_conform_forScope_is_nonstandard;;"forScope behavior is nonstandar
 ec_show_pragma_conform_forScope_is_standard;;"forScope behavior is standard"
 ec_deleted_main;;"function \"main\" cannot be deleted"
 ec_useless_type_qualifiers_in_type_name;;"type qualifiers are meaningless here"
+ec_invalid_assignment_operator_to_be_defaulted;;"invalid type for defaulted assignment operator"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

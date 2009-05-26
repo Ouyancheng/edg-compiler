@@ -8168,6 +8168,106 @@ the definition of the given class type.
 }  /* define_defaulted_special_member_functions */
 
 
+static a_boolean default_assignment_of_const_object_okay(a_type_ptr class_type)
+/*
+We are about to declare a compiler-generated or an explicitly-defaulted copy
+assignment operator.  Whether it can copy a const object is dependent on the
+assignment operators defined for base classes and fields of the current class
+(class_type).
+*/
+{
+  a_base_class_ptr               bcp;
+  a_type_ptr                     tp;
+  a_class_symbol_supplement_ptr  cssp;
+  a_symbol_ptr                   sym;
+  a_field_ptr                    fp;
+  a_boolean                      const_okay = TRUE;
+
+  db_enter(4, "default_assignment_of_const_object_okay");
+  /* Check for const.  Do the base classes first. */
+  for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
+    if (bcp->direct || bcp->is_virtual) {
+      cssp = symbol_supplement_for_class(bcp->type);
+      if (assignment_operator_for_copy_exists(cssp->assignment_operator,
+                                              &const_okay) &&
+          !const_okay) {
+        /* There is a default assignment operator for this base class type,
+           but it does not accept a const object.  No need to look any
+           further. */
+        goto done;
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  /* Base classes are okay.  Now check the nonstatic data members. */
+  sym = ((a_symbol_ptr)class_type->source_corresp.assoc_info)->
+                         variant.class_struct_union.extra_info->symbols;
+  for (; sym != NULL; sym = sym->next_in_scope) {
+    if (sym->kind == (a_symbol_kind)sk_field) {
+      fp = sym->variant.field.ptr;
+      tp = fp->type;
+      /* Get the element type if this is an array field. */
+      if (is_array_type(tp)) tp = underlying_array_element_type(tp);
+      if (is_class_struct_union_type(tp)) {
+        cssp = symbol_supplement_for_class(tp);
+        if (assignment_operator_for_copy_exists(cssp->assignment_operator,
+                                                &const_okay) &&
+            !const_okay) {
+          /* There is a default assignment operator for this static data
+             member's class type, but it does not accept a const object.
+             No need to look any further. */
+          goto done;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* for */
+done:;
+  db_exit();
+  /* Return TRUE unless a subobject type has a default assignment operator
+     that cannot accept a const object. */
+  return const_okay;
+}  /* default_assignment_of_const_object_okay */
+
+
+static a_boolean assignment_operator_can_be_defaulted(a_symbol_ptr  sym)
+/*
+sym is an assignment operator.  Check if it can be "defaulted".  I.e., if its
+parent class is X, it must have the signature
+	X& operator=(X&)
+or
+	X& operator=(X const&);
+(the latter only if bases and members have a corresponding copy assignment
+operator).
+*/
+{
+  a_boolean   result = FALSE;
+  a_type_ptr  class_type = sym_parent_class(sym);
+  a_type_ptr  rout_type, return_type;
+
+  rout_type = skip_typerefs(sym->variant.routine.ptr->type);
+  /* The return type must be X& (where X is the parent type). */
+  return_type = make_reference_type(class_type);
+  if (identical_types(return_type, rout_type->variant.routine.return_type)) {
+    /* The parameter type must be X& or X const& (although the latter requires
+       that bases and members allow for such an assignment).  Try X& first. */
+    a_type_ptr  param_type = return_type;
+    if (identical_types(param_type,
+                        rout_type->variant.routine.extra_info
+                                 ->param_type_list->type)) {
+      result = TRUE;
+    } else if (default_assignment_of_const_object_okay(class_type)) {
+      param_type = make_reference_type(
+                     make_qualified_type(class_type, TQ_CONST));
+      if (identical_types(param_type,
+                          rout_type->variant.routine.extra_info
+                                   ->param_type_list->type)) {
+        result = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* assignment_operator_can_be_defaulted */
+
+
 void check_defaulted_or_deleted_function(a_decl_parse_state  *dps,
                                          a_func_info_block   *func_info,
                                          a_source_position   *diag_pos)
@@ -8232,11 +8332,10 @@ update the routine's IL entry accordingly.
       rp->is_defaulted = TRUE;
     } else if (rp->special_kind == (a_special_function_kind)sfk_operator &&
                rp->variant.opname_kind == (an_opname_kind)onk_assign) {
-      a_boolean  const_okay;
-      if (assignment_operator_for_copy_exists(sym, &const_okay)) {
+      if (assignment_operator_can_be_defaulted(sym)) {
         rp->is_defaulted = TRUE;
       } else {
-        err_code = ec_invalid_function_to_be_defaulted;
+        err_code = ec_invalid_assignment_operator_to_be_defaulted;
       }  /* if */
     } else {
       /* Not a constructor, destructor, or assignment operator. */
@@ -11780,65 +11879,6 @@ and record it in the class's assoc_operator_delete_routine field.
 }  /* set_class_assoc_operator_delete_routine */
 
 #endif /* DELETE_CAN_BE_FOLDED_INTO_DTOR */
-
-static a_boolean default_assignment_of_const_object_okay(a_type_ptr class_type)
-/*
-We are about to create a compiler-generated default assignment operator.
-Whether it can copy a const object is dependent on the assignment operators
-defined for base classes and fields of the current class (class_type).
-*/
-{
-  a_base_class_ptr               bcp;
-  a_type_ptr                     tp;
-  a_class_symbol_supplement_ptr  cssp;
-  a_symbol_ptr                   sym;
-  a_field_ptr                    fp;
-  a_boolean                      const_okay = TRUE;
-
-  db_enter(4, "default_assignment_of_const_object_okay");
-  /* Check for const.  Do the base classes first. */
-  for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
-    if (bcp->direct || bcp->is_virtual) {
-      cssp = symbol_supplement_for_class(bcp->type);
-      if (assignment_operator_for_copy_exists(cssp->assignment_operator,
-                                              &const_okay) &&
-          !const_okay) {
-        /* There is a default assignment operator for this base class type,
-           but it does not accept a const object.  No need to look any
-           further. */
-        goto done;
-      }  /* if */
-    }  /* if */
-  }  /* for */
-  /* Base classes are okay.  Now check the nonstatic data members. */
-  sym = ((a_symbol_ptr)class_type->source_corresp.assoc_info)->
-                         variant.class_struct_union.extra_info->symbols;
-  for (; sym != NULL; sym = sym->next_in_scope) {
-    if (sym->kind == (a_symbol_kind)sk_field) {
-      fp = sym->variant.field.ptr;
-      tp = fp->type;
-      /* Get the element type if this is an array field. */
-      if (is_array_type(tp)) tp = underlying_array_element_type(tp);
-      if (is_class_struct_union_type(tp)) {
-        cssp = symbol_supplement_for_class(tp);
-        if (assignment_operator_for_copy_exists(cssp->assignment_operator,
-                                                &const_okay) &&
-            !const_okay) {
-          /* There is a default assignment operator for this static data
-             member's class type, but it does not accept a const object.
-             No need to look any further. */
-          goto done;
-        }  /* if */
-      }  /* if */
-    }  /* if */
-  }  /* for */
-done:;
-  db_exit();
-  /* Return TRUE unless a subobject type has a default assignment operator
-     that cannot accept a const object. */
-  return const_okay;
-}  /* default_assignment_of_const_object_okay */
-
 
 static void default_copy_constructor_check(a_type_ptr  class_type,
                                            a_boolean   *const_okay)
