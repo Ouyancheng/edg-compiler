@@ -230,12 +230,6 @@ typedef struct an_arg_match_summary {
 			   to an rvalue.  This follows the C++ standard
 			   definition, which includes function --> pointer
 			   and array --> pointer. */
-  a_byte_boolean
-		orig_rvalue_reference_bound_to_lvalue;
-			/* TRUE if the argument is for a parameter that was
-			   originally an rvalue reference but ended up after
-			   template deduction/substitution as an lvalue
-			   reference bound to an lvalue. */
   a_type_ptr	param_type;
 			/* The type of the parameter.  Used in looking
 			   for conversion subsequences involving addition
@@ -746,7 +740,6 @@ extern void determine_arg_match_level(
                                an_operand           *arg_operand,
                                a_type_ptr           arg_type,
                                a_type_ptr           param_type,
-                               a_type_ptr           undeduced_param_type,
                                a_boolean            param_type_is_deduced,
                                a_boolean            try_user_conversions,
                                an_arg_match_summary *arg_summary);

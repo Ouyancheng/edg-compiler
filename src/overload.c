@@ -682,7 +682,6 @@ values.
   amsp->is_match_for_this_param    = FALSE;
   amsp->arg_is_constant            = FALSE;
   amsp->lvalue_to_rvalue_conversion_used = FALSE;
-  amsp->orig_rvalue_reference_bound_to_lvalue = FALSE;
   amsp->param_type                 = NULL;
   amsp->guide_type                 = NULL;
   clear_conv_descr(&amsp->conversion);
@@ -767,9 +766,6 @@ Print an argument match summary for debug purposes.
   }  /* if */
   if (amsp->lvalue_to_rvalue_conversion_used) {
     fprintf(f_debug, " (lvalue-to-rvalue conv)");
-  }  /* if */
-  if (amsp->orig_rvalue_reference_bound_to_lvalue) {
-    fprintf(f_debug, " (rvalue ref bound to lvalue)");
   }  /* if */
   if (amsp->conversion.std.type_qualifiers_added) {
     fprintf(f_debug, " (type qualifiers added)");
@@ -1639,7 +1635,6 @@ null pointer constant but not a known null pointer constant.
 void determine_arg_match_level(an_operand           *arg_operand,
                                a_type_ptr           arg_type,
                                a_type_ptr           param_type,
-                               a_type_ptr           undeduced_param_type,
                                a_boolean            param_type_is_deduced,
                                a_boolean            try_user_conversions,
                                an_arg_match_summary *arg_summary)
@@ -1651,13 +1646,10 @@ about which nothing else is known (and arg_operand is ignored; this can
 only be used for operands that don't require user-defined conversions,
 e.g., those being matched up with a "this" parameter).  arg_summary is
 set to indicate the level of match.  This is used in resolving overloaded
-function calls.  undeduced_param_type gives the parameter type before
-any substitution for template parameters (even for explicit template
-arguments); it can be NULL to indicate it is not relevant.
-param_type_is_deduced is TRUE if the parameter type involved template
-parameters and was deduced.  User-defined conversions will be attempted
-only if try_user_conversions is TRUE; it must be FALSE if arg_type
-is non-NULL.
+function calls.  See ARM 13.2.  param_type_is_deduced is TRUE if
+the parameter type involved template parameters and was deduced.
+User-defined conversions will be attempted only if try_user_conversions
+is TRUE; it must be FALSE if arg_type is non-NULL.
 */
 {
   an_operand        *orig_arg_operand;
@@ -2231,18 +2223,6 @@ have_level:;
       }  /* if */
     }  /* if */
   }  /* if */
-  if (rvalue_references_enabled &&
-      undeduced_param_type != NULL &&
-      arg_summary->match_level != aml_none &&
-      is_rvalue_reference_type(undeduced_param_type) &&
-      arg_operand != NULL &&
-      is_an_lvalue(arg_operand)) {
-    /* This argument match binds a parameter that was an rvalue reference
-       before template deduction/substitution to an lvalue.  That's part of
-       the "perfect forwarding" trick but is considered worse than other
-       kinds of bindings. */
-    arg_summary->orig_rvalue_reference_bound_to_lvalue = TRUE;
-  }  /* if */
 #if DEBUG
   if (debug_level >= 4 || db_flag_is_set("overload")) {
     db_display_overload_level();
@@ -2302,7 +2282,6 @@ selector is enabled, allow that kind of mismatch here.
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   determine_arg_match_level((an_operand *)NULL, arg_type, param_type,
-                            (a_type_ptr)NULL,
                             /*param_type_is_deduced=*/FALSE,
                             /*try_user_conversions=*/FALSE, match_summary);
   match_summary->is_match_for_this_param = TRUE;
@@ -2323,7 +2302,6 @@ selector is enabled, allow that kind of mismatch here.
                                                 TQ_CONST);
     determine_arg_match_level((an_operand *)NULL, arg_type,
                               const_this_param_type,
-                              (a_type_ptr)NULL,
                               /*param_type_is_deduced=*/FALSE,
                               /*try_user_conversions=*/FALSE,
                               match_summary);
@@ -2997,7 +2975,6 @@ the point of call.
                            rtsp;
   an_arg_operand_ptr       arg_operand;
   a_param_type_ptr         param, template_param = NULL;
-  a_param_type_ptr         orig_template_param = NULL;
 #if DEBUG
   unsigned long            narg = 0;
 #endif /* DEBUG */
@@ -3061,10 +3038,6 @@ the point of call.
       /* The symbol is a function template. */
       routine=function_symbol->variant.template_info->variant.function.routine;
       routine_type = routine->type;
-      rtsp = skip_typerefs(routine_type)->variant.routine.extra_info;
-      /* Save a pointer to the parameter list before substitution of
-         explicit template arguments. */
-      orig_template_param = rtsp->param_type_list;
       if (template_arg_list != NULL) {
         /* Substitute the explicitly-specified template arguments into the
            template and get the updated routine type.  This also creates
@@ -3192,9 +3165,6 @@ the point of call.
       }  /* if */
       determine_arg_match_level(&arg_operand->operand, (a_type_ptr)NULL,
                                 param->type,
-                                (orig_template_param != NULL) ?
-                                  orig_template_param->type :
-                                  (a_type_ptr)NULL,
                                 param_type_is_deduced,
                                 /*try_user_conversions=*/
                                                         allow_udc_on_arguments,
@@ -3208,8 +3178,6 @@ the point of call.
       if (function_template_case) {
         check_assertion(template_param != NULL);
         template_param = template_param->next;
-        check_assertion(orig_template_param != NULL);
-        orig_template_param = orig_template_param->next;
       }  /* if */
     }  /* if */
   }  /* for */
@@ -3982,25 +3950,10 @@ apply that would make one better than the other, and return
        }
   */
   check_assertion(arg_match1 != NULL && arg_match2 != NULL);
-  if (arg_match1->orig_rvalue_reference_bound_to_lvalue !=
-      arg_match2->orig_rvalue_reference_bound_to_lvalue) {
-    /* One of the arguments binds a parameter of a template that was originally
-       an rvalue reference to an lvalue, and the other does not. */
-    if (arg_match1->orig_rvalue_reference_bound_to_lvalue) {
-      /* Argument 1 uses that trick and argument 2 does not, so argument 2
-         is better. */
-      cmp = -1;
-    } else {
-      /* Argument 2 uses that trick and argument 1 does not, so argument 1
-         is better. */
-      cmp = 1;
-    }  /* if */
-  }  /* if */
   /* Use of the deprecated conversion of a string literal to a pointer to
      nonconst can break a tie. */
-  if (cmp == 0 &&
-      (arg_match1->conversion.std.conv_of_string_literal_to_ptr_to_nonconst !=
-       arg_match2->conversion.std.conv_of_string_literal_to_ptr_to_nonconst)) {
+  if (arg_match1->conversion.std.conv_of_string_literal_to_ptr_to_nonconst !=
+      arg_match2->conversion.std.conv_of_string_literal_to_ptr_to_nonconst) {
     if (arg_match1->conversion.std.conv_of_string_literal_to_ptr_to_nonconst) {
       /* Argument 1 uses the deprecated conversion and argument 2 does not,
          so argument 2 is better. */
@@ -15061,7 +15014,6 @@ if so.
   an_arg_match_summary arg_summary;
 
   determine_arg_match_level(operand, (a_type_ptr)NULL, param_type,
-                            (a_type_ptr)NULL,
                             /*param_type_is_deduced=*/FALSE,
                             /*try_user_conversions=*/FALSE,
                             &arg_summary);
@@ -15408,7 +15360,6 @@ used only in C++ mode.
       arg_match = alloc_arg_match_summary();
       determine_arg_match_level((an_operand *)NULL, arg_type,
                                 param_type,
-                                (a_type_ptr)NULL,
                                 /*param_type_is_deduced=*/FALSE,
                                 /*try_user_conversions=*/FALSE,
                                 arg_match);
