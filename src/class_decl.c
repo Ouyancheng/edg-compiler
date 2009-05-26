@@ -3790,8 +3790,9 @@ Any diagnostics are issued at the given position.
               continue;
             }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-            if (microsoft_bugs && remove_qualifiers_from_param_types) {
-              /* For the Microsoft compiler the functions may still not
+            if (microsoft_bugs && microsoft_version < 1500 &&
+                remove_qualifiers_from_param_types) {
+              /* For earlier Microsoft compilers the functions may still not
                  match if the top-level type qualifiers on the parameters
                  (yes, the ones that have been stripped off) do not match. */
               if (!param_types_are_compatible(rout->type, rp->type,
