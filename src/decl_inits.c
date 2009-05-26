@@ -3948,7 +3948,7 @@ the default constructor (if one exists) is called.
         }  /* if */
       }  /* if */
       /* Find a default constructor. */
-      if (has_nontrivial_constructor(cssp)) {
+      if (cssp->constructor != NULL) {
         /* There are user-declared constructor(s) and/or implicitly-declared
            nontrivial constructors.  Look for a default constructor. */
         ctor = select_default_constructor(tp, err_pos, tp,

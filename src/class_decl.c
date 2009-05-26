@@ -12193,6 +12193,12 @@ definition described by class_state.
       /* A default constructor needs to be generated. */
       generate_default_constructor(class_state, /*is_deleted=*/FALSE);
     }  /* if */
+  } else if (!cssp->has_user_declared_default_constructor) {
+    /* This class has a user-declared or nontrivial constructor (since
+       cssp->constructor != NULL), but no user-declared default constructor
+       (and hence no explicitly-defaulted default constructor).  So it cannot
+       be a "trivial class" and therefore it cannot be POD. */ 
+    class_state->POD_ruled_out = TRUE;
   }  /* if */
 }  /* add_default_ctor_if_needed */
 
