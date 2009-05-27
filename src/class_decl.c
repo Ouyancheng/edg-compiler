@@ -8171,9 +8171,9 @@ the definition of the given class type.
 static a_boolean default_assignment_of_const_object_okay(a_type_ptr class_type)
 /*
 We are about to declare a compiler-generated or an explicitly-defaulted copy
-assignment operator.  Whether it can copy a const object is dependent on the
-assignment operators defined for base classes and fields of the current class
-(class_type).
+assignment operator for the given class type.  Return whether it can copy a
+const object.  This is dependent on the assignment operators defined for base
+classes and fields of the given class.
 */
 {
   a_base_class_ptr               bcp;
@@ -8239,27 +8239,29 @@ or
 operator).
 */
 {
-  a_boolean   result = FALSE;
-  a_type_ptr  class_type = sym_parent_class(sym);
-  a_type_ptr  rout_type, return_type;
+  a_boolean         result = FALSE;
+  a_type_ptr        class_type = sym_parent_class(sym);
+  a_type_ptr        rout_type, return_type;
+  a_param_type_ptr  params;
 
+  check_assertion(sym->kind == (a_symbol_kind)sk_member_function);
   rout_type = skip_typerefs(sym->variant.routine.ptr->type);
+  check_assertion(rout_type->kind == (a_type_kind)tk_routine);
+  params = rout_type->variant.routine.extra_info->param_type_list;
+  /* Assignment operators can have only one parameter. */
+  check_assertion(params->next == NULL);
   /* The return type must be X& (where X is the parent type). */
   return_type = make_reference_type(class_type);
   if (identical_types(return_type, rout_type->variant.routine.return_type)) {
     /* The parameter type must be X& or X const& (although the latter requires
        that bases and members allow for such an assignment).  Try X& first. */
     a_type_ptr  param_type = return_type;
-    if (identical_types(param_type,
-                        rout_type->variant.routine.extra_info
-                                 ->param_type_list->type)) {
+    if (identical_types(param_type, params->type)) {
       result = TRUE;
     } else if (default_assignment_of_const_object_okay(class_type)) {
       param_type = make_reference_type(
                      make_qualified_type(class_type, TQ_CONST));
-      if (identical_types(param_type,
-                          rout_type->variant.routine.extra_info
-                                   ->param_type_list->type)) {
+      if (identical_types(param_type, params->type)) {
         result = TRUE;
       }  /* if */
     }  /* if */
