@@ -1642,8 +1642,6 @@ if this is the function declarator in a friend function declaration.
          portable (ARM 8.3).  In C it's an extension that is supported when
          allow_ellipsis_only_param_in_C_mode is TRUE. */
       extra_info->has_ellipsis = TRUE;
-      /* An ellipsis only occurs in prototyped param lists. */
-      extra_info->prototyped = TRUE;
 #if ASM_FUNCTION_ALLOWED
       if (func_info->is_asm_function) {
         pos_error(ec_bad_asm_func_ellipsis, &pos_curr_token);
@@ -1656,6 +1654,8 @@ if this is the function declarator in a friend function declaration.
                        ec_nonstd_ellipsis_only_param, &pos_curr_token);
       }  /* if */
     }  /* if */
+    /* An ellipsis only occurs in prototyped param lists. */
+    extra_info->prototyped = TRUE;
     /* Advance past the ellipsis. */
     (void)get_token();
     any_params = FALSE;
