@@ -1,5 +1,25 @@
 Version 4.1
 
+5/27/09  [EDGcpfe/9846]
+Lowering of class assignment can inadvertently change expression type
+
+In configurations where TARG_REUSE_TAIL_PADDING is set to TRUE, lowering
+inadvertently changed the type of a class assignment expression, which
+could result in various assertion failures in C generating back end
+configurations (or just expressions with incorrect types in other
+configurations).  This regression was introduced in 4.0 and is now fixed.
+For example:
+
+  struct A {
+    double d;
+    char c;
+    A();
+  } a;
+  void f() {
+    0, a = a;   // internal error: dump_expr: bad type on eok_comma
+  }
+
+
 5/26/09  [EDGcpfe/9840]
 Microsoft compatibility: CV-qualified parameter types and virtual overriding
 

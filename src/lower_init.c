@@ -6466,9 +6466,11 @@ expression can be either an lvalue or rvalue and lvalueness is preserved.
         call_node = make_runtime_rout_call("memcpy", &memcpy_routine,
                                            void_star_type(), op1);
         if (!expr->result_is_not_used) {
+          /* Make sure the node has the correct type. */
           call_node = add_cast(call_node, make_pointer_type(expr->type));
-          if (returns_lvalue) {
-            call_node = add_indirection_to_node(call_node);
+          call_node = add_indirection_to_node(call_node);
+          if (!returns_lvalue) {
+            call_node = rvalue_expr_for_lvalue(call_node);
           }  /* if */
         }  /* if */
         check_assertion(expr->is_lvalue == call_node->is_lvalue);
