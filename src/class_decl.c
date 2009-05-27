@@ -8244,7 +8244,8 @@ operator).
   a_type_ptr        rout_type, return_type;
   a_param_type_ptr  params;
 
-  check_assertion(sym->kind == (a_symbol_kind)sk_member_function);
+  check_assertion(sym->kind == (a_symbol_kind)sk_member_function ||
+                  (sym->is_error && sym->kind == (a_symbol_kind)sk_routine));
   rout_type = skip_typerefs(sym->variant.routine.ptr->type);
   check_assertion(rout_type->kind == (a_type_kind)tk_routine);
   params = rout_type->variant.routine.extra_info->param_type_list;
