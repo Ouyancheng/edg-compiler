@@ -1709,9 +1709,12 @@ compare_function_templates.
     if (new_type != NULL && (microsoft_mode || gpp_mode)) {
       /* Normally, a function type will have been considered invalid if
          a parameter or return type was an abstract class type, but in
-         Microsoft and GNU mode, this only applies to top-level routines.
-         So in Microsoft and GNU mode, this check is not done within
-         copy_type_with_substitution, so it is instead done here. */
+         Microsoft and GNU mode, this only applies to top-level routines
+         (i.e., it applies to "void f(abstract)", but not to something
+         like "void f(void (*)(abstract))").  In Microsoft and GNU mode,
+         this check is not done within copy_type_with_substitution (where it
+         would apply to all function types), so it is instead done here for
+         only the top-level type. */
       if (routine_has_abstract_param_or_return_type(new_type)) {
         new_type = NULL;
       }  /* if */
