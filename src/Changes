@@ -36,7 +36,7 @@ Now fixed.
   void f() {
     Abstract* a = 0;
     C c(*a, 1);  // calls #2
-  };
+  }
 
 The Microsoft and g++ compilers do not allow instances of function templates
 to have abstract parameter or return types (as in the example above), but
