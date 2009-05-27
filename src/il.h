@@ -474,8 +474,9 @@ extern a_boolean intf_rout_is_inline_template_function(a_routine_ptr rout);
 #if LOWER_EXTERN_INLINE && !IA64_ABI
 /* When lowering "extern inline" all inline functions are treated as static.
    Those that really are static stay static (actually, they may get
-   externalized if there are exported templates, then lowered to static
-   again), and extern inline functions get lowered to static.  An exception
+   externalized if there are exported templates, or because of
+   one-instantiation-per-object mode, then lowered to static again), and
+   extern inline functions get lowered to static.  An exception
    is made for function definitions marked with dllexport: They must be
    spilled with extern linkage. */
 #define treat_as_static_inline(rout)                                    \

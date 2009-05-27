@@ -2296,6 +2296,7 @@ to it.  The entry is allocated in the file scope memory region.
                                   = FALSE;
   rp->is_defaulted                = FALSE;
   rp->is_deleted                  = FALSE;
+  rp->contains_local_static_variable = FALSE;
 #if CENTERLINE_CHECKING
   rp->avoid_codecenter_warnings = 0;
 #endif /* CENTERLINE_CHECKING */

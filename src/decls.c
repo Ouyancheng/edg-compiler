@@ -5792,10 +5792,23 @@ for use in generating cross-reference output describing this declaration.
 #endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  if (c99_mode && !gcc_mode && is_variable_def &&
-      depth_innermost_function_scope != NO_SCOPE_DEPTH &&
-      variable_ptr->storage_class == (a_storage_class)sc_static) {
-    check_c99_inline_definition(variable_ptr, &locator->source_position);
+  if (variable_ptr->storage_class == (a_storage_class)sc_static &&
+      variable_ptr->source_corresp.is_local_to_function) {
+    /* Local static variable definition. */
+    check_assertion(is_variable_def && innermost_function_scope != NULL);
+    /* Remember that the current function has at least one local static
+       variable. */
+    current_routine_entry()->contains_local_static_variable = TRUE;
+    if (c99_mode && !gcc_mode) {
+      check_c99_inline_definition(variable_ptr, &locator->source_position);
+    }  /* if */
+#if IA64_ABI && NEED_NAME_MANGLING
+    /* Local static variables may need to be mangled.  If two (or more) such
+       variables in a function have the same name, a discriminator must be
+       appended to the mangled name (for the IA-64 ABI).  It is convenient
+       to compute this discriminator at this time. */
+    compute_name_collision_discriminator(sym);
+#endif /* IA64_ABI && NEED_NAME_MANGLING */
   }  /* if */
   if (vla_enabled) {
     if (is_variably_modified_type(type_ptr)) {
@@ -5850,16 +5863,6 @@ for use in generating cross-reference output describing this declaration.
      scope stack is restored, since processing depends on the pending_pragmas
      pointer in the scope stack entry. */
   process_curr_construct_pragmas(sym, (a_statement_ptr)NULL);
-#if IA64_ABI && NEED_NAME_MANGLING
-  if (variable_ptr->storage_class == (a_storage_class)sc_static &&
-      variable_ptr->source_corresp.is_local_to_function) {
-    /* Local static variables may need to be mangled.  If two (or more) such
-       variables in a function have the same name, a discriminator must be
-       appended to the mangled name (for the IA-64 ABI).  It is convenient
-       to compute this discriminator at this time. */
-    compute_name_collision_discriminator(sym);
-  }  /* if */
-#endif /* IA64_ABI && NEED_NAME_MANGLING */
   /* Return symbol and linkage pointers. */
   dps->sym = sym;
   *linkage_ptr = linkage;

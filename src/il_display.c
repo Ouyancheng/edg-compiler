@@ -2875,6 +2875,9 @@ Display the indicated routine.
   if (ptr->is_deleted) {
     disp_boolean("is_deleted", TRUE);
   }  /* if */
+  if (ptr->contains_local_static_variable) {
+    disp_boolean("contains_local_static_variable", TRUE);
+  }  /* if */
 #if MAINTAIN_NEEDED_FLAGS
   disp_boolean("definition_needed", (a_boolean)ptr->definition_needed);
   /* Note: the keep_definition_in_il flag is not displayed, since it is

@@ -9054,6 +9054,55 @@ routine's mangled name.
 
 #endif /* IA64_ABI */
 
+#if LOWER_EXTERN_INLINE
+
+static void lower_extern_inline_routine(a_routine_ptr routine)
+/*
+routine is an extern inline routine, and we're doing lowering of those,
+so convert the routine to a static routine.  Other transformations (e.g.,
+promoting local static variables out as external variables) are done
+elsewhere.
+*/
+{
+#if !IA64_ABI
+  /* Make it a normal static inline routine. */
+  routine->storage_class = (a_storage_class)sc_static;
+  routine->source_corresp.name_linkage = (a_name_linkage_kind)nlk_internal;
+  routine->source_corresp.externalized = FALSE;
+#if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
+  /* Make any associated thunks also static. */
+  { a_routine_ptr trout;
+    for (trout = routine->next;
+         trout != NULL &&
+           trout->overriding_function_for_covariant_return_type == routine;
+         trout = trout->next) {
+      trout->storage_class = (a_storage_class)sc_static;
+      trout->source_corresp.name_linkage = (a_name_linkage_kind)nlk_internal;
+      trout->source_corresp.externalized = FALSE;
+    }  /* for */
+  }
+#endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
+#if ONE_INSTANTIATION_PER_OBJECT
+  if (one_instantiation_per_object) {
+    routine->instantiation_needed_bit_number = 0;
+#if DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES
+    /* In one-instantiation-per-object mode, such lowered extern inline
+       routines can be duplicated in each slice. */
+    routine->source_corresp.duplicate_static_in_instantiation_slices = TRUE;
+#endif /* DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES */
+  }  /* if */
+#endif /* ONE_INSTANTIATION_PER_OBJECT */
+#else /* IA64_ABI */
+  if (!routine->suppress_inline_body) {
+    /* Place the routine in a COMDAT group so that the linker will
+       eliminate duplicate copies. */
+    put_routine_into_comdat_group(routine);
+  }  /* if */
+#endif /* !IA64_ABI */
+} /* lower_extern_inline_routine */
+
+#endif /* LOWER_EXTERN_INLINE */
+
 static void lower_routine(a_routine_ptr routine)
 /*
 Do IL lowering of the indicated routine and everything under it.  This does
@@ -9108,45 +9157,9 @@ not include the function scope memory region, if any.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if LOWER_EXTERN_INLINE
     if (treat_as_extern_inline(routine)) {
-      /* An extern inline routine. */
-      /* Other transformations (e.g., promoting local static variables
-         out as external variables) are done elsewhere. */
-#if !IA64_ABI
-      /* Make it a normal static inline routine. */
-      routine->storage_class = (a_storage_class)sc_static;
-      routine->source_corresp.name_linkage = (a_name_linkage_kind)nlk_internal;
-      routine->source_corresp.externalized = FALSE;
-#if ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
-      /* Make any associated thunks also static. */
-      { a_routine_ptr trout;
-        for (trout = routine->next;
-             trout != NULL &&
-               trout->overriding_function_for_covariant_return_type == routine;
-             trout = trout->next) {
-          trout->storage_class = (a_storage_class)sc_static;
-          trout->source_corresp.name_linkage=(a_name_linkage_kind)nlk_internal;
-          trout->source_corresp.externalized = FALSE;
-        }  /* for */
-      }
-#endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
-#if ONE_INSTANTIATION_PER_OBJECT
-      if (one_instantiation_per_object) {
-        routine->instantiation_needed_bit_number = 0;
-#if DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES
-        /* In one-instantiation-per-object mode, such lowered extern inline
-           routines can be duplicated in each slice. */
-        routine->source_corresp.duplicate_static_in_instantiation_slices= TRUE;
-#endif /* DUPLICATE_SPECIAL_STATICS_IN_INSTANTIATION_SLICES */
-      }  /* if */
-#endif /* ONE_INSTANTIATION_PER_OBJECT */
-#else /* IA64_ABI */
-      if (!routine->suppress_inline_body) {
-        /* Place the routine in a COMDAT group so that the linker will
-           eliminate duplicate copies. */
-        put_routine_into_comdat_group(routine);
-      }  /* if */
-#endif /* !IA64_ABI */
-    } /* if */
+      /* Lower an extern inline routine to static. */
+      lower_extern_inline_routine(routine);
+    }  /* if */
 #endif /* LOWER_EXTERN_INLINE */
 #if IA64_ABI
     if (routine->is_template_function &&
@@ -19179,9 +19192,26 @@ translation units (their statics are picked up after copying).
         externalize_source_correspondence(&rout->source_corresp,
                                           /*is_variable=*/FALSE);
         rout->storage_class = (a_storage_class)sc_unspecified;
+        /* If the routine has any local statics, turn it into a non-inline
+           function because we've missed our chance to promote the
+           local static variables out and externalize them. */
+        if (rout->is_inline && rout->contains_local_static_variable) {
+          set_inline_flag(rout, FALSE);
+        }  /* if */
+#if LOWER_EXTERN_INLINE
+        if (treat_as_extern_inline(rout)) {
+          /* If this now looks like an extern inline routine, and we're
+             lowering those to static, do what we would have done
+             previously. */
+          lower_extern_inline_routine(rout);
+        } else
+#endif /* LOWER_EXTERN_INLINE */
+        /* Do not insert code here. */
+        {
 #if MAINTAIN_NEEDED_FLAGS
-        mark_as_needed((char *)rout, (an_il_entry_kind)iek_routine);
+          mark_as_needed((char *)rout, (an_il_entry_kind)iek_routine);
 #endif /* MAINTAIN_NEEDED_FLAGS */
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* for */

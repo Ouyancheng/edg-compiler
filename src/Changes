@@ -1,5 +1,32 @@
 Version 4.1
 
+5/27/09  [EDGcpfe/7491]
+static inline functions, one-instantiation-per-object, and LOWER_EXTERN_INLINE
+
+In configurations with LOWER_EXTERN_INLINE and ONE_INSTANTIATION_PER_OBJECT
+set to TRUE, and in a compilation where one-instantiation-per-object mode
+is enabled (e.g., by --one_instantiation_per_object), if a template
+instance calls a static inline function, that function was made external
+but the body was not put out anywhere, which caused a link-time failure.
+Now fixed: the function is defined in the primary object file of the
+compilation.  In the following example, "foo" was formerly unresolved
+at link time.
+
+  static inline int foo(void) {
+    int i = 0;
+    // loop to prevent front end inlining
+    for (int j = 0; j < i; j++)
+      i++;
+    return 1;
+  }
+  template <int N> int bar() {
+    return foo();
+  }
+  int main() {
+    return bar<1>();
+  }
+
+
 5/27/09  [EDGcpfe/9846]
 Lowering of class assignment can inadvertently change expression type
 

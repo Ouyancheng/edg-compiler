@@ -5667,9 +5667,9 @@ externalized, use the encoding for the externalized form.
 #if DO_IL_LOWERING
   a_boolean needs_to_be_externalized;
 
-  /* Static entities are potentially referenced from exported templates
-     and therefore get externalized, which gives them a different kind
-     of mangled name. */
+  /* Some static entities are potentially referenced from other translation
+     units (e.g., because of exported templates) and therefore get
+     externalized, which gives them a different kind of mangled name. */
   /* Note that if the name has been externalized already it fails the
      "should be externalized" test, but we still need to generate an
      externalized name here (and the lower-level routine will fetch the
@@ -5721,9 +5721,9 @@ to the point where the base name appears.
   a_boolean                needs_to_be_externalized = FALSE;
 
 #if DO_IL_LOWERING
-  /* Static entities are potentially referenced from exported templates
-     and therefore get externalized, which gives them a different kind
-     of mangled name. */
+  /* Some static entities are potentially referenced from other translation
+     units (e.g., because of exported templates) and therefore get
+     externalized, which gives them a different kind of mangled name. */
   needs_to_be_externalized =
                 routine_should_be_externalized_for_exported_templates(routine);
 #endif /* DO_IL_LOWERING */

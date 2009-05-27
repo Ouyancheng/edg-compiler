@@ -10249,6 +10249,9 @@ typedef struct a_routine {
 			   the "= delete" syntax.  Also TRUE for compiler-
 			   generated functions that should behave as if they
 			   had been declared with that syntax. */
+  a_bit_field	contains_local_static_variable:1;
+			/* TRUE if the function body contains at least one
+			   local static variable. */
   bitfield_to_avoid_codecenter_warnings()
 #if DECL_MODIFIERS_IN_USE
   a_decl_modifier
