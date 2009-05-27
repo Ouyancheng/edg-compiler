@@ -9993,7 +9993,7 @@ is_parenthesized comes in FALSE.
          modified type, which is an error. */
       complete_type = error_type();
     }  /* if */
-    state->type = complete_type;
+    state->type = state->declared_type = complete_type;
   }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (end_pos_set) {
