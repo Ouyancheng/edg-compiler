@@ -3643,6 +3643,72 @@ extension.  For example:
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+static void check_virtual_function_override(
+                                  a_class_def_state_ptr  class_state,
+                                  a_symbol_ptr           overrider_sym,
+                                  a_symbol_ptr           overridden_sym,
+                                  a_base_class_ptr       bcp,
+                                  a_base_class_ptr       return_adjustment_bcp,
+                                  a_source_position_ptr  source_pos)
+/*
+A member function declaration (overrider_sym) was found to match a virtual
+member function (overridden_sym) in a base class (bcp) of the class currently
+being defined (described by class_state).  Check that the overriding is valid,
+and if not issue diagnostics at the given source position.  If appropriate,
+record that overriding in the IL.  If the override involves covariant return
+types, return_adjustment_bcp is the base class entry that was determined by
+return_types_are_override_compatible.
+*/
+{
+  a_type_ptr     class_type = class_state->class_type;
+  a_routine_ptr  rout = overrider_sym->variant.routine.ptr;
+  a_routine_ptr  rp = overridden_sym->variant.routine.ptr;
+
+  rout->is_virtual = TRUE;
+  if (exception_spec_is_less_restrictive(rout->type, rp->type)) {
+    /* The exception specification for the overriding virtual
+       function is less restrictive that that of the overridden
+       function. */
+    report_override_exception_spec_mismatch(overrider_sym, overridden_sym,
+                                            source_pos);
+  }  /* if */
+  check_deleted_function_overrides(overrider_sym, overridden_sym, source_pos);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (rp->sealed) {
+    /* Sealed virtual functions cannot be overridden. */
+    pos_sy_error(ec_override_of_sealed_function, source_pos, overridden_sym);
+  } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  /* Do not insert code here. */
+  {
+    /* Record the virtual function override in the base class entry.
+       It can be used later, e.g., for building a virtual function
+       table. */
+    record_virtual_function_override(bcp, rp, rout,
+                                     return_adjustment_bcp);
+    if (return_adjustment_bcp != NULL) {
+      /* The overriding function has a covariant return type.
+         Set a flag, since some extra processing may be needed
+         later. */
+      rout->covariant_return_virtual_override = TRUE;
+#if IA64_ABI
+      /* If the adjustment will always be trivial, we can reuse the
+         virtual function slot from the base class.  However, we
+         don't know that until the class layout algorithm has
+         determined the base class offsets. */
+      record_covariant_override(class_state, bcp,
+                                return_adjustment_bcp, rp, rout);
+#endif /* IA64_ABI */
+    } else if (shares_virtual_function_info(class_type, bcp)) {
+      /* The virtual function table is being shared and there
+         is no base-class adjustment on the return type, so we
+         can use the same virtual function number. */
+      rout->virtual_function_number = rp->virtual_function_number;
+    }  /* if */
+  }  /* if */
+}  /* check_virtual_function_override */
+
+
 #if !MICROSOFT_EXTENSIONS_ALLOWED
 /*ARGSUSED*/  /* func_info is not used in some configurations. */
 #endif /* !MICROSOFT_EXTENSIONS_ALLOWED */
@@ -3702,29 +3768,11 @@ Any diagnostics are issued at the given position.
         rp = sym->variant.routine.ptr;
         if (rp->is_virtual) {
           /* Base class destructor is virtual. */
-          if (exception_spec_is_less_restrictive(rout->type, rp->type)) {
-            /* The exception specification for the overriding virtual function
-               is less restrictive that that of the overridden function. */
-            report_override_exception_spec_mismatch(rout_sym, sym, source_pos);
-          }  /* if */
+          check_virtual_function_override(class_state, rout_sym, sym, bcp,
+                                          (a_base_class_ptr)NULL, source_pos);
 #if MICROSOFT_EXTENSIONS_ALLOWED
           override_modifier_okay = TRUE;
-          if (rp->sealed) {
-            /* Sealed virtual functions cannot be overridden. */
-            pos_sy_error(ec_override_of_sealed_function, source_pos, sym);
-          } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-          /* Do not insert code here. */
-          {
-            rout->is_virtual = TRUE;
-            record_virtual_function_override(bcp, rp, rout,
-                                             (a_base_class_ptr)NULL);
-            if (shares_virtual_function_info(class_type, bcp)) {
-              /* The virtual function table is being shared, so we must use the
-                 identical number. */
-              rout->virtual_function_number = rp->virtual_function_number;
-            }  /* if */
-          }  /* if */
         }  /* if */
       }  /* if */
     } else {
@@ -3846,57 +3894,19 @@ Any diagnostics are issued at the given position.
               goto next_base_class;                                       
             }  /* if */
             /* Match */
-            rout->is_virtual = TRUE;
-            if (exception_spec_is_less_restrictive(rout->type, rp->type)) {
-              /* The exception specification for the overriding virtual
-                 function is less restrictive that that of the overridden
-                 function. */
-              report_override_exception_spec_mismatch(rout_sym, sym,
-                                                      source_pos);
-            }  /* if */
-            check_deleted_function_overrides(rout_sym, sym, source_pos);
+            check_virtual_function_override(class_state, rout_sym, sym, bcp,
+                                            return_adjustment_bcp, source_pos);
 #if MICROSOFT_EXTENSIONS_ALLOWED
             override_modifier_okay = TRUE;
-            if (rp->sealed) {
-              /* Sealed virtual functions cannot be overridden. */
-              pos_sy_error(ec_override_of_sealed_function, source_pos, sym);
-            } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-            /* Do not insert code here. */
-            {
-              /* Record the virtual function override in the base class entry.
-                 It can be used later, e.g., for building a virtual function
-                 table. */
-              record_virtual_function_override(bcp, rp, rout,
-                                               return_adjustment_bcp);
-              if (return_adjustment_bcp != NULL) {
-                /* The overriding function has a covariant return type.
-                   Set a flag, since some extra processing may be needed
-                   later. */
-                rout->covariant_return_virtual_override = TRUE;
-#if IA64_ABI
-                /* If the adjustment will always be trivial, we can reuse the
-                   virtual function slot from the base class.  However, we
-                   don't know that until the class layout algorithm has
-                   determined the base class offsets. */
-                record_covariant_override(class_state, bcp,
-                                          return_adjustment_bcp, rp, rout);
-#endif /* IA64_ABI */
-              } else if (shares_virtual_function_info(class_type, bcp)) {
-                /* The virtual function table is being shared and there
-                   is no base-class adjustment on the return type, so we
-                   can use the same virtual function number. */
-                rout->virtual_function_number = rp->virtual_function_number;
-              }  /* if */
-              /* If this declaration amounts to an override of a member of an
-                 overload set, record some information about it in the
-                 partial-override-registry.  This allows for a diagnostic later
-                 if the rest of the members are not also overridden. */
-              if (!rout->compiler_generated) {
-                update_override_registry(
-                                      registry_ptr, sym_for_override_registry,
-                                      (a_symbol_ptr)NULL, bcp);
-              }  /* if */
+            /* If this declaration amounts to an override of a member of an
+               overload set, record some information about it in the
+               partial-override-registry.  This allows for a diagnostic later
+               if the rest of the members are not also overridden. */
+            if (!rout->compiler_generated) {
+              update_override_registry(
+                                    registry_ptr, sym_for_override_registry,
+                                    (a_symbol_ptr)NULL, bcp);
             }  /* if */
             goto next_base_class;                                       
           }  /* for */
