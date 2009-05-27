@@ -105,6 +105,10 @@ typedef unsigned long a_handle_number;
 			/* Number in the region table that identifies an
 			   entry in the object address table or in the array
 			   table. */
+#else /* !GENERATE_EH_TABLES */
+typedef int a_handle_number;
+			/* Unused in this configuration, but passed as an
+			   (unused) argument in some cases. */
 #endif /* GENERATE_EH_TABLES */
 
 /*
