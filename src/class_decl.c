@@ -8261,9 +8261,11 @@ operator).
   params = rout_type->variant.routine.extra_info->param_type_list;
   /* Assignment operators can have only one parameter. */
   check_assertion(params->next == NULL);
-  /* The return type must be X& (where X is the parent type). */
+  /* The operator cannot be a const or volatile member, and the return type
+     must be X& (where X is the parent type). */
   return_type = make_reference_type(class_type);
-  if (identical_types(return_type, rout_type->variant.routine.return_type)) {
+  if (rout_type->variant.routine.extra_info->qualifiers == TQ_NONE &&
+      identical_types(return_type, rout_type->variant.routine.return_type)) {
     /* The parameter type must be X& or X const& (although the latter requires
        that bases and members allow for such an assignment).  Try X& first. */
     a_type_ptr  param_type = return_type;
