@@ -1,5 +1,15 @@
 Version 4.1
 
+5/28/09  [EDGcpfe/7681]
+C++0x: __STDC_HOSTED__
+
+In C++0x mode the front end now predefines the macro __STDC_HOSTED__ to the
+value of the STDC_HOSTED configuration macro, as it previously did in C99
+mode.  This change was specified in paper N1653, which was adopted at the
+October, 2005 meeting of the C++ Standard Committee in Mont Tremblant,
+Canada.
+
+
 5/27/09  [EDGcpfe/9839]
 Incorrect deduction of "auto*" in new-expressions
 

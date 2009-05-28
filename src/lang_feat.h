@@ -1397,9 +1397,10 @@ EXTERN a_boolean
 			   C99 standard. */
 
 /*
-Flag that is TRUE if the C99 predefined macro __STDC_HOSTED__ should be
-set to 1 to indicate a hosted implementation.  If it is FALSE, the macro
-is predefined to 0 to indicate a non-hosted implementation.
+Flag that is TRUE if the C99 and C++ (beginning with C++0x) predefined
+macro __STDC_HOSTED__ should be set to 1 to indicate a hosted
+implementation.  If it is FALSE, the macro is predefined to 0 to indicate a
+non-hosted implementation.
 */
 #ifndef STDC_HOSTED
 #define STDC_HOSTED 1

@@ -7199,7 +7199,7 @@ static void init_c99_predefined_macros(void)
 Enter symbols for the C99 predefined macros.
 */
 {
-  /* Predefined the C99 __STDC_HOSTED__ macro based on the STDC_HOSTED
+  /* Predefine the C99 __STDC_HOSTED__ macro based on the STDC_HOSTED
      configuration flag. */
   (void)enter_predef_macro(conv_unsigned_long_to_str(
                                                    (unsigned long)STDC_HOSTED),
@@ -7658,6 +7658,15 @@ command line -D options.
                              /*ref_suppresses_pch_file=*/FALSE);
     if (any_cfront_mode()) {
       (void)enter_predef_macro("1", "c_plusplus",
+                               /*cannot_be_redefined=*/TRUE,
+                               /*ref_suppresses_pch_file=*/FALSE);
+    }  /* if */
+    if (cpp0x_mode) {
+      /* Predefine the __STDC_HOSTED__ macro based on the STDC_HOSTED
+         configuration flag. */
+      (void)enter_predef_macro(conv_unsigned_long_to_str(
+                                                   (unsigned long)STDC_HOSTED),
+                               "__STDC_HOSTED__",
                                /*cannot_be_redefined=*/TRUE,
                                /*ref_suppresses_pch_file=*/FALSE);
     }  /* if */
