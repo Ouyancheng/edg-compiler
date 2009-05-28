@@ -7069,7 +7069,8 @@ be embedded in other mangled names.
        start the mangled name with the externalizing prefix. */
     if (routine->source_corresp.externalized ||
         routine_should_be_externalized_for_exported_templates(routine)) {
-      start_externalized_name(&routine->source_corresp, iek_routine, &mctl);
+      start_externalized_name(&routine->source_corresp, /*is_variable=*/FALSE,
+                              &mctl);
       /* Note that no matching call to end_externalized_name is performed
          because it's a no-op in the IA-64 ABI. */
     }  /* if */
