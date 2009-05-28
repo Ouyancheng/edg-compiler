@@ -2467,10 +2467,8 @@ If class_type has an associated trivial default constructor, record a
 reference to it -- checking its accessibility, updating the cross-reference
 listing if appropriate, and assuring that it is defined, which is done (even
 though the function is not actually called) in case the definition has side
-effects.  If class_type does have a trivial default constructor (which
-should never be the case for PODs, for classes with any user-declared
-constructors, or for classes with an implicitly declared nontrivial default
-constructor), return TRUE.
+effects.  If class_type does have a trivial default constructor representation
+return TRUE.
 */
 {
   a_symbol_ptr   ctor_sym;

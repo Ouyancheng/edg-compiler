@@ -780,8 +780,12 @@ typedef struct a_class_symbol_supplement {
 			     class X { const int i; };
 			     X x;
 			   X is not a POD (private member) and the implicit
-			   definition of X::X() is ill-formed.  Note: when
-			   an implicitly declared default constructor is
+			   definition of X::X() is ill-formed.  This may also
+			   point to a defaulted (and hence user-declared)
+			   default constructor that is trivial (in that case,
+			   the constructor also appears on the list pointed to
+			   by constructor).  NULL in all other cases.  Note:
+			   when an implicitly declared default constructor is
 			   nontrivial, it appears on the constructor list for
 			   the class. */
   a_symbol_ptr	destructor;
