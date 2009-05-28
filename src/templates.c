@@ -7471,8 +7471,9 @@ a pointer over a reference type or creating an array of references.
         } else {
           /* Construct a new type.  The new class of which a member type must
              be a class type or a template parameter type. */
-          if (!is_class_struct_union_type(tp2) &&
-              !is_template_param_type(tp2)) {
+          if ((!is_class_struct_union_type(tp2) &&
+               !is_template_param_type(tp2)) ||
+              is_void_type(tp) || is_reference_type(tp)) {
             /* The new type would be invalid. */
             *copy_error = TRUE;
             new_type = NULL;

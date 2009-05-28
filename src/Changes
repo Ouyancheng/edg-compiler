@@ -1,5 +1,23 @@
 Version 4.1
 
+5/28/09  [EDGcpfe/9785]
+Pointer-to-reference-member constants
+
+The front end previously failed to diagnose pointer-to-member constants that
+referred to reference members.  This often resulted in an internal error in
+scan_ptr_to_member_operator (expr.c) when the constant was used in any way.
+For example:
+
+  struct S { S(); int &x; };
+  int main() {
+    S().*(&S::x);  // Previously resulted in an internal error.  Now, a
+  }                // diagnostic is emitted on "&S::x".
+
+Similar problems could occur when such pointer-to-member constants appear in
+the deduction of template parameters or auto type specifiers.  This is now
+fixed.
+
+
 5/28/09  [EDGcpfe/7681]
 C++0x: __STDC_HOSTED__
 

@@ -8685,6 +8685,8 @@ building a type from nested declarators outward.  class_type must be non-NULL.)
   }  /* if */
   /* Check if this is an incomplete type being formed. */
   if (member_type != NULL) {
+    check_assertion(!is_void_type(member_type) &&
+                    !is_reference_type(member_type));
     /* See if a pointer-to-member type such as the one being requested has
        already been allocated.  If one was allocated, a pointer to it is
        stored in the based_types list of the member type, and the pointer

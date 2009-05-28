@@ -8285,7 +8285,11 @@ an error.
   if (base_member_sym->kind == (a_symbol_kind)sk_field) {
     /* Pointer to nonstatic data member. */
     a_field_ptr field = base_member_sym->variant.field.ptr;
-    if (field->is_bit_field) {
+    if (is_reference_type(field->type)) {
+      pos_ty_error(ec_bad_member_type_in_ptr_to_member, position, field->type);
+      make_error_operand(result);
+      goto done;
+    } else if (field->is_bit_field) {
       /* Cannot make a pointer-to-member of a bit field. */
       pos_error(ec_address_of_bit_field, position);
     }  /* if */
@@ -8312,6 +8316,7 @@ an error.
     force_constant_to_be_dependent(&constant);
   }  /* if */
   make_constant_operand(&constant, result);
+done:
   result->position = *position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   result->end_position = *end_position;
