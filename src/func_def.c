@@ -2068,6 +2068,7 @@ operator routine or do bitwise assignment.
 */
 {
   a_type_ptr                     class_type, tp, array_type;
+  a_routine_ptr                  rout;
   a_routine_type_supplement_ptr  rtsp;
   a_statement_ptr                sp;
   a_statement                    head_of_statement_list;
@@ -2085,8 +2086,8 @@ operator routine or do bitwise assignment.
   /* The source variable of the copy is the first parameter on the parameters
      list for the routine.  There must be exactly one parameter for an
      assignment function. */
-  rtsp = (skip_typerefs(scope->variant.routine.ptr->type))->
-                                                  variant.routine.extra_info;
+  rout = scope->variant.routine.ptr;
+  rtsp = (skip_typerefs(rout->type))->variant.routine.extra_info;
   ptp = rtsp->param_type_list;
   source_var = implicitly_generated_param_variable(ptp->type);
   source_var->assoc_param_type = ptp;
@@ -2100,8 +2101,7 @@ operator routine or do bitwise assignment.
   head_of_statement_list.next = NULL;
   sp = &head_of_statement_list;
   /* See if a bitwise copy is all that is called for. */
-  if (symbol_supplement_for_class(class_type)->
-                   assignment_by_bitwise_copy_allowed) {
+  if (rout->is_trivial_copy_function) {
     /* Yes.  (Then why are we defining a routine?  Probably because the
        address of the default assignment operator was taken, forcing the
        actual creation of the routine.) */

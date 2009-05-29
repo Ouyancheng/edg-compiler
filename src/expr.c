@@ -1190,9 +1190,7 @@ source position is after the closing parenthesis of the argument list.
            beta. */
         is_temp_after_conv = TRUE;
         optimized = TRUE;
-      } else if (routine->compiler_generated &&
-                 symbol_supplement_for_class(class_type)->
-                                        construction_by_bitwise_copy_allowed) {
+      } else if (routine->is_trivial_copy_function) {
         /* The constructor selected is a bitwise copy constructor.  A move
            can be used instead of a call.  The routine is not marked as
            called.  No access checking is needed because a generated copy
