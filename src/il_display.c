@@ -2680,6 +2680,9 @@ Display the indicated routine.
       disp_boolean("is_trivial_default_constructor", TRUE);
     }  /* if */
   }  /* if */
+  if (ptr->is_trivial_copy_function) {
+    disp_boolean("is_trivial_copy_function", TRUE);
+  }  /* if */
 #if ASSIGNMENT_TO_THIS_ALLOWED
   if (ptr->assignment_to_this_done) {
     disp_boolean("assignment_to_this_done", TRUE);

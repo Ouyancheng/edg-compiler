@@ -12317,6 +12317,42 @@ qualified parent class type) and qualifiers describes the qualifiers in X.
 }  /* generate_assignment_operator */
 
 
+static void mark_trivial_copy_functions(a_class_def_state_ptr  class_state)
+/*
+Set the is_trivial_copy_function flag to TRUE for every trivial copy
+constructor routine or trivial copy assignment routine of the class described
+by class_state.  (These are compiler-generated or explicitly-defaulted
+member functions.)
+*/
+{
+  a_type_ptr  class_type = class_state->class_type;
+  a_class_symbol_supplement_ptr
+              cssp = symbol_supplement_for_class(class_type);
+
+  if (cssp->assignment_by_bitwise_copy_allowed ||
+      cssp->construction_by_bitwise_copy_allowed) {
+    /* Trivial copying is possible: Traverse the member to find defaulted or
+       compiler-generated copy constructors and copy assignment operators. */
+    a_routine_ptr  rp = class_type_supp(class_type)->assoc_scope->routines;
+    for (; rp != NULL; rp = rp->next) {
+      if (rp->compiler_generated || rp->is_defaulted) {
+        a_type_qualifier_set  tqs;
+        if (rp->special_kind == (a_special_function_kind)sfk_constructor &&
+            is_copy_constructor(rp, (a_type*)NULL, &tqs,
+                                /*is_declarative_context=*/TRUE)) {
+          rp->is_trivial_copy_function =
+                                   cssp->construction_by_bitwise_copy_allowed;
+        } else if (rp->special_kind == (a_special_function_kind)sfk_operator &&
+                   rp->variant.opname_kind == (an_opname_kind)onk_assign) {
+          rp->is_trivial_copy_function =
+                                     cssp->assignment_by_bitwise_copy_allowed;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* mark_trivial_copy_functions */
+
+
 static void check_special_member_functions(a_type_ptr            class_type,
                                            a_class_def_state_ptr class_state)
 
@@ -12445,6 +12481,7 @@ The routine body is not generated until it is known to be needed.
                                    asgn_qualifiers);
     }  /* if */
   }  /* if */
+  mark_trivial_copy_functions(class_state);
   db_exit();
 }  /* check_special_member_functions */
 

@@ -9884,10 +9884,12 @@ typedef struct a_routine {
 			   special_kind is sfk_constructor) and the "explicit"
 			   keyword appeared in its declaration.  C++ only. */
   a_bit_field	is_trivial_default_constructor:1;
-			/* TRUE if this routine is a compiler-generated
-			   trivial default constructor.  C++ only; front-end
-			   use only (i.e., should never be TRUE for routine
-			   entries that appear in the IL). */
+			/* TRUE if this routine is a trivial default
+			   constructor (implicitly generated or defaulted).
+			   C++ only. */
+  a_bit_field	is_trivial_copy_function:1;
+			/* TRUE if this routine is a trivial copy constructor
+			   or a trivial copy assignment operator.  C++ only. */
 #if ASSIGNMENT_TO_THIS_ALLOWED
   a_bit_field	assignment_to_this_done:1;
 			/* TRUE if an assignment to "this" (an anachronism)
