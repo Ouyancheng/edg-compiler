@@ -786,6 +786,18 @@ this includes incomplete class, struct, or union types.
 }  /* is_class_struct_union_type */
 
 
+a_boolean is_real_class_type(a_type_ptr  tp)
+/*
+Return TRUE if the given type is a class, struct, or union type, but not a
+nonreal class template instance.
+*/
+{
+  tp = skip_typerefs(tp);
+  return is_class_struct_union(tp) &&
+         !tp->variant.class_struct_union.is_nonreal_class;
+}  /* is_real_class_type */
+
+
 a_boolean is_union_type(a_type_ptr tp)
 /*
 Return TRUE if the given type is a union type.

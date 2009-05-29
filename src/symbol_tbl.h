@@ -4337,6 +4337,17 @@ extern a_boolean f_has_nontrivial_constructor(
 #define has_nontrivial_constructor(cssp)                              \
   ((cssp)->constructor != NULL && f_has_nontrivial_constructor(cssp))
 
+/* Return TRUE if the class has a trivial default constructor (implicitly
+   declared or defaulted), and no nontrivial default constructor.  (Note
+   that a class could have a defaulted trivial default constructor, and one
+   or more nontrivial default constructors that have parameters with default
+   arguments.  This macro returns FALSE for such classes; default
+   initialization is ambiguous in such cases. */
+#define has_trivial_default_constructor(cssp)                          \
+  ((cssp)->is_POD ||                                                  \
+   (!(cssp)->has_nontrivial_default_constructor &&                    \
+    (cssp)->trivial_default_constructor != NULL))
+
 /* Return TRUE if a symbol is a destructor symbol. */
 #define is_destructor_symbol(sym)                                     \
   is_special_function_symbol(sym,                                     \

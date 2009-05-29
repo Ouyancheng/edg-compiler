@@ -673,11 +673,11 @@ typedef struct a_class_def_state {
   a_bit_field	last_field_is_incomplete_array:1;
 			/* TRUE if the most recently declared field in a
 			   non-union is an incomplete array type. */
-  a_bit_field	ctors_are_nontrivial:1;
-			/* TRUE if the implied constructors (if any) must be
-			   nontrivial because the class has virtual base
-			   classes, virtual functions, or base classes or
-			   members with nontrivial constructors. */
+  a_bit_field	default_ctor_is_nontrivial:1;
+			/* TRUE if the implied default constructor (if any)
+			   must be nontrivial because the class has virtual
+			   base classes, virtual functions, or base classes or
+			   members with nontrivial default constructor. */
   a_bit_field	member_destruction_required:1;
 			/* TRUE if the class has a direct member requiring
 			   destruction. */
@@ -735,7 +735,7 @@ class being defined.
   cdsp->is_nonreal_instantiation = FALSE;
   cdsp->is_local_class = FALSE;
   cdsp->last_field_is_incomplete_array = FALSE;
-  cdsp->ctors_are_nontrivial = FALSE;
+  cdsp->default_ctor_is_nontrivial = FALSE;
   cdsp->member_destruction_required = FALSE;
   cdsp->base_destruction_required = FALSE;
   cdsp->ms_parenthesized_member = FALSE;
@@ -5800,13 +5800,13 @@ or struct definition.  The syntax is
           }  /* if */
         }  /* if */
       }  /* for */
-      /* The implied constructors of the current class will be nontrivial
-         if any of its base classes is virtual or has a nontrivial constructor
-         itself.  The current class requires a destructor if any of its base
-         classes has a destructor.  Record such requirements, if any, at this
-         time. */
-      if (is_virtual || has_nontrivial_constructor(bcp_cssp)) {
-        class_state->ctors_are_nontrivial = TRUE;
+      /* The implied default constructor of the current class will be
+         nontrivial if any of its base classes is virtual or has a nontrivial
+         default constructor itself.  The current class requires a destructor
+         if any of its base classes has a destructor.  Record such
+         requirements, if any, at this time. */
+      if (is_virtual || !has_trivial_default_constructor(bcp_cssp)) {
+        class_state->default_ctor_is_nontrivial = TRUE;
       }  /* if */
       if (has_nontrivial_destructor(bcp_cssp)) {
         class_state->base_destruction_required = TRUE;
@@ -8932,8 +8932,9 @@ implicitly declared member functions.
       } else if (check_for_virtual_function(is_virtual, sym, class_type,
                                             class_state, func_info,
                                             &locator->source_position)) {
-        /* Classes with virtual functions require nontrivial constructors. */
-        class_state->ctors_are_nontrivial = TRUE;
+        /* Classes with virtual functions require nontrivial default
+           constructors. */
+        class_state->default_ctor_is_nontrivial = TRUE;
         /* Classes with virtual functions cannot be constructed or assigned
            by bitwise copying. */
         cssp->construction_by_bitwise_copy_allowed = FALSE;
@@ -11559,11 +11560,12 @@ be entered.
         if (member_cssp->any_ref_member) cssp->any_ref_member = TRUE;
         /* If a nonstatic data member of a class is itself a class object (or
            an array whose elements are class objects) and the subobject has a
-           nontrivial constructor and/or destructor, the containing class is
-           also required to have a nontrivial constructor and/or destructor.
-           Do the check at this time, and record the requirement, if any. */
+           nontrivial default constructor and/or destructor, the containing
+           class is also required to have a nontrivial default constructor
+           and/or destructor.  Do the check at this time, and record the
+           requirement, if any. */
         if (has_nontrivial_constructor(member_cssp)) {
-          class_state->ctors_are_nontrivial = TRUE;
+          class_state->default_ctor_is_nontrivial = TRUE;
         }  /* if */
         if (has_nontrivial_destructor(member_cssp)) {
           class_state->member_destruction_required = TRUE;
@@ -12200,7 +12202,7 @@ by class_state.  If is_deleted is TRUE, make that constructor "deleted".
   initialize_member_decl_info(&decl_info,
                               &class_type->source_corresp.decl_position);
   decl_info.is_constructor = TRUE;
-  if (!class_state->ctors_are_nontrivial && !is_deleted) {
+  if (!class_state->default_ctor_is_nontrivial && !is_deleted) {
     /* We are generating a declaration of a trivial default constructor.
        Since it will never actually be called it gets special handling. */
     decl_info.is_trivial_default_constructor = TRUE;
@@ -12230,7 +12232,7 @@ definition described by class_state.
        been processed.  If not, make the necessary adjustments. */
     a_symbol_ptr  default_ctor = cssp->trivial_default_constructor;
     check_assertion(default_ctor->variant.routine.ptr->is_defaulted);
-    if (class_state->POD_ruled_out) {
+    if (class_state->default_ctor_is_nontrivial) {
       cssp->trivial_default_constructor = NULL;
       cssp->has_nontrivial_default_constructor = TRUE;
       default_ctor->variant.routine.ptr

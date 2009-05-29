@@ -670,15 +670,15 @@ initialization.
       break;
     } else {
       if (is_array_type(tp)) tp = underlying_array_element_type(tp);
-      tp = skip_typerefs(tp);
-      if (is_immediate_class_type(tp)) {
+      if (is_real_class_type(tp)) {
         /* Field is a class type (or an array of class-type elements). */
+        tp = skip_typerefs(tp);
         cssp = symbol_supplement_for_class(tp);
         if (C_mode() && tp->variant.class_struct_union.any_const_member) {
           /* In C mode, the field's type is a struct with a const field. */
           init_info->any_uninitialized_const_or_ref_member = TRUE;
           break;
-        } else if (has_nontrivial_constructor(cssp) ||
+        } else if (!has_trivial_default_constructor(cssp) ||
                    (exceptions_enabled && has_nontrivial_destructor(cssp))) {
           ctor_found = TRUE;
           break;
@@ -740,10 +740,10 @@ routine is called in C++ mode only.
       number_of_uninitialized_elements *=
                                     array_element_count(tp, element_type);
     }  /* if */
-    if (is_class_struct_union_type(element_type)) {
+    if (is_real_class_type(element_type)) {
       /* It is an array of class objects. */
       cssp = symbol_supplement_for_class(element_type);
-      trivial_ctor = !has_nontrivial_constructor(cssp);
+      trivial_ctor = has_trivial_default_constructor(cssp);
     } else {
       cssp = NULL;
     }  /* if */
@@ -866,12 +866,13 @@ This routine is called in C++ mode only.
       } else {
         array_type = NULL;
       }  /* if */
-      if (is_immediate_class_type(tp)) {
+      if (is_immediate_class_type(tp) &&
+          !is_template_param_or_nonreal_class_type(tp)) {
         cssp = symbol_supplement_for_class(tp);
       } else {
         cssp = NULL;
       }  /* if */
-      if (cssp == NULL || !has_nontrivial_constructor(cssp)) {
+      if (cssp == NULL || has_trivial_default_constructor(cssp)) {
         /* Zero-initialize the field and then continue looping.  There is
            a field later in the list for which the default constructor has to
            be called, but we can't leave this field uninitialized. */
@@ -1788,9 +1789,7 @@ multiple designators are handled by the recursion in get_initializer.
 
   start_pos = pos_curr_token;
   *field = NULL;
-  if (!is_class_struct_union_type(context->type) ||
-      skip_typerefs(context->type)
-                              ->variant.class_struct_union.is_nonreal_class) {
+  if (!is_real_class_type(context->type)) {
     /* An attempt to use a field designator in a non-struct/union context. */
     handle_invalid_designator_context(context);
     okay = FALSE;
@@ -2206,14 +2205,12 @@ this function points to a tree that includes a dynamic-init entry.
        cannot be omitted if element values are specified). */
     if (curr_token == tok_lbrace && context.pending_init_con == NULL) {
       /* Make sure it's truly an aggregate and not some non-aggregate class: */
-      if (is_class_struct_union_type(context.type) &&
+      /* For a nonreal class, we cannot relate the initializers to the inner
+         type structure of that class, but that is handled correctly in what
+         follows. */
+      if (is_real_class_type(context.type) &&
           !symbol_supplement_for_class(context.type)->is_class_aggregate) {
-        if (skip_typerefs(context.type)
-                              ->variant.class_struct_union.is_nonreal_class) {
-          /* For a nonreal class, we cannot relate the initializers to the
-             inner type structure of that class, but that is handled correctly
-             in what follows. */
-        } else if (gpp_mode && is_prototype_instantiation_context()) {
+        if (gpp_mode && is_prototype_instantiation_context()) {
           /* The g++ compiler treats all types in prototype instantiations as
              "unknown". */
           context.type = type_of_unknown_templ_param_nontype;
@@ -3468,12 +3465,9 @@ returned set to TRUE.
      variable will be an error constant (or a dynamic initializer pointing
      to an error constant. */
   init_err = FALSE;
-  if (!C_mode() && is_class_struct_union_type(vp_type)) {
+  if (!C_mode() && is_real_class_type(vp_type)) {
     cssp = symbol_supplement_for_class(vp_type);
-    if (curr_token == tok_lbrace &&
-        !(cssp->is_class_aggregate ||
-          skip_typerefs(vp_type)->
-                               variant.class_struct_union.is_nonreal_class)) {
+    if (curr_token == tok_lbrace && !cssp->is_class_aggregate) {
       /* This is an attempt to do C-style aggregate initialization on a class
          object for which there is a constructor, nonpublic members, base
          classes, or virtual functions.  In such cases a constructor must be
@@ -4434,12 +4428,14 @@ initialized.  These are addressed in the course of the processing.
             tp = underlying_array_element_type(tp);
             tp = skip_typerefs(tp);
           }  /* if */
-          if (is_class_struct_union_type(tp)) {
+          if (is_real_class_type(tp)) {
             cssp = symbol_supplement_for_class(tp);
-            if (has_nontrivial_constructor(cssp)) {
+            if (!has_trivial_default_constructor(cssp)) {
               /* If the mem-initializer is omitted for this field, a
                  default constructor will have to be called. */
-            } else if (cssp->trivial_default_constructor != NULL) {
+            } else if (cssp->trivial_default_constructor != NULL &&
+                       !cssp->trivial_default_constructor
+                            ->variant.routine.ptr->is_defaulted) {
               /* If the mem-initializer is omitted for this field, the
                  definition of the trivial default constructor will be
                  generated, though only in case there are diagnostics. */
@@ -5284,9 +5280,9 @@ scan_paren:
                partly because it's not well defined what should happen when
                const and non-const members are mixed, */
           } else if (is_const_qualified && cssp != NULL &&
-                     has_nontrivial_constructor(cssp)) {
+                     cssp->has_user_provided_default_constructor) {
             /* A const qualified field may be initialized without an explicit
-               initializer it is of class type and there is a default
+               initializer if it is of class type and there is a default
                constructor for the class. */
           } else {
              /* There may be more than one uninitialized const or ref field,
@@ -5329,8 +5325,8 @@ scan_paren:
             (void)reference_to_trivial_default_constructor(tp, &err_pos);
           }  /* if */
         }  /* if */
-        if (cssp == NULL ||
-            (!has_nontrivial_constructor(cssp) &&
+        if (cssp == NULL || is_template_param_or_nonreal_class_type(tp) ||
+            (has_trivial_default_constructor(cssp) &&
              (!exceptions_enabled || cssp->has_trivial_destructor))) {
           /* This constructor initializer entry is not really needed.  It may
              be the result of an empty initializer on a field or it may be
@@ -5343,14 +5339,14 @@ scan_paren:
           }  /* if */
           continue;
         }  /* if */
-        if (!has_nontrivial_constructor(cssp)) {
+        if (has_trivial_default_constructor(cssp)) {
           rp = NULL;
         } else {
           rp = select_default_constructor(tp, &err_pos, object_class_type,
                                           /*evaluated=*/TRUE);
         }  /* if */
         if (rp == NULL) {
-          /* Error in trying to find a default constructor. */
+          /* No constructor to call. */
           dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
         } else {
           /* A default constructor does exist.  Generate the dynamic init
