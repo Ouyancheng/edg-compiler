@@ -3969,13 +3969,16 @@ do_argument_again:
                  empty (see test for empty argument below). */
             } else {
               if (!too_many_args_diag_given) {
+                an_error_severity severity;
                 if (pcc_preprocessing_mode || SVR4_C_mode || microsoft_mode) {
                   /* In pcc, SVR4 C, and Microsoft mode, this is only a
                      warning. */
-                  warning(ec_too_many_macro_args);
+                  severity = es_warning;
                 } else {
-                  error(ec_too_many_macro_args);
+                  severity = es_discretionary_error;
                 }  /* if */
+                pos_sy_diagnostic(severity, ec_too_many_macro_args, &start_pos,
+                                  macro_symbol);
                 too_many_args_diag_given = TRUE;
               }  /* if */
             }  /* if */
@@ -4392,7 +4395,7 @@ end_arg_expansion:;
           } else {
             sev = es_discretionary_error;
           }  /* if */
-          diagnostic(sev, ec_too_few_macro_args);
+          sym_diagnostic(sev, ec_too_few_macro_args, macro_symbol);
         }  /* if */
         /* Set the rest of the arguments to null (omitted, not empty)
            strings. */
