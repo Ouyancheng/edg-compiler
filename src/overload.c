@@ -11327,6 +11327,7 @@ select_best_function:
             /* Check for the builtin operator=. */
             if (kind == (an_opname_kind)onk_assign &&
                 function_symbol->kind == (a_symbol_kind)sk_member_function &&
+                function_symbol->variant.routine.ptr->compiler_generated &&
                 function_symbol->variant.routine.ptr->
                                                     is_trivial_copy_function) {
               /* This function is the default bitwise copy assignment

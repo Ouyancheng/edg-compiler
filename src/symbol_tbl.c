@@ -6971,11 +6971,7 @@ that is not a trivial default constructor and not a trivial copy constructor.
          default constructor or a trivial copy constructor. */
       if (rp->is_trivial_default_constructor) {
         /* Continue searching. */
-      } else if (cssp->construction_by_bitwise_copy_allowed &&
-                 is_copy_constructor(
-                             rp, /*class_of_which_a_member*/(a_type_ptr)NULL,
-                             /*qualifiers=*/(a_type_qualifier_set*)NULL,
-                             /*is_declarator_context=*/TRUE)) {
+      } else if (rp->is_trivial_copy_function) {
         /* A trivial copy constructor: Continue searching. */
       } else {
         result = TRUE;
