@@ -21,9 +21,7 @@ in the output with --macro_positions_in_diagnostics formerly pointed to the
 "3" in the definition of "foo2" (the source position of the text being
 passed as the extra argument).  This has now been changed to point to "foo"
 in the definition of "foo1".  The name of the macro is now also included
-when too few arguments are supplied in a macro invocation; the caret in
-this case continues to point to the closing parenthesis of the macro
-invocation with --macro_positions_in_diagnostics.
+when too few arguments are supplied in a macro invocation.
 
 
 5/28/09  [EDGcpfe/9785]
