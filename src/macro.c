@@ -3970,6 +3970,7 @@ do_argument_again:
             } else {
               if (!too_many_args_diag_given) {
                 an_error_severity severity;
+                a_source_position *pos;
                 if (pcc_preprocessing_mode || SVR4_C_mode || microsoft_mode) {
                   /* In pcc, SVR4 C, and Microsoft mode, this is only a
                      warning. */
@@ -3977,7 +3978,21 @@ do_argument_again:
                 } else {
                   severity = es_discretionary_error;
                 }  /* if */
-                pos_sy_diagnostic(severity, ec_too_many_macro_args, &start_pos,
+#if FULLY_RESOLVED_MACRO_POSITIONS
+                if (macro_positions_in_diagnostics) {
+                  /* Use the position of the macro name for the diagnostic:
+                     the text of the argument might have come from
+                     somewhere unrelated to this invocation, and pointing
+                     there could result in confusing output. */
+                  pos = &start_pos;
+                } else {
+                  /* Indicate the position of the first excess argument. */
+                  pos = &pos_curr_token;
+                }  /* if */
+#else /* !FULLY_RESOLVED_MACRO_POSITIONS */
+                pos = &pos_curr_token;
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
+                pos_sy_diagnostic(severity, ec_too_many_macro_args, pos,
                                   macro_symbol);
                 too_many_args_diag_given = TRUE;
               }  /* if */
