@@ -6292,7 +6292,7 @@ constant will be set as well.
                                                 &is_base_class_match)) {
               a_routine_ptr  rp = sym->variant.routine.ptr;
               result = (kind == (a_builtin_operation_kind)bok_has_assign ||
-                        rp->compiler_generated ||
+                        rp->is_trivial_copy_function ||
                         is_nothrow_type(skip_typerefs(rp->type)));
               if (microsoft_mode) {
                 /* Microsoft compilers only consider the first declared copy
@@ -6318,8 +6318,7 @@ constant will be set as well.
         check_assertion(cssp != NULL);  /* For Coverity. */
         sym = cssp->constructor;
         result = (kind != (a_builtin_operation_kind)bok_has_copy);
-        if (!has_nontrivial_constructor(cssp) ||
-            cssp->construction_by_bitwise_copy_allowed) {
+        if (sym == NULL) {
           /* There is no copy constructor. */
           goto result_known;
         } else if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
@@ -6334,7 +6333,7 @@ constant will be set as well.
                                          (a_type_qualifier_set *)NULL,
                                          /*is_declarative_context=*/TRUE)) {
               result = (kind == (a_builtin_operation_kind)bok_has_copy ||
-                        rp->compiler_generated || is_nothrow_type(rtp));
+                        rp->is_trivial_copy_function || is_nothrow_type(rtp));
               if (microsoft_mode) {
                 /* Microsoft compilers only consider the first declared copy
                    constructor.  Since we store the constructors in reverse
@@ -6358,9 +6357,10 @@ constant will be set as well.
       case bok_has_nothrow_constructor:
         check_assertion(cssp != NULL);  /* For Coverity. */
         sym = cssp->constructor;
-        if (!has_nontrivial_constructor(cssp)) {
-          /* __has_nothrow_constructor returns true if there is no default
-             constructor. */
+        if (sym == NULL) {
+         /* __has_nothrow_constructor returns true if there is no recorded
+            constructor (which implies that the default constructor is
+            implicitly declared and trivial). */
           result = TRUE;
           goto result_known;
         } else if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
