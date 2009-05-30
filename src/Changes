@@ -3,14 +3,11 @@ Version 4.1
 5/29/09  [EDGcpfe/9585]
 Backing expressions for address constants
 
-When the front end folded an expression to an address constant, the original
-expression was simply discarded.  In most cases it was possible to determine
-which member of a class or struct object was being addressed by comparing
-the offset of the constant with the offsets of the members of the object.
-When the expression designated a member of a union, however, the resulting
-constant was ambiguous.  This has now been addressed by preserving the
-original expression as the backing expression for the address constant.  For
-example:
+When folding an address expression to a constant, the front end failed to
+attach the original expression as the backing expression for the
+newly-created constant.  As a result, it was impossible to determine which
+member of a union sub-object was being addressed.  The front end now
+preserves backing expressions for folded address constants.  For example:
 
   struct bar {
     double p;
