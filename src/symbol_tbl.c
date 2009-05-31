@@ -911,6 +911,9 @@ do_variable:
         if (rp->is_trivial_default_constructor) {
           put_string("trivial default-ctor");
         }  /* if */
+        if (rp->is_trivial_copy_function) {
+          put_string("trivial copy function");
+        }  /* if */
         (void)sprintf(buffer, "sc_%s",
                       db_storage_class_names[(int)rp->storage_class]);
         put_string(buffer);
@@ -6994,7 +6997,9 @@ Find and return a pointer to a symbol representing a default constructor for
 the class indicated by class_type.  (A default constructor is a constructor
 that requires no arguments.)  If more than one acceptable constructor is
 found, set *ambiguous to TRUE and return one of the symbols.  Return NULL
-if no default constructor is found.  This routine is only used in C++ mode.
+if no default constructor is found.  A trivial default constructor that's
+not user-declared is considered no constructor at all, so return NULL
+also in that case.  This routine is only used in C++ mode.
 */
 {
   a_symbol_ptr  sym, ctor_sym = NULL;

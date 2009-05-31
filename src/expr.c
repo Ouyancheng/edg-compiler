@@ -1005,6 +1005,7 @@ static void scan_ctor_arguments(a_symbol_ptr       constructor_sym,
                                 an_arg_operand_ptr *prescanned_args,
                                 a_boolean          fill_in_dtor,
                                 a_boolean          elision_allowed,
+                                a_boolean          *trivial_ctor,
                                 a_dynamic_init_ptr *p_dip,
                                 an_expr_node_ptr   *p_temp_init_node)
 /*
@@ -1030,7 +1031,14 @@ being called for a derived class object); if it's NULL, the class of
 the constructor is assumed.  If fill_in_dtor is TRUE, appropriate
 destruction is placed in the returned dynamic initialization.
 If elision_allowed is TRUE, a call of a copy constructor can be
-elided or turned into a bitwise move.
+elided or turned into a bitwise move.  If trivial_ctor is non-NULL,
+and the initialization required turns out to be calling a trivial
+default constructor (which does nothing), and there's no destructor
+to be called (either because the class doesn't have one or because
+fill_in_dtor is FALSE), return *trivial_ctor set to TRUE, don't
+construct a dynamic initialization entry, and return *p_dip set
+to NULL.  Otherwise, return *trivial_ctor set to FALSE if
+trivial_ctor is non-NULL.
 
 This routine may be called only in C++ mode.  It's used for parenthesis-
 enclosed initializers for classes that have constructors, as in
@@ -1045,22 +1053,27 @@ source position is after the closing parenthesis of the argument list.
 {
   a_boolean           overloaded_function_case = FALSE;
   a_boolean           unknown_dependent_ctor = FALSE;
+  a_boolean           is_trivial_construction = FALSE;
   a_boolean           is_bitwise_copy = FALSE;
   a_boolean           is_temp_after_conv = FALSE;
   a_boolean           optimized = FALSE;
   a_boolean           value_initialization = FALSE;
   a_routine_ptr       routine;
   a_type_ptr          routine_type, class_type;
+  a_class_symbol_supplement_ptr
+                      cssp;
   a_source_position   start_position;
   an_arg_operand_ptr  arg_operand_list;
   an_arg_match_summary_ptr
-                      arg_match_list;
+                      arg_match_list = NULL;
   an_expr_node_ptr    arg_expr_list;
   a_dynamic_init_ptr  dip = NULL;
   an_expr_node_ptr    temp_init_node = NULL;
 
   db_enter(4, "scan_ctor_arguments");
+  if (trivial_ctor != NULL) *trivial_ctor = FALSE;
   class_type = sym_parent_class(constructor_sym);
+  cssp = symbol_supplement_for_class(class_type);
   /* If the object_class_type is not specified, use the default. */
   if (object_class_type == NULL) object_class_type = class_type;
   start_position = pos_curr_token;
@@ -1140,10 +1153,20 @@ source position is after the closing parenthesis of the argument list.
     an_arg_match_summary_ptr arg_match;
     a_type_ptr               param_type, source_type;
     routine = constructor_sym->variant.routine.ptr;
-    if (elision_allowed &&
-        is_copy_constructor(routine, (a_type_ptr)NULL,
-                            (a_type_qualifier_set *)NULL,
-                            /*is_declarative_context=*/FALSE) &&
+    if (routine->is_trivial_default_constructor) {
+      /* The constructor selected is a trivial default constructor, which
+         does nothing.  The routine is not marked as called. */
+      is_trivial_construction = TRUE;
+      reference_to_implicitly_invoked_function(
+                                    constructor_sym, source_pos,
+                                    object_class_type, /*honor_virtual=*/FALSE,
+                                    /*evaluated=*/FALSE,
+                                    /*instantiate=*/FALSE);
+      optimized = TRUE;
+    } else if (elision_allowed &&
+               is_copy_constructor(routine, (a_type_ptr)NULL,
+                                   (a_type_qualifier_set *)NULL,
+                                   /*is_declarative_context=*/FALSE) &&
         /* Avoid problems with specified arguments with defaults: */
         arg_operand_list != NULL &&
         arg_operand_list->next == NULL) {
@@ -1193,12 +1216,13 @@ source position is after the closing parenthesis of the argument list.
       } else if (routine->is_trivial_copy_function) {
         /* The constructor selected is a bitwise copy constructor.  A move
            can be used instead of a call.  The routine is not marked as
-           called.  No access checking is needed because a generated copy
-           constructor is always public. */
+           called. */
         is_bitwise_copy = TRUE;
-        record_symbol_reference((SRK_REFERENCE | SRK_IMPLICIT),
-                                constructor_sym, source_pos,
-                                /*update_il_entry=*/FALSE);
+        reference_to_implicitly_invoked_function(
+                                    constructor_sym, source_pos,
+                                    object_class_type, /*honor_virtual=*/FALSE,
+                                    /*evaluated=*/FALSE,
+                                    /*instantiate=*/FALSE);
         optimized = TRUE;
       }  /* if */
     }  /* if */
@@ -1209,33 +1233,40 @@ source position is after the closing parenthesis of the argument list.
          merely to make the argument match the copy constructor's parameter
          type (e.g., addition of "const" for a reference-to-const parameter
          type). */
-      /* Note that the code here also does not append default argument
-         values as adjust_overloaded_function_call_arguments would. */
-      if (is_null_user_conv_descr(&arg_match->conversion)) {
-        arg_match->conversion.class_object_adjustment_required = TRUE;
-      }  /* if */
-      if (is_bitwise_copy) {
-        arg_match->conversion.result_is_an_lvalue = FALSE;
-      }  /* if */
-      user_convert_operand(&arg_operand_list->operand,
-                           class_type,
-                           &arg_match->conversion,
-                           (a_conv_descr *)NULL,
-                           /*force_copy_to_temp=*/FALSE);
-      if (is_temp_after_conv) {
-        /* We determined previously that the result after the conversion
-           would be a temp we could reuse. */
-        (void)is_temp_init_usable_in_optimization(
+      if (is_trivial_construction) {
+        /* Call of a trivial default constructor.  No argument list, and the
+           reference to the constructor has already been recorded. */
+        check_assertion(arg_operand_list == NULL);
+      } else {
+        /* Note that the code here also does not append default argument
+           values as adjust_overloaded_function_call_arguments would. */
+        check_assertion(overloaded_function_case);
+        if (is_null_user_conv_descr(&arg_match->conversion)) {
+          arg_match->conversion.class_object_adjustment_required = TRUE;
+        }  /* if */
+        if (is_bitwise_copy) {
+          arg_match->conversion.result_is_an_lvalue = FALSE;
+        }  /* if */
+        user_convert_operand(&arg_operand_list->operand,
+                             class_type,
+                             &arg_match->conversion,
+                             (a_conv_descr *)NULL,
+                             /*force_copy_to_temp=*/FALSE);
+        if (is_temp_after_conv) {
+          /* We determined previously that the result after the conversion
+             would be a temp we could reuse. */
+          (void)is_temp_init_usable_in_optimization(
                                                &arg_operand_list->operand,
                                                /*suppress_dtor=*/!fill_in_dtor,
                                                &temp_init_node,
                                                &dip);
-        check_access_to_elided_copy_constructor(source_type, source_pos);
-        /* The dynamic init we now have is the result of the overall
-           operation. */
-        check_assertion(dip != NULL);
-      } else {
-        arg_expr_list = make_node_from_operand(&arg_operand_list->operand);
+          check_access_to_elided_copy_constructor(source_type, source_pos);
+          /* The dynamic init we now have is the result of the overall
+             operation. */
+          check_assertion(dip != NULL);
+        } else {
+          arg_expr_list = make_node_from_operand(&arg_operand_list->operand);
+        }  /* if */
       }  /* if */
       free_arg_match_summary_list(arg_match_list);
       free_arg_operand_list(arg_operand_list);
@@ -1275,6 +1306,21 @@ source position is after the closing parenthesis of the argument list.
         /* Bitwise copy construction of a class. */
         dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_expression);
         dip->variant.expression = arg_expr_list;
+      } else if (is_trivial_construction) {
+        /* Trivial construction, which does nothing (or zeroing, for
+           value initialization). */
+        if (value_initialization) {
+          dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_zero);
+        } else if (trivial_ctor != NULL &&
+                   !(fill_in_dtor && has_nontrivial_destructor(cssp))) {
+          /* The caller has given us a way of indicating this case, instead
+             of creating a dik_none dynamic initialization.  Note that
+             we can't do this if a destruction needs to be indicated. */
+          *trivial_ctor = TRUE;
+          /* dip = NULL; -- already set. */
+        } else {
+          dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_none);
+        }  /* if */
       } else {
         /* Constructor call. */
         dip = alloc_expr_ctor_dynamic_init(routine,
@@ -9022,7 +9068,7 @@ when determining whether or not special handling is required.
       skip_typerefs(type)->source_corresp.assoc_info != NULL) {
     /* Classes with a constructor or destructor require special handling. */
     a_class_symbol_supplement_ptr cssp = symbol_supplement_for_class(type);
-    if ((check_constructor && has_nontrivial_constructor(cssp)) ||
+    if ((check_constructor && !has_trivial_default_constructor(cssp)) ||
         has_nontrivial_destructor(cssp)) {
       special = TRUE;
     } else {
@@ -9232,6 +9278,8 @@ specification allow a variable-sized array as the top type.
   a_source_position new_position;
   a_type_ptr        new_type, base_new_type, ptr_new_type, element_type;
   a_type_ptr        unqual_new_type, unqual_base_new_type;
+  a_class_symbol_supplement_ptr
+                    cssp = NULL;
   an_expr_node_ptr  new_array_dimension, sizeof_node;
   an_operand        sizeof_operand;
   a_boolean         use_global_new = FALSE;
@@ -9259,7 +9307,6 @@ specification allow a variable-sized array as the top type.
                     dip;
   a_boolean         unknown_dependent_new = FALSE;
   a_boolean         force_dependent = FALSE;
-  a_boolean         nontrivial_ctor_case = FALSE;
   a_decl_parse_state
                     dps;
 
@@ -9602,10 +9649,8 @@ specification allow a variable-sized array as the top type.
      or an array with elements of such a class. */
   ctor_sym = NULL;
   if (is_class_struct_union_type(base_new_type)) {
-    a_class_symbol_supplement_ptr
-                            cssp = symbol_supplement_for_class(base_new_type);
+    cssp = symbol_supplement_for_class(base_new_type);
     ctor_sym = cssp->constructor;
-    nontrivial_ctor_case = has_nontrivial_constructor(cssp);
   }  /* if */
   if (!err && function_symbol != NULL) {
     a_boolean access_error_reported;
@@ -9652,15 +9697,23 @@ specification allow a variable-sized array as the top type.
          "new" routine for the class and see whether it is the one that
          was selected.  If so, the "new" call can be folded into the
          constructor call. */
-      if (nontrivial_ctor_case) {
+      if (ctor_sym != NULL) {
         /* If the entity gets value-initialization, suppress this
            optimization, because there's no way to tell the constructor
-           to do the necessary zeroing after the allocation. */
-        a_boolean value_init = (value_initialization_enabled &&
-                                has_new_initializer &&
-                                dps.prescanned_auto_initializer == NULL &&
-                                curr_token == tok_rparen);
-        if (!value_init) {
+           to do the necessary zeroing after the allocation.  Also
+           suppress this if the constructor that will be chosen is
+           a trivial default constructor (a trivial copy constructor is
+           okay; we can generate the body for that and call it). */
+        a_boolean empty_parens = (has_new_initializer &&
+                                  dps.prescanned_auto_initializer == NULL &&
+                                  curr_token == tok_rparen);
+        a_boolean value_init = (empty_parens &&
+                                value_initialization_enabled);
+        a_boolean trivial_ctor_init = ((empty_parens ||
+                                        !has_new_initializer) &&
+                                       !value_init &&
+                                       has_trivial_default_constructor(cssp));
+        if (!value_init && !trivial_ctor_init) {
           set_class_assoc_operator_new_routine(unqual_base_new_type);
           if (exceptions_enabled) {
             set_class_assoc_operator_delete_routine(unqual_base_new_type);
@@ -9725,10 +9778,10 @@ specification allow a variable-sized array as the top type.
       /* A non-POD class (or array thereof), with no new-initializer. */
       a_boolean is_generated_ctor = FALSE, do_const_test = FALSE;
       /* Look for a default constructor. */
-      if (nontrivial_ctor_case) {
+      if (ctor_sym != NULL) {
         a_routine_ptr ctor_routine;
-        /* The class has one or more nontrivial constructors.  Look for
-           a default constructor.  The call issues an error and returns NULL
+        /* The class has one or more constructors.  Look for a default
+           constructor.  The call issues an error and returns NULL
            if no default constructor is found. */
         /* Develop the dynamic init entry, if any, used to free storage
            if an exception is thrown before the initialization is finished.
@@ -9740,15 +9793,17 @@ specification allow a variable-sized array as the top type.
                                                   base_new_type,
                                          curr_expr_is_potentially_evaluated());
         if (ctor_routine != NULL) {
-          needs_initialization = TRUE;
           do_const_test = TRUE;
           is_generated_ctor = ctor_routine->compiler_generated;
-          warn_about_missing_delete_if(TRUE);
-          /* Make the dynamic initialization entry. */
-          dip = alloc_expr_ctor_dynamic_init(ctor_routine,
-                                             (an_expr_node_ptr)NULL,
-                                             /*add_default_args=*/TRUE,
-                                             /*implied_source=*/FALSE);
+          if (!ctor_routine->is_trivial_default_constructor) {
+            needs_initialization = TRUE;
+            warn_about_missing_delete_if(TRUE);
+            /* Make the dynamic initialization entry. */
+            dip = alloc_expr_ctor_dynamic_init(ctor_routine,
+                                               (an_expr_node_ptr)NULL,
+                                               /*add_default_args=*/TRUE,
+                                               /*implied_source=*/FALSE);
+          }  /* if */
         }  /* if */
       } else if (reference_to_trivial_default_constructor(base_new_type,
                                                           &type_position)) {
@@ -9789,7 +9844,8 @@ specification allow a variable-sized array as the top type.
       error(ec_initializer_not_allowed_on_array_new);
       err = TRUE;
     }  /* if */
-    if (nontrivial_ctor_case) {
+    if (ctor_sym != NULL) {
+      a_boolean trivial_ctor;
       /* Class with a (nontrivial) constructor. */
       /* Develop the dynamic init entry, if any, used to free storage
          if an exception is thrown before the initialization is finished.
@@ -9806,12 +9862,20 @@ specification allow a variable-sized array as the top type.
                              turned into a bitwise move if it's doing the
                              allocation. */
                           /*elision_allowed=*/(new_routine != NULL),
+                          &trivial_ctor,
                           &dip, (an_expr_node_ptr *)NULL);
-      warn_about_missing_delete_if(TRUE);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-      needs_initialization = (dip != NULL);
+      if (trivial_ctor) {
+        /* The constructor selected is a trivial default constructor, which
+           does nothing (not even value initialization). */
+        needs_initialization = FALSE;
+        check_assertion(new_routine != NULL);
+      } else {
+        warn_about_missing_delete_if(TRUE);
+        needs_initialization = (dip != NULL);
+      }  /* if */
     } else if (is_template_dependent_context() &&
                is_template_dependent_type(new_type)) {
       /* A "new" of a template-dependent type, in a prototype instantiation. */
@@ -9825,16 +9889,17 @@ specification allow a variable-sized array as the top type.
       /* Not a class with a constructor. */
       if (curr_token != tok_rparen ||
           dps.prescanned_auto_initializer != NULL) {
-        /* The new-initializer is not empty.  Scan it. */
-        /* Develop the dynamic init entry, if any, used to free storage
-           if an exception is thrown before the initialization is finished.
-           This must be done after it has been determined that initialization
-           is required, but before the initialization is actually processed. */
+        /* The new-initializer is not empty.  Scan it unless it has been
+           prescanned. */
         an_operand  prescanned_expr, *prescanned_expr_ptr = NULL;
         if (dps.prescanned_auto_initializer != NULL) {
           (void)get_prescanned_auto_initializer(&dps, &prescanned_expr);
           prescanned_expr_ptr = &prescanned_expr;
         }  /* if */
+        /* Develop the dynamic init entry, if any, used to free storage
+           if an exception is thrown before the initialization is finished.
+           This must be done after it has been determined that initialization
+           is required, but before the initialization is actually processed. */
         make_dyn_init_for_deletion_for_throw();
         init_val_node = scan_parenthesized_initializer_expression(
                                                 prescanned_expr_ptr,
@@ -13090,10 +13155,10 @@ The result is returned in *result.  See _expr.type.conv_ in the WP.
   /* See if we have a case that is clearly a constructor call. */
   if (is_class_struct_union_type(type_cast_to)) {
     cssp = symbol_supplement_for_class(type_cast_to);
-    if (has_nontrivial_constructor(cssp)) {
+    ctor_sym = cssp->constructor;
+    if (ctor_sym != NULL) {
       /* The class has a constructor. */
       ctor_case = TRUE;
-      ctor_sym = cssp->constructor;
       if (any_cfront_mode() && 
           cssp->target_of_conversion_function &&
           conversion_has_one_argument()) {
@@ -13119,6 +13184,7 @@ The result is returned in *result.  See _expr.type.conv_ in the WP.
                         (an_arg_operand_ptr*)NULL,
                         /*fill_in_dtor=*/TRUE,
                         /*elision_allowed=*/TRUE,
+                        /*trivial_ctor=*/(a_boolean *)NULL,
                         &dip, &temp_init_node);
     error_position = *start_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -21782,13 +21848,14 @@ overall errors.
   /* Scan the constructor argument list. */
   scan_ctor_arguments(cssp->constructor, source_pos,
                       object_class_type, (a_type_ptr)NULL, &prescanned_args,
-                      fill_in_dtor, /*elision_allowed=*/TRUE, p_dip,
+                      fill_in_dtor, /*elision_allowed=*/TRUE,
+                      /*trivial_ctor=*/(a_boolean *)NULL, p_dip,
                       (an_expr_node_ptr *)NULL);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   if (*p_dip == NULL) {
-    /* An error. */
+    /* An error or a trivial constructor call. */
     discard_curr_expr_object_lifetime();
   } else {
     /* If there's an object lifetime around the initialization, transfer it

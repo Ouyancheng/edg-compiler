@@ -3502,7 +3502,7 @@ returned set to TRUE.
        This form of initialization is allowed in C++ mode only.  Note that
        the opening parenthesis has already been scanned in the caller. */
     a_boolean  dependent_class_type = could_be_dependent_class_type(vp_type);
-    if ((cssp != NULL && has_nontrivial_constructor(cssp)) ||
+    if ((cssp != NULL && cssp->constructor != NULL) ||
         dependent_class_type) {
       /* It's a class type and there's a constructor or we're dealing with a
          dependent type that could be such a class. */
@@ -4908,7 +4908,7 @@ scan_paren:
           } else {
             cssp = NULL;
           }  /* if */
-          if ((cssp != NULL && has_nontrivial_constructor(cssp)) ||
+          if ((cssp != NULL && cssp->constructor != NULL) ||
               (dependent_class_init && !m_is_error_type(init_type))) {
             /* This is either a base class or a field of class type.  In
                either case, it will be initialized by a constructor call if
