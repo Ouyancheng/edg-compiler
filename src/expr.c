@@ -22283,7 +22283,8 @@ constructor is found, return NULL.  If more than one acceptable copy
 constructor is found and only one of them is the best match, return
 that one; otherwise set *ambiguous to TRUE and return NULL.  If a
 bitwise copy is allowed, return NULL and *class_bitwise_copy TRUE.
-This routine is used only in C++ mode.
+This routine is used only in C++ mode.  It does not do access checking
+on the copy constructor.
 */
 {
   a_symbol_ptr            cctor_sym;

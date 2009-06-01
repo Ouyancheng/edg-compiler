@@ -180,6 +180,9 @@ extern a_boolean reference_to_trivial_default_constructor(
                                                 a_type_ptr         class_type,
                                                 a_source_position  *pos);
 
+extern void reference_to_trivial_copy_constructor(a_type_ptr        class_type,
+                                                  a_source_position *pos);
+
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
 void check_use_of_deprecated_entity(a_source_correspondence_ptr  scp,
                                     a_source_position            *pos);

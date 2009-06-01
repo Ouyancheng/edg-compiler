@@ -11327,7 +11327,6 @@ select_best_function:
             /* Check for the builtin operator=. */
             if (kind == (an_opname_kind)onk_assign &&
                 function_symbol->kind == (a_symbol_kind)sk_member_function &&
-                function_symbol->variant.routine.ptr->compiler_generated &&
                 function_symbol->variant.routine.ptr->
                                                     is_trivial_copy_function) {
               /* This function is the default bitwise copy assignment
@@ -12659,6 +12658,8 @@ the temporary.
     prep_class_bitwise_copy_operand(operand, dest_type);
     if (force_copy_to_temp) {
       /* Make a copy of the class object in a temporary. */
+      reference_to_trivial_copy_constructor(operand->type,
+                                            &operand->position);
       temp_init_by_bitwise_copy_from_operand(operand,
                                              /*result_is_lvalue=*/FALSE,
                                              is_explicit_cast);
@@ -12943,7 +12944,10 @@ mode) at *err_pos if not.
                                       &ambiguous, &uncallable,
                                       &class_bitwise_copy);
     if (class_bitwise_copy) {
-      /* A bitwise copy is allowed, so the "copy constructor" is accessible. */
+      /* A bitwise copy is allowed.  The trivial copy constructor is usually
+         public, but it can be nonpublic if it's user-declared and
+         defaulted. */
+      reference_to_trivial_copy_constructor(class_type, err_pos);
     } else if (ambiguous) {
       /* More than one applicable copy constructor. */
       pos_ty_diagnostic(strict_ansi_discretionary_severity,
@@ -13138,6 +13142,10 @@ happen only in C++ mode.
         elision_source_type = source_operand->type;
         class_bitwise_copy = FALSE;
       }  /* if */
+    }  /* if */
+    if (class_bitwise_copy) {
+      reference_to_trivial_copy_constructor(class_type,
+                                            &source_operand->position);
     }  /* if */
   } else if (conversion->unknown_dependent_conversion) {
     /* Conversion to or from an unknown template-dependent type in a
@@ -15240,7 +15248,8 @@ acceptable except that it's uncallable, return that one and set
 wanted.  If a bitwise copy is allowed, return NULL and
 *class_bitwise_copy TRUE (this is also returned when the class_type
 is template-dependent in a prototype instantiation).  This routine is
-used only in C++ mode.
+used only in C++ mode.  It does not do access checking on the copy
+constructor.
 */
 {
   a_symbol_ptr                   sym, cctor_sym = NULL, uncallable_sym = NULL;

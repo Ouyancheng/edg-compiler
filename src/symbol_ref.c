@@ -2486,6 +2486,43 @@ return TRUE.
 }  /* reference_to_trivial_default_constructor */
 
 
+void reference_to_trivial_copy_constructor(a_type_ptr        class_type,
+                                           a_source_position *pos)
+/*
+Record a reference to the trivial copy constructor of class_type
+at position pos.   Check accessibility, and record a cross-reference
+entry if appropriate.  A trivial copy constructor is usually compiler
+generated and public, so no access check is needed.  However, with
+defaulted and deleted functions, it is possible to have a user-declared
+defaulted trivial copy constructor that is nonpublic.
+*/
+{
+  a_class_symbol_supplement_ptr cssp;
+
+  class_type = skip_typerefs(class_type);
+  cssp = symbol_supplement_for_class(class_type);
+  if (cssp->constructor != NULL) {
+    a_boolean    overloaded_ctors = FALSE;
+    a_symbol_ptr sym = cssp->constructor;
+    if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
+      overloaded_ctors = TRUE;
+      sym = sym->variant.overloaded_function.symbols;
+    }  /* if */
+    for (; sym != NULL; sym = (overloaded_ctors ? sym->next : NULL)) {
+      if (is_simple_function_symbol(sym) &&
+          sym->variant.routine.ptr->is_trivial_copy_function) {
+        /* Found a trivial copy constructor. */
+        reference_to_implicitly_invoked_function(sym, pos, class_type,
+                                                 /*honor_virtual=*/FALSE,
+                                                 /*evaluated=*/FALSE,
+                                                 /*instantiate=*/FALSE);
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+}  /* reference_to_trivial_copy_constructor */
+
+
 void symbol_ref_one_time_init(void)
 /*
 One-time initialization for symbol_ref.c static variables.

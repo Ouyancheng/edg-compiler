@@ -7009,11 +7009,13 @@ Find and return a pointer to a routine representing a default constructor for
 the class indicated by class_type.  (A default constructor is a constructor
 that requires no arguments.)  If no acceptable constructor is found, issue
 a diagnostic and return NULL.  If more than one acceptable constructor is
-found, issue a (different) diagnostic and return NULL.  This routine is
-only used in C++ mode.  object_class_type points to the type of the object
-being created;  class_type may be a base class of object_class_type.
-This is needed for protected member access checking.  If evaluated is
-FALSE, the reference is within an unevaluated expression.
+found, issue a (different) diagnostic and return NULL.  Check access
+to the constructor and issue an error if the constructor is not
+accessible.  object_class_type points to the type of the object being
+created; class_type may be a base class of object_class_type.  This is
+needed for protected member access checking.  If evaluated is FALSE,
+the reference is within an unevaluated expression.  This routine is
+only used in C++ mode.
 */
 {
   a_routine_ptr ctor_routine = NULL;
@@ -7031,13 +7033,18 @@ FALSE, the reference is within an unevaluated expression.
     pos_ty_error(ec_ambiguous_default_constructor, err_pos, class_type);
   } else {
     /* Exactly one default constructor. */
+    ctor_routine = ctor_sym->variant.routine.ptr;
+    if (ctor_routine->is_trivial_default_constructor) {
+      /* The constructor is a trivial default constructor.  Check access
+         but do not mark it as referenced (because there will be no call). */
+      evaluated = FALSE;
+    }  /* if */
     /* Check that the constructor is accessible and mark it referenced. */
     reference_to_implicitly_invoked_function(ctor_sym, err_pos,
                                              object_class_type,
                                              /*honor_virtual=*/FALSE,
                                              evaluated,
                                              /*instantiate=*/TRUE);
-    ctor_routine = ctor_sym->variant.routine.ptr;
   }  /* if */
   return ctor_routine;
 }  /* select_default_constructor */
@@ -7145,6 +7152,7 @@ allow_suppressed_ctor is TRUE.  This routine is only used in C++ mode.
                                     err_pos, &ambiguous, class_bitwise_copy);
   if (*class_bitwise_copy) {
     /* A bitwise copy is allowed. */
+    reference_to_trivial_copy_constructor(class_type, err_pos);
   } else if (ambiguous) {
     /* More than one applicable copy constructor. */
     pos_ty_error(ec_ambiguous_copy_constructor, err_pos, class_type);
