@@ -11564,7 +11564,7 @@ be entered.
            class is also required to have a nontrivial default constructor
            and/or destructor.  Do the check at this time, and record the
            requirement, if any. */
-        if (has_nontrivial_constructor(member_cssp)) {
+        if (!has_trivial_default_constructor(member_cssp)) {
           class_state->default_ctor_is_nontrivial = TRUE;
         }  /* if */
         if (has_nontrivial_destructor(member_cssp)) {

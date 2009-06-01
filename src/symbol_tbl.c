@@ -6948,48 +6948,6 @@ are recorded in the file scope.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-a_boolean f_has_nontrivial_constructor(a_class_symbol_supplement_ptr cssp)
-/*
-Return whether cssp is associated with a class type that has a constructor
-that is not a trivial default constructor and not a trivial copy constructor.
-*/
-{
-  a_boolean     result = FALSE, overloaded_ctors = FALSE;
-  a_symbol_ptr  sym = cssp->constructor;
-
-  if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
-    overloaded_ctors = TRUE;
-    sym = sym->variant.overloaded_function.symbols;
-  }  /* if */
-  for (; sym != NULL; sym = (overloaded_ctors ? sym->next : NULL)) {
-    a_routine_ptr  rp;
-    if (is_simple_function_symbol(sym)) {
-      rp = sym->variant.routine.ptr;
-    } else {
-      check_assertion(sym->kind == (a_symbol_kind)sk_function_template);
-      rp = sym->variant.template_info->variant.function.routine;
-    }  /* if */
-    if (rp->is_defaulted || rp->compiler_generated) {
-      /* A defaulted or implicit constructor.  Check whether it is a trivial
-         default constructor or a trivial copy constructor. */
-      if (rp->is_trivial_default_constructor) {
-        /* Continue searching. */
-      } else if (rp->is_trivial_copy_function) {
-        /* A trivial copy constructor: Continue searching. */
-      } else {
-        result = TRUE;
-        break;
-      }  /* if */
-    } else {
-      /* A nondefaulted user-declared constructor cannot be trivial. */
-      result = TRUE;
-      break;
-    }  /* if */
-  }  /* for */
-  return result;
-}  /* f_has_nontrivial_constructor */
-
-
 a_symbol_ptr find_default_constructor(a_type_ptr  class_type,
                                       a_boolean   *ambiguous)
 /*

@@ -4328,15 +4328,6 @@ extern a_type_ptr underlying_function_type(a_symbol_ptr  sym);
   is_special_function_symbol(sym,                                     \
                              (a_special_function_kind)sfk_constructor)
 
-extern a_boolean f_has_nontrivial_constructor(
-                                          a_class_symbol_supplement_ptr cssp);
-
-/* Return TRUE if a class symbol supplement is for a class that has a
-   user-provided constructor (that excludes, e.g., a defaulted trivial
-   default constructor). */
-#define has_nontrivial_constructor(cssp)                              \
-  ((cssp)->constructor != NULL && f_has_nontrivial_constructor(cssp))
-
 /* Return TRUE if the class has a trivial default constructor (implicitly
    declared or defaulted), and no nontrivial default constructor.  (Note
    that a class could have a defaulted trivial default constructor, and one

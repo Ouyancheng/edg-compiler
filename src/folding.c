@@ -6291,9 +6291,22 @@ constant will be set as well.
             if (is_assignment_operator_for_copy(sym, &ref_param, &qualifiers,
                                                 &is_base_class_match)) {
               a_routine_ptr  rp = sym->variant.routine.ptr;
-              result = (kind == (a_builtin_operation_kind)bok_has_assign ||
-                        rp->is_trivial_copy_function ||
-                        is_nothrow_type(skip_typerefs(rp->type)));
+              if (kind == (a_builtin_operation_kind)bok_has_assign) {
+                /* __has_assign returns true for any user-declared or
+                   nontrivial copy assignment (MSVC++ does not currently
+                   support defaulted assignment operators; we treat them like
+                   any other user-declared operators in that respect). */
+                result = !rp->compiler_generated ||
+                         !rp->is_trivial_copy_function;
+              } else {
+                /* __has_nothrow_assign: Return TRUE if the copy assignment
+                   operators are trivial or if they are declared with
+                   "throw()".  Microsoft compilers also return TRUE for
+                   certain compiler-generated nontrivial copy assignment
+                   operators, but we do not currently emulate that. */
+                result = rp->is_trivial_copy_function ||
+                         is_nothrow_type(skip_typerefs(rp->type));
+              }  /* if */
               if (microsoft_mode) {
                 /* Microsoft compilers only consider the first declared copy
                    assignment operator.  Since we store those operators in
@@ -6332,8 +6345,21 @@ constant will be set as well.
             if (is_copy_constructor_type(rtp, type,
                                          (a_type_qualifier_set *)NULL,
                                          /*is_declarative_context=*/TRUE)) {
-              result = (kind == (a_builtin_operation_kind)bok_has_copy ||
-                        rp->is_trivial_copy_function || is_nothrow_type(rtp));
+              if (kind == (a_builtin_operation_kind)bok_has_copy) {
+                /* __has_copy returns true for any user-declared or nontrivial
+                   copy constructor (MSVC++ does not currently support
+                   defaulted copy constructors; we treat them like any other
+                   user-declared constructors in that respect). */
+                result = !rp->compiler_generated ||
+                         !rp->is_trivial_copy_function;
+              } else {
+                /* __has_nothrow_copy: Return TRUE if the copy constructors are
+                   trivial or if they are declared with "throw()".  Microsoft
+                   compilers also return TRUE for certain compiler-generated
+                   nontrivial copy constructors, but we do not currently
+                   emulate that. */
+                result = rp->is_trivial_copy_function || is_nothrow_type(rtp);
+              }  /* if */
               if (microsoft_mode) {
                 /* Microsoft compilers only consider the first declared copy
                    constructor.  Since we store the constructors in reverse
@@ -6343,11 +6369,6 @@ constant will be set as well.
                 /* If any of the copy-constructors may throw an exception,
                    __has_nothrow_copy should return FALSE (in non-Microsoft
                    modes). */
-                goto result_known;
-              } else if (gpp_mode && rp->compiler_generated) {
-                /* g++ appears to treat nontrivial generated copy-constructors
-                   as possibly throwing. */
-                result = FALSE;
                 goto result_known;
               }  /* if */
             }  /* if */

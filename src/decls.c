@@ -10750,10 +10750,9 @@ a normal try.
             pos = pos_curr_token;
           }  /* if */
           /* Both the copy constructor and destructor must be accessible in
-             the context of the handler (15.3 [except.handle] para 17).
-             (However, the Microsoft compiler doesn't enforce accessibility of
-             copy constructors; see
-                                reference_to_implicitly_invoked_function). */
+             the context of the handler.  (However, the Microsoft compiler
+             doesn't enforce accessibility of copy constructors; see
+             reference_to_implicitly_invoked_function.) */
           cctor = select_copy_constructor(state.type,
                                           (a_type_qualifier_set)TQ_NONE,
                                           /*source_is_rvalue=*/FALSE,
@@ -10761,18 +10760,18 @@ a normal try.
                                           /*record_ref=*/TRUE,
                                           /*evaluated=*/TRUE,
                                           allow_suppressed_ctor);
-          /* Only an implicit copy constructor (cctor == NULL) can correspond
+          /* Only an implicit or defaulted copy constructor can correspond
              to a bitwise copy.  However, cctor can also be NULL if the
              copy constructor was ambiguous.  For Microsoft versions earlier
              than 7.1, it can also be NULL (without a diagnostic) if the
              declaration of the copy constructor was suppressed because of
              an inability to generate its definition. */
-          check_assertion((cctor == NULL) == bitwise_copy ||
-                          total_errors != 0 ||
-                          (allow_suppressed_ctor &&
-                           skip_typerefs(state.type)->
-                                                   variant.class_struct_union.
-                                                   copy_ctor_decl_suppressed));
+          check_assertion(
+                     (cctor == NULL || cctor->is_defaulted) == bitwise_copy ||
+                     total_errors != 0 ||
+                     (allow_suppressed_ctor &&
+                      skip_typerefs(state.type)->variant.class_struct_union
+                                                  .copy_ctor_decl_suppressed));
           dtor = select_destructor(state.type, state.type, &pos,
                                    /*honor_virtual=*/FALSE,
                                    /*evaluated=*/TRUE,
