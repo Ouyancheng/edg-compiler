@@ -6277,7 +6277,7 @@ constant will be set as well.
         check_assertion(cssp != NULL);  /* For Coverity. */
         sym = cssp->assignment_operator;
         result = (kind != (a_builtin_operation_kind)bok_has_assign);
-        if (sym == NULL || cssp->assignment_by_bitwise_copy_allowed) {
+        if (sym == NULL) {
           /* There is no copy assignment operator. */
           goto result_known;
         } else if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
@@ -6298,6 +6298,7 @@ constant will be set as well.
                    any other user-declared operators in that respect). */
                 result = !rp->compiler_generated ||
                          !rp->is_trivial_copy_function;
+                if (result) goto result_known;
               } else {
                 /* __has_nothrow_assign: Return TRUE if the copy assignment
                    operators are trivial or if they are declared with
@@ -6306,17 +6307,17 @@ constant will be set as well.
                    operators, but we do not currently emulate that. */
                 result = rp->is_trivial_copy_function ||
                          is_nothrow_type(skip_typerefs(rp->type));
-              }  /* if */
-              if (microsoft_mode) {
-                /* Microsoft compilers only consider the first declared copy
-                   assignment operator.  Since we store those operators in
-                   reverse order of declaration, continue the loop in case
-                   another such operator appears on the list. */
-              } else if (!result) {
-                /* If any of the copy-assignment operators may throw an
-                   exception, __has_nothrow_assign should return FALSE (in
-                   non-Microsoft modes). */
-                goto result_known;
+                if (microsoft_mode) {
+                  /* Microsoft compilers only consider the first declared copy
+                     assignment operator.  Since we store those operators in
+                     reverse order of declaration, continue the loop in case
+                     another such operator appears on the list. */
+                } else if (!result) {
+                  /* If any of the copy-assignment operators may throw an
+                     exception, __has_nothrow_assign should return FALSE (in
+                     non-Microsoft modes). */
+                  goto result_known;
+                }  /* if */
               }  /* if */
             }  /* if */
           }  /* if */
@@ -6352,6 +6353,7 @@ constant will be set as well.
                    user-declared constructors in that respect). */
                 result = !rp->compiler_generated ||
                          !rp->is_trivial_copy_function;
+                if (result) goto result_known;
               } else {
                 /* __has_nothrow_copy: Return TRUE if the copy constructors are
                    trivial or if they are declared with "throw()".  Microsoft
@@ -6359,17 +6361,17 @@ constant will be set as well.
                    nontrivial copy constructors, but we do not currently
                    emulate that. */
                 result = rp->is_trivial_copy_function || is_nothrow_type(rtp);
-              }  /* if */
-              if (microsoft_mode) {
-                /* Microsoft compilers only consider the first declared copy
-                   constructor.  Since we store the constructors in reverse
-                   order of declaration, continue the loop in case another copy
-                   constructor appears on the list. */
-              } else if (!result) {
-                /* If any of the copy-constructors may throw an exception,
-                   __has_nothrow_copy should return FALSE (in non-Microsoft
-                   modes). */
-                goto result_known;
+                if (microsoft_mode) {
+                  /* Microsoft compilers only consider the first declared copy
+                     constructor.  Since we store the constructors in reverse
+                     order of declaration, continue the loop in case another
+                     copy constructor appears on the list. */
+                } else if (!result) {
+                  /* If any of the copy-constructors may throw an exception,
+                     __has_nothrow_copy should return FALSE (in non-Microsoft
+                     modes). */
+                  goto result_known;
+                }  /* if */
               }  /* if */
             }  /* if */
           }  /* if */
