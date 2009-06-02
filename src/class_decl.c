@@ -8664,8 +8664,9 @@ implicitly declared member functions.
          and where, at the point of instantiation, the class is required to
          be complete.  In some cases (such as for members of local or
          unnamed classes), the transformation cannot be performed because
-         no valid out-of-class syntax is available. */
+         no valid (or equivalent) out-of-class syntax is available. */
       if (!class_type->source_corresp.is_local_to_function &&
+          !rtn->is_defaulted && !rtn->is_deleted &&
 #if MICROSOFT_EXTENSIONS_ALLOWED
           !(microsoft_mode &&
             microsoft_routine_def_is_unmovable(overridden_function != NULL)) &&

@@ -1506,12 +1506,12 @@ part of secondary translation units (perhaps).
       a_scope_ptr sp = il_header.region_scope_entry[n];
       a_boolean   from_secondary_trans_unit = in_secondary_trans_unit(sp);
       /* Skip the file-scope memory regions of secondary translation units. */
-      if (!from_secondary_trans_unit ||
-          sp->kind != (a_scope_kind)sck_file) {
+      if (!from_secondary_trans_unit || sp->kind != (a_scope_kind)sck_file) {
         a_routine_ptr rout;
         check_assertion(sp->kind == (a_scope_kind)sck_function);
         rout = sp->variant.routine.ptr;
-        check_assertion_str2(!rout->is_trivial_default_constructor,
+        check_assertion_str2(!rout->is_trivial_default_constructor ||
+                             rout->is_defaulted,
                            "check_for_done_with_all_function_memory_regions:",
                            "trivial default constructor");
 #if DEBUG

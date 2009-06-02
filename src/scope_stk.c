@@ -5847,8 +5847,8 @@ discarded right after they have been generated.
 {
   a_boolean discard = FALSE;
 
-  if (routine->is_trivial_default_constructor) {
-    /* Discard trivial default constructors. */
+  if (routine->is_trivial_default_constructor && !routine->is_defaulted) {
+    /* Discard implicit trivial default constructors. */
     discard = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (microsoft_mode && (routine->decl_modifiers & DM_DLLIMPORT) &&

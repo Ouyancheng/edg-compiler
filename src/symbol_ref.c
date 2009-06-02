@@ -1681,6 +1681,8 @@ created for this entity; otherwise, it is NULL.
           scope_stack[depth_scope_stack].kind ==
                                     (a_scope_kind)sck_class_struct_union &&
           !scope_stack[depth_scope_stack].inside_local_class &&
+          !sym_ptr->variant.routine.ptr->is_defaulted &&
+          !sym_ptr->variant.routine.ptr->is_deleted &&
 #if MICROSOFT_EXTENSIONS_ALLOWED
           !(microsoft_mode &&
             microsoft_routine_def_is_unmovable(
@@ -1693,7 +1695,10 @@ created for this entity; otherwise, it is NULL.
            put out in the source sequence list, it is necessary to move the
            member or friend definition outside the class definition (i.e.,
            just after it).  That means a secondary-source-sequence entry
-           should be put out here. */
+           should be put out here.  (This cannot be done with defaulted
+           functions, since out-of-class and in-class definitions are not
+           equivalent.  Similarly, deleted functions must always be defined
+           inside the class definition.) */
         is_primary_decl = FALSE;
       }  /* if */
 #endif /* FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS */
