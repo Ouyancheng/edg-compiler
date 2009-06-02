@@ -47,9 +47,9 @@ when too few arguments are supplied in a macro invocation.
 Pointer-to-reference-member constants
 
 The front end previously failed to diagnose pointer-to-member constants that
-referred to reference members.  This often resulted in an internal error in
-scan_ptr_to_member_operator (expr.c) when the constant was used in any way.
-For example:
+referred to reference members.  In version 4.0 (but not in prior versions)
+this often resulted in an internal error in scan_ptr_to_member_operator
+(expr.c) when the constant was used in any way.  For example:
 
   struct S { S(); int &x; };
   int main() {
