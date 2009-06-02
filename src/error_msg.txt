@@ -1853,6 +1853,7 @@ ec_show_pragma_conform_forScope_is_standard;;"forScope behavior is standard"
 ec_deleted_main;;"function \"main\" cannot be deleted"
 ec_useless_type_qualifiers_in_type_name;;"type qualifiers are meaningless here"
 ec_invalid_assignment_operator_to_be_defaulted;;"invalid type for defaulted assignment operator"
+ec_function_template_cannot_be_defaulted;;"function templates cannot be defaulted"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

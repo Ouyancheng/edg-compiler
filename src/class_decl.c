@@ -8246,6 +8246,54 @@ done:;
 }  /* default_assignment_of_const_object_okay */
 
 
+static a_boolean constructor_can_be_defaulted(a_symbol_ptr  sym,
+                                              a_boolean     *is_default_ctor)
+/*
+sym is a constructor.  Return whether it can be "defaulted".  I.e., if its
+parent class is X, it must have on of the following signatures:
+	X()
+	X(X&)
+	X(X const&)
+If the signature is the first in the list above, set *is_default_ctor to TRUE;
+otherwise set it to FALSE.
+*/
+{
+  a_boolean         result = FALSE;
+  a_type_ptr        class_type = sym_parent_class(sym), rout_type;
+  a_param_type_ptr  params;
+
+  *is_default_ctor = FALSE;
+  check_assertion(sym->kind == (a_symbol_kind)sk_member_function ||
+                  (sym->is_error && sym->kind == (a_symbol_kind)sk_routine));
+  rout_type = skip_typerefs(sym->variant.routine.ptr->type);
+  check_assertion(rout_type->kind == (a_type_kind)tk_routine);
+  params = rout_type->variant.routine.extra_info->param_type_list;
+  if (rout_type->variant.routine.extra_info->has_ellipsis) {
+    /* An ellipsis is not allowed in the signature. */
+  } else if (params == NULL) {
+    /* No parameters: A default constructor. */
+    result = TRUE;
+    *is_default_ctor = TRUE;
+  } else if (params->next == NULL) {
+    /* One parameter: Check the signature. */
+    /* The parameter type must be X& or X const& (although the latter requires
+       that bases and members allow for such copying).  Try X& first. */
+    a_type_ptr  param_type = make_reference_type(class_type);
+    if (identical_types(param_type, params->type)) {
+      result = TRUE;
+    } else {
+      param_type = make_reference_type(
+                     make_qualified_type(class_type, TQ_CONST));
+      if (identical_types(param_type, params->type)) {
+        result = TRUE;
+        //FIXMEdefault_copy_constructor_check(class_type, &result)
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* constructor_can_be_defaulted */
+
+
 static a_boolean assignment_operator_can_be_defaulted(a_symbol_ptr  sym)
 /*
 sym is an assignment operator.  Check if it can be "defaulted".  I.e., if its
@@ -8333,21 +8381,19 @@ update the routine's IL entry accordingly.
     if ((dps->dso_flags & DSO_FRIEND) != 0) {
       /* A special member cannot be defined in a friend declaration. */
       err_code = ec_function_defaulted_in_friend_decl;
+    } else if (sym->kind == (a_symbol_kind)sk_function_template) {
+      /* Templates (and member templates) cannot be defaulted. */
+      err_code = ec_function_template_cannot_be_defaulted;
     } else if (rp->special_kind == (a_special_function_kind)sfk_constructor) {
-      a_type_qualifier_set  tqs;
-      if (is_default_constructor(rp, /*is_declarative_context=*/TRUE)) {
-        /* "= default" on a default constructor: Okay. */
+      a_boolean  is_default_ctor;
+      if (constructor_can_be_defaulted(sym, &is_default_ctor)) {
         rp->is_defaulted = TRUE;
-        if (dps->in_class_scope) {
-          /* The "= default" declaration appeared on the in-class declaration.
-             Assume the default constructor is trivial for now and revisit the
-             flag later. */
+        if (is_default_ctor && dps->in_class_scope) {
+          /* The "= default" declaration appeared on the in-class declaration
+             of the canonical default constructor.  Assume the default
+             constructor is trivial for now and revisit the flag later. */
           rp->is_trivial_default_constructor = TRUE;
         }  /* if */
-      } else if (is_copy_constructor(rp, (a_type*)NULL, &tqs,
-                                     /*is_declarative_context=*/TRUE)) {
-        /* "= default" on a copy constructor: Okay. */
-        rp->is_defaulted = TRUE;
       } else {
         err_code = ec_invalid_function_to_be_defaulted;
       }  /* if */
