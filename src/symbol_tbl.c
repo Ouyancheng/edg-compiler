@@ -2753,6 +2753,7 @@ state.
         cssp->has_user_provided_default_constructor = FALSE;
         cssp->has_copy_constructor = FALSE;
         cssp->has_copy_constructor_for_const_object = FALSE;
+        cssp->has_user_provided_copy_constructor = FALSE;
         cssp->has_trivial_destructor = FALSE;
         cssp->assignment_by_bitwise_copy_allowed = FALSE;
         cssp->construction_by_bitwise_copy_allowed = FALSE;

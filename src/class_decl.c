@@ -7809,11 +7809,19 @@ Update the flags in the class symbol supplement accordingly.
       cssp->has_copy_constructor_for_const_object = TRUE;
     }  /* if */
     if (!compiler_generated && !rout_ptr->is_defaulted) {
-      /* If a user-defined copy constructor is declared for the class,
-         construction by bitwise copying is not allowed.  (On the other
-         hand, this flag *may* be TRUE even when the compiler generates
-         a copy constructor.) */
-      cssp->construction_by_bitwise_copy_allowed = FALSE;
+      /* Record the presence of a user-provided copy constructor.  Later, this
+         will also imply that cssp->construction_by_bitwise_copy_allowed is
+         FALSE because we cannot a priori assume that copy construction will
+         involve a trivial copy constructor even though after overload
+         resolution that may still be the case.  For example:
+             struct S {
+               S(S const&) = default;  // Trivial.
+               S(S&);                  // Nontrivial.
+             };
+         For now, cssp->construction_by_bitwise_copy_allowed is left unchanged
+         so that it reflects whether generated/defaulted copy constructors
+         would be trivial (see also mark_trivial_copy_functions). */
+      cssp->has_user_provided_copy_constructor = TRUE;
     }  /* if */
   }  /* if */
 }  /* check_member_decl_is_copy_constructor */
@@ -10219,6 +10227,7 @@ nonstandard anonymous unions is_nonstd is TRUE.
     cssp->has_user_provided_default_constructor = FALSE;
     cssp->has_copy_constructor = FALSE;
     cssp->has_copy_constructor_for_const_object = FALSE;
+    cssp->has_user_provided_copy_constructor = FALSE;
     cssp->has_trivial_destructor = FALSE;
     cssp->assignment_by_bitwise_copy_allowed = TRUE;
     cssp->construction_by_bitwise_copy_allowed = TRUE;
@@ -12332,6 +12341,12 @@ member functions.)
   a_class_symbol_supplement_ptr
               cssp = symbol_supplement_for_class(class_type);
 
+  /* At this point, cssp->assignment_by_bitwise_copy_allowed and
+     cssp->construction_by_bitwise_copy_allowed only reflect whether the
+     class' subcomponents are bitwise copyable (that includes the fact that
+     e.g. virtual function table pointers are not bitwise copyable).  The
+     flags do not yet reflect the presence of user-provided copy constructors
+     or user-provided copy assignment operators. */
   if (cssp->assignment_by_bitwise_copy_allowed ||
       cssp->construction_by_bitwise_copy_allowed) {
     /* Trivial copying is possible: Traverse the member to find defaulted or
@@ -12390,9 +12405,8 @@ The routine body is not generated until it is known to be needed.
   /* Check for a user-declared copy assignment operator. */
   if (assignment_operator_for_copy_exists(cssp->assignment_operator,
                                           &dummy_flag)) {
-    /* If the user has already defined an assignment operator, neither
-       is bitwise copying allowed nor must the compiler generate one. */
-    cssp->assignment_by_bitwise_copy_allowed = FALSE;
+    /* If the user has already defined an assignment operator, the front end
+       should not generate one. */
     user_declared_copy_assignment_op = TRUE;
     /* A POD cannot have a user-defined copy assignment operator. */
     class_state->POD_ruled_out = TRUE;
@@ -12485,6 +12499,16 @@ The routine body is not generated until it is known to be needed.
     }  /* if */
   }  /* if */
   mark_trivial_copy_functions(class_state);
+  /* If there were user-provided copy constructors and/or user-provided copy
+     assignment operators, set construction_by_bitwise_copy_allowed and/or
+     assignment_by_bitwise_copy_allowed to FALSE.  This must happen after
+     the call to mark_trivial_copy_functions. */
+  if (cssp->has_user_provided_copy_constructor) {
+    cssp->construction_by_bitwise_copy_allowed = FALSE;
+  }  /* if */
+  if (user_declared_copy_assignment_op) {
+    cssp->assignment_by_bitwise_copy_allowed = FALSE;
+  }  /* if */
   db_exit();
 }  /* check_special_member_functions */
 
