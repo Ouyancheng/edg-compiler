@@ -11655,6 +11655,7 @@ indicates which.
         } else if (is_an_lvalue(operand) &&
                    (C_dialect == C_dialect_pcc || SVR4_C_mode ||
                     (microsoft_mode && C_mode())) &&
+                   !is_bit_field_operand(operand) &&
                    still_an_lvalue(source_type, type_cast_to)) {
           /* In pcc, SVR4 C, or Microsoft C mode, some lvalues cast to
              other types remain lvalues (e.g., int to unsigned). */

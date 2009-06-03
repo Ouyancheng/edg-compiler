@@ -1,5 +1,22 @@
 Version 4.1
 
+6/3/09   [EDGcpfe/9720]
+Lvalue cast does not apply to bit-field expression
+
+In some C modes, an lvalue cast to a similar cast remains an lvalue.
+This is called an "lvalue cast" and is an extension relative to the C
+standard.  The front end incorrectly allowed such a cast on bit-field
+operands, which could cause problems later in compilation.  It no
+longer does.
+
+  struct S {
+    int i3 : 3;
+  } s;
+  int *func(void) {
+    return &(int)s.i3;  /* Now gets an error in (e.g.) --old_c mode */
+  }
+
+
 6/3/09   [EDGcpfe/9860]
 Microsoft __based pointer types incorrectly considered equivalent to non-based
 
