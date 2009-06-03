@@ -3632,9 +3632,13 @@ for more information.
            references. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
         if (microsoft_mode &&
-            !equiv_pointer_modifiers(type_1->variant.pointer.modifiers,
-                                     type_2->variant.pointer.modifiers)) {
-          /* If pointer modifiers were applied, they must be identical. */
+            (!equiv_pointer_modifiers(type_1->variant.pointer.modifiers,
+                                      type_2->variant.pointer.modifiers) ||
+             type_1->variant.pointer.base_variable !=
+                                      type_2->variant.pointer.base_variable)) {
+          /* If pointer modifiers were applied, they must be identical.
+             Likewise if the pointer is based on a variable, it must be the
+             same variable. */
         } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         /* Do not insert code here. */
@@ -4172,10 +4176,13 @@ for exact pointer equality.
              references and must point to compatible types. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
           if (microsoft_mode &&
-              !equiv_pointer_modifiers(type_1->variant.pointer.modifiers,
-                                       type_2->variant.pointer.modifiers)) {
-            /* A difference in __ptr32 or ptr64 modifiers makes pointer types
-               incompatible. */
+              (!equiv_pointer_modifiers(type_1->variant.pointer.modifiers,
+                                        type_2->variant.pointer.modifiers) ||
+               type_1->variant.pointer.base_variable !=
+                                      type_2->variant.pointer.base_variable)) {
+            /* If pointer modifiers were applied, they must be identical.
+               Likewise if the pointer is based on a variable, it must be the
+               same variable. */
           } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           /* Do not insert code here. */

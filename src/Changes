@@ -1,5 +1,24 @@
 Version 4.1
 
+6/3/09   [EDGcpfe/9860]
+Microsoft __based pointer types incorrectly considered equivalent to non-based
+
+Pointer types based on a variable, a Microsoft extension, were incorrectly
+considered to be the same as the similar non-based pointer types.  As
+a consequence, in cases like the following the cast was dropped.  Now
+fixed.
+
+  char DummyBuffer[10];
+  char *Base = DummyBuffer;
+  typedef char *PUNBASED;
+  typedef char __based(Base) *PBASED;
+  PBASED bp;
+  PUNBASED p;
+  void f() {
+    bp = (PBASED)p;
+  }
+
+
 5/29/09  [EDGcpfe/9585]
 Backing expressions for address constants
 
