@@ -8286,7 +8286,6 @@ otherwise set it to FALSE.
                      make_qualified_type(class_type, TQ_CONST));
       if (identical_types(param_type, params->type)) {
         result = TRUE;
-        /*FIXMEdefault_copy_constructor_check(class_type, &result)*/
       }  /* if */
     }  /* if */
   }  /* if */
