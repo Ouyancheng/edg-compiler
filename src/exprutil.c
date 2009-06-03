@@ -2084,7 +2084,9 @@ is constant, turn the operand into that constant.
                                 (a_boolean *)NULL)) {
       an_operand orig_operand;
       orig_operand = *operand;
-      conaddr.expr = operand->variant.expression;
+      if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
+        conaddr.expr = operand->variant.expression;
+      }  /* if */
       make_constant_operand(&conaddr, operand);
       restore_operand_details(operand, &orig_operand);
     }  /* if */
