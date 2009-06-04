@@ -8296,12 +8296,9 @@ otherwise set it to FALSE.
 static a_boolean assignment_operator_can_be_defaulted(a_symbol_ptr  sym)
 /*
 sym is an assignment operator.  Check if it can be "defaulted".  I.e., if its
-parent class is X, it must have the signature
+parent class is X, it must have one of the following signatures:
 	X& operator=(X&)
-or
-	X& operator=(X const&);
-(the latter only if bases and members have a corresponding copy assignment
-operator).
+	X& operator=(X const&)
 */
 {
   a_boolean         result = FALSE;
@@ -8326,7 +8323,7 @@ operator).
     a_type_ptr  param_type = return_type;
     if (identical_types(param_type, params->type)) {
       result = TRUE;
-    } else if (default_assignment_of_const_object_okay(class_type)) {
+    } else {
       param_type = make_reference_type(
                      make_qualified_type(class_type, TQ_CONST));
       if (identical_types(param_type, params->type)) {
@@ -8394,7 +8391,7 @@ update the routine's IL entry accordingly.
           rp->is_trivial_default_constructor = TRUE;
         }  /* if */
       } else {
-        err_code = ec_invalid_function_to_be_defaulted;
+        err_code = ec_invalid_constructor_to_be_defaulted;
       }  /* if */
     } else if (rp->special_kind == (a_special_function_kind)sfk_destructor) {
       rp->is_defaulted = TRUE;
