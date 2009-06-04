@@ -21106,6 +21106,11 @@ argument instead of the value).
             "copy_nontype_template_arg_operand: escaped property-ref operand");
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   *operand = arg_operand->operand;
+  if (is_expression_operand(operand)) {
+    /* Copy the expression, in case it gets modified. */
+    operand->variant.expression = copy_expr_tree(operand->variant.expression,
+                                                 CE_NO_OPTIONS);
+  }  /* if */
   /* Copy the list of references, if any. */
   operand->ref_entries_list =
                     copy_ref_entry_list(arg_operand->operand.ref_entries_list);
@@ -21134,10 +21139,14 @@ This is callable from outside of the expression processing routines.
                   /*suppress_object_lifetime=*/FALSE);
   expr_stack_entry.is_template_arg_expression = TRUE;
   switch_to_file_scope_region(&region_to_switch_back_to);
-  copy_nontype_template_arg_operand(arg_operand, &operand);
-  /* Convert the operand to the parameter type and extract a constant. */
-  prep_nontype_template_argument_initializer(&operand,
-                                             param_type, constant);
+  if (is_error_operand(&arg_operand->operand) || is_error_type(param_type)) {
+    set_error_constant(constant);
+  } else {
+    copy_nontype_template_arg_operand(arg_operand, &operand);
+    /* Convert the operand to the parameter type and extract a constant. */
+    prep_nontype_template_argument_initializer(&operand,
+                                               param_type, constant);
+  }  /* if */
   pop_expr_stack();
   switch_back_to_original_region(region_to_switch_back_to);
 
