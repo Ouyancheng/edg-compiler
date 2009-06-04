@@ -2342,6 +2342,7 @@ extern a_boolean open_file_for_input(
 		a_boolean			is_system_include,
 		a_boolean			is_include_next,
 		a_boolean			is_implicit_include,
+		a_boolean			is_preinclude,
 		a_boolean			continue_on_open_failure,
 		char				**full_file_name,
 		char				**display_name,

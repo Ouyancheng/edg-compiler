@@ -1,5 +1,14 @@
 Version 4.1
 
+6/4/09   [EDGcpfe/9712]
+Searching for preinclude files when using the -I- option
+
+Normally, the current directory is included in the search path when
+the front end is looking for a preinclude file, but when the -I- option
+is used, this was not the case.  The front end now includes the current
+directory when searching for a preinclude file, even when the -I- option
+has been used.
+
 6/3/09   [EDGcpfe/9720]
 Lvalue cast does not apply to bit-field expression
 

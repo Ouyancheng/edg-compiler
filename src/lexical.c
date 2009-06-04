@@ -4030,6 +4030,7 @@ inclusion.  is_include_next is TRUE if the file is being pushed for an
   file_found = open_file_for_input(file_name, use_search_path, is_include_file,
                                    is_system_include, is_include_next,
                                    /*is_implicit_include=*/FALSE,
+                                   is_preinclude,
 				   continue_on_open_failure,
                                    &full_file_name,
                                    &display_name, &input_file,
@@ -4290,6 +4291,7 @@ static a_boolean search_for_input_file(
 			a_file_suffix_ptr		suffix_list,
 			a_boolean			is_implicit_include,
 			a_boolean			is_system_include,
+			a_boolean			is_preinclude,
 			char				**name_found,
 			FILE				**new_input_file,
 			a_boolean			*suppress_include,
@@ -4308,14 +4310,15 @@ suffix.  The path name of the file found is returned in name_found.
 *dir_entry is set to point to the directory name entry on the search
 path in which the file was found, or NULL if the search path was not
 used.  is_system_include is TRUE if the included file name was specified
-in <...>.  Return TRUE if the file was found (the file was either opened
-or a previously included file was found).  If the file was opened, the
-file pointer is returned in new_input_file.  If the include is to be
-suppressed because the file was already included, TRUE is returned in
-suppress_include.  *unicode_source_kind is set to indicate the Unicode
-encoding form for the file, or usk_none if the file is not Unicode.
-*open_result stores information about why the file could not be opened if
-the open fails.
+in <...>.  is_preinclude is TRUE for files included via the preinclude or
+preinclude_macros command-line options.  Return TRUE if the file was found
+(the file was either opened or a previously included file was found).  If
+the file was opened, the file pointer is returned in new_input_file.
+If the include is to be suppressed because the file was already
+included, TRUE is returned in suppress_include.  *unicode_source_kind
+is set to indicate the Unicode encoding form for the file, or usk_none
+if the file is not Unicode.  *open_result stores information about why
+the file could not be opened if the open fails.
 */
 {
   a_file_suffix_ptr		fsp;
@@ -4353,8 +4356,10 @@ the open fails.
       suffix_list = sun_include_file_suffix_list;
     }  /* if */
   }  /* if */
-  if (!use_search_path || is_absolute_file_name(file_name)) {
-    /* File name is absolute, so search path is not used. */
+  if (!use_search_path || is_preinclude || is_absolute_file_name(file_name)) {
+    /* File name is absolute, so search path is not used.  This is also done
+       for preinclude files so that the file will be opened relative to
+       the current directory. */
     name_to_try = file_name;
     *new_input_file = try_to_open_source_file(name_to_try,
                                               open_result,
@@ -4512,6 +4517,7 @@ a_boolean open_file_for_input(
 		a_boolean			is_system_include,
 		a_boolean			is_include_next,
 		a_boolean			is_implicit_include,
+		a_boolean			is_preinclude,
 		a_boolean			continue_on_open_failure,
 		char				**full_file_name,
 		char				**display_name,
@@ -4537,9 +4543,11 @@ TRUE if the file is being opened for an #include_next directive.
 is_implicit_include is TRUE when this routine is used to search for an
 implicitly included template definition file.  When is_implicit_include is
 used, each suffix in the implicit_instantiation_file_suffix_list is
-used to search for a template definition file.  *unicode_source_kind is set
-to indicate the Unicode encoding form for the file, or usk_none if the file
-is not Unicode.
+used to search for a template definition file.  is_preinclude is TRUE
+for files included via the preinclude or preinclude_macros
+command-line options.  *unicode_source_kind is set to indicate the
+Unicode encoding form for the file, or usk_none if the file is not
+Unicode.
 
 When is_implicit_include is FALSE, a catastrophic error is normally issued
 if a file cannot be opened.  But if continue_on_open_failure is TRUE, a
@@ -4588,7 +4596,7 @@ a catastrophic error is not issued, FALSE is returned.
     file_found = search_for_input_file(file_name, use_search_path, search_path,
                                        implicit_instantiation_file_suffix_list,
                                        is_implicit_include, is_system_include,
-                                       &temp_file_name,
+                                       is_preinclude, &temp_file_name,
                                        new_input_file, suppress_include,
                                        &open_result, unicode_source_kind,
                                        dir_entry);
@@ -4598,7 +4606,7 @@ a catastrophic error is not issued, FALSE is returned.
                                        include_file_suffix_list,
                                        /*is_implicit_include=*/FALSE,
                                        is_system_include,
-                                       &temp_file_name,
+                                       is_preinclude, &temp_file_name,
                                        new_input_file, suppress_include,
                                        &open_result, unicode_source_kind,
                                        dir_entry);
@@ -5130,6 +5138,7 @@ at the next level down.
                               (a_boolean)sfp->included_by_system_include,
                               /*is_include_next=*/FALSE,
  			      /*is_implicit_include=*/TRUE,
+ 			      /*is_preinclude=*/FALSE,
 			      /*continue_on_open_failure=*/FALSE,
 			      &full_file_name, &display_name,
                               &f_source, &suppress_include,
