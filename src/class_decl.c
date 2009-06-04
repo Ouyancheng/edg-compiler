@@ -677,7 +677,7 @@ typedef struct a_class_def_state {
 			/* TRUE if the implied default constructor (if any)
 			   must be nontrivial because the class has virtual
 			   base classes, virtual functions, or base classes or
-			   members with nontrivial default constructor. */
+			   members with nontrivial default constructors. */
   a_bit_field	member_destruction_required:1;
 			/* TRUE if the class has a direct member requiring
 			   destruction. */
