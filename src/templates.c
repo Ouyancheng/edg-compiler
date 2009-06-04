@@ -5311,6 +5311,15 @@ another template parameter.
           }  /* if */
           conv_nontype_template_arg_to_param_type(
                           specified_tap->arg_operand, constant_type, constant);
+          if (is_error_constant(constant)) {
+            /* The conversion resulted in an error constant.  The presence of
+               an error type can sometimes cause the compatibility check above
+               to succeed even when the actual conversion will produce an error
+               type.   If the conversion resulted in an error constant, treat
+               this as mismatch. */
+            arg_kind_mismatch = TRUE;
+            break;
+          }  /* if */
           tap->arg_operand = NULL;
           tap->variant.constant = constant;
         }  /* if */
