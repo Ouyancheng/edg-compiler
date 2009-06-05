@@ -2756,6 +2756,9 @@ in Microsoft mode; in that case, token pasting off the end is not allowed.
   /* Fetch the tokens as pp tokens. */
   save_fetch_pp_tokens = fetch_pp_tokens;
   fetch_pp_tokens = TRUE;
+  /* Push a new lexical state so that tokens fetched by this process
+     will not be eligible for caching in the current state. */
+  push_lexical_state_stack();
   save_curr_char_loc = curr_char_loc;
   curr_char_loc = main_slmp->inserted_text;
   delete_source_from_loc = NULL;
@@ -2960,6 +2963,7 @@ end_loop:
   /* Restore the flags that were changed before the scan. */
   main_slmp->being_rescanned_for_token_pasting = FALSE;
   fetch_pp_tokens = save_fetch_pp_tokens;
+  pop_lexical_state_stack();
   curr_char_loc = save_curr_char_loc;
   treat_newline_as_token = save_treat_newline_as_token;
   /* The body of the top-level macro has been expanded.  macro_buffer

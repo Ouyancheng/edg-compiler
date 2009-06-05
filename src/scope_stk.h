@@ -442,9 +442,9 @@ typedef struct a_scope_stack_entry {
 			   reactivation scope, a template instantiation
 			   scope was pushed for a Microsoft specialization
 			   scope.  This is also used in Sun mode. */
-  a_bit_field	stop_token_stack_pushed:1;
+  a_bit_field	lexical_state_stack_pushed:1;
 			/* TRUE if, when pushing a template instantiation
-			   scope, a new stop token stack entry was pushed.
+			   scope, a new lexical state stack entry was pushed.
 			   This flag is set in the last scope pushed by
 			   push_template_instantiation_scope, which is
 			   not necessarily a template instantiation scope. */

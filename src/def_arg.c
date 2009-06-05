@@ -121,17 +121,15 @@ available-list.
 void prescan_default_arg_expr(a_token_cache_ptr		token_cache,
 			      a_boolean			is_template_param,
 			      a_boolean			is_function_template,
-			      a_boolean			is_friend_decl,
-                              a_token_cache_ptr		src_cache)
+			      a_boolean			is_friend_decl)
 /*
 Place the tokens for a default argument expression into a token cache, to
-await actual processing at a later point.  src_cache points to a token
-cache containing the tokens that will be copied to token_cache.
-is_template_param is TRUE if the expression is the default for a nontype
-template parameter.  is_function_template is TRUE if the expression is the
-default for a function template function parameter.  is_friend_decl is
-TRUE if the expression is the default for a friend declaration; it must
-be FALSE when either is_function_template or is_template_param are FALSE.
+await actual processing at a later point.  is_template_param is TRUE
+if the expression is the default for a nontype template parameter.
+is_function_template is TRUE if the expression is the default for a
+function template function parameter.  is_friend_decl is TRUE if the
+expression is the default for a friend declaration; it must be FALSE
+when either is_function_template or is_template_param are FALSE.
 */
 {
   a_token_set_array		stop_tokens;
@@ -160,8 +158,7 @@ be FALSE when either is_function_template or is_template_param are FALSE.
     incr_token_set_array_element(stop_tokens, tok_rbrace);
   }  /* if */
   clear_token_cache(token_cache, /*reusable=*/TRUE);
-  cache_token_stream_coalesce_identifiers(token_cache, stop_tokens,
-                                          src_cache);
+  cache_token_stream_coalesce_identifiers(token_cache, stop_tokens);
   /* Save the token sequence number of the last token of the default
      argument.  The cache actually contains the token after the last one
      of the default argument, but that token should not be used as the
@@ -197,18 +194,15 @@ be FALSE when either is_function_template or is_template_param are FALSE.
 void prescan_default_function_arg_expr(
 			a_param_type_ptr		ptp,
 		        a_def_arg_expr_fixup_ptr	*list,
-                        a_token_cache_ptr		src_cache,
 			a_boolean			is_function_template,
 			a_boolean			is_friend_decl,
 			unsigned long			param_number)
 /*
 Place the tokens for a default argument expression into a token cache, to
 await actual processing at a later point.  Link the default argument
-entry onto the list provided by the caller.  src_cache points to
-a token cache containing the entire template declaration, of which
-this default argument is a part.  param_number specifies the position of
-the parameter in the parameter list.  If list or ptp is NULL, scan the
-default argument expression but discard the token cache.
+entry onto the list provided by the caller.  param_number specifies the
+position of the parameter in the parameter list.  If list or ptp is NULL,
+scan the default argument expression but discard the token cache.
 */
 {
   a_def_arg_expr_fixup_ptr  new_daefp, daefp;
@@ -217,7 +211,7 @@ default argument expression but discard the token cache.
   db_enter(3, "prescan_default_function_arg_expr");
   /* Scan the default argument expression. */
   prescan_default_arg_expr(&token_cache, /*is_template_param=*/FALSE,
-                           is_function_template, is_friend_decl, src_cache);
+                           is_function_template, is_friend_decl);
   if (list == NULL || ptp == NULL) {
     /* Either no list pointer, or no param type pointer was passed by
        the caller.  This indicates that the argument information should

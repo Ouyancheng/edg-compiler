@@ -581,6 +581,11 @@ static a_stop_token_stack_entry_ptr
 			/* List of stop token stack entries that have been
 			   freed and are available for reuse. */
 
+static a_lexical_state_stack_entry_ptr
+		avail_lexical_state_stack_entries;
+			/* List of lexical state stack entries that have been
+			   freed and are available for reuse. */
+
 static a_boolean
 		trigraph_diagnostic_issued;
 			/* TRUE if a diagnostic indicating that trigraphs are
@@ -689,6 +694,7 @@ static unsigned long
 		num_include_search_results_allocated,
 		cached_pp_token_string_space,
                 num_stop_token_stack_entries_allocated,
+                num_lexical_state_stack_entries_allocated,
 		num_reusable_cache_entries_allocated,
 		num_compares_in_source_line_modif_hash_table,
 		num_lookups_in_source_line_modif_hash_table;
@@ -1211,26 +1217,15 @@ references.
 
 
 /*
-Get a token and, if it is a tok_identifier, call
-is_generalized_identifier_start to coalesce it in case it is the
-beginning of something like a qualified name.  When coalescing identifiers,
-make sure that we are not fetching tokens beyond the end of the cache
-that contains the entire statement.  If an attempt is made to do so,
-return tok_end_of_source.  When tok_end_of_source is returned, the
-current token sequence number is set to the largest possible value to
-ensure that, when the tokens are copied from the source cache to the
-new cache, all tokens up to the end-of-cache marker will be copied.
+Get a token and, if it is a tok_identifier and coalesc_ids is TRUE, call
+is_generalized_identifier_start to coalesce it in case it is the beginning
+of something like a qualified name.
 */
-#define get_token_and_coalesce_if_needed(coalesce_ids, last_tsn_in_cache) \
-  if (coalesce_ids) {						\
-    if (curr_token_sequence_number >= last_tsn_in_cache) {		\
-      curr_token = tok_end_of_source;					\
-      curr_token_sequence_number = MAX_TOKEN_SEQUENCE_NUMBER;		\
-    } else {								\
-      (void)get_token();						\
-      (void)is_generalized_identifier_start(GID_TEMPLATE_ARGS_OPTIONAL |\
-					    GID_IS_EXPR_CONTEXT);	\
-    }  /* if */								\
+#define get_token_and_coalesce_if_needed(coalesce_ids)			\
+  if (coalesce_ids) {							\
+    (void)get_token();							\
+    (void)is_generalized_identifier_start(GID_TEMPLATE_ARGS_OPTIONAL |	\
+					  GID_IS_EXPR_CONTEXT);		\
   } else {								\
     (void)get_token();							\
   }
@@ -1331,6 +1326,21 @@ is actually the first token to not be included in the cache.
 }  /* copy_tokens_from_cache */
 
 
+static void replace_curr_token(a_token_kind	new_token)
+/*
+Replace the current token with new_token.
+*/
+{
+  curr_token = new_token;
+  /* If tokens are being cached as they are fetched, update the copy in
+     the cache. */
+  if (curr_lexical_state_stack_entry->cache_tokens != 0) {
+    curr_lexical_state_stack_entry->cache.last_token->token =
+                                                 (a_small_token_kind)new_token;
+  }  /* if */
+}  /* replace_curr_token */
+
+
 static void replace_right_shift_by_two_closing_angle_brackets(void)
 /*
 The current token must be a ">>": Replace it with two ">" tokens.
@@ -1339,7 +1349,7 @@ The current token must be a ">>": Replace it with two ">" tokens.
   a_token_cache  cache;
 
   clear_token_cache(&cache, /*reusable=*/FALSE);
-  curr_token = tok_gt;
+  replace_curr_token(tok_gt);
   cache_curr_token(&cache);
   /* Give the second ">" token a new token sequence number.  When the numbers
      were assigned, a slot is reserved so that this number will be known to
@@ -1349,11 +1359,15 @@ The current token must be a ">>": Replace it with two ">" tokens.
 }  /* replace_right_shift_by_two_closing_angle_brackets */
 
 
+/* Forward declarations. */
+static void begin_caching_fetched_tokens(a_boolean	include_curr_token);
+static void end_caching_fetched_tokens(void);
+
+
 static
 a_boolean cache_token_stream_until_matching_token(
 				a_token_cache		*cache,
-                                a_boolean		coalesce_ids,
-				a_token_sequence_number last_tsn_in_cache)
+                                a_boolean		coalesce_ids)
 /*
 Given curr_token of '<', '(', '[', or '{', copy tokens into the token cache
 specified by cache up to but not including the corresponding closing token,
@@ -1400,7 +1414,7 @@ be TRUE if curr_token is tok_lt.
   }  /* switch */
   /* Cache the current token, and advance to its successor. */
   if (!cache_tokens) cache_curr_token(cache);
-  get_token_and_coalesce_if_needed(coalesce_ids, last_tsn_in_cache)
+  get_token_and_coalesce_if_needed(coalesce_ids);
   /* Keep looping through successive tokens until the corresponding closing
      token is found at level zero (i.e., not within a nesting of parens,
      brackets, or braces). */
@@ -1445,7 +1459,7 @@ be TRUE if curr_token is tok_lt.
     if (curr_token == tok_end_of_source) break;
     /* None of the conditions was satisfied, so keep going. */
     if (!cache_tokens) cache_curr_token(cache);
-    get_token_and_coalesce_if_needed(coalesce_ids, last_tsn_in_cache);
+    get_token_and_coalesce_if_needed(coalesce_ids);
     if (curr_token == tok_shift_right && closing_token == tok_gt &&
         right_shift_can_be_angle_brackets) {
       /* A right shift token may need to be treated as two closing angle
@@ -1462,8 +1476,7 @@ be TRUE if curr_token is tok_lt.
 
 void cache_token_stream_with_coalesce_flag(a_token_cache_ptr  cache,
                                            a_token_set_array  stop_tokens,
-                                           a_boolean	      coalesce_ids,
-                                           a_token_cache_ptr  src_cache)
+                                           a_boolean	      coalesce_ids)
 /*
 Copy the current token and succeeding tokens into the token cache specified
 by cache up to but not including the first token that matches a member of
@@ -1476,15 +1489,10 @@ be coalesced.  This should be done when the stop token set includes
 tokens that can appear in an expression, which means that the
 caching process must be able to determine whether a "<" starts
 a template argument list or is just a less-than sign.
-src_cache must be provided when coalesce_ids is TRUE, and points to
-a token cache containing the tokens that are being coalesced.  Once the
-end of the token stream has been found, the tokens from that cache will
-be copied to the new cache.
 */
 {
   a_token_sequence_number	first_tsn = curr_token_sequence_number;
   a_token_sequence_number	last_tsn;
-  a_token_sequence_number	last_tsn_in_cache = NO_TOKEN_SEQUENCE_NUMBER;
   a_boolean			save_caching_tokens = caching_tokens;
   a_boolean			prev_token_precedes_angle_bracket_list = FALSE;
   a_boolean			prev_token_was_template = FALSE;
@@ -1493,28 +1501,15 @@ be copied to the new cache.
   /* Set a flag that indicates that the tokens being scanned are to be
      cached. */
   caching_tokens = TRUE;
+  /* Start caching of tokens when we are coalescing ids.   This is needed
+     because when coalescing ids not all tokens are fetched directly by
+     this routine.  A cache is constructed behind the scenes, and the
+     tokens are extracted from that cache when we reach the end of the
+     tokens to be cached. */
   if (coalesce_ids) {
-    a_cached_token_ptr	ctp = src_cache->first_token;
-    /* Find the last token in the cache to make sure that we don't scan past
-       it while coalescing identifiers. */
-    for (; ctp != NULL; ctp = ctp->next) {
-      if (ctp->token_sequence_number > last_tsn_in_cache) {
-        last_tsn_in_cache = ctp->token_sequence_number;
-      }  /* if */
-    }  /* for */
-    if (first_tsn > last_tsn_in_cache) {
-      /* We are already at the end, or past the end of the source cache.
-         Don't attempt to get any more tokens.  Unget the current token so
-         that it will be made the current token by the get_token done at
-         the end of this routine. */
-      unget_token();
-      /* See get_token_and_coalesce_if_needed for more information. */
-      curr_token = tok_end_of_source;
-      curr_token_sequence_number = MAX_TOKEN_SEQUENCE_NUMBER;
-    } else {
-      /* Attempt to coalesce this token in case it begins an identifier. */
-      (void)is_generalized_identifier_start(GID_TEMPLATE_ARGS_OPTIONAL);
-    }  /* if */
+    begin_caching_fetched_tokens(/*include_curr_token=*/TRUE);
+    /* Attempt to coalesce this token in case it begins an identifier. */
+    (void)is_generalized_identifier_start(GID_TEMPLATE_ARGS_OPTIONAL);
   }  /* if */
   /* Loop through the tokens, beginning with the current token and stopping
      when a token in the stop token array is found.  Whenever a '(', '[', or
@@ -1540,8 +1535,7 @@ be copied to the new cache.
       if (curr_token == tok_lparen || curr_token == tok_lbracket ||
           curr_token == tok_lbrace ||
           (curr_token == tok_lt && prev_token_precedes_angle_bracket_list)) {
-        err = cache_token_stream_until_matching_token(
-                                       cache, coalesce_ids, last_tsn_in_cache);
+        err = cache_token_stream_until_matching_token(cache, coalesce_ids);
         if (err) break;
       }  /* if */
       prev_token_precedes_angle_bracket_list = FALSE;
@@ -1551,26 +1545,25 @@ be copied to the new cache.
     if (curr_token == tok_end_of_source) break;
     /* Add the current token to the cache and advance to its successor. */
     if (!coalesce_ids) cache_curr_token(cache);
-    get_token_and_coalesce_if_needed(coalesce_ids, last_tsn_in_cache);
+    get_token_and_coalesce_if_needed(coalesce_ids);
   }  /* while */
   /* Leave error_position associated with what is now curr_token. */
   set_err_pos_to_curr_token();
   if (coalesce_ids) {
     /* Make a copy of the specified range of tokens from the source cache. */
     last_tsn = curr_token_sequence_number;
-    if (first_tsn > last_tsn_in_cache) {
-      /* The starting token is not in the cache (possible in error cases).
-         Don't try to extract them from the source cache. */
-    } else {
-      copy_tokens_from_cache(src_cache, first_tsn, last_tsn, cache);
-    }  /* if */
-    if (curr_token == tok_end_of_source && last_tsn >= last_tsn_in_cache) {
+    /* Get the tokens from the cache that has been accumulated. */
+    copy_tokens_from_cache(curr_lexical_state_cache(), first_tsn, last_tsn,
+                           cache);
+    if (curr_token == tok_end_of_source) {
       (void)get_token();
     }  /* if */
   }  /* if */
   /* Clear the flag that indicates that the tokens being scanned are to be
      cached. */
   caching_tokens = save_caching_tokens;
+  /* End the caching of tokens when coalescing ids. */
+  if (coalesce_ids) end_caching_fetched_tokens();
   db_exit();
 }  /* cache_token_stream_with_coalesce_flag */
 
@@ -1583,54 +1576,20 @@ cause identifiers to be coalesced.
 */
 {
   cache_token_stream_with_coalesce_flag(cache, stop_tokens,
-                                        /*coalesce_ids=*/FALSE,
-                                        (a_token_cache_ptr)NULL);
+                                        /*coalesce_ids=*/FALSE);
 }  /* cache_token_stream */
 
 
 void cache_token_stream_coalesce_identifiers(a_token_cache_ptr  cache,
-                                             a_token_set_array  stop_tokens,
-                                             a_token_cache_ptr	src_cache)
+                                             a_token_set_array  stop_tokens)
 /*
 Interface to cache_token_stream_with_coalesce_flag that causes
 identifiers to be coalesced.
 */
 {
-  check_assertion_str2(src_cache != NULL,
-                       "cache_token_stream_coalesce_identifiers:",
-                       "no source cache specified");
-  cache_token_stream_with_coalesce_flag(cache, stop_tokens,
-                                        /*coalesce_ids=*/TRUE, src_cache);
+  cache_token_stream_with_coalesce_flag(cache, stop_tokens, 
+                                        /*coalesce_ids=*/TRUE);
 }  /* cache_token_stream_coalesce_identifiers */
-
-
-void cache_rest_of_declaration(a_token_cache_ptr	cache,
-                               a_boolean		stop_on_colon,
-                               a_boolean		stop_on_lbrace)
-/*
-Enter the remaining tokens of the current declaration into a reusable
-token cache, and scan those tokens from a copy of the cache.  This is
-used to create a cache that can be used while caching a token stream and
-coalescing identifiers.  stop_on_colon is TRUE if a colon should
-be in the set of stop tokens.
-*/
-{
-  /* Initialize a local stop token set. */
-  a_token_set_array  stop_tokens;
-  clear_token_set_array(stop_tokens);
-  /* Cache all tokens up to the ";" that follows a declaration, the "{" that
-     begins a definition, or a ":" that begins a ctor initializer list. */
-  if (stop_on_lbrace) incr_token_set_array_element(stop_tokens, tok_lbrace);
-  if (stop_on_colon) incr_token_set_array_element(stop_tokens, tok_colon);
-  incr_token_set_array_element(stop_tokens, tok_semicolon);
-  cache_token_stream(cache, stop_tokens);
-  /* Add an end-of-source token to the end of the token cache to
-     assure that we don't scan past the end of the cache in the actual
-     scan. */
-  terminate_token_cache(cache);
-  /* Rescan the cached tokens from a copy of this token cache. */
-  rescan_copy_of_cache(cache);
-}  /* cache_rest_of_declaration */
 
 
 a_token_kind get_token_to_be_cached(void)
@@ -9404,6 +9363,9 @@ curr_token is already set in that case.
   a_boolean          more_than_one_string = FALSE;
 
   db_enter(5, "concat_adjacent_string_literals");
+  /* Start a new lexical state so that only the composite string literal
+     token will be considered part of the current lexical state. */
+  push_lexical_state_stack();
   check_assertion_str(!fetch_pp_tokens && do_string_literal_concatenation,
                       "concat_adjacent_string_literals: bad mode");
   /* Start with the character kind of the first literal.  If this is a
@@ -9534,6 +9496,8 @@ curr_token is already set in that case.
   /* Stick the remaining single string literal back onto the input token
      stream (ahead of the non-string-literal token that stopped the loop). */
   rescan_cached_tokens(&cache);
+  /* Pop the lexical state pushed by this routine. */
+  pop_lexical_state_stack();
   db_exit();
 }  /* concat_adjacent_string_literals */
 
@@ -10803,13 +10767,26 @@ return_from_token_scan:
     len_of_curr_token = end_of_curr_token - start_of_curr_token + 1;
   }  /* if */
   curr_token_is_inert_macro = is_inert_macro;
+  curr_token = ctoken;
+  if (curr_lexical_state_stack_entry->cache_tokens) {
+    /* A copy of each new token fetched should be saved in a token cache.
+       The token sequence number check is used to prevent a token from
+       being added more than once in cases where tokens are cached and
+       rescanned by the caller for lookahead purposes. */
+    if (curr_token_sequence_number >
+                           curr_lexical_state_stack_entry->last_tsn_in_cache) {
+      cache_curr_token(&curr_lexical_state_stack_entry->cache);
+      curr_lexical_state_stack_entry->last_tsn_in_cache =
+                                                    curr_token_sequence_number;
+    }  /* if */
+  }  /* if */
 #if DEBUG
   if (debug_level >= 3) {
     /* Write out the current token. */
     fprintf(f_debug, "get_token%s: pos = %lu/%2d, %-10s",
                      gotten_from_cache ? " (from cache)" : "",
                      pos_curr_token.seq, pos_curr_token.column,
-                     token_names[(int)ctoken]);
+                     token_names[(int)curr_token]);
     if (start_of_curr_token != NULL) {
       /* Print token string if valid. */
       fprintf(f_debug, ", \"%.*s\"", (int)len_of_curr_token,
@@ -10823,7 +10800,7 @@ return_from_token_scan:
       fprintf(f_debug, " (inert)");
     }  /* if */
     /* Dump constants only if they have been converted. */
-    if (!fetch_pp_tokens && is_literal_constant_token(ctoken)) {
+    if (!fetch_pp_tokens && is_literal_constant_token(curr_token)) {
       /* Dump value for constant. */
       fprintf(f_debug, ", ");
       db_constant(&const_for_curr_token);
@@ -10839,7 +10816,7 @@ return_from_token_scan:
   if (!in_preprocessing_directive) {
     any_tokens_fetched_from_curr_input_file = TRUE;
   }  /* if */
-  return (curr_token = ctoken);
+  return curr_token;
 
 two_char_token:
   /* For two-character tokens, increment the source position appropriately
@@ -11012,6 +10989,124 @@ Interface to pop_stop_token_stack_full that passes in final_pop == FALSE.
 {
   pop_stop_token_stack_full(/*final_pop=*/FALSE);
 }  /* pop_stop_token_stack */
+
+
+static a_lexical_state_stack_entry_ptr alloc_lexical_state_stack_entry(void)
+/*
+Allocate a new lexical state stack entry, initialize it, and return a pointer
+to it.
+*/
+{
+  a_lexical_state_stack_entry_ptr	lssep;
+
+  if (avail_lexical_state_stack_entries != NULL) {
+    /* Reuse an existing entry. */
+    lssep = avail_lexical_state_stack_entries;
+    avail_lexical_state_stack_entries =
+                                       avail_lexical_state_stack_entries->next;
+  } else {
+    /* Allocate a new entry. */
+    lssep = alloc_fe_of_type(a_lexical_state_stack_entry);
+#if DEBUG
+   num_lexical_state_stack_entries_allocated++;
+#endif /* DEBUG */
+  }  /* if */
+  lssep->next = NULL;
+  lssep->cache_tokens = 0;
+  lssep->last_tsn_in_cache = NO_TOKEN_SEQUENCE_NUMBER;
+  clear_token_cache(&lssep->cache, /*is_reusable=*/FALSE);
+  return lssep;
+}  /* alloc_lexical_state_stack_entry */
+
+
+void push_lexical_state_stack(void)
+/*
+Push a new entry on the lexical state stack.  This is used when a new
+lexical context is being processed.  A pointer to the previous entry
+is saved for use when the stack is popped.
+*/
+{
+  a_lexical_state_stack_entry_ptr	lssep;
+
+  lssep = alloc_lexical_state_stack_entry();
+  lssep->next = curr_lexical_state_stack_entry;
+  curr_lexical_state_stack_entry = lssep;
+  /* Push a new stop token stack entry too. */
+  push_stop_token_stack();
+}  /* push_lexical_state_stack */
+
+
+static void pop_lexical_state_stack_full(a_boolean	final_pop)
+/*
+Pop the current entry off of the lexical state stack.  If final_pop is
+TRUE, this call pops the last entry off of the stack.  This is used
+to alter the constancy check at the end of the routine.
+*/
+{
+  a_lexical_state_stack_entry_ptr	lssep;
+
+  lssep = curr_lexical_state_stack_entry;
+  /* Unlink this entry from the stack. */
+  curr_lexical_state_stack_entry = lssep->next;
+  /* Add the old entry to the list of available stack entries. */
+  lssep->next = avail_lexical_state_stack_entries;
+  /* Discard any tokens that may have been cached. */
+  discard_token_cache(&lssep->cache);
+  avail_lexical_state_stack_entries = lssep;
+  /* The current entry should only be NULL if this is the final pop. */
+  check_assertion_str((curr_lexical_state_stack_entry == NULL) == final_pop,
+                      "pop_lexical_state_stack: wrong number of pops");
+  /* Pop the stop token stack too. */
+  pop_stop_token_stack_full(final_pop);
+}  /* pop_lexical_state_stack */
+
+
+void pop_lexical_state_stack(void)
+/*
+Interface to pop_lexical_state_stack_full that passes in final_pop == FALSE.
+*/
+{
+  pop_lexical_state_stack_full(/*final_pop=*/FALSE);
+}  /* pop_lexical_state_stack */
+
+
+static void begin_caching_fetched_tokens(a_boolean	include_curr_token)
+/*
+Update the current lexical stack state to indicate that new tokens that are
+fetched should automatically be added to the cache associated with the
+current lexical state.  If include_curr_token is TRUE, the current token is
+added to the cache.
+*/
+{
+  a_lexical_state_stack_entry_ptr	lssep;
+
+  lssep = curr_lexical_state_stack_entry;
+  if (lssep->cache_tokens == 0) {
+    /* Reset the token cache when starting a new caching region. */
+    discard_token_cache(&lssep->cache);
+    lssep->last_tsn_in_cache = NO_TOKEN_SEQUENCE_NUMBER;
+  }  /* if */
+  lssep->cache_tokens++;
+  if (include_curr_token &&
+      curr_token_sequence_number > lssep->last_tsn_in_cache) {
+    cache_curr_token(&lssep->cache);
+    lssep->last_tsn_in_cache = curr_token_sequence_number;
+  }  /* if */
+}  /* begin_caching_fetched_tokens */
+
+
+static void end_caching_fetched_tokens(void)
+/*
+Update the current lexical stack state to indicate that new tokens that are
+fetched should no longer be added to the cache associated with the current
+lexical state.
+*/
+{
+  a_lexical_state_stack_entry_ptr	lssep;
+
+  lssep = curr_lexical_state_stack_entry;
+  lssep->cache_tokens--;
+}  /* end_caching_fetched_tokens */
 
 
 void flush_until_matching_token(void)
@@ -16071,8 +16166,8 @@ pragma scope to be used while scanning the pragma tokens.
   check_assertion_str2(ppp->descr_ptr->binding_kind != pbk_preproc_immediate,
                        "begin_rescan_of_pragma_tokens:",
                        "cannot be used for preproc_immediate pragmas");
-  /* Start a new stop token state. */
-  push_stop_token_stack();
+  /* Start a new lexical state. */
+  push_lexical_state_stack();
   /* If the pragma was scanned as pp-tokens, go into pp-token mode now. */
   fetch_pp_tokens = ppp->descr_ptr->fetch_pp_tokens;
   rescan_reusable_cache(&ppp->token_cache);
@@ -16107,8 +16202,8 @@ is actived is popped here.
   /* Bypass the cache terminator. */
   (void)get_token();
   fetch_pp_tokens = FALSE;
-  /* Restore the stop token set as at entry. */
-  pop_stop_token_stack();
+  /* Restore the lexical state as at entry. */
+  pop_lexical_state_stack();
   /* Pop the pragma scope. */
   pop_scope();
 }  /* wrapup_rescan_of_pragma_tokens */
@@ -16621,6 +16716,10 @@ Display and return the amount of space used for various lexical tables.
   db_space_used_lost("stop token stack entry", avail_stop_token_stack_entries,
                      num_stop_token_stack_entries_allocated,
                      a_stop_token_stack_entry);
+  db_space_used_lost("lexical state stack entry",
+                     avail_lexical_state_stack_entries,
+                     num_lexical_state_stack_entries_allocated,
+                     a_lexical_state_stack_entry);
   db_space_used("reusable cache pragmas",
                  num_pragmas_in_reusable_caches, a_pending_pragma);
   db_space_used("pragma kind descriptions", num_pragma_descriptions_allocated,
@@ -16909,6 +17008,7 @@ are handled in lexical_init.)
       pch_saved_var_array_elem(include_file_history_hash_table),
       pch_saved_var_array_elem(name_linkage_constants),
       pch_saved_var_array_elem(curr_stop_token_stack_entry),
+      pch_saved_var_array_elem(curr_lexical_state_stack_entry),
 #if DEBUG
       pch_saved_var_array_elem(num_orig_line_modifs_allocated),
       pch_saved_var_array_elem(num_source_line_modifs_allocated),
@@ -16921,6 +17021,7 @@ are handled in lexical_init.)
       pch_saved_var_array_elem(num_pending_pragmas_allocated),
       pch_saved_var_array_elem(num_pragma_descriptions_allocated),
       pch_saved_var_array_elem(num_stop_token_stack_entries_allocated),
+      pch_saved_var_array_elem(num_lexical_state_stack_entries_allocated),
       pch_saved_var_array_elem(num_include_file_histories_allocated),
       pch_saved_var_array_elem(num_preinclude_files_allocated),
       pch_saved_var_array_elem(cached_pp_token_string_space),
@@ -16931,6 +17032,7 @@ are handled in lexical_init.)
   }  /* if */
   register_trans_unit_variable(next_token_is_top_level_decl_start);
   register_trans_unit_variable(curr_stop_token_stack_entry);
+  register_trans_unit_variable(curr_lexical_state_stack_entry);
   register_trans_unit_variable(curr_token);
   register_trans_unit_variable(curr_token_pragmas);
   register_trans_unit_variable(const_for_curr_token);
@@ -17028,11 +17130,9 @@ Initialize variables that are specific to a given translation unit.
                                              compare_include_file_history);
   trigraph_diagnostic_issued = FALSE;
   trigraph_column = 0;
-  /* Clear the set of tokens on which to stop a flush following a
-     syntax error. */
   curr_stop_token_stack_entry = NULL;
-  push_stop_token_stack();
-  clear_stop_tokens();
+  curr_lexical_state_stack_entry = NULL;
+  push_lexical_state_stack();
 }  /* lexical_trans_unit_init */
 
 
@@ -17043,7 +17143,7 @@ called after all processing for the translation unit (including template
 instantiations, etc.) has been done.
 */
 {
-  pop_stop_token_stack_full(/*final_pop=*/TRUE);
+  pop_lexical_state_stack_full(/*final_pop=*/TRUE);
 }  /* lexical_trans_unit_wrapup */
 
 
@@ -17090,6 +17190,7 @@ of the front end.
   num_reusable_cache_entries_allocated = 0;
   num_pending_pragmas_allocated = 0;
   num_stop_token_stack_entries_allocated = 0;
+  num_lexical_state_stack_entries_allocated = 0;
   num_pragma_descriptions_allocated = 0;
   num_include_file_histories_allocated = 0;
   num_preinclude_files_allocated = 0;

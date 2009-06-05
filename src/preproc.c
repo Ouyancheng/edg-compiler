@@ -3062,9 +3062,9 @@ execute the preprocessor directive.
   expand_macros = FALSE;
   do_string_literal_concatenation = FALSE;
   actual_include_was_suppressed = FALSE;
-  /* Start a new stop token context that will stop flushing on error, and
+  /* Start a lexical context that will stop flushing on error, and
      put the newline token into it. */
-  push_stop_token_stack();
+  push_lexical_state_stack();
   add_stop_token(tok_newline);
   /* Identify the keyword and go to the right processing routine. */
   dir_kind = identify_dir_keyword();
@@ -3219,8 +3219,8 @@ execute the preprocessor directive.
     pch_prefix_processing_for_pp_directive(dir_kind, &start_of_dir_position);
   }  /* if */
   remove_stop_token(tok_newline);
-  /* Restore the stop token set as at entry. */
-  pop_stop_token_stack();
+  /* Restore the lexical context as at entry. */
+  pop_lexical_state_stack();
   in_preprocessing_directive = FALSE;
   fetch_pp_tokens = save_fetch_pp_tokens;
   expand_macros = save_expand_macros;

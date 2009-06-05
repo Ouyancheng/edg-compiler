@@ -1228,8 +1228,7 @@ is TRUE if the function being scanned is a constructor.
 
 void prescan_member_function_default_arg_expr(a_param_type_ptr  ptp,
 					      a_boolean		is_friend,
-					      unsigned long	param_number,
-					      a_token_cache_ptr decl_cache)
+					      unsigned long	param_number)
 /*
 Scan a default argument expression and link the default argument
 entry onto a list in the current routine fixup entry.  "ptp" can be NULL if
@@ -1249,16 +1248,7 @@ specifies the position of the parameter in the parameter list.
   } else {
     list = &curr_routine_fixup->def_arg_expr_fixup_list;
   }  /* if */
-  if (decl_cache->first_token == NULL) {
-    /* When prescanning a default argument we need to make sure that the
-       remainder of the declaration is in a token cache.  If the declaration
-       has not been cached yet, cache it now.  This cache will be discarded
-       at the end of processing this function declarator. */
-    cache_rest_of_declaration(decl_cache, /*stop_on_colon=*/FALSE,
-                              /*stop_on_lbrace=*/FALSE);
-  }  /* if */
-  prescan_default_function_arg_expr(ptp, list, decl_cache,
-                                    /*is_function_template=*/FALSE,
+  prescan_default_function_arg_expr(ptp, list, /*is_function_template=*/FALSE,
 				    is_friend, param_number);
 }  /* prescan_member_function_default_arg_expr */
 

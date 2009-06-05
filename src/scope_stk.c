@@ -2037,7 +2037,7 @@ the scope being pushed.
   ssep->exclude_from_context_output = FALSE;
   ssep->instantiation_scope_pushed = FALSE;
   ssep->microsoft_specialization_scope_pushed = FALSE;
-  ssep->stop_token_stack_pushed  = FALSE;
+  ssep->lexical_state_stack_pushed  = FALSE;
   ssep->explicitly_declared_namespace_extension = FALSE;
   ssep->microsoft_specialization_instantiation_scope =
                                   (options & PS_MICROSOFT_SPECIALIZATION) != 0;
@@ -3597,7 +3597,7 @@ template declaration scope or a template instantiation scope.
 				            instance_sym,
 				            template_sym,
 				            template_arg_list,
-				            /*push_stop_tokens=*/TRUE,
+				            /*push_lex_state=*/TRUE,
 				            ps_options);
   }  /* if */
 }  /* push_instantiation_scope_for_templ_param_rescan */
@@ -3610,11 +3610,11 @@ a_boolean push_template_instantiation_scope(
                             a_symbol_ptr		instance_sym,
                             a_symbol_ptr		template_sym,
                             a_template_arg_ptr		template_arg_list,
-			    a_boolean			push_stop_tokens,
+			    a_boolean			push_lex_state,
 			    a_push_scope_options_set	options)
 /*
 Interface to push_scope_full that is used for template instantiation
-scopes.  If push_stop_tokens is TRUE, a new stop token stack entry
+scopes.  If push_lex_state is TRUE, a new lexical state stack entry
 is pushed here, and popped when the instantiation scope is popped.
 In some cases involving prototype instantiations, no scope is actually
 pushed.  Return TRUE if a scope is pushed, FALSE otherwise.
@@ -3769,10 +3769,10 @@ pushed.  Return TRUE if a scope is pushed, FALSE otherwise.
        variable after the instantiation scopes have been popped. */
     ssep->saved_innermost_scope_that_affects_access =
                                     saved_innermost_scope_that_affects_access;
-    if (push_stop_tokens) {
-      /* Start a new stop token context for the instantiation. */
-      push_stop_token_stack();
-      ssep->stop_token_stack_pushed = TRUE;
+    if (push_lex_state) {
+      /* Start a new lexical context for the instantiation. */
+      push_lexical_state_stack();
+      ssep->lexical_state_stack_pushed = TRUE;
     }  /* if */
   }
 #if DEBUG
@@ -3809,9 +3809,9 @@ push_template_instantiation_scope.
   check_assertion_str2(orig_depth != NO_SCOPE_DEPTH,
                        "pop_template_instantiation_scope:",
                        "invalid orig_depth");
-  if (scope_stack[depth_scope_stack].stop_token_stack_pushed) {
-    /* Restore the original stop token context. */
-    pop_stop_token_stack();
+  if (scope_stack[depth_scope_stack].lexical_state_stack_pushed) {
+    /* Restore the original lexical state context. */
+    pop_lexical_state_stack();
   }  /* if */
   /* Pop scopes until the depth of the scope stack is equal to orig_depth,
      which is the depth before any of the instantiation context scopes were
@@ -7275,7 +7275,7 @@ the class symbol supplement points to the partial specialization).
       (void)push_template_instantiation_scope(decl_info, class_type,
                                               (a_routine_ptr)NULL, class_sym,
                                               template_sym, template_arg_list,
-  				              /*push_stop_tokens=*/FALSE,
+  				              /*push_lex_state=*/FALSE,
   				              options);
     }  /* if */
   }  /* if */

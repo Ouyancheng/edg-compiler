@@ -33,9 +33,6 @@ typedef struct a_disambig_state {
   a_token_cache	cache;
 			/* Cache containing tokens that were scanned as
 			   part of the disambiguation process. */
-  a_token_cache	stmt_cache;
-			/* Cache containing the remainder of the statement
-			   that is being disambiguated. */
   a_type_ptr	decl_class_type;
 			/* In certain modes, this is set to the class type
 			   of the declarator that is found. */
@@ -46,11 +43,6 @@ typedef struct a_disambig_state {
 			/* TRUE if the decl_class_type field should be set,
 			   and scanning stopped once the declarator is
                            found. */
-  a_boolean	stmt_cache_created;
-			/* TRUE if a statement cache was created by the
-			   disambiguation routines.  This is used to
-			   distinguish this case from the case in which
-			   a statement cache is passed in. */
   a_boolean	friend_encountered;
 			/* TRUE if a tok_friend token was found among the
 			   decl-specifiers. */
@@ -63,23 +55,19 @@ Initialize a disambiguation state block.
 */
 {
   clear_token_cache(&dsp->cache, /*reusable=*/FALSE);
-  clear_token_cache(&dsp->stmt_cache, /*reusable=*/TRUE);
   dsp->decl_class_type = NULL;
   dsp->may_be_decl = TRUE;
   dsp->set_decl_class_type = FALSE;
-  dsp->stmt_cache_created = FALSE;
   dsp->friend_encountered = FALSE;
 }  /* init_disambig_state */
 
 
+/*ARGSUSED*/ /* dsp not currently used */
 static void wrapup_disambig_state(a_disambig_state_ptr dsp)
 /*
-If a statement cache was created, discard it now.
+Perform any operations that must be done to cleanup after disambiguation.
 */
 {
-  if (dsp->stmt_cache.first_token != NULL && dsp->stmt_cache_created) {
-    discard_token_cache(&dsp->stmt_cache);
-  }  /* if */
 }  /* wrapup_disambig_state */
 
 
@@ -129,23 +117,6 @@ and if gid_flags does not include GID_IS_TYPENAME.
 
 
 
-static void cache_rest_of_statement(a_disambig_state_ptr state)
-/*
-Make sure that the remainder of the current statement has been cached
-so that it can be used by cache_token_stream_coalesce_identifiers.
-*/
-{
-  a_boolean	not_in_function = depth_innermost_function_scope ==
-                                                                NO_SCOPE_DEPTH;
-  if (state->stmt_cache.first_token == NULL) {
-    cache_rest_of_declaration(&state->stmt_cache,
-                              /*stop_on_colon=*/FALSE,
-                              /*stop_on_lbrace=*/not_in_function);
-    state->stmt_cache_created = TRUE;
-  }  /* if */
-}  /* cache_rest_of_statement */
-
-
 static void cache_tokens_until(a_disambig_state_ptr	state,
 			       a_token_kind		stop_token,
 			       a_boolean		coalesce)
@@ -157,12 +128,14 @@ TRUE, coalesce any identifiers.
 {
   a_token_set_array  stop_token_array;
 
-  /* Make sure this statement is in a token cache. */
-  cache_rest_of_statement(state);
   clear_token_set_array(stop_token_array);
   incr_token_set_array_element(stop_token_array, stop_token);
+  /* Also stop on a right brace or semicolon to keep from caching too far
+     in error cases. */
+  incr_token_set_array_element(stop_token_array, tok_rbrace);
+  incr_token_set_array_element(stop_token_array, tok_semicolon);
   cache_token_stream_with_coalesce_flag(&state->cache, stop_token_array,
-                                        coalesce, &state->stmt_cache);
+                                        coalesce);
 }  /* cache_tokens_until */
 
 
@@ -174,14 +147,11 @@ Cache the tokens that comprise an initializer of the form
 {
   a_token_set_array  stop_token_array;
 
-  /* Make sure this statement is in a token cache. */
-  cache_rest_of_statement(state);
   clear_token_set_array(stop_token_array);
   incr_token_set_array_element(stop_token_array, tok_comma);
   incr_token_set_array_element(stop_token_array, tok_semicolon);
   incr_token_set_array_element(stop_token_array, tok_rparen);
-  cache_token_stream_coalesce_identifiers(&state->cache, stop_token_array,
-                                          &state->stmt_cache);
+  cache_token_stream_coalesce_identifiers(&state->cache, stop_token_array);
 }  /* prescan_initializer */
 
 
@@ -441,9 +411,6 @@ token cache to be used.
   cache_curr_token(&state->cache);
   (void)get_token();
   if (curr_token == tok_lparen) {
-    /* We cache the rest of the statement here instead of relying on
-       cache_tokens_until in case the specifier includes a lambda. */
-    cache_rest_of_statement(state);
     /* Advance past the left paren. */
     cache_curr_token(&state->cache);
     get_token_and_coalesce_if_identifier(flags);
@@ -1390,9 +1357,6 @@ cache passed by the caller are flushed.
 
   /* Initialize the disambiguation state block. */
   init_disambig_state(&state);
-  /* Copy the declaration cache passed in into the statement cache used
-     by the disambiguation routines. */
-  state.stmt_cache = *decl_token_cache_ptr;
   state.set_decl_class_type = TRUE;
   rescan_reusable_cache(decl_token_cache_ptr);
   prescan_declaration(&state,

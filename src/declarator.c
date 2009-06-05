@@ -1561,7 +1561,6 @@ if this is the function declarator in a friend function declaration.
   a_boolean               bad_first_param_for_copy_constructor = FALSE;
   a_source_position       pos_of_first_param_type;
   a_func_info_block       local_func_info_block;
-  a_token_cache           decl_token_cache;
   a_boolean               is_top_level_declarator = TRUE;
   a_boolean               microsoft_C_leading_ellipsis = FALSE;
 
@@ -1569,9 +1568,6 @@ if this is the function declarator in a friend function declaration.
   copy_source_position(pos_curr_token, start_pos);
   set_err_pos_to_curr_token();
   add_stop_token(tok_rparen);
-  /* Initialize a token cache that might be needed for default argument
-     processing. */
-  clear_token_cache(&decl_token_cache, /*reusable=*/TRUE);
   /* If the caller passed in a func_info pointer, this is the declarator of
      a "top-level" function declaration.  Use the storage passed in by the
      caller.  But if func_info is NULL, use a local func info block.  This
@@ -2137,8 +2133,7 @@ if this is the function declarator in a friend function declaration.
                  function. */
               prescan_member_function_default_arg_expr(ptp_for_scan,
 						       is_friend_decl,
-                                                       param_number,
-                                                       &decl_token_cache);
+                                                       param_number);
             } else {
               /* Scan the default arguments for a function template. */
               prescan_function_template_default_arg_expr(ptp_for_scan,
@@ -2413,11 +2408,6 @@ if this is the function declarator in a friend function declaration.
     done_with_func_info(local_func_info_block);
   }  /* if */
   copy_source_position(start_pos, error_position);
-  if (decl_token_cache.first_token != NULL) {
-    /* If a declaration token cache was built while processing member function
-       default arguments, free it now. */
-    discard_token_cache(&decl_token_cache);
-  }  /* if */
   db_exit();
 }  /* function_declarator */
 

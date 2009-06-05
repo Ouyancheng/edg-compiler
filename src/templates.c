@@ -2435,7 +2435,7 @@ with "instance_sym".
 					  (a_routine_ptr)NULL,
 					  instance_sym, template_sym,
 					  template_arg_list,
-	                                  /*push_stop_tokens=*/TRUE,
+	                                  /*push_lex_state=*/TRUE,
 		                          PS_NO_OPTIONS);
   reactivate_template_declaration_scope(decl_info);
   /* The rescan requires a template declaration state block.  Build
@@ -2700,7 +2700,7 @@ might not be able to if the template itself has not yet been defined.
 					      (a_routine_ptr)NULL,
 					      instance_sym, template_sym,
 					      template_arg_list,
-                                              /*push_stop_tokens=*/TRUE,
+                                              /*push_lex_state=*/TRUE,
                                               PS_NO_OPTIONS);
       /* Reactivate any pragmas that should be bound to the generated
          instance. */
@@ -3313,7 +3313,7 @@ A pointer to the head of the list is returned in tcsp.
 				    prototype_type,
 				    (a_routine_ptr)NULL, instance_sym,
 				    template_sym, template_arg_list,
-                                    /*push_stop_tokens=*/TRUE,
+                                    /*push_lex_state=*/TRUE,
                                     PS_PROTOTYPE_INSTANTIATION);
   /* Reactivate any pragmas that should be bound to the generated
      instance. */
@@ -3459,7 +3459,7 @@ user later during real instantiations.
  				        (a_type_ptr)NULL, rout_ptr,
   				        rout_sym, template_sym,
   				        rout_ptr->template_arg_list,
-                                        /*push_stop_tokens=*/TRUE,
+                                        /*push_lex_state=*/TRUE,
                                         PS_PROTOTYPE_INSTANTIATION);
     }  /* if */
     /* Reactivate any pragmas that should be bound to the generated
@@ -3556,7 +3556,7 @@ user later during real instantiations.
 				      (a_type_ptr)NULL, rout_ptr,
 				      rout_sym, template_sym,
 				      rout_ptr->template_arg_list,
-                                      /*push_stop_tokens=*/TRUE,
+                                      /*push_lex_state=*/TRUE,
                                       PS_PROTOTYPE_INSTANTIATION);
     /* The function prototype scope should be reactivated and its symbols
        reentered because parameter names hide names from enclosing scopes
@@ -3673,7 +3673,7 @@ user later during real instantiations.
 				      template_sym,
                                       template_sym,
                                       (a_template_arg_ptr)NULL,
-                                      /*push_stop_tokens=*/TRUE,
+                                      /*push_lex_state=*/TRUE,
                                       PS_PROTOTYPE_INSTANTIATION);
   }  /* if */
   if (tssp->cache.tokens.first_token != NULL) {
@@ -4128,7 +4128,7 @@ Instantiate the body of the template function associated with tip.
 				          (a_type_ptr)NULL, rout_ptr,
 				          rout_sym, template_sym,
 				          rout_ptr->template_arg_list,
-                                          /*push_stop_tokens=*/TRUE,
+                                          /*push_lex_state=*/TRUE,
 					  PS_NO_OPTIONS);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
@@ -4354,7 +4354,7 @@ and the class instantiation will detect the runaway case.
                                           static_data_member_sym,
                                           tip->template_sym,
                                           (a_template_arg_ptr)NULL,
-                                          /*push_stop_tokens=*/TRUE,
+                                          /*push_lex_state=*/TRUE,
                                           PS_IGNORE_CLASS_CONTEXT);
   /* Rescan the declaration of the static data member.  This should result
      in the same type as the declaration in the class, except in the case
@@ -8063,7 +8063,7 @@ instantiated.
                                             tip->instance_sym,
                                             tip->template_sym,
                                             rout_ptr->template_arg_list,
-                                           /*push_stop_tokens=*/TRUE,
+                                           /*push_lex_state=*/TRUE,
 				           PS_NO_OPTIONS);
     /* The function prototype scope should be reactivated and its symbols
        reentered because parameter names hide names from enclosing scopes
@@ -8882,7 +8882,7 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
 				            (a_routine_ptr)NULL,
 				            (a_symbol_ptr)NULL, templ_sym,
 				            templ_arg_list,
-                                            /*push_stop_tokens=*/TRUE,
+                                            /*push_lex_state=*/TRUE,
 				            ps_options);
     /* Reactivate any pragmas that should be bound to the generated
        instance. */
@@ -12878,7 +12878,6 @@ specifies the position of the parameter in the parameter list.
 {
   a_def_arg_expr_fixup_ptr	*list;
   a_scope_stack_entry_ptr	ssep;
-  a_token_cache_ptr		decl_cache;
 
   if (curr_token == tok_removed_default_arg) {
     /* If we are scanning a removed default argument, just bypass the token. */
@@ -12896,25 +12895,8 @@ specifies the position of the parameter in the parameter list.
        instantiation of a template function declaration.  In the latter case,
        the tokens that are cached are simply discarded. */
     ssep = scope_stack_entry_for(assoc_scope_depth);
-    if (ssep->kind == (a_scope_kind)sck_template_declaration) {
-      /* Get a pointer to the declaration token cache for the function
-         template. */
-      decl_cache = &ssep->tmpl_decl_state->decl_token_cache;
-    } else if (ssep->kind == (a_scope_kind)sck_template_instantiation) {
-      a_symbol_ptr			template_sym = ssep->template_sym;
-      a_template_symbol_supplement_ptr	tssp;
-      /* Get a pointer to the decl_cache associated with the function template
-         whose declaration is being instantiated. */
-      check_assertion(template_sym->kind ==
-                                          (a_symbol_kind)sk_function_template);
-      tssp = template_supplement_for_symbol(template_sym);
-      decl_cache = &tssp->variant.function.decl_cache.tokens;
-    } else {
-      unexpected_condition();
-    }  /* if */
     list = &curr_default_args;
-    prescan_default_function_arg_expr(ptp, list, decl_cache,
-                                      /*is_function_template=*/TRUE,
+    prescan_default_function_arg_expr(ptp, list, /*is_function_template=*/TRUE,
 				      /*is_friend_decl=*/FALSE, param_number);
   }  /* if */
 }  /* prescan_function_template_default_arg_expr */
@@ -12946,8 +12928,7 @@ Place the tokens for a template parameter into a token cache.
        issued by cache_token_stream_coalesce_identifiers. */
     incr_token_set_array_element(stop_tokens, tok_comma);
     incr_token_set_array_element(stop_tokens, tok_gt);
-    cache_token_stream_coalesce_identifiers(token_cache, stop_tokens,
-                                            &decl_state->param_list_cache);
+    cache_token_stream_coalesce_identifiers(token_cache, stop_tokens);
   } else {
     /* When caching a template template parameter it is more difficult to
        know when to stop.  Stop on just a semicolon or brace.  Don't
@@ -13292,8 +13273,7 @@ parameter entry for the parameter.
     /* Cache the tokens that make up the default argument expression. */
     prescan_default_arg_expr(&def_arg_cache, /*is_template_param=*/TRUE,
                              /*is_function_template=*/FALSE,
-			     /*is_friend_decl=*/FALSE,
-                             &decl_state->param_list_cache);
+			     /*is_friend_decl=*/FALSE);
     if (microsoft_mode) {
       /* The Microsoft compiler doesn't check default arguments until
          an instantiation is done. */
@@ -13409,8 +13389,7 @@ parameter depends on a template parameter.
     /* Cache the tokens that make up the default argument expression. */
     prescan_default_arg_expr(&def_arg_cache, /*is_template_param=*/TRUE,
                              /*is_function_template=*/FALSE,
-			     /*is_friend_decl=*/FALSE,
-			     &decl_state->param_list_cache);
+			     /*is_friend_decl=*/FALSE);
     if (const_type_involves_template_param) {
       /* The type of the constant parameter involves a template parameter.
          When the type of the constant involves a template parameter we have
@@ -13614,8 +13593,7 @@ depends on a another template parameter.
     /* Cache the tokens that make up the default argument expression. */
     prescan_default_arg_expr(&def_arg_cache, /*is_template_param=*/TRUE,
                              /*is_function_template=*/FALSE,
-			     /*is_friend_decl=*/FALSE,
-                             &parent_decl_state->param_list_cache);
+			     /*is_friend_decl=*/FALSE);
     rescan_copy_of_cache(&def_arg_cache);
     def_arg_templ = scan_template_template_argument(templ_ptr,
                                                     &pos_curr_token);

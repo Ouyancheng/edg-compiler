@@ -62,14 +62,12 @@ extern
 void prescan_default_arg_expr(a_token_cache_ptr	token_cache,
 			      a_boolean		is_template_param,
 			      a_boolean		is_function_template,
-			      a_boolean		is_friend_decl,
-                              a_token_cache_ptr src_cache);
+			      a_boolean		is_friend_decl);
 
 extern
 void prescan_default_function_arg_expr(
 			a_param_type_ptr		ptp,
 		        a_def_arg_expr_fixup_ptr	*list,
-                        a_token_cache_ptr		src_cache,
 			a_boolean			is_function_template,
 			a_boolean			is_friend_decl,
 			unsigned long			param_number);

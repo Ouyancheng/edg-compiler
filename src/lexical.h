@@ -443,10 +443,6 @@ EXTERN a_token_sequence_number
 			/* The value used to indicate that no sequence number
 			   is present. */
 
-#define MAX_TOKEN_SEQUENCE_NUMBER (~(a_token_sequence_number)(0))
-			/* The largest possible token sequence number. */
-
-
 /* These includes are placed here so that a_token_kind will be defined
    for general use before including these files. */
 #ifndef IL_H
@@ -1825,6 +1821,45 @@ EXTERN a_stop_token_stack_entry_ptr
 			/* Pointer to the current stop token stack entry. */
 
 /*
+A stack of lexical state arrays is maintained.  The top of the stack is
+pointed to by curr_lexical_state_stack_entry.  A new lexical state stack
+entry is pushed when a new lexical context is entered (for example,
+when a template instantiation is done) and popped when that context
+is no longer needed and the previous context must be restored.
+*/
+typedef struct a_lexical_state_stack_entry *a_lexical_state_stack_entry_ptr;
+typedef struct a_lexical_state_stack_entry {
+  a_lexical_state_stack_entry_ptr
+		next;
+			/* Pointer to the previous stack entry (e.g., the
+			   entry that should become the current entry when
+			   this one is popped off of the stack. */
+  int		cache_tokens;
+			/* Non-zero if tokens fetched by get_token should also
+			   be cached.  This is incremented by each caller that
+			   requests token caching. */
+  a_token_sequence_number
+		last_tsn_in_cache;
+			/* The token sequence number of the last token added
+			   to the cache, or NO_TOKEN_SEQUENCE_NUMBER if the
+			   cache is empty. */
+  a_token_cache	cache;
+			/* The cache used to save tokens when cache_tokens is
+			   TRUE. */
+} a_lexical_state_stack_entry;
+
+EXTERN a_lexical_state_stack_entry_ptr
+		curr_lexical_state_stack_entry;
+			/* Pointer to the current lexical state stack entry. */
+
+/*
+Return a pointer to the token cache associated with the current lexical
+state stack entry.
+*/
+#define curr_lexical_state_cache() \
+  (&curr_lexical_state_stack_entry->cache)
+
+/*
 Other general variables:
 */
 EXTERN a_boolean
@@ -2012,14 +2047,12 @@ extern void cache_token_stream(a_token_cache      *cache,
                                a_token_set_array  stop_tokens);
 extern
 void cache_token_stream_coalesce_identifiers(a_token_cache_ptr  cache,
-                                             a_token_set_array  stop_tokens,
-                                             a_token_cache_ptr	src_cache);
+                                             a_token_set_array  stop_tokens);
 
 extern
 void cache_token_stream_with_coalesce_flag(a_token_cache_ptr  cache,
                                            a_token_set_array  stop_tokens,
-                                           a_boolean	      coalesce_ids,
-                                           a_token_cache_ptr  src_cache);
+                                           a_boolean	      coalesce_ids);
 
 extern
 void remove_token_from_cache(a_cached_token_ptr	ctp,
@@ -2027,10 +2060,6 @@ void remove_token_from_cache(a_cached_token_ptr	ctp,
 			     a_token_cache_ptr	cache);
 
 extern a_token_kind get_token_to_be_cached(void);
-extern
-void cache_rest_of_declaration(a_token_cache_ptr	cache,
-                               a_boolean		stop_on_colon,
-                               a_boolean		stop_on_lbrace);
 /* Put some cached tokens on the get_token rescan list. */
 extern void rescan_cached_tokens(a_token_cache *cache);
 /* Push a reusable cache on to the reusable cache stack. */
@@ -2424,6 +2453,8 @@ cases.
 
 extern void push_stop_token_stack(void);
 extern void pop_stop_token_stack(void);
+extern void push_lexical_state_stack(void);
+extern void pop_lexical_state_stack(void);
 extern a_template_ptr scan_template_template_argument(
 				a_template_ptr		param_template,
 				a_source_position	*err_pos);
