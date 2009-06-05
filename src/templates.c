@@ -12877,7 +12877,6 @@ specifies the position of the parameter in the parameter list.
 */
 {
   a_def_arg_expr_fixup_ptr	*list;
-  a_scope_stack_entry_ptr	ssep;
 
   if (curr_token == tok_removed_default_arg) {
     /* If we are scanning a removed default argument, just bypass the token. */
@@ -12894,7 +12893,6 @@ specifies the position of the parameter in the parameter list.
        current function template or the instantiation scope for the partial
        instantiation of a template function declaration.  In the latter case,
        the tokens that are cached are simply discarded. */
-    ssep = scope_stack_entry_for(assoc_scope_depth);
     list = &curr_default_args;
     prescan_default_function_arg_expr(ptp, list, /*is_function_template=*/TRUE,
 				      /*is_friend_decl=*/FALSE, param_number);
@@ -12902,8 +12900,7 @@ specifies the position of the parameter in the parameter list.
 }  /* prescan_function_template_default_arg_expr */
 
 
-static void prescan_template_param_decl(a_token_cache	      *token_cache,
-                                        a_tmpl_decl_state_ptr decl_state)
+static void prescan_template_param_decl(a_token_cache	      *token_cache)
 /*
 Place the tokens for a template parameter into a token cache.
 */
@@ -13676,7 +13673,7 @@ to represent the template parameters.
     /* Cache the tokens that comprise the template parameter declaration.
        If the parameter depends on other template parameters this cache
        will be saved and rescanned to scan template argument lists. */
-    prescan_template_param_decl(&param_cache, decl_state);
+    prescan_template_param_decl(&param_cache);
     add_stop_token(tok_comma);
     /* Determine the kind of template parameter to be scanned. */
     param_kind = determine_template_param_kind(&param_cache);
