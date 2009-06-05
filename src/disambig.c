@@ -1140,7 +1140,9 @@ Return TRUE if token could be a unary or binary operator.
 */
 #define is_unary_and_binary_operator_token(token)			\
   ((token) == tok_plus ||						\
-   (token) == tok_minus)
+   (token) == tok_minus ||						\
+   (token) == tok_star ||						\
+   (token) == tok_ampersand)
 
 
 static a_boolean is_decl_not_expr_full(a_disambig_flag_set flags)
