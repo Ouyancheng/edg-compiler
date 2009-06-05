@@ -1169,7 +1169,11 @@ source position is after the closing parenthesis of the argument list.
                                    /*is_declarative_context=*/FALSE) &&
         /* Avoid problems with specified arguments with defaults: */
         arg_operand_list != NULL &&
-        arg_operand_list->next == NULL) {
+        arg_operand_list->next == NULL &&
+        (check_assertion(overloaded_function_case), /* We forced this above. */
+         (arg_match = arg_match_list->next),
+         /* Watch out for an ambiguous conversion. */
+         conv_usable(&arg_match->conversion))) {
       a_routine_ptr conv_routine;
       a_type_ptr    conv_rout_type;
       /* The constructor selected is a copy constructor, so certain
@@ -1177,8 +1181,6 @@ source position is after the closing parenthesis of the argument list.
       param_type =
               routine->type->variant.routine.extra_info->param_type_list->type;
       source_type = type_pointed_to(param_type);
-      check_assertion(overloaded_function_case);  /* We forced this above. */
-      arg_match = arg_match_list->next;
       if (is_null_user_conv_descr(&arg_match->conversion) &&
           f_same_entities(f_skip_typerefs(arg_operand_list->operand.type),
                           class_type) &&
@@ -1214,7 +1216,7 @@ source position is after the closing parenthesis of the argument list.
         is_temp_after_conv = TRUE;
         optimized = TRUE;
       } else if (routine->is_trivial_copy_function) {
-        /* The constructor selected is a bitwise copy constructor.  A move
+        /* The constructor selected is a bitwise copy constructor.  A copy
            can be used instead of a call.  The routine is not marked as
            called. */
         is_bitwise_copy = TRUE;
