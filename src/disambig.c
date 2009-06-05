@@ -1135,6 +1135,14 @@ done:
 }  /* prescan_declaration */
 
 
+/*
+Return TRUE if token could be a unary or binary operator.
+*/
+#define is_unary_and_binary_operator_token(token)			\
+  ((token) == tok_plus ||						\
+   (token) == tok_minus)
+
+
 static a_boolean is_decl_not_expr_full(a_disambig_flag_set flags)
 /*
 This routine is called (in C++ only) to distinguish statements and expressions
@@ -1302,8 +1310,15 @@ types separated by commas (when single_type_required is FALSE).
         /* If the thing after the right parenthesis is not the start of
            an expression, then this is not a cast -- so indicate that this
            is not a declaration.  A compound literal (e.g., "(int){0}")
-           looks like a cast followed by a brace. */
-        if (!is_expr_start_token(curr_token) &&
+           looks like a cast followed by a brace.  When implicit typename
+           is enabled and the type is an implicit dependent type, don't
+           treat this as a cast if the thing after the right parenthesis
+           is something that could be either a unary or binary operator
+           (i.e., in such cases, assume it to be the binary operator not
+           a cast of a unary operation). */
+        if ((!is_expr_start_token(curr_token) ||
+             (is_implicit_template_type &&
+              is_unary_and_binary_operator_token(curr_token))) &&
             (!compound_literals_allowed || curr_token != tok_lbrace)) {
           state.may_be_decl = FALSE;
         }  /* if */

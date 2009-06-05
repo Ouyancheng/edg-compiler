@@ -1,5 +1,31 @@
 Version 4.1
 
+6/4/09   [EDGcpfe/8916]
+Treatment of potential dependent cast followed by + or - with implicit typename
+
+When implicit typename is used there is an ambiguity between a cast of
+a unary operation (where the name is assumed to be a typename) and a
+binary operation (where the name is assumed to not be a type).  Formerly
+such cases were taken as casts, but they are now assumed to be binary
+operations.  If a cast is intended, it must be written with typename (as is
+required by the standard), or the operand of the cast can be enclosed in
+parentheses (which is still nonstandard).
+
+  template <class T> struct A {
+    static const int value = 0;
+  };
+  template <int check> struct B {
+    typedef int type;
+  };
+  // Is (A<T>::value)+1 a cast or expression?
+  template <typename T> typename B<((A<T>::value) + 1)>::type f(T) {
+    return 0;
+  }
+  int main() {
+    f(1);
+  }
+
+
 6/4/09   [EDGcpfe/9712]
 Searching for preinclude files when using the -I- option
 
