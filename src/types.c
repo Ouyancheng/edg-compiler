@@ -5273,18 +5273,19 @@ points to the constant value.  (That's needed to check for conversions of a
 null pointer constant to a pointer type.)  If source_is_string_literal
 is TRUE, the source is a simple string literal (that's needed for the
 deprecated conversion from string literal to "char *"); the flag can
-be TRUE even when source_is_constant is FALSE, for an extension.  If
-allow_qualifier_or_eh_mismatch is TRUE, ignore cv-qualifier and exception
-specification mismatches (the two types are probably the types of the
-operands of an operation); mismatches in named address space qualifiers
-are not ignored, however.  suppress_extensions is TRUE if conversions
-that are extensions should not be allowed (what constitutes an
-extension depends on C_dialect, of course).  If the conversion is
-possible, *std_conv is filled out to describe the conversion.  In
-particular, if the conversion is suspect and should be flagged with a
-warning, the warning_suggested field is set to an appropriate error
-code; normally, it is set to ec_no_error.  default_warning_code will
-be copied into warning_suggested when no specific message applies.
+be TRUE even when source_is_constant is FALSE, for string literals
+represented in expression form.  If allow_qualifier_or_eh_mismatch is
+TRUE, ignore cv-qualifier and exception specification mismatches (the
+two types are probably the types of the operands of an operation);
+mismatches in named address space qualifiers are not ignored, however.
+suppress_extensions is TRUE if conversions that are extensions should
+not be allowed (what constitutes an extension depends on C_dialect, of
+course).  If the conversion is possible, *std_conv is filled out to
+describe the conversion.  In particular, if the conversion is suspect
+and should be flagged with a warning, the warning_suggested field is
+set to an appropriate error code; normally, it is set to ec_no_error.
+default_warning_code will be copied into warning_suggested when no
+specific message applies.
 
 Note that any type qualifiers on the types themselves (rather than the
 types pointed to) are ignored.
@@ -5447,8 +5448,8 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
              a function pointer; a warning is issued. */
           okay = TRUE;
           std_conv->warning_suggested = default_warning_code;
-        } else if (!suppress_extensions && source_is_constant &&
-                   is_address_of_string_constant(source_constant) &&
+        } else if (!suppress_extensions &&
+                   source_is_string_literal &&
                    is_character_type(unqual_source_type_pointed_to) &&
                    is_character_type(unqual_dest_type_pointed_to)) {
           /* Allow a character string to be converted to a pointer to any kind

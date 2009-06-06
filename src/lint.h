@@ -238,6 +238,7 @@ Included from basic_hdrs.h in every compilation.
 /*lint -esym(765,strip_rvalue_base_class_casts)*/
 #endif /* !DO_IL_LOWERING */
 #if !BACK_END_IS_CP_GEN_BE
+/*lint -esym(714,is_address_of_string_constant)*/
 /*lint -esym(759,is_address_of_string_constant)*/
 /*lint -esym(765,is_address_of_string_constant)*/
 /*lint -esym(759,form_unknown_function_constant)*/
