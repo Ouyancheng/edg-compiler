@@ -1004,13 +1004,17 @@ extern a_boolean is_copy_constructor_type(
                                  a_type_ptr            routine_type,
                                  a_type_ptr            class_of_which_a_member,
                                  a_type_qualifier_set  *qualifiers,
+                                 a_boolean             include_move_ctors,
                                  a_boolean             is_declarative_context);
 
 extern a_boolean is_copy_constructor(
-                                a_routine_ptr         ctor_rout,
-                                a_type_ptr            class_of_which_a_member,
-                                a_type_qualifier_set  *qualifiers,
-                                a_boolean             is_declarative_context);
+                                 a_routine_ptr         ctor_rout,
+                                 a_type_ptr            class_of_which_a_member,
+                                 a_type_qualifier_set  *qualifiers,
+                                 a_boolean             include_move_ctors,
+                                 a_boolean             is_declarative_context);
+
+extern a_boolean copy_ctor_is_move_ctor(a_routine_ptr  rp);
 
 extern void switch_il_region(a_memory_region_number region_number);
 

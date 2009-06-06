@@ -10251,13 +10251,17 @@ a_boolean is_copy_constructor_type(
                                  a_type_ptr            routine_type,
                                  a_type_ptr            class_of_which_a_member,
                                  a_type_qualifier_set  *qualifiers,
+                                 a_boolean             include_move_ctors,
                                  a_boolean             is_declarative_context)
 /*
 Return TRUE if routine_type (a constructor's function type) is the type of a
 copy constructor for class class_of_which_a_member; if it is, also set and
 return *qualifiers to indicate the type qualifiers on the copy constructor's
 first parameter -- this will show what restrictions are placed on the object
-being copied.  is_declarative_context is TRUE if this is a constructor
+being copied.  If include_move_ctors is TRUE, also return TRUE if routine_type
+is the type of a "move constructor" (the first parameter has an rvalue
+reference type instead of the lvalue reference type of a true copy
+constructor).  is_declarative_context is TRUE if this is a constructor
 declaration rather than a constructor reference.  If qualifiers is NULL,
 no value is returned for that.
 */
@@ -10280,7 +10284,9 @@ no value is returned for that.
      call need not explicitly mention the second argument. */
   /* An ellipsis is also allowed by virtue of the fact that it is not checked
      for. */
-  if (ptp != NULL && is_lvalue_reference_type(ptp->type) &&
+  if (ptp != NULL &&
+      (include_move_ctors ? is_reference_type(ptp->type)
+                          : is_lvalue_reference_type(ptp->type)) &&
       (ptp->next == NULL || ptp->next->has_default_arg)) {
     a_type_ptr  tp = type_pointed_to(ptp->type);
     a_type_ptr  unqualified_tp = skip_typerefs(tp);
@@ -10321,6 +10327,7 @@ no value is returned for that.
 a_boolean is_copy_constructor(a_routine_ptr         ctor_rout,
                               a_type_ptr            class_of_which_a_member,
                               a_type_qualifier_set  *qualifiers,
+                              a_boolean             include_move_ctors,
                               a_boolean             is_declarative_context)
 /*
 Return TRUE if ctor_rout points to a copy constructor routine entry for
@@ -10328,9 +10335,10 @@ class_of_which_a_member; if it does, also set and return *qualifiers to
 indicate the type qualifiers on the copy constructor's first parameter --
 this will show what restrictions are placed on the object being copied.
 is_declarative_context is TRUE if this is a constructor declaration rather
-than a constructor reference.  If class_of_which_a_member is NULL, it is
-set from ctor_rout.  If qualifiers is NULL, no value is returned for that.
-ctor_rout must be a constructor.
+than a constructor reference.  If include_move_ctors is TRUE, also return
+TRUE if the given routine is a move constructor for the given class.
+If class_of_which_a_member is NULL, it is set from ctor_rout.  If qualifiers
+is NULL, no value is returned for that.  ctor_rout must be a constructor.
 */
 {
   a_boolean is_cctor;
@@ -10341,9 +10349,24 @@ ctor_rout must be a constructor.
     class_of_which_a_member = parent_class_of(ctor_rout);
   }  /* if */
   is_cctor = is_copy_constructor_type(ctor_rout->type, class_of_which_a_member,
-                                      qualifiers, is_declarative_context);
+                                      qualifiers, include_move_ctors,
+                                      is_declarative_context);
   return is_cctor;
 }  /* is_copy_constructor */
+
+
+a_boolean copy_ctor_is_move_ctor(a_routine_ptr  rp)
+/*
+The given routine is a copy constructor or a move constructor.  Return TRUE if
+it is a move constructor.
+*/
+{
+  a_type_ptr        rtp = skip_typerefs(rp->type);
+  a_param_type_ptr  ptp = rtp->variant.routine.extra_info->param_type_list;
+  
+  check_assertion(ptp != NULL);
+  return is_rvalue_reference_type(ptp->type);
+}  /* copy_ctor_is_move_ctor */
 
 
 static void instantiate_il_entity(a_source_correspondence *scp)

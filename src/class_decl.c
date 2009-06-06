@@ -7793,6 +7793,7 @@ Update the flags in the class symbol supplement accordingly.
 
   cssp = symbol_supplement_for_class(class_type);
   if (is_copy_constructor(rout_ptr, class_type, &qualifiers,
+                          /*include_move_ctors=*/TRUE,
                           /*is_declarative_context=*/TRUE)) {
     cssp->has_copy_constructor = TRUE;
     if (qualifiers & TQ_CONST) {
@@ -8094,25 +8095,26 @@ explicit overrider (which means this routine will return TRUE).
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-static a_boolean assignment_operator_for_copy_exists(a_symbol_ptr  sym,
-                                                     a_boolean     *const_okay)
+static a_boolean assignment_operator_for_copy_exists(
+                                            a_symbol_ptr  sym,
+                                            a_boolean     *p_is_user_provided,
+                                            a_boolean     *p_const_okay)
 /*
 Return TRUE if sym is not NULL and qualifies as an assignment operator that
 can copy a class object.  If sym is an overloaded function, return TRUE if at
-least one of the functions qualifies.  Set *const_okay TRUE if a const object
-can be copied.
+least one of the functions qualifies.  Set *p_const_okay TRUE if a const object
+can be copied.  If p_is_user_provided is non-NULL, set *p_is_user_provided to
+whether one of the operators is user-provided.
 */
 {
-  a_boolean             sym_is_overloaded;
+  a_boolean             sym_is_overloaded, const_okay = FALSE;
   a_boolean             is_ref_arg;
   a_type_qualifier_set  qualifiers_accepted;
   a_boolean             found_assignment_operator_for_copy = FALSE;
   a_boolean             is_base_class_match;
 
   db_enter(4, "assignment_operator_for_copy_exists");
-  /* Set *const_okay to TRUE unless this subobject's type has a default
-     assignment operator that cannot accept a const object. */
-  *const_okay = TRUE;
+  if (p_is_user_provided != NULL) *p_is_user_provided = FALSE;
   if (sym != NULL) {
     sym_is_overloaded = (sym->kind == (a_symbol_kind)sk_overloaded_function);
     if (sym_is_overloaded) sym = sym->variant.overloaded_function.symbols;
@@ -8138,23 +8140,24 @@ can be copied.
         /* Found an assignment operator that can serve to make a copy of
            the current class. */
         found_assignment_operator_for_copy = TRUE;
+        if (!viable_sym->variant.routine.ptr->compiler_generated &&
+            !viable_sym->variant.routine.ptr->is_defaulted) {
+          if (p_is_user_provided != NULL) *p_is_user_provided = TRUE;
+        }  /* if */
         /* If it takes the object to be copied by value, a const object
            may be copied; if it takes it by reference, a const qualifier
            must be present on the parameter declaration. */
         if (!is_ref_arg || (qualifiers_accepted & TQ_CONST) != 0) {
-          /* An copy assignment operator has been located, and it accepts
+          /* A copy assignment operator has been located, and it accepts
              a const object. */
-          *const_okay = TRUE;
-          break;
-        } else {
-          /* This one does not accept a const object, so set *const_okay
-             to FALSE.  However, another in the overload list might accept
-             const, so keep looping. */
-          *const_okay = FALSE;
+          const_okay = TRUE;
         }  /* if */
       }  /* if */
     }  /* for */
   }  /* if */
+  /* Set const_okay if the copy assignment operator is implicit, or if the
+     implicit one allows the copying of const objects. */
+  *p_const_okay = !found_assignment_operator_for_copy || const_okay;
   db_exit();
   return found_assignment_operator_for_copy;
 }  /* assignment_operator_for_copy_exists */
@@ -8197,7 +8200,7 @@ classes and fields of the given class.
     if (bcp->direct || bcp->is_virtual) {
       cssp = symbol_supplement_for_class(bcp->type);
       if (assignment_operator_for_copy_exists(cssp->assignment_operator,
-                                              &const_okay) &&
+                                              (a_boolean*)NULL, &const_okay) &&
           !const_okay) {
         /* There is a default assignment operator for this base class type,
            but it does not accept a const object.  No need to look any
@@ -8218,6 +8221,7 @@ classes and fields of the given class.
       if (is_class_struct_union_type(tp)) {
         cssp = symbol_supplement_for_class(tp);
         if (assignment_operator_for_copy_exists(cssp->assignment_operator,
+                                                (a_boolean*)NULL,
                                                 &const_okay) &&
             !const_okay) {
           /* There is a default assignment operator for this static data
@@ -12389,7 +12393,9 @@ member functions.)
         a_type_qualifier_set  tqs;
         if (rp->special_kind == (a_special_function_kind)sfk_constructor &&
             is_copy_constructor(rp, (a_type*)NULL, &tqs,
+                                /*include_move_ctors=*/TRUE,
                                 /*is_declarative_context=*/TRUE)) {
+          check_assertion(!copy_ctor_is_move_ctor(rp));
           rp->is_trivial_copy_function =
                                    cssp->construction_by_bitwise_copy_allowed;
         } else if (rp->special_kind == (a_special_function_kind)sfk_operator &&
@@ -12422,7 +12428,8 @@ The routine body is not generated until it is known to be needed.
   a_type_qualifier_set          asgn_qualifiers;
   a_member_decl_info            decl_info;
   a_source_position             *pos;
-  a_boolean                     user_declared_copy_assignment_op = FALSE;
+  a_boolean                     user_declared_copy_assignment_op;
+  a_boolean                     user_provided_copy_assignment_op;
   a_boolean                     suppress_copy_asgn_op = FALSE;
   a_boolean                     suppress_copy_ctor = FALSE;
   a_boolean                     suppress_dtor = FALSE;
@@ -12435,12 +12442,15 @@ The routine body is not generated until it is known to be needed.
   ctsp = class_type_supp(class_type);
   pos = &class_type->source_corresp.decl_position;
   /* Check for a user-declared copy assignment operator. */
-  if (assignment_operator_for_copy_exists(cssp->assignment_operator,
-                                          &dummy_flag)) {
-    /* If the user has already defined an assignment operator, the front end
-       should not generate one. */
-    user_declared_copy_assignment_op = TRUE;
-    /* A POD cannot have a user-defined copy assignment operator. */
+  user_declared_copy_assignment_op = assignment_operator_for_copy_exists(
+                                          cssp->assignment_operator,
+                                          &user_provided_copy_assignment_op,
+                                          &dummy_flag);
+  if (user_provided_copy_assignment_op) {
+    /* A POD cannot have a user-provided copy assignment operator.  This must
+       be determined before calling add_default_ctor_if_needed, because it
+       may affects whether a trivial default constructor is actually
+       generated (it wouldn't be generated for a POD). */
     class_state->POD_ruled_out = TRUE;
   }  /* if */
   add_default_ctor_if_needed(class_state);
@@ -12538,7 +12548,7 @@ The routine body is not generated until it is known to be needed.
   if (cssp->has_user_provided_copy_constructor) {
     cssp->construction_by_bitwise_copy_allowed = FALSE;
   }  /* if */
-  if (user_declared_copy_assignment_op) {
+  if (user_provided_copy_assignment_op) {
     cssp->assignment_by_bitwise_copy_allowed = FALSE;
   }  /* if */
   db_exit();

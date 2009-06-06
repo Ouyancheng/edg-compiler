@@ -4308,6 +4308,7 @@ and return TRUE if the tiebreakers should be suppressed for this case.
         if (rout->special_kind == (a_special_function_kind)sfk_constructor &&
             is_copy_constructor(rout, (a_type_ptr)NULL,
                                 (a_type_qualifier_set *)NULL,
+                                /*include_move_ctors=*/FALSE,
                                 /*is_declarative_context=*/FALSE)) {
           /* A non-template copy constructor against a template.  Suppress
               the tiebreakers. */
@@ -4424,11 +4425,13 @@ on the basis that MSVC++ prefers copy constructors over other functions.
                                     (a_special_function_kind)sfk_constructor &&
                  is_copy_constructor(rout1, (a_type_ptr)NULL,
                                      (a_type_qualifier_set *)NULL,
+                                     /*include_move_ctors=*/FALSE,
                                      /*is_declarative_context=*/FALSE));
     is_cctor2 = (rout2->special_kind ==
                                     (a_special_function_kind)sfk_constructor &&
                  is_copy_constructor(rout2, (a_type_ptr)NULL,
                                      (a_type_qualifier_set *)NULL,
+                                     /*include_move_ctors=*/FALSE,
                                      /*is_declarative_context=*/FALSE));
     if (is_cctor1 && !is_cctor2) {
       cmp = 1;
@@ -13166,6 +13169,7 @@ happen only in C++ mode.
       if (f_same_entities(skip_typerefs(source_operand->type), class_type) &&
           is_copy_constructor(conversion_routine, class_type,
                               (a_type_qualifier_set *)NULL,
+                              /*include_move_ctors=*/TRUE,
                               /*is_declarative_context=*/FALSE)) {
         /* The conversion routine is a copy constructor, and the source and
            destination have the same type (i.e., the source is not a derived
@@ -15356,6 +15360,7 @@ constructor.
       routine_type = skip_typerefs(routine_type);
       if (!is_copy_constructor_type(routine_type, class_type,
                                     (a_type_qualifier_set *)NULL,
+                                    /*include_move_ctors=*/source_is_rvalue,
                                     /*is_declarative_context=*/FALSE)) {
         /* Not a copy constructor. */
         goto reject_function;

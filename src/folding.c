@@ -6345,6 +6345,7 @@ constant will be set as well.
             a_type_ptr     rtp = skip_typerefs(rp->type);
             if (is_copy_constructor_type(rtp, type,
                                          (a_type_qualifier_set *)NULL,
+                                         /*include_move_ctors=*/FALSE,
                                          /*is_declarative_context=*/TRUE)) {
               if (kind == (a_builtin_operation_kind)bok_has_copy) {
                 /* __has_copy returns true for any user-declared or nontrivial

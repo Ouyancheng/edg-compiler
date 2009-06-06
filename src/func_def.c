@@ -1523,6 +1523,7 @@ is recorded in *decl_pos_block.  *linkage_ptr is set to idl_external, and
           cssp->construction_by_bitwise_copy_allowed) {
         a_type_qualifier_set  qualifiers;
         if (is_copy_constructor(rp, class_type, &qualifiers,
+                                /*include_move_ctors=*/TRUE,
                                 /*is_declarative_context=*/FALSE)) {
           /* This is a copy constructor.  Note that the presence of a user-
              defined copy constructor means that construction by bitwise

@@ -4328,7 +4328,10 @@ initialized.  These are addressed in the course of the processing.
   is_generated_cctor = !user_defined &&
                        is_copy_constructor(ctor_rout, class_type,
                                            &required_qualifiers,
+                                           /*include_move_ctors=*/TRUE,
                                            /*is_declarative_context=*/TRUE);
+  /* Move constructors are currently not generated. */
+  check_assertion(!is_generated_cctor || !copy_ctor_is_move_ctor(ctor_rout));
   /* The first step is to construct three lists of constructor initializer
      entries, one for virtual base classes that have constructors, one for
      nonvirtual direct base classes that have constructors, and one for

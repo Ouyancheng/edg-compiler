@@ -1084,6 +1084,7 @@ source position is after the closing parenthesis of the argument list.
     routine = constructor_sym->variant.routine.ptr;
     if (is_copy_constructor(routine, (a_type_ptr)NULL,
                             (a_type_qualifier_set *)NULL,
+                            /*include_move_ctors=*/TRUE,
                             /*is_declarative_context=*/FALSE)) {
       /* The sole constructor is a copy constructor.  We may be able to
          elide the call, so go through the processing route for overloaded
@@ -1166,6 +1167,7 @@ source position is after the closing parenthesis of the argument list.
     } else if (elision_allowed &&
                is_copy_constructor(routine, (a_type_ptr)NULL,
                                    (a_type_qualifier_set *)NULL,
+                                   /*include_move_ctors=*/TRUE,
                                    /*is_declarative_context=*/FALSE) &&
         /* Avoid problems with specified arguments with defaults: */
         arg_operand_list != NULL &&
