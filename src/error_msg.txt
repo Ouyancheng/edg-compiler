@@ -1855,6 +1855,8 @@ ec_useless_type_qualifiers_in_type_name;;"type qualifiers are meaningless here"
 ec_invalid_assignment_operator_to_be_defaulted;;"invalid type for defaulted assignment operator"
 ec_function_template_cannot_be_defaulted;;"function templates cannot be defaulted"
 ec_invalid_constructor_to_be_defaulted;;"invalid type for defaulted constructor"
+ec_call_requires_one_argument;;"function call requires one argument"
+ec_call_requires_floating_point_argument;;"function call requires a real floating-point argument"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

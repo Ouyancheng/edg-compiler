@@ -6720,6 +6720,50 @@ count_done:
   return success;
 }  /* fold_bit_count_operation */
 
+#if TARG_HAS_IEEE_FLOATING_POINT
+
+a_boolean fold_fptest_if_possible(a_routine_ptr     rp,
+                                  an_expr_node_ptr  arg,
+                                  a_constant        *result_con)
+/*
+rp represents a GNU builtin floating-point test function (__builtin_isnan or
+__builtin_isinf) which is being applied to the given argument.  If the argument
+is a constant, set *result_con to the result of the test and return TRUE.
+Otherwise, return FALSE.
+*/
+{
+  a_boolean   success = FALSE;
+  a_type_ptr  result_type;
+
+  check_assertion(is_gnu_builtin_function(rp));
+  result_type = return_type_of(rp->type);
+  result_type = skip_typerefs(result_type);
+  check_assertion(result_type->kind == (a_type_kind)tk_integer);
+  if (is_constant_node(arg) &&
+      arg->variant.constant->kind == (a_constant_repr_kind)ck_float) {
+    a_constant_ptr         cp = arg->variant.constant;
+    a_host_large_unsigned  result;
+    switch (rp->variant.builtin_function_kind) {
+      case bfk_isnan:
+        result = fp_is_nan(&cp->variant.float_value,
+                           cp->type->variant.float_kind);
+        break;
+      case bfk_isinf:
+        result = fp_is_infinity(&cp->variant.float_value,
+                                cp->type->variant.float_kind);
+        break;
+      default:
+        unexpected_condition();
+    }  /* switch */
+    set_integer_constant(result_con, (a_host_large_integer)result,
+                         result_type->variant.integer.int_kind);
+    success = TRUE;
+  }  /* if */
+  return success;
+}  /* fold_fptest_if_possible */
+
+#endif /* TARG_HAS_IEEE_FLOATING_POINT */
+
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 

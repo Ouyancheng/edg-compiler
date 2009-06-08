@@ -1419,6 +1419,8 @@ pseudo_call can be NULL if that information is not needed.
       case bfk_inff:
       case bfk_inf:
       case bfk_infl:
+      case bfk_isnan:
+      case bfk_isinf:
 #endif /* TARG_HAS_IEEE_FLOATING_POINT */
       case bfk_ffs:
       case bfk_ffsl:
@@ -1609,12 +1611,13 @@ address thereof.
 
 #endif /* TARG_HAS_IEEE_FLOATING_POINT */
 
-static a_boolean fold_call_if_possible(an_operand  *op)
+static a_boolean check_call_and_fold_if_possible(an_operand  *op)
 /*
 The given operand must represent a function call.  Some GNU __builtin_xxx
-functions must be constant-folded.  This routine does so by replacing the
-given operand by a constant operand if appropriate.  Returns TRUE if the call
-is folded.
+functions require special compile-time checks and can sometimes be constant-
+folded.  This routine does so and returns TRUE if the call is folded (in which
+case *op is replaced by a constant operand).  A diagnostic may be issued if the
+arguments are invalid (and *op is replaced by an error operand in such cases).
 */
 {
   a_boolean         folded = FALSE;
@@ -1708,6 +1711,21 @@ is folded.
             folded = fold_bit_count_operation_if_possible(rp, args, &result);
           }  /* if */
           break;
+#if TARG_HAS_IEEE_FLOATING_POINT
+        case bfk_isnan:
+        case bfk_isinf:
+          if (args == NULL || args2 != NULL) {
+            pos_error(ec_call_requires_one_argument, &op->position);
+            make_error_operand(op);
+          } else if (!is_real_floating_type(args->type)) {
+            pos_error(ec_call_requires_floating_point_argument,
+                      &op->position);
+            make_error_operand(op);
+          } else {
+            folded = fold_fptest_if_possible(rp, args, &result);
+          }  /* if */
+          break;
+#endif /* TARG_HAS_IEEE_FLOATING_POINT */
         default:
           /* Nothing to be done. */
           break;
@@ -1724,7 +1742,7 @@ is folded.
     }  /* if */
   }  /* if */
   return folded;
-}  /* fold_call_if_possible */
+}  /* check_call_and_fold_if_possible */
 
 
 static void scan_expr_for_builtin_choose_expr(an_operand  *operand,
@@ -2666,13 +2684,13 @@ C++ standard.  The current token is the "(" of the call.
 #if GNU_EXTENSIONS_ALLOWED
     if (call_may_be_folded && !is_error_operand(result)) {
       /* Some __builtin_xxx functions act as constant-expressions. */
-      call_folded_to_constant = fold_call_if_possible(result);
+      call_folded_to_constant = check_call_and_fold_if_possible(result);
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
-  if (call_may_be_folded && !call_folded_to_constant &&
-      curr_expr_kind_is_const()) {
+  if (call_may_be_folded && curr_expr_kind_is_const() &&
+      !call_folded_to_constant && !is_error_operand(result)) {
     /* Unfolded routine calls are not allowed in constant expressions. */
     error_in_operand(ec_bad_constant_function_call, result);
   }  /* if */

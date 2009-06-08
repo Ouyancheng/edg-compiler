@@ -608,6 +608,10 @@ extern int fileno(FILE *);
 /* Suppress spurious data access warnings. */
 /*lint -efunc(670,macro_invocation)*/
 /*lint -efunc(690,macro_invocation)*/
+#if !(GNU_EXTENSIONS_ALLOWED && TARG_HAS_IEEE_FLOATING_POINT)
+/*lint -esym(769,ec_call_requires_one_argument)*/
+/*lint -esym(769,ec_call_requires_floating_point_argument)*/
+#endif /* !(GNU_EXTENSIONS_ALLOWED && TARG_HAS_IEEE_FLOATING_POINT) */
 
 #endif /* ifndef LINT_H */
 

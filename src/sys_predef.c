@@ -1764,6 +1764,10 @@ Enter the standard predeclared functions for GCC.
   enter_gnu_builtin_func0(_va_arg_pack_len, int);
   enter_gnu_builtin_func1(_bswap32, u4, u4);
   enter_gnu_builtin_func1(_bswap64, u8, u8);
+#if TARG_HAS_IEEE_FLOATING_POINT
+  enter_gnu_builtin_vararg_func0(_isnan, int);
+  enter_gnu_builtin_vararg_func0(_isinf, int);
+#endif /* TARG_HAS_IEEE_FLOATING_POINT */
 
 #if GNU_BUILTIN_SYNC_FUNCTIONS_ALLOWED
   enter_gnu_sync_functions();

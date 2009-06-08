@@ -8452,6 +8452,8 @@ enum a_builtin_function_kind_tag {
   bfk_va_arg_pack_len,          /* __builtin_va_arg_pack_len */
   bfk_bswap32,                  /* __builtin_bswap32 */
   bfk_bswap64,                  /* __builtin_bswap64 */
+  bfk_isnan,			/* __builtin_isnan */
+  bfk_isinf,			/* __builtin_isinf */
   bfk_last
 };
 /* Define as "unsigned short" to explicitly control storage size (a_byte
@@ -9698,6 +9700,8 @@ EXTERN char *builtin_function_kind_names[(int)bfk_last + 1]
   /* bfk_va_arg_pack_len */          "__builtin_va_arg_pack_len",
   /* bfk_bswap32 */                  "__builtin_bswap32",
   /* bfk_bswap64 */                  "__builtin_bswap64",
+  /* bfk_isnan */		     "__builtin_isnan",
+  /* bfk_isinf */		     "__builtin_isinf",
   /* bfk_last */                     "last" /* used to check that 
                                                initialization is right. */
 }
