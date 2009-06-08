@@ -2004,7 +2004,6 @@ if this is the function declarator in a friend function declaration.
           a_boolean		ignore_default_arg_expr;
           a_boolean		invalid_default_arg = FALSE;
           a_param_type_ptr	ptp_for_scan;
-          a_scope_depth		def_arg_scope_depth = NO_SCOPE_DEPTH;
 
           if (!default_arg_allowed_on_curr_param) {
             pos_error(ec_default_arg_expr_not_allowed, &pos_curr_token);
@@ -2051,7 +2050,6 @@ if this is the function declarator in a friend function declaration.
               /* A function template declaration.  Note that all default
                  arguments are cached. */
               cache_default_arg = TRUE;
-              def_arg_scope_depth = scope_depth_of(parent_ssep);
             } else if (parent_scope_kind ==
                                    (a_scope_kind)sck_template_instantiation) {
               /* A template instantiation -- the function declarator tokens are
@@ -2059,7 +2057,6 @@ if this is the function declarator in a friend function declaration.
                  caches during a later fixup, so ignore the expression now. */
               cache_default_arg = TRUE;
               ignore_default_arg_expr = TRUE;
-              def_arg_scope_depth = scope_depth_of(parent_ssep);
             } else if (parent_scope_kind ==
                                    (a_scope_kind)sck_class_reactivation ||
                        parent_scope_kind ==
@@ -2084,7 +2081,6 @@ if this is the function declarator in a friend function declaration.
                   /* This is a template case, so the default should be
                      cached. */
                   cache_default_arg = TRUE;
-                  def_arg_scope_depth = scope_depth_of(ssep);
                 } else {
                   pos_diagnostic(microsoft_mode ? es_warning : es_error,
                                  ec_default_arg_expr_not_allowed,
