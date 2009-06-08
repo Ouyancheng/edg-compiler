@@ -1,5 +1,19 @@
 Version 4.1
 
+6/8/09   [EDGcpfe/9871]
+Warning on pointer subtraction producing address outside array restored
+
+The warning that a pointer subtraction operation produces an address
+outside of an underlying array, which disappeared in certain cases after
+the 4.0 expression changes, has been restored.
+
+  int main() {
+    int a[3];
+    int *p;
+    p = a - 1;  // Warning is once again issued
+  }
+
+
 6/8/09   [EDGcpfe/9887]
 Array placement new with default arguments lowered incorrectly
 

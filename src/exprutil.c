@@ -6408,12 +6408,17 @@ operator was scanned.
       } else if (node_operator_is(ptr_node, eok_padd)) {
         /* Indirection over a pointer "+" is equivalent to subscripting. */
         node = ptr_node;
+      } else if (node_operator_is(ptr_node, eok_psubtract)) {
+        /* Indirection over a pointer "-" is equivalent to subscripting,
+           with the integer operand negated. */
+        node = ptr_node;
       }  /* if */
     }  /* if */
   }  /* if */
   if (curr_expr_is_evaluated() &&
       is_operation_node(node) &&
       (node_operator_is(node, eok_padd) ||
+       node_operator_is(node, eok_psubtract) ||
        node_operator_is(node, eok_subscript))) {
     /* The node is a pointer addition or subscript operation. */
     ptr_node = node->variant.operation.operands;
@@ -6476,13 +6481,26 @@ operator was scanned.
               element_type = array_element_type(array_type);
               element_type = skip_typerefs(element_type);
               if (identical_types(ptr_element_type, element_type)) {
-                /* Everything's as we want it.  Check the subscript. */
-                if (sign_of_integer_constant(sub_con) < 0) {
-                  /* Negative subscript. */
+                /* Everything's as we want it.  Check the subscript.
+                   For the pointer "-" case negate the constant. */
+                a_constant_ptr eff_sub_con = sub_con;
+                a_constant     local_con;
+                if (node_operator_is(node, eok_psubtract)) {
+                  a_boolean err;
+                  if (!int_constant_is_signed(sub_con)) goto invalid_subscript;
+                  local_con = *sub_con;
+                  eff_sub_con = &local_con;
+                  negate_integer_value(&local_con.variant.integer_value,
+                                       &err);
+                  if (err) goto invalid_subscript;
+                }  /* if */
+                if (sign_of_integer_constant(eff_sub_con) < 0) {
+                  /* Negative subscript (positive for pointer "-"). */
+invalid_subscript:
                   valid = FALSE;
                 } else if (prev_subsc_just_past_end) {
                   /* A previous subscript was just past the end. */
-                  if (sign_of_integer_constant(sub_con) == 0) {
+                  if (sign_of_integer_constant(eff_sub_con) == 0) {
                     /* This one is zero, so we're still just at the end. */
                     *just_past_end = TRUE;
                   } else {
@@ -6507,8 +6525,8 @@ operator was scanned.
                      size 1, since that's probably a clue that the programmer
                      is cheating. */
                   if (num_elements > 1) {
-                    cmp = cmpulit_integer_constant(
-                                 sub_con, (a_host_large_unsigned)num_elements);
+                    cmp = cmpulit_integer_constant(eff_sub_con,
+                                          (a_host_large_unsigned)num_elements);
                     valid = (cmp <= 0);  /* Subscript <= number of elements */
                     *just_past_end = (cmp == 0);
                                           /* Subscript == number of elements */
