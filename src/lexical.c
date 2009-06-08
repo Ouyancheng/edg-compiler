@@ -17005,6 +17005,7 @@ are handled in lexical_init.)
       pch_saved_var_array_elem(avail_reusable_cache_entries),
       pch_saved_var_array_elem(avail_pending_pragmas),
       pch_saved_var_array_elem(avail_stop_token_stack_entries),
+      pch_saved_var_array_elem(avail_lexical_state_stack_entries),
       pch_saved_var_array_elem(include_file_history_hash_table),
       pch_saved_var_array_elem(name_linkage_constants),
       pch_saved_var_array_elem(curr_stop_token_stack_entry),
@@ -17166,6 +17167,7 @@ of the front end.
   avail_cached_constants = NULL;
   avail_reusable_cache_entries = NULL;
   avail_stop_token_stack_entries = NULL;
+  avail_lexical_state_stack_entries = NULL;
   avail_pending_pragmas = NULL;
   token_insertion_buffer = NULL;
   in_token_insertion_from_string = FALSE;
