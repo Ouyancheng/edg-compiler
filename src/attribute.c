@@ -2384,7 +2384,8 @@ the case.
       (*tp)->kind == (a_type_kind)tk_error) {
     /* Nothing to be done. */
   } else if ((*tp)->kind == (a_type_kind)tk_typeref &&
-             typeref_is_typedef(*tp)) {
+             (typeref_is_typedef(*tp) ||
+              typeref_is_decltype_or_typeof(*tp))) {
     /* We cannot apply the attribute to the type underlying the typedef.
        So make a copy of that type. */
     *tp = copy_type_and_apply_attributes((an_attribute_ptr)NULL,
