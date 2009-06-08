@@ -16926,7 +16926,7 @@ lambda.
   a_scope_stack_entry_ptr ssep;
   a_boolean               scope_error = FALSE;
 
-  for (ssep = scope_stack_entry_for(decl_scope_level);;
+  for (ssep = scope_stack_entry_for(depth_scope_stack);;
        ssep = scope_stack_entry_for(previous_scope)) {
     previous_scope = ssep->previous_scope;
     switch (ssep->kind) {
@@ -16938,10 +16938,10 @@ lambda.
       case sck_condition:
       case sck_function:
       case sck_class_reactivation:
-        goto done;
       case sck_namespace_reactivation:
+        goto done;
       case sck_instantiation_context:
-        /* We might see these while looking for a suitable scope after error
+        /* We might see this while looking for a suitable scope after error
            recovery. */
         check_assertion(scope_error);
         break;

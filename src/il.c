@@ -7233,10 +7233,11 @@ it's to be moved to another position in the list.
              already on the list. */
           may_be_added = FALSE;
         }  /* if */
-      } else if (ssep->kind == (a_scope_kind)sck_class_reactivation) {
-        /* A closure class that was created in a class reactivation scope.
-           This was added to the type list specially and should not be
-           handled here. */
+      } else if (ssep->kind == (a_scope_kind)sck_class_reactivation ||
+                 ssep->kind == (a_scope_kind)sck_namespace_reactivation) {
+        /* A closure class that was created in a class or namespace
+           reactivation scope.  This was added to the type list specially
+           and should not be handled here. */
         check_assertion(class_type_supp(type_ptr)->is_lambda_closure_class);
         may_be_added = FALSE;
       }  /* if */
@@ -7473,6 +7474,22 @@ done to add the type to the end of the types list for the enclosing class.
       tp->next = type_ptr;
     } else {
       sp->types = type_ptr;
+    }  /* if */
+  } else if (ssep->kind == (a_scope_kind)sck_namespace_reactivation) {
+    /* When a lambda appears in a namespace reactivation scope it must be added
+       to the types list of the namespace that was reactivated. */
+    a_scope_ptr		sp;
+    a_namespace_ptr	nsp = scope_stack[scope_level].assoc_namespace;
+    sp = nsp->variant.assoc_scope;
+    set_parent_scope(&type_ptr->source_corresp, iek_type, sp);
+    if (sp->types == NULL) {
+      sp->types = type_ptr;
+    } else {
+      a_scope_pointers_block_ptr	pointers_block;
+      a_type_ptr			prev_type;
+      pointers_block = &symbol_supplement_for_namespace(nsp)->pointers_block;
+      prev_type = pointers_block->last_type;
+      prev_type->next = type_ptr;
     }  /* if */
   } else {
     /* Normal case -- just use the normal add_to_types_list process. */
