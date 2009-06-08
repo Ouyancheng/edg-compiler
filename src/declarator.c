@@ -2137,7 +2137,6 @@ if this is the function declarator in a friend function declaration.
             } else {
               /* Scan the default arguments for a function template. */
               prescan_function_template_default_arg_expr(ptp_for_scan,
-                                                         def_arg_scope_depth,
                                                          param_number);
             }  /* if */
           } else {

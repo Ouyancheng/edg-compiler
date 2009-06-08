@@ -12865,15 +12865,12 @@ present, the nesting depth "0" is used.
 
 void prescan_function_template_default_arg_expr(
 					a_param_type_ptr  ptp,
-					a_scope_depth	  assoc_scope_depth,
 					unsigned long	  param_number)
 /*
 Scan a default argument expression and add it to the list of arguments
 pointed to by the template symbol supplement.  "ptp" can be NULL if
-the tokens should be scanned and discarded.  assoc_scope_depth is the
-depth of the template declaration or instantiation scope associated with
-the declaration that this default argument is associated with.  param_number
-specifies the position of the parameter in the parameter list.
+the tokens should be scanned and discarded.  param_number specifies the
+position of the parameter in the parameter list.
 */
 {
   a_def_arg_expr_fixup_ptr	*list;
@@ -12887,12 +12884,6 @@ specifies the position of the parameter in the parameter list.
        during a real instantiation of the enclosing class. */
     if (ptp != NULL) ptp->has_unevaluated_template_default = TRUE;
   } else {
-    /* The current scope stack entry is expected to be a function prototype
-       scope.  The scope specified by assoc_scope_depth is an enclosing scope
-       and is expected to be either the template declaration scope for the
-       current function template or the instantiation scope for the partial
-       instantiation of a template function declaration.  In the latter case,
-       the tokens that are cached are simply discarded. */
     list = &curr_default_args;
     prescan_default_function_arg_expr(ptp, list, /*is_function_template=*/TRUE,
 				      /*is_friend_decl=*/FALSE, param_number);
