@@ -14468,20 +14468,12 @@ If insert_location == NULL, no initialization code is generated.
   if (dip->is_freeing_of_storage_on_exception) {
     a_new_delete_supplement_ptr ndsp = dip->assoc_new;
 #if ABI_CHANGES_FOR_PLACEMENT_DELETE
-    /* Take a look at the "new" operator associated with this destruction;
-       if it's one that we're going to treat as a placement new during
-       processing in lower_new, set the placement_new flag now and remove it
-       from the destruction list below. */
-    if (ndsp != NULL && !ndsp->placement_new && ndsp->routine != NULL) {
-      a_param_type_ptr params =
-                          unlowered_param_type_list_for_routine(ndsp->routine);
-      if (params != NULL && params->next != NULL) {
-        /* Treat an operator new with default arguments as a placement new.
-           See core issue 127. */
-        check_assertion_str(params->next->has_default_arg,
-                                "placement_new not set but more than one arg");
-        ndsp->placement_new = TRUE;
-      }  /* if */
+    if (ndsp != NULL) {
+      /* Take a look at the "new" operator associated with this destruction;
+         if it's one that we're going to treat as a placement new during
+         processing in lower_new, set the placement_new flag now and remove it
+         from the destruction list below. */
+      treat_as_placement_new_if_has_default_args(ndsp);
     }  /* if */
 #endif /* ABI_CHANGES_FOR_PLACEMENT_DELETE */
     if (dip->is_array_freeing || (ndsp != NULL && ndsp->placement_new)) {

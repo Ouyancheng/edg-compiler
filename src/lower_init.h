@@ -174,6 +174,13 @@ extern void lower_dynamic_init(a_dynamic_init_ptr     dip,
                                a_boolean              *keep_dynamic_init,
                                a_constant_ptr         *constant_to_keep);
 
+#if ABI_CHANGES_FOR_PLACEMENT_DELETE
+
+extern void treat_as_placement_new_if_has_default_args(
+                                             a_new_delete_supplement_ptr ndsp);
+
+#endif /* ABI_CHANGES_FOR_PLACEMENT_DELETE */
+
 extern void lower_new_delete(an_expr_node_ptr expr);
 
 extern void zero_automatic_temporary(a_variable_ptr   temp_var,

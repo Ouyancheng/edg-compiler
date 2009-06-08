@@ -8473,6 +8473,28 @@ Return TRUE if the indicated expression is a call of a constructor.
   return is_ctor_call;
 }  /* is_constructor_call */
 
+#if ABI_CHANGES_FOR_PLACEMENT_DELETE
+
+void treat_as_placement_new_if_has_default_args(
+                                              a_new_delete_supplement_ptr ndsp)
+/*
+ndsp is additional information related to a "new" operation.  If the
+operator new routine associated with this operation has default arguments,
+treat it as a placement new.  See core issue 127.
+*/
+{
+  if (!ndsp->placement_new && ndsp->routine != NULL) {
+    a_param_type_ptr params =
+                          unlowered_param_type_list_for_routine(ndsp->routine);
+    if (params != NULL && params->next != NULL) {
+      check_assertion_str(params->next->has_default_arg,
+                          "placement_new not set but more than one arg");
+      ndsp->placement_new = TRUE;
+    }  /* if */
+  }  /* if */
+}  /* treat_as_placement_new_if_has_default_args */
+
+#endif /* ABI_CHANGES_FOR_PLACEMENT_DELETE */
 
 static void lower_new(an_expr_node_ptr expr)
 /*
@@ -8489,6 +8511,11 @@ The subtree of the node has not yet been lowered.
   a_constant                  null_constant;
   an_insert_location          insert_location;
 
+#if ABI_CHANGES_FOR_PLACEMENT_DELETE
+  /* Treat an operator new with default arguments as a placement new.
+     See core issue 127. */
+  treat_as_placement_new_if_has_default_args(ndsp);
+#endif /* ABI_CHANGES_FOR_PLACEMENT_DELETE */
   base_type = new_delete_base_type_from_operation_type(ndsp->type);
   if (is_array_type(ndsp->type) &&
       new_or_delete_type_requires_array_handling(base_type,
